@@ -805,6 +805,31 @@ export const ptMessages = {
 	'challenge.create.error.missing_premium': 'Prenda em falta',
 	'challenge.create.error.missing_premium_message':
 		'Escolhe uma prenda da lista ou descreve uma personalizada.',
+	'claim.banner.cta': 'Mudar agora',
+	'claim.banner.dismiss_aria': 'Fechar',
+	'claim.banner.text': 'O novo VICI está pronto. Leva a tua conta com um toque.',
+	'claim.banner.title': 'Muda para o novo VICI',
+	'claim.handoff.error':
+		'Não conseguimos iniciar a mudança. Confirma que tens sessão iniciada e tenta novamente.',
+	'claim.page.already_linked': 'Esta identidade já estava associada à tua conta.',
+	'claim.page.error.conflict': 'Esta identidade já está associada a outra conta.',
+	'claim.page.error.generic': 'Algo correu mal. Tenta novamente daqui a pouco.',
+	'claim.page.error.invalid':
+		'Este link de mudança não é válido. Recomeça a mudança na app antiga.',
+	'claim.page.error.stale': 'Este link de mudança expirou. Recomeça a mudança na app antiga.',
+	'claim.page.missing':
+		'Este link está incompleto. Abre novamente o link de mudança na app antiga.',
+	'claim.page.open_app_cta': 'Abrir VICI',
+	'claim.page.retry_cta': 'Tentar novamente',
+	'claim.page.signin_hint':
+		'Inicia sessão ou cria a tua conta para associar o teu histórico de previsões.',
+	'claim.page.success_body':
+		'A tua antiga identidade VICI está agora associada a esta conta. O teu histórico vai contigo.',
+	'claim.page.success_title': 'Conta associada',
+	'claim.page.title': 'Muda a tua conta VICI',
+	'claim.page.verifying': 'A associar a tua conta…',
+	'claim.settings.label': 'Muda para o novo VICI',
+	'claim.settings.sub': 'Leva esta conta para a nova app',
 	'chip.day_streak': 'DIAS SEGUIDOS',
 	'common.error.generic': 'Algo correu mal. Tenta novamente.',
 	'companion.oracle.called_it': 'Acertaste em cheio.',

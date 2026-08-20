@@ -803,6 +803,32 @@ export const itMessages = {
 	'challenge.create.error.missing_premium': 'Posta mancante',
 	'challenge.create.error.missing_premium_message':
 		'Scegli una posta dalla lista o descrivine una personalizzata.',
+	'claim.banner.cta': 'Trasferisci ora',
+	'claim.banner.dismiss_aria': 'Chiudi',
+	'claim.banner.text': 'Il nuovo VICI è pronto. Porta con te il tuo account con un tocco.',
+	'claim.banner.title': 'Passa al nuovo VICI',
+	'claim.handoff.error':
+		'Non siamo riusciti ad avviare il trasferimento. Controlla di aver effettuato l’accesso e riprova.',
+	'claim.page.already_linked': 'Questa identità era già collegata al tuo account.',
+	'claim.page.error.conflict': 'Questa identità è già collegata a un altro account.',
+	'claim.page.error.generic': 'Qualcosa è andato storto. Riprova tra poco.',
+	'claim.page.error.invalid':
+		'Questo link di trasferimento non è valido. Riavvia il trasferimento dalla vecchia app.',
+	'claim.page.error.stale':
+		'Questo link di trasferimento è scaduto. Riavvia il trasferimento dalla vecchia app.',
+	'claim.page.missing':
+		'Questo link è incompleto. Riapri il link di trasferimento dalla vecchia app.',
+	'claim.page.open_app_cta': 'Apri VICI',
+	'claim.page.retry_cta': 'Riprova',
+	'claim.page.signin_hint':
+		'Accedi o crea il tuo account per collegare la tua cronologia di previsioni.',
+	'claim.page.success_body':
+		'La tua vecchia identità VICI è ora collegata a questo account. La tua cronologia ti seguirà.',
+	'claim.page.success_title': 'Account collegato',
+	'claim.page.title': 'Trasferisci il tuo account VICI',
+	'claim.page.verifying': 'Collegamento dell’account…',
+	'claim.settings.label': 'Passa al nuovo VICI',
+	'claim.settings.sub': 'Porta questo account nella nuova app',
 	'chip.day_streak': 'GIORNI DI SERIE',
 	'common.error.generic': 'Qualcosa è andato storto. Riprova.',
 	'companion.oracle.called_it': 'Ci hai visto giusto.',

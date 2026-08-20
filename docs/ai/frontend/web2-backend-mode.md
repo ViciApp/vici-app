@@ -142,6 +142,40 @@ default backend and the cookie-session store in web2 mode
 `client.ts` ships the auth surface: `getProviders()`, `getMe()`,
 `requestOtp()`, `verifyOtp()`, `googleSignInUrl()`, `logout()`.
 
+## Account claim
+
+How a legacy on-chain user with no email on file (passkey or Internet
+Identity) carries their principal to a web2 account: a signed handoff, no
+satellite change, no cross-origin cookie.
+
+- **Legacy build (default backend)**: signed-in users see a dismissible
+  banner in the `(app)` shell (`claim/ClaimBanner.svelte`) and a Settings >
+  Account row. Both call `claim-handoff.services.startClaimHandoff()`, which
+  signs `{ aud: 'vici-web2-claim', principal, issuedAtMs }` with the Juno
+  `DelegationIdentity`'s session key, packs payload + full delegation chain +
+  signature into a base64url blob (`claim-handoff.utils.ts`, the wire
+  contract pinned by the backend shared-drift suite) and opens
+  `CLAIM_PORTAL_URL#<blob>` in a new tab. The blob holds no secret: it is a
+  bearer proof of principal control, valid for ~10 minutes and never sent to
+  any server but the claim API.
+- **Web2 build**: `/claim` (`pages/ClaimPage.svelte`) parks the fragment in
+  sessionStorage (OAuth redirects drop fragments), strips it from the URL,
+  runs the normal web2 sign-in if needed (`SignInProviderStackWeb2`), then
+  posts the blob via `client.ts` `postClaim()`.
+- **API** (`POST /api/v1/claim`, session-gated): verifies off-chain that the
+  chain's root key derives the claimed principal, every delegation link
+  signature is valid (ed25519 / secp256k1 raw keys, WebAuthn passkeys, and
+  canister signatures certified against the IC root key), nothing is
+  expired, and the session key signed a fresh claim message; then inserts
+  `legacy_principals` with `matched_via = 'claim'`. Idempotent per account;
+  a principal owned by another account answers a stable 409.
+
+Trust model: whoever presents a valid blob within the freshness window
+controls the principal, exactly like holding the delegation itself. The
+handoff surfaces are deliberately absent from the web2 build and the portal
+route redirects home on the default backend; the mode gates live in
+`claim-handoff.services.ts`, not in components.
+
 ## Profiles and social
 
 This is the worked example of the per-service swap for a data domain, and

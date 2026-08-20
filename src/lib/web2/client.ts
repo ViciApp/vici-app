@@ -238,6 +238,27 @@ export const logout = async (): Promise<void> => {
 	await request<{ ok: boolean }>({ path: '/api/v1/auth/logout', method: 'POST' });
 };
 
+export interface Web2ClaimResult {
+	principal: string;
+	/** True when the principal was already linked to the calling account. */
+	alreadyLinked: boolean;
+}
+
+/** Submit a signed principal-handoff blob; links the proven principal to the
+ * session account. Foreign links throw a 409 `principal_already_linked`. */
+export const postClaim = async ({ blob }: { blob: string }): Promise<Web2ClaimResult> => {
+	const { principal, alreadyLinked } = await request<{
+		principal: string;
+		alreadyLinked: boolean;
+	}>({
+		path: '/api/v1/claim',
+		method: 'POST',
+		body: { blob }
+	});
+
+	return { principal, alreadyLinked };
+};
+
 // ─── Profiles + social + leaderboard ─────────────────────────────────────
 //
 // The HTTP API keys a user by an opaque `userId` (uuid) where the on-chain

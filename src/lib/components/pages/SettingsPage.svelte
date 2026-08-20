@@ -15,6 +15,7 @@
 		Lock,
 		Mail,
 		Moon,
+		Rocket,
 		Scale,
 		Search,
 		Share2,
@@ -44,6 +45,7 @@
 	import { TestId } from '$lib/constants/test-ids.constants';
 	import { authPrincipal } from '$lib/derived/user.derived';
 	import { flushEvents, track } from '$lib/services/analytics.services';
+	import { isClaimHandoffAvailable, startClaimHandoff } from '$lib/services/claim-handoff.services';
 	// The dual-mode sign-out: the Juno delegation drop on the default
 	// backend, the cookie-session revoke in web2 mode.
 	import { signOut } from '$lib/services/identity.services';
@@ -82,6 +84,29 @@
 
 	let signOutStatus = $state<ButtonStatus>('enabled');
 	let confirmingSignOut = $state(false);
+
+	// Account-claim handoff: a legacy-build-only row that signs the claim
+	// payload and opens the claim portal on the new stack in a new tab.
+	const claimAvailable = isClaimHandoffAvailable();
+	let claimBusy = $state(false);
+
+	const onStartClaim = async () => {
+		if (claimBusy) {
+			return;
+		}
+
+		claimBusy = true;
+
+		try {
+			const opened = await startClaimHandoff();
+
+			if (!opened) {
+				flashToast(t({ locale: $localeStore, key: 'claim.handoff.error' }));
+			}
+		} finally {
+			claimBusy = false;
+		}
+	};
 
 	// Local transient toast pill. Kept page-local instead of routing
 	// through `notificationsStore` because the surface wants a compact
@@ -359,6 +384,15 @@
 					{/if}
 				{/snippet}
 			</SetRow>
+
+			{#if claimAvailable}
+				<SetRow
+					icon={Rocket}
+					label={t({ locale: $localeStore, key: 'claim.settings.label' })}
+					onclick={onStartClaim}
+					sub={t({ locale: $localeStore, key: 'claim.settings.sub' })}
+				/>
+			{/if}
 		</SettingsSection>
 
 		<SettingsSection title={t({ locale: $localeStore, key: 'settings.preferences' })}>

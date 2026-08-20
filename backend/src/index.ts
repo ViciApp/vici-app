@@ -13,6 +13,7 @@ import { accountRoutes } from './routes/account';
 import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
 import { battlesRoutes } from './routes/battles';
+import { claimRoutes } from './routes/claim';
 import { engineRoutes } from './routes/engine';
 import { eventsRoutes } from './routes/events';
 import { leaderboardRoutes } from './routes/leaderboard';
@@ -146,6 +147,7 @@ export const app = new Elysia()
 	// Credentialed CORS scoped to the SPA origins so the session cookie rides along.
 	.use(cors({ origin: allowedOrigins, credentials: true }))
 	.use(authRoutes)
+	.use(claimRoutes)
 	.use(walletRoutes)
 	.use(engineRoutes)
 	.use(profilesRoutes)

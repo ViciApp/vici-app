@@ -6,6 +6,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import ClaimBanner from '$lib/components/claim/ClaimBanner.svelte';
 	import GuestSaveHost from '$lib/components/guest/GuestSaveHost.svelte';
 	import DesktopAppNav from '$lib/components/layout/DesktopAppNav.svelte';
 	import MobileNav from '$lib/components/layout/MobileNav.svelte';
@@ -357,6 +358,15 @@
 		a fake-mobile phone bezel.
 	-->
 	<DesktopAppNav />
+
+	<!--
+		Legacy-build-only migration banner: invites signed-in users to carry
+		their account over to the new stack. The component renders nothing on
+		the web2 build (the availability gate lives in the claim service).
+	-->
+	{#if $userSignedIn}
+		<ClaimBanner />
+	{/if}
 
 	<main class="screen-scroll">
 		{#if authResolving}

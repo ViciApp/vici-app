@@ -805,6 +805,32 @@ export const esMessages = {
 	'challenge.create.error.missing_premium': 'Falta el reto',
 	'challenge.create.error.missing_premium_message':
 		'Elige un reto de la lista o describe uno propio.',
+	'claim.banner.cta': 'Mudarme ahora',
+	'claim.banner.dismiss_aria': 'Cerrar',
+	'claim.banner.text': 'El nuevo VICI ya está listo. Llévate tu cuenta con un toque.',
+	'claim.banner.title': 'Múdate al nuevo VICI',
+	'claim.handoff.error':
+		'No pudimos iniciar la mudanza. Comprueba que has iniciado sesión y vuelve a intentarlo.',
+	'claim.page.already_linked': 'Esta identidad ya estaba vinculada a tu cuenta.',
+	'claim.page.error.conflict': 'Esta identidad ya está vinculada a otra cuenta.',
+	'claim.page.error.generic': 'Algo salió mal. Inténtalo de nuevo en un momento.',
+	'claim.page.error.invalid':
+		'Este enlace de mudanza no es válido. Vuelve a iniciar la mudanza desde la app antigua.',
+	'claim.page.error.stale':
+		'Este enlace de mudanza ha caducado. Vuelve a iniciar la mudanza desde la app antigua.',
+	'claim.page.missing':
+		'Este enlace está incompleto. Abre de nuevo el enlace de mudanza desde la app antigua.',
+	'claim.page.open_app_cta': 'Abrir VICI',
+	'claim.page.retry_cta': 'Reintentar',
+	'claim.page.signin_hint':
+		'Inicia sesión o crea tu cuenta para vincular tu historial de predicciones.',
+	'claim.page.success_body':
+		'Tu antigua identidad de VICI ya está vinculada a esta cuenta. Tu historial te seguirá.',
+	'claim.page.success_title': 'Cuenta vinculada',
+	'claim.page.title': 'Múdate con tu cuenta de VICI',
+	'claim.page.verifying': 'Vinculando tu cuenta…',
+	'claim.settings.label': 'Múdate al nuevo VICI',
+	'claim.settings.sub': 'Lleva esta cuenta a la nueva app',
 	'chip.day_streak': 'DÍAS DE RACHA',
 	'common.error.generic': 'Algo salió mal. Inténtalo de nuevo.',
 	'companion.oracle.called_it': 'Acertaste.',

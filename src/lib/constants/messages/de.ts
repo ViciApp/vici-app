@@ -812,6 +812,32 @@ export const deMessages = {
 	'challenge.create.error.missing_premium': 'Mutprobe fehlt',
 	'challenge.create.error.missing_premium_message':
 		'Wähle eine Mutprobe aus der Liste oder beschreibe eine eigene.',
+	'claim.banner.cta': 'Jetzt umziehen',
+	'claim.banner.dismiss_aria': 'Schließen',
+	'claim.banner.text': 'Das neue VICI ist bereit. Nimm dein Konto mit einem Tipp mit.',
+	'claim.banner.title': 'Zum neuen VICI wechseln',
+	'claim.handoff.error':
+		'Der Umzug konnte nicht gestartet werden. Prüfe, ob du angemeldet bist, und versuche es erneut.',
+	'claim.page.already_linked': 'Diese Identität war bereits mit deinem Konto verknüpft.',
+	'claim.page.error.conflict': 'Diese Identität ist bereits mit einem anderen Konto verknüpft.',
+	'claim.page.error.generic': 'Etwas ist schiefgelaufen. Versuche es gleich noch einmal.',
+	'claim.page.error.invalid':
+		'Dieser Umzugslink ist ungültig. Starte den Umzug in der alten App neu.',
+	'claim.page.error.stale':
+		'Dieser Umzugslink ist abgelaufen. Starte den Umzug in der alten App neu.',
+	'claim.page.missing':
+		'Dieser Link ist unvollständig. Öffne den Umzugslink in der alten App erneut.',
+	'claim.page.open_app_cta': 'VICI öffnen',
+	'claim.page.retry_cta': 'Erneut versuchen',
+	'claim.page.signin_hint':
+		'Melde dich an oder erstelle dein Konto, um deinen Prognoseverlauf zu verknüpfen.',
+	'claim.page.success_body':
+		'Deine alte VICI-Identität ist jetzt mit diesem Konto verknüpft. Dein Verlauf zieht mit um.',
+	'claim.page.success_title': 'Konto verknüpft',
+	'claim.page.title': 'Zieh mit deinem VICI-Konto um',
+	'claim.page.verifying': 'Konto wird verknüpft…',
+	'claim.settings.label': 'Zum neuen VICI wechseln',
+	'claim.settings.sub': 'Nimm dieses Konto mit in die neue App',
 	'chip.day_streak': 'TAGE-STREAK',
 	'common.error.generic': 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
 	'companion.oracle.called_it': 'Genau richtig.',

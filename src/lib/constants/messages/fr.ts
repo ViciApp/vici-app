@@ -809,6 +809,31 @@ export const frMessages = {
 	'challenge.create.error.missing_premium': 'Gage manquant',
 	'challenge.create.error.missing_premium_message':
 		'Choisis un gage dans la liste ou décris-en un personnalisé.',
+	'claim.banner.cta': 'Migrer maintenant',
+	'claim.banner.dismiss_aria': 'Fermer',
+	'claim.banner.text': 'Le nouveau VICI est prêt. Emporte ton compte en un geste.',
+	'claim.banner.title': 'Passer au nouveau VICI',
+	'claim.handoff.error':
+		'Impossible de lancer la migration. Vérifie que tu es connecté et réessaie.',
+	'claim.page.already_linked': 'Cette identité était déjà liée à ton compte.',
+	'claim.page.error.conflict': 'Cette identité est déjà liée à un autre compte.',
+	'claim.page.error.generic': 'Une erreur est survenue. Réessaie dans un instant.',
+	'claim.page.error.invalid':
+		'Ce lien de migration n’est pas valide. Relance la migration depuis l’ancienne app.',
+	'claim.page.error.stale':
+		'Ce lien de migration a expiré. Relance la migration depuis l’ancienne app.',
+	'claim.page.missing': 'Ce lien est incomplet. Rouvre le lien de migration depuis l’ancienne app.',
+	'claim.page.open_app_cta': 'Ouvrir VICI',
+	'claim.page.retry_cta': 'Réessayer',
+	'claim.page.signin_hint':
+		'Connecte-toi ou crée ton compte pour lier ton historique de prédictions.',
+	'claim.page.success_body':
+		'Ton ancienne identité VICI est maintenant liée à ce compte. Ton historique suivra.',
+	'claim.page.success_title': 'Compte lié',
+	'claim.page.title': 'Migre ton compte VICI',
+	'claim.page.verifying': 'Liaison de ton compte…',
+	'claim.settings.label': 'Passer au nouveau VICI',
+	'claim.settings.sub': 'Emporte ce compte dans la nouvelle app',
 	'chip.day_streak': 'JOURS DE SUITE',
 	'common.error.generic': 'Une erreur est survenue. Veuillez réessayer.',
 	'companion.oracle.called_it': 'Bien vu.',
