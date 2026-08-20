@@ -2293,6 +2293,8 @@ export const deMessages = {
 	'settings.toast.export_coming': 'Export bald verfügbar',
 	'settings.two_factor': 'Zwei-Faktor-Authentifizierung',
 	'settings.two_factor.sub': 'Demnächst · Authenticator-App',
+	'signin.beta_closed':
+		'VICI auf der neuen Plattform ist in privater Beta. Deine E-Mail steht noch nicht auf der Zugangsliste.',
 	'signin.email.aria': 'E-Mail-Adresse',
 	'signin.email.cta': 'Weiter',
 	'signin.email.fineprint': 'Mit Passkey gesichert. Nichts zu merken.',

@@ -2268,6 +2268,8 @@ export const itMessages = {
 	'settings.toast.export_coming': 'Esportazione in arrivo',
 	'settings.two_factor': 'Autenticazione a due fattori',
 	'settings.two_factor.sub': 'In arrivo · app authenticator',
+	'signin.beta_closed':
+		'VICI sulla nuova piattaforma è in beta privata. La tua email non è ancora nella lista di accesso.',
 	'signin.email.aria': 'Indirizzo email',
 	'signin.email.cta': 'Continua',
 	'signin.email.fineprint': 'Protetto con passkey. Niente da ricordare.',

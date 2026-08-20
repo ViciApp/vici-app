@@ -2159,6 +2159,7 @@ export const zhHansMessages = {
 	'settings.toast.export_coming': '导出功能即将上线',
 	'settings.two_factor': '双重验证',
 	'settings.two_factor.sub': '即将推出 · 验证器应用',
+	'signin.beta_closed': '新平台上的 VICI 正处于私密测试阶段，你的邮箱还不在准入名单中。',
 	'signin.email.aria': '电子邮件地址',
 	'signin.email.cta': '继续',
 	'signin.email.fineprint': '使用通行密钥保护。无需记忆。',

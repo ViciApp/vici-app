@@ -13,6 +13,7 @@
 		googleSignInUrl,
 		requestOtp,
 		verifyOtp,
+		Web2ApiError,
 		type Web2Providers
 	} from '$lib/web2/client';
 	import { adoptWeb2Session } from '$lib/web2/session';
@@ -43,7 +44,14 @@
 	let email = $state('');
 	let code = $state('');
 	let busy = $state(false);
-	let errorKey = $state<'signin.otp.error' | null>(null);
+	let errorKey = $state<'signin.otp.error' | 'signin.beta_closed' | null>(null);
+
+	// The API refuses gated sign-ins with the stable `beta_closed` code; map it
+	// to the private-beta message instead of the generic retry copy.
+	const errorKeyFor = (err: unknown): 'signin.otp.error' | 'signin.beta_closed' =>
+		err instanceof Web2ApiError && err.code === 'beta_closed'
+			? 'signin.beta_closed'
+			: 'signin.otp.error';
 
 	const emailValid = $derived(/\S+@\S+\.\S+/.test(email));
 	const codeValid = $derived(code.trim().length > 0);
@@ -51,6 +59,18 @@
 	const blocked = $derived(busy || disabled);
 
 	onMount(async () => {
+		// A gated OAuth sign-in lands back on `/signin?e=beta` (a redirect flow
+		// cannot carry a JSON error body, and this screen is where the message
+		// can be shown); surface the private-beta message and strip the marker
+		// so it does not outlive this screen.
+		const url = new URL(window.location.href);
+
+		if (url.searchParams.get('e') === 'beta') {
+			errorKey = 'signin.beta_closed';
+			url.searchParams.delete('e');
+			history.replaceState(null, '', url);
+		}
+
 		try {
 			providers = await getProviders();
 		} catch (err: unknown) {
@@ -92,7 +112,7 @@
 			code = '';
 		} catch (err: unknown) {
 			console.error('otp request failed', err);
-			errorKey = 'signin.otp.error';
+			errorKey = errorKeyFor(err);
 		} finally {
 			busy = false;
 		}
@@ -120,7 +140,7 @@
 			onSuccess?.();
 		} catch (err: unknown) {
 			console.error('otp verify failed', err);
-			errorKey = 'signin.otp.error';
+			errorKey = errorKeyFor(err);
 		} finally {
 			busy = false;
 		}

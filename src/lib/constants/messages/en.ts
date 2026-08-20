@@ -2264,6 +2264,8 @@ export const enMessages = {
 	'settings.toast.export_coming': 'Export coming soon',
 	'settings.two_factor': 'Two-factor authentication',
 	'settings.two_factor.sub': 'Coming soon · authenticator app',
+	'signin.beta_closed':
+		'VICI on the new platform is in private beta. Your email is not on the access list yet.',
 	'signin.email.aria': 'Email address',
 	'signin.email.cta': 'Continue',
 	'signin.email.fineprint': 'Secured with a passkey. Nothing to remember.',

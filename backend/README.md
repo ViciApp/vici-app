@@ -86,6 +86,17 @@ Endpoints under `/api/v1`:
 - `GET /auth/apple` + `POST /auth/apple/callback`: Sign in with Apple (ES256 client secret from the .p8 key, `form_post` callback, SameSite=None state cookie).
 - `POST /auth/logout`, `GET /me`.
 
+### Beta access gate
+
+Sign-in can be limited to an allowlist through the `beta_gate` app setting, managed with the generic admin settings CRUD (no dedicated endpoint):
+
+```
+PUT /api/v1/admin/settings/beta_gate
+{ "value": { "enabled": true, "emails": ["founder@example.com", "tester@example.com"] } }
+```
+
+While `enabled` is `true`, only the listed addresses (case-insensitive) can sign in: a non-allowlisted email gets `403 { "error": "beta_closed" }` from `POST /auth/otp/request` and `POST /auth/otp/verify`, and the OAuth callbacks bounce to `/signin?e=beta` (the screen that renders the refusal) instead of minting a session. The refusal is identical for every address, so it leaks nothing about whether an account exists. Setting absent or `enabled: false` (or deleting the key) turns the gate off and everyone passes. An enabled gate with a missing or malformed `emails` list admits no one, and a single non-string entry fails the whole list closed rather than honouring the well-formed ones. The gate guards sign-in only: sessions established before it flips on keep working. It is a rollout valve, not a security boundary.
+
 First verified login auto-links legacy on-chain identities: when the account has no `legacy_principals` row yet and the exported `legacy_auth_identities` table contains a row whose `openid_email` (first) or `profile_email` (fallback) matches the verified address, the principal links with the corresponding `matched_via`. The export tooling that fills `legacy_auth_identities` lands in a later phase; until then the table is empty and logins simply skip the match.
 
 ## Custody

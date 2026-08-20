@@ -2270,6 +2270,8 @@ export const ptMessages = {
 	'settings.toast.export_coming': 'Exportação em breve',
 	'settings.two_factor': 'Autenticação de dois fatores',
 	'settings.two_factor.sub': 'Em breve · aplicação autenticadora',
+	'signin.beta_closed':
+		'O VICI na nova plataforma está em beta privado. O teu email ainda não está na lista de acesso.',
 	'signin.email.aria': 'Endereço de email',
 	'signin.email.cta': 'Continuar',
 	'signin.email.fineprint': 'Protegido com Passkey. Nada para memorizar.',

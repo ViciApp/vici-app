@@ -2280,6 +2280,8 @@ export const frMessages = {
 	'settings.toast.export_coming': 'Exportation bientôt disponible',
 	'settings.two_factor': 'Authentification à deux facteurs',
 	'settings.two_factor.sub': 'Bientôt · app authenticator',
+	'signin.beta_closed':
+		'VICI sur la nouvelle plateforme est en bêta privée. Ton e-mail ne figure pas encore sur la liste.',
 	'signin.email.aria': 'Adresse e-mail',
 	'signin.email.cta': 'Continuer',
 	'signin.email.fineprint': 'Sécurisé par une passkey. Rien à retenir.',

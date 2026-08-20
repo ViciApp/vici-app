@@ -6,6 +6,7 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import * as apple from '../auth/apple';
+import { BETA_CLOSED_ERROR, isBetaSignInAllowed } from '../auth/beta-gate';
 import * as google from '../auth/google';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { resolveIdentity } from '../auth/identity';
@@ -51,6 +52,14 @@ const providerUnavailable = (set: StatusContext): { error: string } => {
 	set.status = 503;
 
 	return { error: 'provider_unavailable' };
+};
+
+/** Gated sign-in refusal. One stable body for every non-allowlisted address,
+ * so the response can never double as an address-existence oracle. */
+const betaClosed = (set: StatusContext): { error: string } => {
+	set.status = 403;
+
+	return { error: BETA_CLOSED_ERROR };
 };
 
 interface MeIdentity {
@@ -189,6 +198,10 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 				return { error: 'invalid_email' };
 			}
 
+			if (!(await isBetaSignInAllowed(email))) {
+				return betaClosed(set);
+			}
+
 			await requestOtp(email);
 			set.headers['cache-control'] = 'no-store';
 
@@ -210,6 +223,12 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 
 			if (limited) {
 				return limited;
+			}
+
+			// Re-checked here (not only at request time) so a code issued before
+			// the gate flipped on cannot still mint a session.
+			if (!(await isBetaSignInAllowed(body.email))) {
+				return betaClosed(set);
 			}
 
 			const result = await verifyOtp({ email: body.email, code: body.code });
@@ -283,6 +302,12 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 			return redirectToApp({ path: '/?e=google', clearStateCookie });
 		}
 
+		// The redirect flow's counterpart of the 403 beta_closed body: the
+		// browser is mid-navigation, so the refusal rides the landing path.
+		if (!(await isBetaSignInAllowed(profile.email))) {
+			return redirectToApp({ path: '/signin?e=beta', clearStateCookie });
+		}
+
 		const userId = await resolveIdentity({
 			provider: 'google',
 			subject: profile.sub,
@@ -353,6 +378,10 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 
 			if (isNullish(profile) || !profile.emailVerified) {
 				return redirectToApp({ path: '/?e=apple', clearStateCookie });
+			}
+
+			if (!(await isBetaSignInAllowed(profile.email))) {
+				return redirectToApp({ path: '/signin?e=beta', clearStateCookie });
 			}
 
 			// Apple sends the user's name only on the very first authorization, as
