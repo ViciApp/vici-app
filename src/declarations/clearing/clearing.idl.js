@@ -450,6 +450,13 @@ export const idlFactory = ({ IDL }) => {
 		oracle_source: IDL.Text,
 		forked_from: IDL.Opt(IDL.Text)
 	});
+	const ListSeriesSettlementStatusesParams = IDL.Record({
+		series_ids: IDL.Vec(IDL.Text)
+	});
+	const SeriesSettlementStatus = IDL.Record({
+		status: IDL.Opt(SettlementStatusView),
+		series_id: IDL.Text
+	});
 	const ListSeriesTradeHistoryParams = IDL.Record({
 		series_id: IDL.Text,
 		start_after: IDL.Opt(IDL.Nat64),
@@ -708,6 +715,11 @@ export const idlFactory = ({ IDL }) => {
 		list_leaderboard: IDL.Func([ListLeaderboardParams], [LeaderboardPage], ['query']),
 		list_orders: IDL.Func([ListOrdersParams], [IDL.Vec(LimitOrder)], ['query']),
 		list_series: IDL.Func([], [IDL.Vec(Series)], ['query']),
+		list_series_settlement_statuses: IDL.Func(
+			[ListSeriesSettlementStatusesParams],
+			[IDL.Vec(SeriesSettlementStatus)],
+			['query']
+		),
 		list_series_trade_history: IDL.Func(
 			[ListSeriesTradeHistoryParams],
 			[SeriesTradeHistoryPage],
