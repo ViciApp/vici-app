@@ -1,4 +1,4 @@
-// Generated from AntonioVentilii/icdc-core commit 897c64eb5673d44e13ee10985a4ed069a3d744d8 for file 'src/registry/registry.did'
+// Generated from AntonioVentilii/icdc-core commit 5a12d0cd5d2ff9ee848fcdae46bd0abdf3026a38 for file 'src/registry/registry.did'
 
 // Input parameters for registering a new price oracle.
 type AddOracleParams = record {
@@ -325,6 +325,23 @@ type GroupResult = variant {
 };
 // Parameters for filtering the list of registered derivative series.
 type ListSeriesParams = record {
+	// When `Some(true)`, return only series that are **due for resolution**: at
+	// or past `expiry_ns`, carrying a non-empty resolution clause, and with a
+	// payoff model that has the data required to settle (see
+	// [`Series::has_resolvable_payoff`]). `Some(false)` and `None` apply no
+	// filtering.
+	//
+	// This is the exact candidate set a resolution solver iterates: markets that
+	// have expired but not yet settled and can actually be resolved. It is the
+	// mirror image of [`Self::tradeable_now`] on the expiry axis (expired rather
+	// than live) and lets the caller fetch only the due subset instead of paging
+	// the whole registry and discarding most of it. Settlement state itself is
+	// owned by the clearing canister, so a caller still subtracts the
+	// already-settled ids (see `clearing.list_settled_series`) from this set.
+	//
+	// Like the other clock-dependent filters, the expiry cutoff uses the
+	// canister's own server-side `time()`.
+	due : opt bool;
 	// Filter by the strike price.
 	strike : opt Price;
 	// Filter by the principal identifier of the creator.
