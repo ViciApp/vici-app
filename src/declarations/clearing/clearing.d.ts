@@ -1019,6 +1019,24 @@ export interface ListOrdersParams {
 }
 /**
  * Input parameters for
+ * [`list_series_settlement_statuses`](super::list_series_settlement_statuses).
+ *
+ * Batches the per-series settlement check a resolution solver would otherwise
+ * make one call at a time. Callers pass the (bounded) set of series they care
+ * about — typically the "due" candidates from the registry — and receive one
+ * status per id in request order. Unknown or still-open series come back with a
+ * `None` status. The read looks each id up in `SETTLEMENT_PLANS`, so the work is
+ * `O(#series_ids)` regardless of how many plans exist. Mirrors
+ * [`ListSeriesTradedVolumesParams`](crate::api::trade::params::ListSeriesTradedVolumesParams).
+ */
+export interface ListSeriesSettlementStatusesParams {
+	/**
+	 * The series to check. Results are returned one per id, in this order.
+	 */
+	series_ids: Array<string>;
+}
+/**
+ * Input parameters for
  * [`list_series_trade_history`](super::list_series_trade_history).
  *
  * Returns the market-wide executed-trade history for a single series so a
@@ -1563,6 +1581,27 @@ export interface SeriesPriceHistory {
 	 * points.
 	 */
 	candles: Array<SeriesPriceCandle>;
+}
+/**
+ * One series' settlement status, paired with the id it was requested for.
+ *
+ * `status` is `Some` when a settlement plan exists for the series (in any
+ * [`PlanStatus`](crate::types::plans::PlanStatus) — a plan is opened the moment
+ * settlement begins) and `None` otherwise. A `None` covers both a still-open
+ * series and an unknown id; the two are not distinguished here. The `series_id`
+ * is echoed on each entry so callers can align results with their requested ids
+ * and attribute a `None`, which carries no id of its own.
+ */
+export interface SeriesSettlementStatus {
+	/**
+	 * The settlement progress, or `None` if the series has no settlement plan
+	 * yet (still open / not being settled).
+	 */
+	status: [] | [SettlementStatusView];
+	/**
+	 * The series this status is for (echoes the requested id).
+	 */
+	series_id: string;
 }
 /**
  * A page of executed trades scoped to a single series.
@@ -2529,6 +2568,31 @@ export interface _SERVICE {
 	 * Returns a list of all derivative series currently cached in the clearing canister.
 	 */
 	list_series: ActorMethod<[], Array<Series>>;
+	/**
+	 * Returns each requested series' settlement status in one call — the batch form
+	 * of [`get_settlement_status`].
+	 *
+	 * A resolution solver checks "is this market already settled?" for every due
+	 * market on each pass; done one id at a time that is N sequential canister
+	 * calls. This collapses them into one: each id is looked up in
+	 * `SETTLEMENT_PLANS` and returned with its [`SettlementStatusView`], or `None`
+	 * when no plan exists yet (the series is still open / not being settled).
+	 * Results are one per requested id, in request order, so the caller can zip them
+	 * back against its input; the `series_id` is echoed on each entry so a `None`
+	 * status is still attributable.
+	 *
+	 * The work is `O(#series_ids)` map lookups — bounded by the request, not by the
+	 * number of plans — so callers should pass the (already bounded) set they care
+	 * about, e.g. the registry's "due" candidates. Reads the same
+	 * `SETTLEMENT_PLANS` map as [`get_settlement_status`] and mirrors the
+	 * aggregate-read shape of
+	 * [`list_series_traded_volumes`](crate::api::trade::list_series_traded_volumes).
+	 * Guarded by `caller_is_not_anonymous`, matching the other settlement reads.
+	 */
+	list_series_settlement_statuses: ActorMethod<
+		[ListSeriesSettlementStatusesParams],
+		Array<SeriesSettlementStatus>
+	>;
 	/**
 	 * Returns the executed-trade history for a single series, with stable cursor
 	 * pagination.
