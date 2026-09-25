@@ -11,7 +11,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { tx, type TxQuery } from '../db/client';
-import { adoptOnFirstLogin } from './adoption';
+import { adoptOnFirstLogin, lockLoginEmails } from './adoption';
 
 export type Provider = 'google' | 'apple' | 'email';
 
@@ -81,15 +81,16 @@ const linkLegacyPrincipals = async ({
 };
 
 /** Resolve (or provision, or adopt) the user behind a verified identity; the
- * user id. One transaction under a per-email advisory lock, so concurrent
- * first logins for one address run one after the other: the second finds the
- * identity the first attached instead of provisioning or adopting again. */
+ * user id. One transaction under the per-email login lock, so concurrent
+ * first logins for one address (and claims moving an identity with that
+ * address) run one after the other: the later one finds the identity the
+ * earlier one attached instead of provisioning or adopting again. */
 export const resolveIdentity = (identity: VerifiedIdentity): Promise<string> => {
 	const email = normalizeEmail(identity.email);
 	const displayName = identity.displayName?.trim() ?? '';
 
 	return tx(async (q) => {
-		await q(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [`login-email:${email}`]);
+		await lockLoginEmails({ q, emails: [email] });
 
 		const bySubject = await q<{ user_id: string }>(
 			`select user_id from auth_identities where provider = $1 and subject = $2`,

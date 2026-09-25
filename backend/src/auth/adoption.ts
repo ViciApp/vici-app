@@ -16,10 +16,12 @@
 // principal, so no per-table merge rule is safe. Those cases are recorded in
 // legacy_adoption_conflicts for an admin instead.
 //
-// Lock order, shared by every path here: users rows first (ascending id when
-// more than one), then the legacy_principals row. Login and claim adoptions
-// racing on the same provisional account therefore serialize on its users
-// row instead of deadlocking.
+// Lock order, shared by every path here: the per-email login advisory locks
+// first (sorted), then users rows (ascending id when more than one), then the
+// legacy_principals row. A claim takes the email locks of every identity it
+// may move, so a first login for one of those addresses runs strictly before
+// or after the fold and never attaches to, or provisions next to, an account
+// the claim is rewriting.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
@@ -27,6 +29,21 @@ import { query, tx, type TxQuery } from '../db/client';
 export type AdoptionMatch = 'openid_email' | 'profile_email' | 'claim';
 
 type ConflictReason = 'multiple_matches' | 'account_not_empty';
+
+/** Serialize with every other login or claim touching these addresses for
+ * the rest of the transaction. Sorted so two holders of overlapping sets
+ * cannot deadlock. */
+export const lockLoginEmails = async ({
+	q,
+	emails
+}: {
+	q: TxQuery;
+	emails: string[];
+}): Promise<void> => {
+	for (const email of [...new Set(emails)].sort()) {
+		await q(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [`login-email:${email}`]);
+	}
+};
 
 /**
  * Whether an account holds no user-owned data yet: only its users row,
@@ -203,9 +220,8 @@ const tryAdoptCandidate = async ({
  * imported feed activity, then by principal for a stable order. Every other
  * candidate is left provisional and recorded for an admin.
  *
- * The caller must serialize first logins for the email (resolveIdentity
- * holds a per-email advisory lock) and attach the auth identity to the
- * returned user in the same transaction.
+ * The caller must hold the email's login lock (`lockLoginEmails`) and attach
+ * the auth identity to the returned user in the same transaction.
  */
 export const adoptOnFirstLogin = async ({
 	q,
@@ -319,6 +335,15 @@ export const claimPrincipal = ({
 	callerUserId: string;
 }): Promise<ClaimLinkOutcome> =>
 	tx(async (q) => {
+		const callerEmails = await q<{ email: string }>(
+			`select distinct lower(email) as email
+			 from auth_identities
+			 where user_id = $1 and email is not null`,
+			[callerUserId]
+		);
+
+		await lockLoginEmails({ q, emails: callerEmails.map(({ email }) => email) });
+
 		const inserted = await q<{ principal: string }>(
 			`insert into legacy_principals (principal, user_id, matched_via)
 			 values ($1, $2, 'claim')

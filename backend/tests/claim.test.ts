@@ -30,6 +30,7 @@ import { p256 } from '@noble/curves/p256';
 import { sha256 } from '@noble/hashes/sha2';
 import { hexToBytes } from '@noble/hashes/utils';
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { claimPrincipal } from '../src/auth/adoption';
 import {
 	CANISTER_SIG_OID,
 	CLAIM_AUDIENCE,
@@ -565,6 +566,38 @@ describe.if(dbAvailable)('POST /api/v1/claim (provisional account adoption)', ()
 		expect(await resolveIdentity({ provider: 'email', subject: email, email })).toBe(
 			imported.userId
 		);
+	});
+
+	test('a claim and a first login for the caller address serialize', async () => {
+		// Straight at the transaction (no blob verification in front of it) and
+		// repeated, so the two sides genuinely interleave.
+		for (let round = 0; round < 8; round += 1) {
+			const principal = uniquePrincipal();
+			const imported = await seedImportedAccount({ principal });
+			const email = uniqueEmail();
+			const callerId = await resolveIdentity({ provider: 'email', subject: email, email });
+
+			const [outcome, loginUserId] = await Promise.all([
+				claimPrincipal({ principal, callerUserId: callerId }),
+				resolveIdentity({ provider: 'google', subject: `g-${email}`, email })
+			]);
+
+			// Whichever ran first, the address ends up on exactly one live
+			// account holding both identities: a login that ran first attached
+			// Google to the caller and the fold carried it over; a login that
+			// ran second found the moved email identity on the adopted account.
+			const holders = await query<{ user_id: string; provider: string }>(
+				`select user_id, provider from auth_identities where lower(email) = $1 order by provider`,
+				[email]
+			);
+
+			expect(outcome.kind).toBe('adopted');
+			expect(holders).toEqual([
+				{ user_id: imported.userId, provider: 'email' },
+				{ user_id: imported.userId, provider: 'google' }
+			]);
+			expect([callerId, imported.userId]).toContain(loginUserId);
+		}
 	});
 
 	test('refuses a non-empty caller with a stable code and changes nothing', async () => {
