@@ -812,6 +812,8 @@ export const ptMessages = {
 	'claim.handoff.error':
 		'Não conseguimos iniciar a mudança. Confirma que tens sessão iniciada e tenta novamente.',
 	'claim.page.already_linked': 'Esta identidade já estava associada à tua conta.',
+	'claim.page.error.account_not_empty':
+		'Esta conta já tem o seu próprio histórico, por isso o antigo não pode ser transferido automaticamente. Contacta a equipa VICI e nós juntamos os dois.',
 	'claim.page.error.conflict': 'Esta identidade já está associada a outra conta.',
 	'claim.page.error.generic': 'Algo correu mal. Tenta novamente daqui a pouco.',
 	'claim.page.error.invalid':

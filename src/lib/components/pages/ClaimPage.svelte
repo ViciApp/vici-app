@@ -155,6 +155,8 @@
 				return 'claim.page.error.stale' as const;
 			case 'conflict':
 				return 'claim.page.error.conflict' as const;
+			case 'account_not_empty':
+				return 'claim.page.error.account_not_empty' as const;
 			default:
 				return 'claim.page.error.generic' as const;
 		}

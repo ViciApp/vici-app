@@ -7,8 +7,8 @@
 //
 // Mapping decisions that are not 1:1 column renames:
 //   - Principals resolve through legacy_principals; an unknown principal gets
-//     a provisional claim_pending user plus an 'etl' provenance link, claimed
-//     later by the login auto-match.
+//     a provisional claim_pending user plus an 'etl' provenance link, adopted
+//     later by a matching first login or the claim flow (src/auth/adoption.ts).
 //   - roles updates users.role only while it is still 'user' (a role granted
 //     on this stack is never clobbered); 'controller' is infrastructure, not
 //     a grantable role, and is skipped.

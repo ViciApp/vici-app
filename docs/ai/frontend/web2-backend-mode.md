@@ -168,7 +168,16 @@ satellite change, no cross-origin cookie.
   canister signatures certified against the IC root key), nothing is
   expired, and the session key signed a fresh claim message; then inserts
   `legacy_principals` with `matched_via = 'claim'`. Idempotent per account;
-  a principal owned by another account answers a stable 409.
+  a principal owned by another account answers a stable 409
+  (`principal_already_linked`).
+- **Migrated principals**: a principal whose data the importer parked on a
+  provisional account is adopted instead of linked. An empty caller account
+  folds into it and the response says `adopted: true`: the cookie is
+  unchanged but now resolves to a different user id, so
+  `submitClaimBlob()` re-runs `loadWeb2Session()` before resolving. A caller
+  whose account already holds data gets a 409 `account_not_empty` (portal
+  copy `claim.page.error.account_not_empty`), left for an admin; see
+  `backend/README.md` "Provisional account adoption".
 
 Trust model: whoever presents a valid blob within the freshness window
 controls the principal, exactly like holding the delegation itself. The

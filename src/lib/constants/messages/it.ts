@@ -810,6 +810,8 @@ export const itMessages = {
 	'claim.handoff.error':
 		'Non siamo riusciti ad avviare il trasferimento. Controlla di aver effettuato l’accesso e riprova.',
 	'claim.page.already_linked': 'Questa identità era già collegata al tuo account.',
+	'claim.page.error.account_not_empty':
+		'Questo account ha già una sua cronologia, quindi quella vecchia non può essere trasferita automaticamente. Contatta il team VICI e le uniremo.',
 	'claim.page.error.conflict': 'Questa identità è già collegata a un altro account.',
 	'claim.page.error.generic': 'Qualcosa è andato storto. Riprova tra poco.',
 	'claim.page.error.invalid':

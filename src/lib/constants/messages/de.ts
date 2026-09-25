@@ -819,6 +819,8 @@ export const deMessages = {
 	'claim.handoff.error':
 		'Der Umzug konnte nicht gestartet werden. Prüfe, ob du angemeldet bist, und versuche es erneut.',
 	'claim.page.already_linked': 'Diese Identität war bereits mit deinem Konto verknüpft.',
+	'claim.page.error.account_not_empty':
+		'Dieses Konto hat bereits einen eigenen Verlauf, daher kann dein alter nicht automatisch übernommen werden. Kontaktiere das VICI-Team, dann führen wir beide zusammen.',
 	'claim.page.error.conflict': 'Diese Identität ist bereits mit einem anderen Konto verknüpft.',
 	'claim.page.error.generic': 'Etwas ist schiefgelaufen. Versuche es gleich noch einmal.',
 	'claim.page.error.invalid':

@@ -797,6 +797,8 @@ export const enMessages = {
 	'claim.banner.title': 'Move to the new VICI',
 	'claim.handoff.error': "We couldn't start the move. Check that you're signed in and try again.",
 	'claim.page.already_linked': 'This identity was already linked to your account.',
+	'claim.page.error.account_not_empty':
+		"This account already has its own history, so your old one can't be moved into it automatically. Contact the VICI team and we'll combine them.",
 	'claim.page.error.conflict': 'This identity is already linked to a different account.',
 	'claim.page.error.generic': 'Something went wrong. Try again shortly.',
 	'claim.page.error.invalid':

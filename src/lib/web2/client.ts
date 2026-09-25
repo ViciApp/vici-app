@@ -242,21 +242,30 @@ export interface Web2ClaimResult {
 	principal: string;
 	/** True when the principal was already linked to the calling account. */
 	alreadyLinked: boolean;
+	/**
+	 * True when the principal's migrated account was adopted: the caller's
+	 * empty account folded into it and the same session cookie now resolves
+	 * to a different user id, so the session must be re-read.
+	 */
+	adopted: boolean;
 }
 
 /** Submit a signed principal-handoff blob; links the proven principal to the
- * session account. Foreign links throw a 409 `principal_already_linked`. */
+ * session account. Foreign links throw a 409 `principal_already_linked`; a
+ * migrated principal the caller's non-empty account cannot adopt throws a 409
+ * `account_not_empty`. */
 export const postClaim = async ({ blob }: { blob: string }): Promise<Web2ClaimResult> => {
-	const { principal, alreadyLinked } = await request<{
+	const { principal, alreadyLinked, adopted } = await request<{
 		principal: string;
 		alreadyLinked: boolean;
+		adopted?: boolean;
 	}>({
 		path: '/api/v1/claim',
 		method: 'POST',
 		body: { blob }
 	});
 
-	return { principal, alreadyLinked };
+	return { principal, alreadyLinked, adopted: adopted === true };
 };
 
 // ─── Profiles + social + leaderboard ─────────────────────────────────────

@@ -1,13 +1,18 @@
 // Account claim endpoint: a signed-in caller posts the signed handoff blob
 // minted by the legacy on-chain app; a verified blob links the proven
-// principal to the calling account (matched_via = 'claim'). Idempotent for
-// the same account, a stable 409 when the principal belongs to another one.
+// principal to the calling account (matched_via = 'claim'). A principal the
+// data migration parked on a provisional account is adopted instead: the
+// caller's still-empty account folds into it and the same session cookie now
+// resolves to the adopted account (`adopted: true`, the client re-reads /me).
+// Idempotent for the same account; stable 409s when the principal belongs to
+// another account (`principal_already_linked`) or when adopting would mean
+// merging two populated accounts (`account_not_empty`, left for an admin).
 
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
+import { claimPrincipal } from '../auth/adoption';
 import { verifyClaimBlob, type ClaimRejectReason } from '../auth/claim';
 import { requireUser, unauthenticated } from '../auth/guard';
-import { query } from '../db/client';
 import { clientIp } from '../lib/http';
 import { enforceLimit } from '../lib/rate-limit';
 
@@ -63,34 +68,31 @@ export const claimRoutes = new Elysia({ prefix: '/api/v1' }).post(
 			return { error: reasonToCode(verdict.reason) };
 		}
 
-		// `on conflict do nothing` keeps an existing link (whoever owns it)
-		// untouched; an empty returning set means the link pre-existed and the
-		// follow-up read decides between the idempotent success and the 409.
-		const inserted = await query<{ principal: string }>(
-			`insert into legacy_principals (principal, user_id, matched_via)
-			 values ($1, $2, 'claim')
-			 on conflict (principal) do nothing
-			 returning principal`,
-			[verdict.principal, user.id]
-		);
-		const alreadyLinked = inserted.length === 0;
+		const outcome = await claimPrincipal({
+			principal: verdict.principal,
+			callerUserId: user.id
+		});
 
-		if (alreadyLinked) {
-			const rows = await query<{ user_id: string }>(
-				`select user_id from legacy_principals where principal = $1`,
-				[verdict.principal]
-			);
+		if (outcome.kind === 'conflict') {
+			set.status = 409;
 
-			if (rows[0]?.user_id !== user.id) {
-				set.status = 409;
+			return { error: 'principal_already_linked' };
+		}
 
-				return { error: 'principal_already_linked' };
-			}
+		if (outcome.kind === 'account_not_empty') {
+			set.status = 409;
+
+			return { error: 'account_not_empty' };
 		}
 
 		set.headers['cache-control'] = 'no-store';
 
-		return { ok: true, principal: verdict.principal, alreadyLinked };
+		return {
+			ok: true,
+			principal: verdict.principal,
+			alreadyLinked: outcome.kind === 'already_linked',
+			adopted: outcome.kind === 'adopted'
+		};
 	},
 	{ body: t.Object({ blob: t.String() }) }
 );
