@@ -37,12 +37,15 @@ import {
 	claimMessageBytes,
 	verifyClaimBlob
 } from '../src/auth/claim';
+import { resolveIdentity } from '../src/auth/identity';
 import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
 import { app } from '../src/index';
 import { ZERO } from '../src/lib/constants';
 import { resetRateLimits } from '../src/lib/rate-limit';
-import { createTestUser, ensureMigrated, uniquePrincipal } from './helpers/auth';
+import { claimPendingOf, linkOf, seedImportedAccount } from './helpers/adoption';
+import { createTestUser, ensureMigrated, uniqueEmail, uniquePrincipal } from './helpers/auth';
+import { createTestProfile } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -422,7 +425,7 @@ describe.if(dbAvailable)('POST /api/v1/claim', () => {
 		const res = await post(blob, token);
 
 		expect(res.status).toBe(200);
-		expect(await res.json()).toEqual({ ok: true, principal, alreadyLinked: false });
+		expect(await res.json()).toEqual({ ok: true, principal, alreadyLinked: false, adopted: false });
 
 		const rows = await query<{ user_id: string; matched_via: string }>(
 			`select user_id, matched_via from legacy_principals where principal = $1`,
@@ -442,7 +445,7 @@ describe.if(dbAvailable)('POST /api/v1/claim', () => {
 		const res = await post(blob, token);
 
 		expect(res.status).toBe(200);
-		expect(await res.json()).toEqual({ ok: true, principal, alreadyLinked: true });
+		expect(await res.json()).toEqual({ ok: true, principal, alreadyLinked: true, adopted: false });
 	});
 
 	test('answers a stable 409 when the principal belongs to another account', async () => {
@@ -491,6 +494,130 @@ describe.if(dbAvailable)('POST /api/v1/claim', () => {
 
 		expect(res.status).toBe(400);
 		expect(await res.json()).toEqual({ error: 'stale_claim' });
+	});
+});
+
+describe.if(dbAvailable)('POST /api/v1/claim (provisional account adoption)', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	beforeEach(() => {
+		resetRateLimits();
+	});
+
+	const post = async (blob: string, token: string): Promise<Response> =>
+		await app.handle(
+			new Request('http://localhost/api/v1/claim', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', cookie: `vici_session=${token}` },
+				body: JSON.stringify({ blob })
+			})
+		);
+
+	const get = (path: string, token: string): Promise<Response> =>
+		app.handle(
+			new Request(`http://localhost${path}`, { headers: { cookie: `vici_session=${token}` } })
+		);
+
+	test('folds an empty caller into the imported account and keeps the session', async () => {
+		const { blob, principal } = await mintHandoff();
+		const imported = await seedImportedAccount({ principal });
+		const email = uniqueEmail();
+		const callerId = await resolveIdentity({ provider: 'email', subject: email, email });
+		const token = await createSession(callerId);
+
+		await query(`insert into custody_accounts (user_id, chain, address) values ($1, 'ic', $2)`, [
+			callerId,
+			`addr-${callerId}`
+		]);
+
+		const res = await post(blob, token);
+
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({
+			ok: true,
+			principal,
+			alreadyLinked: false,
+			adopted: true
+		});
+
+		const me = (await (await get('/api/v1/me', token)).json()) as {
+			user: { id: string; identities: { provider: string; email: string }[] };
+		};
+
+		expect(me.user.id).toBe(imported.userId);
+		expect(me.user.identities).toEqual([{ provider: 'email', email }]);
+
+		const profile = (await (await get('/api/v1/profiles/me', token)).json()) as {
+			profile: { nickname: string } | null;
+		};
+
+		expect(profile.profile?.nickname).toBe(imported.nickname);
+		expect(await linkOf(principal)).toEqual({ user_id: imported.userId, matched_via: 'claim' });
+		expect(await claimPendingOf(imported.userId)).toBe(false);
+		expect(await query(`select 1 from users where id = $1`, [callerId])).toEqual([]);
+		expect(await query(`select 1 from custody_accounts where user_id = $1`, [callerId])).toEqual(
+			[]
+		);
+
+		// A later sign-in with the same address lands on the adopted account.
+		expect(await resolveIdentity({ provider: 'email', subject: email, email })).toBe(
+			imported.userId
+		);
+	});
+
+	test('refuses a non-empty caller with a stable code and changes nothing', async () => {
+		const { blob, principal } = await mintHandoff();
+		const imported = await seedImportedAccount({ principal });
+		const { userId: callerId } = await createTestProfile();
+		const token = await createSession(callerId);
+
+		const res = await post(blob, token);
+
+		expect(res.status).toBe(409);
+		expect(await res.json()).toEqual({ error: 'account_not_empty' });
+		expect(await linkOf(principal)).toEqual({ user_id: imported.userId, matched_via: 'etl' });
+		expect(await claimPendingOf(imported.userId)).toBe(true);
+
+		const me = (await (await get('/api/v1/me', token)).json()) as { user: { id: string } };
+
+		expect(me.user.id).toBe(callerId);
+
+		const conflicts = await query<{ matched_user_id: string; reason: string }>(
+			`select matched_user_id, reason from legacy_adoption_conflicts where principal = $1`,
+			[principal]
+		);
+
+		expect(conflicts).toEqual([{ matched_user_id: callerId, reason: 'account_not_empty' }]);
+	});
+
+	test('a second principal of the same person hits the admin path once one is adopted', async () => {
+		const email = uniqueEmail();
+		const google = await seedImportedAccount({ principal: uniquePrincipal(), openidEmail: email });
+		const { blob, principal: passkey } = await mintHandoff();
+		const passkeyAccount = await seedImportedAccount({ principal: passkey });
+		const userId = await resolveIdentity({ provider: 'google', subject: `g-${email}`, email });
+
+		expect(userId).toBe(google.userId);
+
+		const res = await post(blob, await createSession(userId));
+
+		expect(res.status).toBe(409);
+		expect(await res.json()).toEqual({ error: 'account_not_empty' });
+		expect(await claimPendingOf(passkeyAccount.userId)).toBe(true);
+	});
+
+	test('a principal owned by a real account stays a plain conflict', async () => {
+		const { blob, principal } = await mintHandoff();
+		const imported = await seedImportedAccount({ principal });
+
+		await query(`update users set claim_pending = false where id = $1`, [imported.userId]);
+
+		const res = await post(blob, await createSession(await createTestUser()));
+
+		expect(res.status).toBe(409);
+		expect(await res.json()).toEqual({ error: 'principal_already_linked' });
 	});
 });
 

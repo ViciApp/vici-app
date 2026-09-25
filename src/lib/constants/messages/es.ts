@@ -812,6 +812,8 @@ export const esMessages = {
 	'claim.handoff.error':
 		'No pudimos iniciar la mudanza. Comprueba que has iniciado sesión y vuelve a intentarlo.',
 	'claim.page.already_linked': 'Esta identidad ya estaba vinculada a tu cuenta.',
+	'claim.page.error.account_not_empty':
+		'Esta cuenta ya tiene su propio historial, así que no podemos trasladar el anterior automáticamente. Contacta con el equipo de VICI y los uniremos.',
 	'claim.page.error.conflict': 'Esta identidad ya está vinculada a otra cuenta.',
 	'claim.page.error.generic': 'Algo salió mal. Inténtalo de nuevo en un momento.',
 	'claim.page.error.invalid':

@@ -816,6 +816,8 @@ export const frMessages = {
 	'claim.handoff.error':
 		'Impossible de lancer la migration. Vérifie que tu es connecté et réessaie.',
 	'claim.page.already_linked': 'Cette identité était déjà liée à ton compte.',
+	'claim.page.error.account_not_empty':
+		'Ce compte a déjà son propre historique, ton ancien ne peut donc pas y être transféré automatiquement. Contacte l’équipe VICI et nous les réunirons.',
 	'claim.page.error.conflict': 'Cette identité est déjà liée à un autre compte.',
 	'claim.page.error.generic': 'Une erreur est survenue. Réessaie dans un instant.',
 	'claim.page.error.invalid':

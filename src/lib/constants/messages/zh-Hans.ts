@@ -759,6 +759,8 @@ export const zhHansMessages = {
 	'claim.banner.title': '迁移到新 VICI',
 	'claim.handoff.error': '无法开始迁移。请确认已登录后重试。',
 	'claim.page.already_linked': '该身份此前已与你的账户关联。',
+	'claim.page.error.account_not_empty':
+		'此账户已有自己的历史记录，因此无法自动迁入你的旧记录。请联系 VICI 团队，我们会为你合并。',
 	'claim.page.error.conflict': '该身份已与其他账户关联。',
 	'claim.page.error.generic': '出了点问题，请稍后重试。',
 	'claim.page.error.invalid': '此迁移链接无效。请在旧应用中重新发起迁移。',

@@ -8,6 +8,7 @@ import {
 } from '$lib/utils/claim-handoff.utils';
 import { isWeb2Backend } from '$lib/web2/backend-mode';
 import { postClaim, Web2ApiError } from '$lib/web2/client';
+import { loadWeb2Session } from '$lib/web2/session';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { DelegationIdentity } from '@icp-sdk/core/identity';
 
@@ -87,23 +88,38 @@ export const startClaimHandoff = async (): Promise<boolean> => {
 };
 
 export type ClaimSubmitOutcome =
-	| { kind: 'linked' | 'already_linked'; principal: string }
-	| { kind: 'error'; code: 'invalid' | 'stale' | 'conflict' | 'generic' };
+	| { kind: 'linked' | 'already_linked' | 'adopted'; principal: string }
+	| { kind: 'error'; code: 'invalid' | 'stale' | 'conflict' | 'account_not_empty' | 'generic' };
 
 /**
  * Submit a handoff blob to the API (portal side). Maps the stable API error
  * codes onto the portal's message states; an expired delegation reads as a
  * stale link to the user, since the fix is the same: redo the handoff.
+ *
+ * An adoption swaps the account behind the unchanged session cookie, so the
+ * session store is re-read before the outcome resolves: everything keyed on
+ * the web2 user id downstream must see the adopted account, never the folded
+ * one.
  */
 export const submitClaimBlob = async (blob: string): Promise<ClaimSubmitOutcome> => {
 	try {
-		const { principal, alreadyLinked } = await postClaim({ blob });
+		const { principal, alreadyLinked, adopted } = await postClaim({ blob });
+
+		if (adopted) {
+			await loadWeb2Session();
+
+			return { kind: 'adopted', principal };
+		}
 
 		return { kind: alreadyLinked ? 'already_linked' : 'linked', principal };
 	} catch (err: unknown) {
 		if (err instanceof Web2ApiError) {
 			if (err.code === 'principal_already_linked') {
 				return { kind: 'error', code: 'conflict' };
+			}
+
+			if (err.code === 'account_not_empty') {
+				return { kind: 'error', code: 'account_not_empty' };
 			}
 
 			if (err.code === 'stale_claim' || err.code === 'expired_delegation') {
