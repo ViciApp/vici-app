@@ -1,16 +1,10 @@
 name: Web2 Deploy
 
-# Manual-only for now: the Fly apps (vici-app-backend, vici-app-web) and the
-# FLY_API_TOKEN_WEB2_BACKEND / FLY_API_TOKEN_WEB2_WEB repo secrets DO NOT EXIST
-# yet, so a dispatch today fails at the deploy step by design. Setup, once:
-#   cd backend && fly launch --no-deploy         # creates vici-app-backend
-#   fly launch --no-deploy --config fly.web.toml # creates vici-app-web
-#   cd backend && fly tokens create deploy       # -> FLY_API_TOKEN_WEB2_BACKEND
-#   fly tokens create deploy --config fly.web.toml  # -> FLY_API_TOKEN_WEB2_WEB
-# A `fly tokens create deploy` token is scoped to ONE app, so one per app
-# (least privilege). Per-app runtime secrets/env live on Fly; CI only ships
-# the image. Backend DB migrations run atomically as the fly.toml
-# release_command.
+# Manual-only: dispatch to ship both apps. Each FLY_API_TOKEN_WEB2_* secret
+# is a `fly tokens create deploy` token scoped to ONE app (least privilege).
+# Per-app runtime secrets/env live on Fly; CI only ships the image. Backend
+# DB migrations run atomically as the fly.toml release_command. The web
+# image's VITE_* build args are baked from fly.web.toml.
 on:
   workflow_dispatch:
 
