@@ -1,15 +1,14 @@
 # VICI SPA image for Fly.io: builds the static SvelteKit output and serves it
 # with nginx + SPA fallback. Vite inlines VITE_* vars at build time, so they
-# are build ARGs, not runtime secrets. Not wired into any deploy yet; the
-# manual workflow is .github/workflows/web2-deploy.yml.
+# are build ARGs, not runtime secrets. Deployed by the manual workflow
+# .github/workflows/web2-deploy.yml, which bakes the args from fly.web.toml.
 FROM node:24-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-# Placeholders for the web2 seam: the API origin the SPA calls and the backend
-# mode switch. Both default to off/empty so an image built today behaves
-# exactly like the current production bundle.
+# The API origin the SPA calls and the backend mode switch. Empty defaults
+# keep a bare `docker build` on the web3 stack; fly.web.toml sets the web2 values.
 ARG VITE_WEB2_API_URL=""
 ARG VITE_BACKEND=""
 ENV VITE_WEB2_API_URL=$VITE_WEB2_API_URL

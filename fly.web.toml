@@ -1,15 +1,16 @@
-# VICI SPA (static, nginx) on Fly.io. Sibling to the backend app
-# (vici-app-backend); see Dockerfile.web. Not wired into any deploy yet; the
-# manual workflow is .github/workflows/web2-deploy.yml.
+# VICI SPA (static, nginx) on Fly.io, served at vici.app. Sibling to the
+# backend app (vici-app-backend, api.vici.app); see Dockerfile.web. Deployed by
+# the manual workflow .github/workflows/web2-deploy.yml.
 app = "vici-app-web"
 primary_region = "ams"
 
 [build]
   dockerfile = "Dockerfile.web"
   [build.args]
-    # Web2 seam placeholders: empty keeps the bundle on the current stack.
-    VITE_WEB2_API_URL = ""
-    VITE_BACKEND = ""
+    # This image is the web2 site only; the web3 bundle keeps shipping to
+    # vici.market through the Juno deploy, which never reads this file.
+    VITE_WEB2_API_URL = "https://api.vici.app"
+    VITE_BACKEND = "web2"
 
 # Keep one machine warm: the SPA gets no benefit from scale-to-zero, and a
 # cold-stopped machine that wedges is invisible to Fly without a health check.
