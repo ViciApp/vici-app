@@ -92,6 +92,7 @@ ask) are enforced via CI, eslint, the boundary table in
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | Open any PR                                        | [`docs/ai/pr-and-ci.md`](./docs/ai/pr-and-ci.md)                                                 |
 | Spec or implement a feature spec-first             | [`docs/ai/spec-driven-development/workflow.md`](./docs/ai/spec-driven-development/workflow.md)   |
+| Work on a task run by the agent workshop           | [`docs/ai/officina.md`](./docs/ai/officina.md)                                                   |
 | Understand shipped product behaviour               | [`docs/ai/PRODUCT.md`](./docs/ai/PRODUCT.md)                                                     |
 | Touch any frontend file                            | [`docs/ai/frontend/README.md`](./docs/ai/frontend/README.md)                                     |
 | Add or move a file                                 | [`docs/ai/frontend/structure.md`](./docs/ai/frontend/structure.md)                               |

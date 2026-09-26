@@ -43,12 +43,13 @@ Skip it for small changes (typo, one-liner): implement directly.
 
 ## Files
 
-| Path                                | What                                                                          |
-| ----------------------------------- | ----------------------------------------------------------------------------- |
-| `specs/YYYY-MM-DD-<type>-<slug>.md` | one spec; `type` = `feat` / `impr` / `fix` / `chore`                          |
-| `specs/YYYY-MM-DD-<type>-<slug>/`   | optional assets (wireframes, mocks, screenshots) — deleted after merge        |
-| [`template.md`](./template.md)      | copy this to start a spec                                                     |
-| [`../PRODUCT.md`](../PRODUCT.md)    | living product behaviour — updated in the **same PR** as the behaviour change |
+| Path                                | What                                                                                                                                                             |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `specs/YYYY-MM-DD-<type>-<slug>.md` | one spec; `type` = `feat` / `impr` / `fix` / `chore`                                                                                                             |
+| `specs/YYYY-MM-DD-<type>-<slug>/`   | optional assets (wireframes, mocks, screenshots) — deleted after merge                                                                                           |
+| [`template.md`](./template.md)      | copy this to start a spec                                                                                                                                        |
+| [`../officina.md`](../officina.md)  | the agent workshop: it follows this workflow, its specs are reviewed there as versioned documents, and the approved spec is committed with the implementation PR |
+| [`../PRODUCT.md`](../PRODUCT.md)    | living product behaviour — updated in the **same PR** as the behaviour change                                                                                    |
 
 ## Spec lifecycle
 
