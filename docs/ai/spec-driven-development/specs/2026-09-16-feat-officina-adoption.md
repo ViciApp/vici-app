@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: Draft
+Status: Implemented (#1324)
 
 ## Goal
 
@@ -145,3 +145,4 @@ No product analytics: this adds no user-visible surface to the app. Officina rec
 ## Decisions
 
 - **Product verification for user-visible standard changes stays in the policy.** Today nobody holds the `product` domain, so Officina waives that requirement and records it as waived; the owner's approval is enough. When someone is given the `product` domain, their approval becomes required with no config change. Collaboration is designed in from day one, and the workshop still works for a single person.
+- **The dry run follows the merge.** The config and docs land first so Officina enforces the reviewed rules; the three lane tasks then run against them, starting with a green-lane copy change.
