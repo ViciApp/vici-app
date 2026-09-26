@@ -46,7 +46,7 @@ Skip it for small changes (typo, one-liner): implement directly.
 | Path                                | What                                                                                                                                                             |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `specs/YYYY-MM-DD-<type>-<slug>.md` | one spec; `type` = `feat` / `impr` / `fix` / `chore`                                                                                                             |
-| `specs/YYYY-MM-DD-<type>-<slug>/`   | optional assets (wireframes, mocks, screenshots) — deleted after merge                                                                                           |
+| `specs/YYYY-MM-DD-<type>-<slug>/`   | optional assets (wireframes, mocks, screenshots), kept with the spec after merge; never delete them                                                              |
 | [`template.md`](./template.md)      | copy this to start a spec                                                                                                                                        |
 | [`../officina.md`](../officina.md)  | the agent workshop: it follows this workflow, its specs are reviewed there as versioned documents, and the approved spec is committed with the implementation PR |
 | [`../PRODUCT.md`](../PRODUCT.md)    | living product behaviour — updated in the **same PR** as the behaviour change                                                                                    |
@@ -125,9 +125,8 @@ decided, record the outcome under "Decisions".
 
 **Frontend — artifacts welcome (optional).** Put HTML mocks,
 wireframes, or screenshots in the spec's asset folder and link them
-relatively from the spec. They exist to tweak against during the
-build, not to live forever — post-merge cleanup deletes them; git
-history retains them.
+relatively from the spec. They stay with the spec after merge, as
+part of its decision record: never delete an asset folder.
 
 Interactive HTML mocks must additionally:
 
@@ -186,5 +185,5 @@ build.
 5. **Divergence check & close** — before review-ready, diff the
    implementation against the spec and flag gaps. Flip status to
    `Implemented (#PR)` in the final commit.
-6. **Post-merge cleanup** — delete the spec's asset folder in a small
-   follow-up PR. The spec `.md` stays as the decision record.
+6. **After merge** — the spec `.md` and its asset folder both stay as
+   the decision record. Never delete either.
