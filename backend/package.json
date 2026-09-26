@@ -27,7 +27,7 @@
 		"@noble/hashes": "^1.8.0",
 		"@scure/base": "^1.2.6",
 		"@scure/btc-signer": "^1.8.1",
-		"elysia": "^1.4.10",
+		"elysia": "^1.4.30",
 		"pg": "^8.16.3",
 		"sharp": "^0.35.3"
 	},
