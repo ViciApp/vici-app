@@ -83,7 +83,7 @@
 		"@junobuild/core": "^5.4.0",
 		"@junobuild/functions": "^0.9.0",
 		"@junobuild/schema": "^1.2.4",
-		"@lucide/svelte": "^1.31.0",
+		"@lucide/svelte": "^1.47.0",
 		"decimal.js": "^10.6.0",
 		"ethers": "^6.16.0",
 		"icp-auth-openid": "npm:@icp-sdk/auth@^6.2.2",
