@@ -38,7 +38,8 @@ always wins, and a lane never loosens on its own.
 | **red**      | satellite, generated bindings, canister wiring, CI, dependencies, money, identity, legal copy | **no**        | the owner, and a person implements it                        |
 
 Red paths are the protected paths from
-[`governance.md`](./governance.md#boundaries) plus the money, identity and legal files. Agents that
+[`governance.md`](./governance.md#boundaries), plus the money, identity and legal files, the backend
+routes that issue sessions or move value, the session and key primitives, and every deploy file. Agents that
 only read get a GitHub token that cannot push, so the boundary is enforced by GitHub, not by a
 prompt. If a build ever touches a red path anyway, the task stops and asks the owner.
 

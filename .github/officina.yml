@@ -37,6 +37,9 @@ lanes:
       - 'scripts/build/**'
       - 'scripts/lib/**'
       - 'scripts/init/**'
+      # Deploy configuration, including the root web build (fly.web.toml, Dockerfile.web)
+      - 'fly*.toml'
+      - 'Dockerfile*'
       # Money, identity and legal copy
       - 'src/lib/constants/vxp-economy.constants.ts'
       - 'src/lib/constants/vxp-onboarding.constants.ts'
@@ -51,6 +54,19 @@ lanes:
       - 'backend/Dockerfile'
       - 'backend/fly*.toml'
       - 'backend/src/auth/**'
+      # Entry points that issue sessions, move value or expose admin surfaces
+      - 'backend/src/routes/auth.ts'
+      - 'backend/src/routes/account.ts'
+      - 'backend/src/routes/admin.ts'
+      - 'backend/src/routes/claim.ts'
+      - 'backend/src/routes/engine.ts'
+      - 'backend/src/routes/vxp.ts'
+      - 'backend/src/routes/wallet.ts'
+      # Session, key and abuse-protection primitives
+      - 'backend/src/lib/cookie.ts'
+      - 'backend/src/lib/crypto.ts'
+      - 'backend/src/lib/keys.ts'
+      - 'backend/src/lib/rate-limit.ts'
       - 'backend/src/custody/**'
       - 'backend/src/chains/**'
       - 'backend/src/vxp/**'
