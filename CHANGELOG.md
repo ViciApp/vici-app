@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.8.41](https://github.com/ViciApp/vici-app/compare/v1.8.40...v1.8.41) (2026-09-26)
+
+
+### Features
+
+* **backend:** beta access gate on web2 sign-in ([#1296](https://github.com/ViciApp/vici-app/issues/1296)) ([79e7cdc](https://github.com/ViciApp/vici-app/commit/79e7cdc25ba54dd24ad63d3a4113e382a3ca8da8))
+* **web2:** account claim flow with signed principal handoff ([#1297](https://github.com/ViciApp/vici-app/issues/1297)) ([5460a07](https://github.com/ViciApp/vici-app/commit/5460a07f5c82ab7abfa3b1348bb91025a7e2dcc2))
+
+
+### Bug Fixes
+
+* **backend:** adopt imported provisional accounts on login and claim ([#1322](https://github.com/ViciApp/vici-app/issues/1322)) ([29161a5](https://github.com/ViciApp/vici-app/commit/29161a5df2e0d25227a4b105f1dc2dda2eaa11db))
+* **web2:** run svelte-kit sync after copying sources in the web image ([#1327](https://github.com/ViciApp/vici-app/issues/1327)) ([a7b1104](https://github.com/ViciApp/vici-app/commit/a7b1104eaab1fdcd8e8cc326355460e11ab7e157))
+
+
+### Miscellaneous Chores
+
+* **backend-deps:** bump @icp-sdk/auth from 5.0.0 to 10.0.1 in /backend ([#1326](https://github.com/ViciApp/vici-app/issues/1326)) ([3917fd1](https://github.com/ViciApp/vici-app/commit/3917fd1b8796ac443ffa59513c91e7ccaebec711))
+* **npm-deps-dev:** bump @sveltejs/kit from 2.70.2 to 2.70.3 ([#1310](https://github.com/ViciApp/vici-app/issues/1310)) ([40f6968](https://github.com/ViciApp/vici-app/commit/40f6968fd69c2852f97009a649849bcbf6a967b4))
+* **npm-deps-dev:** bump get-tsconfig from 4.14.2 to 4.14.3 ([#1311](https://github.com/ViciApp/vici-app/issues/1311)) ([0885308](https://github.com/ViciApp/vici-app/commit/0885308b83bcb8270535dec3abf841adb10cc76a))
+* **npm-deps-dev:** bump js-yaml from 4.3.1 to 4.3.2 ([#1318](https://github.com/ViciApp/vici-app/issues/1318)) ([5c2d865](https://github.com/ViciApp/vici-app/commit/5c2d86538d4f0321f1f67ca01eac7172029d084b))
+* **npm-deps-dev:** bump rolldown from 1.2.4 to 1.2.11 ([#1309](https://github.com/ViciApp/vici-app/issues/1309)) ([83b7bab](https://github.com/ViciApp/vici-app/commit/83b7bab279f3b1bf3be802233c76b8c715d338ac))
+* **npm-deps-dev:** bump svelte-eslint-parser from 1.8.0 to 1.8.1 ([#1307](https://github.com/ViciApp/vici-app/issues/1307)) ([47c299a](https://github.com/ViciApp/vici-app/commit/47c299ab3ae4039b486489ac27d263af618f350d))
+* **npm-deps-dev:** bump the lint-kit group across 1 directory with 4 updates ([#1325](https://github.com/ViciApp/vici-app/issues/1325)) ([1c8d936](https://github.com/ViciApp/vici-app/commit/1c8d9367631697faabba9bf9987847749fe3be89))
+* **npm-deps:** bump devalue from 5.9.0 to 5.9.4 ([#1308](https://github.com/ViciApp/vici-app/issues/1308)) ([bdde857](https://github.com/ViciApp/vici-app/commit/bdde8573103b4f3e37af4df7226e351459944387))
+* **seo:** add Google Search Console verification file for vici.app ([#1298](https://github.com/ViciApp/vici-app/issues/1298)) ([c0016d7](https://github.com/ViciApp/vici-app/commit/c0016d7cb36c13bbc92f89b77b9d11398944ac48))
+
+
+### Continuous Integration
+
+* **officina:** adopt the agent workshop for vici-app ([#1324](https://github.com/ViciApp/vici-app/issues/1324)) ([b89b516](https://github.com/ViciApp/vici-app/commit/b89b51625d8d40ab337ae8a21831f0724b536062))
+* **web2:** build the vici.app image in web2 mode ([#1321](https://github.com/ViciApp/vici-app/issues/1321)) ([a64bd1f](https://github.com/ViciApp/vici-app/commit/a64bd1f927202b6878145603c4575eb77543ebb6))
+
 ## [1.8.40](https://github.com/ViciApp/vici-app/compare/v1.8.39...v1.8.40) (2026-08-20)
 
 
