@@ -29,6 +29,9 @@ update the relevant page in the **same PR** as the code change. See the
   — spec-first workflow for net-new features, improvements, and
   non-trivial bugfixes. Specs carry a status; once `Implemented` they
   are decision records, not current truth.
+- [`officina.md`](./officina.md) — how the agent workshop runs work on
+  this repo: lanes, who approves what, and what agents may never
+  touch. Its config lives in [`.github/officina.yml`](../../.github/officina.yml).
 
 ## Operational runbooks
 
