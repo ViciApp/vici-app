@@ -1,0 +1,79 @@
+# Officina project config: how agents may work on this repository.
+# Officina reads this file from the default branch; a push that changes it refreshes the stored copy.
+# Lanes are decided by the paths a change really touches, read from the diff, not from what an agent claims.
+version: 1
+
+docs:
+  entry: AGENTS.md
+  spec_template: docs/ai/spec-driven-development/template.md
+  spec_dir: docs/ai/spec-driven-development/specs
+  pr_template: .github/pull_request_template.md
+
+setup: ['npm ci', 'npm run prepare']
+verify: ['npm run quality', 'npm run check']
+
+lanes:
+  # Agents never build in the red lane: they may write the spec, a person implements it.
+  red:
+    agents_build: false
+    approvals:
+      spec_review: [{ role: owner }]
+    paths:
+      # Protected paths, see docs/ai/governance.md#boundaries
+      - '.github/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'dfx.json'
+      - 'canister_ids.json'
+      - 'juno.config.ts'
+      - 'juno.collections.json'
+      - 'src/satellite/**'
+      - 'src/declarations/**'
+      - 'static/workers/**'
+      - 'eslint.config.js'
+      - '.prettierrc'
+      - 'tsconfig*.json'
+      - 'local-rules/**'
+      - 'scripts/build/**'
+      - 'scripts/lib/**'
+      - 'scripts/init/**'
+      # Money, identity and legal copy
+      - 'src/lib/constants/vxp-economy.constants.ts'
+      - 'src/lib/constants/vxp-onboarding.constants.ts'
+      - 'src/lib/constants/flow-rewards.constants.ts'
+      - 'src/lib/constants/legal-docs.constants.ts'
+      - 'src/lib/components/authn/**'
+      - 'src/lib/services/identity*.ts'
+      - 'src/lib/schema/auth-identity.schema.ts'
+      # Web2 backend: auth, custody, chains, VXP, engine, schema and deploy
+      - 'backend/package.json'
+      - 'backend/bun.lock'
+      - 'backend/Dockerfile'
+      - 'backend/fly*.toml'
+      - 'backend/src/auth/**'
+      - 'backend/src/custody/**'
+      - 'backend/src/chains/**'
+      - 'backend/src/vxp/**'
+      - 'backend/src/engine/**'
+      - 'backend/src/db/**'
+      - 'backend/src/declarations/**'
+
+  standard:
+    paths: ['**']
+    wip: 3
+    diff_lines: 800
+    budget_usd: 25
+    approvals:
+      spec_review: [{ role: owner }]
+      verifying: [{ domain: product, when: user_visible }, { role: owner }]
+
+  # User-facing copy only. A requirement nobody can meet yet (no product approver) is waived
+  # automatically and recorded as waived, so this works today and tightens when the role is filled.
+  green:
+    paths: ['src/lib/constants/messages/**']
+    wip: 5
+    diff_lines: 600
+    budget_usd: 5
+    approvals:
+      spec_review: [{ requester: true }, { domain: product }]
+      verifying: [{ requester: true }]

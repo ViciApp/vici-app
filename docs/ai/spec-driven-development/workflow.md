@@ -48,6 +48,7 @@ Skip it for small changes (typo, one-liner): implement directly.
 | `specs/YYYY-MM-DD-<type>-<slug>.md` | one spec; `type` = `feat` / `impr` / `fix` / `chore`                          |
 | `specs/YYYY-MM-DD-<type>-<slug>/`   | optional assets (wireframes, mocks, screenshots) — deleted after merge        |
 | [`template.md`](./template.md)      | copy this to start a spec                                                     |
+| [`../officina.md`](../officina.md)  | how the agent workshop uses this workflow when it specs and builds a task     |
 | [`../PRODUCT.md`](../PRODUCT.md)    | living product behaviour — updated in the **same PR** as the behaviour change |
 
 ## Spec lifecycle
