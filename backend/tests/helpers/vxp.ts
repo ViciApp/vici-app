@@ -1,8 +1,11 @@
 // Shared plumbing for the VXP economy suites: a recording ledger stub in
 // place of the treasury-signed ICRC client, so awards exercise the full
-// pending/paid/failed machinery without any network.
+// pending/paid/failed machinery without any network. The stub mirrors the
+// ledger's deduplication: a transfer carrying created_at_time that matches
+// one already landed answers Duplicate instead of moving funds again.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
 import { query } from '../../src/db/client';
 import { setVxpLedgerProvider, type VxpLedger } from '../../src/vxp/payout';
 
@@ -11,10 +14,14 @@ export interface RecordedTransfer {
 	amount: bigint;
 	fee?: bigint;
 	memo?: string;
+	createdAtTime?: bigint;
 }
 
 export interface LedgerStub {
+	/** Every transfer attempt, including rejected and deduplicated ones. */
 	transfers: RecordedTransfer[];
+	/** Only the transfers that moved funds, with their block index. */
+	landed: Array<RecordedTransfer & { blockIndex: bigint }>;
 	restore: () => void;
 }
 
@@ -33,32 +40,57 @@ export const stubVxpLedger = ({
 	balance?: () => Promise<bigint>;
 } = {}): LedgerStub => {
 	const transfers: RecordedTransfer[] = [];
+	const landed: Array<RecordedTransfer & { blockIndex: bigint }> = [];
+
+	const sameTransaction = (a: RecordedTransfer, b: RecordedTransfer): boolean =>
+		a.owner === b.owner &&
+		a.amount === b.amount &&
+		a.fee === b.fee &&
+		a.memo === b.memo &&
+		a.createdAtTime === b.createdAtTime;
 
 	const ledger: VxpLedger = {
-		transfer: (params) => {
+		transfer: async (params) => {
 			const call: RecordedTransfer = {
 				owner: params.to.owner.toText(),
 				amount: params.amount,
 				fee: params.fee,
-				memo: nonNullish(params.memo) ? new TextDecoder().decode(params.memo) : undefined
+				memo: nonNullish(params.memo) ? new TextDecoder().decode(params.memo) : undefined,
+				createdAtTime: params.created_at_time
 			};
 
 			transfers.push(call);
 
-			if (isNullish(transferImpl)) {
-				nextBlock += BigInt(1);
+			const duplicate = nonNullish(call.createdAtTime)
+				? landed.find((prior) => sameTransaction(prior, call))
+				: undefined;
 
-				return Promise.resolve(nextBlock);
+			if (nonNullish(duplicate)) {
+				throw new IcrcTransferError({
+					msg: 'duplicate',
+					errorType: { Duplicate: { duplicate_of: duplicate.blockIndex } }
+				});
 			}
 
-			return transferImpl(call, transfers.length - 1);
+			let blockIndex: bigint;
+
+			if (isNullish(transferImpl)) {
+				nextBlock += BigInt(1);
+				blockIndex = nextBlock;
+			} else {
+				blockIndex = await transferImpl(call, transfers.length - 1);
+			}
+
+			landed.push({ ...call, blockIndex });
+
+			return blockIndex;
 		},
 		balance: () => (isNullish(balance) ? Promise.resolve(BigInt(0)) : balance())
 	};
 
 	const restore = setVxpLedgerProvider(() => Promise.resolve(ledger));
 
-	return { transfers, restore };
+	return { transfers, landed, restore };
 };
 
 /** The stored award row for direct assertions on status transitions. */

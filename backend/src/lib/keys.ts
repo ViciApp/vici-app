@@ -96,6 +96,10 @@ const serviceIcIdentity = ({ name, pem }: { name: string; pem: string }): SignId
 export const treasuryIcIdentity = (): SignIdentity =>
 	serviceIcIdentity({ name: 'treasury', pem: env.treasuryPem });
 
+/** The treasury's IC principal: public, and the account the VXP minter must
+ * register as a reserve before award payouts can draw on it. */
+export const treasuryIcPrincipalText = (): string => treasuryIcIdentity().getPrincipal().toText();
+
 /** The admin identity: signs privileged engine calls (settlement, registry
  * role management). Separate from the treasury so payout and governance keys
  * can rotate independently. */

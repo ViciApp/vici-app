@@ -1,12 +1,22 @@
 // VXP economy surface: the caller's own award history, the calibration
-// claim, the manual referral settle (self-heal / operator retry), and the
-// admin reconciliation + streak-backfill operations the worker also runs.
+// claim, the manual referral settle (self-heal / operator retry), the admin
+// reconciliation + streak-backfill operations the worker also runs, and the
+// admin treasury status the minter reserve setup is driven from.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
-import { listUserAwards, reconcileUnpaidAwards, type VxpAwardType } from '../vxp/awards';
+import { treasuryIcPrincipalText } from '../lib/keys';
+import { logger } from '../lib/logger';
+import {
+	getTreasuryBacklog,
+	isVxpTreasuryDisabled,
+	listUserAwards,
+	reconcileUnpaidAwards,
+	type VxpAwardType
+} from '../vxp/awards';
 import { claimCalibrationReward } from '../vxp/calibration';
+import { getTreasuryVxpBalance } from '../vxp/payout';
 import { settleReferralPayout } from '../vxp/referral';
 import { backfillStreakUnderpayments } from '../vxp/streak';
 
@@ -102,6 +112,37 @@ export const vxpRoutes = new Elysia({ prefix: '/api/v1/vxp' })
 		},
 		{ body: t.Object({ refereeUserId: t.Optional(t.String({ format: 'uuid' })) }) }
 	)
+	// The treasury principal is public (it is the reserve account the minter
+	// registers); the balance read is best-effort so a ledger hiccup still
+	// returns the principal and the backlog.
+	.get('/admin/treasury', async ({ request, set }) => {
+		const user = await requireUser(request);
+
+		if (isNullish(user)) {
+			return unauthenticated(set);
+		}
+
+		const admin = await requireAdmin(request);
+
+		if (isNullish(admin)) {
+			return forbidden(set);
+		}
+
+		let balanceBaseUnits: string | null = null;
+
+		try {
+			balanceBaseUnits = (await getTreasuryVxpBalance()).toString();
+		} catch (err) {
+			logger.error('vxp treasury balance read failed:', err);
+		}
+
+		return {
+			principal: treasuryIcPrincipalText(),
+			recordOnly: isVxpTreasuryDisabled(),
+			balanceBaseUnits,
+			backlog: await getTreasuryBacklog()
+		};
+	})
 	.post('/admin/reconcile', async ({ request, set }) => {
 		const user = await requireUser(request);
 

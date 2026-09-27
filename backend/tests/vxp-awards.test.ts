@@ -141,8 +141,8 @@ describe('transfer lifecycle', () => {
 			transferImpl: () =>
 				Promise.reject(
 					new IcrcTransferError({
-						msg: 'insufficient',
-						errorType: { InsufficientFunds: { balance: BigInt(3) } }
+						msg: 'too old',
+						errorType: { TooOld: null }
 					})
 				)
 		});
@@ -161,7 +161,7 @@ describe('transfer lifecycle', () => {
 		const row = await readAwardRow({ userId, awardType: 'comeback', awardKey: 'restore' });
 
 		expect(row?.status).toBe('failed');
-		expect(row?.error_message).toContain('InsufficientFunds');
+		expect(row?.error_message).toContain('TooOld');
 	});
 });
 
@@ -188,7 +188,8 @@ describe('record-only mode + reconciliation', () => {
 		expect(await reconcileUnpaidAwards({ graceMs: 0 })).toEqual({
 			scanned: 0,
 			paid: 0,
-			failed: 0
+			failed: 0,
+			deferred: 0
 		});
 
 		// Treasury back on: the sweep pays the recorded award.

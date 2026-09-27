@@ -14,7 +14,11 @@
 //     a grantable role, and is skipped.
 //   - vxp_awards preserves the exported status verbatim; on re-import an
 //     existing row only moves while still 'pending', so a payout recorded on
-//     either side is never demoted and never double-fires.
+//     either side is never demoted and never double-fires. Every imported
+//     row is stamped origin 'etl', which this backend never pays: the legacy
+//     app settled it to the recipient's legacy principal, and a legacy
+//     'pending' / 'owed' / 'processing' state cannot rule out a transfer that
+//     landed before its bookkeeping write.
 //   - vxp_onboarding has no table of its own: each non-'none' milestone
 //     becomes a vxp_awards row ('onboarding', m1|m2|m3) so the onboarding
 //     trigger's idempotency key collides instead of re-granting.
@@ -628,8 +632,10 @@ const AWARD_TYPES = new Set([
 
 const AWARD_STATUSES = new Set(['pending', 'paid', 'failed']);
 
-/** Insert an award row; an existing row only updates while still 'pending',
- * so progress recorded on either stack is never demoted or re-fired. */
+/** Insert an award row as origin 'etl'; an existing row only updates while
+ * still 'pending', so progress recorded on either stack is never demoted or
+ * re-fired. A pending live row the legacy doc also covers is taken over by
+ * the import (origin included): the legacy app owns that award. */
 const upsertAward = async ({
 	q,
 	userId,
@@ -654,9 +660,10 @@ const upsertAward = async ({
 	errorMessage?: string;
 }): Promise<void> => {
 	await q(
-		`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, paid_at_ms, block_index, error_message)
-		 values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, paid_at_ms, block_index, error_message, origin)
+		 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'etl')
 		 on conflict (user_id, award_type, award_key) do update set
+		   origin = 'etl',
 		   status = excluded.status,
 		   paid_at_ms = excluded.paid_at_ms,
 		   block_index = excluded.block_index,
