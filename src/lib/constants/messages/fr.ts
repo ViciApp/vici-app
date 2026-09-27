@@ -2319,6 +2319,9 @@ export const frMessages = {
 	'signin.footer.cta.signup': 'Créer un compte →',
 	'signin.footer.prompt.signin': 'Vous avez déjà un compte ?',
 	'signin.footer.prompt.signup': 'Nouveau sur VICI ?',
+	'signin.legacy_pending.body':
+		"Tu as déjà un compte VICI. Continue d'utiliser vici.market jusqu'au jour du déménagement, où ton compte sera transféré ici.",
+	'signin.legacy_pending.cta': 'Aller sur vici.market',
 	'signin.legal':
 		'En continuant, vous acceptez les Conditions et la Politique de confidentialité. VICI utilise de l’argent fictif pendant la préversion. Ceci n’est pas un conseil financier.',
 	'signin.legal.line1':

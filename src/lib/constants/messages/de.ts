@@ -2333,6 +2333,9 @@ export const deMessages = {
 	'signin.footer.cta.signup': 'Konto erstellen →',
 	'signin.footer.prompt.signin': 'Hast du schon ein Konto?',
 	'signin.footer.prompt.signup': 'Neu bei VICI?',
+	'signin.legacy_pending.body':
+		'Du hast bereits ein VICI-Konto. Nutze vici.market weiter bis zum Umzugstag, dann zieht dein Konto hierher um.',
+	'signin.legacy_pending.cta': 'Zu vici.market',
 	'signin.legal':
 		'Mit dem Fortfahren akzeptierst du die AGB und die Datenschutzerklärung. VICI ist in der Vorschau Spielgeld. Keine Finanzberatung.',
 	'signin.legal.line1': 'VICI ist kostenlos. VXP ist Spielgeld. Keine Finanzberatung.',

@@ -6,7 +6,11 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import * as apple from '../auth/apple';
-import { BETA_CLOSED_ERROR, isBetaSignInAllowed } from '../auth/beta-gate';
+import {
+	LEGACY_ACCOUNT_PENDING_ERROR,
+	betaGateVerdict,
+	type BetaGateVerdict
+} from '../auth/beta-gate';
 import * as google from '../auth/google';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { resolveIdentity } from '../auth/identity';
@@ -54,13 +58,26 @@ const providerUnavailable = (set: StatusContext): { error: string } => {
 	return { error: 'provider_unavailable' };
 };
 
-/** Gated sign-in refusal. One stable body for every non-allowlisted address,
- * so the response can never double as an address-existence oracle. */
-const betaClosed = (set: StatusContext): { error: string } => {
+/** Gated sign-in refusal: the verdict code as the stable error. `beta_closed`
+ * is one body for every refused address, so it never doubles as an
+ * address-existence oracle; `legacy_account_pending` deliberately says only
+ * that the address belongs to a legacy account. */
+const gateRefused = ({
+	set,
+	verdict
+}: {
+	set: StatusContext;
+	verdict: Exclude<BetaGateVerdict, 'allowed'>;
+}): { error: string } => {
 	set.status = 403;
 
-	return { error: BETA_CLOSED_ERROR };
+	return { error: verdict };
 };
+
+/** Landing marker for a gated OAuth refusal: a redirect cannot carry the
+ * JSON error body, so the sign-in screen reads the reason from `?e=`. */
+const gateRefusedPath = (verdict: Exclude<BetaGateVerdict, 'allowed'>): string =>
+	verdict === LEGACY_ACCOUNT_PENDING_ERROR ? '/signin?e=legacy' : '/signin?e=beta';
 
 interface MeIdentity {
 	provider: string;
@@ -198,8 +215,12 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 				return { error: 'invalid_email' };
 			}
 
-			if (!(await isBetaSignInAllowed(email))) {
-				return betaClosed(set);
+			// Checked before any code is issued: a refused address never
+			// receives an email.
+			const verdict = await betaGateVerdict({ email });
+
+			if (verdict !== 'allowed') {
+				return gateRefused({ set, verdict });
 			}
 
 			await requestOtp(email);
@@ -227,8 +248,10 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 
 			// Re-checked here (not only at request time) so a code issued before
 			// the gate flipped on cannot still mint a session.
-			if (!(await isBetaSignInAllowed(body.email))) {
-				return betaClosed(set);
+			const verdict = await betaGateVerdict({ email: body.email });
+
+			if (verdict !== 'allowed') {
+				return gateRefused({ set, verdict });
 			}
 
 			const result = await verifyOtp({ email: body.email, code: body.code });
@@ -302,10 +325,15 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 			return redirectToApp({ path: '/?e=google', clearStateCookie });
 		}
 
-		// The redirect flow's counterpart of the 403 beta_closed body: the
-		// browser is mid-navigation, so the refusal rides the landing path.
-		if (!(await isBetaSignInAllowed(profile.email))) {
-			return redirectToApp({ path: '/signin?e=beta', clearStateCookie });
+		// The redirect flow's counterpart of the 403 gate body: the browser is
+		// mid-navigation, so the refusal rides the landing path.
+		const verdict = await betaGateVerdict({
+			email: profile.email,
+			identity: { provider: 'google', subject: profile.sub }
+		});
+
+		if (verdict !== 'allowed') {
+			return redirectToApp({ path: gateRefusedPath(verdict), clearStateCookie });
 		}
 
 		const userId = await resolveIdentity({
@@ -380,8 +408,13 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 				return redirectToApp({ path: '/?e=apple', clearStateCookie });
 			}
 
-			if (!(await isBetaSignInAllowed(profile.email))) {
-				return redirectToApp({ path: '/signin?e=beta', clearStateCookie });
+			const verdict = await betaGateVerdict({
+				email: profile.email,
+				identity: { provider: 'apple', subject: profile.sub }
+			});
+
+			if (verdict !== 'allowed') {
+				return redirectToApp({ path: gateRefusedPath(verdict), clearStateCookie });
 			}
 
 			// Apple sends the user's name only on the very first authorization, as
