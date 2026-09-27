@@ -141,8 +141,8 @@ describe('transfer lifecycle', () => {
 			transferImpl: () =>
 				Promise.reject(
 					new IcrcTransferError({
-						msg: 'insufficient',
-						errorType: { InsufficientFunds: { balance: BigInt(3) } }
+						msg: 'too old',
+						errorType: { TooOld: null }
 					})
 				)
 		});
@@ -161,7 +161,7 @@ describe('transfer lifecycle', () => {
 		const row = await readAwardRow({ userId, awardType: 'comeback', awardKey: 'restore' });
 
 		expect(row?.status).toBe('failed');
-		expect(row?.error_message).toContain('InsufficientFunds');
+		expect(row?.error_message).toContain('TooOld');
 	});
 });
 
@@ -188,7 +188,10 @@ describe('record-only mode + reconciliation', () => {
 		expect(await reconcileUnpaidAwards({ graceMs: 0 })).toEqual({
 			scanned: 0,
 			paid: 0,
-			failed: 0
+			failed: 0,
+			deferred: 0,
+			quarantined: 0,
+			reissued: 0
 		});
 
 		// Treasury back on: the sweep pays the recorded award.
@@ -240,14 +243,25 @@ describe('settlement claim', () => {
 	test('a stale processing claim is reclaimed and paid; a fresh claim is left alone', async () => {
 		stub = stubVxpLedger();
 		const userId = await createTestUser();
+		// A stamp from the crashed claim, well inside the ledger dedup window.
+		const stampNs = (BigInt(Date.now()) - BigInt(PROCESSING_STALE_MS * 2)) * BigInt(1_000_000);
 
 		await query(
-			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, processing_at)
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms,
+			   processing_at, transfer_memo, transfer_created_at_ns, transfer_attempts)
 			 values
 			   ($1, 'achievement', 'stale-claim', $2, 'processing', $3,
-			    now() - make_interval(secs => $4::double precision / 1000)),
-			   ($1, 'achievement', 'fresh-claim', $2, 'processing', $3, now())`,
-			[userId, parseVxp(100).toString(), Date.now(), PROCESSING_STALE_MS + 60_000]
+			    now() - make_interval(secs => $4::double precision / 1000),
+			    'vxp:achievement:stale-claim', $5, 1),
+			   ($1, 'achievement', 'fresh-claim', $2, 'processing', $3, now(),
+			    'vxp:achievement:fresh-claim', $5, 1)`,
+			[
+				userId,
+				parseVxp(100).toString(),
+				Date.now(),
+				PROCESSING_STALE_MS + 60_000,
+				stampNs.toString()
+			]
 		);
 
 		await reconcileUnpaidAwards({ graceMs: 0 });

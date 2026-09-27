@@ -36,6 +36,8 @@ export interface IcEnv {
 	host: string;
 	clearingCanisterId: string;
 	registryCanisterId: string;
+	/** The VXP ledger's index: the transfer history payout recovery reads. */
+	vxpIndexCanisterId: string;
 }
 
 export interface EvmEnv {
@@ -205,7 +207,8 @@ export const loadEnv = (source: EnvSource): Env => {
 		ic: {
 			host: optional('IC_HOST', 'https://icp-api.io'),
 			clearingCanisterId: optional('CLEARING_CANISTER_ID', 'g2or7-caaaa-aaaaj-qqhoa-cai'),
-			registryCanisterId: optional('REGISTRY_CANISTER_ID', 'g5pxl-pyaaa-aaaaj-qqhoq-cai')
+			registryCanisterId: optional('REGISTRY_CANISTER_ID', 'g5pxl-pyaaa-aaaaj-qqhoq-cai'),
+			vxpIndexCanisterId: optional('VXP_INDEX_CANISTER_ID', 'swx4a-oqaaa-aaaam-qidgq-cai')
 		},
 		evm: (() => {
 			const rpcUrl = optional('EVM_RPC_URL', '');
