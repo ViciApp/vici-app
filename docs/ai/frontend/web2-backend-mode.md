@@ -215,10 +215,12 @@ minus the dev-only e2e opt-in), drives two surfaces:
 - **A sign-in with no profile**: `ensureProfile` returns
   `{ newAccountMoved: true }` before its first write (no `profile_private`
   email backfill, no profile seed), and `Authn.svelte` clears the store, signs
-  out with `windowReload: false` (a reload would drop the message) and
-  overlays the same screen. Nothing downstream (stats sync, onboarding drain,
-  referral redeem, league join) runs, since they all key off a hydrated
-  `userStore`.
+  out with `windowReload: false` and overlays the same screen. Juno's auth
+  worker can still follow with its own reloading sign-out, so the overlay flag
+  is mirrored to sessionStorage (`NEW_ACCOUNT_MOVED_SESSION_KEY`) and restored
+  on the next load; it clears on dismiss or when an existing account signs in.
+  Nothing downstream (stats sync, onboarding drain, referral redeem, league
+  join) runs, since they all key off a hydrated `userStore`.
 
 The satellite enforces the same rule for a modified client
 (`new-profile-gate.services.ts`, see the satellite patterns page). The web2
