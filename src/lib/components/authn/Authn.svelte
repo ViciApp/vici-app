@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { onAuthStateChange, type User } from '@junobuild/core';
+	import { onAuthStateChange, signOut, type User } from '@junobuild/core';
 	import { onMount, type Snippet } from 'svelte';
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import MovedToNewApp from '$lib/components/authn/MovedToNewApp.svelte';
 	import { SIGNED_IN_FLAG_KEY } from '$lib/constants/app.constants';
+	import { PublicPath } from '$lib/constants/routes.constants';
 	import { balanceDomain } from '$lib/derived/balance-domain.derived';
 	import { trackLoginSyncSettled } from '$lib/dev/e2e-reset';
 	import { reconcileIdentityScopedStorage } from '$lib/services/identity-storage.services';
@@ -91,6 +95,17 @@
 
 	const { children }: Props = $props();
 
+	// Set when a sign-in is turned away as a new account (see `ensureProfile`).
+	// Lives here rather than on a route so the message survives whatever
+	// navigation the provider that just resolved kicks off.
+	let newAccountMoved = $state(false);
+
+	const dismissNewAccountMoved = (): void => {
+		newAccountMoved = false;
+
+		void goto(resolve(PublicPath.SignIn));
+	};
+
 	const updateUserStore = async (user: User | null) => {
 		userStore.update((data) => ({ ...data, authBusy: true }));
 
@@ -153,7 +168,37 @@
 				return;
 			}
 
-			const { profile, existed, email } = await ensureProfile(user);
+			const ensured = await ensureProfile(user);
+
+			if ('newAccountMoved' in ensured) {
+				// A principal with no account here on a build that sends new
+				// accounts to the new app: nothing was written, so drop the
+				// session before any post-sign-in writer (stats sync, onboarding
+				// drain, referral redeem) can run, and explain why.
+				setSignedInFlag(false);
+				forgetBootstrappedThisSession();
+
+				userStore.set({
+					user: undefined,
+					profile: undefined,
+					email: '',
+					authBusy: false,
+					profileExisted: false
+				});
+
+				newAccountMoved = true;
+
+				try {
+					// No reload: it would tear down the moved screen this sets up.
+					await signOut({ windowReload: false });
+				} catch (e: unknown) {
+					console.error('Failed to sign out a new account on the legacy build', e);
+				}
+
+				return;
+			}
+
+			const { profile, existed, email } = ensured;
 
 			setSignedInFlag(true);
 			requestPersistentStorage();
@@ -342,3 +387,7 @@
 <svelte:window onjunoSignOutAuthTimer={automaticSignOut} />
 
 {@render children()}
+
+{#if newAccountMoved}
+	<MovedToNewApp onSignIn={dismissNewAccountMoved} reason="new_account" />
+{/if}
