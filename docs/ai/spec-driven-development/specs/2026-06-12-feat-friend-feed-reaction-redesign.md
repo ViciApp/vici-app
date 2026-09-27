@@ -94,9 +94,10 @@ Brand constraints
 ## Design artifacts (frontend)
 
 The interactive explorer used to lock the reaction styling (icon, colour
-token, size, stroke, animation, burst) lived at
-`2026-06-12-feat-friend-feed-reaction-redesign/reactions-explorer.html` and
-was removed in the post-merge cleanup; git history retains it.
+token, size, stroke, animation, burst) lives at
+`2026-06-12-feat-friend-feed-reaction-redesign/reactions-explorer.html`. It
+was once removed under a former post-merge cleanup rule and has been
+restored: spec asset folders are kept after merge.
 
 ## Technical requirements (satellite / backend)
 
