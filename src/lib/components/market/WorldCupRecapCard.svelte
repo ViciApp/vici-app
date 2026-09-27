@@ -3,8 +3,7 @@
 	import { EM_DASH } from '$lib/constants/app.constants';
 	import { balanceDomain } from '$lib/derived/balance-domain.derived';
 	import { featuredEvent } from '$lib/derived/featured-event.derived';
-	import { safeGetIdentityOnce } from '$lib/services/identity.services';
-	import { calculateAndSyncStats } from '$lib/services/profile.services';
+	import { syncMyStats } from '$lib/services/profile.services';
 	import { loadMyUserStats } from '$lib/services/user-stats.services';
 	import { localeStore } from '$lib/stores/locale.store';
 	import { userStore } from '$lib/stores/user.store';
@@ -58,8 +57,7 @@
 
 		void (async () => {
 			try {
-				const identity = await safeGetIdentityOnce();
-				await calculateAndSyncStats({ identity, domain });
+				await syncMyStats({ domain });
 			} catch (err) {
 				console.error('WorldCupRecapCard: failed to recompute stats', err);
 			}

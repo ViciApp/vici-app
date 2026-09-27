@@ -110,7 +110,7 @@ The ETL importer parks every legacy principal's data on a provisional `claim_pen
 
 ## Custody
 
-Every user gets deterministic per-chain custodial keys, HKDF-SHA256 derived from `ROOT_SECRET` with the info string `user:<userId>:<chain>` (ed25519 for `ic`/`sol`, secp256k1 for `evm`/`btc`); the database stores addresses only, never key material. Treasury/admin service identities derive under a disjoint `svc:` prefix, or come from `TREASURY_PEM` / `ADMIN_PEM`.
+Every user gets deterministic per-chain custodial keys, HKDF-SHA256 derived from `ROOT_SECRET` with the info string `user:<userId>:<chain>` (ed25519 for `ic`/`sol`, secp256k1 for `evm`/`btc`); the database stores addresses only, never key material. Treasury/admin service identities derive under a disjoint `svc:` prefix, or come from `TREASURY_PEM` / `ADMIN_PEM`; the engine reader identity (public engine reads, no funds, no engine role) always derives there.
 
 Balances live on a double-entry ledger (`ledger_entries` + the `custody_balances` view): every event posts legs summing to zero per asset, keyed for idempotent replay. Withdrawals hold the amount at request time and refund on failure/rejection through the state machine `requested -> processing -> submitted -> confirmed` (with `failed` / `rejected` exits); self-custody exits are the same flow with a user-controlled destination. Deposits are credited by per-chain watchers running from the worker loop; only chains whose adapter is enabled are polled.
 
@@ -118,7 +118,7 @@ Chain adapters live under `src/chains/` behind one interface (`chains/types.ts`)
 
 ## Engine bridge
 
-`src/engine/` wraps the on-chain clearing + registry canisters with the same method surface the app consumes, over candid bindings vendored under `src/declarations/` (verbatim copies of the app's generated bindings; refresh by re-copying, never hand-edit). Public market reads run anonymously behind a 15s in-memory TTL cache; account-scoped calls (orders, collateral, positions) sign with the calling user's derived custodial IC identity; settlement-grade calls sign with the admin identity. Routes: `routes/engine.ts` (public reads + session-gated trading) and `routes/wallet.ts` (balances, deposit addresses, withdrawals).
+`src/engine/` wraps the on-chain clearing + registry canisters with the same method surface the app consumes, over candid bindings vendored under `src/declarations/` (verbatim copies of the app's generated bindings; refresh by re-copying, never hand-edit). Public market reads sign with the engine reader identity (a service key derived as `svc:engine-reader:ic`, so it needs no secret of its own) behind a 15s in-memory TTL cache: clearing rejects the anonymous caller even on its read-only queries, and a read served to every visitor never borrows a user's key. Account-scoped calls (orders, collateral, positions) sign with the calling user's derived custodial IC identity; settlement-grade calls sign with the admin identity. A custodial principal clearing holds no account for (`NoAccountStateFound`: every account that has not deposited yet) reads as an empty account, the same state clearing's refreshing read answers, instead of an error. Routes: `routes/engine.ts` (public reads + session-gated trading) and `routes/wallet.ts` (balances, deposit addresses, withdrawals).
 
 ## Markets and analytics
 
