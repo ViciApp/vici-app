@@ -9,6 +9,10 @@ docs:
   spec_dir: docs/ai/spec-driven-development/specs
   pr_template: .github/pull_request_template.md
 
+# Same rule as the pr-title check in checks.yml: the builder's pull request title must match it.
+pull_request:
+  title_pattern: '^(feat|fix|perf|deps|revert|docs|style|chore|refactor|test|build|ci)\([-a-zA-Z0-9,._/]+\)!?: .+$'
+
 setup: ['npm ci', 'npm run prepare']
 verify: ['npm run quality', 'npm run check']
 
