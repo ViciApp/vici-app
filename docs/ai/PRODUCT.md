@@ -572,7 +572,12 @@ the same message; nothing is written for it. The satellite refuses to create
 a profile too (switchable, see the satellite patterns page). Existing
 accounts sign in and play exactly as before, and the "move your account"
 banner and Settings row stay hidden until the cutover switch
-(`CLAIM_HANDOFF_ENABLED`) is flipped. The new app's own sign-up is unchanged.
+(`CLAIM_HANDOFF_ENABLED`) is flipped. Until that flip, signed-in users see a
+dismissible notice instead: VICI is moving to vici.app, their account,
+predictions and VXP will be moved for them, keep playing here, and vici.market
+stays available until the end of September 2027. It has no move action and
+gives way to the "move your account" banner at cutover. The new app's own
+sign-up is unchanged.
 
 ### Onboarding — one screen: claim a handle and sign up
 

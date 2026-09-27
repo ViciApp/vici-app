@@ -807,6 +807,10 @@ export const enMessages = {
 	'claim.moved.sub_signup':
 		'New accounts are created on {domain}. Sign up there to start making predictions.',
 	'claim.moved.title': 'VICI has moved to {domain}',
+	'claim.notice.dismiss_aria': 'Hide this notice',
+	'claim.notice.text':
+		'Your account, predictions and VXP will be moved over for you, so there is nothing to do now. Keep playing here in the meantime. vici.market stays available until the end of September 2027.',
+	'claim.notice.title': 'VICI is moving to {domain}.',
 	'claim.page.already_linked': 'This identity was already linked to your account.',
 	'claim.page.error.account_not_empty':
 		"This account already has its own history, so your old one can't be moved into it automatically. Contact the VICI team and we'll combine them.",

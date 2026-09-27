@@ -29,6 +29,7 @@
 		"tag:markets": "./scripts/tag-markets.sh",
 		"translate:markets": "./scripts/translate-markets.sh",
 		"init:icdc": "npm run init:clearing && npm run init:icdc-engine && npm run init:registry && npm run init:icdc-dev-bootstrap",
+		"test": "tsx --test \"src/tests/**/*.spec.ts\"",
 		"test:engine-sync": "./scripts/test/test-engine-sync.sh",
 		"init:vxp-treasury": "./scripts/init/init.vxp-treasury.sh",
 		"juno:functions:build": "juno functions build --lang ts",
