@@ -1,12 +1,12 @@
 # Frontend Testing
 
-> **Status: bootstrap.** This repo does **not** ship a configured **unit**
-> test runner today. There is no Vitest config; the few pure-logic specs
-> run on Node's built-in runner (see [Today](#today)). The `@dfinity/eslint-config-oisy-wallet/vitest`
-> preset is wired into `eslint.config.js`, so once the runner exists ESLint
-> will already understand it. Until then, this section is the
-> **forward-looking contract**: when the first unit test lands, the
-> conventions below kick in.
+> **Status: bootstrap.** No Vitest runner yet; pure-logic specs under
+> `src/tests/` run on Node's built-in runner via `npm test` (see
+> [Today](#today)) and already follow the layout and naming conventions
+> below. The `@dfinity/eslint-config-oisy-wallet/vitest` preset is wired
+> into `eslint.config.js`, so once Vitest exists ESLint will already
+> understand it; the Vitest-specific parts below (component tests, mocks,
+> `tsconfig.spec.json`) are the forward-looking contract until then.
 >
 > **End-to-end (Playwright) tests are configured.** See
 > [E2E (Playwright)](#e2e-playwright) below.
