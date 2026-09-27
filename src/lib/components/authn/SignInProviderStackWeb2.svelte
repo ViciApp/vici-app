@@ -5,6 +5,7 @@
 	import IconApple from '$lib/components/icons/IconApple.svelte';
 	import IconGoogle from '$lib/components/icons/IconGoogle.svelte';
 	import IconPasskey from '$lib/components/icons/IconPasskey.svelte';
+	import { LEGACY_APP_URL } from '$lib/constants/claim.constants';
 	import { track } from '$lib/services/analytics.services';
 	import { localeStore } from '$lib/stores/locale.store';
 	import { t } from '$lib/utils/i18n.utils';
@@ -44,14 +45,44 @@
 	let email = $state('');
 	let code = $state('');
 	let busy = $state(false);
-	let errorKey = $state<'signin.otp.error' | 'signin.beta_closed' | null>(null);
+	type ErrorKey = 'signin.otp.error' | 'signin.beta_closed' | 'signin.legacy_pending.body';
+	let errorKey = $state<ErrorKey | null>(null);
 
-	// The API refuses gated sign-ins with the stable `beta_closed` code; map it
-	// to the private-beta message instead of the generic retry copy.
-	const errorKeyFor = (err: unknown): 'signin.otp.error' | 'signin.beta_closed' =>
-		err instanceof Web2ApiError && err.code === 'beta_closed'
-			? 'signin.beta_closed'
-			: 'signin.otp.error';
+	// The API refuses gated sign-ins with stable codes: `beta_closed` for the
+	// private beta, `legacy_account_pending` for an address that already has an
+	// account on the legacy app (held there until the move). Map each to its
+	// own message instead of the generic retry copy.
+	const errorKeyFor = (err: unknown): ErrorKey => {
+		if (!(err instanceof Web2ApiError)) {
+			return 'signin.otp.error';
+		}
+
+		if (err.code === 'beta_closed') {
+			return 'signin.beta_closed';
+		}
+
+		if (err.code === 'legacy_account_pending') {
+			return 'signin.legacy_pending.body';
+		}
+
+		return 'signin.otp.error';
+	};
+
+	// The OAuth callbacks cannot carry a JSON error body, so a gated refusal
+	// lands back on `/signin?e=<marker>`.
+	const errorKeyForMarker = (marker: string | null): ErrorKey | null => {
+		if (marker === 'beta') {
+			return 'signin.beta_closed';
+		}
+
+		if (marker === 'legacy') {
+			return 'signin.legacy_pending.body';
+		}
+
+		return null;
+	};
+
+	const legacyPending = $derived(errorKey === 'signin.legacy_pending.body');
 
 	const emailValid = $derived(/\S+@\S+\.\S+/.test(email));
 	const codeValid = $derived(code.trim().length > 0);
@@ -59,14 +90,13 @@
 	const blocked = $derived(busy || disabled);
 
 	onMount(async () => {
-		// A gated OAuth sign-in lands back on `/signin?e=beta` (a redirect flow
-		// cannot carry a JSON error body, and this screen is where the message
-		// can be shown); surface the private-beta message and strip the marker
-		// so it does not outlive this screen.
+		// This screen is where a gated OAuth refusal can be shown; surface it
+		// and strip the marker so it does not outlive this screen.
 		const url = new URL(window.location.href);
+		const markerKey = errorKeyForMarker(url.searchParams.get('e'));
 
-		if (url.searchParams.get('e') === 'beta') {
-			errorKey = 'signin.beta_closed';
+		if (nonNullish(markerKey)) {
+			errorKey = markerKey;
 			url.searchParams.delete('e');
 			history.replaceState(null, '', url);
 		}
@@ -203,6 +233,11 @@
 			</button>
 			{#if nonNullish(errorKey)}
 				<p class="signin-otp-error">{t({ locale: $localeStore, key: errorKey })}</p>
+				{#if legacyPending}
+					<a class="signin-legacy-link" href={LEGACY_APP_URL}>
+						{t({ locale: $localeStore, key: 'signin.legacy_pending.cta' })}
+					</a>
+				{/if}
 			{/if}
 		</form>
 	{:else}
@@ -236,6 +271,11 @@
 			</button>
 			{#if nonNullish(errorKey)}
 				<p class="signin-otp-error">{t({ locale: $localeStore, key: errorKey })}</p>
+				{#if legacyPending}
+					<a class="signin-legacy-link" href={LEGACY_APP_URL}>
+						{t({ locale: $localeStore, key: 'signin.legacy_pending.cta' })}
+					</a>
+				{/if}
 			{/if}
 			<button class="signin-otp-back" disabled={busy} onclick={onBack} type="button">
 				{t({ locale: $localeStore, key: 'signin.otp.back' })}
@@ -281,6 +321,15 @@
 		margin: 0.25rem 0 0;
 		font-size: 0.8125rem;
 		color: var(--color-destructive);
+	}
+
+	.signin-legacy-link {
+		align-self: flex-start;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: var(--color-foreground);
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 
 	.signin-otp-back {
