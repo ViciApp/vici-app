@@ -126,7 +126,12 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   `googleSignInUrl()` (the API drives the OAuth dance and lands back on the
   app root, where `Authn` picks up the session), and Apple + Passkey shown
   disabled ("coming soon") since neither is wired on this transport yet. The
-  on-chain provider stack is untouched behind the same branch.
+  on-chain provider stack is untouched behind the same branch. Beta-gate
+  refusals arrive as the OTP error code or, for OAuth, as a `/signin?e=`
+  marker: `beta_closed` / `e=beta` render `signin.beta_closed`, and
+  `legacy_account_pending` / `e=legacy` render `signin.legacy_pending.*`
+  with a link to `LEGACY_APP_URL`. Gate semantics live in
+  [`backend/README.md`](../../../backend/README.md#beta-access-gate).
 - **Sign-out — `Logout.svelte`.** web2 calls `clearWeb2Session()`; on-chain
   calls Juno `signOut()`.
 

@@ -2201,6 +2201,9 @@ export const zhHansMessages = {
 	'signin.footer.cta.signup': '创建账户 →',
 	'signin.footer.prompt.signin': '已有账户？',
 	'signin.footer.prompt.signup': '初次使用 VICI？',
+	'signin.legacy_pending.body':
+		'你已经有一个 VICI 账户。在迁移日之前请继续使用 vici.market，届时你的账户会迁移到这里。',
+	'signin.legacy_pending.cta': '前往 vici.market',
 	'signin.legal':
 		'继续即表示你同意《条款》与《隐私政策》。VICI 在预览期间使用模拟资金。不构成投资建议。',
 	'signin.legal.line1': 'VICI 免费。VXP 是模拟资金。不构成投资建议。',

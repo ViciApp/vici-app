@@ -2312,6 +2312,9 @@ export const enMessages = {
 	'signin.footer.cta.signup': 'Create an account →',
 	'signin.footer.prompt.signin': 'Already have an account?',
 	'signin.footer.prompt.signup': 'New to VICI?',
+	'signin.legacy_pending.body':
+		'You already have a VICI account. Keep using vici.market until moving day, when your account moves here.',
+	'signin.legacy_pending.cta': 'Go to vici.market',
 	'signin.legal':
 		'By continuing you agree to the Terms and Privacy Policy. VICI is play-money during preview. No financial advice.',
 	'signin.legal.line1': 'VICI is free. VXP is play-money. No financial advice.',

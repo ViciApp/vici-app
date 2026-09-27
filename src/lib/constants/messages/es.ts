@@ -2327,6 +2327,9 @@ export const esMessages = {
 	'signin.footer.cta.signup': 'Crear una cuenta →',
 	'signin.footer.prompt.signin': '¿Ya tienes una cuenta?',
 	'signin.footer.prompt.signup': '¿Nuevo en VICI?',
+	'signin.legacy_pending.body':
+		'Ya tienes una cuenta de VICI. Sigue usando vici.market hasta el día de la mudanza, cuando tu cuenta pasará aquí.',
+	'signin.legacy_pending.cta': 'Ir a vici.market',
 	'signin.legal':
 		'Al continuar aceptas los Términos y la Política de privacidad. VICI usa dinero ficticio durante la vista previa. No es asesoramiento financiero.',
 	'signin.legal.line1': 'VICI es gratis. VXP es dinero ficticio. No es asesoramiento financiero.',

@@ -23,6 +23,11 @@ export const CLAIM_PORTAL_URL: string =
  */
 export const NEW_APP_ORIGIN: string = new URL(CLAIM_PORTAL_URL).origin;
 
+/** The legacy app, where people with an existing account keep playing until
+ * their account moves to the new stack; the web2 sign-in links here when it
+ * holds such an account back. */
+export const LEGACY_APP_URL = 'https://vici.market';
+
 /** Session stash for the blob across the sign-in roundtrip on the portal:
  * OAuth redirects drop URL fragments, so the portal parks the blob here
  * before handing control to a provider. */
