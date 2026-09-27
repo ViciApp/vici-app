@@ -1,0 +1,1222 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>VICI · Reactions Explorer</title>
+		<script src="https://unpkg.com/lucide@latest"></script>
+		<style>
+			:root {
+				--ink: #0e0d0b;
+				--ink-deep: #080705;
+				--ink-raised: #16140f;
+				--ink-elevated: #1e1b14;
+				--parchment: #f2ecdc;
+				--laurel: #e2b842;
+				--laurel-deep: #b68b1f;
+				--terracotta: #b5462c;
+				--yes: #4fd3a1;
+				--no: #ff6b6b;
+				--hold: #6b9fff;
+				--border: color-mix(in srgb, var(--parchment) 12%, transparent);
+				--muted: color-mix(in srgb, var(--parchment) 55%, transparent);
+				--font-ui: 'Hanken Grotesk', 'Inter', system-ui, sans-serif;
+				--font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+				--font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+				--ease-vici: cubic-bezier(0.2, 0.7, 0.2, 1);
+				/* live, JS-driven */
+				--react-color: var(--laurel);
+				--react-size: 16px;
+				--react-stroke: 1.6;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				background: radial-gradient(
+					120% 80% at 50% -10%,
+					#1a1710 0%,
+					var(--ink) 55%,
+					var(--ink-deep) 100%
+				);
+				color: var(--parchment);
+				font-family: var(--font-ui);
+				line-height: 1.5;
+				-webkit-font-smoothing: antialiased;
+				padding: 28px clamp(16px, 4vw, 48px) 64px;
+			}
+
+			.wrap {
+				max-width: 1180px;
+				margin: 0 auto;
+			}
+
+			header.masthead {
+				border-bottom: 1px solid var(--border);
+				padding-bottom: 18px;
+				margin-bottom: 26px;
+			}
+
+			.kicker {
+				font-family: var(--font-mono);
+				font-size: 11px;
+				letter-spacing: 0.22em;
+				text-transform: uppercase;
+				color: var(--laurel);
+				opacity: 0.9;
+			}
+
+			h1 {
+				font-family: var(--font-serif);
+				font-weight: 400;
+				font-style: italic;
+				font-size: clamp(30px, 5vw, 46px);
+				margin: 6px 0 4px;
+				letter-spacing: 0.01em;
+			}
+
+			.sub {
+				color: var(--muted);
+				font-size: 14px;
+				max-width: 62ch;
+			}
+
+			.grid {
+				display: grid;
+				grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+				gap: 26px;
+				align-items: start;
+			}
+
+			@media (max-width: 880px) {
+				.grid {
+					grid-template-columns: 1fr;
+				}
+			}
+
+			.panel {
+				background: var(--ink-raised);
+				border: 1px solid var(--border);
+				border-radius: 18px;
+				padding: 20px;
+			}
+
+			.panel + .panel {
+				margin-top: 22px;
+			}
+
+			.eyebrow {
+				font-family: var(--font-mono);
+				font-size: 10px;
+				letter-spacing: 0.2em;
+				text-transform: uppercase;
+				color: var(--muted);
+				margin-bottom: 14px;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
+
+			/* ── Mock feed ───────────────────────────────────────── */
+			.feed-list {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+			}
+
+			.feed-row {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				background: color-mix(in srgb, var(--parchment) 4%, transparent);
+				border: 1px solid transparent;
+				border-radius: 16px;
+				padding: 11px 12px;
+				transition: background 160ms var(--ease-vici);
+				position: relative;
+			}
+
+			.feed-row:hover {
+				background: color-mix(in srgb, var(--parchment) 7%, transparent);
+			}
+
+			.avatar {
+				width: 38px;
+				height: 38px;
+				border-radius: 50%;
+				flex-shrink: 0;
+				display: grid;
+				place-items: center;
+				font-family: var(--font-mono);
+				font-size: 13px;
+				font-weight: 600;
+				color: var(--ink);
+			}
+
+			.copy {
+				flex: 1;
+				min-width: 0;
+			}
+
+			.line {
+				font-size: 13.5px;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.handle {
+				font-weight: 700;
+			}
+
+			.action {
+				color: var(--muted);
+			}
+
+			.outcome {
+				font-family: var(--font-mono);
+				font-weight: 700;
+				font-size: 12px;
+			}
+
+			.outcome.win {
+				color: var(--yes);
+			}
+			.outcome.loss {
+				color: var(--no);
+			}
+
+			.market {
+				display: block;
+				font-size: 11.5px;
+				color: var(--muted);
+				font-style: italic;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.when {
+				font-family: var(--font-mono);
+				font-size: 10px;
+				color: var(--muted);
+				opacity: 0.7;
+				margin-top: 2px;
+			}
+
+			/* ── The reaction button (the thing under evaluation) ── */
+			.react {
+				position: relative;
+				flex-shrink: 0;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 5px;
+				border: 0;
+				background: transparent;
+				color: var(--muted);
+				opacity: 0.5;
+				cursor: pointer;
+				padding: 7px 8px;
+				border-radius: 999px;
+				transition:
+					opacity 150ms var(--ease-vici),
+					background 150ms var(--ease-vici),
+					transform 110ms var(--ease-vici);
+			}
+
+			.react:hover {
+				opacity: 0.85;
+				background: color-mix(in srgb, var(--react-color) 8%, transparent);
+			}
+
+			.react svg {
+				width: var(--react-size);
+				height: var(--react-size);
+				stroke-width: var(--react-stroke);
+				display: block;
+			}
+
+			.react .count {
+				font-family: var(--font-mono);
+				font-size: 11px;
+				min-width: 7px;
+			}
+
+			.react.reacted {
+				opacity: 1;
+				color: var(--react-color);
+				background: color-mix(in srgb, var(--react-color) 15%, transparent);
+			}
+
+			.react.reacted svg {
+				fill: color-mix(in srgb, var(--react-color) 32%, transparent);
+				stroke: var(--react-color);
+			}
+
+			/* ── Animations (applied to .react on commit) ────────── */
+			.anim-pop.fire {
+				animation: pop 140ms var(--ease-vici);
+			}
+			.anim-spring.fire {
+				animation: spring 360ms var(--ease-vici);
+			}
+			.anim-pulse.fire svg {
+				animation: pulse 520ms ease-out;
+			}
+			.anim-heartbeat.fire svg {
+				animation: heartbeat 560ms ease-in-out;
+			}
+			.anim-radiate.fire::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				border-radius: 999px;
+				border: 1.5px solid var(--react-color);
+				animation: radiate 560ms ease-out forwards;
+			}
+			.anim-tilt.fire svg {
+				animation: tilt 420ms var(--ease-vici);
+			}
+
+			@keyframes pop {
+				0% {
+					transform: scale(0.86);
+				}
+				60% {
+					transform: scale(1.12);
+				}
+				100% {
+					transform: scale(1);
+				}
+			}
+			@keyframes spring {
+				0% {
+					transform: scale(0.8);
+				}
+				45% {
+					transform: scale(1.28);
+				}
+				72% {
+					transform: scale(0.94);
+				}
+				100% {
+					transform: scale(1);
+				}
+			}
+			@keyframes pulse {
+				0% {
+					transform: scale(1);
+					filter: drop-shadow(0 0 0 transparent);
+				}
+				40% {
+					transform: scale(1.18);
+					filter: drop-shadow(0 0 6px var(--react-color));
+				}
+				100% {
+					transform: scale(1);
+					filter: drop-shadow(0 0 0 transparent);
+				}
+			}
+			@keyframes heartbeat {
+				0% {
+					transform: scale(1);
+				}
+				20% {
+					transform: scale(1.22);
+				}
+				38% {
+					transform: scale(0.96);
+				}
+				58% {
+					transform: scale(1.14);
+				}
+				80% {
+					transform: scale(1);
+				}
+			}
+			@keyframes radiate {
+				0% {
+					transform: scale(0.7);
+					opacity: 0.8;
+				}
+				100% {
+					transform: scale(1.9);
+					opacity: 0;
+				}
+			}
+			@keyframes tilt {
+				0% {
+					transform: rotate(0) scale(0.9);
+				}
+				35% {
+					transform: rotate(-14deg) scale(1.15);
+				}
+				70% {
+					transform: rotate(10deg) scale(1.02);
+				}
+				100% {
+					transform: rotate(0) scale(1);
+				}
+			}
+
+			/* particle burst */
+			.burst {
+				position: absolute;
+				inset: 0;
+				pointer-events: none;
+				overflow: visible;
+			}
+			.burst span {
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				width: 4px;
+				height: 4px;
+				border-radius: 50%;
+				background: var(--react-color);
+				animation: spark 520ms ease-out forwards;
+			}
+			@keyframes spark {
+				0% {
+					transform: translate(-50%, -50%) scale(1);
+					opacity: 1;
+				}
+				100% {
+					transform: translate(var(--dx), var(--dy)) scale(0.2);
+					opacity: 0;
+				}
+			}
+
+			/* ── Multi-picker ────────────────────────────────────── */
+			.picker {
+				position: absolute;
+				right: 4px;
+				bottom: calc(100% + 6px);
+				display: flex;
+				gap: 4px;
+				padding: 6px;
+				background: var(--ink-elevated);
+				border: 1px solid var(--border);
+				border-radius: 999px;
+				box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+				opacity: 0;
+				transform: translateY(6px) scale(0.96);
+				pointer-events: none;
+				transition: all 160ms var(--ease-vici);
+				z-index: 5;
+			}
+			.feed-row.show-picker .picker {
+				opacity: 1;
+				transform: translateY(0) scale(1);
+				pointer-events: auto;
+			}
+			.picker button {
+				border: 0;
+				background: transparent;
+				color: var(--muted);
+				width: 34px;
+				height: 34px;
+				border-radius: 50%;
+				display: grid;
+				place-items: center;
+				cursor: pointer;
+				transition:
+					transform 140ms var(--ease-vici),
+					background 140ms var(--ease-vici),
+					color 140ms var(--ease-vici);
+			}
+			.picker button svg {
+				width: 18px;
+				height: 18px;
+				stroke-width: 1.7;
+			}
+			.picker button:hover {
+				transform: translateY(-4px) scale(1.18);
+				color: var(--parchment);
+				background: color-mix(in srgb, var(--parchment) 10%, transparent);
+			}
+
+			/* ── Controls ────────────────────────────────────────── */
+			.ctl-group {
+				margin-bottom: 18px;
+			}
+			.ctl-label {
+				font-size: 12px;
+				font-weight: 600;
+				color: var(--parchment);
+				margin-bottom: 9px;
+				display: flex;
+				justify-content: space-between;
+				align-items: baseline;
+			}
+			.ctl-label .val {
+				font-family: var(--font-mono);
+				font-size: 11px;
+				color: var(--laurel);
+			}
+
+			.seg {
+				display: flex;
+				gap: 6px;
+				flex-wrap: wrap;
+			}
+			.seg button,
+			.swatch,
+			.icon-opt,
+			.anim-opt {
+				font-family: var(--font-ui);
+				font-size: 12px;
+				color: var(--muted);
+				background: color-mix(in srgb, var(--parchment) 4%, transparent);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				padding: 8px 11px;
+				cursor: pointer;
+				transition: all 130ms var(--ease-vici);
+			}
+			.seg button.on,
+			.anim-opt.on {
+				color: var(--ink);
+				background: var(--laurel);
+				border-color: var(--laurel);
+				font-weight: 600;
+			}
+
+			.icon-grid {
+				display: grid;
+				grid-template-columns: repeat(6, 1fr);
+				gap: 6px;
+			}
+			.icon-opt {
+				display: grid;
+				place-items: center;
+				padding: 9px 0;
+				aspect-ratio: 1;
+			}
+			.icon-opt svg {
+				width: 19px;
+				height: 19px;
+				stroke-width: 1.6;
+			}
+			.icon-opt.on {
+				color: var(--laurel);
+				border-color: var(--laurel);
+				background: color-mix(in srgb, var(--laurel) 14%, transparent);
+			}
+
+			.swatches {
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+			}
+			.swatch {
+				display: flex;
+				align-items: center;
+				gap: 7px;
+				padding: 7px 10px;
+			}
+			.swatch i {
+				width: 13px;
+				height: 13px;
+				border-radius: 50%;
+				display: inline-block;
+			}
+			.swatch.on {
+				border-color: var(--parchment);
+				color: var(--parchment);
+			}
+
+			.anim-opts {
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 6px;
+			}
+			.anim-opt {
+				text-align: center;
+			}
+
+			input[type='range'] {
+				width: 100%;
+				accent-color: var(--laurel);
+			}
+
+			/* code output */
+			pre {
+				margin: 0;
+				background: var(--ink-deep);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 14px;
+				overflow-x: auto;
+				font-family: var(--font-mono);
+				font-size: 11.5px;
+				line-height: 1.6;
+				color: color-mix(in srgb, var(--parchment) 82%, transparent);
+			}
+			pre .k {
+				color: var(--hold);
+			}
+			pre .a {
+				color: var(--laurel);
+			}
+			pre .s {
+				color: var(--yes);
+			}
+
+			.copy-btn {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				font-family: var(--font-mono);
+				font-size: 10px;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: var(--laurel);
+				background: color-mix(in srgb, var(--laurel) 10%, transparent);
+				border: 1px solid color-mix(in srgb, var(--laurel) 35%, transparent);
+				border-radius: 8px;
+				padding: 5px 9px;
+				cursor: pointer;
+				transition: all 130ms var(--ease-vici);
+			}
+			.copy-btn:hover {
+				background: color-mix(in srgb, var(--laurel) 18%, transparent);
+			}
+			.copy-btn.done {
+				color: var(--yes);
+				border-color: color-mix(in srgb, var(--yes) 40%, transparent);
+				background: color-mix(in srgb, var(--yes) 12%, transparent);
+			}
+			.copy-btn svg {
+				width: 13px;
+				height: 13px;
+				stroke-width: 1.8;
+			}
+
+			.hint {
+				font-size: 11.5px;
+				color: var(--muted);
+				margin-top: 10px;
+			}
+			.tag {
+				font-family: var(--font-mono);
+				font-size: 10px;
+				padding: 2px 7px;
+				border: 1px solid var(--border);
+				border-radius: 999px;
+				color: var(--muted);
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				.react,
+				.picker button,
+				.feed-row,
+				* {
+					animation: none !important;
+					transition: none !important;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="wrap">
+			<header class="masthead">
+				<div class="kicker">VICI · Arena · Friends</div>
+				<h1>Reactions Explorer</h1>
+				<p class="sub">
+					Evaluate how to acknowledge a friend's call on the 24h win/loss feed. Tweak the icon,
+					colour, size, stroke and motion on the right — the mock feed and the code snippet update
+					live. No emoji (brand §2.3); icons are from the Lucide set the app already ships.
+				</p>
+			</header>
+
+			<div class="grid">
+				<!-- LEFT: live mock feed -->
+				<div>
+					<div class="panel">
+						<div class="eyebrow">
+							<span>Recent activity — last 24h</span>
+							<span class="tag" id="modeTag">single tap</span>
+						</div>
+						<ul class="feed-list" id="feed"></ul>
+						<p class="hint" id="feedHint">
+							Tap the reaction to commit it. Switch to the multi-picker model to reveal a row of
+							options on hover / press.
+						</p>
+					</div>
+
+					<div class="panel">
+						<div class="eyebrow"><span>Animation gallery</span><span>hover to preview</span></div>
+						<div id="gallery" style="display: flex; flex-wrap: wrap; gap: 10px"></div>
+					</div>
+				</div>
+
+				<!-- RIGHT: controls -->
+				<div>
+					<div class="panel">
+						<div class="eyebrow"><span>Interaction model</span></div>
+						<div class="ctl-group">
+							<div class="seg" id="modeSeg">
+								<button data-mode="single" class="on">Single tap-to-react</button>
+								<button data-mode="multi">Multi-reaction picker</button>
+							</div>
+						</div>
+
+						<div class="ctl-group">
+							<div class="ctl-label">
+								<span>Icon</span><span class="val" id="iconVal">heart</span>
+							</div>
+							<div class="icon-grid" id="iconGrid"></div>
+						</div>
+
+						<div class="ctl-group">
+							<div class="ctl-label">
+								<span>Colour token</span><span class="val" id="colorVal">--laurel</span>
+							</div>
+							<div class="swatches" id="swatches"></div>
+						</div>
+
+						<div class="ctl-group">
+							<div class="ctl-label">
+								<span>Size</span><span class="val" id="sizeVal">16px</span>
+							</div>
+							<input type="range" id="size" min="13" max="26" value="16" />
+						</div>
+
+						<div class="ctl-group">
+							<div class="ctl-label">
+								<span>Stroke width</span><span class="val" id="strokeVal">1.6</span>
+							</div>
+							<input type="range" id="stroke" min="1" max="2.6" step="0.1" value="1.6" />
+						</div>
+
+						<div class="ctl-group">
+							<div class="ctl-label"><span>Animation on commit</span></div>
+							<div class="anim-opts" id="animOpts"></div>
+						</div>
+
+						<div class="ctl-group" style="margin-bottom: 0">
+							<div class="ctl-label">
+								<span>Particle burst</span>
+								<span class="val" id="burstVal">off</span>
+							</div>
+							<div class="seg" id="burstSeg">
+								<button data-burst="off" class="on">Off</button>
+								<button data-burst="on">On</button>
+							</div>
+						</div>
+					</div>
+
+					<div class="panel">
+						<div class="eyebrow">
+							<span>Generated snippet</span>
+							<button id="copyBtn" class="copy-btn" type="button">
+								<i data-lucide="copy"></i><span id="copyLabel">Copy</span>
+							</button>
+						</div>
+						<pre id="code"></pre>
+						<p class="hint">
+							Drop-in for the <code>.feed-react</code> button. Stroke 1.6 is the brand default;
+							commit motion is gated under reduced-motion.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			// ── Option data ────────────────────────────────────────
+			const ICONS = [
+				'heart',
+				'thumbs-up',
+				'sparkles',
+				'flame',
+				'star',
+				'zap',
+				'award',
+				'party-popper',
+				'hand',
+				'smile',
+				'trending-up',
+				'badge-check',
+				'medal',
+				'crown',
+				'bookmark',
+				'circle-check-big',
+				'hand-heart',
+				'rocket'
+			];
+			const COLORS = [
+				{ name: '--laurel', hex: '#e2b842' },
+				{ name: '--yes', hex: '#4fd3a1' },
+				{ name: '--no', hex: '#ff6b6b' },
+				{ name: '--hold', hex: '#6b9fff' },
+				{ name: '--terracotta', hex: '#b5462c' },
+				{ name: '--parchment', hex: '#f2ecdc' }
+			];
+			const ANIMS = [
+				{ key: 'none', label: 'None' },
+				{ key: 'pop', label: 'Pop' },
+				{ key: 'spring', label: 'Spring' },
+				{ key: 'pulse', label: 'Glow pulse' },
+				{ key: 'heartbeat', label: 'Heartbeat' },
+				{ key: 'tilt', label: 'Tilt' },
+				{ key: 'radiate', label: 'Radiate' }
+			];
+			const PICKER_ICONS = ['thumbs-up', 'heart', 'flame', 'star', 'party-popper'];
+
+			const FRIENDS = [
+				{
+					initials: 'MR',
+					name: 'marcus.rell',
+					color: '#7c83e8',
+					win: true,
+					market: 'BTC > $80k by Fri',
+					delta: '+240 VXP',
+					when: '12m ago'
+				},
+				{
+					initials: 'AV',
+					name: 'ava.quinn',
+					color: '#4fd3a1',
+					win: false,
+					market: 'Fed cuts in June',
+					delta: '−90 VXP',
+					when: '48m ago'
+				},
+				{
+					initials: 'TK',
+					name: 'theo.k',
+					color: '#e2b842',
+					win: true,
+					market: 'Lakers close out series',
+					delta: '+180 VXP',
+					when: '3h ago'
+				},
+				{
+					initials: 'SN',
+					name: 'sana.dev',
+					color: '#b5462c',
+					win: false,
+					market: 'ETH flips $4k',
+					delta: '−55 VXP',
+					when: '7h ago'
+				}
+			];
+
+			const state = {
+				mode: 'single',
+				icon: 'heart',
+				color: '--laurel',
+				size: 16,
+				stroke: 1.6,
+				anim: 'pop',
+				burst: false
+			};
+
+			const root = document.documentElement;
+
+			function applyVars() {
+				const hex = COLORS.find((c) => c.name === state.color).hex;
+				root.style.setProperty('--react-color', hex);
+				root.style.setProperty('--react-size', state.size + 'px');
+				root.style.setProperty('--react-stroke', state.stroke);
+			}
+
+			// ── Build the feed ─────────────────────────────────────
+			const feed = document.getElementById('feed');
+			function buildFeed() {
+				feed.innerHTML = FRIENDS.map(
+					(f, i) => `
+          <li>
+            <div class="feed-row" data-row="${i}">
+              <div class="avatar" style="background:${f.color}">${f.initials}</div>
+              <div class="copy">
+                <div class="line">
+                  <span class="handle">@${f.name}</span>
+                  <span class="action">${f.win ? 'called it' : 'missed'}</span>
+                  <span class="outcome ${f.win ? 'win' : 'loss'}">${f.win ? 'WIN' : 'LOSS'} ${f.delta}</span>
+                </div>
+                <span class="market">“${f.market}”</span>
+                <div class="when">${f.when}</div>
+              </div>
+              <button class="react" data-react="${i}" aria-label="Like" aria-pressed="false">
+                <i data-lucide="${state.icon}"></i>
+                <span class="count">0</span>
+                <span class="burst" aria-hidden="true"></span>
+              </button>
+              <div class="picker" data-picker="${i}">
+                ${PICKER_ICONS.map((ic) => `<button data-pick="${ic}" data-row="${i}" aria-label="${ic}"><i data-lucide="${ic}"></i></button>`).join('')}
+              </div>
+            </div>
+          </li>`
+				).join('');
+				lucide.createIcons();
+				wireFeed();
+			}
+
+			function commit(btn, on) {
+				const cls = `anim-${state.anim}`;
+				btn.classList.remove(
+					'anim-pop',
+					'anim-spring',
+					'anim-pulse',
+					'anim-heartbeat',
+					'anim-tilt',
+					'anim-radiate',
+					'fire'
+				);
+				const countEl = btn.querySelector('.count');
+				if (on) {
+					btn.classList.add('reacted');
+					countEl.textContent = '1';
+					btn.setAttribute('aria-pressed', 'true');
+					if (state.anim !== 'none') {
+						void btn.offsetWidth;
+						btn.classList.add(cls, 'fire');
+					}
+					if (state.burst) fireBurst(btn);
+					setTimeout(() => btn.classList.remove('fire'), 600);
+				} else {
+					btn.classList.remove('reacted');
+					countEl.textContent = '0';
+					btn.setAttribute('aria-pressed', 'false');
+				}
+			}
+
+			function fireBurst(btn) {
+				const host = btn.querySelector('.burst');
+				host.innerHTML = '';
+				const n = 8;
+				for (let i = 0; i < n; i++) {
+					const s = document.createElement('span');
+					const ang = (Math.PI * 2 * i) / n + Math.random() * 0.4;
+					const dist = 16 + Math.random() * 10;
+					s.style.setProperty('--dx', `calc(-50% + ${Math.cos(ang) * dist}px)`);
+					s.style.setProperty('--dy', `calc(-50% + ${Math.sin(ang) * dist}px)`);
+					host.appendChild(s);
+				}
+				setTimeout(() => (host.innerHTML = ''), 560);
+			}
+
+			function wireFeed() {
+				document.querySelectorAll('[data-react]').forEach((btn) => {
+					btn.addEventListener('click', () => {
+						if (state.mode === 'multi') return; // single-click disabled in multi mode
+						commit(btn, !btn.classList.contains('reacted'));
+					});
+				});
+				// multi-picker reveal
+				document.querySelectorAll('.feed-row').forEach((row) => {
+					let t;
+					const show = () => state.mode === 'multi' && row.classList.add('show-picker');
+					const hide = () => row.classList.remove('show-picker');
+					row.addEventListener('mouseenter', show);
+					row.addEventListener('mouseleave', hide);
+					row.addEventListener('pointerdown', () => {
+						if (state.mode === 'multi') {
+							t = setTimeout(show, 280);
+						}
+					});
+					row.addEventListener('pointerup', () => clearTimeout(t));
+				});
+				document.querySelectorAll('[data-pick]').forEach((b) => {
+					b.addEventListener('click', (e) => {
+						e.stopPropagation();
+						const row = b.getAttribute('data-row');
+						const icon = b.getAttribute('data-pick');
+						const react = document.querySelector(`[data-react="${row}"]`);
+						react.querySelector('svg')?.remove();
+						const i = document.createElement('i');
+						i.setAttribute('data-lucide', icon);
+						react.prepend(i);
+						lucide.createIcons({ nameAttr: 'data-lucide' });
+						commit(react, true);
+						b.closest('.feed-row').classList.remove('show-picker');
+					});
+				});
+			}
+
+			// ── Controls ───────────────────────────────────────────
+			function buildIconGrid() {
+				const g = document.getElementById('iconGrid');
+				g.innerHTML = ICONS.map(
+					(ic) =>
+						`<button class="icon-opt ${ic === state.icon ? 'on' : ''}" data-icon="${ic}" title="${ic}"><i data-lucide="${ic}"></i></button>`
+				).join('');
+				lucide.createIcons();
+				g.querySelectorAll('[data-icon]').forEach((b) =>
+					b.addEventListener('click', () => {
+						state.icon = b.getAttribute('data-icon');
+						document.getElementById('iconVal').textContent = state.icon;
+						g.querySelectorAll('.icon-opt').forEach((x) => x.classList.toggle('on', x === b));
+						buildFeed();
+						render();
+					})
+				);
+			}
+
+			function buildSwatches() {
+				const s = document.getElementById('swatches');
+				s.innerHTML = COLORS.map(
+					(c) =>
+						`<button class="swatch ${c.name === state.color ? 'on' : ''}" data-color="${c.name}"><i style="background:${c.hex}"></i>${c.name}</button>`
+				).join('');
+				s.querySelectorAll('[data-color]').forEach((b) =>
+					b.addEventListener('click', () => {
+						state.color = b.getAttribute('data-color');
+						document.getElementById('colorVal').textContent = state.color;
+						s.querySelectorAll('.swatch').forEach((x) => x.classList.toggle('on', x === b));
+						applyVars();
+						render();
+					})
+				);
+			}
+
+			function buildAnims() {
+				const a = document.getElementById('animOpts');
+				a.innerHTML = ANIMS.map(
+					(an) =>
+						`<button class="anim-opt ${an.key === state.anim ? 'on' : ''}" data-anim="${an.key}">${an.label}</button>`
+				).join('');
+				a.querySelectorAll('[data-anim]').forEach((b) =>
+					b.addEventListener('click', () => {
+						state.anim = b.getAttribute('data-anim');
+						a.querySelectorAll('.anim-opt').forEach((x) => x.classList.toggle('on', x === b));
+						// preview on first row
+						const first = document.querySelector('[data-react="0"]');
+						if (first) {
+							commit(first, true);
+						}
+						render();
+					})
+				);
+			}
+
+			function buildGallery() {
+				const g = document.getElementById('gallery');
+				g.innerHTML = ANIMS.filter((a) => a.key !== 'none')
+					.map(
+						(a) => `
+          <button class="react reacted gal" data-galanim="${a.key}" style="opacity:1; position:relative;">
+            <i data-lucide="${state.icon}"></i>
+            <span style="font-family:var(--font-mono); font-size:10px;">${a.label}</span>
+            <span class="burst"></span>
+          </button>`
+					)
+					.join('');
+				lucide.createIcons();
+				g.querySelectorAll('.gal').forEach((btn) => {
+					const key = btn.getAttribute('data-galanim');
+					const play = () => {
+						btn.classList.remove(
+							'anim-pop',
+							'anim-spring',
+							'anim-pulse',
+							'anim-heartbeat',
+							'anim-tilt',
+							'anim-radiate',
+							'fire'
+						);
+						void btn.offsetWidth;
+						btn.classList.add(`anim-${key}`, 'fire');
+						setTimeout(() => btn.classList.remove('fire'), 600);
+					};
+					btn.addEventListener('mouseenter', play);
+					btn.addEventListener('click', play);
+				});
+			}
+
+			// sliders + segments
+			document.getElementById('size').addEventListener('input', (e) => {
+				state.size = +e.target.value;
+				document.getElementById('sizeVal').textContent = state.size + 'px';
+				document.getElementById('size') && (applyVars(), render());
+			});
+			document.getElementById('stroke').addEventListener('input', (e) => {
+				state.stroke = +e.target.value;
+				document.getElementById('strokeVal').textContent = state.stroke.toFixed(1);
+				applyVars();
+				render();
+			});
+			document
+				.getElementById('modeSeg')
+				.querySelectorAll('button')
+				.forEach((b) =>
+					b.addEventListener('click', () => {
+						state.mode = b.getAttribute('data-mode');
+						document
+							.getElementById('modeSeg')
+							.querySelectorAll('button')
+							.forEach((x) => x.classList.toggle('on', x === b));
+						document.getElementById('modeTag').textContent =
+							state.mode === 'single' ? 'single tap' : 'multi-picker';
+						document.getElementById('feedHint').textContent =
+							state.mode === 'single'
+								? 'Tap the reaction to commit it.'
+								: 'Hover (or long-press) a row to reveal the picker, then choose a reaction.';
+						render();
+					})
+				);
+			document
+				.getElementById('burstSeg')
+				.querySelectorAll('button')
+				.forEach((b) =>
+					b.addEventListener('click', () => {
+						state.burst = b.getAttribute('data-burst') === 'on';
+						document.getElementById('burstVal').textContent = state.burst ? 'on' : 'off';
+						document
+							.getElementById('burstSeg')
+							.querySelectorAll('button')
+							.forEach((x) => x.classList.toggle('on', x === b));
+						render();
+					})
+				);
+
+			// ── Code snippet ───────────────────────────────────────
+			function pascal(s) {
+				return s
+					.split('-')
+					.map((p) => p[0].toUpperCase() + p.slice(1))
+					.join('');
+			}
+			function animBlocks() {
+				// Returns { kf, rule } as real, paste-able CSS for the selected
+				// commit animation, themed with the chosen colour token. "none"
+				// yields empty strings so the snippet stays minimal.
+				const c = state.color;
+				const KF = {
+					pop: '@keyframes react-pop { 0% { transform: scale(0.86); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }',
+					spring:
+						'@keyframes react-spring { 0% { transform: scale(0.8); } 45% { transform: scale(1.28); } 72% { transform: scale(0.94); } 100% { transform: scale(1); } }',
+					pulse: `@keyframes react-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.18); filter: drop-shadow(0 0 6px var(${c})); } 100% { transform: scale(1); } }`,
+					heartbeat:
+						'@keyframes react-heartbeat { 0% { transform: scale(1); } 20% { transform: scale(1.22); } 38% { transform: scale(0.96); } 58% { transform: scale(1.14); } 80% { transform: scale(1); } }',
+					tilt: '@keyframes react-tilt { 0% { transform: rotate(0) scale(0.9); } 35% { transform: rotate(-14deg) scale(1.15); } 70% { transform: rotate(10deg) scale(1.02); } 100% { transform: rotate(0) scale(1); } }',
+					radiate:
+						'@keyframes react-radiate { 0% { transform: scale(0.7); opacity: 0.8; } 100% { transform: scale(1.9); opacity: 0; } }'
+				};
+				const RULE = {
+					pop: '.feed-react.is-firing { animation: react-pop 140ms var(--ease-vici); }',
+					spring: '.feed-react.is-firing { animation: react-spring 360ms var(--ease-vici); }',
+					pulse: '.feed-react.is-firing svg { animation: react-pulse 520ms ease-out; }',
+					heartbeat: '.feed-react.is-firing svg { animation: react-heartbeat 560ms ease-in-out; }',
+					tilt: '.feed-react.is-firing svg { animation: react-tilt 420ms var(--ease-vici); }',
+					radiate: `.feed-react.is-firing::after { content: ""; position: absolute; inset: 0; border-radius: 999px; border: 1.5px solid var(${c}); animation: react-radiate 560ms ease-out forwards; }`
+				};
+				if (state.anim === 'none') return { kf: '', rule: '' };
+				return { kf: KF[state.anim], rule: RULE[state.anim] };
+			}
+
+			function render() {
+				const Comp = pascal(state.icon);
+				const animated = state.anim !== 'none';
+				const { kf, rule } = animBlocks();
+
+				const firingAttr = animated
+					? `\n\t<span class="a">class:is-firing</span>={isFiring(activity)}`
+					: '';
+
+				const handler = animated
+					? `<span class="k">const</span> firingKeys = <span class="k">new</span> SvelteSet&lt;string&gt;();
+<span class="k">const</span> isFiring = (a) =&gt; firingKeys.has(key(a));
+
+<span class="k">const</span> toggleReaction = (activity) =&gt; {
+\t<span class="k">const</span> k = key(activity);
+\t<span class="k">if</span> (reactedKeys.has(k)) { reactedKeys.delete(k); <span class="k">return</span>; }
+\t<span class="a">reactedKeys</span>.add(k);
+\t<span class="a">haptic</span>(<span class="s">'light-tap'</span>);
+\t<span class="k">if</span> (!prefersReducedMotion()) {
+\t\tfiringKeys.add(k);
+\t\tsetTimeout(() =&gt; firingKeys.delete(k), 600);
+\t}
+};`
+					: `<span class="k">const</span> toggleReaction = (activity) =&gt; {
+\t<span class="k">const</span> k = key(activity);
+\treactedKeys.has(k) ? reactedKeys.delete(k) : (reactedKeys.add(k), <span class="a">haptic</span>(<span class="s">'light-tap'</span>));
+};`;
+
+				const motionCss = animated
+					? `
+
+<span class="a">${rule}</span>
+${kf}
+
+@media (prefers-reduced-motion: reduce) {
+\t.feed-react.is-firing,
+\t.feed-react.is-firing svg,
+\t.feed-react.is-firing::after { animation: none; }
+}`
+					: '';
+
+				const burstNote =
+					animated && state.burst
+						? `\n<span class="k">/* + particle burst: see fireBurst() helper in the explorer source */</span>`
+						: '';
+
+				const code = `<span class="k">import</span> { ${Comp} } <span class="k">from</span> <span class="s">'@lucide/svelte'</span>;
+
+${handler}
+
+&lt;<span class="k">button</span>
+\t<span class="a">class</span>=<span class="s">"feed-react"</span>
+\t<span class="a">class:is-reacted</span>={isReacted}${firingAttr}
+\t<span class="a">aria-pressed</span>={isReacted}
+\t<span class="a">onclick</span>={() =&gt; toggleReaction(activity)}
+&gt;
+\t&lt;<span class="k">${Comp}</span> <span class="a">size</span>={${state.size}} <span class="a">strokeWidth</span>={${state.stroke.toFixed(1)}} /&gt;
+&lt;/<span class="k">button</span>&gt;
+
+<span class="k">/* css */</span>
+.feed-react.is-reacted {
+\t<span class="a">color</span>: <span class="s">var(${state.color})</span>;
+\t<span class="a">background</span>: color-mix(in srgb, var(${state.color}) 15%, transparent);
+}${motionCss}${burstNote}`;
+				document.getElementById('code').innerHTML = code;
+			}
+
+			// ── Copy snippet ───────────────────────────────────────
+			const copyBtn = document.getElementById('copyBtn');
+			copyBtn.addEventListener('click', async () => {
+				const text = document.getElementById('code').textContent;
+				const label = document.getElementById('copyLabel');
+				try {
+					await navigator.clipboard.writeText(text);
+				} catch {
+					const ta = document.createElement('textarea');
+					ta.value = text;
+					document.body.appendChild(ta);
+					ta.select();
+					document.execCommand('copy');
+					ta.remove();
+				}
+				copyBtn.classList.add('done');
+				label.textContent = 'Copied';
+				copyBtn.querySelector('svg')?.setAttribute('data-lucide', 'check');
+				copyBtn.innerHTML = '<i data-lucide="check"></i><span id="copyLabel">Copied</span>';
+				lucide.createIcons();
+				setTimeout(() => {
+					copyBtn.classList.remove('done');
+					copyBtn.innerHTML = '<i data-lucide="copy"></i><span id="copyLabel">Copy</span>';
+					lucide.createIcons();
+				}, 1600);
+			});
+
+			// ── Boot ───────────────────────────────────────────────
+			applyVars();
+			buildIconGrid();
+			buildSwatches();
+			buildAnims();
+			buildFeed();
+			buildGallery();
+			render();
+		</script>
+	</body>
+</html>
