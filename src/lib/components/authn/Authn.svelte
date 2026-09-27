@@ -7,6 +7,7 @@
 	import { resolve } from '$app/paths';
 	import MovedToNewApp from '$lib/components/authn/MovedToNewApp.svelte';
 	import { SIGNED_IN_FLAG_KEY } from '$lib/constants/app.constants';
+	import { NEW_ACCOUNT_MOVED_SESSION_KEY } from '$lib/constants/claim.constants';
 	import { PublicPath } from '$lib/constants/routes.constants';
 	import { balanceDomain } from '$lib/derived/balance-domain.derived';
 	import { trackLoginSyncSettled } from '$lib/dev/e2e-reset';
@@ -95,13 +96,52 @@
 
 	const { children }: Props = $props();
 
+	/**
+	 * Persist (or drop) the "turned away as a new account" marker. Juno's auth
+	 * worker can follow our reload-free sign-out with its own reloading one, so
+	 * the in-memory flag alone would lose the message on that reload.
+	 * Best-effort: without storage the message still shows until a reload.
+	 */
+	const setNewAccountMovedMarker = (moved: boolean): void => {
+		if (!browser) {
+			return;
+		}
+
+		try {
+			if (moved) {
+				sessionStorage.setItem(NEW_ACCOUNT_MOVED_SESSION_KEY, '1');
+			} else {
+				sessionStorage.removeItem(NEW_ACCOUNT_MOVED_SESSION_KEY);
+			}
+		} catch {
+			// Storage unavailable (private mode / disabled): see above.
+		}
+	};
+
+	const readNewAccountMovedMarker = (): boolean => {
+		if (!browser) {
+			return false;
+		}
+
+		try {
+			return sessionStorage.getItem(NEW_ACCOUNT_MOVED_SESSION_KEY) === '1';
+		} catch {
+			return false;
+		}
+	};
+
 	// Set when a sign-in is turned away as a new account (see `ensureProfile`).
 	// Lives here rather than on a route so the message survives whatever
 	// navigation the provider that just resolved kicks off.
-	let newAccountMoved = $state(false);
+	let newAccountMoved = $state(readNewAccountMovedMarker());
+
+	const setNewAccountMoved = (moved: boolean): void => {
+		newAccountMoved = moved;
+		setNewAccountMovedMarker(moved);
+	};
 
 	const dismissNewAccountMoved = (): void => {
-		newAccountMoved = false;
+		setNewAccountMoved(false);
 
 		void goto(resolve(PublicPath.SignIn));
 	};
@@ -186,10 +226,11 @@
 					profileExisted: false
 				});
 
-				newAccountMoved = true;
+				setNewAccountMoved(true);
 
 				try {
-					// No reload: it would tear down the moved screen this sets up.
+					// No reload of our own; if the auth worker still reloads, the
+					// session marker brings the moved screen back.
 					await signOut({ windowReload: false });
 				} catch (e: unknown) {
 					console.error('Failed to sign out a new account on the legacy build', e);
@@ -200,6 +241,8 @@
 
 			const { profile, existed, email } = ensured;
 
+			// An existing account got in, so any earlier turn-away no longer applies.
+			setNewAccountMoved(false);
 			setSignedInFlag(true);
 			requestPersistentStorage();
 

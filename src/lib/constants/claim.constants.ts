@@ -33,5 +33,13 @@ export const LEGACY_APP_URL = 'https://vici.market';
  * before handing control to a provider. */
 export const CLAIM_BLOB_STORAGE_KEY = 'vici:web2-claim-blob';
 
+/**
+ * Tab-scoped marker that the legacy app just turned a sign-in away as a new
+ * account. Kept until the user dismisses the moved screen or an existing
+ * account signs in, so the message survives the reload Juno's auth worker can
+ * trigger after the sign-out.
+ */
+export const NEW_ACCOUNT_MOVED_SESSION_KEY = 'vici:new-account-moved';
+
 /** Local dismissal flag for the migration banner on the legacy app. */
 export const CLAIM_BANNER_DISMISSED_KEY = 'vici:web2-claim-banner-dismissed';
