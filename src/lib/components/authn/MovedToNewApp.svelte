@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { isNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
+	import { pinToVisualViewport } from '$lib/actions/pin-to-visual-viewport';
 	import { TestId } from '$lib/constants/test-ids.constants';
 	import { loadNewAppSignupUrl, newAppDomain } from '$lib/services/new-app-redirect.services';
 	import { localeStore } from '$lib/stores/locale.store';
+	import { createFocusTrap } from '$lib/utils/focus-trap.utils';
 	import { t, type MessageKey } from '$lib/utils/i18n.utils';
 
 	interface Props {
@@ -52,9 +55,17 @@
 	let dialogEl = $state<HTMLDivElement | undefined>(undefined);
 
 	onMount(() => {
-		// Move focus into the modal so keyboard and screen-reader users land on
-		// the message rather than on the page it covers.
-		dialogEl?.focus();
+		if (isNullish(dialogEl)) {
+			return;
+		}
+
+		// The overlay covers a live app shell; trap Tab inside it so the page
+		// underneath is not keyboard-reachable while the message is up.
+		const trap = createFocusTrap(dialogEl);
+
+		trap.activate();
+
+		return () => trap.deactivate();
 	});
 </script>
 
@@ -107,6 +118,7 @@
 		aria-modal="true"
 		role="dialog"
 		tabindex="-1"
+		use:pinToVisualViewport
 	>
 		{@render card()}
 	</div>
