@@ -2309,6 +2309,9 @@ export const ptMessages = {
 	'signin.footer.cta.signup': 'Criar uma conta →',
 	'signin.footer.prompt.signin': 'Já tens uma conta?',
 	'signin.footer.prompt.signup': 'Novo na VICI?',
+	'signin.legacy_pending.body':
+		'Já tens uma conta VICI. Continua a usar o vici.market até ao dia da mudança, quando a tua conta passar para aqui.',
+	'signin.legacy_pending.cta': 'Ir para o vici.market',
 	'signin.legal':
 		'Ao continuar, aceitas os Termos e a Política de Privacidade. A VICI usa dinheiro fictício durante a pré-visualização. Não é aconselhamento financeiro.',
 	'signin.legal.line1':
