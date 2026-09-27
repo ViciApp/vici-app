@@ -8,8 +8,9 @@
 // re-derived with a counter suffix in the astronomically unlikely case it
 // falls outside the valid range).
 //
-// Service (treasury / admin) keys use a distinct `svc:` info prefix so they
-// can never collide with a user key even if a user id were attacker-chosen.
+// Service (treasury / admin / engine reader) keys use a distinct `svc:` info
+// prefix so they can never collide with a user key even if a user id were
+// attacker-chosen.
 // PEM env vars (TREASURY_PEM / ADMIN_PEM) override the derived service keys
 // for deployments that keep those keys off-box; the overrides are loaded via
 // Secp256k1KeyIdentity, so supply secp256k1 PEMs there even though derived
@@ -101,3 +102,11 @@ export const treasuryIcIdentity = (): SignIdentity =>
  * can rotate independently. */
 export const adminIcIdentity = (): SignIdentity =>
 	serviceIcIdentity({ name: 'admin', pem: env.adminPem });
+
+/** The engine reader identity: signs the public, market-wide engine reads.
+ * Clearing guards even its read-only queries against the anonymous
+ * principal, so those reads need a real caller; one made on behalf of every
+ * visitor must never borrow a user's key, and it holds no funds and no
+ * engine role, so it needs no off-box PEM override either. */
+export const engineReaderIcIdentity = (): SignIdentity =>
+	Ed25519KeyIdentity.fromSecretKey(deriveServiceKey({ name: 'engine-reader', chain: 'ic' }));

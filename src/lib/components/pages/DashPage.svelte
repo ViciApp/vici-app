@@ -48,8 +48,7 @@
 		vxpHoldingsTotal,
 		vxpSpendable
 	} from '$lib/derived/vxp-holdings.derived';
-	import { safeGetIdentityOnce } from '$lib/services/identity.services';
-	import { calculateAndSyncStats, getProfile } from '$lib/services/profile.services';
+	import { getProfile, syncMyStats } from '$lib/services/profile.services';
 	import { loadMyUserStats } from '$lib/services/user-stats.services';
 	import { friendsListStore } from '$lib/stores/friends.store';
 	import { markResolutionsSeen, maturedResolutions } from '$lib/stores/inbox.store';
@@ -369,8 +368,7 @@
 		}
 
 		try {
-			const identity = await safeGetIdentityOnce();
-			await calculateAndSyncStats({ identity, domain: $balanceDomain });
+			await syncMyStats({ domain: $balanceDomain });
 			const profileDoc = await getProfile(profile.owner);
 			userStore.update((s) => ({ ...s, profile: profileDoc.data }));
 		} catch (err) {

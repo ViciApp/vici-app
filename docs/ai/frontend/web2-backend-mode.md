@@ -78,7 +78,9 @@ per-domain sections:
 
 - **Login stats sync** (`calculateAndSyncStats` and its
   `persistMyUserStats` / `syncMyMonthlyStats` writes): reads the on-chain
-  clearing history, so it is simply not run in web2 mode.
+  clearing history, so it is simply not run in web2 mode. Components call
+  it through `profile.services.syncMyStats`, which returns early in web2
+  mode instead of failing on the missing on-chain identity.
 - **Order books** (`getOrderBook` and the book read inside `placeOrder`'s
   market-order walk): public IC data read anonymously in BOTH modes; no
   HTTP surface exists for it.
@@ -287,7 +289,9 @@ apply them at the fetch boundary.
   reads and curator-gated upserts; the HTTP API already speaks the app's
   camelCase doc shapes, so these are envelope unwraps.
 - `resolution.services.ts`: `getSettledSeriesIds` (bridge read is
-  domain-unfiltered, safe because series ids are globally unique) and
+  domain-unfiltered, safe because series ids are globally unique; a
+  failed read degrades to an empty set, like the unreadable anonymous
+  on-chain case, so one engine error never blanks every market list) and
   `loadSettlementOutcomes` (same batching, per-series bridge status).
 - `trade.services.ts`: price-history candles and the traded-volume tape
   drain. Callback flows deliver the bridge's single response as the final
