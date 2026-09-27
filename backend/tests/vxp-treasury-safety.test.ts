@@ -4,7 +4,7 @@
 // arrived with, a dry treasury defers instead of failing for good, and the
 // origin backfill of migration 0012 tells imported rows from live ones.
 
-import { isNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
@@ -18,6 +18,8 @@ import { treasuryIcPrincipalText, userIcPrincipalText } from '../src/lib/keys';
 import {
 	getTreasuryBacklog,
 	grantAward,
+	listUserAwards,
+	MAX_TRANSFER_ATTEMPTS,
 	PROCESSING_STALE_MS,
 	reconcileUnpaidAwards,
 	setVxpTreasuryDisabled
@@ -543,75 +545,239 @@ describe('transfer memo', () => {
 	});
 });
 
-describe('migration 0012 origin backfill', () => {
-	test('marks import-shaped rows etl and leaves live grants live', async () => {
+describe('unconfirmed transfer recovery', () => {
+	const HOUR_MS = 60 * 60_000;
+
+	const stampAgoNs = (ms: number): bigint => (BigInt(Date.now()) - BigInt(ms)) * BigInt(1_000_000);
+
+	/** A live row left processing by a crashed claim, its last send long
+	 * enough ago that no message carrying the stamp can still land. */
+	const insertStaleClaim = async ({
+		userId,
+		awardKey,
+		stampNs,
+		status = 'processing',
+		attempts = 1
+	}: {
+		userId: string;
+		awardKey: string;
+		stampNs: bigint;
+		status?: string;
+		attempts?: number;
+	}): Promise<void> => {
+		await query(
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms,
+			   processing_at, transfer_memo, transfer_created_at_ns, transfer_attempts)
+			 values ($1, 'achievement', $2, $3, $4, $5,
+			   now() - make_interval(secs => $6::double precision / 1000), $7, $8, $9)`,
+			[
+				userId,
+				awardKey,
+				parseVxp(300).toString(),
+				status,
+				Date.now(),
+				PROCESSING_STALE_MS + 60_000,
+				`vxp:achievement:${awardKey}`,
+				stampNs.toString(),
+				attempts
+			]
+		);
+	};
+
+	const statusOf = async (userId: string, awardKey: string): Promise<string | undefined> =>
+		(await readAwardRow({ userId, awardType: 'achievement', awardKey }))?.status;
+
+	test('a replay past the dedup window that is in the history is marked paid, not sent again', async () => {
+		stub = stubVxpLedger();
+		restoreMode = setVxpTreasuryDisabled(false);
 		const userId = await createTestUser();
-		const nowMs = Date.now();
+
+		const first = await grantAward({
+			userId,
+			awardType: 'achievement',
+			awardKey: 'history-found',
+			amountBaseUnits: parseVxp(300)
+		});
+		const blockIndex = first.outcome === 'paid' ? first.blockIndex : '';
+
+		// The payment landed, then the process died before recording it and
+		// stayed down past the ledger's 24h dedup window.
+		const oldStampNs = stampAgoNs(25 * HOUR_MS);
+		const sent = stub.landed.find(({ memo }) => memo === 'vxp:achievement:history-found');
+
+		if (nonNullish(sent)) {
+			sent.createdAtTime = oldStampNs;
+		}
+
+		await query(
+			`update vxp_awards
+			 set status = 'processing', paid_at_ms = null, block_index = null,
+			     transfer_created_at_ns = $2,
+			     processing_at = now() - make_interval(secs => $3::double precision / 1000)
+			 where user_id = $1 and award_key = 'history-found'`,
+			[userId, oldStampNs.toString(), PROCESSING_STALE_MS + 60_000]
+		);
+
+		const report = await reconcileUnpaidAwards({ graceMs: 0, limit: 500 });
+
+		expect(report.quarantined).toBeGreaterThanOrEqual(1);
+		expect(
+			stub.transfers.filter(({ memo }) => memo === 'vxp:achievement:history-found')
+		).toHaveLength(1);
+		expect(landedTo(userId)).toBe(1);
+
+		const row = await readAwardRow({ userId, awardType: 'achievement', awardKey: 'history-found' });
+
+		expect(row?.status).toBe('paid');
+		expect(row?.block_index).toBe(blockIndex);
+	});
+
+	test('a replay past the dedup window that the synced history lacks is sent fresh exactly once', async () => {
+		stub = stubVxpLedger();
+		restoreMode = setVxpTreasuryDisabled(false);
+		const userId = await createTestUser();
+		const oldStampNs = stampAgoNs(25 * HOUR_MS);
+
+		await insertStaleClaim({ userId, awardKey: 'history-absent', stampNs: oldStampNs });
+
+		await reconcileUntilIdle();
+
+		const sends = stub.landed.filter(({ memo }) => memo === 'vxp:achievement:history-absent');
+
+		expect(sends).toHaveLength(1);
+		expect(sends[0]?.createdAtTime).not.toBe(oldStampNs);
+		expect(await statusOf(userId, 'history-absent')).toBe('paid');
+	});
+
+	test('with the history not provably complete the row stays quarantined, nothing is sent', async () => {
+		stub = stubVxpLedger({ historySynced: false });
+		restoreMode = setVxpTreasuryDisabled(false);
+		const userId = await createTestUser();
+
+		await insertStaleClaim({
+			userId,
+			awardKey: 'history-unknown',
+			stampNs: stampAgoNs(25 * HOUR_MS)
+		});
+
+		await reconcileUntilIdle();
+		await reconcileUntilIdle();
+
+		expect(landedTo(userId)).toBe(0);
+		expect(
+			stub.transfers.filter(({ memo }) => memo === 'vxp:achievement:history-unknown')
+		).toHaveLength(0);
+		expect(await statusOf(userId, 'history-unknown')).toBe('needs_ledger_check');
+		expect((await getTreasuryBacklog()).needsLedgerCheckCount).toBeGreaterThanOrEqual(1);
+
+		// Clients see it as still in flight.
+		expect((await listUserAwards({ userId }))[0]?.status).toBe('processing');
+	});
+
+	test('a replay answered TooOld is quarantined, never failed', async () => {
+		stub = stubVxpLedger({
+			transferImpl: () =>
+				Promise.reject(new IcrcTransferError({ msg: 'too old', errorType: { TooOld: null } }))
+		});
+		restoreMode = setVxpTreasuryDisabled(false);
+		const userId = await createTestUser();
+
+		await insertStaleClaim({ userId, awardKey: 'replay-too-old', stampNs: stampAgoNs(HOUR_MS) });
+
+		await reconcileUnpaidAwards({ graceMs: 0, limit: 500 });
+
+		expect(await statusOf(userId, 'replay-too-old')).toBe('needs_ledger_check');
+	});
+
+	test('an ambiguous error on a first attempt is quarantined, never failed', async () => {
+		stub = stubVxpLedger({
+			transferImpl: () => Promise.reject(new Error('request timed out'))
+		});
+		restoreMode = setVxpTreasuryDisabled(false);
+		const userId = await createTestUser();
+
+		const outcome = await grantAward({
+			userId,
+			awardType: 'achievement',
+			awardKey: 'first-ambiguous',
+			amountBaseUnits: parseVxp(300)
+		});
+
+		expect(outcome.outcome).toBe('recorded');
+		expect(await statusOf(userId, 'first-ambiguous')).toBe('needs_ledger_check');
+	});
+
+	test('a transfer proven absent after the attempt cap fails instead of looping', async () => {
+		stub = stubVxpLedger();
+		restoreMode = setVxpTreasuryDisabled(false);
+		const userId = await createTestUser();
+
+		await insertStaleClaim({
+			userId,
+			awardKey: 'attempt-cap',
+			stampNs: stampAgoNs(HOUR_MS),
+			status: 'needs_ledger_check',
+			attempts: MAX_TRANSFER_ATTEMPTS
+		});
+
+		await reconcileUntilIdle();
+
+		expect(await statusOf(userId, 'attempt-cap')).toBe('failed');
+		expect(landedTo(userId)).toBe(0);
+	});
+});
+
+// Runs last: re-applying the migration marks every row in the shared test
+// database non-payable, exactly as it does in production.
+describe('migration 0012', () => {
+	test('every row that exists when it runs is non-payable; pre-migration pending and processing rows are never paid', async () => {
+		const userId = await createTestUser();
 
 		stub = stubVxpLedger();
 		restoreMode = setVxpTreasuryDisabled(true);
 
-		// A live grant: its own autocommit insert, earned at insert time.
+		// A record-only grant from before the migration, plus a processing
+		// row an older build sent without created_at_time and never confirmed.
 		await grantAward({
 			userId,
 			awardType: 'onboarding',
 			awardKey: 'm1',
 			amountBaseUnits: parseVxp(1500)
 		});
-
-		// The importer's shapes, written without the origin stamp as rows
-		// imported before this migration were: a batch sharing one
-		// transaction timestamp, a lone row earned long before its insert,
-		// and a paid row that never went through the claim.
 		await query(
-			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
-			 values ($1, 'achievement', 'batch-a', 10000, 'pending', $2),
-			        ($1, 'achievement', 'batch-b', 10000, 'pending', $2)`,
-			[userId, nowMs]
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, processing_at)
+			 values ($1, 'achievement', 'pre-migration-processing', 10000, 'processing', $2,
+			   now() - make_interval(secs => $3::double precision / 1000))`,
+			[userId, Date.now(), PROCESSING_STALE_MS + 60_000]
 		);
-		await query(
-			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
-			 values ($1, 'achievement', 'old-earned', 10000, 'pending', $2)`,
-			[userId, nowMs - 24 * 60 * 60 * 1000]
-		);
-		await query(
-			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, paid_at_ms, block_index)
-			 values ($1, 'achievement', 'paid-unclaimed', 10000, 'paid', $2, $2, '3')`,
-			[userId, nowMs]
-		);
-
 		await query(`update vxp_awards set origin = 'live', transfer_memo = null where user_id = $1`, [
 			userId
 		]);
 
-		const sql = readFileSync(
-			join(import.meta.dir, '../src/db/migrations/0012_vxp_award_origin.sql'),
-			'utf8'
+		await query(
+			readFileSync(join(import.meta.dir, '../src/db/migrations/0012_vxp_award_origin.sql'), 'utf8')
 		);
 
-		await query(sql);
-
-		const origins = Object.fromEntries(
-			(await awardRows(userId)).map(({ award_key, origin }) => [award_key, origin])
-		);
-
-		expect(origins).toEqual({
-			'batch-a': 'etl',
-			'batch-b': 'etl',
-			m1: 'live',
-			'old-earned': 'etl',
-			'paid-unclaimed': 'etl'
-		});
-
-		// The live row recorded without a stored memo gets its grant-path memo.
 		expect(
-			(
-				await query<{ transfer_memo: string | null }>(
-					`select transfer_memo from vxp_awards
-					 where user_id = $1 and award_type = 'onboarding' and award_key = 'm1'`,
-					[userId]
-				)
-			)[0]?.transfer_memo
-		).toBe('vxp:new-user:m1');
+			(await awardRows(userId)).map(({ award_key, status, origin }) => ({
+				award_key,
+				status,
+				origin
+			}))
+		).toEqual([
+			{ award_key: 'pre-migration-processing', status: 'processing', origin: 'etl' },
+			{ award_key: 'm1', status: 'pending', origin: 'etl' }
+		]);
+
+		restoreMode();
+		restoreMode = setVxpTreasuryDisabled(false);
+		await reconcileUntilIdle();
+
+		expect(landedTo(userId)).toBe(0);
+		expect(stub.lookups()).toBe(0);
+		expect((await awardRows(userId)).map(({ status }) => status)).toEqual([
+			'processing',
+			'pending'
+		]);
 	});
 });

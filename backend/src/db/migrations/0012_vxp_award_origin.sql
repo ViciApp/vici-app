@@ -1,18 +1,24 @@
 -- VXP award provenance and replay-safe transfers, ahead of turning the
 -- treasury on.
 --
--- origin: 'live' rows were granted by this backend and are the only rows it
--- may ever pay. 'etl' rows were imported from the legacy on-chain app, which
--- already paid them to the recipients' legacy principals (or left them in a
--- state, such as a transfer that landed before its bookkeeping write, that
--- cannot be told apart from paid). The settlement claim refuses anything but
--- 'live', so an imported row is never transferred again whatever its status.
+-- origin: 'live' rows are the only rows this backend may ever pay. 'etl'
+-- rows are not paid here: rows imported from the legacy on-chain app were
+-- already settled to the recipients' legacy principals (or sit in a state,
+-- such as a transfer that landed before its bookkeeping write, that cannot
+-- be told apart from paid), and the importer keeps stamping future imports
+-- 'etl'. The settlement claim refuses anything but 'live'.
 --
--- transfer_memo / transfer_created_at_ns: fixed at the first claim and reused
--- by every later attempt on the same row. The ledger deduplicates identical
--- transfers that carry created_at_time, so a reclaimed row whose earlier
--- transfer landed (the process died before marking it paid) answers
--- Duplicate instead of paying twice.
+-- transfer_memo / transfer_created_at_ns: fixed for a row and reused by every
+-- later attempt, so the ledger deduplicates a replay of a transfer that
+-- already landed (within its 24-hour window) instead of paying twice.
+-- transfer_attempts bounds how often a transfer the ledger history proves
+-- never landed is sent again.
+--
+-- needs_ledger_check: a row whose transfer may have landed but was never
+-- confirmed (an ambiguous error, a failed replay, or a stale claim whose
+-- stamp is past the dedup window). It is not payable until the ledger
+-- history settles it: found means paid, provably absent means send again,
+-- anything less certain means it stays put.
 
 alter table vxp_awards
   add column if not exists origin text not null default 'live'
@@ -22,40 +28,28 @@ alter table vxp_awards add column if not exists transfer_memo text;
 
 alter table vxp_awards add column if not exists transfer_created_at_ns bigint;
 
--- Rows already in the table carry no provenance, so it is reconstructed from
--- how each writer stamps them. A live grant is a single autocommit insert
--- stamping earned_at_ms from the clock at insert time, so its created_at is
--- unique and within moments of earned_at_ms. The importer writes a whole
--- collection in one transaction (created_at is the transaction start, shared
--- by every row of that run) and carries the legacy earned time, which
--- precedes the import. Imported paid / failed rows also never went through
--- the claim, so processing_at is null. Any one of those marks a row as
--- imported; the only live rows that can match are streak backfill top-ups
--- (they carry the original earned time), and misreading one of those as
--- imported leaves it unpaid rather than paying anything twice.
-update vxp_awards a
-set origin = 'etl'
-where a.origin = 'live'
-  and (
-    exists (
-      select 1 from vxp_awards b
-      where b.created_at = a.created_at and b.id <> a.id
-    )
-    or a.earned_at_ms < (extract(epoch from a.created_at) * 1000)::bigint - 600000
-    or (a.status in ('paid', 'failed') and a.processing_at is null)
-  );
+alter table vxp_awards
+  add column if not exists transfer_attempts integer not null default 0;
 
--- Live rows recorded before the memo was stored with the row: give the two
--- award types whose grant memo differs from the generic vxp:<type>:<key> the
--- memo their grant path uses, so the catch-up payouts read on the ledger
--- exactly like the ones paid at grant time.
-update vxp_awards
-set transfer_memo = case
-    when award_type = 'onboarding' then 'vxp:new-user:' || award_key
-    when user_id::text = award_key then 'vxp:referral:referee'
-    else 'vxp:referral:referrer'
-  end
-where origin = 'live'
-  and transfer_memo is null
-  and status in ('pending', 'processing')
-  and award_type in ('onboarding', 'referral');
+alter table vxp_awards drop constraint if exists vxp_awards_status_check;
+
+alter table vxp_awards
+  add constraint vxp_awards_status_check
+  check (status in ('pending', 'processing', 'paid', 'failed', 'needs_ledger_check'));
+
+drop index if exists vxp_awards_status_idx;
+
+create index if not exists vxp_awards_status_idx
+  on vxp_awards (status)
+  where status in ('pending', 'processing', 'needs_ledger_check');
+
+-- Every row that exists when this migration runs is non-payable, whatever
+-- its status. Rows imported before the origin stamp existed cannot be told
+-- apart from live grants with certainty, and pre-migration 'processing' rows
+-- were sent without created_at_time, so the ledger could not deduplicate a
+-- replay of a transfer that landed before a crash. At this point production
+-- had a single real sign-in on this stack, so nothing genuinely owed is lost
+-- by this: any such award shows in the admin treasury backlog
+-- (importedUnsettledCount) for manual handling, and nothing that predates
+-- this migration is ever paid automatically.
+update vxp_awards set origin = 'etl' where origin <> 'etl';

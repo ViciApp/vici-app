@@ -58,9 +58,9 @@ export const jobs: WorkerJob[] = [
 		run: async () => {
 			const report = await reconcileUnpaidAwards();
 
-			if (report.scanned > 0) {
+			if (report.scanned + report.quarantined + report.paid + report.failed > 0) {
 				logger.info(
-					`vxp reconciliation: ${report.paid} paid, ${report.failed} failed, ${report.deferred} deferred (treasury short) of ${report.scanned} pending`
+					`vxp reconciliation: ${report.paid} paid, ${report.failed} failed, ${report.deferred} deferred (treasury short), ${report.quarantined} quarantined, ${report.reissued} reissued of ${report.scanned} pending`
 				);
 			}
 		}
