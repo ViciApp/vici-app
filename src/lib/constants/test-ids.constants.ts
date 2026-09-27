@@ -31,6 +31,11 @@ export enum TestId {
 	OnboardingHandleInput = 'onboarding-handle-input',
 	OnboardingHandleSkip = 'onboarding-handle-skip',
 	OnboardingPrimary = 'onboarding-primary',
+	// Legacy-build moved screen: the surface (on `/signup`, or the overlay after
+	// a sign-in with no profile), its new-app link, and its sign-in escape.
+	MovedToNewApp = 'moved-to-new-app',
+	MovedToNewAppCta = 'moved-to-new-app-cta',
+	MovedToNewAppSignIn = 'moved-to-new-app-sign-in',
 	// Admin resolutions page (`/admin/resolutions`): the pending-list and
 	// history sections, the list's search input, each pending market card
 	// (also tagged with `data-market-id` so a specific market is

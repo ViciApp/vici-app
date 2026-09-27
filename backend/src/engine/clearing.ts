@@ -1,13 +1,16 @@
 // Typed wrappers over the clearing canister: the same method surface the app
 // consumes on-chain today, re-exposed server-side. Public market-wide reads
-// run anonymously behind a short TTL cache; account-scoped calls sign with
-// the calling user's derived custodial identity; settlement-grade calls sign
-// with the admin identity.
+// sign with the engine reader identity behind a short TTL cache (clearing
+// rejects anonymous callers); account-scoped calls sign with the calling
+// user's derived custodial identity; settlement-grade calls sign with the
+// admin identity.
 
 import { fromNullable, isNullish, jsonReplacer, toNullable } from '@dfinity/utils';
 import type { Principal } from '@icp-sdk/core/principal';
 import type { ClearingDid } from '../declarations';
-import { adminClearing, anonymousClearing, userClearing } from './actors';
+import { ZERO } from '../lib/constants';
+import { userIcIdentity } from '../lib/keys';
+import { adminClearing, readerClearing, userClearing } from './actors';
 import { cached } from './cache';
 
 const PUBLIC_READ_TTL_MS = 15_000;
@@ -19,6 +22,31 @@ const expectOk = <O>(result: { Ok: O } | { Err: unknown }, label: string): O => 
 
 	throw new Error(`${label} failed: ${JSON.stringify(result.Err, jsonReplacer)}`);
 };
+
+/** The account state of a principal clearing holds no row for: exactly what
+ * clearing's own refreshing read answers for it (a fresh empty account). */
+const emptyAccountState = (user: Principal): ClearingDid.AccountStateResponse => ({
+	assets: [],
+	state: { user, reserved_margins_usd: [], cash_balances_usd: [], balances: [] },
+	total_equity_usd: ZERO,
+	available_margin_usd: ZERO
+});
+
+/** A custodial principal that has never deposited has no clearing account
+ * yet, which is the normal state of every new account, so that one miss
+ * reads as an empty account; every other error still throws. */
+const accountStateOrEmpty = ({
+	result,
+	userId,
+	label
+}: {
+	result: ClearingDid.GetAccountStateResult;
+	userId: string;
+	label: string;
+}): ClearingDid.AccountStateResponse =>
+	'Err' in result && 'NoAccountStateFound' in result.Err
+		? emptyAccountState(userIcIdentity(userId).getPrincipal())
+		: expectOk(result, label);
 
 // Account-scoped calls (signed with the user's derived identity)
 
@@ -55,7 +83,11 @@ export const getAccountState = async ({
 }): Promise<ClearingDid.AccountStateResponse> => {
 	const actor = await userClearing(userId);
 
-	return expectOk(await actor.get_account_state(params), 'get_account_state');
+	return accountStateOrEmpty({
+		result: await actor.get_account_state(params),
+		userId,
+		label: 'get_account_state'
+	});
 };
 
 export const getAccountStateQuery = async ({
@@ -65,7 +97,11 @@ export const getAccountStateQuery = async ({
 }): Promise<ClearingDid.AccountStateResponse> => {
 	const actor = await userClearing(userId);
 
-	return expectOk(await actor.get_account_state_query(), 'get_account_state_query');
+	return accountStateOrEmpty({
+		result: await actor.get_account_state_query(),
+		userId,
+		label: 'get_account_state_query'
+	});
 };
 
 export const getPositions = async ({
@@ -186,14 +222,14 @@ export const redeemCompleteSet = async ({
 	return expectOk(await actor.redeem_complete_set(seriesId, qty), 'redeem_complete_set');
 };
 
-// Public market-wide reads (anonymous, cached)
+// Public market-wide reads (engine reader identity, cached)
 
 export const listCollateralAssets = (): Promise<ClearingDid.CollateralAssetInfo[]> =>
 	cached({
 		key: 'clearing:collateral-assets',
 		ttlMs: PUBLIC_READ_TTL_MS,
 		load: async () => {
-			const actor = await anonymousClearing();
+			const actor = await readerClearing();
 
 			return await actor.list_collateral_assets();
 		}
@@ -202,7 +238,7 @@ export const listCollateralAssets = (): Promise<ClearingDid.CollateralAssetInfo[
 export const aggregateLean = async (
 	params: ClearingDid.AggregateLeanParams
 ): Promise<ClearingDid.AggregateLean> => {
-	const actor = await anonymousClearing();
+	const actor = await readerClearing();
 
 	return await actor.aggregate_lean(params);
 };
@@ -213,7 +249,7 @@ export const aggregateLean = async (
 export const aggregateSettlementAccuracy = async (
 	params: ClearingDid.AggregateSettlementAccuracyParams
 ): Promise<ClearingDid.SettlementAccuracyEntry[]> => {
-	const actor = await anonymousClearing();
+	const actor = await readerClearing();
 
 	return await actor.aggregate_settlement_accuracy(params);
 };
@@ -224,7 +260,7 @@ export const aggregateSettlementAccuracy = async (
 export const getSettlementPlan = async (
 	seriesId: string
 ): Promise<ClearingDid.SettlementPlan | undefined> => {
-	const actor = await anonymousClearing();
+	const actor = await readerClearing();
 
 	return fromNullable(await actor.get_settlement_plan(seriesId));
 };
@@ -236,7 +272,7 @@ export const getSettlementStatus = (
 		key: `clearing:settlement:${seriesId}`,
 		ttlMs: PUBLIC_READ_TTL_MS,
 		load: async () => {
-			const actor = await anonymousClearing();
+			const actor = await readerClearing();
 
 			return fromNullable(await actor.get_settlement_status(seriesId));
 		}
@@ -251,7 +287,7 @@ export const listSettledSeries = (
 		key: `clearing:settled:${JSON.stringify(params ?? {}, jsonReplacer)}`,
 		ttlMs: PUBLIC_READ_TTL_MS,
 		load: async () => {
-			const actor = await anonymousClearing();
+			const actor = await readerClearing();
 			const balanceDomain = params?.balance_domain ?? toNullable();
 			const pageLimit = params?.limit ?? toNullable();
 			const items: string[] = [];
@@ -292,7 +328,7 @@ export const getSeriesPriceHistory = ({
 		key: `clearing:candles:${seriesId}:${JSON.stringify(interval)}:${startTimeNs ?? ''}:${endTimeNs ?? ''}`,
 		ttlMs: PUBLIC_READ_TTL_MS,
 		load: async () => {
-			const actor = await anonymousClearing();
+			const actor = await readerClearing();
 			const { candles } = await actor.get_series_price_history({
 				series_id: seriesId,
 				interval,
@@ -317,7 +353,7 @@ export const listSeriesTradeHistory = ({
 		key: `clearing:trades:${seriesId}:${startAfter ?? ''}:${limit ?? ''}`,
 		ttlMs: PUBLIC_READ_TTL_MS,
 		load: async () => {
-			const actor = await anonymousClearing();
+			const actor = await readerClearing();
 
 			return await actor.list_series_trade_history({
 				series_id: seriesId,
@@ -330,7 +366,7 @@ export const listSeriesTradeHistory = ({
 export const listSeriesTradedVolumes = async (
 	seriesIds: string[]
 ): Promise<ClearingDid.SeriesTradedVolume[]> => {
-	const actor = await anonymousClearing();
+	const actor = await readerClearing();
 
 	return await actor.list_series_traded_volumes({ series_ids: seriesIds });
 };
@@ -347,7 +383,7 @@ export const listLeaderboard = async ({
 	pageLimit?: bigint;
 	maxPages?: number;
 }): Promise<{ items: ClearingDid.LeaderboardEntry[]; total: bigint }> => {
-	const actor = await anonymousClearing();
+	const actor = await readerClearing();
 	const items: ClearingDid.LeaderboardEntry[] = [];
 	let startAfter: [] | [bigint] = toNullable();
 	let total = BigInt(0);

@@ -1,12 +1,12 @@
 // Typed wrappers over the registry canister, mirroring the method surface the
-// app consumes: catalog reads run anonymously behind the shared TTL cache,
-// group management signs per-user, series/oracle administration signs with
-// the admin identity.
+// app consumes: catalog reads sign with the engine reader identity behind the
+// shared TTL cache, group management signs per-user, series/oracle
+// administration signs with the admin identity.
 
 import { fromNullable, isNullish, jsonReplacer, nonNullish, toNullable } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { RegistryDid } from '../declarations';
-import { adminRegistry, anonymousRegistry, userRegistry } from './actors';
+import { adminRegistry, readerRegistry, userRegistry } from './actors';
 import { cached } from './cache';
 
 const PUBLIC_READ_TTL_MS = 15_000;
@@ -19,14 +19,14 @@ const expectOk = <O>(result: { Ok: O } | { Err: unknown }, label: string): O => 
 	throw new Error(`${label} failed: ${JSON.stringify(result.Err, jsonReplacer)}`);
 };
 
-// Public catalog reads (anonymous, cached)
+// Public catalog reads (engine reader identity, cached)
 
 export const getSeries = (seriesId: string): Promise<RegistryDid.Series | undefined> =>
 	cached({
 		key: `registry:series:${seriesId}`,
 		ttlMs: PUBLIC_READ_TTL_MS,
 		load: async () => {
-			const actor = await anonymousRegistry();
+			const actor = await readerRegistry();
 
 			return fromNullable(await actor.get_series(seriesId));
 		}
@@ -40,7 +40,7 @@ export const listSeries = (params?: RegistryDid.ListSeriesParams): Promise<Regis
 		key: `registry:series-list:${JSON.stringify(params ?? {}, jsonReplacer)}`,
 		ttlMs: PUBLIC_READ_TTL_MS,
 		load: async () => {
-			const actor = await anonymousRegistry();
+			const actor = await readerRegistry();
 			const pageSize = fromNullable(params?.pagination ?? [])?.limit ?? toNullable();
 			const items: RegistryDid.Series[] = [];
 			let cursor = fromNullable(params?.pagination ?? [])?.cursor ?? toNullable();
@@ -67,19 +67,19 @@ export const listSeries = (params?: RegistryDid.ListSeriesParams): Promise<Regis
 	});
 
 export const getGroup = async (groupId: string): Promise<RegistryDid.Group | undefined> => {
-	const actor = await anonymousRegistry();
+	const actor = await readerRegistry();
 
 	return fromNullable(await actor.get_group(groupId));
 };
 
 export const listGroups = async (creator?: string): Promise<RegistryDid.Group[]> => {
-	const actor = await anonymousRegistry();
+	const actor = await readerRegistry();
 
 	return await actor.list_groups(isNullish(creator) ? [] : [Principal.fromText(creator)]);
 };
 
 export const getOracle = async (oracleId: string): Promise<RegistryDid.Oracle | undefined> => {
-	const actor = await anonymousRegistry();
+	const actor = await readerRegistry();
 
 	return fromNullable(await actor.get_oracle(oracleId));
 };

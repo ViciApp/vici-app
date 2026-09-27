@@ -5,9 +5,11 @@
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { describe, expect, test } from 'bun:test';
 import {
+	adminIcIdentity,
 	CHAINS,
 	deriveServiceKey,
 	deriveUserKey,
+	engineReaderIcIdentity,
 	publicKeyForChain,
 	treasuryIcIdentity,
 	userIcIdentity,
@@ -80,6 +82,19 @@ describe('service keys', () => {
 		expect(treasury).not.toBe(user);
 		expect(hex(deriveServiceKey({ name: 'treasury', chain: 'ic' }))).not.toBe(
 			hex(deriveServiceKey({ name: 'admin', chain: 'ic' }))
+		);
+	});
+
+	test('the engine reader is a stable, non-anonymous principal of its own', () => {
+		const reader = engineReaderIcIdentity().getPrincipal();
+
+		expect(reader.isAnonymous()).toBe(false);
+		expect(reader.toText()).toBe(engineReaderIcIdentity().getPrincipal().toText());
+		expect(reader.toText()).not.toBe(adminIcIdentity().getPrincipal().toText());
+		expect(reader.toText()).not.toBe(treasuryIcIdentity().getPrincipal().toText());
+		expect(reader.toText()).not.toBe(userIcPrincipalText(USER_A));
+		expect(hex(deriveServiceKey({ name: 'engine-reader', chain: 'ic' }))).not.toBe(
+			hex(deriveUserKey({ userId: 'engine-reader', chain: 'ic' }))
 		);
 	});
 });

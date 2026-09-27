@@ -174,6 +174,14 @@ pre-deployed.
   [`src/lib/dev/e2e-reset.ts`](../../../src/lib/dev/e2e-reset.ts)), then sign
   out — the next sign-in then bootstraps fresh. `onboarding.spec.ts` does
   exactly this.
+- **Sign-ups are opted open.** The default (legacy) build turns new accounts
+  away to the new app (see `web2-backend-mode.md`, "New accounts on the legacy
+  build"). `playwright.config.ts` seeds the dev-only
+  `E2E_OPEN_SIGNUPS_STORAGE_KEY` localStorage flag through `storageState` so
+  every spec keeps the `/signup` onboarding; a production bundle ignores it.
+  `moved-to-new-app.spec.ts` runs without it (empty `storageState`, or the key
+  removed mid-test) to assert the moved screen. The satellite side of the rule
+  exempts the emulator's satellite id, so profile creation still works there.
 - **Backend:** Juno emulator started by `juno emulator start --headless`.
   The Juno CLI's `--emulator` flag is only valid with `--mode development`,
   so E2E reuses development mode but exports `JUNO_EMULATOR=true`, which
@@ -206,6 +214,7 @@ e2e/
 ├── auth.spec.ts          # dev sign-in (via onboarding) + Settings sign-out
 ├── homepage.spec.ts      # signed-in markets board: loading + loaded
 ├── invite.spec.ts        # /join + /i invite-link landing (anonymous)
+├── moved-to-new-app.spec.ts # legacy build: /signup + no-profile sign-in go to the new app
 ├── navigation.spec.ts    # auth-gate redirects + signed-in page snapshots
 └── onboarding.spec.ts    # /signup beats → handle persists to the profile
 ```

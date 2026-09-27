@@ -758,6 +758,15 @@ export const zhHansMessages = {
 	'claim.banner.text': '全新 VICI 已就绪。一键带走你的账户。',
 	'claim.banner.title': '迁移到新 VICI',
 	'claim.handoff.error': '无法开始迁移。请确认已登录后重试。',
+	'claim.moved.cta': '前往 {domain}',
+	'claim.moved.eyebrow': '我们已迁移',
+	'claim.moved.footer.cta_new_account': '使用其他登录方式',
+	'claim.moved.footer.cta_signup': '登录',
+	'claim.moved.footer.prompt_new_account': '在本站已有账户？',
+	'claim.moved.footer.prompt_signup': '在这里已有账户？',
+	'claim.moved.sub_new_account': '此登录在本站没有 VICI 账户。新账户需在 {domain} 创建。',
+	'claim.moved.sub_signup': '新账户需在 {domain} 创建。前往注册，开始做出你的预测。',
+	'claim.moved.title': 'VICI 已迁移到 {domain}',
 	'claim.page.already_linked': '该身份此前已与你的账户关联。',
 	'claim.page.error.account_not_empty':
 		'此账户已有自己的历史记录，因此无法自动迁入你的旧记录。请联系 VICI 团队，我们会为你合并。',
@@ -2192,6 +2201,9 @@ export const zhHansMessages = {
 	'signin.footer.cta.signup': '创建账户 →',
 	'signin.footer.prompt.signin': '已有账户？',
 	'signin.footer.prompt.signup': '初次使用 VICI？',
+	'signin.legacy_pending.body':
+		'你已经有一个 VICI 账户。在迁移日之前请继续使用 vici.market，届时你的账户会迁移到这里。',
+	'signin.legacy_pending.cta': '前往 vici.market',
 	'signin.legal':
 		'继续即表示你同意《条款》与《隐私政策》。VICI 在预览期间使用模拟资金。不构成投资建议。',
 	'signin.legal.line1': 'VICI 免费。VXP 是模拟资金。不构成投资建议。',

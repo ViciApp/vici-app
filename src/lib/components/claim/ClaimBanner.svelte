@@ -7,7 +7,8 @@
 	import { t } from '$lib/utils/i18n.utils';
 
 	// Legacy-build-only surface: the whole banner is inert on the web2 build
-	// (the availability gate lives in the claim service, not here).
+	// and until the cutover switch is on (the availability gate lives in the
+	// claim service, not here).
 	const available = isClaimHandoffAvailable();
 
 	const readDismissed = (): boolean => {

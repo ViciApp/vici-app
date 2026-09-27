@@ -811,6 +811,17 @@ export const ptMessages = {
 	'claim.banner.title': 'Muda para o novo VICI',
 	'claim.handoff.error':
 		'Não conseguimos iniciar a mudança. Confirma que tens sessão iniciada e tenta novamente.',
+	'claim.moved.cta': 'Ir para {domain}',
+	'claim.moved.eyebrow': 'Mudámos de casa',
+	'claim.moved.footer.cta_new_account': 'Usar outro início de sessão',
+	'claim.moved.footer.cta_signup': 'Entrar',
+	'claim.moved.footer.prompt_new_account': 'Tens uma conta neste site?',
+	'claim.moved.footer.prompt_signup': 'Já tens uma conta aqui?',
+	'claim.moved.sub_new_account':
+		'Este início de sessão não tem uma conta VICI neste site. As novas contas são criadas em {domain}.',
+	'claim.moved.sub_signup':
+		'As novas contas são criadas em {domain}. Regista-te lá para começares a fazer previsões.',
+	'claim.moved.title': 'O VICI mudou-se para {domain}',
 	'claim.page.already_linked': 'Esta identidade já estava associada à tua conta.',
 	'claim.page.error.account_not_empty':
 		'Esta conta já tem o seu próprio histórico, por isso o antigo não pode ser transferido automaticamente. Contacta a equipa VICI e nós juntamos os dois.',
@@ -2309,6 +2320,9 @@ export const ptMessages = {
 	'signin.footer.cta.signup': 'Criar uma conta →',
 	'signin.footer.prompt.signin': 'Já tens uma conta?',
 	'signin.footer.prompt.signup': 'Novo na VICI?',
+	'signin.legacy_pending.body':
+		'Já tens uma conta VICI. Continua a usar o vici.market até ao dia da mudança, quando a tua conta passar para aqui.',
+	'signin.legacy_pending.cta': 'Ir para o vici.market',
 	'signin.legal':
 		'Ao continuar, aceitas os Termos e a Política de Privacidade. A VICI usa dinheiro fictício durante a pré-visualização. Não é aconselhamento financeiro.',
 	'signin.legal.line1':

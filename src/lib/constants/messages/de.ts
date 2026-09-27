@@ -818,6 +818,17 @@ export const deMessages = {
 	'claim.banner.title': 'Zum neuen VICI wechseln',
 	'claim.handoff.error':
 		'Der Umzug konnte nicht gestartet werden. Prüfe, ob du angemeldet bist, und versuche es erneut.',
+	'claim.moved.cta': 'Weiter zu {domain}',
+	'claim.moved.eyebrow': 'Wir sind umgezogen',
+	'claim.moved.footer.cta_new_account': 'Andere Anmeldung verwenden',
+	'claim.moved.footer.cta_signup': 'Anmelden',
+	'claim.moved.footer.prompt_new_account': 'Hast du ein Konto auf dieser Seite?',
+	'claim.moved.footer.prompt_signup': 'Hast du hier schon ein Konto?',
+	'claim.moved.sub_new_account':
+		'Zu dieser Anmeldung gibt es auf dieser Seite kein VICI-Konto. Neue Konten werden auf {domain} erstellt.',
+	'claim.moved.sub_signup':
+		'Neue Konten werden auf {domain} erstellt. Registriere dich dort, um mit deinen Vorhersagen zu starten.',
+	'claim.moved.title': 'VICI ist umgezogen: {domain}',
 	'claim.page.already_linked': 'Diese Identität war bereits mit deinem Konto verknüpft.',
 	'claim.page.error.account_not_empty':
 		'Dieses Konto hat bereits einen eigenen Verlauf, daher kann dein alter nicht automatisch übernommen werden. Kontaktiere das VICI-Team, dann führen wir beide zusammen.',
@@ -2333,6 +2344,9 @@ export const deMessages = {
 	'signin.footer.cta.signup': 'Konto erstellen →',
 	'signin.footer.prompt.signin': 'Hast du schon ein Konto?',
 	'signin.footer.prompt.signup': 'Neu bei VICI?',
+	'signin.legacy_pending.body':
+		'Du hast bereits ein VICI-Konto. Nutze vici.market weiter bis zum Umzugstag, dann zieht dein Konto hierher um.',
+	'signin.legacy_pending.cta': 'Zu vici.market',
 	'signin.legal':
 		'Mit dem Fortfahren akzeptierst du die AGB und die Datenschutzerklärung. VICI ist in der Vorschau Spielgeld. Keine Finanzberatung.',
 	'signin.legal.line1': 'VICI ist kostenlos. VXP ist Spielgeld. Keine Finanzberatung.',

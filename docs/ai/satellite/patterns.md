@@ -634,6 +634,31 @@ collection keys themselves, plus the clearing leaderboard). The pattern:
 - **Add the collection to the hard-delete cascade**
   (`hardDeleteAccountFn`) — a private doc must not outlive its account.
 
+## Build-wide write gates with an `app_config` kill switch
+
+When a rule must hold for every client (a modified one included) but stay
+switchable without a redeploy, put it in an assert and read the switch from a
+controllers-scoped `app_config` doc. The reference is the new-profile gate
+([`new-profile-gate.services.ts`](../../../src/satellite/services/new-profile-gate.services.ts)),
+which refuses to CREATE a `profiles` doc, or a `profile_private` doc for a
+principal with no profile, because new accounts live on the new stack:
+
+- **Inspect creates only.** An assert sees `data.current`; absent means
+  create. Updates and every serverless `setDocStore` on an existing doc pass
+  untouched, so recovery, school verification and Flow swipe writes keep
+  working.
+- **Armed by default, off by doc.** No doc means armed. A controller turns it
+  off by writing `app_config/new_profile_gate` with `{ "enabled": false }`
+  (Juno Console, Datastore); deleting the doc re-arms it. Read the doc as a
+  controller (`getAdminAccessKeys()[0][0]`) since `app_config` is
+  controllers-scoped, and fail closed when no controller is available.
+- **Emulator exemption by canister id.** The Playwright suite creates
+  profiles on the emulator and has no controller identity to write the
+  switch, so the gate skips the emulator's fixed satellite id
+  (`canisterSelf()`); a deployed satellite can never carry it.
+- **Run the cheap gate before expensive siblings** in the composed assert
+  (`assertProfile` checks it before the nickname scan).
+
 ## Logging
 
 - Use the helpers in

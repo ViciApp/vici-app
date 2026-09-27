@@ -811,6 +811,17 @@ export const esMessages = {
 	'claim.banner.title': 'Múdate al nuevo VICI',
 	'claim.handoff.error':
 		'No pudimos iniciar la mudanza. Comprueba que has iniciado sesión y vuelve a intentarlo.',
+	'claim.moved.cta': 'Ir a {domain}',
+	'claim.moved.eyebrow': 'Nos hemos mudado',
+	'claim.moved.footer.cta_new_account': 'Usa otro inicio de sesión',
+	'claim.moved.footer.cta_signup': 'Iniciar sesión',
+	'claim.moved.footer.prompt_new_account': '¿Tienes una cuenta en este sitio?',
+	'claim.moved.footer.prompt_signup': '¿Ya tienes una cuenta aquí?',
+	'claim.moved.sub_new_account':
+		'Este inicio de sesión no tiene una cuenta de VICI en este sitio. Las cuentas nuevas se crean en {domain}.',
+	'claim.moved.sub_signup':
+		'Las cuentas nuevas se crean en {domain}. Regístrate allí para empezar a hacer predicciones.',
+	'claim.moved.title': 'VICI se ha mudado a {domain}',
 	'claim.page.already_linked': 'Esta identidad ya estaba vinculada a tu cuenta.',
 	'claim.page.error.account_not_empty':
 		'Esta cuenta ya tiene su propio historial, así que no podemos trasladar el anterior automáticamente. Contacta con el equipo de VICI y los uniremos.',
@@ -2316,6 +2327,9 @@ export const esMessages = {
 	'signin.footer.cta.signup': 'Crear una cuenta →',
 	'signin.footer.prompt.signin': '¿Ya tienes una cuenta?',
 	'signin.footer.prompt.signup': '¿Nuevo en VICI?',
+	'signin.legacy_pending.body':
+		'Ya tienes una cuenta de VICI. Sigue usando vici.market hasta el día de la mudanza, cuando tu cuenta pasará aquí.',
+	'signin.legacy_pending.cta': 'Ir a vici.market',
 	'signin.legal':
 		'Al continuar aceptas los Términos y la Política de privacidad. VICI usa dinero ficticio durante la vista previa. No es asesoramiento financiero.',
 	'signin.legal.line1': 'VICI es gratis. VXP es dinero ficticio. No es asesoramiento financiero.',

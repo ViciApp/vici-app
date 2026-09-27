@@ -1,4 +1,4 @@
-import { CLAIM_PORTAL_URL } from '$lib/constants/claim.constants';
+import { CLAIM_HANDOFF_ENABLED, CLAIM_PORTAL_URL } from '$lib/constants/claim.constants';
 import { getIdentity } from '$lib/services/identity.services';
 import {
 	bytesToBase64Url,
@@ -23,8 +23,11 @@ import { DelegationIdentity } from '@icp-sdk/core/identity';
  * exist only on the on-chain build, the portal only on the web2 build.
  */
 
-/** Whether the "move to the new VICI" surfaces should show at all. */
-export const isClaimHandoffAvailable = (): boolean => !isWeb2Backend();
+/**
+ * Whether the "move to the new VICI" surfaces should show at all: legacy
+ * build only, and only once the cutover switch is on.
+ */
+export const isClaimHandoffAvailable = (): boolean => CLAIM_HANDOFF_ENABLED && !isWeb2Backend();
 
 /** Whether this build hosts the claim portal (`/claim`). */
 export const isClaimPortalEnabled = (): boolean => isWeb2Backend();
@@ -35,6 +38,12 @@ export const isClaimPortalEnabled = (): boolean => isWeb2Backend();
  * available (signed out, or a session shape without a delegation chain).
  */
 export const startClaimHandoff = async (): Promise<boolean> => {
+	// Every entry point already hides behind the availability gate; refusing
+	// here too keeps a stray caller from starting a handoff before cutover.
+	if (!isClaimHandoffAvailable()) {
+		return false;
+	}
+
 	// Open the tab synchronously, inside the click's call stack: signing the
 	// handoff takes two awaits, and Safari blocks a popup opened after the
 	// gesture has unwound. The blank tab is navigated once the blob is ready,

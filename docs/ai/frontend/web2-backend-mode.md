@@ -78,7 +78,9 @@ per-domain sections:
 
 - **Login stats sync** (`calculateAndSyncStats` and its
   `persistMyUserStats` / `syncMyMonthlyStats` writes): reads the on-chain
-  clearing history, so it is simply not run in web2 mode.
+  clearing history, so it is simply not run in web2 mode. Components call
+  it through `profile.services.syncMyStats`, which returns early in web2
+  mode instead of failing on the missing on-chain identity.
 - **Order books** (`getOrderBook` and the book read inside `placeOrder`'s
   market-order walk): public IC data read anonymously in BOTH modes; no
   HTTP surface exists for it.
@@ -126,7 +128,12 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   `googleSignInUrl()` (the API drives the OAuth dance and lands back on the
   app root, where `Authn` picks up the session), and Apple + Passkey shown
   disabled ("coming soon") since neither is wired on this transport yet. The
-  on-chain provider stack is untouched behind the same branch.
+  on-chain provider stack is untouched behind the same branch. Beta-gate
+  refusals arrive as the OTP error code or, for OAuth, as a `/signin?e=`
+  marker: `beta_closed` / `e=beta` render `signin.beta_closed`, and
+  `legacy_account_pending` / `e=legacy` render `signin.legacy_pending.*`
+  with a link to `LEGACY_APP_URL`. Gate semantics live in
+  [`backend/README.md`](../../../backend/README.md#beta-access-gate).
 - **Sign-out — `Logout.svelte`.** web2 calls `clearWeb2Session()`; on-chain
   calls Juno `signOut()`.
 
@@ -184,6 +191,38 @@ controls the principal, exactly like holding the delegation itself. The
 handoff surfaces are deliberately absent from the web2 build and the portal
 route redirects home on the default backend; the mode gates live in
 `claim-handoff.services.ts`, not in components.
+
+Cutover switch: the legacy-build surfaces (banner, Settings row, and
+`startClaimHandoff` itself) are additionally gated on
+`CLAIM_HANDOFF_ENABLED` in `claim.constants.ts`, `false` until the cutover so
+existing accounts are not told to move early. Flipping it to `true` arms every
+entry point at once; the portal side is unaffected either way.
+
+## New accounts on the legacy build
+
+The legacy build (default backend) keeps serving existing accounts but sends
+every would-be new user to the new app. One service gate,
+`new-app-redirect.services.ts` `areNewSignupsMoved()` (`!isWeb2Backend()`,
+minus the dev-only e2e opt-in), drives two surfaces:
+
+- **`/signup`** renders `authn/MovedToNewApp.svelte` instead of the
+  onboarding. Every sign-up entry (landing CTAs, the sign-in screen's switch,
+  `/i/{code}`, `/join/{code}`, `/league/{code}`, the `?ref=` share capture)
+  already funnels through `/signup` via the pending-onboarding stash, so the
+  moved screen's link (`loadNewAppSignupUrl`) re-targets the stashed codes at
+  the same routes on the new app (`/league/{code}?ref=`, `/i/{code}`, else
+  `/signup`).
+- **A sign-in with no profile**: `ensureProfile` returns
+  `{ newAccountMoved: true }` before its first write (no `profile_private`
+  email backfill, no profile seed), and `Authn.svelte` clears the store, signs
+  out with `windowReload: false` (a reload would drop the message) and
+  overlays the same screen. Nothing downstream (stats sync, onboarding drain,
+  referral redeem, league join) runs, since they all key off a hydrated
+  `userStore`.
+
+The satellite enforces the same rule for a modified client
+(`new-profile-gate.services.ts`, see the satellite patterns page). The web2
+build never reaches either branch.
 
 ## Profiles and social
 
@@ -282,7 +321,9 @@ apply them at the fetch boundary.
   reads and curator-gated upserts; the HTTP API already speaks the app's
   camelCase doc shapes, so these are envelope unwraps.
 - `resolution.services.ts`: `getSettledSeriesIds` (bridge read is
-  domain-unfiltered, safe because series ids are globally unique) and
+  domain-unfiltered, safe because series ids are globally unique; a
+  failed read degrades to an empty set, like the unreadable anonymous
+  on-chain case, so one engine error never blanks every market list) and
   `loadSettlementOutcomes` (same batching, per-series bridge status).
 - `trade.services.ts`: price-history candles and the traded-volume tape
   drain. Callback flows deliver the bridge's single response as the final

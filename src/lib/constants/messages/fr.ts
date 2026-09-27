@@ -815,6 +815,17 @@ export const frMessages = {
 	'claim.banner.title': 'Passer au nouveau VICI',
 	'claim.handoff.error':
 		'Impossible de lancer la migration. Vérifie que tu es connecté et réessaie.',
+	'claim.moved.cta': 'Aller sur {domain}',
+	'claim.moved.eyebrow': 'Nous avons déménagé',
+	'claim.moved.footer.cta_new_account': 'Utiliser une autre connexion',
+	'claim.moved.footer.cta_signup': 'Se connecter',
+	'claim.moved.footer.prompt_new_account': 'Tu as un compte sur ce site ?',
+	'claim.moved.footer.prompt_signup': 'Tu as déjà un compte ici ?',
+	'claim.moved.sub_new_account':
+		"Cette connexion n'a pas de compte VICI sur ce site. Les nouveaux comptes se créent sur {domain}.",
+	'claim.moved.sub_signup':
+		'Les nouveaux comptes se créent sur {domain}. Inscris-toi là-bas pour commencer tes prédictions.',
+	'claim.moved.title': 'VICI a déménagé sur {domain}',
 	'claim.page.already_linked': 'Cette identité était déjà liée à ton compte.',
 	'claim.page.error.account_not_empty':
 		'Ce compte a déjà son propre historique, ton ancien ne peut donc pas y être transféré automatiquement. Contacte l’équipe VICI et nous les réunirons.',
@@ -2319,6 +2330,9 @@ export const frMessages = {
 	'signin.footer.cta.signup': 'Créer un compte →',
 	'signin.footer.prompt.signin': 'Vous avez déjà un compte ?',
 	'signin.footer.prompt.signup': 'Nouveau sur VICI ?',
+	'signin.legacy_pending.body':
+		"Tu as déjà un compte VICI. Continue d'utiliser vici.market jusqu'au jour du déménagement, où ton compte sera transféré ici.",
+	'signin.legacy_pending.cta': 'Aller sur vici.market',
 	'signin.legal':
 		'En continuant, vous acceptez les Conditions et la Politique de confidentialité. VICI utilise de l’argent fictif pendant la préversion. Ceci n’est pas un conseil financier.',
 	'signin.legal.line1':

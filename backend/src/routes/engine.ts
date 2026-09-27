@@ -1,7 +1,8 @@
-// Engine surface: public market reads (anonymous, cached server-side) and
-// session-gated account operations (orders, collateral). The signing identity
-// for gated calls is the caller's derived custodial IC identity, so the
-// engine sees the same principal that owns the user's positions.
+// Engine surface: public market reads (signed by the engine reader identity,
+// cached server-side) and session-gated account operations (orders,
+// collateral). The signing identity for gated calls is the caller's derived
+// custodial IC identity, so the engine sees the same principal that owns the
+// user's positions.
 
 import { isNullish, toNullable } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';

@@ -560,6 +560,20 @@ to bound farming. Earlier these grants were display-only by design (the
 deferred real-credit path. Decision record:
 [`specs/2026-06-20-feat-flow-milestone-overtime-vxp-credit.md`](./spec-driven-development/specs/2026-06-20-feat-flow-milestone-overtime-vxp-credit.md).
 
+### Legacy app: new accounts move to vici.app
+
+The legacy build (vici.market) no longer creates accounts. Every sign-up
+entry (landing CTAs, "Create account" on the sign-in screen, invite and
+league links, `?ref=` share links) lands on `/signup`, which shows "VICI has
+moved to vici.app" with a link to the new app that keeps any invite or
+referral code, plus a "Sign in" link for existing accounts. A sign-in that
+resolves to an identity with no profile is signed straight back out and shown
+the same message; nothing is written for it. The satellite refuses to create
+a profile too (switchable, see the satellite patterns page). Existing
+accounts sign in and play exactly as before, and the "move your account"
+banner and Settings row stay hidden until the cutover switch
+(`CLAIM_HANDOFF_ENABLED`) is flipped. The new app's own sign-up is unchanged.
+
 ### Onboarding — one screen: claim a handle and sign up
 
 The default new-user flow is a single screen (`OnboardingV3`, gated by
