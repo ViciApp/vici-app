@@ -4,10 +4,12 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import MovedToNewApp from '$lib/components/authn/MovedToNewApp.svelte';
 	import Onboarding from '$lib/components/onboarding/Onboarding.svelte';
 	import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
 	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
 	import { userSignedIn } from '$lib/derived/user.derived';
+	import { areNewSignupsMoved } from '$lib/services/new-app-redirect.services';
 	import { applyOnboardingPicks, checkNicknameAvailability } from '$lib/services/profile.services';
 	import { startGuestSession } from '$lib/stores/guest.store';
 	import { localeStore } from '$lib/stores/locale.store';
@@ -45,6 +47,13 @@
 	onMount(() => {
 		document.title = 'Create account · VICI';
 	});
+
+	// Every sign-up entry on the legacy build (landing CTAs, the sign-in
+	// screen's switch, the invite and league landings, the share-link `?ref=`
+	// capture) funnels through this route, so replacing the flow here turns
+	// them all into the moved-to-the-new-app screen in one place. Fixed for the
+	// page lifetime, hence a plain read.
+	const signupsMoved = areNewSignupsMoved();
 
 	// Pre-auth completion (signed-out) — we persist the picks to
 	// `PENDING_ONBOARDING_STORAGE_KEY` so the post-sign-in layout effect
@@ -268,16 +277,20 @@
 	};
 </script>
 
-<Onboarding
-	{authenticated}
-	onComplete={handleComplete}
-	onPicksReady={handleCompletePreAuth}
-	onSignIn={() => void goto(resolve(PublicPath.SignIn))}
-	onSkip={(handle) => {
-		// Open the guest preview session (the handle rides through the
-		// pre-auth stash already, so conversion keeps the chosen name) and
-		// route into Flow, which the (app) layout now lets a guest reach.
-		startGuestSession(handle);
-		void goto(resolve(AppPath.Flow));
-	}}
-/>
+{#if signupsMoved}
+	<MovedToNewApp onSignIn={() => void goto(resolve(PublicPath.SignIn))} reason="signup" />
+{:else}
+	<Onboarding
+		{authenticated}
+		onComplete={handleComplete}
+		onPicksReady={handleCompletePreAuth}
+		onSignIn={() => void goto(resolve(PublicPath.SignIn))}
+		onSkip={(handle) => {
+			// Open the guest preview session (the handle rides through the
+			// pre-auth stash already, so conversion keeps the chosen name) and
+			// route into Flow, which the (app) layout now lets a guest reach.
+			startGuestSession(handle);
+			void goto(resolve(AppPath.Flow));
+		}}
+	/>
+{/if}

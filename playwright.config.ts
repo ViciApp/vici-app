@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_OPEN_SIGNUPS_STORAGE_KEY } from './src/lib/constants/e2e.constants';
 
 const isCI = process.env.CI === 'true';
+
+const BASE_URL = 'http://localhost:5173';
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
@@ -33,7 +36,21 @@ export default defineConfig({
 	workers: 1,
 	reporter: isCI ? [['html'], ['list']] : 'list',
 	use: {
-		baseURL: 'http://localhost:5173',
+		baseURL: BASE_URL,
+		// Keep the legacy build's sign-up flow open: every spec signs in through
+		// `/signup` with a shared dev principal that may have no profile yet,
+		// which the build otherwise turns away to the new app. Dev builds only
+		// honour the flag; `moved-to-new-app.spec.ts` clears it to assert the
+		// moved screen.
+		storageState: {
+			cookies: [],
+			origins: [
+				{
+					origin: BASE_URL,
+					localStorage: [{ name: E2E_OPEN_SIGNUPS_STORAGE_KEY, value: '1' }]
+				}
+			]
+		},
 		testIdAttribute: 'data-tid',
 		trace: 'retain-on-failure',
 		screenshot: 'only-on-failure',
@@ -64,7 +81,7 @@ export default defineConfig({
 	],
 	webServer: {
 		command: 'npm run dev',
-		url: 'http://localhost:5173',
+		url: BASE_URL,
 		reuseExistingServer: !isCI,
 		timeout: FIVE_MINUTES_MS,
 		stdout: 'pipe',

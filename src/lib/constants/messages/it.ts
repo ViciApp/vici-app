@@ -809,6 +809,17 @@ export const itMessages = {
 	'claim.banner.title': 'Passa al nuovo VICI',
 	'claim.handoff.error':
 		'Non siamo riusciti ad avviare il trasferimento. Controlla di aver effettuato l’accesso e riprova.',
+	'claim.moved.cta': 'Vai su {domain}',
+	'claim.moved.eyebrow': 'Ci siamo trasferiti',
+	'claim.moved.footer.cta_new_account': 'Usa un altro accesso',
+	'claim.moved.footer.cta_signup': 'Accedi',
+	'claim.moved.footer.prompt_new_account': 'Hai un account su questo sito?',
+	'claim.moved.footer.prompt_signup': 'Hai già un account qui?',
+	'claim.moved.sub_new_account':
+		'Questo accesso non ha un account VICI su questo sito. I nuovi account si creano su {domain}.',
+	'claim.moved.sub_signup':
+		'I nuovi account si creano su {domain}. Registrati lì per iniziare a fare previsioni.',
+	'claim.moved.title': 'VICI si è trasferito su {domain}',
 	'claim.page.already_linked': 'Questa identità era già collegata al tuo account.',
 	'claim.page.error.account_not_empty':
 		'Questo account ha già una sua cronologia, quindi quella vecchia non può essere trasferita automaticamente. Contatta il team VICI e le uniremo.',

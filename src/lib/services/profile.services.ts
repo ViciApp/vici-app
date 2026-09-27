@@ -13,6 +13,7 @@ import type { UserRole } from '$lib/enums/user';
 import { notifyAchievementsUnlocked } from '$lib/services/achievements.services';
 import { safeGetIdentityOnce } from '$lib/services/identity.services';
 import { getMyBattleStats, listMyLeagues } from '$lib/services/leagues.services';
+import { areNewSignupsMoved } from '$lib/services/new-app-redirect.services';
 import { getUserTradeHistory } from '$lib/services/trade.services';
 import {
 	bestSharpestEyeTier,
@@ -751,6 +752,15 @@ export interface EnsureProfileResult {
 }
 
 /**
+ * `ensureProfile` outcome when the principal has no profile and this build
+ * sends new accounts to the new app (`areNewSignupsMoved`): nothing was
+ * written, and the caller is expected to sign the session back out.
+ */
+export interface EnsureProfileMovedResult {
+	newAccountMoved: true;
+}
+
+/**
  * OpenID profile metadata Juno attaches to the auth `User` for OpenID-backed
  * providers (Google, GitHub). Every field is optional: the IdP only returns
  * what the user consented to share, so any of these — `email` included — can
@@ -811,7 +821,9 @@ export const forgetBootstrappedThisSession = (): void => {
 	bootstrappedThisSession.clear();
 };
 
-export const ensureProfile = async (user: User): Promise<EnsureProfileResult> => {
+export const ensureProfile = async (
+	user: User
+): Promise<EnsureProfileResult | EnsureProfileMovedResult> => {
 	const principal = user.key;
 	const profileDoc = await getProfile(principal);
 
@@ -840,6 +852,13 @@ export const ensureProfile = async (user: User): Promise<EnsureProfileResult> =>
 		const email = await hydrateMyEmail({ principal, providerEmail });
 
 		return { profile: existing.data, existed: true, email };
+	}
+
+	// Checked before the first write on purpose: the email hydration below
+	// creates the owner-private doc, and the seed patch creates the profile, so
+	// bailing any later would leave a half-created account behind.
+	if (areNewSignupsMoved()) {
+		return { newAccountMoved: true };
 	}
 
 	const fullName = nonNullish(openid)

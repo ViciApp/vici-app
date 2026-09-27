@@ -192,6 +192,38 @@ handoff surfaces are deliberately absent from the web2 build and the portal
 route redirects home on the default backend; the mode gates live in
 `claim-handoff.services.ts`, not in components.
 
+Cutover switch: the legacy-build surfaces (banner, Settings row, and
+`startClaimHandoff` itself) are additionally gated on
+`CLAIM_HANDOFF_ENABLED` in `claim.constants.ts`, `false` until the cutover so
+existing accounts are not told to move early. Flipping it to `true` arms every
+entry point at once; the portal side is unaffected either way.
+
+## New accounts on the legacy build
+
+The legacy build (default backend) keeps serving existing accounts but sends
+every would-be new user to the new app. One service gate,
+`new-app-redirect.services.ts` `areNewSignupsMoved()` (`!isWeb2Backend()`,
+minus the dev-only e2e opt-in), drives two surfaces:
+
+- **`/signup`** renders `authn/MovedToNewApp.svelte` instead of the
+  onboarding. Every sign-up entry (landing CTAs, the sign-in screen's switch,
+  `/i/{code}`, `/join/{code}`, `/league/{code}`, the `?ref=` share capture)
+  already funnels through `/signup` via the pending-onboarding stash, so the
+  moved screen's link (`loadNewAppSignupUrl`) re-targets the stashed codes at
+  the same routes on the new app (`/league/{code}?ref=`, `/i/{code}`, else
+  `/signup`).
+- **A sign-in with no profile**: `ensureProfile` returns
+  `{ newAccountMoved: true }` before its first write (no `profile_private`
+  email backfill, no profile seed), and `Authn.svelte` clears the store, signs
+  out with `windowReload: false` (a reload would drop the message) and
+  overlays the same screen. Nothing downstream (stats sync, onboarding drain,
+  referral redeem, league join) runs, since they all key off a hydrated
+  `userStore`.
+
+The satellite enforces the same rule for a modified client
+(`new-profile-gate.services.ts`, see the satellite patterns page). The web2
+build never reaches either branch.
+
 ## Profiles and social
 
 This is the worked example of the per-service swap for a data domain, and

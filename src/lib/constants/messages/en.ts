@@ -796,6 +796,17 @@ export const enMessages = {
 	'claim.banner.text': 'The new VICI is ready. Bring your account along in one tap.',
 	'claim.banner.title': 'Move to the new VICI',
 	'claim.handoff.error': "We couldn't start the move. Check that you're signed in and try again.",
+	'claim.moved.cta': 'Go to {domain}',
+	'claim.moved.eyebrow': 'We have moved',
+	'claim.moved.footer.cta_new_account': 'Use another sign-in',
+	'claim.moved.footer.cta_signup': 'Sign in',
+	'claim.moved.footer.prompt_new_account': 'Have an account on this site?',
+	'claim.moved.footer.prompt_signup': 'Already have an account here?',
+	'claim.moved.sub_new_account':
+		'This sign-in has no VICI account on this site. New accounts are created on {domain}.',
+	'claim.moved.sub_signup':
+		'New accounts are created on {domain}. Sign up there to start making predictions.',
+	'claim.moved.title': 'VICI has moved to {domain}',
 	'claim.page.already_linked': 'This identity was already linked to your account.',
 	'claim.page.error.account_not_empty':
 		"This account already has its own history, so your old one can't be moved into it automatically. Contact the VICI team and we'll combine them.",
