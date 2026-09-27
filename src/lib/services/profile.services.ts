@@ -11,6 +11,7 @@ import {
 import { ProfileVisibility } from '$lib/enums/profile';
 import type { UserRole } from '$lib/enums/user';
 import { notifyAchievementsUnlocked } from '$lib/services/achievements.services';
+import { safeGetIdentityOnce } from '$lib/services/identity.services';
 import { getMyBattleStats, listMyLeagues } from '$lib/services/leagues.services';
 import { areNewSignupsMoved } from '$lib/services/new-app-redirect.services';
 import { getUserTradeHistory } from '$lib/services/trade.services';
@@ -1296,6 +1297,27 @@ export const calculateAndSyncStats = async ({
 	}
 
 	notifyAchievementsUnlocked(newlyUnlocked);
+};
+
+/**
+ * {@link calculateAndSyncStats} for the signed-in user. The recompute reads
+ * the clearing history with the user's on-chain identity, which a web2
+ * session never has, so web2 mode skips it instead of failing on the missing
+ * identity (a deliberate on-chain-only remainder, see
+ * `docs/ai/frontend/web2-backend-mode.md`).
+ */
+export const syncMyStats = async ({
+	domain
+}: {
+	domain: RegistryDid.BalanceDomain;
+}): Promise<void> => {
+	if (isWeb2Backend()) {
+		return;
+	}
+
+	const identity = await safeGetIdentityOnce();
+
+	await calculateAndSyncStats({ identity, domain });
 };
 
 /**

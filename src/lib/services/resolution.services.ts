@@ -52,9 +52,18 @@ export const getSettledSeriesIds = async ({
 	// identity exists in that mode, so the anonymous degrade below never
 	// applies. The bridge read is unfiltered by domain, which is safe: series
 	// ids are globally unique, so the extra ids can never match another
-	// domain's markets in the caller's subtraction.
+	// domain's markets in the caller's subtraction. A failed bridge read takes
+	// the same empty-set degrade as the unreadable anonymous case: every
+	// catalog load awaits this set, so throwing would blank every market list
+	// instead of just skipping the settled filter.
 	if (isWeb2Backend()) {
-		return new Set(await listEngineSettledSeriesWeb2());
+		try {
+			return new Set(await listEngineSettledSeriesWeb2());
+		} catch (err: unknown) {
+			console.warn('Settled series read failed, skipping the settled filter', err);
+
+			return new Set();
+		}
 	}
 
 	const resolvedIdentity = identity ?? (await getIdentityOrAnonymous());

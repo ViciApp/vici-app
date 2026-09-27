@@ -14,6 +14,7 @@ import { sweepExpiredDeletions } from './account/lifecycle';
 import { tickDepositWatchers } from './chains/watchers';
 import { applyAssetAllowlist } from './custody/assets';
 import { env } from './env';
+import { treasuryIcPrincipalText } from './lib/keys';
 import { logger } from './lib/logger';
 import { pruneResolvedResults } from './social/resolved-results';
 import { tournamentDrawTick, tournamentResolveTick } from './tournaments/tournaments';
@@ -50,16 +51,16 @@ export const jobs: WorkerJob[] = [
 		everyNthTick: HOURLY_TICKS
 	},
 	{
-		// Pays recorded-unpaid awards: the catch-up after a record-only stretch
-		// and the retry for grants that died between insert and transfer. A
-		// no-op while VXP_TREASURY_DISABLED=1.
+		// Pays recorded-unpaid live awards (never imported ones): the catch-up
+		// after a record-only stretch and the retry for grants that died between
+		// insert and transfer. A no-op while VXP_TREASURY_DISABLED=1.
 		name: 'vxp-award-reconciliation',
 		run: async () => {
 			const report = await reconcileUnpaidAwards();
 
-			if (report.scanned > 0) {
+			if (report.scanned + report.quarantined + report.paid + report.failed > 0) {
 				logger.info(
-					`vxp reconciliation: ${report.paid} paid, ${report.failed} failed of ${report.scanned} pending`
+					`vxp reconciliation: ${report.paid} paid, ${report.failed} failed, ${report.deferred} deferred (treasury short), ${report.quarantined} quarantined, ${report.reissued} reissued of ${report.scanned} pending`
 				);
 			}
 		}
@@ -165,8 +166,22 @@ const sleep = (ms: number): Promise<void> =>
 		};
 	});
 
+/** The treasury principal is public and is what the VXP minter registers as
+ * a reserve, so the boot log carries it (never the key) for the operator. A
+ * malformed TREASURY_PEM must not keep the other jobs from starting. */
+const logTreasury = (): void => {
+	try {
+		logger.info(
+			`vxp treasury ${treasuryIcPrincipalText()} (${isVxpTreasuryDisabled() ? 'record-only' : 'paying'})`
+		);
+	} catch (err) {
+		logger.error('vxp treasury identity unavailable:', err);
+	}
+};
+
 const run = async (): Promise<void> => {
 	logger.info(`worker started (poll interval ${env.workerPollIntervalMs}ms, ${jobs.length} jobs)`);
+	logTreasury();
 
 	while (!stopping) {
 		try {
