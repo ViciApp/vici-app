@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { Icon as LucideIcon } from '@lucide/svelte';
+	import type { LucideIcon } from '@lucide/svelte';
 	import { ChevronRight } from '@lucide/svelte/icons';
 	import type { Snippet } from 'svelte';
 
 	interface Props {
 		label: string;
 		sub?: string;
-		icon?: typeof LucideIcon;
+		icon?: LucideIcon;
 		badge?: string;
 		muted?: boolean;
 		onclick?: () => void;

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Icon as LucideIcon } from '@lucide/svelte';
+	import type { LucideIcon } from '@lucide/svelte';
 
 	interface Option<T extends string | number> {
 		value: T;
@@ -9,7 +9,7 @@
 	interface Props<T extends string | number> {
 		label: string;
 		sub?: string;
-		icon?: typeof LucideIcon;
+		icon?: LucideIcon;
 		value: T;
 		options: readonly Option<T>[];
 		onchange: (value: T) => void;

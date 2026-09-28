@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { Icon as LucideIcon } from '@lucide/svelte';
+	import type { LucideIcon } from '@lucide/svelte';
 
 	interface Props {
 		label: string;
 		sub?: string;
-		icon?: typeof LucideIcon;
+		icon?: LucideIcon;
 		checked: boolean;
 		onchange: (value: boolean) => void;
 		disabled?: boolean;
