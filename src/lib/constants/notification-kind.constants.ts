@@ -1,7 +1,7 @@
 import { AppPath } from '$lib/constants/routes.constants';
 import type { InboxNotificationKind } from '$lib/types/inbox';
 import { nonNullish } from '@dfinity/utils';
-import type { Icon as LucideIcon } from '@lucide/svelte';
+import type { LucideIcon } from '@lucide/svelte';
 import {
 	Bell,
 	Check,
@@ -29,7 +29,7 @@ import {
  * config is the single inspectable description of every kind.
  */
 export interface NotificationKindConfig {
-	icon: typeof LucideIcon;
+	icon: LucideIcon;
 	dest: AppPath;
 	label: string;
 }
