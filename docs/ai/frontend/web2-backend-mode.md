@@ -198,6 +198,12 @@ Cutover switch: the legacy-build surfaces (banner, Settings row, and
 existing accounts are not told to move early. Flipping it to `true` arms every
 entry point at once; the portal side is unaffected either way.
 
+Until then the same `(app)` slot shows a purely informational notice
+(`claim/MoveNoticeBanner.svelte`, no move action, own dismissal key). Both
+banners resolve through `migration-banner.utils.ts` `activeMigrationBanner()`,
+so flipping the switch swaps the notice for the claim banner and they never
+stack; both share the `claim/MigrationBanner.svelte` shell.
+
 ## New accounts on the legacy build
 
 The legacy build (default backend) keeps serving existing accounts but sends

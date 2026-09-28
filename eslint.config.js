@@ -65,6 +65,15 @@ export default ts.config(
 	},
 
 	{
+		// Frontend unit specs run on Node's built-in runner (`npm test`) until
+		// Vitest is adopted; see docs/ai/frontend/testing.md.
+		files: ['src/tests/**/*.spec.ts'],
+		rules: {
+			'vitest/no-import-node-test': 'off'
+		}
+	},
+
+	{
 		// The service worker legitimately uses the ServiceWorkerGlobalScope
 		// surface (`self`, `caches`, `fetch`, `clients`, event listeners).
 		files: ['src/service-worker.ts'],

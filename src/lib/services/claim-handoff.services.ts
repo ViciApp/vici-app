@@ -6,6 +6,11 @@ import {
 	claimMessageBytes,
 	encodeClaimBlob
 } from '$lib/utils/claim-handoff.utils';
+import {
+	activeMigrationBanner,
+	isMoveNoticeVisible,
+	type MigrationBannerGate
+} from '$lib/utils/migration-banner.utils';
 import { isWeb2Backend } from '$lib/web2/backend-mode';
 import { postClaim, Web2ApiError } from '$lib/web2/client';
 import { loadWeb2Session } from '$lib/web2/session';
@@ -23,11 +28,25 @@ import { DelegationIdentity } from '@icp-sdk/core/identity';
  * exist only on the on-chain build, the portal only on the web2 build.
  */
 
+const migrationBannerGate = (): MigrationBannerGate => ({
+	web2Backend: isWeb2Backend(),
+	claimHandoffEnabled: CLAIM_HANDOFF_ENABLED
+});
+
 /**
  * Whether the "move to the new VICI" surfaces should show at all: legacy
  * build only, and only once the cutover switch is on.
  */
-export const isClaimHandoffAvailable = (): boolean => CLAIM_HANDOFF_ENABLED && !isWeb2Backend();
+export const isClaimHandoffAvailable = (): boolean =>
+	activeMigrationBanner(migrationBannerGate()) === 'claim';
+
+/**
+ * Whether the informational "VICI is moving" notice should show: legacy build
+ * only, and only while the cutover switch is off, since the claim banner takes
+ * its slot from then on.
+ */
+export const shouldShowMoveNotice = ({ dismissed }: { dismissed: boolean }): boolean =>
+	isMoveNoticeVisible({ ...migrationBannerGate(), dismissed });
 
 /** Whether this build hosts the claim portal (`/claim`). */
 export const isClaimPortalEnabled = (): boolean => isWeb2Backend();
