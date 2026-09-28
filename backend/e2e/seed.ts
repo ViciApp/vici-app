@@ -8,12 +8,16 @@
 //     drain writes them, which is what the login adoption and the beta gate's
 //     legacy match read;
 //   - the admin account gets an email identity and the admin role, so the
-//     specs can drive the admin settings API after a normal OTP sign-in.
+//     specs can drive the admin settings API after a normal OTP sign-in;
+//   - the beta gate starts open: a local run interrupted mid-spec can leave it
+//     set, and every spec except the gate's own assumes it is off.
 //
 // Run with `bun run e2e:seed` after `bun run migrate`.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { importDocs } from '../scripts/etl/transforms';
+import { deleteAppSetting } from '../src/admin/settings';
+import { BETA_GATE_SETTING_KEY } from '../src/auth/beta-gate';
 import { normalizeEmail } from '../src/auth/identity';
 import { pool, query } from '../src/db/client';
 import { E2E_ADMIN_EMAIL, E2E_LEGACY_ADOPT, E2E_LEGACY_PENDING } from './fixtures';
@@ -80,6 +84,7 @@ if (import.meta.main) {
 
 	await seedLegacyAccounts();
 	await seedAdmin();
+	await deleteAppSetting(BETA_GATE_SETTING_KEY);
 
 	console.log('e2e seed applied');
 

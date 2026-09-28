@@ -79,7 +79,7 @@ describe('fake engine', () => {
 	test('rejects every method it does not serve, writes included', async () => {
 		const clearing = await fakeEngineActorProvider.clearing(reader, true);
 
-		expect(clearing.cancel_limit_order({ order_id: 'o-1' })).rejects.toThrow(
+		await expect(clearing.cancel_limit_order({ order_id: 'o-1' })).rejects.toThrow(
 			'cancel_limit_order is not served in the E2E stack'
 		);
 	});
@@ -87,7 +87,7 @@ describe('fake engine', () => {
 	test('never transfers VXP', async () => {
 		const ledger = await fakeVxpLedgerProvider();
 
-		expect(
+		await expect(
 			ledger.transfer({ to: { owner: reader.getPrincipal(), subaccount: [] }, amount: BigInt(1) })
 		).rejects.toThrow('transfers are disabled');
 	});
