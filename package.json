@@ -41,7 +41,9 @@
 		"playwright:install": "playwright install --with-deps",
 		"e2e": "npm run playwright:install && playwright test",
 		"e2e:ci": "playwright test --update-snapshots=changed --reporter=html,list",
-		"e2e:report": "playwright show-report"
+		"e2e:report": "playwright show-report",
+		"e2e:web2": "playwright test --config playwright.web2.config.ts",
+		"e2e:web2:report": "playwright show-report playwright-report-web2"
 	},
 	"devDependencies": {
 		"@dfinity/eslint-config-oisy-wallet": "^0.5.1",
