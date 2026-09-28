@@ -98,7 +98,7 @@ jobs:
       # then the E2E entrypoint) and the web2 production bundle under
       # `vite preview`.
       - name: Run web2 E2E
-        run: npm run e2e:web2
+        run: npm run e2e:web2:ci
 
       - name: Upload Playwright report
         if: always()

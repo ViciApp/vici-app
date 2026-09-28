@@ -219,11 +219,12 @@ Cutover delta run: freeze legacy writes, then repeat steps 2-6 with a fresh expo
 
 - `e2e/server.ts` (`bun run e2e:server`) imports the production app from `src/index.ts` and, before listening, swaps its external dependencies through the existing test seams: `setEngineActorProvider` and `setVxpLedgerProvider` install the fakes in `e2e/fake-engine.ts`, and `setEmailTransport` (`src/lib/email.ts`) routes email into an in-memory outbox. It adds two routes that `src/index.ts` never registers: `GET /__e2e/otp/:email` (the latest sign-in code sent to an address) and `POST /__e2e/reset-rate-limits` (every local request shares the limiter's "unknown IP" key).
 - `e2e/fake-engine.ts` answers the public reads from `e2e/fixtures.ts` (live markets, one settled market, the VXP collateral asset, empty tapes and leaderboards) and every account as the never-deposited empty one. Any other method, every write included, rejects, so nothing can be submitted and an unexpected engine call surfaces as a failing request. The VXP ledger fake reads zero balances and refuses transfers.
+- `bun run e2e:stack` is the one entry Playwright uses: `e2e/preflight.ts` runs the guard first, so a non-loopback database is refused before `migrate` connects to it, then migrate, seed and server.
 - `e2e/seed.ts` (`bun run e2e:seed`, after `bun run migrate`) imports the legacy fixture accounts through the real ETL importer, writes their exported legacy identities and creates the admin account. Idempotent.
 
 Production guards, independent of each other:
 
-- `e2e/guard.ts` refuses to start the server or run the seed unless `NODE_ENV=test`, `VICI_E2E=1`, `VXP_TREASURY_DISABLED=1`, and both `DATABASE_URL` and `IC_HOST` point at a loopback host. The production image pins `NODE_ENV=production` and no deployed config sets `VICI_E2E`; the loopback `IC_HOST` also means any engine path the fakes miss fails locally instead of reaching mainnet.
+- `e2e/guard.ts` refuses to run the preflight, the seed or the server unless `NODE_ENV=test`, `VICI_E2E=1`, `VXP_TREASURY_DISABLED=1`, and both `DATABASE_URL` and `IC_HOST` point at a loopback host. The production image pins `NODE_ENV=production` and no deployed config sets `VICI_E2E`; the loopback `IC_HOST` also means any engine path the fakes miss fails locally instead of reaching mainnet.
 - `.dockerignore` excludes `e2e/` from the image, so a deployed machine has no copy of these entrypoints; the Fly processes and the release command only run entrypoints under `src/`.
 
 ## Deploy (Fly.io)

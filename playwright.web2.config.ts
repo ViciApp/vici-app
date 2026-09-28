@@ -56,10 +56,10 @@ export default defineConfig({
 	],
 	webServer: [
 		{
-			// Schema, fixture seed, then the API with its test-only fakes. Each
-			// step is idempotent, so a local re-run against the same database
-			// converges.
-			command: 'bun run migrate && bun run e2e:seed && bun run e2e:server',
+			// Guard preflight, schema, fixture seed, then the API with its
+			// test-only fakes (see `e2e:stack`). Each step is idempotent, so a
+			// local re-run against the same database converges.
+			command: 'bun run e2e:stack',
 			cwd: 'backend',
 			url: `${E2E_WEB2_API_URL}/health`,
 			reuseExistingServer: !isCI,

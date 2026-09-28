@@ -220,12 +220,14 @@ e2e-web2/
 
 ```bash
 cd backend && docker compose up -d && cd ..   # Postgres on localhost:5432
-npm run e2e:web2                              # builds, boots both servers, runs
+npm run e2e:web2                              # installs Chromium, builds, boots both servers, runs
 npm run e2e:web2:report                       # HTML report after a CI-style run
 ```
 
-`E2E_DATABASE_URL` overrides the database (it must be a loopback host; the
-server's boot guard refuses anything else). Outside CI, Playwright reuses
+`E2E_DATABASE_URL` overrides the database. It must be a loopback host: the
+API server is started through `bun run e2e:stack` (in `backend/`), which runs
+the boot guard as a preflight before `migrate`, so a shared or production
+database is refused before anything connects to it. Outside CI, Playwright reuses
 servers already listening on `:4173` / `:8787`, so stop stale ones after
 changing backend code or rebuild-relevant frontend code.
 
@@ -237,7 +239,8 @@ dispatch, with no path filter: the suite spans the frontend, the backend and
 their contract. Concurrency cancels a superseded PR run. It starts a
 `postgres:16` service, installs npm (cached by `prepare`), Bun (install cache)
 and Chromium (browser cache keyed on the Playwright version), then runs
-`npm run e2e:web2`. One retry on CI; the report ships as
+`npm run e2e:web2:ci` (the same suite without the browser install, which CI
+does in its own cached step). One retry on CI; the report ships as
 `playwright-report-web2`, raw results as `test-results-web2` on failure. It
 needs no secrets.
 
