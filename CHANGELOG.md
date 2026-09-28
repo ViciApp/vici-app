@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.8.42](https://github.com/ViciApp/vici-app/compare/v1.8.41...v1.8.42) (2026-09-28)
+
+
+### Features
+
+* **backend:** open the beta gate to new users while holding legacy accounts until cutover ([#1331](https://github.com/ViciApp/vici-app/issues/1331)) ([b1d23a2](https://github.com/ViciApp/vici-app/commit/b1d23a23b48e8c6f01cbc4f6afde2b85ad8e51ba))
+* **web3:** send new users on vici.market to vici.app ([#1334](https://github.com/ViciApp/vici-app/issues/1334)) ([ebdde50](https://github.com/ViciApp/vici-app/commit/ebdde501a932f9a5991353a3bf58baf90aa3fab7))
+* **web3:** tell vici.market users that VICI is moving to vici.app ([#1338](https://github.com/ViciApp/vici-app/issues/1338)) ([58c5d75](https://github.com/ViciApp/vici-app/commit/58c5d751f7879f22e9d49d3dff0a5492cbfd2065))
+
+
+### Bug Fixes
+
+* **backend:** never re-pay imported VXP awards when the treasury turns on ([#1333](https://github.com/ViciApp/vici-app/issues/1333)) ([a9a7b12](https://github.com/ViciApp/vici-app/commit/a9a7b12238367cfba0fad022953b32f083a9aa81))
+* **backend:** serve engine reads with a reader identity and treat missing accounts as empty ([#1332](https://github.com/ViciApp/vici-app/issues/1332)) ([8da80b3](https://github.com/ViciApp/vici-app/commit/8da80b3bef8d883c2abeadadacbf6fc46f4f09bb))
+* **web3:** keep the moved screen across the auth worker's sign-out reload ([#1336](https://github.com/ViciApp/vici-app/issues/1336)) ([f5c0efb](https://github.com/ViciApp/vici-app/commit/f5c0efbc280421e6b9b1cc17739ecc0153005815))
+
+
+### Documentation
+
+* **spec:** keep spec asset folders after merge ([#1328](https://github.com/ViciApp/vici-app/issues/1328)) ([26efa5f](https://github.com/ViciApp/vici-app/commit/26efa5f47e8749aaafd3d2a41fe3dcb1619fe379))
+
+
+### Miscellaneous Chores
+
+* **npm-deps:** bump @lucide/svelte from 1.31.0 to 1.47.0 ([#1312](https://github.com/ViciApp/vici-app/issues/1312)) ([f5c37f4](https://github.com/ViciApp/vici-app/commit/f5c37f494c211af058aeca41337cc87061849e5c))
+* **npm-deps:** bump @sveltejs/acorn-typescript from 1.0.12 to 1.0.13 ([#1301](https://github.com/ViciApp/vici-app/issues/1301)) ([31ac282](https://github.com/ViciApp/vici-app/commit/31ac28218ea5cd0b654ca2292c18481894ae3351))
+* **npm-deps:** bump esrap from 2.3.2 to 2.4.0 ([#1300](https://github.com/ViciApp/vici-app/issues/1300)) ([232b3de](https://github.com/ViciApp/vici-app/commit/232b3de7dbd9b6068f03e5cb91f73bdc9e01faf2))
+
+
+### Continuous Integration
+
+* **officina:** require the conventional pull request title format ([#1335](https://github.com/ViciApp/vici-app/issues/1335)) ([550c09e](https://github.com/ViciApp/vici-app/commit/550c09ec31823b8e5b4cd1166ef848d75414c138))
+* **web2:** build and smoke-test the vici.app image on pull requests ([#1339](https://github.com/ViciApp/vici-app/issues/1339)) ([a84369b](https://github.com/ViciApp/vici-app/commit/a84369b1654cef535c3246f8b9b5cea43d88b864))
+
 ## [1.8.41](https://github.com/ViciApp/vici-app/compare/v1.8.40...v1.8.41) (2026-09-27)
 
 
