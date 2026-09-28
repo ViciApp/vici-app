@@ -1,0 +1,4 @@
+# The end-to-end server, fake engine and seed (e2e/) are test-only entrypoints
+# for the web2 Playwright suite; keeping them out of the image means a deployed
+# machine has no copy of them to run. See e2e/guard.ts.
+e2e/

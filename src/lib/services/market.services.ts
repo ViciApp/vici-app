@@ -57,6 +57,7 @@ import {
 	listEngineSeriesVolumes as listEngineSeriesVolumesWeb2,
 	listEngineSeries as listEngineSeriesWeb2
 } from '$lib/web2/client';
+import { getWeb2User } from '$lib/web2/session';
 import { isEmptyString, isNullish, nonNullish, notEmptyString, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 
@@ -948,7 +949,16 @@ const fetchMarket = async ({
 		isWeb2Backend()
 			? getEngineSeriesWeb2(marketId)
 			: getSeries({ identity, certified, seriesId: marketId }),
-		getOrderBook({ marketId, identity, certified }),
+		// In web2 mode the book is the page's only on-chain read, next to two
+		// HTTP ones: a failed book read prices the market as unknown (empty
+		// book) instead of failing the whole detail and blanking the page.
+		isWeb2Backend()
+			? getOrderBook({ marketId, identity, certified }).catch((err: unknown) => {
+					console.warn('market detail: order book read failed, pricing as unknown', err);
+
+					return [];
+				})
+			: getOrderBook({ marketId, identity, certified }),
 		isWeb2Backend()
 			? getEngineSettlementStatusWeb2(marketId)
 			: getSettlementStatus({ identity, certified, seriesId: marketId })
@@ -1237,7 +1247,12 @@ export const getFlowQueue = async ({
 	metadataBySeries?: Record<string, MarketMetadata> | Promise<Record<string, MarketMetadata>>;
 }): Promise<Market[]> => {
 	const identity = await getIdentityOrAnonymous();
-	const principal = identity.getPrincipal().toText();
+	// web2 keys profiles by the session's account id: there is no on-chain
+	// identity, so the principal above is the anonymous placeholder and owns no
+	// profile (a signed-out visitor still falls back to it and reads empty).
+	const profileOwner = isWeb2Backend()
+		? (getWeb2User()?.id ?? identity.getPrincipal().toText())
+		: identity.getPrincipal().toText();
 
 	const [markets, profile, resolvedTags, resolvedMeta] = await Promise.all([
 		// The Flow deck is a read-only preview: ranking candidates only needs
@@ -1246,7 +1261,7 @@ export const getFlowQueue = async ({
 		// latency on the entry critical path. Certified reads still back the
 		// market-detail / trade-execution paths (`fetchMarket`, order placement).
 		fetchOpenBinaryMarketsLite({ identity, certified: false, domain }),
-		getProfile(principal),
+		getProfile(profileOwner),
 		tagMappings ?? listMarketTagsBySeries().catch(() => ({})),
 		metadataBySeries ?? listMarketMetadataBySeries().catch(() => ({}))
 	]);

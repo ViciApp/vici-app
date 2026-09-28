@@ -12,5 +12,5 @@
 		"verbatimModuleSyntax": false,
 		"allowImportingTsExtensions": true
 	},
-	"include": ["src", "tests", "scripts"]
+	"include": ["src", "tests", "scripts", "e2e"]
 }
