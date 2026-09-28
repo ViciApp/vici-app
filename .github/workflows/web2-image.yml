@@ -3,48 +3,23 @@ name: Web2 Image
 # Builds the vici.app SPA image exactly as web2-deploy.yml ships it and
 # smoke-tests the container, so a Dockerfile.web that only breaks inside
 # Docker fails on the PR instead of on the manual deploy. Nothing is pushed.
-# The paths are everything COPY'd into or read by the image build.
+# Deliberately unfiltered: almost any file can reach the image through
+# `COPY . .`, and a hand-kept path list silently rots.
 on:
   push:
     branches:
       - main
-    paths:
-      - '.github/workflows/web2-image.yml'
-      - 'Dockerfile.web'
-      - 'nginx.web.conf'
-      - 'fly.web.toml'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'svelte.config.js'
-      - 'vite.config.ts'
-      - 'tsconfig.json'
-      - 'juno.config.ts'
-      - 'juno.collections.json'
-      - 'src/**'
-      - 'static/**'
   pull_request:
-    paths:
-      - '.github/workflows/web2-image.yml'
-      - 'Dockerfile.web'
-      - 'nginx.web.conf'
-      - 'fly.web.toml'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'svelte.config.js'
-      - 'vite.config.ts'
-      - 'tsconfig.json'
-      - 'juno.config.ts'
-      - 'juno.collections.json'
-      - 'src/**'
-      - 'static/**'
   merge_group:
   workflow_dispatch:
 
 permissions: {}
 
+# A newer PR push supersedes the running build; a main run is never cancelled
+# mid-build, so a merged commit is not left without a verdict.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   web-image:
@@ -140,9 +115,10 @@ jobs:
 
           # Vite inlines VITE_* at build time; an empty or dropped build arg
           # would ship a bundle calling the wrong API with no runtime error.
-          # An empty origin would match every file, so reject it up front.
-          if [[ -z "$API_URL" ]]; then
-            echo "::error::VITE_WEB2_API_URL in fly.web.toml is empty"
+          # An empty origin would match every file, and a production SPA must
+          # call its API over TLS, so anything but a bare https origin fails.
+          if [[ ! "$API_URL" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?$ ]]; then
+            echo "::error::VITE_WEB2_API_URL in fly.web.toml must be an https origin, got '$API_URL'"
             exit 1
           fi
           if ! docker exec web grep -rlF "$API_URL" /usr/share/nginx/html/_app/immutable >/dev/null; then
