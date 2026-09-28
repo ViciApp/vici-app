@@ -537,6 +537,18 @@ export type DepositCollateralError =
 			 * An error occurred while interacting with the asset.
 			 */
 			Asset: AssetError;
+	  }
+	| {
+			/**
+			 * The caller's account is being reassigned to another principal; deposits
+			 * would land in a custody subaccount that is being drained.
+			 */
+			AccountUnderReassignment: {
+				/**
+				 * The principal whose account is being reassigned.
+				 */
+				user: Principal;
+			};
 	  };
 /**
  * Input parameters for depositing collateral.
@@ -1019,6 +1031,24 @@ export interface ListOrdersParams {
 }
 /**
  * Input parameters for
+ * [`list_series_settlement_statuses`](super::list_series_settlement_statuses).
+ *
+ * Batches the per-series settlement check a resolution solver would otherwise
+ * make one call at a time. Callers pass the (bounded) set of series they care
+ * about — typically the "due" candidates from the registry — and receive one
+ * status per id in request order. Unknown or still-open series come back with a
+ * `None` status. The read looks each id up in `SETTLEMENT_PLANS`, so the work is
+ * `O(#series_ids)` regardless of how many plans exist. Mirrors
+ * [`ListSeriesTradedVolumesParams`](crate::api::trade::params::ListSeriesTradedVolumesParams).
+ */
+export interface ListSeriesSettlementStatusesParams {
+	/**
+	 * The series to check. Results are returned one per id, in this order.
+	 */
+	series_ids: Array<string>;
+}
+/**
+ * Input parameters for
  * [`list_series_trade_history`](super::list_series_trade_history).
  *
  * Returns the market-wide executed-trade history for a single series so a
@@ -1328,6 +1358,100 @@ export type PriceHistoryInterval =
 			 */
 			Hour: null;
 	  };
+export type ReassignAccountError =
+	| {
+			/**
+			 * `old_owner` has no clearing account to reassign.
+			 */
+			AccountNotFound: null;
+	  }
+	| {
+			/**
+			 * `new_owner` already has clearing state; this primitive reassigns, it never merges.
+			 */
+			TargetAccountNotEmpty: null;
+	  }
+	| {
+			/**
+			 * A custody sweep did not settle. The re-key already happened and the plan
+			 * is still pending: replay the same `reassignment_id` to resume the sweep.
+			 */
+			CustodyTransferFailed: { error: AssetError; asset_id: string };
+	  }
+	| {
+			/**
+			 * The `reassignment_id` is already in use for `old_owner` with a different
+			 * `new_owner`.
+			 */
+			ReassignmentIdReused: null;
+	  }
+	| {
+			/**
+			 * `old_owner` has positions frozen for cross-canister transfer; the signed
+			 * `PositionProof`s are bound to the old principal and cannot be reassigned.
+			 */
+			PendingPositionTransfersExist: null;
+	  }
+	| {
+			/**
+			 * `old_owner` or `new_owner` has non-finalised deposit, withdrawal, settlement,
+			 * or domain-migration plans that would act on the wrong owner mid-flight.
+			 */
+			InFlightPlansExist: null;
+	  }
+	| {
+			/**
+			 * The account holds an asset whose custody this canister cannot move
+			 * on-chain, so the funds would be stranded under the old principal.
+			 */
+			UnsupportedCustodyAsset: { asset_id: string };
+	  }
+	| {
+			/**
+			 * One of the two principals is anonymous. Every account, position, deposit,
+			 * and withdrawal API rejects the anonymous caller, so an account assigned to
+			 * it would be permanently unreachable.
+			 */
+			AnonymousOwner: null;
+	  }
+	| {
+			/**
+			 * Another reassignment touching one of the two principals has not finalised.
+			 * Replay that one's `reassignment_id` to resume it.
+			 */
+			ReassignmentInProgress: null;
+	  }
+	| {
+			/**
+			 * `old_owner` has resting limit orders; they must be cancelled first so the
+			 * book's ownership assumptions are never mutated behind its back.
+			 */
+			OpenOrdersExist: null;
+	  }
+	| {
+			/**
+			 * `old_owner` and `new_owner` are the same principal.
+			 */
+			SameOwner: null;
+	  }
+	| { Common: CommonError };
+export interface ReassignAccountParams {
+	/**
+	 * The principal the account is moved away from.
+	 */
+	old_owner: Principal;
+	/**
+	 * Controller-provided unique identifier. Replaying a call with the same id
+	 * resumes that reassignment (and returns `Ok` once it is complete) instead
+	 * of starting a second one.
+	 */
+	reassignment_id: string;
+	/**
+	 * The principal the account is moved to.
+	 */
+	new_owner: Principal;
+}
+export type ReassignAccountResult = { Ok: null } | { Err: ReassignAccountError };
 export type RefreshIcrcAssetMetadataError =
 	{ AssetNotFound: null } | { NotAnIcrcAsset: null } | { Common: CommonError };
 export interface RefreshIcrcAssetMetadataParams {
@@ -1563,6 +1687,27 @@ export interface SeriesPriceHistory {
 	 * points.
 	 */
 	candles: Array<SeriesPriceCandle>;
+}
+/**
+ * One series' settlement status, paired with the id it was requested for.
+ *
+ * `status` is `Some` when a settlement plan exists for the series (in any
+ * [`PlanStatus`](crate::types::plans::PlanStatus) — a plan is opened the moment
+ * settlement begins) and `None` otherwise. A `None` covers both a still-open
+ * series and an unknown id; the two are not distinguished here. The `series_id`
+ * is echoed on each entry so callers can align results with their requested ids
+ * and attribute a `None`, which carries no id of its own.
+ */
+export interface SeriesSettlementStatus {
+	/**
+	 * The settlement progress, or `None` if the series has no settlement plan
+	 * yet (still open / not being settled).
+	 */
+	status: [] | [SettlementStatusView];
+	/**
+	 * The series this status is for (echoes the requested id).
+	 */
+	series_id: string;
 }
 /**
  * A page of executed trades scoped to a single series.
@@ -2105,6 +2250,23 @@ export type TradeError =
 	  }
 	| {
 			/**
+			 * The account this call would mutate is being, or has just been, reassigned
+			 * to another principal.
+			 *
+			 * Returned when a call that was suspended at an await straddles an
+			 * `admin_reassign_account`: resuming it would recreate state under a
+			 * principal whose account has moved. The caller should retry with the
+			 * principal that now owns the account.
+			 */
+			AccountUnderReassignment: {
+				/**
+				 * The principal whose account is being, or has just been, reassigned.
+				 */
+				user: Principal;
+			};
+	  }
+	| {
+			/**
 			 * The specified series was not found in the registry.
 			 */
 			SeriesNotFound: string;
@@ -2251,6 +2413,18 @@ export type WithdrawCollateralError =
 			 * An error occurred while interacting with the asset.
 			 */
 			Asset: AssetError;
+	  }
+	| {
+			/**
+			 * The caller's account is being reassigned to another principal; its
+			 * custody subaccount is mid-move and cannot pay out.
+			 */
+			AccountUnderReassignment: {
+				/**
+				 * The principal whose account is being reassigned.
+				 */
+				user: Principal;
+			};
 	  };
 /**
  * Input parameters for withdrawing collateral.
@@ -2307,6 +2481,27 @@ export interface _SERVICE {
 	 * proof. This method is gated to canister controllers.
 	 */
 	accept_position_transfer: ActorMethod<[PositionProof], AcceptPositionTransferResult>;
+	/**
+	 * Reassigns the entire clearing account of `old_owner` to `new_owner`.
+	 *
+	 * Moves the full [`AccountState`](crate::types::margin::AccountState) (collateral
+	 * balances across all assets and balance domains, internal cash balances (USD), and
+	 * reserved margins per domain), every open position keyed by the old principal, and
+	 * the on-ledger custody funds held in the old principal's derived subaccounts. The
+	 * generic use case is an account-ownership handover, e.g. a custodial key rotation
+	 * where an operator starts signing for the same logical account with a newly derived
+	 * principal.
+	 *
+	 * The historical event log (and the leaderboard / accuracy projections derived
+	 * from it) is left untouched: it is an audit trail of what happened under the old
+	 * principal. Finalised plans likewise stay under their original keys as records.
+	 *
+	 * See [`crate::account::reassignment`] for the guard rails, the ordering
+	 * guarantee, and how an interrupted reassignment is resumed.
+	 *
+	 * This method is gated to canister controllers.
+	 */
+	admin_reassign_account: ActorMethod<[ReassignAccountParams], ReassignAccountResult>;
 	/**
 	 * Aggregates, for a series, the long/short lean of a supplied set of
 	 * principals, broken down per outcome.
@@ -2529,6 +2724,31 @@ export interface _SERVICE {
 	 * Returns a list of all derivative series currently cached in the clearing canister.
 	 */
 	list_series: ActorMethod<[], Array<Series>>;
+	/**
+	 * Returns each requested series' settlement status in one call — the batch form
+	 * of [`get_settlement_status`].
+	 *
+	 * A resolution solver checks "is this market already settled?" for every due
+	 * market on each pass; done one id at a time that is N sequential canister
+	 * calls. This collapses them into one: each id is looked up in
+	 * `SETTLEMENT_PLANS` and returned with its [`SettlementStatusView`], or `None`
+	 * when no plan exists yet (the series is still open / not being settled).
+	 * Results are one per requested id, in request order, so the caller can zip them
+	 * back against its input; the `series_id` is echoed on each entry so a `None`
+	 * status is still attributable.
+	 *
+	 * The work is `O(#series_ids)` map lookups — bounded by the request, not by the
+	 * number of plans — so callers should pass the (already bounded) set they care
+	 * about, e.g. the registry's "due" candidates. Reads the same
+	 * `SETTLEMENT_PLANS` map as [`get_settlement_status`] and mirrors the
+	 * aggregate-read shape of
+	 * [`list_series_traded_volumes`](crate::api::trade::list_series_traded_volumes).
+	 * Guarded by `caller_is_not_anonymous`, matching the other settlement reads.
+	 */
+	list_series_settlement_statuses: ActorMethod<
+		[ListSeriesSettlementStatusesParams],
+		Array<SeriesSettlementStatus>
+	>;
 	/**
 	 * Returns the executed-trade history for a single series, with stable cursor
 	 * pagination.
