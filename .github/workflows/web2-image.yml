@@ -19,6 +19,7 @@ on:
       - 'vite.config.ts'
       - 'tsconfig.json'
       - 'juno.config.ts'
+      - 'juno.collections.json'
       - 'src/**'
       - 'static/**'
   pull_request:
@@ -33,6 +34,7 @@ on:
       - 'vite.config.ts'
       - 'tsconfig.json'
       - 'juno.config.ts'
+      - 'juno.collections.json'
       - 'src/**'
       - 'static/**'
   merge_group:
@@ -138,6 +140,11 @@ jobs:
 
           # Vite inlines VITE_* at build time; an empty or dropped build arg
           # would ship a bundle calling the wrong API with no runtime error.
+          # An empty origin would match every file, so reject it up front.
+          if [[ -z "$API_URL" ]]; then
+            echo "::error::VITE_WEB2_API_URL in fly.web.toml is empty"
+            exit 1
+          fi
           if ! docker exec web grep -rlF "$API_URL" /usr/share/nginx/html/_app/immutable >/dev/null; then
             echo "::error::No built JS references $API_URL"
             exit 1
