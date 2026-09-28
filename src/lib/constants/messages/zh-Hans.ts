@@ -767,6 +767,10 @@ export const zhHansMessages = {
 	'claim.moved.sub_new_account': '此登录在本站没有 VICI 账户。新账户需在 {domain} 创建。',
 	'claim.moved.sub_signup': '新账户需在 {domain} 创建。前往注册，开始做出你的预测。',
 	'claim.moved.title': 'VICI 已迁移到 {domain}',
+	'claim.notice.dismiss_aria': '隐藏此通知',
+	'claim.notice.text':
+		'我们会为你迁移账户、预测和 VXP，现在无需任何操作。在此期间请继续在这里玩。vici.market 将持续开放至 2027 年 9 月底。',
+	'claim.notice.title': 'VICI 即将迁移到 {domain}。',
 	'claim.page.already_linked': '该身份此前已与你的账户关联。',
 	'claim.page.error.account_not_empty':
 		'此账户已有自己的历史记录，因此无法自动迁入你的旧记录。请联系 VICI 团队，我们会为你合并。',

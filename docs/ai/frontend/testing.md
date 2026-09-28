@@ -1,12 +1,12 @@
 # Frontend Testing
 
-> **Status: bootstrap.** This repo does **not** ship a configured **unit**
-> test runner today. There is no Vitest config, no `npm run test` script,
-> and no `*.test.ts` files. The `@dfinity/eslint-config-oisy-wallet/vitest`
-> preset is wired into `eslint.config.js`, so once the runner exists ESLint
-> will already understand it. Until then, this section is the
-> **forward-looking contract**: when the first unit test lands, the
-> conventions below kick in.
+> **Status: bootstrap.** No Vitest runner yet; pure-logic specs under
+> `src/tests/` run on Node's built-in runner via `npm test` (see
+> [Today](#today)) and already follow the layout and naming conventions
+> below. The `@dfinity/eslint-config-oisy-wallet/vitest` preset is wired
+> into `eslint.config.js`, so once Vitest exists ESLint will already
+> understand it; the Vitest-specific parts below (component tests, mocks,
+> `tsconfig.spec.json`) are the forward-looking contract until then.
 >
 > **End-to-end (Playwright) tests are configured.** See
 > [E2E (Playwright)](#e2e-playwright) below.
@@ -15,6 +15,13 @@
 
 - **Unit / component tests are not required by CI.** The `checks.yml`
   workflow runs `format`, `lint`, and `check` only.
+- **Pure-logic specs run on Node's built-in runner** until Vitest lands:
+  `npm test` (`tsx --test`, which resolves the `$lib` alias) picks up
+  `src/tests/**/*.spec.ts`. Use `node:test` + `node:assert/strict`, import
+  only modules with no Svelte / SvelteKit / env dependencies, and keep the
+  mirror-`src/` layout below (`eslint.config.js` lifts
+  `vitest/no-import-node-test` for `src/tests/**` only). Run it locally;
+  CI does not yet.
 - **E2E (Playwright) is required by CI.** The `e2e.yml` workflow boots the
   Juno emulator and runs `npm run e2e:ci`. See
   [E2E (Playwright)](#e2e-playwright).

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X } from '@lucide/svelte/icons';
+	import MigrationBanner from '$lib/components/claim/MigrationBanner.svelte';
 	import { CLAIM_BANNER_DISMISSED_KEY } from '$lib/constants/claim.constants';
 	import { isClaimHandoffAvailable, startClaimHandoff } from '$lib/services/claim-handoff.services';
 	import { localeStore } from '$lib/stores/locale.store';
@@ -57,48 +57,21 @@
 </script>
 
 {#if available && !dismissed}
-	<div
-		class="claim-banner"
-		aria-label={t({ locale: $localeStore, key: 'claim.banner.title' })}
-		role="region"
+	<MigrationBanner
+		dismissLabel={t({ locale: $localeStore, key: 'claim.banner.dismiss_aria' })}
+		label={t({ locale: $localeStore, key: 'claim.banner.title' })}
+		onDismiss={dismiss}
+		text={t({ locale: $localeStore, key: 'claim.banner.text' })}
 	>
-		<p class="claim-banner-text">
-			{t({ locale: $localeStore, key: 'claim.banner.text' })}
-		</p>
-		<button class="claim-banner-cta" disabled={busy} onclick={onMove} type="button">
-			{t({ locale: $localeStore, key: 'claim.banner.cta' })}
-		</button>
-		<button
-			class="claim-banner-dismiss"
-			aria-label={t({ locale: $localeStore, key: 'claim.banner.dismiss_aria' })}
-			onclick={dismiss}
-			type="button"
-		>
-			<X aria-hidden="true" size={16} strokeWidth={2} />
-		</button>
-	</div>
+		{#snippet action()}
+			<button class="claim-banner-cta" disabled={busy} onclick={onMove} type="button">
+				{t({ locale: $localeStore, key: 'claim.banner.cta' })}
+			</button>
+		{/snippet}
+	</MigrationBanner>
 {/if}
 
 <style lang="postcss">
-	.claim-banner {
-		display: flex;
-		align-items: center;
-		gap: 0.625rem;
-		padding: 0.5rem 0.75rem;
-		padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
-		background: var(--bg-surface);
-		border-bottom: 1px solid var(--border-base);
-		color: var(--text-base);
-	}
-
-	.claim-banner-text {
-		margin: 0;
-		flex: 1;
-		min-width: 0;
-		font-size: 0.8125rem;
-		line-height: 1.3;
-	}
-
 	.claim-banner-cta {
 		flex-shrink: 0;
 		border: none;
@@ -114,23 +87,5 @@
 	.claim-banner-cta:disabled {
 		opacity: 0.6;
 		cursor: default;
-	}
-
-	.claim-banner-dismiss {
-		flex-shrink: 0;
-		display: grid;
-		place-items: center;
-		width: 1.75rem;
-		height: 1.75rem;
-		border: none;
-		border-radius: 999px;
-		background: transparent;
-		color: inherit;
-		cursor: pointer;
-		opacity: 0.7;
-	}
-
-	.claim-banner-dismiss:hover {
-		opacity: 1;
 	}
 </style>

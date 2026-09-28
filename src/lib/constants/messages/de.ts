@@ -829,6 +829,10 @@ export const deMessages = {
 	'claim.moved.sub_signup':
 		'Neue Konten werden auf {domain} erstellt. Registriere dich dort, um mit deinen Vorhersagen zu starten.',
 	'claim.moved.title': 'VICI ist umgezogen: {domain}',
+	'claim.notice.dismiss_aria': 'Diesen Hinweis ausblenden',
+	'claim.notice.text':
+		'Dein Konto, deine Prognosen und deine VXP ziehen automatisch mit um, du musst jetzt nichts tun. Spiel in der Zwischenzeit einfach hier weiter. vici.market bleibt bis Ende September 2027 erreichbar.',
+	'claim.notice.title': 'VICI zieht nach {domain} um.',
 	'claim.page.already_linked': 'Diese Identität war bereits mit deinem Konto verknüpft.',
 	'claim.page.error.account_not_empty':
 		'Dieses Konto hat bereits einen eigenen Verlauf, daher kann dein alter nicht automatisch übernommen werden. Kontaktiere das VICI-Team, dann führen wir beide zusammen.',

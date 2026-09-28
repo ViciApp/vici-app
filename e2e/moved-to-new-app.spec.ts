@@ -91,6 +91,13 @@ test.describe('moved to the new app (sign-in with no account)', () => {
 		);
 		await expect(home.userMenu).toHaveCount(0);
 
+		// Juno's auth worker may follow the sign-out with a reloading one of its
+		// own; the message must survive that reload.
+		await page.reload();
+
+		await expect(moved).toBeVisible();
+		await expect(home.userMenu).toHaveCount(0);
+
 		await page.getByTestId(TestId.MovedToNewAppSignIn).click();
 
 		await expect(moved).toHaveCount(0);

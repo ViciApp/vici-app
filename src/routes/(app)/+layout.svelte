@@ -7,6 +7,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import ClaimBanner from '$lib/components/claim/ClaimBanner.svelte';
+	import MoveNoticeBanner from '$lib/components/claim/MoveNoticeBanner.svelte';
 	import GuestSaveHost from '$lib/components/guest/GuestSaveHost.svelte';
 	import DesktopAppNav from '$lib/components/layout/DesktopAppNav.svelte';
 	import MobileNav from '$lib/components/layout/MobileNav.svelte';
@@ -360,11 +361,14 @@
 	<DesktopAppNav />
 
 	<!--
-		Legacy-build-only migration banner: invites signed-in users to carry
-		their account over to the new stack. The component renders nothing on
-		the web2 build (the availability gate lives in the claim service).
+		Legacy-build-only migration banners for signed-in users: an informational
+		"VICI is moving" notice until the cutover switch, then the claim banner
+		that invites them to carry their account over. The claim service gates
+		both on the same switch so at most one renders, and neither on the web2
+		build.
 	-->
 	{#if $userSignedIn}
+		<MoveNoticeBanner />
 		<ClaimBanner />
 	{/if}
 

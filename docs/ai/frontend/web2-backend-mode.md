@@ -198,6 +198,12 @@ Cutover switch: the legacy-build surfaces (banner, Settings row, and
 existing accounts are not told to move early. Flipping it to `true` arms every
 entry point at once; the portal side is unaffected either way.
 
+Until then the same `(app)` slot shows a purely informational notice
+(`claim/MoveNoticeBanner.svelte`, no move action, own dismissal key). Both
+banners resolve through `migration-banner.utils.ts` `activeMigrationBanner()`,
+so flipping the switch swaps the notice for the claim banner and they never
+stack; both share the `claim/MigrationBanner.svelte` shell.
+
 ## New accounts on the legacy build
 
 The legacy build (default backend) keeps serving existing accounts but sends
@@ -215,10 +221,12 @@ minus the dev-only e2e opt-in), drives two surfaces:
 - **A sign-in with no profile**: `ensureProfile` returns
   `{ newAccountMoved: true }` before its first write (no `profile_private`
   email backfill, no profile seed), and `Authn.svelte` clears the store, signs
-  out with `windowReload: false` (a reload would drop the message) and
-  overlays the same screen. Nothing downstream (stats sync, onboarding drain,
-  referral redeem, league join) runs, since they all key off a hydrated
-  `userStore`.
+  out with `windowReload: false` and overlays the same screen. Juno's auth
+  worker can still follow with its own reloading sign-out, so the overlay flag
+  is mirrored to sessionStorage (`NEW_ACCOUNT_MOVED_SESSION_KEY`) and restored
+  on the next load; it clears on dismiss or when an existing account signs in.
+  Nothing downstream (stats sync, onboarding drain, referral redeem, league
+  join) runs, since they all key off a hydrated `userStore`.
 
 The satellite enforces the same rule for a modified client
 (`new-profile-gate.services.ts`, see the satellite patterns page). The web2

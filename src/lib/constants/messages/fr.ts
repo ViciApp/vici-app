@@ -826,6 +826,10 @@ export const frMessages = {
 	'claim.moved.sub_signup':
 		'Les nouveaux comptes se créent sur {domain}. Inscris-toi là-bas pour commencer tes prédictions.',
 	'claim.moved.title': 'VICI a déménagé sur {domain}',
+	'claim.notice.dismiss_aria': 'Masquer cet avis',
+	'claim.notice.text':
+		"Ton compte, tes prédictions et tes VXP seront transférés pour toi, tu n'as rien à faire pour l'instant. En attendant, continue de jouer ici. vici.market reste accessible jusqu'à fin septembre 2027.",
+	'claim.notice.title': 'VICI déménage sur {domain}.',
 	'claim.page.already_linked': 'Cette identité était déjà liée à ton compte.',
 	'claim.page.error.account_not_empty':
 		'Ce compte a déjà son propre historique, ton ancien ne peut donc pas y être transféré automatiquement. Contacte l’équipe VICI et nous les réunirons.',
