@@ -20,6 +20,8 @@ import { getUserStats, upsertMonthlyStats, upsertUserStats } from '../profiles/s
 import { mintFlowOvertime } from '../vxp/flow';
 import { runProfileAwardTriggers } from '../vxp/triggers';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 interface StatusContext {
 	status?: number | string;
 }
@@ -236,6 +238,13 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 		}
 	)
 	.get('/:userId', async ({ request, params }) => {
+		// Accounts are keyed by uuid, so any other id (an on-chain principal,
+		// say) can never match a row; answer it as absent instead of letting the
+		// uuid bind fail the query as a 500.
+		if (!UUID_RE.test(params.userId)) {
+			return { profile: null };
+		}
+
 		// The caller (when signed in) may read their own hidden profile; any
 		// other hidden profile reads as absent.
 		const user = await requireUser(request);
