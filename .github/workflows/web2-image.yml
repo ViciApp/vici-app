@@ -1,0 +1,128 @@
+name: Web2 Image
+
+# Builds the vici.app SPA image exactly as web2-deploy.yml ships it and
+# smoke-tests the container, so a Dockerfile.web that only breaks inside
+# Docker fails on the PR instead of on the manual deploy. Nothing is pushed.
+# Deliberately unfiltered: almost any file can reach the image through
+# `COPY . .`, and a hand-kept path list silently rots.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions: {}
+
+# A newer PR push supersedes the running build; a main run is never cancelled
+# mid-build, so a merged commit is not left without a verdict.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  web-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # fly.web.toml is what `flyctl deploy` reads, so the Dockerfile and build
+      # args come from it rather than from literals here that could drift.
+      - name: Read build config from fly.web.toml
+        id: fly
+        run: |
+          python3 - <<'PY'
+          import os, tomllib
+
+          with open("fly.web.toml", "rb") as f:
+              build = tomllib.load(f)["build"]
+          args = build["args"]
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"dockerfile={build['dockerfile']}\n")
+              out.write(f"api-url={args['VITE_WEB2_API_URL']}\n")
+              out.write("build-args<<BUILD_ARGS_EOF\n")
+              for key, value in args.items():
+                  out.write(f"{key}={value}\n")
+              out.write("BUILD_ARGS_EOF\n")
+          PY
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # `context: .` builds the checked-out tree like `flyctl deploy` does; the
+      # action's default git context would skip local files and need a token.
+      - name: Build image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ steps.fly.outputs.dockerfile }}
+          build-args: ${{ steps.fly.outputs.build-args }}
+          tags: vici-app-web:ci
+          load: true
+          push: false
+          cache-from: type=gha,scope=web2-image
+          cache-to: type=gha,mode=max,scope=web2-image
+
+      - name: Smoke test the container
+        env:
+          IMAGE: vici-app-web:ci
+          API_URL: ${{ steps.fly.outputs.api-url }}
+        run: |
+          set -euo pipefail
+
+          docker run --detach --name web --publish 8080:8080 "$IMAGE"
+          trap 'status=$?; (( status == 0 )) || docker logs web; docker rm --force web >/dev/null' EXIT
+
+          base=http://localhost:8080
+          # Docker's port proxy accepts connections before nginx listens, so a
+          # not-yet-ready container resets rather than refuses: retry any error.
+          curl --silent --show-error --fail --retry 15 --retry-all-errors --retry-delay 1 --output /dev/null "$base/"
+
+          expect_200() {
+            local status
+            status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$base$1")
+            if [[ "$status" != "200" ]]; then
+              echo "::error::GET $1 returned $status, expected 200"
+              exit 1
+            fi
+            echo "GET $1 -> 200"
+          }
+
+          expect_200 /
+          # No file exists at /flow: a 200 proves the nginx SPA fallback works.
+          expect_200 /flow
+
+          # Globbed so a rotated Search Console token needs no workflow edit.
+          shopt -s nullglob
+          verification_files=(static/google*.html)
+          if (( ${#verification_files[@]} == 0 )); then
+            echo "::error::No Google Search Console verification file found in static/"
+            exit 1
+          fi
+          for file in "${verification_files[@]}"; do
+            name=$(basename "$file")
+            expect_200 "/$name"
+            curl --silent --fail "$base/$name" | grep --quiet --fixed-strings "google-site-verification: $name"
+          done
+
+          # Vite inlines VITE_* at build time; an empty or dropped build arg
+          # would ship a bundle calling the wrong API with no runtime error.
+          # An empty origin would match every file, and a production SPA must
+          # call its API over TLS, so anything but a bare https origin fails.
+          if [[ ! "$API_URL" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?$ ]]; then
+            echo "::error::VITE_WEB2_API_URL in fly.web.toml must be an https origin, got '$API_URL'"
+            exit 1
+          fi
+          if ! docker exec web grep -rlF "$API_URL" /usr/share/nginx/html/_app/immutable >/dev/null; then
+            echo "::error::No built JS references $API_URL"
+            exit 1
+          fi
+          echo "Built JS references $API_URL"
