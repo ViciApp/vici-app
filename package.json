@@ -45,7 +45,7 @@
 	},
 	"devDependencies": {
 		"@dfinity/eslint-config-oisy-wallet": "^0.5.1",
-		"@icp-sdk/bindgen": "^0.4.0",
+		"@icp-sdk/bindgen": "^0.4.1",
 		"@junobuild/config": "^3.0.1",
 		"@junobuild/vite-plugin": "^4.7.1",
 		"@playwright/test": "^1.62.1",
