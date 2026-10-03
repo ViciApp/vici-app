@@ -7,7 +7,7 @@
       "dependencies": {
         "@dfinity/utils": "^4.2.1",
         "@elysiajs/cors": "^1.4.0",
-        "@icp-sdk/canisters": "^3.5.2",
+        "@icp-sdk/canisters": "^4.0.0",
         "@icp-sdk/core": "^5.4.0",
         "@junobuild/core": "^5.4.0",
         "@noble/curves": "^1.9.7",
@@ -38,7 +38,7 @@
 
     "@icp-sdk/auth": ["@icp-sdk/auth@10.0.1", "", { "dependencies": { "@icp-sdk/signer": "^6.0.0", "idb": "^7.1.1" }, "peerDependencies": { "@icp-sdk/core": "^6" } }, "sha512-FMq8OJQqhLJUfS2h8z/tCVBFTceo2qT/J4mD2cRwx3kTFeA0x2rc7VjQfnOmevkyJ564tJa4Hjrre0YvLhkqAg=="],
 
-    "@icp-sdk/canisters": ["@icp-sdk/canisters@3.6.0", "", { "dependencies": { "@noble/hashes": "^1.8.0", "base58-js": "^3.0.3", "bech32": "^2.0.0", "mime": "^3.0.0" }, "peerDependencies": { "@dfinity/utils": "^4.1", "@icp-sdk/core": "^5" } }, "sha512-GALqQiywObRabz98etHccTq1DpLy5Sbx3adrYO27ffbDgZGLY5sZcAQfR0CkP0Da6KUEauzZk3gBi8UDzbydHg=="],
+    "@icp-sdk/canisters": ["@icp-sdk/canisters@4.0.0", "", { "dependencies": { "@noble/hashes": "^1.8.0", "base58-js": "^3.0.3", "bech32": "^2.0.0", "mime": "^3.0.0" }, "peerDependencies": { "@dfinity/utils": "^5", "@icp-sdk/core": "^6" } }, "sha512-7n0o4yChSdeeGdZAbt36bOHJV7UKXAJca0mCQgO02gP9Z8zSy81d1fktksJ9PKzq5RkVz9acB+gkh9bqqZ6b2A=="],
 
     "@icp-sdk/core": ["@icp-sdk/core@5.4.0", "", { "dependencies": { "@dfinity/cbor": "^0.2.3", "@noble/curves": "^1.9.7", "@noble/hashes": "^1.8.0", "@scure/bip32": "^1.7.0", "@scure/bip39": "^1.6.0", "asn1js": "^3.0.7" } }, "sha512-yedhCkHIhCxI65W8id99Mi8fUgSyqKSTbD57AphquNcFV2/3Rjykng0/6H08mHswKydDcv6Y0+e8aPdrznewCw=="],
 
