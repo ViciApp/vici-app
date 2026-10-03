@@ -61,7 +61,7 @@
 		"eslint-plugin-svelte": "^3.23.0",
 		"globals": "^17.12.0",
 		"playwright": "^1.59.1",
-		"postcss": "^8.5.26",
+		"postcss": "^8.5.28",
 		"prettier": "^3.9.6",
 		"prettier-plugin-organize-imports": "^4.3.0",
 		"prettier-plugin-svelte": "^4.1.0",
