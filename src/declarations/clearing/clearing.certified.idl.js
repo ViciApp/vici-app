@@ -89,6 +89,7 @@ export const idlFactory = ({ IDL }) => {
 			required: IDL.Nat
 		}),
 		NotOrderCreator: IDL.Null,
+		AccountUnderReassignment: IDL.Record({ user: IDL.Principal }),
 		SeriesNotFound: IDL.Text,
 		SeriesAlreadySettled: IDL.Text,
 		NotAuthorizedToTrade: IDL.Null,
@@ -97,6 +98,48 @@ export const idlFactory = ({ IDL }) => {
 	const AcceptPositionTransferResult = IDL.Variant({
 		Ok: IDL.Bool,
 		Err: TradeError
+	});
+	const ReassignAccountParams = IDL.Record({
+		old_owner: IDL.Principal,
+		reassignment_id: IDL.Text,
+		new_owner: IDL.Principal
+	});
+	const AssetError = IDL.Variant({
+		TransferError: IDL.Text,
+		InsufficientBalance: IDL.Record({
+			balance: IDL.Nat,
+			required: IDL.Nat
+		}),
+		MathOverflow: IDL.Null,
+		InvalidAssetId: IDL.Text,
+		CallError: IDL.Record({
+			method: IDL.Text,
+			code: IDL.Int32,
+			message: IDL.Text
+		}),
+		InvalidAssetForHandler: IDL.Null,
+		UnsupportedAsset: IDL.Null
+	});
+	const ReassignAccountError = IDL.Variant({
+		AccountNotFound: IDL.Null,
+		TargetAccountNotEmpty: IDL.Null,
+		CustodyTransferFailed: IDL.Record({
+			error: AssetError,
+			asset_id: IDL.Text
+		}),
+		ReassignmentIdReused: IDL.Null,
+		PendingPositionTransfersExist: IDL.Null,
+		InFlightPlansExist: IDL.Null,
+		UnsupportedCustodyAsset: IDL.Record({ asset_id: IDL.Text }),
+		AnonymousOwner: IDL.Null,
+		ReassignmentInProgress: IDL.Null,
+		OpenOrdersExist: IDL.Null,
+		SameOwner: IDL.Null,
+		Common: CommonError
+	});
+	const ReassignAccountResult = IDL.Variant({
+		Ok: IDL.Null,
+		Err: ReassignAccountError
 	});
 	const AggregateLeanParams = IDL.Record({
 		series_id: IDL.Text,
@@ -155,29 +198,14 @@ export const idlFactory = ({ IDL }) => {
 		asset_id: IDL.Text,
 		amount: IDL.Nat
 	});
-	const AssetError = IDL.Variant({
-		TransferError: IDL.Text,
-		InsufficientBalance: IDL.Record({
-			balance: IDL.Nat,
-			required: IDL.Nat
-		}),
-		MathOverflow: IDL.Null,
-		InvalidAssetId: IDL.Text,
-		CallError: IDL.Record({
-			method: IDL.Text,
-			code: IDL.Int32,
-			message: IDL.Text
-		}),
-		InvalidAssetForHandler: IDL.Null,
-		UnsupportedAsset: IDL.Null
-	});
 	const DepositCollateralError = IDL.Variant({
 		DomainNotAllowed: IDL.Record({
 			domain: BalanceDomain,
 			asset_id: IDL.Text
 		}),
 		MathOverflow: IDL.Null,
-		Asset: AssetError
+		Asset: AssetError,
+		AccountUnderReassignment: IDL.Record({ user: IDL.Principal })
 	});
 	const DepositCollateralResult = IDL.Variant({
 		Ok: IDL.Null,
@@ -450,6 +478,13 @@ export const idlFactory = ({ IDL }) => {
 		oracle_source: IDL.Text,
 		forked_from: IDL.Opt(IDL.Text)
 	});
+	const ListSeriesSettlementStatusesParams = IDL.Record({
+		series_ids: IDL.Vec(IDL.Text)
+	});
+	const SeriesSettlementStatus = IDL.Record({
+		status: IDL.Opt(SettlementStatusView),
+		series_id: IDL.Text
+	});
 	const ListSeriesTradeHistoryParams = IDL.Record({
 		series_id: IDL.Text,
 		start_after: IDL.Opt(IDL.Nat64),
@@ -633,7 +668,8 @@ export const idlFactory = ({ IDL }) => {
 			asset_id: IDL.Text
 		}),
 		MathOverflow: IDL.Null,
-		Asset: AssetError
+		Asset: AssetError,
+		AccountUnderReassignment: IDL.Record({ user: IDL.Principal })
 	});
 	const WithdrawCollateralResult = IDL.Variant({
 		Ok: IDL.Null,
@@ -662,6 +698,7 @@ export const idlFactory = ({ IDL }) => {
 
 	return IDL.Service({
 		accept_position_transfer: IDL.Func([PositionProof], [AcceptPositionTransferResult], []),
+		admin_reassign_account: IDL.Func([ReassignAccountParams], [ReassignAccountResult], []),
 		aggregate_lean: IDL.Func([AggregateLeanParams], [AggregateLean], []),
 		aggregate_settlement_accuracy: IDL.Func(
 			[AggregateSettlementAccuracyParams],
@@ -704,6 +741,11 @@ export const idlFactory = ({ IDL }) => {
 		list_leaderboard: IDL.Func([ListLeaderboardParams], [LeaderboardPage], []),
 		list_orders: IDL.Func([ListOrdersParams], [IDL.Vec(LimitOrder)], []),
 		list_series: IDL.Func([], [IDL.Vec(Series)], []),
+		list_series_settlement_statuses: IDL.Func(
+			[ListSeriesSettlementStatusesParams],
+			[IDL.Vec(SeriesSettlementStatus)],
+			[]
+		),
 		list_series_trade_history: IDL.Func(
 			[ListSeriesTradeHistoryParams],
 			[SeriesTradeHistoryPage],
