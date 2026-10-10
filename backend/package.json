@@ -29,7 +29,7 @@
 		"@scure/btc-signer": "^1.8.1",
 		"elysia": "^1.4.30",
 		"pg": "^8.16.3",
-		"sharp": "^0.35.4"
+		"sharp": "^0.35.5"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.4.2",
