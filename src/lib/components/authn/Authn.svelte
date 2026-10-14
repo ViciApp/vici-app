@@ -325,27 +325,28 @@
 		if (isWeb2Backend()) {
 			// The root gate (src/routes/+page.svelte) keys off `userStore.authBusy`,
 			// which boots `true`, so the probe must resolve it in BOTH outcomes or
-			// a web2 visitor hangs on the brand shell forever. `loadWeb2Session`
-			// never rejects: any failure resolves to signed-out.
+			// a web2 visitor hangs on the brand shell forever: the signed-out one
+			// here, the live one through the hydration effect below, which releases
+			// it together with the user (on success and on failure). Releasing it
+			// here for a live session would open a window with no user and no busy
+			// flag, which the (app) auth gate reads as signed out, bouncing every
+			// cold load of an app route to /signin. `loadWeb2Session` never
+			// rejects: any failure resolves to signed-out.
 			void loadWeb2Session().then((user) => {
-				if (isNullish(user)) {
-					setSignedInFlag(false);
-
-					// Explicit signed-out state, mirroring the on-chain reset above.
-					userStore.set({
-						user: undefined,
-						profile: undefined,
-						email: '',
-						authBusy: false,
-						profileExisted: false
-					});
-
+				if (nonNullish(user)) {
 					return;
 				}
 
-				// A live cookie session only releases the gate here; hydrating the
-				// user/profile into `userStore` belongs to the profiles domain swap.
-				userStore.update((data) => ({ ...data, authBusy: false }));
+				setSignedInFlag(false);
+
+				// Explicit signed-out state, mirroring the on-chain reset above.
+				userStore.set({
+					user: undefined,
+					profile: undefined,
+					email: '',
+					authBusy: false,
+					profileExisted: false
+				});
 			});
 
 			return;
