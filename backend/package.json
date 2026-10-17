@@ -20,7 +20,7 @@
 	"dependencies": {
 		"@dfinity/utils": "^4.2.1",
 		"@elysiajs/cors": "^1.4.0",
-		"@icp-sdk/canisters": "^3.5.2",
+		"@icp-sdk/canisters": "^4.0.0",
 		"@icp-sdk/core": "^5.4.0",
 		"@junobuild/core": "^5.4.0",
 		"@noble/curves": "^1.9.7",
