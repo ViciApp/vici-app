@@ -5,7 +5,7 @@
     "": {
       "name": "vici-app-backend",
       "dependencies": {
-        "@dfinity/utils": "^4.2.1",
+        "@dfinity/utils": "^5.0.0",
         "@elysiajs/cors": "^1.4.0",
         "@icp-sdk/canisters": "^3.5.2",
         "@icp-sdk/core": "^5.4.0",
@@ -30,7 +30,7 @@
 
     "@dfinity/cbor": ["@dfinity/cbor@0.2.3", "", {}, "sha512-5GX+9tAf29r94Pxv8nCzrv2/t+AkOfem/c/G61+FA2Wadq7THvc5cvr/AVLH0LpukVfNSWRRHvl1fkCdiB9MMQ=="],
 
-    "@dfinity/utils": ["@dfinity/utils@4.2.1", "", { "peerDependencies": { "@icp-sdk/core": "^5" } }, "sha512-5Rd0fflQzBf3h/doVvllJC0X+mrZPwbe6s9qfJm5jyJz07SEkN+cGmqY0HHMPDlCOohZgjDoAG6uwv+6cOMA+w=="],
+    "@dfinity/utils": ["@dfinity/utils@5.0.0", "", { "peerDependencies": { "@icp-sdk/core": "^6" } }, "sha512-b/kkzam3yu00YQ9a0jUI2AG08E2Si40zxcxn1bKRWmAoKKc/cJ7zMH3jKWc7bV+Ozq+ZVQphm69urZZnDdGUoQ=="],
 
     "@elysiajs/cors": ["@elysiajs/cors@1.4.2", "", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-FTCcbH35brTLigF1W7BYySRZomgI/dBEMK9BgK9RP9Nez7zmpGh4koL/Yr1BFv8nYz7CfhRvcM8d/c+XnwMaVQ=="],
 
