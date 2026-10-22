@@ -121,7 +121,11 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   and `clearWeb2Session()` revokes server-side then drops local state.
 - **Session bootstrap — `Authn.svelte`.** `onMount` branches: web2 runs
   `loadWeb2Session()` in place of Juno's `onAuthStateChange`. The on-chain
-  path is left byte-for-byte as it was.
+  path is left byte-for-byte as it was. A signed-out probe releases
+  `authBusy` directly; a live one leaves it held until the app-shell
+  hydration sets the user, because `authBusy` false with no user is what the
+  `(app)` gate reads as signed out (releasing it early bounced every cold
+  load of an app route to `/signin`).
 - **Sign-in — `SignInProviderStack.svelte`.** In web2 mode it renders
   `SignInProviderStackWeb2.svelte`: email one-time code (request then verify
   via `requestOtp` / `verifyOtp`), Google as a full-page redirect to
@@ -320,7 +324,11 @@ apply them at the fetch boundary.
 
 - `market.services.ts`: the series catalog (`listSeries`, both the full
   and the unexpired read), per-series `getSeries`, the settlement status
-  on the detail fetch, and the traded-volumes batch. The bridge's
+  on the detail fetch, and the traded-volumes batch. On the detail fetch the
+  on-chain order book fails open in web2 mode (an empty book, priced as
+  unknown) so an unreachable IC read never blanks the page; the Flow deck's
+  profile read (`getFlowQueue`) keys on the session account id, since the
+  anonymous placeholder identity owns no profile. The bridge's
   tradeable-now filter stands in for `only_unexpired` (equivalent here:
   no series carries a future start gate). The volumes read drops the
   anonymous short-circuit in web2 mode because the bridge exposes it

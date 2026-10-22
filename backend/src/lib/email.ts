@@ -2,20 +2,43 @@
 // the message body lands on the server console instead, so local dev and CI
 // need no email provider. In production set RESEND_API_KEY + EMAIL_FROM.
 
+import { nonNullish } from '@dfinity/utils';
 import { env } from '../env';
 import { logger } from './logger';
 
-export const sendEmail = async ({
-	to,
-	subject,
-	text,
-	html
-}: {
+export interface EmailMessage {
 	to: string;
 	subject: string;
 	text: string;
 	html: string;
-}): Promise<void> => {
+}
+
+export type EmailTransport = (message: EmailMessage) => Promise<void>;
+
+let transportOverride: EmailTransport | undefined;
+
+/** Test seam: deliver every message through `transport` instead of Resend or
+ * the console; returns a restore function. Only the end-to-end server
+ * (backend/e2e/) installs one, to read sign-in codes back. */
+export const setEmailTransport = (transport: EmailTransport): (() => void) => {
+	const previous = transportOverride;
+
+	transportOverride = transport;
+
+	return () => {
+		transportOverride = previous;
+	};
+};
+
+export const sendEmail = async (message: EmailMessage): Promise<void> => {
+	if (nonNullish(transportOverride)) {
+		await transportOverride(message);
+
+		return;
+	}
+
+	const { to, subject, text, html } = message;
+
 	if (env.email.resendApiKey === '') {
 		logger.info(
 			`[email] to=${to} subject="${subject}" (console fallback, set RESEND_API_KEY to send real email)\n${text}`
