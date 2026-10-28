@@ -12,6 +12,10 @@ updates:
     cooldown:
       default-days: 7
 
+  # Dependabot runs npm through corepack, so it uses the version pinned in
+  # package.json#packageManager. Without that pin it picks its own default,
+  # and npm 12 trips engine-strict on @dfinity/eslint-config-oisy-wallet
+  # (npm <12), failing every npm update as "can't resolve dependency files".
   - package-ecosystem: npm
     directory: '/'
     schedule:
