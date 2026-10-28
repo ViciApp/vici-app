@@ -21,7 +21,7 @@
 		"e2e:stack": "bun run e2e/preflight.ts && bun run migrate && bun run e2e:seed && bun run e2e:server"
 	},
 	"dependencies": {
-		"@dfinity/utils": "^4.2.1",
+		"@dfinity/utils": "^5.0.0",
 		"@elysiajs/cors": "^1.4.0",
 		"@icp-sdk/canisters": "^4.0.0",
 		"@icp-sdk/core": "^5.4.0",
