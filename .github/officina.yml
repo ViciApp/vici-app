@@ -13,8 +13,16 @@ docs:
 pull_request:
   title_pattern: '^(feat|fix|perf|deps|revert|docs|style|chore|refactor|test|build|ci)\([-a-zA-Z0-9,._/]+\)!?: .+$'
 
-setup: ['npm ci', 'npm run prepare']
-verify: ['npm run quality', 'npm run check']
+# What a merge into main deploys: nothing. Releases run from `v*` tags (deploy.yml, publish.yml),
+# cut when a person merges the release-please PR; web2-deploy.yml is started by hand.
+release:
+  on_merge: nothing
+
+setup: ['npm ci', 'npm run prepare', 'bun install --cwd backend --frozen-lockfile']
+# The CI gates an agent sandbox can run. Left to CI: the backend `bun test` (ten DB suites do not
+# skip without Postgres yet) and `satellite-schema` (needs a global Juno CLI, and any drift it finds
+# lands in src/satellite/**, a red path the builder may not touch).
+verify: ['npm run quality', 'npm run check', 'npm test', 'bun run --cwd backend typecheck']
 
 lanes:
   # Agents never build in the red lane: they may write the spec, a person implements it.
@@ -28,12 +36,14 @@ lanes:
       - 'package.json'
       - 'package-lock.json'
       - 'dfx.json'
+      # Not in the tree today (canister_ids.json untracked, static/workers/** gitignored and copied
+      # by postinstall); listed so a change that adds either still lands here.
       - 'canister_ids.json'
+      - 'static/workers/**'
       - 'juno.config.ts'
       - 'juno.collections.json'
       - 'src/satellite/**'
       - 'src/declarations/**'
-      - 'static/workers/**'
       - 'eslint.config.js'
       - '.prettierrc'
       - 'tsconfig*.json'
@@ -41,6 +51,22 @@ lanes:
       - 'scripts/build/**'
       - 'scripts/lib/**'
       - 'scripts/init/**'
+      # Root scripts deploy canisters, move tokens, run as the dfx identity or gate CI and releases
+      # (deploy.sh, send.tokens.sh, restart.*.sh, *-markets.sh, did.sh, satellite-upgrade-needed.mjs)
+      - 'scripts/*'
+      - 'scripts/test/**'
+      # Toolchain, lint, release and hosting policy
+      - '.npmrc'
+      - '.node-version'
+      - '.prettierignore'
+      - 'eslint-local-rules.cjs'
+      - 'release-please-config.json'
+      - '.release-please-manifest.json'
+      - 'nginx.web.conf'
+      - 'static/google*.html'
+      # Agent instructions
+      - '.agents/**'
+      - '.claude/**'
       # Deploy configuration, including the root web build (fly.web.toml, Dockerfile.web)
       - 'fly*.toml'
       - 'Dockerfile*'
@@ -49,6 +75,12 @@ lanes:
       - 'src/lib/constants/vxp-onboarding.constants.ts'
       - 'src/lib/constants/flow-rewards.constants.ts'
       - 'src/lib/constants/legal-docs.constants.ts'
+      # Canister, ledger and engine ids, satellite controllers and role permissions
+      - 'src/lib/constants/canisters.constants.ts'
+      - 'src/lib/constants/tokens/tokens.ic.constants.ts'
+      - 'src/lib/constants/icdc.constants.ts'
+      - 'src/lib/constants/controllers.constants.ts'
+      - 'src/lib/constants/authz.constants.ts'
       - 'src/lib/components/authn/**'
       - 'src/lib/services/identity*.ts'
       - 'src/lib/schema/auth-identity.schema.ts'
@@ -57,7 +89,13 @@ lanes:
       - 'backend/bun.lock'
       - 'backend/Dockerfile'
       - 'backend/fly*.toml'
+      - 'backend/docker-compose.yml'
+      - 'backend/bunfig.toml'
+      - 'backend/tsconfig.json'
+      - 'backend/src/env.ts'
       - 'backend/src/auth/**'
+      - 'backend/src/admin/**'
+      - 'backend/src/account/**'
       # Entry points that issue sessions, move value or expose admin surfaces
       - 'backend/src/routes/auth.ts'
       - 'backend/src/routes/account.ts'
@@ -71,12 +109,17 @@ lanes:
       - 'backend/src/lib/crypto.ts'
       - 'backend/src/lib/keys.ts'
       - 'backend/src/lib/rate-limit.ts'
+      - 'backend/src/lib/email.ts'
+      - 'backend/src/lib/ic-agent.ts'
       - 'backend/src/custody/**'
       - 'backend/src/chains/**'
       - 'backend/src/vxp/**'
       - 'backend/src/engine/**'
       - 'backend/src/db/**'
       - 'backend/src/declarations/**'
+      # Legacy data migration and the test-only server with its fake engine and seed
+      - 'backend/scripts/etl/**'
+      - 'backend/e2e/**'
 
   standard:
     paths: ['**']
@@ -89,8 +132,12 @@ lanes:
 
   # User-facing copy only. A requirement nobody can meet yet (no product approver) is waived
   # automatically and recorded as waived, so this works today and tightens when the role is filled.
+  # auto_verify: a result the chooser judges needs no more than a glance merges without a person's
+  # check, which is allowed because a merge ships nothing (release.on_merge). People still approve
+  # the spec, and the branch rules (checks, threads, code-owner review) still decide the merge.
   green:
     paths: ['src/lib/constants/messages/**']
+    auto_verify: true
     wip: 5
     diff_lines: 600
     budget_usd: 5
