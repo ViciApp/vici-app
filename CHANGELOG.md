@@ -1,5 +1,65 @@
 # Changelog
 
+## [1.8.42](https://github.com/ViciApp/vici-app/compare/v1.8.41...v1.8.42) (2026-10-28)
+
+
+### Features
+
+* **backend:** open the beta gate to new users while holding legacy accounts until cutover ([#1331](https://github.com/ViciApp/vici-app/issues/1331)) ([b1d23a2](https://github.com/ViciApp/vici-app/commit/b1d23a23b48e8c6f01cbc4f6afde2b85ad8e51ba))
+* **web3:** send new users on vici.market to vici.app ([#1334](https://github.com/ViciApp/vici-app/issues/1334)) ([ebdde50](https://github.com/ViciApp/vici-app/commit/ebdde501a932f9a5991353a3bf58baf90aa3fab7))
+* **web3:** tell vici.market users that VICI is moving to vici.app ([#1338](https://github.com/ViciApp/vici-app/issues/1338)) ([58c5d75](https://github.com/ViciApp/vici-app/commit/58c5d751f7879f22e9d49d3dff0a5492cbfd2065))
+
+
+### Bug Fixes
+
+* **backend:** never re-pay imported VXP awards when the treasury turns on ([#1333](https://github.com/ViciApp/vici-app/issues/1333)) ([a9a7b12](https://github.com/ViciApp/vici-app/commit/a9a7b12238367cfba0fad022953b32f083a9aa81))
+* **backend:** serve engine reads with a reader identity and treat missing accounts as empty ([#1332](https://github.com/ViciApp/vici-app/issues/1332)) ([8da80b3](https://github.com/ViciApp/vici-app/commit/8da80b3bef8d883c2abeadadacbf6fc46f4f09bb))
+* **backend:** sync vendored satellite declarations with bindgen 0.4.1 headers ([#1373](https://github.com/ViciApp/vici-app/issues/1373)) ([9d87eee](https://github.com/ViciApp/vici-app/commit/9d87eeed523966b978e9c7fdcb0e705c99dbd687))
+* **i18n:** replace wager wording in battle copy ([#1330](https://github.com/ViciApp/vici-app/issues/1330)) ([61a7f16](https://github.com/ViciApp/vici-app/commit/61a7f16ff8f4a10b8ff91c7182c621292a2f25dc))
+* **web3:** keep the moved screen across the auth worker's sign-out reload ([#1336](https://github.com/ViciApp/vici-app/issues/1336)) ([f5c0efb](https://github.com/ViciApp/vici-app/commit/f5c0efbc280421e6b9b1cc17739ecc0153005815))
+
+
+### Documentation
+
+* **spec:** keep spec asset folders after merge ([#1328](https://github.com/ViciApp/vici-app/issues/1328)) ([26efa5f](https://github.com/ViciApp/vici-app/commit/26efa5f47e8749aaafd3d2a41fe3dcb1619fe379))
+
+
+### Miscellaneous Chores
+
+* **backend-deps-dev:** bump @types/bun from 1.4.2 to 1.4.3 in /backend ([#1359](https://github.com/ViciApp/vici-app/issues/1359)) ([c9e77d9](https://github.com/ViciApp/vici-app/commit/c9e77d951490feec052830f0f9db4172bd01c21f))
+* **backend-deps:** bump @dfinity/utils from 4.2.1 to 5.0.0 in /backend ([#1343](https://github.com/ViciApp/vici-app/issues/1343)) ([5cc742a](https://github.com/ViciApp/vici-app/commit/5cc742a370389e2ae270d0209e7a41411156b170))
+* **backend-deps:** bump @icp-sdk/canisters from 3.6.0 to 4.0.0 in /backend ([#1342](https://github.com/ViciApp/vici-app/issues/1342)) ([f4bf755](https://github.com/ViciApp/vici-app/commit/f4bf755306d94b86d23bc05057ae8fda6860d8d3))
+* **backend-deps:** bump @icp-sdk/core from 5.4.0 to 6.1.1 in /backend ([#1360](https://github.com/ViciApp/vici-app/issues/1360)) ([c84851e](https://github.com/ViciApp/vici-app/commit/c84851e05977f87e96ded1c911c9ccdcf5afcd11))
+* **backend-deps:** bump file-type from 22.1.1 to 22.2.0 in /backend ([#1358](https://github.com/ViciApp/vici-app/issues/1358)) ([db23698](https://github.com/ViciApp/vici-app/commit/db2369855b202ed0fe12d21c7fcb07da7e631f37))
+* **backend-deps:** bump pg from 8.23.0 to 8.23.1 in /backend ([#1353](https://github.com/ViciApp/vici-app/issues/1353)) ([5c1367f](https://github.com/ViciApp/vici-app/commit/5c1367f24a40f6dd489e9c241395430c47f5fedc))
+* **backend-deps:** bump sharp from 0.35.4 to 0.35.5 in /backend ([#1354](https://github.com/ViciApp/vici-app/issues/1354)) ([f3e0017](https://github.com/ViciApp/vici-app/commit/f3e00177df6d61cef01f53c97bf364a7f2193e8e))
+* **e2e:** Update Playwright E2E Snapshots ([#1337](https://github.com/ViciApp/vici-app/issues/1337)) ([b208b71](https://github.com/ViciApp/vici-app/commit/b208b71d8cb323aa0fad19491f5cdad27a114386))
+* **github-actions:** bump actions/create-github-app-token from 3.2.0 to 3.3.0 ([#1357](https://github.com/ViciApp/vici-app/issues/1357)) ([bd64bac](https://github.com/ViciApp/vici-app/commit/bd64bac797aed0117bafe6771fbf78a33e6e4d0e))
+* **github-actions:** bump actions/download-artifact from 8.0.1 to 8.0.2 ([#1356](https://github.com/ViciApp/vici-app/issues/1356)) ([fa33d1c](https://github.com/ViciApp/vici-app/commit/fa33d1caf8c2e8749627c649a0fb20f1a9a5718f))
+* **github-actions:** bump actions/upload-artifact from 7.0.1 to 7.0.2 ([#1355](https://github.com/ViciApp/vici-app/issues/1355)) ([b734483](https://github.com/ViciApp/vici-app/commit/b73448370643a5cc9509675827883b7f44aeb84a))
+* **npm-deps-dev:** bump @icp-sdk/bindgen from 0.4.0 to 0.4.1 ([#1347](https://github.com/ViciApp/vici-app/issues/1347)) ([66340df](https://github.com/ViciApp/vici-app/commit/66340dfaf7aa27d37d0420dba0bf42a518a8b113))
+* **npm-deps-dev:** bump @types/node from 26.2.0 to 26.6.5 ([#1370](https://github.com/ViciApp/vici-app/issues/1370)) ([377f617](https://github.com/ViciApp/vici-app/commit/377f617d85c789cb6f8426ec4376fba072617deb))
+* **npm-deps-dev:** bump postcss from 8.5.26 to 8.5.31 ([#1371](https://github.com/ViciApp/vici-app/issues/1371)) ([4821402](https://github.com/ViciApp/vici-app/commit/482140270d8f0036665e8582b553663a24f7bd11))
+* **npm-deps-dev:** bump postcss-safe-parser from 7.0.1 to 7.1.0 ([#1366](https://github.com/ViciApp/vici-app/issues/1366)) ([999c29a](https://github.com/ViciApp/vici-app/commit/999c29a6768a50170636cc1ae1bb7940c391dd8a))
+* **npm-deps-dev:** bump the lint-kit group across 1 directory with 4 updates ([#1363](https://github.com/ViciApp/vici-app/issues/1363)) ([6dd8f0e](https://github.com/ViciApp/vici-app/commit/6dd8f0e607c9fa6a59d93748bc9dc68e60e7bfd4))
+* **npm-deps:** bump @lucide/svelte from 1.31.0 to 1.47.0 ([#1312](https://github.com/ViciApp/vici-app/issues/1312)) ([f5c37f4](https://github.com/ViciApp/vici-app/commit/f5c37f494c211af058aeca41337cc87061849e5c))
+* **npm-deps:** bump @sveltejs/acorn-typescript from 1.0.12 to 1.0.13 ([#1301](https://github.com/ViciApp/vici-app/issues/1301)) ([31ac282](https://github.com/ViciApp/vici-app/commit/31ac28218ea5cd0b654ca2292c18481894ae3351))
+* **npm-deps:** bump esrap from 2.3.2 to 2.4.0 ([#1300](https://github.com/ViciApp/vici-app/issues/1300)) ([232b3de](https://github.com/ViciApp/vici-app/commit/232b3de7dbd9b6068f03e5cb91f73bdc9e01faf2))
+* **npm-deps:** bump esrap from 2.3.7 to 2.4.0 ([#1368](https://github.com/ViciApp/vici-app/issues/1368)) ([f49a0a0](https://github.com/ViciApp/vici-app/commit/f49a0a068bbee2feb86c75b030502331114b7604))
+
+
+### Build System
+
+* **deps:** pin npm 11 via packageManager so Dependabot updates resolve ([#1361](https://github.com/ViciApp/vici-app/issues/1361)) ([47d2794](https://github.com/ViciApp/vici-app/commit/47d279486f3a94eaa1b904328099fc9172cb0da3))
+* **deps:** pin npm 11.21.1 so Dependabot writes a valid lockfile ([#1372](https://github.com/ViciApp/vici-app/issues/1372)) ([173b305](https://github.com/ViciApp/vici-app/commit/173b30590e089a322c74a5cbc893ab50a6416961))
+
+
+### Continuous Integration
+
+* **officina:** require the conventional pull request title format ([#1335](https://github.com/ViciApp/vici-app/issues/1335)) ([550c09e](https://github.com/ViciApp/vici-app/commit/550c09ec31823b8e5b4cd1166ef848d75414c138))
+* **web2:** build and smoke-test the vici.app image on pull requests ([#1339](https://github.com/ViciApp/vici-app/issues/1339)) ([a84369b](https://github.com/ViciApp/vici-app/commit/a84369b1654cef535c3246f8b9b5cea43d88b864))
+* **web2:** run end-to-end tests against the web2 app and backend ([#1340](https://github.com/ViciApp/vici-app/issues/1340)) ([8ad05ff](https://github.com/ViciApp/vici-app/commit/8ad05ffd1c01c4ef8cfa29389d19be5dc2ee7603))
+
 ## [1.8.41](https://github.com/ViciApp/vici-app/compare/v1.8.40...v1.8.41) (2026-09-27)
 
 
