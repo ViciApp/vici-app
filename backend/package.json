@@ -24,7 +24,7 @@
 		"@dfinity/utils": "^5.0.0",
 		"@elysiajs/cors": "^1.4.0",
 		"@icp-sdk/canisters": "^4.0.0",
-		"@icp-sdk/core": "^5.4.0",
+		"@icp-sdk/core": "^6.1.1",
 		"@junobuild/core": "^5.4.0",
 		"@noble/curves": "^1.9.7",
 		"@noble/hashes": "^1.8.0",
