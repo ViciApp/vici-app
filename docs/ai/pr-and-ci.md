@@ -188,7 +188,7 @@ If your change is doc-only, the `format` and `lint` jobs still run because
 they cover the whole repo. The `check` job covers `*.svelte` / `*.ts` only,
 so doc-only changes typically pass it trivially.
 
-`package.json#packageManager` pins npm to the version bundled with the Node in `.node-version`, so Dependabot (which honours the pin through corepack) resolves with the same npm as CI. Bump both together, and stay on npm 11 while `@dfinity/eslint-config-oisy-wallet` declares `npm <12`: with `engine-strict=true` in `.npmrc`, any npm 12 install fails with `EBADENGINE`.
+`package.json#packageManager` pins the npm that Dependabot installs (through corepack) to rewrite `package-lock.json`. Keep it on the latest npm 11, not on the npm bundled with `.node-version`: npm 11.6.1 drops the `@emnapi/*` entries of `@tailwindcss/oxide-wasm32-wasi` when it updates the lock, and `npm ci` then rejects the lockfile as out of sync. Stay below 12 while `@dfinity/eslint-config-oisy-wallet` declares `npm <12`: with `engine-strict=true` in `.npmrc`, any npm 12 install fails with `EBADENGINE`.
 
 ### Merge queue (`merge_group`)
 

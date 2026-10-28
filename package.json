@@ -7,7 +7,7 @@
 		}
 	},
 	"private": true,
-	"packageManager": "npm@11.6.1",
+	"packageManager": "npm@11.21.1",
 	"scripts": {
 		"dev": "vite dev --force",
 		"build": "tsc --noEmit && vite build",
