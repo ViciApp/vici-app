@@ -1,8 +1,8 @@
 name: Update icdc-core
 
 # Bumps only the pinned ICDC_CORE_VERSION. The Candid bindings are regenerated
-# and committed onto the resulting PR by the `bindings` job in checks.yml, the
-# same as for a bump made by hand.
+# and committed onto the resulting PR by bindings.yml, the same as for a bump
+# made by hand.
 
 on:
   workflow_dispatch:
@@ -68,6 +68,6 @@ jobs:
             Automated bump of the pinned [`AntonioVentilii/icdc-core`](https://github.com/AntonioVentilii/icdc-core) release.
 
             - Bumped `ICDC_CORE_VERSION` in `scripts/build/download.icdc.common.sh` to `${{ steps.bump.outputs.version }}`.
-            - The `bindings` job in `checks.yml` regenerates `src/declarations/**` (and the vendored `backend/src/declarations/**`) from that tag and commits them onto this PR.
+            - The `Bindings` workflow (`bindings.yml`) regenerates `src/declarations/**` (and the vendored `backend/src/declarations/**`) from that tag and commits them onto this PR.
 
             Review the regenerated `.did` surface before merging.
