@@ -175,6 +175,24 @@ jobs:
       - name: Check
         run: npm run check
 
+  test:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare
+        uses: ./.github/actions/prepare
+
+      # Pure-logic specs under src/tests/ on Node's built-in runner (tsx --test).
+      - name: Test
+        run: npm test
+
   satellite-schema:
     runs-on: ubuntu-24.04
     permissions:
@@ -318,7 +336,7 @@ jobs:
 
   checks-pass:
     if: always()
-    needs: ['pr-title', 'format', 'lint', 'check', 'satellite-schema', 'bindings']
+    needs: ['pr-title', 'format', 'lint', 'check', 'test', 'satellite-schema', 'bindings']
     runs-on: ubuntu-24.04
     permissions:
       contents: read

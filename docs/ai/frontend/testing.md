@@ -15,15 +15,16 @@
 
 ## Today
 
-- **Unit / component tests are not required by CI.** The `checks.yml`
-  workflow runs `format`, `lint`, and `check` only.
+- **Pure-logic specs are required by CI; component tests do not exist
+  yet.** The `checks.yml` workflow runs `format`, `lint`, `check` and
+  `test`.
 - **Pure-logic specs run on Node's built-in runner** until Vitest lands:
   `npm test` (`tsx --test`, which resolves the `$lib` alias) picks up
   `src/tests/**/*.spec.ts`. Use `node:test` + `node:assert/strict`, import
   only modules with no Svelte / SvelteKit / env dependencies, and keep the
   mirror-`src/` layout below (`eslint.config.js` lifts
-  `vitest/no-import-node-test` for `src/tests/**` only). Run it locally;
-  CI does not yet.
+  `vitest/no-import-node-test` for `src/tests/**` only). CI runs it in the
+  `test` job.
 - **E2E (Playwright) runs in CI, twice.** `e2e-web2.yml` builds the web2
   bundle and runs it against the real API on every PR and push to `main`
   (`npm run e2e:web2`, see
