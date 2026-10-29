@@ -285,8 +285,13 @@ export class HomePage {
 	 * hidden, because a hidden reveal still auto-dismisses after a few seconds
 	 * and pulses the Profile nav mid-screenshot. Each dismiss is awaited until
 	 * the fly-to-nav finishes, which is also when the next queued reveal mounts.
+	 * A fly already under way (the reveal's safety auto-dismiss) is awaited
+	 * first, since it no longer matches the open selector but still covers the
+	 * page.
 	 */
 	async dismissMenagerieReveals(): Promise<void> {
+		await expect(this.menagerieRevealFlying).toHaveCount(0);
+
 		while ((await this.menagerieRevealOpen.count()) > 0) {
 			await this.menagerieRevealOpen.locator('.mr-scrim').click();
 
