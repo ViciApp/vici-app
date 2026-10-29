@@ -417,6 +417,12 @@ await expect(page).toHaveScreenshot('homepage-logged-in.png', {
 If you add a new wall-clock-relative element, extend
 `stabilizeForSnapshot` there rather than reaching for another `mask`.
 
+`stabilizeForSnapshot` also dismisses any Menagerie trophy reveal on
+screen. The dev principal is the only profile on the emulator, so it
+ranks world #1 and can unlock the iridescent Goat; whether that
+celebration fires depends on a load race, so a signed-in snapshot must
+never be captured under it.
+
 To capture a transient state deterministically — e.g. the markets-feed
 **skeletons**, which would otherwise be replaced by real data within
 ~100ms once the registry responds — stall the upstream request inside
