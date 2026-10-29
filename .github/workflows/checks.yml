@@ -44,37 +44,14 @@ jobs:
   format:
     runs-on: ubuntu-24.04
     permissions:
-      contents: write
+      contents: read
 
     steps:
-      - name: Mint app token
-        id: app-token
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          app-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
-          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
-
-      - name: Check if commits can be added
-        id: check_can_add_commit
-        run: |
-          echo "can_add_commit=$CAN_ADD_COMMIT" >> $GITHUB_OUTPUT
-        env:
-          CAN_ADD_COMMIT: ${{ steps.app-token.outputs.token != '' && github.event_name == 'pull_request' }}
-
-      - name: Checkout for pull request
-        if: steps.check_can_add_commit.outputs.can_add_commit == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: false
-
       - name: Checkout
-        if: steps.check_can_add_commit.outputs.can_add_commit == 'false'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
           persist-credentials: false
 
       - name: Prepare
@@ -101,27 +78,17 @@ jobs:
       - name: Format
         run: npm run format
 
-      - name: Check for Changes
-        id: check_changes
-        run: |
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo "changes_detected=true" >> $GITHUB_OUTPUT
-          else
-            echo "changes_detected=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Commit format
-        if: steps.check_can_add_commit.outputs.can_add_commit == 'true' && steps.check_changes.outputs.changes_detected == 'true'
-        uses: ./.github/actions/add-and-commit
+      - name: Apply formatting changes
+        uses: ./.github/actions/apply-changes
         with:
-          message: '🤖 Apply formatting changes'
-          token: ${{ steps.app-token.outputs.token }}
-
-      - name: Fail for formatting issues without a bot token
-        if: steps.check_can_add_commit.outputs.can_add_commit == 'false' && steps.check_changes.outputs.changes_detected == 'true'
-        run: |
-          echo "Formatting changes are needed but couldn't be committed because the bot app token isn't available (fork pull request) or this isn't a pull request. Run 'npm run format' locally and commit the result."
-          exit 1
+          paths: .
+          commit-message: '🤖 Apply formatting changes'
+          pr-branch: bot-format
+          pr-title: 'style(format): apply formatting changes'
+          pr-body: '`npm run format` changed files on `main`.'
+          app-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
+          app-private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          fix-hint: "Run 'npm run format' locally and commit the result."
 
   lint:
     runs-on: ubuntu-24.04
