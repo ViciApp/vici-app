@@ -1,4 +1,4 @@
-// Generated from AntonioVentilii/icdc-core commit 897c64eb5673d44e13ee10985a4ed069a3d744d8 for file 'src/registry/registry.did'
+// Generated from AntonioVentilii/icdc-core v0.1.6 for file 'src/registry/registry.did'
 
 // Input parameters for registering a new price oracle.
 type AddOracleParams = record {
