@@ -1,4 +1,4 @@
-// Generated from AntonioVentilii/icdc-core commit 6a079695a0d3715cf401fa50027b4c5c3b9b2b70 for file 'src/clearing/clearing.did'
+// Generated from AntonioVentilii/icdc-core v0.1.6 for file 'src/clearing/clearing.did'
 
 // Outcome of a position transfer acceptance.
 type AcceptPositionTransferResult = variant {
