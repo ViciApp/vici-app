@@ -62,9 +62,10 @@ Monday (or on manual dispatch) when a newer release exists.
 The `Bindings` workflow (`bindings.yml`) regenerates the bindings from
 the pin on every PR and commits any drift back onto same-repo PR
 branches, so a bump PR gets its bindings without anyone running the
-script. It can also be dispatched by hand on a branch, which commits the
-same way. On fork PRs, `main` and the merge queue it fails instead.
-Locally:
+script. It also runs on `main`, where drift opens a
+`bot-update-bindings` PR instead, and can be dispatched by hand on any
+branch (commit) or on `main` (PR). On fork PRs and the merge queue it
+fails instead. Locally:
 
 ```bash
 npm run did
