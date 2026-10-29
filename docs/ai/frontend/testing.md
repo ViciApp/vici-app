@@ -356,14 +356,17 @@ The CI script (`npm run e2e:ci`) runs Playwright with
   baselines are still uploaded as the `snapshots-update` artifact;
   contributors can download them and commit manually.
 
-Pushes from `GITHUB_TOKEN` deliberately don't re-trigger the workflow,
-so the snapshot commit doesn't loop into another E2E run.
+The snapshot commit re-triggers the workflow (the app token is what makes
+CI run on it). With stable snapshots that run finds no drift and
+converges. If it drifts again, `apply-changes` sees its own commit at the
+head of the branch and doesn't commit a second time: it reports the drift,
+and `e2e-tests-pass` fails, so a flake can't loop.
 
 Because this policy auto-accepts any diff, a **flaky** snapshot
-manifests as constant baseline churn — a fresh "🤖 chore(e2e): update
-Playwright snapshots" commit on every push — rather than a failing
-test. If that's happening, fix the flake at the source (see
-[Keeping snapshots stable](#keeping-snapshots-stable)); don't paper
+manifests as baseline churn: a fresh "🤖 chore(e2e): update Playwright
+snapshots" commit on every human push, then a red `e2e-tests-pass` on
+the bot's own commit. If that's happening, fix the flake at the source
+(see [Keeping snapshots stable](#keeping-snapshots-stable)); don't paper
 over it.
 
 ### Keeping snapshots stable

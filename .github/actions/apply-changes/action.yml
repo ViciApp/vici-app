@@ -60,6 +60,7 @@ runs:
         SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         REF: ${{ github.ref }}
         REF_TYPE: ${{ github.ref_type }}
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
       run: |
         read -ra paths <<<"$PATHS"
         files="$(git status --porcelain --untracked-files=all -- "${paths[@]}" | cut -c4-)"
@@ -81,6 +82,14 @@ runs:
         if [[ "$mode" == "commit" ]] && ! git symbolic-ref -q HEAD >/dev/null; then
           echo "::error::Changes can only be committed from a checked-out branch, not a detached HEAD. Check out github.event.pull_request.head.ref || github.ref."
           exit 1
+        fi
+
+        # The bot commit retriggers CI. Output that still drifts right after it
+        # isn't converging (a flaky snapshot, a non-deterministic generator), so
+        # stop instead of committing in a loop.
+        if [[ "$mode" == "commit" && "$(git log -1 --format=%s)" == "$COMMIT_MESSAGE" ]]; then
+          echo "::warning::Still drifting right after its own '$COMMIT_MESSAGE' commit; not committing again."
+          mode=blocked
         fi
 
         echo "Changes ($mode):"
@@ -137,7 +146,7 @@ runs:
         FIX_HINT: ${{ inputs.fix-hint }}
       run: |
         read -ra paths <<<"$PATHS"
-        echo "::error::Generated files are out of date and can't be committed from here (fork pull request or merge queue). ${FIX_HINT}"
+        echo "::error::Generated files are out of date and can't be committed from here (fork pull request, merge queue, tag, or still drifting after the bot's own commit). ${FIX_HINT}"
         git --no-pager diff --stat -- "${paths[@]}"
         git --no-pager diff -- "${paths[@]}"
         exit 1

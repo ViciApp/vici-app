@@ -177,7 +177,7 @@ merge queue and tags (`fail-when-blocked: 'false'` to only report via its
 `changed` output). Check out the branch it commits to with
 `repository: github.event.pull_request.head.repo.full_name || github.repository`
 and `ref: github.event.pull_request.head.ref || github.ref`; it refuses a
-detached HEAD. `dependabot-bun-lock.yml` stays on plain git: under
+detached HEAD, and it won't commit again when the branch head is already its own commit (output that still drifts then isn't converging, so it is reported instead of looping). `dependabot-bun-lock.yml` stays on plain git: under
 `pull_request_target` it must not run action code from the PR tree.
 
 `config apply` (**applies** `juno.config.ts` — collection rules + authentication
