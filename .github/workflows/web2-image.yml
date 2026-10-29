@@ -126,3 +126,17 @@ jobs:
             exit 1
           fi
           echo "Built JS references $API_URL"
+
+  web2-image-pass:
+    if: always()
+    needs: ['web-image']
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/needs_success
+        with:
+          needs: '${{ toJson(needs) }}'

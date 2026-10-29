@@ -1,49 +1,14 @@
 name: Backend Checks
 
-# The extra src/ paths are the exact app files the shared-drift suite
-# (backend/tests/shared-drift/) reads: constants deliberately mirrored into
-# the backend must re-run the backend checks when their app side changes.
+# Runs on every PR with no path filter: `backend-checks-pass` is a required
+# check, so it must always report, and the shared-drift suite
+# (backend/tests/shared-drift/) reads app files that a hand-kept path list
+# would miss.
 on:
   push:
     branches:
       - main
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-checks.yml'
-      - 'src/declarations/**'
-      - 'src/lib/constants/achievements.constants.ts'
-      - 'src/lib/constants/canisters.constants.ts'
-      - 'src/lib/constants/locale.constants.ts'
-      - 'src/lib/constants/market-taxonomy.constants.ts'
-      - 'src/lib/constants/referral.constants.ts'
-      - 'src/lib/constants/tokens/tokens.ic.constants.ts'
-      - 'src/lib/constants/vxp-economy.constants.ts'
-      - 'src/lib/constants/vxp-onboarding.constants.ts'
-      - 'src/lib/schema/analytics-event.schema.ts'
-      - 'src/lib/schema/vxp-award.schema.ts'
-      - 'src/lib/types/analytics-event.ts'
-      - 'src/lib/types/tournament.ts'
-      - 'src/lib/types/vxp-award.ts'
-      - 'src/satellite/services/vxp-onboarding.services.ts'
   pull_request:
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-checks.yml'
-      - 'src/declarations/**'
-      - 'src/lib/constants/achievements.constants.ts'
-      - 'src/lib/constants/canisters.constants.ts'
-      - 'src/lib/constants/locale.constants.ts'
-      - 'src/lib/constants/market-taxonomy.constants.ts'
-      - 'src/lib/constants/referral.constants.ts'
-      - 'src/lib/constants/tokens/tokens.ic.constants.ts'
-      - 'src/lib/constants/vxp-economy.constants.ts'
-      - 'src/lib/constants/vxp-onboarding.constants.ts'
-      - 'src/lib/schema/analytics-event.schema.ts'
-      - 'src/lib/schema/vxp-award.schema.ts'
-      - 'src/lib/types/analytics-event.ts'
-      - 'src/lib/types/tournament.ts'
-      - 'src/lib/types/vxp-award.ts'
-      - 'src/satellite/services/vxp-onboarding.services.ts'
   merge_group:
   workflow_dispatch:
 
@@ -118,3 +83,17 @@ jobs:
         run: |
           bun -e 'await import("./src/index.ts"); process.exit(0)'
           bun -e 'await import("./src/worker.ts"); process.exit(0)'
+
+  backend-checks-pass:
+    if: always()
+    needs: ['backend']
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/needs_success
+        with:
+          needs: '${{ toJson(needs) }}'
