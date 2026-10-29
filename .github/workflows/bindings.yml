@@ -1,0 +1,118 @@
+name: Bindings
+
+# Regenerates the engine Candid bindings from the pinned ICDC_CORE_VERSION, so a
+# version bump (by hand or by update-icdc-core.yml) never needs a manual
+# `npm run did`. On drift:
+#   - same-repo PRs and manual runs on a branch: commit back onto the branch;
+#   - main (push or manual run): open a PR with the regenerated bindings;
+#   - fork PRs and the merge queue: fail.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bindings:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Resolve what to do with drift
+        id: target
+        run: |
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+        env:
+          MODE: >-
+            ${{
+              ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+               (github.event_name == 'workflow_dispatch' && github.ref_type == 'branch' && github.ref != 'refs/heads/main')) && 'commit' ||
+              (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) && 'pr' ||
+              'check'
+            }}
+
+      - name: Mint app token
+        id: app-token
+        if: steps.target.outputs.mode != 'check'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+
+      - name: Checkout branch to commit to
+        if: steps.target.outputs.mode == 'commit'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      - name: Checkout
+        if: steps.target.outputs.mode != 'commit'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare
+        uses: ./.github/actions/prepare
+
+      # No prettier/eslint cache here: this job checks out the branch with the
+      # bot token, and a cache it saves could be restored on main (CodeQL cache
+      # poisoning). The price is an uncached format pass in did.sh.
+      - name: Regenerate Candid bindings
+        run: ./scripts/did.sh
+
+      # did.sh formats the whole tree; only the bindings are this job's concern
+      # (the `format` job in checks.yml owns everything else). The checkout
+      # below keeps any other file did.sh touched out of the commit or PR.
+      - name: Check for Changes
+        id: check_changes
+        run: |
+          if [[ -n "$(git status --porcelain -- src/declarations backend/src/declarations)" ]]; then
+            echo "changes_detected=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes_detected=false" >> $GITHUB_OUTPUT
+          fi
+          git checkout -- . ':!src/declarations' ':!backend/src/declarations'
+
+      - name: Commit bindings
+        if: steps.target.outputs.mode == 'commit' && steps.check_changes.outputs.changes_detected == 'true'
+        uses: ./.github/actions/add-and-commit
+        with:
+          add: src/declarations backend/src/declarations
+          message: '🤖 chore(declarations): apply bindings changes'
+          token: ${{ steps.app-token.outputs.token }}
+
+      # main is protected, so drift there lands through a PR.
+      - name: Create Pull Request
+        if: steps.target.outputs.mode == 'pr' && steps.check_changes.outputs.changes_detected == 'true'
+        uses: ./.github/actions/create-pr
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: bot-update-bindings
+          paths: |
+            src/declarations
+            backend/src/declarations
+          title: 'chore(declarations): regenerate bindings'
+          body: |
+            The Candid bindings on `main` don't match what `./scripts/did.sh` generates from the pinned `ICDC_CORE_VERSION`. This PR commits the regenerated `src/declarations/**` and the vendored `backend/src/declarations/**`.
+
+            Opened automatically by the `Bindings` workflow. Review the regenerated `.did` surface before merging.
+
+      - name: Fail for binding drift
+        if: steps.target.outputs.mode == 'check' && steps.check_changes.outputs.changes_detected == 'true'
+        run: |
+          echo "::error::The Candid bindings don't match ICDC_CORE_VERSION and can't be committed from here (fork pull request or merge queue). Run 'npm run did' locally and commit the result. Diff follows:"
+          git --no-pager diff --stat -- src/declarations backend/src/declarations
+          git --no-pager diff -- src/declarations backend/src/declarations
+          exit 1
