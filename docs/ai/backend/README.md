@@ -53,18 +53,27 @@ admins):
 
 ## Regenerating
 
-When the upstream `../icdc-core/` changes (new method, changed types,
-breaking interface), regenerate the bindings here:
+The bindings follow the icdc-core release pinned by `ICDC_CORE_VERSION`
+in `scripts/build/download.icdc.common.sh`, never icdc-core `main`. To
+pick up an upstream change, bump that pin to the new tag. You rarely
+bump it by hand: `update-icdc-core.yml` opens a version-only PR every
+Monday (or on manual dispatch) when a newer release exists.
+
+The CI `bindings` job in `checks.yml` regenerates the bindings from the
+pin on every PR and commits any drift back onto same-repo PR branches,
+so a bump PR gets its bindings without anyone running the script. On
+fork PRs, `main` and the merge queue it fails instead. Locally:
 
 ```bash
 npm run did
 ```
 
-This script (`scripts/did.sh`) downloads / locates the upstream `.did`
-files, runs `@icp-sdk/bindgen`, and writes the generated TypeScript +
-Candid to `src/declarations/<canister>/`. The bindings come pre-formatted
-through `npm run format && npm run lint`. Commit `src/declarations/**`
-together with the FE wiring change.
+This script (`scripts/did.sh`) downloads the `.did` files at the pinned
+tag, runs `@icp-sdk/bindgen`, writes the generated TypeScript + Candid
+to `src/declarations/<canister>/`, and copies `clearing/**` and
+`registry/**` to the vendored `backend/src/declarations/` (the backend
+shared-drift test pins them byte-for-byte). Commit both trees together
+with the FE wiring change.
 
 If you regenerated against a new icdc-core tag / commit, mention it in
 the PR `# Motivation` so a reviewer can sequence the deploy. See

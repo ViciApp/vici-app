@@ -1,5 +1,9 @@
 name: Update icdc-core
 
+# Bumps only the pinned ICDC_CORE_VERSION. The Candid bindings are regenerated
+# and committed onto the resulting PR by the `bindings` job in checks.yml, the
+# same as for a bump made by hand.
+
 on:
   workflow_dispatch:
   schedule:
@@ -10,8 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   update-icdc-core:
@@ -21,9 +24,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Prepare
-        uses: ./.github/actions/prepare
 
       - name: Bump ICDC_CORE_VERSION to latest release
         id: bump
@@ -44,14 +44,11 @@ jobs:
           fi
 
           current="$(grep -oE 'ICDC_CORE_VERSION="[^"]+"' "$common" | head -1 | sed -E 's/.*"([^"]+)".*/\1/')"
-          echo "Current: $current — Latest: $latest"
+          echo "Current: $current, latest: $latest"
 
           sed -i -E "s|^ICDC_CORE_VERSION=\"[^\"]*\"|ICDC_CORE_VERSION=\"$latest\"|" "$common"
 
           echo "version=$latest" >> "$GITHUB_OUTPUT"
-
-      - name: Regenerate Candid bindings
-        run: npm run did
 
       - name: Mint app token
         id: app-token
@@ -65,11 +62,12 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
           branch: bot-update-icdc-core
-          title: 'chore(icdc-core): sync bindings and bump version to ${{ steps.bump.outputs.version }}'
+          paths: scripts/build/download.icdc.common.sh
+          title: 'chore(icdc-core): bump version to ${{ steps.bump.outputs.version }}'
           body: |
-            Automated sync with upstream [`AntonioVentilii/icdc-core`](https://github.com/AntonioVentilii/icdc-core).
+            Automated bump of the pinned [`AntonioVentilii/icdc-core`](https://github.com/AntonioVentilii/icdc-core) release.
 
-            - Bumped `ICDC_CORE_VERSION` in `scripts/build/download.icdc.common.sh` to the latest release (`${{ steps.bump.outputs.version }}`).
-            - Regenerated the Candid bindings under `src/declarations/**` via `npm run did` (which also runs format + lint).
+            - Bumped `ICDC_CORE_VERSION` in `scripts/build/download.icdc.common.sh` to `${{ steps.bump.outputs.version }}`.
+            - The `bindings` job in `checks.yml` regenerates `src/declarations/**` (and the vendored `backend/src/declarations/**`) from that tag and commits them onto this PR.
 
-            Opened automatically by the `Update icdc-core` workflow. Review the regenerated `.did` surface before merging.
+            Review the regenerated `.did` surface before merging.

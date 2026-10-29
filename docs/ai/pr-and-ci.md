@@ -102,7 +102,8 @@ npm test                # pure-logic specs under src/tests/
 # Or in one shot (matches what humans usually run)
 npm run quality         # = format && lint
 
-# Bindings (only if you changed Candid sources or upgraded an upstream canister)
+# Bindings (only if you bumped ICDC_CORE_VERSION; CI's `bindings` job also
+# commits the result onto same-repo PRs)
 npm run did             # ./scripts/did.sh + format + lint
 
 # Satellite: run whenever you touch src/satellite/** OR a $lib/schema/*
@@ -129,6 +130,7 @@ fixes back to your branch on PRs from non-forks; you should still run
 | `checks.yml`              | `check`            | `npm run check` (`svelte-check`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `checks.yml`              | `test`             | `npm test` (`tsx --test` over `src/tests/**/*.spec.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `checks.yml`              | `satellite-schema` | `juno functions build --lang ts` then fails if `src/satellite/{satellite,satellite_extension}.did`, `api-schemas.ts`, or `src/declarations/satellite/**` drift. Run `npm run juno:functions:build` locally and commit the result.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `checks.yml`              | `bindings`         | `./scripts/did.sh` against the pinned `ICDC_CORE_VERSION`, then checks `src/declarations/**` and the vendored `backend/src/declarations/**`. Auto-commits drift on non-fork PRs (so the version-only PRs from `update-icdc-core.yml` get their bindings); fails on forks, `main` and the merge queue.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `checks.yml`              | `checks-pass`      | Aggregator — must be green to merge.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `backend-checks.yml`      | `backend`          | `bun install --frozen-lockfile`, `bun run typecheck`, `bun test` against a real Postgres, then a `--production` reinstall plus a resolve smoke build of `src/index.ts` and `src/worker.ts`. Triggered by `backend/**` and by the `src/` constants the shared-drift suite mirrors.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `e2e-web2.yml`            | `e2e-web2`         | The web2 bundle (`VITE_BACKEND=web2`) end to end against the real API on a `postgres:16` service, through the API's test-only E2E entrypoint (fake engine and VXP ledger, in-memory email; no secrets, no mainnet). Runs on every PR, push to `main` and merge-queue entry with no path filter, so the job itself always reports. See [`frontend/testing.md`](./frontend/testing.md#e2e-against-the-web2-backend).                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -156,7 +158,7 @@ short-lived installation token from the **vici-release-bot** GitHub App via the
 `RELEASE_BOT_PRIVATE_KEY` secret; without that secret the release PR still works
 but you must dispatch `deploy.yml` / `publish.yml` manually after the tag lands.
 The same reasoning applies to every workflow that pushes a commit or opens a PR
-that CI must then run on, so `checks.yml` (`format`), `update-icdc-core.yml`,
+that CI must then run on, so `checks.yml` (`format`, `bindings`), `update-icdc-core.yml`,
 `e2e.yml` and `dependabot-bun-lock.yml` all mint the same token. The app id is
 the `PR_AUTOMATION_BOT_APP_ID` repository variable; only the private key is a
 secret. If you add another such workflow, mint the token too, or its bot commits
@@ -266,14 +268,18 @@ If your change requires changes in [`icdc-core`](https://github.com/AntonioVenti
 
 1. Land the icdc-core PR first (or simultaneously, with the icdc-core PR
    merging into a tagged version).
-2. In this repo, regenerate the Candid bindings against the new tag:
+2. In this repo, bump `ICDC_CORE_VERSION` in
+   `scripts/build/download.icdc.common.sh` to the new tag (or build on
+   the weekly `update-icdc-core.yml` PR) and regenerate the Candid
+   bindings:
 
    ```bash
    npm run did
    ```
 
-   Commit the regenerated `src/declarations/**` together with the
-   FE wiring changes.
+   Commit the regenerated `src/declarations/**` and
+   `backend/src/declarations/**` together with the FE wiring changes.
+   If you skip it, the CI `bindings` job commits them for you.
 
 3. Reference the icdc-core PR / commit in `# Motivation` so a reviewer
    can sequence the deploy.

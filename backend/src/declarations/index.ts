@@ -1,8 +1,9 @@
 // Vendored candid bindings for the on-chain engine (clearing + registry) and
 // the legacy satellite (used only by the ETL drain tooling). The clearing/**,
 // registry/** and satellite/** files are verbatim copies of the app's
-// generated bindings: never hand-edit them here, refresh by re-copying after
-// the originals are regenerated.
+// generated bindings: never hand-edit them here. `npm run did` re-copies
+// clearing/** and registry/**; satellite/** is re-copied by hand after
+// `npm run juno:functions:build`.
 //
 //   idlFactory*          : plain factories (query calls execute as queries).
 //   idlFactoryCertified* : query/composite_query stripped, so every method is
