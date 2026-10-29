@@ -3,6 +3,7 @@ import { listMyReferrals } from '$lib/services/referral.services';
 import { loadGlobalStandings } from '$lib/services/standings.services';
 import {
 	myGlobalRankStore,
+	myMenagerieSignalsGeneration,
 	myMenagerieSignalsLoaded,
 	myMenagerieSignalsOwner,
 	myReferralCountStore
@@ -32,18 +33,25 @@ import { get } from 'svelte/store';
 // the host fires a signed-out load at mount and again once the owner lands, and
 // coalescing the second into the first would skip the rank leg for the whole
 // session. Cleared on settle so a later navigation still refreshes the signals.
-let inFlight: { owner: PrincipalText | undefined; load: Promise<void> } | null = null;
+let inFlight: {
+	owner: PrincipalText | undefined;
+	generation: number;
+	load: Promise<void>;
+} | null = null;
 
 export const loadMyMenagerieSignals = async (): Promise<void> => {
 	const owner = get(userStore).profile?.owner;
+	const generation = get(myMenagerieSignalsGeneration);
 
-	if (nonNullish(inFlight) && inFlight.owner === owner) {
+	if (nonNullish(inFlight) && inFlight.owner === owner && inFlight.generation === generation) {
 		return inFlight.load;
 	}
 
-	// An earlier load for a different owner can settle after this one, so the
-	// owner-scoped legs only write while their owner is still the signed-in one.
-	const isCurrentOwner = (): boolean => get(userStore).profile?.owner === owner;
+	// Loads can overlap and settle out of order, so every user-scoped write is
+	// dropped once the caches were cleared for an auth transition or the
+	// signed-in owner is no longer the one this load was started for.
+	const isCurrent = (): boolean =>
+		generation === get(myMenagerieSignalsGeneration) && get(userStore).profile?.owner === owner;
 
 	const load = (async () => {
 		try {
@@ -52,7 +60,7 @@ export const loadMyMenagerieSignals = async (): Promise<void> => {
 				(async () => {
 					const referrals = await listMyReferrals();
 
-					if (isCurrentOwner()) {
+					if (isCurrent()) {
 						myReferralCountStore.set(referrals.length);
 					}
 				})(),
@@ -68,7 +76,7 @@ export const loadMyMenagerieSignals = async (): Promise<void> => {
 						principalStr: owner
 					});
 
-					if (isCurrentOwner()) {
+					if (isCurrent()) {
 						myGlobalRankStore.set({ rank, totalRanked: count });
 					}
 				})()
@@ -77,15 +85,17 @@ export const loadMyMenagerieSignals = async (): Promise<void> => {
 			// Mark the attempt done either way — a failed leg degrades the affected
 			// trophy to its baseline (locked) rather than holding the whole rail in
 			// its skeleton state forever.
-			myMenagerieSignalsLoaded.set(true);
+			if (isCurrent()) {
+				myMenagerieSignalsLoaded.set(true);
 
-			if (nonNullish(owner) && isCurrentOwner()) {
-				myMenagerieSignalsOwner.set(owner);
+				if (nonNullish(owner)) {
+					myMenagerieSignalsOwner.set(owner);
+				}
 			}
 		}
 	})();
 
-	inFlight = { owner, load };
+	inFlight = { owner, generation, load };
 
 	try {
 		await load;

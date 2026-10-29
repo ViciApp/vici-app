@@ -12,7 +12,10 @@
 		menagerieCelebrationStore,
 		resetMenagerieCelebrations
 	} from '$lib/stores/menagerie-celebration.store';
-	import { myMenagerieSignalsOwner } from '$lib/stores/menagerie.store';
+	import {
+		myMenagerieSignalsGeneration,
+		myMenagerieSignalsOwner
+	} from '$lib/stores/menagerie.store';
 	import { userStore } from '$lib/stores/user.store';
 	import { detectNewMenagerieTiers } from '$lib/utils/menagerie.utils';
 
@@ -45,19 +48,21 @@
 	// for the self-rank query and skips that leg, so re-firing when the
 	// owner lands lets Goat's rank self-heal app-wide instead of reading
 	// baseline until some other surface happens to reload the signals. The
-	// initial `undefined` sentinel still fires the signed-out load (global
-	// standings need no principal); the service's in-flight dedup keeps
-	// concurrent surface mounts single-flight.
-	let signalsOwner = $state<string | null | undefined>(undefined);
+	// key also carries the signals generation, because an auth transition
+	// that keeps the same owner still clears the caches and the first-load
+	// seed below waits on them. The initial `undefined` sentinel still fires
+	// the signed-out load (global standings need no principal); the
+	// service's in-flight dedup keeps concurrent surface mounts single-flight.
+	let signalsKey = $state<string | undefined>(undefined);
 
 	$effect(() => {
-		const owner = profile?.owner ?? null;
+		const key = `${profile?.owner ?? ''}:${$myMenagerieSignalsGeneration}`;
 
-		if (owner === signalsOwner) {
+		if (key === signalsKey) {
 			return;
 		}
 
-		signalsOwner = owner;
+		signalsKey = key;
 		void loadMyMenagerieSignals();
 	});
 
