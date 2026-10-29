@@ -17,7 +17,9 @@ download_did() {
 
   echo "Downloading ${raw_url} -> REPO_ROOT/${out_path}"
 
-  if ! curl -fsSL "$raw_url" -o "$tmp_path"; then
+  # Every PR runs this in the required `bindings` job, so ride out a brief
+  # network blip instead of failing an unrelated merge.
+  if ! curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 "$raw_url" -o "$tmp_path"; then
     echo "Failed to download ${file_path} from ${ICDC_CORE_REPO}@${ICDC_CORE_VERSION}."
     rm -f "$tmp_path"
     return 1
