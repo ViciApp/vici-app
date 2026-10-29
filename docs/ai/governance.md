@@ -81,6 +81,18 @@ them without an explicit ask in the user prompt.
 | `src/declarations/**`                                                  | **Generated** by `npm run did` from upstream `.did` files.                        | —                |
 | `eslint.config.js`, `.prettierrc`, `tsconfig*.json`                    | Lint / format / TS policy.                                                        | repo maintainers |
 | `scripts/build/**`, `scripts/lib/**`, `scripts/init/**`                | Reproducible-build + bootstrap pipeline. Touch only when prompted.                | repo maintainers |
+| `scripts/*`, `scripts/test/**`                                         | Deploy canisters, move tokens, act as the dfx identity, gate CI or releases.      | repo maintainers |
+| `backend/package.json`, `backend/bun.lock`                             | Backend dependencies. Same approval as the root ones.                             | repo maintainers |
+| `backend/Dockerfile`, `backend/fly*.toml`                              | Web2 API image and deploy.                                                        | repo maintainers |
+| `backend/docker-compose.yml`, `backend/bunfig.toml`                    | Local Postgres stack and the test preload.                                        | repo maintainers |
+| `backend/tsconfig.json`                                                | Backend TS policy (the root `tsconfig*.json` glob does not cover it).             | repo maintainers |
+| `backend/src/{auth,account,admin,custody,chains,vxp,engine,db}/**`     | Sessions, accounts, roles, custody, chains, VXP, engine and schema.               | repo maintainers |
+| `backend/src/env.ts`                                                   | Validated environment and secrets.                                                | repo maintainers |
+| `backend/src/routes/{auth,account,admin,claim,engine,vxp,wallet}.ts`   | Routes that issue sessions, move value or expose admin surfaces.                  | repo maintainers |
+| `backend/src/routes/{events,markets,school,social}.ts`                 | Public routes that also serve `requireAdmin` endpoints.                           | repo maintainers |
+| `backend/src/lib/{cookie,crypto,keys,rate-limit,email,ic-agent}.ts`    | Session, key, abuse-protection, email and IC identity primitives.                 | repo maintainers |
+| `backend/src/declarations/**`                                          | **Generated** Candid bindings for the backend. Regenerate, never hand-edit.       | repo maintainers |
+| `backend/scripts/etl/**`, `backend/e2e/**`                             | Legacy data migration; test-only server with fake engine and seed.                | repo maintainers |
 | `static/workers/**`                                                    | Synced from `@junobuild/core` by `npm run postinstall`. Don't hand-edit.          | —                |
 | `node_modules/`, `target/`, `.svelte-kit/`, `build/`, `out/`, `.dfx/`  | Build output. Never commit.                                                       | —                |
 | `../icdc-core/**`                                                      | External repo. Open it as a separate workspace; obey its `AGENTS.md`.             | icdc-core team   |
