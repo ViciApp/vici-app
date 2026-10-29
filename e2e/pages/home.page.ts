@@ -273,13 +273,16 @@ export class HomePage {
 	 * Close every Menagerie trophy reveal on screen, including any queued
 	 * behind the first.
 	 *
-	 * Whether a reveal shows is a race, not page content. The dev principal is
-	 * the only profile on the emulator satellite, so the self-rank query puts it
-	 * at world #1 of 1, which earns the iridescent Goat. The celebration host
-	 * seeds the trophy ledger silently on the profile's first load, so Goat
-	 * celebrates only when the rank resolves after that seed; which way it falls
-	 * varies per run and per spec order, and a baseline captured under the
-	 * takeover rewrites itself on the next run.
+	 * A reveal is never page content, and a baseline captured under one
+	 * rewrites itself on the next run. The dev principal is the only profile on
+	 * the emulator satellite, so the self-rank query puts it at world #1 of 1,
+	 * which earns the iridescent Goat. That one must not reach here at all: the
+	 * celebration host holds its silent first-load ledger seed until the rank
+	 * has settled, so Goat lands in the seed instead of celebrating later as a
+	 * fresh crossing. This pass is the guard for a reveal that is genuinely on
+	 * screen; it runs once, so it cannot catch one that mounts after it, and a
+	 * snapshot that starts flipping under a reveal again means the seed timing
+	 * regressed, not that this needs to wait longer.
 	 *
 	 * Dismissed through the scrim (the reveal's own tap-to-continue) rather than
 	 * hidden, because a hidden reveal still auto-dismisses after a few seconds

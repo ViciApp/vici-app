@@ -1,3 +1,4 @@
+import type { PrincipalText } from '@junobuild/schema';
 import { writable } from 'svelte/store';
 
 /**
@@ -39,6 +40,17 @@ export const myGlobalRankStore = writable<MyGlobalRank | undefined>(undefined);
 export const myMenagerieSignalsLoaded = writable<boolean>(false);
 
 /**
+ * The owner whose signals the last finished `loadMyMenagerieSignals` attempt
+ * covered (success OR failure), or `null` before any owner-scoped attempt has
+ * settled. Unlike {@link myMenagerieSignalsLoaded}, a signed-out load never
+ * sets it, so it answers "has THIS owner's rank been asked for yet". The
+ * celebration host waits on it before seeding the trophy ledger: a seed taken
+ * before the rank lands leaves Goat out, and Goat then celebrates as a fresh
+ * crossing on whichever later load the rank does land.
+ */
+export const myMenagerieSignalsOwner = writable<PrincipalText | null>(null);
+
+/**
  * Drop the previous principal's Menagerie signal caches on an auth transition
  * (sign-out, user switch, bootstrap). Without this the referral count would
  * briefly back the next principal's Parrot tier, and the `signalsLoaded` gate —
@@ -50,4 +62,5 @@ export const clearMyMenagerieSignals = (): void => {
 	myReferralCountStore.set(undefined);
 	myGlobalRankStore.set(undefined);
 	myMenagerieSignalsLoaded.set(false);
+	myMenagerieSignalsOwner.set(null);
 };

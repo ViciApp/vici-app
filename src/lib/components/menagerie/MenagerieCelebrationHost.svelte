@@ -12,6 +12,7 @@
 		menagerieCelebrationStore,
 		resetMenagerieCelebrations
 	} from '$lib/stores/menagerie-celebration.store';
+	import { myMenagerieSignalsOwner } from '$lib/stores/menagerie.store';
 	import { userStore } from '$lib/stores/user.store';
 	import { detectNewMenagerieTiers } from '$lib/utils/menagerie.utils';
 
@@ -22,7 +23,8 @@
 	//   1. Mount the glyph sprite once (every badge across the app references it).
 	//   2. Watch the owner's stats; on a genuinely new tier crossing, queue a
 	//      celebration. FIRST-EVER load (the `earnedMenagerie` field is absent)
-	//      seeds the ledger SILENTLY — no celebration storm for a stocked profile.
+	//      seeds the ledger SILENTLY — no celebration storm for a stocked profile
+	//      — once the live signals below have settled for that owner.
 	//   3. Persist the celebrated-key ledger so a crossing fires exactly once.
 	//   4. Render the reveal, HELD while a Flow character beat is on screen so the
 	//      two never collide (card → character beat → trophy).
@@ -75,6 +77,16 @@
 
 		const stats = $myMenagerieStats;
 		const diff = detectNewMenagerieTiers({ stats, celebrated: current.earnedMenagerie });
+
+		// Hold the silent seed until this owner's live signals have settled. A
+		// seed taken from the profile doc alone leaves out every trophy the
+		// signals carry (Goat's rank, Parrot's referrals), so when the rank lands
+		// a moment later Goat celebrates as a "new" crossing the owner already
+		// had. Returning before `lastSignature` is set lets the signals landing
+		// re-run this pass.
+		if (diff.firstRun && $myMenagerieSignalsOwner !== current.owner) {
+			return;
+		}
 
 		// Signature = the earned-set + whether the ledger was seeded. Re-running
 		// only when one of these changes avoids reacting to unrelated profile
