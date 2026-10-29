@@ -345,24 +345,28 @@ The CI script (`npm run e2e:ci`) runs Playwright with
 - **First time** the test sees a name (no baseline yet) → Playwright
   writes the PNG. The workflow detects the change under
   `e2e/snapshots/`, commits it, and pushes the commit back to the PR
-  branch (via [`./.github/actions/add-and-commit`](../../../.github/actions/add-and-commit/action.yml)
-  using `secrets.GITHUB_TOKEN`).
+  branch (via [`./.github/actions/apply-changes`](../../../.github/actions/apply-changes/action.yml),
+  with the bot app token so CI runs on the commit). On `main` the same
+  drift opens a `bot-e2e-update-snapshots` PR instead.
 - **Subsequent runs** that diff against the baseline → Playwright
   rewrites the PNG, and the same auto-commit step pushes the update.
   The reviewer sees the new screenshot in the PR diff and either
   accepts or rejects the visual change.
-- **Fork PRs** can't be pushed to from `GITHUB_TOKEN`, so the changed
+- **Fork PRs** can't be pushed to, so the changed
   baselines are still uploaded as the `snapshots-update` artifact;
   contributors can download them and commit manually.
 
-Pushes from `GITHUB_TOKEN` deliberately don't re-trigger the workflow,
-so the snapshot commit doesn't loop into another E2E run.
+The snapshot commit re-triggers the workflow (the app token is what makes
+CI run on it). With stable snapshots that run finds no drift and
+converges. If it drifts again, `apply-changes` sees its own commit at the
+head of the branch and doesn't commit a second time: it reports the drift,
+and `e2e-tests-pass` fails, so a flake can't loop.
 
 Because this policy auto-accepts any diff, a **flaky** snapshot
-manifests as constant baseline churn — a fresh "🤖 chore(e2e): update
-Playwright snapshots" commit on every push — rather than a failing
-test. If that's happening, fix the flake at the source (see
-[Keeping snapshots stable](#keeping-snapshots-stable)); don't paper
+manifests as baseline churn: a fresh "🤖 chore(e2e): update Playwright
+snapshots" commit on every human push, then a red `e2e-tests-pass` on
+the bot's own commit. If that's happening, fix the flake at the source
+(see [Keeping snapshots stable](#keeping-snapshots-stable)); don't paper
 over it.
 
 ### Keeping snapshots stable

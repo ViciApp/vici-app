@@ -234,33 +234,23 @@ jobs:
   finalize-snapshots-update:
     name: Finalize Snapshots Update
     runs-on: ubuntu-24.04
+    # Commits and PRs go through the bot app token minted in apply-changes.
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     needs: [e2e]
     outputs:
-      e2e-snapshots-changed: ${{ steps.e2e-check-snapshots.outputs.e2e-snapshots-changed }}
+      e2e-snapshots-changed: ${{ steps.e2e-check-snapshots.outputs.changed }}
     # Don't run if the e2e job didn't run (skipped via paths filter) or was
     # cancelled. Failed e2e runs may still have produced snapshot artifacts
     # worth committing, so allow `failure()` through.
     if: ${{ needs.e2e.result == 'success' || needs.e2e.result == 'failure' }}
 
     steps:
-      - name: Checkout (same-repo PR head)
-        if: >-
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository
+      - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          persist-credentials: false
-
-      - name: Checkout (default)
-        if: >-
-          github.event_name != 'pull_request' ||
-          github.event.pull_request.head.repo.full_name != github.repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
           persist-credentials: false
 
       - name: Download All Snapshot Artifacts
@@ -270,67 +260,20 @@ jobs:
           merge-multiple: true
           path: e2e/snapshots
 
-      - name: Check for Final Changes
+      # Fork PRs can't receive the commit; e2e-tests-pass blocks them on the
+      # `changed` output instead of this step failing.
+      - name: Apply snapshot changes
         id: e2e-check-snapshots
-        run: |
-          if [ -n "$(git status --porcelain e2e)" ]; then
-            echo "FINAL_CHANGES=true" >> $GITHUB_ENV
-            echo "e2e-snapshots-changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "FINAL_CHANGES=false" >> $GITHUB_ENV
-            echo "e2e-snapshots-changed=false" >> $GITHUB_OUTPUT
-          fi
-
-      # Same-repo PR: push the snapshot update back onto the PR's head ref so
-      # the diff lands in code review. Fork PRs are skipped because the
-      # default `GITHUB_TOKEN` can't write to a fork.
-      - name: Commit and push updates
-        uses: ./.github/actions/add-and-commit
-        if: >-
-          env.FINAL_CHANGES == 'true' &&
-          github.ref != 'refs/heads/main' &&
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository
+        uses: ./.github/actions/apply-changes
         with:
-          add: e2e
-          message: '🤖 chore(e2e): update Playwright snapshots'
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Stage Changes on main
-        if: env.FINAL_CHANGES == 'true' && github.ref == 'refs/heads/main'
-        run: git add e2e
-
-      - name: Check the Changed Files
-        if: env.FINAL_CHANGES == 'true' && github.ref == 'refs/heads/main'
-        run: |
-          MODIFIED_FILES=$(git diff --cached --name-only)
-          echo "MODIFIED_FILES<<EOF" >> $GITHUB_ENV
-          echo "$MODIFIED_FILES" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Mint app token
-        id: app-token
-        if: env.FINAL_CHANGES == 'true' && github.ref == 'refs/heads/main'
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
+          paths: e2e
+          commit-message: '🤖 chore(e2e): update Playwright snapshots'
+          pr-branch: bot-e2e-update-snapshots
+          pr-title: 'chore(e2e): Update Playwright E2E Snapshots'
+          pr-body: The E2E run on `main` produced new Playwright snapshots.
           app-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
-          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
-
-      # On `main`, the workflow can't push directly to a protected branch, so
-      # open a follow-up PR with the snapshot diff.
-      - name: Create Pull Request (if changes and on main)
-        if: env.FINAL_CHANGES == 'true' && github.ref == 'refs/heads/main'
-        uses: ./.github/actions/create-pr
-        with:
-          token: ${{ steps.app-token.outputs.token }}
-          branch: bot-e2e-update-snapshots
-          paths: e2e/
-          title: 'chore(e2e): Update Playwright E2E Snapshots'
-          body: |
-            The following E2E snapshots have been updated:
-            ```
-            ${{ env.MODIFIED_FILES }}
-            ```
+          app-private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          fail-when-blocked: 'false'
 
   e2e-tests-pass:
     if: always()
