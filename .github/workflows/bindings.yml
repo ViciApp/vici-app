@@ -1,0 +1,99 @@
+name: Bindings
+
+# Regenerates the engine Candid bindings from the pinned ICDC_CORE_VERSION, so a
+# version bump (by hand or by update-icdc-core.yml) never needs a manual
+# `npm run did`. Same-repo PRs, and manual runs on a branch other than main, get
+# the result committed back; elsewhere any drift fails the job.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bindings:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check if the branch can receive a commit
+        id: target
+        run: |
+          echo "committable=$COMMITTABLE" >> $GITHUB_OUTPUT
+        env:
+          COMMITTABLE: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && github.ref_type == 'branch' && github.ref != 'refs/heads/main') }}
+
+      - name: Mint app token
+        id: app-token
+        if: steps.target.outputs.committable == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+
+      - name: Check if commits can be added
+        id: check_can_add_commit
+        run: |
+          echo "can_add_commit=$CAN_ADD_COMMIT" >> $GITHUB_OUTPUT
+        env:
+          CAN_ADD_COMMIT: ${{ steps.app-token.outputs.token != '' }}
+
+      - name: Checkout branch to commit to
+        if: steps.check_can_add_commit.outputs.can_add_commit == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      - name: Checkout
+        if: steps.check_can_add_commit.outputs.can_add_commit == 'false'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare
+        uses: ./.github/actions/prepare
+
+      # No prettier/eslint cache here: this job checks out the branch with the
+      # bot token, and a cache it saves could be restored on main (CodeQL cache
+      # poisoning). The price is an uncached format pass in did.sh.
+      - name: Regenerate Candid bindings
+        run: ./scripts/did.sh
+
+      # did.sh formats the whole tree; only the bindings are this job's concern
+      # (the `format` job in checks.yml owns everything else).
+      - name: Check for Changes
+        id: check_changes
+        run: |
+          if [[ -n "$(git status --porcelain -- src/declarations backend/src/declarations)" ]]; then
+            echo "changes_detected=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes_detected=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit bindings
+        if: steps.check_can_add_commit.outputs.can_add_commit == 'true' && steps.check_changes.outputs.changes_detected == 'true'
+        uses: ./.github/actions/add-and-commit
+        with:
+          add: src/declarations backend/src/declarations
+          message: '🤖 chore(declarations): apply bindings changes'
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Fail for binding drift without a bot token
+        if: steps.check_can_add_commit.outputs.can_add_commit == 'false' && steps.check_changes.outputs.changes_detected == 'true'
+        run: |
+          echo "::error::The Candid bindings don't match ICDC_CORE_VERSION and couldn't be committed (fork pull request, main, the merge queue, or no bot app token). Run 'npm run did' locally and commit the result. Diff follows:"
+          git --no-pager diff --stat -- src/declarations backend/src/declarations
+          git --no-pager diff -- src/declarations backend/src/declarations
+          exit 1
