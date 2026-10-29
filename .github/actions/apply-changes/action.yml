@@ -1,0 +1,143 @@
+name: Apply Changes
+
+description: >-
+  Lands what a job regenerated (formatting, bindings, snapshots) the right way
+  for where it runs: a commit onto a same-repo PR branch or a manually
+  dispatched branch, a bot PR on main, or a failure where neither is possible
+  (fork PRs, the merge queue). Commits and PRs use the bot app token, so CI runs
+  on them. The workflow must check out the branch itself on PRs:
+  `ref: github.event.pull_request.head.ref || github.ref`.
+
+inputs:
+  paths:
+    description: Space-separated paths to detect, commit or open the PR with
+    required: true
+  commit-message:
+    description: Message of the commit pushed onto a branch
+    required: true
+  pr-branch:
+    description: Branch of the PR opened from main
+    required: true
+  pr-title:
+    description: Title and commit message of the PR opened from main
+    required: true
+  pr-body:
+    description: Body of the PR opened from main; the changed files are appended
+    required: false
+    default: ''
+  app-id:
+    description: Bot app id
+    required: true
+  app-private-key:
+    description: Bot app private key
+    required: true
+  fail-when-blocked:
+    description: Fail on changes that can be neither committed nor PRed
+    required: false
+    default: 'true'
+  fix-hint:
+    description: What to run locally, shown when blocked
+    required: false
+    default: ''
+
+outputs:
+  changed:
+    description: Whether any of the paths changed
+    value: ${{ steps.detect.outputs.changed }}
+  mode:
+    description: commit, pr or blocked
+    value: ${{ steps.detect.outputs.mode }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect changes and where they can land
+      id: detect
+      shell: bash
+      env:
+        PATHS: ${{ inputs.paths }}
+        EVENT: ${{ github.event_name }}
+        SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        REF: ${{ github.ref }}
+        REF_TYPE: ${{ github.ref_type }}
+      run: |
+        read -ra paths <<<"$PATHS"
+        files="$(git status --porcelain --untracked-files=all -- "${paths[@]}" | cut -c4-)"
+
+        if [[ -z "$files" ]]; then
+          echo "changed=false" >>"$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        if [[ "$EVENT" == "pull_request" && "$SAME_REPO" == "true" ]] ||
+          [[ "$EVENT" == "workflow_dispatch" && "$REF_TYPE" == "branch" && "$REF" != "refs/heads/main" ]]; then
+          mode=commit
+        elif [[ "$REF" == "refs/heads/main" && "$EVENT" =~ ^(push|schedule|workflow_dispatch)$ ]]; then
+          mode=pr
+        else
+          mode=blocked
+        fi
+
+        if [[ "$mode" == "commit" ]] && ! git symbolic-ref -q HEAD >/dev/null; then
+          echo "::error::Changes can only be committed from a checked-out branch, not a detached HEAD. Check out github.event.pull_request.head.ref || github.ref."
+          exit 1
+        fi
+
+        echo "Changes ($mode):"
+        echo "$files"
+        {
+          echo "changed=true"
+          echo "mode=$mode"
+          echo "files<<EOF"
+          echo "$files"
+          echo "EOF"
+          # create-pull-request splits add-paths on newlines or commas, not spaces.
+          echo "add_paths<<EOF"
+          printf '%s\n' "${paths[@]}"
+          echo "EOF"
+        } >>"$GITHUB_OUTPUT"
+
+    - name: Mint app token
+      id: app-token
+      if: steps.detect.outputs.changed == 'true' && steps.detect.outputs.mode != 'blocked'
+      uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.app-private-key }}
+
+    - name: Commit onto the branch
+      if: steps.detect.outputs.mode == 'commit'
+      uses: ./.github/actions/add-and-commit
+      with:
+        add: ${{ inputs.paths }}
+        message: ${{ inputs.commit-message }}
+        token: ${{ steps.app-token.outputs.token }}
+
+    - name: Open a PR against main
+      if: steps.detect.outputs.mode == 'pr'
+      uses: ./.github/actions/create-pr
+      with:
+        token: ${{ steps.app-token.outputs.token }}
+        branch: ${{ inputs.pr-branch }}
+        paths: ${{ steps.detect.outputs.add_paths }}
+        title: ${{ inputs.pr-title }}
+        body: |
+          ${{ inputs.pr-body }}
+
+          Changed files:
+          ```
+          ${{ steps.detect.outputs.files }}
+          ```
+
+    - name: Fail on changes that can't land
+      if: steps.detect.outputs.mode == 'blocked' && inputs.fail-when-blocked == 'true'
+      shell: bash
+      env:
+        PATHS: ${{ inputs.paths }}
+        FIX_HINT: ${{ inputs.fix-hint }}
+      run: |
+        read -ra paths <<<"$PATHS"
+        echo "::error::Generated files are out of date and can't be committed from here (fork pull request or merge queue). ${FIX_HINT}"
+        git --no-pager diff --stat -- "${paths[@]}"
+        git --no-pager diff -- "${paths[@]}"
+        exit 1

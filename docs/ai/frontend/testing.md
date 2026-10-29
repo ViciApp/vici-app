@@ -345,13 +345,14 @@ The CI script (`npm run e2e:ci`) runs Playwright with
 - **First time** the test sees a name (no baseline yet) → Playwright
   writes the PNG. The workflow detects the change under
   `e2e/snapshots/`, commits it, and pushes the commit back to the PR
-  branch (via [`./.github/actions/add-and-commit`](../../../.github/actions/add-and-commit/action.yml)
-  using `secrets.GITHUB_TOKEN`).
+  branch (via [`./.github/actions/apply-changes`](../../../.github/actions/apply-changes/action.yml),
+  with the bot app token so CI runs on the commit). On `main` the same
+  drift opens a `bot-e2e-update-snapshots` PR instead.
 - **Subsequent runs** that diff against the baseline → Playwright
   rewrites the PNG, and the same auto-commit step pushes the update.
   The reviewer sees the new screenshot in the PR diff and either
   accepts or rejects the visual change.
-- **Fork PRs** can't be pushed to from `GITHUB_TOKEN`, so the changed
+- **Fork PRs** can't be pushed to, so the changed
   baselines are still uploaded as the `snapshots-update` artifact;
   contributors can download them and commit manually.
 
