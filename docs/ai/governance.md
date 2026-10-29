@@ -89,6 +89,7 @@ them without an explicit ask in the user prompt.
 | `backend/src/{auth,account,admin,custody,chains,vxp,engine,db}/**`     | Sessions, accounts, roles, custody, chains, VXP, engine and schema.               | repo maintainers |
 | `backend/src/env.ts`                                                   | Validated environment and secrets.                                                | repo maintainers |
 | `backend/src/routes/{auth,account,admin,claim,engine,vxp,wallet}.ts`   | Routes that issue sessions, move value or expose admin surfaces.                  | repo maintainers |
+| `backend/src/routes/{events,markets,school,social}.ts`                 | Public routes that also serve `requireAdmin` endpoints.                           | repo maintainers |
 | `backend/src/lib/{cookie,crypto,keys,rate-limit,email,ic-agent}.ts`    | Session, key, abuse-protection, email and IC identity primitives.                 | repo maintainers |
 | `backend/src/declarations/**`                                          | **Generated** Candid bindings for the backend. Regenerate, never hand-edit.       | repo maintainers |
 | `backend/scripts/etl/**`, `backend/e2e/**`                             | Legacy data migration; test-only server with fake engine and seed.                | repo maintainers |

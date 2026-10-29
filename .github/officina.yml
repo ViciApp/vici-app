@@ -104,6 +104,11 @@ lanes:
       - 'backend/src/routes/engine.ts'
       - 'backend/src/routes/vxp.ts'
       - 'backend/src/routes/wallet.ts'
+      # Mixed routes that also serve requireAdmin endpoints (analytics, curation, schools, moderation)
+      - 'backend/src/routes/events.ts'
+      - 'backend/src/routes/markets.ts'
+      - 'backend/src/routes/school.ts'
+      - 'backend/src/routes/social.ts'
       # Session, key and abuse-protection primitives
       - 'backend/src/lib/cookie.ts'
       - 'backend/src/lib/crypto.ts'
