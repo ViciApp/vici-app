@@ -283,24 +283,9 @@ jobs:
       - name: Prepare
         uses: ./.github/actions/prepare
 
-      - name: Restore Prettier Cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ./node_modules/.cache/prettier/.prettier-cache
-          key: ${{ runner.os }}-prettier-cache-bindings-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-prettier-cache-bindings-main-
-            ${{ runner.os }}-prettier-cache-bindings-
-
-      - name: Restore ESLint Cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .eslintcache
-          key: ${{ runner.os }}-eslint-cache-bindings-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-eslint-cache-bindings-main-
-            ${{ runner.os }}-eslint-cache-bindings-
-
+      # No prettier/eslint cache here: this job checks out the PR head with the
+      # bot token, and a cache it saves could be restored on main (CodeQL
+      # cache poisoning). The price is an uncached format pass in did.sh.
       - name: Regenerate Candid bindings
         run: ./scripts/did.sh
 
