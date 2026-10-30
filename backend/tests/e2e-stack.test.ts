@@ -56,7 +56,8 @@ describe('fake engine', () => {
 			only_unexpired: toNullable(),
 			search_term: toNullable(),
 			balance_domain: toNullable(),
-			oracle_source: toNullable()
+			oracle_source: toNullable(),
+			due: toNullable()
 		});
 
 		expect(all.items.map(({ series_id }) => series_id)).toEqual([

@@ -55,7 +55,8 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 						only_unexpired: toNullable(),
 						search_term: toNullable(),
 						balance_domain: toNullable(),
-						oracle_source: toNullable()
+						oracle_source: toNullable(),
+						due: toNullable()
 					}
 				: undefined
 		);

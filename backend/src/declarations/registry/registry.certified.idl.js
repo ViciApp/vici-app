@@ -273,6 +273,7 @@ export const idlFactory = ({ IDL }) => {
 		items: IDL.Vec(Series)
 	});
 	const ListSeriesParams = IDL.Record({
+		due: IDL.Opt(IDL.Bool),
 		strike: IDL.Opt(Price),
 		creator: IDL.Opt(IDL.Principal),
 		payoff_type: IDL.Opt(PayoffType),
