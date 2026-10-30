@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.8.43](https://github.com/ViciApp/vici-app/compare/v1.8.42...v1.8.43) (2026-10-30)
+
+
+### Bug Fixes
+
+* **menagerie:** seed the trophy ledger only after the owner's signals settle ([#1382](https://github.com/ViciApp/vici-app/issues/1382)) ([e691e49](https://github.com/ViciApp/vici-app/commit/e691e494ac29bbb44c52cca3c04c4937fd09f94c))
+
+
+### Miscellaneous Chores
+
+* **icdc-core:** bump version to v0.1.8 ([#1380](https://github.com/ViciApp/vici-app/issues/1380)) ([df80ece](https://github.com/ViciApp/vici-app/commit/df80ece3cd26368f4103d755981af2aa4cc64d16))
+* **officina:** merges ship nothing, copy auto-verifies, wider red lane and builder checks ([#1362](https://github.com/ViciApp/vici-app/issues/1362)) ([c20b2ef](https://github.com/ViciApp/vici-app/commit/c20b2ef8bdea80ff25fe1ce095f88a23c7863247))
+
+
+### Tests
+
+* **e2e:** dismiss the Menagerie trophy reveal before signed-in snapshots ([#1377](https://github.com/ViciApp/vici-app/issues/1377)) ([77ecb2a](https://github.com/ViciApp/vici-app/commit/77ecb2ae65fa087427a61b7b2021044771f92adf))
+
+
+### Continuous Integration
+
+* **actions:** land regenerated files through a shared apply-changes action ([#1379](https://github.com/ViciApp/vici-app/issues/1379)) ([c920512](https://github.com/ViciApp/vici-app/commit/c920512c6469666ed1e7c89e957c39d054b7072f))
+* **bindings:** run the bindings check as its own workflow ([#1378](https://github.com/ViciApp/vici-app/issues/1378)) ([c17b0f9](https://github.com/ViciApp/vici-app/commit/c17b0f9ebf85fdd76719bb4c418aa1b5782f4e8d))
+* **checks:** add a -pass aggregator to every PR workflow ([#1381](https://github.com/ViciApp/vici-app/issues/1381)) ([a3a8446](https://github.com/ViciApp/vici-app/commit/a3a8446a3377c1e17f7d533acf5d66cd9c591fb7))
+* **icdc-core:** split version bump from bindings regeneration ([#1374](https://github.com/ViciApp/vici-app/issues/1374)) ([cdf9809](https://github.com/ViciApp/vici-app/commit/cdf9809302787a0b3eaec622f418f2071422d336))
+
 ## [1.8.42](https://github.com/ViciApp/vici-app/compare/v1.8.41...v1.8.42) (2026-10-28)
 
 
