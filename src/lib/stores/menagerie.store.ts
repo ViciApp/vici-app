@@ -1,4 +1,5 @@
-import { writable } from 'svelte/store';
+import type { PrincipalText } from '@junobuild/schema';
+import { writable, type Readable } from 'svelte/store';
 
 /**
  * The signed-in viewer's referral count — the live signal behind the Parrot
@@ -39,6 +40,31 @@ export const myGlobalRankStore = writable<MyGlobalRank | undefined>(undefined);
 export const myMenagerieSignalsLoaded = writable<boolean>(false);
 
 /**
+ * The owner whose signals the last finished `loadMyMenagerieSignals` attempt
+ * covered (success OR failure), or `null` before any owner-scoped attempt has
+ * settled. Unlike {@link myMenagerieSignalsLoaded}, a signed-out load never
+ * sets it, so it answers "has THIS owner's rank been asked for yet". The
+ * celebration host waits on it before seeding the trophy ledger: a seed taken
+ * before the rank lands leaves Goat out, and Goat then celebrates as a fresh
+ * crossing on whichever later load the rank does land.
+ */
+export const myMenagerieSignalsOwner = writable<PrincipalText | null>(null);
+
+const signalsGeneration = writable<number>(0);
+
+/**
+ * Bumped by {@link clearMyMenagerieSignals}. A signals load captures it at
+ * start and writes nothing once it has moved on: the clear runs before the next
+ * profile lands, so the old profile is still in `userStore` for a moment and an
+ * owner comparison alone would let the previous principal's late response
+ * repopulate the caches it just dropped. The celebration host also re-hydrates
+ * on it, so a clear that keeps the same owner still reloads the signals.
+ */
+export const myMenagerieSignalsGeneration: Readable<number> = {
+	subscribe: signalsGeneration.subscribe
+};
+
+/**
  * Drop the previous principal's Menagerie signal caches on an auth transition
  * (sign-out, user switch, bootstrap). Without this the referral count would
  * briefly back the next principal's Parrot tier, and the `signalsLoaded` gate —
@@ -47,7 +73,9 @@ export const myMenagerieSignalsLoaded = writable<boolean>(false);
  * `Authn` alongside the other user-scoped store resets.
  */
 export const clearMyMenagerieSignals = (): void => {
+	signalsGeneration.update((generation) => generation + 1);
 	myReferralCountStore.set(undefined);
 	myGlobalRankStore.set(undefined);
 	myMenagerieSignalsLoaded.set(false);
+	myMenagerieSignalsOwner.set(null);
 };
