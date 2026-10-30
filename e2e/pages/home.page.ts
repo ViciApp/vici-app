@@ -9,6 +9,16 @@ import { TestId } from '../../src/lib/constants/test-ids.constants';
  */
 const ARENA_INVITE_LINK_SELECTOR = '.invite-copyurl';
 
+/**
+ * The Menagerie trophy reveal (`MenagerieReveal`), a full-screen takeover the
+ * app-shell celebration host mounts when the owner crosses a new trophy tier.
+ * `mr-in` is the reveal on screen; `mr-flying` is the badge flying into the
+ * nav after a dismiss, which ends by unmounting it (or swapping in the next
+ * queued reveal). See {@link HomePage.dismissMenagerieReveals}.
+ */
+const MENAGERIE_REVEAL_OPEN_SELECTOR = '.mr-root.mr-in';
+const MENAGERIE_REVEAL_FLYING_SELECTOR = '.mr-root.mr-flying';
+
 /** How long the DOM must stay unmutated to count as settled. */
 const DOM_QUIET_MS = 500;
 /** Upper bound on the quiet wait — see {@link HomePage.waitForRenderSettled}. */
@@ -87,6 +97,8 @@ export class HomePage {
 	 * Arena baseline rewrite itself on consecutive runs.
 	 */
 	readonly arenaInviteLink: Locator;
+	readonly menagerieRevealOpen: Locator;
+	readonly menagerieRevealFlying: Locator;
 	readonly onboarding: Locator;
 	readonly onboardingHandleInput: Locator;
 	readonly onboardingHandleSkip: Locator;
@@ -104,6 +116,8 @@ export class HomePage {
 		this.signOutButton = page.getByTestId(TestId.SignOutButton);
 		this.logoutButton = page.getByTestId(TestId.Logout);
 		this.arenaInviteLink = page.locator(ARENA_INVITE_LINK_SELECTOR);
+		this.menagerieRevealOpen = page.locator(MENAGERIE_REVEAL_OPEN_SELECTOR);
+		this.menagerieRevealFlying = page.locator(MENAGERIE_REVEAL_FLYING_SELECTOR);
 		this.onboarding = page.getByTestId(TestId.Onboarding);
 		this.onboardingHandleInput = page.getByTestId(TestId.OnboardingHandleInput);
 		this.onboardingHandleSkip = page.getByTestId(TestId.OnboardingHandleSkip);
@@ -218,11 +232,15 @@ export class HomePage {
 	 * - Replaces the remaining per-run identities and figures listed in
 	 *   {@link PINNED_SNAPSHOT_TEXT}, each of which was observed rewriting its
 	 *   baseline on consecutive CI runs of the same commit.
+	 * - Dismisses any Menagerie trophy reveal covering the page (see
+	 *   {@link dismissMenagerieReveals}).
 	 *
 	 * Call this immediately before any `toHaveScreenshot` in a spec that
 	 * renders market cards or signed-in profile content.
 	 */
 	async stabilizeForSnapshot(): Promise<void> {
+		await this.dismissMenagerieReveals();
+
 		await this.page.evaluate(async () => {
 			await document.fonts.ready;
 		});
@@ -249,6 +267,39 @@ export class HomePage {
 				pinned: PINNED_SNAPSHOT_TEXT
 			}
 		);
+	}
+
+	/**
+	 * Close every Menagerie trophy reveal on screen, including any queued
+	 * behind the first.
+	 *
+	 * A reveal is never page content, and a baseline captured under one
+	 * rewrites itself on the next run. The dev principal is the only profile on
+	 * the emulator satellite, so the self-rank query puts it at world #1 of 1,
+	 * which earns the iridescent Goat. That one must not reach here at all: the
+	 * celebration host holds its silent first-load ledger seed until the rank
+	 * has settled, so Goat lands in the seed instead of celebrating later as a
+	 * fresh crossing. This pass is the guard for a reveal that is genuinely on
+	 * screen; it runs once, so it cannot catch one that mounts after it, and a
+	 * snapshot that starts flipping under a reveal again means the seed timing
+	 * regressed, not that this needs to wait longer.
+	 *
+	 * Dismissed through the scrim (the reveal's own tap-to-continue) rather than
+	 * hidden, because a hidden reveal still auto-dismisses after a few seconds
+	 * and pulses the Profile nav mid-screenshot. Each dismiss is awaited until
+	 * the fly-to-nav finishes, which is also when the next queued reveal mounts.
+	 * A fly already under way (the reveal's safety auto-dismiss) is awaited
+	 * first, since it no longer matches the open selector but still covers the
+	 * page.
+	 */
+	async dismissMenagerieReveals(): Promise<void> {
+		await expect(this.menagerieRevealFlying).toHaveCount(0);
+
+		while ((await this.menagerieRevealOpen.count()) > 0) {
+			await this.menagerieRevealOpen.locator('.mr-scrim').click();
+
+			await expect(this.menagerieRevealFlying).toHaveCount(0);
+		}
 	}
 
 	/**

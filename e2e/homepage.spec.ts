@@ -53,6 +53,10 @@ test.describe('homepage (signed in)', () => {
 			await expect(home.marketCardSkeleton.first()).toBeVisible();
 			await expect(home.marketCard).toHaveCount(0);
 
+			// The rank query that can trigger a trophy reveal is a satellite
+			// call, not a Registry one, so the stall above does not hold it.
+			await home.dismissMenagerieReveals();
+
 			await expect(page).toHaveScreenshot('homepage-loading.png', {
 				fullPage: true,
 				mask: [home.userMenu]

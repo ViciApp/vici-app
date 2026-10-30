@@ -285,6 +285,10 @@
 	const hydrateWeb2AppShell = async (me: Web2Me): Promise<boolean> => {
 		userStore.update((data) => ({ ...data, authBusy: true }));
 
+		// The celebration host gates its first-load trophy seed on these signals
+		// belonging to the profile it sees, so they must not survive a switch.
+		clearMyMenagerieSignals();
+
 		try {
 			const user: User = { key: me.id, owner: me.id, data: {} };
 			const email = me.identities.find((identity) => (identity.email ?? '') !== '')?.email ?? '';
@@ -307,6 +311,7 @@
 	const clearWeb2AppShell = (): void => {
 		setSignedInFlag(false);
 		forgetBootstrappedThisSession();
+		clearMyMenagerieSignals();
 
 		userStore.set({
 			user: undefined,

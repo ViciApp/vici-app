@@ -417,6 +417,18 @@ await expect(page).toHaveScreenshot('homepage-logged-in.png', {
 If you add a new wall-clock-relative element, extend
 `stabilizeForSnapshot` there rather than reaching for another `mask`.
 
+`stabilizeForSnapshot` also dismisses any Menagerie trophy reveal on
+screen, but that one-shot pass is only a guard: it cannot catch a reveal
+that mounts after it. The dev principal is the only profile on the
+emulator, so it ranks world #1 and earns the iridescent Goat. Goat stays
+off screen because `MenagerieCelebrationHost` holds its silent first-load
+ledger seed until `myMenagerieSignalsOwner` matches the profile owner
+(the rank and referral legs of `loadMyMenagerieSignals` have settled), so
+Goat is seeded rather than celebrated when the rank lands later. If a
+signed-in baseline starts flipping under a reveal again, fix the
+celebration timing in the app instead of retrying the dismissal or
+accepting the bot's baseline.
+
 To capture a transient state deterministically — e.g. the markets-feed
 **skeletons**, which would otherwise be replaced by real data within
 ~100ms once the registry responds — stall the upstream request inside
