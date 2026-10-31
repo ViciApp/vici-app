@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.44](https://github.com/ViciApp/vici-app/compare/v1.8.43...v1.8.44) (2026-10-31)
+
+
+### Bug Fixes
+
+* **ci:** make satellite upgrades real again ([#1394](https://github.com/ViciApp/vici-app/issues/1394)) ([83f49bb](https://github.com/ViciApp/vici-app/commit/83f49bbe3f852692671d031815dee385be018d66))
+
 ## [1.8.43](https://github.com/ViciApp/vici-app/compare/v1.8.42...v1.8.43) (2026-10-30)
 
 
