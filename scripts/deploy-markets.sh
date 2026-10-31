@@ -102,7 +102,10 @@ for ((i = 0; i < length; i++)); do
 
 	underlying=$(slugify "$title")
 
-	expiration_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%S.000Z" "$expiration_iso" "+%s" 2>/dev/null || date -d "$expiration_iso" "+%s")
+	# BSD `date -j -f` treats the literal `Z` in this format as text and parses in
+	# the local zone, so without `TZ=UTC` every instant shifts by the machine's
+	# offset. `expiry_ns` and `start_ns` are immutable once registered.
+	expiration_seconds=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%S.000Z" "$expiration_iso" "+%s" 2>/dev/null || date -d "$expiration_iso" "+%s")
 	expiration_ns=$((expiration_seconds * 1000000000))
 
 	# Optional `startDate` (ISO): trading opens at this instant (registry
@@ -110,7 +113,7 @@ for ((i = 0; i < length; i++)); do
 	# Omitted => null => live immediately. add_series rejects a start in the past.
 	start_iso=$(jq -r '.startDate // empty' <<<"$market")
 	if [ -n "$start_iso" ]; then
-		start_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%S.000Z" "$start_iso" "+%s" 2>/dev/null || date -d "$start_iso" "+%s" 2>/dev/null)
+		start_seconds=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%S.000Z" "$start_iso" "+%s" 2>/dev/null || date -d "$start_iso" "+%s" 2>/dev/null)
 		if ! [[ "$start_seconds" =~ ^[0-9]+$ ]]; then
 			echo "Error: unparseable startDate '$start_iso' for market: $title" >&2
 			exit 1
