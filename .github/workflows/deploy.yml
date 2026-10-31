@@ -77,7 +77,7 @@ jobs:
 
       - name: Build functions
         if: steps.satellite.outputs.upgrade == 'true'
-        uses: junobuild/juno-action@99d76780c60c023b5396298f94a7264e0c7ee2b5 # v0.7.5-full
+        uses: junobuild/juno-action@93149e31c67f45835953ed2e1abe0e910af625fc # v0.7.5-full
         with:
           args: functions build
         env:
@@ -85,11 +85,18 @@ jobs:
 
       - name: Upgrade functions
         if: steps.satellite.outputs.upgrade == 'true'
-        uses: junobuild/juno-action@99d76780c60c023b5396298f94a7264e0c7ee2b5 # v0.7.5-full
+        uses: junobuild/juno-action@93149e31c67f45835953ed2e1abe0e910af625fc # v0.7.5-full
         with:
           args: functions upgrade
         env:
           JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+
+      # `functions upgrade` can exit 0 without swapping the module, so a green
+      # step proves nothing. Stop before `hosting deploy` when the canister
+      # is not running the wasm this run built.
+      - name: Verify the satellite runs the new wasm
+        if: steps.satellite.outputs.upgrade == 'true'
+        run: node scripts/verify-satellite-upgrade.mjs --satellite 7scay-7yaaa-aaaal-asxqa-cai
 
       # `--prune` deletes superseded content-hashed assets. Without it `#dapp`
       # grows every deploy until asset certification exceeds the IC's
