@@ -77,6 +77,20 @@ describe('fake engine', () => {
 		});
 	});
 
+	test('answers the bulk settlement read for the settled fixture only', async () => {
+		const clearing = await fakeEngineActorProvider.clearing(reader, false);
+		const live = E2E_LIVE_SERIES[0]?.seriesId ?? '';
+		const settled = E2E_SETTLED_SERIES.seriesId;
+
+		const statuses = await clearing.list_series_settlement_statuses({
+			series_ids: [live, settled]
+		});
+
+		expect(statuses.map(({ series_id }) => series_id)).toEqual([live, settled]);
+		expect(statuses[0]?.status).toEqual([]);
+		expect(statuses[1]?.status[0]?.series_id).toBe(settled);
+	});
+
 	test('rejects every method it does not serve, writes included', async () => {
 		const clearing = await fakeEngineActorProvider.clearing(reader, true);
 

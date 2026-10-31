@@ -705,6 +705,35 @@ export const getEngineSettlementStatus = async (
 	return isNullish(settlement) ? undefined : mapSettlementStatus(settlement);
 };
 
+/** The route caps one settlements request at this many series ids. */
+const ENGINE_SETTLEMENTS_CHUNK_SIZE = 100;
+
+/** Clearing's settlement views for a series set, without the unresolved ones.
+ * One request at a time: a catalog-wide backfill runs behind an already-painted
+ * list, so it must not hold the API's memory on many parallel reads. Fails open
+ * per request, so an unreadable one costs only its own series their labels. */
+export const listEngineSettlementStatuses = async (
+	seriesIds: string[]
+): Promise<ClearingDid.SettlementStatusView[]> => {
+	const results: ClearingDid.SettlementStatusView[] = [];
+
+	for (let start = 0; start < seriesIds.length; start += ENGINE_SETTLEMENTS_CHUNK_SIZE) {
+		try {
+			const { settlements } = await request<{ settlements: Web2SettlementStatusWire[] }>({
+				path: '/api/v1/engine/series/settlements',
+				method: 'POST',
+				body: { seriesIds: seriesIds.slice(start, start + ENGINE_SETTLEMENTS_CHUNK_SIZE) }
+			});
+
+			results.push(...settlements.map(mapSettlementStatus));
+		} catch (err: unknown) {
+			console.error('Failed to read settlement statuses', err);
+		}
+	}
+
+	return results;
+};
+
 /** Market-wide OHLC candles for one series and interval. */
 export const getEnginePriceHistory = async ({
 	seriesId,

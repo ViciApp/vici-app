@@ -113,6 +113,15 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 		},
 		{ body: t.Object({ seriesIds: t.Array(t.String(), { maxItems: 100 }) }) }
 	)
+	.post(
+		'/series/settlements',
+		async ({ body }) => {
+			const settlements = await clearing.listSettlementStatuses(body.seriesIds);
+
+			return { settlements: toJson(settlements) };
+		},
+		{ body: t.Object({ seriesIds: t.Array(t.String(), { maxItems: 100 }) }) }
+	)
 	.get('/settled-series', async () => {
 		const settled = await clearing.listSettledSeries();
 

@@ -143,6 +143,16 @@ const clearingMethods: Partial<Record<keyof ClearingService, unknown>> = {
 		Promise.resolve(
 			seriesId === E2E_SETTLED_SERIES.seriesId ? toNullable(settledStatus()) : toNullable()
 		),
+	list_series_settlement_statuses: ({
+		series_ids
+	}: ClearingDid.ListSeriesSettlementStatusesParams) =>
+		Promise.resolve(
+			series_ids.map((series_id) => ({
+				series_id,
+				status:
+					series_id === E2E_SETTLED_SERIES.seriesId ? toNullable(settledStatus()) : toNullable()
+			}))
+		),
 	get_settlement_plan: () => Promise.resolve(toNullable()),
 	list_settled_series: () =>
 		Promise.resolve({ items: [E2E_SETTLED_SERIES.seriesId], next_cursor: toNullable() }),

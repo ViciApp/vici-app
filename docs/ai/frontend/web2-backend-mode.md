@@ -314,7 +314,8 @@ collateral assets, leaderboard entries), so utils, stores, and components
 consume identical shapes on both transports. Mappers are field-explicit
 on purpose: a blanket digits-to-bigint pass cannot tell an id string from
 a serialized bigint. The `client.ts` wrappers (`listEngineSeries`,
-`getEngineSeries`, `getEngineSettlementStatus`, `getEnginePriceHistory`,
+`getEngineSeries`, `getEngineSettlementStatus`,
+`listEngineSettlementStatuses`, `getEnginePriceHistory`,
 `listEngineSeriesTrades`, `listEngineSeriesVolumes`,
 `listEngineSettledSeries`, `listEngineCollateralAssets`,
 `listEngineLeaderboard`, plus the markets metadata / translation set)
@@ -340,7 +341,9 @@ apply them at the fetch boundary.
   domain-unfiltered, safe because series ids are globally unique; a
   failed read degrades to an empty set, like the unreadable anonymous
   on-chain case, so one engine error never blanks every market list) and
-  `loadSettlementOutcomes` (same batching, per-series bridge status).
+  `loadSettlementOutcomes` (`POST /series/settlements`, 100 ids per request,
+  sequential, failing open per request; never fan out per series here, one
+  signed-in load across the settled catalog runs the API out of memory).
 - `trade.services.ts`: price-history candles and the traded-volume tape
   drain. Callback flows deliver the bridge's single response as the final
   `certified: true` pass, since no query/update pair exists on HTTP.
