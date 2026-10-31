@@ -5,13 +5,13 @@
 // user's derived custodial identity; settlement-grade calls sign with the
 // admin identity.
 
-import { fromNullable, isNullish, jsonReplacer, toNullable } from '@dfinity/utils';
+import { fromNullable, isNullish, jsonReplacer, nonNullish, toNullable } from '@dfinity/utils';
 import type { Principal } from '@icp-sdk/core/principal';
 import type { ClearingDid } from '../declarations';
 import { ZERO } from '../lib/constants';
 import { userIcIdentity } from '../lib/keys';
 import { adminClearing, readerClearing, userClearing } from './actors';
-import { cached } from './cache';
+import { cached, getRetained, retain } from './cache';
 
 const PUBLIC_READ_TTL_MS = 15_000;
 
@@ -265,11 +265,37 @@ export const getSettlementPlan = async (
 	return fromNullable(await actor.get_settlement_plan(seriesId));
 };
 
-export const getSettlementStatus = (
+const settlementKey = (seriesId: string): string => `clearing:settlement:${seriesId}`;
+
+/** A Finalised plan is immutable: clearing's settle path returns early on one
+ * and nothing rewrites or removes it, so a catalog-wide read must not pay for
+ * it twice. Anything else is still moving (a Planned / Executing view) or may
+ * yet appear (no view), and stays on the TTL. Only views the engine returned
+ * as Finalised are kept, so unknown ids in a request cannot grow this. */
+const retainIfFinalised = ({
+	seriesId,
+	view
+}: {
+	seriesId: string;
+	view: ClearingDid.SettlementStatusView | undefined;
+}): void => {
+	if (nonNullish(view) && 'Finalised' in view.status) {
+		retain({ key: settlementKey(seriesId), value: view });
+	}
+};
+
+export const getSettlementStatus = async (
 	seriesId: string
-): Promise<ClearingDid.SettlementStatusView | undefined> =>
-	cached({
-		key: `clearing:settlement:${seriesId}`,
+): Promise<ClearingDid.SettlementStatusView | undefined> => {
+	const key = settlementKey(seriesId);
+	const finalised = getRetained<ClearingDid.SettlementStatusView>(key);
+
+	if (nonNullish(finalised)) {
+		return finalised;
+	}
+
+	const view = await cached({
+		key,
 		ttlMs: PUBLIC_READ_TTL_MS,
 		load: async () => {
 			const actor = await readerClearing();
@@ -277,6 +303,56 @@ export const getSettlementStatus = (
 			return fromNullable(await actor.get_settlement_status(seriesId));
 		}
 	});
+
+	retainIfFinalised({ seriesId, view });
+
+	return view;
+};
+
+/** The settlement views of a series set, one canister read per call however
+ * many ids it carries. Series with no plan are absent from the result. */
+export const listSettlementStatuses = async (
+	seriesIds: string[]
+): Promise<ClearingDid.SettlementStatusView[]> => {
+	const views: ClearingDid.SettlementStatusView[] = [];
+	const unread: string[] = [];
+
+	for (const seriesId of seriesIds) {
+		const finalised = getRetained<ClearingDid.SettlementStatusView>(settlementKey(seriesId));
+
+		if (nonNullish(finalised)) {
+			views.push(finalised);
+		} else {
+			unread.push(seriesId);
+		}
+	}
+
+	if (unread.length === 0) {
+		return views;
+	}
+
+	const statuses = await cached({
+		key: `clearing:settlements:${JSON.stringify(unread)}`,
+		ttlMs: PUBLIC_READ_TTL_MS,
+		load: async () => {
+			const actor = await readerClearing();
+
+			return await actor.list_series_settlement_statuses({ series_ids: unread });
+		}
+	});
+
+	for (const { series_id: seriesId, status } of statuses) {
+		const view = fromNullable(status);
+
+		retainIfFinalised({ seriesId, view });
+
+		if (nonNullish(view)) {
+			views.push(view);
+		}
+	}
+
+	return views;
+};
 
 /** Drains the settled-series cursor to completion, exactly like the app's
  * canister wrapper. */

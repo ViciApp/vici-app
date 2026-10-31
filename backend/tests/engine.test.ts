@@ -1,15 +1,16 @@
 // Engine client behavior with the actor mocked at the provider boundary:
 // per-user signing identities, the reader identity behind every public read,
 // result unwrapping (including the missing-account mapping), cursor
-// draining, and the public-read TTL cache.
+// draining, the public-read cache (TTL, in-flight dedupe, Finalised retention)
+// and the bulk settlement route.
 
 import { toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
+import { afterEach, beforeAll, describe, expect, setSystemTime, test } from 'bun:test';
 import { createSession } from '../src/auth/sessions';
 import type { ClearingService, RegistryService } from '../src/declarations';
 import { setEngineActorProvider } from '../src/engine/actors';
-import { clearCache } from '../src/engine/cache';
+import { cached, clearCache } from '../src/engine/cache';
 import * as clearing from '../src/engine/clearing';
 import * as registry from '../src/engine/registry';
 import { app } from '../src/index';
@@ -201,6 +202,238 @@ describe('public read cache', () => {
 
 		expect(loads).toBe(2);
 	});
+
+	test('concurrent callers of one key share a single load', async () => {
+		let loads = 0;
+
+		let finish: (value: string) => void = () => {};
+
+		const load = (): Promise<string> => {
+			loads++;
+
+			return new Promise((resolve) => {
+				finish = resolve;
+			});
+		};
+
+		const reads = [1, 2, 3].map(() => cached({ key: 'shared', ttlMs: 1_000, load }));
+
+		finish('value');
+
+		expect(await Promise.all(reads)).toEqual(['value', 'value', 'value']);
+		expect(loads).toBe(1);
+	});
+
+	test('a failed load rejects every waiter and the next read retries', async () => {
+		let loads = 0;
+
+		const load = (): Promise<string> => {
+			loads++;
+
+			return loads === 1 ? Promise.reject(new Error('canister down')) : Promise.resolve('value');
+		};
+
+		const reads = await Promise.allSettled(
+			[1, 2].map(() => cached({ key: 'flaky', ttlMs: 1_000, load }))
+		);
+
+		expect(reads.map(({ status }) => status)).toEqual(['rejected', 'rejected']);
+		expect(loads).toBe(1);
+
+		expect(await cached({ key: 'flaky', ttlMs: 1_000, load })).toBe('value');
+		expect(loads).toBe(2);
+	});
+});
+
+describe('POST /api/v1/engine/series/settlements', () => {
+	const PAST_THE_TTL_MS = 16_000;
+
+	const status = (name: 'Finalised' | 'Planned' | 'Executing'): Record<string, null> => ({
+		[name]: null
+	});
+
+	const view = ({
+		seriesId,
+		name = 'Finalised'
+	}: {
+		seriesId: string;
+		name?: 'Finalised' | 'Planned' | 'Executing';
+	}): Record<string, unknown> => ({
+		series_id: seriesId,
+		status: status(name),
+		fee_usd: BigInt(1),
+		settlement: { Outcome: 'YES' }
+	});
+
+	/** Answers every id from `views` and records each canister read. */
+	const mockStatuses = (
+		views: Record<string, unknown>[]
+	): { batches: string[][]; singles: string[] } => {
+		const batches: string[][] = [];
+		const singles: string[] = [];
+
+		const lookup = (seriesId: string): [] | [Record<string, unknown>] =>
+			toNullable(views.find(({ series_id }) => series_id === seriesId));
+
+		mockProvider({
+			clearing: {
+				list_series_settlement_statuses: ({ series_ids }: { series_ids: string[] }) => {
+					batches.push(series_ids);
+
+					return Promise.resolve(
+						series_ids.map((seriesId) => ({ series_id: seriesId, status: lookup(seriesId) }))
+					);
+				},
+				get_settlement_status: (seriesId: string) => {
+					singles.push(seriesId);
+
+					return Promise.resolve(lookup(seriesId));
+				}
+			}
+		});
+
+		return { batches, singles };
+	};
+
+	const post = async (seriesIds: string[]): Promise<Response> =>
+		await app.handle(
+			new Request('http://localhost/api/v1/engine/series/settlements', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ seriesIds })
+			})
+		);
+
+	const settlementIds = async (res: Response): Promise<string[]> => {
+		const { settlements } = (await res.json()) as { settlements: { series_id: string }[] };
+
+		return settlements.map(({ series_id }) => series_id);
+	};
+
+	afterEach(() => {
+		setSystemTime();
+	});
+
+	test('reads the whole set in one canister call and serializes each view', async () => {
+		const { batches } = mockStatuses([view({ seriesId: 's1' }), view({ seriesId: 's2' })]);
+
+		const res = await post(['s1', 's2', 'unknown']);
+
+		expect(res.status).toBe(200);
+
+		const { settlements } = (await res.json()) as { settlements: Record<string, unknown>[] };
+
+		expect(settlements.map(({ series_id }) => series_id)).toEqual(['s1', 's2']);
+		expect(settlements[0]?.fee_usd).toBe('1');
+		expect(batches).toEqual([['s1', 's2', 'unknown']]);
+	});
+
+	test('accepts 100 ids and refuses 101 before reaching the engine', async () => {
+		const { batches } = mockStatuses([]);
+		const ids = Array.from({ length: 101 }, (_, i) => `s${i}`);
+
+		expect((await post(ids.slice(0, 100))).status).toBe(200);
+		expect(batches).toHaveLength(1);
+
+		expect((await post(ids)).status).toBe(400);
+		expect(batches).toHaveLength(1);
+	});
+
+	test('an engine failure fails the request and leaves nothing behind', async () => {
+		let reads = 0;
+
+		mockProvider({
+			clearing: {
+				list_series_settlement_statuses: () => {
+					reads++;
+
+					return Promise.reject(new Error('canister down'));
+				}
+			}
+		});
+
+		expect((await post(['s1'])).status).toBe(500);
+		expect((await post(['s1'])).status).toBe(500);
+		expect(reads).toBe(2);
+	});
+
+	test('a Finalised settlement outlives the TTL and the entry bound', async () => {
+		const { batches, singles } = mockStatuses([view({ seriesId: 's1' })]);
+
+		await post(['s1']);
+
+		for (let i = 0; i < 600; i++) {
+			await cached({ key: `filler:${i}`, ttlMs: 1_000, load: () => Promise.resolve(i) });
+		}
+
+		setSystemTime(new Date(Date.now() + PAST_THE_TTL_MS));
+
+		expect(await settlementIds(await post(['s1']))).toEqual(['s1']);
+		expect((await clearing.getSettlementStatus('s1'))?.series_id).toBe('s1');
+		expect(batches).toHaveLength(1);
+		expect(singles).toEqual([]);
+	});
+
+	test('the single-series read retains a Finalised view for the bulk read', async () => {
+		const { batches, singles } = mockStatuses([view({ seriesId: 's1' })]);
+
+		await clearing.getSettlementStatus('s1');
+
+		setSystemTime(new Date(Date.now() + PAST_THE_TTL_MS));
+
+		expect(await settlementIds(await post(['s1']))).toEqual(['s1']);
+		expect(singles).toEqual(['s1']);
+		expect(batches).toEqual([]);
+	});
+
+	test('a non-final or missing status is reread once the TTL lapses', async () => {
+		const seriesIds = ['planned', 'executing', 'missing'];
+		const { batches } = mockStatuses([
+			view({ seriesId: 'planned', name: 'Planned' }),
+			view({ seriesId: 'executing', name: 'Executing' })
+		]);
+
+		await post(seriesIds);
+		await post(seriesIds);
+
+		expect(batches).toHaveLength(1);
+
+		setSystemTime(new Date(Date.now() + PAST_THE_TTL_MS));
+
+		await post(seriesIds);
+
+		expect(batches).toHaveLength(2);
+	});
+
+	test('only the ids not yet retained reach the engine', async () => {
+		const { batches } = mockStatuses([
+			view({ seriesId: 'final' }),
+			view({ seriesId: 'moving', name: 'Executing' })
+		]);
+
+		await post(['final']);
+
+		expect(await settlementIds(await post(['final', 'moving']))).toEqual(['final', 'moving']);
+		expect(batches).toEqual([['final'], ['moving']]);
+	});
+
+	test('a series that finalises is served Finalised once its TTL lapses', async () => {
+		const views = [view({ seriesId: 's1', name: 'Executing' })];
+		const { batches } = mockStatuses(views);
+
+		await post(['s1']);
+
+		views[0] = view({ seriesId: 's1' });
+
+		setSystemTime(new Date(Date.now() + PAST_THE_TTL_MS));
+
+		const { settlements } = (await (await post(['s1'])).json()) as {
+			settlements: { status: Record<string, null> }[];
+		};
+
+		expect(settlements[0]?.status).toEqual({ Finalised: null });
+		expect(batches).toHaveLength(2);
+	});
 });
 
 describe('public engine routes', () => {
@@ -217,6 +450,14 @@ describe('public engine routes', () => {
 		{ path: `/api/v1/engine/series/${SERIES}/trades` },
 		{
 			path: '/api/v1/engine/series/volumes',
+			init: {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ seriesIds: [SERIES] })
+			}
+		},
+		{
+			path: '/api/v1/engine/series/settlements',
 			init: {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
@@ -241,6 +482,7 @@ describe('public engine routes', () => {
 			mockProvider({
 				clearing: {
 					get_settlement_status: () => Promise.resolve(toNullable()),
+					list_series_settlement_statuses: () => Promise.resolve([]),
 					get_series_price_history: () => Promise.resolve({ candles: [] }),
 					list_series_trade_history: () => Promise.resolve(emptyPage),
 					list_series_traded_volumes: () => Promise.resolve([]),
