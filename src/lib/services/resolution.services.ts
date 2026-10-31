@@ -18,8 +18,8 @@ import {
 } from '$lib/utils/payoff.utils';
 import { isWeb2Backend } from '$lib/web2/backend-mode';
 import {
-	getEngineSettlementStatus as getEngineSettlementStatusWeb2,
-	listEngineSettledSeries as listEngineSettledSeriesWeb2
+	listEngineSettledSeries as listEngineSettledSeriesWeb2,
+	listEngineSettlementStatuses as listEngineSettlementStatusesWeb2
 } from '$lib/web2/client';
 import { nonNullish, nowInBigIntNanoSeconds, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
@@ -101,6 +101,13 @@ export interface SettlementDetails {
 	resolvedAt?: bigint;
 }
 
+const settlementDetails = ({
+	settlement
+}: ClearingDid.SettlementStatusView): SettlementDetails => ({
+	outcome: settlementInputOutcome(settlement),
+	resolvedAt: settlementInputTimestamp(settlement)
+});
+
 /**
  * How many `get_settlement_status` queries run concurrently in
  * {@link loadSettlementOutcomes}. Mirrors the order-book enrichment batch size:
@@ -121,10 +128,10 @@ const SETTLEMENT_STATUS_BATCH_SIZE = 8;
  * `SettlementInput` the payouts were computed from, so the label can't drift
  * from the money.
  *
- * Per-series and unbatchable (clearing exposes no bulk status endpoint), so
- * callers should scope this to the series they actually need labels for and run
- * it off the critical path. Fails open per series: an unreadable status yields
- * no entry rather than failing the batch.
+ * One query per series on-chain and one capped bulk request on web2, so callers
+ * should scope this to the series they actually need labels for and run it off
+ * the critical path. Fails open: an unreadable status (on-chain) or request
+ * (web2) yields no entry rather than failing the rest.
  */
 export const loadSettlementOutcomes = async ({
 	seriesIds,
@@ -136,28 +143,25 @@ export const loadSettlementOutcomes = async ({
 	certified?: boolean;
 }): Promise<Map<string, SettlementDetails>> => {
 	const details = new Map<string, SettlementDetails>();
-	let fetchStatus: (seriesId: string) => Promise<ClearingDid.SettlementStatusView | undefined>;
 
-	// The per-series status is a public engine read: web2 routes it through
-	// the HTTP bridge (no signing identity exists in that mode); the default
+	// The status is a public engine read: web2 routes it through the HTTP bridge
+	// (no signing identity exists in that mode), in bulk because a per-series
+	// fan-out across the settled catalog runs the API out of memory; the default
 	// path keeps the on-chain read with its anonymous-caller constraint.
 	if (isWeb2Backend()) {
-		fetchStatus = getEngineSettlementStatusWeb2;
-	} else {
-		const resolvedIdentity = identity ?? (await getIdentityOrAnonymous());
-
-		// Same anonymous-caller constraint as `getSettledSeriesIds`: clearing rejects
-		// anonymous reads, so a signed-out preview keeps the activity-derived labels.
-		if (resolvedIdentity.getPrincipal().isAnonymous()) {
-			return details;
+		for (const status of await listEngineSettlementStatusesWeb2(seriesIds)) {
+			details.set(status.series_id, settlementDetails(status));
 		}
 
-		fetchStatus = (seriesId: string) =>
-			getSettlementStatus({
-				identity: resolvedIdentity,
-				certified,
-				seriesId
-			});
+		return details;
+	}
+
+	const resolvedIdentity = identity ?? (await getIdentityOrAnonymous());
+
+	// Same anonymous-caller constraint as `getSettledSeriesIds`: clearing rejects
+	// anonymous reads, so a signed-out preview keeps the activity-derived labels.
+	if (resolvedIdentity.getPrincipal().isAnonymous()) {
+		return details;
 	}
 
 	for (let start = 0; start < seriesIds.length; start += SETTLEMENT_STATUS_BATCH_SIZE) {
@@ -166,7 +170,11 @@ export const loadSettlementOutcomes = async ({
 		const statuses = await Promise.all(
 			batch.map(async (seriesId) => {
 				try {
-					return await fetchStatus(seriesId);
+					return await getSettlementStatus({
+						identity: resolvedIdentity,
+						certified,
+						seriesId
+					});
 				} catch (err: unknown) {
 					// One unreadable series must not cost the batch its other labels:
 					// fall through with no entry, leaving that market's existing
@@ -177,10 +185,7 @@ export const loadSettlementOutcomes = async ({
 		);
 
 		for (const status of statuses.filter(nonNullish)) {
-			details.set(status.series_id, {
-				outcome: settlementInputOutcome(status.settlement),
-				resolvedAt: settlementInputTimestamp(status.settlement)
-			});
+			details.set(status.series_id, settlementDetails(status));
 		}
 	}
 
