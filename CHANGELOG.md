@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.44](https://github.com/ViciApp/vici-app/compare/v1.8.43...v1.8.44) (2026-10-31)
+
+
+### Bug Fixes
+
+* **ci:** make satellite upgrades real again ([#1394](https://github.com/ViciApp/vici-app/issues/1394)) ([83f49bb](https://github.com/ViciApp/vici-app/commit/83f49bbe3f852692671d031815dee385be018d66))
+* **engine:** read settlement statuses in bulk on web2 ([#1396](https://github.com/ViciApp/vici-app/issues/1396)) ([e1a892a](https://github.com/ViciApp/vici-app/commit/e1a892aed536252ea3a74781b3b1b3dc8453ad02))
+* **scripts:** parse deck dates as UTC when deploying markets ([#1397](https://github.com/ViciApp/vici-app/issues/1397)) ([e925139](https://github.com/ViciApp/vici-app/commit/e925139e601c27580979545bb1483b615ca4580b))
+
 ## [1.8.43](https://github.com/ViciApp/vici-app/compare/v1.8.42...v1.8.43) (2026-10-30)
 
 
