@@ -1,19 +1,26 @@
-// Deterministic stand-ins for the clearing + registry canisters and the VXP
-// ledger, installed by the E2E server through the same provider seams the
+// Deterministic stand-ins for the clearing + registry canisters and the ICRC
+// ledgers, installed by the E2E server through the same provider seams the
 // unit tests use (setEngineActorProvider / setVxpLedgerProvider). They serve
-// the fixture catalog read-only and hold no state:
+// the fixture catalog and keep the funding path honest:
 //
 //   - public reads answer from fixtures.ts (live markets, one settled market,
 //     the VXP collateral asset, empty trade tapes and leaderboards);
-//   - every account reads as the never-deposited empty account, the state a
-//     new custodial principal really has, through the same NoAccountStateFound
-//     mapping the production wrapper applies;
-//   - any method not listed here, including every write (orders, collateral,
-//     settlement, transfers), rejects. Nothing can be submitted anywhere, and
-//     an unexpected engine call surfaces as a failing request in the specs
-//     instead of silently passing.
+//   - the ledgers hold real balances and allowances in memory (zero until
+//     fundFakeAccount): an approval costs one fee, and clearing's deposit pulls
+//     through icrc2_transfer_from, which costs another and fails without an
+//     allowance covering amount + fee, exactly like the real pair;
+//   - deposit_collateral enforces the asset's allowed domains and replays an
+//     id without moving funds; an account reads as the never-deposited empty
+//     one until a deposit lands, through the same NoAccountStateFound mapping
+//     the production wrapper applies;
+//   - get_account_state_query scopes its figures to Settlement whatever the
+//     account holds, like the real query;
+//   - any method not listed here, including every other write (orders,
+//     settlement), rejects. An unexpected engine call surfaces as a failing
+//     request in the specs instead of silently passing.
 
-import { toNullable } from '@dfinity/utils';
+import { fromNullable, isNullish, nonNullish, toNullable } from '@dfinity/utils';
+import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
 import { Principal } from '@icp-sdk/core/principal';
 import type {
 	ClearingDid,
@@ -21,7 +28,8 @@ import type {
 	RegistryDid,
 	RegistryService
 } from '../src/declarations';
-import type { EngineActorProvider } from '../src/engine/actors';
+import type { EngineActorProvider, IcrcLedgerActor } from '../src/engine/actors';
+import { env } from '../src/env';
 import { ZERO } from '../src/lib/constants';
 import type { VxpLedger, VxpLedgerProvider } from '../src/vxp/payout';
 import {
@@ -35,10 +43,14 @@ import {
 
 const NS_PER_MS = BigInt(1_000_000);
 
-/** Seeded VXP ledger id (migration 0003): collateral catalog data only. */
-const VXP_LEDGER_CANISTER_ID = 's7ux4-yyaaa-aaaam-qidha-cai';
+/** Seeded VXP ledger id (migration 0003). */
+export const VXP_LEDGER_CANISTER_ID = 's7ux4-yyaaa-aaaam-qidha-cai';
 
 const VXP_DECIMALS = 8;
+
+export const FAKE_LEDGER_FEE = BigInt(100_000);
+
+const VXP_ASSET_ID = 'VXP';
 
 /** Fixed so every run serves byte-identical series payloads. */
 const CREATED_AT_NS = BigInt(Date.parse('2025-01-01T00:00:00.000Z')) * NS_PER_MS;
@@ -108,7 +120,7 @@ const settledStatus = (): ClearingDid.SettlementStatusView => ({
 const vxpCollateral: ClearingDid.CollateralAssetInfo = {
 	metrics: toNullable({
 		haircut_bps: 0,
-		latest_transfer_fee: toNullable(BigInt(100_000)),
+		latest_transfer_fee: toNullable(FAKE_LEDGER_FEE),
 		insurance_fee_ratio: toNullable(),
 		last_updated_ns: toNullable(CREATED_AT_NS),
 		protocol_fee_ratio: toNullable(),
@@ -120,12 +132,242 @@ const vxpCollateral: ClearingDid.CollateralAssetInfo = {
 		is_enabled: true,
 		allowed_balance_domains: [VICI_XP],
 		oracle_id: toNullable(),
-		asset_id: 'VXP',
+		asset_id: VXP_ASSET_ID,
 		symbol: 'VXP'
 	}
 };
 
 const noAccount: ClearingDid.GetAccountStateResult = { Err: { NoAccountStateFound: null } };
+
+interface FakeAllowance {
+	amount: bigint;
+	expiresAtNs: bigint | undefined;
+}
+
+const ledgerBalances = new Map<string, bigint>();
+const allowances = new Map<string, FakeAllowance>();
+/** VXP collateral per principal, credited to the ViciXp domain. */
+const collateral = new Map<string, bigint>();
+const finalisedDeposits = new Set<string>();
+
+let nextBlock = BigInt(1);
+
+const ledgerKey = ({ ledger, owner }: { ledger: string; owner: Principal }): string =>
+	`${ledger}:${owner.toText()}`;
+
+const allowanceKey = ({
+	ledger,
+	owner,
+	spender
+}: {
+	ledger: string;
+	owner: Principal;
+	spender: Principal;
+}): string => `${ledger}:${owner.toText()}:${spender.toText()}`;
+
+const balanceOf = ({ ledger, owner }: { ledger: string; owner: Principal }): bigint =>
+	ledgerBalances.get(ledgerKey({ ledger, owner })) ?? ZERO;
+
+const setBalance = ({
+	ledger,
+	owner,
+	balance
+}: {
+	ledger: string;
+	owner: Principal;
+	balance: bigint;
+}): void => {
+	ledgerBalances.set(ledgerKey({ ledger, owner }), balance);
+};
+
+const block = (): bigint => {
+	nextBlock += BigInt(1);
+
+	return nextBlock;
+};
+
+/** Seed a ledger balance, the way an award payout lands on a custodial
+ * principal. */
+export const fundFakeAccount = ({
+	owner,
+	amount,
+	ledger = VXP_LEDGER_CANISTER_ID
+}: {
+	owner: Principal;
+	amount: bigint;
+	ledger?: string;
+}): void => {
+	setBalance({ ledger, owner, balance: balanceOf({ ledger, owner }) + amount });
+};
+
+export const fakeLedgerBalance = ({
+	owner,
+	ledger = VXP_LEDGER_CANISTER_ID
+}: {
+	owner: Principal;
+	ledger?: string;
+}): bigint => balanceOf({ ledger, owner });
+
+const fakeLedger = ({
+	ledger,
+	caller
+}: {
+	ledger: string;
+	caller: Principal;
+}): IcrcLedgerActor => ({
+	balance: ({ owner }) => Promise.resolve(balanceOf({ ledger, owner })),
+	transactionFee: () => Promise.resolve(FAKE_LEDGER_FEE),
+	approve: ({ spender, amount, expires_at }) => {
+		const balance = balanceOf({ ledger, owner: caller });
+
+		if (balance < FAKE_LEDGER_FEE) {
+			return Promise.reject(
+				new IcrcTransferError({
+					msg: 'e2e fake ledger: approve',
+					errorType: { InsufficientFunds: { balance } }
+				})
+			);
+		}
+
+		setBalance({ ledger, owner: caller, balance: balance - FAKE_LEDGER_FEE });
+		allowances.set(allowanceKey({ ledger, owner: caller, spender: spender.owner }), {
+			amount,
+			expiresAtNs: expires_at
+		});
+
+		return Promise.resolve(block());
+	}
+});
+
+/** icrc2_transfer_from as clearing calls it: the amount leaves the owner's
+ * default account, the ledger fee on top, and both draw on the allowance. */
+const transferFrom = ({
+	ledger,
+	owner,
+	amount
+}: {
+	ledger: string;
+	owner: Principal;
+	amount: bigint;
+}): string | undefined => {
+	const key = allowanceKey({
+		ledger,
+		owner,
+		spender: Principal.fromText(env.ic.clearingCanisterId)
+	});
+	const allowance = allowances.get(key);
+	const required = amount + FAKE_LEDGER_FEE;
+	const nowNs = BigInt(Date.now()) * NS_PER_MS;
+
+	if (
+		isNullish(allowance) ||
+		allowance.amount < required ||
+		(nonNullish(allowance.expiresAtNs) && allowance.expiresAtNs < nowNs)
+	) {
+		return `InsufficientAllowance: ${required} required`;
+	}
+
+	const balance = balanceOf({ ledger, owner });
+
+	if (balance < required) {
+		return `InsufficientFunds: ${balance} of ${required}`;
+	}
+
+	setBalance({ ledger, owner, balance: balance - required });
+	allowances.set(key, { ...allowance, amount: allowance.amount - required });
+};
+
+const depositCollateral =
+	(caller: Principal) =>
+	({
+		deposit_id,
+		asset_id,
+		amount,
+		domain
+	}: ClearingDid.DepositCollateralParams): Promise<ClearingDid.DepositCollateralResult> => {
+		const refuse = (
+			Err: ClearingDid.DepositCollateralError
+		): Promise<ClearingDid.DepositCollateralResult> => Promise.resolve({ Err });
+
+		if (asset_id !== VXP_ASSET_ID) {
+			return refuse({ Asset: { UnsupportedAsset: null } });
+		}
+
+		const balanceDomain = fromNullable(domain) ?? { Settlement: null };
+
+		if (!('ViciXp' in balanceDomain)) {
+			return refuse({ DomainNotAllowed: { domain: balanceDomain, asset_id } });
+		}
+
+		const plan = `${caller.toText()}:${deposit_id}`;
+
+		if (finalisedDeposits.has(plan)) {
+			return Promise.resolve({ Ok: null });
+		}
+
+		const refusal = transferFrom({ ledger: VXP_LEDGER_CANISTER_ID, owner: caller, amount });
+
+		if (nonNullish(refusal)) {
+			return refuse({ Asset: { TransferError: refusal } });
+		}
+
+		finalisedDeposits.add(plan);
+		collateral.set(caller.toText(), (collateral.get(caller.toText()) ?? ZERO) + amount);
+
+		return Promise.resolve({ Ok: null });
+	};
+
+const accountState = ({
+	caller,
+	held,
+	domain
+}: {
+	caller: Principal;
+	held: bigint;
+	domain: ClearingDid.BalanceDomain;
+}): ClearingDid.GetAccountStateResult => {
+	const value = 'ViciXp' in domain ? held : ZERO;
+
+	return {
+		Ok: {
+			assets:
+				value > ZERO
+					? [
+							{
+								pre_haircut_value_usd: value,
+								haircut_bps: 0,
+								balance: value,
+								value_usd: value,
+								asset_id: VXP_ASSET_ID
+							}
+						]
+					: [],
+			state: {
+				user: caller,
+				reserved_margins_usd: [],
+				cash_balances_usd: [],
+				balances: [[VICI_XP, [[VXP_ASSET_ID, held]]]]
+			},
+			total_equity_usd: value,
+			available_margin_usd: value
+		}
+	};
+};
+
+const accountMethods = (caller: Principal): Partial<Record<keyof ClearingService, unknown>> => {
+	const read = (domain: ClearingDid.BalanceDomain): ClearingDid.GetAccountStateResult => {
+		const held = collateral.get(caller.toText());
+
+		return nonNullish(held) ? accountState({ caller, held, domain }) : noAccount;
+	};
+
+	return {
+		deposit_collateral: depositCollateral(caller),
+		get_account_state: ({ domain }: ClearingDid.GetAccountStateParams) =>
+			Promise.resolve(read(fromNullable(domain) ?? { Settlement: null })),
+		get_account_state_query: () => Promise.resolve(read({ Settlement: null }))
+	};
+};
 
 const registryMethods: Partial<Record<keyof RegistryService, unknown>> = {
 	get_series: (seriesId: string) =>
@@ -161,8 +403,6 @@ const clearingMethods: Partial<Record<keyof ClearingService, unknown>> = {
 	list_series_traded_volumes: () => Promise.resolve([]),
 	list_leaderboard: () => Promise.resolve({ items: [], total: ZERO, next_cursor: toNullable() }),
 	aggregate_settlement_accuracy: () => Promise.resolve([]),
-	get_account_state: () => Promise.resolve(noAccount),
-	get_account_state_query: () => Promise.resolve(noAccount),
 	get_positions: () => Promise.resolve([]),
 	get_position: () => Promise.resolve(toNullable()),
 	get_orders: () => Promise.resolve([]),
@@ -198,18 +438,25 @@ const fakeActor = <T>({
 	}) as T;
 
 export const fakeEngineActorProvider: EngineActorProvider = {
-	clearing: () =>
-		Promise.resolve(fakeActor<ClearingService>({ canister: 'clearing', methods: clearingMethods })),
+	clearing: (identity) =>
+		Promise.resolve(
+			fakeActor<ClearingService>({
+				canister: 'clearing',
+				methods: { ...clearingMethods, ...accountMethods(identity.getPrincipal()) }
+			})
+		),
 	registry: () =>
-		Promise.resolve(fakeActor<RegistryService>({ canister: 'registry', methods: registryMethods }))
+		Promise.resolve(fakeActor<RegistryService>({ canister: 'registry', methods: registryMethods })),
+	ledger: (identity, ledger) =>
+		Promise.resolve(fakeLedger({ ledger, caller: identity.getPrincipal() }))
 };
 
-/** Balance reads answer zero (the empty treasury and user balances a fresh
- * stack has); a transfer is refused outright. The E2E server also runs the
- * economy record-only (VXP_TREASURY_DISABLED=1), so no award ever gets as far
- * as asking this ledger to move funds. */
+/** Balance reads answer from the fake ledger; a treasury transfer is refused
+ * outright. The E2E server also runs the economy record-only
+ * (VXP_TREASURY_DISABLED=1), so no award ever gets as far as asking this ledger
+ * to move funds. */
 const fakeVxpLedger: VxpLedger = {
-	balance: () => Promise.resolve(ZERO),
+	balance: ({ owner }) => Promise.resolve(balanceOf({ ledger: VXP_LEDGER_CANISTER_ID, owner })),
 	transfer: () => Promise.reject(new Error('e2e fake VXP ledger: transfers are disabled')),
 	findTreasuryTransfer: () => Promise.resolve({ status: 'unknown', reason: 'e2e fake ledger' })
 };

@@ -30,7 +30,10 @@ Terminology: always **"prediction"**, never "bet".
 - **Wallet / dash "VXP"** is the ICRC ledger token balance. Holdings =
   available (in the wallet) + backed (reserved as clearing collateral
   for open predictions). Stakes are not subtracted from holdings —
-  they move from available to backed.
+  they move from available to backed. On the web2 stack the ledger token
+  sits on the account's custodial principal: the wallet reads that live
+  balance, and the same auto-sweep moves it into clearing, where it stays
+  available until a prediction backs it.
 - **Profile / leaderboard "VXP"** is the lifetime points score that
   drives level and rank. It only ever grows and is **not** the token
   balance.

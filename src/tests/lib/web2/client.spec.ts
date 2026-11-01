@@ -1,4 +1,4 @@
-import { listEngineSettlementStatuses } from '$lib/web2/client';
+import { getEngineAccountState, listEngineSettlementStatuses } from '$lib/web2/client';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 
@@ -129,5 +129,47 @@ describe('listEngineSettlementStatuses', () => {
 
 		assert.deepEqual(await listEngineSettlementStatuses(ids(150)), []);
 		assert.equal(calls.length, 2);
+	});
+});
+
+describe('getEngineAccountState', () => {
+	const originalFetch = globalThis.fetch;
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
+	it('asks for the figures of the requested balance domain', async () => {
+		const urls: string[] = [];
+
+		globalThis.fetch = (...[url]: Parameters<typeof fetch>): Promise<Response> => {
+			urls.push(String(url));
+
+			return Promise.resolve(
+				new Response(
+					JSON.stringify({
+						account: {
+							assets: [],
+							state: {
+								user: '2vxsx-fae',
+								reserved_margins_usd: [],
+								cash_balances_usd: [],
+								balances: []
+							},
+							total_equity_usd: '7',
+							available_margin_usd: '5'
+						}
+					}),
+					{ status: 200 }
+				)
+			);
+		};
+
+		const account = await getEngineAccountState({ ViciXp: null });
+
+		assert.equal(urls.length, 1);
+		assert.ok(urls[0].endsWith('/api/v1/engine/account?domain=ViciXp'));
+		assert.equal(account.total_equity_usd, 7n);
+		assert.equal(account.available_margin_usd, 5n);
 	});
 });
