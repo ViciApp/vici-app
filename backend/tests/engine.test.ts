@@ -507,6 +507,178 @@ describe('public engine routes', () => {
 	});
 });
 
+describe.if(dbAvailable)('order routes', () => {
+	const LIMIT_ORDER = {
+		orderId: 'ORD_1',
+		seriesId: 's1',
+		side: 'buy',
+		qty: '10',
+		priceValue: '50',
+		priceDecimals: 2
+	};
+
+	const LIMIT_ROUTE = { path: 'limit', method: 'submit_limit_order', body: LIMIT_ORDER };
+
+	const ROUTES = [
+		LIMIT_ROUTE,
+		{
+			path: 'market',
+			method: 'submit_market_order',
+			body: { tradeId: 'T1', matchingOrderId: 'O1' }
+		},
+		{ path: 'cancel', method: 'cancel_limit_order', body: { orderId: 'O1' } }
+	];
+
+	const ENGINE_TEXT = 'internal engine text';
+
+	// Spelled out rather than read from the table: a moved code or status is a
+	// wire contract change this suite must notice.
+	const REJECTIONS: { err: Record<string, unknown>; status: number; code: string }[] = [
+		{
+			err: { SeriesNotStarted: { series_id: ENGINE_TEXT, start_ns: BigInt(1) } },
+			status: 409,
+			code: 'market_not_started'
+		},
+		{
+			err: { SeriesExpired: { series_id: ENGINE_TEXT, expiry_ns: BigInt(1) } },
+			status: 409,
+			code: 'market_closed'
+		},
+		{ err: { SeriesAlreadySettled: ENGINE_TEXT }, status: 409, code: 'market_settled' },
+		{ err: { SeriesNotFound: ENGINE_TEXT }, status: 404, code: 'market_not_found' },
+		{ err: { OrderNotFound: ENGINE_TEXT }, status: 404, code: 'order_not_found' },
+		{ err: { NotOrderCreator: null }, status: 403, code: 'not_order_creator' },
+		{ err: { NotAuthorizedToTrade: null }, status: 403, code: 'market_restricted' },
+		{ err: { SelfTradingNotAllowed: null }, status: 409, code: 'self_trade' },
+		{
+			err: { ArbitrageLimitExceeded: { sum_usd: BigInt(2), limit_usd: BigInt(1) } },
+			status: 409,
+			code: 'arbitrage_limit_exceeded'
+		},
+		{ err: { Common: { InvalidInput: ENGINE_TEXT } }, status: 400, code: 'invalid_order' }
+	];
+
+	const FAULTS: Record<string, unknown>[] = [
+		{ RegistryError: ENGINE_TEXT },
+		{ Common: { Internal: ENGINE_TEXT } },
+		{ Common: { MathOverflow: null } },
+		{ Common: { RegistryNotSet: null } },
+		{ Common: { Unauthorized: null } },
+		// A variant newer than these bindings must land on the fault side.
+		{ AccountFrozen: ENGINE_TEXT }
+	];
+
+	let cookie: string;
+
+	beforeAll(async () => {
+		await ensureMigrated();
+
+		cookie = `vici_session=${await createSession(await createTestUser())}`;
+	});
+
+	const post = async ({
+		path,
+		body
+	}: {
+		path: string;
+		body: Record<string, unknown>;
+	}): Promise<Response> =>
+		await app.handle(
+			new Request(`http://localhost/api/v1/engine/orders/${path}`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', cookie },
+				body: JSON.stringify(body)
+			})
+		);
+
+	const refuseWith = (err: Record<string, unknown>): void => {
+		mockProvider({
+			clearing: Object.fromEntries(
+				ROUTES.map(({ method }) => [method, () => Promise.resolve({ Err: err })])
+			)
+		});
+	};
+
+	for (const { err, status, code } of REJECTIONS) {
+		test(`${code} answers ${status} on every order route`, async () => {
+			refuseWith(err);
+
+			for (const route of ROUTES) {
+				const res = await post(route);
+
+				expect({ path: route.path, status: res.status }).toEqual({ path: route.path, status });
+				expect(await res.json()).toEqual({ error: code });
+			}
+		});
+	}
+
+	test('insufficient margin carries the amounts and never the principal', async () => {
+		const user = engineReaderIcIdentity().getPrincipal();
+
+		refuseWith({
+			InsufficientMargin: { user, balance: BigInt(1_500), required: BigInt(2_000) }
+		});
+
+		const res = await post(LIMIT_ROUTE);
+
+		expect(res.status).toBe(400);
+
+		const body = await res.text();
+
+		expect(JSON.parse(body)).toEqual({
+			error: 'insufficient_balance',
+			available: '1500',
+			required: '2000'
+		});
+		expect(body).not.toContain(user.toText());
+	});
+
+	for (const err of FAULTS) {
+		test(`${JSON.stringify(err)} stays a 500 on every order route`, async () => {
+			refuseWith(err);
+
+			for (const route of ROUTES) {
+				const res = await post(route);
+
+				expect(res.status).toBe(500);
+				expect(await res.json()).toEqual({ error: 'internal' });
+			}
+		});
+	}
+
+	test('an unreachable engine stays a 500', async () => {
+		mockProvider({
+			clearing: Object.fromEntries(
+				ROUTES.map(({ method }) => [method, () => Promise.reject(new Error(ENGINE_TEXT))])
+			)
+		});
+
+		for (const route of ROUTES) {
+			const res = await post(route);
+
+			expect(res.status).toBe(500);
+			expect(await res.json()).toEqual({ error: 'internal' });
+		}
+	});
+
+	test('an accepted order still answers 200', async () => {
+		mockProvider({
+			clearing: {
+				submit_limit_order: () => Promise.resolve({ Ok: true }),
+				submit_market_order: () => Promise.resolve({ Ok: false }),
+				cancel_limit_order: () => Promise.resolve({ Ok: true })
+			}
+		});
+
+		const [limit, market, cancel] = await Promise.all(ROUTES.map(post));
+
+		expect(limit?.status).toBe(200);
+		expect(await limit?.json()).toEqual({ filled: true });
+		expect(await market?.json()).toEqual({ filled: false });
+		expect(await cancel?.json()).toEqual({ cancelled: true });
+	});
+});
+
 describe.if(dbAvailable)('GET /api/v1/engine/account', () => {
 	beforeAll(async () => {
 		await ensureMigrated();

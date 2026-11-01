@@ -2026,6 +2026,7 @@ export const deMessages = {
 	'portfolio.empty.quote': '"Ein Portfolio ist die Liste der Calls, die du behalten hast."',
 	'portfolio.hero.eyebrow': 'GESAMTBESTAND',
 	'portfolio.hero.unit': 'VXP',
+	'portfolio.orders.cancel_failed': 'Order nicht storniert',
 	'portfolio.orders.empty': 'Keine offenen Orders gefunden.',
 	'portfolio.orders.row.price_qty': 'Limit {price} · {qty}',
 	'portfolio.orders.side.buy': 'KAUF',

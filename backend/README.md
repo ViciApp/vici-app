@@ -139,6 +139,26 @@ Chain adapters live under `src/chains/` behind one interface (`chains/types.ts`)
 
 `src/engine/` wraps the on-chain clearing + registry canisters with the same method surface the app consumes, over candid bindings vendored under `src/declarations/` (verbatim copies of the app's generated bindings; refresh by re-copying, never hand-edit). Public market reads sign with the engine reader identity (a service key derived as `svc:engine-reader:ic`, so it needs no secret of its own) behind a 15s in-memory TTL cache: clearing rejects the anonymous caller even on its read-only queries, and a read served to every visitor never borrows a user's key. Concurrent reads of one key share a single load, and a rejected load is never cached. A `Finalised` settlement is immutable, so it stays in a separate store outside the TTL and the 500-entry bound; every other status stays on the TTL. Account-scoped calls (orders, collateral, positions) sign with the calling user's derived custodial IC identity; settlement-grade calls sign with the admin identity. `POST /engine/collateral/deposit` approves clearing on the ledger named by the collateral catalog for `amount + fee`, then calls `deposit_collateral` in the domain the catalog allows (clearing reads a missing domain as Settlement). Deposit and withdrawal ids are claimed in `collateral_operations` first, because clearing only replays an id safely in sequence: a finished id answers with no ledger work, a held one answers `409 operation_in_progress`, a refusal or a read failing before anything is signed (`503 collateral_unavailable`) frees the id, and an unknown outcome keeps it for a 15 minute lease that outlives the call, after which a retry skips the approval. `GET /engine/account?domain=<variant>` is the domain-scoped update read; without `domain` the route serves clearing's query, whose equity and margin are always Settlement's. A custodial principal clearing holds no account for (`NoAccountStateFound`: every account that has not deposited yet) reads as an empty account, the same state clearing's refreshing read answers, instead of an error. Routes: `routes/engine.ts` (public reads + session-gated trading) and `routes/wallet.ts` (balances, deposit addresses, withdrawals).
 
+### Order rejections
+
+`POST /engine/orders/{limit,market,cancel}` answer a refusal the user can act on as a 4xx with a stable code, and never the engine's own text. `engine/order-rejections.ts` classifies every `TradeError` variant, so a bindings bump fails the typecheck until a new variant is decided. The app maps the codes to messages in `src/lib/canisters/clearing.errors.ts`, pinned by `tests/shared-drift/order-rejections.test.ts`.
+
+| Engine variant           | Status | Code                       |
+| ------------------------ | ------ | -------------------------- |
+| `InsufficientMargin`     | 400    | `insufficient_balance`     |
+| `Common(InvalidInput)`   | 400    | `invalid_order`            |
+| `NotAuthorizedToTrade`   | 403    | `market_restricted`        |
+| `NotOrderCreator`        | 403    | `not_order_creator`        |
+| `OrderNotFound`          | 404    | `order_not_found`          |
+| `SeriesNotFound`         | 404    | `market_not_found`         |
+| `ArbitrageLimitExceeded` | 409    | `arbitrage_limit_exceeded` |
+| `SelfTradingNotAllowed`  | 409    | `self_trade`               |
+| `SeriesAlreadySettled`   | 409    | `market_settled`           |
+| `SeriesExpired`          | 409    | `market_closed`            |
+| `SeriesNotStarted`       | 409    | `market_not_started`       |
+
+`insufficient_balance` also carries `available` and `required`, decimal strings in USD base units. `RegistryError`, the other `Common` variants, a variant these bindings do not know and an engine that does not answer all stay `500 { "error": "internal" }`, because none of them is something the user could change.
+
 ## Markets and analytics
 
 `src/markets/` carries the market curation surface: per-series editorial metadata (`market_metadata`), per-locale translation overlays (`market_translations`, validated against the registered locale ids), and the tag reverse index (`market_tag_index`) derived from the closed 3-layer taxonomy (micros plus their macros; free tags are never indexed). Writes go through the curator gate: an admin may edit any series, the series creator their own, where the creator principal from the registry is matched against the caller's derived custodial identity or a linked legacy principal. The index is maintained in the same transaction as each metadata write and can be rebuilt from scratch via the admin corrective (`POST /api/v1/markets/tags/rebuild`).

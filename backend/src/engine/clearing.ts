@@ -21,6 +21,7 @@ import { ZERO } from '../lib/constants';
 import { userIcIdentity } from '../lib/keys';
 import { adminClearing, readerClearing, userClearing, userLedger } from './actors';
 import { cached, getRetained, retain } from './cache';
+import { orderRejectedError } from './order-rejections';
 
 const PUBLIC_READ_TTL_MS = 15_000;
 
@@ -66,6 +67,16 @@ const expectOk = <O>(result: { Ok: O } | { Err: unknown }, label: string): O => 
 	}
 
 	throw new Error(`${label} failed: ${JSON.stringify(result.Err, jsonReplacer)}`);
+};
+
+const expectOrderOk = (result: ClearingDid.SubmitMatchedTradeResult, label: string): boolean => {
+	const rejected = 'Err' in result ? orderRejectedError({ err: result.Err, label }) : undefined;
+
+	if (nonNullish(rejected)) {
+		throw rejected;
+	}
+
+	return expectOk(result, label);
 };
 
 /** The account state of a principal clearing holds no row for: exactly what
@@ -326,7 +337,7 @@ export const submitLimitOrder = async ({
 }): Promise<boolean> => {
 	const actor = await userClearing(userId);
 
-	return expectOk(await actor.submit_limit_order(params), 'submit_limit_order');
+	return expectOrderOk(await actor.submit_limit_order(params), 'submit_limit_order');
 };
 
 export const submitMarketOrder = async ({
@@ -338,7 +349,7 @@ export const submitMarketOrder = async ({
 }): Promise<boolean> => {
 	const actor = await userClearing(userId);
 
-	return expectOk(await actor.submit_market_order(params), 'submit_market_order');
+	return expectOrderOk(await actor.submit_market_order(params), 'submit_market_order');
 };
 
 export const cancelLimitOrder = async ({
@@ -350,7 +361,7 @@ export const cancelLimitOrder = async ({
 }): Promise<boolean> => {
 	const actor = await userClearing(userId);
 
-	return expectOk(await actor.cancel_limit_order(params), 'cancel_limit_order');
+	return expectOrderOk(await actor.cancel_limit_order(params), 'cancel_limit_order');
 };
 
 export const mintCompleteSet = async ({

@@ -1909,6 +1909,7 @@ export const zhHansMessages = {
 	'portfolio.empty.quote': '"投资组合，就是你选择保留下来的预测的记录。"',
 	'portfolio.hero.eyebrow': '总持有',
 	'portfolio.hero.unit': 'VXP',
+	'portfolio.orders.cancel_failed': '订单未取消',
 	'portfolio.orders.empty': '没有未平仓订单。',
 	'portfolio.orders.row.price_qty': '限价 {price} · {qty}',
 	'portfolio.orders.side.buy': '买入',

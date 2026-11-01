@@ -73,16 +73,38 @@ export class Web2ApiError extends Error {
 	readonly status: number;
 	/** Stable machine-readable code from the `{ error }` envelope. */
 	readonly code: string;
+	/** What an `insufficient_balance` order refusal adds to the envelope: the
+	 * engine's USD base units, as decimal strings. */
+	readonly amounts?: Web2ApiErrorAmounts;
 
-	constructor({ status, code }: { status: number; code: string }) {
+	constructor({
+		status,
+		code,
+		amounts
+	}: {
+		status: number;
+		code: string;
+		amounts?: Web2ApiErrorAmounts;
+	}) {
 		super(`Web2 API error (${status}): ${code}`);
 
 		this.status = status;
 		this.code = code;
+		this.amounts = amounts;
 	}
 }
 
-const errorCode = async (response: Response): Promise<string> => {
+export interface Web2ApiErrorAmounts {
+	available: string;
+	required: string;
+}
+
+const isWireAmount = (value: unknown): value is string =>
+	typeof value === 'string' && /^\d+$/.test(value);
+
+const apiError = async (response: Response): Promise<Web2ApiError> => {
+	const { status } = response;
+
 	try {
 		const payload: unknown = await response.json();
 
@@ -92,13 +114,22 @@ const errorCode = async (response: Response): Promise<string> => {
 			'error' in payload &&
 			typeof payload.error === 'string'
 		) {
-			return payload.error;
+			const { available, required } = payload as Partial<
+				Record<keyof Web2ApiErrorAmounts, unknown>
+			>;
+
+			return new Web2ApiError({
+				status,
+				code: payload.error,
+				amounts:
+					isWireAmount(available) && isWireAmount(required) ? { available, required } : undefined
+			});
 		}
 	} catch {
 		// Non-JSON error body (proxy error page, empty 502); the generic code below applies.
 	}
 
-	return 'unknown_error';
+	return new Web2ApiError({ status, code: 'unknown_error' });
 };
 
 const request = async <T>({
@@ -122,7 +153,7 @@ const request = async <T>({
 	});
 
 	if (!response.ok) {
-		throw new Web2ApiError({ status: response.status, code: await errorCode(response) });
+		throw await apiError(response);
 	}
 
 	return (await response.json()) as T;
@@ -1372,7 +1403,7 @@ export const uploadLeagueImage = async ({
 	);
 
 	if (!response.ok) {
-		throw new Web2ApiError({ status: response.status, code: await errorCode(response) });
+		throw await apiError(response);
 	}
 
 	const { league } = (await response.json()) as { league: Web2LeagueWire };

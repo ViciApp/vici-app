@@ -2,7 +2,8 @@ import type { ClearingDid } from '$declarations';
 import { USD_DECIMALS } from '$lib/constants/app.constants';
 import { formatToken } from '$lib/utils/format.utils';
 import type { MessageKey } from '$lib/utils/i18n.utils';
-import { assertNever } from '@dfinity/utils';
+import { Web2ApiError } from '$lib/web2/client';
+import { assertNever, isNullish, nonNullish } from '@dfinity/utils';
 
 /**
  * The discriminant of a Candid variant — its single top-level key (e.g.
@@ -78,6 +79,23 @@ const mapCommonError = (err: ClearingDid.CommonError): TradeErrorMessage => {
 	assertNever(err, `Unhandled CommonError variant: ${variantName(err)}`);
 };
 
+/** `balance` (what's free) and `required` are clearing-margin base units
+ * (`USD_DECIMALS`); render them as whole grouped amounts, no unit symbol (the
+ * toast is domain-agnostic). */
+const insufficientMarginMessage = ({
+	balance,
+	required
+}: {
+	balance: bigint;
+	required: bigint;
+}): TradeErrorMessage => ({
+	key: 'trade.error.insufficient_margin',
+	params: {
+		available: formatToken({ value: balance, unitName: USD_DECIMALS, displayDecimals: 0 }),
+		required: formatToken({ value: required, unitName: USD_DECIMALS, displayDecimals: 0 })
+	}
+});
+
 /**
  * Maps a clearing `TradeError` to a user-facing i18n message descriptor. The
  * `assertNever` tail makes this exhaustive: if the generated bindings gain a
@@ -101,18 +119,10 @@ export const mapTradeError = (err: ClearingDid.TradeError): TradeErrorMessage =>
 	}
 
 	if ('InsufficientMargin' in err) {
-		// `balance` (what's free) and `required` are clearing-margin base units
-		// (`USD_DECIMALS`); render them as whole grouped amounts, no unit symbol
-		// (the toast is domain-agnostic), and never surface the `user` principal.
+		// Picked apart so the `user` principal can never reach the toast.
 		const { balance, required } = err.InsufficientMargin;
 
-		return {
-			key: 'trade.error.insufficient_margin',
-			params: {
-				available: formatToken({ value: balance, unitName: USD_DECIMALS, displayDecimals: 0 }),
-				required: formatToken({ value: required, unitName: USD_DECIMALS, displayDecimals: 0 })
-			}
-		};
+		return insufficientMarginMessage({ balance, required });
 	}
 
 	if ('NotOrderCreator' in err) {
@@ -147,6 +157,51 @@ export const mapTradeError = (err: ClearingDid.TradeError): TradeErrorMessage =>
 };
 
 /**
+ * The HTTP API's order refusals, by the stable `code` of its error envelope.
+ * Web2 mode never sees a `TradeError`: the API signs for the user and reduces
+ * the variant to one of these. `backend/src/engine/order-rejections.ts` owns
+ * the codes; the shared-drift suite pins the two lists together.
+ */
+const ORDER_REJECTION_KEYS: Record<string, MessageKey> = {
+	arbitrage_limit_exceeded: 'trade.error.arbitrage_limit_exceeded',
+	// Only reached without the amounts: `trade.error.insufficient_margin` cannot render bare.
+	insufficient_balance: 'trade.error.generic',
+	invalid_order: 'trade.error.common.invalid_input',
+	market_closed: 'trade.error.market_closed',
+	market_not_found: 'trade.error.series_not_found',
+	market_not_started: 'trade.error.series_not_started',
+	market_restricted: 'trade.error.not_authorized_to_trade',
+	market_settled: 'trade.error.series_already_settled',
+	not_order_creator: 'trade.error.not_order_creator',
+	order_not_found: 'trade.error.order_not_found',
+	self_trade: 'trade.error.self_trading_not_allowed'
+};
+
+/**
+ * The message of an order the HTTP API refused, or nothing for any other error
+ * (a 5xx, an unknown code, a web3 failure), so a surface can tell a refusal the
+ * user can act on from a failure it should not explain.
+ */
+export const orderRejectionMessage = (error: unknown): TradeErrorMessage | undefined => {
+	if (!(error instanceof Web2ApiError)) {
+		return;
+	}
+
+	const { code, amounts } = error;
+
+	if (code === 'insufficient_balance' && nonNullish(amounts)) {
+		return insufficientMarginMessage({
+			balance: BigInt(amounts.available),
+			required: BigInt(amounts.required)
+		});
+	}
+
+	const key = ORDER_REJECTION_KEYS[code];
+
+	return isNullish(key) ? undefined : { key };
+};
+
+/**
  * Resolves any caught trade error to a message descriptor. Non-trade errors
  * (and — defensively — a variant the bindings don't yet know about) fall
  * through to a generic key so the toast never surfaces a raw payload.
@@ -154,6 +209,12 @@ export const mapTradeError = (err: ClearingDid.TradeError): TradeErrorMessage =>
 export const tradeErrorMessage = (error: unknown): TradeErrorMessage => {
 	if (error instanceof MarketClosedError) {
 		return { key: 'trade.error.market_closed' };
+	}
+
+	const rejection = orderRejectionMessage(error);
+
+	if (nonNullish(rejection)) {
+		return rejection;
 	}
 
 	if (!(error instanceof TradeExecutionError)) {
