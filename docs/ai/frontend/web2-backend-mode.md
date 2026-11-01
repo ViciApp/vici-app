@@ -402,35 +402,58 @@ the exact candid shapes.
   (dual-mode) market catalog. Single web2 responses are delivered as the
   final `certified: true` pass, like every other bridge read.
 - `collateral.services.ts`: deposits and withdrawals post to
-  `/engine/collateral/*`; the ICRC approval happens server-side under the
-  custodial identity, and the clearing `asset_id` still resolves
-  client-side from the public collateral catalog. The playground VXP
-  auto-sweep reads its sweepable amount through
-  `getSweepableVxpAmount()`, which in web2 mode pairs the custodial
-  balance with the (public, anonymously read) ledger fee.
+  `/engine/collateral/*`, and the clearing `asset_id` still resolves
+  client-side from the public collateral catalog. The deposit route
+  approves clearing for `amount + fee` from the custodial identity, then
+  calls `deposit_collateral`; both routes take the ledger and the balance
+  domain from the catalog entry (a missing domain means Settlement to
+  clearing, which refuses VXP). The playground VXP auto-sweep reads its
+  sweepable amount through `getSweepableVxpAmount()`, which in web2 mode
+  pairs the live custodial balance with the (public, anonymously read)
+  ledger fee. A full sweep leaves exactly nothing: the approval pays one
+  fee, `icrc2_transfer_from` the other.
+- Collateral ids are claimed in `collateral_operations` before anything
+  is signed: clearing only replays an id safely in sequence, and two
+  overlapping calls can both credit it. A finished id answers `200` with
+  no ledger work, a held one answers `409 operation_in_progress`, a
+  definitive refusal or a read failing before anything is signed
+  (`503 collateral_unavailable`) frees the id, and an unknown outcome keeps
+  it for a 15 minute lease, after which a retry goes straight to clearing
+  without a second approval.
 - Account state (`getAccountState` / `loadAccountState`,
-  `wallet.service.ts` `getCollateralBalances`) reads `/engine/account`,
-  which bridges clearing's read-only query. Outside the Settlement domain
-  the query's top-level equity / margin figures carry that view's known
-  engine-side limitation; the response is still delivered as the
-  `certified: true` pass because no refreshed update read is bridged, and
-  an uncertified delivery would trip the Settlement-only gate in
-  `LoaderCollaterals` and leave the store empty forever.
+  `wallet.service.ts` `getCollateralBalances`) reads
+  `/engine/account?domain=<variant>`, clearing's domain-scoped update read
+  with `refresh` off, delivered as the `certified: true` pass. Clearing's
+  read-only query computes equity and margin for Settlement alone, which
+  on ViciXp reads as nothing reserved, so spendable would not move when a
+  prediction is placed. The route without `domain` still serves that
+  query.
 
 ### The custodial wallet
 
 - `wallet.service.ts` `getLedgerBalances`: `/wallet/balances`, keyed back
   to the app's token ids by symbol (the custody asset catalog mirrors the
-  supported IC tokens).
+  supported IC tokens). For `ic` assets the route reads the ledgers live
+  for the custodial principal, default subaccount, and provisions the
+  user's `custody_accounts` row on the way. Awards land there with no
+  ledger entry and sweeps into clearing post none, so the internal ledger
+  can neither see those funds nor see them leave; it only stays
+  authoritative for the other chains. The read is deliberately uncached:
+  the sweep sizes its deposit from it every 10s and re-reads right after
+  one. An asset whose read fails is logged and left out of the response,
+  never reported as zero.
 - `getReceiveAddress` (the Receive tab): `/wallet/deposit-address/ic`,
-  the custodial IC principal the API derives for the user. Deposits to it
-  are detected and credited server-side.
+  the custodial IC principal the API derives for the user. Funds sent to
+  it show up on the next balance read.
 - Sends (`send.services.ts` `sendToken`, used by the Wallet Send tab):
   a user-signed ICRC transfer on the default backend, a self-custody
   withdrawal request (`POST /wallet/withdrawals`) in web2 mode; the API
   executes the transfer from the custodial account and a failed execution
   surfaces like a rejected transfer. `sendIc` / `sendIcrc` stay
-  identity-parameterised for on-chain callers (admin tooling).
+  identity-parameterised for on-chain callers (admin tooling). The request
+  is still gated on the internal ledger, not the live balance, so an `ic`
+  send can disagree with the displayed figure: the watcher only books what
+  it sees on-chain and a sweep debits nothing.
 - The paged ICRC ledger history (`getTransactionsPage`) returns empty in
   web2 mode: index canisters key history by principal and the API exposes
   no custodial transfer feed yet. The wallet still shows clearing rows

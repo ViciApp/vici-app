@@ -30,7 +30,7 @@ test.describe('dash', () => {
 		await app.signUp({ email: uniqueEmail('dash'), handle: uniqueHandle(), backend });
 
 		const account = page.waitForResponse(
-			(response) => response.url() === apiUrl('/api/v1/engine/account')
+			(response) => response.url() === apiUrl('/api/v1/engine/account?domain=ViciXp')
 		);
 
 		await page.goto('/dash');

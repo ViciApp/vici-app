@@ -2,7 +2,7 @@
 // withdrawals (including the self-custody exit). Session-gated throughout; a
 // chain whose adapter is unconfigured answers a stable 503 body.
 
-import { isNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { getAdapter, isChain } from '../chains/registry';
@@ -18,7 +18,16 @@ import {
 } from '../custody/withdrawals';
 import { query } from '../db/client';
 import { ZERO } from '../lib/constants';
+import { userIcPrincipalText } from '../lib/keys';
 import { logger } from '../lib/logger';
+
+interface BalanceRow {
+	asset_id: string;
+	symbol: string;
+	chain: string;
+	decimals: number;
+	balance: string;
+}
 
 interface StatusContext {
 	status?: number | string;
@@ -98,6 +107,37 @@ const executeWithdrawal = async (withdrawal: Withdrawal): Promise<Withdrawal> =>
 	}
 };
 
+/** The ic balances straight from the ledgers: awards land there with no ledger
+ * entry and sweeps into clearing post none, so the internal books can neither
+ * see these funds nor see them leave. Uncached on purpose: the sweep sizes its
+ * deposit from this read and re-reads right after one, so any TTL long enough
+ * to spare its 10s poll would hand it a balance already spent. An unreadable
+ * asset is left out rather than reported as an empty one. */
+const liveIcBalances = async (address: string): Promise<BalanceRow[]> => {
+	const adapter = getAdapter('ic');
+	const assets = (await listEnabledAssets()).filter(({ chain }) => chain === 'ic');
+
+	const reads = await Promise.all(
+		assets.map(async (asset): Promise<BalanceRow | undefined> => {
+			try {
+				const balance = await adapter.getBalance({ address, asset });
+
+				return {
+					asset_id: asset.id,
+					symbol: asset.symbol,
+					chain: asset.chain,
+					decimals: asset.decimals,
+					balance: balance.toString()
+				};
+			} catch (err: unknown) {
+				logger.error(`wallet balance read failed for ${asset.symbol} of ${address}:`, err);
+			}
+		})
+	);
+
+	return reads.filter(nonNullish);
+};
+
 export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 	.get('/assets', async () => {
 		const assets = await listEnabledAssets();
@@ -119,26 +159,27 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 			return unauthenticated(set);
 		}
 
-		const accounts = await listUserAccounts(user.id);
-		const balances = await query<{
-			asset_id: string;
-			symbol: string;
-			chain: string;
-			decimals: number;
-			balance: string;
-		}>(
-			`select b.asset_id, a.symbol, a.chain, a.decimals, b.balance::text as balance
-			 from custody_balances b
-			 join assets a on a.id = b.asset_id
-			 join custody_accounts c on c.id = b.account_id
-			 where c.user_id = $1
-			 order by a.chain, a.symbol`,
-			[user.id]
-		);
+		const address = userIcPrincipalText(user.id);
+
+		await ensureUserAccount({ userId: user.id, chain: 'ic', address });
+
+		const [accounts, internalBalances, icBalances] = await Promise.all([
+			listUserAccounts(user.id),
+			query<BalanceRow>(
+				`select b.asset_id, a.symbol, a.chain, a.decimals, b.balance::text as balance
+				 from custody_balances b
+				 join assets a on a.id = b.asset_id
+				 join custody_accounts c on c.id = b.account_id
+				 where c.user_id = $1 and a.chain <> 'ic'
+				 order by a.chain, a.symbol`,
+				[user.id]
+			),
+			liveIcBalances(address)
+		]);
 
 		return {
 			accounts: accounts.map((account) => ({ chain: account.chain, address: account.address })),
-			balances: balances.map((row) => ({
+			balances: [...internalBalances, ...icBalances].map((row) => ({
 				assetId: row.asset_id,
 				symbol: row.symbol,
 				chain: row.chain,

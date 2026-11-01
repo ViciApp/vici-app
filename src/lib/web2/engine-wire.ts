@@ -383,6 +383,10 @@ export const mapAccountStateResponse = (
 export const intervalToWire = (interval: ClearingDid.PriceHistoryInterval): 'hour' | 'day' =>
 	'Hour' in interval ? 'hour' : 'day';
 
+/** The API selects the balance domain by its candid variant name. */
+export const balanceDomainToWire = (domain: ClearingDid.BalanceDomain): string =>
+	Object.keys(domain)[0];
+
 /** The API selects the leaderboard window by name; map the candid variant the
  * standings service produces onto that query value. */
 export const leaderboardWindowToWire = (

@@ -5,15 +5,60 @@
 // user's derived custodial identity; settlement-grade calls sign with the
 // admin identity.
 
-import { fromNullable, isNullish, jsonReplacer, nonNullish, toNullable } from '@dfinity/utils';
-import type { Principal } from '@icp-sdk/core/principal';
+import {
+	fromNullable,
+	isNullish,
+	jsonReplacer,
+	nonNullish,
+	nowInBigIntNanoSeconds,
+	toNullable
+} from '@dfinity/utils';
+import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
+import { Principal } from '@icp-sdk/core/principal';
 import type { ClearingDid } from '../declarations';
+import { env } from '../env';
 import { ZERO } from '../lib/constants';
 import { userIcIdentity } from '../lib/keys';
-import { adminClearing, readerClearing, userClearing } from './actors';
+import { adminClearing, readerClearing, userClearing, userLedger } from './actors';
 import { cached, getRetained, retain } from './cache';
 
 const PUBLIC_READ_TTL_MS = 15_000;
+
+/** Same window the signed-in on-chain deposit grants: the approval only has to
+ * outlive the deposit call that follows it. */
+const COLLATERAL_APPROVAL_TTL_NS = BigInt(60) * BigInt(1_000_000_000);
+
+/** A collateral call that ended with nothing still executing: clearing or the
+ * ledger refused it, or it never got as far as signing. A retry cannot overlap
+ * it. `code` is the API's stable error. */
+export class CollateralRejectedError extends Error {
+	readonly code: string;
+	readonly status: number;
+
+	constructor({ code, message, status = 400 }: { code: string; message: string; status?: number }) {
+		super(message);
+		this.code = code;
+		this.status = status;
+	}
+}
+
+/** A read that runs ahead of the first signed update: if it fails, nothing has
+ * reached the chain. */
+const beforeSigning = async <T>(read: () => Promise<T>): Promise<T> => {
+	try {
+		return await read();
+	} catch (err: unknown) {
+		if (err instanceof CollateralRejectedError) {
+			throw err;
+		}
+
+		throw new CollateralRejectedError({
+			code: 'collateral_unavailable',
+			status: 503,
+			message: `collateral read failed: ${err instanceof Error ? err.message : String(err)}`
+		});
+	}
+};
 
 const expectOk = <O>(result: { Ok: O } | { Err: unknown }, label: string): O => {
 	if ('Ok' in result) {
@@ -48,30 +93,144 @@ const accountStateOrEmpty = ({
 		? emptyAccountState(userIcIdentity(userId).getPrincipal())
 		: expectOk(result, label);
 
-// Account-scoped calls (signed with the user's derived identity)
+const expectCollateralOk = (result: { Ok: null } | { Err: unknown }, label: string): void => {
+	if ('Err' in result) {
+		throw new CollateralRejectedError({
+			code: 'collateral_rejected',
+			message: `${label} failed: ${JSON.stringify(result.Err, jsonReplacer)}`
+		});
+	}
+};
 
-export const depositCollateral = async ({
+/** The ledger and balance domain of a catalog asset. Clearing reads a missing
+ * domain as Settlement and refuses any asset not allowlisted there, so a
+ * ViciXp-only asset must name its domain. Answers before anything is signed,
+ * since an approval pays a ledger fee whatever clearing then decides. */
+const resolveCollateral = async (
+	assetId: string
+): Promise<{ ledgerCanisterId: string; domain: ClearingDid.BalanceDomain }> => {
+	const assets = await listCollateralAssets();
+	const config = assets.find(({ config: { asset_id } }) => asset_id === assetId)?.config;
+
+	if (isNullish(config) || !config.is_enabled || !('Icrc' in config.asset)) {
+		throw new CollateralRejectedError({
+			code: 'unknown_asset',
+			message: `no enabled ICRC collateral asset ${assetId}`
+		});
+	}
+
+	const { allowed_balance_domains: allowed } = config;
+	const domain =
+		allowed.find((candidate) => 'Settlement' in candidate) ??
+		(allowed.length === 1 ? allowed[0] : undefined);
+
+	if (isNullish(domain)) {
+		throw new CollateralRejectedError({
+			code: 'unknown_asset',
+			message: `collateral asset ${assetId} has no unambiguous balance domain`
+		});
+	}
+
+	return { ledgerCanisterId: config.asset.Icrc.toText(), domain };
+};
+
+const approveClearing = async ({
 	userId,
-	params
+	ledgerCanisterId,
+	amount
 }: {
 	userId: string;
-	params: ClearingDid.DepositCollateralParams;
+	ledgerCanisterId: string;
+	amount: bigint;
 }): Promise<void> => {
+	const { ledger, fee } = await beforeSigning(async () => {
+		const actor = await userLedger({ userId, ledgerCanisterId });
+
+		return { ledger: actor, fee: await actor.transactionFee({}) };
+	});
+
+	try {
+		await ledger.approve({
+			spender: { owner: Principal.fromText(env.ic.clearingCanisterId), subaccount: [] },
+			// icrc2_transfer_from draws the amount plus its own fee from the allowance.
+			amount: amount + fee,
+			expires_at: nowInBigIntNanoSeconds() + COLLATERAL_APPROVAL_TTL_NS
+		});
+	} catch (err: unknown) {
+		if (err instanceof IcrcTransferError) {
+			const { errorType } = err as IcrcTransferError<Record<string, unknown>>;
+
+			throw new CollateralRejectedError({
+				code: 'InsufficientFunds' in errorType ? 'insufficient_balance' : 'collateral_rejected',
+				message: `icrc2_approve failed: ${JSON.stringify(errorType, jsonReplacer)}`
+			});
+		}
+
+		throw err;
+	}
+};
+
+// Account-scoped calls (signed with the user's derived identity)
+
+/** Approves clearing, then lets it pull the funds. A `resumed` attempt skips
+ * the approval: the deposit may already be final, which clearing answers
+ * without touching the ledger, and if it is not, the refusal lands the caller
+ * back on a fresh attempt. */
+export const depositCollateral = async ({
+	userId,
+	depositId,
+	assetId,
+	amount,
+	resumed
+}: {
+	userId: string;
+	depositId: string;
+	assetId: string;
+	amount: bigint;
+	resumed: boolean;
+}): Promise<void> => {
+	const { ledgerCanisterId, domain } = await beforeSigning(() => resolveCollateral(assetId));
+
+	if (!resumed) {
+		await approveClearing({ userId, ledgerCanisterId, amount });
+	}
+
 	const actor = await userClearing(userId);
 
-	expectOk(await actor.deposit_collateral(params), 'deposit_collateral');
+	expectCollateralOk(
+		await actor.deposit_collateral({
+			deposit_id: depositId,
+			asset_id: assetId,
+			amount,
+			domain: toNullable(domain)
+		}),
+		'deposit_collateral'
+	);
 };
 
 export const withdrawCollateral = async ({
 	userId,
-	params
+	withdrawalId,
+	assetId,
+	amount
 }: {
 	userId: string;
-	params: ClearingDid.WithdrawCollateralParams;
+	withdrawalId: string;
+	assetId: string;
+	amount: bigint;
 }): Promise<void> => {
+	const { domain } = await beforeSigning(() => resolveCollateral(assetId));
 	const actor = await userClearing(userId);
 
-	expectOk(await actor.withdraw_collateral(params), 'withdraw_collateral');
+	expectCollateralOk(
+		await actor.withdraw_collateral({
+			withdrawal_id: withdrawalId,
+			asset_id: assetId,
+			amount,
+			domain: toNullable(domain)
+		}),
+		'withdraw_collateral'
+	);
 };
 
 export const getAccountState = async ({

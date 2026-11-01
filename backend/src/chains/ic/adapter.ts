@@ -8,28 +8,18 @@ import { isNullish } from '@dfinity/utils';
 import { IcrcLedgerCanister } from '@icp-sdk/canisters/ledger/icrc';
 import { Principal } from '@icp-sdk/core/principal';
 import type { Asset } from '../../custody/assets';
+import { readerLedger } from '../../engine/actors';
 import { ZERO } from '../../lib/constants';
 import { buildAgent } from '../../lib/ic-agent';
 import { treasuryIcIdentity, userIcIdentity, userIcPrincipalText } from '../../lib/keys';
 import type { ChainAdapter, DepositEvent, TransferParams } from '../types';
 
-const ledgerFor = async ({
-	asset,
-	identity
-}: {
-	asset: Asset;
-	identity?: Parameters<typeof buildAgent>[0];
-}): Promise<IcrcLedgerCanister> => {
+const ledgerRef = (asset: Asset): string => {
 	if (isNullish(asset.ledger_ref)) {
 		throw new Error(`ic asset ${asset.symbol} has no ledger canister id`);
 	}
 
-	const agent = await buildAgent(identity);
-
-	return IcrcLedgerCanister.create({
-		agent,
-		canisterId: Principal.fromText(asset.ledger_ref)
-	});
+	return asset.ledger_ref;
 };
 
 const deriveAddress = (userId: string): string => userIcPrincipalText(userId);
@@ -41,14 +31,17 @@ const getBalance = async ({
 	address: string;
 	asset: Asset;
 }): Promise<bigint> => {
-	const ledger = await ledgerFor({ asset });
+	const ledger = await readerLedger(ledgerRef(asset));
 
 	return await ledger.balance({ owner: Principal.fromText(address), certified: false });
 };
 
 const transfer = async ({ fromUserId, to, amount, asset }: TransferParams): Promise<string> => {
 	const identity = isNullish(fromUserId) ? treasuryIcIdentity() : userIcIdentity(fromUserId);
-	const ledger = await ledgerFor({ asset, identity });
+	const ledger = IcrcLedgerCanister.create({
+		agent: await buildAgent(identity),
+		canisterId: Principal.fromText(ledgerRef(asset))
+	});
 
 	const blockIndex = await ledger.transfer({
 		to: { owner: Principal.fromText(to), subaccount: [] },

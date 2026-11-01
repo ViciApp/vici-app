@@ -183,11 +183,8 @@ const fetchAccountState = ({
 export const getAccountState = async (
 	domain: ClearingDid.BalanceDomain
 ): Promise<ClearingDid.AccountStateResponse> => {
-	// The HTTP bridge exposes clearing's read-only account query (all domains,
-	// no refresh); the caller filters by domain client-side exactly as on the
-	// uncertified on-chain path.
 	if (isWeb2Backend()) {
-		return await getEngineAccountStateWeb2();
+		return await getEngineAccountStateWeb2(domain);
 	}
 
 	const identity = await safeGetIdentityOnce();
@@ -211,17 +208,14 @@ export const loadAccountState = async ({
 	// web2 reads the account state once and delivers it as the final
 	// (`certified: true`) pass: no query/update pair exists on that transport,
 	// and delivering it uncertified would trip the Settlement-only gate in
-	// `LoaderCollaterals` and leave the store empty forever. The read is
-	// clearing's query view, so outside Settlement the top-level equity /
-	// margin figures carry that view's known limitation until the bridge
-	// exposes the refreshed update read.
+	// `LoaderCollaterals` and leave the store empty forever.
 	if (isWeb2Backend()) {
 		if (isNullish(getWeb2User())) {
 			return;
 		}
 
 		try {
-			onLoad({ certified: true, response: await getEngineAccountStateWeb2() });
+			onLoad({ certified: true, response: await getEngineAccountStateWeb2(domain) });
 		} catch (err: unknown) {
 			onUpdateError?.(err);
 		}

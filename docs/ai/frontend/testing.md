@@ -164,9 +164,11 @@ suite below is untouched and keeps covering the web3 build.
   (`src/index.ts`) with its external dependencies swapped through the
   existing test seams: the engine actors and the VXP ledger are the
   deterministic fakes in `backend/e2e/fake-engine.ts` (fixture catalog, one
-  settled market, the VXP collateral asset, every account the
-  never-deposited empty one; every other method, writes included, rejects),
-  and email lands in an in-memory outbox. Both servers boot from Playwright's
+  settled market, the VXP collateral asset, ledgers and collateral deposits
+  that enforce the real allowance and domain rules, every account the
+  never-deposited empty one until a deposit lands; every other method, other
+  writes included, rejects), and email lands in an in-memory outbox. Both
+  servers boot from Playwright's
   `webServer` (migrate, seed, serve; then build, preview).
 - **Seed:** `backend/e2e/seed.ts` imports two legacy accounts through the
   real ETL importer (provisional, `matched_via = 'etl'`) with their exported

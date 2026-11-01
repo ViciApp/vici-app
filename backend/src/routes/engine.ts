@@ -7,10 +7,18 @@
 import { isNullish, toNullable } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
+import {
+	claimCollateralOperation,
+	completeCollateralOperation,
+	releaseCollateralOperation,
+	type CollateralOperationKind
+} from '../custody/collateral-operations';
 import type { ClearingDid } from '../declarations';
 import * as clearing from '../engine/clearing';
 import * as registry from '../engine/registry';
 import { toJson } from '../engine/serialize';
+import { ZERO } from '../lib/constants';
+import { logger } from '../lib/logger';
 
 interface StatusContext {
 	status?: number | string;
@@ -20,6 +28,55 @@ const badRequest = (set: StatusContext, error: string): { error: string } => {
 	set.status = 400;
 
 	return { error };
+};
+
+/** Runs a collateral call under its id's claim. A finished id answers without
+ * touching the chain and a held one answers 409. A refusal, or a failure before
+ * anything was signed, releases the claim for a retry; any other failure leaves
+ * the outcome unknown, so the claim stays until its lease proves the call
+ * cannot still be executing. */
+const runCollateralOperation = async ({
+	set,
+	run,
+	...operation
+}: {
+	set: StatusContext;
+	userId: string;
+	kind: CollateralOperationKind;
+	operationId: string;
+	run: (attempt: { resumed: boolean }) => Promise<void>;
+}): Promise<{ ok: true } | { error: string }> => {
+	const claim = await claimCollateralOperation(operation);
+
+	if (claim === 'done') {
+		return { ok: true };
+	}
+
+	if (claim === 'in_flight') {
+		set.status = 409;
+
+		return { error: 'operation_in_progress' };
+	}
+
+	try {
+		await run({ resumed: claim === 'resumed' });
+	} catch (err: unknown) {
+		if (err instanceof clearing.CollateralRejectedError) {
+			logger.warn(`collateral ${operation.kind} refused:`, err.message);
+
+			await releaseCollateralOperation(operation);
+
+			set.status = err.status;
+
+			return { error: err.code };
+		}
+
+		throw err;
+	}
+
+	await completeCollateralOperation(operation);
+
+	return { ok: true };
 };
 
 const INTERVALS: Record<string, ClearingDid.PriceHistoryInterval> = {
@@ -32,6 +89,13 @@ const WINDOWS: Record<string, ClearingDid.LeaderboardWindow> = {
 	month: { Month: null },
 	all_time: { AllTime: null }
 };
+
+const BALANCE_DOMAINS = new Map<string, ClearingDid.BalanceDomain>([
+	['Settlement', { Settlement: null }],
+	['ViciXp', { ViciXp: null }],
+	['Playground', { Playground: null }],
+	['Social', { Social: null }]
+]);
 
 // Total parse: a malformed query value degrades to "not provided" instead of
 // a thrown BigInt error surfacing as a 500.
@@ -148,14 +212,32 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 		return { items: toJson(items), total: total.toString() };
 	})
 	// Session-gated account surface
-	.get('/account', async ({ request, set }) => {
+	.get('/account', async ({ request, set, query: qs }) => {
 		const user = await requireUser(request);
 
 		if (isNullish(user)) {
 			return unauthenticated(set);
 		}
 
-		const state = await clearing.getAccountStateQuery({ userId: user.id });
+		if (isNullish(qs.domain)) {
+			const state = await clearing.getAccountStateQuery({ userId: user.id });
+
+			return { account: toJson(state) };
+		}
+
+		const domain = BALANCE_DOMAINS.get(qs.domain);
+
+		if (isNullish(domain)) {
+			return badRequest(set, 'invalid_domain');
+		}
+
+		// The query always computes equity and margin for Settlement, so the
+		// reserved figures of any other domain need this update call. `refresh`
+		// stays off: it only pings the ledgers and rewrites nothing.
+		const state = await clearing.getAccountState({
+			userId: user.id,
+			params: { refresh: toNullable(false), domain: toNullable(domain) }
+		});
 
 		return { account: toJson(state) };
 	})
@@ -288,17 +370,26 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 				return unauthenticated(set);
 			}
 
-			await clearing.depositCollateral({
-				userId: user.id,
-				params: {
-					deposit_id: body.depositId,
-					asset_id: body.assetId,
-					amount: BigInt(body.amount),
-					domain: toNullable()
-				}
-			});
+			const amount = BigInt(body.amount);
 
-			return { ok: true };
+			if (amount <= ZERO) {
+				return badRequest(set, 'invalid_amount');
+			}
+
+			return await runCollateralOperation({
+				set,
+				userId: user.id,
+				kind: 'deposit',
+				operationId: body.depositId,
+				run: ({ resumed }) =>
+					clearing.depositCollateral({
+						userId: user.id,
+						depositId: body.depositId,
+						assetId: body.assetId,
+						amount,
+						resumed
+					})
+			});
 		},
 		{
 			body: t.Object({
@@ -317,17 +408,25 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 				return unauthenticated(set);
 			}
 
-			await clearing.withdrawCollateral({
-				userId: user.id,
-				params: {
-					withdrawal_id: body.withdrawalId,
-					asset_id: body.assetId,
-					amount: BigInt(body.amount),
-					domain: toNullable()
-				}
-			});
+			const amount = BigInt(body.amount);
 
-			return { ok: true };
+			if (amount <= ZERO) {
+				return badRequest(set, 'invalid_amount');
+			}
+
+			return await runCollateralOperation({
+				set,
+				userId: user.id,
+				kind: 'withdraw',
+				operationId: body.withdrawalId,
+				run: () =>
+					clearing.withdrawCollateral({
+						userId: user.id,
+						withdrawalId: body.withdrawalId,
+						assetId: body.assetId,
+						amount
+					})
+			});
 		},
 		{
 			body: t.Object({

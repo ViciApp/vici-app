@@ -41,10 +41,11 @@ import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
  * On-ledger balances for each supported token id (empty if not signed in).
  */
 export const getLedgerBalances = async (): Promise<Record<string, bigint>> => {
-	// web2: the "on-ledger" balances are the custodial ones the API holds for
-	// the session user, keyed back to the app's token ids by symbol (the
-	// custody asset catalog mirrors the supported IC tokens). Direct ledger
-	// reads need an identity, which never exists in this mode.
+	// web2: the API reads the ledgers for the session user's custodial
+	// principal, keyed back to the app's token ids by symbol (the custody asset
+	// catalog mirrors the supported IC tokens). Direct ledger reads need an
+	// identity, which never exists in this mode. A token the API could not read
+	// is absent, not zero.
 	if (isWeb2Backend()) {
 		if (isNullish(getWeb2User())) {
 			return {};
@@ -112,15 +113,13 @@ export const getLedgerBalances = async (): Promise<Record<string, bigint>> => {
 export const getCollateralBalances = async (
 	domain: ClearingDid.BalanceDomain
 ): Promise<ClearingDid.AccountStateResponse | undefined> => {
-	// web2: the bridge exposes clearing's read-only account query (all
-	// domains); downstream consumers already filter by domain.
 	if (isWeb2Backend()) {
 		if (isNullish(getWeb2User())) {
 			return;
 		}
 
 		try {
-			return await getEngineAccountStateWeb2();
+			return await getEngineAccountStateWeb2(domain);
 		} catch (e: unknown) {
 			console.error('Failed to get collateral balances', e);
 		}

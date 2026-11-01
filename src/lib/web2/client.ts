@@ -29,6 +29,7 @@ import type { TournamentDoc, TournamentMatchDoc } from '$lib/types/tournament';
 import type { UserStatsDoc } from '$lib/types/user-stats';
 import { web2ApiBaseUrl } from '$lib/web2/backend-mode';
 import {
+	balanceDomainToWire,
 	intervalToWire,
 	leaderboardWindowToWire,
 	mapAccountStateResponse,
@@ -830,13 +831,15 @@ export const listEngineCollateralAssets = async (): Promise<ClearingDid.Collater
 // above, so stores and utils stay backend-agnostic.
 
 /**
- * Clearing's account view for the session user. It rides the engine's
- * read-only query (`get_account_state_query`), the same source the on-chain
- * uncertified pass reads: the refreshed update read is not bridged.
+ * Clearing's account view for the session user in `domain`. The API rides the
+ * engine's domain-scoped update read: its read-only query computes equity and
+ * margin for Settlement alone, which reads as nothing reserved on ViciXp.
  */
-export const getEngineAccountState = async (): Promise<ClearingDid.AccountStateResponse> => {
+export const getEngineAccountState = async (
+	domain: ClearingDid.BalanceDomain
+): Promise<ClearingDid.AccountStateResponse> => {
 	const { account } = await request<{ account: Web2AccountStateResponseWire }>({
-		path: '/api/v1/engine/account',
+		path: `/api/v1/engine/account?domain=${balanceDomainToWire(domain)}`,
 		method: 'GET'
 	});
 
