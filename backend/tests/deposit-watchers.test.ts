@@ -23,7 +23,11 @@ import { icAdapter } from '../src/chains/ic/adapter';
 import { getAdapter } from '../src/chains/registry';
 import { watchSolDeposits } from '../src/chains/sol/adapter';
 import type { ChainAdapter, DepositEvent, WatchResult } from '../src/chains/types';
-import { DEFAULT_WATCH_LIMITS, tickDepositWatchers, type WatchLimits } from '../src/chains/watchers';
+import {
+	DEFAULT_WATCH_LIMITS,
+	tickDepositWatchers,
+	type WatchLimits
+} from '../src/chains/watchers';
 import { getAssetBySymbol, listEnabledAssets, type Asset } from '../src/custody/assets';
 import { requestWithdrawal, transitionWithdrawal } from '../src/custody/withdrawals';
 import { query } from '../src/db/client';
@@ -87,7 +91,13 @@ const seedAccount = async (chain: Chain): Promise<Seeded> => {
 	return account;
 };
 
-const requireAsset = async ({ chain, symbol }: { chain: Chain; symbol: string }): Promise<Asset> => {
+const requireAsset = async ({
+	chain,
+	symbol
+}: {
+	chain: Chain;
+	symbol: string;
+}): Promise<Asset> => {
 	const asset = await getAssetBySymbol({ chain, symbol });
 
 	if (isNullish(asset)) {
@@ -129,9 +139,10 @@ const depositCount = async ({
 };
 
 const cursorOf = async (key: string): Promise<string | undefined> => {
-	const rows = await query<{ cursor: string }>(`select cursor from chain_cursors where chain = $1`, [
-		key
-	]);
+	const rows = await query<{ cursor: string }>(
+		`select cursor from chain_cursors where chain = $1`,
+		[key]
+	);
 
 	return rows[0]?.cursor;
 };
@@ -245,6 +256,7 @@ describe('reader ledger reuse', () => {
 		);
 
 		await expect(readerLedger('a')).rejects.toThrow('ledger unavailable');
+
 		await sleep(0);
 		await readerLedger('a');
 
@@ -594,6 +606,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 					adapters: [icAdapter],
 					limits: { maxAccounts: 50, concurrency: 4, readTimeout_ms: 10, budget_ms: 30 }
 				});
+
 			reconcileJob.run = () => {
 				reconciled += 1;
 

@@ -82,9 +82,10 @@ const userAccountsAfter = ({
 const sweepCursorKey = (chain: Chain): string => `watch:${chain}`;
 
 const readSweepCursor = async (chain: Chain): Promise<string> => {
-	const rows = await query<{ cursor: string }>(`select cursor from chain_cursors where chain = $1`, [
-		sweepCursorKey(chain)
-	]);
+	const rows = await query<{ cursor: string }>(
+		`select cursor from chain_cursors where chain = $1`,
+		[sweepCursorKey(chain)]
+	);
 
 	return rows[0]?.cursor ?? NIL_UUID;
 };
