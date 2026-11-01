@@ -422,7 +422,7 @@ describe.if(dbAvailable)('POST /api/v1/engine/collateral/deposit', () => {
 				owner: Principal.fromText(env.ic.clearingCanisterId),
 				subaccount: []
 			});
-			expect(approve?.expires_at as bigint).toBeGreaterThan(before);
+			expect(approve?.expires_at).toBeGreaterThan(before);
 			expect(depositCall).toEqual({
 				call: 'deposit',
 				caller: userIcPrincipalText(userId),
