@@ -898,7 +898,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 								}
 					)
 				);
-			}) as typeof fetch);
+			}));
 
 			try {
 				const first = await watchEvmDeposits({ addresses: [address], assets: [eth] });
@@ -953,7 +953,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 						transaction: { message: { accountKeys: [{ pubkey: solAddress }] } }
 					})
 				);
-			}) as typeof fetch);
+			}));
 
 			try {
 				await expect(watchSolDeposits({ addresses: [solAddress], assets: [sol] })).rejects.toThrow(
