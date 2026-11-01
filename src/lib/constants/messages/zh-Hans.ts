@@ -2500,7 +2500,7 @@ export const zhHansMessages = {
 	'welcome.faq.a1':
 		'是的。游戏模式完全免费——无需绑卡、无需充值、无需订阅。VXP 是用于衡量准确率的纯游戏货币；不可兑现，也不是真钱。如果将来推出真钱市场，将完全可选并明确标注。',
 	'welcome.faq.a2':
-		'数百个问题，涵盖宏观、加密、政治、科技、体育和文化。还有正在进行的赛事市场——2026 世界杯将持续到七月，包含各队晋级、淘汰赛和最终冠军市场。每个问题都基于公开信息源结算。',
+		'数百个问题，涵盖宏观、加密、政治、科技、体育和文化。每个问题都基于公开信息源结算。',
 	'welcome.faq.a3':
 		'已结算的预测除以已结算的总数。未结算的预测在市场关闭前不计入。准确率是你声誉的衡量单位——出现在全球排行榜、你的私人联盟以及任何你参与的对决中。',
 	'welcome.faq.a4':
@@ -2540,21 +2540,22 @@ export const zhHansMessages = {
 	'welcome.trust.tagline': 'Veni. Vidi. Vici.',
 	'welcome.universities.fifa_tag': 'FIFA 世界杯',
 	'welcome.close.cta': '开始预测 — 免费',
-	'welcome.close.headline': '世界杯就要来了。在它发生之前预测它。',
+	'welcome.close.headline': '接下来会发生什么?在它发生之前预测它。',
 	'welcome.hero.card_meta': '{pct}% 的玩家选择「会」',
-	'welcome.hero.card_q': '美国队能在主场打进八强吗?',
+	'welcome.hero.card_q': '比特币今年收盘会高于年初吗?',
 	'welcome.hero.climb_to': '你将升至',
 	'welcome.hero.cta': '做出你的第一个判断',
 	'welcome.hero.cta_note': '免费。无需银行卡。没有套路。',
 	'welcome.hero.favorite': '热门',
 	'welcome.hero.headline': '把「我早就知道」变成铁证。',
 	'welcome.hero.hint': '滑动卡片 — 左滑表示否,右滑表示是',
-	'welcome.hero.kicker': 'FIFA 世界杯 2026® · 正在进行',
+	'welcome.hero.kicker': '免费预测游戏 · 正在进行',
 	'welcome.hero.long_shot': '黑马',
 	'welcome.hero.no': '否',
 	'welcome.hero.payoff': '向你的朋友发起挑战。',
 	'welcome.hero.payoff_cta': '立即注册',
-	'welcome.hero.sub': '免费的世界杯预测游戏。叫上你的朋友,预测整届赛事如何展开,看看谁判断得准。',
+	'welcome.hero.sub':
+		'免费的预测游戏。叫上你的朋友,预测体育、加密、政治和文化的下一步走向,看看谁判断得准。',
 	'welcome.hero.swipe_to_call': '滑动作出判断',
 	'welcome.hero.tally': '此市场内 · 暂定',
 	'welcome.hero.try_another': '再来一张',
@@ -2563,7 +2564,7 @@ export const zhHansMessages = {
 	'welcome.how.s2': '依据公开数据结算',
 	'welcome.how.s3': '在排行榜上攀升',
 	'welcome.proof.label': '你又在什么位置?',
-	'welcome.proof.live': '人正在预测世界杯',
+	'welcome.proof.live': '人正在做出预测',
 	'welcome.status.body':
 		'每个判断都会记入你的战绩。判断对了,你就上升 — 超越你的群聊、你的城市、整个世界。排行榜不在乎谁嗓门最大,只看谁判断得最准。',
 	'welcome.status.cap_friends': '你的群聊,排出高下。',

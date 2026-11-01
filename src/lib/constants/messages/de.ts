@@ -2660,7 +2660,7 @@ export const deMessages = {
 	'welcome.faq.a1':
 		'Ja. Der Spielmodus ist vollständig kostenlos — keine Karte, keine Einzahlung, kein Abo. VXP ist eine reine Spielwährung, die deine Genauigkeit verfolgt; nicht einlösbar und kein Geld. Echtgeld-Märkte werden, falls eingeführt, optional und klar gekennzeichnet sein.',
 	'welcome.faq.a2':
-		'Hunderte Fragen aus Makro, Krypto, Politik, Tech, Sport und Kultur. Plus laufende Turniermärkte — die WM 2026 läuft bis Juli mit Team-Aufstiegs-, K.-o.- und Finalsieger-Märkten. Jede Frage wird über eine öffentliche Quelle aufgelöst.',
+		'Hunderte Fragen aus Makro, Krypto, Politik, Tech, Sport und Kultur. Jede Frage wird über eine öffentliche Quelle aufgelöst.',
 	'welcome.faq.a3':
 		'Aufgelöste Calls geteilt durch alle aufgelösten Calls. Offene Calls zählen erst, wenn ein Markt entschieden ist. Genauigkeit ist die Einheit deines Rufs — auf dem globalen Leaderboard, in deiner Liga und in jedem Battle, an dem du teilnimmst.',
 	'welcome.faq.a4':
@@ -2701,22 +2701,22 @@ export const deMessages = {
 	'welcome.trust.tagline': 'Veni. Vidi. Vici.',
 	'welcome.universities.fifa_tag': 'FIFA WELTMEISTERSCHAFT',
 	'welcome.close.cta': 'Jetzt tippen — kostenlos',
-	'welcome.close.headline': 'Die WM kommt. Tippe sie, bevor sie passiert.',
+	'welcome.close.headline': 'Was passiert als Nächstes? Tippe es, bevor es passiert.',
 	'welcome.hero.card_meta': '{pct}% der Spieler sagen JA',
-	'welcome.hero.card_q': 'Erreichen die USA im eigenen Land das Viertelfinale?',
+	'welcome.hero.card_q': 'Schließt Bitcoin das Jahr höher, als es begonnen hat?',
 	'welcome.hero.climb_to': 'Du steigst auf Platz',
 	'welcome.hero.cta': 'Jetzt tippen',
 	'welcome.hero.cta_note': '100% kostenlos',
 	'welcome.hero.favorite': 'FAVORIT',
 	'welcome.hero.headline': 'Für Besserwisser.',
 	'welcome.hero.hint': 'Swipe die Karte — links nein, rechts ja',
-	'welcome.hero.kicker': 'FIFA WM 2026® · live',
+	'welcome.hero.kicker': 'Kostenloses Tippspiel · live',
 	'welcome.hero.long_shot': 'AUSSENSEITER',
 	'welcome.hero.no': 'NEIN',
 	'welcome.hero.payoff': 'Fordere deine Freunde heraus.',
 	'welcome.hero.payoff_cta': 'Jetzt registrieren',
 	'welcome.hero.sub':
-		'Das kostenlose WM-Tippspiel. Hol deine Freunde in eine Liga, tippe das ganze Turnier und sieh, wer richtig liegt.',
+		'Das kostenlose Tippspiel. Hol deine Freunde in eine Liga, tippe, was als Nächstes in Sport, Krypto, Politik und Kultur passiert, und sieh, wer richtig liegt.',
 	'welcome.hero.swipe_to_call': 'SWIPE ZUM TIPPEN',
 	'welcome.hero.tally': 'In diesem Markt · vorläufig',
 	'welcome.hero.try_another': 'Noch eine',
@@ -2725,7 +2725,7 @@ export const deMessages = {
 	'welcome.how.s2': 'Entscheidet sich auf öffentlichen Daten',
 	'welcome.how.s3': 'Steig im Ranking auf',
 	'welcome.proof.label': 'Wo stehst du?',
-	'welcome.proof.live': 'Leute tippen gerade jetzt auf die WM.',
+	'welcome.proof.live': 'Leute geben schon ihre Tipps ab.',
 	'welcome.status.body':
 		'Jeder Tipp kommt auf dein Konto. Richtig getippt, steigst du auf — vorbei an deinem Chat, deiner Stadt, der Welt. Dem Ranking ist egal, wer am lautesten ist. Nur, wer am öftesten richtig liegt.',
 	'welcome.status.cap_friends': 'Dein Gruppenchat, im Ranking.',

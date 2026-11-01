@@ -2623,7 +2623,7 @@ export const enMessages = {
 	'welcome.faq.a1':
 		'Yes. The game mode is fully free — no card, no deposit, no subscription. VXP is a pure gameplay currency that tracks accuracy; it can’t be redeemed and isn’t money. Real-money markets, when introduced, will be optional and clearly labelled.',
 	'welcome.faq.a2':
-		'Hundreds of questions across macro, crypto, politics, tech, sports, and culture. Plus live tournament markets — the 2026 World Cup runs through July with per-team advancement, knockout, and final-winner markets. Every question resolves on a public source.',
+		'Hundreds of questions across macro, crypto, politics, tech, sports, and culture. Every question resolves on a public source.',
 	'welcome.faq.a3':
 		'Resolved calls divided by total resolved calls. Open calls don’t count until a market settles. Accuracy is the unit of your reputation — across the global leaderboard, your private league, and any battles you opt into.',
 	'welcome.faq.a4':
@@ -2664,22 +2664,22 @@ export const enMessages = {
 	'welcome.trust.tagline': 'Veni. Vidi. Vici.',
 	'welcome.universities.fifa_tag': 'FIFA WORLD CUP',
 	'welcome.close.cta': 'Start predicting — free',
-	'welcome.close.headline': 'The World Cup is coming. Call it before it happens.',
+	'welcome.close.headline': 'What happens next? Call it before it happens.',
 	'welcome.hero.card_meta': '{pct}% of players say YES',
-	'welcome.hero.card_q': 'Will the USA reach the quarterfinals at home?',
+	'welcome.hero.card_q': 'Will Bitcoin close the year higher than it started?',
 	'welcome.hero.climb_to': 'You’d climb to',
 	'welcome.hero.cta': 'Make your first call',
 	'welcome.hero.cta_note': 'Free. No card. No catch.',
 	'welcome.hero.favorite': 'FAVORITE',
 	'welcome.hero.headline': 'Turn “I knew it” into proof.',
 	'welcome.hero.hint': 'Swipe the card — left for no, right for yes',
-	'welcome.hero.kicker': 'FIFA World Cup 2026® · live now',
+	'welcome.hero.kicker': 'Free prediction game · live now',
 	'welcome.hero.long_shot': 'LONG SHOT',
 	'welcome.hero.no': 'NO',
 	'welcome.hero.payoff': 'Challenge your friends.',
 	'welcome.hero.payoff_cta': 'Sign up now',
 	'welcome.hero.sub':
-		'The free World Cup prediction game. Round up your friends, call how the whole tournament unfolds, and see who gets it right.',
+		'The free prediction game. Round up your friends, call what happens next in sports, crypto, politics and culture, and see who gets it right.',
 	'welcome.hero.swipe_to_call': 'SWIPE TO CALL',
 	'welcome.hero.tally': 'On this market · provisional',
 	'welcome.hero.try_another': 'Try another',
@@ -2688,7 +2688,7 @@ export const enMessages = {
 	'welcome.how.s2': 'It settles on public record',
 	'welcome.how.s3': 'Climb the leaderboard',
 	'welcome.proof.label': 'Where do you land?',
-	'welcome.proof.live': 'people are calling the World Cup right now.',
+	'welcome.proof.live': 'people are already making their calls.',
 	'welcome.status.body':
 		'Every call goes on your record. Get them right and you climb — past your group chat, your city, the world. The leaderboard doesn’t care how loud you are. Only how often you’re right.',
 	'welcome.status.cap_friends': 'Your group chat, ranked.',

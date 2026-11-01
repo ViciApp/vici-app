@@ -2649,7 +2649,7 @@ export const frMessages = {
 	'welcome.faq.a1':
 		"Oui. Le mode jeu est entièrement gratuit — pas de carte, pas de dépôt, pas d'abonnement. Les VXP sont une monnaie de jeu qui mesure la précision ; ils ne sont ni convertibles ni de l'argent. Les marchés en argent réel, s'ils sont introduits, seront optionnels et clairement identifiés.",
 	'welcome.faq.a2':
-		"Des centaines de questions sur la macro, la crypto, la politique, la tech, le sport et la culture. Plus des marchés de tournoi en direct — la Coupe du Monde 2026 court jusqu'en juillet avec des marchés de qualification par équipe, d'élimination directe et de vainqueur final. Chaque question se résout sur une source publique.",
+		'Des centaines de questions sur la macro, la crypto, la politique, la tech, le sport et la culture. Chaque question se résout sur une source publique.',
 	'welcome.faq.a3':
 		"Pronostics résolus divisés par le total des pronostics résolus. Les pronostics ouverts ne comptent pas tant qu'un marché n'est pas clos. La précision est l'unité de ta réputation — sur le classement global, dans ta ligue privée et dans tous les duels auxquels tu participes.",
 	'welcome.faq.a4':
@@ -2690,22 +2690,22 @@ export const frMessages = {
 	'welcome.trust.tagline': 'Veni. Vidi. Vici.',
 	'welcome.universities.fifa_tag': 'COUPE DU MONDE FIFA',
 	'welcome.close.cta': 'Commence à prédire — gratuit',
-	'welcome.close.headline': 'La Coupe du Monde arrive. Pronostique-la avant qu’elle n’arrive.',
+	'welcome.close.headline': 'Et ensuite ? Pronostique-le avant que ça n’arrive.',
 	'welcome.hero.card_meta': '{pct}% des joueurs disent OUI',
-	'welcome.hero.card_q': 'Les USA atteignent-ils les quarts à domicile ?',
+	'welcome.hero.card_q': 'Le Bitcoin finira-t-il l’année plus haut qu’il ne l’a commencée ?',
 	'welcome.hero.climb_to': 'Tu passerais',
 	'welcome.hero.cta': 'Fais ta première prédiction',
 	'welcome.hero.cta_note': 'Gratuit. Sans carte. Sans piège.',
 	'welcome.hero.favorite': 'FAVORI',
 	'welcome.hero.headline': 'Transforme ton « je le savais » en preuve.',
 	'welcome.hero.hint': 'Swipe la carte — gauche non, droite oui',
-	'welcome.hero.kicker': 'Coupe du Monde FIFA 2026® · en direct',
+	'welcome.hero.kicker': 'Jeu de pronostics gratuit · en direct',
 	'welcome.hero.long_shot': 'OUTSIDER',
 	'welcome.hero.no': 'NON',
 	'welcome.hero.payoff': 'Défie tes amis.',
 	'welcome.hero.payoff_cta': 'Inscris-toi maintenant',
 	'welcome.hero.sub':
-		'Le jeu de pronostics de la Coupe du Monde, gratuit. Réunis tes amis, pronostique tout le déroulé du tournoi et vois qui a vu juste.',
+		'Le jeu de pronostics, gratuit. Réunis tes amis, pronostique ce qui va se passer en sport, crypto, politique et culture, et vois qui a vu juste.',
 	'welcome.hero.swipe_to_call': 'SWIPE POUR PRÉDIRE',
 	'welcome.hero.tally': 'Sur ce marché · provisoire',
 	'welcome.hero.try_another': 'En essayer une autre',
@@ -2714,7 +2714,7 @@ export const frMessages = {
 	'welcome.how.s2': 'Réglé sur données publiques',
 	'welcome.how.s3': 'Grimpe au classement',
 	'welcome.proof.label': 'Et toi, tu te places où ?',
-	'welcome.proof.live': 'personnes pronostiquent la Coupe du Monde en ce moment.',
+	'welcome.proof.live': 'personnes font déjà leurs pronostics.',
 	'welcome.status.body':
 		'Chaque prédiction entre à ton palmarès. Vois juste et tu montes — au-delà de ta bande, de ta ville, du monde. Le classement se moque de qui parle le plus fort. Seulement de qui voit juste le plus souvent.',
 	'welcome.status.cap_friends': 'Ta bande, classée.',

@@ -2293,7 +2293,7 @@ export const ptBRMessages = {
 	'welcome.faq.a1':
 		'Sim. O modo de jogo é totalmente grátis — sem cartão, sem depósito, sem assinatura. VXP é uma moeda de jogo pura que mede precisão; não pode ser resgatada e não é dinheiro. Mercados em dinheiro real, quando introduzidos, serão opcionais e claramente identificados.',
 	'welcome.faq.a2':
-		'Centenas de perguntas sobre macro, cripto, política, tech, esportes e cultura. Mais mercados de torneios ao vivo — a Copa do Mundo 2026 vai até julho com mercados de avanço por equipe, eliminatórias e vencedor final. Toda pergunta resolve com uma fonte pública.',
+		'Centenas de perguntas sobre macro, cripto, política, tech, esportes e cultura. Toda pergunta resolve com uma fonte pública.',
 	'welcome.faq.a3':
 		'Previsões resolvidas divididas pelo total de resolvidas. Previsões abertas não contam até o mercado encerrar. Precisão é a unidade da sua reputação — no ranking global, na sua liga privada e em qualquer duelo em que você participar.',
 	'welcome.faq.a4':
@@ -2334,22 +2334,22 @@ export const ptBRMessages = {
 	'welcome.trust.tagline': 'Veni. Vidi. Vici.',
 	'welcome.universities.fifa_tag': 'COPA DO MUNDO FIFA',
 	'welcome.close.cta': 'Comece a palpitar — de graça',
-	'welcome.close.headline': 'A Copa está chegando. Dê o palpite antes de acontecer.',
+	'welcome.close.headline': 'O que vem agora? Dê o palpite antes de acontecer.',
 	'welcome.hero.card_meta': '{pct}% dos jogadores dizem SIM',
-	'welcome.hero.card_q': 'Os EUA chegam às quartas em casa?',
+	'welcome.hero.card_q': 'O Bitcoin fecha o ano mais alto do que começou?',
 	'welcome.hero.climb_to': 'Você subiria ao',
 	'welcome.hero.cta': 'Dê seu primeiro palpite',
 	'welcome.hero.cta_note': 'De graça. Sem cartão. Sem pegadinha.',
 	'welcome.hero.favorite': 'FAVORITO',
 	'welcome.hero.headline': 'Transforme seu “eu avisei” em prova.',
 	'welcome.hero.hint': 'Deslize a carta — esquerda não, direita sim',
-	'welcome.hero.kicker': 'Copa do Mundo FIFA 2026® · ao vivo',
+	'welcome.hero.kicker': 'Jogo de palpites grátis · ao vivo',
 	'welcome.hero.long_shot': 'ZEBRA',
 	'welcome.hero.no': 'NÃO',
 	'welcome.hero.payoff': 'Desafie seus amigos.',
 	'welcome.hero.payoff_cta': 'Cadastre-se agora',
 	'welcome.hero.sub':
-		'O jogo de palpites da Copa, de graça. Junte a galera, palpite como o torneio inteiro se desenrola e veja quem acerta.',
+		'O jogo de palpites, de graça. Junte a galera, palpite o que acontece em esportes, cripto, política e cultura, e veja quem acerta.',
 	'welcome.hero.swipe_to_call': 'DESLIZE PARA PALPITAR',
 	'welcome.hero.tally': 'Neste mercado · provisório',
 	'welcome.hero.try_another': 'Tente outra',
@@ -2358,7 +2358,7 @@ export const ptBRMessages = {
 	'welcome.how.s2': 'Resolve em dados públicos',
 	'welcome.how.s3': 'Suba no ranking',
 	'welcome.proof.label': 'E você, onde fica?',
-	'welcome.proof.live': 'pessoas estão palpitando na Copa agora mesmo.',
+	'welcome.proof.live': 'pessoas já estão dando seus palpites.',
 	'welcome.status.body':
 		'Cada palpite entra no seu histórico. Acertou, você sobe — além do seu grupo, da sua cidade, do mundo. O ranking não liga pra quem grita mais alto. Só pra quem acerta mais.',
 	'welcome.status.cap_friends': 'Seu grupo, no ranking.',
