@@ -77,6 +77,12 @@ describe('orderRejectionMessage', () => {
 		for (const error of [
 			refusal({ code: 'a_future_code' }),
 			new Web2ApiError({ status: 500, code: 'internal' }),
+			new Web2ApiError({ status: 500, code: 'order_not_found' }),
+			new Web2ApiError({
+				status: 503,
+				code: 'insufficient_balance',
+				amounts: { available: '1', required: '2' }
+			}),
 			new Error('order_not_found'),
 			new TradeExecutionError({ NotOrderCreator: null })
 		]) {

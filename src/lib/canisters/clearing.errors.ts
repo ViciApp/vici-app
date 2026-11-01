@@ -183,7 +183,7 @@ const ORDER_REJECTION_KEYS: Record<string, MessageKey> = {
  * user can act on from a failure it should not explain.
  */
 export const orderRejectionMessage = (error: unknown): TradeErrorMessage | undefined => {
-	if (!(error instanceof Web2ApiError)) {
+	if (!(error instanceof Web2ApiError) || error.status < 400 || error.status >= 500) {
 		return;
 	}
 
