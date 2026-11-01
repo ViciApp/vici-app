@@ -24,6 +24,11 @@ interface WatchedAccount {
 	address: string;
 }
 
+/** VXP balances are read live from the ledger and VXP stays non-withdrawable,
+ * so it must not be booked on the internal ledger: that balance is what gates
+ * `POST /wallet/withdrawals`, and crediting it would open VXP withdrawals. */
+const isVxp = ({ chain, symbol }: Asset): boolean => chain === 'ic' && symbol === 'VXP';
+
 const userAccountsOn = (chain: Chain): Promise<WatchedAccount[]> =>
 	query<WatchedAccount>(
 		`select id, address from custody_accounts where chain = $1 and kind = 'user'`,
@@ -186,7 +191,9 @@ export const tickDepositWatchers = async (): Promise<void> => {
 	const assets = await listEnabledAssets();
 
 	for (const adapter of enabledAdapters()) {
-		const chainAssets: Asset[] = assets.filter((asset) => asset.chain === adapter.chain);
+		const chainAssets: Asset[] = assets.filter(
+			(asset) => asset.chain === adapter.chain && !isVxp(asset)
+		);
 
 		if (chainAssets.length > 0) {
 			try {

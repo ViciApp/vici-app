@@ -17,6 +17,8 @@ import {
 	VXP_LEDGER_CANISTER_ID
 } from '../e2e/fake-engine';
 import { createSession } from '../src/auth/sessions';
+import { icAdapter } from '../src/chains/ic/adapter';
+import { tickDepositWatchers } from '../src/chains/watchers';
 import { ensureInternalAccount, ensureUserAccount } from '../src/custody/accounts';
 import { getAssetBySymbol } from '../src/custody/assets';
 import { postLedgerEvent } from '../src/custody/ledger';
@@ -296,6 +298,111 @@ describe.if(dbAvailable)('GET /api/v1/wallet/balances', () => {
 
 		expect(balances.find(({ symbol }) => symbol === 'ETH')?.balance).toBe('42');
 	});
+});
+
+describe.if(dbAvailable)('ic deposit watcher', () => {
+	let stopWatching: (() => void) | undefined;
+
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	afterEach(() => {
+		stopWatching?.();
+		stopWatching = undefined;
+	});
+
+	/** Other suites leave accounts in this shared database whose addresses are
+	 * not principals, and one of those fails a real pass. Only the address list
+	 * is narrowed to the account under test; everything else is the real tick. */
+	const tickFor = async (owner: Principal): Promise<string[]> => {
+		const { watchDeposits } = icAdapter;
+		const spy = spyOn(icAdapter, 'watchDeposits').mockImplementation(({ assets }) =>
+			watchDeposits({ addresses: [owner.toText()], assets })
+		);
+
+		stopWatching = () => spy.mockRestore();
+
+		await tickDepositWatchers();
+
+		return spy.mock.calls.flatMap(([{ assets }]) => assets.map(({ symbol }) => symbol));
+	};
+
+	const provisionedUser = async (): Promise<{ userId: string; owner: Principal }> => {
+		const user = await fundedUser();
+
+		await ensureUserAccount({ userId: user.userId, chain: 'ic', address: user.owner.toText() });
+
+		return user;
+	};
+
+	const depositsOf = (
+		userId: string
+	): Promise<{ symbol: string; amount: string; state: string }[]> =>
+		query(
+			`select a.symbol, d.amount::text as amount, d.state
+			 from deposits d
+			 join assets a on a.id = d.asset_id
+			 join custody_accounts c on c.id = d.account_id
+			 where c.user_id = $1`,
+			[userId]
+		);
+
+	const ledgerEntriesOf = (userId: string): Promise<{ symbol: string; delta: string }[]> =>
+		query(
+			`select a.symbol, l.delta::text as delta
+			 from ledger_entries l
+			 join assets a on a.id = l.asset_id
+			 join custody_accounts c on c.id = l.account_id
+			 where c.user_id = $1`,
+			[userId]
+		);
+
+	test('on-chain VXP is not read, not booked, and stays non-withdrawable', async () => {
+		useFakes();
+
+		const { userId, owner } = await provisionedUser();
+
+		const watched = await tickFor(owner);
+
+		expect(watched.length).toBeGreaterThan(0);
+		expect(watched).not.toContain('VXP');
+		expect(await depositsOf(userId)).toEqual([]);
+		expect(await ledgerEntriesOf(userId)).toEqual([]);
+
+		const vxp = await getAssetBySymbol({ chain: 'ic', symbol: 'VXP' });
+		const res = await authedRequest({
+			userId,
+			path: '/api/v1/wallet/withdrawals',
+			body: { assetId: vxp?.id, amount: '100', destination: owner.toText() }
+		});
+
+		expect(res.status).toBe(400);
+		expect(await res.json()).toEqual({ error: 'insufficient_balance' });
+		expect(await query(`select 1 from withdrawals where user_id = $1`, [userId])).toEqual([]);
+
+		expect(vxpOf(await wallet(userId))).toBe(AWARD.toString());
+	});
+
+	test.each(['ckBTC', 'ckETH', 'ckUSDC', 'ICP'])(
+		'a %s deposit is credited beside untouched VXP',
+		async (symbol) => {
+			useFakes();
+
+			const { userId, owner } = await provisionedUser();
+			const asset = await getAssetBySymbol({ chain: 'ic', symbol });
+			const amount = BigInt(250_000);
+
+			fundFakeAccount({ owner, amount, ledger: asset?.ledger_ref ?? '' });
+
+			await tickFor(owner);
+
+			expect(await depositsOf(userId)).toEqual([
+				{ symbol, amount: amount.toString(), state: 'credited' }
+			]);
+			expect(await ledgerEntriesOf(userId)).toEqual([{ symbol, delta: amount.toString() }]);
+		}
+	);
 });
 
 describe.if(dbAvailable)('POST /api/v1/engine/collateral/deposit', () => {
