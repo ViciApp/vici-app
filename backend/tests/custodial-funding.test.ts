@@ -8,7 +8,7 @@ import { isNullish, toNullable } from '@dfinity/utils';
 import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
 import type { Identity } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import {
 	FAKE_LEDGER_FEE,
 	fakeEngineActorProvider,
@@ -193,6 +193,38 @@ describe.if(dbAvailable)('GET /api/v1/wallet/balances', () => {
 		);
 
 		expect(entries[0]?.count).toBe('0');
+	});
+
+	test('an invalid ledger id is reported once, not on every request', async () => {
+		useFakes();
+
+		const { userId } = await fundedUser();
+		const symbol = `BAD${process.pid}${Date.now()}`;
+
+		await query(
+			`insert into assets (chain, symbol, decimals, ledger_ref, enabled)
+			 values ('ic', $1, 8, 'mxz4u-wiaaa-aaaar-qaada-cai', true)`,
+			[symbol]
+		);
+
+		const errors = spyOn(console, 'error');
+
+		try {
+			const first = await wallet(userId);
+			const second = await wallet(userId);
+
+			for (const { balances } of [first, second]) {
+				expect(balances.map((row) => row.symbol)).toContain('VXP');
+				expect(balances.map((row) => row.symbol)).not.toContain(symbol);
+			}
+
+			const reports = errors.mock.calls.filter((call) => String(call[1]).includes(symbol));
+
+			expect(reports).toHaveLength(1);
+		} finally {
+			errors.mockRestore();
+			await query(`delete from assets where symbol = $1`, [symbol]);
+		}
 	});
 
 	test('reads the custodial principal on its default account', async () => {
