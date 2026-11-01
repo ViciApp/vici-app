@@ -1,8 +1,8 @@
 // IC adapter. The custodial deposit address IS the user's derived principal:
 // ICRC ledgers hold the balances, so there is no cursor-based scan. The
 // watcher reconciles each custodial principal's on-chain balance against the
-// internal ledger and credits the positive difference; the event key embeds
-// the observed on-chain balance so re-observing the same state is a no-op.
+// internal ledger and credits the positive difference, so re-observing the
+// same state is a no-op.
 
 import { isNullish } from '@dfinity/utils';
 import { IcrcLedgerCanister } from '@icp-sdk/canisters/ledger/icrc';
@@ -66,8 +66,7 @@ const watchDeposits = async ({
 
 			if (balance > ZERO) {
 				// The downstream crediting diffs this against the internal balance
-				// and books only the delta; the balance-carrying tx ref keeps the
-				// replays idempotent.
+				// and books only the delta, which is what keeps replays idempotent.
 				events.push({
 					kind: 'balance',
 					txRef: `balance:${asset.symbol}:${address}:${balance}`,

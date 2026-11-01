@@ -154,9 +154,14 @@ const creditBalanceDeposit = async ({
 	externalId: string;
 }): Promise<void> => {
 	await tx(async (q) => {
-		const internalRows = await q<{ balance: string }>(
-			`select coalesce(sum(delta), 0)::text as balance
-			 from ledger_entries where account_id = $1 and asset_id = $2`,
+		// One statement, so both come from one snapshot: a credit count fresher
+		// than the balance would give a stale delta a key nobody else holds.
+		const internalRows = await q<{ balance: string; credits: string }>(
+			`select
+				 (select coalesce(sum(delta), 0)::text from ledger_entries
+					where account_id = $1 and asset_id = $2) as balance,
+				 (select count(*)::text from deposits
+					where account_id = $1 and asset_id = $2) as credits`,
 			[account.id, event.asset.id]
 		);
 		// In-flight withdrawals already debited internally but still visible in
@@ -178,12 +183,17 @@ const creditBalanceDeposit = async ({
 			return;
 		}
 
+		// Keyed by credit number, not balance: an account can return to an amount
+		// it held before, and that key would drop the deposit on the conflict. The
+		// delta above is what stops a replay; this key only makes two overlapping
+		// credits collide.
+		const txRef = `balance-credit:${event.asset.symbol}:${event.address}:${internalRows[0]?.credits}`;
 		const inserted = await q<{ id: string }>(
 			`insert into deposits (account_id, asset_id, amount, tx_ref, confirmations, state)
 			 values ($1, $2, $3, $4, $5, 'confirmed')
 			 on conflict (account_id, asset_id, tx_ref) do nothing
 			 returning id`,
-			[account.id, event.asset.id, delta.toString(), event.txRef, event.confirmations]
+			[account.id, event.asset.id, delta.toString(), txRef, event.confirmations]
 		);
 		const depositId = inserted[0]?.id;
 
@@ -311,9 +321,7 @@ const watchWholeChain = async ({
 };
 
 /** One page of the sweep, read one (account, asset) pair at a time so a slow or
- * broken ledger costs only its own reads. No pair is read twice in a tick, so
- * credits on one (account, asset) never overlap and the read-then-post inside
- * creditBalanceDeposit stays safe under the concurrency here. */
+ * broken ledger costs only its own reads. */
 const sweepAccounts = async ({
 	adapter,
 	chainAssets,

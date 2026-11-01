@@ -13,7 +13,8 @@ export interface DepositEvent {
 	 * balance plus in-flight withdrawals. */
 	kind: 'tx' | 'balance';
 	/** Chain-level transaction reference (tx hash / signature / txid), or a
-	 * balance-state key for `balance` events. */
+	 * balance-state label for `balance` events, whose deposit row is keyed by
+	 * the crediting layer. */
 	txRef: string;
 	/** The custodial address that received the funds. */
 	address: string;

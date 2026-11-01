@@ -97,9 +97,12 @@ deposit:
 - **Timeouts wrap the watch pass, never the adapter's shared `rpc`.** `transfer`
   uses that `rpc` too: a timed-out broadcast would mark a withdrawal failed and
   refund it after the transaction landed.
-- **Credit one (account, asset) at a time.** `creditBalanceDeposit` reads the
-  internal balance and then posts; two overlapping credits that saw different
-  on-chain balances would both book. The sweep reads each pair once per tick.
+- **`balance` deposits are keyed by credit number, never by balance.** An
+  account can return to an amount it held before, and a balance key then drops
+  the deposit on the unique conflict. Replays are stopped by the delta, not the
+  key. Read the credit count in the same statement as the internal balance: a
+  count fresher than the balance gives a stale delta a key nobody else holds,
+  and it double-credits.
 
 ## If the prompt **does** ask you to work on icdc-core
 

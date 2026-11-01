@@ -25,7 +25,7 @@ import { watchSolDeposits } from '../src/chains/sol/adapter';
 import type { ChainAdapter, DepositEvent, WatchResult } from '../src/chains/types';
 import { DEFAULT_WATCH_LIMITS, tickDepositWatchers, type WatchLimits } from '../src/chains/watchers';
 import { getAssetBySymbol, listEnabledAssets, type Asset } from '../src/custody/assets';
-import { requestWithdrawal } from '../src/custody/withdrawals';
+import { requestWithdrawal, transitionWithdrawal } from '../src/custody/withdrawals';
 import { query } from '../src/db/client';
 import { readerLedger, setEngineActorProvider } from '../src/engine/actors';
 import type { Chain } from '../src/lib/keys';
@@ -649,6 +649,93 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 
 			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(420));
 			expect(await depositCount({ account, asset: icp })).toBe(1);
+		});
+
+		test('two overlapping ticks that saw different balances never book the sum', async () => {
+			const account = await seedAccount('ic');
+			let observed = 0;
+
+			useLedger(({ ledgerId, owner }) => {
+				if (ledgerId !== icp.ledger_ref || owner !== account.address) {
+					return BigInt(0);
+				}
+
+				observed += 1;
+
+				return observed === 1 ? BigInt(100) : BigInt(150);
+			});
+
+			await Promise.all([
+				tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL }),
+				tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL })
+			]);
+			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
+			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
+
+			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(150));
+		});
+
+		test('a deposit back to a balance already held is credited, once', async () => {
+			const account = await seedAccount('ic');
+			let balance = BigInt(1000);
+
+			useLedger(({ ledgerId, owner }) =>
+				ledgerId === icp.ledger_ref && owner === account.address ? balance : BigInt(0)
+			);
+
+			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
+
+			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(1000));
+
+			const withdrawal = await requestWithdrawal({
+				userId: account.userId,
+				asset: icp,
+				amount: BigInt(1000),
+				destination: principalText(),
+				selfCustody: true,
+				userAddress: account.address
+			});
+
+			await transitionWithdrawal({ id: withdrawal.id, from: 'requested', to: 'processing' });
+			await transitionWithdrawal({ id: withdrawal.id, from: 'processing', to: 'submitted' });
+			await transitionWithdrawal({ id: withdrawal.id, from: 'submitted', to: 'confirmed' });
+
+			balance = BigInt(0);
+			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
+
+			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(0));
+
+			balance = BigInt(1000);
+			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
+
+			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(1000));
+			expect(await depositCount({ account, asset: icp })).toBe(2);
+
+			// Replayed ticks over the same state book nothing further.
+			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
+			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
+
+			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(1000));
+			expect(await depositCount({ account, asset: icp })).toBe(2);
+		});
+
+		test('a replayed tx event books once, also when two ticks race on it', async () => {
+			const account = await seedAccount('evm');
+			const event = txEvent({ address: account.address, asset: eth, amount: BigInt(33) });
+			const adapter = scriptedAdapter({
+				chain: 'evm',
+				watchScope: 'chain',
+				watchDeposits: () => Promise.resolve({ events: [event] })
+			});
+
+			await Promise.all([
+				tickDepositWatchers({ adapters: [adapter] }),
+				tickDepositWatchers({ adapters: [adapter] })
+			]);
+			await tickDepositWatchers({ adapters: [adapter] });
+
+			expect(await bookedBalance({ account, asset: eth })).toBe(BigInt(33));
+			expect(await depositCount({ account, asset: eth })).toBe(1);
 		});
 
 		test('funds held by an in-flight withdrawal are not credited again', async () => {
