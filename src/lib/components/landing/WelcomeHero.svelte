@@ -4,7 +4,7 @@
 	 * Interactive swipe hero — the centerpiece of the landing.
 	 *
 	 * A stranger can MAKE A REAL CALL before signup: drag the demo
-	 * World-Cup card left (NO) or right (YES). Committing a side plays a
+	 * market card left (NO) or right (YES). Committing a side plays a
 	 * payoff celebration (confetti + spark burst, the Oracle/Trickster
 	 * character beat, an XP count-up) and then a brief "leaderboard
 	 * climb" moment — the competitive hook — before the sign-up ask.
@@ -37,9 +37,9 @@
 	const XP = LANDING_HERO_STAKE;
 	const YES = LANDING_HERO_CARD.yes;
 	const NO = 100 - YES;
-	const accent = LANDING_CAT_COLORS.wc;
-	const catLabel = LANDING_CAT_LABELS.wc;
-	const artMarket = { cat: 'wc', id: LANDING_HERO_CARD.artSeed } as const;
+	const accent = LANDING_CAT_COLORS.crypto;
+	const catLabel = LANDING_CAT_LABELS.crypto;
+	const artMarket = { cat: 'crypto', id: LANDING_HERO_CARD.artSeed } as const;
 
 	// Payout-from-stake for each side (long-shot pays more).
 	const winYes = Math.round(XP / (YES / 100)) - XP;
@@ -316,7 +316,7 @@
 								<div class="flow-art-bleed">
 									<MarketArtwork
 										bleed
-										category="wc"
+										category="crypto"
 										seed={artMarket.id}
 										size={420}
 										state="neutral"

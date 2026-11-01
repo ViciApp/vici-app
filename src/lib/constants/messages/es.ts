@@ -2644,7 +2644,7 @@ export const esMessages = {
 	'welcome.faq.a1':
 		'Sí. El modo juego es totalmente gratis — sin tarjeta, sin depósito, sin suscripción. VXP es una moneda de juego pura que mide la precisión; no se puede canjear y no es dinero. Los mercados con dinero real, cuando se introduzcan, serán opcionales y estarán claramente etiquetados.',
 	'welcome.faq.a2':
-		'Cientos de preguntas sobre macro, cripto, política, tecnología, deportes y cultura. Más mercados de torneos en vivo — la Copa del Mundo 2026 se extiende hasta julio con mercados de avance por equipo, eliminatorias y ganador final. Cada pregunta se resuelve con una fuente pública.',
+		'Cientos de preguntas sobre macro, cripto, política, tecnología, deportes y cultura. Cada pregunta se resuelve con una fuente pública.',
 	'welcome.faq.a3':
 		'Predicciones resueltas dividido entre el total de resueltas. Las predicciones abiertas no cuentan hasta que se cierre el mercado. La precisión es la unidad de tu reputación — en el ranking global, en tu liga privada y en cualquier combate en el que participes.',
 	'welcome.faq.a4':
@@ -2685,22 +2685,22 @@ export const esMessages = {
 	'welcome.trust.tagline': 'Veni. Vidi. Vici.',
 	'welcome.universities.fifa_tag': 'COPA MUNDIAL FIFA',
 	'welcome.close.cta': 'Empieza a predecir — gratis',
-	'welcome.close.headline': 'Ya viene el Mundial. Predícelo antes de que pase.',
+	'welcome.close.headline': '¿Qué pasará ahora? Predícelo antes de que pase.',
 	'welcome.hero.card_meta': 'El {pct}% de los jugadores dice que SÍ',
-	'welcome.hero.card_q': '¿Llega EE. UU. a cuartos en casa?',
+	'welcome.hero.card_q': '¿Cerrará Bitcoin el año por encima de como empezó?',
 	'welcome.hero.climb_to': 'Subirías al',
 	'welcome.hero.cta': 'Haz tu primera predicción',
 	'welcome.hero.cta_note': 'Gratis. Sin tarjeta. Sin trampa.',
 	'welcome.hero.favorite': 'FAVORITO',
 	'welcome.hero.headline': 'Que tu “te lo dije” tenga pruebas.',
 	'welcome.hero.hint': 'Desliza la carta — izquierda no, derecha sí',
-	'welcome.hero.kicker': 'Copa del Mundo FIFA 2026® · en vivo',
+	'welcome.hero.kicker': 'Juego de pronósticos gratis · en vivo',
 	'welcome.hero.long_shot': 'TAPADO',
 	'welcome.hero.no': 'NO',
 	'welcome.hero.payoff': 'Desafía a tus amigos.',
 	'welcome.hero.payoff_cta': 'Regístrate ahora',
 	'welcome.hero.sub':
-		'El juego de pronósticos del Mundial, gratis. Reúne a tus amigos, predice cómo se desarrolla todo el torneo y mira quién acierta.',
+		'El juego de pronósticos, gratis. Reúne a tus amigos, predice qué pasa en deportes, cripto, política y cultura, y mira quién acierta.',
 	'welcome.hero.swipe_to_call': 'DESLIZA PARA PREDECIR',
 	'welcome.hero.tally': 'En este mercado · provisional',
 	'welcome.hero.try_another': 'Prueba otra',
@@ -2709,7 +2709,7 @@ export const esMessages = {
 	'welcome.how.s2': 'Se resuelve con datos públicos',
 	'welcome.how.s3': 'Sube en la tabla',
 	'welcome.proof.label': '¿Y tú dónde quedas?',
-	'welcome.proof.live': 'personas están prediciendo el Mundial ahora mismo.',
+	'welcome.proof.live': 'personas ya están haciendo sus predicciones.',
 	'welcome.status.body':
 		'Cada predicción queda en tu historial. Acierta y subes — más allá de tu grupo, tu ciudad, el mundo. A la tabla no le importa quién grita más. Solo quién acierta más.',
 	'welcome.status.cap_friends': 'Tu grupo, en la tabla.',

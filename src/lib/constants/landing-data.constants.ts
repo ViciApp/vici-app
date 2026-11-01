@@ -274,14 +274,14 @@ export const LANDING_WORLDS_UNIVERSITIES_COUNT = 64;
 
 /**
  * The single demo market a first-time visitor can swipe in the hero.
- * Mirrors a real Flow card: a World-Cup binary with a published YES
+ * Mirrors a real Flow card: a binary question with a published YES
  * consensus. Kept deliberately simple — the question text resolves
  * from i18n (`welcome.hero.card_q`), only the artwork seed + YES%
  * live here.
  */
 export const LANDING_HERO_CARD = {
-	/** Artwork seed passed to `MarketArtwork` (category `wc`). */
-	artSeed: 'wc-usa-quarter',
+	/** Artwork seed passed to `MarketArtwork` (category `crypto`). */
+	artSeed: 'btc-year-close',
 	/** Published YES consensus for the demo question. */
 	yes: 33
 } as const;
@@ -370,10 +370,10 @@ export interface LandingProofChip {
  * illustrative marketing texture, not live data.
  */
 export const LANDING_PROOF_CHIPS: readonly LandingProofChip[] = [
-	{ who: 'marcov', side: 'YES', q: 'Brazil to lift the trophy' },
-	{ who: 'lenak', side: 'NO', q: 'Host nation wins the group' },
-	{ who: 'tariq', side: 'YES', q: 'A QF decided on penalties' },
-	{ who: 'priyas', side: 'YES', q: 'Golden Boot from Europe' },
-	{ who: 'dani', side: 'NO', q: 'Defending champ exits early' },
-	{ who: 'okonkwo', side: 'YES', q: 'Opening match over 2.5 goals' }
+	{ who: 'marcov', side: 'YES', q: 'Bitcoin closes the year higher' },
+	{ who: 'lenak', side: 'NO', q: 'The Fed cuts at its next meeting' },
+	{ who: 'tariq', side: 'YES', q: 'The derby goes to the home side' },
+	{ who: 'priyas', side: 'YES', q: 'A sequel tops the box office' },
+	{ who: 'dani', side: 'NO', q: 'The incumbent wins again' },
+	{ who: 'okonkwo', side: 'YES', q: 'The next phone costs more' }
 ] as const;
