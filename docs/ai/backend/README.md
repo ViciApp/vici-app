@@ -82,6 +82,25 @@ If you regenerated against a new icdc-core tag / commit, mention it in
 the PR `# Motivation` so a reviewer can sequence the deploy. See
 [`pr-and-ci.md#cross-repo-changes-icdc-core`](../pr-and-ci.md#9-cross-repo-changes-icdc-core).
 
+## Deposit watcher contract (`backend/src/chains/`)
+
+Not discoverable from one adapter, and each rule guards a lost or doubled
+deposit:
+
+- **`watchScope` decides who may be batched.** `address` adapters are paged
+  across ticks. A `chain` adapter walks a position it never revisits, so an
+  address missing from one pass loses its deposits for good: it gets every
+  address, and bounds its own pass (`MAX_BLOCKS_PER_TICK`).
+- **`watchDeposits` only reads.** A pass past its deadline is abandoned while
+  it runs. Persisted state moves in the returned `commit`, which the watcher
+  calls after every event is credited.
+- **Timeouts wrap the watch pass, never the adapter's shared `rpc`.** `transfer`
+  uses that `rpc` too: a timed-out broadcast would mark a withdrawal failed and
+  refund it after the transaction landed.
+- **Credit one (account, asset) at a time.** `creditBalanceDeposit` reads the
+  internal balance and then posts; two overlapping credits that saw different
+  on-chain balances would both book. The sweep reads each pair once per tick.
+
 ## If the prompt **does** ask you to work on icdc-core
 
 Switch context: open `../icdc-core/` as the working directory and obey

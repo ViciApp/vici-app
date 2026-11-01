@@ -14,7 +14,8 @@ import {
 	ChainDisabledError,
 	type ChainAdapter,
 	type DepositEvent,
-	type TransferParams
+	type TransferParams,
+	type WatchResult
 } from '../types';
 import { encodeErc20Transfer, evmAddressFromPrivateKey, signEip1559Tx } from './tx';
 
@@ -141,22 +142,22 @@ const writeCursor = async (cursor: bigint): Promise<void> => {
 	);
 };
 
-const watchDeposits = async ({
+export const watchEvmDeposits = async ({
 	addresses,
 	assets
 }: {
 	addresses: string[];
 	assets: Asset[];
-}): Promise<DepositEvent[]> => {
+}): Promise<WatchResult> => {
 	if (addresses.length === 0) {
-		return [];
+		return { events: [] };
 	}
 
 	const head = BigInt(await rpc<string>('eth_blockNumber', []));
 	const safeHead = head - BigInt(env.evm.confirmations);
 
 	if (safeHead <= ZERO) {
-		return [];
+		return { events: [] };
 	}
 
 	const cursor = await readCursor();
@@ -165,7 +166,7 @@ const watchDeposits = async ({
 	const fromBlock = isNullish(cursor) ? safeHead : cursor + BigInt(1);
 
 	if (fromBlock > safeHead) {
-		return [];
+		return { events: [] };
 	}
 
 	const toBlock =
@@ -235,15 +236,13 @@ const watchDeposits = async ({
 		}
 	}
 
-	await writeCursor(toBlock);
-
 	if (events.length > 0) {
 		logger.info(
 			`evm watcher: observed ${events.length} deposit(s) in blocks ${fromBlock}-${toBlock}`
 		);
 	}
 
-	return events;
+	return { events, commit: () => writeCursor(toBlock) };
 };
 
 const disabled = (): never => {
@@ -251,10 +250,19 @@ const disabled = (): never => {
 };
 
 export const evmAdapter: ChainAdapter = env.evm.enabled
-	? { chain: 'evm', enabled: true, deriveAddress, getBalance, transfer, watchDeposits }
+	? {
+			chain: 'evm',
+			enabled: true,
+			watchScope: 'chain',
+			deriveAddress,
+			getBalance,
+			transfer,
+			watchDeposits: watchEvmDeposits
+		}
 	: {
 			chain: 'evm',
 			enabled: false,
+			watchScope: 'chain',
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('evm')),
 			transfer: () => Promise.reject(new ChainDisabledError('evm')),

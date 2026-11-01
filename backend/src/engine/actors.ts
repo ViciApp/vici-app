@@ -16,6 +16,7 @@
 // ICRC ledgers join the same provider: clearing pulls collateral from a ledger
 // allowance, so the two only make sense faked together.
 
+import { nonNullish } from '@dfinity/utils';
 import { IcrcLedgerCanister } from '@icp-sdk/canisters/ledger/icrc';
 import { Actor, type Identity } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';
@@ -66,14 +67,21 @@ const defaultProvider: EngineActorProvider = {
 
 let provider: EngineActorProvider = defaultProvider;
 
+// An agent caches the subnet keys that verify query responses, so an agent
+// built per read pays a read_state round trip and a certificate check on every
+// balance. Keyed per ledger: the keys are per subnet.
+const readerLedgers = new Map<string, Promise<IcrcLedgerActor>>();
+
 /** Swap the actor provider (tests only). Returns a restore function. */
 export const setEngineActorProvider = (
 	next: Omit<EngineActorProvider, 'ledger'> & Partial<Pick<EngineActorProvider, 'ledger'>>
 ): (() => void) => {
 	provider = { ...defaultProvider, ...next };
+	readerLedgers.clear();
 
 	return () => {
 		provider = defaultProvider;
+		readerLedgers.clear();
 	};
 };
 
@@ -95,8 +103,21 @@ export const userRegistry = (userId: string): Promise<RegistryService> =>
 export const adminRegistry = (): Promise<RegistryService> =>
 	provider.registry(adminIcIdentity(), true);
 
-export const readerLedger = (ledgerCanisterId: string): Promise<IcrcLedgerActor> =>
-	provider.ledger(engineReaderIcIdentity(), ledgerCanisterId);
+export const readerLedger = (ledgerCanisterId: string): Promise<IcrcLedgerActor> => {
+	const cached = readerLedgers.get(ledgerCanisterId);
+
+	if (nonNullish(cached)) {
+		return cached;
+	}
+
+	const ledger = provider.ledger(engineReaderIcIdentity(), ledgerCanisterId);
+
+	readerLedgers.set(ledgerCanisterId, ledger);
+	// A build that failed must not answer every later read from the cache.
+	ledger.catch(() => readerLedgers.delete(ledgerCanisterId));
+
+	return ledger;
+};
 
 export const userLedger = ({
 	userId,

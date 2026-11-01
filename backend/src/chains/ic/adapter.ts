@@ -12,7 +12,7 @@ import { readerLedger } from '../../engine/actors';
 import { ZERO } from '../../lib/constants';
 import { buildAgent } from '../../lib/ic-agent';
 import { treasuryIcIdentity, userIcIdentity, userIcPrincipalText } from '../../lib/keys';
-import type { ChainAdapter, DepositEvent, TransferParams } from '../types';
+import type { ChainAdapter, DepositEvent, TransferParams, WatchResult } from '../types';
 
 const ledgerRef = (asset: Asset): string => {
 	if (isNullish(asset.ledger_ref)) {
@@ -57,7 +57,7 @@ const watchDeposits = async ({
 }: {
 	addresses: string[];
 	assets: Asset[];
-}): Promise<DepositEvent[]> => {
+}): Promise<WatchResult> => {
 	const events: DepositEvent[] = [];
 
 	for (const asset of assets) {
@@ -80,7 +80,7 @@ const watchDeposits = async ({
 		}
 	}
 
-	return events;
+	return { events };
 };
 
 // The IC adapter is enabled by default: IC_HOST carries a mainnet default, so
@@ -88,6 +88,7 @@ const watchDeposits = async ({
 export const icAdapter: ChainAdapter = {
 	chain: 'ic',
 	enabled: true,
+	watchScope: 'address',
 	deriveAddress,
 	getBalance,
 	transfer,

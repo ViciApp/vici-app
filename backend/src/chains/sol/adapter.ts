@@ -12,7 +12,8 @@ import {
 	ChainDisabledError,
 	type ChainAdapter,
 	type DepositEvent,
-	type TransferParams
+	type TransferParams,
+	type WatchResult
 } from '../types';
 import {
 	buildSolTransferTx,
@@ -150,20 +151,21 @@ interface ParsedTx {
 	transaction: { message: { accountKeys: { pubkey: string }[] } };
 }
 
-const watchDeposits = async ({
+export const watchSolDeposits = async ({
 	addresses,
 	assets
 }: {
 	addresses: string[];
 	assets: Asset[];
-}): Promise<DepositEvent[]> => {
+}): Promise<WatchResult> => {
 	const nativeAsset = assets.find((asset) => isNullish(asset.ledger_ref));
 
 	if (isNullish(nativeAsset)) {
-		return [];
+		return { events: [] };
 	}
 
 	const events: DepositEvent[] = [];
+	const cursors = new Map<string, string>();
 
 	for (const address of addresses) {
 		const until = await readCursor(address);
@@ -176,8 +178,8 @@ const watchDeposits = async ({
 			}
 		]);
 
-		// Newest first from the RPC; credit oldest first so a mid-loop crash
-		// leaves the cursor behind the un-credited remainder.
+		// Newest first from the RPC; reported oldest first so credits follow
+		// chain order.
 		for (const info of [...signatures].reverse()) {
 			if (isNullish(info.err)) {
 				const parsed = await rpc<ParsedTx | null>('getTransaction', [
@@ -213,18 +215,34 @@ const watchDeposits = async ({
 
 			// An errored or irrelevant transaction still advances the cursor:
 			// nothing in it can ever become creditable.
-			await writeCursor({ address, cursor: info.signature });
+			cursors.set(address, info.signature);
 		}
 	}
 
-	return events;
+	return {
+		events,
+		commit: async () => {
+			for (const [address, cursor] of cursors) {
+				await writeCursor({ address, cursor });
+			}
+		}
+	};
 };
 
 export const solAdapter: ChainAdapter = env.sol.enabled
-	? { chain: 'sol', enabled: true, deriveAddress, getBalance, transfer, watchDeposits }
+	? {
+			chain: 'sol',
+			enabled: true,
+			watchScope: 'address',
+			deriveAddress,
+			getBalance,
+			transfer,
+			watchDeposits: watchSolDeposits
+		}
 	: {
 			chain: 'sol',
 			enabled: false,
+			watchScope: 'address',
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('sol')),
 			transfer: () => Promise.reject(new ChainDisabledError('sol')),

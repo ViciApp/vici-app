@@ -16,7 +16,8 @@ import {
 	ChainDisabledError,
 	type ChainAdapter,
 	type DepositEvent,
-	type TransferParams
+	type TransferParams,
+	type WatchResult
 } from '../types';
 import { btcAddressFromPrivateKey, type BtcNetwork } from './address';
 
@@ -157,11 +158,11 @@ const watchDeposits = async ({
 }: {
 	addresses: string[];
 	assets: Asset[];
-}): Promise<DepositEvent[]> => {
+}): Promise<WatchResult> => {
 	const asset = assets.find((candidate) => candidate.symbol === 'BTC');
 
 	if (isNullish(asset)) {
-		return [];
+		return { events: [] };
 	}
 
 	const tipHeight = Number(await esploraText('/blocks/tip/height'));
@@ -193,14 +194,23 @@ const watchDeposits = async ({
 		}
 	}
 
-	return events;
+	return { events };
 };
 
 export const btcAdapter: ChainAdapter = env.btc.enabled
-	? { chain: 'btc', enabled: true, deriveAddress, getBalance, transfer, watchDeposits }
+	? {
+			chain: 'btc',
+			enabled: true,
+			watchScope: 'address',
+			deriveAddress,
+			getBalance,
+			transfer,
+			watchDeposits
+		}
 	: {
 			chain: 'btc',
 			enabled: false,
+			watchScope: 'address',
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('btc')),
 			transfer: () => Promise.reject(new ChainDisabledError('btc')),
