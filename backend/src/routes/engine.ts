@@ -31,9 +31,10 @@ const badRequest = (set: StatusContext, error: string): { error: string } => {
 };
 
 /** Runs a collateral call under its id's claim. A finished id answers without
- * touching the chain and a held one answers 409. A refusal releases the claim
- * for a retry; any other failure leaves the outcome unknown, so the claim stays
- * until its lease proves the call cannot still be executing. */
+ * touching the chain and a held one answers 409. A refusal, or a failure before
+ * anything was signed, releases the claim for a retry; any other failure leaves
+ * the outcome unknown, so the claim stays until its lease proves the call
+ * cannot still be executing. */
 const runCollateralOperation = async ({
 	set,
 	run,
@@ -65,7 +66,9 @@ const runCollateralOperation = async ({
 
 			await releaseCollateralOperation(operation);
 
-			return badRequest(set, err.code);
+			set.status = err.status;
+
+			return { error: err.code };
 		}
 
 		throw err;
@@ -87,12 +90,12 @@ const WINDOWS: Record<string, ClearingDid.LeaderboardWindow> = {
 	all_time: { AllTime: null }
 };
 
-const BALANCE_DOMAINS: Record<string, ClearingDid.BalanceDomain> = {
-	Settlement: { Settlement: null },
-	ViciXp: { ViciXp: null },
-	Playground: { Playground: null },
-	Social: { Social: null }
-};
+const BALANCE_DOMAINS = new Map<string, ClearingDid.BalanceDomain>([
+	['Settlement', { Settlement: null }],
+	['ViciXp', { ViciXp: null }],
+	['Playground', { Playground: null }],
+	['Social', { Social: null }]
+]);
 
 // Total parse: a malformed query value degrades to "not provided" instead of
 // a thrown BigInt error surfacing as a 500.
@@ -222,7 +225,7 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 			return { account: toJson(state) };
 		}
 
-		const domain = BALANCE_DOMAINS[qs.domain];
+		const domain = BALANCE_DOMAINS.get(qs.domain);
 
 		if (isNullish(domain)) {
 			return badRequest(set, 'invalid_domain');

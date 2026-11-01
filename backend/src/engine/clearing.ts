@@ -28,16 +28,37 @@ const PUBLIC_READ_TTL_MS = 15_000;
  * outlive the deposit call that follows it. */
 const COLLATERAL_APPROVAL_TTL_NS = BigInt(60) * BigInt(1_000_000_000);
 
-/** A collateral call refused for good: clearing or the ledger answered, so
- * nothing of it is still executing. `code` is the API's stable error. */
+/** A collateral call that ended with nothing still executing: clearing or the
+ * ledger refused it, or it never got as far as signing. A retry cannot overlap
+ * it. `code` is the API's stable error. */
 export class CollateralRejectedError extends Error {
 	readonly code: string;
+	readonly status: number;
 
-	constructor({ code, message }: { code: string; message: string }) {
+	constructor({ code, message, status = 400 }: { code: string; message: string; status?: number }) {
 		super(message);
 		this.code = code;
+		this.status = status;
 	}
 }
+
+/** A read that runs ahead of the first signed update: if it fails, nothing has
+ * reached the chain. */
+const beforeSigning = async <T>(read: () => Promise<T>): Promise<T> => {
+	try {
+		return await read();
+	} catch (err: unknown) {
+		if (err instanceof CollateralRejectedError) {
+			throw err;
+		}
+
+		throw new CollateralRejectedError({
+			code: 'collateral_unavailable',
+			status: 503,
+			message: `collateral read failed: ${err instanceof Error ? err.message : String(err)}`
+		});
+	}
+};
 
 const expectOk = <O>(result: { Ok: O } | { Err: unknown }, label: string): O => {
 	if ('Ok' in result) {
@@ -122,8 +143,11 @@ const approveClearing = async ({
 	ledgerCanisterId: string;
 	amount: bigint;
 }): Promise<void> => {
-	const ledger = await userLedger({ userId, ledgerCanisterId });
-	const fee = await ledger.transactionFee({});
+	const { ledger, fee } = await beforeSigning(async () => {
+		const actor = await userLedger({ userId, ledgerCanisterId });
+
+		return { ledger: actor, fee: await actor.transactionFee({}) };
+	});
 
 	try {
 		await ledger.approve({
@@ -165,7 +189,7 @@ export const depositCollateral = async ({
 	amount: bigint;
 	resumed: boolean;
 }): Promise<void> => {
-	const { ledgerCanisterId, domain } = await resolveCollateral(assetId);
+	const { ledgerCanisterId, domain } = await beforeSigning(() => resolveCollateral(assetId));
 
 	if (!resumed) {
 		await approveClearing({ userId, ledgerCanisterId, amount });
@@ -195,7 +219,7 @@ export const withdrawCollateral = async ({
 	assetId: string;
 	amount: bigint;
 }): Promise<void> => {
-	const { domain } = await resolveCollateral(assetId);
+	const { domain } = await beforeSigning(() => resolveCollateral(assetId));
 	const actor = await userClearing(userId);
 
 	expectCollateralOk(

@@ -416,9 +416,10 @@ the exact candid shapes.
   is signed: clearing only replays an id safely in sequence, and two
   overlapping calls can both credit it. A finished id answers `200` with
   no ledger work, a held one answers `409 operation_in_progress`, a
-  definitive refusal frees the id, and an unknown outcome keeps it for a
-  15 minute lease, after which a retry goes straight to clearing without a
-  second approval.
+  definitive refusal or a read failing before anything is signed
+  (`503 collateral_unavailable`) frees the id, and an unknown outcome keeps
+  it for a 15 minute lease, after which a retry goes straight to clearing
+  without a second approval.
 - Account state (`getAccountState` / `loadAccountState`,
   `wallet.service.ts` `getCollateralBalances`) reads
   `/engine/account?domain=<variant>`, clearing's domain-scoped update read

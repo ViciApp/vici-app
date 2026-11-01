@@ -538,6 +538,115 @@ describe.if(dbAvailable)('POST /api/v1/engine/collateral/deposit', () => {
 			expect(resumed.status).toBe(200);
 			expect(calls.map(({ call }) => call)).toEqual(['deposit']);
 		});
+
+		const flakyPreflight = ({
+			catalogFails,
+			feeFails,
+			calls
+		}: {
+			catalogFails: boolean;
+			feeFails: boolean;
+			calls: string[];
+		}): void => {
+			let catalogDown = catalogFails;
+			let feeDown = feeFails;
+
+			restore = setEngineActorProvider({
+				clearing: () =>
+					Promise.resolve({
+						list_collateral_assets: () => {
+							if (catalogDown) {
+								catalogDown = false;
+
+								return Promise.reject(new Error('replica unreachable'));
+							}
+
+							return Promise.resolve(VXP_CATALOG);
+						},
+						deposit_collateral: () => {
+							calls.push('deposit');
+
+							return Promise.resolve({ Ok: null });
+						}
+					} as unknown as ClearingService),
+				registry: () => Promise.resolve({} as unknown as RegistryService),
+				ledger: () =>
+					Promise.resolve({
+						transactionFee: () => {
+							if (feeDown) {
+								feeDown = false;
+
+								return Promise.reject(new Error('replica unreachable'));
+							}
+
+							return Promise.resolve(FAKE_LEDGER_FEE);
+						},
+						approve: () => {
+							calls.push('approve');
+
+							return Promise.resolve(BigInt(1));
+						}
+					} as unknown as IcrcLedgerActor)
+			});
+		};
+
+		test.each([
+			['catalog read', { catalogFails: true, feeFails: false }],
+			['ledger fee read', { catalogFails: false, feeFails: true }]
+		])('a failed %s signs nothing and can be retried at once', async (_label, failure) => {
+			const calls: string[] = [];
+
+			flakyPreflight({ ...failure, calls });
+
+			const userId = await createTestUser();
+			const depositId = operationId();
+
+			const failed = await deposit({ userId, depositId, amount: BigInt(700) });
+
+			expect(failed.status).toBe(503);
+			expect(await failed.json()).toEqual({ error: 'collateral_unavailable' });
+			expect(calls).toEqual([]);
+
+			const retry = await deposit({ userId, depositId, amount: BigInt(700) });
+
+			expect(retry.status).toBe(200);
+			expect(calls).toEqual(['approve', 'deposit']);
+		});
+
+		test('an approve with an unknown outcome holds the id', async () => {
+			const calls: Record<string, unknown>[] = [];
+
+			restore = setEngineActorProvider({
+				clearing: () =>
+					Promise.resolve({
+						list_collateral_assets: () => Promise.resolve(VXP_CATALOG),
+						deposit_collateral: () => {
+							calls.push({ call: 'deposit' });
+
+							return Promise.resolve({ Ok: null });
+						}
+					} as unknown as ClearingService),
+				registry: () => Promise.resolve({} as unknown as RegistryService),
+				ledger: () =>
+					Promise.resolve({
+						transactionFee: () => Promise.resolve(FAKE_LEDGER_FEE),
+						approve: () => Promise.reject(new Error('ingress expired'))
+					} as unknown as IcrcLedgerActor)
+			});
+
+			const userId = await createTestUser();
+			const depositId = operationId();
+
+			const lost = await deposit({ userId, depositId, amount: BigInt(700) });
+
+			expect(lost.status).toBe(500);
+
+			const early = await deposit({ userId, depositId, amount: BigInt(700) });
+
+			expect(early.status).toBe(409);
+			expect(await early.json()).toEqual({ error: 'operation_in_progress' });
+			expect(calls).toEqual([]);
+		});
 	});
 });
 
@@ -597,12 +706,12 @@ describe.if(dbAvailable)('GET /api/v1/engine/account', () => {
 		).toBe('0');
 	});
 
-	test('refuses an unknown domain', async () => {
+	test.each(['Nope', 'toString'])('refuses the unknown domain %s', async (domain) => {
 		useFakes();
 
 		const res = await authedRequest({
 			userId: await createTestUser(),
-			path: '/api/v1/engine/account?domain=Nope'
+			path: `/api/v1/engine/account?domain=${domain}`
 		});
 
 		expect(res.status).toBe(400);
