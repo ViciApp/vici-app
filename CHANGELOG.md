@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.46](https://github.com/ViciApp/vici-app/compare/v1.8.45...v1.8.46) (2026-11-01)
+
+
+### Bug Fixes
+
+* **landing:** remove the finished World Cup from the home page ([#1403](https://github.com/ViciApp/vici-app/issues/1403)) ([850094a](https://github.com/ViciApp/vici-app/commit/850094a1f332f93f2bc3a3d582841af393b44225))
+
 ## [1.8.45](https://github.com/ViciApp/vici-app/compare/v1.8.44...v1.8.45) (2026-11-01)
 
 
