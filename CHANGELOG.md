@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.45](https://github.com/ViciApp/vici-app/compare/v1.8.44...v1.8.45) (2026-11-01)
+
+
+### Bug Fixes
+
+* **wallet:** show live VXP and fund collateral deposits on web2 ([#1401](https://github.com/ViciApp/vici-app/issues/1401)) ([3b79e24](https://github.com/ViciApp/vici-app/commit/3b79e247457b40154d8b82daaf504f535863a49c))
+
 ## [1.8.44](https://github.com/ViciApp/vici-app/compare/v1.8.43...v1.8.44) (2026-10-31)
 
 
