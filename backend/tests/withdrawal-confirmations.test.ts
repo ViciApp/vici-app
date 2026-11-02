@@ -23,6 +23,7 @@ import {
 } from '../src/custody/withdrawals';
 import { query, tx } from '../src/db/client';
 import { env } from '../src/env';
+import { ZERO } from '../src/lib/constants';
 import { logger } from '../src/lib/logger';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
@@ -179,6 +180,7 @@ describe.if(dbAvailable)('withdrawal confirmation tick', () => {
 			userId,
 			asset,
 			amount,
+			fee: ZERO,
 			destination: 'aaaaa-aa',
 			selfCustody: false,
 			userAddress: `p-${userId}`

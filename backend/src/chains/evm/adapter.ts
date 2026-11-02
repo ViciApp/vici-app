@@ -307,6 +307,11 @@ export const watchEvmDeposits = async ({
 	return { events, commit: () => writeCursor(toBlock) };
 };
 
+// Gas is priced at send time and paid in the native coin, so no fee fixed at
+// request time can describe it. Holding it is out of scope while evm
+// withdrawals stay disabled in production.
+const withdrawalFee = (): Promise<bigint> => Promise.resolve(ZERO);
+
 const disabled = (): never => {
 	throw new ChainDisabledError('evm');
 };
@@ -319,6 +324,7 @@ export const evmAdapter: ChainAdapter = env.evm.enabled
 			watchScope: 'chain',
 			deriveAddress,
 			getBalance,
+			withdrawalFee,
 			transfer,
 			transferStatus: evmTransferStatus,
 			watchDeposits: watchEvmDeposits
@@ -330,6 +336,7 @@ export const evmAdapter: ChainAdapter = env.evm.enabled
 			watchScope: 'chain',
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('evm')),
+			withdrawalFee: () => Promise.reject(new ChainDisabledError('evm')),
 			transfer: () => Promise.reject(new ChainDisabledError('evm')),
 			transferStatus: () => Promise.reject(new ChainDisabledError('evm')),
 			watchDeposits: disabled

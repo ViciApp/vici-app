@@ -462,7 +462,10 @@ the exact candid shapes.
   identity-parameterised for on-chain callers (admin tooling). The request
   is still gated on the internal ledger, not the live balance, so an `ic`
   send can disagree with the displayed figure: the watcher only books what
-  it sees on-chain and a sweep debits nothing.
+  it sees on-chain and a sweep debits nothing. The request also holds the
+  asset's network fee on top of the amount (quoted as `withdrawalFee` on
+  `/wallet/assets`, returned as `fee` on the withdrawal), so the most a
+  user can send is the balance less that fee.
 - The paged ICRC ledger history (`getTransactionsPage`) returns empty in
   web2 mode: index canisters key history by principal and the API exposes
   no custodial transfer feed yet. The wallet still shows clearing rows

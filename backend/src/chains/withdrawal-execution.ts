@@ -15,6 +15,7 @@ import {
 	type Withdrawal
 } from '../custody/withdrawals';
 import { query } from '../db/client';
+import { ZERO } from '../lib/constants';
 import { CHAINS, type Chain } from '../lib/keys';
 import { logger } from '../lib/logger';
 import { DEDUP_SAFE_WINDOW_MS } from './ic/icrc';
@@ -87,6 +88,8 @@ const sendClaimed = async ({
 		throw new Error(`withdrawal ${id} has no dedup fields to send with`);
 	}
 
+	const fee = BigInt(withdrawal.fee);
+
 	try {
 		const txRef = await withTimeout({
 			work: adapter.transfer({
@@ -94,6 +97,11 @@ const sendClaimed = async ({
 				to: withdrawal.destination,
 				amount: BigInt(withdrawal.amount),
 				asset,
+				// The held fee, so a ledger whose fee moved since the request rejects
+				// the send instead of charging more than the books hold. A row with
+				// no held fee was first sent without one, and a resend must match it
+				// field for field to be deduplicated.
+				...(fee > ZERO ? { fee } : {}),
 				dedup: { memo, created_at_ns: BigInt(createdAtNs), replay }
 			}),
 			timeout_ms,
@@ -160,7 +168,8 @@ export const executeWithdrawal = async ({
 	return (await getWithdrawal(withdrawal.id)) ?? claimed;
 };
 
-const STUCK_SELECT = `select w.id, w.user_id, w.asset_id, w.amount::text as amount, w.destination,
+const STUCK_SELECT = `select w.id, w.user_id, w.asset_id, w.amount::text as amount,
+	w.fee::text as fee, w.destination,
 	w.self_custody, w.state, w.tx_ref, w.failure_reason, w.transfer_memo,
 	w.transfer_created_at_ns::text as transfer_created_at_ns, a.chain
 	from withdrawals w

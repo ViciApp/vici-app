@@ -162,8 +162,9 @@ const creditBalanceDeposit = async ({
 		);
 		// In-flight withdrawals already debited internally but still visible in
 		// the on-chain balance; excluding them prevents re-crediting held funds.
+		// The held fee leaves on-chain with the transfer too.
 		const pendingRows = await q<{ pending: string }>(
-			`select coalesce(sum(w.amount), 0)::text as pending
+			`select coalesce(sum(w.amount + w.fee), 0)::text as pending
 			 from withdrawals w
 			 join custody_accounts a on a.user_id = w.user_id
 			 where a.id = $1 and w.asset_id = $2

@@ -305,19 +305,30 @@ describe.if(dbAvailable)('VXP is not withdrawable', () => {
 		await ensureMigrated();
 	});
 
-	test('the asset catalog flags VXP as the one non-withdrawable asset', async () => {
+	test('the asset catalog flags VXP as the one non-withdrawable asset and quotes the ledger fee', async () => {
+		useFakes();
+
 		const res = await app.handle(new Request('http://localhost/api/v1/wallet/assets'));
 
 		expect(res.status).toBe(200);
 
 		const { assets } = (await res.json()) as {
-			assets: { chain: string; symbol: string; withdrawable: boolean }[];
+			assets: {
+				chain: string;
+				symbol: string;
+				withdrawable: boolean;
+				withdrawalFee: string | null;
+			}[];
 		};
 
 		expect(assets.length).toBeGreaterThan(1);
 
-		for (const { chain, symbol, withdrawable } of assets) {
+		for (const { chain, symbol, withdrawable, withdrawalFee } of assets) {
 			expect(withdrawable).toBe(!(chain === 'ic' && symbol === 'VXP'));
+
+			if (chain === 'ic') {
+				expect(withdrawalFee).toBe(withdrawable ? FAKE_LEDGER_FEE.toString() : null);
+			}
 		}
 	});
 

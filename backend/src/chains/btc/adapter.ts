@@ -237,6 +237,11 @@ export const watchBtcDeposits = async ({
 	return { events };
 };
 
+// The miner fee depends on the fee-rate estimate and the inputs selected at
+// send time, so no fee fixed at request time can describe it. Holding it is
+// out of scope while btc withdrawals stay disabled in production.
+const withdrawalFee = (): Promise<bigint> => Promise.resolve(ZERO);
+
 export const btcAdapter: ChainAdapter = env.btc.enabled
 	? {
 			chain: 'btc',
@@ -245,6 +250,7 @@ export const btcAdapter: ChainAdapter = env.btc.enabled
 			watchScope: 'address',
 			deriveAddress,
 			getBalance,
+			withdrawalFee,
 			transfer,
 			transferStatus: btcTransferStatus,
 			watchDeposits: watchBtcDeposits
@@ -256,6 +262,7 @@ export const btcAdapter: ChainAdapter = env.btc.enabled
 			watchScope: 'address',
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('btc')),
+			withdrawalFee: () => Promise.reject(new ChainDisabledError('btc')),
 			transfer: () => Promise.reject(new ChainDisabledError('btc')),
 			transferStatus: () => Promise.reject(new ChainDisabledError('btc')),
 			watchDeposits: () => Promise.reject(new ChainDisabledError('btc'))

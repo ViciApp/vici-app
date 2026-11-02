@@ -1,6 +1,7 @@
 // Withdrawal execution and recovery: a withdrawal a crash left `requested` is
-// executed, one left `processing` is resent with its fixed dedup fields until
-// the ledger answers, and the hold is refunded only on a definite rejection.
+// executed, one left `processing` is resent with its fixed dedup fields and fee
+// until the ledger answers, and the hold, fee included, is refunded only on a
+// definite rejection.
 // The ic tests run the real adapter over a stubbed ICRC ledger, so the dedup
 // fields on the wire and the rejection rules are the production ones.
 
@@ -9,6 +10,7 @@ import { IcrcLedgerCanister, IcrcTransferError } from '@icp-sdk/canisters/ledger
 import { Principal } from '@icp-sdk/core/principal';
 import { afterAll, afterEach, beforeAll, describe, expect, spyOn, test, type Mock } from 'bun:test';
 import { randomBytes } from 'node:crypto';
+import { fakeEngineActorProvider } from '../e2e/fake-engine';
 import { createSession } from '../src/auth/sessions';
 import { encodeTransferMemo } from '../src/chains/ic/icrc';
 import { getAdapter } from '../src/chains/registry';
@@ -26,15 +28,21 @@ import {
 	type Withdrawal
 } from '../src/custody/withdrawals';
 import { query, tx } from '../src/db/client';
+import { setEngineActorProvider, type IcrcLedgerActor } from '../src/engine/actors';
 import { app } from '../src/index';
+import { ZERO } from '../src/lib/constants';
 import { userIcPrincipalText, type Chain } from '../src/lib/keys';
 import { logger } from '../src/lib/logger';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 
+/** The network fee every test withdrawal holds unless it says otherwise. */
+const FEE = BigInt(10);
+
 interface SentTransfer {
 	to: string;
 	amount: bigint;
+	fee?: bigint;
 	memo?: Uint8Array;
 	created_at_time?: bigint;
 }
@@ -76,12 +84,14 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 					transfer: (params: {
 						to: { owner: Principal };
 						amount: bigint;
+						fee?: bigint;
 						memo?: Uint8Array;
 						created_at_time?: bigint;
 					}) => {
 						const transfer: SentTransfer = {
 							to: params.to.owner.toText(),
 							amount: params.amount,
+							fee: params.fee,
 							memo: params.memo,
 							created_at_time: params.created_at_time
 						};
@@ -133,15 +143,19 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 		return row;
 	};
 
-	/** A funded user with one fresh withdrawal of `amount` to a recipient only
-	 * this test scripts, its hold already posted. */
+	/** A user funded with exactly `amount` plus `fee`, with one fresh withdrawal
+	 * of `amount` to a recipient only this test scripts, its hold already
+	 * posted. */
 	const requested = async ({
 		amount,
+		fee = FEE,
 		asset = icp
 	}: {
 		amount: bigint;
+		fee?: bigint;
 		asset?: Asset;
 	}): Promise<{ withdrawal: Withdrawal; userId: string; to: string }> => {
+		const funded = amount + fee;
 		const userId = await createTestUser();
 		const account = await ensureUserAccount({
 			userId,
@@ -158,8 +172,8 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 			eventKey: `test:fund:${userId}`,
 			kind: 'deposit',
 			legs: [
-				{ accountId: account.id, assetId: asset.id, delta: amount.toString() },
-				{ accountId: external.id, assetId: asset.id, delta: (-amount).toString() }
+				{ accountId: account.id, assetId: asset.id, delta: funded.toString() },
+				{ accountId: external.id, assetId: asset.id, delta: (-funded).toString() }
 			]
 		});
 
@@ -168,6 +182,7 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 			userId,
 			asset,
 			amount,
+			fee,
 			destination: to,
 			selfCustody: false,
 			userAddress: `p-${userId}`
@@ -185,7 +200,7 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 
 	const sentTo = (to: string): SentTransfer[] => sent.filter((transfer) => transfer.to === to);
 
-	test('a withdrawal a crash left requested is executed with its dedup fields', async () => {
+	test('a withdrawal a crash left requested is executed with its dedup fields and fee', async () => {
 		const { withdrawal, userId, to } = await requested({ amount: BigInt(500) });
 
 		answers.set(to, () => Promise.resolve(BigInt(11)));
@@ -200,6 +215,8 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 		expect(row.tx_ref).toBe('11');
 		expect(sentTo(to)).toHaveLength(1);
 		expect(transfer?.amount).toBe(BigInt(500));
+		expect(transfer?.fee).toBe(FEE);
+		expect(row.fee).toBe(FEE.toString());
 		expect(transfer?.memo).toEqual(encodeTransferMemo(`withdrawal:${withdrawal.id}`));
 		expect(transfer?.created_at_time?.toString()).toBe(row.transfer_created_at_ns ?? '');
 		expect(await balanceOf({ userId, asset: icp })).toBe(BigInt(0));
@@ -242,6 +259,7 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 
 		expect(row.state).toBe('submitted');
 		expect(row.tx_ref).toBe('77');
+		expect(resend?.fee).toBe(FEE);
 		expect(resend?.memo).toEqual(first?.memo);
 		expect(resend?.created_at_time).toBe(first?.created_at_time);
 		expect(await balanceOf({ userId, asset: icp })).toBe(BigInt(0));
@@ -310,7 +328,56 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 
 		expect(sentTo(to)).toHaveLength(1);
 		expect((await rowOf(withdrawal.id)).state).toBe('failed');
-		expect(await balanceOf({ userId, asset: icp })).toBe(BigInt(250));
+		expect(await balanceOf({ userId, asset: icp })).toBe(BigInt(250) + FEE);
+	});
+
+	test('a first send answered BadFee refunds the amount and the fee once', async () => {
+		silenceErrors();
+
+		const { withdrawal, userId, to } = await requested({ amount: BigInt(120) });
+
+		answers.set(to, () => Promise.reject(rejection({ BadFee: { expected_fee: FEE * BigInt(2) } })));
+
+		const executed = await executeWithdrawal({ withdrawal, asset: icp });
+
+		expect(executed.state).toBe('failed');
+		expect(executed.failure_reason).toContain('BadFee');
+
+		await abandon(withdrawal.id);
+		await tickWithdrawalRecovery();
+
+		expect(sentTo(to)).toHaveLength(1);
+		expect(sentTo(to)[0]?.fee).toBe(FEE);
+		expect(await balanceOf({ userId, asset: icp })).toBe(BigInt(120) + FEE);
+	});
+
+	test('a resend answered BadFee proves nothing and is never refunded', async () => {
+		silenceErrors();
+
+		const { withdrawal, userId, to } = await requested({ amount: BigInt(130) });
+
+		await claimWithdrawal(withdrawal.id);
+		await abandon(withdrawal.id);
+		answers.set(to, () => Promise.reject(rejection({ BadFee: { expected_fee: FEE * BigInt(2) } })));
+
+		await tickWithdrawalRecovery();
+
+		expect(sentTo(to)).toHaveLength(1);
+		expect((await rowOf(withdrawal.id)).state).toBe('processing');
+		expect(await balanceOf({ userId, asset: icp })).toBe(ZERO);
+	});
+
+	test('a row held without a fee is sent without one, as before the fee was held', async () => {
+		const { withdrawal, to } = await requested({ amount: BigInt(35), fee: ZERO });
+
+		answers.set(to, () => Promise.resolve(BigInt(16)));
+
+		const executed = await executeWithdrawal({ withdrawal, asset: icp });
+		const [transfer] = sentTo(to);
+
+		expect(executed.state).toBe('submitted');
+		expect(transfer?.amount).toBe(BigInt(35));
+		expect(transfer?.fee).toBeUndefined();
 	});
 
 	test('a resend answered InsufficientFunds proves nothing landed and refunds once', async () => {
@@ -328,7 +395,7 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 
 		expect(sentTo(to)).toHaveLength(1);
 		expect((await rowOf(withdrawal.id)).state).toBe('failed');
-		expect(await balanceOf({ userId, asset: icp })).toBe(BigInt(90));
+		expect(await balanceOf({ userId, asset: icp })).toBe(BigInt(90) + FEE);
 	});
 
 	test('a resend answered TooOld is left for a human and never refunded', async () => {
@@ -472,6 +539,13 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 		const execute = spyOn(execution, 'executeWithdrawal').mockRejectedValue(
 			new Error('connection terminated')
 		);
+		const restoreLedger = setEngineActorProvider({
+			...fakeEngineActorProvider,
+			ledger: () =>
+				Promise.resolve({
+					transactionFee: () => Promise.resolve(FEE)
+				} as unknown as IcrcLedgerActor)
+		});
 
 		try {
 			const res = await app.handle(
@@ -484,15 +558,19 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 					body: JSON.stringify({ assetId: icp.id, amount: '200', destination: recipient() })
 				})
 			);
-			const body = (await res.json()) as { withdrawal: { id: string; state: string } };
+			const body = (await res.json()) as {
+				withdrawal: { id: string; state: string; amount: string; fee: string };
+			};
 
 			createdIds.push(body.withdrawal.id);
 
 			expect(res.status).toBe(201);
-			expect(body.withdrawal.state).toBe('requested');
+			expect(body.withdrawal).toMatchObject({ state: 'requested', amount: '200', fee: '10' });
 			expect(await query(`select 1 from withdrawals where user_id = $1`, [userId])).toHaveLength(1);
+			expect(await balanceOf({ userId, asset: icp })).toBe(BigInt(90));
 		} finally {
 			execute.mockRestore();
+			restoreLedger();
 		}
 	});
 });
