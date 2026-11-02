@@ -4,7 +4,7 @@
 // recomputed windows.
 
 import { beforeAll, describe, expect, test } from 'bun:test';
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
 import {
 	freezeMonthlySnapshots,
@@ -22,15 +22,35 @@ import { dbAvailable } from './helpers/setup';
 
 const uniqueSlug = (): string => `w-${randomBytes(6).toString('hex')}`;
 
+// Past the ranges other suites draw from (monthly-stats 2100 to 2899,
+// tournaments 2300 to 2699): clearTestMonths deletes everything from here on,
+// and test files run concurrently.
+const FIRST_TEST_YEAR = 3000;
+const FIRST_TEST_MONTH_ANCHOR = `${FIRST_TEST_YEAR}-01`;
+
+let closedMonthsDrawn = 0;
+
 /** A closed-month anchor in a far-future year, with `nowMs` pinned one month
- * after it so the freeze sees the month as closed. */
+ * after it so the freeze sees the month as closed. Drawn sequentially, not at
+ * random: the freeze is all-or-nothing per (kind, month), so two tests sharing
+ * a month would see each other's frozen rows. */
 const uniqueClosedMonth = (): { monthAnchor: string; nowMs: number } => {
-	const year = 2200 + randomInt(0, 500);
-	const month = randomInt(1, 12);
+	const year = FIRST_TEST_YEAR + Math.floor(closedMonthsDrawn / 12);
+	const month = (closedMonthsDrawn % 12) + 1;
+
+	closedMonthsDrawn += 1;
+
 	const monthAnchor = `${year}-${String(month).padStart(2, '0')}`;
 	const nowMs = Date.UTC(year, month, 15);
 
 	return { monthAnchor, nowMs };
+};
+
+/** Frozen months and member month rows from previous runs on the same
+ * database would otherwise already own the anchors this run draws. */
+const clearTestMonths = async (): Promise<void> => {
+	await query(`delete from affiliation_stats where month_anchor >= $1`, [FIRST_TEST_MONTH_ANCHOR]);
+	await query(`delete from user_monthly_stats where month_anchor >= $1`, [FIRST_TEST_MONTH_ANCHOR]);
 };
 
 /** A member of `slug` with a profile and a month row for the anchor. */
@@ -72,6 +92,7 @@ const seedMember = async ({
 describe.if(dbAvailable)('monthly freeze', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
+		await clearTestMonths();
 	});
 
 	test('the first freeze captures the ranking; later freezes and roster churn cannot change it', async () => {
@@ -149,6 +170,7 @@ describe.if(dbAvailable)('monthly freeze', () => {
 describe.if(dbAvailable)('recomputed windows and championships', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
+		await clearTestMonths();
 	});
 
 	test('lifetime window sums the roster profiles and honors the worlds opt-out', async () => {

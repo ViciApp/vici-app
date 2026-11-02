@@ -201,7 +201,7 @@ describe.if(dbAvailable)('legacy nickname grandfathering', () => {
 	};
 
 	test('an unchanged invalid legacy nickname does not block unrelated edits', async () => {
-		const legacyNickname = `bad name ${Date.now()}`;
+		const legacyNickname = `bad name ${uniqueNickname()}`;
 		const userId = await seedLegacyProfile(legacyNickname);
 
 		const profile = await upsertMyProfile({
@@ -214,7 +214,7 @@ describe.if(dbAvailable)('legacy nickname grandfathering', () => {
 	});
 
 	test('actually changing to an invalid handle is rejected', async () => {
-		const userId = await seedLegacyProfile(`bad name ${Date.now()}`);
+		const userId = await seedLegacyProfile(`bad name ${uniqueNickname()}`);
 
 		expect(
 			upsertMyProfile({
@@ -225,7 +225,7 @@ describe.if(dbAvailable)('legacy nickname grandfathering', () => {
 	});
 
 	test('an unchanged over-length legacy nickname does not block unrelated edits', async () => {
-		const legacyNickname = `l${Date.now()}`.padEnd(MAX_NICKNAME_LENGTH + 4, 'a');
+		const legacyNickname = uniqueNickname().padEnd(MAX_NICKNAME_LENGTH + 4, 'a');
 		const userId = await seedLegacyProfile(legacyNickname);
 
 		const profile = await upsertMyProfile({
