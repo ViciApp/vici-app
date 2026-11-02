@@ -82,10 +82,10 @@ If you regenerated against a new icdc-core tag / commit, mention it in
 the PR `# Motivation` so a reviewer can sequence the deploy. See
 [`pr-and-ci.md#cross-repo-changes-icdc-core`](../pr-and-ci.md#9-cross-repo-changes-icdc-core).
 
-## Deposit watcher contract (`backend/src/chains/`)
+## Deposit watcher and withdrawal contract (`backend/src/chains/`, `backend/src/custody/`)
 
-Not discoverable from one adapter, and each rule guards a lost or doubled
-deposit:
+Not discoverable from one adapter, and each rule guards a lost, doubled or
+unintended movement of funds:
 
 - **`watchScope` decides who may be batched.** `address` adapters are paged
   across ticks. A `chain` adapter walks a position it never revisits, so an
@@ -109,6 +109,14 @@ deposit:
   out, stays `pending`: refunding one that later lands pays the user twice.
   Every `submitted` row counts as in flight in the `balance` delta, so a chain
   must eventually answer `confirmed` (ic does at once: a block index is final).
+- **The deposit watcher never books VXP, and withdrawals never accept it:
+  two separate guards.** The watcher skips VXP (`isVxp` in `backend/src/custody/assets.ts`)
+  because its balance is read live from the ledger. `requestWithdrawal`
+  rejects it with `AssetNotWithdrawableError` before reading any balance, and
+  `POST /api/v1/wallet/withdrawals` answers 400 with
+  `{ error: 'asset_not_withdrawable' }`. Do not lean on an empty internal VXP
+  balance to keep it on the platform: a new credit path would quietly open the
+  exit. `GET /api/v1/wallet/assets` reports the same rule as `withdrawable`.
 
 ## Withdrawal execution contract (`backend/src/chains/withdrawal-execution.ts`)
 

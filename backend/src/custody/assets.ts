@@ -50,6 +50,15 @@ export const applyAssetAllowlist = async (): Promise<void> => {
 	);
 };
 
+// Case-insensitive so a row seeded as `vxp` cannot slip past either guard.
+export const isVxp = ({ chain, symbol }: Pick<Asset, 'chain' | 'symbol'>): boolean =>
+	chain === 'ic' && symbol.toUpperCase() === 'VXP';
+
+/** VXP is the in-app reward token: it never leaves the platform, whatever an
+ * internal balance says. Withdrawals reject it outright, so a future credit
+ * path that books VXP cannot open an exit by accident. */
+export const isWithdrawable = (asset: Pick<Asset, 'chain' | 'symbol'>): boolean => !isVxp(asset);
+
 const reportedInvalidLedgers = new Set<string>();
 
 /** An ic ledger id that does not parse can never be read. Left in, the row
