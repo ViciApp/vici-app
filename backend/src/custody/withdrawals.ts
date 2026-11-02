@@ -153,6 +153,11 @@ export const requestWithdrawal = async ({
 			: undefined;
 
 	return tx(async (q) => {
+		// Under read committed two requests would both read the balance before
+		// either hold lands and overdraw it together; the row lock makes the
+		// second wait for the first hold and read the balance after it.
+		await q(`select id from custody_accounts where id = $1 for update`, [account.id]);
+
 		const balance = await accountBalance({ q, accountId: account.id, assetId: asset.id });
 
 		if (balance < amount + fee) {

@@ -185,6 +185,49 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 		expect(await balanceOf(userId)).toBe(BigInt(100));
 	});
 
+	test('a request waits for a concurrent debit and reads the balance after it', async () => {
+		const userId = await fundedUser(BigInt(1000));
+		const account = await ensureUserAccount({ userId, chain: 'ic', address: `p-${userId}` });
+		const external = await ensureInternalAccount({
+			kind: 'external',
+			chain: 'ic',
+			address: 'external'
+		});
+		let request: Promise<unknown> | undefined;
+
+		// A first hold still uncommitted while the second request runs: without
+		// the account lock the second reads the pre-debit balance and overdraws.
+		await tx(async (q) => {
+			await q(`select id from custody_accounts where id = $1 for update`, [account.id]);
+			await postLedgerEvent(
+				{
+					eventKey: `test:debit:${userId}`,
+					kind: 'withdrawal_hold',
+					legs: [
+						{ accountId: account.id, assetId: asset.id, delta: '-600' },
+						{ accountId: external.id, assetId: asset.id, delta: '600' }
+					]
+				},
+				q
+			);
+
+			request = requestWithdrawal({
+				userId,
+				asset,
+				amount: BigInt(500),
+				fee: BigInt(100),
+				destination: 'aaaaa-aa',
+				selfCustody: false,
+				userAddress: `p-${userId}`
+			}).catch((err: unknown) => err);
+
+			await new Promise((resolve) => setTimeout(resolve, 200));
+		});
+
+		expect(await request).toBeInstanceOf(InsufficientBalanceError);
+		expect(await balanceOf(userId)).toBe(BigInt(400));
+	});
+
 	test('refuses VXP even when a balance is booked, without holding or recording anything', async () => {
 		const vxp = await getAssetBySymbol({ chain: 'ic', symbol: 'VXP' });
 
