@@ -5,7 +5,7 @@
 
 import { isNullish } from '@dfinity/utils';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
 import {
 	claimTournamentPrize,
@@ -22,10 +22,22 @@ import { dbAvailable } from './helpers/setup';
 
 const uniqueLeagueId = (): string => `tlg-${randomBytes(6).toString('hex')}`;
 
-/** A far-future month so draws never collide across suites or runs. */
+// Month anchors reserved per suite so concurrent files never share one:
+// monthly-stats 2100 to 2899, tournaments 2900 to 2999, affiliation-stats
+// 3000 and up.
+const FIRST_TEST_YEAR = 2900;
+const FIRST_TEST_ANCHOR = `${FIRST_TEST_YEAR}-`;
+const PAST_LAST_TEST_ANCHOR = `${FIRST_TEST_YEAR + 100}-`;
+
+let monthsDrawn = 0;
+
+/** A far-future month, drawn sequentially rather than at random: two tests
+ * landing on the same anchor would answer already_drawn instead of drawing. */
 const uniqueMonth = (): { monthAnchor: string; startMs: number } => {
-	const year = 2300 + randomInt(0, 400);
-	const month = randomInt(1, 12);
+	const year = FIRST_TEST_YEAR + Math.floor(monthsDrawn / 12);
+	const month = (monthsDrawn % 12) + 1;
+
+	monthsDrawn += 1;
 
 	return {
 		monthAnchor: `${year}-${String(month).padStart(2, '0')}`,
@@ -122,10 +134,12 @@ describe.if(dbAvailable)('tournament', () => {
 		// would tie into the ranking; the cascade drops their memberships too.
 		await query(`delete from leagues where id like 'tlg-%'`);
 
-		// Far-future tournaments from previous local runs shrink the anchor
-		// space uniqueMonth draws from; a repeat anchor would answer
-		// already_drawn instead of drawing.
-		await query(`delete from tournaments where id >= '2300-'`);
+		// Every run draws the same anchors, so tournaments left by a previous
+		// run on this database would answer already_drawn instead of drawing.
+		await query(`delete from tournaments where id >= $1 and id < $2`, [
+			FIRST_TEST_ANCHOR,
+			PAST_LAST_TEST_ANCHOR
+		]);
 
 		for (let i = 0; i < TOURNAMENT_BRACKET_SIZE; i += 1) {
 			leagueIds.push(await seedLeagueWithMembers(60 - i));
