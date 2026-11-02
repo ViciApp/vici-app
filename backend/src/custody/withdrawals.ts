@@ -2,7 +2,8 @@
 // (hold: user -> external) so a user can never double-spend a pending
 // withdrawal; a failed or rejected withdrawal posts the compensating refund.
 //
-//   requested -> processing | rejected
+//   requested -> processing | rejected   (processing via claimWithdrawal, which
+//                                          fixes the transfer's dedup fields)
 //   processing -> submitted | failed
 //   submitted -> confirmed | failed
 //   confirmed / failed / rejected are terminal.
@@ -11,7 +12,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
 import { ZERO } from '../lib/constants';
 import { ensureInternalAccount, ensureUserAccount } from './accounts';
-import type { Asset } from './assets';
+import { isWithdrawable, type Asset } from './assets';
 import { accountBalance, postLedgerEvent } from './ledger';
 
 export type WithdrawalState =
@@ -27,6 +28,10 @@ export interface Withdrawal {
 	state: WithdrawalState;
 	tx_ref: string | null;
 	failure_reason: string | null;
+	/** Fixed by the claim that first moves the row to processing and resent
+	 * unchanged on every attempt, so a replay-safe chain deduplicates it. */
+	transfer_memo: string | null;
+	transfer_created_at_ns: string | null;
 }
 
 export const WITHDRAWAL_TRANSITIONS: Record<WithdrawalState, readonly WithdrawalState[]> = {
@@ -46,13 +51,19 @@ export const canTransition = ({
 	to: WithdrawalState;
 }): boolean => WITHDRAWAL_TRANSITIONS[from].includes(to);
 
-const SELECT = `select id, user_id, asset_id, amount::text as amount, destination,
-	self_custody, state, tx_ref, failure_reason from withdrawals`;
+const COLUMNS = `id, user_id, asset_id, amount::text as amount, destination, self_custody, state,
+	tx_ref, failure_reason, transfer_memo, transfer_created_at_ns::text as transfer_created_at_ns`;
+
+const SELECT = `select ${COLUMNS} from withdrawals`;
 
 export class InsufficientBalanceError extends Error {}
 
+export class AssetNotWithdrawableError extends Error {}
+
 /** Create a withdrawal request and post the balance hold atomically. Throws
- * InsufficientBalanceError when the internal balance cannot cover it. */
+ * AssetNotWithdrawableError for an asset that may never leave the platform,
+ * before any balance is read, and InsufficientBalanceError when the internal
+ * balance cannot cover it. */
 export const requestWithdrawal = async ({
 	userId,
 	asset,
@@ -70,6 +81,10 @@ export const requestWithdrawal = async ({
 	 * adapter; passed in so this module stays chain-agnostic). */
 	userAddress: string;
 }): Promise<Withdrawal> => {
+	if (!isWithdrawable(asset)) {
+		throw new AssetNotWithdrawableError(`${asset.chain}:${asset.symbol} is not withdrawable`);
+	}
+
 	if (amount <= ZERO) {
 		throw new Error('withdrawal amount must be positive');
 	}
@@ -91,8 +106,7 @@ export const requestWithdrawal = async ({
 		const inserted = await q<Withdrawal>(
 			`insert into withdrawals (user_id, asset_id, amount, destination, self_custody)
 			 values ($1, $2, $3, $4, $5)
-			 returning id, user_id, asset_id, amount::text as amount, destination,
-				 self_custody, state, tx_ref, failure_reason`,
+			 returning ${COLUMNS}`,
 			[userId, asset.id, amount.toString(), destination, selfCustody]
 		);
 		const [withdrawal] = inserted;
@@ -147,8 +161,7 @@ export const transitionWithdrawal = async ({
 				 failure_reason = coalesce($3, failure_reason),
 				 updated_at = now()
 			 where id = $4 and state = $5
-			 returning id, user_id, asset_id, amount::text as amount, destination,
-				 self_custody, state, tx_ref, failure_reason`,
+			 returning ${COLUMNS}`,
 			[to, txRef ?? null, failureReason ?? null, id, from]
 		);
 		const row = updated[0] ?? null;
@@ -159,6 +172,28 @@ export const transitionWithdrawal = async ({
 
 		return row;
 	});
+};
+
+const nowNs = (): bigint => BigInt(Date.now()) * BigInt(1_000_000);
+
+/** requested -> processing, fixing the transfer's dedup fields in the same
+ * statement, before anything is sent: every later attempt resends exactly
+ * these, so a chain that deduplicates answers a resend of a landed transfer
+ * with the original instead of paying twice. Returns null when another runner
+ * already claimed the row. */
+export const claimWithdrawal = async (id: string): Promise<Withdrawal | null> => {
+	const claimed = await query<Withdrawal>(
+		`update withdrawals
+		 set state = 'processing',
+			 transfer_memo = coalesce(transfer_memo, 'withdrawal:' || id::text),
+			 transfer_created_at_ns = coalesce(transfer_created_at_ns, $2),
+			 updated_at = now()
+		 where id = $1 and state = 'requested'
+		 returning ${COLUMNS}`,
+		[id, nowNs().toString()]
+	);
+
+	return claimed[0] ?? null;
 };
 
 /** Post the compensating refund for a failed/rejected withdrawal. Idempotent

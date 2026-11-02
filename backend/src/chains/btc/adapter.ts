@@ -240,6 +240,7 @@ export const watchBtcDeposits = async ({
 export const btcAdapter: ChainAdapter = env.btc.enabled
 	? {
 			chain: 'btc',
+			replaySafe: false,
 			enabled: true,
 			watchScope: 'address',
 			deriveAddress,
@@ -250,6 +251,7 @@ export const btcAdapter: ChainAdapter = env.btc.enabled
 		}
 	: {
 			chain: 'btc',
+			replaySafe: false,
 			enabled: false,
 			watchScope: 'address',
 			deriveAddress,

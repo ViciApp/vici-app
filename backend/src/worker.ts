@@ -10,9 +10,11 @@
 // `everyNthTick` throttles a job to every Nth pass of the env-driven poll
 // interval (WORKER_POLL_INTERVAL_MS), for sweeps that are cheap to skip.
 
+import { nonNullish } from '@dfinity/utils';
 import { sweepExpiredDeletions } from './account/lifecycle';
 import { tickWithdrawalConfirmations } from './chains/confirmations';
 import { tickDepositWatchers } from './chains/watchers';
+import { tickWithdrawalRecovery } from './chains/withdrawal-execution';
 import { applyAssetAllowlist } from './custody/assets';
 import { env } from './env';
 import { treasuryIcPrincipalText } from './lib/keys';
@@ -20,7 +22,7 @@ import { logger } from './lib/logger';
 import { pruneResolvedResults } from './social/resolved-results';
 import { tournamentDrawTick, tournamentResolveTick } from './tournaments/tournaments';
 import { isVxpTreasuryDisabled, reconcileUnpaidAwards } from './vxp/awards';
-import { backfillStreakUnderpayments } from './vxp/streak';
+import { backfillStreakUnderpayments, streakBackfillLogLine } from './vxp/streak';
 import { freezeClosedMonth } from './worlds/affiliation-stats';
 
 export interface WorkerJob {
@@ -45,6 +47,14 @@ export const jobs: WorkerJob[] = [
 		// transitionWithdrawal makes a re-run on a moved row a no-op.
 		name: 'withdrawal-confirmations',
 		run: () => tickWithdrawalConfirmations()
+	},
+	{
+		// Executes withdrawals a crash left requested and resends processing ones
+		// with their fixed dedup fields on replay-safe chains; the claim and the
+		// state guard keep it race-free against the request route, and the
+		// ledger's deduplication makes a resend of a landed transfer a no-op.
+		name: 'withdrawal-recovery',
+		run: () => tickWithdrawalRecovery()
 	},
 	{
 		name: 'prune-resolved-results',
@@ -79,12 +89,12 @@ export const jobs: WorkerJob[] = [
 		// report still surfaces the shortfall for the logs.
 		name: 'vxp-streak-backfill',
 		run: async () => {
-			const report = await backfillStreakUnderpayments({ dryRun: isVxpTreasuryDisabled() });
+			const line = streakBackfillLogLine(
+				await backfillStreakUnderpayments({ dryRun: isVxpTreasuryDisabled() })
+			);
 
-			if (report.underpaid > 0) {
-				logger.info(
-					`streak backfill: ${report.underpaid} underpaid (${report.minted} minted, ${report.alreadyBackfilled} already, shortfall ${report.totalShortfallBaseUnits})`
-				);
+			if (nonNullish(line)) {
+				logger.info(line);
 			}
 		},
 		everyNthTick: HOURLY_TICKS

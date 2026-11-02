@@ -8,7 +8,9 @@ import { parseVxp } from '../src/vxp/constants';
 import {
 	backfillStreakUnderpayments,
 	milestonesCrossed,
-	runStreakAwardTrigger
+	runStreakAwardTrigger,
+	streakBackfillLogLine,
+	type StreakBackfillReport
 } from '../src/vxp/streak';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { readAwardRow, stubVxpLedger, type LedgerStub } from './helpers/vxp';
@@ -95,9 +97,14 @@ describe('underpayment backfill', () => {
 			[userId]
 		);
 
+		const shortfall = parseVxp(150) - BigInt(150);
+
 		const dry = await backfillStreakUnderpayments({ dryRun: true });
 
 		expect(dry.underpaid).toBeGreaterThanOrEqual(1);
+		expect(dry.pending).toBeGreaterThanOrEqual(1);
+		expect(BigInt(dry.pendingShortfallBaseUnits)).toBeGreaterThanOrEqual(shortfall);
+		expect(streakBackfillLogLine(dry)).toBeDefined();
 		expect(stub.transfers).toHaveLength(0);
 
 		const wet = await backfillStreakUnderpayments({ dryRun: false });
@@ -117,7 +124,35 @@ describe('underpayment backfill', () => {
 		const again = await backfillStreakUnderpayments({ dryRun: false });
 
 		expect(again.alreadyBackfilled).toBeGreaterThanOrEqual(1);
+		expect(again.underpaid).toBeGreaterThanOrEqual(1);
+		expect(again.pending).toBe(0);
+		expect(again.pendingShortfallBaseUnits).toBe('0');
+		expect(BigInt(again.totalShortfallBaseUnits)).toBeGreaterThanOrEqual(shortfall);
+		// Already topped-up rows stay underpaid forever; they must not log every run.
+		expect(streakBackfillLogLine(again)).toBeUndefined();
 		expect(stub.transfers).toHaveLength(1);
+	});
+
+	test('a marker that failed earlier stays visible and is not minted again', async () => {
+		stub = stubVxpLedger();
+		const userId = await createTestUser();
+
+		await query(
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, paid_at_ms, block_index)
+			 values ($1, 'streak', 'streak_14', '400', 'paid', 1, 1, '1')`,
+			[userId]
+		);
+		await query(
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
+			 values ($1, 'streak', 'streak_14_backfill', $2, 'failed', 1)`,
+			[userId, (parseVxp(400) - BigInt(400)).toString()]
+		);
+
+		const report = await backfillStreakUnderpayments({ dryRun: false });
+
+		expect(report.failedMarkers).toBeGreaterThanOrEqual(1);
+		expect(streakBackfillLogLine(report)).toBeDefined();
+		expect(stub.transfers).toHaveLength(0);
 	});
 
 	test('correctly paid awards are never touched', async () => {
@@ -136,5 +171,56 @@ describe('underpayment backfill', () => {
 			await readAwardRow({ userId, awardType: 'streak', awardKey: 'streak_3_backfill' })
 		).toBeUndefined();
 		expect(stub.transfers).toHaveLength(0);
+	});
+
+	describe('log line', () => {
+		const baseReport: StreakBackfillReport = {
+			scanned: 18,
+			underpaid: 18,
+			alreadyBackfilled: 18,
+			minted: 0,
+			failed: 0,
+			pending: 0,
+			failedMarkers: 0,
+			totalShortfallBaseUnits: '19998000',
+			pendingShortfallBaseUnits: '0'
+		};
+
+		test('is silent when every underpaid row is already backfilled', () => {
+			expect(streakBackfillLogLine(baseReport)).toBeUndefined();
+		});
+
+		test('reports pending rows with their outstanding shortfall only', () => {
+			expect(
+				streakBackfillLogLine({
+					...baseReport,
+					underpaid: 19,
+					pending: 1,
+					minted: 1,
+					pendingShortfallBaseUnits: '1110000'
+				})
+			).toBe(
+				'streak backfill: 1 pending (1 minted, 0 failed, 0 failed earlier, shortfall 1110000)'
+			);
+		});
+
+		test('reports markers that failed in an earlier run', () => {
+			expect(
+				streakBackfillLogLine({ ...baseReport, alreadyBackfilled: 17, failedMarkers: 1 })
+			).toBe('streak backfill: 0 pending (0 minted, 0 failed, 1 failed earlier, shortfall 0)');
+		});
+
+		test('reports failed mints', () => {
+			expect(
+				streakBackfillLogLine({
+					...baseReport,
+					pending: 1,
+					failed: 1,
+					pendingShortfallBaseUnits: '1110000'
+				})
+			).toBe(
+				'streak backfill: 1 pending (0 minted, 1 failed, 0 failed earlier, shortfall 1110000)'
+			);
+		});
 	});
 });
