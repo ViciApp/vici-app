@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import type { ClearingDid } from '$declarations';
+	import { orderRejectionMessage } from '$lib/canisters/clearing.errors';
 	import MarketTitleSkeleton from '$lib/components/market/MarketTitleSkeleton.svelte';
 	import BaseButton from '$lib/components/ui/BaseButton.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
@@ -15,6 +16,7 @@
 	import { marketsNotInitialized } from '$lib/derived/markets.derived';
 	import { cancelLimitOrder } from '$lib/services/order.services';
 	import { localeStore } from '$lib/stores/locale.store';
+	import { notificationsStore } from '$lib/stores/notification.store';
 	import type { Market, MarketId } from '$lib/types/market';
 	import { formatPrice, formatQuantity } from '$lib/utils/format.utils';
 	import { t } from '$lib/utils/i18n.utils';
@@ -77,6 +79,21 @@
 
 		try {
 			await cancelLimitOrder(orderId);
+			onRefresh();
+		} catch (err: unknown) {
+			const rejection = orderRejectionMessage(err);
+
+			if (isNullish(rejection)) {
+				throw err;
+			}
+
+			notificationsStore.add({
+				title: t({ locale: $localeStore, key: 'portfolio.orders.cancel_failed' }),
+				message: t({ locale: $localeStore, ...rejection }),
+				type: 'error'
+			});
+
+			// The usual refusal is an order that already left the book, so the row is stale.
 			onRefresh();
 		} finally {
 			cancellingId = null;

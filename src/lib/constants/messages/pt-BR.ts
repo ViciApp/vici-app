@@ -1713,6 +1713,7 @@ export const ptBRMessages = {
 	'portfolio.empty.quote': '"Um portfólio é o registro dos calls que você escolheu manter."',
 	'portfolio.hero.eyebrow': 'PATRIMÔNIO TOTAL',
 	'portfolio.hero.unit': 'VXP',
+	'portfolio.orders.cancel_failed': 'Ordem não cancelada',
 	'portfolio.orders.empty': 'Nenhuma ordem aberta encontrada.',
 	'portfolio.orders.row.price_qty': 'Limite {price} · {qty}',
 	'portfolio.orders.side.buy': 'COMPRAR',

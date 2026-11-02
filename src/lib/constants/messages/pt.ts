@@ -2004,6 +2004,7 @@ export const ptMessages = {
 	'portfolio.empty.quote': '"Um portfólio é o registo dos calls que escolheste manter."',
 	'portfolio.hero.eyebrow': 'PATRIMÓNIO TOTAL',
 	'portfolio.hero.unit': 'VXP',
+	'portfolio.orders.cancel_failed': 'Ordem não cancelada',
 	'portfolio.orders.empty': 'Nenhuma ordem aberta encontrada.',
 	'portfolio.orders.row.price_qty': 'Limite {price} · {qty}',
 	'portfolio.orders.side.buy': 'COMPRAR',

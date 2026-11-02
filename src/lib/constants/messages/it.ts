@@ -2007,6 +2007,7 @@ export const itMessages = {
 	'portfolio.empty.quote': '"Un portafoglio è il registro delle call che hai scelto di tenere."',
 	'portfolio.hero.eyebrow': 'PATRIMONIO TOTALE',
 	'portfolio.hero.unit': 'VXP',
+	'portfolio.orders.cancel_failed': 'Ordine non annullato',
 	'portfolio.orders.empty': 'Nessun ordine aperto trovato.',
 	'portfolio.orders.row.price_qty': 'Limite {price} · {qty}',
 	'portfolio.orders.side.buy': 'COMPRA',

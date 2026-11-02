@@ -2012,6 +2012,7 @@ export const esMessages = {
 		'"Una cartera es el registro de las predicciones que elegiste mantener."',
 	'portfolio.hero.eyebrow': 'TOTAL EN CARTERA',
 	'portfolio.hero.unit': 'VXP',
+	'portfolio.orders.cancel_failed': 'Orden no cancelada',
 	'portfolio.orders.empty': 'No hay órdenes abiertas.',
 	'portfolio.orders.row.price_qty': 'Límite {price} · {qty}',
 	'portfolio.orders.side.buy': 'COMPRA',

@@ -15,6 +15,7 @@ import {
 } from '../custody/collateral-operations';
 import type { ClearingDid } from '../declarations';
 import * as clearing from '../engine/clearing';
+import { OrderRejectedError } from '../engine/order-rejections';
 import * as registry from '../engine/registry';
 import { toJson } from '../engine/serialize';
 import { ZERO } from '../lib/constants';
@@ -77,6 +78,30 @@ const runCollateralOperation = async ({
 	await completeCollateralOperation(operation);
 
 	return { ok: true };
+};
+
+/** Answers a refused order with its stable code. A fault keeps propagating to
+ * the app's error mapping, which answers 500 without the engine's text. */
+const runOrderCall = async <T>({
+	set,
+	run
+}: {
+	set: StatusContext;
+	run: () => Promise<T>;
+}): Promise<T | { error: string }> => {
+	try {
+		return await run();
+	} catch (err: unknown) {
+		if (err instanceof OrderRejectedError) {
+			logger.info('order refused:', err.message);
+
+			set.status = err.status;
+
+			return { ...err.details, error: err.code };
+		}
+
+		throw err;
+	}
 };
 
 const INTERVALS: Record<string, ClearingDid.PriceHistoryInterval> = {
@@ -283,23 +308,26 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 				return unauthenticated(set);
 			}
 
-			const filled = await clearing.submitLimitOrder({
-				userId: user.id,
-				params: {
-					order_id: body.orderId,
-					series_id: body.seriesId,
-					outcome_id: toNullable(body.outcomeId),
-					side: body.side === 'buy' ? { Buy: null } : { Sell: null },
-					qty: BigInt(body.qty),
-					price: {
-						timestamp: toNullable(),
-						oracle_id: toNullable(),
-						decimal: { value: BigInt(body.priceValue), decimals: body.priceDecimals }
-					}
-				}
+			return await runOrderCall({
+				set,
+				run: async () => ({
+					filled: await clearing.submitLimitOrder({
+						userId: user.id,
+						params: {
+							order_id: body.orderId,
+							series_id: body.seriesId,
+							outcome_id: toNullable(body.outcomeId),
+							side: body.side === 'buy' ? { Buy: null } : { Sell: null },
+							qty: BigInt(body.qty),
+							price: {
+								timestamp: toNullable(),
+								oracle_id: toNullable(),
+								decimal: { value: BigInt(body.priceValue), decimals: body.priceDecimals }
+							}
+						}
+					})
+				})
 			});
-
-			return { filled };
 		},
 		{
 			body: t.Object({
@@ -324,16 +352,19 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 				return unauthenticated(set);
 			}
 
-			const filled = await clearing.submitMarketOrder({
-				userId: user.id,
-				params: {
-					trade_id: body.tradeId,
-					matching_order_id: body.matchingOrderId,
-					qty: toNullable(optionalBigInt(body.qty))
-				}
+			return await runOrderCall({
+				set,
+				run: async () => ({
+					filled: await clearing.submitMarketOrder({
+						userId: user.id,
+						params: {
+							trade_id: body.tradeId,
+							matching_order_id: body.matchingOrderId,
+							qty: toNullable(optionalBigInt(body.qty))
+						}
+					})
+				})
 			});
-
-			return { filled };
 		},
 		{
 			body: t.Object({
@@ -352,12 +383,15 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 				return unauthenticated(set);
 			}
 
-			const cancelled = await clearing.cancelLimitOrder({
-				userId: user.id,
-				params: { order_id: body.orderId }
+			return await runOrderCall({
+				set,
+				run: async () => ({
+					cancelled: await clearing.cancelLimitOrder({
+						userId: user.id,
+						params: { order_id: body.orderId }
+					})
+				})
 			});
-
-			return { cancelled };
 		},
 		{ body: t.Object({ orderId: t.String({ minLength: 1 }) }) }
 	)

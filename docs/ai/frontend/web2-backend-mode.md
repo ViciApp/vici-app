@@ -20,8 +20,9 @@ Two files under `src/lib/web2/`:
   Every request sends `credentials: 'include'` (sessions are HttpOnly
   cookies; the client holds no auth state) and non-2xx responses throw
   `Web2ApiError` carrying `status` plus the stable `code` from the API's
-  `{ error: string }` envelope. One typed wrapper per endpoint, shape
-  mapping only.
+  `{ error: string }` envelope (plus `amounts` when an `insufficient_balance`
+  order refusal carries them). One typed wrapper per endpoint, shape mapping
+  only.
 
 ## Env vars
 
@@ -396,6 +397,14 @@ the exact candid shapes.
   also fires the trade-triggered awards; see the activities section); the
   daily-streak bump keeps riding the swapped profile writes with the
   session account id as owner.
+- Order refusals: the order routes answer a refusal the user can act on as
+  a 4xx with a stable code (table in
+  [`backend/README.md`](../../../backend/README.md#order-rejections)).
+  `orderRejectionMessage` in `canisters/clearing.errors.ts` maps each code to
+  the same `trade.error.*` key the matching `TradeError` variant uses on
+  chain, and `tradeErrorMessage` tries it first, so `TradeModal` and
+  `FlowMode` need no branch. A new code goes in the API table and in
+  `ORDER_REJECTION_KEYS`; the shared-drift suite fails until both agree.
 - `position.services.ts` / `trade.services.ts`: positions, the per-series
   position, and the user's own trade history read `/engine/positions` and
   `/engine/trade-history`; the domain scoping still runs through the

@@ -2015,6 +2015,7 @@ export const frMessages = {
 		'"Un portefeuille, c’est la trace des calls que vous avez choisi de garder."',
 	'portfolio.hero.eyebrow': 'AVOIRS TOTAUX',
 	'portfolio.hero.unit': 'VXP',
+	'portfolio.orders.cancel_failed': 'Ordre non annulé',
 	'portfolio.orders.empty': 'Aucun ordre ouvert.',
 	'portfolio.orders.row.price_qty': 'Limite {price} · {qty}',
 	'portfolio.orders.side.buy': 'ACHAT',

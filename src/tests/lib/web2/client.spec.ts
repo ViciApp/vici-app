@@ -1,4 +1,9 @@
-import { getEngineAccountState, listEngineSettlementStatuses } from '$lib/web2/client';
+import {
+	cancelEngineOrder,
+	getEngineAccountState,
+	listEngineSettlementStatuses,
+	Web2ApiError
+} from '$lib/web2/client';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 
@@ -171,5 +176,57 @@ describe('getEngineAccountState', () => {
 		assert.ok(urls[0].endsWith('/api/v1/engine/account?domain=ViciXp'));
 		assert.equal(account.total_equity_usd, 7n);
 		assert.equal(account.available_margin_usd, 5n);
+	});
+});
+
+describe('Web2ApiError', () => {
+	const originalFetch = globalThis.fetch;
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
+	const refusal = async ({
+		status,
+		body
+	}: {
+		status: number;
+		body: string;
+	}): Promise<Web2ApiError> => {
+		globalThis.fetch = () => Promise.resolve(new Response(body, { status }));
+
+		const err: unknown = await cancelEngineOrder({ orderId: 'o1' }).catch((e: unknown) => e);
+
+		assert.ok(err instanceof Web2ApiError);
+
+		return err;
+	};
+
+	it('carries the code and amounts of an order refusal', async () => {
+		const { status, code, amounts } = await refusal({
+			status: 400,
+			body: JSON.stringify({ error: 'insufficient_balance', available: '15', required: '20' })
+		});
+
+		assert.equal(status, 400);
+		assert.equal(code, 'insufficient_balance');
+		assert.deepEqual(amounts, { available: '15', required: '20' });
+	});
+
+	it('drops amounts that are not wire bigints', async () => {
+		for (const available of ['1.5', 'abc', 15, undefined]) {
+			const { amounts } = await refusal({
+				status: 400,
+				body: JSON.stringify({ error: 'insufficient_balance', available, required: '20' })
+			});
+
+			assert.equal(amounts, undefined);
+		}
+	});
+
+	it('keeps the generic code for a body that is not the envelope', async () => {
+		const { code } = await refusal({ status: 502, body: '<html>bad gateway</html>' });
+
+		assert.equal(code, 'unknown_error');
 	});
 });

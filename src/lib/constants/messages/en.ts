@@ -1993,6 +1993,7 @@ export const enMessages = {
 	'portfolio.empty.quote': '"A portfolio is a record of the calls you chose to keep."',
 	'portfolio.hero.eyebrow': 'TOTAL HOLDINGS',
 	'portfolio.hero.unit': 'VXP',
+	'portfolio.orders.cancel_failed': 'Order not cancelled',
 	'portfolio.orders.empty': 'No open orders found.',
 	'portfolio.orders.row.price_qty': 'Limit {price} · {qty}',
 	'portfolio.orders.side.buy': 'BUY',
