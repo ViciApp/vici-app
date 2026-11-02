@@ -3,9 +3,11 @@
 // production is a config change, not a schema change.
 
 import { isNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
 import { query } from '../db/client';
 import { env } from '../env';
 import type { Chain } from '../lib/keys';
+import { logger } from '../lib/logger';
 
 export interface Asset {
 	id: string;
@@ -48,11 +50,39 @@ export const applyAssetAllowlist = async (): Promise<void> => {
 	);
 };
 
-export const listEnabledAssets = (): Promise<Asset[]> =>
-	query<Asset>(
+const reportedInvalidLedgers = new Set<string>();
+
+/** An ic ledger id that does not parse can never be read. Left in, the row
+ * fails each wallet balance request and aborts each watcher pass for the whole
+ * chain. Dropping it here contains that to the one asset, and reporting once
+ * per process keeps a real fault visible without the log scaling with traffic. */
+const hasValidLedgerRef = (asset: Asset): boolean => {
+	if (asset.chain !== 'ic') {
+		return true;
+	}
+
+	try {
+		Principal.fromText(asset.ledger_ref ?? '');
+
+		return true;
+	} catch (err: unknown) {
+		if (!reportedInvalidLedgers.has(asset.id)) {
+			reportedInvalidLedgers.add(asset.id);
+			logger.error(`ic asset ${asset.symbol} left out of the catalog: invalid ledger id`, err);
+		}
+
+		return false;
+	}
+};
+
+export const listEnabledAssets = async (): Promise<Asset[]> => {
+	const assets = await query<Asset>(
 		`select id, chain, symbol, decimals, ledger_ref, enabled
 		 from assets where enabled order by chain, symbol`
 	);
+
+	return assets.filter(hasValidLedgerRef);
+};
 
 export const getAssetById = async (id: string): Promise<Asset | null> => {
 	const rows = await query<Asset>(
