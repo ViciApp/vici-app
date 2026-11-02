@@ -22,7 +22,10 @@ import { dbAvailable } from './helpers/setup';
 
 const uniqueSlug = (): string => `w-${randomBytes(6).toString('hex')}`;
 
-const FIRST_TEST_YEAR = 2200;
+// Past the ranges other suites draw from (monthly-stats 2100 to 2899,
+// tournaments 2300 to 2699): clearTestMonths deletes everything from here on,
+// and test files run concurrently.
+const FIRST_TEST_YEAR = 3000;
 const FIRST_TEST_MONTH_ANCHOR = `${FIRST_TEST_YEAR}-01`;
 
 let closedMonthsDrawn = 0;
