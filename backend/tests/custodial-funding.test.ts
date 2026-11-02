@@ -300,6 +300,74 @@ describe.if(dbAvailable)('GET /api/v1/wallet/balances', () => {
 	});
 });
 
+describe.if(dbAvailable)('VXP is not withdrawable', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('the asset catalog flags VXP as the one non-withdrawable asset', async () => {
+		const res = await app.handle(new Request('http://localhost/api/v1/wallet/assets'));
+
+		expect(res.status).toBe(200);
+
+		const { assets } = (await res.json()) as {
+			assets: { chain: string; symbol: string; withdrawable: boolean }[];
+		};
+
+		expect(assets.length).toBeGreaterThan(1);
+
+		for (const { chain, symbol, withdrawable } of assets) {
+			expect(withdrawable).toBe(!(chain === 'ic' && symbol === 'VXP'));
+		}
+	});
+
+	test('a booked VXP balance is refused before the balance check and holds nothing', async () => {
+		const userId = await createTestUser();
+		const vxp = await getAssetBySymbol({ chain: 'ic', symbol: 'VXP' });
+
+		if (isNullish(vxp)) {
+			throw new Error('VXP asset missing from seed');
+		}
+
+		const account = await ensureUserAccount({
+			userId,
+			chain: 'ic',
+			address: userIcPrincipalText(userId)
+		});
+		const external = await ensureInternalAccount({
+			kind: 'external',
+			chain: 'ic',
+			address: 'external'
+		});
+
+		await postLedgerEvent({
+			eventKey: `test:vxp-booked:${userId}`,
+			kind: 'deposit',
+			legs: [
+				{ accountId: account.id, assetId: vxp.id, delta: '1000' },
+				{ accountId: external.id, assetId: vxp.id, delta: '-1000' }
+			]
+		});
+
+		const res = await authedRequest({
+			userId,
+			path: '/api/v1/wallet/withdrawals',
+			body: { assetId: vxp.id, amount: '100', destination: userIcPrincipalText(userId) }
+		});
+
+		expect(res.status).toBe(400);
+		expect(await res.json()).toEqual({ error: 'asset_not_withdrawable' });
+		expect(await query(`select 1 from withdrawals where user_id = $1`, [userId])).toEqual([]);
+		expect(
+			await query(
+				`select balance::text as balance from custody_balances
+				 where account_id = $1 and asset_id = $2`,
+				[account.id, vxp.id]
+			)
+		).toEqual([{ balance: '1000' }]);
+	});
+});
+
 describe.if(dbAvailable)('ic deposit watcher', () => {
 	let stopWatching: (() => void) | undefined;
 
@@ -385,7 +453,7 @@ describe.if(dbAvailable)('ic deposit watcher', () => {
 		});
 
 		expect(res.status).toBe(400);
-		expect(await res.json()).toEqual({ error: 'insufficient_balance' });
+		expect(await res.json()).toEqual({ error: 'asset_not_withdrawable' });
 		expect(await query(`select 1 from withdrawals where user_id = $1`, [userId])).toEqual([]);
 
 		expect(vxpOf(await wallet(userId))).toBe(AWARD.toString());

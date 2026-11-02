@@ -16,7 +16,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { ensureInternalAccount } from '../custody/accounts';
-import { listEnabledAssets, type Asset } from '../custody/assets';
+import { isVxp, listEnabledAssets, type Asset } from '../custody/assets';
 import { postLedgerEvent } from '../custody/ledger';
 import { query, tx } from '../db/client';
 import { ZERO } from '../lib/constants';
@@ -50,11 +50,6 @@ interface WatchedAccount {
 	id: string;
 	address: string;
 }
-
-/** VXP balances are read live from the ledger and VXP stays non-withdrawable,
- * so it must not be booked on the internal ledger: that balance is what gates
- * `POST /wallet/withdrawals`, and crediting it would open VXP withdrawals. */
-const isVxp = ({ chain, symbol }: Asset): boolean => chain === 'ic' && symbol === 'VXP';
 
 const userAccountsOn = (chain: Chain): Promise<WatchedAccount[]> =>
 	query<WatchedAccount>(
@@ -427,6 +422,9 @@ export const tickDepositWatchers = async ({
 	const assets = await listEnabledAssets();
 
 	for (const adapter of adapters) {
+		// VXP is read live from its ledger and can never be withdrawn, so a
+		// booked VXP credit would serve nothing. This filter is not what keeps
+		// VXP on the platform: `requestWithdrawal` rejects it whatever is booked.
 		const chainAssets: Asset[] = assets.filter(
 			(asset) => asset.chain === adapter.chain && !isVxp(asset)
 		);

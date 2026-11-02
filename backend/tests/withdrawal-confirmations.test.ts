@@ -136,13 +136,13 @@ describe.if(dbAvailable)('withdrawal confirmation tick', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
 
-		const vxp = await getAssetBySymbol({ chain: 'ic', symbol: 'VXP' });
+		const icp = await getAssetBySymbol({ chain: 'ic', symbol: 'ICP' });
 
-		if (isNullish(vxp)) {
-			throw new Error('VXP asset missing from seed');
+		if (isNullish(icp)) {
+			throw new Error('ICP asset missing from seed');
 		}
 
-		asset = vxp;
+		asset = icp;
 	});
 
 	afterEach(() => {
