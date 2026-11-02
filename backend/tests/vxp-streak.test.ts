@@ -133,6 +133,28 @@ describe('underpayment backfill', () => {
 		expect(stub.transfers).toHaveLength(1);
 	});
 
+	test('a marker that failed earlier stays visible and is not minted again', async () => {
+		stub = stubVxpLedger();
+		const userId = await createTestUser();
+
+		await query(
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, paid_at_ms, block_index)
+			 values ($1, 'streak', 'streak_14', '400', 'paid', 1, 1, '1')`,
+			[userId]
+		);
+		await query(
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
+			 values ($1, 'streak', 'streak_14_backfill', $2, 'failed', 1)`,
+			[userId, (parseVxp(400) - BigInt(400)).toString()]
+		);
+
+		const report = await backfillStreakUnderpayments({ dryRun: false });
+
+		expect(report.failedMarkers).toBeGreaterThanOrEqual(1);
+		expect(streakBackfillLogLine(report)).toBeDefined();
+		expect(stub.transfers).toHaveLength(0);
+	});
+
 	test('correctly paid awards are never touched', async () => {
 		stub = stubVxpLedger();
 		const userId = await createTestUser();
@@ -159,6 +181,7 @@ describe('underpayment backfill', () => {
 			minted: 0,
 			failed: 0,
 			pending: 0,
+			failedMarkers: 0,
 			totalShortfallBaseUnits: '19998000',
 			pendingShortfallBaseUnits: '0'
 		};
@@ -176,7 +199,15 @@ describe('underpayment backfill', () => {
 					minted: 1,
 					pendingShortfallBaseUnits: '1110000'
 				})
-			).toBe('streak backfill: 1 pending (1 minted, 0 failed, shortfall 1110000)');
+			).toBe(
+				'streak backfill: 1 pending (1 minted, 0 failed, 0 failed earlier, shortfall 1110000)'
+			);
+		});
+
+		test('reports markers that failed in an earlier run', () => {
+			expect(
+				streakBackfillLogLine({ ...baseReport, alreadyBackfilled: 17, failedMarkers: 1 })
+			).toBe('streak backfill: 0 pending (0 minted, 0 failed, 1 failed earlier, shortfall 0)');
 		});
 
 		test('reports failed mints', () => {
@@ -187,7 +218,9 @@ describe('underpayment backfill', () => {
 					failed: 1,
 					pendingShortfallBaseUnits: '1110000'
 				})
-			).toBe('streak backfill: 1 pending (0 minted, 1 failed, shortfall 1110000)');
+			).toBe(
+				'streak backfill: 1 pending (0 minted, 1 failed, 0 failed earlier, shortfall 1110000)'
+			);
 		});
 	});
 });
