@@ -17,21 +17,33 @@ import { readAwardRow, stubVxpLedger, type LedgerStub } from './helpers/vxp';
 
 let stub: LedgerStub | undefined;
 
+// The failed-marker fixture's identity, so cleanup can never reach real awards.
+const FIXTURE_EARNED_AT_MS = 1;
+const FAILED_MARKER_PAID_BASE_UNITS = '400';
+
 beforeAll(async () => {
 	await ensureMigrated();
 
-	// The backfill scans every user, and a failed marker is terminal, so one
-	// left by an earlier run on this database would make every later report
-	// log "failed earlier". Its user's underpaid row goes too: without the
-	// marker it would be pending again and minted by the next real run. Only
-	// this file seeds failed backfill markers.
+	// The backfill scans every user, and a failed marker is terminal, so the
+	// fixture of "a marker that failed earlier" left by an earlier run on this
+	// database would make every later report log "failed earlier". Its underpaid
+	// row goes too: without the marker it would be pending again and minted by
+	// the next real run. Scoped to that fixture's exact rows (an epoch-start
+	// earned_at no real award carries), never to other awards of the user.
 	await query(
 		`delete from vxp_awards
 		 where award_type = 'streak'
+			 and earned_at_ms = $1
+			 and (
+				 (award_key = 'streak_14' and status = 'paid' and amount_base_units = $2)
+				 or (award_key = 'streak_14_backfill' and status = 'failed')
+			 )
 			 and user_id in (
 				 select user_id from vxp_awards
-				 where award_type = 'streak' and award_key like 'streak\\_%\\_backfill' and status = 'failed'
-			 )`
+				 where award_type = 'streak' and award_key = 'streak_14_backfill'
+					 and status = 'failed' and earned_at_ms = $1
+			 )`,
+		[FIXTURE_EARNED_AT_MS, FAILED_MARKER_PAID_BASE_UNITS]
 	);
 });
 
@@ -153,13 +165,17 @@ describe('underpayment backfill', () => {
 
 		await query(
 			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, paid_at_ms, block_index)
-			 values ($1, 'streak', 'streak_14', '400', 'paid', 1, 1, '1')`,
-			[userId]
+			 values ($1, 'streak', 'streak_14', $2, 'paid', $3, 1, '1')`,
+			[userId, FAILED_MARKER_PAID_BASE_UNITS, FIXTURE_EARNED_AT_MS]
 		);
 		await query(
 			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
-			 values ($1, 'streak', 'streak_14_backfill', $2, 'failed', 1)`,
-			[userId, (parseVxp(400) - BigInt(400)).toString()]
+			 values ($1, 'streak', 'streak_14_backfill', $2, 'failed', $3)`,
+			[
+				userId,
+				(parseVxp(400) - BigInt(FAILED_MARKER_PAID_BASE_UNITS)).toString(),
+				FIXTURE_EARNED_AT_MS
+			]
 		);
 
 		try {
