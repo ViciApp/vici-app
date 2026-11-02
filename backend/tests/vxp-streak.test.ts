@@ -19,6 +19,20 @@ let stub: LedgerStub | undefined;
 
 beforeAll(async () => {
 	await ensureMigrated();
+
+	// The backfill scans every user, and a failed marker is terminal, so one
+	// left by an earlier run on this database would make every later report
+	// log "failed earlier". Its user's underpaid row goes too: without the
+	// marker it would be pending again and minted by the next real run. Only
+	// this file seeds failed backfill markers.
+	await query(
+		`delete from vxp_awards
+		 where award_type = 'streak'
+			 and user_id in (
+				 select user_id from vxp_awards
+				 where award_type = 'streak' and award_key like 'streak\\_%\\_backfill' and status = 'failed'
+			 )`
+	);
 });
 
 afterEach(() => {
@@ -148,11 +162,15 @@ describe('underpayment backfill', () => {
 			[userId, (parseVxp(400) - BigInt(400)).toString()]
 		);
 
-		const report = await backfillStreakUnderpayments({ dryRun: false });
+		try {
+			const report = await backfillStreakUnderpayments({ dryRun: false });
 
-		expect(report.failedMarkers).toBeGreaterThanOrEqual(1);
-		expect(streakBackfillLogLine(report)).toBeDefined();
-		expect(stub.transfers).toHaveLength(0);
+			expect(report.failedMarkers).toBeGreaterThanOrEqual(1);
+			expect(streakBackfillLogLine(report)).toBeDefined();
+			expect(stub.transfers).toHaveLength(0);
+		} finally {
+			await query(`delete from vxp_awards where user_id = $1`, [userId]);
+		}
 	});
 
 	test('correctly paid awards are never touched', async () => {
