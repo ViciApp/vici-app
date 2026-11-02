@@ -6,7 +6,7 @@ updates:
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
-      interval: weekly
+      interval: monthly
     commit-message:
       prefix: 'chore(github-actions): '
     cooldown:
@@ -25,7 +25,7 @@ updates:
   - package-ecosystem: npm
     directory: '/'
     schedule:
-      interval: weekly
+      interval: monthly
     commit-message:
       prefix: 'chore(npm-deps): '
       prefix-development: 'chore(npm-deps-dev): '
@@ -61,7 +61,7 @@ updates:
   - package-ecosystem: bun
     directory: '/backend'
     schedule:
-      interval: weekly
+      interval: monthly
     commit-message:
       prefix: 'chore(backend-deps): '
       prefix-development: 'chore(backend-deps-dev): '
