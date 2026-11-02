@@ -13,6 +13,7 @@ import { solTransferStatus } from '../src/chains/sol/adapter';
 import type { ChainAdapter, TransferStatus } from '../src/chains/types';
 import { ensureInternalAccount, ensureUserAccount } from '../src/custody/accounts';
 import { getAssetBySymbol, type Asset } from '../src/custody/assets';
+import * as ledger from '../src/custody/ledger';
 import { postLedgerEvent } from '../src/custody/ledger';
 import {
 	getWithdrawal,
@@ -248,6 +249,48 @@ describe.if(dbAvailable)('withdrawal confirmation tick', () => {
 
 		expect(rows[0]).toEqual({ state: 'submitted', recent: true });
 		expect(await balanceOf(userId)).toBe(BigInt(0));
+	});
+
+	test('a refund that fails leaves the withdrawal submitted for the next tick', async () => {
+		const errors = spyOn(logger, 'error').mockImplementation(() => undefined);
+		const txRef = `refund-${crypto.randomUUID()}`;
+		const { id, userId } = await submitted({ amount: BigInt(70), txRef });
+		const adapter = scripted((ref) => (ref === txRef ? Promise.resolve('failed') : undefined));
+		const post = spyOn(ledger, 'postLedgerEvent').mockRejectedValue(new Error('ledger down'));
+
+		try {
+			await tickWithdrawalConfirmations({ adapterFor: () => adapter });
+		} finally {
+			post.mockRestore();
+		}
+
+		expect(errors).toHaveBeenCalled();
+		expect(await stateOf(id)).toBe('submitted');
+		expect(await balanceOf(userId)).toBe(BigInt(0));
+
+		await tickWithdrawalConfirmations({ adapterFor: () => adapter });
+
+		expect(await stateOf(id)).toBe('failed');
+		expect(await balanceOf(userId)).toBe(BigInt(70));
+	});
+
+	test('a row whose status read errors goes to the back of the queue', async () => {
+		spyOn(logger, 'error').mockImplementation(() => undefined);
+		const txRef = `broken-${crypto.randomUUID()}`;
+		const { id } = await submitted({ amount: BigInt(10), txRef });
+		const adapter = scripted((ref) =>
+			ref === txRef ? Promise.reject(new Error('rpc 500')) : undefined
+		);
+
+		await tickWithdrawalConfirmations({ adapterFor: () => adapter });
+
+		const rows = await query<{ state: string; recent: boolean }>(
+			`select state, updated_at > now() - interval '1 minute' as recent
+			 from withdrawals where id = $1`,
+			[id]
+		);
+
+		expect(rows[0]).toEqual({ state: 'submitted', recent: true });
 	});
 
 	test('a chain that stops answering is not read again this tick', async () => {

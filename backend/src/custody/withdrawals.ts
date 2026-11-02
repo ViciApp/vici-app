@@ -137,65 +137,73 @@ export const transitionWithdrawal = async ({
 		throw new Error(`invalid withdrawal transition ${from} -> ${to}`);
 	}
 
-	const updated = await query<Withdrawal>(
-		`update withdrawals
-		 set state = $1,
-			 tx_ref = coalesce($2, tx_ref),
-			 failure_reason = coalesce($3, failure_reason),
-			 updated_at = now()
-		 where id = $4 and state = $5
-		 returning id, user_id, asset_id, amount::text as amount, destination,
-			 self_custody, state, tx_ref, failure_reason`,
-		[to, txRef ?? null, failureReason ?? null, id, from]
-	);
-	const row = updated[0] ?? null;
+	// One transaction with the refund: a terminal state committed without it
+	// would leave the hold spent, and nothing selects a terminal row again.
+	return await tx(async (q) => {
+		const updated = await q<Withdrawal>(
+			`update withdrawals
+			 set state = $1,
+				 tx_ref = coalesce($2, tx_ref),
+				 failure_reason = coalesce($3, failure_reason),
+				 updated_at = now()
+			 where id = $4 and state = $5
+			 returning id, user_id, asset_id, amount::text as amount, destination,
+				 self_custody, state, tx_ref, failure_reason`,
+			[to, txRef ?? null, failureReason ?? null, id, from]
+		);
+		const row = updated[0] ?? null;
 
-	if (nonNullish(row) && (to === 'failed' || to === 'rejected')) {
-		await refundWithdrawal(row);
-	}
+		if (nonNullish(row) && (to === 'failed' || to === 'rejected')) {
+			await refundWithdrawal({ q, withdrawal: row });
+		}
 
-	return row;
+		return row;
+	});
 };
 
 /** Post the compensating refund for a failed/rejected withdrawal. Idempotent
  * via the event key: replaying after a crash cannot double-refund. */
-const refundWithdrawal = async (withdrawal: Withdrawal): Promise<void> => {
-	await tx(async (q) => {
-		const accounts = await q<{ id: string }>(
-			`select id from custody_accounts
-			 where user_id = $1
-				 and chain = (select chain from assets where id = $2)`,
-			[withdrawal.user_id, withdrawal.asset_id]
-		);
-		const externals = await q<{ id: string }>(
-			`select id from custody_accounts
-			 where user_id is null and kind = 'external'
-				 and chain = (select chain from assets where id = $1)`,
-			[withdrawal.asset_id]
-		);
-		const accountId = accounts[0]?.id;
-		const externalId = externals[0]?.id;
+const refundWithdrawal = async ({
+	q,
+	withdrawal
+}: {
+	q: TxQuery;
+	withdrawal: Withdrawal;
+}): Promise<void> => {
+	const accounts = await q<{ id: string }>(
+		`select id from custody_accounts
+		 where user_id = $1
+			 and chain = (select chain from assets where id = $2)`,
+		[withdrawal.user_id, withdrawal.asset_id]
+	);
+	const externals = await q<{ id: string }>(
+		`select id from custody_accounts
+		 where user_id is null and kind = 'external'
+			 and chain = (select chain from assets where id = $1)`,
+		[withdrawal.asset_id]
+	);
+	const accountId = accounts[0]?.id;
+	const externalId = externals[0]?.id;
 
-		if (isNullish(accountId) || isNullish(externalId)) {
-			throw new Error('withdrawal refund could not resolve the ledger accounts');
-		}
+	if (isNullish(accountId) || isNullish(externalId)) {
+		throw new Error('withdrawal refund could not resolve the ledger accounts');
+	}
 
-		await postLedgerEvent(
-			{
-				eventKey: `withdrawal:${withdrawal.id}:refund`,
-				kind: 'withdrawal_refund',
-				legs: [
-					{ accountId, assetId: withdrawal.asset_id, delta: withdrawal.amount },
-					{
-						accountId: externalId,
-						assetId: withdrawal.asset_id,
-						delta: `-${withdrawal.amount}`
-					}
-				]
-			},
-			q
-		);
-	});
+	await postLedgerEvent(
+		{
+			eventKey: `withdrawal:${withdrawal.id}:refund`,
+			kind: 'withdrawal_refund',
+			legs: [
+				{ accountId, assetId: withdrawal.asset_id, delta: withdrawal.amount },
+				{
+					accountId: externalId,
+					assetId: withdrawal.asset_id,
+					delta: `-${withdrawal.amount}`
+				}
+			]
+		},
+		q
+	);
 };
 
 export const listUserWithdrawals = (userId: string): Promise<Withdrawal[]> =>

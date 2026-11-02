@@ -23,6 +23,12 @@ interface SubmittedRow extends Asset {
 	tx_ref: string;
 }
 
+const markChecked = async (id: string): Promise<void> => {
+	await query(`update withdrawals set updated_at = now() where id = $1 and state = 'submitted'`, [
+		id
+	]);
+};
+
 export const tickWithdrawalConfirmations = async ({
 	adapterFor = getAdapter,
 	timeout_ms = STATUS_TIMEOUT_MS
@@ -56,7 +62,7 @@ export const tickWithdrawalConfirmations = async ({
 				});
 
 				if (status === 'pending') {
-					await query(`update withdrawals set updated_at = now() where id = $1`, [id]);
+					await markChecked(id);
 				} else {
 					const moved = await transitionWithdrawal({
 						id,
@@ -75,6 +81,8 @@ export const tickWithdrawalConfirmations = async ({
 				}
 
 				logger.error(`withdrawal ${id} status check failed:`, err);
+				// A row whose read keeps failing would otherwise head every batch.
+				await markChecked(id);
 			}
 		}
 	}
