@@ -1281,5 +1281,31 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 				spy.mockRestore();
 			}
 		});
+
+		test('leaves malformed contract references out of the filter', async () => {
+			const broken: Asset = {
+				...usdc,
+				id: 'broken-token',
+				symbol: 'BRK',
+				ledger_ref: 'not-a-contract'
+			};
+			const { filters, spy } = stubEvmRpc(() => []);
+
+			try {
+				await watchEvmDeposits({ addresses: [evmAddress()], assets: [usdc, broken] });
+
+				expect(filters.map(({ address }) => address)).toEqual([
+					[(usdc.ledger_ref ?? '').toLowerCase()]
+				]);
+
+				filters.length = 0;
+
+				await watchEvmDeposits({ addresses: [evmAddress()], assets: [broken] });
+
+				expect(filters).toEqual([]);
+			} finally {
+				spy.mockRestore();
+			}
+		});
 	});
 });

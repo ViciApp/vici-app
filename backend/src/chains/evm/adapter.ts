@@ -246,14 +246,15 @@ export const watchEvmDeposits = async ({
 		}
 	}
 
-	// A malformed row can never receive a transfer, but in the filter it would
-	// make the node reject the call and stall every token deposit on the chain.
+	// A malformed address or contract can never match a transfer, but in the
+	// filter it would make the node reject the call and stall every token
+	// deposit on the chain.
 	const recipients = [...addressSet].filter((address) => EVM_ADDRESS.test(address));
+	const contracts = [
+		...new Set(tokenAssets.map((asset) => (asset.ledger_ref ?? '').toLowerCase()))
+	].filter((contract) => EVM_ADDRESS.test(contract));
 
-	if (tokenAssets.length > 0 && recipients.length > 0) {
-		const contracts = [
-			...new Set(tokenAssets.map((asset) => (asset.ledger_ref ?? '').toLowerCase()))
-		];
+	if (contracts.length > 0 && recipients.length > 0) {
 		const logs: RpcLog[] = [];
 
 		for (let start = 0; start < recipients.length; start += MAX_LOG_RECIPIENTS) {
