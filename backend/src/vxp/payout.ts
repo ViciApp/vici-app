@@ -7,15 +7,14 @@
 // ledger's dedup window a replay proves nothing, so the treasury's transfer
 // history (index canister) is the authority on whether a transfer landed.
 
-import { isNullish, jsonReplacer, nonNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import {
 	IcrcIndexCanister,
 	IcrcLedgerCanister,
 	IcrcTransferError
 } from '@icp-sdk/canisters/ledger/icrc';
 import { Principal } from '@icp-sdk/core/principal';
-import { sha256 } from '@noble/hashes/sha2';
-import { bytesToHex } from '@noble/hashes/utils';
+import { encodeTransferMemo, icrcTransferErrorVariant, transferErrorText } from '../chains/ic/icrc';
 import { getAssetBySymbol } from '../custody/assets';
 import { env } from '../env';
 import { buildAgent } from '../lib/ic-agent';
@@ -166,71 +165,6 @@ export const setVxpLedgerProvider = (provider: VxpLedgerProvider): (() => void) 
 	};
 };
 
-interface TransferErrorVariant {
-	BadFee?: { expected_fee: bigint };
-	InsufficientFunds?: { balance: bigint };
-	Duplicate?: { duplicate_of: bigint };
-}
-
-const errorVariantOf = (err: unknown): TransferErrorVariant | undefined => {
-	if (err instanceof IcrcTransferError) {
-		const variant = err.errorType;
-
-		if (nonNullish(variant) && typeof variant === 'object') {
-			return variant as TransferErrorVariant;
-		}
-	}
-};
-
-/** Human-readable summary of a transfer rejection for logs and the stored
- * error_message: spells out the two cases routinely hit and falls back to a
- * JSON dump (or the message) for the rest. */
-export const transferErrorText = (err: unknown): string => {
-	const variant = errorVariantOf(err);
-
-	if (nonNullish(variant?.InsufficientFunds)) {
-		return `InsufficientFunds(balance=${variant.InsufficientFunds.balance})`;
-	}
-
-	if (nonNullish(variant?.BadFee)) {
-		return `BadFee(expected_fee=${variant.BadFee.expected_fee})`;
-	}
-
-	if (nonNullish(variant)) {
-		return JSON.stringify(variant, jsonReplacer);
-	}
-
-	return err instanceof Error ? err.message : String(err);
-};
-
-/**
- * The VXP ledger was installed without a max_memo_length override, so it keeps
- * the ICRC-1 ledger default of 32 bytes and rejects a longer memo outright,
- * while award memos embed their key (a league uuid alone is 36 characters). An over-long memo keeps its readable head and
- * swaps the tail for a digest of the full text, so it stays deterministic
- * (a replayed transfer must carry byte-identical memo to be deduplicated).
- */
-export const MAX_TRANSFER_MEMO_BYTES = 32;
-
-const MEMO_DIGEST_HEX_CHARS = 12;
-
-export const encodeTransferMemo = (memo: string): Uint8Array => {
-	const bytes = new TextEncoder().encode(memo);
-
-	if (bytes.length <= MAX_TRANSFER_MEMO_BYTES) {
-		return bytes;
-	}
-
-	const digest = bytesToHex(sha256(bytes)).slice(0, MEMO_DIGEST_HEX_CHARS);
-	const head = bytes.slice(0, MAX_TRANSFER_MEMO_BYTES - MEMO_DIGEST_HEX_CHARS - 1);
-	const encoded = new Uint8Array(MAX_TRANSFER_MEMO_BYTES);
-
-	encoded.set(head);
-	encoded.set(new TextEncoder().encode(`~${digest}`), head.length);
-
-	return encoded;
-};
-
 /** A failed transfer says whether the ledger rejected it for lack of funds
  * (definitive: nothing moved, and the ledger reports a Duplicate before it
  * checks the balance, so the award may be retried once the treasury is
@@ -242,7 +176,7 @@ export type VxpTransferResult =
 	| { ok: false; error: string; insufficientFunds: boolean; ambiguous: boolean };
 
 const failedTransfer = (err: unknown): VxpTransferResult => {
-	const duplicate = errorVariantOf(err)?.Duplicate;
+	const duplicate = icrcTransferErrorVariant(err)?.Duplicate;
 
 	if (nonNullish(duplicate)) {
 		return { ok: true, blockIndex: duplicate.duplicate_of.toString() };
@@ -251,7 +185,7 @@ const failedTransfer = (err: unknown): VxpTransferResult => {
 	return {
 		ok: false,
 		error: transferErrorText(err),
-		insufficientFunds: nonNullish(errorVariantOf(err)?.InsufficientFunds),
+		insufficientFunds: nonNullish(icrcTransferErrorVariant(err)?.InsufficientFunds),
 		ambiguous: !(err instanceof IcrcTransferError)
 	};
 };
@@ -290,7 +224,7 @@ export const transferVxpWithBadFeeRetry = async ({
 	try {
 		return { ok: true, blockIndex: (await tryTransfer()).toString() };
 	} catch (firstErr) {
-		const badFee = errorVariantOf(firstErr)?.BadFee;
+		const badFee = icrcTransferErrorVariant(firstErr)?.BadFee;
 
 		if (isNullish(badFee)) {
 			return failedTransfer(firstErr);

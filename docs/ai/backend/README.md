@@ -95,8 +95,8 @@ deposit:
   it runs. Persisted state moves in the returned `commit`, which the watcher
   calls after every event is credited.
 - **Timeouts wrap the watch pass, never the adapter's shared `rpc`.** `transfer`
-  uses that `rpc` too: a timed-out broadcast would mark a withdrawal failed and
-  refund it after the transaction landed.
+  uses that `rpc` too: a broadcast cut short there has an unknown outcome, and
+  on a chain that cannot deduplicate that withdrawal then needs a human.
 - **`balance` deposits are keyed by credit number, never by balance.** An
   account can return to an amount it held before, and a balance key then drops
   the deposit on the unique conflict. Replays are stopped by the delta, not the
@@ -109,6 +109,33 @@ deposit:
   out, stays `pending`: refunding one that later lands pays the user twice.
   Every `submitted` row counts as in flight in the `balance` delta, so a chain
   must eventually answer `confirmed` (ic does at once: a block index is final).
+
+## Withdrawal execution contract (`backend/src/chains/withdrawal-execution.ts`)
+
+The request route and the `withdrawal-recovery` worker job share one execution
+path. Each rule guards a withdrawal paid twice or stuck forever:
+
+- **Refund only on a definite rejection.** `transfer` throws
+  `TransferRejectedError` only when the chain proves the funds did not move.
+  Any other error, or a timeout, leaves the row `processing`: refunding a
+  transfer that landed pays the user twice.
+- **Dedup fields are fixed at the claim, before any send.** `claimWithdrawal`
+  (requested -> processing) stamps `transfer_memo` and `transfer_created_at_ns`
+  once; every attempt resends exactly those. Never regenerate them for a row
+  that may have been sent.
+- **Only a `replaySafe` adapter is resent.** On an ICRC ledger a resend inside
+  the dedup window answers `Duplicate` with the original block, which counts as
+  success. A replay's rejection proves nothing landed only when the ledger
+  checks it after the duplicate lookup (`InsufficientFunds`); a replay answered
+  `TooOld` throws `TransferUnverifiableError` and waits for a human, as does
+  every stale `processing` row on a chain that cannot deduplicate, sent without
+  the fields, or past `DEDUP_SAFE_WINDOW_MS`.
+- **Resend only after every earlier send resolved.** `PROCESSING_GRACE_MS`
+  outlasts the IC ingress expiry and the route's transfer timeout, so a resend
+  answered `InsufficientFunds` cannot refund a first send still about to land.
+- **The ICRC helpers live in `chains/ic/icrc.ts`** (memo encoding, error
+  variants, the dedup window), shared with the VXP award payouts. Do not add a
+  second copy.
 
 ## If the prompt **does** ask you to work on icdc-core
 

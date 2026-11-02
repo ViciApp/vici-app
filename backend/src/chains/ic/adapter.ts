@@ -4,7 +4,7 @@
 // internal ledger and credits the positive difference, so re-observing the
 // same state is a no-op.
 
-import { isNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import { IcrcLedgerCanister } from '@icp-sdk/canisters/ledger/icrc';
 import { Principal } from '@icp-sdk/core/principal';
 import type { Asset } from '../../custody/assets';
@@ -12,13 +12,17 @@ import { readerLedger } from '../../engine/actors';
 import { ZERO } from '../../lib/constants';
 import { buildAgent } from '../../lib/ic-agent';
 import { treasuryIcIdentity, userIcIdentity, userIcPrincipalText } from '../../lib/keys';
-import type {
-	ChainAdapter,
-	DepositEvent,
-	TransferParams,
-	TransferStatus,
-	WatchResult
+import {
+	TransferRejectedError,
+	TransferUnverifiableError,
+	type ChainAdapter,
+	type DepositEvent,
+	type TransferDedup,
+	type TransferParams,
+	type TransferStatus,
+	type WatchResult
 } from '../types';
+import { encodeTransferMemo, icrcTransferErrorVariant, transferErrorText } from './icrc';
 
 const ledgerRef = (asset: Asset): string => {
 	if (isNullish(asset.ledger_ref)) {
@@ -42,19 +46,68 @@ const getBalance = async ({
 	return await ledger.balance({ owner: Principal.fromText(address), certified: false });
 };
 
-const transfer = async ({ fromUserId, to, amount, asset }: TransferParams): Promise<string> => {
+/** What a ledger answer other than a block index proves. Duplicate is the
+ * original transfer's block. A first send has no earlier twin, so any ledger
+ * rejection means nothing moved. A replay is rejected for the window or the
+ * fee before the ledger looks for its twin, so only InsufficientFunds (checked
+ * after the twin) still proves nothing landed; TooOld means the twin can no
+ * longer be looked for. Errors that are not ledger rejections say nothing. */
+const settleTransferError = ({
+	err,
+	dedup
+}: {
+	err: unknown;
+	dedup: TransferDedup | undefined;
+}): string => {
+	const variant = icrcTransferErrorVariant(err);
+
+	if (isNullish(variant)) {
+		throw err;
+	}
+
+	if (nonNullish(variant.Duplicate)) {
+		return variant.Duplicate.duplicate_of.toString();
+	}
+
+	if (dedup?.replay !== true || nonNullish(variant.InsufficientFunds)) {
+		throw new TransferRejectedError(transferErrorText(err));
+	}
+
+	if ('TooOld' in variant) {
+		throw new TransferUnverifiableError(
+			`replay past the ledger dedup window (created_at_time ${dedup.created_at_ns})`
+		);
+	}
+
+	throw err;
+};
+
+const transfer = async ({
+	fromUserId,
+	to,
+	amount,
+	asset,
+	dedup
+}: TransferParams): Promise<string> => {
 	const identity = isNullish(fromUserId) ? treasuryIcIdentity() : userIcIdentity(fromUserId);
 	const ledger = IcrcLedgerCanister.create({
 		agent: await buildAgent(identity),
 		canisterId: Principal.fromText(ledgerRef(asset))
 	});
 
-	const blockIndex = await ledger.transfer({
-		to: { owner: Principal.fromText(to), subaccount: [] },
-		amount
-	});
+	try {
+		const blockIndex = await ledger.transfer({
+			to: { owner: Principal.fromText(to), subaccount: [] },
+			amount,
+			...(nonNullish(dedup)
+				? { memo: encodeTransferMemo(dedup.memo), created_at_time: dedup.created_at_ns }
+				: {})
+		});
 
-	return blockIndex.toString();
+		return blockIndex.toString();
+	} catch (err: unknown) {
+		return settleTransferError({ err, dedup });
+	}
 };
 
 /** An ICRC ledger hands back a block index only for a committed transfer, and
@@ -97,6 +150,7 @@ const watchDeposits = async ({
 export const icAdapter: ChainAdapter = {
 	chain: 'ic',
 	enabled: true,
+	replaySafe: true,
 	watchScope: 'address',
 	deriveAddress,
 	getBalance,

@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import type { ExportedDoc } from '../scripts/etl/lib';
 import { importDocs } from '../scripts/etl/transforms';
 import { createSession } from '../src/auth/sessions';
+import { encodeTransferMemo, MAX_TRANSFER_MEMO_BYTES } from '../src/chains/ic/icrc';
 import { query } from '../src/db/client';
 import { app } from '../src/index';
 import { treasuryIcPrincipalText, userIcPrincipalText } from '../src/lib/keys';
@@ -25,7 +26,6 @@ import {
 	setVxpTreasuryDisabled
 } from '../src/vxp/awards';
 import { parseVxp } from '../src/vxp/constants';
-import { encodeTransferMemo, MAX_TRANSFER_MEMO_BYTES } from '../src/vxp/payout';
 import { createTestUser, ensureMigrated, uniquePrincipal } from './helpers/auth';
 import { readAwardRow, stubVxpLedger, type LedgerStub } from './helpers/vxp';
 

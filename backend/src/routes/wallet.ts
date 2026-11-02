@@ -7,13 +7,13 @@ import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { getAdapter, isChain } from '../chains/registry';
 import { ChainDisabledError } from '../chains/types';
+import { executeWithdrawal } from '../chains/withdrawal-execution';
 import { ensureUserAccount, listUserAccounts } from '../custody/accounts';
 import { getAssetById, listEnabledAssets } from '../custody/assets';
 import {
 	InsufficientBalanceError,
 	listUserWithdrawals,
 	requestWithdrawal,
-	transitionWithdrawal,
 	type Withdrawal
 } from '../custody/withdrawals';
 import { query } from '../db/client';
@@ -55,57 +55,6 @@ const shapeWithdrawal = (withdrawal: Withdrawal): Record<string, unknown> => ({
 	txRef: withdrawal.tx_ref,
 	failureReason: withdrawal.failure_reason
 });
-
-/** Best-effort immediate execution of a fresh withdrawal. Failures land the
- * row in `failed` with the hold refunded; the request itself never throws
- * past the state machine. */
-const executeWithdrawal = async (withdrawal: Withdrawal): Promise<Withdrawal> => {
-	const asset = await getAssetById(withdrawal.asset_id);
-
-	if (isNullish(asset)) {
-		return withdrawal;
-	}
-
-	const processing = await transitionWithdrawal({
-		id: withdrawal.id,
-		from: 'requested',
-		to: 'processing'
-	});
-
-	if (isNullish(processing)) {
-		return withdrawal;
-	}
-
-	try {
-		const adapter = getAdapter(asset.chain);
-		const txRef = await adapter.transfer({
-			fromUserId: withdrawal.user_id,
-			to: withdrawal.destination,
-			amount: BigInt(withdrawal.amount),
-			asset
-		});
-
-		return (
-			(await transitionWithdrawal({
-				id: withdrawal.id,
-				from: 'processing',
-				to: 'submitted',
-				txRef
-			})) ?? processing
-		);
-	} catch (err) {
-		logger.error(`withdrawal ${withdrawal.id} execution failed:`, err);
-
-		return (
-			(await transitionWithdrawal({
-				id: withdrawal.id,
-				from: 'processing',
-				to: 'failed',
-				failureReason: err instanceof Error ? err.message : 'transfer failed'
-			})) ?? processing
-		);
-	}
-};
 
 /** The ic balances straight from the ledgers: awards land there with no ledger
  * entry and sweeps into clearing post none, so the internal books can neither
@@ -264,7 +213,9 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 					selfCustody: body.selfCustody ?? false,
 					userAddress: adapter.deriveAddress(user.id)
 				});
-				const executed = await executeWithdrawal(withdrawal);
+				// Best-effort first attempt: whatever it leaves unsettled, the
+				// withdrawal-recovery job picks up.
+				const executed = await executeWithdrawal({ withdrawal, asset, adapter });
 
 				set.status = 201;
 

@@ -186,6 +186,7 @@ const scriptedAdapter = ({
 }): ChainAdapter => ({
 	chain,
 	enabled: true,
+	replaySafe: false,
 	watchScope,
 	deriveAddress: () => '',
 	getBalance: () => Promise.reject(new Error('unused')),
@@ -624,8 +625,9 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 		test('reconciliation runs in the same worker tick as a hung scan', async () => {
 			const watcherJob = jobs.find(({ name }) => name === 'deposit-watchers');
 			const reconcileJob = jobs.find(({ name }) => name === 'vxp-award-reconciliation');
+			const recoveryJob = jobs.find(({ name }) => name === 'withdrawal-recovery');
 
-			if (isNullish(watcherJob) || isNullish(reconcileJob)) {
+			if (isNullish(watcherJob) || isNullish(reconcileJob) || isNullish(recoveryJob)) {
 				throw new Error('worker registry lost a job');
 			}
 
@@ -634,7 +636,11 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 
 			const realWatcher = watcherJob.run;
 			const realReconcile = reconcileJob.run;
+			const realRecovery = recoveryJob.run;
 			let reconciled = 0;
+
+			// Stale withdrawals left by other suites would be sent to the real ledger.
+			recoveryJob.run = () => Promise.resolve();
 
 			watcherJob.run = () =>
 				tickDepositWatchers({
@@ -655,6 +661,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			} finally {
 				watcherJob.run = realWatcher;
 				reconcileJob.run = realReconcile;
+				recoveryJob.run = realRecovery;
 			}
 		});
 	});
