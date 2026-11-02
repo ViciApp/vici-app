@@ -5,7 +5,7 @@
 import { isNullish } from '@dfinity/utils';
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { ensureInternalAccount, ensureUserAccount } from '../src/custody/accounts';
-import { getAssetBySymbol, type Asset } from '../src/custody/assets';
+import { getAssetBySymbol, isWithdrawable, type Asset } from '../src/custody/assets';
 import { postLedgerEvent } from '../src/custody/ledger';
 import {
 	AssetNotWithdrawableError,
@@ -20,6 +20,14 @@ import {
 import { query, tx } from '../src/db/client';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
+
+describe('withdrawable assets', () => {
+	test('VXP is rejected whatever the symbol casing', () => {
+		expect(isWithdrawable({ chain: 'ic', symbol: 'VXP' })).toBeFalse();
+		expect(isWithdrawable({ chain: 'ic', symbol: 'vxp' })).toBeFalse();
+		expect(isWithdrawable({ chain: 'ic', symbol: 'ICP' })).toBeTrue();
+	});
+});
 
 describe('withdrawal transition matrix', () => {
 	const cases: [WithdrawalState, WithdrawalState, boolean][] = [

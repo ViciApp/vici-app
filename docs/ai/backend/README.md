@@ -109,8 +109,8 @@ unintended movement of funds:
   out, stays `pending`: refunding one that later lands pays the user twice.
   Every `submitted` row counts as in flight in the `balance` delta, so a chain
   must eventually answer `confirmed` (ic does at once: a block index is final).
-- **VXP is never booked and never withdrawable, and these are two separate
-  guards.** The watcher skips VXP (`isVxp` in `backend/src/custody/assets.ts`)
+- **The deposit watcher never books VXP, and withdrawals never accept it:
+  two separate guards.** The watcher skips VXP (`isVxp` in `backend/src/custody/assets.ts`)
   because its balance is read live from the ledger. `requestWithdrawal`
   rejects it with `AssetNotWithdrawableError` before reading any balance, and
   `POST /api/v1/wallet/withdrawals` answers 400 with

@@ -50,8 +50,9 @@ export const applyAssetAllowlist = async (): Promise<void> => {
 	);
 };
 
+// Case-insensitive so a row seeded as `vxp` cannot slip past either guard.
 export const isVxp = ({ chain, symbol }: Pick<Asset, 'chain' | 'symbol'>): boolean =>
-	chain === 'ic' && symbol === 'VXP';
+	chain === 'ic' && symbol.toUpperCase() === 'VXP';
 
 /** VXP is the in-app reward token: it never leaves the platform, whatever an
  * internal balance says. Withdrawals reject it outright, so a future credit
