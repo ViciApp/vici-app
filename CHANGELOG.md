@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.8.49](https://github.com/ViciApp/vici-app/compare/v1.8.48...v1.8.49) (2026-11-02)
+
+
+### Bug Fixes
+
+* **custody:** confirm submitted withdrawals from the chain ([#1411](https://github.com/ViciApp/vici-app/issues/1411)) ([4bbfdba](https://github.com/ViciApp/vici-app/commit/4bbfdba947c75d23b6133189fe296c035507c364))
+
+
+### Miscellaneous Chores
+
+* **backend-deps-dev:** bump @types/bun from 1.4.3 to 1.4.4 in /backend ([#1386](https://github.com/ViciApp/vici-app/issues/1386)) ([ac06d2a](https://github.com/ViciApp/vici-app/commit/ac06d2a93e623cbbc6c3ae22cccb8c48ff80a644))
+* **dependabot:** check for updates monthly instead of weekly ([#1410](https://github.com/ViciApp/vici-app/issues/1410)) ([2d78714](https://github.com/ViciApp/vici-app/commit/2d7871444a6bf04e384df24a028b2c1eb82b2b8f))
+* **npm-deps-dev:** bump @alloc/quick-lru from 5.2.0 to 5.3.0 ([#1418](https://github.com/ViciApp/vici-app/issues/1418)) ([18abc0d](https://github.com/ViciApp/vici-app/commit/18abc0dce7e368fc28e4f25928361adfac9f62ab))
+* **npm-deps-dev:** bump @sveltejs/vite-plugin-svelte from 7.3.0 to 7.3.1 ([#1387](https://github.com/ViciApp/vici-app/issues/1387)) ([f31f26a](https://github.com/ViciApp/vici-app/commit/f31f26a23492e145508d9d5a0fcf6ae6df59c5ec))
+* **npm-deps-dev:** bump eslint-plugin-prettier from 5.5.6 to 5.5.7 ([#1416](https://github.com/ViciApp/vici-app/issues/1416)) ([57b2375](https://github.com/ViciApp/vici-app/commit/57b2375cb23ee17d1fc4c5ea2f59638fa282541c))
+* **npm-deps-dev:** bump napi-postinstall from 0.3.4 to 0.3.7 ([#1390](https://github.com/ViciApp/vici-app/issues/1390)) ([acdffe1](https://github.com/ViciApp/vici-app/commit/acdffe1bc275f5ae0cc980a8f649ba90a566b848))
+* **npm-deps-dev:** bump prettier from 3.9.6 to 3.9.10 ([#1421](https://github.com/ViciApp/vici-app/issues/1421)) ([60ec4c6](https://github.com/ViciApp/vici-app/commit/60ec4c63f11ed4164cfe9be992a5c755a3938521))
+* **npm-deps-dev:** bump rolldown from 1.2.9 to 1.2.16 ([#1385](https://github.com/ViciApp/vici-app/issues/1385)) ([6a453d7](https://github.com/ViciApp/vici-app/commit/6a453d7fd02eed31bf20058f0d7f20bff5807973))
+* **npm-deps-dev:** bump svelte from 5.56.9 to 5.57.2 ([#1420](https://github.com/ViciApp/vici-app/issues/1420)) ([af59041](https://github.com/ViciApp/vici-app/commit/af590413b88b0754aa2ae99e707e9faaa5ff5248))
+* **npm-deps-dev:** bump svelte-check from 4.7.6 to 4.7.7 ([#1392](https://github.com/ViciApp/vici-app/issues/1392)) ([f14b10e](https://github.com/ViciApp/vici-app/commit/f14b10e7fcf1895424b0adc45e0adfe1087b794d))
+* **npm-deps-dev:** bump svelte-eslint-parser from 1.8.1 to 1.10.0 ([#1415](https://github.com/ViciApp/vici-app/issues/1415)) ([0c9246a](https://github.com/ViciApp/vici-app/commit/0c9246ae776b2a7ae08e74337d091957c1ac691a))
+* **npm-deps-dev:** bump tsx from 4.23.12 to 4.23.15 ([#1417](https://github.com/ViciApp/vici-app/issues/1417)) ([640f0d7](https://github.com/ViciApp/vici-app/commit/640f0d73c7d79fe68b89957353691bc1c26efc0d))
+* **npm-deps-dev:** bump vite from 8.2.1 to 8.3.5 ([#1399](https://github.com/ViciApp/vici-app/issues/1399)) ([2432af5](https://github.com/ViciApp/vici-app/commit/2432af566b6b941b79c66a450a4080c910fc5eaa))
+* **npm-deps:** bump @lucide/svelte from 1.47.0 to 1.61.0 ([#1414](https://github.com/ViciApp/vici-app/issues/1414)) ([e637e89](https://github.com/ViciApp/vici-app/commit/e637e89ab9340fda5886856d61118641ac4877a1))
+* **npm-deps:** bump acorn from 8.18.0 to 8.19.0 ([#1383](https://github.com/ViciApp/vici-app/issues/1383)) ([3a6cd42](https://github.com/ViciApp/vici-app/commit/3a6cd4282f09e1ba459e92c3144f9a5c4bdf90b1))
+* **npm-deps:** bump asn1js from 3.0.10 to 3.1.0 ([#1391](https://github.com/ViciApp/vici-app/issues/1391)) ([30c6851](https://github.com/ViciApp/vici-app/commit/30c68516ede84b6bfd6e0dea549bc22bc28fc8c9))
+* **npm-deps:** bump nanoid from 6.0.1 to 6.0.2 ([#1393](https://github.com/ViciApp/vici-app/issues/1393)) ([0acba59](https://github.com/ViciApp/vici-app/commit/0acba59400a768447cf67c465f85cb7359e96fac))
+* **npm-deps:** bump postcss-selector-parser from 7.1.5 to 7.1.7 ([#1398](https://github.com/ViciApp/vici-app/issues/1398)) ([7e30b76](https://github.com/ViciApp/vici-app/commit/7e30b7633529aa7bceb7fbc093ac22cda87a2b5e))
+* **npm-deps:** bump zimmerframe from 1.1.4 to 1.1.5 ([#1389](https://github.com/ViciApp/vici-app/issues/1389)) ([4aa57b9](https://github.com/ViciApp/vici-app/commit/4aa57b9cc9a73110f29d4b9d2f9d666f97da7f41))
+* **npm-deps:** drop the ws override now that ethers pins a patched ws ([#1423](https://github.com/ViciApp/vici-app/issues/1423)) ([62cbf8e](https://github.com/ViciApp/vici-app/commit/62cbf8ecb2817bd20fea527591245d6d9d03beff))
+
 ## [1.8.48](https://github.com/ViciApp/vici-app/compare/v1.8.47...v1.8.48) (2026-11-02)
 
 
