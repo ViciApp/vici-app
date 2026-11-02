@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.47](https://github.com/ViciApp/vici-app/compare/v1.8.46...v1.8.47) (2026-11-02)
+
+
+### Bug Fixes
+
+* **engine:** answer expected order rejections with stable 4xx codes ([#1406](https://github.com/ViciApp/vici-app/issues/1406)) ([41d4e43](https://github.com/ViciApp/vici-app/commit/41d4e43d79af8eb2394abc9c24d78469ed0975c2))
+* **wallet:** correct the ckBTC and ckETH ledger ids ([#1405](https://github.com/ViciApp/vici-app/issues/1405)) ([d4b16f8](https://github.com/ViciApp/vici-app/commit/d4b16f8e7276ab26296624dd847d1d7d634d705f))
+
 ## [1.8.46](https://github.com/ViciApp/vici-app/compare/v1.8.45...v1.8.46) (2026-11-01)
 
 
