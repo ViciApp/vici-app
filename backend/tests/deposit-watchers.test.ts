@@ -190,6 +190,7 @@ const scriptedAdapter = ({
 	deriveAddress: () => '',
 	getBalance: () => Promise.reject(new Error('unused')),
 	transfer: () => Promise.reject(new Error('unused')),
+	transferStatus: () => Promise.reject(new Error('unused')),
 	watchDeposits
 });
 

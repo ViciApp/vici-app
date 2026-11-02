@@ -220,9 +220,9 @@ const creditBalanceDeposit = async ({
 	});
 };
 
-class WatchTimeoutError extends Error {}
+export class WatchTimeoutError extends Error {}
 
-const withTimeout = <T>({
+export const withTimeout = <T>({
 	work,
 	timeout_ms,
 	label
