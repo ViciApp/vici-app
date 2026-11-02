@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.8.51](https://github.com/ViciApp/vici-app/compare/v1.8.50...v1.8.51) (2026-11-02)
+
+
+### Bug Fixes
+
+* **custody:** hold and book the network fee on withdrawals ([#1432](https://github.com/ViciApp/vici-app/issues/1432)) ([ead154c](https://github.com/ViciApp/vici-app/commit/ead154c4b64a6dd9812466ecd0be357adf7c3806))
+* **wallet:** offer only withdrawable tokens in Send on the web2 backend ([#1431](https://github.com/ViciApp/vici-app/issues/1431)) ([efa6a81](https://github.com/ViciApp/vici-app/commit/efa6a81dc2f12a4617430017e6f2129feedf857c))
+* **watcher:** filter EVM token logs by contract and recipient ([#1430](https://github.com/ViciApp/vici-app/issues/1430)) ([cd37021](https://github.com/ViciApp/vici-app/commit/cd37021a80b61f44eb80987abf548175b59e471a))
+
+
+### Tests
+
+* **backend:** draw tournament months from a reserved range ([#1429](https://github.com/ViciApp/vici-app/issues/1429)) ([9a59e03](https://github.com/ViciApp/vici-app/commit/9a59e03f383c35605ef312a89ef57f61b7e35851))
+* **vxp:** keep the streak backfill tests green on a reused database ([#1434](https://github.com/ViciApp/vici-app/issues/1434)) ([4c05c2f](https://github.com/ViciApp/vici-app/commit/4c05c2f3c23bacfc1b6fc3011b5ac29b7d4561fa))
+
 ## [1.8.50](https://github.com/ViciApp/vici-app/compare/v1.8.49...v1.8.50) (2026-11-02)
 
 
