@@ -9,7 +9,7 @@ import { getAdapter, isChain } from '../chains/registry';
 import { ChainDisabledError } from '../chains/types';
 import { executeWithdrawal } from '../chains/withdrawal-execution';
 import { ensureUserAccount, listUserAccounts } from '../custody/accounts';
-import { getAssetById, isWithdrawable, listEnabledAssets } from '../custody/assets';
+import { getAssetById, isWithdrawable, listEnabledAssets, type Asset } from '../custody/assets';
 import {
 	AssetNotWithdrawableError,
 	InsufficientBalanceError,
@@ -18,6 +18,7 @@ import {
 	type Withdrawal
 } from '../custody/withdrawals';
 import { query } from '../db/client';
+import { cached } from '../engine/cache';
 import { ZERO } from '../lib/constants';
 import { userIcPrincipalText } from '../lib/keys';
 import { logger } from '../lib/logger';
@@ -50,6 +51,7 @@ const shapeWithdrawal = (withdrawal: Withdrawal): Record<string, unknown> => ({
 	id: withdrawal.id,
 	assetId: withdrawal.asset_id,
 	amount: withdrawal.amount,
+	fee: withdrawal.fee,
 	destination: withdrawal.destination,
 	selfCustody: withdrawal.self_custody,
 	state: withdrawal.state,
@@ -88,19 +90,47 @@ const liveIcBalances = async (address: string): Promise<BalanceRow[]> => {
 	return reads.filter(nonNullish);
 };
 
+/** For display only: a withdrawal reads its own fee when it is requested.
+ * Cached because the catalog is a public read. Null for an asset that cannot
+ * be withdrawn now, or whose fee could not be read. */
+const displayedWithdrawalFee = async (asset: Asset): Promise<string | null> => {
+	const adapter = getAdapter(asset.chain);
+
+	if (!adapter.enabled || !isWithdrawable(asset)) {
+		return null;
+	}
+
+	try {
+		const fee = await cached({
+			key: `withdrawal-fee:${asset.id}`,
+			ttlMs: 60_000,
+			load: () => adapter.withdrawalFee({ asset })
+		});
+
+		return fee.toString();
+	} catch (err: unknown) {
+		logger.error(`withdrawal fee read failed for ${asset.chain}:${asset.symbol}:`, err);
+
+		return null;
+	}
+};
+
 export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 	.get('/assets', async () => {
 		const assets = await listEnabledAssets();
 
 		return {
-			assets: assets.map((asset) => ({
-				id: asset.id,
-				chain: asset.chain,
-				symbol: asset.symbol,
-				decimals: asset.decimals,
-				chainEnabled: getAdapter(asset.chain).enabled,
-				withdrawable: isWithdrawable(asset)
-			}))
+			assets: await Promise.all(
+				assets.map(async (asset) => ({
+					id: asset.id,
+					chain: asset.chain,
+					symbol: asset.symbol,
+					decimals: asset.decimals,
+					chainEnabled: getAdapter(asset.chain).enabled,
+					withdrawable: isWithdrawable(asset),
+					withdrawalFee: await displayedWithdrawalFee(asset)
+				}))
+			)
 		};
 	})
 	.get('/balances', async ({ request, set }) => {
@@ -206,11 +236,30 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 				return badRequest(set, 'invalid_amount');
 			}
 
+			// Refused before the fee read: an asset that never leaves the platform
+			// has no fee worth asking its chain for.
+			if (!isWithdrawable(asset)) {
+				return badRequest(set, 'asset_not_withdrawable');
+			}
+
+			let fee: bigint;
+
+			try {
+				// Read fresh, not from the catalog's cache: this is the fee the hold
+				// covers and every send of the withdrawal carries.
+				fee = await adapter.withdrawalFee({ asset });
+			} catch (err: unknown) {
+				logger.error(`withdrawal fee read failed for ${asset.chain}:${asset.symbol}:`, err);
+
+				return chainUnavailable(set);
+			}
+
 			try {
 				const withdrawal = await requestWithdrawal({
 					userId: user.id,
 					asset,
 					amount,
+					fee,
 					destination: body.destination,
 					selfCustody: body.selfCustody ?? false,
 					userAddress: adapter.deriveAddress(user.id)

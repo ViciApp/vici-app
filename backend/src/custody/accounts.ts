@@ -6,12 +6,17 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { query } from '../db/client';
 import type { Chain } from '../lib/keys';
 
+/** `external` is the off-platform side of every deposit and withdrawal;
+ * `network_fee` collects the chain fees withdrawals pay, kept apart so they
+ * stay visible on the books. */
+export type InternalAccountKind = 'treasury' | 'external' | 'network_fee';
+
 export interface CustodyAccount {
 	id: string;
 	user_id: string | null;
 	chain: Chain;
 	address: string;
-	kind: 'user' | 'treasury' | 'external';
+	kind: 'user' | InternalAccountKind;
 }
 
 const SELECT = `select id, user_id, chain, address, kind from custody_accounts`;
@@ -61,15 +66,15 @@ export const ensureUserAccount = async ({
 	return raced[0];
 };
 
-/** An internal (treasury / external) account on a chain, creating on first
- * use. The external account absorbs the off-platform side of every deposit
- * and withdrawal so the books stay balanced. */
+/** An internal account on a chain, creating on first use. The external
+ * account absorbs the off-platform side of every deposit and withdrawal so the
+ * books stay balanced. */
 export const ensureInternalAccount = async ({
 	kind,
 	chain,
 	address
 }: {
-	kind: 'treasury' | 'external';
+	kind: InternalAccountKind;
 	chain: Chain;
 	address: string;
 }): Promise<CustodyAccount> => {

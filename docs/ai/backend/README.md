@@ -141,6 +141,21 @@ path. Each rule guards a withdrawal paid twice or stuck forever:
 - **Resend only after every earlier send resolved.** `PROCESSING_GRACE_MS`
   outlasts the IC ingress expiry and the route's transfer timeout, so a resend
   answered `InsufficientFunds` cannot refund a first send still about to land.
+- **The network fee is held with the amount and fixed at the request.** An
+  ICRC ledger charges its fee from the sender on top of the amount, and the
+  ic watcher credits any surplus of on-chain over internal as a deposit, so
+  the books must drop by exactly what the chain does. The route reads
+  `adapter.withdrawalFee` (uncached; `/wallet/assets` quotes a cached copy),
+  `requestWithdrawal` stores it as `withdrawals.fee`, checks the balance
+  against amount + fee and holds both in one event: the amount to `external`,
+  the fee to the chain's `network_fee` account. The refund reverses the same
+  legs under the same event key, and the watcher counts amount + fee of every
+  in-flight row. Every send carries the stored fee explicitly: a ledger whose
+  fee moved answers `BadFee`, a refund on a first send and proof of nothing
+  on a replay (the ledger checks the fee before the duplicate lookup). A row
+  with `fee = 0` predates the hold and is sent without a fee, so its resend
+  stays identical to the first send. evm, sol and btc report a zero fee:
+  their fees are priced at send time in ways one stored number cannot hold.
 - **The ICRC helpers live in `chains/ic/icrc.ts`** (memo encoding, error
   variants, the dedup window), shared with the VXP award payouts. Do not add a
   second copy.

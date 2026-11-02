@@ -190,6 +190,7 @@ const scriptedAdapter = ({
 	watchScope,
 	deriveAddress: () => '',
 	getBalance: () => Promise.reject(new Error('unused')),
+	withdrawalFee: () => Promise.reject(new Error('unused')),
 	transfer: () => Promise.reject(new Error('unused')),
 	transferStatus: () => Promise.reject(new Error('unused')),
 	watchDeposits
@@ -745,7 +746,8 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			const withdrawal = await requestWithdrawal({
 				userId: account.userId,
 				asset: icp,
-				amount: BigInt(1000),
+				amount: BigInt(990),
+				fee: BigInt(10),
 				destination: principalText(),
 				selfCustody: true,
 				userAddress: account.address
@@ -793,19 +795,21 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			expect(await depositCount({ account, asset: eth })).toBe(1);
 		});
 
-		test('funds held by an in-flight withdrawal are not credited again', async () => {
+		test('funds held by an in-flight withdrawal, fee included, are not credited again', async () => {
 			const account = await seedAccount('ic');
+			let balance = BigInt(1000);
 
 			useLedger(({ ledgerId, owner }) =>
-				ledgerId === icp.ledger_ref && owner === account.address ? BigInt(1000) : BigInt(0)
+				ledgerId === icp.ledger_ref && owner === account.address ? balance : BigInt(0)
 			);
 
 			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
 
-			await requestWithdrawal({
+			const withdrawal = await requestWithdrawal({
 				userId: account.userId,
 				asset: icp,
 				amount: BigInt(400),
+				fee: BigInt(10),
 				destination: principalText(),
 				selfCustody: true,
 				userAddress: account.address
@@ -814,7 +818,18 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
 			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
 
-			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(600));
+			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(590));
+			expect(await depositCount({ account, asset: icp })).toBe(1);
+
+			// The ledger charged the fee on top of the amount: the books land on
+			// the on-chain balance with nothing left over to credit.
+			balance = BigInt(590);
+			await transitionWithdrawal({ id: withdrawal.id, from: 'requested', to: 'processing' });
+			await transitionWithdrawal({ id: withdrawal.id, from: 'processing', to: 'submitted' });
+			await transitionWithdrawal({ id: withdrawal.id, from: 'submitted', to: 'confirmed' });
+			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
+
+			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(590));
 			expect(await depositCount({ account, asset: icp })).toBe(1);
 		});
 	});

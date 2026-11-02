@@ -1,6 +1,7 @@
-// Withdrawal state machine: the transition matrix, the balance hold at
-// request time, insufficient-balance rejection, the VXP refusal, the
-// compensating refund on failure, and the concurrent-transition race guard.
+// Withdrawal state machine: the transition matrix, the balance hold of the
+// amount plus the network fee at request time, insufficient-balance rejection,
+// the VXP refusal, the compensating refund on failure, and the
+// concurrent-transition race guard.
 
 import { isNullish } from '@dfinity/utils';
 import { beforeAll, describe, expect, test } from 'bun:test';
@@ -18,6 +19,7 @@ import {
 	type WithdrawalState
 } from '../src/custody/withdrawals';
 import { query, tx } from '../src/db/client';
+import { ZERO } from '../src/lib/constants';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 
@@ -84,6 +86,17 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 	const balanceOf = (userId: string): Promise<bigint> =>
 		tx((q) => userChainBalance({ q, userId, asset }));
 
+	/** The legs one ledger event posted, by the kind of account they hit. */
+	const legsOf = (eventKey: string): Promise<{ kind: string; delta: string }[]> =>
+		query(
+			`select c.kind, l.delta::text as delta
+			 from ledger_entries l
+			 join custody_accounts c on c.id = l.account_id
+			 where l.event_key = $1
+			 order by l.idempotency_key`,
+			[eventKey]
+		);
+
 	beforeAll(async () => {
 		await ensureMigrated();
 
@@ -96,12 +109,13 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 		asset = icp;
 	});
 
-	test('request holds the amount on the internal ledger', async () => {
+	test('request holds the amount plus the fee, the fee booked to the network fee account', async () => {
 		const userId = await fundedUser(BigInt(1000));
 		const withdrawal = await requestWithdrawal({
 			userId,
 			asset,
 			amount: BigInt(400),
+			fee: BigInt(10),
 			destination: 'aaaaa-aa',
 			selfCustody: true,
 			userAddress: `p-${userId}`
@@ -109,7 +123,48 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 
 		expect(withdrawal.state).toBe('requested');
 		expect(withdrawal.self_custody).toBe(true);
-		expect(await balanceOf(userId)).toBe(BigInt(600));
+		expect(withdrawal.fee).toBe('10');
+		expect(await balanceOf(userId)).toBe(BigInt(590));
+		expect(await legsOf(`withdrawal:${withdrawal.id}:hold`)).toEqual([
+			{ kind: 'user', delta: '-410' },
+			{ kind: 'external', delta: '400' },
+			{ kind: 'network_fee', delta: '10' }
+		]);
+	});
+
+	test('rejects a withdrawal the balance covers only without the fee', async () => {
+		const userId = await fundedUser(BigInt(100));
+
+		await expect(
+			requestWithdrawal({
+				userId,
+				asset,
+				amount: BigInt(100),
+				fee: BigInt(1),
+				destination: 'aaaaa-aa',
+				selfCustody: false,
+				userAddress: `p-${userId}`
+			})
+		).rejects.toThrow(InsufficientBalanceError);
+
+		expect(await balanceOf(userId)).toBe(BigInt(100));
+		expect(await query(`select 1 from withdrawals where user_id = $1`, [userId])).toEqual([]);
+	});
+
+	test('a withdrawal of the balance less the fee empties it', async () => {
+		const userId = await fundedUser(BigInt(100));
+
+		await requestWithdrawal({
+			userId,
+			asset,
+			amount: BigInt(99),
+			fee: BigInt(1),
+			destination: 'aaaaa-aa',
+			selfCustody: false,
+			userAddress: `p-${userId}`
+		});
+
+		expect(await balanceOf(userId)).toBe(BigInt(0));
 	});
 
 	test('rejects a withdrawal above the balance without holding anything', async () => {
@@ -120,6 +175,7 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 				userId,
 				asset,
 				amount: BigInt(101),
+				fee: ZERO,
 				destination: 'aaaaa-aa',
 				selfCustody: false,
 				userAddress: `p-${userId}`
@@ -143,6 +199,7 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 				userId,
 				asset: vxp,
 				amount: BigInt(100),
+				fee: ZERO,
 				destination: 'aaaaa-aa',
 				selfCustody: true,
 				userAddress: `p-${userId}`
@@ -159,6 +216,7 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 			userId,
 			asset,
 			amount: BigInt(500),
+			fee: ZERO,
 			destination: 'aaaaa-aa',
 			selfCustody: false,
 			userAddress: `p-${userId}`
@@ -193,12 +251,13 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 		expect(await balanceOf(userId)).toBe(BigInt(0));
 	});
 
-	test('failure refunds the hold exactly once', async () => {
+	test('failure refunds the amount and the fee exactly once', async () => {
 		const userId = await fundedUser(BigInt(300));
 		const withdrawal = await requestWithdrawal({
 			userId,
 			asset,
-			amount: BigInt(300),
+			amount: BigInt(290),
+			fee: BigInt(10),
 			destination: 'aaaaa-aa',
 			selfCustody: false,
 			userAddress: `p-${userId}`
@@ -207,22 +266,34 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 		expect(await balanceOf(userId)).toBe(BigInt(0));
 
 		await transitionWithdrawal({ id: withdrawal.id, from: 'requested', to: 'processing' });
-		await transitionWithdrawal({
-			id: withdrawal.id,
-			from: 'processing',
-			to: 'failed',
-			failureReason: 'rpc down'
-		});
 
+		const failed = await Promise.all(
+			[1, 2].map(() =>
+				transitionWithdrawal({
+					id: withdrawal.id,
+					from: 'processing',
+					to: 'failed',
+					failureReason: 'rpc down'
+				})
+			)
+		);
+
+		expect(failed.filter((row) => row?.state === 'failed')).toHaveLength(1);
 		expect(await balanceOf(userId)).toBe(BigInt(300));
+		expect(await legsOf(`withdrawal:${withdrawal.id}:refund`)).toEqual([
+			{ kind: 'user', delta: '300' },
+			{ kind: 'external', delta: '-290' },
+			{ kind: 'network_fee', delta: '-10' }
+		]);
 	});
 
-	test('rejection refunds too', async () => {
+	test('rejection refunds the amount and the fee too', async () => {
 		const userId = await fundedUser(BigInt(50));
 		const withdrawal = await requestWithdrawal({
 			userId,
 			asset,
-			amount: BigInt(50),
+			amount: BigInt(45),
+			fee: BigInt(5),
 			destination: 'aaaaa-aa',
 			selfCustody: false,
 			userAddress: `p-${userId}`
@@ -233,12 +304,38 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 		expect(await balanceOf(userId)).toBe(BigInt(50));
 	});
 
+	test('a row held without a fee refunds exactly its two-leg hold', async () => {
+		const userId = await fundedUser(BigInt(50));
+		const withdrawal = await requestWithdrawal({
+			userId,
+			asset,
+			amount: BigInt(50),
+			fee: ZERO,
+			destination: 'aaaaa-aa',
+			selfCustody: false,
+			userAddress: `p-${userId}`
+		});
+
+		await transitionWithdrawal({ id: withdrawal.id, from: 'requested', to: 'rejected' });
+
+		expect(await balanceOf(userId)).toBe(BigInt(50));
+		expect(await legsOf(`withdrawal:${withdrawal.id}:hold`)).toEqual([
+			{ kind: 'user', delta: '-50' },
+			{ kind: 'external', delta: '50' }
+		]);
+		expect(await legsOf(`withdrawal:${withdrawal.id}:refund`)).toEqual([
+			{ kind: 'user', delta: '50' },
+			{ kind: 'external', delta: '-50' }
+		]);
+	});
+
 	test('an invalid transition throws and a stale one returns null', async () => {
 		const userId = await fundedUser(BigInt(10));
 		const withdrawal = await requestWithdrawal({
 			userId,
 			asset,
 			amount: BigInt(10),
+			fee: ZERO,
 			destination: 'aaaaa-aa',
 			selfCustody: false,
 			userAddress: `p-${userId}`

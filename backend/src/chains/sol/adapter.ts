@@ -289,6 +289,12 @@ export const watchSolDeposits = async ({
 	};
 };
 
+// The signature fee is paid in SOL whatever the asset, and a token withdrawal
+// may also fund the recipient's token account, so no fee fixed at request time
+// can describe it. Holding it is out of scope while sol withdrawals stay
+// disabled in production.
+const withdrawalFee = (): Promise<bigint> => Promise.resolve(ZERO);
+
 export const solAdapter: ChainAdapter = env.sol.enabled
 	? {
 			chain: 'sol',
@@ -297,6 +303,7 @@ export const solAdapter: ChainAdapter = env.sol.enabled
 			watchScope: 'address',
 			deriveAddress,
 			getBalance,
+			withdrawalFee,
 			transfer,
 			transferStatus: solTransferStatus,
 			watchDeposits: watchSolDeposits
@@ -308,6 +315,7 @@ export const solAdapter: ChainAdapter = env.sol.enabled
 			watchScope: 'address',
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('sol')),
+			withdrawalFee: () => Promise.reject(new ChainDisabledError('sol')),
 			transfer: () => Promise.reject(new ChainDisabledError('sol')),
 			transferStatus: () => Promise.reject(new ChainDisabledError('sol')),
 			watchDeposits: () => Promise.reject(new ChainDisabledError('sol'))
