@@ -67,7 +67,12 @@ export interface StreakBackfillReport {
 	alreadyBackfilled: number;
 	minted: number;
 	failed: number;
+	/** Underpaid rows that had no backfill marker when this run started. */
+	pending: number;
+	/** Includes rows topped up by earlier runs; see pendingShortfallBaseUnits. */
 	totalShortfallBaseUnits: string;
+	/** Shortfall of the pending rows only, i.e. what this run minted or would mint. */
+	pendingShortfallBaseUnits: string;
 }
 
 interface UnderpaidRow {
@@ -132,6 +137,11 @@ const remediateRow = async ({
 		return shortfall;
 	}
 
+	report.pending += 1;
+	report.pendingShortfallBaseUnits = (
+		BigInt(report.pendingShortfallBaseUnits) + shortfall
+	).toString();
+
 	if (dryRun) {
 		return shortfall;
 	}
@@ -163,7 +173,9 @@ export const backfillStreakUnderpayments = async ({
 		alreadyBackfilled: 0,
 		minted: 0,
 		failed: 0,
-		totalShortfallBaseUnits: '0'
+		pending: 0,
+		totalShortfallBaseUnits: '0',
+		pendingShortfallBaseUnits: '0'
 	};
 
 	const rows = await query<UnderpaidRow>(
@@ -182,4 +194,18 @@ export const backfillStreakUnderpayments = async ({
 	report.totalShortfallBaseUnits = totalShortfall.toString();
 
 	return report;
+};
+
+/**
+ * Worker log line for a backfill run, or undefined when there is nothing to
+ * act on. Rows topped up by earlier runs stay underpaid forever (the original
+ * row is never rewritten), so keying the log on them would repeat the same
+ * line every hour.
+ */
+export const streakBackfillLogLine = (report: StreakBackfillReport): string | undefined => {
+	if (report.pending === 0 && report.failed === 0) {
+		return;
+	}
+
+	return `streak backfill: ${report.pending} pending (${report.minted} minted, ${report.failed} failed, shortfall ${report.pendingShortfallBaseUnits})`;
 };
