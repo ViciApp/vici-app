@@ -5,6 +5,8 @@
 
 import { isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
+import { keccak_256 } from '@noble/hashes/sha3';
+import { bytesToHex } from '@noble/hashes/utils';
 import {
 	afterAll,
 	afterEach,
@@ -19,7 +21,8 @@ import {
 import { randomBytes } from 'node:crypto';
 import { fakeEngineActorProvider } from '../e2e/fake-engine';
 import { watchBtcDeposits } from '../src/chains/btc/adapter';
-import { watchEvmDeposits } from '../src/chains/evm/adapter';
+import { MAX_LOG_RECIPIENTS, watchEvmDeposits } from '../src/chains/evm/adapter';
+import { toChecksumAddress } from '../src/chains/evm/tx';
 import { icAdapter } from '../src/chains/ic/adapter';
 import { getAdapter } from '../src/chains/registry';
 import { watchSolDeposits } from '../src/chains/sol/adapter';
@@ -55,14 +58,18 @@ const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
 
 const principalText = (): string => Principal.fromUint8Array(randomBytes(29)).toText();
 
+const evmAddress = (): string => toChecksumAddress(`0x${randomBytes(20).toString('hex')}`);
+
 const seedAccounts = async ({
 	count,
-	chain
+	chain,
+	address = principalText
 }: {
 	count: number;
 	chain: Chain;
+	address?: () => string;
 }): Promise<Seeded[]> => {
-	const addresses = Array.from({ length: count }, principalText);
+	const addresses = Array.from({ length: count }, address);
 	const users = await query<{ id: string }>(
 		`insert into users (role) select 'user' from generate_series(1, $1) returning id`,
 		[count]
@@ -190,6 +197,7 @@ const scriptedAdapter = ({
 	watchScope,
 	deriveAddress: () => '',
 	getBalance: () => Promise.reject(new Error('unused')),
+	withdrawalFee: () => Promise.reject(new Error('unused')),
 	transfer: () => Promise.reject(new Error('unused')),
 	transferStatus: () => Promise.reject(new Error('unused')),
 	watchDeposits
@@ -745,7 +753,8 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			const withdrawal = await requestWithdrawal({
 				userId: account.userId,
 				asset: icp,
-				amount: BigInt(1000),
+				amount: BigInt(990),
+				fee: BigInt(10),
 				destination: principalText(),
 				selfCustody: true,
 				userAddress: account.address
@@ -793,19 +802,21 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			expect(await depositCount({ account, asset: eth })).toBe(1);
 		});
 
-		test('funds held by an in-flight withdrawal are not credited again', async () => {
+		test('funds held by an in-flight withdrawal, fee included, are not credited again', async () => {
 			const account = await seedAccount('ic');
+			let balance = BigInt(1000);
 
 			useLedger(({ ledgerId, owner }) =>
-				ledgerId === icp.ledger_ref && owner === account.address ? BigInt(1000) : BigInt(0)
+				ledgerId === icp.ledger_ref && owner === account.address ? balance : BigInt(0)
 			);
 
 			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
 
-			await requestWithdrawal({
+			const withdrawal = await requestWithdrawal({
 				userId: account.userId,
 				asset: icp,
 				amount: BigInt(400),
+				fee: BigInt(10),
 				destination: principalText(),
 				selfCustody: true,
 				userAddress: account.address
@@ -814,7 +825,18 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
 			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
 
-			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(600));
+			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(590));
+			expect(await depositCount({ account, asset: icp })).toBe(1);
+
+			// The ledger charged the fee on top of the amount: the books land on
+			// the on-chain balance with nothing left over to credit.
+			balance = BigInt(590);
+			await transitionWithdrawal({ id: withdrawal.id, from: 'requested', to: 'processing' });
+			await transitionWithdrawal({ id: withdrawal.id, from: 'processing', to: 'submitted' });
+			await transitionWithdrawal({ id: withdrawal.id, from: 'submitted', to: 'confirmed' });
+			await tickDepositWatchers({ adapters: [icAdapter], limits: SWEEP_ALL });
+
+			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(590));
 			expect(await depositCount({ account, asset: icp })).toBe(1);
 		});
 	});
@@ -1086,6 +1108,218 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 				expect(events.map(({ txRef }) => txRef)).toEqual(history);
 			} finally {
 				rpc.mockRestore();
+			}
+		});
+	});
+
+	describe('evm token logs', () => {
+		const transferTopic = `0x${bytesToHex(keccak_256('Transfer(address,address,uint256)'))}`;
+		const topicOf = (address: string): string =>
+			`0x${address.toLowerCase().slice(2).padStart(64, '0')}`;
+		const amountData = (amount: bigint): string => `0x${amount.toString(16).padStart(64, '0')}`;
+
+		interface LogFilter {
+			fromBlock: string;
+			toBlock: string;
+			address: string[];
+			topics: [string, null, string[]];
+		}
+
+		/** Answers the evm reads at head 100, recording every eth_getLogs filter. */
+		const stubEvmRpc = (logsFor: (filter: LogFilter) => unknown[]) => {
+			const filters: LogFilter[] = [];
+			const spy = stubFetch((_url, init) => {
+				const { method, params } = JSON.parse(String(init?.body)) as {
+					method: string;
+					params: unknown[];
+				};
+
+				if (method === 'eth_blockNumber') {
+					return Promise.resolve(rpcResponse('0x64'));
+				}
+
+				if (method === 'eth_getLogs') {
+					const filter = params[0] as LogFilter;
+
+					filters.push(filter);
+
+					return Promise.resolve(rpcResponse(logsFor(filter)));
+				}
+
+				return Promise.resolve(rpcResponse({ number: params[0], transactions: [] }));
+			});
+
+			return { filters, spy };
+		};
+
+		let usdc: Asset;
+
+		beforeAll(async () => {
+			usdc = await requireAsset({ chain: 'evm', symbol: 'USDC' });
+		});
+
+		beforeEach(async () => {
+			await query(`insert into chain_cursors (chain, cursor) values ('evm', '86')`);
+		});
+
+		afterAll(async () => {
+			await query(`update assets set enabled = false where id = $1`, [usdc.id]);
+		});
+
+		test('asks the node only for watched contracts and recipients, and credits as before', async () => {
+			await query(`update assets set enabled = true where id = $1`, [usdc.id]);
+
+			const account = await seedAccount('evm');
+			const [recipient] = await seedAccounts({ count: 1, chain: 'evm', address: evmAddress });
+
+			if (isNullish(recipient)) {
+				throw new Error('seed returned no account');
+			}
+
+			const sender = topicOf(evmAddress());
+			const { filters, spy } = stubEvmRpc(() => [
+				{
+					transactionHash: `tx-usdc-${randomBytes(8).toString('hex')}`,
+					address: usdc.ledger_ref,
+					topics: [transferTopic, sender, topicOf(recipient.address)],
+					data: amountData(BigInt(1_000_000))
+				},
+				// A provider that ignores the filter must still credit nothing extra.
+				{
+					transactionHash: 'tx-other-token',
+					address: evmAddress(),
+					topics: [transferTopic, sender, topicOf(recipient.address)],
+					data: amountData(BigInt(7))
+				},
+				{
+					transactionHash: 'tx-other-recipient',
+					address: usdc.ledger_ref,
+					topics: [transferTopic, sender, topicOf(evmAddress())],
+					data: amountData(BigInt(9))
+				}
+			]);
+
+			try {
+				await tickDepositWatchers({
+					adapters: [
+						scriptedAdapter({
+							chain: 'evm',
+							watchScope: 'chain',
+							watchDeposits: watchEvmDeposits
+						})
+					]
+				});
+			} finally {
+				spy.mockRestore();
+			}
+
+			expect(filters.length).toBeGreaterThan(0);
+
+			for (const filter of filters) {
+				expect(filter.fromBlock).toBe('0x57');
+				expect(filter.toBlock).toBe('0x58');
+				expect(filter.address).toEqual([(usdc.ledger_ref ?? '').toLowerCase()]);
+				expect(filter.topics[0]).toBe(transferTopic);
+				expect(filter.topics[1]).toBeNull();
+				expect(filter.topics[2].length).toBeLessThanOrEqual(MAX_LOG_RECIPIENTS);
+
+				// The principal-shaped address seeded above is no evm address.
+				for (const topic of filter.topics[2]) {
+					expect(topic).toMatch(/^0x0{24}[0-9a-f]{40}$/);
+				}
+			}
+
+			const requested = filters.flatMap(({ topics }) => topics[2]);
+
+			expect(requested).toContain(topicOf(recipient.address));
+			expect(requested).not.toContain(topicOf(account.address));
+			expect(await bookedBalance({ account: recipient, asset: usdc })).toBe(BigInt(1_000_000));
+			expect(await depositCount({ account: recipient, asset: usdc })).toBe(1);
+			expect(await cursorOf('evm')).toBe('88');
+		});
+
+		test('splits a large recipient list into bounded filters over the same range', async () => {
+			const addresses = Array.from({ length: MAX_LOG_RECIPIENTS * 2 + 1 }, evmAddress);
+			const last = addresses.at(-1) ?? '';
+			const { filters, spy } = stubEvmRpc(({ topics }) =>
+				topics[2].includes(topicOf(last))
+					? [
+							{
+								transactionHash: 'tx-last-batch',
+								address: usdc.ledger_ref,
+								topics: [transferTopic, topicOf(evmAddress()), topicOf(last)],
+								data: amountData(BigInt(42))
+							}
+						]
+					: []
+			);
+
+			try {
+				const { events } = await watchEvmDeposits({ addresses, assets: [usdc] });
+
+				expect(filters.map(({ topics }) => topics[2].length)).toEqual([
+					MAX_LOG_RECIPIENTS,
+					MAX_LOG_RECIPIENTS,
+					1
+				]);
+				expect(filters.flatMap(({ topics }) => topics[2])).toEqual(addresses.map(topicOf));
+				expect(new Set(filters.map(({ fromBlock, toBlock }) => `${fromBlock}-${toBlock}`))).toEqual(
+					new Set(['0x57-0x58'])
+				);
+				expect(events).toEqual([
+					{
+						kind: 'tx',
+						txRef: 'tx-last-batch',
+						address: last.toLowerCase(),
+						amount: BigInt(42),
+						asset: usdc,
+						confirmations: 12
+					}
+				]);
+			} finally {
+				spy.mockRestore();
+			}
+		});
+
+		test('reads no logs when no watched address is an evm address', async () => {
+			const { filters, spy } = stubEvmRpc(() => []);
+
+			try {
+				const { events } = await watchEvmDeposits({
+					addresses: [principalText()],
+					assets: [usdc]
+				});
+
+				expect(events).toEqual([]);
+				expect(filters).toEqual([]);
+			} finally {
+				spy.mockRestore();
+			}
+		});
+
+		test('leaves malformed contract references out of the filter', async () => {
+			const broken: Asset = {
+				...usdc,
+				id: 'broken-token',
+				symbol: 'BRK',
+				ledger_ref: 'not-a-contract'
+			};
+			const { filters, spy } = stubEvmRpc(() => []);
+
+			try {
+				await watchEvmDeposits({ addresses: [evmAddress()], assets: [usdc, broken] });
+
+				expect(filters.map(({ address }) => address)).toEqual([
+					[(usdc.ledger_ref ?? '').toLowerCase()]
+				]);
+
+				filters.length = 0;
+
+				await watchEvmDeposits({ addresses: [evmAddress()], assets: [broken] });
+
+				expect(filters).toEqual([]);
+			} finally {
+				spy.mockRestore();
 			}
 		});
 	});

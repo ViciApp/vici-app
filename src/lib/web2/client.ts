@@ -1024,6 +1024,9 @@ export interface Web2WalletAsset {
 	decimals: number;
 	chainEnabled: boolean;
 	withdrawable: boolean;
+	/** Base-unit network fee a withdrawal pays on top of its amount, held from
+	 * the same balance. Null when the asset cannot be withdrawn right now. */
+	withdrawalFee: string | null;
 }
 
 export interface Web2WalletBalance {
@@ -1038,6 +1041,9 @@ export interface Web2WalletWithdrawal {
 	id: string;
 	assetId: string;
 	amount: string;
+	/** Base-unit network fee held on top of `amount`, refunded with it on a
+	 * failed or rejected withdrawal. */
+	fee: string;
 	destination: string;
 	selfCustody: boolean;
 	state: string;

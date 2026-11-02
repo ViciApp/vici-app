@@ -11,6 +11,7 @@ const asset = (overrides: Partial<Web2WalletAsset>): Web2WalletAsset => ({
 	decimals: 8,
 	chainEnabled: true,
 	withdrawable: true,
+	withdrawalFee: null,
 	...overrides
 });
 

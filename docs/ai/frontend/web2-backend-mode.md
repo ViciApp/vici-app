@@ -462,7 +462,10 @@ the exact candid shapes.
   identity-parameterised for on-chain callers (admin tooling). The request
   is still gated on the internal ledger, not the live balance, so an `ic`
   send can disagree with the displayed figure: the watcher only books what
-  it sees on-chain and a sweep debits nothing.
+  it sees on-chain and a sweep debits nothing. The request also holds the
+  asset's network fee on top of the amount (quoted as `withdrawalFee` on
+  `/wallet/assets`, returned as `fee` on the withdrawal), so the most a
+  user can send is the balance less that fee.
 - The Send tab offers only tokens whose custody asset is `withdrawable` on
   `/wallet/assets` (the API refuses VXP withdrawals with
   `asset_not_withdrawable`). `loadSendableWalletAssets` hands the page the

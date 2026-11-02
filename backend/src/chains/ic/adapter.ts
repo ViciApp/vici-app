@@ -46,6 +46,15 @@ const getBalance = async ({
 	return await ledger.balance({ owner: Principal.fromText(address), certified: false });
 };
 
+/** An ICRC ledger charges its transfer fee from the sender on top of the
+ * amount. Uncertified is enough: the transfer sends this fee explicitly, so a
+ * wrong read is answered BadFee and refunded, never charged. */
+const withdrawalFee = async ({ asset }: { asset: Asset }): Promise<bigint> => {
+	const ledger = await readerLedger(ledgerRef(asset));
+
+	return await ledger.transactionFee({ certified: false });
+};
+
 /** What a ledger answer other than a block index proves. Duplicate is the
  * original transfer's block. A first send has no earlier twin, so any ledger
  * rejection means nothing moved. A replay is rejected for the window or the
@@ -87,6 +96,7 @@ const transfer = async ({
 	to,
 	amount,
 	asset,
+	fee,
 	dedup
 }: TransferParams): Promise<string> => {
 	const identity = isNullish(fromUserId) ? treasuryIcIdentity() : userIcIdentity(fromUserId);
@@ -99,6 +109,7 @@ const transfer = async ({
 		const blockIndex = await ledger.transfer({
 			to: { owner: Principal.fromText(to), subaccount: [] },
 			amount,
+			...(nonNullish(fee) ? { fee } : {}),
 			...(nonNullish(dedup)
 				? { memo: encodeTransferMemo(dedup.memo), created_at_time: dedup.created_at_ns }
 				: {})
@@ -154,6 +165,7 @@ export const icAdapter: ChainAdapter = {
 	watchScope: 'address',
 	deriveAddress,
 	getBalance,
+	withdrawalFee,
 	transfer,
 	transferStatus,
 	watchDeposits

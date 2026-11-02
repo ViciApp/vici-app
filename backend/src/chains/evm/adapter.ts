@@ -25,6 +25,18 @@ const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a
 /** Bound one watcher tick so a long outage cannot produce an unbounded scan. */
 const MAX_BLOCKS_PER_TICK = 50;
 
+/** Recipients per eth_getLogs filter. Nodes reject a whole filter whose topic
+ * OR-list is too long (geth caps one position at 1,000) and hosted providers
+ * cap the request body, so a growing user base would fail every token scan
+ * at once. Half the geth cap leaves room for stricter providers, and 500
+ * left-padded topics keep a request near 35 KB. */
+export const MAX_LOG_RECIPIENTS = 500;
+
+const EVM_ADDRESS = /^0x[0-9a-f]{40}$/;
+
+/** An address as the indexed `to` topic of an ERC-20 Transfer log. */
+const addressTopic = (address: string): string => `0x${address.slice(2).padStart(64, '0')}`;
+
 interface RpcError {
 	code: number;
 	message: string;
@@ -234,15 +246,34 @@ export const watchEvmDeposits = async ({
 		}
 	}
 
-	if (tokenAssets.length > 0) {
-		const logs = await rpc<RpcLog[]>('eth_getLogs', [
-			{
-				fromBlock: hexQuantity(fromBlock),
-				toBlock: hexQuantity(toBlock),
-				topics: [TRANSFER_TOPIC]
-			}
-		]);
+	// A malformed address or contract can never match a transfer, but in the
+	// filter it would make the node reject the call and stall every token
+	// deposit on the chain.
+	const recipients = [...addressSet].filter((address) => EVM_ADDRESS.test(address));
+	const contracts = [
+		...new Set(tokenAssets.map((asset) => (asset.ledger_ref ?? '').toLowerCase()))
+	].filter((contract) => EVM_ADDRESS.test(contract));
 
+	if (contracts.length > 0 && recipients.length > 0) {
+		const logs: RpcLog[] = [];
+
+		for (let start = 0; start < recipients.length; start += MAX_LOG_RECIPIENTS) {
+			const batch = recipients.slice(start, start + MAX_LOG_RECIPIENTS);
+
+			logs.push(
+				...(await rpc<RpcLog[]>('eth_getLogs', [
+					{
+						fromBlock: hexQuantity(fromBlock),
+						toBlock: hexQuantity(toBlock),
+						address: contracts,
+						topics: [TRANSFER_TOPIC, null, batch.map(addressTopic)]
+					}
+				]))
+			);
+		}
+
+		// The node already filtered by contract and recipient; checking again
+		// keeps a misbehaving provider from crediting someone else's transfer.
 		for (const log of logs) {
 			const asset = tokenAssets.find(
 				(candidate) => candidate.ledger_ref?.toLowerCase() === log.address.toLowerCase()
@@ -276,6 +307,11 @@ export const watchEvmDeposits = async ({
 	return { events, commit: () => writeCursor(toBlock) };
 };
 
+// Gas is priced at send time and paid in the native coin, so no fee fixed at
+// request time can describe it. Holding it is out of scope while evm
+// withdrawals stay disabled in production.
+const withdrawalFee = (): Promise<bigint> => Promise.resolve(ZERO);
+
 const disabled = (): never => {
 	throw new ChainDisabledError('evm');
 };
@@ -288,6 +324,7 @@ export const evmAdapter: ChainAdapter = env.evm.enabled
 			watchScope: 'chain',
 			deriveAddress,
 			getBalance,
+			withdrawalFee,
 			transfer,
 			transferStatus: evmTransferStatus,
 			watchDeposits: watchEvmDeposits
@@ -299,6 +336,7 @@ export const evmAdapter: ChainAdapter = env.evm.enabled
 			watchScope: 'chain',
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('evm')),
+			withdrawalFee: () => Promise.reject(new ChainDisabledError('evm')),
 			transfer: () => Promise.reject(new ChainDisabledError('evm')),
 			transferStatus: () => Promise.reject(new ChainDisabledError('evm')),
 			watchDeposits: disabled

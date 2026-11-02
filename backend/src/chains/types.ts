@@ -51,6 +51,11 @@ export interface TransferParams {
 	to: string;
 	amount: bigint;
 	asset: Asset;
+	/** The network fee the sender agreed to pay on top of `amount`. A chain
+	 * that takes it rejects the transfer when its current fee differs, rather
+	 * than charging an amount the books did not hold. Omitted: the chain
+	 * charges whatever its fee is. */
+	fee?: bigint;
 	dedup?: TransferDedup;
 }
 
@@ -67,6 +72,10 @@ export interface ChainAdapter {
 	deriveAddress(userId: string): string;
 	/** On-chain balance of an address in the asset's base units. */
 	getBalance(params: { address: string; asset: Asset }): Promise<bigint>;
+	/** The network fee a withdrawal of the asset costs the sender on top of the
+	 * amount, in the asset's base units. Held from the user with the amount, so
+	 * the internal balance drops exactly as the on-chain one will. */
+	withdrawalFee(params: { asset: Asset }): Promise<bigint>;
 	/** Sign and broadcast a transfer; resolves to the chain tx reference.
 	 * Throws TransferRejectedError only when the chain proves the funds did not
 	 * move, TransferUnverifiableError when a replay can no longer tell; any
