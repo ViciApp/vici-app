@@ -53,7 +53,7 @@
 		"@junobuild/config": "^3.0.1",
 		"@junobuild/vite-plugin": "^4.7.1",
 		"@playwright/test": "^1.62.1",
-		"@sveltejs/adapter-static": "^3.0.9",
+		"@sveltejs/adapter-static": "^4.0.0",
 		"@sveltejs/kit": "^2.70.3",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/postcss": "^4.3.3",
