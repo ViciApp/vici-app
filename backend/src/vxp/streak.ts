@@ -67,7 +67,16 @@ export interface StreakBackfillReport {
 	alreadyBackfilled: number;
 	minted: number;
 	failed: number;
+	/** Underpaid rows that had no backfill marker when this run started. */
+	pending: number;
+	/** Underpaid rows whose marker ended `failed` in an earlier run. A failed
+	 * award is terminal and reconciliation never picks it up again, so these
+	 * stay unpaid until someone looks. */
+	failedMarkers: number;
+	/** Includes rows topped up by earlier runs; see pendingShortfallBaseUnits. */
 	totalShortfallBaseUnits: string;
+	/** Shortfall of the pending rows only, i.e. what this run minted or would mint. */
+	pendingShortfallBaseUnits: string;
 }
 
 interface UnderpaidRow {
@@ -120,17 +129,28 @@ const remediateRow = async ({
 	report.underpaid += 1;
 
 	const backfillKey = `${row.award_key}_backfill`;
-	const existing = await query<{ id: string }>(
-		`select id from vxp_awards
+	const existing = await query<{ status: string }>(
+		`select status from vxp_awards
 		 where user_id = $1 and award_type = 'streak' and award_key = $2`,
 		[row.user_id, backfillKey]
 	);
+
+	if (existing.some(({ status }) => status === 'failed')) {
+		report.failedMarkers += 1;
+
+		return shortfall;
+	}
 
 	if (existing.length > 0) {
 		report.alreadyBackfilled += 1;
 
 		return shortfall;
 	}
+
+	report.pending += 1;
+	report.pendingShortfallBaseUnits = (
+		BigInt(report.pendingShortfallBaseUnits) + shortfall
+	).toString();
 
 	if (dryRun) {
 		return shortfall;
@@ -163,7 +183,10 @@ export const backfillStreakUnderpayments = async ({
 		alreadyBackfilled: 0,
 		minted: 0,
 		failed: 0,
-		totalShortfallBaseUnits: '0'
+		pending: 0,
+		failedMarkers: 0,
+		totalShortfallBaseUnits: '0',
+		pendingShortfallBaseUnits: '0'
 	};
 
 	const rows = await query<UnderpaidRow>(
@@ -182,4 +205,18 @@ export const backfillStreakUnderpayments = async ({
 	report.totalShortfallBaseUnits = totalShortfall.toString();
 
 	return report;
+};
+
+/**
+ * Worker log line for a backfill run, or undefined when there is nothing to
+ * act on. Rows topped up by earlier runs stay underpaid forever (the original
+ * row is never rewritten), so keying the log on them would repeat the same
+ * line every hour.
+ */
+export const streakBackfillLogLine = (report: StreakBackfillReport): string | undefined => {
+	if (report.pending === 0 && report.failed === 0 && report.failedMarkers === 0) {
+		return;
+	}
+
+	return `streak backfill: ${report.pending} pending (${report.minted} minted, ${report.failed} failed, ${report.failedMarkers} failed earlier, shortfall ${report.pendingShortfallBaseUnits})`;
 };
