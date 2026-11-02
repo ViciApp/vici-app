@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.8.50](https://github.com/ViciApp/vici-app/compare/v1.8.49...v1.8.50) (2026-11-02)
+
+
+### Bug Fixes
+
+* **custody:** recover stuck withdrawals and refund only on a definite rejection ([#1427](https://github.com/ViciApp/vici-app/issues/1427)) ([4d13f2c](https://github.com/ViciApp/vici-app/commit/4d13f2c1c9de895e0bcb8610bec8101c1dc53e5c))
+* **vxp:** log the streak backfill job only when something is pending ([#1424](https://github.com/ViciApp/vici-app/issues/1424)) ([4d9161b](https://github.com/ViciApp/vici-app/commit/4d9161b18cd2728c34c62dca94c98a5ab394b69e))
+* **wallet:** reject VXP withdrawals explicitly ([#1425](https://github.com/ViciApp/vici-app/issues/1425)) ([61d643a](https://github.com/ViciApp/vici-app/commit/61d643a26c5bb73dd2566ba09256d2e70fe8a93c))
+
+
+### Tests
+
+* **backend:** make profile-guards and affiliation-stats fixtures collision-free ([#1426](https://github.com/ViciApp/vici-app/issues/1426)) ([43d155e](https://github.com/ViciApp/vici-app/commit/43d155e09a52ea586c67c0185c6bb7fb2ca6dc5b))
+
 ## [1.8.49](https://github.com/ViciApp/vici-app/compare/v1.8.48...v1.8.49) (2026-11-02)
 
 
