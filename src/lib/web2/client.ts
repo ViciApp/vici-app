@@ -1023,6 +1023,7 @@ export interface Web2WalletAsset {
 	symbol: string;
 	decimals: number;
 	chainEnabled: boolean;
+	withdrawable: boolean;
 }
 
 export interface Web2WalletBalance {

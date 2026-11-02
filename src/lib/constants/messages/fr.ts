@@ -2623,6 +2623,7 @@ export const frMessages = {
 		'Chargement des options d’envoi… Si cela persiste, aucun token n’est disponible sur votre réseau actuel.',
 	'wallet.send.error_title': 'Erreur',
 	'wallet.send.failed': 'Retrait échoué',
+	'wallet.send.not_available': 'Aucun de vos tokens ne peut être envoyé pour le moment.',
 	'wallet.send.recipient': 'Destinataire',
 	'wallet.send.recipient_placeholder': 'aaaaa-aa...',
 	'wallet.send.unavailable': "L'envoi de {symbol} n'est pas disponible pour le moment",

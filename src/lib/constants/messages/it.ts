@@ -2610,6 +2610,7 @@ export const itMessages = {
 		'Caricamento opzioni di invio… Se persiste, nessun token è disponibile sulla rete corrente.',
 	'wallet.send.error_title': 'Errore',
 	'wallet.send.failed': 'Prelievo non riuscito',
+	'wallet.send.not_available': 'Al momento nessuno dei tuoi token può essere inviato.',
 	'wallet.send.recipient': 'Destinatario',
 	'wallet.send.recipient_placeholder': 'aaaaa-aa...',
 	'wallet.send.unavailable': "L'invio di {symbol} non è disponibile al momento",

@@ -188,6 +188,7 @@
 						{recipient}
 						selectedToken={selectedTokenForSend}
 						sendStatus={sending ? 'pending' : 'enabled'}
+						tokens={$walletUiTokens}
 					/>
 				{:else}
 					<p class="text-muted-foreground text-sm">

@@ -2,8 +2,9 @@ import { transfer as transferIcrc } from '$lib/api/icrc-ledger.api';
 import { safeGetIdentityOnce } from '$lib/services/identity.services';
 import type { IcSendParams } from '$lib/types/ic-send';
 import type { Token } from '$lib/types/token';
+import { findSendableAsset } from '$lib/utils/send.utils';
 import { isWeb2Backend } from '$lib/web2/backend-mode';
-import { listWalletAssets, requestWalletWithdrawal } from '$lib/web2/client';
+import { listWalletAssets, requestWalletWithdrawal, type Web2WalletAsset } from '$lib/web2/client';
 import { isNullish } from '@dfinity/utils';
 import { decodeIcrcAccount, type IcrcLedgerDid } from '@icp-sdk/canisters/ledger/icrc';
 
@@ -57,6 +58,18 @@ export class SendTokenError extends Error {
 	}
 }
 
+/**
+ * The custody catalog that gates the Send tab, fed to `filterSendableTokens`.
+ * `undefined` on the default backend, where no custody gate applies.
+ */
+export const loadSendableWalletAssets = async (): Promise<Web2WalletAsset[] | undefined> => {
+	if (!isWeb2Backend()) {
+		return;
+	}
+
+	return await listWalletAssets();
+};
+
 export const sendToken = async ({
 	token,
 	to,
@@ -67,13 +80,10 @@ export const sendToken = async ({
 	amount: bigint;
 }): Promise<void> => {
 	if (isWeb2Backend()) {
-		// The wallet routes key assets by the custody catalog's own id, matched
-		// here by symbol on the IC chain (the catalog mirrors the supported IC
-		// tokens).
-		const assets = await listWalletAssets();
-		const asset = assets.find(
-			({ chain, symbol, chainEnabled }) => chain === 'ic' && symbol === token.symbol && chainEnabled
-		);
+		// The wallet routes key assets by the custody catalog's own id. A
+		// non-withdrawable asset is refused here, before the API would reject
+		// the withdrawal.
+		const asset = findSendableAsset({ assets: await listWalletAssets(), token });
 
 		if (isNullish(asset)) {
 			throw new SendTokenError({

@@ -463,6 +463,14 @@ the exact candid shapes.
   is still gated on the internal ledger, not the live balance, so an `ic`
   send can disagree with the displayed figure: the watcher only books what
   it sees on-chain and a sweep debits nothing.
+- The Send tab offers only tokens whose custody asset is `withdrawable` on
+  `/wallet/assets` (the API refuses VXP withdrawals with
+  `asset_not_withdrawable`). `loadSendableWalletAssets` hands the page the
+  catalog (`undefined` on the default backend, no gate), and
+  `send.utils.ts` `filterSendableTokens` / `findSendableAsset` apply the
+  same match the list and `sendToken` use, so a refused asset fails up
+  front with `wallet.send.unavailable`. With nothing sendable the tab shows
+  `wallet.send.not_available` instead of the form.
 - The paged ICRC ledger history (`getTransactionsPage`) returns empty in
   web2 mode: index canisters key history by principal and the API exposes
   no custodial transfer feed yet. The wallet still shows clearing rows

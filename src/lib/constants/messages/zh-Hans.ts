@@ -2475,6 +2475,7 @@ export const zhHansMessages = {
 	'wallet.send.empty': '正在加载发送选项…… 如果一直未加载,可能当前网络下没有可用代币。',
 	'wallet.send.error_title': '错误',
 	'wallet.send.failed': '提现失败',
+	'wallet.send.not_available': '目前你的代币都无法发送。',
 	'wallet.send.recipient': '收款人',
 	'wallet.send.recipient_placeholder': 'aaaaa-aa...',
 	'wallet.send.unavailable': '当前无法发送 {symbol}',

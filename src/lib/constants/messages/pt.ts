@@ -2612,6 +2612,7 @@ export const ptMessages = {
 		'A carregar opções de envio… Se persistir, nenhum token está disponível na tua rede atual.',
 	'wallet.send.error_title': 'Erro',
 	'wallet.send.failed': 'Levantamento falhou',
+	'wallet.send.not_available': 'De momento, nenhum dos teus tokens pode ser enviado.',
 	'wallet.send.recipient': 'Destinatário',
 	'wallet.send.recipient_placeholder': 'aaaaa-aa...',
 	'wallet.send.unavailable': 'O envio de {symbol} não está disponível no momento',
