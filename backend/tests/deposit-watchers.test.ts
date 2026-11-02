@@ -210,6 +210,12 @@ const txEvent = ({
 	confirmations: 12
 });
 
+/** Bun's `typeof fetch` also carries `preconnect`, so a bare function is not one. */
+const stubFetch = (respond: (url: unknown, init?: RequestInit) => Promise<Response>) =>
+	spyOn(globalThis, 'fetch').mockImplementation(
+		Object.assign(respond, { preconnect: () => undefined })
+	);
+
 const rpcResponse = (result: unknown): Response =>
 	new Response(JSON.stringify({ result }), { status: 200 });
 
@@ -907,10 +913,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 		test('evm: the block cursor moves on commit, not on observing', async () => {
 			await query(`insert into chain_cursors (chain, cursor) values ('evm', '86')`);
 
-			const rpc = spyOn(globalThis, 'fetch').mockImplementation(((
-				_url: unknown,
-				init?: RequestInit
-			) => {
+			const rpc = stubFetch((_url, init) => {
 				const { method, params } = JSON.parse(String(init?.body)) as {
 					method: string;
 					params: string[];
@@ -926,7 +929,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 								}
 					)
 				);
-			}));
+			});
 
 			try {
 				const first = await watchEvmDeposits({ addresses: [address], assets: [eth] });
@@ -956,10 +959,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			const sol = await requireAsset({ chain: 'sol', symbol: 'SOL' });
 			const solAddress = `Sol${randomBytes(8).toString('hex')}`;
 			let failTransactions = true;
-			const rpc = spyOn(globalThis, 'fetch').mockImplementation(((
-				_url: unknown,
-				init?: RequestInit
-			) => {
+			const rpc = stubFetch((_url, init) => {
 				const { method } = JSON.parse(String(init?.body)) as { method: string };
 
 				if (method === 'getSignaturesForAddress') {
@@ -981,7 +981,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 						transaction: { message: { accountKeys: [{ pubkey: solAddress }] } }
 					})
 				);
-			}));
+			});
 
 			try {
 				await expect(watchSolDeposits({ addresses: [solAddress], assets: [sol] })).rejects.toThrow(
@@ -1009,10 +1009,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			const sol = await requireAsset({ chain: 'sol', symbol: 'SOL' });
 			const solAddress = `Sol${randomBytes(8).toString('hex')}`;
 			const history = Array.from({ length: 60 }, (_, index) => `sig-${index}`);
-			const rpc = spyOn(globalThis, 'fetch').mockImplementation(((
-				_url: unknown,
-				init?: RequestInit
-			) => {
+			const rpc = stubFetch((_url, init) => {
 				const { method, params } = JSON.parse(String(init?.body)) as {
 					method: string;
 					params: [string, { before?: string }];
@@ -1035,7 +1032,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 						transaction: { message: { accountKeys: [{ pubkey: solAddress }] } }
 					})
 				);
-			}));
+			});
 
 			try {
 				const pass = await watchSolDeposits({ addresses: [solAddress], assets: [sol] });
@@ -1054,7 +1051,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			const btc = await requireAsset({ chain: 'btc', symbol: 'BTC' });
 			const btcAddress = `bc1${randomBytes(8).toString('hex')}`;
 			const history = Array.from({ length: 30 }, (_, index) => `tx-${index}`);
-			const rpc = spyOn(globalThis, 'fetch').mockImplementation(((url: unknown) => {
+			const rpc = stubFetch((url) => {
 				const path = String(url);
 
 				if (path.endsWith('/blocks/tip/height')) {
@@ -1073,7 +1070,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 						}))
 					)
 				);
-			}));
+			});
 
 			try {
 				const { events } = await watchBtcDeposits({ addresses: [btcAddress], assets: [btc] });
