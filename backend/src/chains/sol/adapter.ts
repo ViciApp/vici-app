@@ -292,6 +292,7 @@ export const watchSolDeposits = async ({
 export const solAdapter: ChainAdapter = env.sol.enabled
 	? {
 			chain: 'sol',
+			replaySafe: false,
 			enabled: true,
 			watchScope: 'address',
 			deriveAddress,
@@ -302,6 +303,7 @@ export const solAdapter: ChainAdapter = env.sol.enabled
 		}
 	: {
 			chain: 'sol',
+			replaySafe: false,
 			enabled: false,
 			watchScope: 'address',
 			deriveAddress,

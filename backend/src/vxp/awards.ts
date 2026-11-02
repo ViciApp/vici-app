@@ -14,6 +14,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
+import { DEDUP_SAFE_WINDOW_MS } from '../chains/ic/icrc';
 import { query } from '../db/client';
 import { env } from '../env';
 import { ZERO } from '../lib/constants';
@@ -52,14 +53,6 @@ export type VxpAwardOrigin = 'live' | 'etl';
  * payout.
  */
 export const PROCESSING_STALE_MS = 10 * 60_000;
-
-/**
- * The ledger deduplicates a transfer only within 24 hours (plus 2 minutes of
- * drift) of its created_at_time. A stale claim is replayed only while its
- * stamp is well inside that window, where a landed transfer answers
- * Duplicate; an older one goes to the ledger-history check instead.
- */
-export const DEDUP_SAFE_WINDOW_MS = 23 * 60 * 60_000;
 
 /** Sends per award before one the history proves never landed is given up
  * as failed, so a deterministic rejection cannot loop forever. */

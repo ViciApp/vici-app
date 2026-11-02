@@ -283,6 +283,7 @@ const disabled = (): never => {
 export const evmAdapter: ChainAdapter = env.evm.enabled
 	? {
 			chain: 'evm',
+			replaySafe: false,
 			enabled: true,
 			watchScope: 'chain',
 			deriveAddress,
@@ -293,6 +294,7 @@ export const evmAdapter: ChainAdapter = env.evm.enabled
 		}
 	: {
 			chain: 'evm',
+			replaySafe: false,
 			enabled: false,
 			watchScope: 'chain',
 			deriveAddress,

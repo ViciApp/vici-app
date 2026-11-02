@@ -33,6 +33,17 @@ export interface WatchResult {
 	commit?: () => Promise<void>;
 }
 
+/** Fields fixed once per withdrawal and resent unchanged on every attempt,
+ * so a `replaySafe` chain recognizes a resend of a transfer that already
+ * landed instead of executing it twice. */
+export interface TransferDedup {
+	memo: string;
+	created_at_ns: bigint;
+	/** An earlier send with these fields may exist. Decides which rejections
+	 * still prove that nothing landed. */
+	replay: boolean;
+}
+
 export interface TransferParams {
 	/** The sending user; the adapter derives the signing key. Omitted for
 	 * treasury-side sends. */
@@ -40,6 +51,7 @@ export interface TransferParams {
 	to: string;
 	amount: bigint;
 	asset: Asset;
+	dedup?: TransferDedup;
 }
 
 /** Where a broadcast transfer stands. `failed` only on a definite on-chain
@@ -55,8 +67,16 @@ export interface ChainAdapter {
 	deriveAddress(userId: string): string;
 	/** On-chain balance of an address in the asset's base units. */
 	getBalance(params: { address: string; asset: Asset }): Promise<bigint>;
-	/** Sign and broadcast a transfer; resolves to the chain tx reference. */
+	/** Sign and broadcast a transfer; resolves to the chain tx reference.
+	 * Throws TransferRejectedError only when the chain proves the funds did not
+	 * move, TransferUnverifiableError when a replay can no longer tell; any
+	 * other error leaves the outcome unknown. */
 	transfer(params: TransferParams): Promise<string>;
+	/** Whether resending a transfer with the same `dedup` fields is safe: the
+	 * chain answers a resend of a landed transfer with the original reference
+	 * instead of moving the funds again. Only such a chain gets a withdrawal
+	 * whose outcome is unknown sent again; any other needs a human. */
+	replaySafe: boolean;
 	/** Where the transfer `transfer` returned `txRef` for stands, judged
 	 * against the chain's configured confirmation depth. */
 	transferStatus(params: { txRef: string; asset: Asset }): Promise<TransferStatus>;
@@ -75,6 +95,15 @@ export interface ChainAdapter {
 	 * belongs in `commit`. */
 	watchDeposits(params: { addresses: string[]; assets: Asset[] }): Promise<WatchResult>;
 }
+
+/** The chain did not execute this transfer, nor (for a replay) any earlier
+ * send with the same dedup fields: refunding the withdrawal is safe. */
+export class TransferRejectedError extends Error {}
+
+/** A replay the chain can no longer deduplicate (its window passed), so an
+ * earlier send may have landed. Never refund automatically: a human settles
+ * it from the chain's history. */
+export class TransferUnverifiableError extends Error {}
 
 export class ChainDisabledError extends Error {
 	constructor(chain: Chain) {
