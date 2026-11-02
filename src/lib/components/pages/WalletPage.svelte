@@ -22,10 +22,10 @@
 	} from '$lib/constants/vxp-economy.constants';
 	import { markets } from '$lib/derived/markets.derived';
 	import { positions } from '$lib/derived/positions.derived';
-	import { defaultSupportedToken, walletUiTokens } from '$lib/derived/tokens.derived';
+	import { walletUiTokens } from '$lib/derived/tokens.derived';
 	import { vxpBacked, vxpFree } from '$lib/derived/vxp-holdings.derived';
 	import { clearingTransactions } from '$lib/derived/wallet-feed.derived';
-	import { sendToken, SendTokenError } from '$lib/services/send.services';
+	import { loadSendableWalletAssets, sendToken, SendTokenError } from '$lib/services/send.services';
 	import {
 		getTransactionsPage,
 		type WalletTransactionsCursors,
@@ -46,7 +46,9 @@
 	import { goBack } from '$lib/utils/nav.utils';
 	import { parseToken } from '$lib/utils/parse.utils';
 	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
+	import { filterSendableTokens } from '$lib/utils/send.utils';
 	import { mergeWalletFeed, weeklyVxpDeltaBaseUnits } from '$lib/utils/transactions.utils';
+	import type { Web2WalletAsset } from '$lib/web2/client';
 
 	/**
 	 * Wallet — centered VXP balance hero + recent activity over the
@@ -228,8 +230,26 @@
 		await loadNextBatch();
 	};
 
+	// The loader answers `undefined` on the default backend (no custody gate),
+	// so "still loading" needs its own flag.
+	let sendAssets = $state<Web2WalletAsset[] | undefined>();
+	let sendAssetsLoaded = $state(false);
+
+	const loadSendAssets = async () => {
+		try {
+			sendAssets = await loadSendableWalletAssets();
+		} catch (err: unknown) {
+			// Without the catalog every web2 send is refused, so offer none.
+			console.error('Failed to load the send asset catalog:', err);
+			sendAssets = [];
+		} finally {
+			sendAssetsLoaded = true;
+		}
+	};
+
 	onMount(() => {
 		void reloadHistory();
+		void loadSendAssets();
 	});
 
 	let recipient = $state('');
@@ -237,7 +257,13 @@
 	let selectedToken = $state<Token | undefined>();
 	let sending = $state(false);
 
-	const selectedTokenForSend = $derived(selectedToken ?? $defaultSupportedToken);
+	// Empty until the catalog resolves, so a token the API refuses to send is
+	// never offered, not even while loading.
+	const sendableTokens = $derived(
+		sendAssetsLoaded ? filterSendableTokens({ tokens: $walletUiTokens, assets: sendAssets }) : []
+	);
+
+	const selectedTokenForSend = $derived(selectedToken ?? sendableTokens[0]);
 
 	const handleSend = async () => {
 		if (sending) {
@@ -515,7 +541,12 @@
 						{recipient}
 						selectedToken={selectedTokenForSend}
 						sendStatus={sending ? 'pending' : 'enabled'}
+						tokens={sendableTokens}
 					/>
+				{:else if sendAssetsLoaded && $walletUiTokens.length > 0}
+					<p class="text-muted-foreground text-sm">
+						{t({ locale: $localeStore, key: 'wallet.send.not_available' })}
+					</p>
 				{:else}
 					<p class="text-muted-foreground text-sm">
 						{t({ locale: $localeStore, key: 'wallet.send.empty' })}

@@ -62,8 +62,3 @@ export const walletUiTokens: Readable<Token[]> = derived(
 		return walletLedgerDisplayFallbackTokens($balanceDomain);
 	}
 );
-
-export const defaultSupportedToken: Readable<Token | undefined> = derived(
-	walletUiTokens,
-	($walletUiTokens) => ($walletUiTokens.length > 0 ? $walletUiTokens[0] : undefined)
-);

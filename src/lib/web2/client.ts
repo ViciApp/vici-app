@@ -1023,6 +1023,7 @@ export interface Web2WalletAsset {
 	symbol: string;
 	decimals: number;
 	chainEnabled: boolean;
+	withdrawable: boolean;
 	/** Base-unit network fee a withdrawal pays on top of its amount, held from
 	 * the same balance. Null when the asset cannot be withdrawn right now. */
 	withdrawalFee: string | null;

@@ -2267,6 +2267,7 @@ export const ptBRMessages = {
 	'wallet.send.amount': 'Valor',
 	'wallet.send.empty':
 		'Carregando opções de envio… Se persistir, nenhum token está disponível na sua rede atual.',
+	'wallet.send.not_available': 'No momento, nenhum dos seus tokens pode ser enviado.',
 	'wallet.send.error_title': 'Erro',
 	'wallet.send.recipient': 'Destinatário',
 	'wallet.send.recipient_placeholder': 'aaaaa-aa...',
