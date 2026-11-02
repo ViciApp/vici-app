@@ -8,8 +8,9 @@ import { requireUser, unauthenticated } from '../auth/guard';
 import { getAdapter, isChain } from '../chains/registry';
 import { ChainDisabledError } from '../chains/types';
 import { ensureUserAccount, listUserAccounts } from '../custody/accounts';
-import { getAssetById, listEnabledAssets } from '../custody/assets';
+import { getAssetById, isWithdrawable, listEnabledAssets } from '../custody/assets';
 import {
+	AssetNotWithdrawableError,
 	InsufficientBalanceError,
 	listUserWithdrawals,
 	requestWithdrawal,
@@ -148,7 +149,8 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 				chain: asset.chain,
 				symbol: asset.symbol,
 				decimals: asset.decimals,
-				chainEnabled: getAdapter(asset.chain).enabled
+				chainEnabled: getAdapter(asset.chain).enabled,
+				withdrawable: isWithdrawable(asset)
 			}))
 		};
 	})
@@ -270,6 +272,10 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 
 				return { withdrawal: shapeWithdrawal(executed) };
 			} catch (err) {
+				if (err instanceof AssetNotWithdrawableError) {
+					return badRequest(set, 'asset_not_withdrawable');
+				}
+
 				if (err instanceof InsufficientBalanceError) {
 					return badRequest(set, 'insufficient_balance');
 				}

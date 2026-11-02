@@ -11,7 +11,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
 import { ZERO } from '../lib/constants';
 import { ensureInternalAccount, ensureUserAccount } from './accounts';
-import type { Asset } from './assets';
+import { isWithdrawable, type Asset } from './assets';
 import { accountBalance, postLedgerEvent } from './ledger';
 
 export type WithdrawalState =
@@ -51,8 +51,12 @@ const SELECT = `select id, user_id, asset_id, amount::text as amount, destinatio
 
 export class InsufficientBalanceError extends Error {}
 
+export class AssetNotWithdrawableError extends Error {}
+
 /** Create a withdrawal request and post the balance hold atomically. Throws
- * InsufficientBalanceError when the internal balance cannot cover it. */
+ * AssetNotWithdrawableError for an asset that may never leave the platform,
+ * before any balance is read, and InsufficientBalanceError when the internal
+ * balance cannot cover it. */
 export const requestWithdrawal = async ({
 	userId,
 	asset,
@@ -70,6 +74,10 @@ export const requestWithdrawal = async ({
 	 * adapter; passed in so this module stays chain-agnostic). */
 	userAddress: string;
 }): Promise<Withdrawal> => {
+	if (!isWithdrawable(asset)) {
+		throw new AssetNotWithdrawableError(`${asset.chain}:${asset.symbol} is not withdrawable`);
+	}
+
 	if (amount <= ZERO) {
 		throw new Error('withdrawal amount must be positive');
 	}

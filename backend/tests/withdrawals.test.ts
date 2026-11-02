@@ -1,6 +1,6 @@
 // Withdrawal state machine: the transition matrix, the balance hold at
-// request time, insufficient-balance rejection, the compensating refund on
-// failure, and the concurrent-transition race guard.
+// request time, insufficient-balance rejection, the VXP refusal, the
+// compensating refund on failure, and the concurrent-transition race guard.
 
 import { isNullish } from '@dfinity/utils';
 import { beforeAll, describe, expect, test } from 'bun:test';
@@ -8,6 +8,7 @@ import { ensureInternalAccount, ensureUserAccount } from '../src/custody/account
 import { getAssetBySymbol, type Asset } from '../src/custody/assets';
 import { postLedgerEvent } from '../src/custody/ledger';
 import {
+	AssetNotWithdrawableError,
 	canTransition,
 	InsufficientBalanceError,
 	requestWithdrawal,
@@ -16,7 +17,7 @@ import {
 	WITHDRAWAL_TRANSITIONS,
 	type WithdrawalState
 } from '../src/custody/withdrawals';
-import { tx } from '../src/db/client';
+import { query, tx } from '../src/db/client';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 
@@ -51,7 +52,7 @@ describe('withdrawal transition matrix', () => {
 describe.if(dbAvailable)('withdrawal lifecycle', () => {
 	let asset: Asset;
 
-	const fundedUser = async (amount: bigint): Promise<string> => {
+	const fundedUser = async (amount: bigint, fundedAsset: Asset = asset): Promise<string> => {
 		const userId = await createTestUser();
 		const account = await ensureUserAccount({ userId, chain: 'ic', address: `p-${userId}` });
 		const external = await ensureInternalAccount({
@@ -64,8 +65,8 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 			eventKey: `test:fund:${userId}`,
 			kind: 'deposit',
 			legs: [
-				{ accountId: account.id, assetId: asset.id, delta: amount.toString() },
-				{ accountId: external.id, assetId: asset.id, delta: (-amount).toString() }
+				{ accountId: account.id, assetId: fundedAsset.id, delta: amount.toString() },
+				{ accountId: external.id, assetId: fundedAsset.id, delta: (-amount).toString() }
 			]
 		});
 
@@ -78,13 +79,13 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
 
-		const vxp = await getAssetBySymbol({ chain: 'ic', symbol: 'VXP' });
+		const icp = await getAssetBySymbol({ chain: 'ic', symbol: 'ICP' });
 
-		if (isNullish(vxp)) {
-			throw new Error('VXP asset missing from seed');
+		if (isNullish(icp)) {
+			throw new Error('ICP asset missing from seed');
 		}
 
-		asset = vxp;
+		asset = icp;
 	});
 
 	test('request holds the amount on the internal ledger', async () => {
@@ -118,6 +119,30 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 		).rejects.toThrow(InsufficientBalanceError);
 
 		expect(await balanceOf(userId)).toBe(BigInt(100));
+	});
+
+	test('refuses VXP even when a balance is booked, without holding or recording anything', async () => {
+		const vxp = await getAssetBySymbol({ chain: 'ic', symbol: 'VXP' });
+
+		if (isNullish(vxp)) {
+			throw new Error('VXP asset missing from seed');
+		}
+
+		const userId = await fundedUser(BigInt(1000), vxp);
+
+		await expect(
+			requestWithdrawal({
+				userId,
+				asset: vxp,
+				amount: BigInt(100),
+				destination: 'aaaaa-aa',
+				selfCustody: true,
+				userAddress: `p-${userId}`
+			})
+		).rejects.toThrow(AssetNotWithdrawableError);
+
+		expect(await tx((q) => userChainBalance({ q, userId, asset: vxp }))).toBe(BigInt(1000));
+		expect(await query(`select 1 from withdrawals where user_id = $1`, [userId])).toEqual([]);
 	});
 
 	test('walks the happy path to confirmed', async () => {
