@@ -10,8 +10,8 @@ export const ICP_INDEX_CANISTER_ID = 'qhbym-qaaaa-aaaaa-aaafq-cai';
 export const CKUSDC_LEDGER_CANISTER_ID = 'xevnm-gaaaa-aaaar-qafnq-cai';
 export const CKUSDC_INDEX_CANISTER_ID = 'xrs4b-hiaaa-aaaar-qafoa-cai';
 
-export const CKBTC_LEDGER_CANISTER_ID = 'mxz4u-wiaaa-aaaar-qaada-cai';
-export const CKETH_LEDGER_CANISTER_ID = 'ss2fx-dyaaa-aaaar-qacoa-cai';
+export const CKBTC_LEDGER_CANISTER_ID = 'mxzaz-hqaaa-aaaar-qaada-cai';
+export const CKETH_LEDGER_CANISTER_ID = 'ss2fx-dyaaa-aaaar-qacoq-cai';
 export const CHAT_LEDGER_CANISTER_ID = '2ouvw-qaaaa-aaaag-qacaa-cai';
 export const GHOST_LEDGER_CANISTER_ID = '4c4fd-caaaa-aaaaq-aaaqa-cai';
 
