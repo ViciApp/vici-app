@@ -926,7 +926,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 								}
 					)
 				);
-			}) as unknown as typeof fetch);
+			}));
 
 			try {
 				const first = await watchEvmDeposits({ addresses: [address], assets: [eth] });
@@ -981,7 +981,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 						transaction: { message: { accountKeys: [{ pubkey: solAddress }] } }
 					})
 				);
-			}) as unknown as typeof fetch);
+			}));
 
 			try {
 				await expect(watchSolDeposits({ addresses: [solAddress], assets: [sol] })).rejects.toThrow(
@@ -1035,7 +1035,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 						transaction: { message: { accountKeys: [{ pubkey: solAddress }] } }
 					})
 				);
-			}) as unknown as typeof fetch);
+			}));
 
 			try {
 				const pass = await watchSolDeposits({ addresses: [solAddress], assets: [sol] });
@@ -1073,7 +1073,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 						}))
 					)
 				);
-			}) as unknown as typeof fetch);
+			}));
 
 			try {
 				const { events } = await watchBtcDeposits({ addresses: [btcAddress], assets: [btc] });
