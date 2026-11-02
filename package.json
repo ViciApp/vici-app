@@ -90,12 +90,11 @@
 		"@junobuild/schema": "^1.2.4",
 		"@lucide/svelte": "^1.61.0",
 		"decimal.js": "^10.6.0",
-		"ethers": "^6.16.0",
+		"ethers": "^6.17.0",
 		"icp-auth-openid": "npm:@icp-sdk/auth@^6.2.2",
 		"nanoid": "^6.0.2"
 	},
 	"overrides": {
-		"cookie": "^0.7.0",
-		"ws": "^8.21.3"
+		"cookie": "^0.7.0"
 	}
 }
