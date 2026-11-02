@@ -13,6 +13,7 @@ import {
 	type ChainAdapter,
 	type DepositEvent,
 	type TransferParams,
+	type TransferStatus,
 	type WatchResult
 } from '../types';
 import {
@@ -109,6 +110,36 @@ const transfer = async ({ fromUserId, to, amount, asset }: TransferParams): Prom
 		signed,
 		{ encoding: 'base64', preflightCommitment: env.sol.commitment }
 	]);
+};
+
+const COMMITMENT_RANK: Record<string, number> = { processed: 0, confirmed: 1, finalized: 2 };
+
+interface SignatureStatus {
+	err: unknown;
+	confirmationStatus: string | null;
+}
+
+export const solTransferStatus = async ({ txRef }: { txRef: string }): Promise<TransferStatus> => {
+	const result = await rpc<{ value: (SignatureStatus | null)[] }>('getSignatureStatuses', [
+		[txRef],
+		{ searchTransactionHistory: true }
+	]);
+	const [status] = result.value;
+
+	if (isNullish(status)) {
+		return 'pending';
+	}
+
+	const reached = COMMITMENT_RANK[status.confirmationStatus ?? ''] ?? -1;
+	const wanted = COMMITMENT_RANK[env.sol.commitment] ?? 2;
+
+	// An error is final only at the same commitment as a success: below it the
+	// slot can still be dropped.
+	if (reached < wanted) {
+		return 'pending';
+	}
+
+	return isNullish(status.err) ? 'confirmed' : 'failed';
 };
 
 const cursorKey = (address: string): string => `sol:${address}`;
@@ -266,6 +297,7 @@ export const solAdapter: ChainAdapter = env.sol.enabled
 			deriveAddress,
 			getBalance,
 			transfer,
+			transferStatus: solTransferStatus,
 			watchDeposits: watchSolDeposits
 		}
 	: {
@@ -275,6 +307,7 @@ export const solAdapter: ChainAdapter = env.sol.enabled
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('sol')),
 			transfer: () => Promise.reject(new ChainDisabledError('sol')),
+			transferStatus: () => Promise.reject(new ChainDisabledError('sol')),
 			watchDeposits: () => Promise.reject(new ChainDisabledError('sol'))
 		};
 

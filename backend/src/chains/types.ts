@@ -42,6 +42,11 @@ export interface TransferParams {
 	asset: Asset;
 }
 
+/** Where a broadcast transfer stands. `failed` only on a definite on-chain
+ * failure: a transfer the chain does not know yet stays `pending`, since
+ * refunding one that later lands would pay the user twice. */
+export type TransferStatus = 'pending' | 'confirmed' | 'failed';
+
 export interface ChainAdapter {
 	chain: Chain;
 	enabled: boolean;
@@ -52,6 +57,9 @@ export interface ChainAdapter {
 	getBalance(params: { address: string; asset: Asset }): Promise<bigint>;
 	/** Sign and broadcast a transfer; resolves to the chain tx reference. */
 	transfer(params: TransferParams): Promise<string>;
+	/** Where the transfer `transfer` returned `txRef` for stands, judged
+	 * against the chain's configured confirmation depth. */
+	transferStatus(params: { txRef: string; asset: Asset }): Promise<TransferStatus>;
 	/** What one watch pass must be handed. `address`: every read stands alone
 	 * (live balance, or a per-address cursor), so any subset is safe and the
 	 * watcher pages through accounts across ticks, one read per (address,

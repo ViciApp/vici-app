@@ -15,6 +15,7 @@ import {
 	type ChainAdapter,
 	type DepositEvent,
 	type TransferParams,
+	type TransferStatus,
 	type WatchResult
 } from '../types';
 import { encodeErc20Transfer, evmAddressFromPrivateKey, signEip1559Tx } from './tx';
@@ -29,7 +30,8 @@ interface RpcError {
 	message: string;
 }
 
-const rpc = async <T>(method: string, params: unknown[]): Promise<T> => {
+/** A null result is a valid answer for some methods (a receipt not yet mined). */
+const rpcOrNull = async <T>(method: string, params: unknown[]): Promise<T | null> => {
 	const response = await fetch(env.evm.rpcUrl, {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
@@ -46,11 +48,17 @@ const rpc = async <T>(method: string, params: unknown[]): Promise<T> => {
 		throw new Error(`evm rpc ${method} failed: ${body.error.message}`);
 	}
 
-	if (isNullish(body.result)) {
+	return body.result ?? null;
+};
+
+const rpc = async <T>(method: string, params: unknown[]): Promise<T> => {
+	const result = await rpcOrNull<T>(method, params);
+
+	if (isNullish(result)) {
 		throw new Error(`evm rpc ${method} returned no result`);
 	}
 
-	return body.result;
+	return result;
 };
 
 const hexQuantity = (value: bigint): string => `0x${value.toString(16)}`;
@@ -111,6 +119,29 @@ const transfer = async ({ fromUserId, to, amount, asset }: TransferParams): Prom
 	});
 
 	return await rpc<string>('eth_sendRawTransaction', [raw]);
+};
+
+interface RpcReceipt {
+	status: string;
+	blockNumber: string;
+}
+
+export const evmTransferStatus = async ({ txRef }: { txRef: string }): Promise<TransferStatus> => {
+	const receipt = await rpcOrNull<RpcReceipt>('eth_getTransactionReceipt', [txRef]);
+
+	if (isNullish(receipt)) {
+		return 'pending';
+	}
+
+	const head = BigInt(await rpc<string>('eth_blockNumber', []));
+	const confirmations = head - BigInt(receipt.blockNumber) + BigInt(1);
+
+	// A revert is final only as deep as a success: a reorg can re-run it.
+	if (confirmations < BigInt(env.evm.confirmations)) {
+		return 'pending';
+	}
+
+	return receipt.status === '0x0' ? 'failed' : 'confirmed';
 };
 
 interface RpcBlock {
@@ -257,6 +288,7 @@ export const evmAdapter: ChainAdapter = env.evm.enabled
 			deriveAddress,
 			getBalance,
 			transfer,
+			transferStatus: evmTransferStatus,
 			watchDeposits: watchEvmDeposits
 		}
 	: {
@@ -266,5 +298,6 @@ export const evmAdapter: ChainAdapter = env.evm.enabled
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('evm')),
 			transfer: () => Promise.reject(new ChainDisabledError('evm')),
+			transferStatus: () => Promise.reject(new ChainDisabledError('evm')),
 			watchDeposits: disabled
 		};

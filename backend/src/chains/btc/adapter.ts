@@ -17,6 +17,7 @@ import {
 	type ChainAdapter,
 	type DepositEvent,
 	type TransferParams,
+	type TransferStatus,
 	type WatchResult
 } from '../types';
 import { btcAddressFromPrivateKey, type BtcNetwork } from './address';
@@ -146,6 +147,23 @@ const transfer = async ({ fromUserId, to, amount }: TransferParams): Promise<str
 	return txid.trim();
 };
 
+/** Bitcoin has no failed transaction: a broadcast one confirms or is never
+ * mined, and a missing one stays pending (the lookup errors and is retried)
+ * because a refund for one that later mines would pay the user twice. */
+export const btcTransferStatus = async ({ txRef }: { txRef: string }): Promise<TransferStatus> => {
+	const status = await esplora<{ confirmed: boolean; block_height?: number }>(
+		`/tx/${txRef}/status`
+	);
+
+	if (!status.confirmed || isNullish(status.block_height)) {
+		return 'pending';
+	}
+
+	const tipHeight = Number(await esploraText('/blocks/tip/height'));
+
+	return tipHeight - status.block_height + 1 >= env.btc.confirmations ? 'confirmed' : 'pending';
+};
+
 interface AddressTx {
 	txid: string;
 	status: { confirmed: boolean; block_height?: number };
@@ -227,6 +245,7 @@ export const btcAdapter: ChainAdapter = env.btc.enabled
 			deriveAddress,
 			getBalance,
 			transfer,
+			transferStatus: btcTransferStatus,
 			watchDeposits: watchBtcDeposits
 		}
 	: {
@@ -236,5 +255,6 @@ export const btcAdapter: ChainAdapter = env.btc.enabled
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('btc')),
 			transfer: () => Promise.reject(new ChainDisabledError('btc')),
+			transferStatus: () => Promise.reject(new ChainDisabledError('btc')),
 			watchDeposits: () => Promise.reject(new ChainDisabledError('btc'))
 		};

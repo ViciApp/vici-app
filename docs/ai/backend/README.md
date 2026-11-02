@@ -103,6 +103,12 @@ deposit:
   key. Read the credit count in the same statement as the internal balance: a
   count fresher than the balance gives a stale delta a key nobody else holds,
   and it double-credits.
+- **`transferStatus` answers `failed` only on a definite on-chain failure.**
+  The `withdrawal-confirmations` job refunds a `failed` withdrawal, so a
+  transfer the chain does not know yet, or a status read that errors or times
+  out, stays `pending`: refunding one that later lands pays the user twice.
+  Every `submitted` row counts as in flight in the `balance` delta, so a chain
+  must eventually answer `confirmed` (ic does at once: a block index is final).
 
 ## If the prompt **does** ask you to work on icdc-core
 

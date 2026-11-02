@@ -11,6 +11,7 @@
 // interval (WORKER_POLL_INTERVAL_MS), for sweeps that are cheap to skip.
 
 import { sweepExpiredDeletions } from './account/lifecycle';
+import { tickWithdrawalConfirmations } from './chains/confirmations';
 import { tickDepositWatchers } from './chains/watchers';
 import { applyAssetAllowlist } from './custody/assets';
 import { env } from './env';
@@ -38,6 +39,12 @@ export const jobs: WorkerJob[] = [
 		// skipped, so an unconfigured deploy stays a clean no-op.
 		name: 'deposit-watchers',
 		run: () => tickDepositWatchers()
+	},
+	{
+		// Moves submitted withdrawals to confirmed or failed; the state guard in
+		// transitionWithdrawal makes a re-run on a moved row a no-op.
+		name: 'withdrawal-confirmations',
+		run: () => tickWithdrawalConfirmations()
 	},
 	{
 		name: 'prune-resolved-results',

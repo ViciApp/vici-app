@@ -12,7 +12,13 @@ import { readerLedger } from '../../engine/actors';
 import { ZERO } from '../../lib/constants';
 import { buildAgent } from '../../lib/ic-agent';
 import { treasuryIcIdentity, userIcIdentity, userIcPrincipalText } from '../../lib/keys';
-import type { ChainAdapter, DepositEvent, TransferParams, WatchResult } from '../types';
+import type {
+	ChainAdapter,
+	DepositEvent,
+	TransferParams,
+	TransferStatus,
+	WatchResult
+} from '../types';
 
 const ledgerRef = (asset: Asset): string => {
 	if (isNullish(asset.ledger_ref)) {
@@ -50,6 +56,10 @@ const transfer = async ({ fromUserId, to, amount, asset }: TransferParams): Prom
 
 	return blockIndex.toString();
 };
+
+/** An ICRC ledger hands back a block index only for a committed transfer, and
+ * a committed IC block is final: there is nothing left to wait for. */
+const transferStatus = (): Promise<TransferStatus> => Promise.resolve('confirmed');
 
 const watchDeposits = async ({
 	addresses,
@@ -91,5 +101,6 @@ export const icAdapter: ChainAdapter = {
 	deriveAddress,
 	getBalance,
 	transfer,
+	transferStatus,
 	watchDeposits
 };
