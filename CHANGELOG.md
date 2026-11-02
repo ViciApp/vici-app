@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.48](https://github.com/ViciApp/vici-app/compare/v1.8.47...v1.8.48) (2026-11-02)
+
+
+### Bug Fixes
+
+* **watcher:** bound the deposit tick, isolate failed reads, credit repeated balances ([#1407](https://github.com/ViciApp/vici-app/issues/1407)) ([8f6d650](https://github.com/ViciApp/vici-app/commit/8f6d650baba9698f4b0b3487c9974ded2df8e212))
+
 ## [1.8.47](https://github.com/ViciApp/vici-app/compare/v1.8.46...v1.8.47) (2026-11-02)
 
 
