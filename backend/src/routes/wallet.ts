@@ -214,8 +214,16 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 					userAddress: adapter.deriveAddress(user.id)
 				});
 				// Best-effort first attempt: whatever it leaves unsettled, the
-				// withdrawal-recovery job picks up.
-				const executed = await executeWithdrawal({ withdrawal, asset, adapter });
+				// withdrawal-recovery job picks up. The hold is already committed, so
+				// a throw here must still answer with the row: a 500 invites the
+				// client to file a second withdrawal.
+				const executed = await executeWithdrawal({ withdrawal, asset, adapter }).catch(
+					(err: unknown) => {
+						logger.error(`withdrawal ${withdrawal.id} first attempt failed:`, err);
+
+						return withdrawal;
+					}
+				);
 
 				set.status = 201;
 

@@ -9,9 +9,11 @@ import { IcrcLedgerCanister, IcrcTransferError } from '@icp-sdk/canisters/ledger
 import { Principal } from '@icp-sdk/core/principal';
 import { afterAll, afterEach, beforeAll, describe, expect, spyOn, test, type Mock } from 'bun:test';
 import { randomBytes } from 'node:crypto';
+import { createSession } from '../src/auth/sessions';
 import { encodeTransferMemo } from '../src/chains/ic/icrc';
 import { getAdapter } from '../src/chains/registry';
 import type { ChainAdapter } from '../src/chains/types';
+import * as execution from '../src/chains/withdrawal-execution';
 import { executeWithdrawal, tickWithdrawalRecovery } from '../src/chains/withdrawal-execution';
 import { ensureInternalAccount, ensureUserAccount } from '../src/custody/accounts';
 import { getAssetBySymbol, type Asset } from '../src/custody/assets';
@@ -24,7 +26,8 @@ import {
 	type Withdrawal
 } from '../src/custody/withdrawals';
 import { query, tx } from '../src/db/client';
-import type { Chain } from '../src/lib/keys';
+import { app } from '../src/index';
+import { userIcPrincipalText, type Chain } from '../src/lib/keys';
 import { logger } from '../src/lib/logger';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
@@ -443,5 +446,53 @@ describe.if(dbAvailable)('withdrawal recovery', () => {
 		]);
 
 		expect(claims.filter(nonNullish)).toHaveLength(1);
+	});
+
+	test('a first attempt that throws still answers with the stored withdrawal', async () => {
+		silenceErrors();
+
+		const userId = await createTestUser();
+		const address = userIcPrincipalText(userId);
+		const account = await ensureUserAccount({ userId, chain: 'ic', address });
+		const external = await ensureInternalAccount({
+			kind: 'external',
+			chain: 'ic',
+			address: 'external'
+		});
+
+		await postLedgerEvent({
+			eventKey: `test:fund:${userId}`,
+			kind: 'deposit',
+			legs: [
+				{ accountId: account.id, assetId: icp.id, delta: '300' },
+				{ accountId: external.id, assetId: icp.id, delta: '-300' }
+			]
+		});
+
+		const execute = spyOn(execution, 'executeWithdrawal').mockRejectedValue(
+			new Error('connection terminated')
+		);
+
+		try {
+			const res = await app.handle(
+				new Request('http://localhost/api/v1/wallet/withdrawals', {
+					method: 'POST',
+					headers: {
+						cookie: `vici_session=${await createSession(userId)}`,
+						'content-type': 'application/json'
+					},
+					body: JSON.stringify({ assetId: icp.id, amount: '200', destination: recipient() })
+				})
+			);
+			const body = (await res.json()) as { withdrawal: { id: string; state: string } };
+
+			createdIds.push(body.withdrawal.id);
+
+			expect(res.status).toBe(201);
+			expect(body.withdrawal.state).toBe('requested');
+			expect(await query(`select 1 from withdrawals where user_id = $1`, [userId])).toHaveLength(1);
+		} finally {
+			execute.mockRestore();
+		}
 	});
 });
