@@ -152,7 +152,31 @@ interface AddressTx {
 	vout: { scriptpubkey_address?: string; value: number }[];
 }
 
-const watchDeposits = async ({
+const CHAIN_TX_PAGE = 25;
+
+/** The address's whole confirmed history: there is no cursor to stop at, and a
+ * sweep can leave an address unread for several ticks, so a first page alone
+ * could lose an output. Deposit addresses see few transactions. */
+const confirmedTxs = async (address: string): Promise<AddressTx[]> => {
+	const txs: AddressTx[] = [];
+	let path = `/address/${address}/txs/chain`;
+
+	for (;;) {
+		const page = await esplora<AddressTx[]>(path);
+
+		txs.push(...page);
+
+		const last = page[CHAIN_TX_PAGE - 1];
+
+		if (isNullish(last)) {
+			return txs;
+		}
+
+		path = `/address/${address}/txs/chain/${last.txid}`;
+	}
+};
+
+export const watchBtcDeposits = async ({
 	addresses,
 	assets
 }: {
@@ -169,9 +193,7 @@ const watchDeposits = async ({
 	const events: DepositEvent[] = [];
 
 	for (const address of addresses) {
-		const txs = await esplora<AddressTx[]>(`/address/${address}/txs`);
-
-		for (const transaction of txs) {
+		for (const transaction of await confirmedTxs(address)) {
 			const blockHeight = transaction.status.block_height;
 
 			if (transaction.status.confirmed && nonNullish(blockHeight)) {
@@ -205,7 +227,7 @@ export const btcAdapter: ChainAdapter = env.btc.enabled
 			deriveAddress,
 			getBalance,
 			transfer,
-			watchDeposits
+			watchDeposits: watchBtcDeposits
 		}
 	: {
 			chain: 'btc',

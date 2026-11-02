@@ -141,6 +141,42 @@ interface SignatureInfo {
 	err: unknown;
 }
 
+const SIGNATURE_PAGE = 25;
+
+/** Every signature newer than `until`, newest first. Walked to the end: the
+ * cursor moves to the newest signature, so one left unread is never revisited,
+ * and a sweep can leave an address unread for several ticks. */
+const signaturesSince = async ({
+	address,
+	until
+}: {
+	address: string;
+	until: string | null;
+}): Promise<SignatureInfo[]> => {
+	const signatures: SignatureInfo[] = [];
+	let before: string | undefined;
+
+	for (;;) {
+		const page = await rpc<SignatureInfo[]>('getSignaturesForAddress', [
+			address,
+			{
+				limit: SIGNATURE_PAGE,
+				commitment: env.sol.commitment,
+				...(nonNullish(until) ? { until } : {}),
+				...(nonNullish(before) ? { before } : {})
+			}
+		]);
+
+		signatures.push(...page);
+
+		if (page.length < SIGNATURE_PAGE) {
+			return signatures;
+		}
+
+		before = page[page.length - 1]?.signature;
+	}
+};
+
 interface ParsedTxMeta {
 	preBalances: number[];
 	postBalances: number[];
@@ -169,14 +205,7 @@ export const watchSolDeposits = async ({
 
 	for (const address of addresses) {
 		const until = await readCursor(address);
-		const signatures = await rpc<SignatureInfo[]>('getSignaturesForAddress', [
-			address,
-			{
-				limit: 25,
-				commitment: env.sol.commitment,
-				...(nonNullish(until) ? { until } : {})
-			}
-		]);
+		const signatures = await signaturesSince({ address, until });
 
 		// Newest first from the RPC; reported oldest first so credits follow
 		// chain order.

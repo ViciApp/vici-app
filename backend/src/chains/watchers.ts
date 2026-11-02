@@ -220,6 +220,8 @@ const creditBalanceDeposit = async ({
 	});
 };
 
+class WatchTimeoutError extends Error {}
+
 const withTimeout = <T>({
 	work,
 	timeout_ms,
@@ -234,7 +236,7 @@ const withTimeout = <T>({
 	return Promise.race([
 		work.finally(() => clearTimeout(timer)),
 		new Promise<never>((_, reject) => {
-			timer = setTimeout(() => reject(new Error(`${label} timed out`)), timeout_ms);
+			timer = setTimeout(() => reject(new WatchTimeoutError(`${label} timed out`)), timeout_ms);
 		})
 	]);
 };
@@ -350,7 +352,35 @@ const sweepAccounts = async ({
 	const reads = accounts.flatMap((account) => chainAssets.map((asset) => ({ account, asset })));
 	const deadline_ms = Date.now() + limits.budget_ms;
 	const failures = new Map<string, { count: number; first: unknown }>();
+	// A timeout stops waiting, not the call, which a canister query cannot cancel.
+	// An asset that stopped answering gets no more reads this tick, or the calls
+	// left running would climb past `concurrency`. Its balances wait for the next
+	// sweep, and the other assets carry on.
+	const stalled = new Set<string>();
 	let started = 0;
+
+	const runRead = async ({ account, asset }: (typeof reads)[number]): Promise<void> => {
+		try {
+			await watchAndCredit({
+				adapter,
+				accounts: [account],
+				assets: [asset],
+				externalId: external.id,
+				timeout_ms: limits.readTimeout_ms
+			});
+		} catch (err) {
+			if (err instanceof WatchTimeoutError) {
+				stalled.add(asset.symbol);
+			}
+
+			const seen = failures.get(asset.symbol);
+
+			failures.set(asset.symbol, {
+				count: (seen?.count ?? 0) + 1,
+				first: seen?.first ?? err
+			});
+		}
+	};
 
 	const runReads = async (): Promise<void> => {
 		while (Date.now() < deadline_ms) {
@@ -362,21 +392,8 @@ const sweepAccounts = async ({
 
 			started += 1;
 
-			try {
-				await watchAndCredit({
-					adapter,
-					accounts: [read.account],
-					assets: [read.asset],
-					externalId: external.id,
-					timeout_ms: limits.readTimeout_ms
-				});
-			} catch (err) {
-				const seen = failures.get(read.asset.symbol);
-
-				failures.set(read.asset.symbol, {
-					count: (seen?.count ?? 0) + 1,
-					first: seen?.first ?? err
-				});
+			if (!stalled.has(read.asset.symbol)) {
+				await runRead(read);
 			}
 		}
 	};

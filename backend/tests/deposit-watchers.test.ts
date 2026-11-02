@@ -18,11 +18,12 @@ import {
 } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { fakeEngineActorProvider } from '../e2e/fake-engine';
+import { watchBtcDeposits } from '../src/chains/btc/adapter';
 import { watchEvmDeposits } from '../src/chains/evm/adapter';
 import { icAdapter } from '../src/chains/ic/adapter';
 import { getAdapter } from '../src/chains/registry';
 import { watchSolDeposits } from '../src/chains/sol/adapter';
-import type { ChainAdapter, DepositEvent, WatchResult } from '../src/chains/types';
+import type { ChainAdapter, DepositEvent } from '../src/chains/types';
 import {
 	DEFAULT_WATCH_LIMITS,
 	tickDepositWatchers,
@@ -488,19 +489,46 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			expect(await bookedBalance({ account, asset: ckUsdc })).toBe(BigInt(300));
 			expect(await bookedBalance({ account, asset: icp })).toBe(BigInt(0));
 		});
+
+		test('a ledger that stops answering gets no more reads this tick', async () => {
+			const accounts = await seedAccounts({ count: 20, chain: 'ic' });
+			let hungReads = 0;
+			let otherReads = 0;
+
+			useLedger(({ ledgerId }) => {
+				if (ledgerId === icp.ledger_ref) {
+					hungReads += 1;
+
+					return new Promise<bigint>(() => undefined);
+				}
+
+				otherReads += 1;
+
+				return BigInt(0);
+			});
+
+			await tickDepositWatchers({
+				adapters: [icAdapter],
+				limits: { ...SWEEP_ALL, concurrency: 2, readTimeout_ms: 20 }
+			});
+
+			expect(hungReads).toBeLessThanOrEqual(2);
+			expect(otherReads).toBeGreaterThanOrEqual(accounts.length);
+		});
 	});
 
 	describe('the budget', () => {
-		test('hung reads cannot hold the tick past budget plus one read timeout', async () => {
+		test('slow reads cannot hold the tick past budget plus one read timeout', async () => {
 			const accounts = await seedAccounts({ count: 200, chain: 'btc' });
 			const seen = new Set<string>();
-			const hung = scriptedAdapter({
+			const slow = scriptedAdapter({
 				chain: 'btc',
 				watchScope: 'address',
-				watchDeposits: ({ addresses }) => {
+				watchDeposits: async ({ addresses }) => {
 					addresses.forEach((address) => seen.add(address));
+					await sleep(10);
 
-					return new Promise<WatchResult>(() => undefined);
+					return { events: [] };
 				}
 			});
 			const limits: WatchLimits = {
@@ -511,7 +539,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			};
 			const startedAt_ms = Date.now();
 
-			await tickDepositWatchers({ adapters: [hung], limits });
+			await tickDepositWatchers({ adapters: [slow], limits });
 
 			// Generous on the slack: this bounds the mechanism, not the runner.
 			expect(Date.now() - startedAt_ms).toBeLessThan(
@@ -898,7 +926,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 								}
 					)
 				);
-			}));
+			}) as unknown as typeof fetch);
 
 			try {
 				const first = await watchEvmDeposits({ addresses: [address], assets: [eth] });
@@ -953,7 +981,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 						transaction: { message: { accountKeys: [{ pubkey: solAddress }] } }
 					})
 				);
-			}));
+			}) as unknown as typeof fetch);
 
 			try {
 				await expect(watchSolDeposits({ addresses: [solAddress], assets: [sol] })).rejects.toThrow(
@@ -972,6 +1000,85 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 				await pass.commit?.();
 
 				expect(await cursorOf(`sol:${solAddress}`)).toBe('newest');
+			} finally {
+				rpc.mockRestore();
+			}
+		});
+
+		test('sol: a backlog longer than a page is read to the end', async () => {
+			const sol = await requireAsset({ chain: 'sol', symbol: 'SOL' });
+			const solAddress = `Sol${randomBytes(8).toString('hex')}`;
+			const history = Array.from({ length: 60 }, (_, index) => `sig-${index}`);
+			const rpc = spyOn(globalThis, 'fetch').mockImplementation(((
+				_url: unknown,
+				init?: RequestInit
+			) => {
+				const { method, params } = JSON.parse(String(init?.body)) as {
+					method: string;
+					params: [string, { before?: string }];
+				};
+
+				if (method === 'getSignaturesForAddress') {
+					const [, { before }] = params;
+					const start = isNullish(before) ? 0 : history.indexOf(before) + 1;
+
+					return Promise.resolve(
+						rpcResponse(
+							history.slice(start, start + 25).map((signature) => ({ signature, err: null }))
+						)
+					);
+				}
+
+				return Promise.resolve(
+					rpcResponse({
+						meta: { preBalances: [0], postBalances: [5] },
+						transaction: { message: { accountKeys: [{ pubkey: solAddress }] } }
+					})
+				);
+			}) as unknown as typeof fetch);
+
+			try {
+				const pass = await watchSolDeposits({ addresses: [solAddress], assets: [sol] });
+
+				expect(pass.events.map(({ txRef }) => txRef)).toEqual([...history].reverse());
+
+				await pass.commit?.();
+
+				expect(await cursorOf(`sol:${solAddress}`)).toBe('sig-0');
+			} finally {
+				rpc.mockRestore();
+			}
+		});
+
+		test('btc: an output past the first page of history is still seen', async () => {
+			const btc = await requireAsset({ chain: 'btc', symbol: 'BTC' });
+			const btcAddress = `bc1${randomBytes(8).toString('hex')}`;
+			const history = Array.from({ length: 30 }, (_, index) => `tx-${index}`);
+			const rpc = spyOn(globalThis, 'fetch').mockImplementation(((url: unknown) => {
+				const path = String(url);
+
+				if (path.endsWith('/blocks/tip/height')) {
+					return Promise.resolve(new Response('1000'));
+				}
+
+				const [, after] = path.match(/\/txs\/chain\/(.+)$/) ?? [];
+				const start = isNullish(after) ? 0 : history.indexOf(after) + 1;
+
+				return Promise.resolve(
+					Response.json(
+						history.slice(start, start + 25).map((txid) => ({
+							txid,
+							status: { confirmed: true, block_height: 100 },
+							vout: [{ scriptpubkey_address: btcAddress, value: 7 }]
+						}))
+					)
+				);
+			}) as unknown as typeof fetch);
+
+			try {
+				const { events } = await watchBtcDeposits({ addresses: [btcAddress], assets: [btc] });
+
+				expect(events.map(({ txRef }) => txRef)).toEqual(history);
 			} finally {
 				rpc.mockRestore();
 			}
