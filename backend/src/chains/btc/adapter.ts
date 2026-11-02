@@ -16,7 +16,8 @@ import {
 	ChainDisabledError,
 	type ChainAdapter,
 	type DepositEvent,
-	type TransferParams
+	type TransferParams,
+	type WatchResult
 } from '../types';
 import { btcAddressFromPrivateKey, type BtcNetwork } from './address';
 
@@ -151,26 +152,48 @@ interface AddressTx {
 	vout: { scriptpubkey_address?: string; value: number }[];
 }
 
-const watchDeposits = async ({
+const CHAIN_TX_PAGE = 25;
+
+/** The address's whole confirmed history: there is no cursor to stop at, and a
+ * sweep can leave an address unread for several ticks, so a first page alone
+ * could lose an output. Deposit addresses see few transactions. */
+const confirmedTxs = async (address: string): Promise<AddressTx[]> => {
+	const txs: AddressTx[] = [];
+	let path = `/address/${address}/txs/chain`;
+
+	for (;;) {
+		const page = await esplora<AddressTx[]>(path);
+
+		txs.push(...page);
+
+		const last = page[CHAIN_TX_PAGE - 1];
+
+		if (isNullish(last)) {
+			return txs;
+		}
+
+		path = `/address/${address}/txs/chain/${last.txid}`;
+	}
+};
+
+export const watchBtcDeposits = async ({
 	addresses,
 	assets
 }: {
 	addresses: string[];
 	assets: Asset[];
-}): Promise<DepositEvent[]> => {
+}): Promise<WatchResult> => {
 	const asset = assets.find((candidate) => candidate.symbol === 'BTC');
 
 	if (isNullish(asset)) {
-		return [];
+		return { events: [] };
 	}
 
 	const tipHeight = Number(await esploraText('/blocks/tip/height'));
 	const events: DepositEvent[] = [];
 
 	for (const address of addresses) {
-		const txs = await esplora<AddressTx[]>(`/address/${address}/txs`);
-
-		for (const transaction of txs) {
+		for (const transaction of await confirmedTxs(address)) {
 			const blockHeight = transaction.status.block_height;
 
 			if (transaction.status.confirmed && nonNullish(blockHeight)) {
@@ -193,14 +216,23 @@ const watchDeposits = async ({
 		}
 	}
 
-	return events;
+	return { events };
 };
 
 export const btcAdapter: ChainAdapter = env.btc.enabled
-	? { chain: 'btc', enabled: true, deriveAddress, getBalance, transfer, watchDeposits }
+	? {
+			chain: 'btc',
+			enabled: true,
+			watchScope: 'address',
+			deriveAddress,
+			getBalance,
+			transfer,
+			watchDeposits: watchBtcDeposits
+		}
 	: {
 			chain: 'btc',
 			enabled: false,
+			watchScope: 'address',
 			deriveAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('btc')),
 			transfer: () => Promise.reject(new ChainDisabledError('btc')),

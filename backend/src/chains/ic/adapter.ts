@@ -1,8 +1,8 @@
 // IC adapter. The custodial deposit address IS the user's derived principal:
 // ICRC ledgers hold the balances, so there is no cursor-based scan. The
 // watcher reconciles each custodial principal's on-chain balance against the
-// internal ledger and credits the positive difference; the event key embeds
-// the observed on-chain balance so re-observing the same state is a no-op.
+// internal ledger and credits the positive difference, so re-observing the
+// same state is a no-op.
 
 import { isNullish } from '@dfinity/utils';
 import { IcrcLedgerCanister } from '@icp-sdk/canisters/ledger/icrc';
@@ -12,7 +12,7 @@ import { readerLedger } from '../../engine/actors';
 import { ZERO } from '../../lib/constants';
 import { buildAgent } from '../../lib/ic-agent';
 import { treasuryIcIdentity, userIcIdentity, userIcPrincipalText } from '../../lib/keys';
-import type { ChainAdapter, DepositEvent, TransferParams } from '../types';
+import type { ChainAdapter, DepositEvent, TransferParams, WatchResult } from '../types';
 
 const ledgerRef = (asset: Asset): string => {
 	if (isNullish(asset.ledger_ref)) {
@@ -57,7 +57,7 @@ const watchDeposits = async ({
 }: {
 	addresses: string[];
 	assets: Asset[];
-}): Promise<DepositEvent[]> => {
+}): Promise<WatchResult> => {
 	const events: DepositEvent[] = [];
 
 	for (const asset of assets) {
@@ -66,8 +66,7 @@ const watchDeposits = async ({
 
 			if (balance > ZERO) {
 				// The downstream crediting diffs this against the internal balance
-				// and books only the delta; the balance-carrying tx ref keeps the
-				// replays idempotent.
+				// and books only the delta, which is what keeps replays idempotent.
 				events.push({
 					kind: 'balance',
 					txRef: `balance:${asset.symbol}:${address}:${balance}`,
@@ -80,7 +79,7 @@ const watchDeposits = async ({
 		}
 	}
 
-	return events;
+	return { events };
 };
 
 // The IC adapter is enabled by default: IC_HOST carries a mainnet default, so
@@ -88,6 +87,7 @@ const watchDeposits = async ({
 export const icAdapter: ChainAdapter = {
 	chain: 'ic',
 	enabled: true,
+	watchScope: 'address',
 	deriveAddress,
 	getBalance,
 	transfer,

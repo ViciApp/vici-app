@@ -18,7 +18,7 @@ import {
 } from '../e2e/fake-engine';
 import { createSession } from '../src/auth/sessions';
 import { icAdapter } from '../src/chains/ic/adapter';
-import { tickDepositWatchers } from '../src/chains/watchers';
+import { DEFAULT_WATCH_LIMITS, tickDepositWatchers } from '../src/chains/watchers';
 import { ensureInternalAccount, ensureUserAccount } from '../src/custody/accounts';
 import { getAssetBySymbol } from '../src/custody/assets';
 import { postLedgerEvent } from '../src/custody/ledger';
@@ -313,19 +313,26 @@ describe.if(dbAvailable)('ic deposit watcher', () => {
 	});
 
 	/** Other suites leave accounts in this shared database whose addresses are
-	 * not principals, and one of those fails a real pass. Only the address list
-	 * is narrowed to the account under test; everything else is the real tick. */
+	 * not principals, and one of those fails a real pass. Only the reads of the
+	 * account under test reach the ledger, and the sweep starts over and covers
+	 * every account, so it finds this one wherever a past sweep stopped. */
 	const tickFor = async (owner: Principal): Promise<string[]> => {
+		const address = owner.toText();
 		const { watchDeposits } = icAdapter;
-		const spy = spyOn(icAdapter, 'watchDeposits').mockImplementation(({ assets }) =>
-			watchDeposits({ addresses: [owner.toText()], assets })
+		const spy = spyOn(icAdapter, 'watchDeposits').mockImplementation((params) =>
+			params.addresses.includes(address) ? watchDeposits(params) : Promise.resolve({ events: [] })
 		);
 
 		stopWatching = () => spy.mockRestore();
 
-		await tickDepositWatchers();
+		await query(`delete from chain_cursors where chain = 'watch:ic'`);
+		await tickDepositWatchers({
+			limits: { ...DEFAULT_WATCH_LIMITS, maxAccounts: Number.MAX_SAFE_INTEGER }
+		});
 
-		return spy.mock.calls.flatMap(([{ assets }]) => assets.map(({ symbol }) => symbol));
+		return spy.mock.calls
+			.filter(([{ addresses }]) => addresses.includes(address))
+			.flatMap(([{ assets }]) => assets.map(({ symbol }) => symbol));
 	};
 
 	const provisionedUser = async (): Promise<{ userId: string; owner: Principal }> => {
