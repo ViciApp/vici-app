@@ -84,7 +84,7 @@
 		"@dfinity/utils": "^4.2.1",
 		"@icp-sdk/canisters": "^3.5.2",
 		"@icp-sdk/core": "^5.4.0",
-		"@icp-sdk/signer": "^5.6.2",
+		"@icp-sdk/signer": "^6.1.0",
 		"@junobuild/core": "^5.4.0",
 		"@junobuild/functions": "^0.9.0",
 		"@junobuild/schema": "^1.2.4",
