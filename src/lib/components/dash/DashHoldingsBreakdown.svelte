@@ -7,9 +7,9 @@
 	 * magnitudes arrive from the host. Shared by the Dash holdings sheet and the
 	 * transaction-history summary so the two surfaces read identically.
 	 */
-	import { ZERO } from '$lib/constants/app.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		/** Total holdings, formatted — the hero figure (available + in play). */

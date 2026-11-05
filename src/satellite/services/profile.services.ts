@@ -1,14 +1,14 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { DAILY_HARD_CAP } from '$lib/constants/flow-rewards.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAILY_HARD_CAP } from '#lib/constants/flow-rewards.constants.ts';
 import {
 	handleCooldownDaysLeft,
 	MIN_NICKNAME_LENGTH,
 	NICKNAME_PATTERN,
 	nicknameUniqueKey
-} from '$lib/constants/profile.constants';
-import type { UserRole } from '$lib/enums/user';
-import type { UserProfile } from '$lib/types/profile';
-import { visibilityFromProfile } from '$lib/utils/visibility.utils';
+} from '#lib/constants/profile.constants.ts';
+import type { UserRole } from '#lib/enums/user.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
 import { mintFlowOvertime } from '$satellite/services/vxp-flow-awards.services';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { AssertSetDocContext } from '@junobuild/functions';

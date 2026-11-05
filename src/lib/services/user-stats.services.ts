@@ -1,19 +1,19 @@
-import type * as ClearingDid from '$declarations/clearing/clearing';
-import { USD_DECIMALS, ZERO } from '$lib/constants/app.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { MACRO_IDS, primaryMacro, type MacroId } from '$lib/constants/market-taxonomy.constants';
-import type { MarketMetadata } from '$lib/types/market-metadata';
+import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { MACRO_IDS, primaryMacro, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
+import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 import {
 	USER_STATS_RECENT_LIMIT,
 	type CategoryStatsBucket,
 	type RecentSettlementSnapshot,
 	type UserStatsDoc
-} from '$lib/types/user-stats';
-import { CONTRARIAN_PRICE_THRESHOLD } from '$lib/utils/achievements.utils';
-import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
-import { eventExecutionPrice, isSettledEvent } from '$lib/utils/resolved-position.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
-import { getUserStats as getUserStatsWeb2 } from '$lib/web2/client';
+} from '#lib/types/user-stats.ts';
+import { CONTRARIAN_PRICE_THRESHOLD } from '#lib/utils/achievements.utils.ts';
+import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
+import { eventExecutionPrice, isSettledEvent } from '#lib/utils/resolved-position.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { getUserStats as getUserStatsWeb2 } from '#lib/web2/client.ts';
+import type * as ClearingDid from '$declarations/clearing/clearing';
 import { isNullish } from '@dfinity/utils';
 import { getDoc, setDoc } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';

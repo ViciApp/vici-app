@@ -1,25 +1,25 @@
 <script lang="ts">
 	import { X } from '@lucide/svelte/icons';
-	import { browser } from '$app/environment';
-	import { resolve } from '$app/paths';
-	import { tradeErrorMessage } from '$lib/canisters/clearing.errors';
-	import SignInActions from '$lib/components/authn/SignInActions.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_STAKE_LADDER } from '$lib/constants/vxp-economy.constants';
-	import { playgroundVxpUnitMode } from '$lib/derived/playground.derived';
-	import { userSignedIn } from '$lib/derived/user.derived';
-	import { vxpSpendable } from '$lib/derived/vxp-holdings.derived';
-	import { getBalances } from '$lib/services/wallet.service';
-	import { collateralsStore } from '$lib/stores/collaterals.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import type { CallSide, Market } from '$lib/types/market';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { resolveOutcomeExecutionPrice } from '$lib/utils/market.utils';
-	import { formatAvailableMarginForUi } from '$lib/utils/playground-display.utils';
-	import { executeOutcomeTrade } from '$lib/utils/trade.utils';
+	import { tradeErrorMessage } from '#lib/canisters/clearing.errors.ts';
+	import SignInActions from '#lib/components/authn/SignInActions.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_STAKE_LADDER } from '#lib/constants/vxp-economy.constants.ts';
+	import { playgroundVxpUnitMode } from '#lib/derived/playground.derived.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { vxpSpendable } from '#lib/derived/vxp-holdings.derived.ts';
+	import { getBalances } from '#lib/services/wallet.service.ts';
+	import { collateralsStore } from '#lib/stores/collaterals.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { CallSide, Market } from '#lib/types/market.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { formatAvailableMarginForUi } from '#lib/utils/playground-display.utils.ts';
+	import { executeOutcomeTrade } from '#lib/utils/trade.utils.ts';
+	import { browser } from '$app/env';
 
 	/**
 	 * Prediction-confirmation surface for a binary market. A user has
@@ -228,7 +228,7 @@
 		<div class="confirm-signin">
 			<p class="confirm-signin-copy">{tr({ key: 'prediction.sign_in' })}</p>
 			<SignInActions />
-			<a class="confirm-deposit" href={resolve(AppPath.Wallet)}>
+			<a class="confirm-deposit" href={resolveAppPath(AppPath.Wallet)}>
 				{tr({ key: 'prediction.deposit_wallet' })}
 			</a>
 		</div>

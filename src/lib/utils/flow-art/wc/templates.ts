@@ -48,10 +48,10 @@ import {
 	WC_SHIRT,
 	WC_SKIN,
 	type WCKit
-} from '$lib/constants/flow-art-wc.constants';
-import type { Rng } from '$lib/utils/flow-art/types';
-import type { WcHelpers } from '$lib/utils/flow-art/wc/helpers';
-import type { WcResolvedTemplate } from '$lib/utils/flow-art/wc/resolve-template';
+} from '#lib/constants/flow-art-wc.constants.ts';
+import type { Rng } from '#lib/utils/flow-art/types.ts';
+import type { WcHelpers } from '#lib/utils/flow-art/wc/helpers.ts';
+import type { WcResolvedTemplate } from '#lib/utils/flow-art/wc/resolve-template.ts';
 
 // Host-nation flag pairs for the three-host special, drawn from the
 // shared nation-kit table (Mexico / USA / Canada) so the host palettes

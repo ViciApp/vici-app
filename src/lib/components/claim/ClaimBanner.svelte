@@ -1,10 +1,13 @@
 <script lang="ts">
-	import MigrationBanner from '$lib/components/claim/MigrationBanner.svelte';
-	import { CLAIM_BANNER_DISMISSED_KEY } from '$lib/constants/claim.constants';
-	import { isClaimHandoffAvailable, startClaimHandoff } from '$lib/services/claim-handoff.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import MigrationBanner from '#lib/components/claim/MigrationBanner.svelte';
+	import { CLAIM_BANNER_DISMISSED_KEY } from '#lib/constants/claim.constants.ts';
+	import {
+		isClaimHandoffAvailable,
+		startClaimHandoff
+	} from '#lib/services/claim-handoff.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	// Legacy-build-only surface: the whole banner is inert on the web2 build
 	// and until the cutover switch is on (the availability gate lives in the

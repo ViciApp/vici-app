@@ -1,18 +1,18 @@
-import { browser } from '$app/environment';
-import type { ClearingDid } from '$declarations';
-import { HOLDINGS_SNAPSHOT_STORAGE_KEY, ZERO } from '$lib/constants/app.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { balanceDomain } from '$lib/derived/balance-domain.derived';
-import { walletUiTokens } from '$lib/derived/tokens.derived';
-import { authPrincipal } from '$lib/derived/user.derived';
-import { balancesStore } from '$lib/stores/balances.store';
-import { collateralsStore } from '$lib/stores/collaterals.store';
-import { icrcLedgerDecimalsFromCollateralConfig } from '$lib/utils/asset-ref.utils';
+import { HOLDINGS_SNAPSHOT_STORAGE_KEY, ZERO } from '#lib/constants/app.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+import { walletUiTokens } from '#lib/derived/tokens.derived.ts';
+import { authPrincipal } from '#lib/derived/user.derived.ts';
+import { balancesStore } from '#lib/stores/balances.store.ts';
+import { collateralsStore } from '#lib/stores/collaterals.store.ts';
+import { icrcLedgerDecimalsFromCollateralConfig } from '#lib/utils/asset-ref.utils.ts';
 import {
 	intuitiveAvailableMarginUsd,
 	nativeToClearingMarginUnits
-} from '$lib/utils/playground-display.utils';
-import { get as getStorage, set as setStorage } from '$lib/utils/storage.utils';
+} from '#lib/utils/playground-display.utils.ts';
+import { get as getStorage, set as setStorage } from '#lib/utils/storage.utils.ts';
+import { browser } from '$app/env';
+import type { ClearingDid } from '$declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { derived, type Readable } from 'svelte/store';
 

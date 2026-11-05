@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { untrack } from 'svelte';
-	import { browser } from '$app/environment';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 	import {
 		COACH_FLOW_SEEN_KEY,
 		COACH_ONBOARDING_SEEN_KEY
-	} from '$lib/utils/onboarding-flags.utils';
+	} from '#lib/utils/onboarding-flags.utils.ts';
+	import { browser } from '$app/env';
 
 	/**
 	 * FlowCoach — first-run gesture map shown the first time any user
@@ -133,10 +133,8 @@
 						stroke-linejoin="round"
 						stroke-width="2.6"
 						viewBox="0 0 24 24"
-						width="17"
+						width="17"><path d="m5 12 5 5L20 7"></path></svg
 					>
-						<path d="m5 12 5 5L20 7" />
-					</svg>
 				</span>
 				<span class="fc-confirm-text">{tr('flow.coach.confirm')}</span>
 			</div>
@@ -170,10 +168,10 @@
 									viewBox="0 0 24 24"
 									width="20"
 								>
-									<path d="M9 11V6a2 2 0 0 1 4 0v5" />
+									<path d="M9 11V6a2 2 0 0 1 4 0v5"></path>
 									<path
 										d="M13 11V8.5a2 2 0 0 1 4 0V14a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L3.5 15a1.7 1.7 0 0 1 2.8-1.9l1.2 1.4"
-									/>
+									></path>
 								</svg>
 							</span>
 							<span class="fc-sub">{tr('flow.coach.tap_sub')}</span>

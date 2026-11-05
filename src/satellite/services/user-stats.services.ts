@@ -1,5 +1,5 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { USER_STATS_RECENT_LIMIT, type UserStatsDoc } from '$lib/types/user-stats';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { USER_STATS_RECENT_LIMIT, type UserStatsDoc } from '#lib/types/user-stats.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';

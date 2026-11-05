@@ -11,8 +11,8 @@
  * See `vxp-economy.utils.ts` for the payout formula.
  */
 
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { parseToken } from '$lib/utils/parse.utils';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { parseToken } from '#lib/utils/parse.utils.ts';
 
 /**
  * Per-call stake ladder, smallest → largest. The shape is curated, not

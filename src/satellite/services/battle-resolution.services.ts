@@ -1,6 +1,5 @@
-import type { ClearingDid } from '$declarations';
-import { CLEARING_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
+import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	BATTLE_SCOPE_DEFAULT,
 	battleAccuracyPct,
@@ -8,8 +7,9 @@ import {
 	type BattleDoc,
 	type BattleScope,
 	type BattleWinner
-} from '$lib/types/battle';
-import type { LeagueMemberDoc } from '$lib/types/league-member';
+} from '#lib/types/battle.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+import type { ClearingDid } from '$declarations';
 import { seriesIdsForTag } from '$satellite/services/market-tag-index.services';
 import { candidMethod } from '$satellite/utils/candid.utils';
 import { escapeRegex } from '$satellite/utils/regex.utils';

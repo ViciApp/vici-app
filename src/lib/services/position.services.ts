@@ -1,15 +1,15 @@
+import { getPositions as getPositionsApi } from '#lib/api/clearing.api.ts';
+import { getIdentity, web2PlaceholderIdentity } from '#lib/services/identity.services.ts';
+import { fetchMarketsLite } from '#lib/services/market.services.ts';
+import { loadWithCertification } from '#lib/services/query-update.services.ts';
+import type { MarketId } from '#lib/types/market.ts';
+import type { Position } from '#lib/types/position.ts';
+import { filterByMarketIds } from '#lib/utils/balance-domain.utils.ts';
+import { mapPositionData } from '#lib/utils/position.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { listEnginePositions as listEnginePositionsWeb2 } from '#lib/web2/client.ts';
+import { getWeb2User } from '#lib/web2/session.ts';
 import type { RegistryDid } from '$declarations';
-import { getPositions as getPositionsApi } from '$lib/api/clearing.api';
-import { getIdentity, web2PlaceholderIdentity } from '$lib/services/identity.services';
-import { fetchMarketsLite } from '$lib/services/market.services';
-import { loadWithCertification } from '$lib/services/query-update.services';
-import type { MarketId } from '$lib/types/market';
-import type { Position } from '$lib/types/position';
-import { filterByMarketIds } from '$lib/utils/balance-domain.utils';
-import { mapPositionData } from '$lib/utils/position.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
-import { listEnginePositions as listEnginePositionsWeb2 } from '$lib/web2/client';
-import { getWeb2User } from '$lib/web2/session';
 import { isNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 

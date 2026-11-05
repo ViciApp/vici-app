@@ -3,19 +3,19 @@
 	import { signOut } from '@junobuild/core';
 	import { ArrowLeftRight, Check, ChevronRight, Mail } from '@lucide/svelte/icons';
 	import { onDestroy } from 'svelte';
+	import IconGoogle from '#lib/components/icons/IconGoogle.svelte';
+	import IconIc from '#lib/components/icons/IconIC.svelte';
+	import IconPasskey from '#lib/components/icons/IconPasskey.svelte';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { flushEvents, track } from '#lib/services/analytics.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { resolveSignInMethod } from '#lib/utils/signin-method.utils.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import IconGoogle from '$lib/components/icons/IconGoogle.svelte';
-	import IconIc from '$lib/components/icons/IconIC.svelte';
-	import IconPasskey from '$lib/components/icons/IconPasskey.svelte';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { flushEvents, track } from '$lib/services/analytics.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { resolveSignInMethod } from '$lib/utils/signin-method.utils';
 
 	/**
 	 * Account settings — current sign-in method + email address. Two
@@ -157,7 +157,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'account.back' }),
-			onBack: () => goBack(resolve(AppPath.Settings))
+			onBack: () => goBack(resolveAppPath(AppPath.Settings))
 		}}
 		title={t({ locale: $localeStore, key: 'account.title' })}
 	/>

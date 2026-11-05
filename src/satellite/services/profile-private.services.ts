@@ -1,5 +1,5 @@
-import { Collection } from '$lib/constants/collections.constants';
-import type { ProfilePrivate } from '$lib/types/profile';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import type { ProfilePrivate } from '#lib/types/profile.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';

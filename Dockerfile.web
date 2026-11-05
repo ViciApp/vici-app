@@ -2,7 +2,7 @@
 # with nginx + SPA fallback. Vite inlines VITE_* vars at build time, so they
 # are build ARGs, not runtime secrets. Deployed by the manual workflow
 # .github/workflows/web2-deploy.yml, which bakes the args from fly.web.toml.
-FROM node:24-slim AS build
+FROM node:26-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -14,7 +14,7 @@ ARG VITE_BACKEND=""
 ENV VITE_WEB2_API_URL=$VITE_WEB2_API_URL
 ENV VITE_BACKEND=$VITE_BACKEND
 # `npm ci` ran `svelte-kit sync` before the sources existed, so the generated
-# tsconfig lacks the $lib/$satellite aliases the type-check in `build` needs.
+# tsconfig lacks the $satellite-style aliases the type-check in `build` needs.
 RUN npx svelte-kit sync && npm run build
 
 FROM nginx:alpine

@@ -31,14 +31,14 @@
 	 * and the CTA holds its arming state. Entering settles any matured calls
 	 * (`onEnter`) and reveals the deck. Reduced-motion + theme safe.
 	 */
-	import OracleChar from '$lib/components/characters/OracleChar.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { FlowEntryMethod, ResolutionRevealData } from '$lib/types/flow';
-	import { flowBeat, flowSummary } from '$lib/utils/flow-sound.utils';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatWholeVxpMagnitude } from '$lib/utils/playground-display.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import OracleChar from '#lib/components/characters/OracleChar.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { FlowEntryMethod, ResolutionRevealData } from '#lib/types/flow.ts';
+	import { flowBeat, flowSummary } from '#lib/utils/flow-sound.utils.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatWholeVxpMagnitude } from '#lib/utils/playground-display.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	// The deck-shuffle dwell — the entry beat holds this long before the deck
 	// is allowed to auto-enter (paired with the real first-card readiness). A

@@ -1,23 +1,23 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
-	import MenagerieReveal from '$lib/components/menagerie/MenagerieReveal.svelte';
-	import MenagerieSprite from '$lib/components/menagerie/MenagerieSprite.svelte';
-	import { myMenagerieStats } from '$lib/derived/menagerie.derived';
-	import { loadMyMenagerieSignals } from '$lib/services/menagerie.services';
-	import { persistEarnedMenagerie } from '$lib/services/profile.services';
-	import { flowBeatActiveStore } from '$lib/stores/flow-beat.store';
+	import MenagerieReveal from '#lib/components/menagerie/MenagerieReveal.svelte';
+	import MenagerieSprite from '#lib/components/menagerie/MenagerieSprite.svelte';
+	import { myMenagerieStats } from '#lib/derived/menagerie.derived.ts';
+	import { loadMyMenagerieSignals } from '#lib/services/menagerie.services.ts';
+	import { persistEarnedMenagerie } from '#lib/services/profile.services.ts';
+	import { flowBeatActiveStore } from '#lib/stores/flow-beat.store.ts';
 	import {
 		advanceMenagerieCelebration,
 		enqueueMenagerieCelebrations,
 		menagerieCelebrationStore,
 		resetMenagerieCelebrations
-	} from '$lib/stores/menagerie-celebration.store';
+	} from '#lib/stores/menagerie-celebration.store.ts';
 	import {
 		myMenagerieSignalsGeneration,
 		myMenagerieSignalsOwner
-	} from '$lib/stores/menagerie.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { detectNewMenagerieTiers } from '$lib/utils/menagerie.utils';
+	} from '#lib/stores/menagerie.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { detectNewMenagerieTiers } from '#lib/utils/menagerie.utils.ts';
 
 	// App-shell celebration pipeline for the Menagerie trophy layer. Mounted once
 	// at the (app) shell so a freshly-crossed tier celebrates on any surface.

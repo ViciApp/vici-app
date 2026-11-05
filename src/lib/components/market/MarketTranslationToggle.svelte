@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Globe } from '@lucide/svelte/icons';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		/** Native name of the language the translation is in (e.g. `Español`). */

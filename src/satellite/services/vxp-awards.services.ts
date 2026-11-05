@@ -1,5 +1,5 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { vxpAwardKey, type VxpAwardDoc } from '$lib/types/vxp-award';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';

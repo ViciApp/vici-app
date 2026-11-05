@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { User } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import ProfileDashboard from '$lib/components/profile/ProfileDashboard.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { authBusy, authPrincipal } from '$lib/derived/user.derived';
-	import { getProfile } from '$lib/services/profile.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import ProfileDashboard from '#lib/components/profile/ProfileDashboard.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { authBusy, authPrincipal } from '#lib/derived/user.derived.ts';
+	import { getProfile } from '#lib/services/profile.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	let intervalId: ReturnType<typeof setInterval> | undefined;
 

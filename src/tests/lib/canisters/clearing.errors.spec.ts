@@ -1,11 +1,11 @@
-import type { ClearingDid } from '$declarations';
 import {
 	mapTradeError,
 	orderRejectionMessage,
 	tradeErrorMessage,
 	TradeExecutionError
-} from '$lib/canisters/clearing.errors';
-import { Web2ApiError, type Web2ApiErrorAmounts } from '$lib/web2/client';
+} from '#lib/canisters/clearing.errors.ts';
+import { Web2ApiError, type Web2ApiErrorAmounts } from '#lib/web2/client.ts';
+import type { ClearingDid } from '$declarations';
 import { Principal } from '@icp-sdk/core/principal';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';

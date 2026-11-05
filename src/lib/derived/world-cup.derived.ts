@@ -1,8 +1,8 @@
-import { DAY_IN_MS } from '$lib/constants/app.constants';
-import { CURRENT_FEATURED_EVENT } from '$lib/constants/featured-event.constants';
-import { featuredEventActive } from '$lib/derived/featured-event.derived';
-import { minuteTick_ms } from '$lib/derived/time.derived';
-import { preferencesStore } from '$lib/stores/preferences.store';
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+import { CURRENT_FEATURED_EVENT } from '#lib/constants/featured-event.constants.ts';
+import { featuredEventActive } from '#lib/derived/featured-event.derived.ts';
+import { minuteTick_ms } from '#lib/derived/time.derived.ts';
+import { preferencesStore } from '#lib/stores/preferences.store.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**

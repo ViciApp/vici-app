@@ -1,6 +1,6 @@
-import { routeMarketId } from '$lib/derived/nav.derived';
-import type { MarketId } from '$lib/types/market';
-import { parseMarketId } from '$lib/validation/market.validation';
+import { routeMarketId } from '#lib/derived/nav.derived.ts';
+import type { MarketId } from '#lib/types/market.ts';
+import { parseMarketId } from '#lib/validation/market.validation.ts';
 import { nonNullish } from '@dfinity/utils';
 import { derived, type Readable } from 'svelte/store';
 

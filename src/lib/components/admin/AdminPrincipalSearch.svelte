@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { PrincipalText } from '@junobuild/schema';
-	import Button from '$lib/components/ui/Button.svelte';
-	import CopyableAddress from '$lib/components/ui/CopyableAddress.svelte';
-	import { searchProfiles } from '$lib/services/profile.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { UserProfile } from '$lib/types/profile';
-	import { shortenWithMiddleEllipsis } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import Button from '#lib/components/ui/Button.svelte';
+	import CopyableAddress from '#lib/components/ui/CopyableAddress.svelte';
+	import { searchProfiles } from '#lib/services/profile.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { UserProfile } from '#lib/types/profile.ts';
+	import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		// Called when an admin picks a result — used to prefill the

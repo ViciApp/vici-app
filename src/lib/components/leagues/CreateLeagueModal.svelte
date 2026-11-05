@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { ChevronRight, X } from '@lucide/svelte/icons';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { LeaguePrivacy } from '$lib/enums/league';
-	import { track } from '$lib/services/analytics.services';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import { LeaguePrivacy } from '#lib/enums/league.ts';
+	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		createLeague,
 		generateInviteCode,
 		validateLeagueDraft
-	} from '$lib/services/leagues.services';
-	import { localeStore } from '$lib/stores/locale.store';
+	} from '#lib/services/leagues.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		LEAGUE_DESCRIPTION_MAX_LENGTH,
 		LEAGUE_EMBLEM_DEFAULT,
@@ -16,8 +16,8 @@
 		LEAGUE_NAME_MAX_LENGTH,
 		LEAGUE_NAME_MIN_LENGTH,
 		type LeagueDoc
-	} from '$lib/types/league';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	} from '#lib/types/league.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		isOpen: boolean;

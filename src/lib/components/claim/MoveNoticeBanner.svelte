@@ -1,10 +1,10 @@
 <script lang="ts">
-	import MigrationBanner from '$lib/components/claim/MigrationBanner.svelte';
-	import { shouldShowMoveNotice } from '$lib/services/claim-handoff.services';
-	import { newAppDomain } from '$lib/services/new-app-redirect.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { MOVE_NOTICE_DISMISSED_KEY } from '$lib/utils/migration-banner.utils';
+	import MigrationBanner from '#lib/components/claim/MigrationBanner.svelte';
+	import { shouldShowMoveNotice } from '#lib/services/claim-handoff.services.ts';
+	import { newAppDomain } from '#lib/services/new-app-redirect.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { MOVE_NOTICE_DISMISSED_KEY } from '#lib/utils/migration-banner.utils.ts';
 
 	// Informational only: existing accounts keep playing here until the
 	// cutover, so this banner deliberately offers no way to start the move.

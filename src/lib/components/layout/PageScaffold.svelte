@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import type { Snippet } from 'svelte';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 
 	/**
 	 * Shared chrome for **top-level** pages (Markets / Dash / Arena /

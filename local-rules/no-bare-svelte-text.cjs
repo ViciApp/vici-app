@@ -1,11 +1,11 @@
 /**
  * Disallow hardcoded user-visible text inside `.svelte` files that have
- * already opted in to i18n (i.e. that import `$lib/utils/i18n.utils`).
+ * already opted in to i18n (i.e. that import `#lib/utils/i18n.utils.ts`).
  *
  * Rationale
  * ---------
  * The repo has a typed i18n layer (`t({ locale, key, params })` from
- * `$lib/utils/i18n.utils`). Once a component imports it, every other
+ * `#lib/utils/i18n.utils.ts`). Once a component imports it, every other
  * user-visible string in that component should go through `t(...)` too
  * — otherwise it ships in English to every locale.
  *
@@ -45,7 +45,7 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { isNullish, nonNullish } = require('@dfinity/utils');
 
-const I18N_UTILS_PATH = '$lib/utils/i18n.utils';
+const I18N_UTILS_PATH = '#lib/utils/i18n.utils.ts';
 const LETTER_RUN = /[A-Za-zÀ-ÖØ-öø-ÿ]{4,}/;
 const SKIP_PARENT_TYPES = new Set(['SvelteScriptElement', 'SvelteStyleElement']);
 
@@ -130,13 +130,13 @@ module.exports = {
 		type: 'suggestion',
 		docs: {
 			description:
-				'Disallow hardcoded user-visible text in .svelte files that already import $lib/utils/i18n.utils.',
+				'Disallow hardcoded user-visible text in .svelte files that already import #lib/utils/i18n.utils.ts.',
 			category: 'i18n',
 			recommended: false
 		},
 		messages: {
 			bareText:
-				'Hardcoded text "{{snippet}}" — route it through t({ locale: $localeStore, key }) from $lib/utils/i18n.utils, and add the key to every catalog under src/lib/constants/messages/. See docs/ai/frontend/i18n.md.'
+				'Hardcoded text "{{snippet}}" — route it through t({ locale: $localeStore, key }) from #lib/utils/i18n.utils.ts, and add the key to every catalog under src/lib/constants/messages/. See docs/ai/frontend/i18n.md.'
 		},
 		schema: []
 	},

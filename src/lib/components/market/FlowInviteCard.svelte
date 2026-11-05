@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { ChevronRight, Copy, Users } from '@lucide/svelte/icons';
-	import { browser } from '$app/environment';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { REFERRAL_VXP_BONUS_VALUE } from '$lib/constants/referral.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { writeToClipboard } from '$lib/utils/clipboard.utils';
-	import { djb2 } from '$lib/utils/hash.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { REFERRAL_VXP_BONUS_VALUE } from '#lib/constants/referral.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
+	import { djb2 } from '#lib/utils/hash.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { browser } from '$app/env';
 
 	interface Props {
 		sessionXp?: number;

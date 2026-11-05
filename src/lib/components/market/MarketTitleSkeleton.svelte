@@ -8,8 +8,8 @@
 	 * fallback, which is reserved for a genuine catalog miss (a delisted market)
 	 * once the catalog is actually loaded.
 	 */
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 </script>
 
 <span

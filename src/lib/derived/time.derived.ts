@@ -1,4 +1,4 @@
-import { MINUTE_IN_MS } from '$lib/constants/app.constants';
+import { MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 import { readable, type Readable } from 'svelte/store';
 
 /**

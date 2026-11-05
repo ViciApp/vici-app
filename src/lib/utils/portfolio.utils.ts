@@ -1,8 +1,8 @@
-import { USD_DECIMALS, ZERO } from '$lib/constants/app.constants';
-import { PORTFOLIO_DEFAULT_DECIMALS } from '$lib/constants/portfolio.constants';
-import type { Market } from '$lib/types/market';
-import type { Position } from '$lib/types/position';
-import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
+import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+import { PORTFOLIO_DEFAULT_DECIMALS } from '#lib/constants/portfolio.constants.ts';
+import type { Market } from '#lib/types/market.ts';
+import type { Position } from '#lib/types/position.ts';
+import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

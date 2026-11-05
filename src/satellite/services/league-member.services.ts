@@ -1,10 +1,10 @@
-import { Collection } from '$lib/constants/collections.constants';
-import type { LeagueDoc } from '$lib/types/league';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	LEAGUE_MEMBER_ROLES,
 	leagueMemberKey,
 	type LeagueMemberDoc
-} from '$lib/types/league-member';
+} from '#lib/types/league-member.ts';
+import type { LeagueDoc } from '#lib/types/league.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';

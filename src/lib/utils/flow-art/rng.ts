@@ -3,8 +3,8 @@
 // FNV-1a hash + mulberry32 keep every render byte-stable across
 // reloads for the same seed.
 
-import type { Rng } from '$lib/utils/flow-art/types';
-import { fnv1a32 } from '$lib/utils/hash.utils';
+import type { Rng } from '#lib/utils/flow-art/types.ts';
+import { fnv1a32 } from '#lib/utils/hash.utils.ts';
 
 const hashStr = fnv1a32;
 

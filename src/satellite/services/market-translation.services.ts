@@ -1,6 +1,6 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { REGISTERED_LOCALE_IDS, type AppLocale } from '$lib/constants/locale.constants';
-import type { MarketTranslation, MarketTranslationInput } from '$lib/types/market-translation';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { REGISTERED_LOCALE_IDS, type AppLocale } from '#lib/constants/locale.constants.ts';
+import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
 import { isCreatorOrAdmin } from '$satellite/services/_authz';
 import { logInfo } from '$satellite/utils/logger.utils';
 import { isNullish, nonNullish } from '@dfinity/utils';

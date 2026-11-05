@@ -1,4 +1,3 @@
-import type { RegistryDid } from '$declarations';
 import {
 	addGroupAdmins as addGroupAdminsApi,
 	addGroupMembers as addGroupMembersApi,
@@ -10,13 +9,14 @@ import {
 	removeGroupMembers as removeGroupMembersApi,
 	updateGroup as updateGroupApi,
 	updateTradingAccess as updateTradingAccessApi
-} from '$lib/api/registry.api';
-import { ROLE_PERMISSIONS } from '$lib/constants/authz.constants';
-import { Permission } from '$lib/enums/permission';
-import { getIdentity, safeGetIdentityOnce } from '$lib/services/identity.services';
-import { getProfile } from '$lib/services/profile.services';
-import { loadWithCertification } from '$lib/services/query-update.services';
-import { getFollowers, getFriends } from '$lib/services/relation-queries.services';
+} from '#lib/api/registry.api.ts';
+import { ROLE_PERMISSIONS } from '#lib/constants/authz.constants.ts';
+import { Permission } from '#lib/enums/permission.ts';
+import { getIdentity, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import { getProfile } from '#lib/services/profile.services.ts';
+import { loadWithCertification } from '#lib/services/query-update.services.ts';
+import { getFollowers, getFriends } from '#lib/services/relation-queries.services.ts';
+import type { RegistryDid } from '$declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';

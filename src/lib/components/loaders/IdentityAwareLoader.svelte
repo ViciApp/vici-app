@@ -1,6 +1,6 @@
 <script lang="ts">
-	import AtomicLoader from '$lib/components/loaders/AtomicLoader.svelte';
-	import { isSignedIn } from '$lib/services/identity.services';
+	import AtomicLoader from '#lib/components/loaders/AtomicLoader.svelte';
+	import { isSignedIn } from '#lib/services/identity.services.ts';
 
 	interface Props {
 		onLoad: () => Promise<void>;

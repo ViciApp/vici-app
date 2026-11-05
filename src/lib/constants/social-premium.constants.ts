@@ -1,5 +1,5 @@
-import type { AppLocale } from '$lib/constants/locale.constants';
-import { type MessageKey, t } from '$lib/utils/i18n.utils';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import { type MessageKey, t } from '#lib/utils/i18n.utils.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

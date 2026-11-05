@@ -1,19 +1,17 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Search, X } from '@lucide/svelte/icons';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { track } from '$lib/services/analytics.services';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		listChallengeableLeagues,
 		listMyLeagues,
 		proposeBattle,
 		type LeagueWithRole
-	} from '$lib/services/leagues.services';
-	import { localeStore } from '$lib/stores/locale.store';
+	} from '#lib/services/leagues.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		BATTLE_TRASH_TALK_MAX_LENGTH,
 		BATTLE_WAGER_DEFAULT,
@@ -21,9 +19,11 @@
 		BATTLE_WAGER_MIN,
 		type BattleDoc,
 		type BattleScope
-	} from '$lib/types/battle';
-	import { isLeaguePubliclyListed, type LeagueDoc } from '$lib/types/league';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	} from '#lib/types/battle.ts';
+	import { isLeaguePubliclyListed, type LeagueDoc } from '#lib/types/league.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
 
 	/**
 	 * Create-a-battle wizard — the multi-step "start a battle" sheet
@@ -181,7 +181,7 @@
 
 	const goToLeagues = () => {
 		handleClose();
-		void goto(`${resolve(AppPath.Arena)}/leagues`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/leagues`);
 	};
 
 	const selectLeague = (league: LeagueDoc) => {

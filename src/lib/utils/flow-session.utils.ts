@@ -1,5 +1,5 @@
-import { DAILY_GOAL_TARGET } from '$lib/utils/daily-goal.utils';
-import { DAILY_HARD_CAP } from '$lib/utils/motion-engine.utils';
+import { DAILY_GOAL_TARGET } from '#lib/utils/daily-goal.utils.ts';
+import { DAILY_HARD_CAP } from '#lib/utils/motion-engine.utils.ts';
 
 // Sitting-ceiling arithmetic for a Flow session. Pure functions over the
 // daily-goal baseline and the per-day hard cap, kept out of the component

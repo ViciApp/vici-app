@@ -1,10 +1,10 @@
+import type { CreateCanisterOptions } from '#lib/types/canister.ts';
 import {
 	idlFactoryCertifiedRegistry,
 	idlFactoryRegistry,
 	type RegistryDid,
 	type RegistryService
 } from '$declarations';
-import type { CreateCanisterOptions } from '$lib/types/canister';
 import {
 	Canister,
 	createServices,

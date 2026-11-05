@@ -34,8 +34,8 @@ src/satellite/
 | **`assertSetDoc` assertion** (pre-write veto)         | Same shape, via the `assertSetDocCollections` map in `index.ts`.                                                                               |
 | **Cross-canister call** (registry / clearing)         | Co-located with the hook that needs it (e.g. `engine-sync.services.ts` calls the registry).                                                    |
 | **Pure helper**                                       | `utils/<name>.utils.ts`.                                                                                                                       |
-| **Schema**                                            | Reuse `$lib/schema/*.schema.ts` whenever the same shape is consumed by the FE; only declare a satellite-only schema if the FE doesn't need it. |
-| **Constants**                                         | Reuse `$lib/constants/*.constants.ts` (path is symmetric — the satellite imports them via the same alias).                                     |
+| **Schema**                                            | Reuse `#lib/schema/*.schema.ts` whenever the same shape is consumed by the FE; only declare a satellite-only schema if the FE doesn't need it. |
+| **Constants**                                         | Reuse `#lib/constants/*.constants.ts` (path is symmetric — the satellite imports them via the same alias).                                     |
 
 `index.ts` is intentionally a **declaration file** — it should only:
 
@@ -60,12 +60,14 @@ Casing: `kebab-case` filenames, `camelCase` exports, `PascalCase` types.
 
 ## Imports
 
-Use the path aliases declared in
-[`svelte.config.js`](../../../svelte.config.js):
+Use the `#lib/*` subpath import (mapped in the satellite
+[`tsconfig.json`](../../../src/satellite/tsconfig.json) `paths` too, which
+`scripts/satellite-upgrade-needed.mjs` reads to walk the import graph) and the
+aliases declared in [`vite.config.ts`](../../../vite.config.ts):
 
 ```ts
-import { Collection } from '$lib/constants/collections.constants';
-import { UserProfileSchema } from '$lib/schema/profile.schema';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { UserProfileSchema } from '#lib/schema/profile.schema.ts';
 import { syncRoleToEngineOnSet } from '$satellite/services/engine-sync.services';
 ```
 
@@ -102,8 +104,8 @@ becomes a TS error at the dispatch table.
 `satellite.collections.storage` in `juno.config.ts` — NOT the
 `datastore` array — and they are NOT part of the `Collection` enum
 (that enum is Datastore-only). Their names live where they're used
-(e.g. `LEAGUE_IMAGES_COLLECTION` in `$lib/types/league.ts`). The FE
-uploads to them via `$lib/services/storage.services` and persists only
+(e.g. `LEAGUE_IMAGES_COLLECTION` in `#lib/types/league.ts`). The FE
+uploads to them via `#lib/services/storage.services.ts` and persists only
 the returned download URL on the owning Datastore doc — never a base64
 data URL.
 
@@ -113,7 +115,7 @@ data URL.
    file under `services/`. If none fits and the concern is genuinely new,
    add `services/<area>.services.ts` and wire it from `index.ts`.
 2. **Is it a pure helper?** → `utils/<name>.utils.ts`.
-3. **Is it a schema shared with the FE?** → `$lib/schema/<area>.schema.ts`,
+3. **Is it a schema shared with the FE?** → `#lib/schema/<area>.schema.ts`,
    imported from the satellite.
 4. **Is it generated?** → don't create it by hand. Run
    `npm run juno:functions:build`.

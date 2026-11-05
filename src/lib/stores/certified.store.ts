@@ -1,4 +1,4 @@
-import type { MarketId } from '$lib/types/market';
+import type { MarketId } from '#lib/types/market.ts';
 import { nonNullish } from '@dfinity/utils';
 import { writable, type Readable, type Writable } from 'svelte/store';
 

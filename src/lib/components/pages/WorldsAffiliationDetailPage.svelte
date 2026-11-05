@@ -2,41 +2,41 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { ChevronRight } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import CountryFlag from '$lib/components/ui/CountryFlag.svelte';
-	import { hasCountryFlag } from '$lib/constants/country-flags.constants';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import CountryFlag from '#lib/components/ui/CountryFlag.svelte';
+	import { hasCountryFlag } from '#lib/constants/country-flags.constants.ts';
 	import {
 		lookupWorldsAffiliation,
 		WORLDS_COUNTRIES,
 		WORLDS_UNIVERSITIES
-	} from '$lib/constants/worlds-affiliations.constants';
+	} from '#lib/constants/worlds-affiliations.constants.ts';
 	import {
 		getAffiliationStats,
 		listAffiliationChampionships,
 		listAffiliationStats,
 		listWorldsMemberCounts
-	} from '$lib/services/worlds.services';
-	import { myAffiliationsStore, refreshMyAffiliations } from '$lib/stores/affiliations.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { AffiliationKind } from '$lib/types/affiliation';
+	} from '#lib/services/worlds.services.ts';
+	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		MIN_CALLS_FOR_RANK,
 		type AffiliationChampionship,
 		type AffiliationStatsDoc
-	} from '$lib/types/affiliation-stats';
-	import { affiliationChipStyle } from '$lib/utils/affiliation-chip.utils';
-	import { affiliationDisplayName } from '$lib/utils/affiliation-name.utils';
+	} from '#lib/types/affiliation-stats.ts';
+	import type { AffiliationKind } from '#lib/types/affiliation.ts';
+	import { affiliationChipStyle } from '#lib/utils/affiliation-chip.utils.ts';
+	import { affiliationDisplayName } from '#lib/utils/affiliation-name.utils.ts';
 	import {
 		affiliationLifetimeAccuracy,
 		affiliationMonthlyAccuracy,
 		affiliationRankComparator,
 		formatAccuracyPercent
-	} from '$lib/utils/affiliation-stats.utils';
-	import { formatMonthAnchorLabel } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/utils/affiliation-stats.utils.ts';
+	import { formatMonthAnchorLabel } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	/**
 	 * Worlds affiliation detail — drill-down from `WorldsPage` and the
@@ -232,15 +232,15 @@
 	);
 
 	const backToWorlds = () => {
-		goBack(`${resolve('/arena')}/worlds`);
+		goBack(`${resolve('arena')}/worlds`);
 	};
 
 	const openStandings = () => {
-		void goto(`${resolve('/arena')}/worlds/${isCountry ? 'countries' : 'schools'}`);
+		void goto(`${resolve('arena')}/worlds/${isCountry ? 'countries' : 'schools'}`);
 	};
 
 	const openFlow = () => {
-		void goto(resolve('/flow'));
+		void goto(resolve('flow'));
 	};
 </script>
 

@@ -4,11 +4,11 @@
 	 * final sign-up CTA. The earned payoff of the page.
 	 */
 	import { ChevronRight } from '@lucide/svelte/icons';
-	import { LATIN_MOTTO_LEAD, LATIN_MOTTO_TAIL } from '$lib/constants/brand.constants';
-	import { PublicPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { splitHeadline } from '$lib/utils/landing-headline.utils';
+	import { LATIN_MOTTO_LEAD, LATIN_MOTTO_TAIL } from '#lib/constants/brand.constants.ts';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { splitHeadline } from '#lib/utils/landing-headline.utils.ts';
 
 	const tt = (key: MessageKey) => t({ locale: $localeStore, key });
 

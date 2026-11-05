@@ -1,4 +1,4 @@
-import type { StandingsResult, StandingsWindow } from '$lib/types/standings';
+import type { StandingsResult, StandingsWindow } from '#lib/types/standings.ts';
 import { writable } from 'svelte/store';
 
 /**

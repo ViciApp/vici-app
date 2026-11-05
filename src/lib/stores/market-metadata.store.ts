@@ -1,4 +1,4 @@
-import type { MarketMetadata } from '$lib/types/market-metadata';
+import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 import { writable } from 'svelte/store';
 
 /**

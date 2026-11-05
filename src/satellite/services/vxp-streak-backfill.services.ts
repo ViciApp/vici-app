@@ -21,13 +21,13 @@
 //   2. Only if the numbers look right, call with `{ dryRun: false }`.
 //   3. Open a follow-up PR removing this file + its `index.ts` wiring.
 
-import { ZERO } from '$lib/constants/app.constants';
-import { VXP_LEDGER_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { VXP_STREAK_BONUSES } from '$lib/constants/vxp-economy.constants';
-import { vxpAwardKey, type VxpAwardDoc } from '$lib/types/vxp-award';
-import { parseToken } from '$lib/utils/parse.utils';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { VXP_STREAK_BONUSES } from '#lib/constants/vxp-economy.constants.ts';
+import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import { parseToken } from '#lib/utils/parse.utils.ts';
 import { isAdmin } from '$satellite/services/_authz';
 import { logError, logInfo } from '$satellite/utils/logger.utils';
 import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';

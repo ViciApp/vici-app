@@ -27,42 +27,45 @@
 		Volume2
 	} from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import A2hsSheet from '$lib/components/pwa/A2hsSheet.svelte';
-	import DeleteAccountFlow from '$lib/components/settings/DeleteAccountFlow.svelte';
-	import SetRow from '$lib/components/settings/SetRow.svelte';
-	import SetSegmented from '$lib/components/settings/SetSegmented.svelte';
-	import SetToggle from '$lib/components/settings/SetToggle.svelte';
-	import SettingsIdentityCard from '$lib/components/settings/SettingsIdentityCard.svelte';
-	import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
-	import AppearancePicker from '$lib/components/ui/AppearancePicker.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import LocaleSheet from '$lib/components/ui/LocaleSheet.svelte';
-	import { Collection } from '$lib/constants/collections.constants';
-	import { LOCALE_REGISTRY } from '$lib/constants/locale.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { flushEvents, track } from '$lib/services/analytics.services';
-	import { isClaimHandoffAvailable, startClaimHandoff } from '$lib/services/claim-handoff.services';
+	import A2hsSheet from '#lib/components/pwa/A2hsSheet.svelte';
+	import DeleteAccountFlow from '#lib/components/settings/DeleteAccountFlow.svelte';
+	import SetRow from '#lib/components/settings/SetRow.svelte';
+	import SetSegmented from '#lib/components/settings/SetSegmented.svelte';
+	import SetToggle from '#lib/components/settings/SetToggle.svelte';
+	import SettingsIdentityCard from '#lib/components/settings/SettingsIdentityCard.svelte';
+	import SettingsSection from '#lib/components/settings/SettingsSection.svelte';
+	import AppearancePicker from '#lib/components/ui/AppearancePicker.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import LocaleSheet from '#lib/components/ui/LocaleSheet.svelte';
+	import { Collection } from '#lib/constants/collections.constants.ts';
+	import { LOCALE_REGISTRY } from '#lib/constants/locale.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { flushEvents, track } from '#lib/services/analytics.services.ts';
+	import {
+		isClaimHandoffAvailable,
+		startClaimHandoff
+	} from '#lib/services/claim-handoff.services.ts';
 	// The dual-mode sign-out: the Juno delegation drop on the default
 	// backend, the cookie-session revoke in web2 mode.
-	import { signOut } from '$lib/services/identity.services';
-	import { persistPreferences } from '$lib/services/profile.services';
-	import { canInstall } from '$lib/stores/a2hs.store';
-	import { localeStore, setLocale } from '$lib/stores/locale.store';
-	import { marketLanguagePreference } from '$lib/stores/market-language.store';
-	import { preferencesStore } from '$lib/stores/preferences.store';
-	import { theme } from '$lib/stores/theme.store';
-	import { setAuthBusy, userStore } from '$lib/stores/user.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import type { SettingsVisibility } from '$lib/types/preferences';
-	import type { UserProfile } from '$lib/types/profile';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { resolveSignInMethod } from '$lib/utils/signin-method.utils';
-	import { visibilityToProfile } from '$lib/utils/visibility.utils';
+	import { signOut } from '#lib/services/identity.services.ts';
+	import { persistPreferences } from '#lib/services/profile.services.ts';
+	import { canInstall } from '#lib/stores/a2hs.store.ts';
+	import { localeStore, setLocale } from '#lib/stores/locale.store.ts';
+	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
+	import { preferencesStore } from '#lib/stores/preferences.store.ts';
+	import { theme } from '#lib/stores/theme.store.ts';
+	import { setAuthBusy, userStore } from '#lib/stores/user.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import type { SettingsVisibility } from '#lib/types/preferences.ts';
+	import type { UserProfile } from '#lib/types/profile.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { resolveSignInMethod } from '#lib/utils/signin-method.utils.ts';
+	import { visibilityToProfile } from '#lib/utils/visibility.utils.ts';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	// Delete-account flow — the six-beat flow lives in
 	// `DeleteAccountFlow`; this page only owns the open/close toggle.
@@ -303,7 +306,7 @@
 		// the idle label. Deliberately outside the try: a `goto` abort (a
 		// concurrent redirect already taking us away) is not a sign-out failure
 		// and must not re-enable the controls.
-		await goto(resolve(PublicPath.SignIn), { replaceState: true });
+		await goto(resolve(PublicPath.SignIn), { replace: true });
 	};
 
 	/**
@@ -327,7 +330,7 @@
 			// Open sheets own Escape while visible (they close themselves,
 			// not the page); don't navigate away underneath them.
 			if (event.key === 'Escape' && !deleteSheetOpen && !langSheetOpen && !a2hsSheetOpen) {
-				void goto(resolve(AppPath.Profile));
+				void goto(resolveAppPath(AppPath.Profile));
 			}
 		};
 
@@ -348,7 +351,7 @@
 		<button
 			class="appbar-icon-btn"
 			aria-label={t({ locale: $localeStore, key: 'settings.back_profile' })}
-			onclick={() => goBack(resolve(AppPath.Profile))}
+			onclick={() => goBack(resolveAppPath(AppPath.Profile))}
 			type="button"
 		>
 			<ChevronLeft aria-hidden="true" size={18} strokeWidth={1.6} />
@@ -366,14 +369,14 @@
 			<SetRow
 				icon={Key}
 				label={t({ locale: $localeStore, key: 'settings.account.signin_method' })}
-				onclick={() => goto(resolve(AppPath.AccountSettings))}
+				onclick={() => goto(resolveAppPath(AppPath.AccountSettings))}
 				sub={signinMethodSub}
 			/>
 
 			<SetRow
 				icon={Mail}
 				label={t({ locale: $localeStore, key: 'settings.account.email' })}
-				onclick={() => goto(resolve(AppPath.AccountSettings))}
+				onclick={() => goto(resolveAppPath(AppPath.AccountSettings))}
 				sub={emailSub}
 			>
 				{#snippet right()}
@@ -418,7 +421,7 @@
 			<SetRow
 				icon={Bell}
 				label={t({ locale: $localeStore, key: 'settings.notifications' })}
-				onclick={() => goto(resolve(AppPath.Notifications))}
+				onclick={() => goto(resolveAppPath(AppPath.Notifications))}
 				sub={t({
 					locale: $localeStore,
 					key: 'settings.notifications.sub',
@@ -576,17 +579,17 @@
 			<SetRow
 				icon={Info}
 				label={t({ locale: $localeStore, key: 'settings.help.resolution' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/how-resolution-works`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/how-resolution-works`))}
 			/>
 			<SetRow
 				icon={Search}
 				label={t({ locale: $localeStore, key: 'settings.help.faq' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/faq`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/faq`))}
 			/>
 			<SetRow
 				icon={Share2}
 				label={t({ locale: $localeStore, key: 'settings.help.support' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/contact`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/contact`))}
 			/>
 		</SettingsSection>
 
@@ -594,37 +597,37 @@
 			<SetRow
 				icon={Lock}
 				label={t({ locale: $localeStore, key: 'settings.legal.terms' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/terms`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/terms`))}
 			/>
 			<SetRow
 				icon={Eye}
 				label={t({ locale: $localeStore, key: 'settings.legal.privacy' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/privacy`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/privacy`))}
 			/>
 			<SetRow
 				icon={Globe}
 				label={t({ locale: $localeStore, key: 'settings.legal.aviso' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/aviso`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/aviso`))}
 			/>
 			<SetRow
 				icon={Globe}
 				label={t({ locale: $localeStore, key: 'settings.legal.aviso_br' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/aviso-br`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/aviso-br`))}
 			/>
 			<SetRow
 				icon={Cookie}
 				label={t({ locale: $localeStore, key: 'settings.legal.cookies' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/cookies`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/cookies`))}
 			/>
 			<SetRow
 				icon={Info}
 				label={t({ locale: $localeStore, key: 'settings.legal.rules' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/resolution-rules`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/resolution-rules`))}
 			/>
 			<SetRow
 				icon={Scale}
 				label={t({ locale: $localeStore, key: 'settings.legal.imprint' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/imprint`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/imprint`))}
 			/>
 		</SettingsSection>
 

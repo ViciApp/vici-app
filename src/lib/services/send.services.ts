@@ -1,10 +1,14 @@
-import { transfer as transferIcrc } from '$lib/api/icrc-ledger.api';
-import { safeGetIdentityOnce } from '$lib/services/identity.services';
-import type { IcSendParams } from '$lib/types/ic-send';
-import type { Token } from '$lib/types/token';
-import { findSendableAsset } from '$lib/utils/send.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
-import { listWalletAssets, requestWalletWithdrawal, type Web2WalletAsset } from '$lib/web2/client';
+import { transfer as transferIcrc } from '#lib/api/icrc-ledger.api.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import type { IcSendParams } from '#lib/types/ic-send.ts';
+import type { Token } from '#lib/types/token.ts';
+import { findSendableAsset } from '#lib/utils/send.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import {
+	listWalletAssets,
+	requestWalletWithdrawal,
+	type Web2WalletAsset
+} from '#lib/web2/client.ts';
 import { isNullish } from '@dfinity/utils';
 import { decodeIcrcAccount, type IcrcLedgerDid } from '@icp-sdk/canisters/ledger/icrc';
 

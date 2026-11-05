@@ -7,10 +7,10 @@
 	 * never borrows celebratory styling for a loss. Class names live in
 	 * `app.css`.
 	 */
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { ResolutionRevealData } from '$lib/types/flow';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatWholeVxpMagnitude } from '$lib/utils/playground-display.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { ResolutionRevealData } from '#lib/types/flow.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatWholeVxpMagnitude } from '#lib/utils/playground-display.utils.ts';
 
 	interface Props {
 		digest: ResolutionRevealData;

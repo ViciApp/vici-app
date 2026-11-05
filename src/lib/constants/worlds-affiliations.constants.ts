@@ -1,4 +1,4 @@
-import type { AffiliationKind } from '$lib/types/affiliation';
+import type { AffiliationKind } from '#lib/types/affiliation.ts';
 
 /**
  * Static rosters for the FE Worlds picker. The satellite keys

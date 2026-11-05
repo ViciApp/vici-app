@@ -1,12 +1,11 @@
-import { functions } from '$declarations/satellite/satellite.api';
-import { Collection } from '$lib/constants/collections.constants';
-import { REFERRAL_CODE_REGEX } from '$lib/constants/referral.constants';
-import { authPrincipal } from '$lib/derived/user.derived';
-import { LeaguePrivacy } from '$lib/enums/league';
-import { track } from '$lib/services/analytics.services';
-import { safeGetIdentityOnce } from '$lib/services/identity.services';
-import { getMyReferralCode } from '$lib/services/referral.services';
-import { leagueDirectoryStore } from '$lib/stores/league-directory.store';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+import { authPrincipal } from '#lib/derived/user.derived.ts';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
+import { track } from '#lib/services/analytics.services.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import { getMyReferralCode } from '#lib/services/referral.services.ts';
+import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
 import {
 	BATTLE_RESPOND_BY_MS,
 	BATTLE_SCOPE_DEFAULT,
@@ -17,21 +16,21 @@ import {
 	type BattleDoc,
 	type BattleScope,
 	type BattleWinner
-} from '$lib/types/battle';
+} from '#lib/types/battle.ts';
+import {
+	leagueMemberKey,
+	type LeagueMemberDoc,
+	type LeagueMemberRole
+} from '#lib/types/league-member.ts';
+import { leagueStatsBucket, leagueStatsKey, type LeagueStatsDoc } from '#lib/types/league-stats.ts';
 import {
 	LEAGUE_DESCRIPTION_MAX_LENGTH,
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
 	type LeagueDoc
-} from '$lib/types/league';
-import {
-	leagueMemberKey,
-	type LeagueMemberDoc,
-	type LeagueMemberRole
-} from '$lib/types/league-member';
-import { leagueStatsBucket, leagueStatsKey, type LeagueStatsDoc } from '$lib/types/league-stats';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/types/league.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	acceptDuel as acceptDuelWeb2,
 	acceptLeagueBattle as acceptLeagueBattleWeb2,
@@ -59,8 +58,9 @@ import {
 	settleFounderAwards as settleFounderAwardsWeb2,
 	transferLeagueOwnership as transferLeagueOwnershipWeb2,
 	updateLeague as updateLeagueWeb2
-} from '$lib/web2/client';
-import { getWeb2User } from '$lib/web2/session';
+} from '#lib/web2/client.ts';
+import { getWeb2User } from '#lib/web2/session.ts';
+import { functions } from '$declarations/satellite/satellite.api';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { deleteDoc, getDoc, setDoc } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';
@@ -414,7 +414,7 @@ export const deriveLeagueId = ({
 
 /**
  * Generate a fresh 6-char `[A-Z0-9]` invite code via the platform
- * crypto. Matches `LEAGUE_INVITE_CODE_REGEX` from `$lib/types/league`
+ * crypto. Matches `LEAGUE_INVITE_CODE_REGEX` from `#lib/types/league.ts`
  * so the satellite assert accepts it on first write.
  */
 export const generateInviteCode = (): string => {

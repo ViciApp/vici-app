@@ -1,6 +1,10 @@
-import { browser } from '$app/environment';
-import { track } from '$lib/services/analytics.services';
-import { get as storageGet, has as storageHas, set as storageSet } from '$lib/utils/storage.utils';
+import { track } from '#lib/services/analytics.services.ts';
+import {
+	get as storageGet,
+	has as storageHas,
+	set as storageSet
+} from '#lib/utils/storage.utils.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { derived, get, writable, type Readable } from 'svelte/store';
 

@@ -1,5 +1,5 @@
-import { USD_DECIMALS } from '$lib/constants/app.constants';
-import { LOCKED_CAPACITY_DISPLAY_UNIT } from '$lib/types/locked-capacity-display.types';
+import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
+import { LOCKED_CAPACITY_DISPLAY_UNIT } from '#lib/types/locked-capacity-display.types.ts';
 
 /**
  * Clearing margin / equity fields use this scale for both settlement USD UI and playground VXP 1:1 display.

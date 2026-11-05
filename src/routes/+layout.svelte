@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { initSatellite } from '@junobuild/core';
 	import { onMount, type Snippet } from 'svelte';
-	import { browser } from '$app/environment';
-	import { afterNavigate } from '$app/navigation';
-	import Authn from '$lib/components/authn/Authn.svelte';
-	import TweaksPanel from '$lib/components/dev/TweaksPanel.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import MaintenanceOverlay from '$lib/components/ui/MaintenanceOverlay.svelte';
-	import Notifications from '$lib/components/ui/Notifications.svelte';
-	import { initAnalytics } from '$lib/services/analytics.services';
+	import Authn from '#lib/components/authn/Authn.svelte';
+	import TweaksPanel from '#lib/components/dev/TweaksPanel.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import MaintenanceOverlay from '#lib/components/ui/MaintenanceOverlay.svelte';
+	import Notifications from '#lib/components/ui/Notifications.svelte';
+	import { initAnalytics } from '#lib/services/analytics.services.ts';
 	import {
 		initMaintenanceWatch,
 		reportMaintenanceCandidate
-	} from '$lib/services/maintenance.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { previousPathStore } from '$lib/stores/previous-path.store';
-	import { ensureLocaleCatalogs, t } from '$lib/utils/i18n.utils';
+	} from '#lib/services/maintenance.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { previousPathStore } from '#lib/stores/previous-path.store.ts';
+	import { ensureLocaleCatalogs, t } from '#lib/utils/i18n.utils.ts';
+	import { browser } from '$app/env';
+	import { afterNavigate } from '$app/navigation';
 	// eslint-disable-next-line import/no-relative-parent-imports
 	import '../app.css';
 
@@ -90,7 +90,11 @@
 		el.dir = RTL_LANGS.includes(lang) ? 'rtl' : 'ltr';
 	});
 
-	afterNavigate(({ from }) => {
+	afterNavigate(({ from, shallow, type }) => {
+		if (shallow && type === 'goto') {
+			return;
+		}
+
 		if (from?.url) {
 			previousPathStore.set(from.url.pathname + from.url.search);
 		}

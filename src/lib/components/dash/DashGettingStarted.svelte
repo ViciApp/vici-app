@@ -15,15 +15,15 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { ArrowRight, Check } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { myAffiliationsStore } from '#lib/stores/affiliations.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { CHECKLIST_DASH_SEEN_KEY } from '#lib/utils/onboarding-flags.utils.ts';
+	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { myAffiliationsStore } from '$lib/stores/affiliations.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { CHECKLIST_DASH_SEEN_KEY } from '$lib/utils/onboarding-flags.utils';
 
 	interface Step {
 		done: boolean;
@@ -57,19 +57,19 @@
 			done: callDone,
 			labelKey: 'gst.call.label',
 			subKey: 'gst.call.sub',
-			go: () => void goto(resolve(AppPath.Flow))
+			go: () => void goto(resolveAppPath(AppPath.Flow))
 		},
 		{
 			done: teamDone,
 			labelKey: 'gst.team.label',
 			subKey: 'gst.team.sub',
-			go: () => void goto(`${resolve(AppPath.Arena)}/worlds`)
+			go: () => void goto(`${resolveAppPath(AppPath.Arena)}/worlds`)
 		},
 		{
 			done: false,
 			labelKey: 'gst.league.label',
 			subKey: 'gst.league.sub',
-			go: () => void goto(resolve(AppPath.Arena))
+			go: () => void goto(resolveAppPath(AppPath.Arena))
 		}
 	]);
 

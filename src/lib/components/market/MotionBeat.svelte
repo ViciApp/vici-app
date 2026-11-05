@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import FlameChar from '$lib/components/characters/FlameChar.svelte';
-	import OracleChar from '$lib/components/characters/OracleChar.svelte';
-	import TricksterChar from '$lib/components/characters/TricksterChar.svelte';
-	import ViciChar from '$lib/components/characters/ViciChar.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import type { MotionBeatPayload } from '$lib/utils/motion-engine.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import type { FlameStage } from '$lib/utils/streak.utils';
+	import FlameChar from '#lib/components/characters/FlameChar.svelte';
+	import OracleChar from '#lib/components/characters/OracleChar.svelte';
+	import TricksterChar from '#lib/components/characters/TricksterChar.svelte';
+	import ViciChar from '#lib/components/characters/ViciChar.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import type { MotionBeatPayload } from '#lib/utils/motion-engine.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
+	import type { FlameStage } from '#lib/utils/streak.utils.ts';
 
 	interface Props {
 		beat: MotionBeatPayload;

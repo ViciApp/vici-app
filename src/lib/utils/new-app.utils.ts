@@ -1,5 +1,5 @@
-import { REFERRAL_CODE_REGEX } from '$lib/constants/referral.constants';
-import { LEAGUE_INVITE_CODE_REGEX } from '$lib/types/league';
+import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+import { LEAGUE_INVITE_CODE_REGEX } from '#lib/types/league.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

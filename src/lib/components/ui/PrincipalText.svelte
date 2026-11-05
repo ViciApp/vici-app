@@ -1,7 +1,7 @@
 <script lang="ts">
-	import YouBadge from '$lib/components/ui/YouBadge.svelte';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { shortenWithMiddleEllipsis } from '$lib/utils/format.utils';
+	import YouBadge from '#lib/components/ui/YouBadge.svelte';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
 
 	interface Props {
 		principal: string;

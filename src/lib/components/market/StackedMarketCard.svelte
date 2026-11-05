@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { Layers, UsersRound } from '@lucide/svelte/icons';
+	import MarketCard from '#lib/components/market/MarketCard.svelte';
+	import PrincipalText from '#lib/components/ui/PrincipalText.svelte';
+	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import type { MarketGroup } from '#lib/utils/market-groups.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import MarketCard from '$lib/components/market/MarketCard.svelte';
-	import PrincipalText from '$lib/components/ui/PrincipalText.svelte';
-	import { primaryMicro } from '$lib/constants/market-taxonomy.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import type { MarketMetadata } from '$lib/types/market-metadata';
-	import { t } from '$lib/utils/i18n.utils';
-	import type { MarketGroup } from '$lib/utils/market-groups.utils';
 
 	interface Props {
 		group: MarketGroup;
@@ -51,7 +51,7 @@
 
 	const openFork = (fork: Market) => {
 		popoverOpen = false;
-		goto(resolve(`${AppPath.Markets}/${fork.id}`));
+		goto(resolveAppPath(`${AppPath.Markets}/${fork.id}`));
 	};
 </script>
 

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import OracleChar from '$lib/components/characters/OracleChar.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { writeToClipboard } from '$lib/utils/clipboard.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import OracleChar from '#lib/components/characters/OracleChar.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
 		// The daily hard cap reached (15) — surfaced in the body copy.

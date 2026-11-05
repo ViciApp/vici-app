@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { EM_DASH } from '$lib/constants/app.constants';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
-	import { featuredEvent } from '$lib/derived/featured-event.derived';
-	import { syncMyStats } from '$lib/services/profile.services';
-	import { loadMyUserStats } from '$lib/services/user-stats.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { UserStatsDoc } from '$lib/types/user-stats';
-	import { t } from '$lib/utils/i18n.utils';
+	import { EM_DASH } from '#lib/constants/app.constants.ts';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+	import { featuredEvent } from '#lib/derived/featured-event.derived.ts';
+	import { syncMyStats } from '#lib/services/profile.services.ts';
+	import { loadMyUserStats } from '#lib/services/user-stats.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { UserStatsDoc } from '#lib/types/user-stats.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Recap "trophy" card shown at the top of the Markets list in the

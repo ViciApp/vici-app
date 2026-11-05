@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { Settings, User } from '@lucide/svelte/icons';
+	import { navItems } from '#lib/constants/nav.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { navItems } from '$lib/constants/nav.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { userSignedIn } from '$lib/derived/user.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	/**
 	 * Desktop chrome for the (app) shell — mirrors the LANDING page's

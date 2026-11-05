@@ -17,7 +17,7 @@ import { isNullish } from '@dfinity/utils';
  * This is a deliberately temporary, hand-editable layer: to move a market's
  * release, cut its question from one date array and paste it under another;
  * to reveal a withheld market, add its exact question under a date. The
- * consuming logic lives in `$lib/utils/wc-schedule.utils`.
+ * consuming logic lives in `#lib/utils/wc-schedule.utils.ts`.
  */
 
 /**

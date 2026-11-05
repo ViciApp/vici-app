@@ -1,4 +1,4 @@
-import type { MenagerieCrossing } from '$lib/utils/menagerie.utils';
+import type { MenagerieCrossing } from '#lib/utils/menagerie.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import { writable } from 'svelte/store';
 

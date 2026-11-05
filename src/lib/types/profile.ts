@@ -2,7 +2,7 @@ import type {
 	NicknameSchema,
 	ProfilePrivateSchema,
 	UserProfileSchema
-} from '$lib/schema/profile.schema';
+} from '#lib/schema/profile.schema.ts';
 import type { j } from '@junobuild/schema';
 
 export type Nickname = j.infer<typeof NicknameSchema>;

@@ -1,4 +1,4 @@
-import type { UserProfile } from '$lib/types/profile';
+import type { UserProfile } from '#lib/types/profile.ts';
 import type { PrincipalText } from '@junobuild/schema';
 import { writable } from 'svelte/store';
 

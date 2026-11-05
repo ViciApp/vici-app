@@ -11,8 +11,8 @@
 // Keep this file pure (no Svelte / stores / I/O). All inputs flow in
 // through `AchievementsInput`; outputs are deterministic.
 
-import { ACHIEVEMENTS, type AchievementDef } from '$lib/constants/achievements.constants';
-import { ACCURACY_GATE_CALLS } from '$lib/constants/flow-rewards.constants';
+import { ACHIEVEMENTS, type AchievementDef } from '#lib/constants/achievements.constants.ts';
+import { ACCURACY_GATE_CALLS } from '#lib/constants/flow-rewards.constants.ts';
 import { nonNullish } from '@dfinity/utils';
 
 // "Long shot" cutoff for the `contrarian` achievement: a settled trade

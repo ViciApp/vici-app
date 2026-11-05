@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import SignInScreen from '#lib/components/authn/SignInScreen.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
 	import { goto } from '$app/navigation';
-	import SignInScreen from '$lib/components/authn/SignInScreen.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { userSignedIn } from '$lib/derived/user.derived';
 
 	// If a returning user lands here while already authenticated,
 	// route them straight into Flow mode — the canonical first surface
@@ -15,7 +15,7 @@
 	// `userStore` has finished hydrating the new principal.
 	$effect(() => {
 		if ($userSignedIn) {
-			void goto(AppPath.Flow, { replaceState: true });
+			void goto(AppPath.Flow, { replace: true });
 		}
 	});
 

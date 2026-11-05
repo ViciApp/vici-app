@@ -1,5 +1,5 @@
-import { Collection } from '$lib/constants/collections.constants';
-import type { ActivityReactionCount } from '$lib/types/social';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import type { ActivityReactionCount } from '#lib/types/social.ts';
 import { isAdmin } from '$satellite/services/_authz';
 import { logError } from '$satellite/utils/logger.utils';
 import { isNullish, nonNullish } from '@dfinity/utils';

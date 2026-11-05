@@ -1,14 +1,14 @@
-import { isVxpLadderStake, VXP_STAKE_LADDER } from '$lib/constants/vxp-economy.constants';
-import { placeOrder } from '$lib/services/order.services';
-import type { Market } from '$lib/types/market';
-import type { OrderType } from '$lib/types/order';
-import { isViciXp } from '$lib/utils/balance-domain.utils';
-import { resolveOutcomeExecutionPrice } from '$lib/utils/market.utils';
+import { isVxpLadderStake, VXP_STAKE_LADDER } from '#lib/constants/vxp-economy.constants.ts';
+import { placeOrder } from '#lib/services/order.services.ts';
+import type { Market } from '#lib/types/market.ts';
+import type { OrderType } from '#lib/types/order.ts';
+import { isViciXp } from '#lib/utils/balance-domain.utils.ts';
+import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
 import {
 	parseToken,
 	parseUsdBaseUnitsFromDecimal,
 	tokenBaseUnitsToUsdBaseUnits
-} from '$lib/utils/parse.utils';
+} from '#lib/utils/parse.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 
 /**

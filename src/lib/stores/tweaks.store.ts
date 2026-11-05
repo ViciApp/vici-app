@@ -1,4 +1,4 @@
-import { LEADERBOARD_QUALIFY_MIN } from '$lib/constants/standings.constants';
+import { LEADERBOARD_QUALIFY_MIN } from '#lib/constants/standings.constants.ts';
 import { writable } from 'svelte/store';
 
 /**

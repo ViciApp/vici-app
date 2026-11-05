@@ -1,8 +1,11 @@
-import { marketById } from '$lib/derived/market-by-id.derived';
-import { tradeHistory, tradeHistoryNotInitialized } from '$lib/derived/trade-history.derived';
-import type { ResolvedPosition } from '$lib/types/position';
-import { isSettledEvent, settledEventToResolvedPosition } from '$lib/utils/resolved-position.utils';
-import { parseMarketId } from '$lib/validation/market.validation';
+import { marketById } from '#lib/derived/market-by-id.derived.ts';
+import { tradeHistory, tradeHistoryNotInitialized } from '#lib/derived/trade-history.derived.ts';
+import type { ResolvedPosition } from '#lib/types/position.ts';
+import {
+	isSettledEvent,
+	settledEventToResolvedPosition
+} from '#lib/utils/resolved-position.utils.ts';
+import { parseMarketId } from '#lib/validation/market.validation.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**

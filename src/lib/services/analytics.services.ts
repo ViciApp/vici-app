@@ -1,13 +1,13 @@
-import { browser } from '$app/environment';
-import { functions } from '$declarations/satellite/satellite.api';
-import { theme } from '$lib/stores/theme.store';
+import { theme } from '#lib/stores/theme.store.ts';
 import type {
 	AnalyticsEventName,
 	AnalyticsEventProps,
 	TrackEventInput
-} from '$lib/types/analytics-event';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
-import { postEvents } from '$lib/web2/client';
+} from '#lib/types/analytics-event.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { postEvents } from '#lib/web2/client.ts';
+import { browser } from '$app/env';
+import { functions } from '$declarations/satellite/satellite.api';
 import { nonNullish } from '@dfinity/utils';
 import { get } from 'svelte/store';
 
@@ -87,7 +87,7 @@ export const flushEvents = async (): Promise<void> => {
 
 	try {
 		// The batch shape is identical on both transports; only the destination
-		// switches (see $lib/web2/backend-mode). Default stays the satellite call.
+		// switches (see #lib/web2/backend-mode). Default stays the satellite call.
 		if (isWeb2Backend()) {
 			await postEvents({ events });
 		} else {

@@ -37,28 +37,28 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import type { PrincipalText } from '@junobuild/schema';
 	import { untrack } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { lookupWorldsAffiliation } from '$lib/constants/worlds-affiliations.constants';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { listLeagueMembers, listMyLeagues } from '$lib/services/leagues.services';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { lookupWorldsAffiliation } from '#lib/constants/worlds-affiliations.constants.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { listLeagueMembers, listMyLeagues } from '#lib/services/leagues.services.ts';
 	import {
 		findOwnStanding,
 		getLeagueStandings,
 		getStandings
-	} from '$lib/services/standings.services';
-	import { listAffiliationStats } from '$lib/services/worlds.services';
-	import { myAffiliationsStore, refreshMyAffiliations } from '$lib/stores/affiliations.store';
-	import { friendsListStore, refreshFriendRelations } from '$lib/stores/friends.store';
-	import { localeStore } from '$lib/stores/locale.store';
+	} from '#lib/services/standings.services.ts';
+	import { listAffiliationStats } from '#lib/services/worlds.services.ts';
+	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
+	import { friendsListStore, refreshFriendRelations } from '#lib/stores/friends.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		affiliationMonthlyAccuracy,
 		affiliationRankComparator
-	} from '$lib/utils/affiliation-stats.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import { get as getStorage, set as setStorage } from '$lib/utils/storage.utils';
+	} from '#lib/utils/affiliation-stats.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
+	import { get as getStorage, set as setStorage } from '#lib/utils/storage.utils.ts';
+	import { goto } from '$app/navigation';
 
 	/**
 	 * Arena standing hero — one swipe-only standing that pages across the
@@ -185,15 +185,15 @@
 	const showSkeleton = $derived(scopes.length === 0 && !settled);
 
 	const goLeaderboard = () => {
-		void goto(resolve(`${AppPath.Arena}/leaderboard`));
+		void goto(resolveAppPath(`${AppPath.Arena}/leaderboard`));
 	};
 
 	const goSchool = (id: string) => {
-		void goto(`${resolve(AppPath.Arena)}/worlds/school/${id}`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/worlds/school/${id}`);
 	};
 
 	const goLeague = (id: string) => {
-		void goto(`${resolve(AppPath.Arena)}/leagues/${id}`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/leagues/${id}`);
 	};
 
 	const unitThisWeek = $derived(t({ locale: $localeStore, key: 'arena.hero.unit_this_week' }));

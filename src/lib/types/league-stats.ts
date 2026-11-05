@@ -1,5 +1,5 @@
-import type { MacroId } from '$lib/constants/market-taxonomy.constants';
-import type { CategoryStatsBucket } from '$lib/types/user-stats';
+import type { MacroId } from '#lib/constants/market-taxonomy.constants.ts';
+import type { CategoryStatsBucket } from '#lib/types/user-stats.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

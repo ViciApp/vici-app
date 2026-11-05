@@ -1,5 +1,5 @@
 <script lang="ts">
-	import SignInProviderStack from '$lib/components/authn/SignInProviderStack.svelte';
+	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
 
 	interface Props {
 		onSuccess?: () => void;

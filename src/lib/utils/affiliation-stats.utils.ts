@@ -1,5 +1,5 @@
-import { DAY_IN_MS } from '$lib/constants/app.constants';
-import type { AffiliationStatsDoc } from '$lib/types/affiliation-stats';
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+import type { AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
 
 /**
  * Lifetime accuracy of an affiliation as a 0..1 ratio. Returns `0`

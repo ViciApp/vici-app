@@ -1,4 +1,4 @@
-import type { FlowArtCategory } from '$lib/utils/flow-art.utils';
+import type { FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
 
 /**
  * Static demo markets shared by the public `/welcome` landing grid and

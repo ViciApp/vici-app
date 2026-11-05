@@ -1,17 +1,17 @@
-import type { ClearingDid } from '$declarations';
-import { USD_DECIMALS, ZERO } from '$lib/constants/app.constants';
+import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import {
 	PLAYGROUND_CLEARING_MARGIN_DECIMALS,
 	PLAYGROUND_DISPLAY_SYMBOL,
 	VXP_BALANCE_DISPLAY_DECIMALS
-} from '$lib/constants/playground.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
+} from '#lib/constants/playground.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import {
 	formatAvailableUsd,
 	formatToken,
 	groupIntegerPart,
 	safeBigInt
-} from '$lib/utils/format.utils';
+} from '#lib/utils/format.utils.ts';
+import type { ClearingDid } from '$declarations';
 import { nonNullish } from '@dfinity/utils';
 
 /**

@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { X } from '@lucide/svelte';
 	import { fly } from 'svelte/transition';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
 	 * SurfaceTip — a small, non-blocking first-visit tip pinned just above the

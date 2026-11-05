@@ -1,6 +1,6 @@
-import type { Token } from '$lib/types/token';
-import { filterSendableTokens, findSendableAsset } from '$lib/utils/send.utils';
-import type { Web2WalletAsset } from '$lib/web2/client';
+import type { Token } from '#lib/types/token.ts';
+import { filterSendableTokens, findSendableAsset } from '#lib/utils/send.utils.ts';
+import type { Web2WalletAsset } from '#lib/web2/client.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 

@@ -117,7 +117,7 @@ These need a per-item decision before deletion. Default = remove.
   wrapping the accent half (mirrors the landing pattern).
 - ✅ Beat 1 — localised team promotion: new
   `detectUserCountryCode` helper in
-  `$lib/utils/locale-country.utils.ts` reads `navigator.languages`,
+  `#lib/utils/locale-country.utils.ts` reads `navigator.languages`,
   Beat 1.a promotes the matching participant into slot 1 of the
   favourites grid when not already visible.
 - ✅ Beat 1 — skip CTA: `.ob2-skip-team` no longer underlines (kept the

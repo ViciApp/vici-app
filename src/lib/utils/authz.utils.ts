@@ -1,6 +1,6 @@
-import { ROLE_PERMISSIONS } from '$lib/constants/authz.constants';
-import type { Permission } from '$lib/enums/permission';
-import type { UserRole } from '$lib/enums/user';
+import { ROLE_PERMISSIONS } from '#lib/constants/authz.constants.ts';
+import type { Permission } from '#lib/enums/permission.ts';
+import type { UserRole } from '#lib/enums/user.ts';
 import { isNullish } from '@dfinity/utils';
 
 export const hasPermission = ({

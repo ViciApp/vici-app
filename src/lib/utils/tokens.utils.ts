@@ -1,7 +1,7 @@
-import { SUPPORTED_TOKENS } from '$lib/constants/tokens/tokens.ic.constants';
-import { collateralsStore } from '$lib/stores/collaterals.store';
-import type { Token } from '$lib/types/token';
-import { findCollateralInfoByIcrcLedger } from '$lib/utils/asset-ref.utils';
+import { SUPPORTED_TOKENS } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { collateralsStore } from '#lib/stores/collaterals.store.ts';
+import type { Token } from '#lib/types/token.ts';
+import { findCollateralInfoByIcrcLedger } from '#lib/utils/asset-ref.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import { get } from 'svelte/store';
 

@@ -18,14 +18,14 @@
 	 * `.btn`, …) from `src/landing.css`.
 	 */
 	import { onMount } from 'svelte';
-	import WelcomeClose from '$lib/components/landing/WelcomeClose.svelte';
-	import WelcomeFAQ from '$lib/components/landing/WelcomeFAQ.svelte';
-	import WelcomeFooter from '$lib/components/landing/WelcomeFooter.svelte';
-	import WelcomeHero from '$lib/components/landing/WelcomeHero.svelte';
-	import WelcomeProof from '$lib/components/landing/WelcomeProof.svelte';
-	import WelcomeStatus from '$lib/components/landing/WelcomeStatus.svelte';
-	import WelcomeTrust from '$lib/components/landing/WelcomeTrust.svelte';
-	import WelcomeNav from '$lib/components/layout/WelcomeNav.svelte';
+	import WelcomeClose from '#lib/components/landing/WelcomeClose.svelte';
+	import WelcomeFAQ from '#lib/components/landing/WelcomeFAQ.svelte';
+	import WelcomeFooter from '#lib/components/landing/WelcomeFooter.svelte';
+	import WelcomeHero from '#lib/components/landing/WelcomeHero.svelte';
+	import WelcomeProof from '#lib/components/landing/WelcomeProof.svelte';
+	import WelcomeStatus from '#lib/components/landing/WelcomeStatus.svelte';
+	import WelcomeTrust from '#lib/components/landing/WelcomeTrust.svelte';
+	import WelcomeNav from '#lib/components/layout/WelcomeNav.svelte';
 
 	onMount(() => {
 		document.title = 'VICI';

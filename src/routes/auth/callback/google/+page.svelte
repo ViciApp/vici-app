@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { handleRedirectCallback } from '@junobuild/core';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { SIGNED_IN_FLAG_KEY } from '#lib/constants/app.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { SIGNED_IN_FLAG_KEY } from '$lib/constants/app.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	onMount(async () => {
 		try {
@@ -21,7 +22,7 @@
 			// (see #421). Routing through `/` here would double-bounce
 			// (`/` → `/flow`) and risk a transient marketing / markets
 			// paint before the root gate re-runs.
-			await goto(resolve(AppPath.Flow), { replaceState: true });
+			await goto(resolveAppPath(AppPath.Flow), { replace: true });
 		} catch (err: unknown) {
 			console.error('Failed to finish Google sign-in:', err);
 
@@ -39,7 +40,7 @@
 				}
 			}
 
-			await goto(resolve(PublicPath.SignIn), { replaceState: true });
+			await goto(resolve(PublicPath.SignIn), { replace: true });
 		}
 	});
 </script>

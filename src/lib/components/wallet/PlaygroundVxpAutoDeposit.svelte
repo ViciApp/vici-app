@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { get } from 'svelte/store';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { depositCollateral, getSweepableVxpAmount } from '$lib/services/collateral.services';
-	import { balanceDomainStore } from '$lib/stores/balance-domain.store';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { depositCollateral, getSweepableVxpAmount } from '#lib/services/collateral.services.ts';
+	import { balanceDomainStore } from '#lib/stores/balance-domain.store.ts';
 
 	/**
 	 * Playground-only sweep of VXP ledger balance into clearing (ViciXp).

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { EM_DASH } from '$lib/constants/app.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { EM_DASH } from '#lib/constants/app.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		vxpBalanceDisplay: string;

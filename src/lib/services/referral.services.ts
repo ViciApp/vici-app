@@ -1,6 +1,5 @@
-import { functions } from '$declarations/satellite/satellite.api';
-import type { ReferralListItem } from '$lib/types/referral';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+import type { ReferralListItem } from '#lib/types/referral.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	claimReferralFriendship as claimReferralFriendshipWeb2,
 	getMyReferralCode as getMyReferralCodeWeb2,
@@ -9,8 +8,9 @@ import {
 	redeemReferralCode as redeemReferralCodeWeb2,
 	settleReferralPayout as settleReferralPayoutWeb2,
 	Web2ApiError
-} from '$lib/web2/client';
-import { getWeb2User } from '$lib/web2/session';
+} from '#lib/web2/client.ts';
+import { getWeb2User } from '#lib/web2/session.ts';
+import { functions } from '$declarations/satellite/satellite.api';
 import { fromWireReferral } from '$satellite/utils/wire-format.utils';
 import { isNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';

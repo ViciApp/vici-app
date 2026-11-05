@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { Bell } from '@lucide/svelte/icons';
 	import { fade } from 'svelte/transition';
+	import StreakFlame from '#lib/components/characters/StreakFlame.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { combinedInboxUnreadCount } from '#lib/stores/inbox.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import type { FlameStage } from '#lib/utils/streak.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import StreakFlame from '$lib/components/characters/StreakFlame.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { combinedInboxUnreadCount } from '$lib/stores/inbox.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import type { FlameStage } from '$lib/utils/streak.utils';
 
 	/**
 	 * FlowTopBar — sticky header for Flow Mode.
@@ -55,11 +55,11 @@
 	);
 
 	const openSettings = () => {
-		goto(resolve(AppPath.Settings));
+		goto(resolveAppPath(AppPath.Settings));
 	};
 
 	const openNotifications = () => {
-		goto(resolve(AppPath.Notifications));
+		goto(resolveAppPath(AppPath.Notifications));
 	};
 </script>
 

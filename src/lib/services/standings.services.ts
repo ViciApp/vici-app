@@ -1,10 +1,10 @@
+import { listLeaderboard } from '#lib/api/clearing.api.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import { setGlobalStandings } from '#lib/stores/standings.store.ts';
+import type { StandingEntry, StandingsResult, StandingsWindow } from '#lib/types/standings.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { listEngineLeaderboard as listEngineLeaderboardWeb2 } from '#lib/web2/client.ts';
 import type { ClearingDid } from '$declarations';
-import { listLeaderboard } from '$lib/api/clearing.api';
-import { safeGetIdentityOnce } from '$lib/services/identity.services';
-import { setGlobalStandings } from '$lib/stores/standings.store';
-import type { StandingEntry, StandingsResult, StandingsWindow } from '$lib/types/standings';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
-import { listEngineLeaderboard as listEngineLeaderboardWeb2 } from '$lib/web2/client';
 import { fromNullable, isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { PrincipalText } from '@junobuild/schema';
