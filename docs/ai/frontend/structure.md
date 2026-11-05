@@ -137,9 +137,11 @@ the word "bet" — wrap the boundary so it doesn't leak into Vici code.
 The local rule `local-rules/no-relative-imports` is **`error`** under
 `src/**`. Import through the subpath imports declared in
 [`package.json`](../../../package.json) `imports` (SvelteKit 3 deprecates
-`config.alias`, and there is no `svelte.config.js`). They need the file
-extension (`.ts`, `.svelte`; `.d.ts` for type-only imports of generated
-bindings that have no runtime file):
+`config.alias`, and there is no `svelte.config.js`). Paths under them need
+the file extension (`.ts`, `.svelte`; `.d.ts` for type-only imports of
+generated bindings that have no runtime file). Bare `#declarations` is the
+one extensionless import: `package.json` maps it straight to
+`src/declarations/index.ts`:
 
 | Import          | Path               |
 | --------------- | ------------------ |

@@ -20,7 +20,7 @@ typically checked out at `../icdc-core/`).
 What `ls`, `package.json`, and `tsconfig*.json` already tell you, this file
 will not. What they cannot tell you:
 
-- **`src/declarations/**`is generated** by`npm run did`from upstream`.did` files. Never hand-edit.
+- **`src/declarations/**`is generated** by`npm run did`from upstream`.did` files. Never hand-edit. The exception is the hand-written wiring `src/declarations/{index,_factory,_types}.ts`, which `npm run did` does not produce and which is not vendored to the backend.
 - **`src/satellite/satellite.did`, `satellite_extension.did`, and
   `api-schemas.ts` are generated** by `npm run juno:functions:build`.
 - **`static/workers/**`is synced from`@junobuild/core`by`npm run postinstall`\*\* — don't hand-edit.
