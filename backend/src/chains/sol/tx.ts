@@ -4,8 +4,8 @@
 // the custody service builds exactly two instruction shapes, and the legacy
 // message format is small and stable.
 
-import { ed25519 } from '@noble/curves/ed25519';
-import { sha256 } from '@noble/hashes/sha2';
+import { ed25519 } from '@noble/curves/ed25519.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { base58 } from '@scure/base';
 import { ZERO } from '../../lib/constants';
 
@@ -70,7 +70,7 @@ const u64le = (value: bigint): Uint8Array => {
 
 const isOnCurve = (bytes: Uint8Array): boolean => {
 	try {
-		ed25519.ExtendedPoint.fromHex(bytes);
+		ed25519.Point.fromBytes(bytes);
 
 		return true;
 	} catch {

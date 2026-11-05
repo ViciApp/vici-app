@@ -19,10 +19,10 @@
 import type { SignIdentity } from '@icp-sdk/core/agent';
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
 import { Secp256k1KeyIdentity } from '@icp-sdk/core/identity/secp256k1';
-import { ed25519 } from '@noble/curves/ed25519';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { hkdf } from '@noble/hashes/hkdf';
-import { sha256 } from '@noble/hashes/sha2';
+import { ed25519 } from '@noble/curves/ed25519.js';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { hkdf } from '@noble/hashes/hkdf.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { env } from '../env';
 
 export type Chain = 'ic' | 'evm' | 'sol' | 'btc';
@@ -49,7 +49,7 @@ const deriveForCurve = (info: string, chain: Chain): Uint8Array => {
 	for (let counter = 0; counter < 8; counter++) {
 		const candidate = deriveBytes(counter === 0 ? info : `${info}:${counter}`);
 
-		if (secp256k1.utils.isValidPrivateKey(candidate)) {
+		if (secp256k1.utils.isValidSecretKey(candidate)) {
 			return candidate;
 		}
 	}

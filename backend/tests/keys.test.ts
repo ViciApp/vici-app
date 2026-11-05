@@ -2,7 +2,7 @@
 // fixed ROOT_SECRET (pinned in tests/helpers/setup.ts), distinctness across
 // users / chains / service scopes, and curve validity of every output.
 
-import { secp256k1 } from '@noble/curves/secp256k1';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { describe, expect, test } from 'bun:test';
 import {
 	adminIcIdentity,
@@ -46,9 +46,7 @@ describe('deriveUserKey', () => {
 
 	test('secp256k1 outputs are valid scalars', () => {
 		for (const chain of ['evm', 'btc'] as const) {
-			expect(secp256k1.utils.isValidPrivateKey(deriveUserKey({ userId: USER_A, chain }))).toBe(
-				true
-			);
+			expect(secp256k1.utils.isValidSecretKey(deriveUserKey({ userId: USER_A, chain }))).toBe(true);
 		}
 	});
 

@@ -33,11 +33,11 @@ import {
 } from '@icp-sdk/core/agent';
 import { DelegationChain, type SignedDelegation } from '@icp-sdk/core/identity';
 import { Principal } from '@icp-sdk/core/principal';
-import { ed25519 } from '@noble/curves/ed25519';
-import { p256 } from '@noble/curves/p256';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { sha256 } from '@noble/hashes/sha2';
-import { hexToBytes } from '@noble/hashes/utils';
+import { ed25519 } from '@noble/curves/ed25519.js';
+import { p256 } from '@noble/curves/nist.js';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { hexToBytes } from '@noble/hashes/utils.js';
 
 /** Wire audience tag; mirrored by the app's claim handoff util (pinned by the
  * shared-drift suite). */
@@ -372,9 +372,9 @@ const verifyWebauthnSignature = async ({
 
 		try {
 			const publicKey = concatBytes(new Uint8Array([0x04]), x, y);
-			const compact = p256.Signature.fromDER(sig).toCompactRawBytes();
 
-			return p256.verify(compact, sha256(signedBytes), publicKey);
+			// Authenticators do not normalise S, so a high-S signature is still valid here.
+			return p256.verify(sig, signedBytes, publicKey, { format: 'der', lowS: false });
 		} catch {
 			return false;
 		}
@@ -545,7 +545,7 @@ const verifySignatureWithDerKey = async ({
 	if (nonNullish(secp)) {
 		try {
 			return {
-				ok: secp256k1.verify(signature, sha256(message), secp),
+				ok: secp256k1.verify(signature, message, secp),
 				reason: 'bad_signature'
 			};
 		} catch {

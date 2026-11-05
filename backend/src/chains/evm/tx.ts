@@ -4,9 +4,10 @@
 // builds one transaction shape, and the primitives are small enough to test
 // against known vectors directly.
 
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { keccak_256 } from '@noble/hashes/sha3';
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
+import { isNullish } from '@dfinity/utils';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { keccak_256 } from '@noble/hashes/sha3.js';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import { ZERO } from '../../lib/constants';
 
 export type RlpInput = Uint8Array | RlpInput[];
@@ -143,13 +144,21 @@ export const signEip1559Tx = ({
 }): string => {
 	const payload = txPayload(tx);
 	const sighash = keccak_256(concatBytes(Uint8Array.of(0x02), rlpEncode(payload)));
-	const signature = secp256k1.sign(sighash, privateKey);
+	// The sighash is already keccak'd, so noble must not hash it again with sha256.
+	const { r, s, recovery } = secp256k1.Signature.fromBytes(
+		secp256k1.sign(sighash, privateKey, { prehash: false, format: 'recovered' }),
+		'recovered'
+	);
+
+	if (isNullish(recovery)) {
+		throw new Error('secp256k1 signature is missing its recovery id');
+	}
 
 	const signed: RlpInput[] = [
 		...payload,
-		bigintToMinimalBytes(BigInt(signature.recovery)),
-		bigintToMinimalBytes(signature.r),
-		bigintToMinimalBytes(signature.s)
+		bigintToMinimalBytes(BigInt(recovery)),
+		bigintToMinimalBytes(r),
+		bigintToMinimalBytes(s)
 	];
 
 	return `0x02${bytesToHex(rlpEncode(signed))}`;

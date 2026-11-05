@@ -6,7 +6,7 @@
 // family as the noble crypto already in use).
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { secp256k1 } from '@noble/curves/secp256k1';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
 import * as btc from '@scure/btc-signer';
 import type { Asset } from '../../custody/assets';
 import { env } from '../../env';

@@ -2,7 +2,7 @@
 // derivation, base58 vectors from the reference test suite, the compact-u16
 // length encoding, and program-derived address invariants.
 
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import { base58 } from '@scure/base';
 import { describe, expect, test } from 'bun:test';
 import {
