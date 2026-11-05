@@ -173,7 +173,7 @@ the service layer and let the service own caching.
   `isNullish(x)` / `nonNullish(x)` from `@dfinity/utils` instead. The
   helpers are type guards, so narrowing works the same.
 - **Generated types are the source of truth at canister boundaries.**
-  Always import types from `$declarations/<canister>/<canister>.did` for
+  Always import types from `#declarations/<canister>/<canister>.d.ts` for
   request / response shapes — never re-declare them.
 - **Schemas first.** When data crosses a boundary (network, storage, the
   satellite), validate with the matching `zod` schema from

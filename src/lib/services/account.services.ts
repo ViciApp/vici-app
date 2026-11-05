@@ -1,3 +1,4 @@
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import type { ExitSignalReason } from '#lib/types/exit-signal.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
@@ -7,7 +8,6 @@ import {
 	recoverMyAccount as recoverMyAccountWeb2,
 	resumeMyAccount as resumeMyAccountWeb2
 } from '#lib/web2/client.ts';
-import { functions } from '$declarations/satellite/satellite.api';
 
 /**
  * Account deletion — Proposal 4. FE wrappers around the

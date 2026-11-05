@@ -1,12 +1,12 @@
-import { TradeExecutionError } from '#lib/canisters/clearing.errors.ts';
-import { ZERO } from '#lib/constants/app.constants.ts';
-import type { CreateCanisterOptions } from '#lib/types/canister.ts';
 import {
 	idlFactoryCertifiedClearing,
 	idlFactoryClearing,
 	type ClearingDid,
 	type ClearingService
-} from '$declarations';
+} from '#declarations';
+import { TradeExecutionError } from '#lib/canisters/clearing.errors.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import type { CreateCanisterOptions } from '#lib/types/canister.ts';
 import {
 	Canister,
 	createServices,

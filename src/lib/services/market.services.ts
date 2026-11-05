@@ -1,3 +1,4 @@
+import type { RegistryDid } from '#declarations';
 import {
 	getSettlementStatus,
 	listOrders as listOrdersApi,
@@ -60,7 +61,6 @@ import {
 	listEngineSeries as listEngineSeriesWeb2
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import type { RegistryDid } from '$declarations';
 import { isEmptyString, isNullish, nonNullish, notEmptyString, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 

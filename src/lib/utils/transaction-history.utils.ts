@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import type { MarketId } from '#lib/types/market.ts';
 import type {
@@ -7,7 +8,6 @@ import type {
 import type { Transaction } from '#lib/types/wallet.ts';
 import { nativeToClearingMarginUnits } from '#lib/utils/playground-display.utils.ts';
 import { eventExecutionPrice } from '#lib/utils/resolved-position.utils.ts';
-import type { ClearingDid } from '$declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

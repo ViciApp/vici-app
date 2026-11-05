@@ -19,9 +19,9 @@ import {
 } from '#lib/types/tournament.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { parseToken } from '#lib/utils/parse.utils.ts';
-import { getLeagueStatsFn } from '$satellite/services/league-stats.services';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';
+import { getLeagueStatsFn } from '#satellite/services/league-stats.services.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { transferWithBadFeeRetry } from '#satellite/utils/vxp-payout.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';

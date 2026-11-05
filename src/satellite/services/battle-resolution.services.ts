@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
@@ -9,10 +10,9 @@ import {
 	type BattleWinner
 } from '#lib/types/battle.ts';
 import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
-import type { ClearingDid } from '$declarations';
-import { seriesIdsForTag } from '$satellite/services/market-tag-index.services';
-import { candidMethod } from '$satellite/utils/candid.utils';
-import { escapeRegex } from '$satellite/utils/regex.utils';
+import { seriesIdsForTag } from '#satellite/services/market-tag-index.services.ts';
+import { candidMethod } from '#satellite/utils/candid.utils.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { call, msgCaller, time } from '@junobuild/functions/ic-cdk';

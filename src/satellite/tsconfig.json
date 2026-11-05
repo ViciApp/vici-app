@@ -16,11 +16,10 @@
 		"outDir": "../../target/deploy",
 		"paths": {
 			"#lib/*": ["../lib/*"],
-			"$satellite": ["."],
-			"$satellite/*": ["./*"],
-			"$root/*": ["../../*"],
-			"$declarations": ["../declarations"],
-			"$declarations/*": ["../declarations/*"]
+			"#satellite/*": ["./*"],
+			"#declarations": ["../declarations/index.ts"],
+			"#declarations/*": ["../declarations/*"],
+			"#root/*": ["../../*"]
 		}
 	},
 	"include": ["**/*.ts"]

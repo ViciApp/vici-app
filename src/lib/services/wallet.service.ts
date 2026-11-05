@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import { getAccountState } from '#lib/api/clearing.api.ts';
 import { getTransactions as getIcpTransactionsApi } from '#lib/api/icp-index.api.ts';
 import { getTransactions as getIcrcTransactionsApi } from '#lib/api/icrc-index-ng.api.ts';
@@ -34,7 +35,6 @@ import {
 	getWalletDepositAddress as getWalletDepositAddressWeb2
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import type { ClearingDid } from '$declarations';
 import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 
 /**

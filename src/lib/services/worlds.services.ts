@@ -1,3 +1,4 @@
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
@@ -24,7 +25,6 @@ import {
 	removeAffiliation as removeAffiliationWeb2,
 	setAffiliation as setAffiliationWeb2
 } from '#lib/web2/client.ts';
-import { functions } from '$declarations/satellite/satellite.api';
 import { deleteDoc, getDoc, setDoc } from '@junobuild/core';
 
 /**

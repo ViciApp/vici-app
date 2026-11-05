@@ -49,9 +49,12 @@ import {
 	type SchoolStatus
 } from '#lib/types/school.ts';
 import { spMatchEmail, spNormalize } from '#lib/utils/school-picker.utils.ts';
-import { captureServerEvents, type ServerEventInput } from '$satellite/services/analytics.services';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { escapeRegex } from '$satellite/utils/regex.utils';
+import {
+	captureServerEvents,
+	type ServerEventInput
+} from '#satellite/services/analytics.services.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcManagementIdl } from '@junobuild/functions/canisters/ic-management';

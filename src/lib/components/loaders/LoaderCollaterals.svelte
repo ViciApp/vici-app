@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
+	import type { ClearingDid } from '#declarations';
 	import IdentityAwareLoader from '#lib/components/loaders/IdentityAwareLoader.svelte';
 	import { ZERO } from '#lib/constants/app.constants.ts';
 	import { SUPPORTED_TOKENS } from '#lib/constants/tokens/tokens.ic.constants.ts';
@@ -9,7 +10,6 @@
 	import type { TokenId } from '#lib/types/token.ts';
 	import { findSupportedTokenForClearingAssetId } from '#lib/utils/asset-ref.utils.ts';
 	import { compareBalanceDomains, isSettlement } from '#lib/utils/balance-domain.utils.ts';
-	import type { ClearingDid } from '$declarations';
 
 	let prevDomain: ClearingDid.BalanceDomain | undefined = undefined;
 

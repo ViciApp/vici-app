@@ -9,7 +9,7 @@ import {
 import type { UserRole } from '#lib/enums/user.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
-import { mintFlowOvertime } from '$satellite/services/vxp-flow-awards.services';
+import { mintFlowOvertime } from '#satellite/services/vxp-flow-awards.services.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';

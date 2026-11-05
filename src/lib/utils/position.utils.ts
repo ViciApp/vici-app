@@ -1,8 +1,8 @@
+import type { ClearingDid } from '#declarations';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import type { Market } from '#lib/types/market.ts';
 import type { Position } from '#lib/types/position.ts';
 import { parseMarketId } from '#lib/validation/market.validation.ts';
-import type { ClearingDid } from '$declarations';
 import { nonNullish } from '@dfinity/utils';
 
 export const mapPositionData = (position: ClearingDid.Position): Position => {

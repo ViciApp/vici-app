@@ -38,12 +38,6 @@ const sveltekitOptions: Parameters<typeof sveltekit>[0] = {
 	}),
 	version: {
 		name: appVersion
-	},
-	alias: {
-		$declarations: './src/declarations',
-		$routes: './src/lib/routes',
-		$satellite: './src/satellite',
-		$root: './'
 	}
 };
 
@@ -76,13 +70,6 @@ export default defineConfig({
 				target: 'http://localhost:5987',
 				changeOrigin: true
 			}
-		}
-	},
-	resolve: {
-		alias: {
-			$declarations: resolve('./src/declarations'),
-			$routes: resolve('./src/lib/routes'),
-			$satellite: resolve('./src/satellite')
 		}
 	},
 	worker: {

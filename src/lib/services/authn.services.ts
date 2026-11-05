@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import { settleSeries } from '#lib/api/clearing.api.ts';
 import { PRICE_DECIMALS, VICI_ORACLE_V1 } from '#lib/constants/app.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
@@ -6,7 +7,6 @@ import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import type { MarketId, Outcome } from '#lib/types/market.ts';
 import { binaryPayoff } from '#lib/utils/payoff.utils.ts';
 import { refreshMarkets } from '#lib/utils/refresh.utils.ts';
-import type { ClearingDid } from '$declarations';
 import { isNullish, nowInBigIntNanoSeconds, toNullable } from '@dfinity/utils';
 
 /**

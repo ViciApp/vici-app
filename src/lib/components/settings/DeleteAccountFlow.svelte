@@ -3,6 +3,7 @@
 	import { ArrowRight, Check } from '@lucide/svelte/icons';
 	import { onMount, tick } from 'svelte';
 	import { get } from 'svelte/store';
+	import type { ClearingDid } from '#declarations';
 	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { ZERO } from '#lib/constants/app.constants.ts';
@@ -31,7 +32,6 @@
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 	import { browser } from '$app/env';
-	import type { ClearingDid } from '$declarations';
 
 	/**
 	 * Six-beat account-deletion flow, docked in a {@link BottomSheet}.

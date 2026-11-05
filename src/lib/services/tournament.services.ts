@@ -1,3 +1,4 @@
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import {
 	monthAnchorFromMs,
 	type TournamentDoc,
@@ -11,7 +12,6 @@ import {
 	resolveTournamentRound as resolveTournamentRoundWeb2,
 	triggerTournamentDraw as triggerTournamentDrawWeb2
 } from '#lib/web2/client.ts';
-import { functions } from '$declarations/satellite/satellite.api';
 import { isNullish } from '@dfinity/utils';
 
 /**

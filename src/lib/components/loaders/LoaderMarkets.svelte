@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { get } from 'svelte/store';
+	import type { ClearingDid } from '#declarations';
 	import AtomicLoader from '#lib/components/loaders/AtomicLoader.svelte';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { loadMarketsProgressive } from '#lib/services/market.services.ts';
 	import { marketsStore } from '#lib/stores/markets.store.ts';
 	import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
-	import type { ClearingDid } from '$declarations';
 
 	let prevDomain: ClearingDid.BalanceDomain | undefined = undefined;
 

@@ -1,3 +1,4 @@
+import type { RegistryDid } from '#declarations';
 import {
 	addGroupAdmins as addGroupAdminsApi,
 	addGroupMembers as addGroupMembersApi,
@@ -16,7 +17,6 @@ import { getIdentity, safeGetIdentityOnce } from '#lib/services/identity.service
 import { getProfile } from '#lib/services/profile.services.ts';
 import { loadWithCertification } from '#lib/services/query-update.services.ts';
 import { getFollowers, getFriends } from '#lib/services/relation-queries.services.ts';
-import type { RegistryDid } from '$declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';

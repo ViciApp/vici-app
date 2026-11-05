@@ -1,4 +1,4 @@
-import type { ClearingDid, RegistryDid } from '$declarations';
+import type { ClearingDid, RegistryDid } from '#declarations';
 import { Principal } from '@icp-sdk/core/principal';
 
 /**
@@ -7,7 +7,7 @@ import { Principal } from '@icp-sdk/core/principal';
  * The API proxies the registry / clearing canisters and serializes the candid
  * responses to JSON-clean trees: bigints become decimal strings, principals
  * become their text form, and candid optionals stay `[] | [value]` arrays.
- * These mappers convert that wire tree back into the exact `$declarations`
+ * These mappers convert that wire tree back into the exact `#declarations`
  * candid types the app's utils and stores already consume, so downstream code
  * stays backend-agnostic. Every mapper is explicit per field: a blanket
  * "digits back to bigint" pass could not tell a numeric id string from a

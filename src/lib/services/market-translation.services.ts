@@ -1,3 +1,4 @@
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
@@ -7,8 +8,7 @@ import {
 	listMarketTranslations as listMarketTranslationsWeb2,
 	upsertMarketTranslation as upsertMarketTranslationWeb2
 } from '#lib/web2/client.ts';
-import { functions } from '$declarations/satellite/satellite.api';
-import { fromWireMarketTranslation } from '$satellite/utils/wire-format.utils';
+import { fromWireMarketTranslation } from '#satellite/utils/wire-format.utils.ts';
 
 export const getMarketTranslation = async ({
 	seriesId,

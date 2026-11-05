@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import {
 	cancelLimitOrder as cancelLimitOrderApi,
 	getOrders as getOrdersApi,
@@ -31,7 +32,6 @@ import {
 	Web2ApiError
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import type { ClearingDid } from '$declarations';
 import { fromNullable, isNullish, nonNullish, toNullable, type Nullable } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 import { getIdentityOnce } from '@junobuild/core';

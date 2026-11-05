@@ -18,6 +18,7 @@
 	 * per-window time-series is persisted yet — see `dash-trend.utils`).
 	 */
 	import { onMount } from 'svelte';
+	import type { ClearingDid } from '#declarations';
 	import DashBuildHero from '#lib/components/dash/DashBuildHero.svelte';
 	import DashBuildZero, { type ZeroMarketRow } from '#lib/components/dash/DashBuildZero.svelte';
 	import DashCallsZone, {
@@ -69,7 +70,6 @@
 	} from '#lib/utils/playground-display.utils.ts';
 	import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
 	import { goto } from '$app/navigation';
-	import type { ClearingDid } from '$declarations';
 
 	// ─── Reactive backend reads ────────────────────────────────────────
 	const profile = $derived($userStore.profile);

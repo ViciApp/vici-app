@@ -1,3 +1,5 @@
+import type * as ClearingDid from '#declarations/clearing/clearing.d.ts';
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { monthAnchorFromMs } from '#lib/types/affiliation-stats.ts';
@@ -7,8 +9,6 @@ import {
 	type UserMonthlyStatsDoc
 } from '#lib/types/user-monthly-stats.ts';
 import { eventExecutionPrice, isSettledEvent } from '#lib/utils/resolved-position.utils.ts';
-import type * as ClearingDid from '$declarations/clearing/clearing';
-import { functions } from '$declarations/satellite/satellite.api';
 import { nonNullish } from '@dfinity/utils';
 import { getDoc, setDoc } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';

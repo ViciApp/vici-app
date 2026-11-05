@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
+	import type { ClearingDid } from '#declarations';
 	import { orderRejectionMessage } from '#lib/canisters/clearing.errors.ts';
 	import MarketTitleSkeleton from '#lib/components/market/MarketTitleSkeleton.svelte';
 	import BaseButton from '#lib/components/ui/BaseButton.svelte';
@@ -20,7 +21,6 @@
 	import { formatPrice, formatQuantity } from '#lib/utils/format.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { tagColor } from '#lib/utils/tag-color.utils.ts';
-	import type { ClearingDid } from '$declarations';
 
 	interface Props {
 		orders: ClearingDid.LimitOrder[];

@@ -1,3 +1,4 @@
+import type { RegistryDid } from '#declarations';
 import { getPositions as getPositionsApi } from '#lib/api/clearing.api.ts';
 import { getIdentity, web2PlaceholderIdentity } from '#lib/services/identity.services.ts';
 import { fetchMarketsLite } from '#lib/services/market.services.ts';
@@ -9,7 +10,6 @@ import { mapPositionData } from '#lib/utils/position.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { listEnginePositions as listEnginePositionsWeb2 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import type { RegistryDid } from '$declarations';
 import { isNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 
