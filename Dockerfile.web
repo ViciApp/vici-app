@@ -2,7 +2,7 @@
 # with nginx + SPA fallback. Vite inlines VITE_* vars at build time, so they
 # are build ARGs, not runtime secrets. Deployed by the manual workflow
 # .github/workflows/web2-deploy.yml, which bakes the args from fly.web.toml.
-FROM node:24-slim AS build
+FROM node:26-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
