@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { HTMLButtonAttributes } from 'svelte/elements';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import type { ButtonStatus } from '$lib/types/components';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import type { ButtonStatus } from '#lib/types/components.ts';
 
 	interface Props extends Omit<HTMLButtonAttributes, 'disabled' | 'aria-busy'> {
 		status?: ButtonStatus;

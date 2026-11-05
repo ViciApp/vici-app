@@ -240,7 +240,7 @@ needs it:
    — concrete recipes for repeated multi-step tasks.
 
 The agent should never need to load the full corpus to do one task. A
-UX-focused agent touching `$lib/components/ui/` and a backend agent
+UX-focused agent touching `#lib/components/ui/` and a backend agent
 regenerating bindings should pull disjoint slices.
 
 ### Tool-specific layers stay thin

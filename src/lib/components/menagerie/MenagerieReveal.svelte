@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import MenagerieBadge from '$lib/components/menagerie/MenagerieBadge.svelte';
+	import MenagerieBadge from '#lib/components/menagerie/MenagerieBadge.svelte';
 	import {
 		MENAGERIE_BY_SLUG,
 		type MenagerieSlug,
 		type MenagerieTier
-	} from '$lib/constants/menagerie.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { menagerieConceptKey, menagerieTierColor } from '$lib/utils/menagerie.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	} from '#lib/constants/menagerie.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { menagerieConceptKey, menagerieTierColor } from '#lib/utils/menagerie.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	// The celebration moment. A freshly-crossed Menagerie tier: the backdrop dims
 	// and blooms in the animal's colour, the badge springs in, the achievement is

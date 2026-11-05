@@ -1,4 +1,4 @@
-import type { Market } from '$lib/types/market';
+import type { Market } from '#lib/types/market.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

@@ -106,7 +106,7 @@ npm run quality         # = format && lint
 # commits the result onto same-repo PRs)
 npm run did             # ./scripts/did.sh + format + lint
 
-# Satellite: run whenever you touch src/satellite/** OR a $lib/schema/*
+# Satellite: run whenever you touch src/satellite/** OR a #lib/schema/*
 # file imported by src/satellite/index.ts. CI's `satellite-schema` job
 # fails on any drift it produces, so commit the regenerated outputs.
 # Pair with `npm run quality` so the drift check compares apples to apples.

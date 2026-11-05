@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { pinToVisualViewport } from '$lib/actions/pin-to-visual-viewport';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { loadNewAppSignupUrl, newAppDomain } from '$lib/services/new-app-redirect.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { createFocusTrap } from '$lib/utils/focus-trap.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import { pinToVisualViewport } from '#lib/actions/pin-to-visual-viewport.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { loadNewAppSignupUrl, newAppDomain } from '#lib/services/new-app-redirect.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { createFocusTrap } from '#lib/utils/focus-trap.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		// `signup`: rendered in place of the sign-up flow, for a visitor who

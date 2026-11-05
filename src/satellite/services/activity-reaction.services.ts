@@ -1,6 +1,6 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { ActivityType } from '$lib/enums/social';
-import { ACTIVITY_REACTION_TITLE_MAX_LENGTH, type ActivityReaction } from '$lib/types/social';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import { ACTIVITY_REACTION_TITLE_MAX_LENGTH, type ActivityReaction } from '#lib/types/social.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';

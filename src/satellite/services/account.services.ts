@@ -1,15 +1,15 @@
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	EXIT_SIGNAL_NOTE_MAX_LENGTH,
 	EXIT_SIGNAL_REASONS,
 	type ExitSignalDoc,
 	type ExitSignalReason
-} from '$lib/types/exit-signal';
-import type { LeagueDoc } from '$lib/types/league';
-import type { LeagueMemberDoc } from '$lib/types/league-member';
-import type { UserProfile } from '$lib/types/profile';
-import type { ReferralCodeDoc, ReferralDoc } from '$lib/types/referral';
-import type { Relation } from '$lib/types/relation';
+} from '#lib/types/exit-signal.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+import type { LeagueDoc } from '#lib/types/league.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import type { ReferralCodeDoc, ReferralDoc } from '#lib/types/referral.ts';
+import type { Relation } from '#lib/types/relation.ts';
 import { isAdmin } from '$satellite/services/_authz';
 import { captureServerEvents, type ServerEventInput } from '$satellite/services/analytics.services';
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '$satellite/services/league.services';

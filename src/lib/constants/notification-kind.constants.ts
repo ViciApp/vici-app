@@ -1,5 +1,5 @@
-import { AppPath } from '$lib/constants/routes.constants';
-import type { InboxNotificationKind } from '$lib/types/inbox';
+import { AppPath } from '#lib/constants/routes.constants.ts';
+import type { InboxNotificationKind } from '#lib/types/inbox.ts';
 import { nonNullish } from '@dfinity/utils';
 import type { LucideIcon } from '@lucide/svelte';
 import {

@@ -5,7 +5,7 @@ import {
 	WC_SKIN,
 	type WCEmotion,
 	type WCHairStyle
-} from '$lib/constants/flow-art-wc.constants';
+} from '#lib/constants/flow-art-wc.constants.ts';
 
 // Composes a 4–6-plane bust portrait around an anchor (cx, cy).
 // Hair drawn behind face plane for cleaner silhouette; jaw and ears

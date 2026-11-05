@@ -1,7 +1,7 @@
-import { marketById } from '$lib/derived/market-by-id.derived';
-import { orders } from '$lib/derived/orders.derived';
-import { positions } from '$lib/derived/positions.derived';
-import type { MarketId } from '$lib/types/market';
+import { marketById } from '#lib/derived/market-by-id.derived.ts';
+import { orders } from '#lib/derived/orders.derived.ts';
+import { positions } from '#lib/derived/positions.derived.ts';
+import type { MarketId } from '#lib/types/market.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**

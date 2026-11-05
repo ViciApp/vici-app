@@ -1,6 +1,6 @@
-import type { AppLocale } from '$lib/constants/locale.constants';
-import type { WorldsAffiliationOption } from '$lib/constants/worlds-affiliations.constants';
-import type { AffiliationKind } from '$lib/types/affiliation';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import type { WorldsAffiliationOption } from '#lib/constants/worlds-affiliations.constants.ts';
+import type { AffiliationKind } from '#lib/types/affiliation.ts';
 
 /**
  * Locale-aware display names for Worlds affiliations.

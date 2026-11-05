@@ -1,5 +1,6 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { LeaguePrivacy } from '$lib/enums/league';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
+import { leagueMemberKey, type LeagueMemberDoc } from '#lib/types/league-member.ts';
 import {
 	LEAGUE_DESCRIPTION_MAX_LENGTH,
 	LEAGUE_EMBLEMS,
@@ -8,8 +9,7 @@ import {
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
 	type LeagueDoc
-} from '$lib/types/league';
-import { leagueMemberKey, type LeagueMemberDoc } from '$lib/types/league-member';
+} from '#lib/types/league.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';

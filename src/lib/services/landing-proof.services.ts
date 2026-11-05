@@ -1,5 +1,5 @@
-import { Collection } from '$lib/constants/collections.constants';
-import type { UserProfile } from '$lib/types/profile';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
 import { nonNullish } from '@dfinity/utils';
 import { listDocs } from '@junobuild/core';
 

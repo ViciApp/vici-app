@@ -1,5 +1,5 @@
-import type { CallSide, MarketId } from '$lib/types/market';
-import type { FlowArtCategory } from '$lib/utils/flow-art.utils';
+import type { CallSide, MarketId } from '#lib/types/market.ts';
+import type { FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
 import type { PrincipalText } from '@junobuild/schema';
 
 export interface CategoryAccuracySignal {

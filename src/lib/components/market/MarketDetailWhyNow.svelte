@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { CallSide } from '$lib/types/market';
-	import type { MarketWhyNow } from '$lib/types/market-metadata';
-	import type { PriorCallSignal } from '$lib/types/market-signals';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { MarketWhyNow } from '#lib/types/market-metadata.ts';
+	import type { PriorCallSignal } from '#lib/types/market-signals.ts';
+	import type { CallSide } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		/**

@@ -1,7 +1,7 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { FRIEND_REQUEST_REJECTED_COOLDOWN_MS } from '$lib/constants/relation.constants';
-import { RelationCategory, RelationState } from '$lib/enums/relation';
-import type { FriendRequestOutcome, Relation } from '$lib/types/relation';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { FRIEND_REQUEST_REJECTED_COOLDOWN_MS } from '#lib/constants/relation.constants.ts';
+import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
+import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import {

@@ -25,7 +25,7 @@
 // (goal), so a future manual regeneration follows the same
 // brief→template classification and won't revert these rows.
 
-import type { WcTemplateId } from '$lib/utils/flow-art/wc/resolve-template';
+import type { WcTemplateId } from '#lib/utils/flow-art/wc/resolve-template.ts';
 
 export interface WcMarketArt {
 	template: WcTemplateId;

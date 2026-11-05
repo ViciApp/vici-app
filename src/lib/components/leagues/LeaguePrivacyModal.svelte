@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import Modal from '$lib/components/ui/Modal.svelte';
-	import { LeaguePrivacy } from '$lib/enums/league';
-	import { updateLeague } from '$lib/services/leagues.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import Modal from '#lib/components/ui/Modal.svelte';
+	import { LeaguePrivacy } from '#lib/enums/league.ts';
+	import { updateLeague } from '#lib/services/leagues.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		isOpen: boolean;

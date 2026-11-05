@@ -2,19 +2,19 @@ import {
 	DEFAULT_LOCALE,
 	localeFallbackChain,
 	type AppLocale
-} from '$lib/constants/locale.constants';
-import { markets } from '$lib/derived/markets.derived';
-import { listMarketTranslationsForLocales } from '$lib/services/market-translation.services';
-import { localeStore } from '$lib/stores/locale.store';
-import { marketLanguagePreference } from '$lib/stores/market-language.store';
-import type { Market } from '$lib/types/market';
-import type { MarketTranslation } from '$lib/types/market-translation';
+} from '#lib/constants/locale.constants.ts';
+import { markets } from '#lib/derived/markets.derived.ts';
+import { listMarketTranslationsForLocales } from '#lib/services/market-translation.services.ts';
+import { localeStore } from '#lib/stores/locale.store.ts';
+import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
+import type { MarketTranslation } from '#lib/types/market-translation.ts';
+import type { Market } from '#lib/types/market.ts';
 import {
 	marketDisplayText,
 	resolveMarketTranslation,
 	type MarketDisplayOriginal,
 	type MarketDisplayText
-} from '$lib/utils/market-translation.utils';
+} from '#lib/utils/market-translation.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import { SvelteMap } from 'svelte/reactivity';
 import { derived, get, writable } from 'svelte/store';

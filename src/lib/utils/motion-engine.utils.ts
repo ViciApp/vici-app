@@ -24,9 +24,9 @@
 //     a broken streak, separate from the daily "welcome back".
 //   • Single-pass priority resolver — never two beats back to back.
 
-import { DAILY_HARD_CAP } from '$lib/constants/flow-rewards.constants';
-import type { FlowAction } from '$lib/types/market';
-import type { MessageKey } from '$lib/utils/i18n.utils';
+import { DAILY_HARD_CAP } from '#lib/constants/flow-rewards.constants.ts';
+import type { FlowAction } from '#lib/types/market.ts';
+import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 const STORAGE_KEY = 'vici.motion.state.v3';

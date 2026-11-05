@@ -1,5 +1,5 @@
-import { deg } from '$lib/utils/flow-art/svg';
-import type { RenderArgs } from '$lib/utils/flow-art/types';
+import { deg } from '#lib/utils/flow-art/svg.ts';
+import type { RenderArgs } from '#lib/utils/flow-art/types.ts';
 
 export const renderCulture = ({ rng, p, state, uid }: RenderArgs): string => {
 	let s = '';

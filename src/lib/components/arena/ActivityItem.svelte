@@ -1,9 +1,9 @@
 <script lang="ts">
-	import YouBadge from '$lib/components/ui/YouBadge.svelte';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import type { UserProfile } from '$lib/types/profile';
-	import type { Activity } from '$lib/types/social';
-	import { getActivityIcon } from '$lib/utils/activity.utils';
+	import YouBadge from '#lib/components/ui/YouBadge.svelte';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import type { UserProfile } from '#lib/types/profile.ts';
+	import type { Activity } from '#lib/types/social.ts';
+	import { getActivityIcon } from '#lib/utils/activity.utils.ts';
 
 	interface Props {
 		activity: Activity;

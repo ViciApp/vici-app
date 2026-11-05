@@ -1,4 +1,4 @@
-import { CHAR_CREAM } from '$lib/constants/characters.constants';
+import { CHAR_CREAM } from '#lib/constants/characters.constants.ts';
 
 /**
  * Inline `background`/`color` style for an affiliation chip — the

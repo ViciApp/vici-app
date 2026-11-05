@@ -1,22 +1,22 @@
 <script lang="ts">
-	import FlowBackContext from '$lib/components/market/FlowBackContext.svelte';
-	import FlowBackHeader from '$lib/components/market/FlowBackHeader.svelte';
-	import FlowBackMeta from '$lib/components/market/FlowBackMeta.svelte';
-	import FlowCommunityRead from '$lib/components/market/FlowCommunityRead.svelte';
-	import FlowResolutionBlock from '$lib/components/market/FlowResolutionBlock.svelte';
-	import FlowStake from '$lib/components/market/FlowStake.svelte';
-	import FlowWhoCalling from '$lib/components/market/FlowWhoCalling.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { CallSide, Market } from '$lib/types/market';
-	import type { MarketMetadata } from '$lib/types/market-metadata';
+	import FlowBackContext from '#lib/components/market/FlowBackContext.svelte';
+	import FlowBackHeader from '#lib/components/market/FlowBackHeader.svelte';
+	import FlowBackMeta from '#lib/components/market/FlowBackMeta.svelte';
+	import FlowCommunityRead from '#lib/components/market/FlowCommunityRead.svelte';
+	import FlowResolutionBlock from '#lib/components/market/FlowResolutionBlock.svelte';
+	import FlowStake from '#lib/components/market/FlowStake.svelte';
+	import FlowWhoCalling from '#lib/components/market/FlowWhoCalling.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 	import type {
 		CategoryAccuracySignal,
 		FollowedLeanSignal,
 		PriorCallSignal
-	} from '$lib/types/market-signals';
-	import type { FlowArtCategory } from '$lib/utils/flow-art.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
+	} from '#lib/types/market-signals.ts';
+	import type { CallSide, Market } from '#lib/types/market.ts';
+	import type { FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	interface Props {
 		market: Market;

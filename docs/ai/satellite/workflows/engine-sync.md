@@ -17,7 +17,7 @@ mirrors that into `grant_engine_role` / `revoke_engine_role` /
 
 | Scenario                                               | Where the call belongs                                                                                            |
 | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| Single user-initiated action (e.g. "create market")    | `$lib/services/<thing>.services.ts` from the FE.                                                                  |
+| Single user-initiated action (e.g. "create market")    | `#lib/services/<thing>.services.ts` from the FE.                                                                  |
 | Reaction to a doc write (e.g. role doc → engine grant) | A satellite `onSetDoc` / `onDeleteDoc` hook here.                                                                 |
 | Bulk / scheduled reconciliation                        | Out-of-band script under `scripts/init/`.                                                                         |
 | Manual operator override                               | `dfx canister call` — see [`icdc-engine-operations.md`](../../../../.agents/workflows/icdc-engine-operations.md). |

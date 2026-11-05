@@ -1,18 +1,17 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		claimTournamentPrize,
 		currentMonthAnchor,
 		getCurrentTournament,
 		resolveTournamentRound,
 		triggerTournamentDraw
-	} from '$lib/services/tournament.services';
-	import { localeStore } from '$lib/stores/locale.store';
+	} from '#lib/services/tournament.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		TOURNAMENT_BRACKET_SIZE,
 		TOURNAMENT_PRIZE_TIERS,
@@ -20,10 +19,10 @@
 		type TournamentDoc,
 		type TournamentMatchDoc,
 		type TournamentRound
-	} from '$lib/types/tournament';
-	import { formatIsoDateUtc } from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/types/tournament.ts';
+	import { formatIsoDateUtc } from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 
 	/**
 	 * Tournament detail — the `TournamentBattleDetail` surface.
@@ -276,7 +275,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'tournament.back' }),
-			onBack: () => goBack(resolve(AppPath.Arena))
+			onBack: () => goBack(resolveAppPath(AppPath.Arena))
 		}}
 		title={t({ locale: $localeStore, key: 'tournament.title' })}
 	/>

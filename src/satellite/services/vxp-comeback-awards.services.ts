@@ -1,12 +1,12 @@
-import { ZERO } from '$lib/constants/app.constants';
-import { VXP_LEDGER_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	COMEBACK_AWAY_DAYS,
 	COMEBACK_BALANCE_FLOOR_BASE_UNITS,
 	COMEBACK_RESTORE_TARGET_BASE_UNITS
-} from '$lib/constants/vxp-economy.constants';
-import { vxpAwardKey, type VxpAwardDoc } from '$lib/types/vxp-award';
+} from '#lib/constants/vxp-economy.constants.ts';
+import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { logError, logInfo } from '$satellite/utils/logger.utils';
 import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';
 import { isNullish, nonNullish } from '@dfinity/utils';

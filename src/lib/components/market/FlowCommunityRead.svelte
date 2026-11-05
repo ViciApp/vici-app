@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
-	import FlowCardSparkline from '$lib/components/market/FlowCardSparkline.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { CallSide, Market } from '$lib/types/market';
-	import type { MarketMetadata } from '$lib/types/market-metadata';
-	import { t } from '$lib/utils/i18n.utils';
+	import FlowCardSparkline from '#lib/components/market/FlowCardSparkline.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
+	import type { CallSide, Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		market: Market;

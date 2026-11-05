@@ -1,4 +1,4 @@
-import { preferencesStore } from '$lib/stores/preferences.store';
+import { preferencesStore } from '#lib/stores/preferences.store.ts';
 import { get } from 'svelte/store';
 
 // Named haptic patterns — single source of truth for VICI's

@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { clickOutside } from '$lib/actions/click-outside';
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import NestedButton from '$lib/components/ui/NestedButton.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { LeagueMemberRole } from '$lib/types/league-member';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import { isMobileViewport } from '$lib/utils/viewport.utils';
+	import { clickOutside } from '#lib/actions/click-outside.ts';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import NestedButton from '#lib/components/ui/NestedButton.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { LeagueMemberRole } from '#lib/types/league-member.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
+	import { isMobileViewport } from '#lib/utils/viewport.utils.ts';
 
 	interface Props {
 		role: LeagueMemberRole;

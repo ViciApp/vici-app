@@ -1,6 +1,6 @@
 <script lang="ts">
+	import WorldsAffiliationDetailPage from '#lib/components/pages/WorldsAffiliationDetailPage.svelte';
 	import { page } from '$app/state';
-	import WorldsAffiliationDetailPage from '$lib/components/pages/WorldsAffiliationDetailPage.svelte';
 
 	const affiliationIdentifier = $derived(page.params.id ?? '');
 </script>

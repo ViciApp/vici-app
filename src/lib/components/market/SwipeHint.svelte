@@ -2,9 +2,9 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { ChevronDown } from '@lucide/svelte/icons';
 	import { onDestroy, onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { browser } from '$app/env';
 
 	/**
 	 * SwipeHint — bottom-of-deck affordance rail. Two chevron-pair sides

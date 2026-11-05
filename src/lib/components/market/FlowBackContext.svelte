@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { CategoryAccuracySignal, PriorCallSignal } from '$lib/types/market-signals';
-	import type { FlowArtCategory } from '$lib/utils/flow-art.utils';
-	import { probabilityToPercent } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { CategoryAccuracySignal, PriorCallSignal } from '#lib/types/market-signals.ts';
+	import type { FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
+	import { probabilityToPercent } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		category: FlowArtCategory;

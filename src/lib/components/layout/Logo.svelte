@@ -1,7 +1,7 @@
 <script lang="ts">
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { goto } from '$app/navigation';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
 
 	interface Props {
 		/** When set, render a link (for public landing) instead of the in-app home button. */

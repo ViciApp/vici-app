@@ -1,6 +1,6 @@
+import { MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
+import type { Outcome } from '#lib/types/market.ts';
 import type { ClearingDid } from '$declarations';
-import { MILLISECOND_IN_NANOSECONDS, ZERO } from '$lib/constants/app.constants';
-import type { Outcome } from '$lib/types/market';
 import { nonNullish } from '@dfinity/utils';
 
 /**

@@ -2,7 +2,7 @@
 
 Generated 2026-05-23. Source of truth: components under
 `src/lib/components/` and `src/routes/` that do **not** import
-`$lib/utils/i18n.utils`.
+`#lib/utils/i18n.utils.ts`.
 
 This file is a triage worksheet, not gospel. Verify each row when you
 touch it. When a row is paid down, delete it. When the file is empty,
@@ -21,8 +21,8 @@ For each entry below:
    panel that ships behind a flag): move the row into _§ Exempt_ below
    and add a one-line reason.
 3. If it has hardcoded text: translate it.
-   - Import `t` from `$lib/utils/i18n.utils` and `localeStore` from
-     `$lib/stores/locale.store`.
+   - Import `t` from `#lib/utils/i18n.utils` and `localeStore` from
+     `#lib/stores/locale.store.ts`.
    - Add the keys to **every** catalog under
      `src/lib/constants/messages/` (see [`i18n.md`](./i18n.md)).
    - Run `npm run check:i18n` and `npm run lint`.

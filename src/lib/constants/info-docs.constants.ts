@@ -1,4 +1,4 @@
-import { HELLO_EMAIL, INFO_EMAIL, RESOLUTION_EMAIL } from '$lib/constants/contact.constants';
+import { HELLO_EMAIL, INFO_EMAIL, RESOLUTION_EMAIL } from '#lib/constants/contact.constants.ts';
 import {
 	AVISO_BR,
 	AVISO_MX,
@@ -6,8 +6,8 @@ import {
 	IMPRINT,
 	PRIVACY,
 	TERMS
-} from '$lib/constants/legal-docs.constants';
-import type { InfoDoc } from '$lib/types/info-doc';
+} from '#lib/constants/legal-docs.constants.ts';
+import type { InfoDoc } from '#lib/types/info-doc.ts';
 
 /**
  * Public information documents — Terms, Privacy, Resolution Rules,

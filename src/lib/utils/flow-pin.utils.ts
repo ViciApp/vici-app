@@ -1,4 +1,8 @@
-import { del as storageDel, get as storageGet, set as storageSet } from '$lib/utils/storage.utils';
+import {
+	del as storageDel,
+	get as storageGet,
+	set as storageSet
+} from '#lib/utils/storage.utils.ts';
 import { nonNullish, notEmptyString } from '@dfinity/utils';
 
 /**

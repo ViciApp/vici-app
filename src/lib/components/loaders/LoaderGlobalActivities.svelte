@@ -1,17 +1,17 @@
 <script lang="ts">
-	import CachedLoader from '$lib/components/loaders/CachedLoader.svelte';
-	import { VICI_EVENTS } from '$lib/constants/events.constants';
+	import CachedLoader from '#lib/components/loaders/CachedLoader.svelte';
+	import { VICI_EVENTS } from '#lib/constants/events.constants.ts';
 	import {
 		getActivityReactionCounts,
 		getActivityReactions
-	} from '$lib/services/activity-reaction.services';
-	import { getGlobalActivities } from '$lib/services/activity.services';
-	import { loadProfilesByPrincipals } from '$lib/services/profile.services';
-	import { globalActivitiesStore } from '$lib/stores/activities.store';
+	} from '#lib/services/activity-reaction.services.ts';
+	import { getGlobalActivities } from '#lib/services/activity.services.ts';
+	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
+	import { globalActivitiesStore } from '#lib/stores/activities.store.ts';
 	import {
 		activityReactionCountsStore,
 		activityReactionsStore
-	} from '$lib/stores/activity-reactions.store';
+	} from '#lib/stores/activity-reactions.store.ts';
 
 	const GLOBAL_ACTIVITIES_LIMIT = 50;
 

@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { Eye, Heart } from '@lucide/svelte/icons';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { PublicPath } from '$lib/constants/routes.constants';
-	import { userSignedIn } from '$lib/derived/user.derived';
-	import { localeStore } from '$lib/stores/locale.store';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		isMarketSaved,
 		preferencesStore,
 		toggleSavedMarket
-	} from '$lib/stores/preferences.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/stores/preferences.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	type ToggleSize = 'sm' | 'md';
 	type ToggleIcon = 'heart' | 'eye';

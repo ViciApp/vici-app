@@ -10,8 +10,8 @@
 	 * change across the recent settlement window (whole VXP).
 	 */
 	import { ChevronRight } from '@lucide/svelte/icons';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		/** Total holdings (available + backed), formatted whole-VXP. */

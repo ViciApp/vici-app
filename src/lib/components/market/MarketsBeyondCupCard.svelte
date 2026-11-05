@@ -5,14 +5,14 @@
 		classificationTags,
 		MACRO_IDS,
 		type MacroId
-	} from '$lib/constants/market-taxonomy.constants';
-	import { decisiveSettledCount } from '$lib/derived/resolved-positions.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { Market } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
-	import { categoryLabel } from '$lib/utils/market-tags.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	} from '#lib/constants/market-taxonomy.constants.ts';
+	import { decisiveSettledCount } from '#lib/derived/resolved-positions.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
 	 * "Beyond the Cup" skill gate. During the World-Cup focus the Markets board

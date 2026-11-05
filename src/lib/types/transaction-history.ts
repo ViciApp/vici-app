@@ -1,4 +1,4 @@
-import type { MarketId } from '$lib/types/market';
+import type { MarketId } from '#lib/types/market.ts';
 
 /**
  * Award tag decoded from a bonus transfer's ledger memo

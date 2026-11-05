@@ -1,21 +1,22 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount, untrack } from 'svelte';
-	import { browser } from '$app/environment';
+	import InviteFriendshipSheet from '#lib/components/arena/InviteFriendshipSheet.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
+	import { claimReferralFriendship, lookupReferralCode } from '#lib/services/referral.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import InviteFriendshipSheet from '$lib/components/arena/InviteFriendshipSheet.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
-	import { REFERRAL_CODE_REGEX } from '$lib/constants/referral.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { authBusy, userSignedIn } from '$lib/derived/user.derived';
-	import { claimReferralFriendship, lookupReferralCode } from '$lib/services/referral.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	/**
 	 * Invite-link landing — the shared body behind both canonical invite URLs, `/i/[code]` and
@@ -109,11 +110,11 @@
 	};
 
 	const goHome = () => {
-		void goto(resolve(AppPath.Home), { replaceState: true });
+		void goto(resolveAppPath(AppPath.Home), { replace: true });
 	};
 
 	const goSignup = () => {
-		void goto(resolve(PublicPath.SignUp), { replaceState: true });
+		void goto(resolve(PublicPath.SignUp), { replace: true });
 	};
 
 	const handleInvite = async () => {

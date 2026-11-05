@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { stageForStreak, type FlameStage } from '$lib/utils/streak.utils';
+	import { stageForStreak, type FlameStage } from '#lib/utils/streak.utils.ts';
 
 	/**
 	 * Tiny inline streak-flame icon — a 16-px SVG flame filled with a

@@ -2,17 +2,17 @@
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
 	import { AnonymousIdentity } from '@icp-sdk/core/agent';
 	import { onMount } from 'svelte';
+	import { listSeries } from '#lib/api/registry.api.ts';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { setPinnedFlowMarket } from '#lib/utils/flow-pin.utils.ts';
+	import { parseMarketShareParam } from '#lib/utils/market-slug.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { listSeries } from '$lib/api/registry.api';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { setPinnedFlowMarket } from '$lib/utils/flow-pin.utils';
-	import { parseMarketShareParam } from '$lib/utils/market-slug.utils';
 
 	// Short share-link alias. The share sheet hands out `/m/{slug~id8}?ref=…`
-	// (keyword-carrying yet compact — see `$lib/utils/market-slug.utils`),
+	// (keyword-carrying yet compact — see `#lib/utils/market-slug.utils.ts`),
 	// while `/markets/{id}` is the canonical detail route. Resolve the param
 	// to a series id, then bounce, carrying the query string through so
 	// referral attribution survives the hop. A bare alias kept this thin —
@@ -83,7 +83,7 @@
 			// markets board rather than a dead detail page. The query string
 			// rides along so the referral capture in the (app) layout still
 			// gets its chance.
-			await goto(`${resolve(AppPath.Markets)}${search}`, { replaceState: true });
+			await goto(`${resolveAppPath(AppPath.Markets)}${search}`, { replace: true });
 
 			return;
 		}
@@ -94,7 +94,9 @@
 		// onboarding. Dropped downstream if the viewer already called it.
 		setPinnedFlowMarket(seriesId);
 
-		await goto(`${resolve(`${AppPath.Markets}/${seriesId}`)}${search}`, { replaceState: true });
+		await goto(`${resolveAppPath(`${AppPath.Markets}/${seriesId}`)}${search}`, {
+			replace: true
+		});
 	});
 </script>
 

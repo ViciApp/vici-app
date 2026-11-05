@@ -2,32 +2,35 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { Clock, Users } from '@lucide/svelte/icons';
 	import { fly } from 'svelte/transition';
+	import BinaryProbabilities from '#lib/components/market/BinaryProbabilities.svelte';
+	import CategoricalProbabilities from '#lib/components/market/CategoricalProbabilities.svelte';
+	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
+	import OutcomeBadge from '#lib/components/market/OutcomeBadge.svelte';
+	import SuggestedBadge from '#lib/components/market/SuggestedBadge.svelte';
+	import SavedMarketToggle from '#lib/components/saved-markets/SavedMarketToggle.svelte';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
+	import { marketTranslations } from '#lib/stores/market-translations.store.ts';
+	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { isSocial } from '#lib/utils/balance-domain.utils.ts';
+	import { isMarketSuggested } from '#lib/utils/flow-card-display.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import {
+		marketDisplayText,
+		translatedLanguageLabel
+	} from '#lib/utils/market-translation.utils.ts';
+	import { getOutcomeVariant, getTimeRemaining } from '#lib/utils/market.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import BinaryProbabilities from '$lib/components/market/BinaryProbabilities.svelte';
-	import CategoricalProbabilities from '$lib/components/market/CategoricalProbabilities.svelte';
-	import MarketTranslationToggle from '$lib/components/market/MarketTranslationToggle.svelte';
-	import OutcomeBadge from '$lib/components/market/OutcomeBadge.svelte';
-	import SuggestedBadge from '$lib/components/market/SuggestedBadge.svelte';
-	import SavedMarketToggle from '$lib/components/saved-markets/SavedMarketToggle.svelte';
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import Card from '$lib/components/ui/Card.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { track } from '$lib/services/analytics.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { marketLanguagePreference } from '$lib/stores/market-language.store';
-	import { marketTranslations } from '$lib/stores/market-translations.store';
-	import type { Market } from '$lib/types/market';
-	import type { MarketMetadata } from '$lib/types/market-metadata';
-	import { isSocial } from '$lib/utils/balance-domain.utils';
-	import { isMarketSuggested } from '$lib/utils/flow-card-display.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { categoryLabel } from '$lib/utils/market-tags.utils';
-	import { marketDisplayText, translatedLanguageLabel } from '$lib/utils/market-translation.utils';
-	import { getOutcomeVariant, getTimeRemaining } from '$lib/utils/market.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
 
 	interface Props {
 		market: Market;
@@ -105,8 +108,8 @@
 >
 	<Card
 		class="group border-border hover:border-border-strong bg-card/85 shadow-card hover:bg-card h-full w-full overflow-hidden border transition-all hover:-translate-y-0.5"
-		onclick={() => goto(resolve(`${AppPath.Markets}/${market.id}`))}
-		onkeydown={(e) => e.key === 'Enter' && goto(resolve(`${AppPath.Markets}/${market.id}`))}
+		onclick={() => goto(resolveAppPath(`${AppPath.Markets}/${market.id}`))}
+		onkeydown={(e) => e.key === 'Enter' && goto(resolveAppPath(`${AppPath.Markets}/${market.id}`))}
 		padding="none"
 		role="button"
 		variant="default"

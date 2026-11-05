@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { USD_DECIMALS } from '$lib/constants/app.constants';
-	import { isMacroId, primaryMacro } from '$lib/constants/market-taxonomy.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import type { Position } from '$lib/types/position';
-	import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { categoryLabel } from '$lib/utils/market-tags.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
+	import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
+	import { isMacroId, primaryMacro } from '#lib/constants/market-taxonomy.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import type { Position } from '#lib/types/position.ts';
+	import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	/**
 	 * Portfolio · Allocation

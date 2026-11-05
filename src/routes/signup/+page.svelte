@@ -1,21 +1,25 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
+	import MovedToNewApp from '#lib/components/authn/MovedToNewApp.svelte';
+	import Onboarding from '#lib/components/onboarding/Onboarding.svelte';
+	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { areNewSignupsMoved } from '#lib/services/new-app-redirect.services.ts';
+	import {
+		applyOnboardingPicks,
+		checkNicknameAvailability
+	} from '#lib/services/profile.services.ts';
+	import { startGuestSession } from '#lib/stores/guest.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { setAuthBusy, userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import MovedToNewApp from '$lib/components/authn/MovedToNewApp.svelte';
-	import Onboarding from '$lib/components/onboarding/Onboarding.svelte';
-	import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { userSignedIn } from '$lib/derived/user.derived';
-	import { areNewSignupsMoved } from '$lib/services/new-app-redirect.services';
-	import { applyOnboardingPicks, checkNicknameAvailability } from '$lib/services/profile.services';
-	import { startGuestSession } from '$lib/stores/guest.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { setAuthBusy, userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	// Signed-in routing: a brand-new authenticated user who landed on
 	// `/signup` (typically routed here by the (app) layout because their
@@ -40,7 +44,7 @@
 			$userSignedIn &&
 			($userStore.profile?.preferences?.onboardingCompleted === true || $userStore.profileExisted)
 		) {
-			void goto(resolve(AppPath.Flow), { replaceState: true });
+			void goto(resolveAppPath(AppPath.Flow), { replace: true });
 		}
 	});
 
@@ -167,7 +171,7 @@
 		// once the profile hydrates.
 		if (!currentProfile) {
 			handleCompletePreAuth(result);
-			void goto(resolve(AppPath.Flow), { replaceState: true });
+			void goto(resolveAppPath(AppPath.Flow), { replace: true });
 
 			return;
 		}
@@ -232,7 +236,7 @@
 			// and doesn't bounce us back to /signup.
 			userStore.update((curr) => ({ ...curr, profile: nextProfile }));
 
-			void goto(resolve(AppPath.Flow), { replaceState: true });
+			void goto(resolveAppPath(AppPath.Flow), { replace: true });
 		} catch (err: unknown) {
 			// A handle collision is handled inside `applyOnboardingPicks` (it retries without the
 			// handle), so anything reaching here is a genuine failure to persist. Surface it — the
@@ -273,7 +277,7 @@
 		// gate doesn't bounce to /signin during that window.
 		handleCompletePreAuth(result);
 		setAuthBusy(true);
-		void goto(resolve(AppPath.Flow), { replaceState: true });
+		void goto(resolveAppPath(AppPath.Flow), { replace: true });
 	};
 </script>
 
@@ -290,7 +294,7 @@
 			// pre-auth stash already, so conversion keeps the chosen name) and
 			// route into Flow, which the (app) layout now lets a guest reach.
 			startGuestSession(handle);
-			void goto(resolve(AppPath.Flow));
+			void goto(resolveAppPath(AppPath.Flow));
 		}}
 	/>
 {/if}

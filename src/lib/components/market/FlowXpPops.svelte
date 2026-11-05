@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { XpPop } from '$lib/types/flow';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { XpPop } from '#lib/types/flow.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * FlowXpPops — multi-pop manager for the centered VXP-grant envelopes.

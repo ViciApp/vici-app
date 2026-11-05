@@ -1,6 +1,10 @@
+import {
+	DAY_IN_NANOSECONDS,
+	MILLISECOND_IN_NANOSECONDS,
+	ZERO
+} from '#lib/constants/app.constants.ts';
+import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
 import type { ClearingDid } from '$declarations';
-import { DAY_IN_NANOSECONDS, MILLISECOND_IN_NANOSECONDS, ZERO } from '$lib/constants/app.constants';
-import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
 
 /**
  * The chart period chips on the market-detail surface. Each maps to an

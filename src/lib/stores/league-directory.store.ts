@@ -1,4 +1,4 @@
-import type { LeagueDoc } from '$lib/types/league';
+import type { LeagueDoc } from '#lib/types/league.ts';
 import { writable } from 'svelte/store';
 
 /**

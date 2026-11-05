@@ -1,9 +1,8 @@
-import { functions } from '$declarations/satellite/satellite.api';
-import { Collection } from '$lib/constants/collections.constants';
-import { syncGroupAdminsAfterUnfriend } from '$lib/services/group.services';
-import type { FriendRequestOutcome, Relation } from '$lib/types/relation';
-import { toRelationId } from '$lib/utils/relation.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { syncGroupAdminsAfterUnfriend } from '#lib/services/group.services.ts';
+import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
+import { toRelationId } from '#lib/utils/relation.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	acceptFriendRequest as acceptFriendRequestWeb2,
 	cancelFriendRequest as cancelFriendRequestWeb2,
@@ -13,7 +12,8 @@ import {
 	sendFriendRequest as sendFriendRequestWeb2,
 	unfollowUser as unfollowUserWeb2,
 	unfriendUser as unfriendUserWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
+import { functions } from '$declarations/satellite/satellite.api';
 import { isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { deleteDoc, getDoc, type Doc } from '@junobuild/core';

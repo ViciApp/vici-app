@@ -70,7 +70,7 @@ Patterns to reuse (all already in `inbox.store.ts`):
 - The `{days}` duration is the window length already computed elsewhere:
   `Math.max(1, Math.ceil((settleMs - kickoffMs) / DAY_IN_MS))`
   (`BattlesInboxPage.svelte:122`, `DAY_IN_MS` from
-  `$lib/constants/app.constants`).
+  `#lib/constants/app.constants.ts`).
 - `notificationDestination` / `NOTIFICATION_KIND_CONFIG`
   (`src/lib/constants/notification-kind.constants.ts`) — every kind
   needs one entry. The deep-link is the league detail
@@ -197,7 +197,7 @@ here.
 5. **i18n**: add `inbox.battle_incoming.title` /
    `inbox.battle_incoming.body` to **every** locale catalog under
    `src/lib/constants/messages/` (en, plus each other `SUPPORTED_LOCALES`
-   entry from `$lib/constants/locale.constants`). `pt-BR` falls back to
+   entry from `#lib/constants/locale.constants`). `pt-BR` falls back to
    EN per the existing battle keys if no localized copy is supplied.
 6. **Quality gates**: `npm run quality` (format + lint + i18n catalog
    parity via `npm run check:i18n`) and `npm run check`

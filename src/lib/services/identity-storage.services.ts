@@ -3,11 +3,11 @@ import {
 	INBOX_PROGRESS_STORAGE_KEY,
 	INBOX_READ_STORAGE_KEY,
 	INBOX_SETTLED_READ_STORAGE_KEY
-} from '$lib/constants/inbox.constants';
-import { clearDailyGoalMirror } from '$lib/utils/daily-goal.utils';
-import { resetMotionState } from '$lib/utils/motion-engine.utils';
-import { clearOnboardingSeenFlags } from '$lib/utils/onboarding-flags.utils';
-import { del, get, set } from '$lib/utils/storage.utils';
+} from '#lib/constants/inbox.constants.ts';
+import { clearDailyGoalMirror } from '#lib/utils/daily-goal.utils.ts';
+import { resetMotionState } from '#lib/utils/motion-engine.utils.ts';
+import { clearOnboardingSeenFlags } from '#lib/utils/onboarding-flags.utils.ts';
+import { del, get, set } from '#lib/utils/storage.utils.ts';
 import { isNullish } from '@dfinity/utils';
 
 // Principal the identity-scoped caches currently belong to. Persisted so a

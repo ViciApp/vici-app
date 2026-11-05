@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { isDev } from '$lib/env/app.env';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import type { Token } from '$lib/types/token';
-	import { t } from '$lib/utils/i18n.utils';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { isDev } from '#lib/env/app.env.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import type { Token } from '#lib/types/token.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		tokens: Token[];

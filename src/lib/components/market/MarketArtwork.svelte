@@ -1,11 +1,11 @@
 <script lang="ts">
-	import FlowArtFrame from '$lib/components/artwork/FlowArtFrame.svelte';
-	import { isMacroId } from '$lib/constants/market-taxonomy.constants';
+	import FlowArtFrame from '#lib/components/artwork/FlowArtFrame.svelte';
+	import { isMacroId } from '#lib/constants/market-taxonomy.constants.ts';
 	import {
 		MACRO_ART_BUCKET,
 		type FlowArtCategory,
 		type FlowArtState
-	} from '$lib/utils/flow-art.utils';
+	} from '#lib/utils/flow-art.utils.ts';
 
 	/**
 	 * Thin wrapper around {@link FlowArtFrame} that adds the

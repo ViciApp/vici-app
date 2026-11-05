@@ -16,15 +16,15 @@
 	 * value. Theme-adaptive via tokens (dark / light / coral).
 	 */
 	import { onMount } from 'svelte';
-	import OracleChar from '$lib/components/characters/OracleChar.svelte';
-	import ViciChar from '$lib/components/characters/ViciChar.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { ResolutionRevealData } from '$lib/types/flow';
-	import { flowSummary } from '$lib/utils/flow-sound.utils';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatWholeVxpMagnitude } from '$lib/utils/playground-display.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import OracleChar from '#lib/components/characters/OracleChar.svelte';
+	import ViciChar from '#lib/components/characters/ViciChar.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { ResolutionRevealData } from '#lib/types/flow.ts';
+	import { flowSummary } from '#lib/utils/flow-sound.utils.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatWholeVxpMagnitude } from '#lib/utils/playground-display.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
 		data: ResolutionRevealData;

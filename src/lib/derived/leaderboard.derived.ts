@@ -1,7 +1,7 @@
-import { cachedListOrEmpty, cachedNotInitialized } from '$lib/derived/cached.derived';
-import { leaderboardStore } from '$lib/stores/leaderboard.store';
-import { userStore } from '$lib/stores/user.store';
-import type { UserProfile } from '$lib/types/profile';
+import { cachedListOrEmpty, cachedNotInitialized } from '#lib/derived/cached.derived.ts';
+import { leaderboardStore } from '#lib/stores/leaderboard.store.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**

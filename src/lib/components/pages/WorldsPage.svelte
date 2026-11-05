@@ -1,29 +1,27 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import AffiliationPickerModal from '$lib/components/leagues/AffiliationPickerModal.svelte';
-	import WorldsAffiliationPrompt from '$lib/components/worlds/WorldsAffiliationPrompt.svelte';
-	import WorldsPodiumClaim from '$lib/components/worlds/WorldsPodiumClaim.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import AffiliationPickerModal from '#lib/components/leagues/AffiliationPickerModal.svelte';
+	import WorldsAffiliationPrompt from '#lib/components/worlds/WorldsAffiliationPrompt.svelte';
+	import WorldsPodiumClaim from '#lib/components/worlds/WorldsPodiumClaim.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		lookupWorldsAffiliation,
 		WORLDS_UNIVERSITIES,
 		type WorldsAffiliationOption
-	} from '$lib/constants/worlds-affiliations.constants';
-	import { daysToFinal } from '$lib/derived/featured-event.derived';
+	} from '#lib/constants/worlds-affiliations.constants.ts';
+	import { daysToFinal } from '#lib/derived/featured-event.derived.ts';
 	import {
 		claimWorldsPodiumPrize,
 		listAffiliationStats,
 		listWorldsMemberCounts,
 		previousMonthAnchor
-	} from '$lib/services/worlds.services';
-	import { myAffiliationsStore, refreshMyAffiliations } from '$lib/stores/affiliations.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { AffiliationStatsDoc } from '$lib/types/affiliation-stats';
-	import { affiliationChipStyle } from '$lib/utils/affiliation-chip.utils';
+	} from '#lib/services/worlds.services.ts';
+	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
+	import { affiliationChipStyle } from '#lib/utils/affiliation-chip.utils.ts';
 	import {
 		affiliationLifetimeAccuracy,
 		affiliationMonthlyAccuracy,
@@ -31,8 +29,10 @@
 		compareAffiliationByLifetime,
 		compareAffiliationByMonth,
 		formatAccuracyPercent
-	} from '$lib/utils/affiliation-stats.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/utils/affiliation-stats.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
 
 	/**
 	 * Worlds — institutional battle surface.
@@ -241,7 +241,7 @@
 
 	const rosterSize = WORLDS_UNIVERSITIES.length;
 
-	const detailPath = (id: string): string => `${resolve(AppPath.Arena)}/worlds/school/${id}`;
+	const detailPath = (id: string): string => `${resolveAppPath(AppPath.Arena)}/worlds/school/${id}`;
 
 	const handleRowNav = (id: string) => {
 		void goto(detailPath(id));

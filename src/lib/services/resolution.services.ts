@@ -1,26 +1,26 @@
-import type { ClearingDid } from '$declarations';
 import {
 	getSettlementStatus,
 	listSettledSeries,
 	settleSeries as settleSeriesApi
-} from '$lib/api/clearing.api';
-import { PRICE_DECIMALS, VICI_ORACLE_V1, ZERO } from '$lib/constants/app.constants';
-import { ActivityType } from '$lib/enums/social';
-import { UserRole } from '$lib/enums/user';
-import { logActivity } from '$lib/services/activity.services';
-import { getIdentityOrAnonymous, safeGetIdentityOnce } from '$lib/services/identity.services';
-import { getProfile } from '$lib/services/profile.services';
-import type { Outcome } from '$lib/types/market';
+} from '#lib/api/clearing.api.ts';
+import { PRICE_DECIMALS, VICI_ORACLE_V1, ZERO } from '#lib/constants/app.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import { UserRole } from '#lib/enums/user.ts';
+import { logActivity } from '#lib/services/activity.services.ts';
+import { getIdentityOrAnonymous, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import { getProfile } from '#lib/services/profile.services.ts';
+import type { Outcome } from '#lib/types/market.ts';
 import {
 	binaryPayoffLabel,
 	settlementInputOutcome,
 	settlementInputTimestamp
-} from '$lib/utils/payoff.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/utils/payoff.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	listEngineSettledSeries as listEngineSettledSeriesWeb2,
 	listEngineSettlementStatuses as listEngineSettlementStatusesWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
+import type { ClearingDid } from '$declarations';
 import { nonNullish, nowInBigIntNanoSeconds, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 

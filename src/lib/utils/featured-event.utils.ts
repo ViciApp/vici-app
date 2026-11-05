@@ -1,4 +1,4 @@
-import type { FeaturedEvent } from '$lib/types/featured-event';
+import type { FeaturedEvent } from '#lib/types/featured-event.ts';
 import { isEmptyString, nonNullish } from '@dfinity/utils';
 
 /**

@@ -28,14 +28,14 @@
 	 * breakdown sheet as the standard build.
 	 */
 	import { ChevronRight } from '@lucide/svelte/icons';
+	import DashCallRow from '#lib/components/dash/DashCallRow.svelte';
+	import type { OpenCallRow } from '#lib/components/dash/DashCallsZone.svelte';
+	import DashGettingStarted from '#lib/components/dash/DashGettingStarted.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import DashCallRow from '$lib/components/dash/DashCallRow.svelte';
-	import type { OpenCallRow } from '$lib/components/dash/DashCallsZone.svelte';
-	import DashGettingStarted from '$lib/components/dash/DashGettingStarted.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	interface Props {
 		/** `false` → Day 0; `true` → Day 1+ (call placed, unresolved). */
@@ -81,11 +81,11 @@
 	const openVisible = $derived(expanded ? openCalls : openCalls.slice(0, PREVIEW));
 
 	const openMarket = (marketId: string): void => {
-		void goto(resolve(`${AppPath.Markets}/${marketId}`));
+		void goto(resolveAppPath(`${AppPath.Markets}/${marketId}`));
 	};
 
 	const openFlow = (): void => {
-		void goto(resolve(AppPath.Flow));
+		void goto(resolveAppPath(AppPath.Flow));
 	};
 
 	const calibratingCaption = $derived(

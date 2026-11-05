@@ -13,11 +13,11 @@
 		landingStatusUniversities,
 		type LandingStatusRow,
 		type LandingStatusTabId
-	} from '$lib/constants/landing-data.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { splitHeadline } from '$lib/utils/landing-headline.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	} from '#lib/constants/landing-data.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { splitHeadline } from '#lib/utils/landing-headline.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface StatusTab {
 		readonly id: LandingStatusTabId;

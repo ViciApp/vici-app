@@ -1,16 +1,16 @@
-import type { ClearingDid } from '$declarations';
-import { DAY_IN_MS, ZERO } from '$lib/constants/app.constants';
-import { CLEARING_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
+import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
+import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import type {
 	IcpTransaction,
 	IcrcTransaction,
 	IcTransactionAddOnsInfo
-} from '$lib/types/ic-transaction';
-import type { MarketId } from '$lib/types/market';
-import type { Token } from '$lib/types/token';
-import type { Transaction, TransactionType } from '$lib/types/wallet';
-import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
+} from '#lib/types/ic-transaction.ts';
+import type { MarketId } from '#lib/types/market.ts';
+import type { Token } from '#lib/types/token.ts';
+import type { Transaction, TransactionType } from '#lib/types/wallet.ts';
+import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
+import type { ClearingDid } from '$declarations';
 import { fromNullable, isNullish, jsonReplacer, nonNullish } from '@dfinity/utils';
 import { type IcpIndexDid, AccountIdentifier } from '@icp-sdk/canisters/ledger/icp';
 import {

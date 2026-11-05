@@ -1,4 +1,4 @@
-import type { CallSide, Market } from '$lib/types/market';
+import type { CallSide, Market } from '#lib/types/market.ts';
 
 /**
  * One card in the Calibration practice deck: a finalised Vici-engine

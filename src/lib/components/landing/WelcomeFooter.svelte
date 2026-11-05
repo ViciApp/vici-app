@@ -5,13 +5,13 @@
 	 * registered-trademark line and the entertainment / VXP-has-
 	 * no-cash-value disclosure.
 	 */
-	import Logo from '$lib/components/layout/Logo.svelte';
-	import { LATIN_MOTTO_LEAD, LATIN_MOTTO_TAIL } from '$lib/constants/brand.constants';
-	import { INFO_EMAIL } from '$lib/constants/contact.constants';
-	import { PublicPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { mailtoHref } from '$lib/utils/email.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import Logo from '#lib/components/layout/Logo.svelte';
+	import { LATIN_MOTTO_LEAD, LATIN_MOTTO_TAIL } from '#lib/constants/brand.constants.ts';
+	import { INFO_EMAIL } from '#lib/constants/contact.constants.ts';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { mailtoHref } from '#lib/utils/email.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	interface FooterLink {
 		readonly label: MessageKey;

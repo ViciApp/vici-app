@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Protected from '$lib/components/authn/Protected.svelte';
-	import PermissionGuard from '$lib/components/authz/PermissionGuard.svelte';
-	import { Permission } from '$lib/enums/permission';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { preferencesStore } from '$lib/stores/preferences.store';
+	import Protected from '#lib/components/authn/Protected.svelte';
+	import PermissionGuard from '#lib/components/authz/PermissionGuard.svelte';
+	import { Permission } from '#lib/enums/permission.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { preferencesStore } from '#lib/stores/preferences.store.ts';
 	import {
 		ANDROID_BUZZ_FLOOR_MS,
 		applyAndroidFloor,
@@ -11,8 +11,8 @@
 		HAPTIC_PATTERNS,
 		isAndroid,
 		type HapticPattern
-	} from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	const patterns = Object.keys(HAPTIC_PATTERNS) as HapticPattern[];
 

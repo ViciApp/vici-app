@@ -1,6 +1,6 @@
-import { upsertProfile } from '$lib/services/profile.services';
-import { userStore } from '$lib/stores/user.store';
-import { parseParts, serializeParts, type ViciAvatarParts } from '$lib/utils/vici-avatar.utils';
+import { upsertProfile } from '#lib/services/profile.services.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import { parseParts, serializeParts, type ViciAvatarParts } from '#lib/utils/vici-avatar.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import { derived, get, writable, type Readable } from 'svelte/store';
 

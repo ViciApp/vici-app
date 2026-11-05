@@ -1,4 +1,4 @@
-import type { MessageKey } from '$lib/utils/i18n.utils';
+import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**
@@ -24,7 +24,7 @@ import { isNullish } from '@dfinity/utils';
  * classification helpers), so it must
  * stay free of VALUE imports of frontend-only modules; only the type-only
  * `MessageKey` import is allowed (erased at compile time). Rendering helpers
- * that need `t` belong in `$lib/utils/market-tags.utils.ts`.
+ * that need `t` belong in `#lib/utils/market-tags.utils.ts`.
  *
  * To add a micro: extend the relevant macro's `micros` below and add
  * `market.micro.<id>` to every LIVE locale catalog under
@@ -226,7 +226,7 @@ export const microsOfMacro = (macro: MacroId): MicroId[] =>
 /**
  * i18n key for a macro / micro label. The `check:i18n` gate guarantees the
  * referenced keys exist in `en.ts` (and every live catalog), so the cast is
- * safe. Labels themselves are rendered via `$lib/utils/market-tags.utils.ts`.
+ * safe. Labels themselves are rendered via `#lib/utils/market-tags.utils.ts`.
  */
 export const macroLabelKey = (macro: MacroId): MessageKey => `market.macro.${macro}` as MessageKey;
 export const microLabelKey = (micro: MicroId): MessageKey => `market.micro.${micro}` as MessageKey;

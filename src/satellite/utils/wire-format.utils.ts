@@ -1,12 +1,12 @@
-import { LeaguePrivacy } from '$lib/enums/league';
-import { ProfileVisibility } from '$lib/enums/profile';
-import { RelationCategory, RelationState } from '$lib/enums/relation';
-import { UserRole } from '$lib/enums/user';
-import type { MarketTranslation } from '$lib/types/market-translation';
-import type { UserProfile } from '$lib/types/profile';
-import type { ReferralListItem } from '$lib/types/referral';
-import type { VxpMilestoneState } from '$lib/types/vxp-onboarding';
-import { visibilityFromProfile } from '$lib/utils/visibility.utils';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
+import { ProfileVisibility } from '#lib/enums/profile.ts';
+import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
+import { UserRole } from '#lib/enums/user.ts';
+import type { MarketTranslation } from '#lib/types/market-translation.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import type { ReferralListItem } from '#lib/types/referral.ts';
+import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
+import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 /**

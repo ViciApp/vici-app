@@ -1,5 +1,5 @@
-import { browser } from '$app/environment';
-import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
+import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { MarketEvent } from '$lib/types/market-metadata';
-	import { sparklinePoints } from '$lib/utils/flow-card-display.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { MarketEvent } from '#lib/types/market-metadata.ts';
+	import { sparklinePoints } from '#lib/utils/flow-card-display.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Sparkline on the back of a Flow card.

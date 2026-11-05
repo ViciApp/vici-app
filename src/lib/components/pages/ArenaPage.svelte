@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import { replaceState } from '$app/navigation';
+	import ArenaStandingHero from '#lib/components/arena/ArenaStandingHero.svelte';
+	import FriendsTab from '#lib/components/arena/FriendsTab.svelte';
+	import BattlesInboxPage from '#lib/components/pages/BattlesInboxPage.svelte';
+	import LeaguesPage from '#lib/components/pages/LeaguesPage.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { browser } from '$app/env';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import ArenaStandingHero from '$lib/components/arena/ArenaStandingHero.svelte';
-	import FriendsTab from '$lib/components/arena/FriendsTab.svelte';
-	import BattlesInboxPage from '$lib/components/pages/BattlesInboxPage.svelte';
-	import LeaguesPage from '$lib/components/pages/LeaguesPage.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
 
 	/**
 	 * Arena — the three-tab page (Friends / Leagues /
@@ -110,10 +110,10 @@
 			return;
 		}
 
-		const url = new URL(page.url);
+		const url = new URL(page.url.href);
 		url.searchParams.set('tab', tab);
 		url.searchParams.delete('request');
-		replaceState(url, page.state);
+		goto(url, { shallow: true, replace: true, state: page.state });
 	};
 </script>
 

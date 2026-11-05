@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte/icons';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		page: number;

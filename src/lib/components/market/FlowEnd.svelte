@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { ChevronRight, Smartphone } from '@lucide/svelte/icons';
-	import FlameChar from '$lib/components/characters/FlameChar.svelte';
-	import OracleChar from '$lib/components/characters/OracleChar.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import CountUp from '$lib/components/ui/CountUp.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { writeToClipboard } from '$lib/utils/clipboard.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import FlameChar from '#lib/components/characters/FlameChar.svelte';
+	import OracleChar from '#lib/components/characters/OracleChar.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import CountUp from '#lib/components/ui/CountUp.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
 		// Calls placed this session (now pending resolution).

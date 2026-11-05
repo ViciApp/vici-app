@@ -3,8 +3,8 @@
 	import { X } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		show: boolean;

@@ -1,4 +1,4 @@
-import { DAY_IN_MS } from '$lib/constants/app.constants';
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

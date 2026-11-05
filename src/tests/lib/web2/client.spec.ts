@@ -3,7 +3,7 @@ import {
 	getEngineAccountState,
 	listEngineSettlementStatuses,
 	Web2ApiError
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 

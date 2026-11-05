@@ -26,14 +26,14 @@
  * returns a "relay not configured" error instead of mailing a code.
  */
 
-import { functions } from '$declarations/satellite/satellite.api';
-import type { AppLocale } from '$lib/constants/locale.constants';
-import { withTimeout } from '$lib/utils/async.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import { withTimeout } from '#lib/utils/async.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	submitSchool as submitSchoolWeb2,
 	verifySchoolCode as verifySchoolCodeWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
+import { functions } from '$declarations/satellite/satellite.api';
 
 /** Hard timeout for either verification round-trip. */
 const SCHOOL_VERIFY_TIMEOUT_MS = 15_000;

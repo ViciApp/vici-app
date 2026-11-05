@@ -3,8 +3,8 @@ import {
 	localeFallbackChain,
 	SUPPORTED_LOCALES,
 	type AppLocale
-} from '$lib/constants/locale.constants';
-import type { MarketTranslation } from '$lib/types/market-translation';
+} from '#lib/constants/locale.constants.ts';
+import type { MarketTranslation } from '#lib/types/market-translation.ts';
 import { nonNullish, notEmptyString } from '@dfinity/utils';
 
 const supportedLocaleIds = new Set<string>(SUPPORTED_LOCALES.map(({ id }) => id));

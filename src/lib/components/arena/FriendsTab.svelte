@@ -5,68 +5,68 @@
 	import { onMount, tick } from 'svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { fade } from 'svelte/transition';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import AddFriendSheet from '$lib/components/arena/AddFriendSheet.svelte';
-	import FriendProfileSheet from '$lib/components/arena/FriendProfileSheet.svelte';
-	import FriendsEmptyState from '$lib/components/arena/FriendsEmptyState.svelte';
-	import RankedRow from '$lib/components/arena/RankedRow.svelte';
-	import Avatar from '$lib/components/profile/Avatar.svelte';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { MILLISECOND_IN_NANOSECONDS, USD_DECIMALS } from '$lib/constants/app.constants';
+	import AddFriendSheet from '#lib/components/arena/AddFriendSheet.svelte';
+	import FriendProfileSheet from '#lib/components/arena/FriendProfileSheet.svelte';
+	import FriendsEmptyState from '#lib/components/arena/FriendsEmptyState.svelte';
+	import RankedRow from '#lib/components/arena/RankedRow.svelte';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { MILLISECOND_IN_NANOSECONDS, USD_DECIMALS } from '#lib/constants/app.constants.ts';
 	import {
 		cumulativeReferrerRewardBaseUnits,
 		REFERRAL_MAX_PAID
-	} from '$lib/constants/referral.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { ownGlobalStanding } from '$lib/derived/standings.derived';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { track } from '$lib/services/analytics.services';
-	import { getMyReferralCode } from '$lib/services/referral.services';
-	import { getFriendResolvedResults } from '$lib/services/relation-queries.services';
+	} from '#lib/constants/referral.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { ownGlobalStanding } from '#lib/derived/standings.derived.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { getMyReferralCode } from '#lib/services/referral.services.ts';
+	import { getFriendResolvedResults } from '#lib/services/relation-queries.services.ts';
 	import {
 		acceptFriendRequest,
 		cancelFriendRequest,
 		rejectFriendRequest,
 		sendFriendRequest,
 		unfriendUser
-	} from '$lib/services/relation.services';
-	import { getLeagueStandings, loadGlobalStandings } from '$lib/services/standings.services';
+	} from '#lib/services/relation.services.ts';
+	import { getLeagueStandings, loadGlobalStandings } from '#lib/services/standings.services.ts';
 	import {
 		friendRequestsStore,
 		friendsListStore,
 		friendsRelationsLoadedStore,
 		refreshFriendRelations,
 		sentFriendRequestsStore
-	} from '$lib/stores/friends.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { marketDisplay } from '$lib/stores/market-translations.store';
-	import { notificationsStore, type NotificationType } from '$lib/stores/notification.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import { myReferralsStore, refreshMyReferrals } from '$lib/stores/referrals.store';
-	import { globalStandingsStore } from '$lib/stores/standings.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { UserProfile } from '$lib/types/profile';
-	import type { Relation } from '$lib/types/relation';
-	import type { ResolvedResult } from '$lib/types/social';
-	import type { StandingEntry, StandingsWindow } from '$lib/types/standings';
-	import { writeToClipboard } from '$lib/utils/clipboard.utils';
+	} from '#lib/stores/friends.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { marketDisplay } from '#lib/stores/market-translations.store.ts';
+	import { notificationsStore, type NotificationType } from '#lib/stores/notification.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import { myReferralsStore, refreshMyReferrals } from '#lib/stores/referrals.store.ts';
+	import { globalStandingsStore } from '#lib/stores/standings.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { UserProfile } from '#lib/types/profile.ts';
+	import type { Relation } from '#lib/types/relation.ts';
+	import type { ResolvedResult } from '#lib/types/social.ts';
+	import type { StandingEntry, StandingsWindow } from '#lib/types/standings.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import {
 		decimalFixedValueToNumber,
 		formatRelativeAgoFromNs,
 		shortenWithMiddleEllipsis
-	} from '$lib/utils/format.utils';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/utils/format.utils.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import {
 		formatVxpBalance,
 		formatWholeVxpMagnitude,
 		vxpBaseUnitsFromPoints
-	} from '$lib/utils/playground-display.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import { friendRequestOutcomeNotice } from '$lib/utils/relation.utils';
+	} from '#lib/utils/playground-display.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
+	import { friendRequestOutcomeNotice } from '#lib/utils/relation.utils.ts';
+	import { goto } from '$app/navigation';
 
 	/**
 	 * Friends — the Arena tab. Lives only inside Arena; there is no
@@ -661,7 +661,7 @@
 	const goToLeaderboard = () => {
 		// Leaderboard lives at /arena/leaderboard; this keeps the user inside
 		// the Arena shell instead of forking to a sibling tab.
-		void goto(resolve(`${AppPath.Arena}/leaderboard`));
+		void goto(resolveAppPath(`${AppPath.Arena}/leaderboard`));
 	};
 
 	// ── Friends results digest ──────────────────────────────────────
@@ -871,7 +871,7 @@
 
 		if (nonNullish(marketId) && marketId.length > 0) {
 			track({ name: 'friend_digest_opened', source: 'arena', marketId });
-			void goto(resolve(`${AppPath.Markets}/${marketId}`));
+			void goto(resolveAppPath(`${AppPath.Markets}/${marketId}`));
 
 			return;
 		}

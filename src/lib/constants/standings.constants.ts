@@ -18,7 +18,7 @@
 /**
  * Minimum settled calls to appear in the *ranked* leaderboard. A predictor
  * below this is provisional (unranked). Exposed live via the dev Tweaks panel
- * (`leaderboardQualifyMin` in `$lib/stores/tweaks.store`) so the threshold can
+ * (`leaderboardQualifyMin` in `#lib/stores/tweaks.store.ts`) so the threshold can
  * be tuned without a deploy.
  */
 export const LEADERBOARD_QUALIFY_MIN = 10;

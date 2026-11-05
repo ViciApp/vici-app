@@ -1,5 +1,5 @@
-import type { AppPath } from '$lib/constants/routes.constants';
-import type { MessageKey } from '$lib/utils/i18n.utils';
+import type { AppPath } from '#lib/constants/routes.constants.ts';
+import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 import type { Briefcase, CircleUserRound, House, LayoutDashboard, Zap } from '@lucide/svelte/icons';
 
 export interface NavItem {

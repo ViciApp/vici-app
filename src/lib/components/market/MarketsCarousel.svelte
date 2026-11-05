@@ -1,7 +1,7 @@
 <script lang="ts">
-	import MarketsFeaturedCard from '$lib/components/market/MarketsFeaturedCard.svelte';
-	import { primaryMicro } from '$lib/constants/market-taxonomy.constants';
-	import type { Market } from '$lib/types/market';
+	import MarketsFeaturedCard from '#lib/components/market/MarketsFeaturedCard.svelte';
+	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
+	import type { Market } from '#lib/types/market.ts';
 
 	/**
 	 * Section header + horizontally-scrolling row of `MarketsFeaturedCard`s.

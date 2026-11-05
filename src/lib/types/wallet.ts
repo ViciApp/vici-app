@@ -1,6 +1,6 @@
+import type { MarketId } from '#lib/types/market.ts';
+import type { Token, TokenId } from '#lib/types/token.ts';
 import type { ClearingDid } from '$declarations';
-import type { MarketId } from '$lib/types/market';
-import type { Token, TokenId } from '$lib/types/token';
 import type { PrincipalText } from '@junobuild/schema';
 
 /**

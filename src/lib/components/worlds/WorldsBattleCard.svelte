@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import CountryFlag from '$lib/components/ui/CountryFlag.svelte';
+	import CountryFlag from '#lib/components/ui/CountryFlag.svelte';
 	import {
 		lookupWorldsAffiliation,
 		type WorldsAffiliationOption
-	} from '$lib/constants/worlds-affiliations.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { AffiliationStatsDoc } from '$lib/types/affiliation-stats';
-	import { affiliationChipStyle } from '$lib/utils/affiliation-chip.utils';
-	import { affiliationDisplayName } from '$lib/utils/affiliation-name.utils';
+	} from '#lib/constants/worlds-affiliations.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
+	import { affiliationChipStyle } from '#lib/utils/affiliation-chip.utils.ts';
+	import { affiliationDisplayName } from '#lib/utils/affiliation-name.utils.ts';
 	import {
 		affiliationLifetimeAccuracy,
 		affiliationMonthlyAccuracy,
 		affiliationRankComparator,
 		formatAccuracyPercent
-	} from '$lib/utils/affiliation-stats.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	} from '#lib/utils/affiliation-stats.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Worlds battle card — one card per roster (school / country) that
