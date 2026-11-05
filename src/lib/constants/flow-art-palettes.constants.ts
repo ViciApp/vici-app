@@ -7,7 +7,7 @@ import type {
 	FlowArtPalette,
 	FlowArtState,
 	FlowArtTheme
-} from '$lib/utils/flow-art/types';
+} from '#lib/utils/flow-art/types.ts';
 
 type CategoryPalettes = Record<FlowArtState, FlowArtPalette>;
 type ThemePalettes = Record<FlowArtTheme, Partial<CategoryPalettes> & { neutral: FlowArtPalette }>;

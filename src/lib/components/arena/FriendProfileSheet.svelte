@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Avatar from '$lib/components/profile/Avatar.svelte';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { UserProfile } from '$lib/types/profile';
-	import { shortenWithMiddleEllipsis } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { UserProfile } from '#lib/types/profile.ts';
+	import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Friend mini-profile bottom sheet — opens on a ranked-row tap from

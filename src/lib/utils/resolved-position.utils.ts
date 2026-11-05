@@ -1,8 +1,8 @@
-import type { ClearingDid } from '$declarations';
-import { ZERO } from '$lib/constants/app.constants';
-import type { Market, MarketId, OutcomeId } from '$lib/types/market';
-import type { ResolvedPosition } from '$lib/types/position';
-import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
+import type { ClearingDid } from '#declarations';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import type { Market, MarketId, OutcomeId } from '#lib/types/market.ts';
+import type { ResolvedPosition } from '#lib/types/position.ts';
+import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 
 /**

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import YouBadge from '$lib/components/ui/YouBadge.svelte';
-	import { globalActivities } from '$lib/derived/activities.derived';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { ActivityType } from '$lib/enums/social';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import { shortenWithMiddleEllipsis } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import YouBadge from '#lib/components/ui/YouBadge.svelte';
+	import { globalActivities } from '#lib/derived/activities.derived.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { ActivityType } from '#lib/enums/social.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		marketId: string;

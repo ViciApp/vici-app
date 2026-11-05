@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import type { Market } from '$lib/types/market';
-	import { formatProbability } from '$lib/utils/format.utils';
+	import type { Market } from '#lib/types/market.ts';
+	import { formatProbability } from '#lib/utils/format.utils.ts';
 
 	interface Props {
 		outcomes: NonNullable<Market['outcomes']>;

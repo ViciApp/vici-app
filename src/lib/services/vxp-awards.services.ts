@@ -1,7 +1,7 @@
-import { functions } from '$declarations/satellite/satellite.api';
-import type { CallSide } from '$lib/types/market';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
-import { claimCalibrationReward as claimCalibrationRewardWeb2 } from '$lib/web2/client';
+import { functions } from '#declarations/satellite/satellite.api.ts';
+import type { CallSide } from '#lib/types/market.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { claimCalibrationReward as claimCalibrationRewardWeb2 } from '#lib/web2/client.ts';
 
 /**
  * Thin actor wrappers around the satellite VXP-awards endpoints.

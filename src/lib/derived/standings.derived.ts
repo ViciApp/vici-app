@@ -1,13 +1,13 @@
 import {
 	LEADERBOARD_PRIOR_MEAN,
 	LEADERBOARD_PRIOR_WEIGHT
-} from '$lib/constants/standings.constants';
-import { profilesStore } from '$lib/stores/profiles.store';
-import { globalStandingsStore } from '$lib/stores/standings.store';
-import { leaderboardQualifyMin } from '$lib/stores/tweaks.store';
-import { userStore } from '$lib/stores/user.store';
-import type { UserProfile } from '$lib/types/profile';
-import type { StandingEntry, StandingsWindow } from '$lib/types/standings';
+} from '#lib/constants/standings.constants.ts';
+import { profilesStore } from '#lib/stores/profiles.store.ts';
+import { globalStandingsStore } from '#lib/stores/standings.store.ts';
+import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import type { StandingEntry, StandingsWindow } from '#lib/types/standings.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 import { derived, type Readable } from 'svelte/store';

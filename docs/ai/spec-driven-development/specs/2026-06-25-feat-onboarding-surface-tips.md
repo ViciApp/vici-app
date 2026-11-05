@@ -73,7 +73,7 @@ App side (real paths to touch / reuse):
   `es`, `es-419`, `es-AR`, `es-MX`, `fr`, `it`, `ja`, `pt`, `pt-BR`,
   `zh-Hans`). New keys must land in every catalog or the i18n lint fails
   (`docs/ai/frontend/i18n.md`). Translation via `t()` from
-  `$lib/utils/i18n.utils`, locale from `localeStore`.
+  `#lib/utils/i18n.utils`, locale from `localeStore`.
 - Analytics: `track()` in `src/lib/services/analytics.services.ts`;
   taxonomy `src/lib/types/analytics-event.ts` + Zod mirror
   `src/lib/schema/analytics-event.schema.ts`.

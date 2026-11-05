@@ -2,31 +2,30 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { X } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import MenagerieBadge from '$lib/components/menagerie/MenagerieBadge.svelte';
-	import MenagerieBadgeSkeleton from '$lib/components/menagerie/MenagerieBadgeSkeleton.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import MenagerieBadge from '#lib/components/menagerie/MenagerieBadge.svelte';
+	import MenagerieBadgeSkeleton from '#lib/components/menagerie/MenagerieBadgeSkeleton.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
 	import {
 		MENAGERIE,
 		MENAGERIE_TIER_RANK,
 		type MenagerieSlug
-	} from '$lib/constants/menagerie.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
+	} from '#lib/constants/menagerie.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		myMenagerieLoading,
 		myMenagerieRows,
 		myMenagerieStats
-	} from '$lib/derived/menagerie.derived';
-	import { loadMyMenagerieSignals } from '$lib/services/menagerie.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/derived/menagerie.derived.ts';
+	import { loadMyMenagerieSignals } from '#lib/services/menagerie.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import {
 		menagerieConceptKey,
 		menagerieTierColor,
 		type MenagerieRow
-	} from '$lib/utils/menagerie.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/utils/menagerie.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 
 	/**
 	 * The Menagerie — the achievement trophy layer. Reached as a profile
@@ -38,7 +37,7 @@
 	 *
 	 * Animals whose metric reads a stat the backend does not yet populate
 	 * (Raven / Octopus / Magpie / Bee) resolve to LOCKED and show as "soon"
-	 * tiles — see the per-hook notes in `$lib/utils/menagerie.utils`.
+	 * tiles — see the per-hook notes in `#lib/utils/menagerie.utils.ts`.
 	 */
 
 	// The trophy layer reads from the single shared `menagerie.derived` source —
@@ -67,7 +66,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'menagerie.back' }),
-			onBack: () => goBack(resolve(AppPath.Profile))
+			onBack: () => goBack(resolveAppPath(AppPath.Profile))
 		}}
 		title={t({ locale: $localeStore, key: 'menagerie.title' })}
 	/>

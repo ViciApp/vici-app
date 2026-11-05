@@ -2,10 +2,10 @@
 	import { isNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import type { Writable } from 'svelte/store';
-	import type { ClearingDid } from '$declarations';
-	import IdentityAwareLoader from '$lib/components/loaders/IdentityAwareLoader.svelte';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
-	import { compareBalanceDomains } from '$lib/utils/balance-domain.utils';
+	import type { ClearingDid } from '#declarations';
+	import IdentityAwareLoader from '#lib/components/loaders/IdentityAwareLoader.svelte';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+	import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
 
 	interface Props {
 		/**

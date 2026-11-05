@@ -10,15 +10,16 @@
 		"isolatedModules": true,
 		"moduleResolution": "bundler",
 		"resolveJsonModule": true,
+		"allowImportingTsExtensions": true,
+		"noEmit": true,
+		"rootDir": "../..",
 		"outDir": "../../target/deploy",
 		"paths": {
-			"$lib": ["../lib"],
-			"$lib/*": ["../lib/*"],
-			"$satellite": ["."],
-			"$satellite/*": ["./*"],
-			"$root/*": ["../../*"],
-			"$declarations": ["../declarations"],
-			"$declarations/*": ["../declarations/*"]
+			"#lib/*": ["../lib/*"],
+			"#satellite/*": ["./*"],
+			"#declarations": ["../declarations/index.ts"],
+			"#declarations/*": ["../declarations/*"],
+			"#root/*": ["../../*"]
 		}
 	},
 	"include": ["**/*.ts"]

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { RESOLUTION_CLAUSE_MAX_LENGTH } from '$lib/constants/app.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { downloadJsonFile } from '$lib/utils/download.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import { RESOLUTION_CLAUSE_MAX_LENGTH } from '#lib/constants/app.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { downloadJsonFile } from '#lib/utils/download.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		onBulkCreate: (

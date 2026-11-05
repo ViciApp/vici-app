@@ -48,7 +48,7 @@ Rules:
 
 - **Always `j.strictObject`** at the top level — extra properties are
   rejected.
-- **Reuse `$lib/schema/*.schema.ts`** whenever the FE consumes the same
+- **Reuse `#lib/schema/*.schema.ts`** whenever the FE consumes the same
   shape (so the FE-side schema and the satellite-side schema can never
   drift).
 - **Quirk to know:** at the time of writing, the schema layer doesn't
@@ -518,7 +518,7 @@ owner-leagues guard:
 
 When a hook calls another canister (typically the icdc-core registry):
 
-- The actor lives in `$lib/canisters/<canister>.canister.ts`.
+- The actor lives in `#lib/canisters/<canister>.canister.ts`.
 - Build it with the satellite's identity. The satellite principal is
   pre-authorised as an `admin` on the Vici engine (see
   [`docs/engine-integration.md`](../../engine-integration.md#engine-admins)).
@@ -552,7 +552,7 @@ const series = await call<[] | [RegistryDid.Series]>({
 
 - The `IDL` namespace must live in exactly one place outside
   `src/declarations/**`: `candid.utils.ts`. Every other satellite file stays
-  typed against `$declarations` (`RegistryDid` / `ClearingDid`) and routes its
+  typed against `#declarations` (`RegistryDid` / `ClearingDid`) and routes its
   runtime Candid types through `candidMethod` — a new `import { IDL }` in a
   service is the smell this pattern exists to prevent.
 - Need a method the canister exposes but `candidMethod` can't find? It
@@ -671,7 +671,7 @@ principal with no profile, because new accounts live on the new stack:
 
 ## Do / don't
 
-- ✅ Reuse FE schemas from `$lib/schema/` so the FE and satellite agree.
+- ✅ Reuse FE schemas from `#lib/schema/` so the FE and satellite agree.
 - ✅ Keep `index.ts` declarative — schemas + dispatch tables only.
 - ✅ Make every hook idempotent.
 - ✅ For any VXP award / economy change, follow the invariants in
@@ -695,7 +695,7 @@ principal with no profile, because new accounts live on the new stack:
   prettier + eslint config). Commit the regenerated
   `src/satellite/{satellite,satellite_extension}.did`,
   `src/satellite/api-schemas.ts`, **and** `src/declarations/satellite/**`.
-  This applies whenever you change a `$lib/schema/*.ts` file imported by
+  This applies whenever you change a `#lib/schema/*.ts` file imported by
   `src/satellite/index.ts` too — CI's `satellite-schema` job fails on
   any drift.
 - ❌ Throw inside a hook for an expected condition. Log + return.

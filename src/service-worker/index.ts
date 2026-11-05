@@ -1,8 +1,3 @@
-/// <reference types="@sveltejs/kit" />
-/// <reference no-default-lib="true"/>
-/// <reference lib="esnext" />
-/// <reference lib="webworker" />
-
 // OAuth (Google/Apple) returns to `/auth/callback/*` as a HARD document fetch
 // from the IC HTTP gateway. When the gateway transiently fails — certification
 // not yet settled, cold canister, boundary-node throttle — it serves its own
@@ -18,9 +13,16 @@
 // or incorrect on-chain data. Anything that is not a same-origin build asset or
 // a navigation passes straight through to the network, untouched.
 
-import { base, build, version } from '$service-worker';
+import { version } from '$app/env';
+import { immutable } from '$app/manifest';
+import { self } from '$app/service-worker';
 
-declare const self: ServiceWorkerGlobalScope;
+// Manifest paths are relative to the base path, and the worker script is
+// served from the base path, so resolving against it gives the absolute
+// pathname that `fetch` events carry.
+const toPathname = (path: string): string => new URL(path, self.location.href).pathname;
+
+const build = immutable.map(({ path }) => toPathname(path));
 
 // Versioned so each deployment invalidates the previous build's assets.
 const ASSET_CACHE = `vici-cache-${version}`;
@@ -36,7 +38,7 @@ const SHELL_CACHE = 'vici-shell';
 // the app is `prerender:false` + SPA `fallback`, every route returns the same
 // shell HTML, so a single stored entry is a valid fallback for ALL routes —
 // including the OAuth callback.
-const SHELL_KEY = `${base}/__app_shell`;
+const SHELL_KEY = toPathname('__app_shell');
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(
@@ -132,7 +134,7 @@ const handleBuildAsset = async (request: Request): Promise<Response> => {
 };
 
 // Local guard: `@dfinity/utils` is a FE-only dependency, so the SW resolves
-// nullishness inline to keep its dependency surface to `$service-worker`.
+// nullishness inline to keep its dependency surface to SvelteKit's `$app` modules.
 const nonNullishResponse = (value: Response | undefined): value is Response =>
 	value instanceof Response;
 

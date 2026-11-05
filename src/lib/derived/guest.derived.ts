@@ -1,4 +1,4 @@
-import { guestStore } from '$lib/stores/guest.store';
+import { guestStore } from '#lib/stores/guest.store.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**

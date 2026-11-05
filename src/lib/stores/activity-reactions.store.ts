@@ -1,4 +1,4 @@
-import type { ActivityReaction } from '$lib/types/social';
+import type { ActivityReaction } from '#lib/types/social.ts';
 import { writable } from 'svelte/store';
 
 /**

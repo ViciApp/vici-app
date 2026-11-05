@@ -22,9 +22,9 @@
  * satellite.
  */
 
-import { ZERO } from '$lib/constants/app.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import {
 	ANALYTICS_PROP_KEYS,
 	type AnalyticsEventDoc,
@@ -33,10 +33,10 @@ import {
 	type EventCount,
 	type EventRollupDoc,
 	type TrackEventInput
-} from '$lib/types/analytics-event';
-import type { VxpAwardDoc } from '$lib/types/vxp-award';
-import { isAdmin } from '$satellite/services/_authz';
-import { logError } from '$satellite/utils/logger.utils';
+} from '#lib/types/analytics-event.ts';
+import type { VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import { isAdmin } from '#satellite/services/_authz.ts';
+import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';

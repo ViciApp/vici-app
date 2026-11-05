@@ -1,19 +1,19 @@
-import { VXP_LEDGER_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { VXP_WORLDS_PODIUM } from '$lib/constants/vxp-economy.constants';
-import type { AffiliationDoc, AffiliationKind } from '$lib/types/affiliation';
-import { affiliationStatsSnapshotKey, monthAnchorFromMs } from '$lib/types/affiliation-stats';
-import { vxpAwardKey, type VxpAwardDoc } from '$lib/types/vxp-award';
-import { parseToken } from '$lib/utils/parse.utils';
+import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { VXP_WORLDS_PODIUM } from '#lib/constants/vxp-economy.constants.ts';
+import { affiliationStatsSnapshotKey, monthAnchorFromMs } from '#lib/types/affiliation-stats.ts';
+import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
+import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import { parseToken } from '#lib/utils/parse.utils.ts';
 import {
 	hasFrozenMonthlySnapshotFn,
 	listAffiliationStatsForMonthFn,
 	liveMonthlyRows,
 	readAffiliationDoc
-} from '$satellite/services/cohort.services';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';
+} from '#satellite/services/cohort.services.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { transferWithBadFeeRetry } from '#satellite/utils/vxp-payout.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';

@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import FlowStakeSlider from '$lib/components/market/FlowStakeSlider.svelte';
+	import FlowStakeSlider from '#lib/components/market/FlowStakeSlider.svelte';
 	import {
 		VXP_DEFAULT_STAKE,
 		VXP_STAKE_LADDER,
 		type VxpStake
-	} from '$lib/constants/vxp-economy.constants';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
-	import type { Market } from '$lib/types/market';
-	import { isViciXp } from '$lib/utils/balance-domain.utils';
-	import { resolveOutcomeExecutionPrice } from '$lib/utils/market.utils';
-	import { snapToStakeLadder, vxpNetWin } from '$lib/utils/vxp-economy.utils';
+	} from '#lib/constants/vxp-economy.constants.ts';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { isViciXp } from '#lib/utils/balance-domain.utils.ts';
+	import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
+	import { snapToStakeLadder, vxpNetWin } from '#lib/utils/vxp-economy.utils.ts';
 
 	interface Props {
 		market: Market;

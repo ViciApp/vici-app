@@ -1,5 +1,5 @@
-import { RelationCategory, RelationState } from '$lib/enums/relation';
-import { UserRole } from '$lib/enums/user';
+import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
+import { UserRole } from '#lib/enums/user.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 export const RelationCategorySchema = j.enum(RelationCategory);

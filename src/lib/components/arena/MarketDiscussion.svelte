@@ -1,24 +1,24 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Avatar from '$lib/components/profile/Avatar.svelte';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import YouBadge from '$lib/components/ui/YouBadge.svelte';
-	import { ActivityType } from '$lib/enums/social';
-	import { logActivity } from '$lib/services/activity.services';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import YouBadge from '#lib/components/ui/YouBadge.svelte';
+	import { ActivityType } from '#lib/enums/social.ts';
+	import { logActivity } from '#lib/services/activity.services.ts';
 	import {
 		addComment,
 		downvoteComment,
 		loadMarketComments,
 		upvoteComment
-	} from '$lib/services/discussion.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { marketCommentsStore } from '$lib/stores/market-comments.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import type { Comment } from '$lib/types/comment';
-	import { t } from '$lib/utils/i18n.utils';
-	import { refreshGlobalActivities } from '$lib/utils/refresh.utils';
+	} from '#lib/services/discussion.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { marketCommentsStore } from '#lib/stores/market-comments.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import type { Comment } from '#lib/types/comment.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { refreshGlobalActivities } from '#lib/utils/refresh.utils.ts';
 
 	interface Props {
 		marketId: string;

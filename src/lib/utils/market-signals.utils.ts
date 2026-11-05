@@ -1,19 +1,19 @@
-import type { ClearingDid } from '$declarations';
-import { ZERO } from '$lib/constants/app.constants';
-import type { CallSide, MarketId } from '$lib/types/market';
+import type { ClearingDid } from '#declarations';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import type {
 	CategoryAccuracySignal,
 	PriorCallSignal,
 	UserMarketSignals
-} from '$lib/types/market-signals';
-import { resolveFlowArtCategory, type FlowArtCategory } from '$lib/utils/flow-art.utils';
+} from '#lib/types/market-signals.ts';
+import type { CallSide, MarketId } from '#lib/types/market.ts';
+import { resolveFlowArtCategory, type FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
 import {
 	eventExecutionPrice,
 	isExecutedEvent,
 	isSettledEvent,
 	isWinningSettledEvent
-} from '$lib/utils/resolved-position.utils';
-import { parseMarketId } from '$lib/validation/market.validation';
+} from '#lib/utils/resolved-position.utils.ts';
+import { parseMarketId } from '#lib/validation/market.validation.ts';
 import { isNullish } from '@dfinity/utils';
 
 const eventSide = (event: ClearingDid.Event): CallSide => (event.qty >= ZERO ? 'YES' : 'NO');
@@ -135,7 +135,7 @@ export const deriveCalledMarketIds = (events: ClearingDid.Event[]): Set<MarketId
  * Trade-history-derived signals (category accuracy + prior calls). The
  * friends-lean signal is sourced separately from the clearing canister's
  * privacy-preserving `aggregate_lean` query — see
- * `$lib/services/followed-lean.services` — and merged in by the caller, so
+ * `#lib/services/followed-lean.services.ts` — and merged in by the caller, so
  * it is not produced here.
  */
 export const deriveUserMarketSignals = ({

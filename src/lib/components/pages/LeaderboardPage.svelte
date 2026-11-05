@@ -4,38 +4,37 @@
 	import { UserMinus, UserPlus } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import Avatar from '$lib/components/profile/Avatar.svelte';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { globalStandingsRows, type StandingsRow } from '$lib/derived/standings.derived';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { track } from '$lib/services/analytics.services';
-	import { loadProfilesByPrincipals } from '$lib/services/profile.services';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { globalStandingsRows, type StandingsRow } from '#lib/derived/standings.derived.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
 	import {
 		cancelFriendRequest,
 		sendFriendRequest,
 		unfriendUser
-	} from '$lib/services/relation.services';
-	import { loadGlobalStandings } from '$lib/services/standings.services';
+	} from '#lib/services/relation.services.ts';
+	import { loadGlobalStandings } from '#lib/services/standings.services.ts';
 	import {
 		friendsListStore,
 		refreshFriendRelations,
 		sentFriendRequestsStore
-	} from '$lib/stores/friends.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { globalStandingsStore } from '$lib/stores/standings.store';
-	import { leaderboardQualifyMin } from '$lib/stores/tweaks.store';
-	import type { Relation } from '$lib/types/relation';
-	import type { StandingsWindow } from '$lib/types/standings';
-	import { shortenPrincipal } from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import { friendRequestOutcomeNotice } from '$lib/utils/relation.utils';
+	} from '#lib/stores/friends.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { globalStandingsStore } from '#lib/stores/standings.store.ts';
+	import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
+	import type { Relation } from '#lib/types/relation.ts';
+	import type { StandingsWindow } from '#lib/types/standings.ts';
+	import { shortenPrincipal } from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
+	import { friendRequestOutcomeNotice } from '#lib/utils/relation.utils.ts';
 
 	/**
 	 * Global standings.
@@ -276,7 +275,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'leaderboard.back' }),
-			onBack: () => goBack(resolve(AppPath.Arena))
+			onBack: () => goBack(resolveAppPath(AppPath.Arena))
 		}}
 		title={t({ locale: $localeStore, key: 'leaderboard.title' })}
 	/>

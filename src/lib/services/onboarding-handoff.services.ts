@@ -1,26 +1,26 @@
-import { browser } from '$app/environment';
-import type { AppLocale } from '$lib/constants/locale.constants';
-import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
 import {
 	REFERRAL_CODE_REGEX,
 	REFERRAL_EXISTING_USER_REASON,
 	REFERRAL_VXP_BONUS_BASE_UNITS
-} from '$lib/constants/referral.constants';
-import { track } from '$lib/services/analytics.services';
-import { joinLeagueByInvite } from '$lib/services/leagues.services';
+} from '#lib/constants/referral.constants.ts';
+import { track } from '#lib/services/analytics.services.ts';
+import { joinLeagueByInvite } from '#lib/services/leagues.services.ts';
 import {
 	applyOnboardingPicks,
 	checkNicknameAvailability,
 	saveMyEmail,
 	wasBootstrappedThisSession
-} from '$lib/services/profile.services';
-import { claimReferralFriendship, redeemReferralCode } from '$lib/services/referral.services';
-import { notificationsStore } from '$lib/stores/notification.store';
-import { userStore } from '$lib/stores/user.store';
-import { LEAGUE_INVITE_CODE_REGEX } from '$lib/types/league';
-import type { UserProfile } from '$lib/types/profile';
-import { t } from '$lib/utils/i18n.utils';
-import { formatVxpBalance } from '$lib/utils/playground-display.utils';
+} from '#lib/services/profile.services.ts';
+import { claimReferralFriendship, redeemReferralCode } from '#lib/services/referral.services.ts';
+import { notificationsStore } from '#lib/stores/notification.store.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import { LEAGUE_INVITE_CODE_REGEX } from '#lib/types/league.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import { t } from '#lib/utils/i18n.utils.ts';
+import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**
@@ -516,7 +516,11 @@ const settlePendingSlot = ({
 				referralCode: pending.referralCode,
 				referralAttempts: referralAttempts + 1
 			}),
-			...(keepLeague && { leagueInvite: pending.leagueInvite, leagueAttempts: leagueAttempts + 1 })
+
+			...(keepLeague && {
+				leagueInvite: pending.leagueInvite,
+				leagueAttempts: leagueAttempts + 1
+			})
 		})
 	);
 };

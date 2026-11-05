@@ -1,6 +1,6 @@
 /**
  * Focus trap for custom-built modal surfaces ({@link
- * $lib/components/ui/BottomSheet.svelte}, etc.). Native `<dialog>`
+ * #lib/components/ui/BottomSheet.svelte}, etc.). Native `<dialog>`
  * elements opened via `showModal()` already trap focus and return
  * focus on close — only reach for this helper when the container
  * isn't a native dialog.

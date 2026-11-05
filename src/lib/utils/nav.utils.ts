@@ -1,5 +1,7 @@
+import { previousPathStore } from '#lib/stores/previous-path.store.ts';
 import { goto } from '$app/navigation';
-import { previousPathStore } from '$lib/stores/previous-path.store';
+import { resolve } from '$app/paths';
+import type { PathnameWithSearchOrHash, ResolvedPathname } from '$app/types';
 import { nonNullish } from '@dfinity/utils';
 import { get } from 'svelte/store';
 
@@ -21,3 +23,16 @@ export const goBack = (fallback: string): void => {
 
 	void goto(fallback);
 };
+
+/**
+ * `resolve` for app pathnames written with a leading `/` (e.g. `AppPath`
+ * values, which are also compared against `page.url.pathname`). SvelteKit's
+ * `resolve` treats a leading `/` as a route ID, and route IDs include the
+ * `(app)` group segment, so plain pathnames must be passed without it.
+ */
+export const resolveAppPath = (path: `/${PathnameWithSearchOrHash}`): ResolvedPathname =>
+	// `resolve`'s rest-tuple signature only accepts a literal pathname, not a
+	// union of them; every member of the union is a valid argument.
+	(resolve as (pathname: PathnameWithSearchOrHash) => ResolvedPathname)(
+		path.slice(1) as PathnameWithSearchOrHash
+	);

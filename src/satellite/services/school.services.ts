@@ -27,14 +27,19 @@
  * attempt cap + TTL + rate limit (see `school-picker.constants.ts`).
  */
 
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	SCHOOL_CODE_MAX_ATTEMPTS,
 	SCHOOL_CODE_TTL_MS,
 	SCHOOL_VERIFY_DAILY_CAP
-} from '$lib/constants/school-picker.constants';
-import { WORLDS_UNIVERSITIES } from '$lib/constants/worlds-affiliations.constants';
-import type { UserProfile } from '$lib/types/profile';
+} from '#lib/constants/school-picker.constants.ts';
+import { WORLDS_UNIVERSITIES } from '#lib/constants/worlds-affiliations.constants.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import {
+	hashSchoolCode,
+	schoolSubmissionKey,
+	type SchoolSubmissionDoc
+} from '#lib/types/school-submission.ts';
 import {
 	APP_CONFIG_SCHOOL_RELAY_KEY,
 	SCHOOL_VERIFIED_PUBLIC_THRESHOLD,
@@ -42,16 +47,14 @@ import {
 	type SchoolDoc,
 	type SchoolRelayConfig,
 	type SchoolStatus
-} from '$lib/types/school';
+} from '#lib/types/school.ts';
+import { spMatchEmail, spNormalize } from '#lib/utils/school-picker.utils.ts';
 import {
-	hashSchoolCode,
-	schoolSubmissionKey,
-	type SchoolSubmissionDoc
-} from '$lib/types/school-submission';
-import { spMatchEmail, spNormalize } from '$lib/utils/school-picker.utils';
-import { captureServerEvents, type ServerEventInput } from '$satellite/services/analytics.services';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { escapeRegex } from '$satellite/utils/regex.utils';
+	captureServerEvents,
+	type ServerEventInput
+} from '#satellite/services/analytics.services.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcManagementIdl } from '@junobuild/functions/canisters/ic-management';

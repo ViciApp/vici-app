@@ -1,4 +1,4 @@
-import collections from '$root/juno.collections.json';
+import collections from '#root/juno.collections.json';
 
 export const Collection = {
 	ROLES: collections.ROLES,

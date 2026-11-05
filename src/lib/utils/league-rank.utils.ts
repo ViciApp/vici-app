@@ -1,4 +1,4 @@
-import type { LeagueMemberDoc } from '$lib/types/league-member';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

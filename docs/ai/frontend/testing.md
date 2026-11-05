@@ -19,7 +19,7 @@
   yet.** The `checks.yml` workflow runs `format`, `lint`, `check` and
   `test`.
 - **Pure-logic specs run on Node's built-in runner** until Vitest lands:
-  `npm test` (`tsx --test`, which resolves the `$lib` alias) picks up
+  `npm test` (`tsx --test`, which resolves the `#lib` alias) picks up
   `src/tests/**/*.spec.ts`. Use `node:test` + `node:assert/strict`, import
   only modules with no Svelte / SvelteKit / env dependencies, and keep the
   mirror-`src/` layout below (`eslint.config.js` lifts
@@ -63,9 +63,9 @@ The expected setup:
 | Add tests for                                                      | Don't bother                                          |
 | ------------------------------------------------------------------ | ----------------------------------------------------- |
 | Pure utils (`*.utils.ts`) — every public function                  | Re-exports, barrels                                   |
-| Service modules (`*.services.ts`) — happy path + each error branch | Generated files (`$declarations`)                     |
+| Service modules (`*.services.ts`) — happy path + each error branch | Generated files (`#declarations`)                     |
 | Derived stores (`*.derived.ts`) with non-trivial logic             | Throwaway prototypes                                  |
-| Reusable components in `$lib/components/ui/`                       | One-off presentational components used in 1 page only |
+| Reusable components in `#lib/components/ui/`                       | One-off presentational components used in 1 page only |
 | Components with logic (any non-trivial branch / event handler)     | —                                                     |
 | Schemas / validation modules                                       | —                                                     |
 | Bug fixes (write the regression test that fails on `main`)         | —                                                     |
@@ -77,8 +77,8 @@ passes on your branch**. Otherwise it's an "I think this is fine" PR.
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import { formatBalance } from '$lib/utils/format.utils';
-import { ZERO } from '$lib/constants/app.constants';
+import { formatBalance } from '#lib/utils/format.utils.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 
 describe('formatBalance', () => {
 	it('returns "0" for zero', () => {
@@ -95,7 +95,7 @@ Notes (forward-looking):
   function.
 - One `it` per behaviour — name it from the user/caller perspective.
 - Reset mocks in `beforeEach`. Never let test order matter.
-- For fetch / canister calls: mock the matching `$lib/api` / `$lib/canisters`
+- For fetch / canister calls: mock the matching `#lib/api` / `#lib/canisters`
   module rather than stubbing `fetch` directly.
 
 ### Component testing
@@ -103,7 +103,7 @@ Notes (forward-looking):
 ```ts
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import Button from '$lib/components/ui/Button.svelte';
+import Button from '#lib/components/ui/Button.svelte';
 
 describe('Button', () => {
 	it('renders the label', () => {

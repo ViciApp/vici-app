@@ -1,7 +1,7 @@
-import { functions } from '$declarations/satellite/satellite.api';
-import type { Relation } from '$lib/types/relation';
-import type { ResolvedResult } from '$lib/types/social';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+import { functions } from '#declarations/satellite/satellite.api.ts';
+import type { Relation } from '#lib/types/relation.ts';
+import type { ResolvedResult } from '#lib/types/social.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	listFollowers as listFollowersWeb2,
 	listFollowing as listFollowingWeb2,
@@ -9,7 +9,7 @@ import {
 	listFriendResolvedResults as listFriendResolvedResultsWeb2,
 	listFriends as listFriendsWeb2,
 	listSentFriendRequests as listSentFriendRequestsWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
 import type { Doc } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';
 

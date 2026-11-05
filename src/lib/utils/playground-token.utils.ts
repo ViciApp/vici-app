@@ -1,14 +1,14 @@
-import type { ClearingDid } from '$declarations';
+import type { ClearingDid } from '#declarations';
 import {
 	CKUSDC_LEDGER_CANISTER_ID,
 	ICP_LEDGER_CANISTER_ID,
 	VICI_LEDGER_CANISTER_ID,
 	VXP_LEDGER_CANISTER_ID
-} from '$lib/constants/canisters.constants';
-import { CKUSDC_TOKEN, ICP_TOKEN, VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import type { Token } from '$lib/types/token';
-import { icrcLedgerIdsEqual } from '$lib/utils/asset-ref.utils';
-import { isSettlement, isSocial, isViciXp } from '$lib/utils/balance-domain.utils';
+} from '#lib/constants/canisters.constants.ts';
+import { CKUSDC_TOKEN, ICP_TOKEN, VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import type { Token } from '#lib/types/token.ts';
+import { icrcLedgerIdsEqual } from '#lib/utils/asset-ref.utils.ts';
+import { isSettlement, isSocial, isViciXp } from '#lib/utils/balance-domain.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 
 /**

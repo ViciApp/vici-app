@@ -10,8 +10,8 @@
 	 * `BinaryProbabilities` free of an `i18n.utils` import, so their literal
 	 * "Yes"/"No" copy stays clear of `no-bare-svelte-text`.
 	 */
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		variant?: 'loading' | 'empty';

@@ -1,12 +1,12 @@
 <script lang="ts">
+	import { navItems } from '#lib/constants/nav.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { navItems } from '$lib/constants/nav.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
 
 	/**
 	 * Floating "pillnav" bottom nav.

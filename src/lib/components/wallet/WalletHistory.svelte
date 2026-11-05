@@ -1,11 +1,11 @@
 <script lang="ts">
-	import PrincipalText from '$lib/components/ui/PrincipalText.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { displayMarkets } from '$lib/stores/market-translations.store';
-	import type { Transaction, TransactionType } from '$lib/types/wallet';
-	import { formatNanosecondsToDate, formatToken } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import PrincipalText from '#lib/components/ui/PrincipalText.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
+	import type { Transaction, TransactionType } from '#lib/types/wallet.ts';
+	import { formatNanosecondsToDate, formatToken } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		transactions: Transaction[];

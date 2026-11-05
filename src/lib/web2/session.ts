@@ -1,4 +1,4 @@
-import { logout as apiLogout, getMe, Web2ApiError, type Web2Me } from '$lib/web2/client';
+import { logout as apiLogout, getMe, Web2ApiError, type Web2Me } from '#lib/web2/client.ts';
 import { get, readonly, writable, type Readable } from 'svelte/store';
 
 /**

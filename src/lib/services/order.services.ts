@@ -1,37 +1,37 @@
-import type { ClearingDid } from '$declarations';
+import type { ClearingDid } from '#declarations';
 import {
 	cancelLimitOrder as cancelLimitOrderApi,
 	getOrders as getOrdersApi,
 	listOrders as listOrdersApi,
 	submitLimitOrder,
 	submitMarketOrder
-} from '$lib/api/clearing.api';
-import { MarketClosedError } from '$lib/canisters/clearing.errors';
-import { PRICE_DECIMALS, ZERO } from '$lib/constants/app.constants';
-import { ActivityType } from '$lib/enums/social';
-import { logActivity } from '$lib/services/activity.services';
-import { track } from '$lib/services/analytics.services';
+} from '#lib/api/clearing.api.ts';
+import { MarketClosedError } from '#lib/canisters/clearing.errors.ts';
+import { PRICE_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import { logActivity } from '#lib/services/activity.services.ts';
+import { track } from '#lib/services/analytics.services.ts';
 import {
 	getIdentity,
 	getIdentityOrAnonymous,
 	safeGetIdentityOnce
-} from '$lib/services/identity.services';
-import { recordActivity } from '$lib/services/profile.services';
-import { loadWithCertification } from '$lib/services/query-update.services';
-import type { MarketId, Outcome } from '$lib/types/market';
-import type { OrderSide, OrderType } from '$lib/types/order';
-import { filterByPlaygroundExpandedDomain } from '$lib/utils/balance-domain.utils';
-import { parseLimitOrderPriceValue } from '$lib/utils/parse.utils';
-import { refreshAllBalances, refreshOrders, refreshPositions } from '$lib/utils/refresh.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/services/identity.services.ts';
+import { recordActivity } from '#lib/services/profile.services.ts';
+import { loadWithCertification } from '#lib/services/query-update.services.ts';
+import type { MarketId, Outcome } from '#lib/types/market.ts';
+import type { OrderSide, OrderType } from '#lib/types/order.ts';
+import { filterByPlaygroundExpandedDomain } from '#lib/utils/balance-domain.utils.ts';
+import { parseLimitOrderPriceValue } from '#lib/utils/parse.utils.ts';
+import { refreshAllBalances, refreshOrders, refreshPositions } from '#lib/utils/refresh.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	cancelEngineOrder as cancelEngineOrderWeb2,
 	listEngineOrders as listEngineOrdersWeb2,
 	submitEngineLimitOrder as submitEngineLimitOrderWeb2,
 	submitEngineMarketOrder as submitEngineMarketOrderWeb2,
 	Web2ApiError
-} from '$lib/web2/client';
-import { getWeb2User } from '$lib/web2/session';
+} from '#lib/web2/client.ts';
+import { getWeb2User } from '#lib/web2/session.ts';
 import { fromNullable, isNullish, nonNullish, toNullable, type Nullable } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 import { getIdentityOnce } from '@junobuild/core';

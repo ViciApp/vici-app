@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import { THEME_SWATCHES, theme, type Theme } from '$lib/stores/theme.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { THEME_SWATCHES, theme, type Theme } from '#lib/stores/theme.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		variant?: 'dots' | 'tiles';

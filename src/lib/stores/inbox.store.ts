@@ -1,49 +1,57 @@
-import { browser } from '$app/environment';
 import {
 	DAY_IN_MS,
 	MILLISECOND_IN_NANOSECONDS,
 	USD_DECIMALS,
 	ZERO
-} from '$lib/constants/app.constants';
+} from '#lib/constants/app.constants.ts';
 import {
 	INBOX_DISMISSED_STORAGE_KEY,
 	INBOX_PROGRESS_STORAGE_KEY,
 	INBOX_READ_STORAGE_KEY,
 	INBOX_SETTLED_READ_STORAGE_KEY
-} from '$lib/constants/inbox.constants';
-import { DEFAULT_LOCALE, type AppLocale } from '$lib/constants/locale.constants';
-import { AppPath } from '$lib/constants/routes.constants';
-import { marketsNotInitialized } from '$lib/derived/markets.derived';
+} from '#lib/constants/inbox.constants.ts';
+import { DEFAULT_LOCALE, type AppLocale } from '#lib/constants/locale.constants.ts';
+import { AppPath } from '#lib/constants/routes.constants.ts';
+import { marketsNotInitialized } from '#lib/derived/markets.derived.ts';
 import {
 	resolvedPositions,
 	resolvedPositionsNotInitialized
-} from '$lib/derived/resolved-positions.derived';
-import { receivedReactionsStore } from '$lib/stores/activity-reactions.store';
-import { friendRequestsStore, friendsRelationsLoadedStore } from '$lib/stores/friends.store';
-import { leagueDirectoryStore } from '$lib/stores/league-directory.store';
-import { leagueBattlesStore, leaguesLoadedStore, myLeaguesStore } from '$lib/stores/leagues.store';
-import { localeStore } from '$lib/stores/locale.store';
-import { marketLanguagePreference } from '$lib/stores/market-language.store';
-import { displayMarkets, marketTranslations } from '$lib/stores/market-translations.store';
-import { preferencesStore } from '$lib/stores/preferences.store';
-import { profilesStore } from '$lib/stores/profiles.store';
-import { userStore } from '$lib/stores/user.store';
-import type { ResolutionItem, ResolutionRevealData } from '$lib/types/flow';
-import type { InboxNotification, InboxNotificationKind } from '$lib/types/inbox';
-import type { Market } from '$lib/types/market';
-import type { ResolvedPosition } from '$lib/types/position';
-import type { Relation } from '$lib/types/relation';
-import type { ActivityReaction } from '$lib/types/social';
+} from '#lib/derived/resolved-positions.derived.ts';
+import { receivedReactionsStore } from '#lib/stores/activity-reactions.store.ts';
+import { friendRequestsStore, friendsRelationsLoadedStore } from '#lib/stores/friends.store.ts';
+import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
+import {
+	leagueBattlesStore,
+	leaguesLoadedStore,
+	myLeaguesStore
+} from '#lib/stores/leagues.store.ts';
+import { localeStore } from '#lib/stores/locale.store.ts';
+import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
+import { displayMarkets, marketTranslations } from '#lib/stores/market-translations.store.ts';
+import { preferencesStore } from '#lib/stores/preferences.store.ts';
+import { profilesStore } from '#lib/stores/profiles.store.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import type { ResolutionItem, ResolutionRevealData } from '#lib/types/flow.ts';
+import type { InboxNotification, InboxNotificationKind } from '#lib/types/inbox.ts';
+import type { Market } from '#lib/types/market.ts';
+import type { ResolvedPosition } from '#lib/types/position.ts';
+import type { Relation } from '#lib/types/relation.ts';
+import type { ActivityReaction } from '#lib/types/social.ts';
 import {
 	decimalFixedValueToNumber,
 	formatRelativeAgoFromNs,
 	shortenWithMiddleEllipsis,
 	shortLeagueId
-} from '$lib/utils/format.utils';
-import { t } from '$lib/utils/i18n.utils';
-import { inferResolvedOutcomeId } from '$lib/utils/resolved-position.utils';
-import { get, set as setStorage } from '$lib/utils/storage.utils';
-import { FLAME_STAGE_LABEL_KEYS, stageForStreak, streakMilestone } from '$lib/utils/streak.utils';
+} from '#lib/utils/format.utils.ts';
+import { t } from '#lib/utils/i18n.utils.ts';
+import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
+import { get, set as setStorage } from '#lib/utils/storage.utils.ts';
+import {
+	FLAME_STAGE_LABEL_KEYS,
+	stageForStreak,
+	streakMilestone
+} from '#lib/utils/streak.utils.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Doc } from '@junobuild/core';
 import { derived, get as getStore, writable, type Readable } from 'svelte/store';
@@ -119,8 +127,12 @@ const battleInboxStore: Readable<InboxNotification[]> = derived(
 					battle.proposer === viewer &&
 					(battle.state === 'in_flight' || battle.state === 'declined')
 			);
+
 		const matched = [...new Map(proposed.map((battle) => [battle.id, battle])).values()]
-			.map((battle) => ({ battle, respondedAtMs: battle.respondedAtMs ?? battle.kickoffMs }))
+			.map((battle) => ({
+				battle,
+				respondedAtMs: battle.respondedAtMs ?? battle.kickoffMs
+			}))
 			.filter(({ respondedAtMs }) => now - respondedAtMs <= BATTLE_NOTIFICATION_WINDOW_MS);
 
 		return matched
@@ -132,6 +144,7 @@ const battleInboxStore: Readable<InboxNotification[]> = derived(
 				return {
 					id: `battle-${battle.state}-${battle.id}`,
 					kind: accepted ? ('battle_accepted' as const) : ('battle_declined' as const),
+
 					title: t({
 						locale: $locale,
 						key: accepted ? 'inbox.battle_accepted.title' : 'inbox.battle_declined.title'

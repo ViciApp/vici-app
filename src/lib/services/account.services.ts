@@ -1,13 +1,13 @@
-import { functions } from '$declarations/satellite/satellite.api';
-import type { ExitSignalReason } from '$lib/types/exit-signal';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+import { functions } from '#declarations/satellite/satellite.api.ts';
+import type { ExitSignalReason } from '#lib/types/exit-signal.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	deleteMyAccount as deleteMyAccountWeb2,
 	hibernateMyAccount as hibernateMyAccountWeb2,
 	listBlockingLeagues as listBlockingLeaguesWeb2,
 	recoverMyAccount as recoverMyAccountWeb2,
 	resumeMyAccount as resumeMyAccountWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
 
 /**
  * Account deletion — Proposal 4. FE wrappers around the

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { VXP_STAKE_LADDER, type VxpStake } from '$lib/constants/vxp-economy.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatWholeVxpMagnitude } from '$lib/utils/playground-display.utils';
+	import { VXP_STAKE_LADDER, type VxpStake } from '#lib/constants/vxp-economy.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatWholeVxpMagnitude } from '#lib/utils/playground-display.utils.ts';
 
 	interface Props {
 		currentStake: VxpStake;

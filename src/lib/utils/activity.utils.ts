@@ -1,4 +1,4 @@
-import { ActivityType } from '$lib/enums/social';
+import { ActivityType } from '#lib/enums/social.ts';
 
 /**
  * Single-character glyph for an activity-feed row. Brand rule: no

@@ -21,7 +21,7 @@ import {
 	type MenagerieAnimal,
 	type MenagerieSlug,
 	type MenagerieTier
-} from '$lib/constants/menagerie.constants';
+} from '#lib/constants/menagerie.constants.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /** Minimum settled calls before the Owl's accuracy ladder is eligible. A

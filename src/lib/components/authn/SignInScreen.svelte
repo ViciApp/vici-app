@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
+	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
+	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import SignInProviderStack from '$lib/components/authn/SignInProviderStack.svelte';
-	import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
 
 	interface Props {
 		// Mode: `signin` for returning users (welcome-back framing),
@@ -25,7 +26,7 @@
 	const {
 		mode = 'signin',
 		onSuccess = () => {
-			void goto(resolve(AppPath.Flow));
+			void goto(resolveAppPath(AppPath.Flow));
 		}
 	}: Props = $props();
 

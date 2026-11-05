@@ -1,9 +1,9 @@
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	EXIT_SIGNAL_NOTE_MAX_LENGTH,
 	EXIT_SIGNAL_REASONS,
 	type ExitSignalDoc
-} from '$lib/types/exit-signal';
+} from '#lib/types/exit-signal.ts';
 import { isNullish } from '@dfinity/utils';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';

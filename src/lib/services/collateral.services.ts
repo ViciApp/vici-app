@@ -1,4 +1,4 @@
-import type { ClearingDid } from '$declarations';
+import type { ClearingDid } from '#declarations';
 import {
 	depositCollateral as depositCollateralApi,
 	getAccountState as getAccountStateApi,
@@ -6,25 +6,25 @@ import {
 	listCollateralAssets as listCollateralAssetsApi,
 	registerIcrcAsset as registerIcrcAssetApi,
 	withdrawCollateral as withdrawCollateralApi
-} from '$lib/api/clearing.api';
-import { approve, balance as getLedgerBalance, transactionFee } from '$lib/api/icrc-ledger.api';
-import { ZERO } from '$lib/constants/app.constants';
-import { CLEARING_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { getIdentity, safeGetIdentityOnce } from '$lib/services/identity.services';
-import { loadWithCertification } from '$lib/services/query-update.services';
-import { refreshAllBalances } from '$lib/utils/refresh.utils';
-import { resolveClearingAssetId } from '$lib/utils/tokens.utils';
-import { getIcrcAccount } from '$lib/utils/transactions.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/api/clearing.api.ts';
+import { approve, balance as getLedgerBalance, transactionFee } from '#lib/api/icrc-ledger.api.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { getIdentity, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import { loadWithCertification } from '#lib/services/query-update.services.ts';
+import { refreshAllBalances } from '#lib/utils/refresh.utils.ts';
+import { resolveClearingAssetId } from '#lib/utils/tokens.utils.ts';
+import { getIcrcAccount } from '#lib/utils/transactions.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	depositEngineCollateral as depositEngineCollateralWeb2,
 	getEngineAccountState as getEngineAccountStateWeb2,
 	getWalletBalances as getWalletBalancesWeb2,
 	listEngineCollateralAssets as listEngineCollateralAssetsWeb2,
 	withdrawEngineCollateral as withdrawEngineCollateralWeb2
-} from '$lib/web2/client';
-import { getWeb2User } from '$lib/web2/session';
+} from '#lib/web2/client.ts';
+import { getWeb2User } from '#lib/web2/session.ts';
 import { isNullish, nowInBigIntNanoSeconds, toNullable } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 import { getIdentityOnce } from '@junobuild/core';

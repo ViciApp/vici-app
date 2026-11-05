@@ -1,8 +1,8 @@
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	affiliationStatsSnapshotKey,
 	type AffiliationStatsDoc
-} from '$lib/types/affiliation-stats';
+} from '#lib/types/affiliation-stats.ts';
 import { nonNullish } from '@dfinity/utils';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';

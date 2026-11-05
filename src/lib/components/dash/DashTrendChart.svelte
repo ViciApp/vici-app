@@ -10,13 +10,13 @@
 	 * `dash-trend.utils`) and always ends exactly on the live number, so the
 	 * line never contradicts the headline figure above it.
 	 */
-	import { localeStore } from '$lib/stores/locale.store';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		buildAccuracyTrend,
 		buildTrendPath,
 		TREND_WINDOW_ORDER
-	} from '$lib/utils/dash-trend.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/utils/dash-trend.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		/** Current accuracy as a 0..100 percentage — anchors every window. */

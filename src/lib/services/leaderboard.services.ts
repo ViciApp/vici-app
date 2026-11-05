@@ -1,11 +1,11 @@
-import { functions } from '$declarations/satellite/satellite.api';
-import type { UserProfile } from '$lib/types/profile';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+import { functions } from '#declarations/satellite/satellite.api.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getMyRival as getMyRivalWeb2,
 	listLeaderboard as listLeaderboardWeb2
-} from '$lib/web2/client';
-import { fromWireProfile } from '$satellite/utils/wire-format.utils';
+} from '#lib/web2/client.ts';
+import { fromWireProfile } from '#satellite/utils/wire-format.utils.ts';
 
 /**
  * Fetches the top profiles ranked by points (XP) from the satellite-side

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 
 	interface Props {
 		spinner?: boolean;

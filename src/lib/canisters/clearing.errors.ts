@@ -1,8 +1,8 @@
-import type { ClearingDid } from '$declarations';
-import { USD_DECIMALS } from '$lib/constants/app.constants';
-import { formatToken } from '$lib/utils/format.utils';
-import type { MessageKey } from '$lib/utils/i18n.utils';
-import { Web2ApiError } from '$lib/web2/client';
+import type { ClearingDid } from '#declarations';
+import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
+import { formatToken } from '#lib/utils/format.utils.ts';
+import type { MessageKey } from '#lib/utils/i18n.utils.ts';
+import { Web2ApiError } from '#lib/web2/client.ts';
 import { assertNever, isNullish, nonNullish } from '@dfinity/utils';
 
 /**

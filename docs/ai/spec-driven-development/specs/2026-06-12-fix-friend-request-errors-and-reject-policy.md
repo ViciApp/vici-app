@@ -75,7 +75,7 @@ product-rules record.
 2. **Cooldown constant.**
    `FRIEND_REQUEST_REJECTED_COOLDOWN_MS` = **7 days** in a new shared
    `src/lib/constants/relation.constants.ts` (satellite already
-   imports `$lib/constants/*`, cf. `collections.constants`). Picked as
+   imports `#lib/constants/*`, cf. `collections.constants`). Picked as
    a sensible default — flagged in the PR for product sign-off; one
    constant to change.
 3. **FE mapping.** `handleAddSubmit` branches on the returned status:

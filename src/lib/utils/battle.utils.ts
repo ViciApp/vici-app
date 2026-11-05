@@ -1,7 +1,7 @@
-import type { AppLocale } from '$lib/constants/locale.constants';
-import { isMacroId, macroLabelKey } from '$lib/constants/market-taxonomy.constants';
-import { BATTLE_SCOPE_DEFAULT, type BattleScope } from '$lib/types/battle';
-import { t } from '$lib/utils/i18n.utils';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import { isMacroId, macroLabelKey } from '#lib/constants/market-taxonomy.constants.ts';
+import { BATTLE_SCOPE_DEFAULT, type BattleScope } from '#lib/types/battle.ts';
+import { t } from '#lib/utils/i18n.utils.ts';
 
 /**
  * Single source of truth for a battle's scope label. `all` (and legacy

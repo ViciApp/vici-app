@@ -1,12 +1,12 @@
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	AFFILIATION_KINDS,
 	AFFILIATION_LOCK_MS,
 	affiliationKey,
 	type AffiliationDoc
-} from '$lib/types/affiliation';
-import { captureServerEvents } from '$satellite/services/analytics.services';
-import { logError } from '$satellite/utils/logger.utils';
+} from '#lib/types/affiliation.ts';
+import { captureServerEvents } from '#satellite/services/analytics.services.ts';
+import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type {

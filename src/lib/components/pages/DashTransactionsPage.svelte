@@ -22,48 +22,50 @@
 		Zap
 	} from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import DashHoldingsBreakdown from '$lib/components/dash/DashHoldingsBreakdown.svelte';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import EmptyState from '$lib/components/ui/EmptyState.svelte';
-	import Pagination from '$lib/components/ui/Pagination.svelte';
+	import DashHoldingsBreakdown from '#lib/components/dash/DashHoldingsBreakdown.svelte';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
+	import Pagination from '#lib/components/ui/Pagination.svelte';
 	import {
 		MILLISECOND_IN_NANOSECONDS,
 		TRANSACTION_HISTORY_PAGE_SIZE,
 		USD_DECIMALS,
 		ZERO
-	} from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { openCallCount } from '$lib/derived/open-call-count.derived';
-	import { tradeHistory, tradeHistoryNotInitialized } from '$lib/derived/trade-history.derived';
+	} from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { openCallCount } from '#lib/derived/open-call-count.derived.ts';
+	import { tradeHistory, tradeHistoryNotInitialized } from '#lib/derived/trade-history.derived.ts';
 	import {
 		vxpBacked,
 		vxpHoldingsNotInitialized,
 		vxpHoldingsTotal,
 		vxpSpendable
-	} from '$lib/derived/vxp-holdings.derived';
-	import { track } from '$lib/services/analytics.services';
+	} from '#lib/derived/vxp-holdings.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		loadVxpLedgerHistory,
 		type VxpLedgerHistory
-	} from '$lib/services/transaction-history.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { displayMarkets } from '$lib/stores/market-translations.store';
+	} from '#lib/services/transaction-history.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
 	import type {
 		TransactionHistoryBonusTag,
 		TransactionHistoryFilter,
 		TransactionHistoryRow
-	} from '$lib/types/transaction-history';
+	} from '#lib/types/transaction-history.ts';
 	import {
 		decimalFixedValueToNumber,
 		formatLongDate,
 		formatNanosecondsToDate
-	} from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { formatVxpBalance, formatWholeVxpMagnitude } from '$lib/utils/playground-display.utils';
-	import { assembleTransactionHistory } from '$lib/utils/transaction-history.utils';
+	} from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import {
+		formatVxpBalance,
+		formatWholeVxpMagnitude
+	} from '#lib/utils/playground-display.utils.ts';
+	import { assembleTransactionHistory } from '#lib/utils/transaction-history.utils.ts';
+	import { page } from '$app/state';
 
 	const FILTERS: TransactionHistoryFilter[] = ['all', 'predictions', 'results', 'bonuses'];
 
@@ -241,7 +243,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'transactions.back' }),
-			onBack: () => goBack(resolve(AppPath.Dash))
+			onBack: () => goBack(resolveAppPath(AppPath.Dash))
 		}}
 		title={t({ locale: $localeStore, key: 'transactions.title' })}
 	/>

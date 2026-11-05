@@ -1,7 +1,7 @@
-import { getAgent } from '$lib/actors/agents.ic';
-import { WALLET_PAGINATION } from '$lib/constants/app.constants';
-import type { CanisterIdText } from '$lib/types/canister';
-import { getAccountIdentifier } from '$lib/utils/transactions.utils';
+import { getAgent } from '#lib/actors/agents.ic.ts';
+import { WALLET_PAGINATION } from '#lib/constants/app.constants.ts';
+import type { CanisterIdText } from '#lib/types/canister.ts';
+import { getAccountIdentifier } from '#lib/utils/transactions.utils.ts';
 import { IcpIndexCanister, type IcpIndexDid } from '@icp-sdk/canisters/ledger/icp';
 import type { Identity } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';

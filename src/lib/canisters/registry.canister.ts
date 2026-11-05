@@ -3,8 +3,8 @@ import {
 	idlFactoryRegistry,
 	type RegistryDid,
 	type RegistryService
-} from '$declarations';
-import type { CreateCanisterOptions } from '$lib/types/canister';
+} from '#declarations';
+import type { CreateCanisterOptions } from '#lib/types/canister.ts';
 import {
 	Canister,
 	createServices,

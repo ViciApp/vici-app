@@ -1,46 +1,49 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import MarketOddsSkeleton from '$lib/components/market/MarketOddsSkeleton.svelte';
-	import MarketTitleSkeleton from '$lib/components/market/MarketTitleSkeleton.svelte';
-	import OpenOrdersTable from '$lib/components/portfolio/OpenOrdersTable.svelte';
-	import PortfolioAllocationCard from '$lib/components/portfolio/PortfolioAllocationCard.svelte';
-	import PortfolioEmptyState from '$lib/components/portfolio/PortfolioEmptyState.svelte';
-	import PortfolioHero from '$lib/components/portfolio/PortfolioHero.svelte';
-	import PortfolioPerformanceCard from '$lib/components/portfolio/PortfolioPerformanceCard.svelte';
-	import { EM_DASH, MILLISECOND_IN_NANOSECONDS, USD_DECIMALS } from '$lib/constants/app.constants';
-	import { primaryMicro } from '$lib/constants/market-taxonomy.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { marketTags } from '$lib/derived/market-tags.derived';
-	import { markets, marketsNotInitialized } from '$lib/derived/markets.derived';
-	import { orders, ordersNotInitialized } from '$lib/derived/orders.derived';
-	import { playgroundVxpUnitMode } from '$lib/derived/playground.derived';
-	import { positions, positionsNotInitialized } from '$lib/derived/positions.derived';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketTitleSkeleton from '#lib/components/market/MarketTitleSkeleton.svelte';
+	import OpenOrdersTable from '#lib/components/portfolio/OpenOrdersTable.svelte';
+	import PortfolioAllocationCard from '#lib/components/portfolio/PortfolioAllocationCard.svelte';
+	import PortfolioEmptyState from '#lib/components/portfolio/PortfolioEmptyState.svelte';
+	import PortfolioHero from '#lib/components/portfolio/PortfolioHero.svelte';
+	import PortfolioPerformanceCard from '#lib/components/portfolio/PortfolioPerformanceCard.svelte';
+	import {
+		EM_DASH,
+		MILLISECOND_IN_NANOSECONDS,
+		USD_DECIMALS
+	} from '#lib/constants/app.constants.ts';
+	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { marketTags } from '#lib/derived/market-tags.derived.ts';
+	import { markets, marketsNotInitialized } from '#lib/derived/markets.derived.ts';
+	import { orders, ordersNotInitialized } from '#lib/derived/orders.derived.ts';
+	import { playgroundVxpUnitMode } from '#lib/derived/playground.derived.ts';
+	import { positions, positionsNotInitialized } from '#lib/derived/positions.derived.ts';
 	import {
 		decisiveSettledCount,
 		resolvedPositions,
 		resolvedPositionsNotInitialized
-	} from '$lib/derived/resolved-positions.derived';
-	import { tradeHistoryNotInitialized } from '$lib/derived/trade-history.derived';
-	import { vxpHoldingsTotal } from '$lib/derived/vxp-holdings.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { displayMarkets } from '$lib/stores/market-translations.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { Position, ResolvedPosition } from '$lib/types/position';
-	import { displayAccuracyPct } from '$lib/utils/accuracy.utils';
-	import { decimalFixedValueToNumber, relativeAgoBucketFromMs } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/derived/resolved-positions.derived.ts';
+	import { tradeHistoryNotInitialized } from '#lib/derived/trade-history.derived.ts';
+	import { vxpHoldingsTotal } from '#lib/derived/vxp-holdings.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { Position, ResolvedPosition } from '#lib/types/position.ts';
+	import { displayAccuracyPct } from '#lib/utils/accuracy.utils.ts';
+	import { decimalFixedValueToNumber, relativeAgoBucketFromMs } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import {
 		formatPositionPnLWithOptionalUnit,
 		formatVxpBalance
-	} from '$lib/utils/playground-display.utils';
-	import { calculatePositionPnL, positionEntryProbability } from '$lib/utils/portfolio.utils';
-	import { refreshOrders, refreshPositions } from '$lib/utils/refresh.utils';
-	import { inferResolvedOutcomeId } from '$lib/utils/resolved-position.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
+	} from '#lib/utils/playground-display.utils.ts';
+	import { calculatePositionPnL, positionEntryProbability } from '#lib/utils/portfolio.utils.ts';
+	import { refreshOrders, refreshPositions } from '#lib/utils/refresh.utils.ts';
+	import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	/**
 	 * Portfolio page — single-page hero + flat lists.
@@ -326,7 +329,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'portfolio.back' }),
-			onBack: () => goBack(resolve(AppPath.Dash))
+			onBack: () => goBack(resolveAppPath(AppPath.Dash))
 		}}
 		title={t({ locale: $localeStore, key: 'portfolio.title' })}
 	/>

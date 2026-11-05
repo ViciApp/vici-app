@@ -2,23 +2,23 @@
 	import { Eye, Gift } from '@lucide/svelte/icons';
 	import { onMount, untrack } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import SignInProviderStack from '$lib/components/authn/SignInProviderStack.svelte';
-	import { HANDLE_POOL } from '$lib/constants/handle-pool.constants';
+	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
+	import { HANDLE_POOL } from '#lib/constants/handle-pool.constants.ts';
 	import {
 		MAX_NICKNAME_LENGTH,
 		MIN_NICKNAME_LENGTH,
 		NICKNAME_PATTERN,
 		RESERVED_HANDLES,
 		sanitizeNickname
-	} from '$lib/constants/profile.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { newUserVxpAmountMilestone1BaseUnits } from '$lib/constants/vxp-onboarding.constants';
-	import { featuredEvent } from '$lib/derived/featured-event.derived';
-	import { track } from '$lib/services/analytics.services';
-	import { checkNicknameAvailability } from '$lib/services/profile.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
+	} from '#lib/constants/profile.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { newUserVxpAmountMilestone1BaseUnits } from '#lib/constants/vxp-onboarding.constants.ts';
+	import { featuredEvent } from '#lib/derived/featured-event.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { checkNicknameAvailability } from '#lib/services/profile.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	/**
 	 * One-screen onboarding — claim a handle and sign up on a single

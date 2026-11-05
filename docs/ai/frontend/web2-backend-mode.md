@@ -309,7 +309,7 @@ The engine routes return the canisters' candid responses serialized to
 JSON: bigints as decimal strings, principals as text, candid optionals
 still `[] | [value]`. [`web2/engine-wire.ts`](../../../src/lib/web2/engine-wire.ts)
 holds the explicit per-type mappers that convert each payload back into
-the exact `$declarations` candid types (`RegistryDid.Series`,
+the exact `#declarations` candid types (`RegistryDid.Series`,
 `ClearingDid.SettlementStatusView`, candles, trade pages, volumes,
 collateral assets, leaderboard entries), so utils, stores, and components
 consume identical shapes on both transports. Mappers are field-explicit

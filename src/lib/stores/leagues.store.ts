@@ -5,10 +5,10 @@ import {
 	listMyLeagues,
 	type FriendRecommendedLeague,
 	type LeagueWithRole
-} from '$lib/services/leagues.services';
-import { loadProfilesByPrincipals } from '$lib/services/profile.services';
-import type { BattleDoc } from '$lib/types/battle';
-import type { LeagueMemberDoc } from '$lib/types/league-member';
+} from '#lib/services/leagues.services.ts';
+import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
+import type { BattleDoc } from '#lib/types/battle.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import { writable } from 'svelte/store';
 
 /**

@@ -1,19 +1,19 @@
-import { CLAIM_HANDOFF_ENABLED, CLAIM_PORTAL_URL } from '$lib/constants/claim.constants';
-import { getIdentity } from '$lib/services/identity.services';
+import { CLAIM_HANDOFF_ENABLED, CLAIM_PORTAL_URL } from '#lib/constants/claim.constants.ts';
+import { getIdentity } from '#lib/services/identity.services.ts';
 import {
 	bytesToBase64Url,
 	CLAIM_AUDIENCE,
 	claimMessageBytes,
 	encodeClaimBlob
-} from '$lib/utils/claim-handoff.utils';
+} from '#lib/utils/claim-handoff.utils.ts';
 import {
 	activeMigrationBanner,
 	isMoveNoticeVisible,
 	type MigrationBannerGate
-} from '$lib/utils/migration-banner.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
-import { postClaim, Web2ApiError } from '$lib/web2/client';
-import { loadWeb2Session } from '$lib/web2/session';
+} from '#lib/utils/migration-banner.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { postClaim, Web2ApiError } from '#lib/web2/client.ts';
+import { loadWeb2Session } from '#lib/web2/session.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { DelegationIdentity } from '@icp-sdk/core/identity';
 

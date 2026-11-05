@@ -1,22 +1,22 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import SignInProviderStackWeb2 from '$lib/components/authn/SignInProviderStackWeb2.svelte';
-	import Logo from '$lib/components/layout/Logo.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { CLAIM_BLOB_STORAGE_KEY } from '$lib/constants/claim.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
+	import SignInProviderStackWeb2 from '#lib/components/authn/SignInProviderStackWeb2.svelte';
+	import Logo from '#lib/components/layout/Logo.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { CLAIM_BLOB_STORAGE_KEY } from '#lib/constants/claim.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		isClaimPortalEnabled,
 		submitClaimBlob,
 		type ClaimSubmitOutcome
-	} from '$lib/services/claim-handoff.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { web2SessionStore } from '$lib/web2/session';
+	} from '#lib/services/claim-handoff.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { web2SessionStore } from '#lib/web2/session.ts';
+	import { goto } from '$app/navigation';
 
 	// The claim portal exists on the web2 build only; the legacy build serves
 	// the handoff surfaces instead (banner + settings row).
@@ -35,7 +35,7 @@
 
 	onMount(() => {
 		if (!enabled) {
-			void goto('/', { replaceState: true });
+			void goto('/', { replace: true });
 
 			return;
 		}
@@ -197,7 +197,7 @@
 						? t({ locale: $localeStore, key: 'claim.page.already_linked' })
 						: t({ locale: $localeStore, key: 'claim.page.success_body' })}
 				</p>
-				<Button onclick={() => void goto(resolve(AppPath.Home))} size="lg" variant="primary">
+				<Button onclick={() => void goto(resolveAppPath(AppPath.Home))} size="lg" variant="primary">
 					{t({ locale: $localeStore, key: 'claim.page.open_app_cta' })}
 				</Button>
 			{:else}

@@ -1,13 +1,16 @@
-import type { ClearingDid, RegistryDid } from '$declarations';
-import { getUserMarketSignals } from '$lib/services/market-signals.services';
-import { deriveTagsBySeries, listMarketMetadataBySeries } from '$lib/services/market-tags.services';
-import { enrichFlowMarketsWithOrderBook, getFlowQueue } from '$lib/services/market.services';
-import { getUserTradeHistory } from '$lib/services/trade.services';
-import type { Market, MarketId } from '$lib/types/market';
-import type { MarketMetadata } from '$lib/types/market-metadata';
-import type { UserMarketSignals } from '$lib/types/market-signals';
-import { deriveCalledMarketIds } from '$lib/utils/market-signals.utils';
-import { filterScheduledWcMarkets } from '$lib/utils/wc-schedule.utils';
+import type { ClearingDid, RegistryDid } from '#declarations';
+import { getUserMarketSignals } from '#lib/services/market-signals.services.ts';
+import {
+	deriveTagsBySeries,
+	listMarketMetadataBySeries
+} from '#lib/services/market-tags.services.ts';
+import { enrichFlowMarketsWithOrderBook, getFlowQueue } from '#lib/services/market.services.ts';
+import { getUserTradeHistory } from '#lib/services/trade.services.ts';
+import type { MarketMetadata } from '#lib/types/market-metadata.ts';
+import type { UserMarketSignals } from '#lib/types/market-signals.ts';
+import type { Market, MarketId } from '#lib/types/market.ts';
+import { deriveCalledMarketIds } from '#lib/utils/market-signals.utils.ts';
+import { filterScheduledWcMarkets } from '#lib/utils/wc-schedule.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

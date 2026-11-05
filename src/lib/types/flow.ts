@@ -1,4 +1,4 @@
-import type { MarketId } from '$lib/types/market';
+import type { MarketId } from '#lib/types/market.ts';
 
 /**
  * One settled call in the "while you were away" digest — a row in the Flow

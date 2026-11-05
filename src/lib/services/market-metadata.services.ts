@@ -1,10 +1,10 @@
-import { functions } from '$declarations/satellite/satellite.api';
-import type { MarketMetadata, MarketMetadataInput } from '$lib/types/market-metadata';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+import { functions } from '#declarations/satellite/satellite.api.ts';
+import type { MarketMetadata, MarketMetadataInput } from '#lib/types/market-metadata.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getMarketMetadata as getMarketMetadataWeb2,
 	upsertMarketMetadata as upsertMarketMetadataWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
 
 export const getMarketMetadata = async (seriesId: string): Promise<MarketMetadata | undefined> => {
 	if (isWeb2Backend()) {

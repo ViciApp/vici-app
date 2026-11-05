@@ -1,5 +1,5 @@
-import { listMyAffiliations } from '$lib/services/worlds.services';
-import type { AffiliationDoc } from '$lib/types/affiliation';
+import { listMyAffiliations } from '#lib/services/worlds.services.ts';
+import type { AffiliationDoc } from '#lib/types/affiliation.ts';
 import { writable } from 'svelte/store';
 
 /**

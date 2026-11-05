@@ -1,9 +1,9 @@
-import type { AppLocale } from '$lib/constants/locale.constants';
-import { RelationCategory } from '$lib/enums/relation';
-import type { NotificationType } from '$lib/stores/notification.store';
-import type { FriendRequestOutcome } from '$lib/types/relation';
-import { formatRelativeUntilFromMs } from '$lib/utils/format.utils';
-import { t } from '$lib/utils/i18n.utils';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import { RelationCategory } from '#lib/enums/relation.ts';
+import type { NotificationType } from '#lib/stores/notification.store.ts';
+import type { FriendRequestOutcome } from '#lib/types/relation.ts';
+import { formatRelativeUntilFromMs } from '#lib/utils/format.utils.ts';
+import { t } from '#lib/utils/i18n.utils.ts';
 import type { PrincipalText } from '@junobuild/schema';
 
 export const toRelationId = ({

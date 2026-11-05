@@ -20,7 +20,7 @@ typically checked out at `../icdc-core/`).
 What `ls`, `package.json`, and `tsconfig*.json` already tell you, this file
 will not. What they cannot tell you:
 
-- **`src/declarations/**`is generated** by`npm run did`from upstream`.did` files. Never hand-edit.
+- **`src/declarations/**`is generated** by`npm run did`from upstream`.did` files. Never hand-edit. The exception is the hand-written wiring `src/declarations/{index,_factory,_types}.ts`, which `npm run did` does not produce and which is not vendored to the backend.
 - **`src/satellite/satellite.did`, `satellite_extension.did`, and
   `api-schemas.ts` are generated** by `npm run juno:functions:build`.
 - **`static/workers/**`is synced from`@junobuild/core`by`npm run postinstall`\*\* — don't hand-edit.
@@ -50,10 +50,10 @@ ask) are enforced via CI, eslint, the boundary table in
    [`docs/ai/frontend/a11y.md`](./docs/ai/frontend/a11y.md).
 3. **i18n is non-negotiable.** Every user-visible string goes through
    `t({ locale: $localeStore, key })` from
-   [`$lib/utils/i18n.utils`](./src/lib/utils/i18n.utils.ts). Add the key to
+   [`#lib/utils/i18n.utils.ts`](./src/lib/utils/i18n.utils.ts). Add the key to
    **every** locale catalog under `src/lib/constants/messages/` — never
    just `en.ts`. The supported locales are declared once in
-   [`$lib/constants/locale.constants`](./src/lib/constants/locale.constants.ts)
+   [`#lib/constants/locale.constants.ts`](./src/lib/constants/locale.constants.ts)
    (`SUPPORTED_LOCALES`). The full workflow lives in
    [`docs/ai/frontend/i18n.md`](./docs/ai/frontend/i18n.md). Hardcoded
    English strings in templates are a review-blocking smell, not a
@@ -74,11 +74,12 @@ ask) are enforced via CI, eslint, the boundary table in
    [`docs/ai/frontend/design.md`](./docs/ai/frontend/design.md) (§ 7 for
    Flow Mode); describe behaviour and intent, not its source.
 6. **Eslint disallowed list is hard policy.** `0n` literal → `ZERO` from
-   `$lib/constants/app.constants`. `return undefined;` → bare `return;`.
+   `#lib/constants/app.constants`. `return undefined;` → bare `return;`.
    `local-rules/no-relative-imports` is `error` under `src/**` — use the
-   aliases declared in [`svelte.config.js`](./svelte.config.js).
+   subpath imports (`#lib`, `#declarations`, `#satellite`, `#root`) declared in
+   [`package.json`](./package.json) `imports`.
    `local-rules/no-bare-svelte-text` flags hardcoded English in any
-   `.svelte` file that already imports `$lib/utils/i18n.utils` — when it
+   `.svelte` file that already imports `#lib/utils/i18n.utils.ts` — when it
    fires, route the string through `t(...)` instead of disabling the rule.
 7. **Run the local gates** ([`pr-and-ci.md`](./docs/ai/pr-and-ci.md#local-quality-gates))
    before opening a PR. Catalog drift across locales is caught by

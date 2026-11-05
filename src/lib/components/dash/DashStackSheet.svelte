@@ -10,17 +10,17 @@
 	 */
 	import { nonNullish } from '@dfinity/utils';
 	import { Check, ChevronRight, Gift, History } from '@lucide/svelte/icons';
-	import { resolve } from '$app/paths';
-	import DashHoldingsBreakdown from '$lib/components/dash/DashHoldingsBreakdown.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { REFERRAL_VXP_BONUS_BASE_UNITS } from '$lib/constants/referral.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { getMyReferralCode } from '$lib/services/referral.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { writeToClipboard } from '$lib/utils/clipboard.utils';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
+	import DashHoldingsBreakdown from '#lib/components/dash/DashHoldingsBreakdown.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import { REFERRAL_VXP_BONUS_BASE_UNITS } from '#lib/constants/referral.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { getMyReferralCode } from '#lib/services/referral.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	interface Props {
 		isOpen: boolean;
@@ -174,7 +174,7 @@
 
 		<a
 			class="db-hd-link"
-			href={`${resolve(AppPath.DashTransactions)}?source=sheet`}
+			href={`${resolveAppPath(AppPath.DashTransactions)}?source=sheet`}
 			onclick={onClose}
 		>
 			<History aria-hidden="true" size={16} strokeWidth={1.8} />

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
 
 	// Redirect alias. The markets list now lives on the canonical home
 	// surface (`/app`, which renders `MarketsPage`); the Markets nav tab
@@ -16,7 +16,7 @@
 	// hop, mirroring the `/m/[id]` share-link alias.
 	onMount(() => {
 		const { search, hash } = page.url;
-		void goto(`${resolve(AppPath.Home)}${search}${hash}`, { replaceState: true });
+		void goto(`${resolveAppPath(AppPath.Home)}${search}${hash}`, { replace: true });
 	});
 </script>
 

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { PrincipalText } from '@junobuild/schema';
 	import { Pencil } from '@lucide/svelte/icons';
-	import ViciAvatar from '$lib/components/ui/ViciAvatar.svelte';
-	import { myAvatarParts } from '$lib/stores/avatar.store';
-	import { hasUploadedAvatar, resolveAvatarUrl } from '$lib/utils/avatar.utils';
-	import { parseParts } from '$lib/utils/vici-avatar.utils';
+	import ViciAvatar from '#lib/components/ui/ViciAvatar.svelte';
+	import { myAvatarParts } from '#lib/stores/avatar.store.ts';
+	import { hasUploadedAvatar, resolveAvatarUrl } from '#lib/utils/avatar.utils.ts';
+	import { parseParts } from '#lib/utils/vici-avatar.utils.ts';
 
 	interface Props {
 		avatar?: string | null;

@@ -2,21 +2,21 @@
 	import { isNullish } from '@dfinity/utils';
 	import { X } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import {
 		notificationDestination,
 		notificationKindConfig
-	} from '$lib/constants/notification-kind.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { track } from '$lib/services/analytics.services';
+	} from '#lib/constants/notification-kind.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		clearInboxToast,
 		initInboxProgress,
 		initInboxToasts,
 		latestInboxToast
-	} from '$lib/stores/inbox.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/stores/inbox.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goto } from '$app/navigation';
 
 	/**
 	 * NotifToastHost — slides a toast in from the top of the app shell when a

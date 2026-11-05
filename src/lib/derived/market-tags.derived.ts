@@ -5,9 +5,9 @@ import {
 	MICRO_IDS,
 	type MacroId,
 	type MicroId
-} from '$lib/constants/market-taxonomy.constants';
-import { cachedNotInitialized } from '$lib/derived/cached.derived';
-import { marketTagsStore } from '$lib/stores/market-tags.store';
+} from '#lib/constants/market-taxonomy.constants.ts';
+import { cachedNotInitialized } from '#lib/derived/cached.derived.ts';
+import { marketTagsStore } from '#lib/stores/market-tags.store.ts';
 import { derived, type Readable } from 'svelte/store';
 
 const EMPTY_TAGS: Record<string, string[]> = {};

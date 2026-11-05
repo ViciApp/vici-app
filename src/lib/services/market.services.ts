@@ -1,10 +1,10 @@
-import type { RegistryDid } from '$declarations';
+import type { RegistryDid } from '#declarations';
 import {
 	getSettlementStatus,
 	listOrders as listOrdersApi,
 	listSeriesTradedVolumes as listSeriesTradedVolumesApi
-} from '$lib/api/clearing.api';
-import { addSeries, forkSeries, getSeries, listSeries } from '$lib/api/registry.api';
+} from '#lib/api/clearing.api.ts';
+import { addSeries, forkSeries, getSeries, listSeries } from '#lib/api/registry.api.ts';
 import {
 	DAY_IN_MS,
 	MILLISECOND_IN_NANOSECONDS,
@@ -14,50 +14,53 @@ import {
 	STRIKE,
 	USD_DECIMALS,
 	VICI_ORACLE_V1
-} from '$lib/constants/app.constants';
-import { CURRENT_FEATURED_EVENT } from '$lib/constants/featured-event.constants';
-import { VICI_ENGINE_ID } from '$lib/constants/icdc.constants';
-import type { AppLocale } from '$lib/constants/locale.constants';
-import { classificationMacros } from '$lib/constants/market-taxonomy.constants';
-import { ActivityType } from '$lib/enums/social';
-import { UserRole } from '$lib/enums/user';
-import { getSettlementActivities, logActivity } from '$lib/services/activity.services';
-import { getIdentityOrAnonymous, safeGetIdentityOnce } from '$lib/services/identity.services';
+} from '#lib/constants/app.constants.ts';
+import { CURRENT_FEATURED_EVENT } from '#lib/constants/featured-event.constants.ts';
+import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import { classificationMacros } from '#lib/constants/market-taxonomy.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import { UserRole } from '#lib/enums/user.ts';
+import { getSettlementActivities, logActivity } from '#lib/services/activity.services.ts';
+import { getIdentityOrAnonymous, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import {
 	listMarketMetadataBySeries,
 	listMarketTagsBySeries
-} from '$lib/services/market-tags.services';
-import { getOrderBook } from '$lib/services/order.services';
-import { getProfile } from '$lib/services/profile.services';
-import { loadWithCertification } from '$lib/services/query-update.services';
+} from '#lib/services/market-tags.services.ts';
+import { getOrderBook } from '#lib/services/order.services.ts';
+import { getProfile } from '#lib/services/profile.services.ts';
+import { loadWithCertification } from '#lib/services/query-update.services.ts';
 import {
 	getSettledSeriesIds,
 	loadSettlementOutcomes,
 	type SettlementDetails
-} from '$lib/services/resolution.services';
-import type { Market, MarketId, MarketStatus, Outcome } from '$lib/types/market';
-import type { MarketMetadata } from '$lib/types/market-metadata';
-import type { Activity } from '$lib/types/social';
-import { filterByPlaygroundExpandedDomain } from '$lib/utils/balance-domain.utils';
-import { participantMarketIds } from '$lib/utils/featured-event.utils';
-import { cacheMarketPrices, readCachedYesProbabilities } from '$lib/utils/market-price-cache.utils';
+} from '#lib/services/resolution.services.ts';
+import type { MarketMetadata } from '#lib/types/market-metadata.ts';
+import type { Market, MarketId, MarketStatus, Outcome } from '#lib/types/market.ts';
+import type { Activity } from '#lib/types/social.ts';
+import { filterByPlaygroundExpandedDomain } from '#lib/utils/balance-domain.utils.ts';
+import { participantMarketIds } from '#lib/utils/featured-event.utils.ts';
+import {
+	cacheMarketPrices,
+	readCachedYesProbabilities
+} from '#lib/utils/market-price-cache.utils.ts';
 import {
 	calculateCategoricalProbabilities,
 	calculateMarketStats,
 	mapMarketData,
 	parseSettlementOutcome
-} from '$lib/utils/market.utils';
-import { settlementInputOutcome, settlementInputTimestamp } from '$lib/utils/payoff.utils';
-import { refreshMarkets } from '$lib/utils/refresh.utils';
-import { parseMarketId } from '$lib/validation/market.validation';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/utils/market.utils.ts';
+import { settlementInputOutcome, settlementInputTimestamp } from '#lib/utils/payoff.utils.ts';
+import { refreshMarkets } from '#lib/utils/refresh.utils.ts';
+import { parseMarketId } from '#lib/validation/market.validation.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getEngineSeries as getEngineSeriesWeb2,
 	getEngineSettlementStatus as getEngineSettlementStatusWeb2,
 	listEngineSeriesVolumes as listEngineSeriesVolumesWeb2,
 	listEngineSeries as listEngineSeriesWeb2
-} from '$lib/web2/client';
-import { getWeb2User } from '$lib/web2/session';
+} from '#lib/web2/client.ts';
+import { getWeb2User } from '#lib/web2/session.ts';
 import { isEmptyString, isNullish, nonNullish, notEmptyString, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 

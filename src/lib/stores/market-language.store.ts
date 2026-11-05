@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import { isNullish } from '@dfinity/utils';
 import { writable } from 'svelte/store';
 

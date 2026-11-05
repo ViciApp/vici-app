@@ -1,6 +1,6 @@
-import type { ClearingDid } from '$declarations';
-import { CLEARING_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
+import type { ClearingDid } from '#declarations';
+import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	BATTLE_SCOPE_DEFAULT,
 	battleAccuracyPct,
@@ -8,11 +8,11 @@ import {
 	type BattleDoc,
 	type BattleScope,
 	type BattleWinner
-} from '$lib/types/battle';
-import type { LeagueMemberDoc } from '$lib/types/league-member';
-import { seriesIdsForTag } from '$satellite/services/market-tag-index.services';
-import { candidMethod } from '$satellite/utils/candid.utils';
-import { escapeRegex } from '$satellite/utils/regex.utils';
+} from '#lib/types/battle.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+import { seriesIdsForTag } from '#satellite/services/market-tag-index.services.ts';
+import { candidMethod } from '#satellite/utils/candid.utils.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { call, msgCaller, time } from '@junobuild/functions/ic-cdk';

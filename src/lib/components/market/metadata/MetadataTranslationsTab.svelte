@@ -1,22 +1,22 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
-	import Button from '$lib/components/ui/Button.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
 	import {
 		DEFAULT_LOCALE,
 		SUPPORTED_LOCALES,
 		type AppLocale
-	} from '$lib/constants/locale.constants';
+	} from '#lib/constants/locale.constants.ts';
 	import {
 		getMarketTranslation,
 		listMarketTranslations,
 		upsertMarketTranslation
-	} from '$lib/services/market-translation.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import type { Market } from '$lib/types/market';
-	import type { MarketTranslation } from '$lib/types/market-translation';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/services/market-translation.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import type { MarketTranslation } from '#lib/types/market-translation.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		market: Market;

@@ -13,9 +13,9 @@
 	 * synthesised deterministically (see `DashTrendChart`).
 	 */
 	import { Flame, Globe } from '@lucide/svelte/icons';
-	import DashTrendChart from '$lib/components/dash/DashTrendChart.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import DashTrendChart from '#lib/components/dash/DashTrendChart.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		/** Accuracy as a 0..100 percentage. */

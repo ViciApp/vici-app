@@ -1,10 +1,10 @@
-import type { ClearingDid, RegistryDid } from '$declarations';
-import { MILLISECOND_IN_NANOSECONDS, ZERO } from '$lib/constants/app.constants';
-import type { Market, MarketStatus, Outcome, TradingAccessUI } from '$lib/types/market';
-import type { OrderBookLevel, OrderType } from '$lib/types/order';
-import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
-import { resolveMarketDisplayToken } from '$lib/utils/market-token.utils';
-import { parseMarketId } from '$lib/validation/market.validation';
+import type { ClearingDid, RegistryDid } from '#declarations';
+import { MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
+import type { Market, MarketStatus, Outcome, TradingAccessUI } from '#lib/types/market.ts';
+import type { OrderBookLevel, OrderType } from '#lib/types/order.ts';
+import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
+import { resolveMarketDisplayToken } from '#lib/utils/market-token.utils.ts';
+import { parseMarketId } from '#lib/validation/market.validation.ts';
 import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
 
 /**
@@ -417,7 +417,7 @@ const mapTradingAccess = (
  * Badge/variant hint for market or resolution outcome labels.
  *
  * Outcome ids for cancellation are normalized as `CANCELED` across the app
- * (see `OutcomeId` in `$lib/types/market`), so the check must match that
+ * (see `OutcomeId` in `#lib/types/market.ts`), so the check must match that
  * casing rather than `Canceled`.
  */
 export const getOutcomeVariant = (

@@ -18,55 +18,58 @@
 	 * per-window time-series is persisted yet — see `dash-trend.utils`).
 	 */
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import type { ClearingDid } from '$declarations';
-	import DashBuildHero from '$lib/components/dash/DashBuildHero.svelte';
-	import DashBuildZero, { type ZeroMarketRow } from '$lib/components/dash/DashBuildZero.svelte';
+	import type { ClearingDid } from '#declarations';
+	import DashBuildHero from '#lib/components/dash/DashBuildHero.svelte';
+	import DashBuildZero, { type ZeroMarketRow } from '#lib/components/dash/DashBuildZero.svelte';
 	import DashCallsZone, {
 		type OpenCallRow,
 		type ResolvedCallRow
-	} from '$lib/components/dash/DashCallsZone.svelte';
-	import DashResolutionBanner from '$lib/components/dash/DashResolutionBanner.svelte';
-	import DashStackCard from '$lib/components/dash/DashStackCard.svelte';
-	import DashStackSheet from '$lib/components/dash/DashStackSheet.svelte';
-	import ResolutionReveal from '$lib/components/market/ResolutionReveal.svelte';
-	import { USD_DECIMALS, ZERO } from '$lib/constants/app.constants';
-	import { primaryMicro } from '$lib/constants/market-taxonomy.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
-	import { marketTags } from '$lib/derived/market-tags.derived';
-	import { orders } from '$lib/derived/orders.derived';
-	import { positions } from '$lib/derived/positions.derived';
+	} from '#lib/components/dash/DashCallsZone.svelte';
+	import DashResolutionBanner from '#lib/components/dash/DashResolutionBanner.svelte';
+	import DashStackCard from '#lib/components/dash/DashStackCard.svelte';
+	import DashStackSheet from '#lib/components/dash/DashStackSheet.svelte';
+	import ResolutionReveal from '#lib/components/market/ResolutionReveal.svelte';
+	import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+	import { marketTags } from '#lib/derived/market-tags.derived.ts';
+	import { orders } from '#lib/derived/orders.derived.ts';
+	import { positions } from '#lib/derived/positions.derived.ts';
 	import {
 		resolvedPositions,
 		resolvedPositionsNotInitialized
-	} from '$lib/derived/resolved-positions.derived';
+	} from '#lib/derived/resolved-positions.derived.ts';
 	import {
 		vxpBacked,
 		vxpHoldingsNotInitialized,
 		vxpHoldingsTotal,
 		vxpSpendable
-	} from '$lib/derived/vxp-holdings.derived';
-	import { getProfile, syncMyStats } from '$lib/services/profile.services';
-	import { loadMyUserStats } from '$lib/services/user-stats.services';
-	import { friendsListStore } from '$lib/stores/friends.store';
-	import { markResolutionsSeen, maturedResolutions } from '$lib/stores/inbox.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { displayMarkets } from '$lib/stores/market-translations.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { Market } from '$lib/types/market';
-	import type { UserStatsDoc } from '$lib/types/user-stats';
+	} from '#lib/derived/vxp-holdings.derived.ts';
+	import { getProfile, syncMyStats } from '#lib/services/profile.services.ts';
+	import { loadMyUserStats } from '#lib/services/user-stats.services.ts';
+	import { friendsListStore } from '#lib/stores/friends.store.ts';
+	import { markResolutionsSeen, maturedResolutions } from '#lib/stores/inbox.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 	import {
 		decimalFixedValueToNumber,
 		formatRelativeAgoShort,
 		probabilityToPercent
-	} from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { categoryLabel } from '$lib/utils/market-tags.utils';
-	import { formatVxpBalance, formatWholeVxpMagnitude } from '$lib/utils/playground-display.utils';
-	import { inferResolvedOutcomeId } from '$lib/utils/resolved-position.utils';
+	} from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import {
+		formatVxpBalance,
+		formatWholeVxpMagnitude
+	} from '#lib/utils/playground-display.utils.ts';
+	import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
+	import { goto } from '$app/navigation';
 
 	// ─── Reactive backend reads ────────────────────────────────────────
 	const profile = $derived($userStore.profile);
@@ -308,7 +311,7 @@
 	const onRevealDismiss = (): void => {
 		markResolutionsSeen();
 		revealOpen = false;
-		void goto(resolve(AppPath.Flow));
+		void goto(resolveAppPath(AppPath.Flow));
 	};
 
 	// ─── Three-state gate ──────────────────────────────────────────────

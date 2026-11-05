@@ -45,6 +45,18 @@ export default ts.config(
 	},
 
 	{
+		rules: {
+			// `#lib`, `#declarations`, `#satellite` and `#root` are package.json subpath
+			// imports. The resolver maps them to a parent directory, but they are
+			// the project aliases, not `../` paths.
+			'import/no-relative-parent-imports': [
+				'error',
+				{ ignore: ['^#(lib|declarations|satellite|root)(/|$)'] }
+			]
+		}
+	},
+
+	{
 		// The Bun backend is its own TypeScript project; typed linting must
 		// resolve its files through backend/tsconfig.json, not the frontend's
 		// tsconfig.eslint.json.
@@ -76,7 +88,7 @@ export default ts.config(
 	{
 		// The service worker legitimately uses the ServiceWorkerGlobalScope
 		// surface (`self`, `caches`, `fetch`, `clients`, event listeners).
-		files: ['src/service-worker.ts'],
+		files: ['src/service-worker/**/*.ts'],
 		languageOptions: {
 			globals: globals.serviceworker
 		}
@@ -85,7 +97,7 @@ export default ts.config(
 	{
 		files: ['src/**/*.svelte'],
 		rules: {
-			// Self-filters to .svelte files that already import $lib/utils/i18n.utils.
+			// Self-filters to .svelte files that already import #lib/utils/i18n.utils.ts.
 			// See local-rules/no-bare-svelte-text.cjs and docs/ai/frontend/i18n.md.
 			// Severity is 'warn' during the i18n coverage paydown — promote to
 			// 'error' once docs/ai/frontend/i18n-coverage.md is empty.

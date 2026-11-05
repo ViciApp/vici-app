@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { Share } from '@lucide/svelte/icons';
-	import SharePopover from '$lib/components/market/SharePopover.svelte';
-	import SavedMarketToggle from '$lib/components/saved-markets/SavedMarketToggle.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import type { Market } from '$lib/types/market';
-	import type { PriorCallSignal } from '$lib/types/market-signals';
-	import type { FlowArtCategory } from '$lib/utils/flow-art.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { categoryLabel } from '$lib/utils/market-tags.utils';
+	import SharePopover from '#lib/components/market/SharePopover.svelte';
+	import SavedMarketToggle from '#lib/components/saved-markets/SavedMarketToggle.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { PriorCallSignal } from '#lib/types/market-signals.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import type { FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 
 	interface Props {
 		market: Market;

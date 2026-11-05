@@ -1,4 +1,4 @@
-import type { Position } from '$lib/types/position';
+import type { Position } from '#lib/types/position.ts';
 import { writable } from 'svelte/store';
 
 /**

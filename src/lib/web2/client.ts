@@ -1,33 +1,33 @@
-import type { ClearingDid, RegistryDid } from '$declarations';
-import type { AppLocale } from '$lib/constants/locale.constants';
-import type { LeaguePrivacy } from '$lib/enums/league';
-import type { ProfileVisibility } from '$lib/enums/profile';
-import type { UserRole } from '$lib/enums/user';
-import type { AffiliationDoc, AffiliationKind } from '$lib/types/affiliation';
+import type { ClearingDid, RegistryDid } from '#declarations';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import type { LeaguePrivacy } from '#lib/enums/league.ts';
+import type { ProfileVisibility } from '#lib/enums/profile.ts';
+import type { UserRole } from '#lib/enums/user.ts';
 import type {
 	AffiliationChampionship,
 	AffiliationMemberCount,
 	AffiliationStatsDoc
-} from '$lib/types/affiliation-stats';
-import type { TrackEventInput } from '$lib/types/analytics-event';
-import { isBattleScope, type BattleDoc, type BattleWinner } from '$lib/types/battle';
-import type { ExitSignalReason } from '$lib/types/exit-signal';
-import type { LeagueDoc } from '$lib/types/league';
-import type { LeagueMemberDoc, LeagueMemberRole } from '$lib/types/league-member';
-import type { CallSide } from '$lib/types/market';
-import type { MarketMetadata, MarketMetadataInput } from '$lib/types/market-metadata';
-import type { MarketTranslation, MarketTranslationInput } from '$lib/types/market-translation';
-import type { UserProfile } from '$lib/types/profile';
-import type { FriendRequestOutcome, Relation } from '$lib/types/relation';
+} from '#lib/types/affiliation-stats.ts';
+import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
+import type { TrackEventInput } from '#lib/types/analytics-event.ts';
+import { isBattleScope, type BattleDoc, type BattleWinner } from '#lib/types/battle.ts';
+import type { ExitSignalReason } from '#lib/types/exit-signal.ts';
+import type { LeagueMemberDoc, LeagueMemberRole } from '#lib/types/league-member.ts';
+import type { LeagueDoc } from '#lib/types/league.ts';
+import type { MarketMetadata, MarketMetadataInput } from '#lib/types/market-metadata.ts';
+import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
+import type { CallSide } from '#lib/types/market.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
 import type {
 	Activity,
 	ActivityReaction,
 	ActivityReactionCount,
 	ResolvedResult
-} from '$lib/types/social';
-import type { TournamentDoc, TournamentMatchDoc } from '$lib/types/tournament';
-import type { UserStatsDoc } from '$lib/types/user-stats';
-import { web2ApiBaseUrl } from '$lib/web2/backend-mode';
+} from '#lib/types/social.ts';
+import type { TournamentDoc, TournamentMatchDoc } from '#lib/types/tournament.ts';
+import type { UserStatsDoc } from '#lib/types/user-stats.ts';
+import { web2ApiBaseUrl } from '#lib/web2/backend-mode.ts';
 import {
 	balanceDomainToWire,
 	intervalToWire,
@@ -54,7 +54,7 @@ import {
 	type Web2SeriesTradedVolumeWire,
 	type Web2SeriesWire,
 	type Web2SettlementStatusWire
-} from '$lib/web2/engine-wire';
+} from '#lib/web2/engine-wire.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**
@@ -682,7 +682,7 @@ export const upsertMarketTranslation = async ({
 // The API proxies the same anonymous registry / clearing queries the app runs
 // on-chain today, serialized to JSON (bigints as strings, principals as
 // text). The `engine-wire` mappers convert each payload back into the exact
-// `$declarations` candid types, so services hand downstream utils and stores
+// `#declarations` candid types, so services hand downstream utils and stores
 // the same shapes on both transports. Only public market-wide reads live
 // here: every user-signed engine call (orders, collateral moves, positions)
 // stays on-chain until the engine / wallet swap.
@@ -858,7 +858,7 @@ export const listEngineCollateralAssets = async (): Promise<ClearingDid.Collater
 // The API signs these clearing calls with the caller's derived custodial IC
 // identity, so the engine sees the same principal that owns the account's
 // positions; the browser authenticates with the session cookie only. Returns
-// are mapped back into the `$declarations` candid types like the public reads
+// are mapped back into the `#declarations` candid types like the public reads
 // above, so stores and utils stay backend-agnostic.
 
 /**

@@ -1,4 +1,4 @@
-import type { ClearingDid, RegistryDid } from '$declarations';
+import type { ClearingDid, RegistryDid } from '#declarations';
 import {
 	getPositions as getPositionsApi,
 	getSeriesPriceHistory as getSeriesPriceHistoryApi,
@@ -6,32 +6,32 @@ import {
 	listSeriesTradeHistory as listSeriesTradeHistoryApi,
 	mintCompleteSet as mintCompleteSetApi,
 	redeemCompleteSet as redeemCompleteSetApi
-} from '$lib/api/clearing.api';
-import { ZERO } from '$lib/constants/app.constants';
+} from '#lib/api/clearing.api.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import {
 	getIdentity,
 	getIdentityOrAnonymous,
 	safeGetIdentityOnce,
 	web2PlaceholderIdentity
-} from '$lib/services/identity.services';
-import { fetchMarketsLite } from '$lib/services/market.services';
-import { loadWithCertification } from '$lib/services/query-update.services';
-import { filterByMarketIds } from '$lib/utils/balance-domain.utils';
+} from '#lib/services/identity.services.ts';
+import { fetchMarketsLite } from '#lib/services/market.services.ts';
+import { loadWithCertification } from '#lib/services/query-update.services.ts';
+import { filterByMarketIds } from '#lib/utils/balance-domain.utils.ts';
 import {
 	deriveMarketPriceSeries,
 	priceHistoryQueryWindow,
 	tradeHistoryNotional,
 	type MarketPriceSeries,
 	type PriceHistoryPeriod
-} from '$lib/utils/market-price-history.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/utils/market-price-history.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getEnginePriceHistory as getEnginePriceHistoryWeb2,
 	listEnginePositions as listEnginePositionsWeb2,
 	listEngineSeriesTrades as listEngineSeriesTradesWeb2,
 	listEngineTradeHistory as listEngineTradeHistoryWeb2
-} from '$lib/web2/client';
-import { getWeb2User } from '$lib/web2/session';
+} from '#lib/web2/client.ts';
+import { getWeb2User } from '#lib/web2/session.ts';
 import { fromNullable, isNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 

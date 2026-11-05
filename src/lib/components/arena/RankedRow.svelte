@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PrincipalText } from '@junobuild/schema';
-	import Avatar from '$lib/components/profile/Avatar.svelte';
-	import YouBadge from '$lib/components/ui/YouBadge.svelte';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import YouBadge from '#lib/components/ui/YouBadge.svelte';
 
 	/**
 	 * A single row in the Arena → Friends ranked list. Purely

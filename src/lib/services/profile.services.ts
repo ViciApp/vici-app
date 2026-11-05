@@ -1,48 +1,48 @@
-import type { RegistryDid } from '$declarations';
-import { functions } from '$declarations/satellite/satellite.api';
-import { USD_DECIMALS, ZERO } from '$lib/constants/app.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { COMEBACK_COLD_STREAK_LOSSES } from '$lib/constants/menagerie.constants';
+import type { RegistryDid } from '#declarations';
+import { functions } from '#declarations/satellite/satellite.api.ts';
+import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { COMEBACK_COLD_STREAK_LOSSES } from '#lib/constants/menagerie.constants.ts';
 import {
 	MIN_NICKNAME_LENGTH,
 	nicknameUniqueKey,
 	sanitizeNickname
-} from '$lib/constants/profile.constants';
-import { ProfileVisibility } from '$lib/enums/profile';
-import type { UserRole } from '$lib/enums/user';
-import { notifyAchievementsUnlocked } from '$lib/services/achievements.services';
-import { safeGetIdentityOnce } from '$lib/services/identity.services';
-import { getMyBattleStats, listMyLeagues } from '$lib/services/leagues.services';
-import { areNewSignupsMoved } from '$lib/services/new-app-redirect.services';
-import { getUserTradeHistory } from '$lib/services/trade.services';
+} from '#lib/constants/profile.constants.ts';
+import { ProfileVisibility } from '#lib/enums/profile.ts';
+import type { UserRole } from '#lib/enums/user.ts';
+import { notifyAchievementsUnlocked } from '#lib/services/achievements.services.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import { getMyBattleStats, listMyLeagues } from '#lib/services/leagues.services.ts';
+import { areNewSignupsMoved } from '#lib/services/new-app-redirect.services.ts';
+import { getUserTradeHistory } from '#lib/services/trade.services.ts';
 import {
 	bestSharpestEyeTier,
 	evaluateMonthlyAwards,
 	syncMyMonthlyStats
-} from '$lib/services/user-monthly-stats.services';
-import { computeUserStatsSnapshot, persistMyUserStats } from '$lib/services/user-stats.services';
-import { marketMetadataStore } from '$lib/stores/market-metadata.store';
-import { profilesStore } from '$lib/stores/profiles.store';
-import { userStore } from '$lib/stores/user.store';
-import type { Nickname, ProfilePrivate, UserProfile } from '$lib/types/profile';
-import type { UserStatsDoc } from '$lib/types/user-stats';
+} from '#lib/services/user-monthly-stats.services.ts';
+import { computeUserStatsSnapshot, persistMyUserStats } from '#lib/services/user-stats.services.ts';
+import { marketMetadataStore } from '#lib/stores/market-metadata.store.ts';
+import { profilesStore } from '#lib/stores/profiles.store.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import type { Nickname, ProfilePrivate, UserProfile } from '#lib/types/profile.ts';
+import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 import {
 	CONTRARIAN_PRICE_THRESHOLD,
 	evaluateAchievements,
 	LEAGUE_FOUNDER_MIN_MEMBERS,
 	mergeUnlockedAchievements
-} from '$lib/utils/achievements.utils';
-import { decimalFixedValueToNumber, shortenWithMiddleEllipsis } from '$lib/utils/format.utils';
-import { countWinningCategories } from '$lib/utils/menagerie.utils';
+} from '#lib/utils/achievements.utils.ts';
+import { decimalFixedValueToNumber, shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
+import { countWinningCategories } from '#lib/utils/menagerie.utils.ts';
 import {
 	eventExecutionPrice,
 	isExecutedEvent,
 	isSettledEvent,
 	isWinningSettledEvent
-} from '$lib/utils/resolved-position.utils';
-import { applyDailyStreakBump, todayKey } from '$lib/utils/streak.utils';
-import { visibilityFromProfile } from '$lib/utils/visibility.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/utils/resolved-position.utils.ts';
+import { applyDailyStreakBump, todayKey } from '#lib/utils/streak.utils.ts';
+import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	checkFriendship as checkFriendshipWeb2,
 	checkNicknameAvailability as checkNicknameAvailabilityWeb2,
@@ -52,8 +52,8 @@ import {
 	recordFlowSwipe as recordFlowSwipeWeb2,
 	searchProfiles as searchProfilesWeb2,
 	upsertMyProfile as upsertMyProfileWeb2
-} from '$lib/web2/client';
-import { fromWireProfile } from '$satellite/utils/wire-format.utils';
+} from '#lib/web2/client.ts';
+import { fromWireProfile } from '#satellite/utils/wire-format.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { getDoc, setDoc, type Doc, type User } from '@junobuild/core';

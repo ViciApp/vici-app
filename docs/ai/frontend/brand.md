@@ -96,7 +96,7 @@ small icon. The brand carries weight by what it omits."_
 Country flags **now render via
 [`CountryFlag.svelte`](../../../src/lib/components/ui/CountryFlag.svelte)**
 — a `<img>` backed by the lipis/flag-icons 4x3 SVG set shipped under
-[`$lib/assets/flags/`](../../../src/lib/assets/flags/) and indexed
+[`#lib/assets/flags/`](../../../src/lib/assets/flags/) and indexed
 through [`COUNTRY_FLAGS`](../../../src/lib/constants/country-flags.constants.ts).
 Same pattern as the `control-panel` repo. Pass the ISO-3166 alpha-2
 code (e.g. `<CountryFlag countryCode={team.id} />`). The emoji `glyph`

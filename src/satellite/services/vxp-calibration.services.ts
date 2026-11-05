@@ -1,24 +1,24 @@
-import type { ClearingDid, RegistryDid } from '$declarations';
-import { ZERO } from '$lib/constants/app.constants';
+import type { ClearingDid, RegistryDid } from '#declarations';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import {
 	CLEARING_CANISTER_ID,
 	REGISTRY_CANISTER_ID,
 	VXP_LEDGER_CANISTER_ID
-} from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { VICI_ENGINE_ID } from '$lib/constants/icdc.constants';
+} from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
 import {
 	CALIBRATION_DAILY_CAP,
 	CALIBRATION_HOURLY_CAP,
 	CALIBRATION_RECOVERY_FLOOR_BASE_UNITS,
 	VXP_CALIBRATION_REWARD_BASE_UNITS
-} from '$lib/constants/vxp-economy.constants';
-import type { CallSide } from '$lib/types/market';
-import { vxpAwardKey, type VxpAwardDoc } from '$lib/types/vxp-award';
-import type { VxpOnboardingDoc } from '$lib/types/vxp-onboarding';
-import { candidMethod } from '$satellite/utils/candid.utils';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';
+} from '#lib/constants/vxp-economy.constants.ts';
+import type { CallSide } from '#lib/types/market.ts';
+import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import type { VxpOnboardingDoc } from '#lib/types/vxp-onboarding.ts';
+import { candidMethod } from '#satellite/utils/candid.utils.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { transferWithBadFeeRetry } from '#satellite/utils/vxp-payout.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';

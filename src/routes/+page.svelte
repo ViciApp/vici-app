@@ -1,13 +1,13 @@
 <script lang="ts">
+	import WelcomePage from '#lib/components/pages/WelcomePage.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { SIGNED_IN_FLAG_KEY } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { userSignedIn, userSignedOutResolved } from '#lib/derived/user.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import WelcomePage from '$lib/components/pages/WelcomePage.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { SIGNED_IN_FLAG_KEY } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { userSignedIn, userSignedOutResolved } from '$lib/derived/user.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	// Root landing gate.
 	//
@@ -42,7 +42,7 @@
 
 	$effect(() => {
 		if ($userSignedIn) {
-			void goto(resolve(AppPath.Flow), { replaceState: true });
+			void goto(resolveAppPath(AppPath.Flow), { replace: true });
 		}
 	});
 </script>

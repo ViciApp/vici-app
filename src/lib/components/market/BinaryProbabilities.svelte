@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
-	import MarketOddsSkeleton from '$lib/components/market/MarketOddsSkeleton.svelte';
-	import type { Outcome } from '$lib/types/market';
-	import { formatProbability } from '$lib/utils/format.utils';
+	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import type { Outcome } from '#lib/types/market.ts';
+	import { formatProbability } from '#lib/utils/format.utils.ts';
 
 	interface Props {
 		yesProbability: number | undefined;

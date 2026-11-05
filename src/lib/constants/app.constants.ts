@@ -1,5 +1,5 @@
-import type { RegistryDid } from '$declarations';
-import { isDev } from '$lib/env/app.env';
+import type { RegistryDid } from '#declarations';
+import { isDev } from '#lib/env/app.env.ts';
 import { toNullable, type Nullable } from '@dfinity/utils';
 
 export const REPLICA_HOST = isDev() ? window.location.origin : 'https://icp-api.io';

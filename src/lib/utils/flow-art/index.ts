@@ -11,20 +11,20 @@
 // Returns SVG strings — components mount via {@html ...}. No DOM
 // access, no I/O — pure helper.
 
-import { PAL } from '$lib/constants/flow-art-palettes.constants';
+import { PAL } from '#lib/constants/flow-art-palettes.constants.ts';
 import {
 	classificationTags,
 	isMacroId,
 	primaryMacro
-} from '$lib/constants/market-taxonomy.constants';
-import { renderCrypto } from '$lib/utils/flow-art/renderers/crypto';
-import { renderCulture } from '$lib/utils/flow-art/renderers/culture';
-import { renderMacro } from '$lib/utils/flow-art/renderers/macro';
-import { renderPolitics } from '$lib/utils/flow-art/renderers/politics';
-import { renderSports } from '$lib/utils/flow-art/renderers/sports';
-import { renderTech } from '$lib/utils/flow-art/renderers/tech';
-import { hashStr, makeRng } from '$lib/utils/flow-art/rng';
-import { bgRect, frameInset, svgClose, svgOpen, svgOpenWC } from '$lib/utils/flow-art/svg';
+} from '#lib/constants/market-taxonomy.constants.ts';
+import { renderCrypto } from '#lib/utils/flow-art/renderers/crypto.ts';
+import { renderCulture } from '#lib/utils/flow-art/renderers/culture.ts';
+import { renderMacro } from '#lib/utils/flow-art/renderers/macro.ts';
+import { renderPolitics } from '#lib/utils/flow-art/renderers/politics.ts';
+import { renderSports } from '#lib/utils/flow-art/renderers/sports.ts';
+import { renderTech } from '#lib/utils/flow-art/renderers/tech.ts';
+import { hashStr, makeRng } from '#lib/utils/flow-art/rng.ts';
+import { bgRect, frameInset, svgClose, svgOpen, svgOpenWC } from '#lib/utils/flow-art/svg.ts';
 import {
 	FLOW_ART_CATEGORIES,
 	MACRO_ART_BUCKET,
@@ -32,8 +32,8 @@ import {
 	type FlowArtCategory,
 	type FlowArtRenderOptions,
 	type RenderArgs
-} from '$lib/utils/flow-art/types';
-import { renderWC } from '$lib/utils/flow-art/wc/render';
+} from '#lib/utils/flow-art/types.ts';
+import { renderWC } from '#lib/utils/flow-art/wc/render.ts';
 import { nonNullish } from '@dfinity/utils';
 
 const RENDERERS: Record<FlowArtBucket, (args: RenderArgs) => string> = {
@@ -144,12 +144,12 @@ export const resolveFlowArtCategory = ({
 	return FLOW_ART_CATEGORIES[idx];
 };
 
-export { flowArtViewBox } from '$lib/utils/flow-art/svg';
+export { flowArtViewBox } from '#lib/utils/flow-art/svg.ts';
 export {
 	FLOW_ART_CATEGORIES,
 	FLOW_ART_CATEGORY_SET,
 	MACRO_ART_BUCKET
-} from '$lib/utils/flow-art/types';
+} from '#lib/utils/flow-art/types.ts';
 export type {
 	FlowArtBucket,
 	FlowArtCategory,
@@ -157,4 +157,4 @@ export type {
 	FlowArtRenderOptions,
 	FlowArtState,
 	FlowArtTheme
-} from '$lib/utils/flow-art/types';
+} from '#lib/utils/flow-art/types.ts';

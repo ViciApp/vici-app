@@ -11,7 +11,7 @@
  *     market, so search engines discover the catalog at all.
  *   - ONE per-market copy of the built shell at `m/{slug~id8}` (the
  *     keyword-carrying canonical, same param the share sheet hands out —
- *     see `$lib/utils/market-slug.utils`) with the market's
+ *     see `#lib/utils/market-slug.utils`) with the market's
  *     title/description swapped into `<title>`, the description meta, the
  *     canonical link and the OG/Twitter tags, a per-market JSON-LD block,
  *     plus `window.__viciSeriesId` so the `/m/[id]` route resolves the
@@ -30,7 +30,7 @@
  *
  * Visibility mirrors the live feed: only markets attributed to the Vici
  * engine, and only once their on-chain `start_ns` has passed (mirrors
- * `$lib/utils/wc-schedule.utils`'s reveal gate, generalized beyond World Cup
+ * `#lib/utils/wc-schedule.utils`'s reveal gate, generalized beyond World Cup
  * markets — a staggered drop with a future start stays hidden here too). A
  * market with no `start_ns` is live from registration and always visible.
  * An unrevealed market must never leak here: its question would be public
@@ -51,16 +51,16 @@
  * canister must never fail a deploy, so they degrade to "no odds clause" and
  * "treat as unresolved" respectively, never a throw.
  */
-import type { _SERVICE as ClearingService, LimitOrder } from '$declarations/clearing/clearing';
-import { idlFactory as clearingIdlFactory } from '$declarations/clearing/clearing.idl.js';
-import type { _SERVICE as RegistryService, Series } from '$declarations/registry/registry';
-import { idlFactory as registryIdlFactory } from '$declarations/registry/registry.idl.js';
-import { MILLISECOND_IN_NANOSECONDS } from '$lib/constants/app.constants';
-import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '$lib/constants/canisters.constants';
-import type { Outcome } from '$lib/types/market';
-import { marketShareParam } from '$lib/utils/market-slug.utils';
-import { settlementInputOutcome } from '$lib/utils/payoff.utils';
-import { isMarketRevealed } from '$lib/utils/wc-schedule.utils';
+import type { _SERVICE as ClearingService, LimitOrder } from '#declarations/clearing/clearing.d.ts';
+import { idlFactory as clearingIdlFactory } from '#declarations/clearing/clearing.idl.js';
+import type { _SERVICE as RegistryService, Series } from '#declarations/registry/registry.d.ts';
+import { idlFactory as registryIdlFactory } from '#declarations/registry/registry.idl.js';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
+import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import type { Outcome } from '#lib/types/market.ts';
+import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
+import { settlementInputOutcome } from '#lib/utils/payoff.utils.ts';
+import { isMarketRevealed } from '#lib/utils/wc-schedule.utils.ts';
 import { fromNullable, isNullish, nonNullish, toNullable } from '@dfinity/utils';
 import { Actor, HttpAgent, type ActorSubclass } from '@icp-sdk/core/agent';
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
@@ -230,7 +230,7 @@ const listAllSeries = async (registry: ActorSubclass<RegistryService>): Promise<
 /**
  * Current YES probability (0..1) from the resting order book, mirroring the
  * FE's `calculateMarketStats` / `calculateProbability` in
- * `$lib/utils/market.utils`: best-bid/best-ask mid when both sides exist,
+ * `#lib/utils/market.utils.ts`: best-bid/best-ask mid when both sides exist,
  * the single side when one-sided, `undefined` when the book is empty (never
  * a 0.5 placeholder). NO orders are flipped to the YES perspective the same
  * way the live UI does.

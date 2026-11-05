@@ -11,24 +11,21 @@
 	} from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import CreateBoutModal from '$lib/components/leagues/CreateBoutModal.svelte';
-	import LeagueDetailEmptyState from '$lib/components/leagues/LeagueDetailEmptyState.svelte';
-	import LeaguePrivacyModal from '$lib/components/leagues/LeaguePrivacyModal.svelte';
-	import LeagueRoleBadge from '$lib/components/leagues/LeagueRoleBadge.svelte';
-	import TransferOwnershipModal from '$lib/components/leagues/TransferOwnershipModal.svelte';
-	import Avatar from '$lib/components/profile/Avatar.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import YouBadge from '$lib/components/ui/YouBadge.svelte';
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { LeaguePrivacy } from '$lib/enums/league';
-	import { track } from '$lib/services/analytics.services';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import CreateBoutModal from '#lib/components/leagues/CreateBoutModal.svelte';
+	import LeagueDetailEmptyState from '#lib/components/leagues/LeagueDetailEmptyState.svelte';
+	import LeaguePrivacyModal from '#lib/components/leagues/LeaguePrivacyModal.svelte';
+	import LeagueRoleBadge from '#lib/components/leagues/LeagueRoleBadge.svelte';
+	import TransferOwnershipModal from '#lib/components/leagues/TransferOwnershipModal.svelte';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import YouBadge from '#lib/components/ui/YouBadge.svelte';
+	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { LeaguePrivacy } from '#lib/enums/league.ts';
+	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		acceptBattle,
 		buildLeagueShareUrl,
@@ -42,10 +39,10 @@
 		setMemberRole,
 		updateLeague,
 		validateLeagueDraft
-	} from '$lib/services/leagues.services';
-	import { findOwnStanding, getLeagueStandings } from '$lib/services/standings.services';
-	import { deleteLeagueImageByUrl, uploadLeagueImage } from '$lib/services/storage.services';
-	import { leagueDirectoryStore } from '$lib/stores/league-directory.store';
+	} from '#lib/services/leagues.services.ts';
+	import { findOwnStanding, getLeagueStandings } from '#lib/services/standings.services.ts';
+	import { deleteLeagueImageByUrl, uploadLeagueImage } from '#lib/services/storage.services.ts';
+	import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
 	import {
 		leagueBattlesStore,
 		leagueMembersStore,
@@ -53,30 +50,32 @@
 		leaguesLoadedStore,
 		myLeaguesStore,
 		refreshMyLeagues
-	} from '$lib/stores/leagues.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
+	} from '#lib/stores/leagues.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
 	import {
 		BATTLE_MAX_CONCURRENT_IN_FLIGHT,
 		type BattleDoc,
 		type BattleState
-	} from '$lib/types/battle';
+	} from '#lib/types/battle.ts';
+	import type { LeagueMemberDoc, LeagueMemberRole } from '#lib/types/league-member.ts';
 	import {
 		leagueEmblem,
 		leaguePrivacy,
 		LEAGUE_NAME_MAX_LENGTH,
 		LEAGUE_NAME_MIN_LENGTH
-	} from '$lib/types/league';
-	import type { LeagueMemberDoc, LeagueMemberRole } from '$lib/types/league-member';
+	} from '#lib/types/league.ts';
 	import {
 		formatDate,
 		formatLocalePercent,
 		shortLeagueId,
 		shortenPrincipal
-	} from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { leagueRankOf, rankLeagueMembers } from '$lib/utils/league-rank.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { leagueRankOf, rankLeagueMembers } from '#lib/utils/league-rank.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	/**
 	 * League detail page.
@@ -487,7 +486,7 @@
 
 		try {
 			await leaveLeague({ leagueId: league.id });
-			void goto(`${resolve(AppPath.Arena)}/leagues`);
+			void goto(`${resolveAppPath(AppPath.Arena)}/leagues`);
 		} catch (err) {
 			console.error('LeagueDetailPage: leaveLeague failed', err);
 			errorMessage = t({ locale: $localeStore, key: 'common.error.generic' });
@@ -497,13 +496,13 @@
 	};
 
 	const handlePredict = () => {
-		void goto(resolve(AppPath.Flow));
+		void goto(resolveAppPath(AppPath.Flow));
 	};
 
 	// Open the battle detail page — the running standings + face-off for a
 	// live battle live there, not on this card.
 	const goToBattle = (battleId: string) => {
-		void goto(`${resolve(AppPath.Arena)}/battles/${battleId}?from=league`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/battles/${battleId}?from=league`);
 	};
 
 	const memberHandle = (principal: string): string => {
@@ -1013,7 +1012,7 @@
 		<ScreenHeader
 			back={{
 				label: t({ locale: $localeStore, key: 'leagues.detail.back' }),
-				onBack: () => goBack(resolve(AppPath.Arena))
+				onBack: () => goBack(resolveAppPath(AppPath.Arena))
 			}}
 		/>
 		<p class="league-detail-status" aria-busy="true">
@@ -1023,7 +1022,7 @@
 		<ScreenHeader
 			back={{
 				label: t({ locale: $localeStore, key: 'leagues.detail.back' }),
-				onBack: () => goBack(resolve(AppPath.Arena))
+				onBack: () => goBack(resolveAppPath(AppPath.Arena))
 			}}
 		/>
 		<LeagueDetailEmptyState />
@@ -1031,7 +1030,7 @@
 		<ScreenHeader
 			back={{
 				label: t({ locale: $localeStore, key: 'leagues.detail.back' }),
-				onBack: () => goBack(resolve(AppPath.Arena))
+				onBack: () => goBack(resolveAppPath(AppPath.Arena))
 			}}
 		/>
 		<p class="league-detail-error" role="alert">
@@ -1048,7 +1047,7 @@
 					<button
 						class="league-detail-hero-back"
 						aria-label={t({ locale: $localeStore, key: 'leagues.detail.back' })}
-						onclick={() => goBack(resolve(AppPath.Arena))}
+						onclick={() => goBack(resolveAppPath(AppPath.Arena))}
 						type="button"
 					>
 						<ChevronLeft aria-hidden="true" size={18} strokeWidth={1.8} />
@@ -1100,7 +1099,7 @@
 					<button
 						class="league-detail-hero-back"
 						aria-label={t({ locale: $localeStore, key: 'leagues.detail.back' })}
-						onclick={() => goBack(resolve(AppPath.Arena))}
+						onclick={() => goBack(resolveAppPath(AppPath.Arena))}
 						type="button"
 					>
 						<ChevronLeft aria-hidden="true" size={18} strokeWidth={1.8} />

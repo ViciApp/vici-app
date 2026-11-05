@@ -1,7 +1,7 @@
-import { Collection } from '$lib/constants/collections.constants';
-import type { ActivityReactionCount } from '$lib/types/social';
-import { isAdmin } from '$satellite/services/_authz';
-import { logError } from '$satellite/utils/logger.utils';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import type { ActivityReactionCount } from '#lib/types/social.ts';
+import { isAdmin } from '#satellite/services/_authz.ts';
+import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { OnDeleteDocContext, OnSetDocContext } from '@junobuild/functions';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';

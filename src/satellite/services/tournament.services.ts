@@ -1,8 +1,8 @@
-import { VXP_LEDGER_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import type { LeagueDoc } from '$lib/types/league';
-import type { LeagueMemberDoc } from '$lib/types/league-member';
+import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+import type { LeagueDoc } from '#lib/types/league.ts';
 import {
 	matchCountForRound,
 	monthAnchorFromMs,
@@ -16,12 +16,12 @@ import {
 	type TournamentDoc,
 	type TournamentMatchDoc,
 	type TournamentRound
-} from '$lib/types/tournament';
-import { vxpAwardKey, type VxpAwardDoc } from '$lib/types/vxp-award';
-import { parseToken } from '$lib/utils/parse.utils';
-import { getLeagueStatsFn } from '$satellite/services/league-stats.services';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';
+} from '#lib/types/tournament.ts';
+import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import { parseToken } from '#lib/utils/parse.utils.ts';
+import { getLeagueStatsFn } from '#satellite/services/league-stats.services.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { transferWithBadFeeRetry } from '#satellite/utils/vxp-payout.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
@@ -1341,5 +1341,5 @@ const readCallerLeagueIds = ({
 };
 
 // Re-export for type narrowing in callers without re-importing
-// `$lib/types/tournament`.
+// `#lib/types/tournament.ts`.
 export type { TournamentDoc, TournamentMatchDoc };

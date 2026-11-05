@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onDestroy } from 'svelte';
-	import { browser } from '$app/environment';
-	import { page } from '$app/state';
-	import SurfaceTip from '$lib/components/onboarding/SurfaceTip.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { track } from '$lib/services/analytics.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import SurfaceTip from '#lib/components/onboarding/SurfaceTip.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 	import {
 		TIP_ARENA_SEEN_KEY,
 		TIP_DASH_SEEN_KEY,
 		TIP_PROFILE_SEEN_KEY
-	} from '$lib/utils/onboarding-flags.utils';
+	} from '#lib/utils/onboarding-flags.utils.ts';
+	import { browser } from '$app/env';
+	import { page } from '$app/state';
 
 	/**
 	 * SurfaceTipHost — layer 2 of the first-run tutorial system. Mounted once at

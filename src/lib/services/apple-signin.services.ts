@@ -1,4 +1,4 @@
-import { II_MAX_TIME_TO_LIVE_NS } from '$lib/constants/app.constants';
+import { II_MAX_TIME_TO_LIVE_NS } from '#lib/constants/app.constants.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { type DelegationChain, DelegationIdentity, ECDSAKeyIdentity } from '@icp-sdk/core/identity';

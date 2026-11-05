@@ -1,20 +1,20 @@
-import { ZERO } from '$lib/constants/app.constants';
-import { VXP_LEDGER_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	newUserVxpAmountMilestone1BaseUnits,
 	newUserVxpAmountMilestone2BaseUnits,
 	newUserVxpAmountMilestone3BaseUnits
-} from '$lib/constants/vxp-onboarding.constants';
-import { ActivityType } from '$lib/enums/social';
-import type { Activity } from '$lib/types/social';
+} from '#lib/constants/vxp-onboarding.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import type { Activity } from '#lib/types/social.ts';
 import type {
 	VxpMilestoneState,
 	VxpNewUserMilestoneKey,
 	VxpOnboardingDoc
-} from '$lib/types/vxp-onboarding';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';
+} from '#lib/types/vxp-onboarding.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { transferWithBadFeeRetry } from '#satellite/utils/vxp-payout.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';

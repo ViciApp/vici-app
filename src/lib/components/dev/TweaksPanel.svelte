@@ -1,16 +1,17 @@
 <script lang="ts">
 	import { signOut } from '@junobuild/core';
 	import { Wrench, X } from '@lucide/svelte/icons';
+	import AppearancePicker from '#lib/components/ui/AppearancePicker.svelte';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { LEADERBOARD_QUALIFY_MIN } from '#lib/constants/standings.constants.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { worldCupActive, worldCupMode } from '#lib/derived/world-cup.derived.ts';
+	import { isDev } from '#lib/env/app.env.ts';
+	import { preferencesStore } from '#lib/stores/preferences.store.ts';
+	import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import AppearancePicker from '$lib/components/ui/AppearancePicker.svelte';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { LEADERBOARD_QUALIFY_MIN } from '$lib/constants/standings.constants';
-	import { userSignedIn } from '$lib/derived/user.derived';
-	import { worldCupActive, worldCupMode } from '$lib/derived/world-cup.derived';
-	import { isDev } from '$lib/env/app.env';
-	import { preferencesStore } from '$lib/stores/preferences.store';
-	import { leaderboardQualifyMin } from '$lib/stores/tweaks.store';
 
 	// Dev knob bounds for the leaderboard qualify gate — 0 disables the gate
 	// (everyone ranked), 30 is a deliberately strict ceiling for feeling out
@@ -41,7 +42,7 @@
 			// regardless so the panel doesn't get stuck.
 		}
 
-		await goto(resolve(PublicPath.SignIn), { replaceState: true });
+		await goto(resolve(PublicPath.SignIn), { replace: true });
 	};
 </script>
 
@@ -109,12 +110,16 @@
 				<section class="tweaks-section">
 					<span class="allcaps tweaks-label">Quick jumps</span>
 					<div class="tweaks-jumps">
-						<button onclick={() => jumpTo(resolve(AppPath.Home))} type="button">Home (/)</button>
-						<button onclick={() => jumpTo(resolve(AppPath.Flow))} type="button">Flow</button>
-						<button onclick={() => jumpTo(resolve(AppPath.Portfolio))} type="button">
+						<button onclick={() => jumpTo(resolveAppPath(AppPath.Home))} type="button"
+							>Home (/)</button
+						>
+						<button onclick={() => jumpTo(resolveAppPath(AppPath.Flow))} type="button">Flow</button>
+						<button onclick={() => jumpTo(resolveAppPath(AppPath.Portfolio))} type="button">
 							Portfolio
 						</button>
-						<button onclick={() => jumpTo(resolve(AppPath.Profile))} type="button">Profile</button>
+						<button onclick={() => jumpTo(resolveAppPath(AppPath.Profile))} type="button"
+							>Profile</button
+						>
 						<button onclick={() => jumpTo(resolve(PublicPath.SignIn))} type="button">Sign in</button
 						>
 						<button onclick={() => jumpTo(resolve(PublicPath.SignUp))} type="button">Sign up</button

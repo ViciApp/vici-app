@@ -2,39 +2,40 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount, type Snippet } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import ClaimBanner from '$lib/components/claim/ClaimBanner.svelte';
-	import MoveNoticeBanner from '$lib/components/claim/MoveNoticeBanner.svelte';
-	import GuestSaveHost from '$lib/components/guest/GuestSaveHost.svelte';
-	import DesktopAppNav from '$lib/components/layout/DesktopAppNav.svelte';
-	import MobileNav from '$lib/components/layout/MobileNav.svelte';
-	import Loaders from '$lib/components/loaders/Loaders.svelte';
-	import MenagerieCelebrationHost from '$lib/components/menagerie/MenagerieCelebrationHost.svelte';
-	import SurfaceTipHost from '$lib/components/onboarding/SurfaceTipHost.svelte';
-	import AccountReturnGate from '$lib/components/settings/AccountReturnGate.svelte';
-	import CompanionOverlay from '$lib/components/ui/CompanionOverlay.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import NotifToastHost from '$lib/components/ui/NotifToastHost.svelte';
-	import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
-	import { REFERRAL_CODE_REGEX } from '$lib/constants/referral.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { guestMode } from '$lib/derived/guest.derived';
-	import { authBusy, userSignedIn, userSignedOutResolved } from '$lib/derived/user.derived';
-	import { installE2eResetHook } from '$lib/dev/e2e-reset';
+	import ClaimBanner from '#lib/components/claim/ClaimBanner.svelte';
+	import MoveNoticeBanner from '#lib/components/claim/MoveNoticeBanner.svelte';
+	import GuestSaveHost from '#lib/components/guest/GuestSaveHost.svelte';
+	import DesktopAppNav from '#lib/components/layout/DesktopAppNav.svelte';
+	import MobileNav from '#lib/components/layout/MobileNav.svelte';
+	import Loaders from '#lib/components/loaders/Loaders.svelte';
+	import MenagerieCelebrationHost from '#lib/components/menagerie/MenagerieCelebrationHost.svelte';
+	import SurfaceTipHost from '#lib/components/onboarding/SurfaceTipHost.svelte';
+	import AccountReturnGate from '#lib/components/settings/AccountReturnGate.svelte';
+	import CompanionOverlay from '#lib/components/ui/CompanionOverlay.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import NotifToastHost from '#lib/components/ui/NotifToastHost.svelte';
+	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { guestMode } from '#lib/derived/guest.derived.ts';
+	import { authBusy, userSignedIn, userSignedOutResolved } from '#lib/derived/user.derived.ts';
+	import { installE2eResetHook } from '#lib/dev/e2e-reset.ts';
 	import {
 		drainPendingOnboarding,
 		hasPendingOnboarding
-	} from '$lib/services/onboarding-handoff.services';
-	import { initA2hs } from '$lib/stores/a2hs.store';
-	import { initFlowPrewarm } from '$lib/stores/flow.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/services/onboarding-handoff.services.ts';
+	import { initA2hs } from '#lib/stores/a2hs.store.ts';
+	import { initFlowPrewarm } from '#lib/stores/flow.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { browser } from '$app/env';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 
 	interface Props {
 		children: Snippet;
@@ -107,7 +108,7 @@
 	// guest session) bounced to /signin everywhere as before. A guest never has
 	// a real principal, so every auth-requiring path past Flow stays gated.
 	const isGuestAllowedRoute = $derived(
-		$guestMode && page.url.pathname.startsWith(resolve(AppPath.Flow))
+		$guestMode && page.url.pathname.startsWith(resolveAppPath(AppPath.Flow))
 	);
 
 	// Auth-hydration window. After a provider resolves (notably the
@@ -232,7 +233,7 @@
 		}
 
 		if ($userSignedOutResolved && !$userSignedIn) {
-			void goto(resolve(PublicPath.SignIn), { replaceState: true });
+			void goto(resolve(PublicPath.SignIn), { replace: true });
 		}
 	});
 
@@ -341,7 +342,7 @@
 			return;
 		}
 
-		void goto(resolve(PublicPath.SignUp), { replaceState: true });
+		void goto(resolve(PublicPath.SignUp), { replace: true });
 	});
 </script>
 

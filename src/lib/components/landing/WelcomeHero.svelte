@@ -15,24 +15,24 @@
 	 */
 	import { ChevronRight, RotateCcw } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import OracleChar from '$lib/components/characters/OracleChar.svelte';
-	import TricksterChar from '$lib/components/characters/TricksterChar.svelte';
-	import ViciChar from '$lib/components/characters/ViciChar.svelte';
-	import LandingConsensusCompass from '$lib/components/landing/LandingConsensusCompass.svelte';
-	import MarketArtwork from '$lib/components/market/MarketArtwork.svelte';
+	import OracleChar from '#lib/components/characters/OracleChar.svelte';
+	import TricksterChar from '#lib/components/characters/TricksterChar.svelte';
+	import ViciChar from '#lib/components/characters/ViciChar.svelte';
+	import LandingConsensusCompass from '#lib/components/landing/LandingConsensusCompass.svelte';
+	import MarketArtwork from '#lib/components/market/MarketArtwork.svelte';
 	import {
 		LANDING_CAT_COLORS,
 		LANDING_CAT_LABELS,
 		LANDING_HERO_CARD,
 		LANDING_HERO_CLIMB,
 		LANDING_HERO_STAKE
-	} from '$lib/constants/landing-data.constants';
-	import { PublicPath } from '$lib/constants/routes.constants';
-	import { daysToKickoff } from '$lib/derived/featured-event.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { splitHeadline } from '$lib/utils/landing-headline.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	} from '#lib/constants/landing-data.constants.ts';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
+	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { splitHeadline } from '#lib/utils/landing-headline.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	const XP = LANDING_HERO_STAKE;
 	const YES = LANDING_HERO_CARD.yes;

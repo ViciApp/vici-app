@@ -2,31 +2,31 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { ArrowLeft, Check, Search, X } from '@lucide/svelte/icons';
 	import { untrack } from 'svelte';
-	import SchoolAddConfirmStep from '$lib/components/leagues/SchoolAddConfirmStep.svelte';
-	import SchoolAddFormStep from '$lib/components/leagues/SchoolAddFormStep.svelte';
-	import SchoolCodeStep from '$lib/components/leagues/SchoolCodeStep.svelte';
-	import SchoolVerifyStep from '$lib/components/leagues/SchoolVerifyStep.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import CountryFlag from '$lib/components/ui/CountryFlag.svelte';
+	import SchoolAddConfirmStep from '#lib/components/leagues/SchoolAddConfirmStep.svelte';
+	import SchoolAddFormStep from '#lib/components/leagues/SchoolAddFormStep.svelte';
+	import SchoolCodeStep from '#lib/components/leagues/SchoolCodeStep.svelte';
+	import SchoolVerifyStep from '#lib/components/leagues/SchoolVerifyStep.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import CountryFlag from '#lib/components/ui/CountryFlag.svelte';
 	import {
 		SCHOOL_FOUNDER_BADGE_CAP,
 		SCHOOL_PASS2_ENABLED
-	} from '$lib/constants/school-picker.constants';
+	} from '#lib/constants/school-picker.constants.ts';
 	import {
 		WORLDS_COUNTRIES,
 		WORLDS_UNIVERSITIES,
 		type WorldsAffiliationOption
-	} from '$lib/constants/worlds-affiliations.constants';
-	import { submitSchool, verifySchoolCode } from '$lib/services/school-verification.services';
-	import { joinAffiliation, switchAffiliation } from '$lib/services/worlds.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { AffiliationDoc, AffiliationKind } from '$lib/types/affiliation';
-	import { affiliationDisplayName } from '$lib/utils/affiliation-name.utils';
-	import { affiliationDaysLeft } from '$lib/utils/affiliation-stats.utils';
-	import { sleep } from '$lib/utils/async.utils';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { detectUserCountryCode } from '$lib/utils/locale-country.utils';
+	} from '#lib/constants/worlds-affiliations.constants.ts';
+	import { submitSchool, verifySchoolCode } from '#lib/services/school-verification.services.ts';
+	import { joinAffiliation, switchAffiliation } from '#lib/services/worlds.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
+	import { affiliationDisplayName } from '#lib/utils/affiliation-name.utils.ts';
+	import { affiliationDaysLeft } from '#lib/utils/affiliation-stats.utils.ts';
+	import { sleep } from '#lib/utils/async.utils.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { detectUserCountryCode } from '#lib/utils/locale-country.utils.ts';
 	import {
 		spFindCloseMatches,
 		spFuzzy,
@@ -35,7 +35,7 @@
 		spIsValidEmail,
 		spMatchEmail,
 		spSanitizeCode
-	} from '$lib/utils/school-picker.utils';
+	} from '#lib/utils/school-picker.utils.ts';
 
 	/**
 	 * Affiliation picker — full-bleed bottom sheet with a large

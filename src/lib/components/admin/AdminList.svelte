@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { PrincipalText } from '@junobuild/schema';
-	import Button from '$lib/components/ui/Button.svelte';
-	import CopyableAddress from '$lib/components/ui/CopyableAddress.svelte';
-	import Dialog from '$lib/components/ui/Dialog.svelte';
-	import type { UserRoleEntry } from '$lib/services/roles.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { shortenWithMiddleEllipsis } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import Button from '#lib/components/ui/Button.svelte';
+	import CopyableAddress from '#lib/components/ui/CopyableAddress.svelte';
+	import Dialog from '#lib/components/ui/Dialog.svelte';
+	import type { UserRoleEntry } from '#lib/services/roles.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	let {
 		roleEntries,

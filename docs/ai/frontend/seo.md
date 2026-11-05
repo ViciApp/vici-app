@@ -22,7 +22,7 @@ layer is generated **at deploy time** instead:
 
 ## Slugged share links
 
-`$lib/utils/market-slug.utils` is the single source of the `/m/{param}`
+`#lib/utils/market-slug.utils` is the single source of the `/m/{param}`
 shape: `slugifyMarketTitle` (EN registry title → `will-brazil-beat-norway`)
 and `marketShareParam` (`slug~id8`). The 8-hex id suffix makes the param
 unique by construction — registry titles are immutable but not
@@ -46,7 +46,7 @@ deploy); unresolvable params land on the markets board.
   pattern; rename/restructure them only together with the patterns in the
   script (it fails loudly when they drift, see the comment in `app.html`).
 - **The reveal gate is shared, not replicated.** Visibility calls the same
-  `isMarketRevealed` from `$lib/utils/wc-schedule.utils` that gates the FE
+  `isMarketRevealed` from `#lib/utils/wc-schedule.utils.ts` that gates the FE
   feed: a series with a future on-chain `start_ns` stays hidden from the
   emitted pages and sitemap, whatever its tags. No Juno access and no
   committed deck files needed — decks are operational/ephemeral inputs to
@@ -97,7 +97,7 @@ existing surfaces (a specific market → its detail page; category browsing
   `Community odds: Yes N%` sentence, read at deploy time from the clearing
   canister's order book (`list_orders`) and folded through a
   `midYesProbability` helper that mirrors `calculateProbability` in
-  `$lib/utils/market.utils`. Reads run with bounded concurrency
+  `#lib/utils/market.utils.ts`. Reads run with bounded concurrency
   (`ODDS_CONCURRENCY`). All figures are a **snapshot as of deploy** — there
   is no SSR, so they age until the next deploy.
 - **Resolved markets are answer pages, not stale trading pages.** The vast

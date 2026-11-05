@@ -1,5 +1,5 @@
-import { listMyReferrals } from '$lib/services/referral.services';
-import type { ReferralListItem } from '$lib/types/referral';
+import { listMyReferrals } from '#lib/services/referral.services.ts';
+import type { ReferralListItem } from '#lib/types/referral.ts';
 import { writable } from 'svelte/store';
 
 /**

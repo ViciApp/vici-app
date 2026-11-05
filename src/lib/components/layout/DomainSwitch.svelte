@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { FlaskConical, ShieldCheck } from '@lucide/svelte/icons';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
-	import { isDev } from '$lib/env/app.env';
-	import { setBalanceDomain } from '$lib/services/balance-domain.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { BalanceDomainKey } from '$lib/types/balance-domain';
-	import { isPlaygroundExperience, isSettlement } from '$lib/utils/balance-domain.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+	import { isDev } from '#lib/env/app.env.ts';
+	import { setBalanceDomain } from '#lib/services/balance-domain.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { BalanceDomainKey } from '#lib/types/balance-domain.ts';
+	import { isPlaygroundExperience, isSettlement } from '#lib/utils/balance-domain.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	const setDomain = (domain: BalanceDomainKey) => {
 		if (domain === 'settlement' && !isDev()) {

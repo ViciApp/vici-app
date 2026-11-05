@@ -1,7 +1,7 @@
-import { Collection } from '$lib/constants/collections.constants';
-import type { UserRole } from '$lib/enums/user';
-import type { UserProfile } from '$lib/types/profile';
-import { isPubliclyHidden, withProfileDefaults } from '$satellite/services/profile.services';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import type { UserRole } from '#lib/enums/user.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import { isPubliclyHidden, withProfileDefaults } from '#satellite/services/profile.services.ts';
 import { isNullish } from '@dfinity/utils';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';

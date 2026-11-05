@@ -1,9 +1,9 @@
-import { browser } from '$app/environment';
-import { NEW_APP_ORIGIN } from '$lib/constants/claim.constants';
-import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
-import { isE2eOpenSignups } from '$lib/dev/e2e-signups';
-import { newAppSignupUrl } from '$lib/utils/new-app.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+import { NEW_APP_ORIGIN } from '#lib/constants/claim.constants.ts';
+import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+import { isE2eOpenSignups } from '#lib/dev/e2e-signups.ts';
+import { newAppSignupUrl } from '#lib/utils/new-app.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { browser } from '$app/env';
 import { isNullish } from '@dfinity/utils';
 
 /**

@@ -1,4 +1,4 @@
-import type { RenderArgs } from '$lib/utils/flow-art/types';
+import type { RenderArgs } from '#lib/utils/flow-art/types.ts';
 
 export const renderSports = ({ rng, p, state, uid }: RenderArgs): string => {
 	let s = '';

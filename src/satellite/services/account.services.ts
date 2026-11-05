@@ -1,20 +1,23 @@
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	EXIT_SIGNAL_NOTE_MAX_LENGTH,
 	EXIT_SIGNAL_REASONS,
 	type ExitSignalDoc,
 	type ExitSignalReason
-} from '$lib/types/exit-signal';
-import type { LeagueDoc } from '$lib/types/league';
-import type { LeagueMemberDoc } from '$lib/types/league-member';
-import type { UserProfile } from '$lib/types/profile';
-import type { ReferralCodeDoc, ReferralDoc } from '$lib/types/referral';
-import type { Relation } from '$lib/types/relation';
-import { isAdmin } from '$satellite/services/_authz';
-import { captureServerEvents, type ServerEventInput } from '$satellite/services/analytics.services';
-import { deleteLeagueFn, transferLeagueOwnershipFn } from '$satellite/services/league.services';
-import { isHibernated, isSoftDeleted } from '$satellite/services/profile.services';
-import { logError } from '$satellite/utils/logger.utils';
+} from '#lib/types/exit-signal.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+import type { LeagueDoc } from '#lib/types/league.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import type { ReferralCodeDoc, ReferralDoc } from '#lib/types/referral.ts';
+import type { Relation } from '#lib/types/relation.ts';
+import { isAdmin } from '#satellite/services/_authz.ts';
+import {
+	captureServerEvents,
+	type ServerEventInput
+} from '#satellite/services/analytics.services.ts';
+import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
+import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
+import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';

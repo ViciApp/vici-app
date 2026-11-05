@@ -1,8 +1,8 @@
-import type { FlameStage } from '$lib/utils/streak.utils';
+import type { FlameStage } from '#lib/utils/streak.utils.ts';
 
 /**
  * The five companion characters. Each is a hand-drawn SVG silhouette
- * (see `$lib/components/characters/`) with a single accent fill + a
+ * (see `#lib/components/characters/`) with a single accent fill + a
  * darker `deep` shade used for shadowing / secondary marks.
  *
  * - **vici** — the friendly guide bot (four moods).

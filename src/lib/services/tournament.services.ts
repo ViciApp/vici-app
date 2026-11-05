@@ -1,17 +1,17 @@
-import { functions } from '$declarations/satellite/satellite.api';
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import {
 	monthAnchorFromMs,
 	type TournamentDoc,
 	type TournamentMatchDoc,
 	type TournamentRound
-} from '$lib/types/tournament';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/types/tournament.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	claimTournamentPrize as claimTournamentPrizeWeb2,
 	getCurrentTournament as getCurrentTournamentWeb2,
 	resolveTournamentRound as resolveTournamentRoundWeb2,
 	triggerTournamentDraw as triggerTournamentDrawWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

@@ -3,23 +3,26 @@
 	import { isWebAuthnAvailable, signIn, signUp } from '@junobuild/core';
 	import { ChevronRight, Mail } from '@lucide/svelte';
 	import { onMount } from 'svelte';
-	import { resolve } from '$app/paths';
-	import SignInProviderStackWeb2 from '$lib/components/authn/SignInProviderStackWeb2.svelte';
-	import IconApple from '$lib/components/icons/IconApple.svelte';
-	import IconGoogle from '$lib/components/icons/IconGoogle.svelte';
-	import IconIc from '$lib/components/icons/IconIC.svelte';
-	import IconPasskey from '$lib/components/icons/IconPasskey.svelte';
-	import IconRobot from '$lib/components/icons/IconRobot.svelte';
-	import { II_MAX_TIME_TO_LIVE_NS } from '$lib/constants/app.constants';
-	import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { isDev, isNotSkylab, isProd } from '$lib/env/app.env';
-	import { track } from '$lib/services/analytics.services';
-	import { AppleSignInCancelledError, signInWithApple } from '$lib/services/apple-signin.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { isWeb2Backend } from '$lib/web2/backend-mode';
+	import SignInProviderStackWeb2 from '#lib/components/authn/SignInProviderStackWeb2.svelte';
+	import IconApple from '#lib/components/icons/IconApple.svelte';
+	import IconGoogle from '#lib/components/icons/IconGoogle.svelte';
+	import IconIc from '#lib/components/icons/IconIC.svelte';
+	import IconPasskey from '#lib/components/icons/IconPasskey.svelte';
+	import IconRobot from '#lib/components/icons/IconRobot.svelte';
+	import { II_MAX_TIME_TO_LIVE_NS } from '#lib/constants/app.constants.ts';
+	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { isDev, isNotSkylab, isProd } from '#lib/env/app.env.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import {
+		AppleSignInCancelledError,
+		signInWithApple
+	} from '#lib/services/apple-signin.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 
 	interface Props {
 		onSuccess?: () => void;
@@ -191,7 +194,7 @@
 
 		onSuccess?.();
 
-		window.location.assign(resolve(AppPath.Flow));
+		window.location.assign(resolveAppPath(AppPath.Flow));
 	};
 
 	const onGoogle = () =>

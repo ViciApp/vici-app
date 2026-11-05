@@ -14,12 +14,12 @@
 	 * user gets the exact same portrait, rendered static.
 	 */
 
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 	import {
 		deterministicParts,
 		renderAvatarSvg,
 		type ViciAvatarParts
-	} from '$lib/utils/vici-avatar.utils';
+	} from '#lib/utils/vici-avatar.utils.ts';
 
 	interface Props {
 		/** Explicit parts object. Wins over `seed` when both are set. */

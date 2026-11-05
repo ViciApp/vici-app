@@ -1,8 +1,8 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { normalizeStoredTags } from '$lib/constants/market-taxonomy.constants';
-import type { MarketMetadata, MarketMetadataInput } from '$lib/types/market-metadata';
-import { isAdmin, isCreatorOrAdmin } from '$satellite/services/_authz';
-import { updateMarketTagIndex } from '$satellite/services/market-tag-index.services';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { normalizeStoredTags } from '#lib/constants/market-taxonomy.constants.ts';
+import type { MarketMetadata, MarketMetadataInput } from '#lib/types/market-metadata.ts';
+import { isAdmin, isCreatorOrAdmin } from '#satellite/services/_authz.ts';
+import { updateMarketTagIndex } from '#satellite/services/market-tag-index.services.ts';
 import { isNullish } from '@dfinity/utils';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';

@@ -1,4 +1,4 @@
-import type { MarketId, Outcome } from '$lib/types/market';
+import type { MarketId, Outcome } from '#lib/types/market.ts';
 import type { PrincipalText } from '@junobuild/schema';
 
 export type OrderType = 'LIMIT' | 'MARKET';

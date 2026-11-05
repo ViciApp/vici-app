@@ -1,5 +1,5 @@
-import { getAgent } from '$lib/actors/agents.ic';
-import type { CanisterIdText } from '$lib/types/canister';
+import { getAgent } from '#lib/actors/agents.ic.ts';
+import type { CanisterIdText } from '#lib/types/canister.ts';
 import { assertNonNullish, nonNullish } from '@dfinity/utils';
 import {
 	IcrcLedgerCanister,

@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { Globe, X } from '@lucide/svelte/icons';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import LocalePicker from '$lib/components/ui/LocalePicker.svelte';
-	import { LOCALE_REGISTRY, type AppLocale } from '$lib/constants/locale.constants';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import LocalePicker from '#lib/components/ui/LocalePicker.svelte';
+	import { LOCALE_REGISTRY, type AppLocale } from '#lib/constants/locale.constants.ts';
 	import {
 		clearLocaleChoice,
 		detectedLocale,
 		localeChoiceExplicit,
 		localeStore
-	} from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	} from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Two-axis (Language ▸ Region) locale picker rendered as a bottom sheet

@@ -2,13 +2,13 @@ import {
 	LEAGUE_IMAGE_JPEG_QUALITY,
 	LEAGUE_IMAGE_SIZE_PX,
 	LEAGUE_IMAGES_COLLECTION
-} from '$lib/types/league';
-import { downscaleImageToSquareJpeg } from '$lib/utils/image.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/types/league.ts';
+import { downscaleImageToSquareJpeg } from '#lib/utils/image.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	deleteLeagueImage as deleteLeagueImageWeb2,
 	uploadLeagueImage as uploadLeagueImageWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
 import { isNullish } from '@dfinity/utils';
 import { deleteAsset, uploadFile } from '@junobuild/core';
 

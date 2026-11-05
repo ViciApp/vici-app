@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import CopyableAddress from '$lib/components/ui/CopyableAddress.svelte';
-	import { getReceiveAddress } from '$lib/services/wallet.service';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import CopyableAddress from '#lib/components/ui/CopyableAddress.svelte';
+	import { getReceiveAddress } from '#lib/services/wallet.service.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	// The service resolves the deposit target per backend: the signed-in
 	// principal on-chain, the custodial IC principal in web2 mode. Both are IC

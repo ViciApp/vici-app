@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { Sparkles } from '@lucide/svelte/icons';
-	import SignInProviderStack from '$lib/components/authn/SignInProviderStack.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { newUserVxpAmountMilestone1BaseUnits } from '$lib/constants/vxp-onboarding.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
+	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import { newUserVxpAmountMilestone1BaseUnits } from '#lib/constants/vxp-onboarding.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	/**
 	 * Guest conversion sheet — the "start for real + claim VXP" ask shown to a

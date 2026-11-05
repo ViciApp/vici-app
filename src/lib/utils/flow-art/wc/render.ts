@@ -1,4 +1,4 @@
-import { WC_MARKET_ART } from '$lib/constants/flow-art-wc-markets.constants';
+import { WC_MARKET_ART } from '#lib/constants/flow-art-wc-markets.constants.ts';
 import {
 	WC_HAIR,
 	WC_NATION_KITS,
@@ -8,17 +8,17 @@ import {
 	type WCEmotion,
 	type WCHairStyle,
 	type WCNation
-} from '$lib/constants/flow-art-wc.constants';
-import { normalizeWcQuestion } from '$lib/constants/wc-market-schedule.constants';
-import { makeRng } from '$lib/utils/flow-art/rng';
-import type { RenderArgs } from '$lib/utils/flow-art/types';
-import { makeWcHelpers, type WcHelpers } from '$lib/utils/flow-art/wc/helpers';
-import { WC_RECIPES } from '$lib/utils/flow-art/wc/recipes';
+} from '#lib/constants/flow-art-wc.constants.ts';
+import { normalizeWcQuestion } from '#lib/constants/wc-market-schedule.constants.ts';
+import { makeRng } from '#lib/utils/flow-art/rng.ts';
+import type { RenderArgs } from '#lib/utils/flow-art/types.ts';
+import { makeWcHelpers, type WcHelpers } from '#lib/utils/flow-art/wc/helpers.ts';
+import { WC_RECIPES } from '#lib/utils/flow-art/wc/recipes.ts';
 import {
 	resolveWcTemplate,
 	type WcResolvedTemplate
-} from '$lib/utils/flow-art/wc/resolve-template';
-import { renderWcTemplate } from '$lib/utils/flow-art/wc/templates';
+} from '#lib/utils/flow-art/wc/resolve-template.ts';
+import { renderWcTemplate } from '#lib/utils/flow-art/wc/templates.ts';
 
 // ---- WC — Faceted Editorial system (curated, per market) -----
 // Coordinate space is 280×100 (slice fill) — the wide full-bleed

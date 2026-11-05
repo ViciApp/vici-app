@@ -1,7 +1,7 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { loadProfilesByPrincipals } from '$lib/services/profile.services';
-import { marketCommentsStore } from '$lib/stores/market-comments.store';
-import type { Comment } from '$lib/types/comment';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
+import { marketCommentsStore } from '#lib/stores/market-comments.store.ts';
+import type { Comment } from '#lib/types/comment.ts';
 import { deleteDoc, getDoc, listDocs, setDoc } from '@junobuild/core';
 
 export const getMarketComments = async (marketId: string): Promise<Comment[]> => {

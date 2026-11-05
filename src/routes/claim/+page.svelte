@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ClaimPage from '$lib/components/pages/ClaimPage.svelte';
+	import ClaimPage from '#lib/components/pages/ClaimPage.svelte';
 </script>
 
 <ClaimPage />

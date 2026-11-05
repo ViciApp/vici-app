@@ -1,12 +1,12 @@
-import type { ClearingDid } from '$declarations';
-import { settleSeries } from '$lib/api/clearing.api';
-import { PRICE_DECIMALS, VICI_ORACLE_V1 } from '$lib/constants/app.constants';
-import { ActivityType } from '$lib/enums/social';
-import { logActivity } from '$lib/services/activity.services';
-import { safeGetIdentityOnce } from '$lib/services/identity.services';
-import type { MarketId, Outcome } from '$lib/types/market';
-import { binaryPayoff } from '$lib/utils/payoff.utils';
-import { refreshMarkets } from '$lib/utils/refresh.utils';
+import type { ClearingDid } from '#declarations';
+import { settleSeries } from '#lib/api/clearing.api.ts';
+import { PRICE_DECIMALS, VICI_ORACLE_V1 } from '#lib/constants/app.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import { logActivity } from '#lib/services/activity.services.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import type { MarketId, Outcome } from '#lib/types/market.ts';
+import { binaryPayoff } from '#lib/utils/payoff.utils.ts';
+import { refreshMarkets } from '#lib/utils/refresh.utils.ts';
 import { isNullish, nowInBigIntNanoSeconds, toNullable } from '@dfinity/utils';
 
 /**

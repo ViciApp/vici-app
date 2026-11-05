@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import type { Position, ResolvedPosition } from '$lib/types/position';
-	import { formatLongDate, formatToken } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { marketBookLiquidity } from '$lib/utils/market.utils';
-	import { inferResolvedOutcomeId } from '$lib/utils/resolved-position.utils';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import type { Position, ResolvedPosition } from '#lib/types/position.ts';
+	import { formatLongDate, formatToken } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { marketBookLiquidity } from '#lib/utils/market.utils.ts';
+	import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
 
 	interface Props {
 		market: Market;

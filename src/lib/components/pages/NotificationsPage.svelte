@@ -1,24 +1,23 @@
 <script lang="ts">
 	import { ArrowLeft, Bell } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import NotifRow from '$lib/components/ui/NotifRow.svelte';
-	import { notificationDestination } from '$lib/constants/notification-kind.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { track } from '$lib/services/analytics.services';
-	import { refreshFriendRelations } from '$lib/stores/friends.store';
+	import NotifRow from '#lib/components/ui/NotifRow.svelte';
+	import { notificationDestination } from '#lib/constants/notification-kind.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { refreshFriendRelations } from '#lib/stores/friends.store.ts';
 	import {
 		combinedInboxStore,
 		dismissInboxNotification,
 		markAllInboxRead,
 		markInboxRead
-	} from '$lib/stores/inbox.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { InboxNotification } from '$lib/types/inbox';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/stores/inbox.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { InboxNotification } from '#lib/types/inbox.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
 
 	const unread = $derived($combinedInboxStore.filter((item) => item.unread));
 	const earlier = $derived($combinedInboxStore.filter((item) => !item.unread));
@@ -66,7 +65,7 @@
 		<button
 			class="appbar-icon-btn"
 			aria-label={t({ locale: $localeStore, key: 'notifications.back_flow' })}
-			onclick={() => goBack(resolve(AppPath.Flow))}
+			onclick={() => goBack(resolveAppPath(AppPath.Flow))}
 			type="button"
 		>
 			<ArrowLeft aria-hidden="true" size={18} strokeWidth={1.8} />

@@ -1,8 +1,8 @@
-import type { ClearingDid, RegistryDid } from '$declarations';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import type { Token } from '$lib/types/token';
-import { assetToToken } from '$lib/utils/asset.utils';
-import { isViciXp } from '$lib/utils/balance-domain.utils';
+import type { ClearingDid, RegistryDid } from '#declarations';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import type { Token } from '#lib/types/token.ts';
+import { assetToToken } from '#lib/utils/asset.utils.ts';
+import { isViciXp } from '#lib/utils/balance-domain.utils.ts';
 
 export const resolveMarketDisplayToken = ({
 	balanceDomain,
