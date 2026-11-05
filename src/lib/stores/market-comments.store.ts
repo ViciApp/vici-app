@@ -1,4 +1,4 @@
-import type { Comment } from '$lib/types/comment';
+import type { Comment } from '#lib/types/comment.ts';
 import { writable } from 'svelte/store';
 
 /**

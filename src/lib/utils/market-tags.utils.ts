@@ -1,11 +1,11 @@
-import type { AppLocale } from '$lib/constants/locale.constants';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import {
 	isMacroId,
 	isMicroId,
 	macroLabelKey,
 	microLabelKey
-} from '$lib/constants/market-taxonomy.constants';
-import { t } from '$lib/utils/i18n.utils';
+} from '#lib/constants/market-taxonomy.constants.ts';
+import { t } from '#lib/utils/i18n.utils.ts';
 
 /**
  * Frontend-only rendering helpers for market categories.

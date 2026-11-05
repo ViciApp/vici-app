@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { FollowedLeanSignal } from '$lib/types/market-signals';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { FollowedLeanSignal } from '#lib/types/market-signals.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		yesPct: number;

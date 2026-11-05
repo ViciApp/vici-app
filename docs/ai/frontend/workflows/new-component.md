@@ -8,11 +8,11 @@ covers the use case.
 
 1. **Decide the layer.** Use the
    [decision tree](../structure.md#where-to-put-new-files-decision-tree):
-   - Generic primitive missing from `$lib/components/ui/` →
-     `$lib/components/ui/<Name>.svelte` (rare — most primitives already exist).
-   - Feature component → `$lib/components/<feature>/<Name>.svelte`.
+   - Generic primitive missing from `#lib/components/ui/` →
+     `#lib/components/ui/<Name>.svelte` (rare — most primitives already exist).
+   - Feature component → `#lib/components/<feature>/<Name>.svelte`.
    - Page-level shell composed in the single SvelteKit route →
-     `$lib/components/pages/<Name>.svelte`.
+     `#lib/components/pages/<Name>.svelte`.
 2. **Pick the name.** PascalCase, descriptive, no `Component` / `Widget`
    suffix. Reflects role, not appearance (`MarketResolutionPanel`, not
    `BluePanel`).
@@ -36,10 +36,10 @@ covers the use case.
    - **Avoid `$bindable`** unless explicitly required — prefer a callback
      prop.
 
-4. **Compose, don't reinvent.** Build on `$lib/components/ui/` (`Button`,
+4. **Compose, don't reinvent.** Build on `#lib/components/ui/` (`Button`,
    `Card`, `Modal`, `Dialog`, `Tabs`, `Switch`, `Table`, `Banner`,
    `EmptyState`, `LoadingSpinner`, `PopOver`, …). Pull existing icons from
-   `$lib/components/icons/` or `@lucide/svelte` before adding new ones.
+   `#lib/components/icons/` or `@lucide/svelte` before adding new ones.
    Use snippets (`{#snippet}` + `{@render}`) for repeating intra-component
    markup.
 5. **Style with the project's tokens.** Look at the closest neighbour's
@@ -57,10 +57,10 @@ covers the use case.
 8. **Test ID** if the component is targeted by future tests:
    `data-tid="<kebab-case>"`. (When a test-IDs constants file lands,
    move it there — see [`reusability.md`](../reusability.md).)
-9. **Tests** if the component lives in `$lib/components/ui/` or has
+9. **Tests** if the component lives in `#lib/components/ui/` or has
    non-trivial logic. See [`testing.md`](../testing.md) — note the
    bootstrap status.
-10. **Catalog update** if the component goes into `$lib/components/ui/`
+10. **Catalog update** if the component goes into `#lib/components/ui/`
     or introduces a new pattern future agents should reuse — add a row
     to [`reusability.md`](../reusability.md). This is the
     [meta-update rule](../../governance.md#meta-update-rule).
@@ -75,9 +75,9 @@ covers the use case.
 
 ```svelte
 <script lang="ts">
-	import Button from '$lib/components/ui/Button.svelte';
-	import Card from '$lib/components/ui/Card.svelte';
-	import type { Market } from '$lib/types/market';
+	import Button from '#lib/components/ui/Button.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
+	import type { Market } from '#lib/types/market.ts';
 
 	interface Props {
 		market: Market;
@@ -104,7 +104,7 @@ covers the use case.
 
 ## Common mistakes (don't)
 
-- A new `<div class="…card…">` that duplicates `$lib/components/ui/Card`.
+- A new `<div class="…card…">` that duplicates `#lib/components/ui/Card`.
 - Hard-coded colour (`bg-[#0f0]`) instead of the project's token classes.
 - A wrapper that only re-exports another component.
 - Logic in the markup that should be a `$derived`.

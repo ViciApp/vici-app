@@ -1,5 +1,5 @@
-import { localeFallbackChain, type AppLocale } from '$lib/constants/locale.constants';
-import { enMessages } from '$lib/constants/messages/en';
+import { localeFallbackChain, type AppLocale } from '#lib/constants/locale.constants.ts';
+import { enMessages } from '#lib/constants/messages/en.ts';
 import { nonNullish } from '@dfinity/utils';
 
 type Catalog = Record<string, string>;
@@ -24,17 +24,17 @@ const catalogs: Partial<Record<AppLocale, Catalog>> = {
 };
 
 const catalogLoaders: Partial<Record<AppLocale, () => Promise<Catalog>>> = {
-	it: async () => (await import('$lib/constants/messages/it')).itMessages,
-	es: async () => (await import('$lib/constants/messages/es')).esMessages,
-	'es-419': async () => (await import('$lib/constants/messages/es-419')).es419Messages,
-	'es-MX': async () => (await import('$lib/constants/messages/es-MX')).esMxMessages,
-	'es-AR': async () => (await import('$lib/constants/messages/es-AR')).esArMessages,
-	de: async () => (await import('$lib/constants/messages/de')).deMessages,
-	fr: async () => (await import('$lib/constants/messages/fr')).frMessages,
-	ja: async () => (await import('$lib/constants/messages/ja')).jaMessages,
-	pt: async () => (await import('$lib/constants/messages/pt')).ptMessages,
-	'pt-BR': async () => (await import('$lib/constants/messages/pt-BR')).ptBRMessages,
-	'zh-Hans': async () => (await import('$lib/constants/messages/zh-Hans')).zhHansMessages
+	it: async () => (await import('#lib/constants/messages/it.ts')).itMessages,
+	es: async () => (await import('#lib/constants/messages/es.ts')).esMessages,
+	'es-419': async () => (await import('#lib/constants/messages/es-419.ts')).es419Messages,
+	'es-MX': async () => (await import('#lib/constants/messages/es-MX.ts')).esMxMessages,
+	'es-AR': async () => (await import('#lib/constants/messages/es-AR.ts')).esArMessages,
+	de: async () => (await import('#lib/constants/messages/de.ts')).deMessages,
+	fr: async () => (await import('#lib/constants/messages/fr.ts')).frMessages,
+	ja: async () => (await import('#lib/constants/messages/ja.ts')).jaMessages,
+	pt: async () => (await import('#lib/constants/messages/pt.ts')).ptMessages,
+	'pt-BR': async () => (await import('#lib/constants/messages/pt-BR.ts')).ptBRMessages,
+	'zh-Hans': async () => (await import('#lib/constants/messages/zh-Hans.ts')).zhHansMessages
 };
 
 const catalogLoads = new Map<AppLocale, Promise<void>>();

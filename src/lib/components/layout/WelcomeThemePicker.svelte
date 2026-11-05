@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import { THEME_SWATCHES, theme } from '$lib/stores/theme.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { THEME_SWATCHES, theme } from '#lib/stores/theme.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 </script>
 
 <div

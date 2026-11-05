@@ -1,5 +1,5 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { LeaguePrivacy } from '$lib/enums/league';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
 import {
 	BATTLE_ACCEPT_CLOCK_TOLERANCE_MS,
 	BATTLE_KINDS,
@@ -14,11 +14,11 @@ import {
 	type BattleDoc,
 	type BattleScope,
 	type BattleWinner
-} from '$lib/types/battle';
-import { leaguePrivacy, type LeagueDoc } from '$lib/types/league';
-import { leagueMemberKey, type LeagueMemberDoc } from '$lib/types/league-member';
-import { leagueStatsBucket, leagueStatsKey, type LeagueStatsDoc } from '$lib/types/league-stats';
-import type { CategoryStatsBucket } from '$lib/types/user-stats';
+} from '#lib/types/battle.ts';
+import { leagueMemberKey, type LeagueMemberDoc } from '#lib/types/league-member.ts';
+import { leagueStatsBucket, leagueStatsKey, type LeagueStatsDoc } from '#lib/types/league-stats.ts';
+import { leaguePrivacy, type LeagueDoc } from '#lib/types/league.ts';
+import type { CategoryStatsBucket } from '#lib/types/user-stats.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';

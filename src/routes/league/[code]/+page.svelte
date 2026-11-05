@@ -1,23 +1,24 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount, untrack } from 'svelte';
-	import { browser } from '$app/environment';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { joinLeagueByInvite, lookupLeagueByInvite } from '#lib/services/leagues.services.ts';
+	import { claimReferralFriendship } from '#lib/services/referral.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { LEAGUE_INVITE_CODE_REGEX } from '#lib/types/league.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { stashLeagueInviteForSignup } from '#lib/utils/pending-onboarding.utils.ts';
+	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { REFERRAL_CODE_REGEX } from '$lib/constants/referral.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { authBusy, userSignedIn } from '$lib/derived/user.derived';
-	import { track } from '$lib/services/analytics.services';
-	import { joinLeagueByInvite, lookupLeagueByInvite } from '$lib/services/leagues.services';
-	import { claimReferralFriendship } from '$lib/services/referral.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { LEAGUE_INVITE_CODE_REGEX } from '$lib/types/league';
-	import { t } from '$lib/utils/i18n.utils';
-	import { stashLeagueInviteForSignup } from '$lib/utils/pending-onboarding.utils';
 
 	/**
 	 * League-invite landing page — the single canonical URL the "Invite"
@@ -74,7 +75,7 @@
 	// signup drain. Mirrors the (app) layout's onboarding gate.
 	const needsOnboarding = $derived(!onboardingCompleted && !$userStore.profileExisted);
 
-	const leaguesListPath = `${resolve(AppPath.Arena)}/leagues`;
+	const leaguesListPath = `${resolveAppPath(AppPath.Arena)}/leagues`;
 
 	onMount(() => {
 		document.title = 'Join league · VICI';
@@ -105,7 +106,7 @@
 	});
 
 	const goLeaguesList = () => {
-		void goto(leaguesListPath, { replaceState: true });
+		void goto(leaguesListPath, { replace: true });
 	};
 
 	const handleInvite = async () => {
@@ -129,7 +130,7 @@
 		// this branch covers a stale hint whose session turned out expired.
 		if (!$userSignedIn || needsOnboarding) {
 			stashLeagueInviteForSignup({ inviteCode: normalizedCode, referralCode });
-			void goto(resolve(PublicPath.SignUp), { replaceState: true });
+			void goto(resolve(PublicPath.SignUp), { replace: true });
 
 			return;
 		}
@@ -199,7 +200,7 @@
 				}
 			}
 
-			void goto(`${leaguesListPath}/${league.id}`, { replaceState: true });
+			void goto(`${leaguesListPath}/${league.id}`, { replace: true });
 		} catch (err: unknown) {
 			console.error('League invite resolve failed', err);
 			notificationsStore.add({

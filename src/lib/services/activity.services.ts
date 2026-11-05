@@ -1,11 +1,11 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { ActivityType } from '$lib/enums/social';
-import type { Activity } from '$lib/types/social';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import type { Activity } from '#lib/types/social.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	createActivity as createActivityWeb2,
 	listActivities as listActivitiesWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
 import { listDocs, setDoc, type ListParams } from '@junobuild/core';
 
 export const logActivity = async (activity: Omit<Activity, 'timestamp'>): Promise<void> => {

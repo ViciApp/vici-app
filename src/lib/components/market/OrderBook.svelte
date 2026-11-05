@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { orders } from '$lib/derived/orders.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { orderBookStore } from '$lib/stores/order-book.store';
-	import { selectPrice } from '$lib/stores/trade.store';
-	import type { Market, Outcome } from '$lib/types/market';
-	import type { OrderBookLevel } from '$lib/types/order';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { orders } from '#lib/derived/orders.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { orderBookStore } from '#lib/stores/order-book.store.ts';
+	import { selectPrice } from '#lib/stores/trade.store.ts';
+	import type { Market, Outcome } from '#lib/types/market.ts';
+	import type { OrderBookLevel } from '#lib/types/order.ts';
 	import {
 		decimalFixedValueToNumber,
 		formatProbability,
 		formatQuantity
-	} from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		market: Market;

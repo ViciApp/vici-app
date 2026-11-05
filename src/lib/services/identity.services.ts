@@ -1,5 +1,5 @@
-import { isWeb2Backend } from '$lib/web2/backend-mode';
-import { clearWeb2Session, getWeb2User } from '$lib/web2/session';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { clearWeb2Session, getWeb2User } from '#lib/web2/session.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 import { getIdentityOnce, signOut as junoSignOut } from '@junobuild/core';

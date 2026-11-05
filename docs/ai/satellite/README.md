@@ -27,7 +27,7 @@ It **is not**:
 - The on-chain risk engine. That's the Rust canisters in
   [`../icdc-core/`](../../../../icdc-core/) (Clearing + Registry).
 - A general-purpose backend — keep logic close to data; if it doesn't
-  need to be on-canister, it belongs in `$lib/services/` instead.
+  need to be on-canister, it belongs in `#lib/services/` instead.
 
 ## Satellite-specific things to check (every change)
 
@@ -57,7 +57,7 @@ What the code will not tell you:
 - **`@junobuild/core` is FE-only.** Never import it from the satellite —
   satellite code uses `@junobuild/functions` primitives directly.
 - **The satellite has its own [`tsconfig.json`](../../../src/satellite/tsconfig.json)** —
-  no DOM-only imports from `$lib/`.
+  no DOM-only imports from `#lib/`.
 - **`src/satellite/api-schemas.ts`, `satellite.did`, `satellite_extension.did`
   are generated** by `npm run juno:functions:build`. Don't hand-edit.
 

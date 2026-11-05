@@ -93,7 +93,7 @@ Reusability (catalog = `docs/ai/frontend/reusability.md`):
   (already imported in both `SettingsPage` and `FlowEnd`).
 - **`track`** — analytics (`src/lib/services/analytics.services.ts`).
 - **i18n** — `t({ locale: $localeStore, key })` via
-  `$lib/utils/i18n.utils`; catalogs under `src/lib/constants/messages/*`.
+  `#lib/utils/i18n.utils`; catalogs under `src/lib/constants/messages/*`.
 
 ## Scope
 
@@ -264,7 +264,7 @@ sessionStorage (per tab-session):
 - `vici.a2hs.shown` — the prompt was already shown this session
   (once-per-session guard).
 
-Reuse `$lib/utils/storage.utils` (`set`/`get`/`has`) where it fits; wrap
+Reuse `#lib/utils/storage.utils` (`set`/`get`/`has`) where it fits; wrap
 raw `sessionStorage` access in try/catch (private-mode / blocked-storage
 safe).
 

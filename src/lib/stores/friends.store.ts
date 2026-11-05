@@ -1,11 +1,11 @@
-import { loadProfilesByPrincipals } from '$lib/services/profile.services';
+import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
 import {
 	getFriendRequests,
 	getFriends,
 	getSentFriendRequests
-} from '$lib/services/relation-queries.services';
-import { userStore } from '$lib/stores/user.store';
-import type { Relation } from '$lib/types/relation';
+} from '#lib/services/relation-queries.services.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import type { Relation } from '#lib/types/relation.ts';
 import type { Doc } from '@junobuild/core';
 import { get, writable } from 'svelte/store';
 

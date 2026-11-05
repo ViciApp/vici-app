@@ -1,5 +1,5 @@
-import { WC_SHIRT } from '$lib/constants/flow-art-wc.constants';
-import type { WcHelpers } from '$lib/utils/flow-art/wc/helpers';
+import { WC_SHIRT } from '#lib/constants/flow-art-wc.constants.ts';
+import type { WcHelpers } from '#lib/utils/flow-art/wc/helpers.ts';
 
 // === RECIPES (curated compositions) =====================
 // Each key is a WC market id → a fully deterministic scene

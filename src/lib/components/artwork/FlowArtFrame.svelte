@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { theme } from '$lib/stores/theme.store';
+	import { theme } from '#lib/stores/theme.store.ts';
 	import {
 		flowArtViewBox,
 		renderFlowArt,
 		type FlowArtCategory,
 		type FlowArtState
-	} from '$lib/utils/flow-art.utils';
+	} from '#lib/utils/flow-art.utils.ts';
 
 	interface Props {
 		// Visual language — a taxonomy macro (folded onto one of the six

@@ -1,6 +1,6 @@
-import { WC_SHIRT } from '$lib/constants/flow-art-wc.constants';
-import type { FlowArtPalette } from '$lib/utils/flow-art/types';
-import { wcFace } from '$lib/utils/flow-art/wc/figure';
+import { WC_SHIRT } from '#lib/constants/flow-art-wc.constants.ts';
+import type { FlowArtPalette } from '#lib/utils/flow-art/types.ts';
+import { wcFace } from '#lib/utils/flow-art/wc/figure.ts';
 
 // WC scene helpers — background backdrops + focal props. Bundled in
 // a factory so each helper closes over the per-render palette `p` and

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { browser } from '$app/environment';
-	import { pinToVisualViewport } from '$lib/actions/pin-to-visual-viewport';
-	import SheetFooter from '$lib/components/ui/SheetFooter.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { createFocusTrap, type FocusTrap } from '$lib/utils/focus-trap.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import { pinToVisualViewport } from '#lib/actions/pin-to-visual-viewport.ts';
+	import SheetFooter from '#lib/components/ui/SheetFooter.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { createFocusTrap, type FocusTrap } from '#lib/utils/focus-trap.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { browser } from '$app/env';
 
 	/**
 	 * Bottom-sheet primitive — full-width sheet docked at the bottom of

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Card from '$lib/components/ui/Card.svelte';
-	import { TestId } from '$lib/constants/test-ids.constants';
+	import Card from '#lib/components/ui/Card.svelte';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
 </script>
 
 <Card

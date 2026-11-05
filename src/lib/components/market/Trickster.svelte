@@ -1,5 +1,5 @@
 <script lang="ts">
-	import TricksterChar from '$lib/components/characters/TricksterChar.svelte';
+	import TricksterChar from '#lib/components/characters/TricksterChar.svelte';
 
 	/**
 	 * Trickster — contrarian-call pill character. Thin wrapper around the

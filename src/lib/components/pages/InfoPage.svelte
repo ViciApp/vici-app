@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { ChevronLeft } from '@lucide/svelte/icons';
-	import { resolve } from '$app/paths';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { userSignedIn } from '$lib/derived/user.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { InfoDoc } from '$lib/types/info-doc';
-	import { mailtoHref } from '$lib/utils/email.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { InfoDoc } from '#lib/types/info-doc.ts';
+	import { mailtoHref } from '#lib/utils/email.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 
 	/**
 	 * Info / legal doc page — single-column reading view with:
@@ -44,7 +43,7 @@
 	// Back target: signed-in users came from Settings; signed-out
 	// (pre-onboarding) users came from the Welcome / signup flow.
 	const backTarget = $derived($userSignedIn ? AppPath.Settings : PublicPath.Welcome);
-	const handleBack = () => goBack(resolve(backTarget));
+	const handleBack = () => goBack(resolveAppPath(backTarget));
 
 	const footBackKey = $derived<'info.back_to_settings' | 'info.back'>(
 		$userSignedIn ? 'info.back_to_settings' : 'info.back'

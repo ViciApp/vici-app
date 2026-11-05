@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Check, ChevronRight, X } from '@lucide/svelte/icons';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { joinLeagueByInvite, lookupLeagueByInvite } from '$lib/services/leagues.services';
-	import { localeStore } from '$lib/stores/locale.store';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import { joinLeagueByInvite, lookupLeagueByInvite } from '#lib/services/leagues.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		LEAGUE_INVITE_CODE_EXAMPLE,
 		LEAGUE_INVITE_CODE_REGEX,
 		leagueEmblem,
 		type LeagueDoc
-	} from '$lib/types/league';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	} from '#lib/types/league.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		isOpen: boolean;

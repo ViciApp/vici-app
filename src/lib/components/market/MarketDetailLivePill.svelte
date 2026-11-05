@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 </script>
 
 <!-- Pulsing LIVE pill that sits beside the category chip on the Market

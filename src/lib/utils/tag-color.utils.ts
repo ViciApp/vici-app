@@ -3,7 +3,7 @@ import {
 	isMicroId,
 	macroColor,
 	microColor
-} from '$lib/constants/market-taxonomy.constants';
+} from '#lib/constants/market-taxonomy.constants.ts';
 
 // Chip / accent color for a taxonomy category id. Macros carry the brand
 // accent; micros inherit their parent macro's hue (the chip's meaning is

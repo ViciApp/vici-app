@@ -1,29 +1,29 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import AdminSubPageHeader from '$lib/components/admin/AdminSubPageHeader.svelte';
-	import Card from '$lib/components/ui/Card.svelte';
-	import InfiniteScroll from '$lib/components/ui/InfiniteScroll.svelte';
-	import Tabs from '$lib/components/ui/Tabs.svelte';
-	import WalletHistory from '$lib/components/wallet/WalletHistory.svelte';
-	import WalletReceive from '$lib/components/wallet/WalletReceive.svelte';
-	import WalletSend from '$lib/components/wallet/WalletSend.svelte';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { walletUiTokens } from '$lib/derived/tokens.derived';
-	import { safeGetIdentityOnce } from '$lib/services/identity.services';
-	import { sendIc } from '$lib/services/send.services';
+	import AdminSubPageHeader from '#lib/components/admin/AdminSubPageHeader.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
+	import InfiniteScroll from '#lib/components/ui/InfiniteScroll.svelte';
+	import Tabs from '#lib/components/ui/Tabs.svelte';
+	import WalletHistory from '#lib/components/wallet/WalletHistory.svelte';
+	import WalletReceive from '#lib/components/wallet/WalletReceive.svelte';
+	import WalletSend from '#lib/components/wallet/WalletSend.svelte';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { walletUiTokens } from '#lib/derived/tokens.derived.ts';
+	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+	import { sendIc } from '#lib/services/send.services.ts';
 	import {
 		getTransactionsPage,
 		type WalletTransactionsCursors,
 		type WalletTransactionsDone
-	} from '$lib/services/wallet.service';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import type { Token } from '$lib/types/token';
-	import type { Transaction } from '$lib/types/wallet';
-	import { emit } from '$lib/utils/events.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { parseToken } from '$lib/utils/parse.utils';
+	} from '#lib/services/wallet.service.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { Token } from '#lib/types/token.ts';
+	import type { Transaction } from '#lib/types/wallet.ts';
+	import { emit } from '#lib/utils/events.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { parseToken } from '#lib/utils/parse.utils.ts';
 
 	/**
 	 * Admin-only VXP treasury console: the send / receive / history

@@ -3,18 +3,16 @@
 	import { Plus } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import CreateLeagueModal from '$lib/components/leagues/CreateLeagueModal.svelte';
-	import JoinLeagueModal from '$lib/components/leagues/JoinLeagueModal.svelte';
-	import LeagueCtaCard from '$lib/components/leagues/LeagueCtaCard.svelte';
-	import LeagueListCard from '$lib/components/leagues/LeagueListCard.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { settleFounderAwards, type LeagueWithRole } from '$lib/services/leagues.services';
-	import { findOwnStanding, getLeagueStandings } from '$lib/services/standings.services';
-	import { friendsListStore, refreshFriendRelations } from '$lib/stores/friends.store';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import CreateLeagueModal from '#lib/components/leagues/CreateLeagueModal.svelte';
+	import JoinLeagueModal from '#lib/components/leagues/JoinLeagueModal.svelte';
+	import LeagueCtaCard from '#lib/components/leagues/LeagueCtaCard.svelte';
+	import LeagueListCard from '#lib/components/leagues/LeagueListCard.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { settleFounderAwards, type LeagueWithRole } from '#lib/services/leagues.services.ts';
+	import { findOwnStanding, getLeagueStandings } from '#lib/services/standings.services.ts';
+	import { friendsListStore, refreshFriendRelations } from '#lib/stores/friends.store.ts';
 	import {
 		friendRecommendedLeaguesStore,
 		leagueBattlesStore,
@@ -23,14 +21,15 @@
 		leaguesLoadedStore,
 		myLeaguesStore,
 		refreshMyLeagues
-	} from '$lib/stores/leagues.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import type { LeagueMemberDoc } from '$lib/types/league-member';
-	import { t } from '$lib/utils/i18n.utils';
-	import { leagueRankOf, rankLeagueMembers } from '$lib/utils/league-rank.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { refreshAllBalances } from '$lib/utils/refresh.utils';
+	} from '#lib/stores/leagues.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { leagueRankOf, rankLeagueMembers } from '#lib/utils/league-rank.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { refreshAllBalances } from '#lib/utils/refresh.utils.ts';
+	import { goto } from '$app/navigation';
 
 	/**
 	 * Social cohorts list page.
@@ -320,7 +319,7 @@
 	};
 
 	const handleCardClick = (leagueId: string) => {
-		void goto(`${resolve(AppPath.Arena)}/leagues/${leagueId}`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/leagues/${leagueId}`);
 	};
 </script>
 
@@ -340,7 +339,7 @@
 		<ScreenHeader
 			back={{
 				label: t({ locale: $localeStore, key: 'leagues.back' }),
-				onBack: () => goBack(resolve(AppPath.Arena))
+				onBack: () => goBack(resolveAppPath(AppPath.Arena))
 			}}
 			right={leaguesCreateAction}
 			title={t({ locale: $localeStore, key: 'leagues.title' })}

@@ -1,15 +1,15 @@
 <script lang="ts">
+	import AdminBulkMarketForm from '#lib/components/admin/AdminBulkMarketForm.svelte';
+	import AdminMarketForm from '#lib/components/admin/AdminMarketForm.svelte';
+	import AdminSubPageHeader from '#lib/components/admin/AdminSubPageHeader.svelte';
+	import { normalizeStoredTags } from '#lib/constants/market-taxonomy.constants.ts';
+	import { upsertMarketMetadata } from '#lib/services/market-metadata.services.ts';
+	import { createMarket } from '#lib/services/market.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { toBalanceDomain } from '#lib/utils/balance-domain.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import type { RegistryDid } from '$declarations';
-	import AdminBulkMarketForm from '$lib/components/admin/AdminBulkMarketForm.svelte';
-	import AdminMarketForm from '$lib/components/admin/AdminMarketForm.svelte';
-	import AdminSubPageHeader from '$lib/components/admin/AdminSubPageHeader.svelte';
-	import { normalizeStoredTags } from '$lib/constants/market-taxonomy.constants';
-	import { upsertMarketMetadata } from '$lib/services/market-metadata.services';
-	import { createMarket } from '$lib/services/market.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { toBalanceDomain } from '$lib/utils/balance-domain.utils';
-	import { t } from '$lib/utils/i18n.utils';
 
 	let bulkInProgress = $state(false);
 	let bulkProgress = $state(0);

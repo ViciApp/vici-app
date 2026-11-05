@@ -10,11 +10,11 @@
 	 * (aria-hidden) and scrolls via CSS (paused under reduced-motion).
 	 */
 	import { onMount } from 'svelte';
-	import { LANDING_PROOF_CHIPS } from '$lib/constants/landing-data.constants';
-	import { getViciUserCount } from '$lib/services/landing-proof.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import { LANDING_PROOF_CHIPS } from '#lib/constants/landing-data.constants.ts';
+	import { getViciUserCount } from '#lib/services/landing-proof.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	const tt = (key: MessageKey) => t({ locale: $localeStore, key });
 

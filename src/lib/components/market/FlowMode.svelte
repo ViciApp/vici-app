@@ -4,77 +4,75 @@
 	import { cubicOut } from 'svelte/easing';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { fade, fly } from 'svelte/transition';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { tradeErrorMessage } from '$lib/canisters/clearing.errors';
-	import FlowBottomBar from '$lib/components/market/FlowBottomBar.svelte';
-	import FlowCard from '$lib/components/market/FlowCard.svelte';
-	import FlowComboBanner from '$lib/components/market/FlowComboBanner.svelte';
-	import FlowDailyCap from '$lib/components/market/FlowDailyCap.svelte';
-	import FlowEmptyDeck from '$lib/components/market/FlowEmptyDeck.svelte';
-	import FlowEnd from '$lib/components/market/FlowEnd.svelte';
-	import FlowEntry from '$lib/components/market/FlowEntry.svelte';
-	import FlowOutOfFunds from '$lib/components/market/FlowOutOfFunds.svelte';
-	import FlowStreakBreakBanner from '$lib/components/market/FlowStreakBreakBanner.svelte';
-	import FlowTopBar from '$lib/components/market/FlowTopBar.svelte';
-	import FlowXpPops from '$lib/components/market/FlowXpPops.svelte';
-	import MotionBeat from '$lib/components/market/MotionBeat.svelte';
-	import SwipeHint from '$lib/components/market/SwipeHint.svelte';
-	import XpToast from '$lib/components/market/XpToast.svelte';
-	import FlowCoach from '$lib/components/onboarding/FlowCoach.svelte';
-	import A2hsSheet from '$lib/components/pwa/A2hsSheet.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { isVxpLadderStake, VXP_MIN_STAKE } from '$lib/constants/vxp-economy.constants';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
-	import { featuredEvent, featuredEventActive } from '$lib/derived/featured-event.derived';
-	import { guestMode } from '$lib/derived/guest.derived';
-	import { playgroundFlowTradeUnitLabel } from '$lib/derived/playground.derived';
-	import { minuteTick_ms } from '$lib/derived/time.derived';
-	import { vxpSpendable } from '$lib/derived/vxp-holdings.derived';
-	import { track } from '$lib/services/analytics.services';
-	import { prepareFlow, type PreparedFlow } from '$lib/services/flow-prep.services';
-	import { flowTradeService } from '$lib/services/flow.services';
-	import { persistDailyStreak, recordFlowSwipe } from '$lib/services/profile.services';
-	import { loadMarketPriceCandles } from '$lib/services/trade.services';
-	import { canInstall, shouldAutoPrompt } from '$lib/stores/a2hs.store';
-	import { collateralsStore } from '$lib/stores/collaterals.store';
-	import { showCompanion } from '$lib/stores/companion.store';
-	import { setFlowBeatActive } from '$lib/stores/flow-beat.store';
-	import { advanceFlow, peekFlow } from '$lib/stores/flow.store';
-	import { recordGuestPick } from '$lib/stores/guest.store';
-	import { markResolutionsSeen, maturedResolutions } from '$lib/stores/inbox.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { marketLanguagePreference } from '$lib/stores/market-language.store';
+	import { tradeErrorMessage } from '#lib/canisters/clearing.errors.ts';
+	import FlowBottomBar from '#lib/components/market/FlowBottomBar.svelte';
+	import FlowCard from '#lib/components/market/FlowCard.svelte';
+	import FlowComboBanner from '#lib/components/market/FlowComboBanner.svelte';
+	import FlowDailyCap from '#lib/components/market/FlowDailyCap.svelte';
+	import FlowEmptyDeck from '#lib/components/market/FlowEmptyDeck.svelte';
+	import FlowEnd from '#lib/components/market/FlowEnd.svelte';
+	import FlowEntry from '#lib/components/market/FlowEntry.svelte';
+	import FlowOutOfFunds from '#lib/components/market/FlowOutOfFunds.svelte';
+	import FlowStreakBreakBanner from '#lib/components/market/FlowStreakBreakBanner.svelte';
+	import FlowTopBar from '#lib/components/market/FlowTopBar.svelte';
+	import FlowXpPops from '#lib/components/market/FlowXpPops.svelte';
+	import MotionBeat from '#lib/components/market/MotionBeat.svelte';
+	import SwipeHint from '#lib/components/market/SwipeHint.svelte';
+	import XpToast from '#lib/components/market/XpToast.svelte';
+	import FlowCoach from '#lib/components/onboarding/FlowCoach.svelte';
+	import A2hsSheet from '#lib/components/pwa/A2hsSheet.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { isVxpLadderStake, VXP_MIN_STAKE } from '#lib/constants/vxp-economy.constants.ts';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+	import { featuredEvent, featuredEventActive } from '#lib/derived/featured-event.derived.ts';
+	import { guestMode } from '#lib/derived/guest.derived.ts';
+	import { playgroundFlowTradeUnitLabel } from '#lib/derived/playground.derived.ts';
+	import { minuteTick_ms } from '#lib/derived/time.derived.ts';
+	import { vxpSpendable } from '#lib/derived/vxp-holdings.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { prepareFlow, type PreparedFlow } from '#lib/services/flow-prep.services.ts';
+	import { flowTradeService } from '#lib/services/flow.services.ts';
+	import { persistDailyStreak, recordFlowSwipe } from '#lib/services/profile.services.ts';
+	import { loadMarketPriceCandles } from '#lib/services/trade.services.ts';
+	import { canInstall, shouldAutoPrompt } from '#lib/stores/a2hs.store.ts';
+	import { collateralsStore } from '#lib/stores/collaterals.store.ts';
+	import { showCompanion } from '#lib/stores/companion.store.ts';
+	import { setFlowBeatActive } from '#lib/stores/flow-beat.store.ts';
+	import { advanceFlow, peekFlow } from '#lib/stores/flow.store.ts';
+	import { recordGuestPick } from '#lib/stores/guest.store.ts';
+	import { markResolutionsSeen, maturedResolutions } from '#lib/stores/inbox.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
 	import {
 		hydrate as hydrateMarketTranslations,
 		marketTranslations
-	} from '$lib/stores/market-translations.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { preferencesStore } from '$lib/stores/preferences.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { FlowEntryMethod, ResolutionRevealData, XpPop } from '$lib/types/flow';
-	import type { CallSide, FlowAction, Market, MarketId } from '$lib/types/market';
-	import type { MarketMetadata } from '$lib/types/market-metadata';
-	import type { UserMarketSignals } from '$lib/types/market-signals';
-	import { isViciXp } from '$lib/utils/balance-domain.utils';
+	} from '#lib/stores/market-translations.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { preferencesStore } from '#lib/stores/preferences.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { FlowEntryMethod, ResolutionRevealData, XpPop } from '#lib/types/flow.ts';
+	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
+	import type { UserMarketSignals } from '#lib/types/market-signals.ts';
+	import type { CallSide, FlowAction, Market, MarketId } from '#lib/types/market.ts';
+	import { isViciXp } from '#lib/utils/balance-domain.utils.ts';
 	import {
 		applyDailyGoalBump,
 		DAILY_GOAL_TARGET,
 		reconcileDailyGoalOnEntry,
 		rolloverDailyGoal,
 		writeDailyGoalMirror
-	} from '$lib/utils/daily-goal.utils';
-	import { resolveFlowArtCategory } from '$lib/utils/flow-art.utils';
-	import { consumePinnedFlowMarket } from '$lib/utils/flow-pin.utils';
+	} from '#lib/utils/daily-goal.utils.ts';
+	import { resolveFlowArtCategory } from '#lib/utils/flow-art.utils.ts';
+	import { consumePinnedFlowMarket } from '#lib/utils/flow-pin.utils.ts';
 	import {
 		canExtendSession,
 		isDailyCapReached,
 		isOvertimeSession,
 		maxBetsFor,
 		sittingGoalFor
-	} from '$lib/utils/flow-session.utils';
+	} from '#lib/utils/flow-session.utils.ts';
 	import {
 		flowBeat,
 		flowSummary,
@@ -82,21 +80,30 @@
 		flowWild,
 		resumeFlowSound,
 		unlockFlowSound
-	} from '$lib/utils/flow-sound.utils';
-	import { probabilityToPercent } from '$lib/utils/format.utils';
-	import { haptic, hapticForBeat } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import type { MarketPriceSeries } from '$lib/utils/market-price-history.utils';
-	import { marketDisplayText, translatedLanguageLabel } from '$lib/utils/market-translation.utils';
+	} from '#lib/utils/flow-sound.utils.ts';
+	import { probabilityToPercent } from '#lib/utils/format.utils.ts';
+	import { haptic, hapticForBeat } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import type { MarketPriceSeries } from '#lib/utils/market-price-history.utils.ts';
+	import {
+		marketDisplayText,
+		translatedLanguageLabel
+	} from '#lib/utils/market-translation.utils.ts';
 	import {
 		DAILY_HARD_CAP,
 		recordMotionSwipe,
 		type MotionBeatPayload
-	} from '$lib/utils/motion-engine.utils';
-	import { parseToken, tokenBaseUnitsToUsdBaseUnits } from '$lib/utils/parse.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import { applyDailyStreakBump, stageForStreak, type FlameStage } from '$lib/utils/streak.utils';
-	import { assertViciXpHumanPremium } from '$lib/utils/trade.utils';
+	} from '#lib/utils/motion-engine.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { parseToken, tokenBaseUnitsToUsdBaseUnits } from '#lib/utils/parse.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
+	import {
+		applyDailyStreakBump,
+		stageForStreak,
+		type FlameStage
+	} from '#lib/utils/streak.utils.ts';
+	import { assertViciXpHumanPremium } from '#lib/utils/trade.utils.ts';
+	import { goto } from '$app/navigation';
 
 	// Daily goal — a per-user count of predictions committed today,
 	// hydrated from the profile and rolled over to 0 on a new local day.
@@ -1112,7 +1119,7 @@
 	};
 
 	const backToMarkets = () => {
-		goto(resolve(AppPath.Home));
+		goto(resolveAppPath(AppPath.Home));
 	};
 
 	// Enter Flow — the entry beat cleared (deck-mode auto-enter, the digest
@@ -1144,7 +1151,7 @@
 	// dashboard. The session's calls are already placed (the FlowEnd is a
 	// summary, not a commit step); this only picks where the user goes next.
 	const handleClose = () => {
-		goto(resolve(AppPath.Dash));
+		goto(resolveAppPath(AppPath.Dash));
 	};
 
 	// The back-face peg-rail owns stake selection on the VXP balance

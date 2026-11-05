@@ -1,5 +1,5 @@
-import { ProfileVisibility } from '$lib/enums/profile';
-import type { SettingsVisibility } from '$lib/types/preferences';
+import { ProfileVisibility } from '#lib/enums/profile.ts';
+import type { SettingsVisibility } from '#lib/types/preferences.ts';
 
 /**
  * Map the persisted {@link ProfileVisibility} enum to the three-way

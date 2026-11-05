@@ -1,15 +1,15 @@
 <script lang="ts">
-	import ActivityItem from '$lib/components/arena/ActivityItem.svelte';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import Card from '$lib/components/ui/Card.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
+	import ActivityItem from '#lib/components/arena/ActivityItem.svelte';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import {
 		globalActivities,
 		globalActivitiesNotInitialized
-	} from '$lib/derived/activities.derived';
-	import { following } from '$lib/derived/following.derived';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import { refreshGlobalActivities } from '$lib/utils/refresh.utils';
+	} from '#lib/derived/activities.derived.ts';
+	import { following } from '#lib/derived/following.derived.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import { refreshGlobalActivities } from '#lib/utils/refresh.utils.ts';
 
 	interface Props {
 		userPrincipal?: string;

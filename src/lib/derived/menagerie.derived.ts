@@ -2,14 +2,14 @@ import {
 	myGlobalRankStore,
 	myMenagerieSignalsLoaded,
 	myReferralCountStore
-} from '$lib/stores/menagerie.store';
-import { userStore } from '$lib/stores/user.store';
+} from '#lib/stores/menagerie.store.ts';
+import { userStore } from '#lib/stores/user.store.ts';
 import {
 	menagerieRows,
 	menagerieStatsFromProfile,
 	type MenagerieRow,
 	type MenagerieStats
-} from '$lib/utils/menagerie.utils';
+} from '#lib/utils/menagerie.utils.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**

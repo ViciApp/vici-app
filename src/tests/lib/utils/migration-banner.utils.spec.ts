@@ -1,4 +1,4 @@
-import { activeMigrationBanner, isMoveNoticeVisible } from '$lib/utils/migration-banner.utils';
+import { activeMigrationBanner, isMoveNoticeVisible } from '#lib/utils/migration-banner.utils.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 

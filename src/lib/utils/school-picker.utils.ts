@@ -1,4 +1,4 @@
-import type { WorldsAffiliationOption } from '$lib/constants/worlds-affiliations.constants';
+import type { WorldsAffiliationOption } from '#lib/constants/worlds-affiliations.constants.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

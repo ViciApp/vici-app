@@ -1,36 +1,35 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import CountryFlag from '$lib/components/ui/CountryFlag.svelte';
-	import { hasCountryFlag } from '$lib/constants/country-flags.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_WORLDS_PODIUM } from '$lib/constants/vxp-economy.constants';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import CountryFlag from '#lib/components/ui/CountryFlag.svelte';
+	import { hasCountryFlag } from '#lib/constants/country-flags.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_WORLDS_PODIUM } from '#lib/constants/vxp-economy.constants.ts';
 	import {
 		lookupWorldsAffiliation,
 		WORLDS_COUNTRIES,
 		WORLDS_UNIVERSITIES,
 		type WorldsAffiliationOption
-	} from '$lib/constants/worlds-affiliations.constants';
-	import { daysToFinal } from '$lib/derived/featured-event.derived';
-	import { listAffiliationStats } from '$lib/services/worlds.services';
-	import { myAffiliationsStore, refreshMyAffiliations } from '$lib/stores/affiliations.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { AffiliationKind } from '$lib/types/affiliation';
-	import type { AffiliationStatsDoc } from '$lib/types/affiliation-stats';
-	import { affiliationDisplayName } from '$lib/utils/affiliation-name.utils';
+	} from '#lib/constants/worlds-affiliations.constants.ts';
+	import { daysToFinal } from '#lib/derived/featured-event.derived.ts';
+	import { listAffiliationStats } from '#lib/services/worlds.services.ts';
+	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
+	import type { AffiliationKind } from '#lib/types/affiliation.ts';
+	import { affiliationDisplayName } from '#lib/utils/affiliation-name.utils.ts';
 	import {
 		affiliationLifetimeAccuracy,
 		affiliationMonthlyAccuracy,
 		affiliationRankComparator,
 		formatAccuracyPercent
-	} from '$lib/utils/affiliation-stats.utils';
-	import { formatMonthName } from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/utils/affiliation-stats.utils.ts';
+	import { formatMonthName } from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	/**
 	 * Worlds battle — the full leaderboard surface across every
@@ -172,7 +171,7 @@
 	const detailPath = (id: string): string => {
 		const segment = kind === 'university' ? 'school' : 'country';
 
-		return `${resolve(AppPath.Arena)}/worlds/${segment}/${id}`;
+		return `${resolveAppPath(AppPath.Arena)}/worlds/${segment}/${id}`;
 	};
 
 	const handleRowNav = (id: string) => {
@@ -190,7 +189,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'worlds.battle.back' }),
-			onBack: () => goBack(`${resolve(AppPath.Arena)}/worlds`)
+			onBack: () => goBack(`${resolveAppPath(AppPath.Arena)}/worlds`)
 		}}
 		title={t({ locale: $localeStore, key: titleKey })}
 	/>

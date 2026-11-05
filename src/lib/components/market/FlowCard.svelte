@@ -1,35 +1,35 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import ConsensusCompass from '$lib/components/market/ConsensusCompass.svelte';
-	import FlowCardBack from '$lib/components/market/FlowCardBack.svelte';
-	import FlowCardFooter from '$lib/components/market/FlowCardFooter.svelte';
-	import MarketArtwork from '$lib/components/market/MarketArtwork.svelte';
-	import MarketOddsSkeleton from '$lib/components/market/MarketOddsSkeleton.svelte';
-	import MarketTranslationToggle from '$lib/components/market/MarketTranslationToggle.svelte';
-	import SeededAvatarStack from '$lib/components/ui/SeededAvatarStack.svelte';
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { VXP_DEFAULT_STAKE } from '$lib/constants/vxp-economy.constants';
-	import { lookupWcMarketSubtitle } from '$lib/constants/wc-market-subtitles.constants';
-	import { daysToKickoff } from '$lib/derived/featured-event.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { FlowAction, Market } from '$lib/types/market';
-	import type { MarketMetadata } from '$lib/types/market-metadata';
+	import ConsensusCompass from '#lib/components/market/ConsensusCompass.svelte';
+	import FlowCardBack from '#lib/components/market/FlowCardBack.svelte';
+	import FlowCardFooter from '#lib/components/market/FlowCardFooter.svelte';
+	import MarketArtwork from '#lib/components/market/MarketArtwork.svelte';
+	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
+	import SeededAvatarStack from '#lib/components/ui/SeededAvatarStack.svelte';
+	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { VXP_DEFAULT_STAKE } from '#lib/constants/vxp-economy.constants.ts';
+	import { lookupWcMarketSubtitle } from '#lib/constants/wc-market-subtitles.constants.ts';
+	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 	import type {
 		CategoryAccuracySignal,
 		FollowedLeanSignal,
 		PriorCallSignal
-	} from '$lib/types/market-signals';
-	import type { MarketTranslation } from '$lib/types/market-translation';
-	import { resolveFlowArtCategory, type FlowArtCategory } from '$lib/utils/flow-art.utils';
+	} from '#lib/types/market-signals.ts';
+	import type { MarketTranslation } from '#lib/types/market-translation.ts';
+	import type { FlowAction, Market } from '#lib/types/market.ts';
+	import { resolveFlowArtCategory, type FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
 	import {
 		consensusPercent,
 		consensusSide,
 		formatWhyNowChip
-	} from '$lib/utils/flow-card-display.utils';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { marketDisplayText } from '$lib/utils/market-translation.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
+	} from '#lib/utils/flow-card-display.utils.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { marketDisplayText } from '#lib/utils/market-translation.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	interface Props {
 		market: Market;

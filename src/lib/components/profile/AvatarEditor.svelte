@@ -1,20 +1,20 @@
 <script lang="ts">
 	import { Check, Shuffle, X } from '@lucide/svelte/icons';
 	import { untrack } from 'svelte';
-	import { pinToVisualViewport } from '$lib/actions/pin-to-visual-viewport';
-	import { saveMyAvatarParts } from '$lib/stores/avatar.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import { pinToVisualViewport } from '#lib/actions/pin-to-visual-viewport.ts';
+	import { saveMyAvatarParts } from '#lib/stores/avatar.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 	import {
 		AVATAR_PARTS,
 		normalizeParts,
 		renderAvatarSvg,
 		type ViciAvatarParts,
 		type ViciAvatarPartKey
-	} from '$lib/utils/vici-avatar.utils';
+	} from '#lib/utils/vici-avatar.utils.ts';
 
 	interface Props {
 		/** The parts to seed the editor with (the user's current avatar). */

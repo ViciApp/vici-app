@@ -1,8 +1,8 @@
 <script lang="ts">
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Add-by-handle bottom sheet — an `@`-prefixed input opened from the

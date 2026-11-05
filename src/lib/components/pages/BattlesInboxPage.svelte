@@ -1,40 +1,43 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import BattlesIntroCard from '$lib/components/leagues/BattlesIntroCard.svelte';
-	import CreateBoutModal from '$lib/components/leagues/CreateBoutModal.svelte';
-	import WorldsBattleCard from '$lib/components/worlds/WorldsBattleCard.svelte';
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import BattlesIntroCard from '#lib/components/leagues/BattlesIntroCard.svelte';
+	import CreateBoutModal from '#lib/components/leagues/CreateBoutModal.svelte';
+	import WorldsBattleCard from '#lib/components/worlds/WorldsBattleCard.svelte';
+	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		WORLDS_COUNTRIES,
 		WORLDS_UNIVERSITIES
-	} from '$lib/constants/worlds-affiliations.constants';
-	import { daysToFinal } from '$lib/derived/featured-event.derived';
-	import { listMyBattles, loadLeaguesByIds } from '$lib/services/leagues.services';
-	import { getCurrentTournament } from '$lib/services/tournament.services';
-	import { listAffiliationStats } from '$lib/services/worlds.services';
-	import { myAffiliationsStore, refreshMyAffiliations } from '$lib/stores/affiliations.store';
-	import { leagueDirectoryStore } from '$lib/stores/league-directory.store';
-	import { leagueBattlesStore, myLeaguesStore, refreshMyLeagues } from '$lib/stores/leagues.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { AffiliationStatsDoc } from '$lib/types/affiliation-stats';
-	import type { BattleDoc } from '$lib/types/battle';
+	} from '#lib/constants/worlds-affiliations.constants.ts';
+	import { daysToFinal } from '#lib/derived/featured-event.derived.ts';
+	import { listMyBattles, loadLeaguesByIds } from '#lib/services/leagues.services.ts';
+	import { getCurrentTournament } from '#lib/services/tournament.services.ts';
+	import { listAffiliationStats } from '#lib/services/worlds.services.ts';
+	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
+	import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
+	import {
+		leagueBattlesStore,
+		myLeaguesStore,
+		refreshMyLeagues
+	} from '#lib/stores/leagues.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
+	import type { BattleDoc } from '#lib/types/battle.ts';
 	import {
 		TOURNAMENT_ROUNDS,
 		type TournamentDoc,
 		type TournamentMatchDoc,
 		type TournamentRound
-	} from '$lib/types/tournament';
-	import { battleScopeLabel } from '$lib/utils/battle.utils';
-	import { shortLeagueId } from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { BATTLES_INTRO_SEEN_KEY } from '$lib/utils/onboarding-flags.utils';
+	} from '#lib/types/tournament.ts';
+	import { battleScopeLabel } from '#lib/utils/battle.utils.ts';
+	import { shortLeagueId } from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { BATTLES_INTRO_SEEN_KEY } from '#lib/utils/onboarding-flags.utils.ts';
+	import { browser } from '$app/env';
+	import { goto } from '$app/navigation';
 
 	/**
 	 * Battles inbox — the surface users reach for when looking for a
@@ -149,7 +152,7 @@
 	});
 
 	const goToLeague = (leagueId: string) => {
-		void goto(`${resolve(AppPath.Arena)}/leagues/${leagueId}`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/leagues/${leagueId}`);
 	};
 
 	// ─── Live battles ───────────────────────────────────────────────
@@ -198,7 +201,7 @@
 	});
 
 	const goToBattle = (battleId: string) => {
-		void goto(`${resolve(AppPath.Arena)}/battles/${battleId}?from=inbox`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/battles/${battleId}?from=inbox`);
 	};
 
 	// ─── Worlds podium state ────────────────────────────────────────
@@ -273,7 +276,7 @@
 	// League-vs-league battles live under the Leagues surface; the
 	// footer link routes there to manage them per league.
 	const goToLeagues = () => {
-		void goto(`${resolve(AppPath.Arena)}/leagues`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/leagues`);
 	};
 
 	// Open the create-a-battle wizard (pick league → opponent →
@@ -312,16 +315,16 @@
 	// ranking.
 	const goWorldsUniversities = (scope: 'wc' | 'month') => {
 		const suffix = scope === 'month' ? '?scope=month' : '';
-		void goto(`${resolve(AppPath.Arena)}/worlds/schools${suffix}`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/worlds/schools${suffix}`);
 	};
 
 	const goWorldsCountries = (scope: 'wc' | 'month') => {
 		const suffix = scope === 'month' ? '?scope=month' : '';
-		void goto(`${resolve(AppPath.Arena)}/worlds/countries${suffix}`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/worlds/countries${suffix}`);
 	};
 
 	const goTournament = () => {
-		void goto(`${resolve(AppPath.Arena)}/tournament`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/tournament`);
 	};
 
 	// ─── Tournament card derivations ────────────────────────────────
@@ -421,7 +424,7 @@
 		<ScreenHeader
 			back={{
 				label: t({ locale: $localeStore, key: 'leagues.battles_inbox.back' }),
-				onBack: () => goBack(resolve(AppPath.Arena))
+				onBack: () => goBack(resolveAppPath(AppPath.Arena))
 			}}
 			title={t({ locale: $localeStore, key: 'leagues.battles_inbox.title' })}
 		/>

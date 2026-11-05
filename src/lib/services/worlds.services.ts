@@ -1,20 +1,19 @@
-import { functions } from '$declarations/satellite/satellite.api';
-import { DAY_IN_MS } from '$lib/constants/app.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { safeGetIdentityOnce } from '$lib/services/identity.services';
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import {
+	monthAnchorFromMs,
+	type AffiliationChampionship,
+	type AffiliationStatsDoc
+} from '#lib/types/affiliation-stats.ts';
 import {
 	AFFILIATION_LOCK_MS,
 	affiliationKey,
 	type AffiliationDoc,
 	type AffiliationKind
-} from '$lib/types/affiliation';
-import {
-	monthAnchorFromMs,
-	type AffiliationChampionship,
-	type AffiliationStatsDoc
-} from '$lib/types/affiliation-stats';
-import { withTimeout } from '$lib/utils/async.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/types/affiliation.ts';
+import { withTimeout } from '#lib/utils/async.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	claimWorldsPodiumPrize as claimWorldsPodiumPrizeWeb2,
 	getAffiliationStats as getAffiliationStatsWeb2,
@@ -24,7 +23,8 @@ import {
 	listWorldsMemberCounts as listWorldsMemberCountsWeb2,
 	removeAffiliation as removeAffiliationWeb2,
 	setAffiliation as setAffiliationWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
+import { functions } from '$declarations/satellite/satellite.api';
 import { deleteDoc, getDoc, setDoc } from '@junobuild/core';
 
 /**

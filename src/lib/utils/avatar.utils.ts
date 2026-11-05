@@ -1,4 +1,4 @@
-import { fnv1a64Hex } from '$lib/utils/hash.utils';
+import { fnv1a64Hex } from '#lib/utils/hash.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 

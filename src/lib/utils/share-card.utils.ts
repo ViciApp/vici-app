@@ -1,7 +1,7 @@
-import { CONTACT_DOMAIN } from '$lib/constants/contact.constants';
-import type { CallSide } from '$lib/types/market';
-import type { FlowArtCategory } from '$lib/utils/flow-art.utils';
-import { tagColor } from '$lib/utils/tag-color.utils';
+import { CONTACT_DOMAIN } from '#lib/constants/contact.constants.ts';
+import type { CallSide } from '#lib/types/market.ts';
+import type { FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
+import { tagColor } from '#lib/utils/tag-color.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

@@ -2,53 +2,56 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { History } from '@lucide/svelte/icons';
 	import { onMount, type Snippet } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import Card from '$lib/components/ui/Card.svelte';
-	import InfiniteScroll from '$lib/components/ui/InfiniteScroll.svelte';
-	import Tabs from '$lib/components/ui/Tabs.svelte';
-	import VxpRecoveryBeat from '$lib/components/wallet/VxpRecoveryBeat.svelte';
-	import WalletHistory from '$lib/components/wallet/WalletHistory.svelte';
-	import WalletReceive from '$lib/components/wallet/WalletReceive.svelte';
-	import WalletSend from '$lib/components/wallet/WalletSend.svelte';
-	import { USD_DECIMALS, ZERO } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
+	import InfiniteScroll from '#lib/components/ui/InfiniteScroll.svelte';
+	import Tabs from '#lib/components/ui/Tabs.svelte';
+	import VxpRecoveryBeat from '#lib/components/wallet/VxpRecoveryBeat.svelte';
+	import WalletHistory from '#lib/components/wallet/WalletHistory.svelte';
+	import WalletReceive from '#lib/components/wallet/WalletReceive.svelte';
+	import WalletSend from '#lib/components/wallet/WalletSend.svelte';
+	import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import {
 		CALIBRATION_DEPLOY_FLOOR_BASE_UNITS,
 		CALIBRATION_RECOVERY_FLOOR_BASE_UNITS,
 		VXP_CALIBRATION_REWARD_BASE_UNITS
-	} from '$lib/constants/vxp-economy.constants';
-	import { markets } from '$lib/derived/markets.derived';
-	import { positions } from '$lib/derived/positions.derived';
-	import { walletUiTokens } from '$lib/derived/tokens.derived';
-	import { vxpBacked, vxpFree } from '$lib/derived/vxp-holdings.derived';
-	import { clearingTransactions } from '$lib/derived/wallet-feed.derived';
-	import { loadSendableWalletAssets, sendToken, SendTokenError } from '$lib/services/send.services';
+	} from '#lib/constants/vxp-economy.constants.ts';
+	import { markets } from '#lib/derived/markets.derived.ts';
+	import { positions } from '#lib/derived/positions.derived.ts';
+	import { walletUiTokens } from '#lib/derived/tokens.derived.ts';
+	import { vxpBacked, vxpFree } from '#lib/derived/vxp-holdings.derived.ts';
+	import { clearingTransactions } from '#lib/derived/wallet-feed.derived.ts';
+	import {
+		loadSendableWalletAssets,
+		sendToken,
+		SendTokenError
+	} from '#lib/services/send.services.ts';
 	import {
 		getTransactionsPage,
 		type WalletTransactionsCursors,
 		type WalletTransactionsDone
-	} from '$lib/services/wallet.service';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { displayMarkets } from '$lib/stores/market-translations.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import type { Token } from '$lib/types/token';
-	import type { Transaction } from '$lib/types/wallet';
-	import { emit } from '$lib/utils/events.utils';
+	} from '#lib/services/wallet.service.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { Token } from '#lib/types/token.ts';
+	import type { Transaction } from '#lib/types/wallet.ts';
+	import { emit } from '#lib/utils/events.utils.ts';
 	import {
 		decimalFixedValueToNumber,
 		formatRelativeAgoFromNs,
 		formatToken
-	} from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { parseToken } from '$lib/utils/parse.utils';
-	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
-	import { filterSendableTokens } from '$lib/utils/send.utils';
-	import { mergeWalletFeed, weeklyVxpDeltaBaseUnits } from '$lib/utils/transactions.utils';
-	import type { Web2WalletAsset } from '$lib/web2/client';
+	} from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { parseToken } from '#lib/utils/parse.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
+	import { filterSendableTokens } from '#lib/utils/send.utils.ts';
+	import { mergeWalletFeed, weeklyVxpDeltaBaseUnits } from '#lib/utils/transactions.utils.ts';
+	import type { Web2WalletAsset } from '#lib/web2/client.ts';
+	import { goto } from '$app/navigation';
 
 	/**
 	 * Wallet — centered VXP balance hero + recent activity over the
@@ -416,7 +419,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'wallet.back.label' }),
-			onBack: () => goBack(resolve(AppPath.Profile))
+			onBack: () => goBack(resolveAppPath(AppPath.Profile))
 		}}
 		right={appbarRight as Snippet}
 		title={t({ locale: $localeStore, key: 'wallet.title' })}
@@ -453,8 +456,8 @@
 			<VxpRecoveryBeat
 				deployed={fullyDeployed}
 				{lockedInOpenVxp}
-				onCalibrate={() => void goto(resolve(AppPath.Calibration))}
-				onReviewOpenCalls={() => void goto(resolve(AppPath.Portfolio))}
+				onCalibrate={() => void goto(resolveAppPath(AppPath.Calibration))}
+				onReviewOpenCalls={() => void goto(resolveAppPath(AppPath.Portfolio))}
 				openCallCount={openVxpPositions.length}
 				rewardVxp={calibrationRewardVxp}
 			/>
@@ -462,14 +465,14 @@
 			<div class="wallet-hero-cta-row">
 				<button
 					class="wallet-hero-cta is-primary"
-					onclick={() => void goto(resolve(AppPath.Flow))}
+					onclick={() => void goto(resolveAppPath(AppPath.Flow))}
 					type="button"
 				>
 					{t({ locale: $localeStore, key: 'wallet.cta.open_flow' })}
 				</button>
 				<button
 					class="wallet-hero-cta is-ghost"
-					onclick={() => void goto(resolve(AppPath.Home))}
+					onclick={() => void goto(resolveAppPath(AppPath.Home))}
 					type="button"
 				>
 					{t({ locale: $localeStore, key: 'wallet.cta.back_a_call' })}

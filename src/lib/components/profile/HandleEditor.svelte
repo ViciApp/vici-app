@@ -2,7 +2,7 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { X } from '@lucide/svelte/icons';
 	import { untrack } from 'svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
 	import {
 		cleanHandle,
 		handleCooldownDaysLeft,
@@ -11,11 +11,11 @@
 		MIN_HANDLE_LENGTH,
 		nicknameUniqueKey,
 		RESERVED_HANDLES
-	} from '$lib/constants/profile.constants';
-	import { checkNicknameAvailability } from '$lib/services/profile.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	} from '#lib/constants/profile.constants.ts';
+	import { checkNicknameAvailability } from '#lib/services/profile.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Editable-handle sheet. The handle is the public `@`-name (the same

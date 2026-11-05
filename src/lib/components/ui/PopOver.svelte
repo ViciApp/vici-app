@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { clickOutside } from '$lib/actions/click-outside';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import { clickOutside } from '#lib/actions/click-outside.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
 		open: boolean;

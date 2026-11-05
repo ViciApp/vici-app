@@ -1,73 +1,73 @@
 <script lang="ts">
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
 	import { onDestroy, onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import MarketDetailChartCard from '$lib/components/market/MarketDetailChartCard.svelte';
-	import MarketDetailCtaBar from '$lib/components/market/MarketDetailCtaBar.svelte';
-	import MarketDetailLivePill from '$lib/components/market/MarketDetailLivePill.svelte';
-	import MarketDetailLockedToast from '$lib/components/market/MarketDetailLockedToast.svelte';
-	import MarketDetailProbHero from '$lib/components/market/MarketDetailProbHero.svelte';
-	import MarketDetailResolutionCard from '$lib/components/market/MarketDetailResolutionCard.svelte';
-	import MarketDetailShareButton from '$lib/components/market/MarketDetailShareButton.svelte';
-	import MarketDetailSkeleton from '$lib/components/market/MarketDetailSkeleton.svelte';
-	import MarketDetailStatsGrid from '$lib/components/market/MarketDetailStatsGrid.svelte';
-	import MarketDetailTopPredictors from '$lib/components/market/MarketDetailTopPredictors.svelte';
-	import MarketDetailWhyNow from '$lib/components/market/MarketDetailWhyNow.svelte';
-	import MarketMetadataForm from '$lib/components/market/MarketMetadataForm.svelte';
-	import MarketResolutionInterface from '$lib/components/market/MarketResolutionInterface.svelte';
-	import MarketTranslationToggle from '$lib/components/market/MarketTranslationToggle.svelte';
-	import OutcomeBadge from '$lib/components/market/OutcomeBadge.svelte';
-	import TradeModal from '$lib/components/market/TradeModal.svelte';
-	import SavedMarketToggle from '$lib/components/saved-markets/SavedMarketToggle.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { MARKET_DETAIL_DIRECT_TRADE_ENABLED } from '$lib/constants/feature-flags.constants';
-	import { SUPPORTED_LOCALES } from '$lib/constants/locale.constants';
-	import { primaryMicro } from '$lib/constants/market-taxonomy.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { leaderboard } from '$lib/derived/leaderboard.derived';
-	import { marketMetadata } from '$lib/derived/market-metadata.derived';
-	import { marketTags } from '$lib/derived/market-tags.derived';
-	import { pageMarketId } from '$lib/derived/page-market.derived';
-	import { resolvedPositions } from '$lib/derived/resolved-positions.derived';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import MarketDetailChartCard from '#lib/components/market/MarketDetailChartCard.svelte';
+	import MarketDetailCtaBar from '#lib/components/market/MarketDetailCtaBar.svelte';
+	import MarketDetailLivePill from '#lib/components/market/MarketDetailLivePill.svelte';
+	import MarketDetailLockedToast from '#lib/components/market/MarketDetailLockedToast.svelte';
+	import MarketDetailProbHero from '#lib/components/market/MarketDetailProbHero.svelte';
+	import MarketDetailResolutionCard from '#lib/components/market/MarketDetailResolutionCard.svelte';
+	import MarketDetailShareButton from '#lib/components/market/MarketDetailShareButton.svelte';
+	import MarketDetailSkeleton from '#lib/components/market/MarketDetailSkeleton.svelte';
+	import MarketDetailStatsGrid from '#lib/components/market/MarketDetailStatsGrid.svelte';
+	import MarketDetailTopPredictors from '#lib/components/market/MarketDetailTopPredictors.svelte';
+	import MarketDetailWhyNow from '#lib/components/market/MarketDetailWhyNow.svelte';
+	import MarketMetadataForm from '#lib/components/market/MarketMetadataForm.svelte';
+	import MarketResolutionInterface from '#lib/components/market/MarketResolutionInterface.svelte';
+	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
+	import OutcomeBadge from '#lib/components/market/OutcomeBadge.svelte';
+	import TradeModal from '#lib/components/market/TradeModal.svelte';
+	import SavedMarketToggle from '#lib/components/saved-markets/SavedMarketToggle.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { MARKET_DETAIL_DIRECT_TRADE_ENABLED } from '#lib/constants/feature-flags.constants.ts';
+	import { SUPPORTED_LOCALES } from '#lib/constants/locale.constants.ts';
+	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { leaderboard } from '#lib/derived/leaderboard.derived.ts';
+	import { marketMetadata } from '#lib/derived/market-metadata.derived.ts';
+	import { marketTags } from '#lib/derived/market-tags.derived.ts';
+	import { pageMarketId } from '#lib/derived/page-market.derived.ts';
+	import { resolvedPositions } from '#lib/derived/resolved-positions.derived.ts';
 	import {
 		authPrincipal,
 		userIsAdmin,
 		userIsAdminOrSolver,
 		userSignedIn
-	} from '$lib/derived/user.derived';
-	import { track } from '$lib/services/analytics.services';
-	import { getUserMarketSignals } from '$lib/services/market-signals.services';
-	import { listMarketTranslations } from '$lib/services/market-translation.services';
-	import { loadMarket } from '$lib/services/market.services';
-	import { getPositionsForMarket } from '$lib/services/position.services';
-	import { getMarketTopPredictors } from '$lib/services/top-predictors.services';
-	import { getSeriesTradeVolume, loadMarketPriceCandles } from '$lib/services/trade.services';
-	import { showCompanion } from '$lib/stores/companion.store';
-	import { startGuestSession } from '$lib/stores/guest.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { marketLanguagePreference } from '$lib/stores/market-language.store';
-	import type { CallSide, Market, MarketId } from '$lib/types/market';
+	} from '#lib/derived/user.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { getUserMarketSignals } from '#lib/services/market-signals.services.ts';
+	import { listMarketTranslations } from '#lib/services/market-translation.services.ts';
+	import { loadMarket } from '#lib/services/market.services.ts';
+	import { getPositionsForMarket } from '#lib/services/position.services.ts';
+	import { getMarketTopPredictors } from '#lib/services/top-predictors.services.ts';
+	import { getSeriesTradeVolume, loadMarketPriceCandles } from '#lib/services/trade.services.ts';
+	import { showCompanion } from '#lib/stores/companion.store.ts';
+	import { startGuestSession } from '#lib/stores/guest.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
 	import type {
 		FollowedLeanSignal,
 		PriorCallSignal,
 		TopPredictorSignal
-	} from '$lib/types/market-signals';
-	import type { MarketTranslation } from '$lib/types/market-translation';
-	import type { Position, ResolvedPosition } from '$lib/types/position';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/types/market-signals.ts';
+	import type { MarketTranslation } from '#lib/types/market-translation.ts';
+	import type { CallSide, Market, MarketId } from '#lib/types/market.ts';
+	import type { Position, ResolvedPosition } from '#lib/types/position.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import type {
 		MarketPriceSeries,
 		PriceHistoryPeriod
-	} from '$lib/utils/market-price-history.utils';
-	import { categoryLabel } from '$lib/utils/market-tags.utils';
-	import { resolveMarketTranslation } from '$lib/utils/market-translation.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { positionResolvedResult } from '$lib/utils/position.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
+	} from '#lib/utils/market-price-history.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import { resolveMarketTranslation } from '#lib/utils/market-translation.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { positionResolvedResult } from '#lib/utils/position.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
+	import { browser } from '$app/env';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	let market = $state<Market | undefined>();
 
@@ -699,7 +699,7 @@
 			startGuestSession(null);
 		}
 
-		void goto(resolve(AppPath.Flow));
+		void goto(resolveAppPath(AppPath.Flow));
 	};
 </script>
 
@@ -734,7 +734,7 @@
 		<ScreenHeader
 			back={{
 				label: t({ locale: $localeStore, key: 'market.detail.back_to_markets' }),
-				onBack: () => goBack(resolve(AppPath.Home))
+				onBack: () => goBack(resolveAppPath(AppPath.Home))
 			}}
 			right={detailRight}
 		/>
@@ -874,6 +874,7 @@
 			<!-- Hidden while the cold-start banner is up — a market with no
 			     volume has no predictors, so an empty section under the
 			     banner would only echo it. -->
+
 			<MarketDetailTopPredictors {followedLean} {topPredictors} />
 		{/if}
 
@@ -955,7 +956,7 @@
 			</p>
 			<a
 				class="bg-primary text-primary-foreground hover:bg-primary/90 mt-8 rounded-xl px-8 py-3 font-bold transition-all"
-				href={resolve(AppPath.Home)}
+				href={resolveAppPath(AppPath.Home)}
 			>
 				{t({ locale: $localeStore, key: 'market.detail.not_found.cta' })}
 			</a>

@@ -1,4 +1,4 @@
-import type { ActivityType } from '$lib/enums/social';
+import type { ActivityType } from '#lib/enums/social.ts';
 import type { PrincipalText } from '@junobuild/schema';
 
 export interface Activity {

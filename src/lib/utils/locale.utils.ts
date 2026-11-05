@@ -1,10 +1,10 @@
-import { browser } from '$app/environment';
 import {
 	DEFAULT_LOCALE,
 	REGISTERED_LOCALE_IDS,
 	SUPPORTED_LOCALES,
 	type AppLocale
-} from '$lib/constants/locale.constants';
+} from '#lib/constants/locale.constants.ts';
+import { browser } from '$app/env';
 import { nonNullish } from '@dfinity/utils';
 
 /**

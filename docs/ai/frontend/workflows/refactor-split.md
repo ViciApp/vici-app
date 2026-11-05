@@ -32,7 +32,7 @@ No if:
    manual repro steps should stay the same.
 3. **Same folder, same feature.** Children of a split live next to the
    parent. Cross-feature promotion (e.g. moving a child to
-   `$lib/components/ui/`) happens only when a second caller appears in
+   `#lib/components/ui/`) happens only when a second caller appears in
    the same PR.
 4. **Type contracts at the seam.** Each new child has an explicit
    `interface Props` — no implicit `any`.
@@ -52,8 +52,8 @@ No if:
    `Header`, `Filters`, `Search`, `EmptyState`, `Footer`).
 2. **Plan the split.** Decide which sections become:
    - Snippets (intra-file).
-   - Sibling components in the same `$lib/components/<feature>/` folder.
-   - Promoted to `$lib/components/ui/` (rare in a single PR; only when
+   - Sibling components in the same `#lib/components/<feature>/` folder.
+   - Promoted to `#lib/components/ui/` (rare in a single PR; only when
      a second caller materialises).
 3. **Identify the seam.** For each new component:
    - What props does it need?
@@ -66,7 +66,7 @@ No if:
 5. **Update test IDs** if the split changes which element a `data-tid`
    is anchored on. Keep IDs stable wherever possible.
 6. **Update the catalog** in [`../reusability.md`](../reusability.md)
-   only when a new sub-component lands in `$lib/components/ui/` or
+   only when a new sub-component lands in `#lib/components/ui/` or
    introduces a reusable pattern.
 7. **Run quality gates** (`npm run quality && npm run check`).
 8. **Open the PR** with the title:
@@ -80,7 +80,7 @@ No if:
 
 - Splitting _and_ changing styles in the same PR.
 - Splitting _and_ renaming files / props in unrelated places.
-- Hoisting a sub-component to `$lib/components/ui/` based on
+- Hoisting a sub-component to `#lib/components/ui/` based on
   speculation it might be reused.
 - Creating an `index.ts` barrel just to re-export the new files.
 - Leaving the original parent file untouched but importing the children

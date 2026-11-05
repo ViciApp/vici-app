@@ -1,4 +1,4 @@
-import { LeaguePrivacy } from '$lib/enums/league';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
 import { nonNullish } from '@dfinity/utils';
 
 /**

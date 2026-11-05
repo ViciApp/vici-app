@@ -1,14 +1,14 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { track } from '$lib/services/analytics.services';
-import type { Activity, ActivityReaction, ActivityReactionCount } from '$lib/types/social';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { track } from '#lib/services/analytics.services.ts';
+import type { Activity, ActivityReaction, ActivityReactionCount } from '#lib/types/social.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getActivityReactionCounts as getActivityReactionCountsWeb2,
 	likeActivity as likeActivityWeb2,
 	listActivities as listActivitiesWeb2,
 	listActivityReactions as listActivityReactionsWeb2,
 	unlikeActivity as unlikeActivityWeb2
-} from '$lib/web2/client';
+} from '#lib/web2/client.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { deleteDoc, getDoc, listDocs, setDoc } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';

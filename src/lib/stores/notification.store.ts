@@ -1,4 +1,4 @@
-import { TOAST_DEFAULT_MS } from '$lib/constants/app.constants';
+import { TOAST_DEFAULT_MS } from '#lib/constants/app.constants.ts';
 import { writable } from 'svelte/store';
 
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';

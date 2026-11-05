@@ -2,8 +2,8 @@
 	import { nonNullish } from '@dfinity/utils';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import type { CardPadding } from '$lib/types/components';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import type { CardPadding } from '#lib/types/components.ts';
 
 	interface Props extends Omit<HTMLAttributes<HTMLElement>, 'class' | 'role'> {
 		children: Snippet;

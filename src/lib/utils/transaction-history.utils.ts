@@ -1,13 +1,13 @@
-import type { ClearingDid } from '$declarations';
-import { USD_DECIMALS, ZERO } from '$lib/constants/app.constants';
-import type { MarketId } from '$lib/types/market';
+import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+import type { MarketId } from '#lib/types/market.ts';
 import type {
 	TransactionHistoryBonusTag,
 	TransactionHistoryRow
-} from '$lib/types/transaction-history';
-import type { Transaction } from '$lib/types/wallet';
-import { nativeToClearingMarginUnits } from '$lib/utils/playground-display.utils';
-import { eventExecutionPrice } from '$lib/utils/resolved-position.utils';
+} from '#lib/types/transaction-history.ts';
+import type { Transaction } from '#lib/types/wallet.ts';
+import { nativeToClearingMarginUnits } from '#lib/utils/playground-display.utils.ts';
+import { eventExecutionPrice } from '#lib/utils/resolved-position.utils.ts';
+import type { ClearingDid } from '$declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

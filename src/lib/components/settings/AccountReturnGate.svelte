@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Loader2 } from '@lucide/svelte/icons';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { recoverMyAccount, resumeMyAccount } from '$lib/services/account.services';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { recoverMyAccount, resumeMyAccount } from '#lib/services/account.services.ts';
 	// The dual-mode sign-out: the Juno delegation drop on the default
 	// backend, the cookie-session revoke in web2 mode.
-	import { signOut } from '$lib/services/identity.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { setAuthBusy, userStore } from '$lib/stores/user.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import { signOut } from '#lib/services/identity.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { setAuthBusy, userStore } from '#lib/stores/user.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Blocking return gate for a paused / deleting account.

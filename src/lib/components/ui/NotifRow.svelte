@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
 	import { X } from '@lucide/svelte/icons';
-	import { notificationKindConfig } from '$lib/constants/notification-kind.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { InboxNotification } from '$lib/types/inbox';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import { notificationKindConfig } from '#lib/constants/notification-kind.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { InboxNotification } from '#lib/types/inbox.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
 	 * NotifRow — a single notification card. Tap the body to open it (deep-link

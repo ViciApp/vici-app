@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import OracleChar from '$lib/components/characters/OracleChar.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import OracleChar from '#lib/components/characters/OracleChar.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface OracleRecord {
 		/** `true` when the latest settled call won. */

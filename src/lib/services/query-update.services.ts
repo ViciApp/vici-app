@@ -1,4 +1,4 @@
-import { getIdentityOrAnonymous } from '$lib/services/identity.services';
+import { getIdentityOrAnonymous } from '#lib/services/identity.services.ts';
 import {
 	queryAndUpdate,
 	type QueryAndUpdatePromiseResolution,

@@ -1,5 +1,5 @@
-import type { Token } from '$lib/types/token';
-import type { Web2WalletAsset } from '$lib/web2/client';
+import type { Token } from '#lib/types/token.ts';
+import type { Web2WalletAsset } from '#lib/web2/client.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

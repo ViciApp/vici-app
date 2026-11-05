@@ -1,6 +1,6 @@
 <script lang="ts">
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import { haptic } from '$lib/utils/haptics.utils';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
 
 	interface TabOption {
 		value: string;

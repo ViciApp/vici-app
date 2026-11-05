@@ -1,8 +1,8 @@
-import { ROLE_PERMISSIONS } from '$lib/constants/authz.constants';
-import { SATELLITE_CONTROLLERS } from '$lib/constants/controllers.constants';
-import type { Permission } from '$lib/enums/permission';
-import { UserRole } from '$lib/enums/user';
-import { userStore } from '$lib/stores/user.store';
+import { ROLE_PERMISSIONS } from '#lib/constants/authz.constants.ts';
+import { SATELLITE_CONTROLLERS } from '#lib/constants/controllers.constants.ts';
+import type { Permission } from '#lib/enums/permission.ts';
+import { UserRole } from '#lib/enums/user.ts';
+import { userStore } from '#lib/stores/user.store.ts';
 import { nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 import { derived, type Readable } from 'svelte/store';

@@ -1,23 +1,26 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
+	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
+	import ProbBar from '#lib/components/ui/ProbBar.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
+	import { marketTranslations } from '#lib/stores/market-translations.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { formatToken, probabilityToPercent } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import {
+		marketDisplayText,
+		translatedLanguageLabel
+	} from '#lib/utils/market-translation.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import MarketOddsSkeleton from '$lib/components/market/MarketOddsSkeleton.svelte';
-	import MarketTranslationToggle from '$lib/components/market/MarketTranslationToggle.svelte';
-	import ProbBar from '$lib/components/ui/ProbBar.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { track } from '$lib/services/analytics.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { marketLanguagePreference } from '$lib/stores/market-language.store';
-	import { marketTranslations } from '$lib/stores/market-translations.store';
-	import type { Market } from '$lib/types/market';
-	import { formatToken, probabilityToPercent } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { categoryLabel } from '$lib/utils/market-tags.utils';
-	import { marketDisplayText, translatedLanguageLabel } from '$lib/utils/market-translation.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
 
 	/**
 	 * Compact inline row in the Markets list. Rendered as a flush
@@ -70,7 +73,7 @@
 		})
 	);
 
-	const onClick = () => goto(resolve(`${AppPath.Markets}/${market.id}`));
+	const onClick = () => goto(resolveAppPath(`${AppPath.Markets}/${market.id}`));
 </script>
 
 <button class="card-inline" data-tid={TestId.MarketCard} onclick={onClick} type="button">

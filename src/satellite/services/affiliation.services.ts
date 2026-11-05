@@ -1,10 +1,10 @@
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	AFFILIATION_KINDS,
 	AFFILIATION_LOCK_MS,
 	affiliationKey,
 	type AffiliationDoc
-} from '$lib/types/affiliation';
+} from '#lib/types/affiliation.ts';
 import { captureServerEvents } from '$satellite/services/analytics.services';
 import { logError } from '$satellite/utils/logger.utils';
 import { isNullish, nonNullish } from '@dfinity/utils';

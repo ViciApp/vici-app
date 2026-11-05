@@ -4,9 +4,9 @@
 		SOCIAL_PREMIUM_OTHER_ID,
 		SOCIAL_PREMIUM_PRESETS,
 		type SocialPremiumOptionId
-	} from '$lib/constants/social-premium.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/constants/social-premium.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		optionId: SocialPremiumOptionId;

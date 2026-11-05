@@ -4,7 +4,7 @@ import type {
 	MarketMetadataSchema,
 	MarketTagIndexSchema,
 	MarketWhyNowSchema
-} from '$lib/schema/market-metadata.schema';
+} from '#lib/schema/market-metadata.schema.ts';
 import type { j } from '@junobuild/schema';
 
 export type MarketWhyNow = j.infer<typeof MarketWhyNowSchema>;

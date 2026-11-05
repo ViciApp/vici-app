@@ -2,25 +2,25 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Copy, Image as ImageIcon } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import IconFacebook from '$lib/components/icons/IconFacebook.svelte';
-	import IconInstagram from '$lib/components/icons/IconInstagram.svelte';
-	import IconSnapchat from '$lib/components/icons/IconSnapchat.svelte';
-	import IconTelegram from '$lib/components/icons/IconTelegram.svelte';
-	import IconTikTok from '$lib/components/icons/IconTikTok.svelte';
-	import IconWhatsApp from '$lib/components/icons/IconWhatsApp.svelte';
-	import IconX from '$lib/components/icons/IconX.svelte';
-	import { referrerRewardVxp } from '$lib/constants/referral.constants';
-	import { getMyReferralCode, listMyReferrals } from '$lib/services/referral.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { Market } from '$lib/types/market';
-	import { writeToClipboard } from '$lib/utils/clipboard.utils';
-	import { type FlowArtCategory, resolveFlowArtCategory } from '$lib/utils/flow-art.utils';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { marketShareParam } from '$lib/utils/market-slug.utils';
-	import { renderPredictionCard, type ShareCardResult } from '$lib/utils/share-card.utils';
+	import IconFacebook from '#lib/components/icons/IconFacebook.svelte';
+	import IconInstagram from '#lib/components/icons/IconInstagram.svelte';
+	import IconSnapchat from '#lib/components/icons/IconSnapchat.svelte';
+	import IconTelegram from '#lib/components/icons/IconTelegram.svelte';
+	import IconTikTok from '#lib/components/icons/IconTikTok.svelte';
+	import IconWhatsApp from '#lib/components/icons/IconWhatsApp.svelte';
+	import IconX from '#lib/components/icons/IconX.svelte';
+	import { referrerRewardVxp } from '#lib/constants/referral.constants.ts';
+	import { getMyReferralCode, listMyReferrals } from '#lib/services/referral.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
+	import { type FlowArtCategory, resolveFlowArtCategory } from '#lib/utils/flow-art.utils.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
+	import { renderPredictionCard, type ShareCardResult } from '#lib/utils/share-card.utils.ts';
+	import { browser } from '$app/env';
 
 	/**
 	 * SharePopover — the prediction-share menu anchored above the card.

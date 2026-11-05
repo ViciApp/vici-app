@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { backOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import { FLAME_STAGE_LABEL_KEYS, type FlameStage } from '$lib/utils/streak.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
+	import { FLAME_STAGE_LABEL_KEYS, type FlameStage } from '#lib/utils/streak.utils.ts';
 
 	interface Props {
 		stage: FlameStage;

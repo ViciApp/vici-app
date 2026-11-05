@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 /**
  * Svelte action that pins a `position: fixed` full-viewport overlay to

@@ -1,40 +1,40 @@
-import type { ClearingDid } from '$declarations';
-import { getAccountState } from '$lib/api/clearing.api';
-import { getTransactions as getIcpTransactionsApi } from '$lib/api/icp-index.api';
-import { getTransactions as getIcrcTransactionsApi } from '$lib/api/icrc-index-ng.api';
-import { balance as getLedgerBalance } from '$lib/api/icrc-ledger.api';
-import { WALLET_PAGINATION, ZERO } from '$lib/constants/app.constants';
+import { getAccountState } from '#lib/api/clearing.api.ts';
+import { getTransactions as getIcpTransactionsApi } from '#lib/api/icp-index.api.ts';
+import { getTransactions as getIcrcTransactionsApi } from '#lib/api/icrc-index-ng.api.ts';
+import { balance as getLedgerBalance } from '#lib/api/icrc-ledger.api.ts';
+import { WALLET_PAGINATION, ZERO } from '#lib/constants/app.constants.ts';
 import {
 	CKUSDC_INDEX_CANISTER_ID,
 	ICP_INDEX_CANISTER_ID,
 	VXP_INDEX_CANISTER_ID
-} from '$lib/constants/canisters.constants';
+} from '#lib/constants/canisters.constants.ts';
 import {
 	CKUSDC_TOKEN,
 	ICP_TOKEN,
 	SUPPORTED_TOKENS,
 	VXP_TOKEN
-} from '$lib/constants/tokens/tokens.ic.constants';
-import { getCollateralAssets } from '$lib/services/collateral.services';
-import { getIdentity, safeGetIdentityOnce } from '$lib/services/identity.services';
-import type { TokenId } from '$lib/types/token';
-import type { Transaction, WalletBalance } from '$lib/types/wallet';
-import { findSupportedTokenForClearingAssetId } from '$lib/utils/asset-ref.utils';
-import { compareBalanceDomains } from '$lib/utils/balance-domain.utils';
+} from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { getCollateralAssets } from '#lib/services/collateral.services.ts';
+import { getIdentity, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import type { TokenId } from '#lib/types/token.ts';
+import type { Transaction, WalletBalance } from '#lib/types/wallet.ts';
+import { findSupportedTokenForClearingAssetId } from '#lib/utils/asset-ref.utils.ts';
+import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
 import {
 	getIcrcAccount,
 	mapIcpTransaction,
 	mapIcrcTransaction,
 	mapTransactionIcpToSelf,
 	mapTransactionIcrcToSelf
-} from '$lib/utils/transactions.utils';
-import { isWeb2Backend } from '$lib/web2/backend-mode';
+} from '#lib/utils/transactions.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getEngineAccountState as getEngineAccountStateWeb2,
 	getWalletBalances as getWalletBalancesWeb2,
 	getWalletDepositAddress as getWalletDepositAddressWeb2
-} from '$lib/web2/client';
-import { getWeb2User } from '$lib/web2/session';
+} from '#lib/web2/client.ts';
+import { getWeb2User } from '#lib/web2/session.ts';
+import type { ClearingDid } from '$declarations';
 import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 
 /**

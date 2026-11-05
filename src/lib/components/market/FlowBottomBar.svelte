@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { FlowAction } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { FlowAction } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		tradeAmount: string;

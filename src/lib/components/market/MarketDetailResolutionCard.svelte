@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import { formatDate } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { formatDate } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		market: Market;

@@ -1,6 +1,6 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { normalizeStoredTags } from '$lib/constants/market-taxonomy.constants';
-import type { MarketMetadata } from '$lib/types/market-metadata';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { normalizeStoredTags } from '#lib/constants/market-taxonomy.constants.ts';
+import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 import { listDocs } from '@junobuild/core';
 
 /**

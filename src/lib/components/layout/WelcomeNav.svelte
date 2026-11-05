@@ -10,21 +10,21 @@
 	 */
 	import { Globe, Lock } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import Logo from '$lib/components/layout/Logo.svelte';
-	import LocalePicker from '$lib/components/ui/LocalePicker.svelte';
-	import LocaleSheet from '$lib/components/ui/LocaleSheet.svelte';
-	import { LOCALE_REGISTRY, type AppLocale } from '$lib/constants/locale.constants';
-	import { PublicPath } from '$lib/constants/routes.constants';
+	import Logo from '#lib/components/layout/Logo.svelte';
+	import LocalePicker from '#lib/components/ui/LocalePicker.svelte';
+	import LocaleSheet from '#lib/components/ui/LocaleSheet.svelte';
+	import { LOCALE_REGISTRY, type AppLocale } from '#lib/constants/locale.constants.ts';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import {
 		clearLocaleChoice,
 		detectedLocale,
 		localeChoiceExplicit,
 		localeStore,
 		setLocale
-	} from '$lib/stores/locale.store';
-	import { theme } from '$lib/stores/theme.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/stores/locale.store.ts';
+	import { theme } from '#lib/stores/theme.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goto } from '$app/navigation';
 
 	// Landing in-page sections the nav links to. `status` (the
 	// accuracy-as-status board) reuses the `nav.leaderboard` label

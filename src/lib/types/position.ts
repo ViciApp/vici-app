@@ -1,4 +1,4 @@
-import type { MarketId, OutcomeId } from '$lib/types/market';
+import type { MarketId, OutcomeId } from '#lib/types/market.ts';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export type PositionType = 'YES' | 'NO' | string;

@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import CopyableAddress from '$lib/components/ui/CopyableAddress.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { VICI_ORACLE_V1 } from '$lib/constants/app.constants';
-	import { safeGetIdentityOnce } from '$lib/services/identity.services';
+	import Button from '#lib/components/ui/Button.svelte';
+	import CopyableAddress from '#lib/components/ui/CopyableAddress.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { VICI_ORACLE_V1 } from '#lib/constants/app.constants.ts';
+	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 	import {
 		getViciOracle,
 		reconcileOracleSettlersFromRoles,
 		registerViciOracle,
 		resolveOracleSettlers,
 		type OracleSettlerEntry
-	} from '$lib/services/oracle.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/services/oracle.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	type Status = 'loading' | 'missing' | 'ready' | 'error';
 

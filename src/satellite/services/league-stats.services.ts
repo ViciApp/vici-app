@@ -1,9 +1,9 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { isMacroId, MACRO_IDS, type MacroId } from '$lib/constants/market-taxonomy.constants';
-import { leagueMemberKey, type LeagueMemberDoc } from '$lib/types/league-member';
-import { leagueStatsKey, type LeagueStatsDoc } from '$lib/types/league-stats';
-import type { UserProfile } from '$lib/types/profile';
-import type { CategoryStatsBucket, UserStatsDoc } from '$lib/types/user-stats';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { isMacroId, MACRO_IDS, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
+import { leagueMemberKey, type LeagueMemberDoc } from '#lib/types/league-member.ts';
+import { leagueStatsKey, type LeagueStatsDoc } from '#lib/types/league-stats.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import type { CategoryStatsBucket, UserStatsDoc } from '#lib/types/user-stats.ts';
 import { isHibernated } from '$satellite/services/profile.services';
 import { escapeRegex } from '$satellite/utils/regex.utils';
 import { isNullish, nonNullish } from '@dfinity/utils';

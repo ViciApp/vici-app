@@ -2,8 +2,8 @@
 	import { isNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import type { Writable } from 'svelte/store';
-	import AtomicLoader from '$lib/components/loaders/AtomicLoader.svelte';
-	import IdentityAwareLoader from '$lib/components/loaders/IdentityAwareLoader.svelte';
+	import AtomicLoader from '#lib/components/loaders/AtomicLoader.svelte';
+	import IdentityAwareLoader from '#lib/components/loaders/IdentityAwareLoader.svelte';
 
 	interface Props {
 		/**

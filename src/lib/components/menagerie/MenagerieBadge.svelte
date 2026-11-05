@@ -6,10 +6,10 @@
 		MENAGERIE_WARM_SLUGS,
 		type MenagerieSlug,
 		type MenagerieTier
-	} from '$lib/constants/menagerie.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { menagerieTierFor, type MenagerieStats } from '$lib/utils/menagerie.utils';
+	} from '#lib/constants/menagerie.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { menagerieTierFor, type MenagerieStats } from '#lib/utils/menagerie.utils.ts';
 
 	// The trophy-layer badge primitive: a squircle frame + per-animal aura + the
 	// animal glyph (from <MenagerieSprite>), at any size / tier. A locked badge

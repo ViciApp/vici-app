@@ -1,6 +1,6 @@
-import { cachedListOrEmpty, cachedNotInitialized } from '$lib/derived/cached.derived';
-import { positionsStore } from '$lib/stores/positions.store';
-import type { Position } from '$lib/types/position';
+import { cachedListOrEmpty, cachedNotInitialized } from '#lib/derived/cached.derived.ts';
+import { positionsStore } from '#lib/stores/positions.store.ts';
+import type { Position } from '#lib/types/position.ts';
 import type { Readable } from 'svelte/store';
 
 export const positions: Readable<Position[]> = cachedListOrEmpty(positionsStore);

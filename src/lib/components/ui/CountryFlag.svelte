@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { COUNTRY_FLAGS } from '$lib/constants/country-flags.constants';
+	import { COUNTRY_FLAGS } from '#lib/constants/country-flags.constants.ts';
 
 	/**
 	 * Renders a country flag from the lipis/flag-icons 4x3 SVG set
-	 * shipped under `$lib/assets/flags`. The asset is decorative — the
+	 * shipped under `#lib/assets/flags`. The asset is decorative — the
 	 * country name is always rendered alongside by callers — so we
 	 * mark `role="presentation"` and `alt=""` (no double-announce in
 	 * screen readers).

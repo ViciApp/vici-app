@@ -1,5 +1,5 @@
-import { ProfileVisibility } from '$lib/enums/profile';
-import { UserRole } from '$lib/enums/user';
+import { ProfileVisibility } from '#lib/enums/profile.ts';
+import { UserRole } from '#lib/enums/user.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 export const UserRoleSchema = j.enum(UserRole);
@@ -27,7 +27,7 @@ export const UserProfileSchema = j.strictObject({
 	avatar: j.string().default(''),
 	// The user's faceted-avatar picks, serialized to a compact JSON string
 	// (the seven catalog keys — see `serializeParts` in
-	// `$lib/utils/vici-avatar.utils`). Stored as a plain string (not a nested
+	// `#lib/utils/vici-avatar.utils.ts`). Stored as a plain string (not a nested
 	// object) so it round-trips through the satellite JsonData→Candid encoder
 	// without the `Option<Struct>` limitation; empty string = "no saved picks"
 	// (the surface falls back to a deterministic face seeded by the
