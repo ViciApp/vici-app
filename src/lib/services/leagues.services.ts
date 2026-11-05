@@ -1,3 +1,4 @@
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
 import { authPrincipal } from '#lib/derived/user.derived.ts';
@@ -60,7 +61,6 @@ import {
 	updateLeague as updateLeagueWeb2
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import { functions } from '$declarations/satellite/satellite.api';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { deleteDoc, getDoc, setDoc } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';

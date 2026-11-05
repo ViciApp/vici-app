@@ -60,15 +60,17 @@ Casing: `kebab-case` filenames, `camelCase` exports, `PascalCase` types.
 
 ## Imports
 
-Use the `#lib/*` subpath import (mapped in the satellite
-[`tsconfig.json`](../../../src/satellite/tsconfig.json) `paths` too, which
-`scripts/satellite-upgrade-needed.mjs` reads to walk the import graph) and the
-aliases declared in [`vite.config.ts`](../../../vite.config.ts):
+Use the `#lib`, `#satellite`, `#declarations` and `#root` subpath imports
+from [`package.json`](../../../package.json) `imports`. Each is mirrored in the
+satellite [`tsconfig.json`](../../../src/satellite/tsconfig.json) `paths`,
+which `scripts/satellite-upgrade-needed.mjs` reads to walk the import graph:
+a subpath import missing there is treated as an npm package and silently
+skipped.
 
 ```ts
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { UserProfileSchema } from '#lib/schema/profile.schema.ts';
-import { syncRoleToEngineOnSet } from '$satellite/services/engine-sync.services';
+import { syncRoleToEngineOnSet } from '#satellite/services/engine-sync.services.ts';
 ```
 
 The local rule `local-rules/no-relative-imports` is `error` under `src/`,

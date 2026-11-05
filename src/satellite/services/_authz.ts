@@ -1,8 +1,8 @@
+import type { RegistryDid } from '#declarations';
 import { REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { UserRole } from '#lib/enums/user.ts';
-import type { RegistryDid } from '$declarations';
-import { candidMethod } from '$satellite/utils/candid.utils';
+import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import type { Principal } from '@icp-sdk/core/principal';
 import { call } from '@junobuild/functions/ic-cdk';

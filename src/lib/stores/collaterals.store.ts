@@ -1,5 +1,5 @@
+import type { ClearingDid } from '#declarations';
 import type { TokenId } from '#lib/types/token.ts';
-import type { ClearingDid } from '$declarations';
 import { writable } from 'svelte/store';
 
 export interface CollateralStoreData {

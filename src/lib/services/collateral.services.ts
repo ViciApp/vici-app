@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import {
 	depositCollateral as depositCollateralApi,
 	getAccountState as getAccountStateApi,
@@ -24,7 +25,6 @@ import {
 	withdrawEngineCollateral as withdrawEngineCollateralWeb2
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import type { ClearingDid } from '$declarations';
 import { isNullish, nowInBigIntNanoSeconds, toNullable } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 import { getIdentityOnce } from '@junobuild/core';

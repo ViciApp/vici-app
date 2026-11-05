@@ -8,7 +8,7 @@ orchestrate a multi-step flow, or create cross-view shared state.
 ```
 Component (.svelte)
   ↳ #lib/services/*.services.ts          orchestration, identity, error handling, store mutations
-       ↳ #lib/api/*.api.ts               wrappers around generated $declarations/<canister>
+       ↳ #lib/api/*.api.ts               wrappers around generated #declarations/<canister>
        ↳ #lib/canisters/*.canister.ts    typed canister actor factories
        ↳ @junobuild/core                 datastore + auth (used directly inside services)
 ```
@@ -56,7 +56,7 @@ Component (.svelte)
    adding a brand-new canister wrapper).
    - Existing files: `clearing.canister.ts`, `registry.canister.ts`.
    - Use `@icp-sdk/canisters` and the generated `_SERVICE` type from
-     `$declarations/<canister>/<canister>.did`.
+     `#declarations/<canister>/<canister>.d.ts`.
 
 4. **`*.services.ts` orchestration.**
    - File: `#lib/services/<thing>.services.ts`.

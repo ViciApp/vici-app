@@ -1,3 +1,4 @@
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import { theme } from '#lib/stores/theme.store.ts';
 import type {
 	AnalyticsEventName,
@@ -7,7 +8,6 @@ import type {
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { postEvents } from '#lib/web2/client.ts';
 import { browser } from '$app/env';
-import { functions } from '$declarations/satellite/satellite.api';
 import { nonNullish } from '@dfinity/utils';
 import { get } from 'svelte/store';
 

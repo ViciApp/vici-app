@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 import { featuredEvent, featuredEventActive } from '#lib/derived/featured-event.derived.ts';
 import { userSignedIn } from '#lib/derived/user.derived.ts';
@@ -5,7 +6,6 @@ import { prepareFlow, type PreparedFlow } from '#lib/services/flow-prep.services
 import { userStore } from '#lib/stores/user.store.ts';
 import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
 import { browser } from '$app/env';
-import type { ClearingDid } from '$declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { derived, get, writable, type Readable } from 'svelte/store';
 

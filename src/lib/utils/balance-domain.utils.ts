@@ -1,6 +1,6 @@
+import type { ClearingDid } from '#declarations';
 import type { MarketId } from '#lib/types/market.ts';
 import { parseMarketId } from '#lib/validation/market.validation.ts';
-import type { ClearingDid } from '$declarations';
 
 /**
  * Converts a domain string (e.g. from JSON) to a Clearing BalanceDomain variant.

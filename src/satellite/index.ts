@@ -51,21 +51,21 @@ import {
 	recoverMyAccountFn,
 	resumeMyAccountFn,
 	sweepExpiredDeletionsFn
-} from '$satellite/services/account.services';
+} from '#satellite/services/account.services.ts';
 import {
 	onActivityReactionDelete,
 	onActivityReactionSet,
 	recomputeActivityReactionCountsFn
-} from '$satellite/services/activity-reaction-count.services';
-import { assertSetActivityReaction } from '$satellite/services/activity-reaction.services';
-import { assertSetActivity } from '$satellite/services/activity.services';
-import { assertSetAffiliationStats } from '$satellite/services/affiliation-stats.services';
+} from '#satellite/services/activity-reaction-count.services.ts';
+import { assertSetActivityReaction } from '#satellite/services/activity-reaction.services.ts';
+import { assertSetActivity } from '#satellite/services/activity.services.ts';
+import { assertSetAffiliationStats } from '#satellite/services/affiliation-stats.services.ts';
 import {
 	assertDeleteAffiliation,
 	assertSetAffiliation,
 	onAffiliationDeleteForAnalytics,
 	onAffiliationSetForAnalytics
-} from '$satellite/services/affiliation.services';
+} from '#satellite/services/affiliation.services.ts';
 import {
 	deleteAnalyticsEventsFn,
 	getAnalyticsEventsFn,
@@ -74,13 +74,13 @@ import {
 	getAnalyticsUserStatsFn,
 	onVxpAwardSetForAnalytics,
 	trackEventsFn
-} from '$satellite/services/analytics.services';
-import { getAuthIdentitiesFn } from '$satellite/services/auth-identity-export.services';
+} from '#satellite/services/analytics.services.ts';
+import { getAuthIdentitiesFn } from '#satellite/services/auth-identity-export.services.ts';
 import {
 	readBattleLiveScoreFn,
 	resolveBattleFromSettlementsFn
-} from '$satellite/services/battle-resolution.services';
-import { assertDeleteBattle, assertSetBattle } from '$satellite/services/battle.services';
+} from '#satellite/services/battle-resolution.services.ts';
+import { assertDeleteBattle, assertSetBattle } from '#satellite/services/battle.services.ts';
 import {
 	getAffiliationStatsFn,
 	getMyBattleStatsFn,
@@ -96,43 +96,43 @@ import {
 	listWorldsMemberCountsFn,
 	listWorldsRosterFn,
 	lookupLeagueByInviteFn
-} from '$satellite/services/cohort.services';
+} from '#satellite/services/cohort.services.ts';
 import {
 	syncRoleToEngineOnDelete,
 	syncRoleToEngineOnSet
-} from '$satellite/services/engine-sync.services';
-import { assertSetExitSignal } from '$satellite/services/exit-signal.services';
+} from '#satellite/services/engine-sync.services.ts';
+import { assertSetExitSignal } from '#satellite/services/exit-signal.services.ts';
 import {
 	getMyRivalFn,
 	getUserRankAndCountFn,
 	listLeaderboard as listLeaderboardFn
-} from '$satellite/services/leaderboard.services';
+} from '#satellite/services/leaderboard.services.ts';
 import {
 	assertDeleteLeagueMember,
 	assertSetLeagueMember
-} from '$satellite/services/league-member.services';
+} from '#satellite/services/league-member.services.ts';
 import {
 	assertSetLeagueStats,
 	onProfileSetForLeagueStats,
 	onUserStatsSetForLeagueStats
-} from '$satellite/services/league-stats.services';
-import { assertSetLeague, transferLeagueOwnershipFn } from '$satellite/services/league.services';
+} from '#satellite/services/league-stats.services.ts';
+import { assertSetLeague, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import {
 	getMarketMetadata as getMarketMetadataFn,
 	upsertMarketMetadata as upsertMarketMetadataFn
-} from '$satellite/services/market-metadata.services';
+} from '#satellite/services/market-metadata.services.ts';
 import {
 	getMarketTagsFn,
 	rebuildMarketTagIndexFn
-} from '$satellite/services/market-tag-index.services';
+} from '#satellite/services/market-tag-index.services.ts';
 import {
 	getMarketTranslation as getMarketTranslationFn,
 	listMarketTranslations as listMarketTranslationsFn,
 	listMarketTranslationsForLocales as listMarketTranslationsForLocalesFn,
 	upsertMarketTranslation as upsertMarketTranslationFn
-} from '$satellite/services/market-translation.services';
-import { assertNewProfileAllowed } from '$satellite/services/new-profile-gate.services';
-import { assertSetProfilePrivate } from '$satellite/services/profile-private.services';
+} from '#satellite/services/market-translation.services.ts';
+import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
+import { assertSetProfilePrivate } from '#satellite/services/profile-private.services.ts';
 import {
 	assertDailyGoalMonotonic,
 	assertValidNickname,
@@ -140,7 +140,7 @@ import {
 	getProfile as getProfileFn,
 	recordFlowSwipeFn,
 	searchProfiles as searchProfilesFn
-} from '$satellite/services/profile.services';
+} from '#satellite/services/profile.services.ts';
 import {
 	assertSetReferral,
 	assertSetReferralCode,
@@ -153,7 +153,7 @@ import {
 	onTradeActivityForReferral,
 	redeemReferralCodeFn,
 	settleReferralFn
-} from '$satellite/services/referral.services';
+} from '#satellite/services/referral.services.ts';
 import {
 	acceptFriendRequest as acceptFriendRequestFn,
 	cancelFriendRequest as cancelFriendRequestFn,
@@ -166,14 +166,14 @@ import {
 	listSentFriendRequests as listSentFriendRequestsFn,
 	rejectFriendRequest as rejectFriendRequestFn,
 	sendFriendRequest as sendFriendRequestFn
-} from '$satellite/services/relation.services';
+} from '#satellite/services/relation.services.ts';
 import {
 	listFriendResolvedResultsFn,
 	onActivitySetForResolvedResults,
 	pruneResolvedResultsFn
-} from '$satellite/services/resolved-results.services';
-import { assertSetRole } from '$satellite/services/roles.services';
-import { submitSchoolFn, verifySchoolCodeFn } from '$satellite/services/school.services';
+} from '#satellite/services/resolved-results.services.ts';
+import { assertSetRole } from '#satellite/services/roles.services.ts';
+import { submitSchoolFn, verifySchoolCodeFn } from '#satellite/services/school.services.ts';
 import {
 	assertSetTournament,
 	assertSetTournamentMatch,
@@ -181,28 +181,28 @@ import {
 	getCurrentTournamentFn,
 	resolveTournamentRoundFn,
 	triggerTournamentDrawFn
-} from '$satellite/services/tournament.services';
+} from '#satellite/services/tournament.services.ts';
 import {
 	assertSetUserMonthlyStats,
 	getMonthlyLeaderboardFn
-} from '$satellite/services/user-monthly-stats.services';
-import { assertSetUserStats } from '$satellite/services/user-stats.services';
-import { onProfileSetForAchievementAward } from '$satellite/services/vxp-achievement-awards.services';
-import { assertSetVxpAward } from '$satellite/services/vxp-awards.services';
-import { claimCalibrationRewardFn } from '$satellite/services/vxp-calibration.services';
-import { onProfileSetForComebackRestore } from '$satellite/services/vxp-comeback-awards.services';
-import { onProfileSetForFlowMilestone } from '$satellite/services/vxp-flow-awards.services';
+} from '#satellite/services/user-monthly-stats.services.ts';
+import { assertSetUserStats } from '#satellite/services/user-stats.services.ts';
+import { onProfileSetForAchievementAward } from '#satellite/services/vxp-achievement-awards.services.ts';
+import { assertSetVxpAward } from '#satellite/services/vxp-awards.services.ts';
+import { claimCalibrationRewardFn } from '#satellite/services/vxp-calibration.services.ts';
+import { onProfileSetForComebackRestore } from '#satellite/services/vxp-comeback-awards.services.ts';
+import { onProfileSetForFlowMilestone } from '#satellite/services/vxp-flow-awards.services.ts';
 import {
 	onLeagueSetForFounderVxpPayout,
 	settleFounderAwardsFn
-} from '$satellite/services/vxp-league-founder-awards.services';
+} from '#satellite/services/vxp-league-founder-awards.services.ts';
 import {
 	onProfileSetForVxpOnboarding,
 	onTradeActivityForVxpOnboarding
-} from '$satellite/services/vxp-onboarding.services';
-import { onProfileSetForStreakAward } from '$satellite/services/vxp-streak-awards.services';
-import { backfillStreakUnderpaymentsFn } from '$satellite/services/vxp-streak-backfill.services';
-import { claimWorldsPodiumPrizeFn } from '$satellite/services/vxp-worlds-podium.services';
+} from '#satellite/services/vxp-onboarding.services.ts';
+import { onProfileSetForStreakAward } from '#satellite/services/vxp-streak-awards.services.ts';
+import { backfillStreakUnderpaymentsFn } from '#satellite/services/vxp-streak-backfill.services.ts';
+import { claimWorldsPodiumPrizeFn } from '#satellite/services/vxp-worlds-podium.services.ts';
 import {
 	AffiliationChampionshipWireSchema,
 	AffiliationMemberCountWireSchema,
@@ -238,7 +238,7 @@ import {
 	toWireTournament,
 	toWireTournamentMatch,
 	UserProfileWireSchema
-} from '$satellite/utils/wire-format.utils';
+} from '#satellite/utils/wire-format.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import {
 	defineAssert,

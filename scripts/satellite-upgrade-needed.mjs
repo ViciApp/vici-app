@@ -10,7 +10,7 @@
  *
  * A static folder filter (`src/satellite/**`) is NOT enough to detect wasm
  * changes: the satellite imports shared code from `#lib/**` (schemas, types,
- * constants, utils) and `$declarations`. So instead of a hand-maintained
+ * constants, utils) and `#declarations`. So instead of a hand-maintained
  * path list, this script walks the REAL import graph from
  * `src/satellite/index.ts` — resolving the aliases declared in
  * `src/satellite/tsconfig.json` — and intersects that closure with the files
@@ -240,7 +240,7 @@ const collectClosure = () => {
 		const relative = toRepoRelative(file);
 
 		// `.json` / `.d.ts` are leaves; TS sources and emitted JS (e.g. the
-		// generated `$declarations/**/*.idl.js` factories) declare imports.
+		// generated `#declarations/**/*.idl.js` factories) declare imports.
 		const scannable =
 			(file.endsWith('.ts') || file.endsWith('.js') || file.endsWith('.mjs')) &&
 			!file.endsWith('.d.ts');

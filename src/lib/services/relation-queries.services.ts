@@ -1,3 +1,4 @@
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import type { Relation } from '#lib/types/relation.ts';
 import type { ResolvedResult } from '#lib/types/social.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
@@ -9,7 +10,6 @@ import {
 	listFriends as listFriendsWeb2,
 	listSentFriendRequests as listSentFriendRequestsWeb2
 } from '#lib/web2/client.ts';
-import { functions } from '$declarations/satellite/satellite.api';
 import type { Doc } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';
 

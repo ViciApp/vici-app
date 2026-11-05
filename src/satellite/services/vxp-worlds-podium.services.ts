@@ -11,9 +11,9 @@ import {
 	listAffiliationStatsForMonthFn,
 	liveMonthlyRows,
 	readAffiliationDoc
-} from '$satellite/services/cohort.services';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';
+} from '#satellite/services/cohort.services.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { transferWithBadFeeRetry } from '#satellite/utils/vxp-payout.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';

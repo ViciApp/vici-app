@@ -1,3 +1,4 @@
+import type { ClearingDid, RegistryDid } from '#declarations';
 import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import type { LeaguePrivacy } from '#lib/enums/league.ts';
 import type { ProfileVisibility } from '#lib/enums/profile.ts';
@@ -54,7 +55,6 @@ import {
 	type Web2SeriesWire,
 	type Web2SettlementStatusWire
 } from '#lib/web2/engine-wire.ts';
-import type { ClearingDid, RegistryDid } from '$declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**
@@ -682,7 +682,7 @@ export const upsertMarketTranslation = async ({
 // The API proxies the same anonymous registry / clearing queries the app runs
 // on-chain today, serialized to JSON (bigints as strings, principals as
 // text). The `engine-wire` mappers convert each payload back into the exact
-// `$declarations` candid types, so services hand downstream utils and stores
+// `#declarations` candid types, so services hand downstream utils and stores
 // the same shapes on both transports. Only public market-wide reads live
 // here: every user-signed engine call (orders, collateral moves, positions)
 // stays on-chain until the engine / wallet swap.
@@ -858,7 +858,7 @@ export const listEngineCollateralAssets = async (): Promise<ClearingDid.Collater
 // The API signs these clearing calls with the caller's derived custodial IC
 // identity, so the engine sees the same principal that owns the account's
 // positions; the browser authenticates with the session cookie only. Returns
-// are mapped back into the `$declarations` candid types like the public reads
+// are mapped back into the `#declarations` candid types like the public reads
 // above, so stores and utils stay backend-agnostic.
 
 /**

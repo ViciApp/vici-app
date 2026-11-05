@@ -1,3 +1,4 @@
+import type { ClearingDid, RegistryDid } from '#declarations';
 import { getUserMarketSignals } from '#lib/services/market-signals.services.ts';
 import {
 	deriveTagsBySeries,
@@ -10,7 +11,6 @@ import type { UserMarketSignals } from '#lib/types/market-signals.ts';
 import type { Market, MarketId } from '#lib/types/market.ts';
 import { deriveCalledMarketIds } from '#lib/utils/market-signals.utils.ts';
 import { filterScheduledWcMarkets } from '#lib/utils/wc-schedule.utils.ts';
-import type { ClearingDid, RegistryDid } from '$declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

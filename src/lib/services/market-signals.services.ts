@@ -1,3 +1,4 @@
+import type { ClearingDid, RegistryDid } from '#declarations';
 import { getFollowedLean } from '#lib/services/followed-lean.services.ts';
 import { listMarketTagsBySeries } from '#lib/services/market-tags.services.ts';
 import { getFollowing } from '#lib/services/relation-queries.services.ts';
@@ -5,7 +6,6 @@ import { getUserTradeHistory } from '#lib/services/trade.services.ts';
 import type { UserMarketSignals } from '#lib/types/market-signals.ts';
 import type { MarketId } from '#lib/types/market.ts';
 import { deriveUserMarketSignals } from '#lib/utils/market-signals.utils.ts';
-import type { ClearingDid, RegistryDid } from '$declarations';
 
 /**
  * `marketIds` scopes the per-market `followedLean` fan-out to the markets the

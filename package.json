@@ -100,7 +100,11 @@
 		}
 	},
 	"imports": {
+		"#declarations": "./src/declarations/index.ts",
+		"#declarations/*": "./src/declarations/*",
 		"#lib": "./src/lib/index.js",
-		"#lib/*": "./src/lib/*"
+		"#lib/*": "./src/lib/*",
+		"#root/*": "./*",
+		"#satellite/*": "./src/satellite/*"
 	}
 }
