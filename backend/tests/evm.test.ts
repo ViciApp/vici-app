@@ -3,9 +3,9 @@
 // signed EIP-1559 transaction verified by RLP round-trip + public key
 // recovery (the recovered signer must equal the from-address).
 
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { keccak_256 } from '@noble/hashes/sha3';
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { keccak_256 } from '@noble/hashes/sha3.js';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import { describe, expect, test } from 'bun:test';
 import {
 	bigintToMinimalBytes,
@@ -176,7 +176,7 @@ describe('signEip1559Tx', () => {
 			BigInt(`0x${bytesToHex(r)}`),
 			BigInt(`0x${bytesToHex(s)}`)
 		).addRecoveryBit(recovery);
-		const recovered = signature.recoverPublicKey(sighash).toRawBytes(false);
+		const recovered = signature.recoverPublicKey(sighash).toBytes(false);
 		const recoveredAddress = `0x${bytesToHex(keccak_256(recovered.slice(1)).slice(12))}`;
 
 		expect(recoveredAddress.toLowerCase()).toBe(

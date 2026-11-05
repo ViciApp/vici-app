@@ -1,8 +1,8 @@
 // Bitcoin address vectors: the BIP173 P2WPKH example chain, which starts from
 // the canonical private key 1 (the secp256k1 generator point pubkey).
 
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import { describe, expect, test } from 'bun:test';
 import { btcAddressFromPrivateKey, hash160, p2wpkhAddress } from '../src/chains/btc/address';
 

@@ -5,8 +5,8 @@
 
 import { isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import { keccak_256 } from '@noble/hashes/sha3';
-import { bytesToHex } from '@noble/hashes/utils';
+import { keccak_256 } from '@noble/hashes/sha3.js';
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import {
 	afterAll,
 	afterEach,
@@ -1113,7 +1113,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 	});
 
 	describe('evm token logs', () => {
-		const transferTopic = `0x${bytesToHex(keccak_256('Transfer(address,address,uint256)'))}`;
+		const transferTopic = `0x${bytesToHex(keccak_256(utf8ToBytes('Transfer(address,address,uint256)')))}`;
 		const topicOf = (address: string): string =>
 			`0x${address.toLowerCase().slice(2).padStart(64, '0')}`;
 		const amountData = (amount: bigint): string => `0x${amount.toString(16).padStart(64, '0')}`;

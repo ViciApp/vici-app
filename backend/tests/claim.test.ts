@@ -25,10 +25,10 @@ import {
 } from '@icp-sdk/core/identity';
 import { Secp256k1KeyIdentity } from '@icp-sdk/core/identity/secp256k1';
 import { Principal } from '@icp-sdk/core/principal';
-import { bls12_381 } from '@noble/curves/bls12-381';
-import { p256 } from '@noble/curves/p256';
-import { sha256 } from '@noble/hashes/sha2';
-import { hexToBytes } from '@noble/hashes/utils';
+import { bls12_381 } from '@noble/curves/bls12-381.js';
+import { p256 } from '@noble/curves/nist.js';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { hexToBytes } from '@noble/hashes/utils.js';
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { claimPrincipal } from '../src/auth/adoption';
 import {
@@ -233,58 +233,66 @@ const coseP256Key = (publicKey: Uint8Array): Uint8Array => {
 };
 
 describe('verifyClaimBlob (webauthn root)', () => {
-	test('accepts an ES256 passkey delegating to an ed25519 session key', async () => {
-		const priv = p256.utils.randomPrivateKey();
-		const pub = p256.getPublicKey(priv, false);
-		const cose = coseP256Key(pub);
-		const rootDer = wrapDER(cose, DER_COSE_OID) as DerEncodedPublicKey;
+	// Authenticators emit high-S ECDSA signatures as often as low-S ones.
+	test.each(['low', 'high'] as const)(
+		'accepts an ES256 passkey with a %s-S signature delegating to an ed25519 session key',
+		async (sHalf) => {
+			const priv = p256.utils.randomSecretKey();
+			const pub = p256.getPublicKey(priv, false);
+			const cose = coseP256Key(pub);
+			const rootDer = wrapDER(cose, DER_COSE_OID) as DerEncodedPublicKey;
 
-		const webauthnSign = (challenge: Uint8Array): Uint8Array => {
-			const clientDataJson = JSON.stringify({
-				type: 'webauthn.get',
-				challenge: Buffer.from(challenge).toString('base64url'),
-				origin: 'https://vici.market'
-			});
-			const authData = new Uint8Array(37).fill(7);
-			const signedBytes = new Uint8Array([
-				...authData,
-				...sha256(new TextEncoder().encode(clientDataJson))
+			const webauthnSign = (challenge: Uint8Array): Uint8Array => {
+				const clientDataJson = JSON.stringify({
+					type: 'webauthn.get',
+					challenge: Buffer.from(challenge).toString('base64url'),
+					origin: 'https://vici.market'
+				});
+				const authData = new Uint8Array(37).fill(7);
+				const signedBytes = new Uint8Array([
+					...authData,
+					...sha256(new TextEncoder().encode(clientDataJson))
+				]);
+				const lowS = p256.Signature.fromBytes(p256.sign(signedBytes, priv));
+				const signature = new p256.Signature(
+					lowS.r,
+					sHalf === 'high' ? p256.Point.Fn.ORDER - lowS.s : lowS.s
+				).toBytes('der');
+
+				return Cbor.encode({
+					authenticator_data: authData,
+					client_data_json: clientDataJson,
+					signature
+				});
+			};
+
+			const session = Ed25519KeyIdentity.generate();
+			const expiration = BigInt(Date.now() + HOUR_MS) * 1_000_000n;
+			const delegation = new Delegation(new Uint8Array(session.getPublicKey().toDer()), expiration);
+			const challenge = new Uint8Array([
+				...IC_REQUEST_AUTH_DELEGATION_DOMAIN_SEPARATOR,
+				...requestIdOf({ ...delegation })
 			]);
-			const signature = p256.sign(sha256(signedBytes), priv).toDERRawBytes();
-
-			return Cbor.encode({
-				authenticator_data: authData,
-				client_data_json: clientDataJson,
-				signature
+			const signed: SignedDelegation = {
+				delegation,
+				signature: webauthnSign(challenge) as Signature
+			};
+			const chain = DelegationChain.fromDelegations([signed], rootDer);
+			const principal = Principal.selfAuthenticating(new Uint8Array(rootDer)).toText();
+			const issuedAtMs = Date.now();
+			const sig = await session.sign(claimMessageBytes({ principal, issuedAtMs }));
+			const blob = encodeBlob({
+				v: 1,
+				aud: CLAIM_AUDIENCE,
+				principal,
+				issuedAtMs,
+				chain: chain.toJSON(),
+				sig: Buffer.from(sig).toString('base64url')
 			});
-		};
 
-		const session = Ed25519KeyIdentity.generate();
-		const expiration = BigInt(Date.now() + HOUR_MS) * 1_000_000n;
-		const delegation = new Delegation(new Uint8Array(session.getPublicKey().toDer()), expiration);
-		const challenge = new Uint8Array([
-			...IC_REQUEST_AUTH_DELEGATION_DOMAIN_SEPARATOR,
-			...requestIdOf({ ...delegation })
-		]);
-		const signed: SignedDelegation = {
-			delegation,
-			signature: webauthnSign(challenge) as Signature
-		};
-		const chain = DelegationChain.fromDelegations([signed], rootDer);
-		const principal = Principal.selfAuthenticating(new Uint8Array(rootDer)).toText();
-		const issuedAtMs = Date.now();
-		const sig = await session.sign(claimMessageBytes({ principal, issuedAtMs }));
-		const blob = encodeBlob({
-			v: 1,
-			aud: CLAIM_AUDIENCE,
-			principal,
-			issuedAtMs,
-			chain: chain.toJSON(),
-			sig: Buffer.from(sig).toString('base64url')
-		});
-
-		expect(await verifyClaimBlob({ blob })).toEqual({ ok: true, principal });
-	});
+			expect(await verifyClaimBlob({ blob })).toEqual({ ok: true, principal });
+		}
+	);
 });
 
 // ---------------------------------------------------------------------------
@@ -353,10 +361,11 @@ describe('verifyClaimBlob (canister-signature root)', () => {
 			labeled(utf8('time'), leaf(lebEncode(BigInt(Date.now()) * 1_000_000n)))
 		];
 		const rootHash = await reconstruct(stateTree);
-		const blsPriv = bls12_381.utils.randomPrivateKey();
-		const blsPub = bls12_381.getPublicKeyForShortSignatures(blsPriv);
+		const bls = bls12_381.shortSignatures;
+		const blsPriv = bls12_381.utils.randomSecretKey();
+		const blsPub = bls.getPublicKey(blsPriv).toBytes();
 		const message = new Uint8Array([...domain_sep('ic-state-root'), ...rootHash]);
-		const blsSig = bls12_381.signShortSignature(message, blsPriv);
+		const blsSig = bls.sign(bls.hash(message), blsPriv).toBytes();
 
 		// Sanity: the synthetic signature verifies under the agent's BLS suite.
 		expect(blsVerify(blsPub, blsSig, message)).toBe(true);

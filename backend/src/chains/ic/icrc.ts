@@ -10,8 +10,8 @@
 
 import { jsonReplacer, nonNullish } from '@dfinity/utils';
 import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
-import { sha256 } from '@noble/hashes/sha2';
-import { bytesToHex } from '@noble/hashes/utils';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 
 /**
  * The ledger deduplicates a transfer only within 24 hours (plus 2 minutes of
