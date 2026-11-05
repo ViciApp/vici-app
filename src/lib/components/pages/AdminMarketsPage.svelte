@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { RegistryDid } from '#declarations';
 	import AdminBulkMarketForm from '#lib/components/admin/AdminBulkMarketForm.svelte';
 	import AdminMarketForm from '#lib/components/admin/AdminMarketForm.svelte';
 	import AdminSubPageHeader from '#lib/components/admin/AdminSubPageHeader.svelte';
@@ -9,7 +10,6 @@
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { toBalanceDomain } from '#lib/utils/balance-domain.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import type { RegistryDid } from '$declarations';
 
 	let bulkInProgress = $state(false);
 	let bulkProgress = $state(0);

@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
@@ -10,7 +11,6 @@ import type { MarketId } from '#lib/types/market.ts';
 import type { Token } from '#lib/types/token.ts';
 import type { Transaction, TransactionType } from '#lib/types/wallet.ts';
 import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
-import type { ClearingDid } from '$declarations';
 import { fromNullable, isNullish, jsonReplacer, nonNullish } from '@dfinity/utils';
 import { type IcpIndexDid, AccountIdentifier } from '@icp-sdk/canisters/ledger/icp';
 import {

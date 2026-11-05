@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import { HOLDINGS_SNAPSHOT_STORAGE_KEY, ZERO } from '#lib/constants/app.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
@@ -12,7 +13,6 @@ import {
 } from '#lib/utils/playground-display.utils.ts';
 import { get as getStorage, set as setStorage } from '#lib/utils/storage.utils.ts';
 import { browser } from '$app/env';
-import type { ClearingDid } from '$declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { derived, type Readable } from 'svelte/store';
 

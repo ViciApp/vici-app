@@ -1,10 +1,10 @@
+import type { ClearingDid, RegistryDid } from '#declarations';
 import { MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
 import type { Market, MarketStatus, Outcome, TradingAccessUI } from '#lib/types/market.ts';
 import type { OrderBookLevel, OrderType } from '#lib/types/order.ts';
 import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
 import { resolveMarketDisplayToken } from '#lib/utils/market-token.utils.ts';
 import { parseMarketId } from '#lib/validation/market.validation.ts';
-import type { ClearingDid, RegistryDid } from '$declarations';
 import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
 
 /**

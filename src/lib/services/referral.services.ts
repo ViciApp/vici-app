@@ -1,3 +1,4 @@
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import type { ReferralListItem } from '#lib/types/referral.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
@@ -10,8 +11,7 @@ import {
 	Web2ApiError
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import { functions } from '$declarations/satellite/satellite.api';
-import { fromWireReferral } from '$satellite/utils/wire-format.utils';
+import { fromWireReferral } from '#satellite/utils/wire-format.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 

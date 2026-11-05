@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import type {
 	CategoryAccuracySignal,
@@ -13,7 +14,6 @@ import {
 	isWinningSettledEvent
 } from '#lib/utils/resolved-position.utils.ts';
 import { parseMarketId } from '#lib/validation/market.validation.ts';
-import type { ClearingDid } from '$declarations';
 import { isNullish } from '@dfinity/utils';
 
 const eventSide = (event: ClearingDid.Event): CallSide => (event.qty >= ZERO ? 'YES' : 'NO');

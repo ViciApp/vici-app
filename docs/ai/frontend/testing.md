@@ -63,7 +63,7 @@ The expected setup:
 | Add tests for                                                      | Don't bother                                          |
 | ------------------------------------------------------------------ | ----------------------------------------------------- |
 | Pure utils (`*.utils.ts`) — every public function                  | Re-exports, barrels                                   |
-| Service modules (`*.services.ts`) — happy path + each error branch | Generated files (`$declarations`)                     |
+| Service modules (`*.services.ts`) — happy path + each error branch | Generated files (`#declarations`)                     |
 | Derived stores (`*.derived.ts`) with non-trivial logic             | Throwaway prototypes                                  |
 | Reusable components in `#lib/components/ui/`                       | One-off presentational components used in 1 page only |
 | Components with logic (any non-trivial branch / event handler)     | —                                                     |

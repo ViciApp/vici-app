@@ -135,28 +135,27 @@ the word "bet" — wrap the boundary so it doesn't leak into Vici code.
 ### Imports — aliases only
 
 The local rule `local-rules/no-relative-imports` is **`error`** under
-`src/**`. Use `#lib`, a subpath import declared in
-[`package.json`](../../../package.json) `imports`, or the aliases passed to
-`sveltekit()` in [`vite.config.ts`](../../../vite.config.ts) (there is no
-`svelte.config.js`). `#lib` imports need the file extension
-(`#lib/stores/locale.store.ts`, `#lib/components/ui/BottomSheet.svelte`):
+`src/**`. Import through the subpath imports declared in
+[`package.json`](../../../package.json) `imports` (SvelteKit 3 deprecates
+`config.alias`, and there is no `svelte.config.js`). They need the file
+extension (`.ts`, `.svelte`; `.d.ts` for type-only imports of generated
+bindings that have no runtime file):
 
-| Alias           | Path                                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------- |
-| `#lib`          | `src/lib`                                                                                                     |
-| `$routes`       | `src/lib/routes` (legacy alias; most route-shaped code lives in `src/routes/` or `src/lib/components/pages/`) |
-| `$declarations` | `src/declarations`                                                                                            |
-| `$satellite`    | `src/satellite`                                                                                               |
-| `$root`         | repo root                                                                                                     |
+| Import          | Path               |
+| --------------- | ------------------ |
+| `#lib`          | `src/lib`          |
+| `#declarations` | `src/declarations` |
+| `#satellite`    | `src/satellite`    |
+| `#root`         | repo root          |
 
 ```ts
 import { localeStore } from '#lib/stores/locale.store.ts';
 import type { Market } from '#lib/types/market.ts';
 import { clearingApi } from '#lib/api/clearing.api.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
-import { syncRoleToEngineOnSet } from '$satellite/services/engine-sync.services';
+import { syncRoleToEngineOnSet } from '#satellite/services/engine-sync.services.ts';
 import { t } from '#lib/utils/i18n.utils.ts';
-import type { _SERVICE as ClearingService } from '$declarations/clearing/clearing.did';
+import type { _SERVICE as ClearingService } from '#declarations/clearing/clearing.d.ts';
 ```
 
 ### Forbidden imports / patterns

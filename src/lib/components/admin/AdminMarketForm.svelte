@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { isEmptyString, isNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
+	import type { RegistryDid } from '#declarations';
 	import SocialPremiumPicker from '#lib/components/arena/SocialPremiumPicker.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { RESOLUTION_CLAUSE_MAX_LENGTH } from '#lib/constants/app.constants.ts';
@@ -15,7 +16,6 @@
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import type { ButtonStatus } from '#lib/types/components.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import type { RegistryDid } from '$declarations';
 
 	interface Props {
 		onAddMarketSuccess: () => Promise<void>;

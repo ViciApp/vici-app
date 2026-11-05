@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import {
 	getSettlementStatus,
 	listSettledSeries,
@@ -20,7 +21,6 @@ import {
 	listEngineSettledSeries as listEngineSettledSeriesWeb2,
 	listEngineSettlementStatuses as listEngineSettlementStatusesWeb2
 } from '#lib/web2/client.ts';
-import type { ClearingDid } from '$declarations';
 import { nonNullish, nowInBigIntNanoSeconds, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 

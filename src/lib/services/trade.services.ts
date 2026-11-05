@@ -1,3 +1,4 @@
+import type { ClearingDid, RegistryDid } from '#declarations';
 import {
 	getPositions as getPositionsApi,
 	getSeriesPriceHistory as getSeriesPriceHistoryApi,
@@ -31,7 +32,6 @@ import {
 	listEngineTradeHistory as listEngineTradeHistoryWeb2
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import type { ClearingDid, RegistryDid } from '$declarations';
 import { fromNullable, isNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 

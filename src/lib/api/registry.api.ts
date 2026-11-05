@@ -1,7 +1,7 @@
+import type { RegistryDid } from '#declarations';
 import { getAgent } from '#lib/actors/agents.ic.ts';
 import { RegistryCanister } from '#lib/canisters/registry.canister.ts';
 import { REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
-import type { RegistryDid } from '$declarations';
 import type { QueryParams } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 

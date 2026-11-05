@@ -1,3 +1,4 @@
+import type { ClearingDid } from '#declarations';
 import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import {
 	PLAYGROUND_CLEARING_MARGIN_DECIMALS,
@@ -11,7 +12,6 @@ import {
 	groupIntegerPart,
 	safeBigInt
 } from '#lib/utils/format.utils.ts';
-import type { ClearingDid } from '$declarations';
 import { nonNullish } from '@dfinity/utils';
 
 /**

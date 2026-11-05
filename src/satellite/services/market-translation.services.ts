@@ -1,8 +1,8 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { REGISTERED_LOCALE_IDS, type AppLocale } from '#lib/constants/locale.constants.ts';
 import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
-import { isCreatorOrAdmin } from '$satellite/services/_authz';
-import { logInfo } from '$satellite/utils/logger.utils';
+import { isCreatorOrAdmin } from '#satellite/services/_authz.ts';
+import { logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';

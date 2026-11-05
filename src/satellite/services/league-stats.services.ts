@@ -4,8 +4,8 @@ import { leagueMemberKey, type LeagueMemberDoc } from '#lib/types/league-member.
 import { leagueStatsKey, type LeagueStatsDoc } from '#lib/types/league-stats.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { CategoryStatsBucket, UserStatsDoc } from '#lib/types/user-stats.ts';
-import { isHibernated } from '$satellite/services/profile.services';
-import { escapeRegex } from '$satellite/utils/regex.utils';
+import { isHibernated } from '#satellite/services/profile.services.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext, OnSetDocContext } from '@junobuild/functions';

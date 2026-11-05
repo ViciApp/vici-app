@@ -1,3 +1,4 @@
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import { listMyReferrals } from '#lib/services/referral.services.ts';
 import { loadGlobalStandings } from '#lib/services/standings.services.ts';
 import {
@@ -8,7 +9,6 @@ import {
 	myReferralCountStore
 } from '#lib/stores/menagerie.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
-import { functions } from '$declarations/satellite/satellite.api';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 import { get } from 'svelte/store';

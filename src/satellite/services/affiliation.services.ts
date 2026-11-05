@@ -5,8 +5,8 @@ import {
 	affiliationKey,
 	type AffiliationDoc
 } from '#lib/types/affiliation.ts';
-import { captureServerEvents } from '$satellite/services/analytics.services';
-import { logError } from '$satellite/utils/logger.utils';
+import { captureServerEvents } from '#satellite/services/analytics.services.ts';
+import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type {

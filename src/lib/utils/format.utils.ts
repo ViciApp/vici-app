@@ -1,5 +1,5 @@
+import type { ClearingDid } from '#declarations';
 import { MILLISECOND_IN_NANOSECONDS, USD_DECIMALS } from '#lib/constants/app.constants.ts';
-import type { ClearingDid } from '$declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import Decimal from 'decimal.js';
 import { type BigNumberish, formatUnits } from 'ethers/utils';

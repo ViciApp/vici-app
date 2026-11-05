@@ -51,16 +51,16 @@
  * canister must never fail a deploy, so they degrade to "no odds clause" and
  * "treat as unresolved" respectively, never a throw.
  */
+import type { _SERVICE as ClearingService, LimitOrder } from '#declarations/clearing/clearing.d.ts';
+import { idlFactory as clearingIdlFactory } from '#declarations/clearing/clearing.idl.js';
+import type { _SERVICE as RegistryService, Series } from '#declarations/registry/registry.d.ts';
+import { idlFactory as registryIdlFactory } from '#declarations/registry/registry.idl.js';
 import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import type { Outcome } from '#lib/types/market.ts';
 import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
 import { settlementInputOutcome } from '#lib/utils/payoff.utils.ts';
 import { isMarketRevealed } from '#lib/utils/wc-schedule.utils.ts';
-import type { _SERVICE as ClearingService, LimitOrder } from '$declarations/clearing/clearing';
-import { idlFactory as clearingIdlFactory } from '$declarations/clearing/clearing.idl.js';
-import type { _SERVICE as RegistryService, Series } from '$declarations/registry/registry';
-import { idlFactory as registryIdlFactory } from '$declarations/registry/registry.idl.js';
 import { fromNullable, isNullish, nonNullish, toNullable } from '@dfinity/utils';
 import { Actor, HttpAgent, type ActorSubclass } from '@icp-sdk/core/agent';
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';

@@ -1,10 +1,10 @@
+import type { ClearingDid } from '#declarations';
 import { aggregateLean as aggregateLeanApi } from '#lib/api/clearing.api.ts';
 import { MAX_MARKETS } from '#lib/services/flow-prep.services.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import type { FollowedLeanSignal } from '#lib/types/market-signals.ts';
 import type { MarketId } from '#lib/types/market.ts';
 import { parseMarketId } from '#lib/validation/market.validation.ts';
-import type { ClearingDid } from '$declarations';
 import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';

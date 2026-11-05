@@ -1,3 +1,4 @@
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { syncGroupAdminsAfterUnfriend } from '#lib/services/group.services.ts';
 import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
@@ -13,7 +14,6 @@ import {
 	unfollowUser as unfollowUserWeb2,
 	unfriendUser as unfriendUserWeb2
 } from '#lib/web2/client.ts';
-import { functions } from '$declarations/satellite/satellite.api';
 import { isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { deleteDoc, getDoc, type Doc } from '@junobuild/core';

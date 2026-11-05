@@ -1,4 +1,4 @@
-import { idlFactoryClearing, idlFactoryRegistry } from '$declarations';
+import { idlFactoryClearing, idlFactoryRegistry } from '#declarations';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { IDL } from '@icp-sdk/core/candid';
 

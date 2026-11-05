@@ -1,7 +1,7 @@
+import type { ClearingDid } from '#declarations';
 import { getAgent } from '#lib/actors/agents.ic.ts';
 import { ClearingCanister } from '#lib/canisters/clearing.canister.ts';
 import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
-import type { ClearingDid } from '$declarations';
 import type { QueryParams } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import type { Principal } from '@icp-sdk/core/principal';

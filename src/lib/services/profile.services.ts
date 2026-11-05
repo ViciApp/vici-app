@@ -1,3 +1,5 @@
+import type { RegistryDid } from '#declarations';
+import { functions } from '#declarations/satellite/satellite.api.ts';
 import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { COMEBACK_COLD_STREAK_LOSSES } from '#lib/constants/menagerie.constants.ts';
@@ -51,9 +53,7 @@ import {
 	searchProfiles as searchProfilesWeb2,
 	upsertMyProfile as upsertMyProfileWeb2
 } from '#lib/web2/client.ts';
-import type { RegistryDid } from '$declarations';
-import { functions } from '$declarations/satellite/satellite.api';
-import { fromWireProfile } from '$satellite/utils/wire-format.utils';
+import { fromWireProfile } from '#satellite/utils/wire-format.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { getDoc, setDoc, type Doc, type User } from '@junobuild/core';

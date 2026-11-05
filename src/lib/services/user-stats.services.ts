@@ -1,3 +1,4 @@
+import type * as ClearingDid from '#declarations/clearing/clearing.d.ts';
 import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { MACRO_IDS, primaryMacro, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
@@ -13,7 +14,6 @@ import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
 import { eventExecutionPrice, isSettledEvent } from '#lib/utils/resolved-position.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { getUserStats as getUserStatsWeb2 } from '#lib/web2/client.ts';
-import type * as ClearingDid from '$declarations/clearing/clearing';
 import { isNullish } from '@dfinity/utils';
 import { getDoc, setDoc } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';
