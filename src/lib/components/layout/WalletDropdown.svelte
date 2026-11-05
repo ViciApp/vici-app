@@ -1,16 +1,16 @@
 <script lang="ts">
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import PopOver from '#lib/components/ui/PopOver.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { walletUiTokens } from '#lib/derived/tokens.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { WalletBalance } from '#lib/types/wallet.ts';
+	import { formatToken } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 	import { goto } from '$app/navigation';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import PopOver from '$lib/components/ui/PopOver.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { walletUiTokens } from '$lib/derived/tokens.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { WalletBalance } from '$lib/types/wallet';
-	import { formatToken } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
 
 	interface Props {
 		balances: WalletBalance;

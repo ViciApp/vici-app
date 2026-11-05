@@ -1,4 +1,4 @@
-import { DAY_IN_MS } from '$lib/constants/app.constants';
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 
 /**
  * How long a rejected friend-request sender must wait before they can

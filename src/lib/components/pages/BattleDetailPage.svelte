@@ -2,14 +2,12 @@
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { track } from '$lib/services/analytics.services';
-	import { safeGetIdentityOnce } from '$lib/services/identity.services';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 	import {
 		acceptBattle,
 		declineBattle,
@@ -22,16 +20,17 @@
 		retractBattle,
 		type BattleLiveScore,
 		type LeagueWithRole
-	} from '$lib/services/leagues.services';
-	import { loadProfilesByPrincipals } from '$lib/services/profile.services';
-	import { leagueDirectoryStore } from '$lib/stores/league-directory.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import type { BattleDoc, BattleState } from '$lib/types/battle';
-	import { battleScopeLabel } from '$lib/utils/battle.utils';
-	import { formatDate, shortenPrincipal, shortLeagueId } from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/services/leagues.services.ts';
+	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
+	import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import type { BattleDoc, BattleState } from '#lib/types/battle.ts';
+	import { battleScopeLabel } from '#lib/utils/battle.utils.ts';
+	import { formatDate, shortenPrincipal, shortLeagueId } from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { page } from '$app/state';
 
 	/**
 	 * Battle detail — face-off view for a single battle. Shows sideA + sideB
@@ -469,7 +468,7 @@
 	// the URL on selection). When they landed here cold — a deep link or fresh
 	// tab with no in-app history — `goBack` falls back to Arena's Friends tab.
 	const handleBack = () => {
-		goBack(resolve(AppPath.Arena));
+		goBack(resolveAppPath(AppPath.Arena));
 	};
 </script>
 

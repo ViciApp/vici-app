@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
-	import CachedLoader from '$lib/components/loaders/CachedLoader.svelte';
-	import { getReceivedActivityReactions } from '$lib/services/activity-reaction.services';
-	import { getIdentity } from '$lib/services/identity.services';
-	import { loadProfilesByPrincipals } from '$lib/services/profile.services';
-	import { receivedReactionsStore } from '$lib/stores/activity-reactions.store';
-	import type { ActivityReaction } from '$lib/types/social';
+	import CachedLoader from '#lib/components/loaders/CachedLoader.svelte';
+	import { getReceivedActivityReactions } from '#lib/services/activity-reaction.services.ts';
+	import { getIdentity } from '#lib/services/identity.services.ts';
+	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
+	import { receivedReactionsStore } from '#lib/stores/activity-reactions.store.ts';
+	import type { ActivityReaction } from '#lib/types/social.ts';
 
 	// Likes other users left on the viewer's own calls, for the like-received
 	// inbox card. The principal comes from the same `getIdentity()` the

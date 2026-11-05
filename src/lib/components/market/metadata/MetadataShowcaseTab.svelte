@@ -8,12 +8,12 @@
 		normalizeStoredTags,
 		type MacroId,
 		type MicroId
-	} from '$lib/constants/market-taxonomy.constants';
-	import { MarketWhyNowKind } from '$lib/enums/market-metadata';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { categoryLabel } from '$lib/utils/market-tags.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
+	} from '#lib/constants/market-taxonomy.constants.ts';
+	import { MarketWhyNowKind } from '#lib/enums/market-metadata.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	interface Props {
 		whyKind: MarketWhyNowKind;

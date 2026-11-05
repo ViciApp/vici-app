@@ -1,4 +1,4 @@
-import { del } from '$lib/utils/storage.utils';
+import { del } from '#lib/utils/storage.utils.ts';
 
 /**
  * One-time "seen" flags for the onboarding / coaching overlays (`FlowCoach`

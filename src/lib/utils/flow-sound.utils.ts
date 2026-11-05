@@ -1,4 +1,4 @@
-import { preferencesStore } from '$lib/stores/preferences.store';
+import { preferencesStore } from '#lib/stores/preferences.store.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { get } from 'svelte/store';
 

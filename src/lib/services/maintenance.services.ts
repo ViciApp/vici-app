@@ -1,6 +1,6 @@
-import { browser } from '$app/environment';
-import { maintenanceStore } from '$lib/stores/maintenance.store';
-import { isCanisterStoppedError } from '$lib/utils/maintenance.utils';
+import { maintenanceStore } from '#lib/stores/maintenance.store.ts';
+import { isCanisterStoppedError } from '#lib/utils/maintenance.utils.ts';
+import { browser } from '$app/env';
 
 /**
  * Maintenance-window detection for satellite deploys.

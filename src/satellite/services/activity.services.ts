@@ -1,6 +1,6 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { ActivityType } from '$lib/enums/social';
-import type { Activity } from '$lib/types/social';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import type { Activity } from '#lib/types/social.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';

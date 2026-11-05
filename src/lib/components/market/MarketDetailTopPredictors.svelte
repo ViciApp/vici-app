@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import Avatar from '$lib/components/profile/Avatar.svelte';
-	import { leaderboard } from '$lib/derived/leaderboard.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { FollowedLeanSignal, TopPredictorSignal } from '$lib/types/market-signals';
-	import { t } from '$lib/utils/i18n.utils';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import { leaderboard } from '#lib/derived/leaderboard.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { FollowedLeanSignal, TopPredictorSignal } from '#lib/types/market-signals.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		/**

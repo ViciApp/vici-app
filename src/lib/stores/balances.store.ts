@@ -1,4 +1,4 @@
-import type { TokenId } from '$lib/types/token';
+import type { TokenId } from '#lib/types/token.ts';
 import { writable } from 'svelte/store';
 
 export type BalanceStoreData = Record<TokenId, bigint>;

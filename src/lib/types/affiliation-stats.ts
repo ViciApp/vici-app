@@ -1,4 +1,4 @@
-import type { AffiliationKind } from '$lib/types/affiliation';
+import type { AffiliationKind } from '#lib/types/affiliation.ts';
 
 /**
  * A single affiliation's standings row for a Worlds kind — two parallel

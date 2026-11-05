@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { DAY_IN_MS, USD_DECIMALS } from '$lib/constants/app.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import type { ResolvedPosition } from '$lib/types/position';
-	import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import { DAY_IN_MS, USD_DECIMALS } from '#lib/constants/app.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import type { ResolvedPosition } from '#lib/types/position.ts';
+	import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Portfolio · Performance · 30D

@@ -9,8 +9,8 @@
 </script>
 
 <script lang="ts">
-	import FlowArtFrame from '$lib/components/artwork/FlowArtFrame.svelte';
-	import { resolveFlowArtCategory, type FlowArtState } from '$lib/utils/flow-art.utils';
+	import FlowArtFrame from '#lib/components/artwork/FlowArtFrame.svelte';
+	import { resolveFlowArtCategory, type FlowArtState } from '#lib/utils/flow-art.utils.ts';
 
 	interface Props {
 		// Stable seed — `market.id` for parity with FlowCard.

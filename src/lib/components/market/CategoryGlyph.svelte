@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { isMacroId } from '$lib/constants/market-taxonomy.constants';
+	import { isMacroId } from '#lib/constants/market-taxonomy.constants.ts';
 	import {
 		MACRO_ART_BUCKET,
 		type FlowArtBucket,
 		type FlowArtCategory
-	} from '$lib/utils/flow-art.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	} from '#lib/utils/flow-art.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
 	 * Per-category animated motif — a small, self-animating SVG glyph that

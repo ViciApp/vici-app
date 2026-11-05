@@ -1,5 +1,5 @@
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { parseToken } from '$lib/utils/parse.utils';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { parseToken } from '#lib/utils/parse.utils.ts';
 
 /**
  * Total VXP granted per user as the new-user starter (onboarding reserve): a single

@@ -9,7 +9,7 @@
  * through the zero-downtime `hosting deploy` alone.
  *
  * A static folder filter (`src/satellite/**`) is NOT enough to detect wasm
- * changes: the satellite imports shared code from `$lib/**` (schemas, types,
+ * changes: the satellite imports shared code from `#lib/**` (schemas, types,
  * constants, utils) and `$declarations`. So instead of a hand-maintained
  * path list, this script walks the REAL import graph from
  * `src/satellite/index.ts` — resolving the aliases declared in
@@ -59,7 +59,7 @@ const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
 const toRepoRelative = (absolute) => path.relative(repoRoot, absolute).split(path.sep).join('/');
 
 /**
- * Alias map from the satellite tsconfig `paths` (e.g. `$lib/*` →
+ * Alias map from the satellite tsconfig `paths` (e.g. `#lib/*` →
  * `src/lib/*`), with targets resolved against the tsconfig directory.
  *
  * @returns {{exact: Map<string, string>, wildcard: Map<string, string>}}

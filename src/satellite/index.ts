@@ -1,4 +1,4 @@
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	AnalyticsSummarySchema,
 	AnalyticsUserStatsSchema,
@@ -11,36 +11,39 @@ import {
 	GetAnalyticsSummaryArgsSchema,
 	TrackEventsArgsSchema,
 	TrackEventsResultSchema
-} from '$lib/schema/analytics-event.schema';
+} from '#lib/schema/analytics-event.schema.ts';
 import {
 	GetAuthIdentitiesArgsSchema,
 	GetAuthIdentitiesResultSchema
-} from '$lib/schema/auth-identity.schema';
+} from '#lib/schema/auth-identity.schema.ts';
 import {
 	GetMarketMetadataArgsSchema,
 	GetMarketTagsResultSchema,
 	MarketMetadataSchema,
 	UpsertMarketMetadataArgsSchema
-} from '$lib/schema/market-metadata.schema';
+} from '#lib/schema/market-metadata.schema.ts';
 import {
 	GetMarketTranslationArgsSchema,
 	ListMarketTranslationsArgsSchema,
 	ListMarketTranslationsForLocalesArgsSchema,
 	MarketTranslationSchema,
 	UpsertMarketTranslationArgsSchema
-} from '$lib/schema/market-translation.schema';
-import { UserProfileSchema } from '$lib/schema/profile.schema';
+} from '#lib/schema/market-translation.schema.ts';
+import { UserProfileSchema } from '#lib/schema/profile.schema.ts';
 import {
 	ClaimReferralFriendshipArgsSchema,
 	LookupReferralCodeArgsSchema,
 	RedeemReferralCodeArgsSchema,
 	SettleReferralArgsSchema
-} from '$lib/schema/referral.schema';
-import { CheckFriendshipArgsSchema, FriendRequestOutcomeSchema } from '$lib/schema/relation.schema';
+} from '#lib/schema/referral.schema.ts';
+import {
+	CheckFriendshipArgsSchema,
+	FriendRequestOutcomeSchema
+} from '#lib/schema/relation.schema.ts';
 import {
 	ListFriendResolvedResultsArgsSchema,
 	ResolvedResultSchema
-} from '$lib/schema/resolved-result.schema';
+} from '#lib/schema/resolved-result.schema.ts';
 import {
 	deleteMyAccountFn,
 	hibernateMyAccountFn,

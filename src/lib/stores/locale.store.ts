@@ -1,18 +1,18 @@
-import { browser } from '$app/environment';
 import {
 	LOCALE_REGISTRY,
 	LOCALE_STORAGE_KEY,
 	type AppLocale
-} from '$lib/constants/locale.constants';
-import { initStorageStore } from '$lib/stores/storage.store';
-import { ensureLocaleCatalogs } from '$lib/utils/i18n.utils';
-import { detectBrowserLocale } from '$lib/utils/locale.utils';
+} from '#lib/constants/locale.constants.ts';
+import { initStorageStore } from '#lib/stores/storage.store.ts';
+import { ensureLocaleCatalogs } from '#lib/utils/i18n.utils.ts';
+import { detectBrowserLocale } from '#lib/utils/locale.utils.ts';
 import {
 	del as delStorage,
 	get as getStorage,
 	has as hasStorage,
 	set as setStorage
-} from '$lib/utils/storage.utils';
+} from '#lib/utils/storage.utils.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { readonly, writable } from 'svelte/store';
 

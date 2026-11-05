@@ -1,14 +1,14 @@
-import type { MessageKey } from '$lib/utils/i18n.utils';
+import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // THE MENAGERIE — the achievement trophy layer.
 //
 // Twelve animals, each with a tier ladder (wood → silver → gold → iridescent).
 // An animal's current tier is derived live from the owner's real stats (see
-// `$lib/utils/menagerie.utils`); this file is the static catalogue: identity,
+// `#lib/utils/menagerie.utils.ts`); this file is the static catalogue: identity,
 // copy keys, the palette tokens that colour each glyph, and the tier ladders.
 //
-// The glyph SVG sprite lives in `$lib/components/menagerie/MenagerieSprite.svelte`
+// The glyph SVG sprite lives in `#lib/components/menagerie/MenagerieSprite.svelte`
 // and the per-animal CSS palette variables (`--menagerie-{slug}` /
 // `-{slug}-deep`) are declared in `MenagerieSprite.svelte`'s scoped `:global`
 // block so both the sprite and the badge frames can reference them.

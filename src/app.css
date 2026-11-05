@@ -201,7 +201,7 @@ html[data-ios-bottom-bar] {
 	 * disabled under reduced motion — gate CSS with `@media
 	 * (prefers-reduced-motion: reduce)` and JS-driven Svelte transitions
 	 * with `prefersReducedMotion()` from
-	 * `$lib/utils/reduced-motion.utils.ts`. The narrative side of this
+	 * `#lib/utils/reduced-motion.utils.ts`. The narrative side of this
 	 * principle lives in `docs/ai/frontend/brand.md` §8 / `design.md` §7.1. */
 	--d-hover: 120ms;
 	--d-state: 200ms;

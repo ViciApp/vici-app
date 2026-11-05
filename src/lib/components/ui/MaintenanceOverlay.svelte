@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { pinToVisualViewport } from '$lib/actions/pin-to-visual-viewport';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { maintenanceStore } from '$lib/stores/maintenance.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { pinToVisualViewport } from '#lib/actions/pin-to-visual-viewport.ts';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { maintenanceStore } from '#lib/stores/maintenance.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 </script>
 
 {#if $maintenanceStore}

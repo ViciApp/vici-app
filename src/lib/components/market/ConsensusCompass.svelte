@@ -11,7 +11,7 @@
 	 * reads as a market-state indicator, not a category accent.
 	 */
 	import { isNullish } from '@dfinity/utils';
-	import MarketOddsSkeleton from '$lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
 
 	interface Props {
 		// 0–1 YES-side probability. Clamped defensively to [0, 1].

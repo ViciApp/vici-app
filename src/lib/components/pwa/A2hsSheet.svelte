@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { Download, Share, SquarePlus } from '@lucide/svelte/icons';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { track } from '$lib/services/analytics.services';
-	import { markDismissed, nativePrompt, platform, type A2hsPlatform } from '$lib/stores/a2hs.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { track } from '#lib/services/analytics.services.ts';
+	import {
+		markDismissed,
+		nativePrompt,
+		platform,
+		type A2hsPlatform
+	} from '#lib/stores/a2hs.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Add-to-Home-Screen install sheet. One more {@link BottomSheet} host

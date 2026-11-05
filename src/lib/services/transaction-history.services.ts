@@ -1,18 +1,18 @@
-import { getTransactions as getIcrcTransactionsApi } from '$lib/api/icrc-index-ng.api';
+import { getTransactions as getIcrcTransactionsApi } from '#lib/api/icrc-index-ng.api.ts';
 import {
 	TRANSACTION_HISTORY_LEDGER_PAGE_SIZE,
 	TRANSACTION_HISTORY_MAX_LEDGER_PAGES,
 	ZERO
-} from '$lib/constants/app.constants';
-import { VXP_INDEX_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { getIdentity } from '$lib/services/identity.services';
-import type { TransactionHistoryBonusTag } from '$lib/types/transaction-history';
+} from '#lib/constants/app.constants.ts';
+import { VXP_INDEX_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { getIdentity } from '#lib/services/identity.services.ts';
+import type { TransactionHistoryBonusTag } from '#lib/types/transaction-history.ts';
 import {
 	decodeVxpAwardMemo,
 	type TransactionHistoryLedgerEntry
-} from '$lib/utils/transaction-history.utils';
-import { mapIcrcTransaction, mapTransactionIcrcToSelf } from '$lib/utils/transactions.utils';
+} from '#lib/utils/transaction-history.utils.ts';
+import { mapIcrcTransaction, mapTransactionIcrcToSelf } from '#lib/utils/transactions.utils.ts';
 import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
 import type { IcrcIndexDid } from '@icp-sdk/canisters/ledger/icrc';
 import type { Identity } from '@icp-sdk/core/agent';

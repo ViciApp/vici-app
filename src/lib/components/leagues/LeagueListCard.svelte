@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { Check, ChevronRight } from '@lucide/svelte/icons';
-	import Avatar from '$lib/components/profile/Avatar.svelte';
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import NestedButton from '$lib/components/ui/NestedButton.svelte';
-	import { track } from '$lib/services/analytics.services';
-	import { buildLeagueShareUrl } from '$lib/services/leagues.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import { leagueEmblem, type LeagueDoc } from '$lib/types/league';
-	import type { LeagueMemberRole } from '$lib/types/league-member';
-	import { t } from '$lib/utils/i18n.utils';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import NestedButton from '#lib/components/ui/NestedButton.svelte';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { buildLeagueShareUrl } from '#lib/services/leagues.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import type { LeagueMemberRole } from '#lib/types/league-member.ts';
+	import { leagueEmblem, type LeagueDoc } from '#lib/types/league.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Single row in the Leagues list. Renders the gradient logo

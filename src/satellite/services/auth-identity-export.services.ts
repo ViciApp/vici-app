@@ -20,9 +20,9 @@
  * warehouse exports; the data never leaves the satellite for anyone else.
  */
 
-import { ZERO } from '$lib/constants/app.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import type { ProfilePrivate } from '$lib/types/profile';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import type { ProfilePrivate } from '#lib/types/profile.ts';
 import { isAdmin } from '$satellite/services/_authz';
 import { logError } from '$satellite/utils/logger.utils';
 import { isNullish, notEmptyString } from '@dfinity/utils';

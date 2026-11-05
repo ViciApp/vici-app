@@ -1,6 +1,6 @@
-import { ZERO } from '$lib/constants/app.constants';
-import { VXP_LEDGER_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	REFERRAL_CODE_ALPHABET,
 	REFERRAL_CODE_LENGTH,
@@ -10,13 +10,13 @@ import {
 	REFERRAL_SIGNUP_WINDOW_MS,
 	REFERRAL_VXP_BONUS_BASE_UNITS,
 	referrerRewardBaseUnits
-} from '$lib/constants/referral.constants';
-import { RelationCategory, RelationState } from '$lib/enums/relation';
-import { ActivityType } from '$lib/enums/social';
-import type { ReferralCodeDoc, ReferralDoc, ReferralListItem } from '$lib/types/referral';
-import type { Relation } from '$lib/types/relation';
-import type { Activity } from '$lib/types/social';
-import type { VxpMilestoneState } from '$lib/types/vxp-onboarding';
+} from '#lib/constants/referral.constants.ts';
+import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import type { ReferralCodeDoc, ReferralDoc, ReferralListItem } from '#lib/types/referral.ts';
+import type { Relation } from '#lib/types/relation.ts';
+import type { Activity } from '#lib/types/social.ts';
+import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
 import { logError, logInfo } from '$satellite/utils/logger.utils';
 import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';
 import { isNullish, nonNullish } from '@dfinity/utils';

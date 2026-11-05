@@ -2,48 +2,48 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Check, Pencil, Settings, Shield, Users } from '@lucide/svelte';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import AffiliationPickerModal from '$lib/components/leagues/AffiliationPickerModal.svelte';
-	import MenagerieBadge from '$lib/components/menagerie/MenagerieBadge.svelte';
-	import MenagerieBadgeSkeleton from '$lib/components/menagerie/MenagerieBadgeSkeleton.svelte';
-	import AvatarEditor from '$lib/components/profile/AvatarEditor.svelte';
-	import HandleEditor from '$lib/components/profile/HandleEditor.svelte';
-	import ProfileOracleInsight from '$lib/components/profile/ProfileOracleInsight.svelte';
-	import CountryFlag from '$lib/components/ui/CountryFlag.svelte';
-	import NotifBell from '$lib/components/ui/NotifBell.svelte';
-	import ViciAvatar from '$lib/components/ui/ViciAvatar.svelte';
-	import { MENAGERIE } from '$lib/constants/menagerie.constants';
-	import { nicknameUniqueKey } from '$lib/constants/profile.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { SCHOOL_PASS2_ENABLED } from '$lib/constants/school-picker.constants';
-	import { lookupWorldsAffiliation } from '$lib/constants/worlds-affiliations.constants';
-	import { leaderboard } from '$lib/derived/leaderboard.derived';
-	import { myMenagerieLoading, myMenagerieRows } from '$lib/derived/menagerie.derived';
-	import { userIsAdmin } from '$lib/derived/user.derived';
-	import { loadMyMenagerieSignals } from '$lib/services/menagerie.services';
-	import { upsertProfile } from '$lib/services/profile.services';
-	import { getMyReferralCode } from '$lib/services/referral.services';
-	import { loadMyUserStats } from '$lib/services/user-stats.services';
-	import { myAffiliationsStore, refreshMyAffiliations } from '$lib/stores/affiliations.store';
-	import { myAvatarParts } from '$lib/stores/avatar.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { displayMarkets } from '$lib/stores/market-translations.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { globalStandingsStore } from '$lib/stores/standings.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { AffiliationKind } from '$lib/types/affiliation';
-	import type { UserProfile } from '$lib/types/profile';
-	import type { UserStatsDoc } from '$lib/types/user-stats';
-	import { affiliationChipStyle } from '$lib/utils/affiliation-chip.utils';
-	import { countryDisplayName } from '$lib/utils/affiliation-name.utils';
-	import { writeToClipboard } from '$lib/utils/clipboard.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import AffiliationPickerModal from '#lib/components/leagues/AffiliationPickerModal.svelte';
+	import MenagerieBadge from '#lib/components/menagerie/MenagerieBadge.svelte';
+	import MenagerieBadgeSkeleton from '#lib/components/menagerie/MenagerieBadgeSkeleton.svelte';
+	import AvatarEditor from '#lib/components/profile/AvatarEditor.svelte';
+	import HandleEditor from '#lib/components/profile/HandleEditor.svelte';
+	import ProfileOracleInsight from '#lib/components/profile/ProfileOracleInsight.svelte';
+	import CountryFlag from '#lib/components/ui/CountryFlag.svelte';
+	import NotifBell from '#lib/components/ui/NotifBell.svelte';
+	import ViciAvatar from '#lib/components/ui/ViciAvatar.svelte';
+	import { MENAGERIE } from '#lib/constants/menagerie.constants.ts';
+	import { nicknameUniqueKey } from '#lib/constants/profile.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { SCHOOL_PASS2_ENABLED } from '#lib/constants/school-picker.constants.ts';
+	import { lookupWorldsAffiliation } from '#lib/constants/worlds-affiliations.constants.ts';
+	import { leaderboard } from '#lib/derived/leaderboard.derived.ts';
+	import { myMenagerieLoading, myMenagerieRows } from '#lib/derived/menagerie.derived.ts';
+	import { userIsAdmin } from '#lib/derived/user.derived.ts';
+	import { loadMyMenagerieSignals } from '#lib/services/menagerie.services.ts';
+	import { upsertProfile } from '#lib/services/profile.services.ts';
+	import { getMyReferralCode } from '#lib/services/referral.services.ts';
+	import { loadMyUserStats } from '#lib/services/user-stats.services.ts';
+	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
+	import { myAvatarParts } from '#lib/stores/avatar.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { globalStandingsStore } from '#lib/stores/standings.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { AffiliationKind } from '#lib/types/affiliation.ts';
+	import type { UserProfile } from '#lib/types/profile.ts';
+	import type { UserStatsDoc } from '#lib/types/user-stats.ts';
+	import { affiliationChipStyle } from '#lib/utils/affiliation-chip.utils.ts';
+	import { countryDisplayName } from '#lib/utils/affiliation-name.utils.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import {
 		avatarBackdropPlanes,
 		deterministicParts,
 		parseParts
-	} from '$lib/utils/vici-avatar.utils';
+	} from '#lib/utils/vici-avatar.utils.ts';
+	import { goto } from '$app/navigation';
 
 	interface Props {
 		profile: UserProfile;
@@ -256,11 +256,11 @@
 	const heroPalette = $derived(avatarBackdropPlanes(heroParts));
 
 	const handleOpenSettings = () => {
-		void goto(resolve(AppPath.Settings));
+		void goto(resolveAppPath(AppPath.Settings));
 	};
 
 	const handleOpenAdmin = () => {
-		void goto(resolve(AppPath.Admin));
+		void goto(resolveAppPath(AppPath.Admin));
 	};
 
 	/* User-stats — drives the Oracle insight's latest-settled record line. */
@@ -728,7 +728,7 @@
 			</h2>
 			<button
 				class="profile-achievements-all"
-				onclick={() => goto(resolve(AppPath.Album))}
+				onclick={() => goto(resolveAppPath(AppPath.Album))}
 				type="button"
 			>
 				{t({ locale: $localeStore, key: 'profile.dashboard.all' })}
@@ -748,7 +748,7 @@
 					{@const earned = nonNullish(row.tier)}
 					<button
 						class="profile-menagerie-tile"
-						onclick={() => goto(resolve(AppPath.Album))}
+						onclick={() => goto(resolveAppPath(AppPath.Album))}
 						type="button"
 					>
 						<MenagerieBadge size={68} slug={row.animal.slug} tier={row.tier} />

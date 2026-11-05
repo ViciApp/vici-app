@@ -1,6 +1,6 @@
-import { suggestedScore } from '$lib/services/market.services';
-import type { CallSide, Market } from '$lib/types/market';
-import type { MarketMetadata, MarketWhyNow } from '$lib/types/market-metadata';
+import { suggestedScore } from '#lib/services/market.services.ts';
+import type { MarketMetadata, MarketWhyNow } from '#lib/types/market-metadata.ts';
+import type { CallSide, Market } from '#lib/types/market.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
-	import Button from '$lib/components/ui/Button.svelte';
-	import Dialog from '$lib/components/ui/Dialog.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market, MarketId, Outcome } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
+	import Button from '#lib/components/ui/Button.svelte';
+	import Dialog from '#lib/components/ui/Dialog.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market, MarketId, Outcome } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		markets: Market[];

@@ -1,4 +1,4 @@
-import { notificationsStore } from '$lib/stores/notification.store';
+import { notificationsStore } from '#lib/stores/notification.store.ts';
 
 /**
  * Pure clipboard write — wraps `navigator.clipboard.writeText` so we

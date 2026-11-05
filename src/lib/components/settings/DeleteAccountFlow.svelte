@@ -3,35 +3,35 @@
 	import { ArrowRight, Check } from '@lucide/svelte/icons';
 	import { onMount, tick } from 'svelte';
 	import { get } from 'svelte/store';
-	import { browser } from '$app/environment';
-	import type { ClearingDid } from '$declarations';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { INFO_EMAIL } from '$lib/constants/contact.constants';
-	import { PLAYGROUND_CLEARING_MARGIN_DECIMALS } from '$lib/constants/playground.constants';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { INFO_EMAIL } from '#lib/constants/contact.constants.ts';
+	import { PLAYGROUND_CLEARING_MARGIN_DECIMALS } from '#lib/constants/playground.constants.ts';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import {
 		deleteMyAccount,
 		hibernateMyAccount,
 		type LeagueResolution,
 		listMyBlockingLeagues
-	} from '$lib/services/account.services';
-	import { track } from '$lib/services/analytics.services';
-	import { listLeagueMembers, listMyLeagues } from '$lib/services/leagues.services';
-	import { cancelLimitOrder, getUserOrders } from '$lib/services/order.services';
-	import { getPositions } from '$lib/services/position.services';
-	import { loadProfilesByPrincipals } from '$lib/services/profile.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import { EXIT_SIGNAL_NOTE_MAX_LENGTH, type ExitSignalReason } from '$lib/types/exit-signal';
-	import type { LeagueMemberDoc } from '$lib/types/league-member';
-	import { mailtoHref } from '$lib/utils/email.utils';
-	import { createFocusTrap, type FocusTrap } from '$lib/utils/focus-trap.utils';
-	import { shortenPrincipal } from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
+	} from '#lib/services/account.services.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { listLeagueMembers, listMyLeagues } from '#lib/services/leagues.services.ts';
+	import { cancelLimitOrder, getUserOrders } from '#lib/services/order.services.ts';
+	import { getPositions } from '#lib/services/position.services.ts';
+	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import { EXIT_SIGNAL_NOTE_MAX_LENGTH, type ExitSignalReason } from '#lib/types/exit-signal.ts';
+	import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+	import { mailtoHref } from '#lib/utils/email.utils.ts';
+	import { createFocusTrap, type FocusTrap } from '#lib/utils/focus-trap.utils.ts';
+	import { shortenPrincipal } from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
+	import { browser } from '$app/env';
+	import type { ClearingDid } from '$declarations';
 
 	/**
 	 * Six-beat account-deletion flow, docked in a {@link BottomSheet}.
@@ -646,12 +646,12 @@
 			</ul>
 
 			<div class="del-actions">
-				<Button onclick={() => (step = 'reason')} variant="ghost">
-					{t({ locale: $localeStore, key: 'settings.delete.back' })}
-				</Button>
-				<Button class="del-danger-btn" onclick={advanceFromDisclosure} variant="danger">
-					{t({ locale: $localeStore, key: 'settings.delete.understand' })}
-				</Button>
+				<Button onclick={() => (step = 'reason')} variant="ghost"
+					>{t({ locale: $localeStore, key: 'settings.delete.back' })}</Button
+				>
+				<Button class="del-danger-btn" onclick={advanceFromDisclosure} variant="danger"
+					>{t({ locale: $localeStore, key: 'settings.delete.understand' })}</Button
+				>
 			</div>
 		</div>
 	{:else if step === 'leagues'}
@@ -786,9 +786,10 @@
 			</div>
 
 			<div class="del-actions">
-				<Button onclick={() => (step = 'what-happens')} variant="ghost">
-					{t({ locale: $localeStore, key: 'settings.delete.back' })}
-				</Button>
+				<Button onclick={() => (step = 'what-happens')} variant="ghost"
+					>{t({ locale: $localeStore, key: 'settings.delete.back' })}</Button
+				>
+
 				<Button
 					class="del-danger-btn"
 					onclick={enterConfirm}

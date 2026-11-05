@@ -1,6 +1,6 @@
-import { cachedNotInitialized } from '$lib/derived/cached.derived';
-import { marketMetadataStore } from '$lib/stores/market-metadata.store';
-import type { MarketMetadata } from '$lib/types/market-metadata';
+import { cachedNotInitialized } from '#lib/derived/cached.derived.ts';
+import { marketMetadataStore } from '#lib/stores/market-metadata.store.ts';
+import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 import { derived, type Readable } from 'svelte/store';
 
 const EMPTY_METADATA: Record<string, MarketMetadata> = {};

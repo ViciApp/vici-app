@@ -46,9 +46,10 @@ Non-obvious points the codebase will not tell you:
 
 - ESLint's local rule `local-rules/no-relative-imports` is **`error`** under
   `src/**` — always import via the aliases in
-  [`svelte.config.js`](../../../svelte.config.js).
+  [`vite.config.ts`](../../../vite.config.ts) and the `#lib/*` subpath
+  import in [`package.json`](../../../package.json).
 - `0n` and `return undefined;` are eslint-flagged — use `ZERO` from
-  `$lib/constants/app.constants` and bare `return;`.
+  `#lib/constants/app.constants` and bare `return;`.
 - No test runner is wired yet — when the first Vitest spec lands,
   [`testing.md`](./testing.md) becomes the contract.
 - The crawler-facing surface (sitemap + per-market meta pages) is generated

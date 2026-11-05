@@ -1,6 +1,6 @@
-import { browser } from '$app/environment';
-import { E2E_OPEN_SIGNUPS_STORAGE_KEY } from '$lib/constants/e2e.constants';
-import { isDev } from '$lib/env/app.env';
+import { E2E_OPEN_SIGNUPS_STORAGE_KEY } from '#lib/constants/e2e.constants.ts';
+import { isDev } from '#lib/env/app.env.ts';
+import { browser } from '$app/env';
 
 /**
  * True only on a dev build whose storage carries the Playwright opt-in

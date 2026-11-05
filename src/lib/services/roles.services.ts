@@ -1,6 +1,6 @@
-import { Collection } from '$lib/constants/collections.constants';
-import type { UserRole } from '$lib/enums/user';
-import { getProfile } from '$lib/services/profile.services';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import type { UserRole } from '#lib/enums/user.ts';
+import { getProfile } from '#lib/services/profile.services.ts';
 import { deleteDoc, getDoc, listDocs, setDoc } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';
 

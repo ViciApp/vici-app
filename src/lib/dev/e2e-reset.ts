@@ -1,10 +1,10 @@
-import { browser } from '$app/environment';
-import { SIGNED_IN_FLAG_KEY } from '$lib/constants/app.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { isDev } from '$lib/env/app.env';
-import { userStore } from '$lib/stores/user.store';
-import type { ProfilePrivate, UserProfile } from '$lib/types/profile';
-import { sleep } from '$lib/utils/async.utils';
+import { SIGNED_IN_FLAG_KEY } from '#lib/constants/app.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { isDev } from '#lib/env/app.env.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import type { ProfilePrivate, UserProfile } from '#lib/types/profile.ts';
+import { sleep } from '#lib/utils/async.utils.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { deleteDoc, getDoc } from '@junobuild/core';
 import { get } from 'svelte/store';

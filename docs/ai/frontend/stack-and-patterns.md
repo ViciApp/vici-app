@@ -28,7 +28,7 @@ shape easy to read and easy to extend in tests / sibling components:
 ```svelte
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { Market } from '$lib/types/market';
+	import type { Market } from '#lib/types/market.ts';
 
 	interface Props {
 		market: Market;
@@ -144,7 +144,7 @@ lives **inside** a reactive context (`$derived(...)`, `$effect(...)`,
 
 Svelte stores (`writable` / `readable` / `derived` from `svelte/store`)
 remain the primary cross-route reactive primitive in this repo. The graph
-under `$lib/stores/` and `$lib/derived/` is mature — keep adding to it
+under `#lib/stores/` and `#lib/derived/` is mature — keep adding to it
 where it fits an existing shape, rather than splitting the world between
 runes and stores.
 
@@ -154,8 +154,8 @@ runes and stores.
 | Component-local computed value                 | `$derived` / `$derived.by`                                             | Inside the component |
 | Side effect (DOM, network, subscription)       | `$effect` (or `onMount` for true mount work)                           | Inside the component |
 | Value shared by 2+ components in the same page | Pass via props / snippets                                              | —                    |
-| Value shared across views (markets, wallet, …) | A Svelte `writable` / `readable` store, or a `*.svelte.ts` rune module | `$lib/stores/`       |
-| Computed value across stores                   | `derived(...)` Svelte store                                            | `$lib/derived/`      |
+| Value shared across views (markets, wallet, …) | A Svelte `writable` / `readable` store, or a `*.svelte.ts` rune module | `#lib/stores/`       |
+| Computed value across stores                   | `derived(...)` Svelte store                                            | `#lib/derived/`      |
 
 Avoid duplicating server / canister state into a local store — fetch via
 the service layer and let the service own caching.
@@ -177,13 +177,13 @@ the service layer and let the service own caching.
   request / response shapes — never re-declare them.
 - **Schemas first.** When data crosses a boundary (network, storage, the
   satellite), validate with the matching `zod` schema from
-  `$lib/schema/`.
+  `#lib/schema/`.
 - **Discriminated unions** for `Result<T>` flows. Look at the closest
   neighbour and follow the same shape.
 - **Type imports**: prefer `import type { … }` for types-only;
   `prettier-plugin-organize-imports` will sort them.
 - **`BigInt` zero**: forbidden literal `0n` (eslint). Use the `ZERO`
-  constant from `$lib/constants/app.constants`.
+  constant from `#lib/constants/app.constants.ts`.
 - **`catch` bindings are always `: unknown`.** Even when the binding is
   unused (`catch (_: unknown)`, `catch (_e: unknown)`). The annotation is
   redundant under `strict` (TS already infers `unknown`), but we write it
@@ -199,16 +199,16 @@ the service layer and let the service own caching.
   un-loaded markets as 50%. It is now optional, paired with a
   `priceLoaded` boolean that separates _loading_ (skeleton) from
   _loaded-but-empty_ (dash); the odds placeholder is
-  `$lib/components/market/MarketOddsSkeleton.svelte`. See
+  `#lib/components/market/MarketOddsSkeleton.svelte`. See
   [`PRODUCT.md`](../PRODUCT.md) → "Market odds".
 
 ## Service / data flow
 
 ```
 Component (.svelte)
-  ↳ $lib/services/*.services.ts          orchestration, state mutations, error handling
-       ↳ $lib/api/*.api.ts               wrappers around generated canister declarations
-       ↳ $lib/canisters/*.canister.ts    typed actor factories
+  ↳ #lib/services/*.services.ts          orchestration, state mutations, error handling
+       ↳ #lib/api/*.api.ts               wrappers around generated canister declarations
+       ↳ #lib/canisters/*.canister.ts    typed actor factories
        ↳ @junobuild/core                 datastore + auth (used directly inside services)
 ```
 
@@ -217,23 +217,23 @@ Component (.svelte)
 - A `*.services.ts` function should:
   - Accept a typed input.
   - Use the identity helpers from
-    [`$lib/services/identity.services.ts`](../../../src/lib/services/identity.services.ts)
+    [`#lib/services/identity.services.ts`](../../../src/lib/services/identity.services.ts)
     (`getIdentityOrAnonymous` for read paths, `safeGetIdentityOnce` for
     authenticated actions).
-  - Surface errors via the project's notification / toast pattern (`$lib/stores/notification.store`).
+  - Surface errors via the project's notification / toast pattern (`#lib/stores/notification.store.ts`).
   - Never throw to the caller for expected user errors — return an
     informative result.
 - Worker-bound logic (auth workers) lives under `static/workers/` and is
   synced by `npm run postinstall`. Don't hand-edit those files.
 
 Example shape (compressed from
-[`$lib/services/market.services.ts`](../../../src/lib/services/market.services.ts)):
+[`#lib/services/market.services.ts`](../../../src/lib/services/market.services.ts)):
 
 ```ts
-import { registryApi } from '$lib/api/registry.api';
-import { VICI_ENGINE_ID } from '$lib/constants/icdc.constants';
-import { safeGetIdentityOnce } from '$lib/services/identity.services';
-import type { CreateMarketRequest } from '$lib/types/market';
+import { registryApi } from '#lib/api/registry.api.ts';
+import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import type { CreateMarketRequest } from '#lib/types/market.ts';
 
 export const createMarket = async (req: CreateMarketRequest): Promise<MarketId> => {
 	const identity = await safeGetIdentityOnce();
@@ -411,7 +411,7 @@ spread-level slippage from top-of-book, not multi-level depth walking.
 ## Icons
 
 - Default to `@lucide/svelte` (`import { ArrowRight } from '@lucide/svelte';`).
-- Bespoke icons live under `$lib/components/icons/`. Re-use them before
+- Bespoke icons live under `#lib/components/icons/`. Re-use them before
   inlining a new SVG.
 - Decorative icons → `aria-hidden="true"`.
 - Icon-only buttons → must have `aria-label`.
@@ -429,8 +429,14 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   [`src/lib/constants/routes.constants.ts`](../../../src/lib/constants/routes.constants.ts).
   Visible nav items (icon, label, path) are configured in
   [`src/lib/constants/nav.constants.ts`](../../../src/lib/constants/nav.constants.ts).
+- Navigate to an `AppPath` (or any pathname written with a leading `/`)
+  through `resolveAppPath` from `#lib/utils/nav.utils.ts`. SvelteKit's
+  `resolve` reads a leading `/` as a route ID, and app route IDs carry the
+  `(app)` group (`/(app)/arena`), so `resolve(AppPath.Arena)` does not
+  type-check. Top-level routes (`PublicPath.SignIn` → `/signin`) are their
+  own route IDs and go through `resolve` directly.
 - Page-level shells composed inside specific routes live in
-  `$lib/components/pages/` (or the matching feature folder).
+  `#lib/components/pages/` (or the matching feature folder).
 
 ## Performance
 
@@ -452,7 +458,7 @@ spread-level slippage from top-of-book, not multi-level depth walking.
 - `$bindable` unless explicitly required by the API.
 - Reaching into `document.querySelector` to mutate Svelte-managed DOM.
 - Catching an error and silently swallowing it; surface via
-  `$lib/stores/notification.store` or propagate.
+  `#lib/stores/notification.store.ts` or propagate.
 - Hard-coding strings, hex colours, magic numbers in components.
 - "Just one more `any`" — there is no "just one more".
 - Adding a wrapper component that only re-exports another component.

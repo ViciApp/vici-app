@@ -2,31 +2,30 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Check, X } from '@lucide/svelte/icons';
 	import { onDestroy, onMount } from 'svelte';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import {
 		CALIBRATION_DAILY_CAP,
 		CALIBRATION_RECOVERY_FLOOR_BASE_UNITS,
 		VXP_CALIBRATION_REWARD_BASE_UNITS
-	} from '$lib/constants/vxp-economy.constants';
-	import { getCalibrationDeck } from '$lib/services/calibration.services';
+	} from '#lib/constants/vxp-economy.constants.ts';
+	import { getCalibrationDeck } from '#lib/services/calibration.services.ts';
 	import {
 		claimCalibrationReward,
 		type VxpCalibrationClaim,
 		type VxpCalibrationReason
-	} from '$lib/services/vxp-awards.services';
-	import { balancesStore } from '$lib/stores/balances.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { hydrate, marketDisplay } from '$lib/stores/market-translations.store';
-	import type { CalibrationCard, CalibrationSide } from '$lib/types/calibration';
-	import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	} from '#lib/services/vxp-awards.services.ts';
+	import { balancesStore } from '#lib/stores/balances.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { hydrate, marketDisplay } from '#lib/stores/market-translations.store.ts';
+	import type { CalibrationCard, CalibrationSide } from '#lib/types/calibration.ts';
+	import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
 	 * Calibration practice — a recovery surface for a depleted user.
@@ -248,7 +247,7 @@
 	};
 
 	const back = () => {
-		goBack(resolve(AppPath.Flow));
+		goBack(resolveAppPath(AppPath.Flow));
 	};
 
 	// Countdown ring geometry. The dash offset shrinks as `secondsLeft`

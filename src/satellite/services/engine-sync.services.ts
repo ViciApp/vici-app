@@ -1,9 +1,9 @@
+import { VICI_ORACLE_V1 } from '#lib/constants/app.constants.ts';
+import { REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
+import { UserRole } from '#lib/enums/user.ts';
 import type { RegistryDid } from '$declarations';
-import { VICI_ORACLE_V1 } from '$lib/constants/app.constants';
-import { REGISTRY_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { VICI_ENGINE_ID } from '$lib/constants/icdc.constants';
-import { UserRole } from '$lib/enums/user';
 import { candidMethod } from '$satellite/utils/candid.utils';
 import { logError, logInfo } from '$satellite/utils/logger.utils';
 import { isNullish, nonNullish } from '@dfinity/utils';

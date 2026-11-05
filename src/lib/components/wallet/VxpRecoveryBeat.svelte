@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Deployed-vs-depleted recovery beat — shown when the user's free VXP

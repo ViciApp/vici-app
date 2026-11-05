@@ -2,21 +2,21 @@
 	import { isNullish } from '@dfinity/utils';
 	import { Sparkles } from '@lucide/svelte/icons';
 	import { untrack } from 'svelte';
+	import GuestSaveSheet from '#lib/components/guest/GuestSaveSheet.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { newUserVxpAmountMilestone1BaseUnits } from '#lib/constants/vxp-onboarding.constants.ts';
+	import { guestHandle, guestMode, guestPickCount } from '#lib/derived/guest.derived.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { pendingOnboardingProvider } from '#lib/services/onboarding-handoff.services.ts';
+	import { flowBeatActiveStore } from '#lib/stores/flow-beat.store.ts';
+	import { clearGuestSession } from '#lib/stores/guest.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { menagerieCelebrationStore } from '#lib/stores/menagerie-celebration.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 	import { page } from '$app/state';
-	import GuestSaveSheet from '$lib/components/guest/GuestSaveSheet.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { newUserVxpAmountMilestone1BaseUnits } from '$lib/constants/vxp-onboarding.constants';
-	import { guestHandle, guestMode, guestPickCount } from '$lib/derived/guest.derived';
-	import { userSignedIn } from '$lib/derived/user.derived';
-	import { track } from '$lib/services/analytics.services';
-	import { pendingOnboardingProvider } from '$lib/services/onboarding-handoff.services';
-	import { flowBeatActiveStore } from '$lib/stores/flow-beat.store';
-	import { clearGuestSession } from '$lib/stores/guest.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { menagerieCelebrationStore } from '$lib/stores/menagerie-celebration.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
 
 	/**
 	 * Guest conversion funnel host. Mounted once at the app shell. For a

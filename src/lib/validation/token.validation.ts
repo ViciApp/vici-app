@@ -1,5 +1,5 @@
-import { TokenIdSchema } from '$lib/schema/token.schema';
-import type { TokenId } from '$lib/types/token';
+import { TokenIdSchema } from '#lib/schema/token.schema.ts';
+import type { TokenId } from '#lib/types/token.ts';
 import * as z from 'zod';
 
 const TokenIdStringSchema = z.string();

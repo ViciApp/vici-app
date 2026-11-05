@@ -8,16 +8,16 @@
 		Vibrate
 	} from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { markets } from '#lib/derived/markets.derived.ts';
+	import { vxpFree } from '#lib/derived/vxp-holdings.derived.ts';
+	import { listRoles, type UserRoleEntry } from '#lib/services/roles.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { markets } from '$lib/derived/markets.derived';
-	import { vxpFree } from '$lib/derived/vxp-holdings.derived';
-	import { listRoles, type UserRoleEntry } from '$lib/services/roles.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
 
 	type HubPath =
 		AppPath.AdminAccess | AppPath.AdminMarkets | AppPath.AdminResolutions | AppPath.AdminVxp;
@@ -101,7 +101,7 @@
 			<li>
 				<button
 					class="border-border bg-card hover:border-primary/40 hover:bg-card/80 group flex h-full w-full flex-col items-start gap-5 rounded-3xl border p-7 text-left transition-all"
-					onclick={() => goto(resolve(tile.path))}
+					onclick={() => goto(resolveAppPath(tile.path))}
 					type="button"
 				>
 					<span
@@ -148,7 +148,7 @@
 		</h2>
 		<button
 			class="border-border bg-card hover:border-primary/40 hover:bg-card/80 flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all"
-			onclick={() => goto(resolve(AppPath.AdminHaptics))}
+			onclick={() => goto(resolveAppPath(AppPath.AdminHaptics))}
 			type="button"
 		>
 			<span

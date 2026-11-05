@@ -1,5 +1,5 @@
-import { DAY_IN_MS } from '$lib/constants/app.constants';
-import { get as storageGet, set as storageSet } from '$lib/utils/storage.utils';
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+import { get as storageGet, set as storageSet } from '#lib/utils/storage.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

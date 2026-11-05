@@ -1,4 +1,4 @@
-import type { FeaturedEvent } from '$lib/types/featured-event';
+import type { FeaturedEvent } from '#lib/types/featured-event.ts';
 
 /**
  * The 2026 FIFA World Cup — current featured event.
@@ -10,8 +10,8 @@ import type { FeaturedEvent } from '$lib/types/featured-event';
  * 3. (Optional) Migrate any in-flight markets to carry the new `categoryTag`.
  *
  * Nothing else in the codebase reads the World Cup by name — surfaces use
- * the abstraction in `$lib/types/featured-event` and the derivations in
- * `$lib/derived/featured-event.derived`.
+ * the abstraction in `#lib/types/featured-event.ts` and the derivations in
+ * `#lib/derived/featured-event.derived.ts`.
  *
  * Source: `data.js` § WORLD_CUP. Names are kept
  * as literal English; the rendering layer should layer i18n on top via

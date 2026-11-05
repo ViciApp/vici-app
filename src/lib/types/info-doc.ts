@@ -1,4 +1,4 @@
-import type { MessageKey } from '$lib/utils/i18n.utils';
+import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 
 /**
  * Lightweight document model for the public `/info/[slug]` routes —

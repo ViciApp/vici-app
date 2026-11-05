@@ -3,8 +3,8 @@
 // Extracted from the original flow-art.utils.ts during the structural
 // split; behaviour-identical, no logic here.
 
-import { MACRO_IDS, type MacroId } from '$lib/constants/market-taxonomy.constants';
-import type { Theme } from '$lib/stores/theme.store';
+import { MACRO_IDS, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
+import type { Theme } from '#lib/stores/theme.store.ts';
 
 /**
  * Public artwork category: the seven taxonomy macros plus the opt-in `wc`

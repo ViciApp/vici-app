@@ -1,11 +1,11 @@
-import { VXP_LEDGER_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
+import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	VXP_LEAGUE_FOUNDER_MAX_AWARDS,
 	VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS
-} from '$lib/constants/vxp-economy.constants';
-import type { LeagueDoc } from '$lib/types/league';
-import { vxpAwardKey, type VxpAwardDoc } from '$lib/types/vxp-award';
+} from '#lib/constants/vxp-economy.constants.ts';
+import type { LeagueDoc } from '#lib/types/league.ts';
+import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { listMyLeaguesFn } from '$satellite/services/cohort.services';
 import { logError, logInfo } from '$satellite/utils/logger.utils';
 import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import OracleChar from '$lib/components/characters/OracleChar.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import OracleChar from '#lib/components/characters/OracleChar.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
 		// "Open Dashboard →" — the primary exit, where open predictions and the

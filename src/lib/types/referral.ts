@@ -1,4 +1,4 @@
-import type { VxpMilestoneState } from '$lib/types/vxp-onboarding';
+import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
 import type { PrincipalText } from '@junobuild/schema';
 
 /**

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import MarketOddsSkeleton from '$lib/components/market/MarketOddsSkeleton.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { CallSide } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
+	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { CallSide } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		yesPercent: number;

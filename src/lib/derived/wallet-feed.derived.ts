@@ -1,9 +1,9 @@
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { markets } from '$lib/derived/markets.derived';
-import { tradeHistory } from '$lib/derived/trade-history.derived';
-import type { MarketId } from '$lib/types/market';
-import type { Transaction } from '$lib/types/wallet';
-import { mapClearingEventToTransaction } from '$lib/utils/transactions.utils';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { markets } from '#lib/derived/markets.derived.ts';
+import { tradeHistory } from '#lib/derived/trade-history.derived.ts';
+import type { MarketId } from '#lib/types/market.ts';
+import type { Transaction } from '#lib/types/wallet.ts';
+import { mapClearingEventToTransaction } from '#lib/utils/transactions.utils.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**

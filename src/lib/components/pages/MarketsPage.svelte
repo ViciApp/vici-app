@@ -1,30 +1,30 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import MarketsBeyondCupCard from '$lib/components/market/MarketsBeyondCupCard.svelte';
-	import MarketsCarousel from '$lib/components/market/MarketsCarousel.svelte';
-	import MarketsCategoryChips from '$lib/components/market/MarketsCategoryChips.svelte';
-	import MarketsListRow from '$lib/components/market/MarketsListRow.svelte';
-	import WorldCupRecapCard from '$lib/components/market/WorldCupRecapCard.svelte';
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
+	import MarketsBeyondCupCard from '#lib/components/market/MarketsBeyondCupCard.svelte';
+	import MarketsCarousel from '#lib/components/market/MarketsCarousel.svelte';
+	import MarketsCategoryChips from '#lib/components/market/MarketsCategoryChips.svelte';
+	import MarketsListRow from '#lib/components/market/MarketsListRow.svelte';
+	import WorldCupRecapCard from '#lib/components/market/WorldCupRecapCard.svelte';
+	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 	import {
 		classificationMacros,
 		classificationMicros,
 		primaryMicro,
 		type MacroId,
 		type MicroId
-	} from '$lib/constants/market-taxonomy.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { marketTags, marketTagsNotInitialized } from '$lib/derived/market-tags.derived';
-	import { markets, marketsNotInitialized } from '$lib/derived/markets.derived';
-	import { minuteTick_ms } from '$lib/derived/time.derived';
-	import { worldCupPhase } from '$lib/derived/world-cup.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { hydrate as hydrateMarketTranslations } from '$lib/stores/market-translations.store';
-	import { preferencesStore } from '$lib/stores/preferences.store';
-	import type { Market } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import { filterScheduledWcMarkets } from '$lib/utils/wc-schedule.utils';
+	} from '#lib/constants/market-taxonomy.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { marketTags, marketTagsNotInitialized } from '#lib/derived/market-tags.derived.ts';
+	import { markets, marketsNotInitialized } from '#lib/derived/markets.derived.ts';
+	import { minuteTick_ms } from '#lib/derived/time.derived.ts';
+	import { worldCupPhase } from '#lib/derived/world-cup.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { hydrate as hydrateMarketTranslations } from '#lib/stores/market-translations.store.ts';
+	import { preferencesStore } from '#lib/stores/preferences.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
+	import { filterScheduledWcMarkets } from '#lib/utils/wc-schedule.utils.ts';
 
 	/**
 	 * Markets screen — a section-based board with a category browse nav. The

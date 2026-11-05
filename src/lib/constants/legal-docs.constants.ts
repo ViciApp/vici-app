@@ -1,5 +1,5 @@
-import { INFO_EMAIL } from '$lib/constants/contact.constants';
-import type { InfoDoc } from '$lib/types/info-doc';
+import { INFO_EMAIL } from '#lib/constants/contact.constants.ts';
+import type { InfoDoc } from '#lib/types/info-doc.ts';
 
 /**
  * Full controlling legal documents — Terms of Service (Privacy and the

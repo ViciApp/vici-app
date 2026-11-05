@@ -1,22 +1,25 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import MetadataEventsTab from '$lib/components/market/metadata/MetadataEventsTab.svelte';
-	import MetadataShowcaseTab from '$lib/components/market/metadata/MetadataShowcaseTab.svelte';
-	import MetadataTranslationsTab from '$lib/components/market/metadata/MetadataTranslationsTab.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import Card from '$lib/components/ui/Card.svelte';
-	import Tabs from '$lib/components/ui/Tabs.svelte';
-	import { normalizeStoredTags } from '$lib/constants/market-taxonomy.constants';
-	import { userIsAdmin } from '$lib/derived/user.derived';
-	import { MarketEventDirection, MarketWhyNowKind } from '$lib/enums/market-metadata';
-	import { getMarketMetadata, upsertMarketMetadata } from '$lib/services/market-metadata.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import type { Market } from '$lib/types/market';
-	import type { MarketEvent, MarketMetadataInput } from '$lib/types/market-metadata';
-	import { t } from '$lib/utils/i18n.utils';
-	import { refreshMarketMetadata, refreshMarketTags } from '$lib/utils/refresh.utils';
+	import MetadataEventsTab from '#lib/components/market/metadata/MetadataEventsTab.svelte';
+	import MetadataShowcaseTab from '#lib/components/market/metadata/MetadataShowcaseTab.svelte';
+	import MetadataTranslationsTab from '#lib/components/market/metadata/MetadataTranslationsTab.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
+	import Tabs from '#lib/components/ui/Tabs.svelte';
+	import { normalizeStoredTags } from '#lib/constants/market-taxonomy.constants.ts';
+	import { userIsAdmin } from '#lib/derived/user.derived.ts';
+	import { MarketEventDirection, MarketWhyNowKind } from '#lib/enums/market-metadata.ts';
+	import {
+		getMarketMetadata,
+		upsertMarketMetadata
+	} from '#lib/services/market-metadata.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import type { MarketEvent, MarketMetadataInput } from '#lib/types/market-metadata.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { refreshMarketMetadata, refreshMarketTags } from '#lib/utils/refresh.utils.ts';
 
 	interface Props {
 		market: Market;

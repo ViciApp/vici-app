@@ -2,13 +2,13 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { ChevronRight, Mail } from '@lucide/svelte';
 	import { onMount } from 'svelte';
-	import IconApple from '$lib/components/icons/IconApple.svelte';
-	import IconGoogle from '$lib/components/icons/IconGoogle.svelte';
-	import IconPasskey from '$lib/components/icons/IconPasskey.svelte';
-	import { LEGACY_APP_URL } from '$lib/constants/claim.constants';
-	import { track } from '$lib/services/analytics.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import IconApple from '#lib/components/icons/IconApple.svelte';
+	import IconGoogle from '#lib/components/icons/IconGoogle.svelte';
+	import IconPasskey from '#lib/components/icons/IconPasskey.svelte';
+	import { LEGACY_APP_URL } from '#lib/constants/claim.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import {
 		getProviders,
 		googleSignInUrl,
@@ -16,8 +16,8 @@
 		verifyOtp,
 		Web2ApiError,
 		type Web2Providers
-	} from '$lib/web2/client';
-	import { adoptWeb2Session } from '$lib/web2/session';
+	} from '#lib/web2/client.ts';
+	import { adoptWeb2Session } from '#lib/web2/session.ts';
 
 	interface Props {
 		onSuccess?: () => void;

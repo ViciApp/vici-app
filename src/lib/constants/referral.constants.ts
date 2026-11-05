@@ -1,6 +1,6 @@
-import { ZERO } from '$lib/constants/app.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { parseToken } from '$lib/utils/parse.utils';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { parseToken } from '#lib/utils/parse.utils.ts';
 
 /**
  * One-time VXP bonus awarded to the **referee** (the new user redeeming a code). Flat and

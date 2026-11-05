@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { Bell } from '@lucide/svelte/icons';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { combinedInboxUnreadCount } from '#lib/stores/inbox.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { combinedInboxUnreadCount } from '$lib/stores/inbox.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	/**
 	 * NotifBell — bell button + unread red-dot badge. Drop into any header;
@@ -34,7 +34,7 @@
 	const badge = $derived(count > 9 ? '9+' : String(count));
 
 	const openNotifications = () => {
-		void goto(resolve(AppPath.Notifications));
+		void goto(resolveAppPath(AppPath.Notifications));
 	};
 </script>
 

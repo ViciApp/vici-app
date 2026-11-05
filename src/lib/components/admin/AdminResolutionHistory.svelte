@@ -1,10 +1,10 @@
 <script lang="ts">
-	import OutcomeBadge from '$lib/components/market/OutcomeBadge.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
+	import OutcomeBadge from '#lib/components/market/OutcomeBadge.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		markets: Market[];

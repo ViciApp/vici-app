@@ -1,12 +1,12 @@
-import { browser } from '$app/environment';
-import { MACRO_IDS } from '$lib/constants/market-taxonomy.constants';
-import { PREFERENCES_STORAGE_KEY } from '$lib/constants/settings.constants';
-import { authPrincipal } from '$lib/derived/user.derived';
-import { track } from '$lib/services/analytics.services';
-import { persistPreferences } from '$lib/services/profile.services';
-import { userStore } from '$lib/stores/user.store';
-import type { SettingsVisibility, SharingPrefs, UserPreferences } from '$lib/types/preferences';
-import { visibilityFromProfile } from '$lib/utils/visibility.utils';
+import { MACRO_IDS } from '#lib/constants/market-taxonomy.constants.ts';
+import { PREFERENCES_STORAGE_KEY } from '#lib/constants/settings.constants.ts';
+import { authPrincipal } from '#lib/derived/user.derived.ts';
+import { track } from '#lib/services/analytics.services.ts';
+import { persistPreferences } from '#lib/services/profile.services.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import type { SettingsVisibility, SharingPrefs, UserPreferences } from '#lib/types/preferences.ts';
+import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { get, writable } from 'svelte/store';
 
@@ -136,10 +136,7 @@ const hydrateShape = ({
 		flow: partial?.defaultAmount?.flow ?? DEFAULT_PREFERENCES.defaultAmount.flow,
 		manual: partial?.defaultAmount?.manual ?? DEFAULT_PREFERENCES.defaultAmount.manual
 	},
-	notify: {
-		...DEFAULT_PREFERENCES.notify,
-		...(partial?.notify ?? {})
-	},
+	notify: { ...DEFAULT_PREFERENCES.notify, ...(partial?.notify ?? {}) },
 	flowSessionLength: coerceFlowSessionLength(partial?.flowSessionLength),
 	hapticsEnabled: partial?.hapticsEnabled ?? DEFAULT_PREFERENCES.hapticsEnabled,
 	soundEnabled: partial?.soundEnabled ?? DEFAULT_PREFERENCES.soundEnabled,
@@ -368,7 +365,9 @@ if (browser) {
 						...fromProfile.sharing,
 						...legacy.sharing,
 						...(typeof legacyCallsPublic === 'boolean'
-							? { callsPublic: legacy.sharing?.callsPublic ?? legacyCallsPublic }
+							? {
+									callsPublic: legacy.sharing?.callsPublic ?? legacyCallsPublic
+								}
 							: {})
 					}
 				};
@@ -430,9 +429,13 @@ export const toggleSavedMarket = ({ marketId }: { marketId: string }): void => {
 	preferencesStore.update((current) => {
 		const ids = current.savedMarketIds;
 		const removing = ids.includes(marketId);
+
 		const next = removing ? ids.filter((id) => id !== marketId) : [...ids, marketId];
 
-		track({ name: removing ? 'watchlist_removed' : 'watchlist_added', marketId });
+		track({
+			name: removing ? 'watchlist_removed' : 'watchlist_added',
+			marketId
+		});
 
 		return { ...current, savedMarketIds: next };
 	});

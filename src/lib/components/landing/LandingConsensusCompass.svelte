@@ -4,8 +4,8 @@
 	 * 50/50, down at strong NO. Used inside the FlowCard header when
 	 * the market isn't a contrarian / Trickster call.
 	 */
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		yes: number;

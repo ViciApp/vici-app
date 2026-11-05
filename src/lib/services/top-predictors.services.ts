@@ -1,8 +1,8 @@
+import { aggregateLean as aggregateLeanApi } from '#lib/api/clearing.api.ts';
+import { getIdentityOrAnonymous } from '#lib/services/identity.services.ts';
+import type { TopPredictorSignal } from '#lib/types/market-signals.ts';
+import type { MarketId } from '#lib/types/market.ts';
 import type { ClearingDid } from '$declarations';
-import { aggregateLean as aggregateLeanApi } from '$lib/api/clearing.api';
-import { getIdentityOrAnonymous } from '$lib/services/identity.services';
-import type { MarketId } from '$lib/types/market';
-import type { TopPredictorSignal } from '$lib/types/market-signals';
 import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { PrincipalText } from '@junobuild/schema';

@@ -1,10 +1,10 @@
-import { browser } from '$app/environment';
+import { SIGNED_IN_FLAG_KEY } from '#lib/constants/app.constants.ts';
+import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+import { PublicPath } from '#lib/constants/routes.constants.ts';
+import { LEAGUE_INVITE_CODE_REGEX } from '#lib/types/league.ts';
+import { stashLeagueInviteForSignup } from '#lib/utils/pending-onboarding.utils.ts';
+import { browser } from '$app/env';
 import { resolve } from '$app/paths';
-import { SIGNED_IN_FLAG_KEY } from '$lib/constants/app.constants';
-import { REFERRAL_CODE_REGEX } from '$lib/constants/referral.constants';
-import { PublicPath } from '$lib/constants/routes.constants';
-import { LEAGUE_INVITE_CODE_REGEX } from '$lib/types/league';
-import { stashLeagueInviteForSignup } from '$lib/utils/pending-onboarding.utils';
 import { nonNullish } from '@dfinity/utils';
 import { redirect, type LoadEvent } from '@sveltejs/kit';
 

@@ -1,13 +1,13 @@
-import { SUPPORTED_TOKENS } from '$lib/constants/tokens/tokens.ic.constants';
-import { balanceDomain } from '$lib/derived/balance-domain.derived';
-import { collateralsStore } from '$lib/stores/collaterals.store';
-import type { Token } from '$lib/types/token';
-import { findCollateralInfoByIcrcLedger } from '$lib/utils/asset-ref.utils';
-import { compareBalanceDomains } from '$lib/utils/balance-domain.utils';
+import { SUPPORTED_TOKENS } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+import { collateralsStore } from '#lib/stores/collaterals.store.ts';
+import type { Token } from '#lib/types/token.ts';
+import { findCollateralInfoByIcrcLedger } from '#lib/utils/asset-ref.utils.ts';
+import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
 import {
 	filterTokensForBalanceDomain,
 	walletLedgerDisplayFallbackTokens
-} from '$lib/utils/playground-token.utils';
+} from '#lib/utils/playground-token.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import { derived, type Readable } from 'svelte/store';
 

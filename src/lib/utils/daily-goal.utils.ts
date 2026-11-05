@@ -1,5 +1,9 @@
-import { del as storageDel, get as storageGet, set as storageSet } from '$lib/utils/storage.utils';
-import { todayKey } from '$lib/utils/streak.utils';
+import {
+	del as storageDel,
+	get as storageGet,
+	set as storageSet
+} from '#lib/utils/storage.utils.ts';
+import { todayKey } from '#lib/utils/streak.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 
 // Standard daily target — predictions a user commits to making in a day.

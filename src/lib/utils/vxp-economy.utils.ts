@@ -3,7 +3,7 @@ import {
 	VXP_P_WIN_FLOOR,
 	VXP_STAKE_LADDER,
 	type VxpStake
-} from '$lib/constants/vxp-economy.constants';
+} from '#lib/constants/vxp-economy.constants.ts';
 
 /**
  * Compute the *net* VXP a user would gain on a winning call.

@@ -1,4 +1,4 @@
-import type { Activity } from '$lib/types/social';
+import type { Activity } from '#lib/types/social.ts';
 import { writable } from 'svelte/store';
 
 /**

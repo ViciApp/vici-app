@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
+	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		market: Market;

@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { Check, ChevronDown, Globe, Search } from '@lucide/svelte/icons';
-	import CountryFlag from '$lib/components/ui/CountryFlag.svelte';
+	import CountryFlag from '#lib/components/ui/CountryFlag.svelte';
 	import {
 		LOCALE_REGISTRY,
 		localeLanguageGroups,
 		type AppLocale,
 		type LocaleEntry
-	} from '$lib/constants/locale.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/constants/locale.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Two-axis (Language ▸ Region) locale picker — the shared inner content

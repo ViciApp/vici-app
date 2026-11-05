@@ -1,9 +1,9 @@
+import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
+import { getMarketsLite } from '#lib/services/market.services.ts';
+import { getSettledSeriesIds } from '#lib/services/resolution.services.ts';
+import type { CalibrationCard } from '#lib/types/calibration.ts';
+import type { Market } from '#lib/types/market.ts';
 import type { RegistryDid } from '$declarations';
-import { VICI_ENGINE_ID } from '$lib/constants/icdc.constants';
-import { getMarketsLite } from '$lib/services/market.services';
-import { getSettledSeriesIds } from '$lib/services/resolution.services';
-import type { CalibrationCard } from '$lib/types/calibration';
-import type { Market } from '$lib/types/market';
 
 /**
  * Builds the Calibration practice deck: finalised Vici-engine binary

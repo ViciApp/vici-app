@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { onDestroy, onMount } from 'svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { CallSide } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { CallSide } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * XpToast — the commit pop. A swipe PLACES a call; it doesn't win one,

@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import Modal from '$lib/components/ui/Modal.svelte';
-	import { transferLeagueOwnership } from '$lib/services/leagues.services';
-	import { loadProfilesByPrincipals } from '$lib/services/profile.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import type { LeagueMemberDoc } from '$lib/types/league-member';
-	import { shortenPrincipal } from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import Modal from '#lib/components/ui/Modal.svelte';
+	import { transferLeagueOwnership } from '#lib/services/leagues.services.ts';
+	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+	import { shortenPrincipal } from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		isOpen: boolean;

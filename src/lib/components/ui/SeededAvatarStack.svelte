@@ -13,7 +13,7 @@
 	 * different spread.
 	 */
 
-	import ViciAvatar from '$lib/components/ui/ViciAvatar.svelte';
+	import ViciAvatar from '#lib/components/ui/ViciAvatar.svelte';
 
 	interface Props {
 		/** Seed strings — one per avatar. Order is preserved. */

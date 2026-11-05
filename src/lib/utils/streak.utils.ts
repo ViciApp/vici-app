@@ -1,4 +1,4 @@
-import type { MessageKey } from '$lib/utils/i18n.utils';
+import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 import { isNullish } from '@dfinity/utils';
 
 export type FlameStage = 'spark' | 'ember' | 'flame' | 'blaze' | 'inferno';

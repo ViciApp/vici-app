@@ -13,7 +13,7 @@
 // entry — returns `null`, so the existing generic fallback is preserved
 // unchanged (no regression). Pure string logic, no DOM / I/O.
 
-import { WC_NATION_KITS, type WCKit } from '$lib/constants/flow-art-wc.constants';
+import { WC_NATION_KITS, type WCKit } from '#lib/constants/flow-art-wc.constants.ts';
 
 // Template ids the WC renderer knows how to draw. Kept a string union
 // so the renderer's dispatch is exhaustive at the type level. The first

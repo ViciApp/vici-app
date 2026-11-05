@@ -2,37 +2,37 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onAuthStateChange, signOut, type User } from '@junobuild/core';
 	import { onMount, type Snippet } from 'svelte';
-	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import MovedToNewApp from '$lib/components/authn/MovedToNewApp.svelte';
-	import { SIGNED_IN_FLAG_KEY } from '$lib/constants/app.constants';
-	import { NEW_ACCOUNT_MOVED_SESSION_KEY } from '$lib/constants/claim.constants';
-	import { PublicPath } from '$lib/constants/routes.constants';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
-	import { trackLoginSyncSettled } from '$lib/dev/e2e-reset';
-	import { reconcileIdentityScopedStorage } from '$lib/services/identity-storage.services';
-	import { safeGetIdentityOnce } from '$lib/services/identity.services';
+	import MovedToNewApp from '#lib/components/authn/MovedToNewApp.svelte';
+	import { SIGNED_IN_FLAG_KEY } from '#lib/constants/app.constants.ts';
+	import { NEW_ACCOUNT_MOVED_SESSION_KEY } from '#lib/constants/claim.constants.ts';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+	import { trackLoginSyncSettled } from '#lib/dev/e2e-reset.ts';
+	import { reconcileIdentityScopedStorage } from '#lib/services/identity-storage.services.ts';
+	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 	import {
 		ensureProfile,
 		calculateAndSyncStats,
 		forgetBootstrappedThisSession,
 		loadWeb2ProfileShell
-	} from '$lib/services/profile.services';
-	import { receivedReactionsStore } from '$lib/stores/activity-reactions.store';
-	import { clearAffiliations } from '$lib/stores/affiliations.store';
-	import { followingStore } from '$lib/stores/following.store';
-	import { clearFriendRelations } from '$lib/stores/friends.store';
-	import { clearLeagues } from '$lib/stores/leagues.store';
-	import { clearMyMenagerieSignals } from '$lib/stores/menagerie.store';
-	import { positionsStore } from '$lib/stores/positions.store';
-	import { setCachedProfile } from '$lib/stores/profiles.store';
-	import { clearMyReferrals } from '$lib/stores/referrals.store';
-	import { tradeHistoryStore } from '$lib/stores/trade-history.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { isWeb2Backend } from '$lib/web2/backend-mode';
-	import type { Web2Me } from '$lib/web2/client';
-	import { loadWeb2Session, web2SessionStore } from '$lib/web2/session';
+	} from '#lib/services/profile.services.ts';
+	import { receivedReactionsStore } from '#lib/stores/activity-reactions.store.ts';
+	import { clearAffiliations } from '#lib/stores/affiliations.store.ts';
+	import { followingStore } from '#lib/stores/following.store.ts';
+	import { clearFriendRelations } from '#lib/stores/friends.store.ts';
+	import { clearLeagues } from '#lib/stores/leagues.store.ts';
+	import { clearMyMenagerieSignals } from '#lib/stores/menagerie.store.ts';
+	import { positionsStore } from '#lib/stores/positions.store.ts';
+	import { setCachedProfile } from '#lib/stores/profiles.store.ts';
+	import { clearMyReferrals } from '#lib/stores/referrals.store.ts';
+	import { tradeHistoryStore } from '#lib/stores/trade-history.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+	import type { Web2Me } from '#lib/web2/client.ts';
+	import { loadWeb2Session, web2SessionStore } from '#lib/web2/session.ts';
+	import { browser } from '$app/env';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	/**
 	 * Write (or clear) the `SIGNED_IN_FLAG_KEY` hint that this device has an

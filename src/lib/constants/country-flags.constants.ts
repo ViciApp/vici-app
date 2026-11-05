@@ -2,7 +2,7 @@
  * Country flag asset map — keyed by upper-case ISO-3166 alpha-2 codes.
  *
  * Source: lipis/flag-icons 4x3 set (v7.5.0), mirrored under
- * [`$lib/assets/flags/`](../assets/flags/). Each filename is the
+ * [`#lib/assets/flags/`](../assets/flags/). Each filename is the
  * lower-case ISO-2 code (e.g. `ar.svg`, `gb.svg`).
  *
  * Vite emits each SVG as its own static asset (via `import.meta.glob`

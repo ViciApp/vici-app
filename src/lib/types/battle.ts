@@ -25,9 +25,9 @@
  * hand-crafted write cannot post a false score.
  */
 
-import { DAY_IN_MS } from '$lib/constants/app.constants';
-import { MACRO_IDS, type MacroId } from '$lib/constants/market-taxonomy.constants';
-import type { CategoryStatsBucket } from '$lib/types/user-stats';
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+import { MACRO_IDS, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
+import type { CategoryStatsBucket } from '#lib/types/user-stats.ts';
 
 export type BattleKind = 'league' | 'duel';
 
