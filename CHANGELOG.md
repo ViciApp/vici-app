@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.8.52](https://github.com/ViciApp/vici-app/compare/v1.8.51...v1.8.52) (2026-11-05)
+
+
+### Miscellaneous Chores
+
+* **backend:** bump [@noble](https://github.com/noble) and [@scure](https://github.com/scure) to v2 ([#1440](https://github.com/ViciApp/vici-app/issues/1440)) ([3c3ff87](https://github.com/ViciApp/vici-app/commit/3c3ff875266fdcd4d75139a645f1ab361c8341a7))
+* **backend:** bump TypeScript to 6 ([#1441](https://github.com/ViciApp/vici-app/issues/1441)) ([be33bf0](https://github.com/ViciApp/vici-app/commit/be33bf0b771f48f812919d039077f1cfb671f052))
+* **ci:** move to Node 26 ([#1438](https://github.com/ViciApp/vici-app/issues/1438)) ([0302e84](https://github.com/ViciApp/vici-app/commit/0302e842229da8c38e63597b2cec098a3a3477f7))
+* **frontend:** migrate to SvelteKit 3 ([#1437](https://github.com/ViciApp/vici-app/issues/1437)) ([df880ed](https://github.com/ViciApp/vici-app/commit/df880ed935e6920804f8292bda485d64b23781f6))
+
+
+### Code Refactoring
+
+* **frontend:** replace config aliases with subpath imports ([#1439](https://github.com/ViciApp/vici-app/issues/1439)) ([21178e2](https://github.com/ViciApp/vici-app/commit/21178e217a616bb8afba5c2e9fefe644c58acd8c))
+
+
+### Continuous Integration
+
+* **workflows:** pass client-id to create-github-app-token ([#1435](https://github.com/ViciApp/vici-app/issues/1435)) ([74a2910](https://github.com/ViciApp/vici-app/commit/74a2910609c64aba60abae8e9858d8a29454e20f))
+
 ## [1.8.51](https://github.com/ViciApp/vici-app/compare/v1.8.50...v1.8.51) (2026-11-02)
 
 
