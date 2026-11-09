@@ -70,23 +70,22 @@ Rules:
 - **No filler.** Drop openers like "This PR…" / "In this change…" — start with the substance.
 - **Tests are concrete.** Name the commands run and their outcome, the tests added, the manual steps taken. "Tests pass" alone says nothing.
 - **Do not hard-wrap lines.** Write one line per paragraph or list item and let the GitHub renderer wrap. Hard-wrapping at ~80 columns (a default many models fall back to) breaks rendering inside lists, blockquotes, and tables, and makes later edits in the GitHub UI ugly. This applies to the PR body only — source files still follow `.prettierrc`.
-- **Atomicity statement** if the PR touches more than one logical thing — add a one-liner explaining why they belong together. If you can't, split.
+- **One purpose.** The title names it in one line; a title that needs an "and" is two PRs (see [§ 3](#3-scope-and-parallel-prs)).
 - **Mention `docs/ai/` updates** under `# Changes` whenever the [meta-update rule](./governance.md#meta-update-rule) fired.
 - **Screenshots are welcome** for visual changes — link them; don't paste giant base64 in the body.
 - **For interface-breaking changes** (satellite `.did`, `juno.config.ts` collections), include a `BREAKING CHANGE:` block in `# Changes` listing what callers / data has to do to migrate.
 - **For changes that depend on `../icdc-core/`** (e.g. you regenerated Candid bindings against a new icdc-core version), call out the upstream PR / commit in `# Motivation` so reviewers can sequence the deploy.
 
-## 3. Atomicity
+## 3. Scope and parallel PRs
 
-One logical change per PR. If you catch yourself writing
-"and also" / "while I was here" / "I noticed that" in the body, split.
+One purpose per PR, whatever its size ([rule 2](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#2-scoped)), and PRs side by side from `main`, stacked only when one needs the other's code ([rule 3](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#3-parallel-not-stacked)). How that splits the usual Vici changes:
 
-| Anti-pattern                                | Do this instead                                                                |
-| ------------------------------------------- | ------------------------------------------------------------------------------ |
-| "Add feature X and rename old component"    | PR 1: `refactor: rename`. PR 2: `feat: X`.                                     |
-| "Fix bug Y and update unrelated typography" | Two PRs.                                                                       |
-| "Refactor 5 components into shared `Foo`"   | PR 1: introduce `Foo` + migrate 1 caller. PR 2..N: migrate the others.         |
-| "New satellite endpoint + add it to the FE" | Usually two PRs (satellite first, FE second). One only if both are very small. |
+| Change                                      | Split                                                                                                                         |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| "Add feature X and rename old component"    | `refactor: rename` and `feat: X`, both from `main` in parallel; the rename lands first only if X needs it.                    |
+| "Fix bug Y and update unrelated typography" | Two PRs from `main`, in parallel.                                                                                             |
+| "Refactor 5 components into shared `Foo`"   | One PR: the purpose is "consolidate into `Foo`", whatever the number of callers.                                              |
+| "New satellite endpoint + add it to the FE" | Two PRs: the satellite endpoint, then the FE that calls it. The FE needs the endpoint deployed, so this is a justified stack. |
 
 ## 4. Local quality gates
 

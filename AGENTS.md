@@ -39,7 +39,7 @@ The full gate matrix is [`pr-and-ci.md` § 4](./docs/ai/pr-and-ci.md#4-local-qua
 
 ## 3. The universal standard
 
-The rules every repository shares (idiomatic, atomic, small, reuse before you write, one value one place, typed, structure, no smells, tests, CI, no overengineering, docs adapt, writing) live in **one place only**: [Officina `standards/code.md`](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md). Read it; it is not repeated here. This file and `docs/ai/**` only add what is specific to Vici.
+The rules every repository shares live in **one place only**: [Officina `standards/code.md`](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md). Read it; it is not repeated here. This file and `docs/ai/**` only add what is specific to Vici.
 
 ## 4. Vici-specific rules
 

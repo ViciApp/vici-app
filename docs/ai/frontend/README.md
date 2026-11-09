@@ -8,7 +8,8 @@ it once per session.
 
 ## Vici-specific things to check (every change)
 
-Generic agent hygiene (read first, run lint/check, atomic PRs) is in
+Generic agent hygiene (read first, run lint/check,
+[scoped PRs](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#2-scoped)) is in
 [`AGENTS.md`](../../../AGENTS.md) and [`pr-and-ci.md`](../pr-and-ci.md).
 What is specific to Vici:
 

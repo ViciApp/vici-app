@@ -12,7 +12,7 @@
 2. **Reuse if it fits.** Even at 80% — extend it if needed, with props.
 3. **Extract if it doesn't.** If two places now do similar things, extract
    to one of the catalog locations below and update both call sites in
-   the same PR (still atomic — one logical change: "consolidate X").
+   the same PR (still [scoped](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#2-scoped): one purpose, "consolidate X").
 4. **Add a row here.** Don't make the next agent re-discover it.
 
 ## Where reusable things live

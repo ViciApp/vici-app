@@ -4,14 +4,14 @@ The long-form pages behind [`AGENTS.md`](../../AGENTS.md). Do not read everythin
 
 ## Cross-cutting
 
-| Page                                                                           | What it holds                                                                    |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| [`governance.md`](./governance.md)                                             | Truth hierarchy, protected paths, what needs asking, the meta-update map         |
-| [`pr-and-ci.md`](./pr-and-ci.md)                                               | PR title and body, atomicity, local gates, CI jobs, cross-repo changes, comments |
-| [`PRODUCT.md`](./PRODUCT.md)                                                   | Shipped product behaviour; updated in the same PR as a behaviour change          |
-| [`economy.md`](./economy.md)                                                   | VXP economy rules (they drive the code)                                          |
-| [`officina.md`](./officina.md)                                                 | How the agent workshop runs work here (config: `.github/officina.yml`)           |
-| [`spec-driven-development/workflow.md`](./spec-driven-development/workflow.md) | The opt-in spec-first workflow; `specs/` holds the decision records              |
+| Page                                                                           | What it holds                                                                |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| [`governance.md`](./governance.md)                                             | Truth hierarchy, protected paths, what needs asking, the meta-update map     |
+| [`pr-and-ci.md`](./pr-and-ci.md)                                               | PR title and body, scope, local gates, CI jobs, cross-repo changes, comments |
+| [`PRODUCT.md`](./PRODUCT.md)                                                   | Shipped product behaviour; updated in the same PR as a behaviour change      |
+| [`economy.md`](./economy.md)                                                   | VXP economy rules (they drive the code)                                      |
+| [`officina.md`](./officina.md)                                                 | How the agent workshop runs work here (config: `.github/officina.yml`)       |
+| [`spec-driven-development/workflow.md`](./spec-driven-development/workflow.md) | The opt-in spec-first workflow; `specs/` holds the decision records          |
 
 ## Areas
 
