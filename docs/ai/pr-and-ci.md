@@ -122,6 +122,24 @@ fixes back to your branch on PRs from non-forks (and opens a `bot-format` PR if
 `main` itself drifts); you should still run `npm run format` locally to keep
 diffs reviewable.
 
+### Size and shape limits (ratchet)
+
+`npm run lint` enforces `complexity` 15, `max-depth` 4, `max-params` 4,
+`max-nested-callbacks` 4 and `max-lines` 500 (blank lines and comments not
+counted; locale catalogs exempt) on every linted file, frontend, satellite
+and API alike. The code that already broke them is listed in
+[`eslint-suppressions.json`](../../eslint-suppressions.json), which ESLint
+reads on its own:
+
+- **New code meets the limits.** A new violation, or one more in a file that
+  already has some, fails lint. Split the function or the file; do not raise
+  a limit or add an entry.
+- **Never hand-edit the suppressions file.** It is generated.
+- **Fixed one? Prune it.** When a change brings a suppressed file under a
+  limit, ESLint fails on the now-unused entry: run
+  `npx eslint . --prune-suppressions` and commit the smaller file. The list
+  can only shrink.
+
 ## 5. CI jobs you must keep green
 
 | Workflow                  | Job(s)             | What it runs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |

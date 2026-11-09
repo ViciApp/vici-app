@@ -80,6 +80,7 @@ them without an explicit ask in the user prompt.
 | `src/satellite/api-schemas.ts`                                         | Generated schema bindings used by `defineQuery` / `defineUpdate`.                 | —                |
 | `src/declarations/**`                                                  | **Generated** by `npm run did` from upstream `.did` files.                        | —                |
 | `eslint.config.js`, `.prettierrc`, `tsconfig*.json`                    | Lint / format / TS policy.                                                        | repo maintainers |
+| `eslint-suppressions.json`                                             | Generated lint baseline. Only ever shrinks, via `--prune-suppressions`.           | repo maintainers |
 | `scripts/build/**`, `scripts/lib/**`, `scripts/init/**`                | Reproducible-build + bootstrap pipeline. Touch only when prompted.                | repo maintainers |
 | `scripts/*`, `scripts/test/**`                                         | Deploy canisters, move tokens, act as the dfx identity, gate CI or releases.      | repo maintainers |
 | `backend/package.json`, `backend/bun.lock`                             | Backend dependencies. Same approval as the root ones.                             | repo maintainers |
