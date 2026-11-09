@@ -49,8 +49,8 @@ Non-obvious points the codebase will not tell you:
   [`package.json`](../../../package.json) `imports`.
 - `0n` and `return undefined;` are eslint-flagged — use `ZERO` from
   `#lib/constants/app.constants` and bare `return;`.
-- No test runner is wired yet — when the first Vitest spec lands,
-  [`testing.md`](./testing.md) becomes the contract.
+- Pure-logic specs run on Node's built-in runner (`npm test`); there is no
+  component-test runner yet. [`testing.md`](./testing.md) is the contract.
 - The crawler-facing surface (sitemap + per-market meta pages) is generated
   at deploy time, not at runtime — see [`seo.md`](./seo.md) before touching
   `src/app.html` head tags, `robots.txt`, or the hosting `predeploy` chain.

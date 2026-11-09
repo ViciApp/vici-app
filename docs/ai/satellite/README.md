@@ -51,7 +51,7 @@ What is specific to the satellite:
 
 ## Non-obvious satellite gotchas
 
-The stack is `src/satellite/package.json` and the layout is `ls src/satellite/`.
+The satellite has no `package.json` of its own: its dependencies are in the root [`package.json`](../../../package.json), and the layout is `ls src/satellite/`.
 What the code will not tell you:
 
 - **`@junobuild/core` is FE-only.** Never import it from the satellite —

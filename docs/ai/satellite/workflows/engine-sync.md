@@ -10,7 +10,7 @@ mirrors that into `grant_engine_role` / `revoke_engine_role` /
 `manage_oracle_principals` calls on the Vici engine.
 
 > **Architecture & rationale:**
-> [`docs/engine-integration.md`](../../engine-integration.md) — read this
+> [`docs/engine-integration.md`](../../../engine-integration.md) — read this
 > first if you haven't seen the engine model.
 
 ## Decide whether you really need a hook
@@ -53,7 +53,7 @@ many places (admin UI, scripts, future integrations).
    state that may not exist yet (oracle not bootstrapped, engine not
    registered), log a stable skip tag and return — don't fail the hook.
    `engine-sync.services.ts` uses
-   `engine_sync_skipped_missing_oracle` for this. Operators can replay
+   `oracle_settler_skipped_missing_oracle` for this. Operators can replay
    the write later (see
    [`icdc-engine-operations.md`](../../../../.agents/workflows/icdc-engine-operations.md)).
 
@@ -83,7 +83,7 @@ many places (admin UI, scripts, future integrations).
    [`.agents/workflows/icdc-engine-reset.md`](../../../../.agents/workflows/icdc-engine-reset.md).
 
 8. **Document the mapping.** Update
-   [`docs/engine-integration.md`](../../engine-integration.md#role-mapping)
+   [`docs/engine-integration.md`](../../../engine-integration.md#role-mapping)
    if the role / engine-role mapping changes. Mention what callers /
    data has to do to migrate if the change is breaking.
 

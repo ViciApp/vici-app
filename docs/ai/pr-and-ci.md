@@ -114,6 +114,10 @@ npm run juno:functions:build && npm run quality
 
 # Engine sanity (after re-init or refactors that touch engine wiring)
 npm run test:engine-sync
+
+# Web2 API: whenever you touch backend/** or a mirrored app constant
+# (backend/tests/shared-drift/ reads app files). Needs Postgres up.
+(cd backend && docker compose up -d && bun run typecheck && bun test)
 ```
 
 The CI workflow [`.github/workflows/checks.yml`](../../.github/workflows/checks.yml)
@@ -236,7 +240,7 @@ The queue is **not enabled** on `main` today, so these legs are dormant. Switchi
     against `null`/`undefined`) → `isNullish(x)` / `nonNullish(x)` from
     `@dfinity/utils`.
   - Relative imports under `src/**` → use the path aliases (see
-    [`frontend/structure.md`](./frontend/structure.md#imports)).
+    [`frontend/structure.md`](./frontend/structure.md#imports--aliases-only)).
 - **`check` failed** → fix `svelte-check` errors. No `// @ts-ignore`,
   no `as any`, no `as unknown as …`.
 - **`checks-pass` red but children green** → the aggregator has a stale
@@ -333,7 +337,7 @@ Never write:
   PR-conversation addressed to the reviewer; it is noise the moment
   the PR merges. Put it in the PR body instead.
 - **Source references** — where behaviour was ported or copied from
-  (see [commandment 5](../../AGENTS.md#2-project-specific-commandments)).
+  (see [rule 6](../../AGENTS.md#4-vici-specific-rules)).
 
 If the code needs narration to be understandable, fix the code — a
 better name, a smaller function, an extracted constant — instead of

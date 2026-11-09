@@ -16,7 +16,8 @@ Skip it for small changes (typo, one-liner): implement directly.
   spec: [`AGENTS.md`](../../../AGENTS.md), then the area README
   ([frontend](../frontend/README.md) /
   [satellite](../satellite/README.md) /
-  [backend](../backend/README.md)). A spec never overrides
+  [API](../backend/README.md) /
+  [engine](../engine/README.md)). A spec never overrides
   `docs/ai/**` — it sits below it in the
   [truth hierarchy](../governance.md#truth-hierarchy).
 - **Ground specs in real code.** Reference actual file paths,

@@ -1,183 +1,91 @@
 # AGENTS.md
 
-Canonical entry point for **all** AI coding agents working in this repository
-(Claude Code, Cursor, OpenAI Codex / GPT, Aider, GitHub Copilot, Continue,
-opencode, …). If your tool reads `AGENTS.md` automatically, this is the right
-file. If it doesn't, point it here.
-
-> **Read this first. Always.** It is short on purpose. Everything deeper lives
-> under [`docs/ai/`](./docs/ai/) and is linked below.
-
----
+Canonical entry point for **all** AI coding agents working in this repository (Claude Code, Cursor, Codex, Copilot, Aider, opencode, ...). Read it first, always. It is short on purpose: everything deeper lives under [`docs/ai/`](./docs/ai/README.md).
 
 ## 1. What this repo is
 
-Vici is a prediction-market platform on the Internet Computer. The repo is
-multi-stack but **frontend-heavy**. The on-chain risk engine lives in a
-separate repo ([`icdc-core`](https://github.com/AntonioVentilii/icdc-core),
-typically checked out at `../icdc-core/`).
+Vici is a prediction-market app. Four areas, each with its own area README:
 
-What `ls`, `package.json`, and `tsconfig*.json` already tell you, this file
-will not. What they cannot tell you:
+| Area                        | Code                                  | Read once per session                                          |
+| --------------------------- | ------------------------------------- | -------------------------------------------------------------- |
+| SvelteKit frontend          | `src/lib/`, `src/routes/`, `src/*.ts` | [`docs/ai/frontend/README.md`](./docs/ai/frontend/README.md)   |
+| Juno satellite (functions)  | `src/satellite/`                      | [`docs/ai/satellite/README.md`](./docs/ai/satellite/README.md) |
+| Web2 API (Bun + Postgres)   | `backend/`                            | [`docs/ai/backend/README.md`](./docs/ai/backend/README.md)     |
+| On-chain engine (icdc-core) | separate repo, `../icdc-core/`        | [`docs/ai/engine/README.md`](./docs/ai/engine/README.md)       |
 
-- **`src/declarations/**`is generated** by`npm run did`from upstream`.did` files. Never hand-edit. The exception is the hand-written wiring `src/declarations/{index,_factory,_types}.ts`, which `npm run did` does not produce and which is not vendored to the backend.
-- **`src/satellite/satellite.did`, `satellite_extension.did`, and
-  `api-schemas.ts` are generated** by `npm run juno:functions:build`.
-- **`static/workers/**`is synced from`@junobuild/core`by`npm run postinstall`\*\* — don't hand-edit.
-- **The risk engine is in [`../icdc-core/`](../icdc-core/)** — a separate
-  repo with its own `AGENTS.md`. Don't try to modify Rust from this repo.
-- **Local replica is the Juno emulator.** Never run `dfx start`.
+What `ls` and `package.json` cannot tell you:
 
-The full restricted-paths table lives in
-[`docs/ai/governance.md`](./docs/ai/governance.md#boundaries).
+- **Generated, never hand-edited:** `src/declarations/**` and the vendored `backend/src/declarations/**` (`npm run did`; the hand-written wiring `src/declarations/{index,_factory,_types}.ts` is the exception), `src/satellite/satellite.did`, `satellite_extension.did` and `api-schemas.ts` (`npm run juno:functions:build`), `static/workers/**` (synced from `@junobuild/core` on `postinstall`).
+- **The Rust risk engine is in [`../icdc-core/`](https://github.com/AntonioVentilii/icdc-core)**, with its own `AGENTS.md`. Never modify it from here.
+- **The local replica is the Juno emulator** (`juno emulator start`). Never run `dfx start`.
+- **The app runs on two backends.** The default build talks to the satellite and canisters; `VITE_BACKEND=web2` routes every app domain to the HTTP API in `backend/` (vici.app). Read [`web2-backend-mode.md`](./docs/ai/frontend/web2-backend-mode.md) before touching a service that branches on `isWeb2Backend()`.
 
----
+The full protected-paths table is in [`governance.md`](./docs/ai/governance.md#boundaries).
 
-## 2. Project-specific commandments
+## 2. Commands
 
-Universal "be a good agent" rules (atomic PRs, small diffs, no `any`, no
-new deps without approval, no force-pushing without an explicit named
-ask) are enforced via CI, eslint, the boundary table in
-[`governance.md`](./docs/ai/governance.md), and the PR template in
-[`pr-and-ci.md`](./docs/ai/pr-and-ci.md). What is **specific to Vici**:
+| What                         | Command (repo root unless noted)              |
+| ---------------------------- | --------------------------------------------- |
+| Dev server                   | `npm run dev`                                 |
+| Format + lint + i18n catalog | `npm run quality`                             |
+| Type check (svelte-check)    | `npm run check`                               |
+| Pure-logic specs             | `npm test`                                    |
+| Satellite functions build    | `npm run juno:functions:build`                |
+| Candid bindings              | `npm run did`                                 |
+| API type check + tests       | `cd backend && bun run typecheck && bun test` |
+| E2E (web2 / web3)            | `npm run e2e:web2` / `npm run e2e`            |
 
-1. **Reuse over rebuild.** Before adding a new component / util / constant /
-   service / store, search
-   [`docs/ai/frontend/reusability.md`](./docs/ai/frontend/reusability.md).
-   If you add a new shared one, extend the catalog in the same PR.
-2. **A11y.** No bare clickable `<div>`s. Real `<button>` / `<a>` elements,
-   labelled inputs, decorative icons `aria-hidden`. See
-   [`docs/ai/frontend/a11y.md`](./docs/ai/frontend/a11y.md).
-3. **i18n is non-negotiable.** Every user-visible string goes through
-   `t({ locale: $localeStore, key })` from
-   [`#lib/utils/i18n.utils.ts`](./src/lib/utils/i18n.utils.ts). Add the key to
-   **every** locale catalog under `src/lib/constants/messages/` — never
-   just `en.ts`. The supported locales are declared once in
-   [`#lib/constants/locale.constants.ts`](./src/lib/constants/locale.constants.ts)
-   (`SUPPORTED_LOCALES`). The full workflow lives in
-   [`docs/ai/frontend/i18n.md`](./docs/ai/frontend/i18n.md). Hardcoded
-   English strings in templates are a review-blocking smell, not a
-   stylistic preference.
-4. **The folder taxonomy is closed.** No new top-level folders under
-   `src/` or `src/lib/` without explicit ask. New code goes in the folder
-   that already owns the concern — see
-   [`docs/ai/frontend/structure.md`](./docs/ai/frontend/structure.md) and
-   [`docs/ai/satellite/structure.md`](./docs/ai/satellite/structure.md).
-5. **Terminology.** Use **"prediction"**, never "bet" — in code, comments,
-   and user-visible copy. Time variables end in `_ms` (milliseconds,
-   business logic) or `_ns` (nanoseconds, protocol / idempotency).
-   **Never reference temporary or external design source materials** —
-   folder names, file names (e.g. spec exports), or section numbers from
-   those files — anywhere in the repo. The product reflects **the**
-   design — there is no "new", "old", "redesigned", or "previous"
-   design. When a code comment needs to cite a rule, point at
-   [`docs/ai/frontend/design.md`](./docs/ai/frontend/design.md) (§ 7 for
-   Flow Mode); describe behaviour and intent, not its source.
-6. **Eslint disallowed list is hard policy.** `0n` literal → `ZERO` from
-   `#lib/constants/app.constants`. `return undefined;` → bare `return;`.
-   `local-rules/no-relative-imports` is `error` under `src/**` — use the
-   subpath imports (`#lib`, `#declarations`, `#satellite`, `#root`) declared in
-   [`package.json`](./package.json) `imports`.
-   `local-rules/no-bare-svelte-text` flags hardcoded English in any
-   `.svelte` file that already imports `#lib/utils/i18n.utils.ts` — when it
-   fires, route the string through `t(...)` instead of disabling the rule.
-7. **Run the local gates** ([`pr-and-ci.md`](./docs/ai/pr-and-ci.md#local-quality-gates))
-   before opening a PR. Catalog drift across locales is caught by
-   `npm run check:i18n` (auto-runs as part of `npm run lint`).
+The full gate matrix is [`pr-and-ci.md` § 4](./docs/ai/pr-and-ci.md#4-local-quality-gates).
 
----
+## 3. The universal standard
 
-## 3. Where to look (frontend)
+The rules every repository shares (idiomatic, atomic, small, reuse before you write, one value one place, typed, structure, no smells, tests, CI, no overengineering, docs adapt, writing) live in **one place only**: [Officina `standards/code.md`](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md). Read it; it is not repeated here. This file and `docs/ai/**` only add what is specific to Vici.
 
-| You're about to…                                   | Read first                                                                                       |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Open any PR                                        | [`docs/ai/pr-and-ci.md`](./docs/ai/pr-and-ci.md)                                                 |
-| Spec or implement a feature spec-first             | [`docs/ai/spec-driven-development/workflow.md`](./docs/ai/spec-driven-development/workflow.md)   |
-| Work on a task run by the agent workshop           | [`docs/ai/officina.md`](./docs/ai/officina.md)                                                   |
-| Understand shipped product behaviour               | [`docs/ai/PRODUCT.md`](./docs/ai/PRODUCT.md)                                                     |
-| Touch any frontend file                            | [`docs/ai/frontend/README.md`](./docs/ai/frontend/README.md)                                     |
-| Add or move a file                                 | [`docs/ai/frontend/structure.md`](./docs/ai/frontend/structure.md)                               |
-| Write Svelte 5 / runes / TS                        | [`docs/ai/frontend/stack-and-patterns.md`](./docs/ai/frontend/stack-and-patterns.md)             |
-| Add UI                                             | [`docs/ai/frontend/reusability.md`](./docs/ai/frontend/reusability.md)                           |
-| Add a Svelte component                             | [`docs/ai/frontend/workflows/new-component.md`](./docs/ai/frontend/workflows/new-component.md)   |
-| Add an API call / service / store                  | [`docs/ai/frontend/workflows/new-service.md`](./docs/ai/frontend/workflows/new-service.md)       |
-| Split / refactor a component                       | [`docs/ai/frontend/workflows/refactor-split.md`](./docs/ai/frontend/workflows/refactor-split.md) |
-| Add user-visible text or interactive elements      | [`docs/ai/frontend/a11y.md`](./docs/ai/frontend/a11y.md)                                         |
-| Add or change any user-visible copy / locale       | [`docs/ai/frontend/i18n.md`](./docs/ai/frontend/i18n.md)                                         |
-| Align a screen / token / asset with the app design | [`docs/ai/frontend/design.md`](./docs/ai/frontend/design.md)                                     |
-| Add or change tests                                | [`docs/ai/frontend/testing.md`](./docs/ai/frontend/testing.md)                                   |
+## 4. Vici-specific rules
 
----
+1. **Reuse catalogs.** Before adding a shared piece, search the catalog of the area: [frontend](./docs/ai/frontend/reusability.md), [satellite](./docs/ai/satellite/reusability.md), [API](./docs/ai/backend/reusability.md). A new shared piece gets a row in the same PR.
+2. **i18n.** Every user-visible string goes through `t({ locale: $localeStore, key })` from [`#lib/utils/i18n.utils.ts`](./src/lib/utils/i18n.utils.ts), with the key in **every** catalog under `src/lib/constants/messages/` (locales: `SUPPORTED_LOCALES` in [`locale.constants.ts`](./src/lib/constants/locale.constants.ts)). Hardcoded English is review-blocking. See [`i18n.md`](./docs/ai/frontend/i18n.md).
+3. **A11y.** No clickable `<div>`s; real `<button>` / `<a>`, labelled inputs, decorative icons `aria-hidden`. See [`a11y.md`](./docs/ai/frontend/a11y.md).
+4. **Closed taxonomy.** No new top-level folder under `src/`, `src/lib/`, `src/satellite/` or `backend/src/` without an explicit ask. See the `structure.md` of the area.
+5. **Terminology.** "prediction", never "bet", in code, comments and copy. Time variables end in `_ms` (business logic) or `_ns` (protocol, idempotency).
+6. **No design-source references.** Never cite temporary or external design material (folder or file names, section numbers) in the repo. There is one design, never a "new" or "old" one; cite [`design.md`](./docs/ai/frontend/design.md) instead (§ 7 for Flow Mode), describing behaviour and intent.
+7. **ESLint hard policy.** `0n` is `ZERO` from `#lib/constants/app.constants`; `return undefined;` is bare `return;`; null checks use `isNullish` / `nonNullish` from `@dfinity/utils`; imports under `src/**` use the subpath imports (`#lib`, `#declarations`, `#satellite`, `#root`) in `package.json`, never relative paths across folders. When `local-rules/no-bare-svelte-text` fires, route the string through `t(...)`.
+8. **Spec-driven development is opt-in, so ask.** For a feature, an improvement or a non-trivial bugfix, mention the [spec workflow](./docs/ai/spec-driven-development/workflow.md) and ask whether to use it; skip it for small changes. When implementing a spec, read [`PRODUCT.md`](./docs/ai/PRODUCT.md) first and update it in the same PR. `Implemented` specs are history, never current behaviour. A satellite spec must cover performance, memory and scalability.
+9. **Regenerated files ship with the change.** Touched `src/satellite/**` (or a `#lib/schema/*` it imports)? Run `npm run juno:functions:build` and commit the output. Ran `npm run did`? Commit both declaration trees with the wiring change.
+10. **VXP economy rules are the exception to the truth hierarchy:** [`economy.md`](./docs/ai/economy.md) drives the code, not the other way round.
 
-## 4. Where to look (Juno satellite)
+## 5. You are about to... read first
 
-The Juno satellite (`src/satellite/`) holds TypeScript hooks, assertions, and
-typed queries/updates that run on the satellite canister. It is **not** the
-on-chain risk engine — that lives in `../icdc-core/`.
+| You are about to...                                   | Read first                                                                                                                                    |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Open any PR                                           | [`pr-and-ci.md`](./docs/ai/pr-and-ci.md)                                                                                                      |
+| Work on a task run by the agent workshop              | [`officina.md`](./docs/ai/officina.md)                                                                                                        |
+| Understand shipped product behaviour                  | [`PRODUCT.md`](./docs/ai/PRODUCT.md)                                                                                                          |
+| Add or move a frontend file                           | [`frontend/structure.md`](./docs/ai/frontend/structure.md)                                                                                    |
+| Write Svelte 5 / runes / TS                           | [`frontend/stack-and-patterns.md`](./docs/ai/frontend/stack-and-patterns.md)                                                                  |
+| Add UI or a component                                 | [`frontend/reusability.md`](./docs/ai/frontend/reusability.md), [`workflows/new-component.md`](./docs/ai/frontend/workflows/new-component.md) |
+| Add a frontend service / store / API call             | [`frontend/workflows/new-service.md`](./docs/ai/frontend/workflows/new-service.md)                                                            |
+| Split or refactor a component                         | [`frontend/workflows/refactor-split.md`](./docs/ai/frontend/workflows/refactor-split.md)                                                      |
+| Add or change user-visible copy                       | [`frontend/i18n.md`](./docs/ai/frontend/i18n.md), [`frontend/brand.md`](./docs/ai/frontend/brand.md)                                          |
+| Align a screen, token or asset with the design        | [`frontend/design.md`](./docs/ai/frontend/design.md)                                                                                          |
+| Touch SEO, sitemap or meta tags                       | [`frontend/seo.md`](./docs/ai/frontend/seo.md)                                                                                                |
+| Add a web2 branch to a frontend service               | [`frontend/web2-backend-mode.md`](./docs/ai/frontend/web2-backend-mode.md)                                                                    |
+| Add or change frontend / E2E tests                    | [`frontend/testing.md`](./docs/ai/frontend/testing.md)                                                                                        |
+| Add a satellite hook / assertion / endpoint           | [`satellite/patterns.md`](./docs/ai/satellite/patterns.md), [`satellite/workflows/`](./docs/ai/satellite/workflows/)                          |
+| Touch VXP awards or economy parameters                | [`economy.md`](./docs/ai/economy.md), [`satellite/economy.md`](./docs/ai/satellite/economy.md)                                                |
+| Sync something into the icdc-core registry / engine   | [`satellite/workflows/engine-sync.md`](./docs/ai/satellite/workflows/engine-sync.md)                                                          |
+| Add an API route, migration or worker job             | [`backend/patterns.md`](./docs/ai/backend/patterns.md), [`backend/workflows/`](./docs/ai/backend/workflows/)                                  |
+| Add or change API tests                               | [`backend/testing.md`](./docs/ai/backend/testing.md)                                                                                          |
+| Regenerate Candid bindings after an icdc-core release | [`engine/README.md`](./docs/ai/engine/README.md#regenerating)                                                                                 |
+| Understand how Vici talks to icdc-core                | [`docs/engine-integration.md`](./docs/engine-integration.md)                                                                                  |
+| Reset, repair or operate the Vici engine              | [`.agents/workflows/`](./.agents/workflows/) (`icdc-engine-reset.md`, `icdc-engine-operations.md`)                                            |
+| Deploy                                                | [`.agents/workflows/deployment.md`](./.agents/workflows/deployment.md)                                                                        |
 
-| You're about to…                                                           | Read first                                                                                     |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Touch any satellite file                                                   | [`docs/ai/satellite/README.md`](./docs/ai/satellite/README.md)                                 |
-| Add a hook / assertion / typed endpoint                                    | [`docs/ai/satellite/patterns.md`](./docs/ai/satellite/patterns.md)                             |
-| Touch VXP awards / economy parameters                                      | [`docs/ai/satellite/economy.md`](./docs/ai/satellite/economy.md)                               |
-| Add a hook (`onSetDoc` / `onDeleteDoc`)                                    | [`docs/ai/satellite/workflows/new-hook.md`](./docs/ai/satellite/workflows/new-hook.md)         |
-| Add a typed `defineQuery` / `defineUpdate`                                 | [`docs/ai/satellite/workflows/new-endpoint.md`](./docs/ai/satellite/workflows/new-endpoint.md) |
-| Sync something into the icdc-core registry / Vici engine                   | [`docs/ai/satellite/workflows/engine-sync.md`](./docs/ai/satellite/workflows/engine-sync.md)   |
-| Reset / repair the registry + engine grants (local / staging / production) | [`.agents/workflows/icdc-engine-reset.md`](./.agents/workflows/icdc-engine-reset.md)           |
-| Spec a satellite change (perf / memory / scalability are mandatory)        | [`docs/ai/spec-driven-development/workflow.md`](./docs/ai/spec-driven-development/workflow.md) |
+## 6. Governance
 
----
-
-## 5. Where to look (backend / risk engine — `../icdc-core/`)
-
-The Rust canisters that power Vici (Clearing + Registry + Shared) live in
-[`../icdc-core/`](../icdc-core/). **Do not** modify Rust under
-`src/declarations/**` here — those are generated bindings.
-
-| You're about to…                                              | Read                                                                                           |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Understand how Vici talks to icdc-core (Engine model, oracle) | [`docs/engine-integration.md`](./docs/engine-integration.md)                                   |
-| Touch the on-chain registry / clearing / minter canisters     | Open `../icdc-core/`. See its [`AGENTS.md`](../icdc-core/AGENTS.md) first.                     |
-| Regenerate Candid bindings after an icdc-core upgrade         | [`docs/ai/backend/README.md`](./docs/ai/backend/README.md#regenerating)                        |
-| Day-2 ops on the Vici engine (grant/revoke/audit)             | [`.agents/workflows/icdc-engine-operations.md`](./.agents/workflows/icdc-engine-operations.md) |
-
-`docs/ai/backend/README.md` is a thin pointer file: the source of truth for
-backend conventions is `../icdc-core/`.
-
----
-
-## 6. Governance & meta
-
-- **Truth hierarchy** (highest wins on conflict):
-  1. **Code** (`src/**`, `scripts/**`) — current state of the world.
-  2. **CI** ([`.github/workflows/**`](./.github/workflows/)) — non-negotiable
-     checks.
-  3. **CODEOWNERS** ([`.github/CODEOWNERS`](./.github/CODEOWNERS)) — review
-     routing.
-  4. [`docs/ai/governance.md`](./docs/ai/governance.md) — policies & boundaries.
-  5. This file (`AGENTS.md`) — universal entry.
-  6. Tool-specific layers ([`CLAUDE.md`](./CLAUDE.md),
-     `.claude/rules/`, `.cursor/rules/`,
-     `.github/copilot-instructions.md`) — never contradict the above.
-- **Auto-adapting docs.** When a PR introduces a new pattern, convention,
-  shared component, shared type, workflow, or policy, the agent **MUST**
-  update the relevant `docs/ai/**` file in the same PR. See
-  [`docs/ai/governance.md#meta-update-rule`](./docs/ai/governance.md#meta-update-rule).
-  When editing `docs/ai/**` itself, follow the
-  [writing-for-agents rules](./docs/ai/governance.md#writing-for-agents--meta-rules-for-docsai)
-  — only non-discoverable signal goes in, tool-specific layers stay thin.
-
----
+- **Truth hierarchy** (highest wins): code (`src/**`, `backend/**`, `scripts/**`), then CI ([`.github/workflows/`](./.github/workflows/)), then [CODEOWNERS](./.github/CODEOWNERS), then `docs/ai/**`, then this file, then tool layers ([`CLAUDE.md`](./CLAUDE.md), `.claude/rules/`, `.cursor/rules/`, `.github/copilot-instructions.md`). On a contradiction, stop and ask. Details: [`governance.md`](./docs/ai/governance.md#truth-hierarchy).
+- **Meta-update rule.** A PR that adds a pattern, a shared piece, a naming convention, a policy or a workflow updates the matching `docs/ai/**` page in the same PR. Which page for which change: [the map](./docs/ai/governance.md#meta-update-rule). When editing `docs/ai/**` itself, follow the [writing-for-agents rules](./docs/ai/governance.md#writing-for-agents--meta-rules-for-docsai).
 
 ## 7. Tool-specific entry points
 
-These are thin layers on top of this file. They never contradict it.
-
-- **Claude Code / Anthropic:** [`CLAUDE.md`](./CLAUDE.md).
-- **Cursor:** drop a rule under `.cursor/rules/` that points here.
-- **GitHub Copilot:** drop `.github/copilot-instructions.md` that points here.
-- **OpenAI Codex / Aider / opencode / Continue / …:** read this file
-  (`AGENTS.md`).
-
-If you add a new agent / tool, add a tiny pointer file (≤ 30 lines) here that
-references this `AGENTS.md` — do **not** duplicate the rules.
+Thin layers that point here and never contradict it: [`CLAUDE.md`](./CLAUDE.md) and `.claude/rules/` for Claude Code. Any other tool reads this file; a new tool gets a pointer file of at most 30 lines, never a copy of the rules.

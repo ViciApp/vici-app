@@ -7,7 +7,7 @@ every agent (Claude Code, Cursor, Copilot, Codex, Aider, opencode, …).
 
 When two sources disagree, the higher one wins:
 
-1. **The code** (`src/**`, `scripts/**`) — current state of reality.
+1. **The code** (`src/**`, `backend/**`, `scripts/**`): current state of reality.
 2. **CI workflows** ([`.github/workflows/**`](../../.github/workflows/)) —
    non-negotiable gates that must be green to merge.
 3. **CODEOWNERS** ([`.github/CODEOWNERS`](../../.github/CODEOWNERS)) —
@@ -20,6 +20,11 @@ When two sources disagree, the higher one wins:
 
 If an agent finds a contradiction, the agent **stops and asks** instead of
 guessing.
+
+The rules every repository shares live in the universal standard,
+[Officina `standards/code.md`](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md).
+This page and its siblings only add what is specific to Vici and never
+restate it.
 
 **Scoped exception — economy policy.** For the _rules_ of the VXP
 economy (which surfaces mint, and the caps / gates / anti-farming
@@ -50,6 +55,8 @@ Execute the plan with **targeted edits**. Strictly follow:
   SvelteKit app.
 - [`satellite/structure.md`](./satellite/structure.md) and
   [`satellite/patterns.md`](./satellite/patterns.md) for the Juno satellite.
+- [`backend/structure.md`](./backend/structure.md) and
+  [`backend/patterns.md`](./backend/patterns.md) for the web2 API in `backend/`.
 
 Run the local quality gates from [`pr-and-ci.md`](./pr-and-ci.md) before
 declaring done.
@@ -58,10 +65,11 @@ declaring done.
 
 Before opening / merging, self-review against:
 
-- [project-specific commandments](../../AGENTS.md#2-project-specific-commandments)
+- [Vici-specific rules](../../AGENTS.md#4-vici-specific-rules)
 - [PR conventions](./pr-and-ci.md)
-- [Reusability catalog](./frontend/reusability.md) — flag duplication you
-  re-introduced.
+- Reusability catalogs ([frontend](./frontend/reusability.md),
+  [satellite](./satellite/reusability.md), [API](./backend/reusability.md)):
+  flag duplication you re-introduced.
 - [a11y rules](./frontend/a11y.md).
 
 ## Boundaries
@@ -107,13 +115,16 @@ description.
 - Edit any file under `src/lib/**`, `src/routes/**`, `src/satellite/services/**`,
   `src/satellite/utils/**`, and `src/satellite/index.ts`.
 - Edit `src/app.css`, `src/app.html`, `src/app.d.ts`, `src/custom-events.d.ts`.
+- Edit `backend/src/**` outside the protected paths in [Boundaries](#boundaries),
+  and `backend/tests/**`.
 - Add files inside the existing folder taxonomy
   ([FE structure](./frontend/structure.md),
   [satellite structure](./satellite/structure.md)).
 - Run `npm run format`, `npm run lint`, `npm run check`, `npm run quality`,
   `npm run dev`, `npm run build`, `npm run did`,
   `npm run juno:functions:build`, `npm run init:icdc` (and its sub-scripts),
-  `npm run test:engine-sync`, `npm run deploy`.
+  `npm run test:engine-sync`, `npm run deploy`; in `backend/`, `bun run typecheck`,
+  `bun test`, `bun run migrate` against the local docker-compose database.
 - Update these `docs/ai/**` pages when the meta-update rule fires.
 
 ### Forbidden without explicit prompt
@@ -132,7 +143,7 @@ description.
   "git commit --amend", "rebase", "git rebase", "rewrite history").
   Task-level delegation like "do what you think is best" or "do what's
   most correct" does **NOT** count. See
-  [`pr-and-ci.md#updating-an-existing-pr`](./pr-and-ci.md#updating-an-existing-pr).
+  [`pr-and-ci.md#updating-an-existing-pr`](./pr-and-ci.md#7-updating-an-existing-pr).
 - Commit secrets, `.env*` (other than examples), or large binaries.
 - Touch `src/satellite/satellite.did` or `src/declarations/**` by hand
   — regenerate via the appropriate scripts (`juno functions build`, `npm run did`).
@@ -151,14 +162,28 @@ description.
 How:
 
 1. Identify which page describes the area you changed:
-   - Folder taxonomy → `frontend/structure.md` or `satellite/structure.md`.
-   - New shared component / util / service / store → `frontend/reusability.md`.
-   - New satellite hook / pattern → `satellite/patterns.md`.
-   - New test pattern → `frontend/testing.md`.
-   - New PR / CI rule → `pr-and-ci.md`.
-   - New policy / boundary → this file.
-   - New workflow → add a page under `frontend/workflows/` or
-     `satellite/workflows/`.
+
+   | You changed...                                          | Update                                                                             |
+   | ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+   | Folder taxonomy                                         | `frontend/structure.md`, `satellite/structure.md` or `backend/structure.md`        |
+   | A shared component / util / service / store / type      | `frontend/reusability.md`                                                          |
+   | A shared satellite helper                               | `satellite/reusability.md`                                                         |
+   | A shared API helper (`backend/src/lib/**` and the like) | `backend/reusability.md`                                                           |
+   | A Svelte / TS / Tailwind idiom                          | `frontend/stack-and-patterns.md`                                                   |
+   | A satellite hook / assert / endpoint pattern            | `satellite/patterns.md`                                                            |
+   | An API route / error / SQL / engine pattern             | `backend/patterns.md`; a custody rule: `backend/custody.md`                        |
+   | A web2 branch in a frontend service                     | `frontend/web2-backend-mode.md`                                                    |
+   | A test pattern                                          | `frontend/testing.md`, `satellite/testing.md` or `backend/testing.md`              |
+   | User-visible copy rules, locales                        | `frontend/i18n.md`                                                                 |
+   | Design tokens, brand voice                              | `frontend/design.md`, `frontend/brand.md`                                          |
+   | VXP economy rules                                       | `economy.md` (rules drive code), `satellite/economy.md`                            |
+   | Shipped product behaviour                               | `PRODUCT.md`                                                                       |
+   | Candid bindings / icdc-core pin                         | `engine/README.md`                                                                 |
+   | A PR / CI rule or a workflow file                       | `pr-and-ci.md`                                                                     |
+   | A policy, boundary or protected path                    | this file                                                                          |
+   | A repeated multi-step task                              | a page under `frontend/workflows/`, `satellite/workflows/` or `backend/workflows/` |
+   | A rule every repository shares                          | the universal standard in Officina, never a page here                              |
+
 2. Edit that page in the same PR with the smallest possible delta — add a
    bullet, add a row, swap a code sample.
 3. Mention the doc update in the PR body under `# Changes`.
@@ -231,13 +256,14 @@ needs it:
    wrapper, equally thin.
 2. **Area READMEs** — [`docs/ai/frontend/README.md`](./frontend/README.md),
    [`docs/ai/satellite/README.md`](./satellite/README.md),
-   [`docs/ai/backend/README.md`](./backend/README.md) — read once per
+   [`docs/ai/backend/README.md`](./backend/README.md),
+   [`docs/ai/engine/README.md`](./engine/README.md): read once per
    session, scoped to the area touched.
 3. **Topic pages** — `structure.md`, `stack-and-patterns.md`,
    `patterns.md`, `i18n.md`, `a11y.md`, … — loaded selectively when
    the agent touches that concern.
-4. **Workflow pages** — `frontend/workflows/`, `satellite/workflows/`
-   — concrete recipes for repeated multi-step tasks.
+4. **Workflow pages**: `frontend/workflows/`, `satellite/workflows/`,
+   `backend/workflows/`: concrete recipes for repeated multi-step tasks.
 
 The agent should never need to load the full corpus to do one task. A
 UX-focused agent touching `#lib/components/ui/` and a backend agent
