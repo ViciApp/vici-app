@@ -135,9 +135,9 @@ export default ts.config(
 	},
 
 	{
-		// Size and shape limits. Code that broke them when they landed is listed in
-		// eslint-suppressions.json (generated, never hand-edited): new code must meet
-		// them, and a file fixed below a limit drops its entry with
+		// Size and shape limits. Code that broke them when they landed is counted, per
+		// file and rule, in eslint-suppressions.json (generated, never hand-edited):
+		// a file may not exceed its count, and a fixed one drops its entry with
 		// `npx eslint . --prune-suppressions`. See docs/ai/pr-and-ci.md.
 		rules: {
 			complexity: ['error', 15],

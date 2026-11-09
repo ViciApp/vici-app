@@ -131,14 +131,18 @@ and API alike. The code that already broke them is listed in
 [`eslint-suppressions.json`](../../eslint-suppressions.json), which ESLint
 reads on its own:
 
-- **New code meets the limits.** A new violation, or one more in a file that
-  already has some, fails lint. Split the function or the file; do not raise
-  a limit or add an entry.
+- **New code meets the limits.** A violation in a file with no entry, or one
+  more than a file's count, fails lint. Split the function or the file; do
+  not raise a limit or add an entry.
+- **The count is per file and rule, not per function.** Fixing one suppressed
+  violation and adding another of the same rule in the same file keeps the
+  count and passes lint. Do not do that: a new or edited function meets the
+  limits even inside a suppressed file, and a reviewer rejects a swap.
 - **Never hand-edit the suppressions file.** It is generated.
 - **Fixed one? Prune it.** When a change brings a suppressed file under a
   limit, ESLint fails on the now-unused entry: run
-  `npx eslint . --prune-suppressions` and commit the smaller file. The list
-  can only shrink.
+  `npx eslint . --prune-suppressions` and commit the smaller file. No file's
+  count can grow, so the list only shrinks.
 
 ## 5. CI jobs you must keep green
 
