@@ -12,14 +12,19 @@ src/
 ├── app.d.ts                Ambient SvelteKit types
 ├── app.html                HTML shell
 ├── custom-events.d.ts      Ambient custom-event types for Svelte
+├── landing.css             Unscoped landing styles (`.lp-*`, `.dnav-*`), imported by app.css
 │
-├── routes/                 SvelteKit file-based routing
-│   ├── (app)/              Authenticated app group
+├── routes/                 SvelteKit file-based routing, one folder per URL
+│   ├── (app)/              App shell group: +layout.svelte mounts navs, loaders, hosts
 │   │   ├── +layout.svelte
-│   │   └── +page.svelte    Single page that hosts the navigation router
-│   ├── auth/callback/      OAuth callback flow
+│   │   └── admin/ app/ arena/ calibration/ dash/ flow/ info/ markets/
+│   │       notifications/ portfolio/ profile/ settings/ wallet/
+│   ├── about/ claim/ signin/ signup/ welcome/        Public pages
+│   ├── i/[code]/ join/[code]/ league/[code]/ m/[id]/ Invite / share links
+│   ├── auth/callback/google/                         OAuth callback flow
 │   ├── +layout.svelte
-│   └── +layout.ts
+│   ├── +layout.ts
+│   └── +page.svelte        Root landing gate (signed in → /flow, else WelcomePage)
 │
 ├── lib/                    Application code (cross-route)
 │   ├── components/         UI grouped by feature (see below)
@@ -36,6 +41,8 @@ src/
 │   ├── utils/              Pure helpers — no I/O, no DOM
 │   ├── actors/             Generic actor helpers
 │   ├── actions/            Svelte `use:` actions (e.g. click-outside)
+│   ├── assets/             Bundled assets imported by code (flags/ behind COUNTRY_FLAGS)
+│   ├── dev/                Dev-build-only hooks (Playwright e2e reset, open sign-ups)
 │   ├── env/                Runtime env types
 │   └── web2/               HTTP-backend seam (approved, migration-scoped: mode
 │                           flag + typed /api/v1 client; grows one adapter per
@@ -44,6 +51,8 @@ src/
 │                           web2-backend-mode.md)
 │
 ├── satellite/              Juno satellite (TS canister functions). See ../satellite/.
+├── service-worker/         Navigation-fallback worker for the OAuth callback (see its header)
+├── tests/                  Unit tests mirroring src/ (see testing.md)
 └── declarations/           Generated bindings (DO NOT hand-edit)
 ```
 
@@ -59,22 +68,29 @@ top-level group:
   `#lib/utils/flow-art.utils.ts`). Parallel to `characters/`.
 - `authn/` — authentication / Internet Identity / OAuth flows.
 - `authz/` — authorization (role gating, guards rendering).
-- `challenge/` — challenge / passkey UI.
-- `characters/` — character SVGs (Vici, Oracle, Trickster, Flame).
+- `characters/`: character SVGs (Vici, Oracle, Trickster, Archivist, Flame).
+- `claim/`: legacy-to-new-app migration banners.
+- `dash/`: Dashboard surfaces.
+- `dev/`: dev-build-only tooling (`TweaksPanel`).
+- `guest/`: signed-out guest conversion funnel.
 - `icons/` — bespoke icons not covered by `@lucide/svelte`.
-- `layout/` — top-level chrome (`Header`, `Ticker`, navigation surfaces).
-- `landing/` — public marketing sections (`LandingSectionHeader`, `WelcomeLiveMarkets`, `WelcomeFooter`, …).
-- `leaderboard/` — leaderboard widgets.
-- `loaders/` — loaders, skeletons, suspense boundaries.
+- `layout/`: app chrome (`ScreenHeader`, `PageScaffold`, `DesktopAppNav`, `MobileNav`, `WelcomeNav`).
+- `landing/`: public marketing sections (`WelcomeHero`, `WelcomeProof`, `WelcomeFooter`, …).
+- `leagues/`: leagues, battles and the affiliation picker.
+- `loaders/`: loader shells and the `LoaderXxx` cache fillers mounted by `Loaders`.
 - `market/` — prediction-market UI (filters, cards, detail, order book, …).
+- `menagerie/`: the achievement trophy layer.
 - `onboarding/` — first-run / profile onboarding flows.
 - `pages/` — page-level shells composed inside specific routes.
 - `portfolio/` — user portfolio surfaces (positions, balances).
 - `profile/` — user profile (own + public).
+- `pwa/`: Add-to-Home-Screen install sheet.
+- `saved-markets/`: the market bookmark toggle.
 - `settings/` — settings screen row primitives (`SetRow`, `SetToggle`, …).
 - `ui/` — app-local UI primitives — see
-  [`reusability.md`](./reusability.md#ui-primitives).
+  [`reusability.md`](./reusability.md#ui-primitives--libcomponentsui).
 - `wallet/` — collateral / token / send-receive UI.
+- `worlds/`: Worlds (school / country) battle cards and prompts.
 
 Add a new `components/<feature>/` folder only if the concern doesn't fit
 any of the above. Surface the question in the PR description.
@@ -195,10 +211,11 @@ import type { _SERVICE as ClearingService } from '#declarations/clearing/clearin
 
 ## Where to put new files (decision tree)
 
-1. **Is it a route / page?** SvelteKit's `src/routes/` is single-page —
-   most "pages" are components hosted in `src/lib/components/pages/` or a
-   feature folder. Only edit `src/routes/` for app-shell layout, the OAuth
-   callback, or new top-level URL surfaces (rare).
+1. **Is it a new screen?** Add a route folder under `src/routes/(app)/<path>/`
+   (or `src/routes/<path>/` for a public page) whose `+page.svelte` is a thin
+   shell rendering one page component from `src/lib/components/pages/`. The
+   screen's UI lives in that page component and feature folders, not in the
+   route file.
 2. **Is it a generic UI primitive (Button, Card, Modal, Tooltip)?** → look
    in `#lib/components/ui/` first; only add a new primitive if neither it
    nor an existing component covers it.

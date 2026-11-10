@@ -13,8 +13,8 @@ substantive, read the canonical docs.
 - Reusability catalog (`$lib/components/ui/`, shared utils / stores /
   services) →
   [`docs/ai/frontend/reusability.md`](../../docs/ai/frontend/reusability.md)
-- Project commandments →
-  [`AGENTS.md`](../../AGENTS.md#2-project-specific-commandments)
+- Vici-specific rules →
+  [`AGENTS.md`](../../AGENTS.md#4-vici-specific-rules)
 - Quality gates + PR conventions →
   [`docs/ai/pr-and-ci.md`](../../docs/ai/pr-and-ci.md)
 - i18n catalogs + lint rule →

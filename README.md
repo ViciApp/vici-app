@@ -53,7 +53,9 @@ canonical entry point:
     Tailwind v4 conventions, structure, reusability catalog, a11y, testing.
   - [`docs/ai/satellite/`](./docs/ai/satellite/) — Juno satellite (TS hooks,
     asserts, typed query / update endpoints) conventions and workflows.
-  - [`docs/ai/backend/`](./docs/ai/backend/) — pointer to
+  - [`docs/ai/backend/`](./docs/ai/backend/README.md): the web2 API in
+    `backend/` (structure, patterns, catalog, tests, custody rules).
+  - [`docs/ai/engine/`](./docs/ai/engine/README.md): pointer to
     [`../icdc-core/`](https://github.com/AntonioVentilii/icdc-core), where
     the on-chain Rust risk engine lives.
 - **[.agents/workflows/](./.agents/workflows/)** — operational runbooks

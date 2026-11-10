@@ -16,7 +16,8 @@ Skip it for small changes (typo, one-liner): implement directly.
   spec: [`AGENTS.md`](../../../AGENTS.md), then the area README
   ([frontend](../frontend/README.md) /
   [satellite](../satellite/README.md) /
-  [backend](../backend/README.md)). A spec never overrides
+  [API](../backend/README.md) /
+  [engine](../engine/README.md)). A spec never overrides
   `docs/ai/**` — it sits below it in the
   [truth hierarchy](../governance.md#truth-hierarchy).
 - **Ground specs in real code.** Reference actual file paths,
@@ -32,12 +33,11 @@ Skip it for small changes (typo, one-liner): implement directly.
   spec is the unit of review: status flips, the `PRODUCT.md` update,
   and the divergence check all bind to exactly one PR, and a split
   breaks that binding (which PR flips the status? which one is "the"
-  implementation?). Within spec-driven work this overrides the
-  prefer-atomic-splits instinct from [`pr-and-ci.md`](../pr-and-ci.md)
-  — the spec itself is the atomicity boundary. It applies **only**
-  here: when the human opts out of the spec workflow and the change is
-  implemented directly, the normal atomic-PR conventions stand
-  unchanged. If spec'd work genuinely cannot fit one reviewable PR,
+  implementation?). The spec is the PR's one purpose, as the
+  [scoped rule](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#2-scoped) asks. When the human opts out of the
+  spec workflow and the change is implemented directly, the normal
+  conventions of [`pr-and-ci.md` § 3](../pr-and-ci.md#3-scope-and-parallel-prs)
+  apply. If spec'd work genuinely cannot fit one reviewable PR,
   the spec is too big — split the **spec** first, each part with its
   own status and PR.
 

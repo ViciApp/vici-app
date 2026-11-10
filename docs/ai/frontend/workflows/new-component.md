@@ -53,7 +53,7 @@ covers the use case.
    `aria-label`. See [`a11y.md`](../a11y.md).
 7. **Terminology.** Use **"prediction"**, never "bet". Time variables
    end in `_ms` or `_ns` — see
-   [`structure.md#time-variables--ms--ns`](../structure.md#time-variables--ms--ns).
+   [`structure.md#time-variables--ms--ns`](../structure.md#time-variables--_ms--_ns).
 8. **Test ID** if the component is targeted by future tests:
    `data-tid="<kebab-case>"`. (When a test-IDs constants file lands,
    move it there — see [`reusability.md`](../reusability.md).)
