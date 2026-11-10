@@ -24,7 +24,7 @@ No if:
 
 ## Rules
 
-1. **Atomicity.** A split PR changes structure only — **no behaviour
+1. **Scope.** A split PR changes structure only: **no behaviour
    change**, no design change, no copy change. If you spot one, split it
    into a follow-up PR.
 2. **Stable visible output.** The rendered DOM (or at least the

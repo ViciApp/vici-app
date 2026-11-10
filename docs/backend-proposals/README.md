@@ -4,7 +4,7 @@ The frontend port of the design prototype is feature-complete. Four
 backend follow-ups remain — each is a new satellite collection (or
 endpoint) that the existing FE surfaces are designed to consume.
 
-Per `AGENTS.md` §2 _Project-specific commandments_: any change that
+Per the [protected paths](../ai/governance.md#boundaries) (`juno.config.ts`, the satellite interface): any change that
 adds collections, hooks, or contract surfaces needs explicit
 approval before implementation. **This doc is the approval gate.**
 

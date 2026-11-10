@@ -347,8 +347,8 @@ Rules:
 - **FE refreshes after the catch.** When the trap fires (e.g. the
   counterparty won the race), the FE should still re-fetch the store so
   the UI lands on the real on-chain state (e.g. the request now shows
-  under "Active" because accept won). See `handleCancel` in
-  [`src/lib/components/social/FriendsList.svelte`](../../../src/lib/components/social/FriendsList.svelte)
+  under "Active" because accept won). See `handleCancelSent` in
+  [`src/lib/components/arena/FriendsTab.svelte`](../../../src/lib/components/arena/FriendsTab.svelte)
   for the pattern.
 
 ## Idempotency in hooks
@@ -363,7 +363,7 @@ Hooks fire **after** the write, but they can fire more than once
   `RoleNotGranted` from the registry are silent successes. Wrap them in
   a `Result`-style helper rather than throwing.
 - **Log skips, don't fail them.** Use the logger in
-  `utils/logger.utils.ts` (`engine_sync_skipped_missing_oracle`,
+  `utils/logger.utils.ts` (`oracle_settler_skipped_missing_oracle`,
   `engine_sync_error`, …) so operators can grep Juno Console for the
   failure mode without breaking the hook.
 
@@ -665,7 +665,7 @@ principal with no profile, because new accounts live on the new stack:
   [`src/satellite/utils/logger.utils.ts`](../../../src/satellite/utils/logger.utils.ts)
   rather than `console.log` directly.
 - Prefer **stable string tags** (`engine_sync_error`,
-  `engine_sync_skipped_missing_oracle`, …). Operators grep for them in
+  `oracle_settler_skipped_missing_oracle`, …). Operators grep for them in
   the Juno Console.
 - Don't log secrets or full doc bodies — log identifiers + the change.
 

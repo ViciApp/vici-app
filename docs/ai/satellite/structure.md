@@ -9,7 +9,7 @@ src/satellite/
 ├── satellite.did               Generated Candid (do not hand-edit)
 ├── satellite_extension.did     Generated Candid (do not hand-edit)
 ├── tsconfig.json               Satellite-only TS config
-├── services/
+├── services/                   One <area>.services.ts per concern (`ls` for all ~45), e.g.:
 │   ├── engine-sync.services.ts     Mirrors Juno roles → icdc-core Vici engine
 │   ├── leaderboard.services.ts     Server-side leaderboard reads
 │   ├── market-metadata.services.ts Creator/admin market context updates
@@ -18,9 +18,12 @@ src/satellite/
 │   ├── relation.services.ts        Friend / follow primitives
 │   ├── roles.services.ts           Role doc validation
 │   └── vxp-onboarding.services.ts  VXP onboarding hooks
-└── utils/
+└── utils/                          Catalog: reusability.md
+    ├── candid.utils.ts             IDL types off the generated factories
     ├── logger.utils.ts             Structured logging wrapper
-    └── vxp-payout.utils.ts         Shared VXP ledger transfer + error mapping
+    ├── regex.utils.ts              escapeRegex
+    ├── vxp-payout.utils.ts         Shared VXP ledger transfer + error mapping
+    └── wire-format.utils.ts        snake_case wire schemas + toWire / fromWire
 ```
 
 ## What goes where
@@ -76,6 +79,18 @@ import { syncRoleToEngineOnSet } from '#satellite/services/engine-sync.services.
 The local rule `local-rules/no-relative-imports` is `error` under `src/`,
 which includes the satellite. Don't reach for `../` to cross folder
 boundaries.
+
+**Direction.** The satellite imports from `#lib` only what runs without a
+DOM: constants, schemas, types and pure utils (`collections.constants.ts`,
+`canisters.constants.ts`, `#lib/schema/*`, `types/vxp-award.ts`, ...).
+The frontend imports from `#satellite` only the `fromWire*` converters in
+`utils/wire-format.utils.ts` (profile, leaderboard, referral and
+market-translation services). Nothing else crosses in either direction.
+
+**Known deviations (do not copy).** `services/_authz.ts` lacks the
+`.services.ts` suffix, and `utils/vxp-payout.utils.ts` does ledger I/O
+although `*.utils.ts` means pure. `index.ts` holds local assert composers
+(`assertProfile`) that belong in services.
 
 ## Forbidden imports
 

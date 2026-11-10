@@ -194,7 +194,7 @@ App modules are imported directly only when they have no value imports (importin
 
 ## Worker
 
-`src/worker.ts` (the Fly `worker` process) is a single poll loop over a registry of named jobs, interval-driven by `WORKER_POLL_INTERVAL_MS`. Each entry is a `WorkerJob { name, run, everyNthTick? }`: `run` must be idempotent (dedupe lives in the domain, e.g. the `vxp_awards` unique key or the deposits `tx_ref` key) and failures are caught and logged per job so one bad job never stalls the rest; `everyNthTick` throttles cheap-to-skip sweeps. A later phase adds a job by replacing its no-op placeholder slot with the domain's exported function, keeping the name stable for the logs. Current registry: deposit watchers, withdrawal confirmations and withdrawal recovery (every tick), VXP award reconciliation (every tick, no-op in record-only mode), resolved-results pruning and the streak underpayment backfill (hourly), plus placeholder slots for the deletion sweep and the tournament draw/resolve ticks.
+`src/worker.ts` (the Fly `worker` process) is a single poll loop over a registry of named jobs, interval-driven by `WORKER_POLL_INTERVAL_MS`. Each entry is a `WorkerJob { name, run, everyNthTick? }`: `run` must be idempotent (dedupe lives in the domain, e.g. the `vxp_awards` unique key or the deposits `tx_ref` key) and failures are caught and logged per job so one bad job never stalls the rest; `everyNthTick` throttles cheap-to-skip sweeps. A job is added as a new entry calling the domain's exported function, with a stable name for the logs. The registry in `src/worker.ts` is the list of jobs; read it there rather than here.
 
 ## Data migration (ETL)
 

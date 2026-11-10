@@ -70,23 +70,22 @@ Rules:
 - **No filler.** Drop openers like "This PR…" / "In this change…" — start with the substance.
 - **Tests are concrete.** Name the commands run and their outcome, the tests added, the manual steps taken. "Tests pass" alone says nothing.
 - **Do not hard-wrap lines.** Write one line per paragraph or list item and let the GitHub renderer wrap. Hard-wrapping at ~80 columns (a default many models fall back to) breaks rendering inside lists, blockquotes, and tables, and makes later edits in the GitHub UI ugly. This applies to the PR body only — source files still follow `.prettierrc`.
-- **Atomicity statement** if the PR touches more than one logical thing — add a one-liner explaining why they belong together. If you can't, split.
+- **One purpose.** The title names it in one line; a title that needs an "and" is two PRs (see [§ 3](#3-scope-and-parallel-prs)).
 - **Mention `docs/ai/` updates** under `# Changes` whenever the [meta-update rule](./governance.md#meta-update-rule) fired.
 - **Screenshots are welcome** for visual changes — link them; don't paste giant base64 in the body.
 - **For interface-breaking changes** (satellite `.did`, `juno.config.ts` collections), include a `BREAKING CHANGE:` block in `# Changes` listing what callers / data has to do to migrate.
 - **For changes that depend on `../icdc-core/`** (e.g. you regenerated Candid bindings against a new icdc-core version), call out the upstream PR / commit in `# Motivation` so reviewers can sequence the deploy.
 
-## 3. Atomicity
+## 3. Scope and parallel PRs
 
-One logical change per PR. If you catch yourself writing
-"and also" / "while I was here" / "I noticed that" in the body, split.
+One purpose per PR, whatever its size ([rule 2](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#2-scoped)), and PRs side by side from `main`, stacked only when one needs the other's code ([rule 3](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#3-parallel-not-stacked)). How that splits the usual Vici changes:
 
-| Anti-pattern                                | Do this instead                                                                |
-| ------------------------------------------- | ------------------------------------------------------------------------------ |
-| "Add feature X and rename old component"    | PR 1: `refactor: rename`. PR 2: `feat: X`.                                     |
-| "Fix bug Y and update unrelated typography" | Two PRs.                                                                       |
-| "Refactor 5 components into shared `Foo`"   | PR 1: introduce `Foo` + migrate 1 caller. PR 2..N: migrate the others.         |
-| "New satellite endpoint + add it to the FE" | Usually two PRs (satellite first, FE second). One only if both are very small. |
+| Change                                      | Split                                                                                                                         |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| "Add feature X and rename old component"    | `refactor: rename` and `feat: X`, both from `main` in parallel; the rename lands first only if X needs it.                    |
+| "Fix bug Y and update unrelated typography" | Two PRs from `main`, in parallel.                                                                                             |
+| "Refactor 5 components into shared `Foo`"   | One PR: the purpose is "consolidate into `Foo`", whatever the number of callers.                                              |
+| "New satellite endpoint + add it to the FE" | Two PRs: the satellite endpoint, then the FE that calls it. The FE needs the endpoint deployed, so this is a justified stack. |
 
 ## 4. Local quality gates
 
@@ -114,6 +113,10 @@ npm run juno:functions:build && npm run quality
 
 # Engine sanity (after re-init or refactors that touch engine wiring)
 npm run test:engine-sync
+
+# Web2 API: whenever you touch backend/** or a mirrored app constant
+# (backend/tests/shared-drift/ reads app files). Needs Postgres up.
+(cd backend && docker compose up -d && bun run typecheck && bun test)
 ```
 
 The CI workflow [`.github/workflows/checks.yml`](../../.github/workflows/checks.yml)
@@ -258,7 +261,7 @@ The queue is **not enabled** on `main` today, so these legs are dormant. Switchi
     against `null`/`undefined`) → `isNullish(x)` / `nonNullish(x)` from
     `@dfinity/utils`.
   - Relative imports under `src/**` → use the path aliases (see
-    [`frontend/structure.md`](./frontend/structure.md#imports)).
+    [`frontend/structure.md`](./frontend/structure.md#imports--aliases-only)).
 - **`check` failed** → fix `svelte-check` errors. No `// @ts-ignore`,
   no `as any`, no `as unknown as …`.
 - **`checks-pass` red but children green** → the aggregator has a stale
@@ -355,7 +358,7 @@ Never write:
   PR-conversation addressed to the reviewer; it is noise the moment
   the PR merges. Put it in the PR body instead.
 - **Source references** — where behaviour was ported or copied from
-  (see [commandment 5](../../AGENTS.md#2-project-specific-commandments)).
+  (see [rule 6](../../AGENTS.md#4-vici-specific-rules)).
 
 If the code needs narration to be understandable, fix the code — a
 better name, a smaller function, an extracted constant — instead of

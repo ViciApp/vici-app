@@ -31,7 +31,8 @@ It **is not**:
 
 ## Satellite-specific things to check (every change)
 
-Generic agent hygiene (read first, run lint/check, atomic PRs) is in
+Generic agent hygiene (read first, run lint/check,
+[scoped PRs](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#2-scoped)) is in
 [`AGENTS.md`](../../../AGENTS.md) and [`pr-and-ci.md`](../pr-and-ci.md).
 What is specific to the satellite:
 
@@ -51,7 +52,7 @@ What is specific to the satellite:
 
 ## Non-obvious satellite gotchas
 
-The stack is `src/satellite/package.json` and the layout is `ls src/satellite/`.
+The satellite has no `package.json` of its own: its dependencies are in the root [`package.json`](../../../package.json), and the layout is `ls src/satellite/`.
 What the code will not tell you:
 
 - **`@junobuild/core` is FE-only.** Never import it from the satellite —
