@@ -21,5 +21,4 @@ Search here before writing a helper in `src/satellite/`. Adding a shared one? Ad
 
 ## Known duplicates (do not add a third)
 
-- **FNV-1a 64** is written three times: `fnv1a64` in `services/referral.services.ts`, `fnv1a64Hex` in `src/lib/types/school-submission.ts` (UTF-8 bytes) and `fnv1a64Hex` in `src/lib/utils/hash.utils.ts` (UTF-16 code units, so a different result for non-ASCII input under the same name).
 - **`isRegisteredLocale`** exists in `services/market-translation.services.ts` and `src/lib/stores/locale.store.ts`.

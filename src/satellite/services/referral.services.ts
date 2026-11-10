@@ -17,6 +17,7 @@ import type { ReferralCodeDoc, ReferralDoc, ReferralListItem } from '#lib/types/
 import type { Relation } from '#lib/types/relation.ts';
 import type { Activity } from '#lib/types/social.ts';
 import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
+import { fnv1a64 } from '#lib/utils/hash.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { transferWithBadFeeRetry } from '#satellite/utils/vxp-payout.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -36,31 +37,8 @@ import type { PrincipalText } from '@junobuild/schema';
 
 // ─── Code generation ─────────────────────────────────────────────────────
 
-const FNV_OFFSET = 0xcbf29ce484222325n;
-const FNV_PRIME = 0x100000001b3n;
-const MASK64 = 0xffffffffffffffffn;
 const ALPHABET_SIZE = BigInt(REFERRAL_CODE_ALPHABET.length);
 const CODE_GENERATION_MAX_RETRIES = 8;
-
-/**
- * 64-bit FNV-1a over the input string. Cheap, deterministic, and adequate as the entropy source
- * for an 8-char (40-bit) opaque code — we only need uniqueness across the user base, not
- * cryptographic unpredictability. The Juno satellite has no `raw_rand` exposed via
- * `@junobuild/functions/ic-cdk` today, so combining `time()` (nanoseconds) with the caller's
- * principal + a salt counter gives us enough divergence to avoid collisions in practice; on the
- * (vanishingly rare) collision, we retry with a bumped salt up to {@link CODE_GENERATION_MAX_RETRIES}.
- */
-const fnv1a64 = (input: string): bigint => {
-	const bytes = new TextEncoder().encode(input);
-	let hash = FNV_OFFSET;
-
-	for (const b of bytes) {
-		hash = (hash ^ BigInt(b)) & MASK64;
-		hash = (hash * FNV_PRIME) & MASK64;
-	}
-
-	return hash;
-};
 
 const encodeBase32 = (value: bigint): string => {
 	let result = '';
@@ -74,6 +52,14 @@ const encodeBase32 = (value: bigint): string => {
 	return result;
 };
 
+/**
+ * FNV-1a 64 is cheap, deterministic, and adequate as the entropy source for an 8-char (40-bit)
+ * opaque code: we only need uniqueness across the user base, not cryptographic unpredictability.
+ * The Juno satellite has no `raw_rand` exposed via `@junobuild/functions/ic-cdk` today, so
+ * combining `time()` (nanoseconds) with the caller's principal + a salt counter gives us enough
+ * divergence to avoid collisions in practice; on the (vanishingly rare) collision, we retry with a
+ * bumped salt up to {@link CODE_GENERATION_MAX_RETRIES}.
+ */
 const generateReferralCode = ({
 	ownerText,
 	salt

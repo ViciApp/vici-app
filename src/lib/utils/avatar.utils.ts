@@ -1,4 +1,4 @@
-import { fnv1a64Hex } from '#lib/utils/hash.utils.ts';
+import { fnv1a64Utf16Hex } from '#lib/utils/hash.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 
@@ -18,7 +18,7 @@ export const dicebearAvatarUrl = (seed: string): string =>
  * principal always maps to the same avatar.
  */
 export const avatarSeedForPrincipal = (principal: PrincipalText): string =>
-	`vici-${fnv1a64Hex(principal)}`;
+	`vici-${fnv1a64Utf16Hex(principal)}`;
 
 /**
  * Whether a user has a real, uploaded avatar (a non-empty URL). When this is
