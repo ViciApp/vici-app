@@ -21,10 +21,7 @@ import {
 	unauthenticated,
 	type AuthedUser
 } from '../auth/guard';
-
-interface StatusContext {
-	status?: number | string;
-}
+import type { StatusContext } from '../lib/http';
 
 const gate = async (
 	request: Request,

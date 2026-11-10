@@ -13,16 +13,7 @@ import {
 	getAnalyticsUserStats
 } from '../analytics/export';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
-
-interface StatusContext {
-	status?: number | string;
-}
-
-const badRequest = (set: StatusContext, error: string): { error: string } => {
-	set.status = 400;
-
-	return { error };
-};
+import { badRequest } from '../lib/http';
 
 export const eventsRoutes = new Elysia({ prefix: '/api/v1/events' })
 	.post(
