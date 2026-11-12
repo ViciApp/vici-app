@@ -6,6 +6,7 @@ import { isNullish } from '@dfinity/utils';
 import { query } from '../db/client';
 import { readCookie, SESSION_COOKIE } from '../lib/cookie';
 import { peppered } from '../lib/crypto';
+import type { StatusContext } from '../lib/http';
 
 export type Role = 'user' | 'admin';
 
@@ -37,10 +38,6 @@ export const requireUser = async (request: Request): Promise<AuthedUser | null> 
 /** The user `requireUser` resolved when it holds the admin role, or null (403); the session is read once. */
 export const requireAdmin = (user: AuthedUser): AuthedUser | null =>
 	user.role === 'admin' ? user : null;
-
-interface StatusContext {
-	status?: number | string;
-}
 
 /** Standard 401 body; `set.status` is mutated as a side effect. */
 export const unauthenticated = (set: StatusContext): { error: string } => {

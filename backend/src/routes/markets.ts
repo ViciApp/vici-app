@@ -7,6 +7,7 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
+import type { StatusContext } from '../lib/http';
 import { CuratorForbiddenError, MarketValidationError } from '../markets/curator';
 import { getMarketMetadata, upsertMarketMetadata } from '../markets/metadata';
 import { getMarketTags, rebuildMarketTagIndex } from '../markets/tag-index';
@@ -16,10 +17,6 @@ import {
 	listMarketTranslationsForLocales,
 	upsertMarketTranslation
 } from '../markets/translations';
-
-interface StatusContext {
-	status?: number | string;
-}
 
 const mapCuratorError = (set: StatusContext, err: unknown): { error: string } => {
 	if (err instanceof CuratorForbiddenError) {

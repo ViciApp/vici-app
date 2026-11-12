@@ -23,16 +23,7 @@ import {
 	restartBattle,
 	retractBattle
 } from '../leagues/battles';
-
-interface StatusContext {
-	status?: number | string;
-}
-
-const badRequest = (set: StatusContext, error: string): { error: string } => {
-	set.status = 400;
-
-	return { error };
-};
+import { badRequest } from '../lib/http';
 
 type BattleAction = (args: { battleId: string; callerId: string }) => Promise<unknown>;
 
