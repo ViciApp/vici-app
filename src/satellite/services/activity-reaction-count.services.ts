@@ -1,6 +1,6 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import type { ActivityReactionCount } from '#lib/types/social.ts';
-import { isAdmin } from '#satellite/services/_authz.ts';
+import { isAdmin } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { OnDeleteDocContext, OnSetDocContext } from '@junobuild/functions';

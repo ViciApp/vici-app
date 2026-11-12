@@ -88,8 +88,7 @@ The frontend imports from `#satellite` only the `fromWire*` converters in
 `utils/wire-format.utils.ts` (profile, leaderboard, referral and
 market-translation services). Nothing else crosses in either direction.
 
-**Known deviations (do not copy).** `services/_authz.ts` lacks the
-`.services.ts` suffix. `index.ts` holds local assert composers
+**Known deviations (do not copy).** `index.ts` holds local assert composers
 (`assertProfile`) that belong in services.
 
 ## Forbidden imports

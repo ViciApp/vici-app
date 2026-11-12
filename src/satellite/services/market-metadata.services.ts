@@ -1,7 +1,7 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { normalizeStoredTags } from '#lib/constants/market-taxonomy.constants.ts';
 import type { MarketMetadata, MarketMetadataInput } from '#lib/types/market-metadata.ts';
-import { isAdmin, isCreatorOrAdmin } from '#satellite/services/_authz.ts';
+import { isAdmin, isCreatorOrAdmin } from '#satellite/services/authz.services.ts';
 import { updateMarketTagIndex } from '#satellite/services/market-tag-index.services.ts';
 import { isNullish } from '@dfinity/utils';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
