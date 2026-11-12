@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.8.54](https://github.com/ViciApp/vici-app/compare/v1.8.53...v1.8.54) (2026-11-12)
+
+
+### Bug Fixes
+
+* **backend:** require RESEND_API_KEY in production ([#1477](https://github.com/ViciApp/vici-app/issues/1477)) ([a40d8ac](https://github.com/ViciApp/vici-app/commit/a40d8ac63f743c3b9814b147cec1924369529161))
+* **backend:** validate the withdrawal destination per chain ([#1476](https://github.com/ViciApp/vici-app/issues/1476)) ([f91d112](https://github.com/ViciApp/vici-app/commit/f91d112e94a10febd1603a9f39ca6d8c38560e64))
+
+
+### Documentation
+
+* **ai:** drop em dashes from the agent docs ([#1475](https://github.com/ViciApp/vici-app/issues/1475)) ([c121202](https://github.com/ViciApp/vici-app/commit/c121202664450feb2e09556a1b9cf4c12818d60c))
+* **frontend:** describe the consensus dial needle as it is drawn ([#1466](https://github.com/ViciApp/vici-app/issues/1466)) ([5278c49](https://github.com/ViciApp/vici-app/commit/5278c494bff3224e68521e18dd70e14d91065aea))
+
+
+### Code Refactoring
+
+* **backend:** keep one ms-to-ns conversion in lib/time ([#1462](https://github.com/ViciApp/vici-app/issues/1462)) ([1184f9a](https://github.com/ViciApp/vici-app/commit/1184f9aeac699c3c2ce8f2b38bcc33716597f093))
+* **backend:** keep one optionalMs in lib/time ([#1473](https://github.com/ViciApp/vici-app/issues/1473)) ([18b4ff0](https://github.com/ViciApp/vici-app/commit/18b4ff0845e61113fc2354e50ef52b1d37eb779a))
+* **backend:** move route SQL into domain functions ([#1474](https://github.com/ViciApp/vici-app/issues/1474)) ([71f8c2b](https://github.com/ViciApp/vici-app/commit/71f8c2bf876aa9b04ca0daec1ffa5a787d6ba62d))
+* **backend:** shape league member rows in one place ([#1471](https://github.com/ViciApp/vici-app/issues/1471)) ([417946d](https://github.com/ViciApp/vici-app/commit/417946d4663c8ce1a8ac9045942cd6231469bbf4))
+* **backend:** share the 503 status helper from lib/http ([#1469](https://github.com/ViciApp/vici-app/issues/1469)) ([8a5407a](https://github.com/ViciApp/vici-app/commit/8a5407a2be9c640238118e6152af95f4274323ed))
+* **frontend:** keep one isRegisteredLocale guard in locale.constants ([#1464](https://github.com/ViciApp/vici-app/issues/1464)) ([bba8cef](https://github.com/ViciApp/vici-app/commit/bba8cefd75c14ac743f2f409e3b7ba08c40ee86d))
+* **frontend:** move median from types to stats.utils ([#1463](https://github.com/ViciApp/vici-app/issues/1463)) ([6989ce5](https://github.com/ViciApp/vici-app/commit/6989ce5817baf48f8d7e99ca721552a49e992660))
+* **frontend:** read the Vite env through one viteEnv in app.env ([#1468](https://github.com/ViciApp/vici-app/issues/1468)) ([e57737c](https://github.com/ViciApp/vici-app/commit/e57737cbd83812a76180ee6e5c297029932a8a82))
+* **frontend:** size whole VXP in base units through one vxpBaseUnits ([#1472](https://github.com/ViciApp/vici-app/issues/1472)) ([7368129](https://github.com/ViciApp/vici-app/commit/7368129ab7301c4f14fa4b080538a90398c96a32))
+* **satellite:** move the composed profile asserts into their services ([#1465](https://github.com/ViciApp/vici-app/issues/1465)) ([502fb9b](https://github.com/ViciApp/vici-app/commit/502fb9b9edbea0db4641eabae02eddbb81ae0210))
+* **satellite:** read the controller caller through one authz helper ([#1470](https://github.com/ViciApp/vici-app/issues/1470)) ([b6e230e](https://github.com/ViciApp/vici-app/commit/b6e230e51e984fbca95d6b2f94669d098d2bfef6))
+
+
+### Continuous Integration
+
+* **officina:** ask Copilot to review Officina's pull requests ([#1461](https://github.com/ViciApp/vici-app/issues/1461)) ([f6341c8](https://github.com/ViciApp/vici-app/commit/f6341c8642dc80cab6a397e9fc829292c3da8493))
+
 ## [1.8.53](https://github.com/ViciApp/vici-app/compare/v1.8.52...v1.8.53) (2026-11-12)
 
 
