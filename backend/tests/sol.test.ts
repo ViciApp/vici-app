@@ -2,10 +2,13 @@
 // derivation, base58 vectors from the reference test suite, the compact-u16
 // length encoding, and program-derived address invariants.
 
+import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import { base58 } from '@scure/base';
 import { describe, expect, test } from 'bun:test';
 import {
+	buildSolTransferTx,
+	buildSplTransferTx,
 	deriveAssociatedTokenAccount,
 	findProgramAddress,
 	shortvec,
@@ -77,6 +80,40 @@ describe('program-derived addresses', () => {
 
 		expect(findProgramAddress({ seeds, programId: TOKEN_PROGRAM_ID })).not.toBe(
 			findProgramAddress({ seeds, programId: SYSTEM_PROGRAM_ID })
+		);
+	});
+});
+
+describe('signed transfers', () => {
+	const seed = new Uint8Array(32).fill(1);
+	const to = solAddressFromSeed(new Uint8Array(32).fill(2));
+	const mint = solAddressFromSeed(new Uint8Array(32).fill(3));
+	const recentBlockhash = solAddressFromSeed(new Uint8Array(32).fill(4));
+
+	const wireDigest = (base64: string): string =>
+		bytesToHex(sha256(Uint8Array.from(Buffer.from(base64, 'base64'))));
+
+	// ed25519 signing is deterministic, so a digest of the wire pins every
+	// byte of the message layout and the signature over it.
+	test('pins the native SOL transfer wire bytes', () => {
+		const wire = buildSolTransferTx({ seed, to, lamports: BigInt(1_000_000), recentBlockhash });
+
+		expect(wireDigest(wire)).toBe(
+			'a034dafa03d78cb0a7fdb60279a8f055a6f7ee71374fb1ad48088257128cbb6c'
+		);
+	});
+
+	test('pins the SPL transfer wire bytes', () => {
+		const wire = buildSplTransferTx({
+			seed,
+			to,
+			amount: BigInt(2_500_000),
+			mint,
+			recentBlockhash
+		});
+
+		expect(wireDigest(wire)).toBe(
+			'9637c029338b332841f2faa640070f865d62980eb44786376d594db7dd5a57e9'
 		);
 	});
 });
