@@ -1,5 +1,11 @@
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { createOtp, OTP_MAX_ATTEMPTS, verifyOtp } from '../src/auth/otp';
+import {
+	createOtp,
+	OTP_MAX_ATTEMPTS,
+	OTP_MAX_LIVE_CODES,
+	requestOtp,
+	verifyOtp
+} from '../src/auth/otp';
 import { query } from '../src/db/client';
 import { app } from '../src/index';
 import { resetRateLimits } from '../src/lib/rate-limit';
@@ -89,6 +95,35 @@ describe.if(dbAvailable)('email OTP', () => {
 		}
 
 		expect(await verifyOtp({ email, code })).toEqual({ ok: false, reason: 'locked' });
+	});
+
+	test('concurrent wrong guesses cannot exceed the attempt budget', async () => {
+		const email = uniqueEmail();
+		const code = await createOtp(email);
+
+		const results = await Promise.all(
+			Array.from({ length: OTP_MAX_ATTEMPTS * 4 }, () => verifyOtp({ email, code: '000000' }))
+		);
+
+		expect(results.filter((result) => !result.ok && result.reason === 'invalid').length).toBe(
+			OTP_MAX_ATTEMPTS
+		);
+		expect(await verifyOtp({ email, code })).toEqual({ ok: false, reason: 'locked' });
+	});
+
+	test(`an address holds at most ${OTP_MAX_LIVE_CODES} live codes`, async () => {
+		const email = uniqueEmail();
+
+		for (let i = 0; i < OTP_MAX_LIVE_CODES + 2; i++) {
+			await requestOtp(email);
+		}
+
+		const rows = await query<{ count: number }>(
+			`select count(*)::int as count from otp_codes where lower(email) = $1`,
+			[email]
+		);
+
+		expect(rows[0]?.count).toBe(OTP_MAX_LIVE_CODES);
 	});
 
 	test('an expired code never verifies', async () => {

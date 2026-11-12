@@ -11,11 +11,13 @@ import { normalizeEmail, resolveIdentity } from './identity';
 
 export const OTP_TTL_MINUTES = 10;
 export const OTP_MAX_ATTEMPTS = 5;
+/** Live codes one address may hold at once. Each code gets its own attempts,
+ * so without a cap a fresh request would buy a fresh set of guesses. */
+export const OTP_MAX_LIVE_CODES = 3;
 
 interface OtpRow {
 	id: string;
 	code_hash: string;
-	attempts: number;
 }
 
 /** Store a fresh code for the address; the plaintext code (for delivery).
@@ -43,6 +45,17 @@ export const createOtp = async (email: string): Promise<string> => {
  * address. */
 export const requestOtp = async (email: string): Promise<void> => {
 	const e = normalizeEmail(email);
+	const [live] = await query<{ count: number }>(
+		`select count(*)::int as count from otp_codes where lower(email) = $1 and expires_at > now()`,
+		[e]
+	);
+
+	if ((live?.count ?? 0) >= OTP_MAX_LIVE_CODES) {
+		logger.warn(`[otp] ${e} already holds ${OTP_MAX_LIVE_CODES} live codes; none issued`);
+
+		return;
+	}
+
 	const code = await createOtp(e);
 
 	try {
@@ -56,9 +69,10 @@ export type VerifyResult =
 	{ ok: true; userId: string } | { ok: false; reason: 'invalid' | 'locked' };
 
 /** Verify a code. Success resolves (or provisions) the user for the verified
- * address and burns every outstanding code for it (single-use). Wrong codes
- * increment the attempt counter; OTP_MAX_ATTEMPTS locks the code out even for
- * the right code afterwards. */
+ * address and burns every outstanding code for it (single-use). Every attempt
+ * spends one of the code's OTP_MAX_ATTEMPTS before the comparison, in the same
+ * statement that checks the budget, so concurrent guesses cannot all slip
+ * under the limit; a spent code is locked even for the right code. */
 export const verifyOtp = async ({
 	email,
 	code
@@ -68,25 +82,31 @@ export const verifyOtp = async ({
 }): Promise<VerifyResult> => {
 	const e = normalizeEmail(email);
 
-	const rows = await query<OtpRow>(
-		`select id, code_hash, attempts from otp_codes
+	const latest = await query<{ id: string }>(
+		`select id from otp_codes
 		 where lower(email) = $1 and expires_at > now()
 		 order by created_at desc limit 1`,
 		[e]
 	);
-	const [otp] = rows;
+	const [current] = latest;
 
-	if (isNullish(otp)) {
+	if (isNullish(current)) {
 		return { ok: false, reason: 'invalid' };
 	}
 
-	if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+	const claimed = await query<OtpRow>(
+		`update otp_codes set attempts = attempts + 1
+		 where id = $1 and attempts < $2
+		 returning id, code_hash`,
+		[current.id, OTP_MAX_ATTEMPTS]
+	);
+	const [otp] = claimed;
+
+	if (isNullish(otp)) {
 		return { ok: false, reason: 'locked' };
 	}
 
 	if (!constantTimeEqual(otp.code_hash, peppered(code))) {
-		await query(`update otp_codes set attempts = attempts + 1 where id = $1`, [otp.id]);
-
 		return { ok: false, reason: 'invalid' };
 	}
 
