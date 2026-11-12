@@ -6,6 +6,7 @@
 	 */
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { consensusLean } from '#lib/utils/market.utils.ts';
 
 	interface Props {
 		yes: number;
@@ -13,23 +14,20 @@
 	}
 
 	const { yes, size = 42 }: Props = $props();
-	const isYes = $derived(yes >= 50);
-	const conf = $derived(Math.abs(yes - 50) / 50);
-	const angle = $derived(isYes ? -conf * 90 : conf * 90);
-	const dir = $derived(isYes ? 'yes' : 'no');
-	const color = $derived(isYes ? 'var(--yes)' : 'var(--no)');
-	const pct = $derived(Math.max(yes, 100 - yes));
+	const lean = $derived(consensusLean(yes));
+	const dir = $derived(lean.isYes ? 'yes' : 'no');
+	const color = $derived(lean.isYes ? 'var(--yes)' : 'var(--no)');
 	// The dial points to whichever side holds the majority, and the readout
 	// shows that majority percent — so the screen-reader label must name the
 	// displayed side (YES or NO), not a fixed one.
 	const sideLabel = $derived(
-		t({ locale: $localeStore, key: isYes ? 'welcome.flowcard.yes' : 'welcome.flowcard.no' })
+		t({ locale: $localeStore, key: lean.isYes ? 'welcome.flowcard.yes' : 'welcome.flowcard.no' })
 	);
 	const ariaLabel = $derived(
 		t({
 			locale: $localeStore,
 			key: 'welcome.flowcard.consensus_aria',
-			params: { pct, side: sideLabel }
+			params: { pct: lean.leadingPct, side: sideLabel }
 		})
 	);
 </script>
@@ -39,7 +37,7 @@
 		<circle cx="21" cy="21" fill="none" r="18" stroke="var(--border)" stroke-width="1.2" />
 		<line stroke="var(--fg-faint)" stroke-width="1" x1="21" x2="21" y1="2" y2="5" />
 		<line stroke="var(--fg-faint)" stroke-width="1" x1="21" x2="21" y1="37" y2="40" />
-		<g transform="rotate({angle} 21 21)">
+		<g transform="rotate({lean.angle} 21 21)">
 			<line
 				stroke={color}
 				stroke-linecap="round"
@@ -53,5 +51,5 @@
 		</g>
 		<circle cx="21" cy="21" fill={color} r="2.5" />
 	</svg>
-	<span class="flow-compass-pct">{pct}%</span>
+	<span class="flow-compass-pct">{lean.leadingPct}%</span>
 </div>
