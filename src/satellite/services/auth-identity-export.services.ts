@@ -23,7 +23,7 @@
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import type { ProfilePrivate } from '#lib/types/profile.ts';
-import { isAdmin } from '#satellite/services/_authz.ts';
+import { isAdmin } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, notEmptyString } from '@dfinity/utils';
 import { msgCaller } from '@junobuild/functions/ic-cdk';

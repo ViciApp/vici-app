@@ -35,7 +35,7 @@ import {
 	type TrackEventInput
 } from '#lib/types/analytics-event.ts';
 import type { VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { isAdmin } from '#satellite/services/_authz.ts';
+import { isAdmin } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';

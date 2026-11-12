@@ -28,7 +28,7 @@ import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import { VXP_STREAK_BONUSES } from '#lib/constants/vxp-economy.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { parseToken } from '#lib/utils/parse.utils.ts';
-import { isAdmin } from '#satellite/services/_authz.ts';
+import { isAdmin } from '#satellite/services/authz.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';

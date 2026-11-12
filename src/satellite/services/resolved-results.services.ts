@@ -4,7 +4,7 @@ import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canis
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import type { Activity, ResolvedResult } from '#lib/types/social.ts';
-import { isAdmin } from '#satellite/services/_authz.ts';
+import { isAdmin } from '#satellite/services/authz.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
