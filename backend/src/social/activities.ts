@@ -4,6 +4,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx } from '../db/client';
+import { UUID_RE } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { fanOutResolvedResults } from './resolved-results';
 
@@ -79,8 +80,6 @@ export const activityKey = ({
 	timestamp: number;
 	type: ActivityType;
 }): string => `${userId}#${timestamp}#${type}`;
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Splits `${user}#${timestamp}#${type}` and validates every segment: the
  * user segment is a user id, the timestamp is a canonical safe integer and

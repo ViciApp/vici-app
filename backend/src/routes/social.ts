@@ -5,6 +5,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
+import { UUID_RE } from '../lib/constants';
 import { badRequest } from '../lib/http';
 import {
 	ActivityNotFoundError,
@@ -441,11 +442,10 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 
 			// Non-uuid entries can never match a row; drop them up front so the
 			// typed array bind cannot fail on a malformed id.
-			const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 			const friendIds = params.friends
 				.split(',')
 				.map((id) => id.trim())
-				.filter((id) => uuidRe.test(id));
+				.filter((id) => UUID_RE.test(id));
 
 			return { items: await listFriendResolvedResults({ friendIds }) };
 		},

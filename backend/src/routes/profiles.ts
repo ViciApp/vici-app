@@ -6,6 +6,7 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
+import { UUID_RE } from '../lib/constants';
 import { badRequest } from '../lib/http';
 import { InvalidDayKeyError, NoProfileError, recordFlowSwipe } from '../profiles/flow';
 import { checkNicknameAvailability } from '../profiles/nickname';
@@ -20,8 +21,6 @@ import { upsertMyProfile } from '../profiles/profile-write';
 import { getUserStats, upsertMonthlyStats, upsertUserStats } from '../profiles/stats';
 import { mintFlowOvertime } from '../vxp/flow';
 import { runProfileAwardTriggers } from '../vxp/triggers';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 	.get('/me', async ({ request, set }) => {
