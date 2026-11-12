@@ -4,20 +4,20 @@ import { describe, it } from 'node:test';
 
 describe('market.utils', () => {
 	describe('consensusLean', () => {
-		it('points straight down at an all-NO market', () => {
+		it('turns a quarter right at an all-NO market', () => {
 			assert.deepEqual(consensusLean(0), { isYes: false, angle: 90, leadingPct: 100 });
 		});
 
-		it('reads level at 50/50 and counts it as YES', () => {
+		it('points straight up at 50/50 and counts it as YES', () => {
 			const { isYes, angle, leadingPct } = consensusLean(50);
 
 			assert.equal(isYes, true);
-			// `===` so the `-0` the formula yields still counts as level: it renders as `rotate(0 ...)`.
+			// `===` so the `-0` the formula yields still counts as straight up: it renders as `rotate(0 ...)`.
 			assert.ok(angle === 0);
 			assert.equal(leadingPct, 50);
 		});
 
-		it('points straight up at an all-YES market', () => {
+		it('turns a quarter left at an all-YES market', () => {
 			assert.deepEqual(consensusLean(100), { isYes: true, angle: -90, leadingPct: 100 });
 		});
 

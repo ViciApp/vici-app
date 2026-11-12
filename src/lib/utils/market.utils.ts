@@ -147,7 +147,7 @@ export const calculateProbability = ({
 export interface ConsensusLean {
 	/** The crowd leans YES; an even 50/50 split counts as YES. */
 	isYes: boolean;
-	/** Needle rotation in degrees: -90 points up (all YES), 0 is level, 90 points down (all NO). */
+	/** Needle rotation in degrees from straight up: -90 (all YES), 0 (50/50), 90 (all NO). */
 	angle: number;
 	/** The leading side's percentage (50..100), the figure a consensus dial shows. */
 	leadingPct: number;
@@ -156,7 +156,8 @@ export interface ConsensusLean {
 /**
  * Which way a binary market's consensus dial leans, from its YES percentage
  * (0..100, clamped). The needle turns linearly with the distance from 50/50, so
- * a balanced market reads level and a one-sided one points at its pole.
+ * a balanced market points straight up and a one-sided one lies flat toward
+ * its side (left for YES, right for NO).
  */
 export const consensusLean = (yesPct: number): ConsensusLean => {
 	const pct = Math.max(0, Math.min(100, yesPct));
