@@ -2,7 +2,8 @@
 
 import { randomBytes } from 'node:crypto';
 import { query } from '../../src/db/client';
-import { upsertMyProfile, type Profile } from '../../src/profiles/profile';
+import type { Profile } from '../../src/profiles/profile';
+import { upsertMyProfile } from '../../src/profiles/profile-write';
 import { createTestUser } from './auth';
 
 /** A unique, rule-conform nickname so suites never collide on the fold. */

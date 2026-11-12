@@ -507,9 +507,6 @@ area; never add a third.
 - **Two consensus dials.** `market/ConsensusCompass.svelte` (Flow card) and
   `landing/LandingConsensusCompass.svelte` (landing hero) draw the same
   YES-up / NO-down lean.
-- **Theme ids re-listed.** `layout/WelcomeNav.svelte` declares its own
-  `THEME_IDS` instead of reading `THEMES` / `THEME_SWATCHES` from
-  `theme.store`.
 
 ## When to extract a new shared block
 
