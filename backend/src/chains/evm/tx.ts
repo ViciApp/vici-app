@@ -8,22 +8,10 @@ import { isNullish } from '@dfinity/utils';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
+import { concatBytes } from '../../lib/bytes';
 import { ZERO } from '../../lib/constants';
 
 export type RlpInput = Uint8Array | RlpInput[];
-
-const concatBytes = (...arrays: Uint8Array[]): Uint8Array => {
-	const total = arrays.reduce((sum, a) => sum + a.length, 0);
-	const out = new Uint8Array(total);
-	let offset = 0;
-
-	for (const a of arrays) {
-		out.set(a, offset);
-		offset += a.length;
-	}
-
-	return out;
-};
 
 const encodeLength = (length: number, offset: number): Uint8Array => {
 	if (length < 56) {
