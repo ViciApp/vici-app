@@ -131,11 +131,9 @@ import {
 	listMarketTranslationsForLocales as listMarketTranslationsForLocalesFn,
 	upsertMarketTranslation as upsertMarketTranslationFn
 } from '#satellite/services/market-translation.services.ts';
-import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
-import { assertSetProfilePrivate } from '#satellite/services/profile-private.services.ts';
+import { assertProfilePrivate } from '#satellite/services/profile-private.services.ts';
 import {
-	assertDailyGoalMonotonic,
-	assertValidNickname,
+	assertProfile,
 	checkNicknameAvailabilityFn,
 	getProfile as getProfileFn,
 	recordFlowSwipeFn,
@@ -1362,26 +1360,6 @@ export const getMonthlyLeaderboard = defineQuery({
 		};
 	}
 });
-
-/**
- * Composed `profiles` pre-write veto. Each sub-assert (`assertNewProfileAllowed`,
- * `assertValidNickname`, `assertDailyGoalMonotonic`) is exported independently
- * from its service so they stay unit-testable; we compose them here to keep the
- * dispatch table's one-assert-per-collection invariant. A throw from any one
- * rejects the write. The new-profile gate runs first so a refused create skips
- * the nickname check's full collection scan.
- */
-const assertProfile = (context: AssertSetDocContext): void => {
-	assertNewProfileAllowed(context);
-	assertValidNickname(context);
-	assertDailyGoalMonotonic(context);
-};
-
-/** Composed `profile_private` pre-write veto: owner binding, then the new-profile gate. */
-const assertProfilePrivate = (context: AssertSetDocContext): void => {
-	assertSetProfilePrivate(context);
-	assertNewProfileAllowed(context);
-};
 
 const assertSetDocCollections = [
 	Collection.ACTIVITIES,
