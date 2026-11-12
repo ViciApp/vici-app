@@ -85,7 +85,7 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);
@@ -102,7 +102,7 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 				return unauthenticated(set);
 			}
 
-			const admin = await requireAdmin(request);
+			const admin = requireAdmin(user);
 
 			if (isNullish(admin)) {
 				return forbidden(set);
@@ -134,7 +134,7 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);
