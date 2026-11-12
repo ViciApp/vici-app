@@ -34,6 +34,18 @@ const ledgerRef = (asset: Asset): string => {
 
 const deriveAddress = (userId: string): string => userIcPrincipalText(userId);
 
+/** A principal in its canonical text form; the anonymous principal is
+ * refused, since nobody can move what is sent to it. */
+const isValidAddress = (address: string): boolean => {
+	try {
+		const principal = Principal.fromText(address);
+
+		return !principal.isAnonymous() && principal.toText() === address;
+	} catch (_: unknown) {
+		return false;
+	}
+};
+
 const getBalance = async ({
 	address,
 	asset
@@ -164,6 +176,7 @@ export const icAdapter: ChainAdapter = {
 	replaySafe: true,
 	watchScope: 'address',
 	deriveAddress,
+	isValidAddress,
 	getBalance,
 	withdrawalFee,
 	transfer,

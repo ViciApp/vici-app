@@ -18,7 +18,7 @@ import {
 	type TransferStatus,
 	type WatchResult
 } from '../types';
-import { encodeErc20Transfer, evmAddressFromPrivateKey, signEip1559Tx } from './tx';
+import { encodeErc20Transfer, evmAddressFromPrivateKey, isEvmAddress, signEip1559Tx } from './tx';
 
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
@@ -323,6 +323,7 @@ export const evmAdapter: ChainAdapter = env.evm.enabled
 			enabled: true,
 			watchScope: 'chain',
 			deriveAddress,
+			isValidAddress: isEvmAddress,
 			getBalance,
 			withdrawalFee,
 			transfer,
@@ -335,6 +336,7 @@ export const evmAdapter: ChainAdapter = env.evm.enabled
 			enabled: false,
 			watchScope: 'chain',
 			deriveAddress,
+			isValidAddress: isEvmAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('evm')),
 			withdrawalFee: () => Promise.reject(new ChainDisabledError('evm')),
 			transfer: () => Promise.reject(new ChainDisabledError('evm')),

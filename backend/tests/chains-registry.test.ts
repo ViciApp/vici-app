@@ -3,6 +3,7 @@
 // fail closed (still deriving addresses, since derivation is pure).
 
 import { describe, expect, test } from 'bun:test';
+import { btcAddressFromPrivateKey } from '../src/chains/btc/address';
 import { enabledAdapters, getAdapter, isChain, listAdapters } from '../src/chains/registry';
 import { ChainDisabledError } from '../src/chains/types';
 import type { Asset } from '../src/custody/assets';
@@ -54,6 +55,54 @@ describe('adapter registry (test env has no chain config)', () => {
 		expect(getAdapter('btc').deriveAddress(USER).startsWith('bc1q')).toBe(true);
 		expect(getAdapter('sol').deriveAddress(USER).length).toBeGreaterThan(30);
 		expect(getAdapter('ic').deriveAddress(USER)).toContain('-');
+	});
+
+	test('every adapter accepts its own derived address and refuses junk', () => {
+		for (const chain of ['ic', 'evm', 'sol', 'btc'] as const) {
+			const adapter = getAdapter(chain);
+
+			expect(adapter.isValidAddress(adapter.deriveAddress(USER))).toBe(true);
+			expect(adapter.isValidAddress('not an address')).toBe(false);
+			expect(adapter.isValidAddress('')).toBe(false);
+		}
+	});
+
+	test('ic refuses the anonymous principal and non-canonical text', () => {
+		const ic = getAdapter('ic');
+
+		expect(ic.isValidAddress('2vxsx-fae')).toBe(false);
+		expect(ic.isValidAddress(ic.deriveAddress(USER).toUpperCase())).toBe(false);
+	});
+
+	test('evm accepts single-case hex and refuses a broken checksum', () => {
+		const evm = getAdapter('evm');
+		const address = evm.deriveAddress(USER);
+		const body = address.slice(2);
+		const flipped = body.replace(/[a-f]/, (c) => c.toUpperCase());
+
+		expect(evm.isValidAddress(`0x${body.toLowerCase()}`)).toBe(true);
+		expect(evm.isValidAddress(`0x${flipped}`)).toBe(flipped === body);
+		expect(evm.isValidAddress(`0x${body.slice(1)}`)).toBe(false);
+	});
+
+	test('btc refuses an address of another network', () => {
+		const privateKey = new Uint8Array(32).fill(7);
+		const btc = getAdapter('btc');
+
+		expect(btc.isValidAddress(btcAddressFromPrivateKey({ privateKey, network: 'mainnet' }))).toBe(
+			true
+		);
+		expect(btc.isValidAddress(btcAddressFromPrivateKey({ privateKey, network: 'testnet' }))).toBe(
+			false
+		);
+	});
+
+	test('sol refuses base58 that is not a 32-byte key', () => {
+		const sol = getAdapter('sol');
+		const address = sol.deriveAddress(USER);
+
+		expect(sol.isValidAddress(address.slice(0, -4))).toBe(false);
+		expect(sol.isValidAddress(`${address}22`)).toBe(false);
 	});
 
 	test('isChain narrows correctly', () => {

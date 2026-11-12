@@ -377,6 +377,24 @@ describe.if(dbAvailable)('VXP is not withdrawable', () => {
 			)
 		).toEqual([{ balance: '1000' }]);
 	});
+
+	test.each(['not-a-principal', '2vxsx-fae'])(
+		'a withdrawal to %s is refused before anything is held',
+		async (destination) => {
+			const userId = await createTestUser();
+			const icp = await getAssetBySymbol({ chain: 'ic', symbol: 'ICP' });
+
+			const res = await authedRequest({
+				userId,
+				path: '/api/v1/wallet/withdrawals',
+				body: { assetId: icp?.id, amount: '100', destination }
+			});
+
+			expect(res.status).toBe(400);
+			expect(await res.json()).toEqual({ error: 'invalid_destination' });
+			expect(await query(`select 1 from withdrawals where user_id = $1`, [userId])).toEqual([]);
+		}
+	);
 });
 
 describe.if(dbAvailable)('ic deposit watcher', () => {

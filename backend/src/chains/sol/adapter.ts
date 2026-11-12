@@ -20,6 +20,7 @@ import {
 	buildSolTransferTx,
 	buildSplTransferTx,
 	deriveAssociatedTokenAccount,
+	isSolAddress,
 	solAddressFromSeed
 } from './tx';
 
@@ -302,6 +303,7 @@ export const solAdapter: ChainAdapter = env.sol.enabled
 			enabled: true,
 			watchScope: 'address',
 			deriveAddress,
+			isValidAddress: isSolAddress,
 			getBalance,
 			withdrawalFee,
 			transfer,
@@ -314,6 +316,7 @@ export const solAdapter: ChainAdapter = env.sol.enabled
 			enabled: false,
 			watchScope: 'address',
 			deriveAddress,
+			isValidAddress: isSolAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('sol')),
 			withdrawalFee: () => Promise.reject(new ChainDisabledError('sol')),
 			transfer: () => Promise.reject(new ChainDisabledError('sol')),

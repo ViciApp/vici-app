@@ -214,6 +214,10 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 				return badRequest(set, 'asset_not_withdrawable');
 			}
 
+			if (!adapter.isValidAddress(body.destination)) {
+				return badRequest(set, 'invalid_destination');
+			}
+
 			let fee: bigint;
 
 			try {
