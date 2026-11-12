@@ -5,6 +5,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
+import { badRequest } from '../lib/http';
 import {
 	ActivityNotFoundError,
 	ActivityValidationError,
@@ -35,16 +36,6 @@ import {
 } from '../social/relations';
 import { listFriendResolvedResults, pruneResolvedResults } from '../social/resolved-results';
 import { runTradeActivityTriggers } from '../vxp/triggers';
-
-interface StatusContext {
-	status?: number | string;
-}
-
-const badRequest = (set: StatusContext, error: string): { error: string } => {
-	set.status = 400;
-
-	return { error };
-};
 
 export const DEFAULT_ACTIVITY_LIMIT = 50;
 export const MAX_ACTIVITY_LIMIT = 500;
@@ -430,7 +421,7 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);
@@ -467,7 +458,7 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);

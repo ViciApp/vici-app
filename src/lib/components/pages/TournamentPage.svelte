@@ -2,7 +2,7 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
-	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { DAY_IN_MS, EM_DASH } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		claimTournamentPrize,
@@ -20,7 +20,7 @@
 		type TournamentMatchDoc,
 		type TournamentRound
 	} from '#lib/types/tournament.ts';
-	import { formatIsoDateUtc } from '#lib/utils/format.utils.ts';
+	import { formatIsoDateUtc, formatProbability } from '#lib/utils/format.utils.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 
@@ -124,7 +124,7 @@
 		`tournament.round.${round.replace('r1', 'round1')}` as MessageKey;
 
 	const fmtAccuracy = (value: number | null): string =>
-		isNullish(value) ? '—' : `${Math.round(value * 100)}%`;
+		isNullish(value) ? EM_DASH : formatProbability(value);
 
 	/**
 	 * Rank glyph for a prize-tier place. Brand: no emoji medals —

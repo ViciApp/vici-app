@@ -4,6 +4,7 @@
 // windows, which is safe.
 
 import { isNullish } from '@dfinity/utils';
+import type { StatusContext } from './http';
 
 interface Window {
 	count: number;
@@ -56,8 +57,7 @@ export const rateLimit = (key: string, limit: number, windowMs: number): RateLim
 	return { ok: true, retryAfterSec: 0 };
 };
 
-interface LimitContext {
-	status?: number | string;
+interface LimitContext extends StatusContext {
 	headers: Record<string, string | number>;
 }
 

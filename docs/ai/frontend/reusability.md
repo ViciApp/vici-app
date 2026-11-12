@@ -487,10 +487,11 @@ area; never add a third.
   [`types/user-monthly-stats.ts`](../../../src/lib/types/user-monthly-stats.ts).
   Pure helpers belong in `#lib/utils/`.
 - **Local percent formatters that bypass `format.utils`.** `formatProb` in
-  `pages/PortfolioPage.svelte` (same as `formatProbability`), `formatPct` in
-  `arena/FriendsTab.svelte` (one-decimal `%`, as `formatAccuracyPercent` /
-  `formatLocalePercent`), `fmtAccuracy` in `pages/TournamentPage.svelte`
-  (`probabilityToPercent` plus a literal dash instead of `EM_DASH`).
+  `pages/PortfolioPage.svelte` (as `formatProbability`, except that its
+  `toFixed(0)` renders `-0%` and rounds negative halves away from zero),
+  `formatPct` in `arena/FriendsTab.svelte` (one-decimal `%` from a 0..100
+  input that drops a trailing `.0`, unlike `formatAccuracyPercent` /
+  `formatLocalePercent`).
 - **Direct `navigator.clipboard.writeText` instead of `clipboard.utils`.**
   `leagues/LeagueListCard.svelte`, `market/MarketDetailShareButton.svelte`,
   `pages/LeagueDetailPage.svelte`. (`leagues/JoinLeagueModal.svelte` reads the
@@ -498,9 +499,6 @@ area; never add a third.
 - **Two consensus dials.** `market/ConsensusCompass.svelte` (Flow card) and
   `landing/LandingConsensusCompass.svelte` (landing hero) draw the same
   YES-up / NO-down lean.
-- **Theme ids re-listed.** `layout/WelcomeNav.svelte` declares its own
-  `THEME_IDS` instead of reading `THEMES` / `THEME_SWATCHES` from
-  `theme.store`.
 
 ## When to extract a new shared block
 
