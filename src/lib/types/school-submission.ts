@@ -21,6 +21,8 @@
  * "has this member already verified this school?" check.
  */
 
+import { fnv1a64Hex } from '#lib/utils/hash.utils.ts';
+
 /** Lifecycle of a verification submission. */
 export type SchoolSubmissionStatus = 'awaiting' | 'verified' | 'expired';
 
@@ -60,31 +62,13 @@ export interface SchoolSubmissionDoc {
 }
 
 /**
- * 64-bit FNV-1a over the input string, returned as zero-padded hex.
- * Cheap and deterministic — adequate to compare a submitted 6-digit code
- * against the stored digest. NOT a cryptographic hash: a 6-digit space
- * is brute-forceable offline, so on-chain storage is not the secrecy
- * boundary (the code only ever leaves via the email + the courier
+ * Digest a code under a per-submission salt for storage / comparison.
+ * FNV-1a 64 is cheap and deterministic, adequate to compare a submitted
+ * 6-digit code against the stored digest. NOT a cryptographic hash: a
+ * 6-digit space is brute-forceable offline, so on-chain storage is not the
+ * secrecy boundary (the code only ever leaves via the email + the courier
  * outcall). The real defenses are the attempt cap, TTL, and rate limit.
- * Mirrors `fnv1a64` in `src/satellite/services/referral.services.ts`.
  */
-const FNV_OFFSET = 0xcbf29ce484222325n;
-const FNV_PRIME = 0x100000001b3n;
-const MASK64 = 0xffffffffffffffffn;
-
-export const fnv1a64Hex = (input: string): string => {
-	const bytes = new TextEncoder().encode(input);
-	let hash = FNV_OFFSET;
-
-	for (const b of bytes) {
-		hash = (hash ^ BigInt(b)) & MASK64;
-		hash = (hash * FNV_PRIME) & MASK64;
-	}
-
-	return hash.toString(16).padStart(16, '0');
-};
-
-/** Digest a code under a per-submission salt for storage / comparison. */
 export const hashSchoolCode = ({ code, salt }: { code: string; salt: string }): string =>
 	fnv1a64Hex(`${code}|${salt}`);
 
