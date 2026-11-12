@@ -56,7 +56,8 @@ interface LeagueRow {
 	image_url: string | null;
 }
 
-interface LeagueMemberRow {
+/** A `league_members` row as the member queries select it. */
+export interface LeagueMemberRow {
 	league_id: string;
 	member_user_id: string;
 	joined_at_ms: string;
@@ -83,7 +84,7 @@ export const shapeLeague = (row: LeagueRow): League => ({
 	imageUrl: row.image_url ?? undefined
 });
 
-const shapeMember = (row: LeagueMemberRow): LeagueMember => ({
+export const shapeMember = (row: LeagueMemberRow): LeagueMember => ({
 	leagueId: row.league_id,
 	memberUserId: row.member_user_id,
 	joinedAtMs: Number(row.joined_at_ms),
