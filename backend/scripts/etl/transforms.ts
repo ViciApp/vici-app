@@ -35,7 +35,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { createHash } from 'node:crypto';
 import { tx, type TxQuery } from '../../src/db/client';
-import { ZERO } from '../../src/lib/constants';
+import { UUID_RE, ZERO } from '../../src/lib/constants';
 import { nicknameUniqueKey } from '../../src/profiles/nickname';
 import { activityKey as webActivityKey } from '../../src/social/activities';
 import { followRelationKey, friendRelationKey } from '../../src/social/relations';
@@ -66,8 +66,6 @@ const strArr = (v: unknown): string[] => arr(v).filter((e): e is string => typeo
 
 /** Epoch ms for a timestamptz parameter (passed as ISO string). */
 const isoFromMs = (ms: number): string => new Date(ms).toISOString();
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // ---------------------------------------------------------------------------
 // Principal mapping
