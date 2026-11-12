@@ -12,6 +12,7 @@
 	 */
 	import { isNullish } from '@dfinity/utils';
 	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import { consensusLean } from '#lib/utils/market.utils.ts';
 
 	interface Props {
 		// 0–1 YES-side probability. Clamped defensively to [0, 1].
@@ -33,14 +34,9 @@
 	const yesPct = $derived(
 		isNullish(yesProbability) ? 50 : Math.max(0, Math.min(100, Math.round(yesProbability * 100)))
 	);
-	const isYes = $derived(yesPct >= 50);
-	// Confidence — 0 at 50/50, 1 at the extremes. Drives the needle
-	// rotation linearly so a perfectly balanced market reads horizontal.
-	// When the probability is unknown, yesPct pins to 50 → angle 0 (centred).
-	const conf = $derived(Math.abs(yesPct - 50) / 50);
-	const angle = $derived(isYes ? -conf * 90 : conf * 90);
-	const sideClass = $derived(known ? (isYes ? 'yes' : 'no') : 'unknown');
-	const leadingPct = $derived(Math.max(yesPct, 100 - yesPct));
+	// When the probability is unknown, yesPct pins to 50 so the needle reads level.
+	const lean = $derived(consensusLean(yesPct));
+	const sideClass = $derived(known ? (lean.isYes ? 'yes' : 'no') : 'unknown');
 </script>
 
 <div
@@ -55,7 +51,7 @@
 		<line stroke="var(--parchment-faint)" stroke-width="1" x1="21" x2="21" y1="2" y2="5" />
 		<line stroke="var(--parchment-faint)" stroke-width="1" x1="21" x2="21" y1="37" y2="40" />
 		<!-- Needle -->
-		<g transform={`rotate(${angle} 21 21)`}>
+		<g transform={`rotate(${lean.angle} 21 21)`}>
 			<line
 				stroke="var(--needle-color)"
 				stroke-linecap="round"
@@ -71,7 +67,7 @@
 		<circle cx="21" cy="21" fill="var(--needle-color)" r="2.5" />
 	</svg>
 	{#if known}
-		<span class="flow-compass-pct num">{leadingPct}%</span>
+		<span class="flow-compass-pct num">{lean.leadingPct}%</span>
 	{:else}
 		<span class="flow-compass-pct num"
 			><MarketOddsSkeleton variant={priceLoaded ? 'empty' : 'loading'} /></span

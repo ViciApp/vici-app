@@ -144,6 +144,32 @@ export const calculateProbability = ({
 	return asks[0].price;
 };
 
+export interface ConsensusLean {
+	/** The crowd leans YES; an even 50/50 split counts as YES. */
+	isYes: boolean;
+	/** Needle rotation in degrees: -90 points up (all YES), 0 is level, 90 points down (all NO). */
+	angle: number;
+	/** The leading side's percentage (50..100), the figure a consensus dial shows. */
+	leadingPct: number;
+}
+
+/**
+ * Which way a binary market's consensus dial leans, from its YES percentage
+ * (0..100, clamped). The needle turns linearly with the distance from 50/50, so
+ * a balanced market reads level and a one-sided one points at its pole.
+ */
+export const consensusLean = (yesPct: number): ConsensusLean => {
+	const pct = Math.max(0, Math.min(100, yesPct));
+	const isYes = pct >= 50;
+	const confidence = Math.abs(pct - 50) / 50;
+
+	return {
+		isYes,
+		angle: isYes ? -confidence * 90 : confidence * 90,
+		leadingPct: Math.max(pct, 100 - pct)
+	};
+};
+
 /**
  * Resting book liquidity for a market, expressed in payout-token base units
  * (so it formats with the same `token.decimals` / symbol as volume).
