@@ -33,7 +33,7 @@ const gate = async (
 		return { error: unauthenticated(set) };
 	}
 
-	const admin = await requireAdmin(request);
+	const admin = requireAdmin(user);
 
 	if (isNullish(admin)) {
 		return { error: forbidden(set) };

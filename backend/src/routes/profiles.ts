@@ -14,9 +14,9 @@ import {
 	getProfileView,
 	ProfileValidationError,
 	searchProfiles,
-	shapeOwnProfile,
-	upsertMyProfile
+	shapeOwnProfile
 } from '../profiles/profile';
+import { upsertMyProfile } from '../profiles/profile-write';
 import { getUserStats, upsertMonthlyStats, upsertUserStats } from '../profiles/stats';
 import { mintFlowOvertime } from '../vxp/flow';
 import { runProfileAwardTriggers } from '../vxp/triggers';

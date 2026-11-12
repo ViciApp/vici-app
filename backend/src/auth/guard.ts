@@ -1,5 +1,5 @@
 // Session guards. `requireUser` resolves the caller from the session cookie;
-// `requireAdmin` additionally checks the server-side role column. Routes
+// `requireAdmin` checks that user's server-side role column. Routes
 // answer 401/403 through the helpers below so the bodies stay uniform.
 
 import { isNullish } from '@dfinity/utils';
@@ -35,16 +35,9 @@ export const requireUser = async (request: Request): Promise<AuthedUser | null> 
 	return rows[0] ?? null;
 };
 
-/** The signed-in admin, or null (caller distinguishes 401 vs 403 via requireUser). */
-export const requireAdmin = async (request: Request): Promise<AuthedUser | null> => {
-	const user = await requireUser(request);
-
-	if (isNullish(user) || user.role !== 'admin') {
-		return null;
-	}
-
-	return user;
-};
+/** The user `requireUser` resolved when it holds the admin role, or null (403); the session is read once. */
+export const requireAdmin = (user: AuthedUser): AuthedUser | null =>
+	user.role === 'admin' ? user : null;
 
 /** Standard 401 body; `set.status` is mutated as a side effect. */
 export const unauthenticated = (set: StatusContext): { error: string } => {

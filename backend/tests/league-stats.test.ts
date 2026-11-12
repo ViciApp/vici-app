@@ -8,7 +8,7 @@ import { randomBytes } from 'node:crypto';
 import { createLeague } from '../src/leagues/leagues';
 import { joinLeagueByInvite } from '../src/leagues/members';
 import { getLeagueStats, leagueStatsBucket } from '../src/leagues/stats';
-import { upsertMyProfile } from '../src/profiles/profile';
+import { upsertMyProfile } from '../src/profiles/profile-write';
 import { upsertUserStats } from '../src/profiles/stats';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { hibernateProfile, uniqueNickname } from './helpers/profiles';
