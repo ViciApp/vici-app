@@ -57,11 +57,13 @@
 			"count": 1
 		}
 	},
+	"backend/src/profiles/profile-write.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
 	"backend/src/profiles/profile.ts": {
 		"complexity": {
-			"count": 2
-		},
-		"max-lines": {
 			"count": 1
 		}
 	},
