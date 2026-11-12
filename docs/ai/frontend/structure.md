@@ -47,7 +47,7 @@ src/
 │   └── web2/               HTTP-backend seam (approved, migration-scoped: mode
 │                           flag + typed /api/v1 client; grows one adapter per
 │                           swapped domain and is absorbed into api/ + services/
-│                           when the satellite is decommissioned, see
+│                           when the satellite is decommissioned; see
 │                           web2-backend-mode.md)
 │
 ├── satellite/              Juno satellite (TS canister functions). See ../satellite/.
@@ -87,8 +87,8 @@ top-level group:
 - `pwa/`: Add-to-Home-Screen install sheet.
 - `saved-markets/`: the market bookmark toggle.
 - `settings/`: settings screen row primitives (`SetRow`, `SetToggle`, …).
-- `ui/`: app-local UI primitives, see
-  [`reusability.md`](./reusability.md#ui-primitives-libcomponentsui).
+- `ui/`: app-local UI primitives (see
+  [`reusability.md`](./reusability.md#ui-primitives-libcomponentsui)).
 - `wallet/`: collateral / token / send-receive UI.
 - `worlds/`: Worlds (school / country) battle cards and prompts.
 

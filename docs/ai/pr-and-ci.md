@@ -69,7 +69,7 @@ Rules:
 - **Write what the diff can't say.** Don't narrate the diff line by line; it's attached. Spend the words on the why, the trade-offs considered, and what was deliberately left out of scope.
 - **No filler.** Drop openers like "This PR…" / "In this change…": start with the substance.
 - **Tests are concrete.** Name the commands run and their outcome, the tests added, the manual steps taken. "Tests pass" alone says nothing.
-- **Do not hard-wrap lines.** Write one line per paragraph or list item and let the GitHub renderer wrap. Hard-wrapping at ~80 columns (a default many models fall back to) breaks rendering inside lists, blockquotes, and tables, and makes later edits in the GitHub UI ugly. This applies to the PR body only, source files still follow `.prettierrc`.
+- **Do not hard-wrap lines.** Write one line per paragraph or list item and let the GitHub renderer wrap. Hard-wrapping at ~80 columns (a default many models fall back to) breaks rendering inside lists, blockquotes, and tables, and makes later edits in the GitHub UI ugly. This applies to the PR body only; source files still follow `.prettierrc`.
 - **One purpose.** The title names it in one line; a title that needs an "and" is two PRs (see [§ 3](#3-scope-and-parallel-prs)).
 - **Mention `docs/ai/` updates** under `# Changes` whenever the [meta-update rule](./governance.md#meta-update-rule) fired.
 - **Screenshots are welcome** for visual changes: link them; don't paste giant base64 in the body.

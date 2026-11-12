@@ -17,8 +17,8 @@ covers the use case.
    suffix. Reflects role, not appearance (`MarketResolutionPanel`, not
    `BluePanel`).
 3. **Sketch props first.** Always use a named `interface Props` above
-   the destructure, see
-   [`stack-and-patterns.md#props-shape`](../stack-and-patterns.md#props-shape).
+   the destructure (see
+   [`stack-and-patterns.md#props-shape`](../stack-and-patterns.md#props-shape)).
 
    ```ts
    interface Props {
@@ -52,13 +52,13 @@ covers the use case.
    Decorative icons `aria-hidden="true"`, icon-only buttons get an
    `aria-label`. See [`a11y.md`](../a11y.md).
 7. **Terminology.** Use **"prediction"**, never "bet". Time variables
-   end in `_ms` or `_ns`, see
-   [`structure.md#time-variables-ms--ns`](../structure.md#time-variables-_ms--_ns).
+   end in `_ms` or `_ns` (see
+   [`structure.md#time-variables-ms--ns`](../structure.md#time-variables-_ms--_ns)).
 8. **Test ID** if the component is targeted by future tests:
    `data-tid="<kebab-case>"`. (When a test-IDs constants file lands,
-   move it there, see [`reusability.md`](../reusability.md).)
+   move it there; see [`reusability.md`](../reusability.md).)
 9. **Tests** if the component lives in `#lib/components/ui/` or has
-   non-trivial logic. See [`testing.md`](../testing.md), note the
+   non-trivial logic. See [`testing.md`](../testing.md) and note the
    bootstrap status.
 10. **Catalog update** if the component goes into `#lib/components/ui/`
     or introduces a new pattern future agents should reuse; add a row

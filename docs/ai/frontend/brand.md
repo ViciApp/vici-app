@@ -139,8 +139,8 @@ the plain category nouns (`worlds.picker.*`: "University", "Country").
 ## 3. Logo
 
 The wordmark is **type-set**, not custom letterforms. It travels as
-text. In product, it ships as a `<span>`:
-[`Logo.svelte`](../../../src/lib/components/layout/Logo.svelte): not
+text. In product, it ships as a `<span>`
+([`Logo.svelte`](../../../src/lib/components/layout/Logo.svelte)), not
 as artwork.
 
 ### 3.1 Type-set spec
@@ -391,9 +391,9 @@ to move depends on how often it happens:
 - **Rare peaks**: an achievement unlock, an end-of-session celebration
   _may_ spring / overshoot. They fire seldom enough to earn the
   flourish.
-- **Frequent rewards**: a call settling, a routine grant, settle
+- **Frequent rewards** (a call settling, a routine grant) settle
   **without** overshoot. Repetition turns a bounce into noise.
-- **Direct-action confirmations**: a button press, a swipe commit,
+- **Direct-action confirmations** (a button press, a swipe commit)
   keep a **small tactile pop**: enough to read as "registered", never a
   full bounce.
 

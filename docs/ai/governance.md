@@ -29,8 +29,8 @@ restate it.
 **Scoped exception: economy policy.** For the _rules_ of the VXP
 economy (which surfaces mint, and the caps / gates / anti-farming
 posture that bound them), [`economy.md`](./economy.md) is authoritative
-and the code is reconciled **to** it, see its
-[reconciliation protocol](./economy.md#reconciliation-protocol-the-rules-drive-the-code).
+and the code is reconciled **to** it (see its
+[reconciliation protocol](./economy.md#reconciliation-protocol-the-rules-drive-the-code)).
 This inverts tiers 1 and 4 **only** for economy rules; numeric _values_
 still live in the constants files (tier 1) and shipped _behaviour_ is
 still described by [`PRODUCT.md`](./PRODUCT.md).
@@ -245,7 +245,7 @@ absence because they look authoritative.
   adds nothing.
 - **READMEs copy-pasted from elsewhere.** Link, don't mirror.
 - **Architectural narratives** ("this project uses a layered
-  architecture…"), the agent already infers this by reading.
+  architecture…"): the agent already infers this by reading.
 
 ### Structure: hierarchical, scoped, layered
 

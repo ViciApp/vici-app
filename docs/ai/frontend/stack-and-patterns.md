@@ -292,8 +292,8 @@ spread-level slippage from top-of-book, not multi-level depth walking.
 - **Apple sign-in bypasses Juno on purpose.** Juno's `signIn()` has no
   Apple provider and no OpenID deep-link for its II provider, so
   "Continue with Apple" goes straight to Internet Identity 2.0 (`id.ai`)
-  with `?openid=…appleid.apple.com`, see
-  [`apple-signin.services.ts`](../../../src/lib/services/apple-signin.services.ts).
+  with `?openid=…appleid.apple.com` (see
+  [`apple-signin.services.ts`](../../../src/lib/services/apple-signin.services.ts)).
   It drives the **ICRC-29 `Signer` / `PostMessageTransport` directly**
   (not `AuthClient.signIn()`): `AuthClient` hard-codes the transport's 2s
   `disconnectTimeout`, which drops the channel ("Connection closed") while
@@ -398,7 +398,7 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   `bg-[var(--my-token)]`. For values outside those Tailwind namespaces
   (custom transition durations, composed shadows), add an `@utility`
   wrapper instead of an arbitrary value with an embedded token. Same
-  goes for `style="color: var(--foo)"` / `style="box-shadow: var(--foo)"`,
+  goes for `style="color: var(--foo)"` / `style="box-shadow: var(--foo)"`:
   use the utility.
 - **No raw hex** (`bg-[#0f0]`).
 - **Class order** is auto-sorted by `prettier-plugin-tailwindcss`. Don't
