@@ -1,3 +1,4 @@
+import { viteEnv } from '#lib/env/app.env.ts';
 import { Principal } from '@icp-sdk/core/principal';
 
 export const CLEARING_CANISTER_ID = Principal.fromText('g2or7-caaaa-aaaaj-qqhoa-cai');
@@ -20,11 +21,9 @@ export const TESTICP_LEDGER_CANISTER_ID = 'xafvr-biaaa-aaaai-aql5q-cai';
 export const TICRC1_LEDGER_CANISTER_ID = '3jkp5-oyaaa-aaaaj-azwqa-cai';
 
 const viteEnvString = (key: string): string | undefined => {
-	if (typeof import.meta === 'undefined') {
-		return;
-	}
+	const value: unknown = viteEnv()?.[key];
 
-	return (import.meta as ImportMeta & { env?: Record<string, string> }).env?.[key];
+	return typeof value === 'string' ? value : undefined;
 };
 
 /**
