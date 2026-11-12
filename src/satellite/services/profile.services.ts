@@ -9,6 +9,7 @@ import {
 import type { UserRole } from '#lib/enums/user.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
+import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
 import { mintFlowOvertime } from '#satellite/services/vxp-flow-awards.services.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { AssertSetDocContext } from '@junobuild/functions';
@@ -677,4 +678,16 @@ export const assertDailyGoalMonotonic = ({
 	if (proposedDone < (currentProfile.dailyGoalDone ?? 0)) {
 		throw new Error('dailyGoalDone cannot decrease within the same day.');
 	}
+};
+
+/**
+ * The `profiles` pre-write veto: one dispatch-table entry composing the
+ * sub-asserts, each exported on its own so it stays unit-testable. A throw
+ * from any one rejects the write. The new-profile gate runs first so a refused
+ * create skips the nickname check's full collection scan.
+ */
+export const assertProfile = (context: AssertSetDocContext): void => {
+	assertNewProfileAllowed(context);
+	assertValidNickname(context);
+	assertDailyGoalMonotonic(context);
 };
