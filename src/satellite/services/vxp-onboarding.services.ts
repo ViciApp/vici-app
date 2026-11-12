@@ -13,8 +13,8 @@ import type {
 	VxpNewUserMilestoneKey,
 	VxpOnboardingDoc
 } from '#lib/types/vxp-onboarding.ts';
+import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
-import { transferWithBadFeeRetry } from '#satellite/utils/vxp-payout.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';

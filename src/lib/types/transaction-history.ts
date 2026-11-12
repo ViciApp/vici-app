@@ -3,7 +3,7 @@ import type { MarketId } from '#lib/types/market.ts';
 /**
  * Award tag decoded from a bonus transfer's ledger memo
  * (`vxp:<tag>:<key>`, written by the satellite payout helper in
- * `src/satellite/utils/vxp-payout.utils.ts`). `unknown` covers transfers
+ * `src/satellite/services/vxp-payout.services.ts`). `unknown` covers transfers
  * that predate the memo format or carry an unrecognized tag — they still
  * render as a generic reward rather than disappearing.
  */

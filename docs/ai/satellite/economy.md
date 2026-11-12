@@ -39,8 +39,8 @@ one pattern. Each of these has bitten a PR before:
   [hooks fire only for client writes](./patterns.md#hooks-fire-only-for-client-writes-never-for-serverless-setdocstore)),
   so endpoint-triggered payouts run **inline** in the endpoint.
 - **Every award is a real ICRC transfer** through the shared payout
-  utils
-  ([`vxp-payout.utils.ts`](../../../src/satellite/utils/vxp-payout.utils.ts))
+  service
+  ([`vxp-payout.services.ts`](../../../src/satellite/services/vxp-payout.services.ts))
   — no satellite award path increments a counter instead of moving
   tokens.
 
@@ -58,7 +58,7 @@ one pattern. Each of these has bitten a PR before:
    `src/satellite/services/vxp-<surface>-awards.services.ts`
    mirroring an existing one (the streak service is the smallest
    template). Build the doc key with `vxpAwardKey()`, pay through
-   [`vxp-payout.utils.ts`](../../../src/satellite/utils/vxp-payout.utils.ts).
+   [`vxp-payout.services.ts`](../../../src/satellite/services/vxp-payout.services.ts).
 4. **Trigger:** a hook works only on a **client-written** collection
    (e.g. `profiles`, `activities`); anything fired from an endpoint
    must pay **inline** — never design "endpoint writes a row → hook

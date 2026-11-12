@@ -50,5 +50,5 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 ## Anti-patterns found in the code (do not copy)
 
-- **Small helpers written several times:** `UUID_RE` (`src/routes/profiles.ts`, `src/social/activities.ts`, inline in `src/routes/social.ts`), `concatBytes` (`src/auth/claim.ts`, `src/chains/evm/tx.ts`, `src/chains/sol/tx.ts`), `nowNs` (`src/vxp/awards.ts`, `src/custody/withdrawals.ts`, inline elsewhere), `shapeMember` (`src/leagues/leagues.ts`, `src/leagues/members.ts`), `optionalMs` (`src/leagues/battles.ts`, `src/profiles/profile.ts`). Reuse the nearest one and move it to `src/lib/` when a second domain needs it.
+- **Small helpers written several times:** `concatBytes` (`src/auth/claim.ts`, `src/chains/evm/tx.ts`, `src/chains/sol/tx.ts`), `nowNs` (`src/vxp/awards.ts`, `src/custody/withdrawals.ts`, inline elsewhere), `shapeMember` (`src/leagues/leagues.ts`, `src/leagues/members.ts`), `optionalMs` (`src/leagues/battles.ts`, `src/profiles/profile.ts`). Reuse the nearest one and move it to `src/lib/` when a second domain needs it.
 - **SQL in a route:** `src/routes/auth.ts` (`meFor`) and the `/balances` join in `src/routes/wallet.ts`.

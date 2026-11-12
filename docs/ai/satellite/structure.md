@@ -17,12 +17,13 @@ src/satellite/
 │   ├── referral.services.ts        Referral code assignment, redemption + VXP payout
 │   ├── relation.services.ts        Friend / follow primitives
 │   ├── roles.services.ts           Role doc validation
-│   └── vxp-onboarding.services.ts  VXP onboarding hooks
+│   ├── vxp-onboarding.services.ts  VXP onboarding hooks
+│   └── vxp-payout.services.ts      Shared VXP ledger transfer
 └── utils/                          Catalog: reusability.md
     ├── candid.utils.ts             IDL types off the generated factories
     ├── logger.utils.ts             Structured logging wrapper
     ├── regex.utils.ts              escapeRegex
-    ├── vxp-payout.utils.ts         Shared VXP ledger transfer + error mapping
+    ├── vxp-payout.utils.ts         VXP transfer error mapping
     └── wire-format.utils.ts        snake_case wire schemas + toWire / fromWire
 ```
 
@@ -88,8 +89,7 @@ The frontend imports from `#satellite` only the `fromWire*` converters in
 market-translation services). Nothing else crosses in either direction.
 
 **Known deviations (do not copy).** `services/_authz.ts` lacks the
-`.services.ts` suffix, and `utils/vxp-payout.utils.ts` does ledger I/O
-although `*.utils.ts` means pure. `index.ts` holds local assert composers
+`.services.ts` suffix. `index.ts` holds local assert composers
 (`assertProfile`) that belong in services.
 
 ## Forbidden imports
