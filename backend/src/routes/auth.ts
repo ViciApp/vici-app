@@ -32,7 +32,7 @@ import {
 	sessionCookie
 } from '../lib/cookie';
 import { constantTimeEqual, randomToken, signState, verifySignedState } from '../lib/crypto';
-import { clientIp, type StatusContext } from '../lib/http';
+import { clientIp, serviceUnavailable, type StatusContext } from '../lib/http';
 import { enforceLimit } from '../lib/rate-limit';
 
 const TEN_MIN_MS = 10 * 60 * 1000;
@@ -48,11 +48,8 @@ const providerStatuses = (): Record<'email' | 'google' | 'apple', ProviderStatus
 /** Stable body for a provider whose integration is not configured; the FE
  * renders a disabled "coming soon" button from /auth/providers instead of
  * ever hitting this in practice. */
-const providerUnavailable = (set: StatusContext): { error: string } => {
-	set.status = 503;
-
-	return { error: 'provider_unavailable' };
-};
+const providerUnavailable = (set: StatusContext): { error: string } =>
+	serviceUnavailable(set, 'provider_unavailable');
 
 /** Gated sign-in refusal: the verdict code as the stable error. `beta_closed`
  * is one body for every refused address, so it never doubles as an
