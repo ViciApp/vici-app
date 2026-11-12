@@ -7,8 +7,8 @@ import {
 import type { LeagueDoc } from '#lib/types/league.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { listMyLeaguesFn } from '#satellite/services/cohort.services.ts';
+import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
-import { transferWithBadFeeRetry } from '#satellite/utils/vxp-payout.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';

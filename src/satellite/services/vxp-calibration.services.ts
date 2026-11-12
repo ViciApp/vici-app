@@ -16,9 +16,9 @@ import {
 import type { CallSide } from '#lib/types/market.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import type { VxpOnboardingDoc } from '#lib/types/vxp-onboarding.ts';
+import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
-import { transferWithBadFeeRetry } from '#satellite/utils/vxp-payout.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
