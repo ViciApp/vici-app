@@ -13,6 +13,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
 import { ZERO } from '../lib/constants';
+import { nowNs } from '../lib/time';
 import { ensureInternalAccount, ensureUserAccount } from './accounts';
 import { isWithdrawable, type Asset } from './assets';
 import { accountBalance, postLedgerEvent, type LedgerLeg } from './ledger';
@@ -240,8 +241,6 @@ export const transitionWithdrawal = async ({
 		return row;
 	});
 };
-
-const nowNs = (): bigint => BigInt(Date.now()) * BigInt(1_000_000);
 
 /** requested -> processing, fixing the transfer's dedup fields in the same
  * statement, before anything is sent: every later attempt resends exactly
