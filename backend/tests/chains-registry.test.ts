@@ -3,6 +3,7 @@
 // fail closed (still deriving addresses, since derivation is pure).
 
 import { describe, expect, test } from 'bun:test';
+import { btcAddressFromPrivateKey } from '../src/chains/btc/address';
 import { enabledAdapters, getAdapter, isChain, listAdapters } from '../src/chains/registry';
 import { ChainDisabledError } from '../src/chains/types';
 import type { Asset } from '../src/custody/assets';
@@ -82,6 +83,26 @@ describe('adapter registry (test env has no chain config)', () => {
 		expect(evm.isValidAddress(`0x${body.toLowerCase()}`)).toBe(true);
 		expect(evm.isValidAddress(`0x${flipped}`)).toBe(flipped === body);
 		expect(evm.isValidAddress(`0x${body.slice(1)}`)).toBe(false);
+	});
+
+	test('btc refuses an address of another network', () => {
+		const privateKey = new Uint8Array(32).fill(7);
+		const btc = getAdapter('btc');
+
+		expect(btc.isValidAddress(btcAddressFromPrivateKey({ privateKey, network: 'mainnet' }))).toBe(
+			true
+		);
+		expect(btc.isValidAddress(btcAddressFromPrivateKey({ privateKey, network: 'testnet' }))).toBe(
+			false
+		);
+	});
+
+	test('sol refuses base58 that is not a 32-byte key', () => {
+		const sol = getAdapter('sol');
+		const address = sol.deriveAddress(USER);
+
+		expect(sol.isValidAddress(address.slice(0, -4))).toBe(false);
+		expect(sol.isValidAddress(`${address}22`)).toBe(false);
 	});
 
 	test('isChain narrows correctly', () => {
