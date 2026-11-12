@@ -10,12 +10,9 @@
  * pattern and the rules around this seam.
  */
 
-export type BackendMode = 'web2' | 'web3';
+import { viteEnv } from '#lib/env/app.env.ts';
 
-const viteEnv = (): ImportMetaEnv | undefined =>
-	typeof import.meta !== 'undefined'
-		? (import.meta as ImportMeta & { env?: ImportMetaEnv }).env
-		: undefined;
+export type BackendMode = 'web2' | 'web3';
 
 export const backendMode = (): BackendMode =>
 	viteEnv()?.VITE_BACKEND === 'web2' ? 'web2' : 'web3';
