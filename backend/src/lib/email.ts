@@ -1,6 +1,7 @@
 // Transactional email via the Resend REST API. When RESEND_API_KEY is unset
 // the message body lands on the server console instead, so local dev and CI
-// need no email provider. In production set RESEND_API_KEY + EMAIL_FROM.
+// need no email provider. Production refuses to boot without the key (env.ts):
+// the console fallback would print sign-in codes into the logs.
 
 import { nonNullish } from '@dfinity/utils';
 import { env } from '../env';

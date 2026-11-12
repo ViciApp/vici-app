@@ -26,7 +26,7 @@ Tests connect to `TEST_DATABASE_URL` (default: the docker-compose Postgres). CI 
 
 ## Environment
 
-Validated fail-fast in `src/env.ts`. In production the required vars abort boot when missing; in dev everything has a local default. Optional integrations added by later phases degrade instead of crashing when unconfigured (email logs to console, storage falls back to local disk in dev).
+Validated fail-fast in `src/env.ts`. In production the required vars abort boot when missing; in dev everything has a local default. Optional integrations added by later phases degrade instead of crashing when unconfigured (storage falls back to local disk in dev). Email logs to the console only outside production, which requires `RESEND_API_KEY`.
 
 | Var                       | Required (prod) | Default (dev)                                | Purpose                                                                                     |
 | ------------------------- | --------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -47,7 +47,7 @@ Validated fail-fast in `src/env.ts`. In production the required vars abort boot 
 | `APPLE_KEY_ID`            | no              | empty (apple disabled)                       | Key id of the .p8 signing key                                                               |
 | `APPLE_PRIVATE_KEY`       | no              | empty (apple disabled)                       | .p8 PKCS#8 PEM (literal or \n-escaped newlines)                                             |
 | `APPLE_REDIRECT_URI`      | no              | `<API_BASE_URL>/api/v1/auth/apple/callback`  | Override for the Apple callback URL                                                         |
-| `RESEND_API_KEY`          | no              | empty (email logs to console)                | Resend API key for transactional email                                                      |
+| `RESEND_API_KEY`          | yes             | empty (email logs to console)                | Resend API key for transactional email                                                      |
 | `EMAIL_FROM`              | no              | `VICI <no-reply@vici.app>`                   | From header for transactional email                                                         |
 | `ROOT_SECRET`             | yes             | dev placeholder                              | HKDF root for per-user per-chain custody keys (rotating it rotates every custodial address) |
 | `TREASURY_PEM`            | no              | empty (svc-derived key)                      | PEM override for the treasury IC identity                                                   |
@@ -260,7 +260,7 @@ Neither app exists yet. First-time setup:
 
 ```bash
 cd backend && fly launch --no-deploy            # creates vici-app-backend
-fly secrets set DATABASE_URL=... SESSION_SECRET=...
+fly secrets set DATABASE_URL=... SESSION_SECRET=... ROOT_SECRET=... RESEND_API_KEY=...
 cd .. && fly launch --no-deploy --config fly.web.toml   # creates vici-app-web
 ```
 
