@@ -20,6 +20,15 @@ export const solAddressFromSeed = (seed: Uint8Array): string =>
 
 const decodeAddress = (address: string): Uint8Array => base58.decode(address);
 
+/** A base58 32-byte public key. */
+export const isSolAddress = (address: string): boolean => {
+	try {
+		return decodeAddress(address).length === 32;
+	} catch (_: unknown) {
+		return false;
+	}
+};
+
 /** Compact-u16 ("shortvec") length prefix used throughout the wire format. */
 export const shortvec = (length: number): Uint8Array => {
 	const out: number[] = [];

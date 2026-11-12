@@ -60,6 +60,10 @@ path. Each rule guards a withdrawal paid twice or stuck forever:
 - **Resend only after every earlier send resolved.** `PROCESSING_GRACE_MS`
   outlasts the IC ingress expiry and the route's transfer timeout, so a resend
   answered `InsufficientFunds` cannot refund a first send still about to land.
+- **The destination is checked before the hold.** The route refuses an
+  address `adapter.isValidAddress` rejects with `invalid_destination`. An
+  address the chain cannot parse fails inside the transfer as an unknown
+  outcome, so the hold would sit until a human settles it.
 - **The network fee is held with the amount and fixed at the request.** An
   ICRC ledger charges its fee from the sender on top of the amount, and the
   ic watcher credits any surplus of on-chain over internal as a deposit, so

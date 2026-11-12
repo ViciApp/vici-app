@@ -54,6 +54,18 @@ const deriveAddress = (userId: string): string =>
 		network: env.btc.network
 	});
 
+/** An address of the configured network, in any script type the signer can
+ * pay to. */
+const isValidAddress = (address: string): boolean => {
+	try {
+		btc.Address(NETWORKS[env.btc.network]).decode(address);
+
+		return true;
+	} catch (_: unknown) {
+		return false;
+	}
+};
+
 interface AddressStats {
 	chain_stats: { funded_txo_sum: number; spent_txo_sum: number };
 }
@@ -249,6 +261,7 @@ export const btcAdapter: ChainAdapter = env.btc.enabled
 			enabled: true,
 			watchScope: 'address',
 			deriveAddress,
+			isValidAddress,
 			getBalance,
 			withdrawalFee,
 			transfer,
@@ -261,6 +274,7 @@ export const btcAdapter: ChainAdapter = env.btc.enabled
 			enabled: false,
 			watchScope: 'address',
 			deriveAddress,
+			isValidAddress,
 			getBalance: () => Promise.reject(new ChainDisabledError('btc')),
 			withdrawalFee: () => Promise.reject(new ChainDisabledError('btc')),
 			transfer: () => Promise.reject(new ChainDisabledError('btc')),

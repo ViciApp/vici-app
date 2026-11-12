@@ -56,6 +56,34 @@ describe('adapter registry (test env has no chain config)', () => {
 		expect(getAdapter('ic').deriveAddress(USER)).toContain('-');
 	});
 
+	test('every adapter accepts its own derived address and refuses junk', () => {
+		for (const chain of ['ic', 'evm', 'sol', 'btc'] as const) {
+			const adapter = getAdapter(chain);
+
+			expect(adapter.isValidAddress(adapter.deriveAddress(USER))).toBe(true);
+			expect(adapter.isValidAddress('not an address')).toBe(false);
+			expect(adapter.isValidAddress('')).toBe(false);
+		}
+	});
+
+	test('ic refuses the anonymous principal and non-canonical text', () => {
+		const ic = getAdapter('ic');
+
+		expect(ic.isValidAddress('2vxsx-fae')).toBe(false);
+		expect(ic.isValidAddress(ic.deriveAddress(USER).toUpperCase())).toBe(false);
+	});
+
+	test('evm accepts single-case hex and refuses a broken checksum', () => {
+		const evm = getAdapter('evm');
+		const address = evm.deriveAddress(USER);
+		const body = address.slice(2);
+		const flipped = body.replace(/[a-f]/, (c) => c.toUpperCase());
+
+		expect(evm.isValidAddress(`0x${body.toLowerCase()}`)).toBe(true);
+		expect(evm.isValidAddress(`0x${flipped}`)).toBe(flipped === body);
+		expect(evm.isValidAddress(`0x${body.slice(1)}`)).toBe(false);
+	});
+
 	test('isChain narrows correctly', () => {
 		expect(isChain('ic')).toBe(true);
 		expect(isChain('evm')).toBe(true);

@@ -80,6 +80,22 @@ export const toChecksumAddress = (address: string): string => {
 	return out;
 };
 
+/** A 20-byte hex address. A mixed-case one is an EIP-55 checksum and must
+ * match it, so a mistyped character is caught rather than sent to. */
+export const isEvmAddress = (address: string): boolean => {
+	if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+		return false;
+	}
+
+	const body = address.slice(2);
+
+	return (
+		body === body.toLowerCase() ||
+		body === body.toUpperCase() ||
+		toChecksumAddress(address) === address
+	);
+};
+
 /** The EIP-55 address for a secp256k1 private key. */
 export const evmAddressFromPrivateKey = (privateKey: Uint8Array): string => {
 	const publicKey = secp256k1.getPublicKey(privateKey, false);

@@ -196,6 +196,7 @@ const scriptedAdapter = ({
 	replaySafe: false,
 	watchScope,
 	deriveAddress: () => '',
+	isValidAddress: () => true,
 	getBalance: () => Promise.reject(new Error('unused')),
 	withdrawalFee: () => Promise.reject(new Error('unused')),
 	transfer: () => Promise.reject(new Error('unused')),

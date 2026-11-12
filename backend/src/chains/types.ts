@@ -70,6 +70,10 @@ export interface ChainAdapter {
 	/** The user's custodial deposit address on this chain (pure derivation,
 	 * no I/O). */
 	deriveAddress(userId: string): string;
+	/** Whether a withdrawal can be sent to `address` on this chain (pure, no
+	 * I/O). Checked before the hold: an address the chain cannot parse fails
+	 * the transfer with an unknown outcome and leaves the funds held. */
+	isValidAddress(address: string): boolean;
 	/** On-chain balance of an address in the asset's base units. */
 	getBalance(params: { address: string; asset: Asset }): Promise<bigint>;
 	/** The network fee a withdrawal of the asset costs the sender on top of the
