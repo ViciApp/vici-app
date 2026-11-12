@@ -103,6 +103,7 @@
 		type FlameStage
 	} from '#lib/utils/streak.utils.ts';
 	import { assertViciXpHumanPremium } from '#lib/utils/trade.utils.ts';
+	import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 	import { goto } from '$app/navigation';
 
 	// Daily goal — a per-user count of predictions committed today,
@@ -407,7 +408,7 @@
 	// would block every YES / NO from here on (see `handleAction`). Computed
 	// once: the floor is fixed, only the spendable side moves.
 	const MIN_STAKE_MARGIN_USD = tokenBaseUnitsToUsdBaseUnits({
-		amount: parseToken({ value: String(VXP_MIN_STAKE), unitName: VXP_TOKEN.decimals }),
+		amount: vxpBaseUnits(VXP_MIN_STAKE),
 		tokenDecimals: VXP_TOKEN.decimals
 	});
 

@@ -14,7 +14,7 @@ comeback, achievements, league founder, podium, tournament, …) follows
 one pattern. Each of these has bitten a PR before:
 
 - **Amounts are base units, always.** VXP has 4 decimals — derive
-  every reward / floor / threshold constant via `parseToken`, never a
+  every reward / floor / threshold constant via `vxpBaseUnits`, never a
   raw int, and compare / transfer in base units (whole VXP is for
   display only). A raw int silently miscalibrates by 10⁴.
 - **Parameters have one home.** All amounts, caps, and gates live in
@@ -53,7 +53,7 @@ one pattern. Each of these has bitten a PR before:
    and document the trigger in the union's doc comment.
 2. **Parameters:** add the constant(s) to
    [`vxp-economy.constants.ts`](../../../src/lib/constants/vxp-economy.constants.ts)
-   in base units via `parseToken`.
+   in base units via `vxpBaseUnits`.
 3. **Service:** new
    `src/satellite/services/vxp-<surface>-awards.services.ts`
    mirroring an existing one (the streak service is the smallest

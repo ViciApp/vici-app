@@ -1,9 +1,8 @@
 import { ACHIEVEMENTS } from '#lib/constants/achievements.constants.ts';
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { parseToken } from '#lib/utils/parse.utils.ts';
+import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -129,7 +128,7 @@ const payAchievement = async ({
 		return;
 	}
 
-	const amount = parseToken({ value: `${xp}`, unitName: VXP_TOKEN.decimals });
+	const amount = vxpBaseUnits(xp);
 	const awardKey = achievementId;
 	const earnedAtMs = Date.now();
 

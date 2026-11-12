@@ -24,10 +24,9 @@
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import { VXP_STREAK_BONUSES } from '#lib/constants/vxp-economy.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { parseToken } from '#lib/utils/parse.utils.ts';
+import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { isAdmin } from '#satellite/services/authz.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -62,7 +61,7 @@ const correctBaseUnits = (milestone: number): bigint | null => {
 		return null;
 	}
 
-	return parseToken({ value: whole.toString(), unitName: VXP_TOKEN.decimals });
+	return vxpBaseUnits(whole);
 };
 
 /**
