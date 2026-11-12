@@ -10,6 +10,7 @@ import { ChainDisabledError } from '../chains/types';
 import { executeWithdrawal } from '../chains/withdrawal-execution';
 import { ensureUserAccount, listUserAccounts } from '../custody/accounts';
 import { getAssetById, isWithdrawable, listEnabledAssets, type Asset } from '../custody/assets';
+import { listUserBookBalances, type AssetBalanceRow } from '../custody/ledger';
 import {
 	AssetNotWithdrawableError,
 	InsufficientBalanceError,
@@ -17,20 +18,11 @@ import {
 	requestWithdrawal,
 	type Withdrawal
 } from '../custody/withdrawals';
-import { query } from '../db/client';
 import { cached } from '../engine/cache';
 import { ZERO } from '../lib/constants';
 import { badRequest, serviceUnavailable, type StatusContext } from '../lib/http';
 import { userIcPrincipalText } from '../lib/keys';
 import { logger } from '../lib/logger';
-
-interface BalanceRow {
-	asset_id: string;
-	symbol: string;
-	chain: string;
-	decimals: number;
-	balance: string;
-}
 
 const chainUnavailable = (set: StatusContext): { error: string } =>
 	serviceUnavailable(set, 'chain_unavailable');
@@ -53,12 +45,12 @@ const shapeWithdrawal = (withdrawal: Withdrawal): Record<string, unknown> => ({
  * deposit from this read and re-reads right after one, so any TTL long enough
  * to spare its 10s poll would hand it a balance already spent. An unreadable
  * asset is left out rather than reported as an empty one. */
-const liveIcBalances = async (address: string): Promise<BalanceRow[]> => {
+const liveIcBalances = async (address: string): Promise<AssetBalanceRow[]> => {
 	const adapter = getAdapter('ic');
 	const assets = (await listEnabledAssets()).filter(({ chain }) => chain === 'ic');
 
 	const reads = await Promise.all(
-		assets.map(async (asset): Promise<BalanceRow | undefined> => {
+		assets.map(async (asset): Promise<AssetBalanceRow | undefined> => {
 			try {
 				const balance = await adapter.getBalance({ address, asset });
 
@@ -134,15 +126,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 
 		const [accounts, internalBalances, icBalances] = await Promise.all([
 			listUserAccounts(user.id),
-			query<BalanceRow>(
-				`select b.asset_id, a.symbol, a.chain, a.decimals, b.balance::text as balance
-				 from custody_balances b
-				 join assets a on a.id = b.asset_id
-				 join custody_accounts c on c.id = b.account_id
-				 where c.user_id = $1 and a.chain <> 'ic'
-				 order by a.chain, a.symbol`,
-				[user.id]
-			),
+			listUserBookBalances(user.id),
 			liveIcBalances(address)
 		]);
 
