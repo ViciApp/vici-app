@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.8.53](https://github.com/ViciApp/vici-app/compare/v1.8.52...v1.8.53) (2026-11-12)
+
+
+### Documentation
+
+* **ai:** link the universal standard and document the web2 API ([#1443](https://github.com/ViciApp/vici-app/issues/1443)) ([9e1b211](https://github.com/ViciApp/vici-app/commit/9e1b21173ef7946b0fce83b2149e9cc51cf18815))
+* **ai:** point frontend docs at the components that replaced removed ones ([#1453](https://github.com/ViciApp/vici-app/issues/1453)) ([f4631c7](https://github.com/ViciApp/vici-app/commit/f4631c7548c07df7872c5b8567dddb6be90d9ad4))
+* **ai:** say the merge queue ruleset belongs to this repository ([#1455](https://github.com/ViciApp/vici-app/issues/1455)) ([019baba](https://github.com/ViciApp/vici-app/commit/019baba1356f8dd9efb014e5107ad43a6df1d8b7))
+
+
+### Miscellaneous Chores
+
+* **e2e:** Update Playwright E2E Snapshots ([#1442](https://github.com/ViciApp/vici-app/issues/1442)) ([a690b55](https://github.com/ViciApp/vici-app/commit/a690b55e5a7a1723c0ec72d00daf81dd49beb50f))
+* **lint:** ratchet complexity, depth, params and file size against a baseline ([#1444](https://github.com/ViciApp/vici-app/issues/1444)) ([d2f5eca](https://github.com/ViciApp/vici-app/commit/d2f5ecaf4053d91d1287b0b59e07fe6bd1c57819))
+
+
+### Code Refactoring
+
+* **backend:** keep one concatBytes in lib ([#1459](https://github.com/ViciApp/vici-app/issues/1459)) ([3cd2f70](https://github.com/ViciApp/vici-app/commit/3cd2f70f52ec5831e9123227eaaa8cb6b11f13f9))
+* **backend:** keep one UUID_RE in lib ([#1456](https://github.com/ViciApp/vici-app/issues/1456)) ([924629c](https://github.com/ViciApp/vici-app/commit/924629cda0c791b4c6f7e22bdb621eb8db7be3f5))
+* **backend:** move the guarded profile write into profiles/profile-write.ts ([#1452](https://github.com/ViciApp/vici-app/issues/1452)) ([3e21ce2](https://github.com/ViciApp/vici-app/commit/3e21ce286d00d3c991383cd2cf59f4d2b515cc13))
+* **backend:** read the session once in the admin gate ([#1449](https://github.com/ViciApp/vici-app/issues/1449)) ([08d1a1c](https://github.com/ViciApp/vici-app/commit/08d1a1cb56131c2a6fa5d855d8e7bd0183ea0b45))
+* **backend:** share StatusContext and badRequest from lib/http ([#1446](https://github.com/ViciApp/vici-app/issues/1446)) ([dc5ca56](https://github.com/ViciApp/vici-app/commit/dc5ca56c58cb29bf24f1fea22a77864997f432c9))
+* **frontend:** copy to the clipboard through clipboard.utils ([#1457](https://github.com/ViciApp/vici-app/issues/1457)) ([7f805da](https://github.com/ViciApp/vici-app/commit/7f805da979e0f0b948c90c87c0fd54457d675de9))
+* **frontend:** draw both consensus dials from one consensusLean helper ([#1460](https://github.com/ViciApp/vici-app/issues/1460)) ([3920d2d](https://github.com/ViciApp/vici-app/commit/3920d2d5274ecf0045ba848d8506c7287355fdfb))
+* **frontend:** keep one UTF-8 FNV-1a 64 in hash.utils ([#1447](https://github.com/ViciApp/vici-app/issues/1447)) ([219160c](https://github.com/ViciApp/vici-app/commit/219160ca0110f653331bfdc917eb30ec6299b481))
+* **frontend:** read the welcome nav theme options from theme.store ([#1451](https://github.com/ViciApp/vici-app/issues/1451)) ([dd07eb6](https://github.com/ViciApp/vici-app/commit/dd07eb6654bb51fd4912b86155d0e8eef6103768))
+* **frontend:** use format.utils for the tournament accuracy label ([#1450](https://github.com/ViciApp/vici-app/issues/1450)) ([4255c90](https://github.com/ViciApp/vici-app/commit/4255c904d13dcb7467bf5db22f32d18dd9fb1148))
+* **satellite:** move the VXP ledger transfer to vxp-payout.services ([#1448](https://github.com/ViciApp/vici-app/issues/1448)) ([2659421](https://github.com/ViciApp/vici-app/commit/2659421cc8ac78a11cd801d10069e263876034b8))
+* **satellite:** name the caller-role checks authz.services.ts ([#1458](https://github.com/ViciApp/vici-app/issues/1458)) ([895c687](https://github.com/ViciApp/vici-app/commit/895c687e7ce0bb6a18dc8cd98523ad01c2389ae1))
+
+
+### Continuous Integration
+
+* **pr-checks:** run the org-wide pull request checks and document the merge queue ([#1454](https://github.com/ViciApp/vici-app/issues/1454)) ([980d566](https://github.com/ViciApp/vici-app/commit/980d5662eaad21df107f0600ce1af80d969e894d))
+
 ## [1.8.52](https://github.com/ViciApp/vici-app/compare/v1.8.51...v1.8.52) (2026-11-05)
 
 

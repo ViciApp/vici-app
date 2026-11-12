@@ -1,5 +1,9 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { REGISTERED_LOCALE_IDS, type AppLocale } from '#lib/constants/locale.constants.ts';
+import {
+	isRegisteredLocale,
+	REGISTERED_LOCALE_IDS,
+	type AppLocale
+} from '#lib/constants/locale.constants.ts';
 import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
 import { isCreatorOrAdmin } from '#satellite/services/authz.services.ts';
 import { logInfo } from '#satellite/utils/logger.utils.ts';
@@ -8,13 +12,6 @@ import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
 
 const callerText = (): string => msgCaller().toText();
-
-// Market overlays are allowed for any REGISTERED locale, not just the `live`
-// tier in `SUPPORTED_LOCALES`. A translation doc is independent of the FE
-// string catalog's completeness, so a `soon` locale (e.g. `pt-BR`) can carry
-// market translations before its UI catalog is fully aligned — which is the
-// whole point of seeding them ahead of promoting the locale to `live`.
-const REGISTERED_LOCALE_ID_SET: ReadonlySet<string> = new Set(REGISTERED_LOCALE_IDS);
 
 /**
  * Upper bound on the number of series ids accepted by the bulk read, so a
@@ -26,13 +23,13 @@ const REGISTERED_LOCALE_ID_SET: ReadonlySet<string> = new Set(REGISTERED_LOCALE_
  */
 const MAX_BULK_SERIES_IDS = 200;
 
-/** Type guard: is this string one of the registered locale ids (live + soon)? */
-const isRegisteredLocale = (locale: string): locale is AppLocale =>
-	REGISTERED_LOCALE_ID_SET.has(locale);
-
 /**
  * Schema-side `locale` is `j.string()` (see the schema for why), so validate
  * the value here against the registered locale ids before we persist or read.
+ * Any REGISTERED locale is allowed, not just the `live` tier in
+ * `SUPPORTED_LOCALES`: a translation doc is independent of the FE string
+ * catalog's completeness, so a `soon` locale (e.g. `pt-BR`) can carry market
+ * translations ahead of being promoted to `live`.
  */
 const assertRegisteredLocale = (locale: string): AppLocale => {
 	if (!isRegisteredLocale(locale)) {
