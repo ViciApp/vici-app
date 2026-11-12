@@ -183,4 +183,12 @@ describe('signEip1559Tx', () => {
 			evmAddressFromPrivateKey(PRIVATE_KEY_ONE).toLowerCase()
 		);
 	});
+
+	// RFC 6979 signing is deterministic, so the exact envelope pins every
+	// encoding step: any drift in RLP or sighash bytes changes this string.
+	test('pins the signed envelope bytes', () => {
+		expect(signEip1559Tx({ tx, privateKey: PRIVATE_KEY_ONE })).toBe(
+			'0x02f86f0107843b9aca008506fc23ac008252089427b1fdb04752bbc536007a920d24acb045561c2684075bcd1580c080a0ea245284efa0c4cf3be3893fa8ea718b480f4ba2f7aa3cf883496c649deee7c1a049ab5cbda17bb44eb7cb56df39968691f44522bd24e10d990c8b01750a056ab2'
+		);
+	});
 });

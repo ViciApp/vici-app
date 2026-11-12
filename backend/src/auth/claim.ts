@@ -38,6 +38,7 @@ import { p256 } from '@noble/curves/nist.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { hexToBytes } from '@noble/hashes/utils.js';
+import { concatBytes } from '../lib/bytes';
 
 /** Wire audience tag; mirrored by the app's claim handoff util (pinned by the
  * shared-drift suite). */
@@ -126,18 +127,6 @@ const bytesEqual = (a: Uint8Array, b: Uint8Array): boolean => {
 	}
 
 	return diff === 0;
-};
-
-const concatBytes = (...parts: Uint8Array[]): Uint8Array => {
-	const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
-	let offset = 0;
-
-	for (const part of parts) {
-		out.set(part, offset);
-		offset += part.length;
-	}
-
-	return out;
 };
 
 const tryUnwrapDer = (der: Uint8Array, oid: Uint8Array): Uint8Array | null => {

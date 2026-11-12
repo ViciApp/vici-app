@@ -6,6 +6,7 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 
 | File            | Exports                                                                                                                                                                                                                                    |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `bytes.ts`      | `concatBytes` (joins byte arrays into a fresh `Uint8Array`)                                                                                                                                                                                |
 | `constants.ts`  | `ZERO` (bigint zero; the `0n` literal is lint-restricted); `UUID_RE` (canonical uuid text, any case)                                                                                                                                       |
 | `cookie.ts`     | session, OAuth-state and Apple-state cookie names; `buildCookie`, `sessionCookie` / `clearSessionCookie`, the OAuth and Apple state cookie set / clear helpers, `readCookie`                                                               |
 | `crypto.ts`     | `randomToken`, `peppered` (HMAC with the session pepper), `constantTimeEqual`, `generateOtp`, `signState` / `verifySignedState`                                                                                                            |
@@ -38,7 +39,7 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 
 ## Not yet shared (candidates for `lib/`)
 
-These exist in several copies today; see [`patterns.md`](./patterns.md#anti-patterns-found-in-the-code-do-not-copy): `concatBytes`, `nowNs`, `optionalMs`, `shapeMember`.
+These exist in several copies today; see [`patterns.md`](./patterns.md#anti-patterns-found-in-the-code-do-not-copy): `nowNs`, `optionalMs`, `shapeMember`.
 
 ## Shared with the app
 

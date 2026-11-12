@@ -7,24 +7,12 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { base58 } from '@scure/base';
+import { concatBytes } from '../../lib/bytes';
 import { ZERO } from '../../lib/constants';
 
 export const SYSTEM_PROGRAM_ID = '11111111111111111111111111111111';
 export const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 export const ASSOCIATED_TOKEN_PROGRAM_ID = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
-
-const concatBytes = (...arrays: Uint8Array[]): Uint8Array => {
-	const total = arrays.reduce((sum, a) => sum + a.length, 0);
-	const out = new Uint8Array(total);
-	let offset = 0;
-
-	for (const a of arrays) {
-		out.set(a, offset);
-		offset += a.length;
-	}
-
-	return out;
-};
 
 /** The base58 Solana address for an ed25519 seed. */
 export const solAddressFromSeed = (seed: Uint8Array): string =>
