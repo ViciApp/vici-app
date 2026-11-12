@@ -5,6 +5,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
+import { badRequest } from '../lib/http';
 import {
 	AffiliationStatsError,
 	getAffiliationStats,
@@ -23,16 +24,6 @@ import {
 	setAffiliation
 } from '../worlds/affiliations';
 import { claimWorldsPodiumPrize } from '../worlds/podium';
-
-interface StatusContext {
-	status?: number | string;
-}
-
-const badRequest = (set: StatusContext, error: string): { error: string } => {
-	set.status = 400;
-
-	return { error };
-};
 
 const KIND_SCHEMA = t.Union([t.Literal('university'), t.Literal('country')]);
 

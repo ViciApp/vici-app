@@ -32,7 +32,7 @@ import {
 	sessionCookie
 } from '../lib/cookie';
 import { constantTimeEqual, randomToken, signState, verifySignedState } from '../lib/crypto';
-import { clientIp } from '../lib/http';
+import { clientIp, type StatusContext } from '../lib/http';
 import { enforceLimit } from '../lib/rate-limit';
 
 const TEN_MIN_MS = 10 * 60 * 1000;
@@ -44,10 +44,6 @@ const providerStatuses = (): Record<'email' | 'google' | 'apple', ProviderStatus
 	google: env.google.enabled ? 'available' : 'coming_soon',
 	apple: env.apple.enabled ? 'available' : 'coming_soon'
 });
-
-interface StatusContext {
-	status?: number | string;
-}
 
 /** Stable body for a provider whose integration is not configured; the FE
  * renders a disabled "coming soon" button from /auth/providers instead of

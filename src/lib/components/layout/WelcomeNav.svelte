@@ -22,7 +22,7 @@
 		localeStore,
 		setLocale
 	} from '#lib/stores/locale.store.ts';
-	import { theme } from '#lib/stores/theme.store.ts';
+	import { THEME_SWATCHES, theme } from '#lib/stores/theme.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { goto } from '$app/navigation';
 
@@ -43,11 +43,10 @@
 	// Theme labels resolve from the canonical `ui.theme.*` catalog — the
 	// same source AppearancePicker uses — so the appearance tooltips/aria
 	// stay localized and in sync rather than hardcoded English.
-	const THEME_IDS = ['dark', 'light', 'peach'] as const;
 	const themeOpts = $derived(
-		THEME_IDS.map((id) => ({
+		THEME_SWATCHES.map(({ id, labelKey }) => ({
 			id,
-			label: t({ locale: $localeStore, key: `ui.theme.${id}` as const })
+			label: t({ locale: $localeStore, key: labelKey })
 		}))
 	);
 

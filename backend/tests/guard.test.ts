@@ -1,3 +1,4 @@
+import { assertNonNullish } from '@dfinity/utils';
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { requireAdmin, requireUser } from '../src/auth/guard';
 import { createSession, revokeToken } from '../src/auth/sessions';
@@ -41,8 +42,14 @@ describe.if(dbAvailable)('auth guards', () => {
 		const adminId = await createUser('admin');
 		const adminToken = await createSession(adminId);
 
-		expect(await requireAdmin(withSession(userToken))).toBeNull();
-		expect(await requireAdmin(withSession(adminToken))).toEqual({ id: adminId, role: 'admin' });
+		const user = await requireUser(withSession(userToken));
+		const admin = await requireUser(withSession(adminToken));
+
+		assertNonNullish(user);
+		assertNonNullish(admin);
+
+		expect(requireAdmin(user)).toBeNull();
+		expect(requireAdmin(admin)).toEqual({ id: adminId, role: 'admin' });
 	});
 
 	test('GET /api/v1/me answers 401 without a session', async () => {

@@ -7,6 +7,7 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
+import type { StatusContext } from '../lib/http';
 import { CuratorForbiddenError, MarketValidationError } from '../markets/curator';
 import { getMarketMetadata, upsertMarketMetadata } from '../markets/metadata';
 import { getMarketTags, rebuildMarketTagIndex } from '../markets/tag-index';
@@ -16,10 +17,6 @@ import {
 	listMarketTranslationsForLocales,
 	upsertMarketTranslation
 } from '../markets/translations';
-
-interface StatusContext {
-	status?: number | string;
-}
 
 const mapCuratorError = (set: StatusContext, err: unknown): { error: string } => {
 	if (err instanceof CuratorForbiddenError) {
@@ -47,7 +44,7 @@ export const marketsRoutes = new Elysia({ prefix: '/api/v1/markets' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);
@@ -62,7 +59,7 @@ export const marketsRoutes = new Elysia({ prefix: '/api/v1/markets' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);

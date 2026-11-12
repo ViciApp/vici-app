@@ -82,10 +82,9 @@ small icon. The brand carries weight by what it omits."_
 
 **Forbidden in user-facing surfaces:**
 
-- 🔥 → use [`IconStreakFlame`](../../../src/lib/components/icons/IconStreakFlame.svelte)
+- 🔥 → use [`StreakFlame`](../../../src/lib/components/characters/StreakFlame.svelte)
   or `FlameChar.svelte` (the animated character).
-- 🥇🥈🥉 → use a tabular rank numeral (`1` / `2` / `3`) on a tinted
-  chip, or [`IconLaurel`](../../../src/lib/components/icons/IconLaurel.svelte).
+- 🥇🥈🥉 → use a tabular rank numeral (`1` / `2` / `3`) on a tinted chip.
 - 📈 → use `↑` glyph or an icon component.
 - 👤 → use the user's initials in an avatar tile, or
   [`IconRobot`](../../../src/lib/components/icons/IconRobot.svelte) for
@@ -322,13 +321,14 @@ target · lock
 In the repo, branded glyphs live in
 [`src/lib/components/icons/`](../../../src/lib/components/icons/):
 
-- [`IconLaurel`](../../../src/lib/components/icons/IconLaurel.svelte)
 - [`IconSignalYes`](../../../src/lib/components/icons/IconSignalYes.svelte)
   / `IconSignalNo` / `IconSignalHold`
-- [`IconStreakFlame`](../../../src/lib/components/icons/IconStreakFlame.svelte)
-- [`IconXpChevron`](../../../src/lib/components/icons/IconXpChevron.svelte)
 - [`IconIC`](../../../src/lib/components/icons/IconIC.svelte) /
   `IconGoogle` / `IconPasskey` / `IconRobot`
+
+The streak flame is
+[`StreakFlame`](../../../src/lib/components/characters/StreakFlame.svelte),
+in `characters/` next to `FlameChar.svelte`.
 
 For everything else, reach for `@lucide/svelte` — the project standard.
 When you add a bespoke brand glyph, register it in

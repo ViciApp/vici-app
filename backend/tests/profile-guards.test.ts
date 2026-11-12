@@ -12,9 +12,9 @@ import {
 	getProfileView,
 	searchProfiles,
 	shapeOwnProfile,
-	shapeProfile,
-	upsertMyProfile
+	shapeProfile
 } from '../src/profiles/profile';
+import { upsertMyProfile } from '../src/profiles/profile-write';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { createTestProfile, uniqueNickname } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';

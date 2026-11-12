@@ -19,17 +19,8 @@ import { OrderRejectedError } from '../engine/order-rejections';
 import * as registry from '../engine/registry';
 import { toJson } from '../engine/serialize';
 import { ZERO } from '../lib/constants';
+import { badRequest, type StatusContext } from '../lib/http';
 import { logger } from '../lib/logger';
-
-interface StatusContext {
-	status?: number | string;
-}
-
-const badRequest = (set: StatusContext, error: string): { error: string } => {
-	set.status = 400;
-
-	return { error };
-};
 
 /** Runs a collateral call under its id's claim. A finished id answers without
  * touching the chain and a held one answers 409. A refusal, or a failure before
