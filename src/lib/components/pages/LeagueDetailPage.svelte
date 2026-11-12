@@ -65,6 +65,7 @@
 		LEAGUE_NAME_MAX_LENGTH,
 		LEAGUE_NAME_MIN_LENGTH
 	} from '#lib/types/league.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import {
 		formatDate,
 		formatLocalePercent,
@@ -458,7 +459,14 @@
 				locale: $localeStore,
 				key: 'leagues.share_text'
 			});
-			await navigator.clipboard.writeText(`${shareText} ${url}`);
+			const ok = await writeToClipboard(`${shareText} ${url}`);
+
+			if (!ok) {
+				// Clipboard may be unavailable (insecure context). Silent
+				// no-op; the user can still read the code in the head card.
+				return;
+			}
+
 			copied = true;
 
 			track({
@@ -472,8 +480,7 @@
 				copied = false;
 			}, 1600);
 		} catch {
-			// Clipboard may be unavailable (insecure context). Silent
-			// no-op; the user can still read the code in the head card.
+			// The share URL could not be built: the same silent no-op.
 		}
 	};
 

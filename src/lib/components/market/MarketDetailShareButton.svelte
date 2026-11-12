@@ -3,6 +3,7 @@
 	import { Share2 } from '@lucide/svelte/icons';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { browser } from '$app/env';
 
@@ -11,6 +12,14 @@
 	}
 
 	const { title }: Props = $props();
+
+	const notifyShareFailed = () => {
+		notificationsStore.add({
+			title: t({ locale: $localeStore, key: 'market.detail.share.failed_title' }),
+			message: t({ locale: $localeStore, key: 'market.detail.share.failed' }),
+			type: 'error'
+		});
+	};
 
 	const share = async () => {
 		if (!browser) {
@@ -27,7 +36,14 @@
 			}
 
 			if (nonNullish(navigator.clipboard)) {
-				await navigator.clipboard.writeText(url);
+				const ok = await writeToClipboard(url);
+
+				if (!ok) {
+					notifyShareFailed();
+
+					return;
+				}
+
 				notificationsStore.add({
 					title: t({ locale: $localeStore, key: 'market.detail.share.copied_title' }),
 					message: t({ locale: $localeStore, key: 'market.detail.share.copied' }),
@@ -40,11 +56,7 @@
 				return;
 			}
 
-			notificationsStore.add({
-				title: t({ locale: $localeStore, key: 'market.detail.share.failed_title' }),
-				message: t({ locale: $localeStore, key: 'market.detail.share.failed' }),
-				type: 'error'
-			});
+			notifyShareFailed();
 		}
 	};
 </script>
