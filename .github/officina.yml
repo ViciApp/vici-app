@@ -13,6 +13,9 @@ docs:
 # reads its own copy here, so change both together.
 pull_request:
   title_pattern: '^(feat|fix|perf|deps|revert|docs|style|chore|refactor|test|build|ci)\([-a-zA-Z0-9,._/]+\)!?: .+$'
+  # The Officina App has no Copilot seat, so the branch rule's automatic Copilot review skips its
+  # pull requests; this asks for it with the requester's own GitHub account instead.
+  copilot_review: true
 
 # What a merge into main deploys: nothing. Releases run from `v*` tags (deploy.yml, publish.yml),
 # cut when a person merges the release-please PR; web2-deploy.yml is started by hand.

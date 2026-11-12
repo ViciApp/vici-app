@@ -1,5 +1,5 @@
 import {
-	LOCALE_REGISTRY,
+	isRegisteredLocale,
 	LOCALE_STORAGE_KEY,
 	type AppLocale
 } from '#lib/constants/locale.constants.ts';
@@ -117,9 +117,6 @@ export const clearLocaleChoice = (): void => {
 		}
 	});
 };
-
-const isRegisteredLocale = (value: unknown): value is AppLocale =>
-	LOCALE_REGISTRY.some(({ id }) => id === value);
 
 // Startup guard. `initStorageStore` JSON-parses the stored value but cannot
 // know which locales are registered, so a corrupted / foreign payload would

@@ -18,6 +18,7 @@ import { query } from '../db/client';
 import { ZERO } from '../lib/constants';
 import { CHAINS, type Chain } from '../lib/keys';
 import { logger } from '../lib/logger';
+import { msToNs } from '../lib/time';
 import { DEDUP_SAFE_WINDOW_MS } from './ic/icrc';
 import { getAdapter } from './registry';
 import {
@@ -57,8 +58,7 @@ interface StuckRow extends Withdrawal {
 	chain: Chain;
 }
 
-const nsAgo = (ms: number): string =>
-	((BigInt(Date.now()) - BigInt(ms)) * BigInt(1_000_000)).toString();
+const nsAgo = (ms: number): string => msToNs(Date.now() - ms).toString();
 
 const markTried = async (id: string): Promise<void> => {
 	await query(`update withdrawals set updated_at = now() where id = $1 and state = 'processing'`, [
