@@ -63,34 +63,43 @@ export const joinLeagueByInvite = async ({
 		throw new LeagueError('invalid_invite_code');
 	}
 
-	return await upsertLeagueMember({
+	return await writeLeagueMember({
 		leagueId: league.id,
 		callerId: userId,
 		memberUserId: userId,
 		role: 'member',
-		nowMs
+		nowMs,
+		viaInvite: true
 	});
 };
 
-/**
- * Write a membership row under the satellite's authorisation model: self-join
- * (member = caller, role 'member') or the league owner writing any row. The
- * `owner` role is reserved for the league's owner; role changes on existing
- * rows are owner-only; joinedAtMs is write-once.
- */
-export const upsertLeagueMember = async ({
-	leagueId,
-	callerId,
-	memberUserId,
-	role,
-	nowMs = Date.now()
-}: {
+interface LeagueMemberWrite {
 	leagueId: string;
 	callerId: string;
 	memberUserId: string;
 	role: LeagueMemberRole;
 	nowMs?: number;
-}): Promise<LeagueMember> => {
+}
+
+/**
+ * Write a membership row under the satellite's authorisation model: self-join
+ * by invite code (role 'member') or the league owner writing any row. The
+ * `owner` role is reserved for the league's owner; role changes on existing
+ * rows are owner-only; joinedAtMs is write-once.
+ */
+export const upsertLeagueMember = async (write: LeagueMemberWrite): Promise<LeagueMember> =>
+	await writeLeagueMember({ ...write, viaInvite: false });
+
+/** `viaInvite` is set only by the invite-code path, which has already proved
+ * the caller holds the code: any other new row must come from the owner. */
+const writeLeagueMember = async ({
+	leagueId,
+	callerId,
+	memberUserId,
+	role,
+	nowMs = Date.now(),
+	viaInvite
+}: LeagueMemberWrite & { viaInvite: boolean }): Promise<LeagueMember> => {
 	if (!LEAGUE_MEMBER_ROLES.includes(role)) {
 		throw new LeagueError(
 			`league_members role must be one of ${LEAGUE_MEMBER_ROLES.join(' | ')} (got "${role}").`
@@ -127,6 +136,12 @@ export const upsertLeagueMember = async ({
 		const [current] = existing;
 
 		if (isNullish(current)) {
+			if (!callerIsOwner && !viaInvite) {
+				throw new LeagueError(
+					'league_members new rows require an invite code or the league owner.'
+				);
+			}
+
 			const rows = await q<LeagueMemberRow>(
 				`insert into league_members (league_id, member_user_id, joined_at_ms, role)
 				 values ($1, $2, $3, $4)

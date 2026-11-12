@@ -107,6 +107,33 @@ describe.if(dbAvailable)('membership key discipline', () => {
 		).rejects.toThrow('member themselves or the league owner');
 	});
 
+	test('a non-member cannot write their own row without the invite code', async () => {
+		const { leagueId } = await seedLeague({ privacy: 'private' });
+		const outsider = await createTestUser();
+
+		for (const role of ['admin', 'member'] as const) {
+			expect(
+				upsertLeagueMember({ leagueId, callerId: outsider, memberUserId: outsider, role })
+			).rejects.toThrow('invite code or the league owner');
+		}
+
+		expect(await getLeagueMember({ leagueId, memberUserId: outsider })).toBeUndefined();
+	});
+
+	test('the owner can add a new member row directly', async () => {
+		const { ownerId, leagueId } = await seedLeague();
+		const userId = await createTestUser();
+
+		const added = await upsertLeagueMember({
+			leagueId,
+			callerId: ownerId,
+			memberUserId: userId,
+			role: 'member'
+		});
+
+		expect(added.role).toBe('member');
+	});
+
 	test('the owner role is reserved for the league owner', async () => {
 		const { ownerId, leagueId, inviteCode } = await seedLeague();
 		const userId = await createTestUser();
