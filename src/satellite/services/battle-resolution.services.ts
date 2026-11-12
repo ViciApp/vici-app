@@ -10,6 +10,7 @@ import {
 	type BattleWinner
 } from '#lib/types/battle.ts';
 import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+import { controllerCaller } from '#satellite/services/authz.services.ts';
 import { seriesIdsForTag } from '#satellite/services/market-tag-index.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
@@ -19,7 +20,6 @@ import { call, msgCaller, time } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
-	getAdminAccessKeys,
 	getDocStore,
 	listDocsStore,
 	setDocStore
@@ -48,15 +48,7 @@ const MS_PER_NS = 1_000_000n;
 const nowMs = (): number => Number(time() / MS_PER_NS);
 
 /** A satellite controller principal — the `caller` for the controller-trusted resolved write. */
-const adminCaller = (): Uint8Array => {
-	const first = getAdminAccessKeys()[0]?.[0];
-
-	if (isNullish(first)) {
-		throw new Error('No satellite controller available for battle resolution.');
-	}
-
-	return first;
-};
+const adminCaller = (): Uint8Array => controllerCaller('battle resolution');
 
 /**
  * Current member principals of a league. The `league_members` key is

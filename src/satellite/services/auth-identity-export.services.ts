@@ -23,16 +23,11 @@
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import type { ProfilePrivate } from '#lib/types/profile.ts';
-import { isAdmin } from '#satellite/services/authz.services.ts';
+import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, notEmptyString } from '@dfinity/utils';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
-import {
-	decodeDocData,
-	getAdminAccessKeys,
-	getDocStore,
-	listDocsStore
-} from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
 
 /** Juno's reserved datastore collection holding one doc per signed-up user,
  * keyed by the user's principal text. Not part of `Collection` — it is a
@@ -84,11 +79,7 @@ export const getAuthIdentitiesFn = ({
 		throw new Error('Auth-identity export is restricted to admins.');
 	}
 
-	const admin = getAdminAccessKeys()[0]?.[0];
-
-	if (isNullish(admin)) {
-		throw new Error('No satellite controller available for auth-identity export.');
-	}
+	const admin = controllerCaller('auth-identity export');
 
 	const afterKeyText = afterKey?.trim() ?? '';
 	const safeLimit = Number.isFinite(limit) ? Math.floor(limit) : MAX_EXPORT_LIMIT;

@@ -1,5 +1,6 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import type { ProfilePrivate } from '#lib/types/profile.ts';
+import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
@@ -48,4 +49,10 @@ export const assertSetProfilePrivate = ({
 	if (typeof data.email !== 'string' || data.email.length > MAX_EMAIL_LENGTH) {
 		throw new Error(`Private profile email must be a string of at most ${MAX_EMAIL_LENGTH} chars.`);
 	}
+};
+
+/** The `profile_private` pre-write veto: owner binding, then the new-profile gate. */
+export const assertProfilePrivate = (context: AssertSetDocContext): void => {
+	assertSetProfilePrivate(context);
+	assertNewProfileAllowed(context);
 };

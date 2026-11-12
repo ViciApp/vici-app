@@ -214,10 +214,13 @@ pattern — keep them consistent.
 When a single collection needs **more than one** assert (or hook), compose
 them into one dispatch-table entry rather than widening the table value to
 an array. The `profiles` slot maps to `assertProfile`, a small composed
-function that calls `assertValidNickname` then `assertDailyGoalMonotonic`
-in turn (a throw from either rejects the write); this mirrors the
-`onProfileSetComposed` hook composition below. Each sub-assert stays
-exported from its service so it remains independently unit-testable.
+function exported from `profile.services.ts` next to its sub-asserts, that
+calls `assertNewProfileAllowed`, `assertValidNickname` and
+`assertDailyGoalMonotonic` in turn (a throw from any rejects the write);
+`assertProfilePrivate` in `profile-private.services.ts` does the same for
+`profile_private`. A composed assert lives in the service that owns the
+collection, never in `index.ts`, which only wires the dispatch table. Each
+sub-assert stays exported so it remains independently unit-testable.
 
 ## Hooks fire ONLY for client writes, never for serverless `setDocStore`
 

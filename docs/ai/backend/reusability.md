@@ -11,7 +11,7 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 | `cookie.ts`     | session, OAuth-state and Apple-state cookie names; `buildCookie`, `sessionCookie` / `clearSessionCookie`, the OAuth and Apple state cookie set / clear helpers, `readCookie`                                                               |
 | `crypto.ts`     | `randomToken`, `peppered` (HMAC with the session pepper), `constantTimeEqual`, `generateOtp`, `signState` / `verifySignedState`                                                                                                            |
 | `email.ts`      | `sendEmail`, `sendOtpEmail`; `setEmailTransport` (test seam)                                                                                                                                                                               |
-| `http.ts`       | `clientIp(request)`; `StatusContext`, `badRequest(set, code)` (400 with an `{ error }` code)                                                                                                                                               |
+| `http.ts`       | `clientIp(request)`; `StatusContext`, `badRequest(set, code)` (400) and `serviceUnavailable(set, code)` (503), each with an `{ error }` code                                                                                               |
 | `ic-agent.ts`   | `buildAgent(identity?)`                                                                                                                                                                                                                    |
 | `keys.ts`       | HKDF key derivation: `Chain` / `CHAINS`, `deriveUserKey`, `deriveServiceKey`, `publicKeyForChain`, `userIcIdentity` / `userIcPrincipalText`, `treasuryIcIdentity` / `treasuryIcPrincipalText`, `adminIcIdentity`, `engineReaderIcIdentity` |
 | `logger.ts`     | `logger.{debug,info,warn,error}`, gated by `LOG_LEVEL`                                                                                                                                                                                     |
@@ -40,7 +40,7 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 
 ## Not yet shared (candidates for `lib/`)
 
-These exist in several copies today; see [`patterns.md`](./patterns.md#anti-patterns-found-in-the-code-do-not-copy): `optionalMs`, `shapeMember`.
+These exist in several copies today; see [`patterns.md`](./patterns.md#anti-patterns-found-in-the-code-do-not-copy): `optionalMs`.
 
 ## Shared with the app
 

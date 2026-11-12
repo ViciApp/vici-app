@@ -1,6 +1,6 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import type { ActivityReactionCount } from '#lib/types/social.ts';
-import { isAdmin } from '#satellite/services/authz.services.ts';
+import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { OnDeleteDocContext, OnSetDocContext } from '@junobuild/functions';
@@ -8,7 +8,6 @@ import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
-	getAdminAccessKeys,
 	getDocStore,
 	listDocsStore,
 	setDocStore
@@ -23,15 +22,7 @@ const nowMs = (): number => Number(time() / MS_PER_NS);
  * `activity_reaction_counts` collection — the liker is not a controller, so the counter is moved as
  * an admin (the `*DocStore` APIs enforce the collection rule against the caller they're given).
  */
-const adminCaller = (): Uint8Array => {
-	const first = getAdminAccessKeys()[0]?.[0];
-
-	if (isNullish(first)) {
-		throw new Error('No satellite controller available for reaction-count rollup.');
-	}
-
-	return first;
-};
+const adminCaller = (): Uint8Array => controllerCaller('reaction-count rollup');
 
 /**
  * The liked activity's doc key from a reaction doc key. A reaction is keyed

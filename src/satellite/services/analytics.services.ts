@@ -35,7 +35,7 @@ import {
 	type TrackEventInput
 } from '#lib/types/analytics-event.ts';
 import type { VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { isAdmin } from '#satellite/services/authz.services.ts';
+import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
@@ -46,7 +46,6 @@ import {
 	decodeDocData,
 	deleteDocStore,
 	encodeDocData,
-	getAdminAccessKeys,
 	getDocStore,
 	listDocsStore,
 	setDocStore
@@ -89,15 +88,7 @@ const propsFromInput = (event: TrackEventInput): AnalyticsEventProps | undefined
  * APIs enforce the collection rule against the `caller` they're given, and
  * the end user is not a controller — so we read/write as an admin.
  */
-const adminCaller = (): Uint8Array => {
-	const first = getAdminAccessKeys()[0]?.[0];
-
-	if (isNullish(first)) {
-		throw new Error('No satellite controller available for analytics capture.');
-	}
-
-	return first;
-};
+const adminCaller = (): Uint8Array => controllerCaller('analytics capture');
 
 /**
  * Best-effort inline rollup. Bumps the day's per-event-name counts so the
