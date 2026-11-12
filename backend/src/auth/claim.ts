@@ -39,6 +39,7 @@ import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { hexToBytes } from '@noble/hashes/utils.js';
 import { concatBytes } from '../lib/bytes';
+import { msToNs } from '../lib/time';
 
 /** Wire audience tag; mirrored by the app's claim handoff util (pinned by the
  * shared-drift suite). */
@@ -608,7 +609,7 @@ export const verifyClaimBlob = async ({
 		return { ok: false, reason: 'principal_mismatch' };
 	}
 
-	const nowNs = BigInt(nowMs) * 1_000_000n;
+	const nowNs = msToNs(nowMs);
 
 	for (const signed of chain.delegations) {
 		if (signed.delegation.expiration <= nowNs) {
