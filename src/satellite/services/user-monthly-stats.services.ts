@@ -1,12 +1,12 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	BOLD_CALLER_MEDIAN_THRESHOLD,
-	median,
 	MONTHLY_CONSENSUS_LIMIT,
 	MONTHLY_MIN_CALLS,
 	userMonthlyStatsKey,
 	type UserMonthlyStatsDoc
 } from '#lib/types/user-monthly-stats.ts';
+import { median } from '#lib/utils/stats.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';

@@ -1,10 +1,10 @@
 <script lang="ts">
 	/**
 	 * Editorial radial dial showing which way a binary market leans and
-	 * how strongly. Direction: up = YES consensus, down = NO consensus.
-	 * Magnitude: needle position from centre (50/50) to extreme (0/100).
+	 * how strongly. The needle points straight up at 50/50 and turns toward
+	 * a quarter turn left for YES consensus, right for NO consensus.
 	 * The label under the dial shows the *leading side's* percentage so
-	 * a market with 35% YES reads as "65%" pointing down.
+	 * a market with 35% YES reads as "65%" leaning right.
 	 *
 	 * Drives semantic colour off the leading side (--yes / --no) rather
 	 * than the category palette so it
@@ -16,8 +16,8 @@
 
 	interface Props {
 		// 0–1 YES-side probability. Clamped defensively to [0, 1].
-		// `undefined` means the book isn't known yet — the dial renders a
-		// centred (horizontal) needle and a skeleton in place of the percentage.
+		// `undefined` means the book isn't known yet: the dial renders an
+		// upright 50/50 needle and a skeleton in place of the percentage.
 		yesProbability: number | undefined;
 		// Whether the order book has been read. Distinguishes *loading* (book
 		// not read yet → pulsing bar) from *loaded-but-empty* (no liquidity →
@@ -34,7 +34,7 @@
 	const yesPct = $derived(
 		isNullish(yesProbability) ? 50 : Math.max(0, Math.min(100, Math.round(yesProbability * 100)))
 	);
-	// When the probability is unknown, yesPct pins to 50 so the needle reads level.
+	// When the probability is unknown, yesPct pins to 50 so the needle stands upright.
 	const lean = $derived(consensusLean(yesPct));
 	const sideClass = $derived(known ? (lean.isYes ? 'yes' : 'no') : 'unknown');
 </script>

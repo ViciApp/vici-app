@@ -10,6 +10,7 @@ import { Principal } from '@icp-sdk/core/principal';
 import { query, tx } from '../db/client';
 import { aggregateSettlementAccuracy } from '../engine/clearing';
 import { userIcPrincipalText } from '../lib/keys';
+import { msToNs } from '../lib/time';
 import { seriesIdsForTag } from '../markets/tag-index';
 import {
 	BATTLE_SCOPE_DEFAULT,
@@ -23,8 +24,6 @@ import {
 } from './battles';
 import { getLeagueMember } from './members';
 import type { BattleScope } from './stats';
-
-const MS_PER_NS = 1_000_000n;
 
 /** Every on-chain principal a set of league members can have settled under:
  * each member's derived custodial principal plus their linked legacy ones. */
@@ -83,8 +82,8 @@ const sideTotals = async ({
 
 	const entries = await aggregateSettlementAccuracy({
 		members,
-		from_ts: toNullable(BigInt(fromMs) * MS_PER_NS),
-		to_ts: toNullable(BigInt(toMs) * MS_PER_NS),
+		from_ts: toNullable(msToNs(fromMs)),
+		to_ts: toNullable(msToNs(toMs)),
 		series_ids: isNullish(seriesIds) ? [] : [seriesIds]
 	});
 

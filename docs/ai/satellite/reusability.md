@@ -19,7 +19,3 @@ Search here before writing a helper in `src/satellite/`. Adding a shared one? Ad
 | `services/authz.services.ts`       | `isAdmin({ caller })`, `getSeriesCreator(seriesId)`, `isCreatorOrAdmin(...)`: every caller-role check |
 | `services/engine-sync.services.ts` | the only mirror of Juno role docs into the icdc-core Vici engine                                      |
 | `services/vxp-payout.services.ts`  | `transferWithBadFeeRetry(...)`: the one VXP ledger transfer every award path uses                     |
-
-## Known duplicates (do not add a third)
-
-- **`isRegisteredLocale`** exists in `services/market-translation.services.ts` and `src/lib/stores/locale.store.ts`.

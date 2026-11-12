@@ -1,8 +1,8 @@
 <script lang="ts">
 	/**
-	 * Directional dial that points up at strong YES, horizontal at
-	 * 50/50, down at strong NO. Used inside the FlowCard header when
-	 * the market isn't a contrarian / Trickster call.
+	 * Consensus dial on the landing hero's sample Flow card (`WelcomeHero`):
+	 * the needle points up at 50/50 and turns toward a quarter turn left for
+	 * strong YES, right for strong NO.
 	 */
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
