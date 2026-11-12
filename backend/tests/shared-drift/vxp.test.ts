@@ -31,9 +31,9 @@ import {
 	extractBlock,
 	extractIntConst,
 	extractNumericRecord,
-	extractParseTokenWhole,
 	extractProductConst,
 	extractUnionLiterals,
+	extractVxpBaseUnitsWhole,
 	importRepoModule,
 	quotedStrings,
 	readRepoSource
@@ -116,12 +116,15 @@ describe('shared drift: VXP amounts', () => {
 	test('calibration reward, recovery floor and caps', () => {
 		expect(VXP_CALIBRATION_REWARD_BASE_UNITS).toBe(
 			parseVxp(
-				extractParseTokenWhole({ source: economy, constName: 'VXP_CALIBRATION_REWARD_BASE_UNITS' })
+				extractVxpBaseUnitsWhole({
+					source: economy,
+					constName: 'VXP_CALIBRATION_REWARD_BASE_UNITS'
+				})
 			)
 		);
 		expect(CALIBRATION_RECOVERY_FLOOR_BASE_UNITS).toBe(
 			parseVxp(
-				extractParseTokenWhole({
+				extractVxpBaseUnitsWhole({
 					source: economy,
 					constName: 'CALIBRATION_RECOVERY_FLOOR_BASE_UNITS'
 				})
@@ -138,12 +141,18 @@ describe('shared drift: VXP amounts', () => {
 	test('comeback restore target, floor and away threshold', () => {
 		expect(COMEBACK_RESTORE_TARGET_BASE_UNITS).toBe(
 			parseVxp(
-				extractParseTokenWhole({ source: economy, constName: 'COMEBACK_RESTORE_TARGET_BASE_UNITS' })
+				extractVxpBaseUnitsWhole({
+					source: economy,
+					constName: 'COMEBACK_RESTORE_TARGET_BASE_UNITS'
+				})
 			)
 		);
 		expect(COMEBACK_BALANCE_FLOOR_BASE_UNITS).toBe(
 			parseVxp(
-				extractParseTokenWhole({ source: economy, constName: 'COMEBACK_BALANCE_FLOOR_BASE_UNITS' })
+				extractVxpBaseUnitsWhole({
+					source: economy,
+					constName: 'COMEBACK_BALANCE_FLOOR_BASE_UNITS'
+				})
 			)
 		);
 		expect(COMEBACK_AWAY_DAYS).toBe(
@@ -154,7 +163,7 @@ describe('shared drift: VXP amounts', () => {
 	test('league founder reward and lifetime cap', () => {
 		expect(VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS).toBe(
 			parseVxp(
-				extractParseTokenWhole({
+				extractVxpBaseUnitsWhole({
 					source: economy,
 					constName: 'VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS'
 				})
@@ -212,12 +221,12 @@ describe('shared drift: onboarding milestones', () => {
 	const onboarding = readRepoSource('src/lib/constants/vxp-onboarding.constants.ts');
 
 	test('milestone amounts match the app starter split', () => {
-		const total = extractParseTokenWhole({
+		const total = extractVxpBaseUnitsWhole({
 			source: onboarding,
 			constName: 'NEW_USER_VXP_TOTAL_BASE_UNITS'
 		});
-		const m1 = extractParseTokenWhole({ source: onboarding, constName: 'MILESTONE_1_VXP' });
-		const m2 = extractParseTokenWhole({ source: onboarding, constName: 'MILESTONE_2_VXP' });
+		const m1 = extractVxpBaseUnitsWhole({ source: onboarding, constName: 'MILESTONE_1_VXP' });
+		const m2 = extractVxpBaseUnitsWhole({ source: onboarding, constName: 'MILESTONE_2_VXP' });
 
 		expect(ONBOARDING_MILESTONE_AMOUNTS.m1).toBe(parseVxp(m1));
 		expect(ONBOARDING_MILESTONE_AMOUNTS.m2).toBe(parseVxp(m2));

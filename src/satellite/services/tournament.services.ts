@@ -1,6 +1,5 @@
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
 import {
@@ -18,7 +17,7 @@ import {
 	type TournamentRound
 } from '#lib/types/tournament.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { parseToken } from '#lib/utils/parse.utils.ts';
+import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { getLeagueStatsFn } from '#satellite/services/league-stats.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -1200,13 +1199,10 @@ export const claimTournamentPrizeFn = async ({
 	const nowMs = Number(time() / 1_000_000n);
 	// `tier.vxp` is the human-readable whole-VXP prize (5000 / 2500 / 1000),
 	// the same value the FE renders. The award doc / ledger work in base
-	// units (VXP has 4 decimals), so size it via `parseToken` like every
+	// units (VXP has 4 decimals), so size it via `vxpBaseUnits` like every
 	// other award constant — writing the raw whole number here would
 	// under-pay by 10⁴ (5000 base units = 0.5 VXP).
-	const amountBaseUnits = parseToken({
-		value: tier.vxp.toString(),
-		unitName: VXP_TOKEN.decimals
-	});
+	const amountBaseUnits = vxpBaseUnits(tier.vxp);
 	const pendingDoc: VxpAwardDoc = {
 		recipient: callerText,
 		awardType: 'tournament_prize',

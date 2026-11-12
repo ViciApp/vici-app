@@ -11,8 +11,7 @@
  * See `vxp-economy.utils.ts` for the payout formula.
  */
 
-import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
-import { parseToken } from '#lib/utils/parse.utils.ts';
+import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**
  * Per-call stake ladder, smallest → largest. The shape is curated, not
@@ -117,13 +116,10 @@ export const VXP_FLOW_OVERTIME_ROLLING_CAP = 8;
  * Vici binary market a recovering user calls correctly. Small and fixed —
  * it is a recovery nudge that rewards reading a market right, not a payout
  * that scales with stake. Sized in base units via the canonical
- * `parseToken` helper so it matches `icrc1Transfer` / award-doc amounts
+ * `vxpBaseUnits` helper so it matches `icrc1Transfer` / award-doc amounts
  * (same pattern as referral / onboarding awards). Tunable.
  */
-export const VXP_CALIBRATION_REWARD_BASE_UNITS = parseToken({
-	value: '20',
-	unitName: VXP_TOKEN.decimals
-});
+export const VXP_CALIBRATION_REWARD_BASE_UNITS = vxpBaseUnits(20);
 
 /**
  * Recovery floor for the calibration reward (100 VXP), in **base units**.
@@ -131,12 +127,9 @@ export const VXP_CALIBRATION_REWARD_BASE_UNITS = parseToken({
  * this floor — it is the core bound that keeps calibration a recovery
  * mechanic for depleted users rather than a steady income stream for
  * everyone. Compared directly against the ledger balance (also base
- * units), so it is sized via `parseToken`. Tunable.
+ * units), so it is sized via `vxpBaseUnits`. Tunable.
  */
-export const CALIBRATION_RECOVERY_FLOOR_BASE_UNITS = parseToken({
-	value: '100',
-	unitName: VXP_TOKEN.decimals
-});
+export const CALIBRATION_RECOVERY_FLOOR_BASE_UNITS = vxpBaseUnits(100);
 
 /**
  * Net-worth floor (150 VXP) that separates a *fully-deployed* user from a
@@ -146,33 +139,24 @@ export const CALIBRATION_RECOVERY_FLOOR_BASE_UNITS = parseToken({
  * base units): at or above this floor the stack is "in play, nothing lost"
  * — a positive beat pointing at the open calls; below it the stack has
  * actually eroded through realised losses, so the user is offered the
- * Calibration recovery path. Sized via `parseToken` so the comparison
+ * Calibration recovery path. Sized via `vxpBaseUnits` so the comparison
  * stays in base units. Tunable.
  */
-export const CALIBRATION_DEPLOY_FLOOR_BASE_UNITS = parseToken({
-	value: '150',
-	unitName: VXP_TOKEN.decimals
-});
+export const CALIBRATION_DEPLOY_FLOOR_BASE_UNITS = vxpBaseUnits(150);
 
 /**
  * Comeback restore — a one-time "welcome back" top-up for a returning user whose stack has run dry.
  * When a user returns after an absence of at least {@link COMEBACK_AWAY_DAYS} days and their free
  * balance is below {@link COMEBACK_BALANCE_FLOOR_BASE_UNITS}, their balance is topped up *to* this
- * target so they have stake to play again. In **base units** via `parseToken`. Tunable.
+ * target so they have stake to play again. In **base units** via `vxpBaseUnits`. Tunable.
  */
-export const COMEBACK_RESTORE_TARGET_BASE_UNITS = parseToken({
-	value: '250',
-	unitName: VXP_TOKEN.decimals
-});
+export const COMEBACK_RESTORE_TARGET_BASE_UNITS = vxpBaseUnits(250);
 
 /**
  * Balance floor (100 VXP) below which a returning user qualifies for the comeback restore, in
  * **base units**. Compared directly against the ledger balance. Tunable.
  */
-export const COMEBACK_BALANCE_FLOOR_BASE_UNITS = parseToken({
-	value: '100',
-	unitName: VXP_TOKEN.decimals
-});
+export const COMEBACK_BALANCE_FLOOR_BASE_UNITS = vxpBaseUnits(100);
 
 /**
  * Minimum absence (in days) before a returning user qualifies for the comeback restore. Measured
@@ -208,15 +192,12 @@ export const VXP_WORLDS_PODIUM = Object.freeze({
  * League-founder reward (100 VXP), in **base units**. Credited once per
  * league a user founds, keyed by the league id so the payout is naturally
  * idempotent across hook retries. This is the "Founder +100 VXP" promise
- * the create-league CTA surfaces. Sized in base units via `parseToken` so
+ * the create-league CTA surfaces. Sized in base units via `vxpBaseUnits` so
  * it matches `icrc1Transfer` / award-doc amounts (same corrected pattern
  * as the calibration / comeback awards — never a raw int, VXP has 4
  * decimals). Tunable.
  */
-export const VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS = parseToken({
-	value: '100',
-	unitName: VXP_TOKEN.decimals
-});
+export const VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS = vxpBaseUnits(100);
 
 /**
  * Maximum number of league-founder rewards a single account can earn,

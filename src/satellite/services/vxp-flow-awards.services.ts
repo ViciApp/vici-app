@@ -1,6 +1,5 @@
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import {
 	VXP_FLOW_MILESTONES,
 	VXP_FLOW_OVERTIME_BONUS,
@@ -8,7 +7,7 @@ import {
 	VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS
 } from '#lib/constants/vxp-economy.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
-import { parseToken } from '#lib/utils/parse.utils.ts';
+import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -39,7 +38,7 @@ import {
  *
  * Both reuse the existing server-fired `vxp_awards` pending→paid machinery
  * and its structural idempotency (`${recipient}/${awardType}/${awardKey}`).
- * Amounts are sized via `parseToken` — the constants are whole VXP and the
+ * Amounts are sized via `vxpBaseUnits` — the constants are whole VXP and the
  * ledger works in base units (mirrors the podium award; a raw `BigInt`
  * would under-pay by `10 ** VXP_TOKEN.decimals`).
  */
@@ -49,10 +48,6 @@ const FLOW_MILESTONES: readonly number[] = Object.freeze(
 		.map((k) => Number(k))
 		.sort((a, b) => a - b)
 );
-
-/** Whole-VXP award value → base units. */
-const flowAwardBaseUnits = (wholeVxp: number): bigint =>
-	parseToken({ value: wholeVxp.toString(), unitName: VXP_TOKEN.decimals });
 
 /** Subset of the profile the milestone hook reads. */
 interface TotalTradesSlice {
@@ -158,7 +153,7 @@ const payFlowAward = async ({
 		return;
 	}
 
-	const amount = flowAwardBaseUnits(wholeVxp);
+	const amount = vxpBaseUnits(wholeVxp);
 
 	const pending: VxpAwardDoc = {
 		recipient,

@@ -39,7 +39,7 @@ Terminology: always **"prediction"**, never "bet".
   balance.
 
 VXP has 4 decimals: compare and transfer in base units
-(`parseToken`), display in whole VXP.
+(`vxpBaseUnits`), display in whole VXP.
 
 ## VXP economy
 
