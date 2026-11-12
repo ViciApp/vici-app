@@ -4,7 +4,7 @@
 // per-leg idempotency key instead of double-posting.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { tx, type TxQuery } from '../db/client';
+import { query, tx, type TxQuery } from '../db/client';
 import { ZERO } from '../lib/constants';
 
 export interface LedgerLeg {
@@ -102,3 +102,25 @@ export const accountBalance = async ({
 
 	return BigInt(rows[0]?.balance ?? '0');
 };
+
+/** One asset's balance as the wallet reports it, in base units. */
+export interface AssetBalanceRow {
+	asset_id: string;
+	symbol: string;
+	chain: string;
+	decimals: number;
+	balance: string;
+}
+
+/** A user's book balances on every chain except ic, whose balances live on the
+ * ledgers and are read there instead. */
+export const listUserBookBalances = (userId: string): Promise<AssetBalanceRow[]> =>
+	query<AssetBalanceRow>(
+		`select b.asset_id, a.symbol, a.chain, a.decimals, b.balance::text as balance
+		 from custody_balances b
+		 join assets a on a.id = b.asset_id
+		 join custody_accounts c on c.id = b.account_id
+		 where c.user_id = $1 and a.chain <> 'ic'
+		 order by a.chain, a.symbol`,
+		[userId]
+	);

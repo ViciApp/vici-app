@@ -14,10 +14,10 @@ import {
 import * as google from '../auth/google';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { resolveIdentity } from '../auth/identity';
+import { loadMe } from '../auth/me';
 import { decodeOauthState, encodeOauthState, sanitizeReturnTo } from '../auth/oauth-state';
 import { requestOtp, verifyOtp } from '../auth/otp';
 import { revokeToken, rotateSession } from '../auth/sessions';
-import { query } from '../db/client';
 import { env } from '../env';
 import {
 	APPLE_STATE_COOKIE,
@@ -72,57 +72,6 @@ const gateRefused = ({
 const gateRefusedPath = (verdict: Exclude<BetaGateVerdict, 'allowed'>): string =>
 	verdict === LEGACY_ACCOUNT_PENDING_ERROR ? '/signin?e=legacy' : '/signin?e=beta';
 
-interface MeIdentity {
-	provider: string;
-	email: string | null;
-}
-
-interface MeUser {
-	id: string;
-	role: string;
-	displayName: string | null;
-	avatarUrl: string | null;
-	createdAt: string;
-}
-
-const meFor = async (userId: string): Promise<Record<string, unknown> | null> => {
-	const users = await query<{
-		id: string;
-		role: string;
-		display_name: string | null;
-		avatar_url: string | null;
-		created_at: Date;
-	}>(`select id, role, display_name, avatar_url, created_at from users where id = $1`, [userId]);
-	const [user] = users;
-
-	if (isNullish(user)) {
-		return null;
-	}
-
-	const identities = await query<{ provider: string; email: string | null }>(
-		`select provider, email from auth_identities where user_id = $1 order by created_at`,
-		[userId]
-	);
-	const principals = await query<{ principal: string; matched_via: string }>(
-		`select principal, matched_via from legacy_principals where user_id = $1 order by linked_at`,
-		[userId]
-	);
-
-	const shaped: MeUser = {
-		id: user.id,
-		role: user.role,
-		displayName: user.display_name,
-		avatarUrl: user.avatar_url,
-		createdAt: user.created_at.toISOString()
-	};
-
-	return {
-		...shaped,
-		identities: identities satisfies MeIdentity[],
-		legacyPrincipals: principals.map((p) => ({ principal: p.principal, matchedVia: p.matched_via }))
-	};
-};
-
 /** Login response: rotate the session (revoking whatever cookie rode in) and
  * answer with the fresh session cookie. */
 const loginCookies = async (request: Request, userId: string): Promise<string> => {
@@ -174,7 +123,7 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 			return unauthenticated(set);
 		}
 
-		const me = await meFor(user.id);
+		const me = await loadMe(user.id);
 
 		if (isNullish(me)) {
 			return unauthenticated(set);
@@ -258,7 +207,7 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 			set.headers['set-cookie'] = await loginCookies(request, result.userId);
 			set.headers['cache-control'] = 'no-store';
 
-			const me = await meFor(result.userId);
+			const me = await loadMe(result.userId);
 
 			return { user: me };
 		},
