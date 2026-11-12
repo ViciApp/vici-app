@@ -47,7 +47,7 @@ export const marketsRoutes = new Elysia({ prefix: '/api/v1/markets' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);
@@ -62,7 +62,7 @@ export const marketsRoutes = new Elysia({ prefix: '/api/v1/markets' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);

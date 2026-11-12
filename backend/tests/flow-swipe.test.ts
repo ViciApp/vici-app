@@ -8,7 +8,7 @@ import {
 	isWellFormedDayKey,
 	recordFlowSwipe
 } from '../src/profiles/flow';
-import { upsertMyProfile } from '../src/profiles/profile';
+import { upsertMyProfile } from '../src/profiles/profile-write';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { createTestProfile } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';

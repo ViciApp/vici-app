@@ -430,7 +430,7 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);
@@ -467,7 +467,7 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);
