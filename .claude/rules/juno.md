@@ -1,7 +1,7 @@
 # Juno satellite (Claude pointer)
 
 `docs/ai/` is the source of truth. This card only surfaces a few
-high-violation reminders so they land in Claude's prompt — for anything
+high-violation reminders so they land in Claude's prompt; for anything
 substantive, read the canonical docs.
 
 **Read first:**
@@ -18,9 +18,9 @@ substantive, read the canonical docs.
 
 **Easy-to-miss rules:**
 
-- **`@junobuild/core` is FE-only** — never import it from
+- **`@junobuild/core` is FE-only**: never import it from
   `src/satellite/`. Satellite code uses `@junobuild/functions` directly.
-- **Local replica is the Juno emulator** (`juno emulator start`) —
+- **Local replica is the Juno emulator** (`juno emulator start`):
   never `dfx start`.
 - **Collection names live in TWO places that must stay in sync:**
   [`juno.config.ts`](../../juno.config.ts) and the typed

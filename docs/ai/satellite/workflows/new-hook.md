@@ -95,7 +95,7 @@ collection.
    ```
 
 9. **Update docs** if you introduced a new pattern (cross-canister call
-   shape, new logger tag taxonomy, new collection convention) — edit
+   shape, new logger tag taxonomy, new collection convention): edit
    [`patterns.md`](../patterns.md) per the
    [meta-update rule](../../governance.md#meta-update-rule).
 

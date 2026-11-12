@@ -26,7 +26,7 @@ It **is not**:
 
 - The on-chain risk engine. That's the Rust canisters in
   [`../icdc-core/`](../../../../icdc-core/) (Clearing + Registry).
-- A general-purpose backend — keep logic close to data; if it doesn't
+- A general-purpose backend: keep logic close to data; if it doesn't
   need to be on-canister, it belongs in `#lib/services/` instead.
 
 ## Satellite-specific things to check (every change)
@@ -55,9 +55,9 @@ What is specific to the satellite:
 The satellite has no `package.json` of its own: its dependencies are in the root [`package.json`](../../../package.json), and the layout is `ls src/satellite/`.
 What the code will not tell you:
 
-- **`@junobuild/core` is FE-only.** Never import it from the satellite —
+- **`@junobuild/core` is FE-only.** Never import it from the satellite;
   satellite code uses `@junobuild/functions` primitives directly.
-- **The satellite has its own [`tsconfig.json`](../../../src/satellite/tsconfig.json)** —
+- **The satellite has its own [`tsconfig.json`](../../../src/satellite/tsconfig.json)**:
   no DOM-only imports from `#lib/`.
 - **`src/satellite/api-schemas.ts`, `satellite.did`, `satellite_extension.did`
   are generated** by `npm run juno:functions:build`. Don't hand-edit.
@@ -66,7 +66,7 @@ Full taxonomy: [`structure.md`](./structure.md). Idioms: [`patterns.md`](./patte
 
 ## Local development
 
-- **Replica:** `juno emulator start` — the Juno emulator is the only
+- **Replica:** `juno emulator start`: the Juno emulator is the only
   local replica (never `dfx start`, see
   [`AGENTS.md`](../../../AGENTS.md)).
 - **Local Console:** [http://localhost:5866](http://localhost:5866).
@@ -76,7 +76,7 @@ Full taxonomy: [`structure.md`](./structure.md). Idioms: [`patterns.md`](./patte
   TypeScript hooks/asserts/endpoints into the satellite extension
   Wasm.
 - **Satellite IDs:** pinned in [`juno.config.ts`](../../../juno.config.ts)
-  (dev + prod). That file is the source of truth — don't copy them
+  (dev + prod). That file is the source of truth; don't copy them
   elsewhere.
 
 ## Where to look
