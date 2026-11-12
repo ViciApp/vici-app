@@ -31,7 +31,3 @@ src/worker.ts ── calls ─────────────────�
 | An env var                                                 | `src/env.ts` plus the table in `backend/README.md`                            |
 | A test                                                     | `backend/tests/<topic>.test.ts`, never next to the source                     |
 | A new top-level domain folder                              | ask first (closed taxonomy)                                                   |
-
-## Known deviations (do not copy)
-
-- `routes/auth.ts` (around line 96) and `routes/wallet.ts` (the `/balances` join, around line 149) run SQL directly. New routes go through a domain function.

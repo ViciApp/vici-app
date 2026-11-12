@@ -47,7 +47,3 @@ The patterns the API really uses, each with one example to copy. All paths are u
 ## Rate limiting
 
 - `enforceLimit({ set, name, ip, limit, windowMs })` (`src/lib/rate-limit.ts:66`) with `clientIp(request)` from `src/lib/http.ts`, on every unauthenticated endpoint that sends email, issues a session or can be enumerated. In-memory, per instance.
-
-## Anti-patterns found in the code (do not copy)
-
-- **SQL in a route:** `src/routes/auth.ts` (`meFor`) and the `/balances` join in `src/routes/wallet.ts`.
