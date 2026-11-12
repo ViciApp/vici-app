@@ -26,12 +26,24 @@ describe('loadEnv', () => {
 		);
 	});
 
+	test('production fails fast without RESEND_API_KEY', () => {
+		expect(() =>
+			loadEnv({
+				NODE_ENV: 'production',
+				DATABASE_URL: 'postgres://x/y',
+				SESSION_SECRET: 's3cret',
+				ROOT_SECRET: 'r00t'
+			})
+		).toThrow('RESEND_API_KEY');
+	});
+
 	test('production fails fast without ROOT_SECRET', () => {
 		expect(() =>
 			loadEnv({
 				NODE_ENV: 'production',
 				DATABASE_URL: 'postgres://x/y',
-				SESSION_SECRET: 's3cret'
+				SESSION_SECRET: 's3cret',
+				RESEND_API_KEY: 're_test'
 			})
 		).toThrow('ROOT_SECRET');
 	});
@@ -42,6 +54,7 @@ describe('loadEnv', () => {
 			DATABASE_URL: 'postgres://prod-host/vici',
 			SESSION_SECRET: 's3cret',
 			ROOT_SECRET: 'r00t',
+			RESEND_API_KEY: 're_test',
 			PUBLIC_APP_URL: 'https://vici.app',
 			PORT: '9000'
 		});

@@ -1,11 +1,12 @@
-// Validated environment. In production DATABASE_URL and SESSION_SECRET are
-// required and the process refuses to boot without them; everything else is
-// optional. In dev every var carries a local default so `bun dev` works with
+// Validated environment. In production DATABASE_URL, SESSION_SECRET,
+// RESEND_API_KEY and ROOT_SECRET are required and the process refuses to boot
+// without them; everything else is optional. In dev every var carries a local default so `bun dev` works with
 // just the docker-compose Postgres.
 //
 // Optional integrations added by later phases (email, object storage, chain
 // adapters) follow a two-mode degrade: when unconfigured they log or stub
-// (email prints to the console, storage falls back to local disk in dev)
+// (storage falls back to local disk in dev; email prints to the console, but
+// only outside production, where the console would carry sign-in codes)
 // instead of crashing, each exposed via an `enabled` getter on its own group.
 // See backend/README.md for the full table.
 
@@ -180,7 +181,7 @@ export const loadEnv = (source: EnvSource): Env => {
 			};
 		})(),
 		email: {
-			resendApiKey: optional('RESEND_API_KEY', ''),
+			resendApiKey: requiredInProd('RESEND_API_KEY', ''),
 			from: optional('EMAIL_FROM', 'VICI <no-reply@vici.app>')
 		},
 		// Root of the per-user per-chain key derivation (see src/lib/keys.ts).
