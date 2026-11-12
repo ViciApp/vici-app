@@ -135,6 +135,29 @@ export default ts.config(
 	},
 
 	{
+		// Size and shape limits. Code that broke them when they landed is counted, per
+		// file and rule, in eslint-suppressions.json (generated, never hand-edited):
+		// a file may not exceed its count, and a fixed one drops its entry with
+		// `npx eslint . --prune-suppressions`. See docs/ai/pr-and-ci.md.
+		rules: {
+			complexity: ['error', 15],
+			'max-depth': ['error', 4],
+			'max-params': ['error', 4],
+			'max-nested-callbacks': ['error', 4],
+			'max-lines': ['error', { max: 500, skipBlankLines: true, skipComments: true }]
+		}
+	},
+
+	{
+		// Locale catalogs grow with every user-visible string; their size is data,
+		// not a design smell.
+		files: ['src/lib/constants/messages/**'],
+		rules: {
+			'max-lines': 'off'
+		}
+	},
+
+	{
 		rules: {
 			'padding-line-between-statements': [
 				'error',
