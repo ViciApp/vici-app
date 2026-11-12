@@ -6,6 +6,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { tx, type TxQuery } from '../db/client';
 import { ZERO } from '../lib/constants';
+import { nowNs } from '../lib/time';
 import {
 	ANALYTICS_PROP_KEYS,
 	isAnalyticsEventName,
@@ -39,7 +40,7 @@ export interface TrackEventInput extends AnalyticsEventProps {
 let lastStampNs = ZERO;
 
 const nextStampNs = (): bigint => {
-	const now = BigInt(Date.now()) * 1_000_000n;
+	const now = nowNs();
 
 	lastStampNs = now > lastStampNs ? now : lastStampNs + 1n;
 

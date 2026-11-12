@@ -355,6 +355,16 @@ export const SUPPORTED_LOCALES: readonly {
  */
 export const REGISTERED_LOCALE_IDS: readonly AppLocale[] = LOCALE_REGISTRY.map(({ id }) => id);
 
+const REGISTERED_LOCALE_ID_SET: ReadonlySet<string> = new Set(REGISTERED_LOCALE_IDS);
+
+/**
+ * Is this value one of the registered locale ids (`live` and `soon`)? Guards
+ * every locale that crosses a trust boundary: a stored preference, a schema
+ * field typed as a plain string.
+ */
+export const isRegisteredLocale = (value: unknown): value is AppLocale =>
+	typeof value === 'string' && REGISTERED_LOCALE_ID_SET.has(value);
+
 /**
  * A language grouped with its selectable regional editions, for the two-axis
  * (Language ▸ Region) picker.

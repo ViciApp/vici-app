@@ -19,6 +19,7 @@ import { query } from '../db/client';
 import { env } from '../env';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
+import { msToNs, nowNs } from '../lib/time';
 import { vxpFromBaseUnits } from './constants';
 import { findTreasuryTransferToUser, transferVxpToUser } from './payout';
 
@@ -158,9 +159,7 @@ const captureAwardPaid = async ({
 	}
 };
 
-const nowNs = (): bigint => BigInt(Date.now()) * BigInt(1_000_000);
-
-const dedupCutoffNs = (): bigint => nowNs() - BigInt(DEDUP_SAFE_WINDOW_MS) * BigInt(1_000_000);
+const dedupCutoffNs = (): bigint => nowNs() - msToNs(DEDUP_SAFE_WINDOW_MS);
 
 /** paid transition from a given status, emitting the analytics exactly once
  * (the conditional update is the guard). */
