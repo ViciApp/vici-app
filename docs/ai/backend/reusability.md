@@ -40,7 +40,7 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 
 ## Not yet shared (candidates for `lib/`)
 
-These exist in several copies today; see [`patterns.md`](./patterns.md#anti-patterns-found-in-the-code-do-not-copy): `optionalMs`, `shapeMember`.
+These exist in several copies today; see [`patterns.md`](./patterns.md#anti-patterns-found-in-the-code-do-not-copy): `optionalMs`.
 
 ## Shared with the app
 

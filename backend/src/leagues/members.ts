@@ -11,25 +11,13 @@ import {
 	LeagueError,
 	getLeague,
 	lookupLeagueByInvite,
+	shapeMember,
 	type LeagueMember,
-	type LeagueMemberRole
+	type LeagueMemberRole,
+	type LeagueMemberRow
 } from './leagues';
 
 const LEAGUE_MEMBER_ROLES: readonly LeagueMemberRole[] = ['owner', 'admin', 'member'];
-
-interface LeagueMemberRow {
-	league_id: string;
-	member_user_id: string;
-	joined_at_ms: string;
-	role: LeagueMemberRole;
-}
-
-const shapeMember = (row: LeagueMemberRow): LeagueMember => ({
-	leagueId: row.league_id,
-	memberUserId: row.member_user_id,
-	joinedAtMs: Number(row.joined_at_ms),
-	role: row.role
-});
 
 export const getLeagueMember = async (
 	{
