@@ -1,0 +1,544 @@
+{
+	"backend/scripts/etl/export-collections.ts": {
+		"max-depth": {
+			"count": 1
+		}
+	},
+	"backend/scripts/etl/transforms.ts": {
+		"complexity": {
+			"count": 1
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"backend/scripts/etl/verify-parity.ts": {
+		"max-depth": {
+			"count": 2
+		}
+	},
+	"backend/src/auth/claim.ts": {
+		"complexity": {
+			"count": 2
+		}
+	},
+	"backend/src/chains/confirmations.ts": {
+		"max-depth": {
+			"count": 1
+		}
+	},
+	"backend/src/chains/evm/adapter.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"backend/src/chains/sol/adapter.ts": {
+		"max-depth": {
+			"count": 1
+		}
+	},
+	"backend/src/db/migrate.ts": {
+		"max-depth": {
+			"count": 1
+		}
+	},
+	"backend/src/engine/clearing.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"backend/src/leagues/battles.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"backend/src/leagues/stats.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"backend/src/profiles/profile-write.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"backend/src/profiles/profile.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"backend/src/profiles/stats.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"backend/src/routes/auth.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"backend/src/school/directory.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"backend/src/tournaments/tournaments.ts": {
+		"complexity": {
+			"count": 1
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"backend/src/vxp/awards.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"backend/tests/claim.test.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"backend/tests/custodial-funding.test.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"backend/tests/deposit-watchers.test.ts": {
+		"max-lines": {
+			"count": 1
+		},
+		"max-nested-callbacks": {
+			"count": 2
+		}
+	},
+	"backend/tests/engine.test.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"backend/tests/etl-transforms.test.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"backend/tests/vxp-treasury-safety.test.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"scripts/check-locale-catalogs.mjs": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"scripts/satellite-upgrade-needed.mjs": {
+		"complexity": {
+			"count": 1
+		},
+		"max-depth": {
+			"count": 1
+		}
+	},
+	"src/lib/components/admin/AdminBulkMarketForm.svelte": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/components/arena/ArenaStandingHero.svelte": {
+		"complexity": {
+			"count": 1
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/arena/FriendsTab.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/layout/MobileNav.svelte": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/components/leagues/AffiliationPickerModal.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/leagues/CreateBoutModal.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/leagues/CreateLeagueModal.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/market/FlowCard.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/market/FlowMode.svelte": {
+		"complexity": {
+			"count": 2
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/market/SharePopover.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/menagerie/MenagerieReveal.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/AccountSettingsPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/BattleDetailPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/BattlesInboxPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/CalibrationScreen.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/LeaderboardPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/LeagueDetailPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/PortfolioPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/SettingsPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/TournamentPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/WalletPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/WorldsAffiliationDetailPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/WorldsBattleDetailPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/pages/WorldsPage.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/profile/AvatarEditor.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/profile/ProfileDashboard.svelte": {
+		"complexity": {
+			"count": 1
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/settings/DeleteAccountFlow.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/components/worlds/WorldsBattleCard.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/constants/flow-art-wc-markets.constants.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/constants/legal-docs.constants.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/constants/wc-market-schedule.constants.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/constants/worlds-affiliations.constants.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/derived/vxp-holdings.derived.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/services/leagues.services.ts": {
+		"complexity": {
+			"count": 2
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/services/market.services.ts": {
+		"complexity": {
+			"count": 2
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/services/onboarding-handoff.services.ts": {
+		"complexity": {
+			"count": 2
+		}
+	},
+	"src/lib/services/order.services.ts": {
+		"complexity": {
+			"count": 1
+		},
+		"max-depth": {
+			"count": 1
+		}
+	},
+	"src/lib/services/profile.services.ts": {
+		"complexity": {
+			"count": 1
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/services/wallet.service.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/stores/inbox.store.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/stores/preferences.store.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/achievements.utils.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/flow-art/wc/figure.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/flow-art/wc/recipes.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/flow-art/wc/templates.ts": {
+		"complexity": {
+			"count": 1
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/format.utils.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/haptics.utils.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/market.utils.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/menagerie.utils.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/motion-engine.utils.ts": {
+		"complexity": {
+			"count": 1
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/share-card.utils.ts": {
+		"max-params": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/transactions.utils.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/utils/vici-avatar.utils.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/lib/web2/client.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/routes/(app)/markets/[id]/+page.svelte": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/satellite/index.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/account.services.ts": {
+		"max-depth": {
+			"count": 1
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/activity-reaction.services.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/battle.services.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/cohort.services.ts": {
+		"complexity": {
+			"count": 3
+		},
+		"max-depth": {
+			"count": 3
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/league-member.services.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/league-stats.services.ts": {
+		"complexity": {
+			"count": 2
+		}
+	},
+	"src/satellite/services/league.services.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/profile.services.ts": {
+		"complexity": {
+			"count": 2
+		}
+	},
+	"src/satellite/services/referral.services.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/tournament.services.ts": {
+		"complexity": {
+			"count": 4
+		},
+		"max-depth": {
+			"count": 1
+		},
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/user-monthly-stats.services.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/vxp-awards.services.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/vxp-comeback-awards.services.ts": {
+		"complexity": {
+			"count": 1
+		}
+	},
+	"src/satellite/services/vxp-onboarding.services.ts": {
+		"max-lines": {
+			"count": 1
+		}
+	},
+	"src/satellite/utils/wire-format.utils.ts": {
+		"complexity": {
+			"count": 1
+		},
+		"max-lines": {
+			"count": 1
+		}
+	}
+}
