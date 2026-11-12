@@ -20,7 +20,7 @@ import {
 import { query } from '../db/client';
 import { cached } from '../engine/cache';
 import { ZERO } from '../lib/constants';
-import { badRequest, type StatusContext } from '../lib/http';
+import { badRequest, serviceUnavailable, type StatusContext } from '../lib/http';
 import { userIcPrincipalText } from '../lib/keys';
 import { logger } from '../lib/logger';
 
@@ -32,11 +32,8 @@ interface BalanceRow {
 	balance: string;
 }
 
-const chainUnavailable = (set: StatusContext): { error: string } => {
-	set.status = 503;
-
-	return { error: 'chain_unavailable' };
-};
+const chainUnavailable = (set: StatusContext): { error: string } =>
+	serviceUnavailable(set, 'chain_unavailable');
 
 const shapeWithdrawal = (withdrawal: Withdrawal): Record<string, unknown> => ({
 	id: withdrawal.id,

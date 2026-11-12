@@ -18,3 +18,11 @@ export const badRequest = (set: StatusContext, error: string): { error: string }
 
 	return { error };
 };
+
+/** Standard 503 body for a dependency that is not configured or not reachable;
+ * `set.status` is mutated as a side effect. */
+export const serviceUnavailable = (set: StatusContext, error: string): { error: string } => {
+	set.status = 503;
+
+	return { error };
+};
