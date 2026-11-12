@@ -5,6 +5,7 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
+import { badRequest } from '../lib/http';
 import {
 	adminDeleteSchool,
 	adminUpsertSchool,
@@ -14,16 +15,6 @@ import {
 	submitSchool,
 	verifySchoolCode
 } from '../school/verification';
-
-interface StatusContext {
-	status?: number | string;
-}
-
-const badRequest = (set: StatusContext, error: string): { error: string } => {
-	set.status = 400;
-
-	return { error };
-};
 
 export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 	.post(
@@ -85,7 +76,7 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);
@@ -102,7 +93,7 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 				return unauthenticated(set);
 			}
 
-			const admin = await requireAdmin(request);
+			const admin = requireAdmin(user);
 
 			if (isNullish(admin)) {
 				return forbidden(set);
@@ -134,7 +125,7 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 			return unauthenticated(set);
 		}
 
-		const admin = await requireAdmin(request);
+		const admin = requireAdmin(user);
 
 		if (isNullish(admin)) {
 			return forbidden(set);

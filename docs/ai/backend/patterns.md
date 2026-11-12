@@ -4,20 +4,21 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 ## Routes and validation
 
-- One Elysia instance per area with a prefix: `src/routes/wallet.ts:118`. Mounted with `.use(...)` in `src/index.ts:149`.
-- Request shapes are Elysia `t` schemas in the route options (`src/routes/wallet.ts:299`). Zod is not used in the API; do not add it.
-- A handler gates first, then calls a domain function, then shapes the response: `src/routes/wallet.ts:136` (`/balances`).
+- One Elysia instance per area with a prefix: `src/routes/wallet.ts:109`. Mounted with `.use(...)` in `src/index.ts:149`.
+- Request shapes are Elysia `t` schemas in the route options (`src/routes/wallet.ts:290`). Zod is not used in the API; do not add it.
+- A handler gates first, then calls a domain function, then shapes the response: `src/routes/wallet.ts:127` (`/balances`).
 - Responses that carry candid values (bigint, `Principal`, bytes) go through `toJson` (`src/engine/serialize.ts:8`); never hand-convert.
 
 ## Auth guards
 
-- `requireUser(request)` (`src/auth/guard.ts:18`) returns the `AuthedUser` or `null`; on `null` return `unauthenticated(set)` (401). Admin endpoints check `requireUser` first and then `requireAdmin` (`src/auth/guard.ts:38`) with `forbidden(set)` (403), so the 401/403 split stays honest: `src/routes/vxp.ts:119`.
+- `requireUser(request)` (`src/auth/guard.ts:19`) returns the `AuthedUser` or `null`; on `null` return `unauthenticated(set)` (401). Admin endpoints check `requireUser` first and then `requireAdmin` (`src/auth/guard.ts:39`) with `forbidden(set)` (403), so the 401/403 split stays honest: `src/routes/vxp.ts:119`.
 - Sessions are cookies; never read a user id from the body or the query.
 
 ## Errors
 
 - The wire envelope is always `{ error: string }`, with a stable snake_case code (`insufficient_balance`, `chain_unavailable`). The frontend switches on that code through `Web2ApiError.code`, so a code is a contract: renaming one is a breaking change.
-- Domain failures are `class XError extends Error {}` in the domain (`src/leagues/leagues.ts:11`); the route maps them with `instanceof` and rethrows anything else: `src/routes/wallet.ts:282`.
+- A 400 with a code is `badRequest(set, code)` from `src/lib/http.ts`; its `StatusContext` is the one type for Elysia's `set` in a helper signature.
+- Domain failures are `class XError extends Error {}` in the domain (`src/leagues/leagues.ts:11`); the route maps them with `instanceof` and rethrows anything else: `src/routes/wallet.ts:273`.
 - Everything unmapped falls to the global handler in `src/index.ts:96` (404 `not found`, 400 `bad request`, 503 `unavailable` when the database is down, 500 `internal`). Do not catch-and-500 in a route.
 - Engine order rejections have their own code table: [`backend/README.md` "Order rejections"](../../../backend/README.md#order-rejections).
 
@@ -49,7 +50,5 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 ## Anti-patterns found in the code (do not copy)
 
-- **Per-route copies of the same helper.** `badRequest(set, error)` is redefined in ten route files (`src/routes/battles.ts:31`, `engine.ts:28`, `events.ts:21`, ...) and a local `interface StatusContext` in thirteen, next to the one in `src/auth/guard.ts`. Import, do not add an eleventh.
 - **Small helpers written several times:** `UUID_RE` (`src/routes/profiles.ts`, `src/social/activities.ts`, inline in `src/routes/social.ts`), `concatBytes` (`src/auth/claim.ts`, `src/chains/evm/tx.ts`, `src/chains/sol/tx.ts`), `nowNs` (`src/vxp/awards.ts`, `src/custody/withdrawals.ts`, inline elsewhere), `shapeMember` (`src/leagues/leagues.ts`, `src/leagues/members.ts`), `optionalMs` (`src/leagues/battles.ts`, `src/profiles/profile.ts`). Reuse the nearest one and move it to `src/lib/` when a second domain needs it.
 - **SQL in a route:** `src/routes/auth.ts` (`meFor`) and the `/balances` join in `src/routes/wallet.ts`.
-- **Double session lookup** in the admin gate: `requireAdmin` re-runs `requireUser`, so `src/routes/admin.ts` reads the session twice per request.

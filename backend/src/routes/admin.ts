@@ -21,10 +21,7 @@ import {
 	unauthenticated,
 	type AuthedUser
 } from '../auth/guard';
-
-interface StatusContext {
-	status?: number | string;
-}
+import type { StatusContext } from '../lib/http';
 
 const gate = async (
 	request: Request,
@@ -36,7 +33,7 @@ const gate = async (
 		return { error: unauthenticated(set) };
 	}
 
-	const admin = await requireAdmin(request);
+	const admin = requireAdmin(user);
 
 	if (isNullish(admin)) {
 		return { error: forbidden(set) };

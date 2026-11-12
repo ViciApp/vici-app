@@ -22,17 +22,8 @@ import {
 } from '../leagues/leagues';
 import { joinLeagueByInvite, removeLeagueMember, upsertLeagueMember } from '../leagues/members';
 import { getLeagueStats } from '../leagues/stats';
+import { badRequest } from '../lib/http';
 import { settleFounderAwards } from '../vxp/founder';
-
-interface StatusContext {
-	status?: number | string;
-}
-
-const badRequest = (set: StatusContext, error: string): { error: string } => {
-	set.status = 400;
-
-	return { error };
-};
 
 const PRIVACY_SCHEMA = t.Union([t.Literal('open'), t.Literal('private')]);
 
