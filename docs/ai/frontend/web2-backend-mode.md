@@ -115,19 +115,19 @@ different identities. In web2 mode there is no local identity to read. The
 browser holds an HttpOnly session cookie set by the API, and "signed in"
 derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
 
-- **Session state — `web2/session.ts`.** A small store (`web2SessionStore`)
+- **Session state: `web2/session.ts`.** A small store (`web2SessionStore`)
   is the cookie-session counterpart to the on-chain identity flow.
   `loadWeb2Session()` probes `/me` (a 401 is the signed-out steady state,
   not an error), `adoptWeb2Session(user)` seeds it from a login response,
   and `clearWeb2Session()` revokes server-side then drops local state.
-- **Session bootstrap — `Authn.svelte`.** `onMount` branches: web2 runs
+- **Session bootstrap: `Authn.svelte`.** `onMount` branches: web2 runs
   `loadWeb2Session()` in place of Juno's `onAuthStateChange`. The on-chain
   path is left byte-for-byte as it was. A signed-out probe releases
   `authBusy` directly; a live one leaves it held until the app-shell
   hydration sets the user, because `authBusy` false with no user is what the
   `(app)` gate reads as signed out (releasing it early bounced every cold
   load of an app route to `/signin`).
-- **Sign-in — `SignInProviderStack.svelte`.** In web2 mode it renders
+- **Sign-in: `SignInProviderStack.svelte`.** In web2 mode it renders
   `SignInProviderStackWeb2.svelte`: email one-time code (request then verify
   via `requestOtp` / `verifyOtp`), Google as a full-page redirect to
   `googleSignInUrl()` (the API drives the OAuth dance and lands back on the
@@ -139,7 +139,7 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   `legacy_account_pending` / `e=legacy` render `signin.legacy_pending.*`
   with a link to `LEGACY_APP_URL`. Gate semantics live in
   [`backend/README.md`](../../../backend/README.md#beta-access-gate).
-- **Sign-out — `Logout.svelte`.** web2 calls `clearWeb2Session()`; on-chain
+- **Sign-out: `Logout.svelte`.** web2 calls `clearWeb2Session()`; on-chain
   calls Juno `signOut()`.
 
 Engine calls never read a local identity in web2 mode: public reads ride the

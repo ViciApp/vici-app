@@ -1,6 +1,6 @@
 # Brand
 
-Canonical Claude/agent reference for the VICI visual identity — palette,
+Canonical Claude/agent reference for the VICI visual identity: palette,
 typography, voice & tone, iconography, character cast, and copy patterns.
 Distilled from the off-repo brand book.
 
@@ -11,11 +11,11 @@ Distilled from the off-repo brand book.
 >
 > **Companion docs:**
 >
-> - [`design.md`](./design.md) — surface roster, component / screen
+> - [`design.md`](./design.md): surface roster, component / screen
 >   status, Flow Mode rules, market metadata.
-> - [`stack-and-patterns.md`](./stack-and-patterns.md) — Tailwind v4
+> - [`stack-and-patterns.md`](./stack-and-patterns.md): Tailwind v4
 >   token usage; no `[var(--token)]` arbitraries.
-> - [`reusability.md`](./reusability.md) — shared component catalog.
+> - [`reusability.md`](./reusability.md): shared component catalog.
 
 ---
 
@@ -23,7 +23,7 @@ Distilled from the off-repo brand book.
 
 VICI is a consumer prediction platform. Three layers in one product:
 prediction markets, gamified UX, a reputation system where accuracy is
-status. The wedge is **entertainment-first onboarding** — Flow Mode,
+status. The wedge is **entertainment-first onboarding**: Flow Mode,
 swipe-based, free. Real-money markets and deep liquidity come later.
 
 **Four layers, deliberately separated.** They are named in code, in copy,
@@ -58,13 +58,13 @@ in everything else.
 
 ### 2.2 Calibration table
 
-| ✘ Don't                                  | ✓ Say                          |
-| ---------------------------------------- | ------------------------------ |
-| Click here to make your first prediction | Predict.                       |
-| Oops, looks like the market closed.      | Market closed. You missed it.  |
-| Congratulations on your win!             | Called it. +240 VXP.           |
-| Your prediction has been submitted.      | Locked in.                     |
-| Great job!                               | _(say nothing — let XP speak)_ |
+| ✘ Don't                                  | ✓ Say                         |
+| ---------------------------------------- | ----------------------------- |
+| Click here to make your first prediction | Predict.                      |
+| Oops, looks like the market closed.      | Market closed. You missed it. |
+| Congratulations on your win!             | Called it. +240 VXP.          |
+| Your prediction has been submitted.      | Locked in.                    |
+| Great job!                               | _(say nothing; let XP speak)_ |
 
 Affirm, don't narrate. A line earns its place by adding something a
 number can't.
@@ -93,8 +93,8 @@ small icon. The brand carries weight by what it omits."_
   carry the moment.
 
 Country flags **now render via
-[`CountryFlag.svelte`](../../../src/lib/components/ui/CountryFlag.svelte)**
-— a `<img>` backed by the lipis/flag-icons 4x3 SVG set shipped under
+[`CountryFlag.svelte`](../../../src/lib/components/ui/CountryFlag.svelte)**,
+a `<img>` backed by the lipis/flag-icons 4x3 SVG set shipped under
 [`#lib/assets/flags/`](../../../src/lib/assets/flags/) and indexed
 through [`COUNTRY_FLAGS`](../../../src/lib/constants/country-flags.constants.ts).
 Same pattern as the `control-panel` repo. Pass the ISO-3166 alpha-2
@@ -104,7 +104,7 @@ strings still on country records in
 and
 [`featured-event.constants.ts`](../../../src/lib/constants/featured-event.constants.ts)
 are now unused at render time and can be stripped on the next data
-migration. **Never set a coloured background box behind a flag** — flags
+migration. **Never set a coloured background box behind a flag**: flags
 are already colourful and a tinted tile muddies them. Render the flag on
 the surface itself (a transparent layout container is fine); the country
 slot, picker, battle rows, and onboarding previews all follow this.
@@ -114,22 +114,22 @@ are part of the approved glyph set and stay.
 
 ### 2.4 Copy snippets that are canonical
 
-These are brand-set strings — keep them word-for-word and don't
+These are brand-set strings: keep them word-for-word and don't
 "improve" them:
 
-- `Veni. Vidi. Vici.` — colophon, share footers, OG meta.
-- `Predict.` — primary CTA on cold surfaces.
-- `Earn the laurel.` — onboarding / push framing.
-- `The market doesn't know what you know.` — landing register.
-- `Locked in.` — post-commit confirmation.
-- `Called it. +N VXP.` — correct-resolution toast.
-- `Market closed. You missed it.` — closed-state empty.
-- `Nothing here. Yet.` — empty-deck companion line.
-- `Fresh start.` — streak-break banner (paired with the ended stage).
-- `Bold.` — Trickster opener when going against the crowd.
+- `Veni. Vidi. Vici.`: colophon, share footers, OG meta.
+- `Predict.`: primary CTA on cold surfaces.
+- `Earn the laurel.`: onboarding / push framing.
+- `The market doesn't know what you know.`: landing register.
+- `Locked in.`: post-commit confirmation.
+- `Called it. +N VXP.`: correct-resolution toast.
+- `Market closed. You missed it.`: closed-state empty.
+- `Nothing here. Yet.`: empty-deck companion line.
+- `Fresh start.`: streak-break banner (paired with the ended stage).
+- `Bold.`: Trickster opener when going against the crowd.
 
-**Affiliation slot labels** (`profile.dashboard.affiliations.*`) — personal,
-possessive framing rather than dry category nouns: **Alma Mater** (university —
+**Affiliation slot labels** (`profile.dashboard.affiliations.*`): personal,
+possessive framing rather than dry category nouns: **Alma Mater** (university:
 the Latin-sparingly principle in action; kept Latin across locales), **Citizen**
 (country), **Residence** (city), **Workplace** (company). The picker still uses
 the plain category nouns (`worlds.picker.*`: "University", "Country").
@@ -139,22 +139,22 @@ the plain category nouns (`worlds.picker.*`: "University", "Country").
 ## 3. Logo
 
 The wordmark is **type-set**, not custom letterforms. It travels as
-text. In product, it ships as a `<span>` —
-[`Logo.svelte`](../../../src/lib/components/layout/Logo.svelte) — not
+text. In product, it ships as a `<span>`:
+[`Logo.svelte`](../../../src/lib/components/layout/Logo.svelte): not
 as artwork.
 
 ### 3.1 Type-set spec
 
-| Property         | Value                                          |
-| ---------------- | ---------------------------------------------- |
-| Family           | `Hanken Grotesk`                               |
-| Weight           | `700`                                          |
-| Case             | `ALL CAPS`                                     |
-| `letter-spacing` | `0.18em`                                       |
-| Italic / skew    | **Never.**                                     |
-| Effects          | No gradient, glow, drop shadow, or bevel.      |
-| Lockups          | No tagline lockup. Mark stands alone.          |
-| Tracking variant | Tracking is locked at 0.18em — do not deviate. |
+| Property         | Value                                         |
+| ---------------- | --------------------------------------------- |
+| Family           | `Hanken Grotesk`                              |
+| Weight           | `700`                                         |
+| Case             | `ALL CAPS`                                    |
+| `letter-spacing` | `0.18em`                                      |
+| Italic / skew    | **Never.**                                    |
+| Effects          | No gradient, glow, drop shadow, or bevel.     |
+| Lockups          | No tagline lockup. Mark stands alone.         |
+| Tracking variant | Tracking is locked at 0.18em; do not deviate. |
 
 ### 3.2 Two colour variants, only
 
@@ -164,7 +164,7 @@ as artwork.
 | Reversed | Dark surfaces  | `--parchment` | `#F2ECDC` |
 
 Pure `#FFFFFF` and pure `#000000` are **not** used. **Laurel gold
-(`#E2B842`) is reserved for the app-icon tile only** — never tint the
+(`#E2B842`) is reserved for the app-icon tile only**; never tint the
 wordmark or monogram with it. Italic-laurel _"VICI."_ in the sign-in
 title is an editorial moment in serif, not a recolouring of the mark.
 
@@ -172,18 +172,18 @@ title is an editorial moment in serif, not a recolouring of the mark.
 
 The wordmark + V monogram cover every surface VICI wears:
 
-1. **Favicon · browser** — ink tile, gold V, 14 px radius.
-2. **Web push / notification** — favicon + in-the-moment voice.
-3. **Social avatar** — round + square / profile + OG.
-4. **Product & landing · dark** — reversed wordmark on ink.
-5. **Product & landing · light** — primary wordmark on parchment.
-6. **Share / OG card** — 1.91:1, dark, with ticker.
+1. **Favicon · browser**: ink tile, gold V, 14 px radius.
+2. **Web push / notification**: favicon + in-the-moment voice.
+3. **Social avatar**: round + square / profile + OG.
+4. **Product & landing · dark**: reversed wordmark on ink.
+5. **Product & landing · light**: primary wordmark on parchment.
+6. **Share / OG card**: 1.91:1, dark, with ticker.
 
 Min digital height: 24 px (wordmark) · 16 px (monogram). Min print:
 12 mm (wordmark) · 8 mm (monogram). Clear space = the height of the
 **I** stem on all four sides.
 
-> The wordmark is `BETA` in the source book — final letterforms TBD
+> The wordmark is `BETA` in the source book; final letterforms TBD
 > before public launch. Everything else (palette, type, characters,
 > motion) is locked.
 
@@ -191,7 +191,7 @@ Min digital height: 24 px (wordmark) · 16 px (monogram). Min print:
 
 ## 4. Palette
 
-### 4.1 Foundation — warm-not-cool, marble at dusk
+### 4.1 Foundation: warm-not-cool, marble at dusk
 
 Backgrounds carry a slight brown/bronze undertone. Foreground is
 parchment cream, never paper-white. **One gold for the brand. One red
@@ -210,10 +210,10 @@ for editorial. Nothing else.**
 `--laurel-deep` (`#B68B1F`) is the deeper-laurel sibling used in light /
 peach themes where pure laurel reads thin.
 
-### 4.2 Signals — three states, nothing between
+### 4.2 Signals: three states, nothing between
 
 Every prediction surface resolves to one of three. **Never invent a
-fourth signal** — use weight, opacity, or border treatment for other
+fourth signal**: use weight, opacity, or border treatment for other
 states. Each signal ships with a 12%-opacity wash for chips and pills.
 
 | State                  | Name | Hex       | Token    | Wash token    |
@@ -223,7 +223,7 @@ states. Each signal ships with a 12%-opacity wash for chips and pills.
 | PAUSE · DATA · NEUTRAL | Hold | `#6B9FFF` | `--hold` | `--hold-wash` |
 
 In Tailwind, write `text-yes`, `bg-no-wash`, `border-hold`. Never reach
-for `text-[var(--yes)]` or arbitrary hexes — see
+for `text-[var(--yes)]` or arbitrary hexes; see
 [stack-and-patterns rules](./stack-and-patterns.md#tailwind-v4--design-tokens).
 
 ### 4.3 Appearance modes
@@ -244,12 +244,12 @@ the canonical picker is
 These extend the brand for surfaces the source book doesn't cover.
 Live in [`src/app.css`](../../../src/app.css):
 
-- **Category tags** (`--cat-macro`, `--cat-crypto`, …) — used to tint
+- **Category tags** (`--cat-macro`, `--cat-crypto`, …): used to tint
   market category chips and FlowArt seeds. Not foundation; can be
   retuned per category without touching brand.
-- **Character accents** (`--char-vici`, `--char-oracle`, …) — see §6.
+- **Character accents** (`--char-vici`, `--char-oracle`, …): see §6.
 - **Generative artwork palettes** in
-  [`flow-art.utils.ts`](../../../src/lib/utils/flow-art.utils.ts) —
+  [`flow-art.utils.ts`](../../../src/lib/utils/flow-art.utils.ts):
   per-category, per-theme, per-state (neutral / won / lost). The brand
   accent in those palettes always resolves from `--laurel` /
   `--laurel-deep`.
@@ -260,7 +260,7 @@ recolour them with VICI tokens.
 
 ---
 
-## 5. Typography — Serif. Sans. Mono.
+## 5. Typography: Serif. Sans. Mono.
 
 A strict triad. Editorial italic for big moments, warm grotesk for UI,
 tabular mono for every probability, timestamp, address, and VXP value.
@@ -287,7 +287,7 @@ block at the top of [`src/app.css`](../../../src/app.css).
 | Body           | UI     | 16 / 12            | _Tailwind default_         |
 | Eyebrow        | UI     | 11 / 12, allcaps   | `.eyebrow`                 |
 | Allcaps tag    | UI     | 12, wide tracking  | `.allcaps`                 |
-| Body weights   | UI     | 400 → 700          | —                          |
+| Body weights   | UI     | 400 → 700          | -                          |
 | Odds           | Data   | tabular, slashed 0 | `.num`                     |
 | Hero numeric   | Data   | 128 / 1            | `.display-num`             |
 | VXP delta      | Data   | `+240 VXP`         | `.num`                     |
@@ -330,7 +330,7 @@ The streak flame is
 [`StreakFlame`](../../../src/lib/components/characters/StreakFlame.svelte),
 in `characters/` next to `FlameChar.svelte`.
 
-For everything else, reach for `@lucide/svelte` — the project standard.
+For everything else, reach for `@lucide/svelte`, the project standard.
 When you add a bespoke brand glyph, register it in
 [`reusability.md`](./reusability.md).
 
@@ -353,7 +353,7 @@ source book:
 ## 7. Characters
 
 The cast lives in the gamification layer. **Roles, not personalities.**
-They never appear together as a team — each owns a single moment in the
+They never appear together as a team; each owns a single moment in the
 loop and the rest stay off-stage. Archivist is held in v2 reserve.
 
 | Character                | Role                                                                                                                 | Accent                          | Lives in                                                                                                                                    |
@@ -362,14 +362,14 @@ loop and the rest stay off-stage. Archivist is held in v2 reserve.
 | **Oracle**               | Seer of outcomes. Resolution, weekly review, accuracy reports. _"You called it. The crowd was 18 h late."_           | `--char-oracle` (laurel)        | [`OracleChar.svelte`](../../../src/lib/components/characters/OracleChar.svelte)                                                             |
 | **Trickster**            | Loves the contrarian. Appears only when you bet against the crowd. _"Only 18% agree. Bold."_                         | `--char-trickster` (warm coral) | [`TricksterChar.svelte`](../../../src/lib/components/characters/TricksterChar.svelte)                                                       |
 | **Flame**                | Fuel of streaks. _"Twelve days. Don't break."_ Five stages: spark · ember · flame · blaze · inferno. **Never dark.** | `--char-flame`                  | [`FlameChar.svelte`](../../../src/lib/components/characters/FlameChar.svelte) + [`streak.utils.ts`](../../../src/lib/utils/streak.utils.ts) |
-| Archivist _(v2 reserve)_ | —                                                                                                                    | `--char-archivist`              | —                                                                                                                                           |
+| Archivist _(v2 reserve)_ | -                                                                                                                    | `--char-archivist`              | -                                                                                                                                           |
 
 Priority resolver, beat ordering, and motion choreography live in
-[`design.md §7`](./design.md#7-flow-mode--rules). Don't restate it here.
+[`design.md §7`](./design.md#7-flow-mode-rules). Don't restate it here.
 
 ---
 
-## 8. Motion — restraint as a feature
+## 8. Motion: restraint as a feature
 
 The brand book's motion principles are mirrored in product as the
 Flow-Mode rules. The headlines, repeated so they live near the brand:
@@ -388,17 +388,17 @@ Flow-Mode rules. The headlines, repeated so they live near the brand:
 **Overshoot is a budget, spent by frequency.** How a moment is allowed
 to move depends on how often it happens:
 
-- **Rare peaks** — an achievement unlock, an end-of-session celebration
-  — _may_ spring / overshoot. They fire seldom enough to earn the
+- **Rare peaks**: an achievement unlock, an end-of-session celebration
+  _may_ spring / overshoot. They fire seldom enough to earn the
   flourish.
-- **Frequent rewards** — a call settling, a routine grant — settle
+- **Frequent rewards**: a call settling, a routine grant, settle
   **without** overshoot. Repetition turns a bounce into noise.
-- **Direct-action confirmations** — a button press, a swipe commit —
+- **Direct-action confirmations**: a button press, a swipe commit,
   keep a **small tactile pop**: enough to read as "registered", never a
   full bounce.
 
 **Reduced motion is non-negotiable.** Every animation and transition
-must disable under reduced motion — idle loops, celebration beats, and
+must disable under reduced motion, idle loops, celebration beats, and
 incidental transitions alike. Gate CSS with `@media
 (prefers-reduced-motion: reduce)`; gate JS-driven Svelte transitions
 with `prefersReducedMotion()` from
@@ -408,7 +408,7 @@ Curves and durations live in [`src/app.css`](../../../src/app.css):
 `--ease-vici`, `--ease-quick`, `--ease-stage`, and the `--d-*` /
 `--dur-*` duration scale (the `MOTION PRINCIPLE` comment block sits
 beside them). Named haptic patterns live in
-[`haptics.utils.ts`](../../../src/lib/utils/haptics.utils.ts) — call
+[`haptics.utils.ts`](../../../src/lib/utils/haptics.utils.ts): call
 them by name, never by raw ms.
 
 ---
@@ -426,7 +426,7 @@ them by name, never by raw ms.
 | Generative artwork    | [`flow-art.utils.ts`](../../../src/lib/utils/flow-art.utils.ts) · [`FlowArtFrame.svelte`](../../../src/lib/components/artwork/FlowArtFrame.svelte) |
 | Haptics               | [`haptics.utils.ts`](../../../src/lib/utils/haptics.utils.ts)                                                                                      |
 | Sound                 | [`flow-sound.utils.ts`](../../../src/lib/utils/flow-sound.utils.ts)                                                                                |
-| Flow Mode rules       | [`design.md §7`](./design.md#7-flow-mode--rules)                                                                                                   |
+| Flow Mode rules       | [`design.md §7`](./design.md#7-flow-mode-rules)                                                                                                    |
 | Brand book (source)   | off-repo · request from the brand owner                                                                                                            |
 
 ---
@@ -448,5 +448,5 @@ move the entry to the matching section of [`design.md`](./design.md)
 
 When the brand book is updated, refresh this file in the same PR and
 note the new edition in the header. When the implementation diverges
-from this file, the implementation is the bug — open an alignment PR
+from this file, the implementation is the bug; open an alignment PR
 that updates the surface, not this doc.

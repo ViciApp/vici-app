@@ -2,7 +2,7 @@
 
 Idiomatic TypeScript patterns for the Juno satellite. If a pattern here
 disagrees with code in `src/satellite/`, the code wins (truth hierarchy
-in [governance.md](../governance.md)). Update this page in the same PR —
+in [governance.md](../governance.md)). Update this page in the same PR:
 that's the [meta-update rule](../governance.md#meta-update-rule).
 
 ## The four primitives
@@ -46,14 +46,14 @@ export const getProfile = defineQuery({
 
 Rules:
 
-- **Always `j.strictObject`** at the top level — extra properties are
+- **Always `j.strictObject`** at the top level: extra properties are
   rejected.
 - **Reuse `#lib/schema/*.schema.ts`** whenever the FE consumes the same
   shape (so the FE-side schema and the satellite-side schema can never
   drift).
 - **Quirk to know:** at the time of writing, the schema layer doesn't
   accept the literal property names `principal` / `query` in some
-  positions — use `principalStr` / `queryStr` and re-map inside the
+  positions; use `principalStr` / `queryStr` and re-map inside the
   handler. (See the `TODO` comments in `src/satellite/index.ts`.)
 - **`PrincipalTextSchema`** comes from `@junobuild/schema`. Use it for
   every principal-typed arg; don't hand-write a regex.
@@ -65,7 +65,7 @@ Rules:
 ## Wire-format quirk: `Vec<NestedStruct>` results need snake_case
 
 If a typed query returns `j.array(SomeNestedSchema)`, the items land on the
-wire in **snake_case** — not the camelCase you'd expect from the schema.
+wire in **snake_case**, not the camelCase you'd expect from the schema.
 Get this wrong and the canister traps on every read with
 `'Error converting from js JsonData into type Candid: missing field
 <snake_case_name>'`.
@@ -79,13 +79,13 @@ explicitly marked `#[json_data(nested)]`, and Juno's TS→Rust codegen does
 **not** add that attribute to `Vec<NestedStruct>` fields. For example:
 
 ```rust
-// ✅ getProfile — `profile` IS nested → wire format is camelCase
+// ✅ getProfile: `profile` IS nested → wire format is camelCase
 pub struct AppGetProfileResult {
     #[json_data(nested)]
     pub profile: Option<AppGetProfileResultProfile>,
 }
 
-// ❌ listLeaderboard — `items` is NOT nested → wire format reverts to
+// ❌ listLeaderboard: `items` is NOT nested → wire format reverts to
 //    the inner struct's original `Deserialize` impl, no rename_all,
 //    i.e. snake_case
 pub struct AppListLeaderboardResult {
@@ -101,7 +101,7 @@ wire.
 
 `.transform()` on the result schema is **not** a valid workaround. It
 produces a `ZodEffects`, and juno's schema → Rust codegen only accepts
-`ZodObject` — it throws
+`ZodObject`; it throws
 `"Unsupported type: unrepresentable schema (z.symbol, z.undefined, …
 are not supported)"`, the CLI's silent `catch{}` swallows it, and the
 whole `juno functions build` exits with code 1 producing **zero** files in
@@ -153,23 +153,23 @@ deserializer is happy.
 
 ### When to apply
 
-- **Array results (`j.array(NestedSchema)`)** — always use the wire schema.
+- **Array results (`j.array(NestedSchema)`)**: always use the wire schema.
   Currently affected: `listLeaderboard`, `searchProfiles`,
   `listMarketTranslations`, `listFriends`, `listFollowers`,
   `listFollowing`, `listFriendRequests`, `listSentFriendRequests`.
-- **`Option<NestedSchema>` results** (e.g. `getProfile.profile`) — leave
+- **`Option<NestedSchema>` results** (e.g. `getProfile.profile`): leave
   camelCase as-is. Juno emits `#[json_data(nested)]` on `Option<T>` so
   the camelCase mirror handles it correctly.
 - **Primitive results** (`j.boolean()`, `j.number()`, `j.string()`,
-  `j.array(j.string())`, …) — no conversion needed; primitives don't
+  `j.array(j.string())`, …): no conversion needed; primitives don't
   trigger the bug.
 
 If the upstream Juno codegen ever starts emitting `#[json_data(nested)]`
 on `Vec<NestedStruct>` fields too, the wire schemas become redundant and
-can be dropped in one PR — point all the `index.ts` results back at the
+can be dropped in one PR: point all the `index.ts` results back at the
 FE schemas and delete the converters.
 
-## Hooks — collection dispatch table
+## Hooks: collection dispatch table
 
 The repo's pattern (see
 [`src/satellite/index.ts`](../../../src/satellite/index.ts)) is:
@@ -202,14 +202,14 @@ export const onSetDoc = defineHook<OnSetDoc>({
 Why this shape:
 
 - A new collection added to the whitelist becomes a TS error at the
-  dispatch table until it's mapped — the type system enforces "every
+  dispatch table until it's mapped; the type system enforces "every
   registered collection has a handler".
 - Calling `fn[...]?.(context)` makes the hook a no-op for any collection
   that slipped through (defensive against the satellite hot-reloading the
   whitelist).
 
 `defineAssert<AssertSetDoc>` and the `onDeleteDoc` hook follow the same
-pattern — keep them consistent.
+pattern; keep them consistent.
 
 When a single collection needs **more than one** assert (or hook), compose
 them into one dispatch-table entry rather than widening the table value to
@@ -227,18 +227,18 @@ sub-assert stays exported so it remains independently unit-testable.
 `onSetDoc` / `onDeleteDoc` run **only** when the document is written
 through the public client API (`@junobuild/core` `setDoc` from the
 browser). A write made from inside the satellite via
-`@junobuild/functions/sdk` `setDocStore` / `deleteDocStore` — i.e. from
-an endpoint handler or another hook — does **not** trigger the hook.
+`@junobuild/functions/sdk` `setDocStore` / `deleteDocStore`, i.e. from
+an endpoint handler or another hook, does **not** trigger the hook.
 (In junobuild/juno: `api/db.rs` `set_doc` calls `set_doc_store` _then_
 `invoke_on_set_doc`; the SDK `set_doc_store` in `db/store.rs` runs
 asserts + insert and stops there. Asserts still run on serverless
-writes — only the post-write hook is skipped.)
+writes; only the post-write hook is skipped.)
 
 Consequences:
 
 - A hook only works if its trigger collection is written **by the
   browser** (e.g. `profiles` via FE `setDoc` → the profile hooks fire).
-- **An "endpoint writes a row → a hook fans out" design is broken** —
+- **An "endpoint writes a row → a hook fans out" design is broken**:
   the hook never fires. Either write the trigger row from the client, or
   do the work **inline in the endpoint** (make the handler `async` and
   call the logic directly). This is exactly what bit the referral VXP
@@ -247,14 +247,14 @@ Consequences:
   so every bonus sat permanently `owed`. It is now driven off the
   **client-written `activities` trigger** instead: the referral settles
   (`settleReferralPayout`) when the referred user makes their first
-  prediction — a client `setDoc` to `activities`, whose `onSetDoc` hook
-  genuinely fires (`onTradeActivityForReferral`) — with a `settleReferral`
+  prediction: a client `setDoc` to `activities`, whose `onSetDoc` hook
+  genuinely fires (`onTradeActivityForReferral`), with a `settleReferral`
   endpoint as the manual retry/backfill path. The `onReferralSetForVxpPayout`
   hook on the (serverless-written) referrals row stays wired only as a
   harmless safety net for client writes.
 - Make the inline work **idempotent + retry-safe** (lock → act →
   finalize, short-circuit on already-done), and expose a settle/retry
-  endpoint so a failed transfer can be re-driven — there is no hook replay
+  endpoint so a failed transfer can be re-driven; there is no hook replay
   to fall back on.
 
 ## Pair every `defineAssert` with a `defineQuery` probe
@@ -288,7 +288,7 @@ form share it.
 Two rules:
 
 - The query is a **hint**, not a contract. Never skip the assertion
-  even when the probe was `available` — there's always a race window
+  even when the probe was `available`; there's always a race window
   between probe and write.
 - When the query exposes an `exclude` parameter (typically the
   editor's principal), wire it through to the assertion's "skip my
@@ -340,7 +340,7 @@ export const cancelFriendRequest = ({ relationId }: { relationId: string }): voi
 Rules:
 
 - **Single write, conflict-detecting.** Do not implement cancel as a
-  "transition to CANCELLED state via `setDocStore`" — that would be a
+  "transition to CANCELLED state via `setDocStore`"; that would be a
   second write that itself races with the recipient's accept. A
   versioned delete is the only single-write move the datastore exposes
   that detects mid-flight conflicts.
@@ -372,27 +372,27 @@ Hooks fire **after** the write, but they can fire more than once
 
 ## Client-write stats docs + per-row assert (no scheduler)
 
-Some aggregate stats are cheaper to compute on the FE — the client already
-has the source data in memory — than to fan out from a post-write hook. The
+Some aggregate stats are cheaper to compute on the FE (the client already
+has the source data in memory) than to fan out from a post-write hook. The
 reference shapes are `user_stats` (per-user Dash cache) and
 `user_monthly_stats` (per-user, per-month gameplay counters that back the
 monthly album awards). The pattern:
 
 - **The FE writes its own row.** `calculateAndSyncStats` (which already
   fetches the user's full clearing history) re-derives the snapshot and
-  `setDoc`s it under a key the caller owns — `user_stats[${owner}]` or
+  `setDoc`s it under a key the caller owns: `user_stats[${owner}]` or
   `user_monthly_stats[${owner}/${YYYY-MM}]`. No hook, no fan-out.
 - **The assert binds the row to its owner.** `assertSetUserStats` /
   `assertSetUserMonthlyStats` reject any write whose key (and embedded
   `owner`) isn't the caller, plus structural sanity (`wins <= calls`,
   bounded arrays, values in range). It does **not** re-derive the counters
-  from real history — a determined user could inflate their own row. Use
+  from real history; a determined user could inflate their own row. Use
   this only for **cosmetic** signals (album tiles, Dash cache) with **no VXP
   payout**; anything that moves real value belongs in a hook or an icdc-core
   path that the user can't forge.
 - **Lazy month rollover = a new key, not a reset.** Because each month is a
   distinct doc key, "rolling over" is just writing under the new month's key
-  on the first sync of that month — no scheduler, no in-place reset. A
+  on the first sync of that month; no scheduler, no in-place reset. A
   read-side aggregator (`getMonthlyLeaderboardFn`) scans the collection,
   filters by the `/${monthAnchor}` key suffix, and computes the ranking
   on read (including an exact median from each row's bounded sample array).
@@ -411,14 +411,14 @@ user can forge the aggregate. Use the client-write pattern when the row is
 ## Soft-delete + lazy hard-delete (no scheduler)
 
 Juno has **no timer primitive**, so any "delete now, purge later"
-flow has to model the deferred work as a claim or an admin trigger —
+flow has to model the deferred work as a claim or an admin trigger;
 never a scheduled job. The account-deletion flow
 ([`account.services.ts`](../../../src/satellite/services/account.services.ts))
 is the reference shape:
 
 - **Soft-delete = an optional marker field.** `deletedAtMs?: number`
   on the profile schema. PRESENCE means soft-deleted; ABSENCE means
-  active. Declare it `j.number().optional()` with **no default** — a
+  active. Declare it `j.number().optional()` with **no default**; a
   default would force every legacy/active row to look deleted, and
   absence is the meaningful state. Mirror the field in **both**
   `src/lib/schema/profile.schema.ts` **and**
@@ -428,7 +428,7 @@ is the reference shape:
   A shared `isSoftDeleted(profile)` helper filters the public query
   endpoints (`listLeaderboard`, `searchProfiles`, `getProfile`).
   `getProfile` knows both the caller and the looked-up principal, so it
-  makes the owner an exception — an own-read returns the doc even when
+  makes the owner an exception: an own-read returns the doc even when
   soft-deleted (matching the FE's raw Juno `getDoc` path, which is also
   never gated) so the FE can still offer recovery.
 - **Extract the cascade, parametrise by principal.** The hard-delete
@@ -441,11 +441,11 @@ is the reference shape:
   runs `Principal.fromText` + the cascade **outside** the malformed-row
   try/catch so a purge failure is logged + counted as an under-purge
   instead of being silently swallowed as a skipped bad row.
-- **Hard-delete must not orphan others — transfer, don't just delete.**
+- **Hard-delete must not orphan others: transfer, don't just delete.**
   The cascade's owned-league step deletes a league only when no other
   member remains; if members self-joined during the recovery window it
   **transfers** ownership to a deterministic survivor (first remaining
-  `LEAGUE_MEMBERS` row in iteration order) — version-locked re-encode of
+  `LEAGUE_MEMBERS` row in iteration order): version-locked re-encode of
   `league.owner` + a version-locked bump of that member row's `role` to
   `owner`. The interactive `deleteMyAccount` has an up-front
   `owns_non_empty_league` guard; the guard-less recovery-expiry + sweep
@@ -455,12 +455,12 @@ is the reference shape:
   can't be reset. Recovery clears the field; both are version-locked
   overwrites. `softDeleteProfile` returns an `alreadyDeleted` flag so
   one-time side effects (the anonymous `EXIT_SIGNALS` churn row) are
-  skipped on a re-delete — re-deleting must be idempotent, not
+  skipped on a re-delete; re-deleting must be idempotent, not
   cumulative.
 
-### Hibernation — the reversible sibling state
+### Hibernation: the reversible sibling state
 
-Hibernation ("Pause 30 days" — the retention off-ramp offered alongside
+Hibernation ("Pause 30 days", the retention off-ramp offered alongside
 delete) is a **fully reversible** state that reuses the same optional-marker
 shape but never destroys data:
 
@@ -469,7 +469,7 @@ shape but never destroys data:
   `src/lib/schema/profile.schema.ts` and `src/satellite/api-schemas.ts`,
   forwarded verbatim through `withProfileDefaults`. PRESENCE = hibernated.
 - **Mutually exclusive with soft-delete.** `hibernateMyAccount` refuses
-  (`{ ok: false, reason: 'deleted' }`) on an already-soft-deleted profile —
+  (`{ ok: false, reason: 'deleted' }`) on an already-soft-deleted profile;
   the two markers never stack. No profile → `{ ok: false, reason: 'no_profile' }`.
 - **Hide the same way, via one combined helper.** Public reads switched
   from `!isSoftDeleted` to `!isPubliclyHidden(profile) = !(isSoftDeleted ||
@@ -480,17 +480,17 @@ isHibernated)`. The three public filters (`listLeaderboard`,
   writes → no fan-out), so the freeze is mostly natural. The two
   profile-write stat fan-out hooks (`onProfileSetForAffiliationStats`,
   `onProfileSetForLeagueStats`) additionally early-return when the AFTER
-  profile `isHibernated` — a defensive guard against a stray write fanning
+  profile `isHibernated`: a defensive guard against a stray write fanning
   a delta. This can't suppress the `resumeMyAccount` write: clearing the
   flag leaves `totalTrades` unchanged (zero delta) and the AFTER profile is
   no longer hibernated.
 - **Reversible, not monotonic.** `hibernateMyAccount` keeps the EARLIEST
-  `hibernatedAtMs` (mirrors soft-delete) but there's no expiry/sweep —
+  `hibernatedAtMs` (mirrors soft-delete) but there's no expiry/sweep;
   `resumeMyAccount` clears the field (destructure-drop + re-encode,
   mirroring how recovery clears `deletedAtMs`) and the account is active
   again. Both are version-locked overwrites.
 
-### League resolution — applied immediately, reuse the existing endpoint
+### League resolution: applied immediately, reuse the existing endpoint
 
 `deleteMyAccount` accepts `leagueResolutions?: Array<{ leagueId; action:
 'transfer' | 'delete'; transferTo? }>` and applies each BEFORE the
@@ -498,12 +498,12 @@ owner-leagues guard:
 
 - **Reuse, don't reimplement, the transfer.** `transferLeagueOwnershipFn`
   reads `msgCaller()` internally, and `deleteMyAccountFn` runs as that same
-  caller (the owner) — so it's called directly with no caller threaded
+  caller (the owner); so it's called directly with no caller threaded
   through, and its `not_owner` / `new_owner_not_member` / … validation is
   the single source of truth. A `delete` action calls the new
   `deleteLeagueFn({ leagueId, callerText, callerBytes })` (owner disband).
 - **SDK `deleteDocStore` bypasses asserts.** `deleteLeagueFn` drops every
-  `LEAGUE_MEMBERS` row for the league — including the `owner` row, which
+  `LEAGUE_MEMBERS` row for the league, including the `owner` row, which
   `assertDeleteLeagueMember` forbids on the FE path ("transfer ownership
   first"). The satellite's own store drops never re-enter the assert, which
   is exactly why the cascade (`deleteOwnLeagueMemberships`) and this disband
@@ -525,13 +525,13 @@ When a hook calls another canister (typically the icdc-core registry):
 - Build it with the satellite's identity. The satellite principal is
   pre-authorised as an `admin` on the Vici engine (see
   [`docs/engine-integration.md`](../../engine-integration.md#engine-admins)).
-- **Never reach back into the FE store layer** from a satellite hook —
+- **Never reach back into the FE store layer** from a satellite hook:
   the satellite has no access to it.
 - **Never** await indefinitely on a remote call inside a hook without a
   guard. If the registry is down, log + return; the next write will
   retrigger.
 
-### Candid encode/decode — derive from the generated factory, never hand-roll
+### Candid encode/decode: derive from the generated factory, never hand-roll
 
 A satellite `call({ args, result })` needs the `IDL.Type`s for the
 method's arguments and return value. **Never hand-write them** (no
@@ -556,10 +556,10 @@ const series = await call<[] | [RegistryDid.Series]>({
 - The `IDL` namespace must live in exactly one place outside
   `src/declarations/**`: `candid.utils.ts`. Every other satellite file stays
   typed against `#declarations` (`RegistryDid` / `ClearingDid`) and routes its
-  runtime Candid types through `candidMethod` — a new `import { IDL }` in a
+  runtime Candid types through `candidMethod`: a new `import { IDL }` in a
   service is the smell this pattern exists to prevent.
 - Need a method the canister exposes but `candidMethod` can't find? It
-  throws — regenerate bindings (`npm run did`) rather than reaching for an
+  throws: regenerate bindings (`npm run did`) rather than reaching for an
   inline definition.
 - For **IC system canisters** (management `aaaaa-aa`, ledgers, CMC, …) don't
   vendor or derive anything: Juno ships named runtime IDL types under
@@ -572,7 +572,7 @@ const series = await call<[] | [RegistryDid.Series]>({
 
 When the satellite must reach the public internet (e.g. send a
 transactional email), it uses `httpRequest` from
-`@junobuild/functions/ic-cdk` — **not** SMTP (a canister can't) and
+`@junobuild/functions/ic-cdk`, **not** SMTP (a canister can't) and
 **never** by holding a vendor secret (node operators can read canister
 state). The pattern, as built for school-email verification
 ([`school.services.ts`](../../../src/satellite/services/school.services.ts)):
@@ -586,27 +586,27 @@ state). The pattern, as built for school-email verification
   Bun/Elysia app on Fly.io) holds the real vendor key and is
   IPv6-reachable (IC outcalls are IPv6-only; many vendor APIs are not).
   The satellite holds only a **rotatable bearer token**, read at call
-  time from a controllers-only `app_config` doc — never the repo. Send a
+  time from a controllers-only `app_config` doc; never the repo. Send a
   **semantic** body (`{ template, to, locale, vars }`) so email copy +
   localization live in the relay, not the canister.
 - **Secure randomness via `raw_rand`.** For anything that must be
   unpredictable (a verification code), call the management canister
   (`call({ canisterId: Principal.fromText('aaaaa-aa'), method:
-'raw_rand', … })`) — do **not** reuse the `time()`-seeded FNV trick in
+'raw_rand', … })`); do **not** reuse the `time()`-seeded FNV trick in
   `referral.services.ts`, which is for uniqueness only.
 - **Server-owned collections are `controllers`-scoped.** Submissions /
   config the satellite alone reads + writes (via `*DocStore`) use
   `read/write: 'controllers'` in `juno.config.ts` so no client can read a
   stored code digest or tamper with an attempt counter. The plaintext
-  code is never persisted — only an `FNV(code|raw_rand_salt)` digest,
+  code is never persisted; only an `FNV(code|raw_rand_salt)` digest,
   with the attempt cap + TTL + per-principal/email rate limit as the real
   guessing defense.
 
-## Owner-private per-user data — `managed` collection + caller-bound assert
+## Owner-private per-user data: `managed` collection + caller-bound assert
 
 Anything a user stores that must not be world-readable (the reference is
 the account `email` in `profile_private`) can NOT live on a
-`read: 'public'` collection — public read means any anonymous caller can
+`read: 'public'` collection: public read means any anonymous caller can
 `list_docs` the whole collection, and principals are enumerable (the
 collection keys themselves, plus the clearing leaderboard). The pattern:
 
@@ -620,14 +620,14 @@ collection keys themselves, plus the clearing leaderboard). The pattern:
   squat another user's principal key before their first write (blocking
   or forging the value server-side consumers read by key).
 - **Never put the field on a public doc "for convenience".** Typed
-  queries don't help — anything carried by `withProfileDefaults` /
+  queries don't help: anything carried by `withProfileDefaults` /
   `toWireProfile` goes to ANY caller, and the raw doc is readable
   regardless. Strip the field from the doc schema, the wire schemas, and
   the read projections in the same PR.
 - **Serverless writes on behalf of the owner pass the OWNER's principal
   as the store `caller`** (the one-time email migration that populated
   `profile_private` worked this way), so the doc lands owner-owned and
-  the caller-binding assert still holds — asserts run on `setDocStore`
+  the caller-binding assert still holds; asserts run on `setDocStore`
   too. Budget warning for such bulk rewrites: serverless `setDocStore`
   writes cost multiple BILLION instructions each on the Sputnik
   satellite (a 100-doc read-only query fits the 5B query budget, but
@@ -635,7 +635,7 @@ collection keys themselves, plus the clearing leaderboard). The pattern:
   rewrites docs in bulk MUST be keyset-paged with a page size tunable
   down to a single doc.
 - **Add the collection to the hard-delete cascade**
-  (`hardDeleteAccountFn`) — a private doc must not outlive its account.
+  (`hardDeleteAccountFn`): a private doc must not outlive its account.
 
 ## Build-wide write gates with an `app_config` kill switch
 
@@ -670,12 +670,12 @@ principal with no profile, because new accounts live on the new stack:
 - Prefer **stable string tags** (`engine_sync_error`,
   `oracle_settler_skipped_missing_oracle`, …). Operators grep for them in
   the Juno Console.
-- Don't log secrets or full doc bodies — log identifiers + the change.
+- Don't log secrets or full doc bodies; log identifiers + the change.
 
 ## Do / don't
 
 - ✅ Reuse FE schemas from `#lib/schema/` so the FE and satellite agree.
-- ✅ Keep `index.ts` declarative — schemas + dispatch tables only.
+- ✅ Keep `index.ts` declarative: schemas + dispatch tables only.
 - ✅ Make every hook idempotent.
 - ✅ For any VXP award / economy change, follow the invariants in
   [`economy.md`](./economy.md).
@@ -683,24 +683,24 @@ principal with no profile, because new accounts live on the new stack:
 - ✅ Use the snake_case **wire schemas** from
   [`src/satellite/utils/wire-format.utils.ts`](../../../src/satellite/utils/wire-format.utils.ts)
   for **every** `j.array(NestedSchema)` result, with the matching
-  `toWire…` converter in the handler — see the
+  `toWire…` converter in the handler; see the
   [`Vec<NestedStruct>` quirk](#wire-format-quirk-vecnestedstruct-results-need-snake_case)
   section above for the why.
 - ❌ Use `.transform()` / `.refine()` / `.passthrough()` in any
-  `defineQuery` / `defineUpdate` `args` or `result` schema — juno's
+  `defineQuery` / `defineUpdate` `args` or `result` schema; juno's
   codegen only accepts `ZodObject` and silently kills the build with no
   output on `ZodEffects`.
 - ❌ Import `@junobuild/core` (FE-only).
 - ❌ Touch `api-schemas.ts`, `satellite.did`, or
-  `satellite_extension.did` by hand — regenerate via
+  `satellite_extension.did` by hand; regenerate via
   `npm run juno:functions:build && npm run quality` (the Juno CLI emits
   in its own style; `quality` aligns the output with this repo's
   prettier + eslint config). Commit the regenerated
   `src/satellite/{satellite,satellite_extension}.did`,
   `src/satellite/api-schemas.ts`, **and** `src/declarations/satellite/**`.
   This applies whenever you change a `#lib/schema/*.ts` file imported by
-  `src/satellite/index.ts` too — CI's `satellite-schema` job fails on
+  `src/satellite/index.ts` too; CI's `satellite-schema` job fails on
   any drift.
 - ❌ Throw inside a hook for an expected condition. Log + return.
 - ❌ Add a hook that mutates the **same** doc that triggered it without
-  an explicit termination guard — write loops are a real failure mode.
+  an explicit termination guard: write loops are a real failure mode.

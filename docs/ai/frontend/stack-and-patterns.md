@@ -3,10 +3,10 @@
 Idiomatic patterns for the **SvelteKit 2 + Svelte 5 + TypeScript +
 Tailwind v4** stack as it lives in this repo. If a pattern here disagrees
 with code in `src/`, the code wins (truth hierarchy in
-[governance.md](../governance.md)). Update this page in the same PR —
+[governance.md](../governance.md)). Update this page in the same PR;
 that's the [meta-update rule](../governance.md#meta-update-rule).
 
-## Svelte 5 — runes everywhere
+## Svelte 5: runes everywhere
 
 This project is **Svelte 5** and uses runes for new code:
 
@@ -49,19 +49,19 @@ Rules:
 - Callbacks default to a no-op (`() => {}`) so callers can omit them.
 - **Avoid `$bindable`** unless explicitly required. The repo prefers
   callback props (`onChange`) over two-way bindings.
-- Do **not** inline the type literal into `$props()` for new code — use a
+- Do **not** inline the type literal into `$props()` for new code; use a
   named `interface Props`.
 
 ### Effect hygiene
 
-- Never read state inside an `$effect` and write it back without a guard —
+- Never read state inside an `$effect` and write it back without a guard:
   it loops. Restructure to `$derived` whenever possible.
 - The write-then-read order does **not** save you: an effect that assigns
   `foo` and reads `foo` anywhere in the same body still registers `foo` as
   its own dependency. If the assigned value is a fresh identity each run
   (array/object literal, `JSON.parse`, `.map(...)`), the effect re-triggers
   itself until Svelte aborts the whole flush with
-  `effect_update_depth_exceeded` — which freezes **every** component on the
+  `effect_update_depth_exceeded`, which freezes **every** component on the
   page, not just the offender. Read the just-computed local instead, or wrap
   the read in `untrack(...)`. (Bit the Arena standing hero: its cache-seed
   effect assigned `scopes` a fresh array and then read it in the
@@ -69,12 +69,12 @@ Rules:
 - Prefer `$derived` over `$effect`. An `$effect` is for I/O (DOM, network,
   storage). Computation belongs in `$derived` / `$derived.by`.
 
-### Reactive reads — no hidden captures
+### Reactive reads: no hidden captures
 
 Props returned by `$props()` and values bound to `$state` are **reactive
 accessors**. Reading them outside a reactive context (`$derived`,
 `$derived.by`, `$effect`, template expressions, or lifecycle / event
-callbacks) captures the **initial value only** — later prop changes will
+callbacks) captures the **initial value only**; later prop changes will
 not propagate.
 
 `svelte-check` flags the obvious form:
@@ -87,7 +87,7 @@ not propagate.
 ```
 
 The linter **does not catch** reads hidden inside a function body that
-executes eagerly at module init — the classic offender is an IIFE:
+executes eagerly at module init: the classic offender is an IIFE:
 
 ```svelte
 <script lang="ts">
@@ -107,7 +107,7 @@ The correct shapes:
 <script lang="ts">
 	let { correct }: Props = $props();
 
-	// ✅ Pure derivation — re-runs when `correct` changes.
+	// ✅ Pure derivation: re-runs when `correct` changes.
 	const phraseKey = $derived(correct ? 'flow.feedback.right_1' : 'flow.feedback.wrong_1');
 
 	// ✅ Same idea, multi-statement body.
@@ -134,7 +134,7 @@ scope and feed it through `$derived` for the prop-dependent part:
 ```
 
 Rule of thumb: if a `const` at module scope reads a prop or `$state`
-binding — directly **or** inside an immediately-invoked function — wrap
+binding, directly **or** inside an immediately-invoked function, wrap
 it in `$derived` / `$derived.by`. Top-level IIFEs whose bodies touch
 reactive bindings are an anti-pattern; the only safe IIFE is one that
 lives **inside** a reactive context (`$derived(...)`, `$effect(...)`,
@@ -144,7 +144,7 @@ lives **inside** a reactive context (`$derived(...)`, `$effect(...)`,
 
 Svelte stores (`writable` / `readable` / `derived` from `svelte/store`)
 remain the primary cross-route reactive primitive in this repo. The graph
-under `#lib/stores/` and `#lib/derived/` is mature — keep adding to it
+under `#lib/stores/` and `#lib/derived/` is mature; keep adding to it
 where it fits an existing shape, rather than splitting the world between
 runes and stores.
 
@@ -153,11 +153,11 @@ runes and stores.
 | Component-local mutable value                  | `$state`                                                               | Inside the component |
 | Component-local computed value                 | `$derived` / `$derived.by`                                             | Inside the component |
 | Side effect (DOM, network, subscription)       | `$effect` (or `onMount` for true mount work)                           | Inside the component |
-| Value shared by 2+ components in the same page | Pass via props / snippets                                              | —                    |
+| Value shared by 2+ components in the same page | Pass via props / snippets                                              | -                    |
 | Value shared across views (markets, wallet, …) | A Svelte `writable` / `readable` store, or a `*.svelte.ts` rune module | `#lib/stores/`       |
 | Computed value across stores                   | `derived(...)` Svelte store                                            | `#lib/derived/`      |
 
-Avoid duplicating server / canister state into a local store — fetch via
+Avoid duplicating server / canister state into a local store; fetch via
 the service layer and let the service own caching.
 
 ## TypeScript
@@ -165,16 +165,16 @@ the service layer and let the service own caching.
 - **No `any`.** Use `unknown` and narrow.
 - **No `as unknown as X`** to launder types. Either fix the type, or write
   a narrowing function.
-- **No non-null assertion (`!`)** on values that can actually be null —
+- **No non-null assertion (`!`)** on values that can actually be null;
   use `isNullish` / `nonNullish` from `@dfinity/utils`, optional chaining,
   or an explicit guard with an early return.
 - **No direct nullish comparisons** (eslint): `x === null`,
-  `x !== undefined`, loose `x == null`, … are all banned — write
+  `x !== undefined`, loose `x == null`, … are all banned: write
   `isNullish(x)` / `nonNullish(x)` from `@dfinity/utils` instead. The
   helpers are type guards, so narrowing works the same.
 - **Generated types are the source of truth at canister boundaries.**
   Always import types from `#declarations/<canister>/<canister>.d.ts` for
-  request / response shapes — never re-declare them.
+  request / response shapes; never re-declare them.
 - **Schemas first.** When data crosses a boundary (network, storage, the
   satellite), validate with the matching `zod` schema from
   `#lib/schema/`.
@@ -193,7 +193,7 @@ the service layer and let the service own caching.
 - **Optional over a sentinel for "not known yet".** When a numeric field
   can be genuinely unknown (still loading, or empty), model it as
   optional (`field?: number`) and let consumers render a skeleton /
-  placeholder for `isNullish` — do not pick a magic in-range default that
+  placeholder for `isNullish`; do not pick a magic in-range default that
   is indistinguishable from a real value. `Market.yesProbability` is the
   worked example: a `0.5` default read as a real coin-flip and showed
   un-loaded markets as 50%. It is now optional, paired with a
@@ -221,7 +221,7 @@ Component (.svelte)
     (`getIdentityOrAnonymous` for read paths, `safeGetIdentityOnce` for
     authenticated actions).
   - Surface errors via the project's notification / toast pattern (`#lib/stores/notification.store.ts`).
-  - Never throw to the caller for expected user errors — return an
+  - Never throw to the caller for expected user errors; return an
     informative result.
 - Worker-bound logic (auth workers) lives under `static/workers/` and is
   synced by `npm run postinstall`. Don't hand-edit those files.
@@ -245,8 +245,8 @@ export const createMarket = async (req: CreateMarketRequest): Promise<MarketId> 
 ## Engine integration (icdc-core)
 
 Vici talks to the on-chain Rust canisters in `../icdc-core/`. The Engine
-model — what `engine_id` to pass, who has `Creator` / `OracleAdmin`, how
-roles in Juno are mirrored to the Vici engine — is documented in
+model (what `engine_id` to pass, who has `Creator` / `OracleAdmin`, how
+roles in Juno are mirrored to the Vici engine) is documented in
 [`docs/engine-integration.md`](../../engine-integration.md). When writing
 a new market / oracle path, **read that doc first**. The single place that
 pins `VICI_ENGINE_ID` is
@@ -256,10 +256,10 @@ pins `VICI_ENGINE_ID` is
 
 The engine is a **share-based CLOB**: an order is `(price, qty)` where `qty`
 is a number of outcome shares (each pays `1` on win) and the locked margin is
-`qty × price`. The UI never exposes shares — it presents a **fixed-stake**
+`qty × price`. The UI never exposes shares; it presents a **fixed-stake**
 ("call size") convention: the slider value is the VXP you spend, you lose
 exactly that if wrong, and a win pays `stake / price`. The two are the same
-trade — spending `stake` to buy `stake / price` shares — so this is a
+trade, spending `stake` to buy `stake / price` shares, so this is a
 **pure FE presentation layer; the ICDC `(price, qty)` convention is
 untouched.** The conversion is the one line in
 [`executeOutcomeTrade`](../../../src/lib/utils/trade.utils.ts):
@@ -270,7 +270,7 @@ The `price` in both the order sizing **and** the "+X VXP" payout preview is the
 [`resolveOutcomeExecutionPrice`](../../../src/lib/utils/market.utils.ts) (best
 ask for YES, `1 − best bid` for NO, consensus mid only when that side of the
 book is empty). Always size previews off this helper, never off the consensus
-mid (`yesProbability`) — the mid ignores the spread and over-promises the
+mid (`yesProbability`): the mid ignores the spread and over-promises the
 payout on a thin / one-sided book. Net payout itself is computed by
 [`vxpNetWin`](../../../src/lib/utils/vxp-economy.utils.ts) (`stake / price −
 stake`, with a `VXP_P_WIN_FLOOR` cap on long-shot display). The flow card does
@@ -288,28 +288,28 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   IDs and delegation duration live in
   [`juno.config.ts`](../../../juno.config.ts).
 - Auth worker assets must be synced via `npm run postinstall` to
-  `./static/workers` — otherwise sign-in silently breaks.
+  `./static/workers`; otherwise sign-in silently breaks.
 - **Apple sign-in bypasses Juno on purpose.** Juno's `signIn()` has no
   Apple provider and no OpenID deep-link for its II provider, so
   "Continue with Apple" goes straight to Internet Identity 2.0 (`id.ai`)
-  with `?openid=…appleid.apple.com` — see
+  with `?openid=…appleid.apple.com`, see
   [`apple-signin.services.ts`](../../../src/lib/services/apple-signin.services.ts).
   It drives the **ICRC-29 `Signer` / `PostMessageTransport` directly**
   (not `AuthClient.signIn()`): `AuthClient` hard-codes the transport's 2s
   `disconnectTimeout`, which drops the channel ("Connection closed") while
-  the popup is off on Apple's OIDC ceremony — so we build the transport
+  the popup is off on Apple's OIDC ceremony, so we build the transport
   ourselves with a passkey-aware 60s timeout, request the delegation, and
   persist it by hand. The signer / storage primitives come from
   `@icp-sdk/auth` v6 + `@icp-sdk/signer`, installed under the
   **`icp-auth-openid` npm alias** (`npm:@icp-sdk/auth@^6`) so Juno keeps
-  its own peer `@icp-sdk/auth` v5 untouched — never import `icp-auth-openid`
+  its own peer `@icp-sdk/auth` v5 untouched; never import `icp-auth-openid`
   from anything Juno owns, and never bump Juno's peer to v6 (v6 dropped the
   `AuthClient.create` / `login` API Juno calls). v5 and v6 share an
   identical IndexedDB contract (`auth-client-db` / `ic-keyval`, ECDSA key
   under `identity` + delegation JSON under `delegation`), so the
   hand-persisted delegation is adopted by Juno on the next document load.
   **Persisting the delegation is not enough**: Juno's boot-time
-  `loadAuth()` only _loads_ an existing `#user` doc (it never creates one —
+  `loadAuth()` only _loads_ an existing `#user` doc (it never creates one;
   that's done inside Juno's interactive `signIn()`), so the service also
   creates the `#user` doc with the Apple identity (mirroring Juno's
   `initUser`); skip this and `loadAuth()` finds a valid delegation but no
@@ -329,13 +329,13 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   authenticates an existing passkey. The label flips between
   `authn.passkey.create_button` and `authn.passkey.signin_button` the same
   way.
-- **Email sign-in is passkey-backed — there is no magic link.** The email
+- **Email sign-in is passkey-backed: there is no magic link.** The email
   row in `SignInProviderStack` is a friendlier framing of the WebAuthn flow:
   on sign-up it registers a passkey labelled by the address and merges that
   address into the `vici:pending-onboarding` payload (same single-field merge
   `/i/[code]` and `/league/[code]` do for their codes), so the post-sign-in
   drain in [`(app)/+layout.svelte`](<../../../src/routes/(app)/+layout.svelte>)
-  persists it onto the new profile — the WebAuthn `User` carries no email of
+  persists it onto the new profile: the WebAuthn `User` carries no email of
   its own. On sign-in it just authenticates the existing passkey. Because it
   is WebAuthn under the hood it shares the passkey button's gating
   (`isWebAuthnAvailable` + production-only). The settings "Sign-in method" row
@@ -351,11 +351,11 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   [`Authn.svelte`](../../../src/lib/components/authn/Authn.svelte) on every
   `onAuthStateChange`. It compares the new principal against a persisted
   owner (`vici.storage-owner.v1`) and wipes the identity-scoped caches
-  **only when the owner actually changes** — never on a same-user reload,
+  **only when the owner actually changes**, never on a same-user reload,
   so the offline-resilient daily-goal mirror survives a refresh. When you
   add a new user-scoped persisted key, register its reset there (and prefer
   routing genuinely cross-device state through `profile.preferences`
-  instead — that store already resets on sign-out). Device-level keys
+  instead; that store already resets on sign-out). Device-level keys
   (theme, locale, last-open tab) intentionally stay put.
 
 ## Tailwind v4 + design tokens
@@ -374,19 +374,19 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   curve, and the `inset-hi` / `inset-hi-strong` / `modal` shadows. For
   values Tailwind v4 doesn't generate utilities for natively (custom
   transition durations, composed multi-shadow values), the file also
-  defines `@utility` wrappers — currently `duration-hover` /
+  defines `@utility` wrappers: currently `duration-hover` /
   `duration-state` (bound to `--d-hover` / `--d-state`) and
-  `shadow-mobilenav-active`. Use the generated utilities directly —
+  `shadow-mobilenav-active`. Use the generated utilities directly:
   `bg-card`, `text-yes`, `bg-no-wash`, `border-border-strong`,
   `border-ink-line`, `shadow-inset-hi`, `ease-vici`, `duration-hover`,
   `bg-laurel/20`.
-- **`danger` (terracotta) vs `no` / `destructive` (red) — do not
+- **`danger` (terracotta) vs `no` / `destructive` (red): do not
   conflate.** Destructive / irreversible-action UI (delete, sign-out,
   danger buttons / warnings) uses the `danger` ramp (`bg-danger`,
   `text-danger`, `hover:bg-danger-deep`, `bg-danger-wash`) so it reads
   as caution, not as a market outcome. The `no` signal (and the
   `destructive` alias that still maps to it) is reserved for the
-  prediction **NO** outcome and financial-loss semantics — NO splits,
+  prediction **NO** outcome and financial-loss semantics: NO splits,
   probability bars, payouts, `out` wallet rows, order-book asks. When a
   red is a NO outcome / loss, keep it on `no` / `destructive`; when it's
   a destructive action, use `danger`.
@@ -398,8 +398,8 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   `bg-[var(--my-token)]`. For values outside those Tailwind namespaces
   (custom transition durations, composed shadows), add an `@utility`
   wrapper instead of an arbitrary value with an embedded token. Same
-  goes for `style="color: var(--foo)"` / `style="box-shadow: var(--foo)"`
-  — use the utility.
+  goes for `style="color: var(--foo)"` / `style="box-shadow: var(--foo)"`,
+  use the utility.
 - **No raw hex** (`bg-[#0f0]`).
 - **Class order** is auto-sorted by `prettier-plugin-tailwindcss`. Don't
   bikeshed it.
@@ -422,7 +422,7 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   [`src/routes/(app)/`](<../../../src/routes/(app)/>) (`/`, `/flow`,
   `/markets/[id]`, …). Add a new view by adding a new
   `(app)/<path>/+page.svelte` (or sub-route) and a matching `AppPath`
-  entry — there is no central nav store.
+  entry; there is no central nav store.
 - The mobile tab bar
   ([`src/lib/components/layout/MobileNav.svelte`](../../../src/lib/components/layout/MobileNav.svelte))
   compares `page.url.pathname` to `AppPath` from
@@ -452,15 +452,15 @@ spread-level slippage from top-of-book, not multi-level depth walking.
 - Inline type literal in `$props()` (`let { … }: { … } = $props()`).
 - Reactive `$:` statements in new code.
 - Module-scope IIFE (`const x = (() => { … })()`) whose body reads a
-  `$props()` value or `$state` binding — captures the initial value
+  `$props()` value or `$state` binding; captures the initial value
   only. Use `$derived` / `$derived.by` instead. See
-  [Reactive reads — no hidden captures](#reactive-reads--no-hidden-captures).
+  [Reactive reads: no hidden captures](#reactive-reads-no-hidden-captures).
 - `$bindable` unless explicitly required by the API.
 - Reaching into `document.querySelector` to mutate Svelte-managed DOM.
 - Catching an error and silently swallowing it; surface via
   `#lib/stores/notification.store.ts` or propagate.
 - Hard-coding strings, hex colours, magic numbers in components.
-- "Just one more `any`" — there is no "just one more".
+- "Just one more `any`"; there is no "just one more".
 - Adding a wrapper component that only re-exports another component.
 - `target="_blank"` without `rel="noopener noreferrer"`.
 - `{@html …}` without sanitisation.

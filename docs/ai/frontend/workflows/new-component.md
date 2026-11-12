@@ -9,7 +9,7 @@ covers the use case.
 1. **Decide the layer.** Use the
    [decision tree](../structure.md#where-to-put-new-files-decision-tree):
    - Generic primitive missing from `#lib/components/ui/` →
-     `#lib/components/ui/<Name>.svelte` (rare — most primitives already exist).
+     `#lib/components/ui/<Name>.svelte` (rare, most primitives already exist).
    - Feature component → `#lib/components/<feature>/<Name>.svelte`.
    - Page-level shell composed in the single SvelteKit route →
      `#lib/components/pages/<Name>.svelte`.
@@ -17,7 +17,7 @@ covers the use case.
    suffix. Reflects role, not appearance (`MarketResolutionPanel`, not
    `BluePanel`).
 3. **Sketch props first.** Always use a named `interface Props` above
-   the destructure — see
+   the destructure, see
    [`stack-and-patterns.md#props-shape`](../stack-and-patterns.md#props-shape).
 
    ```ts
@@ -33,7 +33,7 @@ covers the use case.
    - All props typed via `interface Props`.
    - Required props first, optional / defaulted after.
    - Callbacks default to a no-op (`() => {}`).
-   - **Avoid `$bindable`** unless explicitly required — prefer a callback
+   - **Avoid `$bindable`** unless explicitly required; prefer a callback
      prop.
 
 4. **Compose, don't reinvent.** Build on `#lib/components/ui/` (`Button`,
@@ -52,16 +52,16 @@ covers the use case.
    Decorative icons `aria-hidden="true"`, icon-only buttons get an
    `aria-label`. See [`a11y.md`](../a11y.md).
 7. **Terminology.** Use **"prediction"**, never "bet". Time variables
-   end in `_ms` or `_ns` — see
-   [`structure.md#time-variables--ms--ns`](../structure.md#time-variables--_ms--_ns).
+   end in `_ms` or `_ns`, see
+   [`structure.md#time-variables-ms--ns`](../structure.md#time-variables-_ms--_ns).
 8. **Test ID** if the component is targeted by future tests:
    `data-tid="<kebab-case>"`. (When a test-IDs constants file lands,
-   move it there — see [`reusability.md`](../reusability.md).)
+   move it there, see [`reusability.md`](../reusability.md).)
 9. **Tests** if the component lives in `#lib/components/ui/` or has
-   non-trivial logic. See [`testing.md`](../testing.md) — note the
+   non-trivial logic. See [`testing.md`](../testing.md), note the
    bootstrap status.
 10. **Catalog update** if the component goes into `#lib/components/ui/`
-    or introduces a new pattern future agents should reuse — add a row
+    or introduces a new pattern future agents should reuse; add a row
     to [`reusability.md`](../reusability.md). This is the
     [meta-update rule](../../governance.md#meta-update-rule).
 11. **Run quality gates** (`npm run quality && npm run check`).

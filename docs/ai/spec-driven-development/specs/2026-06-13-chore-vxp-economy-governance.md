@@ -55,7 +55,7 @@ The new page is a cross-area topic page (the economy spans the
 SvelteKit preview UI and the authoritative satellite payouts), so it
 sits at the top of `docs/ai/` alongside `PRODUCT.md` and
 `governance.md`, per the writing-for-agents layering guidance in
-[`governance.md`](../../governance.md#structure--hierarchical-scoped-layered).
+[`governance.md`](../../governance.md#structure-hierarchical-scoped-layered).
 
 ### Reconciliation against the canonical economy design
 

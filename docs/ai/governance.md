@@ -8,12 +8,12 @@ every agent (Claude Code, Cursor, Copilot, Codex, Aider, opencode, …).
 When two sources disagree, the higher one wins:
 
 1. **The code** (`src/**`, `backend/**`, `scripts/**`): current state of reality.
-2. **CI workflows** ([`.github/workflows/**`](../../.github/workflows/)) —
+2. **CI workflows** ([`.github/workflows/**`](../../.github/workflows/)):
    non-negotiable gates that must be green to merge.
-3. **CODEOWNERS** ([`.github/CODEOWNERS`](../../.github/CODEOWNERS)) —
+3. **CODEOWNERS** ([`.github/CODEOWNERS`](../../.github/CODEOWNERS)):
    defines who must approve each path.
-4. **This file + sibling pages under `docs/ai/`** — policy.
-5. [`AGENTS.md`](../../AGENTS.md) — universal entry, points at the above.
+4. **This file + sibling pages under `docs/ai/`**: policy.
+5. [`AGENTS.md`](../../AGENTS.md): universal entry, points at the above.
 6. **Tool-specific layers** ([`CLAUDE.md`](../../CLAUDE.md),
    [`.claude/rules/`](../../.claude/rules/), `.cursor/rules/`,
    `.github/copilot-instructions.md`). These never contradict 1–5.
@@ -26,18 +26,18 @@ The rules every repository shares live in the universal standard,
 This page and its siblings only add what is specific to Vici and never
 restate it.
 
-**Scoped exception — economy policy.** For the _rules_ of the VXP
+**Scoped exception: economy policy.** For the _rules_ of the VXP
 economy (which surfaces mint, and the caps / gates / anti-farming
 posture that bound them), [`economy.md`](./economy.md) is authoritative
-and the code is reconciled **to** it — see its
-[reconciliation protocol](./economy.md#reconciliation-protocol--the-rules-drive-the-code).
+and the code is reconciled **to** it, see its
+[reconciliation protocol](./economy.md#reconciliation-protocol-the-rules-drive-the-code).
 This inverts tiers 1 and 4 **only** for economy rules; numeric _values_
 still live in the constants files (tier 1) and shipped _behaviour_ is
 still described by [`PRODUCT.md`](./PRODUCT.md).
 
 ## Roles
 
-You can play any of these roles in a single session — most non-trivial PRs
+You can play any of these roles in a single session; most non-trivial PRs
 involve all three, in order. Keep them mentally separated.
 
 ### Planner
@@ -84,9 +84,9 @@ them without an explicit ask in the user prompt.
 | `package.json` (deps), `package-lock.json`                             | New / upgraded dependencies require explicit approval.                            | repo maintainers |
 | `dfx.json`, `canister_ids.json`                                        | Canister wiring.                                                                  | repo maintainers |
 | `juno.config.ts`, `juno.collections.json`                              | Collection rules + satellite IDs. Schema drift breaks data + auth.                | repo maintainers |
-| `src/satellite/satellite.did`, `src/satellite/satellite_extension.did` | Public Candid interface of the satellite. Generated; regenerate, never hand-edit. | —                |
-| `src/satellite/api-schemas.ts`                                         | Generated schema bindings used by `defineQuery` / `defineUpdate`.                 | —                |
-| `src/declarations/**`                                                  | **Generated** by `npm run did` from upstream `.did` files.                        | —                |
+| `src/satellite/satellite.did`, `src/satellite/satellite_extension.did` | Public Candid interface of the satellite. Generated; regenerate, never hand-edit. | -                |
+| `src/satellite/api-schemas.ts`                                         | Generated schema bindings used by `defineQuery` / `defineUpdate`.                 | -                |
+| `src/declarations/**`                                                  | **Generated** by `npm run did` from upstream `.did` files.                        | -                |
 | `eslint.config.js`, `.prettierrc`, `tsconfig*.json`                    | Lint / format / TS policy.                                                        | repo maintainers |
 | `eslint-suppressions.json`                                             | Generated lint baseline. Only ever shrinks, via `--prune-suppressions`.           | repo maintainers |
 | `scripts/build/**`, `scripts/lib/**`, `scripts/init/**`                | Reproducible-build + bootstrap pipeline. Touch only when prompted.                | repo maintainers |
@@ -102,14 +102,14 @@ them without an explicit ask in the user prompt.
 | `backend/src/lib/{cookie,crypto,keys,rate-limit,email,ic-agent}.ts`    | Session, key, abuse-protection, email and IC identity primitives.                 | repo maintainers |
 | `backend/src/declarations/**`                                          | **Generated** Candid bindings for the backend. Regenerate, never hand-edit.       | repo maintainers |
 | `backend/scripts/etl/**`, `backend/e2e/**`                             | Legacy data migration; test-only server with fake engine and seed.                | repo maintainers |
-| `static/workers/**`                                                    | Synced from `@junobuild/core` by `npm run postinstall`. Don't hand-edit.          | —                |
-| `node_modules/`, `target/`, `.svelte-kit/`, `build/`, `out/`, `.dfx/`  | Build output. Never commit.                                                       | —                |
+| `static/workers/**`                                                    | Synced from `@junobuild/core` by `npm run postinstall`. Don't hand-edit.          | -                |
+| `node_modules/`, `target/`, `.svelte-kit/`, `build/`, `out/`, `.dfx/`  | Build output. Never commit.                                                       | -                |
 | `../icdc-core/**`                                                      | External repo. Open it as a separate workspace; obey its `AGENTS.md`.             | icdc-core team   |
 
 If a change must touch a protected path, call it out explicitly in the PR
 description.
 
-## Capabilities — quick reference
+## Capabilities: quick reference
 
 ### Allowed without prompting
 
@@ -139,15 +139,15 @@ description.
 - Skip / `.skip()` / `.todo()` an existing test once a test runner is wired.
 - `git push --force`, amend a pushed commit, rebase to "tidy history", or
   rewrite shared history. "Explicit prompt" means the user names the
-  operation directly — any unambiguous phrasing works (e.g.
+  operation directly; any unambiguous phrasing works (e.g.
   "force-push", "force push", "push --force", "push -f", "amend",
   "git commit --amend", "rebase", "git rebase", "rewrite history").
   Task-level delegation like "do what you think is best" or "do what's
   most correct" does **NOT** count. See
   [`pr-and-ci.md#updating-an-existing-pr`](./pr-and-ci.md#7-updating-an-existing-pr).
 - Commit secrets, `.env*` (other than examples), or large binaries.
-- Touch `src/satellite/satellite.did` or `src/declarations/**` by hand
-  — regenerate via the appropriate scripts (`juno functions build`, `npm run did`).
+- Touch `src/satellite/satellite.did` or `src/declarations/**` by hand;
+  regenerate via the appropriate scripts (`juno functions build`, `npm run did`).
 - Modify the on-chain Rust canisters in `../icdc-core/` from this repo.
   If a change requires a new endpoint there, do that work in the
   `icdc-core` repo, then come back here for the binding regeneration and
@@ -185,18 +185,18 @@ How:
    | A repeated multi-step task                              | a page under `frontend/workflows/`, `satellite/workflows/` or `backend/workflows/` |
    | A rule every repository shares                          | the universal standard in Officina, never a page here                              |
 
-2. Edit that page in the same PR with the smallest possible delta — add a
+2. Edit that page in the same PR with the smallest possible delta: add a
    bullet, add a row, swap a code sample.
 3. Mention the doc update in the PR body under `# Changes`.
 4. If the change is structural enough that the existing taxonomy stops
    making sense, open a separate **doc-only** PR first:
-   `docs(ai): <reshape>` — and land it before the code PR.
+   `docs(ai): <reshape>`, and land it before the code PR.
 
 This is what makes the docs _auto-adapting_: every PR is a small
 opportunity to keep them honest. Reviewers should reject code PRs that
 introduce a new pattern without the matching doc update.
 
-## Writing for agents — meta-rules for `docs/ai/`
+## Writing for agents: meta-rules for `docs/ai/`
 
 These rules govern **how the agentic docs themselves are written**.
 They apply equally when a human edits `docs/ai/**` and when an agent
@@ -209,7 +209,7 @@ AGENTS.md_](https://addyosmani.com/blog/agents-md/).
 > write it down.** Documentation only earns its keep when it carries
 > non-discoverable signal.
 
-### Include — only non-discoverable signal
+### Include: only non-discoverable signal
 
 Write a doc entry when, and only when, it captures something the agent
 would otherwise have to guess or learn the hard way:
@@ -223,20 +223,20 @@ would otherwise have to guess or learn the hard way:
   `src/declarations/**` by hand").
 - **Non-standard patterns to preserve.** Local idioms that look wrong
   but aren't (e.g. "the satellite uses a collection-dispatch table in
-  `src/satellite/index.ts` on purpose — don't refactor into per-file
+  `src/satellite/index.ts` on purpose; don't refactor into per-file
   registrations").
-- **Boundaries.** Paths that look editable but aren't — see the
+- **Boundaries.** Paths that look editable but aren't; see the
   [Boundaries table](#boundaries).
 - **Cross-repo facts.** Things the local code can't tell the agent
   (e.g. "the Rust risk engine lives in `../icdc-core/`").
 
-### Exclude — anything the code already says
+### Exclude: anything the code already says
 
 If it's already in the code, omit it. Stale duplicates are worse than
 absence because they look authoritative.
 
 - **Directory layouts and folder taxonomy** beyond a decision tree
-  for placement — `ls` answers this. (Our
+  for placement: `ls` answers this. (Our
   [`structure.md`](./frontend/structure.md) earns its keep with the
   _decision tree_, not the tree listing.)
 - **Tech stack overviews.** `package.json` and `tsconfig*.json` are
@@ -245,23 +245,23 @@ absence because they look authoritative.
   adds nothing.
 - **READMEs copy-pasted from elsewhere.** Link, don't mirror.
 - **Architectural narratives** ("this project uses a layered
-  architecture…") — the agent already infers this by reading.
+  architecture…"), the agent already infers this by reading.
 
-### Structure — hierarchical, scoped, layered
+### Structure: hierarchical, scoped, layered
 
 Don't put everything in one file. Match doc depth to where the agent
 needs it:
 
-1. **Entry layer** — [`AGENTS.md`](../../AGENTS.md) is universal and
+1. **Entry layer**: [`AGENTS.md`](../../AGENTS.md) is universal and
    thin. [`CLAUDE.md`](../../CLAUDE.md) is a Claude-only runtime
    wrapper, equally thin.
-2. **Area READMEs** — [`docs/ai/frontend/README.md`](./frontend/README.md),
+2. **Area READMEs**: [`docs/ai/frontend/README.md`](./frontend/README.md),
    [`docs/ai/satellite/README.md`](./satellite/README.md),
    [`docs/ai/backend/README.md`](./backend/README.md),
    [`docs/ai/engine/README.md`](./engine/README.md): read once per
    session, scoped to the area touched.
-3. **Topic pages** — `structure.md`, `stack-and-patterns.md`,
-   `patterns.md`, `i18n.md`, `a11y.md`, … — loaded selectively when
+3. **Topic pages**: `structure.md`, `stack-and-patterns.md`,
+   `patterns.md`, `i18n.md`, `a11y.md`, …, loaded selectively when
    the agent touches that concern.
 4. **Workflow pages**: `frontend/workflows/`, `satellite/workflows/`,
    `backend/workflows/`: concrete recipes for repeated multi-step tasks.
@@ -277,16 +277,16 @@ Files under [`.claude/rules/`](../../.claude/rules/),
 
 - Are **pointers** into `docs/ai/`, never replacements.
 - May surface 3–5 high-violation reminders so they land in the tool's
-  prompt window — no full taxonomies, no code examples, no rewrites.
+  prompt window: no full taxonomies, no code examples, no rewrites.
 - Never contradict `docs/ai/` (see
   [truth hierarchy](#truth-hierarchy)).
 - Get updated only when the canonical page in `docs/ai/` already
   reflects the new rule.
 
 If a Claude-specific reminder grows past a few lines, that's a signal
-the substance belongs in `docs/ai/` — promote it, then re-link.
+the substance belongs in `docs/ai/`: promote it, then re-link.
 
-### Maintenance — friction log, not config
+### Maintenance: friction log, not config
 
 > Every entry is a signal about something in the codebase that's
 > confusing enough to trip an agent.
@@ -300,20 +300,20 @@ the substance belongs in `docs/ai/` — promote it, then re-link.
   future agent. If you spot drift while doing unrelated work, fix the
   doc in the same PR or open a doc-only follow-up.
 - **No `/init`-style sweeps.** Don't ask an agent to auto-regenerate
-  `docs/ai/` wholesale — the output recapitulates discoverable
+  `docs/ai/` wholesale: the output recapitulates discoverable
   structure (which we don't want) and erases hard-won non-obvious
   notes (which we do). Updates land per-PR via the
   [meta-update rule](#meta-update-rule).
 - **Empirical pressure beats intuition.** If a rule keeps being
   violated by agents (or humans) despite being documented, the doc
-  isn't the problem — the rule is in the wrong place, or the
+  isn't the problem: the rule is in the wrong place, or the
   underlying code needs to change. Move it, lift it into a lint rule,
   or refactor the surface area.
 
 ### Style
 
 - **Direct, declarative, imperative on rules.** "Do X." "Never Y."
-  Mirrors the codebase's brand voice — see
+  Mirrors the codebase's brand voice; see
   [`frontend/brand.md`](./frontend/brand.md).
 - **Smallest delta wins.** Add a bullet, swap a row, replace one
   example. Don't restructure a whole page when a one-line addition
@@ -322,5 +322,5 @@ the substance belongs in `docs/ai/` — promote it, then re-link.
   [`stack-and-patterns.md`](./frontend/stack-and-patterns.md#identity--auth)
   with a deep link rather than copy-pasting the rule.
 - **Cite the code.** When a rule references a real file, link to the
-  file at the relevant path — that way edits to the code surface in
+  file at the relevant path: that way edits to the code surface in
   doc reviews via grep.

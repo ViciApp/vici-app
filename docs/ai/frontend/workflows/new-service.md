@@ -34,7 +34,7 @@ Component (.svelte)
      ```
 
      Both `src/declarations/**` and the upstream `.did` file are
-     generated — never hand-edit. Commit the regenerated declarations
+     generated; never hand-edit. Commit the regenerated declarations
      with the FE wiring in the same PR.
 
    - **Satellite method:** add it under `src/satellite/services/` and
@@ -49,7 +49,7 @@ Component (.svelte)
      Candid `opt` / `Result` shapes to idiomatic TS at the boundary.
    - Throw / reject only for unexpected runtime errors. Expected error
      paths should return a typed result.
-   - Take `identity` as an explicit argument — the service layer owns
+   - Take `identity` as an explicit argument; the service layer owns
      identity resolution (see step 4).
 
 3. **`#lib/canisters/<canister>.canister.ts` actor factory** (only if
@@ -78,7 +78,7 @@ Component (.svelte)
      upgrade.
    - Add a `derived(...)` store in `#lib/derived/` for cross-store
      computations.
-   - Don't cache server data twice — let the store own that.
+   - Don't cache server data twice; let the store own that.
 
 6. **Schemas (when crossing the satellite boundary).**
    - Reusable schemas live in `#lib/schema/` and are re-imported by
@@ -108,9 +108,9 @@ Component (.svelte)
 - Call `#lib/api/*` or `#lib/canisters/*` directly from a component (skip
   the service layer).
 - Use the `0n` literal (eslint enforces `ZERO`).
-- `return undefined;` (eslint — bare `return;`).
+- `return undefined;` (eslint: bare `return;`).
 - Hand-edit `src/declarations/**` or any upstream `.did` file.
-- Cache server data in a store _and_ in the service — pick one.
+- Cache server data in a store _and_ in the service; pick one.
 - Add a new top-level folder under `src/lib/` to host the new service.
-- Hold `identity` in a long-lived variable across awaits — re-resolve at
+- Hold `identity` in a long-lived variable across awaits; re-resolve at
   the start of each call so the user can sign out / refresh between.

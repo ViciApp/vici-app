@@ -15,7 +15,7 @@ datastore SDK gives you.
 1. **Define / reuse the schemas.**
    - Reuse `#lib/schema/<area>.schema.ts` whenever the same shape is
      consumed by the FE. The whole point of satellite-typed endpoints is
-     to share types across the boundary — declaring a duplicate schema in
+     to share types across the boundary: declaring a duplicate schema in
      the satellite re-introduces drift.
    - For ad-hoc args, use `j.strictObject({ … })` from
      `@junobuild/schema`. For principals, use `PrincipalTextSchema`.
@@ -73,7 +73,7 @@ datastore SDK gives you.
    **Commit all regenerated files together with your source change.**
    This rule also fires when you only edit a shared schema file under
    `#lib/schema/*.ts` that the satellite imports (e.g. adding a field to
-   `UserProfileSchema`) — the satellite's Candid + the FE IDL must move
+   `UserProfileSchema`): the satellite's Candid + the FE IDL must move
    in lockstep with the schema, or `app_get_profile` and friends will
    trap with `Unrecognized key` once the FE writes the new field. CI's
    `satellite-schema` job ([`checks.yml`](../../../../.github/workflows/checks.yml))
@@ -110,7 +110,7 @@ datastore SDK gives you.
 ## Don'ts
 
 - Hand-edit `api-schemas.ts`, `satellite.did`, or
-  `satellite_extension.did` — always regenerate.
+  `satellite_extension.did`: always regenerate.
 - Put logic in the `handler:` callback. It should call into
   `services/<area>.services.ts` and nothing else.
 - Re-declare a schema that already exists in `#lib/schema/`. Import it
@@ -118,4 +118,4 @@ datastore SDK gives you.
 - Use `console.log` for satellite output. Use the helpers in
   `src/satellite/utils/logger.utils.ts`.
 - Skip the FE wrapper. Components call services; services call the
-  satellite — never the other way around.
+  satellite; never the other way around.
