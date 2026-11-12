@@ -19,7 +19,7 @@ import { query } from '../db/client';
 import { env } from '../env';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
-import { msToNs, nowNs } from '../lib/time';
+import { msToNs, nowNs, optionalMs } from '../lib/time';
 import { vxpFromBaseUnits } from './constants';
 import { findTreasuryTransferToUser, transferVxpToUser } from './payout';
 
@@ -96,7 +96,7 @@ const shapeAward = (row: VxpAwardRow): VxpAward => ({
 	amountBaseUnits: row.amount_base_units,
 	status: row.status === 'needs_ledger_check' ? 'processing' : row.status,
 	earnedAtMs: Number(row.earned_at_ms),
-	paidAtMs: nonNullish(row.paid_at_ms) ? Number(row.paid_at_ms) : undefined,
+	paidAtMs: optionalMs(row.paid_at_ms),
 	blockIndex: row.block_index ?? undefined,
 	errorMessage: row.error_message ?? undefined
 });
