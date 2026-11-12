@@ -6,7 +6,7 @@ import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import type { Principal } from '@icp-sdk/core/principal';
 import { call } from '@junobuild/functions/ic-cdk';
-import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
+import { decodeDocData, getAdminAccessKeys, getDocStore } from '@junobuild/functions/sdk';
 
 /**
  * Shared admin check. Reads the caller's `ROLES` doc and returns
@@ -67,4 +67,20 @@ export const isCreatorOrAdmin = async ({
 	const creator = await getSeriesCreator(seriesId);
 
 	return creator === caller.toText();
+};
+
+/**
+ * The first satellite controller principal: the `caller` a service hands the
+ * `*DocStore` APIs for a controllers-scoped collection, since they enforce the
+ * collection rule against that caller. Traps when the satellite has no
+ * controller; `purpose` names the access in the message.
+ */
+export const controllerCaller = (purpose: string): Uint8Array => {
+	const first = getAdminAccessKeys()[0]?.[0];
+
+	if (isNullish(first)) {
+		throw new Error(`No satellite controller available for ${purpose}.`);
+	}
+
+	return first;
 };

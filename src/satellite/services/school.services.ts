@@ -53,6 +53,7 @@ import {
 	captureServerEvents,
 	type ServerEventInput
 } from '#satellite/services/analytics.services.ts';
+import { controllerCaller } from '#satellite/services/authz.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -62,7 +63,6 @@ import { call, httpRequest, msgCaller, time } from '@junobuild/functions/ic-cdk'
 import {
 	decodeDocData,
 	encodeDocData,
-	getAdminAccessKeys,
 	getDocStore,
 	listDocsStore,
 	setDocStore
@@ -96,15 +96,7 @@ const captureSchoolEvent = (event: ServerEventInput): void => {
  * read/write those collections as an admin. (User-owned `profiles` stays
  * on the real caller.) Throws if the satellite somehow has no controller.
  */
-const adminCaller = (): Uint8Array => {
-	const first = getAdminAccessKeys()[0]?.[0];
-
-	if (isNullish(first)) {
-		throw new Error('No satellite controller available for server config access.');
-	}
-
-	return first;
-};
+const adminCaller = (): Uint8Array => controllerCaller('server config access');
 
 // ─── Inputs / outputs (mirror the FE service signatures) ─────────────────
 

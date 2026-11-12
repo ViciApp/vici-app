@@ -4,7 +4,7 @@ import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canis
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import type { Activity, ResolvedResult } from '#lib/types/social.ts';
-import { isAdmin } from '#satellite/services/authz.services.ts';
+import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
@@ -15,7 +15,6 @@ import {
 	decodeDocData,
 	deleteDocStore,
 	encodeDocData,
-	getAdminAccessKeys,
 	getDocStore,
 	listDocsStore,
 	setDocStore
@@ -31,15 +30,7 @@ const nowMs = (): number => Number(time() / MS_PER_NS);
  * (the `*DocStore` APIs enforce the collection rule against the caller they're given). Mirrors the
  * `activity_reaction_counts` rollup.
  */
-const adminCaller = (): Uint8Array => {
-	const first = getAdminAccessKeys()[0]?.[0];
-
-	if (isNullish(first)) {
-		throw new Error('No satellite controller available for resolved-results write.');
-	}
-
-	return first;
-};
+const adminCaller = (): Uint8Array => controllerCaller('resolved-results write');
 
 const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
 const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);

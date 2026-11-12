@@ -6,14 +6,13 @@ import {
 	MICRO_IDS
 } from '#lib/constants/market-taxonomy.constants.ts';
 import type { MarketMetadata, MarketTagIndex } from '#lib/types/market-metadata.ts';
-import { isAdmin } from '#satellite/services/authz.services.ts';
+import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
-	getAdminAccessKeys,
 	getDocStore,
 	listDocsStore,
 	setDocStore
@@ -59,15 +58,7 @@ const nowMs = (): number => Number(time() / MS_PER_NS);
  * a controller, so the index is moved as an admin (the `*DocStore` APIs enforce
  * the collection rule against the caller they're given).
  */
-const adminCaller = (): Uint8Array => {
-	const first = getAdminAccessKeys()[0]?.[0];
-
-	if (isNullish(first)) {
-		throw new Error('No satellite controller available for market-tag index.');
-	}
-
-	return first;
-};
+const adminCaller = (): Uint8Array => controllerCaller('market-tag index');
 
 const decodeSeriesIds = (doc: ReturnType<typeof getDocStore>): string[] => {
 	if (isNullish(doc)) {
