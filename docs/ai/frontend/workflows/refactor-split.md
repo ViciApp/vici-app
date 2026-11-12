@@ -1,7 +1,7 @@
 # Workflow: Split / refactor a component
 
 The repo strongly favours small, composable components. Splitting an
-oversized component is one of the most common — and most welcome — kinds
+oversized component is one of the most common, and most welcome, kinds
 of PR.
 
 ## When to split
@@ -14,11 +14,11 @@ Yes if any apply:
 - Conditional branches in the markup that render very different UIs
   (`{#if mode === 'X'} … {:else if mode === 'Y'} …`).
 - A logical sub-block is reused (or about to be) elsewhere.
-- A pure helper has snuck inside a component — extract to `*.utils.ts`.
+- A pure helper has snuck inside a component; extract to `*.utils.ts`.
 
 No if:
 
-- The component is small and cohesive — splitting adds noise, not signal.
+- The component is small and cohesive; splitting adds noise, not signal.
 - The "split" is just renaming.
 - You'd be introducing a wrapper that only re-exports a child.
 
@@ -35,7 +35,7 @@ No if:
    `#lib/components/ui/`) happens only when a second caller appears in
    the same PR.
 4. **Type contracts at the seam.** Each new child has an explicit
-   `interface Props` — no implicit `any`.
+   `interface Props`: no implicit `any`.
 5. **Snippets over wrapper components for _intra-file_ repetition.** If
    the duplicated chunk only makes sense inside the parent, use
    `{#snippet}` + `{@render}` instead of a new file.
@@ -43,7 +43,7 @@ No if:
    the PR. Migration is a different
    `refactor(<scope>): migrate <X> to runes` change.
 7. **Don't change copy.** "Bet" → "prediction" is a separate
-   `refactor(<scope>): rename bet → prediction` PR — even if you spot it
+   `refactor(<scope>): rename bet → prediction` PR, even if you spot it
    while splitting.
 
 ## Steps
@@ -84,7 +84,7 @@ No if:
   speculation it might be reused.
 - Creating an `index.ts` barrel just to re-export the new files.
 - Leaving the original parent file untouched but importing the children
-  with no consolidation — the parent should look noticeably leaner.
+  with no consolidation; the parent should look noticeably leaner.
 - Replacing "bet" with "prediction" in the same PR (separate refactor).
 - Migrating Svelte 4 syntax (`export let`, `$:`, `on:click`) in the same
   PR (separate refactor).

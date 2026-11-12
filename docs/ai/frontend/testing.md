@@ -60,15 +60,15 @@ The expected setup:
 
 ### What to test (when the runner exists)
 
-| Add tests for                                                      | Don't bother                                          |
-| ------------------------------------------------------------------ | ----------------------------------------------------- |
-| Pure utils (`*.utils.ts`) — every public function                  | Re-exports, barrels                                   |
-| Service modules (`*.services.ts`) — happy path + each error branch | Generated files (`#declarations`)                     |
-| Derived stores (`*.derived.ts`) with non-trivial logic             | Throwaway prototypes                                  |
-| Reusable components in `#lib/components/ui/`                       | One-off presentational components used in 1 page only |
-| Components with logic (any non-trivial branch / event handler)     | —                                                     |
-| Schemas / validation modules                                       | —                                                     |
-| Bug fixes (write the regression test that fails on `main`)         | —                                                     |
+| Add tests for                                                     | Don't bother                                          |
+| ----------------------------------------------------------------- | ----------------------------------------------------- |
+| Pure utils (`*.utils.ts`): every public function                  | Re-exports, barrels                                   |
+| Service modules (`*.services.ts`): happy path + each error branch | Generated files (`#declarations`)                     |
+| Derived stores (`*.derived.ts`) with non-trivial logic            | Throwaway prototypes                                  |
+| Reusable components in `#lib/components/ui/`                      | One-off presentational components used in 1 page only |
+| Components with logic (any non-trivial branch / event handler)    | -                                                     |
+| Schemas / validation modules                                      | -                                                     |
+| Bug fixes (write the regression test that fails on `main`)        | -                                                     |
 
 If you fix a bug, **the PR contains a test that fails on `main` and
 passes on your branch**. Otherwise it's an "I think this is fine" PR.
@@ -93,7 +93,7 @@ Notes (forward-looking):
 
 - One `describe` per module under test, nested `describe` per public
   function.
-- One `it` per behaviour — name it from the user/caller perspective.
+- One `it` per behaviour; name it from the user/caller perspective.
 - Reset mocks in `beforeEach`. Never let test order matter.
 - For fetch / canister calls: mock the matching `#lib/api` / `#lib/canisters`
   module rather than stubbing `fetch` directly.
@@ -113,7 +113,7 @@ describe('Button', () => {
 });
 ```
 
-Prefer `getByRole`, `getByLabelText`, `getByText` — they exercise the same
+Prefer `getByRole`, `getByLabelText`, `getByText`; they exercise the same
 semantics as a screen reader.
 
 ### Forbidden in tests
@@ -124,7 +124,7 @@ semantics as a screen reader.
 - `setTimeout`-based waits. Use `vi.useFakeTimers()` or `await waitFor(...)`.
 - Console-noise (`console.log` debug output). Remove before commit.
 
-## Adding the test runner — what would have to happen
+## Adding the test runner: what would have to happen
 
 This is **not** something an agent should do silently. If a PR genuinely
 needs a test runner:
@@ -263,8 +263,8 @@ pre-deployed.
   [`SignInProviderStack.svelte`](../../../src/lib/components/authn/SignInProviderStack.svelte)
   (only rendered when `isDev()`). This is the path Juno's official E2E
   guide recommends and what `@junobuild/emulator-playwright` uses under
-  the hood. It exercises the real `onAuthStateChange` pipeline — same
-  store, same nav chrome, same Settings sign-out — without depending on
+  the hood. It exercises the real `onAuthStateChange` pipeline: same
+  store, same nav chrome, same Settings sign-out, without depending on
   the Internet Identity popup, which is brittle in a containerized
   emulator (the II canister version drifts vs. driver libraries). A
   follow-up PR can add real II coverage on top of this base if needed.
@@ -278,15 +278,15 @@ pre-deployed.
 - **The dev principal is shared, not fresh per spec.** `signIn({ dev: {} })`
   resolves to ONE principal for the whole CI run (it changes only on a fresh
   emulator boot), and the suite is serial against a never-reset satellite. So
-  the FIRST `signInAsDevUser` already bootstraps a profile for that principal
-  — and because the empty handle field auto-claims its pool suggestion, that
+  the FIRST `signInAsDevUser` already bootstraps a profile for that principal,
+  and because the empty handle field auto-claims its pool suggestion, that
   first sign-in also COMPLETES onboarding for it. Every later spec therefore
   sees a fully-onboarded **returning** user, not a new one. A spec that needs
   the genuine new-user path must restore the pristine state itself: sign in,
   call `HomePage.resetDevProfile()` (the dev-only `window.__viciE2E`
   hard-delete hook installed by the `(app)` layout, see
   [`src/lib/dev/e2e-reset.ts`](../../../src/lib/dev/e2e-reset.ts)), then sign
-  out — the next sign-in then bootstraps fresh. `onboarding.spec.ts` does
+  out; the next sign-in then bootstraps fresh. `onboarding.spec.ts` does
   exactly this.
 - **Sign-ups are opted open.** The default (legacy) build turns new accounts
   away to the new app (see `web2-backend-mode.md`, "New accounts on the legacy
@@ -305,17 +305,17 @@ pre-deployed.
   ID still points at the real remote dev satellite.
 - **icdc-core canisters:** deployed by **`dfx`** into the same PocketIC
   instance the Juno emulator is running. The local `network` in
-  [`dfx.json`](../../../dfx.json) already points at `127.0.0.1:5987` — the
-  same port Juno's emulator listens on — so `dfx deploy --network local`
+  [`dfx.json`](../../../dfx.json) already points at `127.0.0.1:5987`, the
+  same port Juno's emulator listens on, so `dfx deploy --network local`
   works against the running emulator without extra plumbing. WASMs are
   pulled from the
   [`AntonioVentilii/icdc-core`](https://github.com/AntonioVentilii/icdc-core)
   GitHub releases (no Rust toolchain in CI). After deploy, CI runs
-  `init.clearing`, `init.icdc-engine`, and `init.registry` — the same
-  scripts that back the local `npm run init:icdc` flow — so the home feed
+  `init.clearing`, `init.icdc-engine`, and `init.registry`, the same
+  scripts that back the local `npm run init:icdc` flow, so the home feed
   has 20 markets seeded from
   [`scripts/data/markets.json`](../../../scripts/data/markets.json).
-- **Frontend:** the dev server (`npm run dev`) — booted automatically by
+- **Frontend:** the dev server (`npm run dev`), booted automatically by
   Playwright's `webServer` config.
 
 ### Layout
@@ -335,7 +335,7 @@ e2e/
 
 ### Visual snapshots
 
-The snapshot specs end with `await expect(page).toHaveScreenshot(...)` — that's
+The snapshot specs end with `await expect(page).toHaveScreenshot(...)`; that's
 the same flow `oisy-wallet` and `gix-components` use: the PNG baselines
 live under [`e2e/snapshots/`](../../../e2e/snapshots/) and **are
 committed to the repo**, so any visual regression shows up directly in
@@ -375,9 +375,9 @@ over it.
 
 `playwright.config.ts` configures `expect.toHaveScreenshot` with:
 
-- `animations: 'disabled'` — kills CSS animations / transitions.
-- `caret: 'hide'` — hides the input caret.
-- `threshold: 0.3` — tolerates minor anti-aliasing / font-hinting
+- `animations: 'disabled'`: kills CSS animations / transitions.
+- `caret: 'hide'`: hides the input caret.
+- `threshold: 0.3`: tolerates minor anti-aliasing / font-hinting
   differences without flapping.
 
 When a region of the page is genuinely non-deterministic (random
@@ -397,10 +397,10 @@ on one run and `"6d 23h"` on the next produces a different-sized
 rectangle and the snapshot diffs anyway. For wall-clock-relative text
 (the `MarketTimeRemaining` chip is the canonical example) and for any
 other element whose text varies per CI run (notably the shortened
-principal rendered by `CopyableAddress` — Juno's dev mock identity is
+principal rendered by `CopyableAddress`: Juno's dev mock identity is
 deterministic within a CI run but the PocketIC emulator container
 mints a different principal on every fresh boot), overwrite the
-`textContent` to a fixed string before screenshot — call
+`textContent` to a fixed string before screenshot; call
 `home.stabilizeForSnapshot()` (defined in
 [`e2e/pages/home.page.ts`](../../../e2e/pages/home.page.ts)), which
 waits for `document.fonts.ready` and pins every time-remaining chip
@@ -431,9 +431,9 @@ signed-in baseline starts flipping under a reveal again, fix the
 celebration timing in the app instead of retrying the dismissal or
 accepting the bot's baseline.
 
-To capture a transient state deterministically — e.g. the markets-feed
+To capture a transient state deterministically, e.g. the markets-feed
 **skeletons**, which would otherwise be replaced by real data within
-~100ms once the registry responds — stall the upstream request inside
+~100ms once the registry responds, stall the upstream request inside
 `page.route()` and release it explicitly once the screenshot is taken:
 
 ```ts
@@ -465,7 +465,7 @@ long-lived timers, no orphan promises.
 
 CI runs on `ubuntu-24.04` only, so committed snapshots use the Linux
 suffix Playwright auto-appends. Snapshots generated locally on macOS /
-Windows get a different suffix and don't collide — but **don't commit
+Windows get a different suffix and don't collide, but **don't commit
 them**; they'll just bloat the repo and won't be checked by CI.
 
 - **One spec per high-level user-facing flow.** Don't co-locate specs with
@@ -476,7 +476,7 @@ them**; they'll just bloat the repo and won't be checked by CI.
   configured with `testIdAttribute: 'data-tid'`, so a component opts in
   by exposing `data-tid={TestId.X}`. The catalog of IDs lives in
   [`src/lib/constants/test-ids.constants.ts`](../../../src/lib/constants/test-ids.constants.ts).
-  **Add a new entry only when an E2E test references it** — keep the
+  **Add a new entry only when an E2E test references it**; keep the
   enum minimal.
 - **Imports across the boundary:** specs and page objects under `e2e/`
   use **relative** imports (e.g. `../src/lib/constants/test-ids.constants`).
@@ -492,7 +492,7 @@ juno emulator start
 juno login --emulator --mode development
 juno config apply --mode development
 
-# In another terminal — run all specs (installs browsers on first run)
+# In another terminal: run all specs (installs browsers on first run)
 JUNO_EMULATOR=true npm run e2e
 
 # Open the HTML report after a CI-style run
@@ -502,7 +502,7 @@ npm run e2e:report
 `JUNO_EMULATOR=true` is what flips `ids.development` in
 [`juno.config.ts`](../../../juno.config.ts) to the emulator satellite.
 Without it the CLI / dev server would aim at the real remote dev
-satellite — the E2E run would either fail loudly or, worse, write to
+satellite; the E2E run would either fail loudly or, worse, write to
 the real satellite. The CI workflow sets the env at the job level so
 contributors don't have to think about it.
 
@@ -533,7 +533,7 @@ The suite talks to a real Vite dev server which proxies HTTP traffic to
 a PocketIC instance (the Juno emulator). Two failure modes have been
 observed and the suite guards against both:
 
-1. **Endpoint not reachable at startup** — the emulator failed to boot,
+1. **Endpoint not reachable at startup**: the emulator failed to boot,
    or the dev server crashed before any spec ran. Caught by
    [`e2e/global-setup.ts`](../../../e2e/global-setup.ts), which pings
    `http://localhost:5173/` and `http://127.0.0.1:5987/` with a short
@@ -542,7 +542,7 @@ observed and the suite guards against both:
    inside `home.page.ts` and have to read traces to figure out the
    emulator was dead the whole time.
 2. **Proxy enters a sticky `socket hang up` / `ECONNRESET` state
-   mid-suite** — the Vite dev server's HTTP proxy to the IC boundary
+   mid-suite**: the Vite dev server's HTTP proxy to the IC boundary
    node stops resolving canister calls, often for the rest of the run.
    `HomePage.signInAsDevUser` auto-retries once with a `page.reload()`
    in between; the reload opens a fresh browser context against the
@@ -556,12 +556,12 @@ mid-run proxy flake before suspecting the diff. Confirm by checking the
 Playwright trace for `ECONNRESET` in the network panel; rerun the job
 with `gh run rerun <run-id> --failed`.
 
-Top-level `retries: 2` is **not** bumped to 3 — the mid-run flake
+Top-level `retries: 2` is **not** bumped to 3: the mid-run flake
 persists past Playwright-level retries (they share the same poisoned
 connection pool), so the cost (more runtime, harder 45-minute workflow
 cap) outweighs the benefit. The fix has to be at the per-test recovery
 layer (the `signInAsDevUser` retry-with-reload above) or by replacing
-Vite's HTTP proxy with a more resilient connector — outside this
+Vite's HTTP proxy with a more resilient connector, outside this
 testing layer's scope.
 
 ### Forbidden in E2E
@@ -572,7 +572,7 @@ testing layer's scope.
 - Real network calls outside the emulator. The whole point of the
   emulator is reproducibility.
 - Logging in by stuffing identities into `localStorage` / `IndexedDB`.
-  Use the `SignInDev` button via the `HomePage` page object instead —
+  Use the `SignInDev` button via the `HomePage` page object instead;
   that's the same path the dev runtime uses.
 
 ### Adding a new E2E test
@@ -580,7 +580,7 @@ testing layer's scope.
 1. Add an entry to `TestId` only if the new test needs a stable hook the
    surrounding components don't already expose.
 2. Add `data-tid={TestId.X}` on the smallest meaningful element.
-3. Extend the relevant page object (`e2e/pages/*.page.ts`) — never
+3. Extend the relevant page object (`e2e/pages/*.page.ts`); never
    reach into selectors from the spec directly.
 4. Write the spec under `e2e/<flow>.spec.ts`. For flows that need a
    signed-in user, drive `HomePage.openSignInModal()` followed by

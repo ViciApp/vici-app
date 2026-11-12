@@ -30,20 +30,20 @@ Status: Draft
 
 ## Analytics
 
-<!-- Required analysis for every spec — the default is to instrument (see workflow.md § Required content for every spec).
+<!-- Required analysis for every spec: the default is to instrument (see workflow.md § Required content for every spec).
 - Propose the events + dimensional props; reuse names from src/lib/types/analytics-event.ts where one fits.
 - A new event name goes in BOTH the TS union (src/lib/types/analytics-event.ts) AND the Zod mirror (src/lib/schema/analytics-event.schema.ts); capture via track() in src/lib/services/analytics.services.ts.
-- Behavioural data only — bounded prop vocabularies, no free-form text, no PII.
+- Behavioural data only: bounded prop vocabularies, no free-form text, no PII.
 - If no analytics are warranted, keep this section and state why. -->
 
-## Design artifacts (frontend — optional)
+## Design artifacts (frontend: optional)
 
-<!-- Relative links into ./<this-spec-filename>/ — wireframes, HTML mocks, screenshots. Kept after merge as part of the decision record; never delete them. Remove this section if unused.
+<!-- Relative links into ./<this-spec-filename>/: wireframes, HTML mocks, screenshots. Kept after merge as part of the decision record; never delete them. Remove this section if unused.
 Interactive HTML mocks must (see docs/ai/spec-driven-development/workflow.md § Required content by area):
 - include a theme switcher (data-theme on the root, light + dark) when the change touches theme-varying layout / styles / colors / sizing / icons / animations;
 - include a "copy instructions" button that copies the COMPLETE final instructions (every chosen variant and value) back to the agent chat. -->
 
-## Technical requirements (satellite / backend — mandatory)
+## Technical requirements (satellite / backend: mandatory)
 
 <!-- Required for any change touching src/satellite/**, collections, or icdc-core-facing paths. Remove this section only for pure-frontend specs.
 - Performance: call frequency, instruction-budget impact.
@@ -65,11 +65,11 @@ Interactive HTML mocks must (see docs/ai/spec-driven-development/workflow.md § 
 
 ## Open questions
 
-<!-- Facts not yet known — to research, look up, or ask someone who can answer (see workflow.md § Required content for every spec). Once answered, an item usually becomes a pending decision — move it across; only the decided outcome lands under Decisions. Remove this section when empty. -->
+<!-- Facts not yet known: to research, look up, or ask someone who can answer (see workflow.md § Required content for every spec). Once answered, an item usually becomes a pending decision: move it across; only the decided outcome lands under Decisions. Remove this section when empty. -->
 
 ## Pending decisions
 
-<!-- Facts are clear; a product or architecture call remains — needs an owner to decide, not more information. Don't disguise these as open questions. Resolve before flipping the status to In progress; record outcomes under Decisions. Remove this section when empty. -->
+<!-- Facts are clear; a product or architecture call remains: needs an owner to decide, not more information. Don't disguise these as open questions. Resolve before flipping the status to In progress; record outcomes under Decisions. Remove this section when empty. -->
 
 ## Decisions
 

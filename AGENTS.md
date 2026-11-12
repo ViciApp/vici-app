@@ -84,7 +84,7 @@ The rules every repository shares live in **one place only**: [Officina `standar
 ## 6. Governance
 
 - **Truth hierarchy** (highest wins): code (`src/**`, `backend/**`, `scripts/**`), then CI ([`.github/workflows/`](./.github/workflows/)), then [CODEOWNERS](./.github/CODEOWNERS), then `docs/ai/**`, then this file, then tool layers ([`CLAUDE.md`](./CLAUDE.md), `.claude/rules/`, `.cursor/rules/`, `.github/copilot-instructions.md`). On a contradiction, stop and ask. Details: [`governance.md`](./docs/ai/governance.md#truth-hierarchy).
-- **Meta-update rule.** A PR that adds a pattern, a shared piece, a naming convention, a policy or a workflow updates the matching `docs/ai/**` page in the same PR. Which page for which change: [the map](./docs/ai/governance.md#meta-update-rule). When editing `docs/ai/**` itself, follow the [writing-for-agents rules](./docs/ai/governance.md#writing-for-agents--meta-rules-for-docsai).
+- **Meta-update rule.** A PR that adds a pattern, a shared piece, a naming convention, a policy or a workflow updates the matching `docs/ai/**` page in the same PR. Which page for which change: [the map](./docs/ai/governance.md#meta-update-rule). When editing `docs/ai/**` itself, follow the [writing-for-agents rules](./docs/ai/governance.md#writing-for-agents-meta-rules-for-docsai).
 
 ## 7. Tool-specific entry points
 

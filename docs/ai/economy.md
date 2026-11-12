@@ -1,4 +1,4 @@
-# VXP economy — governing rules
+# VXP economy: governing rules
 
 This is the **policy layer** for the VXP economy: the rules every mint
 must respect, why the deliberate constraints exist, and how the code
@@ -7,9 +7,9 @@ that mints, gates, caps, or recovers VXP.
 
 Read alongside:
 
-- [`PRODUCT.md` §VXP economy](./PRODUCT.md#vxp-economy) — what the
+- [`PRODUCT.md` §VXP economy](./PRODUCT.md#vxp-economy): what the
   product does (shipped behaviour).
-- [`satellite/economy.md`](./satellite/economy.md) — how an award is
+- [`satellite/economy.md`](./satellite/economy.md): how an award is
   implemented (invariants + new-award-type checklist).
 - The three constants files, which are the **single source of truth
   for every value**:
@@ -18,24 +18,24 @@ Read alongside:
   [`vxp-onboarding.constants.ts`](../../src/lib/constants/vxp-onboarding.constants.ts).
 
 > This page states **rules and rationale only**. It never restates a
-> numeric value — amounts, caps, and gates live in the constants files
+> numeric value: amounts, caps, and gates live in the constants files
 > above. A number written here would be a second source that drifts
 > silently (see
-> [writing for agents](./governance.md#writing-for-agents--meta-rules-for-docsai)).
+> [writing for agents](./governance.md#writing-for-agents-meta-rules-for-docsai)).
 
-## Reconciliation protocol — the rules drive the code
+## Reconciliation protocol: the rules drive the code
 
 The repository's default [truth hierarchy](./governance.md#truth-hierarchy)
 puts code above docs: for _what the product currently does_, the code
 wins. **Economy policy is the one scoped exception.** For the
-_rules_ of the economy — which surfaces mint, what gates and caps bound
-each, and the anti-farming posture — **this page is authoritative**:
+_rules_ of the economy (which surfaces mint, what gates and caps bound
+each, and the anti-farming posture), **this page is authoritative**:
 
 - An agent that finds the code diverging from a rule stated here
   **reconciles the code to the rule** (it does not silently "fix" the
   doc to match a drifted implementation), and says so in its PR.
-- While reconciling — or any time it is asked to touch an earn surface
-  — the agent **proposes anti-farming improvements**. Minting VXP for
+- While reconciling, or any time it is asked to touch an earn surface,
+  the agent **proposes anti-farming improvements**. Minting VXP for
   near-zero cost is the standing threat; every change to a mint is an
   occasion to ask "how is this farmed, and what bounds it?"
 - _Values_ remain owned by the constants files, and _shipped
@@ -44,17 +44,17 @@ each, and the anti-farming posture — **this page is authoritative**:
   descriptions.
 - If a rule here genuinely no longer fits the product, that is a
   **policy change**: update this page deliberately (with the
-  rationale), then reconcile the code — never the reverse.
+  rationale), then reconcile the code, never the reverse.
 
 This is what "the economy is part of the product" means in practice:
 the rules are governed, and the implementation follows them.
 
 ## Principles
 
-1. **Earn-only — there are no VXP sinks.** Nothing charges VXP. The
+1. **Earn-only: there are no VXP sinks.** Nothing charges VXP. The
    only VXP that leaves a user is a prediction **stake**, and a stake
    is on-chain **clearing collateral** held by the risk engine, not a
-   fee or a forfeit — it returns on settlement (won, lost, or
+   fee or a forfeit: it returns on settlement (won, lost, or
    broken-even) as realized cashflow. League founding is free and
    _awards_ VXP. There is no burn.
 2. **The closed loop lives in the clearing engine, not in VXP
@@ -67,33 +67,33 @@ the rules are governed, and the implementation follows them.
    (the payout formula in
    [`vxp-economy.utils.ts`](../../src/lib/utils/vxp-economy.utils.ts));
    the satellite computes and transfers the real amount. Where a reward
-   amount could be inferred client-side it is **cosmetic** — the
+   amount could be inferred client-side it is **cosmetic**: the
    satellite recomputes it from its own authoritative state before
    paying.
 4. **Two numbers share the name "VXP."** The ledger **token** balance
    (holdings = available + backed collateral) and the lifetime
    **points** score (drives level/rank, only grows) are different
-   numbers — see [`PRODUCT.md`](./PRODUCT.md#vxp--two-different-numbers-share-the-name).
+   numbers; see [`PRODUCT.md`](./PRODUCT.md#vxp-two-different-numbers-share-the-name).
    This page governs the **token** economy.
 5. **Every award is a real ICRC transfer**, recorded in `vxp_awards`
-   with lifecycle `pending → paid | failed` — never a cosmetic
+   with lifecycle `pending → paid | failed`, never a cosmetic
    counter. The implementation invariants for this are in
    [`satellite/economy.md`](./satellite/economy.md).
 
 ## Earn surfaces
 
 The surfaces that mint VXP, the rule for each, and the constant that
-backs it. Amounts are **not** repeated here — follow the link.
+backs it. Amounts are **not** repeated here; follow the link.
 
 | Surface                    | Rule                                                                                                                                                                                          | Backed by                                                                                                                                                                                                        |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Prediction win**         | Pays the market odds: `stake / p_win − stake`, with a floor on `p_win` so a long shot cannot pay an unbounded multiple.                                                                       | `VXP_P_WIN_FLOOR`, `VXP_STAKE_LADDER` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                           |
 | **Onboarding grant**       | A single registration grant; no engagement-gated drip (the call-gated milestones are retained at zero).                                                                                       | `NEW_USER_VXP_TOTAL_BASE_UNITS` ([`vxp-onboarding.constants.ts`](../../src/lib/constants/vxp-onboarding.constants.ts))                                                                                           |
-| **Referral — referee**     | Flat, one-time, paid to a new user who redeems within the post-signup window and then makes a first prediction.                                                                               | `REFERRAL_VXP_BONUS_BASE_UNITS`, `REFERRAL_SIGNUP_WINDOW_MS` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                          |
-| **Referral — referrer**    | **Diminishing** by lifetime conversions, then **hard-capped to zero**. Authoritative count is the satellite's own scan, never the client.                                                     | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
+| **Referral: referee**      | Flat, one-time, paid to a new user who redeems within the post-signup window and then makes a first prediction.                                                                               | `REFERRAL_VXP_BONUS_BASE_UNITS`, `REFERRAL_SIGNUP_WINDOW_MS` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                          |
+| **Referral: referrer**     | **Diminishing** by lifetime conversions, then **hard-capped to zero**. Authoritative count is the satellite's own scan, never the client.                                                     | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
 | **Daily-streak milestone** | Tiered, granted once when the streak count hits a milestone.                                                                                                                                  | `VXP_STREAK_BONUSES` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                            |
-| **Flow volume milestone**  | One-time per lifetime call-count threshold crossed. **Specified, not yet minting** — credit path deferred (#350).                                                                             | `VXP_FLOW_MILESTONES` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                           |
-| **Flow overtime**          | Repeatable, once per day on an overtime finish. **Specified, not yet minting** — credit path deferred (#350).                                                                                 | `VXP_FLOW_OVERTIME_BONUS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                       |
+| **Flow volume milestone**  | One-time per lifetime call-count threshold crossed. **Specified, not yet minting**; credit path deferred (#350).                                                                              | `VXP_FLOW_MILESTONES` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                           |
+| **Flow overtime**          | Repeatable, once per day on an overtime finish. **Specified, not yet minting**; credit path deferred (#350).                                                                                  | `VXP_FLOW_OVERTIME_BONUS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                       |
 | **Calibration recovery**   | Pays for a correct call on a finalized market **only while the caller's balance is below the recovery floor**; bounded by a daily and an hourly cap. The skill-based way back from depletion. | `VXP_CALIBRATION_REWARD_BASE_UNITS`, `CALIBRATION_RECOVERY_FLOOR_BASE_UNITS`, `CALIBRATION_DAILY_CAP`, `CALIBRATION_HOURLY_CAP` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts)) |
 | **Comeback restore**       | One-time top-up _to_ a target for a user returning after an absence with a depleted balance. The re-engagement nudge (distinct from calibration: triggered by absence, not skill).            | `COMEBACK_RESTORE_TARGET_BASE_UNITS`, `COMEBACK_BALANCE_FLOOR_BASE_UNITS`, `COMEBACK_AWAY_DAYS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                 |
 | **League founder**         | Awarded once per league founded, bounded by a lifetime per-account cap.                                                                                                                       | `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS`, `VXP_LEAGUE_FOUNDER_MAX_AWARDS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                         |
@@ -102,39 +102,39 @@ backs it. Amounts are **not** repeated here — follow the link.
 The authoritative list of award **types** is the `VxpAwardType` union
 ([`vxp-award.ts`](../../src/lib/types/vxp-award.ts)) mirrored by the
 `VxpAwardTypeSchema` Zod enum
-([`vxp-award.schema.ts`](../../src/lib/schema/vxp-award.schema.ts)) —
+([`vxp-award.schema.ts`](../../src/lib/schema/vxp-award.schema.ts)),
 both must carry every type (see
 [`satellite/economy.md`](./satellite/economy.md#invariants)).
 
-## Caps and gates — the anti-farming spine
+## Caps and gates: the anti-farming spine
 
 With no sinks, **the caps are the economy's stability mechanism.**
 Every mint must be bounded so it cannot become an unbounded faucet.
 The bound that protects each surface today:
 
-- **Prediction win** — bounded by the `p_win` floor (caps the long-shot
+- **Prediction win**: bounded by the `p_win` floor (caps the long-shot
   multiple) and the stake ladder cap.
-- **Referrer reward** — diminishing curve **and** a hard lifetime cap
+- **Referrer reward**: diminishing curve **and** a hard lifetime cap
   to zero; the count comes from the satellite's own scan, so the client
   cannot inflate it.
-- **Referee reward** — one-time per account, only inside the
+- **Referee reward**: one-time per account, only inside the
   post-signup redemption window.
-- **Streak / flow-volume milestones** — one-time per milestone, per
+- **Streak / flow-volume milestones**: one-time per milestone, per
   lifetime.
-- **Calibration** — balance-gated (pays only below the recovery floor),
+- **Calibration**: balance-gated (pays only below the recovery floor),
   plus a daily **and** an hourly burst cap.
-- **Comeback** — balance-gated and absence-gated.
-- **League founder** — lifetime per-account cap.
+- **Comeback**: balance-gated and absence-gated.
+- **League founder**: lifetime per-account cap.
 
 Every server-fired award is also keyed for **idempotency** in
 `vxp_awards` (`recipient/awardType/awardKey`), so a hook retry can
-never double-pay — see
+never double-pay; see
 [`satellite/economy.md`](./satellite/economy.md#invariants).
 
 ## Known open farm vectors
 
 Recorded deliberately so the next agent inherits them. These are
-**recommendations**, not shipped guards — none is implemented yet.
+**recommendations**, not shipped guards; none is implemented yet.
 
 1. **New-account mint (sybil).** The onboarding grant plus the referee
    bonus is the largest mint a brand-new account can collect, and it
@@ -144,7 +144,7 @@ Recorded deliberately so the next agent inherits them. These are
    **#543**.
 2. **Payouts trust the client-written activity log.** Referral and
    onboarding payouts trigger off the user's `activities` collection (a
-   client write), not an authoritative engine trade — so a spoofed
+   client write), not an authoritative engine trade, so a spoofed
    activity could in principle trigger a payout. Gating these on an
    authoritative trade is the recommended fix. Tracking: **#543**.
 3. **Repeatable overtime mint.** The overtime bonus is gated on raw
@@ -158,7 +158,7 @@ Recorded deliberately so the next agent inherits them. These are
    quality gate** before the founder award fires.
 
 When you implement any of these, move it out of this list and into the
-caps section above, and update the constants — not this page — with the
+caps section above, and update the constants, not this page, with the
 new numbers.
 
 ## Design constraints and rejected alternatives
@@ -175,7 +175,7 @@ The non-obvious "why" behind the rules above.
 - **Why the referrer reward diminishes and hard-caps, but the referee
   reward is flat.** The referee bonus lands in throwaway alt accounts
   at worst; the referrer bonus accumulates in a real, persistent,
-  leaderboard-affecting account — that is the sybil-valuable mint, so
+  leaderboard-affecting account: that is the sybil-valuable mint, so
   it is the one that decays and is capped. A flat referrer reward with
   a periodic cap was rejected because the lifetime curve self-limits
   without a blunt wall, letting genuine super-connectors keep referring
