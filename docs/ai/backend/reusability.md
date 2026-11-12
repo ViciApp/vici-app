@@ -16,7 +16,7 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 | `keys.ts`       | HKDF key derivation: `Chain` / `CHAINS`, `deriveUserKey`, `deriveServiceKey`, `publicKeyForChain`, `userIcIdentity` / `userIcPrincipalText`, `treasuryIcIdentity` / `treasuryIcPrincipalText`, `adminIcIdentity`, `engineReaderIcIdentity` |
 | `logger.ts`     | `logger.{debug,info,warn,error}`, gated by `LOG_LEVEL`                                                                                                                                                                                     |
 | `rate-limit.ts` | `rateLimit`, `enforceLimit`, `resetRateLimits` (test seam)                                                                                                                                                                                 |
-| `time.ts`       | `msToNs`, `nowNs` (nanosecond timestamps for protocol fields and dedup stamps)                                                                                                                                                             |
+| `time.ts`       | `msToNs`, `nowNs` (nanosecond timestamps for protocol fields and dedup stamps); `optionalMs` (nullable ms column read as `::text`)                                                                                                         |
 
 ## Shared modules outside `lib/`
 
@@ -37,10 +37,6 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 | `custody/ledger.ts`                        | `postLedgerEvent(event, q?)` (double-entry, idempotent per event key), `accountBalance`                                                        |
 | `vxp/triggers.ts`                          | `runProfileAwardTriggers`, `runTradeActivityTriggers` (post-write award hooks for routes)                                                      |
 | `vxp/payout.ts`                            | `transferVxpToUser`, `transferVxpWithBadFeeRetry`, `getVxpBalance`, `getTreasuryVxpBalance`; `setVxpLedgerProvider` (test seam)                |
-
-## Not yet shared (candidates for `lib/`)
-
-These exist in several copies today; see [`patterns.md`](./patterns.md#anti-patterns-found-in-the-code-do-not-copy): `optionalMs`.
 
 ## Shared with the app
 
