@@ -251,6 +251,8 @@ The queue is **on** for `main` (this repo's `merge-queue` ruleset, since GitHub 
 
 **The release PR goes in the queue on its own.** release-please rebuilds it after every push to `main`, but the queue can merge it right behind another entry before release-please has run, and the commits merged just before it would then never reach a changelog. The `release-fresh` job of `pr-checks` fails a queued release PR that has another entry ahead of it, or whose `main` release-please has not finished on yet; it leaves the queue, and you queue it again once release-please has rebuilt it.
 
+**A merge from a security advisory needs a forced release.** GitHub lands a temporary private fork's pull request as `Merge commit from fork`, which is not a Conventional Commit: release-please skips it, opens no release PR, and the fix never ships. Follow it with a pull request whose squash message ends in a `Release-As: X.Y.Z` footer (the next patch), so the release PR covers it.
+
 ## 6. After CI fails
 
 - **`format` pushed a formatting commit** → pull, you're fine. Don't fight
