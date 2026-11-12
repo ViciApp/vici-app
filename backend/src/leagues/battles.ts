@@ -9,6 +9,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
+import { optionalMs } from '../lib/time';
 import { getLeague } from './leagues';
 import { getLeagueMember } from './members';
 import {
@@ -84,9 +85,6 @@ const BATTLE_COLUMNS = `id, kind, side_a, side_b, proposer_user_id, state,
 	kickoff_ms::text, settle_ms::text, scope, wager, trash_talk,
 	respond_by_ms::text, responded_at_ms::text, baseline_a, baseline_b,
 	score_a, score_b, calls_a, calls_b, winner, resolved_at_ms::text`;
-
-const optionalMs = (value: string | null): number | undefined =>
-	nonNullish(value) ? Number(value) : undefined;
 
 export const shapeBattle = (row: BattleRow): Battle => ({
 	id: row.id,

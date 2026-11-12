@@ -4,6 +4,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
+import { optionalMs } from '../lib/time';
 
 /** Client-facing validation failure: routes answer it as a 400/409 with the
  * message, mirroring the write-guard errors clients already handle. */
@@ -215,9 +216,6 @@ export const sanitizePreferences = ({
 		onboardingCompleted: asBoolean(incoming.onboardingCompleted, false)
 	};
 };
-
-const optionalMs = (value: string | null): number | undefined =>
-	nonNullish(value) ? Number(value) : undefined;
 
 /** Shape a stored row into the API profile: defaults applied, role hydrated
  * from the users table ('user' is the canonical "no role" state). */

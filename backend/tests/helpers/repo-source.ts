@@ -120,8 +120,8 @@ export const extractNumericRecord = ({
 	return record;
 };
 
-/** The whole-token figure of `<constName> = parseToken({ value: 'N', ... })`. */
-export const extractParseTokenWhole = ({
+/** The whole-VXP figure of `<constName> = vxpBaseUnits(N)`. */
+export const extractVxpBaseUnitsWhole = ({
 	source,
 	constName
 }: {
@@ -130,14 +130,14 @@ export const extractParseTokenWhole = ({
 }): number => {
 	const block = extractBlock({
 		source,
-		marker: `${constName} = parseToken`,
+		marker: `${constName} = vxpBaseUnits`,
 		open: '(',
 		close: ')'
 	});
-	const match = block.match(/value:\s*'(\d+)'/);
+	const match = block.match(/^\s*(\d+)\s*$/);
 
 	if (!match) {
-		throw new Error(`no parseToken value for: ${constName}`);
+		throw new Error(`no whole-VXP literal for: ${constName}`);
 	}
 
 	return Number(match[1]);

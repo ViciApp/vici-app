@@ -1,21 +1,17 @@
 import { ZERO } from '#lib/constants/app.constants.ts';
-import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
-import { parseToken } from '#lib/utils/parse.utils.ts';
+import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**
  * One-time VXP bonus awarded to the **referee** (the new user redeeming a code). Flat and
  * uncapped — every eligible new sign-up gets it exactly once. Sized in VXP base units via the
- * canonical `parseToken` helper.
+ * canonical `vxpBaseUnits` helper.
  *
  * The **referrer** reward is *not* flat: it follows the diminishing curve in
  * {@link referrerRewardBaseUnits}, so the longer-term incentive to spam-share a code decays.
  */
 export const REFERRAL_VXP_BONUS_VALUE = 500;
 
-export const REFERRAL_VXP_BONUS_BASE_UNITS = parseToken({
-	value: `${REFERRAL_VXP_BONUS_VALUE}`,
-	unitName: VXP_TOKEN.decimals
-});
+export const REFERRAL_VXP_BONUS_BASE_UNITS = vxpBaseUnits(REFERRAL_VXP_BONUS_VALUE);
 
 /**
  * Hard lifetime cap on the number of redemptions for which a single referrer is paid. Redemptions
@@ -59,7 +55,7 @@ export const REFERRAL_REFERRER_MAX_REWARD_VXP = Number(REFERRAL_REWARD_TIERS[0].
 const REFERRAL_REWARD_TIER_BASE_UNITS: ReadonlyArray<{ throughIndex: number; value: bigint }> =
 	REFERRAL_REWARD_TIERS.map(({ throughIndex, value }) => ({
 		throughIndex,
-		value: parseToken({ value, unitName: VXP_TOKEN.decimals })
+		value: vxpBaseUnits(value)
 	}));
 
 /**
