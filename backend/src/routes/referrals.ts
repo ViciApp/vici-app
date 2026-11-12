@@ -14,16 +14,7 @@ import {
 	ReferralError
 } from '../account/referrals';
 import { requireUser, unauthenticated } from '../auth/guard';
-
-interface StatusContext {
-	status?: number | string;
-}
-
-const badRequest = (set: StatusContext, error: string): { error: string } => {
-	set.status = 400;
-
-	return { error };
-};
+import { badRequest } from '../lib/http';
 
 export const referralsRoutes = new Elysia({ prefix: '/api/v1/referrals' })
 	.get('/code', async ({ request, set }) => {
