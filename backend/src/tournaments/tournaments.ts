@@ -8,6 +8,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
 import { getLeagueStats } from '../leagues/stats';
 import { logger } from '../lib/logger';
+import { MONTH_ANCHOR_RE } from '../lib/time';
 import { TOURNAMENT_PRIZE_TIERS } from '../vxp/constants';
 import { grantTournamentPrize } from '../vxp/prizes';
 
@@ -137,8 +138,6 @@ export const roundWindow = ({
 
 	return { startMs, endMs: startMs + TOURNAMENT_ROUND_DURATION_MS };
 };
-
-const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** Standard single-elimination pairing: seed 1 plays seed 16, seed 2 plays
  * seed 15, and so on. */

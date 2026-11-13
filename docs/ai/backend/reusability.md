@@ -16,7 +16,7 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 | `keys.ts`       | HKDF key derivation: `Chain` / `CHAINS`, `deriveUserKey`, `deriveServiceKey`, `publicKeyForChain`, `userIcIdentity` / `userIcPrincipalText`, `treasuryIcIdentity` / `treasuryIcPrincipalText`, `adminIcIdentity`, `engineReaderIcIdentity` |
 | `logger.ts`     | `logger.{debug,info,warn,error}`, gated by `LOG_LEVEL`                                                                                                                                                                                     |
 | `rate-limit.ts` | `rateLimit`, `enforceLimit`, `resetRateLimits` (test seam)                                                                                                                                                                                 |
-| `time.ts`       | `msToNs`, `nowNs` (nanosecond timestamps for protocol fields and dedup stamps); `optionalMs` (nullable ms column read as `::text`)                                                                                                         |
+| `time.ts`       | `msToNs`, `nowNs` (nanosecond timestamps for protocol fields and dedup stamps); `optionalMs` (nullable ms column read as `::text`); `MONTH_ANCHOR_RE` (UTC `YYYY-MM` month anchor)                                                         |
 
 ## Shared modules outside `lib/`
 
