@@ -77,16 +77,26 @@ const parseTrackEvent = (value: unknown, position: number): TrackEventInput => {
 		parsed.path = path;
 	}
 
-	for (const key of ANALYTICS_PROP_KEYS) {
+	// The same object seen through its dimension half: generic indexed writes
+	// type-check against AnalyticsEventProps but not against the subtype.
+	const dimensions: AnalyticsEventProps = parsed;
+
+	const copyDimension = <K extends keyof AnalyticsEventProps>(key: K): void => {
 		const propValue = event[key];
 
-		if (nonNullish(propValue)) {
-			if (!isValidPropValue(key, propValue)) {
-				throw new AnalyticsValidationError(`events[${position}].${key} has the wrong type.`);
-			}
-
-			(parsed as unknown as Record<string, unknown>)[key] = propValue;
+		if (isNullish(propValue)) {
+			return;
 		}
+
+		if (!isValidPropValue(key, propValue)) {
+			throw new AnalyticsValidationError(`events[${position}].${key} has the wrong type.`);
+		}
+
+		dimensions[key] = propValue;
+	};
+
+	for (const key of ANALYTICS_PROP_KEYS) {
+		copyDimension(key);
 	}
 
 	return parsed;
@@ -101,13 +111,17 @@ const propsFromInput = (event: TrackEventInput): AnalyticsEventProps | undefined
 	const props: AnalyticsEventProps = {};
 	let present = false;
 
-	for (const key of ANALYTICS_PROP_KEYS) {
+	const copy = <K extends keyof AnalyticsEventProps>(key: K): void => {
 		const value = event[key];
 
 		if (nonNullish(value)) {
-			(props as Record<string, unknown>)[key] = value;
+			props[key] = value;
 			present = true;
 		}
+	};
+
+	for (const key of ANALYTICS_PROP_KEYS) {
+		copy(key);
 	}
 
 	return present ? props : undefined;
