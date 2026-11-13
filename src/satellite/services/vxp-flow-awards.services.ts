@@ -8,19 +8,14 @@ import {
 } from '#lib/constants/vxp-economy.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import {
-	decodeDocData,
-	encodeDocData,
-	getDocStore,
-	listDocsStore,
-	setDocStore
-} from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
 
 /**
  * Flow VXP award hooks — the real-credit path for the two Flow earn
@@ -67,60 +62,6 @@ const milestonesCrossed = ({ prev, next }: { prev: number; next: number }): numb
 	return FLOW_MILESTONES.filter((m) => prev < m && m <= next);
 };
 
-const persistPending = ({
-	caller,
-	recipient,
-	awardType,
-	awardKey,
-	doc
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	awardType: VxpAwardType;
-	awardKey: string;
-	doc: VxpAwardDoc;
-}): void => {
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key: vxpAwardKey({ recipient, awardType, awardKey }),
-		doc: { data: encodeDocData(doc) }
-	});
-};
-
-const patchAward = ({
-	caller,
-	recipient,
-	awardType,
-	awardKey,
-	patch
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	awardType: VxpAwardType;
-	awardKey: string;
-	patch: Partial<VxpAwardDoc> & Pick<VxpAwardDoc, 'status'>;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType, awardKey });
-	const existing = getDocStore({ collection: Collection.VXP_AWARDS, key, caller });
-
-	if (isNullish(existing)) {
-		return;
-	}
-
-	const existingDoc = decodeDocData<VxpAwardDoc>(existing.data);
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData<VxpAwardDoc>({ ...existingDoc, ...patch }),
-			version: existing.version
-		}
-	});
-};
-
 /**
  * Files a pending award doc, issues the ledger transfer, and records the
  * paid / failed outcome — the shared body behind both flow award types.
@@ -165,7 +106,7 @@ const payFlowAward = async ({
 	};
 
 	try {
-		persistPending({ caller, recipient, awardType, awardKey, doc: pending });
+		persistAward({ caller, recipient, awardType, awardKey, doc: pending });
 	} catch (e: unknown) {
 		// Most likely a concurrent write already created the pending doc;
 		// surface and stop — the other path will issue (or has issued) the
@@ -191,7 +132,7 @@ const payFlowAward = async ({
 			detail: { ...logDetail, amount: amount.toString(), block_index: result.blockIndex.toString() }
 		});
 
-		patchAward({
+		updateAward({
 			caller,
 			recipient,
 			awardType,
@@ -207,7 +148,7 @@ const payFlowAward = async ({
 		detail: { ...logDetail, amount: amount.toString(), error: result.error }
 	});
 
-	patchAward({
+	updateAward({
 		caller,
 		recipient,
 		awardType,
