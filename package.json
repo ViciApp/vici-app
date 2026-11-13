@@ -14,7 +14,7 @@
 		"seo:assets": "tsx scripts/build/generate-seo-assets.ts",
 		"prepare": "svelte-kit sync",
 		"preview": "vite preview",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p src/satellite/tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"check:i18n": "node scripts/check-locale-catalogs.mjs",
 		"lint": "prettier --cache ${CI:+--cache-strategy content} --check . && eslint . --cache ${CI:+--cache-strategy content} --max-warnings 0 && npm run check:i18n",

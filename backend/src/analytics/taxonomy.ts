@@ -154,7 +154,10 @@ const STRING_PROP_KEYS: ReadonlySet<string> = new Set([
 const NUMBER_PROP_KEYS: ReadonlySet<string> = new Set(['step', 'value', 'count', 'durationMs']);
 
 /** Whether a flat wire dimension value has the type its key declares. */
-export const isValidPropValue = (key: string, value: unknown): boolean => {
+export const isValidPropValue = <K extends keyof AnalyticsEventProps>(
+	key: K,
+	value: unknown
+): value is NonNullable<AnalyticsEventProps[K]> => {
 	if (STRING_PROP_KEYS.has(key)) {
 		return typeof value === 'string';
 	}

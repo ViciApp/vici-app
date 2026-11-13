@@ -17,6 +17,7 @@
 				class="ml-2 inline-block font-bold underline"
 				aria-label={t({ locale: $localeStore, key: 'a11y.banner_juno_console' })}
 				href="http://localhost:5866"
+				rel="noopener noreferrer"
 				target="_blank"
 			>
 				{t({ locale: $localeStore, key: 'ui.banner.create_satellite_cta' })}
