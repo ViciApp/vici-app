@@ -1,4 +1,4 @@
-import { cachedListOrEmpty, cachedNotInitialized } from '#lib/derived/cached.derived.ts';
+import { cachedListOrEmpty } from '#lib/derived/cached.derived.ts';
 import { leaderboardStore } from '#lib/stores/leaderboard.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
@@ -85,5 +85,3 @@ export const leaderboard: Readable<UserProfile[]> = derived(
 		return next;
 	}
 );
-
-export const leaderboardNotInitialized: Readable<boolean> = cachedNotInitialized(leaderboardStore);

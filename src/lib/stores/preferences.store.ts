@@ -414,13 +414,6 @@ export const preferencesStore = {
 };
 
 /**
- * Derived view of the current `flowSessionLength` ceiling, so callers
- * don't have to keep destructuring the store. Pure helper retained
- * for back-compat with the previous module shape.
- */
-export const flowSessionMaxBets = (prefs: UserPreferences): number => prefs.flowSessionLength;
-
-/**
  * Add or remove a market id from the saved-markets list. The store
  * write path round-trips through the profile, so the heart toggle
  * persists across devices.

@@ -3,7 +3,6 @@ import type { Relation } from '#lib/types/relation.ts';
 import type { ResolvedResult } from '#lib/types/social.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
-	listFollowers as listFollowersWeb2,
 	listFollowing as listFollowingWeb2,
 	listFriendRequests as listFriendRequestsWeb2,
 	listFriendResolvedResults as listFriendResolvedResultsWeb2,
@@ -92,14 +91,4 @@ export const getFollowing = async (): Promise<PrincipalText[]> => {
 	const { items } = await functions.listFollowing();
 
 	return items.map((r) => r.participants[1]);
-};
-
-export const getFollowers = async (): Promise<PrincipalText[]> => {
-	if (isWeb2Backend()) {
-		return (await listFollowersWeb2()).map((r) => r.participants[0]);
-	}
-
-	const { items } = await functions.listFollowers();
-
-	return items.map((r) => r.participants[0]);
 };

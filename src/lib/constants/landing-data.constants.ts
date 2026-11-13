@@ -1,5 +1,5 @@
 /**
- * Landing-only mock data — markets + World Cup favourites.
+ * Landing-only mock data.
  *
  * The landing surface is a pre-sign-in marketing page and does NOT
  * read live markets from the canister. These fixtures shape the
@@ -132,26 +132,6 @@ export const LANDING_MARKETS: readonly LandingMarket[] = [
 ] as const;
 
 /**
- * World Cup favourites — used by the WCFeature section's 2×2 flag
- * grid. The kickoff countdown beside the grid is derived live from the
- * featured event's `kickoffAt_ms` (`daysToKickoff` / `hoursToKickoff`)
- * so the landing always shows the same countdown the rest of the app uses.
- */
-export interface LandingWcFavorite {
-	readonly code: string;
-	readonly team: string;
-	readonly color: string;
-	readonly odds: number;
-}
-
-export const LANDING_WC_FAVORITES: readonly LandingWcFavorite[] = [
-	{ code: 'BR', team: 'Brazil', color: '#0F8C3A', odds: 17.9 },
-	{ code: 'ES', team: 'Spain', color: '#AA151B', odds: 14.8 },
-	{ code: 'FR', team: 'France', color: '#0033A0', odds: 13.6 },
-	{ code: 'AR', team: 'Argentina', color: '#75AADB', odds: 12.4 }
-] as const;
-
-/**
  * Category → label map used by the ticker + cards. Only the
  * categories that appear in `LANDING_MARKETS` are listed.
  */
@@ -177,98 +157,6 @@ export const LANDING_CAT_COLORS: Record<LandingMarketCategory, string> = {
 	sports: '#FF8A7A',
 	culture: '#B49CFF'
 };
-
-/**
- * League rows used by the LeagueShowcase panel — `office-hex` members.
- */
-export interface LandingLeagueMember {
-	readonly rank: number;
-	readonly handle: string;
-	readonly shirt: string;
-	readonly acc: number;
-	readonly kls: 'gold' | 'silver' | 'bronze' | 'you' | 'normal';
-}
-
-export interface LandingLeague {
-	readonly id: string;
-	readonly name: string;
-	readonly emblem: string;
-	readonly color: string;
-	readonly memberCount: number;
-	readonly members: readonly LandingLeagueMember[];
-}
-
-export const LANDING_LEAGUES: readonly LandingLeague[] = [
-	{
-		id: 'office-hex',
-		name: 'Office Hex',
-		emblem: 'O',
-		color: '#E2B842',
-		memberCount: 12,
-		members: [
-			{ rank: 1, handle: 'augustus', shirt: '#E2B842', acc: 0.802, kls: 'gold' },
-			{ rank: 2, handle: 'cassandra', shirt: '#75AADB', acc: 0.778, kls: 'silver' },
-			{ rank: 3, handle: 'horatius', shirt: '#0033A0', acc: 0.764, kls: 'bronze' },
-			{ rank: 4, handle: 'plinius', shirt: '#75AADB', acc: 0.751, kls: 'normal' },
-			{ rank: 5, handle: 'livia', shirt: '#1F2A3A', acc: 0.742, kls: 'normal' },
-			{ rank: 7, handle: 'YOU', shirt: '#E2B842', acc: 0.728, kls: 'you' }
-		]
-	},
-	{
-		id: 'lupercal',
-		name: 'Lupercal Society',
-		emblem: 'L',
-		color: '#B5462C',
-		memberCount: 8,
-		members: [
-			{ rank: 1, handle: 'marcus.x', shirt: '#2D2D2D', acc: 0.789, kls: 'gold' },
-			{ rank: 2, handle: 'nero', shirt: '#75AADB', acc: 0.762, kls: 'silver' },
-			{ rank: 3, handle: 'galba', shirt: '#0F8C3A', acc: 0.745, kls: 'bronze' }
-		]
-	}
-];
-
-/**
- * Worlds Universities — top 3 by `accWC` for the podium mini-panel.
- */
-export interface LandingUniversity {
-	readonly id: string;
-	readonly name: string;
-	readonly short: string;
-	readonly color: string;
-	readonly text: string;
-	readonly accWC: number;
-}
-
-export const LANDING_WORLDS_UNIVERSITIES: readonly LandingUniversity[] = [
-	{
-		id: 'stanford',
-		name: 'Stanford',
-		short: 'STAN',
-		color: '#8C1515',
-		text: '#F2ECDC',
-		accWC: 0.714
-	},
-	{
-		id: 'harvard',
-		name: 'Harvard',
-		short: 'HARV',
-		color: '#A51C30',
-		text: '#F2ECDC',
-		accWC: 0.682
-	},
-	{
-		id: 'berkeley',
-		name: 'Berkeley',
-		short: 'BERK',
-		color: '#003262',
-		text: '#FDB515',
-		accWC: 0.668
-	},
-	{ id: 'mit', name: 'MIT', short: 'MIT', color: '#A31F34', text: '#F2ECDC', accWC: 0.661 }
-] as const;
-
-export const LANDING_WORLDS_UNIVERSITIES_COUNT = 64;
 
 /* ── Landing hero (interactive swipe card) ─────────────────────────── */
 

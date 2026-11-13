@@ -4,7 +4,7 @@ import {
 	listOrders as listOrdersApi,
 	listSeriesTradedVolumes as listSeriesTradedVolumesApi
 } from '#lib/api/clearing.api.ts';
-import { addSeries, forkSeries, getSeries, listSeries } from '#lib/api/registry.api.ts';
+import { addSeries, getSeries, listSeries } from '#lib/api/registry.api.ts';
 import {
 	DAY_IN_MS,
 	MILLISECOND_IN_NANOSECONDS,
@@ -1323,70 +1323,4 @@ export const enrichFlowMarketsWithOrderBook = async (markets: Market[]): Promise
 	// reads to certified, which would just reintroduce the slow fan-out this
 	// path exists to remove.
 	return enrichMarketsWithOrderBook({ markets, identity, certified: false });
-};
-
-/**
- * Forks an existing market into a new restricted-access clone ("circle match").
- *
- * Uses the registry's `fork_series` endpoint so the resulting market carries a
- * `forked_from` reference back to the source. This lineage is what powers the
- * stacked-card UI and lets us enforce per-user fork limits on the backend.
- *
- * The fork inherits the source's title, description, outcomes, expiry,
- * balance domain, payout unit, etc. — the caller only supplies the target
- * group(s) and (optionally) a custom title/description.
- */
-export const forkMarket = async ({
-	marketId,
-	groupIds,
-	title,
-	description,
-	resolution,
-	locale
-}: {
-	marketId: MarketId;
-	groupIds: string[];
-	title?: string;
-	description?: string;
-	/**
-	 * Optional settlement-clause override for the fork. When omitted, the
-	 * registry inherits the source series' resolution (`fork_series` treats a
-	 * `None` resolution as "keep the source's"), which is what we want for
-	 * "Challenge your friends" forks that don't restate how the market settles.
-	 */
-	resolution?: string;
-	/**
-	 * Optional BCP 47 source-language override for the forked market's
-	 * `title`/`description`. When omitted, the registry inherits the source
-	 * series' locale, which is what we want for non-translating "Challenge
-	 * your friends" forks. Pass an explicit value only when the fork
-	 * intentionally retitles into a different language.
-	 */
-	locale?: AppLocale;
-}): Promise<string> => {
-	if (groupIds.length === 0) {
-		throw new Error('Fork requires at least one target group');
-	}
-
-	const identity = await safeGetIdentityOnce();
-
-	const trimmedResolution = resolution?.trim();
-
-	const params: RegistryDid.ForkSeriesParams = {
-		source_series_id: marketId,
-		title: toNullable(title),
-		description: toNullable(
-			nonNullish(description) ? { plain: description, html: [], markdown: [] } : undefined
-		),
-		resolution: toNullable(
-			notEmptyString(trimmedResolution)
-				? { clause: trimmedResolution.slice(0, RESOLUTION_CLAUSE_MAX_LENGTH) }
-				: undefined
-		),
-		trading_access: [{ Restricted: { groups: groupIds } }],
-		engine_id: toNullable(VICI_ENGINE_ID),
-		locale: toNullable(locale)
-	};
-
-	return await forkSeries({ identity, params });
 };

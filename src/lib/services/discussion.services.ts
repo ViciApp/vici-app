@@ -2,7 +2,7 @@ import { Collection } from '#lib/constants/collections.constants.ts';
 import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
 import { marketCommentsStore } from '#lib/stores/market-comments.store.ts';
 import type { Comment } from '#lib/types/comment.ts';
-import { deleteDoc, getDoc, listDocs, setDoc } from '@junobuild/core';
+import { getDoc, listDocs, setDoc } from '@junobuild/core';
 
 export const getMarketComments = async (marketId: string): Promise<Comment[]> => {
 	const { items } = await listDocs<Comment>({
@@ -134,21 +134,5 @@ export const downvoteComment = async ({
 				downvotes
 			}
 		}
-	});
-};
-
-export const deleteComment = async (commentKey: string): Promise<void> => {
-	const doc = await getDoc<Comment>({
-		collection: Collection.COMMENTS,
-		key: commentKey
-	});
-
-	if (!doc) {
-		return;
-	}
-
-	await deleteDoc({
-		collection: Collection.COMMENTS,
-		doc
 	});
 };

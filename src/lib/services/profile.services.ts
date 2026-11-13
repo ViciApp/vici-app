@@ -9,7 +9,6 @@ import {
 	sanitizeNickname
 } from '#lib/constants/profile.constants.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
-import type { UserRole } from '#lib/enums/user.ts';
 import { notifyAchievementsUnlocked } from '#lib/services/achievements.services.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import { getMyBattleStats, listMyLeagues } from '#lib/services/leagues.services.ts';
@@ -24,7 +23,7 @@ import { computeUserStatsSnapshot, persistMyUserStats } from '#lib/services/user
 import { marketMetadataStore } from '#lib/stores/market-metadata.store.ts';
 import { profilesStore } from '#lib/stores/profiles.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
-import type { Nickname, ProfilePrivate, UserProfile } from '#lib/types/profile.ts';
+import type { ProfilePrivate, UserProfile } from '#lib/types/profile.ts';
 import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 import {
 	CONTRARIAN_PRICE_THRESHOLD,
@@ -224,16 +223,6 @@ export const loadProfilesByPrincipals = async ({
 
 		return next;
 	});
-};
-
-export const updateInterests = async ({
-	principal,
-	interests
-}: {
-	principal: PrincipalText;
-	interests: string[];
-}): Promise<void> => {
-	await patchProfile({ principal, patch: { interests } });
 };
 
 /**
@@ -922,29 +911,6 @@ export const ensureProfile = async (
 
 		throw err;
 	}
-};
-
-/**
- * Falls back to a shortened principal so the UI never renders an empty
- * name when a profile has no nickname set.
- */
-export const getDisplayName = ({
-	profile
-}: {
-	profile: {
-		owner: PrincipalText;
-		nickname: Nickname;
-		visibility?: ProfileVisibility;
-	};
-	viewerPrincipal?: PrincipalText;
-	viewerRole?: UserRole;
-	isFriend?: boolean;
-}): string => {
-	if (!profile.nickname || profile.nickname.trim() === '') {
-		return shortenWithMiddleEllipsis({ text: profile.owner });
-	}
-
-	return profile.nickname;
 };
 
 /**

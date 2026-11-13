@@ -225,10 +225,6 @@ Three options today, in order of durability:
     engine role. This path only accepts Social markets (`BalanceDomain::Social` +
     `NonMonetary` payout + `Restricted` trading access); anything else is rejected
     with `EngineIdRequired`.
-- `forkMarket` in the same file passes `engine_id = opt "$VICI_ENGINE_ID"` on every
-  `fork_series` call. Forks always go through the Creator tier, so the caller must hold
-  `Creator` on `eng_0`. Non-controller callers are rejected with `EngineIdRequired` or
-  `EngineRoleNotHeld` otherwise.
 - Market creation is still gated to `ADMIN` / `CREATOR` users in the UI via
   `market.services.ts` — the engine-level `Creator` grant is a necessary, not sufficient,
   condition for calling `add_series`. To open creation to a wider audience, relax the check

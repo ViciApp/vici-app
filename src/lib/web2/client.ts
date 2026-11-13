@@ -513,8 +513,6 @@ const listRelations = async (path: string): Promise<Relation[]> => {
 
 export const listFriends = (): Promise<Relation[]> => listRelations('/api/v1/social/friends');
 
-export const listFollowers = (): Promise<Relation[]> => listRelations('/api/v1/social/followers');
-
 export const listFollowing = (): Promise<Relation[]> => listRelations('/api/v1/social/following');
 
 export const listFriendRequests = (): Promise<Relation[]> =>
@@ -1086,15 +1084,6 @@ export const getWalletDepositAddress = async (
 		path: `/api/v1/wallet/deposit-address/${encodeURIComponent(chain)}`,
 		method: 'GET'
 	});
-
-export const listWalletWithdrawals = async (): Promise<Web2WalletWithdrawal[]> => {
-	const { withdrawals } = await request<{ withdrawals: Web2WalletWithdrawal[] }>({
-		path: '/api/v1/wallet/withdrawals',
-		method: 'GET'
-	});
-
-	return withdrawals;
-};
 
 /**
  * Request a custodial withdrawal (the self-custody exit when `selfCustody`).
@@ -1794,31 +1783,6 @@ export const claimTournamentPrize = async ({
 	});
 
 // ─── VXP economy ─────────────────────────────────────────────────────────
-
-/** One row of the caller's award ledger (amounts are VXP base units as
- * decimal strings; `status` tracks the pending -> paid transfer machine). */
-export interface Web2VxpAward {
-	id: string;
-	userId: string;
-	awardType: string;
-	awardKey: string;
-	amountBaseUnits: string;
-	status: 'pending' | 'processing' | 'paid' | 'failed';
-	earnedAtMs: number;
-	paidAtMs?: number;
-	blockIndex?: string;
-	errorMessage?: string;
-}
-
-/** The caller's own award history, newest first, optionally one type. */
-export const listMyVxpAwards = async (type?: string): Promise<Web2VxpAward[]> => {
-	const { items } = await request<{ items: Web2VxpAward[] }>({
-		path: `/api/v1/vxp/awards${isNullish(type) ? '' : `?${encodeQuery({ type })}`}`,
-		method: 'GET'
-	});
-
-	return items;
-};
 
 /** Structured calibration-claim result; `recorded_only` marks an award that
  * was recorded without a transfer (treasury parallel-run mode). */

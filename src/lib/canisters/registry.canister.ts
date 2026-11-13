@@ -44,22 +44,6 @@ export class RegistryCanister extends Canister<RegistryService> {
 		throw new Error(`Failed to add series: ${JSON.stringify(result.Err, jsonReplacer)}`);
 	};
 
-	forkSeries = async ({
-		params,
-		...queryParams
-	}: {
-		params: RegistryDid.ForkSeriesParams;
-	} & QueryParams): Promise<string> => {
-		const { fork_series } = this.caller(queryParams);
-		const result = await fork_series(params);
-
-		if ('Ok' in result) {
-			return result.Ok;
-		}
-
-		throw new Error(`Failed to fork series: ${JSON.stringify(result.Err, jsonReplacer)}`);
-	};
-
 	getSeries = async ({
 		seriesId,
 		...queryParams

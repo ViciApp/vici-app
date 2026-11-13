@@ -51,7 +51,6 @@ move to one of the other sections.
 - `src/lib/components/market/CategoricalProbabilities.svelte`
 - `src/lib/components/market/MarketCardSkeleton.svelte`
 - `src/lib/components/market/MarketDepthPanel.svelte`
-- `src/lib/components/portfolio/PositionArtThumb.svelte`
 - `src/lib/components/profile/Avatar.svelte`
 - `src/lib/components/social/ActivityItem.svelte`
 - `src/lib/components/wallet/PlaygroundVxpAutoDeposit.svelte`
@@ -89,11 +88,8 @@ to import `i18n.utils`.
 - `src/lib/components/icons/IconPasskey.svelte`
 - `src/lib/components/icons/IconRobot.svelte`
 - `src/lib/components/icons/IconSignalHold.svelte`
-- `src/lib/components/icons/IconSignalNo.svelte`
-- `src/lib/components/icons/IconSignalYes.svelte`
 - `src/lib/components/icons/IconStreakFlame.svelte`
 - `src/lib/components/icons/IconXpChevron.svelte`
-- `src/lib/components/layout/Background.svelte`
 - `src/lib/components/layout/Logo.svelte`
 
 **Loaders**: no UI of their own; everything is delegated to children

@@ -45,13 +45,6 @@ const REFERRAL_REWARD_TIERS: ReadonlyArray<{ throughIndex: number; value: string
 	{ throughIndex: REFERRAL_MAX_PAID, value: '50' }
 ];
 
-/**
- * Highest reward on the curve (the first/best tier), as a whole-VXP display number. Used as the
- * "up to N VXP" ceiling in invite copy. Kept derived from {@link REFERRAL_REWARD_TIERS} so the
- * two never drift.
- */
-export const REFERRAL_REFERRER_MAX_REWARD_VXP = Number(REFERRAL_REWARD_TIERS[0].value);
-
 const REFERRAL_REWARD_TIER_BASE_UNITS: ReadonlyArray<{ throughIndex: number; value: bigint }> =
 	REFERRAL_REWARD_TIERS.map(({ throughIndex, value }) => ({
 		throughIndex,
