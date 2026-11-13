@@ -7,13 +7,14 @@ import {
 	COMEBACK_RESTORE_TARGET_BASE_UNITS
 } from '#lib/constants/vxp-economy.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
 
 /**
  * Comeback-restore hook. Runs after every `profiles` write; when a user returns after an absence of
@@ -32,6 +33,7 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  * Mirrors the streak / achievement award mechanism (`vxp_awards`, `pending`→`paid`/`failed`).
  */
 
+const AWARD_TYPE = 'comeback' as const;
 const COMEBACK_AWARD_KEY = 'restore';
 
 /** Subset of the profile shape this hook reads — the full `UserProfile` isn't needed. */
@@ -59,54 +61,6 @@ const daysBetween = ({
 	}
 
 	return Math.floor((toMs - fromMs) / DAY_IN_MS);
-};
-
-const persistAward = ({
-	caller,
-	recipient,
-	doc
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	doc: VxpAwardDoc;
-}): void => {
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key: vxpAwardKey({ recipient, awardType: 'comeback', awardKey: COMEBACK_AWARD_KEY }),
-		doc: {
-			data: encodeDocData(doc)
-		}
-	});
-};
-
-const updateAward = ({
-	caller,
-	recipient,
-	patch
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	patch: Partial<VxpAwardDoc> & Pick<VxpAwardDoc, 'status'>;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType: 'comeback', awardKey: COMEBACK_AWARD_KEY });
-	const existing = getDocStore({ collection: Collection.VXP_AWARDS, key, caller });
-
-	if (isNullish(existing)) {
-		return;
-	}
-
-	const existingDoc = decodeDocData<VxpAwardDoc>(existing.data);
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData<VxpAwardDoc>({ ...existingDoc, ...patch }),
-			version: existing.version
-		}
-	});
 };
 
 /**
@@ -156,7 +110,7 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 			collection: Collection.VXP_AWARDS,
 			key: vxpAwardKey({
 				recipient: callerText,
-				awardType: 'comeback',
+				awardType: AWARD_TYPE,
 				awardKey: COMEBACK_AWARD_KEY
 			}),
 			caller
@@ -187,7 +141,7 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 
 		const pending: VxpAwardDoc = {
 			recipient: callerText,
-			awardType: 'comeback',
+			awardType: AWARD_TYPE,
 			awardKey: COMEBACK_AWARD_KEY,
 			amountBaseUnits: amount.toString(),
 			status: 'pending',
@@ -195,7 +149,13 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 		};
 
 		try {
-			persistAward({ caller, recipient: callerText, doc: pending });
+			persistAward({
+				caller,
+				recipient: callerText,
+				awardType: AWARD_TYPE,
+				awardKey: COMEBACK_AWARD_KEY,
+				doc: pending
+			});
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : String(e);
 
@@ -229,6 +189,8 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 			updateAward({
 				caller,
 				recipient: callerText,
+				awardType: AWARD_TYPE,
+				awardKey: COMEBACK_AWARD_KEY,
 				patch: {
 					status: 'paid',
 					paidAtMs: Date.now(),
@@ -247,6 +209,8 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 		updateAward({
 			caller,
 			recipient: callerText,
+			awardType: AWARD_TYPE,
+			awardKey: COMEBACK_AWARD_KEY,
 			patch: {
 				status: 'failed',
 				errorMessage: result.error

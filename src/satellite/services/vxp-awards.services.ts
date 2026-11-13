@@ -1,9 +1,9 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
-import { decodeDocData } from '@junobuild/functions/sdk';
+import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
 
 /**
  * Pre-write guard for `vxp_awards`. The collection holds server-fired
@@ -135,4 +135,68 @@ export const assertSetVxpAward = ({
 	) {
 		throw new Error('vxp_awards status="failed" cannot carry paidAtMs / blockIndex.');
 	}
+};
+
+/**
+ * Creates the `pending` award doc. Carries no `version`, so a second write
+ * for the same key traps on the existing doc: callers catch that as the
+ * concurrent-firing case and stop before any ledger call.
+ */
+export const persistAward = ({
+	caller,
+	recipient,
+	awardType,
+	awardKey,
+	doc
+}: {
+	caller: Uint8Array;
+	recipient: string;
+	awardType: VxpAwardType;
+	awardKey: string;
+	doc: VxpAwardDoc;
+}): void => {
+	setDocStore({
+		caller,
+		collection: Collection.VXP_AWARDS,
+		key: vxpAwardKey({ recipient, awardType, awardKey }),
+		doc: { data: encodeDocData(doc) }
+	});
+};
+
+/**
+ * Records the payout outcome on an existing award doc, writing at the
+ * version just read so the update cannot overwrite a newer one. A missing
+ * doc is a no-op: there is no pending record to settle.
+ */
+export const updateAward = ({
+	caller,
+	recipient,
+	awardType,
+	awardKey,
+	patch
+}: {
+	caller: Uint8Array;
+	recipient: string;
+	awardType: VxpAwardType;
+	awardKey: string;
+	patch: Partial<VxpAwardDoc> & Pick<VxpAwardDoc, 'status'>;
+}): void => {
+	const key = vxpAwardKey({ recipient, awardType, awardKey });
+	const existing = getDocStore({ collection: Collection.VXP_AWARDS, key, caller });
+
+	if (isNullish(existing)) {
+		return;
+	}
+
+	const existingDoc = decodeDocData<VxpAwardDoc>(existing.data);
+
+	setDocStore({
+		caller,
+		collection: Collection.VXP_AWARDS,
+		key,
+		doc: {
+			data: encodeDocData<VxpAwardDoc>({ ...existingDoc, ...patch }),
+			version: existing.version
+		}
+	});
 };
