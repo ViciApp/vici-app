@@ -54,7 +54,8 @@ Rules:
 - **Quirk to know:** at the time of writing, the schema layer doesn't
   accept the literal property names `principal` / `query` in some
   positions; use `principalStr` / `queryStr` and re-map inside the
-  handler. (See the `TODO` comments in `src/satellite/index.ts`.)
+  handler. (See `getUserRankAndCount` and `searchProfiles` in
+  `src/satellite/index.ts`.)
 - **`PrincipalTextSchema`** comes from `@junobuild/schema`. Use it for
   every principal-typed arg; don't hand-write a regex.
 - **Keep handlers thin.** The function passed to `handler:` should
@@ -154,9 +155,8 @@ deserializer is happy.
 ### When to apply
 
 - **Array results (`j.array(NestedSchema)`)**: always use the wire schema.
-  Currently affected: `listLeaderboard`, `searchProfiles`,
-  `listMarketTranslations`, `listFriends`, `listFollowers`,
-  `listFollowing`, `listFriendRequests`, `listSentFriendRequests`.
+  The rule covers every `j.array(Nested)` result in `index.ts`, so a new
+  list endpoint gets its `*WireSchema` + `toWire…` pair from day one.
 - **`Option<NestedSchema>` results** (e.g. `getProfile.profile`): leave
   camelCase as-is. Juno emits `#[json_data(nested)]` on `Option<T>` so
   the camelCase mirror handles it correctly.
@@ -402,10 +402,9 @@ monthly album awards). The pattern:
   `monthConsensus` sample array (`MONTHLY_CONSENSUS_LIMIT`), keeping the most
   recent values; the assert enforces the cap so the doc can't be bloated.
 
-Contrast with the hook-driven fan-out (`onProfileSetForAffiliationStats`,
-`onProfileSetForLeagueStats`): use a hook when **shared** stats (a school /
-league row many users contribute to) must move on the server so no single
-user can forge the aggregate. Use the client-write pattern when the row is
+Contrast with the hook-driven fan-out (`onProfileSetForLeagueStats`): use a
+hook when **shared** stats (a league row many users contribute to) must move
+on the server so no single user can forge the aggregate. Use the client-write pattern when the row is
 **owned by one user** and the signal is cosmetic.
 
 ## Soft-delete + lazy hard-delete (no scheduler)
@@ -477,11 +476,10 @@ isHibernated)`. The three public filters (`listLeaderboard`,
   `searchProfiles`, `getProfile`) use `isPubliclyHidden`; the owner's own
   `getDoc` read stays ungated so the FE can offer resume.
 - **Stats freeze.** A hibernated user is inactive (no trades → no profile
-  writes → no fan-out), so the freeze is mostly natural. The two
-  profile-write stat fan-out hooks (`onProfileSetForAffiliationStats`,
-  `onProfileSetForLeagueStats`) additionally early-return when the AFTER
-  profile `isHibernated`: a defensive guard against a stray write fanning
-  a delta. This can't suppress the `resumeMyAccount` write: clearing the
+  writes → no fan-out), so the freeze is mostly natural. The profile-write
+  stat fan-out hook (`onProfileSetForLeagueStats`) additionally
+  early-returns when the AFTER profile `isHibernated`: a defensive guard
+  against a stray write fanning a delta. This can't suppress the `resumeMyAccount` write: clearing the
   flag leaves `totalTrades` unchanged (zero delta) and the AFTER profile is
   no longer hibernated.
 - **Reversible, not monotonic.** `hibernateMyAccount` keeps the EARLIEST

@@ -113,7 +113,7 @@ so agents must.
 | `*.derived.ts`       | Derived Svelte store                                       | `markets.derived.ts`                           |
 | `*.schema.ts`        | Zod schema                                                 | `profile.schema.ts`                            |
 | `*.utils.ts`         | Pure helpers: no I/O, no side effects, no DOM access       | `format.utils.ts`, `market.utils.ts`           |
-| `*.constants.ts`     | Compile-time constants, enums, lookup tables               | `app.constants.ts`, `tokens.constants.ts`      |
+| `*.constants.ts`     | Compile-time constants, enums, lookup tables               | `app.constants.ts`, `locale.constants.ts`      |
 | `*.ts` (in `types/`) | Interfaces / types                                         | `market.ts`, `profile.ts`                      |
 | `*.ts` (in `enums/`) | Plain TS enums                                             | `user.ts` (`UserRole`), `permission.ts`        |
 
@@ -122,7 +122,7 @@ so agents must.
 | Thing                    | Style                         | Example                               |
 | ------------------------ | ----------------------------- | ------------------------------------- |
 | `.svelte` filename       | `PascalCase`                  | `MarketCard.svelte`                   |
-| `.ts` filename           | `kebab-case`                  | `market-filters.utils.ts`             |
+| `.ts` filename           | `kebab-case`                  | `market-price-history.utils.ts`       |
 | Folder                   | `kebab-case` (or single word) | `market/`, `wallet/`, `address-book/` |
 | Component name           | `PascalCase`                  | `MarketCard`                          |
 | TS type / interface      | `PascalCase`                  | `MarketSummary`                       |
@@ -139,8 +139,10 @@ Time values must carry their unit in the variable name:
 - **`_ns`**: nanoseconds. Use when the value crosses an IC protocol
   boundary or an idempotency key (`requestId_ns`, `submittedAt_ns`).
 
-When converting between the two, the function name should make it
-explicit: `nsToMs` / `msToNs` (or the equivalent in `format.utils.ts`).
+Convert with `MILLISECOND_IN_NANOSECONDS` from
+`#lib/constants/app.constants` (divide nanoseconds by it, as
+`market.utils.ts` does), and name a helper that takes one unit and returns
+the other after both (`formatRelativeAgoFromNs` in `format.utils.ts`).
 
 ### Terminology: "prediction", never "bet"
 
