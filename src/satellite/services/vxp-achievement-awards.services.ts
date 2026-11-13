@@ -3,13 +3,14 @@ import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
 
 /**
  * Achievement-unlock hook. Runs after every `profiles` write; when an id appears in
@@ -26,6 +27,8 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  * Only the delta (newly added ids on this write) is paid — achievements already unlocked before
  * this write are never retroactively minted.
  */
+
+const AWARD_TYPE = 'achievement' as const;
 
 /** Catalog XP per achievement id (whole VXP), frozen at module load. */
 const ACHIEVEMENT_XP: Readonly<Record<string, number>> = Object.freeze(
@@ -49,65 +52,6 @@ const newlyUnlocked = ({ prev, next }: { prev: string[]; next: string[] }): stri
 	const known = new Set(prev);
 
 	return next.filter((id) => !known.has(id));
-};
-
-const persistAward = ({
-	caller,
-	recipient,
-	awardKey,
-	doc
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	awardKey: string;
-	doc: VxpAwardDoc;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType: 'achievement', awardKey });
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData(doc)
-		}
-	});
-};
-
-const updateAward = ({
-	caller,
-	recipient,
-	awardKey,
-	patch
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	awardKey: string;
-	patch: Partial<VxpAwardDoc> & Pick<VxpAwardDoc, 'status'>;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType: 'achievement', awardKey });
-	const existing = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key,
-		caller
-	});
-
-	if (isNullish(existing)) {
-		return;
-	}
-
-	const existingDoc = decodeDocData<VxpAwardDoc>(existing.data);
-	const next: VxpAwardDoc = { ...existingDoc, ...patch };
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData(next),
-			version: existing.version
-		}
-	});
 };
 
 const payAchievement = async ({
@@ -134,7 +78,7 @@ const payAchievement = async ({
 
 	// Idempotency: if the award doc already exists, skip — the assert rejects duplicate creations
 	// anyway, but checking up front avoids the wasted ledger call.
-	const existingKey = vxpAwardKey({ recipient, awardType: 'achievement', awardKey });
+	const existingKey = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey });
 	const existing = getDocStore({
 		collection: Collection.VXP_AWARDS,
 		key: existingKey,
@@ -147,7 +91,7 @@ const payAchievement = async ({
 
 	const pending: VxpAwardDoc = {
 		recipient,
-		awardType: 'achievement',
+		awardType: AWARD_TYPE,
 		awardKey,
 		amountBaseUnits: amount.toString(),
 		status: 'pending',
@@ -155,7 +99,7 @@ const payAchievement = async ({
 	};
 
 	try {
-		persistAward({ caller, recipient, awardKey, doc: pending });
+		persistAward({ caller, recipient, awardType: AWARD_TYPE, awardKey, doc: pending });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 
@@ -190,6 +134,7 @@ const payAchievement = async ({
 		updateAward({
 			caller,
 			recipient,
+			awardType: AWARD_TYPE,
 			awardKey,
 			patch: {
 				status: 'paid',
@@ -214,6 +159,7 @@ const payAchievement = async ({
 	updateAward({
 		caller,
 		recipient,
+		awardType: AWARD_TYPE,
 		awardKey,
 		patch: {
 			status: 'failed',

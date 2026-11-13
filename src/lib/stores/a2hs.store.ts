@@ -55,6 +55,13 @@ interface BeforeInstallPromptEvent extends Event {
 	userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+declare global {
+	interface Window {
+		/** Set by the early `beforeinstallprompt` listener in `app.html`; adopted by {@link initA2hs}. */
+		__viciDeferredInstallPrompt?: BeforeInstallPromptEvent;
+	}
+}
+
 interface A2hsState {
 	/** A captured (deferred) Android `beforeinstallprompt` event, if any. */
 	deferredPrompt: BeforeInstallPromptEvent | null;
@@ -299,16 +306,13 @@ export const initA2hs = (): void => {
 	// before the app layout calls `initA2hs`, so a listener registered only here
 	// misses it and `canInstall` never flips true. Keep listening below for any
 	// later re-fire.
-	const earlyHolder = window as unknown as {
-		__viciDeferredInstallPrompt?: BeforeInstallPromptEvent;
-	};
-	const earlyPrompt = earlyHolder.__viciDeferredInstallPrompt;
+	const earlyPrompt = window.__viciDeferredInstallPrompt;
 
 	if (nonNullish(earlyPrompt)) {
 		state.update((s) => ({ ...s, deferredPrompt: earlyPrompt }));
 		// The store now owns the single-use event; drop the global so a stale
 		// reference doesn't linger for the tab's lifetime.
-		delete earlyHolder.__viciDeferredInstallPrompt;
+		delete window.__viciDeferredInstallPrompt;
 	}
 
 	window.addEventListener('beforeinstallprompt', (event: Event) => {
