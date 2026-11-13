@@ -124,26 +124,24 @@ semantics as a screen reader.
 - `setTimeout`-based waits. Use `vi.useFakeTimers()` or `await waitFor(...)`.
 - Console-noise (`console.log` debug output). Remove before commit.
 
-## Adding the test runner: what would have to happen
+## Adding Vitest: what is left
 
-This is **not** something an agent should do silently. If a PR genuinely
-needs a test runner:
+`npm test`, the `src/tests/` layout, the `*.spec.ts` suffix and the `test`
+job in `checks.yml` already exist. Moving to Vitest is **not** something an
+agent should do silently. If a PR genuinely needs it:
 
 1. Surface the request in the PR description and ask for explicit
    approval to add `vitest`, `@testing-library/svelte`, `jsdom`, and a
    matching `tsconfig.spec.json`.
-2. Wire `npm run test`, `npm run test:watch`, and (optionally)
-   `npm run test:coverage` in `package.json`.
-3. Use the folder layout (`src/tests/` mirroring `src/`) and the
-   `*.spec.ts` suffix as anchored above.
-4. Add a `test` job to `.github/workflows/checks.yml` and update
-   [`pr-and-ci.md`](../pr-and-ci.md) accordingly.
-5. **Update this page** in the same PR to flip "bootstrap" → the actual
+2. Point `npm test` at Vitest, port the existing `node:test` specs, and
+   drop the `vitest/no-import-node-test` override in `eslint.config.js`.
+   Update the `test` row in [`pr-and-ci.md`](../pr-and-ci.md).
+3. **Update this page** in the same PR to flip "bootstrap" → the actual
    policy (no skipped tests on `main`, regression tests for bug fixes,
    etc.). That's the
    [meta-update rule](../governance.md#meta-update-rule) in action.
 
-Until then, this page documents the target shape so the first test
+Until then, this page documents the target shape so the first Vitest spec
 doesn't have to invent it from scratch.
 
 ## E2E against the web2 backend

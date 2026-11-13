@@ -322,7 +322,7 @@ In the repo, branded glyphs live in
 [`src/lib/components/icons/`](../../../src/lib/components/icons/):
 
 - [`IconSignalYes`](../../../src/lib/components/icons/IconSignalYes.svelte)
-  / `IconSignalNo` / `IconSignalHold`
+  / `IconSignalNo`
 - [`IconIC`](../../../src/lib/components/icons/IconIC.svelte) /
   `IconGoogle` / `IconPasskey` / `IconRobot`
 

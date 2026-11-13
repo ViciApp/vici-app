@@ -4,9 +4,9 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 ## Routes and validation
 
-- One Elysia instance per area with a prefix: `src/routes/wallet.ts:109`. Mounted with `.use(...)` in `src/index.ts:149`.
-- Request shapes are Elysia `t` schemas in the route options (`src/routes/wallet.ts:290`). Zod is not used in the API; do not add it.
-- A handler gates first, then calls a domain function, then shapes the response: `src/routes/wallet.ts:127` (`/balances`).
+- One Elysia instance per area with a prefix: `src/routes/wallet.ts:98`. Mounted with `.use(...)` in `src/index.ts:149`.
+- Request shapes are Elysia `t` schemas in the route options (`src/routes/wallet.ts:275`). Zod is not used in the API; do not add it.
+- A handler gates first, then calls a domain function, then shapes the response: `src/routes/wallet.ts:116` (`/balances`).
 - Responses that carry candid values (bigint, `Principal`, bytes) go through `toJson` (`src/engine/serialize.ts:8`); never hand-convert.
 
 ## Auth guards
@@ -18,20 +18,20 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 - The wire envelope is always `{ error: string }`, with a stable snake_case code (`insufficient_balance`, `chain_unavailable`). The frontend switches on that code through `Web2ApiError.code`, so a code is a contract: renaming one is a breaking change.
 - A 400 with a code is `badRequest(set, code)` from `src/lib/http.ts`; its `StatusContext` is the one type for Elysia's `set` in a helper signature.
-- Domain failures are `class XError extends Error {}` in the domain (`src/leagues/leagues.ts:11`); the route maps them with `instanceof` and rethrows anything else: `src/routes/wallet.ts:273`.
+- Domain failures are `class XError extends Error {}` in the domain (`src/leagues/leagues.ts:11`); the route maps them with `instanceof` and rethrows anything else: `src/routes/wallet.ts:258`.
 - Everything unmapped falls to the global handler in `src/index.ts:96` (404 `not found`, 400 `bad request`, 503 `unavailable` when the database is down, 500 `internal`). Do not catch-and-500 in a route.
 - Engine order rejections have their own code table: [`backend/README.md` "Order rejections"](../../../backend/README.md#order-rejections).
 
 ## Database
 
 - `pg` with raw parameterized SQL through `query<T>(text, params)` (`src/db/client.ts:65`); no ORM. Always `$1` placeholders, never string interpolation of values.
-- Multi-statement writes run in `tx(fn)` (`src/db/client.ts:75`). A domain function that may run inside a caller's transaction takes `q: TxQuery = query` as its last parameter (`src/leagues/battles.ts:146`) and the caller passes the transaction's query (`src/custody/ledger.ts:81`).
+- Multi-statement writes run in `tx(fn)` (`src/db/client.ts:75`). A domain function that may run inside a caller's transaction takes `q: TxQuery = query` as its last parameter (`src/leagues/battles.ts:144`) and the caller passes the transaction's query (`src/custody/ledger.ts:81`).
 - Idempotency lives in the schema: a unique key (`vxp_awards`, deposit `tx_ref`) plus `on conflict`, not an in-memory check.
 - Schema changes are forward-only migrations: [`workflows/new-migration.md`](./workflows/new-migration.md).
 
 ## Environment and logging
 
-- Read config only from `env` (`src/env.ts:271`); add a var in `loadEnv` (`src/env.ts:103`) with `optional` / `requiredInProd` / `positiveInt`, and a row in the `backend/README.md` table. An optional integration exposes an `enabled` flag and degrades when off.
+- Read config only from `env` (`src/env.ts:272`); add a var in `loadEnv` (`src/env.ts:104`) with `optional` / `requiredInProd` / `positiveInt`, and a row in the `backend/README.md` table. An optional integration exposes an `enabled` flag and degrades when off.
 - Log through `logger` (`src/lib/logger.ts`); `console.*` is only for `src/db/`, which loads before the logger matters.
 
 ## Engine and chains
