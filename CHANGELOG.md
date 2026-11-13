@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.8.55](https://github.com/ViciApp/vici-app/compare/v1.8.54...v1.8.55) (2026-11-13)
+
+
+### Bug Fixes
+
+* **ui:** open Banner links with rel noopener ([#1484](https://github.com/ViciApp/vici-app/issues/1484)) ([8feab80](https://github.com/ViciApp/vici-app/commit/8feab805136d24bfcf4858f4d6e2a931a5596359))
+
+
+### Documentation
+
+* **ai:** match the agent docs to the code ([#1485](https://github.com/ViciApp/vici-app/issues/1485)) ([f1d4b7f](https://github.com/ViciApp/vici-app/commit/f1d4b7f80e3dfb4e154e978d2dbc6702285ce08e))
+* **release:** force a release after a security advisory merge ([#1478](https://github.com/ViciApp/vici-app/issues/1478)) ([46285e1](https://github.com/ViciApp/vici-app/commit/46285e1684df1f3e16327d2891ecb4bba5e7c64b))
+
+
+### Miscellaneous Chores
+
+* **repo:** drop the last em and en dashes outside ranges ([#1486](https://github.com/ViciApp/vici-app/issues/1486)) ([a72aa77](https://github.com/ViciApp/vici-app/commit/a72aa77f08f41ceb42cd0b985a01724f74d3c75b))
+
+
+### Code Refactoring
+
+* **backend:** drop the as-unknown-as casts ([#1483](https://github.com/ViciApp/vici-app/issues/1483)) ([0b7777e](https://github.com/ViciApp/vici-app/commit/0b7777eb44e7b347c5cb540abf9c2231eaf97bb7))
+* **backend:** one MONTH_ANCHOR_RE ([#1490](https://github.com/ViciApp/vici-app/issues/1490)) ([123d5f9](https://github.com/ViciApp/vici-app/commit/123d5f9c2143cb8188de5c868b05b3a74de43237))
+* **backend:** one owner for engine read helpers ([#1489](https://github.com/ViciApp/vici-app/issues/1489)) ([cf13407](https://github.com/ViciApp/vici-app/commit/cf134072c8d8238d35530febddc0a9ab0d87c616))
+* **frontend:** one owner for month anchors ([#1487](https://github.com/ViciApp/vici-app/issues/1487)) ([6e40ebb](https://github.com/ViciApp/vici-app/commit/6e40ebbd04a1cc2eb48d6fc6a971f3099683fe1a))
+* **frontend:** type the A2HS window field ([#1482](https://github.com/ViciApp/vici-app/issues/1482)) ([cda6e5a](https://github.com/ViciApp/vici-app/commit/cda6e5a9ece3d38b498619a381a9aabfd18ec539))
+* **satellite:** one persistAward for the VXP award services ([#1481](https://github.com/ViciApp/vici-app/issues/1481)) ([68b1828](https://github.com/ViciApp/vici-app/commit/68b182817592a1dfbf37b0ba0970d14c87e7c9d7))
+* **satellite:** use the shared ns and day constants ([#1488](https://github.com/ViciApp/vici-app/issues/1488)) ([21e8aed](https://github.com/ViciApp/vici-app/commit/21e8aed638c421b1ca627ec7cc50ccacb5ee7f37))
+
+
+### Build System
+
+* **satellite:** type-check the satellite in npm run check ([#1480](https://github.com/ViciApp/vici-app/issues/1480)) ([fdb0512](https://github.com/ViciApp/vici-app/commit/fdb0512d66cb318620674696ee10754974d4466e))
+
 ## [1.8.54](https://github.com/ViciApp/vici-app/compare/v1.8.53...v1.8.54) (2026-11-12)
 
 
