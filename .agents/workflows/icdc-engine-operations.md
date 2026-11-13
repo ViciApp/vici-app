@@ -12,8 +12,8 @@ All commands assume the running `dfx` identity is either:
 - An **admin** of the Vici engine (e.g. one of the `SATELLITE_CONTROLLERS`).
 
 The examples use `--network staging` (icdc-core staging). Replace it with `--network ic` for
-**production** — the deployment the live Vici frontend talks to. See
-[engine-integration.md](../../docs/engine-integration.md) — "icdc-core deployments: staging
+**production**, the deployment the live Vici frontend talks to. See
+[engine-integration.md](../../docs/engine-integration.md), "icdc-core deployments: staging
 and production".
 
 > [!CAUTION]
@@ -56,7 +56,7 @@ If a specific user's role was changed in Juno but the engine wasn't updated (e.g
 satellite was down at the time), re-save their `roles` doc via the admin UI. The hook is
 idempotent, so replaying is safe.
 
-Alternatively, trigger the diff manually from `dfx` — the two calls above.
+Alternatively, trigger the diff manually from `dfx` with the two calls above.
 
 ## Reconcile oracle settlers manually
 
@@ -64,7 +64,7 @@ The `syncRoleToEngine` hook also mirrors `ADMIN` / `SOLVER` roles into
 `VICI_ORACLE_V1.authorized_principals`, so this is only needed if:
 
 - The oracle didn't exist when a role was granted (look for `oracle_settler_skipped_missing_oracle`
-  in the Juno logs) — bootstrap the oracle first via the admin UI, then re-save the user's
+  in the Juno logs): bootstrap the oracle first via the admin UI, then re-save the user's
   `roles` doc to replay.
 - You want to grant settlement rights to a one-off principal (e.g. a tester) without
   assigning a Juno role.
@@ -132,7 +132,7 @@ dfx canister call --network staging registry remove_engine_admins "(record {
 
 > [!NOTE]
 > The engine creator (the principal that originally called `register_engine`) cannot be
-> removed — `EngineError::CannotRemoveCreator`.
+> removed (`EngineError::CannotRemoveCreator`).
 
 ## Kill-switch: disable all role grants without losing the audit log
 

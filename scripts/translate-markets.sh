@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# translate-markets.sh — bulk-set market translations for markets that already
+# translate-markets.sh: bulk-set market translations for markets that already
 # exist on the registry, from a deck JSON file.
 #
 # `deploy-markets.sh` registers markets on-chain (add_series) in their base
@@ -12,7 +12,7 @@
 #
 # Expected per-row shape (alongside the usual deck fields):
 #   {
-#     "title": "Will Brazil win the 2026 World Cup?",   // English — the registry match key
+#     "title": "Will Brazil win the 2026 World Cup?",   // English, the registry match key
 #     "translations": {
 #       "it": {
 #         "title": "Il Brasile vincerà i Mondiali 2026?",
@@ -32,7 +32,7 @@
 #   npm run translate:markets -- scripts/data/markets.deck-2026.json --production
 #
 # Auth: runs as the current dfx identity, which must be the markets' CREATOR
-# (the identity that ran deploy-markets.sh) or a satellite ADMIN — see
+# (the identity that ran deploy-markets.sh) or a satellite ADMIN; see
 # assertCanWriteMarketTranslation in
 # src/satellite/services/market-translation.services.ts.
 #
@@ -107,7 +107,7 @@ FAILED=0
 # the locale, and a ready-made Candid `data = record { ... }` fragment. We do NOT
 # use @tsv (it would double every backslash); we join with a literal tab and emit
 # raw (-r). Text is rendered via @json so each field is a single line with no raw
-# tabs/newlines — @json's escapes (\", \\, \n) are valid Candid text escapes too,
+# tabs/newlines; @json's escapes (\", \\, \n) are valid Candid text escapes too,
 # and non-ASCII passes through as raw UTF-8 which Candid text accepts. series_id
 # is filled in below once resolved from the registry.
 while IFS=$'\t' read -r title locale data_candid; do
