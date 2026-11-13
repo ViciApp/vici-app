@@ -1,3 +1,4 @@
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	classificationMacros,
@@ -48,9 +49,7 @@ const indexKeysForTags = (tags: readonly string[]): string[] => [
 	...new Set<string>([...classificationMicros(tags), ...classificationMacros(tags)])
 ];
 
-const MS_PER_NS = 1_000_000n;
-
-const nowMs = (): number => Number(time() / MS_PER_NS);
+const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /**
  * A satellite controller principal, used as the `caller` for writes to the

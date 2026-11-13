@@ -1,4 +1,4 @@
-import { ZERO } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
@@ -33,7 +33,6 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  */
 
 const COMEBACK_AWARD_KEY = 'restore';
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /** Subset of the profile shape this hook reads — the full `UserProfile` isn't needed. */
 interface LastActiveDaySlice {
@@ -59,7 +58,7 @@ const daysBetween = ({
 		return;
 	}
 
-	return Math.floor((toMs - fromMs) / MS_PER_DAY);
+	return Math.floor((toMs - fromMs) / DAY_IN_MS);
 };
 
 const persistAward = ({

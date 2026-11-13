@@ -1,4 +1,5 @@
 import type { ClearingDid } from '#declarations';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
@@ -43,9 +44,7 @@ import {
  * the first time any member of either side opens it and the FE calls this.
  */
 
-const MS_PER_NS = 1_000_000n;
-
-const nowMs = (): number => Number(time() / MS_PER_NS);
+const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /** A satellite controller principal — the `caller` for the controller-trusted resolved write. */
 const adminCaller = (): Uint8Array => controllerCaller('battle resolution');
@@ -148,8 +147,8 @@ const sideTotals = async ({
 
 	const params: ClearingDid.AggregateSettlementAccuracyParams = {
 		members,
-		from_ts: [BigInt(fromMs) * MS_PER_NS],
-		to_ts: [BigInt(toMs) * MS_PER_NS],
+		from_ts: [BigInt(fromMs) * MILLISECOND_IN_NANOSECONDS],
+		to_ts: [BigInt(toMs) * MILLISECOND_IN_NANOSECONDS],
 		series_ids: nonNullish(seriesIds) ? [seriesIds] : []
 	};
 
