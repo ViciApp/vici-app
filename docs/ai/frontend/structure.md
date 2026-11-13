@@ -141,8 +141,9 @@ Time values must carry their unit in the variable name:
 
 Convert with `MILLISECOND_IN_NANOSECONDS` from
 `#lib/constants/app.constants` (divide nanoseconds by it, as
-`market.utils.ts` does), and name a helper that takes one unit and returns
-the other after both (`formatRelativeAgoFromNs` in `format.utils.ts`).
+`market.utils.ts` does), and name a helper after the unit it takes, so
+the caller sees which one to pass (`formatRelativeAgoFromNs` in
+`format.utils.ts`).
 
 ### Terminology: "prediction", never "bet"
 

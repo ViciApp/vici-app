@@ -157,6 +157,9 @@ deserializer is happy.
 - **Array results (`j.array(NestedSchema)`)**: always use the wire schema.
   The rule covers every `j.array(Nested)` result in `index.ts`, so a new
   list endpoint gets its `*WireSchema` + `toWire…` pair from day one.
+  One endpoint does not follow it yet: `listFriendResolvedResults` returns
+  `j.array(ResolvedResultSchema)` (camelCase) directly; it gets its wire
+  schema in its own change.
 - **`Option<NestedSchema>` results** (e.g. `getProfile.profile`): leave
   camelCase as-is. Juno emits `#[json_data(nested)]` on `Option<T>` so
   the camelCase mirror handles it correctly.
