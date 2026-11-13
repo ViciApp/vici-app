@@ -7,7 +7,7 @@ import {
 	userMonthlyStatsKey,
 	type UserMonthlyStatsDoc
 } from '#lib/types/user-monthly-stats.ts';
-import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
+import { monthAnchorFromMs, previousMonthAnchor } from '#lib/utils/month-anchor.utils.ts';
 import { eventExecutionPrice, isSettledEvent } from '#lib/utils/resolved-position.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import { getDoc, setDoc } from '@junobuild/core';
@@ -133,11 +133,7 @@ export const syncMyMonthlyStats = async ({
 	const buckets = bucketMonthlyStats(history);
 
 	const currentAnchor = monthAnchorFromMs(nowMs);
-	// First day of the current month minus one day lands in the prior month.
-	const firstOfMonth = new Date(
-		Date.UTC(new Date(nowMs).getUTCFullYear(), new Date(nowMs).getUTCMonth(), 1)
-	);
-	const priorAnchor = monthAnchorFromMs(firstOfMonth.getTime() - 1);
+	const priorAnchor = previousMonthAnchor(nowMs);
 
 	// Persist only months with resolved calls — there's nothing to rank in an
 	// empty month and no reason to write an empty row.
