@@ -7,7 +7,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { getSettlementStatus } from '../engine/clearing';
-import { getSeries } from '../engine/registry';
+import { getSeries, VICI_ENGINE_ID } from '../engine/registry';
 import { ZERO } from '../lib/constants';
 import { countUserAwardsSince, getAward, grantAward } from './awards';
 import {
@@ -17,9 +17,6 @@ import {
 	VXP_CALIBRATION_REWARD_BASE_UNITS
 } from './constants';
 import { getVxpBalance } from './payout';
-
-/** The Vici engine's registry id: only markets created by it qualify. */
-const VICI_ENGINE_ID = 'eng_0';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;

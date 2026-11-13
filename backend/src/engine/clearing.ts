@@ -20,10 +20,9 @@ import { env } from '../env';
 import { ZERO } from '../lib/constants';
 import { userIcIdentity } from '../lib/keys';
 import { adminClearing, readerClearing, userClearing, userLedger } from './actors';
-import { cached, getRetained, retain } from './cache';
+import { cached, getRetained, PUBLIC_READ_TTL_MS, retain } from './cache';
 import { orderRejectedError } from './order-rejections';
-
-const PUBLIC_READ_TTL_MS = 15_000;
+import { expectOk } from './result';
 
 /** Same window the signed-in on-chain deposit grants: the approval only has to
  * outlive the deposit call that follows it. */
@@ -59,14 +58,6 @@ const beforeSigning = async <T>(read: () => Promise<T>): Promise<T> => {
 			message: `collateral read failed: ${err instanceof Error ? err.message : String(err)}`
 		});
 	}
-};
-
-const expectOk = <O>(result: { Ok: O } | { Err: unknown }, label: string): O => {
-	if ('Ok' in result) {
-		return result.Ok;
-	}
-
-	throw new Error(`${label} failed: ${JSON.stringify(result.Err, jsonReplacer)}`);
 };
 
 const expectOrderOk = (result: ClearingDid.SubmitMatchedTradeResult, label: string): boolean => {

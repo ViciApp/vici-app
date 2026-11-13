@@ -37,7 +37,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 ## Engine and chains
 
 - Canister actors come from `src/engine/actors.ts` (`reader*`, `user*`, `admin*` factories) behind `setEngineActorProvider` (`src/engine/actors.ts:76`), the seam tests and the E2E server swap. Never build an actor inline.
-- Typed wrappers unwrap `Ok`/`Err` with `expectOk` (`src/engine/clearing.ts:64`); public reads are cached with `cached({ key, ttlMs, load })` (`src/engine/cache.ts:30`).
+- Typed wrappers unwrap `Ok`/`Err` with `expectOk` (`src/engine/result.ts:7`); public reads are cached with `cached({ key, ttlMs, load })` (`src/engine/cache.ts:34`) for `PUBLIC_READ_TTL_MS`.
 - Chain code follows the `ChainAdapter` interface in `src/chains/types.ts`; the money rules are in [`custody.md`](./custody.md).
 
 ## Background jobs
