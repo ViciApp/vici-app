@@ -27,6 +27,10 @@ const retained = new Map<string, unknown>();
  * without limit. */
 const MAX_ENTRIES = 500;
 
+/** One freshness window for every public market-wide read, clearing and
+ * registry alike. */
+export const PUBLIC_READ_TTL_MS = 15_000;
+
 export const cached = async <T>({
 	key,
 	ttlMs,

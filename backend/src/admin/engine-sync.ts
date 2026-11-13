@@ -10,10 +10,8 @@ import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { RegistryDid } from '../declarations';
 import { adminRegistry } from '../engine/actors';
+import { VICI_ENGINE_ID } from '../engine/registry';
 import { logger } from '../lib/logger';
-
-/** The engine id the app is registered under on the registry. */
-export const VICI_ENGINE_ID = 'eng_0';
 
 /** The single oracle whose authorized principals mirror settling roles. */
 export const VICI_ORACLE_V1 = 'VICI_ORACLE_V1';

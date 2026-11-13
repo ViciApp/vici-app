@@ -7,17 +7,12 @@ import { fromNullable, isNullish, jsonReplacer, nonNullish, toNullable } from '@
 import { Principal } from '@icp-sdk/core/principal';
 import type { RegistryDid } from '../declarations';
 import { adminRegistry, readerRegistry, userRegistry } from './actors';
-import { cached } from './cache';
+import { cached, PUBLIC_READ_TTL_MS } from './cache';
+import { expectOk } from './result';
 
-const PUBLIC_READ_TTL_MS = 15_000;
-
-const expectOk = <O>(result: { Ok: O } | { Err: unknown }, label: string): O => {
-	if ('Ok' in result) {
-		return result.Ok;
-	}
-
-	throw new Error(`${label} failed: ${JSON.stringify(result.Err, jsonReplacer)}`);
-};
+/** The engine id the app is registered under on the registry: only markets
+ * created by it are Vici markets. */
+export const VICI_ENGINE_ID = 'eng_0';
 
 // Public catalog reads (engine reader identity, cached)
 
