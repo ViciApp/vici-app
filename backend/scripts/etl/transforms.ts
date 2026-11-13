@@ -36,6 +36,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { createHash } from 'node:crypto';
 import { tx, type TxQuery } from '../../src/db/client';
 import { UUID_RE, ZERO } from '../../src/lib/constants';
+import { MONTH_ANCHOR_RE } from '../../src/lib/time';
 import { nicknameUniqueKey } from '../../src/profiles/nickname';
 import { activityKey as webActivityKey } from '../../src/social/activities';
 import { followRelationKey, friendRelationKey } from '../../src/social/relations';
@@ -348,8 +349,6 @@ const importUserStats: ImporterRun = perDoc(async (doc, { q, mapper, nowMs }) =>
 
 	return true;
 });
-
-const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 const importUserMonthlyStats: ImporterRun = perDoc(async (doc, { q, mapper, stats }) => {
 	const d = rec(doc.data);

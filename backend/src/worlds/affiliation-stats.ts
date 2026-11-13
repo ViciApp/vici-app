@@ -8,6 +8,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx } from '../db/client';
+import { MONTH_ANCHOR_RE } from '../lib/time';
 import { AFFILIATION_KINDS, type AffiliationKind } from './affiliations';
 
 export class AffiliationStatsError extends Error {}
@@ -26,8 +27,6 @@ export interface AffiliationStats {
 	monthWins: number;
 	updatedAtMs: number;
 }
-
-export const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** UTC YYYY-MM anchor for a ms timestamp. */
 export const monthAnchorFromMs = (ms: number): string => {
