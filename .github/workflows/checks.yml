@@ -165,7 +165,7 @@ jobs:
             ${{ runner.os }}-eslint-cache-quality-
 
       # Install the juno CLI directly instead of using `junobuild/juno-action@full`.
-      # The docker image bundles its own toolchain — at the time of writing it
+      # The docker image bundles its own toolchain: at the time of writing it
       # ships `@icp-sdk/bindgen@0.3.0` while our `package.json` devDep is `^0.4.0`,
       # AND it fails to enumerate the `defineQuery` / `defineUpdate` exports from
       # `src/satellite/index.ts` (it rewrites `satellite_extension.did` as

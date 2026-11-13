@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# tag-markets.sh — bulk-set market metadata (tags) for markets that already
+# tag-markets.sh: bulk-set market metadata (tags) for markets that already
 # exist on the registry, from a deck JSON file.
 #
 # `deploy-markets.sh` only registers markets on-chain (add_series); their tags
@@ -14,7 +14,7 @@
 #   npm run tag:markets -- scripts/data/markets.deck-2026.json --production
 #
 # Auth: runs as the current dfx identity, which must be the markets' CREATOR
-# (the identity that ran deploy-markets.sh) or a satellite ADMIN — see
+# (the identity that ran deploy-markets.sh) or a satellite ADMIN; see
 # assertCanWriteMarketMetadata in src/satellite/services/market-metadata.services.ts.
 #
 # Only `categories` -> `tags` is written here (whyNow/events/suggested/subtitle

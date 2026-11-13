@@ -4,9 +4,9 @@
  * `en.ts` (the source of truth), with strictness driven by each locale's
  * registered `tier` in `locale.constants.ts`:
  *
- * - `live` — must exist and expose exactly the `en` key set (no missing,
+ * - `live`: must exist and expose exactly the `en` key set (no missing,
  *   no extra). This is the original behaviour.
- * - `soon` — may be absent (no catalog file at all) or partial (a subset of
+ * - `soon`: may be absent (no catalog file at all) or partial (a subset of
  *   `en` keys). Missing keys resolve through the locale's fallback chain to
  *   English at runtime, so a partial catalog is valid. Only `extra` keys
  *   (keys not present in `en`) are flagged.
@@ -28,7 +28,7 @@ const localeConstantsPath = path.resolve(scriptDir, '../src/lib/constants/locale
 /**
  * Extract all `'key': ...` entries from a catalog TS file. The catalogs
  * are mechanical exports (`export const xxMessages = { 'a': '...', ... }
- * as const;`) so a regex on the source is robust enough — and avoids
+ * as const;`) so a regex on the source is robust enough, and avoids
  * pulling in a TS loader just for this check.
  *
  * @param {string} filePath
@@ -77,7 +77,7 @@ const readRegistry = () => {
 	}
 
 	if (locales.length === 0) {
-		throw new Error('LOCALE_REGISTRY is empty — nothing to check.');
+		throw new Error('LOCALE_REGISTRY is empty: nothing to check.');
 	}
 
 	return locales;
@@ -121,7 +121,7 @@ const main = () => {
 		if (tier === 'soon') {
 			// `soon` locales fall back to English: an absent catalog is fine, and
 			// a partial one (missing some `en` keys) is fine too. We still reject
-			// `extra` keys — a key not in `en` can never resolve through fallback.
+			// `extra` keys: a key not in `en` can never resolve through fallback.
 			if (hasCatalog && extra.length > 0) {
 				failures.push({ locale, tier, missing: [], extra, status: 'extra-keys' });
 			}

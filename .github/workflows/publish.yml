@@ -6,7 +6,7 @@ on:
     tags:
       - v*
 
-# Shared group with deploy.yml — serializes all mutations of the satellite
+# Shared group with deploy.yml: serializes all mutations of the satellite
 # canister so a publish never overlaps deploy.yml's `functions upgrade`
 # (which stops the canister) or its `hosting deploy`.
 concurrency:

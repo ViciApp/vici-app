@@ -41,15 +41,15 @@ jobs:
       - name: Prepare
         uses: ./.github/actions/prepare
 
-      # `functions upgrade` STOPS the satellite while the wasm is swapped —
+      # `functions upgrade` STOPS the satellite while the wasm is swapped,
       # and the same canister serves the frontend, so users get the HTTP
       # gateway's "canister is stopped" page for the whole window. Skip the
       # upgrade when nothing feeding the satellite wasm changed since the
       # previous release: the script walks the real import graph of
       # `src/satellite/index.ts` (incl. shared `$lib/**` schemas/types), so a
       # frontend-only release ships through the zero-downtime
-      # `hosting deploy` alone. Any doubt — no previous tag, script failure,
-      # unresolved import — fails safe to upgrading.
+      # `hosting deploy` alone. Any doubt (no previous tag, script failure,
+      # unresolved import) fails safe to upgrading.
       - name: Check whether the satellite wasm changed
         id: satellite
         run: |
@@ -59,17 +59,17 @@ jobs:
             base="$(git describe --tags --match 'v*' --abbrev=0 HEAD 2>/dev/null || true)"
           fi
           if [ -z "${base}" ]; then
-            echo "No previous v* tag found — defaulting to upgrade."
+            echo "No previous v* tag found: defaulting to upgrade."
             upgrade=true
           elif ! upgrade="$(node scripts/satellite-upgrade-needed.mjs --base "${base}")"; then
-            echo "satellite-upgrade-needed.mjs failed — defaulting to upgrade."
+            echo "satellite-upgrade-needed.mjs failed: defaulting to upgrade."
             upgrade=true
           fi
-          # Only an explicit `false` skips the upgrade — any other output
+          # Only an explicit `false` skips the upgrade; any other output
           # (empty, garbled) is treated as "upgrade" so a script bug can
           # never silently skip a required wasm swap.
           if [ "${upgrade}" != "true" ] && [ "${upgrade}" != "false" ]; then
-            echo "Unexpected script output '${upgrade}' — defaulting to upgrade."
+            echo "Unexpected script output '${upgrade}': defaulting to upgrade."
             upgrade=true
           fi
           echo "base=${base:-<none>} upgrade=${upgrade}"

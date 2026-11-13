@@ -124,7 +124,7 @@ jobs:
         # works against the running emulator without extra plumbing.
         #
         # `pipefail` is needed so a failed `curl` doesn't get masked by a
-        # successful `sh` exit — otherwise the step "succeeds" with no dfx
+        # successful `sh` exit; otherwise the step "succeeds" with no dfx
         # installed and the next step fails with a confusing PATH error.
         env:
           DFX_VERSION: '0.26.1'
@@ -224,8 +224,8 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           # Named with a `snapshots-*` prefix to match the download pattern
-          # used by `finalize-snapshots-update`. The suffix is informational
-          # — if/when this job gains a shard or OS matrix, append those to
+          # used by `finalize-snapshots-update`. The suffix is informational:
+          # if/when this job gains a shard or OS matrix, append those to
           # the suffix to keep artifact names unique.
           name: snapshots-ubuntu-24.04
           path: e2e/snapshots/

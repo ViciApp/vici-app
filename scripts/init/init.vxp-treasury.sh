@@ -11,9 +11,9 @@
 # (the account that sends VXP in `src/satellite/services/vxp-onboarding.services.ts`).
 #
 # Env:
-#   VICI_JUNO_SATELLITE_PRINCIPAL — satellite canister id (default: dev id from juno.config.ts).
-#   VXP_RESERVE_ID — skip add_reserve and use this reserve (e.g. after first run).
-#   VXP_TREASURY_TOPUP_BASE_UNITS — minted amount (default: 1e11 = 10M VXP at 4 decimals).
+#   VICI_JUNO_SATELLITE_PRINCIPAL: satellite canister id (default: dev id from juno.config.ts).
+#   VXP_RESERVE_ID: skip add_reserve and use this reserve (e.g. after first run).
+#   VXP_TREASURY_TOPUP_BASE_UNITS: minted amount (default: 1e11 = 10M VXP at 4 decimals).
 #
 # shellcheck source=scripts/lib/utils.sh
 source "$(dirname "$0")/../lib/utils.sh" "$@"
