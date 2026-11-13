@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-# deploy-markets.sh — register a batch of prediction markets from a JSON file.
+# deploy-markets.sh: register a batch of prediction markets from a JSON file.
 #
 # Usage:
 #   ./scripts/deploy-markets.sh <markets-json-file> [--local|--staging|--production]
 #
 # `--staging` targets icdc-core staging; `--production` (alias `--ic`) targets icdc-core
-# production — the registry the live Vici frontend reads. See
+# production, the registry the live Vici frontend reads. See
 # docs/engine-integration.md ("icdc-core deployments: staging and production").
 #
 # Examples:
@@ -23,21 +23,21 @@
 #
 # NOT consumed by this script (kept for parity with the FE create flow, but
 # `add_series` has no field for them):
-#   - `categories` — market TAGS live off-chain in the Juno `MARKET_METADATA`
+#   - `categories`: market TAGS live off-chain in the Juno `MARKET_METADATA`
 #     collection (written via the satellite, see market-tags.services.ts), not
 #     on the registry series. A deck deployed here registers UNTAGGED; tag it
 #     separately (admin UI, or a future metadata seeder).
-#   - `inviteOnly` — trading_access is fixed to `Open` here.
-#   - `balanceDomain` — fixed to `ViciXp` here.
+#   - `inviteOnly`: trading_access is fixed to `Open` here.
+#   - `balanceDomain`: fixed to `ViciXp` here.
 #   - `consensus` and any other unknown keys are ignored.
 #
 # Markets are attributed to the Vici engine and settled by the VICI oracle.
 # Override via env:
-#   ORACLE_ID=...        (default VICI_ORACLE_V1 — the oracle must already exist;
+#   ORACLE_ID=...        (default VICI_ORACLE_V1; the oracle must already exist;
 #                         init.registry.sh registers it before calling this)
 #   VICI_ENGINE_ID=...   (default eng_0)
 #
-# NOTE: this only registers market metadata via `add_series` — it does NOT seed
+# NOTE: this only registers market metadata via `add_series`: it does NOT seed
 # prices, liquidity, or quotes. A freshly registered market opens with an empty
 # order book (mid-price defaults to 0.5 until real orders arrive).
 
@@ -95,7 +95,7 @@ for ((i = 0; i < length; i++)); do
 
 	# BCP 47 locale tag for the market's title/description. Defaults to "en" when
 	# the data file omits it. The icdc-core registry stores this as metadata and
-	# does NOT include it in `series_id` hashing — translations remain off-chain.
+	# does NOT include it in `series_id` hashing: translations remain off-chain.
 	locale=$(jq -r '.locale // "en"' <<<"$market" | sed 's/\\/\\\\/g; s/"/\\"/g')
 
 	expiration_iso=$(echo "$market" | jq -r '.expiryDate')
@@ -109,7 +109,7 @@ for ((i = 0; i < length; i++)); do
 	expiration_ns=$((expiration_seconds * 1000000000))
 
 	# Optional `startDate` (ISO): trading opens at this instant (registry
-	# `start_ns` — a staggered release schedule lives in the deck, not in cron).
+	# `start_ns`; a staggered release schedule lives in the deck, not in cron).
 	# Omitted => null => live immediately. add_series rejects a start in the past.
 	start_iso=$(jq -r '.startDate // empty' <<<"$market")
 	if [ -n "$start_iso" ]; then

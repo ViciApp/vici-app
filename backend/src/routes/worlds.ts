@@ -6,13 +6,13 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { badRequest } from '../lib/http';
+import { MONTH_ANCHOR_RE } from '../lib/time';
 import {
 	AffiliationStatsError,
 	getAffiliationStats,
 	listAffiliationChampionships,
 	listAffiliationStats,
-	listAffiliationStatsForMonth,
-	MONTH_ANCHOR_RE
+	listAffiliationStatsForMonth
 } from '../worlds/affiliation-stats';
 import {
 	AffiliationError,

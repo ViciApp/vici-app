@@ -2,7 +2,7 @@
 /**
  * Decide whether a release must run `juno functions upgrade`.
  *
- * The upgrade STOPS the satellite while the wasm is swapped — and the same
+ * The upgrade STOPS the satellite while the wasm is swapped, and the same
  * canister serves the frontend, so users staring at the app during that
  * window get the HTTP gateway's "canister is stopped" page. A release that
  * doesn't change the satellite wasm can skip the upgrade entirely and ship
@@ -12,8 +12,8 @@
  * changes: the satellite imports shared code from `#lib/**` (schemas, types,
  * constants, utils) and `#declarations`. So instead of a hand-maintained
  * path list, this script walks the REAL import graph from
- * `src/satellite/index.ts` — resolving the aliases declared in
- * `src/satellite/tsconfig.json` — and intersects that closure with the files
+ * `src/satellite/index.ts` (resolving the aliases declared in
+ * `src/satellite/tsconfig.json`) and intersects that closure with the files
  * changed since the previous release tag.
  *
  * Usage: node scripts/satellite-upgrade-needed.mjs --base <git-ref>
@@ -95,7 +95,7 @@ const readAliases = () => {
 
 /**
  * Resolve an import specifier to an absolute path candidate (without
- * extension probing), or `null` for bare npm packages — those are covered
+ * extension probing), or `null` for bare npm packages; those are covered
  * by the `package-lock.json` always-upgrade trigger instead.
  *
  * @param {{specifier: string, importerDir: string, aliases: {exact: Map<string, string>, wildcard: Map<string, string>}}} params
@@ -154,7 +154,7 @@ const probeFiles = (candidate) => {
  * Import specifiers of a TS source, EXCLUDING type-only edges
  * (`import type … from`, `export type … from`, and named imports where
  * every specifier is `type`-qualified). Type-only imports are erased at
- * compile time, so they cannot change the emitted satellite bundle —
+ * compile time, so they cannot change the emitted satellite bundle:
  * following them would e.g. drag the i18n catalogs into the closure via
  * `import type { MessageKey }` and force a canister stop on every
  * copy-only release. Schema/codegen side effects of type changes are
@@ -299,7 +299,7 @@ const main = () => {
 	console.error(`Diff ${base}..HEAD: ${changed.length} file(s); closure: ${closure.size} file(s).`);
 
 	if (unresolved.length > 0) {
-		// An import this script cannot follow means the closure is incomplete —
+		// An import this script cannot follow means the closure is incomplete:
 		// fail safe to upgrading and surface the gap in the CI log.
 		console.error(`Unresolved import(s), forcing upgrade:\n  ${unresolved.join('\n  ')}`);
 		console.log('true');
@@ -321,7 +321,7 @@ const main = () => {
 		return;
 	}
 
-	console.error('No satellite-relevant changes — the functions upgrade can be skipped.');
+	console.error('No satellite-relevant changes: the functions upgrade can be skipped.');
 	console.log('false');
 };
 

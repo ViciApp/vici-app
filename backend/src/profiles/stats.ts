@@ -6,6 +6,7 @@
 import { isNullish } from '@dfinity/utils';
 import { query, tx } from '../db/client';
 import { fanoutCategoryDeltasToLeagueStats } from '../leagues/stats';
+import { MONTH_ANCHOR_RE } from '../lib/time';
 import { ProfileValidationError } from './profile';
 
 // user_stats
@@ -177,9 +178,6 @@ export const getUserStats = async ({
 };
 
 // user_monthly_stats
-
-/** Regex for the `YYYY-MM` anchor format. */
-export const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** Upper bound on the per-month consensus sample array. */
 export const MONTHLY_CONSENSUS_LIMIT = 100;

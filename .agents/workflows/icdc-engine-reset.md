@@ -7,12 +7,12 @@ onboarding a new environment. It wipes all engines, role grants, oracles, and se
 re-registers the Vici engine and reseeds demo markets.
 
 icdc-core runs two deployments (see
-[engine-integration.md](../../docs/engine-integration.md) — "icdc-core deployments: staging
+[engine-integration.md](../../docs/engine-integration.md), "icdc-core deployments: staging
 and production"): the `staging` dfx network → icdc-core staging, and the `ic` network
 (via `--production`) → icdc-core production.
 
 > [!WARNING]
-> `--mode reinstall` **erases all registry state** for the target network — engines, role
+> `--mode reinstall` **erases all registry state** for the target network: engines, role
 > grants, oracles, and series are all wiped. Only run it when this is explicitly acceptable.
 > The Production section below operates on the live production registry.
 
@@ -30,7 +30,7 @@ dfx deploy --mode reinstall registry
 2. Re-register the Vici engine + reseed markets. Optionally export
    `DEV_CREATOR_PRINCIPAL` so your signed-in II user is auto-granted `Creator` +
    `OracleAdmin` on `eng_0` (see
-   [../../docs/engine-integration.md](../../docs/engine-integration.md) — "Persistence
+   [../../docs/engine-integration.md](../../docs/engine-integration.md), "Persistence
    across registry reinstalls"):
    // turbo
 
@@ -89,7 +89,7 @@ npm run test:engine-sync -- --staging
 ## Production
 
 > [!CAUTION]
-> This operates on icdc-core **production** (dfx network `ic`, registry `g5pxl-pyaaa-…`) — the
+> This operates on icdc-core **production** (dfx network `ic`, registry `g5pxl-pyaaa-…`), the
 > deployment the live Vici frontend talks to. A reinstall wipes production engine / role /
 > oracle / series state.
 

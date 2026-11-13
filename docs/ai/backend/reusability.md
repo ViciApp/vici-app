@@ -16,7 +16,7 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 | `keys.ts`       | HKDF key derivation: `Chain` / `CHAINS`, `deriveUserKey`, `deriveServiceKey`, `publicKeyForChain`, `userIcIdentity` / `userIcPrincipalText`, `treasuryIcIdentity` / `treasuryIcPrincipalText`, `adminIcIdentity`, `engineReaderIcIdentity` |
 | `logger.ts`     | `logger.{debug,info,warn,error}`, gated by `LOG_LEVEL`                                                                                                                                                                                     |
 | `rate-limit.ts` | `rateLimit`, `enforceLimit`, `resetRateLimits` (test seam)                                                                                                                                                                                 |
-| `time.ts`       | `msToNs`, `nowNs` (nanosecond timestamps for protocol fields and dedup stamps); `optionalMs` (nullable ms column read as `::text`)                                                                                                         |
+| `time.ts`       | `msToNs`, `nowNs` (nanosecond timestamps for protocol fields and dedup stamps); `optionalMs` (nullable ms column read as `::text`); `MONTH_ANCHOR_RE` (UTC `YYYY-MM` month anchor)                                                         |
 
 ## Shared modules outside `lib/`
 
@@ -26,8 +26,9 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 | `db/client.ts`                             | `pool`, `query`, `tx`, `TxQuery`, `isDbUnavailable`                                                                                            |
 | `auth/guard.ts`                            | `requireUser`, `requireAdmin`, `unauthenticated`, `forbidden`, `AuthedUser`                                                                    |
 | `engine/actors.ts`                         | reader / user / admin actor factories for Clearing, Registry and ledgers; `setEngineActorProvider` (test seam)                                 |
-| `engine/clearing.ts`, `engine/registry.ts` | typed canister wrappers                                                                                                                        |
-| `engine/cache.ts`                          | `cached({ key, ttlMs, load })`, `retain` / `getRetained`, `clearCache` (test seam)                                                             |
+| `engine/clearing.ts`, `engine/registry.ts` | typed canister wrappers; `registry.ts` also owns `VICI_ENGINE_ID` (the engine id the app is registered under)                                  |
+| `engine/cache.ts`                          | `cached({ key, ttlMs, load })`, `PUBLIC_READ_TTL_MS` (the one TTL of public engine reads), `retain` / `getRetained`, `clearCache` (test seam)  |
+| `engine/result.ts`                         | `expectOk(result, label)`: unwraps a candid `Result`, throwing with the method label on `Err`                                                  |
 | `engine/serialize.ts`                      | `toJson` (bigint → string, `Principal` → text, bytes → hex, recursive)                                                                         |
 | `engine/order-rejections.ts`               | `ORDER_REJECTIONS` (code table), `orderRejectedError`                                                                                          |
 | `chains/types.ts`                          | `ChainAdapter`, `DepositEvent`, `TransferParams`, `TransferStatus`; `TransferRejectedError`, `TransferUnverifiableError`, `ChainDisabledError` |

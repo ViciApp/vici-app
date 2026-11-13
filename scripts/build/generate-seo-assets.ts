@@ -1,5 +1,5 @@
 /**
- * generate-seo-assets — the crawler-facing surface of the SPA.
+ * generate-seo-assets: the crawler-facing surface of the SPA.
  *
  * The app ships as a single static shell (`adapter-static` with an
  * `index.html` fallback and `ssr = false`), so every URL serves identical
@@ -7,10 +7,10 @@
  * script runs as the second `predeploy` step (after `npm run build`, see
  * `juno.config.ts`) and emits into `build/`:
  *
- *   - `sitemap.xml` — the public static routes plus one URL per visible
+ *   - `sitemap.xml`: the public static routes plus one URL per visible
  *     market, so search engines discover the catalog at all.
  *   - ONE per-market copy of the built shell at `m/{slug~id8}` (the
- *     keyword-carrying canonical, same param the share sheet hands out —
+ *     keyword-carrying canonical, same param the share sheet hands out;
  *     see `#lib/utils/market-slug.utils`) with the market's
  *     title/description swapped into `<title>`, the description meta, the
  *     canonical link and the OG/Twitter tags, a per-market JSON-LD block,
@@ -19,19 +19,19 @@
  *
  * Exactly one page per market, deliberately: every emitted file is staged,
  * committed AND deleted again per deploy, and the satellite recomputes the
- * asset certification tree across all assets on those bulk operations —
+ * asset certification tree across all assets on those bulk operations:
  * deleting ~6k staged assets exceeded the IC's 40B-instruction message
  * limit (see junobuild/juno#2263; deploy applied, cleanup failed). The
  * plain-id routes (`/markets/{id}`, `/m/{id}`) intentionally get no copies.
  *
  * Contract with `src/app.html`: the head tags rewritten here must keep
- * matching the patterns below — the script hard-fails when a pattern stops
+ * matching the patterns below: the script hard-fails when a pattern stops
  * matching, so an app.html refactor can't silently strip the SEO layer.
  *
  * Visibility mirrors the live feed: only markets attributed to the Vici
  * engine, and only once their on-chain `start_ns` has passed (mirrors
  * `#lib/utils/wc-schedule.utils`'s reveal gate, generalized beyond World Cup
- * markets — a staggered drop with a future start stays hidden here too). A
+ * markets: a staggered drop with a future start stays hidden here too). A
  * market with no `start_ns` is live from registration and always visible.
  * An unrevealed market must never leak here: its question would be public
  * before its release.
@@ -40,14 +40,14 @@
  * the source of truth for resolution (`list_settled_series` +
  * `get_settlement_status`), and a settled market's outcome goes into the
  * title, the head of the description and the JSON-LD. Without it the page
- * advertises "Live community odds" over an empty book — thin content that
+ * advertises "Live community odds" over an empty book: thin content that
  * reads identically to a market nobody has traded yet, on exactly the pages
  * whose search demand peaks *after* the event.
  *
  * Failure is fatal by design: `hosting deploy --prune` deletes any asset
  * missing from `build/`, so a silently-degraded run would wipe every
  * previously deployed market page and the sitemap. The soft dependencies are
- * the clearing reads — live odds and resolution: a slow/unreachable clearing
+ * the clearing reads (live odds and resolution): a slow/unreachable clearing
  * canister must never fail a deploy, so they degrade to "no odds clause" and
  * "treat as unresolved" respectively, never a throw.
  */
@@ -89,7 +89,7 @@ const TITLE_SUFFIX = ' | Vici Social Markets';
 const DESCRIPTION_MAX_LENGTH = 160;
 
 // Registry descriptions are often a terse one-liner ("Both-to-score
-// market") — the brand tail turns the snippet into a call to action AND
+// market"); the brand tail turns the snippet into a call to action AND
 // seeds the "prediction market" keyword into the crawler-facing meta (the
 // phrase never appears in the rendered UI, only here in the head layer).
 const DESCRIPTION_TAIL = 'Live community odds on the Vici prediction market.';
@@ -125,7 +125,7 @@ const truncateAtWord = (value: string): string => {
  * What the crawler is told about a market's state. `resolved` without an
  * `outcome` is a real case: a categorical or non-canonical settlement price
  * that {@link settlementInputOutcome} refuses to label (see
- * `binaryPayoffLabel`) — the page then says "resolved" without naming a
+ * `binaryPayoffLabel`): the page then says "resolved" without naming a
  * winner rather than guessing one.
  */
 type Resolution =
@@ -134,12 +134,12 @@ type Resolution =
 /**
  * The plain-text meta description: for an open market the (truncated)
  * registry blurb, an optional live-odds sentence, then the brand/keyword
- * tail. Returns raw text — callers HTML-escape it for meta attributes and
+ * tail. Returns raw text; callers HTML-escape it for meta attributes and
  * pass it verbatim into JSON-LD.
  *
  * A resolved market leads with the outcome instead. Search engines cut the
  * snippet around {@link DESCRIPTION_MAX_LENGTH}, and the registry blurb alone
- * can fill that budget — so the answer goes in the one slot guaranteed to
+ * can fill that budget, so the answer goes in the one slot guaranteed to
  * survive truncation. This is the whole point of the resolved page: the
  * query it wins ("who won X") wants the result, not the question.
  */
@@ -194,8 +194,8 @@ const composeHeadline = ({
 	// an open market's, which is the one thing the resolved page exists to
 	// avoid. "Resolved" alone is still an accurate, differentiating headline.
 	return nonNullish(resolution.outcome)
-		? `${title} — Resolved: ${resolution.outcome}`
-		: `${title} — Resolved`;
+		? `${title} - Resolved: ${resolution.outcome}`
+		: `${title} - Resolved`;
 };
 
 /**
@@ -266,7 +266,7 @@ const midYesProbability = (orders: LimitOrder[]): number | undefined => {
 /**
  * Reads one market's current YES probability. Soft by contract: any clearing
  * error degrades to `undefined` (no odds clause) rather than failing the
- * deploy — odds are a nice-to-have on top of the always-present title/desc.
+ * deploy: odds are a nice-to-have on top of the always-present title/desc.
  */
 const fetchYesProbability = async ({
 	clearing,
@@ -281,7 +281,7 @@ const fetchYesProbability = async ({
 		return midYesProbability(orders);
 	} catch (err) {
 		// Soft dependency: swallow and fall through to "no odds" (returns
-		// undefined) rather than fail the deploy — odds are optional garnish.
+		// undefined) rather than fail the deploy: odds are optional garnish.
 		console.warn(`[seo-assets] odds read failed for ${seriesId}; emitting page without odds.`, err);
 	}
 };
@@ -289,8 +289,8 @@ const fetchYesProbability = async ({
 /**
  * The authoritative set of settled series ids, draining clearing's exclusive
  * cursor. Soft by the same contract as the odds read: an unreachable clearing
- * canister yields an empty set, so every market is emitted as unresolved —
- * today's behaviour — rather than failing the deploy.
+ * canister yields an empty set, so every market is emitted as unresolved
+ * (today's behaviour) rather than failing the deploy.
  */
 const listSettledSeriesIds = async (
 	clearing: ActorSubclass<ClearingService>
@@ -330,7 +330,7 @@ const listSettledSeriesIds = async (
 
 /**
  * One settled market's winning outcome. Soft: a failed read degrades to
- * "resolved, winner unnamed" — the page still tells the crawler the market is
+ * "resolved, winner unnamed": the page still tells the crawler the market is
  * over, which is the part that stops it reading as a live-odds page.
  */
 const fetchSettlementOutcome = async ({
@@ -484,7 +484,7 @@ const renderShell = ({
 	);
 };
 
-// Series ids and share params are used as path segments under `build/` — a
+// Series ids and share params are used as path segments under `build/`: a
 // separator, a `..` or any other unexpected character in one could make
 // `join` escape the build directory or collide with another generated page.
 // `~` is the slug/id separator of `marketShareParam`.
@@ -548,7 +548,7 @@ const buildMarketJsonLd = ({
 				description: descriptionText,
 				isPartOf: { '@id': `${PROD_ORIGIN}/#website` },
 				// Resolved pages compete for result queries ("who won…"), open ones
-				// for forecast queries — the keyword set follows the intent.
+				// for forecast queries; the keyword set follows the intent.
 				keywords: resolution.resolved
 					? `prediction market, ${collapseWhitespace(title)}, result, resolved, outcome`
 					: `prediction market, ${collapseWhitespace(title)}, community odds, forecast`
@@ -564,10 +564,10 @@ const buildMarketJsonLd = ({
 	});
 
 const main = async () => {
-	// E2E runs deploy against the emulator satellite — no mainnet registry
+	// E2E runs deploy against the emulator satellite: no mainnet registry
 	// there, and no crawler either.
 	if (process.env.JUNO_EMULATOR === 'true') {
-		console.log('[seo-assets] JUNO_EMULATOR=true — skipping SEO asset generation.');
+		console.log('[seo-assets] JUNO_EMULATOR=true: skipping SEO asset generation.');
 
 		return;
 	}
@@ -576,7 +576,7 @@ const main = async () => {
 
 	// Clearing's settlement queries reject the anonymous principal (IC0406,
 	// "Anonymous caller not authorised") while accepting ANY authenticated
-	// one — the guard is a spam gate, not an authorisation check, and every
+	// one: the guard is a spam gate, not an authorisation check, and every
 	// endpoint read here is public information. So the deploy signs with a
 	// throwaway keypair rather than a managed key: nothing to store, nothing
 	// to rotate, no privileged principal in CI.
@@ -608,13 +608,13 @@ const main = async () => {
 
 	if (visible.length === 0) {
 		throw new Error(
-			`No visible markets found (fetched ${series.length} series, ${viciSeries.length} for engine ${ENGINE_ID}) — refusing to emit an empty SEO surface.`
+			`No visible markets found (fetched ${series.length} series, ${viciSeries.length} for engine ${ENGINE_ID}): refusing to emit an empty SEO surface.`
 		);
 	}
 
 	// Resolution first: it decides which per-market read is worth making. A
 	// settled market's book is empty, so the odds call would spend a round trip
-	// to return `undefined` — ask for its outcome instead.
+	// to return `undefined`; ask for its outcome instead.
 	const settledIds = await listSettledSeriesIds(clearing);
 
 	const resolutionByIndex = await mapWithConcurrency<Series, Resolution>({

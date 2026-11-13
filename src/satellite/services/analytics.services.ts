@@ -22,7 +22,7 @@
  * satellite.
  */
 
-import { ZERO } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import {
@@ -51,13 +51,10 @@ import {
 	setDocStore
 } from '@junobuild/functions/sdk';
 
-const MS_PER_NS = 1_000_000n;
-const MS_PER_DAY = 86_400_000;
-
 /** Defensive cap so one call can't write an unbounded number of docs. */
 const MAX_EVENTS_PER_BATCH = 100;
 
-const nowMs = (): number => Number(time() / MS_PER_NS);
+const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /**
  * Re-nest the flat wire dimensions back into a `props` object, dropping
@@ -106,7 +103,7 @@ const bumpRollup = ({
 	names: AnalyticsEventName[];
 }): void => {
 	try {
-		const epochDay = Math.floor(tsMs / MS_PER_DAY);
+		const epochDay = Math.floor(tsMs / DAY_IN_MS);
 		const key = `${epochDay}`;
 
 		const current = getDocStore({
@@ -127,7 +124,7 @@ const bumpRollup = ({
 
 		const rollup: EventRollupDoc = {
 			epochDay,
-			dayStartMs: epochDay * MS_PER_DAY,
+			dayStartMs: epochDay * DAY_IN_MS,
 			counts: Object.keys(counts).map((name): EventCount => ({
 				name: name as AnalyticsEventName,
 				count: counts[name]

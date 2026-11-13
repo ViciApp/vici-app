@@ -15,8 +15,8 @@ When two sources disagree, the higher one wins:
 4. **This file + sibling pages under `docs/ai/`**: policy.
 5. [`AGENTS.md`](../../AGENTS.md): universal entry, points at the above.
 6. **Tool-specific layers** ([`CLAUDE.md`](../../CLAUDE.md),
-   [`.claude/rules/`](../../.claude/rules/), `.cursor/rules/`,
-   `.github/copilot-instructions.md`). These never contradict 1–5.
+   [`.claude/rules/`](../../.claude/rules/), and the pointer file of any
+   other tool). These never contradict 1–5.
 
 If an agent finds a contradiction, the agent **stops and asks** instead of
 guessing.
@@ -82,7 +82,7 @@ them without an explicit ask in the user prompt.
 | `.github/workflows/**`                                                 | CI integrity. Only `ci(...)` PRs touch these.                                     | repo maintainers |
 | `.github/CODEOWNERS`, `.github/actions/**`                             | Review routing & action policy.                                                   | repo maintainers |
 | `package.json` (deps), `package-lock.json`                             | New / upgraded dependencies require explicit approval.                            | repo maintainers |
-| `dfx.json`, `canister_ids.json`                                        | Canister wiring.                                                                  | repo maintainers |
+| `dfx.json`                                                             | Canister wiring.                                                                  | repo maintainers |
 | `juno.config.ts`, `juno.collections.json`                              | Collection rules + satellite IDs. Schema drift breaks data + auth.                | repo maintainers |
 | `src/satellite/satellite.did`, `src/satellite/satellite_extension.did` | Public Candid interface of the satellite. Generated; regenerate, never hand-edit. | -                |
 | `src/satellite/api-schemas.ts`                                         | Generated schema bindings used by `defineQuery` / `defineUpdate`.                 | -                |
@@ -272,8 +272,8 @@ regenerating bindings should pull disjoint slices.
 
 ### Tool-specific layers stay thin
 
-Files under [`.claude/rules/`](../../.claude/rules/),
-`.cursor/rules/`, `.github/copilot-instructions.md`, and the like:
+Files under [`.claude/rules/`](../../.claude/rules/), and the pointer
+file any other tool gets:
 
 - Are **pointers** into `docs/ai/`, never replacements.
 - May surface 3–5 high-violation reminders so they land in the tool's

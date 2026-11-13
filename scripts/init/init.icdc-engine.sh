@@ -8,14 +8,14 @@
 # with the Juno `roles` collection.
 #
 # Engine admins (i.e. principals that can grant/revoke roles on this engine):
-#   1. The Juno satellite canister — so the `onSetDoc(ROLES)` hook can propagate changes.
+#   1. The Juno satellite canister, so the `onSetDoc(ROLES)` hook can propagate changes.
 #   2. The `SATELLITE_CONTROLLERS` principals (see src/lib/constants/controllers.constants.ts)
-#      — so human admins can reach the engine directly via `dfx` if the hook breaks.
-#   3. The current `dfx identity` that runs this script — typically already a controller,
+#      so human admins can reach the engine directly via `dfx` if the hook breaks.
+#   3. The current `dfx identity` that runs this script, typically already a controller,
 #      added for convenience during local development.
 #
 # The engine declares `Creator` + `OracleAdmin` as `allowed_roles`. See `VICI_ENGINE_ID` in
-# src/lib/constants/icdc.constants.ts (currently hardcoded to `eng_0` — safe because we
+# src/lib/constants/icdc.constants.ts (currently hardcoded to `eng_0`, safe because we
 # reset the registry before first run and Vici is the first engine registered).
 #
 # Prerequisites:
@@ -23,7 +23,7 @@
 #   - Current `dfx` identity is a **controller** of the registry canister.
 #
 # Env:
-#   VICI_JUNO_SATELLITE_PRINCIPAL — satellite canister id (default: local dev id).
+#   VICI_JUNO_SATELLITE_PRINCIPAL: satellite canister id (default: local dev id).
 #
 # shellcheck source=scripts/lib/utils.sh
 source "$(dirname "$0")/../lib/utils.sh" "$@"
@@ -72,7 +72,7 @@ LIST_OUT="$(dfx canister call --network "$NETWORK" registry list_engines 2>/dev/
 
 # Extract the `engine_id` from the same top-level `record { ... }` whose
 # `name = "$ENGINE_NAME"`. A naive `grep | head -1` is unsafe once there is more than one
-# engine on the registry — it would return the first engine_id in list_engines rather
+# engine on the registry: it would return the first engine_id in list_engines rather
 # than the one we care about. Brace-count to isolate each top-level engine record; nested
 # `opt record { ... }` (description) and `vec { record { ... } }` (role_grants) are
 # correctly skipped because we only emit on depth 2 → 1 transitions.

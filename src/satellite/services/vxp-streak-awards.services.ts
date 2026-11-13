@@ -3,13 +3,14 @@ import { Collection } from '#lib/constants/collections.constants.ts';
 import { VXP_STREAK_BONUSES } from '#lib/constants/vxp-economy.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
 
 /**
  * Streak-milestone hook. Runs after every `profiles` write; when the
@@ -25,6 +26,8 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  * Composes alongside `onProfileSetForVxpOnboarding` and
  * `onProfileSetForReferralCode` in the profile dispatch table.
  */
+
+const AWARD_TYPE = 'streak' as const;
 
 const STREAK_MILESTONES: readonly number[] = Object.freeze(
 	Object.keys(VXP_STREAK_BONUSES)
@@ -55,65 +58,6 @@ const milestonesCrossed = ({ prev, next }: { prev: number; next: number }): numb
 
 const streakAwardKey = (milestone: number): string => `streak_${milestone}`;
 
-const persistAward = ({
-	caller,
-	recipient,
-	awardKey,
-	doc
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	awardKey: string;
-	doc: VxpAwardDoc;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType: 'streak', awardKey });
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData(doc)
-		}
-	});
-};
-
-const updateAward = ({
-	caller,
-	recipient,
-	awardKey,
-	patch
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	awardKey: string;
-	patch: Partial<VxpAwardDoc> & Pick<VxpAwardDoc, 'status'>;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType: 'streak', awardKey });
-	const existing = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key,
-		caller
-	});
-
-	if (isNullish(existing)) {
-		return;
-	}
-
-	const existingDoc = decodeDocData<VxpAwardDoc>(existing.data);
-	const next: VxpAwardDoc = { ...existingDoc, ...patch };
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData(next),
-			version: existing.version
-		}
-	});
-};
-
 const payStreakMilestone = async ({
 	ledger,
 	caller,
@@ -136,7 +80,7 @@ const payStreakMilestone = async ({
 	// Idempotency: if the award doc already exists, skip — the assert
 	// rejects duplicate creations anyway, but checking up front avoids
 	// the wasted ledger call.
-	const existingKey = vxpAwardKey({ recipient, awardType: 'streak', awardKey });
+	const existingKey = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey });
 	const existing = getDocStore({
 		collection: Collection.VXP_AWARDS,
 		key: existingKey,
@@ -149,7 +93,7 @@ const payStreakMilestone = async ({
 
 	const pending: VxpAwardDoc = {
 		recipient,
-		awardType: 'streak',
+		awardType: AWARD_TYPE,
 		awardKey,
 		amountBaseUnits: amount.toString(),
 		status: 'pending',
@@ -157,7 +101,7 @@ const payStreakMilestone = async ({
 	};
 
 	try {
-		persistAward({ caller, recipient, awardKey, doc: pending });
+		persistAward({ caller, recipient, awardType: AWARD_TYPE, awardKey, doc: pending });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 
@@ -193,6 +137,7 @@ const payStreakMilestone = async ({
 		updateAward({
 			caller,
 			recipient,
+			awardType: AWARD_TYPE,
 			awardKey,
 			patch: {
 				status: 'paid',
@@ -217,6 +162,7 @@ const payStreakMilestone = async ({
 	updateAward({
 		caller,
 		recipient,
+		awardType: AWARD_TYPE,
 		awardKey,
 		patch: {
 			status: 'failed',

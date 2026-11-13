@@ -10,7 +10,7 @@
 #   5. `revoke_engine_role` reverses the grant.
 #
 # Does NOT exercise the satellite hook path (that requires writing to the Juno
-# datastore, which in turn requires a signed Juno SDK client — out of scope here).
+# datastore, which in turn requires a signed Juno SDK client, out of scope here).
 # To verify the hook end-to-end, run this script first, then manually:
 #   a. Log into the app with an admin account.
 #   b. Assign the CREATOR role to a test principal via the admin panel.
@@ -78,16 +78,16 @@ $ENGINE_RECORD"
 fi
 pass "engine name is $ENGINE_NAME"
 
-# 2. Admins include satellite principal — scoped to this engine's record.
+# 2. Admins include satellite principal, scoped to this engine's record.
 if ! echo "$ENGINE_RECORD" | grep -q "principal \"$SATELLITE_PRINCIPAL\""; then
   fail "satellite principal $SATELLITE_PRINCIPAL not in engine admins. Run scripts/init/init.icdc-engine.sh to reconcile."
 fi
 pass "satellite principal is an engine admin"
 
-# 3. Allowed roles include Creator and OracleAdmin — scoped to this engine's record.
+# 3. Allowed roles include Creator and OracleAdmin, scoped to this engine's record.
 # Engines are laid out roughly as:
 #   record { engine_id = "..."; ... allowed_roles = vec { variant { Creator }; variant { OracleAdmin } }; ... }
-# We look for each variant independently inside `allowed_roles` — we cannot use a single
+# We look for each variant independently inside `allowed_roles`: we cannot use a single
 # `[^}]*` between them because `}` also terminates the inner `variant { ... }` braces.
 ALLOWED_ROLES_LINE="$(echo "$ENGINE_RECORD" | grep -oE 'allowed_roles = vec \{[^;]*(\};[^;]*)*\};' | head -1)"
 if [ -z "$ALLOWED_ROLES_LINE" ]; then
@@ -104,7 +104,7 @@ if ! echo "$ALLOWED_ROLES_LINE" | grep -qE 'variant \{ OracleAdmin \}'; then
 fi
 pass "allowed_roles contains OracleAdmin"
 
-# 4. grant_engine_role works as controller (local only — skipping on staging to avoid state pollution).
+# 4. grant_engine_role works as controller (local only; skipping on staging to avoid state pollution).
 if [ "$NETWORK" = "local" ]; then
   echo "Granting Creator role to $TEST_PRINCIPAL (dry-run check)..."
   GRANT_OUT="$(dfx canister call --network "$NETWORK" registry grant_engine_role "(record {

@@ -57,7 +57,11 @@ one pattern. Each of these has bitten a PR before:
 3. **Service:** new
    `src/satellite/services/vxp-<surface>-awards.services.ts`
    mirroring an existing one (the streak service is the smallest
-   template). Build the doc key with `vxpAwardKey()`, pay through
+   template). Build the doc key with `vxpAwardKey()`, write the
+   `pending` doc and its `paid` / `failed` outcome with `persistAward` /
+   `updateAward` from
+   [`vxp-awards.services.ts`](../../../src/satellite/services/vxp-awards.services.ts),
+   pay through
    [`vxp-payout.services.ts`](../../../src/satellite/services/vxp-payout.services.ts).
 4. **Trigger:** a hook works only on a **client-written** collection
    (e.g. `profiles`, `activities`); anything fired from an endpoint

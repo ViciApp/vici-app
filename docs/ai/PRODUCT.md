@@ -140,14 +140,14 @@ scrolling by sticking to whichever edge of the card its slot has passed,
 settling back inline when the slot is on screen. See
 [`specs/2026-06-26-feat-friends-you-row-sticky.md`](./spec-driven-development/specs/2026-06-26-feat-friends-you-row-sticky.md).
 
-### Arena Friends — the "Recent results" digest
+### Arena Friends: the "Recent results" digest
 
 The Arena → Friends section shows a per-friend **results** digest, not a
 per-call activity stream. Each row summarises one friend's resolved
-record over a recent window (a calendar month): their win–loss tally and
+record over a recent window (a calendar month): their win/loss tally and
 signed net VXP (win/loss coloured), sourced from the friend-scoped league
-standings aggregate in one bulk read, plus a **standout** line — `incl.
-"{market}"` — naming the friend's resolved prediction with the largest
+standings aggregate in one bulk read, plus a **standout** line (`incl.
+"{market}"`) naming the friend's resolved prediction with the largest
 absolute net VXP (tie-broken to the most recent), read from the
 `resolved_results` collection. A relative time window ("2h ago") comes
 from that standout's resolution time. Friends with no resolved prediction
