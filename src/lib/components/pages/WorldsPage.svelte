@@ -15,8 +15,7 @@
 	import {
 		claimWorldsPodiumPrize,
 		listAffiliationStats,
-		listWorldsMemberCounts,
-		previousMonthAnchor
+		listWorldsMemberCounts
 	} from '#lib/services/worlds.services.ts';
 	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -31,6 +30,7 @@
 		formatAccuracyPercent
 	} from '#lib/utils/affiliation-stats.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { previousMonthAnchor } from '#lib/utils/month-anchor.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
 

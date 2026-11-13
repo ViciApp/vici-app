@@ -4,7 +4,6 @@ import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
 import {
 	matchCountForRound,
-	monthAnchorFromMs,
 	roundWindow,
 	TOURNAMENT_BRACKET_SIZE,
 	TOURNAMENT_MIN_CALLS_PER_MATCH,
@@ -17,6 +16,7 @@ import {
 	type TournamentRound
 } from '#lib/types/tournament.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { getLeagueStatsFn } from '#satellite/services/league-stats.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';

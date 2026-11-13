@@ -98,17 +98,3 @@ export const affiliationStatsSnapshotKey = ({
  * to keep the leaderboard populated as activity ramps.
  */
 export const MIN_CALLS_FOR_RANK = 50;
-
-/**
- * Produce the YYYY-MM anchor used by `monthAnchor`. Server-side this
- * is computed against the satellite's IC time; FE callers should
- * pass `Date.now()` (the hook never round-trips through the FE so
- * there's no clock-skew risk).
- */
-export const monthAnchorFromMs = (ms: number): string => {
-	const d = new Date(ms);
-	const year = d.getUTCFullYear();
-	const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-
-	return `${year}-${month}`;
-};

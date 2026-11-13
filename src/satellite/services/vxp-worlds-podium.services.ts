@@ -1,9 +1,10 @@
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VXP_WORLDS_PODIUM } from '#lib/constants/vxp-economy.constants.ts';
-import { affiliationStatsSnapshotKey, monthAnchorFromMs } from '#lib/types/affiliation-stats.ts';
+import { affiliationStatsSnapshotKey } from '#lib/types/affiliation-stats.ts';
 import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import {
 	hasFrozenMonthlySnapshotFn,

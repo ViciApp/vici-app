@@ -155,15 +155,6 @@ export const tournamentMatchKey = ({
 }): string => `${tournamentId}/${round}/${index}`;
 
 /**
- * UTC `YYYY-MM` anchor from a ms timestamp.
- */
-export const monthAnchorFromMs = (ms: number): string => {
-	const d = new Date(ms);
-
-	return `${d.getUTCFullYear()}-${(d.getUTCMonth() + 1).toString().padStart(2, '0')}`;
-};
-
-/**
  * UTC ms timestamp of the first day of the month containing `ms`.
  */
 export const monthStartMs = (ms: number): number => {
@@ -207,19 +198,6 @@ export const roundWindow = ({
 	const startMs = tournamentMonthStartMs + roundIndex * TOURNAMENT_ROUND_DURATION_MS;
 
 	return { startMs, endMs: startMs + TOURNAMENT_ROUND_DURATION_MS };
-};
-
-/**
- * The previous-month anchor relative to `nowMs`. Used by the FE to
- * default the draw trigger to "last completed month".
- */
-export const previousMonthAnchor = (nowMs: number): string => {
-	const d = new Date(nowMs);
-	d.setUTCDate(1);
-	d.setUTCHours(0, 0, 0, 0);
-	d.setUTCMonth(d.getUTCMonth() - 1);
-
-	return monthAnchorFromMs(d.getTime());
 };
 
 // Re-export `PrincipalText` so consumers don't need to import from
