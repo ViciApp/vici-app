@@ -87,30 +87,30 @@ interface ClaimBlobPayload {
 	sig: string;
 }
 
+const isClaimBlobPayload = (value: unknown): value is ClaimBlobPayload => {
+	if (isNullish(value) || typeof value !== 'object') {
+		return false;
+	}
+
+	const payload = value as Record<string, unknown>;
+
+	return (
+		payload.v === 1 &&
+		typeof payload.aud === 'string' &&
+		typeof payload.principal === 'string' &&
+		typeof payload.issuedAtMs === 'number' &&
+		Number.isSafeInteger(payload.issuedAtMs) &&
+		nonNullish(payload.chain) &&
+		typeof payload.chain === 'object' &&
+		typeof payload.sig === 'string'
+	);
+};
+
 const parseBlob = (blob: string): ClaimBlobPayload | null => {
 	try {
 		const decoded: unknown = JSON.parse(Buffer.from(blob, 'base64url').toString('utf8'));
 
-		if (isNullish(decoded) || typeof decoded !== 'object') {
-			return null;
-		}
-
-		const payload = decoded as Record<string, unknown>;
-
-		if (
-			payload.v !== 1 ||
-			typeof payload.aud !== 'string' ||
-			typeof payload.principal !== 'string' ||
-			typeof payload.issuedAtMs !== 'number' ||
-			!Number.isSafeInteger(payload.issuedAtMs) ||
-			isNullish(payload.chain) ||
-			typeof payload.chain !== 'object' ||
-			typeof payload.sig !== 'string'
-		) {
-			return null;
-		}
-
-		return payload as unknown as ClaimBlobPayload;
+		return isClaimBlobPayload(decoded) ? decoded : null;
 	} catch {
 		return null;
 	}
