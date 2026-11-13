@@ -7,20 +7,15 @@ import {
 import type { LeagueDoc } from '#lib/types/league.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { listMyLeaguesFn } from '#satellite/services/cohort.services.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
-import {
-	countDocsStore,
-	decodeDocData,
-	encodeDocData,
-	getDocStore,
-	setDocStore
-} from '@junobuild/functions/sdk';
+import { countDocsStore, decodeDocData, getDocStore } from '@junobuild/functions/sdk';
 
 /**
  * League-founder hook. Runs after every `leagues` write; on the
@@ -45,65 +40,6 @@ import {
  */
 
 const AWARD_TYPE = 'league_founder' as const;
-
-const persistAward = ({
-	caller,
-	recipient,
-	leagueId,
-	doc
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	leagueId: string;
-	doc: VxpAwardDoc;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey: leagueId });
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData(doc)
-		}
-	});
-};
-
-const updateAward = ({
-	caller,
-	recipient,
-	leagueId,
-	patch
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	leagueId: string;
-	patch: Partial<VxpAwardDoc> & Pick<VxpAwardDoc, 'status'>;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey: leagueId });
-	const existing = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key,
-		caller
-	});
-
-	if (isNullish(existing)) {
-		return;
-	}
-
-	const existingDoc = decodeDocData<VxpAwardDoc>(existing.data);
-	const next: VxpAwardDoc = { ...existingDoc, ...patch };
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData(next),
-			version: existing.version
-		}
-	});
-};
 
 /**
  * Count of `league_founder` award docs this recipient already owns. The
@@ -184,7 +120,7 @@ const payFounderReward = async ({
 	};
 
 	try {
-		persistAward({ caller, recipient, leagueId, doc: pending });
+		persistAward({ caller, recipient, awardType: AWARD_TYPE, awardKey: leagueId, doc: pending });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 
@@ -220,7 +156,8 @@ const payFounderReward = async ({
 		updateAward({
 			caller,
 			recipient,
-			leagueId,
+			awardType: AWARD_TYPE,
+			awardKey: leagueId,
 			patch: {
 				status: 'paid',
 				paidAtMs: Date.now(),
@@ -244,7 +181,8 @@ const payFounderReward = async ({
 	updateAward({
 		caller,
 		recipient,
-		leagueId,
+		awardType: AWARD_TYPE,
+		awardKey: leagueId,
 		patch: {
 			status: 'failed',
 			errorMessage: result.error
