@@ -1,10 +1,6 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
-import {
-	MIN_CALLS_FOR_RANK,
-	monthAnchorFromMs,
-	type AffiliationStatsDoc
-} from '#lib/types/affiliation-stats.ts';
+import { MIN_CALLS_FOR_RANK, type AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
 import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
 import type { BattleDoc } from '#lib/types/battle.ts';
 import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
@@ -15,6 +11,7 @@ import {
 } from '#lib/types/league.ts';
 import type { Relation } from '#lib/types/relation.ts';
 import type { UserMonthlyStatsDoc } from '#lib/types/user-monthly-stats.ts';
+import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';

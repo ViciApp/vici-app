@@ -2,12 +2,12 @@ import type * as ClearingDid from '#declarations/clearing/clearing.d.ts';
 import { functions } from '#declarations/satellite/satellite.api.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { monthAnchorFromMs } from '#lib/types/affiliation-stats.ts';
 import {
 	MONTHLY_CONSENSUS_LIMIT,
 	userMonthlyStatsKey,
 	type UserMonthlyStatsDoc
 } from '#lib/types/user-monthly-stats.ts';
+import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { eventExecutionPrice, isSettledEvent } from '#lib/utils/resolved-position.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import { getDoc, setDoc } from '@junobuild/core';

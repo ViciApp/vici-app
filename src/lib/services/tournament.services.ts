@@ -1,10 +1,6 @@
 import { functions } from '#declarations/satellite/satellite.api.ts';
-import {
-	monthAnchorFromMs,
-	type TournamentDoc,
-	type TournamentMatchDoc,
-	type TournamentRound
-} from '#lib/types/tournament.ts';
+import type { TournamentDoc, TournamentMatchDoc, TournamentRound } from '#lib/types/tournament.ts';
+import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	claimTournamentPrize as claimTournamentPrizeWeb2,
