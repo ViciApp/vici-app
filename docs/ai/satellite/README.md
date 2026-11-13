@@ -57,8 +57,9 @@ What the code will not tell you:
 
 - **`@junobuild/core` is FE-only.** Never import it from the satellite;
   satellite code uses `@junobuild/functions` primitives directly.
-- **The satellite has its own [`tsconfig.json`](../../../src/satellite/tsconfig.json)**:
-  no DOM-only imports from `#lib/`.
+- **The satellite has its own [`tsconfig.json`](../../../src/satellite/tsconfig.json)**,
+  checked by `npm run check`. It keeps the `dom` lib because dependency typings
+  need it, so it does not catch DOM use: no DOM-only imports from `#lib/`.
 - **`src/satellite/api-schemas.ts`, `satellite.did`, `satellite_extension.did`
   are generated** by `npm run juno:functions:build`. Don't hand-edit.
 
