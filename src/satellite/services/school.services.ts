@@ -27,6 +27,7 @@
  * attempt cap + TTL + rate limit (see `school-picker.constants.ts`).
  */
 
+import { DAY_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	SCHOOL_CODE_MAX_ATTEMPTS,
@@ -68,7 +69,6 @@ import {
 	setDocStore
 } from '@junobuild/functions/sdk';
 
-const DAY_NS = 86_400_000_000_000n;
 const MANAGEMENT_CANISTER_ID = 'aaaaa-aa';
 
 /**
@@ -375,7 +375,7 @@ export const submitSchoolFn = async ({
 		caller: admin,
 		memberText,
 		email: lowerEmail,
-		sinceNs: time() - DAY_NS
+		sinceNs: time() - DAY_IN_NANOSECONDS
 	});
 
 	if (byPrincipal >= SCHOOL_VERIFY_DAILY_CAP || byEmail >= SCHOOL_VERIFY_DAILY_CAP) {

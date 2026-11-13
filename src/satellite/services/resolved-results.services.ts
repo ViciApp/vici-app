@@ -1,5 +1,9 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
-import { RESOLVED_RESULTS_RETENTION_MS, ZERO } from '#lib/constants/app.constants.ts';
+import {
+	MILLISECOND_IN_NANOSECONDS,
+	RESOLVED_RESULTS_RETENTION_MS,
+	ZERO
+} from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
@@ -20,9 +24,7 @@ import {
 	setDocStore
 } from '@junobuild/functions/sdk';
 
-const MS_PER_NS = 1_000_000n;
-
-const nowMs = (): number => Number(time() / MS_PER_NS);
+const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /**
  * A satellite controller principal, used as the `caller` for the controllers-scoped

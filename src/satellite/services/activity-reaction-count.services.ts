@@ -1,3 +1,4 @@
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import type { ActivityReactionCount } from '#lib/types/social.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
@@ -13,9 +14,7 @@ import {
 	setDocStore
 } from '@junobuild/functions/sdk';
 
-const MS_PER_NS = 1_000_000n;
-
-const nowMs = (): number => Number(time() / MS_PER_NS);
+const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /**
  * A satellite controller principal, used as the `caller` for writes to the controllers-scoped

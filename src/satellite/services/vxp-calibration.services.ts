@@ -1,5 +1,5 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
-import { ZERO } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS, HOUR_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
 import {
 	CLEARING_CANISTER_ID,
 	REGISTRY_CANISTER_ID,
@@ -56,9 +56,6 @@ import {
  */
 
 const CALIBRATION_AWARD_TYPE = 'calibration';
-
-const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
 
 type CalibrationReason =
 	| 'anonymous'
@@ -210,8 +207,8 @@ const checkRateLimits = ({
 	// anchor it to the start to restrict the store-level scan to just this
 	// caller's calibration docs instead of listing the whole collection.
 	const prefix = vxpAwardKey({ recipient, awardType: CALIBRATION_AWARD_TYPE, awardKey: '' });
-	const hourCutoffNs = BigInt(nowMs - HOUR_MS) * 1_000_000n;
-	const dayCutoffNs = BigInt(nowMs - DAY_MS) * 1_000_000n;
+	const hourCutoffNs = BigInt(nowMs - HOUR_IN_MS) * 1_000_000n;
+	const dayCutoffNs = BigInt(nowMs - DAY_IN_MS) * 1_000_000n;
 
 	const { items } = listDocsStore({
 		collection: Collection.VXP_AWARDS,
