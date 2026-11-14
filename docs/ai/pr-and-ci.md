@@ -229,8 +229,9 @@ GitHub's single _pending_ slot per concurrency group: if a **third** member
 queues behind a running one and a waiting one, the older waiting run is silently
 cancelled (`Canceling since a higher priority waiting request for juno-satellite
 exists`). That bit us twice: the standalone `upgrade.yml` (folded into
-`deploy.yml`) and the push-triggered `config.yml` (now manual-only) each added a
-third member. Don't reintroduce one: keep the group at these two `v*`-triggered
+`deploy.yml`) and the push-triggered `config.yml` (removed; the production `juno config apply` is now a local
+command, while the e2e job still applies the development config to its
+emulator) each added a third member. Don't reintroduce one: keep the group at these two `v*`-triggered
 workflows and don't add a third.
 
 If your change is doc-only, the `format` and `lint` jobs still run because

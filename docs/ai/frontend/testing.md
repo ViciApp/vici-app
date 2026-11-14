@@ -323,7 +323,9 @@ e2e/
 ├── pages/                # Page-Object Model classes
 │   └── home.page.ts
 ├── snapshots/            # Playwright visual baselines, committed
+├── arena-friend-request-deeplink.spec.ts # friend-request deep link opens the Arena Friends tab
 ├── auth.spec.ts          # dev sign-in (via onboarding) + Settings sign-out
+├── global-setup.ts       # fails fast when the dev server or the emulator is unreachable
 ├── homepage.spec.ts      # signed-in markets board: loading + loaded
 ├── invite.spec.ts        # /join + /i invite-link landing (anonymous)
 ├── moved-to-new-app.spec.ts # legacy build: /signup + no-profile sign-in go to the new app
@@ -333,9 +335,8 @@ e2e/
 
 ### Visual snapshots
 
-The snapshot specs end with `await expect(page).toHaveScreenshot(...)`; that's
-the same flow `oisy-wallet` and `gix-components` use: the PNG baselines
-live under [`e2e/snapshots/`](../../../e2e/snapshots/) and **are
+The snapshot specs end with `await expect(page).toHaveScreenshot(...)`; the
+PNG baselines live under [`e2e/snapshots/`](../../../e2e/snapshots/) and **are
 committed to the repo**, so any visual regression shows up directly in
 the PR diff.
 
