@@ -15,8 +15,9 @@ import { verifyClaimBlob, type ClaimRejectReason } from '../auth/claim';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { clientIp } from '../lib/http';
 import { enforceLimit } from '../lib/rate-limit';
+import { MINUTE_IN_MS } from '../lib/time';
 
-const TEN_MIN_MS = 10 * 60 * 1000;
+const TEN_MIN_MS = 10 * MINUTE_IN_MS;
 
 /** Generous ceiling for a delegation chain with a canister-signature
  * certificate; anything larger is garbage not worth parsing. */

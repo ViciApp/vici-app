@@ -34,8 +34,9 @@ import {
 import { constantTimeEqual, randomToken, signState, verifySignedState } from '../lib/crypto';
 import { clientIp, serviceUnavailable, type StatusContext } from '../lib/http';
 import { enforceLimit } from '../lib/rate-limit';
+import { MINUTE_IN_MS } from '../lib/time';
 
-const TEN_MIN_MS = 10 * 60 * 1000;
+const TEN_MIN_MS = 10 * MINUTE_IN_MS;
 
 type ProviderStatus = 'available' | 'coming_soon';
 

@@ -19,7 +19,7 @@ import { query } from '../db/client';
 import { env } from '../env';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
-import { msToNs, nowNs, optionalMs } from '../lib/time';
+import { MINUTE_IN_MS, msToNs, nowNs, optionalMs } from '../lib/time';
 import { vxpFromBaseUnits } from './constants';
 import { findTreasuryTransferToUser, transferVxpToUser } from './payout';
 
@@ -53,7 +53,7 @@ export type VxpAwardOrigin = 'live' | 'etl';
  * double-claimed, while still bounding how long a crashed run delays a
  * payout.
  */
-export const PROCESSING_STALE_MS = 10 * 60_000;
+export const PROCESSING_STALE_MS = 10 * MINUTE_IN_MS;
 
 /** Sends per award before one the history proves never landed is given up
  * as failed, so a deterministic rejection cannot loop forever. */
@@ -654,7 +654,7 @@ const recoverUnconfirmedTransfers = async ({
  * deferral: every later row would bounce off the same empty treasury.
  */
 export const reconcileUnpaidAwards = async ({
-	graceMs = 60_000,
+	graceMs = MINUTE_IN_MS,
 	limit = 200
 }: { graceMs?: number; limit?: number } = {}): Promise<ReconcileReport> => {
 	const report: ReconcileReport = {

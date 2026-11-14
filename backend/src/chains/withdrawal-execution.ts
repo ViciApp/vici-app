@@ -18,7 +18,7 @@ import { query } from '../db/client';
 import { ZERO } from '../lib/constants';
 import { CHAINS, type Chain } from '../lib/keys';
 import { logger } from '../lib/logger';
-import { msToNs } from '../lib/time';
+import { MINUTE_IN_MS, msToNs } from '../lib/time';
 import { DEDUP_SAFE_WINDOW_MS } from './ic/icrc';
 import { getAdapter } from './registry';
 import {
@@ -36,7 +36,7 @@ export const TRANSFER_TIMEOUT_MS = 30_000;
 
 /** A `requested` row this old was abandoned between its request and its
  * claim: the route claims within milliseconds of the insert. */
-export const REQUESTED_GRACE_MS = 2 * 60_000;
+export const REQUESTED_GRACE_MS = 2 * MINUTE_IN_MS;
 
 /**
  * A `processing` row is resent only once every earlier send of it has
@@ -45,7 +45,7 @@ export const REQUESTED_GRACE_MS = 2 * 60_000;
  * answer. Otherwise a resend answered InsufficientFunds could refund a row
  * whose first send was still about to land.
  */
-export const PROCESSING_GRACE_MS = 10 * 60_000;
+export const PROCESSING_GRACE_MS = 10 * MINUTE_IN_MS;
 
 /** Rows per state one tick handles, least recently tried first so a backlog
  * rotates. Each one is a ledger update call, so the bound is what keeps the

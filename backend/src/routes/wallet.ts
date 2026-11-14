@@ -23,6 +23,7 @@ import { ZERO } from '../lib/constants';
 import { badRequest, serviceUnavailable, type StatusContext } from '../lib/http';
 import { userIcPrincipalText } from '../lib/keys';
 import { logger } from '../lib/logger';
+import { MINUTE_IN_MS } from '../lib/time';
 
 const chainUnavailable = (set: StatusContext): { error: string } =>
 	serviceUnavailable(set, 'chain_unavailable');
@@ -83,7 +84,7 @@ const displayedWithdrawalFee = async (asset: Asset): Promise<string | null> => {
 	try {
 		const fee = await cached({
 			key: `withdrawal-fee:${asset.id}`,
-			ttlMs: 60_000,
+			ttlMs: MINUTE_IN_MS,
 			load: () => adapter.withdrawalFee({ asset })
 		});
 
