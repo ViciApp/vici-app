@@ -117,7 +117,7 @@ export const Collection = {
 	/**
 	 * Append-only churn-feedback log. Each doc records the `reason` + optional free-text `note`
 	 * the user picked from the delete-account flow. Intentionally anonymous; no principal field,
-	 * random UUID key: so the log survives the account it describes. Written exactly once by
+	 * random UUID key, so the log survives the account it describes. Written exactly once by
 	 * `deleteMyAccount` before the cascade hard-deletes the caller's identity.
 	 */
 	EXIT_SIGNALS: collections.EXIT_SIGNALS,

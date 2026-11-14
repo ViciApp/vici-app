@@ -167,7 +167,7 @@ export type AnalyticsEventName =
 	 * The global leaderboard was viewed (a window load or tab switch). `label`
 	 * carries the window (`week | month | all`), `count` the ranked rows shown,
 	 * `ok` whether the viewer is qualified/ranked (vs provisional/absent), and
-	 * `value` the viewer's own settled-call count: so the gate's effect on
+	 * `value` the viewer's own settled-call count, so the gate's effect on
 	 * real viewers is measurable.
 	 */
 	| 'leaderboard_viewed'
@@ -180,7 +180,7 @@ export type AnalyticsEventName =
 	/**
 	 * A sharing opt-out toggle was flipped in Settings → Privacy. `source`
 	 * carries which control (`leaderboard | worlds`), `label` the new state
-	 * (`on | off`): so opt-out rates per surface are measurable.
+	 * (`on | off`), so opt-out rates per surface are measurable.
 	 */
 	| 'privacy_sharing_toggled'
 	// ── School verification ───────────────────────────────────────────

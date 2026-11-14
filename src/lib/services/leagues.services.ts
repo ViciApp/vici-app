@@ -559,7 +559,7 @@ export const createLeague = async ({
  *
  * Re-reads the existing doc so we round-trip the server's `version`
  * token: Juno's optimistic-concurrency guard rejects an update that
- * omits it: and so unchanged fields are carried over verbatim. Returns
+ * omits it, and so unchanged fields are carried over verbatim. Returns
  * the updated `LeagueDoc` so the caller can reflect the change
  * optimistically.
  */

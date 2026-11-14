@@ -242,7 +242,7 @@ export const resolveOutcomeExecutionPrice = ({
 		}
 
 		// Execution price is internal trade math (not the displayed odds), and the
-		// caller floors it at 0.01 below: so when neither a book side nor a known
+		// caller floors it at 0.01 below, so when neither a book side nor a known
 		// probability exists we fall back to the neutral mid here to stay a finite
 		// number. The trade surface gates on liquidity separately; this only keeps
 		// sizing/preview from going NaN on an unpriced market.

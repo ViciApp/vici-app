@@ -56,7 +56,7 @@ export interface SchoolRelayConfig {
 	/**
 	 * Server-side kill switch. The whole verification feature is OFF until a
 	 * controller writes this doc, and stays callable only while this is not
-	 * `false`: so the live `defineUpdate` endpoints can't trigger outbound
+	 * `false`, so the live `defineUpdate` endpoints can't trigger outbound
 	 * email even if the FE `SCHOOL_PASS2_ENABLED` flag is flipped early or
 	 * an agent calls them directly. Omit (or `true`) to enable.
 	 */

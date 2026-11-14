@@ -27,7 +27,7 @@ let inFlight: Promise<void> | undefined;
 
 // Bumped by every `clearMyReferrals()` (i.e. each auth transition). A refresh
 // captures the epoch when it starts and only commits its result if the epoch
-// is unchanged on resolution: so a fetch that was in flight across a
+// is unchanged on resolution, so a fetch that was in flight across a
 // sign-out/sign-in can't repopulate the cache (or flip `loaded`) for the wrong
 // principal.
 let epoch = 0;

@@ -19,7 +19,7 @@ import { derived, type Readable } from 'svelte/store';
  * resolve to a different tier across the two surfaces.
  *
  * Goat's global-rank signal comes from `myGlobalRankStore`: the satellite's
- * full-ranking self-rank query: so it resolves for every ranked viewer on
+ * full-ranking self-rank query, so it resolves for every ranked viewer on
  * every surface, the always-mounted celebration host included. The previous
  * source (the viewer's index in the cached top-50 points leaderboard) only
  * resolved while that window happened to contain them, which is why Goat could

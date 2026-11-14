@@ -46,7 +46,7 @@ export interface WorldsAffiliationOption {
  * `rank`, and verified email `domains`. Ordered by region then rank;
  * the picker re-sorts at render time. Additions are append-only (no
  * satellite migration needed). The Worlds leaderboard reads live
- * `affiliation_stats`, not this list: so editing it drops no data.
+ * `affiliation_stats`, not this list, so editing it drops no data.
  */
 export const WORLDS_UNIVERSITIES: readonly WorldsAffiliationOption[] = [
 	// North America · United States

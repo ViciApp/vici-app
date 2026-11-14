@@ -4,7 +4,7 @@ import type { PrincipalText } from '@junobuild/schema';
 /**
  * Row in the `referral_codes` collection: reverse lookup from code → owner.
  *
- * - **Key**: the referral code (uppercase Crockford base32, fixed length: see
+ * - **Key**: the referral code (uppercase Crockford base32, fixed length, see
  *   {@link REFERRAL_CODE_LENGTH}).
  * - **Owner**: principal text of the user the code belongs to. Each user has exactly one code.
  */

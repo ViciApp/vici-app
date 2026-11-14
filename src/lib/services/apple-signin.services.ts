@@ -28,7 +28,7 @@ const buildAppleIdentityProviderUrl = (): string => {
 // `@icp-sdk/auth`'s `AuthClient` hard-codes `PostMessageTransport` with the
 // default 2s `disconnectTimeout`, so the channel drops mid-ceremony and II
 // shows "Connection closed". We therefore drive the transport ourselves with
-// a passkey-aware timeout: which is why this flow can't use
+// a passkey-aware timeout, which is why this flow can't use
 // `AuthClient.signIn()`.
 const PASSKEY_AWARE_DISCONNECT_TIMEOUT_MS = 60_000;
 
@@ -138,7 +138,7 @@ const acquireDelegation = async (identityProvider: string): Promise<AcquiredDele
  * Juno's `signIn()` exposes no Apple provider, so this drives the ICRC-29
  * signer transport directly (with a passkey-aware `disconnectTimeout`),
  * persists the delegation to the same IndexedDB store Juno reads
- * (`auth-client-db`), and creates the `#user` doc: so a subsequent full
+ * (`auth-client-db`), and creates the `#user` doc, so a subsequent full
  * document load lets Juno's `initSatellite()` / `loadAuth()` resolve the
  * user and fire `onAuthStateChange`. See the caller in
  * {@link ../components/authn/SignInProviderStack.svelte}.

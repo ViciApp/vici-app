@@ -212,7 +212,7 @@ export const GetAnalyticsEventsArgsSchema = j.strictObject({
 /**
  * One exported event row: the `events` doc envelope (key + ns timestamps +
  * version + owner) plus the FLATTENED behavioural payload. Flattened, not a
- * nested `props`: because the Sputnik codegen rejects a nested optional object
+ * nested `props`, because the Sputnik codegen rejects a nested optional object
  * inside an array element (same constraint as `TrackEventInputSchema`).
  *
  * Field names avoid the codegen-reserved `principal`/`variant`: identity is

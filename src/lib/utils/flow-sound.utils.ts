@@ -217,7 +217,7 @@ const UNLOCK_EVENTS = ['pointerdown', 'touchend', 'touchstart', 'mousedown', 'ke
  * starts the audio hardware route when the AudioContext is resumed AND a
  * buffer is played from inside a real user gesture. Most Flow cues fire
  * from deferred timers (character beats, the session summary), which are
- * not gestures: so resuming lazily at play-time unlocks lenient Safari
+ * not gestures, so resuming lazily at play-time unlocks lenient Safari
  * but not strict iOS Chrome. Priming once on the first gesture makes
  * every later deferred cue audible.
  *

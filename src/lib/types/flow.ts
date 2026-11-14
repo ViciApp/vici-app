@@ -29,7 +29,7 @@ export interface ResolutionItem {
  * back to the deck-shuffle loading state and the Dashboard banner hides.
  *
  * `titlesLoading` is true while the per-row market titles are still
- * resolving: the markets catalog hasn't loaded yet, or: for a non-English
+ * resolving: the markets catalog hasn't loaded yet, or, for a non-English
  * reader with the translated preference: the translation overlay hasn't
  * answered for every settled market. The counts and net VXP are already
  * correct (they come straight off the positions), so the reveals only hold

@@ -128,7 +128,7 @@ const waitForLoginSyncSettled = async (): Promise<void> => {
  * the next sign-in wrongly looks like a returning user. Because its write can
  * come well after any fixed post-delete watch window, we first
  * {@link waitForLoginSyncSettled}: the sync is tracked by `Authn.svelte` via
- * {@link trackLoginSyncSettled}: so the delete has nothing racing it.
+ * {@link trackLoginSyncSettled}, so the delete has nothing racing it.
  *
  * Two further races can still leave the doc present after a naive delete:
  *

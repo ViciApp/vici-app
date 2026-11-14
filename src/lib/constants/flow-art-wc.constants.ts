@@ -62,7 +62,7 @@ export const WC_SHIRT = {
 // so they used to fall to the generic figure. Each entry pairs the
 // nation's flag colours + flag layout with a home-kit colour and a
 // figure trait set: reusing the same backdrop / face vocabulary as the
-// curated recipes: so every nation card renders a distinct, flag-true
+// curated recipes, so every nation card renders a distinct, flag-true
 // scene. Keyed by lowercased alpha-2 code; the renderer resolves any
 // `wc-{cc}-*` seed against this table before the generic fallback.
 export type WCFlagLayout = 'horiz' | 'vert' | 'diag';

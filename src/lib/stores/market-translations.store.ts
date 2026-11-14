@@ -96,7 +96,7 @@ export const hydrate = async (seriesIds: string[]): Promise<void> => {
 	try {
 		// The satellite query caps `seriesIds` per call (`MAX_BULK_SERIES_IDS`);
 		// chunk to that bound so a visible set larger than the cap isn't silently
-		// truncated: which would seed the dropped ids with empty lists and pin
+		// truncated, which would seed the dropped ids with empty lists and pin
 		// them as "fetched" with no translation forever.
 		const batches: string[][] = [];
 

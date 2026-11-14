@@ -21,7 +21,7 @@ import { browser } from '$app/env';
  *
  * It also self-corrects the iOS bottom-bar inset for its own subtree. Docked
  * footers add `--ios-bottom-bar-inset` (nominally 56px on iOS) to clear the
- * native bottom toolbar: but where `visualViewport` already *excludes* that
+ * native bottom toolbar, but where `visualViewport` already *excludes* that
  * toolbar (Safari, most in-app webviews) this pin has already docked the
  * overlay above it, so adding the full token on top doubles the gap. We
  * subtract what the pin already cleared and override the token within the node

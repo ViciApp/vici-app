@@ -65,8 +65,8 @@ export const myAvatarParts: Readable<ViciAvatarParts | undefined> = derived(
 
 /**
  * Persists the logged-in user's avatar parts. Optimistically writes the
- * serialized picks into {@link userStore} first: so every surface reading
- * {@link myAvatarParts} re-renders immediately: then commits to the
+ * serialized picks into {@link userStore} first, so every surface reading
+ * {@link myAvatarParts} re-renders immediately, then commits to the
  * profile. Rolls the optimistic update back on failure.
  */
 export const saveMyAvatarParts = async (parts: ViciAvatarParts): Promise<void> => {

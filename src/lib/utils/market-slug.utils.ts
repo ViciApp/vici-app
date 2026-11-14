@@ -9,7 +9,7 @@ import { notEmptyString } from '@dfinity/utils';
  * the short id suffix pins the exact market:
  *
  *   - Registry titles are immutable, so a slug derived from one is stable
- *     forever: but two titles can normalize to the same slug. The 8-hex
+ *     forever, but two titles can normalize to the same slug. The 8-hex
  *     suffix disambiguates without deploy-time collision bookkeeping or
  *     coordination between the share sheet (which only has one market in
  *     hand) and the SEO generator (which has the whole catalog). It cannot

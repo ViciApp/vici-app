@@ -88,7 +88,7 @@ interface HistoryEntry {
 /**
  * Margin committed by an `Executed` fill, in clearing-margin base units
  * (`USD_DECIMALS`). Carried on the prediction row as `stake` for display
- * ("… in play"): it does **not** move the running balance: a fill only
+ * ("… in play"): it does **not** move the running balance; a fill only
  * reserves the user's own VXP, it doesn't change what they own (see
  * `clearingEntries`).
  *
@@ -122,7 +122,7 @@ const executedCost = (event: ClearingDid.Event): bigint => {
  *   because the fill never debited total in the first place.
  *
  * `OrderPlaced` (a resting order) reserves margin too but, like a fill,
- * leaves total untouched: so it contributes no delta and renders no row.
+ * leaves total untouched, so it contributes no delta and renders no row.
  * This is what lets the total-anchored walk reconcile to a clean zero genesis
  * even with orders still resting: a spendable-anchored walk drifted the
  * oldest balances negative by exactly that reserved-but-unrepresented amount.

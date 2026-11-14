@@ -120,7 +120,7 @@ export const clearLocaleChoice = (): void => {
 
 // Startup guard. `initStorageStore` JSON-parses the stored value but cannot
 // know which locales are registered, so a corrupted / foreign payload would
-// otherwise seed the in-memory store: and a garbage BCP-47 tag can throw in
+// otherwise seed the in-memory store, and a garbage BCP-47 tag can throw in
 // `Intl` consumers (`new Intl.DateTimeFormat($localeStore)`). Overwrite it
 // with the detected seed, in memory and in storage, via the persisting `set`.
 if (browser) {
@@ -152,7 +152,7 @@ const parseStoredLocale = (raw: string | null): AppLocale | undefined => {
 
 // Multi-tab sync (mirrors `theme.store`). The `storage` event fires only in
 // the *other* tabs of the origin: the writing tab already updated itself via
-// `setLocale` / `clearLocaleChoice`: so mirroring the new value into the
+// `setLocale` / `clearLocaleChoice`, so mirroring the new value into the
 // in-memory store keeps every open tab on the chosen locale without a reload.
 // `update` deliberately bypasses the store's persisting `set`: the value is
 // already in storage, and re-writing it from here would be redundant.

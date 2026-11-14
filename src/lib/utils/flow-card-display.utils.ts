@@ -36,7 +36,7 @@ export const formatWhyNowChip = (whyNow: MarketWhyNow | undefined): string | und
 /**
  * Surfacing predicate for the per-card "Suggested" chip and rail entry.
  * A market is shown as suggested only when {@link suggestedScore}
- * (single source of truth for the sort-tier boost) is non-zero: so
+ * (single source of truth for the sort-tier boost) is non-zero, so
  * resolved markets and markets whose 14-day editorial window has
  * elapsed never display the chip, even if `metadata.suggested` is
  * still `true` in the underlying doc.

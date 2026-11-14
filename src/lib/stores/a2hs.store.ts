@@ -81,7 +81,7 @@ const state = writable<A2hsState>(initialState);
 
 /**
  * Set once the CTA flow has handled (and tracked) an accepted install, so
- * the global `appinstalled` listener: which can fire moments later for the
+ * the global `appinstalled` listener, which can fire moments later for the
  * same install: skips its own `pwa_install_accepted` track and doesn't
  * double-count on Chrome/Android.
  */
@@ -284,7 +284,7 @@ let initialized = false;
 /**
  * Wire the install listeners and seed persisted state. Idempotent and
  * browser-only. Chrome fires `beforeinstallprompt` once, early in page load,
- * before this runs: so the actual capture happens in an inline `app.html`
+ * before this runs, so the actual capture happens in an inline `app.html`
  * listener; here we adopt that pre-captured event (and keep a listener for any
  * later re-fire). Do not remove the `app.html` listener as "redundant".
  */

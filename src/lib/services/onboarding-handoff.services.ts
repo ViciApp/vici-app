@@ -63,7 +63,7 @@ interface PendingOnboarding {
 /**
  * Upper bound on the referral redeem/claim and league auto-join retries (each side-flow counts
  * its own attempts). A transient failure (network / replica blip) re-stashes the bare code so the
- * next drain re-attempts it: but only up to this many times, after which the slot is abandoned so
+ * next drain re-attempts it, but only up to this many times, after which the slot is abandoned so
  * a hard failure doesn't loop indefinitely.
  */
 const MAX_DRAIN_ATTEMPTS = 3;
@@ -323,7 +323,7 @@ const resolvePendingReferral = async ({
  * Substrings of the deterministic league-join rejections surfaced by `joinLeagueByInvite`
  * (malformed code, no league behind the code), each mapped to the toast copy the signed-in
  * `/league/[code]` landing uses for the same case. Terminal, retrying can't change the
- * outcome: so a match resolves the slot rather than re-stashing it. Anything NOT in this set
+ * outcome, so a match resolves the slot rather than re-stashing it. Anything NOT in this set
  * (a thrown agent / replica error) is treated as transient and kept for a bounded retry.
  */
 const TERMINAL_LEAGUE_REASONS = [

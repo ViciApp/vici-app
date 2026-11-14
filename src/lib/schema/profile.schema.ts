@@ -125,7 +125,7 @@ export const UserProfileSchema = j.strictObject({
 	// League-life milestones (drive the Bee trophy's join → win-a-bout →
 	// found ladder). All three are recomputed from the caller's league
 	// memberships / battles during `calculateAndSyncStats` and kept
-	// monotonic via `max(existing, recomputed)`: leaving a league or a
+	// monotonic via `max(existing, recomputed)`, leaving a league or a
 	// failed read must not strip an earned rung.
 	// High-water count of league memberships (any role), because of the
 	// monotonic guard, leaving a league never decrements it.

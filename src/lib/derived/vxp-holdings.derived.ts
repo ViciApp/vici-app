@@ -41,7 +41,7 @@ export const vxpFree: Readable<bigint> = derived(
 
 interface Holdings {
 	/**
-	 * Spendable: every VXP the user holds: free in the wallet **and**
+	 * Spendable: every VXP the user holds, free in the wallet **and**
 	 * deposited as clearing collateral: minus everything reserved for open
 	 * positions and resting orders. The honest "available to bet" figure.
 	 */
