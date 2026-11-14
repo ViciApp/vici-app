@@ -46,6 +46,30 @@ describe.if(dbAvailable)('resolved results', () => {
 		expect(rows[0]?.title).toBe('Replayed title');
 	});
 
+	test('a replayed settlement keeps the first resolution time', async () => {
+		const userId = await createTestUser();
+		const firstResolvedAtMs = Date.now() - 60_000;
+
+		const upsert = async (resolvedAtMs: number): Promise<void> =>
+			await upsertResolvedResult({
+				userId,
+				marketId: 'srs_replay',
+				title: 'Replay',
+				side: 'YES',
+				outcome: 'win',
+				netVxp: 100,
+				resolvedAtMs
+			});
+
+		await upsert(firstResolvedAtMs);
+		await upsert(Date.now());
+
+		const rows = await listFriendResolvedResults({ friendIds: [userId] });
+
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.resolvedAtMs).toBe(firstResolvedAtMs);
+	});
+
 	test('the friend read scopes to the given set and the retention window', async () => {
 		const friend = await createTestUser();
 		const stranger = await createTestUser();

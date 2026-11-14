@@ -4,10 +4,13 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
+import { isSettlingRole } from '../admin/engine-sync';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
 import { UUID_RE } from '../lib/constants';
 import { badRequest } from '../lib/http';
 import {
+	ACTIVITY_DETAILS_MAX_LENGTH,
+	ACTIVITY_TITLE_MAX_LENGTH,
 	ActivityNotFoundError,
 	ActivityValidationError,
 	createActivity,
@@ -290,6 +293,13 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 				return unauthenticated(set);
 			}
 
+			// A settlement activity follows an on-chain settle and fans out
+			// every participant's resolved result, so only a role that can
+			// settle may record one.
+			if (body.type === 'settlement' && !isSettlingRole(user.role)) {
+				return forbidden(set);
+			}
+
 			try {
 				const activity = await createActivity({
 					userId: user.id,
@@ -336,8 +346,8 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 				type: t.String(),
 				targetUser: t.Optional(t.String({ format: 'uuid' })),
 				marketId: t.Optional(t.String()),
-				title: t.String(),
-				details: t.Optional(t.String()),
+				title: t.String({ maxLength: ACTIVITY_TITLE_MAX_LENGTH }),
+				details: t.Optional(t.String({ maxLength: ACTIVITY_DETAILS_MAX_LENGTH })),
 				timestamp: t.Number()
 			})
 		}

@@ -617,7 +617,9 @@ activity on both transports for the same reason.
   dual-mode `signOut` in `identity.services.ts` (below).
 - `activity.services.ts`: `logActivity` posts to `/social/activities`
   (the route stamps the author from the session and enforces the same
-  `${user}#${timestamp}#${type}` key), `getGlobalActivities` and
+  `${user}#${timestamp}#${type}` key; a `settlement` is accepted only from
+  a role that settles, admin or solver, and answers 403 otherwise, since it
+  drives the resolved-results fan-out), `getGlobalActivities` and
   `getSettlementActivities` read the public list (type-filtered
   server-side instead of the key-suffix matcher).
 - `activity-reaction.services.ts`: like / unlike (the route keeps the

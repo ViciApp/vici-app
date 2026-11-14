@@ -3,12 +3,13 @@
 // answer 401/403 through the helpers below so the bodies stay uniform.
 
 import { isNullish } from '@dfinity/utils';
+import type { GrantableRole } from '../admin/engine-sync';
 import { query } from '../db/client';
 import { readCookie, SESSION_COOKIE } from '../lib/cookie';
 import { peppered } from '../lib/crypto';
 import type { StatusContext } from '../lib/http';
 
-export type Role = 'user' | 'admin';
+export type Role = 'user' | GrantableRole;
 
 export interface AuthedUser {
 	id: string;
