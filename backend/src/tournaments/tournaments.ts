@@ -628,8 +628,10 @@ export interface ClaimTournamentPrizeResult {
 /**
  * Per-user prize claim on a concluded tournament. Place 1: member of the
  * final winner; place 2: member of the other finalist; place 3: member of
- * either semifinal loser. A member of several eligible leagues gets only the
- * highest tier; the award-key collision makes re-claims idempotent.
+ * either semifinal loser. Only memberships that predate the draw count. A
+ * member of several eligible leagues is offered the highest tier, and the
+ * grant pays at most one prize per user per tournament, so a re-claim (for
+ * the same place or another) is a no-op.
  */
 export const claimTournamentPrize = async ({
 	tournamentId,
@@ -669,9 +671,16 @@ export const claimTournamentPrize = async ({
 			? finalMatch.toLeagueId
 			: finalMatch.fromLeagueId;
 
+	// The draw is the kickoff: it seeds the bracket from the member counts of
+	// that moment and stamps the round 1 stats snapshots every score is a
+	// delta from, so its roster is the one that played. month_start_ms is only
+	// the calendar anchor of the round windows and can precede a late draw.
+	// Joining a placed league afterwards (or being added by its owner) earns
+	// nothing.
 	const membershipRows = await query<{ league_id: string }>(
-		`select league_id from league_members where member_user_id = $1`,
-		[userId]
+		`select league_id from league_members
+		 where member_user_id = $1 and joined_at_ms <= $2`,
+		[userId, tournamentRow.created_at_ms]
 	);
 	const myLeagueIds = new Set(membershipRows.map(({ league_id }) => league_id));
 
