@@ -27,21 +27,21 @@
 	import { filterScheduledWcMarkets } from '#lib/utils/wc-schedule.utils.ts';
 
 	/**
-	 * Markets screen — a section-based board with a category browse nav. The
+	 * Markets screen: a section-based board with a category browse nav. The
 	 * macro bar (+ micro sub-chips) filters every board section; the World-Cup
 	 * arc chrome (eyebrow, recap, and the "Beyond the Cup" skill gate,
 	 * `MarketsBeyondCupCard`) still rides on top. The board itself is three
 	 * sections: Saved (the viewer's watchlist), Resolving soon (the
 	 * soonest-closing available lines), and Available predictions.
 	 *
-	 * Placing a call happens in Flow — this board has no buy path; rows deep-link
+	 * Placing a call happens in Flow; this board has no buy path; rows deep-link
 	 * to market detail. Saved-ids persist under `vici.saved-markets` via
 	 * `$preferencesStore.savedMarketIds`.
 	 */
 
 	// A market counts as "resolving soon" when it closes within this window.
 	// Our market type has no curated `fast` flag, so we proxy it by closeness to
-	// the `expiryDate` — the soonest-closing lines surface first, framing the
+	// the `expiryDate`: the soonest-closing lines surface first, framing the
 	// board as "what settles soon" for new users.
 	const RESOLVING_SOON_WINDOW_MS = 7 * DAY_IN_MS;
 	const TRENDING_LIMIT = 8;
@@ -64,7 +64,7 @@
 	// Loading covers both feeds the board depends on: the markets list and the
 	// tag metadata. Tags are required in *every* phase now, not just World-Cup
 	// focus: the discovery feeds (available + trending) run through the WC
-	// release schedule, which identifies WC markets by tag — an empty tag map
+	// release schedule, which identifies WC markets by tag: an empty tag map
 	// would make every market look non-WC and let unreleased WC markets leak in.
 	// Without the guard the board also flashes the "no markets" empty state over
 	// loaded markets while tags fetch. Tags load globally in the (app) shell and
@@ -118,7 +118,7 @@
 		filterScheduledWcMarkets({ markets: $markets, tagsByMarket, now: $minuteTick_ms })
 	);
 
-	// Volume-sort helper — the same trending signal the carousel uses, applied
+	// Volume-sort helper: the same trending signal the carousel uses, applied
 	// to give a stable deck that doesn't reshuffle as the user scans it.
 	// eslint-disable-next-line local-rules/prefer-object-params -- Array.sort comparators take two positional args by contract
 	const byVolumeDesc = (a: Market, b: Market): number => {
@@ -129,7 +129,7 @@
 		return b.totalVolume > a.totalVolume ? 1 : -1;
 	};
 
-	// The "available" board — every open (callable) line, narrowed by the
+	// The "available" board: every open (callable) line, narrowed by the
 	// active category selection. Listing only `Open` lines matches the section
 	// label and the Open-only Trending rail, so resolved / expired markets
 	// never surface under "Available predictions". The board is volume-sorted
@@ -189,7 +189,7 @@
 	});
 
 	// "See all" on the trending rail scrolls to the main list rather than a
-	// separate route — the list is sorted by the same volume signal.
+	// separate route; the list is sorted by the same volume signal.
 	let mainListEl: HTMLElement | undefined = $state();
 
 	const scrollToMainList = (): void => {
@@ -202,7 +202,7 @@
 
 <div class="screen-scroll" data-tid={TestId.MarketFeed}>
 	<!-- Header context eyebrow: the featured event as a mono-uppercase eyebrow
-	     line — matching the Dash / Arena eyebrow treatment — omitted entirely
+	     line, matching the Dash / Arena eyebrow treatment, omitted entirely
 	     once no event is in focus. -->
 	{#if eventEyebrow}
 		<div class="markets-eyebrow-row">
@@ -216,14 +216,14 @@
 		<WorldCupRecapCard onExplore={scrollToMainList} />
 	{/if}
 
-	<!-- Beyond the Cup — the skill-gate unlock goal, surfaced high. -->
+	<!-- Beyond the Cup: the skill-gate unlock goal, surfaced high. -->
 	<MarketsBeyondCupCard
 		markets={$markets}
 		{tagsByMarket}
 		tagsInitialized={!$marketTagsNotInitialized}
 	/>
 
-	<!-- Category browse nav — macro bar + micro sub-chips (populated only). -->
+	<!-- Category browse nav: macro bar + micro sub-chips (populated only). -->
 	<MarketsCategoryChips {onSelectMacro} {onSelectMicro} {selectedMacro} {selectedMicro} />
 
 	<!-- Trending rail. -->
@@ -237,13 +237,13 @@
 		/>
 	{/if}
 
-	<!-- Saved (primary) — the viewer's watchlist. -->
+	<!-- Saved (primary): the viewer's watchlist. -->
 	<div class="section-h">
 		<h3>{t({ locale: $localeStore, key: 'markets.section.saved' })}</h3>
 		<span class="mute t-sub">{savedMarkets.length}</span>
 	</div>
 	{#if loading}
-		<!-- Suppress the "nothing saved yet" card while markets load — saved IDs
+		<!-- Suppress the "nothing saved yet" card while markets load: saved IDs
 		     may exist but their markets haven't resolved into the list yet. -->
 		<div style="gap: 8px; padding: 0 20px 20px;" class="col">
 			{#each Array(2) as _, index (index)}
@@ -272,7 +272,7 @@
 		</div>
 	{/if}
 
-	<!-- Resolving soon — the soonest-closing available lines first. -->
+	<!-- Resolving soon: the soonest-closing available lines first. -->
 	{#if resolvingSoon.length > 0}
 		<div class="section-h">
 			<h3>{t({ locale: $localeStore, key: 'markets.section.resolving_soon' })}</h3>
@@ -285,7 +285,7 @@
 		</div>
 	{/if}
 
-	<!-- Available predictions — the rest of the available board. -->
+	<!-- Available predictions: the rest of the available board. -->
 	<div bind:this={mainListEl} style="scroll-margin-top: 12px;" class="section-h">
 		<h3>{t({ locale: $localeStore, key: 'markets.section.available' })}</h3>
 		<span class="mute t-sub">{restMarkets.length}</span>
@@ -317,7 +317,7 @@
 </div>
 
 <style lang="postcss">
-	/* Featured-event eyebrow row — sits where the header bar would, padded to
+	/* Featured-event eyebrow row: sits where the header bar would, padded to
 	   the screen edge so it lines up with the section headers below. */
 	.markets-eyebrow-row {
 		padding: 10px var(--spacing-edge);

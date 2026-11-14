@@ -7,9 +7,9 @@
 	import { browser } from '$app/env';
 
 	/**
-	 * SwipeHint — bottom-of-deck affordance rail. Two chevron-pair sides
+	 * SwipeHint: bottom-of-deck affordance rail. Two chevron-pair sides
 	 * (NO ↔ YES) drift outward on a ~1.7 s ping cycle while the centre
-	 * dot pair calls out TAP / SKIP. Pure visual sugar — the actual
+	 * dot pair calls out TAP / SKIP. Pure visual sugar; the actual
 	 * gestures are wired in `FlowCard`.
 	 */
 	let t0 = $state(0);
@@ -74,7 +74,7 @@
 </div>
 
 <style lang="postcss">
-	/* Hide the affordance rail on small screens — the gestures it
+	/* Hide the affordance rail on small screens; the gestures it
 	   labels (swipe left/right, tap, swipe up) eat vertical room that's
 	   scarce on phones, and the labels are noise once the cards are the
 	   only thing on screen. Desktop / wider viewports keep the rail as
@@ -87,7 +87,7 @@
 		}
 	}
 
-	/* Chevrons inherit from `app.css .swipe-hint*` — local rules below
+	/* Chevrons inherit from `app.css .swipe-hint*`: local rules below
 	   handle just the per-side rotation of the `@lucide/svelte` icons so
 	   the down-chevron points outward (NO ⇒ left, YES ⇒ right) and the
 	   per-side colour tint. */

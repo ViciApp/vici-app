@@ -38,7 +38,7 @@
 	// Padding + type scale: default = `14px 20px / 14px text`, large =
 	// `16px 22px / 16px text`, small scales down proportionally. Every
 	// size shares the full pill radius (`rounded-full`) set on the
-	// wrapper below — the shape is a pill across all variants and sizes.
+	// wrapper below: the shape is a pill across all variants and sizes.
 	const sizes: Record<NonNullable<Props['size']>, string> = {
 		sm: 'px-3 py-2 text-xs',
 		md: 'px-5 py-3.5 text-sm',

@@ -4,7 +4,7 @@
 
 	interface Props {
 		sizeStake: number;
-		// Guided (onboarding first-call) mode — the depth hint becomes a
+		// Guided (onboarding first-call) mode; the depth hint becomes a
 		// commit prompt since the card can't flip there.
 		guided?: boolean;
 	}

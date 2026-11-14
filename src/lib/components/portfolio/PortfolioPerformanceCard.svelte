@@ -17,7 +17,7 @@
 	 *
 	 * Reads from `resolvedPositions` rather than joining `tradeHistory`
 	 * against live `positions`, because the clearing canister deletes
-	 * positions at settlement — joining there would silently drop every
+	 * positions at settlement: joining there would silently drop every
 	 * historical resolution. Each `ResolvedPosition` already carries the
 	 * realized PnL (`realizedPnlUsd`, signed `cashflow_usd` in clearing
 	 * USD units) and the settlement timestamp, so we can attribute each

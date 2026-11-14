@@ -10,7 +10,7 @@
 		/**
 		 * Leaderboard-ranked predictors who hold a position on this market,
 		 * each with the side they actually took. `undefined` while the page
-		 * is still resolving them — the list area stays blank rather than
+		 * is still resolving them: the list area stays blank rather than
 		 * flashing the empty state at people who are about to appear.
 		 */
 		topPredictors?: TopPredictorSignal[];
@@ -29,7 +29,7 @@
 	// Join each signal back onto its cached leaderboard row for the display
 	// fields (nickname / avatar / accuracy / streak). The signals were
 	// resolved from this same store's principal order, so a miss only
-	// happens if the board refreshed mid-flight — drop that row rather
+	// happens if the board refreshed mid-flight: drop that row rather
 	// than render a half-empty identity.
 	const rows = $derived(
 		(topPredictors ?? [])
@@ -45,7 +45,7 @@
 <!-- "Top predictors here" mini-leaderboard: the highest-ranked
      predictors on the global board who hold a live position on THIS
      market, tagged with the side they committed (resolved via
-     per-candidate `aggregate_lean` probes — see
+     per-candidate `aggregate_lean` probes: see
      `top-predictors.services.ts`). -->
 <section class="market-top-predictors" aria-labelledby="market-top-predictors-h">
 	<header class="market-top-predictors-head">
@@ -55,7 +55,7 @@
 	</header>
 
 	{#if isNullish(topPredictors)}
-		<!-- Still resolving — keep the area blank instead of flashing the
+		<!-- Still resolving: keep the area blank instead of flashing the
 		     empty state under people who are about to appear. -->
 	{:else if rows.length === 0}
 		<p class="market-top-predictors-empty">
@@ -233,7 +233,7 @@
 		color: var(--no);
 	}
 
-	/* Followed-lean row — how the people the viewer follows have called
+	/* Followed-lean row: how the people the viewer follows have called
 	   this market. A label + `N YES · M NO` count over a dot grid, so
 	   the social signal reads at a glance without a second list. */
 	.market-followed-lean {

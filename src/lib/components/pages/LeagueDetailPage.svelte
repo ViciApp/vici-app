@@ -103,7 +103,7 @@
 	let transferOpen = $state(false);
 	let privacyOpen = $state(false);
 	let leaderboardTab = $state<'week' | 'all'>('week');
-	// Member tapped in the leaderboard — drives the member detail
+	// Member tapped in the leaderboard: drives the member detail
 	// bottom-sheet (avatar + accuracy / streak). `null` keeps it closed.
 	let openMember = $state<LeagueMemberDoc | null>(null);
 
@@ -150,12 +150,12 @@
 
 	const accent = $derived(league?.accentColor ?? '#7e9b6a');
 
-	// The emblem rendered inside the gradient tile — the owner's stored
+	// The emblem rendered inside the gradient tile: the owner's stored
 	// pick, with a name-derived 1-char fallback for legacy rows written
 	// before the picker shipped.
 	const emblem = $derived(league ? leagueEmblem(league) : '◆');
 
-	// A league owner or admin holds the same battle authority — initiate,
+	// A league owner or admin holds the same battle authority: initiate,
 	// accept, decline, expire. The satellite assert enforces the same
 	// owner-or-admin predicate, so these gates and the backend never drift.
 	const isLeagueAdmin = $derived(myRole === 'owner' || myRole === 'admin');
@@ -277,7 +277,7 @@
 			return;
 		}
 
-		// `description_too_long` can't occur — we validate name only — so
+		// `description_too_long` can't occur, we validate name only, so
 		// the reason is always one of the two length-window failures.
 		return validation.reason === 'name_too_short'
 			? 'leagues.detail.rename_error_too_short'
@@ -342,7 +342,7 @@
 		}
 	};
 
-	// Caller's weekly rank-trend within the league — the sign of their
+	// Caller's weekly rank-trend within the league: the sign of their
 	// week-over-week movement, mapped onto the card convention (negative =
 	// climbed, shown as ▲). Sourced from the weekly window's `rankDelta`
 	// (`priorRank - rank`), independent of the leaderboard tab so the
@@ -409,7 +409,7 @@
 		[LeaguePrivacy.OPEN]: 'leagues.detail.hero_chip_open'
 	};
 
-	// Editorial-hero eyebrow chips — the kind ("League") and the privacy
+	// Editorial-hero eyebrow chips: the kind ("League") and the privacy
 	// state (Open / Private). The privacy chip reads the league's
 	// `privacy` field through `leaguePrivacy` (absent → Open).
 	// The member count now lives on the identity card's overlap row, and
@@ -506,7 +506,7 @@
 		void goto(resolveAppPath(AppPath.Flow));
 	};
 
-	// Open the battle detail page — the running standings + face-off for a
+	// Open the battle detail page: the running standings + face-off for a
 	// live battle live there, not on this card.
 	const goToBattle = (battleId: string) => {
 		void goto(`${resolveAppPath(AppPath.Arena)}/battles/${battleId}?from=league`);
@@ -523,7 +523,7 @@
 	};
 
 	// Avatar props for a roster principal, drawn from the shared
-	// profile cache. Falls back to nulls before the cache lands —
+	// profile cache. Falls back to nulls before the cache lands:
 	// `<Avatar>` resolves a deterministic placeholder from `owner`.
 	const memberAvatar = (principal: string): string | null =>
 		$profilesStore.get(principal)?.avatar ?? null;
@@ -547,7 +547,7 @@
 	const formatAccuracy = (principal: string): string =>
 		formatLocalePercent({ value: memberAccuracy(principal) / 100, locale: $localeStore });
 
-	// The roster ranked by accuracy — the figure each row surfaces — so the
+	// The roster ranked by accuracy (the figure each row surfaces) so the
 	// leaderboard reads top-down by performance, like the global one, and the
 	// hero rank badge (which indexes into this same order) agrees with it.
 	const sortedMembers = $derived(
@@ -556,9 +556,9 @@
 
 	// The backend allows any number of concurrent battles per league, so
 	// the section renders lists, not a single slot. Three buckets:
-	//   - incomingRequests — proposals THIS league must accept or decline
-	//   - liveBattles      — accepted / in_flight match-ups under way
-	//   - outgoingProposals — proposals we sent, awaiting the opponent
+	//   - incomingRequests: proposals THIS league must accept or decline
+	//   - liveBattles: accepted / in_flight match-ups under way
+	//   - outgoingProposals: proposals we sent, awaiting the opponent
 	const incomingRequests = $derived(
 		battles
 			.filter((b) => b.state === 'proposed' && b.sideB === leagueId)
@@ -664,7 +664,7 @@
 
 	// The challenged side's owner or admin can respond to a proposal.
 	// Accept is additionally blocked at the far concurrency rail (a safety
-	// bound, not a product limit — see BATTLE_MAX_CONCURRENT_IN_FLIGHT).
+	// bound, not a product limit; see BATTLE_MAX_CONCURRENT_IN_FLIGHT).
 	const canRespondToBattle = (battle: BattleDoc): boolean =>
 		isLeagueAdmin && battle.state === 'proposed' && battle.sideB === leagueId;
 
@@ -677,7 +677,7 @@
 		(battle.sideA === leagueId || battle.sideB === leagueId) &&
 		Date.now() >= battle.kickoffMs;
 
-	// A settled in-flight battle is shown as "finalizing" to everyone — the
+	// A settled in-flight battle is shown as "finalizing" to everyone: the
 	// resolution is silent, so there is no button to press. Membership only
 	// decides who actually triggers the trustless write (below); the label
 	// is purely informational.
@@ -686,7 +686,7 @@
 		(battle.sideA === leagueId || battle.sideB === leagueId) &&
 		Date.now() >= battle.settleMs;
 
-	// Any member of this league can trigger the write — the satellite
+	// Any member of this league can trigger the write: the satellite
 	// re-derives the scores, so the writer's identity can't skew them.
 	const canResolveBattle = (battle: BattleDoc): boolean =>
 		nonNullish(myRole) && isBattleFinalizing(battle);
@@ -770,7 +770,7 @@
 	};
 
 	// Lazily expire a stale proposal (Juno has no scheduler). Background
-	// sweep — failures stay silent rather than flashing the error banner.
+	// sweep: failures stay silent rather than flashing the error banner.
 	const handleExpireBattle = async (battle: BattleDoc) => {
 		if (nonNullish(actingBattleId)) {
 			return;
@@ -793,7 +793,7 @@
 		}
 	};
 
-	// Resolve in one tap — scores are each league's window accuracy,
+	// Resolve in one tap: scores are each league's window accuracy,
 	// computed by the service and re-verified by the satellite assert.
 	const handleResolveBattle = async ({
 		battle,
@@ -841,7 +841,7 @@
 
 	// Lazy maintenance (Juno has no scheduler): a settled battle resolves
 	// the first time any member of either side opens the league, and stale
-	// proposals expire the first time an owner does. One write per pass —
+	// proposals expire the first time an owner does. One write per pass:
 	// the effect re-runs after the refresh and picks up the next candidate.
 	$effect(() => {
 		if (isNullish(myRole) || nonNullish(actingBattleId)) {
@@ -859,7 +859,7 @@
 			return;
 		}
 
-		// Expiry is owner-or-admin — the satellite gate for proposed->expired
+		// Expiry is owner-or-admin: the satellite gate for proposed->expired
 		// admits a side owner or admin, so a plain member's attempt would be
 		// rejected.
 		if (!isLeagueAdmin) {
@@ -879,7 +879,7 @@
 		}
 	});
 
-	// Recent activity feed. Built from the battle list — newest first by
+	// Recent activity feed. Built from the battle list: newest first by
 	// kickoff (in_flight) or settle (resolved). We cap at 6 rows so the
 	// card stays tight on a phone.
 	interface ActivityRow {
@@ -934,7 +934,7 @@
 		return rows.sort((a, b) => b.ts - a.ts).slice(0, 6);
 	});
 
-	// Leaderboard rows — the accuracy-ranked roster, top-6, with a sticky
+	// Leaderboard rows: the accuracy-ranked roster, top-6, with a sticky
 	// YOU row at the bottom for callers who fall outside it. The "This week"
 	// and "All time" tabs still render the same lifetime-accuracy projection;
 	// the tab is wired so per-window member stats can replace the sort key
@@ -950,19 +950,19 @@
 	});
 
 	// The sticky YOU row at the foot of the leaderboard is a reminder for
-	// callers who fell outside the visible top-6 — when the caller already
+	// callers who fell outside the visible top-6, when the caller already
 	// appears in `leaderboardTop` it would just duplicate their own row, so
 	// we suppress it.
 	const showYouRow = $derived(
 		nonNullish(youMember) && !leaderboardTop.some((m) => m.member === selfPrincipal)
 	);
 
-	// Small-league recruit state — under four members there isn't
+	// Small-league recruit state: under four members there isn't
 	// enough of a field for a podium, so we surface a "just getting
 	// started" prompt with an invite CTA beneath the leaderboard.
 	const isRecruiting = $derived(members.length < 4);
 
-	// 1-indexed roster rank of the tapped member — feeds the member
+	// 1-indexed roster rank of the tapped member: feeds the member
 	// sheet's `Rank #NN · {league}` subhead.
 	const openMemberRank = $derived.by((): number => {
 		if (!openMember) {
@@ -1384,7 +1384,7 @@
 					{/each}
 				</ul>
 
-				<!-- Sticky YOU row — only when the caller falls outside the
+				<!-- Sticky YOU row: only when the caller falls outside the
 				     visible top-6 above; otherwise it would duplicate their
 				     own row. -->
 				{#if showYouRow && youMember}
@@ -1422,7 +1422,7 @@
 				{/if}
 			</div>
 
-			<!-- Small-league recruit prompt — no podium theatre for a
+			<!-- Small-league recruit prompt: no podium theatre for a
 			     near-empty league; nudge the user to invite instead. -->
 			{#if isRecruiting}
 				<div class="league-detail-recruit">
@@ -1449,7 +1449,7 @@
 
 		<!-- ─── Battle section · secondary to standings, so it sits below the
 		     leaderboard. Incoming requests, live match-ups, and the proposals
-		     we've sent — the backend allows any number of battles at once. ─── -->
+		     we've sent: the backend allows any number of battles at once. ─── -->
 		{#snippet battleCard(battle: BattleDoc)}
 			<div class="league-detail-battle-card" data-state={battle.state}>
 				<div class="league-detail-battle-tags">
@@ -1631,7 +1631,7 @@
 			{/if}
 		</section>
 
-		<!-- ─── Day-2 controls — kept for production · transfer + leave ─── -->
+		<!-- ─── Day-2 controls: kept for production · transfer + leave ─── -->
 		<div class="league-detail-controls">
 			{#if canTransfer}
 				<button class="league-detail-transfer" onclick={() => (transferOpen = true)} type="button">
@@ -1796,7 +1796,7 @@
 		padding: 0.25rem 0 0.1rem;
 	}
 
-	/* Title-bar row — inline back chevron + serif title (+ owner rename
+	/* Title-bar row: inline back chevron + serif title (+ owner rename
 	   pencil), vertically centred, mirroring the source design's title
 	   bar. 50px min-height + 12px gap keep the chevron and title aligned
 	   on a single row. */
@@ -1807,7 +1807,7 @@
 		min-height: 50px;
 	}
 
-	/* Inline back circle — flush to the content edge via the negative
+	/* Inline back circle: flush to the content edge via the negative
 	   margin, so it reads as part of the title row rather than an inset
 	   action. */
 	.league-detail-hero-back {
@@ -1841,7 +1841,7 @@
 		gap: 0.35rem;
 	}
 
-	/* Context chips — mono, Title-case, rounded outline. The chip copy
+	/* Context chips: mono, Title-case, rounded outline. The chip copy
 	   carries its own casing (League / 8 members / Public), so no
 	   uppercasing transform; the row reads as content, not a status pill. */
 	.league-detail-hero-chip {
@@ -1854,7 +1854,7 @@
 		border: 1px solid var(--border-base);
 	}
 
-	/* The privacy chip is a tappable control for the owner — same pill
+	/* The privacy chip is a tappable control for the owner: same pill
 	   shape, plus a trailing pencil + hover affordance so it reads as
 	   editable rather than a static status pill. */
 	button.league-detail-hero-chip.is-editable {
@@ -1874,7 +1874,7 @@
 		border-color: var(--color-primary);
 	}
 
-	/* League title — serif-italic editorial treatment (the entity name
+	/* League title: serif-italic editorial treatment (the entity name
 	   reads as a masthead, not a UI label). Sized to the source design's
 	   inline title-bar (24px), filling the row so any trailing pencil
 	   sits at the edge; ellipsizes only when truly out of room. */
@@ -2032,7 +2032,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Rank-forward identity — the caller's standing reads as the headline
+	/* Rank-forward identity: the caller's standing reads as the headline
 	   figure: a large mono "#rank", the "of M" denominator, and a coloured
 	   ▲/▼ "N this week" (or "— even") trend, baseline-aligned. */
 	.league-detail-rank {
@@ -2411,7 +2411,7 @@
 		cursor: not-allowed;
 	}
 
-	/* "View →" link to the battle detail page — text affordance, not a
+	/* "View →" link to the battle detail page: text affordance, not a
 	   filled action, so it reads as secondary to the owner CTAs above. */
 	.league-detail-battle-view {
 		appearance: none;
@@ -2610,7 +2610,7 @@
 		flex-shrink: 0;
 	}
 
-	/* Name cell — handle + role / YOU chips on one line. The handle
+	/* Name cell: handle + role / YOU chips on one line. The handle
 	   ellipsizes (min-width:0) while the chips keep their intrinsic width. */
 	.league-detail-lb-id {
 		display: flex;

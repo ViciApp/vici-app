@@ -2,7 +2,7 @@
 	import { nonNullish } from '@dfinity/utils';
 	/**
 	 * Accuracy-as-status section: an anchored headline beside a board
-	 * that cycles three labelled tabs — Friends / Universities /
+	 * that cycles three labelled tabs: Friends / Universities /
 	 * Workplace. A gentle ~5s auto-advance pauses on hover/focus, stops
 	 * for good once the visitor explicitly picks a tab, and is disabled
 	 * under reduced-motion. Same footprint as a single board.
@@ -29,7 +29,7 @@
 	const tt = (key: MessageKey) => t({ locale: $localeStore, key });
 
 	// Locale-matched universities; the leader is the highlighted "you" row with
-	// the climb badge (illustrative — the board is a demo fixture, not live data).
+	// the climb badge (illustrative; the board is a demo fixture, not live data).
 	const uniRows = $derived<readonly LandingStatusRow[]>(
 		landingStatusUniversities($localeStore).map((name, i) => ({
 			rank: i + 1,
@@ -83,7 +83,7 @@
 	let focusWithin = $state(false);
 	// An explicit tab pick stops the rotation for good: once the visitor has
 	// chosen a tab the board never auto-advances again this session, so it
-	// can't flip away from what they're reading. This is sticky — unlike the
+	// can't flip away from what they're reading. This is sticky: unlike the
 	// hover/focus pause above, it is never cleared.
 	let userPicked = $state(false);
 	const paused = $derived(hovering || focusWithin || userPicked);

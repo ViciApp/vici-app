@@ -20,12 +20,12 @@
 
 	const { market, category, priorCall, displayTitle }: Props = $props();
 
-	// FlowCard back is a full / detail surface — render the localized
+	// FlowCard back is a full / detail surface: render the localized
 	// category label ("World Cup") rather than the raw `wc` id. CSS
 	// uppercases it (.allcaps) where the design shouts.
 	const catLabel = $derived(categoryLabel({ category, variant: 'full', locale: $localeStore }));
 
-	// Share popover toggle — anchored above the share button. The
+	// Share popover toggle: anchored above the share button. The
 	// popover handles native / clipboard / channel paths itself; this
 	// component owns just the open/close state and the toast we show
 	// on successful clipboard copy.
@@ -83,7 +83,7 @@
 		border-bottom: 1px solid var(--border-base);
 	}
 
-	/* Category chip — a subtle neutral pill (parchment-wash background)
+	/* Category chip: a subtle neutral pill (parchment-wash background)
 	   with category-colored ink, rather than a plain colored label. */
 	.flow-back-cat {
 		display: inline-flex;
@@ -105,7 +105,7 @@
 		flex-shrink: 0;
 	}
 
-	/* Share-pop anchor button — a borderless ghost control that matches
+	/* Share-pop anchor button: a borderless ghost control that matches
 	   the saved-market toggle beside it: transparent until hovered, then
 	   a faint parchment wash with full-brightness ink. It stays inline
 	   here because the popover is anchored relative to

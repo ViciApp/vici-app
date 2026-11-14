@@ -3,7 +3,7 @@
 	 * Resolution banner · while-you-were-away. Leads the standard dashboard
 	 * when calls settled since the user last acknowledged them. Tapping
 	 * opens the ResolutionReveal overlay. `is-neg` flips the accent to
-	 * measured (no laurel / pulse) on a net-negative batch — the system
+	 * measured (no laurel / pulse) on a net-negative batch; the system
 	 * never borrows celebratory styling for a loss. Class names live in
 	 * `app.css`.
 	 */

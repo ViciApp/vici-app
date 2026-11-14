@@ -12,13 +12,13 @@
 
 	/**
 	 * The single compact header for every screen. A 50px bar that lives
-	 * inside the page content column at all widths — it never sets its own
+	 * inside the page content column at all widths; it never sets its own
 	 * `position: sticky` so it scrolls under the global navigation chrome
 	 * rather than fighting the desktop nav's sticky.
 	 *
 	 * Two title treatments:
-	 *  - `section` — a tight sans title (default) for utility screens.
-	 *  - `editorial` — the serif-italic wordmark treatment, with an optional
+	 *  - `section`: a tight sans title (default) for utility screens.
+	 *  - `editorial`: the serif-italic wordmark treatment, with an optional
 	 *    brand-accent span for the second half of the phrase.
 	 *
 	 * Metadata renders as a row of mono chips below the bar; a trailing
@@ -36,7 +36,7 @@
 		/** Metadata pills rendered below the bar. `accent` tints the border
 		 *  with the brand colour. */
 		chips?: { label: string; accent?: boolean }[];
-		/** Back affordance — renders an inline circle button before the
+		/** Back affordance: renders an inline circle button before the
 		 *  title when supplied. Top-level pages omit it. */
 		back?: BackAction;
 		/** Trailing edge actions (icon buttons, bell, …). */
@@ -47,7 +47,7 @@
 
 	// A chips-only header (no title / back / action) omits the empty bar
 	// entirely so the chip row reads as content rather than a hollow 50px
-	// strip — used by surfaces whose only context is a chip (e.g. the
+	// strip: used by surfaces whose only context is a chip (e.g. the
 	// featured-event chip on Markets).
 	const showBar = $derived(nonNullish(title) || nonNullish(back) || nonNullish(right));
 
@@ -89,7 +89,7 @@
 			{#if right}
 				<div class="screen-header-right">{@render right()}</div>
 			{:else if variant === 'section'}
-				<!-- Trailing grid column placeholder — keeps the centred title
+				<!-- Trailing grid column placeholder: keeps the centred title
 				     symmetric when there is no edge action. -->
 				<span class="screen-header-edge" aria-hidden="true"></span>
 			{/if}
@@ -176,7 +176,7 @@
 		letter-spacing: var(--tracking-snug);
 	}
 
-	/* In the section grid the title is the auto centre column — drop the
+	/* In the section grid the title is the auto centre column: drop the
 	   flex-grow inherited from `.screen-header-title` so it sizes to its
 	   text and `justify-self` keeps it centred. */
 	.is-section-bar .screen-header-title.is-section {

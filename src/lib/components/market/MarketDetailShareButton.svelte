@@ -51,7 +51,7 @@
 				});
 			}
 		} catch (err) {
-			// User-cancelled native share sheets reject — treat as silent no-op.
+			// User-cancelled native share sheets reject: treat as silent no-op.
 			if (err instanceof DOMException && err.name === 'AbortError') {
 				return;
 			}
@@ -61,7 +61,7 @@
 	};
 </script>
 
-<!-- Share button on the Market detail appbar — prefers the native Web
+<!-- Share button on the Market detail appbar: prefers the native Web
      Share sheet (mobile), falls back to clipboard copy on desktop with
      a toast acknowledgement. Wears the faint ghost icon-button look so
      it reads as one set with the back chevron and the save control. -->

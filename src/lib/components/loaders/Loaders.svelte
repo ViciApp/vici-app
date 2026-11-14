@@ -19,7 +19,7 @@
 	// burst from saturating the browser's per-host connection pool, split them:
 	// the loaders feeding the first authenticated surfaces (markets / dash /
 	// profile / portfolio) mount immediately, and the social / discovery loaders
-	// — leaderboard, following graph, global activity — mount just after first
+	// (leaderboard, following graph, global activity) mount just after first
 	// paint. Those feed Arena and activity overlays that aren't on the initial
 	// surface, and every store is stale-while-revalidate, so the short defer is
 	// invisible there while giving the critical fetches an uncontended head

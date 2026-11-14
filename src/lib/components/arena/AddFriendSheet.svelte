@@ -5,7 +5,7 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * Add-by-handle bottom sheet — an `@`-prefixed input opened from the
+	 * Add-by-handle bottom sheet: an `@`-prefixed input opened from the
 	 * ranked-list "Add" chip in {@link FriendsTab}. Submitting writes
 	 * through to the friend-request service the host owns; the visual
 	 * handle prefix is the user-facing affordance until the satellite

@@ -5,7 +5,7 @@
 
 	interface Props {
 		onDismiss: () => void;
-		// "Start a battle" action — opens the create-a-battle wizard
+		// "Start a battle" action: opens the create-a-battle wizard
 		// (pick league → opponent → duration → send).
 		onStartBattle: () => void;
 	}

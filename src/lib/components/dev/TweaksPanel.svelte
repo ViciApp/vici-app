@@ -13,7 +13,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 
-	// Dev knob bounds for the leaderboard qualify gate — 0 disables the gate
+	// Dev knob bounds for the leaderboard qualify gate: 0 disables the gate
 	// (everyone ranked), 30 is a deliberately strict ceiling for feeling out
 	// the threshold.
 	const QUALIFY_MIN_FLOOR = 0;
@@ -38,7 +38,7 @@
 		try {
 			await signOut();
 		} catch {
-			// Already signed out / network glitch — push to /signin
+			// Already signed out / network glitch: push to /signin
 			// regardless so the panel doesn't get stuck.
 		}
 

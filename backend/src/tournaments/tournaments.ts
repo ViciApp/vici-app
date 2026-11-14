@@ -8,7 +8,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
 import { getLeagueStats } from '../leagues/stats';
 import { logger } from '../lib/logger';
-import { DAY_IN_MS, MONTH_ANCHOR_RE } from '../lib/time';
+import { DAY_IN_MS, MONTH_ANCHOR_RE, monthAnchorFromMs } from '../lib/time';
 import { TOURNAMENT_PRIZE_TIERS } from '../vxp/constants';
 import { grantTournamentPrize } from '../vxp/prizes';
 
@@ -713,9 +713,7 @@ export const claimTournamentPrize = async ({
 /** Worker tick: draw the current month's bracket once it can be drawn; the
  * key collision and the refusal reasons make every pass a cheap no-op. */
 export const tournamentDrawTick = async (nowMs = Date.now()): Promise<void> => {
-	const monthAnchor = `${new Date(nowMs).getUTCFullYear()}-${(new Date(nowMs).getUTCMonth() + 1)
-		.toString()
-		.padStart(2, '0')}`;
+	const monthAnchor = monthAnchorFromMs(nowMs);
 	const result = await triggerTournamentDraw({ monthAnchor, nowMs });
 
 	if (result.ok) {

@@ -63,114 +63,48 @@ Rules:
   declaration + the dispatch table are the only logic that belongs in
   `index.ts`.
 
-## Wire-format quirk: `Vec<NestedStruct>` results need snake_case
+## Wire format: nested results are camelCase
 
-If a typed query returns `j.array(SomeNestedSchema)`, the items land on the
-wire in **snake_case**, not the camelCase you'd expect from the schema.
-Get this wrong and the canister traps on every read with
-`'Error converting from js JsonData into type Candid: missing field
-<snake_case_name>'`.
-
-### Why
-
-Sputnik's `JsonData` derive macro generates a mirror struct with
-`#[serde(rename_all = "camelCase")]` for fields it wraps, so the JSON↔Rust
-handoff normally uses camelCase. **But** the macro only wraps fields
-explicitly marked `#[json_data(nested)]`, and Juno's TS→Rust codegen does
-**not** add that attribute to `Vec<NestedStruct>` fields. For example:
+Typed query and update results reach the wire in **camelCase**, for
+`j.array(Nested)` and `j.optional(Nested)` alike. Juno's TS→Rust codegen
+(CLI ≥ 0.15.6, the version CI pins) marks both `Vec<NestedStruct>` and
+`Option<NestedStruct>` fields `#[json_data(nested)]`, so the `JsonData`
+mirror struct uses `rename_all = "camelCase"` for both:
 
 ```rust
-// ✅ getProfile: `profile` IS nested → wire format is camelCase
-pub struct AppGetProfileResult {
+pub struct AppListFriendResolvedResultsResult {
     #[json_data(nested)]
-    pub profile: Option<AppGetProfileResultProfile>,
-}
-
-// ❌ listLeaderboard: `items` is NOT nested → wire format reverts to
-//    the inner struct's original `Deserialize` impl, no rename_all,
-//    i.e. snake_case
-pub struct AppListLeaderboardResult {
-    pub items: Vec<AppListLeaderboardResultItems>,
+    pub items: Vec<AppListFriendResolvedResultsResultItems>,
 }
 ```
 
-So `app_get_profile` works with camelCase, but `app_list_leaderboard`,
-`app_search_profiles`, `app_list_friends`, etc. expect snake_case on the
-wire.
+Older toolchains left `Vec` fields unmarked, which put them in snake_case
+and trapped every read with `missing field <snake_case_name>`. Building the
+satellite with an older CLI brings that back: always build with the pinned
+version (`npm i -g @junobuild/cli@0.15.6`, as `checks.yml` does).
+
+### Wire schemas are converters, not renames
+
+[`src/satellite/utils/wire-format.utils.ts`](../../../src/satellite/utils/wire-format.utils.ts)
+holds a `*WireSchema` + `toWire…` (and, where the FE needs it, `fromWire…`)
+for results whose domain shape does not fit the wire as is: defaults,
+optional fields, enum normalisation (for example `toWireProfile` and
+`toWireLeague`). Keys stay camelCase, matching the app-side types. A result
+whose domain schema already fits (for example `listFriendResolvedResults`
+returning `j.array(ResolvedResultSchema)`) uses that schema directly; no
+converter is needed.
 
 ### The fix that doesn't work
 
-`.transform()` on the result schema is **not** a valid workaround. It
+`.transform()` on a result schema is **not** a valid way to reshape it. It
 produces a `ZodEffects`, and juno's schema → Rust codegen only accepts
 `ZodObject`; it throws
 `"Unsupported type: unrepresentable schema (z.symbol, z.undefined, …
 are not supported)"`, the CLI's silent `catch{}` swallows it, and the
 whole `juno functions build` exits with code 1 producing **zero** files in
-`target/deploy/`. (See git history for the Saturday afternoon we lost to
-this.) Avoid `.transform()` / `.refine()` / `.passthrough()` anywhere in a
-`defineQuery` / `defineUpdate` result schema for the same reason.
-
-### The fix that does work
-
-For every `Vec<NestedStruct>` result, declare a **parallel snake_case wire
-schema** in
-[`src/satellite/utils/wire-format.utils.ts`](../../../src/satellite/utils/wire-format.utils.ts)
-and a matching `toWire…` converter, then use them in `index.ts`:
-
-```ts
-// in src/satellite/utils/wire-format.utils.ts
-export const UserProfileWireSchema = j.strictObject({
-	owner: PrincipalTextSchema,
-	total_trades: j.number().default(0), // snake_case here
-	// …
-	preferences: j
-		.strictObject({
-			default_amount: j.strictObject({ flow: j.string(), manual: j.string() })
-		})
-		.optional()
-});
-
-export const toWireProfile = (profile: AppProfileLike): WireUserProfile => ({
-	owner: profile.owner,
-	total_trades: profile.totalTrades ?? 0 // camelCase → snake_case
-	// …
-});
-
-// in src/satellite/index.ts
-export const listLeaderboard = defineQuery({
-	result: j.strictObject({
-		items: j.array(UserProfileWireSchema) // ← wire schema, not the FE schema
-	}),
-	handler: () => ({
-		items: listLeaderboardFn().map(toWireProfile) // ← convert per item
-	})
-});
-```
-
-juno's codegen reads the wire schema's field names verbatim → the Rust
-struct shape is byte-identical to before. The handler emits snake_case →
-Zod parse passes through → JSON.stringify produces snake_case → Rust
-deserializer is happy.
-
-### When to apply
-
-- **Array results (`j.array(NestedSchema)`)**: always use the wire schema.
-  The rule covers every `j.array(Nested)` result in `index.ts`, so a new
-  list endpoint gets its `*WireSchema` + `toWire…` pair from day one.
-  One endpoint does not follow it yet: `listFriendResolvedResults` returns
-  `j.array(ResolvedResultSchema)` (camelCase) directly; it gets its wire
-  schema in its own change.
-- **`Option<NestedSchema>` results** (e.g. `getProfile.profile`): leave
-  camelCase as-is. Juno emits `#[json_data(nested)]` on `Option<T>` so
-  the camelCase mirror handles it correctly.
-- **Primitive results** (`j.boolean()`, `j.number()`, `j.string()`,
-  `j.array(j.string())`, …): no conversion needed; primitives don't
-  trigger the bug.
-
-If the upstream Juno codegen ever starts emitting `#[json_data(nested)]`
-on `Vec<NestedStruct>` fields too, the wire schemas become redundant and
-can be dropped in one PR: point all the `index.ts` results back at the
-FE schemas and delete the converters.
+`target/deploy/`. Avoid `.transform()` / `.refine()` / `.passthrough()`
+anywhere in a `defineQuery` / `defineUpdate` result schema for the same
+reason: convert in the handler with a `toWire…` function instead.
 
 ## Hooks: collection dispatch table
 
@@ -681,12 +615,12 @@ principal with no profile, because new accounts live on the new stack:
 - ✅ For any VXP award / economy change, follow the invariants in
   [`economy.md`](./economy.md).
 - ✅ Validate principals via `PrincipalTextSchema`.
-- ✅ Use the snake_case **wire schemas** from
+- ✅ Build the satellite with the pinned juno CLI (0.15.6), which keeps
+  nested results camelCase, and reshape a result with a `toWire…`
+  converter from
   [`src/satellite/utils/wire-format.utils.ts`](../../../src/satellite/utils/wire-format.utils.ts)
-  for **every** `j.array(NestedSchema)` result, with the matching
-  `toWire…` converter in the handler; see the
-  [`Vec<NestedStruct>` quirk](#wire-format-quirk-vecnestedstruct-results-need-snake_case)
-  section above for the why.
+  in the handler when its domain shape does not fit; see
+  [Wire format](#wire-format-nested-results-are-camelcase).
 - ❌ Use `.transform()` / `.refine()` / `.passthrough()` in any
   `defineQuery` / `defineUpdate` `args` or `result` schema; juno's
   codegen only accepts `ZodObject` and silently kills the build with no

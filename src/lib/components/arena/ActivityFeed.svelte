@@ -37,7 +37,7 @@
 		return $globalActivities;
 	});
 
-	// `refreshGlobalActivities` is fire-and-forget — the actual fetch
+	// `refreshGlobalActivities` is fire-and-forget: the actual fetch
 	// happens inside `LoaderGlobalActivities`. We don't surface a
 	// `refreshing` state because the cached list keeps rendering during
 	// the background refetch (stale-while-revalidate).

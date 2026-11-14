@@ -6,10 +6,10 @@
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
-		// "Open Dashboard →" — the primary exit, where open predictions and the
+		// "Open Dashboard →": the primary exit, where open predictions and the
 		// freeing-up balance live.
 		onClose: () => void;
-		// "Back to Markets" — the quieter secondary exit.
+		// "Back to Markets": the quieter secondary exit.
 		onBackToMarkets: () => void;
 	}
 
@@ -18,7 +18,7 @@
 	const reduce = $derived(prefersReducedMotion());
 </script>
 
-<!-- Out-of-funds gate — every spendable VXP is already committed to open
+<!-- Out-of-funds gate: every spendable VXP is already committed to open
      predictions, so no further call this session can be funded. Rather than
      leave the user stranded on cards they can't act on, this takeover
      explains where the balance went and offers an explicit way out: see the

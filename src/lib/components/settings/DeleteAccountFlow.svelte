@@ -37,7 +37,7 @@
 	 * Six-beat account-deletion flow, docked in a {@link BottomSheet}.
 	 *
 	 * `reason → what-happens → leagues → confirm → gone`. The
-	 * `deleting` beat is folded into `confirm`'s spinner — there is no
+	 * `deleting` beat is folded into `confirm`'s spinner: there is no
 	 * separate sheet for the in-flight moment. Owned non-empty leagues
 	 * must be resolved (transferred or disbanded) before the confirm
 	 * step unlocks; open orders are cancelled FE-side first because the
@@ -45,7 +45,7 @@
 	 */
 	interface Props {
 		isOpen: boolean;
-		/** The user's handle — typed back on the confirm step. */
+		/** The user's handle: typed back on the confirm step. */
 		nickname: string;
 		onClose: () => void;
 		/** Sign-out path reused from the host page. */
@@ -136,7 +136,7 @@
 	let errorParams = $state<Record<string, string | number> | undefined>(undefined);
 	let confirmInputEl = $state<HTMLInputElement | undefined>();
 
-	// Gone takeover — focus trap
+	// Gone takeover: focus trap
 	let goneDialogEl = $state<HTMLDivElement | undefined>();
 	let goneTrap: FocusTrap | null = null;
 
@@ -342,7 +342,7 @@
 		// + the owner-leagues guard BEFORE the soft-delete, so a refusal
 		// (`owns_non_empty_league` / `league_resolution_failed`) leaves the
 		// account fully intact. We must not cancel the user's open orders
-		// until the delete has actually committed — otherwise a transient
+		// until the delete has actually committed; otherwise a transient
 		// refusal would irreversibly wipe orders without deleting anything.
 		let result: Awaited<ReturnType<typeof deleteMyAccount>>;
 
@@ -388,8 +388,8 @@
 
 		// Soft-delete committed. Now cancel open orders FE-side (the satellite
 		// can't reach the clearing engine). A cancel failure here can't undo
-		// the delete — the account is recoverable for 30 days and any open
-		// trades settle at expiry regardless — so we still proceed to `gone`.
+		// the delete; the account is recoverable for 30 days and any open
+		// trades settle at expiry regardless, so we still proceed to `gone`.
 		try {
 			for (const order of openOrders) {
 				await cancelLimitOrder(order.order_id);
@@ -429,7 +429,7 @@
 
 	// Reset to the first beat each time the sheet (re)opens so a
 	// re-entry never lands mid-flow on stale state. Each (re)open is a
-	// genuine churn-funnel entry, so it also emits `delete_flow_opened` —
+	// genuine churn-funnel entry, so it also emits `delete_flow_opened`:
 	// the top of the delete funnel the server-side `delete_confirmed` /
 	// `delete_succeeded` events complete.
 	$effect(() => {
@@ -443,7 +443,7 @@
 
 	// Manage the focus trap for the full-bleed "gone" takeover. The dialog
 	// auto-redirects via countdown, so the trap stays active until finish()
-	// clears it and closes the flow. Esc is intentionally not wired here —
+	// clears it and closes the flow. Esc is intentionally not wired here;
 	// the takeover redirects automatically and there is no cancel action.
 	$effect(() => {
 		if (!browser) {
@@ -953,7 +953,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Serif-italic lede — the empathetic voice for the opener and the
+	/* Serif-italic lede: the empathetic voice for the opener and the
 	   honest-disclosure intro. */
 	.del-lede {
 		margin: 0 0 0.15rem;
@@ -973,7 +973,7 @@
 		font-style: normal;
 	}
 
-	/* Reason picker — 2-col grid of soft-square chips. Active state
+	/* Reason picker: 2-col grid of soft-square chips. Active state
 	   adopts the laurel accent (the empathetic step stays warm; the
 	   danger tone is reserved for the steps past the opener). */
 	.del-reasons {
@@ -1017,7 +1017,7 @@
 		resize: vertical;
 	}
 
-	/* Retention off-ramp — dashed laurel-tinted card, sits above the
+	/* Retention off-ramp: dashed laurel-tinted card, sits above the
 	   footer so the "stay" path is offered before the user commits. */
 	.del-retain {
 		padding: 0.65rem 0.7rem;
@@ -1069,7 +1069,7 @@
 		background: color-mix(in srgb, var(--accent) 8%, transparent);
 	}
 
-	/* Disclosure rows — icon + text, divider-separated. The ok rows take
+	/* Disclosure rows: icon + text, divider-separated. The ok rows take
 	   a laurel-green tick; the rows the user can't make reversible (active
 	   trades, owned leagues) take a danger bang. */
 	.del-rows {
@@ -1269,7 +1269,7 @@
 		color: var(--danger);
 	}
 
-	/* Inline disband confirm — text + danger pill, mirrors the source's
+	/* Inline disband confirm: text + danger pill, mirrors the source's
 	   two-tap guard before a league is wiped for all members. */
 	.del-league-confirm {
 		display: flex;
@@ -1435,7 +1435,7 @@
 		flex: 1;
 	}
 
-	/* Destructive footer CTA — the `danger` Button variant wires to the
+	/* Destructive footer CTA: the `danger` Button variant wires to the
 	   prediction-NO red; the delete flow's terracotta danger ramp is the
 	   correct destructive-action tone, so override the fill here. */
 	:global(.del-danger-btn) {
@@ -1447,7 +1447,7 @@
 		background: var(--danger-deep);
 	}
 
-	/* Gone — full-bleed Vale takeover, layered above the sheet so it
+	/* Gone: full-bleed Vale takeover, layered above the sheet so it
 	   reads as a final farewell rather than another sheet beat. No
 	   backdrop-click / Escape close: the only way out is the CTA (or the
 	   auto-redirect when the counter reaches zero). */

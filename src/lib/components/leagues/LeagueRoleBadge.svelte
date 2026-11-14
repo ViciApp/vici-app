@@ -18,7 +18,7 @@
 
 	const { role, expanded = false }: Props = $props();
 
-	// Members are the default — a chip on every row would be noise, so only
+	// Members are the default: a chip on every row would be noise, so only
 	// owner/admin earn one. Owner takes the gold (laurel) tone to read as the
 	// league's lead; admin stays neutral.
 
