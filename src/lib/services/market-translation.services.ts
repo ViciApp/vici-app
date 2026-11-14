@@ -28,7 +28,7 @@ export const getMarketTranslation = async ({
 
 export const listMarketTranslations = async (seriesId: string): Promise<MarketTranslation[]> => {
 	// The HTTP API already speaks the app's camelCase shape; only the satellite
-	// wire needs the snake_case unwrap.
+	// wire needs the projection below.
 	if (isWeb2Backend()) {
 		return await listMarketTranslationsWeb2(seriesId);
 	}
