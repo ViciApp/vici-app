@@ -19,10 +19,10 @@ import { leagueMemberKey, type LeagueMemberDoc } from '#lib/types/league-member.
 import { leagueStatsBucket, leagueStatsKey, type LeagueStatsDoc } from '#lib/types/league-stats.ts';
 import { leaguePrivacy, type LeagueDoc } from '#lib/types/league.ts';
 import type { CategoryStatsBucket } from '#lib/types/user-stats.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
-import { time } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, getAdminAccessKeys, getDocStore } from '@junobuild/functions/sdk';
 
 /**
@@ -296,7 +296,7 @@ export const assertSetBattle = ({
 		}
 	};
 
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	// Result fields: set once on the resolve transition, forbidden everywhere else.
 	const hasResultFields =

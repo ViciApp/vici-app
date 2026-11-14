@@ -15,9 +15,10 @@ import { controllerCaller } from '#satellite/services/authz.services.ts';
 import { seriesIdsForTag } from '#satellite/services/market-tag-index.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import { call, msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { call, msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -43,8 +44,6 @@ import {
  * also the liveness model: Juno has no scheduler, so a settled battle resolves
  * the first time any member of either side opens it and the FE calls this.
  */
-
-const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /** A satellite controller principal: the `caller` for the controller-trusted resolved write. */
 const adminCaller = (): Uint8Array => controllerCaller('battle resolution');
@@ -280,7 +279,7 @@ export const resolveBattleFromSettlementsFn = async ({
 		throw new Error('Only a member of either side can resolve a battle.');
 	}
 
-	const settleMs = nowMs();
+	const settleMs = timeMs();
 
 	if (settleMs < battle.settleMs) {
 		throw new Error('Battle has not reached its settle time yet.');
@@ -365,7 +364,7 @@ export const readBattleLiveScoreFn = async ({
 
 	const { scoreA, scoreB, callsA, callsB, winner } = await computeScoreline({
 		battle,
-		toMs: nowMs(),
+		toMs: timeMs(),
 		caller
 	});
 

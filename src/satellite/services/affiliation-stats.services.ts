@@ -3,6 +3,7 @@ import {
 	affiliationStatsSnapshotKey,
 	type AffiliationStatsDoc
 } from '#lib/types/affiliation-stats.ts';
+import { MONTH_ANCHOR_RE } from '#lib/utils/month-anchor.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
@@ -32,8 +33,6 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  *     integers, and `wins ≤ totalCalls` / `monthWins ≤ monthTotalCalls`: a
  *     corrupted snapshot would otherwise break the ranking math it feeds.
  */
-const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
-
 const isNonNegativeInteger = (value: number): boolean => Number.isInteger(value) && value >= 0;
 
 export const assertSetAffiliationStats = ({

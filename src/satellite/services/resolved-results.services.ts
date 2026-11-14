@@ -1,9 +1,5 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
-import {
-	MILLISECOND_IN_NANOSECONDS,
-	RESOLVED_RESULTS_RETENTION_MS,
-	ZERO
-} from '#lib/constants/app.constants.ts';
+import { RESOLVED_RESULTS_RETENTION_MS, ZERO } from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
@@ -12,9 +8,10 @@ import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { OnSetDocContext } from '@junobuild/functions';
-import { call, msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { call, msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	deleteDocStore,
@@ -23,8 +20,6 @@ import {
 	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
-
-const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /**
  * A satellite controller principal, used as the `caller` for the controllers-scoped
@@ -192,7 +187,7 @@ export const onActivitySetForResolvedResults = async (ctx: OnSetDocContext): Pro
 		}
 
 		const title = await marketTitle({ seriesId, fallback: activity.title });
-		const resolvedAtMs = nowMs();
+		const resolvedAtMs = timeMs();
 		const admin = adminCaller();
 
 		// `cashflow_usd` is a Candid `int` (`bigint`); `netVxp` is a JS `number`.
@@ -262,7 +257,7 @@ export const listFriendResolvedResultsFn = ({
 		return [];
 	}
 
-	const cutoffMs = nowMs() - RESOLVED_RESULTS_RETENTION_MS;
+	const cutoffMs = timeMs() - RESOLVED_RESULTS_RETENTION_MS;
 
 	// One bounded scan anchored to the friend owner-prefixes (`(^a#|^b#|…)`),
 	// not a per-friend round-trip. The decoded-`owner` re-check below is the
@@ -311,7 +306,7 @@ export const pruneResolvedResultsFn = (): { pruned: number } => {
 	}
 
 	const admin = adminCaller();
-	const cutoffMs = nowMs() - RESOLVED_RESULTS_RETENTION_MS;
+	const cutoffMs = timeMs() - RESOLVED_RESULTS_RETENTION_MS;
 
 	const { items } = listDocsStore({
 		collection: Collection.RESOLVED_RESULTS,

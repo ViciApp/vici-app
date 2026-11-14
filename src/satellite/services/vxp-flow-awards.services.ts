@@ -1,3 +1,4 @@
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
@@ -243,7 +244,7 @@ const overtimeAwardsInWindow = ({
 	nowMs: number;
 }): number => {
 	const prefix = vxpAwardKey({ recipient, awardType: 'flow_overtime', awardKey: '' });
-	const cutoffNs = BigInt(nowMs - VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS) * 1_000_000n;
+	const cutoffNs = BigInt(nowMs - VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS) * MILLISECOND_IN_NANOSECONDS;
 
 	const { items } = listDocsStore({
 		collection: Collection.VXP_AWARDS,

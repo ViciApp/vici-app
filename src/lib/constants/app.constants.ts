@@ -58,6 +58,14 @@ export const WEEK_IN_NANOSECONDS = WEEK_IN_SECONDS * SECOND_IN_NANOSECONDS;
  */
 export const RESOLVED_RESULTS_RETENTION_MS = 45 * DAY_IN_MS;
 
+/**
+ * Recovery window for a soft-deleted account. After `deleteMyAccount` sets
+ * `deletedAtMs`, the owner has this long to call `recoverMyAccount`; past it the
+ * account is eligible for the admin sweep's hard-delete, and a too-late
+ * `recoverMyAccount` hard-deletes it.
+ */
+export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * DAY_IN_MS;
+
 export const II_MAX_TIME_TO_LIVE_NS = WEEK_IN_NANOSECONDS;
 
 export const WALLET_PAGINATION = 10n;

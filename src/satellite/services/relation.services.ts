@@ -1,9 +1,11 @@
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { FRIEND_REQUEST_REJECTED_COOLDOWN_MS } from '#lib/constants/relation.constants.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	deleteDocStore,
@@ -229,13 +231,13 @@ export const sendFriendRequest = ({ target }: { target: PrincipalText }): Friend
 		// receives, so the Juno-managed `updated_at` is the rejection time.
 		const isRejecter = existing.participants[1] === sender;
 		const rejectedAtMs = nonNullish(existingDoc.updated_at)
-			? Number(existingDoc.updated_at / 1_000_000n)
+			? Number(existingDoc.updated_at / MILLISECOND_IN_NANOSECONDS)
 			: undefined;
 		const retryAtMs = nonNullish(rejectedAtMs)
 			? rejectedAtMs + FRIEND_REQUEST_REJECTED_COOLDOWN_MS
 			: undefined;
 
-		const nowMs = Number(time() / 1_000_000n);
+		const nowMs = timeMs();
 
 		if (!isRejecter && nonNullish(retryAtMs) && nowMs < retryAtMs) {
 			return { status: 'rejected_cooldown', retryAtMs };

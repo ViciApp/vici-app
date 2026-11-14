@@ -14,10 +14,11 @@ import {
 } from '#satellite/services/cohort.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	encodeDocData,
 	getAdminAccessKeys,
@@ -167,7 +168,7 @@ export const claimWorldsPodiumPrizeFn = async ({
 		);
 	}
 
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 	const currentMonth = monthAnchorFromMs(nowMs);
 
 	if (monthAnchor >= currentMonth) {

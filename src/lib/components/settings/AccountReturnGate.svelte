@@ -2,6 +2,7 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Loader2 } from '@lucide/svelte/icons';
 	import Button from '#lib/components/ui/Button.svelte';
+	import { ACCOUNT_RECOVERY_WINDOW_MS, DAY_IN_MS } from '#lib/constants/app.constants.ts';
 	import { recoverMyAccount, resumeMyAccount } from '#lib/services/account.services.ts';
 	// The dual-mode sign-out: the Juno delegation drop on the default
 	// backend, the cookie-session revoke in web2 mode.
@@ -29,13 +30,6 @@
 	 * the satellite has already cleared it server-side.
 	 */
 
-	// 30-day recovery window for a soft-deleted account, mirroring the
-	// satellite's `ACCOUNT_RECOVERY_WINDOW_MS` (not importable here —
-	// `src/satellite/` is a separate build). Past this the satellite
-	// hard-deletes on the next `recoverMyAccount` call. Kept in `_ms`.
-	const ACCOUNT_RECOVERY_WINDOW_MS = 30 * 86_400_000;
-	const DAY_MS = 86_400_000;
-
 	type Mode = 'deleted' | 'hibernated' | null;
 
 	let inFlight = $state(false);
@@ -61,7 +55,7 @@
 
 		const remainingMs = deletedAtMs + ACCOUNT_RECOVERY_WINDOW_MS - Date.now();
 
-		return Math.max(0, Math.ceil(remainingMs / DAY_MS));
+		return Math.max(0, Math.ceil(remainingMs / DAY_IN_MS));
 	});
 
 	const recoverStatus = $derived<ButtonStatus>(inFlight ? 'pending' : 'enabled');

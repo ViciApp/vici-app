@@ -1,3 +1,4 @@
+import { MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAILY_HARD_CAP } from '#lib/constants/flow-rewards.constants.ts';
 import {
@@ -11,9 +12,10 @@ import type { UserProfile } from '#lib/types/profile.ts';
 import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
 import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
 import { mintFlowOvertime } from '#satellite/services/vxp-flow-awards.services.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { AssertSetDocContext } from '@junobuild/functions';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -496,7 +498,7 @@ export const checkNicknameAvailabilityFn = ({
  * stale or in the future: the client must not be trusted to backdate the
  * stamp and dodge the cooldown.
  */
-const HANDLE_LAST_CHANGE_TOLERANCE_MS = 5 * 60 * 1000;
+const HANDLE_LAST_CHANGE_TOLERANCE_MS = 5 * MINUTE_IN_MS;
 
 // Handle-change detection uses the uniqueness fold, so re-casing/re-accenting
 // your own handle isn't a "change" (no cooldown, no new stamp): the stored
@@ -571,7 +573,7 @@ export const assertValidNickname = ({
 	}
 
 	const proposedLastChangeMs = proposedProfile.handleLastChangeMs;
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	// First write (account creation): there is no stored handle yet, so this
 	// is not a cooldown-gated change. Only guard against a forged future /

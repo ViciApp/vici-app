@@ -3,8 +3,9 @@ import { normalizeStoredTags } from '#lib/constants/market-taxonomy.constants.ts
 import type { MarketMetadata, MarketMetadataInput } from '#lib/types/market-metadata.ts';
 import { isAdmin, isCreatorOrAdmin } from '#satellite/services/authz.services.ts';
 import { updateMarketTagIndex } from '#satellite/services/market-tag-index.services.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish } from '@dfinity/utils';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
 
 const callerText = (): string => msgCaller().toText();
@@ -63,7 +64,7 @@ export const upsertMarketMetadata = async ({
 		tags: normalizeStoredTags(data.tags ?? []),
 		suggested,
 		subtitle: data.subtitle,
-		updatedAt: Number(time() / 1_000_000n),
+		updatedAt: timeMs(),
 		updatedBy: callerText()
 	};
 

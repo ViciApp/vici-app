@@ -22,7 +22,7 @@
  * satellite.
  */
 
-import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import {
@@ -37,6 +37,7 @@ import {
 import type { VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
@@ -53,8 +54,6 @@ import {
 
 /** Defensive cap so one call can't write an unbounded number of docs. */
 const MAX_EVENTS_PER_BATCH = 100;
-
-const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /**
  * Re-nest the flat wire dimensions back into a `props` object, dropping
@@ -160,7 +159,7 @@ export const trackEventsFn = ({ events }: { events: TrackEventInput[] }): { acce
 	const principalText = caller.toText();
 	const isAnonymous = principalText === Principal.anonymous().toText();
 	const admin = adminCaller();
-	const tsMs = nowMs();
+	const tsMs = timeMs();
 	const stamp = time();
 
 	batch.forEach((event, index) => {
@@ -589,7 +588,7 @@ export const captureServerEvents = ({ events }: { events: ServerEventInput[] }):
 	}
 
 	const admin = adminCaller();
-	const tsMs = nowMs();
+	const tsMs = timeMs();
 	const stamp = time();
 	const seq = serverCaptureSeq;
 	serverCaptureSeq += 1;

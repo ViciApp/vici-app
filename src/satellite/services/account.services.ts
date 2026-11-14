@@ -1,3 +1,7 @@
+import {
+	ACCOUNT_RECOVERY_WINDOW_MS,
+	MILLISECOND_IN_NANOSECONDS
+} from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	EXIT_SIGNAL_NOTE_MAX_LENGTH,
@@ -18,6 +22,7 @@ import { isAdmin } from '#satellite/services/authz.services.ts';
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
@@ -37,16 +42,6 @@ import {
  * helpers below can take a list entry without restating its shape.
  */
 type ListedDocEntry = ReturnType<typeof listDocsStore>['items'][number];
-
-/**
- * Recovery window for soft-deleted accounts (Delete account v2). After
- * `deleteMyAccount` soft-deletes a profile (sets `deletedAtMs`), the
- * owner has this long to call `recoverMyAccount` and restore the full
- * account. Past the window the account is eligible for the admin sweep's
- * hard-delete (and `recoverMyAccount` itself hard-deletes on a too-late
- * call). 30 days, in milliseconds.
- */
-export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * 86_400_000;
 
 /**
  * Account deletion: Proposal 4 in `docs/backend-proposals/README.md`
@@ -1024,7 +1019,7 @@ export const deleteMyAccountFn = ({
 	}
 
 	const nowNs = time();
-	const nowMs = Number(nowNs / 1_000_000n);
+	const nowMs = Number(nowNs / MILLISECOND_IN_NANOSECONDS);
 
 	// Step 3: soft-delete. Mark the profile `deletedAtMs = now` and keep
 	// every other row intact so recovery can restore the account. A caller
@@ -1148,7 +1143,7 @@ export const recoverMyAccountFn = (): RecoverMyAccountResult => {
 	const callerText = caller.toText();
 	const callerBytes = caller.toUint8Array();
 
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	// The expired branch hard-deletes instead of writing the cleared
 	// marker, so we surface it via this flag and return `null` (no write)
@@ -1209,7 +1204,7 @@ export const hibernateMyAccountFn = (): HibernateMyAccountResult => {
 	const callerText = caller.toText();
 	const callerBytes = caller.toUint8Array();
 
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	// Soft-delete and hibernation are mutually exclusive; a soft-deleted
 	// account refuses with `'deleted'` instead of writing. Surface that
@@ -1320,7 +1315,7 @@ export const sweepExpiredDeletionsFn = (): SweepExpiredDeletionsResult => {
 	}
 
 	const callerBytes = caller.toUint8Array();
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	const { items } = listDocsStore({
 		collection: Collection.PROFILES,

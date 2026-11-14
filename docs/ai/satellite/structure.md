@@ -23,6 +23,7 @@ src/satellite/
     ├── candid.utils.ts             IDL types off the generated factories
     ├── logger.utils.ts             Structured logging wrapper
     ├── regex.utils.ts              escapeRegex
+    ├── time.utils.ts               timeMs (IC time in ms)
     ├── vxp-payout.utils.ts         VXP transfer error mapping
     └── wire-format.utils.ts        snake_case wire schemas + toWire / fromWire
 ```

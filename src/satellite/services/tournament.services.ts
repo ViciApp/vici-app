@@ -21,11 +21,12 @@ import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { getLeagueStatsFn } from '#satellite/services/league-stats.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -360,7 +361,7 @@ export const triggerTournamentDrawFn = ({
 	// Compute the month's window. The draw can be triggered for any
 	// month that has *started*; the lazy-on-mount pattern triggers
 	// the draw on the first day of a new month.
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 	const [year, monthStr] = monthAnchor.split('-');
 	const monthDate = new Date(Date.UTC(Number(year), Number(monthStr) - 1, 1, 0, 0, 0, 0));
 	const startMs = monthDate.getTime();
@@ -823,7 +824,7 @@ export const resolveTournamentRoundFn = ({
 	}
 
 	const tournament = decodeDocData<TournamentDoc>(tournamentDoc.data);
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	// Scan match docs once; bucket by round so we can verify earlier
 	// rounds are resolved before settling this one.
@@ -1196,7 +1197,7 @@ export const claimTournamentPrizeFn = async ({
 		};
 	}
 
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 	// `tier.vxp` is the human-readable whole-VXP prize (5000 / 2500 / 1000),
 	// the same value the FE renders. The award doc / ledger work in base
 	// units (VXP has 4 decimals), so size it via `vxpBaseUnits` like every
