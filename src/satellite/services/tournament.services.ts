@@ -16,7 +16,7 @@ import {
 	type TournamentRound
 } from '#lib/types/tournament.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
+import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { getLeagueStatsFn } from '#satellite/services/league-stats.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
@@ -90,7 +90,7 @@ export const assertSetTournament = ({
 		);
 	}
 
-	if (!/^\d{4}-\d{2}$/.test(proposedDoc.id)) {
+	if (!MONTH_ANCHOR_RE.test(proposedDoc.id)) {
 		throw new Error(
 			`${ASSERT_PREFIX}: id must be a YYYY-MM month anchor, got "${proposedDoc.id}".`
 		);
@@ -340,7 +340,7 @@ export const triggerTournamentDrawFn = ({
 }: {
 	monthAnchor: string;
 }): TriggerTournamentDrawResult => {
-	if (!/^\d{4}-\d{2}$/.test(monthAnchor)) {
+	if (!MONTH_ANCHOR_RE.test(monthAnchor)) {
 		return { ok: false, reason: 'invalid_input' };
 	}
 

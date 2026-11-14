@@ -4,7 +4,7 @@ import { VXP_WORLDS_PODIUM } from '#lib/constants/vxp-economy.constants.ts';
 import { affiliationStatsSnapshotKey } from '#lib/types/affiliation-stats.ts';
 import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
+import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import {
 	hasFrozenMonthlySnapshotFn,
@@ -162,7 +162,7 @@ export const claimWorldsPodiumPrizeFn = async ({
 }: {
 	monthAnchor: string;
 }): Promise<ClaimWorldsPodiumPrizeResult> => {
-	if (!/^\d{4}-\d{2}$/.test(monthAnchor)) {
+	if (!MONTH_ANCHOR_RE.test(monthAnchor)) {
 		throw new Error(
 			`claimWorldsPodiumPrize: invalid monthAnchor "${monthAnchor}" (expected YYYY-MM).`
 		);
