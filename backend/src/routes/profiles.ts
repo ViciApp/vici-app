@@ -7,7 +7,9 @@ import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { UUID_RE } from '../lib/constants';
-import { badRequest } from '../lib/http';
+import { badRequest, clientIp } from '../lib/http';
+import { enforceLimit } from '../lib/rate-limit';
+import { HOUR_IN_MS } from '../lib/time';
 import { InvalidDayKeyError, NoProfileError, recordFlowSwipe } from '../profiles/flow';
 import { checkNicknameAvailability } from '../profiles/nickname';
 import {
@@ -21,6 +23,10 @@ import { upsertMyProfile } from '../profiles/profile-write';
 import { getUserStats, upsertMonthlyStats, upsertUserStats } from '../profiles/stats';
 import { mintFlowOvertime } from '../vxp/flow';
 import { runProfileAwardTriggers } from '../vxp/triggers';
+
+// Search is public and enumerable, so it is limited per client IP. The budget
+// leaves room for a debounced live search behind a shared school network.
+const PROFILE_SEARCH_RATE_LIMIT = 300;
 
 export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 	.get('/me', async ({ request, set }) => {
@@ -98,9 +104,25 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 		},
 		{ query: t.Object({ nickname: t.String() }) }
 	)
-	.get('/search', async ({ query: params }) => ({ items: await searchProfiles(params.q) }), {
-		query: t.Object({ q: t.String() })
-	})
+	.get(
+		'/search',
+		async ({ request, set, query: params }) => {
+			const limited = enforceLimit({
+				set,
+				name: 'profile_search',
+				ip: clientIp(request),
+				limit: PROFILE_SEARCH_RATE_LIMIT,
+				windowMs: HOUR_IN_MS
+			});
+
+			if (limited) {
+				return limited;
+			}
+
+			return { items: await searchProfiles(params.q) };
+		},
+		{ query: t.Object({ q: t.String() }) }
+	)
 	.post(
 		'/flow-swipe',
 		async ({ request, set, body }) => {

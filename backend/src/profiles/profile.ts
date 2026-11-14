@@ -5,6 +5,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
 import { optionalMs } from '../lib/time';
+import { MIN_NICKNAME_LENGTH } from './nickname';
 
 /** Client-facing validation failure: routes answer it as a 400/409 with the
  * message, mirroring the write-guard errors clients already handle. */
@@ -334,11 +335,27 @@ export const getProfileView = async ({
 
 const escapeLike = (value: string): string => value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 
+/** The shortest search query that runs: the shortest handle, so any handle
+ * stays findable while a blank or one-letter query cannot list everyone. */
+export const PROFILE_SEARCH_MIN_QUERY_LENGTH = MIN_NICKNAME_LENGTH;
+
+/** Rows one search answers at most. */
+export const PROFILE_SEARCH_MAX_RESULTS = 20;
+
 /** Public search over non-hidden profiles: nickname substring match plus the
  * user id and any linked legacy principal, so imported accounts stay
- * findable by their historic identifier. */
+ * findable by their historic identifier. A query shorter than
+ * {@link PROFILE_SEARCH_MIN_QUERY_LENGTH} matches nothing. Results are capped,
+ * so the exact handle ranks first, then handles that start with the query:
+ * the add-friend lookup picks the exact handle out of this page. */
 export const searchProfiles = async (queryStr: string): Promise<Profile[]> => {
-	const pattern = `%${escapeLike(queryStr.toLowerCase())}%`;
+	const needle = queryStr.trim().toLowerCase();
+
+	if (needle.length < PROFILE_SEARCH_MIN_QUERY_LENGTH) {
+		return [];
+	}
+
+	const escaped = escapeLike(needle);
 
 	const rows = await query<ProfileRow>(
 		`select ${PROFILE_COLUMNS}
@@ -352,8 +369,13 @@ export const searchProfiles = async (queryStr: string): Promise<Profile[]> => {
 		       select 1 from legacy_principals lp
 		       where lp.user_id = p.user_id and lower(lp.principal) like $1 escape '\\'
 		     )
-		   )`,
-		[pattern]
+		   )
+		 order by lower(p.nickname) = $2 desc,
+		          lower(p.nickname) like $3 escape '\\' desc,
+		          lower(p.nickname),
+		          p.user_id
+		 limit $4`,
+		[`%${escaped}%`, needle, `${escaped}%`, PROFILE_SEARCH_MAX_RESULTS]
 	);
 
 	return rows.map(shapeProfile);
