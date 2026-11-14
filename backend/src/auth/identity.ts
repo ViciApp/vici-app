@@ -92,8 +92,13 @@ export const resolveIdentity = (identity: VerifiedIdentity): Promise<string> => 
 	return tx(async (q) => {
 		await lockLoginEmails({ q, emails: [email] });
 
+		// A hard-deleted account is never signed back into: its identities are
+		// purged with it, and the join keeps a row that slipped past the purge
+		// from resolving to it.
 		const bySubject = await q<{ user_id: string }>(
-			`select user_id from auth_identities where provider = $1 and subject = $2`,
+			`select ai.user_id from auth_identities ai
+			 join users u on u.id = ai.user_id and u.hard_deleted_at is null
+			 where ai.provider = $1 and ai.subject = $2`,
 			[identity.provider, identity.subject]
 		);
 		const knownUserId = bySubject[0]?.user_id;
@@ -107,7 +112,9 @@ export const resolveIdentity = (identity: VerifiedIdentity): Promise<string> => 
 		// A verified email proves ownership, so a new provider attaches to the
 		// account that already holds that address under another provider.
 		const byEmail = await q<{ user_id: string }>(
-			`select user_id from auth_identities where lower(email) = $1 limit 1`,
+			`select ai.user_id from auth_identities ai
+			 join users u on u.id = ai.user_id and u.hard_deleted_at is null
+			 where lower(ai.email) = $1 limit 1`,
 			[email]
 		);
 		let userId = byEmail[0]?.user_id;
@@ -152,4 +159,30 @@ export const resolveIdentity = (identity: VerifiedIdentity): Promise<string> => 
 
 		return userId;
 	});
+};
+
+/** Remove every way to sign in to `userId`: its provider identities and any
+ * one-time code still pending for their addresses. Runs inside the caller's
+ * transaction and takes the per-email login locks first (the lock order in
+ * adoption.ts), so a concurrent first login for one of these addresses runs
+ * after the purge and provisions a new account. Idempotent. */
+export const deleteSignInIdentities = async ({
+	q,
+	userId
+}: {
+	q: TxQuery;
+	userId: string;
+}): Promise<void> => {
+	const rows = await q<{ email: string }>(
+		`select distinct lower(email) as email
+		 from auth_identities
+		 where user_id = $1 and email is not null`,
+		[userId]
+	);
+	const emails = rows.map(({ email }) => email);
+
+	await lockLoginEmails({ q, emails });
+
+	await q(`delete from otp_codes where lower(email) = any($1::text[])`, [emails]);
+	await q(`delete from auth_identities where user_id = $1`, [userId]);
 };

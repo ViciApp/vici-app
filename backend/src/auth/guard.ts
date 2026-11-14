@@ -15,7 +15,9 @@ export interface AuthedUser {
 	role: Role;
 }
 
-/** The signed-in user, or null when the request carries no valid session. */
+/** The signed-in user, or null when the request carries no valid session.
+ * The hard delete revokes every session, but a sign-in racing the purge can
+ * still mint one after it commits, so a hard-deleted account never resolves. */
 export const requireUser = async (request: Request): Promise<AuthedUser | null> => {
 	const token = readCookie(request.headers.get('cookie'), SESSION_COOKIE);
 
@@ -26,7 +28,7 @@ export const requireUser = async (request: Request): Promise<AuthedUser | null> 
 	const rows = await query<{ id: string; role: Role }>(
 		`select u.id, u.role
 		 from sessions s
-		 join users u on u.id = s.user_id
+		 join users u on u.id = s.user_id and u.hard_deleted_at is null
 		 where s.id = $1 and s.expires_at > now()
 		 limit 1`,
 		[peppered(token)]

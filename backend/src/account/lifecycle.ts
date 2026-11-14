@@ -1,13 +1,17 @@
 // Account lifecycle: soft-delete + recovery window + hard-delete cascade,
 // hibernation, and the retention sweep. The user row itself survives a hard
 // delete (it is the identity anchor, like the principal that outlives an
-// on-chain account); what the cascade removes is exactly the domain rows the
-// account accumulated: profile, VXP award history, referral code and
-// redemption, affiliations, relations, league memberships, and owned leagues
-// (deleted when empty, transferred to a surviving member otherwise).
+// on-chain account), stamped dead for good; what the cascade removes is every
+// way back in (auth identities, sessions, pending one-time codes) and exactly
+// the domain rows the account accumulated: profile, VXP award history,
+// referral code and redemption, affiliations, relations, league memberships,
+// and owned leagues (deleted when empty, transferred to a surviving member
+// otherwise).
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
+import { deleteSignInIdentities } from '../auth/identity';
+import { revokeAllForUser } from '../auth/sessions';
 import { query, tx, type TxQuery } from '../db/client';
 import { deleteLeague, transferLeagueOwnership } from '../leagues/leagues';
 import { logger } from '../lib/logger';
@@ -159,12 +163,17 @@ const disbandOrTransferOwnedLeagues = async ({ userId, q }: { userId: string; q:
 /**
  * Cascade hard delete for one account, in a single transaction. Shared
  * audit rows (activities, battles, analytics) stay in place: the identity
- * is gone, so they are orphaned but immutable. Membership rows must go
- * before the owned-league resolution so the survivor scan sees the right
- * remaining members. Idempotent.
+ * is gone, so they are orphaned but immutable. The sign-in paths go first,
+ * under the login locks, so the user id can never be signed into again: a
+ * later sign-in with the same address provisions a new account, which is
+ * why deleting the award history cannot let this id earn twice. Membership
+ * rows must go before the owned-league resolution so the survivor scan sees
+ * the right remaining members. Idempotent: the first stamp stands.
  */
 export const hardDeleteAccount = async (userId: string): Promise<void> => {
 	await tx(async (q) => {
+		await deleteSignInIdentities({ q, userId });
+		await revokeAllForUser(userId, q);
 		await q(`delete from profiles where user_id = $1`, [userId]);
 		await q(`delete from vxp_awards where user_id = $1`, [userId]);
 		await q(`delete from referral_codes where owner_user_id = $1`, [userId]);
@@ -176,7 +185,9 @@ export const hardDeleteAccount = async (userId: string): Promise<void> => {
 		await q(`delete from relations where participant_one = $1 or participant_two = $1`, [userId]);
 		await q(`delete from league_members where member_user_id = $1`, [userId]);
 		await disbandOrTransferOwnedLeagues({ userId, q });
-		await q(`update users set hard_deleted_at = now() where id = $1`, [userId]);
+		await q(`update users set hard_deleted_at = coalesce(hard_deleted_at, now()) where id = $1`, [
+			userId
+		]);
 	});
 };
 

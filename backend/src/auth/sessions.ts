@@ -1,9 +1,9 @@
 // Server-side session lifecycle. The cookie carries an opaque random token;
 // the sessions.id column stores only its HMAC. A session is valid iff it
-// exists and is not expired.
+// exists, is not expired and belongs to an account that was not hard-deleted.
 
 import { isNullish } from '@dfinity/utils';
-import { query } from '../db/client';
+import { query, type TxQuery } from '../db/client';
 import { env } from '../env';
 import { peppered, randomToken } from '../lib/crypto';
 import { HOUR_IN_MS } from '../lib/time';
@@ -25,7 +25,10 @@ export const createSession = async (userId: string): Promise<string> => {
 /** The user id behind a session token, or null if the session is invalid. */
 export const userIdForToken = async (token: string): Promise<string | null> => {
 	const rows = await query<{ user_id: string }>(
-		`select user_id from sessions where id = $1 and expires_at > now() limit 1`,
+		`select s.user_id from sessions s
+		 join users u on u.id = s.user_id and u.hard_deleted_at is null
+		 where s.id = $1 and s.expires_at > now()
+		 limit 1`,
 		[peppered(token)]
 	);
 
@@ -55,6 +58,6 @@ export const revokeToken = async (token: string): Promise<void> => {
 };
 
 /** Revoke every session of a user (account-wide sign-out). */
-export const revokeAllForUser = async (userId: string): Promise<void> => {
-	await query(`delete from sessions where user_id = $1`, [userId]);
+export const revokeAllForUser = async (userId: string, q: TxQuery = query): Promise<void> => {
+	await q(`delete from sessions where user_id = $1`, [userId]);
 };
