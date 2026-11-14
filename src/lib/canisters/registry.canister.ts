@@ -60,7 +60,7 @@ export class RegistryCanister extends Canister<RegistryService> {
 	 * Lists registered series, transparently following the registry's
 	 * exclusive pagination cursor until every matching page is drained.
 	 *
-	 * Pass `params` to use the filtered `list_series_with` endpoint — e.g.
+	 * Pass `params` to use the filtered `list_series_with` endpoint, e.g.
 	 * `only_unexpired: true` to let the registry drop expired series
 	 * server-side (the expiry half of the "currently tradeable" predicate;
 	 * resolution is owned by clearing's `list_settled_series`). Omitting

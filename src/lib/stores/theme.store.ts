@@ -19,7 +19,7 @@ export type ThemeLabelKey = 'ui.theme.dark' | 'ui.theme.light' | 'ui.theme.peach
  * Background / dot hex pairs for theme preview chips. Single source of
  * truth for `AppearancePicker` (settings + dropdown variants) and the
  * `WelcomeNav` theme control. Hex values intentionally diverge from the
- * runtime `--bg-base` / `--text-base` tokens — these are static preview
+ * runtime `--bg-base` / `--text-base` tokens; these are static preview
  * swatches that must read correctly even when the *opposite* theme is
  * currently active.
  */

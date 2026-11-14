@@ -157,7 +157,7 @@ const hydrateShape = ({
 /**
  * Read the legacy localStorage payload (if any). Returns `undefined`
  * when nothing is stored or the blob is malformed. After a successful
- * migration the caller is expected to clear the entry — this read is
+ * migration the caller is expected to clear the entry; this read is
  * idempotent and the second call returns `undefined`.
  */
 const readLegacyLocalStorage = (): Partial<UserPreferences> | undefined => {
@@ -178,7 +178,7 @@ const readLegacyLocalStorage = (): Partial<UserPreferences> | undefined => {
 			return parsed;
 		}
 	} catch {
-		// Corrupt payload — ignore and let defaults take over.
+		// Corrupt payload: ignore and let defaults take over.
 	}
 };
 
@@ -194,7 +194,7 @@ const clearLegacyLocalStorage = () => {
 	}
 };
 
-// Local writable store — components subscribe to this. The actual
+// Local writable store: components subscribe to this. The actual
 // source of truth is `userStore.profile.preferences`; this store
 // mirrors it for synchronous reads + write-through semantics.
 const internal = writable<UserPreferences>({ ...DEFAULT_PREFERENCES });
@@ -202,7 +202,7 @@ const internal = writable<UserPreferences>({ ...DEFAULT_PREFERENCES });
 let legacyMigrationAttempted = false;
 
 /**
- * The preference leaves this store owns — everything except the
+ * The preference leaves this store owns: everything except the
  * onboarding-owned picks (`favoriteParticipantId`, `favoriteSide`,
  * `onboardingCompleted`), which only the onboarding handoff writes. The
  * local mirror seeds those to the schema defaults before the profile
@@ -227,7 +227,7 @@ const STORE_OWNED_PREFERENCE_KEYS = [
  * object/array leaves (`notify`, `defaultAmount`, `sharing`, `flowTags`,
  * `savedMarketIds`) on every write, so reference equality would flag them
  * as changed even when their values didn't move. Falling back to a
- * stable JSON compare keeps the diff semantic — the leaf shapes are small
+ * stable JSON compare keeps the diff semantic; the leaf shapes are small
  * and JSON-safe with deterministic key order from `hydrateShape`.
  */
 // eslint-disable-next-line local-rules/prefer-object-params -- equality predicate; a/b read best positionally
@@ -268,7 +268,7 @@ const changedPreferenceLeaves = ({
  *
  * A full-snapshot write from this local mirror would carry a stale
  * `favoriteParticipantId` (the mirror seeds it to '' before the profile
- * loads) and revert a freshly onboarded country pick — so we send only
+ * loads) and revert a freshly onboarded country pick, so we send only
  * the changed store-owned leaves and let the queue merge.
  */
 const persistToProfile = ({
@@ -286,7 +286,7 @@ const persistToProfile = ({
 	const principal = get(authPrincipal);
 
 	if (isNullish(profile) || isNullish(principal)) {
-		// Profile not loaded yet — the write will get picked up on
+		// Profile not loaded yet: the write will get picked up on
 		// hydrate when the migration path runs.
 		return;
 	}
@@ -329,7 +329,7 @@ if (browser) {
 		const { profile } = data;
 
 		if (isNullish(profile)) {
-			// User signed out — reset to defaults so the next sign-in
+			// User signed out: reset to defaults so the next sign-in
 			// doesn't leak the previous user's settings.
 			internal.set({ ...DEFAULT_PREFERENCES });
 			legacyMigrationAttempted = false;
@@ -356,7 +356,7 @@ if (browser) {
 				// level (`preferences.callsPublic`). Fold any such legacy
 				// root value into `sharing.callsPublic` so a user who had
 				// opted out of public call history isn't silently reset to
-				// the default — a stored `sharing.callsPublic` still wins.
+				// the default; a stored `sharing.callsPublic` still wins.
 				const legacyCallsPublic = (legacy as { callsPublic?: boolean }).callsPublic;
 				const mergedPartial: PartialPrefsInput = {
 					...fromProfile,
@@ -393,7 +393,7 @@ if (browser) {
  * don't re-enter the subscriber chain while the local store is
  * mid-write. The userStore subscriber will fire once the
  * persistToProfile-driven userStore.update lands, but by then the
- * local internal store is already at the target value — the
+ * local internal store is already at the target value; the
  * subscriber's `internal.set(fromProfile)` is a no-op write of the
  * same payload.
  */
