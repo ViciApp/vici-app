@@ -442,8 +442,9 @@ export const transferLeagueOwnershipFn = ({
  * memberships → owned-empty-leagues sequencing.
  *
  * This is a deliberate, complete disband: distinct from the account-
- * delete cascade's `deleteOwnedEmptyLeagues`, which only drops leagues
- * that are ALREADY empty (every other member has left). Here the owner
+ * delete cascade's `disbandOrTransferOwnedLeagues`, which only drops
+ * leagues that are ALREADY empty (every other member has left) and hands
+ * the others to a remaining member. Here the owner
  * is explicitly choosing to remove a league that may still have other
  * members, evicting everyone.
  *

@@ -449,8 +449,9 @@ owner-leagues guard:
   `assertDeleteLeagueMember` forbids on the FE path ("transfer ownership
   first"). The satellite's own store drops never re-enter the assert, which
   is exactly why the cascade (`deleteOwnLeagueMemberships`) and this disband
-  can remove owner rows. Distinct from `deleteOwnedEmptyLeagues`, which only
-  drops leagues that are _already_ empty.
+  can remove owner rows. Distinct from the cascade's
+  `disbandOrTransferOwnedLeagues`, which only drops leagues that are
+  _already_ empty and hands the others to a remaining member.
 - **Applied immediately ⇒ not reversed by recovery.** Resolutions are real
   transfers / disbands at delete time, not deferred to hard-delete. A user
   who recovers within the window gets the account back but NOT the

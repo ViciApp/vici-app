@@ -230,15 +230,40 @@ Example shape (compressed from
 [`#lib/services/market.services.ts`](../../../src/lib/services/market.services.ts)):
 
 ```ts
-import { registryApi } from '#lib/api/registry.api.ts';
+import type { RegistryDid } from '#declarations';
+import { addSeries } from '#lib/api/registry.api.ts';
 import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
+import { UserRole } from '#lib/enums/user.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
-import type { CreateMarketRequest } from '#lib/types/market.ts';
+import { getProfile } from '#lib/services/profile.services.ts';
+import { toNullable } from '@dfinity/utils';
 
-export const createMarket = async (req: CreateMarketRequest): Promise<MarketId> => {
+export const createMarket = async ({
+	title,
+	resolution,
+	balanceDomain,
+	tradingAccess = [{ Open: null }]
+}: {
+	title: string;
+	resolution: string;
+	balanceDomain: RegistryDid.BalanceDomain;
+	tradingAccess?: RegistryDid.TradingAccess[];
+}): Promise<string> => {
 	const identity = await safeGetIdentityOnce();
-	const engineId = req.userIsCreator ? VICI_ENGINE_ID : null;
-	return registryApi.addSeries({ identity, engineId, ...req });
+
+	const { role } = (await getProfile(identity.getPrincipal().toText())).data;
+	const isEngineCreator = role === UserRole.ADMIN || role === UserRole.CREATOR;
+
+	const params: RegistryDid.AddSeriesParams = {
+		// ...the other series fields
+		title,
+		resolution: { clause: resolution.trim() },
+		balance_domain: balanceDomain,
+		trading_access: tradingAccess,
+		engine_id: isEngineCreator ? toNullable(VICI_ENGINE_ID) : toNullable()
+	};
+
+	return await addSeries({ identity, params });
 };
 ```
 
@@ -443,8 +468,11 @@ spread-level slippage from top-of-book, not multi-level depth walking.
 - Wrap expensive work in `$derived.by` (cached) or in a `derived(...)`
   Svelte store, not in the render path.
 - `{#each items as item (item.id)}` with a stable key.
-- Lazy-load heavy modules with dynamic `import()` inside an `$effect` /
-  event handler when they aren't needed on first paint.
+- Load modules statically. Dynamic `import()` is not a per-component
+  lazy-load tool: scattered deferred imports through stores and components
+  are rejected. The one structural split is the per-locale catalog loader in
+  [`i18n.utils.ts`](../../../src/lib/utils/i18n.utils.ts); see
+  [Forbidden imports / patterns](./structure.md#forbidden-imports--patterns).
 
 ## Anti-patterns (do not do these)
 
