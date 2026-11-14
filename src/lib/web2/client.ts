@@ -24,12 +24,7 @@ import type { MarketTranslation, MarketTranslationInput } from '#lib/types/marke
 import type { CallSide } from '#lib/types/market.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
-import type {
-	Activity,
-	ActivityReaction,
-	ActivityReactionCount,
-	ResolvedResult
-} from '#lib/types/social.ts';
+import type { Activity, ActivityReaction, ResolvedResult } from '#lib/types/social.ts';
 import type { TournamentDoc, TournamentMatchDoc } from '#lib/types/tournament.ts';
 import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 import { web2ApiBaseUrl } from '#lib/web2/backend-mode.ts';
@@ -2108,22 +2103,6 @@ export const listActivityReactions = async ({
 	const { items } = await request<{ items: ActivityReaction[] }>({
 		path: `/api/v1/social/activity-reactions?${encodeQuery({ limit: limit.toString() })}`,
 		method: 'GET'
-	});
-
-	return items;
-};
-
-/** Rollup like counts for the given activity keys (key-addressed, so the
- * caller derives the keys from the feed window it renders). */
-export const getActivityReactionCounts = async ({
-	activityKeys
-}: {
-	activityKeys: string[];
-}): Promise<ActivityReactionCount[]> => {
-	const { items } = await request<{ items: ActivityReactionCount[] }>({
-		path: '/api/v1/social/activity-reactions/counts',
-		method: 'POST',
-		body: { activityKeys }
 	});
 
 	return items;

@@ -74,7 +74,7 @@ top-level group:
 - `dev/`: dev-build-only tooling (`TweaksPanel`).
 - `guest/`: signed-out guest conversion funnel.
 - `icons/`: bespoke icons not covered by `@lucide/svelte`.
-- `layout/`: app chrome (`ScreenHeader`, `PageScaffold`, `DesktopAppNav`, `MobileNav`, `WelcomeNav`).
+- `layout/`: app chrome (`ScreenHeader`, `DesktopAppNav`, `MobileNav`, `WelcomeNav`).
 - `landing/`: public marketing sections (`WelcomeHero`, `WelcomeProof`, `WelcomeFooter`, …).
 - `leagues/`: leagues, battles and the affiliation picker.
 - `loaders/`: loader shells and the `LoaderXxx` cache fillers mounted by `Loaders`.
@@ -104,7 +104,7 @@ so agents must.
 
 | Suffix               | Meaning                                                    | Example                                        |
 | -------------------- | ---------------------------------------------------------- | ---------------------------------------------- |
-| `*.svelte`           | Component (PascalCase filename)                            | `MarketCard.svelte`, `SignInModal.svelte`      |
+| `*.svelte`           | Component (PascalCase filename)                            | `FlowCard.svelte`, `SignInModal.svelte`        |
 | `*.svelte.ts`        | Module that uses Svelte 5 runes outside a component        | _(rare today; introduce as needed)_            |
 | `*.services.ts`      | Side-effectful module (calls APIs, mutates stores, toasts) | `market.services.ts`, `collateral.services.ts` |
 | `*.api.ts`           | Wrapper around a canister actor / generated declaration    | `clearing.api.ts`, `registry.api.ts`           |
@@ -121,10 +121,10 @@ so agents must.
 
 | Thing                    | Style                         | Example                               |
 | ------------------------ | ----------------------------- | ------------------------------------- |
-| `.svelte` filename       | `PascalCase`                  | `MarketCard.svelte`                   |
+| `.svelte` filename       | `PascalCase`                  | `FlowCard.svelte`                     |
 | `.ts` filename           | `kebab-case`                  | `market-price-history.utils.ts`       |
 | Folder                   | `kebab-case` (or single word) | `market/`, `wallet/`, `address-book/` |
-| Component name           | `PascalCase`                  | `MarketCard`                          |
+| Component name           | `PascalCase`                  | `FlowCard`                            |
 | TS type / interface      | `PascalCase`                  | `MarketSummary`                       |
 | Function / variable      | `camelCase`                   | `formatBalance`                       |
 | Constant export          | `SCREAMING_SNAKE`             | `VICI_ENGINE_ID`                      |

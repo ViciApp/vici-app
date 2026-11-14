@@ -37,8 +37,8 @@ covers the use case.
      prop.
 
 4. **Compose, don't reinvent.** Build on `#lib/components/ui/` (`Button`,
-   `Card`, `Modal`, `Dialog`, `Tabs`, `Switch`, `Table`, `Banner`,
-   `EmptyState`, `LoadingSpinner`, `PopOver`, …). Pull existing icons from
+   `Card`, `Modal`, `Dialog`, `Tabs`, `Table`, `EmptyState`,
+   `LoadingSpinner`, `PopOver`, …). Pull existing icons from
    `#lib/components/icons/` or `@lucide/svelte` before adding new ones.
    Use snippets (`{#snippet}` + `{@render}`) for repeating intra-component
    markup.

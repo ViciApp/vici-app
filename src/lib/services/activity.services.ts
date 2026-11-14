@@ -56,45 +56,14 @@ const listActivities = async ({
 	return items.map(({ data }) => data);
 };
 
-export const getGlobalActivities = async ({
-	limit = 50,
-	certified = false
-}: { limit?: number; certified?: boolean } = {}): Promise<Activity[]> => {
-	if (limit <= 0) {
-		return [];
-	}
-
-	// Fetch only the most-recent `limit` docs server-side instead of
-	// downloading the entire ACTIVITIES collection and slicing in JS,
-	// keeping the call flat as lifetime activity grows.
-	//
-	// Ordering is by the satellite's `created_at`, not the client-written
-	// `data.timestamp` the old code sliced on: Juno can only order by
-	// `created_at` / `updated_at` / `keys`, never an arbitrary data field.
-	// The two diverge only when a client's clock is skewed or it backdates
-	// `timestamp`, in which case the server-assigned `created_at` is the
-	// more trustworthy recency signal anyway. The trailing `data.timestamp`
-	// sort just stabilises ordering within the returned page. The HTTP list
-	// is the same newest-first-by-insert-time window, so both transports
-	// share that stabilising pass.
-	const items = isWeb2Backend()
-		? await listActivitiesWeb2({ limit })
-		: await listActivities({
-				certified,
-				filter: { order: { field: 'created_at', desc: true }, paginate: { limit } }
-			});
-
-	return items.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
-};
-
 /**
  * Most-recent SETTLEMENT activities, matched server-side on the
  * `${user}#${timestamp}#${type}` key suffix.
  *
- * Settlements are rare admin actions, so unlike {@link getGlobalActivities},
- * whose any-type window flushes a settlement row out as soon as `limit` newer
- * trades / comments land: a single page here effectively covers the whole
- * catalog's outcome labels.
+ * Settlements are rare admin actions, so unlike an any-type window, which
+ * flushes a settlement row out as soon as `limit` newer trades / comments
+ * land, a single page here effectively covers the whole catalog's outcome
+ * labels.
  */
 export const getSettlementActivities = async ({
 	limit = 200,

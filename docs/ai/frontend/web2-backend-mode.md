@@ -36,7 +36,7 @@ Two files under `src/lib/web2/`:
 | Domain                                          | Where the branch lives                                                                                                                                                                                                                    | Notes                                                                                                                      |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Analytics                                       | `analytics.services.ts` (flush call site)                                                                                                                                                                                                 | The reference for the per-service swap below.                                                                              |
-| Auth                                            | `authn/SignInProviderStack.svelte`, `authn/Authn.svelte`, `Logout.svelte`                                                                                                                                                                 | The identity layer, not a per-service swap. See "Auth" below.                                                              |
+| Auth                                            | `authn/SignInProviderStack.svelte`, `authn/Authn.svelte`                                                                                                                                                                                  | The identity layer, not a per-service swap. See "Auth" below.                                                              |
 | Profiles + social                               | `profile.services.ts`, `user-stats.services.ts`, `relation.services.ts`, `relation-queries.services.ts`, `leaderboard.services.ts`                                                                                                        | Per-service swaps. Plus the app-shell hydration in `Authn.svelte`. See "Profiles and social" below.                        |
 | Markets + public engine reads                   | `market.services.ts`, `market-metadata.services.ts`, `market-translation.services.ts`, `resolution.services.ts`, `trade.services.ts`, `standings.services.ts`, `collateral.services.ts`                                                   | Public reads only. See "Markets and public engine reads" below.                                                            |
 | Engine account ops + wallet                     | `order.services.ts`, `position.services.ts`, `trade.services.ts`, `collateral.services.ts`, `wallet.services.ts`, `send.services.ts`                                                                                                      | The session-gated engine surface and the custodial wallet. See "Engine account operations and the custodial wallet" below. |
@@ -99,9 +99,6 @@ per-domain sections:
 - **League standings slice** (`getLeagueStandings`): empty in web2 mode
   until a member-filtered bridge read with the identity mapping exists;
   web2 standings entries also keep the on-chain principal as `owner`.
-- **Market discussion comments** (`discussion.services.ts`): the comments
-  collection has no HTTP route; the surface stays on the satellite (and is
-  effectively read-only without a Juno identity).
 - **Landing proof figure** (`landing-proof.services.ts`): an anonymous
   public satellite count; works identically from a web2 build.
 - **On-chain sign-in plumbing** (`apple-signin.services.ts` and the Juno
@@ -139,8 +136,8 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   `legacy_account_pending` / `e=legacy` render `signin.legacy_pending.*`
   with a link to `LEGACY_APP_URL`. Gate semantics live in
   [`backend/README.md`](../../../backend/README.md#beta-access-gate).
-- **Sign-out: `Logout.svelte`.** web2 calls `clearWeb2Session()`; on-chain
-  calls Juno `signOut()`.
+- **Sign-out: the dual-mode `signOut` in `identity.services.ts`.** web2
+  revokes the cookie session; on-chain calls Juno `signOut()`.
 
 Engine calls never read a local identity in web2 mode: public reads ride the
 HTTP bridge and the session-gated account surface is signed server-side with
@@ -483,7 +480,7 @@ the exact candid shapes.
 
 ### Deliberately on-chain in this domain
 
-- Order books (`order.services.ts` `getOrderBook` / `loadOrderBook`, and
+- Order books (`order.services.ts` `getOrderBook`, and
   the book read inside `placeOrder`'s market-order walk) stay anonymous
   on-chain queries in BOTH modes: the book is public IC data and no HTTP
   surface exists for it.
@@ -624,14 +621,11 @@ fills, at the next trade activity or referral settle call.
   (the route stamps the author from the session and enforces the same
   `${user}#${timestamp}#${type}` key; a `settlement` is accepted only from
   a role that settles, admin or solver, and answers 403 otherwise, since it
-  drives the resolved-results fan-out), `getGlobalActivities` and
-  `getSettlementActivities` read the public list (type-filtered
-  server-side instead of the key-suffix matcher).
+  drives the resolved-results fan-out), and `getSettlementActivities`
+  reads the public list (type-filtered server-side instead of the
+  key-suffix matcher).
 - `activity-reaction.services.ts`: like / unlike (the route keeps the
-  count rollup transactionally; unlike is idempotent), the reactions
-  window, and the count read. The HTTP counts read is key-addressed, so
-  the web2 branch derives the keys from the recent activity window first
-  (two requests, same O(1)-per-activity result). The received-reactions
+  count rollup transactionally; unlike is idempotent). The received-reactions
   read (the like-received inbox) has no author-scoped HTTP route yet, so
   the web2 branch filters the recent global window by the activity-key
   author prefix, with the same bounded under-reporting as the on-chain
@@ -650,8 +644,8 @@ fills, at the next trade activity or referral settle call.
 `AccountReturnGate` used to call Juno `signOut()` directly.
 `identity.services.ts` now exports a dual-mode `signOut` (delegation drop
 on the default backend, cookie-session revoke in web2 mode) and those
-components import it instead, staying flag-free. The sanctioned auth trio
-(`Authn` / `SignInProviderStack` / `Logout`) is unchanged.
+components import it instead, staying flag-free. The sanctioned auth pair
+(`Authn` / `SignInProviderStack`) is unchanged.
 
 ## Guardrails
 
@@ -660,8 +654,8 @@ components import it instead, staying flag-free. The sanctioned auth trio
 - No `isWeb2Backend()` branches in components or stores; the seam lives in
   services. The one sanctioned exception is the identity layer, whose swap
   is inherently UI-driven (one-time-code entry, redirect handoff): the auth
-  branches live in `Authn.svelte`, `SignInProviderStack.svelte`, and
-  `Logout.svelte`, with the session store in `web2/session.ts`.
+  branches live in `Authn.svelte` and `SignInProviderStack.svelte`, with
+  the session store in `web2/session.ts`.
 - Analytics event payloads stay behavioural and pseudonymous on both
   transports; the server stamps time and identity in both modes.
 - Constants mirrored between `src/` and `backend/` (locales, market

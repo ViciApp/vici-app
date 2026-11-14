@@ -35,12 +35,8 @@ translate the file and delete its row, or move the row to § Exempt.
 
 - `src/lib/components/authn/Authn.svelte`
 - `src/lib/components/authn/LoginRequired.svelte`
-- `src/lib/components/authn/SignIn.svelte`
 - `src/lib/components/authn/SignInModal.svelte`
 - `src/lib/components/dev/TweaksPanel.svelte`
-- `src/lib/components/market/BinaryProbabilities.svelte`
-- `src/lib/components/market/CategoricalProbabilities.svelte`
-- `src/lib/components/market/MarketCardSkeleton.svelte`
 - `src/lib/components/profile/Avatar.svelte`
 - `src/lib/components/wallet/PlaygroundVxpAutoDeposit.svelte`
 
@@ -85,7 +81,6 @@ or stores:
 - `src/lib/components/loaders/LoaderBalances.svelte`
 - `src/lib/components/loaders/LoaderCollaterals.svelte`
 - `src/lib/components/loaders/LoaderFollowing.svelte`
-- `src/lib/components/loaders/LoaderGlobalActivities.svelte`
 - `src/lib/components/loaders/LoaderLeaderboard.svelte`
 - `src/lib/components/loaders/LoaderMarkets.svelte`
 - `src/lib/components/loaders/LoaderMarketTags.svelte`
@@ -97,7 +92,6 @@ or stores:
 **UI primitives**: generic shells; consumers supply copy via props /
 snippets:
 
-- `src/lib/components/ui/Backdrop.svelte`
 - `src/lib/components/ui/Badge.svelte`
 - `src/lib/components/ui/BaseButton.svelte`
 - `src/lib/components/ui/Button.svelte`

@@ -297,7 +297,7 @@ export interface AnalyticsEventDoc {
 	 * Pseudonymous on-chain identity. Absent before sign-in. Never an
 	 * email / name: the principal is not PII. Typed `PrincipalText` (the
 	 * codebase's validated principal-string type) so it can't be mixed with
-	 * arbitrary strings; mirrors `AnalyticsEventSchema`'s `PrincipalTextSchema`.
+	 * arbitrary strings.
 	 */
 	principal?: PrincipalText;
 	/** Route / screen the event fired on, for funnels. No query strings, no PII. */

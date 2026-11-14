@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { signOut } from '@junobuild/core';
 	import { ArrowLeftRight, Check, ChevronRight, Mail } from '@lucide/svelte/icons';
 	import { onDestroy } from 'svelte';
 	import IconGoogle from '#lib/components/icons/IconGoogle.svelte';
@@ -9,6 +8,7 @@
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { flushEvents, track } from '#lib/services/analytics.services.ts';
+	import { signOut } from '#lib/services/identity.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';

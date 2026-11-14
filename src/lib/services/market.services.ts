@@ -1035,20 +1035,8 @@ const fetchMarket = async ({
 
 /**
  * Single-market detail with book, categorical probabilities if applicable, and
- * resolution status from clearing's `get_settlement_status`.
- *
- * Performs a single certified update. Prefer {@link loadMarket} for UI flows
- * that should render fast then upgrade once verified.
- */
-export const getMarket = async (marketId: MarketId): Promise<Market | undefined> => {
-	const identity = await getIdentityOrAnonymous();
-
-	return fetchMarket({ identity, certified: true, marketId });
-};
-
-/**
- * Callback-based variant of {@link getMarket} that fires `onLoad` up to twice:
- * once for the uncertified query, then again for the certified update. Stale
+ * resolution status from clearing's `get_settlement_status`. Fires `onLoad` up
+ * to twice: once for the uncertified query, then again for the certified update. Stale
  * query responses that arrive after the update has settled are dropped by the
  * underlying `queryAndUpdate`.
  */

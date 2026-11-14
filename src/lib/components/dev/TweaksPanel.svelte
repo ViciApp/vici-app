@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { signOut } from '@junobuild/core';
 	import { Wrench, X } from '@lucide/svelte/icons';
 	import AppearancePicker from '#lib/components/ui/AppearancePicker.svelte';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
@@ -7,6 +6,7 @@
 	import { userSignedIn } from '#lib/derived/user.derived.ts';
 	import { worldCupActive, worldCupMode } from '#lib/derived/world-cup.derived.ts';
 	import { isDev } from '#lib/env/app.env.ts';
+	import { signOut } from '#lib/services/identity.services.ts';
 	import { preferencesStore } from '#lib/stores/preferences.store.ts';
 	import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';

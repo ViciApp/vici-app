@@ -22,7 +22,7 @@
 		/** Visual size variant.
 		 *
 		 *  - `sm` (default): compact 28×28 px circle, intended for inline
-		 *    use in card headers (see `MarketCard`).
+		 *    use in card headers.
 		 *  - `md`: 36×36 px pill, intended for prominent app-bar slots
 		 *    (see `MarketDetailHeader`).
 		 */
@@ -37,8 +37,7 @@
 		/** Treatment variant.
 		 *
 		 *  - `pill` (default): bordered laurel pill; the saved state fills
-		 *    with the laurel wash. Used by `MarketCard` and other default
-		 *    callers.
+		 *    with the laurel wash.
 		 *  - `flow-ghost`: borderless square (8 px radius) that sits flush
 		 *    in a dense action row; transparent until hovered, and the
 		 *    saved heart turns pink rather than laurel so it reads as a
@@ -93,7 +92,7 @@
 	};
 </script>
 
-<!-- Shared save-toggle primitive used by MarketCard, FlowBackHeader, the
+<!-- Shared save-toggle primitive used by FlowBackHeader, the
      Market detail app-bar, and any future surface that wants the same
      "save this market" affordance. The glyph (heart / eye) and treatment
      (pill / flow-ghost / header-ghost) are props, but the save logic,

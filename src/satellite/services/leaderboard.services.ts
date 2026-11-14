@@ -13,8 +13,8 @@ const LEADERBOARD_LIMIT = 50;
  * Every non-hidden profile, sorted by `points` (XP) descending: the
  * SAME filter + sort key the public {@link listLeaderboard} uses, just
  * without the top-{@link LEADERBOARD_LIMIT} slice. The single source of
- * truth for the global ranking so {@link countNonHiddenProfilesFn} and
- * {@link getUserRankFn} agree byte-for-byte with the visible leaderboard.
+ * truth for the global ranking so {@link getUserRankAndCountFn} agrees
+ * byte-for-byte with the visible leaderboard.
  *
  * Ties on `points` are broken by `owner` ascending so a principal's rank
  * is stable across reads (without it, two equal-points rows could swap
@@ -156,42 +156,12 @@ export const getMyRivalFn = (): {
 };
 
 /**
- * Count of profiles that appear on the public leaderboard (non-hidden).
- * The denominator for the `top-decile` achievement: a user is in the top
- * 10% when their {@link getUserRankFn} rank is ≤ `count / 10`.
- *
- * @deprecated Prefer {@link getUserRankAndCountFn} which performs a single
- * `rankedProfiles()` pass and returns both rank and count together.
- */
-export const countNonHiddenProfilesFn = (): number => rankedProfiles().length;
-
-/**
- * 1-based rank of `principal` within the global leaderboard ordering
- * ({@link rankedProfiles}). Returns `undefined` when the principal has no
- * profile or is hidden (soft-deleted / hibernated): callers treat that as
- * "unranked".
- *
- * @deprecated Prefer {@link getUserRankAndCountFn} which performs a single
- * `rankedProfiles()` pass and returns both rank and count together.
- */
-export const getUserRankFn = ({ principal }: { principal: PrincipalText }): number | undefined => {
-	const index = rankedProfiles().findIndex((profile) => profile.owner === principal);
-
-	if (index === -1) {
-		return;
-	}
-
-	return index + 1;
-};
-
-/**
  * Single-pass helper that runs {@link rankedProfiles} once and returns
  * both the 1-based rank of `principal` and the total count of ranked
- * (non-hidden) profiles.
- *
- * Use this instead of calling `countNonHiddenProfilesFn` +
- * `getUserRankFn` separately: those two each run a full scan+sort,
- * doubling the work on every `calculateAndSyncStats` invocation.
+ * (non-hidden) profiles. The count is the denominator for the `top-decile`
+ * achievement: a user is in the top 10% when their rank is ≤ `count / 10`.
+ * One pass serves both, since each scan+sort runs on every
+ * `calculateAndSyncStats` invocation.
  *
  * `rank` is `undefined` when the principal has no profile or is hidden.
  */

@@ -117,10 +117,7 @@ export const loadPositions = async ({
 };
 
 /**
- * Positions for a single market id.
- *
- * Performs a single certified update. Prefer {@link loadPositionsForMarket}
- * for UI flows that should render fast then upgrade to a certified result.
+ * Positions for a single market id, as a single certified update.
  */
 export const getPositionsForMarket = async (targetSeriesId: MarketId): Promise<Position[]> => {
 	if (isWeb2Backend()) {
@@ -158,54 +155,4 @@ const fetchPositionsForMarket = async ({
 		: await getPositionsApi({ identity, certified });
 
 	return positions.filter((p) => p.series_id === marketId).map(mapPositionData);
-};
-
-/**
- * Callback-based variant of {@link getPositionsForMarket}. No-op when the
- * user is not signed in.
- */
-export const loadPositionsForMarket = async ({
-	marketId,
-	onLoad,
-	onUpdateError
-}: {
-	marketId: MarketId;
-	onLoad: (options: { certified: boolean; response: Position[] }) => void;
-	onUpdateError?: (error: unknown) => void;
-}): Promise<void> => {
-	// Single-pass web2 read, delivered as the final (`certified: true`) pass.
-	if (isWeb2Backend()) {
-		if (isNullish(getWeb2User())) {
-			return;
-		}
-
-		try {
-			onLoad({
-				certified: true,
-				response: await fetchPositionsForMarket({
-					identity: web2PlaceholderIdentity(),
-					certified: true,
-					marketId
-				})
-			});
-		} catch (err: unknown) {
-			onUpdateError?.(err);
-		}
-
-		return;
-	}
-
-	const identity = await getIdentity();
-
-	if (isNullish(identity)) {
-		return;
-	}
-
-	return loadWithCertification<Position[]>({
-		identity,
-		request: ({ certified, identity: reqIdentity }) =>
-			fetchPositionsForMarket({ identity: reqIdentity, certified, marketId }),
-		onLoad,
-		onUpdateError
-	});
 };
