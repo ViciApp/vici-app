@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.8.58](https://github.com/ViciApp/vici-app/compare/v1.8.57...v1.8.58) (2026-11-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **repo:** the battle records returned by `app_list_league_battles`, `app_list_my_battles` and `app_resolve_battle` carry the optional VXP amount as `amount` instead of `wager`. Callers read `amount`; stored Juno docs need no migration, since they are read through `readBattleDoc`, and Postgres keeps `wager` until the follow-up release drops it.
+
+### Documentation
+
+* **ai:** match the agent docs to the code, third pass ([#1531](https://github.com/ViciApp/vici-app/issues/1531)) ([356c787](https://github.com/ViciApp/vici-app/commit/356c78796fc354669b9c09fd85e931d6c214bf7b))
+
+
+### Miscellaneous Chores
+
+* **e2e:** Update Playwright E2E Snapshots ([#1518](https://github.com/ViciApp/vici-app/issues/1518)) ([e1099c8](https://github.com/ViciApp/vici-app/commit/e1099c8d70ec6035ecf3bde824558b85d356d80e))
+
+
+### Code Refactoring
+
+* **backend:** name the rate-limit numbers once ([#1534](https://github.com/ViciApp/vici-app/issues/1534)) ([014e652](https://github.com/ViciApp/vici-app/commit/014e65220f5db4f34f8f286b39cc412a500ca23a))
+* **frontend:** delete the components and loaders nothing renders ([#1530](https://github.com/ViciApp/vici-app/issues/1530)) ([3c63c66](https://github.com/ViciApp/vici-app/commit/3c63c66b4d5a536bab122c4e9e246ac69de7c0e9))
+* **frontend:** name stakes and odds after predictions ([#1537](https://github.com/ViciApp/vici-app/issues/1537)) ([702e005](https://github.com/ViciApp/vici-app/commit/702e0055fd9d752342a197945f25083d671a34ac))
+* **frontend:** rename wallet.service.ts to wallet.services.ts ([#1535](https://github.com/ViciApp/vici-app/issues/1535)) ([da9ceac](https://github.com/ViciApp/vici-app/commit/da9ceac1f7c029b4736437252ec5858da95b28bf))
+* **repo:** comments say why, not what changed ([#1536](https://github.com/ViciApp/vici-app/issues/1536)) ([4b019f5](https://github.com/ViciApp/vici-app/commit/4b019f52304f77336bb18e22ee0d282c1d6bbff7))
+* **repo:** rename the battle wager to the battle amount ([#1538](https://github.com/ViciApp/vici-app/issues/1538)) ([713178c](https://github.com/ViciApp/vici-app/commit/713178c72b36914f32e202e9092b5f278233047a))
+
 ## [1.8.57](https://github.com/ViciApp/vici-app/compare/v1.8.56...v1.8.57) (2026-11-14)
 
 
