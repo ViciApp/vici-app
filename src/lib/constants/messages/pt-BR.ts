@@ -1,4 +1,4 @@
-// Brazilian Portuguese (pt-BR). Maintained as its own Brazilian variant —
+// Brazilian Portuguese (pt-BR). Maintained as its own Brazilian variant,
 // distinct from the base `pt` catalog, which is European Portuguese (pt-PT).
 // pt-BR no longer derives from `pt`; the two are independent variants with
 // their own vocabulary (você, time, tela, turnê) and grammar. The fallback
@@ -6,7 +6,7 @@
 // the European string before English.
 export const ptBRMessages = {
 	'trade.error.arbitrage_limit_exceeded':
-		'O preço de mercado acabou de mudar — espere um momento e tente de novo.',
+		'O preço de mercado acabou de mudar; espere um momento e tente de novo.',
 	'trade.error.common.internal': 'Algo deu errado do nosso lado. Tente de novo em instantes.',
 	'trade.error.common.invalid_input': 'Não foi possível processar esta previsão. Tente de novo.',
 	'trade.error.common.math_overflow': 'Não foi possível processar esta previsão. Tente de novo.',
@@ -15,18 +15,18 @@ export const ptBRMessages = {
 	'trade.error.common.unauthorized': 'Você não tem permissão para fazer isso.',
 	'trade.error.generic': 'Não foi possível registrar sua previsão. Tente de novo em instantes.',
 	'trade.error.insufficient_margin':
-		'Saldo disponível insuficiente — esta previsão precisa de {required}, mas você tem {available}. Ele é liberado conforme suas previsões em aberto são resolvidas.',
+		'Saldo disponível insuficiente: esta previsão precisa de {required}, mas você tem {available}. Ele é liberado conforme suas previsões em aberto são resolvidas.',
 	'trade.error.market_closed':
-		'Este mercado acabou de fechar — as previsões não estão mais abertas.',
+		'Este mercado acabou de fechar: as previsões não estão mais abertas.',
 	'trade.error.not_authorized_to_trade': 'Você não tem acesso a este mercado.',
 	'trade.error.not_order_creator': 'Você só pode cancelar suas próprias ordens.',
-	'trade.error.order_not_found': 'Essa oferta acabou de ser aceita ou retirada — tente de novo.',
+	'trade.error.order_not_found': 'Essa oferta acabou de ser aceita ou retirada; tente de novo.',
 	'trade.error.registry_error':
 		'Não conseguimos acessar o mercado agora. Tente de novo em instantes.',
 	'trade.error.self_trading_not_allowed':
 		'Você não pode ficar com o lado oposto da sua própria ordem.',
 	'trade.error.series_already_settled':
-		'Este mercado já foi liquidado — as previsões estão encerradas.',
+		'Este mercado já foi liquidado: as previsões estão encerradas.',
 	'trade.error.series_not_found': 'Este mercado não está mais disponível.',
 	'trade.error.series_not_started': 'Este mercado ainda não está aberto a previsões.',
 	'a11y.appearance': 'Aparência',
@@ -146,7 +146,7 @@ export const ptBRMessages = {
 	'battles.your_school': 'Alma Mater · {name}',
 	'achievement.bold_caller.description': 'Melhor precisão em azarões do mês',
 	'achievement.bold_caller.detail':
-		'Termine o mês com a maior precisão entre quem costuma apoiar o azarão — um consenso mediano abaixo de 40% nos lados que você escolhe. Concedido ao fechar o mês; empates dividem a honra.',
+		'Termine o mês com a maior precisão entre quem costuma apoiar o azarão: um consenso mediano abaixo de 40% nos lados que você escolhe. Concedido ao fechar o mês; empates dividem a honra.',
 	'achievement.bold_caller.name': 'Voz ousada',
 	'achievement.contrarian.name': 'Contrarian',
 	'achievement.first_call.description': 'Faça sua primeira previsão',
@@ -167,11 +167,11 @@ export const ptBRMessages = {
 	'achievement.on_fire.name': 'Pegando fogo',
 	'achievement.oracle.description': '80% de precisão em 50 previsões',
 	'achievement.oracle.detail':
-		'Mantenha pelo menos 80% de precisão em suas últimas 50 previsões resolvidas. O título Oráculo é recalculado diariamente; se a precisão cair, o sticker fica — mas o título vai para quem o detiver no momento.',
+		'Mantenha pelo menos 80% de precisão em suas últimas 50 previsões resolvidas. O título Oráculo é recalculado diariamente; se a precisão cair, o sticker fica, mas o título vai para quem o detiver no momento.',
 	'achievement.oracle.name': 'Oráculo',
 	'achievement.sharpest_eye.description': 'Top-3 de precisão do mês',
 	'achievement.sharpest_eye.detail':
-		'Termine um mês de calendário entre os três primeiros em precisão entre quem tem ao menos 30 palpites resolvidos. O primeiro lugar vale ouro, o segundo prata, o terceiro bronze — e o álbum guarda sua melhor colocação de sempre.',
+		'Termine um mês de calendário entre os três primeiros em precisão entre quem tem ao menos 30 palpites resolvidos. O primeiro lugar vale ouro, o segundo prata, o terceiro bronze, e o álbum guarda sua melhor colocação de sempre.',
 	'achievement.sharpest_eye.name': 'Olhar mais afiado',
 	'achievement.top_decile.description': '7 dias no top 10%',
 	'achievement.top_decile.detail':
@@ -189,8 +189,8 @@ export const ptBRMessages = {
 	'flow.entry.away_eyebrow': 'Enquanto você esteve fora',
 	'flow.entry.away_sub': '{count} liquidadas · {wins} corretas · {losses} perdidas',
 	'flow.entry.away_copy_win':
-		'Suas previsões renderam enquanto você esteve fora — mantenha o ritmo.',
-	'flow.entry.away_copy_loss': 'A multidão virou este lote — deixe pra lá, as próximas são suas.',
+		'Suas previsões renderam enquanto você esteve fora; mantenha o ritmo.',
+	'flow.entry.away_copy_loss': 'A multidão virou este lote; deixe pra lá, as próximas são suas.',
 	'flow.entry.away_more': '+{count} mais na sua carteira',
 	'flow.reso.aria_label': 'Previsões liquidadas enquanto você esteve fora',
 	'flow.reso.eyebrow': 'ENQUANTO VOCÊ ESTEVE FORA',
@@ -221,7 +221,7 @@ export const ptBRMessages = {
 	'flow.swipe_hint.no': 'DESLIZE NÃO',
 	'flow.share.whatsapp': 'WhatsApp',
 	'flow.share.twitter': 'X',
-	'flow.share.text_pre': '"{title}" — {yes}% SIM na VICI. E você?',
+	'flow.share.text_pre': '"{title}": {yes}% SIM na VICI. E você?',
 	'flow.share.text_pre_no_pct': '"{title}" na VICI. E você?',
 	'flow.share.text_post': 'Acabei de fazer esta previsão sobre a Copa do Mundo, o que você acha?',
 	'flow.share.telegram': 'Telegram',
@@ -237,19 +237,19 @@ export const ptBRMessages = {
 	'flow.share.share_card': 'Compartilhar card',
 	'flow.share.save_card': 'Salvar card',
 	'flow.share.preparing': 'Preparando…',
-	'flow.share.card_saved': 'Card salvo — publique',
+	'flow.share.card_saved': 'Card salvo, publique',
 	'flow.share.preview_alt': 'Card de previsão para compartilhar',
 	'flow.feedback.vxp': 'VXP',
 	'flow.coach.head': 'Deslize para decidir',
 	'flow.coach.skip': 'PULAR',
-	'flow.coach.skip_sub': 'sem certeza — pule',
+	'flow.coach.skip_sub': 'sem certeza, pule',
 	'flow.coach.no': 'NÃO',
 	'flow.coach.no_sub': 'não vai acontecer',
 	'flow.coach.yes': 'SIM',
 	'flow.coach.yes_sub': 'vai acontecer',
 	'flow.coach.tap_sub': 'toque · detalhe',
 	'flow.coach.got_it': 'Entendi',
-	'flow.coach.confirm': 'Boa — isso é uma previsão. Você está dentro.',
+	'flow.coach.confirm': 'Boa, isso é uma previsão. Você está dentro.',
 	'flow.coach.aria': 'Como jogar',
 	'tournament.back': 'Voltar ao social',
 	'tournament.bracket_eyebrow': 'CHAVEAMENTO',
@@ -258,7 +258,7 @@ export const ptBRMessages = {
 	'tournament.days_left': '{count}d restantes',
 	'tournament.match.live': 'AO VIVO · termina {date}',
 	'tournament.match.upcoming': 'em breve · {date}',
-	'tournament.headline': '{size} ligas — eliminação simples',
+	'tournament.headline': '{size} ligas: eliminação simples',
 	'tournament.loading': 'Carregando o chaveamento…',
 	'tournament.prize.place_1': 'Campeão',
 	'tournament.prize.place_2': 'Finalista',
@@ -294,7 +294,7 @@ export const ptBRMessages = {
 	'account.email.used_for': 'Usado para acesso e avisos importantes da conta.',
 	'account.email.verified': 'Verificado',
 	'account.intro':
-		'VICI conecta você com uma passkey — seu Face ID ou impressão digital — ou com Internet Identity ou Google. Nada para lembrar, sem links de acesso por email. Troque a qualquer momento — seus dados continuam.',
+		'VICI conecta você com uma passkey (seu Face ID ou impressão digital) ou com Internet Identity ou Google. Nada para lembrar, sem links de acesso por email. Troque a qualquer momento: seus dados continuam.',
 	'account.method.eyebrow': 'MÉTODO DE ACESSO',
 	'account.method.ii': 'Internet Identity',
 	'account.method.google': 'Google',
@@ -313,7 +313,7 @@ export const ptBRMessages = {
 	'account.return.expired_continue': 'Continuar',
 	'account.return.expired_heading': 'Sua janela de recuperação passou.',
 	'account.return.hibernated_body':
-		'Você pausou esta conta. Retome para continuar de onde parou — nada foi perdido.',
+		'Você pausou esta conta. Retome para continuar de onde parou; nada foi perdido.',
 	'account.return.hibernated_heading': 'Sua conta está pausada.',
 	'account.return.hibernated_toast_body': 'Bem-vindo de volta.',
 	'account.return.hibernated_toast_title': 'Conta retomada',
@@ -339,7 +339,7 @@ export const ptBRMessages = {
 	'maintenance.body':
 		'Uma rápida atualização da plataforma está em andamento. O app vai recarregar sozinho em instantes.',
 	'menagerie.back': 'Voltar ao perfil',
-	'menagerie.badge.aria_earned': '{name} — nível {tier}',
+	'menagerie.badge.aria_earned': '{name}, nível {tier}',
 	'menagerie.badge.aria_locked': '{name} (bloqueado)',
 	'menagerie.beaver.concept': 'Volume',
 	'menagerie.beaver.label.gold': '250 palpites',
@@ -365,7 +365,7 @@ export const ptBRMessages = {
 	'menagerie.close': 'Fechar',
 	'menagerie.collection': 'Coleção',
 	'menagerie.earned_of': 'de {total} conquistados',
-	'menagerie.fully_evolved': 'Totalmente evoluído — todos os níveis conquistados',
+	'menagerie.fully_evolved': 'Totalmente evoluído, todos os níveis conquistados',
 	'menagerie.goat.concept': 'Ranking mundial',
 	'menagerie.goat.label.gold': 'Top 1%',
 	'menagerie.goat.label.irid': 'N.º 1',
@@ -403,7 +403,7 @@ export const ptBRMessages = {
 	'menagerie.owl.label.wood': '65%',
 	'menagerie.owl.name': 'Coruja',
 	'menagerie.owl.oracle': 'O olhar afiado',
-	'menagerie.owl.rule': 'Precisão em 50+ palpites — 65 · 72 · 78 · 82%.',
+	'menagerie.owl.rule': 'Precisão em 50+ palpites: 65 · 72 · 78 · 82%.',
 	'menagerie.parrot.concept': 'Indicações',
 	'menagerie.parrot.label.gold': '10 amigos',
 	'menagerie.parrot.label.silver': '3 amigos',
@@ -448,21 +448,21 @@ export const ptBRMessages = {
 	'admin.dashboard.title': 'Painel do Admin',
 	'admin.diagnostics.haptics_description': 'Teste o vocabulário de vibração em um celular real.',
 	'admin.diagnostics.title': 'Diagnóstico',
-	'admin.haptics.android_floored': 'sim — limite aplicado',
+	'admin.haptics.android_floored': 'sim, limite aplicado',
 	'admin.haptics.android_label': 'android',
-	'admin.haptics.android_raw': 'não — valores brutos',
+	'admin.haptics.android_raw': 'não, valores brutos',
 	'admin.haptics.fire_baseline': 'Disparar 200 ms (referência)',
 	'admin.haptics.fire_custom': 'Disparar ms personalizado',
 	'admin.haptics.fire_pipeline': 'Disparar (pipeline)',
 	'admin.haptics.fire_raw': 'Disparar bruto',
 	'admin.haptics.intro':
-		'Abra isto num dispositivo. "Disparar bruto" chama navigator.vibrate diretamente com o padrão definido — ignorando a sua preferência e o limite do Android — para que sinta o que o hardware realmente reproduz. "Disparar (pipeline)" executa o verdadeiro caminho haptic().',
+		'Abra isto num dispositivo. "Disparar bruto" chama navigator.vibrate diretamente com o padrão definido, ignorando a sua preferência e o limite do Android, para que sinta o que o hardware realmente reproduz. "Disparar (pipeline)" executa o verdadeiro caminho haptic().',
 	'admin.haptics.last': 'Último:',
 	'admin.haptics.named_patterns': 'Padrões nomeados',
 	'admin.haptics.no': 'não',
 	'admin.haptics.off': 'off',
 	'admin.haptics.on': 'on',
-	'admin.haptics.preference_toggle': '{state} — toque para alternar',
+	'admin.haptics.preference_toggle': '{state}, toque para alternar',
 	'admin.haptics.probe.android': 'Detetado como Android',
 	'admin.haptics.probe.floor': 'Limite de vibração do Android',
 	'admin.haptics.probe.preference': 'preferência hapticsEnabled',
@@ -527,12 +527,12 @@ export const ptBRMessages = {
 	'admin.markets.form.domain.social': 'Social (Fun Dare)',
 	'admin.markets.form.domain.vici_xp': 'ViciXp (Playground)',
 	'admin.markets.form.error.resolution_required':
-		'É necessária uma cláusula de resolução — descreva como o mercado é liquidado.',
+		'É necessária uma cláusula de resolução: descreva como o mercado é liquidado.',
 	'admin.markets.form.error.resolution_too_long':
 		'A cláusula de resolução deve ter no máximo {max} caracteres.',
 	'admin.markets.form.field.description': 'Descrição',
 	'admin.markets.form.field.description_placeholder':
-		'Opcional — descreva brevemente do que se trata este mercado...',
+		'Opcional: descreva brevemente do que se trata este mercado...',
 	'admin.markets.form.field.expiry_date': 'Data de expiração',
 	'admin.markets.form.field.market_type': 'Tipo de mercado',
 	'admin.markets.form.field.resolution': 'Resolução',
@@ -573,7 +573,7 @@ export const ptBRMessages = {
 	'admin.oracle.reconcile.hint':
 		'Re-sincroniza os liquidantes com a lista de Papéis acima. Use quando papéis foram concedidos antes do oráculo existir, ou se o hook do satellite registrou oracle_settler_skipped_missing_oracle.',
 	'admin.oracle.reconcile.in_sync':
-		'Os liquidantes já correspondem à lista de Papéis — nada a fazer.',
+		'Os liquidantes já correspondem à lista de Papéis: nada a fazer.',
 	'admin.oracle.reconcile.success':
 		'Liquidantes atualizados: {added} adicionados, {removed} removidos.',
 	'admin.oracle.reconcile.title': 'Liquidantes reconciliados',
@@ -657,14 +657,14 @@ export const ptBRMessages = {
 	'calibration.back.label': 'Voltar ao Flow',
 	'calibration.banner.recovery': 'RECUPERAÇÃO · PERDAS PROTEGIDAS ATÉ {floor} VXP',
 	'calibration.beat.deployed.body':
-		'Seus VXP não foram perdidos — estão presos em chamadas ainda não resolvidas. Elas pagam nas próprias datas.',
+		'Seus VXP não foram perdidos: estão presos em chamadas ainda não resolvidas. Elas pagam nas próprias datas.',
 	'calibration.beat.deployed.eyebrow': 'TUDO EM JOGO',
 	'calibration.beat.deployed.practice': 'Pratique enquanto espera →',
 	'calibration.beat.deployed.riding_on': 'EM JOGO EM {calls}',
 	'calibration.beat.deployed.see_open_calls': 'Ver chamadas abertas →',
-	'calibration.beat.deployed.title': 'Todo o seu capital está em jogo — nada perdido.',
+	'calibration.beat.deployed.title': 'Todo o seu capital está em jogo, nada perdido.',
 	'calibration.beat.depleted.body':
-		'O histórico absorve as duas. Afie o olho na Calibração — as perdas são protegidas enquanto você recupera.',
+		'O histórico absorve as duas. Afie o olho na Calibração: as perdas são protegidas enquanto você recupera.',
 	'calibration.beat.depleted.eyebrow': 'SEM VXP',
 	'calibration.beat.depleted.foot': 'PERDAS PROTEGIDAS · +{reward} POR CHAMADA CORRETA',
 	'calibration.beat.depleted.open_calibration': 'Abrir Calibração →',
@@ -697,7 +697,7 @@ export const ptBRMessages = {
 	'calibration.rate_limited.title': 'Você já se afiou o bastante por agora.',
 	'calibration.recovered.eyebrow': 'VOCÊ SE RECUPEROU',
 	'calibration.recovered.sub':
-		'Seu saldo voltou a ficar acima de {floor} VXP — pronto para chamar ao vivo.',
+		'Seu saldo voltou a ficar acima de {floor} VXP: pronto para chamar ao vivo.',
 	'calibration.recovered.title': 'Você está de pé novamente.',
 	'calibration.tally.right': '· {right} de {total} certas',
 	'calibration.tally.session': 'GANHO DA SESSÃO',
@@ -768,7 +768,7 @@ export const ptBRMessages = {
 	'dash.build.in_play': 'Em jogo',
 	'dash.build.open_empty_cta': 'Abrir Flow →',
 	'dash.build.open_empty_sub':
-		'Você resolveu todas as chamadas. Faça a próxima — sua sequência conta com você.',
+		'Você resolveu todas as chamadas. Faça a próxima: sua sequência conta com você.',
 	'dash.build.open_empty_title': 'Nenhuma chamada ativa',
 	'dash.build.see_all_open': 'Ver todas as {count} abertas ↓',
 	'dash.build.see_all_resolved': 'Ver todas as {count} resolvidas ↓',
@@ -783,7 +783,7 @@ export const ptBRMessages = {
 	'dash.build.today': 'Hoje',
 	'dash.build.today_neg': '▼ {value}',
 	'dash.build.today_pos': '▲ +{value}',
-	'dash.build.trend_chart_label': 'Tendência de precisão — deslize para mudar a janela',
+	'dash.build.trend_chart_label': 'Tendência de precisão: deslize para mudar a janela',
 	'dash.build.trend_foot': 'Últimos {window} · desde {start}%',
 	'dash.build.trend_longer': 'Período mais longo',
 	'dash.build.trend_shorter': 'Período mais curto',
@@ -813,7 +813,7 @@ export const ptBRMessages = {
 	'dash.active.see_all': 'Ver todas as {count}',
 	'dash.categories.eyebrow': 'Por categoria',
 	'dash.dz.active_day1_pending_body':
-		'Sua previsão está em voo — se resolve quando o mercado fechar.',
+		'Sua previsão está em voo; se resolve quando o mercado fechar.',
 	'dash.dz.available': 'Disponível',
 	'dash.dz.crowd_yes': 'Multidão · {pct}% SIM',
 	'dash.dz.header_eyebrow_day0': 'Dia zero · bem-vindo',
@@ -829,7 +829,7 @@ export const ptBRMessages = {
 	'dash.dz.hero_quote_day1': '“Alea iacta est.”',
 	'dash.dz.hero_trans_day0': 'Atos, não palavras.',
 	'dash.dz.hero_trans_day1': 'A sorte está lançada. Sua primeira previsão está em voo.',
-	'dash.dz.holdings_caption': 'Pacote inicial. Gasta-o em previsões — ganha para o fazer crescer.',
+	'dash.dz.holdings_caption': 'Pacote inicial. Gasta-o em previsões; ganha para o fazer crescer.',
 	'dash.dz.lifetime_zero': '0 ganhos',
 	'dash.dz.n_open': '{count} ABERTAS',
 	'dash.dz.n_pending': '{count} PENDENTES',
@@ -872,17 +872,17 @@ export const ptBRMessages = {
 	'dash.holdings.session': 'Esta sessão',
 	'dash.holdings.session_many': '{count} previsões',
 	'dash.holdings.session_one': '{count} previsão',
-	'dash.goal.complete': 'Objetivo concluído — sequência garantida.',
+	'dash.goal.complete': 'Objetivo concluído, sequência garantida.',
 	'dash.goal.continue': 'Continuar',
 	'dash.goal.eyebrow': 'Objetivo de hoje',
 	'dash.goal.progress': '{done} / {target} chamadas',
-	'dash.goal.remaining_many': 'Faltam {count} chamadas — retome de onde parou.',
-	'dash.goal.remaining_one': 'Mais uma chamada — retome de onde parou.',
+	'dash.goal.remaining_many': 'Faltam {count} chamadas, retome de onde parou.',
+	'dash.goal.remaining_one': 'Mais uma chamada, retome de onde parou.',
 	'dash.next.eyebrow': 'Próximo desbloqueio',
 	'dash.oracle.best_call': 'Você previu {title} cedo.',
 	'dash.oracle.best_call_sub': '+{vxp} VXP · melhor previsão',
 	'dash.oracle.best_call_sub_contrarian': '+{vxp} VXP · vitória contracorrente',
-	'dash.oracle.empty': 'Ainda sem insights — faça algumas previsões para o Oráculo se manifestar.',
+	'dash.oracle.empty': 'Ainda sem insights: faça algumas previsões para o Oráculo se manifestar.',
 	'dash.oracle.empty_sub': 'Atualiza após cada mercado resolvido',
 	'dash.oracle.eyebrow': 'Oráculo · melhor previsão',
 	'dash.past.empty': 'Está calmo aqui. Amplie o filtro.',
@@ -898,7 +898,7 @@ export const ptBRMessages = {
 	'dash.rank.league_sub': 'toque para ver',
 	'dash.rank.of_total': 'de {total}',
 	'dash.rank.percentile': 'Top {pct}%',
-	'dash.rank.placeholder': '—',
+	'dash.rank.placeholder': '–',
 	'dash.rank.top_cat': 'Top categoria',
 	'dash.rank.top_cat_sub': 'melhor cat.',
 	'dash.rank.wc_sub': 'precisão',
@@ -922,10 +922,10 @@ export const ptBRMessages = {
 	'dash.disclosure.rival_gap_behind': 'Liderando por {points} pts',
 	'dash.disclosure.rival_gap_unknown': 'Dados de rivalidade em breve',
 	'dash.disclosure.rival_title': 'Seu rival · {handle}',
-	'dash.disclosure.rival_title_unknown': 'Seu rival · —',
+	'dash.disclosure.rival_title_unknown': 'Seu rival · –',
 	'dash.disclosure.untried_body': 'Você nunca chamou {category}.',
 	'dash.disclosure.untried_cta': 'Abrir {category} no Flow →',
-	'dash.disclosure.untried_empty': 'Você já tentou todas as categorias — boa.',
+	'dash.disclosure.untried_empty': 'Você já tentou todas as categorias, boa.',
 	'dash.disclosure.untried_title': 'Mercados que você não tentou',
 	'dash.next.streak_progress': '{current}/{target} dias · {count} restantes',
 	'dash.past.row_ctx_side_when': '{side} · há {when}',
@@ -944,7 +944,7 @@ export const ptBRMessages = {
 	'flow.amount.increase_aria': 'Aumentar valor',
 	'flow.back_to_markets': 'Voltar aos mercados',
 	'flow.cap.body':
-		'Todas as {count} previsões de hoje estão confirmadas — grande dia. Elas se resolvem nas próprias datas, e um novo conjunto desbloqueia amanhã.',
+		'Todas as {count} previsões de hoje estão confirmadas, grande dia. Elas se resolvem nas próprias datas, e um novo conjunto desbloqueia amanhã.',
 	'flow.cap.eyebrow': 'É O DIA',
 	'flow.cap.invite': 'Convidar um amigo',
 	'flow.cap.title': 'Volte amanhã.',
@@ -959,14 +959,14 @@ export const ptBRMessages = {
 	'flow.end.body_comeback':
 		'Você está de volta ao jogo. Apareça amanhã e a sequência sobe a partir daqui.',
 	'flow.end.body_day':
-		'Dez confirmadas — bem feito. Suas previsões se resolvem nas próprias datas; volte amanhã e a sequência cresce.',
+		'Dez confirmadas, bem feito. Suas previsões se resolvem nas próprias datas; volte amanhã e a sequência cresce.',
 	'flow.end.body_overtime':
-		'Quinze confirmadas — um dia perfeito. Suas previsões se resolvem nas próprias datas; volte amanhã para levar a sequência mais alto.',
+		'Quinze confirmadas, um dia perfeito. Suas previsões se resolvem nas próprias datas; volte amanhã para levar a sequência mais alto.',
 	'flow.end.eyebrow_comeback': 'SEQUÊNCIA RENASCIDA',
 	'flow.end.eyebrow_day': 'DIA COMPLETO',
 	'flow.end.eyebrow_overtime': 'OVERTIME COMPLETO',
 	'flow.end.head_comeback_1': 'De volta ao quadro.',
-	'flow.end.head_comeback_2': 'Dia 1 — de novo.',
+	'flow.end.head_comeback_2': 'Dia 1, de novo.',
 	'flow.end.head_comeback_3': 'Renascido.',
 	'flow.end.head_day_1': 'Dia concluído.',
 	'flow.end.head_day_2': 'Dez no bolso.',
@@ -1014,7 +1014,7 @@ export const ptBRMessages = {
 	'flow.list_03': 'Sequências que te pressionam de volta.',
 	'flow.list_04': 'Insights aparecem quando você vira o cartão.',
 	'flow.notification.insufficient_message':
-		'Seu saldo já está em jogo em previsões abertas — ele é liberado conforme os mercados são resolvidos.',
+		'Seu saldo já está em jogo em previsões abertas; ele é liberado conforme os mercados são resolvidos.',
 	'flow.notification.insufficient_title': 'Saldo disponível insuficiente',
 	'flow.notification.trade_failed_message': 'Ordem para "{title}..." falhou: {error}',
 	'flow.notification.trade_failed_title': 'Previsão falhou',
@@ -1057,7 +1057,7 @@ export const ptBRMessages = {
 	'inbox.just_now': 'Agora mesmo',
 	'inbox.level.body': 'Você atingiu o nível {level}.',
 	'inbox.level.title': 'Subiu de nível',
-	'inbox.streak.body': 'Sequência de {count} dias — {stage}.',
+	'inbox.streak.body': 'Sequência de {count} dias: {stage}.',
 	'inbox.streak.title': 'Marco de sequência',
 	'inbox.pending': 'Pendente',
 	'inbox.resolve.body.lost': 'Você perdeu {amount} em "{market}".',
@@ -1101,7 +1101,7 @@ export const ptBRMessages = {
 	'info.doc.faq.b2':
 		'Abra o Flow e aparece o card de um mercado. Arraste para a direita para dizer SIM, para a esquerda para NÃO, para cima para pular. Toque no card para virá-lo e ver o contexto e as cotações completas.',
 	'info.doc.faq.b3':
-		'Cada previsão compromete VXP nas cotações do mercado — resultados improváveis rendem mais, favoritos menos. Faça suas 10 previsões por dia para aumentar sua sequência; sua precisão e sua posição sobem à medida que os mercados se resolvem.',
+		'Cada previsão compromete VXP nas cotações do mercado: resultados improváveis rendem mais, favoritos menos. Faça suas 10 previsões por dia para aumentar sua sequência; sua precisão e sua posição sobem à medida que os mercados se resolvem.',
 	'info.doc.faq.b4': 'O que é VXP?',
 	'info.doc.faq.b5':
 		'VXP é o crédito de previsão interno do app. Você ganha fazendo previsões. Não é dinheiro. Não é convertível. É a unidade do seu histórico.',
@@ -1119,7 +1119,7 @@ export const ptBRMessages = {
 	'info.doc.how-resolution-works.b10':
 		'A redação da Vici avalia conforme o critério publicado. As decisões e a justificativa são publicadas abertamente no painel de resolução no verso do card.',
 	'info.doc.how-resolution-works.b2':
-		'Um mercado de previsões só funciona se os dois lados conhecem as regras no momento em que fazem a previsão. Antes de um mercado abrir, publicamos a fonte pública exata que vai decidi-lo — uma decisão de um regulador, um resultado de federação, um provedor de dados reconhecido.',
+		'Um mercado de previsões só funciona se os dois lados conhecem as regras no momento em que fazem a previsão. Antes de um mercado abrir, publicamos a fonte pública exata que vai decidi-lo: uma decisão de um regulador, um resultado de federação, um provedor de dados reconhecido.',
 	'info.doc.how-resolution-works.b3': 'O que você vê em cada card',
 	'info.doc.how-resolution-works.b4.i0':
 		'Critério de resolução · a condição exata do SIM, em linguagem clara',
@@ -1180,7 +1180,7 @@ export const ptBRMessages = {
 		'Você já é membro do VICI, por isso o convite de {handle} não pode pagar bônus de VXP. Mesmo assim, você pode adicioná-lo como amigo para comparar previsões e apoiar as decisões um do outro.',
 	'invite.sheet.bullet_friendship': 'Vão aparecer instantaneamente na lista de Amigos um do outro.',
 	'invite.sheet.bullet_no_bonus':
-		'Sem bônus de VXP — os +500 VXP estão reservados para novos cadastros.',
+		'Sem bônus de VXP: os +500 VXP estão reservados para novos cadastros.',
 	'invite.sheet.cta_add': 'Adicionar {handle} como amigo',
 	'invite.sheet.cta_skip': 'Agora não',
 	'invite.sheet.eyebrow': 'Convite de',
@@ -1307,7 +1307,7 @@ export const ptBRMessages = {
 	'leagues.detail.battle_eyebrow': 'Duelo',
 	'leagues.detail.battle_meta_awaiting': 'Aguardando aceitação de {opponent}',
 	'leagues.detail.battle_meta_day_of': 'Dia {day} de {days} · duelo de precisão',
-	'leagues.detail.battle_meta_incoming': '{opponent} desafiou sua liga — aceite abaixo',
+	'leagues.detail.battle_meta_incoming': '{opponent} desafiou sua liga: aceite abaixo',
 	'leagues.detail.battle_owner_accepts': 'Só um dono ou admin da liga pode aceitar este desafio.',
 	'leagues.detail.invite_copied': 'Copiado',
 	'leagues.detail.invite_label': 'Convite',
@@ -1325,7 +1325,7 @@ export const ptBRMessages = {
 	'leagues.detail.loading': 'Carregando liga…',
 	'leagues.detail.members_count_unlimited': '{count} / ilimitado',
 	'leagues.detail.not_member.sub':
-		'Você não vê a lista desta liga — peça um código de convite ao dono.',
+		'Você não vê a lista desta liga; peça um código de convite ao dono.',
 	'leagues.detail.not_member.title': 'Você não está nesta liga.',
 	'leagues.detail.predict_cta': 'Prever',
 	'leagues.detail.rank_eyebrow': 'Sua posição em {league}',
@@ -1406,7 +1406,7 @@ export const ptBRMessages = {
 	'loop.port_italic': 'Veja se acertou.',
 	'loop.port_name': 'Dash',
 	'loop.sub':
-		'Flow para velocidade. Mercado para profundidade. Dash para a verdade. Mova-se entre eles naturalmente — o sistema te recompensa por permanecer em movimento.',
+		'Flow para velocidade. Mercado para profundidade. Dash para a verdade. Mova-se entre eles naturalmente: o sistema te recompensa por permanecer em movimento.',
 	'loop.title_a': 'Três estados.',
 	'loop.title_b': 'Um loop.',
 	'market.closes': 'fecha',
@@ -1422,7 +1422,7 @@ export const ptBRMessages = {
 	'market.detail.chart.period.all': 'Tudo',
 	'market.detail.closed.expired': 'Este mercado está fechado e aguardando resolução.',
 	'market.detail.coldstart.body':
-		'Ninguém previu este mercado ainda — sua previsão define a primeira leitura.',
+		'Ninguém previu este mercado ainda: sua previsão define a primeira leitura.',
 	'market.detail.coldstart.lead': 'Mercado novo.',
 	'market.detail.cta.predict_no': 'Prever NO',
 	'market.detail.cta.predict_yes': 'Prever YES',
@@ -1487,7 +1487,7 @@ export const ptBRMessages = {
 	'market.metadata.tab.translations': 'Traduções',
 	'market.metadata.tags': 'Tags',
 	'market.metadata.tags_help':
-		'As tags categorizam este mercado em toda a app — escolha nenhuma, uma ou várias.',
+		'As tags categorizam este mercado em toda a app; escolha nenhuma, uma ou várias.',
 	'market.metadata.title': 'Contexto do mercado',
 	'market.metadata.translations.error.load': 'Não foi possível carregar as traduções.',
 	'market.metadata.translations.error.save': 'Não foi possível salvar a tradução.',
@@ -1541,7 +1541,7 @@ export const ptBRMessages = {
 	'market.vol_suffix': 'vol',
 	'markets.beyond.eyebrow': 'ALÉM DA COPA',
 	'markets.beyond.locked_copy':
-		'Mantenha sua precisão calibrada em {pct}% ou mais para desbloquear os outros mercados. Faltam {remaining} pontos — continue palpitando no Flow.',
+		'Mantenha sua precisão calibrada em {pct}% ou mais para desbloquear os outros mercados. Faltam {remaining} pontos; continue palpitando no Flow.',
 	'markets.beyond.ready': '{count} mercados prontos',
 	'markets.beyond.unlock_at': 'Desbloqueie em {pct}%',
 	'markets.beyond.unlocked_copy': 'Você provou sua vantagem. Estes mercados abrem após a Copa.',
@@ -1560,7 +1560,7 @@ export const ptBRMessages = {
 	'markets.wc_recap.calls': 'Palpites feitos',
 	'markets.wc_recap.cta': 'Explorar todos os mercados',
 	'markets.wc_recap.eyebrow': '{event} · sua trajetória',
-	'markets.wc_recap.line': 'A Copa está decidida. O mundo segue — e o quadro também.',
+	'markets.wc_recap.line': 'A Copa está decidida. O mundo segue, e o quadro também.',
 	'motion.badge.centurion': 'CENTURIÃO',
 	'motion.badge.contrarian': 'CONTRÁRIO',
 	'motion.badge_label': 'EMBLEMA {badge}',
@@ -1570,11 +1570,11 @@ export const ptBRMessages = {
 	'motion.name.vici': 'VICI',
 	'motion.pool.comeback_1': 'Sabia que voltaria.',
 	'motion.pool.comeback_2': 'O recorde esperava por você.',
-	'motion.pool.comeback_3': 'Sem mágoas — vamos lá.',
+	'motion.pool.comeback_3': 'Sem mágoas, vamos lá.',
 	'motion.pool.comeback_4': 'Bem onde você parou.',
 	'motion.pool.daily_ten_1': 'Dez! Pegando fogo.',
 	'motion.pool.daily_ten_2': 'Dez de dez.',
-	'motion.pool.daily_ten_3': 'Os dez do dia — feito.',
+	'motion.pool.daily_ten_3': 'Os dez do dia: feito.',
 	'motion.pool.first_call_1': 'Você está dentro!',
 	'motion.pool.first_call_2': 'Primeiro palpite no quadro.',
 	'motion.pool.first_call_3': 'E lá vai você!',
@@ -1610,7 +1610,7 @@ export const ptBRMessages = {
 	'motion.pool.r8_3': 'Tão perto.',
 	'motion.pool.r8_4': 'Dois restantes.',
 	'motion.pool.streak_reborn_1': 'Sequência renascida.',
-	'motion.pool.streak_reborn_2': 'Dia 1 — de novo.',
+	'motion.pool.streak_reborn_2': 'Dia 1, de novo.',
 	'motion.pool.streak_reborn_3': 'De volta ao quadro.',
 	'motion.pool.welcome_back_1': 'Bem-vindo de volta.',
 	'motion.pool.welcome_back_2': 'Olha quem voltou.',
@@ -1680,7 +1680,7 @@ export const ptBRMessages = {
 	'portfolio.back': 'Voltar ao painel',
 	'portfolio.allocation.other': 'Outros',
 	'portfolio.empty.body':
-		'Apoie alguns calls no deck Flow — suas posições ativas e resolvidas aparecem aqui.',
+		'Apoie alguns calls no deck Flow: suas posições ativas e resolvidas aparecem aqui.',
 	'portfolio.empty.cta': 'Abrir Flow',
 	'portfolio.empty.quote': '"Um portfólio é o registro dos calls que você escolheu manter."',
 	'portfolio.hero.eyebrow': 'PATRIMÔNIO TOTAL',
@@ -1727,7 +1727,7 @@ export const ptBRMessages = {
 	'profile.dashboard.affiliations.status_verified': 'Verificada',
 	'profile.dashboard.affiliations.title': 'Afiliações',
 	'profile.dashboard.affiliations.university': 'Alma Mater',
-	'profile.dashboard.affiliations.verify_soon': 'Verificação — em breve',
+	'profile.dashboard.affiliations.verify_soon': 'Verificação: em breve',
 	'profile.dashboard.affiliations.verify_cta': 'Verifique sua universidade →',
 	'profile.dashboard.all': 'Todas',
 	'profile.dashboard.calls': 'previsões',
@@ -1739,7 +1739,7 @@ export const ptBRMessages = {
 	'profile.dashboard.invite_friends': 'Convidar amigos',
 	'profile.dashboard.invite_share_title': 'VICI',
 	'profile.dashboard.invite_share_text':
-		'Junte-se a mim no VICI — preveja o futuro, construa o seu histórico.',
+		'Junte-se a mim no VICI: preveja o futuro, construa o seu histórico.',
 	'profile.dashboard.invite_copied': 'Link de convite copiado',
 	'profile.avatar.title': 'Editar avatar',
 	'profile.avatar.subtitle':
@@ -1816,10 +1816,10 @@ export const ptBRMessages = {
 		'{trades} previsões registradas. {acc}% de acertos. Espaço para afinar.',
 	'profile.dashboard.oracle.streak_acc':
 		'Sequência de {days} dias e {acc}% de precisão. Consistência se acumula.',
-	'profile.dashboard.oracle.record_win': 'Você acertou —',
+	'profile.dashboard.oracle.record_win': 'Você acertou:',
 	'profile.dashboard.oracle.record_win_sub':
 		'Seu lado prevaleceu. Seu histórico leva isso adiante.',
-	'profile.dashboard.oracle.record_loss': 'O mercado foi para o outro lado —',
+	'profile.dashboard.oracle.record_loss': 'O mercado foi para o outro lado:',
 	'profile.dashboard.oracle.record_loss_sub':
 		'Leia a fonte. Recalibre. Só a próxima previsão importa.',
 	'profile.dashboard.oracle_label': 'Oráculo ·',
@@ -1913,7 +1913,7 @@ export const ptBRMessages = {
 		'Anonimizados. Suas respostas permanecem; o nome desaparece.',
 	'settings.delete.happens_trades_label': 'Operações ativas · {count} · {value} VXP',
 	'settings.delete.happens_trades_sub':
-		'Continuam abertas e liquidam no vencimento — excluir não as encerra.',
+		'Continuam abertas e liquidam no vencimento; excluir não as encerra.',
 	'settings.delete.leagues_body': 'Repasse cada liga a outro membro, ou exclua-a para todos.',
 	'settings.delete.leagues_delete': 'Excluir liga',
 	'settings.delete.leagues_delete_armed': 'Será excluída para todos os membros',
@@ -1937,7 +1937,7 @@ export const ptBRMessages = {
 	'settings.delete.reason_body_acc': 'Sua resposta ajuda a melhorar o VICI para os outros.',
 	'settings.delete.reason_heading': 'Antes de você ir.',
 	'settings.delete.stay_body':
-		'Afaste-se por 30 dias — suas estatísticas congelam e seu perfil fica oculto. Ou fale conosco e vamos consertar o que estiver errado.',
+		'Afaste-se por 30 dias: suas estatísticas congelam e seu perfil fica oculto. Ou fale conosco e vamos consertar o que estiver errado.',
 	'settings.delete.stay_contact': 'Fale conosco',
 	'settings.delete.stay_heading': 'Quer ficar?',
 	'settings.delete.stay_pause': 'Pausar por 30 dias',
@@ -2061,7 +2061,7 @@ export const ptBRMessages = {
 	'arena.hero.meta_of': 'de {total}',
 	'arena.hero.dot_aria': 'Mostrar a posição {scope}',
 	'arena.hero.aria':
-		'Sua posição {scope} — deslize ou use as setas para mudar de âmbito, toque para abrir',
+		'Sua posição {scope}: deslize ou use as setas para mudar de âmbito, toque para abrir',
 	'arena.w_eyebrow': '03 · WORLDS UNIVERSITIES',
 	'arena.wcbattle_cta': 'Ver o chaveamento',
 	'arena.wcbattle_sub':
@@ -2084,7 +2084,7 @@ export const ptBRMessages = {
 	'arena.friends.action.cancel': 'Cancelar',
 	'arena.friends.action.reject': 'Rejeitar',
 	'arena.friends.add.auto_accepted':
-		'Essa pessoa já tinha enviado um pedido — agora vocês são amigos!',
+		'Essa pessoa já tinha enviado um pedido: agora vocês são amigos!',
 	'arena.friends.add.cta': 'Adicionar amigo',
 	'arena.friends.add.invite_hint':
 		'Sem resultados. O link de convite dá {amount} VXP a vocês dois.',
@@ -2094,19 +2094,19 @@ export const ptBRMessages = {
 	'arena.friends.add.sheet_title': 'Adicionar amigo',
 	'arena.friends.empty.quote': '"Que solidão por aqui."',
 	'arena.friends.empty.sub':
-		'Ainda sem amigos. Adicione o primeiro — ou convide alguém e ambos começam com 500 VXP.',
+		'Ainda sem amigos. Adicione o primeiro, ou convide alguém e ambos começam com 500 VXP.',
 	'arena.friends.empty.add_first': 'Adicione seu primeiro amigo',
 	'arena.friends.empty.invite_now': 'Convidar agora',
 	'arena.friends.error.accept_failed': 'Falha ao aceitar pedido',
 	'arena.friends.error.already_friends': 'Vocês já são amigos.',
-	'arena.friends.error.already_pending': 'Pedido já enviado — aguardando a resposta.',
+	'arena.friends.error.already_pending': 'Pedido já enviado, aguardando a resposta.',
 	'arena.friends.error.cancel_failed': 'Falha ao cancelar pedido',
 	'arena.friends.error.not_found':
 		'Nenhum usuário encontrado com esse handle. Confira a ortografia ou envie um link de convite.',
 	'arena.friends.error.reject_failed': 'Falha ao rejeitar pedido',
 	'arena.friends.error.rejected_cooldown':
 		'Seu último pedido foi recusado. Você pode tentar de novo {when}.',
-	'arena.friends.error.self': 'Esse é você — escolha outro handle.',
+	'arena.friends.error.self': 'Esse é você; escolha outro handle.',
 	'arena.friends.error.send_failed_detail':
 		'Não foi possível enviar o pedido. Tire um print e fale com a gente: {detail}',
 	'arena.friends.error.unfriend_failed': 'Falha ao desfazer amizade',
@@ -2125,7 +2125,7 @@ export const ptBRMessages = {
 	'arena.friends.global.unranked': 'Sem classificação',
 	'arena.friends.invite.cap_reached': 'Limite de recompensas atingido.',
 	'arena.friends.invite.cap_remaining': '{remaining} convites com recompensa restantes',
-	'arena.friends.invite.cap_resets': 'Os amigos continuam a entrar — as recompensas têm um limite.',
+	'arena.friends.invite.cap_resets': 'Os amigos continuam a entrar; as recompensas têm um limite.',
 	'arena.friends.invite.copied': 'Copiado',
 	'arena.friends.invite.copy': 'Copiar link',
 	'arena.friends.invite.eyebrow_suffix': 'para os dois',
@@ -2177,7 +2177,7 @@ export const ptBRMessages = {
 		'Cada pergunta é resolvida em uma fonte pública. Sem discricionariedade. Sem recursos.',
 	'trust.p1_t': 'Resolve em dados públicos',
 	'trust.p2_b':
-		'Preços, previsões e resoluções — tudo visível no momento em que mudam. Sem feeds privados. Sem privilegiados.',
+		'Preços, previsões e resoluções: tudo visível no momento em que mudam. Sem feeds privados. Sem privilegiados.',
 	'trust.p2_t': 'A mesma informação para todos',
 	'trust.p3_b':
 		'A probabilidade que você vê é o consenso em que está votando. Sem vantagem da casa. Sem spread.',
@@ -2259,25 +2259,25 @@ export const ptBRMessages = {
 	'wc.kickoff_week': 'SEMANA DE ESTREIA',
 	'wc.matchday': 'DIA DE JOGO',
 	'wc.sub':
-		'Pontapé inicial em 11 de junho. Escolha um lado agora — os mercados de fase de grupos estão abertos, os de eliminação abrem no sorteio.',
+		'Pontapé inicial em 11 de junho. Escolha um lado agora: os mercados de fase de grupos estão abertos, os de eliminação abrem no sorteio.',
 	'wc.tile_aria': 'Faça sua previsão sobre {team}',
 	'wc.title_a': 'Os favoritos marcam',
 	'wc.title_b': 'o ritmo.',
 	'welcome.battle.members': 'MEMBROS',
 	'welcome.faq.a1':
-		'Sim. O modo de jogo é totalmente grátis — sem cartão, sem depósito, sem assinatura. VXP é uma moeda de jogo pura que mede precisão; não pode ser resgatada e não é dinheiro. Mercados em dinheiro real, quando introduzidos, serão opcionais e claramente identificados.',
+		'Sim. O modo de jogo é totalmente grátis: sem cartão, sem depósito, sem assinatura. VXP é uma moeda de jogo pura que mede precisão; não pode ser resgatada e não é dinheiro. Mercados em dinheiro real, quando introduzidos, serão opcionais e claramente identificados.',
 	'welcome.faq.a2':
 		'Centenas de perguntas sobre macro, cripto, política, tech, esportes e cultura. Toda pergunta resolve com uma fonte pública.',
 	'welcome.faq.a3':
-		'Previsões resolvidas divididas pelo total de resolvidas. Previsões abertas não contam até o mercado encerrar. Precisão é a unidade da sua reputação — no ranking global, na sua liga privada e em qualquer duelo em que você participar.',
+		'Previsões resolvidas divididas pelo total de resolvidas. Previsões abertas não contam até o mercado encerrar. Precisão é a unidade da sua reputação, no ranking global, na sua liga privada e em qualquer duelo em que você participar.',
 	'welcome.faq.a4':
-		'No modo de jogo, não. A VICI é grátis. A plataforma ganha com mercados em dinheiro real (quando introduzidos), patrocínios de liga e parcerias de torneio. Seus dados de precisão são seus — não vendemos.',
+		'No modo de jogo, não. A VICI é grátis. A plataforma ganha com mercados em dinheiro real (quando introduzidos), patrocínios de liga e parcerias de torneio. Seus dados de precisão são seus; não vendemos.',
 	'welcome.faq.a5':
 		'Servidores na União Europeia. Criptografados em repouso e em trânsito. Armazenamos um token de sessão; não usamos cookies de rastreamento. Você pode exportar ou apagar seus dados a qualquer momento.',
 	'welcome.faq.a6':
 		'Um duelo de precisão cronometrado entre duas ligas, ou entre universidades em um torneio. Janela de sete dias, ambos os lados precisam de um mínimo de previsões para classificar, ganha a liga com a maior precisão média.',
 	'welcome.faq.contact_prefix': 'Mais perguntas? Escreva para',
-	'welcome.faq.contact_suffix': '— respondemos em até dois dias úteis.',
+	'welcome.faq.contact_suffix': '(respondemos em até dois dias úteis).',
 	'welcome.faq.eyebrow': 'FAQ',
 	'welcome.faq.privacy_link': 'Consulte a política de privacidade para mais detalhes.',
 	'welcome.faq.q1': 'A VICI é grátis?',
@@ -2307,7 +2307,7 @@ export const ptBRMessages = {
 	'welcome.nav.skip_to_content': 'Ir para o conteúdo',
 	'welcome.trust.tagline': 'Veni. Vidi. Vici.',
 	'welcome.universities.fifa_tag': 'COPA DO MUNDO FIFA',
-	'welcome.close.cta': 'Comece a palpitar — de graça',
+	'welcome.close.cta': 'Comece a palpitar, de graça',
 	'welcome.close.headline': 'O que vem agora? Dê o palpite antes de acontecer.',
 	'welcome.hero.card_meta': '{pct}% dos jogadores dizem SIM',
 	'welcome.hero.card_q': 'O Bitcoin fecha o ano mais alto do que começou?',
@@ -2316,7 +2316,7 @@ export const ptBRMessages = {
 	'welcome.hero.cta_note': 'De graça. Sem cartão. Sem pegadinha.',
 	'welcome.hero.favorite': 'FAVORITO',
 	'welcome.hero.headline': 'Transforme seu “eu avisei” em prova.',
-	'welcome.hero.hint': 'Deslize a carta — esquerda não, direita sim',
+	'welcome.hero.hint': 'Deslize a carta: esquerda não, direita sim',
 	'welcome.hero.kicker': 'Jogo de palpites grátis · ao vivo',
 	'welcome.hero.long_shot': 'ZEBRA',
 	'welcome.hero.no': 'NÃO',
@@ -2334,7 +2334,7 @@ export const ptBRMessages = {
 	'welcome.proof.label': 'E você, onde fica?',
 	'welcome.proof.live': 'pessoas já estão dando seus palpites.',
 	'welcome.status.body':
-		'Cada palpite entra no seu histórico. Acertou, você sobe — além do seu grupo, da sua cidade, do mundo. O ranking não liga pra quem grita mais alto. Só pra quem acerta mais.',
+		'Cada palpite entra no seu histórico. Acertou, você sobe, além do seu grupo, da sua cidade, do mundo. O ranking não liga pra quem grita mais alto. Só pra quem acerta mais.',
 	'welcome.status.cap_friends': 'Seu grupo, no ranking.',
 	'welcome.status.cap_uni': '250+ universidades competem.',
 	'welcome.status.cap_work': 'Seu time contra a empresa.',
@@ -2353,7 +2353,7 @@ export const ptBRMessages = {
 	'worlds.affil_prompt.title': 'Onde você estudou?',
 	'worlds.battle.back': 'Voltar a Worlds',
 	'worlds.battle.empty_ranked':
-		'Nada foi resolvido nesta temporada — todos sem classificação. Seja dos primeiros a fazer uma jogada.',
+		'Nada foi resolvido nesta temporada: todos sem classificação. Seja dos primeiros a fazer uma jogada.',
 	'worlds.battle.meta_month': 'Todas as chamadas contam · {count} ativos',
 	'worlds.battle.month_emph': 'Temporada de {month}',
 	'worlds.battle.scope_month': 'Temporada de {month}',
@@ -2417,10 +2417,9 @@ export const ptBRMessages = {
 	'worlds.picker.cta_university': 'Escolher uma escola',
 	'worlds.picker.empty': 'Sem resultados. Tente outro nome.',
 	'worlds.picker.error_already_affiliated': 'Você já está neste ranking.',
-	'worlds.picker.error_locked': 'Ainda não dá pra trocar — o bloqueio de 90 dias está ativo.',
+	'worlds.picker.error_locked': 'Ainda não dá pra trocar: o bloqueio de 90 dias está ativo.',
 	'worlds.picker.error_timeout': 'Não foi enviado. Verifique sua conexão e tente novamente.',
-	'worlds.picker.lock_hint':
-		'Você entra no ranking do grupo. Pode trocar — uma vez a cada 90 dias.',
+	'worlds.picker.lock_hint': 'Você entra no ranking do grupo. Pode trocar, uma vez a cada 90 dias.',
 	'worlds.picker.near_you': 'Perto de você · {count} escolas',
 	'worlds.picker.region.all': 'Todas',
 	'worlds.picker.region.as': 'Ásia',
@@ -2443,8 +2442,8 @@ export const ptBRMessages = {
 		'Gmail / Yahoo / iCloud não contam. Use o endereço fornecido pela sua escola.',
 	'worlds.picker.school.continue': 'Continuar →',
 	'worlds.picker.school.detected_from_email': 'detectado do seu e-mail',
-	'worlds.picker.school.domain_belongs': 'Esse domínio pertence a {name} — vamos adicioná-lo lá.',
-	'worlds.picker.school.dupe_title': 'Já existe — escolhe uma?',
+	'worlds.picker.school.domain_belongs': 'Esse domínio pertence a {name}; vamos adicioná-lo lá.',
+	'worlds.picker.school.dupe_title': 'Já existe, escolhe uma?',
 	'worlds.picker.school.email_label': 'E-mail escolar',
 	'worlds.picker.school.email_placeholder': 'voce@{domain}',
 	'worlds.picker.school.empty_add_body': 'Seja o primeiro da sua escola.',
@@ -2467,7 +2466,7 @@ export const ptBRMessages = {
 		'✓ Não está no nosso diretório. Continue para verificar com o e-mail escolar.',
 	'worlds.picker.school.send_code': 'Enviar código de 6 dígitos →',
 	'worlds.picker.school.sending': 'Enviando…',
-	'worlds.picker.school.skip_unverified': 'Ignorar — adicionar sem verificação',
+	'worlds.picker.school.skip_unverified': 'Ignorar: adicionar sem verificação',
 	'worlds.picker.school.status_pending': 'Pendente',
 	'worlds.picker.school.status_verified': 'Escola verificada',
 	'worlds.picker.school.use': 'Usar →',
@@ -2481,7 +2480,7 @@ export const ptBRMessages = {
 	'worlds.picker.school.verify_title': 'Verificar · {name}',
 	'worlds.picker.school.verify_with': 'Verificar com @{domain} →',
 	'worlds.picker.school.verifying': 'Verificando…',
-	'worlds.picker.school.wrong_address': 'Endereço errado — altere',
+	'worlds.picker.school.wrong_address': 'Endereço errado: altere',
 	'worlds.picker.school.wrong_domain':
 		'Não é um endereço de {name}. Esperava-se algo terminando em @{domain}.',
 	'worlds.picker.search_country': 'Buscar entre {count} países…',
@@ -2523,7 +2522,7 @@ export const ptBRMessages = {
 		'O código que você inseriu não pôde ser resgatado: {reason}',
 	'onboarding.handoff.referral_late_title': 'Janela de bônus fechada',
 	'onboarding.handoff.referral_late':
-		'Você se cadastrou mais de 24 horas depois de clicar no link — sem bônus VXP, mas mesmo assim adicionamos quem convidou você como amigo.',
+		'Você se cadastrou mais de 24 horas depois de clicar no link: sem bônus VXP, mas mesmo assim adicionamos quem convidou você como amigo.',
 	'onboarding.handoff.referral_ok_title': 'Referência aplicada',
 	'onboarding.handoff.referral_ok': 'Você e quem convidou você recebem {amount} VXP cada.',
 	'profile.dashboard.referrals.code_pending':
@@ -2532,6 +2531,6 @@ export const ptBRMessages = {
 		'Não foi possível gerar seu código. Tente novamente.',
 	'profile.dashboard.referrals.share': 'Compartilhar',
 	'profile.dashboard.referrals.share_text':
-		'Junte-se ao VICI com o meu código {code} — recebemos ambos {amount} VXP.',
+		'Junte-se ao VICI com o meu código {code}: recebemos ambos {amount} VXP.',
 	'profile.dashboard.referrals.share_title': 'Junte-se a mim no VICI'
 } as const;
