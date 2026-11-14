@@ -6,7 +6,7 @@
 
 import { isNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
-import { DAY_IN_MS } from '../lib/time';
+import { DAY_IN_MS, MINUTE_IN_MS } from '../lib/time';
 
 export const MIN_NICKNAME_LENGTH = 2;
 export const MAX_NICKNAME_LENGTH = 16;
@@ -42,7 +42,7 @@ export const HANDLE_COOLDOWN_DAYS = 30;
  * reject values that are clearly stale or in the future, so a client cannot
  * backdate the stamp and dodge the cooldown.
  */
-export const HANDLE_LAST_CHANGE_TOLERANCE_MS = 5 * 60 * 1000;
+export const HANDLE_LAST_CHANGE_TOLERANCE_MS = 5 * MINUTE_IN_MS;
 
 /**
  * Whole days the owner must still wait before the handle can change again.

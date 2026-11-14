@@ -12,6 +12,7 @@ import { jsonReplacer, nonNullish } from '@dfinity/utils';
 import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
+import { HOUR_IN_MS } from '../../lib/time';
 
 /**
  * The ledger deduplicates a transfer only within 24 hours (plus 2 minutes of
@@ -19,7 +20,7 @@ import { bytesToHex } from '@noble/hashes/utils.js';
  * inside that window, where a landed transfer answers Duplicate; an older one
  * needs the ledger history instead.
  */
-export const DEDUP_SAFE_WINDOW_MS = 23 * 60 * 60_000;
+export const DEDUP_SAFE_WINDOW_MS = 23 * HOUR_IN_MS;
 
 export interface IcrcTransferErrorVariant {
 	BadFee?: { expected_fee: bigint };

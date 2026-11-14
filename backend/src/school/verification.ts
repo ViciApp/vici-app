@@ -12,10 +12,11 @@ import { captureServerEvents, type ServerEventInput } from '../analytics/events'
 import { query, tx, type TxQuery } from '../db/client';
 import { sendEmail } from '../lib/email';
 import { logger } from '../lib/logger';
+import { MINUTE_IN_MS } from '../lib/time';
 import { spMatchEmail, spNormalize } from './matching';
 
 /** Time-to-live of a verification code (~30 minutes). */
-export const SCHOOL_CODE_TTL_MS = 30 * 60 * 1000;
+export const SCHOOL_CODE_TTL_MS = 30 * MINUTE_IN_MS;
 
 /** Max wrong entries before a submission locks: bounds online guessing of
  * the 6-digit space to this many tries per submission. */
