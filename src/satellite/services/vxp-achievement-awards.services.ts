@@ -76,7 +76,7 @@ const payAchievement = async ({
 	const awardKey = achievementId;
 	const earnedAtMs = Date.now();
 
-	// Idempotency: if the award doc already exists, skip: the assert rejects duplicate creations
+	// Idempotency: if the award doc already exists, skip; the assert rejects duplicate creations
 	// anyway, but checking up front avoids the wasted ledger call.
 	const existingKey = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey });
 	const existing = getDocStore({

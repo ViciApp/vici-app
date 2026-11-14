@@ -101,7 +101,7 @@ export const listLeaderboard = (): UserProfile[] => {
  * listLeaderboard} returns), so it works for every ranked user, not
  * just those in the visible top N.
  *
- * - Usual case: the profile one rank ABOVE the caller: the next
+ * - Usual case: the profile one rank ABOVE the caller, the next
  *   competitor to overtake.
  * - Leader (rank 1): nobody is above, so surface the runner-up one rank
  *   BELOW, the rival chasing them, with `rivalIsTrailing: true` so the

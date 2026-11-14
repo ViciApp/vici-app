@@ -86,7 +86,7 @@ const payFounderReward = async ({
 	const amount = VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS;
 	const earnedAtMs = Date.now();
 
-	// Idempotency: if this league's award doc already exists, skip: the
+	// Idempotency: if this league's award doc already exists, skip; the
 	// assert rejects duplicate creations anyway, but checking up front
 	// avoids the wasted ledger call on a hook re-fire or a self-heal pass.
 	const key = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey: leagueId });

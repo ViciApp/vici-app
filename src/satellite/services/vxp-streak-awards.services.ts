@@ -77,7 +77,7 @@ const payStreakMilestone = async ({
 	const awardKey = streakAwardKey(milestone);
 	const earnedAtMs = Date.now();
 
-	// Idempotency: if the award doc already exists, skip: the assert
+	// Idempotency: if the award doc already exists, skip; the assert
 	// rejects duplicate creations anyway, but checking up front avoids
 	// the wasted ledger call.
 	const existingKey = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey });

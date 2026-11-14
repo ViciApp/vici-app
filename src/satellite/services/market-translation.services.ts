@@ -16,8 +16,8 @@ const callerText = (): string => msgCaller().toText();
 /**
  * Upper bound on the number of series ids accepted by the bulk read, so a
  * large deck (or a malformed caller) can't fan one query into an unbounded
- * sweep of per-key reads. The markets surfaces that drive this: the list
- * board and the Flow deck: sit comfortably below this ceiling; anything
+ * sweep of per-key reads. The markets surfaces that drive this (the list
+ * board and the Flow deck) sit comfortably below this ceiling; anything
  * larger is truncated (with a `log`) rather than refused, so the visible
  * head still renders translated.
  */
@@ -81,7 +81,7 @@ export const listMarketTranslations = ({ seriesId }: { seriesId: string }): Mark
 	// scanning the collection. `listDocsStore` iterates every doc in the
 	// collection (a matcher filters the *result*, not the work), so once the
 	// collection grew the query blew the 5B-instruction single-message limit and
-	// trapped (IC0522): which surfaced as the detail page silently losing all
+	// trapped (IC0522), which surfaced as the detail page silently losing all
 	// translations. A bounded set of exact-key reads is O(locales) and
 	// scale-stable, mirroring `listMarketTranslationsForLocales`.
 	return REGISTERED_LOCALE_IDS.map((id) =>

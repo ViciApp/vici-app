@@ -576,8 +576,8 @@ export const assertSetBattle = ({
 			// canister's settlement history by the resolution endpoint (running
 			// as the satellite). An assert cannot make that inter-canister call
 			// to re-derive the figure, so it accepts an `in_flight → resolved`
-			// league write only from a controller, the endpoint writes the
-			// resolved doc as one, and verifies the result is internally
+			// league write only from a controller: the endpoint writes the
+			// resolved doc as one and verifies the result is internally
 			// consistent. A client write is not a controller, so a user cannot
 			// forge a result. Membership + the settle-time liveness gate are
 			// enforced by the endpoint, not here. Baselines are no longer read:

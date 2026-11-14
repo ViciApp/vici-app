@@ -506,7 +506,7 @@ export const listChallengeableLeaguesFn = (): LeagueDoc[] => {
 
 /**
  * A non-private (Open or Invite-only) league a friend is in but the
- * caller is not: plus the overlap.
+ * caller is not, plus the overlap.
  */
 export interface FriendRecommendedLeague {
 	league: LeagueDoc;
@@ -524,7 +524,7 @@ export interface FriendRecommendedLeague {
  * Recommend leagues the caller's **friends** are in but the caller is
  * **not**: the "Friends are in" row at the foot of the Leagues list.
  *
- * Definition of "friend": a confirmed, bilateral friendship: a
+ * Definition of "friend": a confirmed, bilateral friendship, i.e. a
  * `RELATIONS` doc with `category === FRIEND`, `state === ACTIVE`, and
  * the caller among its participants. The same definition
  * {@link listFriends} (relation.services) uses. One-way follows are

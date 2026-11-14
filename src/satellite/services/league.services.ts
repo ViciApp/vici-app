@@ -58,7 +58,7 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
 		throw new Error('leagues imageUrl must be a well-formed URL.');
 	}
 
-	// HTTPS only: blocks data:/javascript:/blob: and any foreign scheme.
+	// HTTPS only: blocks data:/javascript:/blob, and any foreign scheme.
 	if (url.protocol !== 'https:') {
 		throw new Error('leagues imageUrl must use the https scheme.');
 	}

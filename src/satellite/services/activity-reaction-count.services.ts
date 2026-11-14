@@ -39,7 +39,7 @@ const activityKeyFromReactionKey = (reactionKey: string): string | undefined => 
  * Move an activity's like counter by `delta`, floored at 0. Version-locked read-modify-write as
  * admin. Best-effort: a rare version race under concurrent likes on the same activity is logged and
  * swallowed (the reaction doc is the source of truth, and the admin `recomputeActivityReactionCounts`
- * endpoint re-derives exact counts): mirroring the analytics rollup's bump.
+ * endpoint re-derives exact counts), mirroring the analytics rollup's bump.
  */
 const bumpCount = ({ activityKey, delta }: { activityKey: string; delta: number }): void => {
 	try {

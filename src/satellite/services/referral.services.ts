@@ -1089,7 +1089,7 @@ const settleReferralPayout = async ({
 };
 
 /**
- * Post-write hook for the referrals collection. NOTE: in practice this never fires: the referral
+ * Post-write hook for the referrals collection. NOTE: in practice this never fires; the referral
  * row is created by the `redeemReferralCode` serverless endpoint via `setDocStore`, and Juno only
  * invokes `onSetDoc` for client `set_doc` writes. It stays wired (delegating to the same idempotent
  * {@link settleReferralPayout} the endpoint uses) purely as a safety net, in case a referral row is

@@ -487,7 +487,7 @@ export const toWireLeague = (league: {
 	emblem: league.emblem,
 	// Emit a concrete privacy on the wire, coercing legacy at-rest shapes
 	// to the narrowed two-tier enum. Asserts only run on WRITE, so docs
-	// persisted under the retired three-way model are still read here:
+	// persisted under the retired three-way model are still read here,
 	// and once the Candid variant no longer contains `invite`, emitting it
 	// would fail encoding and break league listing. So:
 	//   - a stored `privacy === 'invite'` (retired invite-only tier; hidden
