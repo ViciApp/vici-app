@@ -26,7 +26,7 @@ export const sittingGoalFor = ({
  * exactly the cumulative daily count reaching `sittingGoal`, so the cap
  * holds regardless of how many times Flow is re-entered today.
  */
-export const maxBetsFor = ({
+export const maxCallsFor = ({
 	sittingGoal,
 	baseline
 }: {

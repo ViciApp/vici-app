@@ -70,7 +70,7 @@
 		canExtendSession,
 		isDailyCapReached,
 		isOvertimeSession,
-		maxBetsFor,
+		maxCallsFor,
 		sittingGoalFor
 	} from '#lib/utils/flow-session.utils.ts';
 	import {
@@ -127,12 +127,12 @@
 
 	// This sitting's ceiling for the cumulative daily count, and the swipes
 	// it may still place (the ceiling less what the day already carried in).
-	// `advance()` ends the run on the SESSION counter (`betsCount`) reaching
-	// `maxBets`, which is exactly the cumulative daily count reaching
+	// `advance()` ends the run on the SESSION counter (`callsCount`) reaching
+	// `maxCalls`, which is exactly the cumulative daily count reaching
 	// `sittingGoal`, so the cap holds regardless of how many times Flow is
 	// re-entered today. See `flow-session.utils` for the arithmetic.
 	const sittingGoal = $derived(sittingGoalFor({ baseline: sessionBaseline, pushedToOvertime }));
-	const maxBets = $derived(maxBetsFor({ sittingGoal, baseline: sessionBaseline }));
+	const maxCalls = $derived(maxCallsFor({ sittingGoal, baseline: sessionBaseline }));
 
 	let markets = $state<Market[]>([]);
 	let currentIndex = $state(0);
@@ -174,7 +174,7 @@
 	// the shared shape the Dashboard banner / ResolutionReveal also consume.
 	const liveDigest = $derived<ResolutionRevealData>($maturedResolutions);
 	let tradeAmount = $state('1.0');
-	let betsCount = $state(0);
+	let callsCount = $state(0);
 	// VXP locked at risk across this session's calls; the FlowEnd "Called"
 	// stat. Accumulates each committed YES / NO stake; reset on continuation.
 	let sessionStaked = $state(0);
@@ -323,13 +323,13 @@
 	// Keep the sitting baseline honest across a local-midnight rollover. The
 	// baseline is snapshotted on entry, but a sitting opened just before
 	// midnight would otherwise carry yesterday's count into the new day and
-	// shrink `maxBets`. While this sitting hasn't placed a call yet
-	// (`betsCount === 0`), re-snapshot against the live `nowMs` day so the
+	// shrink `maxCalls`. While this sitting hasn't placed a call yet
+	// (`callsCount === 0`), re-snapshot against the live `nowMs` day so the
 	// rollover resets the baseline to the new day's count; once a call lands
 	// the baseline freezes (the run owns its ceiling for the rest of the
 	// sitting).
 	$effect(() => {
-		if (betsCount > 0) {
+		if (callsCount > 0) {
 			return;
 		}
 
@@ -347,7 +347,7 @@
 	// Daily hard-cap gate: once the day's calls reach the hard cap (15)
 	// across sessions, opening Flow shows a "come back tomorrow" takeover
 	// (not a fresh deck) so the 15/day model holds. Suppressed mid-session
-	// (`betsCount === 0` means this run hasn't placed a call yet).
+	// (`callsCount === 0` means this run hasn't placed a call yet).
 	const dailyCapReached = $derived(isDailyCapReached(dailyGoalDone));
 
 	// Per-swipe count records are serialised through this FIFO chain. Firing
@@ -504,7 +504,7 @@
 
 			// Snapshot the cumulative daily count this sitting resumes from.
 			// Rolled over against the current day so a stale stored date reads
-			// as a fresh 0-baseline. Drives `sittingGoal` / `maxBets`, so the
+			// as a fresh 0-baseline. Drives `sittingGoal` / `maxCalls`, so the
 			// sitting grants only the day's remaining headroom (#484/#485).
 			sessionBaseline = rolloverDailyGoal({
 				done: reconciledGoal.done,
@@ -547,7 +547,7 @@
 			track({
 				name: 'flow_abandoned',
 				source: 'flow',
-				count: betsCount,
+				count: callsCount,
 				step: currentIndex
 			});
 		}
@@ -566,7 +566,7 @@
 		// so burning it here would surface markets the user never saw,
 		// or, on a small inventory, an empty follow-up deck; the next
 		// time they enter Flow.
-		if (betsCount > 0) {
+		if (callsCount > 0) {
 			advanceFlow();
 		}
 	});
@@ -765,7 +765,7 @@
 			// on any swipe, YES / NO / SKIP all count at that layer.
 			recordMotionSwipe({
 				side: 'SKIP',
-				dailyDone: sessionBaseline + betsCount,
+				dailyDone: sessionBaseline + callsCount,
 				dailyTarget: sittingGoal,
 				dailyJustCompleted: false,
 				dayStreak: dailyStreak
@@ -791,7 +791,7 @@
 			// activity from member activity without a new event; `count` is the
 			// persisted session pick number (the cadence counter), so it stays
 			// consistent across a reload rather than tracking this sitting's
-			// in-memory `betsCount`.
+			// in-memory `callsCount`.
 			track({
 				name: 'position_taken',
 				source: 'guest_flow',
@@ -800,7 +800,7 @@
 				count: guestPickNumber
 			});
 
-			betsCount += 1;
+			callsCount += 1;
 			streak += 1;
 			flowTick();
 			finishCommitAdvance();
@@ -852,7 +852,7 @@
 
 		void executeTrade();
 
-		betsCount += 1;
+		callsCount += 1;
 		streak += 1;
 		// Tally the stake now at risk for the FlowEnd "Called" stat.
 		sessionStaked += stakeHuman;
@@ -1057,12 +1057,12 @@
 	const advance = () => {
 		// End the run when the SITTING is spent: either the deck is exhausted
 		// or this sitting has placed its share of the day's headroom
-		// (`maxBets = sittingGoal - sessionBaseline`). Since `betsCount` is
-		// this sitting's count, `betsCount < maxBets` is exactly
-		// `sessionBaseline + betsCount < sittingGoal`: the cumulative daily
+		// (`maxCalls = sittingGoal - sessionBaseline`). Since `callsCount` is
+		// this sitting's count, `callsCount < maxCalls` is exactly
+		// `sessionBaseline + callsCount < sittingGoal`: the cumulative daily
 		// count below the day's ceiling, so the hard cap holds no matter how
 		// many sittings the day is split across (#484).
-		if (currentIndex < markets.length - 1 && betsCount < maxBets) {
+		if (currentIndex < markets.length - 1 && callsCount < maxCalls) {
 			currentIndex += 1;
 		} else {
 			completed = true;
@@ -1073,7 +1073,7 @@
 			track({
 				name: 'flow_completed',
 				source: 'flow',
-				count: betsCount,
+				count: callsCount,
 				label: overtimeSession ? 'overtime' : 'regular'
 			});
 			vibrate('celebration');
@@ -1090,7 +1090,7 @@
 
 	// Push-to-15 is offered only on a regular (non-overtime) day that still
 	// has deck inventory to continue into: never once the hard cap is in
-	// play. `betsCount` reached `maxBets` for FlowEnd to show. Also gated on
+	// play. `callsCount` reached `maxCalls` for FlowEnd to show. Also gated on
 	// `dailyGoalDone < DAILY_HARD_CAP`: a user who entered Flow with the day
 	// already at the cap has no cross-session headroom left and must come
 	// back tomorrow.
@@ -1104,11 +1104,11 @@
 
 	// "Push to 15 →": lift this sitting's goal to the daily hard cap,
 	// dismiss the takeover, and rise the next card so the deck continues
-	// into overtime. `sittingGoal` becomes `DAILY_HARD_CAP`, so `maxBets`
+	// into overtime. `sittingGoal` becomes `DAILY_HARD_CAP`, so `maxCalls`
 	// (`DAILY_HARD_CAP - sessionBaseline`) covers exactly the day's remaining
 	// headroom: total daily calls (cross-session) never exceed the cap.
 	//
-	// For a fresh-day user (sessionBaseline = 0): maxBets goes 10 → 15, and
+	// For a fresh-day user (sessionBaseline = 0): maxCalls goes 10 → 15, and
 	// `dailyTarget = sittingGoal = 15 >= DAILY_HARD_CAP` keeps the engine in
 	// overtime mode so the calls-11 / 13 beats and the overtime-complete
 	// +25 VXP fire correctly. For a user who carried prior calls in, the
@@ -1199,7 +1199,7 @@
 
 		// Affordable now, but committing it would leave too little to fund the
 		// predictions still needed to finish the sitting (min stake each).
-		const remainingAfterThis = Math.max(0, maxBets - betsCount - 1);
+		const remainingAfterThis = Math.max(0, maxCalls - callsCount - 1);
 
 		if (
 			remainingAfterThis > 0 &&
@@ -1351,7 +1351,7 @@
 		<!-- Fetch resolved to an empty deck: surface the empty state directly
 		     rather than gating it behind the entry overlay. -->
 		<FlowEmptyDeck onBackToMarkets={backToMarkets} />
-	{:else if entered && dailyCapReached && betsCount === 0}
+	{:else if entered && dailyCapReached && callsCount === 0}
 		<!-- Daily hard cap already met today (across sessions). Opening Flow
 		     shows the "come back tomorrow" takeover, not a fresh deck. -->
 		<FlowDailyCap hardCap={DAILY_HARD_CAP} onClose={handleClose} />
@@ -1369,7 +1369,7 @@
 			onExtend={handleExtend}
 			onInstallPrompt={() => (a2hsSheetOpen = true)}
 			overtime={overtimeSession}
-			pending={betsCount}
+			pending={callsCount}
 			{showInstallNudge}
 			staked={sessionStaked}
 			streak={dailyStreak}
