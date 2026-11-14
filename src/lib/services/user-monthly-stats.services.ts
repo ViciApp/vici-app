@@ -1,6 +1,6 @@
 import type * as ClearingDid from '#declarations/clearing/clearing.d.ts';
 import { functions } from '#declarations/satellite/satellite.api.ts';
-import { ZERO } from '#lib/constants/app.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	MONTHLY_CONSENSUS_LIMIT,
@@ -60,7 +60,7 @@ export const bucketMonthlyStats = (history: ClearingDid.Event[]): Record<string,
 	const buckets: Record<string, MonthBucket> = {};
 
 	for (const event of settled) {
-		const settledAtMs = Number(event.timestamp / 1_000_000n);
+		const settledAtMs = Number(event.timestamp / MILLISECOND_IN_NANOSECONDS);
 		const anchor = monthAnchorFromMs(settledAtMs);
 
 		const bucket = (buckets[anchor] ??= { monthCalls: 0, monthWins: 0, consensus: [] });

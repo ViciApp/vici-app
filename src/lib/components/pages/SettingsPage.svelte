@@ -37,6 +37,7 @@
 	import AppearancePicker from '#lib/components/ui/AppearancePicker.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import LocaleSheet from '#lib/components/ui/LocaleSheet.svelte';
+	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 	import { Collection } from '#lib/constants/collections.constants.ts';
 	import { LOCALE_REGISTRY } from '#lib/constants/locale.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
@@ -152,7 +153,7 @@
 			return null;
 		}
 
-		const ms = Number(joinedAtNs / 1_000_000n);
+		const ms = Number(joinedAtNs / MILLISECOND_IN_NANOSECONDS);
 		const date = new Date(ms);
 
 		try {

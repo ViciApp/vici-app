@@ -1,5 +1,5 @@
 import type { ClearingDid } from '#declarations';
-import { ZERO } from '#lib/constants/app.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
 import type {
 	CategoryAccuracySignal,
 	PriorCallSignal,
@@ -31,7 +31,7 @@ const eventCategory = ({
 };
 
 const formatWhen = (timestampNs: bigint): string => {
-	const date = new Date(Number(timestampNs / 1_000_000n));
+	const date = new Date(Number(timestampNs / MILLISECOND_IN_NANOSECONDS));
 
 	if (Number.isNaN(date.getTime())) {
 		return '';

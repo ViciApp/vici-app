@@ -1,5 +1,5 @@
 import type * as ClearingDid from '#declarations/clearing/clearing.d.ts';
-import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS, USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { MACRO_IDS, primaryMacro, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
 import type { MarketMetadata } from '#lib/types/market-metadata.ts';
@@ -135,7 +135,7 @@ export const computeUserStatsSnapshot = ({
 				marketId: event.series_id,
 				tag: macroForSeries({ seriesId: event.series_id, metadata }),
 				win,
-				settledAtMs: Number(event.timestamp / 1_000_000n),
+				settledAtMs: Number(event.timestamp / MILLISECOND_IN_NANOSECONDS),
 				vxp: settlementVxp(event),
 				// Contrarian = a win the market priced as a long shot (the
 				// user's side cleared at ≤ the long-shot threshold), i.e. they
