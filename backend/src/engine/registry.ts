@@ -173,12 +173,6 @@ export const addSeries = async (params: RegistryDid.AddSeriesParams): Promise<st
 	return expectOk(await actor.add_series(params), 'add_series');
 };
 
-export const forkSeries = async (params: RegistryDid.ForkSeriesParams): Promise<string> => {
-	const actor = await adminRegistry();
-
-	return expectOk(await actor.fork_series(params), 'fork_series');
-};
-
 export const updateTradingAccess = async (
 	params: RegistryDid.UpdateTradingAccessParams
 ): Promise<void> => {

@@ -428,18 +428,6 @@ const fetchUserOrders = async ({
 	return filterByPlaygroundExpandedDomain({ items: orders, targetDomain: domain });
 };
 
-export const getUserOrdersForMarket = async ({
-	marketId,
-	domain
-}: {
-	marketId: MarketId;
-	domain: ClearingDid.BalanceDomain;
-}): Promise<ClearingDid.LimitOrder[]> => {
-	const orders = await getUserOrders(domain);
-
-	return orders.filter((o) => o.series_id === marketId);
-};
-
 /**
  * All open orders for the current user in the active balance domain.
  * In playground mode (ViciXp), Social-domain orders are included.

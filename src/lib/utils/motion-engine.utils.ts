@@ -37,15 +37,6 @@ const STORAGE_KEY = 'vici.motion.state.v3';
 // NONE 0 · SPARK 1 · EMBER 3 · FLAME 7 · BLAZE 15 · INFERNO 30.
 export type MotionStreakTier = 'NONE' | 'SPARK' | 'EMBER' | 'FLAME' | 'BLAZE' | 'INFERNO';
 
-const TIER_RANK: Record<MotionStreakTier, number> = {
-	NONE: 0,
-	SPARK: 1,
-	EMBER: 2,
-	FLAME: 3,
-	BLAZE: 4,
-	INFERNO: 5
-};
-
 export const tierForStreak = (days: number): MotionStreakTier => {
 	if (days >= 30) {
 		return 'INFERNO';
@@ -712,6 +703,3 @@ export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult =>
 };
 
 export const resetMotionState = (): void => saveState(defaultState());
-
-// Re-export so callers can read the rank ordering if ever needed.
-export { TIER_RANK };
