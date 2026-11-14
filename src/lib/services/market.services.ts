@@ -1144,8 +1144,8 @@ export const FAVORITE_COUNTRY_BOOST = 1.6;
  * which `mapMarketData` hardcodes to `ZERO` (the field is never
  * populated upstream), so it never contributed. `liquidityScore`
  * needed `bestBid` / `bestAsk`, which the Flow path no longer fetches
- * until *after* ranking, see `getFlowQueue` +
- * `enrichFlowMarketsWithOrderBook`. The dropped tier was a 100-point
+ * until *after* ranking (see `getFlowQueue` +
+ * `enrichFlowMarketsWithOrderBook`). The dropped tier was a 100-point
  * flag dwarfed by the interest (1000) and suggested (~5000) tiers, so
  * the top-N ordering is effectively unchanged.
  *

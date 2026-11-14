@@ -577,7 +577,7 @@ export const searchProfiles = async (query: string): Promise<UserProfile[]> => {
 };
 
 /**
- * Outcome of a nickname availability probe, mirrors
+ * Outcome of a nickname availability probe; it mirrors
  * `NicknameAvailability` on the satellite side. The FE uses this to
  * render typed inline errors (instead of regex-parsing thrown messages).
  */
