@@ -9,8 +9,8 @@
  * still in flight. So when there are no settled (won/lost) predictions we render
  * an optimistic 100% instead: you can't have been wrong about anything yet.
  *
- * Display-only by design: the persisted `accuracy`, and the competitive
- * leaderboard ranking it feeds (see `standings.services.ts`), keeps its real
+ * Display-only by design: the persisted `accuracy` (and the competitive
+ * leaderboard ranking it feeds, see `standings.services.ts`) keeps its real
  * value, so an empty-state user is never hoisted up the standings. Only call
  * this for the viewer's own profile; `settledCount` must be the *viewer's* own
  * decisive resolved-prediction count (see `decisiveSettledCount`).
