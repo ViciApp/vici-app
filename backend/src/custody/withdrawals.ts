@@ -68,6 +68,66 @@ export class InsufficientBalanceError extends Error {}
 
 export class AssetNotWithdrawableError extends Error {}
 
+/** A request reused the idempotency key of a different withdrawal. */
+export class IdempotencyKeyReusedError extends Error {}
+
+interface WithdrawalRequest {
+	assetId: string;
+	amount: bigint;
+	destination: string;
+	selfCustody: boolean;
+}
+
+/** The fee is left out: the route reads it fresh on every request, so a retry
+ * of the same withdrawal may quote another one. */
+const isSameRequest = ({
+	withdrawal,
+	request
+}: {
+	withdrawal: Withdrawal;
+	request: WithdrawalRequest;
+}): boolean =>
+	withdrawal.asset_id === request.assetId &&
+	BigInt(withdrawal.amount) === request.amount &&
+	withdrawal.destination === request.destination &&
+	withdrawal.self_custody === request.selfCustody;
+
+/** The withdrawal the user already filed under `idempotencyKey`, which a retry
+ * gets back with no second hold; undefined when the key is new or absent.
+ * Throws IdempotencyKeyReusedError when the key holds a different withdrawal. */
+const replayedWithdrawal = async ({
+	q,
+	userId,
+	idempotencyKey,
+	request
+}: {
+	q: TxQuery;
+	userId: string;
+	idempotencyKey: string | undefined;
+	request: WithdrawalRequest;
+}): Promise<Withdrawal | undefined> => {
+	if (isNullish(idempotencyKey)) {
+		return;
+	}
+
+	const [withdrawal] = await q<Withdrawal>(
+		`${SELECT} where user_id = $1 and idempotency_key = $2`,
+		[userId, idempotencyKey]
+	);
+
+	if (isNullish(withdrawal)) {
+		return;
+	}
+
+	if (!isSameRequest({ withdrawal, request })) {
+		throw new IdempotencyKeyReusedError(
+			`idempotency key ${idempotencyKey} already holds withdrawal ${withdrawal.id}`
+		);
+	}
+
+	return withdrawal;
+};
+
 /** The hold's legs; the refund posts them negated. A zero fee books no fee
  * leg, so a row requested before the fee was held refunds exactly its hold. */
 const holdLegs = ({
@@ -104,7 +164,10 @@ const holdLegs = ({
 /** Create a withdrawal request and post the balance hold atomically. Throws
  * AssetNotWithdrawableError for an asset that may never leave the platform,
  * before any balance is read, and InsufficientBalanceError when the internal
- * balance cannot cover the amount plus the fee. */
+ * balance cannot cover the amount plus the fee. A request whose idempotency
+ * key the user already used returns that withdrawal as it stands, with no
+ * second hold, or throws IdempotencyKeyReusedError when it asks for another
+ * one. */
 export const requestWithdrawal = async ({
 	userId,
 	asset,
@@ -112,7 +175,8 @@ export const requestWithdrawal = async ({
 	fee,
 	destination,
 	selfCustody,
-	userAddress
+	userAddress,
+	idempotencyKey
 }: {
 	userId: string;
 	asset: Asset;
@@ -125,6 +189,9 @@ export const requestWithdrawal = async ({
 	/** The user's custodial address on the asset's chain (derived by the
 	 * adapter; passed in so this module stays chain-agnostic). */
 	userAddress: string;
+	/** Chosen by the client and resent on its retries, so a retry after a lost
+	 * response finds the withdrawal it filed. */
+	idempotencyKey?: string;
 }): Promise<Withdrawal> => {
 	if (!isWithdrawable(asset)) {
 		throw new AssetNotWithdrawableError(`${asset.chain}:${asset.symbol} is not withdrawable`);
@@ -159,6 +226,16 @@ export const requestWithdrawal = async ({
 		// second wait for the first hold and read the balance after it.
 		await q(`select id from custody_accounts where id = $1 for update`, [account.id]);
 
+		const request: WithdrawalRequest = { assetId: asset.id, amount, destination, selfCustody };
+
+		// Looked up before the balance: the first request's hold already spent
+		// it, and a retry of that request must not read as insufficient.
+		const replayed = await replayedWithdrawal({ q, userId, idempotencyKey, request });
+
+		if (nonNullish(replayed)) {
+			return replayed;
+		}
+
 		const balance = await accountBalance({ q, accountId: account.id, assetId: asset.id });
 
 		if (balance < amount + fee) {
@@ -167,16 +244,37 @@ export const requestWithdrawal = async ({
 			);
 		}
 
+		// The account lock serialises retries on one chain; a concurrent request
+		// with the same key on another chain holds another lock, and only the
+		// unique index stops it.
 		const inserted = await q<Withdrawal>(
-			`insert into withdrawals (user_id, asset_id, amount, fee, destination, self_custody)
-			 values ($1, $2, $3, $4, $5, $6)
+			`insert into withdrawals
+				 (user_id, asset_id, amount, fee, destination, self_custody, idempotency_key)
+			 values ($1, $2, $3, $4, $5, $6, $7)
+			 on conflict (user_id, idempotency_key) where idempotency_key is not null do nothing
 			 returning ${COLUMNS}`,
-			[userId, asset.id, amount.toString(), fee.toString(), destination, selfCustody]
+			[
+				userId,
+				asset.id,
+				amount.toString(),
+				fee.toString(),
+				destination,
+				selfCustody,
+				idempotencyKey ?? null
+			]
 		);
 		const [withdrawal] = inserted;
 
 		if (isNullish(withdrawal)) {
-			throw new Error('withdrawal insert returned no row');
+			// Only a keyed insert can conflict, and the request that won it has
+			// committed by the time `do nothing` returns.
+			const winner = await replayedWithdrawal({ q, userId, idempotencyKey, request });
+
+			if (isNullish(winner)) {
+				throw new Error('withdrawal insert returned no row');
+			}
+
+			return winner;
 		}
 
 		await postLedgerEvent(

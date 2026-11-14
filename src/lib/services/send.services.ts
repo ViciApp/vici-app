@@ -100,7 +100,8 @@ export const sendToken = async ({
 			assetId: asset.id,
 			amount,
 			destination: to,
-			selfCustody: true
+			selfCustody: true,
+			idempotencyKey: crypto.randomUUID()
 		});
 
 		// The API executes best-effort inline and reports the outcome on the

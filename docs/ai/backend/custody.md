@@ -66,6 +66,20 @@ path. Each rule guards a withdrawal paid twice or stuck forever:
 - **Resend only after every earlier send resolved.** `PROCESSING_GRACE_MS`
   outlasts the IC ingress expiry and the route's transfer timeout, so a resend
   answered `InsufficientFunds` cannot refund a first send still about to land.
+- **A retried request is the withdrawal it already filed.** The client sends
+  a fresh `idempotencyKey` for each withdrawal the user asks for and resends
+  it on every retry. `requestWithdrawal` looks the key up under the account
+  lock, before the balance (the first hold already spent it), and returns
+  that row as it stands, with no second hold: the route answers 201 with it
+  and runs the first attempt again, and since only one claim of the row
+  wins, the transfer still goes out at most once. The same key for another asset, amount, destination
+  or `selfCustody` answers 409 `idempotency_key_reused`; the fee is not
+  compared, since the route reads it fresh. The key is unique per user
+  (partial index on `withdrawals (user_id, idempotency_key)`) and the insert
+  is `on conflict do nothing`, so a concurrent request the lock does not
+  serialise (another chain's account) still files one row and one hold. A
+  request without a key keeps filing a new withdrawal each time, for older
+  clients.
 - **The destination is checked before the hold.** The route refuses an
   address `adapter.isValidAddress` rejects with `invalid_destination`. An
   address the chain cannot parse fails inside the transfer as an unknown

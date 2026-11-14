@@ -465,7 +465,9 @@ the exact candid shapes.
   it sees on-chain and a sweep debits nothing. The request also holds the
   asset's network fee on top of the amount (quoted as `withdrawalFee` on
   `/wallet/assets`, returned as `fee` on the withdrawal), so the most a
-  user can send is the balance less that fee.
+  user can send is the balance less that fee. Each send carries a fresh
+  `idempotencyKey`, which any retry of that send must reuse: the API answers
+  a repeated key with the withdrawal it already filed.
 - The Send tab offers only tokens whose custody asset is `withdrawable` on
   `/wallet/assets` (the API refuses VXP withdrawals with
   `asset_not_withdrawable`). `loadSendableWalletAssets` hands the page the

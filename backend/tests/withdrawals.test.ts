@@ -1,21 +1,25 @@
 // Withdrawal state machine: the transition matrix, the balance hold of the
 // amount plus the network fee at request time, insufficient-balance rejection,
-// the VXP refusal, the compensating refund on failure, and the
-// concurrent-transition race guard.
+// the VXP refusal, the compensating refund on failure, the
+// concurrent-transition race guard, and the idempotency key that turns a
+// retried request into the withdrawal it already filed.
 
 import { isNullish } from '@dfinity/utils';
 import { beforeAll, describe, expect, test } from 'bun:test';
+import { randomUUID } from 'node:crypto';
 import { ensureInternalAccount, ensureUserAccount } from '../src/custody/accounts';
 import { getAssetBySymbol, isWithdrawable, type Asset } from '../src/custody/assets';
 import { postLedgerEvent } from '../src/custody/ledger';
 import {
 	AssetNotWithdrawableError,
 	canTransition,
+	IdempotencyKeyReusedError,
 	InsufficientBalanceError,
 	requestWithdrawal,
 	transitionWithdrawal,
 	userChainBalance,
 	WITHDRAWAL_TRANSITIONS,
+	type Withdrawal,
 	type WithdrawalState
 } from '../src/custody/withdrawals';
 import { query, tx } from '../src/db/client';
@@ -394,5 +398,150 @@ describe.if(dbAvailable)('withdrawal lifecycle', () => {
 		expect(
 			await transitionWithdrawal({ id: withdrawal.id, from: 'requested', to: 'processing' })
 		).toBeNull();
+	});
+
+	/** Holds posted for the user, one per withdrawal that really moved funds. */
+	const holdCount = async (userId: string): Promise<number> => {
+		const [row] = await query<{ holds: number }>(
+			`select count(distinct l.event_key)::int as holds
+			 from ledger_entries l
+			 join custody_accounts c on c.id = l.account_id
+			 where c.user_id = $1 and l.kind = 'withdrawal_hold'`,
+			[userId]
+		);
+
+		return row?.holds ?? 0;
+	};
+
+	const withdrawalCount = async (userId: string): Promise<number> =>
+		(await query(`select 1 from withdrawals where user_id = $1`, [userId])).length;
+
+	const keyedRequest = ({
+		userId,
+		idempotencyKey,
+		amount = BigInt(400)
+	}: {
+		userId: string;
+		idempotencyKey?: string;
+		amount?: bigint;
+	}): Promise<Withdrawal> =>
+		requestWithdrawal({
+			userId,
+			asset,
+			amount,
+			fee: BigInt(10),
+			destination: 'aaaaa-aa',
+			selfCustody: true,
+			userAddress: `p-${userId}`,
+			idempotencyKey
+		});
+
+	test('a retry with the same key returns the first withdrawal and holds nothing more', async () => {
+		const userId = await fundedUser(BigInt(1000));
+		const idempotencyKey = randomUUID();
+
+		const first = await keyedRequest({ userId, idempotencyKey });
+		const retry = await keyedRequest({ userId, idempotencyKey });
+
+		expect(retry).toEqual(first);
+		expect(await withdrawalCount(userId)).toBe(1);
+		expect(await holdCount(userId)).toBe(1);
+		expect(await balanceOf(userId)).toBe(BigInt(590));
+	});
+
+	test('a retry after the hold spent the balance still finds the first withdrawal', async () => {
+		const userId = await fundedUser(BigInt(410));
+		const idempotencyKey = randomUUID();
+
+		const first = await keyedRequest({ userId, idempotencyKey });
+
+		expect(await keyedRequest({ userId, idempotencyKey })).toEqual(first);
+		expect(await balanceOf(userId)).toBe(ZERO);
+	});
+
+	test('two concurrent requests with one key file one withdrawal and one hold', async () => {
+		const userId = await fundedUser(BigInt(1000));
+		const idempotencyKey = randomUUID();
+
+		const [a, b] = await Promise.all([
+			keyedRequest({ userId, idempotencyKey }),
+			keyedRequest({ userId, idempotencyKey })
+		]);
+
+		expect(a.id).toBe(b.id);
+		expect(await withdrawalCount(userId)).toBe(1);
+		expect(await holdCount(userId)).toBe(1);
+		expect(await balanceOf(userId)).toBe(BigInt(590));
+	});
+
+	test('a request whose insert meets a keyed row committed after its lookup returns that row', async () => {
+		const userId = await fundedUser(BigInt(1000));
+		const idempotencyKey = randomUUID();
+		let request: Promise<Withdrawal> | undefined;
+		let winnerId: string | undefined;
+
+		// The winner commits while the request waits on the unique index, past
+		// the point where its lookup could have seen it: only the conflict
+		// clause keeps it from inserting a second row and hold.
+		await tx(async (q) => {
+			const [winner] = await q<{ id: string }>(
+				`insert into withdrawals
+					 (user_id, asset_id, amount, fee, destination, self_custody, idempotency_key)
+				 values ($1, $2, 400, 10, 'aaaaa-aa', true, $3)
+				 returning id`,
+				[userId, asset.id, idempotencyKey]
+			);
+
+			winnerId = winner?.id;
+			request = keyedRequest({ userId, idempotencyKey });
+
+			await new Promise((resolve) => setTimeout(resolve, 200));
+		});
+
+		expect((await request)?.id).toBe(winnerId);
+		expect(await withdrawalCount(userId)).toBe(1);
+		expect(await holdCount(userId)).toBe(0);
+		expect(await balanceOf(userId)).toBe(BigInt(1000));
+	});
+
+	test('a key reused for another amount is refused without a second hold', async () => {
+		const userId = await fundedUser(BigInt(1000));
+		const idempotencyKey = randomUUID();
+
+		await keyedRequest({ userId, idempotencyKey });
+
+		await expect(keyedRequest({ userId, idempotencyKey, amount: BigInt(300) })).rejects.toThrow(
+			IdempotencyKeyReusedError
+		);
+
+		expect(await withdrawalCount(userId)).toBe(1);
+		expect(await holdCount(userId)).toBe(1);
+		expect(await balanceOf(userId)).toBe(BigInt(590));
+	});
+
+	test('the same key from two users files a withdrawal for each', async () => {
+		const [alice, bob] = await Promise.all([fundedUser(BigInt(1000)), fundedUser(BigInt(1000))]);
+		const idempotencyKey = randomUUID();
+
+		const [a, b] = await Promise.all([
+			keyedRequest({ userId: alice, idempotencyKey }),
+			keyedRequest({ userId: bob, idempotencyKey })
+		]);
+
+		expect(a.id).not.toBe(b.id);
+		expect(await balanceOf(alice)).toBe(BigInt(590));
+		expect(await balanceOf(bob)).toBe(BigInt(590));
+	});
+
+	test('requests without a key each file their own withdrawal', async () => {
+		const userId = await fundedUser(BigInt(1000));
+
+		const first = await keyedRequest({ userId });
+		const second = await keyedRequest({ userId });
+
+		expect(first.id).not.toBe(second.id);
+		expect(await withdrawalCount(userId)).toBe(2);
+		expect(await holdCount(userId)).toBe(2);
+		expect(await balanceOf(userId)).toBe(BigInt(180));
 	});
 });

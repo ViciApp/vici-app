@@ -13,6 +13,7 @@ import { getAssetById, isWithdrawable, listEnabledAssets, type Asset } from '../
 import { listUserBookBalances, type AssetBalanceRow } from '../custody/ledger';
 import {
 	AssetNotWithdrawableError,
+	IdempotencyKeyReusedError,
 	InsufficientBalanceError,
 	listUserWithdrawals,
 	requestWithdrawal,
@@ -39,6 +40,34 @@ const shapeWithdrawal = (withdrawal: Withdrawal): Record<string, unknown> => ({
 	txRef: withdrawal.tx_ref,
 	failureReason: withdrawal.failure_reason
 });
+
+/** The stable answer to a withdrawal the domain refused; undefined for any
+ * other error, which the caller rethrows. */
+const refusedWithdrawal = ({
+	set,
+	err
+}: {
+	set: StatusContext;
+	err: unknown;
+}): { error: string } | undefined => {
+	if (err instanceof AssetNotWithdrawableError) {
+		return badRequest(set, 'asset_not_withdrawable');
+	}
+
+	if (err instanceof InsufficientBalanceError) {
+		return badRequest(set, 'insufficient_balance');
+	}
+
+	if (err instanceof IdempotencyKeyReusedError) {
+		set.status = 409;
+
+		return { error: 'idempotency_key_reused' };
+	}
+
+	if (err instanceof ChainDisabledError) {
+		return chainUnavailable(set);
+	}
+};
 
 /** The ic balances straight from the ledgers: awards land there with no ledger
  * entry and sweeps into clearing post none, so the internal books can neither
@@ -239,12 +268,15 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 					fee,
 					destination: body.destination,
 					selfCustody: body.selfCustody ?? false,
-					userAddress: adapter.deriveAddress(user.id)
+					userAddress: adapter.deriveAddress(user.id),
+					idempotencyKey: body.idempotencyKey
 				});
 				// Best-effort first attempt: whatever it leaves unsettled, the
 				// withdrawal-recovery job picks up. The hold is already committed, so
 				// a throw here must still answer with the row: a 500 invites the
-				// client to file a second withdrawal.
+				// client to file a second withdrawal. A retry that got an existing
+				// row back runs this too: only one claim of the row wins, so it
+				// sends nothing the first request already sent.
 				const executed = await executeWithdrawal({ withdrawal, asset, adapter }).catch(
 					(err: unknown) => {
 						logger.error(`withdrawal ${withdrawal.id} first attempt failed:`, err);
@@ -257,16 +289,10 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 
 				return { withdrawal: shapeWithdrawal(executed) };
 			} catch (err) {
-				if (err instanceof AssetNotWithdrawableError) {
-					return badRequest(set, 'asset_not_withdrawable');
-				}
+				const refused = refusedWithdrawal({ set, err });
 
-				if (err instanceof InsufficientBalanceError) {
-					return badRequest(set, 'insufficient_balance');
-				}
-
-				if (err instanceof ChainDisabledError) {
-					return chainUnavailable(set);
+				if (nonNullish(refused)) {
+					return refused;
 				}
 
 				throw err;
@@ -278,7 +304,10 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 				/** Base-unit amount as a decimal string. */
 				amount: t.String(),
 				destination: t.String({ minLength: 1, maxLength: 256 }),
-				selfCustody: t.Optional(t.Boolean())
+				selfCustody: t.Optional(t.Boolean()),
+				/** Client-chosen, one per withdrawal the user asks for and resent on
+				 * every retry of it. Optional so older clients keep working. */
+				idempotencyKey: t.Optional(t.String({ minLength: 1, maxLength: 128 }))
 			})
 		}
 	);

@@ -1089,17 +1089,22 @@ export const getWalletDepositAddress = async (
  * Request a custodial withdrawal (the self-custody exit when `selfCustody`).
  * The API executes best-effort inline, so the returned row already carries the
  * outcome state (`submitted`, or `failed` with the hold refunded).
+ * `idempotencyKey` is fresh for each withdrawal the user asks for and resent
+ * unchanged on any retry of it: the API answers a repeated key with the
+ * withdrawal it already filed instead of holding the funds a second time.
  */
 export const requestWalletWithdrawal = async ({
 	assetId,
 	amount,
 	destination,
-	selfCustody
+	selfCustody,
+	idempotencyKey
 }: {
 	assetId: string;
 	amount: bigint;
 	destination: string;
 	selfCustody?: boolean;
+	idempotencyKey: string;
 }): Promise<Web2WalletWithdrawal> => {
 	const { withdrawal } = await request<{ withdrawal: Web2WalletWithdrawal }>({
 		path: '/api/v1/wallet/withdrawals',
@@ -1108,7 +1113,8 @@ export const requestWalletWithdrawal = async ({
 			assetId,
 			amount: amount.toString(),
 			destination,
-			...(isNullish(selfCustody) ? {} : { selfCustody })
+			...(isNullish(selfCustody) ? {} : { selfCustody }),
+			idempotencyKey
 		}
 	});
 

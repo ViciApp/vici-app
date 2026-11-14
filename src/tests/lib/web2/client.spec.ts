@@ -2,6 +2,7 @@ import {
 	cancelEngineOrder,
 	getEngineAccountState,
 	listEngineSettlementStatuses,
+	requestWalletWithdrawal,
 	Web2ApiError
 } from '#lib/web2/client.ts';
 import assert from 'node:assert/strict';
@@ -228,5 +229,39 @@ describe('Web2ApiError', () => {
 		const { code } = await refusal({ status: 502, body: '<html>bad gateway</html>' });
 
 		assert.equal(code, 'unknown_error');
+	});
+});
+
+describe('requestWalletWithdrawal', () => {
+	const originalFetch = globalThis.fetch;
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
+	it('sends the idempotency key with the withdrawal', async () => {
+		let sent: unknown;
+
+		globalThis.fetch = (...[, init]: Parameters<typeof fetch>): Promise<Response> => {
+			sent = JSON.parse(String(init?.body));
+
+			return Promise.resolve(new Response(JSON.stringify({ withdrawal: {} }), { status: 201 }));
+		};
+
+		await requestWalletWithdrawal({
+			assetId: 'a1',
+			amount: BigInt(250),
+			destination: 'aaaaa-aa',
+			selfCustody: true,
+			idempotencyKey: 'k1'
+		});
+
+		assert.deepEqual(sent, {
+			assetId: 'a1',
+			amount: '250',
+			destination: 'aaaaa-aa',
+			selfCustody: true,
+			idempotencyKey: 'k1'
+		});
 	});
 });
