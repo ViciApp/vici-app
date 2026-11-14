@@ -1,4 +1,4 @@
-import { II_MAX_TIME_TO_LIVE_NS } from '#lib/constants/app.constants.ts';
+import { II_MAX_TIME_TO_LIVE_NS, MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { type DelegationChain, DelegationIdentity, ECDSAKeyIdentity } from '@icp-sdk/core/identity';
@@ -30,7 +30,7 @@ const buildAppleIdentityProviderUrl = (): string => {
 // shows "Connection closed". We therefore drive the transport ourselves with
 // a passkey-aware timeout, which is why this flow can't use
 // `AuthClient.signIn()`.
-const PASSKEY_AWARE_DISCONNECT_TIMEOUT_MS = 60_000;
+const PASSKEY_AWARE_DISCONNECT_TIMEOUT_MS = MINUTE_IN_MS;
 
 const SIGNER_WINDOW_CLOSED_POLL_MS = 500;
 
