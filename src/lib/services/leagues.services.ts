@@ -969,8 +969,7 @@ const projectBattleWire = (b: {
 
 /**
  * List every battle involving the given league: both sides scanned.
- * Projects the satellite's snake_case wire schema to camelCase
- * `BattleDoc` for the FE.
+ * Projects the satellite's wire rows to the FE `BattleDoc`.
  */
 export const listLeagueBattles = async ({
 	leagueId

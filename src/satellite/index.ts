@@ -1340,8 +1340,8 @@ export const claimTournamentPrize = defineUpdate({
 //  - `boldCaller`: the best accuracy among those eligible users whose median
 //    consensus-at-call is below the bold threshold; returns every user tied
 //    at that best accuracy.
-// Both arrays use the snake_case wire schemas (the `Vec<NestedStruct>`
-// quirk). The median is computed on read from each doc's bounded consensus
+// Both arrays use the camelCase wire schemas from `wire-format.utils.ts`.
+// The median is computed on read from each doc's bounded consensus
 // array.
 export const getMonthlyLeaderboard = defineQuery({
 	args: j.strictObject({

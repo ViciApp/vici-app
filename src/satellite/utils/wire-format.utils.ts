@@ -419,10 +419,9 @@ export const fromWireReferral = (referral: ApiWireReferral): ReferralListItem =>
 });
 
 // ─── Leagues ────────────────────────────────────────────────────
-// Wire schemas use snake_case per the juno codegen constraint on
-// `Vec<NestedStruct>` (see UserProfileWireSchema header). FE callers
-// hit `fromWireLeague` / `fromWireLeagueMember` to project back to
-// the camelCase domain types.
+// Wire schemas are camelCase like every nested result (see the module
+// header). FE callers hit `fromWireLeague` / `fromWireLeagueMember` to
+// re-narrow the wire unions back to the domain types.
 
 export const LeagueWireSchema = j.strictObject({
 	id: j.string(),
@@ -818,8 +817,8 @@ export const toWireTournamentMatch = (doc: {
 // `getMonthlyLeaderboard` returns a result with two arrays:
 // `items` (sharpest-eye podium, IDL field `items`) and `boldCallers`
 // (bold-caller winners, IDL field `bold_callers`). Both contain
-// `Vec<NestedStruct>` values, so both need snake_case wire schemas per
-// the `Vec<NestedStruct>` quirk above.
+// `Vec<NestedStruct>` values, carried in camelCase like every nested
+// result (see the module header).
 
 export const MonthlyLeaderboardEntryWireSchema = j.strictObject({
 	owner: PrincipalTextSchema,
