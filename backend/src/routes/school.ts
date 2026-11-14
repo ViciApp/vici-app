@@ -18,6 +18,8 @@ import {
 	verifySchoolCode
 } from '../school/verification';
 
+const SCHOOL_VERIFY_LIMIT_PER_HOUR = 30;
+
 export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 	.post(
 		'/submit',
@@ -68,7 +70,7 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 				set,
 				name: 'school_verify',
 				ip: user.id,
-				limit: 30,
+				limit: SCHOOL_VERIFY_LIMIT_PER_HOUR,
 				windowMs: HOUR_IN_MS
 			});
 

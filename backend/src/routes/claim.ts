@@ -15,9 +15,9 @@ import { verifyClaimBlob, type ClaimRejectReason } from '../auth/claim';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { clientIp } from '../lib/http';
 import { enforceLimit } from '../lib/rate-limit';
-import { MINUTE_IN_MS } from '../lib/time';
+import { TEN_MINUTES_IN_MS } from '../lib/time';
 
-const TEN_MIN_MS = 10 * MINUTE_IN_MS;
+const CLAIM_LIMIT_PER_TEN_MINUTES = 10;
 
 /** Generous ceiling for a delegation chain with a canister-signature
  * certificate; anything larger is garbage not worth parsing. */
@@ -47,8 +47,8 @@ export const claimRoutes = new Elysia({ prefix: '/api/v1' }).post(
 			set,
 			name: 'claim',
 			ip: clientIp(request),
-			limit: 10,
-			windowMs: TEN_MIN_MS
+			limit: CLAIM_LIMIT_PER_TEN_MINUTES,
+			windowMs: TEN_MINUTES_IN_MS
 		});
 
 		if (limited) {
