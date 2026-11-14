@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.8.56](https://github.com/ViciApp/vici-app/compare/v1.8.55...v1.8.56) (2026-11-14)
+
+
+### Bug Fixes
+
+* **frontend:** drop em dashes from UI strings, glyphs and config ([#1507](https://github.com/ViciApp/vici-app/issues/1507)) ([04b10ca](https://github.com/ViciApp/vici-app/commit/04b10ca401ea9a0d3ec194bbe933c7da8ecded89))
+* **i18n:** drop em dashes from the app copy in every locale ([#1510](https://github.com/ViciApp/vici-app/issues/1510)) ([625d7e6](https://github.com/ViciApp/vici-app/commit/625d7e6ad9c515d32f2154e1c5c1235f2a77a942))
+* **legal:** drop em dashes from the legal documents ([#1508](https://github.com/ViciApp/vici-app/issues/1508)) ([60e40ca](https://github.com/ViciApp/vici-app/commit/60e40ca0b30ca54d019c0863f81bb5eebf7ea3e7))
+
+
+### Documentation
+
+* **ai:** ban the whole betting lexicon in every locale, not just "bet" ([#1492](https://github.com/ViciApp/vici-app/issues/1492)) ([1ffcd15](https://github.com/ViciApp/vici-app/commit/1ffcd150b99a061213c7169af7ef9057fd91dd46))
+* **ai:** describe the satellite wire format as it is (camelCase) ([#1499](https://github.com/ViciApp/vici-app/issues/1499)) ([6faca9f](https://github.com/ViciApp/vici-app/commit/6faca9f40f1f28815eff59480a0f70f3b9c3dca4))
+* **ai:** drop em dashes from the historical specs ([#1509](https://github.com/ViciApp/vici-app/issues/1509)) ([79bdb6a](https://github.com/ViciApp/vici-app/commit/79bdb6ae0b3d4859c0b51e345cc4824af9a3e4cb))
+* **frontend:** drop em dashes from code comments in src/lib ([#1496](https://github.com/ViciApp/vici-app/issues/1496)) ([4516d32](https://github.com/ViciApp/vici-app/commit/4516d3267ebb53da064ac5e8deed077420baf6ee))
+* **frontend:** drop em dashes from comments in components, routes and styles ([#1497](https://github.com/ViciApp/vici-app/issues/1497)) ([88d21a1](https://github.com/ViciApp/vici-app/commit/88d21a1b049244740d388195dedd0f5d04d43527))
+* **frontend:** drop the last em dashes from code comments ([#1505](https://github.com/ViciApp/vici-app/issues/1505)) ([40c5e83](https://github.com/ViciApp/vici-app/commit/40c5e83c97fdadf58a4311a339e5593ba53abe69))
+* **repo:** drop em dashes from the docs and the root readmes ([#1506](https://github.com/ViciApp/vici-app/issues/1506)) ([8e75861](https://github.com/ViciApp/vici-app/commit/8e7586183f647decb8f6760ec48797d7e434f0fa))
+* **satellite:** drop em dashes from code comments ([#1495](https://github.com/ViciApp/vici-app/issues/1495)) ([217fd14](https://github.com/ViciApp/vici-app/commit/217fd14b2aa83505283909ffda7976932240bc46))
+
+
+### Miscellaneous Chores
+
+* **officina:** list the agent docs pages by area ([#1501](https://github.com/ViciApp/vici-app/issues/1501)) ([01b4be3](https://github.com/ViciApp/vici-app/commit/01b4be314f8519d5ce452135b01b642bf1f47389))
+
+
+### Code Refactoring
+
+* **backend:** month-anchor helpers live in lib/time ([#1500](https://github.com/ViciApp/vici-app/issues/1500)) ([ff35586](https://github.com/ViciApp/vici-app/commit/ff35586f7fdd0ae398ddc4b73e623938a260aa20))
+* **backend:** one owner for hour and day durations ([#1494](https://github.com/ViciApp/vici-app/issues/1494)) ([1cfdca9](https://github.com/ViciApp/vici-app/commit/1cfdca97b5d890e95ed90c6fc29ca666f8170bcc))
+* **frontend:** market.utils uses the shared time constants ([#1503](https://github.com/ViciApp/vici-app/issues/1503)) ([ed25f88](https://github.com/ViciApp/vici-app/commit/ed25f883ebca404e46ad94d6c1f7073d4927fcd1))
+* **repo:** delete code nothing uses ([#1491](https://github.com/ViciApp/vici-app/issues/1491)) ([ff5baf8](https://github.com/ViciApp/vici-app/commit/ff5baf8686cc0fe98c4615389d3b7ff1f81355ea))
+* **repo:** delete the code the last cleanup left unused ([#1504](https://github.com/ViciApp/vici-app/issues/1504)) ([9b7e393](https://github.com/ViciApp/vici-app/commit/9b7e39336d5ae6317d6ef1434c55361cdcb5533a))
+* **satellite:** use the shared time constants everywhere ([#1502](https://github.com/ViciApp/vici-app/issues/1502)) ([ee20a70](https://github.com/ViciApp/vici-app/commit/ee20a708eb0e8c0903d8c36b66e59b10aa570d9b))
+
 ## [1.8.55](https://github.com/ViciApp/vici-app/compare/v1.8.54...v1.8.55) (2026-11-13)
 
 
