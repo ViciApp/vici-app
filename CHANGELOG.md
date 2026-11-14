@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.8.57](https://github.com/ViciApp/vici-app/compare/v1.8.56...v1.8.57) (2026-11-14)
+
+
+### Bug Fixes
+
+* **i18n:** replace the betting words left in the copy ([#1527](https://github.com/ViciApp/vici-app/issues/1527)) ([3142cb2](https://github.com/ViciApp/vici-app/commit/3142cb2d65b8d9e39be58e204edc93234221884e))
+* **satellite:** validate month anchors with MONTH_ANCHOR_RE ([#1517](https://github.com/ViciApp/vici-app/issues/1517)) ([7de31e0](https://github.com/ViciApp/vici-app/commit/7de31e089cdfced42e8f5b208600d8d37558c87b))
+
+
+### Documentation
+
+* **ai:** match the agent docs to the code again ([#1519](https://github.com/ViciApp/vici-app/issues/1519)) ([8a7e7e3](https://github.com/ViciApp/vici-app/commit/8a7e7e358c5805803d3eb73e455964dc2b0ab8e3))
+
+
+### Code Refactoring
+
+* **backend:** one MINUTE_IN_MS ([#1521](https://github.com/ViciApp/vici-app/issues/1521)) ([1efa180](https://github.com/ViciApp/vici-app/commit/1efa180c38414cdb9e9dbbb55ea94fce0951131f))
+* **frontend:** call Flow calls calls, not bets ([#1524](https://github.com/ViciApp/vici-app/issues/1524)) ([44967f7](https://github.com/ViciApp/vici-app/commit/44967f7e8afea2c2f541a2a652282efbf94aeb70))
+* **frontend:** drop the wire projectors that copy fields one to one ([#1514](https://github.com/ViciApp/vici-app/issues/1514)) ([5eebcee](https://github.com/ViciApp/vici-app/commit/5eebcee83ce8d443dd2d084175163f612146ecc0))
+* **frontend:** one owner for the email and day-key patterns ([#1523](https://github.com/ViciApp/vici-app/issues/1523)) ([1a3899f](https://github.com/ViciApp/vici-app/commit/1a3899f752c10362710a4b5ff1ee7df84728546e))
+* **frontend:** one slugify ([#1522](https://github.com/ViciApp/vici-app/issues/1522)) ([47ca232](https://github.com/ViciApp/vici-app/commit/47ca2322fe49f07b3c77c0f70e21c5653e7fe0b5))
+* **frontend:** render the empty-value glyph from EMPTY_VALUE ([#1516](https://github.com/ViciApp/vici-app/issues/1516)) ([4c9f9ab](https://github.com/ViciApp/vici-app/commit/4c9f9abade97e31940141d0bb04fa309bcace729))
+* **frontend:** the last inline durations use the shared time constants ([#1520](https://github.com/ViciApp/vici-app/issues/1520)) ([0841e09](https://github.com/ViciApp/vici-app/commit/0841e0976e5738cb7eacd14713895b57920f7afa))
+* **frontend:** use the shared nanosecond constants in src/lib ([#1515](https://github.com/ViciApp/vici-app/issues/1515)) ([8114eb8](https://github.com/ViciApp/vici-app/commit/8114eb80dff6d1d0b3c4d392df6113175d22f5d3))
+* **repo:** drop three unused types and the stale #lib import map ([#1525](https://github.com/ViciApp/vici-app/issues/1525)) ([7aec2cd](https://github.com/ViciApp/vici-app/commit/7aec2cd170b596dee45cbfd571d63c40b4687db5))
+* **repo:** read satellite ids from juno.config ([#1526](https://github.com/ViciApp/vici-app/issues/1526)) ([5ef91b2](https://github.com/ViciApp/vici-app/commit/5ef91b2ad133931a30a2a3f69327e13b4f6bfe55))
+
+
+### Continuous Integration
+
+* **repo:** fail lint on an em dash or a spaced en dash ([#1512](https://github.com/ViciApp/vici-app/issues/1512)) ([786e243](https://github.com/ViciApp/vici-app/commit/786e243df510c0ff8cd9c0a3e53aeb041deb3ea8))
+
 ## [1.8.56](https://github.com/ViciApp/vici-app/compare/v1.8.55...v1.8.56) (2026-11-14)
 
 
