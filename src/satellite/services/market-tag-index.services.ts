@@ -1,4 +1,3 @@
-import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	classificationMacros,
@@ -9,8 +8,9 @@ import {
 import type { MarketMetadata, MarketTagIndex } from '#lib/types/market-metadata.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -48,8 +48,6 @@ const ALL_INDEX_KEYS: readonly string[] = [...MICRO_IDS, ...MACRO_IDS];
 const indexKeysForTags = (tags: readonly string[]): string[] => [
 	...new Set<string>([...classificationMicros(tags), ...classificationMacros(tags)])
 ];
-
-const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /**
  * A satellite controller principal, used as the `caller` for writes to the
@@ -165,7 +163,7 @@ const mutateBucket = ({
 		const next: MarketTagIndex = {
 			tag,
 			seriesIds: [...set],
-			updatedAtMs: nowMs()
+			updatedAtMs: timeMs()
 		};
 
 		setDocStore({
@@ -291,7 +289,7 @@ export const rebuildMarketTagIndexFn = (): { buckets: number; series: number } =
 		}
 	}
 
-	const now = nowMs();
+	const now = timeMs();
 
 	// Reconcile every possible bucket, including ones that now resolve to empty,
 	// so a stale membership is cleared rather than left behind.

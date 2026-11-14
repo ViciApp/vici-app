@@ -1,3 +1,6 @@
+/** A UTC `YYYY-MM` month anchor, the shape every `monthAnchorFromMs` output has. */
+export const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 /**
  * The UTC `YYYY-MM` anchor of the month containing `ms`: the key of every
  * monthly doc (affiliation stats, user monthly stats, tournaments). UTC so

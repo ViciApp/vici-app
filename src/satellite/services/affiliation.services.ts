@@ -1,3 +1,4 @@
+import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	AFFILIATION_KINDS,
@@ -7,6 +8,7 @@ import {
 } from '#lib/types/affiliation.ts';
 import { captureServerEvents } from '#satellite/services/analytics.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type {
@@ -15,7 +17,6 @@ import type {
 	OnDeleteDocContext,
 	OnSetDocContext
 } from '@junobuild/functions';
-import { time } from '@junobuild/functions/ic-cdk';
 import { decodeDocData } from '@junobuild/functions/sdk';
 
 /**
@@ -96,10 +97,9 @@ export const assertSetAffiliation = ({
 	}
 
 	// 5. joinedAtMs sanity: within ±10 minutes of the satellite clock.
-	// `time()` returns nanoseconds; convert to ms.
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 	const driftMs = Math.abs(nowMs - proposedDoc.joinedAtMs);
-	const TEN_MINUTES_MS = 10 * 60 * 1000;
+	const TEN_MINUTES_MS = 10 * MINUTE_IN_MS;
 
 	if (driftMs > TEN_MINUTES_MS) {
 		throw new Error('affiliations joinedAtMs must be within ±10 minutes of the satellite clock.');
@@ -163,10 +163,10 @@ export const assertDeleteAffiliation = ({
 	}
 
 	// 2. Lock enforced.
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	if (nowMs < currentDoc.lockedUntilMs) {
-		const daysLeft = Math.ceil((currentDoc.lockedUntilMs - nowMs) / (24 * 60 * 60 * 1000));
+		const daysLeft = Math.ceil((currentDoc.lockedUntilMs - nowMs) / DAY_IN_MS);
 		throw new Error(`affiliations lock active — cannot leave for another ${daysLeft} day(s).`);
 	}
 };

@@ -7,8 +7,9 @@ import {
 import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
 import { isCreatorOrAdmin } from '#satellite/services/authz.services.ts';
 import { logInfo } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
 
 const callerText = (): string => msgCaller().toText();
@@ -175,7 +176,7 @@ export const upsertMarketTranslation = async ({
 		description: data.description,
 		resolution: data.resolution,
 		outcomes: data.outcomes ?? [],
-		updatedAt: Number(time() / 1_000_000n),
+		updatedAt: timeMs(),
 		updatedBy: callerText()
 	};
 

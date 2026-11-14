@@ -1,4 +1,4 @@
-import { ZERO } from '#lib/constants/app.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
@@ -20,6 +20,7 @@ import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
 import { fnv1a64 } from '#lib/utils/hash.utils.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext, OnSetDocContext } from '@junobuild/functions';
@@ -357,9 +358,9 @@ export const redeemReferralCodeFn = ({ code }: { code: string }): void => {
 	// Signup-window gate: only fresh sign-ups earn the VXP bonus. Existing users who use a
 	// referral link land in {@link claimReferralFriendshipFn} instead (friendship only, no VXP).
 	// `created_at` is the Juno-managed nanosecond timestamp on the profile doc.
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 	const profileCreatedAtMs = nonNullish(profileDoc.created_at)
-		? Number(profileDoc.created_at / 1_000_000n)
+		? Number(profileDoc.created_at / MILLISECOND_IN_NANOSECONDS)
 		: 0;
 
 	if (nowMs - profileCreatedAtMs > REFERRAL_SIGNUP_WINDOW_MS) {
@@ -386,7 +387,7 @@ export const redeemReferralCodeFn = ({ code }: { code: string }): void => {
 		version: 1,
 		referrer,
 		code: normalized,
-		redeemedAtMs: Number(time() / 1_000_000n),
+		redeemedAtMs: timeMs(),
 		// `withinReferrerCap` and `referrerPayout` are decided in the hook so the cap counter
 		// reads the freshest state. The referee bonus is owed unconditionally.
 		withinReferrerCap: false,

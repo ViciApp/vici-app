@@ -57,6 +57,7 @@ import {
 import { controllerCaller } from '#satellite/services/authz.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcManagementIdl } from '@junobuild/functions/canisters/ic-management';
@@ -129,8 +130,6 @@ interface ResolvedSchool {
 	domains: string[];
 	isNew: boolean;
 }
-
-const nowMs = (): number => Number(time() / 1_000_000n);
 
 /**
  * Server-side re-run of the picker's domain gate. The directory is the
@@ -384,7 +383,7 @@ export const submitSchoolFn = async ({
 
 	// 3. Unpredictable code + per-submission salt + per-send nonce.
 	const { code, salt, nonce } = await generateCode();
-	const createdAtMs = nowMs();
+	const createdAtMs = timeMs();
 	const submissionId = schoolSubmissionKey({
 		member: memberText,
 		schoolId: resolved.schoolId,
@@ -495,7 +494,7 @@ const upsertSchoolRegistry = ({
 	});
 
 	const existingDoc = nonNullish(existing) ? decodeDocData<SchoolDoc>(existing.data) : undefined;
-	const now = nowMs();
+	const now = timeMs();
 
 	const doc: SchoolDoc = {
 		schoolId: resolved.schoolId,
@@ -589,7 +588,7 @@ export const verifySchoolCodeFn = ({
 	}
 
 	const submission = decodeDocData<SchoolSubmissionDoc>(doc.data);
-	const now = nowMs();
+	const now = timeMs();
 
 	const persist = (next: SchoolSubmissionDoc): void => {
 		setDocStore({

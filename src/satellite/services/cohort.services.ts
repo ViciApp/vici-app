@@ -12,8 +12,9 @@ import {
 import type { Relation } from '#lib/types/relation.ts';
 import type { UserMonthlyStatsDoc } from '#lib/types/user-monthly-stats.ts';
 import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
 
 /**
@@ -1248,7 +1249,7 @@ export const getAffiliationStatsFn = ({
 	kind: AffiliationKind;
 	affiliationIdentifier: string;
 }): AffiliationStatsDoc | undefined => {
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 	const anchor = monthAnchorFromMs(nowMs);
 
 	const lifetime = aggregateMembersLifetime({ kind, affiliationIdentifier }).get(
@@ -1295,7 +1296,7 @@ export const listAffiliationStatsFn = ({
 	kind: AffiliationKind;
 	limit?: number;
 }): AffiliationStatsDoc[] => {
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 	const anchor = monthAnchorFromMs(nowMs);
 
 	// All-time totals: the real lifetime of the current opted-in roster.

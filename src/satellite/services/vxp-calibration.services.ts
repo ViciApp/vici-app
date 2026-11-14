@@ -1,5 +1,10 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
-import { DAY_IN_MS, HOUR_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
+import {
+	DAY_IN_MS,
+	HOUR_IN_MS,
+	MILLISECOND_IN_NANOSECONDS,
+	ZERO
+} from '#lib/constants/app.constants.ts';
 import {
 	CLEARING_CANISTER_ID,
 	REGISTRY_CANISTER_ID,
@@ -19,10 +24,11 @@ import type { VxpOnboardingDoc } from '#lib/types/vxp-onboarding.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { call, msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { call, msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -207,8 +213,8 @@ const checkRateLimits = ({
 	// anchor it to the start to restrict the store-level scan to just this
 	// caller's calibration docs instead of listing the whole collection.
 	const prefix = vxpAwardKey({ recipient, awardType: CALIBRATION_AWARD_TYPE, awardKey: '' });
-	const hourCutoffNs = BigInt(nowMs - HOUR_IN_MS) * 1_000_000n;
-	const dayCutoffNs = BigInt(nowMs - DAY_IN_MS) * 1_000_000n;
+	const hourCutoffNs = BigInt(nowMs - HOUR_IN_MS) * MILLISECOND_IN_NANOSECONDS;
+	const dayCutoffNs = BigInt(nowMs - DAY_IN_MS) * MILLISECOND_IN_NANOSECONDS;
 
 	const { items } = listDocsStore({
 		collection: Collection.VXP_AWARDS,
@@ -339,7 +345,7 @@ export const claimCalibrationRewardFn = async ({
 		return { correct: false, paidNow: false, alreadyClaimed: false };
 	}
 
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	// 7. Rate limits: rolling 1h / 24h windows off `created_at`.
 	const rateReason = checkRateLimits({ caller, recipient, nowMs });

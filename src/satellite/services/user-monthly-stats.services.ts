@@ -6,15 +6,13 @@ import {
 	userMonthlyStatsKey,
 	type UserMonthlyStatsDoc
 } from '#lib/types/user-monthly-stats.ts';
+import { MONTH_ANCHOR_RE } from '#lib/utils/month-anchor.utils.ts';
 import { median } from '#lib/utils/stats.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, listDocsStore } from '@junobuild/functions/sdk';
-
-/** Regex for the `YYYY-MM` anchor format. */
-const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /**
  * Pre-write guard for `user_monthly_stats`. The collection caches each

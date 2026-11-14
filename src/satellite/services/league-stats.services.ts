@@ -6,10 +6,10 @@ import type { UserProfile } from '#lib/types/profile.ts';
 import type { CategoryStatsBucket, UserStatsDoc } from '#lib/types/user-stats.ts';
 import { isHibernated } from '#satellite/services/profile.services.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext, OnSetDocContext } from '@junobuild/functions';
-import { time } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -219,7 +219,7 @@ export const onProfileSetForLeagueStats = (ctx: OnSetDocContext): void => {
 	const deltaWins = Math.max(0, Math.min(deltaTrades, afterWins - beforeWins));
 
 	const callerText = Principal.fromUint8Array(caller).toText();
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	// Scan the caller's memberships only. Key shape
 	// `${leagueId}/${memberPrincipal}`, so a key matcher anchored to the
@@ -391,7 +391,7 @@ export const onUserStatsSetForLeagueStats = (ctx: OnSetDocContext): void => {
 		return;
 	}
 
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	// Scan the caller's memberships only. Key shape
 	// `${leagueId}/${memberPrincipal}`, so a key matcher anchored to the

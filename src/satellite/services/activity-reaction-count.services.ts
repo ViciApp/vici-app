@@ -1,11 +1,11 @@
-import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import type { ActivityReactionCount } from '#lib/types/social.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { OnDeleteDocContext, OnSetDocContext } from '@junobuild/functions';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -13,8 +13,6 @@ import {
 	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
-
-const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /**
  * A satellite controller principal, used as the `caller` for writes to the controllers-scoped
@@ -58,7 +56,7 @@ const bumpCount = ({ activityKey, delta }: { activityKey: string; delta: number 
 		const next: ActivityReactionCount = {
 			activityKey,
 			count: Math.max(0, current + delta),
-			updatedAtMs: nowMs()
+			updatedAtMs: timeMs()
 		};
 
 		setDocStore({
@@ -173,7 +171,7 @@ export const recomputeActivityReactionCountsFn = (): { recomputed: number } => {
 		keys.add(countKey);
 	}
 
-	const now = nowMs();
+	const now = timeMs();
 	let recomputed = 0;
 
 	for (const activityKey of keys) {
