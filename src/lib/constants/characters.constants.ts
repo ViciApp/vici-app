@@ -5,11 +5,11 @@ import type { FlameStage } from '#lib/utils/streak.utils.ts';
  * (see `#lib/components/characters/`) with a single accent fill + a
  * darker `deep` shade used for shadowing / secondary marks.
  *
- * - **vici** — the friendly guide bot (four moods).
- * - **oracle** — the hooded seer (inner-glow pulse + twinkles).
- * - **trickster** — the contrarian fox (ear twitch, tail sway, optional bolt).
+ * - **vici**: the friendly guide bot (four moods).
+ * - **oracle**: the hooded seer (inner-glow pulse + twinkles).
+ * - **trickster**: the contrarian fox (ear twitch, tail sway, optional bolt).
  * - **archivist**: held in reserve, an accent only with no silhouette yet.
- * - **flame** — the streak indicator (five stages, see {@link FLAME_STAGES}).
+ * - **flame**: the streak indicator (five stages, see {@link FLAME_STAGES}).
  */
 export const CHARACTERS = ['vici', 'oracle', 'trickster', 'archivist', 'flame'] as const;
 

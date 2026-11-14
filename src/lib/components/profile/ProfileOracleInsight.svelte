@@ -33,7 +33,7 @@
 			<span>{t({ locale: $localeStore, key: 'profile.dashboard.oracle_weekly' })}</span>
 		</p>
 		{#if nonNullish(record)}
-			<!-- Record line — a win reads "You called it — '{q}?'", a loss reads
+			<!-- Record line: a win reads "You called it — '{q}?'", a loss reads
 			     "The market went the other way — '{q}?'". The question carries the
 			     accent so the call stays the focal point. -->
 			<p class="profile-oracle-text serif-italic">

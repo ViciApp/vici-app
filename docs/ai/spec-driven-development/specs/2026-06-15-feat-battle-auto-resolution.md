@@ -9,7 +9,7 @@ Status: Implemented (#912)
 
 A league battle is an **accuracy face-off**: over a fixed window, the
 two leagues compete on how accurate their members' predictions are. The
-winner must be **derived from real data, automatically** — no human
+winner must be **derived from real data, automatically**: no human
 types a score. Today the opposite is true: the resolve step
 (`ResolveBattleModal.svelte`) makes a league owner hand-enter both
 sides' scores, and the satellite only checks that the typed `winner`
@@ -25,53 +25,53 @@ in flight.
 
 Battle domain and state machine:
 
-- `src/lib/types/battle.ts` — `BattleDoc`, `BattleState`
+- `src/lib/types/battle.ts`: `BattleDoc`, `BattleState`
   (`proposed → accepted → in_flight → resolved`, forward-only),
   `BattleScope` (`'all'` | `MarketTag`), `BattleWinner`.
-- `src/satellite/services/battle.services.ts` — `assertSetBattle`
+- `src/satellite/services/battle.services.ts`: `assertSetBattle`
   (the "BE-6" guard) and `assertDeleteBattle`. Per-transition auth +
   the current `winner === scoreA>scoreB` arithmetic check
   (lines 250-267).
-- `src/lib/services/leagues.services.ts` — battle FE services:
+- `src/lib/services/leagues.services.ts`: battle FE services:
   `proposeBattle` (767-837), `acceptBattle` (848-853),
   `kickoffBattle` (855-860), `resolveBattle` (891-905, manual scores),
   `retractBattle`, `writeBattleTransition` (907-931),
   `listLeagueBattles`, `listMyBattles`, `getMyBattleStats`,
   `listChallengeableLeagues` (128-132, opponent pool).
-- `src/lib/components/leagues/ResolveBattleModal.svelte` — the manual
+- `src/lib/components/leagues/ResolveBattleModal.svelte`: the manual
   score modal (to be deleted).
-- `src/lib/components/pages/BattleDetailPage.svelte` — `canKickoff` /
-  `canResolve` CTAs; `src/lib/components/pages/BattlesInboxPage.svelte`
-  — cross-league inbox; `src/lib/components/leagues/CreateBoutModal.svelte`
-  — proposal wizard (opponent picker).
+- `src/lib/components/pages/BattleDetailPage.svelte`: `canKickoff` /
+  `canResolve` CTAs; `src/lib/components/pages/BattlesInboxPage.svelte`:
+  cross-league inbox; `src/lib/components/leagues/CreateBoutModal.svelte`:
+  proposal wizard (opponent picker).
 
 League privacy + stats:
 
-- `src/lib/enums/league.ts` — `LeaguePrivacy` (`PRIVATE` / `INVITE` /
-  `OPEN`); `src/lib/types/league.ts` — `leaguePrivacy`,
+- `src/lib/enums/league.ts`: `LeaguePrivacy` (`PRIVATE` / `INVITE` /
+  `OPEN`); `src/lib/types/league.ts`: `leaguePrivacy`,
   `isLeaguePubliclyListed` (OPEN only), `isLeagueRecommendableToFriends`.
-- `src/satellite/services/league-stats.services.ts` —
+- `src/satellite/services/league-stats.services.ts`:
   `assertSetLeagueStats`, `onProfileSetForLeagueStats` (the lifetime
   counter hook, currently sourced from the lossy profile `winRate`),
   `incrementLeagueStats`, `getLeagueStatsFn`.
-- `src/lib/types/league-stats.ts` — `LeagueStatsDoc`
+- `src/lib/types/league-stats.ts`: `LeagueStatsDoc`
   (`leagueId`, `totalCalls`, `wins`, `updatedAtMs`).
-- `src/lib/types/user-stats.ts` — `UserStatsDoc.categoryStats`
+- `src/lib/types/user-stats.ts`: `UserStatsDoc.categoryStats`
   (`Record<tag, {calls, wins}>`) and `RecentSettlementSnapshot`. This
   is the **exact** per-category source we switch the league-stats hook
   to read from.
-- `src/lib/utils/league-rank.utils.ts` + PRODUCT.md "League rank" —
+- `src/lib/utils/league-rank.utils.ts` + PRODUCT.md "League rank":
   the canonical "accuracy-first, no minimum-calls floor" ranking the
   battle score must agree with.
 
-Satellite wiring: `src/satellite/index.ts` — assert/hook dispatch
+Satellite wiring: `src/satellite/index.ts`: assert/hook dispatch
 tables, `defineUpdate`/`defineQuery` endpoints. Collections:
 `src/lib/constants/collections.constants.ts` + `juno.config.ts`
 (`battles`, `league_stats`, `league_members` rules).
 
 Reused patterns: snapshot-at-start / delta-at-end is exactly how the
 monthly tournament computes windowed accuracy from `league_stats`
-(documented in `league-stats.ts` lines 8-12) — battles adopt the same
+(documented in `league-stats.ts` lines 8-12): battles adopt the same
 mechanism per-battle.
 
 ## Scope
@@ -87,7 +87,7 @@ owns `sideA`.)
 
 **2. Challenge search.** Only OPEN leagues are discoverable as
 opponents. `listChallengeableLeagues` already returns OPEN leagues plus
-the caller's memberships minus owned leagues — confirm it matches the
+the caller's memberships minus owned leagues: confirm it matches the
 eligibility rule above and add a name filter / search affordance in
 `CreateBoutModal` if not already present.
 
@@ -96,7 +96,7 @@ and challenge a league. A battle, once `proposed` or further, has its
 identity frozen and proceeds to resolution regardless of later privacy
 changes on either league. Tightening a league to INVITE/PRIVATE simply
 drops it out of future challenge search (already the behaviour of
-`listChallengeableLeagues`). No battle is auto-retracted. No new code —
+`listChallengeableLeagues`). No battle is auto-retracted. No new code:
 documented behaviour + a PRODUCT.md note + a test asserting an
 in-flight battle resolves after `sideB` flips to PRIVATE.
 
@@ -122,11 +122,11 @@ the window delta `Δ = current − baseline` (clamped `≥ 0`) per side, and:
 
 The `assertSetBattle` resolve branch **re-derives all of this from
 `league_stats` + the doc's frozen baselines and rejects any mismatch**,
-so a hand-crafted client write cannot post a false score — resolution
+so a hand-crafted client write cannot post a false score: resolution
 is trustless without a privileged endpoint. The score reflects kickoff →
 resolution; the lazy auto-resolve keeps that ≈ the `[kickoffMs,
 settleMs]` window (same snapshot-delta imprecision the tournament
-already accepts — see `league-stats.ts`). No new `defineUpdate`
+already accepts, see `league-stats.ts`). No new `defineUpdate`
 endpoint and no Candid surface change beyond three optional fields on
 the battle query wire shape (`callsA`, `callsB`, `resolvedAtMs`) used
 to render the resolved card and tell a real draw from a void.
@@ -135,7 +135,7 @@ to render the resolved card and tell a real draw from a void.
 "Resolve" CTA becomes a one-tap "Resolve now" that calls the endpoint
 and shows the computed outcome. Battle pages auto-resolve lazily on
 mount when `state === 'in_flight' && now >= settleMs` (Juno has no
-scheduler — resolution is triggered, never cron'd), so a battle settles
+scheduler: resolution is triggered, never cron'd), so a battle settles
 even if nobody clicks.
 
 ### league_stats becomes per-category
@@ -151,7 +151,7 @@ be scored from them. Extend the doc and re-source the hook:
   for exact per-category `(Δcalls, Δwins)` (clamped `≥ 0`), fanning each
   category bucket out to the writer's leagues. The existing
   `onProfileSetForLeagueStats` keeps maintaining the `'all'` aggregate
-  (`totalCalls`/`wins`) unchanged — `categoryStats` only covers **tagged**
+  (`totalCalls`/`wins`) unchanged: `categoryStats` only covers **tagged**
   calls (untagged are skipped in `user-stats.services.ts`), so the
   aggregate must keep its own source or `'all'`-scope battles, the league
   leaderboard, and the tournament would silently lose untagged calls. The
@@ -183,28 +183,28 @@ A battle's `scope` selects which bucket the baseline/delta reads:
 
 ## Linked issues
 
-Searched open issues — no issue tracks battle resolution. This is
+Searched open issues: no issue tracks battle resolution. This is
 self-directed product work; no closing keyword.
 
 ## Analytics
 
-Reuse the existing battle events — `battle_proposed`, `battle_accepted`,
+Reuse the existing battle events: `battle_proposed`, `battle_accepted`,
 `battle_resolved` (already in both `src/lib/types/analytics-event.ts`
 and `src/lib/schema/analytics-event.schema.ts`). **No new event names**
 (a new name would force an analytics-Candid regen for no behavioural
 gain). Express the new facts via existing props on `AnalyticsEventProps`
 (`leagueId`, `battleId`, `source`, `label`, `value`):
 
-- `battle_resolved` — add `source: 'auto' | 'nudge'` (lazy view-trigger
+- `battle_resolved`: add `source: 'auto' | 'nudge'` (lazy view-trigger
   vs. explicit "Resolve now"), `label: 'win' | 'loss' | 'draw' | 'void'`
   (outcome for the acting side; `void` = both sides zero calls),
   `value` = winning side's accuracy %. Fired once per battle (guarded by
   the idempotent endpoint returning "already resolved").
-- `battle_proposed` — add `label = scope` so we can see category mix.
+- `battle_proposed`: add `label = scope` so we can see category mix.
 
 Bounded vocabularies only; no free-form text, no PII.
 
-## Technical requirements (satellite / backend — mandatory)
+## Technical requirements (satellite / backend, mandatory)
 
 **Performance.**
 
@@ -216,7 +216,7 @@ Bounded vocabularies only; no free-form text, no PII.
 - Kickoff / resolve: the FE reads two `league_stats` docs + the battle
   doc, then one battle write. `assertSetBattle` adds two `getDocStore`
   reads (both sides' `league_stats`) on the kickoff and resolve
-  branches to re-verify baselines / scores. All O(1) — no member
+  branches to re-verify baselines / scores. All O(1): no member
   iteration (the per-league counter already aggregates members), so
   cost is independent of league size. This is why the counter-delta
   design is used over summing per-member `USER_STATS`.
@@ -224,10 +224,10 @@ Bounded vocabularies only; no free-form text, no PII.
 **Memory & storage.**
 
 - `LeagueStatsDoc.categories` adds one `{calls, wins}` pair per market
-  tag a league has touched — bounded by `MARKET_TAGS.length`
+  tag a league has touched, bounded by `MARKET_TAGS.length`
   (single-digit), a few dozen bytes per league. Negligible growth.
 - `BattleDoc` adds `baselineA`, `baselineB` (`{calls, wins}`),
-  `callsA`, `callsB`, `resolvedAtMs` — write-once, bounded. No new
+  `callsA`, `callsB`, `resolvedAtMs`: write-once, bounded. No new
   collection, no unbounded list.
 
 **Scalability.** At 100× leagues/members the resolution cost is
@@ -236,7 +236,7 @@ league membership count, not global league count. No N+1 over members.
 
 **Upgrade & compatibility.**
 
-- `LeagueStatsDoc` and `BattleDoc` gain optional fields — additive,
+- `LeagueStatsDoc` and `BattleDoc` gain optional fields: additive,
   backward-compatible; legacy rows read with absent buckets/baselines.
 - No new `defineUpdate` endpoint. The only Candid surface change is
   three optional fields (`callsA`, `callsB`, `resolvedAtMs`) added to
@@ -247,9 +247,9 @@ league membership count, not global league count. No N+1 over members.
   not flagged `!`. The FE `resolveBattle` service drops its
   `scoreA`/`scoreB` args (internal FE only).
 - The doc-shape additions (`baselineA/B` etc.) are opaque blob payloads,
-  not Candid — no regen needed for those. Requires a local satellite
+  not Candid: no regen needed for those. Requires a local satellite
   wasm upgrade for the new assert logic to take effect (CI build drops
-  custom methods — see `reference_juno_action_drops_endpoints`);
+  custom methods, see `reference_juno_action_drops_endpoints`);
   auto-upgrade stays off.
 
 **Security.**
@@ -259,7 +259,7 @@ league membership count, not global league count. No N+1 over members.
 - `assertSetBattle`: creation path now also verifies `sideB`
   eligibility (OPEN or caller∈members). Resolve path re-derives scores
   from `league_stats` and rejects any mismatch, so even a hand-crafted
-  client write cannot post a false score — the manual-tamper hole is
+  client write cannot post a false score: the manual-tamper hole is
   closed structurally, not just by removing the modal.
 - Baselines are write-once (added to the immutable-after-kickoff set).
 
@@ -271,21 +271,21 @@ league membership count, not global league count. No N+1 over members.
 
 Satellite:
 
-1. `src/lib/types/league-stats.ts` — add
+1. `src/lib/types/league-stats.ts`: add
    `categories?: Partial<Record<MarketTag, CategoryStatsBucket>>`
    (reuse `CategoryStatsBucket` from `user-stats.ts`). Add a
    `leagueStatsBucket(doc, scope)` helper returning `{calls, wins}`
    for `'all'` (aggregate) or a tag (bucket, default zero).
-2. `src/lib/types/battle.ts` — add `baselineA?`, `baselineB?`
+2. `src/lib/types/battle.ts`: add `baselineA?`, `baselineB?`
    (`CategoryStatsBucket`), `callsA?`, `callsB?`, `resolvedAtMs?`;
    add a `deriveBattleWinner({accuracyA, accuracyB, callsA, callsB})`
    pure helper (accuracy → callsdesc → draw) shared by endpoint + assert.
-3. `src/satellite/services/league-stats.services.ts` — add
+3. `src/satellite/services/league-stats.services.ts`: add
    `onUserStatsSetForLeagueStats` (trigger on `USER_STATS`) maintaining
    per-category buckets via `incrementLeagueStatsCategories`; keep
    `onProfileSetForLeagueStats` for the aggregate; extend
    `assertSetLeagueStats` forward-only/sanity to every bucket.
-4. `src/satellite/services/battle.services.ts` — rewrite
+4. `src/satellite/services/battle.services.ts`: rewrite
    `assertSetBattle`: (a) creation path adds `sideB` eligibility
    (OPEN or caller∈members); (b) `accepted → in_flight` requires
    `now >= kickoffMs` and `baselineA/B` equal to the current
@@ -294,16 +294,16 @@ Satellite:
    `league_stats` + the frozen baselines via `deriveBattleWinner`,
    rejecting any mismatch; (d) `baselineA/B` join the immutable-after-
    kickoff set.
-5. `src/satellite/utils/wire-format.utils.ts` — add `callsA`, `callsB`,
+5. `src/satellite/utils/wire-format.utils.ts`: add `callsA`, `callsB`,
    `resolvedAtMs` to `BattleWireSchema` + `toWireBattle`.
-6. `src/satellite/index.ts` — add `USER_STATS` to `setDocCollections`
+6. `src/satellite/index.ts`: add `USER_STATS` to `setDocCollections`
    - the dispatch table (`onUserStatsSetForLeagueStats`). No new
-     endpoint. Then `npm run juno:functions:build` — commit regenerated
+     endpoint. Then `npm run juno:functions:build`: commit regenerated
      bindings (wire-shape change only).
 
 Frontend:
 
-7. `src/lib/services/leagues.services.ts` — `kickoffBattle` reads both
+7. `src/lib/services/leagues.services.ts`: `kickoffBattle` reads both
    sides' `league_stats`, stamps baselines onto the freshly-read raw
    doc; `resolveBattle` (no score args) reads baselines + current
    `league_stats`, computes scores/calls/winner, writes. Both build the
@@ -312,20 +312,20 @@ Frontend:
 8. Delete `ResolveBattleModal.svelte`; update `BattleDetailPage` /
    `BattlesInboxPage`: "Resolve now" one-tap + lazy auto-resolve on
    mount; render computed scores as accuracy %, show draw/void copy.
-9. `CreateBoutModal` — opponent search/filter over challengeable
+9. `CreateBoutModal`: opponent search/filter over challengeable
    leagues if missing; pass `scope` through.
-10. Analytics — add the `source` / `label` / `value` props at the
+10. Analytics: add the `source` / `label` / `value` props at the
     resolve and propose call sites.
-11. i18n — rewrite `leagues.battle.resolve.*` (drop us/them score
+11. i18n: rewrite `leagues.battle.resolve.*` (drop us/them score
     labels, add auto-resolve result + draw/void + "Resolve now"
     strings) across **all 12 locales** in
     `src/lib/constants/messages/`.
-12. `docs/ai/PRODUCT.md` — add a "Leagues & Battles" behaviour section
+12. `docs/ai/PRODUCT.md`: add a "Leagues & Battles" behaviour section
     (lifecycle, accuracy-face-off scoring, eligibility-by-privacy,
     privacy-change semantics).
 
 Verification: the repo has no unit-test runner (CI is `format` / `lint`
-/ `check` + Playwright e2e — see `docs/ai/frontend/testing.md`), so the
+/ `check` + Playwright e2e, see `docs/ai/frontend/testing.md`), so the
 guarantees rest on (a) `svelte-check` over the shared pure helpers
 (`deriveBattleWinner`, `battleAccuracyPct`, `leagueStatsBucket`) and
 their call sites, (b) the assert's own re-derivation closing the
@@ -365,8 +365,8 @@ the natural first unit test.
 
 - **Counter-delta over per-member sum.** Windowed accuracy is the delta
   of `league_stats`' monotonic counters between kickoff and settle. This
-  is O(1) at resolution, and — because the hook accrues each settled
-  call against the member's leagues _at call time_ — it naturally and
+  is O(1) at resolution, and, because the hook accrues each settled
+  call against the member's leagues _at call time_, it naturally and
   correctly attributes activity across mid-window joins/leaves, which a
   resolve-time sum of current members' lifetime `USER_STATS` would get
   wrong. Mirrors the tournament's existing snapshot-delta mechanism.
@@ -386,7 +386,7 @@ the natural first unit test.
   tagged calls, so the `'all'` aggregate (also read by the leaderboard
   and tournament) must keep its existing profile-sourced counter or it
   would silently drop untagged calls. Two disjoint-field hooks on
-  sequential messages — no race — beat one hook that regresses the
+  sequential messages (no race) beat one hook that regresses the
   aggregate.
 - **Privacy is discovery-only.** Battle identity freezes at proposal;
   visibility changes must not rewrite shared competitive history. Keeps
@@ -394,5 +394,5 @@ the natural first unit test.
   (tighten privacy to nuke a proposal you're losing).
 - **Assert re-verifies instead of trusting the endpoint.** Even with
   resolution behind an endpoint, the assert independently recomputes
-  from `league_stats` so the integrity guarantee holds for _any_ writer
-  — defense in depth, and the structural fix for the reported hole.
+  from `league_stats` so the integrity guarantee holds for _any_ writer:
+  defense in depth, and the structural fix for the reported hole.

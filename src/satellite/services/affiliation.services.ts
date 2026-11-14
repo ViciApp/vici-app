@@ -167,7 +167,7 @@ export const assertDeleteAffiliation = ({
 
 	if (nowMs < currentDoc.lockedUntilMs) {
 		const daysLeft = Math.ceil((currentDoc.lockedUntilMs - nowMs) / DAY_IN_MS);
-		throw new Error(`affiliations lock active — cannot leave for another ${daysLeft} day(s).`);
+		throw new Error(`affiliations lock active: cannot leave for another ${daysLeft} day(s).`);
 	}
 };
 

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// THE MENAGERIE — tier logic (pure).
+// THE MENAGERIE: tier logic (pure).
 //
 // Single source of truth for turning the owner's real stats into the trophy
 // layer: which tier each animal currently sits at, progress toward the next
@@ -47,7 +47,7 @@ export const countWinningCategories = (
 /**
  * Real-stat snapshot the menagerie reads. Built from the owner's `UserProfile`
  * (plus a couple of live signals the profile doc doesn't carry) by the surfaces
- * that render the trophy layer — see `menagerieStatsFromProfile`.
+ * that render the trophy layer, see `menagerieStatsFromProfile`.
  *
  */
 export interface MenagerieStats {
@@ -70,7 +70,7 @@ export interface MenagerieStats {
 	/** Distinct categories with a winning record (see
 	 * {@link countWinningCategories}). Drives Magpie. */
 	winningCategories: number;
-	/** Leagues the owner has ever joined (any role; high-water — leaving
+	/** Leagues the owner has ever joined (any role; high-water: leaving
 	 * never decrements). Bee's "join" milestone. */
 	leaguesJoined: number;
 	/** Resolved battles the owner's side has ever won (high-water). Bee's
@@ -145,7 +145,7 @@ export const menagerieStatsFromProfile = ({
 });
 
 /**
- * Per-animal metric extractor — reads one number from {@link MenagerieStats}.
+ * Per-animal metric extractor: reads one number from {@link MenagerieStats}.
  * Centralised so `menagerieTierFor` and `menagerieProgress` always agree on the
  * source.
  */
@@ -154,33 +154,33 @@ const METRICS: Record<MenagerieSlug, (stats: MenagerieStats) => number> = {
 	beaver: (stats) => stats.calls,
 	rooster: (stats) => stats.dailyStreak,
 	// Snake reads the longest consecutive-win run ever recorded (recomputed
-	// from clearing history in `calculateAndSyncStats`) — a high-water mark,
+	// from clearing history in `calculateAndSyncStats`), a high-water mark,
 	// so a rung once earned doesn't read as regressed when the current run
 	// ends.
 	snake: (stats) => stats.onFireStreak,
 	// Owl is gated: accuracy only counts once the owner has enough settled calls
 	// for it to be a real calibration signal.
 	owl: (stats) => (stats.calls >= MENAGERIE_OWL_MIN_CALLS ? stats.accuracyRatio : 0),
-	// Raven: lifetime wins on long-shot calls — settled wins whose execution
+	// Raven: lifetime wins on long-shot calls, settled wins whose execution
 	// price sat at or under `CONTRARIAN_PRICE_THRESHOLD`, the same counter the
 	// `contrarian` achievement reads (derived from clearing history in
 	// `calculateAndSyncStats`).
 	raven: (stats) => stats.contrarianWins,
-	// Octopus: rarest single upset — the smallest execution consensus among
+	// Octopus: rarest single upset, the smallest execution consensus among
 	// settled wins (recomputed from clearing history in
 	// `calculateAndSyncStats`). Reversed ladder, so an owner with no settled
 	// win reads the worst value (1) and stays below every rung.
 	octopus: (stats) => stats.bestUpsetConsensus ?? 1,
-	// Magpie: breadth — distinct categories with a winning record, persisted
+	// Magpie: breadth, distinct categories with a winning record, persisted
 	// on the profile from the per-category buckets in `calculateAndSyncStats`
 	// (see `countWinningCategories`).
 	magpie: (stats) => stats.winningCategories,
-	// Honey Badger reads the persisted cold-streak recovery tally — wins that
+	// Honey Badger reads the persisted cold-streak recovery tally: wins that
 	// snapped a run of at least `COMEBACK_COLD_STREAK_LOSSES` straight losses
 	// (recomputed from clearing history in `calculateAndSyncStats`).
 	badger: (stats) => stats.comebacks,
 	parrot: (stats) => stats.referrals,
-	// Bee: league-life milestones, one point per rung of the ladder — joined
+	// Bee: league-life milestones, one point per rung of the ladder, joined
 	// a league, won a bout, founded a league (the counters are persisted by
 	// `calculateAndSyncStats`). Matching the rule copy, each milestone counts
 	// once no matter how many times it's repeated.
@@ -188,7 +188,7 @@ const METRICS: Record<MenagerieSlug, (stats: MenagerieStats) => number> = {
 		(stats.leaguesJoined > 0 ? 1 : 0) +
 		(stats.boutsWon > 0 ? 1 : 0) +
 		(stats.leaguesFounded > 0 ? 1 : 0),
-	// Goat: global-rank percentile (rank / total) — lower is better. Returns 0
+	// Goat: global-rank percentile (rank / total); lower is better. Returns 0
 	// as the #1 sentinel; an unranked owner reads as 1 (worst).
 	goat: (stats) => {
 		if (isNullish(stats.rank)) {
@@ -259,7 +259,7 @@ export interface MenagerieProgress {
 }
 
 /**
- * Progress toward the next rung — drives the "X% to next tier" bars. At max tier
+ * Progress toward the next rung: drives the "X% to next tier" bars. At max tier
  * `next` is `null`, `ratio` is `1`, and `label` is `'max'`.
  */
 export const menagerieProgress = ({
@@ -291,7 +291,7 @@ export const menagerieProgress = ({
 	if (animal.reversed) {
 		// Distance closed from the current rung's threshold toward the next.
 		const lo = atIdx >= 0 ? animal.tiers[atIdx].t : 1;
-		// Goat's iridescent rung (`-1` sentinel) is treated as 0 for progress —
+		// Goat's iridescent rung (`-1` sentinel) is treated as 0 for progress:
 		// closer to world rank #1 is closer to iridescent.
 		const nextT = slug === 'goat' && nextStep.tier === 'irid' ? 0 : nextStep.t;
 		ratio = clamp((lo - metric) / (lo - nextT));
@@ -347,7 +347,7 @@ export const menagerieKey = ({
 }): string => `${slug}:${tier}`;
 
 /**
- * Every `${slug}:${tier}` the owner currently qualifies for — cumulative, so
+ * Every `${slug}:${tier}` the owner currently qualifies for: cumulative, so
  * gold implies wood + silver + gold. This is the full earned set; the celebration
  * ledger (`earnedMenagerie`) is compared against it to find fresh crossings.
  */
@@ -383,7 +383,7 @@ export type MenagerieDiff =
 /**
  * Compares the live earned set against the already-celebrated ledger.
  *
- * - **First run** (`isNullish(celebrated)` — the field was never seeded): returns
+ * - **First run** (`isNullish(celebrated)`, the field was never seeded): returns
  *   `{ firstRun: true, all }` so the host seeds the ledger SILENTLY. A
  *   fully-stocked profile must not fire a dozen celebrations on its first load.
  * - **Otherwise**: returns the HIGHEST newly-crossed tier per animal, in
@@ -407,7 +407,7 @@ export const detectNewMenagerieTiers = ({
 	const bySlug = new Map<MenagerieSlug, MenagerieTier>();
 
 	for (const key of fresh) {
-		// Keys are `${slug}:${tier}`, but the ledger is opaque persisted data — a
+		// Keys are `${slug}:${tier}`, but the ledger is opaque persisted data; a
 		// malformed or stale entry (unknown slug / tier) must never be ranked, or
 		// `MENAGERIE_TIER_RANK[undefined]` would enqueue an invalid reveal. Only
 		// act on entries we can resolve against the live catalogue.

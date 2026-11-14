@@ -1,4 +1,4 @@
-# Spec: Friend activity feed — persist likes
+# Spec: Friend activity feed: persist likes
 
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
@@ -12,12 +12,12 @@ page refresh, and each row shows how many people liked it. Today a tap
 only flips an in-memory flag, so every like is lost the moment the
 component remounts. After this change a like is a real, server-stored
 reaction: when you come back, the rows you liked are still highlighted
-and the like count reflects everyone who reacted — the standard social
+and the like count reflects everyone who reacted: the standard social
 "like" model.
 
 ## Context
 
-The reaction is purely client-local today — explicitly deferred by the
+The reaction is purely client-local today, explicitly deferred by the
 reaction-redesign spec
 ([`2026-06-12-feat-friend-feed-reaction-redesign.md`](./2026-06-12-feat-friend-feed-reaction-redesign.md),
 Out of scope: "A persisted, satellite-backed reaction model (counts, who
@@ -26,37 +26,37 @@ follow-up.
 
 **This is spec A of a two-spec split.** It delivers persistence + counts
 on the Friends feed. Notifying the activity's author when their call is
-liked is spec B —
-[`2026-06-14-feat-like-received-notifications.md`](./2026-06-14-feat-like-received-notifications.md)
-— which derives an inbox card from the `activity_reactions` collection
+liked is spec B,
+[`2026-06-14-feat-like-received-notifications.md`](./2026-06-14-feat-like-received-notifications.md),
+which derives an inbox card from the `activity_reactions` collection
 this spec introduces. The doc shape below is deliberately defined once
 here (including the fields B's card needs) so B adds no schema/assert
 change.
 
-Frontend — [`src/lib/components/arena/FriendsTab.svelte`](../../../../src/lib/components/arena/FriendsTab.svelte):
+Frontend, [`src/lib/components/arena/FriendsTab.svelte`](../../../../src/lib/components/arena/FriendsTab.svelte):
 
-- `likedKeys = new SvelteSet<string>()` (line 665) — the local-only set
+- `likedKeys = new SvelteSet<string>()` (line 665): the local-only set
   that loses everything on remount. `firingKeys` (line 670) drives the
   commit animation and stays local (transient motion only).
-- `activityKey(activity)` (line 674) returns `${activity.timestamp}#${activity.user}`
-  — a per-row UI identity, **not** the satellite doc key.
-- `toggleLike(activity)` (line 678) mutates `likedKeys` only — no service
+- `activityKey(activity)` (line 674) returns `${activity.timestamp}#${activity.user}`:
+  a per-row UI identity, **not** the satellite doc key.
+- `toggleLike(activity)` (line 678) mutates `likedKeys` only; no service
   call.
 - Button markup ≈ lines 1090–1110 (`button.feed-react`, `class:is-liked`,
   `aria-label` = `arena.friends.feed.like`, the `<Zap>` glyph and the
   `.react-burst`).
 
-Activities — [`src/lib/services/activity.services.ts`](../../../../src/lib/services/activity.services.ts):
+Activities, [`src/lib/services/activity.services.ts`](../../../../src/lib/services/activity.services.ts):
 
 - `logActivity` keys every activity doc `${user}#${timestamp}#${type}`
   (line 9), enforced by the satellite assert (below). This is the
   globally-unique identity of an activity.
 - `getGlobalActivities` / `listActivities` map `({ data }) => data`
-  (line 33) — they **drop the doc key**. The FE never sees the activity
+  (line 33): they **drop the doc key**. The FE never sees the activity
   doc key, but can reconstruct it from the `Activity` fields
   (`user`, `timestamp`, `type`), since the assert guarantees that exact
   shape.
-- `Activity` type — [`src/lib/types/social.ts`](../../../../src/lib/types/social.ts)
+- `Activity` type: [`src/lib/types/social.ts`](../../../../src/lib/types/social.ts)
   (`type`, `user`, `timestamp` are all present).
 
 Loader / store wiring:
@@ -69,13 +69,13 @@ Loader / store wiring:
   [`src/lib/derived/activities.derived.ts`](../../../../src/lib/derived/activities.derived.ts)
   → `FriendsTab.svelte`.
 
-Pattern to mirror — comment votes
+Pattern to mirror: comment votes
 ([`src/lib/services/discussion.services.ts`](../../../../src/lib/services/discussion.services.ts),
 `upvoteComment`/`downvoteComment`): a binary, per-user reaction read back
 on load. Note the mechanism differs from this spec's: comment votes
 `getDoc` the comment then `setDoc` it back with the caller added to /
 removed from `upvotes: PrincipalText[]` **on the comment doc** (no
-`deleteDoc`) — which works only because the comment author isn't
+`deleteDoc`), which works only because the comment author isn't
 write-guarded against other voters. Activity docs **are** write-guarded
 ([`src/satellite/services/activity.services.ts`](../../../../src/satellite/services/activity.services.ts),
 `assertSetActivity`: `data.user` must equal the caller, key must be
@@ -85,7 +85,7 @@ one doc per liker (a join table), not an array on the activity.
 
 Satellite scaffolding to mirror when adding a collection:
 [`docs/ai/satellite/structure.md`](../../satellite/structure.md) §
-"Collections and `juno.config.ts`" — a new collection is pinned in
+"Collections and `juno.config.ts`": a new collection is pinned in
 **both** [`juno.config.ts`](../../../../juno.config.ts) (`JunoDatastoreCollection`
 enum + the `datastore` array) and
 [`src/lib/constants/collections.constants.ts`](../../../../src/lib/constants/collections.constants.ts)
@@ -99,7 +99,7 @@ in `src/satellite/index.ts`.
 1. New Datastore collection `activity_reactions` (one doc per
    activity-per-liker). Public read, public write.
    - **Doc key**: `${activityDocKey}#${liker}` where
-     `activityDocKey = ${actor}#${timestamp}#${type}` — four `#`-split
+     `activityDocKey = ${actor}#${timestamp}#${type}`: four `#`-split
      segments total (`actor`, `timestamp`, `type`, `liker`). Principals,
      numeric timestamps, and `ActivityType` tokens never contain `#`, so
      the split is exact (same guarantee `assertSetActivity` relies on).
@@ -108,10 +108,10 @@ in `src/satellite/index.ts`.
      optional `marketId` for deep-linking) are **denormalized copies of
      the liked activity's fields**, carried so spec B's notification card
      reads "Alice liked your call: <title>" without a second fetch. They
-     are not used by spec A itself — they are written now so the doc shape
+     are not used by spec A itself; they are written now so the doc shape
      and assert stay stable across both PRs. Low-stakes spoofability: a
      liker writes the title, so it could be falsified, but it only affects
-     the card shown to the activity's own author about their own call —
+     the card shown to the activity's own author about their own call:
      noted, accepted.
 2. Write-time guard `assertSetActivityReaction` in a new
    `src/satellite/services/activity-reaction.services.ts`, wired into
@@ -126,7 +126,7 @@ in `src/satellite/index.ts`.
      present, is a string.
      No delete guard: a liker deletes only their own doc (Juno owner-scoped
      delete on a public collection already restricts this to the doc owner;
-     confirm — see Open questions).
+     confirm, see Open questions).
 
 ### Frontend
 
@@ -170,32 +170,32 @@ in `src/satellite/index.ts`.
   one bounded `listDocs` (see Decisions). A per-activity rollup-counter
   doc maintained by `onSetDoc`/`onDeleteDoc` hooks (the
   `league_stats`/`affiliation_stats` fan-out idiom) is the 100×-scale
-  follow-up — see Technical requirements § Scalability.
-- **Notifying the actor** that someone liked their call — owned by spec B
+  follow-up, see Technical requirements § Scalability.
+- **Notifying the actor** that someone liked their call, owned by spec B
   ([`2026-06-14-feat-like-received-notifications.md`](./2026-06-14-feat-like-received-notifications.md)).
   Spec A only persists the reactions B reads; it adds no inbox card.
 - **Reactions beyond a single binary like** (emoji set, multiple reaction
   types).
 - The non-friend / ranked-friends fallback branches of the feed and the
-  feed's data source — owned by other specs.
+  feed's data source, owned by other specs.
 - **Other activity surfaces.** The like button stays on the Arena →
   Friends feed only. `MarketRecentTrades` (market detail "Recent trades")
   gets no button, and the standalone global `ActivityFeed` / `ActivityItem`
   is currently unmounted (zero `<ActivityFeed>` usages in `src/`; only
-  stale comments reference a former Leaderboard "Activity" tab) — reviving
+  stale comments reference a former Leaderboard "Activity" tab), reviving
   it is not in scope. The backend model is surface-agnostic, so adding
   these later needs no schema change.
 
 ## Linked issues
 
 No open issue tracks this. Searched open issues for
-`like`/`reaction`/`feed`/`persist` — only unrelated results. The
+`like`/`reaction`/`feed`/`persist`: only unrelated results. The
 reaction-redesign spec named it a "tracked follow-up" but filed no
 GitHub issue. No closing keyword.
 
 ## Analytics
 
-Instrument — a like is a core social signal and the feed is otherwise
+Instrument: a like is a core social signal and the feed is otherwise
 invisible to product analysis. Propose one event:
 
 - `friend_feed_reaction`, prop `label: 'like' | 'unlike'` (bounded
@@ -203,16 +203,16 @@ invisible to product analysis. Propose one event:
   `src/lib/services/analytics.services.ts` from `toggleLike` after the
   write resolves.
 
-The new name lands in **both** halves of the dual-source pair —
+The new name lands in **both** halves of the dual-source pair:
 `src/lib/types/analytics-event.ts` (TS union) **and**
-`src/lib/schema/analytics-event.schema.ts` (Zod mirror) — per the
+`src/lib/schema/analytics-event.schema.ts` (Zod mirror), per the
 analytics dual-source rule; svelte-check only catches the union, the enum
 mismatch fails at runtime.
 
-## Technical requirements (satellite / backend — mandatory)
+## Technical requirements (satellite / backend, mandatory)
 
 - **Performance.** Writes: one `set_doc` per like, one `delete_doc` per
-  unlike — same cost class as a comment vote. The assert is O(1) string
+  unlike: same cost class as a comment vote. The assert is O(1) string
   parsing, no cross-canister calls. Reads: one extra bounded `listDocs`
   per feed mount (the count-on-read query), parallel to the existing
   `getGlobalActivities` call.
@@ -225,7 +225,7 @@ activityTitle, marketId? }` (the last two denormalized for spec B's
   with their activity); a cleanup pass can piggyback on activity
   pruning if/when that lands.
 - **Scalability.** Count-on-read does a single `listDocs` capped at
-  `paginate.limit` (e.g. 1000), tallied client-side — flat per mount, but
+  `paginate.limit` (e.g. 1000), tallied client-side: flat per mount, but
   it under-counts activities whose reactions fall outside the most-recent
   window. Acceptable for current (staging) volume; the spec logs the
   ceiling. At 10×/100× total likes, migrate counts to a per-activity
@@ -238,12 +238,12 @@ activityTitle, marketId? }` (the last two denormalized for spec B's
   No change to existing doc shapes. Regenerate satellite bindings
   (`npm run juno:functions:build`) and commit the regenerated
   `satellite.did` / `satellite_extension.did` / `api-schemas.ts`. Not
-  breaking — no `!`/`BREAKING CHANGE:`.
+  breaking: no `!`/`BREAKING CHANGE:`.
 - **Security.** `activity_reactions` is public-read/public-write; the
   `assertSetActivityReaction` guard binds `liker === caller` and the key
   shape, so a client cannot forge a like as another principal or under a
   malformed key (the same threat model `assertSetActivity` addresses for
-  activities). Deletes are owner-scoped by Juno — confirm a non-owner
+  activities). Deletes are owner-scoped by Juno: confirm a non-owner
   cannot delete another user's reaction (Open questions).
 - **Parameters.** The count-on-read page size is the one new tunable;
   define it as a named constant rather than a literal at the call site.
@@ -298,7 +298,7 @@ activityTitle, marketId? }` (the last two denormalized for spec B's
   no delete assert was added. The existing public-write `comments`
   collection deletes the same way (`deleteComment` is a bare
   `getDoc` + `deleteDoc` with no `assertDeleteDoc`), so Juno's
-  owner-scoped delete is the established model — an unlike can only remove
+  owner-scoped delete is the established model: an unlike can only remove
   the liker's own reaction doc.
 - For the deferred rollup-hook counts (not built here): confirm the
   `onSetDoc` context exposes a create-vs-update signal (prior-doc
@@ -341,7 +341,7 @@ activityTitle, marketId? }` (the last two denormalized for spec B's
   label optional. Rather than add a key across all 12 catalogs, the count
   is composed into the existing localized `arena.friends.feed.like` label
   for the button's accessible name (`"Like · 3"`) and shown as an
-  aria-hidden numeral — zero i18n churn, catalogs stay in parity.
+  aria-hidden numeral: zero i18n churn, catalogs stay in parity.
 - **Error toast reuses `common.error.generic`** instead of a bespoke
   "like failed" string (same no-new-key reasoning).
 - **`likedKeys` re-keyed to the full activity doc key**

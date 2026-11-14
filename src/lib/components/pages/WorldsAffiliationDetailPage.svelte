@@ -114,13 +114,13 @@
 	});
 
 	const accuracyPctLifetime = $derived(
-		stats && stats.totalCalls > 0 ? formatAccuracyPercent(affiliationLifetimeAccuracy(stats)) : '—'
+		stats && stats.totalCalls > 0 ? formatAccuracyPercent(affiliationLifetimeAccuracy(stats)) : '–'
 	);
 
 	const accuracyPctMonth = $derived(
 		stats && stats.monthTotalCalls > 0
 			? formatAccuracyPercent(affiliationMonthlyAccuracy(stats))
-			: '—'
+			: '–'
 	);
 
 	const hasActivity = $derived(nonNullish(stats) && stats.totalCalls > 0);
@@ -154,8 +154,8 @@
 	const wcRank = $derived(rankBy({ key: 'lifetime' }));
 	const monthRank = $derived(rankBy({ key: 'month' }));
 
-	const monthRankLabel = $derived(monthRank > 0 ? `#${monthRank}` : '—');
-	const wcRankLabel = $derived(wcRank > 0 ? `#${wcRank}` : '—');
+	const monthRankLabel = $derived(monthRank > 0 ? `#${monthRank}` : '–');
+	const wcRankLabel = $derived(wcRank > 0 ? `#${wcRank}` : '–');
 
 	const headerName = $derived(
 		nonNullish(option)

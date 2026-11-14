@@ -3,7 +3,7 @@ import { MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 /**
  * School-picker feature gating.
  *
- * The "add your own university" pass — submit a school + school email,
+ * The "add your own university" pass: submit a school + school email,
  * receive a 6-digit code, verify membership. When `true`, the picker
  * exposes the add-your-own CTAs, founder badges, and the empty-state
  * "add" hero, and the submit/verify round-trips call the satellite
@@ -15,7 +15,7 @@ import { MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
  * Prerequisites for `true` to actually work in an environment: the
  * satellite functions for that environment must be the build that
  * includes `submitSchool` / `verifySchoolCode`, AND a controller must
- * have set the `app_config/school_relay` doc — otherwise submit fails
+ * have set the `app_config/school_relay` doc; otherwise submit fails
  * server-side (gated by the relay config). Confirm both before
  * deploying the frontend with this on.
  */
@@ -36,7 +36,7 @@ export const SCHOOL_CODE_TTL_MS = 30 * MINUTE_IN_MS;
 /**
  * Max wrong code entries before a submission is locked. Bounds online
  * guessing of the 6-digit space to {@link SCHOOL_CODE_MAX_ATTEMPTS} in
- * 1,000,000 per submission — the real defense, since the stored digest
+ * 1,000,000 per submission, the real defense, since the stored digest
  * is not cryptographic.
  */
 export const SCHOOL_CODE_MAX_ATTEMPTS = 5;

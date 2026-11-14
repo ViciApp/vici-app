@@ -1,6 +1,6 @@
 export const deMessages = {
 	'trade.error.arbitrage_limit_exceeded':
-		'Der Marktpreis hat sich gerade geändert — warte einen Moment und versuche es erneut.',
+		'Der Marktpreis hat sich gerade geändert, warte einen Moment und versuche es erneut.',
 	'trade.error.common.internal':
 		'Auf unserer Seite ist etwas schiefgelaufen. Versuche es gleich noch einmal.',
 	'trade.error.common.invalid_input':
@@ -13,19 +13,19 @@ export const deMessages = {
 	'trade.error.generic':
 		'Deine Vorhersage konnte nicht platziert werden. Versuche es gleich noch einmal.',
 	'trade.error.insufficient_margin':
-		'Nicht genug verfügbares Guthaben — diese Vorhersage benötigt {required}, du hast aber {available}. Es wird frei, sobald deine offenen Vorhersagen aufgelöst werden.',
+		'Nicht genug verfügbares Guthaben: diese Vorhersage benötigt {required}, du hast aber {available}. Es wird frei, sobald deine offenen Vorhersagen aufgelöst werden.',
 	'trade.error.market_closed':
-		'Dieser Markt wurde gerade geschlossen — Vorhersagen sind nicht mehr möglich.',
+		'Dieser Markt wurde gerade geschlossen: Vorhersagen sind nicht mehr möglich.',
 	'trade.error.not_authorized_to_trade': 'Du hast keinen Zugriff auf diesen Markt.',
 	'trade.error.not_order_creator': 'Du kannst nur deine eigenen Orders stornieren.',
 	'trade.error.order_not_found':
-		'Dieses Angebot wurde gerade angenommen oder zurückgezogen — versuche es erneut.',
+		'Dieses Angebot wurde gerade angenommen oder zurückgezogen, versuche es erneut.',
 	'trade.error.registry_error':
 		'Wir konnten den Markt gerade nicht erreichen. Versuche es gleich noch einmal.',
 	'trade.error.self_trading_not_allowed':
 		'Du kannst nicht die Gegenseite deiner eigenen Order einnehmen.',
 	'trade.error.series_already_settled':
-		'Dieser Markt ist bereits abgerechnet — Vorhersagen sind geschlossen.',
+		'Dieser Markt ist bereits abgerechnet: Vorhersagen sind geschlossen.',
 	'trade.error.series_not_found': 'Dieser Markt ist nicht mehr verfügbar.',
 	'trade.error.series_not_started': 'Dieser Markt ist noch nicht für Vorhersagen geöffnet.',
 	'a11y.appearance': 'Erscheinungsbild',
@@ -48,7 +48,7 @@ export const deMessages = {
 	'a11y.toggle_switch': 'Umschalter',
 	'a11y.user_profile': 'Benutzerprofil',
 	'a2hs.flow_end.row': 'VICI zum Startbildschirm hinzufügen',
-	'a2hs.sheet.android_hint': 'In Sekunden installiert – kein App-Store nötig.',
+	'a2hs.sheet.android_hint': 'In Sekunden installiert, kein App-Store nötig.',
 	'a2hs.sheet.got_it': 'Verstanden',
 	'a2hs.sheet.install': 'Zum Startbildschirm hinzufügen',
 	'a2hs.sheet.ios_step_add': '„Zum Home-Bildschirm“ auswählen',
@@ -159,7 +159,7 @@ export const deMessages = {
 	'battles.your_school': 'Alma Mater · {name}',
 	'achievement.bold_caller.description': 'Beste Außenseiter-Treffsicherheit des Monats',
 	'achievement.bold_caller.detail':
-		'Beende den Monat mit der höchsten Treffsicherheit unter denen, die gewohnheitsmäßig auf den Außenseiter setzen — ein medianer Konsens unter 40% auf den von dir gewählten Seiten. Wird bei Monatsabschluss vergeben; bei Gleichstand wird die Ehre geteilt.',
+		'Beende den Monat mit der höchsten Treffsicherheit unter denen, die gewohnheitsmäßig auf den Außenseiter setzen: ein medianer Konsens unter 40% auf den von dir gewählten Seiten. Wird bei Monatsabschluss vergeben; bei Gleichstand wird die Ehre geteilt.',
 	'achievement.bold_caller.name': 'Mutige Stimme',
 	'achievement.contrarian.name': 'Contrarian',
 	'achievement.first_call.description': 'Mache deine erste Vorhersage',
@@ -180,11 +180,11 @@ export const deMessages = {
 	'achievement.on_fire.name': 'Auf Feuer',
 	'achievement.oracle.description': '80% Genauigkeit über 50 Calls',
 	'achievement.oracle.detail':
-		'Halte mindestens 80% Genauigkeit über deine letzten 50 aufgelösten Calls. Der Oracle-Titel wird täglich neu berechnet; verlierst du an Genauigkeit, bleibt der Sticker — aber der Titel geht an denjenigen, der ihn aktuell hält.',
+		'Halte mindestens 80% Genauigkeit über deine letzten 50 aufgelösten Calls. Der Oracle-Titel wird täglich neu berechnet; verlierst du an Genauigkeit, bleibt der Sticker, aber der Titel geht an denjenigen, der ihn aktuell hält.',
 	'achievement.oracle.name': 'Oracle',
 	'achievement.sharpest_eye.description': 'Top-3-Treffsicherheit des Monats',
 	'achievement.sharpest_eye.detail':
-		'Beende einen Kalendermonat unter den besten drei nach Treffsicherheit unter allen mit mindestens 30 aufgelösten Calls. Der erste Platz bringt Gold, der zweite Silber, der dritte Bronze — und das Album behält deine beste Platzierung aller Zeiten.',
+		'Beende einen Kalendermonat unter den besten drei nach Treffsicherheit unter allen mit mindestens 30 aufgelösten Calls. Der erste Platz bringt Gold, der zweite Silber, der dritte Bronze, und das Album behält deine beste Platzierung aller Zeiten.',
 	'achievement.sharpest_eye.name': 'Schärfster Blick',
 	'achievement.top_decile.description': '7 Tage in den Top 10%',
 	'achievement.top_decile.detail':
@@ -202,9 +202,9 @@ export const deMessages = {
 	'flow.entry.away_eyebrow': 'Während du weg warst',
 	'flow.entry.away_sub': '{count} abgerechnet · {wins} richtig · {losses} verpasst',
 	'flow.entry.away_copy_win':
-		'Deine Calls haben sich ausgezahlt, während du weg warst — bleib dran.',
+		'Deine Calls haben sich ausgezahlt, während du weg warst; bleib dran.',
 	'flow.entry.away_copy_loss':
-		'Die Menge hat diese Runde gedreht — schüttel es ab, die nächsten gehören dir.',
+		'Die Menge hat diese Runde gedreht; schüttel es ab, die nächsten gehören dir.',
 	'flow.entry.away_more': '+{count} weitere in deinem Portfolio',
 	'flow.reso.aria_label': 'Calls, die abgerechnet wurden, während du weg warst',
 	'flow.reso.eyebrow': 'WÄHREND DU WEG WARST',
@@ -240,16 +240,16 @@ export const deMessages = {
 	'guest.picks_many': '{count} Vorhersagen',
 	'guest.inline.cta': 'Registrieren und {vxp} VXP sichern',
 	'guest.convert.toast_title': 'Willkommen bei VICI',
-	'guest.convert.toast_message': '{vxp} VXP gutgeschrieben — sag jetzt echt voraus.',
+	'guest.convert.toast_message': '{vxp} VXP gutgeschrieben, sag jetzt echt voraus.',
 	'flow.swipe_hint.yes': 'WISCH JA',
 	'flow.swipe_hint.tap': 'TIPPEN · DETAILS',
 	'flow.swipe_hint.skip': 'WISCH ↑ ÜBERSPRINGEN',
 	'flow.swipe_hint.no': 'WISCH NEIN',
 	'flow.share.whatsapp': 'WhatsApp',
 	'flow.share.twitter': 'X',
-	'flow.share.text_pre': '"{title}" — {yes}% JA auf VICI. Wie tippst du?',
+	'flow.share.text_pre': '"{title}": {yes}% JA auf VICI. Wie tippst du?',
 	'flow.share.text_pre_no_pct': '"{title}" auf VICI. Wie tippst du?',
-	'flow.share.text_post': 'Ich habe gerade diese Vorhersage zur WM gemacht — was meinst du?',
+	'flow.share.text_post': 'Ich habe gerade diese Vorhersage zur WM gemacht, was meinst du?',
 	'flow.share.telegram': 'Telegram',
 	'flow.share.eyebrow': 'PROGNOSE TEILEN',
 	'flow.share.instagram': 'Instagram',
@@ -263,26 +263,26 @@ export const deMessages = {
 	'flow.share.share_card': 'Karte teilen',
 	'flow.share.save_card': 'Karte speichern',
 	'flow.share.preparing': 'Wird vorbereitet…',
-	'flow.share.card_saved': 'Karte gespeichert — poste sie',
+	'flow.share.card_saved': 'Karte gespeichert, poste sie',
 	'flow.share.preview_alt': 'Teilbare Prognosekarte',
 	'flow.feedback.vxp': 'VXP',
 	'flow.coach.head': 'Wischen zum Tippen',
 	'flow.coach.skip': 'ÜBERSPRINGEN',
-	'flow.coach.skip_sub': 'unsicher — weiter',
+	'flow.coach.skip_sub': 'unsicher, weiter',
 	'flow.coach.no': 'NEIN',
 	'flow.coach.no_sub': 'passiert nicht',
 	'flow.coach.yes': 'JA',
 	'flow.coach.yes_sub': 'passiert',
 	'flow.coach.tap_sub': 'tippen · Details',
 	'flow.coach.got_it': 'Verstanden',
-	'flow.coach.confirm': 'Gut — das ist eine Vorhersage. Du bist dabei.',
+	'flow.coach.confirm': 'Gut, das ist eine Vorhersage. Du bist dabei.',
 	'flow.coach.aria': 'So wird gespielt',
 	'tip.dash.title': 'Dein Verlauf',
 	'tip.dash.body':
 		'Trefferquote, Serie und Rang wachsen mit jeder Vorhersage. Schau wieder rein, um deinen Trend zu sehen.',
 	'tip.arena.title': 'Hier trittst du an',
 	'tip.arena.body':
-		'Arena sind Ligen, Freunde und Worlds-Ranglisten — sieh, wie du im Vergleich zu allen stehst.',
+		'Arena sind Ligen, Freunde und Worlds-Ranglisten; sieh, wie du im Vergleich zu allen stehst.',
 	'tip.profile.title': 'Hier lebt deine Identität',
 	'tip.profile.body':
 		'Dein Handle, dein Menagerie und dein Team. Wähl jederzeit ein Team, um beim Worlds-Rennen mitzumachen.',
@@ -330,7 +330,7 @@ export const deMessages = {
 	'account.email.used_for': 'Für Anmeldung und wichtige Konto-Benachrichtigungen.',
 	'account.email.verified': 'Verifiziert',
 	'account.intro':
-		'VICI meldet dich mit einem Passkey an — deinem Face ID oder Fingerabdruck — oder mit Internet Identity oder Google. Nichts zu merken, keine per E-Mail verschickten Anmeldelinks. Methode jederzeit wechseln — deine Daten bleiben.',
+		'VICI meldet dich mit einem Passkey an (deinem Face ID oder Fingerabdruck) oder mit Internet Identity oder Google. Nichts zu merken, keine per E-Mail verschickten Anmeldelinks. Methode jederzeit wechseln, deine Daten bleiben.',
 	'account.method.eyebrow': 'AKTUELLE ANMELDEMETHODE',
 	'account.method.ii': 'Internet Identity',
 	'account.method.google': 'Google',
@@ -349,7 +349,7 @@ export const deMessages = {
 	'account.return.expired_continue': 'Weiter',
 	'account.return.expired_heading': 'Dein Wiederherstellungsfenster ist abgelaufen.',
 	'account.return.hibernated_body':
-		'Du hast dieses Konto pausiert. Setze fort, um dort weiterzumachen, wo du aufgehört hast – nichts ging verloren.',
+		'Du hast dieses Konto pausiert. Setze fort, um dort weiterzumachen, wo du aufgehört hast; nichts ging verloren.',
 	'account.return.hibernated_heading': 'Dein Konto ist pausiert.',
 	'account.return.hibernated_toast_body': 'Willkommen zurück.',
 	'account.return.hibernated_toast_title': 'Konto fortgesetzt',
@@ -375,7 +375,7 @@ export const deMessages = {
 	'maintenance.body':
 		'Gerade läuft ein kurzes Plattform-Update. Die App lädt sich gleich automatisch neu.',
 	'menagerie.back': 'Zurück zum Profil',
-	'menagerie.badge.aria_earned': '{name} — Stufe {tier}',
+	'menagerie.badge.aria_earned': '{name}, Stufe {tier}',
 	'menagerie.badge.aria_locked': '{name} (gesperrt)',
 	'menagerie.beaver.concept': 'Volumen',
 	'menagerie.beaver.label.gold': '250 Calls',
@@ -401,7 +401,7 @@ export const deMessages = {
 	'menagerie.close': 'Schließen',
 	'menagerie.collection': 'Sammlung',
 	'menagerie.earned_of': 'von {total} verdient',
-	'menagerie.fully_evolved': 'Voll entwickelt — jede Stufe verdient',
+	'menagerie.fully_evolved': 'Voll entwickelt, jede Stufe verdient',
 	'menagerie.goat.concept': 'Weltrangliste',
 	'menagerie.goat.label.gold': 'Top 1%',
 	'menagerie.goat.label.irid': 'Nr. 1',
@@ -439,7 +439,7 @@ export const deMessages = {
 	'menagerie.owl.label.wood': '65%',
 	'menagerie.owl.name': 'Eule',
 	'menagerie.owl.oracle': 'Der scharfe Blick',
-	'menagerie.owl.rule': 'Treffsicherheit über 50+ Calls — 65 · 72 · 78 · 82%.',
+	'menagerie.owl.rule': 'Treffsicherheit über 50+ Calls: 65 · 72 · 78 · 82%.',
 	'menagerie.parrot.concept': 'Einladungen',
 	'menagerie.parrot.label.gold': '10 Freunde',
 	'menagerie.parrot.label.silver': '3 Freunde',
@@ -485,21 +485,21 @@ export const deMessages = {
 	'admin.diagnostics.haptics_description':
 		'Teste das Vibrationsvokabular auf einem echten Telefon.',
 	'admin.diagnostics.title': 'Diagnose',
-	'admin.haptics.android_floored': 'ja — Schwelle angewendet',
+	'admin.haptics.android_floored': 'ja, Schwelle angewendet',
 	'admin.haptics.android_label': 'android',
-	'admin.haptics.android_raw': 'nein — Rohwerte',
+	'admin.haptics.android_raw': 'nein, Rohwerte',
 	'admin.haptics.fire_baseline': '200 ms auslösen (Referenz)',
 	'admin.haptics.fire_custom': 'Eigene ms auslösen',
 	'admin.haptics.fire_pipeline': 'Auslösen (Pipeline)',
 	'admin.haptics.fire_raw': 'Roh auslösen',
 	'admin.haptics.intro':
-		'Öffne dies auf einem Gerät. „Roh auslösen“ ruft navigator.vibrate direkt mit dem definierten Muster auf — ohne deine Einstellung und die Android-Schwelle — damit du spürst, was die Hardware tatsächlich wiedergibt. „Auslösen (Pipeline)“ führt den echten haptic()-Pfad aus.',
+		'Öffne dies auf einem Gerät. „Roh auslösen“ ruft navigator.vibrate direkt mit dem definierten Muster auf, ohne deine Einstellung und die Android-Schwelle, damit du spürst, was die Hardware tatsächlich wiedergibt. „Auslösen (Pipeline)“ führt den echten haptic()-Pfad aus.',
 	'admin.haptics.last': 'Zuletzt:',
 	'admin.haptics.named_patterns': 'Benannte Muster',
 	'admin.haptics.no': 'nein',
 	'admin.haptics.off': 'aus',
 	'admin.haptics.on': 'an',
-	'admin.haptics.preference_toggle': '{state} — zum Umschalten tippen',
+	'admin.haptics.preference_toggle': '{state}, zum Umschalten tippen',
 	'admin.haptics.probe.android': 'Als Android erkannt',
 	'admin.haptics.probe.floor': 'Android-Vibrationsschwelle',
 	'admin.haptics.probe.preference': 'hapticsEnabled-Einstellung',
@@ -567,12 +567,12 @@ export const deMessages = {
 	'admin.markets.form.domain.social': 'Social (Spaß-Mutprobe)',
 	'admin.markets.form.domain.vici_xp': 'ViciXp (Playground)',
 	'admin.markets.form.error.resolution_required':
-		'Eine Auflösungsklausel ist erforderlich – beschreibe, wie der Markt abgerechnet wird.',
+		'Eine Auflösungsklausel ist erforderlich: beschreibe, wie der Markt abgerechnet wird.',
 	'admin.markets.form.error.resolution_too_long':
 		'Die Auflösungsklausel darf höchstens {max} Zeichen lang sein.',
 	'admin.markets.form.field.description': 'Beschreibung',
 	'admin.markets.form.field.description_placeholder':
-		'Optional – beschreibe kurz, worum es in diesem Markt geht...',
+		'Optional: beschreibe kurz, worum es in diesem Markt geht...',
 	'admin.markets.form.field.expiry_date': 'Ablaufdatum',
 	'admin.markets.form.field.market_type': 'Markttyp',
 	'admin.markets.form.field.resolution': 'Auflösung',
@@ -613,7 +613,7 @@ export const deMessages = {
 	'admin.oracle.reconcile.hint':
 		'Gleicht die Settler erneut mit der Rollenliste oben ab. Nutze dies, wenn Rollen vor der Oracle-Registrierung vergeben wurden oder der Satellite-Hook oracle_settler_skipped_missing_oracle geloggt hat.',
 	'admin.oracle.reconcile.in_sync':
-		'Settler stimmen bereits mit der Rollenliste überein — nichts zu tun.',
+		'Settler stimmen bereits mit der Rollenliste überein: nichts zu tun.',
 	'admin.oracle.reconcile.success':
 		'Settler aktualisiert: {added} hinzugefügt, {removed} entfernt.',
 	'admin.oracle.reconcile.title': 'Settler abgeglichen',
@@ -701,14 +701,14 @@ export const deMessages = {
 	'calibration.back.label': 'Zurück zu Flow',
 	'calibration.banner.recovery': 'ERHOLUNG · VERLUSTE GESCHÜTZT BIS {floor} VXP',
 	'calibration.beat.deployed.body':
-		'Deine VXP sind nicht weg — sie stecken in noch offenen Calls. Sie zahlen zu ihren eigenen Terminen aus.',
+		'Deine VXP sind nicht weg: sie stecken in noch offenen Calls. Sie zahlen zu ihren eigenen Terminen aus.',
 	'calibration.beat.deployed.eyebrow': 'VOLL IM SPIEL',
 	'calibration.beat.deployed.practice': 'Üben, während du wartest →',
 	'calibration.beat.deployed.riding_on': 'IM SPIEL AUF {calls}',
 	'calibration.beat.deployed.see_open_calls': 'Offene Calls ansehen →',
-	'calibration.beat.deployed.title': 'Dein ganzer Einsatz ist im Spiel — nichts verloren.',
+	'calibration.beat.deployed.title': 'Dein ganzer Einsatz ist im Spiel, nichts verloren.',
 	'calibration.beat.depleted.body':
-		'Die Bilanz fängt beides auf. Schärfe den Blick in der Kalibrierung — Verluste sind geschützt, während du zurückkommst.',
+		'Die Bilanz fängt beides auf. Schärfe den Blick in der Kalibrierung: Verluste sind geschützt, während du zurückkommst.',
 	'calibration.beat.depleted.eyebrow': 'KEINE VXP MEHR',
 	'calibration.beat.depleted.foot': 'VERLUSTE GESCHÜTZT · +{reward} PRO RICHTIGEM CALL',
 	'calibration.beat.depleted.open_calibration': 'Kalibrierung öffnen →',
@@ -742,7 +742,7 @@ export const deMessages = {
 	'calibration.rate_limited.title': 'Du hast dich vorerst genug geschärft.',
 	'calibration.recovered.eyebrow': 'DU HAST DICH ERHOLT',
 	'calibration.recovered.sub':
-		'Dein Guthaben liegt wieder über {floor} VXP — bereit, live zu rufen.',
+		'Dein Guthaben liegt wieder über {floor} VXP: bereit, live zu rufen.',
 	'calibration.recovered.title': 'Du stehst wieder auf eigenen Beinen.',
 	'calibration.tally.right': '· {right} von {total} richtig',
 	'calibration.tally.session': 'SITZUNGSGEWINN',
@@ -856,7 +856,7 @@ export const deMessages = {
 	'dash.build.in_play': 'Im Spiel',
 	'dash.build.open_empty_cta': 'Flow öffnen →',
 	'dash.build.open_empty_sub':
-		'Du hast jeden Call abgeschlossen. Mach den nächsten — deine Serie zählt auf dich.',
+		'Du hast jeden Call abgeschlossen. Mach den nächsten: deine Serie zählt auf dich.',
 	'dash.build.open_empty_title': 'Keine aktiven Calls',
 	'dash.build.see_all_open': 'Alle {count} offenen ansehen ↓',
 	'dash.build.see_all_resolved': 'Alle {count} abgeschlossenen ansehen ↓',
@@ -878,7 +878,7 @@ export const deMessages = {
 	'dash.build.today': 'Heute',
 	'dash.build.today_neg': '▼ {value}',
 	'dash.build.today_pos': '▲ +{value}',
-	'dash.build.trend_chart_label': 'Genauigkeitsverlauf — wischen, um den Zeitraum zu wechseln',
+	'dash.build.trend_chart_label': 'Genauigkeitsverlauf: wischen, um den Zeitraum zu wechseln',
 	'dash.build.trend_foot': 'Letzte {window} · von {start}%',
 	'dash.build.trend_longer': 'Längerer Zeitraum',
 	'dash.build.trend_shorter': 'Kürzerer Zeitraum',
@@ -917,7 +917,7 @@ export const deMessages = {
 	'dash.active.see_all': 'Alle {count} ansehen',
 	'dash.categories.eyebrow': 'Nach Kategorie',
 	'dash.dz.active_day1_pending_body':
-		'Deine Vorhersage ist unterwegs — sie wird aufgelöst, sobald der Markt schließt.',
+		'Deine Vorhersage ist unterwegs; sie wird aufgelöst, sobald der Markt schließt.',
 	'dash.dz.available': 'Verfügbar',
 	'dash.dz.crowd_yes': 'Menge · {pct}% JA',
 	'dash.dz.header_eyebrow_day0': 'Tag null · willkommen',
@@ -934,7 +934,7 @@ export const deMessages = {
 	'dash.dz.hero_trans_day0': 'Taten, nicht Worte.',
 	'dash.dz.hero_trans_day1': 'Die Würfel sind gefallen. Deine erste Vorhersage ist unterwegs.',
 	'dash.dz.holdings_caption':
-		'Startpaket. Setze es für Vorhersagen ein — gewinne, um es zu vergrößern.',
+		'Startpaket. Setze es für Vorhersagen ein; gewinne, um es zu vergrößern.',
 	'dash.dz.lifetime_zero': '0 verdient',
 	'dash.dz.n_open': '{count} OFFEN',
 	'dash.dz.n_pending': '{count} AUSSTEHEND',
@@ -977,17 +977,17 @@ export const deMessages = {
 	'dash.holdings.session': 'Diese Session',
 	'dash.holdings.session_many': '{count} Calls',
 	'dash.holdings.session_one': '{count} Call',
-	'dash.goal.complete': 'Ziel erreicht — Serie gesichert.',
+	'dash.goal.complete': 'Ziel erreicht, Serie gesichert.',
 	'dash.goal.continue': 'Weiter',
 	'dash.goal.eyebrow': 'Heutiges Ziel',
 	'dash.goal.progress': '{done} / {target} Calls',
-	'dash.goal.remaining_many': 'Noch {count} Calls — mach da weiter, wo du aufgehört hast.',
-	'dash.goal.remaining_one': 'Noch ein Call — mach da weiter, wo du aufgehört hast.',
+	'dash.goal.remaining_many': 'Noch {count} Calls: mach da weiter, wo du aufgehört hast.',
+	'dash.goal.remaining_one': 'Noch ein Call: mach da weiter, wo du aufgehört hast.',
 	'dash.next.eyebrow': 'Nächster Unlock',
 	'dash.oracle.best_call': 'Du hast {title} früh gecallt.',
 	'dash.oracle.best_call_sub': '+{vxp} VXP · bester Call',
 	'dash.oracle.best_call_sub_contrarian': '+{vxp} VXP · Contrarian-Win',
-	'dash.oracle.empty': 'Noch keine Insights — mach ein paar Calls, dann meldet sich das Orakel.',
+	'dash.oracle.empty': 'Noch keine Insights: mach ein paar Calls, dann meldet sich das Orakel.',
 	'dash.oracle.empty_sub': 'Aktualisiert nach jedem aufgelösten Markt',
 	'dash.oracle.eyebrow': 'Orakel · bester Call',
 	'dash.past.empty': 'Hier ist es ruhig. Erweitere den Filter.',
@@ -1003,7 +1003,7 @@ export const deMessages = {
 	'dash.rank.league_sub': 'tippen, um zu sehen',
 	'dash.rank.of_total': 'von {total}',
 	'dash.rank.percentile': 'Top {pct}%',
-	'dash.rank.placeholder': '—',
+	'dash.rank.placeholder': '–',
 	'dash.rank.top_cat': 'Top-Kategorie',
 	'dash.rank.top_cat_sub': 'beste Kat.',
 	'dash.rank.wc_sub': 'Genauigkeit',
@@ -1020,16 +1020,16 @@ export const deMessages = {
 	'dash.active.vol_calls': '{count} Vorhersagen',
 	'dash.disclosure.contrarian_amount': '+{vxp} VXP',
 	'dash.disclosure.contrarian_ctx': 'Gegen den Konsens',
-	'dash.disclosure.contrarian_empty': 'Noch keine Contrarian-Wins — geh gegen den Konsens.',
+	'dash.disclosure.contrarian_empty': 'Noch keine Contrarian-Wins: geh gegen den Konsens.',
 	'dash.disclosure.contrarian_title': 'Contrarian-Wins · {count}',
 	'dash.disclosure.rival_gap': '{points} Punkte voraus',
 	'dash.disclosure.rival_gap_behind': '{points} Punkte Vorsprung',
 	'dash.disclosure.rival_gap_unknown': 'Rivalitätsdaten in Kürze',
 	'dash.disclosure.rival_title': 'Dein Rivale · {handle}',
-	'dash.disclosure.rival_title_unknown': 'Dein Rivale · —',
+	'dash.disclosure.rival_title_unknown': 'Dein Rivale · –',
 	'dash.disclosure.untried_body': 'Du hast {category} noch nie getippt.',
 	'dash.disclosure.untried_cta': 'Öffne {category} im Flow →',
-	'dash.disclosure.untried_empty': 'Du hast alle Kategorien probiert — top.',
+	'dash.disclosure.untried_empty': 'Du hast alle Kategorien probiert, top.',
 	'dash.disclosure.untried_title': 'Märkte, die du noch nicht versucht hast',
 	'dash.next.streak_progress': '{current}/{target} Tage · noch {count}',
 	'dash.past.row_ctx_side_when': '{side} · vor {when}',
@@ -1048,7 +1048,7 @@ export const deMessages = {
 	'flow.amount.increase_aria': 'Betrag erhöhen',
 	'flow.back_to_markets': 'Zurück zu Märkten',
 	'flow.cap.body':
-		'Alle {count} Calls von heute sind drin — starker Tag. Sie lösen sich an ihren eigenen Terminen auf, und ein frisches Set wird morgen freigeschaltet.',
+		'Alle {count} Calls von heute sind drin, starker Tag. Sie lösen sich an ihren eigenen Terminen auf, und ein frisches Set wird morgen freigeschaltet.',
 	'flow.cap.eyebrow': 'DAS WAR DER TAG',
 	'flow.cap.invite': 'Freund einladen',
 	'flow.cap.title': 'Komm morgen wieder.',
@@ -1063,14 +1063,14 @@ export const deMessages = {
 	'flow.end.body_comeback':
 		'Du bist zurück im Spiel. Zeig dich morgen und die Serie steigt von hier.',
 	'flow.end.body_day':
-		'Zehn eingeloggt — gut gemacht. Deine Calls lösen sich an ihren eigenen Terminen auf; komm morgen wieder und die Serie wächst.',
+		'Zehn eingeloggt, gut gemacht. Deine Calls lösen sich an ihren eigenen Terminen auf; komm morgen wieder und die Serie wächst.',
 	'flow.end.body_overtime':
-		'Fünfzehn eingeloggt — ein perfekter Tag. Deine Calls lösen sich an ihren eigenen Terminen auf; komm morgen wieder, um die Serie höher zu treiben.',
+		'Fünfzehn eingeloggt, ein perfekter Tag. Deine Calls lösen sich an ihren eigenen Terminen auf; komm morgen wieder, um die Serie höher zu treiben.',
 	'flow.end.eyebrow_comeback': 'SERIE WIEDERGEBOREN',
 	'flow.end.eyebrow_day': 'TAG ABGESCHLOSSEN',
 	'flow.end.eyebrow_overtime': 'OVERTIME ABGESCHLOSSEN',
 	'flow.end.head_comeback_1': 'Zurück auf der Tafel.',
-	'flow.end.head_comeback_2': 'Tag 1 — wieder.',
+	'flow.end.head_comeback_2': 'Tag 1, wieder.',
 	'flow.end.head_comeback_3': 'Wiedergeboren.',
 	'flow.end.head_day_1': 'Tag erledigt.',
 	'flow.end.head_day_2': 'Zehn im Sack.',
@@ -1122,7 +1122,7 @@ export const deMessages = {
 	'flow.list_03': 'Streaks, die dich zurückholen.',
 	'flow.list_04': 'Erkenntnisse erscheinen, wenn du die Karte drehst.',
 	'flow.notification.insufficient_message':
-		'Dein Guthaben steckt bereits in offenen Vorhersagen – es wird frei, sobald Märkte aufgelöst werden.',
+		'Dein Guthaben steckt bereits in offenen Vorhersagen; es wird frei, sobald Märkte aufgelöst werden.',
 	'flow.notification.insufficient_title': 'Nicht genug verfügbares Guthaben',
 	'flow.notification.trade_failed_message': 'Order für "{title}..." fehlgeschlagen: {error}',
 	'flow.notification.trade_failed_title': 'Vorhersage fehlgeschlagen',
@@ -1169,7 +1169,7 @@ export const deMessages = {
 	'inbox.just_now': 'Gerade eben',
 	'inbox.level.body': 'Du hast Level {level} erreicht.',
 	'inbox.level.title': 'Level-Aufstieg',
-	'inbox.streak.body': '{count}-Tage-Serie — {stage}.',
+	'inbox.streak.body': '{count}-Tage-Serie: {stage}.',
 	'inbox.streak.title': 'Serien-Meilenstein',
 	'inbox.like_received.title': '{user} hat deinen Tipp geliked',
 	'inbox.like_received.title_multi': '{user} und {count} weitere haben deinen Tipp geliked',
@@ -1215,7 +1215,7 @@ export const deMessages = {
 	'info.doc.faq.b2':
 		'Öffne Flow und eine Marktkarte erscheint. Wisch nach rechts für JA, nach links für NEIN, nach oben zum Überspringen. Tippe die Karte an, um sie zu drehen und Kontext sowie alle Quoten zu sehen.',
 	'info.doc.faq.b3':
-		'Jede Prognose setzt VXP zu den Marktquoten ein — unwahrscheinliche Ausgänge bringen mehr, Favoriten weniger. Gib deine 10 Prognosen am Tag ab, um deine Serie auszubauen; Trefferquote und Rang steigen, sobald die Märkte entschieden werden.',
+		'Jede Prognose setzt VXP zu den Marktquoten ein: unwahrscheinliche Ausgänge bringen mehr, Favoriten weniger. Gib deine 10 Prognosen am Tag ab, um deine Serie auszubauen; Trefferquote und Rang steigen, sobald die Märkte entschieden werden.',
 	'info.doc.faq.b4': 'Was ist VXP?',
 	'info.doc.faq.b5':
 		'VXP ist das app-interne Prognoseguthaben. Du verdienst es durch Prognosen. Es ist kein Geld. Es ist nicht auszahlbar. Es ist die Einheit deiner Bilanz.',
@@ -1233,7 +1233,7 @@ export const deMessages = {
 	'info.doc.how-resolution-works.b10':
 		'Die Vici-Redaktion prüft anhand des veröffentlichten Kriteriums. Entscheidungen und Begründungen werden offen im Abrechnungsfeld auf der Kartenrückseite veröffentlicht.',
 	'info.doc.how-resolution-works.b2':
-		'Ein Prognosemarkt funktioniert nur, wenn beide Seiten die Regeln kennen, sobald sie ihre Prognose abgeben. Bevor ein Markt startet, veröffentlichen wir die genaue öffentliche Quelle, die ihn entscheidet — eine Behördenmeldung, ein Verbandsergebnis, ein anerkannter Datenanbieter.',
+		'Ein Prognosemarkt funktioniert nur, wenn beide Seiten die Regeln kennen, sobald sie ihre Prognose abgeben. Bevor ein Markt startet, veröffentlichen wir die genaue öffentliche Quelle, die ihn entscheidet: eine Behördenmeldung, ein Verbandsergebnis, ein anerkannter Datenanbieter.',
 	'info.doc.how-resolution-works.b3': 'Was du auf jeder Karte siehst',
 	'info.doc.how-resolution-works.b4.i0':
 		'Abrechnungskriterium · die genaue JA-Bedingung, in klaren Worten',
@@ -1261,7 +1261,7 @@ export const deMessages = {
 		'Quelle ändert ihre Methodik im laufenden Fenster → Markt annulliert, sofern die Änderung nicht unerheblich ist.',
 	'info.doc.resolution-rules.b11': 'Einsprüche',
 	'info.doc.resolution-rules.b12':
-		'Wer eine Prognose abgegeben hat, kann innerhalb von zweiundsiebzig Stunden Einspruch einlegen — per E-Mail an {email} mit Name, Markt-ID und Begründung. Einsprüche werden von der Redaktion geprüft und innerhalb von vierundzwanzig Stunden beantwortet.',
+		'Wer eine Prognose abgegeben hat, kann innerhalb von zweiundsiebzig Stunden Einspruch einlegen, per E-Mail an {email} mit Name, Markt-ID und Begründung. Einsprüche werden von der Redaktion geprüft und innerhalb von vierundzwanzig Stunden beantwortet.',
 	'info.doc.resolution-rules.b2':
 		'Bevor ein Markt für Prognosen öffnet, werden zwei Fakten festgelegt und auf der Kartenrückseite veröffentlicht: das Abrechnungskriterium (die JA-Bedingung in klaren Worten) und die Quelle (der benannte öffentliche Datenfeed, der entscheidet).',
 	'info.doc.resolution-rules.b3': 'Prognosefenster',
@@ -1296,7 +1296,7 @@ export const deMessages = {
 	'invite.sheet.body':
 		'Du bist bereits VICI-Mitglied, daher kann die Einladung von {handle} keinen VXP-Bonus auszahlen. Du kannst die Person trotzdem als Freund hinzufügen, um eure Calls zu vergleichen und euch gegenseitig zu unterstützen.',
 	'invite.sheet.bullet_friendship': 'Ihr erscheint sofort in den Freundeslisten des anderen.',
-	'invite.sheet.bullet_no_bonus': 'Kein VXP-Bonus — die +500 VXP sind Neuanmeldungen vorbehalten.',
+	'invite.sheet.bullet_no_bonus': 'Kein VXP-Bonus: die +500 VXP sind Neuanmeldungen vorbehalten.',
 	'invite.sheet.cta_add': '{handle} als Freund hinzufügen',
 	'invite.sheet.cta_skip': 'Jetzt nicht',
 	'invite.sheet.eyebrow': 'Einladung von',
@@ -1443,7 +1443,7 @@ export const deMessages = {
 	'leagues.detail.battle_meta_awaiting': 'Warte auf Annahme von {opponent}',
 	'leagues.detail.battle_meta_day_of': 'Tag {day} von {days} · Genauigkeits-Duell',
 	'leagues.detail.battle_meta_incoming':
-		'{opponent} hat deine Liga herausgefordert – unten annehmen',
+		'{opponent} hat deine Liga herausgefordert, unten annehmen',
 	'leagues.detail.battle_owner_accepts':
 		'Nur ein Eigentümer oder Admin der Liga kann diese Herausforderung annehmen.',
 	'leagues.detail.invite_copied': 'Kopiert',
@@ -1462,7 +1462,7 @@ export const deMessages = {
 	'leagues.detail.loading': 'Lade Liga…',
 	'leagues.detail.members_count_unlimited': '{count} / unbegrenzt',
 	'leagues.detail.not_member.sub':
-		'Du siehst die Liste dieser Liga nicht — frag den Inhaber nach einem Einladungscode.',
+		'Du siehst die Liste dieser Liga nicht; frag den Inhaber nach einem Einladungscode.',
 	'leagues.detail.not_member.title': 'Du bist nicht in dieser Liga.',
 	'leagues.detail.predict_cta': 'Vorhersagen',
 	'leagues.detail.rank_eyebrow': 'Dein Rang in {league}',
@@ -1548,7 +1548,7 @@ export const deMessages = {
 	'loop.port_italic': 'Sieh, ob du recht hattest.',
 	'loop.port_name': 'Übersicht',
 	'loop.sub':
-		'Flow für Tempo. Markt für Tiefe. Dash für Wahrheit. Beweg dich natürlich dazwischen — das System belohnt Bewegung.',
+		'Flow für Tempo. Markt für Tiefe. Dash für Wahrheit. Beweg dich natürlich dazwischen: das System belohnt Bewegung.',
 	'loop.title_a': 'Drei Zustände.',
 	'loop.title_b': 'Ein Kreislauf.',
 	'market.closes': 'schließt',
@@ -1564,7 +1564,7 @@ export const deMessages = {
 	'market.detail.chart.period.all': 'Alle',
 	'market.detail.closed.expired': 'Dieser Markt ist geschlossen und wartet auf die Auflösung.',
 	'market.detail.coldstart.body':
-		'Diesen Markt hat noch niemand eingeschätzt — deine Vorhersage setzt den ersten Stand.',
+		'Diesen Markt hat noch niemand eingeschätzt: deine Vorhersage setzt den ersten Stand.',
 	'market.detail.coldstart.lead': 'Neuer Markt.',
 	'market.detail.cta.predict_no': 'NEIN vorhersagen',
 	'market.detail.cta.predict_yes': 'JA vorhersagen',
@@ -1579,7 +1579,7 @@ export const deMessages = {
 		'Die Preise stammen aus einem Live-Orderbuch. VICIs Market Maker stellt ruhende Liquidität bereit, sodass sich die Linie ab dem ersten Tipp bewegt.',
 	'market.detail.not_found.cta': 'Zurück zu Märkten',
 	'market.detail.not_found.sub': 'Der gesuchte Markt ist entweder verborgen oder existiert nicht.',
-	'market.detail.not_found.title': '404 – Markt nicht gefunden',
+	'market.detail.not_found.title': '404: Markt nicht gefunden',
 	'market.detail.readonly.live': 'Nur ansehen · Vorhersagen werden in Flow getroffen',
 	'market.detail.readonly.settled': 'Markt abgerechnet · kein Handel mehr',
 	'market.detail.resolution.eyebrow': 'Auflösung',
@@ -1634,7 +1634,7 @@ export const deMessages = {
 	'market.metadata.free_tags': 'Freie Tags',
 	'market.metadata.free_tags_placeholder': 'z. B. world-cup, bitcoin-etf',
 	'market.metadata.tags_help':
-		'Tags kategorisieren diesen Markt in der gesamten App — wähle keinen, einen oder mehrere.',
+		'Tags kategorisieren diesen Markt in der gesamten App; wähle keinen, einen oder mehrere.',
 	'market.metadata.title': 'Marktkontext',
 	'market.metadata.translations.error.load': 'Übersetzungen konnten nicht geladen werden.',
 	'market.metadata.translations.error.save': 'Übersetzung konnte nicht gespeichert werden.',
@@ -1828,7 +1828,7 @@ export const deMessages = {
 	'market.vol_suffix': 'Vol.',
 	'markets.beyond.eyebrow': 'ÜBER DAS TURNIER HINAUS',
 	'markets.beyond.locked_copy':
-		'Halte deine kalibrierte Trefferquote bei {pct}% oder höher, um die anderen Märkte freizuschalten. Noch {remaining} Punkte — tippe weiter in Flow.',
+		'Halte deine kalibrierte Trefferquote bei {pct}% oder höher, um die anderen Märkte freizuschalten. Noch {remaining} Punkte, tippe weiter in Flow.',
 	'markets.beyond.ready': '{count} Märkte bereit',
 	'markets.beyond.unlock_at': 'Freischalten bei {pct}%',
 	'markets.beyond.unlocked_copy':
@@ -1849,7 +1849,7 @@ export const deMessages = {
 	'markets.wc_recap.cta': 'Alle Märkte erkunden',
 	'markets.wc_recap.eyebrow': '{event} · dein Lauf',
 	'markets.wc_recap.line':
-		'Das Turnier ist entschieden. Die Welt dreht sich weiter — das Board auch.',
+		'Das Turnier ist entschieden. Die Welt dreht sich weiter, das Board auch.',
 	'motion.badge.centurion': 'CENTURION',
 	'motion.badge.contrarian': 'GEGENPOL',
 	'motion.badge_label': '{badge}-ABZEICHEN',
@@ -1859,11 +1859,11 @@ export const deMessages = {
 	'motion.name.vici': 'VICI',
 	'motion.pool.comeback_1': 'Wusste, du kommst zurück.',
 	'motion.pool.comeback_2': 'Der Rekord hat gewartet.',
-	'motion.pool.comeback_3': 'Kein Groll — los geht’s.',
+	'motion.pool.comeback_3': 'Kein Groll, los geht’s.',
 	'motion.pool.comeback_4': 'Genau da, wo du aufgehört hast.',
 	'motion.pool.daily_ten_1': 'Zehn! In Flammen.',
 	'motion.pool.daily_ten_2': 'Zehn von zehn.',
-	'motion.pool.daily_ten_3': 'Tägliche Zehn — erledigt.',
+	'motion.pool.daily_ten_3': 'Tägliche Zehn: erledigt.',
 	'motion.pool.first_call_1': 'Du bist dabei!',
 	'motion.pool.first_call_2': 'Erster Tipp steht auf dem Board.',
 	'motion.pool.first_call_3': 'Und los geht’s!',
@@ -1899,7 +1899,7 @@ export const deMessages = {
 	'motion.pool.r8_3': 'So nah.',
 	'motion.pool.r8_4': 'Zwei übrig.',
 	'motion.pool.streak_reborn_1': 'Serie neu geboren.',
-	'motion.pool.streak_reborn_2': 'Tag 1 — wieder.',
+	'motion.pool.streak_reborn_2': 'Tag 1, wieder.',
 	'motion.pool.streak_reborn_3': 'Zurück auf dem Board.',
 	'motion.pool.welcome_back_1': 'Willkommen zurück.',
 	'motion.pool.welcome_back_2': 'Schau, wer da ist.',
@@ -1961,12 +1961,12 @@ export const deMessages = {
 	'onboarding.sub': 'Verdient, nicht geschenkt. Dein Name in jeder Rangliste.',
 	'onboarding.avail.checking': 'Verfügbarkeit wird geprüft…',
 	'onboarding.avail.available': 'Verfügbar ·',
-	'onboarding.avail.taken': 'Vergeben — probiere eine Variante',
+	'onboarding.avail.taken': 'Vergeben, probiere eine Variante',
 	'onboarding.avail.invalid': 'Nur Buchstaben, Zahlen, . _ -',
-	'onboarding.avail.too_short': 'Zu kurz — mindestens 2 Zeichen',
-	'onboarding.avail.too_long': 'Zu lang — höchstens 16 Zeichen',
-	'onboarding.avail.reserved': 'Reserviert — wähle einen anderen',
-	'onboarding.avail.check_failed': 'Prüfung fehlgeschlagen — versuche zu sichern',
+	'onboarding.avail.too_short': 'Zu kurz: mindestens 2 Zeichen',
+	'onboarding.avail.too_long': 'Zu lang: höchstens 16 Zeichen',
+	'onboarding.avail.reserved': 'Reserviert, wähle einen anderen',
+	'onboarding.avail.check_failed': 'Prüfung fehlgeschlagen, versuche zu sichern',
 	'onboarding.reward_title': '1500-VXP-Starterpaket',
 	'onboarding.reward_sub': 'Sag {event} voraus',
 	'onboarding.lock_ready': '@{handle} wird gesichert',
@@ -1993,7 +1993,7 @@ export const deMessages = {
 	'portfolio.back': 'Zurück zum Dashboard',
 	'portfolio.allocation.other': 'Andere',
 	'portfolio.empty.body':
-		'Setze auf ein paar Calls im Flow-Deck — deine offenen und abgeschlossenen Positionen erscheinen hier.',
+		'Setze auf ein paar Calls im Flow-Deck; deine offenen und abgeschlossenen Positionen erscheinen hier.',
 	'portfolio.empty.cta': 'Flow öffnen',
 	'portfolio.empty.quote': '"Ein Portfolio ist die Liste der Calls, die du behalten hast."',
 	'portfolio.hero.eyebrow': 'GESAMTBESTAND',
@@ -2040,7 +2040,7 @@ export const deMessages = {
 	'profile.dashboard.affiliations.status_verified': 'Bestätigt',
 	'profile.dashboard.affiliations.title': 'Zugehörigkeiten',
 	'profile.dashboard.affiliations.university': 'Alma Mater',
-	'profile.dashboard.affiliations.verify_soon': 'Verifizierung — bald',
+	'profile.dashboard.affiliations.verify_soon': 'Verifizierung: bald',
 	'profile.dashboard.affiliations.verify_cta': 'Uni verifizieren →',
 	'profile.dashboard.all': 'Alle',
 	'profile.dashboard.calls': 'Calls',
@@ -2052,7 +2052,7 @@ export const deMessages = {
 	'profile.dashboard.invite_friends': 'Freunde einladen',
 	'profile.dashboard.invite_share_title': 'VICI',
 	'profile.dashboard.invite_share_text':
-		'Komm zu mir auf VICI — sag die Zukunft voraus, bau deine Bilanz auf.',
+		'Komm zu mir auf VICI: sag die Zukunft voraus, bau deine Bilanz auf.',
 	'profile.dashboard.invite_copied': 'Einladungslink kopiert',
 	'profile.avatar.title': 'Avatar bearbeiten',
 	'profile.avatar.subtitle': 'Tippen für Vorschau · Änderungen gelten mit Fertig',
@@ -2128,10 +2128,10 @@ export const deMessages = {
 		'{trades} Calls erfasst. {acc}% Trefferquote. Raum zum Schärfen.',
 	'profile.dashboard.oracle.streak_acc':
 		'{days}-Tage-Streak und {acc}% Genauigkeit. Beständigkeit zahlt sich aus.',
-	'profile.dashboard.oracle.record_win': 'Du hast es vorhergesagt —',
+	'profile.dashboard.oracle.record_win': 'Du hast es vorhergesagt:',
 	'profile.dashboard.oracle.record_win_sub':
 		'Deine Seite hielt stand. Deine Bilanz trägt es weiter.',
-	'profile.dashboard.oracle.record_loss': 'Der Markt ging in die andere Richtung —',
+	'profile.dashboard.oracle.record_loss': 'Der Markt ging in die andere Richtung:',
 	'profile.dashboard.oracle.record_loss_sub':
 		'Lies die Quelle. Kalibriere neu. Nur die nächste Prognose zählt.',
 	'profile.dashboard.oracle_label': 'Oracle ·',
@@ -2228,7 +2228,7 @@ export const deMessages = {
 		'Anonymisiert. Deine Antworten bleiben; der Name verschwindet.',
 	'settings.delete.happens_trades_label': 'Aktive Trades · {count} · {value} VXP',
 	'settings.delete.happens_trades_sub':
-		'Bleiben offen und werden bei Fälligkeit abgerechnet — Löschen beendet sie nicht.',
+		'Bleiben offen und werden bei Fälligkeit abgerechnet; Löschen beendet sie nicht.',
 	'settings.delete.leagues_body':
 		'Übergib jede Liga an ein anderes Mitglied oder lösche sie für alle.',
 	'settings.delete.leagues_delete': 'Liga löschen',
@@ -2254,7 +2254,7 @@ export const deMessages = {
 	'settings.delete.reason_body_acc': 'Deine Antwort hilft uns, VICI für andere zu verbessern.',
 	'settings.delete.reason_heading': 'Bevor du gehst.',
 	'settings.delete.stay_body':
-		'Mach 30 Tage Pause — deine Statistiken werden eingefroren und dein Profil ausgeblendet. Oder melde dich, und wir reparieren, was kaputt ist.',
+		'Mach 30 Tage Pause: deine Statistiken werden eingefroren und dein Profil ausgeblendet. Oder melde dich, und wir reparieren, was kaputt ist.',
 	'settings.delete.stay_contact': 'Kontakt',
 	'settings.delete.stay_heading': 'Möchtest du bleiben?',
 	'settings.delete.stay_pause': '30 Tage pausieren',
@@ -2394,7 +2394,7 @@ export const deMessages = {
 	'arena.hero.meta_of': 'von {total}',
 	'arena.hero.dot_aria': 'Rang {scope} anzeigen',
 	'arena.hero.aria':
-		'Dein Rang {scope} — wische oder nutze die Pfeiltasten, um den Bereich zu wechseln, tippe zum Öffnen',
+		'Dein Rang {scope}: wische oder nutze die Pfeiltasten, um den Bereich zu wechseln, tippe zum Öffnen',
 	'arena.w_eyebrow': '03 · WORLDS UNIVERSITIES',
 	'arena.wcbattle_cta': 'Bracket ansehen',
 	'arena.wcbattle_sub': 'Nur WM-Vorhersagen. {count} Hochschulen im Wettbewerb bis 19. Juli.',
@@ -2416,7 +2416,7 @@ export const deMessages = {
 	'arena.friends.action.cancel': 'Abbrechen',
 	'arena.friends.action.reject': 'Ablehnen',
 	'arena.friends.add.auto_accepted':
-		'Dir lag schon eine Anfrage von dieser Person vor — ihr seid jetzt befreundet!',
+		'Dir lag schon eine Anfrage von dieser Person vor: ihr seid jetzt befreundet!',
 	'arena.friends.add.cta': 'Freund hinzufügen',
 	'arena.friends.add.invite_hint':
 		'Noch keine Treffer. Mit dem Einladungslink bekommt ihr beide {amount} VXP.',
@@ -2426,19 +2426,19 @@ export const deMessages = {
 	'arena.friends.add.sheet_title': 'Freund hinzufügen',
 	'arena.friends.empty.quote': '"Ganz schön einsam hier."',
 	'arena.friends.empty.sub':
-		'Noch keine Freunde. Füge den ersten hinzu — oder lade jemanden ein, und ihr startet beide mit 500 VXP.',
+		'Noch keine Freunde. Füge den ersten hinzu, oder lade jemanden ein, und ihr startet beide mit 500 VXP.',
 	'arena.friends.empty.add_first': 'Ersten Freund hinzufügen',
 	'arena.friends.empty.invite_now': 'Jetzt einladen',
 	'arena.friends.error.accept_failed': 'Anfrage konnte nicht angenommen werden',
 	'arena.friends.error.already_friends': 'Ihr seid bereits befreundet.',
-	'arena.friends.error.already_pending': 'Anfrage bereits gesendet — wartet auf Annahme.',
+	'arena.friends.error.already_pending': 'Anfrage bereits gesendet, wartet auf Annahme.',
 	'arena.friends.error.cancel_failed': 'Anfrage konnte nicht abgebrochen werden',
 	'arena.friends.error.not_found':
 		'Kein Nutzer mit diesem Handle gefunden. Überprüfe die Schreibweise oder lade ihn per Link ein.',
 	'arena.friends.error.reject_failed': 'Anfrage konnte nicht abgelehnt werden',
 	'arena.friends.error.rejected_cooldown':
 		'Deine letzte Anfrage wurde abgelehnt. Du kannst es {when} erneut versuchen.',
-	'arena.friends.error.self': 'Das bist du selbst — wähle ein anderes Handle.',
+	'arena.friends.error.self': 'Das bist du selbst; wähle ein anderes Handle.',
 	'arena.friends.error.send_failed_detail':
 		'Anfrage konnte nicht gesendet werden. Mach einen Screenshot und sag uns Bescheid: {detail}',
 	'arena.friends.error.unfriend_failed': 'Freundschaft konnte nicht beendet werden',
@@ -2457,7 +2457,7 @@ export const deMessages = {
 	'arena.friends.global.unranked': 'Unplatziert',
 	'arena.friends.invite.cap_reached': 'Belohnungslimit erreicht.',
 	'arena.friends.invite.cap_remaining': '{remaining} belohnte Einladungen übrig',
-	'arena.friends.invite.cap_resets': 'Freunde treten weiter bei – Belohnungen sind gedeckelt.',
+	'arena.friends.invite.cap_resets': 'Freunde treten weiter bei; Belohnungen sind gedeckelt.',
 	'arena.friends.invite.copied': 'Kopiert',
 	'arena.friends.invite.copy': 'Link kopieren',
 	'arena.friends.invite.eyebrow_suffix': 'für euch beide',
@@ -2542,7 +2542,7 @@ export const deMessages = {
 		'Jede Frage wird auf einer öffentlichen Quelle abgerechnet. Kein Ermessen. Keine Berufung.',
 	'trust.p1_t': 'Löst sich über öffentliche Daten auf',
 	'trust.p2_b':
-		'Preise, Vorhersagen, Auflösungen — alle sichtbar im Moment ihrer Bewegung. Keine privaten Feeds. Keine Insider.',
+		'Preise, Vorhersagen, Auflösungen: alle sichtbar im Moment ihrer Bewegung. Keine privaten Feeds. Keine Insider.',
 	'trust.p2_t': 'Gleiche Info für alle',
 	'trust.p3_b':
 		'Die Wahrscheinlichkeit, die du siehst, ist der Konsens, über den du abstimmst. Kein Hausvorteil. Kein Spread.',
@@ -2626,25 +2626,25 @@ export const deMessages = {
 	'wc.kickoff_week': 'KICKOFF-WOCHE',
 	'wc.matchday': 'SPIELTAG',
 	'wc.sub':
-		'Anstoß am 11. Juni. Wähle jetzt eine Seite — Gruppenphasen-Märkte sind offen, K.O.-Märkte starten zur Auslosung.',
+		'Anstoß am 11. Juni. Wähle jetzt eine Seite: Gruppenphasen-Märkte sind offen, K.O.-Märkte starten zur Auslosung.',
 	'wc.tile_aria': 'Auf {team} tippen',
 	'wc.title_a': 'Die Favoriten setzen',
 	'wc.title_b': 'die Linie.',
 	'welcome.battle.members': 'MITGLIEDER',
 	'welcome.faq.a1':
-		'Ja. Der Spielmodus ist vollständig kostenlos — keine Karte, keine Einzahlung, kein Abo. VXP ist eine reine Spielwährung, die deine Genauigkeit verfolgt; nicht einlösbar und kein Geld. Echtgeld-Märkte werden, falls eingeführt, optional und klar gekennzeichnet sein.',
+		'Ja. Der Spielmodus ist vollständig kostenlos: keine Karte, keine Einzahlung, kein Abo. VXP ist eine reine Spielwährung, die deine Genauigkeit verfolgt; nicht einlösbar und kein Geld. Echtgeld-Märkte werden, falls eingeführt, optional und klar gekennzeichnet sein.',
 	'welcome.faq.a2':
 		'Hunderte Fragen aus Makro, Krypto, Politik, Tech, Sport und Kultur. Jede Frage wird über eine öffentliche Quelle aufgelöst.',
 	'welcome.faq.a3':
-		'Aufgelöste Calls geteilt durch alle aufgelösten Calls. Offene Calls zählen erst, wenn ein Markt entschieden ist. Genauigkeit ist die Einheit deines Rufs — auf dem globalen Leaderboard, in deiner Liga und in jedem Battle, an dem du teilnimmst.',
+		'Aufgelöste Calls geteilt durch alle aufgelösten Calls. Offene Calls zählen erst, wenn ein Markt entschieden ist. Genauigkeit ist die Einheit deines Rufs, auf dem globalen Leaderboard, in deiner Liga und in jedem Battle, an dem du teilnimmst.',
 	'welcome.faq.a4':
-		'Im Spielmodus nicht. VICI ist kostenlos. Die Plattform verdient an Echtgeld-Märkten (falls eingeführt), Liga-Sponsorings und Turnierpartnerschaften. Deine Genauigkeitsdaten gehören dir — wir verkaufen sie nicht.',
+		'Im Spielmodus nicht. VICI ist kostenlos. Die Plattform verdient an Echtgeld-Märkten (falls eingeführt), Liga-Sponsorings und Turnierpartnerschaften. Deine Genauigkeitsdaten gehören dir; wir verkaufen sie nicht.',
 	'welcome.faq.a5':
 		'Server in der Europäischen Union. Verschlüsselt in Ruhe und während der Übertragung. Wir speichern ein Session-Token; keine Tracking-Cookies. Du kannst deine Daten jederzeit exportieren oder löschen.',
 	'welcome.faq.a6':
 		'Ein zeitlich begrenztes Genauigkeitsduell zwischen zwei Ligen oder Universitäten in einem Turnier. Sieben-Tage-Fenster, beide Seiten brauchen eine Mindestanzahl Calls, die Liga mit der höheren Durchschnittsgenauigkeit gewinnt.',
 	'welcome.faq.contact_prefix': 'Noch Fragen? Schreib an',
-	'welcome.faq.contact_suffix': '— wir antworten innerhalb von zwei Werktagen.',
+	'welcome.faq.contact_suffix': '(wir antworten innerhalb von zwei Werktagen).',
 	'welcome.faq.eyebrow': 'FAQ',
 	'welcome.faq.privacy_link': 'Details findest du in der Datenschutzerklärung.',
 	'welcome.faq.q1': 'Ist VICI kostenlos?',
@@ -2674,7 +2674,7 @@ export const deMessages = {
 	'welcome.nav.skip_to_content': 'Zum Inhalt springen',
 	'welcome.trust.tagline': 'Veni. Vidi. Vici.',
 	'welcome.universities.fifa_tag': 'FIFA WELTMEISTERSCHAFT',
-	'welcome.close.cta': 'Jetzt tippen — kostenlos',
+	'welcome.close.cta': 'Jetzt tippen, kostenlos',
 	'welcome.close.headline': 'Was passiert als Nächstes? Tippe es, bevor es passiert.',
 	'welcome.hero.card_meta': '{pct}% der Spieler sagen JA',
 	'welcome.hero.card_q': 'Schließt Bitcoin das Jahr höher, als es begonnen hat?',
@@ -2683,7 +2683,7 @@ export const deMessages = {
 	'welcome.hero.cta_note': '100% kostenlos',
 	'welcome.hero.favorite': 'FAVORIT',
 	'welcome.hero.headline': 'Für Besserwisser.',
-	'welcome.hero.hint': 'Swipe die Karte — links nein, rechts ja',
+	'welcome.hero.hint': 'Swipe die Karte: links nein, rechts ja',
 	'welcome.hero.kicker': 'Kostenloses Tippspiel · live',
 	'welcome.hero.long_shot': 'AUSSENSEITER',
 	'welcome.hero.no': 'NEIN',
@@ -2701,7 +2701,7 @@ export const deMessages = {
 	'welcome.proof.label': 'Wo stehst du?',
 	'welcome.proof.live': 'Leute geben schon ihre Tipps ab.',
 	'welcome.status.body':
-		'Jeder Tipp kommt auf dein Konto. Richtig getippt, steigst du auf — vorbei an deinem Chat, deiner Stadt, der Welt. Dem Ranking ist egal, wer am lautesten ist. Nur, wer am öftesten richtig liegt.',
+		'Jeder Tipp kommt auf dein Konto. Richtig getippt, steigst du auf, vorbei an deinem Chat, deiner Stadt, der Welt. Dem Ranking ist egal, wer am lautesten ist. Nur, wer am öftesten richtig liegt.',
 	'welcome.status.cap_friends': 'Dein Gruppenchat, im Ranking.',
 	'welcome.status.cap_uni': '250+ Unis treten an.',
 	'welcome.status.cap_work': 'Dein Team gegen die Firma.',
@@ -2720,7 +2720,7 @@ export const deMessages = {
 	'worlds.affil_prompt.title': 'Wo hast du studiert?',
 	'worlds.battle.back': 'Zurück zu Worlds',
 	'worlds.battle.empty_ranked':
-		'Diese Saison wurde noch nichts entschieden — alle Affiliationen sind unranked. Sei eine:r der ersten, der einen Call macht.',
+		'Diese Saison wurde noch nichts entschieden: alle Affiliationen sind unranked. Sei eine:r der ersten, der einen Call macht.',
 	'worlds.battle.meta_month': 'Alle Calls zählen · {count} aktiv',
 	'worlds.battle.month_emph': 'Saison {month}',
 	'worlds.battle.scope_month': 'Saison {month}',
@@ -2784,11 +2784,11 @@ export const deMessages = {
 	'worlds.picker.cta_university': 'Uni wählen',
 	'worlds.picker.empty': 'Keine Treffer. Versuche einen anderen Namen.',
 	'worlds.picker.error_already_affiliated': 'Du bist bereits auf dieser Bestenliste.',
-	'worlds.picker.error_locked': 'Wechsel noch nicht möglich — die 90-Tage-Sperre läuft.',
+	'worlds.picker.error_locked': 'Wechsel noch nicht möglich: die 90-Tage-Sperre läuft.',
 	'worlds.picker.error_timeout':
 		'Hat nicht geklappt. Prüfe deine Verbindung und versuche es erneut.',
 	'worlds.picker.lock_hint':
-		'Fügt dich zur Rangliste der Gruppe hinzu. Wechseln möglich — einmal pro 90 Tage.',
+		'Fügt dich zur Rangliste der Gruppe hinzu. Wechseln möglich, einmal pro 90 Tage.',
 	'worlds.picker.near_you': 'In deiner Nähe · {count} Unis',
 	'worlds.picker.region.all': 'Alle',
 	'worlds.picker.region.as': 'Asien',
@@ -2812,8 +2812,8 @@ export const deMessages = {
 	'worlds.picker.school.continue': 'Weiter →',
 	'worlds.picker.school.detected_from_email': 'aus deiner E-Mail erkannt',
 	'worlds.picker.school.domain_belongs':
-		'Diese Domain gehört zu {name} — wir fügen dich dort hinzu.',
-	'worlds.picker.school.dupe_title': 'Schon da — eine auswählen?',
+		'Diese Domain gehört zu {name}; wir fügen dich dort hinzu.',
+	'worlds.picker.school.dupe_title': 'Schon da, eine auswählen?',
 	'worlds.picker.school.email_label': 'Hochschul-E-Mail',
 	'worlds.picker.school.email_placeholder': 'du@{domain}',
 	'worlds.picker.school.empty_add_body': 'Sei die/der Erste von deiner Schule.',
@@ -2837,7 +2837,7 @@ export const deMessages = {
 		'✓ Nicht in unserem Verzeichnis. Bestätige mit deiner Hochschul-E-Mail.',
 	'worlds.picker.school.send_code': '6-stelligen Code senden →',
 	'worlds.picker.school.sending': 'Senden…',
-	'worlds.picker.school.skip_unverified': 'Überspringen — unbestätigt hinzufügen',
+	'worlds.picker.school.skip_unverified': 'Überspringen: unbestätigt hinzufügen',
 	'worlds.picker.school.status_pending': 'Ausstehend',
 	'worlds.picker.school.status_verified': 'Verifizierte Schule',
 	'worlds.picker.school.use': 'Nutzen →',
@@ -2853,7 +2853,7 @@ export const deMessages = {
 	'worlds.picker.school.verify_title': 'Bestätigen · {name}',
 	'worlds.picker.school.verify_with': 'Mit @{domain} bestätigen →',
 	'worlds.picker.school.verifying': 'Bestätigen…',
-	'worlds.picker.school.wrong_address': 'Falsche Adresse — ändern',
+	'worlds.picker.school.wrong_address': 'Falsche Adresse, ändern',
 	'worlds.picker.school.wrong_domain':
 		'Das ist keine {name}-Adresse. Erwartet wird etwas, das auf @{domain} endet.',
 	'worlds.picker.search_country': 'Suche {count} Länder…',
@@ -2895,7 +2895,7 @@ export const deMessages = {
 		'Der eingegebene Code konnte nicht eingelöst werden: {reason}',
 	'onboarding.handoff.referral_late_title': 'Bonus-Fenster geschlossen',
 	'onboarding.handoff.referral_late':
-		'Du hast dich mehr als 24 Stunden nach dem Klick auf den Link registriert — kein VXP-Bonus, aber wir haben den Einladenden trotzdem als Freund hinzugefügt.',
+		'Du hast dich mehr als 24 Stunden nach dem Klick auf den Link registriert: kein VXP-Bonus, aber wir haben den Einladenden trotzdem als Freund hinzugefügt.',
 	'onboarding.handoff.referral_ok_title': 'Empfehlung angewendet',
 	'onboarding.handoff.referral_ok': 'Du und deine Empfehlung erhaltet jeweils {amount} VXP.',
 	'profile.dashboard.referrals.code_pending':
@@ -2904,6 +2904,6 @@ export const deMessages = {
 		'Code konnte nicht erstellt werden. Bitte erneut versuchen.',
 	'profile.dashboard.referrals.share': 'Teilen',
 	'profile.dashboard.referrals.share_text':
-		'Melde dich bei VICI mit meinem Code {code} an — wir bekommen beide {amount} VXP.',
+		'Melde dich bei VICI mit meinem Code {code} an: wir bekommen beide {amount} VXP.',
 	'profile.dashboard.referrals.share_title': 'Komm zu mir auf VICI'
 } as const;

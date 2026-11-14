@@ -34,7 +34,7 @@
 
 	/**
 	 * Battle detail: face-off view for a single battle. Shows sideA + sideB
-	 * cards with their league names + accents, current scores (or a "—"
+	 * cards with their league names + accents, current scores (or a "–"
 	 * placeholder pre-resolve), the state pill, the kickoff/settle
 	 * window, and all the same inline transitions the inbox row exposes.
 	 *
@@ -60,7 +60,7 @@
 	// non-in_flight, legacy row missing baselines).
 	let liveScore = $state<BattleLiveScore | null>(null);
 	// True only while the in-flight live-score read is in flight, so the
-	// face-off scores can pulse instead of sitting on a static "—" while the
+	// face-off scores can pulse instead of sitting on a static "–" while the
 	// two leagues' standings are still being computed.
 	let liveScoreLoading = $state(false);
 	// Fire `battle_viewed` exactly once per mount, on the first `ready`.
@@ -99,10 +99,10 @@
 			}
 
 			// Provisional standings: read-only; resolution stays the lazy
-			// auto-resolve path. A failure degrades silently to the "—" render.
+			// auto-resolve path. A failure degrades silently to the "–" render.
 			if (nonNullish(found)) {
 				// Only league battles in flight return a live score; flagging
-				// just those keeps the pulse off rows that resolve to "—" anyway.
+				// just those keeps the pulse off rows that resolve to "–" anyway.
 				liveScoreLoading = found.state === 'in_flight' && found.kind === 'league';
 
 				try {
@@ -241,16 +241,16 @@
 	);
 
 	// Provisional standings are available: show running accuracy + a
-	// "leading" highlight in place of the pre-resolve "—".
+	// "leading" highlight in place of the pre-resolve "–".
 	const isLive = $derived(
 		nonNullish(battle) && battle.state === 'in_flight' && nonNullish(liveScore)
 	);
 
 	// The two leagues' results are being computed: either the live-score read
 	// is in flight, or the battle has settled and is finalizing. League-only:
-	// duels carry no live league standings, so they keep a steady "—" rather
+	// duels carry no live league standings, so they keep a steady "–" rather
 	// than pulsing through the finalizing window. Drives a pulse on the scores
-	// so the wait reads as "calculating", not a stalled "—".
+	// so the wait reads as "calculating", not a stalled "–".
 	const isCalculating = $derived(
 		nonNullish(battle) &&
 			battle.kind === 'league' &&
@@ -266,7 +266,7 @@
 
 			return nonNullish(pct)
 				? t({ locale: $localeStore, key: 'leagues.battle.score_pct', params: { pct } })
-				: '—';
+				: '–';
 		}
 
 		if (isLive && nonNullish(liveScore)) {
@@ -275,7 +275,7 @@
 			return t({ locale: $localeStore, key: 'leagues.battle.score_pct', params: { pct } });
 		}
 
-		return '—';
+		return '–';
 	};
 
 	// Whether a side is ahead: the resolved winner once resolved, the live
@@ -817,7 +817,7 @@
 	}
 
 	/* While the two leagues' results are being computed the score sits on a
-	   "—" placeholder; pulsing it reads as "calculating" rather than stalled. */
+	   "–" placeholder; pulsing it reads as "calculating" rather than stalled. */
 	.battle-detail-score.is-calculating {
 		animation: battle-detail-score-pulse 1.2s ease-in-out infinite;
 	}

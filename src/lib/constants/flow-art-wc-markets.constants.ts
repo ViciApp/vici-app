@@ -1,23 +1,23 @@
-// World-Cup per-market artwork map — authoritative, data-derived.
+// World-Cup per-market artwork map: authoritative, data-derived.
 //
 // One entry per live group-stage market, keyed by the **normalized
 // market question** (`normalizeWcQuestion` in
 // `wc-market-schedule.constants.ts`, which the renderer applies to the
 // incoming title before the lookup). Each entry names the drawn
 // template (`WcTemplateId`) plus the parsed team / nation the template
-// recolours from — resolved against `WC_NATION_KITS`, so a nation with
+// recolours from, resolved against `WC_NATION_KITS`, so a nation with
 // no kit entry simply omits the field and the template falls back to a
 // neutral palette rather than crashing.
 //
 // The WC renderer (`utils/flow-art/wc/render.ts`) consults this table
 // after the curated recipes and hand-authored nation scenes, and before
-// the heuristic resolver / generic fallback — so every catalogued market
+// the heuristic resolver / generic fallback, so every catalogued market
 // renders its brief-matched scene while anything off-catalogue still
 // degrades safely.
 //
 // Generated from the prediction catalogue; the per-template distribution
 // is asserted against the brief histogram at author time. Do not
-// hand-edit individual rows — regenerate the whole table if the
+// hand-edit individual rows; regenerate the whole table if the
 // catalogue changes.
 //
 // The catalogue covers the player-prop templates `player-card`

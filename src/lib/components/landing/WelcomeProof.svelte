@@ -61,7 +61,7 @@
 	<div class="lpc-wrap lpc-proof-inner">
 		<div class="lpc-proof-num" class:is-loading={isNullish(countLabel)}>
 			{#if isNullish(countLabel)}
-				<span class="acc" aria-hidden="true">—</span>
+				<span class="acc" aria-hidden="true">–</span>
 			{:else}
 				<span class="acc">{countLabel}</span>
 			{/if}

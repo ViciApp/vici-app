@@ -737,7 +737,7 @@ export const assertDeleteBattle = ({
 	// 3. Proposed state only.
 	if (currentDoc.state !== 'proposed') {
 		throw new Error(
-			`battles in state="${currentDoc.state}" are immutable history — retract is only valid while state="proposed".`
+			`battles in state="${currentDoc.state}" are immutable history; retract is only valid while state="proposed".`
 		);
 	}
 };

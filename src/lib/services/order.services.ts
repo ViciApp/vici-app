@@ -94,7 +94,7 @@ export const getOrderBook = async ({
 
 /**
  * Callback-based variant of {@link getOrderBook} that fires `onLoad` up to
- * twice — once for the uncertified query, once for the certified update.
+ * twice: once for the uncertified query, once for the certified update.
  */
 export const loadOrderBook = ({
 	marketId,
@@ -149,7 +149,7 @@ export const placeOrder = async ({
 }): Promise<void> => {
 	// Stopgap expiry gate. The deck/catalog is filtered `only_unexpired` at
 	// fetch time, but the clearing engine has no expiry check (its `TradeError`
-	// has no `Expired` variant — it only rejects settled series), so a deck
+	// has no `Expired` variant; it only rejects settled series), so a deck
 	// opened just before kickoff could submit after it. Reject at/after the
 	// market's expiry until icdc-core enforces this server-side.
 	if (BigInt(Date.now()) >= expiryDate) {
@@ -157,10 +157,10 @@ export const placeOrder = async ({
 	}
 
 	// Sizing rounds the stake down to whole contracts (`amountUsd / priceUsd`),
-	// so a stake smaller than one contract's price arrives here as zero —
+	// so a stake smaller than one contract's price arrives here as zero;
 	// reject it before any state changes or activity logging.
 	if (qty <= ZERO) {
-		throw new Error('Stake is too small for this price — the order quantity rounds to zero');
+		throw new Error('Stake is too small for this price: the order quantity rounds to zero');
 	}
 
 	// In web2 mode there is no local signing identity: the API signs engine
@@ -276,7 +276,7 @@ export const placeOrder = async ({
 		// taker would otherwise overstate the fill (the engine executes
 		// `min(take, current level)`) and stop the walk early. A book smaller
 		// than the request fills what exists. The pass cap is a defensive
-		// bound — each pass either reduces `remaining` or exits, so a healthy
+		// bound: each pass either reduces `remaining` or exits, so a healthy
 		// walk never reaches it.
 		const MAX_BOOK_PASSES = 10;
 		let remaining = qty;
@@ -319,7 +319,7 @@ export const placeOrder = async ({
 				remaining -= take;
 			}
 		} catch (e: unknown) {
-			// Nothing executed — surface the failure. After a partial fill the
+			// Nothing executed; surface the failure. After a partial fill the
 			// user holds a real position, so finish with what filled instead
 			// of reporting a failure that would read as "nothing happened".
 			if (remaining === qty) {
@@ -337,7 +337,7 @@ export const placeOrder = async ({
 
 	refreshAllBalances();
 
-	// Behavioural telemetry for the cockpit — every REAL trade goes through here
+	// Behavioural telemetry for the cockpit: every REAL trade goes through here
 	// (the flow deck's guest picks emit separately). `value` is the VXP at stake
 	// (contracts × price of the chosen outcome); a resting limit order reports its
 	// full placed size, a market order the actually-executed fill.
@@ -369,7 +369,7 @@ export const placeOrder = async ({
 			user: userText,
 			marketId,
 			// "Sold" only when the trade executed on the spot; an open limit sell is merely placed.
-			// `normalizedPrice` is the price of the chosen outcome — the raw `price` arg arrives
+			// `normalizedPrice` is the price of the chosen outcome; the raw `price` arg arrives
 			// YES-framed for binary NO and would display the complement.
 			title: `${side === 'BUY' ? 'Predicted' : type === 'MARKET' ? 'Sold' : 'Placed'} ${filledQty} on ${outcome} @ ${Math.round(normalizedPrice * 100)}%`,
 			details: marketTitle

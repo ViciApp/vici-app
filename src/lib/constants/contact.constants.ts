@@ -1,5 +1,5 @@
 /**
- * Real contact addresses — the single source of truth for every
+ * Real contact addresses: the single source of truth for every
  * outward-facing email the product surfaces (FAQ, footer, account
  * deletion, legal copy, the public Info docs).
  *
@@ -7,7 +7,7 @@
  * of the i18n catalogs and reference these constants wherever a real
  * address appears, so the domain lives in exactly one place. Illustrative
  * placeholders (`you@example.com` and friends) are intentionally NOT
- * defined here — those stay inline as examples.
+ * defined here; those stay inline as examples.
  */
 
 /** Apex domain all contact mailboxes hang off. */
@@ -17,15 +17,15 @@ export const CONTACT_DOMAIN = 'vici.market';
  * Assembles a full address from its local-part and the apex domain,
  * joining them with an `@` produced at runtime. This is an anti-harvest
  * measure: the served source must never carry a contiguous `local@domain`
- * string — nor an `@` glued directly to the domain literal — for naive
+ * string, nor an `@` glued directly to the domain literal, for naive
  * scrapers to lift, while every consumer still gets the exact same address
  * at runtime.
  *
  * The glue is stored REVERSED (the `@` plus the reversed domain) and
  * un-reversed at runtime via `split/reverse/join`. The bundler's
  * constant-folder evaluates pure expressions like `String.fromCharCode(64)`
- * at build time — which would re-emit a literal `@` adjacent to the domain
- * literal, defeating the measure — but it does NOT execute string-instance
+ * at build time (which would re-emit a literal `@` adjacent to the domain
+ * literal, defeating the measure), but it does NOT execute string-instance
  * methods (`reverse()`) on literals, so the `@<domain>` tail never appears
  * contiguously in the shipped bundle. Keep any change here verified against
  * the built output, not just the source.
@@ -41,7 +41,7 @@ const reverse = (value: string): string => value.split('').reverse().join('');
 const REVERSED_AT_DOMAIN = 'tekram.iciv@';
 const buildEmail = (local: string): string => `${local}${reverse(REVERSED_AT_DOMAIN)}`;
 
-/** General info / support / help inbox — the public-facing contact address. */
+/** General info / support / help inbox: the public-facing contact address. */
 export const INFO_EMAIL = buildEmail('info');
 
 /** General hello / press inbox. */

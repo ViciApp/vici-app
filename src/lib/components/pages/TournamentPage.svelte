@@ -2,7 +2,7 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
-	import { DAY_IN_MS, EM_DASH } from '#lib/constants/app.constants.ts';
+	import { DAY_IN_MS, EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		claimTournamentPrize,
@@ -124,7 +124,7 @@
 		`tournament.round.${round.replace('r1', 'round1')}` as MessageKey;
 
 	const fmtAccuracy = (value: number | null): string =>
-		isNullish(value) ? EM_DASH : formatProbability(value);
+		isNullish(value) ? EMPTY_VALUE : formatProbability(value);
 
 	/**
 	 * Rank glyph for a prize-tier place. Brand: no emoji medals;

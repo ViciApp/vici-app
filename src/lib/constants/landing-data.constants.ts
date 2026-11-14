@@ -40,7 +40,7 @@ export const LANDING_CAT_COLORS: Record<LandingMarketCategory, string> = {
 /**
  * The single demo market a first-time visitor can swipe in the hero.
  * Mirrors a real Flow card: a binary question with a published YES
- * consensus. Kept deliberately simple — the question text resolves
+ * consensus. Kept deliberately simple: the question text resolves
  * from i18n (`welcome.hero.card_q`), only the artwork seed + YES%
  * live here.
  */
@@ -55,7 +55,7 @@ export const LANDING_HERO_CARD = {
 export const LANDING_HERO_STAKE = 50;
 
 /**
- * Leaderboard-climb beat shown after the XP count-up — the competitive
+ * Leaderboard-climb beat shown after the XP count-up, the competitive
  * hook that turns a single correct call into a rank move. Handles are
  * illustrative marketing names, not real users.
  */
@@ -85,7 +85,7 @@ export interface LandingStatusRow {
 }
 
 /**
- * Friends-tab board — a small group-chat leaderboard. Handles are
+ * Friends-tab board: a small group-chat leaderboard. Handles are
  * illustrative; the visitor sits at #2 with a recent climb.
  */
 export const LANDING_STATUS_FRIENDS: readonly LandingStatusRow[] = [
@@ -96,7 +96,7 @@ export const LANDING_STATUS_FRIENDS: readonly LandingStatusRow[] = [
 ] as const;
 
 /**
- * Market-matched universities per language — real institutions the visitor
+ * Market-matched universities per language: real institutions the visitor
  * recognises, illustrative of the kind that compete. Proper nouns, so these are
  * data (not translatable i18n strings). Languages without a list fall back to
  * the en set.

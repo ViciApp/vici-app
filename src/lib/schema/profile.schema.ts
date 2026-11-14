@@ -71,7 +71,7 @@ export const UserProfileSchema = j.strictObject({
 	// it; past the window the admin sweep hard-deletes the account. Mirror
 	// any change here in `src/satellite/api-schemas.ts`.
 	deletedAtMs: j.number().optional(),
-	// Hibernation marker (Delete account v2 — the reversible sibling of
+	// Hibernation marker (Delete account v2, the reversible sibling of
 	// soft-delete). PRESENCE = the account is hibernated (the wall-clock ms
 	// at which `hibernateMyAccount` ran); ABSENCE = an active account. Like
 	// `deletedAtMs` it's intentionally `optional()` with NO default:
@@ -263,7 +263,7 @@ export const UserProfileSchema = j.strictObject({
 			// pick; empty string for `favoriteSide` means no YES/NO
 			// commitment was made. `onboardingCompleted` flips to true
 			// once the 3-beat flow finishes, regardless of which picks
-			// were ultimately persisted — it's the source of truth for
+			// were ultimately persisted; it's the source of truth for
 			// whether to re-prompt the user on next sign-in.
 			favoriteParticipantId: j.string().default(''),
 			favoriteSide: j.string().default(''),

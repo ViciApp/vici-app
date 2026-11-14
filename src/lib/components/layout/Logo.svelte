@@ -36,7 +36,7 @@
 {:else}
 	<BaseButton
 		class="group flex items-center"
-		aria-label="VICI — go to home"
+		aria-label="VICI: go to home"
 		onclick={() => handleNav(AppPath.Home)}
 	>
 		{@render wordmark()}

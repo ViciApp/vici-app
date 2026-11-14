@@ -77,7 +77,7 @@ ETL-only vars (read by `scripts/etl/*`, never by the server):
 
 ## Auth
 
-Sessions are opaque 256-bit tokens in the HttpOnly `vici_session` cookie (SameSite=Lax, Secure in prod, Domain from `COOKIE_DOMAIN`); the database stores only `HMAC-SHA256(token, SESSION_SECRET)`. Login always rotates the token; logout revokes it server-side.
+Sessions are opaque 256-bit tokens in the HttpOnly `vici_session` cookie (SameSite=Lax, Secure in prod, Domain from `COOKIE_DOMAIN`); the database stores only `HMAC-SHA256(token, SESSION_SECRET)`. Login always rotates the token; logout revokes it server-side. A hard-deleted account loses every sign-in path in the same transaction (auth identities, sessions, pending one-time codes), and neither the session guard nor identity resolution ever resolves a hard-deleted user id, so a later sign-in with the same address provisions a new account.
 
 Endpoints under `/api/v1`:
 

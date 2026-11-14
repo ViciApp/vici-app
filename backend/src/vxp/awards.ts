@@ -366,10 +366,14 @@ export const grantAward = async ({
 
 	// The memo is stored with the row so a reconciler paying it later (after
 	// a record-only stretch or a crash) sends the same memo the grant chose.
+	// The conflict clause names no target so a type-specific unique index
+	// (one tournament prize per tournament, migration 0018) collides into
+	// 'already' like the (user, award_type, award_key) one, instead of
+	// raising.
 	const inserted = await query<{ id: string }>(
 		`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, transfer_memo)
 		 values ($1, $2, $3, $4, 'pending', $5, $6)
-		 on conflict (user_id, award_type, award_key) do nothing
+		 on conflict do nothing
 		 returning id`,
 		[
 			userId,

@@ -564,7 +564,7 @@ export const assertValidNickname = ({
 
 			if (result.reason === 'invalid') {
 				throw new Error(
-					`The handle "${nickname}" contains invalid characters — use lowercase letters, numbers and . _ - only (no spaces).`
+					`The handle "${nickname}" contains invalid characters: use lowercase letters, numbers and . _ - only (no spaces).`
 				);
 			}
 
@@ -606,7 +606,7 @@ export const assertValidNickname = ({
 
 	if (daysLeft > 0) {
 		throw new Error(
-			`The handle was changed recently — it can be changed again in ${daysLeft} day(s).`
+			`The handle was changed recently: it can be changed again in ${daysLeft} day(s).`
 		);
 	}
 

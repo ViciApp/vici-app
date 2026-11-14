@@ -108,7 +108,7 @@
 		<div class="db-hrow">
 			<span class="db-lbl">{t({ locale: $localeStore, key: 'dash.accuracy.eyebrow' })}</span>
 		</div>
-		<div class="db-big num db-muted">—<span class="db-u">%</span></div>
+		<div class="db-big num db-muted">–<span class="db-u">%</span></div>
 		<div class="db-cal">{calibratingCaption}</div>
 		<div class="db-areachart db-empty">
 			<svg preserveAspectRatio="none" viewBox="0 0 360 48">

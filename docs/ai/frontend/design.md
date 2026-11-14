@@ -827,7 +827,7 @@ thresholds pass.
 - **`WorldCupRecapCard`** reads the user's `wc` category bucket from the
   persisted `user_stats` doc (`loadMyUserStats`, same source as the Dash
   rank tile): accuracy `= wins / calls`, plus the raw call count. Both fall
-  back to `EM_DASH` when there are no WC calls or the snapshot hasn't
+  back to `EMPTY_VALUE` when there are no WC calls or the snapshot hasn't
   loaded, never a fabricated figure. Its "Explore all markets" CTA clears
   the focus by setting the list to `all`.
 

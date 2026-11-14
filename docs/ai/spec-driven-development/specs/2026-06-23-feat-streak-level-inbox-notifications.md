@@ -11,10 +11,10 @@ Two inbox notification kinds left without a producer when the mock seed was
 removed get live, real-data producers, following the established
 derived-store pattern in `inbox.store.ts`:
 
-- **`streak`** — when the viewer's daily flame advances to a higher
+- **`streak`**: when the viewer's daily flame advances to a higher
   milestone stage (the flame grows), they get an inbox card ("Your flame
-  reached FLAME — 7 days running"), unread, deep-linking to Flow.
-- **`level`** — when the viewer's profile level increases, they get a card
+  reached FLAME: 7 days running"), unread, deep-linking to Flow.
+- **`level`**: when the viewer's profile level increases, they get a card
   ("You reached level 4"), unread, deep-linking to their profile.
 
 Both derive from profile state already loaded client-side; no satellite
@@ -24,9 +24,9 @@ change.
 
 This is **one of a two-spec pair** reviving the producerless inbox kinds.
 This spec owns `streak` + `level` (pure client-side, no new signal). The
-sibling —
-[`2026-06-23-feat-market-move-inbox-notifications.md`](./2026-06-23-feat-market-move-inbox-notifications.md)
-— owns the `market` kind (move alerts on saved markets), which needs a new
+sibling,
+[`2026-06-23-feat-market-move-inbox-notifications.md`](./2026-06-23-feat-market-move-inbox-notifications.md),
+owns the `market` kind (move alerts on saved markets), which needs a new
 probability-delta signal. The two are independent; this one ships first.
 
 The inbox is a merge of _derived_ `Readable<InboxNotification[]>` sources
@@ -34,48 +34,48 @@ in
 [`src/lib/stores/inbox.store.ts`](../../../../src/lib/stores/inbox.store.ts).
 The mock `seedInbox()` that once carried `streak` / `level` / `market`
 placeholder cards has **already been removed upstream** (the inbox is now
-fully live-derived, no seed layer), so this spec is purely additive — it
+fully live-derived, no seed layer), so this spec is purely additive: it
 adds the `streak` and `level` producers. Patterns to mirror:
 
-- **`friendRequestInboxStore`** (≈ line 127) — synthetic, non-persisted,
+- **`friendRequestInboxStore`** (≈ line 127): synthetic, non-persisted,
   derived from a live source + `userStore` + `localeStore`; the per-id
   read overlay (`inboxReadStore`, `INBOX_READ_STORAGE_KEY`) drives
   read/unread. Closest shape for streak/level.
-- **`settledInboxStore`** + **`settledReadStore`** (≈ line 254) — a
+- **`settledInboxStore`** + **`settledReadStore`** (≈ line 254): a
   per-_event_ read-set keyed by a monotonic id, persisted to localStorage,
   so a card stops being unread once acknowledged and a cold-start backlog
   isn't replayed. Streak/level need an analogous **high-water marker**
   (below).
-- **`combinedInboxStore`** (≈ line 543) — merges every source; new stores
+- **`combinedInboxStore`** (≈ line 543): merges every source; new stores
   join its dependency list + spread.
 - The **cold-start toast gate** (`sourcesHydrated`, ≈ line 622).
 
 Backing data (all already client-side):
 
 - **Profile** (`userStore.profile`, type `UserProfile`): `dailyStreak`
-  (current run — the live field across DashPage / FlowMode / leaderboard /
+  (current run: the live field across DashPage / FlowMode / leaderboard /
   flame UI; the bare `streak` field is satellite wire-format only),
   `points`, `level`.
-- **Level** — `level = Math.floor(points / 500) + 1`
+- **Level**: `level = Math.floor(points / 500) + 1`
   ([`profile.services.ts:1173`](../../../../src/lib/services/profile.services.ts)).
   The producer reads the persisted `profile.level`; it does not recompute.
-- **Flame stages** —
+- **Flame stages**:
   [`streak.utils.ts`](../../../../src/lib/utils/streak.utils.ts)
   `stageForStreak(days)` → `spark | ember | flame | blaze | inferno`
   (thresholds 1 / 3 / 7 / 15 / 30), `FLAME_STAGE_LABEL_KEYS`. A milestone
   = a stage threshold crossing (3 / 7 / 15 / 30), aligning with the
   existing `streak_milestone` analytics event and the
   `streak_3 | streak_7 | streak_14 | streak_30` VXP award types.
-- **Streak-reminder preference** — `preferences.notify.streakReminder`
+- **Streak-reminder preference**: `preferences.notify.streakReminder`
   (read via
   [`preferences.store.ts`](../../../../src/lib/stores/preferences.store.ts);
   the field lives under the `notify` slice), defaulting `true`. The streak
   producer respects it (off → no streak cards).
-- **Kind config** —
+- **Kind config**:
   [`notification-kind.constants.ts`](../../../../src/lib/constants/notification-kind.constants.ts):
   `streak` → `Flame` / `AppPath.Flow`; `level` → `Sparkles` /
   `AppPath.Profile`. Both destinations already sensible; no `mid` needed.
-- **i18n** — 13 locale catalogs under
+- **i18n**: 13 locale catalogs under
   [`messages/`](../../../../src/lib/constants/messages/); existing
   `inbox.*` keys at `en.ts` ≈ 1055. `npm run check:i18n` gates.
 
@@ -87,7 +87,7 @@ on a fresh device would see "you reached level 10" replayed. So, mirroring
 `settledReadStore`'s intent for monotonic values, add a small persisted
 marker:
 
-- `inboxProgressStore` — a writable persisting
+- `inboxProgressStore`: a writable persisting
   `{ seenLevel: number; seenStreakMilestone: number }` under a new
   `INBOX_PROGRESS_STORAGE_KEY` in
   [`inbox.constants.ts`](../../../../src/lib/constants/inbox.constants.ts)
@@ -95,7 +95,7 @@ marker:
   clears, alongside the other inbox keys).
 - **First-observation seeding:** when the profile first hydrates and the
   marker is absent, seed it to the _current_ level / streak-milestone so
-  only **future** increases produce cards (no retroactive backlog) — the
+  only **future** increases produce cards (no retroactive backlog): the
   level/streak analogue of how `sourcesHydrated` absorbs the
   settled/like backlog into the baseline.
 - **A card exists iff** the live value exceeds the marker. Marking the
@@ -148,7 +148,7 @@ marker:
    would re-surface.
 6. **i18n**: add `inbox.streak.*` (per-stage title + body with day count)
    and `inbox.level.*` (title + body with level number) across all live
-   catalogs; `npm run check:i18n`. (No seed cleanup — already removed
+   catalogs; `npm run check:i18n`. (No seed cleanup: already removed
    upstream.)
 
 ### Out of scope
@@ -166,20 +166,20 @@ marker:
 
 ## Linked issues
 
-None. Searched the open issues (5 total) — none tracks notifications,
+None. Searched the open issues (5 total): none tracks notifications,
 inbox, streak, or level. No closing keyword.
 
 ## Analytics
 
-**Resolved — no new event.** Opening any inbox card is already covered by
-`notification_opened`, whose `label` carries the kind — so `streak` and
+**Resolved: no new event.** Opening any inbox card is already covered by
+`notification_opened`, whose `label` carries the kind, so `streak` and
 `level` opens are sliceable the moment they have producers, with no
 taxonomy change. The underlying actions are already instrumented
 (`streak_milestone`; level derives from already-tracked `points`).
 Reviving these cards adds no behaviour that isn't captured, so this spec
 ships no new analytics event.
 
-## Technical requirements (satellite / backend — mandatory)
+## Technical requirements (satellite / backend: mandatory)
 
 **No satellite/backend change.** Both producers are pure client-side
 derivations over already-loaded profile state + localStorage; no
@@ -187,7 +187,7 @@ collection, doc shape, assert, hook, endpoint, or `.did` regeneration.
 
 - **Performance.** Two extra `derived` stores over data already in
   `userStore` + a tiny localStorage marker. No new network calls.
-- **Scalability.** O(1) per viewer — at most one streak card and one level
+- **Scalability.** O(1) per viewer: at most one streak card and one level
   card. No fan-out.
 - **Security.** Reads only the viewer's own profile + viewer-scoped
   localStorage. No new permissions.
@@ -222,7 +222,7 @@ collection, doc shape, assert, hook, endpoint, or `.did` regeneration.
       retroactive streak/level card (marker seeds to current on first
       observation); only future increases fire.
 - [ ] Marking a streak/level card read (in place, mark-all, or dismiss)
-      clears it durably — no reappearance after reload while the underlying
+      clears it durably: no reappearance after reload while the underlying
       value is unchanged.
 - [ ] No arrival toast replays an existing streak/level backlog on cold
       start.
@@ -231,7 +231,7 @@ collection, doc shape, assert, hook, endpoint, or `.did` regeneration.
 
 ## Pending decisions
 
-None — milestone-only streak trigger decided (see Decisions).
+None: milestone-only streak trigger decided (see Decisions).
 
 ## Decisions
 

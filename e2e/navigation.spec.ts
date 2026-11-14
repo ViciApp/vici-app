@@ -54,13 +54,13 @@ const settleForSnapshot = async ({
  * 1. The routed container (`data-tid="app-main"`, set on the
  *    `{#key page.url.pathname}` div in `(app)/+layout.svelte`) has
  *    `in:fade={{ duration: 100, delay: 100 }}` on it. Playwright's
- *    `toBeVisible()` propagates parent opacity — so until we wait for
+ *    `toBeVisible()` propagates parent opacity, so until we wait for
  *    `opacity: '1'`, every descendant is considered hidden.
  * 2. The account control (`user-menu`) confirms we landed in the signed-in
  *    auth state (and, on the desktop project, that the nav chrome rendered).
  * 3. `networkidle` waits until there's been no network activity for 500ms,
  *    which lets every page's `onMount` data fetch finish rendering before
- *    the screenshot — without this, the snapshot races the data fetch and
+ *    the screenshot; without this, the snapshot races the data fetch and
  *    ping-pongs between spinners and the loaded view. Treated as best-effort
  *    with a bounded timeout: if a page introduces a sub-500ms recurring
  *    fetch (e.g. a status poll), `networkidle` can never fire, and the
@@ -83,8 +83,8 @@ const waitForSignedInPage = async ({ page }: { page: Page }): Promise<void> => {
 		await page.waitForLoadState('networkidle', { timeout: NETWORK_IDLE_BEST_EFFORT_MS });
 	} catch (err) {
 		// Best-effort: only the bounded `networkidle` timeout is expected and
-		// safe to swallow (see the comment block above). Anything else — page
-		// closed, browser crash, navigation aborted — is a real failure that
+		// safe to swallow (see the comment block above). Anything else (page
+		// closed, browser crash, navigation aborted) is a real failure that
 		// must surface here rather than resurface as a confusing error at the
 		// later assertion / screenshot step.
 		if (!(err instanceof Error) || err.name !== 'TimeoutError') {

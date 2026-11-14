@@ -8,12 +8,12 @@ import { derived, type Readable } from 'svelte/store';
  * Cached leaderboard with the current user's row overlaid by their
  * locally-known profile. The leaderboard store is populated via
  * `listDocs` against the public profiles collection, so it reflects
- * whatever was last persisted — which may lag behind changes made in
+ * whatever was last persisted, which may lag behind changes made in
  * this session, or still be the bootstrap shortened-principal fallback
  * if the user never edited their nickname. For the viewer's own row we
  * always have the freshest data in `userStore.profile`, so we splice
  * the live identity (nickname/avatar) and the live display-only
- * performance fields (daily streak/accuracy) in here — the row, podium tile,
+ * performance fields (daily streak/accuracy) in here; the row, podium tile,
  * and mini-profile sheet all read from this single merged source so the
  * viewer sees their own up-to-the-second numbers rather than a stale
  * snapshot.
@@ -31,7 +31,7 @@ interface SelfOverlay {
 	avatar: UserProfile['avatar'];
 	avatarParts: UserProfile['avatarParts'];
 	/**
-	 * Days-based activity streak (the Flame engine) — every surface that
+	 * Days-based activity streak (the Flame engine): every surface that
 	 * renders a leaderboard row's streak shows "{n}d", so the days counter
 	 * is the one to keep fresh, not the consecutive-wins `streak`.
 	 */
