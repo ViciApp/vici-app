@@ -320,7 +320,7 @@ play**, and the last column is the running **total** balance after
 each event, anchored on the live total-holdings figure so the top row
 always matches the Dash hero. Placing a prediction is wealth-neutral
 (VXP moves into play, total is unchanged), so it carries no signed
-amount (`–`); the committed stake shows as "… in play" in the
+amount (`—`); the committed stake shows as "… in play" in the
 subtitle. Wins credit the profit, losses debit the stake, break-evens
 net zero. Because total never moves on margin shifting in or out of
 play, the column reconciles to a clean zero genesis no matter how much

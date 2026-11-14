@@ -77,7 +77,7 @@ small icon. The brand carries weight by what it omits."_
 **Approved typographic glyphs** (use these in copy and in compact UI):
 
 ```
-·   →   ↑   ↓   ∞   ◎   ★   ⚡   ⌬   ⊿   ✦   ◐   ⧖   ⌘   ✓   –
+·   →   ↑   ↓   ∞   ◎   ★   ⚡   ⌬   ⊿   ✦   ◐   ⧖   ⌘   ✓   —
 ```
 
 **Forbidden in user-facing surfaces:**
