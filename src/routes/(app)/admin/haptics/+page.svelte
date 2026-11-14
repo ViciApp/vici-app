@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Protected from '#lib/components/authn/Protected.svelte';
 	import PermissionGuard from '#lib/components/authz/PermissionGuard.svelte';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { Permission } from '#lib/enums/permission.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { preferencesStore } from '#lib/stores/preferences.store.ts';
@@ -27,7 +28,7 @@
 			: t({ locale: $localeStore, key: 'admin.haptics.off' })
 	);
 
-	let lastFired = $state<string>('–');
+	let lastFired = $state<string>(EMPTY_VALUE);
 
 	const fmt = (value: number | readonly number[]): string =>
 		typeof value === 'number' ? `${value}ms` : `[${value.join(', ')}]`;

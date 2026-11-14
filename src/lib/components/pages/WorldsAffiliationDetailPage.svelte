@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import CountryFlag from '#lib/components/ui/CountryFlag.svelte';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { hasCountryFlag } from '#lib/constants/country-flags.constants.ts';
 	import {
 		lookupWorldsAffiliation,
@@ -114,13 +115,15 @@
 	});
 
 	const accuracyPctLifetime = $derived(
-		stats && stats.totalCalls > 0 ? formatAccuracyPercent(affiliationLifetimeAccuracy(stats)) : '–'
+		stats && stats.totalCalls > 0
+			? formatAccuracyPercent(affiliationLifetimeAccuracy(stats))
+			: EMPTY_VALUE
 	);
 
 	const accuracyPctMonth = $derived(
 		stats && stats.monthTotalCalls > 0
 			? formatAccuracyPercent(affiliationMonthlyAccuracy(stats))
-			: '–'
+			: EMPTY_VALUE
 	);
 
 	const hasActivity = $derived(nonNullish(stats) && stats.totalCalls > 0);
@@ -154,8 +157,8 @@
 	const wcRank = $derived(rankBy({ key: 'lifetime' }));
 	const monthRank = $derived(rankBy({ key: 'month' }));
 
-	const monthRankLabel = $derived(monthRank > 0 ? `#${monthRank}` : '–');
-	const wcRankLabel = $derived(wcRank > 0 ? `#${wcRank}` : '–');
+	const monthRankLabel = $derived(monthRank > 0 ? `#${monthRank}` : EMPTY_VALUE);
+	const wcRankLabel = $derived(wcRank > 0 ? `#${wcRank}` : EMPTY_VALUE);
 
 	const headerName = $derived(
 		nonNullish(option)

@@ -27,6 +27,7 @@
 	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import Pagination from '#lib/components/ui/Pagination.svelte';
 	import {
+		EMPTY_VALUE,
 		MILLISECOND_IN_NANOSECONDS,
 		TRANSACTION_HISTORY_PAGE_SIZE,
 		USD_DECIMALS,
@@ -223,7 +224,7 @@
 		// Placing a prediction is wealth-neutral (VXP moves into play, total is
 		// unchanged), so it carries no signed amount; the meta shows the stake.
 		if (row.kind === 'prediction') {
-			return '–';
+			return EMPTY_VALUE;
 		}
 
 		const value = decimalFixedValueToNumber({ value: row.delta, decimals: USD_DECIMALS });
@@ -322,7 +323,7 @@
 						<span class="txh-meta">{rowMeta(row)}</span>
 					</span>
 					<span class="txh-amt num is-{deltaTone(row)}">
-						{row.kind === 'joined' ? '–' : deltaDisplay(row)}
+						{row.kind === 'joined' ? EMPTY_VALUE : deltaDisplay(row)}
 					</span>
 					<span class="txh-bal num"
 						>{formatVxpBalance({ value: row.balance, decimals: USD_DECIMALS })}</span
