@@ -77,8 +77,15 @@ Full taxonomy: [`structure.md`](./structure.md). Idioms: [`patterns.md`](./patte
   TypeScript hooks/asserts/endpoints into the satellite extension
   Wasm.
 - **Satellite IDs:** pinned in [`juno.config.ts`](../../../juno.config.ts)
-  (dev + prod). That file is the source of truth; don't copy them
-  elsewhere.
+  (dev + prod + emulator). That file is the source of truth; don't copy
+  them elsewhere. Shell scripts, workflows and runbooks read an id with
+  `npx tsx scripts/lib/satellite-id.ts <production|development>`. The
+  exceptions, each with a comment saying why: the emulator id in
+  `src/satellite/services/new-profile-gate.services.ts` (the satellite
+  cannot import the config), and the dev-id defaults of
+  `scripts/init/init.icdc-engine.sh`, `scripts/init/init.vxp-treasury.sh`
+  and `scripts/test/test-engine-sync.sh` (the config swaps the dev id
+  under `JUNO_EMULATOR`).
 
 ## Where to look
 

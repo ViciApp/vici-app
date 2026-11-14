@@ -78,7 +78,7 @@ jobs:
       contents: read
     env:
       # Swap juno.config.ts `ids.development` to the emulator's predictable
-      # satellite ID (jx5yt-yyaaa-aaaal-abzbq-cai). Required because
+      # satellite ID (`EMULATOR_SATELLITE_ID` there). Required because
       # `juno login --emulator` is only valid with `--mode development`.
       JUNO_EMULATOR: 'true'
       CI: 'true'
