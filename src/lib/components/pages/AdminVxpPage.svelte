@@ -29,7 +29,7 @@
 	 * Admin-only VXP treasury console: the send / receive / history
 	 * surfaces over the VXP ledger, reachable from the admin hub.
 	 *
-	 * History pages the VXP index canister only — the ICP / ckUSDC legs
+	 * History pages the VXP index canister only; the ICP / ckUSDC legs
 	 * start as `done` so `getTransactionsPage` never queries them.
 	 */
 

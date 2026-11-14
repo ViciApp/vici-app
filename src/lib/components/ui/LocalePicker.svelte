@@ -12,7 +12,7 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * Two-axis (Language ▸ Region) locale picker — the shared inner content
+	 * Two-axis (Language ▸ Region) locale picker: the shared inner content
 	 * behind the landing globe popover, the landing mobile sheet and the
 	 * Settings sheet.
 	 *
@@ -49,7 +49,7 @@
 
 	const groups = localeLanguageGroups();
 
-	// The active locale's registry entry — drives which language header is
+	// The active locale's registry entry: drives which language header is
 	// pre-expanded and which region row is selected.
 	const currentEntry = $derived<LocaleEntry | undefined>(
 		LOCALE_REGISTRY.find(({ id }) => id === current)
@@ -57,8 +57,8 @@
 	const currentLang = $derived(currentEntry ? currentEntry.id.split('-')[0] : null);
 
 	// A `hidden` base locale (e.g. `es`) is never rendered as a region row, so
-	// when it is the active locale — possible via legacy storage or browser
-	// detection — no option would show as selected. Represent it by its group's
+	// when it is the active locale, possible via legacy storage or browser
+	// detection, no option would show as selected. Represent it by its group's
 	// neutral (worldFlag) region, falling back to the first visible region, so
 	// the current selection is always reflected by a rendered option.
 	const selectedEntry = $derived.by<LocaleEntry | undefined>(() => {

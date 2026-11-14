@@ -67,7 +67,7 @@
 {/if}
 
 <style lang="postcss">
-	/* Dots variant — landing footer, dropdown */
+	/* Dots variant: landing footer, dropdown */
 	.appearance-picker {
 		display: inline-flex;
 		align-items: center;
@@ -113,7 +113,7 @@
 		border-radius: var(--r-pill);
 	}
 
-	/* Tiles variant — settings preferences */
+	/* Tiles variant: settings preferences */
 	.appearance-tiles {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));

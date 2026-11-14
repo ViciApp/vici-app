@@ -12,24 +12,24 @@
 	import { page } from '$app/state';
 
 	// Short share-link alias. The share sheet hands out `/m/{slug~id8}?ref=…`
-	// (keyword-carrying yet compact — see `#lib/utils/market-slug.utils.ts`),
+	// (keyword-carrying yet compact: see `#lib/utils/market-slug.utils.ts`),
 	// while `/markets/{id}` is the canonical detail route. Resolve the param
 	// to a series id, then bounce, carrying the query string through so
-	// referral attribution survives the hop. A bare alias kept this thin —
+	// referral attribution survives the hop. A bare alias kept this thin:
 	// no auth branching here; the (app) gate on the destination owns the
 	// signed-out path.
 	const param = $derived(page.params.id ?? '');
 
 	// Resolution order:
 	//  1. The id embedded by the deploy-time SEO page (`window.__viciSeriesId`,
-	//     see `scripts/build/generate-seo-assets.ts`) — but only when it is
+	//     see `scripts/build/generate-seo-assets.ts`), but only when it is
 	//     consistent with the param: a client-side navigation can reach this
 	//     route with a stale embedded id from whichever prerendered page the
 	//     session entered on.
 	//  2. A param without the slug separator is a bare series id (legacy
 	//     share links).
 	//  3. A slugged param served by the SPA fallback (market newer than the
-	//     last deploy) — match the short-id suffix against the catalog.
+	//     last deploy): match the short-id suffix against the catalog.
 	const resolveSeriesId = async (): Promise<string | undefined> => {
 		const suffix = parseMarketShareParam(param);
 
@@ -69,7 +69,7 @@
 				return match;
 			}
 		} catch {
-			// Registry unreachable — fall through to "unresolvable"; the
+			// Registry unreachable: fall through to "unresolvable"; the
 			// caller lands on the markets board instead of a dead page.
 		}
 	};
@@ -89,7 +89,7 @@
 		}
 
 		// This route is only ever reached from a shared link, so park the
-		// market for the next Flow entry to surface as the first card —
+		// market for the next Flow entry to surface as the first card,
 		// surviving the detail page, sign-in, and (for a new user)
 		// onboarding. Dropped downstream if the viewer already called it.
 		setPinnedFlowMarket(seriesId);

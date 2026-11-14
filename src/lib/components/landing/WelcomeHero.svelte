@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	/**
-	 * Interactive swipe hero — the centerpiece of the landing.
+	 * Interactive swipe hero: the centerpiece of the landing.
 	 *
 	 * A stranger can MAKE A REAL CALL before signup: drag the demo
 	 * market card left (NO) or right (YES). Committing a side plays a
 	 * payoff celebration (confetti + spark burst, the Oracle/Trickster
 	 * character beat, an XP count-up) and then a brief "leaderboard
-	 * climb" moment — the competitive hook — before the sign-up ask.
+	 * climb" moment, the competitive hook, before the sign-up ask.
 	 *
 	 * The card reuses the real Flow-front markup (`.flow-card` /
 	 * `.flow-face`, styled in `src/landing.css`) so the demo matches the
@@ -257,7 +257,7 @@
 
 <header class="lpc-hero">
 	<div class="lpc-wrap lpc-hero-grid">
-		<!-- Copy column — kicker + headline -->
+		<!-- Copy column: kicker + headline -->
 		<div class="lpc-hero-copy">
 			<span class="lpc-kicker lpc-rise" data-i="0">
 				<span class="pulse" aria-hidden="true"></span>

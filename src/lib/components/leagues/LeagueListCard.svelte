@@ -30,7 +30,7 @@
 		handle: string;
 		/** Total friends in this league, ≥1. */
 		count: number;
-		/** Principals of the overlapping friends — drives the stacked
+		/** Principals of the overlapping friends: drives the stacked
 		 *  avatar cluster (first three rendered). */
 		principals: string[];
 	}
@@ -60,7 +60,7 @@
 		 *  this league is the challenged side. Surfaces a chip so the
 		 *  owner sees a pending challenge without opening the league. */
 		incomingChallengeCount?: number;
-		/** Click handler — opens the league detail page (or join
+		/** Click handler: opens the league detail page (or join
 		 *  flow for recommendations). */
 		onclick: () => void;
 	}
@@ -110,7 +110,7 @@
 	let copied = $state(false);
 
 	/**
-	 * The emblem rendered inside the gradient tile — the owner's stored
+	 * The emblem rendered inside the gradient tile; the owner's stored
 	 * pick, with a name-derived 1-char fallback for legacy rows written
 	 * before the picker shipped.
 	 */
@@ -143,7 +143,7 @@
 
 	// The handle is rendered as a separate emphasised span; the suffix
 	// covers the "+ N friends" tail. For a single friend the suffix is
-	// empty — `<b>@handle</b>` stands on its own.
+	// empty: `<b>@handle</b>` stands on its own.
 	const friendOverlapSuffix = $derived.by(() => {
 		if (!friendOverlap || friendOverlap.count <= 1) {
 			return;
@@ -508,7 +508,7 @@
 		color: var(--text-muted);
 	}
 
-	/* "#rank / of M" stacked badge — the caller's standing within the
+	/* "#rank / of M" stacked badge; the caller's standing within the
 	   league, right-aligned and mono so the figures read as a scoreline. */
 	.rank-badge {
 		display: flex;
@@ -539,7 +539,7 @@
 	   league colour instead of the global laurel. */
 	/* The pill renders inside the shared `NestedButton`, so it's a child-
 	   component element; scope the styles under `.trailing` and reach it with
-	   `:global(...)` (effectively local — they only match inside this card). */
+	   `:global(...)` (effectively local; they only match inside this card). */
 	.trailing :global(.copy-pill) {
 		display: inline-flex;
 		align-items: center;

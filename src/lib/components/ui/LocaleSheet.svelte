@@ -103,7 +103,7 @@
 		color: var(--text-base);
 	}
 
-	/* "Use automatic" reset — a full-width footer above the safe-area
+	/* "Use automatic" reset: a full-width footer above the safe-area
 	   inset, separated from the list by a hairline. */
 	.lang-auto {
 		display: flex;

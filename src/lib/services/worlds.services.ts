@@ -251,8 +251,8 @@ export const switchAffiliation = async ({
 };
 
 /**
- * Project the satellite's snake_case wire schema for affiliation
- * stats to FE camelCase.
+ * Project the satellite's wire row for affiliation stats to
+ * `AffiliationStatsDoc`.
  */
 const projectStatsWire = (s: {
 	affiliationIdentifier: string;
@@ -279,11 +279,9 @@ const projectStatsWire = (s: {
  * affiliation has no stats doc yet (no member of it has had any
  * resolved trades). Callers should render as "unranked / no data".
  *
- * `getAffiliationStats` is the `Option<NestedStruct>` endpoint, so
- * the wire shape is already camelCase (matches `AffiliationStatsDoc`)
- * no projection needed. `listAffiliationStats` below stays on the
- * snake_case `projectStatsWire` because it's a `Vec<NestedStruct>`
- * (Vec items aren't `#[json_data(nested)]`-wrapped).
+ * The wire shape is already camelCase and matches `AffiliationStatsDoc`,
+ * so the doc is returned as is; `listAffiliationStats` below maps its
+ * rows through `projectStatsWire`.
  */
 export const getAffiliationStats = async ({
 	kind,

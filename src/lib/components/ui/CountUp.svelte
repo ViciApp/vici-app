@@ -12,7 +12,7 @@
 	const { to, duration_ms = 700 }: Props = $props();
 
 	// Eased count-up (cubic ease-out). Reduced-motion users jump straight to
-	// the final value — no rAF loop. Mirrors the chip count-up used by the
+	// the final value; no rAF loop. Mirrors the chip count-up used by the
 	// in-flow beats and the resolution digest so every celebratory number
 	// ramps the same way.
 	let shown = $state(0);

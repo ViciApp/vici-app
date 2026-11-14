@@ -26,7 +26,7 @@
 
 	/**
 	 * For binary markets, the YES/NO outcomes are system labels rendered from
-	 * the UI catalog — they don't need per-market translation.
+	 * the UI catalog: they don't need per-market translation.
 	 */
 	const translatableOutcomes = $derived(
 		market.payoffType === 'Binary' ? [] : (market.outcomes ?? [])

@@ -25,7 +25,7 @@ src/satellite/
     ├── regex.utils.ts              escapeRegex
     ├── time.utils.ts               timeMs (IC time in ms)
     ├── vxp-payout.utils.ts         VXP transfer error mapping
-    └── wire-format.utils.ts        snake_case wire schemas + toWire / fromWire
+    └── wire-format.utils.ts        camelCase wire schemas + toWire / fromWire
 ```
 
 ## What goes where

@@ -62,7 +62,7 @@
 		isNullish(market.yesProbability) ? 0 : probabilityToPercent(market.yesProbability)
 	);
 	// Cold-start: a market with no real volume yet reads "New" instead of
-	// "0 vol" — framing the empty market as an opportunity, never a synthetic
+	// "0 vol": framing the empty market as an opportunity, never a synthetic
 	// crowd. Uses our real volume field only.
 	const freshVolume = $derived(market.totalVolume === ZERO);
 	const vol = $derived(formatToken({ value: market.totalVolume, unitName: market.token.decimals }));

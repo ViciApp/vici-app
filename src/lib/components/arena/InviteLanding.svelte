@@ -19,24 +19,24 @@
 	import { page } from '$app/state';
 
 	/**
-	 * Invite-link landing — the shared body behind both canonical invite URLs, `/i/[code]` and
+	 * Invite-link landing: the shared body behind both canonical invite URLs, `/i/[code]` and
 	 * `/join/[code]`. Both routes carry the same 8-char Crockford-base32 referral code in their
 	 * `[code]` slug and render this component, so the two paths behave identically (single source
-	 * of truth — no duplicated branching). Branches on the caller's auth state:
+	 * of truth: no duplicated branching). Branches on the caller's auth state:
 	 *
-	 *   1. **Invalid code shape** — bail to home with an error toast.
-	 *   2. **Signed-out (or a brand-new account still mid-onboarding)** — stash the code
+	 *   1. **Invalid code shape**: bail to home with an error toast.
+	 *   2. **Signed-out (or a brand-new account still mid-onboarding)**: stash the code
 	 *      into the existing `vici:pending-onboarding` payload (merged with whatever
 	 *      Beat-1/2 picks are already there) and route to `/signup`. The (app) layout's
 	 *      pending-onboarding drain then calls `redeemReferralCode` post-signin.
-	 *   3. **Signed-in & past onboarding** — the user is past the signup window
+	 *   3. **Signed-in & past onboarding**: the user is past the signup window
 	 *      (or in any case ineligible for the FE-driven redemption path). Look up the
 	 *      referrer principal and render the friendship-only explainer sheet. The sheet's
 	 *      CTA calls `claimReferralFriendship` (no VXP, just a confirmed bilateral
 	 *      friendship).
 	 *
 	 * Note: only a brand-new account (no profile existed at sign-in) still has an unfinished
-	 * onboarding flow; we treat that case the same as signed-out — stash the code and route
+	 * onboarding flow; we treat that case the same as signed-out: stash the code and route
 	 * to `/signup` so the existing drain can pick it up. A returning user whose legacy profile
 	 * never flipped `onboardingCompleted` to `true` is treated as onboarded.
 	 */
@@ -54,7 +54,7 @@
 	);
 	// A returning user (the satellite already held a profile at sign-in) is
 	// past onboarding even if their legacy profile still defaults
-	// `onboardingCompleted` to `false` — only a brand-new account needs the
+	// `onboardingCompleted` to `false`: only a brand-new account needs the
 	// signup drain. Mirrors the (app) layout's onboarding gate.
 	const needsOnboarding = $derived(!onboardingCompleted && !$userStore.profileExisted);
 
@@ -67,14 +67,14 @@
 			return;
 		}
 
-		// Wait for the auth handshake before deciding what to do — `authBusy` flips to
+		// Wait for the auth handshake before deciding what to do: `authBusy` flips to
 		// `false` once the userStore has either hydrated a session or confirmed the user is
 		// signed out. Reacting too early would always read `userSignedIn=false`.
 		if ($authBusy) {
 			return;
 		}
 
-		// One-shot — we navigate away in every branch, and the `onMount` mutation guard
+		// One-shot: we navigate away in every branch, and the `onMount` mutation guard
 		// would otherwise re-fire on the post-nav re-render of this same page instance.
 		if (untrack(() => resolved)) {
 			return;
@@ -143,7 +143,7 @@
 		}
 
 		// Existing signed-in user. Resolve the referrer principal so the sheet can show "you
-		// can't redeem (no bonus) but here's the inviter — add as friend".
+		// can't redeem (no bonus) but here's the inviter: add as friend".
 		try {
 			const owner = await lookupReferralCode({ code: normalizedCode });
 
@@ -189,7 +189,7 @@
 	};
 
 	/**
-	 * Sheet CTA — attempts to add the referrer as a friend (no VXP transfer). Idempotent
+	 * Sheet CTA: attempts to add the referrer as a friend (no VXP transfer). Idempotent
 	 * server-side: a no-op if a relation already exists in any state.
 	 */
 	let claiming = $state(false);

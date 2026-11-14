@@ -1,13 +1,13 @@
 <script lang="ts">
 	/**
-	 * ResolutionReveal — the deferred "being right" digest.
+	 * ResolutionReveal: the deferred "being right" digest.
 	 *
 	 * A "while you were away" recap of every call that settled since the
 	 * user last acknowledged their resolutions: one celebratory screen, not
 	 * a modal per call. Win / loss + net VXP land here, never in the swipe
 	 * gap. The burst + count-up + glow pulse fire only when the batch is
 	 * net-positive (any right call earns the hit); a net-negative batch
-	 * stays measured — the system never borrows celebratory vocabulary for
+	 * stays measured: the system never borrows celebratory vocabulary for
 	 * a loss. Both CTAs apply the settlement (the calls resolved
 	 * regardless); they only pick where the user goes next.
 	 *
@@ -59,10 +59,10 @@
 
 	const positive = $derived(data.netVxp >= 0);
 	// Any right call earns the celebration hit, even on a net-negative batch
-	// (the burst itself only fires when `positive` too — see the template).
+	// (the burst itself only fires when `positive` too: see the template).
 	const celebrate = $derived(data.wins > 0);
 	// A batch that nets a real but sub-1 VXP swing (e.g. only heavy-favourite
-	// wins) can't count up to a whole number — it would land on a misleading
+	// wins) can't count up to a whole number; it would land on a misleading
 	// "0". Show "<1" statically instead (mirrors the per-row treatment).
 	const subOneNet = $derived(Math.abs(data.netVxp) > 0 && Math.abs(data.netVxp) < 1);
 
@@ -93,14 +93,14 @@
 				if (p < 1) {
 					raf = requestAnimationFrame(tick);
 				} else {
-					// Count-up done — announce the final value once.
+					// Count-up done: announce the final value once.
 					announcedVxp = `${sign}${formatWholeVxpMagnitude(data.netVxp)} ${vxpLabel}`;
 				}
 			};
 
 			raf = requestAnimationFrame(tick);
 
-			// Dopamine hit on right calls — a layered celebration haptic and a
+			// Dopamine hit on right calls: a layered celebration haptic and a
 			// soft win tone, once. Suppressed entirely under reduced motion.
 			if (celebrate) {
 				haptic('celebration');

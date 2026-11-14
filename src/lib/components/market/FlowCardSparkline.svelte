@@ -29,7 +29,7 @@
 	 *  - Active state resets whenever the events identity changes
 	 *    (handled by Svelte's reactive `$effect` keyed off the seed)
 	 *
-	 * `event.day` is 1..7 where 7 = today and 1 = a week ago — the
+	 * `event.day` is 1..7 where 7 = today and 1 = a week ago; the
 	 * date label is computed live so it stays fresh as the user
 	 * lingers in the app.
 	 */
@@ -48,12 +48,12 @@
 		/**
 		 * Real, market-wide price-history series (0–100 YES percentages,
 		 * oldest first) sourced from the clearing canister's market-wide
-		 * trade history — the true movement for every viewer, not the
+		 * trade history: the true movement for every viewer, not the
 		 * caller's own fills. When provided the line plots this genuine
 		 * history instead of the seed-based fallback shape:
 		 *  - a non-empty series traces the actual trade prices, ending at
 		 *    the live `yesPercent`;
-		 *  - an empty series is a true cold-start — the line reads flat at
+		 *  - an empty series is a true cold-start; the line reads flat at
 		 *    `yesPercent` until the first trade lands.
 		 * When `undefined` (surfaces that don't fetch per-market history,
 		 * e.g. the swipe deck) the seed-based fallback shape is used.
@@ -91,7 +91,7 @@
 		dir: MarketEvent['dir'];
 		extras: number;
 		// Index of this marker's primary event in the original `events`
-		// array — kept so the active-event sheet still maps back to the
+		// array: kept so the active-event sheet still maps back to the
 		// original event payload.
 		primaryIndex: number;
 	}
@@ -125,7 +125,7 @@
 	// (`pointsProp`) it wins over the seed-based fallback shape:
 	//  - non-empty real history is plotted verbatim, with the live
 	//    `yesPercent` appended so the trailing dot reads as "now";
-	//  - an empty real series is a true cold-start — a flat line held at
+	//  - an empty real series is a true cold-start; a flat line held at
 	//    `yesPercent` (two points so the path still renders);
 	//  - `undefined` (no per-market fetch on this surface) falls back to
 	//    the seed-based shape.
@@ -164,7 +164,7 @@
 		return (i / Math.max(points.length - 1, 1)) * w;
 	};
 
-	// Plotted points in render space — the single source for the line, the
+	// Plotted points in render space: the single source for the line, the
 	// area fill, and the marker y-interpolation.
 	const xy = $derived(points.map((p, i) => ({ x: xCoord(i), y: yCoord(p) })));
 
@@ -172,12 +172,12 @@
 	// with `y = h - (pct/100)*h - 2` so 100 % sits 2 px below the top.
 	const linePath = $derived(xy.map(({ x, y }, i) => `${i === 0 ? 'M' : 'L'}${x} ${y}`).join(' '));
 
-	// Area path closes the line back to the bottom-left corner —
+	// Area path closes the line back to the bottom-left corner:
 	// `M…L… L${w} ${h} L0 ${h} Z`.
 	const areaPath = $derived(linePath.length > 0 ? `${linePath} L${w} ${h} L0 ${h} Z` : '');
 
 	// Line y at an arbitrary x, by linear interpolation over the plotted
-	// points — used to sit event markers on the line when their x comes from
+	// points: used to sit event markers on the line when their x comes from
 	// a date rather than a point index.
 	const yAtX = (targetX: number): number => {
 		if (xy.length === 0) {
@@ -216,7 +216,7 @@
 	});
 
 	// Map an event's `day` field (1..7, 7 = today) to its index in the
-	// 15-point `points` array: `idx = (points.length-1) - (7 - day)` —
+	// 15-point `points` array: `idx = (points.length-1) - (7 - day)`,
 	// i.e. the last 7 points are day 1..7. Seed-fallback only.
 	const eventIndexForDay = (day: number): number =>
 		Math.max(0, Math.min(points.length - 1, points.length - 1 - (7 - day)));
@@ -262,7 +262,7 @@
 
 	const dateForEvent = (day: number): { dayName: string; month: string; dom: number } => {
 		// Compute the date `(7 - day)` days ago without mutating any
-		// Date instance — Svelte's lint flags `setDate` calls because a
+		// Date instance: Svelte's lint flags `setDate` calls because a
 		// mutable Date doesn't trigger reactivity. We build a fresh
 		// Date directly from a millisecond offset instead.
 		const offsetMs = (7 - day) * DAY_IN_MS;
@@ -302,7 +302,7 @@
 		<!-- Trailing live dot at the right edge -->
 		<circle cx={w} cy={liveDotY} fill={lineColor} r="2.5" />
 
-		<!-- Event markers — tappable. One dot per day; same-day extras
+		<!-- Event markers: tappable. One dot per day; same-day extras
 		     collapse into a `+N` badge on the dot. -->
 		{#each dayMarkers as marker (marker.day)}
 			{@const x = eventX(marker.day)}
@@ -329,9 +329,9 @@
 				role="button"
 				tabindex="0"
 			>
-				<!-- Invisible hit area — larger tap target than the visible dot -->
+				<!-- Invisible hit area: larger tap target than the visible dot -->
 				<circle cx={x} cy={y} fill="transparent" r="14" />
-				<!-- Dotted vertical drop — only when active -->
+				<!-- Dotted vertical drop: only when active -->
 				{#if isActive}
 					<line
 						opacity="0.5"
@@ -344,7 +344,7 @@
 						y2={h + 2}
 					/>
 				{/if}
-				<!-- Pulse ring — visible only when none active (invites tap) -->
+				<!-- Pulse ring: visible only when none active (invites tap) -->
 				{#if isPulse}
 					<circle
 						class="flow-spark-pulse-ring"
@@ -357,7 +357,7 @@
 						stroke-width="1.2"
 					/>
 				{/if}
-				<!-- Visible dot — fills with section bg so the ring reads clean
+				<!-- Visible dot: fills with section bg so the ring reads clean
 				     on every theme; ink fill when active. -->
 				<circle
 					cx={x}
@@ -367,7 +367,7 @@
 					stroke={lineColor}
 					stroke-width={isActive ? 1.5 : 1.2}
 				/>
-				<!-- Extras badge — surfaces when the same day carries
+				<!-- Extras badge: surfaces when the same day carries
 				     more than one event. -->
 				{#if marker.extras > 0}
 					<g class="flow-spark-event-extras">
@@ -442,7 +442,7 @@
 		cursor: pointer;
 	}
 
-	/* Idle pulse animation — fires only when no dot is active so the
+	/* Idle pulse animation: fires only when no dot is active so the
 	   pulse invites a tap. */
 	.flow-spark-pulse-ring {
 		animation: flow-spark-pulse 1.8s ease-in-out infinite;

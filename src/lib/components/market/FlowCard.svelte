@@ -48,14 +48,14 @@
 		// card that mounts underneath. Default true keeps static / guided
 		// usages unaffected.
 		gesturesArmed?: boolean;
-		// Generative-artwork category — a resolved macro (or the `wc`
+		// Generative-artwork category: a resolved macro (or the `wc`
 		// tentpole). FlowMode resolves this from the market's stored tags;
 		// FlowCard falls back to a hash-derived bucket when absent (static /
 		// preview usages).
 		category?: FlowArtCategory;
 		// Optional editorial sub-line ("FOMC · rate-cut call"). When
 		// undefined, FlowCard resolves one from metadata, the curated
-		// WC-market table, or — as a last resort — the market description.
+		// WC-market table, or, as a last resort, the market description.
 		subtitle?: string;
 		// When set, the card has already been committed to a side and is
 		// playing the commit-feedback beat before the parent unmounts it.
@@ -67,7 +67,7 @@
 		followedLean?: FollowedLeanSignal;
 		// Real, market-wide price history (0–100 YES series, oldest first)
 		// for the back-face sparkline. Absent until FlowMode resolves it for
-		// the focused card — the back face falls back to its seed shape.
+		// the focused card: the back face falls back to its seed shape.
 		points?: number[];
 		// Parallel x-fractions (0–1) placing each `points` entry on the time
 		// axis. Present alongside real history; absent for the seed shape.
@@ -75,7 +75,7 @@
 		// Stake-ladder change callback. Wired through to FlowCardBack so a
 		// tap on a rung writes back to FlowMode's bound stake.
 		onStakeChange?: (next: string) => void;
-		// Guided mode — the onboarding first-call surface reuses this exact
+		// Guided mode: the onboarding first-call surface reuses this exact
 		// card so the in-product deck and the tutorial are pixel-identical.
 		// In guided mode the card never flips (tap is inert) and swipe-up
 		// SKIP is suppressed: the first call must commit a YES/NO, never
@@ -137,7 +137,7 @@
 
 	const isCommitted = $derived(nonNullish(committedAction));
 
-	// Swipe physics — rotation damping of 18 (drag.x / 18), commit
+	// Swipe physics: rotation damping of 18 (drag.x / 18), commit
 	// threshold of 100 px, settle delay of 220 ms after pointer-up
 	// before the trade fires, firm-tap haptic on commit.
 	const SWIPE_THRESHOLD = 100;
@@ -148,7 +148,7 @@
 	// description-derived fallback so it can't crowd the card body.
 	const DESCRIPTION_SUBTITLE_MAX_LENGTH = 60;
 
-	// Resolved category — single source of truth across the surface so
+	// Resolved category: single source of truth across the surface so
 	// untagged markets hash identically here, in FlowMode, etc. An explicit
 	// `category` (already resolved by FlowMode) wins; otherwise fall back to
 	// the deterministic hash-of-id bucket.
@@ -163,7 +163,7 @@
 	// rotation.
 	let flipped = $state(false);
 
-	// Drag state — raw deltas, no Spring. Plain `{x, y, dragging}`
+	// Drag state: raw deltas, no Spring. Plain `{x, y, dragging}`
 	// model with a `committedRef` one-shot latch reset on market
 	// change so a fast double-swipe can't fire twice.
 	let dragX = $state(0);
@@ -206,7 +206,7 @@
 	const yesIsFav = $derived(nonNullish(crowdPct) && crowdPct >= 50);
 	const noPct = $derived(nonNullish(crowdPct) ? 100 - crowdPct : undefined);
 
-	// Payout preview — stake/(probability) − stake, clamped at p=0.05
+	// Payout preview: stake/(probability) − stake, clamped at p=0.05
 	// to keep long-shots from rendering pathological numbers. Only computed
 	// when the probability is known; otherwise the preview is suppressed.
 	const stakeNum = $derived(Math.max(0, Number(tradeAmount) || 0));
@@ -227,7 +227,7 @@
 
 	const sizeStake = $derived(Math.max(VXP_DEFAULT_STAKE, stakeNum));
 
-	// Live countdown — days until expiry, displayed as a chip in the
+	// Live countdown: days until expiry, displayed as a chip in the
 	// meta row. Computed off `expiryDate` (ms). Urgency tiers:
 	// ≤ 1 day = urgent, ≤ 7 = soon.
 	const daysLeft = $derived.by(() => {
@@ -241,7 +241,7 @@
 	});
 	const daysLeftUrgency = $derived(daysLeft <= 1 ? 'urgent' : daysLeft <= 7 ? 'soon' : '');
 
-	// WC live-state suffix on the category tag — only event-named
+	// WC live-state suffix on the category tag; only event-named
 	// milestones (MATCHDAY, KICKS OFF TOMORROW, KICKOFF WK). The numeric
 	// "X DAYS" suffix is owned by the days-left chip alongside.
 	const wcSuffixKey = $derived.by<
@@ -266,7 +266,7 @@
 		}
 	});
 
-	// Friends-followed-lean line — when the user is following predictors
+	// Friends-followed-lean line: when the user is following predictors
 	// who've called this market, surface the YES/NO split. Falls back to
 	// the predictors-count + momentum delta line.
 	const followedYes = $derived(followedLean?.yes);
@@ -297,7 +297,7 @@
 		market.outcomes?.reduce((acc, o) => acc + (o.totalPredictions ?? 0), 0) ?? 0
 	);
 
-	// Per-market momentum delta — deterministic per market.id, drives
+	// Per-market momentum delta: deterministic per market.id, drives
 	// the "+N today" fallback line shown when the user has no
 	// followed-friends data on this market. Range ~10..99 keeps the
 	// number plausible without requiring a live aggregator.
@@ -319,7 +319,7 @@
 	// carries context distinct from the settlement clause. Markets
 	// historically defaulted `resolution` to `description`, so when the two
 	// are identical the description adds nothing the back card's RESOLVES
-	// YES IF section doesn't already state — surfacing it as an italic
+	// YES IF section doesn't already state: surfacing it as an italic
 	// front-card line reads as a snippet, not an accent. Suppress it in
 	// that case; otherwise trim the distinct blurb for the last-resort line.
 	const descriptionSubtitle = $derived.by<string | undefined>(() => {
@@ -347,9 +347,9 @@
 	// Subtitle resolution order:
 	//   1. Explicit `subtitle` prop (parent override)
 	//   2. `metadata.subtitle` from the satellite (admin-curated)
-	//   3. Curated WC-market lookup (`wc-market-subtitles.constants.ts`)
-	//      — the tentpole markets the deck ships with
-	//   4. Description blurb — only when it differs from the settlement
+	//   3. Curated WC-market lookup (`wc-market-subtitles.constants.ts`):
+	//      the tentpole markets the deck ships with
+	//   4. Description blurb; only when it differs from the settlement
 	//      clause (see `descriptionSubtitle`); a pure resolution echo is
 	//      suppressed so no description-derived line shows
 	//   5. undefined → row is hidden
@@ -415,7 +415,7 @@
 		movedDist = Math.max(movedDist, Math.hypot(dx, dy));
 
 		if (flipped) {
-			// Back of card: only react to clearly horizontal motion —
+			// Back of card: only react to clearly horizontal motion:
 			// vertical scroll belongs to the panel body.
 			if (Math.abs(dx) > Math.abs(dy) * 1.2 && Math.abs(dx) > 8) {
 				dragX = dx;
@@ -485,12 +485,12 @@
 		}
 
 		if (movedDist < TAP_PX) {
-			// Tap = flip to depth — disabled in guided mode, where the
+			// Tap = flip to depth: disabled in guided mode, where the
 			// first call must be a YES/NO commit (no depth, no flip).
 			dragX = 0;
 			dragY = 0;
 
-			// Suppress flip in guided mode, and until the price is known —
+			// Suppress flip in guided mode, and until the price is known:
 			// the back face's community-read / stake sections all assume a
 			// resolved probability, so flipping to a fabricated split would
 			// surface a 50/50 the book never reported.
@@ -501,7 +501,7 @@
 			return;
 		}
 
-		// Swipe-up SKIP takes priority when motion is clearly vertical —
+		// Swipe-up SKIP takes priority when motion is clearly vertical,
 		// suppressed in guided mode so the first call can't be skipped.
 		if (!guided && dragY < -SKIP_THRESHOLD && Math.abs(dragX) < Math.abs(dragY) * 0.7) {
 			commitWithSettle({ side: 'SKIP', exitX: dragX, exitY: -700 });
@@ -533,7 +533,7 @@
 	// `touchend` is followed ~300 ms later by synthetic `mousedown` /
 	// `mouseup` / `click` at the same coordinates. Without this guard the
 	// touch-driven flip-to-back fires, the back-face's `onclick` then
-	// catches the ghost-click and flips straight back to front — making
+	// catches the ghost-click and flips straight back to front: making
 	// tap-to-flip look like a no-op on phones.
 	let lastTouchEndAtMs = 0;
 	const GHOST_CLICK_WINDOW_MS = 500;
@@ -543,7 +543,7 @@
 		// the synthetic mouse chain that would otherwise fire after a
 		// gesture we just claimed. But blanket-preventing it ALSO kills
 		// legitimate clicks on interactive children (back-face pegs,
-		// share button, etc.) — onPointerDown skips them, dragging stays
+		// share button, etc.): onPointerDown skips them, dragging stays
 		// false, and the synthetic click would have been the only signal
 		// they ever received. Gate the preventDefault on `dragging`: we
 		// only suppress the synthetic chain when we actually drove a
@@ -689,9 +689,9 @@
 					<!-- Friends social proof + live momentum. The avatar
 				     stack always renders (4 seeded decorative circles);
 				     the trailing text swaps between
-				       (a) `N friends YES · M NO`        — followedLean
-				       (b) `K predicting · +D today`      — predictors-count fallback
-				       (c) empty                          — neither available -->
+				       (a) `N friends YES · M NO`: followedLean
+				       (b) `K predicting · +D today`: predictors-count fallback
+				       (c) empty: neither available -->
 					<div class="flow-social num">
 						<SeededAvatarStack borderColor="var(--bg-popover)" size={18} />
 						{#if nonNullish(followedYes) && followedYes > 0}
@@ -716,7 +716,7 @@
 					</div>
 
 					<!-- Edge-to-edge market artwork. No padding around the
-				     frame — extends across the card body (`bleed` mode). -->
+				     frame: extends across the card body (`bleed` mode). -->
 					<div class="flow-art-bleed">
 						<MarketArtwork
 							bleed
@@ -728,7 +728,7 @@
 						/>
 					</div>
 
-					<!-- Probability split — single bar with payout labels.
+					<!-- Probability split: single bar with payout labels.
 				     Replaces the dual-box layout to compress space and
 				     surface upside without the misleading red 85% box.
 				     When the probability is unknown the split + payout
@@ -784,11 +784,11 @@
 						{/if}
 					</div>
 
-					<!-- Foot — SIZE · VXP chip + tap/swipe hint. -->
+					<!-- Foot: SIZE · VXP chip + tap/swipe hint. -->
 					<FlowCardFooter {guided} {sizeStake} />
 				</div>
 
-				<!-- Swipe stamps — large centered YES / NO and a compact
+				<!-- Swipe stamps: large centered YES / NO and a compact
 			     top-center SKIP, fading in with drag progress. -->
 				<div
 					style:opacity={frontOverlayYes}
@@ -819,7 +819,7 @@
 				onclick={closeBackOnTap}
 			>
 				{#if nonNullish(crowdPct) && nonNullish(crowdSide)}
-					<!-- Rendered only once the probability is known — the flip
+					<!-- Rendered only once the probability is known; the flip
 				     gesture is itself gated on `priceKnown`, so the back
 				     face never opens on a fabricated split. -->
 					<FlowCardBack
@@ -843,7 +843,7 @@
 					/>
 				{/if}
 
-				<!-- Back-face swipe still commits a call — corner stamps reuse
+				<!-- Back-face swipe still commits a call: corner stamps reuse
 			     the front-face YES/NO treatment; the doubly-rotated back face
 			     resolves forward-facing so they read correctly as-is. -->
 				<div
@@ -897,7 +897,7 @@
 		   which makes it a containing block for its descendants' 3D space.
 		   WebKit flattens that space at any transformed ancestor whose
 		   transform-style is the default `flat`, collapsing the flipper's
-		   rotateY into this plane — so the flip renders as an instant
+		   rotateY into this plane, so the flip renders as an instant
 		   backface swap instead of an animated 3D rotation. Propagate the
 		   3D context (rooted in `.flow-card-root`'s perspective) through to
 		   `.flow-flipper` so the rotation keeps its depth on WebKit. */
@@ -915,14 +915,14 @@
 		pointer-events: none;
 	}
 
-	/* Locked state — parent (e.g. FlowMode) flips `locked` when a sheet
+	/* Locked state: parent (e.g. FlowMode) flips `locked` when a sheet
 	   is open and gestures should pause. Both faces desaturate / dim. */
 	.flow-card.is-locked .flow-face {
 		filter: brightness(0.92) saturate(0.9);
 		transition: filter 280ms var(--ease-vici);
 	}
 
-	/* 3D flip container — front and back faces share the same slot;
+	/* 3D flip container: front and back faces share the same slot;
 	   rotating the flipper 180° on Y reveals the back. `preserve-3d`
 	   keeps the children in the same 3D space so backface-visibility
 	   on the faces actually culls the hidden one. */
@@ -931,7 +931,7 @@
 		inset: 0;
 		/* Mirror `.flow-card`'s prefixed `preserve-3d`: this is the element
 		   that actually rotates, and on iOS WebKit the unprefixed
-		   `transform-style` alone is ignored — the faces then flatten into
+		   `transform-style` alone is ignored: the faces then flatten into
 		   one plane and `backface-visibility` culls discretely, so the flip
 		   snaps to the other side with no visible rotation (the reported iOS
 		   bug). The `-webkit-` prefix keeps the faces in shared 3D space. */
@@ -951,7 +951,7 @@
 		   ghost through the back (and vice versa). */
 		backface-visibility: hidden;
 		-webkit-backface-visibility: hidden;
-		/* 22 px corner radius — softer than the default card radius
+		/* 22 px corner radius: softer than the default card radius
 		   for the swipeable Flow surface. */
 		border-radius: 22px;
 	}
@@ -1056,7 +1056,7 @@
 	.flow-whynow strong {
 		font-weight: 700;
 	}
-	/* Prior-call eyebrow — a stronger, monospaced signal than the
+	/* Prior-call eyebrow: a stronger, monospaced signal than the
 	   curated why-now cue, tinted with the called side's color. */
 	.flow-whynow-prior {
 		font-family: var(--font-mono);
@@ -1108,7 +1108,7 @@
 		line-height: 1.35;
 		letter-spacing: 0;
 		color: var(--fg-dim);
-		/* Serif-italic accent — editorial sub-row. The global
+		/* Serif-italic accent: editorial sub-row. The global
 		   `.serif-italic` utility also sets font-family + weight; this
 		   duplicates a few props so the typography still reads when the
 		   utility class is overridden by parent context. */
@@ -1183,7 +1183,7 @@
 	.flow-followed-lean {
 		font-weight: 600;
 	}
-	/* Edge-to-edge artwork frame — the FlowArtFrame's own rounded
+	/* Edge-to-edge artwork frame: the FlowArtFrame's own rounded
 	   corners come off so the body of the card hosts the art with no
 	   side padding (`bleed` mode). The frame's height is fixed so the
 	   title / probs row never reflow on layout changes. */
@@ -1235,7 +1235,7 @@
 		gap: 10px;
 	}
 
-	/* Unknown-odds state — the skeleton bar / dash stands in for the
+	/* Unknown-odds state: the skeleton bar / dash stands in for the
 	   split + payout rows, centered so the card silhouette stays stable
 	   whether the probability is known or still loading. */
 	.flow-probs-row-unknown {
@@ -1338,8 +1338,8 @@
 	}
 
 	/* Swipe stamps that fade in with drag progress and read like a rubber
-	   stamp slammed onto the card. YES / NO are large and centered — the word
-	   fills the card face as the swipe commits — while SKIP stays a compact
+	   stamp slammed onto the card. YES / NO are large and centered; the word
+	   fills the card face as the swipe commits, while SKIP stays a compact
 	   glassy box riding top-center. The stamp box (border + radius + tilt)
 	   carries the swipe intent. */
 	.flow-overlay {
@@ -1358,7 +1358,7 @@
 			transform 120ms var(--ease-vici);
 		z-index: 20;
 	}
-	/* Large centered YES / NO — anchored at the card center and tilted toward
+	/* Large centered YES / NO: anchored at the card center and tilted toward
 	   their swipe edge (YES leans left for the right swipe, NO leans right for
 	   the left). The same rule drives the back-face stamps (`.flow-overlay-back`
 	   reuses these classes), so front and back read identically. */
@@ -1402,7 +1402,7 @@
 	/* The back face is pre-rotated rotateY(180deg) and the flipper adds
 	   another 180° when flipped, so back content already resolves
 	   forward-facing (net 360°). The back stamps therefore inherit the
-	   front-face YES/NO treatment as-is — lettering reads forward and the
+	   front-face YES/NO treatment as-is: lettering reads forward and the
 	   word lands centered. Only the stacking order differs. */
 	.flow-overlay-back {
 		z-index: 25;

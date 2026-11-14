@@ -6,7 +6,7 @@
 	 * stays legible as the pool grows.
 	 *
 	 * Rounds UP to the next worse bracket so the better tiers feel
-	 * earned, and returns `undefined` below the Top 50% tier — a
+	 * earned, and returns `undefined` below the Top 50% tier; a
 	 * demoralizing band gets no badge and the caller falls back to the
 	 * absolute `#rank of total`.
 	 */
@@ -61,17 +61,17 @@
 	import { goto } from '$app/navigation';
 
 	/**
-	 * Arena standing hero — one swipe-only standing that pages across the
+	 * Arena standing hero: one swipe-only standing that pages across the
 	 * viewer's competitive scopes (Global → Friends → each League →
 	 * Battle). A single ~76px rank figure reads at one consistent scale
 	 * across every scope; tappable dots let the viewer jump between
-	 * scopes and there is NO auto-advance — nothing rotates a stat out
+	 * scopes and there is NO auto-advance; nothing rotates a stat out
 	 * from under them.
 	 *
 	 * The Global scope leads with a percentile bracket (`Top 0.1%` /
 	 * `Top 1%` / `Top 5%` / …) when the viewer is in the top half; below
 	 * that it falls back to the absolute `#rank of total`. Movement reads as
-	 * `▲ {n}` — a percentile-point delta (with a `%` suffix) for the
+	 * `▲ {n}`: a percentile-point delta (with a `%` suffix) for the
 	 * Global scope, an absolute rank climb for the others.
 	 *
 	 * Every scope is sourced from real, already-cached data: the global
@@ -85,7 +85,7 @@
 	 * localStorage (keyed per-principal) and seeded synchronously on
 	 * mount, so a returning viewer sees their last standings immediately
 	 * while a fresh hydrate runs in the background and overwrites them
-	 * (stale-while-revalidate). On the very first cold load — no cache —
+	 * (stale-while-revalidate). On the very first cold load, no cache,
 	 * a pulsing skeleton stands in for the hero until the hydrate lands.
 	 */
 
@@ -117,7 +117,7 @@
 		// Percentile bracket tier (e.g. 1 → "Top 1%"); undefined when the
 		// scope shows an absolute rank.
 		bracket: number | undefined;
-		// Movement vs the prior window — positive climbs render "▲ {up}".
+		// Movement vs the prior window: positive climbs render "▲ {up}".
 		up: number;
 		// Append "%" to the movement figure (Global percentile scope).
 		upSuffix: '%' | '';
@@ -206,7 +206,7 @@
 	// standings on the same frame the page mounts. The fresh hydrate waits
 	// for the friend relations / affiliations refreshes first because
 	// `hydrate()` reads `$friendsListStore` / `$myAffiliationsStore`
-	// synchronously — kicking it off before those resolve can permanently
+	// synchronously: kicking it off before those resolve can permanently
 	// omit the Friends and Battle scopes. The `cancelled` flag drops a late
 	// resolution after teardown so we never write `scopes` on an unmounted
 	// instance (or for a stale principal).
@@ -215,7 +215,7 @@
 		let cancelled = false;
 
 		// Stale-while-revalidate seed. A present cache entry (even an empty
-		// array — "loaded, no standings") suppresses the skeleton; a missing
+		// array: "loaded, no standings") suppresses the skeleton; a missing
 		// one leaves us in the cold-load state until the hydrate settles.
 		const cached = nonNullish(owner) ? readCache(owner) : undefined;
 
@@ -224,7 +224,7 @@
 			settled = true;
 		} else {
 			scopes = [];
-			// No principal means no hydrate can run — settle the signed-out /
+			// No principal means no hydrate can run: settle the signed-out /
 			// pre-auth state immediately so the skeleton only pulses while a
 			// load is actually possible. When auth resolves, the effect
 			// re-runs with the principal and the cold-load state kicks in.
@@ -524,7 +524,7 @@
 			event.preventDefault();
 			select(idx - 1);
 		} else if (event.key === 'Enter' || event.key === ' ') {
-			// Only the hero itself opens the active scope — a focused dot
+			// Only the hero itself opens the active scope; a focused dot
 			// button has its own activation, so don't hijack its Enter/Space
 			// when the keydown bubbles up from a nested control.
 			if (event.target !== event.currentTarget) {
@@ -548,7 +548,7 @@
 {#if showSkeleton}
 	<!-- Cold-load placeholder: mirrors the hero rhythm (eyebrow → big rank
 	     figure → meta line) so the layout doesn't reflow when the real
-	     standing lands. Decorative pulse only — no copy. -->
+	     standing lands. Decorative pulse only; no copy. -->
 	<div class="ar-standing" aria-hidden="true">
 		<div class="ar-skel">
 			<span class="ar-skel-block ar-skel-ctx"></span>
@@ -651,7 +651,7 @@
 		padding: 1rem 0 0.85rem;
 	}
 
-	/* Cold-load skeleton — same vertical rhythm as `.ar-live` so the hero
+	/* Cold-load skeleton: same vertical rhythm as `.ar-live` so the hero
 	   doesn't jump when the real standing replaces it. */
 	.ar-skel {
 		display: block;
@@ -826,7 +826,7 @@
 		color: var(--text-base);
 	}
 
-	/* Bracket modifier — same hero size as an absolute rank; the "Top"
+	/* Bracket modifier: same hero size as an absolute rank; the "Top"
 	   word is a small prefix so the percentage figure matches "#9" in
 	   scale and the card height stays fixed across scopes. */
 	.ar-live-rank.is-bracket {

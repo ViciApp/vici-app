@@ -20,8 +20,7 @@ import { isNullish } from '@dfinity/utils';
  */
 
 /**
- * Project the satellite's snake_case wire schema for a tournament
- * to FE camelCase.
+ * Project the satellite's wire row for a tournament to `TournamentDoc`.
  */
 const projectTournamentWire = (wire: {
 	id: string;
@@ -42,8 +41,8 @@ const projectTournamentWire = (wire: {
 });
 
 /**
- * Project the satellite's snake_case wire schema for a match to FE
- * camelCase. Optional snake_case fields land as `undefined`; we
+ * Project the satellite's wire row for a match to the FE shape.
+ * Optional wire fields land as `undefined`; we
  * normalise to `null` so the FE can pattern-match on `=== null` to
  * detect "TBD" slots.
  */

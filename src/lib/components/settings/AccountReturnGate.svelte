@@ -85,7 +85,7 @@
 			if (!result.ok) {
 				// Window lapsed: the satellite hard-deleted the account in
 				// place. Show the expired panel, then drop auth to a clean
-				// signed-out state — there is nothing left to come back to.
+				// signed-out state: there is nothing left to come back to.
 				expired = true;
 				inFlight = false;
 				setAuthBusy(true);
@@ -228,7 +228,7 @@
 
 <style lang="postcss">
 	/* Full-viewport blocking scrim. Unlike `BottomSheet` / `Modal` there
-	   is no backdrop-click or Escape close — the gate can only be left by
+	   is no backdrop-click or Escape close: the gate can only be left by
 	   recovering / resuming the account or signing out. */
 	.gate-scrim {
 		position: fixed;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * Transaction history — every event that changed what the user owns,
+	 * Transaction history: every event that changed what the user owns,
 	 * newest first: bonuses (labelled from the ledger award memo),
 	 * prediction stakes, settlements, and external transfers. The last
 	 * column carries the running total balance after each event, anchored on
@@ -206,7 +206,7 @@
 
 		const when = formatNanosecondsToDate({ nanoseconds: row.timestampNs });
 
-		// A fill moves the stake into play without changing total — surface the
+		// A fill moves the stake into play without changing total; surface the
 		// committed margin here so the muted "—" amount reads as "still yours".
 		if (row.kind === 'prediction' && nonNullish(row.stake) && row.stake > ZERO) {
 			return `${when} · ${t({
@@ -221,7 +221,7 @@
 
 	const deltaDisplay = (row: TransactionHistoryRow): string => {
 		// Placing a prediction is wealth-neutral (VXP moves into play, total is
-		// unchanged), so it carries no signed amount — the meta shows the stake.
+		// unchanged), so it carries no signed amount; the meta shows the stake.
 		if (row.kind === 'prediction') {
 			return '—';
 		}

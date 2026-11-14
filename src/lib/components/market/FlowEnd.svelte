@@ -28,7 +28,7 @@
 		// continues the deck past 10; `onClose` returns to the dashboard.
 		onExtend: () => void;
 		onClose: () => void;
-		// Install nudge — `showInstallNudge` gates the row (the host combines
+		// Install nudge: `showInstallNudge` gates the row (the host combines
 		// the `a2hs.store` capability gate with the auto-prompt thresholds),
 		// `onInstallPrompt` opens the shared install sheet.
 		showInstallNudge?: boolean;
@@ -48,17 +48,17 @@
 		onInstallPrompt = undefined
 	}: Props = $props();
 
-	// Reactive reduced-motion gate — the reward springs are the deliberate
+	// Reactive reduced-motion gate: the reward springs are the deliberate
 	// brand exception; we keep them but fade their entrance (and drop the
 	// confetti entirely) when the user opts out of motion.
 	const reduce = $derived(prefersReducedMotion());
 
 	// On fire whenever there's a live streak, a comeback, or an overtime
-	// finish — the day's character then rises as Flame; a quiet day shows
+	// finish: the day's character then rises as Flame; a quiet day shows
 	// the Oracle.
 	const onFire = $derived(comeback || overtime || streak >= 1);
 
-	// Streak day to show — a comeback re-opens at Day 1.
+	// Streak day to show: a comeback re-opens at Day 1.
 	const streakDay = $derived(comeback ? 1 : Math.max(1, streak));
 
 	const eyebrowKey = $derived<MessageKey>(
@@ -69,7 +69,7 @@
 				: 'flow.end.eyebrow_day'
 	);
 
-	// Headline pool — one line picked once on mount (frozen for the surface's
+	// Headline pool: one line picked once on mount (frozen for the surface's
 	// lifetime). Overtime / comeback get their own framing; an on-fire day
 	// reads hotter than a quiet one.
 	const HEAD_POOLS = {
@@ -101,7 +101,7 @@
 			: t({ locale: $localeStore, key: 'flow.end.stat_pending_value', params: { count: pending } })
 	);
 
-	// Confetti — a radial burst gated by reduced motion. `$derived` so the
+	// Confetti: a radial burst gated by reduced motion. `$derived` so the
 	// burst drops cleanly if the motion preference flips while the takeover
 	// is up (no hidden init-time capture of `reduce`).
 	const SPARK_PALETTE = ['#E9C254', '#F08A3C', '#FFF1C2', '#FFD9A0'];
@@ -128,7 +128,7 @@
 
 	// Share → clipboard → confirmation toast. `navigator.share` is absent in
 	// embedded / desktop / non-secure contexts, and a bare clipboard write
-	// gives the user no feedback there — the tap feels dead. So when the
+	// gives the user no feedback there; the tap feels dead. So when the
 	// native sheet is unavailable (or rejects for any reason other than a
 	// user-initiated cancel), we copy the link and always surface a toast:
 	// success on a clean copy, an error toast if even the clipboard is
@@ -146,7 +146,7 @@
 
 				return;
 			} catch (e: unknown) {
-				// User dismissed the sheet — leave it silent. The rejection is a
+				// User dismissed the sheet: leave it silent. The rejection is a
 				// DOMException that isn't reliably `instanceof Error`, so read
 				// its `name` defensively rather than narrowing by prototype.
 				if ((e as { name?: string } | null)?.name === 'AbortError') {
@@ -169,7 +169,7 @@
 		});
 	};
 
-	// Share the day's calls — native share sheet where available, clipboard +
+	// Share the day's calls: native share sheet where available, clipboard +
 	// confirmation toast otherwise.
 	const shareDay = () =>
 		shareOrCopy({
@@ -188,11 +188,11 @@
 		});
 </script>
 
-<!-- FlowEnd — the end-of-session celebration peak. A full-stage takeover:
+<!-- FlowEnd: the end-of-session celebration peak. A full-stage takeover:
      the day's character rises with a confetti burst, three stats count in,
-     and one flex-framed choice follows — push to 15, or done. -->
+     and one flex-framed choice follows: push to 15, or done. -->
 <div class="flow-end" class:is-static={reduce}>
-	<!-- Confetti — decorative, suppressed under reduced motion. -->
+	<!-- Confetti: decorative, suppressed under reduced motion. -->
 	<div class="flow-end-confetti" aria-hidden="true">
 		{#each sparks as s, i (i)}
 			<i
@@ -218,13 +218,13 @@
 
 	<p class="eyebrow flow-end-eyebrow">{t({ locale: $localeStore, key: eyebrowKey })}</p>
 
-	<!-- The summary is announced once it settles — `aria-live` on the head so
+	<!-- The summary is announced once it settles: `aria-live` on the head so
 	     screen readers get the celebration without the decorative motion. -->
 	<h2 class="flow-end-head serif-italic" aria-live="polite" role="status">
 		{t({ locale: $localeStore, key: headKey })}
 	</h2>
 
-	<!-- Stats — stagger in. -->
+	<!-- Stats: stagger in. -->
 	<div class="flow-end-stats">
 		<div class="flow-end-stat flow-end-stat-1">
 			<span class="eyebrow flow-end-stat-label"
@@ -267,7 +267,7 @@
 		{/if}
 	</div>
 
-	<!-- Install nudge — a calm, non-interruptive row offering Add-to-Home-Screen,
+	<!-- Install nudge: a calm, non-interruptive row offering Add-to-Home-Screen,
 	     shown only when the app can be installed (mobile, not already a PWA).
 	     Sits above the Share · Invite links; opens the shared install sheet. -->
 	{#if showInstallNudge && onInstallPrompt}
@@ -282,7 +282,7 @@
 		</button>
 	{/if}
 
-	<!-- Growth — subtle text links, kept quiet so they never compete with the
+	<!-- Growth: subtle text links, kept quiet so they never compete with the
 	     primary action. -->
 	<div class="flow-end-links">
 		<button class="flow-end-link" onclick={shareDay} type="button"
@@ -296,7 +296,7 @@
 </div>
 
 <style lang="postcss">
-	/* The celebration peak — a full-stage takeover. Theme-adaptive: the
+	/* The celebration peak: a full-stage takeover. Theme-adaptive: the
 	   radial wash and every surface tint resolve through the laurel / ink /
 	   parchment tokens, so dark / light / peach all read correctly. The
 	   `fe-pop` / `fe-spark` / `fe-rise` keyframes are shared global
@@ -416,7 +416,7 @@
 		animation: fe-rise 500ms ease 0.78s both;
 	}
 
-	/* Install nudge — a quiet bordered row, calmer than the primary CTA, that
+	/* Install nudge: a quiet bordered row, calmer than the primary CTA, that
 	   inherits the staggered reveal so it lands with the growth links below. */
 	.flow-end-install {
 		display: flex;
@@ -484,7 +484,7 @@
 		color: color-mix(in srgb, var(--text-muted) 55%, transparent);
 	}
 
-	/* Reduced motion — keep the reward springs (the brand exception) but
+	/* Reduced motion: keep the reward springs (the brand exception) but
 	   fade them in place instead of springing, drop the confetti entirely,
 	   and reveal every staggered element immediately. */
 	.flow-end.is-static .flow-end-confetti {

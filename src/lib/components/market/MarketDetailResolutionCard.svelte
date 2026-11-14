@@ -7,7 +7,7 @@
 	interface Props {
 		market: Market;
 		/**
-		 * Resolution clause to render in place of `market.resolution` — the
+		 * Resolution clause to render in place of `market.resolution`; the
 		 * caller passes the locale-resolved (translated or original) clause.
 		 * Falls back to the market's own clause when omitted.
 		 */
@@ -82,7 +82,7 @@
 		line-height: 1.55;
 	}
 
-	/* Source / settles footer — two label·value rows in the mono ramp
+	/* Source / settles footer: two label·value rows in the mono ramp
 	   so they read as the market's machine-grade facts beneath the
 	   prose criterion. */
 	.market-resolution-foot {

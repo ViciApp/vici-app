@@ -31,7 +31,7 @@
 		priorCall?: PriorCallSignal;
 		followedLean?: FollowedLeanSignal;
 		onClose: () => void;
-		// Mirrors FlowCard.interactive — only the topmost card is wired
+		// Mirrors FlowCard.interactive; only the topmost card is wired
 		// for the tap-to-flip-back / horizontal-swipe-commits gestures.
 		interactive?: boolean;
 		// Current stake amount (string for input-binding parity with
@@ -77,7 +77,7 @@
 	}: Props = $props();
 
 	const catColor = $derived(tagColor(category));
-	// Single source for the crowd split — both faces and every section
+	// Single source for the crowd split; both faces and every section
 	// read off these so float rounding can't diverge between them.
 	const yesPct = $derived(crowdPct);
 	const noPct = $derived(100 - yesPct);
