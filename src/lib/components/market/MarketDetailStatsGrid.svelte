@@ -57,7 +57,7 @@
 	/**
 	 * Recover the user's side from the resolution event stream when the
 	 * live position is gone. Inference rules: winners' exact side,
-	 * binary losers' opposite side, categorical losers unknown: live
+	 * binary losers' opposite side, categorical losers unknown. They live
 	 * in `inferResolvedOutcomeId` so they stay aligned with the
 	 * Portfolio row helpers.
 	 */

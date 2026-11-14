@@ -28,7 +28,7 @@
 
 	const yesPct = $derived(crowdPct);
 	const noPct = $derived(100 - yesPct);
-	// Headline number must read off `crowdSide`; the majority side the
+	// Headline number must read off `crowdSide`, the majority side the
 	// label shows. `crowdPct` is always the YES share, so a NO-leaning
 	// market needs `noPct` here or the figure contradicts its own label.
 	const crowdSidePct = $derived(crowdSide === 'YES' ? yesPct : noPct);

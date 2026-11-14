@@ -146,7 +146,7 @@
 
 	/* Cap state: when the user hits the top rung of the stake ladder
 	   we flip every accent surface: wash, border, label, value,
-	   slider fill, handle, active peg: from laurel to `--no` red so
+	   slider fill, handle, active peg, all from laurel to `--no` red so
 	   the user feels the upper bound visually instead of having to
 	   read it. */
 	.flow-stake.is-cap {

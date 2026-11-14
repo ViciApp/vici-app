@@ -48,7 +48,7 @@
 	 */
 
 	interface Props {
-		// When true, hide the page's own appbar, the container is
+		// When true, hide the page's own appbar: the container is
 		// expected to render one (e.g. the tabbed Arena parent).
 		embedded?: boolean;
 	}

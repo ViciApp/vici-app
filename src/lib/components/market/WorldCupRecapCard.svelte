@@ -78,7 +78,7 @@
 		};
 	});
 
-	// The `wc` bucket is the event's own accuracy slice; the same source
+	// The `wc` bucket is the event's own accuracy slice, the same source
 	// the Dash rank tile reads. `undefined` until there's at least one call.
 	const wcBucket = $derived(userStats?.categoryStats?.wc);
 	const calls = $derived(wcBucket?.calls ?? 0);

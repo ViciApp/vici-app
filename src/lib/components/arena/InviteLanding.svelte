@@ -29,7 +29,7 @@
 	 *      into the existing `vici:pending-onboarding` payload (merged with whatever
 	 *      Beat-1/2 picks are already there) and route to `/signup`. The (app) layout's
 	 *      pending-onboarding drain then calls `redeemReferralCode` post-signin.
-	 *   3. **Signed-in & past onboarding**; the user is past the signup window
+	 *   3. **Signed-in & past onboarding**: the user is past the signup window
 	 *      (or in any case ineligible for the FE-driven redemption path). Look up the
 	 *      referrer principal and render the friendship-only explainer sheet. The sheet's
 	 *      CTA calls `claimReferralFriendship` (no VXP, just a confirmed bilateral

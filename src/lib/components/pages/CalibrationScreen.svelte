@@ -73,7 +73,7 @@
 
 	const reduceMotion = $derived(prefersReducedMotion());
 
-	// Free VXP balance, in base units, read from the wallet store; the same
+	// Free VXP balance, in base units, read from the wallet store, the same
 	// source the Wallet hero and Dash read. The recovery banner / disarm gate
 	// keys off this against the recovery floor (also base units).
 	const vxpBalanceBaseUnits = $derived.by((): bigint => $balancesStore?.[VXP_TOKEN.id] ?? ZERO);
@@ -179,7 +179,7 @@
 			if (claim.correct && claim.paidNow) {
 				sessionCorrect += 1;
 				// Add the reward the server actually paid (base units, decimal
-				// string) converted to whole-VXP for display: never the local
+				// string) converted to whole-VXP for display, never the local
 				// constant, so the tally stays correct if the server reward
 				// ever differs from our compile-time guess.
 				sessionVxp += nonNullish(claim.rewardBaseUnits)

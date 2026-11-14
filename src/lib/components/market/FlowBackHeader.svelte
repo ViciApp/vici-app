@@ -36,7 +36,7 @@
 	};
 
 	// Called on a successful copy (no arg) or a saved-card fallback (the
-	// "Card saved: post it" message is passed through). The popover owns
+	// "Card saved — post it" message is passed through). The popover owns
 	// the channel logic; we only surface the resulting toast.
 	const onCopied = (message?: string) => {
 		notificationsStore.add({

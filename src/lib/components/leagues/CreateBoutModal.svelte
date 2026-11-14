@@ -42,9 +42,9 @@
 	 *     (`listChallengeableLeagues`): public leagues plus the caller's
 	 *     own memberships, minus the leagues the caller owns. The caller
 	 *     filters by name and taps the opponent.
-	 *  3. Scope, which calls count: all, or a single market category.
-	 *  4. Wager; an optional VXP stake (0–500); 0 means no stake.
-	 *  5. Trash-talk; an optional short message (brevity rewarded).
+	 *  3. Scope: which calls count (all, or a single market category).
+	 *  4. Wager: an optional VXP stake (0–500); 0 means no stake.
+	 *  5. Trash-talk: an optional short message (brevity rewarded).
 	 *  6. Duration: 7 / 14 / 30 days, mapped to the kickoff → settle
 	 *     window the satellite stores.
 	 *

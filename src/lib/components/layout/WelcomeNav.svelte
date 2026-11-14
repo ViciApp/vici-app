@@ -40,7 +40,7 @@
 	// sections resolve through the i18n catalog.
 	const navLabel = (section: NavSection): string =>
 		isNullish(section.labelKey) ? 'FAQ' : t({ locale: $localeStore, key: section.labelKey });
-	// Theme labels resolve from the canonical `ui.theme.*` catalog; the
+	// Theme labels resolve from the canonical `ui.theme.*` catalog, the
 	// same source AppearancePicker uses, so the appearance tooltips/aria
 	// stay localized and in sync rather than hardcoded English.
 	const themeOpts = $derived(

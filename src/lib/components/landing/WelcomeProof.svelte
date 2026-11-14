@@ -5,7 +5,7 @@
 	 * registered VICI users, and a marquee ticker of @handles making calls.
 	 * The count is the total number of users in the public `profiles`
 	 * collection, read anonymously after first paint. Until that real figure
-	 * resolves, and on any failure, the big number stays a pulsing dash
+	 * resolves, or if it fails, the big number stays a pulsing dash
 	 * placeholder; we never render a fake number. The ticker is decorative
 	 * (aria-hidden) and scrolls via CSS (paused under reduced-motion).
 	 */

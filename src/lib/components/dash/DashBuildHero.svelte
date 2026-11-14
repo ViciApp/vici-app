@@ -35,7 +35,7 @@
 	let { accuracyValue, accuracyPct, sessionDelta, streak, friendsAhead, friendsTotal }: Props =
 		$props();
 
-	// The global benchmark the anchor line compares against; the same 30-day
+	// The global benchmark the anchor line compares against, the same 30-day
 	// network average surfaced elsewhere on the dashboard copy.
 	const GLOBAL_AVERAGE = 62.1;
 
