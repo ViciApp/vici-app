@@ -24,7 +24,7 @@ src/satellite/
     ├── logger.utils.ts             Structured logging wrapper
     ├── regex.utils.ts              escapeRegex
     ├── vxp-payout.utils.ts         VXP transfer error mapping
-    └── wire-format.utils.ts        snake_case wire schemas + toWire / fromWire
+    └── wire-format.utils.ts        camelCase wire schemas + toWire / fromWire
 ```
 
 ## What goes where
