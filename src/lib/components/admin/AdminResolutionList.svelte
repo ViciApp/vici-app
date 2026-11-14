@@ -3,6 +3,7 @@
 	import Button from '#lib/components/ui/Button.svelte';
 	import Dialog from '#lib/components/ui/Dialog.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { DAY_IN_MS, HOUR_IN_MS } from '#lib/constants/app.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { Market, MarketId, Outcome } from '#lib/types/market.ts';
@@ -78,21 +79,21 @@
 			};
 		}
 
-		if (diff < 1000 * 60 * 60) {
+		if (diff < HOUR_IN_MS) {
 			return {
 				label: t({ locale: $localeStore, key: 'admin.resolution.status.urgent' }),
 				color: 'orange'
 			};
 		}
 
-		if (diff < 1000 * 60 * 60 * 24) {
+		if (diff < DAY_IN_MS) {
 			return {
 				label: t({ locale: $localeStore, key: 'admin.resolution.status.today' }),
 				color: 'orange-light'
 			};
 		}
 
-		if (diff < 1000 * 60 * 60 * 24 * 7) {
+		if (diff < 7 * DAY_IN_MS) {
 			return {
 				label: t({ locale: $localeStore, key: 'admin.resolution.status.this_week' }),
 				color: 'amber'

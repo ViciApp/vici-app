@@ -2,7 +2,7 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
-	import { DAY_IN_MS, EMPTY_VALUE } from '#lib/constants/app.constants.ts';
+	import { DAY_IN_MS, EMPTY_VALUE, MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		claimTournamentPrize,
@@ -58,7 +58,7 @@
 	$effect(() => {
 		const handle = setInterval(() => {
 			nowMs = Date.now();
-		}, 60_000);
+		}, MINUTE_IN_MS);
 
 		return () => clearInterval(handle);
 	});

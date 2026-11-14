@@ -29,7 +29,12 @@
 	import DashStackCard from '#lib/components/dash/DashStackCard.svelte';
 	import DashStackSheet from '#lib/components/dash/DashStackSheet.svelte';
 	import ResolutionReveal from '#lib/components/market/ResolutionReveal.svelte';
-	import { MILLISECOND_IN_NANOSECONDS, USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+	import {
+		DAY_IN_MS,
+		MILLISECOND_IN_NANOSECONDS,
+		USD_DECIMALS,
+		ZERO
+	} from '#lib/constants/app.constants.ts';
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
@@ -104,7 +109,7 @@
 			return t({ locale: $localeStore, key: 'dash.build.timer_closed' });
 		}
 
-		const days = Math.ceil((expiry - Date.now()) / (1000 * 60 * 60 * 24));
+		const days = Math.ceil((expiry - Date.now()) / DAY_IN_MS);
 
 		return days <= 1
 			? t({ locale: $localeStore, key: 'dash.active.hours_left', params: { count: 24 } })

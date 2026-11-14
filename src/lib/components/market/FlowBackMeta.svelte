@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { DAY_IN_MS, HOUR_IN_MS, MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { Market } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
@@ -21,7 +21,7 @@
 	$effect(() => {
 		const id = setInterval(() => {
 			nowTick = Date.now();
-		}, 60_000);
+		}, MINUTE_IN_MS);
 
 		return () => clearInterval(id);
 	});
@@ -52,8 +52,8 @@
 		}
 
 		const days = Math.floor(ms / DAY_IN_MS);
-		const hours = Math.floor((ms % DAY_IN_MS) / 3_600_000);
-		const mins = Math.floor((ms % 3_600_000) / 60_000);
+		const hours = Math.floor((ms % DAY_IN_MS) / HOUR_IN_MS);
+		const mins = Math.floor((ms % HOUR_IN_MS) / MINUTE_IN_MS);
 
 		if (days >= 1) {
 			return t({
