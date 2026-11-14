@@ -1,4 +1,4 @@
-import { ZERO } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**
@@ -150,7 +150,7 @@ export const REFERRAL_CODE_REGEX = new RegExp(
  * Sized so a user who clicks an invite, gets interrupted, and comes back the next morning
  * still gets the bonus; longer-delayed signups fall back to the friendship-only path.
  */
-export const REFERRAL_SIGNUP_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const REFERRAL_SIGNUP_WINDOW_MS = DAY_IN_MS;
 
 /**
  * Wire-level error reason returned by `redeemReferralCodeFn` when the caller's profile is older

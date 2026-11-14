@@ -1,5 +1,11 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
-import { MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
+import {
+	DAY_IN_MS,
+	HOUR_IN_MS,
+	MILLISECOND_IN_NANOSECONDS,
+	MINUTE_IN_MS,
+	ZERO
+} from '#lib/constants/app.constants.ts';
 import type { Market, MarketStatus, Outcome, TradingAccessUI } from '#lib/types/market.ts';
 import type { OrderBookLevel, OrderType } from '#lib/types/order.ts';
 import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
@@ -331,10 +337,6 @@ export const calculateMarketStats = ({
 	};
 };
 
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
-const MS_PER_HOUR = 1000 * 60 * 60;
-const MS_PER_MINUTE = 1000 * 60;
-
 export const getTimeRemaining = (expiry: bigint): string => {
 	const now = BigInt(Date.now());
 	const diff = Number(expiry - now);
@@ -343,9 +345,9 @@ export const getTimeRemaining = (expiry: bigint): string => {
 		return 'Expired';
 	}
 
-	const days = Math.floor(diff / MS_PER_DAY);
-	const hours = Math.floor((diff % MS_PER_DAY) / MS_PER_HOUR);
-	const minutes = Math.floor((diff % MS_PER_HOUR) / MS_PER_MINUTE);
+	const days = Math.floor(diff / DAY_IN_MS);
+	const hours = Math.floor((diff % DAY_IN_MS) / HOUR_IN_MS);
+	const minutes = Math.floor((diff % HOUR_IN_MS) / MINUTE_IN_MS);
 
 	if (days > 0) {
 		return `${days}d ${hours}h`;

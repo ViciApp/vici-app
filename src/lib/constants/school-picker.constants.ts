@@ -1,3 +1,5 @@
+import { MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
+
 /**
  * School-picker feature gating.
  *
@@ -29,7 +31,7 @@ export const SCHOOL_FOUNDER_BADGE_CAP = 3;
  * Time-to-live of a verification code (ms). After this the submission is
  * dead and the user must request a fresh code. Set to ~30 minutes.
  */
-export const SCHOOL_CODE_TTL_MS = 30 * 60 * 1000;
+export const SCHOOL_CODE_TTL_MS = 30 * MINUTE_IN_MS;
 
 /**
  * Max wrong code entries before a submission is locked. Bounds online
