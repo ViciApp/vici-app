@@ -99,7 +99,7 @@ export const settleReferralPayout = async ({
 		awardType: 'referral',
 		awardKey: refereeUserId,
 		amountBaseUnits: REFERRAL_VXP_BONUS_BASE_UNITS,
-		memo: 'vxp:referral:referee'
+		memo: `vxp:referral:referee:${refereeUserId}`
 	});
 
 	// Referrer side: decide the cap slot once (write-once via the null guard),
@@ -143,7 +143,7 @@ export const settleReferralPayout = async ({
 				awardType: 'referral',
 				awardKey: refereeUserId,
 				amountBaseUnits: reward,
-				memo: 'vxp:referral:referrer'
+				memo: `vxp:referral:referrer:${refereeUserId}`
 			});
 		}
 	}

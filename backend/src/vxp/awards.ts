@@ -191,10 +191,51 @@ const markAwardPaid = async ({
 	}
 };
 
+/**
+ * Whether another award of the same recipient already holds a block. The
+ * ledger keeps one block per identical transfer, so a Duplicate or history
+ * match pointing at a block another award holds proves this award's own
+ * sends moved nothing: the two transfers were identical (same stamp, memo
+ * and amount) and the ledger deduplicated one into the other.
+ */
+const blockHeldByAnotherAward = async ({
+	id,
+	userId,
+	blockIndex
+}: {
+	id: string;
+	userId: string;
+	blockIndex: string;
+}): Promise<boolean> => {
+	const rows = await query<{ id: string }>(
+		`select id from vxp_awards where user_id = $1 and block_index = $2 and id <> $3 limit 1`,
+		[userId, blockIndex, id]
+	);
+
+	return rows.length > 0;
+};
+
+/** Returns a claimed row to pending once the ledger proved nothing moved.
+ * The stamp is cleared with the claim: no transfer carrying it belongs to
+ * this award, and a fresh one keeps the retry inside the ledger's dedup
+ * window. */
+const reopenUnsentAward = async ({ id, error }: { id: string; error: string }): Promise<void> => {
+	await query(
+		`update vxp_awards
+		 set status = 'pending', processing_at = null, transfer_created_at_ns = null,
+		     error_message = $2
+		 where id = $1 and status = 'processing'`,
+		[id, error]
+	);
+};
+
 interface SettleResult {
 	paid: boolean;
 	claimed: boolean;
 	deferred?: boolean;
+	/** Back to pending: the ledger answered Duplicate with another award's
+	 * block, so nothing moved for this one. */
+	reopened?: boolean;
 	quarantined?: boolean;
 	blockIndex?: string;
 	error?: string;
@@ -214,6 +255,9 @@ interface SettleResult {
  * Duplicate and the row settles paid without a second payment. Outcomes:
  * - insufficient funds: nothing moved (the ledger checks duplicates first),
  *   so the row goes back to pending for the next pass;
+ * - a Duplicate that cannot be this award's own transfer (answered to a
+ *   first send, or naming a block another award holds): nothing moved
+ *   either, so the row goes back to pending with its stamp cleared;
  * - a replay that is not answered with success or Duplicate, or any
  *   ambiguous error (the transfer may have executed): quarantined as
  *   needs_ledger_check, never failed, because only the ledger history can
@@ -268,6 +312,22 @@ const settlePendingAward = async ({
 		createdAtTimeNs
 	});
 
+	// A first send with this stamp cannot match an earlier send of this award,
+	// so a Duplicate there is another award's identical transfer.
+	if (
+		result.ok &&
+		result.duplicate &&
+		(!replay || (await blockHeldByAnotherAward({ id, userId, blockIndex: result.blockIndex })))
+	) {
+		const error = `Duplicate of block ${result.blockIndex}, another award's transfer`;
+
+		await reopenUnsentAward({ id, error });
+
+		logger.warn(`vxp award payout reopened (${awardType}/${awardKey} for ${userId}):`, error);
+
+		return { paid: false, claimed: true, reopened: true, error };
+	}
+
 	if (result.ok) {
 		await markAwardPaid({
 			id,
@@ -283,16 +343,7 @@ const settlePendingAward = async ({
 	}
 
 	if (result.insufficientFunds) {
-		// The stamp is cleared with the claim: no transfer carrying it exists,
-		// and a fresh one keeps the retry inside the ledger's dedup window
-		// however long the treasury stays dry.
-		await query(
-			`update vxp_awards
-			 set status = 'pending', processing_at = null, transfer_created_at_ns = null,
-			     error_message = $2
-			 where id = $1 and status = 'processing'`,
-			[id, result.error]
-		);
+		await reopenUnsentAward({ id, error: result.error });
 
 		logger.warn(
 			`vxp award payout deferred (${awardType}/${awardKey} for ${userId}):`,
@@ -407,10 +458,15 @@ export const grantAward = async ({
 
 	// A lost claim means another runner (a zero-grace reconcile) already holds
 	// this freshly inserted row and will drive it to paid; a deferred one waits
-	// pending for the treasury refill; a quarantined one waits for the ledger
-	// check. Nothing is known to have failed, so the caller sees it as
-	// recorded.
-	if (!settled.claimed || settled.deferred === true || settled.quarantined === true) {
+	// pending for the treasury refill; a reopened one waits pending for the
+	// next sweep; a quarantined one waits for the ledger check. Nothing is
+	// known to have failed, so the caller sees it as recorded.
+	if (
+		!settled.claimed ||
+		settled.deferred === true ||
+		settled.reopened === true ||
+		settled.quarantined === true
+	) {
 		return { outcome: 'recorded' };
 	}
 
@@ -521,7 +577,8 @@ interface LedgerCheckRow {
  * Settles one quarantined row from the ledger history. Only rows whose last
  * send is older than PROCESSING_STALE_MS reach here, far past the ingress
  * expiry, so no message carrying the stamp can still land after the lookup.
- * found: paid with that block. absent (proven): back to pending with the
+ * found: paid with that block, unless another award holds it, which proves
+ * this one never landed (handled as absent). absent (proven): back to pending with the
  * stamp cleared so the sweep sends it fresh, or failed once the attempt cap
  * is reached. unknown (index behind, lookup error, no stamp to match): the
  * row stays quarantined for the next pass or an operator.
@@ -549,7 +606,14 @@ const resolveLedgerCheck = async ({
 		createdAtTimeNs: BigInt(row.transfer_created_at_ns)
 	});
 
-	if (lookup.status === 'found') {
+	if (
+		lookup.status === 'found' &&
+		!(await blockHeldByAnotherAward({
+			id: row.id,
+			userId: row.user_id,
+			blockIndex: lookup.blockIndex
+		}))
+	) {
 		await markAwardPaid({
 			id: row.id,
 			fromStatus: 'needs_ledger_check',

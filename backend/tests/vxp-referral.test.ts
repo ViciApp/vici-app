@@ -5,7 +5,7 @@
 // scoping.
 
 import { Principal } from '@icp-sdk/core/principal';
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeAll, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
 import { hardDeleteAccount } from '../src/account/lifecycle';
 import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
@@ -320,7 +320,9 @@ describe('both-sides settlement', () => {
 			await settleReferralPayout({ refereeUserId: referee });
 		}
 
-		const referrerTransfers = stub.transfers.filter(({ memo }) => memo === 'vxp:referral:referrer');
+		const referrerTransfers = stub.transfers.filter(
+			({ owner }) => owner === userIcPrincipalText(referrer)
+		);
 
 		expect(referrerTransfers.map(({ amount }) => amount)).toEqual([
 			parseVxp(500),
@@ -330,6 +332,60 @@ describe('both-sides settlement', () => {
 			parseVxp(500),
 			parseVxp(250)
 		]);
+	});
+});
+
+describe('same-millisecond referrer awards', () => {
+	afterEach(() => {
+		setSystemTime();
+	});
+
+	test('two same-amount referrer awards stamped in one millisecond are two transfers', async () => {
+		stub = stubVxpLedger();
+		const referrer = await createTestUser();
+		const referees = [await createTestUser(), await createTestUser()];
+
+		for (const [i, referee] of referees.entries()) {
+			await recordReferralRedemption({
+				refereeUserId: referee,
+				referrerUserId: referrer,
+				code: 'CODE0MS1',
+				redeemedAtMs: 3000 + i
+			});
+			await recordTrade(referee);
+		}
+
+		// Both settlements stamp their transfers in the same millisecond.
+		setSystemTime(new Date(Date.now()));
+
+		for (const referee of referees) {
+			await settleReferralPayout({ refereeUserId: referee });
+		}
+
+		const referrerLanded = stub.landed.filter(
+			({ owner }) => owner === userIcPrincipalText(referrer)
+		);
+
+		expect(referrerLanded.map(({ amount }) => amount)).toEqual([parseVxp(500), parseVxp(500)]);
+
+		const blocks: (string | null | undefined)[] = [];
+
+		for (const referee of referees) {
+			const row = await readAwardRow({
+				userId: referrer,
+				awardType: 'referral',
+				awardKey: referee
+			});
+
+			expect(row?.status).toBe('paid');
+
+			blocks.push(row?.block_index);
+		}
+
+		expect(new Set(blocks).size).toBe(2);
+		expect(blocks.sort()).toEqual(
+			referrerLanded.map(({ blockIndex }) => blockIndex.toString()).sort()
+		);
 	});
 });
 

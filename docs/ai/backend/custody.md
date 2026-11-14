@@ -102,3 +102,10 @@ path. Each rule guards a withdrawal paid twice or stuck forever:
 - **The ICRC helpers live in `chains/ic/icrc.ts`** (memo encoding, error
   variants, the dedup window), shared with the VXP award payouts. Do not add a
   second copy.
+- **Every ICRC send carries a memo unique to what it pays** (`withdrawal:<id>`,
+  `vxp:<type>:<key>`). The ledger deduplicates identical transfers and
+  `created_at_time` has millisecond resolution, so two payouts of one amount to
+  one account in one millisecond would otherwise collapse into one block. A
+  VXP award counts a `Duplicate` (or a history match) as paid only when it
+  replays its own earlier send and no other award holds that block; otherwise
+  nothing moved for it and it goes back to pending.

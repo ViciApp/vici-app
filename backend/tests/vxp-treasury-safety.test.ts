@@ -6,7 +6,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
+import { afterEach, beforeAll, describe, expect, setSystemTime, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ExportedDoc } from '../scripts/etl/lib';
@@ -23,7 +23,8 @@ import {
 	MAX_TRANSFER_ATTEMPTS,
 	PROCESSING_STALE_MS,
 	reconcileUnpaidAwards,
-	setVxpTreasuryDisabled
+	setVxpTreasuryDisabled,
+	type GrantAwardOutcome
 } from '../src/vxp/awards';
 import { parseVxp } from '../src/vxp/constants';
 import { createTestUser, ensureMigrated, uniquePrincipal } from './helpers/auth';
@@ -388,6 +389,144 @@ describe('live awards are paid exactly once', () => {
 
 		expect(row?.status).toBe('paid');
 		expect(row?.block_index).toBe(blockIndex);
+	});
+});
+
+describe("a Duplicate naming another award's transfer never pays", () => {
+	// Rows stored before memos carried the award key share one memo, so two
+	// of them with the same amount and stamp are one identical transfer.
+	const SHARED_MEMO = 'vxp:referral:referrer';
+
+	afterEach(() => {
+		setSystemTime();
+	});
+
+	const grantShared = async ({
+		userId,
+		awardKey
+	}: {
+		userId: string;
+		awardKey: string;
+	}): Promise<GrantAwardOutcome> =>
+		await grantAward({
+			userId,
+			awardType: 'referral',
+			awardKey,
+			amountBaseUnits: parseVxp(500),
+			memo: SHARED_MEMO
+		});
+
+	const stampOf = async (userId: string, awardKey: string): Promise<string | null | undefined> => {
+		const rows = await query<{ transfer_created_at_ns: string | null }>(
+			`select transfer_created_at_ns::text from vxp_awards
+			 where user_id = $1 and award_type = 'referral' and award_key = $2`,
+			[userId, awardKey]
+		);
+
+		return rows[0]?.transfer_created_at_ns;
+	};
+
+	/** Records an award without sending it, as record-only mode does. */
+	const recordShared = async ({
+		userId,
+		awardKey
+	}: {
+		userId: string;
+		awardKey: string;
+	}): Promise<void> => {
+		const restoreRecordOnly = setVxpTreasuryDisabled(true);
+
+		try {
+			await grantShared({ userId, awardKey });
+		} finally {
+			restoreRecordOnly();
+		}
+	};
+
+	const expectBothPaidApart = async (userId: string, keys: string[]): Promise<void> => {
+		expect(landedTo(userId)).toBe(2);
+
+		const blocks: (string | null | undefined)[] = [];
+
+		for (const awardKey of keys) {
+			const row = await readAwardRow({ userId, awardType: 'referral', awardKey });
+
+			expect(row?.status).toBe('paid');
+
+			blocks.push(row?.block_index);
+		}
+
+		expect(new Set(blocks).size).toBe(2);
+	};
+
+	test('a first send answered Duplicate goes back to pending and pays on the next sweep', async () => {
+		stub = stubVxpLedger();
+		restoreMode = setVxpTreasuryDisabled(false);
+		const userId = await createTestUser();
+
+		setSystemTime(new Date(Date.now()));
+
+		expect((await grantShared({ userId, awardKey: 'dup-first-a' })).outcome).toBe('paid');
+		expect((await grantShared({ userId, awardKey: 'dup-first-b' })).outcome).toBe('recorded');
+
+		const reopened = await readAwardRow({ userId, awardType: 'referral', awardKey: 'dup-first-b' });
+
+		expect(reopened?.status).toBe('pending');
+		expect(reopened?.block_index).toBeNull();
+		expect(await stampOf(userId, 'dup-first-b')).toBeNull();
+		expect(landedTo(userId)).toBe(1);
+
+		setSystemTime();
+		await reconcileUntilIdle();
+
+		await expectBothPaidApart(userId, ['dup-first-a', 'dup-first-b']);
+	});
+
+	test('a replay answered with a block another award holds is sent fresh, not marked paid', async () => {
+		stub = stubVxpLedger();
+		restoreMode = setVxpTreasuryDisabled(false);
+		const userId = await createTestUser();
+
+		expect((await grantShared({ userId, awardKey: 'dup-replay-a' })).outcome).toBe('paid');
+
+		await recordShared({ userId, awardKey: 'dup-replay-b' });
+
+		// A stale claim of the second award carrying the first one's stamp.
+		await query(
+			`update vxp_awards
+			 set status = 'processing', transfer_created_at_ns = $2, transfer_attempts = 1,
+			     processing_at = now() - make_interval(secs => $3::double precision / 1000)
+			 where user_id = $1 and award_type = 'referral' and award_key = 'dup-replay-b'`,
+			[userId, await stampOf(userId, 'dup-replay-a'), PROCESSING_STALE_MS + 60_000]
+		);
+
+		await reconcileUntilIdle();
+
+		await expectBothPaidApart(userId, ['dup-replay-a', 'dup-replay-b']);
+	});
+
+	test('a ledger check matching a block another award holds reissues instead of paying', async () => {
+		stub = stubVxpLedger();
+		restoreMode = setVxpTreasuryDisabled(false);
+		const userId = await createTestUser();
+
+		expect((await grantShared({ userId, awardKey: 'dup-check-a' })).outcome).toBe('paid');
+
+		await recordShared({ userId, awardKey: 'dup-check-b' });
+
+		// Quarantined with the first award's stamp: its history lookup matches
+		// the first award's block.
+		await query(
+			`update vxp_awards
+			 set status = 'needs_ledger_check', transfer_created_at_ns = $2, transfer_attempts = 1,
+			     processing_at = now() - make_interval(secs => $3::double precision / 1000)
+			 where user_id = $1 and award_type = 'referral' and award_key = 'dup-check-b'`,
+			[userId, await stampOf(userId, 'dup-check-a'), PROCESSING_STALE_MS + 60_000]
+		);
+
+		await reconcileUntilIdle();
+
+		await expectBothPaidApart(userId, ['dup-check-a', 'dup-check-b']);
 	});
 });
 
