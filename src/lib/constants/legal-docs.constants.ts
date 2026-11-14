@@ -66,7 +66,7 @@ export const TERMS: InfoDoc = {
 			kind: 'p',
 			text: 'To use most features you create an account. You agree to provide accurate information, to keep your credentials secure, and to be responsible for activity under your account. You may hold only one account unless we agree otherwise. We may suspend or close accounts that breach these Terms or that we reasonably believe are being used for fraud, manipulation or abuse.'
 		},
-		{ kind: 'h', text: '4. Nature of the Service — please read' },
+		{ kind: 'h', text: '4. Nature of the Service (please read)' },
 		{
 			kind: 'p',
 			text: 'The Service is a free-to-play prediction game for entertainment only. This Section is fundamental to these Terms.'
@@ -166,7 +166,7 @@ export const TERMS: InfoDoc = {
 			kind: 'p',
 			text: `Wholesome Capital Limited Unit 2505, 25/F., Billion Plaza, 8 Cheung Yue Street, Lai Chi Kok, Kowloon, Hong Kong Email: ${INFO_EMAIL}`
 		},
-		{ kind: 'h', text: 'Schedule A — United States' },
+		{ kind: 'h', text: 'Schedule A: United States' },
 		{
 			kind: 'p',
 			text: 'For users in the United States: the Service is a free-to-play game with no monetary value (Sections 4 and 5). It offers no real-money play, no purchase, and no payout, and is not a licensed gambling operator, a sweepstakes, or a regulated prediction or derivatives market. The Service is void where prohibited; you are responsible for compliance with the law of your state.'
@@ -187,7 +187,7 @@ export const PRIVACY: InfoDoc = {
 		},
 		{
 			kind: 'p',
-			text: 'We are the controller of the personal data described in this policy — meaning we decide why and how it is processed. Because Vici runs on a decentralised network (see Section 5), there is no separate hosting company acting as our processor; we alone are responsible for your data.'
+			text: 'We are the controller of the personal data described in this policy, meaning we decide why and how it is processed. Because Vici runs on a decentralised network (see Section 5), there is no separate hosting company acting as our processor; we alone are responsible for your data.'
 		},
 		{
 			kind: 'p',
@@ -214,11 +214,11 @@ export const PRIVACY: InfoDoc = {
 		{
 			kind: 'list',
 			items: [
-				'Account and identity data — the identifier you sign in with and any profile details you choose to add (e.g. display name). You can sign in with Google, Apple, or a passkey. When you use Google or Apple, we receive a limited set of identity data from them (such as a unique identifier and, depending on your settings, your name and email; Apple may provide a private relay email). Passkeys use device-based cryptography and do not involve a third-party identity provider.',
-				'Prediction and gameplay data — the predictions you make, your stakes, your VXP balance and history, accuracy and outcomes, and other in-game activity. This is core to providing the service and to leaderboards.',
-				'Device and usage data — basic technical information such as device type, browser, approximate region (derived from IP), and how you interact with the app, collected for analytics and security.',
-				'Communications — if you contact us, the content of that correspondence and the address you used.',
-				'Advertising and attribution data — see Section 6.'
+				'Account and identity data: the identifier you sign in with and any profile details you choose to add (e.g. display name). You can sign in with Google, Apple, or a passkey. When you use Google or Apple, we receive a limited set of identity data from them (such as a unique identifier and, depending on your settings, your name and email; Apple may provide a private relay email). Passkeys use device-based cryptography and do not involve a third-party identity provider.',
+				'Prediction and gameplay data: the predictions you make, your stakes, your VXP balance and history, accuracy and outcomes, and other in-game activity. This is core to providing the service and to leaderboards.',
+				'Device and usage data: basic technical information such as device type, browser, approximate region (derived from IP), and how you interact with the app, collected for analytics and security.',
+				'Communications: if you contact us, the content of that correspondence and the address you used.',
+				'Advertising and attribution data: see Section 6.'
 			]
 		},
 		{
@@ -233,12 +233,12 @@ export const PRIVACY: InfoDoc = {
 		{
 			kind: 'list',
 			items: [
-				'Create and operate your account; provide the game, predictions, VXP and leaderboards — Necessary to provide the service you requested',
-				'Keep the service secure and prevent abuse or fraud — Our legitimate interest in a safe, fair product',
-				'Understand and improve how the product is used — Our legitimate interest in improving the service; analytics configured to minimise data (Section 5)',
-				'Show and measure advertising — Consent where required; otherwise legitimate interest — see Section 6',
-				'Respond to your messages — Necessary to handle your request',
-				'Comply with legal obligations — Legal obligation'
+				'Create and operate your account; provide the game, predictions, VXP and leaderboards: Necessary to provide the service you requested',
+				'Keep the service secure and prevent abuse or fraud: Our legitimate interest in a safe, fair product',
+				'Understand and improve how the product is used: Our legitimate interest in improving the service; analytics configured to minimise data (Section 5)',
+				'Show and measure advertising: Consent where required; otherwise legitimate interest (see Section 6)',
+				'Respond to your messages: Necessary to handle your request',
+				'Comply with legal obligations: Legal obligation'
 			]
 		},
 		{
@@ -257,7 +257,7 @@ export const PRIVACY: InfoDoc = {
 		{ kind: 'h', text: '6. Advertising and attribution' },
 		{
 			kind: 'p',
-			text: 'Vici is supported in part by advertising. Where we integrate third-party advertising, attribution or measurement technologies, those providers act as separate controllers or processors and may receive certain device and usage data. Data handled by those third parties is governed by their own terms and may be processed outside the European region — it does not stay within the ICP European subnet described in Section 5.'
+			text: 'Vici is supported in part by advertising. Where we integrate third-party advertising, attribution or measurement technologies, those providers act as separate controllers or processors and may receive certain device and usage data. Data handled by those third parties is governed by their own terms and may be processed outside the European region; it does not stay within the ICP European subnet described in Section 5.'
 		},
 		{
 			kind: 'p',
@@ -272,7 +272,7 @@ export const PRIVACY: InfoDoc = {
 		{
 			kind: 'list',
 			items: [
-				'Authentication providers — Google and Apple, when you choose to sign in with them; they act as independent providers under their own privacy policies, and the sign-in step is processed on their (US-based) infrastructure. Passkey sign-in does not involve a third-party provider.',
+				'Authentication providers: Google and Apple, when you choose to sign in with them; they act as independent providers under their own privacy policies, and the sign-in step is processed on their (US-based) infrastructure. Passkey sign-in does not involve a third-party provider.',
 				'Advertising and attribution partners, as described in Section 6, where applicable.',
 				'Authorities or third parties where we are legally required to, or to protect the rights, safety and integrity of Vici and its users.'
 			]
@@ -301,13 +301,13 @@ export const PRIVACY: InfoDoc = {
 		{
 			kind: 'list',
 			items: [
-				'Access — confirmation of whether we process your data and a copy of it.',
-				'Rectification — correct inaccurate or incomplete data.',
-				'Erasure — ask us to delete your data.',
-				'Restriction — ask us to limit how we use your data.',
-				'Portability — receive your data in a portable format.',
-				'Objection — object to certain processing, including profiling for our legitimate interests.',
-				'Withdraw consent — where we rely on consent, withdraw it at any time without affecting prior processing.'
+				'Access: confirmation of whether we process your data and a copy of it.',
+				'Rectification: correct inaccurate or incomplete data.',
+				'Erasure: ask us to delete your data.',
+				'Restriction: ask us to limit how we use your data.',
+				'Portability: receive your data in a portable format.',
+				'Objection: object to certain processing, including profiling for our legitimate interests.',
+				'Withdraw consent: where we rely on consent, withdraw it at any time without affecting prior processing.'
 			]
 		},
 		{
@@ -322,7 +322,7 @@ export const PRIVACY: InfoDoc = {
 		{ kind: 'h', text: '13. Cookies, consent and similar technologies' },
 		{
 			kind: 'p',
-			text: 'We use a limited set of cookies and similar technologies for sign-in, security and analytics, and — subject to consent where required — for advertising.'
+			text: 'We use a limited set of cookies and similar technologies for sign-in, security and analytics, and (subject to consent where required) for advertising.'
 		},
 		{
 			kind: 'p',
@@ -390,7 +390,7 @@ export const PRIVACY: InfoDoc = {
 		},
 		{
 			kind: 'p',
-			text: 'Legal bases. We process your personal data on the bases set out in Article 7 of the LGPD — principally the provision of a service you requested, our legitimate interests in operating and securing the service, compliance with legal obligations, and, for advertising and other non-essential purposes, your consent. The data, purposes and bases are described in Sections 3 to 6.'
+			text: 'Legal bases. We process your personal data on the bases set out in Article 7 of the LGPD: principally the provision of a service you requested, our legitimate interests in operating and securing the service, compliance with legal obligations, and, for advertising and other non-essential purposes, your consent. The data, purposes and bases are described in Sections 3 to 6.'
 		},
 		{
 			kind: 'p',
@@ -403,7 +403,7 @@ export const PRIVACY: InfoDoc = {
 		{ kind: 'h', text: 'D. Mexico (LFPDPPP)' },
 		{
 			kind: 'p',
-			text: 'If you are in Mexico, the Federal Law on the Protection of Personal Data Held by Private Parties applies. Mexico requires a privacy notice (Aviso de Privacidad) to be made available at or before the moment your data is collected, identifying the controller, the data collected, the purposes (distinguishing those that need consent from those that do not), and the legal basis. You hold ARCO rights — Access, Rectification, Cancellation and Opposition. A standalone Aviso de Privacidad in Spanish is published separately.'
+			text: 'If you are in Mexico, the Federal Law on the Protection of Personal Data Held by Private Parties applies. Mexico requires a privacy notice (Aviso de Privacidad) to be made available at or before the moment your data is collected, identifying the controller, the data collected, the purposes (distinguishing those that need consent from those that do not), and the legal basis. You hold ARCO rights: Access, Rectification, Cancellation and Opposition. A standalone Aviso de Privacidad in Spanish is published separately.'
 		},
 		{ kind: 'h', text: 'E. Nigeria (NDPA 2023) and Indonesia (PDP Law)' },
 		{
@@ -437,9 +437,9 @@ export const COOKIE: InfoDoc = {
 		{
 			kind: 'list',
 			items: [
-				'Strictly necessary — required to run the Service: sign-in, session, security and fraud prevention. These are always active and do not require consent.',
-				'Analytics — help us understand and improve how the Service is used.',
-				'Advertising and attribution — used by third-party partners to show and measure ads and to attribute installs. These may share device and usage data with those partners. See Privacy Policy Section 6.'
+				'Strictly necessary: required to run the Service (sign-in, session, security and fraud prevention). These are always active and do not require consent.',
+				'Analytics: help us understand and improve how the Service is used.',
+				'Advertising and attribution: used by third-party partners to show and measure ads and to attribute installs. These may share device and usage data with those partners. See Privacy Policy Section 6.'
 			]
 		},
 		{ kind: 'h', text: '3. Consent' },
@@ -449,12 +449,12 @@ export const COOKIE: InfoDoc = {
 		},
 		{
 			kind: 'p',
-			text: 'For users in other regions, we use cookies as described here and provide controls required by local law (for example, opt-outs for US users — see "Your Privacy Choices").'
+			text: 'For users in other regions, we use cookies as described here and provide controls required by local law (for example, opt-outs for US users; see "Your Privacy Choices").'
 		},
 		{ kind: 'h', text: '4. The cookies we use' },
 		{
 			kind: 'p',
-			text: 'A detailed list of the specific cookies and similar technologies we use — their provider, category, purpose and duration — will be published here.'
+			text: 'A detailed list of the specific cookies and similar technologies we use (their provider, category, purpose and duration) will be published here.'
 		},
 		{ kind: 'h', text: '5. Managing cookies' },
 		{
@@ -488,7 +488,7 @@ export const IMPRINT: InfoDoc = {
 			kind: 'list',
 			items: [
 				'Business Registration Number: 2391347',
-				'VAT/Tax ID: Not applicable — Hong Kong does not levy VAT/GST'
+				'VAT/Tax ID: Not applicable (Hong Kong does not levy VAT/GST)'
 			]
 		},
 		{ kind: 'h', text: 'Contact' },
@@ -541,7 +541,7 @@ export const AVISO_MX: InfoDoc = {
 		{ kind: 'h', text: '2. Datos personales que recabamos' },
 		{
 			kind: 'p',
-			text: 'Para prestarle el servicio de Vici —un juego de pronósticos gratuito y con fines de entretenimiento, en el que VXP y demás elementos del juego no tienen valor monetario— podemos recabar:'
+			text: 'Para prestarle el servicio de Vici (un juego de pronósticos gratuito y con fines de entretenimiento, en el que VXP y demás elementos del juego no tienen valor monetario) podemos recabar:'
 		},
 		{
 			kind: 'list',
@@ -612,7 +612,7 @@ export const AVISO_MX: InfoDoc = {
 		{ kind: 'h', text: '7. Uso de cookies y tecnologías similares' },
 		{
 			kind: 'p',
-			text: 'Utilizamos cookies y tecnologías similares para el inicio de sesión, la seguridad y el análisis y —sujeto a su consentimiento— para publicidad. Puede gestionar su consentimiento a través de nuestro mecanismo de consentimiento.'
+			text: 'Utilizamos cookies y tecnologías similares para el inicio de sesión, la seguridad y el análisis y (sujeto a su consentimiento) para publicidad. Puede gestionar su consentimiento a través de nuestro mecanismo de consentimiento.'
 		},
 		{ kind: 'h', text: '8. Cambios al Aviso de Privacidad' },
 		{
@@ -659,7 +659,7 @@ export const AVISO_BR: InfoDoc = {
 		{ kind: 'h', text: '2. Dados pessoais que coletamos' },
 		{
 			kind: 'p',
-			text: 'Para oferecer o Vici —um jogo de previsões gratuito e com finalidade de entretenimento, no qual os VXP e demais itens do jogo não possuem valor monetário— podemos coletar:'
+			text: 'Para oferecer o Vici (um jogo de previsões gratuito e com finalidade de entretenimento, no qual os VXP e demais itens do jogo não possuem valor monetário) podemos coletar:'
 		},
 		{
 			kind: 'list',
@@ -683,11 +683,11 @@ export const AVISO_BR: InfoDoc = {
 		{
 			kind: 'list',
 			items: [
-				'criar e administrar sua conta e permitir o uso do jogo, das previsões, dos VXP e das tabelas de classificação — execução de serviço solicitado por você (art. 7º, V);',
-				'manter a segurança do serviço e prevenir fraudes e abusos — legítimo interesse (art. 7º, IX);',
-				'atender às suas solicitações e comunicações — execução de serviço e atendimento (art. 7º, V);',
+				'criar e administrar sua conta e permitir o uso do jogo, das previsões, dos VXP e das tabelas de classificação: execução de serviço solicitado por você (art. 7º, V);',
+				'manter a segurança do serviço e prevenir fraudes e abusos: legítimo interesse (art. 7º, IX);',
+				'atender às suas solicitações e comunicações: execução de serviço e atendimento (art. 7º, V);',
 				'cumprir obrigações legais e regulatórias aplicáveis (art. 7º, II); e',
-				'exibir e medir publicidade personalizada e enviar comunicações promocionais — mediante o seu consentimento (art. 7º, I), que pode ser revogado a qualquer momento.'
+				'exibir e medir publicidade personalizada e enviar comunicações promocionais, mediante o seu consentimento (art. 7º, I), que pode ser revogado a qualquer momento.'
 			]
 		},
 		{ kind: 'h', text: '4. Publicidade e tecnologias de rastreamento' },
@@ -721,7 +721,7 @@ export const AVISO_BR: InfoDoc = {
 		{ kind: 'h', text: '8. Cookies e tecnologias similares' },
 		{
 			kind: 'p',
-			text: 'Utilizamos cookies e tecnologias similares para login, segurança e análise e —mediante o seu consentimento— para publicidade. Você pode gerenciar o seu consentimento por meio do nosso mecanismo de consentimento.'
+			text: 'Utilizamos cookies e tecnologias similares para login, segurança e análise e (mediante o seu consentimento) para publicidade. Você pode gerenciar o seu consentimento por meio do nosso mecanismo de consentimento.'
 		},
 		{ kind: 'h', text: '9. Alterações e idade mínima' },
 		{
