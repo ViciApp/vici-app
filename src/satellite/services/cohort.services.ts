@@ -2,7 +2,7 @@ import { Collection } from '#lib/constants/collections.constants.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { MIN_CALLS_FOR_RANK, type AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
 import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
-import type { BattleDoc } from '#lib/types/battle.ts';
+import { readBattleDoc, type BattleDoc } from '#lib/types/battle.ts';
 import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import {
 	isLeaguePubliclyListed,
@@ -226,7 +226,7 @@ export const listLeagueBattlesFn = ({ leagueId }: { leagueId: string }): BattleD
 
 	for (const [, item] of items) {
 		try {
-			const battle = decodeDocData<BattleDoc>(item.data);
+			const battle = readBattleDoc(decodeDocData<BattleDoc>(item.data));
 
 			if (battle.kind === 'league' && (battle.sideA === leagueId || battle.sideB === leagueId)) {
 				battles.push(battle);
@@ -284,7 +284,7 @@ export const listMyBattlesFn = (): BattleDoc[] => {
 
 	for (const [, item] of items) {
 		try {
-			const battle = decodeDocData<BattleDoc>(item.data);
+			const battle = readBattleDoc(decodeDocData<BattleDoc>(item.data));
 
 			const involvesCaller =
 				battle.kind === 'duel'
@@ -366,7 +366,7 @@ export const getMyBattleStatsFn = (): MyBattleStats => {
 
 	for (const [, item] of items) {
 		try {
-			const battle = decodeDocData<BattleDoc>(item.data);
+			const battle = readBattleDoc(decodeDocData<BattleDoc>(item.data));
 
 			const hasWinner =
 				battle.state === 'resolved' && nonNullish(battle.winner) && battle.winner !== 'draw';

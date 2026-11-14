@@ -119,7 +119,7 @@
 
 	// A challenger can send more than one challenge to the same league, so
 	// the card must show what sets each apart: duration · scope · optional
-	// wager. Without it two proposals render identically and the recipient
+	// amount. Without it two proposals render identically and the recipient
 	// can't tell why they have two.
 	const challengeFacts = (battle: BattleDoc): string => {
 		const days = Math.max(1, Math.ceil((battle.settleMs - battle.kickoffMs) / DAY_IN_MS));
@@ -128,12 +128,12 @@
 			battleScopeLabel({ scope: battle.scope, locale: $localeStore })
 		];
 
-		if (nonNullish(battle.wager) && battle.wager > 0) {
+		if (nonNullish(battle.amount) && battle.amount > 0) {
 			facts.push(
 				t({
 					locale: $localeStore,
-					key: 'battle.detail.wager_value',
-					params: { amount: battle.wager }
+					key: 'battle.detail.amount_value',
+					params: { amount: battle.amount }
 				})
 			);
 		}

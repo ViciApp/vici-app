@@ -539,7 +539,7 @@ export const BattleWireSchema = j.strictObject({
 	// without the field, and any future category tag, decode without a
 	// migration. The FE re-narrows via `isBattleScope`.
 	scope: j.string().optional(),
-	wager: j.number().optional(),
+	amount: j.number().optional(),
 	trashTalk: j.string().optional(),
 	scoreA: j.number().optional(),
 	scoreB: j.number().optional(),
@@ -565,7 +565,7 @@ export const toWireBattle = (battle: {
 	respondByMs?: number;
 	respondedAtMs?: number;
 	scope?: string;
-	wager?: number;
+	amount?: number;
 	trashTalk?: string;
 	scoreA?: number;
 	scoreB?: number;
@@ -585,7 +585,7 @@ export const toWireBattle = (battle: {
 	respondByMs: battle.respondByMs,
 	respondedAtMs: battle.respondedAtMs,
 	scope: battle.scope,
-	wager: battle.wager,
+	amount: battle.amount,
 	trashTalk: battle.trashTalk,
 	scoreA: battle.scoreA,
 	scoreB: battle.scoreB,

@@ -524,7 +524,7 @@ it is internally consistent, so no client can post a fabricated result.
 **Known limitations (by design):** membership is read at resolve time, so
 a member who joined or left mid-window is scored by their current
 membership rather than their membership when each call settled; and the
-optional VXP **wager** is a displayed stake only, not yet moved between
+optional VXP **amount** is displayed only, not yet moved between
 leagues on resolution. Decision records:
 [`specs/2026-06-15-feat-battle-auto-resolution.md`](./spec-driven-development/specs/2026-06-15-feat-battle-auto-resolution.md),
 [`specs/2026-06-26-impr-battle-resolution-from-settled-history.md`](./spec-driven-development/specs/2026-06-26-impr-battle-resolution-from-settled-history.md).

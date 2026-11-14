@@ -927,7 +927,7 @@ export const idlFactory = ({ IDL }) => {
 				side_b: IDL.Text,
 				proposer: IDL.Text,
 				kickoff_ms: IDL.Float64,
-				wager: IDL.Opt(IDL.Float64),
+				amount: IDL.Opt(IDL.Float64),
 				resolved_at_ms: IDL.Opt(IDL.Float64),
 				settle_ms: IDL.Float64
 			})
@@ -1027,7 +1027,7 @@ export const idlFactory = ({ IDL }) => {
 				side_b: IDL.Text,
 				proposer: IDL.Text,
 				kickoff_ms: IDL.Float64,
-				wager: IDL.Opt(IDL.Float64),
+				amount: IDL.Opt(IDL.Float64),
 				resolved_at_ms: IDL.Opt(IDL.Float64),
 				settle_ms: IDL.Float64
 			})
@@ -1233,7 +1233,7 @@ export const idlFactory = ({ IDL }) => {
 			side_b: IDL.Text,
 			proposer: IDL.Text,
 			kickoff_ms: IDL.Float64,
-			wager: IDL.Opt(IDL.Float64),
+			amount: IDL.Opt(IDL.Float64),
 			resolved_at_ms: IDL.Opt(IDL.Float64),
 			settle_ms: IDL.Float64
 		})

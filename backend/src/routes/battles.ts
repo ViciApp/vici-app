@@ -91,7 +91,7 @@ export const battlesRoutes = new Elysia({ prefix: '/api/v1/battles' })
 					kickoffMs: body.kickoffMs,
 					settleMs: body.settleMs,
 					scope: body.scope,
-					wager: body.wager,
+					amount: body.amount ?? body.wager,
 					trashTalk: body.trashTalk
 				});
 
@@ -115,6 +115,9 @@ export const battlesRoutes = new Elysia({ prefix: '/api/v1/battles' })
 				kickoffMs: t.Number(),
 				settleMs: t.Number(),
 				scope: t.Optional(t.String()),
+				amount: t.Optional(t.Number()),
+				// The field was called `wager` before; app bundles still cached on
+				// devices send that name, so it is read when `amount` is absent.
 				wager: t.Optional(t.Number()),
 				trashTalk: t.Optional(t.String())
 			})

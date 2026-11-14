@@ -5,7 +5,11 @@
 
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
+import { app } from '../src/index';
 import {
 	acceptDuel,
 	acceptLeagueBattle,
@@ -152,6 +156,57 @@ describe.if(dbAvailable)('battle proposal', () => {
 				settleMs: nowMs + 2 * DAY_MS
 			})
 		).rejects.toThrow('sideA for kind="duel"');
+	});
+
+	test('stores the optional amount and rejects one out of bounds', async () => {
+		const a = await seedLeague();
+		const b = await seedLeague();
+		const nowMs = Date.now();
+		const id = uniqueId('bt');
+		const proposal = {
+			kind: 'league' as const,
+			sideA: a.leagueId,
+			sideB: b.leagueId,
+			proposerUserId: a.ownerId,
+			kickoffMs: nowMs + DAY_MS,
+			settleMs: nowMs + 2 * DAY_MS
+		};
+
+		expect((await proposeBattle({ ...proposal, id, amount: 200 })).amount).toBe(200);
+		expect((await getBattle(id))?.amount).toBe(200);
+
+		expect(proposeBattle({ ...proposal, id: uniqueId('bt'), amount: 501 })).rejects.toThrow(
+			'amount must be within'
+		);
+	});
+
+	test('the propose route reads the amount from the old `wager` field', async () => {
+		const a = await seedLeague();
+		const b = await seedLeague();
+		const nowMs = Date.now();
+		const id = uniqueId('bt');
+
+		const res = await app.handle(
+			new Request('http://localhost/api/v1/battles/', {
+				method: 'POST',
+				headers: {
+					cookie: `vici_session=${await createSession(a.ownerId)}`,
+					'content-type': 'application/json'
+				},
+				body: JSON.stringify({
+					id,
+					kind: 'league',
+					sideA: a.leagueId,
+					sideB: b.leagueId,
+					kickoffMs: nowMs + DAY_MS,
+					settleMs: nowMs + 2 * DAY_MS,
+					wager: 300
+				})
+			})
+		);
+
+		expect(res.status).toBe(201);
+		expect((await getBattle(id))?.amount).toBe(300);
 	});
 });
 
@@ -400,5 +455,94 @@ describe.if(dbAvailable)('restart and retract', () => {
 		expect((await listMyBattles(a.ownerId)).some((x) => x.id === battle.id)).toBe(true);
 		expect((await listMyBattles(b.ownerId)).some((x) => x.id === battle.id)).toBe(true);
 		expect(await getBattle(battle.id)).toBeDefined();
+	});
+});
+
+// Migration 0021 keeps `wager` next to `amount` while machines of the previous
+// release can still serve: they write and read only `wager`.
+describe.if(dbAvailable)('battle amount alongside the old wager column', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	const insertLegacyRow = async (wager: number): Promise<string> => {
+		const id = uniqueId('bt');
+		const proposer = await createTestUser();
+
+		await query(
+			`insert into battles (id, kind, side_a, side_b, proposer_user_id, state, kickoff_ms,
+			   settle_ms, wager)
+			 values ($1, 'duel', $2, $3, $4, 'proposed', 1, 2, $5)`,
+			[id, proposer, await createTestUser(), proposer, wager]
+		);
+
+		return id;
+	};
+
+	const columns = async (id: string): Promise<{ amount: number | null; wager: number | null }> => {
+		const [row] = await query<{ amount: number | null; wager: number | null }>(
+			`select amount, wager from battles where id = $1`,
+			[id]
+		);
+
+		return { amount: row?.amount ?? null, wager: row?.wager ?? null };
+	};
+
+	test('an insert that sets only wager gets amount filled', async () => {
+		const id = await insertLegacyRow(120);
+
+		expect(await columns(id)).toEqual({ amount: 120, wager: 120 });
+		expect((await getBattle(id))?.amount).toBe(120);
+	});
+
+	test('an update that changes only wager carries it into amount', async () => {
+		const id = await insertLegacyRow(120);
+
+		await query(`update battles set wager = 80 where id = $1`, [id]);
+
+		expect(await columns(id)).toEqual({ amount: 80, wager: 80 });
+	});
+
+	test('a new proposal writes wager too, for machines that read only it', async () => {
+		const a = await seedLeague();
+		const b = await seedLeague();
+		const nowMs = Date.now();
+		const battle = await proposeBattle({
+			id: uniqueId('bt'),
+			kind: 'league',
+			sideA: a.leagueId,
+			sideB: b.leagueId,
+			proposerUserId: a.ownerId,
+			kickoffMs: nowMs + DAY_MS,
+			settleMs: nowMs + 2 * DAY_MS,
+			amount: 250
+		});
+
+		expect(await columns(battle.id)).toEqual({ amount: 250, wager: 250 });
+	});
+
+	test('running the migration again changes nothing', async () => {
+		const id = await insertLegacyRow(60);
+		const schemaShape = (): Promise<unknown[]> =>
+			query(
+				`select
+				   (select count(*) from pg_constraint
+				     where conrelid = 'battles'::regclass and conname = 'battles_amount_check')::int
+				     as checks,
+				   (select count(*) from pg_trigger
+				     where tgrelid = 'battles'::regclass and tgname = 'battles_amount_from_wager')::int
+				     as triggers,
+				   (select count(*) from information_schema.columns
+				     where table_name = 'battles' and column_name in ('amount', 'wager'))::int
+				     as columns`
+			);
+		const before = { shape: await schemaShape(), row: await columns(id) };
+
+		await query(
+			readFileSync(join(import.meta.dir, '../src/db/migrations/0021_battle_amount.sql'), 'utf8')
+		);
+
+		expect({ shape: await schemaShape(), row: await columns(id) }).toEqual(before);
+		expect(before.shape).toEqual([{ checks: 1, triggers: 1, columns: 2 }]);
 	});
 });
