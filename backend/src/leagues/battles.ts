@@ -329,10 +329,12 @@ export const proposeBattle = async ({
 			throw new BattleError('battles proposer must be sideA for kind="duel".');
 		}
 
+		// `wager` gets the same value while machines of the previous release,
+		// which read only that column, can still serve (migration 0021).
 		const rows = await q<BattleRow>(
 			`insert into battles (id, kind, side_a, side_b, proposer_user_id, state, kickoff_ms,
-			   settle_ms, scope, amount, trash_talk, respond_by_ms)
-			 values ($1, $2, $3, $4, $5, 'proposed', $6, $7, $8, $9, $10, $11)
+			   settle_ms, scope, amount, wager, trash_talk, respond_by_ms)
+			 values ($1, $2, $3, $4, $5, 'proposed', $6, $7, $8, $9, $9, $10, $11)
 			 returning ${BATTLE_COLUMNS}`,
 			[
 				id,

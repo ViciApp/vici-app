@@ -472,7 +472,9 @@ then carry only the new name, including a doc spread back into a
 still matches across a legacy current doc and a renamed proposal. The
 reference is `readBattleDoc` in
 [`battle.ts`](../../../src/lib/types/battle.ts) (`wager` became
-`amount`); the Postgres side of the same rename is a numbered migration.
+`amount`); the Postgres side of the same rename keeps both columns for a
+release (see the backend
+[migration workflow](../backend/workflows/new-migration.md)).
 
 ## Cross-canister calls
 
