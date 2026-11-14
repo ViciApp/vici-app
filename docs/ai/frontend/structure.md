@@ -206,9 +206,9 @@ import type { _SERVICE as ClearingService } from '#declarations/clearing/clearin
   that already import `i18n.utils`. See [`i18n.md`](./i18n.md).
 - **Dynamic `import()` of internal (`#lib/**`) modules: avoid it.** The
   codebase has one deliberate exception: the per-locale catalog loader in
-  [`i18n.utils.ts`](../../../src/lib/utils/i18n.utils.ts) imports each
-  non-English catalog on demand, so a first visit downloads only the locale
-  it renders. That is a structural split, not a workaround; new dynamic
+  [`i18n.utils.ts`](../../../src/lib/utils/i18n.utils.ts) imports on demand
+  the non-English catalogs in the selected locale's fallback chain (a
+  partial `es-MX` also loads `es`), so a first visit downloads only those. That is a structural split, not a workaround; new dynamic
   imports are not welcome. Dynamic import was
   previously used to paper over circular dependencies; that is the wrong
   fix. **Circular references are solved by extraction, not by deferring the
