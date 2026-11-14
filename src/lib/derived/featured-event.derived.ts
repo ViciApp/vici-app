@@ -1,4 +1,4 @@
-import { DAY_IN_MS, HOUR_IN_MS } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import { CURRENT_FEATURED_EVENT } from '#lib/constants/featured-event.constants.ts';
 import { minuteTick_ms } from '#lib/derived/time.derived.ts';
 import type { FeaturedEvent, FeaturedEventStatus } from '#lib/types/featured-event.ts';
@@ -44,25 +44,6 @@ export const daysToKickoff: Readable<number | null> = derived(
 		const delta_ms = event.kickoffAt_ms - t;
 
 		return Math.max(0, Math.floor(delta_ms / DAY_IN_MS));
-	}
-);
-
-/**
- * Remainder hours (0–23) until kickoff, after the whole days already
- * counted by {@link daysToKickoff}. Lets the landing render a
- * "{d}d {h}h" countdown off the same `kickoffAt_ms` source the rest of
- * the app uses. `null` once the event has started.
- */
-export const hoursToKickoff: Readable<number | null> = derived(
-	[featuredEvent, minuteTick_ms],
-	([event, t]) => {
-		if (t >= event.kickoffAt_ms) {
-			return null;
-		}
-
-		const delta_ms = event.kickoffAt_ms - t;
-
-		return Math.floor((delta_ms % DAY_IN_MS) / HOUR_IN_MS);
 	}
 );
 
