@@ -289,7 +289,7 @@
 	// ─── Worlds roster helpers ──────────────────────────────────────
 	// The single Worlds battle card owns its own scope ranking; it
 	// receives the full roster `stats` and re-sorts per the active
-	// scope: so the parent only supplies the roster, the viewer's
+	// scope, so the parent only supplies the roster, the viewer's
 	// affiliation, the total size, and the two countdowns.
 	const universityCount = WORLDS_UNIVERSITIES.length;
 	const countryCount = WORLDS_COUNTRIES.length;

@@ -35,7 +35,7 @@
 	 * Sizing is a slider that steps through the fixed stake ladder
 	 * (`VXP_STAKE_LADDER`) rather than a free continuous range, because
 	 * `executeOutcomeTrade` rejects any premium that isn't a ladder rung
-	 * on ViciXp markets: so every selectable value must be a valid rung.
+	 * on ViciXp markets, so every selectable value must be a valid rung.
 	 * No limit-order / target-price path lives here; the only submission
 	 * is a market order; the clearing layer still picks `MARKET` vs
 	 * `LIMIT` execution from live depth under the hood.

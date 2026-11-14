@@ -134,7 +134,7 @@
 	// with their code. Each row carries `withinReferrerCap`, which marks whether that
 	// redemption actually paid the referrer under the diminishing tier curve + hard cap
 	// (see `referral.constants.ts`). Read from the shared `referrals.store`; the same
-	// cache the Dash stack-sheet reads: so the two surfaces can never disagree and a
+	// cache the Dash stack-sheet reads, so the two surfaces can never disagree and a
 	// tab switch reuses the list instead of re-querying. Stays empty on failure so the
 	// hero degrades to its zero-state rather than blocking the tab.
 	const myReferrals = $derived($myReferralsStore);

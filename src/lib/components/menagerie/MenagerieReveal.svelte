@@ -14,7 +14,7 @@
 
 	// The celebration moment. A freshly-crossed Menagerie tier: the backdrop dims
 	// and blooms in the animal's colour, the badge springs in, the achievement is
-	// named: then on dismiss the badge FLIES into the Profile nav (which pulses
+	// named, then on dismiss the badge FLIES into the Profile nav (which pulses
 	// to confirm it landed). One reveal at a time; the host advances the queue
 	// via `onDone`. It NEVER mounts while a Flow character beat is on screen; the
 	// host gates that.

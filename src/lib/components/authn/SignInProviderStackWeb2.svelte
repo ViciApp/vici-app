@@ -283,7 +283,7 @@
 		</form>
 	{/if}
 
-	<!-- Apple + Passkey: surfaced but disabled: neither is wired on this
+	<!-- Apple + Passkey: surfaced but disabled; neither is wired on this
 			 transport yet, so both read "coming soon" from provider discovery. -->
 	<button class="signin-provider-btn is-onboarding ob-faint" disabled type="button">
 		<span class="signin-provider-icon" aria-hidden="true">

@@ -41,7 +41,7 @@
 	const navLabel = (section: NavSection): string =>
 		isNullish(section.labelKey) ? 'FAQ' : t({ locale: $localeStore, key: section.labelKey });
 	// Theme labels resolve from the canonical `ui.theme.*` catalog; the
-	// same source AppearancePicker uses: so the appearance tooltips/aria
+	// same source AppearancePicker uses, so the appearance tooltips/aria
 	// stay localized and in sync rather than hardcoded English.
 	const themeOpts = $derived(
 		THEME_SWATCHES.map(({ id, labelKey }) => ({
@@ -122,7 +122,7 @@
 		// `#faq` can only ever overlap a thin slice of the band, so its ratio
 		// never crosses a fixed threshold and the indicator would never advance
 		// to it. Sections between observed ones aren't tracked, so the last
-		// active section persists across them: which is the desired behaviour.
+		// active section persists across them, which is the desired behaviour.
 		const els = sections
 			.map((s) => document.getElementById(s.id))
 			.filter((el): el is HTMLElement => Boolean(el));

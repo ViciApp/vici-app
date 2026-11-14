@@ -61,7 +61,7 @@
 		/**
 		 * Real first-card fetch readiness. Auto-enter (the short deck dwell and
 		 * the digest safety net alike) and the optional tap-to-skip CTA all gate
-		 * on this: so no path ever reveals a deck that has not yet arrived.
+		 * on this, so no path ever reveals a deck that has not yet arrived.
 		 * Stays false while the deck is loading.
 		 */
 		ready: boolean;

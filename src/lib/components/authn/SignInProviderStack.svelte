@@ -164,7 +164,7 @@
 	// (Juno has no Apple provider), so it bypasses Juno's `signIn()` and
 	// drives `@icp-sdk/auth` directly via `signInWithApple`. That persists
 	// the delegation to the same store Juno reads but does NOT update
-	// Juno's in-memory auth state: so we can't use the shared `startSignIn`
+	// Juno's in-memory auth state, so we can't use the shared `startSignIn`
 	// (whose success path assumes Juno is already aware of the session).
 	// Instead: flush host state via `onSuccess` (in the signup onboarding
 	// flow that persists the pending picks to storage), then hard-load Flow.

@@ -63,8 +63,8 @@
 	 *   tag, market title, "Entry X% → Y%" entry-to-current probability,
 	 *   and signed "+N VXP · +M%" PnL (delta also expressed as
 	 *   price-move %).
-	 * - Recent history: flat resolved rows: title, side tag, "Xd ago",
-	 *   WIN/LOSS label, signed +VXP.
+	 * - Recent history: flat resolved rows (title, side tag, "Xd ago",
+	 *   WIN/LOSS label, signed +VXP).
 	 * - Open orders: same card shape as active calls, with the order's
 	 *   limit price + qty in place of the entry → current strip, plus
 	 *   an inline cancel button.

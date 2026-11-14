@@ -29,7 +29,7 @@
 	// Second step shown only for the loosen-to-Open direction: switching a
 	// non-public league to Open exposes its existing members in public
 	// lists + friend recommendations, which can't be undone for anyone who
-	// has already seen it: so we gate it behind an explicit confirmation.
+	// has already seen it, so we gate it behind an explicit confirmation.
 	let confirming = $state(false);
 	let submitting = $state(false);
 	let submitError: string | null = $state(null);

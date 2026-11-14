@@ -22,7 +22,7 @@
 
 	// Resolution order:
 	//  1. The id embedded by the deploy-time SEO page (`window.__viciSeriesId`,
-	//     see `scripts/build/generate-seo-assets.ts`): but only when it is
+	//     see `scripts/build/generate-seo-assets.ts`), but only when it is
 	//     consistent with the param: a client-side navigation can reach this
 	//     route with a stale embedded id from whichever prerendered page the
 	//     session entered on.

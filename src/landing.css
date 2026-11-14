@@ -493,7 +493,7 @@
 	padding-top: 4px;
 }
 
-/* Edge-to-edge MarketArtwork: `bleed` mode: negative side margins
+/* Edge-to-edge MarketArtwork, `bleed` mode: negative side margins
    cancel the body's 20px padding so the artwork extends to the card
    edges. */
 .flow-body .flow-art-bleed {

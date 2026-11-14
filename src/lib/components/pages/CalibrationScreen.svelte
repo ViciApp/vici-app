@@ -61,7 +61,7 @@
 	// Reason a rate-limit / ineligible state was entered, for the right copy.
 	let blockedReason = $state<VxpCalibrationReason | null>(null);
 
-	// Session tally: surfaced honestly: calls made, calls the server scored
+	// Session tally, surfaced honestly: calls made, calls the server scored
 	// correct, and the VXP minted (only correct calls move this).
 	let sessionCalls = $state(0);
 	let sessionCorrect = $state(0);
@@ -180,7 +180,7 @@
 				sessionCorrect += 1;
 				// Add the reward the server actually paid (base units, decimal
 				// string) converted to whole-VXP for display: never the local
-				// constant: so the tally stays correct if the server reward
+				// constant, so the tally stays correct if the server reward
 				// ever differs from our compile-time guess.
 				sessionVxp += nonNullish(claim.rewardBaseUnits)
 					? decimalFixedValueToNumber({

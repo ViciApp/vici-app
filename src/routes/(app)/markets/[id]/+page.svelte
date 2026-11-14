@@ -454,7 +454,7 @@
 
 			// The silent refresh deliberately skips `fetchSignals` and the
 			// price-history fetch (the 30s consensus poll shouldn't re-pull
-			// either every tick), but the viewer just traded: so the chart's
+			// either every tick), but the viewer just traded, so the chart's
 			// real price history and the prior-call / followed-lean signals
 			// are now stale. Re-pull signals explicitly, and clear the
 			// price-history cache so the fetch effect re-resolves the active
@@ -483,7 +483,7 @@
 	const whyNow = $derived(metadata?.whyNow);
 
 	// Best translation for the reader's locale (resolved through the fallback
-	// chain), or `undefined` when none exists: which is what gates the toggle.
+	// chain), or `undefined` when none exists, which is what gates the toggle.
 	const activeTranslation = $derived(
 		resolveMarketTranslation({ translations: marketTranslations, locale: $localeStore })
 	);
@@ -647,7 +647,7 @@
 			sessionStorage.setItem(beatKey, '1');
 		} catch {
 			// sessionStorage can throw in privacy modes / sandboxed
-			// iframes: fail open: still fire the beat, just lose the
+			// iframes: fail open, still fire the beat, just lose the
 			// once-per-session guard.
 		}
 
@@ -787,7 +787,7 @@
 		</section>
 
 		{#if isResolved}
-			<!-- Settled banner: closes the loop on the market side: a clear
+			<!-- Settled banner: closes the loop on the market side with a clear
 			     "this is over, here's how it landed" panel tinted by the
 			     winning side. Non-binary resolutions (e.g. CANCELED) have no
 			     winning side, so the border stays neutral rather than
@@ -1015,7 +1015,7 @@
 		gap: 0.375rem;
 	}
 
-	/* Category tag: no background, no border: just coloured text.
+	/* Category tag: no background, no border, just coloured text.
 	   A bare text chip so the title gets all the visual weight. */
 	.market-detail-tag {
 		font-size: 11px;

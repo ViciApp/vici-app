@@ -52,7 +52,7 @@
 	 *    the effective threshold), ordered by a Bayesian-shrinkage score so a
 	 *    thin record can't top a proven one. Each carries a 1-based `displayRank`
 	 *    (we render this, never `entry.rank`, the canister's P&L rank).
-	 *  - **provisional**: predictors below the gate: unranked, shown in a
+	 *  - **provisional**: predictors below the gate, unranked, shown in a
 	 *    separate section with `{done}/{min} to qualify` progress.
 	 *
 	 * Layout is a single column:

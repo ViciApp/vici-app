@@ -128,8 +128,8 @@
 	// This sitting's ceiling for the cumulative daily count, and the swipes
 	// it may still place (the ceiling less what the day already carried in).
 	// `advance()` ends the run on the SESSION counter (`betsCount`) reaching
-	// `maxBets`: which is exactly the cumulative daily count reaching
-	// `sittingGoal`: so the cap holds regardless of how many times Flow is
+	// `maxBets`, which is exactly the cumulative daily count reaching
+	// `sittingGoal`, so the cap holds regardless of how many times Flow is
 	// re-entered today. See `flow-session.utils` for the arithmetic.
 	const sittingGoal = $derived(sittingGoalFor({ baseline: sessionBaseline, pushedToOvertime }));
 	const maxBets = $derived(maxBetsFor({ sittingGoal, baseline: sessionBaseline }));
@@ -395,7 +395,7 @@
 			.catch((e: unknown) => {
 				// Non-fatal: the optimistic bump (capped at the hard cap) stands,
 				// so a dropped record only ever leaves the count too HIGH; the
-				// safe direction for the cap: and the next successful record
+				// safe direction for the cap, and the next successful record
 				// reconciles it. Never clamp DOWN: that was the dip, and it
 				// briefly re-opened the cap.
 				console.warn('Flow swipe record failed (non-fatal):', e);
@@ -1021,7 +1021,7 @@
 		// treat chips · sub-label: before the next card rises over.
 		// `flowPaused` flips now so the outgoing card hides and drag locks;
 		// the centered beat is revealed 250 ms later so the card-out clears
-		// the slot first: and the haptic + sound cue fire WITH that reveal.
+		// the slot first, and the haptic + sound cue fire WITH that reveal.
 		// Ambient (`ambient-10`) is a soft pop that never gates; it advances
 		// immediately, with its cue paired to its immediate reveal. Advance is
 		// deferred to `onMotionBeatDone` for gating beats.
@@ -1060,7 +1060,7 @@
 		// (`maxBets = sittingGoal - sessionBaseline`). Since `betsCount` is
 		// this sitting's count, `betsCount < maxBets` is exactly
 		// `sessionBaseline + betsCount < sittingGoal`: the cumulative daily
-		// count below the day's ceiling: so the hard cap holds no matter how
+		// count below the day's ceiling, so the hard cap holds no matter how
 		// many sittings the day is split across (#484).
 		if (currentIndex < markets.length - 1 && betsCount < maxBets) {
 			currentIndex += 1;

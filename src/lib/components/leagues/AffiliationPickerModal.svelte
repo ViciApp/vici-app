@@ -198,7 +198,7 @@
 	 * when a different row is selected over an existing affiliation,
 	 * "Locked for N days" when the 90-day lock blocks the switch,
 	 * "Pick a school/country" otherwise. Returns the resolved string,
-	 * not a key: so all branches can pass through one i18n call.
+	 * not a key, so all branches can pass through one i18n call.
 	 */
 	const ctaLabel = $derived.by<string>(() => {
 		if (isSwitching && isLocked) {
@@ -268,7 +268,7 @@
 				.slice(0, 40);
 		}
 
-		// Idle, country kind: unchanged: first 20 of the roster.
+		// Idle, country kind: unchanged, first 20 of the roster.
 		if (!isUniversity) {
 			return roster.slice(0, 20);
 		}
@@ -1187,7 +1187,7 @@
 	.affil-picker-list {
 		/* No own scroll cap: the list flows inside the sheet's single
 		 * scrolling body (`.sheet-body`), while the commit CTA rides in the
-		 * sheet's non-scrolling `footer` snippet: so a long roster scrolls
+		 * sheet's non-scrolling `footer` snippet, so a long roster scrolls
 		 * the body and the CTA stays docked in view. */
 		list-style: none;
 		padding: 0;

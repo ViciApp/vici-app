@@ -897,7 +897,7 @@
 		   which makes it a containing block for its descendants' 3D space.
 		   WebKit flattens that space at any transformed ancestor whose
 		   transform-style is the default `flat`, collapsing the flipper's
-		   rotateY into this plane: so the flip renders as an instant
+		   rotateY into this plane, so the flip renders as an instant
 		   backface swap instead of an animated 3D rotation. Propagate the
 		   3D context (rooted in `.flow-card-root`'s perspective) through to
 		   `.flow-flipper` so the rotation keeps its depth on WebKit. */
