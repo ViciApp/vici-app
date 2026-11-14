@@ -13,6 +13,7 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import { hyphenateSlug } from '#lib/utils/slug.utils.ts';
 	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	interface Props {
@@ -60,11 +61,7 @@
 		const out: string[] = [];
 
 		for (const raw of value.split(/[\s,]+/)) {
-			const kebab = raw
-				.trim()
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '');
+			const kebab = hyphenateSlug(raw.trim().toLowerCase());
 
 			if (kebab.length > 0 && !out.includes(kebab)) {
 				out.push(kebab);

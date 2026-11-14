@@ -31,6 +31,7 @@ import {
 	LEAGUE_NAME_MIN_LENGTH,
 	type LeagueDoc
 } from '#lib/types/league.ts';
+import { hyphenateSlug } from '#lib/utils/slug.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	acceptDuel as acceptDuelWeb2,
@@ -398,11 +399,7 @@ export const deriveLeagueId = ({
 	name: string;
 	suffix: number | string;
 }): string => {
-	const slug = name
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '')
-		.slice(0, 24);
+	const slug = hyphenateSlug(name.toLowerCase()).slice(0, 24);
 
 	return `${slug || 'league'}-${suffix}`;
 };
