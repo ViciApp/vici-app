@@ -5,13 +5,12 @@
 // <YYYY-MM>_<place>, so a second claim collides cleanly).
 
 import { nonNullish } from '@dfinity/utils';
-import { MONTH_ANCHOR_RE } from '../lib/time';
+import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '../lib/time';
 import { grantWorldsPodiumPrize, type PodiumPlace } from '../vxp/prizes';
 import {
 	AffiliationStatsError,
 	freezeMonthlySnapshots,
-	listAffiliationStatsForMonth,
-	monthAnchorFromMs
+	listAffiliationStatsForMonth
 } from './affiliation-stats';
 import { AFFILIATION_KINDS, getMyAffiliation } from './affiliations';
 
