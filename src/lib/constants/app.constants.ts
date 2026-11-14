@@ -19,14 +19,14 @@ export const VICI_ORACLE_V1 = 'VICI_ORACLE_V1';
 
 /**
  * Maximum length of a series' resolution clause (`Resolution.clause`). Mirrors
- * the `icdc-core` registry bound — a clause beyond this is rejected with
+ * the `icdc-core` registry bound; a clause beyond this is rejected with
  * `ResolutionClauseTooLong`. Used to validate the admin form and to cap the
  * clause sent in `add_series` / `fork_series`.
  */
 export const RESOLUTION_CLAUSE_MAX_LENGTH = 1024;
 
 /** Em-dash placeholder for an absent / not-yet-served value in the UI. */
-export const EM_DASH = '—';
+export const EM_DASH = '–';
 
 export const SECOND_IN_NANOSECONDS = 1_000_000_000n;
 export const MILLISECOND_IN_NANOSECONDS = 1_000_000n;
@@ -35,7 +35,7 @@ export const MILLISECOND_IN_NANOSECONDS = 1_000_000n;
 export const MINUTE_IN_MS = 60_000;
 /** One hour in milliseconds. */
 export const HOUR_IN_MS = 60 * MINUTE_IN_MS;
-/** One day in milliseconds — `24 × 60 × 60 × 1000`. */
+/** One day in milliseconds: `24 × 60 × 60 × 1000`. */
 export const DAY_IN_MS = 24 * HOUR_IN_MS;
 export const MINUTE_IN_SECONDS = 60n;
 export const HOUR_IN_SECONDS = 60n * MINUTE_IN_SECONDS;
@@ -52,7 +52,7 @@ export const WEEK_IN_NANOSECONDS = WEEK_IN_SECONDS * SECOND_IN_NANOSECONDS;
  * controllers-only cleanup prunes rows whose `resolvedAtMs` is older than this.
  * The horizon must not be shorter than the digest's active `StandingsWindow`
  * (the longest bounded window the consumer reads is `'month'`); it is sized at
- * 45 days — a calendar month plus a ~2-week grace margin — so a row stays
+ * 45 days (a calendar month plus a ~2-week grace margin) so a row stays
  * readable for the whole window even at the month boundary, and a slightly
  * delayed prune never drops a row the digest still needs.
  */
@@ -76,7 +76,7 @@ export const TRANSACTION_HISTORY_PAGE_SIZE = 10;
 /**
  * Ledger-walk bounds for the transaction-history page. The page needs the
  * user's full VXP ledger trail to label bonuses and compute running
- * balances, so it pages the ICRC index to exhaustion — these cap a
+ * balances, so it pages the ICRC index to exhaustion; these cap a
  * pathological account at `PAGE_SIZE × MAX_PAGES` transactions, after which
  * the page renders a "history starts here" footer instead of fanning out
  * unbounded query calls.
@@ -86,7 +86,7 @@ export const TRANSACTION_HISTORY_MAX_LEDGER_PAGES = 20;
 
 /**
  * Default auto-dismiss duration for global toasts (`notificationsStore`).
- * Per-call overrides still win — this is just the implicit default.
+ * Per-call overrides still win; this is just the implicit default.
  */
 export const TOAST_DEFAULT_MS = 5_000;
 

@@ -403,8 +403,8 @@
 	/* Oracle weekly insight: the latest settled call as a record line --- */
 
 	// The newest settled call in the recent window: drives the Oracle's
-	// record card: a win reads "You called it — '{q}?'", a loss reads "The
-	// market went the other way — '{q}?'". `recentSettlements` is newest-first,
+	// record card: a win reads "You called it: '{q}?'", a loss reads "The
+	// market went the other way: '{q}?'". `recentSettlements` is newest-first,
 	// so the head is the latest resolution. The market title (the question) is
 	// resolved live from the shared `displayMarkets` map so it shows the
 	// reader's locale; it falls back to the market id only when the market
@@ -700,7 +700,7 @@
 						     a button, so tapping it opens the picker straight on this
 						     school's verify step (see `handleSlotClick`). When the flow
 						     is gated off, fall back to a subtle, non-actionable
-						     "verification — coming soon" hint (a bare "Unverified" pill
+						     "verification: coming soon" hint (a bare "Unverified" pill
 						     on every Alma Mater would read as a defect). Either way it
 						     flows in-line as a footnote, too long for the top-right
 						     pill slot used by the verified / pending badges. -->
@@ -1269,7 +1269,7 @@
 		white-space: nowrap;
 	}
 
-	/* "Verification — coming soon" hint. Deliberately quiet and
+	/* "Verification: coming soon" hint. Deliberately quiet and
 	   theme-adaptive (neutral muted text, no chrome) so it
 	   reads as a passive promise rather than the actionable / attention-
 	   seeking pill the verified (gold) and pending (amber) states use.

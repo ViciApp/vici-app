@@ -99,7 +99,7 @@ export default ts.config(
 		rules: {
 			// Self-filters to .svelte files that already import #lib/utils/i18n.utils.ts.
 			// See local-rules/no-bare-svelte-text.cjs and docs/ai/frontend/i18n.md.
-			// Severity is 'warn' during the i18n coverage paydown — promote to
+			// Severity is 'warn' during the i18n coverage paydown; promote to
 			// 'error' once docs/ai/frontend/i18n-coverage.md is empty.
 			'local-rules/no-bare-svelte-text': 'warn'
 		}

@@ -1224,7 +1224,7 @@
 						</span>
 						{#if standingTrend === 0}
 							<span class="num league-detail-rank-mv is-even">
-								— {t({ locale: $localeStore, key: 'leagues.detail.trend_even' })}
+								· {t({ locale: $localeStore, key: 'leagues.detail.trend_even' })}
 							</span>
 						{:else}
 							<span
@@ -2034,7 +2034,7 @@
 
 	/* Rank-forward identity: the caller's standing reads as the headline
 	   figure: a large mono "#rank", the "of M" denominator, and a coloured
-	   ▲/▼ "N this week" (or "— even") trend, baseline-aligned. */
+	   ▲/▼ "N this week" (or "· even") trend, baseline-aligned. */
 	.league-detail-rank {
 		display: flex;
 		align-items: baseline;

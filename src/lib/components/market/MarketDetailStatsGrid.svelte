@@ -23,7 +23,7 @@
 		/**
 		 * `true` while the viewer's positions for this market are still being
 		 * read (signed-in only). Drives a pulse in the MY CALL tile so it
-		 * doesn't flash an empty `—` before the position read lands. Once the
+		 * doesn't flash an empty `–` before the position read lands. Once the
 		 * read resolves the real call (or genuine "no call") shows.
 		 */
 		myCallLoading?: boolean;
@@ -123,7 +123,7 @@
 					? t({ locale: $localeStore, key: 'outcome.yes' })
 					: myCall === 'NO'
 						? t({ locale: $localeStore, key: 'outcome.no' })
-						: (myCall ?? '—'),
+						: (myCall ?? '–'),
 			suffix: '',
 			mute: isNullish(myCall),
 			loading: myCallPending

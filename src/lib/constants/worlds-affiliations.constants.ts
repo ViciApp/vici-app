@@ -1337,7 +1337,7 @@ export const WORLDS_UNIVERSITIES: readonly WorldsAffiliationOption[] = [
 	// Europe
 	{
 		id: 'whu',
-		name: 'WHU – Otto Beisheim School of Management',
+		name: 'WHU - Otto Beisheim School of Management',
 		glyph: 'WHU',
 		short: 'WHU',
 		country: 'DE',

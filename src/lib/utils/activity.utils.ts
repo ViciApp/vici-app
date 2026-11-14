@@ -12,7 +12,7 @@ export const getActivityIcon = (type: ActivityType): string => {
 		case ActivityType.SETTLEMENT:
 			return '◎';
 		case ActivityType.COMMENT:
-			return '—';
+			return '–';
 		case ActivityType.FOLLOW:
 			return '→';
 		case ActivityType.UPVOTE:

@@ -3,7 +3,7 @@ import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**
  * One-time VXP bonus awarded to the **referee** (the new user redeeming a code). Flat and
- * uncapped — every eligible new sign-up gets it exactly once. Sized in VXP base units via the
+ * uncapped: every eligible new sign-up gets it exactly once. Sized in VXP base units via the
  * canonical `vxpBaseUnits` helper.
  *
  * The **referrer** reward is *not* flat: it follows the diminishing curve in
@@ -17,7 +17,7 @@ export const REFERRAL_VXP_BONUS_BASE_UNITS = vxpBaseUnits(REFERRAL_VXP_BONUS_VAL
  * Hard lifetime cap on the number of redemptions for which a single referrer is paid. Redemptions
  * beyond this cap are still recorded on the referrals collection (`withinReferrerCap = false`) so
  * we can monitor usage of widely-shared codes, but no transfer fires. Kept in lockstep with the
- * final bracket of {@link REFERRAL_REWARD_TIERS} — the curve yields `0` past this many prior paid
+ * final bracket of {@link REFERRAL_REWARD_TIERS}: the curve yields `0` past this many prior paid
  * redemptions.
  */
 export const REFERRAL_MAX_PAID = 1000;
@@ -40,7 +40,7 @@ const REFERRAL_REWARD_TIERS: ReadonlyArray<{ throughIndex: number; value: string
 	{ throughIndex: 5, value: '500' },
 	{ throughIndex: 10, value: '250' },
 	{ throughIndex: 20, value: '100' },
-	// Final (floor) bracket — its upper bound IS the hard cap, so derive it from
+	// Final (floor) bracket: its upper bound IS the hard cap, so derive it from
 	// `REFERRAL_MAX_PAID` to keep the two structurally in lockstep (no duplicated literal).
 	{ throughIndex: REFERRAL_MAX_PAID, value: '50' }
 ];
@@ -57,7 +57,7 @@ const REFERRAL_REWARD_TIER_BASE_UNITS: ReadonlyArray<{ throughIndex: number; val
  * reached {@link REFERRAL_MAX_PAID}, encoding the hard cap as part of the curve so callers need
  * only check for a zero reward.
  *
- * Authoritative on the server only — the referrer's prior-paid count must come from the satellite's
+ * Authoritative on the server only: the referrer's prior-paid count must come from the satellite's
  * own scan of the referrals collection, never from the client.
  */
 export const referrerRewardBaseUnits = (priorPaidCount: number): bigint => {
@@ -78,12 +78,12 @@ export const referrerRewardBaseUnits = (priorPaidCount: number): bigint => {
  * the diminishing tier curve and its hard cap rather than assuming a flat per-friend reward.
  *
  * `creditedCount` follows the satellite's `countReferrerCredits` rule: rows whose
- * `referrerPayout.status` has left `none` (owed / processing / paid — anything in flight still
- * consumes a slot). Derivable client-side from `listMyReferrals`; cosmetic only — the satellite
+ * `referrerPayout.status` has left `none` (owed / processing / paid; anything in flight still
+ * consumes a slot). Derivable client-side from `listMyReferrals`; cosmetic only: the satellite
  * remains authoritative on payout.
  */
 export const cumulativeReferrerRewardBaseUnits = (creditedCount: number): bigint => {
-	// Rewards are zero past the hard cap, so clamping (and flooring at 0) only bounds the loop —
+	// Rewards are zero past the hard cap, so clamping (and flooring at 0) only bounds the loop;
 	// it cannot change the sum.
 	const cappedCount = Math.min(Math.max(creditedCount, 0), REFERRAL_MAX_PAID);
 
@@ -103,7 +103,7 @@ export const cumulativeReferrerRewardBaseUnits = (creditedCount: number): bigint
  * from the on-chain payout. Returns `0` once the referrer has reached {@link REFERRAL_MAX_PAID}.
  *
  * The referrer's prior-paid count is the count of the caller's own redemption rows whose
- * `referrerPayout.status` has left `none` (owed / processing / paid) — the same rule the satellite's
+ * `referrerPayout.status` has left `none` (owed / processing / paid), the same rule the satellite's
  * authoritative tally (`countReferrerCredits`) applies before feeding `referrerRewardBaseUnits`.
  * Derivable client-side from `listMyReferrals`, no privileged query needed. The figure is cosmetic;
  * the satellite remains authoritative on payout.
@@ -127,7 +127,7 @@ export const referrerRewardVxp = (priorPaidCount: number): number => {
 export const REFERRAL_CODE_LENGTH = 8;
 
 /**
- * Crockford base32 alphabet (no `I`, `L`, `O`, `U` — removes ambiguity with `1`/`0` and the rude
+ * Crockford base32 alphabet (no `I`, `L`, `O`, `U`: removes ambiguity with `1`/`0` and the rude
  * vowel). The satellite always emits uppercase; redemption input is normalised to uppercase before
  * lookup so users can paste either case.
  */
@@ -144,7 +144,7 @@ export const REFERRAL_CODE_REGEX = new RegExp(
 /**
  * How long after profile creation a user is still considered "newly signed up" for referral
  * redemption purposes. After this window elapses, `redeemReferralCodeFn` refuses with
- * `existing_user_no_bonus` — the user can still use the code via `claimReferralFriendshipFn`
+ * `existing_user_no_bonus`; the user can still use the code via `claimReferralFriendshipFn`
  * to add the referrer as a friend, but no VXP bonus is paid.
  *
  * Sized so a user who clicks an invite, gets interrupted, and comes back the next morning

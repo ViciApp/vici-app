@@ -125,7 +125,7 @@
 						{#if catLabel}
 							<span style:color={catAccent} class="portfolio-row-cat">{catLabel}</span>
 						{:else}
-							<span class="portfolio-row-cat is-dim">—</span>
+							<span class="portfolio-row-cat is-dim">–</span>
 						{/if}
 						<span class="portfolio-row-side portfolio-row-side-{sideKey}">
 							{isBuy
