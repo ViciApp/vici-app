@@ -347,7 +347,7 @@
 			"count": 1
 		}
 	},
-	"src/lib/services/wallet.service.ts": {
+	"src/lib/services/wallet.services.ts": {
 		"complexity": {
 			"count": 1
 		}
