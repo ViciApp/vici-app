@@ -33,7 +33,7 @@ export const myGlobalRankStore = writable<MyGlobalRank | undefined>(undefined);
 /**
  * `true` once `loadMyMenagerieSignals` has finished its first hydration attempt
  * (success OR failure). The trophy rail reads this, not the individual data
- * stores: as its load gate, so a failed standings / referral fetch resolves to
+ * stores, as its load gate, so a failed standings / referral fetch resolves to
  * the real (possibly locked) tiers rather than stranding the rail in a
  * perpetual skeleton. Sticks `true` across navigation once set.
  */
@@ -68,7 +68,7 @@ export const myMenagerieSignalsGeneration: Readable<number> = {
  * Drop the previous principal's Menagerie signal caches on an auth transition
  * (sign-out, user switch, bootstrap). Without this the referral count would
  * briefly back the next principal's Parrot tier, and the `signalsLoaded` gate,
- * which sticks `true`: would skip the skeleton state so the new identity sees
+ * which sticks `true`, would skip the skeleton state so the new identity sees
  * the old one's trophies flash before its own signals load. Called from
  * `Authn` alongside the other user-scoped store resets.
  */

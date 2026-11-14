@@ -30,7 +30,7 @@ export interface ResolutionItem {
  *
  * `titlesLoading` is true while the per-row market titles are still
  * resolving: the markets catalog hasn't loaded yet, or, for a non-English
- * reader with the translated preference: the translation overlay hasn't
+ * reader with the translated preference, the translation overlay hasn't
  * answered for every settled market. The counts and net VXP are already
  * correct (they come straight off the positions), so the reveals only hold
  * or skeleton the titles instead of rendering the `Unknown Market` fallback

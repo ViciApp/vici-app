@@ -63,7 +63,7 @@ export interface LocaleEntry {
 	/** Native region label shown in the picker (`México`, `中国大陆`, …). */
 	readonly regionLabel: string;
 	/**
-	 * Show the world/globe icon instead of a country flag: for supra-national
+	 * Show the world/globe icon instead of a country flag for supra-national
 	 * rows (e.g. `en` Global, `es-419` Latin America). Country rows render the
 	 * SVG flag for their `region` via the shared CountryFlag component.
 	 */

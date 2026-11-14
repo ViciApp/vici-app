@@ -206,8 +206,8 @@ export class ClearingCanister extends Canister<ClearingService> {
 	/**
 	 * Returns clearing's public settlement view for one series, or `undefined`
 	 * when no settlement plan exists (i.e. the series is unresolved). The view
-	 * exists from the moment a plan opens; the same instant
-	 * {@link listSettledSeries} starts reporting the id, and carries the
+	 * exists from the moment a plan opens (the same instant
+	 * {@link listSettledSeries} starts reporting the id) and carries the
 	 * authoritative `SettlementInput` (settlement price or outcome id).
 	 */
 	getSettlementStatus = async ({

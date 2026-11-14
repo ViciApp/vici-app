@@ -9,8 +9,8 @@ import { browser } from '$app/env';
  * for that window every satellite call rejects with "Canister … is stopped".
  * Errors that smell like that are funnelled here (global listeners via
  * {@link initMaintenanceWatch} catch the rejections the polling loaders let
- * bubble); a reachability probe against our own origin: served by the same
- * canister: confirms the outage before the overlay shows, then polls until
+ * bubble); a reachability probe against our own origin, served by the same
+ * canister, confirms the outage before the overlay shows, then polls until
  * the satellite answers again and reloads to pick up the freshly deployed
  * frontend.
  */

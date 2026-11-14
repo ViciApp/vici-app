@@ -85,7 +85,7 @@ export interface FlowArtRenderOptions {
 	// When true, draws an additional inset stroke frame inside the
 	// composition. Off by default; FlowCard layers a separate frame.
 	frame?: boolean;
-	// Optional market question text. Only the WC renderer consults it:
+	// Optional market question text. Only the WC renderer consults it,
 	// to resolve per-market artwork from the question, first via the
 	// authoritative `WC_MARKET_ART` catalogue, then the heuristic
 	// resolver. Absent (the default at every non-WC call site and any WC

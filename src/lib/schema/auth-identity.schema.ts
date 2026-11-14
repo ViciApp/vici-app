@@ -14,7 +14,7 @@ export const GetAuthIdentitiesArgsSchema = j.strictObject({
  * the persisted OpenID claims (Google: present only when the user consented
  * to share them; Juno does not persist the OIDC `sub`), `profileEmail` from
  * the `profiles` doc (also fed by the passkey/email signup path). Flat; no
- * nested optional object: for the same codegen constraint as the analytics
+ * nested optional object, for the same codegen constraint as the analytics
  * export rows.
  */
 export const AuthIdentityExportRowSchema = j.strictObject({

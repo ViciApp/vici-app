@@ -78,7 +78,7 @@ export const hashSchoolCode = ({ code, salt }: { code: string; salt: string }): 
  * scopes per-principal scans; `${schoolId}/` scopes the per-school
  * "already verified?" check; `nonce` (per-send `raw_rand`) makes every
  * send a distinct immutable row so a resend never overwrites a prior,
- * possibly `verified`: attempt.
+ * possibly `verified`, attempt.
  */
 export const schoolSubmissionKey = ({
 	member,

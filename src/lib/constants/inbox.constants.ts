@@ -22,8 +22,8 @@ export const INBOX_DISMISSED_STORAGE_KEY = 'vici.inbox.dismissed.v1';
  * daily-streak milestone are monotonic counters, so a card "exists" only
  * while the live value exceeds the last-acknowledged value stored here.
  * Seeded to the current value on first observation (so a returning user
- * sees no retroactive backlog), advanced on acknowledge, and: for the
- * streak, which resets on a break: lowered when the run drops below it so
+ * sees no retroactive backlog), advanced on acknowledge, and, for the
+ * streak, which resets on a break, lowered when the run drops below it so
  * re-climbing re-notifies. `*CrossedAt_ms` records when an unacknowledged
  * milestone first appeared, for the card's relative-time label.
  */

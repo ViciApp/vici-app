@@ -16,7 +16,7 @@ import type { InfoDoc } from '#lib/types/info-doc.ts';
  * The localized help docs (FAQ, Contact, How resolution works, Resolution
  * rules) route their copy through i18n: every block references a
  * `MessageKey` (`info.doc.${slug}.${block}`) resolved per-locale at render
- * time. The full controlling legal docs (Terms, and Privacy in turn) carry
+ * time. The full controlling legal docs (Terms and Privacy in turn) carry
  * their English bodies as literal-text constants, kept out of the i18n
  * catalogs by design; see `legal-docs.constants`.
  *

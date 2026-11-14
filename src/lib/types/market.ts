@@ -110,8 +110,8 @@ export interface Market {
 	 * Engine that owns this series on the icdc-core registry, when set.
 	 * Vici markets carry `eng_0` (`VICI_ENGINE_ID`); controller-created or
 	 * third-party-engine series may carry a different id or none. Surfaces
-	 * that must scope to Vici-engine markets: e.g. the Calibration
-	 * practice deck: filter on this.
+	 * that must scope to Vici-engine markets (e.g. the Calibration
+	 * practice deck) filter on this.
 	 */
 	engineId?: string;
 	/**
