@@ -311,9 +311,9 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 					timestamp: body.timestamp
 				});
 
-				// A trade activity is the economy's first-prediction signal: the
-				// onboarding call-count milestones and the referral settlement run
-				// off it, best-effort, after the write commits.
+				// A trade activity nudges the onboarding call-count milestones and
+				// the referral settlement, best-effort, after the write commits;
+				// both count the engine's executed fills, not activities.
 				if (activity.type === 'trade') {
 					await runTradeActivityTriggers({ userId: user.id });
 				}

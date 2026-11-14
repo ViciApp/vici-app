@@ -5,12 +5,12 @@
 // writes never did). Every branch is idempotent and best-effort: an award
 // hiccup logs, it never fails the domain write.
 
-import { query } from '../db/client';
 import { logger } from '../lib/logger';
 import { runAchievementAwardTrigger } from './achievements';
 import { runComebackRestoreTrigger } from './comeback';
 import { runFlowMilestoneTrigger } from './flow';
 import { runOnboardingProfileTrigger, runOnboardingTradeTrigger } from './onboarding';
+import { countExecutedPredictions } from './predictions';
 import { runReferralTradeTrigger } from './referral';
 import { runStreakAwardTrigger } from './streak';
 
@@ -71,17 +71,14 @@ export const runProfileAwardTriggers = async ({
 
 /**
  * Post-write triggers for a TRADE activity: the onboarding call-count
- * milestones and the referral first-prediction settlement. The lifetime
- * trade count is the server's own tally of the user's trade activities, so
- * a replayed trigger converges instead of double-counting.
+ * milestones and the referral first-prediction settlement. The activity is
+ * only the nudge: the lifetime count is the user's executed fills in the
+ * engine, so a posted activity without a real trade unlocks nothing and a
+ * replayed trigger converges instead of double-counting.
  */
 export const runTradeActivityTriggers = async ({ userId }: { userId: string }): Promise<void> => {
 	try {
-		const rows = await query<{ count: string }>(
-			`select count(*)::text as count from activities where user_id = $1 and type = 'trade'`,
-			[userId]
-		);
-		const tradeCount = Number(rows[0]?.count ?? 0);
+		const tradeCount = await countExecutedPredictions({ userId });
 
 		if (tradeCount <= 0) {
 			return;

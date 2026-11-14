@@ -11,6 +11,7 @@ import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { grantAward } from './awards';
 import { REFERRAL_VXP_BONUS_BASE_UNITS, referrerRewardBaseUnits } from './constants';
+import { countExecutedPredictions } from './predictions';
 
 export interface ReferralRow {
 	referee_user_id: string;
@@ -31,16 +32,9 @@ export const getReferralRow = async (refereeUserId: string): Promise<ReferralRow
 };
 
 /** Whether the referee has made at least one prediction: the settlement gate.
- * Counts only trade activities, exactly like the first-prediction rule the
- * satellite applied. */
-const refereeHasTraded = async (refereeUserId: string): Promise<boolean> => {
-	const rows = await query<{ count: string }>(
-		`select count(*)::text as count from activities where user_id = $1 and type = 'trade'`,
-		[refereeUserId]
-	);
-
-	return Number(rows[0]?.count ?? 0) > 0;
-};
+ * Counts executed fills in the engine, never the client-posted activity log. */
+const refereeHasTraded = async (refereeUserId: string): Promise<boolean> =>
+	(await countExecutedPredictions({ userId: refereeUserId })) > 0;
 
 /**
  * The referrer's authoritative prior count for one redemption: every

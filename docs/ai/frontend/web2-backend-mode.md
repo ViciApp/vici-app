@@ -589,7 +589,10 @@ trade triggers after the write commits, and the profile PUT diffs the
 stored row against the incoming one. So the swapped services need no
 extra calls: `logActivity` posting a trade in web2 mode produces exactly
 the awards the satellite hook would have. `placeOrder` now logs the trade
-activity on both transports for the same reason.
+activity on both transports for the same reason. The API counts the
+caller's executed fills in the engine, not the posted activities, so the
+activity only triggers the check: a resting limit order counts once it
+fills, at the next trade activity or referral settle call.
 
 ### Service-layer branches
 

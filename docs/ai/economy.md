@@ -146,11 +146,13 @@ Recorded deliberately so the next agent inherits them. These are
    **Internet-Identity-gated sign-up** (a fresh identity per account
    has a real cost). Harden further only if abuse appears. Tracking:
    **#543**.
-2. **Payouts trust the client-written activity log.** Referral and
-   onboarding payouts trigger off the user's `activities` collection (a
-   client write), not an authoritative engine trade, so a spoofed
-   activity could in principle trigger a payout. Gating these on an
-   authoritative trade is the recommended fix. Tracking: **#543**.
+2. **Satellite payouts trust the client-written activity log.** On the
+   satellite, referral and onboarding payouts trigger off the user's
+   `activities` collection (a client write), not an authoritative engine
+   trade, so a spoofed activity could in principle trigger a payout. The
+   web2 API already gates both on the caller's executed fills in the
+   engine (`backend/src/vxp/predictions.ts`); the satellite still needs
+   the same gate. Tracking: **#543**.
 3. **Repeatable overtime mint.** The overtime bonus is gated on raw
    daily call count, and stakes are returnable collateral (not a cost),
    so it can be farmed with throwaway calls; the rolling cap bounds how
