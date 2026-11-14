@@ -6,6 +6,7 @@
 
 import { isNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
+import { DAY_IN_MS } from '../lib/time';
 
 export const MIN_NICKNAME_LENGTH = 2;
 export const MAX_NICKNAME_LENGTH = 16;
@@ -32,8 +33,6 @@ export const nicknameUniqueKey = (raw: string): string =>
  * requires the stamp to move to ~now on an allowed change.
  */
 export const HANDLE_COOLDOWN_DAYS = 30;
-
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Tolerance (ms) for the "is handle_last_change_ms set to ~now?" check on an

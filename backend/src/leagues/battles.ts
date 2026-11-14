@@ -9,7 +9,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
-import { optionalMs } from '../lib/time';
+import { DAY_IN_MS, optionalMs } from '../lib/time';
 import { getLeague } from './leagues';
 import { getLeagueMember } from './members';
 import {
@@ -30,7 +30,7 @@ export type BattleWinner = 'A' | 'B' | 'draw';
 export const BATTLE_WAGER_MIN = 0;
 export const BATTLE_WAGER_MAX = 500;
 export const BATTLE_TRASH_TALK_MAX_LENGTH = 60;
-export const BATTLE_RESPOND_BY_MS = 3 * 24 * 60 * 60 * 1000;
+export const BATTLE_RESPOND_BY_MS = 3 * DAY_IN_MS;
 export const BATTLE_SCOPE_DEFAULT: BattleScope = 'all';
 
 export interface Battle {

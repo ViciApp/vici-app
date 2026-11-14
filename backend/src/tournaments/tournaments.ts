@@ -8,7 +8,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
 import { getLeagueStats } from '../leagues/stats';
 import { logger } from '../lib/logger';
-import { MONTH_ANCHOR_RE } from '../lib/time';
+import { DAY_IN_MS, MONTH_ANCHOR_RE } from '../lib/time';
 import { TOURNAMENT_PRIZE_TIERS } from '../vxp/constants';
 import { grantTournamentPrize } from '../vxp/prizes';
 
@@ -17,7 +17,7 @@ export const TOURNAMENT_ROUNDS = ['r1', 'quarter', 'semifinal', 'final'] as cons
 export type TournamentRound = (typeof TOURNAMENT_ROUNDS)[number];
 
 export const TOURNAMENT_BRACKET_SIZE = 16;
-export const TOURNAMENT_ROUND_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+export const TOURNAMENT_ROUND_DURATION_MS = 7 * DAY_IN_MS;
 
 /** Per-match qualification floor: a league below this many resolved calls in
  * the round window forfeits the match. */

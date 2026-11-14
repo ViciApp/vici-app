@@ -8,6 +8,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
+import { DAY_IN_MS } from '../lib/time';
 import { getAward, grantAward } from './awards';
 import {
 	COMEBACK_AWAY_DAYS,
@@ -17,7 +18,6 @@ import {
 import { getVxpBalance } from './payout';
 
 const COMEBACK_AWARD_KEY = 'restore';
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /** Whole days between two YYYY-MM-DD day strings (UTC-anchored), undefined
  * when either is missing/unparseable or the span is negative (clock skew or
@@ -36,7 +36,7 @@ export const daysBetween = ({
 		return;
 	}
 
-	return Math.floor((toMs - fromMs) / MS_PER_DAY);
+	return Math.floor((toMs - fromMs) / DAY_IN_MS);
 };
 
 /** Profile-write trigger: grants the restore when the lastActiveDay gap
