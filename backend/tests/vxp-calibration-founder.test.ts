@@ -1,5 +1,6 @@
 // Calibration claim gates (engine mocked at the actor provider boundary)
-// and the league-founder award cap.
+// and the league-founder award cap, including both caps under concurrent
+// claims.
 
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { query } from '../src/db/client';
@@ -7,11 +8,16 @@ import type { ClearingService, RegistryService } from '../src/declarations';
 import { setEngineActorProvider } from '../src/engine/actors';
 import { clearCache } from '../src/engine/cache';
 import { grantAward } from '../src/vxp/awards';
-import { claimCalibrationReward } from '../src/vxp/calibration';
-import { parseVxp, VXP_LEAGUE_FOUNDER_MAX_AWARDS } from '../src/vxp/constants';
+import { claimCalibrationReward, type CalibrationRewardResult } from '../src/vxp/calibration';
+import {
+	CALIBRATION_DAILY_CAP,
+	CALIBRATION_HOURLY_CAP,
+	parseVxp,
+	VXP_LEAGUE_FOUNDER_MAX_AWARDS
+} from '../src/vxp/constants';
 import { grantLeagueFounderAward } from '../src/vxp/founder';
 import { createTestUser, ensureMigrated } from './helpers/auth';
-import { readAwardRow, stubVxpLedger, type LedgerStub } from './helpers/vxp';
+import { readAwardRow, stubVxpLedger, type LedgerStub, type RecordedTransfer } from './helpers/vxp';
 
 let stub: LedgerStub | undefined;
 let restoreActors: (() => void) | undefined;
@@ -56,6 +62,11 @@ const mockEngine = ({
 			} as unknown as RegistryService)
 	});
 };
+
+/** Transfers of the calibration reward alone: the engagement grant is a
+ * transfer too. */
+const calibrationTransfers = (ledger: LedgerStub): RecordedTransfer[] =>
+	ledger.transfers.filter((t) => t.memo?.startsWith('vxp:calibration:') === true);
 
 /** The onboarding m1 grant doubles as the calibration engagement gate. */
 const engageUser = async (userId: string): Promise<void> => {
@@ -129,7 +140,7 @@ describe('calibration gates', () => {
 		expect(again.paidNow).toBe(false);
 	});
 
-	test('a wrong call pays nothing, writes nothing and consumes no budget', async () => {
+	test('a wrong call pays nothing, writes no award and consumes no budget', async () => {
 		stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(10)) });
 		mockEngine({ priceValue: BigInt(0) });
 		const userId = await createTestUser();
@@ -162,6 +173,141 @@ describe('calibration gates', () => {
 		expect(result.paidNow).toBe(false);
 		expect(result.reason).toBe('rate_limited_hourly');
 	});
+
+	test('a wrong call locks the market: the other side then pays nothing', async () => {
+		stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(10)) });
+		mockEngine({ priceValue: BigInt(0) });
+		const userId = await createTestUser();
+
+		await engageUser(userId);
+
+		const wrong = await claimCalibrationReward({ userId, seriesId: 's7', chosenSide: 'YES' });
+
+		expect(wrong).toEqual({ correct: false, paidNow: false, alreadyClaimed: false });
+
+		const flipped = await claimCalibrationReward({ userId, seriesId: 's7', chosenSide: 'NO' });
+
+		expect(flipped).toEqual({
+			correct: false,
+			paidNow: false,
+			alreadyClaimed: false,
+			reason: 'already_called'
+		});
+		expect(calibrationTransfers(stub)).toHaveLength(0);
+		expect(
+			await readAwardRow({ userId, awardType: 'calibration', awardKey: 's7' })
+		).toBeUndefined();
+	});
+
+	test('a correct call held by a cap pays when called again on the same side', async () => {
+		stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(10)) });
+		mockEngine();
+		const userId = await createTestUser();
+
+		await engageUser(userId);
+		await seedCalibrationAwards({ userId, count: CALIBRATION_HOURLY_CAP, ageHours: 0 });
+
+		const held = await claimCalibrationReward({ userId, seriesId: 's8', chosenSide: 'YES' });
+
+		expect(held.reason).toBe('rate_limited_hourly');
+
+		await query(
+			`update vxp_awards set created_at = now() - interval '2 hours'
+			 where user_id = $1 and award_type = 'calibration'`,
+			[userId]
+		);
+
+		const retried = await claimCalibrationReward({ userId, seriesId: 's8', chosenSide: 'YES' });
+
+		expect(retried.paidNow).toBe(true);
+	});
+});
+
+/** Calibration awards already held, created ageHours ago, on keys no claim
+ * in these suites uses. */
+const seedCalibrationAwards = async ({
+	userId,
+	count,
+	ageHours
+}: {
+	userId: string;
+	count: number;
+	ageHours: number;
+}): Promise<void> => {
+	await query(
+		`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, created_at)
+		 select $1, 'calibration', 'seed_' || g, $2, 'paid', 1, now() - make_interval(hours => $4::int)
+		 from generate_series(1, $3::int) g`,
+		[userId, parseVxp(20).toString(), count, ageHours]
+	);
+};
+
+/** Claims RACERS distinct markets at once, one slot below a cap. */
+const RACERS = 4;
+
+/** A recovering balance read that holds every racer until all of them have
+ * passed the earlier gates, so the claims really reach the cap together
+ * instead of one finishing before the next starts. */
+const racingBalance = (): (() => Promise<bigint>) => {
+	let arrived = 0;
+	let release: () => void = () => undefined;
+	const allArrived = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+
+	return async () => {
+		arrived += 1;
+
+		if (arrived >= RACERS) {
+			release();
+		}
+
+		await allArrived;
+
+		return parseVxp(10);
+	};
+};
+
+const raceCalibrationClaims = async (userId: string): Promise<CalibrationRewardResult[]> =>
+	await Promise.all(
+		Array.from(
+			{ length: RACERS },
+			async (_, i) =>
+				await claimCalibrationReward({ userId, seriesId: `race_${i}`, chosenSide: 'YES' })
+		)
+	);
+
+describe('calibration caps under concurrent claims', () => {
+	test('the hourly cap pays exactly the one remaining slot', async () => {
+		stub = stubVxpLedger({ balance: racingBalance() });
+		mockEngine();
+		const userId = await createTestUser();
+
+		await engageUser(userId);
+		await seedCalibrationAwards({ userId, count: CALIBRATION_HOURLY_CAP - 1, ageHours: 0 });
+
+		const results = await raceCalibrationClaims(userId);
+
+		expect(results.filter((r) => r.paidNow)).toHaveLength(1);
+		expect(results.filter((r) => r.reason === 'rate_limited_hourly')).toHaveLength(RACERS - 1);
+		expect(calibrationTransfers(stub)).toHaveLength(1);
+	});
+
+	test('the daily cap pays exactly the one remaining slot', async () => {
+		stub = stubVxpLedger({ balance: racingBalance() });
+		mockEngine();
+		const userId = await createTestUser();
+
+		await engageUser(userId);
+		// Outside the hourly window, inside the daily one.
+		await seedCalibrationAwards({ userId, count: CALIBRATION_DAILY_CAP - 1, ageHours: 2 });
+
+		const results = await raceCalibrationClaims(userId);
+
+		expect(results.filter((r) => r.paidNow)).toHaveLength(1);
+		expect(results.filter((r) => r.reason === 'rate_limited_daily')).toHaveLength(RACERS - 1);
+		expect(calibrationTransfers(stub)).toHaveLength(1);
+	});
 });
 
 describe('league founder cap', () => {
@@ -182,6 +328,28 @@ describe('league founder cap', () => {
 		);
 
 		expect(await grantLeagueFounderAward({ userId, leagueId: 'lg-b' })).toBe('capped');
+		expect(stub.transfers).toHaveLength(1);
+	});
+
+	test('concurrent creates at the cap boundary pay exactly the one remaining slot', async () => {
+		stub = stubVxpLedger();
+		const userId = await createTestUser();
+
+		await query(
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
+			 select $1, 'league_founder', 'seed_' || g, $2, 'paid', 1 from generate_series(1, $3::int) g`,
+			[userId, parseVxp(100).toString(), VXP_LEAGUE_FOUNDER_MAX_AWARDS - 1]
+		);
+
+		const outcomes = await Promise.all(
+			Array.from(
+				{ length: RACERS },
+				async (_, i) => await grantLeagueFounderAward({ userId, leagueId: `lg-race-${i}` })
+			)
+		);
+
+		expect(outcomes.filter((o) => o === 'paid')).toHaveLength(1);
+		expect(outcomes.filter((o) => o === 'capped')).toHaveLength(RACERS - 1);
 		expect(stub.transfers).toHaveLength(1);
 	});
 });

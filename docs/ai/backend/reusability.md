@@ -36,6 +36,7 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 | `chains/ic/icrc.ts`                        | `encodeTransferMemo`, `icrcTransferErrorVariant`, `transferErrorText`, `DEDUP_SAFE_WINDOW_MS`, shared by withdrawals and VXP payouts           |
 | `custody/assets.ts`                        | `Asset`, `listEnabledAssets`, `getAssetById`, `getAssetBySymbol`, `isVxp`, `isWithdrawable`                                                    |
 | `custody/ledger.ts`                        | `postLedgerEvent(event, q?)` (double-entry, idempotent per event key), `accountBalance`                                                        |
+| `vxp/awards.ts`                            | `grantAward` (the one idempotent grant), `grantCappedAward` + `AwardCap` (lifetime or rolling-window caps, strict under concurrency)           |
 | `vxp/predictions.ts`                       | `countExecutedPredictions` (the economy's prediction count: the user's executed fills in the engine, never posted activities)                  |
 | `vxp/triggers.ts`                          | `runProfileAwardTriggers`, `runTradeActivityTriggers` (post-write award hooks for routes)                                                      |
 | `vxp/payout.ts`                            | `transferVxpToUser`, `transferVxpWithBadFeeRetry`, `getVxpBalance`, `getTreasuryVxpBalance`; `setVxpLedgerProvider` (test seam)                |

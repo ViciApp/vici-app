@@ -11,7 +11,7 @@
 
 import { nonNullish } from '@dfinity/utils';
 import { logger } from '../lib/logger';
-import { countUserAwardsSince, getAward, grantAward } from './awards';
+import { getAward, grantAward, grantCappedAward } from './awards';
 import {
 	parseVxp,
 	VXP_FLOW_MILESTONES,
@@ -72,7 +72,7 @@ export type FlowOvertimeOutcome = 'minted' | 'recorded' | 'already' | 'rate_limi
  * reaches the hard cap. Idempotent per day via the flow_overtime/<dayKey>
  * award key, and bounded by the rolling wall-clock cap (counted off the
  * server-stamped row creation time) so a client replaying forged day keys
- * cannot farm it. Never throws: a payout failure is logged and recorded on
+ * cannot farm it. The cap is strict: concurrent mints are serialized. Never throws: a payout failure is logged and recorded on
  * the award row, leaving the swipe counter result intact.
  */
 export const mintFlowOvertime = async ({
@@ -90,27 +90,28 @@ export const mintFlowOvertime = async ({
 			return 'already';
 		}
 
-		const inWindow = await countUserAwardsSince({
+		const outcome = await grantCappedAward({
 			userId,
 			awardType: 'flow_overtime',
-			sinceMs: Date.now() - VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS
+			awardKey: dayKey,
+			amountBaseUnits: parseVxp(VXP_FLOW_OVERTIME_BONUS),
+			memo: `vxp:flow_overtime:${dayKey}`,
+			caps: [
+				{
+					max: VXP_FLOW_OVERTIME_ROLLING_CAP,
+					windowMs: VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS,
+					reason: 'rate_limited'
+				}
+			]
 		});
 
-		if (inWindow >= VXP_FLOW_OVERTIME_ROLLING_CAP) {
+		if (outcome.outcome === 'capped') {
 			logger.info(
 				`flow overtime rate-limited for ${userId} (day ${dayKey}, cap ${VXP_FLOW_OVERTIME_ROLLING_CAP})`
 			);
 
 			return 'rate_limited';
 		}
-
-		const outcome = await grantAward({
-			userId,
-			awardType: 'flow_overtime',
-			awardKey: dayKey,
-			amountBaseUnits: parseVxp(VXP_FLOW_OVERTIME_BONUS),
-			memo: `vxp:flow_overtime:${dayKey}`
-		});
 
 		switch (outcome.outcome) {
 			case 'paid':

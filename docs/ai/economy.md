@@ -121,12 +121,14 @@ The bound that protects each surface today:
   post-signup redemption window.
 - **Streak / flow-volume milestones**: one-time per milestone, per
   lifetime.
-- **Flow overtime**: once per day key, plus a rolling cap on mints per
-  wall-clock window, because the client supplies the day key. The cap is
-  counted before the award is written, not reserved atomically, so it is
-  a soft limit (like the calibration caps).
+- **Flow overtime**: once per day key, plus a rolling wall-clock cap
+  counted off server-stamped creation times, so forged day keys cannot
+  farm it.
 - **Calibration**: balance-gated (pays only below the recovery floor),
-  plus a daily **and** an hourly burst cap.
+  plus a daily **and** an hourly burst cap. The first side called on a
+  finalised market is the one judged: a miss is recorded, and a later
+  call on the other side is refused, so a market cannot be called both
+  ways until it pays.
 - **Comeback**: balance-gated and absence-gated.
 - **League founder**: lifetime per-account cap.
 - **Worlds podium**: once per month and place, for a member at
@@ -135,6 +137,13 @@ The bound that protects each surface today:
   this anyone could join last month's winner after close and collect its
   prize; a switch or a leave resets the join time, so a move after close
   never carries tenure.
+
+Every count-bounded cap (flow overtime, calibration, league founder) is
+**strict**, never a soft limit: the count and the award insert run in one
+transaction behind a per-user, per-award-type lock (`grantCappedAward` in
+[`backend/src/vxp/awards.ts`](../../backend/src/vxp/awards.ts)), so
+concurrent claims cannot slip past it. The lock is released before the
+ledger transfer.
 
 Every server-fired award is also keyed for **idempotency** in
 `vxp_awards` (`recipient/awardType/awardKey`), so a hook retry can

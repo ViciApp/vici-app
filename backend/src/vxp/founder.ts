@@ -5,15 +5,16 @@
 // the create-league path (and its retroactive self-heal pass) can call it.
 
 import { logger } from '../lib/logger';
-import { countUserAwards, grantAward } from './awards';
+import { grantCappedAward } from './awards';
 import { VXP_LEAGUE_FOUNDER_MAX_AWARDS, VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS } from './constants';
 
 export type FounderPayoutOutcome = 'paid' | 'recorded' | 'already' | 'capped' | 'failed';
 
 /**
  * Grants the founder reward for one league. Idempotent per league; the
- * per-account cap is counted off the caller's own league_founder awards, and
- * anything in flight consumes a slot so racing creates cannot slip past it.
+ * per-account cap is counted off the caller's own league_founder awards
+ * (anything in flight consumes a slot), and racing creates are serialized,
+ * so they cannot slip past it.
  */
 export const grantLeagueFounderAward = async ({
 	userId,
@@ -23,24 +24,22 @@ export const grantLeagueFounderAward = async ({
 	leagueId: string;
 }): Promise<FounderPayoutOutcome> => {
 	try {
-		if (
-			(await countUserAwards({ userId, awardType: 'league_founder' })) >=
-			VXP_LEAGUE_FOUNDER_MAX_AWARDS
-		) {
+		const outcome = await grantCappedAward({
+			userId,
+			awardType: 'league_founder',
+			awardKey: leagueId,
+			amountBaseUnits: VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS,
+			memo: `vxp:league_founder:${leagueId}`,
+			caps: [{ max: VXP_LEAGUE_FOUNDER_MAX_AWARDS, reason: 'capped' }]
+		});
+
+		if (outcome.outcome === 'capped') {
 			logger.info(
 				`league founder award capped for ${userId} (league ${leagueId}, cap ${VXP_LEAGUE_FOUNDER_MAX_AWARDS})`
 			);
 
 			return 'capped';
 		}
-
-		const outcome = await grantAward({
-			userId,
-			awardType: 'league_founder',
-			awardKey: leagueId,
-			amountBaseUnits: VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS,
-			memo: `vxp:league_founder:${leagueId}`
-		});
 
 		switch (outcome.outcome) {
 			case 'paid':

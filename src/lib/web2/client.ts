@@ -1806,6 +1806,7 @@ export interface Web2CalibrationClaim {
 		| 'not_binary'
 		| 'not_finalised'
 		| 'outcome_undetermined'
+		| 'already_called'
 		| 'rate_limited_hourly'
 		| 'rate_limited_daily'
 		| 'recorded_only'

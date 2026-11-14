@@ -1,6 +1,6 @@
 // Flow award semantics: lifetime-call milestone crossings, the overtime
 // credit at the daily cap, its per-day idempotency and the rolling
-// wall-clock anti-farming cap.
+// wall-clock anti-farming cap, strict under concurrent mints.
 
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { query } from '../src/db/client';
@@ -82,6 +82,31 @@ describe('overtime credit', () => {
 		expect(
 			await readAwardRow({ userId, awardType: 'flow_overtime', awardKey: '2026-08-03' })
 		).toBeUndefined();
+	});
+
+	test('concurrent mints at the cap boundary pay exactly the one remaining slot', async () => {
+		stub = stubVxpLedger();
+		const userId = await createTestUser();
+		const racers = 4;
+
+		for (let i = 0; i < VXP_FLOW_OVERTIME_ROLLING_CAP - 1; i++) {
+			await query(
+				`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
+				 values ($1, 'flow_overtime', $2, $3, 'paid', $4)`,
+				[userId, `2026-05-${String(i + 1).padStart(2, '0')}`, parseVxp(25).toString(), Date.now()]
+			);
+		}
+
+		const outcomes = await Promise.all(
+			Array.from(
+				{ length: racers },
+				async (_, i) => await mintFlowOvertime({ userId, dayKey: `2026-09-0${i + 1}` })
+			)
+		);
+
+		expect(outcomes.filter((o) => o === 'minted')).toHaveLength(1);
+		expect(outcomes.filter((o) => o === 'rate_limited')).toHaveLength(racers - 1);
+		expect(stub.transfers).toHaveLength(1);
 	});
 
 	test('awards outside the rolling window free the cap again', async () => {

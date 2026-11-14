@@ -15,7 +15,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
 import { DEDUP_SAFE_WINDOW_MS } from '../chains/ic/icrc';
-import { query } from '../db/client';
+import { query, tx, type TxQuery } from '../db/client';
 import { env } from '../env';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
@@ -379,6 +379,32 @@ const settlePendingAward = async ({
 	return { paid: false, claimed: true, error: result.error };
 };
 
+/** How many awards of one type the user holds, any status, optionally only
+ * those created after sinceMs. The row's server-stamped created_at is the
+ * window boundary because the caller cannot forge it, unlike any
+ * client-supplied day key. */
+const countUserAwards = async (
+	{
+		userId,
+		awardType,
+		sinceMs
+	}: {
+		userId: string;
+		awardType: VxpAwardType;
+		sinceMs?: number;
+	},
+	q: TxQuery
+): Promise<number> => {
+	const rows = await q<{ count: string }>(
+		`select count(*)::text as count from vxp_awards
+		 where user_id = $1 and award_type = $2
+		   and ($3::double precision is null or created_at > to_timestamp($3::double precision / 1000))`,
+		[userId, awardType, sinceMs ?? null]
+	);
+
+	return Number(rows[0]?.count ?? 0);
+};
+
 export type GrantAwardOutcome =
 	| { outcome: 'paid'; blockIndex: string }
 	| { outcome: 'recorded' }
@@ -386,70 +412,66 @@ export type GrantAwardOutcome =
 	| { outcome: 'skipped_zero' }
 	| { outcome: 'failed'; error: string };
 
-/**
- * The single grant path: insert the pending row (colliding silently when the
- * award already exists), then either leave it recorded (record-only mode) or
- * drive the treasury transfer and the paid/failed transition. Non-positive
- * amounts are skipped entirely; nothing is owed.
- */
-export const grantAward = async ({
-	userId,
-	awardType,
-	awardKey,
-	amountBaseUnits,
-	memo,
-	earnedAtMs
-}: {
+interface GrantAwardParams {
 	userId: string;
 	awardType: VxpAwardType;
 	awardKey: string;
 	amountBaseUnits: bigint;
 	memo?: string;
 	earnedAtMs?: number;
-}): Promise<GrantAwardOutcome> => {
-	if (amountBaseUnits <= ZERO) {
-		return { outcome: 'skipped_zero' };
-	}
+}
 
-	const transferMemo = memo ?? `vxp:${awardType}:${awardKey}`;
+const transferMemoOf = ({ awardType, awardKey, memo }: GrantAwardParams): string =>
+	memo ?? `vxp:${awardType}:${awardKey}`;
 
-	// The memo is stored with the row so a reconciler paying it later (after
-	// a record-only stretch or a crash) sends the same memo the grant chose.
-	// The conflict clause names no target so a type-specific unique index
-	// (one tournament prize per tournament, migration 0018) collides into
-	// 'already' like the (user, award_type, award_key) one, instead of
-	// raising.
-	const inserted = await query<{ id: string }>(
+/** Inserts the pending row; undefined when the award already exists. The
+ * memo is stored with the row so a reconciler paying it later (after a
+ * record-only stretch or a crash) sends the same memo the grant chose. The
+ * conflict clause names no target so a type-specific unique index (one
+ * tournament prize per tournament, migration 0018) collides into 'already'
+ * like the (user, award_type, award_key) one, instead of raising. */
+const insertPendingAward = async (
+	grant: GrantAwardParams,
+	q: TxQuery = query
+): Promise<string | undefined> => {
+	const inserted = await q<{ id: string }>(
 		`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, transfer_memo)
 		 values ($1, $2, $3, $4, 'pending', $5, $6)
 		 on conflict do nothing
 		 returning id`,
 		[
-			userId,
-			awardType,
-			awardKey,
-			amountBaseUnits.toString(),
-			earnedAtMs ?? Date.now(),
-			transferMemo
+			grant.userId,
+			grant.awardType,
+			grant.awardKey,
+			grant.amountBaseUnits.toString(),
+			grant.earnedAtMs ?? Date.now(),
+			transferMemoOf(grant)
 		]
 	);
-	const id = inserted[0]?.id;
 
-	if (isNullish(id)) {
-		return { outcome: 'already' };
-	}
+	return inserted[0]?.id;
+};
 
+/** Drives a freshly inserted row to its outcome: recorded in record-only
+ * mode, otherwise the treasury transfer and the paid/failed transition. */
+const settleInsertedAward = async ({
+	id,
+	grant
+}: {
+	id: string;
+	grant: GrantAwardParams;
+}): Promise<GrantAwardOutcome> => {
 	if (isVxpTreasuryDisabled()) {
 		return { outcome: 'recorded' };
 	}
 
 	const settled = await settlePendingAward({
 		id,
-		userId,
-		awardType,
-		awardKey,
-		amountBaseUnits,
-		memo: transferMemo
+		userId: grant.userId,
+		awardType: grant.awardType,
+		awardKey: grant.awardKey,
+		amountBaseUnits: grant.amountBaseUnits,
+		memo: transferMemoOf(grant)
 	});
 
 	if (settled.paid) {
@@ -471,6 +493,92 @@ export const grantAward = async ({
 	}
 
 	return { outcome: 'failed', error: settled.error ?? 'transfer failed' };
+};
+
+/**
+ * The single grant path: insert the pending row (colliding silently when the
+ * award already exists), then either leave it recorded (record-only mode) or
+ * drive the treasury transfer and the paid/failed transition. Non-positive
+ * amounts are skipped entirely; nothing is owed.
+ */
+export const grantAward = async (grant: GrantAwardParams): Promise<GrantAwardOutcome> => {
+	if (grant.amountBaseUnits <= ZERO) {
+		return { outcome: 'skipped_zero' };
+	}
+
+	const id = await insertPendingAward(grant);
+
+	if (isNullish(id)) {
+		return { outcome: 'already' };
+	}
+
+	return await settleInsertedAward({ id, grant });
+};
+
+/** A ceiling on how many awards of one type a user may hold: over their
+ * lifetime, or inside a rolling wall-clock window when windowMs is set.
+ * reason is what the grant answers when this cap is the one reached. */
+export interface AwardCap<Reason extends string> {
+	max: number;
+	windowMs?: number;
+	reason: Reason;
+}
+
+export type CappedGrantOutcome<Reason extends string> =
+	GrantAwardOutcome | { outcome: 'capped'; reason: Reason };
+
+/**
+ * grantAward under caps. The count and the insert run in one transaction
+ * behind a per-user, per-type advisory lock, so concurrent grants queue and
+ * each one counts the rows the earlier ones inserted: a cap is never
+ * exceeded, however many claims race. The lock is released at commit, before
+ * the transfer, so a slow ledger never holds up the next grant. Every row
+ * counts whatever its status: anything in flight consumes a slot.
+ */
+export const grantCappedAward = async <Reason extends string>({
+	caps,
+	...grant
+}: GrantAwardParams & { caps: readonly AwardCap<Reason>[] }): Promise<
+	CappedGrantOutcome<Reason>
+> => {
+	if (grant.amountBaseUnits <= ZERO) {
+		return { outcome: 'skipped_zero' };
+	}
+
+	const claim = await tx(async (q): Promise<{ id?: string } | { capped: Reason }> => {
+		await q(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [
+			`vxp-award-cap:${grant.userId}:${grant.awardType}`
+		]);
+
+		const nowMs = Date.now();
+
+		for (const cap of caps) {
+			const held = await countUserAwards(
+				{
+					userId: grant.userId,
+					awardType: grant.awardType,
+					sinceMs: nonNullish(cap.windowMs) ? nowMs - cap.windowMs : undefined
+				},
+				q
+			);
+
+			if (held >= cap.max) {
+				return { capped: cap.reason };
+			}
+		}
+
+		return { id: await insertPendingAward(grant, q) };
+	});
+
+	if ('capped' in claim) {
+		return { outcome: 'capped', reason: claim.capped };
+	}
+
+	if (isNullish(claim.id)) {
+		return { outcome: 'already' };
+	}
+
+	return await settleInsertedAward({ id: claim.id, grant });
 };
 
 export const getAward = async ({
@@ -511,44 +619,6 @@ export const listUserAwards = async ({
 			);
 
 	return rows.map(shapeAward);
-};
-
-/** How many awards of one type the user holds, any status: anything in
- * flight consumes a slot, so racing triggers cannot slip past a cap. */
-export const countUserAwards = async ({
-	userId,
-	awardType
-}: {
-	userId: string;
-	awardType: VxpAwardType;
-}): Promise<number> => {
-	const rows = await query<{ count: string }>(
-		`select count(*)::text as count from vxp_awards where user_id = $1 and award_type = $2`,
-		[userId, awardType]
-	);
-
-	return Number(rows[0]?.count ?? 0);
-};
-
-/** Awards of one type created inside a rolling wall-clock window. The row's
- * server-stamped created_at is the boundary because the caller cannot forge
- * it, unlike any client-supplied day key. */
-export const countUserAwardsSince = async ({
-	userId,
-	awardType,
-	sinceMs
-}: {
-	userId: string;
-	awardType: VxpAwardType;
-	sinceMs: number;
-}): Promise<number> => {
-	const rows = await query<{ count: string }>(
-		`select count(*)::text as count from vxp_awards
-		 where user_id = $1 and award_type = $2 and created_at > to_timestamp($3::double precision / 1000)`,
-		[userId, awardType, sinceMs]
-	);
-
-	return Number(rows[0]?.count ?? 0);
 };
 
 export interface ReconcileReport {
