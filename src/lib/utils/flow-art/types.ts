@@ -1,4 +1,4 @@
-// Flow Mode generative artwork — shared public + internal types.
+// Flow Mode generative artwork: shared public + internal types.
 //
 // Extracted from the original flow-art.utils.ts during the structural
 // split; behaviour-identical, no logic here.
@@ -8,7 +8,7 @@ import type { Theme } from '#lib/stores/theme.store.ts';
 
 /**
  * Public artwork category: the seven taxonomy macros plus the opt-in `wc`
- * tentpole editorial variant. `wc` is not a macro — it's the FIFA-themed
+ * tentpole editorial variant. `wc` is not a macro: it's the FIFA-themed
  * World-Cup composition preserved from the tentpole deck, resolved from a
  * `world-cup` free tag rather than derived from a micro.
  */
@@ -16,9 +16,9 @@ export type FlowArtCategory = MacroId | 'wc';
 
 /**
  * Internal render bucket: the six bespoke generative visual languages. Each
- * macro maps onto exactly one bucket via {@link MACRO_ART_BUCKET} — macros
+ * macro maps onto exactly one bucket via {@link MACRO_ART_BUCKET}: macros
  * without a bespoke language (e.g. `world`, `economy`) share the closest
- * relative — so the renderer / palette tables stay keyed by these six plus
+ * relative, so the renderer / palette tables stay keyed by these six plus
  * the separately-dispatched `wc`.
  */
 export type FlowArtBucket = 'macro' | 'crypto' | 'sports' | 'politics' | 'tech' | 'culture';
@@ -42,7 +42,7 @@ export type FlowArtTheme = Theme;
 /**
  * Canonical category set used for random category assignment when a market
  * has no micro tags. The seven macros, in canonical order. `wc` is
- * intentionally excluded — it's a tentpole-only language and must be opt-in
+ * intentionally excluded: it's a tentpole-only language and must be opt-in
  * via a `world-cup` free tag (typically driven by the FeaturedEvent
  * abstraction).
  */
@@ -51,7 +51,7 @@ export const FLOW_ART_CATEGORIES: readonly MacroId[] = MACRO_IDS;
 /**
  * Pre-built lookup set for `FLOW_ART_CATEGORIES` plus the opt-in `wc`
  * tentpole. Three Flow surfaces (FlowCard, FlowMode, market-signals) need
- * to test whether an arbitrary string is a known category — exporting the
+ * to test whether an arbitrary string is a known category: exporting the
  * Set once avoids each consumer rebuilding it on module load.
  */
 export const FLOW_ART_CATEGORY_SET: ReadonlySet<string> = new Set<FlowArtCategory>([
@@ -75,7 +75,7 @@ export interface FlowArtPalette {
 export interface FlowArtRenderOptions {
 	category: FlowArtCategory;
 	// Stable per-market seed. Pass `market.id` (or any deterministic
-	// string / number — strings are FNV-1a hashed first).
+	// string / number: strings are FNV-1a hashed first).
 	seed: string | number;
 	state?: FlowArtState;
 	theme?: FlowArtTheme;
@@ -85,7 +85,7 @@ export interface FlowArtRenderOptions {
 	// When true, draws an additional inset stroke frame inside the
 	// composition. Off by default; FlowCard layers a separate frame.
 	frame?: boolean;
-	// Optional market question text. Only the WC renderer consults it —
+	// Optional market question text. Only the WC renderer consults it
 	// to resolve per-market artwork from the question, first via the
 	// authoritative `WC_MARKET_ART` catalogue, then the heuristic
 	// resolver. Absent (the default at every non-WC call site and any WC
@@ -102,7 +102,7 @@ export interface Rng {
 	chance: (p: number) => boolean;
 }
 
-// Renderer protocol — every category renderer takes the same args
+// Renderer protocol: every category renderer takes the same args
 // so the dispatch table types cleanly. Object form (vs positional) per
 // the repo's `prefer-object-params` convention.
 //
@@ -121,7 +121,7 @@ export interface RenderArgs {
 	// per nation) read this; everything else stays seed-derived via
 	// `rng`.
 	seed: string | number;
-	// Optional market question text. Only the WC renderer reads it — to
+	// Optional market question text. Only the WC renderer reads it to
 	// look up per-market artwork in the `WC_MARKET_ART` catalogue (then
 	// the heuristic resolver); undefined for every other renderer and any
 	// WC render without a question.

@@ -9,7 +9,7 @@ export const ProfileVisibilitySchema = j.enum(ProfileVisibility);
 export const NicknameSchema = j.string();
 
 /**
- * Owner-private profile data — one doc per principal in the
+ * Owner-private profile data: one doc per principal in the
  * `profile_private` collection (key = owner principal text). Holds the
  * fields that must never land on the publicly-readable `profiles` doc.
  * Today that's the account `email`, captured from an OpenID provider or
@@ -26,7 +26,7 @@ export const UserProfileSchema = j.strictObject({
 	nickname: NicknameSchema.default(''),
 	avatar: j.string().default(''),
 	// The user's faceted-avatar picks, serialized to a compact JSON string
-	// (the seven catalog keys — see `serializeParts` in
+	// (the seven catalog keys: see `serializeParts` in
 	// `#lib/utils/vici-avatar.utils.ts`). Stored as a plain string (not a nested
 	// object) so it round-trips through the satellite JsonData→Candid encoder
 	// without the `Option<Struct>` limitation; empty string = "no saved picks"
@@ -40,7 +40,7 @@ export const UserProfileSchema = j.strictObject({
 	totalTrades: j.number().default(0),
 	winRate: j.number().default(0),
 	dailyStreak: j.number().default(0),
-	// Best daily-streak the user has ever reached — the running
+	// Best daily-streak the user has ever reached; the running
 	// `max(longestStreak, dailyStreak)` maintained wherever `dailyStreak`
 	// is persisted (Flow Mode's first-swipe write and the trade-execution
 	// `recordActivity` path). Drives the "Longest {N}" readout on the dash
@@ -48,7 +48,7 @@ export const UserProfileSchema = j.strictObject({
 	// and self-heal up to their current `dailyStreak` on the next bump.
 	// Mirror any change here in `src/satellite/api-schemas.ts`.
 	longestStreak: j.number().default(0),
-	// Daily-goal counter — predictions committed on `dailyGoalDate`
+	// Daily-goal counter: predictions committed on `dailyGoalDate`
 	// (local `YYYY-MM-DD`). `dailyGoalDone` rolls back to 0 the first
 	// time it's touched on a new local day, mirroring the `dailyStreak`
 	// / `lastActiveDay` pairing. The target itself is a client constant,
@@ -74,7 +74,7 @@ export const UserProfileSchema = j.strictObject({
 	// Hibernation marker (Delete account v2 — the reversible sibling of
 	// soft-delete). PRESENCE = the account is hibernated (the wall-clock ms
 	// at which `hibernateMyAccount` ran); ABSENCE = an active account. Like
-	// `deletedAtMs` it's intentionally `optional()` with NO default —
+	// `deletedAtMs` it's intentionally `optional()` with NO default:
 	// absence is the meaningful "active" state. Hibernation is fully
 	// reversible (no data is ever removed): stats freeze (the account is
 	// inactive) and the profile hides from public reads, but the owner can
@@ -83,7 +83,7 @@ export const UserProfileSchema = j.strictObject({
 	// change here in `src/satellite/api-schemas.ts`.
 	hibernatedAtMs: j.number().optional(),
 	// IDs of achievements the user has ever unlocked (append-only). Source of
-	// truth for the achievement system — `evaluateAchievements` re-derives
+	// truth for the achievement system: `evaluateAchievements` re-derives
 	// current eligibility on every stats sync, and any newly-true ids are
 	// merged in here (with their XP credited to `points`). Unlocks never
 	// rescind: if a stat regresses, the achievement stays "earned".
@@ -93,7 +93,7 @@ export const UserProfileSchema = j.strictObject({
 	// achievement progress; recomputed from clearing history during
 	// `calculateAndSyncStats`.
 	contrarianWins: j.number().default(0),
-	// Rarest single upset — the smallest execution consensus (0..1) among
+	// Rarest single upset: the smallest execution consensus (0..1) among
 	// the user's settled wins; lower = rarer. Drives the Octopus trophy's
 	// reversed ladder. `optional()` with NO default: absence means "no
 	// settled win yet", and a numeric default would either fake a
@@ -102,19 +102,19 @@ export const UserProfileSchema = j.strictObject({
 	// `calculateAndSyncStats`.
 	bestUpsetConsensus: j.number().optional(),
 	// Longest consecutive-win run the user has ever recorded across settled
-	// history — the high-water sibling of `streak` (which tracks only the
+	// history: the high-water sibling of `streak` (which tracks only the
 	// CURRENT run and resets on every loss). Drives the Snake trophy, whose
 	// rungs must not regress when a run ends. Recomputed from clearing
 	// history during `calculateAndSyncStats`, kept monotonic via
 	// `max(existing, recomputed)`.
 	onFireStreak: j.number().default(0),
-	// Lifetime cold-streak recoveries — settled wins that snapped a run of
+	// Lifetime cold-streak recoveries: settled wins that snapped a run of
 	// at least `COMEBACK_COLD_STREAK_LOSSES` consecutive settled losses.
 	// Drives the Honey Badger trophy. Recomputed from clearing history
 	// during `calculateAndSyncStats`, kept monotonic via `max(existing,
 	// recomputed)`.
 	comebacks: j.number().default(0),
-	// Breadth — distinct market categories where the user has at least
+	// Breadth: distinct market categories where the user has at least
 	// `MAGPIE_MIN_CATEGORY_CALLS` settled calls at a win ratio of at least
 	// `MAGPIE_MIN_CATEGORY_ACCURACY`. Drives the Magpie trophy. Recomputed
 	// from clearing history + market tags during `calculateAndSyncStats`,
@@ -125,15 +125,15 @@ export const UserProfileSchema = j.strictObject({
 	// League-life milestones (drive the Bee trophy's join → win-a-bout →
 	// found ladder). All three are recomputed from the caller's league
 	// memberships / battles during `calculateAndSyncStats` and kept
-	// monotonic via `max(existing, recomputed)` — leaving a league or a
+	// monotonic via `max(existing, recomputed)`, leaving a league or a
 	// failed read must not strip an earned rung.
-	// High-water count of league memberships (any role) — because of the
+	// High-water count of league memberships (any role), because of the
 	// monotonic guard, leaving a league never decrements it.
 	leaguesJoined: j.number().default(0),
 	// High-water count of resolved battles (league bouts or duels) the
 	// user's side won.
 	boutsWon: j.number().default(0),
-	// High-water count of leagues the user has owned — transferring or
+	// High-water count of leagues the user has owned, transferring or
 	// deleting a league never decrements it.
 	leaguesFounded: j.number().default(0),
 	// Consecutive calendar days the user has held a top-10% global
@@ -144,17 +144,17 @@ export const UserProfileSchema = j.strictObject({
 	// user outside the top decile. Mirror any change here in
 	// `src/satellite/api-schemas.ts`.
 	topDecileStreak: j.number().default(0),
-	// Local `YYYY-MM-DD` of the last day `topDecileStreak` was evaluated —
+	// Local `YYYY-MM-DD` of the last day `topDecileStreak` was evaluated:
 	// the once-per-day guard for the streak bump. `optional()` with no
 	// default so a never-evaluated profile reads as absent. Mirror any
 	// change here in `src/satellite/api-schemas.ts`.
 	lastTopDecileDay: j.string().optional(),
-	// Best monthly sharpest-eye placement the user has ever earned —
+	// Best monthly sharpest-eye placement the user has ever earned:
 	// `'gold'` (#1), `'silver'` (#2), or `'bronze'` (#3). Drives the
 	// `sharpest-eye` album award's tier wash. The client sets it (keeping the
 	// best of the existing and the new tier) when a completed month's
 	// `getMonthlyLeaderboard` places the user top-3. `optional()` with NO
-	// default — absence means "never placed", which is the meaningful
+	// default: absence means "never placed", which is the meaningful
 	// backward-compatible state for every legacy row. A single field (not
 	// per-month history) is the v1 storage shape. Mirror any change here in
 	// `src/satellite/api-schemas.ts`.
@@ -163,7 +163,7 @@ export const UserProfileSchema = j.strictObject({
 	// `'unverified'` | `'pending'` | `'verified'`. Drives the verification
 	// pill on the profile's Alma Mater slot. Stored as a loose string (not an
 	// enum) so it round-trips through JsonData→Candid without the
-	// `Option<Enum>` limitation. `optional()` with NO default — absence is the
+	// `Option<Enum>` limitation. `optional()` with NO default: absence is the
 	// meaningful "no school / never set" state, and a default would force every
 	// legacy row to look like it had a verification status. When a university
 	// affiliation exists but this field is absent, the surface treats it as
@@ -175,7 +175,7 @@ export const UserProfileSchema = j.strictObject({
 	// Celebrated Menagerie tier keys (the achievement "trophy layer"). Each
 	// entry is a `${slug}:${tier}` string (e.g. `owl:gold`) the owner has
 	// already SEEN a celebration for. The set is the de-dupe ledger that keeps
-	// the one-time unlock reveal from re-firing — the live tier is always
+	// the one-time unlock reveal from re-firing: the live tier is always
 	// re-derived from the owner's real stats, this field only records what was
 	// already shown. Intentionally `optional()` with NO default: ABSENCE is the
 	// meaningful "never seeded" state, which the reveal pipeline reads as
@@ -191,7 +191,7 @@ export const UserProfileSchema = j.strictObject({
 	// prior change is on record; ABSENCE = no prior change ("changeable").
 	// Intentionally `optional()` with NO default so every legacy row decodes
 	// without a migration and reads as never-changed (immediately
-	// changeable). The set-profile assert is the authority — it sets this to
+	// changeable). The set-profile assert is the authority; it sets this to
 	// the message time on a change and rejects any other movement. Mirror any
 	// change here in `src/satellite/api-schemas.ts`.
 	handleLastChangeMs: j.number().optional(),
@@ -205,7 +205,7 @@ export const UserProfileSchema = j.strictObject({
 	//
 	// `defaultAmount` is the wallet-side default-bet preference; the rest
 	// of the fields are the user-experience preferences (notifications,
-	// flow deck, haptics, saved-markets list, privacy/sharing) — they
+	// flow deck, haptics, saved-markets list, privacy/sharing): they
 	// migrated off per-device localStorage and now round-trip through the
 	// profile so they sync across devices.
 	preferences: j
@@ -234,7 +234,7 @@ export const UserProfileSchema = j.strictObject({
 			soundEnabled: j.boolean().default(true),
 			// Privacy / sharing preference group (Settings privacy
 			// sections). Every leaf is defaulted for the same reason as the
-			// surrounding fields — a partial `preferences` shape on a legacy
+			// surrounding fields: a partial `preferences` shape on a legacy
 			// row must decode cleanly. `profileVisibility` is stored as a
 			// loose string (the `public|friends|private` settings union) and
 			// is mirrored to the top-level `visibility` enum on write, which

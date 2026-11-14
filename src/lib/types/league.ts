@@ -2,19 +2,19 @@ import { LeaguePrivacy } from '#lib/enums/league.ts';
 import { nonNullish } from '@dfinity/utils';
 
 /**
- * Social cohorts — leagues.
+ * Social cohorts: leagues.
  *
  * A league is a user-created cohort with a 6-char alphanumeric invite
  * code that the owner shares to bring members in. Members and battles
  * live in follow-up collections (`league_members`, `battles`) so the
  * league metadata stays cheap to list without joining membership.
  *
- * Doc key for `leagues` is the league id — a slug-style identifier
+ * Doc key for `leagues` is the league id; a slug-style identifier
  * picked by the owner at creation. Drift between key and the embedded
  * `id` field is rejected by the assert.
  */
 export interface LeagueDoc {
-	/** Stable slug identifier — matches the doc key. */
+	/** Stable slug identifier: matches the doc key. */
 	id: string;
 	/** Display name (3–40 chars, free-form). */
 	name: string;
@@ -33,7 +33,7 @@ export interface LeagueDoc {
 	 * at creation. Rendered inside the gradient logo tile everywhere the
 	 * league surfaces. Chosen once at creation and frozen alongside the
 	 * identity fields. Absent on legacy rows written before the picker
-	 * shipped — callers fall back to {@link leagueEmblem}.
+	 * shipped: callers fall back to {@link leagueEmblem}.
 	 */
 	emblem?: string;
 	/**
@@ -41,14 +41,14 @@ export interface LeagueDoc {
 	 * (the owner can tighten or loosen a league's visibility; see the
 	 * assert and `updateLeague`):
 	 *
-	 * - {@link LeaguePrivacy.PRIVATE} — hidden; reachable only by invite
+	 * - {@link LeaguePrivacy.PRIVATE}: hidden; reachable only by invite
 	 *   code, never surfaced in any public list, recommendation, or
 	 *   challenge pool.
-	 * - {@link LeaguePrivacy.OPEN} — discoverable; surfaced in challenge
+	 * - {@link LeaguePrivacy.OPEN}: discoverable; surfaced in challenge
 	 *   pools, recommendations, and public lists to anyone. Still joined by
 	 *   invite code (privacy gates discovery, not the join).
 	 *
-	 * Absent on legacy rows written before this field shipped — callers
+	 * Absent on legacy rows written before this field shipped; callers
 	 * treat absent as {@link LeaguePrivacy.OPEN} (the legacy
 	 * `private === false/undefined` default). The legacy boolean's
 	 * `private === true`, and any row persisted under the retired
@@ -62,7 +62,7 @@ export interface LeagueDoc {
 	 * Juno Storage (the {@link LEAGUE_IMAGES_COLLECTION} collection). When
 	 * set, every league surface renders this image (cover-fit) in place of
 	 * the {@link leagueEmblem} glyph; clearing it falls back to the emblem.
-	 * Only the URL reference lives on the doc — the bytes live in Storage,
+	 * Only the URL reference lives on the doc; the bytes live in Storage,
 	 * never a base64 data URL. Unlike the emblem, the owner can set, change,
 	 * or clear this after creation.
 	 */
@@ -116,14 +116,14 @@ export const leagueEmblem = (league: Pick<LeagueDoc, 'emblem' | 'name'>): string
 };
 
 /**
- * Invite-code shape. Six uppercase alphanumeric characters — the join
+ * Invite-code shape. Six uppercase alphanumeric characters: the join
  * flow expects exactly this pattern, so the assert enforces it on every
  * write.
  */
 export const LEAGUE_INVITE_CODE_REGEX = /^[A-Z0-9]{6}$/;
 
 /**
- * Sample invite code shown as a format affordance — the join sheet's
+ * Sample invite code shown as a format affordance; the join sheet's
  * helper line and the field placeholder both render this so the
  * expected shape (6 uppercase alphanumerics) reads at a glance. Kept as
  * a single constant so the two spots can never drift apart, and shaped
@@ -132,20 +132,20 @@ export const LEAGUE_INVITE_CODE_REGEX = /^[A-Z0-9]{6}$/;
 export const LEAGUE_INVITE_CODE_EXAMPLE = 'ABC123';
 
 /**
- * Display-name length window — 3 chars keeps single-letter junk out,
+ * Display-name length window: 3 chars keeps single-letter junk out,
  * 40 keeps the chip readable on a phone screen.
  */
 export const LEAGUE_NAME_MIN_LENGTH = 3;
 export const LEAGUE_NAME_MAX_LENGTH = 40;
 
 /**
- * Description length cap — 240 chars covers a Twitter-style blurb
+ * Description length cap: 240 chars covers a Twitter-style blurb
  * without bloating the league list payload.
  */
 export const LEAGUE_DESCRIPTION_MAX_LENGTH = 240;
 
 /**
- * Fallback privacy for legacy rows that predate the `privacy` field —
+ * Fallback privacy for legacy rows that predate the `privacy` field;
  * NOT the default applied to newly created leagues (that default lives
  * on the create surface and the `createLeague` service, which both pick
  * {@link LeaguePrivacy.OPEN}). A legacy row with no stored value reads
@@ -167,7 +167,7 @@ type LeaguePrivacyReadable = Pick<LeagueDoc, 'privacy'> & { private?: boolean };
  *
  * Normalizes the retired invite-only tier: a stored `privacy === 'invite'`
  * (persisted under the old three-way model) collapses to
- * {@link LeaguePrivacy.PRIVATE} — it was hidden from public lists, so it
+ * {@link LeaguePrivacy.PRIVATE}: it was hidden from public lists, so it
  * must never leak as Open, and the value is no longer a member of the
  * narrowed enum / Candid variant.
  *

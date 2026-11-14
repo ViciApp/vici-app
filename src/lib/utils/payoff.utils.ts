@@ -36,7 +36,7 @@ export const settlementInputOutcome = (
 /**
  * Settlement time (ms) from clearing's on-chain `SettlementInput`.
  *
- * Only price settlements carry a timestamp, and even there it's optional — the
+ * Only price settlements carry a timestamp, and even there it's optional: the
  * categorical `Outcome` variant has no time field at all. `undefined` therefore
  * means "settled, time unknown", never "unsettled"; callers ordering by
  * resolution recency must keep those rows rather than dropping them.

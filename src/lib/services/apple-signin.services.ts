@@ -14,7 +14,7 @@ const JUNO_USER_COLLECTION = '#user';
 // query param (URL-encoded, exactly as `@icp-sdk/auth` builds it) selects
 // the OIDC provider; II runs the Apple handshake and returns a delegation
 // indistinguishable from a passkey II sign-in. Only the hosted endpoint
-// serves this flow, so we always target `id.ai` — which also means it
+// serves this flow, so we always target `id.ai`, which also means it
 // works from any origin, including local dev.
 const buildAppleIdentityProviderUrl = (): string => {
 	const url = new URL('https://id.ai/authorize');
@@ -28,7 +28,7 @@ const buildAppleIdentityProviderUrl = (): string => {
 // `@icp-sdk/auth`'s `AuthClient` hard-codes `PostMessageTransport` with the
 // default 2s `disconnectTimeout`, so the channel drops mid-ceremony and II
 // shows "Connection closed". We therefore drive the transport ourselves with
-// a passkey-aware timeout — which is why this flow can't use
+// a passkey-aware timeout, which is why this flow can't use
 // `AuthClient.signIn()`.
 const PASSKEY_AWARE_DISCONNECT_TIMEOUT_MS = 60_000;
 
@@ -53,10 +53,10 @@ export class AppleSignInCancelledError extends Error {}
  * Mirror Juno's `initUser`: load-or-create the `#user` doc for the given
  * identity.
  *
- * Juno's boot-time `loadAuth()` only *loads* an existing `#user` doc — it
+ * Juno's boot-time `loadAuth()` only *loads* an existing `#user` doc; it
  * never creates one (that happens inside Juno's interactive `signIn()`,
  * which we bypass). Without this, the next document load finds a valid
- * delegation but no user, and `loadAuth()` sets the auth store to `null` —
+ * delegation but no user, and `loadAuth()` sets the auth store to `null`;
  * the app drops straight back to the signed-out screen. We create the doc
  * here with the freshly acquired Apple delegation (Juno's ambient identity
  * hasn't adopted it yet). It's the same owner-scoped `#user` write Juno
@@ -107,7 +107,7 @@ interface AcquiredDelegation {
 // Acquire the delegation but do NOT persist here: persistence happens only
 // once the acquire branch wins the cancel race (see `signInWithApple`).
 // Otherwise a popup closed at the exact moment the delegation resolves could
-// reject as "cancelled" while a valid delegation still lands in storage —
+// reject as "cancelled" while a valid delegation still lands in storage,
 // surfacing a cancel to the user yet silently logging them in on reload.
 const acquireDelegation = async (identityProvider: string): Promise<AcquiredDelegation> => {
 	const transport = new PostMessageTransport({
@@ -119,7 +119,7 @@ const acquireDelegation = async (identityProvider: string): Promise<AcquiredDele
 	const key = await ECDSAKeyIdentity.generate();
 
 	// Establish the ICRC-29 channel (handshake while the popup is still on
-	// `id.ai`), then request the delegation — the long step, during which II
+	// `id.ai`), then request the delegation: the long step, during which II
 	// bounces through Apple's OIDC ceremony.
 	await signer.openChannel();
 
@@ -138,7 +138,7 @@ const acquireDelegation = async (identityProvider: string): Promise<AcquiredDele
  * Juno's `signIn()` exposes no Apple provider, so this drives the ICRC-29
  * signer transport directly (with a passkey-aware `disconnectTimeout`),
  * persists the delegation to the same IndexedDB store Juno reads
- * (`auth-client-db`), and creates the `#user` doc — so a subsequent full
+ * (`auth-client-db`), and creates the `#user` doc, so a subsequent full
  * document load lets Juno's `initSatellite()` / `loadAuth()` resolve the
  * user and fire `onAuthStateChange`. See the caller in
  * {@link ../components/authn/SignInProviderStack.svelte}.
@@ -151,7 +151,7 @@ export const signInWithApple = async (): Promise<void> => {
 
 	// Pre-open the popup synchronously, under the name the transport reuses,
 	// so Safari doesn't block it and we can detect a user-initiated close. A
-	// blocked/null window just opts out of the poll — we fall back to the
+	// blocked/null window just opts out of the poll; we fall back to the
 	// transport's heartbeat.
 	const signerWindow = window.open('', buildSignerWindowName(identityProvider));
 

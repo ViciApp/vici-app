@@ -10,21 +10,21 @@ import { derived, type Readable } from 'svelte/store';
  *
  * Two orthogonal signals back the World-Cup experience:
  *
- * 1. {@link worldCupMode} — the *user's* persisted opt-in. Mirrors the
+ * 1. {@link worldCupMode}: the *user's* persisted opt-in. Mirrors the
  *    `worldCupMode` flag on `profile.preferences` (cross-device, written
  *    through `preferencesStore`). It is a pure preference: `true` even
  *    after the event has archived if the user last left it on.
- * 2. {@link featuredEventActive} — the *product's* archive gate. Flips
+ * 2. {@link featuredEventActive}: the *product's* archive gate. Flips
  *    to `false` once `now` passes the featured event's `archiveAfter_ms`
  *    (the product-set cut-over date; see
  *    `featured-event.constants.ts`). Time-driven, user-independent.
  *
  * Consumers that want "should we render World-Cup content right now"
  * (later: Markets focus, the Dashboard WC tile) read {@link worldCupActive}
- * — the AND of the two — so they never re-derive the gate or reach into
+ * (the AND of the two) so they never re-derive the gate or reach into
  * the preferences object themselves.
  *
- * On top of the gate sits the retention *arc* — {@link worldCupPhase} —
+ * On top of the gate sits the retention *arc*, {@link worldCupPhase},
  * which gradually widens the deck from WC-only back to all categories as
  * the event winds down. It layers on these signals plus the featured
  * event's dates rather than introducing a parallel source of truth.
@@ -61,13 +61,13 @@ export const worldCupActive: Readable<boolean> = derived(
 /**
  * One phase of the World-Cup retention arc.
  *
- * - `off` — the user hasn't opted in; Markets keeps its all-categories shape.
- * - `wc-focus` — Cup active, comfortably before the final. Markets opens
+ * - `off`: the user hasn't opted in; Markets keeps its all-categories shape.
+ * - `wc-focus`: Cup active, comfortably before the final. Markets opens
  *   laser-focused on the World Cup (the shipped WC-default + collapsed rail).
- * - `bridge` — the last stretch before the final. Still WC-focused, but the
+ * - `bridge`: the last stretch before the final. Still WC-focused, but the
  *   deck also seeds a curated "Beyond the Cup" rail to pre-empt the post-Cup
  *   cliff *before* the event resolves.
- * - `open` — the Cup has resolved (now ≥ final, or the event archived).
+ * - `open`: the Cup has resolved (now ≥ final, or the event archived).
  *   Markets reverts to all-categories and a recap card converts WC interest
  *   into broader play.
  */

@@ -1,18 +1,18 @@
 /**
- * School-email verification submissions — backend item B.1.
+ * School-email verification submissions: backend item B.1.
  *
  * One doc per pending (member, email, school) verification attempt, in
  * the server-owned `school_submissions` collection. The satellite is the
  * ONLY writer (the collection is controllers-scoped); a client never
  * reads or writes these directly. The doc never stores the plaintext
- * 6-digit code — only an `FNV-1a(code|salt)` digest, mirroring the
+ * 6-digit code: only an `FNV-1a(code|salt)` digest, mirroring the
  * existing referral code-generation idiom (the Sputnik runtime exposes
  * no cryptographic hash). The plaintext code lives only in the email
  * and the single outbound HTTPS-outcall body to `vici-courier`.
  *
  * The doc key (see {@link schoolSubmissionKey}) doubles as the opaque
  * `submissionId` handed back to the FE. It carries a per-send random
- * nonce so every send is an IMMUTABLE new row — a resend never overwrites
+ * nonce so every send is an IMMUTABLE new row; a resend never overwrites
  * a prior attempt (in particular it can't clobber an already-`verified`
  * row back to `awaiting` and undercount a school). Spam is bounded by the
  * per-principal / per-email daily rate limit instead. The `${member}/`
@@ -27,7 +27,7 @@ import { fnv1a64Hex } from '#lib/utils/hash.utils.ts';
 export type SchoolSubmissionStatus = 'awaiting' | 'verified' | 'expired';
 
 export interface SchoolSubmissionDoc {
-	/** Member principal text — matches the key prefix; authorizes verify. */
+	/** Member principal text: matches the key prefix; authorizes verify. */
 	member: string;
 	/** Lower-cased school email the code was mailed to. */
 	email: string;
@@ -41,7 +41,7 @@ export interface SchoolSubmissionDoc {
 	schoolName: string;
 	/** Inferred home country (ISO-3166 alpha-2), if known. */
 	country: string | null;
-	/** Verified email domains for the school — fed into the registry row. */
+	/** Verified email domains for the school: fed into the registry row. */
 	domains: string[];
 	/** Whether `schoolId` is a new (off-directory) school. */
 	isNew: boolean;
@@ -57,7 +57,7 @@ export interface SchoolSubmissionDoc {
 	status: SchoolSubmissionStatus;
 	/** Submission time (ms). Drives the per-day rate limit. */
 	createdAtMs: number;
-	/** Set on success — when the code was accepted (ms). */
+	/** Set on success: when the code was accepted (ms). */
 	verifiedAtMs?: number;
 }
 
@@ -77,8 +77,8 @@ export const hashSchoolCode = ({ code, salt }: { code: string; salt: string }): 
  * The `${member}/` prefix binds the row to its owner (verify auth) and
  * scopes per-principal scans; `${schoolId}/` scopes the per-school
  * "already verified?" check; `nonce` (per-send `raw_rand`) makes every
- * send a distinct immutable row so a resend never overwrites a prior —
- * possibly `verified` — attempt.
+ * send a distinct immutable row so a resend never overwrites a prior,
+ * possibly `verified`, attempt.
  */
 export const schoolSubmissionKey = ({
 	member,

@@ -1,6 +1,6 @@
 /**
  * Juno-side role assigned in the `roles` collection. The absence of a role doc is the
- * canonical "regular user" state — there is deliberately no `USER` variant here. If a
+ * canonical "regular user" state: there is deliberately no `USER` variant here. If a
  * capability is shared by all authenticated users, encode it as "role doc missing" at the
  * call site (`hasPermission` already returns `false` for `undefined`).
  *

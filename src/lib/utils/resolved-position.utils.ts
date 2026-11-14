@@ -16,7 +16,7 @@ export const isExecutedEvent = (event: ClearingDid.Event): boolean =>
 	'Executed' in event.event_type;
 
 /**
- * A settled event the user won — settlement plus positive realized
+ * A settled event the user won: settlement plus positive realized
  * cashflow on the signed `qty`. Centralised so the win rule can't drift
  * across the profile stats, monthly buckets, and market-signal aggregates.
  */
@@ -24,7 +24,7 @@ export const isWinningSettledEvent = (event: ClearingDid.Event): boolean =>
 	isSettledEvent(event) && event.qty > ZERO;
 
 /**
- * Execution / settlement price of an event in [0, 1] probability units —
+ * Execution / settlement price of an event in [0, 1] probability units:
  * the price the user's side cleared at (and the value the `contrarian`
  * achievement reads as consensus-at-call). Decodes the candid
  * fixed-decimal `price`; may be non-finite for a malformed event, so
@@ -61,7 +61,7 @@ export const settledEventToResolvedPosition = ({
 	const result: ResolvedPosition['result'] =
 		event.qty > ZERO ? 'won' : event.qty < ZERO ? 'lost' : 'neutral';
 
-	// Only winners' outcomeId is recoverable from a single event — they
+	// Only winners' outcomeId is recoverable from a single event: they
 	// must have held the winning outcome. Losers could have held any
 	// non-winning outcome (especially on categorical markets), so we
 	// leave `outcomeId` undefined for them rather than guess.
@@ -83,7 +83,7 @@ export const settledEventToResolvedPosition = ({
  * - Winners' `outcomeId` is already on the record (set by
  *   {@link settledEventToResolvedPosition} from `market.outcome`).
  * - Binary losers' side is the deterministic opposite of the winning
- *   outcome — YES/NO is exclusive on binary markets.
+ *   outcome: YES/NO is exclusive on binary markets.
  * - Categorical losers can't be disambiguated from a single Settled
  *   event (they could have held any non-winning outcome), so the
  *   helper returns `undefined` and lets call sites render a placeholder.
@@ -114,6 +114,6 @@ export const inferResolvedOutcomeId = ({
 	}
 
 	// Categorical losers can't be disambiguated; let the function fall
-	// through with no explicit return — callers treat absence as
+	// through with no explicit return: callers treat absence as
 	// "unknown side".
 };

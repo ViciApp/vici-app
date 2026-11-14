@@ -11,7 +11,7 @@ import { derived, readable, type Readable } from 'svelte/store';
 export const featuredEvent: Readable<FeaturedEvent> = readable(CURRENT_FEATURED_EVENT);
 
 /**
- * Lifecycle status of the featured event — drives whether onboarding
+ * Lifecycle status of the featured event: drives whether onboarding
  * surfaces the hero, whether Flow filters to event markets, and whether
  * the Worlds event-battle is visible.
  */
@@ -32,7 +32,7 @@ export const featuredEventActive: Readable<boolean> = derived(
 
 /**
  * Whole days remaining until kickoff, clamped at 0. `null` once the event
- * has started — UI should switch to "live" copy in that branch.
+ * has started: UI should switch to "live" copy in that branch.
  */
 export const daysToKickoff: Readable<number | null> = derived(
 	[featuredEvent, minuteTick_ms],
@@ -70,7 +70,7 @@ export const hoursToKickoff: Readable<number | null> = derived(
  * Whole days remaining until the event's final (`finalAt_ms`), clamped
  * at 0. Used by surfaces that frame the active event as a battle with a
  * "{N}d left" timer (e.g. the Worlds hero card / scope toggle). `null`
- * once the event has wrapped — UI should switch to archival copy.
+ * once the event has wrapped: UI should switch to archival copy.
  */
 export const daysToFinal: Readable<number | null> = derived(
 	[featuredEvent, minuteTick_ms],

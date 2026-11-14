@@ -41,7 +41,7 @@ export const wcFace = ({
 
 	let m = `<g class="wc-figure">`;
 
-	// Shoulders (full bust) — drawn first behind the head, then
+	// Shoulders (full bust): drawn first behind the head, then
 	// shadow plane, optional national-kit shoulder stripe, collar.
 	m += `<polygon points="${cx - 30},${cy + 18} ${cx + 30},${cy + 18} ${cx + 40},${cy + 58} ${cx - 40},${cy + 58}" fill="${shirt}"/>`;
 	m += `<polygon points="${cx},${cy + 18} ${cx + 30},${cy + 18} ${cx + 40},${cy + 58} ${cx},${cy + 58}" fill="${shirtShadow}" opacity="0.45"/>`;
@@ -52,7 +52,7 @@ export const wcFace = ({
 
 	m += `<polygon points="${cx - 7},${cy + 16} ${cx + 7},${cy + 16} ${cx + 5},${cy + 22} ${cx - 5},${cy + 22}" fill="${sk.base}"/>`;
 
-	// Hair — six styles; `bald` is intentionally a no-op.
+	// Hair: six styles; `bald` is intentionally a no-op.
 	if (hairStyle === 'short') {
 		m += `<polygon points="${cx - headW - 1},${cy - headH - 2} ${cx + headW + 1},${cy - headH - 2} ${cx + headW + 2},${cy - 2} ${cx - headW - 2},${cy - 2}" fill="${hairColor}"/>`;
 	} else if (hairStyle === 'curly') {
@@ -77,7 +77,7 @@ export const wcFace = ({
 	m += `<rect x="${cx - headW - 1.5}" y="${cy - 1}" width="2" height="5" fill="${sk.shadow}"/>`;
 	m += `<rect x="${cx + headW - 0.5}" y="${cy - 1}" width="2" height="5" fill="${sk.shadow}" opacity="0.7"/>`;
 
-	// Expression layer — brows, eyes, mouth, all in #0E0D0B for max
+	// Expression layer: brows, eyes, mouth, all in #0E0D0B for max
 	// contrast on the editorial figure regardless of theme.
 	const eyeY = cy - 2;
 	const mouthY = cy + 6;

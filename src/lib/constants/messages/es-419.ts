@@ -1,5 +1,5 @@
 /**
- * Spanish (Latin America) — neutral LatAm landing copy.
+ * Spanish (Latin America): neutral LatAm landing copy.
  *
  * Partial `soon` catalog: only the landing `welcome.*` keys diverge here,
  * giving the LatAm tier its own regional hero card and voice. Every other

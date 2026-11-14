@@ -1,5 +1,5 @@
 /**
- * Country flag asset map — keyed by upper-case ISO-3166 alpha-2 codes.
+ * Country flag asset map: keyed by upper-case ISO-3166 alpha-2 codes.
  *
  * Source: lipis/flag-icons 4x3 set (v7.5.0), mirrored under
  * [`#lib/assets/flags/`](../assets/flags/). Each filename is the
@@ -11,7 +11,7 @@
  * shipping the full ~250-entry set has effectively zero runtime cost.
  *
  * Same pattern as the `control-panel` repo
- * (`src/main/constants/country-flags.constants.ts`) — keep the two in
+ * (`src/main/constants/country-flags.constants.ts`): keep the two in
  * sync if the upstream `flag-icons` set changes.
  */
 
@@ -33,7 +33,7 @@ export const COUNTRY_FLAGS: Record<string, string> = Object.fromEntries(
 /**
  * Whether we ship a flag SVG for the given country code. Always check
  * before rendering `<CountryFlag>` if the caller doesn't already
- * constrain the input to a known ISO-2 set — unknown codes resolve to
+ * constrain the input to a known ISO-2 set: unknown codes resolve to
  * `undefined` in `COUNTRY_FLAGS` and the `<img>` would render a broken
  * icon.
  */

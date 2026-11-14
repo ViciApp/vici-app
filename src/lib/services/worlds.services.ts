@@ -27,14 +27,14 @@ import { deleteDoc, getDoc, setDoc } from '@junobuild/core';
  * Hard timeout for the affiliation write path. Generous enough to cover
  * a slow IC update call (typical ~2s, occasionally longer), tight
  * enough that the picker's "joining…" spinner doesn't hang indefinitely
- * — which is what Giova observed on 2026-05-27 when a country pick
+ * which is what Giova observed on 2026-05-27 when a country pick
  * never resolved and never rejected, leaving the row stuck and the
  * `finally { saving = null }` branch unreachable.
  */
 const AFFILIATION_WRITE_TIMEOUT_MS = 15_000;
 
 /**
- * Worlds affiliations — thin FE service wrapping the satellite
+ * Worlds affiliations: thin FE service wrapping the satellite
  * read queries + the write / delete primitives via `@junobuild/core`.
  * Mirrors the leagues service shape; consumers (Worlds picker page,
  * Worlds detail / leaderboard) import the camelCase domain types
@@ -70,7 +70,7 @@ export const listMyAffiliations = async (): Promise<{
  * Join an affiliation. Server computes the lock window from
  * `joinedAtMs`; the FE writes the matching `lockedUntilMs` so the
  * assert accepts. A pre-existing row for the same `(member, kind)`
- * means the slot is locked — throws with a clear error so the UI
+ * means the slot is locked: throws with a clear error so the UI
  * surfaces a "switch after lock" state instead of failing on the
  * satellite assert.
  */
@@ -99,7 +99,7 @@ export const joinAffiliation = async ({
 
 	// Pre-empt the "second slot of same kind" branch with a getDoc.
 	// The doc key carries `${kind}/${id}` so the existing row would be
-	// keyed differently (different id) for a fresh switch — but checking
+	// keyed differently (different id) for a fresh switch, but checking
 	// any-row-for-the-kind needs a scan; defer that to the picker UI
 	// which derives state from `listMyAffiliations`.
 	const existing = await withTimeout({
@@ -136,7 +136,7 @@ export const joinAffiliation = async ({
 };
 
 /**
- * Leave an affiliation — `deleteDoc` against the row. The satellite
+ * Leave an affiliation: `deleteDoc` against the row. The satellite
  * assert hard-rejects if the lock hasn't expired; the FE should
  * disable the CTA pre-emptively (read `lockedUntilMs` vs
  * `Date.now()`) so users see the gate clearly.
@@ -174,7 +174,7 @@ export const leaveAffiliation = async ({
 	});
 
 	if (!existing) {
-		// Idempotent — nothing to delete.
+		// Idempotent: nothing to delete.
 		return;
 	}
 
@@ -189,18 +189,18 @@ export const leaveAffiliation = async ({
 };
 
 /**
- * Switch affiliations within a kind — leave the current row, then join
+ * Switch affiliations within a kind: leave the current row, then join
  * the new one. The satellite enforces the 90-day lock on the delete
  * leg; if `currentLockedUntilMs` is still in the future the helper
  * throws synchronously so the picker can render a lock-active CTA
  * without firing a doomed round-trip.
  *
- * **Atomicity caveat.** Switching isn't a single satellite hook — the
+ * **Atomicity caveat.** Switching isn't a single satellite hook; the
  * delete and the join are independent round-trips. If the join leg
  * fails (timeout / transient), we make a best-effort attempt to
  * re-create the previous affiliation so the user isn't stranded with
  * an empty slot. The rollback creates a fresh row at `Date.now()`,
- * which means the lock window resets — undesirable but strictly
+ * which means the lock window resets: undesirable but strictly
  * better than no affiliation. When both the join and the rollback
  * fail (network gone / satellite down), the original error is
  * re-thrown so the caller surfaces a clear "switch didn't go
@@ -233,7 +233,7 @@ export const switchAffiliation = async ({
 	try {
 		return await joinAffiliation({ kind, affiliationIdentifier: nextAffiliationIdentifier });
 	} catch (joinErr) {
-		// Best-effort rollback — re-join the previous affiliation so the
+		// Best-effort rollback: re-join the previous affiliation so the
 		// user has *something* on the leaderboard. If the rollback also
 		// fails we swallow it (logging) and surface the original error,
 		// since the user's primary action ("switch to X") is what failed.
@@ -281,7 +281,7 @@ const projectStatsWire = (s: {
  *
  * `getAffiliationStats` is the `Option<NestedStruct>` endpoint, so
  * the wire shape is already camelCase (matches `AffiliationStatsDoc`)
- * — no projection needed. `listAffiliationStats` below stays on the
+ * no projection needed. `listAffiliationStats` below stays on the
  * snake_case `projectStatsWire` because it's a `Vec<NestedStruct>`
  * (Vec items aren't `#[json_data(nested)]`-wrapped).
  */
@@ -346,7 +346,7 @@ export const listWorldsMemberCounts = async ({
 };
 
 /**
- * Champion history for one affiliation — the past months it finished
+ * Champion history for one affiliation: the past months it finished
  * first in its kind's monthly ranking. Empty until at least one month
  * has closed with a ranked leader; the FE renders a "no champions
  * yet" state in that case.
@@ -383,7 +383,7 @@ export const listAffiliationChampionships = async ({
  * fire-and-forget on every Worlds load.
  *
  * Throws when `monthAnchor` is not a closed month (e.g. the
- * current calendar month) — callers should always pass a YYYY-MM
+ * current calendar month): callers should always pass a YYYY-MM
  * strictly before the current one.
  */
 export const claimWorldsPodiumPrize = ({

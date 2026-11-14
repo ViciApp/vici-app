@@ -95,7 +95,7 @@ export const getPositions = async ({
 
 /**
  * Aggregate long/short lean over a supplied principal set for one series. See
- * {@link ClearingCanister.aggregateLean} — returns counts only, no identities.
+ * {@link ClearingCanister.aggregateLean}: returns counts only, no identities.
  */
 export const aggregateLean = async ({
 	identity,
@@ -225,7 +225,7 @@ export const getTradeHistory = async ({
 };
 
 /**
- * Market-wide price history for one series as fixed-width OHLC candles —
+ * Market-wide price history for one series as fixed-width OHLC candles:
  * every participant's fills, not just the caller's. See
  * {@link ClearingCanister.getSeriesPriceHistory}.
  */
@@ -350,7 +350,7 @@ export const registerIcrcAsset = async ({
 
 /**
  * Per-window ranked standings (week / month / all-time) by net realized P&L.
- * See {@link ClearingCanister.listLeaderboard} — drains the cursor (bounded by
+ * See {@link ClearingCanister.listLeaderboard}: drains the cursor (bounded by
  * `maxPages`) and returns the ranked entries plus the full `total` count.
  */
 export const listLeaderboard = async ({

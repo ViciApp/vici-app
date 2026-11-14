@@ -19,11 +19,11 @@ import {
  * Returns the *true* net, which can be **below 1** for a heavy favourite:
  * the server settles the raw `stake·(1/price − 1)` cashflow (minus a small
  * fee) with **no** payout floor, so a 0.99 side on a 50 stake really nets
- * ~0.5 VXP. We deliberately do **not** round or floor here — that would
+ * ~0.5 VXP. We deliberately do **not** round or floor here: that would
  * over-promise a "+1" the settlement never credits (see issue #188). The
  * caller decides display granularity via `formatWholeVxpMagnitude`, which
  * renders a sub-1 win as `<1` rather than rounding it to a misleading `+1`
- * or a broken `+0`. The ~0.15% settlement fee is not modelled here — it is
+ * or a broken `+0`. The ~0.15% settlement fee is not modelled here: it is
  * a known, negligible gap (the FE shows `<1` rather than over-promising a
  * `+1` the settlement won't credit).
  */

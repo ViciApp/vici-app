@@ -31,7 +31,7 @@ export const isMarketRevealed = ({
 }): boolean => isNullish(startDate) || BigInt(Math.trunc(now)) >= startDate;
 
 /**
- * Drops any market whose release start hasn't arrived yet (see module doc —
+ * Drops any market whose release start hasn't arrived yet (see module doc:
  * applies to every market, not just World-Cup ones). Safe over any
  * mixed-category list. `tagsByMarket` is retained for call-site compatibility
  * only; tags no longer change gating behaviour.

@@ -1,15 +1,15 @@
-// Flow Mode generative artwork — public entry point.
+// Flow Mode generative artwork: public entry point.
 //
 // Six per-category visual languages (macro / crypto / sports /
 // politics / tech / culture) plus the WC editorial system, × three
 // states (neutral / won / lost) × theme. Same
 // `(category, seed, state, theme)` tuple always renders the identical
-// composition — theme is part of the seed key (it tunes the palette and
+// composition: theme is part of the seed key (it tunes the palette and
 // the `<defs>` ids), not a pure post-hoc recolor. The seed flows through
 // a FNV-1a hash + mulberry32 PRNG so output is byte-stable across reloads.
 //
-// Returns SVG strings — components mount via {@html ...}. No DOM
-// access, no I/O — pure helper.
+// Returns SVG strings: components mount via {@html ...}. No DOM
+// access, no I/O: pure helper.
 
 import { PAL } from '#lib/constants/flow-art-palettes.constants.ts';
 import {
@@ -75,7 +75,7 @@ export const renderFlowArt = ({
 	const rng = makeRng(seedKey);
 	// Stable per-render suffix for SVG `<defs>` ids. Multiple
 	// FlowArtFrames render simultaneously in the FlowMode deck and
-	// `<defs>` ids live in the document scope — without a suffix,
+	// `<defs>` ids live in the document scope: without a suffix,
 	// `url(#mwash)` would resolve to the first match in the document
 	// (potentially another card's gradient).
 	const uid = hashStr(seedKey).toString(36);
@@ -83,7 +83,7 @@ export const renderFlowArt = ({
 
 	if (category === 'wc') {
 		// WC fills its own 280×100 background and is excluded from the
-		// optional inset frame — its full-bleed editorial composition
+		// optional inset frame: its full-bleed editorial composition
 		// already supplies the visual containment.
 		return svgOpenWC(size) + body + svgClose();
 	}
@@ -132,7 +132,7 @@ export const resolveFlowArtCategory = ({
 	}
 
 	// No micros: some surfaces pass a bare macro id (not a micro) they
-	// resolved elsewhere — honour it before the hash fallback.
+	// resolved elsewhere: honour it before the hash fallback.
 	const bare = values.find((value) => isMacroId(value));
 
 	if (nonNullish(bare)) {

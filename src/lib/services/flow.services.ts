@@ -16,7 +16,7 @@ export class FlowTradeService {
 	}
 
 	/**
-	 * Rejections propagate to the caller in BOTH modes — inside a session the
+	 * Rejections propagate to the caller in BOTH modes: inside a session the
 	 * refresh is deferred, never the failure, so callers can roll back their
 	 * optimistic accounting and surface the error.
 	 */

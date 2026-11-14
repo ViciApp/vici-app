@@ -1,5 +1,5 @@
 /**
- * League privacy — the visibility model an owner picks at creation and
+ * League privacy: the visibility model an owner picks at creation and
  * can change later (see `updateLeague`). Replaces the legacy
  * `private?: boolean` flag on the league doc (see {@link LeagueDoc}).
  *
@@ -9,10 +9,10 @@
  *
  * Two tiers (Facebook-Groups convention):
  *
- * - {@link LeaguePrivacy.PRIVATE} — hidden: reachable only by invite
+ * - {@link LeaguePrivacy.PRIVATE}: hidden, reachable only by invite
  *   code, never surfaced in any public list, recommendation, or
  *   challenge pool.
- * - {@link LeaguePrivacy.OPEN} — discoverable: surfaced in search,
+ * - {@link LeaguePrivacy.OPEN}: discoverable, surfaced in search,
  *   lists, recommendations, and challenge pools to anyone. Still joined
  *   by invite code, same as Private (privacy gates discovery, not the
  *   join).

@@ -11,7 +11,7 @@ import { isNullish } from '@dfinity/utils';
  *
  * Each preset is rendered as `1 {label} {emoji}` (e.g. `1 Spritz 🥂`) and uses
  * `descKey` as the supporting description (e.g. `aperitivo`). Labels and
- * descriptions are localized in `src/lib/constants/messages/*` — values
+ * descriptions are localized in `src/lib/constants/messages/*`: values
  * displayed and stored at market-creation time follow the creator's locale.
  */
 
@@ -63,7 +63,7 @@ const findPreset = (id: SocialPremiumOptionId): SocialPremiumPreset | undefined 
 /**
  * Render the picked premium into the `{ title }` shape consumed by
  * `createMarket`'s `socialReward` argument. Returns `undefined` when the
- * "Other" option is selected without any custom text — callers should treat
+ * "Other" option is selected without any custom text; callers should treat
  * that as a validation error.
  *
  * Presets render as `{emoji} {description}` (e.g. `☕ A coffee`); "Other"

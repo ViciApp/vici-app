@@ -63,7 +63,7 @@ interface PendingOnboarding {
 /**
  * Upper bound on the referral redeem/claim and league auto-join retries (each side-flow counts
  * its own attempts). A transient failure (network / replica blip) re-stashes the bare code so the
- * next drain re-attempts it — but only up to this many times, after which the slot is abandoned so
+ * next drain re-attempts it, but only up to this many times, after which the slot is abandoned so
  * a hard failure doesn't loop indefinitely.
  */
 const MAX_DRAIN_ATTEMPTS = 3;
@@ -77,7 +77,7 @@ const isOnboardingProvider = (value: unknown): value is OnboardingProvider =>
 
 /**
  * Substrings of the satellite's deterministic referral rejections (bad code, already redeemed,
- * self-referral, …). These are terminal — retrying can't change the outcome — so a match resolves
+ * self-referral, …). These are terminal, retrying can't change the outcome, so a match resolves
  * the slot rather than re-stashing it. Anything NOT in this set (a thrown agent / replica error)
  * is treated as transient and kept for a bounded retry.
  */
@@ -118,7 +118,7 @@ const parsePendingOnboarding = (raw: string): PendingOnboarding | undefined => {
 		return;
 	}
 
-	// Tolerate legacy payloads — older clients wrote `handle` as the
+	// Tolerate legacy payloads: older clients wrote `handle` as the
 	// only required field. New clients also serialize team + side, but
 	// any combination of {handle, participantId, side} may be null.
 	const handle =
@@ -169,7 +169,7 @@ const parsePendingOnboarding = (raw: string): PendingOnboarding | undefined => {
 			? Math.floor(parsed.leagueAttempts)
 			: 0;
 
-	// At least one actionable signal is required for the payload to be useful — onboarding
+	// At least one actionable signal is required for the payload to be useful, onboarding
 	// picks (handle / participantId / side) drive the profile upsert, `referralCode` drives
 	// the redeem-or-friendship flow, `leagueInvite` drives the auto-join, and `email` (stashed
 	// by the passkey-backed email sign-up) is persisted onto the new profile. A bare payload
@@ -205,11 +205,11 @@ const parsePendingOnboarding = (raw: string): PendingOnboarding | undefined => {
 /**
  * Post-signin redemption of the pre-auth referral code. Tries the VXP-bonus redeem first and
  * falls back to a friendship-only claim when the signup window has elapsed. The friendship is the
- * whole point of the invite, so a transient failure must NOT silently drop the code — instead this
+ * whole point of the invite, so a transient failure must NOT silently drop the code: instead this
  * reports back whether the slot reached a terminal outcome.
  *
  * @returns `true` when the referral is resolved or has terminally failed (bad code, already
- *   redeemed, self-referral, …) — the caller should clear the slot. `false` when the call failed
+ *   redeemed, self-referral, …): the caller should clear the slot. `false` when the call failed
  *   transiently (network / replica) and the caller should keep the code for a bounded retry.
  */
 const resolvePendingReferral = async ({
@@ -264,7 +264,7 @@ const resolvePendingReferral = async ({
 
 		// Signup-window grace period elapsed (clicked the invite, took >24h to finish
 		// signing up). The VXP bonus is forfeited, but we still want the friendship to
-		// land — otherwise the click attribution was wasted. The satellite is idempotent
+		// land: otherwise the click attribution was wasted. The satellite is idempotent
 		// if a relation already exists.
 		if (reason === REFERRAL_EXISTING_USER_REASON) {
 			try {
@@ -289,7 +289,7 @@ const resolvePendingReferral = async ({
 				const friendReason = friendErr instanceof Error ? friendErr.message : '';
 
 				// `redeemReferralCode` throws the signup-window reason *before* validating the
-				// code/owner, so the claim is the first call to reach those checks — a bad code or
+				// code/owner, so the claim is the first call to reach those checks; a bad code or
 				// self-referral surfaces deterministically here. Treat those as terminal (surface +
 				// clear); keep only genuine transient failures for a bounded retry.
 				if (isTerminalReferralReason(friendReason)) {
@@ -304,7 +304,7 @@ const resolvePendingReferral = async ({
 			}
 		}
 
-		// Deterministic rejection (bad code, already redeemed, self-referral) — retrying can't
+		// Deterministic rejection (bad code, already redeemed, self-referral), retrying can't
 		// help, so surface it and let the caller clear the slot.
 		if (isTerminalReferralReason(reason)) {
 			notifyFailed(reason);
@@ -312,7 +312,7 @@ const resolvePendingReferral = async ({
 			return true;
 		}
 
-		// Anything else (thrown agent / replica error) is transient — keep the code armed.
+		// Anything else (thrown agent / replica error) is transient: keep the code armed.
 		console.warn('referral redeem transient failure', reason || err);
 
 		return false;
@@ -322,8 +322,8 @@ const resolvePendingReferral = async ({
 /**
  * Substrings of the deterministic league-join rejections surfaced by `joinLeagueByInvite`
  * (malformed code, no league behind the code), each mapped to the toast copy the signed-in
- * `/league/[code]` landing uses for the same case. Terminal — retrying can't change the
- * outcome — so a match resolves the slot rather than re-stashing it. Anything NOT in this set
+ * `/league/[code]` landing uses for the same case. Terminal, retrying can't change the
+ * outcome, so a match resolves the slot rather than re-stashing it. Anything NOT in this set
  * (a thrown agent / replica error) is treated as transient and kept for a bounded retry.
  */
 const TERMINAL_LEAGUE_REASONS = [
@@ -338,10 +338,10 @@ const terminalLeagueReason = (
 
 /**
  * Post-signin auto-join of the pre-auth league invite (stashed by `/league/[code]` when the
- * user was signed-out). Idempotent — "already a member" is a silent no-op.
+ * user was signed-out). Idempotent: "already a member" is a silent no-op.
  *
  * @returns `true` when the invite is resolved (joined, already a member) or has terminally
- *   failed (malformed / unknown code) — the caller should clear the slot. `false` when the call
+ *   failed (malformed / unknown code): the caller should clear the slot. `false` when the call
  *   failed transiently (network / replica) and the caller should keep the code for a bounded
  *   retry, so a blip during the drain doesn't silently drop the join.
  */
@@ -373,12 +373,12 @@ const joinPendingLeagueIfAny = async ({
 	} catch (err: unknown) {
 		const message = err instanceof Error ? err.message : '';
 
-		// Already a member is a no-op success — nothing to surface.
+		// Already a member is a no-op success, nothing to surface.
 		if (message === 'Already a member of this league.') {
 			return true;
 		}
 
-		// Deterministic rejection — retrying can't help, so tell the user which kind it was
+		// Deterministic rejection: retrying can't help, so tell the user which kind it was
 		// (the invitee otherwise lands in the app believing they joined).
 		const terminal = terminalLeagueReason(message);
 
@@ -415,7 +415,7 @@ const joinPendingLeagueIfAny = async ({
 /**
  * Cheap synchronous peek: is there a pending-onboarding payload stashed? Lets the caller skip
  * arming its mid-drain guard when there's nothing to drain (so the forced-onboarding redirect
- * isn't held off on the common empty path). Browser-guarded — `false` in any non-browser context.
+ * isn't held off on the common empty path). Browser-guarded: `false` in any non-browser context.
  */
 export const hasPendingOnboarding = (): boolean =>
 	browser && nonNullish(localStorage.getItem(PENDING_ONBOARDING_STORAGE_KEY));
@@ -452,14 +452,14 @@ export const pendingOnboardingProvider = (): OnboardingProvider | undefined => {
 
 		return isOnboardingProvider(provider) ? provider : undefined;
 	} catch {
-		// Storage unavailable / malformed stash — the dimension is simply absent.
+		// Storage unavailable / malformed stash: the dimension is simply absent.
 	}
 };
 
 /**
  * Settles the pre-auth storage slot once the referral and league side-flows have run. Clears it
  * when both resolved (or were absent); otherwise re-stashes only the unresolved bare code(s),
- * each with its own incremented attempt counter so the next drain retries — until
+ * each with its own incremented attempt counter so the next drain retries: until
  * {@link MAX_DRAIN_ATTEMPTS} is reached, after which that code is abandoned so a hard failure
  * can't loop forever.
  *
@@ -467,7 +467,7 @@ export const pendingOnboardingProvider = (): OnboardingProvider | undefined => {
  * applied.
  *
  * Abandoning a league invite (retry budget exhausted on a still-transient failure) surfaces the
- * generic join-failure toast — without it the user would believe they joined. They can still
+ * generic join-failure toast: without it the user would believe they joined. They can still
  * join manually with the code afterwards.
  */
 const settlePendingSlot = ({
@@ -568,7 +568,7 @@ export const drainPendingOnboarding = async ({
 		return { kind: 'noop' };
 	}
 
-	// Returning user — the satellite already had a profile for this
+	// Returning user: the satellite already had a profile for this
 	// principal at sign-in time. The pending onboarding (picked
 	// pre-auth, while signed-out) belongs to a different intent;
 	// silently overwriting their saved nickname / interests / email
@@ -579,21 +579,21 @@ export const drainPendingOnboarding = async ({
 	// user can't redeem the VXP bonus (the satellite's signup-window
 	// check rejects them, falling back to a friendship-only claim), but
 	// they still land in the inviter's friends list. We await the
-	// resolve below so the slot is settled correctly — re-armed for a
+	// resolve below so the slot is settled correctly: re-armed for a
 	// bounded retry on a transient failure rather than silently dropped.
 	// `profileExisted` alone is racy: a second `onAuthStateChange` pass during a
 	// fresh sign-in re-reads the doc this session just bootstrapped and reports
 	// it as pre-existing, which would route a brand-new user here and drop their
-	// picks. Trust the deterministic session capture — only a principal whose
+	// picks. Trust the deterministic session capture: only a principal whose
 	// doc predates this session is a genuine returning user.
 	const isReturningUser = profileExisted && !wasBootstrappedThisSession(profile.owner);
 
 	if (isReturningUser) {
-		// A stashed league invite is still actionable for a returning user — join is
+		// A stashed league invite is still actionable for a returning user: join is
 		// independent of the signup bonus and idempotent. `resolvePendingReferral` tries the
 		// bonus redeem first and falls back to a friendship-only claim when the signup window
 		// has elapsed (the case for a genuine returning user). Both also cover the retry of a
-		// re-stashed code from an earlier drain that failed transiently — if the referral retry
+		// re-stashed code from an earlier drain that failed transiently; if the referral retry
 		// still lands inside the window, the bonus is honoured. Await both so the slot is
 		// settled (cleared, or re-armed per unresolved code for a bounded retry).
 		const [leagueResolved, referralResolved] = await Promise.all([
@@ -610,7 +610,7 @@ export const drainPendingOnboarding = async ({
 	}
 
 	// Onboarding picks live under `preferences`. Always apply
-	// team/side/onboardingCompleted on the new-user path — the user
+	// team/side/onboardingCompleted on the new-user path: the user
 	// just finished the 3-beat flow, so completion is recorded even
 	// when they skipped the picks. Preserve everything else under
 	// `preferences` so the seed defaults stay intact.
@@ -621,9 +621,9 @@ export const drainPendingOnboarding = async ({
 		// Pre-flight: a brand-new user can still collide if the handle was claimed in the window
 		// between onboarding step 4 and sign-in landing. Probe first so we can keep
 		// team/side/onboardingCompleted (which are independent of the handle) and let the user
-		// rename later from their profile. Any unavailable reason — `'taken'`, or the
+		// rename later from their profile. Any unavailable reason: `'taken'`, or the
 		// `'too_short'` / `'required'` cases that `parsePendingOnboarding`'s tolerated legacy
-		// payloads can still produce — skips the nickname update; only `'taken'` is worth a toast.
+		// payloads can still produce: skips the nickname update; only `'taken'` is worth a toast.
 		let setHandle = false;
 		let handleCollision = false;
 
@@ -642,7 +642,7 @@ export const drainPendingOnboarding = async ({
 
 		// Field-level patch (NOT a full-snapshot write): `calculateAndSyncStats` writes this same
 		// doc concurrently on the finishing login, so a stale full snapshot would lose the
-		// optimistic-version race and throw — silently dropping these picks. A handle claimed in
+		// optimistic-version race and throw: silently dropping these picks. A handle claimed in
 		// the TOCTOU window after the probe is dropped here (the rest still persists), reported via
 		// `handleApplied`.
 		const { profile: nextProfile, handleApplied } = await applyOnboardingPicks({
@@ -677,11 +677,11 @@ export const drainPendingOnboarding = async ({
 
 		// Redeem after the profile is in place so the satellite assertion (which requires an
 		// existing profile) passes. Await both side-flows so the slot is only cleared once each
-		// has terminally resolved — a transient failure re-arms that code for a bounded retry
+		// has terminally resolved: a transient failure re-arms that code for a bounded retry
 		// instead of silently dropping the friendship + bonus or the league join. Redeeming
 		// itself does no ledger transfer (the bonus is deferred to the referee's first trade),
 		// so this stays cheap; the league join is idempotent. A handle collision is independent
-		// of all this — the user is still a new sign-up and deserves the bonus.
+		// of all this: the user is still a new sign-up and deserves the bonus.
 		const [leagueResolved, referralResolved] = await Promise.all([
 			joinPendingLeagueIfAny({ code: pending.leagueInvite, locale }),
 			resolvePendingReferral({
@@ -693,7 +693,7 @@ export const drainPendingOnboarding = async ({
 		settlePendingSlot({ pending, referralResolved, leagueResolved, locale });
 
 		// Activation milestone. `label` carries the finishing provider (bounded
-		// vocab, stashed pre-redirect) and `ok` whether a team was persisted —
+		// vocab, stashed pre-redirect) and `ok` whether a team was persisted:
 		// the dimensions that make a provider-specific persistence regression
 		// visible. Reuses existing props (no new key → no analytics schema regen).
 		track({
@@ -709,7 +709,7 @@ export const drainPendingOnboarding = async ({
 	} catch (err: unknown) {
 		// A handle collision is handled inside `applyOnboardingPicks` (it retries without the
 		// handle and reports it via `handleApplied`), so anything reaching here is a genuine
-		// failure to persist. Surface it — the generic toast otherwise swallows it, which is what
+		// failure to persist. Surface it: the generic toast otherwise swallows it, which is what
 		// made this class of bug invisible.
 		console.error('Onboarding handoff (pre-auth drain) failed:', err);
 

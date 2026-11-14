@@ -2,7 +2,7 @@ import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 import { writable } from 'svelte/store';
 
 /**
- * Per-market `MarketMetadata` projection — `seriesId → MarketMetadata`.
+ * Per-market `MarketMetadata` projection: `seriesId → MarketMetadata`.
  * Populated once at app boot by `LoaderMarketMetadata` from the public
  * `MARKET_METADATA` collection (same source the tag projection reads
  * from), kept fresh via the `REFRESH_MARKET_METADATA` event.

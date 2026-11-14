@@ -69,7 +69,7 @@ export const getGlobalActivities = async ({
 	// keeping the call flat as lifetime activity grows.
 	//
 	// Ordering is by the satellite's `created_at`, not the client-written
-	// `data.timestamp` the old code sliced on — Juno can only order by
+	// `data.timestamp` the old code sliced on: Juno can only order by
 	// `created_at` / `updated_at` / `keys`, never an arbitrary data field.
 	// The two diverge only when a client's clock is skewed or it backdates
 	// `timestamp`, in which case the server-assigned `created_at` is the
@@ -91,9 +91,9 @@ export const getGlobalActivities = async ({
  * Most-recent SETTLEMENT activities, matched server-side on the
  * `${user}#${timestamp}#${type}` key suffix.
  *
- * Settlements are rare admin actions, so unlike {@link getGlobalActivities} —
+ * Settlements are rare admin actions, so unlike {@link getGlobalActivities},
  * whose any-type window flushes a settlement row out as soon as `limit` newer
- * trades / comments land — a single page here effectively covers the whole
+ * trades / comments land: a single page here effectively covers the whole
  * catalog's outcome labels.
  */
 export const getSettlementActivities = async ({

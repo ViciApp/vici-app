@@ -1,11 +1,11 @@
-// Flow Mode World-Cup artwork constants — figure palettes (skin / hair
+// Flow Mode World-Cup artwork constants: figure palettes (skin / hair
 // / kit), the per-nation flag + kit table for advancement markets, and
 // the shared hair-style / emotion unions. Pure data; consumed by the WC
 // renderer in `flow-art.utils.ts`. Figure colours are intentionally NOT
 // palette-derived so the editorial figure reads identically across
 // dark / light / peach themes.
 
-// ---- WC figure system — mode-independent constants ----------
+// ---- WC figure system: mode-independent constants ----------
 // Figure colors are intentionally NOT palette-derived so
 // the editorial figure layer reads identically across dark / light /
 // peach themes. That's why `boostOpacities` skips WC (it would
@@ -61,8 +61,8 @@ export const WC_SHIRT = {
 // alpha-2 per nation) and never matched a hand-authored `recipes` key,
 // so they used to fall to the generic figure. Each entry pairs the
 // nation's flag colours + flag layout with a home-kit colour and a
-// figure trait set — reusing the same backdrop / face vocabulary as the
-// curated recipes — so every nation card renders a distinct, flag-true
+// figure trait set: reusing the same backdrop / face vocabulary as the
+// curated recipes, so every nation card renders a distinct, flag-true
 // scene. Keyed by lowercased alpha-2 code; the renderer resolves any
 // `wc-{cc}-*` seed against this table before the generic fallback.
 export type WCFlagLayout = 'horiz' | 'vert' | 'diag';
@@ -80,7 +80,7 @@ export interface WCNation {
 }
 
 export const WC_NATIONS: Record<string, WCNation> = {
-	// Favourites — kits + figure traits mirror the curated winner recipes.
+	// Favourites: kits + figure traits mirror the curated winner recipes.
 	br: {
 		c1: '#FFD800',
 		c2: '#0F8C3A',
@@ -271,7 +271,7 @@ export const WC_CAP_BAND = WC_HAIR.charcoal;
 // the live market question and looks the kit colours up here. Keyed by
 // the lowercased canonical nation name as it appears in the question
 // text (article words like "the" stripped by the resolver before the
-// lookup). Each pair is `{ primary, secondary }` — the two dominant kit
+// lookup). Each pair is `{ primary, secondary }`; the two dominant kit
 // / flag colours used by the `kit-clash` and `qualify-bracket`
 // templates so each nation's card reads distinct.
 //
@@ -280,14 +280,14 @@ export const WC_CAP_BAND = WC_HAIR.charcoal;
 // scenes; this table is keyed by name and carries only the two-colour
 // kit the templates need. A name with no entry omits the kit, so the
 // catalogue template renders in `WC_KIT_NEUTRAL` (below) rather than a
-// generic fallback — never a crash.
+// generic fallback: never a crash.
 export interface WCKit {
 	primary: string;
 	secondary: string;
 }
 
 // Neutral two-colour kit for catalogue templates whose market carries no
-// (or an unknown) nation — the Vici parchment / ink pair, matching the
+// (or an unknown) nation: the Vici parchment / ink pair, matching the
 // "vici parchment/ink" register some briefs call for. Lets a prop scene
 // render its full composition in a brand-true palette rather than
 // dropping to the generic fallback.
