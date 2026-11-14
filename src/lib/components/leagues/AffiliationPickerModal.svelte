@@ -372,7 +372,7 @@
 			//  - Lock active: switch attempted while still inside the
 			//    90-day window. `switchAffiliation` throws synchronously
 			//    so this also covers a clock-skew race.
-			//  - "Already affiliated" — `current` was stale and the
+			//  - "Already affiliated": `current` was stale and the
 			//    server rejected on the join leg.
 			//  - Timeout: `joinAffiliation` / `leaveAffiliation` wrap
 			//    each round-trip in a 15s race; the pick may or may not

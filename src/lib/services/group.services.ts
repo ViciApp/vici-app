@@ -59,7 +59,7 @@ export const createGroup = async ({
 // Encodes a clearable update field (`opt opt text`): `undefined` leaves the
 // field unchanged (`[]`), an explicit `null` clears it (`[[]]`). The two
 // nullish values carry different meanings here, which `isNullish` cannot
-// express — hence the direct comparison.
+// express, hence the direct comparison.
 const toClearableUpdate = (value: string | null | undefined): [] | [[] | [string]] => {
 	// eslint-disable-next-line no-restricted-syntax
 	if (value === undefined) {

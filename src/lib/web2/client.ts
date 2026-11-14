@@ -242,7 +242,7 @@ export const verifyOtp = async ({
  * target (the API sets a signed state cookie and 302s on to Google), not a
  * fetch, so callers navigate to it. `returnTo` is the in-app path the API
  * redirects to after its callback; it must be a same-app absolute path
- * (`/flow?x=1`, never a full URL) — the API embeds it in the signed OAuth
+ * (`/flow?x=1`, never a full URL): the API embeds it in the signed OAuth
  * state and clamps anything else to `/` to rule out open redirects.
  */
 export const googleSignInUrl = ({ returnTo }: { returnTo?: string } = {}): string => {

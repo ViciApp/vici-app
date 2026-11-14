@@ -19,7 +19,7 @@ import type { PrincipalText } from '@junobuild/schema';
  * membership, so the league filter is supplied by the caller as a principal
  * set (`members`). This service maps the wire aggregate onto the FE
  * {@link StandingEntry} view model (rank, prior-window rank, the ↑/↓ delta,
- * realized P&L, and a `win_count / settled_count` accuracy) — it never
+ * realized P&L, and a `win_count / settled_count` accuracy); it never
  * fabricates a figure: an empty window simply yields no entries.
  */
 
@@ -104,14 +104,14 @@ export const getStandings = async ({
 
 /**
  * Loads one window's global standings ranking and merges it into
- * {@link globalStandingsStore}. Ranking only — it deliberately does NOT
+ * {@link globalStandingsStore}. Ranking only: it deliberately does NOT
  * hydrate the profile cache.
  *
  * Profile hydration is the caller's job, because the two consumers have wildly
  * different needs from the SAME cached slice: the dashboard rank tile renders
  * only the viewer's own rank (no other handle/avatar), whereas the Leaderboard
  * renders every row. Folding a hydrate-everyone fan-out in here meant the dash
- * — hit on the first authenticated page of a session — fired one `getProfile`
+ * (hit on the first authenticated page of a session) fired one `getProfile`
  * per ranked principal (up to {@link MAX_STANDINGS_PAGES} × 500), a multi-
  * thousand request burst it threw away. The Leaderboard now hydrates only the
  * rows it actually paints (see `LeaderboardPage`).
