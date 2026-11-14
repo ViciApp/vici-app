@@ -178,7 +178,7 @@ one extensionless import: `package.json` maps it straight to
 ```ts
 import { localeStore } from '#lib/stores/locale.store.ts';
 import type { Market } from '#lib/types/market.ts';
-import { clearingApi } from '#lib/api/clearing.api.ts';
+import { getPositions } from '#lib/api/clearing.api.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { syncRoleToEngineOnSet } from '#satellite/services/engine-sync.services.ts';
 import { t } from '#lib/utils/i18n.utils.ts';
@@ -205,7 +205,11 @@ import type { _SERVICE as ClearingService } from '#declarations/clearing/clearin
   ESLint rule `local-rules/no-bare-svelte-text` flags this in components
   that already import `i18n.utils`. See [`i18n.md`](./i18n.md).
 - **Dynamic `import()` of internal (`#lib/**`) modules: avoid it.** The
-  codebase intentionally has **none**, and new ones are not welcome. It was
+  codebase has one deliberate exception: the per-locale catalog loader in
+  [`i18n.utils.ts`](../../../src/lib/utils/i18n.utils.ts) imports on demand
+  the non-English catalogs in the selected locale's fallback chain (a
+  partial `es-MX` also loads `es`), so a first visit downloads only those. That is a structural split, not a workaround; new dynamic
+  imports are not welcome. Dynamic import was
   previously used to paper over circular dependencies; that is the wrong
   fix. **Circular references are solved by extraction, not by deferring the
   import to runtime:** a cycle means a shared symbol lives in the wrong

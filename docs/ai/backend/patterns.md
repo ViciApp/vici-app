@@ -11,7 +11,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 ## Auth guards
 
-- `requireUser(request)` (`src/auth/guard.ts:19`) returns the `AuthedUser` or `null`; on `null` return `unauthenticated(set)` (401). Admin endpoints check `requireUser` first and then `requireAdmin` (`src/auth/guard.ts:39`) with `forbidden(set)` (403), so the 401/403 split stays honest: `src/routes/vxp.ts:119`.
+- `requireUser(request)` (`src/auth/guard.ts:21`) returns the `AuthedUser` or `null`; on `null` return `unauthenticated(set)` (401). Admin endpoints check `requireUser` first and then `requireAdmin` (`src/auth/guard.ts:41`) with `forbidden(set)` (403), so the 401/403 split stays honest: `src/routes/vxp.ts:119`.
 - Sessions are cookies; never read a user id from the body or the query.
 
 ## Errors
@@ -42,7 +42,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 ## Background jobs
 
-- A `WorkerJob { name, run, everyNthTick? }` entry in `src/worker.ts:38`; `run` calls an idempotent function exported by its domain. One failing job is logged and never stalls the others (`src/worker.ts:151`). Recipe: [`workflows/new-worker-job.md`](./workflows/new-worker-job.md).
+- A `WorkerJob { name, run, everyNthTick? }` entry in `src/worker.ts:39`; `run` calls an idempotent function exported by its domain. One failing job is logged and never stalls the others (`src/worker.ts:163`). Recipe: [`workflows/new-worker-job.md`](./workflows/new-worker-job.md).
 
 ## Rate limiting
 
