@@ -293,7 +293,7 @@
 	Save / Cancel CTAs stay in view when the soft keyboard or iOS browser
 	chrome shrinks the visual viewport; otherwise the buttons sit at the
 	tail of the body's scroll region and clip below the visible area, out of
-	reach (#739). Only rendered when unlocked; the locked state has no
+	reach. Only rendered when unlocked; the locked state has no
 	actions, so the sheet falls back to the single-scroller layout. -->
 {#snippet actions()}
 	<div class="handle-editor-actions">

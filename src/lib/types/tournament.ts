@@ -12,15 +12,15 @@
  *    match-index). Keyed `${tournamentId}/${round}/${index}` so the
  *    bracket reads as a single prefix scan.
  *
- * Per locked decisions:
+ * Rules:
  *
- *  - 3.1: entry criterion: top-16 leagues by member count. The
+ *  - Entry criterion: top-16 leagues by member count. The
  *    aggregator scans LEAGUE_MEMBERS, counts rows per leagueId,
  *    sorts desc, takes the first 16.
- *  - 3.2: round windows: 7 / 7 / 7 / 7 days (Round 1 → Final).
- *  - 3.3: minimum 50 calls per league per match to qualify; a
+ *  - Round windows: 7 / 7 / 7 / 7 days (Round 1 → Final).
+ *  - Minimum 50 calls per league per match to qualify; a
  *    league that falls short forfeits the match.
- *  - 3.4: forfeit ⇒ opponent advances. If both forfeit, the
+ *  - Forfeit ⇒ opponent advances. If both forfeit, the
  *    lower-seed advances (deterministic for tie-break parity with
  *    the seed order).
  *
@@ -48,8 +48,8 @@ export type TournamentRound = (typeof TOURNAMENT_ROUNDS)[number];
 export const TOURNAMENT_BRACKET_SIZE = 16;
 
 /**
- * Round duration. 7-day windows ("DAY 3 OF 7") for every round,
- * per the locked decision 3.2 (7/7/7/7).
+ * Round duration: one 7-day window ("DAY 3 OF 7") for every round, so
+ * the four rounds (28 days) fit inside any calendar month.
  */
 export const TOURNAMENT_ROUND_DURATION_DAYS = 7;
 export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * 24 * 60 * 60 * 1000;

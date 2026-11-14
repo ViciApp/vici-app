@@ -215,7 +215,7 @@
      `window.visualViewport`, because on iOS a fixed overlay resolves against
      the large layout viewport (toolbars retracted) and iOS Chrome doesn't
      honour `100dvh`, so the pinned-bottom footer would otherwise land behind
-     the bottom toolbar and get clipped (#670, #673). A tap on any uncovered
+     the bottom toolbar and get clipped. A tap on any uncovered
      scrim area runs the same close guard as the ✕ so it never silently drops
      unsaved edits. -->
 <div
@@ -401,8 +401,8 @@
 
 	/* Full-screen takeover (not a bottom sheet): an opaque panel that fills the
 	   visible viewport, matching the design. `use:pinToVisualViewport` sizes it
-	   to `window.visualViewport` so the sticky footer clears the iOS toolbar
-	   (#670/#673); the `100dvh`/`100vh` here is the desktop / no-`visualViewport`
+	   to `window.visualViewport` so the sticky footer clears the iOS toolbar;
+	   the `100dvh`/`100vh` here is the desktop / no-`visualViewport`
 	   fallback. The floating pill-nav is hidden while open (see the `:global`
 	   rules below) so it can't sit in front of the panel. */
 	.avatar-editor-scrim {

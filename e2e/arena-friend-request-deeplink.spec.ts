@@ -8,9 +8,9 @@ import { HomePage } from './pages/home.page';
  * `/arena?request=<relationId>` (`inbox.store.ts`). `ArenaPage` must force
  * the Friends tab when that param is present so the recipient lands on the
  * Accept affordance instead of whichever Arena tab the URL would otherwise
- * resolve: the iOS "I tapped it and nothing happened" report (#803 / #809).
+ * resolve; otherwise tapping the notification appears to do nothing.
  *
- * Arena no longer persists the last-viewed tab across sessions (#1038): a
+ * Arena does not persist the last-viewed tab across sessions: a
  * plain `/arena` entry always opens Friends, and a back-nav can target a
  * specific tab via `?tab=` (`focusTabKey`). `?request=` outranks `?tab=`, so
  * this seeds an explicit `?tab=leagues` as the non-Friends baseline and

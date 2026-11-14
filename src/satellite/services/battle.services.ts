@@ -93,8 +93,8 @@ const bucketsNullableEqual = (
  *                                  baseline; the assert re-reads
  *                                  `league_stats` and rejects a
  *                                  baseline that doesn't match.
- *       - `in_flight → in_flight` (restart): a legacy league battle
- *                                  with no baselines (#912) can't be
+ *       - `in_flight → in_flight` (restart): a league battle accepted
+ *                                  before kickoff baselines existed can't be
  *                                  scored or resolved; any member of
  *                                  either side re-opens its window from
  *                                  now, the original duration preserved,
@@ -379,7 +379,7 @@ export const assertSetBattle = ({
 	// `kickoffMs` / `settleMs` exactly as proposed.
 	const isAcceptKickoff = currentDoc.state === 'proposed' && proposedDoc.state === 'in_flight';
 
-	// A league battle accepted before kickoff baselines existed (#912) carries
+	// A league battle accepted before kickoff baselines existed carries
 	// no snapshot to score against, so it can neither show live standings nor
 	// resolve; it hangs in `in_flight` forever. A re-kick restarts its window
 	// from now with a fresh baseline, leaving every identity field (proposer,

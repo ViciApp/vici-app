@@ -15,7 +15,7 @@ export interface Position {
  * `EventType::Settled` event per position with the signed cashflow as `qty`;
  * this type is what the FE assembles from those events so the Portfolio,
  * market-detail, and inbox surfaces can render a resolution outcome the same
- * way they used to render live positions.
+ * way they render live positions.
  *
  * `realizedPnlUsd` is in `USD_DECIMALS` units (matches `Position.lockedCollateral`)
  * so it can flow into existing PnL formatters without conversion.

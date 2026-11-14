@@ -57,9 +57,9 @@ export const WC_SHIRT = {
 } as const;
 
 // Per-nation scene data for the featured-event advancement markets
-// (`wc-br-r16`, `wc-it-r16`, …). These ids are app-specific (ISO-3166
-// alpha-2 per nation) and never matched a hand-authored `recipes` key,
-// so they used to fall to the generic figure. Each entry pairs the
+// (`wc-br-r16`, `wc-it-r16`, …). These ids (ISO-3166 alpha-2 per nation)
+// match no hand-authored `recipes` key, so without this table they would
+// fall to the generic figure. Each entry pairs the
 // nation's flag colours + flag layout with a home-kit colour and a
 // figure trait set: reusing the same backdrop / face vocabulary as the
 // curated recipes, so every nation card renders a distinct, flag-true
