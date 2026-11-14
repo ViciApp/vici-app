@@ -13,7 +13,7 @@
 	/**
 	 * Friendship-only explainer rendered by `/i/[code]` when an existing user (account older
 	 * than the referral signup window) uses an invite link. Makes it crystal clear that no
-	 * VXP bonus is involved — the only outcome is adding the inviter as a friend.
+	 * VXP bonus is involved: the only outcome is adding the inviter as a friend.
 	 *
 	 * Two CTAs:
 	 *   - **Add as friend** → calls `claimReferralFriendship` on the satellite (parent owns the
@@ -31,7 +31,7 @@
 
 	let referrerProfile = $state<UserProfile | undefined>(undefined);
 
-	// Lightweight profile fetch — only need nickname + avatar to render. The principal is
+	// Lightweight profile fetch: only need nickname + avatar to render. The principal is
 	// always available; lookup failures fall through to a short-form principal slug.
 	onMount(() => {
 		void (async () => {

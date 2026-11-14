@@ -13,14 +13,14 @@
 	/**
 	 * Recap "trophy" card shown at the top of the Markets list in the
 	 * `open` phase of the World-Cup arc (the Cup has resolved). It mirrors
-	 * the user's World-Cup performance — accuracy + call count, read from
-	 * the same `wc` category bucket the Dash rank tile uses — and converts
+	 * the user's World-Cup performance: accuracy + call count, read from
+	 * the same `wc` category bucket the Dash rank tile uses, and converts
 	 * the wound-down event into broader play via an "Explore all markets"
 	 * CTA.
 	 *
 	 * Real data only: accuracy and call count come from the persisted
 	 * `user_stats` snapshot. When there are no World-Cup calls (or the
-	 * snapshot hasn't loaded) the figures render as `EM_DASH` — we never
+	 * snapshot hasn't loaded) the figures render as `EM_DASH`; we never
 	 * fabricate a number.
 	 */
 	interface Props {
@@ -78,7 +78,7 @@
 		};
 	});
 
-	// The `wc` bucket is the event's own accuracy slice — the same source
+	// The `wc` bucket is the event's own accuracy slice; the same source
 	// the Dash rank tile reads. `undefined` until there's at least one call.
 	const wcBucket = $derived(userStats?.categoryStats?.wc);
 	const calls = $derived(wcBucket?.calls ?? 0);

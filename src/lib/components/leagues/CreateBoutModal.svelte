@@ -26,26 +26,26 @@
 	import { goto } from '$app/navigation';
 
 	/**
-	 * Create-a-battle wizard — the multi-step "start a battle" sheet
+	 * Create-a-battle wizard: the multi-step "start a battle" sheet
 	 * reachable from the Battles surface and from a league's own detail
 	 * page (where `fromLeagueId` pins the challenger side).
 	 *
 	 * Steps (steps the caller sees collapse when the data is
 	 * unambiguous):
 	 *
-	 *  1. Pick your league — only the leagues the caller owns or admins
+	 *  1. Pick your league; only the leagues the caller owns or admins
 	 *     can send a challenge (the satellite assert hard-rejects everyone
 	 *     else). Auto-skipped when the caller owns/admins exactly one league
 	 *     or when `fromLeagueId` pins the challenger; the empty state routes
 	 *     to Leagues when they have none.
-	 *  2. Opponent — a searchable list of challengeable leagues
+	 *  2. Opponent; a searchable list of challengeable leagues
 	 *     (`listChallengeableLeagues`): public leagues plus the caller's
 	 *     own memberships, minus the leagues the caller owns. The caller
 	 *     filters by name and taps the opponent.
-	 *  3. Scope — which calls count: all, or a single market category.
-	 *  4. Wager — an optional VXP stake (0–500); 0 means no stake.
-	 *  5. Trash-talk — an optional short message (brevity rewarded).
-	 *  6. Duration — 7 / 14 / 30 days, mapped to the kickoff → settle
+	 *  3. Scope, which calls count: all, or a single market category.
+	 *  4. Wager; an optional VXP stake (0–500); 0 means no stake.
+	 *  5. Trash-talk; an optional short message (brevity rewarded).
+	 *  6. Duration: 7 / 14 / 30 days, mapped to the kickoff → settle
 	 *     window the satellite stores.
 	 *
 	 * Wraps the same `proposeBattle` service the league-detail Challenge
@@ -56,7 +56,7 @@
 		isOpen: boolean;
 		/**
 		 * When set, pins the challenger side to this league and collapses
-		 * the pick-your-league step — used by the league-detail entry point,
+		 * the pick-your-league step: used by the league-detail entry point,
 		 * where the caller is already acting on a specific league they own.
 		 */
 		fromLeagueId?: string;
@@ -69,7 +69,7 @@
 	const DURATIONS = [7, 14, 30] as const;
 	type Duration = (typeof DURATIONS)[number];
 
-	// Scope options surfaced in the picker — `all` plus the two macro
+	// Scope options surfaced in the picker; `all` plus the two macro
 	// narrowings the design highlights, labelled via the macro catalog.
 	const SCOPE_OPTIONS: readonly { value: BattleScope; key: MessageKey }[] = [
 		{ value: 'all', key: 'battles.create.scope_all' },
@@ -111,7 +111,7 @@
 	const trashTalkRemaining = $derived(BATTLE_TRASH_TALK_MAX_LENGTH - trashTalk.length);
 
 	// True once the load resolves a pinned `fromLeagueId` to a league the
-	// caller actually owns — collapses the pick-your-league step.
+	// caller actually owns: collapses the pick-your-league step.
 	const isPinned = $derived(
 		nonNullish(fromLeagueId) && ownedLeagues.some((owned) => owned.league.id === fromLeagueId)
 	);
@@ -132,7 +132,7 @@
 	);
 
 	// The wizard's actions dock in the sheet's non-scrolling footer (so the
-	// CTA never gets clipped on short iOS viewports — same treatment as the
+	// CTA never gets clipped on short iOS viewports: same treatment as the
 	// affiliation picker). Only the ready form state has docked actions; the
 	// loading / error / no-leagues states keep their own short body buttons.
 	const showFooter = $derived.by(() => loadState === 'ready' && ownedLeagues.length > 0);
@@ -248,7 +248,7 @@
 		{/if}
 
 		{#if opponent}
-			<!-- Real submit button linked to the form via the `form` attribute —
+			<!-- Real submit button linked to the form via the `form` attribute:
 				 it lives in the sheet's non-scrolling footer (outside the <form>)
 				 but keeps native submit semantics (Enter / implicit submission /
 				 assistive tech). -->
@@ -297,7 +297,7 @@
 				{t({ locale: $localeStore, key: 'common.error.generic' })}
 			</p>
 		{:else if ownedLeagues.length === 0}
-			<!-- No owned leagues — you must admin a league to challenge. -->
+			<!-- No owned leagues: you must admin a league to challenge. -->
 			<p class="serif-italic create-bout-lede">
 				{t({ locale: $localeStore, key: 'battles.create.empty_lede' })}
 			</p>
@@ -334,7 +334,7 @@
 				{:else if fromLeague}
 					<!-- Exactly one owned league: it's auto-selected as the
 						 challenger. Surface it read-only so the caller sees their
-						 league IS in the battle — otherwise the step is invisible and
+						 league IS in the battle: otherwise the step is invisible and
 						 they look for their league in the opponent list (where it is
 						 correctly excluded, since a league can't challenge itself). -->
 					<div class="create-bout-field">

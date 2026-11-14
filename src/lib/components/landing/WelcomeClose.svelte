@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * Closing section — the Latin motto, the closing headline, and the
+	 * Closing section: the Latin motto, the closing headline, and the
 	 * final sign-up CTA. The earned payoff of the page.
 	 */
 	import { ChevronRight } from '@lucide/svelte/icons';

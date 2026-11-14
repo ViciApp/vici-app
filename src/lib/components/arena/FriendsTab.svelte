@@ -69,29 +69,29 @@
 	import { goto } from '$app/navigation';
 
 	/**
-	 * Friends — the Arena tab. Lives only inside Arena; there is no
+	 * Friends: the Arena tab. Lives only inside Arena; there is no
 	 * standalone `/friends` route.
 	 *
 	 * Sections (top → bottom):
-	 *  1. Invite hero — +500 VXP eyebrow, remaining-invites cap line,
+	 *  1. Invite hero: +500 VXP eyebrow, remaining-invites cap line,
 	 *     social-proof row when referrals are paid, a Share CTA, and an
 	 *     inline copy field whose link line doubles as the copy button
 	 *     (flips to a green check + fires a haptic on copy).
-	 *  2. Outgoing invites — friend requests this user has sent that
+	 *  2. Outgoing invites: friend requests this user has sent that
 	 *     are still pending the recipient's first call.
-	 *  3. Incoming friend requests — each expandable to Accept / Reject.
-	 *  4. Friends-ranked list — rank 01, 02, …, h2h accuracy delta chip,
+	 *  3. Incoming friend requests; each expandable to Accept / Reject.
+	 *  4. Friends-ranked list: rank 01, 02, …, h2h accuracy delta chip,
 	 *     sticky YOU row pinned at the bottom of the rank list.
-	 *  5. Friends results digest — one row per friend with a resolved
-	 *     record over the window: W–L tally + net VXP + a standout call.
+	 *  5. Friends results digest; one row per friend with a resolved
+	 *     record over the window: W-L tally + net VXP + a standout call.
 	 *     Friends with no resolved prediction in the window are excluded;
 	 *     an empty graph renders quiet serif-italic copy.
-	 *  6. Global ranking link — viewer's leaderboard rank with chevron;
+	 *  6. Global ranking link: viewer's leaderboard rank with chevron;
 	 *     rank-delta chip deferred until the satellite ships a
 	 *     historical-rank snapshot.
-	 *  7. Friend mini-profile bottom sheet — opens on row tap; surfaces
+	 *  7. Friend mini-profile bottom sheet: opens on row tap; surfaces
 	 *     stats + h2h accuracy delta + Remove.
-	 *  8. Add-by-handle bottom sheet — `@`-prefixed input. Today writes
+	 *  8. Add-by-handle bottom sheet: `@`-prefixed input. Today writes
 	 *     through to `sendFriendRequest` which expects a principal text;
 	 *     the visual handle prefix is the user-facing affordance until
 	 *     the satellite gains nickname-based lookup.
@@ -133,8 +133,8 @@
 	// The viewer's own redemption rows (newest-first), one per friend who signed up
 	// with their code. Each row carries `withinReferrerCap`, which marks whether that
 	// redemption actually paid the referrer under the diminishing tier curve + hard cap
-	// (see `referral.constants.ts`). Read from the shared `referrals.store` — the same
-	// cache the Dash stack-sheet reads — so the two surfaces can never disagree and a
+	// (see `referral.constants.ts`). Read from the shared `referrals.store`; the same
+	// cache the Dash stack-sheet reads: so the two surfaces can never disagree and a
 	// tab switch reuses the list instead of re-querying. Stays empty on failure so the
 	// hero degrades to its zero-state rather than blocking the tab.
 	const myReferrals = $derived($myReferralsStore);
@@ -190,7 +190,7 @@
 	});
 
 	// ── Invite hero ──────────────────────────────────────────────────
-	// Single canonical URL — `https://{origin}/i/{code}`. Same string for preview, copy,
+	// Single canonical URL: `https://{origin}/i/{code}`. Same string for preview, copy,
 	// and native-share so what the user sees is exactly what gets pasted.
 	const inviteUrl = $derived(
 		nonNullish(inviteCode) && typeof window !== 'undefined'
@@ -202,23 +202,23 @@
 	);
 	const bonusLabel = $derived(formatVxpBalance({ value: REFERRAL_BONUS_VXP }));
 
-	// Social-proof line above the invite buttons —
+	// Social-proof line above the invite buttons:
 	// `{N} friends joined · +{cumulative} VXP earned`. Derived from the viewer's actual
 	// redemption rows (`listMyReferrals`).
 	//
-	// `joinedCount` is the TOTAL number of friends who signed up with this code — every row,
+	// `joinedCount` is the TOTAL number of friends who signed up with this code; every row,
 	// regardless of payout. The "joined" headline is a factual count, so it must not shrink to
 	// the paid subset once a cap is hit.
 	//
 	// `referralCreditedCount` is the CREDITED subset, derived the same way the satellite's
 	// `countReferrerCredits` tally does it: a row counts as credited when its `referrerPayout.status`
-	// is anything other than `none` (`owed | processing | paid` — anything in flight still
+	// is anything other than `none` (`owed | processing | paid`: anything in flight still
 	// consumes a slot). This is the authoritative rule the server uses to feed the diminishing
 	// reward curve and enforce both caps, so the hero stays in lockstep with it rather than
 	// re-reading the stored `withinReferrerCap` flag.
 	//
 	// The earned total honours the diminishing tier table (and its hard cap) rather than
-	// assuming a flat 500 VXP per friend — see `cumulativeReferrerRewardBaseUnits`.
+	// assuming a flat 500 VXP per friend: see `cumulativeReferrerRewardBaseUnits`.
 	const joinedCount = $derived(myReferrals.length);
 	const referralCreditedCount = $derived(
 		myReferrals.filter(({ referrerPayout }) => referrerPayout.status !== 'none').length
@@ -257,7 +257,7 @@
 
 		if (ok) {
 			triggerCopyFeedback();
-			// Touch-feedback on copy — pairs the visual green flip with a
+			// Touch-feedback on copy: pairs the visual green flip with a
 			// brief buzz so the affordance reads as committed on mobile.
 			haptic('light-tap');
 		} else {
@@ -310,7 +310,7 @@
 	// standings (`win_count / settled_count`), NOT from the profile doc:
 	// `profile.accuracy` is recomputed only when its owner signs in
 	// (`calculateAndSyncStats`), so a friend's cached figure goes stale the
-	// moment one of their predictions settles while they're away — the
+	// moment one of their predictions settles while they're away; the
 	// Leaderboard (live) and this tab (cached) would then disagree about
 	// the same predictor. The profile snapshot stays as the fallback while
 	// the slice loads, on load failure, or for a friend beyond the fetched
@@ -340,7 +340,7 @@
 		friendId: string;
 		profile: UserProfile | undefined;
 		accuracy: number;
-		/** Consecutive active days (the Flame engine) — rendered as `{n}d`. */
+		/** Consecutive active days (the Flame engine): rendered as `{n}d`. */
 		dailyStreak: number;
 		points: number;
 	}
@@ -369,7 +369,7 @@
 
 	// Viewer's slot in the accuracy-ranked friends list. Placed just above the
 	// first friend with strictly lower accuracy, so friends at equal-or-higher
-	// accuracy stay ahead — on a tie the viewer sits below them, never above.
+	// accuracy stay ahead: on a tie the viewer sits below them, never above.
 	// That keeps a viewer with no edge yet (everyone still at 0% on a thin
 	// graph) off a misleading #01 and at the bottom instead. Same `accuracyOf`
 	// source as the friend rows, so the comparison is apples-to-apples;
@@ -387,9 +387,9 @@
 	const youInsertAt = $derived(myFriendRank - 1);
 
 	const formatPct = (value: number): string => {
-		// `value` is a 0..100 accuracy percentage — a live standings entry
+		// `value` is a 0..100 accuracy percentage; a live standings entry
 		// or the profile-doc fallback (see `accuracyOf`). Render with one
-		// decimal — `48.4%`.
+		// decimal: `48.4%`.
 		const pct = Math.round(value * 10) / 10;
 
 		return `${pct}%`;
@@ -666,7 +666,7 @@
 
 	// ── Friends results digest ──────────────────────────────────────
 	// One row per friend summarising their resolved record over a recent
-	// window — W–L tally + net VXP (from the friend-scoped league standings
+	// window: W-L tally + net VXP (from the friend-scoped league standings
 	// aggregate) and a standout call (the friend's resolved prediction with
 	// the largest |net VXP|, read from the `resolved_results` collection).
 	// Open / unresolved calls carry no outcome, so they never appear.
@@ -680,13 +680,13 @@
 	// rows on a thin friend graph than `'week'` would.
 	const DIGEST_WINDOW: StandingsWindow = 'month';
 
-	// Friend-scoped standings slice (W–L + net VXP per friend), hydrated by
+	// Friend-scoped standings slice (W-L + net VXP per friend), hydrated by
 	// the effect below into a per-owner map. Held locally rather than in the
 	// shared `globalStandingsStore` so it can't collide with that store's
 	// global / all-time slices for the same window.
 	const friendStandingsByOwner = new SvelteMap<string, StandingEntry>();
 
-	// The friend set's resolved-result rows over the retention window — the
+	// The friend set's resolved-result rows over the retention window; the
 	// source for each row's standout call. One bounded bulk read, not one
 	// call per friend.
 	let friendResolvedResults = $state<ResolvedResult[]>([]);
@@ -727,7 +727,7 @@
 				friendResolvedResults = resolved;
 			} catch (err: unknown) {
 				console.error('FriendsTab: failed to hydrate results digest', err);
-				// Release the guard so a later store refresh can retry — a transient
+				// Release the guard so a later store refresh can retry; a transient
 				// read failure shouldn't permanently strand the digest on empty rows
 				// for this friend set.
 				hydratedFriendKey = undefined;
@@ -833,7 +833,7 @@
 	);
 
 	// The Zap reaction is kept as a transient acknowledgement on the digest
-	// row — a digest row is not an `Activity` doc, so it has no
+	// row: a digest row is not an `Activity` doc, so it has no
 	// `activity_reactions` identity to persist against; v1 keeps the visual
 	// + motion and still fires `friend_feed_reaction` so the engagement
 	// series stays continuous across the swap from the per-call feed.
@@ -876,7 +876,7 @@
 			return;
 		}
 
-		// No standout to navigate to — open the friend mini-profile sheet so
+		// No standout to navigate to: open the friend mini-profile sheet so
 		// the row stays interactive rather than a dead tap.
 		const row = rankedFriends.find((friend) => friend.friendId === digest.friendId);
 
@@ -960,7 +960,7 @@
 				</BaseButton>
 			</div>
 
-			<!-- Inline copy field — the link line IS the copy CTA. Tapping it
+			<!-- Inline copy field: the link line IS the copy CTA. Tapping it
 		     copies the canonical share URL, flips the trailing chip to a
 		     green check + "Copied", and fires a brief haptic. The `/i/{code}`
 		     path is resolved by `src/routes/i/[code]/+page.svelte`. -->
@@ -991,7 +991,7 @@
 			{/if}
 		</section>
 	{:else}
-		<!-- Compact invite strip — the ranking leads (≥3 friends), so inviting
+		<!-- Compact invite strip: the ranking leads (≥3 friends), so inviting
 		     demotes to a single tappable line carrying the referral proof. -->
 		<BaseButton
 			class="friends-invite-strip"
@@ -1037,7 +1037,7 @@
 		</BaseButton>
 	{/if}
 
-	<!-- Pending sent — outgoing invites still waiting on the recipient's
+	<!-- Pending sent: outgoing invites still waiting on the recipient's
 	     first call. Sits directly under the invite hero. -->
 	{#if pendingSent.length > 0}
 		<section class="friends-section">
@@ -1219,7 +1219,7 @@
 
 	<!-- Friends results digest ─────────────────────────────────── -->
 	<!--
-		One row per friend with a resolved record over the window: their W–L
+		One row per friend with a resolved record over the window: their W-L
 		tally + net VXP (from the friend-scoped league standings aggregate)
 		and a standout call (their resolved prediction with the largest
 		|net VXP|). Friends with no resolved prediction in the window do not
@@ -1405,9 +1405,9 @@
 	}
 
 	/* ── Invite hero ────────────────────────────────────────── */
-	/* Invite hero — accent gradient wash over the raised surface,
+	/* Invite hero: accent gradient wash over the raised surface,
 	   gold-tinted border. */
-	/* Compact invite strip — the demoted invite affordance once the ranking
+	/* Compact invite strip: the demoted invite affordance once the ranking
 	   leads. A single gold-accent tappable line carrying the referral proof. */
 	:global(.friends-invite-strip) {
 		display: flex;
@@ -1515,7 +1515,7 @@
 	}
 
 	/* Invite headline: display sans-serif, 20 px, weight 600, slight
-	   negative tracking. NO serif-italic — the surrounding card uses
+	   negative tracking. NO serif-italic; the surrounding card uses
 	   serif-italic for the *editorial* `Invite a friend.` lede in
 	   other surfaces, but this hero block leads with a structural
 	   prompt, not an editorial accent, so it stays on the display
@@ -1594,7 +1594,7 @@
 		font-weight: 700;
 	}
 
-	/* Inline copy-link field — the URL line IS the copy CTA. Tapping it
+	/* Inline copy-link field: the URL line IS the copy CTA. Tapping it
 	   copies the share link and flips the trailing chip to green. Border
 	   + background animate toward the accent-green "yes" tone on success. */
 	:global(.invite-copyfield) {
@@ -1869,7 +1869,7 @@
 		border-top: 1px solid var(--border-base);
 	}
 
-	/* Sticky YOU row — sits inline at the viewer's real rank and, on
+	/* Sticky YOU row: sits inline at the viewer's real rank and, on
 	   scroll, glues to whichever card edge its natural slot has passed
 	   (top when the slot is above the fold, bottom when below) via a
 	   single sticky element with both insets set; it flows back inline
@@ -1877,7 +1877,7 @@
 	   `position: sticky` lives on the `<li>` wrapper (not the inner row
 	   element rendered by `RankedRow`): a sticky element is constrained
 	   by its containing block, and the `<li>` is a direct child of the
-	   scrollable `.ranked-list` — putting sticky on the inner row would
+	   scrollable `.ranked-list`: putting sticky on the inner row would
 	   constrain it to the `<li>`'s own height, so no visible sticking. */
 	.ranked-li-you {
 		position: sticky;
@@ -1894,8 +1894,8 @@
 	}
 
 	/* ── Feed (results digest) ─────────────────────────────── */
-	/* Unified card with internal dividers — same pattern as the ranked
-	   and pending lists. Each row is one friend's resolved record (W–L +
+	/* Unified card with internal dividers: same pattern as the ranked
+	   and pending lists. Each row is one friend's resolved record (W-L +
 	   net VXP + standout) and a transient Zap reaction. */
 	.feed-list {
 		display: flex;
@@ -1967,7 +1967,7 @@
 		color: var(--text-muted);
 	}
 
-	/* W–L tally — mono numerals, base weight so the record reads as the
+	/* W-L tally: mono numerals, base weight so the record reads as the
 	   row's spine. Wins/losses carry the same yes/no color as the net
 	   figure plus a leading W/L glyph, so the split reads at a glance
 	   without leaning on color alone. */
@@ -2012,7 +2012,7 @@
 		text-transform: uppercase;
 	}
 
-	/* Signed net VXP — the row's headline figure, colored win (yes) / loss
+	/* Signed net VXP: the row's headline figure, colored win (yes) / loss
 	   (no) and right-aligned beside the copy. */
 	.feed-net {
 		justify-self: end;
@@ -2030,7 +2030,7 @@
 		color: var(--no);
 	}
 
-	/* Like react — acknowledge a friend's result. Brand forbids emoji,
+	/* Like react: acknowledge a friend's result. Brand forbids emoji,
 	   so the cue is the `Zap` glyph. Resting state is
 	   dimmed; tapping commits to full opacity + an accent wash, plus a
 	   one-beat tilt and particle burst (both reduced-motion gated). The

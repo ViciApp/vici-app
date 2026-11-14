@@ -83,11 +83,11 @@
 	// `live` locale), read in bulk once per market. Empty until the read
 	// resolves and for markets with no translations at all.
 	let marketTranslations = $state<MarketTranslation[]>([]);
-	// Market id whose translations were read **successfully** — set only after a
+	// Market id whose translations were read **successfully**: set only after a
 	// resolved response so a transient failure retries on the next market write
 	// (poll / certified update / re-navigation) instead of disabling for good.
 	let translationsFetchedForId = $state<MarketId | undefined>(undefined);
-	// In-flight market id — a plain (non-reactive) guard that dedupes the
+	// In-flight market id: a plain (non-reactive) guard that dedupes the
 	// query→certified double load without re-triggering the fetch effect.
 	let translationsLoadingId: MarketId | undefined = undefined;
 
@@ -98,8 +98,8 @@
 	let showOriginal = $state($marketLanguagePreference === 'original');
 
 	// Viewer-relative market signals (the prior call they hold here, the
-	// lean of the people they follow). Sparse by construction — absent
-	// when signed-out or when no signal exists for this market — so the
+	// lean of the people they follow). Sparse by construction: absent
+	// when signed-out or when no signal exists for this market, so the
 	// surfaces that read them simply omit their row rather than show
 	// invented data.
 	let followedLean = $state<FollowedLeanSignal | undefined>();
@@ -144,7 +144,7 @@
 	let lockedToastOpen = $state(false);
 
 	// Market id whose viewer signals we've already pulled on the foreground
-	// paint — keeps the certified update's second `onLoad` from re-fetching.
+	// paint: keeps the certified update's second `onLoad` from re-fetching.
 	let signalsFetchedForId: MarketId | undefined;
 
 	const fetchMarket = async ({ id, silent = false }: { id: MarketId; silent?: boolean }) => {
@@ -159,7 +159,7 @@
 			// per-period fetch effect repopulates the active period.
 			priceHistoryByPeriod = {};
 
-			// Same for the top-predictors list — clearing the resolved
+			// Same for the top-predictors list: clearing the resolved
 			// market id re-arms the fetch effect for the new market.
 			topPredictors = undefined;
 			topPredictorsMarketId = undefined;
@@ -173,7 +173,7 @@
 			signalsFetchedForId = undefined;
 		}
 
-		// Query-then-update: `loadMarket` fires `onLoad` twice — first with the
+		// Query-then-update: `loadMarket` fires `onLoad` twice, first with the
 		// fast uncertified query (drives the first paint, replacing the
 		// skeleton), then with the certified update which upgrades the view in
 		// place. We clear `loading` and fetch the viewer signals on the FIRST
@@ -189,7 +189,7 @@
 						loading = false;
 
 						// Signals only change with the viewer's own activity, not
-						// with the 30s consensus poll — fetch them on the first
+						// with the 30s consensus poll: fetch them on the first
 						// foreground paint and skip the silent refresh so we don't
 						// re-pull trade history + friend activity every tick. Guard
 						// against the certified update re-firing them.
@@ -204,7 +204,7 @@
 				}
 			}),
 			// Fail open: a positions-read error must not reject the whole load or
-			// strand the MY CALL shimmer (positionsLoaded never set) — fall back to
+			// strand the MY CALL shimmer (positionsLoaded never set); fall back to
 			// an empty set so the tile resolves to "—".
 			getPositionsForMarket(id).catch((error: unknown) => {
 				console.error('market detail: positions read failed', error);
@@ -243,7 +243,7 @@
 	});
 
 	// Fails open: any error simply leaves `marketTranslations` empty, so the
-	// page shows the original metadata and no toggle — never a broken state.
+	// page shows the original metadata and no toggle: never a broken state.
 	// `translationsFetchedForId` is set only on success, so a failed read is
 	// retried the next time this market is loaded rather than disabled for good.
 	const loadTranslations = async (id: MarketId) => {
@@ -267,7 +267,7 @@
 
 	// Fetch the active period's market-wide price history the first time
 	// it's needed (and after a market change clears the cache). Independent
-	// of the viewer — it's the same series for everyone, so it loads
+	// of the viewer: it's the same series for everyone, so it loads
 	// regardless of sign-in. Cache-aware: re-selecting a chip is instant and
 	// the 30s consensus poll's market refresh doesn't refetch every tick.
 	$effect(() => {
@@ -439,7 +439,7 @@
 	});
 
 	const onPredictionPlaced = () => {
-		// Confirmation overlay (`Locked in.`) — done-state choreography.
+		// Confirmation overlay (`Locked in.`): done-state choreography.
 		// Held for 1100 ms so the user sees the acknowledgement, then
 		// we dismiss the sheet and refetch the market silently.
 		lockedToastOpen = true;
@@ -454,7 +454,7 @@
 
 			// The silent refresh deliberately skips `fetchSignals` and the
 			// price-history fetch (the 30s consensus poll shouldn't re-pull
-			// either every tick), but the viewer just traded — so the chart's
+			// either every tick), but the viewer just traded: so the chart's
 			// real price history and the prior-call / followed-lean signals
 			// are now stale. Re-pull signals explicitly, and clear the
 			// price-history cache so the fetch effect re-resolves the active
@@ -463,11 +463,11 @@
 			priceHistoryByPeriod = {};
 
 			// The viewer may themselves rank on the leaderboard, in which
-			// case their fresh call belongs in the top-predictors list —
+			// case their fresh call belongs in the top-predictors list;
 			// re-arm the fetch effect rather than waiting for a navigation.
 			topPredictorsMarketId = undefined;
 
-			// The viewer's trade adds to volume — re-arm the drain to refresh it
+			// The viewer's trade adds to volume: re-arm the drain to refresh it
 			// in place (the existing value stays put, so the tile doesn't pulse).
 			volumeMarketId = undefined;
 		}
@@ -476,14 +476,14 @@
 	const tags = $derived(nonNullish(market) ? ($marketTags[market.id] ?? []) : []);
 	const primaryTag = $derived(primaryMicro(tags));
 
-	// Curated metadata for this market — the editorial subtitle (the
+	// Curated metadata for this market: the editorial subtitle (the
 	// context line under the title) and the "why this card now" cue.
 	const metadata = $derived(nonNullish(market) ? $marketMetadata[market.id] : undefined);
 	const contextLine = $derived(metadata?.subtitle?.trim() ?? '');
 	const whyNow = $derived(metadata?.whyNow);
 
 	// Best translation for the reader's locale (resolved through the fallback
-	// chain), or `undefined` when none exists — which is what gates the toggle.
+	// chain), or `undefined` when none exists: which is what gates the toggle.
 	const activeTranslation = $derived(
 		resolveMarketTranslation({ translations: marketTranslations, locale: $localeStore })
 	);
@@ -499,7 +499,7 @@
 
 	// Show the original (on-chain) text when the reader has flipped the toggle
 	// or when there's no translation to show. Each field falls back to the
-	// original whenever the translated value is missing/blank — translations
+	// original whenever the translated value is missing/blank: translations
 	// are user-authored, so a stray empty field must never blank out the title.
 	const showTranslated = $derived(nonNullish(activeTranslation) && !showOriginal);
 	const translatedTitle = $derived(activeTranslation?.translation.title ?? '');
@@ -528,7 +528,7 @@
 		}
 	};
 
-	// `yesProbability` is optional — `undefined` while the book hasn't been
+	// `yesProbability` is optional: `undefined` while the book hasn't been
 	// read (or read empty). Fall back to 0 only for the percent math so we
 	// never multiply `undefined` into a NaN; the prob hero renders an odds
 	// skeleton (not a 0/100 split) whenever `oddsKnown` is false.
@@ -544,7 +544,7 @@
 	// The direct-trade CTA bar only ever renders for a live market behind the
 	// build-time flag. Drive both the CTA `{#if}` and the read-only padding
 	// modifier from this single source so the reserved CTA space collapses
-	// whenever the bar is absent — including a flag-on, non-live market.
+	// whenever the bar is absent: including a flag-on, non-live market.
 	const showTradeCta = $derived(MARKET_DETAIL_DIRECT_TRADE_ENABLED && isLive);
 
 	// Resolved binary outcome (YES/NO) when known. Drives the
@@ -558,7 +558,7 @@
 
 	// True cold-start: a live market nobody has traded yet. Keyed off the real
 	// traded volume (Σ qty·price), so it surfaces the "New / be first" cue only
-	// once the drain confirms zero — never while it's still loading (the banner
+	// once the drain confirms zero: never while it's still loading (the banner
 	// would otherwise flash on every market) and never off a synthetic crowd.
 	const isColdStart = $derived(isLive && marketVolume === ZERO);
 
@@ -579,7 +579,7 @@
 	const wonThisMarket = $derived(resolvedForMarket.some((r) => r.result === 'won'));
 
 	// MY CALL pulses only for a signed-in viewer whose position read for this
-	// market hasn't landed yet — signed-out visitors have no call to wait for,
+	// market hasn't landed yet: signed-out visitors have no call to wait for,
 	// so they read `—` immediately rather than a perpetual shimmer.
 	const myCallLoading = $derived($userSignedIn && !positionsLoaded);
 
@@ -593,7 +593,7 @@
 
 	const showAdminActions = $derived(canEditMetadata || canResolve);
 
-	// Resolution choreography — see `docs/ai/frontend/design.md` §7.6.
+	// Resolution choreography: see `docs/ai/frontend/design.md` §7.6.
 	// On the first time the user views a resolved market they have a
 	// position on:
 	//   right call → Oracle 1.2 s, "Called it."
@@ -647,7 +647,7 @@
 			sessionStorage.setItem(beatKey, '1');
 		} catch {
 			// sessionStorage can throw in privacy modes / sandboxed
-			// iframes — fail open: still fire the beat, just lose the
+			// iframes: fail open: still fire the beat, just lose the
 			// once-per-session guard.
 		}
 
@@ -670,12 +670,12 @@
 	});
 
 	const handlePick = (side: 'YES' | 'NO') => {
-		// Only an open market accepts calls — expired/resolved short-circuit.
+		// Only an open market accepts calls: expired/resolved short-circuit.
 		if (!isLive) {
 			return;
 		}
 
-		// Public market browse — `/markets/[id]` is exempted from the
+		// Public market browse: `/markets/[id]` is exempted from the
 		// (app)/+layout auth gate so signed-out visitors can preview a
 		// market. Placing a call still requires a session, so we bounce
 		// to /signin here at the point of action instead of opening the
@@ -690,8 +690,8 @@
 	};
 
 	// Funnel the "predict" intent into Flow, where predictions are placed
-	// (direct trading from the detail page is off). A signed-out visitor —
-	// e.g. arriving from search — starts a free guest session first, the same
+	// (direct trading from the detail page is off). A signed-out visitor,
+	// e.g. arriving from search, starts a free guest session first, the same
 	// no-account preview the onboarding Skip path uses, so they can try
 	// predicting immediately; the (app) gate exempts a guest on /flow.
 	const onTryFlow = () => {
@@ -750,7 +750,7 @@
 					<MarketDetailLivePill />
 				{:else if isResolved}
 					{#if nonNullish(resolvedOutcome)}
-						<!-- RESOLVED · YES/NO — the outcome colour spells out the
+						<!-- RESOLVED · YES/NO: the outcome colour spells out the
 						     settled side at a glance, beyond the neutral status
 						     badge. -->
 						<span
@@ -787,7 +787,7 @@
 		</section>
 
 		{#if isResolved}
-			<!-- Settled banner — closes the loop on the market side: a clear
+			<!-- Settled banner: closes the loop on the market side: a clear
 			     "this is over, here's how it landed" panel tinted by the
 			     winning side. Non-binary resolutions (e.g. CANCELED) have no
 			     winning side, so the border stays neutral rather than
@@ -846,7 +846,7 @@
 		/>
 
 		{#if isColdStart}
-			<!-- Cold-start cue — a fresh market with no real volume yet.
+			<!-- Cold-start cue: a fresh market with no real volume yet.
 			     Turns the empty state into an invitation rather than a wall
 			     of zeros. -->
 			<section class="market-detail-coldstart">
@@ -856,11 +856,11 @@
 				</p>
 			</section>
 		{:else if isLive}
-			<!-- Maker-liquidity disclosure — once a live market has a line, say
+			<!-- Maker-liquidity disclosure: once a live market has a line, say
 			     where it comes from: a live order book that VICI's market maker
 			     seeds with resting liquidity. Keeps a thin market from reading
-			     as a crowd of phantom predictors. Gated to live markets — the
-			     book is no longer the price source once resolved/expired — and
+			     as a crowd of phantom predictors. Gated to live markets (the
+			     book is no longer the price source once resolved/expired) and
 			     mutually exclusive with the cold-start cue (which itself only
 			     fires for live markets). -->
 			<p class="market-detail-maker-note">
@@ -871,7 +871,7 @@
 		<MarketDetailResolutionCard {market} resolution={displayResolution} />
 
 		{#if !isColdStart}
-			<!-- Hidden while the cold-start banner is up — a market with no
+			<!-- Hidden while the cold-start banner is up: a market with no
 			     volume has no predictors, so an empty section under the
 			     banner would only echo it. -->
 
@@ -905,7 +905,7 @@
 		     are placed in Flow. The in-page YES/NO CTA bar (and its trade
 		     sheet below) is preserved behind a build-time flag so direct
 		     trading from the detail page can be restored by flipping it. It
-		     only ever shows while the market is still taking calls — expired
+		     only ever shows while the market is still taking calls: expired
 		     and resolved markets never expose the actions. -->
 		{#if showTradeCta}
 			<MarketDetailCtaBar {noPercent} onPick={handlePick} {yesPercent} />
@@ -970,7 +970,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0;
-		/* Leave room for the floating CTA bar and—when present—the
+		/* Leave room for the floating CTA bar and, when present, the
 		   navpill it sits above. `--navpill-h` is injected by the (app)
 		   layout: 88px when signed-in mobile, 0px for signed-out visitors
 		   and desktop ≥56rem. The CTA bar itself is ~80px, so the bottom
@@ -1015,7 +1015,7 @@
 		gap: 0.375rem;
 	}
 
-	/* Category tag: no background, no border — just coloured text.
+	/* Category tag: no background, no border: just coloured text.
 	   A bare text chip so the title gets all the visual weight. */
 	.market-detail-tag {
 		font-size: 11px;
@@ -1032,7 +1032,7 @@
 		background: color-mix(in srgb, var(--bg-surface) 70%, transparent);
 	}
 
-	/* RESOLVED · YES/NO chip — bare coloured text (no fill/border) so it
+	/* RESOLVED · YES/NO chip: bare coloured text (no fill/border) so it
 	   sits in the chip row like the category tag, with the outcome colour
 	   carrying the meaning. */
 	.market-detail-tag-outcome {
@@ -1042,7 +1042,7 @@
 		text-transform: uppercase;
 	}
 
-	/* Settled banner — framed panel directly under the hero, its border
+	/* Settled banner: framed panel directly under the hero, its border
 	   tinted by the winning side so the resolution reads at a glance. */
 	.market-detail-settled {
 		display: flex;
@@ -1071,7 +1071,7 @@
 		font-weight: 600;
 	}
 
-	/* Cold-start cue — soft laurel-washed panel that frames an empty
+	/* Cold-start cue: soft laurel-washed panel that frames an empty
 	   market as an opportunity to set the first line. */
 	.market-detail-coldstart {
 		margin: 0 1.25rem 0.5rem;
@@ -1093,7 +1093,7 @@
 		font-weight: 700;
 	}
 
-	/* Maker-liquidity disclosure — a quiet caption, not a stat. Sits under
+	/* Maker-liquidity disclosure: a quiet caption, not a stat. Sits under
 	   the stats grid to answer "how is this priced" without competing with
 	   the numbers above it. */
 	.market-detail-maker-note {
@@ -1103,7 +1103,7 @@
 		line-height: 1.45;
 	}
 
-	/* No-longer-trading footer — quiet centred note that stands in for the
+	/* No-longer-trading footer: quiet centred note that stands in for the
 	   CTA bar on expired / resolved markets. */
 	.market-detail-closed-foot {
 		margin: 1rem 1.25rem 0;
@@ -1122,7 +1122,7 @@
 		line-height: 1.22;
 	}
 
-	/* Editorial context line under the title — the question's one-line
+	/* Editorial context line under the title: the question's one-line
 	   framing (e.g. "Hex contenders · 17.9% favorite"). Dimmed body
 	   copy so the title keeps the visual weight. */
 	.market-detail-context {

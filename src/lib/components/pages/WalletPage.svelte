@@ -54,7 +54,7 @@
 	import { goto } from '$app/navigation';
 
 	/**
-	 * Wallet — centered VXP balance hero + recent activity over the
+	 * Wallet: centered VXP balance hero + recent activity over the
 	 * real crypto send / receive / history surfaces.
 	 *
 	 * Layout
@@ -65,7 +65,7 @@
 	 *   row. Balance is read from `balancesStore` for the VXP ledger;
 	 *   weekly delta sums signed deltas from clearing settlements in
 	 *   the last 7 days.
-	 * - Recent activity (6 rows) — derived from the same merged
+	 * - Recent activity (6 rows): derived from the same merged
 	 *   `filteredTransactions` source as the History tab, surfacing
 	 *   real history.
 	 * - Send / Receive / History tabs remain below for actual wallet
@@ -73,7 +73,7 @@
 	 *   surface.
 	 *
 	 * The `CollateralStats` secondary card + its modal are intentionally
-	 * gone — collateral lives inside the History "Clearing" tagged rows
+	 * gone; collateral lives inside the History "Clearing" tagged rows
 	 * and the dedicated portfolio surface; it doesn't belong on the
 	 * Wallet hero.
 	 */
@@ -115,7 +115,7 @@
 		arr.sort((a, b) => (a.timestamp === b.timestamp ? 0 : a.timestamp > b.timestamp ? -1 : 1));
 
 	// Live free VXP balance (`$vxpFree`) from the wallet store. Same source
-	// `WalletStats` and `WalletDropdown` read — keyed by `TokenId`.
+	// `WalletStats` and `WalletDropdown` read: keyed by `TokenId`.
 	const vxpBalanceDisplay = $derived(
 		formatVxpBalance({ value: $vxpFree, decimals: VXP_TOKEN.decimals })
 	);
@@ -139,7 +139,7 @@
 		$positions.filter((p) => marketById.get(p.marketId)?.token.symbol === VXP_TOKEN.symbol)
 	);
 
-	// Total VXP riding on open VXP-market positions, in base units — the
+	// Total VXP riding on open VXP-market positions, in base units: the
 	// deploy-floor gate. `$vxpBacked` is the shared sum of `lockedCollateral`
 	// across the user's VXP-market positions (see `vxp-holdings.derived`).
 
@@ -160,7 +160,7 @@
 		})
 	);
 
-	// Weekly VXP delta over the unified feed — signed settlement / trade flows
+	// Weekly VXP delta over the unified feed: signed settlement / trade flows
 	// on VXP-denominated rows from the last 7 days (in base units).
 	const weeklyVxpDelta = $derived(weeklyVxpDeltaBaseUnits(filteredTransactions));
 
@@ -326,7 +326,7 @@
 		});
 	};
 
-	// Row helpers — title / direction / amount label for the recent
+	// Row helpers: title / direction / amount label for the recent
 	// activity list. Mirrors `WalletHistory`'s `directionFor` but renders
 	// a single inline string (e.g. "Won · {market}", "Stake · {market}",
 	// "Receive", "Send") so the row reads at a glance.
@@ -481,7 +481,7 @@
 		{/if}
 	</section>
 
-	<!-- Recent activity — top 6 from the unified transactions feed. -->
+	<!-- Recent activity: top 6 from the unified transactions feed. -->
 	<section bind:this={activityListEl} class="wallet-activity">
 		<h2 class="wallet-activity-title">
 			{t({ locale: $localeStore, key: 'wallet.recent_activity' })}
@@ -524,7 +524,7 @@
 	</section>
 
 	<!--
-		Send / Receive / History tabs. Visually toned-down — no big
+		Send / Receive / History tabs. Visually toned-down: no big
 		"TREASURY" eyebrow and no `CollateralStats` secondary card.
 	-->
 	<Card class="wallet-tabs-card bg-card/85 overflow-hidden" padding="none">

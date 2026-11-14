@@ -19,12 +19,12 @@
 	 * (like {@link LocaleSheet} / {@link DeleteAccountFlow}): Android gets a
 	 * single one-tap CTA that replays the captured `beforeinstallprompt`; iOS
 	 * gets the two manual Share → Add to Home Screen steps (no install API
-	 * exists there). Dismiss starts the cool-off. No `window` global — state
+	 * exists there). Dismiss starts the cool-off. No `window` global: state
 	 * comes from `a2hs.store`.
 	 */
 	interface Props {
 		isOpen: boolean;
-		/** Surface the sheet was opened from — analytics dimension. */
+		/** Surface the sheet was opened from: analytics dimension. */
 		source: 'settings' | 'flow_end';
 		onClose: () => void;
 	}
@@ -38,7 +38,7 @@
 
 	let installStatus = $state<ButtonStatus>('enabled');
 
-	// Open is the funnel's top — fire once per open transition. `wasOpen`
+	// Open is the funnel's top: fire once per open transition. `wasOpen`
 	// guards the effect so it only tracks the false→true edge, not every
 	// re-run while the sheet stays open.
 	let wasOpen = false;

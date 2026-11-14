@@ -21,7 +21,7 @@
 
 <script lang="ts">
 	/**
-	 * Zone 3 · Calls — an Open / Resolved segmented toggle over compact call
+	 * Zone 3 · Calls: an Open / Resolved segmented toggle over compact call
 	 * rows. Each tab previews the first three rows and reveals the rest inline
 	 * via "see all". Open rows carry a pending dot + live timer; resolved rows
 	 * carry a won/lost dot + signed VXP. The empty Open state nudges into Flow.
@@ -50,7 +50,7 @@
 	let tab = $state<'open' | 'resolved'>('open');
 	let expanded = $state(false);
 
-	// Each tab starts collapsed to its preview length — reset on tab flip.
+	// Each tab starts collapsed to its preview length: reset on tab flip.
 	$effect(() => {
 		// Touch `tab` so the reset runs whenever it changes.
 		void tab;

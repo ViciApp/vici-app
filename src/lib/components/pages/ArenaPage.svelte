@@ -12,12 +12,12 @@
 	import { page } from '$app/state';
 
 	/**
-	 * Arena — the three-tab page (Friends / Leagues /
+	 * Arena: the three-tab page (Friends / Leagues /
 	 * Battles) that anchors every cohort surface. Each tab embeds the
 	 * existing page component with `embedded={true}` so their own
 	 * appbars stay quiet. The page leads with the standing hero (its
 	 * own eyebrow carries the context, e.g. GLOBAL RANK) directly above
-	 * the tab strip — there's no page-title header.
+	 * the tab strip: there's no page-title header.
 	 *
 	 * Friends is the default tab: entering /arena *without* `?tab=` (nav
 	 * click, cold load, a bare bookmark) always opens Friends. Selecting a
@@ -25,7 +25,7 @@
 	 * `?tab=` then acts as the tab pointer: `history.back()` from a
 	 * drill-down (e.g. a battle opened off the Battles tab) restores the
 	 * originating tab, and a reload/bookmark/share of the current URL
-	 * reopens it (see `focusTabKey`). The tab is never written to storage —
+	 * reopens it (see `focusTabKey`). The tab is never written to storage:
 	 * it lives only in the URL, so a fresh `/arena` always resets to Friends.
 	 */
 
@@ -64,7 +64,7 @@
 
 		// A friend-request deep link forces Friends; otherwise a `?tab=`
 		// back-nav target wins. Absent both, `activeTab` keeps its Friends
-		// default — entry into Arena always opens Friends.
+		// default: entry into Arena always opens Friends.
 		if (nonNullish(focusRequestKey)) {
 			activeTab = 'friends';
 
@@ -101,7 +101,7 @@
 
 	// Switch tab and mirror it into the URL (`?tab=`) without a navigation, so
 	// `history.back()` from a drill-down lands back on the tab it was opened
-	// from. A one-shot `request` focus is dropped on the way — keeping it would
+	// from. A one-shot `request` focus is dropped on the way: keeping it would
 	// re-force Friends via the deep-link effect and trap the user there.
 	const selectTab = (tab: Tab) => {
 		activeTab = tab;
@@ -237,7 +237,7 @@
 		flex: 1;
 	}
 
-	/* Inline fallback for the tab boundary — a quiet card, not a
+	/* Inline fallback for the tab boundary; a quiet card, not a
 	   full-screen error, so the surrounding Arena shell stays usable. */
 	.arena-boundary {
 		display: flex;

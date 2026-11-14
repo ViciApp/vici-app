@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * Holdings breakdown — a "Your VXP" hero equal to total holdings, a
+	 * Holdings breakdown: a "Your VXP" hero equal to total holdings, a
 	 * two-segment split bar whose widths track the available / in-play
 	 * magnitudes, then two colour-keyed bucket rows (Available, In play) that
 	 * sum back to the hero. Pure presentation: the formatted figures and bigint
@@ -12,17 +12,17 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
-		/** Total holdings, formatted — the hero figure (available + in play). */
+		/** Total holdings, formatted; the hero figure (available + in play). */
 		holdingsDisplay: string;
-		/** Spendable VXP, formatted — the Available bucket value. */
+		/** Spendable VXP, formatted; the Available bucket value. */
 		availableDisplay: string;
-		/** Backed VXP currently in play, formatted — the In play bucket value. */
+		/** Backed VXP currently in play, formatted; the In play bucket value. */
 		inPlayDisplay: string;
-		/** Spendable magnitude (base units) — drives the Available split segment width. */
+		/** Spendable magnitude (base units): drives the Available split segment width. */
 		availableValue: bigint;
-		/** Backed magnitude (base units) — drives the In play split segment width. */
+		/** Backed magnitude (base units): drives the In play split segment width. */
 		inPlayValue: bigint;
-		/** Open calls behind the in-play stake — pluralises the In play sub-label. */
+		/** Open calls behind the in-play stake: pluralises the In play sub-label. */
 		openCallCount: number;
 	}
 

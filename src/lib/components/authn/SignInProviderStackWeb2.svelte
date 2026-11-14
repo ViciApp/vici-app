@@ -188,7 +188,7 @@
 </script>
 
 <div class="signin-providers signin-providers-equal">
-	<!-- Google — full-page redirect handled by the API. -->
+	<!-- Google: full-page redirect handled by the API. -->
 	<button
 		class="signin-provider-btn is-onboarding ob-dark"
 		disabled={blocked || !googleAvailable}
@@ -203,7 +203,7 @@
 		</span>
 	</button>
 
-	<!-- Email — one-time code (no passkey / magic link on this transport). -->
+	<!-- Email: one-time code (no passkey / magic link on this transport). -->
 	{#if stage === 'email'}
 		<form class="signin-email-inline" onsubmit={onEmailSubmit}>
 			<div class="signin-email-row">
@@ -283,7 +283,7 @@
 		</form>
 	{/if}
 
-	<!-- Apple + Passkey — surfaced but disabled: neither is wired on this
+	<!-- Apple + Passkey: surfaced but disabled: neither is wired on this
 			 transport yet, so both read "coming soon" from provider discovery. -->
 	<button class="signin-provider-btn is-onboarding ob-faint" disabled type="button">
 		<span class="signin-provider-icon" aria-hidden="true">

@@ -23,7 +23,7 @@
 		children: Snippet;
 		/**
 		 * Base bottom padding added on top of `--docked-footer-inset`
-		 * (CSS length). Match the host's metric — e.g. `0px` when the host
+		 * (CSS length). Match the host's metric, e.g. `0px` when the host
 		 * surface already pads its sides and only the inset is needed.
 		 */
 		base?: string;

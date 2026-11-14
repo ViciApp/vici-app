@@ -9,7 +9,7 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
-		// Called when an admin picks a result — used to prefill the
+		// Called when an admin picks a result: used to prefill the
 		// Assign Role principal field below.
 		onSelect: (principal: PrincipalText) => void;
 	}

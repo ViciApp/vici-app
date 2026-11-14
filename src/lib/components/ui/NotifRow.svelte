@@ -9,7 +9,7 @@
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
-	 * NotifRow — a single notification card. Tap the body to open it (deep-link
+	 * NotifRow: a single notification card. Tap the body to open it (deep-link
 	 * resolved by the parent), swipe left past the threshold to dismiss, or tap
 	 * the unread dot to mark it read in place without navigating away.
 	 *

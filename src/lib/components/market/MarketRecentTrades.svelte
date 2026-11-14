@@ -30,7 +30,7 @@
 	};
 
 	// First character of the display name, in caps. Brand: no emoji
-	// avatar fallback — initials in a tinted disc instead. See
+	// avatar fallback: initials in a tinted disc instead. See
 	// `docs/ai/frontend/brand.md §2.3`. `charAt(0)` is UTF-16-unit
 	// based, which is fine here: nicknames the satellite accepts are
 	// ASCII/Latin, and the principal shortener fallback is hex.
@@ -83,7 +83,7 @@
 							</span>
 						</div>
 						<p class="text-muted-foreground mt-0.5 text-[10px] leading-tight">
-							<!-- A trade's `details` field carries the market question — redundant on the market's own page. -->
+							<!-- A trade's `details` field carries the market question: redundant on the market's own page. -->
 							{activity.type === ActivityType.TRADE
 								? activity.title
 								: (activity.details ?? activity.title)}

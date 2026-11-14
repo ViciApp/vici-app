@@ -56,8 +56,8 @@
 
 	/**
 	 * Recover the user's side from the resolution event stream when the
-	 * live position is gone. Inference rules — winners' exact side,
-	 * binary losers' opposite side, categorical losers unknown — live
+	 * live position is gone. Inference rules: winners' exact side,
+	 * binary losers' opposite side, categorical losers unknown: live
 	 * in `inferResolvedOutcomeId` so they stay aligned with the
 	 * Portfolio row helpers.
 	 */
@@ -78,7 +78,7 @@
 
 	// Cold-start: an untraded market reads "New" instead of "0 VXP", and an
 	// empty book reads "Be first". Both use real values (traded notional, book
-	// depth) — never a synthetic crowd. The copy is suppressed (suffix dropped,
+	// depth): never a synthetic crowd. The copy is suppressed (suffix dropped,
 	// tile muted) so the grid frames the empty market as an opportunity. Volume
 	// is `undefined` until its read drains, which holds the tile in a pulse.
 	const volumeLoading = $derived(isNullish(volume));
@@ -86,7 +86,7 @@
 	const freshLiquidity = $derived(liquidity === ZERO);
 
 	// Hold the MY CALL tile in a loading state until the position read lands,
-	// but only when there's nothing to show yet — a known call (live or from
+	// but only when there's nothing to show yet; a known call (live or from
 	// the resolved fallback) renders immediately.
 	const myCallPending = $derived(myCallLoading && isNullish(myCall));
 
@@ -204,7 +204,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Tile-level loading pulse — mirrors the market-detail skeleton's block
+	/* Tile-level loading pulse: mirrors the market-detail skeleton's block
 	   so a tile still resolving (e.g. MY CALL waiting on the position read)
 	   shows a shimmer instead of a placeholder value. */
 	.market-stats-skeleton {

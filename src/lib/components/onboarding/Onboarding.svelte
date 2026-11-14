@@ -21,14 +21,14 @@
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	/**
-	 * One-screen onboarding — claim a handle and sign up on a single
+	 * One-screen onboarding: claim a handle and sign up on a single
 	 * surface: brand wordmark → hero → handle field (live availability +
 	 * pool-suggested placeholder) → reward chip → auth provider stack →
 	 * escapes → legal fine print.
 	 *
 	 * Handle behaviour: live probe, monotonic cancel token, session-taken
 	 * cache, offline-tolerant `failed`, and a claim-time TOCTOU re-check.
-	 * Team selection happens in the post-signup Profile instead — so
+	 * Team selection happens in the post-signup Profile instead, so
 	 * `participantId` / `side` are always `null` in the emitted handoff and
 	 * the persist-across-providers stash/drain is reused unchanged.
 	 *
@@ -42,8 +42,8 @@
 			side: 'YES' | 'NO' | null;
 			handle: string | null;
 		}) => void;
-		// Fires once an available handle is claimed, BEFORE any provider runs
-		// — so a full-page redirect provider (Google) carries the handle
+		// Fires once an available handle is claimed, BEFORE any provider runs,
+		// so a full-page redirect provider (Google) carries the handle
 		// through the auth-gate stash.
 		onPicksReady?: (result: {
 			participantId: string | null;
@@ -52,7 +52,7 @@
 		}) => void;
 		// "Already a member? Sign in".
 		onSignIn: () => void;
-		// "Skip — preview first, sign up later". Carries the selected handle so
+		// "Skip: preview first, sign up later". Carries the selected handle so
 		// the guest session (and the later conversion) keeps the chosen name.
 		onSkip: (handle: string | null) => void;
 		// True when the user is already signed in (post-signin onboarding path).
@@ -63,13 +63,13 @@
 
 	const event = $derived($featuredEvent);
 
-	// Starter-pack VXP — sourced from the real registration milestone grant
+	// Starter-pack VXP: sourced from the real registration milestone grant
 	// rather than a hardcoded literal, so the chip stays in lock-step with
 	// the economy config.
 	const starterVxp = $derived(formatVxpBalance({ value: newUserVxpAmountMilestone1BaseUnits() }));
 	const eventTitle = $derived(event.brandedTitle ?? event.shortTitle ?? event.title);
 
-	// Placeholder typewriter cadence — reveal a word, hold it, retract it,
+	// Placeholder typewriter cadence: reveal a word, hold it, retract it,
 	// reveal the next.
 	const PLACEHOLDER_CYCLE_LENGTH = 6;
 	const TYPE_SPEED_MS = 95;
@@ -119,7 +119,7 @@
 
 	let custom = $state('');
 
-	// Sanitised view of the input — NFC-normalised, out-of-charset characters
+	// Sanitised view of the input: NFC-normalised, out-of-charset characters
 	// stripped (case and accents are preserved; uniqueness folds them later).
 	// The input renders this cleaned value, and it is what gets probed and
 	// claimed. An empty field falls back to the pool suggestion.
@@ -136,7 +136,7 @@
 	let checkTimer: ReturnType<typeof setTimeout> | undefined;
 	const CHECK_DEBOUNCE_MS = 350;
 
-	// Handles the satellite confirmed taken this session — sourced from the
+	// Handles the satellite confirmed taken this session: sourced from the
 	// live probe and the claim-time re-check, so a retry doesn't re-query.
 	const sessionTaken = new SvelteSet<string>();
 	let isClaiming = $state(false);
@@ -159,7 +159,7 @@
 	});
 
 	// Local format checks the live probe must clear before hitting the
-	// satellite. Only the typed handle is probed — the placeholder is
+	// satellite. Only the typed handle is probed; the placeholder is
 	// pre-validated.
 	const formatValid = $derived(
 		!usingSuggestion &&
@@ -171,7 +171,7 @@
 
 	// Debounced live probe. A monotonic token cancels the in-flight check on
 	// each keystroke so stale results drop. Offline-tolerant: a failure
-	// surfaces as `failed` but never blocks the claim — the claim-time
+	// surfaces as `failed` but never blocks the claim; the claim-time
 	// re-check and the satellite assertion are the authority. Fires
 	// `handle_checked` once a typed-handle probe completes.
 	$effect(() => {
@@ -252,7 +252,7 @@
 	const availability: Availability = $derived.by(() => {
 		const name = selectedName;
 
-		// The empty-field placeholder is a pre-validated pool pick — claimable,
+		// The empty-field placeholder is a pre-validated pool pick: claimable,
 		// shown neutral (it isn't a confirmed-available probe result).
 		if (usingSuggestion) {
 			return { ok: true, tone: 'neutral' };
@@ -286,7 +286,7 @@
 			return { ok: false, tone: 'error', reasonKey: 'onboarding.avail.taken' };
 		}
 
-		// Probe failed — claimable but neutral; never the green "Available",
+		// Probe failed: claimable but neutral; never the green "Available",
 		// since it wasn't confirmed. The claim-time re-check is the gate.
 		if (liveAvailability === 'failed') {
 			return { ok: true, tone: 'neutral', reasonKey: 'onboarding.avail.check_failed' };
@@ -318,7 +318,7 @@
 				return false;
 			}
 		} catch (err) {
-			// Fall through to stash — the satellite-side assertion is the
+			// Fall through to stash: the satellite-side assertion is the
 			// ultimate authority, and blocking on a transient probe failure
 			// would strand the user.
 			console.warn('Claim-time availability re-check failed:', err);
@@ -399,7 +399,7 @@
 		let timer: ReturnType<typeof setTimeout>;
 
 		const tick = () => {
-			// Hold while the user owns the field — the placeholder is hidden
+			// Hold while the user owns the field; the placeholder is hidden
 			// behind typed text anyway, and the caret shouldn't compete with a
 			// second blinking cursor on focus.
 			if (isFocused || cleaned.length > 0) {
@@ -413,7 +413,7 @@
 			typedPlaceholder = word.slice(0, charIndex);
 
 			// Advance the claim target only once the new word is visibly being
-			// typed — never during the blank beat — so a blur there commits the
+			// typed, never during the blank beat, so a blur there commits the
 			// word the user just saw, not the next one they haven't.
 			if (!deleting && charIndex === 1) {
 				suggestion = word;

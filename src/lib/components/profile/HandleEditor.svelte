@@ -25,7 +25,7 @@
 	 * availability probe, and a once-every-{@link HANDLE_COOLDOWN_DAYS}-days
 	 * change limit.
 	 *
-	 * The cooldown is server-authoritative — the set-profile assertion is the
+	 * The cooldown is server-authoritative: the set-profile assertion is the
 	 * authority. This sheet mirrors the rule from the profile's
 	 * `handleLastChangeMs` so the editor is disabled (with an explanation of
 	 * the wait) before a doomed write is ever attempted.
@@ -33,7 +33,7 @@
 	interface Props {
 		/** Current handle (without the leading `@`). */
 		current: string;
-		/** Owner principal — passed to the availability probe so the user is
+		/** Owner principal: passed to the availability probe so the user is
 		 *  never told their own current handle is taken. */
 		owner: string;
 		/** Wall-clock ms of the owner's last handle change, from the profile.
@@ -48,13 +48,13 @@
 
 	// One-time snapshot of the cooldown at open. The sheet is remounted on
 	// every open (gated behind `{#if handleEditOpen}` in the parent), so
-	// capturing "now" at init is intentional — there's no in-session change.
+	// capturing "now" at init is intentional: there's no in-session change.
 	const daysLeft = untrack(() => handleCooldownDaysLeft({ lastChangeMs, nowMs: Date.now() }));
 	const locked = daysLeft > 0;
 
 	// One-time seed from the current handle. The sheet is remounted on
 	// every open (it's gated behind `{#if handleEditOpen}` in the parent),
-	// so capturing the prop's initial value here is intentional — there's
+	// so capturing the prop's initial value here is intentional: there's
 	// no later `current` change to track within a single open.
 	const initialHandle = untrack(() => current ?? '');
 	let value = $state(initialHandle);
@@ -87,7 +87,7 @@
 
 	const localValid = $derived(!tooShort && !unchanged && !reserved);
 
-	// Backend availability probe — debounced; only runs once the candidate
+	// Backend availability probe: debounced; only runs once the candidate
 	// clears the local checks.
 	type Availability = 'idle' | 'checking' | 'available' | 'taken' | 'failed';
 	let availability = $state<Availability>('idle');
@@ -291,7 +291,7 @@
 <!-- Actions live in the sheet's pinned footer (a `flex-shrink: 0` sibling
 	after the scrolling body) rather than inside the scrolling body, so the
 	Save / Cancel CTAs stay in view when the soft keyboard or iOS browser
-	chrome shrinks the visual viewport — otherwise the buttons sit at the
+	chrome shrinks the visual viewport; otherwise the buttons sit at the
 	tail of the body's scroll region and clip below the visible area, out of
 	reach (#739). Only rendered when unlocked; the locked state has no
 	actions, so the sheet falls back to the single-scroller layout. -->

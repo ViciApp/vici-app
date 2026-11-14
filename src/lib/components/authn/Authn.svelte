@@ -41,7 +41,7 @@
 	 * device carrying this hint is almost certainly resuming a session, so the
 	 * gate holds a branded spinner (instead of the blank brand shell) until it
 	 * bounces to `/flow` via a client-side `goto`. Wrapped in try/catch for SSR
-	 * / private-mode safety — a missing flag just means the gate shows the
+	 * / private-mode safety: a missing flag just means the gate shows the
 	 * blank shell during that window instead.
 	 */
 	const setSignedInFlag = (signedIn: boolean): void => {
@@ -57,7 +57,7 @@
 			}
 		} catch {
 			// localStorage may throw in private mode or when storage is
-			// disabled. Silently degrade — the no-flash hint is purely
+			// disabled. Silently degrade; the no-flash hint is purely
 			// an optimisation.
 		}
 	};
@@ -166,7 +166,7 @@
 		receivedReactionsStore.set(undefined);
 
 		// Same idea for the identity-scoped localStorage caches, except
-		// those are local-authoritative (not server-backed) — see
+		// those are local-authoritative (not server-backed): see
 		// `reconcileIdentityScopedStorage`.
 		reconcileIdentityScopedStorage({ ownerKey: user?.owner });
 
@@ -255,7 +255,7 @@
 			})();
 
 			// Register the sync (dev-only no-op in prod) so the e2e reset hook can
-			// wait for it to settle before deleting the profile — otherwise this
+			// wait for it to settle before deleting the profile; otherwise this
 			// sync's trailing profile write would resurrect the deleted doc.
 			trackLoginSyncSettled(syncRun);
 

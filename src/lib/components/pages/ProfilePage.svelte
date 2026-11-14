@@ -32,7 +32,7 @@
 	`ProfileDashboard`) rather than the shared section header: the avatar
 	scene IS the header, and the notification + settings controls float over
 	it. So this page intentionally does not wrap the loaded state in
-	`PageScaffold` — the dashboard owns its own chrome. The loading / empty
+	`PageScaffold`: the dashboard owns its own chrome. The loading / empty
 	states keep the simple centered card.
 -->
 <div class="profile-page">

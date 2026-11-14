@@ -15,7 +15,7 @@
 
 	const { category, yesPct, categoryAcc, priorCall }: Props = $props();
 
-	// Friends-followed accuracy line — shown when the user has any
+	// Friends-followed accuracy line: shown when the user has any
 	// followed predictors who've called this market.
 	const categoryAccLine = $derived(
 		nonNullish(categoryAcc)
@@ -101,7 +101,7 @@
 		color: var(--no);
 	}
 
-	/* Prior-call pill — always the laurel-gold treatment, not a
+	/* Prior-call pill: always the laurel-gold treatment, not a
 	   category-accent tint. Eyebrow + value sit at opposite ends. */
 	.flow-back-prior {
 		display: flex;

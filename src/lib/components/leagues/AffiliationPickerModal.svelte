@@ -38,16 +38,16 @@
 	} from '#lib/utils/school-picker.utils.ts';
 
 	/**
-	 * Affiliation picker — full-bleed bottom sheet with a large
+	 * Affiliation picker: full-bleed bottom sheet with a large
 	 * display-font title, a searchable roster, and a bottom-anchored
 	 * CTA pill. The caller chooses the `kind` (one sheet per
-	 * affiliation slot) — there's no in-sheet toggle.
+	 * affiliation slot): there's no in-sheet toggle.
 	 *
 	 * The **country** kind is a plain browse-and-commit list. The
 	 * **university** kind layers in directory features:
 	 *
 	 *  - fuzzy search across name + acronym (typo-tolerant);
-	 *  - status badges — verified (gold tick) on schools that already
+	 *  - status badges: verified (gold tick) on schools that already
 	 *    carry members, pending (amber) on the user's own awaiting
 	 *    school, unverified (blue founder) on memberless rows;
 	 *  - email-domain verification + add-your-own ("Pass 2"), gated by
@@ -62,7 +62,7 @@
 	 * this kind, the picker commits via {@link switchAffiliation}
 	 * (delete + re-join); otherwise it goes through
 	 * {@link joinAffiliation} directly. The 90-day lock is enforced on
-	 * the delete leg — when it's still active the CTA shows a
+	 * the delete leg: when it's still active the CTA shows a
 	 * "Locked for N days" disabled state instead of firing a doomed
 	 * round-trip.
 	 */
@@ -79,7 +79,7 @@
 		 *  unset (not ranked yet) renders the count without a rank. */
 		schoolStats?: Readonly<Record<string, { members: number; monthRank?: number }>>;
 		/** When set (a university id) and Pass-2 is on, the sheet opens
-		 *  straight into the email-verification step for that school — the
+		 *  straight into the email-verification step for that school; the
 		 *  "Verify your school" entry from the profile's Alma Mater slot. */
 		initialVerifyId?: string;
 		onClose: () => void;
@@ -103,21 +103,21 @@
 	const isUniversity = $derived(kind === 'university');
 	const pass2 = $derived(isUniversity && SCHOOL_PASS2_ENABLED);
 
-	// Locale-aware row label — country names localize via
+	// Locale-aware row label: country names localize via
 	// `Intl.DisplayNames`, university names render as-is.
 	const optionName = (option: WorldsAffiliationOption): string =>
 		affiliationDisplayName({ option, kind, locale: $localeStore });
 
 	// How long the "you're verified" confirmation stays on screen before
-	// the sheet auto-dismisses — long enough to register, short enough not
+	// the sheet auto-dismisses: long enough to register, short enough not
 	// to feel stuck.
 	const VERIFIED_HOLD_MS = 1400;
 
 	// When launched via the profile's "Verify your school" CTA, resolve the
 	// school to verify so the sheet can open directly on its email step
-	// (only for a verifiable directory university — Pass-2 on + has domains).
+	// (only for a verifiable directory university: Pass-2 on + has domains).
 	// `untrack`: this is a deliberate mount-time snapshot (the sheet is
-	// remounted per open), not reactive — it seeds the initial `mode` /
+	// remounted per open), not reactive; it seeds the initial `mode` /
 	// `verifyTarget` below.
 	const initialVerifyTarget: WorldsAffiliationOption | null = untrack(() =>
 		nonNullish(initialVerifyId) && kind === 'university' && SCHOOL_PASS2_ENABLED
@@ -157,12 +157,12 @@
 	let verifyError = $state<string | null>(null);
 	let submitting = $state(false);
 	// School name shown on the post-verify success beat (resolved at the
-	// moment of success — the directory target's name, else the typed one).
+	// moment of success: the directory target's name, else the typed one).
 	let verifiedName = $state('');
 
 	/**
 	 * Region tabs (university kind only). `LATAM` / `MEA` entries have no
-	 * tab — they surface only under "All" or via search. The tab `id`
+	 * tab: they surface only under "All" or via search. The tab `id`
 	 * matches `WorldsAffiliationOption.region`; the AU tab covers both
 	 * Australia and New Zealand (`region: 'AU'`).
 	 */
@@ -176,7 +176,7 @@
 		{ id: 'AU', key: 'worlds.picker.region.au' }
 	];
 
-	// Best-effort home country from `navigator.language` — drives the
+	// Best-effort home country from `navigator.language`: drives the
 	// "Near you" pinning. Read once at setup: the heuristic has no
 	// reactive inputs, so there's nothing to re-derive.
 	const homeCountry = detectUserCountryCode();
@@ -198,7 +198,7 @@
 	 * when a different row is selected over an existing affiliation,
 	 * "Locked for N days" when the 90-day lock blocks the switch,
 	 * "Pick a school/country" otherwise. Returns the resolved string,
-	 * not a key — so all branches can pass through one i18n call.
+	 * not a key: so all branches can pass through one i18n call.
 	 */
 	const ctaLabel = $derived.by<string>(() => {
 		if (isSwitching && isLocked) {
@@ -268,7 +268,7 @@
 				.slice(0, 40);
 		}
 
-		// Idle, country kind: unchanged — first 20 of the roster.
+		// Idle, country kind: unchanged: first 20 of the roster.
 		if (!isUniversity) {
 			return roster.slice(0, 20);
 		}
@@ -286,7 +286,7 @@
 		return [...pinned, ...rest].slice(0, 80);
 	});
 
-	// Count of home-country schools in the active scope — drives the
+	// Count of home-country schools in the active scope: drives the
 	// "Near you · N schools" divider. Zero when there's no home country,
 	// while searching, or for the country kind.
 	const nearYouCount = $derived(
@@ -300,7 +300,7 @@
 		isUniversity ? spFindCloseMatches({ query: addName.trim(), directory: roster, limit: 3 }) : []
 	);
 
-	// Ids that render the "founder" badge — the first
+	// Ids that render the "founder" badge; the first
 	// {@link SCHOOL_FOUNDER_BADGE_CAP} memberless, unjoined rows in the
 	// current list (Pass 2 only), so an unseeded region doesn't paint
 	// every row with the badge. Empty when Pass 2 is off.
@@ -369,15 +369,15 @@
 			onClose();
 		} catch (err) {
 			// Four branches that need distinct UI:
-			//  - Lock active — switch attempted while still inside the
+			//  - Lock active: switch attempted while still inside the
 			//    90-day window. `switchAffiliation` throws synchronously
 			//    so this also covers a clock-skew race.
 			//  - "Already affiliated" — `current` was stale and the
 			//    server rejected on the join leg.
-			//  - Timeout — `joinAffiliation` / `leaveAffiliation` wrap
+			//  - Timeout: `joinAffiliation` / `leaveAffiliation` wrap
 			//    each round-trip in a 15s race; the pick may or may not
 			//    have committed.
-			//  - Anything else — generic fallback, error logged.
+			//  - Anything else: generic fallback, error logged.
 			const message = err instanceof Error ? err.message : '';
 			const isLockActive = message.includes('lock active');
 			const isAlreadyAffiliated = message.includes('Already affiliated');
@@ -476,10 +476,10 @@
 	 * profile's `schoolStatus` server-side, so verification is terminal.
 	 * We still join / switch the row when it differs, but a redundant
 	 * commit (already affiliated with this exact school) or a blocked one
-	 * (90-day lock) is swallowed — the verification stands regardless.
+	 * (90-day lock) is swallowed; the verification stands regardless.
 	 */
 	const commitAfterVerify = async (affiliationIdentifier: string) => {
-		// Already on this exact affiliation — verification was the whole
+		// Already on this exact affiliation: verification was the whole
 		// point; there's nothing to join or switch.
 		if (currentForKind === affiliationIdentifier) {
 			return;
@@ -581,7 +581,7 @@
 			const affiliationIdentifier = verifyTarget?.id ?? result.schoolId;
 
 			if (isNullish(affiliationIdentifier)) {
-				// No target and no schoolId in the response — unexpected.
+				// No target and no schoolId in the response: unexpected.
 				verifyError = t({ locale: $localeStore, key: 'worlds.picker.school.error_verify' });
 
 				return;
@@ -589,7 +589,7 @@
 
 			// Verification is terminal. Show a success beat, then auto-dismiss
 			// after a fixed hold. The affiliation commit runs in the
-			// background (it catches / logs its own errors) — awaiting it
+			// background (it catches / logs its own errors): awaiting it
 			// would let a slow write drag the success beat out and reintroduce
 			// the "feels stuck" problem, and a redundant or blocked commit
 			// must not block the close.
@@ -628,7 +628,7 @@
 		resetAddState();
 	};
 
-	// Thin `t()` wrapper that binds the locale once per render — keeps
+	// Thin `t()` wrapper that binds the locale once per render: keeps
 	// the dense markup readable. `key` stays positional (it's the one
 	// required arg and reads naturally first); `params` trails it.
 	// eslint-disable-next-line local-rules/prefer-object-params -- Locale-bound translate shorthand; key reads best positionally
@@ -1013,7 +1013,7 @@
 		padding: 0.25rem 0 0.5rem;
 	}
 
-	/* Post-verify success beat — a centered laurel tick that pops in,
+	/* Post-verify success beat: a centered laurel tick that pops in,
 	   shown briefly before the sheet auto-dismisses. */
 	.affil-picker-verified {
 		display: flex;
@@ -1187,7 +1187,7 @@
 	.affil-picker-list {
 		/* No own scroll cap: the list flows inside the sheet's single
 		 * scrolling body (`.sheet-body`), while the commit CTA rides in the
-		 * sheet's non-scrolling `footer` snippet — so a long roster scrolls
+		 * sheet's non-scrolling `footer` snippet: so a long roster scrolls
 		 * the body and the CTA stays docked in view. */
 		list-style: none;
 		padding: 0;
@@ -1309,7 +1309,7 @@
 	}
 
 	.affil-picker-badge-pending {
-		/* Amber "awaiting verification" — distinct from the gold accent
+		/* Amber "awaiting verification": distinct from the gold accent
 		   (verified) and the blue founder badge. */
 		color: #d8a23a;
 		background: color-mix(in srgb, #d8a23a 12%, transparent);

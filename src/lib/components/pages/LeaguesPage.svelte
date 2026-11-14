@@ -44,11 +44,11 @@
 	 * badge, and an inline copy-invite pill.
 	 *
 	 * The Create + Join entries live in a trailing "Start or join"
-	 * CTA grid — never as a top-of-list pill row.
+	 * CTA grid: never as a top-of-list pill row.
 	 */
 
 	interface Props {
-		// When true, hide the page's own appbar — the container is
+		// When true, hide the page's own appbar, the container is
 		// expected to render one (e.g. the tabbed Arena parent).
 		embedded?: boolean;
 	}
@@ -123,8 +123,8 @@
 
 	// Retroactively back-pay the "Founder +100 VXP" reward for any league
 	// the caller founded before the founder-award hook shipped. Gated on the
-	// loaded list actually containing an owned league — so a member who never
-	// founded one makes no (state-changing) update call — and fired at most
+	// loaded list actually containing an owned league, so a member who never
+	// founded one makes no (state-changing) update call, and fired at most
 	// once per mount. Idempotent server-side; refresh balances only when
 	// something was newly settled so the credit shows without a reload.
 	let founderSettleTried = false;
@@ -143,7 +143,7 @@
 		});
 	});
 
-	// "Friends are in" — public leagues the caller's confirmed friends are
+	// "Friends are in": public leagues the caller's confirmed friends are
 	// in but the caller is not. Capped so the row stays a discovery nudge
 	// at the foot of the list, not a directory.
 	const FRIEND_RECS_LIMIT = 5;
@@ -195,7 +195,7 @@
 		$profilesStore.get(principal)?.dailyStreak ?? 0;
 
 	/**
-	 * Caller's 1-indexed rank per league — the same accuracy-first ranking the
+	 * Caller's 1-indexed rank per league: the same accuracy-first ranking the
 	 * detail page and its leaderboard use, so the card badge agrees with both.
 	 * Computed once per (rows, viewer, profile-cache) change rather than per
 	 * card render: the page re-renders for unrelated reactive churn (trend
@@ -291,7 +291,7 @@
 		}
 	});
 
-	// The card's `trend` value for a league — 0 (no arrow) until its weekly
+	// The card's `trend` value for a league: 0 (no arrow) until its weekly
 	// standing has resolved a comparable prior-week rank for the viewer.
 	const trendFor = (row: LeagueRow): number => leagueTrends.get(row.league.id) ?? 0;
 
@@ -421,7 +421,7 @@
 			</section>
 		{/if}
 
-		<!-- Start or join — secondary actions, deliberately lighter than the
+		<!-- Start or join: secondary actions, deliberately lighter than the
 		     league cards above so the leagues you're in stay the focus. -->
 		<section class="leagues-section">
 			<h2 class="leagues-eyebrow allcaps">
@@ -558,7 +558,7 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 0.6rem;
-		/* Gold-washed, dashed-laurel "invite-only" panel — distinct from
+		/* Gold-washed, dashed-laurel "invite-only" panel: distinct from
 		   the neutral surface cards so the zero-state reads as an
 		   editorial prompt, not a plain empty card. */
 		padding: 1.5rem 1.375rem;

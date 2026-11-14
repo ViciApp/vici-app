@@ -1,5 +1,5 @@
 <!--
-	The Menagerie glyph sprite — a single hidden <defs> block of 12 animal
+	The Menagerie glyph sprite: a single hidden <defs> block of 12 animal
 	<symbol>s, consumed by <MenagerieBadge> via `<use href="#menagerie-{slug}">`.
 	Mount once at the app shell so every badge on every surface can reference it.
 	The animals are flat, two-tone marks coloured from the per-animal palette

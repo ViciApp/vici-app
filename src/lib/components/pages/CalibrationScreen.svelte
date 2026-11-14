@@ -28,12 +28,12 @@
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
-	 * Calibration practice — a recovery surface for a depleted user.
+	 * Calibration practice: a recovery surface for a depleted user.
 	 *
 	 * The user reads a finalised Vici binary market with its outcome
 	 * hidden and calls YES / NO. The call is sent to the satellite, which
 	 * re-derives the winning side from the clearing settlement and is the
-	 * sole authority on correctness — the client never decides whether the
+	 * sole authority on correctness: the client never decides whether the
 	 * call was right. A correct call mints a fixed +20 VXP; a wrong call
 	 * mints nothing and applies no penalty (losses are shielded), shown
 	 * honestly. A short pacing countdown arms the next card so the session
@@ -55,13 +55,13 @@
 	let deck = $state<CalibrationCard[]>([]);
 	let cardIndex = $state(0);
 	let claiming = $state(false);
-	// Last server result for the current card — drives the instant feedback
+	// Last server result for the current card: drives the instant feedback
 	// overlay (correct celebration / shielded miss / already-claimed note).
 	let lastClaim = $state<VxpCalibrationClaim | null>(null);
 	// Reason a rate-limit / ineligible state was entered, for the right copy.
 	let blockedReason = $state<VxpCalibrationReason | null>(null);
 
-	// Session tally — surfaced honestly: calls made, calls the server scored
+	// Session tally: surfaced honestly: calls made, calls the server scored
 	// correct, and the VXP minted (only correct calls move this).
 	let sessionCalls = $state(0);
 	let sessionCorrect = $state(0);
@@ -73,7 +73,7 @@
 
 	const reduceMotion = $derived(prefersReducedMotion());
 
-	// Free VXP balance, in base units, read from the wallet store — the same
+	// Free VXP balance, in base units, read from the wallet store; the same
 	// source the Wallet hero and Dash read. The recovery banner / disarm gate
 	// keys off this against the recovery floor (also base units).
 	const vxpBalanceBaseUnits = $derived.by((): bigint => $balancesStore?.[VXP_TOKEN.id] ?? ZERO);
@@ -85,7 +85,7 @@
 	// comparison is base-unit vs base-unit.
 	const shielded = $derived(vxpBalanceBaseUnits < CALIBRATION_RECOVERY_FLOOR_BASE_UNITS);
 
-	// Whole-VXP display values for copy — derived from the base-unit constants
+	// Whole-VXP display values for copy: derived from the base-unit constants
 	// so the numbers shown to the user track the authoritative thresholds.
 	const recoveryFloorVxp = $derived(
 		decimalFixedValueToNumber({
@@ -146,7 +146,7 @@
 		}
 
 		if (reason === 'balance_above_floor') {
-			// The user climbed back to the recovery floor mid-session — disarm
+			// The user climbed back to the recovery floor mid-session: disarm
 			// into the "you're recovered" beat rather than keep practising.
 			blockedReason = reason;
 			phase = 'recovered';
@@ -179,8 +179,8 @@
 			if (claim.correct && claim.paidNow) {
 				sessionCorrect += 1;
 				// Add the reward the server actually paid (base units, decimal
-				// string) converted to whole-VXP for display — never the local
-				// constant — so the tally stays correct if the server reward
+				// string) converted to whole-VXP for display: never the local
+				// constant: so the tally stays correct if the server reward
 				// ever differs from our compile-time guess.
 				sessionVxp += nonNullish(claim.rewardBaseUnits)
 					? decimalFixedValueToNumber({
@@ -212,7 +212,7 @@
 
 	// Enter the pacing beat: hold the feedback, run the countdown, then arm
 	// the next card (or finish the deck). Reduced-motion still waits out the
-	// timer so the cadence is identical — only the ring animation collapses.
+	// timer so the cadence is identical; only the ring animation collapses.
 	const startPacing = () => {
 		phase = 'pacing';
 		secondsLeft = PACING_COUNTDOWN_SECONDS;
@@ -241,7 +241,7 @@
 		phase = 'active';
 	};
 
-	// Skip the remaining countdown — the user taps "Next" to arm immediately.
+	// Skip the remaining countdown: the user taps "Next" to arm immediately.
 	const skipPacing = () => {
 		armNextCard();
 	};
@@ -265,7 +265,7 @@
 	/>
 
 	{#if shielded && (phase === 'active' || phase === 'pacing')}
-		<!-- Persistent recovery banner — up while the user is below the
+		<!-- Persistent recovery banner: up while the user is below the
 		     recovery floor, so the loss-shield promise stays visible. -->
 		<div class="calib-banner" role="status">
 			{t({

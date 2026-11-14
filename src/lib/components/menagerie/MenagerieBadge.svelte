@@ -13,12 +13,12 @@
 
 	// The trophy-layer badge primitive: a squircle frame + per-animal aura + the
 	// animal glyph (from <MenagerieSprite>), at any size / tier. A locked badge
-	// desaturates the glyph and shows a small lock mark — the "soon" state.
+	// desaturates the glyph and shows a small lock mark; the "soon" state.
 	interface Props {
 		slug: MenagerieSlug;
 		/** Explicit tier. When omitted and `stats` is given, derived live. */
 		tier?: MenagerieTier | null;
-		/** Owner stats — used to derive the tier when `tier` is not passed. */
+		/** Owner stats: used to derive the tier when `tier` is not passed. */
 		stats?: MenagerieStats;
 		/** Square edge length in px. */
 		size?: number;
@@ -57,7 +57,7 @@
 
 	const isLocked = $derived(locked || isNullish(resolvedTier));
 	const isHero = $derived(animal?.hero === true);
-	// Warm-bodied animals lose edge on the peach theme — flag them so the badge
+	// Warm-bodied animals lose edge on the peach theme: flag them so the badge
 	// frame deepens to keep them legible.
 	const isWarm = $derived(MENAGERIE_WARM_SLUGS.has(slug));
 	const auraColor = $derived(MENAGERIE_PALETTES[slug]?.body ?? 'var(--text-base)');
@@ -324,7 +324,7 @@
 		border-color: rgba(61, 36, 25, 0.06);
 	}
 
-	/* Warm-bodied animals lose edge on peach — deepen aura + stroke. */
+	/* Warm-bodied animals lose edge on peach: deepen aura + stroke. */
 	:global([data-theme='peach']) .mbadge.mb-warm .mb-aura {
 		opacity: 0.8;
 		filter: blur(9px);

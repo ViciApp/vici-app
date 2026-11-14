@@ -11,7 +11,7 @@ import { redirect, type LoadEvent } from '@sveltejs/kit';
 /**
  * Signed-out fast path. Invite links are sent to people with a cold cache
  * and no session, and their destination is always the same: stash the codes
- * and land on `/signup`. That branch needs no auth and no satellite — yet
+ * and land on `/signup`. That branch needs no auth and no satellite: yet
  * the page component can only take it after the boot gate lifts
  * (`initSatellite`) and the auth handshake settles (`authBusy`), several
  * seconds a first-time mobile visitor spends on a spinner.
@@ -20,7 +20,7 @@ import { redirect, type LoadEvent } from '@sveltejs/kit';
  * never signed in here carries no `SIGNED_IN_FLAG_KEY` hint, so it redirects
  * straight to signup. Devices WITH the hint (and the rare storage-read
  * failure, which can't tell) fall through to the page's auth-aware flow
- * unchanged — a hint can be stale, and only the settled handshake can say
+ * unchanged: a hint can be stale, and only the settled handshake can say
  * whether to join directly instead.
  */
 export const load = ({ params, url }: LoadEvent): void => {
@@ -38,7 +38,7 @@ export const load = ({ params, url }: LoadEvent): void => {
 
 	const inviteCode = (params.code ?? '').toUpperCase().trim();
 
-	// Malformed codes stay on the page — it owns the invalid-code toast.
+	// Malformed codes stay on the page: it owns the invalid-code toast.
 	if (!LEAGUE_INVITE_CODE_REGEX.test(inviteCode)) {
 		return;
 	}

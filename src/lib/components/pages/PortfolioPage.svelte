@@ -46,30 +46,30 @@
 	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	/**
-	 * Portfolio page — single-page hero + flat lists.
+	 * Portfolio page: single-page hero + flat lists.
 	 *
 	 * Layout (top → bottom)
 	 * - `ScreenHeader`, back control + centered title "Portfolio".
-	 * - Hero card (left-aligned, gradient surface) — TOTAL HOLDINGS
+	 * - Hero card (left-aligned, gradient surface): TOTAL HOLDINGS
 	 *   eyebrow, 38 px VXP balance + unit, 3-col stat row
 	 *   (Unrealized P&L · 7D Accuracy · Rank).
 	 * - Performance · 30D card with signed % delta and sparkline of
 	 *   cumulative realised PnL over 30 days. Hidden when the user has
 	 *   no settled VXP events in window.
-	 * - Allocation card — per-tag share of open VXP capital, top 5 +
+	 * - Allocation card: per-tag share of open VXP capital, top 5 +
 	 *   Other, sorted by descending share. Hidden when no open VXP
 	 *   positions.
-	 * - Active calls — flat list with per-category accent tag + side
+	 * - Active calls: flat list with per-category accent tag + side
 	 *   tag, market title, "Entry X% → Y%" entry-to-current probability,
 	 *   and signed "+N VXP · +M%" PnL (delta also expressed as
 	 *   price-move %).
-	 * - Recent history — flat resolved rows: title, side tag, "Xd ago",
+	 * - Recent history: flat resolved rows: title, side tag, "Xd ago",
 	 *   WIN/LOSS label, signed +VXP.
-	 * - Open orders — same card shape as active calls, with the order's
+	 * - Open orders: same card shape as active calls, with the order's
 	 *   limit price + qty in place of the entry → current strip, plus
 	 *   an inline cancel button.
 	 *
-	 * Rank: not yet served by the satellite — rendered as `EM_DASH`
+	 * Rank: not yet served by the satellite, rendered as `EM_DASH`
 	 * placeholder, mirroring the Dash page treatment.
 	 */
 
@@ -93,7 +93,7 @@
 
 	// Live positions whose market hasn't resolved yet. The clearing canister
 	// deletes positions on settlement, so anything still in `$positions` is
-	// by definition unresolved — but keep the explicit filter so a brief
+	// by definition unresolved, but keep the explicit filter so a brief
 	// staleness window (positions seen before the market list catches up)
 	// can't show a settled row in the Active section.
 	const openPositions = $derived(
@@ -129,7 +129,7 @@
 			const pnl = calculatePositionPnL({ position: pos, market });
 
 			// Skip positions whose value is still unknown (book not read / empty)
-			// instead of treating them as 0 — see `calculatePositionValue`.
+			// instead of treating them as 0; see `calculatePositionValue`.
 			return nonNullish(pnl) ? acc + pnl : acc;
 		}, 0)
 	);
@@ -159,12 +159,12 @@
 	});
 
 	// `profile.accuracy` is persisted as a 0..100 percentage (see
-	// `profile.services.ts` `calculateAndSyncStats`). Render directly —
+	// `profile.services.ts` `calculateAndSyncStats`). Render directly:
 	// multiplying by 100 here gave 10000% for a fully-accurate user.
 	const accuracyValue = $derived($userStore.profile?.accuracy ?? 0);
 
 	// A user with no settled predictions yet shows an optimistic 100% rather
-	// than a misleading 0% (display-only — see `displayAccuracyPct`). This is
+	// than a misleading 0% (display-only; see `displayAccuracyPct`). This is
 	// always the viewer's own portfolio, so the `resolvedPositions`-derived
 	// count is the right gate.
 	const accuracyDisplay = $derived(
@@ -202,7 +202,7 @@
 
 	/**
 	 * Per-category accent for the row tag chip. Falls back to the
-	 * laurel-gold default when the market has no recognised micro — same
+	 * laurel-gold default when the market has no recognised micro: same
 	 * fallback `tagColor()` uses internally.
 	 */
 	const categoryAccent = (marketId: string): string => {
@@ -213,7 +213,7 @@
 
 	// Current implied probability for the position's side, or `undefined` when
 	// the market's probability is unknown (book not read / empty). Never coerce
-	// the unknown state to a fabricated 0% — callers render a placeholder.
+	// the unknown state to a fabricated 0%; callers render a placeholder.
 	const positionSideProb = (pos: Position): number | undefined => {
 		const market = getMarketById(pos.marketId);
 		const yesProb = market?.yesProbability;
@@ -260,7 +260,7 @@
 
 	/**
 	 * Display side label for a resolved row. Side-inference rules live in
-	 * `inferResolvedOutcomeId` — see that helper for the per-payoff-type
+	 * `inferResolvedOutcomeId`: see that helper for the per-payoff-type
 	 * fallback behavior (binary losers map to the opposite outcome,
 	 * categorical losers stay unknown).
 	 */
@@ -605,7 +605,7 @@
 
 	/* Active calls render as hairline-separated inline rows (no card
 	   chrome) rather than bordered chips: transparent surface, a top
-	   border between rows, square corners, and a subtle hover tint —
+	   border between rows, square corners, and a subtle hover tint:
 	   the inline-row treatment shared with other list surfaces. */
 	.portfolio-row-inline {
 		background: transparent;

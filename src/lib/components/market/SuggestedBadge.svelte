@@ -5,7 +5,7 @@
 
 	interface Props {
 		/**
-		 * Compact rendering — small icon + tighter spacing. Used inside
+		 * Compact rendering: small icon + tighter spacing. Used inside
 		 * the FlowCard meta row where vertical rhythm is tight. Default
 		 * (`false`) matches the OutcomeBadge / Badge proportions on
 		 * `MarketCard`, so the chip sits on the same baseline as the

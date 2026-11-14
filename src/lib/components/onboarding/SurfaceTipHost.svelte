@@ -16,7 +16,7 @@
 	import { page } from '$app/state';
 
 	/**
-	 * SurfaceTipHost — layer 2 of the first-run tutorial system. Mounted once at
+	 * SurfaceTipHost: layer 2 of the first-run tutorial system. Mounted once at
 	 * the (app) shell beside `<MobileNav>`. The first time a qualifying early
 	 * user navigates to Dash / Arena / Profile, it slides in a single
 	 * `SurfaceTip` above the floating pillnav explaining the surface, marks that
@@ -25,7 +25,7 @@
 	 * route-gated (not a queue); nothing fires up front.
 	 *
 	 * Gating: only an early user (`totalTrades < 5`) with the surface flag still
-	 * unset ever sees a tip — an established user is never interrupted. The
+	 * unset ever sees a tip: an established user is never interrupted. The
 	 * per-surface flags are identity-scoped (`onboarding-flags.utils`), so a
 	 * principal change and `clearOnboardingSeenFlags()` both reset them.
 	 *
@@ -97,14 +97,14 @@
 		try {
 			localStorage.setItem(key, '1');
 		} catch {
-			// localStorage write blocked — accept the loss; the tip may
+			// localStorage write blocked: accept the loss; the tip may
 			// reappear next session on this device.
 		}
 	};
 
 	// Only an actually-hydrated profile can qualify. During the auth-hydration
 	// window (`userSignedIn === true` but `profile` still `undefined`) we must
-	// not treat the user as early — an established user would otherwise slip
+	// not treat the user as early; an established user would otherwise slip
 	// through the `?? 0` gate and get a tip shown + seen flag written.
 	const isEarlyUser = $derived(
 		nonNullish($userStore.profile) && $userStore.profile.totalTrades < 5

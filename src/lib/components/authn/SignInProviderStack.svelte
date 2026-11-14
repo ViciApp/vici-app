@@ -37,7 +37,7 @@
 		// manager. Absent → a plain `VICI` label. The user can rename it
 		// afterwards from their authenticator.
 		handle?: string | null;
-		// External gate — when true every provider is inert. The one-screen
+		// External gate: when true every provider is inert. The one-screen
 		// onboarding sets this until a valid handle is claimed, so auth can't
 		// start before there's a name to attach to the account.
 		disabled?: boolean;
@@ -57,7 +57,7 @@
 	// Provider IDs used to drive per-provider loading + faded-others state.
 	type ProviderId = 'apple' | 'google' | 'email' | 'ii' | 'passkey' | 'dev';
 
-	// Per-provider visibility flags — show/hide the button entirely.
+	// Per-provider visibility flags: show/hide the button entirely.
 	// Apple is flag-off: returning V3 users never created an account with it,
 	// so offering it was misleading. `onApple` / `apple-signin.services` / the
 	// Apple icon + keys stay dormant behind this flag (reversible).
@@ -73,7 +73,7 @@
 	let email = $state('');
 
 	// Passkey (WebAuthn) is only worth offering on platforms that can
-	// actually complete the ceremony — otherwise the button is a dead
+	// actually complete the ceremony: otherwise the button is a dead
 	// end. The capability probe is async, so resolve it on mount and
 	// hide the provider when it isn't available.
 	let passkeyAvailable = $state(true);
@@ -92,7 +92,7 @@
 	const isFaded = $derived(emailOpen && isNullish(signingIn));
 
 	// Record which provider finished the onboarding flow into the pending
-	// stash, BEFORE the provider runs — a redirect provider (Google) navigates
+	// stash, BEFORE the provider runs; a redirect provider (Google) navigates
 	// away inside `run()`, so this is the only point the provider id can be
 	// captured for the post-redirect drain's `onboarding_completed` analytics.
 	// Single-field merge, mirroring `stashPendingEmail`. Signup only: a
@@ -121,7 +121,7 @@
 			parsed.provider = id;
 			localStorage.setItem(PENDING_ONBOARDING_STORAGE_KEY, JSON.stringify(parsed));
 		} catch {
-			// Storage unavailable (private mode) — analytics provenance is lost,
+			// Storage unavailable (private mode): analytics provenance is lost,
 			// sign-in still works.
 		}
 	};
@@ -164,7 +164,7 @@
 	// (Juno has no Apple provider), so it bypasses Juno's `signIn()` and
 	// drives `@icp-sdk/auth` directly via `signInWithApple`. That persists
 	// the delegation to the same store Juno reads but does NOT update
-	// Juno's in-memory auth state — so we can't use the shared `startSignIn`
+	// Juno's in-memory auth state: so we can't use the shared `startSignIn`
 	// (whose success path assumes Juno is already aware of the session).
 	// Instead: flush host state via `onSuccess` (in the signup onboarding
 	// flow that persists the pending picks to storage), then hard-load Flow.
@@ -231,7 +231,7 @@
 		});
 
 	// Passkey is the one provider where Juno splits create-vs-authenticate.
-	// In the sign-up flow we register a NEW passkey (`signUp`) — the only
+	// In the sign-up flow we register a NEW passkey (`signUp`); the only
 	// call that accepts a display name, so this is where the `VICI · {handle}`
 	// label is set. Everywhere else (the /signin gate, "sign in to continue"
 	// modals) we authenticate an EXISTING passkey (`signIn`).
@@ -296,7 +296,7 @@
 			parsed.email = address;
 			localStorage.setItem(PENDING_ONBOARDING_STORAGE_KEY, JSON.stringify(parsed));
 		} catch {
-			// Storage unavailable (private mode) — sign-in still works, the
+			// Storage unavailable (private mode): sign-in still works, the
 			// address just won't be persisted to the profile.
 		}
 	};
@@ -324,7 +324,7 @@
 						}
 					});
 
-					// Stash only AFTER the passkey ceremony succeeds — a cancelled
+					// Stash only AFTER the passkey ceremony succeeds; a cancelled
 					// or failed `signUp` throws here, so the address never lingers
 					// in pending-onboarding to be wrongly applied to a later
 					// successful sign-up (e.g. a Passkey attempt after a cancelled
@@ -348,7 +348,7 @@
 	<SignInProviderStackWeb2 {disabled} {onSuccess} />
 {:else}
 	<div class="signin-providers signin-providers-equal">
-		<!-- Apple — live via Internet Identity 2.0 OpenID one-click. -->
+		<!-- Apple: live via Internet Identity 2.0 OpenID one-click. -->
 		{#if APPLE_LOGIN_ENABLED}
 			<button
 				class="signin-provider-btn is-onboarding ob-dark"
@@ -373,7 +373,7 @@
 			</button>
 		{/if}
 
-		<!-- Google — live. -->
+		<!-- Google: live. -->
 		{#if GOOGLE_LOGIN_ENABLED}
 			<button
 				class="signin-provider-btn is-onboarding ob-dark"
@@ -398,7 +398,7 @@
 			</button>
 		{/if}
 
-		<!-- Email — progressive disclosure. Passkey-backed (no magic link),
+		<!-- Email: progressive disclosure. Passkey-backed (no magic link),
 			 so it shares the WebAuthn capability + production gating. -->
 		{#if EMAIL_LOGIN_ENABLED && passkeyAvailable}
 			{#if !emailOpen}
@@ -456,7 +456,7 @@
 			{/if}
 		{/if}
 
-		<!-- Internet Identity — production-need. Uses the shared
+		<!-- Internet Identity: production-need. Uses the shared
 			 `signin-provider-btn` style. -->
 		{#if INTERNET_IDENTITY_LOGIN_ENABLED}
 			<button
@@ -482,7 +482,7 @@
 			</button>
 		{/if}
 
-		<!-- Passkey — production-need (C-8 keep). -->
+		<!-- Passkey: production-need (C-8 keep). -->
 		{#if PASSKEY_LOGIN_ENABLED && passkeyAvailable}
 			<button
 				class="signin-provider-btn is-onboarding ob-faint"
@@ -509,7 +509,7 @@
 			</button>
 		{/if}
 
-		<!-- Dev shortcut — dev-only. -->
+		<!-- Dev shortcut: dev-only. -->
 		{#if DEV_LOGIN_ENABLED && isDev()}
 			<button
 				class="signin-provider-btn is-onboarding ob-faint"
