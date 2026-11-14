@@ -10,6 +10,7 @@
 // runtime dynamic import the typechecker does not follow; everything else is
 // pinned by reading the source text and extracting the declared literals.
 
+import { isNullish } from '@dfinity/utils';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -160,21 +161,37 @@ export const extractIntConst = ({
 	return Number(match[1]);
 };
 
-/** The value of `<constName> = a * b * ...;` (integer factors only). */
+/** The value of `<constName> = a * b * ...;`. A factor is an integer or a
+ * named unit (`DAY_IN_MS`) the caller resolves through `units`, since the
+ * app module that defines the unit cannot be imported from here. */
 export const extractProductConst = ({
 	source,
-	constName
+	constName,
+	units = {}
 }: {
 	source: string;
 	constName: string;
+	units?: Record<string, number>;
 }): number => {
-	const match = source.match(new RegExp(`${constName}\\s*=\\s*(\\d+(?:\\s*\\*\\s*\\d+)*)\\s*;`));
+	const factor = '(?:\\d+|[A-Z][A-Z0-9_]*)';
+	const match = source.match(
+		new RegExp(`${constName}\\s*=\\s*(${factor}(?:\\s*\\*\\s*${factor})*)\\s*;`)
+	);
 
 	if (!match || !match[1]) {
 		throw new Error(`no integer product for: ${constName}`);
 	}
 
-	return match[1].split('*').reduce((acc, factor) => acc * Number(factor.trim()), 1);
+	return match[1].split('*').reduce((acc, raw) => {
+		const name = raw.trim();
+		const value = /^\d+$/.test(name) ? Number(name) : units[name];
+
+		if (isNullish(value)) {
+			throw new Error(`unknown unit ${name} in: ${constName}`);
+		}
+
+		return acc * value;
+	}, 1);
 };
 
 /** The single-quoted string literal of `<constName> = '...'`. */

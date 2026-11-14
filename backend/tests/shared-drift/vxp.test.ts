@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { ZERO } from '../../src/lib/constants';
+import { DAY_IN_MS } from '../../src/lib/time';
 import {
 	ACHIEVEMENT_XP,
 	CALIBRATION_DAILY_CAP,
@@ -106,7 +107,11 @@ describe('shared drift: VXP amounts', () => {
 			extractIntConst({ source: economy, constName: 'VXP_FLOW_OVERTIME_BONUS' })
 		);
 		expect(VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS).toBe(
-			extractProductConst({ source: economy, constName: 'VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS' })
+			extractProductConst({
+				source: economy,
+				constName: 'VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS',
+				units: { DAY_IN_MS }
+			})
 		);
 		expect(VXP_FLOW_OVERTIME_ROLLING_CAP).toBe(
 			extractIntConst({ source: economy, constName: 'VXP_FLOW_OVERTIME_ROLLING_CAP' })

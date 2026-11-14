@@ -11,6 +11,7 @@
  * See `vxp-economy.utils.ts` for the payout formula.
  */
 
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**
@@ -99,7 +100,7 @@ export const VXP_FLOW_OVERTIME_BONUS = 25;
  * store-stamped `created_at` of their `flow_overtime` award docs (which the
  * caller cannot forge). Tunable.
  */
-export const VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+export const VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS = 7 * DAY_IN_MS;
 
 /**
  * Maximum `flow_overtime` mints a caller can earn within
