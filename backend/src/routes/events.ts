@@ -4,7 +4,7 @@
 
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
-import { AnalyticsValidationError, trackEvents } from '../analytics/events';
+import { AnalyticsValidationError, MAX_EVENTS_PER_BATCH, trackEvents } from '../analytics/events';
 import {
 	deleteAnalyticsEvents,
 	getAnalyticsEvents,
@@ -13,12 +13,32 @@ import {
 	getAnalyticsUserStats
 } from '../analytics/export';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
-import { badRequest } from '../lib/http';
+import { badRequest, clientIp } from '../lib/http';
+import { enforceLimit } from '../lib/rate-limit';
+import { MINUTE_IN_MS } from '../lib/time';
+
+/** Per-IP ingest ceiling. The app flushes its event buffer on a short
+ * debounce or when the buffer fills (src/lib/services/analytics.services.ts),
+ * so one tab sends a handful of batches a minute; this leaves room for a full
+ * classroom behind one school NAT. */
+const INGEST_LIMIT_PER_MINUTE = 600;
 
 export const eventsRoutes = new Elysia({ prefix: '/api/v1/events' })
 	.post(
 		'/',
 		async ({ request, set, body }) => {
+			const limited = enforceLimit({
+				set,
+				name: 'analytics_ingest',
+				ip: clientIp(request),
+				limit: INGEST_LIMIT_PER_MINUTE,
+				windowMs: MINUTE_IN_MS
+			});
+
+			if (limited) {
+				return limited;
+			}
+
 			// Anonymous ingest is deliberate: pre-sign-in sessions track too. A
 			// valid session cookie links the batch to its user pseudonymously.
 			const user = await requireUser(request);
@@ -33,7 +53,7 @@ export const eventsRoutes = new Elysia({ prefix: '/api/v1/events' })
 				throw err;
 			}
 		},
-		{ body: t.Object({ events: t.Array(t.Any()) }) }
+		{ body: t.Object({ events: t.Array(t.Any(), { maxItems: MAX_EVENTS_PER_BATCH }) }) }
 	)
 	.get(
 		'/summary',

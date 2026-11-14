@@ -1,8 +1,8 @@
-// Analytics: batch ingest (cap, server stamps, pseudonymous user link),
-// transactional rollup math, the server-side capture bridge, the keyset
+// Analytics: batch ingest (cap, length caps, server stamps, pseudonymous user
+// link), the public ingest route's limits, transactional rollup math, the server-side capture bridge, the keyset
 // export with its idempotent drain, and the admin summary reads.
 
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { captureServerEvents, trackEvents } from '../src/analytics/events';
 import {
@@ -13,7 +13,9 @@ import {
 	getAnalyticsUserStats
 } from '../src/analytics/export';
 import { query } from '../src/db/client';
+import { app } from '../src/index';
 import { ZERO } from '../src/lib/constants';
+import { resetRateLimits } from '../src/lib/rate-limit';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 
@@ -115,6 +117,47 @@ describe.if(dbAvailable)('analytics ingest', () => {
 		// The batch is transactional: the valid first event must not survive
 		// the invalid second one.
 		expect(await rowsForSession(sessionId)).toHaveLength(0);
+	});
+
+	test('rejects an overlong sessionId, path or string dimension, writing nothing', async () => {
+		const sessionId = uniqueSession();
+
+		await expect(
+			trackEvents({ events: [{ name: 'app_error', sessionId: 's'.repeat(129) }] })
+		).rejects.toThrow('sessionId exceeds 128 characters');
+
+		await expect(
+			trackEvents({
+				events: [
+					{ name: 'app_error', sessionId },
+					{ name: 'app_error', sessionId, path: `/${'p'.repeat(2048)}` }
+				]
+			})
+		).rejects.toThrow('path exceeds 2048 characters');
+
+		await expect(
+			trackEvents({ events: [{ name: 'app_error', sessionId, label: 'l'.repeat(257) }] })
+		).rejects.toThrow('label exceeds 256 characters');
+
+		expect(await rowsForSession(sessionId)).toHaveLength(0);
+	});
+
+	test('accepts strings right at the length caps', async () => {
+		const sessionId = `${uniqueSession()}-`.padEnd(128, 's');
+
+		expect(
+			await trackEvents({
+				events: [
+					{
+						name: 'market_viewed',
+						sessionId,
+						path: `/${'p'.repeat(2047)}`,
+						marketId: 'm'.repeat(256)
+					}
+				]
+			})
+		).toEqual({ accepted: 1 });
+		expect(await rowsForSession(sessionId)).toHaveLength(1);
 	});
 
 	test('rollups accumulate per (day, name) across batches', async () => {
@@ -304,5 +347,87 @@ describe.if(dbAvailable)('analytics export and drain', () => {
 
 		expect(new Set(keys).size).toBe(keys.length);
 		expect([...keys].sort()).toEqual(keys);
+	});
+});
+
+// Addresses from TEST-NET-3 (RFC 5737), so the per-IP bucket under test never
+// collides with a real client or another suite's "unknown" key.
+const postEvents = ({ events, ip }: { events: unknown[]; ip: string }): Promise<Response> =>
+	app.handle(
+		new Request('http://localhost/api/v1/events', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+			body: JSON.stringify({ events })
+		})
+	);
+
+describe.if(dbAvailable)('analytics ingest route', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	beforeEach(() => {
+		resetRateLimits();
+	});
+
+	test('a normal anonymous batch is accepted', async () => {
+		const sessionId = uniqueSession();
+		const res = await postEvents({
+			ip: '203.0.113.10',
+			events: [
+				{ name: 'session_started', sessionId, path: '/', label: 'dark' },
+				{ name: 'market_viewed', sessionId, path: '/markets/abc', marketId: 'srs_1' }
+			]
+		});
+
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ accepted: 2 });
+		expect(await rowsForSession(sessionId)).toHaveLength(2);
+	});
+
+	test('a batch over 100 events is a 400 and writes nothing', async () => {
+		const sessionId = uniqueSession();
+		const res = await postEvents({
+			ip: '203.0.113.11',
+			events: Array.from({ length: 101 }, () => ({ name: 'perf_metric', sessionId }))
+		});
+
+		expect(res.status).toBe(400);
+		expect(await rowsForSession(sessionId)).toHaveLength(0);
+	});
+
+	test('an overlong path or sessionId is a 400 and writes nothing', async () => {
+		const sessionId = uniqueSession();
+		const longPath = await postEvents({
+			ip: '203.0.113.12',
+			events: [{ name: 'app_error', sessionId, path: `/${'p'.repeat(4096)}` }]
+		});
+		const longSession = await postEvents({
+			ip: '203.0.113.12',
+			events: [{ name: 'app_error', sessionId: `${sessionId}${'s'.repeat(4096)}` }]
+		});
+
+		expect(longPath.status).toBe(400);
+		expect(longSession.status).toBe(400);
+		expect(await rowsForSession(sessionId)).toHaveLength(0);
+	});
+
+	test('answers 429 with Retry-After once an IP spends its bucket', async () => {
+		const ip = '203.0.113.13';
+
+		for (let i = 0; i < 600; i++) {
+			const res = await postEvents({ ip, events: [] });
+
+			expect(res.status).toBe(200);
+		}
+
+		const limited = await postEvents({ ip, events: [] });
+
+		expect(limited.status).toBe(429);
+		expect(await limited.json()).toEqual({ error: 'rate_limited' });
+		expect(Number(limited.headers.get('retry-after'))).toBeGreaterThan(0);
+
+		// The bucket is per IP: another client is unaffected.
+		expect((await postEvents({ ip: '203.0.113.14', events: [] })).status).toBe(200);
 	});
 });

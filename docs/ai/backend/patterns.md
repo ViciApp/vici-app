@@ -47,4 +47,5 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 ## Rate limiting
 
-- `enforceLimit({ set, name, ip, limit, windowMs })` (`src/lib/rate-limit.ts:66`) with `clientIp(request)` from `src/lib/http.ts`, on every unauthenticated endpoint that sends email, issues a session or can be enumerated. A signed-in endpoint that checks a guessable code keys it by the account instead (`ip: user.id`, `src/routes/school.ts` `/verify`), so a shared campus network does not pool users. In-memory, per instance.
+- `enforceLimit({ set, name, ip, limit, windowMs })` (`src/lib/rate-limit.ts:66`) with `clientIp(request)` from `src/lib/http.ts`, on every unauthenticated endpoint that sends email, issues a session, writes rows or can be enumerated. A signed-in endpoint that checks a guessable code keys it by the account instead (`ip: user.id`, `src/routes/school.ts` `/verify`), so a shared campus network does not pool users. In-memory, per instance.
+- An endpoint that writes what an anonymous caller sends also bounds its size: `maxItems` on the body array and a length cap on every free string, both as named constants in the domain (`MAX_EVENTS_PER_BATCH`, `MAX_PATH_LENGTH` in `src/analytics/events.ts`). Under that, `MAX_REQUEST_BODY_BYTES` (`src/index.ts`) caps every request body in the server.
