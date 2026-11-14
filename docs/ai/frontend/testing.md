@@ -299,7 +299,7 @@ pre-deployed.
   so E2E reuses development mode but exports `JUNO_EMULATOR=true`, which
   makes [`juno.config.ts`](../../../juno.config.ts) swap `ids.development`
   to the emulator's predictable satellite ID
-  (`jx5yt-yyaaa-aaaal-abzbq-cai`). Without that env flag, the dev satellite
+  (`EMULATOR_SATELLITE_ID` there). Without that env flag, the dev satellite
   ID still points at the real remote dev satellite.
 - **icdc-core canisters:** deployed by **`dfx`** into the same PocketIC
   instance the Juno emulator is running. The local `network` in

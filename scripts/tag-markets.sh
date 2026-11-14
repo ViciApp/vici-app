@@ -42,9 +42,10 @@ if [ ! -f "$MARKETS_FILE" ]; then
 fi
 
 # Resolve the Juno satellite canister id for this network. The satellite is not
-# a dfx canister alias here, so default by network (override with SATELLITE_ID).
+# a dfx canister alias here, so default by network (override with SATELLITE_ID):
+# production reads the id juno.config.ts pins.
 case "$NETWORK" in
-	ic | production) SATELLITE_ID="${SATELLITE_ID:-7scay-7yaaa-aaaal-asxqa-cai}" ;;
+	ic | production) SATELLITE_ID="${SATELLITE_ID:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/satellite-id.ts production)}" ;;
 	local) SATELLITE_ID="${SATELLITE_ID:-$(dfx canister id satellite --network "$NETWORK" 2>/dev/null)}" ;;
 	*) SATELLITE_ID="${SATELLITE_ID:-}" ;;
 esac

@@ -27,6 +27,9 @@ set -euo pipefail
 
 ENGINE_NAME="Vici"
 EXPECTED_ENGINE_ID="${VICI_ENGINE_ID:-eng_0}"
+# The dev id stays a literal here: `ids.development` in juno.config.ts follows
+# the JUNO_EMULATOR swap (the e2e job sets it), so reading it would change
+# this default under the emulator.
 SATELLITE_PRINCIPAL="${VICI_JUNO_SATELLITE_PRINCIPAL:-auamu-4x777-77775-aaaaa-cai}"
 TEST_PRINCIPAL="${TEST_PRINCIPAL:-2vxsx-fae}"  # anonymous-ish test principal
 

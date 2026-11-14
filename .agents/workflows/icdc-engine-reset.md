@@ -62,7 +62,7 @@ dfx deploy --network staging --mode reinstall registry
    (the satellite that Juno Console deploys to):
 
 ```bash
-VICI_JUNO_SATELLITE_PRINCIPAL=7scay-7yaaa-aaaal-asxqa-cai \
+VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
   npm run init:icdc-engine -- --staging
 ```
 
@@ -101,7 +101,7 @@ controller of the production registry.
 ```bash
 dfx deploy --network ic --mode reinstall registry
 
-VICI_JUNO_SATELLITE_PRINCIPAL=7scay-7yaaa-aaaal-asxqa-cai \
+VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
   npm run init:icdc-engine -- --production
 npm run init:registry -- --production
 npm run juno:functions:build   # then upgrade the satellite via the Juno Console

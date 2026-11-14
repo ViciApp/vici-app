@@ -31,6 +31,9 @@ source "$(dirname "$0")/../lib/utils.sh" "$@"
 set -euo pipefail
 
 ENGINE_NAME="Vici"
+# The dev id stays a literal here: `ids.development` in juno.config.ts follows
+# the JUNO_EMULATOR swap (the e2e job sets it), so reading it would change
+# this default under the emulator.
 SATELLITE="${VICI_JUNO_SATELLITE_PRINCIPAL:-auamu-4x777-77775-aaaaa-cai}"
 DEPLOY_PRINCIPAL="$(dfx identity get-principal)"
 
