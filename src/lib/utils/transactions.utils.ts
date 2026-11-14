@@ -369,7 +369,7 @@ export const mergeWalletFeed = ({
 /**
  * Weekly VXP delta: sums signed amounts on VXP-denominated rows from the last
  * 7 days. Settlements / receives / mints / rewards credit; trades / sends /
- * burns / liquidations debit (entry stake is never refunded). Result is in VXP
+ * burns / liquidations debit (the entry amount is never refunded). Result is in VXP
  * base units; format at display only.
  */
 export const weeklyVxpDeltaBaseUnits = (transactions: Transaction[]): bigint => {

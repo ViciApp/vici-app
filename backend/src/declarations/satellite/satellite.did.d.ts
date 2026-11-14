@@ -806,7 +806,7 @@ export interface AppListLeagueBattlesResult {
 		side_b: string;
 		proposer: string;
 		kickoff_ms: number;
-		wager: [] | [number];
+		amount: [] | [number];
 		resolved_at_ms: [] | [number];
 		settle_ms: number;
 	}>;
@@ -901,7 +901,7 @@ export interface AppListMyBattlesResult {
 		side_b: string;
 		proposer: string;
 		kickoff_ms: number;
-		wager: [] | [number];
+		amount: [] | [number];
 		resolved_at_ms: [] | [number];
 		settle_ms: number;
 	}>;
@@ -1082,7 +1082,7 @@ export interface AppResolveBattleResult {
 		side_b: string;
 		proposer: string;
 		kickoff_ms: number;
-		wager: [] | [number];
+		amount: [] | [number];
 		resolved_at_ms: [] | [number];
 		settle_ms: number;
 	};

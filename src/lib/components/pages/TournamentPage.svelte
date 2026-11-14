@@ -6,7 +6,6 @@
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		claimTournamentPrize,
-		currentMonthAnchor,
 		getCurrentTournament,
 		resolveTournamentRound,
 		triggerTournamentDraw
@@ -22,6 +21,7 @@
 	} from '#lib/types/tournament.ts';
 	import { formatIsoDateUtc, formatProbability } from '#lib/utils/format.utils.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 
 	/**
@@ -151,7 +151,7 @@
 	const tryDraw = async () => {
 		try {
 			const result = await triggerTournamentDraw({
-				monthAnchor: currentMonthAnchor()
+				monthAnchor: monthAnchorFromMs(Date.now())
 			});
 
 			if (!result.ok && result.reason === 'insufficient_leagues') {

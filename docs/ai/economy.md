@@ -52,13 +52,13 @@ the rules are governed, and the implementation follows them.
 ## Principles
 
 1. **Earn-only: there are no VXP sinks.** Nothing charges VXP. The
-   only VXP that leaves a user is a prediction **stake**, and a stake
+   only VXP that leaves a user is the **amount** committed to a prediction, and that amount
    is on-chain **clearing collateral** held by the risk engine, not a
    fee or a forfeit: it returns on settlement (won, lost, or
    broken-even) as realized cashflow. League founding is free and
    _awards_ VXP. There is no burn.
 2. **The closed loop lives in the clearing engine, not in VXP
-   mint/burn.** Because stakes are collateral, the zero-sum
+   mint/burn.** Because committed amounts are collateral, the zero-sum
    player-vs-market dynamic is enforced by the engine's settlement, not
    by sinks on the VXP supply. VXP supply is therefore controlled by
    **bounding every mint** (next section), not by draining it.
@@ -87,7 +87,7 @@ backs it. Amounts are **not** repeated here; follow the link.
 
 | Surface                    | Rule                                                                                                                                                                                                                | Backed by                                                                                                                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Prediction win**         | Pays the market odds: `stake / p_win − stake`, with a floor on `p_win` so a long shot cannot pay an unbounded multiple.                                                                                             | `VXP_P_WIN_FLOOR`, `VXP_STAKE_LADDER` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                           |
+| **Prediction win**         | Pays the market probability: `amount / p_win − amount`, with a floor on `p_win` so a long shot cannot pay an unbounded multiple.                                                                                    | `VXP_P_WIN_FLOOR`, `VXP_CALL_SIZE_LADDER` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                       |
 | **Onboarding grant**       | A single registration grant; no engagement-gated drip (the call-gated milestones are retained at zero).                                                                                                             | `NEW_USER_VXP_TOTAL_BASE_UNITS` ([`vxp-onboarding.constants.ts`](../../src/lib/constants/vxp-onboarding.constants.ts))                                                                                           |
 | **Referral: referee**      | Flat, one-time, paid to a new user who redeems within the post-signup window and then makes a first prediction.                                                                                                     | `REFERRAL_VXP_BONUS_BASE_UNITS`, `REFERRAL_SIGNUP_WINDOW_MS` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                          |
 | **Referral: referrer**     | **Diminishing** by lifetime conversions, then **hard-capped to zero**. Authoritative count is the satellite's own scan, never the client.                                                                           | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
@@ -113,7 +113,7 @@ Every mint must be bounded so it cannot become an unbounded faucet.
 The bound that protects each surface today:
 
 - **Prediction win**: bounded by the `p_win` floor (caps the long-shot
-  multiple) and the stake ladder cap.
+  multiple) and the call-size ladder cap.
 - **Referrer reward**: diminishing curve **and** a hard lifetime cap
   to zero; the count comes from the satellite's own scan, so the client
   cannot inflate it.
@@ -169,10 +169,10 @@ Recorded deliberately so the next agent inherits them. These are
    engine (`backend/src/vxp/predictions.ts`); the satellite still needs
    the same gate. Tracking: **#543**.
 3. **Repeatable overtime mint.** The overtime bonus is gated on raw
-   daily call count, and stakes are returnable collateral (not a cost),
+   daily call count, and committed amounts are returnable collateral (not a cost),
    so it can be farmed with throwaway calls; the rolling cap bounds how
    often it mints, not what the calls are worth. Recommendation: gate it
-   on **distinct markets** and a **minimum stake** before it mints.
+   on **distinct markets** and a **minimum call size** before it mints.
    Tracking: **#350**.
 4. **Low-cost founder mint.** Founding a league is a single free write,
    so the lifetime founder cap still permits a sizeable mint for
@@ -188,8 +188,8 @@ new numbers.
 The non-obvious "why" behind the rules above.
 
 - **Why earn-only, not a closed sink-based economy.** A self-contained
-  model where lost stakes are forfeited and entries cost VXP only makes
-  sense when the currency is purely cosmetic. Here stakes are real
+  model where lost amounts are forfeited and entries cost VXP only makes
+  sense when the currency is purely cosmetic. Here committed amounts are real
   on-chain clearing collateral settled by the risk engine, so a
   "forfeit" would double-count the loss the engine already realizes.
   The closed loop is enforced in clearing; VXP supply is bounded by the
@@ -215,5 +215,5 @@ The non-obvious "why" behind the rules above.
   gameplay payouts, the first-call achievement, and the referral bonus
   reward continued play instead.
 - **Why a `p_win` floor.** Without it a near-certain-loser side would
-  pay an enormous multiple of stake, draining the economy through one
+  pay an enormous multiple of the amount, draining the economy through one
   surface. The floor caps the long-shot payout to a bounded multiple.

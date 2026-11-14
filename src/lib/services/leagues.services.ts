@@ -8,12 +8,13 @@ import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import { getMyReferralCode } from '#lib/services/referral.services.ts';
 import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
 import {
+	BATTLE_AMOUNT_MAX,
+	BATTLE_AMOUNT_MIN,
 	BATTLE_RESPOND_BY_MS,
 	BATTLE_SCOPE_DEFAULT,
 	BATTLE_TRASH_TALK_MAX_LENGTH,
-	BATTLE_WAGER_MAX,
-	BATTLE_WAGER_MIN,
 	isBattleScope,
+	readBattleDoc,
 	type BattleDoc,
 	type BattleScope,
 	type BattleWinner
@@ -927,7 +928,7 @@ const projectBattleWire = (b: {
 	respondByMs?: number;
 	respondedAtMs?: number;
 	scope?: string;
-	wager?: number;
+	amount?: number;
 	trashTalk?: string;
 	scoreA?: number;
 	scoreB?: number;
@@ -949,7 +950,7 @@ const projectBattleWire = (b: {
 	// Re-narrow the loose wire string back to the typed union; drop
 	// anything outside the closed scope set (legacy / unknown).
 	scope: nonNullish(b.scope) && isBattleScope(b.scope) ? b.scope : undefined,
-	wager: b.wager,
+	amount: b.amount,
 	trashTalk: b.trashTalk,
 	scoreA: b.scoreA,
 	scoreB: b.scoreB,
@@ -1021,14 +1022,14 @@ export const proposeBattle = async ({
 	sideB,
 	durationMs,
 	scope,
-	wager,
+	amount,
 	trashTalk
 }: {
 	sideA: string;
 	sideB: string;
 	durationMs: number;
 	scope?: BattleScope;
-	wager?: number;
+	amount?: number;
 	trashTalk?: string;
 }): Promise<BattleDoc> => {
 	if (!Number.isFinite(durationMs) || durationMs <= 0) {
@@ -1040,10 +1041,10 @@ export const proposeBattle = async ({
 	}
 
 	if (
-		nonNullish(wager) &&
-		(!Number.isFinite(wager) || wager < BATTLE_WAGER_MIN || wager > BATTLE_WAGER_MAX)
+		nonNullish(amount) &&
+		(!Number.isFinite(amount) || amount < BATTLE_AMOUNT_MIN || amount > BATTLE_AMOUNT_MAX)
 	) {
-		throw new Error(`Wager must be within [${BATTLE_WAGER_MIN}, ${BATTLE_WAGER_MAX}].`);
+		throw new Error(`Amount must be within [${BATTLE_AMOUNT_MIN}, ${BATTLE_AMOUNT_MAX}].`);
 	}
 
 	// Trim, then drop an empty trash-talk so we never persist a blank
@@ -1069,7 +1070,7 @@ export const proposeBattle = async ({
 			kickoffMs: now,
 			settleMs: now + durationMs,
 			...(nonNullish(scope) && scope !== 'all' ? { scope } : {}),
-			...(nonNullish(wager) && wager > BATTLE_WAGER_MIN ? { wager } : {}),
+			...(nonNullish(amount) && amount > BATTLE_AMOUNT_MIN ? { amount } : {}),
 			...(nonNullish(trimmedTrashTalk) && trimmedTrashTalk.length > 0
 				? { trashTalk: trimmedTrashTalk }
 				: {})
@@ -1096,8 +1097,8 @@ export const proposeBattle = async ({
 		// Persist scope only when narrowed (omit the 'all' default so legacy
 		// reads and the default render path stay identical).
 		...(nonNullish(scope) && scope !== 'all' ? { scope } : {}),
-		// Persist wager only when staked (omit a 0 wager).
-		...(nonNullish(wager) && wager > BATTLE_WAGER_MIN ? { wager } : {}),
+		// Persist the amount only when set (omit a 0 amount).
+		...(nonNullish(amount) && amount > BATTLE_AMOUNT_MIN ? { amount } : {}),
 		// Persist trash-talk only when non-empty after trimming.
 		...(nonNullish(trimmedTrashTalk) && trimmedTrashTalk.length > 0
 			? { trashTalk: trimmedTrashTalk }
@@ -1167,7 +1168,7 @@ export const acceptBattle = async ({ battle }: { battle: BattleDoc }): Promise<B
 		throw new Error('Battle no longer exists.');
 	}
 
-	const current = existing.data;
+	const current = readBattleDoc(existing.data);
 
 	if (current.kind !== 'league') {
 		const acceptedDuel: BattleDoc = { ...current, state: 'accepted' };
@@ -1221,11 +1222,13 @@ export const declineBattle = async ({ battle }: { battle: BattleDoc }): Promise<
 		throw new Error('Battle no longer exists.');
 	}
 
-	if (existing.data.state !== 'proposed') {
+	const current = readBattleDoc(existing.data);
+
+	if (current.state !== 'proposed') {
 		throw new Error('Only proposed battles can be declined.');
 	}
 
-	const next: BattleDoc = { ...existing.data, state: 'declined', respondedAtMs: Date.now() };
+	const next: BattleDoc = { ...current, state: 'declined', respondedAtMs: Date.now() };
 
 	await setDoc<BattleDoc>({
 		collection: Collection.BATTLES,
@@ -1270,7 +1273,7 @@ export const maybeExpireBattle = async ({ battle }: { battle: BattleDoc }): Prom
 		return battle;
 	}
 
-	const current = existing.data;
+	const current = readBattleDoc(existing.data);
 
 	if (current.state !== 'proposed') {
 		return current;
@@ -1314,7 +1317,7 @@ export const kickoffBattle = async ({ battle }: { battle: BattleDoc }): Promise<
 		throw new Error('Battle no longer exists.');
 	}
 
-	const current = existing.data;
+	const current = readBattleDoc(existing.data);
 	const scope: BattleScope = current.scope ?? BATTLE_SCOPE_DEFAULT;
 
 	const next: BattleDoc =

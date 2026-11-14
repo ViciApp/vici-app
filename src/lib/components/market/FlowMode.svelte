@@ -24,7 +24,7 @@
 	import { ZERO } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
-	import { isVxpLadderStake, VXP_MIN_STAKE } from '#lib/constants/vxp-economy.constants.ts';
+	import { isVxpCallSize, VXP_MIN_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { featuredEvent, featuredEventActive } from '#lib/derived/featured-event.derived.ts';
 	import { guestMode } from '#lib/derived/guest.derived.ts';
@@ -118,7 +118,7 @@
 	// profile / mirror reconciliation in `onMount`). The day's goal is a
 	// persisted running total, not a per-visit counter: a sitting resumes
 	// from this baseline rather than restarting at 0, so progress survives
-	// navigation (#485) and the daily hard cap holds across sittings (#484).
+	// navigation and the daily hard cap holds across sittings.
 	let sessionBaseline = $state(0);
 	// The user opted into overtime (Push-to-15) on FlowEnd, lifting this
 	// sitting's ceiling to the daily hard cap so the deck continues past
@@ -176,8 +176,8 @@
 	let tradeAmount = $state('1.0');
 	let callsCount = $state(0);
 	// VXP locked at risk across this session's calls; the FlowEnd "Called"
-	// stat. Accumulates each committed YES / NO stake; reset on continuation.
-	let sessionStaked = $state(0);
+	// stat. Accumulates each committed YES / NO amount; reset on continuation.
+	let sessionCalledVxp = $state(0);
 	// Clearing-margin base units the session has already sent to the engine.
 	// The funds gate needs it because store refreshes are batched to session
 	// end (see FlowTradeService): `$vxpSpendable` alone goes stale after the
@@ -288,14 +288,14 @@
 
 	$effect(() => () => setFlowBeatActive(false));
 
-	// Per-swipe commit pop: "CALLED YES · {stake} IN PLAY (+bonus VXP)".
+	// Per-swipe commit pop: "CALLED YES · {amount} IN PLAY (+bonus VXP)".
 	// Fires on every committed YES / NO swipe (SKIP renders nothing). A
 	// swipe PLACES a call; the pop confirms the act, it does not imply a
 	// payout. `key` remounts the component on consecutive commits so the
 	// `xp-toast-pop` envelope replays. Self-dismisses ~1 s after mount.
 	interface CommitToast {
 		side: CallSide;
-		stake: number;
+		amount: number;
 		bonus: number;
 		key: number;
 	}
@@ -407,20 +407,20 @@
 	// afford NO further prediction this session, so the per-card funds gate
 	// would block every YES / NO from here on (see `handleAction`). Computed
 	// once: the floor is fixed, only the spendable side moves.
-	const MIN_STAKE_MARGIN_USD = tokenBaseUnitsToUsdBaseUnits({
-		amount: vxpBaseUnits(VXP_MIN_STAKE),
+	const MIN_CALL_MARGIN_USD = tokenBaseUnitsToUsdBaseUnits({
+		amount: vxpBaseUnits(VXP_MIN_CALL_SIZE),
 		tokenDecimals: VXP_TOKEN.decimals
 	});
 
 	// Out-of-funds takeover gate: the user has entered the deck but every
 	// spendable VXP is already committed to open predictions, so no further
 	// call this session can be funded (the same shortfall the per-card funds
-	// gate catches, generalised to the cheapest stake). Rather than strand the
+	// gate catches, generalised to the cheapest call). Rather than strand the
 	// user on cards they can't act on: whether they hit the wall on entry or
 	// part-way through: surface a takeover with explicit exits.
 	// Scoped to the VXP domain: `collateralsStore` presence is the signed-in /
 	// loaded check (see the funds gate), the playground domains (USD / ICP) use
-	// fractional sub-rung stakes the VXP floor doesn't model. Held off while
+	// fractional sub-rung amounts the VXP floor doesn't model. Held off while
 	// `completed` (a run that met its goal earns FlowEnd, not this) and while a
 	// gating beat plays (`flowPaused`) so it never flashes between cards.
 	const outOfFunds = $derived(
@@ -429,7 +429,7 @@
 			!flowPaused &&
 			isViciXp($balanceDomain) &&
 			nonNullish($collateralsStore) &&
-			$vxpSpendable - sessionCommittedUsd < MIN_STAKE_MARGIN_USD
+			$vxpSpendable - sessionCommittedUsd < MIN_CALL_MARGIN_USD
 	);
 
 	onMount(async () => {
@@ -505,7 +505,7 @@
 			// Snapshot the cumulative daily count this sitting resumes from.
 			// Rolled over against the current day so a stale stored date reads
 			// as a fresh 0-baseline. Drives `sittingGoal` / `maxCalls`, so the
-			// sitting grants only the day's remaining headroom (#484/#485).
+			// sitting grants only the day's remaining headroom.
 			sessionBaseline = rolloverDailyGoal({
 				done: reconciledGoal.done,
 				date: reconciledGoal.date
@@ -514,13 +514,13 @@
 			const fromProfile = $userStore.profile?.preferences?.defaultAmount?.flow;
 
 			if (isViciXp($balanceDomain)) {
-				// Restore the user's last Flow stake from their profile,
-				// but reject it (and fall back to `VXP_MIN_STAKE`) if it
+				// Restore the user's last Flow call size from their profile,
+				// but reject it (and fall back to `VXP_MIN_CALL_SIZE`) if it
 				// isn't a current ladder rung: the ladder may have been
 				// reshuffled since the value was persisted.
 				const candidate = Number(fromProfile);
 
-				tradeAmount = isVxpLadderStake(candidate) ? String(candidate) : String(VXP_MIN_STAKE);
+				tradeAmount = isVxpCallSize(candidate) ? String(candidate) : String(VXP_MIN_CALL_SIZE);
 			} else if (fromProfile) {
 				tradeAmount = fromProfile;
 			}
@@ -634,11 +634,11 @@
 		}
 	};
 
-	// The stake's clearing-margin cost in USD base units (1 token ≈ 1 USD),
+	// The call's clearing-margin cost in USD base units (1 token ≈ 1 USD),
 	// mirroring the order sizing in `executeOutcomeTrade`. Fails open to
 	// `ZERO`: an unparsable amount is the engine's call to reject, not the
 	// gate's.
-	const stakeMarginUsd = (market: Market): bigint => {
+	const callMarginUsd = (market: Market): bigint => {
 		try {
 			return tokenBaseUnitsToUsdBaseUnits({
 				amount: parseToken({
@@ -671,7 +671,7 @@
 		// Product analytics: the swipe is the core Layer Zero funnel step.
 		track({ name: 'flow_swipe', source: 'flow', marketId: currentMarket.id, label: action });
 
-		// Funds gate: a YES / NO stakes real collateral, and the engine
+		// Funds gate: a YES / NO commits real collateral, and the engine
 		// rejects a call the spendable margin can't cover. Catch that here,
 		// BEFORE the card commits, so the deck never celebrates a prediction
 		// that can't be placed. `collateralsStore` only populates for an
@@ -681,7 +681,7 @@
 		if (
 			action !== 'SKIP' &&
 			nonNullish($collateralsStore) &&
-			$vxpSpendable - sessionCommittedUsd < stakeMarginUsd(currentMarket)
+			$vxpSpendable - sessionCommittedUsd < callMarginUsd(currentMarket)
 		) {
 			vibrate('low-thud');
 			notificationsStore.add({
@@ -775,14 +775,14 @@
 			return;
 		}
 
-		const stakeHuman = Number(tradeAmount) || 0;
-		const stakeUsd = stakeMarginUsd(currentMarket);
+		const amountHuman = Number(tradeAmount) || 0;
+		const marginUsd = callMarginUsd(currentMarket);
 
 		// Guest preview branch: a guest pick never reaches the engine. We
 		// record it as an in-session preview pick (marketId / side only, no
-		// stake) purely to power the conversion cadence, and skip `placeOrder`
+		// amount) purely to power the conversion cadence, and skip `placeOrder`
 		// / the identity call entirely. Free guest play therefore can't move
-		// market prices. The session-stake accounting and the funds gate are
+		// market prices. The session-amount accounting and the funds gate are
 		// member-only (the guest has no balance), so they are bypassed here.
 		if ($guestMode) {
 			const guestPickNumber = recordGuestPick({ marketId: currentMarket.id, side: action });
@@ -808,7 +808,7 @@
 			return;
 		}
 
-		sessionCommittedUsd += stakeUsd;
+		sessionCommittedUsd += marginUsd;
 
 		const executeTrade = async () => {
 			try {
@@ -822,12 +822,12 @@
 					amount: tradeAmount
 				});
 			} catch (e: unknown) {
-				// The call never reached the book: pull its stake back out of
+				// The call never reached the book: pull its amount back out of
 				// the session tallies so the FlowEnd "Called" stat and the funds
 				// gate only count predictions that actually hold collateral.
-				sessionStaked = Math.max(0, sessionStaked - stakeHuman);
+				sessionCalledVxp = Math.max(0, sessionCalledVxp - amountHuman);
 				sessionCommittedUsd =
-					sessionCommittedUsd > stakeUsd ? sessionCommittedUsd - stakeUsd : ZERO;
+					sessionCommittedUsd > marginUsd ? sessionCommittedUsd - marginUsd : ZERO;
 
 				const { key, params } = tradeErrorMessage(e);
 
@@ -854,8 +854,8 @@
 
 		callsCount += 1;
 		streak += 1;
-		// Tally the stake now at risk for the FlowEnd "Called" stat.
-		sessionStaked += stakeHuman;
+		// Tally the amount now at risk for the FlowEnd "Called" stat.
+		sessionCalledVxp += amountHuman;
 
 		// Daily-goal bump: every committed YES / NO counts toward the
 		// day's goal (skips returned early above). The OPTIMISTIC local bump
@@ -976,14 +976,14 @@
 		}
 
 		// Per-swipe commit pop: every committed YES / NO. Confirms the
-		// call was placed ("CALLED YES · {stake} IN PLAY") with the stake
+		// call was placed ("CALLED YES · {amount} IN PLAY") with the amount
 		// now at risk; a genuine milestone / streak bonus rides along as a
 		// trailing chip. Light and non-blocking: runs over the card-out,
 		// the gap beat, and the next card's rise alike.
 		commitToastKeySeq += 1;
 		commitToast = {
 			side: action,
-			stake: stakeHuman,
+			amount: amountHuman,
 			bonus: motion.bonusXp,
 			key: commitToastKeySeq
 		};
@@ -1061,7 +1061,7 @@
 		// this sitting's count, `callsCount < maxCalls` is exactly
 		// `sessionBaseline + callsCount < sittingGoal`: the cumulative daily
 		// count below the day's ceiling, so the hard cap holds no matter how
-		// many sittings the day is split across (#484).
+		// many sittings the day is split across.
 		if (currentIndex < markets.length - 1 && callsCount < maxCalls) {
 			currentIndex += 1;
 		} else {
@@ -1155,7 +1155,7 @@
 		goto(resolveAppPath(AppPath.Dash));
 	};
 
-	// The back-face peg-rail owns stake selection on the VXP balance
+	// The back-face peg-rail owns call-size selection on the VXP balance
 	// domain. The playground domains (USD / ICP) use fractional amounts
 	// that the peg-rail doesn't cover, so we keep a small bottom-bar
 	// stepper for those: see `playgroundOnly` gate around `FlowBottomBar`
@@ -1177,33 +1177,33 @@
 	// so `$vxpSpendable` alone goes stale after the first call).
 	const spendableNow = $derived($vxpSpendable - sessionCommittedUsd);
 
-	// Proactive stake warning surfaced at amount-selection time on the
+	// Proactive call-size warning surfaced at amount-selection time on the
 	// back-face slider: distinct from the block-on-swipe funds gate, which
 	// only fires once the user throws the card. Resolved to a single state so
 	// the slider renders one line. Scoped to a signed-in, loaded, VXP-domain
-	// run with a card on screen (the playground domains use sub-rung stakes the
+	// run with a card on screen (the playground domains use sub-rung amounts the
 	// VXP floor doesn't model; `collateralsStore` presence is the signed-in /
 	// loaded check, mirroring the funds gate).
-	const stakeWarning = $derived.by<'none' | 'unaffordable' | 'wont-finish'>(() => {
+	const callSizeWarning = $derived.by<'none' | 'unaffordable' | 'wont-finish'>(() => {
 		if (isNullish($collateralsStore) || !isViciXp($balanceDomain) || isNullish(currentCard)) {
 			return 'none';
 		}
 
-		const thisStake = stakeMarginUsd(currentCard);
+		const thisMargin = callMarginUsd(currentCard);
 
 		// The selected size already exceeds what's spendable; the swipe would
 		// be rejected by the funds gate. Warn before they throw it.
-		if (thisStake > spendableNow) {
+		if (thisMargin > spendableNow) {
 			return 'unaffordable';
 		}
 
 		// Affordable now, but committing it would leave too little to fund the
-		// predictions still needed to finish the sitting (min stake each).
+		// predictions still needed to finish the sitting (min call size each).
 		const remainingAfterThis = Math.max(0, maxCalls - callsCount - 1);
 
 		if (
 			remainingAfterThis > 0 &&
-			spendableNow - thisStake < BigInt(remainingAfterThis) * MIN_STAKE_MARGIN_USD
+			spendableNow - thisMargin < BigInt(remainingAfterThis) * MIN_CALL_MARGIN_USD
 		) {
 			return 'wont-finish';
 		}
@@ -1363,6 +1363,7 @@
 		<FlowOutOfFunds onBackToMarkets={backToMarkets} onClose={handleClose} />
 	{:else if completed || activeDeckStranded}
 		<FlowEnd
+			calledVxp={sessionCalledVxp}
 			{canExtend}
 			comeback={isComeback}
 			onClose={handleClose}
@@ -1371,7 +1372,6 @@
 			overtime={overtimeSession}
 			pending={callsCount}
 			{showInstallNudge}
-			staked={sessionStaked}
 			streak={dailyStreak}
 		/>
 
@@ -1435,6 +1435,7 @@
 							>
 								<div class="flow-card-riser flow-card-rise">
 									<FlowCard
+										{callSizeWarning}
 										category={flowCategory}
 										{categoryAcc}
 										committedAction={currentCard.id === committedMarketId ? committedAction : null}
@@ -1444,7 +1445,7 @@
 										market={currentCard}
 										{metadata}
 										onAction={handleAction}
-										onStakeChange={(next) => {
+										onCallSizeChange={(next) => {
 											tradeAmount = next;
 										}}
 										onToggleTranslation={onToggleFlowTranslation}
@@ -1453,7 +1454,6 @@
 										{priorCall}
 										showOriginal={flowShowOriginal}
 										signedIn={nonNullish($userStore.user)}
-										{stakeWarning}
 										{tradeAmount}
 										translatedLanguageLabel={nonNullish(currentTranslation)
 											? translatedLanguageLabel(currentTranslation.locale)
@@ -1476,17 +1476,17 @@
 			     localStorage so it shows at most once. -->
 			<FlowCoach commitSignal={commitToastKeySeq} />
 
-			<!-- Per-swipe commit pop: "CALLED YES · {stake} IN PLAY". Rises
+			<!-- Per-swipe commit pop: "CALLED YES · {amount} IN PLAY". Rises
 			     from the exit edge (is-yes → right, is-no → left) on every
 			     committed YES / NO. Keyed so consecutive commits replay the
 			     `xp-toast-pop` envelope. -->
 			{#if commitToast}
 				{#key commitToast.key}
 					<XpToast
+						amount={commitToast.amount}
 						bonus={commitToast.bonus}
 						onDone={() => (commitToast = null)}
 						side={commitToast.side}
-						stake={commitToast.stake}
 					/>
 				{/key}
 			{/if}
@@ -1506,7 +1506,7 @@
 		<SwipeHint />
 
 		{#if playgroundOnly}
-			<!-- Playground (USD / ICP) stake stepper. VXP uses the
+			<!-- Playground (USD / ICP) amount stepper. VXP uses the
 			     back-face peg-rail and renders no bottom bar. -->
 			<FlowBottomBar
 				min={0.1}

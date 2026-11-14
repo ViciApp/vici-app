@@ -10,7 +10,12 @@ import type {
 } from '#lib/types/affiliation-stats.ts';
 import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
 import type { TrackEventInput } from '#lib/types/analytics-event.ts';
-import { isBattleScope, type BattleDoc, type BattleWinner } from '#lib/types/battle.ts';
+import {
+	isBattleScope,
+	readBattleDoc,
+	type BattleDoc,
+	type BattleWinner
+} from '#lib/types/battle.ts';
 import type { ExitSignalReason } from '#lib/types/exit-signal.ts';
 import type { LeagueMemberDoc, LeagueMemberRole } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
@@ -1175,13 +1180,13 @@ type Web2BattleWire = Omit<BattleDoc, 'proposer' | 'scope'> & {
 const mapBattle = (wire: Web2BattleWire): BattleDoc => {
 	const { proposerUserId, scope, ...rest } = wire;
 
-	return {
+	return readBattleDoc({
 		...rest,
 		proposer: proposerUserId,
 		// Drop anything outside the closed scope set, like the satellite
 		// projection does for legacy / unknown values.
 		...(nonNullish(scope) && isBattleScope(scope) ? { scope } : {})
-	};
+	});
 };
 
 /** Every league the session user belongs to, with role and member tally. */
@@ -1472,7 +1477,7 @@ export const proposeBattle = async ({
 	kickoffMs,
 	settleMs,
 	scope,
-	wager,
+	amount,
 	trashTalk
 }: {
 	id: string;
@@ -1482,7 +1487,7 @@ export const proposeBattle = async ({
 	kickoffMs: number;
 	settleMs: number;
 	scope?: string;
-	wager?: number;
+	amount?: number;
 	trashTalk?: string;
 }): Promise<BattleDoc> => {
 	const { battle } = await request<{ battle: Web2BattleWire }>({
@@ -1496,7 +1501,7 @@ export const proposeBattle = async ({
 			kickoffMs,
 			settleMs,
 			...(isNullish(scope) ? {} : { scope }),
-			...(isNullish(wager) ? {} : { wager }),
+			...(isNullish(amount) ? {} : { amount }),
 			...(isNullish(trashTalk) ? {} : { trashTalk })
 		}
 	});

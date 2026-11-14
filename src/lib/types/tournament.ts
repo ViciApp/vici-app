@@ -1,5 +1,5 @@
 /**
- * Monthly tournament: Proposal 3 in `docs/backend-proposals/README.md`.
+ * Monthly tournament.
  *
  * The TournamentBattleDetail surface presents a 16-league single-
  * elimination bracket with per-match accuracy. We model the structure
@@ -12,15 +12,15 @@
  *    match-index). Keyed `${tournamentId}/${round}/${index}` so the
  *    bracket reads as a single prefix scan.
  *
- * Per locked decisions:
+ * Rules:
  *
- *  - 3.1: entry criterion: top-16 leagues by member count. The
+ *  - Entry criterion: top-16 leagues by member count. The
  *    aggregator scans LEAGUE_MEMBERS, counts rows per leagueId,
  *    sorts desc, takes the first 16.
- *  - 3.2: round windows: 7 / 7 / 7 / 7 days (Round 1 → Final).
- *  - 3.3: minimum 50 calls per league per match to qualify; a
+ *  - Round windows: 7 / 7 / 7 / 7 days (Round 1 → Final).
+ *  - Minimum 50 calls per league per match to qualify; a
  *    league that falls short forfeits the match.
- *  - 3.4: forfeit ⇒ opponent advances. If both forfeit, the
+ *  - Forfeit ⇒ opponent advances. If both forfeit, the
  *    lower-seed advances (deterministic for tie-break parity with
  *    the seed order).
  *
@@ -40,24 +40,23 @@ export const TOURNAMENT_ROUNDS = ['r1', 'quarter', 'semifinal', 'final'] as cons
 export type TournamentRound = (typeof TOURNAMENT_ROUNDS)[number];
 
 /**
- * Bracket size is fixed at 16 per decision 3.1. The proposal left
- * the field configurable (`8 | 16 | 32`), but in practice all
- * future tournaments use the same shape; flagging it as a constant
- * here keeps the assert tight and the FE table layout predictable.
+ * Bracket size is fixed at 16: every tournament uses the same shape,
+ * so a constant keeps the assert tight and the bracket layout
+ * predictable.
  */
 export const TOURNAMENT_BRACKET_SIZE = 16;
 
 /**
- * Round duration. 7-day windows ("DAY 3 OF 7") for every round,
- * per the locked decision 3.2 (7/7/7/7).
+ * Round duration: one 7-day window ("DAY 3 OF 7") for every round, so
+ * the four rounds (28 days) fit inside any calendar month.
  */
 export const TOURNAMENT_ROUND_DURATION_DAYS = 7;
 export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
 /**
  * Per-match qualification threshold. A league with fewer than this
- * many resolved calls in the round window forfeits the match
- * (decision 3.3). Mirrors `MIN_CALLS_FOR_RANK` in the affiliation
+ * many resolved calls in the round window forfeits the match.
+ * Mirrors `MIN_CALLS_FOR_RANK` in the affiliation
  * stats: the two thresholds are deliberately separate so a
  * tournament can tighten its bar without affecting the Worlds
  * leaderboard.

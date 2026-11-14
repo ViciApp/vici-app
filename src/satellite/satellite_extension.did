@@ -89,7 +89,7 @@ type AppListLeaderboardResult = record { items : vec record { owner : text; nick
 
 type AppListLeagueBattlesArgs = record { league_id : text };
 
-type AppListLeagueBattlesResult = record { items : vec record { id : text; kind : variant { league; duel }; side_a : text; side_b : text; proposer : text; state : variant { proposed; accepted; in_flight; resolved; declined; expired }; kickoff_ms : float64; settle_ms : float64; respond_by_ms : opt float64; responded_at_ms : opt float64; scope : opt text; wager : opt float64; trash_talk : opt text; score_a : opt float64; score_b : opt float64; calls_a : opt float64; calls_b : opt float64; winner : opt variant { A; B; draw }; resolved_at_ms : opt float64 } };
+type AppListLeagueBattlesResult = record { items : vec record { id : text; kind : variant { league; duel }; side_a : text; side_b : text; proposer : text; state : variant { proposed; accepted; in_flight; resolved; declined; expired }; kickoff_ms : float64; settle_ms : float64; respond_by_ms : opt float64; responded_at_ms : opt float64; scope : opt text; amount : opt float64; trash_talk : opt text; score_a : opt float64; score_b : opt float64; calls_a : opt float64; calls_b : opt float64; winner : opt variant { A; B; draw }; resolved_at_ms : opt float64 } };
 
 type AppListLeagueMembersArgs = record { league_id : text };
 
@@ -105,7 +105,7 @@ type AppListMarketTranslationsForLocalesResult = record { items : vec record { s
 
 type AppListMyAffiliationsResult = record { university : opt record { member : text; kind : variant { university; country }; affiliation_identifier : text; joined_at_ms : float64; locked_until_ms : float64 }; country : opt record { member : text; kind : variant { university; country }; affiliation_identifier : text; joined_at_ms : float64; locked_until_ms : float64 } };
 
-type AppListMyBattlesResult = record { items : vec record { id : text; kind : variant { league; duel }; side_a : text; side_b : text; proposer : text; state : variant { proposed; accepted; in_flight; resolved; declined; expired }; kickoff_ms : float64; settle_ms : float64; respond_by_ms : opt float64; responded_at_ms : opt float64; scope : opt text; wager : opt float64; trash_talk : opt text; score_a : opt float64; score_b : opt float64; calls_a : opt float64; calls_b : opt float64; winner : opt variant { A; B; draw }; resolved_at_ms : opt float64 } };
+type AppListMyBattlesResult = record { items : vec record { id : text; kind : variant { league; duel }; side_a : text; side_b : text; proposer : text; state : variant { proposed; accepted; in_flight; resolved; declined; expired }; kickoff_ms : float64; settle_ms : float64; respond_by_ms : opt float64; responded_at_ms : opt float64; scope : opt text; amount : opt float64; trash_talk : opt text; score_a : opt float64; score_b : opt float64; calls_a : opt float64; calls_b : opt float64; winner : opt variant { A; B; draw }; resolved_at_ms : opt float64 } };
 
 type AppListMyBlockingLeaguesResult = record { league_ids : vec text };
 
@@ -191,7 +191,7 @@ type AppRejectFriendRequestArgs = record { relation_id : text };
 
 type AppResolveBattleArgs = record { battle_id : text };
 
-type AppResolveBattleResult = record { battle : record { id : text; kind : variant { league; duel }; side_a : text; side_b : text; proposer : text; state : variant { proposed; accepted; in_flight; resolved; declined; expired }; kickoff_ms : float64; settle_ms : float64; respond_by_ms : opt float64; responded_at_ms : opt float64; scope : opt text; wager : opt float64; trash_talk : opt text; score_a : opt float64; score_b : opt float64; calls_a : opt float64; calls_b : opt float64; winner : opt variant { A; B; draw }; resolved_at_ms : opt float64 } };
+type AppResolveBattleResult = record { battle : record { id : text; kind : variant { league; duel }; side_a : text; side_b : text; proposer : text; state : variant { proposed; accepted; in_flight; resolved; declined; expired }; kickoff_ms : float64; settle_ms : float64; respond_by_ms : opt float64; responded_at_ms : opt float64; scope : opt text; amount : opt float64; trash_talk : opt text; score_a : opt float64; score_b : opt float64; calls_a : opt float64; calls_b : opt float64; winner : opt variant { A; B; draw }; resolved_at_ms : opt float64 } };
 
 type AppResolveTournamentRoundArgs = record { tournament_id : text; round : text };
 

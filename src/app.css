@@ -2199,7 +2199,7 @@ a.title-action::after {
 	top: 92px;
 	z-index: 20;
 	display: inline-flex;
-	/* Center every part on a common line: the side label, the larger stake
+	/* Center every part on a common line: the side label, the larger amount
 	   number and the small "IN PLAY"/bonus run at different sizes, so baseline
 	   alignment left the small caps sitting low against the number. */
 	align-items: center;

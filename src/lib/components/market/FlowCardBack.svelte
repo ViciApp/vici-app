@@ -2,9 +2,9 @@
 	import FlowBackContext from '#lib/components/market/FlowBackContext.svelte';
 	import FlowBackHeader from '#lib/components/market/FlowBackHeader.svelte';
 	import FlowBackMeta from '#lib/components/market/FlowBackMeta.svelte';
+	import FlowCallSize from '#lib/components/market/FlowCallSize.svelte';
 	import FlowCommunityRead from '#lib/components/market/FlowCommunityRead.svelte';
 	import FlowResolutionBlock from '#lib/components/market/FlowResolutionBlock.svelte';
-	import FlowStake from '#lib/components/market/FlowStake.svelte';
 	import FlowWhoCalling from '#lib/components/market/FlowWhoCalling.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
@@ -34,12 +34,12 @@
 		// Mirrors FlowCard.interactive; only the topmost card is wired
 		// for the tap-to-flip-back / horizontal-swipe-commits gestures.
 		interactive?: boolean;
-		// Current stake amount (string for input-binding parity with
-		// FlowMode). Drives the stake slider and payout preview.
+		// Current call size (string for input-binding parity with
+		// FlowMode). Drives the call-size slider and payout preview.
 		tradeAmount?: string;
-		// Stake-ladder change callback. Fires when a rung or the
+		// Call-size ladder change callback. Fires when a rung or the
 		// native range input changes.
-		onStakeChange?: (next: string) => void;
+		onCallSizeChange?: (next: string) => void;
 		// Real, market-wide price history (0–100 YES series) for the
 		// community-read sparkline. Absent → seed-based fallback shape.
 		points?: number[];
@@ -51,9 +51,9 @@
 		// the guided onboarding card) render unchanged.
 		displayTitle?: string;
 		displayResolution?: string;
-		// Proactive stake warning resolved by FlowMode, rendered on the stake
+		// Proactive call-size warning resolved by FlowMode, rendered on the call-size
 		// slider. Defaults to `'none'` so static / preview usages stay quiet.
-		stakeWarning?: 'none' | 'unaffordable' | 'wont-finish';
+		callSizeWarning?: 'none' | 'unaffordable' | 'wont-finish';
 	}
 
 	const {
@@ -68,12 +68,12 @@
 		onClose,
 		interactive = true,
 		tradeAmount,
-		onStakeChange,
+		onCallSizeChange,
 		points,
 		pointXs,
 		displayTitle,
 		displayResolution,
-		stakeWarning = 'none'
+		callSizeWarning = 'none'
 	}: Props = $props();
 
 	const catColor = $derived(tagColor(category));
@@ -93,7 +93,7 @@
 
 		<FlowCommunityRead {crowdPct} {crowdSide} {market} {metadata} {pointXs} {points} />
 
-		<FlowStake {market} {noPct} {onStakeChange} {stakeWarning} {tradeAmount} {yesPct} />
+		<FlowCallSize {callSizeWarning} {market} {noPct} {onCallSizeChange} {tradeAmount} {yesPct} />
 
 		<FlowWhoCalling {followedLean} {yesPct} />
 

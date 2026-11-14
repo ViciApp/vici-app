@@ -3,7 +3,7 @@ import { DAILY_HARD_CAP } from '#lib/utils/motion-engine.utils.ts';
 
 // Sitting-ceiling arithmetic for a Flow session. Pure functions over the
 // daily-goal baseline and the per-day hard cap, kept out of the component
-// so the cross-session cap rules (#484/#485) live in one place. The
+// so the cross-session cap rules live in one place. The
 // component holds the reactive `$state`/`$derived` and delegates the math.
 
 /**

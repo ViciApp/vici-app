@@ -1,5 +1,5 @@
 <script lang="ts">
-	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { CallSide } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
@@ -8,14 +8,14 @@
 		yesPercent: number;
 		noPercent: number;
 		/**
-		 * Whether the odds are known. When `false` the hero renders an odds
+		 * Whether the probability is known. When `false` the hero renders a probability
 		 * skeleton in place of both percentages (and a neutral bar) rather than
 		 * a misleading 0/100 split for an unpriced or empty book.
 		 */
 		known?: boolean;
 		/**
 		 * Whether the order book has been read: picks the skeleton variant when
-		 * the odds are unknown (`empty` dash vs `loading` bar).
+		 * the probability is unknown (`empty` dash vs `loading` bar).
 		 */
 		priceLoaded?: boolean;
 		/**
@@ -52,7 +52,7 @@
 	<div class="prob-hero-row">
 		<div class="prob-hero-side prob-hero-yes" class:is-lost={yesLost}>
 			<span class="num prob-hero-yes-pct">
-				{#if known}{yesPercent}%{:else}<MarketOddsSkeleton
+				{#if known}{yesPercent}%{:else}<MarketProbabilitySkeleton
 						variant={priceLoaded ? 'empty' : 'loading'}
 					/>{/if}
 			</span>
@@ -69,7 +69,7 @@
 					: t({ locale: $localeStore, key: 'outcome.no' })}
 			</span>
 			<span class="num prob-hero-no-pct">
-				{#if known}{noPercent}%{:else}<MarketOddsSkeleton
+				{#if known}{noPercent}%{:else}<MarketProbabilitySkeleton
 						variant={priceLoaded ? 'empty' : 'loading'}
 					/>{/if}
 			</span>

@@ -16,7 +16,7 @@
 	//   authenticated session. This is always a client-side `goto`, never
 	//   a full document load: a hard navigation would re-fetch the document
 	//   from the IC HTTP gateway, which occasionally flashes the gateway's
-	//   own "500 Internal error" page mid-handshake (#753). Routing in-SPA
+	//   own "500 Internal error" page mid-handshake. Routing in-SPA
 	//   keeps us on the already-loaded document, so there is nothing to
 	//   500.
 	// - While the auth handshake is still unresolved, a device that carries

@@ -10,7 +10,7 @@ export interface NotificationPrefs {
 }
 
 /**
- * Wallet-side default-bet amounts, per surface. Stored as decimal
+ * Wallet-side default call amounts, per surface. Stored as decimal
  * strings so we can carry exact tokens without floating-point drift.
  */
 export interface DefaultAmountPrefs {

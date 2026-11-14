@@ -232,9 +232,7 @@ export const macroLabelKey = (macro: MacroId): MessageKey => `market.macro.${mac
 export const microLabelKey = (micro: MicroId): MessageKey => `market.micro.${micro}` as MessageKey;
 
 // Per-macro brand accent. Micros inherit their macro's color; the chip's
-// meaning is carried by the macro family, not per-micro hues. Six values are
-// reused verbatim from the legacy `TAG_COLORS`; `world` takes the laurel-gold
-// that `wc` used to own (World Cup now lives under sports/soccer).
+// meaning is carried by the macro family, not per-micro hues.
 export const MACRO_COLORS = {
 	politics: '#FF6B6B',
 	world: '#E2B842',
@@ -315,8 +313,7 @@ export const classificationMacros = (values: readonly string[]): MacroId[] => {
  * de-duplicate while preserving order (the first micro stays primary). Both
  * micro ids and Layer-3 free tags are kept; the taxonomy is closed at the
  * micro layer but open at the tag layer, so unknown values are retained as
- * free tags rather than dropped. Replaces the legacy `normalizeMarketTags`,
- * which filtered to the old closed 7-tag set.
+ * free tags rather than dropped.
  */
 export const normalizeStoredTags = (values: readonly string[]): string[] => {
 	const seen = new Set<string>();

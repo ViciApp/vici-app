@@ -18,8 +18,8 @@
 			});
 
 			// Land the freshly authenticated session straight on Flow:
-			// the canonical first surface for every authenticated session
-			// (see #421). Routing through `/` here would double-bounce
+			// the canonical first surface for every authenticated session.
+			// Routing through `/` here would double-bounce
 			// (`/` → `/flow`) and risk a transient marketing / markets
 			// paint before the root gate re-runs.
 			await goto(resolveAppPath(AppPath.Flow), { replace: true });
@@ -29,7 +29,7 @@
 			// Sign-in failed, so this device has no session. Clear the stale
 			// `signed-in` hint: otherwise the root gate (`src/routes/+page.svelte`)
 			// would read it and hold its resume spinner on `/` waiting for a
-			// session that never arrives, the "loop, can't enter" report (#546).
+			// session that never arrives, so the user could never get in.
 			// Route to the sign-in screen (not `/`) so they get the provider
 			// buttons back with the flag cleared, breaking the loop.
 			if (browser) {

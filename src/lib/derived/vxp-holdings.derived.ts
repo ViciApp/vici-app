@@ -32,7 +32,7 @@ import { derived, type Readable } from 'svelte/store';
 // Raw VXP balance sitting in the user's ICRC ledger wallet (un-deposited).
 // Trends toward ~0 as VXP is swept into the clearing canister as collateral.
 // Kept as its own concept for the Wallet surface (ledger balance + the
-// low-balance "recovery" gate); the Dash "available to bet" figure is
+// low-balance "recovery" gate); the Dash "available to predict with" figure is
 // `vxpSpendable`, which also counts deposited clearing collateral.
 export const vxpFree: Readable<bigint> = derived(
 	balancesStore,
@@ -43,7 +43,7 @@ interface Holdings {
 	/**
 	 * Spendable: every VXP the user holds, free in the wallet **and**
 	 * deposited as clearing collateral: minus everything reserved for open
-	 * positions and resting orders. The honest "available to bet" figure.
+	 * positions and resting orders. The honest "available to predict with" figure.
 	 */
 	spendable: bigint;
 	/** Reserved for open positions **and** resting limit orders. */
@@ -135,7 +135,7 @@ const holdingsState: Readable<HoldingsState> = derived(
 			}
 
 			// No clearing account yet (e.g. a fresh user who hasn't deposited):
-			// all they can stake is whatever sits in the wallet.
+			// all they can commit is whatever sits in the wallet.
 			return { holdings: { spendable: walletMargin, backed: ZERO }, initialized: bothLoaded };
 		}
 
@@ -191,7 +191,7 @@ export const vxpHoldingsNotInitialized: Readable<boolean> = derived(
 	($holdingsState) => !$holdingsState.initialized
 );
 
-// "Available to bet": wallet VXP + deposited clearing collateral, minus
+// "Available to predict with": wallet VXP + deposited clearing collateral, minus
 // everything reserved for open positions and resting orders.
 export const vxpSpendable: Readable<bigint> = derived(holdings, ($holdings) => $holdings.spendable);
 

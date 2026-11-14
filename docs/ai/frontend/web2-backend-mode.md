@@ -39,7 +39,7 @@ Two files under `src/lib/web2/`:
 | Auth                                            | `authn/SignInProviderStack.svelte`, `authn/Authn.svelte`                                                                                                                                                                                  | The identity layer, not a per-service swap. See "Auth" below.                                                              |
 | Profiles + social                               | `profile.services.ts`, `user-stats.services.ts`, `relation.services.ts`, `relation-queries.services.ts`, `leaderboard.services.ts`                                                                                                        | Per-service swaps. Plus the app-shell hydration in `Authn.svelte`. See "Profiles and social" below.                        |
 | Markets + public engine reads                   | `market.services.ts`, `market-metadata.services.ts`, `market-translation.services.ts`, `resolution.services.ts`, `trade.services.ts`, `standings.services.ts`, `collateral.services.ts`                                                   | Public reads only. See "Markets and public engine reads" below.                                                            |
-| Engine account ops + wallet                     | `order.services.ts`, `position.services.ts`, `trade.services.ts`, `collateral.services.ts`, `wallet.service.ts`, `send.services.ts`                                                                                                       | The session-gated engine surface and the custodial wallet. See "Engine account operations and the custodial wallet" below. |
+| Engine account ops + wallet                     | `order.services.ts`, `position.services.ts`, `trade.services.ts`, `collateral.services.ts`, `wallet.services.ts`, `send.services.ts`                                                                                                      | The session-gated engine surface and the custodial wallet. See "Engine account operations and the custodial wallet" below. |
 | Leagues + battles + worlds + tournaments        | `leagues.services.ts`, `worlds.services.ts`, `tournament.services.ts`, `storage.services.ts` (league cover), `standings.services.ts` (league slice)                                                                                       | The social competition surfaces. See "Leagues, battles, worlds and tournaments" below.                                     |
 | VXP + referrals + school + account + activities | `vxp-awards.services.ts`, `referral.services.ts`, `school-verification.services.ts`, `account.services.ts`, `activity.services.ts`, `activity-reaction.services.ts`, `profile.services.ts` (own email), `identity.services.ts` (sign-out) | The last app domain set. See "VXP, referrals, school, account lifecycle and activities" below.                             |
 
@@ -427,7 +427,7 @@ the exact candid shapes.
   it for a 15 minute lease, after which a retry goes straight to clearing
   without a second approval.
 - Account state (`getAccountState` / `loadAccountState`,
-  `wallet.service.ts` `getCollateralBalances`) reads
+  `wallet.services.ts` `getCollateralBalances`) reads
   `/engine/account?domain=<variant>`, clearing's domain-scoped update read
   with `refresh` off, delivered as the `certified: true` pass. Clearing's
   read-only query computes equity and margin for Settlement alone, which
@@ -437,7 +437,7 @@ the exact candid shapes.
 
 ### The custodial wallet
 
-- `wallet.service.ts` `getLedgerBalances`: `/wallet/balances`, keyed back
+- `wallet.services.ts` `getLedgerBalances`: `/wallet/balances`, keyed back
   to the app's token ids by symbol (the custody asset catalog mirrors the
   supported IC tokens). For `ic` assets the route reads the ledgers live
   for the custodial principal, default subaccount, and provisions the

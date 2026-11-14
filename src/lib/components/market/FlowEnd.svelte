@@ -14,7 +14,7 @@
 		// Calls placed this session (now pending resolution).
 		pending: number;
 		// VXP locked at risk across the session's calls.
-		staked: number;
+		calledVxp: number;
 		// Cross-session daily streak (days in a row), already bumped.
 		streak: number;
 		// True when the session ran to the daily hard cap (15) via Push-to-15.
@@ -37,7 +37,7 @@
 
 	const {
 		pending,
-		staked,
+		calledVxp,
 		streak,
 		overtime,
 		comeback,
@@ -245,7 +245,7 @@
 				>{t({ locale: $localeStore, key: 'flow.end.stat_called' })}</span
 			>
 			<span class="num flow-end-stat-value">
-				<CountUp to={staked} /> VXP
+				<CountUp to={calledVxp} /> VXP
 			</span>
 		</div>
 	</div>

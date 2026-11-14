@@ -87,7 +87,7 @@ interface HistoryEntry {
 
 /**
  * Margin committed by an `Executed` fill, in clearing-margin base units
- * (`USD_DECIMALS`). Carried on the prediction row as `stake` for display
+ * (`USD_DECIMALS`). Carried on the prediction row as `inPlay` for display
  * ("… in play"): it does **not** move the running balance; a fill only
  * reserves the user's own VXP, it doesn't change what they own (see
  * `clearingEntries`).
@@ -95,7 +95,7 @@ interface HistoryEntry {
  * An event's `qty` is a whole contract count (1 unit = 1.0 of the
  * underlying) and `price` a probability in [0, 1], so `qty × price` is the
  * notional in *whole* VXP; scaling by `10^USD_DECIMALS` lifts it into base
- * units. Without that scale a 5,000 VXP stake reads as `0.5` (`<1`).
+ * units. Without that scale a 5,000 VXP call reads as `0.5` (`<1`).
  * Non-finite prices (malformed events) contribute `ZERO` rather than `NaN`.
  */
 const executedCost = (event: ClearingDid.Event): bigint => {
@@ -112,12 +112,12 @@ const executedCost = (event: ClearingDid.Event): bigint => {
  * so a trade moves the balance only when it changes what the user *owns*, not
  * when VXP merely shifts between "available" and "in play":
  *
- * - `Executed` (a fill) reserves margin but is wealth-neutral: the staked VXP
+ * - `Executed` (a fill) reserves margin but is wealth-neutral: the committed VXP
  *   is still the user's, just locked. Its delta is `0`; the committed margin
- *   rides on the row as `stake` for display.
+ *   rides on the row as `inPlay` for display.
  * - `Settled` / `Liquidated` realize the position. The signed `qty` is the
  *   realized cashflow (see `settledEventToResolvedPosition`): a win adds the
- *   profit, a full loss subtracts the stake, a break-even nets zero; and
+ *   profit, a full loss subtracts the committed amount, a break-even nets zero; and
  *   that cashflow *is* the total delta. No margin-release term is needed,
  *   because the fill never debited total in the first place.
  *
@@ -145,7 +145,7 @@ const clearingEntries = (events: ClearingDid.Event[]): HistoryEntry[] => {
 					marketId,
 					timestampNs: event.timestamp,
 					delta: ZERO,
-					stake: executedCost(event)
+					inPlay: executedCost(event)
 				}
 			});
 		} else if (eventKey === 'Settled' || eventKey === 'Liquidated') {

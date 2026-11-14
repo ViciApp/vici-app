@@ -11,48 +11,49 @@
  * See `vxp-economy.utils.ts` for the payout formula.
  */
 
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**
- * Per-call stake ladder, smallest → largest. The shape is curated, not
+ * Per-call size ladder, smallest → largest. The shape is curated, not
  * arithmetic: the non-uniform jump from 300 to 500 (rather than a smooth
  * rung) is intentional.
  *
  * Frozen so call sites can rely on the literal indexing without worrying
  * about runtime mutation.
  */
-export const VXP_STAKE_LADDER = [50, 100, 200, 300, 500] as const;
+export const VXP_CALL_SIZE_LADDER = [50, 100, 200, 300, 500] as const;
 
-export type VxpStake = (typeof VXP_STAKE_LADDER)[number];
+export type VxpCallSize = (typeof VXP_CALL_SIZE_LADDER)[number];
 
 /**
  * Smallest rung on the ladder. Surfaced as a named export so callers
- * don't have to reach into `VXP_STAKE_LADDER[0]` and pick up a tuple
+ * don't have to reach into `VXP_CALL_SIZE_LADDER[0]` and pick up a tuple
  * literal type at every call site.
  */
-export const [VXP_MIN_STAKE] = VXP_STAKE_LADDER;
+export const [VXP_MIN_CALL_SIZE] = VXP_CALL_SIZE_LADDER;
 
 /**
- * Membership-style validator for a candidate stake: the single
+ * Membership-style validator for a candidate call size: the single
  * source of truth for "is this premium a valid ladder rung". Used by
  * the trade-utility premium guard and by deck-restore paths that
- * sanity-check a previously-persisted stake before re-binding it to
+ * sanity-check a previously-persisted call size before re-binding it to
  * the UI. Doubles as a TS type-narrowing predicate so downstream
- * code can rely on `VxpStake` once past the guard.
+ * code can rely on `VxpCallSize` once past the guard.
  */
-export const isVxpLadderStake = (n: number): n is VxpStake =>
-	Number.isInteger(n) && (VXP_STAKE_LADDER as readonly number[]).includes(n);
+export const isVxpCallSize = (n: number): n is VxpCallSize =>
+	Number.isInteger(n) && (VXP_CALL_SIZE_LADDER as readonly number[]).includes(n);
 
 /**
- * Default stake for new and low-activity users. Renders as the only
+ * Default call size for new and low-activity users. Renders as the only
  * surfaced option for first-call users: no decision paralysis.
  */
-export const VXP_DEFAULT_STAKE: VxpStake = 50;
+export const VXP_DEFAULT_CALL_SIZE: VxpCallSize = 50;
 
 /**
  * Cap on the consensus probability the payout formula sees. Without a
- * floor, a 1% side would pay `100×` stake which would deplete the
- * economy. 5% caps long-shot payouts at ~20× stake.
+ * floor, a 1% side would pay `100×` the amount, which would deplete the
+ * economy. 5% caps long-shot payouts at ~20× the amount.
  */
 export const VXP_P_WIN_FLOOR = 0.05;
 
@@ -99,7 +100,7 @@ export const VXP_FLOW_OVERTIME_BONUS = 25;
  * store-stamped `created_at` of their `flow_overtime` award docs (which the
  * caller cannot forge). Tunable.
  */
-export const VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+export const VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS = 7 * DAY_IN_MS;
 
 /**
  * Maximum `flow_overtime` mints a caller can earn within
@@ -115,7 +116,7 @@ export const VXP_FLOW_OVERTIME_ROLLING_CAP = 8;
  * Calibration reward (20 VXP), in **base units**. Paid once per finalised
  * Vici binary market a recovering user calls correctly. Small and fixed:
  * it is a recovery nudge that rewards reading a market right, not a payout
- * that scales with stake. Sized in base units via the canonical
+ * that scales with the call size. Sized in base units via the canonical
  * `vxpBaseUnits` helper so it matches `icrc1Transfer` / award-doc amounts
  * (same pattern as referral / onboarding awards). Tunable.
  */
@@ -148,7 +149,7 @@ export const CALIBRATION_DEPLOY_FLOOR_BASE_UNITS = vxpBaseUnits(150);
  * Comeback restore: a one-time "welcome back" top-up for a returning user whose stack has run dry.
  * When a user returns after an absence of at least {@link COMEBACK_AWAY_DAYS} days and their free
  * balance is below {@link COMEBACK_BALANCE_FLOOR_BASE_UNITS}, their balance is topped up *to* this
- * target so they have stake to play again. In **base units** via `vxpBaseUnits`. Tunable.
+ * target so they have VXP to play again. In **base units** via `vxpBaseUnits`. Tunable.
  */
 export const COMEBACK_RESTORE_TARGET_BASE_UNITS = vxpBaseUnits(250);
 

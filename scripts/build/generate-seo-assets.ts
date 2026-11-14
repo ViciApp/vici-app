@@ -47,8 +47,8 @@
  * Failure is fatal by design: `hosting deploy --prune` deletes any asset
  * missing from `build/`, so a silently-degraded run would wipe every
  * previously deployed market page and the sitemap. The soft dependencies are
- * the clearing reads (live odds and resolution): a slow/unreachable clearing
- * canister must never fail a deploy, so they degrade to "no odds clause" and
+ * the clearing reads (live probability and resolution): a slow/unreachable clearing
+ * canister must never fail a deploy, so they degrade to "no probability clause" and
  * "treat as unresolved" respectively, never a throw.
  */
 import type { _SERVICE as ClearingService, LimitOrder } from '#declarations/clearing/clearing.d.ts';
@@ -76,10 +76,10 @@ const IC_HOST = 'https://icp-api.io';
 const ENGINE_ID = process.env.VICI_ENGINE_ID ?? 'eng_0';
 const PAGE_SIZE = 200n;
 
-// Bounded fan-out for the per-market odds reads: enough to keep the deploy
+// Bounded fan-out for the per-market probability reads: enough to keep the deploy
 // step quick over a few hundred markets, low enough not to hammer the
 // clearing canister with one burst.
-const ODDS_CONCURRENCY = 8;
+const PROBABILITY_CONCURRENCY = 8;
 
 // Mirrors the market-detail `<svelte:head>` title (`market.detail.head_suffix`).
 const TITLE_SUFFIX = ' | Vici Social Markets';
@@ -95,7 +95,7 @@ const DESCRIPTION_MAX_LENGTH = 160;
 const DESCRIPTION_TAIL = 'Live community odds on the Vici prediction market.';
 
 // A settled market has no live book, so the open-market tail would promise
-// odds the page cannot show. Point at the catalog instead: the resolved page
+// a probability the page cannot show. Point at the catalog instead: the resolved page
 // is an answer page whose job is to hand the reader an open market next.
 const DESCRIPTION_TAIL_RESOLVED = 'See the result and open markets on Vici.';
 
@@ -133,7 +133,7 @@ type Resolution =
 
 /**
  * The plain-text meta description: for an open market the (truncated)
- * registry blurb, an optional live-odds sentence, then the brand/keyword
+ * registry blurb, an optional live-probability sentence, then the brand/keyword
  * tail. Returns raw text; callers HTML-escape it for meta attributes and
  * pass it verbatim into JSON-LD.
  *
@@ -265,8 +265,8 @@ const midYesProbability = (orders: LimitOrder[]): number | undefined => {
 
 /**
  * Reads one market's current YES probability. Soft by contract: any clearing
- * error degrades to `undefined` (no odds clause) rather than failing the
- * deploy: odds are a nice-to-have on top of the always-present title/desc.
+ * error degrades to `undefined` (no probability clause) rather than failing the
+ * deploy: the probability is a nice-to-have on top of the always-present title/desc.
  */
 const fetchYesProbability = async ({
 	clearing,
@@ -280,15 +280,18 @@ const fetchYesProbability = async ({
 
 		return midYesProbability(orders);
 	} catch (err) {
-		// Soft dependency: swallow and fall through to "no odds" (returns
-		// undefined) rather than fail the deploy: odds are optional garnish.
-		console.warn(`[seo-assets] odds read failed for ${seriesId}; emitting page without odds.`, err);
+		// Soft dependency: swallow and fall through to "no probability" (returns
+		// undefined) rather than fail the deploy: the probability is optional garnish.
+		console.warn(
+			`[seo-assets] probability read failed for ${seriesId}; emitting page without it.`,
+			err
+		);
 	}
 };
 
 /**
  * The authoritative set of settled series ids, draining clearing's exclusive
- * cursor. Soft by the same contract as the odds read: an unreachable clearing
+ * cursor. Soft by the same contract as the probability read: an unreachable clearing
  * canister yields an empty set, so every market is emitted as unresolved
  * (today's behaviour) rather than failing the deploy.
  */
@@ -331,7 +334,7 @@ const listSettledSeriesIds = async (
 /**
  * One settled market's winning outcome. Soft: a failed read degrades to
  * "resolved, winner unnamed": the page still tells the crawler the market is
- * over, which is the part that stops it reading as a live-odds page.
+ * over, which is the part that stops it reading as a live-probability page.
  */
 const fetchSettlementOutcome = async ({
 	clearing,
@@ -582,7 +585,7 @@ const main = async () => {
 	// to rotate, no privileged principal in CI.
 	//
 	// One signed agent serves every actor below. The registry reads and the
-	// odds read do not *require* an identity, but signing them costs nothing
+	// probability read do not *require* an identity, but signing them costs nothing
 	// (they stay query calls) and a second anonymous agent would buy only the
 	// chance of the two drifting apart.
 	const agent = await HttpAgent.create({ host: IC_HOST, identity: Ed25519KeyIdentity.generate() });
@@ -613,13 +616,13 @@ const main = async () => {
 	}
 
 	// Resolution first: it decides which per-market read is worth making. A
-	// settled market's book is empty, so the odds call would spend a round trip
+	// settled market's book is empty, so the probability call would spend a round trip
 	// to return `undefined`; ask for its outcome instead.
 	const settledIds = await listSettledSeriesIds(clearing);
 
 	const resolutionByIndex = await mapWithConcurrency<Series, Resolution>({
 		items: visible,
-		limit: ODDS_CONCURRENCY,
+		limit: PROBABILITY_CONCURRENCY,
 		fn: async (market) =>
 			settledIds.has(market.series_id)
 				? {

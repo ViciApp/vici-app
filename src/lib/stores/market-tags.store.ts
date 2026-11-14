@@ -10,8 +10,6 @@ import { writable } from 'svelte/store';
  * tags) are derived on read via `#lib/constants/market-taxonomy.constants.ts`.
  *
  * Public read (no identity, no balance domain). Populated by
- * `LoaderMarketTags` and reused across every surface that previously
- * relied on `categoriesStore` / the deleted `series_categories`
- * collection.
+ * `LoaderMarketTags`.
  */
 export const marketTagsStore = writable<Record<string, string[]> | undefined>(undefined);

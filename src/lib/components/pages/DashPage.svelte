@@ -265,7 +265,7 @@
 	const todayLoading = $derived(isNullish(userStats));
 
 	// Net VXP across the recent settlement window: wins add their payout, losses
-	// have no payout (the stake is already gone), so a quiet/loss-only window
+	// have no payout (the committed amount is already gone), so a quiet/loss-only window
 	// reads 0. `null` only when there is no settlement data at all.
 	const todayDelta = $derived.by<number | null>(() => {
 		if (recentSettlements.length === 0) {

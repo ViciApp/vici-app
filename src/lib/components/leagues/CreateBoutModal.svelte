@@ -14,9 +14,9 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		BATTLE_TRASH_TALK_MAX_LENGTH,
-		BATTLE_WAGER_DEFAULT,
-		BATTLE_WAGER_MAX,
-		BATTLE_WAGER_MIN,
+		BATTLE_AMOUNT_DEFAULT,
+		BATTLE_AMOUNT_MAX,
+		BATTLE_AMOUNT_MIN,
 		type BattleDoc,
 		type BattleScope
 	} from '#lib/types/battle.ts';
@@ -43,7 +43,7 @@
 	 *     own memberships, minus the leagues the caller owns. The caller
 	 *     filters by name and taps the opponent.
 	 *  3. Scope: which calls count (all, or a single market category).
-	 *  4. Wager: an optional VXP stake (0–500); 0 means no stake.
+	 *  4. Amount: an optional VXP amount (0–500); 0 means pride only.
 	 *  5. Trash-talk: an optional short message (brevity rewarded).
 	 *  6. Duration: 7 / 14 / 30 days, mapped to the kickoff → settle
 	 *     window the satellite stores.
@@ -88,7 +88,7 @@
 	let opponent: LeagueDoc | undefined = $state();
 	let opponentSearch = $state('');
 	let scope = $state<BattleScope>('all');
-	let wager = $state<number>(BATTLE_WAGER_DEFAULT);
+	let amount = $state<number>(BATTLE_AMOUNT_DEFAULT);
 	let trashTalk = $state('');
 	let duration = $state<Duration>(7);
 
@@ -167,7 +167,7 @@
 		opponent = undefined;
 		opponentSearch = '';
 		scope = 'all';
-		wager = BATTLE_WAGER_DEFAULT;
+		amount = BATTLE_AMOUNT_DEFAULT;
 		trashTalk = '';
 		duration = 7;
 		submitting = false;
@@ -217,7 +217,7 @@
 				sideB: opponent.id,
 				durationMs: duration * DAY_IN_MS,
 				scope,
-				wager,
+				amount,
 				trashTalk
 			});
 
@@ -446,31 +446,31 @@
 							</div>
 						</fieldset>
 
-						<!-- Step 4 · Wager (optional) -->
+						<!-- Step 4 · Amount (optional) -->
 						<div class="create-bout-field">
-							<div class="create-bout-wager-head">
+							<div class="create-bout-amount-head">
 								<span class="allcaps create-bout-label">
-									{t({ locale: $localeStore, key: 'battles.create.label_wager' })}
+									{t({ locale: $localeStore, key: 'battles.create.label_amount' })}
 								</span>
-								<span class="num create-bout-wager-value">
-									{wager === BATTLE_WAGER_MIN
-										? t({ locale: $localeStore, key: 'battles.create.wager_none' })
+								<span class="num create-bout-amount-value">
+									{amount === BATTLE_AMOUNT_MIN
+										? t({ locale: $localeStore, key: 'battles.create.amount_none' })
 										: t({
 												locale: $localeStore,
-												key: 'battles.create.wager_value',
-												params: { amount: wager }
+												key: 'battles.create.amount_value',
+												params: { amount }
 											})}
 								</span>
 							</div>
 							<input
 								class="create-bout-slider"
-								aria-label={t({ locale: $localeStore, key: 'battles.create.label_wager' })}
-								max={BATTLE_WAGER_MAX}
-								min={BATTLE_WAGER_MIN}
-								oninput={(event) => (wager = Number(event.currentTarget.value))}
+								aria-label={t({ locale: $localeStore, key: 'battles.create.label_amount' })}
+								max={BATTLE_AMOUNT_MAX}
+								min={BATTLE_AMOUNT_MIN}
+								oninput={(event) => (amount = Number(event.currentTarget.value))}
 								step="10"
 								type="range"
-								value={wager}
+								value={amount}
 							/>
 						</div>
 
@@ -683,7 +683,7 @@
 		/* No inner max-height / overflow: the sheet body is the single
 		 * scroller, so the whole opponent list is reachable by scrolling.
 		 * A nested scroll region traps the wheel/touch on iOS and hides the
-		 * lower leagues (#552). */
+		 * lower leagues. */
 	}
 
 	.create-bout-opponent {
@@ -727,14 +727,14 @@
 		letter-spacing: var(--tracking-allcaps);
 	}
 
-	.create-bout-wager-head {
+	.create-bout-amount-head {
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
 		gap: 0.5rem;
 	}
 
-	.create-bout-wager-value {
+	.create-bout-amount-value {
 		font-size: var(--t-13);
 		font-weight: 700;
 		color: var(--laurel);

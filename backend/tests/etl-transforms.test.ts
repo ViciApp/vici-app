@@ -608,6 +608,8 @@ describe.if(dbAvailable)('leagues import', () => {
 						state: 'resolved',
 						kickoffMs: 1712000000000,
 						settleMs: 1712600000000,
+						// Proposed before the rename: the amount sits under the old name.
+						wager: 150,
 						scoreA: 60,
 						scoreB: 40,
 						callsA: 10,
@@ -620,14 +622,17 @@ describe.if(dbAvailable)('leagues import', () => {
 		});
 
 		const challengerId = await userIdForPrincipal(challenger);
-		const battles = await query<{ side_a: string; side_b: string; winner: string }>(
-			`select side_a, side_b, winner from battles where id = $1`,
-			[battleId]
-		);
+		const battles = await query<{
+			side_a: string;
+			side_b: string;
+			winner: string;
+			amount: number | null;
+		}>(`select side_a, side_b, winner, amount from battles where id = $1`, [battleId]);
 
 		expect(battles[0]?.side_a).toBe(ownerId ?? '');
 		expect(battles[0]?.side_b).toBe(challengerId ?? '');
 		expect(battles[0]?.winner).toBe('A');
+		expect(battles[0]?.amount).toBe(150);
 	});
 });
 

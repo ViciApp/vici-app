@@ -1,6 +1,5 @@
 import { functions } from '#declarations/satellite/satellite.api.ts';
 import type { TournamentDoc, TournamentMatchDoc, TournamentRound } from '#lib/types/tournament.ts';
-import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	claimTournamentPrize as claimTournamentPrizeWeb2,
@@ -164,9 +163,3 @@ export const claimTournamentPrize = ({
 	isWeb2Backend()
 		? claimTournamentPrizeWeb2({ tournamentId })
 		: functions.claimTournamentPrize({ tournamentId });
-
-/**
- * Convenience: the current calendar month's anchor (UTC). Used by
- * the FE to default the draw trigger to the in-progress month.
- */
-export const currentMonthAnchor = (nowMs: number = Date.now()): string => monthAnchorFromMs(nowMs);

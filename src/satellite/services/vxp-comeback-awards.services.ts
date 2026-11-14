@@ -20,7 +20,7 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
  * Comeback-restore hook. Runs after every `profiles` write; when a user returns after an absence of
  * at least {@link COMEBACK_AWAY_DAYS} days (measured from the jump in `lastActiveDay`) with a free
  * balance below {@link COMEBACK_BALANCE_FLOOR_BASE_UNITS}, it tops their ledger balance up to
- * {@link COMEBACK_RESTORE_TARGET_BASE_UNITS} so they have stake to play again.
+ * {@link COMEBACK_RESTORE_TARGET_BASE_UNITS} so they have VXP to play again.
  *
  * `lastActiveDay` is only advanced when the user makes a prediction on a new day (there is no
  * app-open write), so the restore fires as the returning user re-engages rather than on mere

@@ -225,7 +225,7 @@ export const resolveBattleFromSettlements = async ({
 			   calls_b = $5, winner = $6, resolved_at_ms = $7, updated_at = now()
 			 where id = $1
 			 returning id, kind, side_a, side_b, proposer_user_id, state,
-			   kickoff_ms::text, settle_ms::text, scope, wager, trash_talk,
+			   kickoff_ms::text, settle_ms::text, scope, amount, trash_talk,
 			   respond_by_ms::text, responded_at_ms::text, baseline_a, baseline_b,
 			   score_a, score_b, calls_a, calls_b, winner, resolved_at_ms::text`,
 			[battleId, scoreA, scoreB, callsA, callsB, winner, nowMs]

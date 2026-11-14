@@ -51,8 +51,8 @@ export const LANDING_HERO_CARD = {
 	yes: 33
 } as const;
 
-/** Stake the hero payoff math + leaderboard climb beat are framed around. */
-export const LANDING_HERO_STAKE = 50;
+/** Call size the hero payoff math + leaderboard climb beat are framed around. */
+export const LANDING_HERO_CALL_SIZE = 50;
 
 /**
  * Leaderboard-climb beat shown after the XP count-up, the competitive

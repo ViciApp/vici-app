@@ -1,9 +1,8 @@
-// Brazilian Portuguese (pt-BR). Maintained as its own Brazilian variant,
-// distinct from the base `pt` catalog, which is European Portuguese (pt-PT).
-// pt-BR no longer derives from `pt`; the two are independent variants with
-// their own vocabulary (você, time, tela, turnê) and grammar. The fallback
-// chain `pt-BR` → `pt` → `en` still holds, so any missing pt-BR key surfaces
-// the European string before English.
+// Brazilian Portuguese (pt-BR). Its own variant, independent of the base `pt`
+// catalog (European Portuguese, pt-PT): the two differ in vocabulary (você,
+// time, tela, turnê) and grammar, so pt-BR is written as its own catalog, never copied from
+// `pt`. The fallback chain is still `pt-BR` → `pt` → `en`, so a missing pt-BR key
+// surfaces the European string before English.
 export const ptBRMessages = {
 	'trade.error.arbitrage_limit_exceeded':
 		'O preço de mercado acabou de mudar; espere um momento e tente de novo.',
@@ -62,8 +61,8 @@ export const ptBRMessages = {
 	'battle.detail.scope_label': 'Escopo',
 	'battle.detail.title': 'Duelo',
 	'battle.detail.trash_talk_label': 'Provocação',
-	'battle.detail.wager_label': 'Em jogo',
-	'battle.detail.wager_value': '{amount} VXP',
+	'battle.detail.amount_label': 'Em jogo',
+	'battle.detail.amount_value': '{amount} VXP',
 	'battles.card.days_left': '{days}d restantes',
 	'battles.card.count_nations': '{count} nações',
 	'battles.card.count_schools': '{count} universidades',
@@ -87,7 +86,7 @@ export const ptBRMessages = {
 	'battles.create.label_opponent': 'Adversário',
 	'battles.create.label_scope': 'Escopo',
 	'battles.create.label_trash_talk': 'Provocação (opcional)',
-	'battles.create.label_wager': 'Em jogo (opcional)',
+	'battles.create.label_amount': 'Em jogo (opcional)',
 	'battles.create.label_your_league': 'Sua liga',
 	'battles.create.loading': 'Carregando suas ligas…',
 	'battles.create.opponent_empty': 'Ainda não há ligas para desafiar.',
@@ -100,8 +99,8 @@ export const ptBRMessages = {
 	'battles.create.title': 'Criar um duelo',
 	'battles.create.trash_talk_hint': 'A brevidade é recompensada.',
 	'battles.create.trash_talk_placeholder': 'Diga o que pensa…',
-	'battles.create.wager_none': 'Só pela honra',
-	'battles.create.wager_value': '{amount} VXP',
+	'battles.create.amount_none': 'Só pela honra',
+	'battles.create.amount_value': '{amount} VXP',
 	'battles.incoming.cta': 'Ver o desafio',
 	'battles.incoming.title': '{opponent} desafiou {league}',
 	'battles.intro.body':
@@ -179,7 +178,7 @@ export const ptBRMessages = {
 	'achievement.toast.title': 'Conquista desbloqueada',
 	'flow.entry.deck_eyebrow': 'O baralho de hoje',
 	'flow.entry.line.crowd': 'Lendo a multidão.',
-	'flow.entry.line.odds': 'Pesando as probabilidades.',
+	'flow.entry.line.chances': 'Pesando as probabilidades.',
 	'flow.entry.line.shuffle': 'Embaralhando as cartas.',
 	'flow.entry.line.summon': 'Invocando as previsões de hoje.',
 	'flow.entry.cta_ready': 'Entrar no Flow →',
@@ -830,7 +829,7 @@ export const ptBRMessages = {
 	'dash.dz.n_open': '{count} ABERTAS',
 	'dash.dz.n_pending': '{count} PENDENTES',
 	'dash.dz.open_count': '{count} abertas →',
-	'dash.dz.open_pos_ctx': '{stake} VXP · feita hoje',
+	'dash.dz.open_pos_ctx': '{amount} VXP · feita hoje',
 	'dash.dz.open_pos_payout': 'pagamento · multidão {pct}% SIM',
 	'dash.dz.open_pos_payout_unknown': 'pagamento',
 	'dash.dz.oracle_locked_label': 'Oráculo · sua primeira revelação',
@@ -1396,8 +1395,8 @@ export const ptBRMessages = {
 	'loop.title_a': 'Três estados.',
 	'loop.title_b': 'Um loop.',
 	'market.closes': 'fecha',
-	'market.odds.loading': 'Carregando probabilidades',
-	'market.odds.no_liquidity': 'Ainda sem liquidez',
+	'market.probability.loading': 'Carregando probabilidades',
+	'market.probability.no_liquidity': 'Ainda sem liquidez',
 	'market.detail.admin_actions': 'Ações de administrador',
 	'market.detail.back_to_markets': 'Voltar aos mercados',
 	'market.detail.chart.eyebrow': 'Histórico de preços',
@@ -2259,7 +2258,7 @@ export const ptBRMessages = {
 	'welcome.flowcard.long_shot': 'AZARÃO',
 	'welcome.flowcard.no': 'NO',
 	'welcome.flowcard.predicting': '{count} preveem',
-	'welcome.flowcard.size': 'TAMANHO · {stake} VXP',
+	'welcome.flowcard.size': 'TAMANHO · {amount} VXP',
 	'welcome.flowcard.swipe_to_call': 'DESLIZE PARA PREDIZER',
 	'welcome.flowcard.trickster': '{minority}% concordam · 2× VXP',
 	'welcome.flowcard.yes': 'YES',

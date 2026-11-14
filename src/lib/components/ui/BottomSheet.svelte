@@ -169,8 +169,8 @@
 		 * which is the only reliable measure on iOS. A fixed `inset: 0` resolves
 		 * against the *large* layout viewport (toolbars retracted) and iOS Chrome
 		 * doesn't honour `100dvh`, so the sheet, docked at this scrim's bottom
-		 * via `flex-end`, would land behind the bottom toolbar and clip its CTA
-		 * (#670). `visualViewport.height` also excludes the on-screen keyboard, so
+		 * via `flex-end`, would land behind the bottom toolbar and clip its CTA.
+		 * `visualViewport.height` also excludes the on-screen keyboard, so
 		 * the same pin lifts the sheet above the keyboard; no `--kb-inset`
 		 * needed. The `100dvh`/`100vh` here is the desktop / no-`visualViewport`
 		 * fallback. */

@@ -48,8 +48,8 @@ export const renderWC = ({ p, state, uid, seed, title }: RenderArgs): string => 
 	// Most live WC markets never match a curated `recipes` key: the
 	// backend hands the frontend opaque market ids, and even the
 	// hand-authored advancement markets (`wc-it-r16`, …) aren't keyed
-	// here. They used to collapse onto one identical pitch-and-figure
-	// scene, so every WC card looked the same (#502). Instead, compose
+	// here. Left alone they would all collapse onto one identical
+	// pitch-and-figure scene. Instead, compose
 	// a deterministic-but-distinct scene from the seed: each market
 	// picks its own backdrop, kit, figure and prop, and the same id
 	// always renders the same scene. Seeded off the raw market id only

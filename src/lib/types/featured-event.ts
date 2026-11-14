@@ -27,8 +27,8 @@ export interface FeaturedEventParticipant {
 	/** Brand / accent colour, hex. Used in onboarding hero tiles. */
 	color?: string;
 	/** Implied probability of winning the event, 0–100. Optional, not
-	 *  every event has clean odds (e.g. awards). */
-	odds?: number;
+	 *  every event has a clean probability (e.g. awards). */
+	winPct?: number;
 	/** Market id for the outcome "<participant> wins". Optional: points
 	 *  the onboarding hero tile at the right Flow card. */
 	marketId?: string;
