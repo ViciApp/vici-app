@@ -8,6 +8,28 @@ docs:
   spec_template: docs/ai/spec-driven-development/template.md
   spec_dir: docs/ai/spec-driven-development/specs
   pr_template: .github/pull_request_template.md
+  # The agent docs live per area (docs/ai/README.md), not as one flat set, so Officina is told which
+  # pages to require instead of its defaults (structure.md, patterns.md, ... at the top of docs/ai).
+  pages:
+    - README.md
+    - governance.md
+    - pr-and-ci.md
+    - frontend/README.md
+    - frontend/structure.md
+    - frontend/stack-and-patterns.md
+    - frontend/reusability.md
+    - frontend/testing.md
+    - satellite/README.md
+    - satellite/structure.md
+    - satellite/patterns.md
+    - satellite/reusability.md
+    - satellite/testing.md
+    - backend/README.md
+    - backend/structure.md
+    - backend/patterns.md
+    - backend/reusability.md
+    - backend/testing.md
+    - engine/README.md
 
 # Same rule as the org-wide title check (ViciApp/.github, .github/workflows/pull-request.yml); Officina
 # reads its own copy here, so change both together.
