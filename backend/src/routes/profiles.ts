@@ -26,7 +26,7 @@ import { runProfileAwardTriggers } from '../vxp/triggers';
 
 // Search is public and enumerable, so it is limited per client IP. The budget
 // leaves room for a debounced live search behind a shared school network.
-const PROFILE_SEARCH_RATE_LIMIT = 300;
+const PROFILE_SEARCH_LIMIT_PER_HOUR = 300;
 
 export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 	.get('/me', async ({ request, set }) => {
@@ -111,7 +111,7 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 				set,
 				name: 'profile_search',
 				ip: clientIp(request),
-				limit: PROFILE_SEARCH_RATE_LIMIT,
+				limit: PROFILE_SEARCH_LIMIT_PER_HOUR,
 				windowMs: HOUR_IN_MS
 			});
 
