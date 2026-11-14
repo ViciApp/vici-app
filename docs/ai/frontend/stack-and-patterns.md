@@ -198,9 +198,9 @@ the service layer and let the service own caching.
   worked example: a `0.5` default read as a real coin-flip and showed
   un-loaded markets as 50%. It is now optional, paired with a
   `priceLoaded` boolean that separates _loading_ (skeleton) from
-  _loaded-but-empty_ (dash); the odds placeholder is
-  `#lib/components/market/MarketOddsSkeleton.svelte`. See
-  [`PRODUCT.md`](../PRODUCT.md) → "Market odds".
+  _loaded-but-empty_ (dash); the probability placeholder is
+  `#lib/components/market/MarketProbabilitySkeleton.svelte`. See
+  [`PRODUCT.md`](../PRODUCT.md) → "Market probability".
 
 ## Service / data flow
 
@@ -277,14 +277,14 @@ a new market / oracle path, **read that doc first**. The single place that
 pins `VICI_ENGINE_ID` is
 [`src/lib/constants/icdc.constants.ts`](../../../src/lib/constants/icdc.constants.ts).
 
-### Call size is a FE fixed-stake skin over the CLOB
+### Call size is a FE fixed-amount skin over the CLOB
 
 The engine is a **share-based CLOB**: an order is `(price, qty)` where `qty`
 is a number of outcome shares (each pays `1` on win) and the locked margin is
-`qty × price`. The UI never exposes shares; it presents a **fixed-stake**
+`qty × price`. The UI never exposes shares; it presents a **fixed-amount**
 ("call size") convention: the slider value is the VXP you spend, you lose
-exactly that if wrong, and a win pays `stake / price`. The two are the same
-trade, spending `stake` to buy `stake / price` shares, so this is a
+exactly that if wrong, and a win pays `amount / price`. The two are the same
+trade, spending `amount` to buy `amount / price` shares, so this is a
 **pure FE presentation layer; the ICDC `(price, qty)` convention is
 untouched.** The conversion is the one line in
 [`executeOutcomeTrade`](../../../src/lib/utils/trade.utils.ts):
@@ -297,8 +297,8 @@ ask for YES, `1 − best bid` for NO, consensus mid only when that side of the
 book is empty). Always size previews off this helper, never off the consensus
 mid (`yesProbability`): the mid ignores the spread and over-promises the
 payout on a thin / one-sided book. Net payout itself is computed by
-[`vxpNetWin`](../../../src/lib/utils/vxp-economy.utils.ts) (`stake / price −
-stake`, with a `VXP_P_WIN_FLOOR` cap on long-shot display). The flow card does
+[`vxpNetWin`](../../../src/lib/utils/vxp-economy.utils.ts) (`amount / price −
+amount`, with a `VXP_P_WIN_FLOOR` cap on long-shot display). The flow card does
 **not** load full book depth (a known N+1 perf footgun), so the preview models
 spread-level slippage from top-of-book, not multi-level depth walking.
 

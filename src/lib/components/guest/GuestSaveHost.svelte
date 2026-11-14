@@ -115,7 +115,7 @@
 		// Demo-drop: discard the in-session preview and route the guest through
 		// the normal new-member path. The pre-auth stash already carries the
 		// handle/identity handoff; the existing onboarding grant fires on profile
-		// creation and the portfolio starts empty. No pick is ever staked.
+		// creation and the portfolio starts empty. No pick ever commits VXP.
 		const locale = $localeStore;
 		const vxp = formatVxpBalance({ value: newUserVxpAmountMilestone1BaseUnits() });
 

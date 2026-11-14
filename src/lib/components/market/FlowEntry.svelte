@@ -102,7 +102,7 @@
 	// cadence frame-tight.
 	const loadLineKeys = [
 		'flow.entry.line.crowd',
-		'flow.entry.line.odds',
+		'flow.entry.line.chances',
 		'flow.entry.line.shuffle',
 		'flow.entry.line.summon'
 	] as const;

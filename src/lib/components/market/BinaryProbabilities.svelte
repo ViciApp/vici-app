@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
-	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import type { Outcome } from '#lib/types/market.ts';
 	import { formatProbability } from '#lib/utils/format.utils.ts';
 
@@ -41,7 +41,7 @@
 		{#if isResolved}
 			{noWon ? '100%' : '0%'}
 		{:else if isNullish(noProbability)}
-			<MarketOddsSkeleton variant={priceLoaded ? 'empty' : 'loading'} />
+			<MarketProbabilitySkeleton variant={priceLoaded ? 'empty' : 'loading'} />
 		{:else}
 			{formatProbability(noProbability)}
 		{/if}
@@ -71,7 +71,7 @@
 		{#if isResolved}
 			{yesWon ? '100%' : '0%'}
 		{:else if isNullish(yesProbability)}
-			<MarketOddsSkeleton variant={priceLoaded ? 'empty' : 'loading'} />
+			<MarketProbabilitySkeleton variant={priceLoaded ? 'empty' : 'loading'} />
 		{:else}
 			{formatProbability(yesProbability)}
 		{/if}

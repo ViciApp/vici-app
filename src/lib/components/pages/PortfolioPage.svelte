@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
-	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import MarketTitleSkeleton from '#lib/components/market/MarketTitleSkeleton.svelte';
 	import OpenOrdersTable from '#lib/components/portfolio/OpenOrdersTable.svelte';
 	import PortfolioAllocationCard from '#lib/components/portfolio/PortfolioAllocationCard.svelte';
@@ -376,7 +376,7 @@
 						{@const entry = positionEntryProb(pos)}
 						{@const current = positionSideProb(pos)}
 						{@const move = positionMoveDisplay(pos)}
-						{@const oddsVariant = market?.priceLoaded === true ? 'empty' : 'loading'}
+						{@const probabilityVariant = market?.priceLoaded === true ? 'empty' : 'loading'}
 						{@const catLabel = categoryLabel(pos.marketId)}
 						{@const catAccent = categoryAccent(pos.marketId)}
 
@@ -408,7 +408,7 @@
 								<div class="portfolio-row-meta">
 									<span class="num portfolio-row-prob">
 										{#if isNullish(current)}
-											<MarketOddsSkeleton variant={oddsVariant} />
+											<MarketProbabilitySkeleton variant={probabilityVariant} />
 										{:else if nonNullish(entry)}
 											{t({
 												locale: $localeStore,
@@ -429,7 +429,7 @@
 										class:is-positive={nonNullish(pnl) && pnl >= 0}
 									>
 										{#if isNullish(pnl)}
-											<MarketOddsSkeleton variant={oddsVariant} />
+											<MarketProbabilitySkeleton variant={probabilityVariant} />
 										{:else}
 											{formatRowPnl(pnl)}{#if nonNullish(move)}<span class="portfolio-row-move">
 													· {move}</span

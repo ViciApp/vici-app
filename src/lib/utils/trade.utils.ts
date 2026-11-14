@@ -1,4 +1,4 @@
-import { isVxpLadderStake, VXP_STAKE_LADDER } from '#lib/constants/vxp-economy.constants.ts';
+import { isVxpCallSize, VXP_CALL_SIZE_LADDER } from '#lib/constants/vxp-economy.constants.ts';
 import { placeOrder } from '#lib/services/order.services.ts';
 import type { Market } from '#lib/types/market.ts';
 import type { OrderType } from '#lib/types/order.ts';
@@ -12,13 +12,13 @@ import {
 import { nonNullish } from '@dfinity/utils';
 
 /**
- * @throws Error when the premium isn't a valid ViciXp stake-ladder rung.
+ * @throws Error when the premium isn't a valid ViciXp call-size ladder rung.
  *
  * No max-payout floor is enforced: a winning call always nets a positive
- * amount (the settlement cashflow is `stake·(1/price − 1)`, above zero for
- * any price < 1), so gating on gross payout (`stake / price`) added nothing;
+ * amount (the settlement cashflow is `amount·(1/price − 1)`, above zero for
+ * any price < 1), so gating on gross payout (`amount / price`) added nothing;
  * it only made any side priced above 0.5 unplaceable at the smallest
- * stake, e.g. a 50-VXP premium on a 50/50 market, which left first-call
+ * call size, e.g. a 50-VXP premium on a 50/50 market, which left first-call
  * users (locked to the smallest rung, market orders) with no placeable side
  * at all. Heavy favourites net a real sub-1 amount; the UI shows that
  * honestly as "<1" rather than over-promising a "+1" (see `vxpNetWin`).
@@ -26,8 +26,8 @@ import { nonNullish } from '@dfinity/utils';
 export const assertViciXpHumanPremium = ({ amountStr }: { amountStr: string }): void => {
 	const premiumHuman = Number(String(amountStr).trim());
 
-	if (!isVxpLadderStake(premiumHuman)) {
-		throw new Error(`VXP premium must be one of ${VXP_STAKE_LADDER.join(', ')}`);
+	if (!isVxpCallSize(premiumHuman)) {
+		throw new Error(`VXP premium must be one of ${VXP_CALL_SIZE_LADDER.join(', ')}`);
 	}
 };
 

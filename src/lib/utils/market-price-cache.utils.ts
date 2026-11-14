@@ -6,7 +6,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
  * Last-known book-derived probabilities, persisted so a fresh page load can
  * seed market cards with the previous session's consensus instead of the
  * neutral 0.5 while the per-market order-book enrichment catches up (see
- * `loadMarketsProgressive`). Display-only seed data: it must never feed stake
+ * `loadMarketsProgressive`). Display-only seed data: it must never feed call-size
  * math or order placement: those read the live (certified) book.
  *
  * Deliberately not identity-scoped (no entry in

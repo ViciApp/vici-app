@@ -5,7 +5,7 @@
 	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
-	import { VXP_STAKE_LADDER } from '#lib/constants/vxp-economy.constants.ts';
+	import { VXP_CALL_SIZE_LADDER } from '#lib/constants/vxp-economy.constants.ts';
 	import { playgroundVxpUnitMode } from '#lib/derived/playground.derived.ts';
 	import { userSignedIn } from '#lib/derived/user.derived.ts';
 	import { vxpSpendable } from '#lib/derived/vxp-holdings.derived.ts';
@@ -32,8 +32,8 @@
 	 * phone widths and a centred modal on wider viewports; one set of
 	 * content, switched purely in CSS so there is no forked markup.
 	 *
-	 * Sizing is a slider that steps through the fixed stake ladder
-	 * (`VXP_STAKE_LADDER`) rather than a free continuous range, because
+	 * Sizing is a slider that steps through the fixed call-size ladder
+	 * (`VXP_CALL_SIZE_LADDER`) rather than a free continuous range, because
 	 * `executeOutcomeTrade` rejects any premium that isn't a ladder rung
 	 * on ViciXp markets, so every selectable value must be a valid rung.
 	 * No limit-order / target-price path lives here; the only submission
@@ -59,13 +59,13 @@
 	const tr = ({ key, params }: { key: MessageKey; params?: Record<string, string | number> }) =>
 		t({ locale: $localeStore, key, params });
 
-	// Call-size slider: an index-based control over the fixed stake
+	// Call-size slider: an index-based control over the fixed call-size
 	// ladder, so every stop is a valid rung the backend will accept (a
 	// free continuous range would let the user pick amounts ViciXp markets
 	// reject). Defaults to the smallest rung; `size` is the selected rung
 	// amount, derived from the slider index.
 	let sizeIndex = $state(0);
-	const size = $derived(VXP_STAKE_LADDER[sizeIndex]);
+	const size = $derived(VXP_CALL_SIZE_LADDER[sizeIndex]);
 
 	let loading = $state(false);
 	let error = $state('');
@@ -191,7 +191,7 @@
 			<input
 				class="confirm-range"
 				aria-label={tr({ key: 'prediction.how_much' })}
-				max={VXP_STAKE_LADDER.length - 1}
+				max={VXP_CALL_SIZE_LADDER.length - 1}
 				min={0}
 				step={1}
 				type="range"

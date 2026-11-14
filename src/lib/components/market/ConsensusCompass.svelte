@@ -11,7 +11,7 @@
 	 * reads as a market-state indicator, not a category accent.
 	 */
 	import { isNullish } from '@dfinity/utils';
-	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import { consensusLean } from '#lib/utils/market.utils.ts';
 
 	interface Props {
@@ -70,7 +70,7 @@
 		<span class="flow-compass-pct num">{lean.leadingPct}%</span>
 	{:else}
 		<span class="flow-compass-pct num"
-			><MarketOddsSkeleton variant={priceLoaded ? 'empty' : 'loading'} /></span
+			><MarketProbabilitySkeleton variant={priceLoaded ? 'empty' : 'loading'} /></span
 		>
 	{/if}
 </div>

@@ -128,7 +128,7 @@ const MAX_PREVIEW_PICKS = 50;
 /**
  * Record an in-session preview pick and advance the cadence counter. Captures
  * only what the nudges need (`marketId`, `side`, `ts`); no entry price, no
- * stake, because nothing is reconciled at convert. Returns the new session
+ * amount, because nothing is reconciled at convert. Returns the new session
  * pick count (the persisted cadence number) so callers attribute analytics to
  * it rather than an in-memory counter a reload would desync. No-op when not a
  * guest (returns the unchanged count).

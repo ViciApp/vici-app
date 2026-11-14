@@ -4,11 +4,11 @@
 	import FlowCardBack from '#lib/components/market/FlowCardBack.svelte';
 	import FlowCardFooter from '#lib/components/market/FlowCardFooter.svelte';
 	import MarketArtwork from '#lib/components/market/MarketArtwork.svelte';
-	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
 	import SeededAvatarStack from '#lib/components/ui/SeededAvatarStack.svelte';
 	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
-	import { VXP_DEFAULT_STAKE } from '#lib/constants/vxp-economy.constants.ts';
+	import { VXP_DEFAULT_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 	import { lookupWcMarketSubtitle } from '#lib/constants/wc-market-subtitles.constants.ts';
 	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -72,9 +72,9 @@
 		// Parallel x-fractions (0–1) placing each `points` entry on the time
 		// axis. Present alongside real history; absent for the seed shape.
 		pointXs?: number[];
-		// Stake-ladder change callback. Wired through to FlowCardBack so a
-		// tap on a rung writes back to FlowMode's bound stake.
-		onStakeChange?: (next: string) => void;
+		// Call-size ladder change callback. Wired through to FlowCardBack so a
+		// tap on a rung writes back to FlowMode's bound call size.
+		onCallSizeChange?: (next: string) => void;
 		// Guided mode: the onboarding first-call surface reuses this exact
 		// card so the in-product deck and the tutorial are pixel-identical.
 		// In guided mode the card never flips (tap is inert) and swipe-up
@@ -95,12 +95,12 @@
 		// Flip this one card between translated and original. No-op-safe when
 		// absent (static / guided usages don't wire it).
 		onToggleTranslation?: () => void;
-		// Proactive stake warning resolved by FlowMode, surfaced on the
+		// Proactive call-size warning resolved by FlowMode, surfaced on the
 		// back-face slider. `'unaffordable'` = the selected size exceeds
 		// spendable VXP; `'wont-finish'` = it would leave too little to fund
 		// the rest of the sitting. Defaults to `'none'` so static / preview
 		// usages render no warning.
-		stakeWarning?: 'none' | 'unaffordable' | 'wont-finish';
+		callSizeWarning?: 'none' | 'unaffordable' | 'wont-finish';
 	}
 
 	const {
@@ -120,13 +120,13 @@
 		followedLean,
 		points,
 		pointXs,
-		onStakeChange,
+		onCallSizeChange,
 		guided = false,
 		translation,
 		showOriginal = false,
 		translatedLanguageLabel,
 		onToggleTranslation,
-		stakeWarning = 'none'
+		callSizeWarning = 'none'
 	}: Props = $props();
 
 	// Single source for the card's rendered text: translated unless the viewer
@@ -197,7 +197,7 @@
 	const backOverlayNo = $derived(flipped ? overlayNo * overlayDim : 0);
 
 	// Crowd consensus is unknown until the book is read (or it was read and
-	// is empty). When unknown we render an odds skeleton and suppress the
+	// is empty). When unknown we render a probability skeleton and suppress the
 	// payout preview rather than fabricate a 50/50 split. `priceKnown` is the
 	// single gate for every probability-derived surface on the card.
 	const priceKnown = $derived(nonNullish(market.yesProbability));
@@ -206,26 +206,29 @@
 	const yesIsFav = $derived(nonNullish(crowdPct) && crowdPct >= 50);
 	const noPct = $derived(nonNullish(crowdPct) ? 100 - crowdPct : undefined);
 
-	// Payout preview: stake/(probability) − stake, clamped at p=0.05
+	// Payout preview: amount/(probability) − amount, clamped at p=0.05
 	// to keep long-shots from rendering pathological numbers. Only computed
 	// when the probability is known; otherwise the preview is suppressed.
-	const stakeNum = $derived(Math.max(0, Number(tradeAmount) || 0));
+	const amountNum = $derived(Math.max(0, Number(tradeAmount) || 0));
 	const winYes = $derived.by<number | undefined>(() => {
 		if (isNullish(market.yesProbability)) {
 			return;
 		}
 
-		return Math.max(1, Math.round(stakeNum / Math.max(0.05, market.yesProbability)) - stakeNum);
+		return Math.max(1, Math.round(amountNum / Math.max(0.05, market.yesProbability)) - amountNum);
 	});
 	const winNo = $derived.by<number | undefined>(() => {
 		if (isNullish(market.yesProbability)) {
 			return;
 		}
 
-		return Math.max(1, Math.round(stakeNum / Math.max(0.05, 1 - market.yesProbability)) - stakeNum);
+		return Math.max(
+			1,
+			Math.round(amountNum / Math.max(0.05, 1 - market.yesProbability)) - amountNum
+		);
 	});
 
-	const sizeStake = $derived(Math.max(VXP_DEFAULT_STAKE, stakeNum));
+	const callSize = $derived(Math.max(VXP_DEFAULT_CALL_SIZE, amountNum));
 
 	// Live countdown: days until expiry, displayed as a chip in the
 	// meta row. Computed off `expiryDate` (ms). Urgency tiers:
@@ -491,7 +494,7 @@
 			dragY = 0;
 
 			// Suppress flip in guided mode, and until the price is known:
-			// the back face's community-read / stake sections all assume a
+			// the back face's community-read / call-size sections all assume a
 			// resolved probability, so flipping to a fabricated split would
 			// surface a 50/50 the book never reported.
 			if (!guided && priceKnown) {
@@ -732,7 +735,7 @@
 				     Replaces the dual-box layout to compress space and
 				     surface upside without the misleading red 85% box.
 				     When the probability is unknown the split + payout
-				     preview are replaced by an odds skeleton: a pulsing
+				     preview are replaced by a probability skeleton: a pulsing
 				     bar while the book loads, a neutral dash once it's
 				     read but has no liquidity. Never a fabricated 50/50. -->
 					<div class="flow-probs">
@@ -779,13 +782,13 @@
 							</div>
 						{:else}
 							<div class="flow-probs-row flow-probs-row-unknown">
-								<MarketOddsSkeleton variant={market.priceLoaded ? 'empty' : 'loading'} />
+								<MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} />
 							</div>
 						{/if}
 					</div>
 
 					<!-- Foot: SIZE · VXP chip + tap/swipe hint. -->
-					<FlowCardFooter {guided} {sizeStake} />
+					<FlowCardFooter {callSize} {guided} />
 				</div>
 
 				<!-- Swipe stamps: large centered YES / NO and a compact
@@ -823,6 +826,7 @@
 				     gesture is itself gated on `priceKnown`, so the back
 				     face never opens on a fabricated split. -->
 					<FlowCardBack
+						{callSizeWarning}
 						category={resolvedCategory}
 						{categoryAcc}
 						{crowdPct}
@@ -833,12 +837,11 @@
 						interactive={flipped}
 						{market}
 						{metadata}
+						{onCallSizeChange}
 						onClose={closeBack}
-						{onStakeChange}
 						{pointXs}
 						{points}
 						{priorCall}
-						{stakeWarning}
 						{tradeAmount}
 					/>
 				{/if}
@@ -1235,7 +1238,7 @@
 		gap: 10px;
 	}
 
-	/* Unknown-odds state: the skeleton bar / dash stands in for the
+	/* Unknown-probability state: the skeleton bar / dash stands in for the
 	   split + payout rows, centered so the card silhouette stays stable
 	   whether the probability is known or still loading. */
 	.flow-probs-row-unknown {

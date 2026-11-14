@@ -203,7 +203,7 @@ export const UserProfileSchema = j.strictObject({
 	// leaf lets legacy rows decode cleanly without a data migration. Mirror
 	// every change here in `src/satellite/api-schemas.ts`.
 	//
-	// `defaultAmount` is the wallet-side default-bet preference; the rest
+	// `defaultAmount` is the wallet-side default call-amount preference; the rest
 	// of the fields are the user-experience preferences (notifications,
 	// flow deck, haptics, saved-markets list, privacy/sharing): they
 	// migrated off per-device localStorage and now round-trip through the

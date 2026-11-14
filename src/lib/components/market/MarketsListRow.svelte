@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
 	import ProbBar from '#lib/components/ui/ProbBar.svelte';
 	import { ZERO } from '#lib/constants/app.constants.ts';
@@ -114,7 +114,7 @@
 			>
 		{:else}
 			<span class="num t-body fw-600"
-				><MarketOddsSkeleton variant={market.priceLoaded ? 'empty' : 'loading'} /></span
+				><MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} /></span
 			>
 		{/if}
 	</div>

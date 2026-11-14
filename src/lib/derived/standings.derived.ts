@@ -47,7 +47,7 @@ export const rankScore = ({
  * Shrinkage-first ordering for the *ranked* (qualified) leaderboard slice.
  *
  * The clearing canister hands us the slice ranked by net realized P&L (a
- * high-stakes loss can outrank a quiet 100%), so we re-rank it here on the FE
+ * single large loss can outrank a quiet 100%), so we re-rank it here on the FE
  * for this surface only. Other consumers of the same cached slice (the Dash
  * "Top X%" rank tile, `findOwnStanding`) deliberately keep the canister's P&L
  * rank: see `standings.services`.
