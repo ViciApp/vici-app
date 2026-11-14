@@ -10,7 +10,7 @@ Status: Implemented (#904)
 The 15-swipe daily Flow cap (`DAILY_HARD_CAP`) holds across reloads,
 cleared storage, and sign-outs. Today it is enforced **only on the
 client**, so an honest user who loses both client stores gets a fresh
-10 (+5 overtime) allotment — the reported "I keep seeing more swipes
+10 (+5 overtime) allotment: the reported "I keep seeing more swipes
 after finishing my daily ones." After this change the authoritative
 count lives on the satellite and cannot be reset or inflated by the
 client, so the cap is real for any honest session.
@@ -21,7 +21,7 @@ How the cap works today (all client-side):
 
 - Two numbers: `DAILY_GOAL_TARGET = 10` (`daily-goal.utils.ts`) and
   `DAILY_HARD_CAP = 15` (`motion-engine.utils.ts`). Goal-vs-cap and the
-  "Push-to-15" overtime are intended — not the bug.
+  "Push-to-15" overtime are intended, not the bug.
 - Per-swipe commit in `src/lib/components/market/FlowMode.svelte`
   (~696–730): `betsCount += 1` → `applyDailyGoalBump({ target: DAILY_HARD_CAP })`
   (caps the stored count at 15) → `writeDailyGoalMirror(goalBump)`
@@ -31,12 +31,12 @@ How the cap works today (all client-side):
   rolled to the local day via `todayKey`. Drives `sessionBaseline`
   and the `dailyCapReached` takeover (`FlowMode.svelte` 374–388, 316).
 - `persistDailyGoal` (`src/lib/services/profile.services.ts:276`) is a
-  thin `patchProfile({ patch: { dailyGoalDone, dailyGoalDate } })` —
+  thin `patchProfile({ patch: { dailyGoalDone, dailyGoalDate } })`:
   a plain **client `set_doc`** to the user-owned `Collection.PROFILES`.
 - The only server guard on profile writes is `assertSetDoc`
   (`src/satellite/index.ts:1132`), which for `PROFILES` runs
   `assertValidNickname` and **nothing about the daily goal**. So the
-  client fully controls `dailyGoalDone` — it can write any value, or a
+  client fully controls `dailyGoalDone`: it can write any value, or a
   lower one, with no check.
 
 Why it leaks: the count survives only as long as **both** the
@@ -48,7 +48,7 @@ client view to 0 → a fresh allotment.
 Architectural constraint: Flow swipes place orders **FE→engine
 directly**, and the icdc-core engine is deliberately agnostic
 (`docs/engine-integration.md`; it must not know about Vici's daily
-cap). So enforcement cannot live in the order path — it must live in
+cap). So enforcement cannot live in the order path: it must live in
 the **satellite**, which already owns the profile + the
 `dailyGoalDone` field.
 
@@ -61,7 +61,7 @@ Make the satellite the source of truth for the daily count, two parts:
 - New `recordFlowSwipe()` `defineUpdate` in `src/satellite/index.ts`
   (+ a `recordFlowSwipe` service in
   `src/satellite/services/profile.services.ts`). No client-supplied
-  count — the server reads the caller's profile, rolls over by
+  count: the server reads the caller's profile, rolls over by
   `dailyGoalDate` vs the day key supplied by the client, then
   **atomically** sets `dailyGoalDone = min(DAILY_HARD_CAP, prevForToday + 1)`
   and `dailyGoalDate = dayKey`. Returns
@@ -69,15 +69,15 @@ Make the satellite the source of truth for the daily count, two parts:
 - `DAILY_HARD_CAP` becomes a value the satellite knows. Put the
   constant where both FE and satellite can import it without the FE
   pulling satellite code (e.g. a shared `src/lib/constants/` module the
-  satellite is allowed to import — confirm against
+  satellite is allowed to import: confirm against
   `docs/ai/satellite/structure.md` import rules; do **not** import
   `@junobuild/core` or FE-only code into the satellite).
 - Day-key parity: the server does **not** introduce a UTC day that
   diverges from the client's local midnight. The endpoint **accepts the
   client's local day key** (the `YYYY-MM-DD` string the FE already
   computes via `todayKey` in `src/lib/utils/streak.utils.ts`) as the
-  rollover key. The server still computes and caps the increment itself
-  — it never accepts a client count. This preserves local-midnight
+  rollover key. The server still computes and caps the increment itself:
+  it never accepts a client count. This preserves local-midnight
   semantics and fixes the honest-reset leak (the count is server-stored
   and the monotonic assert blocks downward overwrites). Manipulating the
   day key is an adversarial bypass, explicitly out of scope.
@@ -87,7 +87,7 @@ Make the satellite the source of truth for the daily count, two parts:
 - Extend the `PROFILES` branch of `assertSetDoc` to reject any client
   profile write that, for an unchanged `dailyGoalDate`, **lowers**
   `dailyGoalDone` or sets it above `DAILY_HARD_CAP`. This stops a reset
-  client from overwriting a higher server total downward — so once the
+  client from overwriting a higher server total downward, so once the
   server records progress, a stale/cleared client can't roll it back.
 - A genuine new-day write (date advances) resets to a small value and
   is allowed.
@@ -129,7 +129,7 @@ my daily ones"). New fix, no closing keyword unless an issue is filed.
 2. Satellite: `recordFlowSwipe` service + `defineUpdate` endpoint;
    extend `assertSetDoc` PROFILES branch with the monotonic-per-day +
    ≤ cap check. The endpoint accepts the client local day key.
-3. Regenerate bindings — `npm install` **first** (missing
+3. Regenerate bindings: `npm install` **first** (missing
    `@icp-sdk/bindgen` otherwise churns ~3000 lines, see
    [[reference_analytics_event_is_candid_variant]]), then
    `npm run juno:functions:build`, then `prettier --write` the
@@ -140,7 +140,7 @@ my daily ones"). New fix, no closing keyword unless an issue is filed.
    `reconcileDailyGoalOnEntry` to treat the server count as
    authoritative.
 5. Verify locally with a **local wasm upgrade** (CI satellite builds
-   can drop custom methods — junobuild CLI bug, auto-upgrade is off per
+   can drop custom methods: junobuild CLI bug, auto-upgrade is off per
    `reference_juno_action_drops_endpoints`; confirm `recordFlowSwipe`
    responds after a local `juno emulator` upgrade, and re-test on the
    real upgrade path before relying on CI).
@@ -151,7 +151,7 @@ my daily ones"). New fix, no closing keyword unless an issue is filed.
 
 - [ ] After placing 15 swipes in a day, clearing localStorage AND
       forcing a profile re-fetch (or signing out and back in) still
-      shows the "come back tomorrow" cap takeover — no fresh allotment.
+      shows the "come back tomorrow" cap takeover: no fresh allotment.
 - [ ] A direct client profile write that lowers `dailyGoalDone` for the
       same `dailyGoalDate`, or sets it above `DAILY_HARD_CAP`, is
       rejected by `assertSetDoc`.
@@ -170,7 +170,7 @@ my daily ones"). New fix, no closing keyword unless an issue is filed.
 
 - **Server computes the increment; the client never sends the count.**
   An endpoint that trusts a client value is no better than today's
-  `set_doc` — the whole point is the count cannot be reset or inflated
+  `set_doc`: the whole point is the count cannot be reset or inflated
   by the client.
 - **Assert is the backstop, the endpoint is the mechanism.** The
   endpoint is the normal write path; the monotonic-per-day assert
