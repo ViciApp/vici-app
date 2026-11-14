@@ -1,8 +1,8 @@
 // ONE-TIME remediation endpoint: run once on prod, then REMOVE in a
 // follow-up PR. Not a permanent surface.
 //
-// Backfills the streak-award underpayment fixed in #957. Before the fix,
-// `payStreakMilestone` transferred `BigInt(VXP_STREAK_BONUSES[m])` (whole
+// Backfills a past streak-award underpayment: `payStreakMilestone` once
+// transferred `BigInt(VXP_STREAK_BONUSES[m])` (whole
 // VXP read as base units) instead of `parseToken(...)`, so every streak
 // award paid ~10^VXP_TOKEN.decimals too little. This walks the paid
 // `vxp_awards` streak docs, computes each shortfall, and (when not a dry

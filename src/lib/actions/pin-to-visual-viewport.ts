@@ -26,7 +26,7 @@ import { browser } from '$app/env';
  * overlay above it, so adding the full token on top doubles the gap. We
  * subtract what the pin already cleared and override the token within the node
  * to the residual only: 0 in those browsers, the full nominal in iOS Chrome,
- * whose `visualViewport` does *not* exclude its toolbar (#718). Off iOS the
+ * whose `visualViewport` does *not* exclude its toolbar. Off iOS the
  * nominal token is `0px`, so the override is inert.
  */
 export const pinToVisualViewport = (node: HTMLElement) => {

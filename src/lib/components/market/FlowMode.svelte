@@ -118,7 +118,7 @@
 	// profile / mirror reconciliation in `onMount`). The day's goal is a
 	// persisted running total, not a per-visit counter: a sitting resumes
 	// from this baseline rather than restarting at 0, so progress survives
-	// navigation (#485) and the daily hard cap holds across sittings (#484).
+	// navigation and the daily hard cap holds across sittings.
 	let sessionBaseline = $state(0);
 	// The user opted into overtime (Push-to-15) on FlowEnd, lifting this
 	// sitting's ceiling to the daily hard cap so the deck continues past
@@ -505,7 +505,7 @@
 			// Snapshot the cumulative daily count this sitting resumes from.
 			// Rolled over against the current day so a stale stored date reads
 			// as a fresh 0-baseline. Drives `sittingGoal` / `maxCalls`, so the
-			// sitting grants only the day's remaining headroom (#484/#485).
+			// sitting grants only the day's remaining headroom.
 			sessionBaseline = rolloverDailyGoal({
 				done: reconciledGoal.done,
 				date: reconciledGoal.date
@@ -1061,7 +1061,7 @@
 		// this sitting's count, `callsCount < maxCalls` is exactly
 		// `sessionBaseline + callsCount < sittingGoal`: the cumulative daily
 		// count below the day's ceiling, so the hard cap holds no matter how
-		// many sittings the day is split across (#484).
+		// many sittings the day is split across.
 		if (currentIndex < markets.length - 1 && callsCount < maxCalls) {
 			currentIndex += 1;
 		} else {

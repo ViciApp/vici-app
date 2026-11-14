@@ -683,7 +683,7 @@
 		/* No inner max-height / overflow: the sheet body is the single
 		 * scroller, so the whole opponent list is reachable by scrolling.
 		 * A nested scroll region traps the wheel/touch on iOS and hides the
-		 * lower leagues (#552). */
+		 * lower leagues. */
 	}
 
 	.create-bout-opponent {

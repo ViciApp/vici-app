@@ -8,9 +8,8 @@ import { isNullish } from '@dfinity/utils';
  * board) until its start instant; a market with no start is live and always
  * shown.
  *
- * Generalized 2026-07-26: scheduled starts are no longer WC-only (topical drops
- * carry per-wave `start_ns`), so the gate applies to ANY market with a future
- * `startDate`, whatever its tags.
+ * The gate keys on `startDate` alone, never on tags: World Cup and topical
+ * drops alike schedule per-wave `start_ns`.
  */
 
 /**

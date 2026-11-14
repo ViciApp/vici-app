@@ -20,7 +20,7 @@ import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/
 
 /**
  * Flow VXP award hooks: the real-credit path for the two Flow earn
- * surfaces scaffolded in #562 and tracked by #350:
+ * surfaces:
  *
  *  - `flow_milestone`: crossing a lifetime call-count boundary
  *    (10 / 100 / 500 / 1000 → 50 / 100 / 250 / 500 VXP), once each ever.

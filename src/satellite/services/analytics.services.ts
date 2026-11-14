@@ -465,7 +465,7 @@ interface ProfileCreatedExportRow {
  * profiles stay; the cockpit re-walks to resync.
  *
  * Why it exists: the raw event stream only starts at capture (2026-06-06) and
- * `signed_up` was emitted on a single path until #1112, so events cannot
+ * early `signed_up` events cover one sign-up path only, so events cannot
  * reconstruct the true sign-up series. The profile envelope's `created_at` can.
  * Soft-deleted profiles (deletedAtMs set) are included: an account created in a
  * window was created in that window; hard-deleted docs are necessarily absent.

@@ -631,8 +631,8 @@ export const getAnalyticsUserStats = defineQuery({
 /**
  * Admin-gated profile-created export for the cockpit warehouse: doc keys +
  * envelope `created_at` (ns), keyset-paged by key. The TRUE sign-up series:
- * the event stream only starts at capture and `signed_up` was single-path
- * until #1112, so window cohorts need the profile envelope, not events. Same
+ * the event stream only starts at capture and early `signed_up` events cover
+ * one sign-up path only, so window cohorts need the profile envelope. Same
  * admin gate as the other analytics exports; no profile body field leaves.
  */
 export const getAnalyticsProfileCreated = defineQuery({
@@ -1131,7 +1131,7 @@ export const sweepExpiredDeletions = defineUpdate({
 // concurrent-like version race (the hooks are best-effort) and backfills
 // counts for likes that predate the rollup. Admin-gated; `recomputed` is
 // the number of counter docs written.
-// One-time streak-underpayment backfill (#957 remediation). Admin-gated,
+// One-time streak-underpayment backfill. Admin-gated,
 // dryRun-default, idempotent. Remove in a follow-up PR after the prod run.
 export const backfillStreakUnderpayments = defineUpdate({
 	// `dryRun` is optional and defaults to `true` in the handler: omitting it

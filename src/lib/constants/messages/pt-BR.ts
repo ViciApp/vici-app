@@ -1,9 +1,8 @@
-// Brazilian Portuguese (pt-BR). Maintained as its own Brazilian variant,
-// distinct from the base `pt` catalog, which is European Portuguese (pt-PT).
-// pt-BR no longer derives from `pt`; the two are independent variants with
-// their own vocabulary (você, time, tela, turnê) and grammar. The fallback
-// chain `pt-BR` → `pt` → `en` still holds, so any missing pt-BR key surfaces
-// the European string before English.
+// Brazilian Portuguese (pt-BR). Its own variant, independent of the base `pt`
+// catalog (European Portuguese, pt-PT): the two differ in vocabulary (você,
+// time, tela, turnê) and grammar, so pt-BR is written as its own catalog, never copied from
+// `pt`. The fallback chain is still `pt-BR` → `pt` → `en`, so a missing pt-BR key
+// surfaces the European string before English.
 export const ptBRMessages = {
 	'trade.error.arbitrage_limit_exceeded':
 		'O preço de mercado acabou de mudar; espere um momento e tente de novo.',

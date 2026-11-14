@@ -48,7 +48,7 @@ export interface PrepareFlowOpts {
 	 * the ranked deck and exempt from the featured-event scope and the
 	 * seen-exclude set: a deliberately shared link wins over those soft
 	 * filters. NOT exempt from the prior-call filter: a market the viewer
-	 * already called stays dropped (#595), so a shared link they've already
+	 * already called stays dropped, so a shared link they've already
 	 * predicted on simply shows their normal deck.
 	 */
 	pinnedMarketId?: string;
@@ -87,11 +87,11 @@ export const prepareFlow = async ({
 	});
 
 	// Markets the viewer has already called drop out of the deck entirely:
-	// re-serving a card they've predicted on is the "Flow keeps showing the
-	// same cards" bug (#595). Derived from the *full* certified trade history
+	// re-serving a card they've predicted on makes Flow look stuck on the same
+	// cards. Derived from the *full* certified trade history
 	// (not the deck slice), so a call from any earlier day or session counts;
 	// the per-deck `exclude` set only spans the immediately-previous deck and
-	// resets on reload, which is why prior calls leaked back in. Shared with
+	// resets on reload, so on its own it lets prior calls back in. Shared with
 	// the signals fetch below so the history round-trip is issued once.
 	const tradeHistoryPromise: Promise<ClearingDid.Event[]> = signedIn
 		? getUserTradeHistory(domain).catch(() => [])
@@ -135,8 +135,8 @@ export const prepareFlow = async ({
 
 		// Hard filter, no recycle: if the viewer has genuinely called every
 		// open market, the empty deck is the *correct* surface ("you're all
-		// caught up"). Recycling here would reintroduce the exact cards #595 is
-		// about.
+		// caught up"). Recycling here would re-serve cards the viewer already
+		// called.
 		const afterPrior =
 			priorCallIds.size > 0 ? sourceQueue.filter((m) => !priorCallIds.has(m.id)) : sourceQueue;
 
