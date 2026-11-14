@@ -1,4 +1,4 @@
-# Spec: Holdings sheet rework — two-bucket split bar
+# Spec: Holdings sheet rework: two-bucket split bar
 
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
@@ -13,13 +13,13 @@ is either **Available** ("Ready to spend on calls") or **In play** ("At
 stake on N open calls"). The sheet leads with a "Your VXP" hero equal to
 total holdings, then a two-segment split bar whose widths are
 proportional to the two buckets, then two colour-keyed bucket rows that
-visibly sum back to the hero. The old three-row breakdown — _Lifetime
-earned_, _Currently in play_, _From referrals_ — is removed; those are
+visibly sum back to the hero. The old three-row breakdown (_Lifetime
+earned_, _Currently in play_, _From referrals_) is removed; those are
 history/provenance, not current holdings, and sitting a 142,910 lifetime
 figure next to a 39,760 balance was the main "which number is mine?"
 confusion. The existing "Transaction history" row and the invite CTA
 stay, in that order (data → review → grow). This is a **visual rework of
-the sheet only** — no data-model change.
+the sheet only**: no data-model change.
 
 ## Context
 
@@ -32,14 +32,14 @@ only surface still on the old layout is the **sheet**.
 
 ### Files this spec touches
 
-- `src/lib/components/dash/DashStackSheet.svelte` — the bottom sheet,
+- `src/lib/components/dash/DashStackSheet.svelte`: the bottom sheet,
   the **only** component this spec rewrites. Currently renders the hero
   - three `.db-hd-row` rows (`dash.build.sheet_lifetime` /
     `dash.build.sheet_in_play` / `dash.build.sheet_referrals`) + invite
     CTA + the (already-shipped) transaction-history link row. Built on the
     shared `BottomSheet` (`src/lib/components/ui/BottomSheet.svelte`,
     reusability catalog "BottomSheet").
-- `src/lib/components/pages/DashPage.svelte` — the host that wires the
+- `src/lib/components/pages/DashPage.svelte`: the host that wires the
   sheet (invocation at lines ~472–481). Already derives `holdingsDisplay`
   (`vxpHoldingsTotal`), `inPlayDisplay` (`vxpBacked`), and has
   `liveCallCount` (`activePositionsAll.length + openOrdersAll.length`,
@@ -47,9 +47,9 @@ only surface still on the old layout is the **sheet**.
   `availableDisplay` (currently only the Transactions page derives it
   from `vxpSpendable`) and drop the now-unused `lifetimeDisplay` /
   `referralVxpDisplay` / `referralCount` / `referralsLoading` wiring
-  **from the sheet** (they remain used elsewhere on the page — verify
+  **from the sheet** (they remain used elsewhere on the page: verify
   before deleting; see Open questions).
-- `src/lib/constants/messages/*.ts` — flat dotted-key catalogs (one file
+- `src/lib/constants/messages/*.ts`: flat dotted-key catalogs (one file
   per locale: `en`, `it`, `es`, `es-419`, `es-AR`, `es-MX`, `de`, `fr`,
   `ja`, `pt`, `pt-BR`, `zh-Hans`). Existing relevant keys:
   `dash.holdings.eyebrow` ("Holdings"), `dash.holdings.available`
@@ -74,7 +74,7 @@ only surface still on the old layout is the **sheet**.
 - Reuse `BottomSheet` (already the sheet's shell) and the
   `formatVxpBalance({ value, decimals: USD_DECIMALS })` formatter (the
   Dash card and Transactions page both use it).
-- The reusability catalog lists `ProbBar` — a YES/NO split bar. It is
+- The reusability catalog lists `ProbBar`: a YES/NO split bar. It is
   **not** reusable here: it is a single-fill percentage track tied to
   market YES/NO semantics, not an available/in-play two-segment bar with
   bucket legend. The split bar in this spec is a small, sheet-local
@@ -90,10 +90,10 @@ only surface still on the old layout is the **sheet**.
      (`avail` then `inplay`), each with `style:flex-grow={…}` set from
      the **numeric** available / in-play magnitudes (a new
      `availableValue` / `inPlayValue` number prop, or pass the bigint
-     base units and let the component compare — see Pending decisions on
+     base units and let the component compare, see Pending decisions on
      prop shape). Render a segment only when its value `> 0`; render the
      whole bar only when `available + inPlay > 0`. `aria-hidden="true"`
-     on the bar — it is decorative, the buckets below carry the data.
+     on the bar: it is decorative, the buckets below carry the data.
    - two `.db-bucket` rows: Available (dot `avail`, label
      `dash.holdings.available`, sub `dash.build.sheet_avail_sub`, value
      `availableDisplay`) and In play (dot `inplay`, label
@@ -109,15 +109,15 @@ only surface still on the old layout is the **sheet**.
    `lifetimeDisplay` / `referralVxpDisplay` / `referralCount` /
    `referralsLoading` props **from the `<DashStackSheet>` call** and the
    sheet's `Props`. Leave any of those deriveds in place if still read
-   by other parts of the page (verify — Open questions).
+   by other parts of the page (verify: Open questions).
 3. **i18n.** Add to **every** catalog under
    `src/lib/constants/messages/`:
-   - `dash.build.sheet_your_vxp` — "Your VXP" (sheet hero label).
-   - `dash.build.sheet_avail_sub` — "Ready to spend on calls".
-   - `dash.build.sheet_inplay_sub_one` — "At stake on {count} open call".
-   - `dash.build.sheet_inplay_sub_many` — "At stake on {count} open
+   - `dash.build.sheet_your_vxp`: "Your VXP" (sheet hero label).
+   - `dash.build.sheet_avail_sub`: "Ready to spend on calls".
+   - `dash.build.sheet_inplay_sub_one`: "At stake on {count} open call".
+   - `dash.build.sheet_inplay_sub_many`: "At stake on {count} open
      calls".
-   - `dash.build.sheet_inplay_sub_none` — "No open calls" (the
+   - `dash.build.sheet_inplay_sub_none`: "No open calls" (the
      zero-state sub-label, shown when `openCallCount === 0`).
      Reuse the existing `dash.holdings.available` and `dash.build.in_play`
      for the bucket **labels** (do not add new label keys). All copy
@@ -131,17 +131,17 @@ only surface still on the old layout is the **sheet**.
 - **Data model / deriveds.** No change to
   `vxp-holdings.derived.ts`; the three figures already exist.
 - **The Dash holdings card** (`DashStackCard.svelte`). The card keeps
-  its "Available + Today" right-hand stats — the full total/in-play
+  its "Available + Today" right-hand stats: the full total/in-play
   split is one tap away in the sheet, and the session "Today" delta is
   more actionable on the card. Swapping the card to Available + In play
   is **not** adopted.
 - **Invite CTA → `navigator.share()`.** Replace the current
   `goto(Arena)` CTA with a native share sheet + clipboard fallback + a
-  "copied" state. **Folds into this PR** — it is the same ~15-line CTA
+  "copied" state. **Folds into this PR**: it is the same ~15-line CTA
   handler the spec already rewrites the surrounding markup of, and
   shipping the reworked sheet with the old "routes to Arena" CTA would
   knowingly leave the documented bug in place. (If the reviewer prefers
-  it separate, it cleanly lifts out — see Pending decisions.) The
+  it separate, it cleanly lifts out, see Pending decisions.) The
   canonical referral link + copy already live in the Arena invite
   surface; reuse that helper rather than re-deriving the URL.
 - **Bucket sub-copy + `_one/_many` plural i18n.** **Folds into this
@@ -156,33 +156,33 @@ only surface still on the old layout is the **sheet**.
   as-is and track parity as a fast-follow, to keep this PR a single
   reviewable sheet rework.
 - **Day-0/1 `DashBuildZero.svelte`.** Keeps its "Starter balance"
-  framing — a one-call new user has no total/in-play ambiguity. Out of
+  framing: a one-call new user has no total/in-play ambiguity. Out of
   scope.
 - Retired keys: once the sheet stops reading `dash.build.sheet_lifetime`,
   `dash.build.sheet_in_play` ("Currently in play"),
   `dash.build.sheet_referrals`, `dash.build.sheet_referrals_one`,
   `dash.build.sheet_referrals_many`, those keys become dead. Removing
   them is in scope **only if** no other component reads them (the i18n
-  lint / `npm run check:i18n` flags orphans) — verify first (Open
+  lint / `npm run check:i18n` flags orphans): verify first (Open
   questions); otherwise leave them and note the orphan.
 
 ## Linked issues
 
 Searched the repo's open issues (`ViciApp/vici-app`) for
-"holdings sheet", "dash holdings", "in play / available" — **no related
+"holdings sheet", "dash holdings", "in play / available": **no related
 open issue**. This is product-driven design work, not a tracked bug.
 
 ## Analytics
 
 The sheet has no analytics event today, and the holdings card's tap is
 not currently instrumented. This rework does not add a new navigable
-surface — it restyles an existing sheet — so the default-yes bar is met
+surface: it restyles an existing sheet, so the default-yes bar is met
 by a single lightweight open event rather than per-bucket tracking:
 
-- **`holdings_sheet_opened`** — fired when the sheet opens from the Dash
+- **`holdings_sheet_opened`**: fired when the sheet opens from the Dash
   card. Props: none required; optionally `has_in_play` (`boolean`,
   whether `vxpBacked > 0`) as a bounded dimension to learn how often the
-  split bar is non-degenerate. No amounts, no counts beyond the boolean —
+  split bar is non-degenerate. No amounts, no counts beyond the boolean:
   economic values stay out of analytics.
 
 If added, the name lands in **both** halves of the dual-source pair:
@@ -191,7 +191,7 @@ If added, the name lands in **both** halves of the dual-source pair:
 `track` in `src/lib/services/analytics.services.ts`. The existing
 `transactions_viewed` event (fired on the history page with
 `source: 'dash_sheet'`) already captures the most valuable downstream
-action, so instrumenting the sheet open is **optional** — see Pending
+action, so instrumenting the sheet open is **optional**, see Pending
 decisions. If we decline it, this section's rationale is the explicit
 "considered, deferred" record.
 
@@ -215,7 +215,7 @@ decisions. If we decline it, this section's rationale is the explicit
      referral-link helper.
    - Port `.db-split*` / `.db-bucket*` styles into the scoped
      `<style lang="postcss">`, using app theme tokens (`--accent`,
-     `--fg-faint`, `--border`) — no hardcoded colours, works in all
+     `--fg-faint`, `--border`): no hardcoded colours, works in all
      themes.
 3. Update `DashPage.svelte`: add `availableDisplay` (from
    `vxpSpendable`), pass it + `openCallCount={liveCallCount}` to the
@@ -255,7 +255,7 @@ decisions. If we decline it, this section's rationale is the explicit
       every locale catalog (`npm run check:i18n` clean); no orphaned
       `sheet_lifetime` / `sheet_referrals*` keys left flagged.
 - [ ] The invite CTA fires `navigator.share()` with a clipboard-copy +
-      "copied" fallback, reusing the canonical referral link — it no
+      "copied" fallback, reusing the canonical referral link; it no
       longer routes to Arena.
 - [ ] `PRODUCT.md` describes the two-bucket sheet.
 - [ ] `npm run quality` and `npm run check` pass.
@@ -277,8 +277,8 @@ decisions. If we decline it, this section's rationale is the explicit
   chip) could share the same split-bar bucket block. Should this PR also
   convert that header for parity, or is it a fast-follow? Default:
   fast-follow, to keep this a single-surface sheet rework. (Needs the
-  product owner's call once the fact — that the header is a separate,
-  already-shipped block — is acknowledged; could move to Pending
+  product owner's call once the fact, that the header is a separate,
+  already-shipped block, is acknowledged; could move to Pending
   decisions.)
 
 ## Pending decisions
@@ -297,7 +297,7 @@ decisions. If we decline it, this section's rationale is the explicit
   PR (meta-update rule would then apply). Owner to confirm if/when the
   parity question resolves.
 - **Share-CTA fold-in vs. separate PR.** Default is to fold the
-  native-share CTA into this PR — it is the same CTA the rework already
+  native-share CTA into this PR; it is the same CTA the rework already
   rewrites, and the one-spec-one-PR rule prefers the cohesive whole. If
   the reviewer wants it isolated, it lifts out as a standalone
   CTA-handler change; the rest of the spec stands without it.
@@ -308,7 +308,7 @@ decisions. If we decline it, this section's rationale is the explicit
 
 ## Decisions
 
-- **Keep the app's `dash.*` i18n namespace** — the new sub-copy lands
+- **Keep the app's `dash.*` i18n namespace**: the new sub-copy lands
   as `dash.build.sheet_*` keys. Bucket labels reuse the existing
   `dash.holdings.available` / `dash.build.in_play`.
 - **Keep the Dash holdings card as-is (Available + Today).** Only the
@@ -319,7 +319,7 @@ decisions. If we decline it, this section's rationale is the explicit
   convention). Icons stay lucide (`History` for the history row, the
   share/check pair for the CTA).
 - **"At stake", never "returns on settlement."** The in-play sub-copy
-  states the stake is _at stake_ on open calls — a stake only returns on
+  states the stake is _at stake_ on open calls; a stake only returns on
   a win, so "returns on settlement" wording is not used. Terminology
   stays "prediction"/"call"; no gambling vocabulary.
 - **Pure-frontend, one PR.** The data model already splits total into

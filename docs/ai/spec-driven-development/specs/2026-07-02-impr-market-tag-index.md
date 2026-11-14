@@ -49,8 +49,8 @@ which would otherwise degrade as the market catalog grows.
    market's old vs new tags and moves the series between buckets as an
    admin. Best-effort: a bucket write never traps the primary metadata
    upsert.
-3. **`scopeSeriesIds` reads one bucket** for the battle's scope tag —
-   O(matching-series) — instead of scanning `market_metadata`. An
+3. **`scopeSeriesIds` reads one bucket** for the battle's scope tag,
+   O(matching-series), instead of scanning `market_metadata`. An
    empty/absent bucket still scores the battle as a void face-off
    (unchanged semantics).
 4. **Admin `rebuildMarketTagIndex`** re-derives every bucket from a single
@@ -72,11 +72,11 @@ No open issue; originates from a review comment on #1056.
 **No new product analytics.** A pure server-side performance refactor
 with no user-visible behaviour change; nothing to instrument.
 
-## Design artifacts (frontend — optional)
+## Design artifacts (frontend, optional)
 
-None — no frontend surface changes.
+None: no frontend surface changes.
 
-## Technical requirements (satellite / backend — mandatory)
+## Technical requirements (satellite / backend, mandatory)
 
 - **Performance.** Resolve/live-standings scope lookup drops from
   O(all-markets) (list + JS filter of `market_metadata`) to
@@ -87,7 +87,7 @@ None — no frontend surface changes.
   removed. `rebuildMarketTagIndex` does one full scan but is an
   admin-only, occasional op.
 - **Memory & storage.** New `market_tag_index` collection: one doc per tag
-  (bounded by the closed taxonomy — small, fixed cardinality), each doc
+  (bounded by the closed taxonomy: small, fixed cardinality), each doc
   holding a `seriesIds` list that grows with the catalog. No per-user
   growth.
 - **Scalability.** At 10×/100× markets the per-resolve cost is unchanged
@@ -96,7 +96,7 @@ None — no frontend surface changes.
 - **Upgrade & compatibility.** New collection → wire in all three places
   (`juno.collections.json`, `juno.config.ts`, `Collection` enum).
   Satellite change → `npm run juno:functions:build`, commit regenerated
-  `.did` + FE declarations. Additive — not breaking. **Deploy step:** run
+  `.did` + FE declarations. Additive, not breaking. **Deploy step:** run
   `rebuildMarketTagIndex` once after deploy to backfill markets that
   predate the index; until then tag-scoped battles score as void.
   New/edited markets self-populate via the upsert path. Requires a manual
@@ -138,7 +138,7 @@ None — no frontend surface changes.
 ## Decisions
 
 - **Inline maintenance, not a hook.** Juno hooks don't fire on serverless
-  `setDocStore`, so the upsert endpoint maintains the index inline — the
+  `setDocStore`, so the upsert endpoint maintains the index inline, the
   same pattern already used by `activity_reaction_counts` and
   `event_rollups`.
 - **No new `docs/ai` page.** The collection is documented inline in

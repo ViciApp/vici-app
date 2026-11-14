@@ -7,10 +7,10 @@ Status: Implemented (#926)
 
 ## Goal
 
-A user's onboarding picks — backed team/country
+A user's onboarding picks, backed team/country
 (`preferences.favoriteParticipantId`), first call
 (`preferences.favoriteSide`), handle, and the
-`onboardingCompleted` flag — land on the new profile **no matter which
+`onboardingCompleted` flag, land on the new profile **no matter which
 sign-in provider finishes the flow**, including Google. Today they
 reliably survive only the in-page providers; a Google sign-up (the
 primary, cream-filled provider) silently drops them, which is the
@@ -51,10 +51,10 @@ team + side in one serialized `patchProfile` patch, the satellite
 `UserProfileSchema` round-trips `favoriteParticipantId`
 (`src/satellite/api-schemas.ts`, `withProfileDefaults` in
 `src/satellite/services/profile.services.ts`), and
-`calculateAndSyncStats` only patches stat fields — it never touches
+`calculateAndSyncStats` only patches stat fields: it never touches
 `preferences`. So the picks are **not clobbered after being written**.
 
-### Root cause 1 — redirect providers never reach the stash (primary)
+### Root cause 1: redirect providers never reach the stash (primary)
 
 Google is configured as a **full-page OAuth redirect**, not a popup
 (`SignInProviderStack.onGoogle`, ~137):
@@ -75,11 +75,11 @@ await signIn({
 resolves in this page and `onSuccess?.()` (line ~93) **never fires**.
 The picks live in `OnboardingFlow` state, which the redirect destroys.
 On return, `src/routes/auth/callback/google/+page.svelte` only finishes
-auth (`handleRedirectCallback`) and routes to Flow — it cannot recover
+auth (`handleRedirectCallback`) and routes to Flow: it cannot recover
 picks that were never stashed. The drain then finds **no pending
 payload** (or only a referral/email stashed elsewhere), so team/side
 are gone. Handle still _looks_ right because `ensureProfile` seeds a
-nickname from the OAuth display name at bootstrap — which is exactly
+nickname from the OAuth display name at bootstrap, which is exactly
 why the report is always "the country didn't save," not "my handle
 didn't save."
 
@@ -87,7 +87,7 @@ Apple proves the pattern: `onApple` calls `onSuccess?.()` **before**
 `window.location.assign(Flow)` (~132), so its picks are stashed before
 it leaves the page. Google has no equivalent pre-redirect stash.
 
-### Root cause 2 — the drain reads `profileExisted` reactively (hardening)
+### Root cause 2: the drain reads `profileExisted` reactively (hardening)
 
 The drain effect captures `$userStore.profileExisted` at effect-run
 time. Svelte effects run async, and `onAuthStateChange`
@@ -111,7 +111,7 @@ it rather than adding a second stash path.
 ### 1. Stash picks before any sign-in is initiated (primary fix)
 
 Make the onboarding picks durable in `PENDING_ONBOARDING_STORAGE_KEY`
-**when the user reaches Beat 3**, before they tap any provider — so a
+**when the user reaches Beat 3**, before they tap any provider, so a
 full-page redirect (Google, and any future redirect provider) can't
 carry them off in volatile component state.
 
@@ -143,16 +143,16 @@ Capture "this sign-in bootstrapped the profile" at the moment
   (`existed: false`), exposed via a small getter. Cleared on sign-out
   (`Authn.svelte`'s null-user branch, via `forgetBootstrappedThisSession`)
   so a sign-out → sign-in in the same tab is judged fresh and a returning
-  user isn't re-run through the new-user branch — the double-pass race
+  user isn't re-run through the new-user branch: the double-pass race
   this guards is within one sign-in (both passes carry a non-null user),
   so clearing on sign-out never reopens it.
 - The drain treats a principal bootstrapped this session as new
   regardless of a later racy `getDoc` read. A genuinely returning user
-  (doc predates this session) is unaffected — their saved profile is
+  (doc predates this session) is unaffected: their saved profile is
   still protected. This also subsumes the `signup` page's racy
   `profileExisted` bounce: even if a second pass bounces a new user to
   Flow early, the stash persists and the drain (under the (app) layout)
-  still applies the picks — so the `signup` derived needs no change.
+  still applies the picks, so the `signup` derived needs no change.
 
 ### 3. Provider consistency pass
 
@@ -163,11 +163,11 @@ pick set end-to-end after the change. Document the per-provider path in
 
 ### Out of scope
 
-- The satellite write path, schema, or `assertSetDoc` — confirmed
+- The satellite write path, schema, or `assertSetDoc`, confirmed
   correct; no satellite change.
 - The pre-`v5` auth migration / AuthClient v7 work
   (`[[project_juno_authclient_v7]]`).
-- Anti-farming gating of the onboarding VXP grant (issue #543) — the
+- Anti-farming gating of the onboarding VXP grant (issue #543): the
   grant path is unaffected by where picks are stashed.
 - Eventual-consistency between `ensureProfile`'s bootstrap write and the
   immediate `functions.getProfile` query read in `patchProfile`: noted
@@ -185,7 +185,7 @@ keyword.
 
 `onboarding_completed` exists in the taxonomy
 (`src/lib/types/analytics-event.ts`) but is **not emitted anywhere**
-today — the activation milestone is currently uninstrumented, which is
+today: the activation milestone is currently uninstrumented, which is
 why the Google-vs-other persistence gap was invisible. This spec emits
 it, carrying the dimension that would have surfaced the bug:
 
@@ -194,7 +194,7 @@ dev`), and
 - whether a **team was persisted** (`favoriteParticipantId` non-empty).
 
 Reuse the existing `AnalyticsEventProps` dimensions rather than adding
-new prop keys — a new key would churn the satellite analytics wire
+new prop keys: a new key would churn the satellite analytics wire
 schema / declarations (the analytics-variant regen landmine,
 `[[reference_analytics_event_is_candid_variant]]`). Map provider →
 `label` (the props bag's documented "small categorical label", bounded
@@ -206,11 +206,11 @@ Emit once, in the drain's `applied` outcome
 (`onboarding-handoff.services.ts`). Because the picks are now stashed at
 Beat 3 for **every** path (including the authenticated in-page finish,
 whose leftover stash the drain still processes idempotently on Flow),
-the drain is the single point every completed flow passes through — so
+the drain is the single point every completed flow passes through, so
 one emit there covers all providers without double-counting. The
 provider id rides in the stash (see the provider-capture step). Capture
 via `track()` (`src/lib/services/analytics.services.ts`). Behavioural
-only — no PII, no free-form text.
+only: no PII, no free-form text.
 
 ## Implementation outline
 
@@ -248,7 +248,7 @@ string | null }) => void`; call it when entering Beat 3 and whenever
       `preferences.favoriteParticipantId` and `favoriteSide` set and
       `onboardingCompleted: true`.
 - [ ] The same holds for every other enabled provider (apple, email, ii,
-      passkey, dev) — verified path-by-path.
+      passkey, dev): verified path-by-path.
 - [ ] A returning user (profile predates this session) is **not**
       re-prompted and their saved profile is **not** overwritten by a
       stale pending payload.
@@ -264,7 +264,7 @@ string | null }) => void`; call it when entering Beat 3 and whenever
 - Does Juno's Google `signIn` ever resolve in-page (popup fallback on
   some platforms) such that `onSuccess` _also_ fires? If it can, confirm
   the early stash + a later `onComplete` is still purely idempotent (it
-  should be — identical values). Verify against `@junobuild/core`
+  should be, identical values). Verify against `@junobuild/core`
   behaviour, not assumption.
 
 ## Decisions
