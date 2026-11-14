@@ -1,5 +1,5 @@
 import type { ClearingDid } from '#declarations';
-import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import type {
@@ -373,7 +373,7 @@ export const mergeWalletFeed = ({
  * base units; format at display only.
  */
 export const weeklyVxpDeltaBaseUnits = (transactions: Transaction[]): bigint => {
-	const cutoffNs = BigInt(Date.now() - 7 * DAY_IN_MS) * 1_000_000n;
+	const cutoffNs = BigInt(Date.now() - 7 * DAY_IN_MS) * MILLISECOND_IN_NANOSECONDS;
 	let delta = ZERO;
 
 	const recentVxpTx = transactions.filter(

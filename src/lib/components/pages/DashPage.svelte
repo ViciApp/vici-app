@@ -29,7 +29,7 @@
 	import DashStackCard from '#lib/components/dash/DashStackCard.svelte';
 	import DashStackSheet from '#lib/components/dash/DashStackSheet.svelte';
 	import ResolutionReveal from '#lib/components/market/ResolutionReveal.svelte';
-	import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+	import { MILLISECOND_IN_NANOSECONDS, USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
@@ -211,7 +211,7 @@
 				const market = marketById.get(row.marketId);
 				const outcomeId = inferResolvedOutcomeId({ resolved: row, market });
 				const side = outcomeId === 'YES' ? 'YES' : outcomeId === 'NO' ? 'NO' : undefined;
-				const settledAtMs = Number(row.timestampNs / 1_000_000n);
+				const settledAtMs = Number(row.timestampNs / MILLISECOND_IN_NANOSECONDS);
 				const won = row.result === 'won';
 				const pnl = decimalFixedValueToNumber({
 					value: row.realizedPnlUsd,

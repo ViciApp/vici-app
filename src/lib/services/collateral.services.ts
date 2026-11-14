@@ -8,7 +8,7 @@ import {
 	withdrawCollateral as withdrawCollateralApi
 } from '#lib/api/clearing.api.ts';
 import { approve, balance as getLedgerBalance, transactionFee } from '#lib/api/icrc-ledger.api.ts';
-import { ZERO } from '#lib/constants/app.constants.ts';
+import { SECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import { getIdentity, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
@@ -79,7 +79,7 @@ export const depositCollateral = async ({
 		ledgerCanisterId: assetPrincipal,
 		amount: approvalAmount,
 		spender: getIcrcAccount(CLEARING_CANISTER_ID),
-		expiresAt: nowInBigIntNanoSeconds() + 60n * 1_000_000_000n // 1 minute
+		expiresAt: nowInBigIntNanoSeconds() + 60n * SECOND_IN_NANOSECONDS
 	});
 
 	const asset_id = resolveClearingAssetId(assetPrincipal);
