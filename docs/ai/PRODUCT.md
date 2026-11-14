@@ -437,8 +437,11 @@ anyone claims that month's podium, the ranking over the then-current
 opted-in roster is captured as an immutable snapshot, and the podium payout
 and the champion cup read from it thereafter. A later leave does not rewrite
 a month that has already ended, so awards and cups stay stable and can't
-drift between two people claiming the same month. A month confers a cup only
-once it has been frozen (claimed). Decision record:
+drift between two people claiming the same month. The podium award goes
+to a member at month-end whatever their join date, but only for a slot
+joined before the month closed: joining or switching to a winner after the
+fact earns nothing. A month confers a cup only once it has been frozen
+(claimed). Decision record:
 [`specs/2026-06-28-impr-worlds-standings-current-members.md`](./spec-driven-development/specs/2026-06-28-impr-worlds-standings-current-members.md).
 
 ### Battles: accuracy face-offs that resolve themselves

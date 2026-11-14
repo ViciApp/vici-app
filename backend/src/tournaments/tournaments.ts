@@ -8,7 +8,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
 import { getLeagueStats } from '../leagues/stats';
 import { logger } from '../lib/logger';
-import { DAY_IN_MS, MONTH_ANCHOR_RE, monthAnchorFromMs } from '../lib/time';
+import { DAY_IN_MS, MONTH_ANCHOR_RE, monthAnchorFromMs, monthStartMs } from '../lib/time';
 import { TOURNAMENT_PRIZE_TIERS } from '../vxp/constants';
 import { grantTournamentPrize } from '../vxp/prizes';
 
@@ -198,8 +198,7 @@ export const triggerTournamentDraw = async ({
 		return { ok: false, reason: 'invalid_input' };
 	}
 
-	const [yearStr, monthStr] = monthAnchor.split('-');
-	const startMs = Date.UTC(Number(yearStr), Number(monthStr) - 1, 1, 0, 0, 0, 0);
+	const startMs = monthStartMs(monthAnchor);
 
 	if (startMs > nowMs) {
 		return { ok: false, reason: 'month_not_started' };

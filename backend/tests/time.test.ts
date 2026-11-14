@@ -1,5 +1,13 @@
 import { describe, expect, setSystemTime, test } from 'bun:test';
-import { monthAnchorFromMs, msToNs, nowNs, optionalMs, previousMonthAnchor } from '../src/lib/time';
+import {
+	monthAnchorFromMs,
+	monthEndMs,
+	monthStartMs,
+	msToNs,
+	nowNs,
+	optionalMs,
+	previousMonthAnchor
+} from '../src/lib/time';
 
 describe('msToNs', () => {
 	test('scales milliseconds to nanoseconds', () => {
@@ -34,6 +42,24 @@ describe('monthAnchorFromMs', () => {
 		expect(monthAnchorFromMs(Date.UTC(2026, 10, 13, 12))).toBe('2026-11');
 		expect(monthAnchorFromMs(Date.UTC(2026, 0, 1, 0, 0, 0, 0))).toBe('2026-01');
 		expect(monthAnchorFromMs(Date.UTC(2026, 11, 31, 23, 59, 59, 999))).toBe('2026-12');
+	});
+});
+
+describe('monthStartMs', () => {
+	test('is the first UTC instant of the anchor month, the inverse of monthAnchorFromMs', () => {
+		expect(monthStartMs('2026-11')).toBe(Date.UTC(2026, 10, 1));
+		expect(monthStartMs('2026-01')).toBe(Date.UTC(2026, 0, 1));
+		expect(monthAnchorFromMs(monthStartMs('2026-12'))).toBe('2026-12');
+		expect(monthAnchorFromMs(monthStartMs('2026-12') - 1)).toBe('2026-11');
+	});
+});
+
+describe('monthEndMs', () => {
+	test('is the first UTC instant after the anchor month, across a year end too', () => {
+		expect(monthEndMs('2026-11')).toBe(Date.UTC(2026, 11, 1));
+		expect(monthEndMs('2026-12')).toBe(Date.UTC(2027, 0, 1));
+		expect(monthEndMs('2026-11')).toBe(monthStartMs('2026-12'));
+		expect(monthAnchorFromMs(monthEndMs('2026-11') - 1)).toBe('2026-11');
 	});
 });
 

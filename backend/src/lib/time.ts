@@ -30,6 +30,21 @@ export const monthAnchorFromMs = (ms: number): string => {
 	return `${d.getUTCFullYear()}-${(d.getUTCMonth() + 1).toString().padStart(2, '0')}`;
 };
 
+/** The first instant (UTC) of a `YYYY-MM` anchor's month, in ms. */
+export const monthStartMs = (monthAnchor: string): number => {
+	const [year, month] = monthAnchor.split('-');
+
+	return Date.UTC(Number(year), Number(month) - 1, 1);
+};
+
+/** The first instant (UTC) after a `YYYY-MM` anchor's month, in ms: the
+ * moment the month closes. */
+export const monthEndMs = (monthAnchor: string): number => {
+	const [year, month] = monthAnchor.split('-');
+
+	return Date.UTC(Number(year), Number(month), 1);
+};
+
 /** The previous month's anchor relative to `nowMs`. */
 export const previousMonthAnchor = (nowMs: number): string => {
 	const d = new Date(nowMs);

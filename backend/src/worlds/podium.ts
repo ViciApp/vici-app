@@ -1,11 +1,12 @@
 // Worlds podium monthly payout, user-claim model: the member claims a closed
 // month's finish; the first claim freezes that month's ranking, eligibility
-// is the caller's current affiliation appearing in the frozen top-3, and the
-// payment itself goes through the economy's idempotent award grant (keyed
-// <YYYY-MM>_<place>, so a second claim collides cleanly).
+// is the caller's current affiliation appearing in the frozen top-3 and
+// joined before the month closed, and the payment itself goes through the
+// economy's idempotent award grant (keyed <YYYY-MM>_<place>, so a second
+// claim collides cleanly).
 
 import { nonNullish } from '@dfinity/utils';
-import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '../lib/time';
+import { MONTH_ANCHOR_RE, monthAnchorFromMs, monthEndMs } from '../lib/time';
 import { grantWorldsPodiumPrize, type PodiumPlace } from '../vxp/prizes';
 import {
 	AffiliationStatsError,
@@ -52,6 +53,7 @@ export const claimWorldsPodiumPrize = async ({
 		);
 	}
 
+	const monthClosedMs = monthEndMs(monthAnchor);
 	let awardsCreated = 0;
 	let awardsAlreadyClaimed = 0;
 	let foundAnyEligibleAffiliation = false;
@@ -63,7 +65,13 @@ export const claimWorldsPodiumPrize = async ({
 
 		const myAffiliation = await getMyAffiliation({ userId, kind });
 
-		if (nonNullish(myAffiliation)) {
+		// A first join has no lock, so the current slot alone would let anyone
+		// join last month's winner after close and collect its prize. A member
+		// at month-end qualifies whatever their join date, so the slot must
+		// have been joined before the month closed: joined_at_ms is
+		// server-stamped, kept on a re-join of the same slot and reset by a
+		// switch or a leave, so a move after close never carries tenure.
+		if (nonNullish(myAffiliation) && myAffiliation.joinedAtMs < monthClosedMs) {
 			const top3 = (await listAffiliationStatsForMonth({ kind, monthAnchor, nowMs })).slice(0, 3);
 			const placeIndex = top3.findIndex(
 				(s) => s.affiliationIdentifier === myAffiliation.affiliationIdentifier

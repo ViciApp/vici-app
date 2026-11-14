@@ -129,6 +129,12 @@ The bound that protects each surface today:
   plus a daily **and** an hourly burst cap.
 - **Comeback**: balance-gated and absence-gated.
 - **League founder**: lifetime per-account cap.
+- **Worlds podium**: once per month and place, for a member at
+  month-end whatever their join date, but only if the slot was joined
+  before the month closed. A first join has no switch lock, so without
+  this anyone could join last month's winner after close and collect its
+  prize; a switch or a leave resets the join time, so a move after close
+  never carries tenure.
 
 Every server-fired award is also keyed for **idempotency** in
 `vxp_awards` (`recipient/awardType/awardKey`), so a hook retry can

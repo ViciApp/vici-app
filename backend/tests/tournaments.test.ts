@@ -26,8 +26,8 @@ import { dbAvailable } from './helpers/setup';
 const uniqueLeagueId = (): string => `tlg-${randomBytes(6).toString('hex')}`;
 
 // Month anchors reserved per suite so concurrent files never share one:
-// monthly-stats 2100 to 2899, tournaments 2900 to 2999, affiliation-stats
-// 3000 and up.
+// worlds-podium 2000 to 2099, monthly-stats 2100 to 2899, tournaments 2900 to
+// 2999, affiliation-stats 3000 and up.
 const FIRST_TEST_YEAR = 2900;
 const FIRST_TEST_ANCHOR = `${FIRST_TEST_YEAR}-`;
 const PAST_LAST_TEST_ANCHOR = `${FIRST_TEST_YEAR + 100}-`;
