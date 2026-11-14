@@ -112,6 +112,9 @@ export const spFindCloseMatches = ({
 		.map((scored) => scored.option);
 };
 
+/** A `local@host` email, capturing the host. */
+const SP_EMAIL_HOST_RE = /^[^@\s]+@([^\s@]+)$/;
+
 /**
  * Consumer mailbox providers that never count as a school address: used
  * by the "add your own school" flow so a personal inbox can't be turned
@@ -149,10 +152,7 @@ export const spMatchEmail = ({
 	email: string;
 	directory: readonly WorldsAffiliationOption[];
 }): SchoolEmailMatch | null => {
-	const parsed = email
-		.toLowerCase()
-		.trim()
-		.match(/^[^@\s]+@([^\s@]+)$/);
+	const parsed = email.toLowerCase().trim().match(SP_EMAIL_HOST_RE);
 
 	if (isNullish(parsed)) {
 		return null;
@@ -248,10 +248,7 @@ export const spInferCountry = ({
 	email: string;
 	fallback: string | null;
 }): string | null => {
-	const parsed = email
-		.toLowerCase()
-		.trim()
-		.match(/^[^@\s]+@([^\s@]+)$/);
+	const parsed = email.toLowerCase().trim().match(SP_EMAIL_HOST_RE);
 
 	if (isNullish(parsed)) {
 		return fallback;
