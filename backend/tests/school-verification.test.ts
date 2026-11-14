@@ -4,9 +4,12 @@
 // registry threshold flip, and the daily rate limit.
 
 import { isNullish } from '@dfinity/utils';
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { upsertAppSetting } from '../src/admin/settings';
+import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
+import { app } from '../src/index';
+import { resetRateLimits } from '../src/lib/rate-limit';
 import {
 	escapeHtml,
 	hashSchoolCode,
@@ -170,6 +173,62 @@ describe('verify', () => {
 		});
 	});
 
+	test('concurrent wrong guesses check at most the cap; the rest are refused without a compare', async () => {
+		const userId = await createTestUser();
+		const { submissionId } = await submitSchool({
+			userId,
+			name: 'MIT',
+			country: null,
+			email: `${uniqueLocal()}@mit.edu`
+		});
+		const code = recoverCode(await readSubmission(submissionId));
+		const wrong = code === '000000' ? '000001' : '000000';
+
+		const results = await Promise.all(
+			Array.from({ length: 20 }, () => verifySchoolCode({ userId, submissionId, code: wrong }))
+		);
+		const messages = results.map(({ message }) => message);
+
+		expect(messages.filter((message) => message === 'invalid-code')).toHaveLength(
+			SCHOOL_CODE_MAX_ATTEMPTS
+		);
+		expect(messages.filter((message) => message === 'too-many-attempts')).toHaveLength(
+			20 - SCHOOL_CODE_MAX_ATTEMPTS
+		);
+		expect((await readSubmission(submissionId))?.attempts).toBe(SCHOOL_CODE_MAX_ATTEMPTS);
+
+		expect(await verifySchoolCode({ userId, submissionId, code })).toEqual({
+			ok: false,
+			message: 'too-many-attempts'
+		});
+		expect((await readSubmission(submissionId))?.status).toBe('awaiting');
+	});
+
+	test('the right code on the last attempt of the budget still verifies', async () => {
+		// A per-run school keeps this member out of the shared directory rows.
+		const runId = crypto.randomUUID().slice(0, 8);
+		const userId = await createTestUser();
+		const { submissionId } = await submitSchool({
+			userId,
+			name: `Lastattempt${runId} University`,
+			country: null,
+			email: `${uniqueLocal()}@lastattempt-${runId}.example`
+		});
+		const code = recoverCode(await readSubmission(submissionId));
+		const wrong = code === '000000' ? '000001' : '000000';
+
+		for (let i = 0; i < SCHOOL_CODE_MAX_ATTEMPTS - 1; i++) {
+			expect((await verifySchoolCode({ userId, submissionId, code: wrong })).message).toBe(
+				'invalid-code'
+			);
+		}
+
+		const result = await verifySchoolCode({ userId, submissionId, code });
+
+		expect(result).toEqual({ ok: true, schoolId: `lastattempt${runId}`, status: 'pending' });
+		expect((await readSubmission(submissionId))?.status).toBe('verified');
+	});
+
 	test('an expired submission refuses and is marked expired', async () => {
 		const userId = await createTestUser();
 		const { submissionId } = await submitSchool({
@@ -258,6 +317,37 @@ describe('verify', () => {
 		);
 
 		expect(schools[0]).toEqual({ verified_member_count: 3, status: 'public' });
+	});
+});
+
+describe('verify route', () => {
+	beforeEach(() => {
+		resetRateLimits();
+	});
+
+	const verifyAs = (token: string) =>
+		app.handle(
+			new Request('http://localhost/api/v1/school/verify', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', cookie: `vici_session=${token}` },
+				body: JSON.stringify({ submissionId: crypto.randomUUID(), code: '123456' })
+			})
+		);
+
+	test('limits verify calls per account, leaving other accounts untouched', async () => {
+		const token = await createSession(await createTestUser());
+		const otherToken = await createSession(await createTestUser());
+
+		for (let i = 0; i < 30; i++) {
+			expect((await verifyAs(token)).status).toBe(200);
+		}
+
+		const limited = await verifyAs(token);
+
+		expect(limited.status).toBe(429);
+		expect(await limited.json()).toEqual({ error: 'rate_limited' });
+		expect(limited.headers.get('retry-after')).not.toBeNull();
+		expect((await verifyAs(otherToken)).status).toBe(200);
 	});
 });
 

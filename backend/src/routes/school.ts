@@ -6,6 +6,8 @@ import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
 import { badRequest } from '../lib/http';
+import { enforceLimit } from '../lib/rate-limit';
+import { HOUR_IN_MS } from '../lib/time';
 import {
 	adminDeleteSchool,
 	adminUpsertSchool,
@@ -58,6 +60,20 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 
 			if (isNullish(user)) {
 				return unauthenticated(set);
+			}
+
+			// Keyed by account, not IP: students on one campus network share an
+			// address, and the guessing being bounded is per account.
+			const limited = enforceLimit({
+				set,
+				name: 'school_verify',
+				ip: user.id,
+				limit: 30,
+				windowMs: HOUR_IN_MS
+			});
+
+			if (limited) {
+				return limited;
 			}
 
 			return await verifySchoolCode({

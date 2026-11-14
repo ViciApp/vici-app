@@ -27,6 +27,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 - `pg` with raw parameterized SQL through `query<T>(text, params)` (`src/db/client.ts:65`); no ORM. Always `$1` placeholders, never string interpolation of values.
 - Multi-statement writes run in `tx(fn)` (`src/db/client.ts:75`). A domain function that may run inside a caller's transaction takes `q: TxQuery = query` as its last parameter (`src/leagues/battles.ts:144`) and the caller passes the transaction's query (`src/custody/ledger.ts:81`).
 - Idempotency lives in the schema: a unique key (`vxp_awards`, deposit `tx_ref`) plus `on conflict`, not an in-memory check.
+- A capped counter (code attempts) is spent with one conditional `update ... set n = n + 1 where id = $1 and n < $2 returning ...` before the check it guards, never read-then-increment, so concurrent requests cannot all pass the cap: `src/auth/otp.ts` (`verifyOtp`), `src/school/verification.ts` (`verifySchoolCode`).
 - Schema changes are forward-only migrations: [`workflows/new-migration.md`](./workflows/new-migration.md).
 
 ## Environment and logging
@@ -46,4 +47,4 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 ## Rate limiting
 
-- `enforceLimit({ set, name, ip, limit, windowMs })` (`src/lib/rate-limit.ts:66`) with `clientIp(request)` from `src/lib/http.ts`, on every unauthenticated endpoint that sends email, issues a session or can be enumerated. In-memory, per instance.
+- `enforceLimit({ set, name, ip, limit, windowMs })` (`src/lib/rate-limit.ts:66`) with `clientIp(request)` from `src/lib/http.ts`, on every unauthenticated endpoint that sends email, issues a session or can be enumerated. A signed-in endpoint that checks a guessable code keys it by the account instead (`ip: user.id`, `src/routes/school.ts` `/verify`), so a shared campus network does not pool users. In-memory, per instance.

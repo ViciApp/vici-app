@@ -18,8 +18,10 @@ import { spMatchEmail, spNormalize } from './matching';
 /** Time-to-live of a verification code (~30 minutes). */
 export const SCHOOL_CODE_TTL_MS = 30 * MINUTE_IN_MS;
 
-/** Max wrong entries before a submission locks: bounds online guessing of
- * the 6-digit space to this many tries per submission. */
+/** Max code checks per submission, the accepted one included: bounds
+ * online guessing of the 6-digit space to this many tries per submission.
+ * Each check claims its attempt before the compare, so concurrent guesses
+ * cannot exceed it. */
 export const SCHOOL_CODE_MAX_ATTEMPTS = 5;
 
 /** Max code sends per user per rolling 24h, and (separately) per email. */
@@ -359,8 +361,9 @@ export interface VerifySchoolCodeResult {
 /**
  * Verify a mailed code against its submission: only the submission's owner
  * may verify it; TTL and the attempt cap are enforced before the digest
- * compare. Success marks the submission verified, recomputes the school
- * registry row, and flags the owner's profile school-verified.
+ * compare, the cap by atomically claiming one attempt. Success marks the
+ * submission verified, recomputes the school registry row, and flags the
+ * owner's profile school-verified.
  */
 export const verifySchoolCode = async ({
 	userId,
@@ -378,16 +381,13 @@ export const verifySchoolCode = async ({
 		school_name: string;
 		country: string | null;
 		domains: string[];
-		code_hash: string;
-		salt: string;
 		expires_at_ms: string;
-		attempts: number;
 		status: SchoolSubmissionStatus;
 	}
 
 	const rows = await query<SubmissionRow>(
 		`select id, user_id, school_id, school_name, country, domains,
-		        code_hash, salt, expires_at_ms::text, attempts, status
+		        expires_at_ms::text, status
 		 from school_submissions where id = $1`,
 		[submissionId]
 	);
@@ -413,18 +413,23 @@ export const verifySchoolCode = async ({
 		return { ok: false, message: 'expired' };
 	}
 
-	if (submission.attempts >= SCHOOL_CODE_MAX_ATTEMPTS) {
+	// Claimed before the compare: a check-then-increment would let concurrent
+	// guesses all pass the cap before any of them counted.
+	const claimed = await query<{ code_hash: string; salt: string }>(
+		`update school_submissions set attempts = attempts + 1
+		 where id = $1 and attempts < $2
+		 returning code_hash, salt`,
+		[submission.id, SCHOOL_CODE_MAX_ATTEMPTS]
+	);
+	const [claim] = claimed;
+
+	if (isNullish(claim)) {
 		return { ok: false, message: 'too-many-attempts' };
 	}
 
-	const matches =
-		hashSchoolCode({ code: code.trim(), salt: submission.salt }) === submission.code_hash;
+	const matches = hashSchoolCode({ code: code.trim(), salt: claim.salt }) === claim.code_hash;
 
 	if (!matches) {
-		await query(`update school_submissions set attempts = attempts + 1 where id = $1`, [
-			submission.id
-		]);
-
 		// Funnel: a real code check ran and failed. The authz / not-found /
 		// expired early-outs above are not attempts.
 		await captureSchoolEvent({
