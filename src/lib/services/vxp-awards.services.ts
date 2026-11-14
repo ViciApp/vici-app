@@ -63,7 +63,7 @@ export interface VxpCalibrationClaim {
  * (finalised), per-market dedupe, and the hourly / daily rate limits
  * before transferring the reward.
  *
- * Always resolves with a structured result — never rejects on expected
+ * Always resolves with a structured result: never rejects on expected
  * ineligibility. The FE renders a different state per `reason`.
  * Rejection here only happens on transport-level errors.
  */

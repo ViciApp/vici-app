@@ -1,5 +1,5 @@
 /**
- * Spanish (Mexico) — landing deltas over the LatAm base.
+ * Spanish (Mexico): landing deltas over the LatAm base.
  *
  * Partial `soon` catalog: only the `welcome.*` keys whose copy differs from
  * `es-419` are declared here (Mexican tuteo, "pronóstico/atínale" register,

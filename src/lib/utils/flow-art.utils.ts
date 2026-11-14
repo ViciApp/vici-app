@@ -1,4 +1,4 @@
-// Flow Mode generative artwork — public barrel.
+// Flow Mode generative artwork: public barrel.
 //
 // The implementation was split into focused modules under
 // `./flow-art/` (types, rng, svg, per-category renderers, the WC

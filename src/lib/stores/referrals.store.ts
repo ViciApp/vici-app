@@ -27,7 +27,7 @@ let inFlight: Promise<void> | undefined;
 
 // Bumped by every `clearMyReferrals()` (i.e. each auth transition). A refresh
 // captures the epoch when it starts and only commits its result if the epoch
-// is unchanged on resolution — so a fetch that was in flight across a
+// is unchanged on resolution: so a fetch that was in flight across a
 // sign-out/sign-in can't repopulate the cache (or flip `loaded`) for the wrong
 // principal.
 let epoch = 0;
@@ -52,7 +52,7 @@ const runRefresh = async (): Promise<void> => {
  *
  * Fails open: a rejected fetch is caught and logged here (never propagated to
  * callers, mirroring `affiliations.store` / `leagues.store`), leaving the
- * previous cache and the `loaded` flag untouched — so a cold failure keeps
+ * previous cache and the `loaded` flag untouched, so a cold failure keeps
  * showing the skeleton and a background failure keeps the cached figure.
  */
 export const refreshMyReferrals = async (): Promise<void> => {

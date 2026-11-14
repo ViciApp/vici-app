@@ -22,7 +22,7 @@ export interface Position {
  * `realizedPnlUsd` is in `USD_DECIMALS` units (matches `Position.lockedCollateral`)
  * so it can flow into existing PnL formatters without conversion.
  *
- * `outcomeId` is only known precisely when the user *won* — in that case it
+ * `outcomeId` is only known precisely when the user *won*: in that case it
  * equals `market.outcome`. For losers we leave it `undefined` because a
  * single Settled event can't disambiguate which losing outcome the user held
  * (a categorical-loser could have been on any non-winning outcome).

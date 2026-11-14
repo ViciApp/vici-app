@@ -22,7 +22,7 @@ export const MarketMetadataInputSchema = j.strictObject({
 	suggested: j.boolean().default(false),
 	// Short editorial subtitle rendered as italic accent under the
 	// question on the Flow front card (e.g. "Hex contenders · 17.9 %
-	// favorite"). Optional — when absent the row is hidden, except
+	// favorite"). Optional: when absent the row is hidden, except
 	// for the curated WC-tentpole map kept FE-side in
 	// `wc-market-subtitles.constants.ts`. Keep this < ~50 chars; the
 	// surface can't accommodate longer.
@@ -48,7 +48,7 @@ export const MarketTagIndexSchema = j.strictObject({
 	updatedAtMs: j.number()
 });
 
-/** Result of `getMarketTags` — every tag bucket of the reverse index, for the
+/** Result of `getMarketTags`: every tag bucket of the reverse index, for the
  * cockpit's market classification (admin-gated; see `getMarketTagsFn`). */
 export const GetMarketTagsResultSchema = j.strictObject({
 	buckets: j.array(

@@ -69,7 +69,7 @@ export interface UserPreferences {
 	sharing: SharingPrefs;
 	flowTags: string[];
 	/**
-	 * When `true`, Flow deck is filtered to World Cup markets only — the
+	 * When `true`, Flow deck is filtered to World Cup markets only; the
 	 * category-pill grid is hidden and the deck surfaces just the
 	 * featured-event markets. Matches the SetSegmented control on
 	 * SettingsScreen.

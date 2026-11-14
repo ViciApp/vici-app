@@ -6,13 +6,13 @@
  * `testIdAttribute: 'data-tid'` (see `playwright.config.ts`), so tests can
  * use `page.getByTestId(TestId.X)`.
  *
- * Keep this enum minimal — only add an entry when an E2E test references it.
+ * Keep this enum minimal: only add an entry when an E2E test references it.
  * See `docs/ai/frontend/testing.md` for the broader testing policy.
  */
 export enum TestId {
 	AppMain = 'app-main',
 	SignInDev = 'sign-in-dev',
-	// The signed-in account control in the app chrome — the desktop nav
+	// The signed-in account control in the app chrome; the desktop nav
 	// profile handle and the mobile pillnav profile tab both carry it, so
 	// `[data-tid="user-menu"]:visible` resolves to whichever one the current
 	// viewport renders.

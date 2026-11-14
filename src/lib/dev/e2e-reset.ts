@@ -38,7 +38,7 @@ declare global {
 
 /**
  * Tail of the in-flight post-sign-in stats syncs (`calculateAndSyncStats`),
- * chained so a single await covers every sync registered so far. DEV ONLY —
+ * chained so a single await covers every sync registered so far. DEV ONLY;
  * stays `Promise.resolve()` in production because {@link trackLoginSyncSettled}
  * no-ops there.
  *
@@ -48,7 +48,7 @@ declare global {
  * that sync is still running, the sync's trailing write re-creates it and the
  * next sign-in wrongly looks like a returning user. The sync is a long async
  * chain (trade history + leagues + battles + rank + monthly stats before the
- * write), so its write can land well after any fixed post-delete watch window —
+ * write), so its write can land well after any fixed post-delete watch window,
  * which is why watching for resurrection alone was flaky. The deterministic fix
  * is to wait for the sync to fully settle BEFORE deleting.
  */
@@ -58,7 +58,7 @@ let loginSyncChain: Promise<void> = Promise.resolve();
  * Register a post-sign-in stats sync so {@link resetMyProfile} can await it
  * before deleting the profile. Called by the auth boundary (`Authn.svelte`) as
  * each sync starts. DEV ONLY (and browser-only): a no-op elsewhere, so it never
- * adds bookkeeping to a real session. Never rejects — a failed sync still
+ * adds bookkeeping to a real session. Never rejects; a failed sync still
  * settles the chain (a delete after a failed sync is safe).
  */
 export const trackLoginSyncSettled = (run: Promise<unknown>): void => {
@@ -85,7 +85,7 @@ export const trackLoginSyncSettled = (run: Promise<unknown>): void => {
 const LOGIN_SYNC_SETTLE_TIMEOUT_MS = 15_000;
 
 /**
- * Resolve once no tracked login sync is in flight, OR the timeout elapses —
+ * Resolve once no tracked login sync is in flight, OR the timeout elapses,
  * whichever comes first. Re-awaits until the chain reference stops changing, so
  * a sync registered by a second `onAuthStateChange` pass mid-await (the
  * double-fire race) is covered too. The post-sign-in write storm is finite, so
@@ -107,13 +107,13 @@ const waitForLoginSyncSettled = async (): Promise<void> => {
 
 /**
  * Hard-delete the signed-in principal's profile doc so the NEXT sign-in is
- * seen as a brand-new user — `ensureProfile` finds no versioned doc and
+ * seen as a brand-new user: `ensureProfile` finds no versioned doc and
  * bootstraps fresh.
  *
  * Exists only to let the Playwright onboarding spec escape the shared dev
  * mock identity: `signIn({ dev: {} })` resolves to ONE principal for the
  * whole CI run, and earlier specs (every `signInAsDevUser`) auto-claim the
- * handle field's pool suggestion and complete onboarding for it — so by the
+ * handle field's pool suggestion and complete onboarding for it, so by the
  * time the onboarding spec runs, that principal is a fully-onboarded
  * returning user and the new-user handle handoff can't be exercised. Deleting
  * the profile first restores the pristine pre-onboarding state.
@@ -127,8 +127,8 @@ const waitForLoginSyncSettled = async (): Promise<void> => {
  * doc → create). If that write lands after our delete, the doc resurrects and
  * the next sign-in wrongly looks like a returning user. Because its write can
  * come well after any fixed post-delete watch window, we first
- * {@link waitForLoginSyncSettled} — the sync is tracked by `Authn.svelte` via
- * {@link trackLoginSyncSettled} — so the delete has nothing racing it.
+ * {@link waitForLoginSyncSettled}: the sync is tracked by `Authn.svelte` via
+ * {@link trackLoginSyncSettled}: so the delete has nothing racing it.
  *
  * Two further races can still leave the doc present after a naive delete:
  *
@@ -144,7 +144,7 @@ const waitForLoginSyncSettled = async (): Promise<void> => {
  * The post-sign-in write storm is finite, so this converges once it drains.
  * The caller must then reach the signed-out surface WITHOUT a signed-in page
  * load in between (use {@link E2eHooks.clearSession} in place + a cold nav, not
- * a navigation to the Settings sign-out surface) — a signed-in navigation would
+ * a navigation to the Settings sign-out surface); a signed-in navigation would
  * re-run `ensureProfile` and bootstrap a fresh doc, which no watching here can
  * prevent.
  */
@@ -161,7 +161,7 @@ const readProfileDoc = (principal: string) =>
  * Drop the shared dev principal's owner-private `profile_private` doc so a
  * later spec's "new user" doesn't inherit an email persisted by an earlier
  * one. Single-writer (no post-sign-in storm touches this collection), so a
- * plain read-then-delete suffices — no retry / resurrection watch needed.
+ * plain read-then-delete suffices: no retry / resurrection watch needed.
  */
 const resetMyPrivateProfile = async (principal: string): Promise<void> => {
 	const existing = await getDoc<ProfilePrivate>({
@@ -214,7 +214,7 @@ const resetMyProfile = async (): Promise<void> => {
 		}
 
 		if (deleted) {
-			// The doc is gone. Confirm it STAYS gone — a trailing post-sign-in
+			// The doc is gone. Confirm it STAYS gone; a trailing post-sign-in
 			// write can re-create it (see the header). If it reappears within the
 			// window, loop and delete the resurrected doc; otherwise the reset is
 			// settled.
@@ -244,12 +244,12 @@ const resetMyProfile = async (): Promise<void> => {
 /**
  * The two IndexedDB databases that persist the AUTHENTICATED IDENTITY, which
  * `onAuthStateChange` rehydrates on every cold load:
- *  - `juno-dev-identifiers` — the Juno `dev` mock identity (the store the
+ *  - `juno-dev-identifiers`: the Juno `dev` mock identity (the store the
  *    onboarding spec actually needs cleared; the CI e2e matrix signs in with it).
- *  - `auth-client-db` — the IC auth-client delegation store (real II/OpenID
+ *  - `auth-client-db`: the IC auth-client delegation store (real II/OpenID
  *    providers); empty for the dev provider but cleared for completeness.
  *
- * We clear ONLY these — NOT the `icp-sdk-*` agent caches (root key / query
+ * We clear ONLY these: NOT the `icp-sdk-*` agent caches (root key / query
  * verification). Wiping those forced a cold agent re-init that made the post-
  * sign-in `calculateAndSyncStats` slow enough on the low-end mobile project for
  * the onboarding-handoff drain (serialized behind it on the profile patch queue)
@@ -318,7 +318,7 @@ const clearDatabaseStores = (dbName: string): Promise<void> =>
 /**
  * Durably clear the persisted authenticated identity so the next full page load
  * is signed-out. Scoped to {@link IDENTITY_DB_NAMES} plus the signed-in localStorage
- * hint — deliberately NOT the `icp-sdk-*` agent caches or datastore caches (see
+ * hint: deliberately NOT the `icp-sdk-*` agent caches or datastore caches (see
  * {@link IDENTITY_DB_NAMES} for why: wiping them slowed post-sign-in hydration and
  * broke the handoff drain's poll window).
  *
@@ -328,7 +328,7 @@ const clearDatabaseStores = (dbName: string): Promise<void> =>
  *
  * We do NOT use Juno `signOut()` to reach signed-out: it re-saves the dev
  * identity in `juno-dev-identifiers`, so the next load auto-restores the session
- * and /signup bounces to /flow — the exact flake this defeats. Clearing the
+ * and /signup bounces to /flow: the exact flake this defeats. Clearing the
  * identity store and then navigating avoids the re-persist entirely.
  */
 const clearSession = async (): Promise<void> => {
@@ -343,7 +343,7 @@ const clearSession = async (): Promise<void> => {
 };
 
 /**
- * Install the e2e reset hook on `window` — DEV ONLY. A no-op in production
+ * Install the e2e reset hook on `window`: DEV ONLY. A no-op in production
  * (and any non-browser context), so it never adds a profile-deletion surface
  * to a real build. Called once from the `(app)` layout on mount.
  */

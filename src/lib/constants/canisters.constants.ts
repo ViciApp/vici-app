@@ -29,7 +29,7 @@ const viteEnvString = (key: string): string | undefined => {
 /**
  * VXP / VICI canister ids default to mainnet. For a local replica, override
  * via `VITE_VXP_LEDGER_CANISTER_ID`, `VITE_VXP_INDEX_CANISTER_ID`, and
- * `VITE_VICI_LEDGER_CANISTER_ID` — the VXP ledger override must also match
+ * `VITE_VICI_LEDGER_CANISTER_ID`: the VXP ledger override must also match
  * the satellite bundle (see the vxp-onboarding hook), and the VXP index
  * override must match `dfx.json` `vxp_index.specified_id`.
  */

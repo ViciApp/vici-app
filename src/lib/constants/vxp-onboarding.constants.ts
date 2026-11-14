@@ -6,7 +6,7 @@ import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
  * first prediction → resolution → payout loop before hitting any wall.
  *
  * The starter is granted in full on registration (milestone 1). The two call-gated milestones
- * (`m2`/`m3`) are retained at **0** — the payout path skips any milestone whose amount is ≤ 0 —
+ * (`m2`/`m3`) are retained at **0**, the payout path skips any milestone whose amount is ≤ 0,
  * so there is no engagement-gated drip. Making predictions is rewarded by gameplay payouts, the
  * first-call achievement, and the referral bonus instead.
  */

@@ -1,7 +1,7 @@
 import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 
 /**
- * Lightweight document model for the public `/info/[slug]` routes —
+ * Lightweight document model for the public `/info/[slug]` routes:
  * Terms, Privacy, Resolution Rules, FAQ, Contact, How resolution works.
  *
  * Block-based on purpose: legal / help copy iterates across sections of
@@ -14,12 +14,12 @@ import type { MessageKey } from '#lib/utils/i18n.utils.ts';
  *
  *  - **Keyed copy** (`key` / `itemKeys` / `titleKey` / `eyebrowKey`) is the
  *    localized help docs (FAQ, Contact, How resolution works, Resolution
- *    rules) — referenced by `MessageKey` and resolved per-locale at render
+ *    rules): referenced by `MessageKey` and resolved per-locale at render
  *    time via `t(...)`, so it mirrors across every live catalog.
  *  - **Literal copy** (`text` / `items` / `title` / `eyebrow`) carries the
  *    full English controlling text of the legal docs (Terms, Privacy). Legal
- *    bodies are kept out of the i18n catalogs by design — the live locales
- *    must mirror `en.ts` exactly and only English exists for these — so they
+ *    bodies are kept out of the i18n catalogs by design; the live locales
+ *    must mirror `en.ts` exactly and only English exists for these, so they
  *    live as literal-text constants instead.
  *
  * Contact addresses are never translatable copy: `mail` block text and the
@@ -45,9 +45,9 @@ export type InfoDocBlock =
 	| { kind: 'link'; text: string; href: string }
 	| { kind: 'badge'; src: string; alt: string; href: string; width: number; height: number };
 
-/** Header title (also the page `<title>`) — keyed for help docs, literal for legal. */
+/** Header title (also the page `<title>`): keyed for help docs, literal for legal. */
 type TitleSource = { titleKey: MessageKey } | { title: string };
-/** Eyebrow line above the title — keyed for help docs, literal for legal. */
+/** Eyebrow line above the title: keyed for help docs, literal for legal. */
 type EyebrowSource = { eyebrowKey: MessageKey } | { eyebrow: string };
 
 export type InfoDoc = { slug: string; blocks: InfoDocBlock[] } & TitleSource & EyebrowSource;

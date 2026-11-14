@@ -238,8 +238,8 @@ export const loadUserTradeHistory = async ({
  *
  * The query is market-wide (not caller-scoped), so the derived
  * YES-percentage series reflects the TRUE market movement for every viewer
- * — including signed-out visitors, who read it under the anonymous identity
- * — rather than the viewer's own fills. `period` selects the query window
+ * including signed-out visitors, who read it under the anonymous identity
+ * rather than the viewer's own fills. `period` selects the query window
  * (resolution + lower bound; see {@link priceHistoryQueryWindow}) so the
  * `1d / 7d / 30d / all` chips re-scope the chart instead of replotting the
  * same window. {@link deriveMarketPriceSeries} maps each bucket's close into
@@ -315,7 +315,7 @@ export const loadMarketPriceCandles = async ({
 
 // Page size for the traded-volume drain. `list_series_trade_history` returns
 // *all* remaining trades when `limit` is omitted, which can blow past the IC
-// message-size cap (and balloon client allocations) on a busy series — so cap
+// message-size cap (and balloon client allocations) on a busy series, so cap
 // each page and follow `next_cursor`.
 const TRADE_HISTORY_PAGE_SIZE = BigInt(1000);
 
@@ -323,7 +323,7 @@ const TRADE_HISTORY_PAGE_SIZE = BigInt(1000);
  * Market-wide traded volume for one series, in payout-token base units.
  *
  * "Volume" on a market is the notional that changed hands, so this drains the
- * executed-trade tape (`list_series_trade_history` — every participant's
+ * executed-trade tape (`list_series_trade_history`: every participant's
  * fills, not the caller's) a bounded page at a time and aggregates `Σ qty·price`
  * via {@link tradeHistoryNotional}, folding each page in and discarding it so
  * neither the response nor the running set is unbounded. Following `next_cursor`

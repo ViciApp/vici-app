@@ -12,7 +12,7 @@
  * prediction directly from the page via the YES/NO CTA bar and the trade
  * sheet.
  *
- * When `false` (the default) the detail page is a read-only depth view —
+ * When `false` (the default) the detail page is a read-only depth view:
  * the probability hero, chart, stats, and resolution context are all on
  * display, but predictions are made in Flow rather than here. The in-detail
  * trade CTA and its trade sheet are kept behind this flag, ready to be

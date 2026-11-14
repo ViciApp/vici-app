@@ -5,7 +5,7 @@ import type { MarketId } from '#lib/types/market.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**
- * Count of the viewer's open calls — live positions plus resting limit orders,
+ * Count of the viewer's open calls: live positions plus resting limit orders,
  * both restricted to markets that are not yet resolved. A market can flip to
  * `Resolved` before its settlement lands (and before the stores catch up), so
  * that window is filtered out to keep a decided call from inflating the count.

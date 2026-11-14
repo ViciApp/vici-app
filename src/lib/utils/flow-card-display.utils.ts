@@ -6,7 +6,7 @@ import { isNullish } from '@dfinity/utils';
 /**
  * Crowd-consensus YES percentage (0–100), or `undefined` when the market's
  * probability is unknown (book unread / no liquidity). Callers must not coerce
- * `undefined` into a number — render a {@link MarketOddsSkeleton} or skip,
+ * `undefined` into a number: render a {@link MarketOddsSkeleton} or skip,
  * never a fabricated 50.
  */
 export const consensusPercent = (market: Market): number | undefined =>
@@ -36,7 +36,7 @@ export const formatWhyNowChip = (whyNow: MarketWhyNow | undefined): string | und
 /**
  * Surfacing predicate for the per-card "Suggested" chip and rail entry.
  * A market is shown as suggested only when {@link suggestedScore}
- * (single source of truth for the sort-tier boost) is non-zero — so
+ * (single source of truth for the sort-tier boost) is non-zero: so
  * resolved markets and markets whose 14-day editorial window has
  * elapsed never display the chip, even if `metadata.suggested` is
  * still `true` in the underlying doc.

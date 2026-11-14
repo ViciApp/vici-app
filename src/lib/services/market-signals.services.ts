@@ -9,8 +9,8 @@ import { deriveUserMarketSignals } from '#lib/utils/market-signals.utils.ts';
 
 /**
  * `marketIds` scopes the per-market `followedLean` fan-out to the markets the
- * viewer is actually looking at — the sliced Flow deck, or the single market on
- * a detail page — rather than every tagged series in the catalog. Without it the
+ * viewer is actually looking at: the sliced Flow deck, or the single market on
+ * a detail page: rather than every tagged series in the catalog. Without it the
  * query both wastes round-trips on markets the viewer can't see and (capped at
  * `MAX_MARKETS`) can drop the lean for markets they *can*. Accepts a promise so
  * Flow can derive it from the still-resolving queue without serialising the

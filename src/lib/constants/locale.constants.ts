@@ -27,12 +27,12 @@ export const DEFAULT_LOCALE: AppLocale = 'en';
 /**
  * Launch readiness for a locale.
  *
- * - `live` — the catalog is populated and kept fully aligned to `en`
+ * - `live`: the catalog is populated and kept fully aligned to `en`
  *   (enforced by `check:i18n`).
- * - `soon` — registered for fallback resolution and the picker (browser
+ * - `soon`: registered for fallback resolution and the picker (browser
  *   auto-detect targets only `live` locales), but the catalog is
  *   absent or only partial. Missing keys resolve through the `fallback`
- *   chain to `en`, so the UI always renders real copy — never a raw key.
+ *   chain to `en`, so the UI always renders real copy, never a raw key.
  */
 export type LocaleTier = 'live' | 'soon';
 
@@ -63,7 +63,7 @@ export interface LocaleEntry {
 	/** Native region label shown in the picker (`México`, `中国大陆`, …). */
 	readonly regionLabel: string;
 	/**
-	 * Show the world/globe icon instead of a country flag — for supra-national
+	 * Show the world/globe icon instead of a country flag: for supra-national
 	 * rows (e.g. `en` Global, `es-419` Latin America). Country rows render the
 	 * SVG flag for their `region` via the shared CountryFlag component.
 	 */
@@ -74,7 +74,7 @@ export interface LocaleEntry {
 	readonly base?: boolean;
 	/** Not offered as a standalone choice in the picker (base dictionaries). */
 	readonly hidden?: boolean;
-	/** Launch readiness — drives `check:i18n` strictness. */
+	/** Launch readiness: drives `check:i18n` strictness. */
 	readonly tier: LocaleTier;
 }
 
@@ -99,7 +99,7 @@ export const LOCALE_REGISTRY: readonly LocaleEntry[] = [
 		tier: 'live'
 	},
 
-	// Spanish — a hidden neutral base plus regional deltas. `es-419` is the
+	// Spanish: a hidden neutral base plus regional deltas. `es-419` is the
 	// Latin-American tier most LatAm variants fall back to.
 	{
 		id: 'es',
@@ -165,7 +165,7 @@ export const LOCALE_REGISTRY: readonly LocaleEntry[] = [
 		tier: 'soon'
 	},
 
-	// Portuguese — Portugal is the neutral base, Brazil the populated variant.
+	// Portuguese: Portugal is the neutral base, Brazil the populated variant.
 	{
 		id: 'pt',
 		label: 'Português',
@@ -324,11 +324,11 @@ export const LOCALE_REGISTRY: readonly LocaleEntry[] = [
  * The flat list of locales with a populated catalog (`tier: 'live'`), carrying
  * a compact `{ id, label, short }` shape. It is the allowlist for the live,
  * fully-translated set: it scopes the primary-subtag fallback in browser
- * auto-detection (see `detectBrowserLocale` — the exact-tag tier matches any
+ * auto-detection (see `detectBrowserLocale`: the exact-tag tier matches any
  * registered locale via `REGISTERED_LOCALE_IDS`), and the market-translation
  * surfaces gate their per-locale fields against it.
  *
- * The `hidden` flag (a language's neutral base) is deliberately ignored here —
+ * The `hidden` flag (a language's neutral base) is deliberately ignored here:
  * grouping by language/region is the picker's concern, handled by
  * `localeLanguageGroups`, which reads the full registry.
  *
@@ -346,7 +346,7 @@ export const SUPPORTED_LOCALES: readonly {
 }));
 
 /**
- * Every registered locale id, in registry order — `live` and `soon` alike.
+ * Every registered locale id, in registry order: `live` and `soon` alike.
  *
  * Browser detection uses this for its exact-tag match so a regional catalog
  * (`pt-BR`, `es-MX`, …) is caught on a first visit even while it is `soon`,
@@ -372,7 +372,7 @@ export const isRegisteredLocale = (value: unknown): value is AppLocale =>
  * `lang` is the primary subtag shared by every region in the group (`es`,
  * `pt`, `en`, …). `label` / `name` carry the language's native and English
  * names. `regions` lists the selectable editions in registry order, with
- * `hidden` base dictionaries excluded — a base only anchors the group and
+ * `hidden` base dictionaries excluded: a base only anchors the group and
  * backs its deltas, it is never offered as a standalone choice.
  *
  * A group with a single region renders as a direct pick row; a group with
@@ -441,7 +441,7 @@ export const localeLanguageGroups = (): readonly LocaleLanguageGroup[] => {
 };
 
 /**
- * Resolve a locale's fallback chain — itself first, then each entry in its
+ * Resolve a locale's fallback chain: itself first, then each entry in its
  * registered `fallback`, always ending at `en`. Used by `t()` to render a
  * populated locale's key when a `soon` (or partial) locale lacks it.
  */

@@ -3,7 +3,7 @@ import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 export type AchievementTier = 'gold' | 'silver' | 'bronze';
 
 /**
- * Achievement definition — drives the Album tile + the unlock toast.
+ * Achievement definition: drives the Album tile + the unlock toast.
  *
  * On the profile + album surfaces the canonical render is the lucide
  * `Trophy` outline glyph with the tier-tinted wash (every award shows
@@ -11,14 +11,14 @@ export type AchievementTier = 'gold' | 'silver' | 'bronze';
  * single unicode fallback glyph for surfaces that render the def
  * out-of-band (Dash next-up rail) and for screen-reader / plain-text
  * contexts. The catalogue uses the brand's approved glyph set
- * (`◎ ★ ⚡ ⧖ ◐ ⌘ ✦` — see `docs/ai/frontend/brand.md`).
+ * (`◎ ★ ⚡ ⧖ ◐ ⌘ ✦`: see `docs/ai/frontend/brand.md`).
  *
  * `tier` decides the wash colour (gold = laurel-tinted; silver /
  * bronze are reserved for monthly-leaderboard achievements once they
  * ship).
  *
  * `detailKey` is the rich multi-sentence prose surfaced in the
- * bottom-sheet modal — distinct from the short `descriptionKey`
+ * bottom-sheet modal: distinct from the short `descriptionKey`
  * sub-line on the tile.
  *
  * The order in this array is the default render order for the

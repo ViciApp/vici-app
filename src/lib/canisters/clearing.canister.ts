@@ -136,7 +136,7 @@ export class ClearingCanister extends Canister<ClearingService> {
 	 * Aggregate long/short lean of a supplied set of principals on one series.
 	 *
 	 * Privacy-preserving by construction: the query returns per-outcome counts
-	 * only (`long` / `short` / `total`) — never individual identities, sides,
+	 * only (`long` / `short` / `total`): never individual identities, sides,
 	 * quantities, or P&L. The principal set is caller-supplied; the clearing
 	 * layer ascribes no meaning to it (here it is the viewer's followed set).
 	 */
@@ -206,8 +206,8 @@ export class ClearingCanister extends Canister<ClearingService> {
 	/**
 	 * Returns clearing's public settlement view for one series, or `undefined`
 	 * when no settlement plan exists (i.e. the series is unresolved). The view
-	 * exists from the moment a plan opens — the same instant
-	 * {@link listSettledSeries} starts reporting the id — and carries the
+	 * exists from the moment a plan opens; the same instant
+	 * {@link listSettledSeries} starts reporting the id: and carries the
 	 * authoritative `SettlementInput` (settlement price or outcome id).
 	 */
 	getSettlementStatus = async ({
@@ -363,7 +363,7 @@ export class ClearingCanister extends Canister<ClearingService> {
 	 * directly instead of draining and re-bucketing the raw per-trade tape.
 	 *
 	 * Market-wide (every participant's fills, not just the caller's), so the
-	 * derived series reflects the true market movement for all viewers —
+	 * derived series reflects the true market movement for all viewers,
 	 * including signed-out visitors reading under the anonymous identity.
 	 * `interval` picks the resolution (hourly for short windows, daily for
 	 * long) and the optional `startTimeNs` / `endTimeNs` bounds (ns) request
@@ -423,7 +423,7 @@ export class ClearingCanister extends Canister<ClearingService> {
 	};
 
 	/**
-	 * Market-wide traded volume for a set of series in one call — the notional
+	 * Market-wide traded volume for a set of series in one call; the notional
 	 * that changed hands (Σ qty·price) in USD base units, plus each series'
 	 * executed-trade count. Lets the list/cards label a page of markets without
 	 * a per-card read; unknown or untraded ids come back zeroed.
@@ -479,7 +479,7 @@ export class ClearingCanister extends Canister<ClearingService> {
 	 * Per-window ranked standings (week / month / all-time) by net realized
 	 * P&L, draining the clearing canister's exclusive `start_after` cursor.
 	 *
-	 * The query is an aggregate — each entry carries the principal's rank, the
+	 * The query is an aggregate: each entry carries the principal's rank, the
 	 * prior-window rank (for ↑/↓ deltas), net realized P&L, and settled / win
 	 * counts (`win_count / settled_count` is the window accuracy). When
 	 * `members` is supplied the ranking is computed within that league set in

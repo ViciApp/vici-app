@@ -8,7 +8,7 @@ export interface UserStoreData {
 	/**
 	 * The signed-in user's own on-file email, hydrated from the
 	 * owner-private `profile_private` doc at sign-in (`ensureProfile`).
-	 * Never sourced from the public profile doc — the address must not
+	 * Never sourced from the public profile doc; the address must not
 	 * exist there. Empty string = no address on file.
 	 */
 	email: string;

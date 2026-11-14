@@ -78,7 +78,7 @@ export const compareAffiliationByMonth = affiliationRankComparator({
 });
 
 /**
- * Pure helper for the UI — days remaining on a lock. Returns 0 once
+ * Pure helper for the UI: days remaining on a lock. Returns 0 once
  * the lock has expired so the FE can flip the CTA to "Leave".
  */
 export const affiliationDaysLeft = ({

@@ -12,7 +12,7 @@ import { derived, get, writable, type Readable } from 'svelte/store';
  * Add-to-Home-Screen (PWA install) engine.
  *
  * Owns the install funnel's reactive state and imperative actions as a
- * typed Svelte module + store — never a `window` global. Consumers import
+ * typed Svelte module + store: never a `window` global. Consumers import
  * {@link canInstall} for gating and call {@link nativePrompt} /
  * {@link markDismissed} / {@link markInstalled} imperatively.
  *
@@ -47,7 +47,7 @@ const KEY_SHOWN = 'vici.a2hs.shown';
 export type A2hsPlatform = 'ios' | 'android' | 'desktop' | 'other';
 
 /**
- * The deferred `beforeinstallprompt` event. Typed locally — it is not in
+ * The deferred `beforeinstallprompt` event. Typed locally: it is not in
  * the standard `lib.dom` types, so we model the two members we use.
  */
 interface BeforeInstallPromptEvent extends Event {
@@ -81,14 +81,14 @@ const state = writable<A2hsState>(initialState);
 
 /**
  * Set once the CTA flow has handled (and tracked) an accepted install, so
- * the global `appinstalled` listener — which can fire moments later for the
- * same install — skips its own `pwa_install_accepted` track and doesn't
+ * the global `appinstalled` listener: which can fire moments later for the
+ * same install: skips its own `pwa_install_accepted` track and doesn't
  * double-count on Chrome/Android.
  */
 let ctaInstallHandled = false;
 
 /**
- * iOS detection — reuses the SAME facts the pre-paint `app.html` bootstrap
+ * iOS detection: reuses the SAME facts the pre-paint `app.html` bootstrap
  * already computed and stamped on `<html>` (`data-ios`), so the two never
  * diverge. Falls back to the UA + iPadOS `maxTouchPoints` check only when
  * the attribute is absent (e.g. SSR or a stripped document).
@@ -149,7 +149,7 @@ export const isStandalone = (): boolean => {
 	return iosStandalone || displayStandalone;
 };
 
-/** A mobile-like surface (iOS or Android) — desktop is never prompted. */
+/** A mobile-like surface (iOS or Android): desktop is never prompted. */
 export const isMobileLike = (): boolean => {
 	const p = platform();
 
@@ -204,13 +204,13 @@ export const shouldAutoPrompt = (calls: number): boolean => {
 	return get(state).sessionCount >= A2HS_FALLBACK_SESSIONS && calls >= A2HS_FALLBACK_CALLS;
 };
 
-/** Record a dismissal — starts the cool-off and marks this session shown. */
+/** Record a dismissal: starts the cool-off and marks this session shown. */
 export const markDismissed = (): void => {
 	storageSet({ key: KEY_DISMISSED, value: Date.now() });
 	setSessionFlag(KEY_SHOWN);
 };
 
-/** Record an install — suppresses every future prompt. */
+/** Record an install: suppresses every future prompt. */
 export const markInstalled = (): void => {
 	storageSet({ key: KEY_INSTALLED, value: '1' });
 	state.update((s) => ({ ...s, installed: true, deferredPrompt: null }));
@@ -228,7 +228,7 @@ export const nativePrompt = async (): Promise<'accepted' | 'dismissed' | 'unavai
 		return 'unavailable';
 	}
 
-	// The captured event is single-use — clear it whatever the outcome.
+	// The captured event is single-use: clear it whatever the outcome.
 	state.update((s) => ({ ...s, deferredPrompt: null }));
 
 	try {
@@ -258,7 +258,7 @@ const setSessionFlag = (key: string): void => {
 	try {
 		sessionStorage.setItem(key, '1');
 	} catch {
-		// Private-mode / blocked storage — the flag is best-effort.
+		// Private-mode / blocked storage: the flag is best-effort.
 	}
 };
 
@@ -283,8 +283,8 @@ let initialized = false;
 
 /**
  * Wire the install listeners and seed persisted state. Idempotent and
- * browser-only. Chrome fires `beforeinstallprompt` once, early in page load —
- * before this runs — so the actual capture happens in an inline `app.html`
+ * browser-only. Chrome fires `beforeinstallprompt` once, early in page load,
+ * before this runs: so the actual capture happens in an inline `app.html`
  * listener; here we adopt that pre-captured event (and keep a listener for any
  * later re-fire). Do not remove the `app.html` listener as "redundant".
  */
@@ -324,7 +324,7 @@ export const initA2hs = (): void => {
 	window.addEventListener('appinstalled', () => {
 		// `appinstalled` can fire after the OS-level install completes, even
 		// without our CTA (e.g. the browser's own menu), so close the funnel
-		// here too. No `source` — this is platform-level, not a surface action.
+		// here too. No `source`: this is platform-level, not a surface action.
 		// Skip the track when the CTA flow already counted this install (it
 		// fires `appinstalled` moments after an accepted prompt on Chrome).
 		if (!ctaInstallHandled) {

@@ -17,7 +17,7 @@ import type { PrincipalText } from '@junobuild/schema';
  * FE service for the per-user, per-month gameplay stats that back the two
  * monthly album awards (sharpest-eye, bold-caller).
  *
- * Populate approach — CLIENT-WRITE (chosen over an `onProfileSet` hook):
+ * Populate approach: CLIENT-WRITE (chosen over an `onProfileSet` hook):
  * `calculateAndSyncStats` already fetches the user's full clearing history,
  * so it re-derives each month's counters + consensus samples here and
  * persists them to the caller's own `USER_MONTHLY_STATS[${owner}/${YYYY-MM}]`
@@ -30,7 +30,7 @@ import type { PrincipalText } from '@junobuild/schema';
  * Integrity trade-off: the satellite assert (`assertSetUserMonthlyStats`)
  * restricts writes to the caller's own row and enforces structural sanity
  * (`monthWins <= monthCalls`, bounded consensus array, values in [0, 1]), but
- * it does NOT re-derive the counters from real history — a determined user
+ * it does NOT re-derive the counters from real history; a determined user
  * could inflate their own monthly numbers. The award carries no VXP payout
  * (cosmetic album tile), so this matches the existing `user_stats` posture
  * rather than warranting a server-side recompute.
@@ -47,8 +47,8 @@ interface MonthBucket {
  * Bucket the user's settled clearing history by calendar month (UTC),
  * computing per-month calls / wins and the consensus-at-call price for each
  * settled call. A settled event's `price` is the price the user took their
- * side at — the same value the `contrarian` achievement reads as the
- * consensus-at-call. Pure — no IO.
+ * side at: the same value the `contrarian` achievement reads as the
+ * consensus-at-call. Pure: no IO.
  */
 export const bucketMonthlyStats = (history: ClearingDid.Event[]): Record<string, MonthBucket> => {
 	const settled = history
@@ -75,10 +75,10 @@ export const bucketMonthlyStats = (history: ClearingDid.Event[]): Record<string,
 			const price = eventExecutionPrice(event);
 
 			// Skip non-finite prices (NaN / ±Infinity from a malformed event)
-			// before clamping — Math.max/min leave NaN intact, so we'd otherwise
+			// before clamping: Math.max/min leave NaN intact, so we'd otherwise
 			// push NaN into the consensus array and corrupt the median.
 			if (Number.isFinite(price)) {
-				// Clamp into [0, 1] — the assert rejects out-of-range values, and a
+				// Clamp into [0, 1]: the assert rejects out-of-range values, and a
 				// consensus price is a probability by construction.
 				bucket.consensus.push(Math.max(0, Math.min(1, price)));
 			}
@@ -135,7 +135,7 @@ export const syncMyMonthlyStats = async ({
 	const currentAnchor = monthAnchorFromMs(nowMs);
 	const priorAnchor = previousMonthAnchor(nowMs);
 
-	// Persist only months with resolved calls — there's nothing to rank in an
+	// Persist only months with resolved calls: there's nothing to rank in an
 	// empty month and no reason to write an empty row.
 	const monthsToWrite = [currentAnchor, priorAnchor].filter((anchor) => {
 		const bucket = buckets[anchor];
@@ -182,7 +182,7 @@ const PLACEMENT_TIER: Record<number, 'gold' | 'silver' | 'bronze'> = {
 
 /**
  * Read the completed month's leaderboard and resolve the caller's award
- * standing. Best-effort — a failed read resolves to "no placement" so a
+ * standing. Best-effort: a failed read resolves to "no placement" so a
  * transient error never rescinds an already-persisted tier (unlocks are
  * sticky on the profile side).
  */
@@ -209,13 +209,13 @@ export const evaluateMonthlyAwards = async ({
 };
 
 /**
- * Tier rank for "keep the best" comparisons — higher wins.
+ * Tier rank for "keep the best" comparisons: higher wins.
  */
 const TIER_RANK: Record<string, number> = { bronze: 1, silver: 2, gold: 3 };
 
 /**
  * Returns the better of two sharpest-eye tiers (gold > silver > bronze).
- * `undefined` inputs are treated as "no tier" — when both are absent the
+ * `undefined` inputs are treated as "no tier"; when both are absent the
  * result is `undefined`. Used to keep the profile's `sharpestEyeBestTier`
  * monotonic so a worse later placement never demotes the best ever.
  */

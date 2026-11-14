@@ -23,7 +23,7 @@ const SETTLEMENT_LEDGER_ORDER = [ICP_LEDGER_CANISTER_ID, CKUSDC_LEDGER_CANISTER_
 
 /**
  * After clearing has already filtered by `allowed_balance_domains`, restrict **which ICRC
- * ledger** the UI exposes per experience — by **ledger canister id**, not symbol:
+ * ledger** the UI exposes per experience: by **ledger canister id**, not symbol:
  * - **ViciXp (playground):** VXP ledger only.
  * - **Settlement:** ICP + ckUSDC ledgers only.
  * - **Social:** VXP ledger (social challenges can coexist with VXP display).
@@ -59,7 +59,7 @@ export const filterTokensForBalanceDomain = ({
 
 /**
  * When `list_collateral_assets` has not loaded yet, show a minimal ledger list so wallet rows
- * still render. **Not** authorization — deposit/withdraw uses {@link supportedTokens} only.
+ * still render. **Not** authorization: deposit/withdraw uses {@link supportedTokens} only.
  */
 export const walletLedgerDisplayFallbackTokens = (
 	balanceDomain: ClearingDid.BalanceDomain

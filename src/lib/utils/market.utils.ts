@@ -116,7 +116,7 @@ export const mapMarketData = ({
 /**
  * Mid-price estimate (0..1) from bid/ask levels: best bid/ask mid when both
  * sides exist, the single side when one-sided, and **`undefined` when the book
- * is empty** — there is no price to show. Callers must treat `undefined` as
+ * is empty**: there is no price to show. Callers must treat `undefined` as
  * "unknown" (skeleton / no-liquidity), never substitute a 0.5 placeholder.
  */
 export const calculateProbability = ({
@@ -175,16 +175,16 @@ export const consensusLean = (yesPct: number): ConsensusLean => {
  * Resting book liquidity for a market, expressed in payout-token base units
  * (so it formats with the same `token.decimals` / symbol as volume).
  *
- * It's the value resting at the top of the book — `bestBidQty · bestBid +
- * bestAskQty · bestAsk` — i.e. how much a counter-trade can hit at the best
+ * It's the value resting at the top of the book: `bestBidQty · bestBid +
+ * bestAskQty · bestAsk`, i.e. how much a counter-trade can hit at the best
  * price before walking the book. The market maker quotes a single thin level
  * per side, so the best level is effectively the whole book today; deeper
  * levels aren't carried on the `Market` view model. It sums whichever sides
  * have a resting level and returns {@link ZERO} only when neither does (the
  * cold-start "be first" state).
  *
- * Quantities stay `bigint` and only the 0..1 price is taken through a float —
- * scaled to base units first, then multiplied by the (exact) quantity — so a
+ * Quantities stay `bigint` and only the 0..1 price is taken through a float:
+ * scaled to base units first, then multiplied by the (exact) quantity, so a
  * large resting size is never rounded through `Number`'s safe-integer range, as
  * `Number(qty) * price` would.
  */
@@ -220,7 +220,7 @@ export const marketBookLiquidity = (
 
 /**
  * Execution price (0..1) of *buying* `action` now. A buy lifts the book, so it
- * pays the ask — best ask for YES, `1 − bestBid` for NO — not the consensus
+ * pays the ask (best ask for YES, `1 − bestBid` for NO), not the consensus
  * mid (used only when that side is empty; LIMIT uses `limitPrice`; floored at
  * 0.01). Single source of truth: both order sizing and the payout preview call
  * this, so the previewed "+X VXP" can't drift from the order placed.
@@ -242,7 +242,7 @@ export const resolveOutcomeExecutionPrice = ({
 		}
 
 		// Execution price is internal trade math (not the displayed odds), and the
-		// caller floors it at 0.01 below — so when neither a book side nor a known
+		// caller floors it at 0.01 below: so when neither a book side nor a known
 		// probability exists we fall back to the neutral mid here to stay a finite
 		// number. The trade surface gates on liquidity separately; this only keeps
 		// sizing/preview from going NaN on an unpriced market.

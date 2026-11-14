@@ -18,10 +18,10 @@ import { get } from 'svelte/store';
  * profile doc: the viewer's global rank + ranked-population size (Goat, via
  * the satellite's full-ranking self-rank query) and the viewer's referral
  * count (Parrot). The global `'all'` standings window is refreshed alongside
- * them — the profile dashboard's credibility line still reads it.
+ * them: the profile dashboard's credibility line still reads it.
  *
  * Both the profile rail (`ProfileDashboard`) and the album route (`AlbumPage`)
- * call this on mount — it is the single hydration entry point so the two
+ * call this on mount: it is the single hydration entry point so the two
  * surfaces read identical signals and a trophy can never show as earned in one
  * place and locked in the other (the bug this consolidates away). Best-effort:
  * the legs settle independently, so a failed referral fetch still leaves the
@@ -66,7 +66,7 @@ export const loadMyMenagerieSignals = async (): Promise<void> => {
 				})(),
 				(async () => {
 					// The self-rank query covers the FULL ranking, so Goat resolves
-					// for every ranked viewer on every surface — not only while the
+					// for every ranked viewer on every surface, not only while the
 					// cached top-50 leaderboard window happens to contain them.
 					if (isNullish(owner)) {
 						return;
@@ -82,7 +82,7 @@ export const loadMyMenagerieSignals = async (): Promise<void> => {
 				})()
 			]);
 		} finally {
-			// Mark the attempt done either way — a failed leg degrades the affected
+			// Mark the attempt done either way: a failed leg degrades the affected
 			// trophy to its baseline (locked) rather than holding the whole rail in
 			// its skeleton state forever.
 			if (isCurrent()) {

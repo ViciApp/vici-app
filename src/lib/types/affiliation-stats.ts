@@ -1,14 +1,14 @@
 import type { AffiliationKind } from '#lib/types/affiliation.ts';
 
 /**
- * A single affiliation's standings row for a Worlds kind — two parallel
+ * A single affiliation's standings row for a Worlds kind: two parallel
  * windows, lifetime and monthly.
  *
  * It is used in two ways:
  *
  *  - **Live** (all-time board + current-month column + detail page): recomputed
  *    on read over the affiliation's current opted-in roster
- *    (`cohort.services` — `aggregateMembersLifetime` for the lifetime window,
+ *    (`cohort.services`: `aggregateMembersLifetime` for the lifetime window,
  *    `aggregateMembersForMonth` for the current month). Nothing is persisted;
  *    a member who leaves or opts out simply drops out of the next read.
  *  - **Frozen** (a closed month's podium + champion cup): persisted once as an
@@ -24,9 +24,9 @@ import type { AffiliationKind } from '#lib/types/affiliation.ts';
  * enforces snapshot-key-only + write-once as defence in depth.
  */
 export interface AffiliationStatsDoc {
-	/** External id — matches `AffiliationDoc.affiliationIdentifier`. */
+	/** External id: matches `AffiliationDoc.affiliationIdentifier`. */
 	affiliationIdentifier: string;
-	/** `university` | `country` — same enum as `AffiliationDoc.kind`. */
+	/** `university` | `country`: same enum as `AffiliationDoc.kind`. */
 	kind: AffiliationKind;
 	/** Lifetime resolved-call count across the current roster. */
 	totalCalls: number;
@@ -54,10 +54,10 @@ export interface AffiliationMemberCount {
 }
 
 /**
- * A single past month an affiliation finished first in its kind —
+ * A single past month an affiliation finished first in its kind:
  * one champion "cup". Derived from the frozen monthly snapshots, so
  * this list grows one entry per closed month with a ranked leader
- * (there is no scheduled season-conclusion job — see
+ * (there is no scheduled season-conclusion job: see
  * `listAffiliationChampionshipsFn`).
  */
 export interface AffiliationChampionship {
@@ -70,13 +70,13 @@ export interface AffiliationChampionship {
 }
 
 /**
- * Canonical key builder for the **frozen** monthly snapshot doc — the only
+ * Canonical key builder for the **frozen** monthly snapshot doc; the only
  * shape `affiliation_stats` now stores. The Worlds podium freeze writes one
  * of these per ranked affiliation the first time a closed month is claimed,
  * capturing that month's totals over the then-current opted-in roster; the
  * podium and champion-cup reads then use them for an already-closed month.
  *
- * Key shape `${kind}/${affiliationIdentifier}/${monthAnchor}` — three
+ * Key shape `${kind}/${affiliationIdentifier}/${monthAnchor}`: three
  * segments. Readers distinguish snapshots by slash count.
  */
 export const affiliationStatsSnapshotKey = ({

@@ -1,7 +1,7 @@
 /**
  * Deterministic accuracy-trail synthesis for the Dashboard performance hero.
  *
- * No per-window accuracy time-series is persisted yet — the satellite stores
+ * No per-window accuracy time-series is persisted yet; the satellite stores
  * only the user's current lifetime `accuracy`. Until a real aggregator exists,
  * the trend chart draws a believable climb that ENDS exactly on the live number
  * for each window, so the line never contradicts the headline figure. The shape
@@ -13,7 +13,7 @@
 export type TrendWindowKey = 'd7' | 'd30' | 'd90';
 
 export interface TrendWindow {
-	/** Window key — drives the ordered nav + dots. */
+	/** Window key: drives the ordered nav + dots. */
 	key: TrendWindowKey;
 	/** Days spanned by this window (7 / 30 / 90). */
 	days: number;
@@ -23,7 +23,7 @@ export interface TrendWindow {
 	ys: number[];
 }
 
-/** Ordered windows — short → long, matching the swipe / nav direction. */
+/** Ordered windows: short → long, matching the swipe / nav direction. */
 export const TREND_WINDOW_ORDER: readonly TrendWindowKey[] = ['d7', 'd30', 'd90'];
 
 /** Per-window climb depth (how far below the live number the trail starts). */
@@ -33,7 +33,7 @@ const WINDOW_SPEC: Record<TrendWindowKey, { days: number; startDelta: number; po
 	d90: { days: 90, startDelta: 5.4, points: 16 }
 };
 
-/** Accuracy is a percentage — every sample must stay within [0, 100]. */
+/** Accuracy is a percentage: every sample must stay within [0, 100]. */
 const clampPct = (value: number): number => Math.min(100, Math.max(0, value));
 
 const buildWindow = ({ key, end }: { key: TrendWindowKey; end: number }): TrendWindow => {

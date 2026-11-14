@@ -1,10 +1,10 @@
 /**
  * A "featured event" is a tentpole around which the app builds a temporary,
- * curated experience — the 2026 World Cup today, an Olympic Games or
+ * curated experience: the 2026 World Cup today, an Olympic Games or
  * national election next. Everything event-specific (onboarding hero,
  * Flow filter, Worlds battles hook, archive cut-off) reads from a single
  * `FeaturedEvent` instance so the next tentpole plugs in by swapping the
- * constant — no scattered `cat === 'wc'` checks across screens.
+ * constant: no scattered `cat === 'wc'` checks across screens.
  *
  * See `featured-event.constants.ts` for the current instance and
  * `featured-event.derived.ts` for the active/archived derivation.
@@ -14,22 +14,22 @@ export type FeaturedEventKind =
 	'tournament' | 'championship' | 'election' | 'series' | 'awards' | 'other';
 
 export interface FeaturedEventParticipant {
-	/** Stable identifier — ISO-3166 alpha-2 for the WC, candidate slug for an
+	/** Stable identifier: ISO-3166 alpha-2 for the WC, candidate slug for an
 	 *  election, etc. Used as the join key for advancement markets and as
 	 *  the i18n suffix when names are translated. */
 	id: string;
 	/** Canonical English name. UI should prefer an i18n lookup by `id`
-	 *  before falling back to this literal — see `participantLabel` in
+	 *  before falling back to this literal: see `participantLabel` in
 	 *  `i18n.utils`. */
 	name: string;
 	/** Optional emoji glyph (flag, party logo, etc.). Decorative only. */
 	glyph?: string;
 	/** Brand / accent colour, hex. Used in onboarding hero tiles. */
 	color?: string;
-	/** Implied probability of winning the event, 0–100. Optional — not
+	/** Implied probability of winning the event, 0–100. Optional, not
 	 *  every event has clean odds (e.g. awards). */
 	odds?: number;
-	/** Market id for the outcome "<participant> wins". Optional — points
+	/** Market id for the outcome "<participant> wins". Optional: points
 	 *  the onboarding hero tile at the right Flow card. */
 	marketId?: string;
 }
@@ -37,7 +37,7 @@ export interface FeaturedEventParticipant {
 export interface FeaturedEventAdvancementMarket {
 	/** Market id (Flow card). */
 	id: string;
-	/** Pre-baked question copy — kept here so onboarding can render the
+	/** Pre-baked question copy: kept here so onboarding can render the
 	 *  full question before the markets service is hydrated. Translation
 	 *  layers over the question via i18n by `id`. */
 	q: string;
@@ -46,7 +46,7 @@ export interface FeaturedEventAdvancementMarket {
 }
 
 export interface FeaturedEvent {
-	/** Stable event identifier — `'fifa-wc-2026'`, `'usa-election-2028'`, … */
+	/** Stable event identifier: `'fifa-wc-2026'`, `'usa-election-2028'`, … */
 	id: string;
 	/** Coarse classification for layout / theming hints. */
 	kind: FeaturedEventKind;
@@ -62,7 +62,7 @@ export interface FeaturedEvent {
 	 *  uppercase by the eyebrow. Falls back to `title` when omitted. */
 	badgeTitle?: string;
 	/** Brand-forward title for high-intent reward surfaces (e.g. the
-	 *  onboarding starter-pack line), e.g. "FIFA World Cup" — the full
+	 *  onboarding starter-pack line), e.g. "FIFA World Cup"; the full
 	 *  brand without the year. Falls back to `shortTitle` then `title`
 	 *  when omitted. */
 	brandedTitle?: string;
@@ -85,13 +85,13 @@ export interface FeaturedEvent {
 
 	/** Optional event-specific accent (hex). Falls back to `--laurel`. */
 	accentColor?: string;
-	/** Optional artwork key — picks the generative artwork ramp used by
+	/** Optional artwork key: picks the generative artwork ramp used by
 	 *  `MarketArtwork` for cards in this event. */
 	artworkKey?: string;
 
 	/** All participants (teams / candidates / nominees). */
 	participants: FeaturedEventParticipant[];
-	/** Subset of `participants.id` highlighted on the onboarding hero —
+	/** Subset of `participants.id` highlighted on the onboarding hero:
 	 *  the top-4 favourites for a tournament, the front-runners for an
 	 *  election, etc. UI reads this directly; participants stays the
 	 *  full list. */
@@ -106,12 +106,12 @@ export interface FeaturedEvent {
 }
 
 export type FeaturedEventStatus =
-	/** `now < kickoffAt_ms` — countdown copy, no live markets yet. */
+	/** `now < kickoffAt_ms`: countdown copy, no live markets yet. */
 	| 'upcoming'
-	/** `kickoffAt_ms <= now <= finalAt_ms` — the event is running. */
+	/** `kickoffAt_ms <= now <= finalAt_ms`: the event is running. */
 	| 'live'
-	/** `finalAt_ms < now <= archiveAfter_ms` — winners known, content
+	/** `finalAt_ms < now <= archiveAfter_ms`: winners known, content
 	 *  still surfaced for a buffer window. */
 	| 'wrap-up'
-	/** `now > archiveAfter_ms` — content hidden, evergreen app shape. */
+	/** `now > archiveAfter_ms`: content hidden, evergreen app shape. */
 	| 'archived';

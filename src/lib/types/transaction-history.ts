@@ -4,7 +4,7 @@ import type { MarketId } from '#lib/types/market.ts';
  * Award tag decoded from a bonus transfer's ledger memo
  * (`vxp:<tag>:<key>`, written by the satellite payout helper in
  * `src/satellite/services/vxp-payout.services.ts`). `unknown` covers transfers
- * that predate the memo format or carry an unrecognized tag — they still
+ * that predate the memo format or carry an unrecognized tag; they still
  * render as a generic reward rather than disappearing.
  */
 export type TransactionHistoryBonusTag =
@@ -43,12 +43,12 @@ export interface TransactionHistoryRow {
 	timestampNs: bigint;
 	/**
 	 * Signed total-VXP delta, clearing-margin base units. Zero for
-	 * `prediction` rows — a fill reserves the user's own VXP without
+	 * `prediction` rows: a fill reserves the user's own VXP without
 	 * changing what they own.
 	 */
 	delta: bigint;
 	/**
-	 * Stake context for `prediction` rows — the margin moved into play by
+	 * Stake context for `prediction` rows: the margin moved into play by
 	 * the fill (display only; the total-balance delta is zero).
 	 */
 	stake?: bigint;

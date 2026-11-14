@@ -2,7 +2,7 @@ import { INFO_EMAIL } from '#lib/constants/contact.constants.ts';
 import type { InfoDoc } from '#lib/types/info-doc.ts';
 
 /**
- * Full controlling legal documents — Terms of Service (Privacy and the
+ * Full controlling legal documents: Terms of Service (Privacy and the
  * other long-form legal docs follow the same shape).
  *
  * Legal bodies are stored as literal English text, NOT i18n keys. The

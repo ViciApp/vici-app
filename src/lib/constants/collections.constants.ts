@@ -4,7 +4,7 @@ export const Collection = {
 	ROLES: collections.ROLES,
 	PROFILES: collections.PROFILES,
 	/**
-	 * Owner-private profile data — one doc per principal (key = owner principal text), holding the
+	 * Owner-private profile data: one doc per principal (key = owner principal text), holding the
 	 * fields that must never appear on the publicly-readable {@link Collection.PROFILES} doc. Today
 	 * that's the account `email` (captured from an OpenID provider or the email-signup flow).
 	 * `managed` read/write: only the owner and controllers can see it; `assertSetProfilePrivate`
@@ -39,7 +39,7 @@ export const Collection = {
 	/**
 	 * Per-activity like-count rollup. One doc per activity, keyed by the activity doc key
 	 * (`${author}#${timestamp}#${type}` = a reaction's `activityKey`), holding the running like
-	 * `count`. Public read; controllers write — only the satellite `onSetDoc`/`onDeleteDoc` hooks on
+	 * `count`. Public read; controllers write: only the satellite `onSetDoc`/`onDeleteDoc` hooks on
 	 * {@link Collection.ACTIVITY_REACTIONS} write it (as admin), so a client can't forge a count. The
 	 * admin `recomputeActivityReactionCounts` endpoint re-derives exact counts from the reaction docs.
 	 */
@@ -48,7 +48,7 @@ export const Collection = {
 	 * Per-participant resolved-result rows for the friend-readable results feed. One doc per
 	 * `(owner, market)` resolved call, keyed `${owner}#${marketId}`, holding that participant's
 	 * outcome (win/loss), side, signed net VXP, and the resolution time. Public read; controllers
-	 * write — only the satellite resolution hook writes it (as admin, derived from the clearing
+	 * write: only the satellite resolution hook writes it (as admin, derived from the clearing
 	 * settlement plan), so a user cannot forge a win for themselves or a friend. Bulk-read
 	 * friend-scoped by the digest consumer over an owner-prefix scan; rows past the retention horizon
 	 * are pruned by the controllers-only cleanup.
@@ -59,7 +59,7 @@ export const Collection = {
 	 */
 	VXP_ONBOARDING: collections.VXP_ONBOARDING,
 	/**
-	 * Per-user, per-award ledger of every VXP gameplay award the server fires — streak
+	 * Per-user, per-award ledger of every VXP gameplay award the server fires: streak
 	 * milestones, calibration rewards, referral payouts, Worlds podium. The doc key encodes
 	 * `{recipient}/{awardType}/{awardKey}` so a second write at the same milestone collides
 	 * with the first (natural idempotency). Status transitions `pending → paid | failed`
@@ -78,7 +78,7 @@ export const Collection = {
 	 */
 	REFERRALS: collections.REFERRALS,
 	/**
-	 * Social cohorts — user-created leagues. One doc per league, keyed by league id. Holds
+	 * Social cohorts: user-created leagues. One doc per league, keyed by league id. Holds
 	 * name, 6-char alphanumeric invite code (for the join-by-code flow), owner principal, and
 	 * marketing metadata. Members and battles live in follow-up collections so a league's metadata
 	 * stays cheap to read without joining the membership table.
@@ -92,14 +92,14 @@ export const Collection = {
 	 */
 	LEAGUE_MEMBERS: collections.LEAGUE_MEMBERS,
 	/**
-	 * Battles — time-bound competitions. Two kinds: 'league' (leagueA vs leagueB) and
+	 * Battles: time-bound competitions. Two kinds: 'league' (leagueA vs leagueB) and
 	 * 'duel' (proposer principal vs challenger principal). Doc key is the battle id. State machine
 	 * `proposed → accepted → in_flight → resolved` enforced by the satellite assert; scores write
 	 * once at settle, winner derived from scores.
 	 */
 	BATTLES: collections.BATTLES,
 	/**
-	 * Worlds affiliations — a user's chosen university and / or country, used for the Worlds
+	 * Worlds affiliations: a user's chosen university and / or country, used for the Worlds
 	 * leaderboard surface (distinct from user-created leagues so the 90-day lock doesn't leak).
 	 * Keyed `${member}/${kind}/${affiliationIdentifier}` so a user can carry one university + one country
 	 * simultaneously. Server computes `lockedUntilMs = joinedAtMs + 90d` on first write; the delete
@@ -109,22 +109,22 @@ export const Collection = {
 	/**
 	 * Per-affiliation rolling stats for the Worlds leaderboard. One doc per `(kind, affiliationIdentifier)`
 	 * keyed `${kind}/${affiliationIdentifier}`. Written exclusively by the satellite hook on
-	 * `profiles` updates — when a user's `totalTrades` increments, the hook fans out the win/loss
+	 * `profiles` updates: when a user's `totalTrades` increments, the hook fans out the win/loss
 	 * delta to that user's affiliation rows. The doc tracks both lifetime totals and the current
 	 * month's totals (rolled over lazily on the first hook fire of a new calendar month).
 	 */
 	AFFILIATION_STATS: collections.AFFILIATION_STATS,
 	/**
 	 * Append-only churn-feedback log. Each doc records the `reason` + optional free-text `note`
-	 * the user picked from the delete-account flow. Intentionally anonymous — no principal field,
-	 * random UUID key — so the log survives the account it describes. Written exactly once by
+	 * the user picked from the delete-account flow. Intentionally anonymous; no principal field,
+	 * random UUID key: so the log survives the account it describes. Written exactly once by
 	 * `deleteMyAccount` before the cascade hard-deletes the caller's identity.
 	 */
 	EXIT_SIGNALS: collections.EXIT_SIGNALS,
 	/**
 	 * Monthly single-elimination tournament metadata. One doc per month, keyed by month anchor
 	 * (`YYYY-MM`). Holds the seeded league ids (top-16 by member count), bracket size, lifecycle
-	 * state. Written by `triggerTournamentDraw` (idempotent — doc key collision rejects a second
+	 * state. Written by `triggerTournamentDraw` (idempotent: doc key collision rejects a second
 	 * draw for the same month).
 	 */
 	TOURNAMENTS: collections.TOURNAMENTS,
@@ -136,7 +136,7 @@ export const Collection = {
 	 */
 	TOURNAMENT_MATCHES: collections.TOURNAMENT_MATCHES,
 	/**
-	 * Per-league rolling stats — lifetime resolved-call count + wins. One doc per league
+	 * Per-league rolling stats: lifetime resolved-call count + wins. One doc per league
 	 * keyed by `leagueId`. Written exclusively by the satellite hook on `profiles` updates:
 	 * when a user's `totalTrades` increments, the hook scans their league memberships and
 	 * fans the delta out. Used by the tournament round-resolution flow to compute per-window
@@ -145,17 +145,17 @@ export const Collection = {
 	 */
 	LEAGUE_STATS: collections.LEAGUE_STATS,
 	/**
-	 * Per-user dashboard cache — one doc per principal. Holds the per-category breakdown
+	 * Per-user dashboard cache: one doc per principal. Holds the per-category breakdown
 	 * (calls / wins per market tag) and a small recent-settlement list that drive the
 	 * DashPage tiles. The FE re-syncs it from the user's clearing history on every Dash
 	 * mount; the satellite assert restricts writes to the user themselves.
 	 */
 	USER_STATS: collections.USER_STATS,
 	/**
-	 * Per-user, per-month gameplay stats — one doc per `${owner}/${YYYY-MM}`. Holds the month's
+	 * Per-user, per-month gameplay stats: one doc per `${owner}/${YYYY-MM}`. Holds the month's
 	 * resolved-call count, win count, and a bounded array of consensus-at-call prices so an exact
 	 * median can be computed on read. The FE re-syncs the current and prior month's docs from the
-	 * user's clearing history on every stats sync (lazy month rollover — no scheduler); the
+	 * user's clearing history on every stats sync (lazy month rollover; no scheduler); the
 	 * satellite assert restricts writes to the user themselves and bounds the consensus array.
 	 * Read by `getMonthlyLeaderboard` to award the monthly sharpest-eye (top-3 accuracy, ≥30
 	 * calls) and bold-caller (best accuracy among users whose median consensus-at-call < 0.4)
@@ -187,7 +187,7 @@ export const Collection = {
 	 * Product-analytics raw event log (cockpit DQ-1, "versioned event taxonomy"). Append-only,
 	 * one doc per captured event. Controllers-scoped: the satellite `trackEvents` endpoint is the
 	 * sole writer (it writes as an admin via the privileged `*DocStore` APIs), so clients can
-	 * neither read other users' behaviour nor forge events. Bodies are behavioural only — a
+	 * neither read other users' behaviour nor forge events. Bodies are behavioural only; a
 	 * pseudonymous `principal` (absent pre-auth) plus the bounded `AnalyticsEventProps` vocabulary,
 	 * never PII.
 	 */

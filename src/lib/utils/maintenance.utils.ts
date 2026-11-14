@@ -3,7 +3,7 @@
  * for a deploy (`juno functions upgrade` stops the canister while the wasm is
  * swapped): IC0508 "Canister … is stopped", IC0509 "… is stopping", the
  * replica's `canister_not_running` reject, and the HTTP gateway's 503 while
- * it cannot reach the canister. Deliberately narrow — a generic network
+ * it cannot reach the canister. Deliberately narrow: a generic network
  * failure must NOT flip the app into maintenance mode; the caller confirms
  * with a reachability probe anyway (see `maintenance.services.ts`).
  */

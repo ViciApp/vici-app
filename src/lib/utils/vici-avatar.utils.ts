@@ -1,4 +1,4 @@
-// Personal avatar system — a front-facing faceted portrait built from the
+// Personal avatar system: a front-facing faceted portrait built from the
 // same illustration grammar as the prediction-card artwork (`flow-art.utils`):
 // filled colour planes (no outline strokes on the head), a left cheek
 // highlight + right shadow plane, volumetric filled eyes + mouth, and a
@@ -7,7 +7,7 @@
 // Each avatar = a faceted face + one ownable signature trait + one of six
 // moods, on a two-plane backdrop. The avatar is described by a small `parts`
 // object (`skin / hair / hairStyle / expr / trait / shirt / bg`) and renders
-// to a self-contained SVG string mounted via `{@html ...}` — pure,
+// to a self-contained SVG string mounted via `{@html ...}`: pure,
 // client-only, no I/O.
 //
 // Two consumption paths:
@@ -16,9 +16,9 @@
 //     their immutable principal, so the same person always reads the same
 //     face without exposing real user data.
 //
-// Chrome that must adapt to the active theme (dark / light / peach) — the
+// Chrome that must adapt to the active theme (dark / light / peach), the
 // signature mark, the frame ring, the highlight beam, the decorative dot and
-// the wordmark — is drawn with CSS custom-property tokens (`var(--brand)` …)
+// the wordmark, is drawn with CSS custom-property tokens (`var(--brand)` …)
 // so it tracks the theme. The identity palettes the user actually picks
 // (skin / hair / shirt / backdrop) are literal hex: they are choices, not
 // chrome, and must render identically regardless of theme.
@@ -54,7 +54,7 @@ export interface ViciAvatarParts {
 	bg: string;
 }
 
-// Editorial skin tones — base / shadow plane / highlight plane.
+// Editorial skin tones: base / shadow plane / highlight plane.
 const SKIN: Record<string, SkinPlanes> = {
 	umber: { base: '#9C6E45', shadow: '#6E4A2A', high: '#C0916A' },
 	olive: { base: '#A78657', shadow: '#7A5E37', high: '#C9A879' },
@@ -75,7 +75,7 @@ const HAIR_COLOR: Record<string, string> = {
 
 const HAIR_STYLE = ['short', 'wave', 'curly', 'buzz', 'long', 'bald'] as const;
 
-// Six named moods — drive eye shaping, brow geometry, and mouth.
+// Six named moods: drive eye shaping, brow geometry, and mouth.
 const EXPRESSION = ['joyful', 'focused', 'smug', 'skeptical', 'confident', 'cool'] as const;
 
 // One ownable signature trait.
@@ -105,7 +105,7 @@ const BG: Record<string, BgPlanes> = {
 };
 
 const INK = '#14110D';
-// Warm parchment cream — the eye catchlight tint (see `eyeMarkup`).
+// Warm parchment cream: the eye catchlight tint (see `eyeMarkup`).
 const CREAM = '#F2ECDC';
 
 /**
@@ -159,7 +159,7 @@ const at = <T>(arr: readonly T[], n: number): T => arr[n % arr.length];
 
 /**
  * Maps a seed string to a stable parts object. The same seed always yields
- * the same parts — used to give everyone who isn't the logged-in user a
+ * the same parts: used to give everyone who isn't the logged-in user a
  * recognisable face derived from their immutable principal.
  */
 export const deterministicParts = (seed: string): ViciAvatarParts => {
@@ -266,7 +266,7 @@ export const parseParts = (raw: string | null | undefined): ViciAvatarParts | un
 	try {
 		return normalizeParts(JSON.parse(raw) as Partial<ViciAvatarParts>);
 	} catch (_: unknown) {
-		// Malformed stored value — fall through (implicit undefined) so the
+		// Malformed stored value: fall through (implicit undefined) so the
 		// caller can fall back to the deterministic seed rather than crashing.
 	}
 };
@@ -295,8 +295,8 @@ interface RenderOptions {
 // Backdrop: two colour planes + token-driven chrome (highlight beam, shadow
 // accent line, decorative dot, gold signature mark).
 //
-// `decor` gates the decorative flourishes — the lower-left dot and the gold
-// signature disc — so a surface that overlays its own UI (e.g. the full-bleed
+// `decor` gates the decorative flourishes: the lower-left dot and the gold
+// signature disc, so a surface that overlays its own UI (e.g. the full-bleed
 // profile hero, where floating controls sit over the top-right corner) can
 // drop them and keep the backdrop clean.
 const bgLayer = ({
@@ -310,18 +310,18 @@ const bgLayer = ({
 }): string => {
 	let m = '';
 
-	// Identity planes (user-picked backdrop) — literal palette.
+	// Identity planes (user-picked backdrop): literal palette.
 	m += `<rect width="100" height="100" fill="${bg.p1}"/>`;
 	m += `<polygon points="0,100 100,34 100,100" fill="${bg.p2}"/>`;
 
-	// Chrome overlays — theme tokens so they track dark / light / peach.
+	// Chrome overlays: theme tokens so they track dark / light / peach.
 	m += `<polygon points="0,0 52,0 0,46" fill="var(--text-base)" opacity="0.06"/>`;
 	m += `<polygon points="0,100 100,34 100,38 0,100" fill="var(--bg-base)" opacity="0.10"/>`;
 
 	if (decor) {
 		m += `<circle cx="14" cy="83" r="5" fill="var(--text-base)" opacity="0.14"/>`;
 
-		// Tamed signature disc — a small gold mark in the top-right corner. Kept
+		// Tamed signature disc: a small gold mark in the top-right corner. Kept
 		// deliberately compact (radius 4.5) and hairline-stroked so it reads as a
 		// quiet maker's mark rather than competing with gold-tier menagerie badges
 		// or the laurel accent. The `signature` gate keeps it off the editor's
@@ -358,7 +358,7 @@ const eyeMarkup = ({
 	e += `<ellipse cx="${cx}" cy="${eyeY}" rx="3" ry="${eyeRy}" fill="#F4EFE3"/>`;
 	e += `<ellipse cx="${cx}" cy="${eyeY}" rx="3" ry="${eyeRy}" fill="none" stroke="${INK}" stroke-width="0.4" opacity="0.18"/>`;
 	e += `<circle cx="${cx + pdx}" cy="${eyeY + pdy}" r="1.7" fill="${INK}"/>`;
-	// Catchlight — a warm cream rather than pure white, so the eye reads as part
+	// Catchlight: a warm cream rather than pure white, so the eye reads as part
 	// of the editorial parchment palette instead of a hard digital spec.
 	e += `<circle cx="${cx + pdx - 0.7}" cy="${eyeY + pdy - 0.8}" r="0.7" fill="${CREAM}" opacity="0.6"/>`;
 
@@ -488,7 +488,7 @@ const mouthMarkup = (mood: string): string => {
 		);
 	}
 
-	// focused — neutral closed
+	// focused: neutral closed
 	return (
 		`<path d="M 44 60 Q 50 61.6 56 60" stroke="#3A211C" stroke-width="2" fill="none" stroke-linecap="round"/>` +
 		`<path d="M 45 60.6 L 55 60.6" stroke="${LIP}" stroke-width="0.8" fill="none" stroke-linecap="round"/>`
@@ -504,7 +504,7 @@ const traitOverlay = ({ trait, style }: { trait: string; style: string }): strin
 	}
 
 	if (trait === 'cap') {
-		// Gold cap — the gold uses the brand token so the signature accent
+		// Gold cap: the gold uses the brand token so the signature accent
 		// tracks the theme; the shadow side + brim + crest stay literal.
 		return (
 			`<polygon points="28,30 30,21 50,16 70,21 72,30 64,26 50,25 36,26" fill="var(--brand)"/>` +
@@ -568,7 +568,7 @@ export const renderAvatarContent = ({
 
 	let s = '';
 
-	// 1 · Backdrop (two planes + signature) — skipped entirely when `noBg`, so
+	// 1 · Backdrop (two planes + signature): skipped entirely when `noBg`, so
 	// the figure can sit on a caller-supplied surface (the profile hero tint).
 	if (!noBg) {
 		s += bgLayer({ bg, signature, decor });
@@ -578,7 +578,7 @@ export const renderAvatarContent = ({
 	s += `<g${animate ? ' class="va-bob"' : ''}>`;
 
 	// Neck first, running past the collar line so the shoulders overlap its
-	// base — otherwise a band of backdrop shows between chin and shirt.
+	// base: otherwise a band of backdrop shows between chin and shirt.
 	s += `<rect x="44" y="62" width="12" height="24" fill="${skin.shadow}"/>`;
 	s += `<polygon points="44,62 56,62 54,70 46,70" fill="${skin.base}" opacity="0.6"/>`;
 
@@ -685,7 +685,7 @@ export const renderAvatarContent = ({
 		s += `<text x="95" y="95.5" text-anchor="end" font-family="ui-monospace,monospace" font-size="5" font-weight="700" letter-spacing="0.06em" fill="var(--text-base)" opacity="0.55">VICI</text>`;
 	}
 
-	// 4 · Frame ring — brand token, tracks the theme.
+	// 4 · Frame ring: brand token, tracks the theme.
 	if (frame) {
 		s += `<circle cx="50" cy="50" r="49" fill="none" stroke="var(--brand)" stroke-width="1" opacity="0.40"/>`;
 		s += `<circle cx="50" cy="50" r="47" fill="none" stroke="var(--brand)" stroke-width="0.5" opacity="0.18"/>`;

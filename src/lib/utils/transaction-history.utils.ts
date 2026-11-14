@@ -76,7 +76,7 @@ export const decodeVxpAwardMemo = (
 /**
  * One merged feed item before the running-balance walk. `row` is absent for
  * events that move spendable VXP but are pure noise to the reader
- * (wallet ↔ clearing sweeps, approvals) — they stay in the stream so their
+ * (wallet ↔ clearing sweeps, approvals): they stay in the stream so their
  * fee still feeds the balance math, but never render.
  */
 interface HistoryEntry {
@@ -88,7 +88,7 @@ interface HistoryEntry {
 /**
  * Margin committed by an `Executed` fill, in clearing-margin base units
  * (`USD_DECIMALS`). Carried on the prediction row as `stake` for display
- * ("… in play") — it does **not** move the running balance: a fill only
+ * ("… in play"): it does **not** move the running balance: a fill only
  * reserves the user's own VXP, it doesn't change what they own (see
  * `clearingEntries`).
  *
@@ -107,8 +107,8 @@ const executedCost = (event: ClearingDid.Event): bigint => {
 /**
  * Total-VXP contributions of the clearing trade history.
  *
- * The running balance tracks **total holdings** — everything the user owns,
- * spendable plus everything reserved for open positions and resting orders —
+ * The running balance tracks **total holdings**: everything the user owns,
+ * spendable plus everything reserved for open positions and resting orders;
  * so a trade moves the balance only when it changes what the user *owns*, not
  * when VXP merely shifts between "available" and "in play":
  *
@@ -116,13 +116,13 @@ const executedCost = (event: ClearingDid.Event): bigint => {
  *   is still the user's, just locked. Its delta is `0`; the committed margin
  *   rides on the row as `stake` for display.
  * - `Settled` / `Liquidated` realize the position. The signed `qty` is the
- *   realized cashflow (see `settledEventToResolvedPosition`) — a win adds the
- *   profit, a full loss subtracts the stake, a break-even nets zero — and
+ *   realized cashflow (see `settledEventToResolvedPosition`): a win adds the
+ *   profit, a full loss subtracts the stake, a break-even nets zero; and
  *   that cashflow *is* the total delta. No margin-release term is needed,
  *   because the fill never debited total in the first place.
  *
  * `OrderPlaced` (a resting order) reserves margin too but, like a fill,
- * leaves total untouched — so it contributes no delta and renders no row.
+ * leaves total untouched: so it contributes no delta and renders no row.
  * This is what lets the total-anchored walk reconcile to a clean zero genesis
  * even with orders still resting: a spendable-anchored walk drifted the
  * oldest balances negative by exactly that reserved-but-unrepresented amount.
@@ -180,7 +180,7 @@ const clearingEntries = (events: ClearingDid.Event[]): HistoryEntry[] => {
 /**
  * Spendable-VXP contributions of the VXP ledger trail. Sweeps between the
  * wallet and the clearing collateral account move VXP the user can still
- * spend, so they stay hidden — only their fee debits the balance.
+ * spend, so they stay hidden: only their fee debits the balance.
  */
 const ledgerEntry = ({
 	transaction,
@@ -241,13 +241,13 @@ const ledgerEntry = ({
  * newest-first feed and stamp each visible row with the running **total**
  * balance after that event.
  *
- * The walk anchors on the *current* total-holdings figure — the same number
- * the Dash "Holdings" hero shows — and subtracts deltas going back in time,
+ * The walk anchors on the *current* total-holdings figure, the same number
+ * the Dash "Holdings" hero shows, and subtracts deltas going back in time,
  * so the top row always agrees with the hero. Because total moves only on
  * realized cashflow (bonuses, wins, losses, transfers) and never on margin
  * shifting in or out of play, the walk reconciles to a clean zero genesis no
- * matter how much is currently reserved for open positions or resting orders
- * — anchoring on *spendable* instead drifted the oldest balances negative by
+ * matter how much is currently reserved for open positions or resting orders;
+ * anchoring on *spendable* instead drifted the oldest balances negative by
  * exactly that reserved amount. Genuine gaps in very old data still shift old
  * balances, never today's.
  */
@@ -263,7 +263,7 @@ export const assembleTransactionHistory = ({
 	/**
 	 * Append the "joined Vici" genesis marker as the oldest row. Only pass
 	 * `true` when the full history was loaded (the ledger walk reached the
-	 * beginning, not the page cap) — otherwise there *is* older history and
+	 * beginning, not the page cap): otherwise there *is* older history and
 	 * the marker would lie about where the trail starts.
 	 */
 	includeGenesis?: boolean;
