@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { HomePage } from './pages/home.page';
 
 /**
- * Pre-sign-in onboarding (`/signup`) — the one-screen flow:
+ * Pre-sign-in onboarding (`/signup`), the one-screen flow:
  *
  *   claim a handle (typed or the pool placeholder) and sign up on a single
  *   surface; the provider stack ungates once the handle is claimable.
@@ -12,7 +12,7 @@ import { HomePage } from './pages/home.page';
  *
  * The dev provider resolves `signIn({ dev: {} })` synchronously and fires
  * `onSuccess` before the new profile hydrates, so `/signup`'s
- * `handleCompleteAuthenticated` can't upsert the picks immediately — it
+ * `handleCompleteAuthenticated` can't upsert the picks immediately; it
  * falls back to the pending-onboarding stash, which the `(app)` layout
  * drain applies once the profile lands. The handle is also stashed
  * synchronously on the auth-surface pointer-down, so a redirect provider
@@ -21,10 +21,10 @@ import { HomePage } from './pages/home.page';
  *
  * The dev mock identity is ONE principal for the whole CI run, and every
  * earlier `signInAsDevUser` auto-claims the handle field's pool suggestion
- * and completes onboarding for it — so without a reset this principal is a
+ * and completes onboarding for it, so without a reset this principal is a
  * fully-onboarded returning user and the handoff is (correctly) a no-op. We
  * therefore sign in, hard-delete its profile via the dev-only reset hook, wipe
- * the persisted session in place, then cold-load `/signup` — so the run below
+ * the persisted session in place, then cold-load `/signup`, so the run below
  * exercises a genuine new user.
  */
 test.describe('pre-sign-in onboarding', () => {
@@ -52,7 +52,7 @@ test.describe('pre-sign-in onboarding', () => {
 		await expect(home.onboarding).toBeVisible();
 
 		// Type a unique handle (collision-proof across runs) and let the live
-		// availability probe clear it — the dev provider button stays disabled
+		// availability probe clear it: the dev provider button stays disabled
 		// until the handle is claimable, so its enabled state is the signal.
 		const pickedHandle = `e2e${Date.now().toString(36)}`;
 
@@ -70,7 +70,7 @@ test.describe('pre-sign-in onboarding', () => {
 		// drain once the profile hydrates (see the file header): it upserts the
 		// claimed handle to the satellite, then clears the pre-auth stash under
 		// `vici:pending-onboarding`. Wait for that slot to drain before
-		// navigating — a full page load to `/profile` re-bootstraps from the
+		// navigating: a full page load to `/profile` re-bootstraps from the
 		// satellite, and doing it mid-drain would read the not-yet-persisted
 		// profile (and flip the drain onto its returning-user branch), racing
 		// the handoff. Waiting on the slot can't mask a real failure: every
@@ -79,7 +79,7 @@ test.describe('pre-sign-in onboarding', () => {
 		//
 		// Generous timeout: the drain's profile write is serialized behind this
 		// finishing login's `calculateAndSyncStats` on the shared patch queue, and
-		// that sync fans out to many canister reads/writes — on the low-end mobile
+		// that sync fans out to many canister reads/writes; on the low-end mobile
 		// project against the CI emulator it can take a while to drain.
 		await expect
 			.poll(() => page.evaluate(() => localStorage.getItem('vici:pending-onboarding')), {
@@ -93,7 +93,7 @@ test.describe('pre-sign-in onboarding', () => {
 		await expect(home.appMain).toBeVisible();
 		await expect(home.userMenu).toBeVisible();
 
-		// The claimed handle survived the dev-provider handoff — the profile
+		// The claimed handle survived the dev-provider handoff: the profile
 		// hero shows `@{handle}`, not the bootstrapped principal default. The
 		// hero handle is an editable button (`.profile-hero-handle`) on one's
 		// own profile and an `<h1>` on others'; both carry that class, so

@@ -1,12 +1,12 @@
 /**
- * Playwright global setup — runs once before any spec.
+ * Playwright global setup: runs once before any spec.
  *
  * Confirms the two HTTP endpoints every test depends on are actually
  * reachable before the suite starts:
  *
- * 1. **Vite dev server** (`http://localhost:5173/`) — booted by the
+ * 1. **Vite dev server** (`http://localhost:5173/`): booted by the
  *    `webServer` block in `playwright.config.ts`.
- * 2. **Juno emulator** (`http://127.0.0.1:5987/`) — booted by the CI
+ * 2. **Juno emulator** (`http://127.0.0.1:5987/`): booted by the CI
  *    workflow's "Start Juno emulator" step. The emulator is the PocketIC
  *    instance every dev-mode sign-in and every canister query talks to.
  *
@@ -19,7 +19,7 @@
  * Deliberately fast: a couple of HEAD-equivalent fetches with a tight
  * timeout. Adds ~1–2s to a healthy run, fails in ≤6s when something is
  * wrong. Does NOT address the separate "proxy degrades mid-run" flake
- * — that lives in the Vite-↔-PocketIC connection pool and needs a
+ * that lives in the Vite-↔-PocketIC connection pool and needs a
  * different remedy (see docs/ai/frontend/testing.md).
  */
 
@@ -38,7 +38,7 @@ const isReachable = async (url: string): Promise<boolean> => {
 
 	try {
 		// Any non-network-error response means the server is listening.
-		// 404 / 405 are fine — we're proving TCP + HTTP, not asserting a route.
+		// 404 / 405 are fine: we're proving TCP + HTTP, not asserting a route.
 		const res = await fetch(url, { method: 'GET', signal: controller.signal });
 
 		return res.status > 0;

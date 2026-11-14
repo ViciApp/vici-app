@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
  * Invite-link landing smoke tests.
  *
  * `/join/[code]` and `/i/[code]` are twin entrypoints that render the same
- * `InviteLanding`. Before #746, `/join/{slug}` had no route and 404'd — the
+ * `InviteLanding`. Before #746, `/join/{slug}` had no route and 404'd: the
  * exact user-facing regression these guard against.
  *
  * Both branches run anonymously and deterministically, with NO referral
@@ -14,7 +14,7 @@ import { expect, test } from '@playwright/test';
  *   home (`AppPath.Home` = `/app`); the (app) auth gate then bounces the
  *   anonymous visitor to `/signin`.
  * - A well-formed code is stashed for attribution and the visitor is sent to
- *   `/signup` — the code needn't exist, since the signed-out branch stashes
+ *   `/signup`; the code needn't exist, since the signed-out branch stashes
  *   blindly and lets the post-signin drain validate it.
  *
  * A genuine 404 (the pre-#746 behavior) renders SvelteKit's error page and
@@ -23,7 +23,7 @@ import { expect, test } from '@playwright/test';
 
 const ROUTES = ['/join', '/i'] as const;
 
-// 8-char Crockford-base32 — passes `REFERRAL_CODE_REGEX`. Needn't map to a real
+// 8-char Crockford-base32, passes `REFERRAL_CODE_REGEX`. Needn't map to a real
 // referrer: the anonymous branch stashes the code and routes to signup before
 // any lookup.
 const VALID_CODE = 'ABCDEF12';
