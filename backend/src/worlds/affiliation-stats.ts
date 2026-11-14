@@ -8,7 +8,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx } from '../db/client';
-import { MONTH_ANCHOR_RE } from '../lib/time';
+import { MONTH_ANCHOR_RE, monthAnchorFromMs, previousMonthAnchor } from '../lib/time';
 import { AFFILIATION_KINDS, type AffiliationKind } from './affiliations';
 
 export class AffiliationStatsError extends Error {}
@@ -27,24 +27,6 @@ export interface AffiliationStats {
 	monthWins: number;
 	updatedAtMs: number;
 }
-
-/** UTC YYYY-MM anchor for a ms timestamp. */
-export const monthAnchorFromMs = (ms: number): string => {
-	const d = new Date(ms);
-
-	return `${d.getUTCFullYear()}-${(d.getUTCMonth() + 1).toString().padStart(2, '0')}`;
-};
-
-/** The previous month's anchor relative to `nowMs`. */
-export const previousMonthAnchor = (nowMs: number): string => {
-	const d = new Date(nowMs);
-
-	d.setUTCDate(1);
-	d.setUTCHours(0, 0, 0, 0);
-	d.setUTCMonth(d.getUTCMonth() - 1);
-
-	return monthAnchorFromMs(d.getTime());
-};
 
 /**
  * Shared rank comparator: accuracy desc, calls desc (rewards depth),

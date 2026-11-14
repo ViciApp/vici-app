@@ -6,14 +6,14 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
+import { monthAnchorFromMs } from '../src/lib/time';
 import {
 	freezeMonthlySnapshots,
 	getAffiliationStats,
 	listAffiliationChampionships,
 	listAffiliationStats,
 	listAffiliationStatsForMonth,
-	MIN_CALLS_FOR_RANK,
-	monthAnchorFromMs
+	MIN_CALLS_FOR_RANK
 } from '../src/worlds/affiliation-stats';
 import { setAffiliation } from '../src/worlds/affiliations';
 import { createTestUser, ensureMigrated } from './helpers/auth';
