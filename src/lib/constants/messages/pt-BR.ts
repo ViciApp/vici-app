@@ -1,7 +1,7 @@
 // Brazilian Portuguese (pt-BR). Its own variant, independent of the base `pt`
 // catalog (European Portuguese, pt-PT): the two differ in vocabulary (você,
-// time, tela, turnê) and grammar, so pt-BR never derives from `pt`. The
-// fallback chain is still `pt-BR` → `pt` → `en`, so a missing pt-BR key
+// time, tela, turnê) and grammar, so pt-BR is written as its own catalog, never copied from
+// `pt`. The fallback chain is still `pt-BR` → `pt` → `en`, so a missing pt-BR key
 // surfaces the European string before English.
 export const ptBRMessages = {
 	'trade.error.arbitrage_limit_exceeded':

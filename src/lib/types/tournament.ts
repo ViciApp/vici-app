@@ -1,5 +1,5 @@
 /**
- * Monthly tournament: Proposal 3 in `docs/backend-proposals/README.md`.
+ * Monthly tournament.
  *
  * The TournamentBattleDetail surface presents a 16-league single-
  * elimination bracket with per-match accuracy. We model the structure
@@ -40,10 +40,9 @@ export const TOURNAMENT_ROUNDS = ['r1', 'quarter', 'semifinal', 'final'] as cons
 export type TournamentRound = (typeof TOURNAMENT_ROUNDS)[number];
 
 /**
- * Bracket size is fixed at 16 per decision 3.1. The proposal left
- * the field configurable (`8 | 16 | 32`), but in practice all
- * future tournaments use the same shape; flagging it as a constant
- * here keeps the assert tight and the FE table layout predictable.
+ * Bracket size is fixed at 16: every tournament uses the same shape,
+ * so a constant keeps the assert tight and the bracket layout
+ * predictable.
  */
 export const TOURNAMENT_BRACKET_SIZE = 16;
 
@@ -56,8 +55,8 @@ export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * 24 
 
 /**
  * Per-match qualification threshold. A league with fewer than this
- * many resolved calls in the round window forfeits the match
- * (decision 3.3). Mirrors `MIN_CALLS_FOR_RANK` in the affiliation
+ * many resolved calls in the round window forfeits the match.
+ * Mirrors `MIN_CALLS_FOR_RANK` in the affiliation
  * stats: the two thresholds are deliberately separate so a
  * tournament can tighten its bar without affecting the Worlds
  * leaderboard.
