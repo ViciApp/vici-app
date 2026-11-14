@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * Stand-in for a market's odds when the probability is unknown: rendered in
+	 * Stand-in for a market's probability while it is unknown: rendered in
 	 * place of the percentage so the UI never shows a misleading 0.5 placeholder.
 	 *
 	 * - `loading`: the order book hasn't been read yet → pulsing bar (`aria-busy`).
@@ -22,8 +22,8 @@
 
 	const label = $derived(
 		variant === 'empty'
-			? t({ locale: $localeStore, key: 'market.odds.no_liquidity' })
-			: t({ locale: $localeStore, key: 'market.odds.loading' })
+			? t({ locale: $localeStore, key: 'market.probability.no_liquidity' })
+			: t({ locale: $localeStore, key: 'market.probability.loading' })
 	);
 </script>
 

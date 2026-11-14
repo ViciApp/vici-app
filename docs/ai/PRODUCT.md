@@ -29,7 +29,7 @@ Terminology: always **"prediction"**, never "bet".
 
 - **Wallet / dash "VXP"** is the ICRC ledger token balance. Holdings =
   available (in the wallet) + backed (reserved as clearing collateral
-  for open predictions). Stakes are not subtracted from holdings:
+  for open predictions). Committed amounts are not subtracted from holdings:
   they move from available to backed. On the web2 stack the ledger token
   sits on the account's custodial principal: the wallet reads that live
   balance, and the same auto-sweep moves it into clearing, where it stays
@@ -50,7 +50,7 @@ summary; `economy.md` is the governing policy.
 
 Earn-only, by design: there are **no VXP sinks**. Nothing charges VXP:
 league creation is free (founding _awards_ VXP), and the only
-outflow is prediction stakes, which are clearing collateral, not a
+outflow is the amount committed to predictions, which is clearing collateral, not a
 fee.
 
 Earn surfaces: onboarding grant, referrals (referee + referrer),
@@ -67,7 +67,7 @@ All amounts, caps, and gates live in three canonical constants files:
 never restate the numbers anywhere else (docs, specs, comments):
 
 - [`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts):
-  master parameter file (stake ladder, streaks, calibration,
+  master parameter file (call-size ladder, streaks, calibration,
   comeback, podium, league founder, …)
 - [`referral.constants.ts`](../../src/lib/constants/referral.constants.ts):
   referral bonuses, tier curve, caps, signup window
@@ -172,11 +172,11 @@ re-climbing a broken streak re-notifies. The streak card respects your
 streak-reminder preference. See
 [`specs/2026-06-23-feat-streak-level-inbox-notifications.md`](./spec-driven-development/specs/2026-06-23-feat-streak-level-inbox-notifications.md).
 
-### Market odds: skeleton while the book loads
+### Market probability: skeleton while the book loads
 
-A market's YES/NO odds are the live order-book mid. Until that book has
-been read the odds are **unknown, not 50%**: the card shows a loading
-skeleton (a repeat visit seeds the last-known odds from a local cache
+A market's YES/NO probability is the live order-book mid. Until that book has
+been read the probability is **unknown, not 50%**: the card shows a loading
+skeleton (a repeat visit seeds the last-known probability from a local cache
 for an instant paint, then upgrades in place). A market whose book is
 read but empty shows a neutral dash, never a fabricated coin-flip;
 resolved markets show 100% / 0%. The detail page first-paints from a
@@ -313,15 +313,15 @@ with the full split one tap away. Decision record:
 The holdings sheet on `/dash` links to `/dash/transactions`: a
 paginated, filterable feed of every event that changed what the user
 owns: bonuses (labelled from the `vxp:<type>:<key>` ledger memo),
-prediction stakes (bound to fills), wins/losses/break-evens (realized
+prediction fills (amount committed), wins/losses/break-evens (realized
 cashflow), and external transfers. The header shows the dummy-safe
 triple that reconciles by construction, **total = available + in
 play**, and the last column is the running **total** balance after
 each event, anchored on the live total-holdings figure so the top row
 always matches the Dash hero. Placing a prediction is wealth-neutral
 (VXP moves into play, total is unchanged), so it carries no signed
-amount (`–`); the committed stake shows as "… in play" in the
-subtitle. Wins credit the profit, losses debit the stake, break-evens
+amount (`–`); the committed amount shows as "… in play" in the
+subtitle. Wins credit the profit, losses debit the committed amount, break-evens
 net zero. Because total never moves on margin shifting in or out of
 play, the column reconciles to a clean zero genesis no matter how much
 is currently reserved; anchoring on spendable instead drifted the
@@ -616,7 +616,7 @@ there is no hard block at the second pick or ever. Guest picks are a
 throwaway, in-session preview: a guest pick never reaches the engine
 (`placeOrder` and the identity call are bypassed entirely), so free guest
 play can't move market prices. Each pick is recorded only as a client-side
-preview entry (`marketId` / `side` / `ts`, no stake) in `localStorage`,
+preview entry (`marketId` / `side` / `ts`, no amount) in `localStorage`,
 purely to power the conversion nudges.
 
 Conversion is driven by loss-aversion, not a gate: a soft sheet on the
@@ -633,12 +633,12 @@ the registration milestone grant, not a literal.
 
 On sign-up from the funnel the guest becomes a member through the **normal
 new-member path**: the existing `onProfileSetForVxpOnboarding` grant fires
-(no new mint, no retro-stake, no new economic action), the in-session
+(no new mint, no retroactive call, no new economic action), the in-session
 preview picks are **discarded**, the portfolio starts empty, and the
 guest session and preview `localStorage` are cleared. The sign-up CTAs
 reuse the real provider stack (redirect-safe) labelled with the claimed
 guest handle, and the pre-auth handoff carries only the handle/identity,
-never picks or stakes. A "1,500 VXP added" toast confirms the grant.
+never picks or commits VXP. A "1,500 VXP added" toast confirms the grant.
 Because guest picks are client-only, a cleared browser simply loses the
 preview, which is harmless: nothing was ever a position. Analytics reuse
 existing names: a guest pick emits `position_taken` with
@@ -759,7 +759,7 @@ time** (see [`frontend/seo.md`](./frontend/seo.md)). Search intent lands on
 (`/m/{slug}` resolves there), category browsing → the in-app `/app` board.
 On top of one crawlable page per market, the deploy emits schema.org
 **JSON-LD** (site-wide `Organization` + `WebSite`, plus a per-market
-`WebPage` + `BreadcrumbList`) and a **live-odds sentence** baked into each
+`WebPage` + `BreadcrumbList`) and a **live-probability sentence** baked into each
 market's meta description ("Community odds: Yes 41%", a deploy-time
 snapshot of the order book). The phrase "prediction market" appears **only**
 in this crawler-facing metadata (titles, descriptions, structured data),

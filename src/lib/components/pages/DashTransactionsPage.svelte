@@ -2,7 +2,7 @@
 	/**
 	 * Transaction history: every event that changed what the user owns,
 	 * newest first: bonuses (labelled from the ledger award memo),
-	 * prediction stakes, settlements, and external transfers. The last
+	 * prediction fills, settlements, and external transfers. The last
 	 * column carries the running total balance after each event, anchored on
 	 * the live total-holdings figure so the top row always matches the Dash
 	 * hero and old rows never drift negative. The headline triple reconciles
@@ -207,13 +207,13 @@
 
 		const when = formatNanosecondsToDate({ nanoseconds: row.timestampNs });
 
-		// A fill moves the stake into play without changing total; surface the
+		// A fill moves the amount into play without changing total; surface the
 		// committed margin here so the muted "–" amount reads as "still yours".
-		if (row.kind === 'prediction' && nonNullish(row.stake) && row.stake > ZERO) {
+		if (row.kind === 'prediction' && nonNullish(row.inPlay) && row.inPlay > ZERO) {
 			return `${when} · ${t({
 				locale: $localeStore,
 				key: 'transactions.in_play',
-				params: { amount: formatVxpBalance({ value: row.stake, decimals: USD_DECIMALS }) }
+				params: { amount: formatVxpBalance({ value: row.inPlay, decimals: USD_DECIMALS }) }
 			})}`;
 		}
 
@@ -222,7 +222,7 @@
 
 	const deltaDisplay = (row: TransactionHistoryRow): string => {
 		// Placing a prediction is wealth-neutral (VXP moves into play, total is
-		// unchanged), so it carries no signed amount; the meta shows the stake.
+		// unchanged), so it carries no signed amount; the meta shows the amount in play.
 		if (row.kind === 'prediction') {
 			return EMPTY_VALUE;
 		}

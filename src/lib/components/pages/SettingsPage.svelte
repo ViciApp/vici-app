@@ -691,7 +691,7 @@
 	{#if nonNullish(toastMessage)}
 		<!--
 			Pill-shaped transient toast pinned to the bottom of the page.
-			Local to this surface: used for low-stakes confirmations
+			Local to this surface: used for minor confirmations
 			(Saved / coming soon) that don't warrant a global
 			notification entry.
 		-->

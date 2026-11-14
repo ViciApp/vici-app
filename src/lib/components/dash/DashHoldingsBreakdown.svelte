@@ -22,7 +22,7 @@
 		availableValue: bigint;
 		/** Backed magnitude (base units): drives the In play split segment width. */
 		inPlayValue: bigint;
-		/** Open calls behind the in-play stake: pluralises the In play sub-label. */
+		/** Open calls behind the in-play amount: pluralises the In play sub-label. */
 		openCallCount: number;
 	}
 

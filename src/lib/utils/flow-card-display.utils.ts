@@ -6,7 +6,7 @@ import { isNullish } from '@dfinity/utils';
 /**
  * Crowd-consensus YES percentage (0–100), or `undefined` when the market's
  * probability is unknown (book unread / no liquidity). Callers must not coerce
- * `undefined` into a number: render a {@link MarketOddsSkeleton} or skip,
+ * `undefined` into a number: render a {@link MarketProbabilitySkeleton} or skip,
  * never a fabricated 50.
  */
 export const consensusPercent = (market: Market): number | undefined =>

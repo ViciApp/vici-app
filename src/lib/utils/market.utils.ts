@@ -247,7 +247,7 @@ export const resolveOutcomeExecutionPrice = ({
 			return limitPrice;
 		}
 
-		// Execution price is internal trade math (not the displayed odds), and the
+		// Execution price is internal trade math (not the displayed probability), and the
 		// caller floors it at 0.01 below, so when neither a book side nor a known
 		// probability exists we fall back to the neutral mid here to stay a finite
 		// number. The trade surface gates on liquidity separately; this only keeps

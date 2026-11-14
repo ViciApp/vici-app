@@ -415,11 +415,11 @@ not noisy). The FlowEnd celebration deliberately never surfaces
 accuracy (a swipe places a call, it doesn't win one; see §7.3); the
 gate applies to Profile + leaderboard previews on their next pass.
 
-The **stake ladder** is available to every predictor: the Flow-card back
-shows the per-call stake slider
-([`FlowStake.svelte`](../../../src/lib/components/market/FlowStake.svelte))
-whenever stake controls are wired on the ViciXP domain, starting from the
-`VXP_DEFAULT_STAKE` rung. There is no lifetime-call gate; sizing is
+The **call-size ladder** is available to every predictor: the Flow-card back
+shows the per-call size slider
+([`FlowCallSize.svelte`](../../../src/lib/components/market/FlowCallSize.svelte))
+whenever call-size controls are wired on the ViciXP domain, starting from the
+`VXP_DEFAULT_CALL_SIZE` rung. There is no lifetime-call gate; sizing is
 offered from the first call.
 
 ### 7.6 Negative-state choreography

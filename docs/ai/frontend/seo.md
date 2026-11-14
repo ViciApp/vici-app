@@ -80,7 +80,7 @@ deploy); unresolvable params land on the markets board.
 - The script skips itself under `JUNO_EMULATOR=true` (E2E deploys have no
   mainnet registry to read).
 
-## Structured data & live odds
+## Structured data & live probability
 
 The generator emits two extra signals on top of the per-market head
 rewrite. **No dedicated category/topic pages**: search intent lands on
@@ -93,12 +93,12 @@ existing surfaces (a specific market → its detail page; category browsing
   `BreadcrumbList`. `jsonLdScript` escapes `</` so a value can never close
   the `<script>` early. (No `SearchAction`: a sitelinks search box needs a
   working in-app search endpoint, which is dead code today.)
-- **Live odds in the snippet.** Per-market descriptions gain a
+- **Live probability in the snippet.** Per-market descriptions gain a
   `Community odds: Yes N%` sentence, read at deploy time from the clearing
   canister's order book (`list_orders`) and folded through a
   `midYesProbability` helper that mirrors `calculateProbability` in
   `#lib/utils/market.utils.ts`. Reads run with bounded concurrency
-  (`ODDS_CONCURRENCY`). All figures are a **snapshot as of deploy**: there
+  (`PROBABILITY_CONCURRENCY`). All figures are a **snapshot as of deploy**: there
   is no SSR, so they age until the next deploy.
 - **Resolved markets are answer pages, not stale trading pages.** The vast
   majority of the SEO surface is settled (1062 of 1094 pages at the time of
@@ -116,7 +116,7 @@ existing surfaces (a specific market → its detail page; category browsing
   the id set, `get_settlement_status` + `settlementInputOutcome` for the
   winner, so a market is "resolved" here on exactly the same rule the
   detail page uses. Settled markets are read for their outcome _instead of_
-  their odds, not in addition.
+  their probability, not in addition.
 - **No `$` traded-volume in the snippet: rejected on the figure, not on
   access.** `list_series_traded_volumes` is readable at deploy time: it
   carries the same spam gate as the settlement queries (anonymous rejected,
@@ -132,7 +132,7 @@ existing surfaces (a specific market → its detail page; category browsing
   (open markets: 74% zero). Revisit only if a real-money balance domain
   ships or per-market depth grows, not on access grounds.
 - **Clearing is a soft dependency throughout** (unlike the registry read,
-  which is fatal). An odds error degrades to "no odds clause"; a
+  which is fatal). A probability read error degrades to "no probability clause"; a
   settled-series error degrades to "everything unresolved" (today's
   pre-resolution behaviour); a per-market settlement error degrades to
   "resolved, winner unnamed". A non-canonical settlement price also yields

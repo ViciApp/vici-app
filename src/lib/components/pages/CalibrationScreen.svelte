@@ -379,7 +379,7 @@
 				<div class="eyebrow calib-card-meta">
 					{t({ locale: $localeStore, key: 'calibration.card.meta' })}
 				</div>
-				<div class="calib-card-stakes">
+				<div class="calib-card-outcomes">
 					<span>
 						{t({ locale: $localeStore, key: 'calibration.card.if_right' })}
 						<b class="is-yes"
@@ -614,7 +614,7 @@
 		color: var(--text-muted);
 	}
 
-	.calib-card-stakes {
+	.calib-card-outcomes {
 		display: flex;
 		justify-content: space-between;
 		gap: 0.5rem;
@@ -624,7 +624,7 @@
 		padding-top: 0.75rem;
 	}
 
-	.calib-card-stakes b {
+	.calib-card-outcomes b {
 		font-weight: 600;
 	}
 

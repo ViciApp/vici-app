@@ -48,10 +48,10 @@ export interface TransactionHistoryRow {
 	 */
 	delta: bigint;
 	/**
-	 * Stake context for `prediction` rows: the margin moved into play by
+	 * In-play context for `prediction` rows: the margin moved into play by
 	 * the fill (display only; the total-balance delta is zero).
 	 */
-	stake?: bigint;
+	inPlay?: bigint;
 	/** Running total balance after this event, clearing-margin units. */
 	balance: bigint;
 }

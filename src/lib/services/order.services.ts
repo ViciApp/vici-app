@@ -156,8 +156,8 @@ export const placeOrder = async ({
 		throw new MarketClosedError();
 	}
 
-	// Sizing rounds the stake down to whole contracts (`amountUsd / priceUsd`),
-	// so a stake smaller than one contract's price arrives here as zero;
+	// Sizing rounds the amount down to whole contracts (`amountUsd / priceUsd`),
+	// so an amount smaller than one contract's price arrives here as zero;
 	// reject it before any state changes or activity logging.
 	if (qty <= ZERO) {
 		throw new Error('Stake is too small for this price: the order quantity rounds to zero');
@@ -270,7 +270,7 @@ export const placeOrder = async ({
 		}
 
 		// Walk the book best-price-first, taking `min(remaining, level)` per
-		// trade, so the execution honors the caller's stake-derived `qty`
+		// trade, so the execution honors the caller's amount-derived `qty`
 		// rather than whatever size the best resting order happens to carry.
 		// The book is re-read between takes: a level shrunk by a concurrent
 		// taker would otherwise overstate the fill (the engine executes
@@ -338,7 +338,7 @@ export const placeOrder = async ({
 	refreshAllBalances();
 
 	// Behavioural telemetry for the cockpit: every REAL trade goes through here
-	// (the flow deck's guest picks emit separately). `value` is the VXP at stake
+	// (the flow deck's guest picks emit separately). `value` is the VXP committed
 	// (contracts × price of the chosen outcome); a resting limit order reports its
 	// full placed size, a market order the actually-executed fill.
 	if (filledQty > ZERO || type === 'LIMIT') {

@@ -25,7 +25,7 @@
 		LANDING_CAT_LABELS,
 		LANDING_HERO_CARD,
 		LANDING_HERO_CLIMB,
-		LANDING_HERO_STAKE
+		LANDING_HERO_CALL_SIZE
 	} from '#lib/constants/landing-data.constants.ts';
 	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';
@@ -34,14 +34,14 @@
 	import { splitHeadline } from '#lib/utils/landing-headline.utils.ts';
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
-	const XP = LANDING_HERO_STAKE;
+	const XP = LANDING_HERO_CALL_SIZE;
 	const YES = LANDING_HERO_CARD.yes;
 	const NO = 100 - YES;
 	const accent = LANDING_CAT_COLORS.crypto;
 	const catLabel = LANDING_CAT_LABELS.crypto;
 	const artMarket = { cat: 'crypto', id: LANDING_HERO_CARD.artSeed } as const;
 
-	// Payout-from-stake for each side (long-shot pays more).
+	// Payout-from-amount for each side (long-shot pays more).
 	const winYes = Math.round(XP / (YES / 100)) - XP;
 	const winNo = Math.round(XP / (NO / 100)) - XP;
 
