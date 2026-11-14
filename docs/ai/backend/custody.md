@@ -22,6 +22,12 @@ The rules of the deposit watcher and the withdrawal path in `backend/src/chains/
   key. Read the credit count in the same statement as the internal balance: a
   count fresher than the balance gives a stale delta a key nobody else holds,
   and it double-credits.
+- **A `tx` deposit's key names one transfer, not one transaction.** Deposits
+  dedupe on `(account_id, asset_id, tx_ref)`, and one evm transaction can carry
+  several ERC-20 Transfer logs to one address, so a token log is keyed
+  `<txHash>:<logIndex>`. The first such log of a transaction to an address
+  keeps the bare hash: rows booked before the log index was in the key carry
+  it, and a rescan must collide with them, not credit them again.
 - **`transferStatus` answers `failed` only on a definite on-chain failure.**
   The `withdrawal-confirmations` job refunds a `failed` withdrawal, so a
   transfer the chain does not know yet, or a status read that errors or times

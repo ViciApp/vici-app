@@ -1181,6 +1181,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			const { filters, spy } = stubEvmRpc(() => [
 				{
 					transactionHash: `tx-usdc-${randomBytes(8).toString('hex')}`,
+					logIndex: '0x0',
 					address: usdc.ledger_ref,
 					topics: [transferTopic, sender, topicOf(recipient.address)],
 					data: amountData(BigInt(1_000_000))
@@ -1188,12 +1189,14 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 				// A provider that ignores the filter must still credit nothing extra.
 				{
 					transactionHash: 'tx-other-token',
+					logIndex: '0x1',
 					address: evmAddress(),
 					topics: [transferTopic, sender, topicOf(recipient.address)],
 					data: amountData(BigInt(7))
 				},
 				{
 					transactionHash: 'tx-other-recipient',
+					logIndex: '0x2',
 					address: usdc.ledger_ref,
 					topics: [transferTopic, sender, topicOf(evmAddress())],
 					data: amountData(BigInt(9))
@@ -1239,6 +1242,119 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 			expect(await cursorOf('evm')).toBe('88');
 		});
 
+		describe('several transfer logs in one transaction', () => {
+			const FIRST_AMOUNT = BigInt(1_000_000);
+			const SECOND_AMOUNT = BigInt(2_500_000);
+
+			/** One transaction paying the recipient twice, in logs 3 and 7, plus
+			 * a log of the same transaction to someone else. */
+			const twoLogTx = ({ recipient, txHash }: { recipient: Seeded; txHash: string }) => {
+				const sender = topicOf(evmAddress());
+
+				return stubEvmRpc(() => [
+					{
+						transactionHash: txHash,
+						logIndex: '0x3',
+						address: usdc.ledger_ref,
+						topics: [transferTopic, sender, topicOf(recipient.address)],
+						data: amountData(FIRST_AMOUNT)
+					},
+					{
+						transactionHash: txHash,
+						logIndex: '0x5',
+						address: usdc.ledger_ref,
+						topics: [transferTopic, sender, topicOf(evmAddress())],
+						data: amountData(BigInt(9))
+					},
+					{
+						transactionHash: txHash,
+						logIndex: '0x7',
+						address: usdc.ledger_ref,
+						topics: [transferTopic, sender, topicOf(recipient.address)],
+						data: amountData(SECOND_AMOUNT)
+					}
+				]);
+			};
+
+			const tickEvm = async (): Promise<void> => {
+				await tickDepositWatchers({
+					adapters: [
+						scriptedAdapter({ chain: 'evm', watchScope: 'chain', watchDeposits: watchEvmDeposits })
+					]
+				});
+			};
+
+			const seedRecipient = async (): Promise<Seeded> => {
+				await query(`update assets set enabled = true where id = $1`, [usdc.id]);
+
+				const [recipient] = await seedAccounts({ count: 1, chain: 'evm', address: evmAddress });
+
+				if (isNullish(recipient)) {
+					throw new Error('seed returned no account');
+				}
+
+				return recipient;
+			};
+
+			const txRefsOf = async (recipient: Seeded): Promise<string[]> =>
+				(
+					await query<{ tx_ref: string }>(
+						`select tx_ref from deposits where account_id = $1 and asset_id = $2 order by tx_ref`,
+						[recipient.id, usdc.id]
+					)
+				).map(({ tx_ref }) => tx_ref);
+
+			test('credit one deposit each, and a rescan of the block credits nothing new', async () => {
+				const recipient = await seedRecipient();
+				const txHash = `0x${randomBytes(32).toString('hex')}`;
+				const { spy } = twoLogTx({ recipient, txHash });
+
+				try {
+					await tickEvm();
+
+					expect(await txRefsOf(recipient)).toEqual([txHash, `${txHash}:7`]);
+					expect(await bookedBalance({ account: recipient, asset: usdc })).toBe(
+						FIRST_AMOUNT + SECOND_AMOUNT
+					);
+
+					await query(`update chain_cursors set cursor = '86' where chain = 'evm'`);
+					await tickEvm();
+				} finally {
+					spy.mockRestore();
+				}
+
+				expect(await depositCount({ account: recipient, asset: usdc })).toBe(2);
+				expect(await bookedBalance({ account: recipient, asset: usdc })).toBe(
+					FIRST_AMOUNT + SECOND_AMOUNT
+				);
+			});
+
+			test('a row recorded under the bare hash still blocks its log from a second credit', async () => {
+				const recipient = await seedRecipient();
+				const txHash = `0x${randomBytes(32).toString('hex')}`;
+
+				// What a scan before log indexes were in the key left: the first
+				// log credited under the transaction hash alone.
+				await query(
+					`insert into deposits (account_id, asset_id, amount, tx_ref, confirmations, state)
+					 values ($1, $2, $3, $4, 12, 'confirmed')`,
+					[recipient.id, usdc.id, FIRST_AMOUNT.toString(), txHash]
+				);
+
+				const { spy } = twoLogTx({ recipient, txHash });
+
+				try {
+					await tickEvm();
+				} finally {
+					spy.mockRestore();
+				}
+
+				expect(await txRefsOf(recipient)).toEqual([txHash, `${txHash}:7`]);
+				// Only the log the old key never covered is booked now.
+				expect(await bookedBalance({ account: recipient, asset: usdc })).toBe(SECOND_AMOUNT);
+			});
+		});
+
 		test('splits a large recipient list into bounded filters over the same range', async () => {
 			const addresses = Array.from({ length: MAX_LOG_RECIPIENTS * 2 + 1 }, evmAddress);
 			const last = addresses.at(-1) ?? '';
@@ -1247,6 +1363,7 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 					? [
 							{
 								transactionHash: 'tx-last-batch',
+								logIndex: '0x0',
 								address: usdc.ledger_ref,
 								topics: [transferTopic, topicOf(evmAddress()), topicOf(last)],
 								data: amountData(BigInt(42))
