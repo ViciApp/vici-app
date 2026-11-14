@@ -43,8 +43,6 @@ export type VxpAwardStatus = 'pending' | 'processing' | 'paid' | 'failed';
  * it is still in flight from their point of view. */
 type AwardRowStatus = VxpAwardStatus | 'needs_ledger_check';
 
-export type VxpAwardOrigin = 'live' | 'etl';
-
 /**
  * How long a claimed (processing) row stays off-limits before the
  * reconciler may reclaim it. A crash between claim and paid must not strand

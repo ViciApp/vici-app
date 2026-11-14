@@ -1,8 +1,6 @@
 import type { MarketId, OutcomeId } from '#lib/types/market.ts';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export type PositionType = 'YES' | 'NO' | string;
-
 export interface Position {
 	marketId: MarketId;
 	user: Principal;
