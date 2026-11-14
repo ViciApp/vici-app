@@ -114,8 +114,7 @@
 	const sortNewestFirst = (arr: Transaction[]) =>
 		arr.sort((a, b) => (a.timestamp === b.timestamp ? 0 : a.timestamp > b.timestamp ? -1 : 1));
 
-	// Live free VXP balance (`$vxpFree`) from the wallet store. Same source
-	// `WalletStats` and `WalletDropdown` read: keyed by `TokenId`.
+	// Live free VXP balance (`$vxpFree`) from the wallet store, keyed by `TokenId`.
 	const vxpBalanceDisplay = $derived(
 		formatVxpBalance({ value: $vxpFree, decimals: VXP_TOKEN.decimals })
 	);

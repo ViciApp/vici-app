@@ -1,5 +1,4 @@
-import { suggestedScore } from '#lib/services/market.services.ts';
-import type { MarketMetadata, MarketWhyNow } from '#lib/types/market-metadata.ts';
+import type { MarketWhyNow } from '#lib/types/market-metadata.ts';
 import type { CallSide, Market } from '#lib/types/market.ts';
 import { isNullish } from '@dfinity/utils';
 
@@ -32,22 +31,6 @@ export const formatWhyNowChip = (whyNow: MarketWhyNow | undefined): string | und
 
 	return whyNow.text.trim();
 };
-
-/**
- * Surfacing predicate for the per-card "Suggested" chip and rail entry.
- * A market is shown as suggested only when {@link suggestedScore}
- * (single source of truth for the sort-tier boost) is non-zero, so
- * resolved markets and markets whose 14-day editorial window has
- * elapsed never display the chip, even if `metadata.suggested` is
- * still `true` in the underlying doc.
- */
-export const isMarketSuggested = ({
-	market,
-	metadata
-}: {
-	market: Market;
-	metadata: MarketMetadata | undefined;
-}): boolean => suggestedScore({ market, metadata }) > 0;
 
 export const sparklinePoints = ({
 	yesPercent,

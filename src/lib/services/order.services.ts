@@ -38,8 +38,8 @@ import { getIdentityOnce } from '@junobuild/core';
 import { nanoid } from 'nanoid';
 
 /**
- * Core order-book fetch: threads identity + certified so it composes with
- * {@link loadOrderBook} / `queryAndUpdate`.
+ * Core order-book fetch: threads identity + certified so a caller can pick
+ * the query or the update pass.
  */
 const fetchOrderBook = async ({
 	identity,
@@ -72,9 +72,7 @@ const fetchOrderBook = async ({
 
 /**
  * Lists open limit orders for a market, optionally filtered to a balance domain.
- *
- * Performs a single certified update. Prefer {@link loadOrderBook} for UI flows
- * that should render fast then upgrade to a certified result.
+ * Certified by default; pass `certified: false` for the fast query pass.
  */
 export const getOrderBook = async ({
 	marketId,
@@ -91,27 +89,6 @@ export const getOrderBook = async ({
 
 	return fetchOrderBook({ identity, certified, marketId, domain });
 };
-
-/**
- * Callback-based variant of {@link getOrderBook} that fires `onLoad` up to
- * twice: once for the uncertified query, once for the certified update.
- */
-export const loadOrderBook = ({
-	marketId,
-	domain,
-	onLoad,
-	onUpdateError
-}: {
-	marketId: MarketId;
-	domain?: ClearingDid.BalanceDomain;
-	onLoad: (options: { certified: boolean; response: ClearingDid.LimitOrder[] }) => void;
-	onUpdateError?: (error: unknown) => void;
-}): Promise<void> =>
-	loadWithCertification<ClearingDid.LimitOrder[]>({
-		request: ({ certified, identity }) => fetchOrderBook({ identity, certified, marketId, domain }),
-		onLoad,
-		onUpdateError
-	});
 
 /**
  * Submits a limit order or matches a market order against the book; refreshes UI state and logs activity.

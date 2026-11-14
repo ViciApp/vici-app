@@ -6,9 +6,8 @@
 	 * - `loading`: the order book hasn't been read yet → pulsing bar (`aria-busy`).
 	 * - `empty`: the book was read and has no liquidity → a neutral dash.
 	 *
-	 * Encapsulating both states (and their i18n labels) here keeps consumers like
-	 * `BinaryProbabilities` free of an `i18n.utils` import, so their literal
-	 * "Yes"/"No" copy stays clear of `no-bare-svelte-text`.
+	 * Encapsulating both states (and their i18n labels) here keeps every consumer
+	 * on the same skeleton copy instead of each carrying its own.
 	 */
 	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';

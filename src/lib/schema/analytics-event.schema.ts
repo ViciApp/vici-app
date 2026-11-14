@@ -99,44 +99,6 @@ export const AnalyticsEventNameSchema = j.enum([
 ]);
 
 /**
- * Bounded dimensional vocabulary: mirrors `AnalyticsEventProps`. Fixed,
- * primitive, optional fields only; never widen to an open record (keeps
- * "no PII" structural).
- */
-export const AnalyticsEventPropsSchema = j.strictObject({
-	marketId: j.optional(j.string()),
-	seriesId: j.optional(j.string()),
-	leagueId: j.optional(j.string()),
-	battleId: j.optional(j.string()),
-	source: j.optional(j.string()),
-	label: j.optional(j.string()),
-	step: j.optional(j.number()),
-	value: j.optional(j.number()),
-	count: j.optional(j.number()),
-	durationMs: j.optional(j.number()),
-	ok: j.optional(j.boolean()),
-	country: j.optional(j.string()),
-	locale: j.optional(j.string())
-});
-
-/**
- * Persisted shape for entries in the `events` collection. Mirrors
- * `AnalyticsEventDoc`. Written server-side after validation.
- *
- * NB: `principal` is one of `@junobuild/schema`'s reserved field names;
- * fine here because this schema is decoded/encoded by hand and is NOT a
- * `defineQuery` / `defineUpdate` signature (the codegen never sees it).
- */
-export const AnalyticsEventSchema = j.strictObject({
-	name: AnalyticsEventNameSchema,
-	tsMs: j.number(),
-	sessionId: j.string(),
-	principal: j.optional(PrincipalTextSchema),
-	path: j.optional(j.string()),
-	props: j.optional(AnalyticsEventPropsSchema)
-});
-
-/**
  * Args for the `trackEvents` update endpoint: a batch of client events.
  * The server derives identity + timestamp, so the input carries neither.
  *

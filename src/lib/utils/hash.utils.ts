@@ -65,18 +65,3 @@ export const fnv1a64Utf16Hex = (input: string): string => {
 
 	return toHex64(hash);
 };
-
-/**
- * Classic djb2 hash. Returned as an unsigned 32-bit int; the
- * `invite-code` flow base36-encodes a 5-char prefix of this for a
- * compact, human-typable suffix.
- */
-export const djb2 = (input: string): number => {
-	let h = 5381;
-
-	for (let i = 0; i < input.length; i++) {
-		h = ((h << 5) + h + input.charCodeAt(i)) | 0;
-	}
-
-	return Math.abs(h);
-};

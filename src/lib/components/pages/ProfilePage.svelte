@@ -32,9 +32,8 @@
 	The Profile page leads with a full-bleed avatar hero (rendered inside
 	`ProfileDashboard`) rather than the shared section header: the avatar
 	scene IS the header, and the notification + settings controls float over
-	it. So this page intentionally does not wrap the loaded state in
-	`PageScaffold`: the dashboard owns its own chrome. The loading / empty
-	states keep the simple centered card.
+	it. So the dashboard owns its own chrome on the loaded state. The loading /
+	empty states keep the simple centered card.
 -->
 <div class="profile-page">
 	{#if $userStore.profile}
