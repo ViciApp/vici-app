@@ -344,7 +344,8 @@ adds a Trickster beat at call 11 and a Trickster beat at call 13. The
 daily session is hard-capped at `DAILY_HARD_CAP = 15`.
 
 The engine's beat cadence runs off a **per-session counter**, not the
-cross-session daily-goal total: `FlowMode` passes `callsCount` as
+cross-session daily-goal total: `FlowMode` passes `sessionBaseline + callsCount` (the
+calls already made today when the session opened, plus this session's) as
 `dailyDone` and the live **session cap** as `dailyTarget`. The session
 opens at the daily ten; the **"Push to 15 →"** opt-in on FlowEnd raises
 that cap to `DAILY_HARD_CAP`, so `dailyTarget >= DAILY_HARD_CAP` flips
