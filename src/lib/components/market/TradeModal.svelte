@@ -9,7 +9,7 @@
 	import { playgroundVxpUnitMode } from '#lib/derived/playground.derived.ts';
 	import { userSignedIn } from '#lib/derived/user.derived.ts';
 	import { vxpSpendable } from '#lib/derived/vxp-holdings.derived.ts';
-	import { getBalances } from '#lib/services/wallet.service.ts';
+	import { getBalances } from '#lib/services/wallet.services.ts';
 	import { collateralsStore } from '#lib/stores/collaterals.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';

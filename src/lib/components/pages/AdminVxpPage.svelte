@@ -16,7 +16,7 @@
 		getTransactionsPage,
 		type WalletTransactionsCursors,
 		type WalletTransactionsDone
-	} from '#lib/services/wallet.service.ts';
+	} from '#lib/services/wallet.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import type { Token } from '#lib/types/token.ts';
