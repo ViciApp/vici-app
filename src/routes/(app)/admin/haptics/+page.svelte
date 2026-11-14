@@ -27,7 +27,7 @@
 			: t({ locale: $localeStore, key: 'admin.haptics.off' })
 	);
 
-	let lastFired = $state<string>('—');
+	let lastFired = $state<string>('–');
 
 	const fmt = (value: number | readonly number[]): string =>
 		typeof value === 'number' ? `${value}ms` : `[${value.join(', ')}]`;
@@ -37,7 +37,7 @@
 	// the authored envelope. Returns navigator.vibrate's boolean.
 	const fireRaw = ({ value, label }: { value: number | number[]; label: string }): void => {
 		if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') {
-			lastFired = `${label} — Vibration API unavailable`;
+			lastFired = `${label}: Vibration API unavailable`;
 
 			return;
 		}
@@ -46,7 +46,7 @@
 			const ok = navigator.vibrate(value);
 			lastFired = `${label} → navigator.vibrate(${fmt(value)}) returned ${ok}`;
 		} catch (e) {
-			lastFired = `${label} — threw: ${String(e)}`;
+			lastFired = `${label} threw: ${String(e)}`;
 		}
 	};
 
@@ -54,7 +54,7 @@
 	// Android floor). If the preference is off, this is a no-op by design.
 	const firePipeline = (pattern: HapticPattern): void => {
 		haptic(pattern);
-		lastFired = `${pattern} via haptic() — pref ${$preferencesStore.hapticsEnabled ? 'on' : 'OFF (no-op)'}`;
+		lastFired = `${pattern} via haptic(), pref ${$preferencesStore.hapticsEnabled ? 'on' : 'OFF (no-op)'}`;
 	};
 
 	// Svelte coerces a `type="number"` bind to a number, but a cleared
@@ -66,7 +66,7 @@
 		const ms = Number(customMs);
 
 		if (!Number.isFinite(ms) || ms <= 0) {
-			lastFired = 'custom — enter a positive ms value';
+			lastFired = 'custom: enter a positive ms value';
 
 			return;
 		}

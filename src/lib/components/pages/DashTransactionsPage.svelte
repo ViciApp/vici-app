@@ -207,7 +207,7 @@
 		const when = formatNanosecondsToDate({ nanoseconds: row.timestampNs });
 
 		// A fill moves the stake into play without changing total; surface the
-		// committed margin here so the muted "—" amount reads as "still yours".
+		// committed margin here so the muted "–" amount reads as "still yours".
 		if (row.kind === 'prediction' && nonNullish(row.stake) && row.stake > ZERO) {
 			return `${when} · ${t({
 				locale: $localeStore,
@@ -223,7 +223,7 @@
 		// Placing a prediction is wealth-neutral (VXP moves into play, total is
 		// unchanged), so it carries no signed amount; the meta shows the stake.
 		if (row.kind === 'prediction') {
-			return '—';
+			return '–';
 		}
 
 		const value = decimalFixedValueToNumber({ value: row.delta, decimals: USD_DECIMALS });
@@ -322,7 +322,7 @@
 						<span class="txh-meta">{rowMeta(row)}</span>
 					</span>
 					<span class="txh-amt num is-{deltaTone(row)}">
-						{row.kind === 'joined' ? '—' : deltaDisplay(row)}
+						{row.kind === 'joined' ? '–' : deltaDisplay(row)}
 					</span>
 					<span class="txh-bal num"
 						>{formatVxpBalance({ value: row.balance, decimals: USD_DECIMALS })}</span

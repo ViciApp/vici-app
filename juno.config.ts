@@ -5,7 +5,7 @@ import { defineConfig } from '@junobuild/config';
  *
  * We keep them here instead of importing e.g. `./juno.collections.json`. Juno’s Docker-based
  * emulator/CLI often evaluates this config in an isolated context where extra project files
- * are not available or not bundled—importing external JSON can fail silently or break config load.
+ * are not available or not bundled; importing external JSON can fail silently or break config load.
  * Track upstream: https://github.com/junobuild/juno-docker/issues/262
  *
  * The app still uses `juno.collections.json` via `Collection` in `src/lib`; keep both in sync when renaming.
@@ -85,7 +85,7 @@ export default defineConfig(({ mode }) => ({
 		hosting: {
 			source: 'build',
 			// `seo:assets` rewrites the built shell into per-market crawler pages
-			// (+ sitemap) — see `scripts/build/generate-seo-assets.ts`. It must run
+			// (+ sitemap); see `scripts/build/generate-seo-assets.ts`. It must run
 			// on EVERY hosting deploy: `--prune` deletes any asset missing from
 			// `build/`, so skipping it would wipe the deployed SEO surface.
 			predeploy: ['npm run build', 'npm run seo:assets']
@@ -116,7 +116,7 @@ export default defineConfig(({ mode }) => ({
 				// Owner-private profile data (the account email). `managed` on
 				// both sides: the owner reads/writes their own doc, controllers
 				// (satellite endpoints, admin tooling) can read for server-side
-				// flows — but the doc is NEVER publicly readable, unlike the
+				// flows, but the doc is NEVER publicly readable, unlike the
 				// `profiles` doc it splits from. `assertSetProfilePrivate`
 				// additionally binds key + embedded owner to the caller so
 				// another user can't squat or forge someone else's doc.
@@ -154,7 +154,7 @@ export default defineConfig(({ mode }) => ({
 				// Maintained inline by `upsertMarketMetadata` so battle scoping
 				// reads a single bucket instead of scanning `market_metadata`.
 				// Public read (battle resolution reads it as the caller);
-				// controllers-only write — only the satellite upsert / rebuild
+				// controllers-only write: only the satellite upsert / rebuild
 				// endpoints write it (as admin), so a client can't forge a tag set.
 				{
 					collection: JunoDatastoreCollection.MARKET_TAG_INDEX,
@@ -189,7 +189,7 @@ export default defineConfig(({ mode }) => ({
 				// Per-activity like-count rollup. Public read (the feed renders
 				// counts); controllers write so only the satellite hooks
 				// (onActivityReactionSet / onActivityReactionDelete, writing as
-				// admin) can move a count — a client can't forge one. Maintained
+				// admin) can move a count; a client can't forge one. Maintained
 				// server-side; the admin recompute endpoint re-derives exact
 				// counts from `activity_reactions` on demand.
 				{
@@ -202,7 +202,7 @@ export default defineConfig(({ mode }) => ({
 				// results feed. Public read (the friend-scoped digest reads
 				// them); controllers write so only the satellite resolution hook
 				// (writing as admin, derived from the clearing settlement plan)
-				// can record a result — a client can't forge a win. Rows past the
+				// can record a result; a client can't forge a win. Rows past the
 				// retention horizon are pruned by the controllers-only cleanup.
 				{
 					collection: JunoDatastoreCollection.RESOLVED_RESULTS,
@@ -258,7 +258,7 @@ export default defineConfig(({ mode }) => ({
 					read: 'public',
 					write: 'public'
 				},
-				// Frozen monthly Worlds snapshots only — one immutable doc per
+				// Frozen monthly Worlds snapshots only: one immutable doc per
 				// `${kind}/${affiliationIdentifier}/${monthAnchor}`, written by the
 				// podium freeze (writing as a controller) the first time a closed
 				// month is claimed. Public read (standings surfaces render them);
@@ -328,7 +328,7 @@ export default defineConfig(({ mode }) => ({
 					read: 'public',
 					write: 'controllers'
 				},
-				// Server runtime config (B.1) — e.g. the vici-courier relay URL +
+				// Server runtime config (B.1): e.g. the vici-courier relay URL +
 				// bearer token, set by a controller after deploy. Controllers-only
 				// so it never needs to live in the repo.
 				{
@@ -382,7 +382,7 @@ export default defineConfig(({ mode }) => ({
 		// (`junobuild/satellite:latest`). The `skylab` profile boots the
 		// full Juno suite (`junobuild/skylab:latest`) with the dev Console,
 		// but `juno functions build` exits silently with code 1 against it
-		// — see commit 693c6a6 for the same revert we did earlier. Stick to
+		// (see commit 693c6a6 for the same revert we did earlier). Stick to
 		// `satellite` until juno-cli fixes the skylab build path.
 		satellite: {}
 	}

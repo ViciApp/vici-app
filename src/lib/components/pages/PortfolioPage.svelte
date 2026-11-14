@@ -9,7 +9,7 @@
 	import PortfolioHero from '#lib/components/portfolio/PortfolioHero.svelte';
 	import PortfolioPerformanceCard from '#lib/components/portfolio/PortfolioPerformanceCard.svelte';
 	import {
-		EM_DASH,
+		EMPTY_VALUE,
 		MILLISECOND_IN_NANOSECONDS,
 		USD_DECIMALS
 	} from '#lib/constants/app.constants.ts';
@@ -69,7 +69,7 @@
 	 *   limit price + qty in place of the entry → current strip, plus
 	 *   an inline cancel button.
 	 *
-	 * Rank: not yet served by the satellite, rendered as `EM_DASH`
+	 * Rank: not yet served by the satellite, rendered as `EMPTY_VALUE`
 	 * placeholder, mirroring the Dash page treatment.
 	 */
 
@@ -269,7 +269,7 @@
 		const outcomeId = inferResolvedOutcomeId({ resolved, market });
 
 		if (isNullish(outcomeId)) {
-			return EM_DASH;
+			return EMPTY_VALUE;
 		}
 
 		return market?.outcomes?.find((o) => o.id === outcomeId)?.title ?? outcomeId;
@@ -392,7 +392,7 @@
 									{#if catLabel}
 										<span style:color={catAccent} class="portfolio-row-cat">{catLabel}</span>
 									{:else}
-										<span class="portfolio-row-cat is-dim">{EM_DASH}</span>
+										<span class="portfolio-row-cat is-dim">{EMPTY_VALUE}</span>
 									{/if}
 									<span class="portfolio-row-side portfolio-row-side-{sideKey}">
 										{sideLabel(pos)}
@@ -488,7 +488,7 @@
 										{:else if resolved.result === 'lost'}
 											{t({ locale: $localeStore, key: 'portfolio.row.loss' })}
 										{:else}
-											{EM_DASH}
+											{EMPTY_VALUE}
 										{/if}
 									</span>
 									<span

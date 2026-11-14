@@ -222,7 +222,7 @@ export const switchAffiliation = async ({
 	if (Date.now() < currentLockedUntilMs) {
 		const daysLeft = Math.ceil((currentLockedUntilMs - Date.now()) / DAY_IN_MS);
 
-		throw new Error(`affiliations lock active — cannot switch for another ${daysLeft} day(s).`);
+		throw new Error(`affiliations lock active: cannot switch for another ${daysLeft} day(s).`);
 	}
 
 	await leaveAffiliation({

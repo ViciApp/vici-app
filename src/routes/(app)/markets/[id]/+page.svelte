@@ -75,7 +75,7 @@
 
 	// Whether the viewer's positions for the current market have been read at
 	// least once. Gates the MY CALL tile's loading pulse so it doesn't flash an
-	// empty `—` before the (signed-in) position read lands. Reset on a
+	// empty `–` before the (signed-in) position read lands. Reset on a
 	// foreground market change, set once the read resolves.
 	let positionsLoaded = $state(false);
 
@@ -205,7 +205,7 @@
 			}),
 			// Fail open: a positions-read error must not reject the whole load or
 			// strand the MY CALL shimmer (positionsLoaded never set); fall back to
-			// an empty set so the tile resolves to "—".
+			// an empty set so the tile resolves to "–".
 			getPositionsForMarket(id).catch((error: unknown) => {
 				console.error('market detail: positions read failed', error);
 
@@ -580,7 +580,7 @@
 
 	// MY CALL pulses only for a signed-in viewer whose position read for this
 	// market hasn't landed yet: signed-out visitors have no call to wait for,
-	// so they read `—` immediately rather than a perpetual shimmer.
+	// so they read `–` immediately rather than a perpetual shimmer.
 	const myCallLoading = $derived($userSignedIn && !positionsLoaded);
 
 	const canEditMetadata = $derived(

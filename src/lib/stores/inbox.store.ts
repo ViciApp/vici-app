@@ -443,7 +443,7 @@ const resolvedSide = ({
 
 	const label = outcomeId
 		? (market?.outcomes?.find((o) => o.id === outcomeId)?.title ?? outcomeId)
-		: '—';
+		: '–';
 
 	return { label, sideKey: 'hold' };
 };

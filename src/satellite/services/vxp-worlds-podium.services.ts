@@ -123,12 +123,12 @@ const freezeMonthlySnapshotsIfNeeded = ({
 
 	if (isNullish(admin)) {
 		logError({
-			message: 'worlds_podium freeze aborted — no controller key available',
+			message: 'worlds_podium freeze aborted: no controller key available',
 			detail: { kind, monthAnchor }
 		});
 
 		throw new Error(
-			`claimWorldsPodiumPrize: cannot freeze ${kind}/${monthAnchor} — no satellite controller available.`
+			`claimWorldsPodiumPrize: cannot freeze ${kind}/${monthAnchor}; no satellite controller available.`
 		);
 	}
 

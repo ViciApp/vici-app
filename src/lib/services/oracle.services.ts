@@ -160,7 +160,7 @@ export const reconcileOracleSettlersFromRoles = async (): Promise<OracleSettlerR
 	const oracle = await getViciOracle();
 
 	if (isNullish(oracle)) {
-		throw new Error('Vici oracle is not registered yet — register it before reconciling.');
+		throw new Error('Vici oracle is not registered yet; register it before reconciling.');
 	}
 
 	const desired = new Set(

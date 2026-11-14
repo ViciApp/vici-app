@@ -1,4 +1,4 @@
-// Flow motion engine — lifetime swipe state + beat resolver.
+// Flow motion engine: lifetime swipe state + beat resolver.
 //
 // A swipe in Flow PLACES a call; it does not resolve one. Markets
 // settle on their own dates, elsewhere. So this engine never sees a
@@ -6,7 +6,7 @@
 // the ACT of calling and the discipline of showing up.
 //
 // Design highlights (see `docs/ai/frontend/design.md` §7):
-//   • Copy is a rotating POOL per slot — never the same line twice
+//   • Copy is a rotating POOL per slot: never the same line twice
 //     running, persisted so a daily user gets variation session to
 //     session. Pools hold i18n keys, not literals, so every line still
 //     resolves through `t()`.
@@ -18,11 +18,11 @@
 //     comes from being right, not showing up.
 //   • Credit-STACKING: if a milestone coincides with the daily-complete
 //     beat, BOTH bonuses are credited even though one beat animates.
-//   • Wildcard — a rare (~1 in 6) variable-ratio surprise carrying a
+//   • Wildcard: a rare (~1 in 6) variable-ratio surprise carrying a
 //     non-currency TREAT (sticker / shield / flair), never VXP.
-//   • Comeback — a distinct, no-shame opener for a user returning after
+//   • Comeback: a distinct, no-shame opener for a user returning after
 //     a broken streak, separate from the daily "welcome back".
-//   • Single-pass priority resolver — never two beats back to back.
+//   • Single-pass priority resolver: never two beats back to back.
 
 import { DAILY_HARD_CAP } from '#lib/constants/flow-rewards.constants.ts';
 import type { FlowAction } from '#lib/types/market.ts';
@@ -63,7 +63,7 @@ export const tierForStreak = (days: number): MotionStreakTier => {
 
 export type MotionCharacter = 'vici' | 'oracle' | 'trickster' | 'flame';
 
-// ── Copy pools — rotating, non-repeating. Each entry is an i18n key so
+// ── Copy pools: rotating, non-repeating. Each entry is an i18n key so
 // the line resolves through `t()`; the engine only chooses WHICH key,
 // never the literal text. Single-entry pools are still arrays so the
 // picker is uniform.
@@ -138,7 +138,7 @@ const POOLS: Record<PoolKey, readonly MessageKey[]> = {
 };
 
 // Non-currency wildcard rewards. The chosen key is surfaced as the beat's
-// `treatKey` in the payload only — the engine does not persist it. Callers
+// `treatKey` in the payload only; the engine does not persist it. Callers
 // are responsible for crediting the treat to the user; a dedicated treats
 // store does not exist yet and is a follow-up concern.
 export const TREAT_KEYS: readonly MessageKey[] = [
@@ -219,7 +219,7 @@ const VOLUME: Record<number, VolumeMilestone> = {
 	}
 };
 
-// ── Within-day rhythm — pacing only, NO bonus. Each soft beat fires
+// ── Within-day rhythm: pacing only, NO bonus. Each soft beat fires
 // somewhere inside its WINDOW (jittered per day), not on a fixed call
 // number.
 interface RhythmBeat {
@@ -238,7 +238,7 @@ const RHYTHM: Record<RhythmKey, RhythmBeat> = {
 	r8: { window: [7, 9], character: 'vici', pool: 'r8', duration_ms: 700, haptic: 12 }
 };
 
-// Overtime rhythm (calls 11 & 13) — fixed; the overtime push is a short,
+// Overtime rhythm (calls 11 & 13): fixed; the overtime push is a short,
 // special arc.
 interface OvertimeBeat {
 	character: MotionCharacter;
@@ -259,13 +259,13 @@ const OT_RHYTHM: Record<number, OvertimeBeat> = {
 	13: { character: 'trickster', pool: 'ot-rare', duration_ms: 900, haptic: 12 }
 };
 
-// Daily hard cap — the daily-ten / overtime cadence never schedules a
+// Daily hard cap: the daily-ten / overtime cadence never schedules a
 // rhythm beat beyond this many calls in a single day. The constant lives
 // in a dependency-free constants module so the satellite can own it too;
 // re-exported here so the motion engine's existing importers are unchanged.
 export { DAILY_HARD_CAP };
 
-// ── Beat payload — consumed by `MotionBeat.svelte`. Copy is carried as
+// ── Beat payload, consumed by `MotionBeat.svelte`. Copy is carried as
 // an i18n key (`copyKey`); the chips/labels (`treatKey`, `subKey`,
 // `badgeKey`) are keys too. `coin` is true when a VXP grant rides along.
 export interface MotionBeatPayload {
@@ -302,7 +302,7 @@ export interface MotionSwipeInput {
 	wildcards?: boolean;
 	isComeback?: boolean;
 	// REAL lifetime call count from the profile (`me.calls`), BEFORE this
-	// swipe. When supplied, it seeds the engine's count as a FLOOR — the
+	// swipe. When supplied, it seeds the engine's count as a FLOOR: the
 	// engine uses whichever is larger, this or its own persisted tally,
 	// since the profile count can lag behind in-session activity.
 	lifetimeCalls?: number;
@@ -442,7 +442,7 @@ const buildSchedule = (): Partial<Record<number, RhythmKey>> => {
  * Records a committed swipe and returns credit-stacked bonus VXP plus an
  * optional single beat (highest priority wins; never two back to back).
  * Pure aside from `localStorage` persistence of the rotating-copy / day
- * schedule / first-flag state — no DOM, no network.
+ * schedule / first-flag state: no DOM, no network.
  */
 export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult => {
 	const {
@@ -460,7 +460,7 @@ export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult =>
 
 	const state = loadState();
 
-	// SKIP — skims past a market; no call placed, no beat, no streak progress.
+	// SKIP: skims past a market; no call placed, no beat, no streak progress.
 	if (side === 'SKIP') {
 		state.lifetime.skips += 1;
 		saveState(state);
@@ -478,8 +478,8 @@ export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult =>
 
 	// Lifetime call number for THIS swipe: the larger of the app's REAL
 	// count (`lifetimeCalls + 1`) and the engine's persisted tally. The
-	// profile count is recomputed from trade history on profile syncs —
-	// not bumped per swipe — so within a session it lags behind and, taken
+	// profile count is recomputed from trade history on profile syncs,
+	// not bumped per swipe, so within a session it lags behind and, taken
 	// alone, would pin `calls` at the same number swipe after swipe and
 	// re-fire that milestone (e.g. "first call") on every card. The local
 	// tally (already incremented above) is strictly monotonic, so the max
@@ -511,7 +511,7 @@ export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult =>
 		bonusXp
 	});
 
-	// ── Comeback opener (after a lapse) — owns the first call of the day ──
+	// ── Comeback opener (after a lapse): owns the first call of the day ──
 	if (isComeback && dailyDone === 1) {
 		beat = {
 			kind: 'comeback',
@@ -524,14 +524,14 @@ export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult =>
 		};
 	}
 
-	// ── 1. Daily / overtime complete — the streak beat (showing up) ──
+	// ── 1. Daily / overtime complete: the streak beat (showing up) ──
 	if (dailyJustCompleted) {
 		const tier = tierForStreak(dayStreak > 0 ? dayStreak : 1);
 		state.dayTier = tier;
 		const renderTier: MotionStreakTier = tier === 'NONE' ? 'SPARK' : tier;
 
 		if (overtime) {
-			bonusXp += 25; // the ONLY repeatable mint — the overtime finish
+			bonusXp += 25; // the ONLY repeatable mint: the overtime finish
 
 			beat ??= {
 				kind: 'overtime-complete',
@@ -544,7 +544,7 @@ export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult =>
 				bonusXp: 25
 			};
 		} else {
-			// Regular daily ten — celebration + streak, but NO VXP (deflation-safe).
+			// Regular daily ten: celebration + streak, but NO VXP (deflation-safe).
 			beat ??= {
 				kind: 'daily-complete',
 				character: 'flame',
@@ -558,7 +558,7 @@ export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult =>
 		}
 	}
 
-	// ── 2. Lifetime volume milestone — VXP credited even if it coincides ──
+	// ── 2. Lifetime volume milestone: VXP credited even if it coincides ──
 	const milestone = VOLUME[calls];
 
 	if (nonNullish(milestone)) {
@@ -596,7 +596,7 @@ export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult =>
 		}
 	}
 
-	// ── 4. First-position events — a stance taken, not an outcome ──
+	// ── 4. First-position events: a stance taken, not an outcome ──
 	// Deferred past call #1 so "first-call" owns the very first swipe.
 	if (isNullish(beat) && calls > 1) {
 		if (side === 'YES' && !state.flags.firstYes) {
@@ -661,7 +661,7 @@ export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult =>
 		}
 	}
 
-	// ── 6. Wildcard — rare variable-ratio surprise, non-currency TREAT ──
+	// ── 6. Wildcard: rare variable-ratio surprise, non-currency TREAT ──
 	if (isNullish(beat) && wildcards && calls > 1 && Math.random() < 1 / 6) {
 		const treatKey = TREAT_KEYS[Math.floor(Math.random() * TREAT_KEYS.length)];
 		beat = {

@@ -237,7 +237,7 @@ const resetMyProfile = async (): Promise<void> => {
 	}
 
 	throw new Error(
-		'resetMyProfile: profile doc kept being re-created after delete — the post-sign-in write storm never settled.'
+		'resetMyProfile: profile doc kept being re-created after delete; the post-sign-in write storm never settled.'
 	);
 };
 
