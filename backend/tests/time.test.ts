@@ -1,5 +1,5 @@
 import { describe, expect, setSystemTime, test } from 'bun:test';
-import { msToNs, nowNs, optionalMs } from '../src/lib/time';
+import { monthAnchorFromMs, msToNs, nowNs, optionalMs, previousMonthAnchor } from '../src/lib/time';
 
 describe('msToNs', () => {
 	test('scales milliseconds to nanoseconds', () => {
@@ -26,5 +26,21 @@ describe('optionalMs', () => {
 		expect(optionalMs('1700000000123')).toBe(1_700_000_000_123);
 		expect(optionalMs('0')).toBe(0);
 		expect(optionalMs(null)).toBeUndefined();
+	});
+});
+
+describe('monthAnchorFromMs', () => {
+	test('is the UTC YYYY-MM of the timestamp', () => {
+		expect(monthAnchorFromMs(Date.UTC(2026, 10, 13, 12))).toBe('2026-11');
+		expect(monthAnchorFromMs(Date.UTC(2026, 0, 1, 0, 0, 0, 0))).toBe('2026-01');
+		expect(monthAnchorFromMs(Date.UTC(2026, 11, 31, 23, 59, 59, 999))).toBe('2026-12');
+	});
+});
+
+describe('previousMonthAnchor', () => {
+	test('is the UTC month before the one holding the timestamp', () => {
+		expect(previousMonthAnchor(Date.UTC(2026, 10, 13))).toBe('2026-10');
+		expect(previousMonthAnchor(Date.UTC(2026, 0, 1))).toBe('2025-12');
+		expect(previousMonthAnchor(Date.UTC(2026, 2, 31, 23, 59, 59, 999))).toBe('2026-02');
 	});
 });

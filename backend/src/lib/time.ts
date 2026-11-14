@@ -20,3 +20,21 @@ export const nowNs = (): bigint => msToNs(Date.now());
 /** A nullable `bigint` milliseconds column, selected as `::text`, as an optional number. */
 export const optionalMs = (value: string | null): number | undefined =>
 	nonNullish(value) ? Number(value) : undefined;
+
+/** UTC YYYY-MM anchor for a ms timestamp. */
+export const monthAnchorFromMs = (ms: number): string => {
+	const d = new Date(ms);
+
+	return `${d.getUTCFullYear()}-${(d.getUTCMonth() + 1).toString().padStart(2, '0')}`;
+};
+
+/** The previous month's anchor relative to `nowMs`. */
+export const previousMonthAnchor = (nowMs: number): string => {
+	const d = new Date(nowMs);
+
+	d.setUTCDate(1);
+	d.setUTCHours(0, 0, 0, 0);
+	d.setUTCMonth(d.getUTCMonth() - 1);
+
+	return monthAnchorFromMs(d.getTime());
+};
