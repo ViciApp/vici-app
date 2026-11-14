@@ -364,10 +364,3 @@ export const unfollowUser = async ({
 		throw new RelationError('Relation does not exist');
 	}
 };
-
-/** The active friend user ids of `userId` (both directions of the pair). */
-export const listFriendIds = async (userId: string): Promise<string[]> => {
-	const relations = await listFriends(userId);
-
-	return relations.map(({ participants: [one, two] }) => (one === userId ? two : one));
-};

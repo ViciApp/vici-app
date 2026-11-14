@@ -205,15 +205,6 @@ const METRICS: Record<MenagerieSlug, (stats: MenagerieStats) => number> = {
 	}
 };
 
-/** Read a single animal's raw metric value. */
-export const menagerieMetric = ({
-	slug,
-	stats
-}: {
-	slug: MenagerieSlug;
-	stats: MenagerieStats;
-}): number => METRICS[slug](stats);
-
 /**
  * Highest tier the animal currently qualifies for, or `null` (locked).
  *

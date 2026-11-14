@@ -88,8 +88,8 @@ per-domain sections:
 - **Bulk metadata projections** (`market-tags.services.ts`): public
   satellite `listDocs` scans until a public bulk-metadata HTTP read
   exists.
-- **Market creation / forking and admin settlement**
-  (`createMarket`, `forkMarket`, `settleMarket`): user-signed registry /
+- **Market creation and admin settlement**
+  (`createMarket`, `settleMarket`): user-signed registry /
   clearing writes; curator / admin surfaces stay on the on-chain identity,
   as do `registerIcrcAsset` and the roles / admin services.
 - **Complete-set mint / redeem**: no HTTP route and no live caller.
@@ -364,7 +364,7 @@ apply them at the fetch boundary.
   public `MARKET_METADATA` collection via Juno `listDocs`; the HTTP API
   has no public bulk-metadata list yet (its `/markets/tags` bucket index
   is admin-only), so these stay on the satellite until that read exists.
-- Market creation / forking (`createMarket`, `forkMarket`) and admin
+- Market creation (`createMarket`) and admin
   settlement (`resolution.services.ts` `settleMarket`) are user-signed
   registry / clearing writes with no HTTP route yet; curator / admin
   surfaces stay on the on-chain identity.
@@ -596,9 +596,7 @@ activity on both transports for the same reason.
   session covers the `anonymous` reason (a signed-out call 401s), and the
   web2-only `recorded_only` reason (treasury parallel-run mode: recorded,
   not transferred) was added to the shared reason union. It does not
-  block the calibration session. `client.ts` also ships
-  `listMyVxpAwards` (`GET /vxp/awards`) for the award-history surface;
-  no live FE caller yet.
+  block the calibration session.
 - `referral.services.ts`: all six functions. The code is assigned
   server-side on first read (no backfill wait); `lookupReferralCode`
   resolves to the owner's account id, which the swapped profile reads

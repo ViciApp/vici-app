@@ -77,14 +77,6 @@ export const TRANSACTION_HISTORY_LEDGER_PAGE_SIZE = 100n;
 export const TRANSACTION_HISTORY_MAX_LEDGER_PAGES = 20;
 
 /**
- * How often the prediction interface and depth panel re-fetch the
- * order book while a market is open. 5 s is the eyeballed sweet spot
- * between "stale" and "wasteful" given typical order-book churn; bump
- * via this constant rather than the literal inline.
- */
-export const ORDER_BOOK_POLL_MS = 5_000;
-
-/**
  * Default auto-dismiss duration for global toasts (`notificationsStore`).
  * Per-call overrides still win — this is just the implicit default.
  */

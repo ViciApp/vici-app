@@ -1099,19 +1099,6 @@ html[data-app='1'] body {
 	}
 }
 
-/* Archivist chart redraw — line draws in over its cycle */
-@keyframes char-chart {
-	0% {
-		stroke-dasharray: 0 30;
-	}
-	60% {
-		stroke-dasharray: 30 0;
-	}
-	100% {
-		stroke-dasharray: 30 0;
-	}
-}
-
 @keyframes char-pop {
 	0% {
 		opacity: 0;
@@ -1164,10 +1151,6 @@ html[data-app='1'] body {
 .char-bolt {
 	animation: char-bolt 1.8s steps(1, end) infinite;
 }
-.char-chart {
-	stroke-dasharray: 0 30;
-	animation: char-chart 4s ease-out infinite;
-}
 .char-flicker {
 	animation: char-flicker 0.9s ease-in-out infinite;
 }
@@ -1185,18 +1168,10 @@ html[data-app='1'] body {
 	.char-ear,
 	.char-tail,
 	.char-bolt,
-	.char-chart,
 	.char-flicker,
 	.char-pop,
 	.reso-row-q-skeleton {
 		animation: none;
-	}
-
-	/* The chart-redraw base rule leaves the line at `0 30` (undrawn). With
-	 * the animation suppressed, pin it to the fully-drawn state so the
-	 * Archivist chart stays visible for reduced-motion users. */
-	.char-chart {
-		stroke-dasharray: 30 0;
 	}
 }
 

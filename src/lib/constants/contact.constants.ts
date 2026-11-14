@@ -47,8 +47,5 @@ export const INFO_EMAIL = buildEmail('info');
 /** General hello / press inbox. */
 export const HELLO_EMAIL = buildEmail('hello');
 
-/** Privacy / data-rights requests (referenced from the privacy policy). */
-export const PRIVACY_EMAIL = buildEmail('privacy');
-
 /** Resolution-dispute filings (referenced from the resolution rules). */
 export const RESOLUTION_EMAIL = buildEmail('resolution');
