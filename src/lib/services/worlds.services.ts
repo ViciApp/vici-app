@@ -251,37 +251,12 @@ export const switchAffiliation = async ({
 };
 
 /**
- * Project the satellite's wire row for affiliation stats to
- * `AffiliationStatsDoc`.
- */
-const projectStatsWire = (s: {
-	affiliationIdentifier: string;
-	kind: AffiliationKind;
-	totalCalls: number;
-	wins: number;
-	monthAnchor: string;
-	monthTotalCalls: number;
-	monthWins: number;
-	updatedAtMs: number;
-}): AffiliationStatsDoc => ({
-	affiliationIdentifier: s.affiliationIdentifier,
-	kind: s.kind,
-	totalCalls: s.totalCalls,
-	wins: s.wins,
-	monthAnchor: s.monthAnchor,
-	monthTotalCalls: s.monthTotalCalls,
-	monthWins: s.monthWins,
-	updatedAtMs: s.updatedAtMs
-});
-
-/**
  * Single-affiliation lookup. Returns `undefined` when the
  * affiliation has no stats doc yet (no member of it has had any
  * resolved trades). Callers should render as "unranked / no data".
  *
  * The wire shape is already camelCase and matches `AffiliationStatsDoc`,
- * so the doc is returned as is; `listAffiliationStats` below maps its
- * rows through `projectStatsWire`.
+ * so the doc is returned as is, like the rows of `listAffiliationStats`.
  */
 export const getAffiliationStats = async ({
 	kind,
@@ -318,7 +293,7 @@ export const listAffiliationStats = async ({
 
 	const { items } = await functions.listAffiliationStats({ kind, limit });
 
-	return items.map(projectStatsWire);
+	return items;
 };
 
 /**
@@ -362,11 +337,7 @@ export const listAffiliationChampionships = async ({
 
 	const { items } = await functions.listAffiliationChampionships({ kind, affiliationIdentifier });
 
-	return items.map((item) => ({
-		monthAnchor: item.monthAnchor,
-		accuracy: item.accuracy,
-		monthTotalCalls: item.monthTotalCalls
-	}));
+	return items;
 };
 
 /**

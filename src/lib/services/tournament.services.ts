@@ -8,7 +8,6 @@ import {
 	resolveTournamentRound as resolveTournamentRoundWeb2,
 	triggerTournamentDraw as triggerTournamentDrawWeb2
 } from '#lib/web2/client.ts';
-import { isNullish } from '@dfinity/utils';
 
 /**
  * Monthly tournament: Proposal 3 FE wrappers.
@@ -18,27 +17,6 @@ import { isNullish } from '@dfinity/utils';
  * page mount (idempotent via doc-key collision on the month anchor).
  * `getCurrentTournament` then drives the bracket render.
  */
-
-/**
- * Project the satellite's wire row for a tournament to `TournamentDoc`.
- */
-const projectTournamentWire = (wire: {
-	id: string;
-	monthStartMs: number;
-	monthEndMs: number;
-	bracketSize: number;
-	state: 'in_flight' | 'concluded';
-	seededLeagueIds: string[];
-	createdAtMs: number;
-}): TournamentDoc => ({
-	id: wire.id,
-	monthStartMs: wire.monthStartMs,
-	monthEndMs: wire.monthEndMs,
-	bracketSize: wire.bracketSize,
-	state: wire.state,
-	seededLeagueIds: wire.seededLeagueIds,
-	createdAtMs: wire.createdAtMs
-});
 
 /**
  * Project the satellite's wire row for a match to the FE shape.
@@ -96,7 +74,7 @@ export const getCurrentTournament = async (): Promise<{
 	const { tournament, matches } = await functions.getCurrentTournament();
 
 	return {
-		tournament: isNullish(tournament) ? null : projectTournamentWire(tournament),
+		tournament: tournament ?? null,
 		matches: matches.map(projectMatchWire)
 	};
 };
