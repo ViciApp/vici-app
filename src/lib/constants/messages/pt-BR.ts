@@ -1099,9 +1099,9 @@ export const ptBRMessages = {
 	'info.doc.faq.b19':
 		'Duelos são competições por tempo limitado entre ligas ou universidades. A precisão média no período decide o vencedor. É preciso um mínimo de previsões para se classificar.',
 	'info.doc.faq.b2':
-		'Abra o Flow e aparece o card de um mercado. Arraste para a direita para dizer SIM, para a esquerda para NÃO, para cima para pular. Toque no card para virá-lo e ver o contexto e as cotações completas.',
+		'Abra o Flow e aparece o card de um mercado. Arraste para a direita para dizer SIM, para a esquerda para NÃO, para cima para pular. Toque no card para virá-lo e ver o contexto e quem está prevendo o quê.',
 	'info.doc.faq.b3':
-		'Cada previsão compromete VXP nas cotações do mercado: resultados improváveis rendem mais, favoritos menos. Faça suas 10 previsões por dia para aumentar sua sequência; sua precisão e sua posição sobem à medida que os mercados se resolvem.',
+		'Cada previsão coloca VXP em jogo na probabilidade do mercado: resultados improváveis rendem mais, favoritos menos. Faça suas 10 previsões por dia para aumentar sua sequência; sua precisão e sua posição sobem à medida que os mercados se resolvem.',
 	'info.doc.faq.b4': 'O que é VXP?',
 	'info.doc.faq.b5':
 		'VXP é o crédito de previsão interno do app. Você ganha fazendo previsões. Não é dinheiro. Não é convertível. É a unidade do seu histórico.',

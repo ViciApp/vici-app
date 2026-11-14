@@ -153,7 +153,7 @@ export const itMessages = {
 	'battles.your_school': 'Alma Mater · {name}',
 	'achievement.bold_caller.description': 'Miglior precisione sugli outsider del mese',
 	'achievement.bold_caller.detail':
-		'Chiudi il mese con la precisione più alta tra chi punta abitualmente sugli outsider: un consenso mediano inferiore al 40% sui lati che chiami. Assegnato alla chiusura del mese; in caso di parità l’onore è condiviso.',
+		'Chiudi il mese con la precisione più alta tra chi sceglie abitualmente gli outsider: un consenso mediano inferiore al 40% sui lati che chiami. Assegnato alla chiusura del mese; in caso di parità l’onore è condiviso.',
 	'achievement.bold_caller.name': 'Voce coraggiosa',
 	'achievement.contrarian.name': 'Contrarian',
 	'achievement.first_call.description': 'Fai la tua prima previsione',
@@ -785,9 +785,9 @@ export const itMessages = {
 	'card.tap_depth': 'TOCCA PER DETTAGLI',
 	'card.you_called_eyebrow': 'LA TUA CHIAMATA',
 	'card.your_accuracy_line': 'La tua accuratezza in {category}: {pct}% · {calls} call',
-	'challenge.create.error.missing_premium': 'Posta mancante',
+	'challenge.create.error.missing_premium': 'Pegno mancante',
 	'challenge.create.error.missing_premium_message':
-		'Scegli una posta dalla lista o descrivine una personalizzata.',
+		'Scegli un pegno dalla lista o descrivine uno personalizzato.',
 	'claim.banner.cta': 'Trasferisci ora',
 	'claim.banner.dismiss_aria': 'Chiudi',
 	'claim.banner.text': 'Il nuovo VICI è pronto. Porta con te il tuo account con un tocco.',
@@ -1124,9 +1124,9 @@ export const itMessages = {
 	'flow.skip_aria': 'Salta',
 	'flow.stage_ended': '{stage} terminato.',
 	'flow.stake.warning.unaffordable':
-		'Più dei VXP disponibili. Il saldo è in gioco, abbassa la posta.',
+		'Più dei VXP disponibili. Il saldo è in gioco, abbassa l’importo.',
 	'flow.stake.warning.wont_finish':
-		'Così resta troppo poco per finire il tuo flow. Prova una posta più bassa.',
+		'Così resta troppo poco per finire il tuo flow. Prova un importo più basso.',
 	'flow.streak_combo': 'Serie ×{count}',
 	'flow.title_a': 'Uno swipe.',
 	'flow.title_b': 'Una previsione.',
@@ -1204,9 +1204,9 @@ export const itMessages = {
 	'info.doc.faq.b19':
 		'Le sfide sono competizioni a tempo tra leghe o università. La precisione media nel periodo decide chi vince. Serve un numero minimo di previsioni per qualificarsi.',
 	'info.doc.faq.b2':
-		'Apri Flow e compare la scheda di un mercato. Scorri a destra per dire SÌ, a sinistra per NO, in alto per saltare. Tocca la scheda per girarla e vedere il contesto e le quote complete.',
+		'Apri Flow e compare la scheda di un mercato. Scorri a destra per dire SÌ, a sinistra per NO, in alto per saltare. Tocca la scheda per girarla e vedere il contesto e chi prevede cosa.',
 	'info.doc.faq.b3':
-		'Ogni previsione impegna VXP alle quote del mercato: gli esiti improbabili rendono di più, i favoriti meno. Fai le tue 10 previsioni al giorno per far crescere la serie; precisione e posizione salgono man mano che i mercati si chiudono.',
+		'Ogni previsione mette in gioco VXP alla probabilità del mercato: gli esiti improbabili rendono di più, i favoriti meno. Fai le tue 10 previsioni al giorno per far crescere la serie; precisione e posizione salgono man mano che i mercati si chiudono.',
 	'info.doc.faq.b4': 'Cos’è il VXP?',
 	'info.doc.faq.b5':
 		'Il VXP è il credito di previsione interno all’app. Lo guadagni facendo previsioni. Non è denaro. Non è convertibile. È l’unità del tuo storico.',
@@ -1236,7 +1236,7 @@ export const itMessages = {
 		'Il mercato si congela alla chiusura nella data di scadenza. L’esito pubblicato viene registrato su ogni previsione fatta sul mercato. Chi ha indovinato guadagna VXP al tasso mostrato al momento della previsione. Chi ha sbagliato non guadagna nulla.',
 	'info.doc.how-resolution-works.b7': 'Se una fonte non pubblica',
 	'info.doc.how-resolution-works.b8':
-		'Raro, ma previsto. Il mercato viene annullato. Ogni partecipante riceve indietro l’intera quota. Nessun punto di precisione viene assegnato.',
+		'Raro, ma previsto. Il mercato viene annullato. Ogni partecipante riceve indietro tutti i VXP impegnati. Nessun punto di precisione viene assegnato.',
 	'info.doc.how-resolution-works.b9': 'Se una fonte pubblica in modo ambiguo',
 	'info.doc.how-resolution-works.eyebrow': 'Aiuto · Risoluzione',
 	'info.doc.how-resolution-works.title': 'Come funziona la risoluzione',
@@ -1246,7 +1246,7 @@ export const itMessages = {
 	'info.doc.resolution-rules.b10.i0':
 		'Esito ambiguo → la redazione Vici valuta in base al criterio. Decisione e motivazione vengono pubblicate apertamente.',
 	'info.doc.resolution-rules.b10.i1':
-		'La fonte non pubblica → mercato annullato, quote restituite, nessun effetto sulla precisione.',
+		'La fonte non pubblica → mercato annullato, VXP restituiti, nessun effetto sulla precisione.',
 	'info.doc.resolution-rules.b10.i2':
 		'La fonte cambia metodologia a finestra aperta → mercato annullato, salvo che la modifica sia irrilevante.',
 	'info.doc.resolution-rules.b11': 'Contestazioni',
@@ -1524,7 +1524,7 @@ export const itMessages = {
 	'loop.flow_italic': 'Decidi al volo.',
 	'loop.flow_name': 'Flow',
 	'loop.market_body':
-		'Apri una domanda quando vale la pena. Leggi la mossa. Punta sulla tua convinzione.',
+		'Apri una domanda quando vale la pena. Leggi la mossa. Fai la tua call con convinzione.',
 	'loop.market_eyebrow': '02 · MERCATO',
 	'loop.market_italic': 'Vai più in profondità.',
 	'loop.market_name': 'Mercato',
@@ -1537,7 +1537,7 @@ export const itMessages = {
 	'loop.title_a': 'Tre stati.',
 	'loop.title_b': 'Un ciclo.',
 	'market.closes': 'chiude',
-	'market.odds.loading': 'Caricamento quote',
+	'market.odds.loading': 'Caricamento probabilità',
 	'market.odds.no_liquidity': 'Ancora nessuna liquidità',
 	'market.detail.admin_actions': 'Azioni amministratore',
 	'market.detail.back_to_markets': 'Torna ai mercati',
@@ -1974,7 +1974,7 @@ export const itMessages = {
 	'portfolio.back': 'Torna alla dashboard',
 	'portfolio.allocation.other': 'Altri',
 	'portfolio.empty.body':
-		'Punta su qualche call nel mazzo Flow: le tue posizioni attive e risolte appariranno qui.',
+		'Fai qualche call nel mazzo Flow: le tue posizioni attive e risolte appariranno qui.',
 	'portfolio.empty.cta': 'Apri Flow',
 	'portfolio.empty.quote': '"Un portafoglio è il registro delle call che hai scelto di tenere."',
 	'portfolio.hero.eyebrow': 'PATRIMONIO TOTALE',
@@ -2001,7 +2001,7 @@ export const itMessages = {
 	'portfolio.stat.unrealized_pnl': 'P&L NON REALIZZATO',
 	'portfolio.title': 'Portafoglio',
 	'portfolio.unknown_market': 'Mercato sconosciuto',
-	'prediction.back_side': 'Punta {side}',
+	'prediction.back_side': 'Prevedi {side}',
 	'prediction.balance': 'Saldo · {amount}',
 	'prediction.confirming': 'Conferma...',
 	'prediction.deposit_wallet': 'Deposita collaterale nel Portafoglio',
@@ -2467,7 +2467,7 @@ export const itMessages = {
 	'arena.premium.coffee.desc': 'Un chicco di caffè',
 	'arena.premium.dinner.desc': 'Una tavolata',
 	'arena.premium.label': 'Cosa paga chi perde',
-	'arena.premium.other.input_label': 'Descrivi la posta',
+	'arena.premium.other.input_label': 'Descrivi il pegno',
 	'arena.premium.other.label': 'Altro',
 	'arena.premium.other.placeholder': 'es. Un giro di karaoke',
 	'arena.premium.pizza.desc': 'Una margherita',
@@ -2521,7 +2521,7 @@ export const itMessages = {
 	'trust.p2_t': 'Stesse informazioni per tutti',
 	'trust.p3_b':
 		'La probabilità che vedi è il consenso che voti. Nessun vantaggio del banco. Nessuno spread.',
-	'trust.p3_t': 'Nessuna quota nascosta',
+	'trust.p3_t': 'Nessuna probabilità nascosta',
 	'trust.sub': 'Tre regole che la piattaforma non infrange mai.',
 	'trust.title_a': 'Niente banco.',
 	'trust.title_b': 'Niente vantaggio. Niente segreti.',

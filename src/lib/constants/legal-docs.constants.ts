@@ -78,7 +78,7 @@ export const TERMS: InfoDoc = {
 				'No purchase, no payout. Virtual Items cannot be purchased, sold, traded, transferred, gifted, withdrawn, redeemed or exchanged for money, cryptocurrency, goods, prizes or anything of value, whether on the Service or elsewhere. There is nothing to buy in order to play.',
 				'No gambling. The Service does not offer real-money wagering, betting or gambling of any kind. Because no consideration is staked and no prize of value is awarded, the Service is not gambling.',
 				'Not a regulated market. The Service is not a securities exchange, a commodities or derivatives market, a real-money prediction market, or any other regulated financial venue, and is not supervised as one.',
-				'Not advice. Predictions, odds, scores and any information shown in the Service are for entertainment only and are not financial, investment, legal, betting or other professional advice. Do not rely on them.'
+				'Not advice. Predictions, probabilities, scores and any information shown in the Service are for entertainment only and are not financial, investment, legal, betting or other professional advice. Do not rely on them.'
 			]
 		},
 		{ kind: 'h', text: '5. Virtual Items (VXP)' },
@@ -215,7 +215,7 @@ export const PRIVACY: InfoDoc = {
 			kind: 'list',
 			items: [
 				'Account and identity data: the identifier you sign in with and any profile details you choose to add (e.g. display name). You can sign in with Google, Apple, or a passkey. When you use Google or Apple, we receive a limited set of identity data from them (such as a unique identifier and, depending on your settings, your name and email; Apple may provide a private relay email). Passkeys use device-based cryptography and do not involve a third-party identity provider.',
-				'Prediction and gameplay data: the predictions you make, your stakes, your VXP balance and history, accuracy and outcomes, and other in-game activity. This is core to providing the service and to leaderboards.',
+				'Prediction and gameplay data: the predictions you make, the VXP you put into them, your VXP balance and history, accuracy and outcomes, and other in-game activity. This is core to providing the service and to leaderboards.',
 				'Device and usage data: basic technical information such as device type, browser, approximate region (derived from IP), and how you interact with the app, collected for analytics and security.',
 				'Communications: if you contact us, the content of that correspondence and the address you used.',
 				'Advertising and attribution data: see Section 6.'

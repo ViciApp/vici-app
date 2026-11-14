@@ -153,7 +153,7 @@ export const frMessages = {
 	'battles.your_school': 'Alma Mater · {name}',
 	'achievement.bold_caller.description': 'Meilleure précision sur les outsiders du mois',
 	'achievement.bold_caller.detail':
-		'Terminez le mois avec la meilleure précision parmi celles et ceux qui misent habituellement sur l’outsider : un consensus médian sous 40% sur les camps que vous choisissez. Attribué à la clôture du mois ; en cas d’égalité, l’honneur est partagé.',
+		'Terminez le mois avec la meilleure précision parmi celles et ceux qui choisissent habituellement l’outsider : un consensus médian sous 40% sur les camps que vous choisissez. Attribué à la clôture du mois ; en cas d’égalité, l’honneur est partagé.',
 	'achievement.bold_caller.name': 'Voix audacieuse',
 	'achievement.contrarian.name': 'Contrariant',
 	'achievement.first_call.description': 'Faites votre première prédiction',
@@ -928,7 +928,7 @@ export const frMessages = {
 	'dash.dz.hero_trans_day0': 'Des actes, pas des mots.',
 	'dash.dz.hero_trans_day1': 'Le sort en est jeté. Votre première prédiction est en vol.',
 	'dash.dz.holdings_caption':
-		'Pack de départ. Misez-le sur des prédictions ; gagnez pour le faire croître.',
+		'Pack de départ. Utilisez-le pour des prédictions ; gagnez pour le faire croître.',
 	'dash.dz.lifetime_zero': '0 gagné',
 	'dash.dz.n_open': '{count} OUVERTES',
 	'dash.dz.n_pending': '{count} EN ATTENTE',
@@ -1128,9 +1128,9 @@ export const frMessages = {
 	'flow.skip_aria': 'Passer',
 	'flow.stage_ended': '{stage} terminé.',
 	'flow.stake.warning.unaffordable':
-		'Plus que tes VXP disponibles. Ton solde est en jeu, réduis la mise.',
+		'Plus que tes VXP disponibles. Ton solde est en jeu, réduis le montant.',
 	'flow.stake.warning.wont_finish':
-		'Il resterait trop peu pour finir ton flow. Essaie une mise plus petite.',
+		'Il resterait trop peu pour finir ton flow. Essaie un montant plus petit.',
 	'flow.streak_combo': 'Série ×{count}',
 	'flow.title_a': 'Un swipe.',
 	'flow.title_b': 'Un pronostic.',
@@ -1208,9 +1208,9 @@ export const frMessages = {
 	'info.doc.faq.b19':
 		'Les duels sont des compétitions à durée limitée entre ligues ou universités. La précision moyenne sur la période désigne le vainqueur. Un nombre minimum de prévisions est requis pour se qualifier.',
 	'info.doc.faq.b2':
-		'Ouvre Flow et une carte de marché apparaît. Glisse à droite pour dire OUI, à gauche pour NON, vers le haut pour passer. Touche la carte pour la retourner et voir le contexte et les cotes complètes.',
+		'Ouvre Flow et une carte de marché apparaît. Glisse à droite pour dire OUI, à gauche pour NON, vers le haut pour passer. Touche la carte pour la retourner et voir le contexte et qui pronostique quoi.',
 	'info.doc.faq.b3':
-		'Chaque prévision engage des VXP aux cotes du marché : les issues improbables rapportent plus, les favoris moins. Fais tes 10 prévisions du jour pour faire grandir ta série ; ta précision et ton rang montent à mesure que les marchés se règlent.',
+		'Chaque prévision met des VXP en jeu à la probabilité du marché : les issues improbables rapportent plus, les favoris moins. Fais tes 10 prévisions du jour pour faire grandir ta série ; ta précision et ton rang montent à mesure que les marchés se règlent.',
 	'info.doc.faq.b4': 'C’est quoi les VXP ?',
 	'info.doc.faq.b5':
 		'Les VXP sont le crédit de prévision interne à l’app. Tu en gagnes en faisant des prévisions. Ce n’est pas de l’argent. Ce n’est pas convertible. C’est l’unité de ton palmarès.',
@@ -1240,7 +1240,7 @@ export const frMessages = {
 		'Le marché se fige à la clôture, à la date d’échéance. Le résultat publié est enregistré sur chaque prévision faite sur le marché. Ceux qui ont vu juste gagnent des VXP au taux affiché au moment de leur prévision. Les autres ne gagnent rien.',
 	'info.doc.how-resolution-works.b7': 'Si une source ne publie pas',
 	'info.doc.how-resolution-works.b8':
-		'Rare, mais prévu. Le marché est annulé. Chaque participant récupère l’intégralité de sa mise. Aucun point de justesse n’est attribué.',
+		'Rare, mais prévu. Le marché est annulé. Chaque participant récupère l’intégralité de ses VXP. Aucun point de justesse n’est attribué.',
 	'info.doc.how-resolution-works.b9': 'Si une source publie de façon ambiguë',
 	'info.doc.how-resolution-works.eyebrow': 'Aide · Règlement',
 	'info.doc.how-resolution-works.title': 'Comment se règle un marché',
@@ -1250,7 +1250,7 @@ export const frMessages = {
 	'info.doc.resolution-rules.b10.i0':
 		'Résultat ambigu → la rédaction Vici tranche selon le critère. Décision et raisonnement sont publiés ouvertement.',
 	'info.doc.resolution-rules.b10.i1':
-		'La source ne publie pas → marché annulé, mises restituées, aucun effet sur la précision.',
+		'La source ne publie pas → marché annulé, VXP restitués, aucun effet sur la précision.',
 	'info.doc.resolution-rules.b10.i2':
 		'La source change de méthodologie en cours de fenêtre → marché annulé, sauf si le changement est sans incidence.',
 	'info.doc.resolution-rules.b11': 'Contestations',
@@ -1543,7 +1543,7 @@ export const frMessages = {
 	'loop.title_a': 'Trois états.',
 	'loop.title_b': 'Une boucle.',
 	'market.closes': 'ferme',
-	'market.odds.loading': 'Chargement des cotes',
+	'market.odds.loading': 'Chargement des probabilités',
 	'market.odds.no_liquidity': 'Pas encore de liquidité',
 	'market.detail.admin_actions': 'Actions administrateur',
 	'market.detail.back_to_markets': 'Retour aux marchés',
@@ -2535,7 +2535,7 @@ export const frMessages = {
 	'trust.p2_t': 'Mêmes infos pour tous',
 	'trust.p3_b':
 		'La probabilité que vous voyez est le consensus que vous votez. Pas d’avantage de maison. Pas de spread.',
-	'trust.p3_t': 'Pas de cotes cachées',
+	'trust.p3_t': 'Pas de probabilités cachées',
 	'trust.sub': 'Trois règles que la plateforme ne brisera pas.',
 	'trust.title_a': 'Pas de maison.',
 	'trust.title_b': 'Pas d’avantage. Pas de secrets.',
@@ -2589,7 +2589,7 @@ export const frMessages = {
 	'wallet.row.reward': 'Récompense',
 	'wallet.row.send': 'Envoyé',
 	'wallet.row.settlement': 'Gagné',
-	'wallet.row.trade': 'Misé',
+	'wallet.row.trade': 'Engagé',
 	'wallet.send.amount': 'Montant',
 	'wallet.send.empty':
 		'Chargement des options d’envoi… Si cela persiste, aucun token n’est disponible sur votre réseau actuel.',

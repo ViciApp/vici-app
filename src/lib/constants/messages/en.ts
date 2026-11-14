@@ -183,7 +183,7 @@ export const enMessages = {
 	'achievement.toast.title': 'Achievement unlocked',
 	'flow.entry.deck_eyebrow': 'Today’s deck',
 	'flow.entry.line.crowd': 'Reading the crowd.',
-	'flow.entry.line.odds': 'Weighing the odds.',
+	'flow.entry.line.odds': 'Weighing the chances.',
 	'flow.entry.line.shuffle': 'Shuffling the deck.',
 	'flow.entry.line.summon': 'Summoning today’s calls.',
 	'flow.entry.cta_ready': 'Enter Flow →',
@@ -686,7 +686,7 @@ export const enMessages = {
 	'calibration.beat.deployed.practice': 'Practice while you wait →',
 	'calibration.beat.deployed.riding_on': 'RIDING ON {calls}',
 	'calibration.beat.deployed.see_open_calls': 'See open calls →',
-	'calibration.beat.deployed.title': 'Your whole stack is in play, nothing lost.',
+	'calibration.beat.deployed.title': 'Your whole balance is in play, nothing lost.',
 	'calibration.beat.depleted.body':
 		'The record absorbs both. Sharpen the eye in Calibration: losses are shielded while you climb back.',
 	'calibration.beat.depleted.eyebrow': 'OUT OF VXP',
@@ -840,9 +840,9 @@ export const enMessages = {
 	'dash.build.sheet_avail_sub': 'Ready to spend on calls',
 	'dash.build.sheet_history': 'Transaction history',
 	'dash.build.sheet_history_sub': 'Bonuses, predictions, payouts',
-	'dash.build.sheet_inplay_sub_many': 'At stake on {count} open calls',
+	'dash.build.sheet_inplay_sub_many': 'Committed to {count} open calls',
 	'dash.build.sheet_inplay_sub_none': 'No open calls',
-	'dash.build.sheet_inplay_sub_one': 'At stake on {count} open call',
+	'dash.build.sheet_inplay_sub_one': 'Committed to {count} open call',
 	'dash.build.sheet_invite_cta': 'Invite a friend · +500 VXP each',
 	'dash.build.sheet_your_vxp': 'Your VXP',
 	'dash.build.show_less': 'Show less ↑',
@@ -1181,9 +1181,9 @@ export const enMessages = {
 	'info.doc.faq.b19':
 		'Battles are time-bound competitions between leagues or universities. Average accuracy during the window determines the winner. A minimum number of calls is required to qualify.',
 	'info.doc.faq.b2':
-		'Open Flow and a market card appears. Swipe right to call YES, left for NO, up to skip. Tap the card to flip it for context and the full odds.',
+		'Open Flow and a market card appears. Swipe right to call YES, left for NO, up to skip. Tap the card to flip it for context and who’s calling what.',
 	'info.doc.faq.b3':
-		'Each call stakes VXP at the market’s odds: long shots pay more, favourites pay less. Make your daily 10 calls to grow your streak; your accuracy and rank build as calls resolve.',
+		'Each call puts VXP in play at the market’s probability: long shots pay more, favourites pay less. Make your daily 10 calls to grow your streak; your accuracy and rank build as calls resolve.',
 	'info.doc.faq.b4': 'What is VXP?',
 	'info.doc.faq.b5':
 		'VXP is the in-app prediction credit. Make calls to earn it. It is not currency. It cannot be redeemed. It is the unit of your track record.',
@@ -1213,7 +1213,7 @@ export const enMessages = {
 		'The market freezes at trading close on the settles date. The published outcome is recorded against every call made on the market. Winners earn VXP at the rate displayed when they made the call. Losers earn nothing.',
 	'info.doc.how-resolution-works.b7': 'If a source fails to publish',
 	'info.doc.how-resolution-works.b8':
-		'Rare but documented. The market is voided. Every caller receives their stake back in full. No accuracy points are awarded either way.',
+		'Rare but documented. The market is voided. Every caller gets their VXP back in full. No accuracy points are awarded either way.',
 	'info.doc.how-resolution-works.b9': 'If a source publishes ambiguously',
 	'info.doc.how-resolution-works.eyebrow': 'Help · Resolution',
 	'info.doc.how-resolution-works.title': 'How resolution works',
@@ -1223,7 +1223,7 @@ export const enMessages = {
 	'info.doc.resolution-rules.b10.i0':
 		'Ambiguous outcome → Vici editorial reviews against the criterion. Decision and reasoning are posted publicly.',
 	'info.doc.resolution-rules.b10.i1':
-		'Source fails to publish → market voided, stakes returned, no accuracy effect either way.',
+		'Source fails to publish → market voided, VXP returned, no accuracy effect either way.',
 	'info.doc.resolution-rules.b10.i2':
 		'Source changes its methodology mid-window → market voided unless the change is immaterial.',
 	'info.doc.resolution-rules.b11': 'Disputes',
@@ -1494,7 +1494,7 @@ export const enMessages = {
 	'loop.flow_italic': 'Decide fast.',
 	'loop.flow_name': 'Flow',
 	'loop.market_body':
-		'Open a question when something matters. Read the move. Stake your conviction.',
+		'Open a question when something matters. Read the move. Call it with conviction.',
 	'loop.market_eyebrow': '02 · MARKET',
 	'loop.market_italic': 'Go deeper.',
 	'loop.market_name': 'Market',
@@ -1507,7 +1507,7 @@ export const enMessages = {
 	'loop.title_a': 'Three states.',
 	'loop.title_b': 'One loop.',
 	'market.closes': 'closes',
-	'market.odds.loading': 'Loading odds',
+	'market.odds.loading': 'Loading probability',
 	'market.odds.no_liquidity': 'No liquidity yet',
 	'market.detail.admin_actions': 'Admin actions',
 	'market.detail.back_to_markets': 'Back to markets',
@@ -2508,7 +2508,7 @@ export const enMessages = {
 	'trust.p2_t': 'Same info for everyone',
 	'trust.p3_b':
 		'The probability you see is the consensus you’re voting on. No house edge. No spread.',
-	'trust.p3_t': 'No hidden odds',
+	'trust.p3_t': 'No hidden probabilities',
 	'trust.sub': 'Three rules the platform won’t break.',
 	'trust.title_a': 'No house.',
 	'trust.title_b': 'No edge. No secrets.',
@@ -2562,7 +2562,7 @@ export const enMessages = {
 	'wallet.row.reward': 'Reward',
 	'wallet.row.send': 'Sent',
 	'wallet.row.settlement': 'Won',
-	'wallet.row.trade': 'Staked',
+	'wallet.row.trade': 'Called',
 	'wallet.send.amount': 'Amount',
 	'wallet.send.empty':
 		'Loading send options… If this persists, no tokens are available for your current network.',

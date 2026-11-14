@@ -1205,9 +1205,9 @@ export const esMessages = {
 	'info.doc.faq.b19':
 		'Los duelos son competiciones por tiempo limitado entre ligas o universidades. La precisión media del periodo decide al ganador. Hace falta un mínimo de predicciones para clasificar.',
 	'info.doc.faq.b2':
-		'Abre Flow y aparece la tarjeta de un mercado. Desliza a la derecha para decir SÍ, a la izquierda para NO, hacia arriba para saltar. Toca la tarjeta para girarla y ver el contexto y las cuotas completas.',
+		'Abre Flow y aparece la tarjeta de un mercado. Desliza a la derecha para decir SÍ, a la izquierda para NO, hacia arriba para saltar. Toca la tarjeta para girarla y ver el contexto y quién predice qué.',
 	'info.doc.faq.b3':
-		'Cada predicción compromete VXP a las cuotas del mercado: los resultados improbables rinden más, los favoritos menos. Haz tus 10 predicciones al día para hacer crecer tu racha; tu precisión y tu puesto suben a medida que los mercados se resuelven.',
+		'Cada predicción pone VXP en juego a la probabilidad del mercado: los resultados improbables rinden más, los favoritos menos. Haz tus 10 predicciones al día para hacer crecer tu racha; tu precisión y tu puesto suben a medida que los mercados se resuelven.',
 	'info.doc.faq.b4': '¿Qué es el VXP?',
 	'info.doc.faq.b5':
 		'El VXP es el crédito de predicción interno de la app. Lo ganas haciendo predicciones. No es dinero. No es convertible. Es la unidad de tu historial.',
@@ -1536,7 +1536,7 @@ export const esMessages = {
 	'loop.title_a': 'Tres estados.',
 	'loop.title_b': 'Un ciclo.',
 	'market.closes': 'cierra',
-	'market.odds.loading': 'Cargando cuotas',
+	'market.odds.loading': 'Cargando probabilidades',
 	'market.odds.no_liquidity': 'Sin liquidez todavía',
 	'market.detail.admin_actions': 'Acciones de administrador',
 	'market.detail.back_to_markets': 'Volver a mercados',

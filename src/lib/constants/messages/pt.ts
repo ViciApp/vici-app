@@ -1204,9 +1204,9 @@ export const ptMessages = {
 	'info.doc.faq.b19':
 		'Battles are time-bound competitions between leagues or universities. Average accuracy during the window determines the winner. A minimum number of calls is required to qualify.',
 	'info.doc.faq.b2':
-		'Open Flow and a market card appears. Swipe right to call YES, left for NO, up to skip. Tap the card to flip it for context and the full odds.',
+		'Open Flow and a market card appears. Swipe right to call YES, left for NO, up to skip. Tap the card to flip it for context and who’s calling what.',
 	'info.doc.faq.b3':
-		'Each call stakes VXP at the market’s odds: long shots pay more, favourites pay less. Make your daily 10 calls to grow your streak; your accuracy and rank build as calls resolve.',
+		'Each call puts VXP in play at the market’s probability: long shots pay more, favourites pay less. Make your daily 10 calls to grow your streak; your accuracy and rank build as calls resolve.',
 	'info.doc.faq.b4': 'What is VXP?',
 	'info.doc.faq.b5':
 		'VXP is the in-app prediction credit. Make calls to earn it. It is not currency. It cannot be redeemed. It is the unit of your track record.',
@@ -1236,7 +1236,7 @@ export const ptMessages = {
 		'The market freezes at trading close on the settles date. The published outcome is recorded against every call made on the market. Winners earn VXP at the rate displayed when they made the call. Losers earn nothing.',
 	'info.doc.how-resolution-works.b7': 'If a source fails to publish',
 	'info.doc.how-resolution-works.b8':
-		'Rare but documented. The market is voided. Every caller receives their stake back in full. No accuracy points are awarded either way.',
+		'Rare but documented. The market is voided. Every caller gets their VXP back in full. No accuracy points are awarded either way.',
 	'info.doc.how-resolution-works.b9': 'If a source publishes ambiguously',
 	'info.doc.how-resolution-works.eyebrow': 'Help · Resolution',
 	'info.doc.how-resolution-works.title': 'How resolution works',
@@ -1246,7 +1246,7 @@ export const ptMessages = {
 	'info.doc.resolution-rules.b10.i0':
 		'Ambiguous outcome → Vici editorial reviews against the criterion. Decision and reasoning are posted publicly.',
 	'info.doc.resolution-rules.b10.i1':
-		'Source fails to publish → market voided, stakes returned, no accuracy effect either way.',
+		'Source fails to publish → market voided, VXP returned, no accuracy effect either way.',
 	'info.doc.resolution-rules.b10.i2':
 		'Source changes its methodology mid-window → market voided unless the change is immaterial.',
 	'info.doc.resolution-rules.b11': 'Disputes',

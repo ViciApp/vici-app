@@ -210,7 +210,7 @@ export const zhHansMessages = {
 	'flow.share.referral_capped_amount': '为你的朋友赢得 +500 VXP',
 	'flow.share.referral_capped_tail': ' 当他通过你的链接预测时',
 	'flow.xp_toast.called': '预测 {side}',
-	'flow.xp_toast.in_play': '在押',
+	'flow.xp_toast.in_play': '进行中',
 	'guest.save.soft.title': '你正在预测。',
 	'guest.save.soft.body': '喜欢这个预览吗？创建账户即可开始真正预测。',
 	'guest.save.remind.title': '准备好真正开玩了吗？',
@@ -653,7 +653,7 @@ export const zhHansMessages = {
 	'calibration.beat.deployed.practice': '边等边练习 →',
 	'calibration.beat.deployed.riding_on': '投入于 {calls}',
 	'calibration.beat.deployed.see_open_calls': '查看未结预测 →',
-	'calibration.beat.deployed.title': '你的全部筹码都在场上，没有损失。',
+	'calibration.beat.deployed.title': '你的全部余额都在场上，没有损失。',
 	'calibration.beat.depleted.body': '战绩两者皆纳。在校准中磨练眼力，回升期间损失受保护。',
 	'calibration.beat.depleted.eyebrow': 'VXP 已耗尽',
 	'calibration.beat.depleted.foot': '损失受保护 · 每次正确预测 +{reward}',
@@ -898,7 +898,7 @@ export const zhHansMessages = {
 	'dash.holdings.invite_sub': '每位好友首次预测后双方各得 500 VXP',
 	'dash.holdings.invite_title': '邀请好友',
 	'dash.holdings.lifetime': '累计',
-	'dash.holdings.purpose': '通过预测赚取 · 押上信念可赚更多',
+	'dash.holdings.purpose': '通过预测赚取 · 坚持信念可赚更多',
 	'dash.holdings.session': '本次会话',
 	'dash.holdings.session_many': '{count} 次预测',
 	'dash.holdings.session_one': '{count} 次预测',
@@ -1131,9 +1131,9 @@ export const zhHansMessages = {
 	'info.doc.faq.b19':
 		'Battles are time-bound competitions between leagues or universities. Average accuracy during the window determines the winner. A minimum number of calls is required to qualify.',
 	'info.doc.faq.b2':
-		'Open Flow and a market card appears. Swipe right to call YES, left for NO, up to skip. Tap the card to flip it for context and the full odds.',
+		'Open Flow and a market card appears. Swipe right to call YES, left for NO, up to skip. Tap the card to flip it for context and who’s calling what.',
 	'info.doc.faq.b3':
-		'Each call stakes VXP at the market’s odds: long shots pay more, favourites pay less. Make your daily 10 calls to grow your streak; your accuracy and rank build as calls resolve.',
+		'Each call puts VXP in play at the market’s probability: long shots pay more, favourites pay less. Make your daily 10 calls to grow your streak; your accuracy and rank build as calls resolve.',
 	'info.doc.faq.b4': 'What is VXP?',
 	'info.doc.faq.b5':
 		'VXP is the in-app prediction credit. Make calls to earn it. It is not currency. It cannot be redeemed. It is the unit of your track record.',
@@ -1163,7 +1163,7 @@ export const zhHansMessages = {
 		'The market freezes at trading close on the settles date. The published outcome is recorded against every call made on the market. Winners earn VXP at the rate displayed when they made the call. Losers earn nothing.',
 	'info.doc.how-resolution-works.b7': 'If a source fails to publish',
 	'info.doc.how-resolution-works.b8':
-		'Rare but documented. The market is voided. Every caller receives their stake back in full. No accuracy points are awarded either way.',
+		'Rare but documented. The market is voided. Every caller gets their VXP back in full. No accuracy points are awarded either way.',
 	'info.doc.how-resolution-works.b9': 'If a source publishes ambiguously',
 	'info.doc.how-resolution-works.eyebrow': 'Help · Resolution',
 	'info.doc.how-resolution-works.title': 'How resolution works',
@@ -1173,7 +1173,7 @@ export const zhHansMessages = {
 	'info.doc.resolution-rules.b10.i0':
 		'Ambiguous outcome → Vici editorial reviews against the criterion. Decision and reasoning are posted publicly.',
 	'info.doc.resolution-rules.b10.i1':
-		'Source fails to publish → market voided, stakes returned, no accuracy effect either way.',
+		'Source fails to publish → market voided, VXP returned, no accuracy effect either way.',
 	'info.doc.resolution-rules.b10.i2':
 		'Source changes its methodology mid-window → market voided unless the change is immaterial.',
 	'info.doc.resolution-rules.b11': 'Disputes',
@@ -1433,7 +1433,7 @@ export const zhHansMessages = {
 	'loop.flow_eyebrow': '01 · 心流',
 	'loop.flow_italic': '快速决定。',
 	'loop.flow_name': '心流',
-	'loop.market_body': '当问题重要时打开它。读懂走势。押上你的判断。',
+	'loop.market_body': '当问题重要时打开它。读懂走势。坚定地做出预测。',
 	'loop.market_eyebrow': '02 · 市场',
 	'loop.market_italic': '走得更深。',
 	'loop.market_name': '市场',
@@ -1445,7 +1445,7 @@ export const zhHansMessages = {
 	'loop.title_a': '三种状态。',
 	'loop.title_b': '一个闭环。',
 	'market.closes': '关闭',
-	'market.odds.loading': '正在加载赔率',
+	'market.odds.loading': '正在加载概率',
 	'market.odds.no_liquidity': '暂无流动性',
 	'market.detail.admin_actions': '管理操作',
 	'market.detail.back_to_markets': '返回市场列表',
@@ -1876,7 +1876,7 @@ export const zhHansMessages = {
 	'portfolio.allocation.eyebrow': '配置',
 	'portfolio.back': '返回面板',
 	'portfolio.allocation.other': '其他',
-	'portfolio.empty.body': '在 Flow 卡组里下几注吧，你正在进行和已结算的仓位会显示在这里。',
+	'portfolio.empty.body': '在 Flow 卡组里做几个预测吧，你正在进行和已结算的仓位会显示在这里。',
 	'portfolio.empty.cta': '打开 Flow',
 	'portfolio.empty.quote': '"投资组合，就是你选择保留下来的预测的记录。"',
 	'portfolio.hero.eyebrow': '总持有',
@@ -2388,7 +2388,7 @@ export const zhHansMessages = {
 	'trust.p2_b': '价格、预测、裁定：一旦变动立即可见。无私有数据流。无内幕。',
 	'trust.p2_t': '所有人看到同样的信息',
 	'trust.p3_b': '你看到的概率就是你参与投票的共识。无庄家抽水。无价差。',
-	'trust.p3_t': '没有隐藏赔率',
+	'trust.p3_t': '没有隐藏概率',
 	'trust.sub': '平台绝不打破的三条规则。',
 	'trust.title_a': '没有庄家。',
 	'trust.title_b': '没有优势。没有秘密。',

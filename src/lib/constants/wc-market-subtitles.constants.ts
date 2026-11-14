@@ -83,7 +83,7 @@ export const WC_MARKET_SUBTITLES: Readonly<Record<string, string>> = {
 	'wc-netherlands-r16': 'Group with Turkey & Cameroon',
 	'wc-r32-host-exit': 'USA, Mexico or Canada at risk',
 	'wc-r32-extra-time': 'Win-or-go-home tightens games',
-	'wc-r16-red-card': 'Stakes rise · tackles fly',
+	'wc-r16-red-card': 'Tension rises · tackles fly',
 	'wc-r16-penalty-shootout': 'Knockout football · fine margins',
 
 	// Quarter-finals
