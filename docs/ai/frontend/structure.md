@@ -151,6 +151,12 @@ Use **"prediction"** in code identifiers, comments, and any user-visible
 copy. The exception is when calling external libraries that already use
 the word "bet"; wrap the boundary so it doesn't leak into Vici code.
 
+The ban covers the whole betting lexicon in **every** locale, not just the
+word "bet": no "wager" / "stake" / "odds", no `Apuesta` / `Aposta` /
+`Mise` / `Posta` / `Einsatz` / `赌注` in user-visible copy. The single
+deliberate exception is the legal disclosure (`footer.disclosure`,
+"cannot be wagered" and its translations); never reword it.
+
 ### Imports: aliases only
 
 The local rule `local-rules/no-relative-imports` is **`error`** under

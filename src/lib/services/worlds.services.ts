@@ -2,11 +2,7 @@ import { functions } from '#declarations/satellite/satellite.api.ts';
 import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
-import {
-	monthAnchorFromMs,
-	type AffiliationChampionship,
-	type AffiliationStatsDoc
-} from '#lib/types/affiliation-stats.ts';
+import type { AffiliationChampionship, AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
 import {
 	AFFILIATION_LOCK_MS,
 	affiliationKey,
@@ -406,16 +402,3 @@ export const claimWorldsPodiumPrize = ({
 	isWeb2Backend()
 		? claimWorldsPodiumPrizeWeb2({ monthAnchor })
 		: functions.claimWorldsPodiumPrize({ monthAnchor });
-
-/**
- * Compute the YYYY-MM anchor for the calendar month immediately
- * before the supplied timestamp's month (UTC). Convenience for the
- * "claim last month's podium on this month's first visit" pattern.
- */
-export const previousMonthAnchor = (nowMs: number = Date.now()): string => {
-	const now = new Date(nowMs);
-	// First day of the current month minus one ms lands in the prior month.
-	const firstOfMonth = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-
-	return monthAnchorFromMs(firstOfMonth - 1);
-};
