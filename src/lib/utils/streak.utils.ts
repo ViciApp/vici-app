@@ -63,6 +63,9 @@ export const FLAME_STAGE_LABEL_KEYS: Record<FlameStage, MessageKey> = {
 	inferno: 'flame.inferno'
 };
 
+/** A `YYYY-MM-DD` day key as `todayKey` writes it, capturing year, month and day. */
+export const DAY_KEY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
 /**
  * Local-day key in `YYYY-MM-DD` form (user's local timezone). Used as
  * the persistence anchor for the daily-streak engine.
@@ -87,7 +90,7 @@ export const todayKey = (now: Date = new Date()): string => {
  */
 export const dayDelta = ({ from, to }: { from: string; to: string }): number => {
 	const parse = (k: string): number | null => {
-		const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(k);
+		const m = DAY_KEY_RE.exec(k);
 
 		if (!m) {
 			return null;

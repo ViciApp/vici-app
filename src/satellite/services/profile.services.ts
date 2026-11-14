@@ -9,6 +9,7 @@ import {
 } from '#lib/constants/profile.constants.ts';
 import type { UserRole } from '#lib/enums/user.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
+import { DAY_KEY_RE } from '#lib/utils/streak.utils.ts';
 import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
 import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
 import { mintFlowOvertime } from '#satellite/services/vxp-flow-awards.services.ts';
@@ -185,7 +186,7 @@ export const withProfileDefaults = (profile: UserProfile): UserProfile => {
  * bypass that's explicitly out of scope for the honest-reset fix.
  */
 const isWellFormedDayKey = (key: string): boolean => {
-	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+	const match = DAY_KEY_RE.exec(key);
 
 	if (isNullish(match)) {
 		return false;
