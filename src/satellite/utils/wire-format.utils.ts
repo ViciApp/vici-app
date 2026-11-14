@@ -2,7 +2,6 @@ import { LeaguePrivacy } from '#lib/enums/league.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { UserRole } from '#lib/enums/user.ts';
-import type { MarketTranslation } from '#lib/types/market-translation.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { ReferralListItem } from '#lib/types/referral.ts';
 import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
@@ -312,25 +311,6 @@ export const toWireMarketTranslation = (
 	updatedBy: translation.updatedBy
 });
 
-/**
- * Inverse of {@link toWireMarketTranslation}. Used by frontend services
- * consuming `listMarketTranslations` (which returns
- * `j.array(MarketTranslationWireSchema)`) so the items land typed as
- * {@link MarketTranslation}.
- */
-export const fromWireMarketTranslation = (
-	translation: WireMarketTranslation
-): MarketTranslation => ({
-	seriesId: translation.seriesId,
-	locale: translation.locale,
-	title: translation.title,
-	description: translation.description,
-	resolution: translation.resolution,
-	outcomes: translation.outcomes,
-	updatedAt: translation.updatedAt,
-	updatedBy: translation.updatedBy
-});
-
 // ─── Referral wire format ────────────────────────────────────────────────
 
 const VxpMilestoneStateWireSchema = j.strictObject({
@@ -396,13 +376,6 @@ export interface ApiWireReferral {
 	};
 }
 
-const fromWireMilestone = (state: ApiWireReferral['refereePayout']): VxpMilestoneState => ({
-	status: state.status,
-	amountBaseUnits: state.amountBaseUnits,
-	blockIndex: state.blockIndex,
-	lastError: state.lastError
-});
-
 /**
  * Inverse of {@link toWireReferral}. Frontend callers funnel `listMyReferrals` items
  * through this so the UI consumes camelCase {@link ReferralListItem} values.
@@ -414,14 +387,14 @@ export const fromWireReferral = (referral: ApiWireReferral): ReferralListItem =>
 	code: referral.code,
 	redeemedAtMs: referral.redeemedAtMs,
 	withinReferrerCap: referral.withinReferrerCap,
-	refereePayout: fromWireMilestone(referral.refereePayout),
-	referrerPayout: fromWireMilestone(referral.referrerPayout)
+	refereePayout: referral.refereePayout,
+	referrerPayout: referral.referrerPayout
 });
 
 // ─── Leagues ────────────────────────────────────────────────────
 // Wire schemas are camelCase like every nested result (see the module
-// header). FE callers hit `fromWireLeague` / `fromWireLeagueMember` to
-// re-narrow the wire unions back to the domain types.
+// header). The FE leagues service re-narrows the loose wire unions
+// (league privacy, battle scope) back to the domain types.
 
 export const LeagueWireSchema = j.strictObject({
 	id: j.string(),

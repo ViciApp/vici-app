@@ -94,6 +94,13 @@ whose domain schema already fits (for example `listFriendResolvedResults`
 returning `j.array(ResolvedResultSchema)`) uses that schema directly; no
 converter is needed.
 
+The frontend side follows the same rule: a service returns the generated
+client's row as is when it already has the domain type. It keeps a
+projector only for a real conversion: a default, a narrowing of a loose
+wire string union (`projectLeagueWire`, `projectBattleWire`) or an
+`undefined` to `null` normalisation (`projectMatchWire`). A projector that
+copies every field one to one is dead weight; drop it.
+
 ### The fix that doesn't work
 
 `.transform()` on a result schema is **not** a valid way to reshape it. It

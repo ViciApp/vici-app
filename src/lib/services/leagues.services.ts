@@ -211,8 +211,8 @@ export const listFriendRecommendedLeagues = async (): Promise<FriendRecommendedL
 };
 
 /**
- * List the full member roster of a league, projected to the
- * camelCase `LeagueMemberDoc` the FE uses everywhere. Powers the
+ * List the full member roster of a league as the `LeagueMemberDoc` the
+ * FE uses everywhere (the wire row already has that shape). Powers the
  * transfer-ownership picker (in the league detail surface and the
  * delete-account flow) where the caller needs the other members to
  * hand a league off to.
@@ -228,12 +228,7 @@ export const listLeagueMembers = async ({
 
 	const { items } = await functions.listLeagueMembers({ leagueId });
 
-	return items.map(({ leagueId, member, joinedAtMs, role }) => ({
-		leagueId,
-		member,
-		joinedAtMs,
-		role
-	}));
+	return items;
 };
 
 /**

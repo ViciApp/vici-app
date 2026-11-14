@@ -86,8 +86,9 @@ boundaries.
 DOM: constants, schemas, types and pure utils (`collections.constants.ts`,
 `canisters.constants.ts`, `#lib/schema/*`, `types/vxp-award.ts`, ...).
 The frontend imports from `#satellite` only the `fromWire*` converters in
-`utils/wire-format.utils.ts` (profile, leaderboard, referral and
-market-translation services). Nothing else crosses in either direction.
+`utils/wire-format.utils.ts` (profile, leaderboard and referral services).
+A wire row that already has the domain shape is returned as is, with no
+converter. Nothing else crosses in either direction.
 
 ## Forbidden imports
 

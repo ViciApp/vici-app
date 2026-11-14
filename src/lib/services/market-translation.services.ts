@@ -8,7 +8,6 @@ import {
 	listMarketTranslations as listMarketTranslationsWeb2,
 	upsertMarketTranslation as upsertMarketTranslationWeb2
 } from '#lib/web2/client.ts';
-import { fromWireMarketTranslation } from '#satellite/utils/wire-format.utils.ts';
 
 export const getMarketTranslation = async ({
 	seriesId,
@@ -27,15 +26,13 @@ export const getMarketTranslation = async ({
 };
 
 export const listMarketTranslations = async (seriesId: string): Promise<MarketTranslation[]> => {
-	// The HTTP API already speaks the app's camelCase shape; only the satellite
-	// wire needs the projection below.
 	if (isWeb2Backend()) {
 		return await listMarketTranslationsWeb2(seriesId);
 	}
 
 	const { items } = await functions.listMarketTranslations({ seriesId });
 
-	return items.map(fromWireMarketTranslation);
+	return items;
 };
 
 /**
@@ -58,7 +55,7 @@ export const listMarketTranslationsForLocales = async ({
 
 	const { items } = await functions.listMarketTranslationsForLocales({ seriesIds, locales });
 
-	return items.map(fromWireMarketTranslation);
+	return items;
 };
 
 export const upsertMarketTranslation = async ({
