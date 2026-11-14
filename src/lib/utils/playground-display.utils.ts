@@ -15,10 +15,10 @@ import {
 import { nonNullish } from '@dfinity/utils';
 
 /**
- * Plain VXP balance — whole-number "points" feel with thousands separators
+ * Plain VXP balance: whole-number "points" feel with thousands separators
  * (e.g. `24,000`). Defaults to native VXP ledger decimals; pass `decimals`
  * when formatting a value already scaled to a different unit (e.g. clearing
- * margin units). No symbol — callers add `VXP` / `PLAYGROUND_DISPLAY_SYMBOL`
+ * margin units). No symbol: callers add `VXP` / `PLAYGROUND_DISPLAY_SYMBOL`
  * themselves so the same helper works for both display contexts.
  */
 export const formatVxpBalance = ({
@@ -38,16 +38,16 @@ export const formatVxpBalance = ({
  * Format a single VXP win / PnL magnitude for the whole-number "points" UI.
  *
  * VXP surfaces render whole points (`VXP_BALANCE_DISPLAY_DECIMALS = 0`), but a
- * winning call on a heavy favourite credits a real *sub-1* amount — e.g. a 50
+ * winning call on a heavy favourite credits a real *sub-1* amount: e.g. a 50
  * VXP stake on a 0.99 side nets ~0.43 VXP, since the server pays the true
  * `stake·(1/price − 1)` cashflow minus fees with **no** payout floor (see
  * the `vxpNetWin` formula). Rounding such a win to the
- * nearest whole point would render it as `0` — a genuine win that reads as
+ * nearest whole point would render it as `0`, a genuine win that reads as
  * nothing ("+0 VXP"). To keep the points feel without lying, any non-zero
  * amount below one whole point renders as `<1`; one point or more rounds to
  * the nearest whole point.
  *
- * Magnitude only — callers prepend the sign (`+` / `−`) and the `VXP` unit.
+ * Magnitude only: callers prepend the sign (`+` / `−`) and the `VXP` unit.
  * Whole-point amounts keep thousands separators (matching the rest of the
  * numeric UI); a non-finite value (malformed data) renders as `0` rather
  * than leaking `NaN` / `Infinity` into the UI.
@@ -76,8 +76,8 @@ export const formatWholeVxpMagnitude = (value: number): string => {
  *
  * `points` is stored as a `j.number()` on the profile doc, so a friend's
  * profile may legitimately carry a float / `NaN` / `Infinity` (malformed or
- * legacy data). Coercing it through {@link safeBigInt} — truncated and
- * clamped to a non-negative floor — keeps the bare `BigInt(...)` from
+ * legacy data). Coercing it through {@link safeBigInt}, truncated and
+ * clamped to a non-negative floor, keeps the bare `BigInt(...)` from
  * throwing a `RangeError` and taking the surrounding view down with it.
  */
 export const vxpBaseUnitsFromPoints = (points: number): bigint =>

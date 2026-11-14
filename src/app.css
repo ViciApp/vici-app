@@ -4,7 +4,7 @@
 /* ─── Self-hosted fonts ────────────────────────────────────────────
  * All three families are OFL-licensed. Files live under
  * `static/fonts/` and are served at `/fonts/*`. Hanken Grotesk is a
- * variable font — a single woff2 covers all four weights via
+ * variable font: a single woff2 covers all four weights via
  * `font-weight: 400 700`. Latin subset covers en / it / es / de / fr
  * / pt; CJK ranges fall back to the system stack in `--font-display`
  * / `--font-serif`, identical to the Google Fonts CDN behaviour.
@@ -53,12 +53,12 @@
 /* ─── VICI Design System ─── dark-first, warm near-black canvas */
 
 /* Extra bottom clearance for the NATIVE bottom bar every iOS browser paints
- * over the web view — the Chrome / Firefox / Edge / Google-app toolbars AND
+ * over the web view: the Chrome / Firefox / Edge / Google-app toolbars AND
  * Safari's own bottom bar (confirmed on device). No web API reports that bar's
  * height, so bottom-docked sheet footers add the `--ios-bottom-bar-inset` token
  * (declared in `:root` below) to lift their CTA above it. `data-ios-bottom-bar`
  * is stamped pre-paint in app.html for all iOS; the token is `0px` everywhere
- * else, so the inset is inert off iOS. Tunable in one place — adjust if the CTA
+ * else, so the inset is inert off iOS. Tunable in one place; adjust if the CTA
  * still clips or floats too high. This is the NOMINAL value; inside a
  * `pinToVisualViewport` overlay the pin overrides it down to the residual the
  * pin hasn't already cleared (0 in browsers whose visualViewport excludes the
@@ -72,7 +72,7 @@ html[data-ios-bottom-bar] {
 	--ios-bottom-bar-inset: 0px;
 
 	/* Bottom inset every docked sheet/panel footer must clear: the device
-	   safe area plus the iOS native bottom bar. Single source —
+	   safe area plus the iOS native bottom bar. Single source;
 	   footers add their own base padding on top: calc(<base> + var(--docked-footer-inset)). */
 	--docked-footer-inset: calc(env(safe-area-inset-bottom, 0px) + var(--ios-bottom-bar-inset, 0px));
 
@@ -84,7 +84,7 @@ html[data-ios-bottom-bar] {
 	--ink-line: rgba(242, 236, 220, 0.08);
 	--ink-line-strong: rgba(242, 236, 220, 0.18);
 
-	/* Foreground — parchment cream */
+	/* Foreground: parchment cream */
 	--parchment: #f2ecdc;
 	--parchment-dim: rgba(242, 236, 220, 0.72);
 	--parchment-mute: rgba(242, 236, 220, 0.5);
@@ -96,13 +96,13 @@ html[data-ios-bottom-bar] {
 	--laurel-glow: rgba(226, 184, 66, 0.18);
 	--terracotta: #b5462c;
 
-	/* Brand role aliases — name the laurel ramp by its identity role so
+	/* Brand role aliases: name the laurel ramp by its identity role so
 	 * call-sites can read `--brand` instead of the raw `--laurel`. */
 	--brand: var(--laurel);
 	--brand-deep: var(--laurel-deep);
 	--brand-glow: var(--laurel-glow);
 
-	/* Danger ramp — destructive actions (delete, sign-out, form errors).
+	/* Danger ramp: destructive actions (delete, sign-out, form errors).
 	 * Aliases the terracotta ramp so the two role tokens can't drift;
 	 * distinct from the `--no` signal which carries prediction NO
 	 * semantics. */
@@ -132,7 +132,7 @@ html[data-ios-bottom-bar] {
 	--text-muted: var(--parchment-mute);
 	--text-inverse: var(--ink);
 
-	/* Foreground tier aliases — landing.css already declares `--fg-dim` /
+	/* Foreground tier aliases: landing.css already declares `--fg-dim` /
 	 * `--fg-faint` at `:root`, but the app layer shouldn't depend on that
 	 * import to resolve them. Own the aliases here, mapped to the parchment
 	 * tiers. */
@@ -161,7 +161,7 @@ html[data-ios-bottom-bar] {
 	 * cascades correctly under each `[data-theme]`. */
 	--text-on-accent: var(--color-accent-foreground);
 
-	/* Plain `--accent` alias — app-shell call-sites read `var(--accent)`.
+	/* Plain `--accent` alias: app-shell call-sites read `var(--accent)`.
 	 * landing.css already declares it at `:root`, but own it here so the
 	 * app layer doesn't depend on landing.css import order. Mirrors
 	 * `--color-accent`. */
@@ -187,18 +187,18 @@ html[data-ios-bottom-bar] {
 	/* Motion (--ease-vici lives in `@theme` so Tailwind generates the
 	 * `ease-vici` utility; the value still cascades into `:root`).
 	 *
-	 * MOTION PRINCIPLE — how a moment is allowed to move:
+	 * MOTION PRINCIPLE (how a moment is allowed to move):
 	 *   • Rare peaks (an achievement unlock, an end-of-session
-	 *     celebration) MAY use spring / overshoot easing — they happen
+	 *     celebration) MAY use spring / overshoot easing; they happen
 	 *     seldom enough to earn the flourish.
 	 *   • Frequent rewards (a call settling, a routine grant) settle
-	 *     WITHOUT overshoot — repetition turns a bounce into noise.
+	 *     WITHOUT overshoot; repetition turns a bounce into noise.
 	 *   • Direct-action confirmations (a button press, a swipe commit)
-	 *     keep a small tactile pop — just enough to read as "registered",
+	 *     keep a small tactile pop, just enough to read as "registered",
 	 *     never a full bounce.
 	 * One easing curve (`--ease-vici`) is the app default; the durations
 	 * below are the standard scale. Every animation/transition must be
-	 * disabled under reduced motion — gate CSS with `@media
+	 * disabled under reduced motion; gate CSS with `@media
 	 * (prefers-reduced-motion: reduce)` and JS-driven Svelte transitions
 	 * with `prefersReducedMotion()` from
 	 * `#lib/utils/reduced-motion.utils.ts`. The narrative side of this
@@ -208,7 +208,7 @@ html[data-ios-bottom-bar] {
 	--d-enter: 320ms;
 	--d-hero: 600ms;
 
-	/* Semantic type scale — role-named six-step ramp. Components
+	/* Semantic type scale: role-named six-step ramp. Components
 	 * reference these by intent (display / h1 / h2 / body / meta /
 	 * eyebrow) rather than reaching for the numeric `--t-NN` steps;
 	 * they were previously undefined, forcing call-sites to hardcode
@@ -220,7 +220,7 @@ html[data-ios-bottom-bar] {
 	--t-meta: 0.8125rem;
 	--t-eyebrow: 0.6875rem;
 
-	/* Type scale — modular 1.250 (major third), tuned at top end. The
+	/* Type scale: modular 1.250 (major third), tuned at top end. The
 	 * Tailwind text utilities still cover most copy; these tokens are
 	 * for hand-tuned editorial moments (display, hero numeric). */
 	--t-10: 0.625rem;
@@ -249,7 +249,7 @@ html[data-ios-bottom-bar] {
 	--tracking-wide: 0.04em;
 	--tracking-allcaps: 0.12em;
 
-	/* Radii — the standard scale. Buttons 4, cards 12. Pills (999) are
+	/* Radii: the standard scale. Buttons 4, cards 12. Pills (999) are
 	 * rare. Don't deviate. Each `--r-NN` token is literal to its name:
 	 * `--r-12` is 12 px, matching the card-corner radius the design
 	 * system specifies (it had drifted to 16 px). */
@@ -259,27 +259,27 @@ html[data-ios-bottom-bar] {
 	--r-12: 12px;
 	--r-pill: 999px;
 
-	/* Role-named alias set for radii — names map onto the numeric
+	/* Role-named alias set for radii: names map onto the numeric
 	 * scale so call-sites can write `var(--r-m)` instead of memorising
 	 * `--r-8`. `--r-l` shares the card radius (12 px) with `--r-12`. */
 	--r-s: 4px;
 	--r-m: 8px;
 	--r-l: 12px;
 
-	/* Sanctioned large-radius one-offs — two intentional exceptions above
+	/* Sanctioned large-radius one-offs, two intentional exceptions above
 	 * the standard card scale, named by the surface they belong to so
 	 * call-sites read the intent rather than a bare literal:
-	 *   --radius-frame  18 px — elevated framed surfaces (the swipeable
+	 *   --radius-frame  18 px: elevated framed surfaces (the swipeable
 	 *                   onboarding card + its drop shadow); the largest
 	 *                   corner a content surface takes.
-	 *   --radius-nav    28 px — the floating bottom-nav pill shell only.
+	 *   --radius-nav    28 px: the floating bottom-nav pill shell only.
 	 * `--r-xl` is retained as a back-compat alias of `--radius-frame`
 	 * (the canonical name) so the two can't drift. */
 	--radius-frame: 18px;
 	--radius-nav: 28px;
 	--r-xl: var(--radius-frame);
 
-	/* Spacing scale — 8-point base, no exceptions outside this scale.
+	/* Spacing scale: 8-point base, no exceptions outside this scale.
 	 * Two parallel naming schemes are exposed: `--space-N` is the
 	 * semantic-rank scale; `--s-N` is the wider raw-pixel scale used
 	 * in dense layouts. */
@@ -303,7 +303,7 @@ html[data-ios-bottom-bar] {
 	--s-96: 96px;
 	--s-128: 128px;
 
-	/* Named layout gaps — role-named spacing decisions for vertical
+	/* Named layout gaps: role-named spacing decisions for vertical
 	 * rhythm. Components reference these by layout intent (gap inside a
 	 * card, between sections, around a screen hero, between list rows)
 	 * instead of picking a raw `--s-N` step per call-site. */
@@ -312,14 +312,14 @@ html[data-ios-bottom-bar] {
 	--gap-screen: 48px;
 	--gap-row: 12px;
 
-	/* Screen-edge horizontal padding — the single gutter a screen reserves
+	/* Screen-edge horizontal padding: the single gutter a screen reserves
 	 * between its content column and the viewport edge. Named separately
 	 * from `--gap-card` (which is a vertical in-card stack gap that happens
 	 * to share the 20 px value) so the two intents stay independently
 	 * tunable. Stray 18 px edge paddings reconcile to this token. */
 	--spacing-edge: 20px;
 
-	/* Named font-size tokens — locked role-named set. Sits alongside the
+	/* Named font-size tokens: locked role-named set. Sits alongside the
 	 * numeric `--t-*` scale (modular 1.25) so editorial / display moments
 	 * keep the numeric ramp, while UI labels read against the role names
 	 * (eyebrow / sub / body / h*). */
@@ -333,7 +333,7 @@ html[data-ios-bottom-bar] {
 	--text-h2: 22px;
 	--text-display: 32px;
 
-	/* Stagecraft / motion-engine aliases — name the motion language
+	/* Stagecraft / motion-engine aliases: name the motion language
 	 * explicitly. They fold onto the canonical curve and durations so
 	 * the whole app shares one easing and one timing scale; the quick /
 	 * stage pair had drifted to a separate curve and off-scale timings. */
@@ -348,7 +348,7 @@ html[data-ios-bottom-bar] {
 	--header-h: 56px;
 	--ticker-h: 32px;
 	--bottomnav-h: 64px;
-	/* Floating pillnav clearance — every surface that wants to avoid
+	/* Floating pillnav clearance: every surface that wants to avoid
 	 * sliding under the floating tab bar reads this token. 96 px pill
 	 * + `env(safe-area-inset-bottom)`. */
 	--bn-clear: calc(96px + env(safe-area-inset-bottom, 0px));
@@ -473,7 +473,7 @@ html[data-ios-bottom-bar] {
 	--border-base: rgba(61, 36, 25, 0.1);
 	--border-strong: rgba(61, 36, 25, 0.18);
 
-	/* Signal overrides — the dark-theme YES / NO hues wash out on the
+	/* Signal overrides: the dark-theme YES / NO hues wash out on the
 	 * warm peach canvas, so step them to darker tones that hold contrast
 	 * against the light background. */
 	--yes: #2ba178;
@@ -546,7 +546,7 @@ html[data-ios-bottom-bar] {
 	--color-destructive: var(--color-destructive);
 	--color-destructive-foreground: var(--parchment);
 
-	/* Danger ramp — the canonical destructive-action role (delete,
+	/* Danger ramp: the canonical destructive-action role (delete,
 	 * sign-out, irreversible-action warnings). Maps to the terracotta
 	 * `--danger` ramp so danger UI stays visually distinct from the
 	 * prediction `--no` signal: destructive UI must NOT read as a NO
@@ -568,7 +568,7 @@ html[data-ios-bottom-bar] {
 	--color-input: var(--border-strong);
 	--color-ring: var(--laurel);
 
-	/* Prediction-market signals — preserve YES / NO / HOLD semantics so
+	/* Prediction-market signals: preserve YES / NO / HOLD semantics so
 	 * components can write `text-yes` / `bg-no-wash` instead of reaching
 	 * for arbitrary `[var(--yes)]` references. */
 	--color-yes: var(--yes);
@@ -583,21 +583,21 @@ html[data-ios-bottom-bar] {
 	--color-hold-deep: var(--hold-deep);
 	--color-hold-wash: var(--hold-wash);
 
-	/* Brand colour ramp (laurel) — `--color-primary` already maps to
+	/* Brand colour ramp (laurel): `--color-primary` already maps to
 	 * `--laurel`; these expose the deep / glow variants as `bg-laurel-deep`
 	 * and `bg-laurel-glow` utilities. */
 	--color-laurel: var(--laurel);
 	--color-laurel-deep: var(--laurel-deep);
 	--color-laurel-glow: var(--laurel-glow);
 
-	/* Canvas reference (text-on-laurel etc.) — exposed so components can
+	/* Canvas reference (text-on-laurel etc.), exposed so components can
 	 * write `text-ink` instead of `text-[var(--ink)]`. */
 	--color-ink: var(--ink);
 
 	/* Theme-stable parchment-tinted lines, used by surfaces that opt out
 	 * of theme switching (e.g. MobileNav has a hard-coded dark translucent
 	 * bg and needs the border to stay parchment in BOTH dark and light
-	 * themes — `--color-border` flips to a dark rgba in light theme and
+	 * themes: `--color-border` flips to a dark rgba in light theme and
 	 * would disappear against that bg). */
 	--color-ink-line: var(--ink-line);
 	--color-ink-line-strong: var(--ink-line-strong);
@@ -622,7 +622,7 @@ html[data-ios-bottom-bar] {
 	/* Modal shadow exposed as the `shadow-modal` utility. */
 	--shadow-modal: 0 24px 60px -20px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4);
 
-	/* Toast shadow exposed as the `shadow-toast` utility. Theme-stable —
+	/* Toast shadow exposed as the `shadow-toast` utility. Theme-stable:
 	 * toasts sit on a translucent dark surface in both themes, so the
 	 * drop-shadow value cascades unchanged. */
 	--shadow-toast: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
@@ -664,7 +664,7 @@ html[data-ios-bottom-bar] {
 	transition-duration: var(--d-state);
 }
 
-/* MobileNav active-tab shadow — composed from the laurel-glow drop +
+/* MobileNav active-tab shadow, composed from the laurel-glow drop +
  * a parchment inset highlight. Encapsulated as a named utility so the
  * call-site doesn't keep an arbitrary `shadow-[…var(--laurel-glow)…]`
  * value (which would re-introduce the [var(--token)] anti-pattern this
@@ -723,7 +723,7 @@ html {
 	 * dark/light and `--laurel-deep` in peach via theme overrides),
 	 * offset 2px from the element to read against any surface. Modern
 	 * browsers trace the outline along the element's intrinsic
-	 * `border-radius`, so we don't set one here — pill buttons / round
+	 * `border-radius`, so we don't set one here; pill buttons / round
 	 * avatars / rounded cards keep their natural shape on focus. Sites
 	 * that need a custom focus shape opt out by overriding
 	 * `:focus-visible` on their own selectors. */
@@ -738,7 +738,7 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
-/* Authenticated `(app)` shell viewport architecture — the document
+/* Authenticated `(app)` shell viewport architecture: the document
  * doesn't scroll; instead a single `.screen-scroll` viewport inside
  * the app shell hosts all page scrolling and reserves clearance for
  * the floating pillnav. Gated on `data-app="1"` on <html> so the
@@ -772,7 +772,7 @@ html[data-app='1'] body {
 	padding-bottom: var(--bn-clear);
 }
 
-/* Desktop adaptation for the (app) shell — desktop picks up the
+/* Desktop adaptation for the (app) shell; desktop picks up the
  * landing page's responsive treatment: a top-nav shell hosts the
  * chrome, the mobile pillnav is hidden, and page content centres in
  * a comfortable reading column. Marketing routes (`/`, `/about`, …)
@@ -859,7 +859,7 @@ html[data-app='1'] body {
 }
 
 /* Compact eyebrow used in dense tables, order-book columns, position
- * pills, etc. 10px / wide tracking — same intent as `.eyebrow` but at
+ * pills, etc. 10px / wide tracking, same intent as `.eyebrow` but at
  * a step smaller. Drop-in replacement for the Tailwind blob
  * `text-[10px] font-bold tracking-widest uppercase` repeated across
  * 14+ market and order-book components. Color is inherited so the
@@ -880,14 +880,14 @@ html[data-app='1'] body {
 	letter-spacing: 0;
 }
 
-/* Brand accent inline — used in editorial copy alongside `.serif-italic`.
+/* Brand accent inline, used in editorial copy alongside `.serif-italic`.
  * `landing.css` defines the same `.acc { color: var(--accent); }`
  * rule; mirrored here so the onboarding surfaces pick it up. */
 .acc {
 	color: var(--laurel);
 }
 
-/* Editorial display — italic serif at hero scale. Used for first-launch
+/* Editorial display: italic serif at hero scale. Used for first-launch
  * "Veni." moments, FlowEnd headlines, "Identity, *not information.*"
  * type beats. Pairs with sans body copy. */
 .display {
@@ -899,7 +899,7 @@ html[data-app='1'] body {
 	letter-spacing: var(--tracking-tight);
 }
 
-/* Hero numeric — every big probability / XP total / streak count. Mono,
+/* Hero numeric: every big probability / XP total / streak count. Mono,
  * tabular, slashed-zero. */
 .display-num {
 	font-family: var(--font-mono);
@@ -911,7 +911,7 @@ html[data-app='1'] body {
 	font-variant-numeric: tabular-nums slashed-zero;
 }
 
-/* Lede — first-paragraph treatment (e.g. spec page intros). */
+/* Lede: first-paragraph treatment (e.g. spec page intros). */
 .lede {
 	font-size: var(--t-18);
 	line-height: var(--leading-loose);
@@ -936,7 +936,7 @@ html[data-app='1'] body {
 	box-shadow: var(--inset-hi);
 }
 
-/* Elevated surface — sheets, modals, popovers. Drops a soft modal
+/* Elevated surface: sheets, modals, popovers. Drops a soft modal
  * shadow on top of the inner highlight in dark theme. */
 .surface-elevated {
 	background: var(--bg-popover);
@@ -945,7 +945,7 @@ html[data-app='1'] body {
 	box-shadow: var(--inset-hi-strong), var(--shadow-modal);
 }
 
-/* Appbar icon button — single source of truth for every header-edge
+/* Appbar icon button: single source of truth for every header-edge
  * icon control (back arrow, settings cog, history, plus, chart,
  * etc.). A transparent, borderless ~36px circle that mirrors the
  * canonical title-block icon button and the `.notif-bell`: muted
@@ -971,7 +971,7 @@ html[data-app='1'] body {
 	background: color-mix(in srgb, var(--text-base) 6%, transparent);
 }
 
-/* Hairline — top divider. Minimal so it can't get any thicker. */
+/* Hairline: top divider. Minimal so it can't get any thicker. */
 .hairline {
 	border-top: 1px solid var(--border-base);
 }
@@ -1175,7 +1175,7 @@ html[data-app='1'] body {
 	}
 }
 
-/* Optical-feedback keyframes — give swipe / award / save
+/* Optical-feedback keyframes: give swipe / award / save
    micro-interactions a visible envelope on iOS Safari (where
    `navigator.vibrate` is a no-op and haptics silently swallow). */
 
@@ -1264,7 +1264,7 @@ html[data-app='1'] body {
 	}
 }
 
-/* XP-award toast envelope — rises from the swipe-exit edge, overshoots,
+/* XP-award toast envelope: rises from the swipe-exit edge, overshoots,
    settles, then holds at full opacity for the bulk of the second so the
    "CALLED YES · N IN PLAY" pill stays legible before the gentle fade-out
    over the final stretch. The hold mirrors the reduced-motion variant
@@ -1344,7 +1344,7 @@ html[data-app='1'] body {
 }
 
 /* ============================================================
-   Animation set — per-category card breathers, World-Cup figure
+   Animation set: per-category card breathers, World-Cup figure
    motion, Flow micro-motion, sheet/toast envelopes, landing
    entrance fades, and assorted utilities. Kept in one block so
    the visual catalogue is greppable. All loops cap at ~9 s and
@@ -1549,7 +1549,7 @@ html[data-app='1'] body {
 	}
 }
 
-/* Default WC figure breath — every WC card breathes via the
+/* Default WC figure breath: every WC card breathes via the
    `.wc-figure` group emitted by `renderFlowArt`. Per-market
    variants override via the seed-specific selectors below. */
 .art-wc .wc-figure {
@@ -1741,7 +1741,7 @@ html[data-app='1'] body {
 }
 
 /* Scroll-reveal helper. WelcomePage flips `data-reveal="on"` on the
-   shell once `onMount` has wired the IntersectionObserver — sections
+   shell once `onMount` has wired the IntersectionObserver; sections
    then start hidden and animate in as each scrolls into view. When
    JS is disabled (no shell flag), sections stay fully visible: no
    blank flash before hydration. */
@@ -1794,7 +1794,7 @@ html[data-app='1'] body {
 	}
 }
 
-/* Staggered entrance envelopes — FlowEnd (and any future surface
+/* Staggered entrance envelopes: FlowEnd (and any future surface
    that wants a top-to-bottom unveil) tags sequential sections with
    `.anim-in` / `.anim-in-2` / `.anim-in-3` to land them on a 0 /
    90 / 180 ms delay against the shared `fade-up` keyframe. Pure
@@ -1820,7 +1820,7 @@ html[data-app='1'] body {
    `xpPopBonus` envelopes already cover the VXP award entrance
    with a richer arc. */
 
-/* Reduced-motion guard — keep the visual structure but disable
+/* Reduced-motion guard: keep the visual structure but disable
    the looping kinetic envelopes from this block. */
 @media (prefers-reduced-motion: reduce) {
 	.art-macro,
@@ -1834,7 +1834,7 @@ html[data-app='1'] body {
 }
 
 /* ============================================================
- * Shared primitives — power the Markets / Dash / Flow / Social /
+ * Shared primitives: power the Markets / Dash / Flow / Social /
  * Profile surfaces. Tokens use the repo's renamed scale
  * (`--bg-surface`, `--border-base`, `--text-*`, `--laurel`,
  * `--ease-vici`).
@@ -1863,7 +1863,7 @@ html[data-app='1'] body {
 }
 
 /* Active filter/tab chip paints parchment-on-elevated, never the brand
-   laurel — laurel is reserved as an identity accent, not a selection state. */
+   laurel; laurel is reserved as an identity accent, not a selection state. */
 .chip.active {
 	background: var(--bg-popover);
 	color: var(--text-base);
@@ -1904,7 +1904,7 @@ html[data-app='1'] body {
 	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-base) 4%, transparent);
 }
 
-/* Surface — a self-contained tile (gap-card stack inside). Used for the
+/* Surface: a self-contained tile (gap-card stack inside). Used for the
    featured/trending carousel cards on Markets. */
 .card-surface {
 	background: var(--bg-surface);
@@ -1917,7 +1917,7 @@ html[data-app='1'] body {
 	gap: var(--gap-card);
 }
 
-/* Inline — a list row INSIDE a flush list. No nested background or border;
+/* Inline: a list row INSIDE a flush list. No nested background or border;
    a hairline-top separates rows, the parent provides the side padding. */
 .card-inline {
 	background: transparent;
@@ -1939,7 +1939,7 @@ html[data-app='1'] body {
 	padding-bottom: 0;
 }
 
-/* Inline rows are interactive in the Markets list — real <button>/<a>
+/* Inline rows are interactive in the Markets list: real <button>/<a>
    elements get hairline-bordered hover affordance, never a colour shift. */
 button.card-inline,
 a.card-inline {
@@ -1956,7 +1956,7 @@ a.card-inline:hover {
 	background: color-mix(in srgb, var(--text-base) 3%, transparent);
 }
 
-/* Empty — the only place dashed borders appear in product. */
+/* Empty: the only place dashed borders appear in product. */
 .card-empty {
 	background: transparent;
 	border: 1px dashed var(--border-strong);
@@ -2045,7 +2045,7 @@ a.card-inline:hover {
 	font-family: inherit;
 }
 
-/* Section "See all" affordance — mono, muted, with a trailing arrow. The
+/* Section "See all" affordance: mono, muted, with a trailing arrow. The
    arrow is appended via ::after so the label can be a plain translated
    string. Used in the section headers on Markets. */
 .title-action {
@@ -2062,7 +2062,7 @@ a.card-inline:hover {
 }
 
 /* Pointer cursor, hover colour shift, and trailing arrow only for
-   interactive variants — static <span> labels must not look tappable. */
+   interactive variants; static <span> labels must not look tappable. */
 button.title-action,
 a.title-action {
 	cursor: pointer;
@@ -2107,7 +2107,7 @@ a.title-action::after {
 }
 
 /* ============================================================
-   VICI — Sign-in screen styles
+   VICI: Sign-in screen styles
    ============================================================ */
 .signin-wrap {
 	position: absolute;
@@ -2185,7 +2185,7 @@ a.title-action::after {
 }
 
 /* ============================================================
-   Flow sub-component rules — `.xp-toast` /
+   Flow sub-component rules: `.xp-toast` /
    `.swipe-hint` / `.share-pop` blocks. Built on the
    shared token set (`--text-base` / `--text-muted` /
    `--color-accent` / `--bg-popover` / `--bg-surface` /
@@ -2193,13 +2193,13 @@ a.title-action::after {
    one block so the visual catalogue is greppable.
    ============================================================ */
 
-/* ── XP toast — standalone pill (used by XpToast.svelte) ───── */
+/* ── XP toast: standalone pill (used by XpToast.svelte) ───── */
 .xp-toast {
 	position: absolute;
 	top: 92px;
 	z-index: 20;
 	display: inline-flex;
-	/* Center every part on a common line — the side label, the larger stake
+	/* Center every part on a common line: the side label, the larger stake
 	   number and the small "IN PLAY"/bonus run at different sizes, so baseline
 	   alignment left the small caps sitting low against the number. */
 	align-items: center;
@@ -2264,7 +2264,7 @@ a.title-action::after {
 		opacity: 0;
 	}
 }
-/* Reduced-motion: the spring collapses to a plain hold-then-fade — no
+/* Reduced-motion: the spring collapses to a plain hold-then-fade, no
    overshoot, no upward travel. */
 @media (prefers-reduced-motion: reduce) {
 	.xp-toast {
@@ -2438,7 +2438,7 @@ a.title-action::after {
 	border-color: #ffffff;
 }
 /* Secondary providers (email, Internet Identity, Passkey, dev) share a
-   faint translucent pill — lighter than the solid dark Google pill, so the
+   faint translucent pill, lighter than the solid dark Google pill, so the
    dark Google pill + the lighter email pill read as the primary pair. */
 .signin-provider-btn.is-onboarding.ob-faint {
 	background: color-mix(in srgb, var(--text-base) 6%, transparent);
@@ -2484,7 +2484,7 @@ a.title-action::after {
 	border-radius: 50%;
 	animation: signin-spin 720ms linear infinite;
 }
-/* On the cream pill the default light track blends into the background —
+/* On the cream pill the default light track blends into the background;
    use ink-toned tints so the loading ring stays visible. */
 .signin-provider-btn.is-onboarding.ob-cream .signin-spinner {
 	border-color: rgba(26, 24, 21, 0.2);
@@ -2603,7 +2603,7 @@ a.title-action::after {
 	flex-shrink: 0;
 }
 
-/* ── Share popover — capability-aware ─────────────────── */
+/* ── Share popover: capability-aware ─────────────────── */
 .share-pop {
 	position: absolute;
 	top: 50px;
@@ -2927,7 +2927,7 @@ a.title-action::after {
 }
 
 /* ============================================================
-   Flow entry overlay + ResolutionReveal — global keyframes &
+   Flow entry overlay + ResolutionReveal: global keyframes &
    surfaces. The Flow entry "while you were away" surface
    (`.flow-loading`) and the deferred resolution digest
    (`.reso-reveal`) live here (not scoped) because both replay a
@@ -2942,7 +2942,7 @@ a.title-action::after {
      --border-strong → --ink-line-strong · --ease → --ease-vici
    ============================================================ */
 
-/* Shared celebration primitives — a radial spark burst and a
+/* Shared celebration primitives: a radial spark burst and a
    single overshoot-free pop. Consumed by the entry away-burst and
    the away-net figure. */
 @keyframes fe-spark {
@@ -3040,7 +3040,7 @@ a.title-action::after {
 		width: 100%;
 	}
 }
-/* the deck riffling — three cards fan out and snap back, on loop */
+/* the deck riffling: three cards fan out and snap back, on loop */
 @keyframes riffleA {
 	0%,
 	100% {
@@ -3087,7 +3087,7 @@ a.title-action::after {
 	);
 }
 /* Desktop drops the floating pill, so the overlay no longer reserves
-   `--bn-clear` at the bottom — it spans the full viewport edge to edge. */
+   `--bn-clear` at the bottom; it spans the full viewport edge to edge. */
 @media (min-width: 56rem) {
 	.flow-loading {
 		inset: 0;
@@ -3231,7 +3231,7 @@ a.title-action::after {
 	line-height: 1.45;
 	margin-top: 2px;
 }
-/* digest view — header + resolved-calls list (decluttered, no deck) */
+/* digest view: header + resolved-calls list (decluttered, no deck) */
 .flow-loading .away-view {
 	display: flex;
 	flex-direction: column;
@@ -3407,7 +3407,7 @@ a.title-action::after {
 	.flow-loading .pc.c {
 		transform: rotate(10deg) translate(13px, 4px);
 	}
-	/* hold the copy static and fully visible — no fade-out to `opacity:0`
+	/* hold the copy static and fully visible, no fade-out to `opacity:0`
 	   that could leave an empty frame; the script cycles lines on a timer */
 	.flow-loading .line {
 		animation: none;
@@ -3450,7 +3450,7 @@ a.title-action::after {
 	animation: reso-overlay-in 200ms var(--ease-vici);
 	overflow: hidden;
 }
-/* Celebration burst — net-positive batches only. */
+/* Celebration burst: net-positive batches only. */
 .reso-burst {
 	position: absolute;
 	inset: 0;
@@ -3672,7 +3672,7 @@ a.title-action::after {
 .reso-reveal-card .btn-ghost:hover {
 	color: var(--text-base);
 }
-/* Right-call celebration — dopamine hit on settled wins. No
+/* Right-call celebration: dopamine hit on settled wins. No
    bounce/overshoot per brand: scale + opacity rises only. */
 .reso-burst.is-win span {
 	background: var(--yes);
@@ -3876,7 +3876,7 @@ a.title-action::after {
 	color: var(--text-base);
 }
 
-/* Guest escape promoted to a peer of the auth stack — a full-width ghost
+/* Guest escape promoted to a peer of the auth stack: a full-width ghost
    button so "continue without signing up" reads as a real, reassuring
    option rather than fine print. Sits inside `.ob-auth-buttons`, so the
    8px column gap places it directly under the provider stack. */
@@ -3949,7 +3949,7 @@ a.title-action::after {
 	margin-top: 2px;
 }
 
-/* Starter-pack strip — gold-tinted variant of the summary card framing
+/* Starter-pack strip: gold-tinted variant of the summary card framing
    the reward at the auth gate. */
 .ob-summary-starter {
 	border-color: rgba(226, 184, 66, 0.3);
@@ -3967,7 +3967,7 @@ a.title-action::after {
 }
 
 /* ============================================================
-   Onboarding envelope + chrome — the page wrapper, brand wordmark,
+   Onboarding envelope + chrome: the page wrapper, brand wordmark,
    lock cue, and the sign-in / legal footer that sit around the
    shared `ob-*` surface primitives above (hero, handle input,
    availability hint, reward strip, auth stack). Theme tokens
@@ -4090,7 +4090,7 @@ a.title-action::after {
 	flex-shrink: 0;
 }
 
-/* ─── Friends sheets — shared CTA button styles ─── */
+/* ─── Friends sheets: shared CTA button styles ─── */
 /* Used by both FriendProfileSheet (Remove/Close) and AddFriendSheet
    (Submit = remove+primary / Close). Centralised here so the two sheets
    can't drift apart. */
@@ -4128,7 +4128,7 @@ a.title-action::after {
 }
 
 /* =====================================================================
-   Dashboard — three-zone build (Performance · Stack · Calls).
+   Dashboard: three-zone build (Performance · Stack · Calls).
    Namespaced `.db-*`, theme-aware via the app tokens. The accuracy hero
    is the screen masthead; type/spacing/easing are tuned for an at-a-
    glance read rather than a dense data grid.
@@ -4737,7 +4737,7 @@ a.title-action::after {
 	font-size: 11px;
 }
 
-/* Getting-started checklist — accent-tinted raised card at the top of the
+/* Getting-started checklist: accent-tinted raised card at the top of the
    first-run build (see `DashGettingStarted`). */
 .gst-card {
 	background: var(--bg-surface);
