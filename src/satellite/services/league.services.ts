@@ -30,7 +30,7 @@ import {
  * `https://<satelliteId>.<host><fullPath>` with `fullPath` starting at
  * `/league_images/`).
  *
- * Absent or `undefined` means "no image" — allowed (the field is
+ * Absent or `undefined` means "no image": allowed (the field is
  * cleared, never an empty string). When present we reject anything that
  * isn't ours: surrounding whitespace, a non-`https:` scheme (blocks
  * `data:`/`javascript:` and other foreign schemes), a host whose
@@ -43,7 +43,7 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
 		return;
 	}
 
-	// The stored value must already be its trimmed form — the FE
+	// The stored value must already be its trimmed form: the FE
 	// normalises before write, so any surrounding whitespace here is a
 	// crafted payload.
 	if (imageUrl !== imageUrl.trim() || imageUrl.length === 0) {
@@ -58,7 +58,7 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
 		throw new Error('leagues imageUrl must be a well-formed URL.');
 	}
 
-	// HTTPS only — blocks data:/javascript:/blob: and any foreign scheme.
+	// HTTPS only: blocks data:/javascript:/blob, and any foreign scheme.
 	if (url.protocol !== 'https:') {
 		throw new Error('leagues imageUrl must use the https scheme.');
 	}
@@ -90,7 +90,7 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
  *
  *  2. **Authorisation.** On creation, the caller becomes the owner
  *     (`proposed.owner === caller`). On edits, the *current* owner is
- *     the only principal that can write — but they're free to flip
+ *     the only principal that can write, but they're free to flip
  *     `owner` to any valid principal (transfer-of-ownership flow).
  *     The owner-rotation invariant is "only the outgoing owner can
  *     authorise the swap"; the new owner must already be a member of
@@ -99,7 +99,7 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
  *
  *  3. **Identity fields are immutable.** `id`, `createdAtMs`,
  *     `inviteCode`, and `emblem` are write-once. Even the owner can't
- *     rotate the invite code after creation — the join-by-code flow
+ *     rotate the invite code after creation: the join-by-code flow
  *     relies on codes being stable for the league's lifetime. `owner`,
  *     `privacy`, and `imageUrl` are the editable exceptions: ownership
  *     transfers (see §2), and the owner can change the league's
@@ -123,7 +123,7 @@ export const assertSetLeague = ({
 
 	const proposedDoc = decodeDocData<LeagueDoc>(proposed.data);
 
-	// 1. Key shape — must match the embedded id.
+	// 1. Key shape: must match the embedded id.
 	if (key !== proposedDoc.id) {
 		throw new Error(`leagues key mismatch: expected ${proposedDoc.id}, got ${key}.`);
 	}
@@ -151,7 +151,7 @@ export const assertSetLeague = ({
 		);
 	}
 
-	// Owner principal must parse — defensive against malformed writes.
+	// Owner principal must parse: defensive against malformed writes.
 	try {
 		Principal.fromText(proposedDoc.owner);
 	} catch {
@@ -159,7 +159,7 @@ export const assertSetLeague = ({
 	}
 
 	// Privacy drives every visibility decision, so any value that lands on
-	// the doc — on creation OR on a later owner edit — must be one of the
+	// the doc, on creation OR on a later owner edit, must be one of the
 	// three known variants (or absent for legacy-style rows, which resolve
 	// to `open`). Validated on both paths because privacy is owner-mutable
 	// after creation (an owner can tighten or loosen a league's visibility);
@@ -175,7 +175,7 @@ export const assertSetLeague = ({
 
 	const callerText = Principal.fromUint8Array(caller).toText();
 
-	// Creation path — caller must equal proposed owner. No `current`
+	// Creation path: caller must equal proposed owner. No `current`
 	// to compare against, so the "current owner authorises edits"
 	// rule below doesn't apply.
 	if (isNullish(current)) {
@@ -197,7 +197,7 @@ export const assertSetLeague = ({
 		}
 
 		// A cover image may be seeded at creation; same validation as the
-		// edit path — when present it must be one of our own league_images
+		// edit path; when present it must be one of our own league_images
 		// Storage URLs, else the field stays absent ("no image").
 		assertValidLeagueImageUrl(proposedDoc.imageUrl);
 
@@ -214,7 +214,7 @@ export const assertSetLeague = ({
 		throw new Error('leagues edits must be made by the current owner.');
 	}
 
-	// 3. Identity fields are immutable on edits — `owner` is now
+	// 3. Identity fields are immutable on edits: `owner` is now
 	// editable, the rest stay frozen. The emblem is chosen once at creation
 	// and frozen alongside the identity fields so the league's logo glyph
 	// can't silently shift under existing members.
@@ -234,7 +234,7 @@ export const assertSetLeague = ({
 		throw new Error('leagues identity fields are immutable (id, createdAtMs, inviteCode, emblem).');
 	}
 
-	// 4. Cover image — owner-mutable. The owner (the only principal that
+	// 4. Cover image: owner-mutable. The owner (the only principal that
 	// reaches this point, per §2) may set, change, or clear `imageUrl`.
 	// When present it must be one of THIS satellite's `league_images`
 	// Storage download URLs; we reject blanks/external/foreign-scheme
@@ -244,7 +244,7 @@ export const assertSetLeague = ({
 };
 
 /**
- * League ownership transfer — defineUpdate handler.
+ * League ownership transfer: defineUpdate handler.
  *
  * The flow runs three writes in order:
  *
@@ -252,7 +252,7 @@ export const assertSetLeague = ({
  *     caller) to the new owner. Done as the *outgoing* owner so the
  *     assert's "edits made by current owner" rule accepts the swap.
  *  2. Promote `LEAGUE_MEMBERS[${leagueId}/${newOwner}]` to
- *     `role='owner'`. Done as the *new* owner — by this point
+ *     `role='owner'`. Done as the *new* owner: by this point
  *     `league.owner === newOwner`, so the assert's "callerIsOwner"
  *     branch passes and the "owner role reserved for league owner
  *     principal" check also passes.
@@ -269,14 +269,14 @@ export const assertSetLeague = ({
  * background sweeper can repair stragglers.
  *
  * Refusal reasons:
- *  - `not_owner` — caller is not the current owner.
- *  - `league_not_found` — leagueId has no doc.
- *  - `new_owner_not_member` — target principal isn't a member of the
+ *  - `not_owner`: caller is not the current owner.
+ *  - `league_not_found`: leagueId has no doc.
+ *  - `new_owner_not_member`: target principal isn't a member of the
  *    league. (Only a current member can become owner.)
- *  - `new_owner_is_caller` — caller is trying to transfer to
+ *  - `new_owner_is_caller`: caller is trying to transfer to
  *    themselves; a no-op we reject explicitly so the FE can render
  *    a clearer error than a silent success.
- *  - `invalid_input` — `newOwnerPrincipal` is not a valid principal
+ *  - `invalid_input`: `newOwnerPrincipal` is not a valid principal
  *    text.
  */
 
@@ -364,7 +364,7 @@ export const transferLeagueOwnershipFn = ({
 		caller: callerBytes
 	});
 
-	// Step 1 — flip league.owner. Caller is the outgoing owner.
+	// Step 1: flip league.owner. Caller is the outgoing owner.
 	setDocStore({
 		collection: Collection.LEAGUES,
 		key: leagueId,
@@ -378,7 +378,7 @@ export const transferLeagueOwnershipFn = ({
 		}
 	});
 
-	// Step 2 — promote the new owner's member row. From here on we
+	// Step 2: promote the new owner's member row. From here on we
 	// impersonate the new owner so the assert sees `callerIsOwner`
 	// (which is true now that league.owner has flipped).
 	const newOwnerMember = decodeDocData<LeagueMemberDoc>(newOwnerMemberDoc.data);
@@ -396,10 +396,10 @@ export const transferLeagueOwnershipFn = ({
 		}
 	});
 
-	// Step 3 — demote the old owner's member row to `admin`. The
+	// Step 3: demote the old owner's member row to `admin`. The
 	// member doc *should* exist (every owner has a corresponding
-	// `role='owner'` member row), but defensively skip if missing
-	// — we've already swapped league.owner so the auth model is
+	// `role='owner'` member row), but defensively skip if missing;
+	// we've already swapped league.owner so the auth model is
 	// consistent regardless.
 	if (nonNullish(oldOwnerMemberDoc)) {
 		const oldOwnerMember = decodeDocData<LeagueMemberDoc>(oldOwnerMemberDoc.data);
@@ -422,26 +422,26 @@ export const transferLeagueOwnershipFn = ({
 };
 
 /**
- * Owner-authorised league disband — full delete of a league and all
+ * Owner-authorised league disband: full delete of a league and all
  * its membership rows.
  *
  * Refusal reasons:
- *  - `not_owner` — caller is not the current owner of the league.
+ *  - `not_owner`: caller is not the current owner of the league.
  *
- * A missing league doc is NOT a refusal — it's a clean no-op success
+ * A missing league doc is NOT a refusal: it's a clean no-op success
  * (`{ ok: true }`). The disband is idempotent: if the league is already
  * gone (e.g. deleted by a concurrent caller between an ownership
  * precheck and this call), the desired end state already holds.
  *
  * The disband runs as the satellite SDK caller (passed in as
- * `callerBytes`), so it deletes via `deleteDocStore` directly — that
+ * `callerBytes`), so it deletes via `deleteDocStore` directly: that
  * path does NOT re-enter `assertDeleteLeagueMember`, which is why this
  * can drop the `owner` member row too (the assert would otherwise
  * reject it as "transfer ownership first"). Order is membership rows
  * first, then the league doc, mirroring the cascade's
  * memberships → owned-empty-leagues sequencing.
  *
- * This is a deliberate, complete disband — distinct from the account-
+ * This is a deliberate, complete disband: distinct from the account-
  * delete cascade's `deleteOwnedEmptyLeagues`, which only drops leagues
  * that are ALREADY empty (every other member has left). Here the owner
  * is explicitly choosing to remove a league that may still have other
@@ -449,7 +449,7 @@ export const transferLeagueOwnershipFn = ({
  *
  * Idempotent: a missing league doc or missing membership rows are
  * clean no-ops. The version-locked deletes detect a concurrent mutation
- * (a member joining/leaving mid-disband) by trapping — the caller can
+ * (a member joining/leaving mid-disband) by trapping: the caller can
  * retry and the prefix scan re-reads the current rows.
  */
 export const deleteLeagueFn = ({
@@ -479,7 +479,7 @@ export const deleteLeagueFn = ({
 	}
 
 	// Delete every membership row for this league (prefix scan on
-	// `${leagueId}/`). The owner row is included — the SDK drop bypasses
+	// `${leagueId}/`). The owner row is included: the SDK drop bypasses
 	// `assertDeleteLeagueMember`'s "owner row can't be deleted" guard.
 	//
 	// Match on the key prefix alone, NOT the decoded payload: membership

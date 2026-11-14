@@ -17,13 +17,6 @@
 export const ACCURACY_GATE_CALLS = 30;
 
 /**
- * `true` when the user has logged enough lifetime calls to make
- * percentage-accuracy a useful — and not noisy — signal.
- */
-export const isAccuracyUnlocked = (totalCalls: number): boolean =>
-	totalCalls >= ACCURACY_GATE_CALLS;
-
-/**
  * Daily hard cap — the most predictions a single day's Flow can count
  * (the daily-ten goal plus the +5 Push-to-15 overtime). The cross-session
  * "come back tomorrow" takeover fires once the day's running total reaches

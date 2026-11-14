@@ -520,25 +520,3 @@ export const loadUserOrders = async ({
 		onUpdateError
 	});
 };
-
-/**
- * Callback-based variant of {@link getUserOrdersForMarket}. No-op when the user
- * is not signed in.
- */
-export const loadUserOrdersForMarket = ({
-	marketId,
-	domain,
-	onLoad,
-	onUpdateError
-}: {
-	marketId: MarketId;
-	domain: ClearingDid.BalanceDomain;
-	onLoad: (options: { certified: boolean; response: ClearingDid.LimitOrder[] }) => void;
-	onUpdateError?: (error: unknown) => void;
-}): Promise<void> =>
-	loadUserOrders({
-		domain,
-		onLoad: ({ certified, response }) =>
-			onLoad({ certified, response: response.filter((o) => o.series_id === marketId) }),
-		onUpdateError
-	});

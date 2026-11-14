@@ -1,7 +1,7 @@
 import type { FeaturedEvent } from '#lib/types/featured-event.ts';
 
 /**
- * The 2026 FIFA World Cup — current featured event.
+ * The 2026 FIFA World Cup: current featured event.
  *
  * To swap the featured event:
  *
@@ -9,7 +9,7 @@ import type { FeaturedEvent } from '#lib/types/featured-event.ts';
  * 2. Re-export it as `CURRENT_FEATURED_EVENT`.
  * 3. (Optional) Migrate any in-flight markets to carry the new `categoryTag`.
  *
- * Nothing else in the codebase reads the World Cup by name — surfaces use
+ * Nothing else in the codebase reads the World Cup by name: surfaces use
  * the abstraction in `#lib/types/featured-event.ts` and the derivations in
  * `#lib/derived/featured-event.derived.ts`.
  *

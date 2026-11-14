@@ -31,7 +31,7 @@ import {
  *
  * A league battle scores each side on its members' prediction accuracy over the
  * battle window. The figure is read straight from the clearing canister's
- * settlement events — the on-chain source of truth for what actually settled —
+ * settlement events, the on-chain source of truth for what actually settled,
  * via {@link aggregate_settlement_accuracy}, never from a client-written
  * counter. Because an assert cannot make the inter-canister call to re-derive
  * the score, resolution is **controller-trusted**: this endpoint (running as the
@@ -46,13 +46,13 @@ import {
 
 const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
-/** A satellite controller principal — the `caller` for the controller-trusted resolved write. */
+/** A satellite controller principal: the `caller` for the controller-trusted resolved write. */
 const adminCaller = (): Uint8Array => controllerCaller('battle resolution');
 
 /**
  * Current member principals of a league. The `league_members` key is
  * `${leagueId}/${principal}`, so the scan is anchored to that prefix with a
- * key matcher — the datastore skips (and never decodes) rows for other
+ * key matcher: the datastore skips (and never decodes) rows for other
  * leagues, keeping this O(this-league's-members) rather than O(all-members).
  */
 const leagueMemberPrincipals = ({
@@ -81,7 +81,7 @@ const leagueMemberPrincipals = ({
 					principals.push(Principal.fromText(member.member));
 				}
 			} catch {
-				// A malformed row can't contribute a member — skip it.
+				// A malformed row can't contribute a member: skip it.
 			}
 		}
 	}
@@ -91,8 +91,8 @@ const leagueMemberPrincipals = ({
 
 /**
  * The series allow-list for a battle scope. `'all'` returns `undefined` (no
- * filter — every series counts); a market-tag scope returns that tag's series
- * set read straight from the `market_tag_index` bucket — O(matching-series),
+ * filter: every series counts); a market-tag scope returns that tag's series
+ * set read straight from the `market_tag_index` bucket: O(matching-series),
  * not a scan of the whole `market_metadata` collection. An unscoped (empty)
  * bucket yields an empty set, which correctly scores the battle as a void
  * face-off rather than silently counting every market.
@@ -113,9 +113,9 @@ const scopeSeriesIds = ({
 
 /** Per-side settled-call totals over a window, summed across the side's members. */
 interface SideTotals {
-	/** Settled positions in the window — the battle's `calls`. */
+	/** Settled positions in the window: the battle's `calls`. */
 	calls: number;
-	/** Net-positive settlements — the battle's `wins`. */
+	/** Net-positive settlements: the battle's `wins`. */
 	wins: number;
 }
 
@@ -218,7 +218,7 @@ const computeScoreline = async ({
 	};
 };
 
-/** Whether `caller` is a current member of either side — the resolve/live-read liveness gate. */
+/** Whether `caller` is a current member of either side: the resolve/live-read liveness gate. */
 const isMemberOfEitherSide = ({
 	battle,
 	caller
@@ -241,7 +241,7 @@ const isMemberOfEitherSide = ({
 
 /**
  * Resolve a settled league battle (`in_flight → resolved`) from clearing
- * settlement history. Idempotent — an already-resolved battle is returned
+ * settlement history. Idempotent: an already-resolved battle is returned
  * unchanged without a write. Throws when the battle is unknown, not a league,
  * not yet settled, or the caller is not a member of either side.
  */
@@ -330,7 +330,7 @@ export interface BattleLiveScore {
 }
 
 /**
- * Project the current standings of an in-flight league battle from clearing —
+ * Project the current standings of an in-flight league battle from clearing:
  * the same accuracy arithmetic as resolution, over `[kickoffMs, now)`, but
  * strictly read-only (it never writes the doc). Returns `undefined` for a
  * battle that can't be scored live (unknown, non-league, not in flight) or when

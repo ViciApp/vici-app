@@ -36,13 +36,6 @@ export type BattleState =
 
 export type BattleWinner = 'A' | 'B' | 'draw';
 
-/** Terminal states — no further transition is allowed. */
-export const BATTLE_TERMINAL_STATES: ReadonlySet<BattleState> = new Set<BattleState>([
-	'resolved',
-	'declined',
-	'expired'
-]);
-
 /**
  * Which calls count toward a battle's scoreline. `'all'` counts every
  * settled call regardless of category; any {@link MacroId} narrows the

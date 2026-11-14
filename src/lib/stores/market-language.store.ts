@@ -6,9 +6,9 @@ import { writable } from 'svelte/store';
  * Global default for how market metadata (title / description / resolution /
  * outcomes) renders across every surface:
  *
- * - `translated` — show the stored translation for the reader's resolved
+ * - `translated`: show the stored translation for the reader's resolved
  *   locale when one exists (the default).
- * - `original` — always show the on-chain original language.
+ * - `original`: always show the on-chain original language.
  *
  * Client-persisted in `localStorage` (identity-agnostic, like the theme
  * preference) rather than the satellite `preferences` schema, which would

@@ -24,7 +24,7 @@ export interface LoadWithCertificationParams<R> {
  * responses that arrive after the update has already resolved are dropped by the
  * underlying `queryAndUpdate` implementation.
  *
- * Use this for read paths that are exposed over both query and update calls —
+ * Use this for read paths that are exposed over both query and update calls,
  * typically anything routed through a `@dfinity/utils` `Canister` (e.g. registry,
  * clearing) or an `@icp-sdk/canisters` canister (ledger, index). Juno satellite
  * `functions.*` reads do NOT have an update flavor and cannot be used with this.

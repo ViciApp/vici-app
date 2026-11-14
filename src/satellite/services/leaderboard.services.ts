@@ -10,7 +10,7 @@ import type { PrincipalText } from '@junobuild/schema';
 const LEADERBOARD_LIMIT = 50;
 
 /**
- * Every non-hidden profile, sorted by `points` (XP) descending — the
+ * Every non-hidden profile, sorted by `points` (XP) descending: the
  * SAME filter + sort key the public {@link listLeaderboard} uses, just
  * without the top-{@link LEADERBOARD_LIMIT} slice. The single source of
  * truth for the global ranking so {@link countNonHiddenProfilesFn} and
@@ -47,7 +47,7 @@ const rankedProfiles = (): UserProfile[] => {
  * Returns the top {@link LEADERBOARD_LIMIT} profiles ranked by points (XP),
  * matching what the frontend Leaderboard surface displays.
  *
- * Nicknames/handles are returned for every profile the caller can see —
+ * Nicknames/handles are returned for every profile the caller can see:
  * the broader "who can see whom" gate (visibility rework) is owned by a
  * future change and is out of scope here.
  *
@@ -98,13 +98,13 @@ export const listLeaderboard = (): UserProfile[] => {
 /**
  * The caller's rival, resolved from the FULL {@link rankedProfiles}
  * ordering (not the top-{@link LEADERBOARD_LIMIT} slice {@link
- * listLeaderboard} returns), so it works for every ranked user — not
+ * listLeaderboard} returns), so it works for every ranked user, not
  * just those in the visible top N.
  *
- * - Usual case: the profile one rank ABOVE the caller — the next
+ * - Usual case: the profile one rank ABOVE the caller, the next
  *   competitor to overtake.
  * - Leader (rank 1): nobody is above, so surface the runner-up one rank
- *   BELOW — the rival chasing them — with `rivalIsTrailing: true` so the
+ *   BELOW, the rival chasing them, with `rivalIsTrailing: true` so the
  *   FE frames the gap as a lead rather than a deficit.
  *
  * `rival` is `undefined` (→ FE locked tease) only when the caller is
@@ -126,7 +126,7 @@ export const getMyRivalFn = (): {
 	const myIndex = profiles.findIndex((profile) => profile.owner === callerText);
 
 	if (myIndex === -1) {
-		// Unranked (no profile / hidden) — no rival.
+		// Unranked (no profile / hidden): no rival.
 		return { rival: undefined, rivalIsTrailing: false };
 	}
 
@@ -136,7 +136,7 @@ export const getMyRivalFn = (): {
 	const rival = profiles[rivalIsTrailing ? 1 : myIndex - 1];
 
 	if (isNullish(rival)) {
-		// Rank 1 with no runner-up (lone ranked profile) — no rival.
+		// Rank 1 with no runner-up (lone ranked profile); no rival.
 		return { rival: undefined, rivalIsTrailing: false };
 	}
 
@@ -168,7 +168,7 @@ export const countNonHiddenProfilesFn = (): number => rankedProfiles().length;
 /**
  * 1-based rank of `principal` within the global leaderboard ordering
  * ({@link rankedProfiles}). Returns `undefined` when the principal has no
- * profile or is hidden (soft-deleted / hibernated) — callers treat that as
+ * profile or is hidden (soft-deleted / hibernated): callers treat that as
  * "unranked".
  *
  * @deprecated Prefer {@link getUserRankAndCountFn} which performs a single
@@ -190,7 +190,7 @@ export const getUserRankFn = ({ principal }: { principal: PrincipalText }): numb
  * (non-hidden) profiles.
  *
  * Use this instead of calling `countNonHiddenProfilesFn` +
- * `getUserRankFn` separately — those two each run a full scan+sort,
+ * `getUserRankFn` separately: those two each run a full scan+sort,
  * doubling the work on every `calculateAndSyncStats` invocation.
  *
  * `rank` is `undefined` when the principal has no profile or is hidden.

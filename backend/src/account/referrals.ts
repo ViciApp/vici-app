@@ -8,6 +8,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { randomInt } from 'node:crypto';
 import { query } from '../db/client';
 import { logger } from '../lib/logger';
+import { DAY_IN_MS } from '../lib/time';
 import { friendRelationKey } from '../social/relations';
 
 /** Client-facing referral refusal; routes answer it as a 400 with the message. */
@@ -28,7 +29,7 @@ export const REFERRAL_CODE_REGEX = new RegExp(
 /** How long after profile creation a user still counts as newly signed up
  * for redemption purposes. Past the window the code still works via the
  * friendship-only claim, but no VXP bonus is owed. */
-export const REFERRAL_SIGNUP_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const REFERRAL_SIGNUP_WINDOW_MS = DAY_IN_MS;
 
 /** Wire-level refusal reason for a too-old profile; the client matches on
  * this exact string to branch into the friendship-only flow. */

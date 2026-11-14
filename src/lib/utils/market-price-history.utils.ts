@@ -8,7 +8,7 @@ import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
 
 /**
  * The chart period chips on the market-detail surface. Each maps to an
- * engine query window — see {@link priceHistoryQueryWindow}.
+ * engine query window: see {@link priceHistoryQueryWindow}.
  */
 export type PriceHistoryPeriod = '1d' | '7d' | '30d' | 'all';
 
@@ -16,7 +16,7 @@ interface PriceHistoryWindow {
 	interval: ClearingDid.PriceHistoryInterval;
 	/** Inclusive lower query bound (ns). Omitted for `all` (no lower bound). */
 	startTimeNs?: bigint;
-	/** Upper edge of the chart's x-axis (ns) — "now". */
+	/** Upper edge of the chart's x-axis (ns): "now". */
 	endTimeNs: bigint;
 }
 
@@ -70,7 +70,7 @@ export const priceHistoryQueryWindow = (period: PriceHistoryPeriod): PriceHistor
  * executed at, which is what the sparkline plots; we map it to a 0–100 YES
  * percentage and place it on the time axis via its `bucket_start_ns` (an
  * x-fraction across `[windowStartNs, windowEndNs]`), so the line reflects
- * real elapsed time — including gaps where no trades landed — rather than
+ * real elapsed time, including gaps where no trades landed, rather than
  * uniform per-bucket steps. Candles arrive ascending by `bucket_start_ns`,
  * so the series stays in chronological order. The resulting line reflects
  * the TRUE market movement for all viewers, not the viewer's own fills. A
@@ -126,9 +126,9 @@ export const deriveMarketPriceSeries = ({
  * ({@link ClearingDid.SeriesTradePoint}). The math stays in `bigint`: `qty` and
  * `price.decimal.value` are both integers, so each trade's notional is
  * `qty · value` rescaled from the price's precision to the token's by the
- * decimal delta — exact when the token is at least as precise as the price (the
+ * decimal delta: exact when the token is at least as precise as the price (the
  * usual case), and never routed through a lossy/oversized JS float. An untraded
- * series sums to {@link ZERO} — the volume tile's cold-start "New" state.
+ * series sums to {@link ZERO}: the volume tile's cold-start "New" state.
  */
 export const tradeHistoryNotional = ({
 	trades,

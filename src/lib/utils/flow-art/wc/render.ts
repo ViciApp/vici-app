@@ -20,14 +20,14 @@ import {
 } from '#lib/utils/flow-art/wc/resolve-template.ts';
 import { renderWcTemplate } from '#lib/utils/flow-art/wc/templates.ts';
 
-// ---- WC — Faceted Editorial system (curated, per market) -----
-// Coordinate space is 280×100 (slice fill) — the wide full-bleed
+// ---- WC: Faceted Editorial system (curated, per market) -----
+// Coordinate space is 280×100 (slice fill): the wide full-bleed
 // artwork band on the front of WC cards.
 //
 // Two layers:
-//   Figure layer  — fixed colours (skin / hair / kit) that read on
+//   Figure layer: fixed colours (skin / hair / kit) that read on
 //                   any mode background, drawn by `wcFace`.
-//   Background    — palette-token backdrops that recolour per
+//   Background: palette-token backdrops that recolour per
 //                   dark / light / peach theme.
 //
 // Each tentpole WC market id maps to a curated composition in
@@ -45,7 +45,7 @@ export const renderWC = ({ p, state, uid, seed, title }: RenderArgs): string => 
 	const h = makeWcHelpers(p, uid);
 
 	// === FALLBACK (seed-varied) ==============================
-	// Most live WC markets never match a curated `recipes` key — the
+	// Most live WC markets never match a curated `recipes` key: the
 	// backend hands the frontend opaque market ids, and even the
 	// hand-authored advancement markets (`wc-it-r16`, …) aren't keyed
 	// here. They used to collapse onto one identical pitch-and-figure
@@ -57,7 +57,7 @@ export const renderWC = ({ p, state, uid, seed, title }: RenderArgs): string => 
 	// dark / light / peach while the palette `p` still recolours it.
 	const seedKey = typeof seed === 'string' ? seed : String(seed);
 
-	// Threaded the helper bundle + seed positionally — both are plumbing
+	// Threaded the helper bundle + seed positionally: both are plumbing
 	// for the seed-derived scene, not a user-facing option object.
 	// eslint-disable-next-line local-rules/prefer-object-params
 	const generativeFallback = (h: WcHelpers, seedKey: string): string => {
@@ -124,11 +124,11 @@ export const renderWC = ({ p, state, uid, seed, title }: RenderArgs): string => 
 		return scene;
 	};
 
-	// Per-nation advancement scene — flag backdrop + home kit + figure,
+	// Per-nation advancement scene: flag backdrop + home kit + figure,
 	// driven by the `WC_NATIONS` table. Renders a flag-true card for the
 	// featured-event markets (`wc-br-r16`, `wc-it-r16`, …) and any other
 	// `wc-{cc}-*` id whose code is a known nation.
-	// Helper bundle + nation row threaded positionally — internal scene
+	// Helper bundle + nation row threaded positionally: internal scene
 	// plumbing, not a user-facing option object.
 	// eslint-disable-next-line local-rules/prefer-object-params
 	const nationScene = (h: WcHelpers, n: WCNation): string => {
@@ -161,7 +161,7 @@ export const renderWC = ({ p, state, uid, seed, title }: RenderArgs): string => 
 	// → question-derived heuristic template → seed-varied fallback.
 	// Recipes and the hand-authored nation scenes win first so neither is
 	// shadowed. The catalogue + heuristic tiers only fire when a `title`
-	// (the market question) is supplied — otherwise the generic fallback
+	// (the market question) is supplied: otherwise the generic fallback
 	// renders exactly as before, so call sites that don't pass a title are
 	// completely unaffected.
 	const nationCode = /^wc-([a-z]{2})(?:-|$)/.exec(seedKey)?.[1];

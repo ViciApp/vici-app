@@ -6,10 +6,9 @@
 
 import { query } from '../db/client';
 import { ZERO } from '../lib/constants';
+import { DAY_IN_MS } from '../lib/time';
 import { AnalyticsValidationError } from './events';
 import type { AnalyticsEventName, AnalyticsEventProps } from './taxonomy';
-
-const MS_PER_DAY = 86_400_000;
 
 /** Hard batch ceiling for the export and its drain. */
 export const MAX_EXPORT_LIMIT = 100;
@@ -46,7 +45,7 @@ export const getAnalyticsSummary = async ({
 	return {
 		rows: rows.map(({ epoch_day, name, count }) => ({
 			day: Number(epoch_day),
-			start: Number(epoch_day) * MS_PER_DAY,
+			start: Number(epoch_day) * DAY_IN_MS,
 			name: name as AnalyticsEventName,
 			count: Number(count)
 		}))

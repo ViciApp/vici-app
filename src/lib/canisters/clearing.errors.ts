@@ -6,7 +6,7 @@ import { Web2ApiError } from '#lib/web2/client.ts';
 import { assertNever, isNullish, nonNullish } from '@dfinity/utils';
 
 /**
- * The discriminant of a Candid variant — its single top-level key (e.g.
+ * The discriminant of a Candid variant: its single top-level key (e.g.
  * `'InsufficientMargin'`). Safe to surface in logs/`Error.message`: it
  * names the failure without the variant's payload (principals, base-unit
  * bigints), which stays solely on `TradeExecutionError.tradeError`.
@@ -19,7 +19,7 @@ const variantName = (variant: object): string => Object.keys(variant)[0] ?? 'Unk
  * Candid `TradeError` variant so the UI can render a localized,
  * human-readable reason instead of the raw `JSON.stringify`d `Err` (which
  * leaked principals and base-unit bigints into the "Prediction failed"
- * toast). `Error.message` holds only the variant name — never the payload.
+ * toast). `Error.message` holds only the variant name, never the payload.
  */
 export class TradeExecutionError extends Error {
 	readonly tradeError: ClearingDid.TradeError;
@@ -34,7 +34,7 @@ export class TradeExecutionError extends Error {
 /**
  * A prediction was attempted at or after the market's kickoff/expiry. Thrown
  * client-side by `placeOrder`: the clearing engine has no expiry gate (its
- * `TradeError` carries no `Expired` variant — it only rejects already-settled
+ * `TradeError` carries no `Expired` variant: it only rejects already-settled
  * series), so a stale Flow deck built before kickoff could otherwise submit
  * after it. Distinct from a settled-series rejection: the market is closed but
  * not yet resolved.
@@ -47,7 +47,7 @@ export class MarketClosedError extends Error {
 }
 
 /**
- * An i18n message descriptor — a `MessageKey` plus its interpolation params —
+ * An i18n message descriptor, a `MessageKey` plus its interpolation params,
  * resolved by the caller through `t({ locale, key, params })`.
  */
 export interface TradeErrorMessage {
@@ -203,7 +203,7 @@ export const orderRejectionMessage = (error: unknown): TradeErrorMessage | undef
 
 /**
  * Resolves any caught trade error to a message descriptor. Non-trade errors
- * (and — defensively — a variant the bindings don't yet know about) fall
+ * (and, defensively, a variant the bindings don't yet know about) fall
  * through to a generic key so the toast never surfaces a raw payload.
  */
 export const tradeErrorMessage = (error: unknown): TradeErrorMessage => {
@@ -225,7 +225,7 @@ export const tradeErrorMessage = (error: unknown): TradeErrorMessage => {
 		return mapTradeError(error.tradeError);
 	} catch {
 		if (import.meta.env.DEV) {
-			// Variant name only — never the payload (principals, base-unit bigints).
+			// Variant name only: never the payload (principals, base-unit bigints).
 			console.warn('Unmapped trade error variant:', variantName(error.tradeError));
 		}
 

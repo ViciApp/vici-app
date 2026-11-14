@@ -713,7 +713,5 @@ export const recordMotionSwipe = (input: MotionSwipeInput): MotionSwipeResult =>
 
 export const resetMotionState = (): void => saveState(defaultState());
 
-export const getMotionState = (): MotionState => loadState();
-
 // Re-export so callers can read the rank ordering if ever needed.
 export { TIER_RANK };

@@ -15,13 +15,13 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  * rules here:
  *
  *  1. **Append-only.** `current` must be null. A doc is written
- *     once and never touched again — there's no edit flow, and a
+ *     once and never touched again: there's no edit flow, and a
  *     blocked edit attempt is a clearer error than a silent data race.
  *  2. **Shape.** `reason` must be one of the six picker buckets the
  *     UI exposes (mirrored in `EXIT_SIGNAL_REASONS`).
  *     `note` must be a string ≤ {@link EXIT_SIGNAL_NOTE_MAX_LENGTH}.
  *     `createdAtMs` must be finite + positive.
- *  3. **Anonymous shape.** We don't validate any principal field — the
+ *  3. **Anonymous shape.** We don't validate any principal field: the
  *     doc body has none. The key (random UUID, chosen by the caller)
  *     is opaque to the assert; we just guarantee it's a non-empty
  *     string so we don't store an empty-keyed row by accident.
@@ -29,7 +29,7 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  * Anyone authenticated can write. The endpoint that drives the
  * write (`deleteMyAccount`) is the only legitimate path, but if a
  * curious user pokes the datastore directly the worst they can do
- * is bloat the log — there's no PII or principal to leak.
+ * is bloat the log: there's no PII or principal to leak.
  */
 export const assertSetExitSignal = ({
 	data: {

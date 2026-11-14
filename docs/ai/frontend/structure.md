@@ -68,7 +68,7 @@ top-level group:
   `#lib/utils/flow-art.utils.ts`). Parallel to `characters/`.
 - `authn/`: authentication / Internet Identity / OAuth flows.
 - `authz/`: authorization (role gating, guards rendering).
-- `characters/`: character SVGs (Vici, Oracle, Trickster, Archivist, Flame).
+- `characters/`: character SVGs (Vici, Oracle, Trickster, Flame).
 - `claim/`: legacy-to-new-app migration banners.
 - `dash/`: Dashboard surfaces.
 - `dev/`: dev-build-only tooling (`TweaksPanel`).

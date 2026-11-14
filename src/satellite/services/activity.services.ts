@@ -9,18 +9,18 @@ const ACTIVITY_TYPES: readonly string[] = Object.values(ActivityType);
 
 /**
  * Write-time guard for the `activities` collection. The collection is public-write (it's the social
- * feed), and several server flows now read it — the onboarding milestones and the referral
+ * feed), and several server flows now read it: the onboarding milestones and the referral
  * first-prediction payout both key off a caller's `trade` activity. Without a guard a client could
  * `set_doc` an activity attributed to **another** principal (feed spoofing) or under a malformed
  * key. This assert binds every activity to its writer:
  *
- *  - `data.user` (the actor) MUST equal the caller — no writing activity as someone else.
+ *  - `data.user` (the actor) MUST equal the caller; no writing activity as someone else.
  *  - `type` must be a known {@link ActivityType}.
  *  - the doc key must be `${caller}#${timestamp}#${type}` (the shape `logActivity` writes), so the
  *    owner-scoped reads + the `#trade`-suffix matcher used by the payout gates stay trustworthy.
  *
  * NOTE: this stops impersonation, not a user self-faking their *own* `trade` to trigger their own
- * reward — that requires verifying an authoritative cleared trade on the engine (tracked in #543).
+ * reward: that requires verifying an authoritative cleared trade on the engine (tracked in #543).
  */
 export const assertSetActivity = ({
 	caller,
@@ -67,7 +67,7 @@ export const assertSetActivity = ({
 
 	// `timestamp` drives UI rendering (`new Date(...)`) and client-side ordering, so reject a
 	// malformed value (string / NaN / Infinity). It must be a safe integer and equal the key's
-	// timestamp segment — the shape `logActivity` writes (`Date.now()` in both places).
+	// timestamp segment: the shape `logActivity` writes (`Date.now()` in both places).
 	if (!Number.isSafeInteger(activity.timestamp) || `${activity.timestamp}` !== parts[1]) {
 		throw new Error('Activity timestamp must be a safe integer matching the key.');
 	}

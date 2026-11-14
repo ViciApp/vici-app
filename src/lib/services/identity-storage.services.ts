@@ -19,9 +19,9 @@ const STORAGE_OWNER_KEY = 'vici.storage-owner.v1';
  * principal changes to a different *defined* owner (sign-in as a different
  * user, account switch), so one identity's state never bleeds into the next
  * on a shared device. The signed-out (`undefined`) transition does NOT clear
- * — see the note below.
+ * (see the note below).
  *
- * Only clears on an actual owner change — NOT on a same-user reload, which
+ * Only clears on an actual owner change, NOT on a same-user reload, which
  * would defeat the offline-resilient daily-goal mirror (it exists to survive
  * a refresh after a dropped server write). Scope is local-authoritative state
  * with no server copy to reload from; server-backed caches are handled
@@ -45,7 +45,7 @@ export const reconcileIdentityScopedStorage = ({
 }: {
 	ownerKey: string | undefined;
 }): void => {
-	// Ignore the signed-out / bootstrap `null` transition — keep the remembered
+	// Ignore the signed-out / bootstrap `null` transition: keep the remembered
 	// owner so a same-user re-auth is recognised and not treated as a switch.
 	if (isNullish(ownerKey)) {
 		return;

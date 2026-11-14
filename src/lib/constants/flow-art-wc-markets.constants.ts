@@ -1,9 +1,9 @@
 // World-Cup per-market artwork map — authoritative, data-derived.
 //
 // One entry per live group-stage market, keyed by the **normalized
-// market question** (the same `normalizeWcQuestion` contract the release
-// schedule in `wc-market-schedule.constants.ts` keys by, so a title
-// matches here exactly as it does there). Each entry names the drawn
+// market question** (`normalizeWcQuestion` in
+// `wc-market-schedule.constants.ts`, which the renderer applies to the
+// incoming title before the lookup). Each entry names the drawn
 // template (`WcTemplateId`) plus the parsed team / nation the template
 // recolours from — resolved against `WC_NATION_KITS`, so a nation with
 // no kit entry simply omits the field and the template falls back to a

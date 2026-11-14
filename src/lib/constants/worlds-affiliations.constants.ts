@@ -15,11 +15,11 @@ export interface WorldsAffiliationOption {
 	id: string;
 	/** Display name. */
 	name: string;
-	/** Decorative glyph — emoji flag for countries, short acronym for
+	/** Decorative glyph: emoji flag for countries, short acronym for
 	 *  universities (mirrors {@link short} for the university roster so
 	 *  every existing consumer keeps rendering a tile). */
 	glyph: string;
-	/** University-only fields below — countries never carry them. */
+	/** University-only fields below: countries never carry them. */
 	/** Short acronym shown on the picker tile. */
 	short?: string;
 	/** ISO-3166-1 alpha-2 home country, drives the picker's "Near you"
@@ -28,7 +28,7 @@ export interface WorldsAffiliationOption {
 	/** Coarse region bucket backing the picker's region tabs. `LATAM`
 	 *  and `MEA` entries surface only under the "All" tab or search. */
 	region?: 'NA' | 'UK' | 'EU' | 'AS' | 'AU' | 'LATAM' | 'MEA';
-	/** Verified email domains — reserved for a later membership-
+	/** Verified email domains: reserved for a later membership-
 	 *  verification pass; unused by the current picker. */
 	domains?: readonly string[];
 	/** Approximate QS World Rank, used as the default browse sort. */
@@ -40,13 +40,13 @@ export interface WorldsAffiliationOption {
 }
 
 /**
- * University roster — the full global directory spanning every region
+ * University roster: the full global directory spanning every region
  * bucket. Each entry carries its acronym
  * (`glyph`/`short`), home `country`, `region`, brand colours, QS
  * `rank`, and verified email `domains`. Ordered by region then rank;
  * the picker re-sorts at render time. Additions are append-only (no
  * satellite migration needed). The Worlds leaderboard reads live
- * `affiliation_stats`, not this list — so editing it drops no data.
+ * `affiliation_stats`, not this list, so editing it drops no data.
  */
 export const WORLDS_UNIVERSITIES: readonly WorldsAffiliationOption[] = [
 	// North America · United States
@@ -3368,7 +3368,7 @@ export const WORLDS_UNIVERSITIES: readonly WorldsAffiliationOption[] = [
 		color: '#A6093D',
 		text: '#F2ECDC'
 	},
-	// Retained from the prior roster — institutions absent from the
+	// Retained from the prior roster: institutions absent from the
 	// directory port but still resolvable for affiliations already held.
 	{
 		id: 'itam',
@@ -3384,7 +3384,7 @@ export const WORLDS_UNIVERSITIES: readonly WorldsAffiliationOption[] = [
 ] as const;
 
 /**
- * Country roster — ISO-3166 alpha-2 ids, emoji flags. Tracks the
+ * Country roster: ISO-3166 alpha-2 ids, emoji flags. Tracks the
  * top ~24 countries by predicted active-user volume; future expansion
  * is an additions-only change (no satellite migration needed).
  *
@@ -3393,7 +3393,7 @@ export const WORLDS_UNIVERSITIES: readonly WorldsAffiliationOption[] = [
  * contrast over it, so the profile affiliation chip + filled-slot tile
  * can render in the country's own palette (same `color`/`text` shape as
  * the university roster). `text` is a per-entry contrast-checked
- * foreground — typically the cream `#F2ECDC` over dark/saturated fields
+ * foreground: typically the cream `#F2ECDC` over dark/saturated fields
  * and near-black `#0E0D0B` over light ones, but some entries use a flag
  * accent hue (e.g. CN `#FFDE00`, SE `#FECC02`, ZA `#FFB915`) where it
  * reads better over the country's `color`.
@@ -3425,7 +3425,7 @@ export const WORLDS_COUNTRIES: readonly WorldsAffiliationOption[] = [
 ] as const;
 
 /**
- * Indexed lookup for the FE — given a stored `affiliationIdentifier` + kind,
+ * Indexed lookup for the FE: given a stored `affiliationIdentifier` + kind,
  * resolve to the display option. Returns `undefined` for ids no longer
  * in the static roster (e.g. an option was removed but a user still
  * carries the affiliation; the FE falls back to showing the id).

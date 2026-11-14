@@ -6,6 +6,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx } from '../db/client';
+import { DAY_IN_MS } from '../lib/time';
 
 export class AffiliationError extends Error {}
 
@@ -14,7 +15,7 @@ export type AffiliationKind = 'university' | 'country';
 export const AFFILIATION_KINDS: readonly AffiliationKind[] = ['university', 'country'];
 
 /** Lock window: 90 days. */
-export const AFFILIATION_LOCK_MS = 90 * 24 * 60 * 60 * 1000;
+export const AFFILIATION_LOCK_MS = 90 * DAY_IN_MS;
 
 export interface Affiliation {
 	memberUserId: string;
@@ -91,9 +92,7 @@ export const setAffiliation = async ({
 			// Switching = implicit leave of the held slot, which the lock gates
 			// exactly like an explicit leave.
 			if (nowMs < Number(current.locked_until_ms)) {
-				const daysLeft = Math.ceil(
-					(Number(current.locked_until_ms) - nowMs) / (24 * 60 * 60 * 1000)
-				);
+				const daysLeft = Math.ceil((Number(current.locked_until_ms) - nowMs) / DAY_IN_MS);
 
 				throw new AffiliationError(
 					`affiliations lock active: cannot switch for another ${daysLeft} day(s).`
@@ -148,7 +147,7 @@ export const removeAffiliation = async ({
 		}
 
 		if (nowMs < Number(current.locked_until_ms)) {
-			const daysLeft = Math.ceil((Number(current.locked_until_ms) - nowMs) / (24 * 60 * 60 * 1000));
+			const daysLeft = Math.ceil((Number(current.locked_until_ms) - nowMs) / DAY_IN_MS);
 
 			throw new AffiliationError(
 				`affiliations lock active: cannot leave for another ${daysLeft} day(s).`

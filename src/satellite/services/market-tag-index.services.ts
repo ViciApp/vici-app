@@ -23,7 +23,7 @@ import {
  * Server-side reverse index `bucket key → seriesId[]`, one doc per bucket keyed
  * by the bucket id. A market's stored `tags` classify it under the 3-layer
  * taxonomy, and it is indexed into a bucket for each of its micro ids AND each
- * derived macro id (see {@link indexKeysForTags}) — so a macro bucket like
+ * derived macro id (see {@link indexKeysForTags}), so a macro bucket like
  * `sports` aggregates every market of any of its micros, while a micro bucket
  * like `soccer` holds just that subcategory. Layer-3 free tags are not indexed.
  *
@@ -53,7 +53,7 @@ const nowMs = (): number => Number(time() / MILLISECOND_IN_NANOSECONDS);
 
 /**
  * A satellite controller principal, used as the `caller` for writes to the
- * controllers-scoped `market_tag_index` collection — the market creator is not
+ * controllers-scoped `market_tag_index` collection: the market creator is not
  * a controller, so the index is moved as an admin (the `*DocStore` APIs enforce
  * the collection rule against the caller they're given).
  */
@@ -68,22 +68,22 @@ const decodeSeriesIds = (doc: ReturnType<typeof getDocStore>): string[] => {
 		const { seriesIds } = decodeDocData<MarketTagIndex>(doc.data);
 
 		// A bucket that decodes but carries a non-array (or non-string entries)
-		// `seriesIds` is treated as empty rather than passed through — otherwise a
+		// `seriesIds` is treated as empty rather than passed through; otherwise a
 		// malformed value could make scoping count every market or trap when the
 		// ids are candid-encoded for the clearing call.
 		return Array.isArray(seriesIds) ? seriesIds.filter((id) => typeof id === 'string') : [];
 	} catch {
-		// A malformed bucket can't contribute series — treat as empty.
+		// A malformed bucket can't contribute series: treat as empty.
 		return [];
 	}
 };
 
 /**
  * The series carrying `tag`, read straight from its index bucket. `tag` is any
- * bucket key — a micro id (`soccer`), a macro id (`sports`), or a legacy tag —
+ * bucket key: a micro id (`soccer`), a macro id (`sports`), or a legacy tag;
  * buckets are created on demand, so an unknown key simply reads empty. Returns
  * an empty array when no bucket exists yet (no market has the key, or the index
- * hasn't been rebuilt) — which correctly scores a battle on that scope as a
+ * hasn't been rebuilt), which correctly scores a battle on that scope as a
  * void face-off rather than silently counting every market.
  */
 export const seriesIdsForTag = ({ tag, caller }: { tag: string; caller: Uint8Array }): string[] => {
@@ -99,7 +99,7 @@ export const seriesIdsForTag = ({ tag, caller }: { tag: string; caller: Uint8Arr
 /**
  * Admin-gated read of every populated bucket for the cockpit: `bucket → seriesIds`
  * over the closed micro+macro taxonomy. One keyed `getDocStore` per possible key
- * (O(log n) reads — never a collection scan); missing/malformed buckets read as
+ * (O(log n) reads, never a collection scan); missing/malformed buckets read as
  * empty and are dropped from the result. The cockpit uses it to classify markets
  * (e.g. sport vs non-sport via the `sports` macro bucket) for the campaign
  * hypothesis register, so the taxonomy stays owned here and no key is hardcoded
@@ -126,7 +126,7 @@ export const getMarketTagsFn = (): {
 
 /**
  * Add or remove `seriesId` from a single bucket. Version-locked
- * read-modify-write as admin; best-effort — a rare version race under
+ * read-modify-write as admin; best-effort: a rare version race under
  * concurrent metadata writes to markets sharing a bucket is logged and swallowed
  * (the admin {@link rebuildMarketTagIndexFn} re-derives the exact buckets).
  */
@@ -157,7 +157,7 @@ const mutateBucket = ({
 			set.delete(seriesId);
 		}
 
-		// Nothing changed — skip the write (and its version bump) entirely.
+		// Nothing changed: skip the write (and its version bump) entirely.
 		if (set.size === current.length && current.every((id) => set.has(id))) {
 			return;
 		}
@@ -189,7 +189,7 @@ const mutateBucket = ({
  * Reconcile the index for a single market after its metadata is (re-)written:
  * drop the series from every bucket it no longer belongs to and add it to every
  * bucket it newly belongs to. Buckets it still belongs to are left untouched (the
- * series is already in them). Bucket keys — its micros plus derived macros — are
+ * series is already in them). Bucket keys, its micros plus derived macros, are
  * re-derived from the tags here (see {@link indexKeysForTags}), so a since-removed
  * micro drops the series and, if it was that micro's macro's last market, the
  * macro bucket too.
@@ -240,7 +240,7 @@ export const updateMarketTagIndex = ({
  * that predate it and heals any drift from a concurrent-write version race.
  * Admin-gated (mirrors `recomputeActivityReactionCounts`).
  *
- * One pass over `market_metadata` — fine at current volume; this is the only
+ * One pass over `market_metadata`: fine at current volume; this is the only
  * O(all-markets) read in the index's life, run on demand rather than per
  * resolve.
  */
@@ -278,7 +278,7 @@ export const rebuildMarketTagIndexFn = (): { buckets: number; series: number } =
 			// `tags` / `seriesId` are persisted well-formed, but a legacy or
 			// partially-malformed row could decode with a non-array `tags` or a
 			// non-string `seriesId`. Skip such a row rather than let it throw and
-			// abort the whole rebuild — this is the index's backfill/repair path.
+			// abort the whole rebuild; this is the index's backfill/repair path.
 			const { seriesId, tags } = metadata;
 
 			if (typeof seriesId === 'string' && Array.isArray(tags)) {
@@ -293,10 +293,10 @@ export const rebuildMarketTagIndexFn = (): { buckets: number; series: number } =
 
 	const now = nowMs();
 
-	// Reconcile every possible bucket — including ones that now resolve to empty,
+	// Reconcile every possible bucket, including ones that now resolve to empty,
 	// so a stale membership is cleared rather than left behind.
 	for (const tag of ALL_INDEX_KEYS) {
-		// De-duplicate before persisting — the bucket's documented invariant is a
+		// De-duplicate before persisting: the bucket's documented invariant is a
 		// set, and a series defensively can't appear twice in one bucket's list.
 		const seriesIds = [...new Set(buckets.get(tag) ?? [])];
 

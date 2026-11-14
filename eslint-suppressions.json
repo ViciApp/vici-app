@@ -300,11 +300,6 @@
 			"count": 1
 		}
 	},
-	"src/lib/constants/wc-market-schedule.constants.ts": {
-		"max-lines": {
-			"count": 1
-		}
-	},
 	"src/lib/constants/worlds-affiliations.constants.ts": {
 		"max-lines": {
 			"count": 1

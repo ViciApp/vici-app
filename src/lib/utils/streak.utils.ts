@@ -28,11 +28,11 @@ export const stageForStreak = (days: number): FlameStage => {
 };
 
 /**
- * Day-count thresholds at which the flame enters a new stage above SPARK —
+ * Day-count thresholds at which the flame enters a new stage above SPARK:
  * the milestones worth celebrating. These are the `stageForStreak` stage
  * thresholds (EMBER 3 / FLAME 7 / BLAZE 15 / INFERNO 30), so a milestone card
  * lines up with a visible flame-stage change. (The `streak_N` VXP award ladder
- * is close but not identical — its third tier is `streak_14`, not 15 — so the
+ * is close but not identical; its third tier is `streak_14`, not 15, so the
  * two are deliberately not coupled here.) Ascending.
  */
 export const STREAK_MILESTONES = [3, 7, 15, 30] as const;
@@ -76,12 +76,12 @@ export const todayKey = (now: Date = new Date()): string => {
 
 /**
  * Day delta between two `YYYY-MM-DD` keys (`to - from`). Returns
- * `Infinity` if either key is malformed — including an out-of-range key
+ * `Infinity` if either key is malformed: including an out-of-range key
  * (e.g. `2026-02-31`) that `Date.UTC` would otherwise silently normalize
  * to a valid timestamp; the parsed Y/M/D components must round-trip
  * exactly through the resulting UTC date. Used to decide whether the
  * previous recorded day was "today" (no-op), within the forgiveness
- * window (continue — at most one fully-missed day), or "too long ago"
+ * window (continue: at most one fully-missed day), or "too long ago"
  * (break).
  */
 export const dayDelta = ({ from, to }: { from: string; to: string }): number => {
@@ -131,10 +131,10 @@ export const dayDelta = ({ from, to }: { from: string; to: string }): number => 
 export interface DailyStreakBump {
 	// New streak day count after the bump (`>= 1`).
 	streak: number;
-	// `'continue'` — same day, or the gap since the recorded key is
+	// `'continue'`: same day, or the gap since the recorded key is
 	// within the forgiveness window (delta <= 2, i.e. at most one
 	// fully-missed day), or no record at all → start at SPARK 1.
-	// `'break'`    — gap of two or more fully-missed days (delta >= 3);
+	// `'break'`: gap of two or more fully-missed days (delta >= 3);
 	// previous streak ended, fresh start at SPARK 1 with the break
 	// choreography.
 	transition: 'continue' | 'break';
@@ -147,13 +147,13 @@ export interface DailyStreakBump {
 
 /**
  * Compute the next daily-streak state from the persisted streak +
- * lastActiveDay and a fresh "now". Stateless — callers (FlowMode,
+ * lastActiveDay and a fresh "now". Stateless: callers (FlowMode,
  * profile sync, etc.) decide when to persist the result.
  *
  * Rules: streak progresses on any swipe (YES / NO / SKIP all count);
  * one fully-missed day is forgiven (the streak still increments), but
  * a gap of two or more fully-missed days resets to SPARK 1 with the
- * break choreography. Flame never goes dark — it returns to SPARK.
+ * break choreography. Flame never goes dark: it returns to SPARK.
  */
 export const applyDailyStreakBump = ({
 	streak,
@@ -173,7 +173,7 @@ export const applyDailyStreakBump = ({
 	const delta = dayDelta({ from: lastActiveDay, to: today });
 
 	if (delta <= 0) {
-		// Same day (or — defensively — clock drift to the past). No
+		// Same day (or, defensively, clock drift to the past). No
 		// further bump, but echo the existing streak / day so callers
 		// can branch on `bumped`.
 		return {
@@ -187,7 +187,7 @@ export const applyDailyStreakBump = ({
 	if (delta <= 2) {
 		// `delta === 1` is a clean consecutive day; `delta === 2` means
 		// exactly one fully-missed day, which the forgiveness window lets
-		// slide — the streak still increments.
+		// slide: the streak still increments.
 		return {
 			streak: Math.max(1, streak) + 1,
 			transition: 'continue',
@@ -196,8 +196,8 @@ export const applyDailyStreakBump = ({
 		};
 	}
 
-	// `delta >= 3` — two or more fully-missed days. Beyond the forgiveness
+	// `delta >= 3`: two or more fully-missed days. Beyond the forgiveness
 	// window, so the streak breaks; the today-swipe restarts the ladder at
-	// SPARK 1 (Flame never goes dark — it returns to SPARK).
+	// SPARK 1 (Flame never goes dark: it returns to SPARK).
 	return { streak: 1, transition: 'break', bumped: true, lastActiveDay: today };
 };

@@ -15,7 +15,7 @@ import { get, writable } from 'svelte/store';
  * Single source of truth shared by `FriendsTab`, the Profile dashboard
  * entry, and the inbox so counts/badges and inline UI stay in sync after
  * accept/reject/unfriend mutations. The relation services themselves stay
- * stateless — callers run a mutation, then call `refreshFriendRelations()`
+ * stateless: callers run a mutation, then call `refreshFriendRelations()`
  * to repopulate these stores.
  */
 export const friendsListStore = writable<Relation[]>([]);
@@ -83,7 +83,7 @@ const runRefresh = async (): Promise<void> => {
 
 	// Hydrate the shared `profilesStore` for every counterpart of the
 	// viewer. Fire-and-forget so the refresh promise resolves as soon as the
-	// relation lists are in the stores — keeping `inFlight` open while
+	// relation lists are in the stores: keeping `inFlight` open while
 	// profiles trickle in would otherwise let a post-mutation
 	// `refreshFriendRelations()` reuse the pre-mutation fetch (stale data)
 	// instead of issuing a new one.

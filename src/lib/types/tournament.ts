@@ -1,26 +1,26 @@
 /**
- * Monthly tournament — Proposal 3 in `docs/backend-proposals/README.md`.
+ * Monthly tournament: Proposal 3 in `docs/backend-proposals/README.md`.
  *
  * The TournamentBattleDetail surface presents a 16-league single-
  * elimination bracket with per-match accuracy. We model the structure
  * as two collections:
  *
- *  - **`TOURNAMENTS`** — one doc per monthly tournament. Doc key is
+ *  - **`TOURNAMENTS`**: one doc per monthly tournament. Doc key is
  *    the month anchor (`YYYY-MM`) so a single draw per month is
  *    enforced by the datastore (re-running the draw collides on key).
- *  - **`TOURNAMENT_MATCHES`** — one doc per (tournament, round,
+ *  - **`TOURNAMENT_MATCHES`**: one doc per (tournament, round,
  *    match-index). Keyed `${tournamentId}/${round}/${index}` so the
  *    bracket reads as a single prefix scan.
  *
  * Per locked decisions:
  *
- *  - 3.1 — entry criterion: top-16 leagues by member count. The
+ *  - 3.1: entry criterion: top-16 leagues by member count. The
  *    aggregator scans LEAGUE_MEMBERS, counts rows per leagueId,
  *    sorts desc, takes the first 16.
- *  - 3.2 — round windows: 7 / 7 / 7 / 7 days (Round 1 → Final).
- *  - 3.3 — minimum 50 calls per league per match to qualify; a
+ *  - 3.2: round windows: 7 / 7 / 7 / 7 days (Round 1 → Final).
+ *  - 3.3: minimum 50 calls per league per match to qualify; a
  *    league that falls short forfeits the match.
- *  - 3.4 — forfeit ⇒ opponent advances. If both forfeit, the
+ *  - 3.4: forfeit ⇒ opponent advances. If both forfeit, the
  *    lower-seed advances (deterministic for tie-break parity with
  *    the seed order).
  *
@@ -58,15 +58,15 @@ export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * 24 
  * Per-match qualification threshold. A league with fewer than this
  * many resolved calls in the round window forfeits the match
  * (decision 3.3). Mirrors `MIN_CALLS_FOR_RANK` in the affiliation
- * stats — the two thresholds are deliberately separate so a
+ * stats: the two thresholds are deliberately separate so a
  * tournament can tighten its bar without affecting the Worlds
  * leaderboard.
  */
 export const TOURNAMENT_MIN_CALLS_PER_MATCH = 50;
 
 /**
- * Prize VXP per place. Top-4 each get an award — matches the
- * Three tiers — Gold / Silver / Bronze at 5000 / 2500 / 1000 VXP.
+ * Prize VXP per place. Top-4 each get an award: matches the
+ * Three tiers: Gold / Silver / Bronze at 5000 / 2500 / 1000 VXP.
  * Both semifinal losers share the bronze tier: each is credited
  * 1000 VXP independently when they call `claimTournamentPrize`.
  */
@@ -83,7 +83,7 @@ export const TOURNAMENT_PRIZE_TIERS: ReadonlyArray<{
 export type TournamentState = 'in_flight' | 'concluded';
 
 export interface TournamentDoc {
-	/** Month anchor — `YYYY-MM`. Matches the doc key. */
+	/** Month anchor: `YYYY-MM`. Matches the doc key. */
 	id: string;
 	/** UTC ms timestamp of the first day of the month. */
 	monthStartMs: number;
@@ -94,7 +94,7 @@ export interface TournamentDoc {
 	/** Lifecycle state. `in_flight` until the final match resolves; then `concluded`. */
 	state: TournamentState;
 	/**
-	 * League ids in seed order — index 0 is the top seed (most
+	 * League ids in seed order: index 0 is the top seed (most
 	 * members), index 15 is the bottom seed. Read via a single
 	 * `listLeagueMembers` scan + `sort by count desc`.
 	 */
@@ -110,7 +110,7 @@ export interface TournamentMatchDoc {
 	round: TournamentRound;
 	/** Match index within the round (0..7 for r1, 0..3 for quarter, etc.). */
 	index: number;
-	/** The "from" / "to" league ids — `null` when the slot is TBD (winner of an upstream match). */
+	/** The "from" / "to" league ids: `null` when the slot is TBD (winner of an upstream match). */
 	fromLeagueId: string | null;
 	toLeagueId: string | null;
 	/**
@@ -126,7 +126,7 @@ export interface TournamentMatchDoc {
 	toStartCalls: number | null;
 	toStartWins: number | null;
 	/**
-	 * Per-league accuracy in the round window — populated by the
+	 * Per-league accuracy in the round window: populated by the
 	 * round-resolution endpoint as `(deltaWins / deltaCalls)`.
 	 */
 	fromAcc: number | null;
@@ -142,7 +142,7 @@ export interface TournamentMatchDoc {
 /**
  * Canonical key builder for `tournament_matches`. The assert checks
  * that the embedded `tournamentId / round / index` agree with the
- * key — same drift-protection as `vxpAwardKey`.
+ * key: same drift-protection as `vxpAwardKey`.
  */
 export const tournamentMatchKey = ({
 	tournamentId,

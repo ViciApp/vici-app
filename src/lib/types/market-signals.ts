@@ -25,7 +25,7 @@ export interface FollowedLeanSignal {
 /**
  * One leaderboard-ranked predictor who holds a live position on a market,
  * with the side they actually committed. Unlike the viewer-relative signals
- * above this is public data — the same list for every visitor.
+ * above this is public data: the same list for every visitor.
  */
 export interface TopPredictorSignal {
 	owner: PrincipalText;

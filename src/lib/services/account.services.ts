@@ -10,7 +10,7 @@ import {
 } from '#lib/web2/client.ts';
 
 /**
- * Account deletion — Proposal 4. FE wrappers around the
+ * Account deletion: Proposal 4. FE wrappers around the
  * `listMyBlockingLeagues` query + `deleteMyAccount` update.
  *
  * The deletion flow is two phases on the satellite:
@@ -35,7 +35,7 @@ import {
 export interface LeagueResolution {
 	leagueId: string;
 	action: 'transfer' | 'delete';
-	/** New-owner principal text — required when `action === 'transfer'`. */
+	/** New-owner principal text: required when `action === 'transfer'`. */
 	transferTo?: string;
 }
 
@@ -56,7 +56,7 @@ export interface DeleteMyAccountResult {
  * members. Empty array means deletion is free to proceed.
  *
  * The FE calls this on every entry into the delete flow so the
- * guard surfaces in real time — a league that drained between
+ * guard surfaces in real time: a league that drained between
  * checks will unblock the user without a page reload.
  */
 export const listMyBlockingLeagues = async (): Promise<string[]> => {
@@ -71,7 +71,7 @@ export const listMyBlockingLeagues = async (): Promise<string[]> => {
 
 /**
  * Fire the account-deletion endpoint. On success the caller should
- * `signOut()` immediately — the satellite has already dropped the
+ * `signOut()` immediately: the satellite has already dropped the
  * profile + identity-keyed rows, so any subsequent read would
  * surface a half-deleted state to the UI.
  *
@@ -107,7 +107,7 @@ export interface HibernateMyAccountResult {
 
 /**
  * Pause the caller's account for 30 days. The satellite flips the
- * profile into a hibernated state — the user can resume any time by
+ * profile into a hibernated state: the user can resume any time by
  * signing back in, and nothing is erased. The retention off-ramp on
  * the delete flow calls this instead of deleting so a user who only
  * wants a break never loses their record.
@@ -132,10 +132,10 @@ export const resumeMyAccount = (): Promise<ResumeMyAccountResult> =>
  * Result of {@link recoverMyAccount}, a discriminated union mirroring the
  * satellite's `recoverMyAccount` endpoint.
  *
- *  - `{ ok: true, recovered }` — the soft-delete marker was cleared
+ *  - `{ ok: true, recovered }`: the soft-delete marker was cleared
  *    (`recovered: true`), or there was nothing to clear because the
  *    account was already active (`recovered: false`).
- *  - `{ ok: false, reason: 'expired' }` — the recovery window had already
+ *  - `{ ok: false, reason: 'expired' }`: the recovery window had already
  *    elapsed, so the satellite hard-deleted the account in place rather
  *    than restoring it. The caller can no longer come back.
  *
@@ -153,7 +153,7 @@ export type RecoverMyAccountResult =
  * `deleteMyAccount`'s soft-delete: a returning user whose profile still
  * carries `deletedAtMs` calls this to come back. If the window has
  * already passed the satellite hard-deletes instead and returns
- * `{ ok: false, reason: 'expired' }` — the account is gone.
+ * `{ ok: false, reason: 'expired' }`: the account is gone.
  */
 export const recoverMyAccount = async (): Promise<RecoverMyAccountResult> => {
 	// The HTTP result already carries the flat discriminated shape.

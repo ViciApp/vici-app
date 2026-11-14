@@ -1,7 +1,7 @@
 import type { PrincipalText } from '@junobuild/schema';
 
 /**
- * Product analytics event taxonomy — the typed contract every captured
+ * Product analytics event taxonomy: the typed contract every captured
  * event is validated against (cockpit spec DQ-1, "versioned event
  * taxonomy"). This is the source-of-truth TS half of a dual-source pair:
  * the runtime Zod mirror lives in `lib/schema/analytics-event.schema.ts`
@@ -10,11 +10,11 @@ import type { PrincipalText } from '@junobuild/schema';
  *
  * Design rules:
  *  - Events are **behavioural**, never personal data. Names + a bounded
- *    dimensional `props` vocabulary only — no free-form text, no PII.
+ *    dimensional `props` vocabulary only: no free-form text, no PII.
  *  - Events are written to YOUR satellite (the `events` collection), not
  *    to any third party. Nothing leaves your infrastructure.
  *  - Identity is the pseudonymous `principal`, optional (absent before
- *    sign-in; stitched from `sessionId` on auth — cockpit ENG-1).
+ *    sign-in; stitched from `sessionId` on auth: cockpit ENG-1).
  *
  * Names are snake_case string literals by convention (matches the
  * cockpit's DQ taxonomy + general analytics norms), not TS identifiers.
@@ -38,9 +38,9 @@ export type AnalyticsEventName =
 	| 'onboarding_step'
 	/** A handle-availability check ran (custom-handle mode). */
 	| 'handle_checked'
-	/** Onboarding finished — the activation milestone. */
+	/** Onboarding finished: the activation milestone. */
 	| 'onboarding_completed'
-	// ── Flow (the swipe deck — hero feature, "the swipe is the funnel") ─
+	// ── Flow (the swipe deck: hero feature, "the swipe is the funnel") ─
 	/** A Flow swipe session began. */
 	| 'flow_session_started'
 	/** A single card swipe (cockpit's `flow_swipe`). */
@@ -73,11 +73,11 @@ export type AnalyticsEventName =
 	| 'market_translation_toggled'
 	/**
 	 * A market-board category chip was selected; `label` carries the bounded
-	 * selection — the taxonomy macro id, or `macro:micro` when the viewer
+	 * selection: the taxonomy macro id, or `macro:micro` when the viewer
 	 * drilled into a subcategory. Closed vocab (taxonomy ids), no PII. (The
 	 * dimension rides `label` rather than dedicated `macro`/`micro` fields
 	 * because the props vocabulary is a closed schema shared with the
-	 * satellite — new dimensions need a satellite regen; `label` is free here.)
+	 * satellite: new dimensions need a satellite regen; `label` is free here.)
 	 */
 	| 'market_category_filter'
 	// ── Trading ───────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ export type AnalyticsEventName =
 	| 'referral_link_copied'
 	/** A referral code was redeemed by a referee. */
 	| 'referral_redeemed'
-	/** A referee converted — completed onboarding (cockpit's `referral_converted`). */
+	/** A referee converted: completed onboarding (cockpit's `referral_converted`). */
 	| 'referral_converted'
 	// ── VXP & economy ─────────────────────────────────────────────────
 	/** A server VXP award was credited. */
@@ -138,7 +138,7 @@ export type AnalyticsEventName =
 	/**
 	 * A friend results-digest row was tapped through; `source` the surface
 	 * (`arena`), `marketId` the standout market when the tap targets one
-	 * (omitted otherwise). Behavioural only — no W–L, net VXP, or handle.
+	 * (omitted otherwise). Behavioural only, no W-L, net VXP, or handle.
 	 */
 	| 'friend_digest_opened'
 	/** A league was created. */
@@ -167,7 +167,7 @@ export type AnalyticsEventName =
 	 * The global leaderboard was viewed (a window load or tab switch). `label`
 	 * carries the window (`week | month | all`), `count` the ranked rows shown,
 	 * `ok` whether the viewer is qualified/ranked (vs provisional/absent), and
-	 * `value` the viewer's own settled-call count — so the gate's effect on
+	 * `value` the viewer's own settled-call count, so the gate's effect on
 	 * real viewers is measurable.
 	 */
 	| 'leaderboard_viewed'
@@ -180,7 +180,7 @@ export type AnalyticsEventName =
 	/**
 	 * A sharing opt-out toggle was flipped in Settings → Privacy. `source`
 	 * carries which control (`leaderboard | worlds`), `label` the new state
-	 * (`on | off`) — so opt-out rates per surface are measurable.
+	 * (`on | off`), so opt-out rates per surface are measurable.
 	 */
 	| 'privacy_sharing_toggled'
 	// ── School verification ───────────────────────────────────────────
@@ -203,7 +203,7 @@ export type AnalyticsEventName =
 	| 'exit_signal'
 	// ── Notifications ─────────────────────────────────────────────────
 	/**
-	 * An inbox notification was opened — tapped on the Notifications page or
+	 * An inbox notification was opened: tapped on the Notifications page or
 	 * its arrival toast. `label` carries the notification `kind`
 	 * (`resolve | streak | social | challenge | level | market | friend_request`),
 	 * so engagement can be sliced by notification type.
@@ -226,7 +226,7 @@ export type AnalyticsEventName =
 	 */
 	| 'pwa_install_dismissed'
 	// ── Health ────────────────────────────────────────────────────────
-	/** A client-side error surfaced (no PII — message is omitted/coarse). */
+	/** A client-side error surfaced (no PII: message is omitted/coarse). */
 	| 'app_error'
 	/** A performance sample (e.g. a load duration in `durationMs`). */
 	| 'perf_metric';
@@ -234,7 +234,7 @@ export type AnalyticsEventName =
 /**
  * Bounded dimensional vocabulary for an event's context. Intentionally a
  * **fixed set of optional, primitive fields** rather than a free-form bag:
- * it keeps the schema simple, the warehouse queryable, and — critically —
+ * it keeps the schema simple, the warehouse queryable, and, critically,
  * makes "no PII" structural (there is nowhere to stuff personal data).
  *
  * Add a new dimension here AND in the schema mirror when a real metric
@@ -252,12 +252,12 @@ export interface AnalyticsEventProps {
 	/** Where the action originated (e.g. 'flow' | 'profile' | 'onboarding'). */
 	source?: string;
 	/**
-	 * A small categorical label — A/B variant, swipe direction, etc.
+	 * A small categorical label: A/B variant, swipe direction, etc.
 	 * Named `label` (not `variant`) because `variant` is a Candid reserved
 	 * keyword that breaks the satellite API codegen.
 	 */
 	label?: string;
-	/** Ordinal index — e.g. onboarding step, deck position. */
+	/** Ordinal index: e.g. onboarding step, deck position. */
 	step?: number;
 	/** Generic numeric value tied to the event (e.g. price bucket, %). */
 	value?: number;
@@ -270,10 +270,10 @@ export interface AnalyticsEventProps {
 	/**
 	 * ISO-3166 alpha-2 country (uppercase), best-effort from the browser
 	 * locale's region subtag (`en-US` → `US`). Coarse geo for aggregate
-	 * regional analytics only — never precise location, never PII.
+	 * regional analytics only: never precise location, never PII.
 	 */
 	country?: string;
-	/** BCP-47 primary language subtag (`en-US` → `en`) — localization analytics. */
+	/** BCP-47 primary language subtag (`en-US` → `en`): localization analytics. */
 	locale?: string;
 }
 
@@ -289,13 +289,13 @@ export interface AnalyticsEventDoc {
 	/** Server-stamped capture time (ms since epoch). Authoritative. */
 	tsMs: number;
 	/**
-	 * Anonymous session id — groups events within a single visit and is the
+	 * Anonymous session id: groups events within a single visit and is the
 	 * stitch key for attaching a `principal` retroactively on sign-in.
 	 */
 	sessionId: string;
 	/**
 	 * Pseudonymous on-chain identity. Absent before sign-in. Never an
-	 * email / name — the principal is not PII. Typed `PrincipalText` (the
+	 * email / name: the principal is not PII. Typed `PrincipalText` (the
 	 * codebase's validated principal-string type) so it can't be mixed with
 	 * arbitrary strings; mirrors `AnalyticsEventSchema`'s `PrincipalTextSchema`.
 	 */
@@ -324,11 +324,11 @@ export interface TrackEventInput extends AnalyticsEventProps {
 	sessionId: string;
 	/** Route / screen the event fired on. */
 	path?: string;
-	/** Client-side event time (ms) — advisory only; the server time wins. */
+	/** Client-side event time (ms): advisory only; the server time wins. */
 	occurredAtMs?: number;
 }
 
-/** The {@link AnalyticsEventProps} dimension keys — used to re-nest the flat wire input. */
+/** The {@link AnalyticsEventProps} dimension keys: used to re-nest the flat wire input. */
 export const ANALYTICS_PROP_KEYS = [
 	'marketId',
 	'seriesId',
@@ -358,7 +358,7 @@ export interface EventCount {
  * aggregates without scanning the raw log.
  */
 export interface EventRollupDoc {
-	/** Epoch-day index — `floor(tsMs / 86_400_000)`. Also the doc key. */
+	/** Epoch-day index: `floor(tsMs / 86_400_000)`. Also the doc key. */
 	epochDay: number;
 	/** Start-of-day in ms (`epochDay * 86_400_000`) for easy display. */
 	dayStartMs: number;

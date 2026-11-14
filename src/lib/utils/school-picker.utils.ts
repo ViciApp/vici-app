@@ -2,15 +2,15 @@ import type { WorldsAffiliationOption } from '#lib/constants/worlds-affiliations
 import { isNullish } from '@dfinity/utils';
 
 /**
- * School-picker matching helpers — pure functions backing the
+ * School-picker matching helpers: pure functions backing the
  * university branch of the affiliation picker:
  *
- *  - {@link spFuzzy} / {@link spFindCloseMatches} — typo-tolerant
+ *  - {@link spFuzzy} / {@link spFindCloseMatches}: typo-tolerant
  *    directory search and "did you mean" dedupe.
- *  - {@link spMatchEmail} — maps a school email to a directory entry
+ *  - {@link spMatchEmail}: maps a school email to a directory entry
  *    (or rejects a consumer mailbox) so we can redirect a user to an
  *    existing school instead of letting them re-add it.
- *  - {@link spInferCountry} — guesses a home country from an academic
+ *  - {@link spInferCountry}: guesses a home country from an academic
  *    TLD so the add flow can prefill the country chip.
  *
  * Kept framework-free (no Svelte, no DOM) so they're trivially unit-
@@ -80,7 +80,7 @@ export const spFuzzy = ({ query, target }: { query: string; target: string }): n
 };
 
 /**
- * Top fuzzy matches for a free-text school name — used by the
+ * Top fuzzy matches for a free-text school name: used by the
  * add-your-own dedupe panel to surface "is it already here?" before a
  * user submits a duplicate. Below a 2-character query returns nothing
  * (too noisy); otherwise the best `limit` rows scoring ≥ 40.
@@ -113,7 +113,7 @@ export const spFindCloseMatches = ({
 };
 
 /**
- * Consumer mailbox providers that never count as a school address — used
+ * Consumer mailbox providers that never count as a school address: used
  * by the "add your own school" flow so a personal inbox can't be turned
  * into a new school. This blocklist is checked AFTER the directory match
  * (see {@link spMatchEmail}), so a listed school's own subdomain is never
@@ -127,10 +127,10 @@ const SP_CONSUMER_DOMAINS =
 
 /**
  * Outcome of matching a typed email against the directory:
- *  - `consumer` — a personal mailbox provider, never a school.
- *  - `unknown-domain` — a plausible school domain we don't recognise
+ *  - `consumer`: a personal mailbox provider, never a school.
+ *  - `unknown-domain`: a plausible school domain we don't recognise
  *    (the add-your-own flow can proceed).
- *  - a `match` — the domain belongs to a directory school, so the
+ *  - a `match`: the domain belongs to a directory school, so the
  *    add flow should redirect the user there instead.
  */
 export type SchoolEmailMatch =
@@ -161,7 +161,7 @@ export const spMatchEmail = ({
 	const [, domain] = parsed;
 
 	// Known-school match FIRST: a domain that is (or is a subdomain of) a
-	// listed school domain always resolves to that school — even if its
+	// listed school domain always resolves to that school: even if its
 	// leading label resembles a consumer provider (e.g. `mail.polimi.it`
 	// under `polimi.it`). Only domains no school claims fall through to
 	// the personal-mailbox blocklist below.
@@ -182,7 +182,7 @@ export const spMatchEmail = ({
 
 /**
  * Academic / national TLD → ISO-3166 alpha-2 country. Longest key
- * wins (so `ac.uk` beats a bare `uk`-style fallback) — see
+ * wins (so `ac.uk` beats a bare `uk`-style fallback): see
  * {@link spInferCountry}.
  */
 const SP_TLD_COUNTRY: Readonly<Record<string, string>> = {
@@ -275,5 +275,5 @@ export const spIsValidEmail = (email: string): boolean =>
 /** True when the string is exactly six digits (the verification code). */
 export const spIsValidCode = (code: string): boolean => /^\d{6}$/.test(code);
 
-/** Keep only digits, capped at six — the code field's input filter. */
+/** Keep only digits, capped at six: the code field's input filter. */
 export const spSanitizeCode = (raw: string): string => raw.replace(/\D/g, '').slice(0, 6);

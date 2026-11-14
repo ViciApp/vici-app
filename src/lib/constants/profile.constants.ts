@@ -2,10 +2,10 @@ import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**
- * Nickname (= handle) rules. The STORED value keeps the owner's form — case
+ * Nickname (= handle) rules. The STORED value keeps the owner's form: case
  * and accents preserved (`José`, `CaféOwner`). Allowed charset: letters (any
  * language) + digits + `. _ -`; everything else (whitespace, `@`, symbols,
- * emoji) is forbidden. Uniqueness is case- AND accent-insensitive — see
+ * emoji) is forbidden. Uniqueness is case- AND accent-insensitive: see
  * {@link nicknameUniqueKey}. 2–16 chars; the satellite is the authority.
  */
 export const MIN_NICKNAME_LENGTH = 2;
@@ -14,7 +14,7 @@ export const MAX_NICKNAME_LENGTH = 16;
 /**
  * Validates the stored charset (letters + digits + `. _ -`). Built via
  * guarded `new RegExp` because a `\p{L}` *literal* is a parse-time crash on a
- * JS engine without property escapes — fatal at module load in the satellite.
+ * JS engine without property escapes: fatal at module load in the satellite.
  * Falls back to ASCII + Latin accent ranges if the engine can't compile it.
  */
 const buildNicknamePattern = (): RegExp => {
@@ -30,7 +30,7 @@ export const NICKNAME_PATTERN = buildNicknamePattern();
 /**
  * Input-time inverse of {@link NICKNAME_PATTERN}: NFC-normalise, strip the
  * forbidden chars (whitespace, `@`, symbols), clamp to
- * {@link MAX_NICKNAME_LENGTH} — **keeping case + accents**. FE-only, so the
+ * {@link MAX_NICKNAME_LENGTH}: **keeping case + accents**. FE-only, so the
  * `\p{L}` literal is safe. Used by the onboarding picker + sign-in bootstrap.
  */
 export const sanitizeNickname = (raw: string): string =>
@@ -41,7 +41,7 @@ export const sanitizeNickname = (raw: string): string =>
 
 /**
  * Case- + accent-insensitive uniqueness key: `José` / `JOSE` / `jose` →
- * `jose`. Trim, NFKD, strip combining marks (U+0300–U+036F range — engine-safe,
+ * `jose`. Trim, NFKD, strip combining marks (U+0300–U+036F range, engine-safe,
  * no property escape), lowercase. Separators `. _ -` are kept (`a_b` ≠ `ab`).
  * Trimming here keeps folding identical for raw and `.trim()`ed call sites
  * (client passes raw, satellite trimmed) so both agree on "the same handle".
@@ -54,7 +54,7 @@ export const nicknameUniqueKey = (raw: string): string =>
 export const PENDING_ONBOARDING_STORAGE_KEY = 'vici:pending-onboarding';
 
 /**
- * Handle (public @-name) editing rules — the same field as the nickname,
+ * Handle (public @-name) editing rules: the same field as the nickname,
  * surfaced through the {@link HandleEditor} sheet with a slightly stricter
  * charset (no `.` / `-`), 3–15 chars. Case + accents are preserved like the
  * nickname; uniqueness folds them ({@link nicknameUniqueKey}).
@@ -78,7 +78,7 @@ export const MAX_HANDLE_LENGTH = 15;
 export const HANDLE_COOLDOWN_DAYS = 30;
 
 /**
- * Handles reserved for the platform — never assignable to a user even if
+ * Handles reserved for the platform: never assignable to a user even if
  * the backend availability check would otherwise pass.
  */
 export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
@@ -110,7 +110,7 @@ export const cleanHandle = (raw: string): string =>
  * Whole days the owner must still wait before the handle can change again,
  * given the timestamp of the last change (`handleLastChangeMs`) and a
  * reference "now" (both wall-clock ms). Returns 0 when the cooldown has
- * elapsed or no prior change is on record (`lastChangeMs` nullish) — i.e.
+ * elapsed or no prior change is on record (`lastChangeMs` nullish), i.e.
  * the handle is changeable. Shared by the {@link HandleEditor} (to disable
  * + explain the wait) and the set-profile assertion (to reject a doomed
  * write), so the UI and the satellite agree on the window.

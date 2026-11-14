@@ -163,40 +163,6 @@ export const getLeagueStandings = async ({
 };
 
 /**
- * The viewer's percentile band for a ranked slice — the "Top X%" figure shown
- * on the dashboard rank tiles.
- *
- * NOTE: this band, `findOwnStanding`, and the Dash rank tile all read the
- * canister's net-P&L `rank` — they are deliberately NOT re-ranked by accuracy
- * the way the leaderboard view is (see `globalStandingsRows`). That leaves the
- * Dash rank tile on a different ranking basis than the leaderboard, a known
- * inconsistency to reconcile later — kept as a conscious choice, not an
- * oversight, until accuracy ranking moves into the clearing canister.
- *
- * Derived purely from a 1-based `rank` within a
- * `total` ranked set: `ceil(rank / total * 100)`, floored at 1 so the very top
- * of a large set still reads "Top 1%" rather than "Top 0%", and capped at 100.
- * `undefined` when the slice is empty (no `total`) or the rank is unknown, so
- * the caller can fall back rather than render a meaningless band.
- *
- * This is a band, not a rank: it never fabricates a position, it only restates
- * an authoritative `rank` / `total` pair as a coarse percentile.
- */
-export const percentileBand = ({
-	rank,
-	total
-}: {
-	rank: number;
-	total: number;
-}): number | undefined => {
-	if (total <= 0 || rank <= 0) {
-		return;
-	}
-
-	return Math.max(1, Math.min(100, Math.ceil((rank / total) * 100)));
-};
-
-/**
  * The signed-in viewer's own standing within a window, or `undefined` when
  * they have not yet appeared (no settled position in the window). Convenience
  * over {@link getStandings} for the dashboard rank tiles.

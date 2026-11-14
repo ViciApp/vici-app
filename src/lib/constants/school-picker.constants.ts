@@ -26,12 +26,6 @@ export const SCHOOL_PASS2_ENABLED = true;
 export const SCHOOL_FOUNDER_BADGE_CAP = 3;
 
 /**
- * Length of the membership verification code mailed to the school
- * address. A six-digit code balances guessability against entry friction.
- */
-export const SCHOOL_CODE_LENGTH = 6;
-
-/**
  * Time-to-live of a verification code (ms). After this the submission is
  * dead and the user must request a fresh code. Set to ~30 minutes.
  */

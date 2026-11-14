@@ -1,5 +1,5 @@
 /**
- * Worlds affiliations — a user's self-selected university and /
+ * Worlds affiliations: a user's self-selected university and /
  * or country. Carries the signature 90-day lock: once you pick an
  * affiliation, you can't switch for 90 days. This
  * prevents users from chasing the Worlds leaderboard by hopping
@@ -20,7 +20,7 @@
  * fields in a `#[serde(rename_all = "camelCase")]` mirror, but the
  * serde camelCase rename + something about the `Id` tail produced a
  * Candid type whose field name didn't round-trip back to the
- * snake_case wire — every `listMyAffiliations` call trapped with
+ * snake_case wire: every `listMyAffiliations` call trapped with
  * `missing field 'affiliationId'`. Spelling it out as `*Identifier`
  * sidesteps the rename quirk.
  */
@@ -30,10 +30,10 @@ export type AffiliationKind = 'university' | 'country';
 export interface AffiliationDoc {
 	/** Member principal text. Matches the prefix in the doc key. */
 	member: string;
-	/** Which slot — university or country. Part of the doc key so a
+	/** Which slot: university or country. Part of the doc key so a
 	 *  user can hold one of each at once. */
 	kind: AffiliationKind;
-	/** External identifier — university slug (`mit`, `usp`) or
+	/** External identifier: university slug (`mit`, `usp`) or
 	 *  ISO-3166 alpha-2 country code. */
 	affiliationIdentifier: string;
 	/** Join timestamp (ms since epoch). Immutable. */
@@ -50,12 +50,12 @@ export const AFFILIATION_KINDS: ReadonlySet<AffiliationKind> = new Set<Affiliati
 ]);
 
 /**
- * Lock window — 90 days.
+ * Lock window: 90 days.
  */
 export const AFFILIATION_LOCK_MS = 90 * 24 * 60 * 60 * 1000;
 
 /**
- * Canonical key builder — keep all `affiliations` writes in lockstep
+ * Canonical key builder: keep all `affiliations` writes in lockstep
  * with what the satellite assert expects.
  */
 export const affiliationKey = ({

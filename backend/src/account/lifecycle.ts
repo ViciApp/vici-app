@@ -11,11 +11,12 @@ import { captureServerEvents, type ServerEventInput } from '../analytics/events'
 import { query, tx, type TxQuery } from '../db/client';
 import { deleteLeague, transferLeagueOwnership } from '../leagues/leagues';
 import { logger } from '../lib/logger';
+import { DAY_IN_MS } from '../lib/time';
 
 /** Recovery window for soft-deleted accounts: past this the account is
  * eligible for the sweep's hard delete (and a too-late recovery attempt
  * hard-deletes on the spot). 30 days, in milliseconds. */
-export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * 86_400_000;
+export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * DAY_IN_MS;
 
 /** The six reason buckets the deletion picker exposes. */
 export const EXIT_SIGNAL_REASONS = [

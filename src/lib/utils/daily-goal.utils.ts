@@ -6,7 +6,7 @@ import {
 import { todayKey } from '#lib/utils/streak.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 
-// Standard daily target — predictions a user commits to making in a day.
+// Standard daily target: predictions a user commits to making in a day.
 // Single source of truth for both the Flow session ceiling and the
 // dashboard "Today's goal" resume card, so the two surfaces never drift.
 export const DAILY_GOAL_TARGET = 10;
@@ -21,7 +21,7 @@ export interface DailyGoalState {
 /**
  * Effective goal count for *today*. Returns the stored `done` only when
  * it belongs to the current local day; any earlier day has already
- * elapsed, so the goal reads as 0. Pure — callers decide when to read.
+ * elapsed, so the goal reads as 0. Pure; callers decide when to read.
  *
  * Used for hydration/display so a session opened on a new day shows a
  * fresh goal before the first prediction lands.
@@ -39,7 +39,7 @@ export const rolloverDailyGoal = ({
 /**
  * Record one prediction toward the daily goal. Rolls the count over to
  * the current local day first (so the previous day's total never leaks
- * into today), then increments by one, capped at `target`. Stateless —
+ * into today), then increments by one, capped at `target`. Stateless:
  * callers persist the returned `{ done, date }`.
  */
 export const applyDailyGoalBump = ({
@@ -61,13 +61,13 @@ export const applyDailyGoalBump = ({
 
 // localStorage mirror of the daily-goal count. The AUTHORITATIVE copy
 // lives on the profile and is set by the satellite (`recordFlowSwipe`,
-// which the server computes and caps — the client never sends a count).
+// which the server computes and caps: the client never sends a count).
 // The mirror is a fast OFFLINE HINT and an in-flight high-water: written
 // synchronously on every commit so the cap still gates a refresh that
 // races the server read, a signed-out / offline session, or a re-entry
 // while per-swipe records are still in flight. On entry it is reconciled
 // against the server value by taking the MAX, so it can only ever RAISE
-// the count — a stale-low profile can't re-open the cap, and a cleared /
+// the count: a stale-low profile can't re-open the cap, and a cleared /
 // lower mirror can't either (see `reconcileDailyGoalOnEntry`).
 // Namespaced + versioned to match the repo's other persisted keys
 // (`vici.motion.state.v3`, `vici-theme`) and leave room for a future
@@ -101,7 +101,7 @@ export const clearDailyGoalMirror = (): void => {
 };
 
 /**
- * Effective daily-goal state on Flow entry — the HIGHER of the hydrated
+ * Effective daily-goal state on Flow entry: the HIGHER of the hydrated
  * server count and the localStorage mirror, both rolled over to today.
  *
  * The server count (set by `recordFlowSwipe`) is authoritative, but a

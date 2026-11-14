@@ -17,7 +17,7 @@ export const toRelationId = ({
 /**
  * Maps a `sendFriendRequest` outcome to the toast the calling surface
  * shows (Arena add-friend sheet, leaderboard mini-profile). `sent` is
- * the silent success path — no notice. The friendship rules behind the
+ * the silent success path: no notice. The friendship rules behind the
  * statuses live in docs/ai/PRODUCT.md § Friendship rules.
  */
 export const friendRequestOutcomeNotice = ({

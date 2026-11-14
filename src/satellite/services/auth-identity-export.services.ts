@@ -5,16 +5,16 @@
  *
  *   getAuthIdentities({ afterKey?, limit }) -> { rows, hasMore }
  *     · one row per `#user` doc: principal (doc key), provider, the persisted
- *       OpenID claims (email/name — present only for OpenID providers and only
+ *       OpenID claims (email/name: present only for OpenID providers and only
  *       when the user consented to share them), and the best-effort address for
  *       the same principal from the owner-private `profile_private` doc (the
  *       public `profiles` doc no longer carries an email)
- *     · keyset-paged by KEY (the datastore's native indexed order — the same
+ *     · keyset-paged by KEY (the datastore's native indexed order: the same
  *       O(page) discipline as the analytics exports; ordering on `updated_at`
  *       would materialise the whole collection and blow the query budget)
  *     · NOT a drain: `#user` docs stay; callers re-walk to resync
  *
- * This deliberately exports addresses (PII) — it exists so an off-chain system
+ * This deliberately exports addresses (PII): it exists so an off-chain system
  * can match accounts to their sign-in identity (e.g. link a principal to the
  * same email/OpenID login elsewhere). Gated to ADMIN callers like the other
  * warehouse exports; the data never leaves the satellite for anyone else.
@@ -30,7 +30,7 @@ import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
 
 /** Juno's reserved datastore collection holding one doc per signed-up user,
- * keyed by the user's principal text. Not part of `Collection` — it is a
+ * keyed by the user's principal text. Not part of `Collection`; it is a
  * system collection, not one this app configures. */
 const JUNO_USER_COLLECTION = '#user';
 
@@ -39,7 +39,7 @@ const JUNO_USER_COLLECTION = '#user';
  * well inside the ~5B-instruction query budget while keeping the walk O(page). */
 const MAX_EXPORT_LIMIT = 100;
 
-/** One flat export row — mirrors AuthIdentityExportRowSchema. */
+/** One flat export row: mirrors AuthIdentityExportRowSchema. */
 interface AuthIdentityExportRow {
 	key: string;
 	createdAtNs: string;
@@ -53,7 +53,7 @@ interface AuthIdentityExportRow {
 /**
  * The persisted `#user` doc payload, read defensively: docs written before the
  * `@junobuild/core` v5 auth migration may lack `providerData`, and future Juno
- * versions may add providers — so everything is optional and `provider` is a
+ * versions may add providers, so everything is optional and `provider` is a
  * plain string rather than the current union.
  */
 interface StoredUserData {
@@ -104,7 +104,7 @@ export const getAuthIdentitiesFn = ({
 		};
 
 		// Decode defensively: a malformed or legacy-shaped `#user` payload must
-		// not fail the page — the envelope row alone still maps the principal.
+		// not fail the page: the envelope row alone still maps the principal.
 		try {
 			const data = decodeDocData<StoredUserData>(doc.data);
 			const openid = data.providerData?.openid;

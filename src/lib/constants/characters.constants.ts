@@ -8,7 +8,7 @@ import type { FlameStage } from '#lib/utils/streak.utils.ts';
  * - **vici** — the friendly guide bot (four moods).
  * - **oracle** — the hooded seer (inner-glow pulse + twinkles).
  * - **trickster** — the contrarian fox (ear twitch, tail sway, optional bolt).
- * - **archivist** — the bespectacled scholar (optional redrawing chart).
+ * - **archivist**: held in reserve, an accent only with no silhouette yet.
  * - **flame** — the streak indicator (five stages, see {@link FLAME_STAGES}).
  */
 export const CHARACTERS = ['vici', 'oracle', 'trickster', 'archivist', 'flame'] as const;
@@ -33,7 +33,7 @@ export const CHAR_PALETTE: Record<Character, { fill: string; deep: string }> = {
 /**
  * Ink used for facial features / line work that sits on top of a
  * character's accent fill, and the parchment-cream used for highlights
- * (eyes, ear insets, the Archivist's chart card). Shared so every
+ * (eyes, ear insets). Shared so every
  * silhouette renders against the same two neutrals.
  */
 export const CHAR_INK = '#0E0D0B';

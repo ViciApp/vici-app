@@ -7,14 +7,14 @@ import { isNullish, nonNullish } from '@dfinity/utils';
  * seed market cards with the previous session's consensus instead of the
  * neutral 0.5 while the per-market order-book enrichment catches up (see
  * `loadMarketsProgressive`). Display-only seed data: it must never feed stake
- * math or order placement — those read the live (certified) book.
+ * math or order placement: those read the live (certified) book.
  *
  * Deliberately not identity-scoped (no entry in
  * `reconcileIdentityScopedStorage`): a book mid is public consensus data,
  * identical for every viewer, so it survives sign-in/out unchanged.
  *
  * Keyed by market id (the registry series id), which is globally unique
- * across balance domains — a domain switch can't surface another domain's
+ * across balance domains: a domain switch can't surface another domain's
  * price because its market set carries different ids.
  */
 const MARKET_PRICES_STORAGE_KEY = 'vici.market-prices.v1';
@@ -22,7 +22,7 @@ const MARKET_PRICES_STORAGE_KEY = 'vici.market-prices.v1';
 /**
  * A day-old consensus is still a far more honest first paint than a flat
  * 50%, but beyond that the seed starts reading as live data on a market that
- * may have long moved — let it lapse back to neutral.
+ * may have long moved: let it lapse back to neutral.
  */
 const MARKET_PRICE_TTL_MS = DAY_IN_MS;
 
@@ -44,7 +44,7 @@ const isCachedMarketPrice = (value: unknown): value is CachedMarketPrice =>
 
 /**
  * The persisted cache with malformed and expired entries dropped. Shared by
- * read and write so every write also prunes — the cache stays bounded by the
+ * read and write so every write also prunes: the cache stays bounded by the
  * set of markets enriched within the TTL window, no separate sweep needed.
  */
 const readFreshCache = (): MarketPriceCache => {
@@ -67,8 +67,8 @@ const readFreshCache = (): MarketPriceCache => {
  * Fresh (non-expired) last-known YES probabilities, keyed by market id.
  * Plain-`string` keyed on purpose: the branded `MarketId` can't be recovered
  * from persisted JSON without re-validating, and as a display-only seed the
- * id is only ever used to *look up* (branded ids are assignable to `string`)
- * — an unparseable key simply never matches a live market.
+ * id is only ever used to *look up* (branded ids are assignable to `string`);
+ * an unparseable key simply never matches a live market.
  */
 export const readCachedYesProbabilities = (): Map<string, number> =>
 	new Map(Object.entries(readFreshCache()).map(([id, { yesProbability }]) => [id, yesProbability]));
@@ -76,7 +76,7 @@ export const readCachedYesProbabilities = (): Map<string, number> =>
 /**
  * Merge book-derived probabilities into the persisted cache. Best-effort
  * (see `storage.utils`). Callers must only pass prices backed by a real book
- * mid — never the 0.5 fallback an empty or failed fetch degrades to, which
+ * mid: never the 0.5 fallback an empty or failed fetch degrades to, which
  * would clobber a real last-known price with the placeholder.
  */
 export const cacheMarketPrices = (prices: { id: string; yesProbability: number }[]): void => {

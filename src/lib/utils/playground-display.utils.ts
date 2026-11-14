@@ -144,14 +144,6 @@ export const intuitiveAvailableMarginUsd = ({
 	return atMark > locked ? atMark - locked : ZERO;
 };
 
-export const quickBetChipLabel = ({
-	amount,
-	playground
-}: {
-	amount: string;
-	playground: boolean;
-}): string => (playground ? `${amount} ${PLAYGROUND_DISPLAY_SYMBOL}` : `$${amount}`);
-
 export const flowTradeDenominationLabel = (playground: boolean): 'VXP' | 'USD' =>
 	playground ? PLAYGROUND_DISPLAY_SYMBOL : 'USD';
 

@@ -1,11 +1,11 @@
 /**
- * VXP economy constants — the client-side portion of the gameplay
+ * VXP economy constants: the client-side portion of the gameplay
  * currency model. These values are authoritative for the *expected*
  * payout shown in UI; the server is authoritative for the *actual*
  * credit on settlement (same pattern as any prediction market).
  *
  * Server-side award tunables (streak bonuses, calibration reward,
- * referral cap, Worlds podium) live below — the server is authoritative
+ * referral cap, Worlds podium) live below: the server is authoritative
  * for the actual credit; these constants drive the expected UI preview.
  *
  * See `vxp-economy.utils.ts` for the payout formula.
@@ -15,7 +15,7 @@ import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**
  * Per-call stake ladder, smallest → largest. The shape is curated, not
- * arithmetic — the non-uniform jump from 300 to 500 (rather than a smooth
+ * arithmetic: the non-uniform jump from 300 to 500 (rather than a smooth
  * rung) is intentional.
  *
  * Frozen so call sites can rely on the literal indexing without worrying
@@ -33,7 +33,7 @@ export type VxpStake = (typeof VXP_STAKE_LADDER)[number];
 export const [VXP_MIN_STAKE] = VXP_STAKE_LADDER;
 
 /**
- * Membership-style validator for a candidate stake — the single
+ * Membership-style validator for a candidate stake: the single
  * source of truth for "is this premium a valid ladder rung". Used by
  * the trade-utility premium guard and by deck-restore paths that
  * sanity-check a previously-persisted stake before re-binding it to
@@ -45,7 +45,7 @@ export const isVxpLadderStake = (n: number): n is VxpStake =>
 
 /**
  * Default stake for new and low-activity users. Renders as the only
- * surfaced option for first-call users — no decision paralysis.
+ * surfaced option for first-call users: no decision paralysis.
  */
 export const VXP_DEFAULT_STAKE: VxpStake = 50;
 
@@ -58,7 +58,7 @@ export const VXP_P_WIN_FLOOR = 0.05;
 
 /**
  * Streak-milestone bonuses, in VXP. Granted when the user's daily streak
- * count *hits* one of the milestones. Server-validated — these constants
+ * count *hits* one of the milestones. Server-validated; these constants
  * are surfaced to UI for the "next milestone" preview only.
  */
 export const VXP_STREAK_BONUSES: Readonly<Record<number, number>> = Object.freeze({
@@ -71,7 +71,7 @@ export const VXP_STREAK_BONUSES: Readonly<Record<number, number>> = Object.freez
 /**
  * Flow volume-milestone bonuses, in VXP. Keyed by the lifetime call-count
  * threshold; granted once ever when the user's lifetime call count *crosses*
- * that threshold. Server-validated — these constants are surfaced to UI for
+ * that threshold. Server-validated: these constants are surfaced to UI for
  * preview only. Calls 1 and 25 are deliberately not milestones.
  */
 export const VXP_FLOW_MILESTONES: Readonly<Record<number, number>> = Object.freeze({
@@ -84,7 +84,7 @@ export const VXP_FLOW_MILESTONES: Readonly<Record<number, number>> = Object.free
 /**
  * Flow overtime bonus (25 VXP). Granted once per UTC day when the user
  * reaches 15+ calls in that day (an "overtime" finish). The only repeatable
- * flow mint. Server-validated — surfaced to UI for preview only.
+ * flow mint. Server-validated: surfaced to UI for preview only.
  */
 export const VXP_FLOW_OVERTIME_BONUS = 25;
 
@@ -92,7 +92,7 @@ export const VXP_FLOW_OVERTIME_BONUS = 25;
  * Rolling wall-clock window for the overtime anti-farming cap.
  *
  * `recordFlowSwipe` only checks that the client's `dayKey` is a well-formed
- * `YYYY-MM-DD` — not that it is actually today — so a client could replay
+ * `YYYY-MM-DD`, not that it is actually today, so a client could replay
  * many distinct day keys in minutes and trip `capReached` for each. This
  * window (and {@link VXP_FLOW_OVERTIME_ROLLING_CAP}) bound how many overtime
  * mints a caller can earn per stretch of *real* time, counted off the
@@ -106,14 +106,14 @@ export const VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
  * {@link VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS}. Set just above the natural
  * once-per-calendar-day rate (with day-boundary / timezone slack) so a
  * legitimate daily player is never blocked, while a client replaying many
- * forged day keys in a short window is. Tunable — confirm the value with
+ * forged day keys in a short window is. Tunable: confirm the value with
  * the economy owner before relying on it.
  */
 export const VXP_FLOW_OVERTIME_ROLLING_CAP = 8;
 
 /**
  * Calibration reward (20 VXP), in **base units**. Paid once per finalised
- * Vici binary market a recovering user calls correctly. Small and fixed —
+ * Vici binary market a recovering user calls correctly. Small and fixed:
  * it is a recovery nudge that rewards reading a market right, not a payout
  * that scales with stake. Sized in base units via the canonical
  * `vxpBaseUnits` helper so it matches `icrc1Transfer` / award-doc amounts
@@ -124,7 +124,7 @@ export const VXP_CALIBRATION_REWARD_BASE_UNITS = vxpBaseUnits(20);
 /**
  * Recovery floor for the calibration reward (100 VXP), in **base units**.
  * The reward only pays while the caller's available balance is *below*
- * this floor — it is the core bound that keeps calibration a recovery
+ * this floor: it is the core bound that keeps calibration a recovery
  * mechanic for depleted users rather than a steady income stream for
  * everyone. Compared directly against the ledger balance (also base
  * units), so it is sized via `vxpBaseUnits`. Tunable.
@@ -137,7 +137,7 @@ export const CALIBRATION_RECOVERY_FLOOR_BASE_UNITS = vxpBaseUnits(100);
  * balance hits the recovery floor, the deployed-vs-depleted split reads
  * the VXP still locked in the user's open calls (`lockedCollateral`, also
  * base units): at or above this floor the stack is "in play, nothing lost"
- * — a positive beat pointing at the open calls; below it the stack has
+ * a positive beat pointing at the open calls; below it the stack has
  * actually eroded through realised losses, so the user is offered the
  * Calibration recovery path. Sized via `vxpBaseUnits` so the comparison
  * stays in base units. Tunable.
@@ -145,7 +145,7 @@ export const CALIBRATION_RECOVERY_FLOOR_BASE_UNITS = vxpBaseUnits(100);
 export const CALIBRATION_DEPLOY_FLOOR_BASE_UNITS = vxpBaseUnits(150);
 
 /**
- * Comeback restore — a one-time "welcome back" top-up for a returning user whose stack has run dry.
+ * Comeback restore: a one-time "welcome back" top-up for a returning user whose stack has run dry.
  * When a user returns after an absence of at least {@link COMEBACK_AWAY_DAYS} days and their free
  * balance is below {@link COMEBACK_BALANCE_FLOOR_BASE_UNITS}, their balance is topped up *to* this
  * target so they have stake to play again. In **base units** via `vxpBaseUnits`. Tunable.
@@ -179,7 +179,7 @@ export const CALIBRATION_DAILY_CAP = 15;
 export const CALIBRATION_HOURLY_CAP = 6;
 
 /**
- * Worlds podium awards for the monthly battle — 1st / 2nd / 3rd place.
+ * Worlds podium awards for the monthly battle: 1st / 2nd / 3rd place.
  * Server-validated; surfaced in UI on the Worlds standings.
  */
 export const VXP_WORLDS_PODIUM = Object.freeze({
@@ -194,7 +194,7 @@ export const VXP_WORLDS_PODIUM = Object.freeze({
  * idempotent across hook retries. This is the "Founder +100 VXP" promise
  * the create-league CTA surfaces. Sized in base units via `vxpBaseUnits` so
  * it matches `icrc1Transfer` / award-doc amounts (same corrected pattern
- * as the calibration / comeback awards — never a raw int, VXP has 4
+ * as the calibration / comeback awards: never a raw int, VXP has 4
  * decimals). Tunable.
  */
 export const VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS = vxpBaseUnits(100);

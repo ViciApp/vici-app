@@ -56,7 +56,7 @@ export const loadViciOracle = async ({
  * An oracle settler paired with its nickname for admin UIs. Mirrors the
  * `UserRoleEntry` shape so the settlers list can reuse the Roles list layout.
  * `nickname` is set when the principal has a real profile, and `undefined`
- * when none exists — settlers can be granted by raw principal, so the nickname
+ * when none exists: settlers can be granted by raw principal, so the nickname
  * is best-effort enrichment, not a guarantee.
  */
 export interface OracleSettlerEntry {
@@ -122,7 +122,7 @@ export const registerViciOracle = async ({
 
 // Note: direct add/remove of oracle settlers used to live here. It is now driven
 // automatically by the `syncRoleToEngine` satellite hook (see
-// `src/satellite/services/engine-sync.services.ts`) — assigning the `ADMIN` or
+// `src/satellite/services/engine-sync.services.ts`): assigning the `ADMIN` or
 // `SOLVER` role to a user both grants them `OracleAdmin` on the Vici engine and
 // adds them to `VICI_ORACLE_V1.authorized_principals`. For manual reconciliation,
 // see `.agents/workflows/icdc-engine-operations.md`.
@@ -130,7 +130,7 @@ export const registerViciOracle = async ({
 /**
  * Set of `UserRole` values that should be mirrored into the Vici oracle's
  * `authorized_principals`. Kept in lockstep with `shouldBeOracleSettler` in
- * `src/satellite/services/engine-sync.services.ts` — if that mapping changes,
+ * `src/satellite/services/engine-sync.services.ts`: if that mapping changes,
  * update both.
  */
 const SETTLER_ROLES: ReadonlySet<UserRole> = new Set([UserRole.ADMIN, UserRole.SOLVER]);
@@ -154,7 +154,7 @@ export interface OracleSettlerReconcileResult {
  * longer holding a settler role. The underlying canister uses a `BTreeSet`, so
  * duplicate adds and missing removes are silent no-ops.
  *
- * Throws if the oracle is not yet registered — call {@link registerViciOracle} first.
+ * Throws if the oracle is not yet registered: call {@link registerViciOracle} first.
  */
 export const reconcileOracleSettlersFromRoles = async (): Promise<OracleSettlerReconcileResult> => {
 	const oracle = await getViciOracle();

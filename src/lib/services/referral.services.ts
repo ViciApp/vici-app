@@ -32,13 +32,13 @@ const rethrowReferralReason = (err: unknown): never => {
 /**
  * Thin actor wrappers around the satellite referral endpoints. UI for the registration flow
  * (entering a code) and the "Your code / Friends you referred" panel will land in a follow-up
- * PR — this file exists so those surfaces can import a typed service without re-introducing the
+ * PR: this file exists so those surfaces can import a typed service without re-introducing the
  * `fromWire…` conversion plumbing inline.
  */
 
 /**
  * Returns the caller's auto-generated referral code, if it has already been assigned. The code is
- * assigned by the satellite profile hook on first profile create — if a returning user is missing
+ * assigned by the satellite profile hook on first profile create; if a returning user is missing
  * one (e.g. signed in before the feature shipped), the next profile write backfills it.
  */
 export const getMyReferralCode = async (): Promise<string | undefined> => {
@@ -77,7 +77,7 @@ export const lookupReferralCode = async ({
  * Submits a referral code redemption for the current caller. The satellite enforces:
  * - one-time per referee (the call traps on a second invocation),
  * - the caller must have a profile,
- * - the profile must be younger than {@link REFERRAL_SIGNUP_WINDOW_MS} — older accounts trap
+ * - the profile must be younger than {@link REFERRAL_SIGNUP_WINDOW_MS}: older accounts trap
  *   with {@link REFERRAL_EXISTING_USER_REASON} and should fall back to
  *   {@link claimReferralFriendship},
  * - self-referrals are rejected,
@@ -103,7 +103,7 @@ export const redeemReferralCode = async ({ code }: { code: string }): Promise<vo
 /**
  * Drives (or retries) the VXP payout for a referral row, keyed by the referee principal. The redeem
  * call already pays out inline; this is the self-heal / retry path for a payout that failed or that
- * predates the inline-payout fix. Idempotent server-side — safe to call for one's own principal on
+ * predates the inline-payout fix. Idempotent server-side: safe to call for one's own principal on
  * every load.
  */
 export const settleReferral = async ({ referee }: { referee: PrincipalText }): Promise<void> => {

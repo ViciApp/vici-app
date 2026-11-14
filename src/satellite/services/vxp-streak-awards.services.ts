@@ -19,7 +19,7 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
  * ledger account and persists the payout in `vxp_awards`.
  *
  * Idempotency is structural: the award doc key is
- * `${recipient}/streak/streak_${milestone}` — the second hook firing
+ * `${recipient}/streak/streak_${milestone}`: the second hook firing
  * at the same milestone collides with the first and the assert blocks
  * the duplicate write. No timestamp-based dedupe needed.
  *
@@ -37,7 +37,7 @@ const STREAK_MILESTONES: readonly number[] = Object.freeze(
 
 /**
  * Subset of the profile shape the streak hook actually reads. Decoded
- * from the satellite doc payload — full `UserProfile` isn't needed.
+ * from the satellite doc payload: full `UserProfile` isn't needed.
  */
 interface DailyStreakSlice {
 	dailyStreak?: number;
@@ -46,7 +46,7 @@ interface DailyStreakSlice {
 /**
  * Milestone boundaries the user's streak just crossed on this write.
  * Returns an empty array if neither end is set or no boundary was
- * crossed (the common case — most writes don't bump streak).
+ * crossed (the common case: most writes don't bump streak).
  */
 const milestonesCrossed = ({ prev, next }: { prev: number; next: number }): number[] => {
 	if (next <= prev) {
@@ -70,14 +70,14 @@ const payStreakMilestone = async ({
 	milestone: number;
 }): Promise<void> => {
 	// `VXP_STREAK_BONUSES` is whole VXP and the ledger works in base units, so
-	// size via `vxpBaseUnits` — a raw `BigInt(50)` would transfer 50 base units
+	// size via `vxpBaseUnits`: a raw `BigInt(50)` would transfer 50 base units
 	// (0.0050 VXP), under-paying by `10 ** VXP_TOKEN.decimals` (mirrors the
 	// Worlds-podium award's `vxpBaseUnits` sizing).
 	const amount = vxpBaseUnits(VXP_STREAK_BONUSES[milestone]);
 	const awardKey = streakAwardKey(milestone);
 	const earnedAtMs = Date.now();
 
-	// Idempotency: if the award doc already exists, skip — the assert
+	// Idempotency: if the award doc already exists, skip; the assert
 	// rejects duplicate creations anyway, but checking up front avoids
 	// the wasted ledger call.
 	const existingKey = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey });
@@ -106,7 +106,7 @@ const payStreakMilestone = async ({
 		const msg = e instanceof Error ? e.message : String(e);
 
 		// Most likely cause: a concurrent hook firing already wrote the
-		// pending doc. Either way, surface and stop — the other hook will
+		// pending doc. Either way, surface and stop: the other hook will
 		// (or has already) issued the transfer.
 		logInfo({
 			message: 'streak_award_pending_blocked',
@@ -172,7 +172,7 @@ const payStreakMilestone = async ({
 };
 
 /**
- * Profile post-write hook — composes alongside the other `profiles`
+ * Profile post-write hook: composes alongside the other `profiles`
  * hooks in `satellite/index.ts`. Detects daily-streak milestone
  * crossings and credits the matching VXP bonus.
  */

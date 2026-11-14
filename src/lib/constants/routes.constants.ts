@@ -36,7 +36,7 @@ export enum AppPath {
 }
 
 /**
- * Public surfaces — accessible without an authenticated session.
+ * Public surfaces: accessible without an authenticated session.
  * The (app) layout gate redirects unauthenticated users to `/signin`
  * unless they're already on a path in this set.
  *
@@ -54,7 +54,7 @@ export enum PublicPath {
 	 */
 	About = '/about',
 	/**
-	 * Legacy marketing path. Retained for backward-compat — the route
+	 * Legacy marketing path. Retained for backward-compat: the route
 	 * itself just redirects to `PublicPath.About`.
 	 */
 	Welcome = '/welcome',

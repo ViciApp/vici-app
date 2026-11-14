@@ -4,26 +4,26 @@ import type { Principal } from '@icp-sdk/core/principal';
  * Categories of server-fired VXP award. Each maps to a separate satellite
  * trigger:
  *
- *  - `streak`        — daily-call streak hits a milestone (3 / 7 / 14 / 30).
- *  - `calibration`   — recovering user (available balance below the
+ *  - `streak`: daily-call streak hits a milestone (3 / 7 / 14 / 30).
+ *  - `calibration`: recovering user (available balance below the
  *                      recovery floor) correctly called a finalised Vici
  *                      binary market. One reward per market.
- *  - `referral`      — referrer is credited on a referee's onboarding
+ *  - `referral`: referrer is credited on a referee's onboarding
  *                      completion. Capped per calendar month.
- *  - `worlds_podium` — recipient's school finished top-3 in the monthly
+ *  - `worlds_podium`: recipient's school finished top-3 in the monthly
  *                      battle. Awarded at month rollover.
- *  - `achievement`   — an Album achievement was unlocked for the first
+ *  - `achievement`: an Album achievement was unlocked for the first
  *                      time; mints the achievement's catalog XP value as
  *                      real VXP. One-time per account (the
  *                      `unlockedAchievements` array is append-only).
- *  - `comeback`      — one-time top-up for a returning user whose stack
+ *  - `comeback`: one-time top-up for a returning user whose stack
  *                      ran dry (away ≥ N days, balance below the floor).
- *  - `flow_milestone` — user's lifetime call count crossed a volume
+ *  - `flow_milestone`: user's lifetime call count crossed a volume
  *                      milestone (10 / 100 / 500 / 1000). Once per
  *                      threshold ever.
- *  - `flow_overtime` — user reached the Flow daily hard cap (overtime
+ *  - `flow_overtime`: user reached the Flow daily hard cap (overtime
  *                      finish). Once per local day; bounded by a rolling wall-clock cap.
- *  - `league_founder` — user founded a league. One reward per league they
+ *  - `league_founder`: user founded a league. One reward per league they
  *                      own (keyed by league id), capped per account.
  */
 export type VxpAwardType =
@@ -46,7 +46,7 @@ export type VxpAwardStatus = 'pending' | 'paid' | 'failed';
 
 /**
  * Persisted shape stored in the `vxp_awards` collection. Doc key is
- * `${recipient}/${awardType}/${awardKey}` — collisions on retry are
+ * `${recipient}/${awardType}/${awardKey}`: collisions on retry are
  * natural idempotency.
  *
  * Amounts and ledger block indexes are stored as decimal strings so the
@@ -56,19 +56,19 @@ export type VxpAwardStatus = 'pending' | 'paid' | 'failed';
 export interface VxpAwardDoc {
 	/** Principal text of the recipient. Encoded in the doc key too. */
 	recipient: string;
-	/** Award category — drives which satellite trigger fired it. */
+	/** Award category: drives which satellite trigger fired it. */
 	awardType: VxpAwardType;
 	/**
 	 * Stable sub-identifier within `awardType`. Encoded in the doc key too.
 	 *
-	 *  - `streak`        — one of `'streak_3' | 'streak_7' | 'streak_14' | 'streak_30'`.
-	 *  - `calibration`   — the resolved market's `seriesId` (one per market).
-	 *  - `referral`      — the referee principal text.
-	 *  - `worlds_podium` — `'<YYYY-MM>_gold' | '<YYYY-MM>_silver' | '<YYYY-MM>_bronze'`.
-	 *  - `flow_milestone` — the crossed threshold as text: `'10' | '100' | '500' | '1000'`.
-	 *  - `flow_overtime` — the Flow daily-counter day key
+	 *  - `streak`: one of `'streak_3' | 'streak_7' | 'streak_14' | 'streak_30'`.
+	 *  - `calibration`: the resolved market's `seriesId` (one per market).
+	 *  - `referral`: the referee principal text.
+	 *  - `worlds_podium`: `'<YYYY-MM>_gold' | '<YYYY-MM>_silver' | '<YYYY-MM>_bronze'`.
+	 *  - `flow_milestone`: the crossed threshold as text: `'10' | '100' | '500' | '1000'`.
+	 *  - `flow_overtime`: the Flow daily-counter day key
 	 *                     `'<YYYY-MM-DD>'` (the client local day `recordFlowSwipe` uses).
-	 *  - `league_founder` — the founded league's id (one per league owned).
+	 *  - `league_founder`: the founded league's id (one per league owned).
 	 */
 	awardKey: string;
 	/** Payout amount in VXP base units, decimal string. */

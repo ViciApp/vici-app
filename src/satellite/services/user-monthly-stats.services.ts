@@ -24,7 +24,7 @@ const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
  *
  *  1. **Collection scope.** No-op for any other collection.
  *  2. **Key shape.** Doc key must equal `${owner}/${monthAnchor}` and match
- *     the embedded `(owner, monthAnchor)` — one canonical row per user-month.
+ *     the embedded `(owner, monthAnchor)`: one canonical row per user-month.
  *  3. **monthAnchor format.** Must match `YYYY-MM` and agree with the key's
  *     month segment so a writer can't supply a structurally valid key with a
  *     mismatched embedded anchor.
@@ -37,11 +37,11 @@ const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
  *     writer with calls but no samples qualify for the bold-caller gate.
  *  7. **Consensus bounded + valid.** The consensus array can't grow past
  *     {@link MONTHLY_CONSENSUS_LIMIT}, and each value must be finite and in
- *     [0, 1] — a malicious or buggy writer can't bloat the doc or skew the
+ *     [0, 1]: a malicious or buggy writer can't bloat the doc or skew the
  *     median gate with out-of-range prices.
  *
  * Note (integrity trade-off): like `user_stats`, the assert does NOT verify
- * the counters against real clearing history — a determined user could
+ * the counters against real clearing history: a determined user could
  * inflate their own monthly numbers. The award is cosmetic (no VXP payout),
  * so this matches the documented `user_stats` posture rather than warranting
  * a server-side history re-derivation.
@@ -153,7 +153,7 @@ export interface MonthlyLeaderboardEntry {
 }
 
 /**
- * One bold-caller entry — the month's best accuracy among users whose median
+ * One bold-caller entry: the month's best accuracy among users whose median
  * consensus-at-call is below {@link BOLD_CALLER_MEDIAN_THRESHOLD}. Ties on
  * accuracy yield more than one entry. `medianConsensus` is the on-read median
  * of the user's bounded consensus array.
@@ -180,7 +180,7 @@ const decodeMonthlyStats = (
 	try {
 		return decodeDocData<UserMonthlyStatsDoc>(data);
 	} catch {
-		// Malformed payload — treated as absent (the caller filters it out).
+		// Malformed payload: treated as absent (the caller filters it out).
 	}
 };
 
@@ -230,7 +230,7 @@ export const getMonthlyLeaderboardFn = ({
 
 	const eligible = docs.filter((doc) => doc.monthCalls >= MONTHLY_MIN_CALLS);
 
-	// sharpest-eye — top-3 by accuracy, deterministic tie-break.
+	// sharpest-eye: top-3 by accuracy, deterministic tie-break.
 	const sharpestEye: MonthlyLeaderboardEntry[] = [...eligible]
 		.sort((a, b) => {
 			const accDelta = accuracyOf(b) - accuracyOf(a);
@@ -256,7 +256,7 @@ export const getMonthlyLeaderboardFn = ({
 			placement: index + 1
 		}));
 
-	// bold-caller — best accuracy among eligible users whose median
+	// bold-caller: best accuracy among eligible users whose median
 	// consensus-at-call is below the threshold. Return every user tied at
 	// that best accuracy.
 	const bold = eligible

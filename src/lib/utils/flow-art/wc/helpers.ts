@@ -2,7 +2,7 @@ import { WC_SHIRT } from '#lib/constants/flow-art-wc.constants.ts';
 import type { FlowArtPalette } from '#lib/utils/flow-art/types.ts';
 import { wcFace } from '#lib/utils/flow-art/wc/figure.ts';
 
-// WC scene helpers — background backdrops + focal props. Bundled in
+// WC scene helpers: background backdrops + focal props. Bundled in
 // a factory so each helper closes over the per-render palette `p` and
 // `uid` exactly as it did when these were locals inside renderWC.
 // `(p, uid)` are the two render-scoped primitives the helper closures
@@ -70,7 +70,7 @@ export const makeWcHelpers = (p: FlowArtPalette, uid: string) => {
 
 	const bgSpotlight = ({ c1, c2 }: { c1: string; c2: string }): string =>
 		`<rect width="280" height="100" fill="${p.bg}"/>` +
-		// Two spotlight cones from the top — classes drive the CSS sweep.
+		// Two spotlight cones from the top: classes drive the CSS sweep.
 		`<polygon class="wc-spot wc-spot-left" points="50,-10 80,-10 130,100 30,100" fill="${c1}" opacity="0.15"/>` +
 		`<polygon class="wc-spot wc-spot-right" points="200,-10 230,-10 250,100 150,100" fill="${c2}" opacity="0.15"/>` +
 		`<rect width="280" height="100" fill="${p.base}" opacity="0.35"/>`;
@@ -87,7 +87,7 @@ export const makeWcHelpers = (p: FlowArtPalette, uid: string) => {
 			const x = t * 280;
 			const y = 18 + Math.sin(t * Math.PI) * 5;
 			const c = cols[i % cols.length];
-			// `% 10` keeps the stagger class in range — `FlowArtFrame`
+			// `% 10` keeps the stagger class in range: `FlowArtFrame`
 			// only defines `.wc-cnf-0`…`.wc-cnf-9` delay hooks, so the
 			// 11th/12th shards reuse an existing offset rather than
 			// falling back to the unstaggered base animation.

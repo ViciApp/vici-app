@@ -15,7 +15,7 @@ import { deleteAsset, uploadFile } from '@junobuild/core';
 /**
  * Juno Storage helpers. Uploads land binary assets in a Storage
  * collection and persist only the resolved download URL on the owning
- * Datastore doc — we never inline base64 data URLs into a record.
+ * Datastore doc: we never inline base64 data URLs into a record.
  *
  * On the web2 backend the bytes go to the API's league-image route
  * instead (which stores them and stamps the serving URL on the league
@@ -80,7 +80,7 @@ export const uploadLeagueImage = async ({
  * Delete a previously-uploaded league image given its download URL.
  * Best-effort: a missing or already-deleted asset is swallowed so
  * clearing the doc's `imageUrl` never fails on a stale URL. Only acts
- * on URLs that point at the league-images collection — external or
+ * on URLs that point at the league-images collection: external or
  * malformed URLs (e.g. a legacy value) are left untouched.
  */
 export const deleteLeagueImageByUrl = async (url: string): Promise<void> => {

@@ -1,9 +1,9 @@
 /**
- * Japanese — landing copy only.
+ * Japanese: landing copy only.
  *
  * Partial `soon` catalog: only a subset of the landing `welcome.*` keys ship
- * here, the ones with an established Japanese voice. Every other key — and the
- * rest of the app — resolves through the fallback chain (`ja` → `en`). Proper
+ * here, the ones with an established Japanese voice. Every other key, and the
+ * rest of the app, resolves through the fallback chain (`ja` → `en`). Proper
  * nouns (VICI, VXP, Flow, FIFA, ワールドカップ) stay as-is.
  */
 export const jaMessages = {

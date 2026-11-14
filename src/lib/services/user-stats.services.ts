@@ -37,7 +37,7 @@ import type { PrincipalText } from '@junobuild/schema';
  *    Returns `undefined` when no doc exists yet (the very first sync
  *    hasn't run).
  *
- * Slight refresh delay (per the design decision) — the Dash reads
+ * Slight refresh delay (per the design decision); the Dash reads
  * whatever the last sync persisted; a market resolving moments before
  * mount won't show up until the next sync completes. Acceptable
  * trade-off for instant page loads.
@@ -70,12 +70,12 @@ const macroForSeries = ({
 };
 
 /**
- * Realized VXP for a single settlement — the signed cashflow the clearing
+ * Realized VXP for a single settlement: the signed cashflow the clearing
  * `Settled` event carries on its `qty` field, in `USD_DECIMALS` base units
  * (see `settledEventToResolvedPosition` and the `ResolvedPosition` docs).
  * Clamped to ≥ 0 so only a win's positive payout reaches the Oracle insight.
  *
- * Kept at full precision (no rounding) — a heavy-favourite win clears for a
+ * Kept at full precision (no rounding): a heavy-favourite win clears for a
  * real sub-1 VXP amount (the cashflow itself is below one point), and
  * rounding here would zero it before the Oracle insight headline ever sees
  * it ("+0 VXP"). The display layer rounds via `formatWholeVxpMagnitude`,
@@ -86,7 +86,7 @@ const settlementVxp = (event: ClearingDid.Event): number =>
 
 /**
  * Build a `UserStatsDoc` payload from raw clearing history plus the
- * in-memory market-metadata map. Pure function — no IO.
+ * in-memory market-metadata map. Pure function: no IO.
  *
  *  - `calls` per category = settled trades where the user took a
  *    position in a market of that tag.
@@ -124,7 +124,7 @@ export const computeUserStatsSnapshot = ({
 		}
 	}
 
-	// Recent settlements — newest first.
+	// Recent settlements: newest first.
 	const recentSettlements: RecentSettlementSnapshot[] = [...settled]
 		.sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
 		.slice(0, USER_STATS_RECENT_LIMIT)
@@ -159,7 +159,7 @@ export const computeUserStatsSnapshot = ({
  * datastore; safe to call from `calculateAndSyncStats` on every
  * sync.
  *
- * Failures are logged and rethrown — the caller (`calculateAndSyncStats`)
+ * Failures are logged and rethrown: the caller (`calculateAndSyncStats`)
  * already runs in a try/catch shape that surfaces partial failures
  * without aborting the wider profile sync.
  */
@@ -181,7 +181,7 @@ export const persistMyUserStats = async (snapshot: UserStatsDoc): Promise<void> 
 
 /**
  * Load the caller's dashboard cache. Returns `undefined` when no
- * snapshot exists yet — the FE renders a "pull-to-refresh" hint in
+ * snapshot exists yet: the FE renders a "pull-to-refresh" hint in
  * that branch.
  */
 export const loadMyUserStats = async (

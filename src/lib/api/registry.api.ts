@@ -18,19 +18,6 @@ export const addSeries = async ({
 	return await addSeries({ params, ...queryParams });
 };
 
-export const forkSeries = async ({
-	identity,
-	params,
-	...queryParams
-}: {
-	identity: Identity;
-	params: RegistryDid.ForkSeriesParams;
-} & QueryParams): Promise<string> => {
-	const { forkSeries } = await registryCanister({ identity });
-
-	return await forkSeries({ params, ...queryParams });
-};
-
 export const getSeries = async ({
 	identity,
 	seriesId,

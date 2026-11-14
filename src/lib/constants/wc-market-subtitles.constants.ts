@@ -1,7 +1,7 @@
 /**
  * Curated editorial subtitle lines for the 2026 World Cup tentpole
  * markets. Each entry is a short italic accent line that sits below the
- * question on the Flow front card — e.g. "Five-time champions ·
+ * question on the Flow front card: e.g. "Five-time champions ·
  * tournament favourite", "Neymar's fitness in doubt · squad locks
  * June 2". Keyed by the canonical market id used in `getFlowQueue` and
  * the satellite metadata (the same id scheme the artwork recipes use).
@@ -45,7 +45,7 @@ export const WC_MARKET_SUBTITLES: Readonly<Record<string, string>> = {
 	'wc-captain-change': "Life after Messi's armband",
 	'wc-squad-snub': "Germany's tough 26-man calls",
 
-	// Pre-tournament build-up — friendlies, fitness, squad locks
+	// Pre-tournament build-up: friendlies, fitness, squad locks
 	'wc-fast-friendly': 'Last tune-up before the opener · home crowd',
 	'wc-fast-injury': "France's captain fit for the opener",
 	'wc-fast-kit': "Neymar's fitness in doubt · squad locks June 2",
@@ -119,7 +119,7 @@ export const WC_MARKET_SUBTITLES: Readonly<Record<string, string>> = {
 
 /**
  * Resolve the curated subtitle for a market id. Returns `undefined`
- * when no curated entry exists — callers should hide the subtitle
+ * when no curated entry exists: callers should hide the subtitle
  * row in that case.
  */
 export const lookupWcMarketSubtitle = (marketId: string): string | undefined =>

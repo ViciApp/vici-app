@@ -11,7 +11,7 @@ import {
 import { isNullish } from '@dfinity/utils';
 
 /**
- * Monthly tournament — Proposal 3 FE wrappers.
+ * Monthly tournament: Proposal 3 FE wrappers.
  *
  * Pattern is the same as the Worlds podium: the satellite has no
  * scheduler, so the draw is fire-and-forget on every Tournament-
@@ -81,7 +81,7 @@ const projectMatchWire = (wire: {
 
 /**
  * Read the current tournament + its matches. Returns `null` for
- * the tournament when none has been drawn yet — the FE should
+ * the tournament when none has been drawn yet; the FE should
  * render a "draw a bracket" state.
  */
 export const getCurrentTournament = async (): Promise<{
@@ -110,7 +110,7 @@ export interface TriggerTournamentDrawResult {
 }
 
 /**
- * Fire the draw for `monthAnchor`. Idempotent — a second call for
+ * Fire the draw for `monthAnchor`. Idempotent: a second call for
  * the same month returns `already_drawn` cleanly. Safe to
  * fire-and-forget on every Tournament-page mount.
  */
@@ -139,7 +139,7 @@ export interface ResolveTournamentRoundResult {
 
 /**
  * Resolve every match in a closed round. Idempotent via the match
- * doc's `winnerLeagueId` write-once invariant — already-resolved
+ * doc's `winnerLeagueId` write-once invariant: already-resolved
  * matches are skipped. Returns the number of matches settled in
  * this call + whether the tournament has concluded.
  *
@@ -173,7 +173,7 @@ export interface ClaimTournamentPrizeResult {
  * in the bracket's winning leagues; the satellite writes a single
  * `VXP_AWARDS` doc + reports the VXP credited.
  *
- * Idempotent via the award doc key — a second call returns
+ * Idempotent via the award doc key: a second call returns
  * `awardsAlreadyClaimed > 0` and `awardsCreated === 0`.
  *
  * The FE fires this on every Tournament-page mount once the

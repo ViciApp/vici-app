@@ -59,7 +59,7 @@ import { derived, get as getStore, writable, type Readable } from 'svelte/store'
 /**
  * Turns the viewer's pending friend requests into inbox cards. They are
  * synthetic (not persisted in localStorage) and remain `unread` until the
- * underlying request is accepted or rejected — at which point they drop
+ * underlying request is accepted or rejected: at which point they drop
  * out of `friendRequestsStore` and disappear from the inbox automatically.
  */
 const friendRequestInboxStore: Readable<InboxNotification[]> = derived(
@@ -102,7 +102,7 @@ const friendRequestInboxStore: Readable<InboxNotification[]> = derived(
 // Juno docs aren't pushed live across users, so a league owner whose
 // challenge the opponent just accepted or declined wouldn't otherwise know.
 // We derive a card from the battles the viewer *proposed* that have left the
-// `proposed` state recently — the proposer's league is always `sideA`. The
+// `proposed` state recently: the proposer's league is always `sideA`. The
 // card ages out of the window so it can't linger forever; resolution has its
 // own surface (the league detail), so resolved battles don't notify here.
 
@@ -276,7 +276,7 @@ const settledInboxStore: Readable<InboxNotification[]> = derived(
 	[resolvedPositions, displayMarkets, marketsNotInitialized, settledReadStore, localeStore],
 	([$resolved, $displayMarkets, $marketsNotInitialized, $read, $locale]) => {
 		// The card body bakes the market title into its copy ("You won $X on
-		// {market}"), so there is no room for a title skeleton — until the
+		// {market}"), so there is no room for a title skeleton: until the
 		// catalog loads we'd render "Unknown Market" inline. Hold the settled
 		// cards back instead; they surface the moment titles resolve. Read state
 		// lives in `settledReadStore`, so this display-only gate can't lose an
@@ -323,7 +323,7 @@ const settledInboxStore: Readable<InboxNotification[]> = derived(
 				when: formatRelativeAgoFromNs({ timestampNs: entry.timestampNs, locale: $locale }),
 				unread: !$read.has(entry.eventId),
 				// Deep-link to the resolved market's detail via the kind router
-				// (`notificationDestination`) — `mid` carries the market id.
+				// (`notificationDestination`): `mid` carries the market id.
 				mid: entry.marketId
 			};
 		});
@@ -333,15 +333,15 @@ const settledInboxStore: Readable<InboxNotification[]> = derived(
 // ── Likes received on your own calls ────────────────────────────────────────
 
 /**
- * Likes other users left on the viewer's OWN friend-feed calls, as inbox cards. Synthetic — derived
- * live from `receivedReactionsStore` (a key-prefix read scoped to the viewer), not persisted — so a
+ * Likes other users left on the viewer's OWN friend-feed calls, as inbox cards. Synthetic: derived
+ * live from `receivedReactionsStore` (a key-prefix read scoped to the viewer), not persisted, so a
  * card disappears automatically when its reaction doc is deleted (an unlike), with no history store
  * to retain it. Self-likes are excluded. Mirrors {@link friendRequestInboxStore}; the per-id read
  * overlay in {@link combinedInboxStore} drives the read/unread state.
  *
  * Aggregated: all likes on one call collapse into a SINGLE card ("{user} and N more liked your
  * call"), keyed by the activity (not per-liker), so a burst of likes is one inbox entry and one
- * toast — not N. The card carries the most-recent liker's name + timestamp; marking it read marks
+ * toast: not N. The card carries the most-recent liker's name + timestamp; marking it read marks
  * the whole burst. The stable per-activity id means a later like on an already-read call updates the
  * count in place without re-pinging.
  */
@@ -368,7 +368,7 @@ const likesReceivedInboxStore: Readable<InboxNotification[]> = derived(
 
 		return Array.from(byActivity.values(), (likes): InboxNotification => {
 			// Most-recent like fronts the card (name + timestamp + denormalized title / market).
-			// Single pass for the latest reaction — no sort allocation; the count is the rest.
+			// Single pass for the latest reaction: no sort allocation; the count is the rest.
 			// `likes` is non-empty (a group exists only because a reaction was pushed into it).
 			const latest = likes.reduce((max, reaction) =>
 				reaction.timestamp > max.timestamp ? reaction : max
@@ -415,7 +415,7 @@ const likesReceivedInboxStore: Readable<InboxNotification[]> = derived(
 // the calls that settled since the user last acknowledged their resolutions.
 // "Unacknowledged" is the same per-event read marker the Settled inbox cards
 // use (`settledReadStore`), so opening the digest and marking it seen keeps the
-// banner and the bell badge in lockstep — one settlement is never counted twice
+// banner and the bell badge in lockstep; one settlement is never counted twice
 // or surfaced in one place after being cleared in the other.
 
 /**
@@ -453,7 +453,7 @@ const resolvedSide = ({
  * aggregated into net VXP, win/loss tallies, and per-call rows. A `count` of 0
  * means there is nothing new to reveal. Per-call and net VXP are carried at
  * full precision; the digest renderers round for display (a sub-1 favourite
- * win reads "<1" rather than a broken "+0" — see `formatWholeVxpMagnitude`).
+ * win reads "<1" rather than a broken "+0": see `formatWholeVxpMagnitude`).
  */
 export const maturedResolutions: Readable<ResolutionRevealData> = derived(
 	[
@@ -479,7 +479,7 @@ export const maturedResolutions: Readable<ResolutionRevealData> = derived(
 		const items: ResolutionItem[] = unseen.map((entry) => {
 			const market = $displayMarkets.get(entry.marketId);
 			const { label, sideKey } = resolvedSide({ resolved: entry, market });
-			// Full precision — the digest renderers round for display via
+			// Full precision: the digest renderers round for display via
 			// `formatWholeVxpMagnitude` (a sub-1 favourite win reads "<1", not a
 			// broken "+0"). Summing the precise per-call nets also keeps the
 			// digest total honest rather than dropping every sub-1 win to zero.
@@ -505,7 +505,7 @@ export const maturedResolutions: Readable<ResolutionRevealData> = derived(
 		const netVxp = items.reduce((sum, it) => sum + it.net, 0);
 
 		// For a non-English reader showing translations, a title is only final
-		// once the translation overlay has answered for its market — the overlay
+		// once the translation overlay has answered for its market; the overlay
 		// gains an entry per series when its locale chain has been fetched,
 		// translation and confirmed-absent alike, so a missing key means the
 		// lookup is still in flight. Only markets the catalog knows about count:
@@ -538,7 +538,7 @@ export const maturedResolutions: Readable<ResolutionRevealData> = derived(
 
 /**
  * Acknowledges every call currently in the away-digest by adding its
- * `eventId` to the persisted read set — the same marker the Settled inbox
+ * `eventId` to the persisted read set: the same marker the Settled inbox
  * cards use. Called when the user enters Flow (the entry digest settles) or
  * opens the Dashboard ResolutionReveal, so the banner and bell badge clear
  * together. Idempotent: re-running with the digest empty is a no-op.
@@ -565,12 +565,12 @@ export const markResolutionsSeen = (): void => {
 
 // ── Per-id read overlay + dismissed set ─────────────────────────────────────
 // Two persisted string-id sets, keyed by the notification `id`:
-//   • read     — overlays `unread` for cards NOT backed by the settled
+//   • read: overlays `unread` for cards NOT backed by the settled
 //                 read-set (synthetic friend requests, seeds), so tapping a
 //                 card's unread dot marks it read in place across reloads.
-//   • dismissed — cards the user swiped away; filtered out of the list.
+//   • dismissed: cards the user swiped away; filtered out of the list.
 // Settled cards keep using `settledReadStore` (keyed by `event_id`) so the
-// away-digest banner and the bell badge stay in lockstep — the read overlay
+// away-digest banner and the bell badge stay in lockstep; the read overlay
 // here is purely additive on top of that.
 
 const loadStringSet = (key: string): Set<string> => {
@@ -593,10 +593,10 @@ const inboxDismissedStore = writable<Set<string>>(loadStringSet(INBOX_DISMISSED_
 // ── Streak + level progress notifications ───────────────────────────────────
 // `level` and the daily-streak milestone are monotonic counters: a pure
 // derivation of "you're level 4" would pin the card forever and replay it on a
-// fresh device. So a persisted high-water marker gates each card — a card
+// fresh device. So a persisted high-water marker gates each card; a card
 // exists only while the live value exceeds the marker. The marker seeds to the
 // current value on first observation (no retroactive backlog), advances on
-// acknowledge, and — for the streak, which resets to SPARK on a break — lowers
+// acknowledge, and, for the streak, which resets to SPARK on a break, lowers
 // when the run drops below it so re-climbing re-notifies. `initInboxProgress`
 // (mounted by `NotifToastHost`) maintains the marker and records when an
 // unacknowledged milestone first appeared (`*CrossedAt_ms`, for the card's
@@ -641,7 +641,7 @@ const updateInboxProgress = (updater: (current: InboxProgress) => InboxProgress)
  */
 const milestoneWhen = ({ atMs, locale }: { atMs?: number; locale: AppLocale }): string =>
 	// Guard `Number.isFinite` so a corrupt / hand-edited persisted stamp (NaN,
-	// Infinity) can't reach `BigInt(...)` and throw — fall back to "just now".
+	// Infinity) can't reach `BigInt(...)` and throw: fall back to "just now".
 	nonNullish(atMs) && Number.isFinite(atMs)
 		? formatRelativeAgoFromNs({
 				timestampNs: BigInt(Math.round(atMs)) * MILLISECOND_IN_NANOSECONDS,
@@ -767,12 +767,12 @@ const acknowledgeStreak = (): void => {
  *   • records the crossing time the first time the live value exceeds the
  *     marker (for the card's `when` label),
  *   • lowers the streak marker when the run resets below it, so re-climbing
- *     re-notifies (the streak — unlike the monotonic level — breaks to SPARK).
+ *     re-notifies (the streak, unlike the monotonic level, breaks to SPARK).
  * The marker only moves *up* on acknowledge, which is what surfaces the card.
  *
  * On an owner change it reloads the marker from localStorage, which
  * `reconcileIdentityScopedStorage` (run by `Authn` before the new profile is
- * set) has already cleared on a real account switch — so the previous user's
+ * set) has already cleared on a real account switch, so the previous user's
  * `seen*` markers can't suppress the next user's cards. (The other in-memory
  * inbox stores only carry read-state and re-read on the next app load; this
  * one gates card *visibility*, so it re-reads on the switch itself.)
@@ -831,7 +831,7 @@ export const initInboxProgress = (): (() => void) => {
  * view. Order: live actionable items (friend requests), then incoming league
  * challenges, then battle responses, then real settled-event notifications,
  * then likes received on your calls, then streak / level milestones. Every
- * card is derived from live data — there is no seeded/mock layer.
+ * card is derived from live data: there is no seeded/mock layer.
  *
  * Dismissed cards are filtered out, and the per-id read overlay is applied
  * on top of each item's own `unread` so a card tapped read in place stays
@@ -880,24 +880,24 @@ export const combinedInboxUnreadCount: Readable<number> = derived(
 
 // ── New-arrival toast feed ──────────────────────────────────────────────────
 // The slide-in popup (`NotifToastHost`) surfaces on a genuinely NEW inbox
-// item — a real event (a freshly-settled market, an incoming friend request,
+// item: a real event (a freshly-settled market, an incoming friend request,
 // …) that wasn't present on the previous tick.
 //
 // Gating strategy: user-scoped async sources (trade history / resolvedPositions,
 // friend relations) are still loading at cold start. The first synchronous
-// `combinedInboxStore` emission carries an incomplete snapshot — if we diffed
+// `combinedInboxStore` emission carries an incomplete snapshot: if we diffed
 // from that we'd fire arrival toasts for every pre-existing unread item.
 // Instead we delay the diff until BOTH async sources report ready:
 //   • `resolvedPositionsNotInitialized` flips false → trade history has loaded
 //   • `friendsRelationsLoadedStore` flips true → friend relations have loaded
 // Until then every emission is treated as baseline-only (ids are accumulated,
-// no toast is fired). The seed store (localStorage) is synchronous — its
+// no toast is fired). The seed store (localStorage) is synchronous; its
 // content is included in the baseline naturally.
 //
 // On auth transitions `Authn.svelte` resets `tradeHistoryStore` to `undefined`
 // and calls `clearFriendRelations()`, which reverts both signals to
 // "not loaded". That drives `sourcesHydrated` back to `false`, so the next
-// sign-in's cold-start data is baseline-only too — a different principal's
+// sign-in's cold-start data is baseline-only too: a different principal's
 // existing unreads never replay as arrival toasts.
 
 export interface InboxToast {
@@ -932,7 +932,7 @@ export const clearInboxToast = (): void => {
  * - `friendsRelationsLoadedStore` starts `false`, flips `true` once the
  *   first `refreshFriendRelations()` call completes.
  * - `receivedReactionsStore` starts `undefined`, becomes an array once the
- *   first received-reactions load completes (even if empty) — so a cold-start
+ *   first received-reactions load completes (even if empty), so a cold-start
  *   backlog of likes on the viewer's calls is absorbed into the baseline
  *   instead of replaying as arrival toasts.
  *
@@ -954,7 +954,7 @@ const sourcesHydrated: Readable<boolean> = derived(
  * into {@link inboxToastStore}. The "seen" baseline is kept LOCAL to this
  * subscription rather than at module scope, so the side-effect only runs while
  * `NotifToastHost` is mounted (it calls this once and tears it down on
- * destroy). Returns a teardown that stops the subscription — mirrors
+ * destroy). Returns a teardown that stops the subscription: mirrors
  * `initFlowPrewarm` in `flow.store.ts`.
  *
  * Baseline semantics are unchanged: until both async sources hydrate, every
@@ -990,7 +990,7 @@ export const initInboxToasts = (): (() => void) => {
 		})
 	).subscribe(({ items, hydrated, leaguesLoaded }) => {
 		if (!hydrated) {
-			// Sources still loading — accumulate ids as baseline without diffing.
+			// Sources still loading: accumulate ids as baseline without diffing.
 			seenInboxIds = new Set(items.map((item) => item.id));
 
 			return;
@@ -1005,7 +1005,7 @@ export const initInboxToasts = (): (() => void) => {
 			return;
 		}
 
-		// Leagues just finished their first load this tick — the incoming
+		// Leagues just finished their first load this tick; the incoming
 		// backlog appears all at once. Suppress the incoming diff for this one
 		// tick so the backlog is absorbed; non-incoming kinds still diff.
 		const leaguesJustLoaded = leaguesLoaded && !leaguesLoadedSeen;
@@ -1014,7 +1014,7 @@ export const initInboxToasts = (): (() => void) => {
 		const baseline = seenInboxIds;
 		// An incoming-challenge id can't be a genuine arrival until leagues have
 		// loaded (the source hasn't been fetched), and the first loaded tick is
-		// the cold-start backlog — treat incoming as already-seen in both cases.
+		// the cold-start backlog: treat incoming as already-seen in both cases.
 		const incomingSettled = leaguesLoaded && !leaguesJustLoaded;
 		const next = items.find(
 			(item) =>
@@ -1053,7 +1053,7 @@ const markAllSettledRead = (): void => {
 		return;
 	}
 
-	// `settled-<eventId>` — strip the prefix to recover the bigint id.
+	// `settled-<eventId>`: strip the prefix to recover the bigint id.
 	const SETTLED_PREFIX = 'settled-';
 	const idsToMark = visible.flatMap((item) => {
 		if (!item.id.startsWith(SETTLED_PREFIX)) {
@@ -1063,7 +1063,7 @@ const markAllSettledRead = (): void => {
 		try {
 			return [BigInt(item.id.slice(SETTLED_PREFIX.length))];
 		} catch {
-			// Defensive — non-numeric id shouldn't reach here.
+			// Defensive: non-numeric id shouldn't reach here.
 			return [];
 		}
 	});
@@ -1148,7 +1148,7 @@ export const markInboxRead = (id: string): void => {
  * Dismisses a single inbox card by its `id`, persisting the dismissal so the
  * card stays hidden across reloads. Filtered out of {@link combinedInboxStore}.
  * Streak / level cards instead advance their high-water marker (no separate
- * dismissed entry needed — the marker drops the card and a later, higher
+ * dismissed entry needed: the marker drops the card and a later, higher
  * milestone still surfaces under a fresh id).
  */
 export const dismissInboxNotification = (id: string): void => {
@@ -1182,7 +1182,7 @@ export const dismissInboxNotification = (id: string): void => {
  * and the streak / level high-water markers, and overlays a read marker on
  * every other currently-visible card (synthetic friend requests, battle
  * responses, likes) so the badge fully clears. Callers (NotificationsPage,
- * bell action) should use this — never the layer-specific helpers directly.
+ * bell action) should use this: never the layer-specific helpers directly.
  */
 export const markAllInboxRead = (): void => {
 	markAllSettledRead();

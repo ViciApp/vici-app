@@ -46,7 +46,7 @@ export interface PrepareFlowOpts {
 	 * Market id to surface as the first card, set when the viewer arrived from
 	 * a shared prediction link (see `consumePinnedFlowMarket`). Pinned ahead of
 	 * the ranked deck and exempt from the featured-event scope and the
-	 * seen-exclude set — a deliberately shared link wins over those soft
+	 * seen-exclude set: a deliberately shared link wins over those soft
 	 * filters. NOT exempt from the prior-call filter: a market the viewer
 	 * already called stays dropped (#595), so a shared link they've already
 	 * predicted on simply shows their normal deck.
@@ -76,7 +76,7 @@ export const prepareFlow = async ({
 	// scan (`listMarketTagsBySeries`). The shared promises are awaited in
 	// parallel inside each callee via `Promise.all`, so the dependent
 	// calls still overlap with the rest of their fetches (markets,
-	// profile, trade history, follows) — only the duplicate I/O is removed.
+	// profile, trade history, follows): only the duplicate I/O is removed.
 	const metadataPromise = listMarketMetadataBySeries().catch(() => ({}));
 	const tagsPromise = metadataPromise.then(deriveTagsBySeries);
 
@@ -89,7 +89,7 @@ export const prepareFlow = async ({
 	// Markets the viewer has already called drop out of the deck entirely:
 	// re-serving a card they've predicted on is the "Flow keeps showing the
 	// same cards" bug (#595). Derived from the *full* certified trade history
-	// (not the deck slice), so a call from any earlier day or session counts —
+	// (not the deck slice), so a call from any earlier day or session counts;
 	// the per-deck `exclude` set only spans the immediately-previous deck and
 	// resets on reload, which is why prior calls leaked back in. Shared with
 	// the signals fetch below so the history round-trip is issued once.
@@ -99,7 +99,7 @@ export const prepareFlow = async ({
 	const priorCallIdsPromise = tradeHistoryPromise.then(deriveCalledMarketIds);
 
 	// Compose the deck (featured scope → prior-call exclude → seen exclude →
-	// slice) up front so `deckIds` — which scopes the followed-lean fan-out —
+	// slice) up front so `deckIds`, which scopes the followed-lean fan-out,
 	// matches the markets actually rendered. Deriving the ids off the *full*
 	// queue would scope the lean to candidates the filters then drop, silently
 	// starving the promoted markets of their friends-lean row.
@@ -125,7 +125,7 @@ export const prepareFlow = async ({
 		// When a featured event is active, narrow to markets carrying
 		// the event's category tag so the swipe deck tracks the live
 		// tentpole. Fall back to the full queue when the filter would
-		// empty the deck — users always see *some* content.
+		// empty the deck: users always see *some* content.
 		const eventScoped = !isNullish(featuredEventTag)
 			? visibleQueue.filter((market) =>
 					(tagsByMarket[market.id] ?? []).some((tag) => tag === featuredEventTag)
@@ -144,7 +144,7 @@ export const prepareFlow = async ({
 			excludeSet.size > 0 ? afterPrior.filter((m) => !excludeSet.has(m.id)) : afterPrior;
 		// Recycle the prior-call-filtered queue (never the already-called
 		// markets) when the seen-set wipes it but unseen markets still exist.
-		// An empty deck must mean "nothing left to call" — never "you've
+		// An empty deck must mean "nothing left to call", never "you've
 		// already seen all of them". Without this, a small inventory (open
 		// series ≤ MAX_MARKETS) empties the follow-up deck the moment the prior
 		// deck is excluded, landing re-entry on the empty state. Mirrors the
@@ -172,7 +172,7 @@ export const prepareFlow = async ({
 		// fan-out is bounded by `MAX_MARKETS` instead of by the total
 		// number of open series. The ranker doesn't need book data
 		// (see `getFlowQueue`), so the lite list is sufficient to pick
-		// the top-N — we only pay the round-trips for what we display.
+		// the top-N: we only pay the round-trips for what we display.
 		return deck.slice(0, MAX_MARKETS);
 	})();
 	const deckIdsPromise = deckPromise.then((deck) => deck.map((m) => m.id));
