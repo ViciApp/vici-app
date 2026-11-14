@@ -287,7 +287,7 @@ export const getUserRankAndCount = defineQuery({
 	handler: ({ principalStr }) => getUserRankAndCountFn({ principal: principalStr })
 });
 
-// The caller's rival — the profile adjacent to them across the FULL
+// The caller's rival: the profile adjacent to them across the FULL
 // ranking, not the top-50 slice `listLeaderboard` returns. Lets the
 // dashboard "Your rival" insight resolve for every ranked user instead
 // of only those in the visible top N. Usually the competitor one rank
@@ -296,7 +296,7 @@ export const getUserRankAndCount = defineQuery({
 // caller is unranked or the lone ranked profile.
 //
 // `j.optional(<Record>)` returns camelCase, so the handler returns the
-// domain profile directly (no `toWireProfile`) — mirrors `getProfile`.
+// domain profile directly (no `toWireProfile`): mirrors `getProfile`.
 export const getMyRival = defineQuery({
 	result: j.strictObject({
 		rival: j.optional(UserProfileSchema),
@@ -336,7 +336,7 @@ export const searchProfiles = defineQuery({
 // before attempting `setDoc`. The same validator backs `assertValidNickname`
 // (write-time guard), so client and server agree on what "taken" means.
 //
-// `excludePrincipalStr` is the editing user's principal — passed so a user
+// `excludePrincipalStr` is the editing user's principal: passed so a user
 // editing their own profile is not told their own nickname is taken.
 // `principal` is reserved by the schema layer; we expose it as
 // `excludePrincipalStr` and treat the empty string as "no exclusion".
@@ -363,7 +363,7 @@ export const checkNicknameAvailability = defineQuery({
 
 // Server-authoritative Flow daily-cap increment. Called once per committed
 // Flow swipe. The client sends only its local-day key (`YYYY-MM-DD`, from
-// `todayKey`) as the rollover boundary — never a count: the server reads the
+// `todayKey`) as the rollover boundary, never a count: the server reads the
 // caller's profile, rolls over by `dayKey`, and writes the capped increment
 // itself. The returned `dailyGoalDone` / `capReached` are the source of truth
 // for the cross-session "come back tomorrow" takeover, so a cleared or
@@ -562,7 +562,7 @@ export const redeemReferralCode = defineUpdate({
 });
 
 /**
- * Settles — or retries — the VXP payout for a referral row, keyed by the referee principal. The
+ * Settles, or retries, the VXP payout for a referral row, keyed by the referee principal. The
  * bonus is normally driven by the referred user's first prediction (the `activities` hook); this
  * endpoint exists so a payout that failed (or whose triggering activity hook didn't complete) can
  * be driven to completion by the FE or an operator. Idempotent.
@@ -588,7 +588,7 @@ export const claimReferralFriendship = defineUpdate({
  * Batch event capture. The FE flushes behavioural events here; the server
  * stamps the timestamp + derives the pseudonymous principal, writes the
  * append-only `events` docs, and bumps the day's rollup inline. Anyone
- * (incl. anonymous, pre-auth) may call — events are validated against the
+ * (incl. anonymous, pre-auth) may call: events are validated against the
  * taxonomy and carry no PII.
  */
 export const trackEvents = defineUpdate({
@@ -610,7 +610,7 @@ export const getAnalyticsSummary = defineQuery({
 /**
  * Admin-gated raw-event export for the cockpit warehouse: the next page of
  * `events` after the given keyset cursor, flattened. Same admin gate as
- * `getAnalyticsSummary` — restricted to the cockpit's reader principal.
+ * `getAnalyticsSummary`: restricted to the cockpit's reader principal.
  */
 export const getAnalyticsEvents = defineQuery({
 	args: GetAnalyticsEventsArgsSchema,
@@ -620,7 +620,7 @@ export const getAnalyticsEvents = defineQuery({
 
 /**
  * Admin-gated all-time registered-account count for the cockpit's
- * "Registered" tile. Same admin gate as `getAnalyticsSummary` — restricted
+ * "Registered" tile. Same admin gate as `getAnalyticsSummary`: restricted
  * to the cockpit's reader principal. No args: the count is global.
  */
 export const getAnalyticsUserStats = defineQuery({
@@ -630,7 +630,7 @@ export const getAnalyticsUserStats = defineQuery({
 
 /**
  * Admin-gated profile-created export for the cockpit warehouse: doc keys +
- * envelope `created_at` (ns), keyset-paged by key. The TRUE sign-up series —
+ * envelope `created_at` (ns), keyset-paged by key. The TRUE sign-up series:
  * the event stream only starts at capture and `signed_up` was single-path
  * until #1112, so window cohorts need the profile envelope, not events. Same
  * admin gate as the other analytics exports; no profile body field leaves.
@@ -641,7 +641,7 @@ export const getAnalyticsProfileCreated = defineQuery({
 	handler: (args) => getAnalyticsProfileCreatedFn(args)
 });
 
-// The cockpit's DRAIN step — delete a page of events after the warehouse has
+// The cockpit's DRAIN step: delete a page of events after the warehouse has
 // durably ingested it, so the on-chain `events` collection stays a small buffer and
 // the export query never blows the instruction budget (IC0522). Admin-gated update.
 export const deleteAnalyticsEvents = defineUpdate({
@@ -678,7 +678,7 @@ export const listMyLeagues = defineQuery({
  * Retroactive self-heal for the "Founder +100 VXP" reward. The `leagues`
  * `onSetDoc` hook pays this on creation going forward; this endpoint
  * back-pays leagues founded before the hook shipped. Idempotent (shares
- * the hook's dedupe key) and safe to call on every Leagues-page mount —
+ * the hook's dedupe key) and safe to call on every Leagues-page mount:
  * returns how many rewards it newly settled this call.
  */
 export const settleFounderAwards = defineUpdate({
@@ -718,7 +718,7 @@ export const lookupLeagueByInvite = defineQuery({
 	}
 });
 
-// Opponent pool for the create-battle picker — public leagues plus the
+// Opponent pool for the create-battle picker: public leagues plus the
 // caller's own memberships, minus leagues the caller owns. Distinct from
 // the join-by-code resolver (`lookupLeagueByInvite`) and from any public
 // JOIN-by-directory (intentionally not built).
@@ -732,7 +732,7 @@ export const listChallengeableLeagues = defineQuery({
 });
 
 // Recommendation pool for the "Friends are in" row at the foot of the
-// Leagues list — Open and Invite-only leagues the caller's confirmed
+// Leagues list: Open and Invite-only leagues the caller's confirmed
 // friends are in but the caller is not, with the per-league friend
 // overlap for the avatar cluster + count. "Friend" = active bilateral
 // friendship (same definition as `listFriends`); Private leagues are
@@ -870,7 +870,7 @@ export const listAffiliationStats = defineQuery({
 });
 
 // Real member tally per affiliation of a kind. One scan over
-// `affiliations`, bucketed by affiliationIdentifier — feeds the "N
+// `affiliations`, bucketed by affiliationIdentifier: feeds the "N
 // members" line on the Worlds picker / detail surfaces without
 // paging the full roster per affiliation.
 export const listWorldsMemberCounts = defineQuery({
@@ -885,7 +885,7 @@ export const listWorldsMemberCounts = defineQuery({
 	})
 });
 
-// Champion history for one affiliation — the past months it finished
+// Champion history for one affiliation: the past months it finished
 // first in its kind's monthly ranking, derived from the frozen
 // `affiliation_stats` snapshots. Empty until a month has rolled over
 // with a ranked leader (there is no scheduled season-conclusion job).
@@ -926,7 +926,7 @@ export const submitSchool = defineUpdate({
 		submissionId: j.string()
 	}),
 	// MUST be `async`: `submitSchoolFn` is async, and the Sputnik runtime
-	// only awaits handlers declared `async` — a plain arrow returning the
+	// only awaits handlers declared `async`: a plain arrow returning the
 	// promise gets validated as the (un-resolved) Promise, which trips the
 	// result schema with `submissionId: undefined`.
 	handler: async (args) =>
@@ -953,7 +953,7 @@ export const verifySchoolCode = defineUpdate({
 	handler: (args) => verifySchoolCodeFn(args)
 });
 
-// Calibration reward — pays a fixed VXP bonus when a recovering user
+// Calibration reward: pays a fixed VXP bonus when a recovering user
 // (available balance below the recovery floor) correctly called a
 // finalised Vici binary market. The FE passes the market and the side
 // the user picked; the server re-derives the winning side from the
@@ -993,7 +993,7 @@ export const claimCalibrationReward = defineUpdate({
 	handler: claimCalibrationRewardFn
 });
 
-// Worlds podium monthly payout — user-claim variant. The caller
+// Worlds podium monthly payout: user-claim variant. The caller
 // passes `monthAnchor` (YYYY-MM) for a closed month; if their
 // current affiliation finished top-3 in that month's snapshot,
 // VXP_AWARDS docs are created (gold/silver/bronze) and a ledger
@@ -1011,7 +1011,7 @@ export const claimWorldsPodiumPrize = defineUpdate({
 	handler: claimWorldsPodiumPrizeFn
 });
 
-// Account deletion — Proposal 4. Pre-flight query that surfaces the
+// Account deletion: Proposal 4. Pre-flight query that surfaces the
 // "you still own this non-empty league" guard so the FE can show
 // the transfer-first prompt before the user even picks a reason.
 export const listMyBlockingLeagues = defineQuery({
@@ -1021,11 +1021,11 @@ export const listMyBlockingLeagues = defineQuery({
 	handler: listMyBlockingLeaguesFn
 });
 
-// Account deletion — the deletion itself (Delete account v2). First
+// Account deletion: the deletion itself (Delete account v2). First
 // applies any `leagueResolutions` the caller chose (transfer ownership
 // of, or disband, each owned league), then writes an anonymous
 // `EXIT_SIGNALS` doc and SOFT-deletes the caller's profile
-// (`deletedAtMs = now`). No identity-keyed data is removed — the account
+// (`deletedAtMs = now`). No identity-keyed data is removed: the account
 // can be recovered via `recoverMyAccount` within the recovery window;
 // past the window it's hard-deleted (on a late recovery attempt or by
 // the admin `sweepExpiredDeletions`). The handle stays reserved because
@@ -1034,14 +1034,14 @@ export const listMyBlockingLeagues = defineQuery({
 // `leagueResolutions` is an array of strict objects (cleaner in Candid
 // than a map). Each is `{ leagueId, action: 'transfer' | 'delete',
 // transferTo? }`; `transferTo` (the new-owner principal text) is
-// required when `action === 'transfer'`. Resolutions apply IMMEDIATELY
-// — a recovered account does NOT get relinquished leagues back.
+// required when `action === 'transfer'`. Resolutions apply IMMEDIATELY;
+// a recovered account does NOT get relinquished leagues back.
 //
 // Refusal reasons:
-//  - `owns_non_empty_league` — the caller still owns a league with
+//  - `owns_non_empty_league`: the caller still owns a league with
 //    other members after resolution; `blockingLeagueIds` lists them and
 //    the FE renders a transfer-first guard.
-//  - `league_resolution_failed` — a transfer / disband failed;
+//  - `league_resolution_failed`: a transfer / disband failed;
 //    `failedLeagueId` + `resolutionReason` carry the underlying cause.
 //    The whole delete aborts (resolutions that committed before the
 //    failure stand).
@@ -1085,15 +1085,15 @@ export const recoverMyAccount = defineUpdate({
 	handler: recoverMyAccountFn
 });
 
-// Account hibernation (Delete account v2 — the reversible retention
+// Account hibernation (Delete account v2: the reversible retention
 // off-ramp offered alongside delete). Sets `hibernatedAtMs = now` on the
 // caller's profile: stats freeze (the account is inactive) and the profile
 // hides from public reads, but NO data is removed and the owner can
-// `resumeMyAccount` at any time. Idempotent — keeps the earliest mark.
+// `resumeMyAccount` at any time. Idempotent: keeps the earliest mark.
 //
 // Refusal reasons:
-//  - `no_profile` — the caller never onboarded.
-//  - `deleted` — the account is already soft-deleted; the two states are
+//  - `no_profile`: the caller never onboarded.
+//  - `deleted`: the account is already soft-deleted; the two states are
 //    mutually exclusive.
 export const hibernateMyAccount = defineUpdate({
 	result: j.strictObject({
@@ -1134,7 +1134,7 @@ export const sweepExpiredDeletions = defineUpdate({
 // One-time streak-underpayment backfill (#957 remediation). Admin-gated,
 // dryRun-default, idempotent. Remove in a follow-up PR after the prod run.
 export const backfillStreakUnderpayments = defineUpdate({
-	// `dryRun` is optional and defaults to `true` in the handler — omitting it
+	// `dryRun` is optional and defaults to `true` in the handler: omitting it
 	// is the safe report-only path; pass `false` to mint.
 	args: j.strictObject({ dryRun: j.optional(j.boolean()) }),
 	result: j.strictObject({
@@ -1168,7 +1168,7 @@ export const rebuildMarketTagIndex = defineUpdate({
 
 /**
  * Admin-gated read of every `market_tag_index` bucket (`tag → seriesIds`) for
- * the cockpit — it classifies markets (sport vs non-sport) for the campaign
+ * the cockpit; it classifies markets (sport vs non-sport) for the campaign
  * hypothesis register. Same admin gate as the analytics exports. Seven keyed
  * reads, never a collection scan.
  */
@@ -1180,7 +1180,7 @@ export const getMarketTags = defineQuery({
 // Friend-scoped bulk read for the resolved-results digest (the consumer that
 // renders these rows ships separately). Returns the supplied friend set's
 // resolved-result rows over the active retention window in ONE bounded
-// owner-prefix scan — never one call per friend. Public read; the FE scopes the
+// owner-prefix scan, never one call per friend. Public read; the FE scopes the
 // `friends` set to the caller's confirmed friends.
 export const listFriendResolvedResults = defineQuery({
 	args: ListFriendResolvedResultsArgsSchema,
@@ -1192,7 +1192,7 @@ export const listFriendResolvedResults = defineQuery({
 	})
 });
 
-// Retention cleanup for `resolved_results` — prunes rows older than the
+// Retention cleanup for `resolved_results`: prunes rows older than the
 // configured horizon. Admin-gated; Juno has no scheduler so this is triggered
 // externally (admin/cron), mirroring `sweepExpiredDeletions`. `pruned` is the
 // number of rows removed.
@@ -1203,11 +1203,11 @@ export const pruneResolvedResults = defineUpdate({
 	handler: () => pruneResolvedResultsFn()
 });
 
-// Monthly tournament — Proposal 3. The draw is fire-and-forget on
+// Monthly tournament: Proposal 3. The draw is fire-and-forget on
 // every Tournament-page mount: idempotent via doc-key collision on
 // the month anchor (a second call returns `already_drawn` cleanly).
-// Round resolution + prize claim are documented Proposal 3 follow-ups
-// — they need a per-window accuracy aggregation pipeline that
+// Round resolution + prize claim are documented Proposal 3 follow-ups;
+// they need a per-window accuracy aggregation pipeline that
 // doesn't exist yet, so the bracket structure ships first.
 export const triggerTournamentDraw = defineUpdate({
 	args: j.strictObject({
@@ -1224,18 +1224,18 @@ export const triggerTournamentDraw = defineUpdate({
 	handler: triggerTournamentDrawFn
 });
 
-// League ownership transfer — used by the league-detail "transfer
+// League ownership transfer: used by the league-detail "transfer
 // ownership" CTA and surfaced from the account-delete owner guard
 // so the user can resolve the blocking guard in one click.
 //
 // Refusal reasons:
-//  - `not_owner` — caller isn't the current owner.
-//  - `league_not_found` — leagueId resolves to nothing.
-//  - `new_owner_not_member` — target principal isn't a member of
+//  - `not_owner`: caller isn't the current owner.
+//  - `league_not_found`: leagueId resolves to nothing.
+//  - `new_owner_not_member`: target principal isn't a member of
 //    the league.
-//  - `new_owner_is_caller` — no-op self-transfer rejected
+//  - `new_owner_is_caller`: no-op self-transfer rejected
 //    explicitly so the FE can render a clear error.
-//  - `invalid_input` — `newOwnerPrincipal` is not a valid principal
+//  - `invalid_input`: `newOwnerPrincipal` is not a valid principal
 //    text.
 export const transferLeagueOwnership = defineUpdate({
 	args: j.strictObject({
@@ -1272,19 +1272,19 @@ export const getCurrentTournament = defineQuery({
 	}
 });
 
-// Round resolution — user-claim; idempotent via the `winnerLeagueId`
+// Round resolution: user-claim; idempotent via the `winnerLeagueId`
 // write-once invariant on match docs. Anyone can call when a round
 // has closed; the FE fires this on every Tournament-page mount for
 // each round whose `endMs <= now` and which still has unresolved
 // matches.
 //
 // Refusal reasons:
-//  - `tournament_not_found` — tournamentId resolves to nothing.
-//  - `round_not_yet_closed` — the round's `endMs` is still in the future.
-//  - `previous_round_not_resolved` — an earlier round has unresolved
+//  - `tournament_not_found`: tournamentId resolves to nothing.
+//  - `round_not_yet_closed`: the round's `endMs` is still in the future.
+//  - `previous_round_not_resolved`: an earlier round has unresolved
 //    matches; the bracket has to advance in order.
-//  - `no_matches` — no match docs for the round (shouldn't happen).
-//  - `invalid_input` — `round` is not one of `r1|quarter|semifinal|final`.
+//  - `no_matches`: no match docs for the round (shouldn't happen).
+//  - `invalid_input`: `round` is not one of `r1|quarter|semifinal|final`.
 export const resolveTournamentRound = defineUpdate({
 	args: j.strictObject({
 		tournamentId: j.string(),
@@ -1307,15 +1307,15 @@ export const resolveTournamentRound = defineUpdate({
 	handler: resolveTournamentRoundFn
 });
 
-// Prize claim — user-claim; idempotent via the VXP_AWARDS doc key.
+// Prize claim: user-claim; idempotent via the VXP_AWARDS doc key.
 // Caller computes their highest-tier placement (1 / 2 / 3) by
 // checking membership in the bracket's winning leagues; the
 // satellite writes a VXP_AWARDS doc and returns the credited amount.
 //
 // Refusal reasons:
-//  - `tournament_not_found` — tournamentId resolves to nothing.
-//  - `tournament_not_concluded` — bracket is still in flight.
-//  - `not_member_of_top_league` — caller isn't a member of any
+//  - `tournament_not_found`: tournamentId resolves to nothing.
+//  - `tournament_not_concluded`: bracket is still in flight.
+//  - `not_member_of_top_league`: caller isn't a member of any
 //    top-3 league.
 export const claimTournamentPrize = defineUpdate({
 	args: j.strictObject({
@@ -1333,7 +1333,7 @@ export const claimTournamentPrize = defineUpdate({
 	handler: claimTournamentPrizeFn
 });
 
-// Monthly album awards — aggregates every `user_monthly_stats` doc for the
+// Monthly album awards: aggregates every `user_monthly_stats` doc for the
 // requested `monthAnchor` (YYYY-MM) and returns:
 //  - `sharpestEye`: top-3 by accuracy among users with ≥ MONTHLY_MIN_CALLS
 //    resolved calls, with gold/silver/bronze `placement`.

@@ -124,7 +124,7 @@ const manageOraclePrincipal = async ({
 	}
 
 	// The oracle may not have been registered yet (fresh install before `init:registry`
-	// ran). Log a warning and keep going — the engine role grant still succeeded, and the
+	// ran). Log a warning and keep going: the engine role grant still succeeded, and the
 	// admin can reconcile manually by bootstrapping the oracle + replaying the role change.
 	if ('OracleNotFound' in result.Err) {
 		logError({
@@ -315,7 +315,7 @@ const applyDiff = async ({
  * doc. Idempotent: if the engine already has/lacks the role, the corresponding call short-
  * circuits without error.
  *
- * The doc key must be a principal text — this is enforced by `assertSetRole` upstream.
+ * The doc key must be a principal text; this is enforced by `assertSetRole` upstream.
  */
 export const syncRoleToEngineOnSet = async (ctx: OnSetDocContext): Promise<void> => {
 	const {
@@ -378,7 +378,7 @@ export const syncRoleToEngineOnSet = async (ctx: OnSetDocContext): Promise<void>
  * principal from `VICI_ORACLE_V1.authorized_principals` if the prior role was a settler.
  *
  * If the deleted doc's `data` cannot be decoded (legacy or partial state), the hook logs
- * `engine_sync_decode_failed` and becomes a **no-op** — we intentionally do NOT blindly
+ * `engine_sync_decode_failed` and becomes a **no-op**: we intentionally do NOT blindly
  * revoke the union of all possible engine roles on a decode failure, because that would
  * let a single malformed/transient write silently strip privileges from a principal whose
  * role we just can't see right now. Operators can reconcile manually via

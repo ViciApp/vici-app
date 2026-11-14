@@ -35,30 +35,30 @@ import {
 } from '@junobuild/functions/sdk';
 
 /**
- * Monthly tournament — the full chain.
+ * Monthly tournament: the full chain.
  *
  *  - Asserts for both collections (key shape, write-once invariants
  *    on team / accuracy / winner / start-snapshot fields, forward-only
  *    state machine `in_flight → concluded`).
- *  - `triggerTournamentDrawFn` — anyone can call; idempotent via
+ *  - `triggerTournamentDrawFn`: anyone can call; idempotent via
  *    doc-key collision on the month anchor. Scans LEAGUE_MEMBERS,
  *    counts members per league, seeds the top-16 into Round 1, and
  *    snapshots each seeded league's `(totalCalls, wins)` for the
  *    per-window accuracy computation in resolution.
- *  - `getCurrentTournamentFn` — returns the latest tournament + its
+ *  - `getCurrentTournamentFn`: returns the latest tournament + its
  *    matches for the FE bracket.
- *  - `resolveTournamentRoundFn` — anyone can call once a round has
+ *  - `resolveTournamentRoundFn`: anyone can call once a round has
  *    closed; reads live LEAGUE_STATS, computes per-side window
  *    accuracy as `(currentStats - startSnapshot) / deltaCalls`,
  *    applies the 50-call forfeit rule, writes the winner + propagates
  *    them into the next round's slot. Idempotent via the match
  *    doc's `winnerLeagueId` write-once invariant.
- *  - `claimTournamentPrizeFn` — per-user claim once the tournament
+ *  - `claimTournamentPrizeFn`: per-user claim once the tournament
  *    concludes; credits a single VXP_AWARDS doc per the caller's
  *    highest-tier placement.
  *
  * Forfeit rule: a league with fewer than 50 calls in the window
- * forfeits. If both sides forfeit, the lower-leagueId advances —
+ * forfeits. If both sides forfeit, the lower-leagueId advances:
  * keeps the bracket deterministic without needing a coin-flip RNG.
  */
 
@@ -218,7 +218,7 @@ export const assertSetTournamentMatch = ({
 		throw new Error(`${ASSERT_PREFIX}_match: toLeagueId is immutable once set.`);
 	}
 
-	// Start-of-window stat snapshots — write-once from null. Set when
+	// Start-of-window stat snapshots: write-once from null. Set when
 	// a league is first assigned to a slot, frozen thereafter.
 	if (
 		nonNullish(currentDoc.fromStartCalls) &&
@@ -263,7 +263,7 @@ export const assertSetTournamentMatch = ({
  * a `[leagueId, memberCount]` array sorted by count desc; ties
  * broken by leagueId asc so the seeding is deterministic.
  *
- * Heavy scan, but the satellite has no compound index — and a
+ * Heavy scan, but the satellite has no compound index, and a
  * draw runs at most once per month, so the cost is acceptable.
  */
 const countMembersPerLeague = (callerBytes: Uint8Array): Array<[string, number]> => {
@@ -326,11 +326,11 @@ export interface TriggerTournamentDrawResult {
 
 /**
  * Run the monthly draw for `monthAnchor`. Anyone can call (the
- * doc-key collision makes the draw idempotent — a second call for
+ * doc-key collision makes the draw idempotent: a second call for
  * the same month returns `already_drawn` cleanly), so the FE can
  * fire-and-forget on every Tournament-page mount.
  *
- * Refuses if fewer than `TOURNAMENT_BRACKET_SIZE` leagues exist —
+ * Refuses if fewer than `TOURNAMENT_BRACKET_SIZE` leagues exist:
  * the data set is too small to seed a full bracket. The FE surfaces
  * this as a "waiting on more leagues" hint.
  */
@@ -346,7 +346,7 @@ export const triggerTournamentDrawFn = ({
 	const caller = msgCaller();
 	const callerBytes = caller.toUint8Array();
 
-	// Idempotency — collide on doc key for the same month.
+	// Idempotency: collide on doc key for the same month.
 	const existing = getDocStore({
 		collection: Collection.TOURNAMENTS,
 		key: monthAnchor,
@@ -519,7 +519,7 @@ export const triggerTournamentDrawFn = ({
 /**
  * Read a league's current `(totalCalls, wins)` for the start-of-
  * window snapshot. Returns zeroes when the league has no stats doc
- * yet — a brand-new league with no resolved trades, which means its
+ * yet: a brand-new league with no resolved trades, which means its
  * round window will simply have `delta = 0` calls and forfeit per
  * the 50-call minimum.
  */
@@ -541,7 +541,7 @@ const readLeagueStartSnapshot = ({
 /**
  * Read the most recent tournament (highest YYYY-MM key) and its
  * matches. Returns `null` for the tournament when none has been
- * drawn yet — the FE renders the "no tournament yet" / draw CTA.
+ * drawn yet: the FE renders the "no tournament yet" / draw CTA.
  */
 export const getCurrentTournamentFn = (): {
 	tournament: TournamentDoc | null;
@@ -639,8 +639,8 @@ export interface ResolveTournamentRoundResult {
  *
  * Returns:
  *  - `{ qualifies: false }` when fewer than
- *    `TOURNAMENT_MIN_CALLS_PER_MATCH` calls happened in the window
- *    — the league forfeits per decision 3.3.
+ *    `TOURNAMENT_MIN_CALLS_PER_MATCH` calls happened in the window;
+ *    the league forfeits per decision 3.3.
  *  - `{ qualifies: true, accuracy, deltaCalls }` otherwise. Accuracy
  *    is in [0,1].
  */
@@ -711,12 +711,12 @@ const pickMatchWinner = ({
 	}
 
 	if (!fromQualifies && !toQualifies) {
-		// Both forfeit — lower leagueId advances (matches the seeding
+		// Both forfeit: lower leagueId advances (matches the seeding
 		// tie-break in `countMembersPerLeague`).
 		return fromLeagueId < toLeagueId ? fromLeagueId : toLeagueId;
 	}
 
-	// Both qualify — higher accuracy wins. Tie-break: lower leagueId.
+	// Both qualify: higher accuracy wins. Tie-break: lower leagueId.
 	if (fromAccuracy === toAccuracy) {
 		return fromLeagueId < toLeagueId ? fromLeagueId : toLeagueId;
 	}
@@ -730,7 +730,7 @@ const pickMatchWinner = ({
  * `matchesResolved` counter in the caller.
  *
  * Split out of the resolution loop so the loop body has no `continue`
- * statements — every branch falls through cleanly.
+ * statements: every branch falls through cleanly.
  */
 const resolveMatchInPlace = ({
 	entry,
@@ -785,7 +785,7 @@ const resolveMatchInPlace = ({
 
 /**
  * Resolve every match in a closed round. Anyone can call; idempotent
- * via the `winnerLeagueId` write-once invariant — a second call for
+ * via the `winnerLeagueId` write-once invariant: a second call for
  * the same round either re-resolves any matches that haven't been
  * settled yet (no-op for already-settled ones) or returns the same
  * `matchesResolved` count.
@@ -859,7 +859,7 @@ export const resolveTournamentRoundFn = ({
 		}
 	}
 
-	// Sort each round by match index — populating next-round slots
+	// Sort each round by match index: populating next-round slots
 	// requires deterministic ordering.
 	for (const r of TOURNAMENT_ROUNDS) {
 		matchesByRound[r].sort((a, b) => a.doc.index - b.doc.index);
@@ -963,7 +963,7 @@ export const resolveTournamentRoundFn = ({
  * match doc with the winner + their current `(totalCalls, wins)`
  * snapshot. The next match doc's `fromLeagueId` / `toLeagueId` slots
  * are write-once-from-null, so a second resolution call (idempotent)
- * is a no-op — the assert rejects the overwrite cleanly.
+ * is a no-op: the assert rejects the overwrite cleanly.
  *
  * Slot mapping for 16-team single-elim:
  *  - r1 match (2k)   → quarter match (k), from-slot
@@ -992,7 +992,7 @@ const propagateWinnerToNextRound = ({
 	const nextRoundIndex = TOURNAMENT_ROUNDS.indexOf(round) + 1;
 
 	if (nextRoundIndex >= TOURNAMENT_ROUNDS.length) {
-		// Final round — no propagation.
+		// Final round: no propagation.
 		return;
 	}
 
@@ -1076,12 +1076,12 @@ export interface ClaimTournamentPrizeResult {
  *          bronze placement).
  *
  * A user who's a member of multiple eligible leagues only gets the
- * highest-tier award (place 1 trumps place 3, etc.) — the doc-key
+ * highest-tier award (place 1 trumps place 3, etc.): the doc-key
  * collision invariant naturally enforces this since the award is
  * keyed `${caller}/tournament_prize/${tournamentId}_${place}` and
  * higher tiers write first.
  *
- * Idempotent via the doc key — a second claim returns
+ * Idempotent via the doc key: a second claim returns
  * `awardsAlreadyClaimed > 0`.
  */
 export const claimTournamentPrizeFn = async ({
@@ -1109,7 +1109,7 @@ export const claimTournamentPrizeFn = async ({
 		return { ok: false, reason: 'tournament_not_concluded' };
 	}
 
-	// Read the bracket — find the final match + the semifinal losers.
+	// Read the bracket: find the final match + the semifinal losers.
 	const { items } = listDocsStore({
 		collection: Collection.TOURNAMENT_MATCHES,
 		caller: callerBytes,
@@ -1169,7 +1169,7 @@ export const claimTournamentPrizeFn = async ({
 	const tier = TOURNAMENT_PRIZE_TIERS.find((t) => t.place === myPlace);
 
 	if (isNullish(tier)) {
-		// Defensive — should never happen since `myPlace` was just
+		// Defensive: should never happen since `myPlace` was just
 		// derived from the same enum, but guard anyway.
 		return { ok: false, reason: 'not_member_of_top_league' };
 	}
@@ -1200,7 +1200,7 @@ export const claimTournamentPrizeFn = async ({
 	// `tier.vxp` is the human-readable whole-VXP prize (5000 / 2500 / 1000),
 	// the same value the FE renders. The award doc / ledger work in base
 	// units (VXP has 4 decimals), so size it via `vxpBaseUnits` like every
-	// other award constant — writing the raw whole number here would
+	// other award constant: writing the raw whole number here would
 	// under-pay by 10⁴ (5000 base units = 0.5 VXP).
 	const amountBaseUnits = vxpBaseUnits(tier.vxp);
 	const pendingDoc: VxpAwardDoc = {
@@ -1221,8 +1221,8 @@ export const claimTournamentPrizeFn = async ({
 		}
 	});
 
-	// Pay the prize inline — same pending → paid/failed ledger pattern as
-	// claimWorldsPodiumPrize — so the award reflects a real transfer rather
+	// Pay the prize inline: same pending → paid/failed ledger pattern as
+	// claimWorldsPodiumPrize, so the award reflects a real transfer rather
 	// than sitting `pending` forever (nothing sweeps `tournament_prize`).
 	const ledger = new IcrcLedgerCanister({
 		canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)

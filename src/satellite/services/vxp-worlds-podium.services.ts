@@ -27,7 +27,7 @@ import {
 } from '@junobuild/functions/sdk';
 
 /**
- * Worlds podium monthly payout — user-claim variant
+ * Worlds podium monthly payout: user-claim variant
  * (Proposal 2 in `docs/backend-proposals/README.md`).
  *
  * The economy fires monthly podium awards (400/200/100
@@ -36,11 +36,11 @@ import {
  * payout as a **user-claim** rather than an admin fan-out:
  *
  *  1. The user calls `claimWorldsPodiumPrize({ monthAnchor })`
- *     from the FE — typically on the first visit of a new month.
+ *     from the FE: typically on the first visit of a new month.
  *  2. The endpoint reads the closed month's snapshot from
  *     `AFFILIATION_STATS`, finds the top-3 ranking per kind, and
  *     checks if the caller's current affiliations match.
- *  3. For each match (up to two — one university, one country),
+ *  3. For each match (up to two: one university, one country),
  *     the endpoint creates a `VXP_AWARDS` doc keyed
  *     `${caller}/worlds_podium/${YYYY-MM}_${place}` and credits
  *     the ledger transfer (same pattern as the streak hook).
@@ -50,21 +50,21 @@ import {
  * recipient-binds-caller invariant is preserved because the user
  * is writing their own award.
  *
- * Eligibility per backend-proposals/README.md §2.3 — member at
+ * Eligibility per backend-proposals/README.md §2.3: member at
  * month-end qualifies regardless of join date. The 90-day affiliation
  * lock means a user who joined late in the month is still locked
  * in for the next quarter, which is the engagement-incentive
  * trade-off the user signed up for.
  *
- * Tie-break per §2.2 — accuracy → totalCalls → affiliationIdentifier asc.
+ * Tie-break per §2.2: accuracy → totalCalls → affiliationIdentifier asc.
  * `listAffiliationStatsForMonthFn` already sorts this way, so the
  * leaderboard and the claim agree on who's gold/silver/bronze.
  */
 
 // `VXP_WORLDS_PODIUM` holds the human-readable whole-VXP prizes
-// (400 / 200 / 100 — the same values the FE renders). VXP has 4 decimals
+// (400 / 200 / 100: the same values the FE renders). VXP has 4 decimals
 // and this award pays the ledger inline (see `processAward`), so the
-// amounts must be base units sized via `vxpBaseUnits` — `BigInt(400)` would
+// amounts must be base units sized via `vxpBaseUnits`: `BigInt(400)` would
 // transfer 400 base units = 0.04 VXP, a 10⁴x under-pay.
 const PODIUM_PLACES: ReadonlyArray<{
 	place: 'gold' | 'silver' | 'bronze';
@@ -87,7 +87,7 @@ export interface ClaimWorldsPodiumPrizeResult {
 /**
  * Freeze a closed month's affiliation ranking the first time its podium is
  * claimed (frozen-at-close). The live windows recompute over the current
- * roster on every read; a *closed* month is instead captured once here — the
+ * roster on every read; a *closed* month is instead captured once here: the
  * ranking over the then-current opted-in roster ({@link liveMonthlyRows}) is
  * written as immutable snapshot docs, so the podium payout and the champion
  * cup stay stable and can't drift as members later churn.
@@ -102,7 +102,7 @@ export interface ClaimWorldsPodiumPrizeResult {
  * Fails **closed**: if no controller key is available the freeze cannot run,
  * so it throws rather than letting the claim fall back to an unfrozen (live,
  * drift-prone) ranking and pay VXP against it. The whole claim aborts and the
- * caller can retry once a controller is configured — no payout on an
+ * caller can retry once a controller is configured; no payout on an
  * unfrozen month.
  */
 const freezeMonthlySnapshotsIfNeeded = ({
@@ -194,7 +194,7 @@ export const claimWorldsPodiumPrizeFn = async ({
 		const myAffiliation = readMyAffiliation({ callerText, callerBytes, kind });
 
 		if (isNullish(myAffiliation)) {
-			// No affiliation for this kind — caller is not eligible.
+			// No affiliation for this kind: caller is not eligible.
 		} else {
 			// Top-3 for the requested (now frozen) month.
 			const top3 = listAffiliationStatsForMonthFn({ kind, monthAnchor }).slice(0, 3);
@@ -381,8 +381,8 @@ const readMyAffiliation = ({
 	callerBytes: Uint8Array;
 	kind: AffiliationKind;
 }): AffiliationDoc | undefined => {
-	// The affiliation doc key is `${memberPrincipal}/${kind}/${affiliationIdentifier}`
-	// — we don't know `affiliationIdentifier` yet, so we scan and filter. Two
+	// The affiliation doc key is `${memberPrincipal}/${kind}/${affiliationIdentifier}`:
+	// we don't know `affiliationIdentifier` yet, so we scan and filter. Two
 	// max possibilities per user (one per kind), so the bound is tight.
 	// Skipping the scan entirely is hard without a reverse-index doc.
 	const prefix = `${callerText}/${kind}/`;

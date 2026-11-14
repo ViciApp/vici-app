@@ -1,4 +1,4 @@
-// ONE-TIME remediation endpoint — run once on prod, then REMOVE in a
+// ONE-TIME remediation endpoint: run once on prod, then REMOVE in a
 // follow-up PR. Not a permanent surface.
 //
 // Backfills the streak-award underpayment fixed in #957. Before the fix,
@@ -6,11 +6,11 @@
 // VXP read as base units) instead of `parseToken(...)`, so every streak
 // award paid ~10^VXP_TOKEN.decimals too little. This walks the paid
 // `vxp_awards` streak docs, computes each shortfall, and (when not a dry
-// run) mints the difference to the recipient. No amounts change — it pays
+// run) mints the difference to the recipient. No amounts change; it pays
 // the difference up to the already-intended bonus (50 / 150 / 400 / 1000).
 //
 // Safety: admin-gated; `dryRun: true` is the default (reports only, mints
-// nothing). Idempotent — it writes a marker award doc keyed
+// nothing). Idempotent; it writes a marker award doc keyed
 // `streak_<m>_backfill` per remediated award, so a re-run skips anything
 // already topped up, and it only touches docs whose recorded
 // `amountBaseUnits` is BELOW the correct base-unit amount (correctly-paid
@@ -190,7 +190,7 @@ const remediateAward = async ({
  * Admin-gated. `dryRun` defaults to `true` (reports only, mints nothing);
  * pass `false` to mint. Each `setDocStore` is signed with the recipient's
  * own principal as `caller` so the `vxp_awards` assert (recipient binds
- * caller) accepts it — exactly how the streak hook writes its docs.
+ * caller) accepts it: exactly how the streak hook writes its docs.
  */
 export const backfillStreakUnderpaymentsFn = async ({
 	dryRun = true

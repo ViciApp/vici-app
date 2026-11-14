@@ -17,7 +17,7 @@
  *
  * Both `events` and `event_rollups` are controllers-scoped collections, so
  * the privileged `*DocStore` APIs run as an admin (the invoking user is not
- * a controller). Bodies are behavioural only — never PII; the only identity
+ * a controller). Bodies are behavioural only, never PII; the only identity
  * stored is the principal, which is pseudonymous and never leaves the
  * satellite.
  */
@@ -83,14 +83,14 @@ const propsFromInput = (event: TrackEventInput): AnalyticsEventProps | undefined
  * A satellite controller principal, used as the `caller` for the
  * server-owned, controllers-scoped analytics collections. The `*DocStore`
  * APIs enforce the collection rule against the `caller` they're given, and
- * the end user is not a controller — so we read/write as an admin.
+ * the end user is not a controller, so we read/write as an admin.
  */
 const adminCaller = (): Uint8Array => controllerCaller('analytics capture');
 
 /**
  * Best-effort inline rollup. Bumps the day's per-event-name counts so the
  * cockpit reads cheap aggregates. Wrapped so any failure (e.g. a rare
- * version race under concurrent writes) is logged and swallowed — the raw
+ * version race under concurrent writes) is logged and swallowed: the raw
  * `events` log is the source of truth and must never be blocked by this.
  */
 const bumpRollup = ({
@@ -242,7 +242,7 @@ export const getAnalyticsSummaryFn = ({ days }: { days: number }): { rows: Summa
 
 /**
  * Admin-gated all-time registered-account count for the cockpit's
- * "Registered" tile. Counts every doc in `PROFILES` — i.e. all accounts
+ * "Registered" tile. Counts every doc in `PROFILES`; i.e. all accounts
  * ever created, INCLUDING soft-deleted ones: Delete account v2 only sets
  * `deletedAtMs` and retains the doc (recoverable within the window), so a
  * soft-deleted profile is still a registered account. This matches the
@@ -253,7 +253,7 @@ export const getAnalyticsSummaryFn = ({ days }: { days: number }): { rows: Summa
  * Uses `countDocsStore` rather than `listDocsStore(...).items.length`: the
  * latter materialises the whole collection (keys + docs) into the query
  * just to size it, which grows unbounded with the user base and would blow
- * the 5B-instruction query budget (IC0522) — the same trap that broke the
+ * the 5B-instruction query budget (IC0522): the same trap that broke the
  * events export. `countDocsStore` returns the count without loading a
  * single doc.
  */
@@ -283,7 +283,7 @@ export const getAnalyticsUserStatsFn = (): { registered: number } => {
  * (a QUERY) reads at most this many docs per call, and `deleteAnalyticsEventsFn` (the
  * drain) deletes at most this many keys per call. The query is the binding
  * constraint: it's bounded by the ~5B-instruction message budget, and reading/decoding
- * a page of behavioural docs costs instructions — measured against the live satellite,
+ * a page of behavioural docs costs instructions: measured against the live satellite,
  * a 500-doc page already rejects with IC0522 and ~100 was the safe edge. So the cockpit
  * reader drives a smaller page (SYNC_PAGE_SIZE) and this ceiling is the last line of
  * defence against a client over-asking. 100 sits conservatively below the measured
@@ -291,7 +291,7 @@ export const getAnalyticsUserStatsFn = (): { registered: number } => {
  * page is never larger than what was just ingested, so the two stay in lockstep. */
 const MAX_EXPORT_LIMIT = 100;
 
-/** One flat export row — mirrors AnalyticsEventExportRowSchema. */
+/** One flat export row: mirrors AnalyticsEventExportRowSchema. */
 interface AnalyticsEventExportRow {
 	key: string;
 	createdAtNs: string;
@@ -331,7 +331,7 @@ const parseCursorNs = (raw?: string): bigint => {
  * Admin-gated raw-event export for the cockpit warehouse. Returns the next page
  * of `events` ordered by `(updated_at, key)`, flattened, strictly after the
  * `(afterUpdatedAtNs, afterKey)` keyset cursor. The `key` tie-breaker is what
- * makes a page boundary that splits a group of same-`updated_at` docs safe — the
+ * makes a page boundary that splits a group of same-`updated_at` docs safe: the
  * next call resumes mid-group instead of skipping the rest. The cockpit advances
  * the cursor from the last returned row's `(updatedAtNs, key)`. "List then
  * process in code" mirrors `getAnalyticsSummaryFn`.
@@ -356,8 +356,8 @@ export const getAnalyticsEventsFn = ({
 	const afterNs = parseCursorNs(afterUpdatedAtNs);
 	const afterKeyText = afterKey?.trim() ?? '';
 
-	// The cursor is now the KEY (see the paging note below). A timestamp-only cursor
-	// — `after_updated_at_ns` set but `after_key` blank — can't position the
+	// The cursor is now the KEY (see the paging note below). A timestamp-only cursor,
+	// `after_updated_at_ns` set but `after_key` blank, can't position the
 	// key-ordered walk: it would list from the start and then the `afterNs` filter
 	// below would drop every row, returning an empty page and stalling pagination.
 	// Reject it loudly rather than silently stalling. (A blank/blank cursor is the
@@ -369,13 +369,13 @@ export const getAnalyticsEventsFn = ({
 	const safeLimit = Number.isFinite(limit) ? Math.floor(limit) : MAX_EXPORT_LIMIT;
 	const cap = Math.min(Math.max(1, safeLimit), MAX_EXPORT_LIMIT);
 
-	// Page by KEY only — the datastore's native (indexed) order. Event keys are
+	// Page by KEY only: the datastore's native (indexed) order. Event keys are
 	// `${ns}-${sessionId}-${index}` (ns from `time()` at write) and the collection is
 	// append-only, so key order IS chronological order; no `order`/`matcher` on
 	// `updated_at` is needed. Those non-key params were the bug: the datastore has no
 	// secondary index on `updated_at`, so ordering/matching on it forced Juno to load
 	// and sort the ENTIRE `events` collection on every call, blowing the 5B-instruction
-	// query budget once the collection grew (IC0522 — even at limit=1). `start_after`
+	// query budget once the collection grew (IC0522, even at limit=1). `start_after`
 	// on the unique key is a complete keyset cursor, and `paginate.limit` bounds the
 	// walk to a single page, so the scan + response stay O(page), not O(collection).
 	const { items } = listDocsStore({
@@ -440,14 +440,14 @@ export const getAnalyticsEventsFn = ({
 	});
 
 	// A full datastore page means there may be more. `start_after` already excluded
-	// the cursor's own key, so the fetched count is the unseen-row count — compare it
+	// the cursor's own key, so the fetched count is the unseen-row count: compare it
 	// to `cap` directly (the keyset filter above is a no-op safety net unless the
 	// cursor doc was deleted mid-pagination).
 	return { rows, hasMore: items.length >= cap };
 };
 
 /** One profile-created export row: the doc key (principal text) and the doc
- * envelope's created_at in nanoseconds. Deliberately minimal — the cockpit only
+ * envelope's created_at in nanoseconds. Deliberately minimal: the cockpit only
  * needs WHEN each account was created to compute window cohorts; no profile
  * body field (nickname, pnl, …) ever leaves the satellite. */
 interface ProfileCreatedExportRow {
@@ -458,17 +458,17 @@ interface ProfileCreatedExportRow {
 /**
  * Admin-gated profile-created export for the cockpit warehouse: the next page of
  * `profiles` doc keys + envelope `created_at`, keyset-paged by KEY (the
- * datastore's native indexed order — same O(page) discipline as
+ * datastore's native indexed order: same O(page) discipline as
  * `getAnalyticsEventsFn`; ordering/matching on `updated_at` would materialise the
  * whole collection and blow the query budget). Key order is NOT chronological
- * (keys are principals) — the cockpit walks ALL pages and orders by
+ * (keys are principals): the cockpit walks ALL pages and orders by
  * `createdAtNs` on its side. Unlike the events export this is NOT a drain:
  * profiles stay; the cockpit re-walks to resync.
  *
  * Why it exists: the raw event stream only starts at capture (2026-06-06) and
  * `signed_up` was emitted on a single path until #1112, so events cannot
  * reconstruct the true sign-up series. The profile envelope's `created_at` can.
- * Soft-deleted profiles (deletedAtMs set) are included — an account created in a
+ * Soft-deleted profiles (deletedAtMs set) are included: an account created in a
  * window was created in that window; hard-deleted docs are necessarily absent.
  */
 export const getAnalyticsProfileCreatedFn = ({
@@ -517,10 +517,10 @@ export const getAnalyticsProfileCreatedFn = ({
  * to delete them from the on-chain `events` collection, keeping that collection a
  * small BUFFER rather than an ever-growing log. This is what makes the export
  * sustainable: `listDocsStore` materializes the whole collection per call, so a
- * large `events` collection blows the 5B-instruction query budget (IC0522) — draining
+ * large `events` collection blows the 5B-instruction query budget (IC0522): draining
  * after ingest keeps every read cheap. Each delete is an O(log n) keyed op; `keys`
  * is capped at `MAX_EXPORT_LIMIT` so one call stays well under budget. Missing keys
- * (already drained / never existed) are skipped, so the call is idempotent — safe to
+ * (already drained / never existed) are skipped, so the call is idempotent: safe to
  * retry a page whose Postgres write succeeded but whose delete didn't.
  */
 export const deleteAnalyticsEventsFn = ({ keys }: { keys: string[] }): { deleted: number } => {
@@ -537,7 +537,7 @@ export const deleteAnalyticsEventsFn = ({ keys }: { keys: string[] }): { deleted
 	for (const key of keys.slice(0, MAX_EXPORT_LIMIT)) {
 		const existing = getDocStore({ collection: Collection.EVENTS, key, caller: admin });
 
-		// Skip missing keys (already drained / never existed) — keeps the call
+		// Skip missing keys (already drained / never existed): keeps the call
 		// idempotent so a page whose Postgres write landed but whose delete didn't can
 		// be retried safely.
 		if (nonNullish(existing)) {
@@ -577,7 +577,7 @@ export interface ServerEventInput {
 let serverCaptureSeq = 0;
 
 /**
- * Write server-originated events into the `events` collection — the capture
+ * Write server-originated events into the `events` collection: the capture
  * path for behaviour that never touches a browser (VXP payouts, settlements).
  * Mirrors `trackEventsFn`'s doc write (admin caller, `${ns}-…-${index}` key
  * scheme, rollup bump) but takes the principal from the SERVER's own record
@@ -618,7 +618,7 @@ export const captureServerEvents = ({ events }: { events: ServerEventInput[] }):
 
 /**
  * `vxp_awards` post-write analytics: emit `vxp_awarded` (value = whole-VXP
- * amount, label = award type) exactly once per award — on the `pending → paid`
+ * amount, label = award type) exactly once per award: on the `pending → paid`
  * transition, when the ledger transfer actually completed. Streak awards also
  * emit `streak_milestone` (`step` = the crossed day count from the award key,
  * e.g. `streak_7` → 7). Best-effort: analytics must never break a payout.
@@ -639,7 +639,7 @@ export const onVxpAwardSetForAnalytics = (ctx: OnSetDocContext): void => {
 		const award = decodeDocData<VxpAwardDoc>(after.data);
 		const prior = nonNullish(before) ? decodeDocData<VxpAwardDoc>(before.data) : undefined;
 
-		// Only the transition INTO `paid` mints — a pending write, a failed write,
+		// Only the transition INTO `paid` mints: a pending write, a failed write,
 		// or a re-set of an already-paid doc must not double-count.
 		if (award.status !== 'paid' || prior?.status === 'paid') {
 			return;

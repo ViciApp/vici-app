@@ -16,15 +16,15 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
  * Achievement-unlock hook. Runs after every `profiles` write; when an id appears in
  * `unlockedAchievements` for the first time, it mints the achievement's catalog XP value as real,
  * spendable VXP to the user's ledger account and records the payout in `vxp_awards`. The cosmetic
- * `points` accumulation (leaderboard XP) is maintained elsewhere and is untouched here — this adds
+ * `points` accumulation (leaderboard XP) is maintained elsewhere and is untouched here; this adds
  * the real-VXP grant on top.
  *
  * Idempotency is structural, mirroring the streak hook: the award doc key is
- * `${recipient}/achievement/${achievementId}` — a second firing for the same id collides with the
+ * `${recipient}/achievement/${achievementId}`: a second firing for the same id collides with the
  * first and the assert blocks the duplicate. Combined with the append-only `unlockedAchievements`
  * array, each achievement pays at most once per account.
  *
- * Only the delta (newly added ids on this write) is paid — achievements already unlocked before
+ * Only the delta (newly added ids on this write) is paid: achievements already unlocked before
  * this write are never retroactively minted.
  */
 
@@ -35,13 +35,13 @@ const ACHIEVEMENT_XP: Readonly<Record<string, number>> = Object.freeze(
 	Object.fromEntries(ACHIEVEMENTS.map(({ id, xp }) => [id, xp]))
 );
 
-/** Subset of the profile shape this hook reads — the full `UserProfile` isn't needed. */
+/** Subset of the profile shape this hook reads: the full `UserProfile` isn't needed. */
 interface UnlockedAchievementsSlice {
 	unlockedAchievements?: string[];
 }
 
 /**
- * Ids newly present in `next` versus `prev` — the achievements unlocked on this write. Empty in the
+ * Ids newly present in `next` versus `prev`: the achievements unlocked on this write. Empty in the
  * common case (most profile writes don't unlock anything).
  */
 const newlyUnlocked = ({ prev, next }: { prev: string[]; next: string[] }): string[] => {
@@ -67,7 +67,7 @@ const payAchievement = async ({
 }): Promise<void> => {
 	const xp = ACHIEVEMENT_XP[achievementId];
 
-	// Unknown id (not in the catalog) or a non-positive reward — nothing to mint.
+	// Unknown id (not in the catalog) or a non-positive reward; nothing to mint.
 	if (isNullish(xp) || xp <= 0) {
 		return;
 	}
@@ -76,7 +76,7 @@ const payAchievement = async ({
 	const awardKey = achievementId;
 	const earnedAtMs = Date.now();
 
-	// Idempotency: if the award doc already exists, skip — the assert rejects duplicate creations
+	// Idempotency: if the award doc already exists, skip: the assert rejects duplicate creations
 	// anyway, but checking up front avoids the wasted ledger call.
 	const existingKey = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey });
 	const existing = getDocStore({
@@ -103,7 +103,7 @@ const payAchievement = async ({
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 
-		// Most likely a concurrent hook firing already wrote the pending doc. Surface and stop — the
+		// Most likely a concurrent hook firing already wrote the pending doc. Surface and stop: the
 		// other firing will (or has already) issued the transfer.
 		logInfo({
 			message: 'achievement_award_pending_blocked',
@@ -169,7 +169,7 @@ const payAchievement = async ({
 };
 
 /**
- * Profile post-write hook — composes alongside the other `profiles` hooks in `satellite/index.ts`.
+ * Profile post-write hook: composes alongside the other `profiles` hooks in `satellite/index.ts`.
  * Mints real VXP for every achievement unlocked on this write.
  */
 export const onProfileSetForAchievementAward = async (ctx: OnSetDocContext): Promise<void> => {

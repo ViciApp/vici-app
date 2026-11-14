@@ -9,18 +9,18 @@ import { decodeDocData } from '@junobuild/functions/sdk';
 const ACTIVITY_TYPES: readonly string[] = Object.values(ActivityType);
 
 /**
- * Write-time guard for the `activity_reactions` collection — one doc per `(activity, liker)`. The
+ * Write-time guard for the `activity_reactions` collection: one doc per `(activity, liker)`. The
  * collection is public-write (each user persists their own like), and a like can be read back by
  * anyone (counts + the like-received inbox card), so without a guard a client could `set_doc` a
  * reaction attributed to **another** principal (feed spoofing) or under a malformed key. This assert
  * binds every reaction to its writer, mirroring {@link assertSetActivity}:
  *
- *  - `data.liker` MUST equal the caller — no liking as someone else.
+ *  - `data.liker` MUST equal the caller; no liking as someone else.
  *  - the doc key must be `${actor}#${timestamp}#${type}#${liker}`: the liked activity's own doc key
  *    (the shape `logActivity` writes, so the embedded segments stay trustworthy) plus the caller.
  *  - `data.activityKey` MUST equal the key's embedded `${actor}#${timestamp}#${type}` prefix.
  *  - `data.timestamp` must be a safe integer; the denormalized `activityTitle` is a bounded string
- *    and `marketId`, when present, a string — so a liker can't bloat the doc the inbox card reads.
+ *    and `marketId`, when present, a string, so a liker can't bloat the doc the inbox card reads.
  *
  * Deletes (unlike) are owner-scoped by Juno on this public collection, so a liker can only remove
  * their own reaction; no delete assert is needed.
@@ -71,7 +71,7 @@ export const assertSetActivityReaction = ({
 		throw new Error('Activity reaction actor segment must be a valid principal.');
 	}
 
-	// Must be the canonical `${timestamp}` `logActivity` writes — a safe integer whose string form
+	// Must be the canonical `${timestamp}` `logActivity` writes: a safe integer whose string form
 	// round-trips (rejects leading zeros / oversized values), mirroring `assertSetActivity`.
 	const timestampValue = Number(timestampSegment);
 

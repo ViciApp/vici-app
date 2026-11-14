@@ -6,12 +6,12 @@ import { decodeDocData } from '@junobuild/functions/sdk';
 
 /**
  * Pre-write guard for `user_stats`. The collection caches the
- * caller's Dash aggregates — per-category accuracy + recent
+ * caller's Dash aggregates: per-category accuracy + recent
  * settlements. Writes are scoped to one's own row.
  *
  *  1. **Collection scope.** No-op for any other collection.
  *  2. **Key shape.** Doc key must equal the embedded `owner`
- *     principal — a single canonical row per user.
+ *     principal: a single canonical row per user.
  *  3. **Owner binds caller.** Only the user themselves can write
  *     their dashboard cache (mirrors the affiliation-stats and
  *     league-stats invariants).

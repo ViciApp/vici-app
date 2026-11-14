@@ -291,7 +291,7 @@ export const acceptFriendRequest = ({ relationId }: { relationId: string }): voi
  * {@link RelationState.PENDING} **and** its on-chain `version` matches the
  * one we just read. If the recipient accepted/rejected in the meantime,
  * the doc's `version` was bumped, `deleteDocStore` traps with a
- * version-mismatch error, and the cancel is rejected — exactly the
+ * version-mismatch error, and the cancel is rejected: exactly the
  * "nanosecond" race the caller asked us to guard against. We also
  * deliberately do **not** "transition to a CANCELLED state" because that
  * would be a second write that itself races with the recipient's accept;

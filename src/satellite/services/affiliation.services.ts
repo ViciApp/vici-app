@@ -29,7 +29,7 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  *  3. **Kind validation.** Must be 'university' or 'country'.
  *  4. **Server-computed lock.** `lockedUntilMs` must equal
  *     `joinedAtMs + AFFILIATION_LOCK_MS`. The user can't extend or
- *     shorten the window — the server arithmetic is the source of
+ *     shorten the window: the server arithmetic is the source of
  *     truth.
  *  5. **joinedAtMs sanity.** Must be within ±10 minutes of the
  *     satellite's clock to defend against pre-/post-dated writes
@@ -95,7 +95,7 @@ export const assertSetAffiliation = ({
 		);
 	}
 
-	// 5. joinedAtMs sanity — within ±10 minutes of the satellite clock.
+	// 5. joinedAtMs sanity: within ±10 minutes of the satellite clock.
 	// `time()` returns nanoseconds; convert to ms.
 	const nowMs = Number(time() / 1_000_000n);
 	const driftMs = Math.abs(nowMs - proposedDoc.joinedAtMs);
@@ -105,7 +105,7 @@ export const assertSetAffiliation = ({
 		throw new Error('affiliations joinedAtMs must be within ±10 minutes of the satellite clock.');
 	}
 
-	// Creation path — done.
+	// Creation path: done.
 	if (isNullish(current)) {
 		return;
 	}
@@ -131,8 +131,8 @@ export const assertSetAffiliation = ({
  * leave path:
  *
  *  1. **Caller binds member.** Only the affiliation's owner can
- *     remove their row — admins / staff don't get a kick path on
- *     Worlds slots — the user owns their identity.
+ *     remove their row: admins / staff don't get a kick path on
+ *     Worlds slots: the user owns their identity.
  *  2. **Lock enforced.** The delete is rejected if
  *     `Date.now() < currentDoc.lockedUntilMs`. After the lock
  *     expires, the user can leave (or switch by deleting then
@@ -174,10 +174,10 @@ export const assertDeleteAffiliation = ({
 /**
  * `affiliations` post-write analytics: emit `affiliation_set` on the CREATE
  * of a row (the client `setDoc` in the Worlds join flow). Updates are
- * skipped — the identity fields are immutable (see `assertSetAffiliation`
+ * skipped: the identity fields are immutable (see `assertSetAffiliation`
  * rule 6), so a re-set of an existing key carries no new affiliation and
  * must not double-count. `source` carries the kind (`university | country`),
- * `label` the affiliation identifier (a school slug / ISO country code —
+ * `label` the affiliation identifier (a school slug / ISO country code:
  * behavioural, never PII). Best-effort: a capture failure is logged and
  * swallowed so analytics can never break the join.
  */
@@ -215,12 +215,12 @@ export const onAffiliationSetForAnalytics = (ctx: OnSetDocContext): void => {
 
 /**
  * `affiliations` post-delete analytics: emit `affiliation_removed` on the
- * client `deleteDoc` leave path (only reachable after the 90-day lock —
+ * client `deleteDoc` leave path (only reachable after the 90-day lock:
  * `assertDeleteAffiliation` vetoes earlier). Dimensions are parsed from the
  * doc key (`${member}/${kind}/${affiliationIdentifier}`, defended by
  * `assertSetAffiliation` rule 1) so no decode of the deleted body is
  * needed. The account-deletion cascade drops affiliation rows via the
- * serverless `deleteDocStore`, which never fires hooks — so a departing
+ * serverless `deleteDocStore`, which never fires hooks, so a departing
  * account does not spray `affiliation_removed` events. Best-effort.
  */
 export const onAffiliationDeleteForAnalytics = (ctx: OnDeleteDocContext): void => {
@@ -233,7 +233,7 @@ export const onAffiliationDeleteForAnalytics = (ctx: OnDeleteDocContext): void =
 			return;
 		}
 
-		// `split` yields (possibly empty) strings, never nullish — require
+		// `split` yields (possibly empty) strings, never nullish: require
 		// exactly three non-empty segments so a malformed key can't emit an
 		// event with an empty principal or dimension.
 		const segments = key.split('/');

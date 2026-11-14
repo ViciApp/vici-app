@@ -29,8 +29,8 @@ import { decodeDocData, getAdminAccessKeys, getDocStore } from '@junobuild/funct
  * Whether `callerText` is one of the satellite's controllers. The trust anchor
  * for controller-written league resolutions: the resolve endpoint derives the
  * scoreline from clearing settlement history and writes the resolved doc as a
- * controller, so the assert — which cannot make that inter-canister call to
- * re-derive it — trusts a league resolve only from a controller.
+ * controller, so the assert, which cannot make that inter-canister call to
+ * re-derive it, trusts a league resolve only from a controller.
  */
 const isControllerText = (callerText: string): boolean =>
 	getAdminAccessKeys().some(
@@ -55,8 +55,8 @@ const bucketsNullableEqual = (
 
 /**
  * Pre-write guard for `battles`. Enforces the time-bound competition
- * state machine, the per-state authorisation model, and — for league
- * battles — the trustless accuracy scoring.
+ * state machine, the per-state authorisation model, and, for league
+ * battles, the trustless accuracy scoring.
  *
  *  1. **Key shape.** Doc key equals the embedded `id`.
  *
@@ -68,32 +68,32 @@ const bucketsNullableEqual = (
  *  3. **State machine.** Forward-only per `BATTLE_TRANSITIONS`. New
  *     docs start at `proposed`. Each transition is gated by:
  *
- *       - `proposed`        — caller is the proposer (owner or admin of
+ *       - `proposed`: caller is the proposer (owner or admin of
  *                             sideA for kind='league', or sideA
  *                             principal for kind='duel'). For league
- *                             battles sideB must be challengeable —
+ *                             battles sideB must be challengeable:
  *                             an OPEN league or one the proposer is a
  *                             member of.
- *       - `proposed → accepted` — caller is the *other* side's owner
+ *       - `proposed → accepted`: caller is the *other* side's owner
  *                             (duel path; leagues fuse accept+kickoff).
- *       - `proposed → in_flight` — league accept fuses the kickoff:
+ *       - `proposed → in_flight`: league accept fuses the kickoff:
  *                             a sideB owner or admin accepts and the
  *                             window starts now (`kickoffMs ≈ now`, the
  *                             proposed duration preserved). Baselines
  *                             are stamped + re-validated exactly as the
  *                             `accepted → in_flight` kickoff does.
- *       - `proposed → declined` — a sideB owner or admin declines; terminal.
- *       - `proposed → expired` — a side owner or admin lazily expires a
+ *       - `proposed → declined`: a sideB owner or admin declines; terminal.
+ *       - `proposed → expired`: a side owner or admin lazily expires a
  *                             proposal past `respondByMs` (fallback
  *                             `kickoffMs`); terminal.
- *       - `accepted → in_flight` — either side's owner, once
+ *       - `accepted → in_flight`: either side's owner, once
  *                                  `now >= kickoffMs`. League battles
  *                                  stamp each side's `league_stats`
  *                                  bucket (for `scope`) as the
  *                                  baseline; the assert re-reads
  *                                  `league_stats` and rejects a
  *                                  baseline that doesn't match.
- *       - `in_flight → in_flight` (restart) — a legacy league battle
+ *       - `in_flight → in_flight` (restart): a legacy league battle
  *                                  with no baselines (#912) can't be
  *                                  scored or resolved; any member of
  *                                  either side re-opens its window from
@@ -101,7 +101,7 @@ const bucketsNullableEqual = (
  *                                  stamping a fresh `league_stats`
  *                                  baseline the assert re-reads. Only
  *                                  valid while the row lacks baselines.
- *       - `in_flight → resolved` — either side's owner, once
+ *       - `in_flight → resolved`: either side's owner, once
  *                                  `now >= settleMs`. League scores are
  *                                  the window accuracy (`Δwins/Δcalls`)
  *                                  computed from the frozen baselines
@@ -155,7 +155,7 @@ export const assertSetBattle = ({
 		throw new Error('battles kickoffMs must be strictly before settleMs.');
 	}
 
-	// Scope / wager / trash-talk shape — all optional, validated only
+	// Scope / wager / trash-talk shape: all optional, validated only
 	// when present. These are write-once identity fields (enforced on the
 	// edit path below); enforcing the bounds here covers the creation
 	// path and any same-state proposed-doc edit.
@@ -298,7 +298,7 @@ export const assertSetBattle = ({
 
 	const nowMs = Number(time() / 1_000_000n);
 
-	// Result fields — set once on the resolve transition, forbidden everywhere else.
+	// Result fields: set once on the resolve transition, forbidden everywhere else.
 	const hasResultFields =
 		nonNullish(proposedDoc.scoreA) ||
 		nonNullish(proposedDoc.scoreB) ||
@@ -352,7 +352,7 @@ export const assertSetBattle = ({
 		return;
 	}
 
-	// Edit path — enforce identity-field immutability, state-machine
+	// Edit path: enforce identity-field immutability, state-machine
 	// transitions, and per-state authorisation.
 	const currentDoc = decodeDocData<BattleDoc>(current.data);
 
@@ -372,7 +372,7 @@ export const assertSetBattle = ({
 		);
 	}
 
-	// Window discipline — the window may only change on the league
+	// Window discipline: the window may only change on the league
 	// accept transition (`proposed → in_flight`), which starts the clock
 	// at acceptance. Every other transition (decline, expire, duel
 	// accept, kickoff, resolve, same-state edits) must leave
@@ -381,7 +381,7 @@ export const assertSetBattle = ({
 
 	// A league battle accepted before kickoff baselines existed (#912) carries
 	// no snapshot to score against, so it can neither show live standings nor
-	// resolve — it hangs in `in_flight` forever. A re-kick restarts its window
+	// resolve; it hangs in `in_flight` forever. A re-kick restarts its window
 	// from now with a fresh baseline, leaving every identity field (proposer,
 	// scope, wager, original duration) intact. Only valid while the row still
 	// lacks baselines; once stamped it rejoins the normal scoring path.
@@ -404,7 +404,7 @@ export const assertSetBattle = ({
 		);
 	}
 
-	// respondedAtMs may only be stamped on a response to a proposal —
+	// respondedAtMs may only be stamped on a response to a proposal:
 	// the league accept (`proposed → in_flight`) or a decline
 	// (`proposed → declined`); frozen on every other transition.
 	const isResponseTransition =
@@ -432,7 +432,7 @@ export const assertSetBattle = ({
 		throw new Error('battles baselineA / baselineB are frozen after kickoff.');
 	}
 
-	// State machine — only valid forward transitions allowed.
+	// State machine: only valid forward transitions allowed.
 	if (currentDoc.state !== proposedDoc.state) {
 		const allowed = BATTLE_TRANSITIONS[currentDoc.state];
 
@@ -458,7 +458,7 @@ export const assertSetBattle = ({
 	} else if (transition === 'proposed->in_flight') {
 		// League accept fuses the kickoff: the challenged side accepts and
 		// the competition window starts now. (Duels still accept first,
-		// then kick off — see accepted->in_flight.)
+		// then kick off: see accepted->in_flight.)
 		if (proposedDoc.kind !== 'league') {
 			throw new Error('only league battles may go proposed → in_flight (duels accept first).');
 		}
@@ -515,7 +515,7 @@ export const assertSetBattle = ({
 			throw new Error('battles decline must stamp respondedAtMs.');
 		}
 	} else if (transition === 'proposed->expired') {
-		// Lazy expiry once the respond-by deadline passes — written by a
+		// Lazy expiry once the respond-by deadline passes: written by a
 		// side owner or admin the first time they open the league/battle
 		// (Juno has no scheduler). Legacy rows without respondByMs fall
 		// back to kickoffMs.
@@ -576,8 +576,8 @@ export const assertSetBattle = ({
 			// canister's settlement history by the resolution endpoint (running
 			// as the satellite). An assert cannot make that inter-canister call
 			// to re-derive the figure, so it accepts an `in_flight → resolved`
-			// league write only from a controller — the endpoint writes the
-			// resolved doc as one — and verifies the result is internally
+			// league write only from a controller, the endpoint writes the
+			// resolved doc as one, and verifies the result is internally
 			// consistent. A client write is not a controller, so a user cannot
 			// forge a result. Membership + the settle-time liveness gate are
 			// enforced by the endpoint, not here. Baselines are no longer read:
@@ -619,7 +619,7 @@ export const assertSetBattle = ({
 				throw new Error('league battles resolution fields are inconsistent.');
 			}
 		} else {
-			// Duel — a side owner resolves with manual scores; winner from
+			// Duel: a side owner resolves with manual scores; winner from
 			// arithmetic (no league_stats / settlement history to read).
 			if (!isSideOwner(currentDoc.sideA) && !isSideOwner(currentDoc.sideB)) {
 				throw new Error('duel battles resolve requires a sideA or sideB owner.');
@@ -645,7 +645,7 @@ export const assertSetBattle = ({
 	} else if (isRekick) {
 		// Restart a baseline-less legacy battle's window. Trustless: the assert
 		// re-reads `league_stats` for the new baseline below, so the writer
-		// can't fake it — we therefore let any member of either side trigger it,
+		// can't fake it; we therefore let any member of either side trigger it,
 		// the same liveness model resolution uses (a settled battle finalizes
 		// the first time any member opens it; a legacy one heals the same way).
 		if (!isMemberOfLeague(currentDoc.sideA) && !isMemberOfLeague(currentDoc.sideB)) {
@@ -672,7 +672,7 @@ export const assertSetBattle = ({
 		}
 
 		// Re-read each side's `league_stats` bucket so the fresh baseline can't
-		// be faked — identical to the kickoff snapshot check.
+		// be faked: identical to the kickoff snapshot check.
 		if (
 			!bucketsEqual(proposedDoc.baselineA, readLeagueStatsBucket(currentDoc.sideA)) ||
 			!bucketsEqual(proposedDoc.baselineB, readLeagueStatsBucket(currentDoc.sideB))
@@ -681,7 +681,7 @@ export const assertSetBattle = ({
 		}
 	} else if (currentDoc.state === proposedDoc.state) {
 		// Same-state writes (e.g. fix a typo before accept) require
-		// the proposer for `proposed`, otherwise lock out — most
+		// the proposer for `proposed`, otherwise lock out: most
 		// fields are immutable so there's not much to edit.
 		if (currentDoc.state === 'proposed' && proposedDoc.proposer !== callerText) {
 			throw new Error('battles edits in proposed state require the proposer.');
@@ -700,11 +700,11 @@ export const assertSetBattle = ({
 };
 
 /**
- * Pre-write guard for `battles` deletes — proposed-only retract path.
+ * Pre-write guard for `battles` deletes: proposed-only retract path.
  *
  *  1. **Collection scope.** No-op for any non-battles collection.
  *  2. **Proposer binds caller.** Only the original proposer can
- *     retract — neither opponent nor admin gets a delete path.
+ *     retract: neither opponent nor admin gets a delete path.
  *  3. **Proposed state only.** Once `accepted`, the battle is part of
  *     both leagues' shared history and becomes immutable (and so
  *     undeletable). Anything past `proposed` must run the resolved
