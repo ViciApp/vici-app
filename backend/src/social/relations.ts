@@ -5,13 +5,14 @@
 
 import { isNullish } from '@dfinity/utils';
 import { query, tx } from '../db/client';
+import { DAY_IN_MS } from '../lib/time';
 
 export type RelationCategory = 'FRIEND' | 'follow' | 'GROUP';
 export type RelationState = 'PENDING' | 'ACTIVE' | 'REJECTED' | 'BLOCKED';
 
 /** How long a rejected friend-request sender must wait before re-sending to
  * the same person. The rejecter is exempt and may re-initiate at any time. */
-export const FRIEND_REQUEST_REJECTED_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+export const FRIEND_REQUEST_REJECTED_COOLDOWN_MS = 7 * DAY_IN_MS;
 
 /** Client-facing relation shape: participants keeps [sender, target] order. */
 export interface Relation {

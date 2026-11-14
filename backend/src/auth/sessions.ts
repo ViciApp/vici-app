@@ -6,11 +6,12 @@ import { isNullish } from '@dfinity/utils';
 import { query } from '../db/client';
 import { env } from '../env';
 import { peppered, randomToken } from '../lib/crypto';
+import { HOUR_IN_MS } from '../lib/time';
 
 /** Create a fresh session for a user; returns the plaintext token for the cookie. */
 export const createSession = async (userId: string): Promise<string> => {
 	const token = randomToken();
-	const expiresAt = new Date(Date.now() + env.sessionTtlHours * 3600 * 1000);
+	const expiresAt = new Date(Date.now() + env.sessionTtlHours * HOUR_IN_MS);
 
 	await query(`insert into sessions (id, user_id, expires_at) values ($1, $2, $3)`, [
 		peppered(token),

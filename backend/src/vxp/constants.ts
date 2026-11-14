@@ -5,6 +5,7 @@
 // BigInt(50) would under-pay by 10^4).
 
 import { ZERO } from '../lib/constants';
+import { DAY_IN_MS } from '../lib/time';
 
 /** VXP ledger precision: 1 VXP = 10^4 base units. */
 export const VXP_DECIMALS = 4;
@@ -58,7 +59,7 @@ export const VXP_FLOW_OVERTIME_BONUS = 25;
 /** Rolling wall-clock window bounding overtime mints: the day key is
  * client-supplied and only shape-checked, so real time (row creation) is the
  * anti-farming boundary, not the claimed day. */
-export const VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+export const VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS = 7 * DAY_IN_MS;
 
 /** Max overtime mints inside the rolling window: just above the natural
  * once-per-calendar-day rate so a legitimate daily player is never blocked. */

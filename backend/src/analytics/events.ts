@@ -6,7 +6,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { tx, type TxQuery } from '../db/client';
 import { ZERO } from '../lib/constants';
-import { nowNs } from '../lib/time';
+import { DAY_IN_MS, nowNs } from '../lib/time';
 import {
 	ANALYTICS_PROP_KEYS,
 	isAnalyticsEventName,
@@ -14,8 +14,6 @@ import {
 	type AnalyticsEventName,
 	type AnalyticsEventProps
 } from './taxonomy';
-
-const MS_PER_DAY = 86_400_000;
 
 /** Defensive cap so one call cannot write an unbounded number of rows. */
 export const MAX_EVENTS_PER_BATCH = 100;
@@ -137,7 +135,7 @@ const bumpRollup = async ({
 	tsMs: number;
 	names: AnalyticsEventName[];
 }): Promise<void> => {
-	const epochDay = Math.floor(tsMs / MS_PER_DAY);
+	const epochDay = Math.floor(tsMs / DAY_IN_MS);
 	const counts = new Map<string, number>();
 
 	for (const name of names) {

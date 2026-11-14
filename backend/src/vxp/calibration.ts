@@ -9,6 +9,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { getSettlementStatus } from '../engine/clearing';
 import { getSeries, VICI_ENGINE_ID } from '../engine/registry';
 import { ZERO } from '../lib/constants';
+import { DAY_IN_MS, HOUR_IN_MS } from '../lib/time';
 import { countUserAwardsSince, getAward, grantAward } from './awards';
 import {
 	CALIBRATION_DAILY_CAP,
@@ -17,9 +18,6 @@ import {
 	VXP_CALIBRATION_REWARD_BASE_UNITS
 } from './constants';
 import { getVxpBalance } from './payout';
-
-const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
 
 export type CallSide = 'YES' | 'NO';
 
@@ -108,7 +106,7 @@ const checkRateLimits = async ({
 	const hourCount = await countUserAwardsSince({
 		userId,
 		awardType: 'calibration',
-		sinceMs: nowMs - HOUR_MS
+		sinceMs: nowMs - HOUR_IN_MS
 	});
 
 	if (hourCount >= CALIBRATION_HOURLY_CAP) {
@@ -118,7 +116,7 @@ const checkRateLimits = async ({
 	const dayCount = await countUserAwardsSince({
 		userId,
 		awardType: 'calibration',
-		sinceMs: nowMs - DAY_MS
+		sinceMs: nowMs - DAY_IN_MS
 	});
 
 	if (dayCount >= CALIBRATION_DAILY_CAP) {

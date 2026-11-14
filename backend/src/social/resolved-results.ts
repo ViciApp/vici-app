@@ -9,8 +9,7 @@ import { getSettlementPlan } from '../engine/clearing';
 import { getSeries } from '../engine/registry';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
-
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
+import { DAY_IN_MS } from '../lib/time';
 
 /** How long a resolved-result row stays readable before the pruning job
  * removes it. */
