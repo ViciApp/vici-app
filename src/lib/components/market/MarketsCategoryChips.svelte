@@ -20,7 +20,7 @@
 	 * this component only renders the populated branches and reports changes.
 	 *
 	 * A chip selection emits a bounded `market_category_filter` analytics
-	 * event (macro id, optional micro id — closed taxonomy vocab, no PII).
+	 * event (macro id, optional micro id: closed taxonomy vocab, no PII).
 	 */
 	interface Props {
 		/** Selected macro, or `undefined` for the "All" (unfiltered) state. */
@@ -49,7 +49,7 @@
 	});
 
 	// The selection rides the bounded `label` dimension (macro id, or
-	// `macro:micro` when drilled in) — closed taxonomy vocab, no PII. The
+	// `macro:micro` when drilled in): closed taxonomy vocab, no PII. The
 	// props schema is a closed set shared with the satellite, so `label`
 	// carries the category dimension rather than a dedicated field.
 	const selectMacro = (macro: MacroId | undefined): void => {
@@ -180,7 +180,7 @@
 		border-color: var(--accent, var(--border-strong));
 	}
 
-	/* Active chip — tinted with the category accent (macro hue), falling back
+	/* Active chip: tinted with the category accent (macro hue), falling back
 	   to the brand accent for the "All" chip which carries no category colour. */
 	.cat-chip.is-active {
 		color: var(--chip-accent, var(--accent));

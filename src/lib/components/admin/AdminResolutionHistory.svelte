@@ -15,7 +15,7 @@
 	const RECENT_RESOLUTIONS_COUNT = 5;
 
 	// The incoming order is the catalog's, which says nothing about when anything
-	// was called — taking the first five off it showed an arbitrary sample under a
+	// was called: taking the first five off it showed an arbitrary sample under a
 	// "Recent" heading. Sort by settlement time, newest first; markets whose
 	// settlement carries no timestamp sort last rather than jumping to the top.
 	const recentMarkets = $derived(

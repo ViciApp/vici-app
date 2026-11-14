@@ -14,7 +14,7 @@
 
 	const title = $derived(displayTitle ?? market.title);
 
-	// Live countdown — minute-tick interval. Only runs while this back
+	// Live countdown: minute-tick interval. Only runs while this back
 	// panel is mounted (Svelte cleans up the timer on destroy). 60 s is
 	// fine: the label tier doesn't shift faster than a minute.
 	let nowTick = $state(Date.now());
@@ -26,7 +26,7 @@
 		return () => clearInterval(id);
 	});
 
-	// Long-form settlement date — "July 19, 2026", locale-aware via
+	// Long-form settlement date: "July 19, 2026", locale-aware via
 	// `toLocaleDateString({ month: 'long', day: 'numeric', year:
 	// 'numeric' })`. Replaces the default short `MM/DD/YYYY` format
 	// so the meta row reads as editorial copy rather than a stamp.
@@ -38,7 +38,7 @@
 		})
 	);
 
-	// Computed *live* countdown — recomputes on each minute tick.
+	// Computed *live* countdown: recomputes on each minute tick.
 	// `getTimeRemaining` already produces "Xd Yh remaining" / "Xh Ym
 	// remaining" / "Xm remaining" / "Expired"; we strip the trailing
 	// noun and swap to the shorter "Nd left" / "Nh left" / "Nm left"
@@ -84,7 +84,7 @@
 		return ms > 0 && ms <= DAY_IN_MS;
 	});
 
-	// When the market carries outcome data we surface the real headcount —
+	// When the market carries outcome data we surface the real headcount:
 	// including a genuine 0 ("0 predicting"). Only when no outcome data is
 	// present at all do we fall back to a representative figure, so the
 	// meta row still reads as a complete editorial line.
@@ -133,7 +133,7 @@
 	}
 
 	/* Single editorial meta line: `Settles {date} · {countdown} ·
-	   {N} predicting` — settlement, countdown, and headcount share one
+	   {N} predicting`: settlement, countdown, and headcount share one
 	   dot-separated row rather than splitting onto separate lines. */
 	.flow-back-meta {
 		display: inline-flex;
@@ -150,7 +150,7 @@
 		opacity: 0.5;
 	}
 	/* The countdown segment is the live, decision-relevant figure, so it
-	   reads at full foreground brightness against the muted meta row —
+	   reads at full foreground brightness against the muted meta row,
 	   and shifts to terracotta when the market is inside its final day. */
 	.flow-back-countdown {
 		color: var(--text-base);

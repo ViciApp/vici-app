@@ -14,7 +14,7 @@
 		 */
 		known?: boolean;
 		/**
-		 * Whether the order book has been read — picks the skeleton variant when
+		 * Whether the order book has been read: picks the skeleton variant when
 		 * the odds are unknown (`empty` dash vs `loading` bar).
 		 */
 		priceLoaded?: boolean;
@@ -38,7 +38,7 @@
 	}: Props = $props();
 
 	// Dim the side that lost once settled (only when we know the
-	// outcome). The winning side — and the live presentation — stay at
+	// outcome). The winning side, and the live presentation, stay at
 	// full strength.
 	const yesLost = $derived(resolved && resolvedOutcome === 'NO');
 	const noLost = $derived(resolved && resolvedOutcome === 'YES');
@@ -46,7 +46,7 @@
 
 <!-- Probability hero: large YES percent on the left baseline-aligned
      with the "YES" eyebrow, mirrored on the right with a smaller NO
-     percent. Below sits the split bar (the page's `ProbBar` equivalent —
+     percent. Below sits the split bar (the page's `ProbBar` equivalent:
      same shape as `forecast-split-bar` on the old card). -->
 <div class="prob-hero">
 	<div class="prob-hero-row">
@@ -103,7 +103,7 @@
 		min-width: 0;
 	}
 
-	/* Settled losing side — dimmed so the winning outcome reads as the
+	/* Settled losing side: dimmed so the winning outcome reads as the
 	   final answer. Reduced opacity only; the side keeps its colour. */
 	.prob-hero-side.is-lost {
 		opacity: 0.55;

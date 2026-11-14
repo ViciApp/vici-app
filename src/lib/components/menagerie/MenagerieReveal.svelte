@@ -14,14 +14,14 @@
 
 	// The celebration moment. A freshly-crossed Menagerie tier: the backdrop dims
 	// and blooms in the animal's colour, the badge springs in, the achievement is
-	// named — then on dismiss the badge FLIES into the Profile nav (which pulses
+	// named, then on dismiss the badge FLIES into the Profile nav (which pulses
 	// to confirm it landed). One reveal at a time; the host advances the queue
-	// via `onDone`. It NEVER mounts while a Flow character beat is on screen — the
+	// via `onDone`. It NEVER mounts while a Flow character beat is on screen; the
 	// host gates that.
 	interface Props {
 		slug: MenagerieSlug;
 		tier: MenagerieTier;
-		/** Called after the fly-to-nav lands — the host advances the queue. */
+		/** Called after the fly-to-nav lands: the host advances the queue. */
 		onDone: () => void;
 	}
 
@@ -54,7 +54,7 @@
 		timers.push(setTimeout(run, ms));
 	};
 
-	// Entrance haptics — punctuate the spring-in. Richer for top tiers so a gold /
+	// Entrance haptics: punctuate the spring-in. Richer for top tiers so a gold /
 	// iridescent unlock is felt as a layered flourish, mirroring the session-end
 	// celebration. Gated on motion preference like every other animation here.
 	onMount(() => {
@@ -67,7 +67,7 @@
 		after({ ms: 560, run: () => haptic(isTop ? 'milestone-tap' : 'double-pulse') });
 	});
 
-	// Safety auto-advance if the reveal is left open a long time — never traps.
+	// Safety auto-advance if the reveal is left open a long time: never traps.
 	onMount(() => {
 		after({ ms: 9000, run: () => dismiss() });
 	});
@@ -107,7 +107,7 @@
 		phase = 'flying';
 
 		if (prefersReducedMotion()) {
-			// No fly animation under reduced motion — pulse the nav and finish.
+			// No fly animation under reduced motion: pulse the nav and finish.
 			navBtn.classList.add('nav-collect-pulse');
 			haptic(isTop ? 'milestone-tap' : 'firm-tap');
 			after({
@@ -232,7 +232,7 @@
 		padding-bottom: 88px;
 		overflow: hidden;
 
-		/* Dark-theme defaults — the near-black takeover. */
+		/* Dark-theme defaults: the near-black takeover. */
 		--mr-scrim: rgba(10, 9, 8, 0.88);
 		--mr-fg: #f2ecdc;
 		--mr-fg-dim: rgba(242, 236, 220, 0.74);
@@ -331,7 +331,7 @@
 		padding: 0 32px;
 		text-align: center;
 		/* let taps fall through to the full-screen scrim button so the whole
-		   surface dismisses — "tap anywhere" */
+		   surface dismisses: "tap anywhere" */
 		pointer-events: none;
 	}
 
@@ -550,7 +550,7 @@
 		}
 	}
 
-	/* nav item pulse when the badge lands — applied imperatively to the nav btn */
+	/* nav item pulse when the badge lands: applied imperatively to the nav btn */
 	:global(.nav-collect-pulse) {
 		animation: nav-collect 0.55s cubic-bezier(0.2, 1.2, 0.4, 1);
 	}
@@ -567,7 +567,7 @@
 		}
 	}
 
-	/* Badge frame inside the reveal — driven by the same `--mr-*` tokens so it
+	/* Badge frame inside the reveal: driven by the same `--mr-*` tokens so it
 	   tracks the takeover's tone (a light wash on dark, a soft ink wash on the
 	   light / peach takeover). */
 	.mr-root :global(.mb-frame) {
@@ -579,7 +579,7 @@
 		Light / peach takeover. The scrim becomes a warm light wash and the
 		foreground tiers / CTA flip to ink so the celebration reads on-light
 		instead of blacked-out. The colour bloom / rays use `mix-blend-mode:
-		screen` (designed for a dark base) — on a light scrim that lightens to
+		screen` (designed for a dark base); on a light scrim that lightens to
 		near-nothing, so we swap them to `multiply` to keep the animal's colour
 		readable as a tint.
 	*/

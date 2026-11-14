@@ -4,7 +4,7 @@
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * Pass-2 "add your own school" confirm step — name entry with a
+	 * Pass-2 "add your own school" confirm step: name entry with a
 	 * fuzzy-dedupe panel so the user can pick an existing directory match
 	 * before committing to a brand-new entry. The owning
 	 * {@link AffiliationPickerModal} keeps the state machine; this

@@ -18,7 +18,7 @@
 	const dir = $derived(lean.isYes ? 'yes' : 'no');
 	const color = $derived(lean.isYes ? 'var(--yes)' : 'var(--no)');
 	// The dial points to whichever side holds the majority, and the readout
-	// shows that majority percent — so the screen-reader label must name the
+	// shows that majority percent, so the screen-reader label must name the
 	// displayed side (YES or NO), not a fixed one.
 	const sideLabel = $derived(
 		t({ locale: $localeStore, key: lean.isYes ? 'welcome.flowcard.yes' : 'welcome.flowcard.no' })

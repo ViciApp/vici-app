@@ -32,31 +32,31 @@
 	import { page } from '$app/state';
 
 	/**
-	 * Worlds battle — the full leaderboard surface across every
+	 * Worlds battle: the full leaderboard surface across every
 	 * affiliation of a given `kind` (`university` or `country`).
 	 *
 	 * Layers in order:
 	 *
-	 *  1. Hero card — `FIFA WORLD CUP · Live` tags, surface-aware title
+	 *  1. Hero card: `FIFA WORLD CUP · Live` tags, surface-aware title
 	 *     (`Worlds Universities/Countries World Cup Battle` or the
 	 *     current month's season battle), days-left + roster size meta.
 	 *
-	 *  2. Scope toggle — current-month season vs `WC Battle`. Lets users pivot
+	 *  2. Scope toggle: current-month season vs `WC Battle`. Lets users pivot
 	 *     between the lifetime / monthly ranking on the same screen.
 	 *     Initial scope reads from the `?scope=` query param so deep
 	 *     links from `BattlesInboxPage` land on the correct view.
 	 *
-	 *  3. Full ranked leaderboard — top 10 collapsed, "See all" expands
+	 *  3. Full ranked leaderboard: top 10 collapsed, "See all" expands
 	 *     to the full roster. When the caller is affiliated and outside
 	 *     the visible window, a sticky `is-you` row pins to the bottom.
 	 *
-	 *  4. Podium prizes — the fixed VXP payouts from `VXP_WORLDS_PODIUM`
+	 *  4. Podium prizes: the fixed VXP payouts from `VXP_WORLDS_PODIUM`
 	 *     surface as an eyebrow card at the bottom so users learn what
 	 *     they're playing for.
 	 *
 	 * Roster ordering is driven off `listAffiliationStats`. The all-time
-	 * (`wc`) totals reflect the current roster's real lifetime — the satellite
-	 * sums each member's lifetime record — so an affiliation appears (and ranks
+	 * (`wc`) totals reflect the current roster's real lifetime: the satellite
+	 * sums each member's lifetime record, so an affiliation appears (and ranks
 	 * by its members' true history) as soon as that combined lifetime crosses
 	 * the ranking floor, even before anyone has traded since joining. The
 	 * `month` scope still ranks by the current-month window the rolling stats
@@ -86,14 +86,14 @@
 	let loadState = $state<'loading' | 'ready' | 'error'>('loading');
 	let expanded = $state(false);
 
-	// Caller's affiliation for this kind — read from the shared cache so
+	// Caller's affiliation for this kind: read from the shared cache so
 	// the sticky "you" row survives re-entry without a refetch.
 	const myAffil = $derived(
 		kind === 'university' ? $myAffiliationsStore.university : $myAffiliationsStore.country
 	);
 
 	// Initial scope is sourced off `?scope=month` (the BattlesInbox monthly
-	// card link) — defaults to `wc` otherwise.
+	// card link), defaults to `wc` otherwise.
 	let scope = $state<Scope>(page.url.searchParams.get('scope') === 'month' ? 'month' : 'wc');
 
 	onMount(async () => {
@@ -156,7 +156,7 @@
 
 	const optionFor = (id: string) => lookupWorldsAffiliation({ kind, id });
 
-	// Locale-aware row label off an already-resolved option — country
+	// Locale-aware row label off an already-resolved option: country
 	// names localize via `Intl.DisplayNames`; falls back to the raw id
 	// when the option is off the roster.
 	const displayName = ({
@@ -180,7 +180,7 @@
 
 	const eventDaysLeft = $derived($daysToFinal);
 
-	// Month-anchored season label — the monthly scope always names the
+	// Month-anchored season label: the monthly scope always names the
 	// current month rather than a hard-coded one.
 	const currentMonthName = $derived(formatMonthName({ locale: $localeStore }));
 </script>
@@ -394,7 +394,7 @@
 			{/if}
 		</div>
 
-		<!-- Podium prizes — fixed VXP payouts for the battle -->
+		<!-- Podium prizes: fixed VXP payouts for the battle -->
 		<section class="worlds-battle-podium" aria-label="Worlds podium prizes">
 			<h2 class="eyebrow worlds-battle-section-eyebrow">
 				{t({ locale: $localeStore, key: 'worlds.podium.eyebrow' })}
@@ -445,7 +445,7 @@
 		border: 1px solid color-mix(in srgb, var(--no) 35%, var(--border-base));
 	}
 
-	/* Hero — surface-aware tint. WC scope uses the orange WC accent;
+	/* Hero: surface-aware tint. WC scope uses the orange WC accent;
 	   month scope uses the laurel tone. */
 	.worlds-battle-hero {
 		position: relative;
@@ -529,7 +529,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Scope toggle — mirrors WorldsPage's `worlds-scope`. */
+	/* Scope toggle: mirrors WorldsPage's `worlds-scope`. */
 	.worlds-battle-scope {
 		display: flex;
 		gap: 0.1rem;
@@ -741,7 +741,7 @@
 		color: var(--laurel);
 	}
 
-	/* Podium prizes — fixed VXP rungs. */
+	/* Podium prizes: fixed VXP rungs. */
 	.worlds-battle-podium {
 		display: flex;
 		flex-direction: column;

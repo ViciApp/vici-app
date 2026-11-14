@@ -10,8 +10,8 @@
 		showOriginal: boolean;
 		onToggle: () => void;
 		/**
-		 * `inline` — the full state + link form for the market detail page.
-		 * `compact` — a single quiet icon button for cards/decks, where space
+		 * `inline`: the full state + link form for the market detail page.
+		 * `compact`: a single quiet icon button for cards/decks, where space
 		 * is tight: one glyph + a short label that flips the one item.
 		 */
 		variant?: 'inline' | 'compact';
@@ -81,7 +81,7 @@
 		color: var(--fg-faint);
 	}
 
-	/* The original-language access is the smaller, secondary affordance —
+	/* The original-language access is the smaller, secondary affordance:
 	   a quiet underlined link rather than a button-styled control. */
 	.xl-link {
 		border: 0;
@@ -104,7 +104,7 @@
 		text-decoration-color: var(--accent);
 	}
 
-	/* Compact card/deck form — a single quiet chip-link. Inline-flex so it
+	/* Compact card/deck form: a single quiet chip-link. Inline-flex so it
 	   sits within a card's text column; the glyph keeps it legible as a
 	   language affordance at small sizes. */
 	.xl-compact {

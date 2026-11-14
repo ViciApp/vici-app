@@ -12,7 +12,7 @@
 		// Maps to aria-expanded when the control toggles a disclosure (tooltip,
 		// popover); leave unset for plain actions.
 		expanded?: boolean;
-		// Stop activation from bubbling to an interactive ancestor — the whole
+		// Stop activation from bubbling to an interactive ancestor: the whole
 		// reason this exists instead of a real <button>. On by default.
 		stopPropagation?: boolean;
 	}

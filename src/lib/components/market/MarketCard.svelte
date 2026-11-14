@@ -37,9 +37,9 @@
 		index?: number;
 		metadata?: MarketMetadata;
 		/**
-		 * Primary category id for this market — a taxonomy micro (e.g.
+		 * Primary category id for this market; a taxonomy micro (e.g.
 		 * `bitcoin`, `soccer`) or macro. When supplied, renders a colored
-		 * category chip at the start of the header strip — mirrors the
+		 * category chip at the start of the header strip: mirrors the
 		 * MarketRow pattern so the category accent reads at a glance on the
 		 * list. Optional so call sites that don't have tags hydrated yet stay
 		 * backward-compatible.

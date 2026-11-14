@@ -27,7 +27,7 @@
 		/**
 		 * Optional custom-event name on `document`. When fired (via the
 		 * `refresh.utils.ts` helpers), triggers a refetch without resetting the
-		 * cached value — i.e. stale-while-revalidate semantics.
+		 * cached value: i.e. stale-while-revalidate semantics.
 		 */
 		refreshEvent?: string;
 	}

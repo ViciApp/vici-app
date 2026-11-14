@@ -4,8 +4,8 @@
 	/**
 	 * Compact "Create a league" / "Join with code" action rendered in
 	 * the trailing "Start or join" grid beneath the league list. A
-	 * single-row pill — small accent-glow icon tile + a title / sub
-	 * stack — deliberately lighter than the league cards above so the
+	 * single-row pill: small accent-glow icon tile + a title / sub
+	 * stack: deliberately lighter than the league cards above so the
 	 * leagues you're in stay the focus.
 	 */
 	interface Props {
@@ -54,7 +54,7 @@
 		border-color: var(--border-strong);
 	}
 
-	/* Small accent-glow icon tile — `--laurel`-tinted square holding the
+	/* Small accent-glow icon tile: `--laurel`-tinted square holding the
 	   plus glyph (create) or a mono "CODE" label (join). */
 	.leagues-cta-ic {
 		display: inline-flex;

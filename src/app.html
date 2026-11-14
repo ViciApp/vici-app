@@ -12,7 +12,7 @@
 			sizes="32x32"
 			href="%sveltekit.assets%/branding/vici-favicon-32.png"
 		/>
-		<!-- iOS rejects SVG for the home-screen icon — needs a 180×180 PNG. -->
+		<!-- iOS rejects SVG for the home-screen icon: needs a 180×180 PNG. -->
 		<link
 			rel="apple-touch-icon"
 			sizes="180x180"
@@ -22,7 +22,7 @@
 
 		<!--
 			Capture `beforeinstallprompt` at the earliest possible point. Chrome fires
-			it once, during initial load — before the app hydrates — so a listener
+			it once, during initial load, before the app hydrates, so a listener
 			registered later (when the app layout calls `initA2hs`) misses it and the
 			in-app "Add to home screen" affordance never appears. Stash the deferred
 			event here; `a2hs.store` adopts it on init.
@@ -39,7 +39,7 @@
 		</script>
 
 		<!--
-			`minimum-scale=1` blocks pinch-zoom-OUT below device width — the app
+			`minimum-scale=1` blocks pinch-zoom-OUT below device width; the app
 			is tuned to device-width and zooming out just exposes background
 			chrome. We intentionally do NOT set `maximum-scale` or
 			`user-scalable=no` so users with low vision can still zoom IN on
@@ -104,7 +104,7 @@
 			 the title tag, description meta, canonical link, the og:
 			 type/url/title/description tags and the twitter: title/description
 			 tags into per-market copies of the built shell. Renaming or
-			 restructuring these tags breaks its patterns — the deploy fails
+			 restructuring these tags breaks its patterns; the deploy fails
 			 loudly, but keep them in sync. -->
 		<meta property="og:type" content="website" />
 		<meta property="og:site_name" content="VICI" />
@@ -158,19 +158,19 @@
 						document.documentElement.setAttribute('data-ios', '');
 						// Standalone / PWA mode (added to Home Screen) has NO browser
 						// bottom bar, so the inset would just push docked footers up
-						// for nothing — detect it via the legacy `navigator.standalone`
+						// for nothing: detect it via the legacy `navigator.standalone`
 						// (iOS-only) plus the standard display-mode media query.
 						var standalone =
 							(window.navigator && window.navigator.standalone === true) ||
 							(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
 						// Every iOS browser draws a NATIVE bottom bar over the web
 						// view: the Chrome/Firefox/Edge/Google-app toolbars AND
-						// Safari's own bottom bar (confirmed on device — it overlays
+						// Safari's own bottom bar (confirmed on device; it overlays
 						// docked modal footers the same way). The page renders UNDER
 						// it and no web API (visualViewport / dvh / svh /
 						// safe-area-inset) reports its height, so a bottom-docked CTA
-						// gets clipped. Stamp the flag for ALL iOS browsers — but NOT
-						// standalone/PWA, which has no browser bar — so CSS can add
+						// gets clipped. Stamp the flag for ALL iOS browsers, but NOT
+						// standalone/PWA, which has no browser bar, so CSS can add
 						// `--ios-bottom-bar-inset` to docked footers.
 						if (!standalone) {
 							document.documentElement.setAttribute('data-ios-bottom-bar', '');
@@ -183,7 +183,7 @@
 
 			// Flash-free locale boot. Runs before the first paint so
 			// <html lang>, dir, and [data-locale] are correct on the first
-			// frame — the static-host equivalent of SSR locale negotiation.
+			// frame: the static-host equivalent of SSR locale negotiation.
 			// A saved choice wins instantly; otherwise the device language
 			// seeds it. The i18n layer re-resolves authoritatively after
 			// hydrate, so a stale/missing value just falls through here.
@@ -220,7 +220,7 @@
 		<title>VICI</title>
 
 		<!-- Fonts are fully self-hosted (see the `@font-face` block in
-			 `app.css` — files under `static/fonts/`). No Google Fonts
+			 `app.css`: files under `static/fonts/`). No Google Fonts
 			 stylesheet: the extra origin's DNS/TLS + render-blocking CSS
 			 fetch cost ~600ms on a cold mobile load, and its declarations
 			 shadowed the self-hosted faces for overlapping weights. -->

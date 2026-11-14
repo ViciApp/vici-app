@@ -1,7 +1,7 @@
 <!-- Streaming placeholder for the market-detail screen. Mirrors the
      real module rhythm (hero title → probability hero → chart card →
      stats grid → resolution card) so the layout doesn't reflow when the
-     market data lands. Pure pulse blocks — no copy, decorative only. -->
+     market data lands. Pure pulse blocks; no copy, decorative only. -->
 <div class="detail-skeleton" aria-hidden="true">
 	<div class="detail-skeleton-hero">
 		<span class="detail-skeleton-block detail-skeleton-tag"></span>

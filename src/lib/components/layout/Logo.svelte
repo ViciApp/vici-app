@@ -14,7 +14,7 @@
 		goto(path);
 	};
 
-	// Type-set live in product per the brand book — Hanken Grotesk Bold,
+	// Type-set live in product per the brand book: Hanken Grotesk Bold,
 	// ALL CAPS, 0.18em tracking. Colour resolves to parchment on dark
 	// surfaces and ink on light via `text-foreground`; laurel gold is
 	// reserved for the app-icon tile and must not appear on the mark.

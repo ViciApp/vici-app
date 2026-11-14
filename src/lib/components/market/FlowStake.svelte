@@ -51,7 +51,7 @@
 	const stakeIdx = $derived(VXP_STAKE_LADDER.indexOf(currentStake));
 	const stakePct = $derived(stakeIdx >= 0 ? (stakeIdx / (VXP_STAKE_LADDER.length - 1)) * 100 : 0);
 	const atCap = $derived(currentStake === VXP_STAKE_LADDER[VXP_STAKE_LADDER.length - 1]);
-	// Price off the execution price (the ask), like the order placed — not the
+	// Price off the execution price (the ask), like the order placed, not the
 	// consensus mid, which over-promises on a thin book.
 	const stakeYesWin = $derived(
 		vxpNetWin({

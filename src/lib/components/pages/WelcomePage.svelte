@@ -1,16 +1,16 @@
 <script lang="ts">
 	/**
-	 * Landing surface — a conversion-first, entertainment-first page.
+	 * Landing surface: a conversion-first, entertainment-first page.
 	 *
 	 * Sections, top to bottom:
 	 *   1. WelcomeNav (desktop + mobile)
-	 *   2. WelcomeHero — interactive swipe card + payoff celebration
-	 *   3. WelcomeStatus — 3-tab accuracy slider (auto-rotating)
-	 *   4. WelcomeProof — how-it-works + live count + calls ticker
-	 *   5. WelcomeTrust — condensed trust one-liner
-	 *   6. WelcomeFAQ — visitor-stage questions
-	 *   7. WelcomeClose — Latin motto + closing CTA
-	 *   8. WelcomeFooter — FIFA mark + disclosure
+	 *   2. WelcomeHero: interactive swipe card + payoff celebration
+	 *   3. WelcomeStatus: 3-tab accuracy slider (auto-rotating)
+	 *   4. WelcomeProof: how-it-works + live count + calls ticker
+	 *   5. WelcomeTrust: condensed trust one-liner
+	 *   6. WelcomeFAQ: visitor-stage questions
+	 *   7. WelcomeClose: Latin motto + closing CTA
+	 *   8. WelcomeFooter: FIFA mark + disclosure
 	 *
 	 * The whole tree is wrapped in `.lpc .lp-root` so it picks up both the
 	 * landing-conversion layout layer (the warm parchment field + section
@@ -33,7 +33,7 @@
 		// Opt the landing into the contained-scroll viewport (see `.lpc` in
 		// `landing.css`). On iOS this moves scrolling off the document into
 		// `.lpc`, so the address bar never collapses mid-scroll and the sticky
-		// nav can't judder — the same model the authenticated app shell uses.
+		// nav can't judder: the same model the authenticated app shell uses.
 		// The flag scopes the body lock to this page; every other route keeps
 		// its natural body scroll.
 		document.documentElement.dataset.landingScroll = '1';

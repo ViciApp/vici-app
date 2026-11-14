@@ -28,7 +28,7 @@
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 
 	/**
-	 * The Menagerie — the achievement trophy layer. Reached as a profile
+	 * The Menagerie: the achievement trophy layer. Reached as a profile
 	 * sub-route. Renders all twelve animals as squircle badges in a 3-column
 	 * grid (earned first, then locked-by-progress), each with the animal's
 	 * current tier derived live from the owner's real stats. Tapping a badge
@@ -37,11 +37,11 @@
 	 *
 	 * Animals whose metric reads a stat the backend does not yet populate
 	 * (Raven / Octopus / Magpie / Bee) resolve to LOCKED and show as "soon"
-	 * tiles — see the per-hook notes in `#lib/utils/menagerie.utils.ts`.
+	 * tiles: see the per-hook notes in `#lib/utils/menagerie.utils.ts`.
 	 */
 
-	// The trophy layer reads from the single shared `menagerie.derived` source —
-	// the same stats / rows / load gate the profile rail reads — so an animal can
+	// The trophy layer reads from the single shared `menagerie.derived` source:
+	// the same stats / rows / load gate the profile rail reads, so an animal can
 	// never resolve to a different tier across the two surfaces. On mount we
 	// hydrate its live signals (global standings + referral count); until they
 	// resolve, `loading` holds the grid in its skeleton state so a not-yet-loaded
@@ -310,7 +310,7 @@
 		transition:
 			transform 0.12s ease,
 			border-color 0.12s ease;
-		/* staggered grid reveal — the collection blooms in rather than dumping */
+		/* staggered grid reveal: the collection blooms in rather than dumping */
 		animation: men-tile-in 0.44s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 		animation-delay: calc(var(--ti, 0) * 34ms);
 	}
@@ -351,7 +351,7 @@
 		text-align: center;
 	}
 
-	/* Skeleton tiles — same footprint as a real tile, with the badge + the two
+	/* Skeleton tiles: same footprint as a real tile, with the badge + the two
 	   text lines replaced by pulsing placeholders while the trophy signals load. */
 	.men-tile.is-skeleton {
 		cursor: default;

@@ -7,7 +7,7 @@
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
-		// The daily hard cap reached (15) — surfaced in the body copy.
+		// The daily hard cap reached (15): surfaced in the body copy.
 		hardCap: number;
 		// "Back to dashboard →" CTA.
 		onClose: () => void;
@@ -38,7 +38,7 @@
 	};
 </script>
 
-<!-- Daily hard-cap gate — all of today's calls are in. Opening Flow shows
+<!-- Daily hard-cap gate: all of today's calls are in. Opening Flow shows
      this "come back tomorrow" takeover instead of a fresh deck, so the
      15/day model holds across sessions. -->
 <div class="flow-cap" class:is-static={reduce}>

@@ -30,13 +30,13 @@
 	let code = $state('');
 	let submitting = $state(false);
 	let submitError: MessageKey | string | null = $state(null);
-	// Live preview — the league a fully-typed code resolves to. Drives
+	// Live preview: the league a fully-typed code resolves to. Drives
 	// the green-bordered match card + the join button label so the user
 	// sees who they're about to join before committing.
 	let matched: LeagueDoc | undefined = $state();
 	let resolving = $state(false);
 	// A code found on the clipboard at open-time. Tapping the hint fills
-	// the field — saves the user a manual paste on mobile.
+	// the field: saves the user a manual paste on mobile.
 	let pasteHint: string | null = $state(null);
 
 	const normalisedCode = $derived(code.trim().toUpperCase());
@@ -103,7 +103,7 @@
 					pasteHint = cleaned;
 				}
 			} catch {
-				// No clipboard access — skip the hint.
+				// No clipboard access: skip the hint.
 			}
 		})();
 	});
@@ -268,7 +268,7 @@
 		gap: 0.85rem;
 	}
 
-	/* Title + top-right close × on one row — mirrors the sheet header in
+	/* Title + top-right close × on one row: mirrors the sheet header in
 	   the source design (title left, circular ghost close right). The
 	   helper paragraph stays below the row. */
 	.league-form-head-row {
@@ -317,7 +317,7 @@
 		line-height: 1.5;
 	}
 
-	/* Inline sample code — mono, accent-tinted, so the expected format
+	/* Inline sample code: mono, accent-tinted, so the expected format
 	   stands out from the surrounding helper sentence. */
 	.league-code-example {
 		font-family: var(--font-mono);
@@ -465,7 +465,7 @@
 		color: var(--no);
 	}
 
-	/* Single full-width CTA — no Cancel; the disabled label doubles as
+	/* Single full-width CTA: no Cancel; the disabled label doubles as
 	   the inline hint ("Enter a valid code") until a code resolves. */
 	.league-form-actions {
 		display: flex;
