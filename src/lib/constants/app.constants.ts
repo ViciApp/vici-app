@@ -25,8 +25,9 @@ export const VICI_ORACLE_V1 = 'VICI_ORACLE_V1';
  */
 export const RESOLUTION_CLAUSE_MAX_LENGTH = 1024;
 
-/** Em-dash placeholder for an absent / not-yet-served value in the UI. */
-export const EM_DASH = '–';
+/** Placeholder for an absent / not-yet-served value in the UI: an en dash,
+ * which code standard rule 14 allows on its own (it bans only the em dash). */
+export const EMPTY_VALUE = '–';
 
 export const SECOND_IN_NANOSECONDS = 1_000_000_000n;
 export const MILLISECOND_IN_NANOSECONDS = 1_000_000n;
