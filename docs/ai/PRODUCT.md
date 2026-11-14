@@ -293,13 +293,13 @@ Decision record:
 
 Tapping the holdings card on `/dash` opens a sheet that answers a single
 question: every VXP the user holds is either **Available** ("Ready to
-spend on calls") or **In play** ("At stake on N open calls"). It leads
+spend on calls") or **In play** ("Committed to N open calls"). It leads
 with a "Your VXP" hero equal to total holdings, then a two-segment split
 bar whose widths are proportional to the available / in-play magnitudes
 (Available = accent, In play = the muted faint token; a zero segment is
 omitted, the whole bar hidden when both are zero), then two colour-keyed
 bucket rows that sum back to the hero. The in-play sub-label pluralises
-on the live open-call count ("At stake on 1 open call" / "… N open
+on the live open-call count ("Committed to 1 open call" / "… N open
 calls" / "No open calls"). Below the buckets sit the transaction-history
 link and an invite CTA; the CTA opens a native share sheet over the
 viewer's canonical `/i/{code}` referral link (clipboard-copy fallback

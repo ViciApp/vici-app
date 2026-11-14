@@ -159,7 +159,7 @@ export const deMessages = {
 	'battles.your_school': 'Alma Mater · {name}',
 	'achievement.bold_caller.description': 'Beste Außenseiter-Treffsicherheit des Monats',
 	'achievement.bold_caller.detail':
-		'Beende den Monat mit der höchsten Treffsicherheit unter denen, die gewohnheitsmäßig auf den Außenseiter setzen: ein medianer Konsens unter 40% auf den von dir gewählten Seiten. Wird bei Monatsabschluss vergeben; bei Gleichstand wird die Ehre geteilt.',
+		'Beende den Monat mit der höchsten Treffsicherheit unter denen, die gewohnheitsmäßig den Außenseiter wählen: ein medianer Konsens unter 40% auf den von dir gewählten Seiten. Wird bei Monatsabschluss vergeben; bei Gleichstand wird die Ehre geteilt.',
 	'achievement.bold_caller.name': 'Mutige Stimme',
 	'achievement.contrarian.name': 'Contrarian',
 	'achievement.first_call.description': 'Mache deine erste Vorhersage',
@@ -706,7 +706,7 @@ export const deMessages = {
 	'calibration.beat.deployed.practice': 'Üben, während du wartest →',
 	'calibration.beat.deployed.riding_on': 'IM SPIEL AUF {calls}',
 	'calibration.beat.deployed.see_open_calls': 'Offene Calls ansehen →',
-	'calibration.beat.deployed.title': 'Dein ganzer Einsatz ist im Spiel, nichts verloren.',
+	'calibration.beat.deployed.title': 'Dein ganzes Guthaben ist im Spiel, nichts verloren.',
 	'calibration.beat.depleted.body':
 		'Die Bilanz fängt beides auf. Schärfe den Blick in der Kalibrierung: Verluste sind geschützt, während du zurückkommst.',
 	'calibration.beat.depleted.eyebrow': 'KEINE VXP MEHR',
@@ -769,8 +769,8 @@ export const deMessages = {
 	'card.back.top_accuracy': 'Top-10%-Genauigkeit',
 	'card.back.who_calling': 'Wer ruft was',
 	'card.call_count': '{count} Calls',
-	'card.call_size': 'EINSATZGRÖSSE',
-	'card.call_size_cap': 'EINSATZGRÖSSE · MAX',
+	'card.call_size': 'CALL-GRÖSSE',
+	'card.call_size_cap': 'CALL-GRÖSSE · MAX',
 	'card.calls': 'Calls',
 	'card.challenge': 'Challenge',
 	'card.days_left_aria': 'Noch {days} Tage',
@@ -933,8 +933,7 @@ export const deMessages = {
 	'dash.dz.hero_quote_day1': '“Alea iacta est.”',
 	'dash.dz.hero_trans_day0': 'Taten, nicht Worte.',
 	'dash.dz.hero_trans_day1': 'Die Würfel sind gefallen. Deine erste Vorhersage ist unterwegs.',
-	'dash.dz.holdings_caption':
-		'Startpaket. Setze es für Vorhersagen ein; gewinne, um es zu vergrößern.',
+	'dash.dz.holdings_caption': 'Startpaket. Nutze es für Vorhersagen; gewinne, um es zu vergrößern.',
 	'dash.dz.lifetime_zero': '0 verdient',
 	'dash.dz.n_open': '{count} OFFEN',
 	'dash.dz.n_pending': '{count} AUSSTEHEND',
@@ -967,7 +966,7 @@ export const deMessages = {
 	'dash.dz.trend_tag_day1': 'AUSSTEHEND',
 	'dash.header_eyebrow_standard': '{count}-Tage-Serie · Fenster {window}',
 	'dash.holdings.available': 'Verfügbar',
-	'dash.holdings.backed': 'Eingesetzt',
+	'dash.holdings.backed': 'Gebunden',
 	'dash.holdings.eyebrow': 'Bestand',
 	'dash.holdings.invite_cta': 'Einladen →',
 	'dash.holdings.invite_sub': '500 VXP für jeden, der seinen ersten Call macht',
@@ -1101,7 +1100,7 @@ export const deMessages = {
 	'flow.funds.body':
 		'Deine VXP sind bereits in offenen Vorhersagen gebunden. Sie werden frei, sobald sich diese Märkte auflösen. Sieh dir deine offenen Calls im Dashboard an.',
 	'flow.funds.eyebrow': 'ALLES IM SPIEL',
-	'flow.funds.title': 'Voll eingesetzt.',
+	'flow.funds.title': 'Alles im Spiel.',
 	'flow.in_flow': 'im Flow',
 	'flow.invite.code_label': 'Code',
 	'flow.invite.copy_code_aria': 'Einladungscode kopieren',
@@ -1133,7 +1132,7 @@ export const deMessages = {
 	'flow.skip_aria': 'Überspringen',
 	'flow.stage_ended': '{stage} beendet.',
 	'flow.stake.warning.unaffordable':
-		'Mehr als deine verfügbaren VXP. Dein Guthaben ist im Spiel, setze kleiner.',
+		'Mehr als deine verfügbaren VXP. Dein Guthaben ist im Spiel, wähle eine kleinere Größe.',
 	'flow.stake.warning.wont_finish':
 		'So bleibt zu wenig, um deinen Flow zu beenden. Versuch es kleiner.',
 	'flow.streak_combo': 'Streak ×{count}',
@@ -1213,9 +1212,9 @@ export const deMessages = {
 	'info.doc.faq.b19':
 		'Duelle sind zeitlich begrenzte Wettbewerbe zwischen Ligen oder Universitäten. Die durchschnittliche Trefferquote im Zeitraum entscheidet. Für die Qualifikation ist eine Mindestanzahl an Prognosen nötig.',
 	'info.doc.faq.b2':
-		'Öffne Flow und eine Marktkarte erscheint. Wisch nach rechts für JA, nach links für NEIN, nach oben zum Überspringen. Tippe die Karte an, um sie zu drehen und Kontext sowie alle Quoten zu sehen.',
+		'Öffne Flow und eine Marktkarte erscheint. Wisch nach rechts für JA, nach links für NEIN, nach oben zum Überspringen. Tippe die Karte an, um sie zu drehen und Kontext sowie die Calls der anderen zu sehen.',
 	'info.doc.faq.b3':
-		'Jede Prognose setzt VXP zu den Marktquoten ein: unwahrscheinliche Ausgänge bringen mehr, Favoriten weniger. Gib deine 10 Prognosen am Tag ab, um deine Serie auszubauen; Trefferquote und Rang steigen, sobald die Märkte entschieden werden.',
+		'Mit jeder Prognose kommen VXP zur aktuellen Marktwahrscheinlichkeit ins Spiel: unwahrscheinliche Ausgänge bringen mehr, Favoriten weniger. Gib deine 10 Prognosen am Tag ab, um deine Serie auszubauen; Trefferquote und Rang steigen, sobald die Märkte entschieden werden.',
 	'info.doc.faq.b4': 'Was ist VXP?',
 	'info.doc.faq.b5':
 		'VXP ist das app-interne Prognoseguthaben. Du verdienst es durch Prognosen. Es ist kein Geld. Es ist nicht auszahlbar. Es ist die Einheit deiner Bilanz.',
@@ -1246,7 +1245,7 @@ export const deMessages = {
 		'Der Markt friert zum Handelsschluss am Schließdatum ein. Das veröffentlichte Ergebnis wird auf jede Prognose im Markt angewendet. Wer richtig lag, erhält VXP zum Kurs, der bei der Prognose angezeigt wurde. Wer falsch lag, erhält nichts.',
 	'info.doc.how-resolution-works.b7': 'Wenn eine Quelle nicht veröffentlicht',
 	'info.doc.how-resolution-works.b8':
-		'Selten, aber vorgesehen. Der Markt wird annulliert. Jede teilnehmende Person erhält ihren Einsatz vollständig zurück. Es werden keine Trefferpunkte vergeben.',
+		'Selten, aber vorgesehen. Der Markt wird annulliert. Jede teilnehmende Person erhält ihre VXP vollständig zurück. Es werden keine Trefferpunkte vergeben.',
 	'info.doc.how-resolution-works.b9': 'Wenn eine Quelle mehrdeutig veröffentlicht',
 	'info.doc.how-resolution-works.eyebrow': 'Hilfe · Abrechnung',
 	'info.doc.how-resolution-works.title': 'So wird abgerechnet',
@@ -1256,7 +1255,7 @@ export const deMessages = {
 	'info.doc.resolution-rules.b10.i0':
 		'Mehrdeutiges Ergebnis → die Vici-Redaktion prüft anhand des Kriteriums. Entscheidung und Begründung werden offen veröffentlicht.',
 	'info.doc.resolution-rules.b10.i1':
-		'Quelle veröffentlicht nicht → Markt annulliert, Einsätze zurück, kein Effekt auf die Trefferquote.',
+		'Quelle veröffentlicht nicht → Markt annulliert, VXP zurück, kein Effekt auf die Trefferquote.',
 	'info.doc.resolution-rules.b10.i2':
 		'Quelle ändert ihre Methodik im laufenden Fenster → Markt annulliert, sofern die Änderung nicht unerheblich ist.',
 	'info.doc.resolution-rules.b11': 'Einsprüche',
@@ -1538,7 +1537,7 @@ export const deMessages = {
 	'loop.flow_italic': 'Schnell entscheiden.',
 	'loop.flow_name': 'Flow',
 	'loop.market_body':
-		'Öffne eine Frage, wenn etwas wichtig ist. Lies den Zug. Setze deine Überzeugung.',
+		'Öffne eine Frage, wenn etwas wichtig ist. Lies den Zug. Gib deinen Call mit Überzeugung ab.',
 	'loop.market_eyebrow': '02 · MARKT',
 	'loop.market_italic': 'Tiefer einsteigen.',
 	'loop.market_name': 'Markt',
@@ -1552,7 +1551,7 @@ export const deMessages = {
 	'loop.title_a': 'Drei Zustände.',
 	'loop.title_b': 'Ein Kreislauf.',
 	'market.closes': 'schließt',
-	'market.odds.loading': 'Quoten werden geladen',
+	'market.odds.loading': 'Wahrscheinlichkeit wird geladen',
 	'market.odds.no_liquidity': 'Noch keine Liquidität',
 	'market.detail.admin_actions': 'Admin-Aktionen',
 	'market.detail.back_to_markets': 'Zurück zu Märkten',
@@ -1993,7 +1992,7 @@ export const deMessages = {
 	'portfolio.back': 'Zurück zum Dashboard',
 	'portfolio.allocation.other': 'Andere',
 	'portfolio.empty.body':
-		'Setze auf ein paar Calls im Flow-Deck; deine offenen und abgeschlossenen Positionen erscheinen hier.',
+		'Gib ein paar Calls im Flow-Deck ab; deine offenen und abgeschlossenen Positionen erscheinen hier.',
 	'portfolio.empty.cta': 'Flow öffnen',
 	'portfolio.empty.quote': '"Ein Portfolio ist die Liste der Calls, die du behalten hast."',
 	'portfolio.hero.eyebrow': 'GESAMTBESTAND',
@@ -2546,7 +2545,7 @@ export const deMessages = {
 	'trust.p2_t': 'Gleiche Info für alle',
 	'trust.p3_b':
 		'Die Wahrscheinlichkeit, die du siehst, ist der Konsens, über den du abstimmst. Kein Hausvorteil. Kein Spread.',
-	'trust.p3_t': 'Keine versteckten Quoten',
+	'trust.p3_t': 'Keine versteckten Wahrscheinlichkeiten',
 	'trust.sub': 'Drei Regeln, die die Plattform nicht bricht.',
 	'trust.title_a': 'Kein Haus.',
 	'trust.title_b': 'Kein Vorteil. Keine Geheimnisse.',
@@ -2600,7 +2599,7 @@ export const deMessages = {
 	'wallet.row.reward': 'Belohnung',
 	'wallet.row.send': 'Gesendet',
 	'wallet.row.settlement': 'Gewonnen',
-	'wallet.row.trade': 'Eingesetzt',
+	'wallet.row.trade': 'Gecallt',
 	'wallet.send.amount': 'Betrag',
 	'wallet.send.empty':
 		'Sendeoptionen werden geladen… Wenn das bleibt, sind im aktuellen Netzwerk keine Token verfügbar.',

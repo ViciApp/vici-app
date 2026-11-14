@@ -328,7 +328,7 @@
 
 	// Row helpers: title / direction / amount label for the recent
 	// activity list. Mirrors `WalletHistory`'s `directionFor` but renders
-	// a single inline string (e.g. "Won · {market}", "Stake · {market}",
+	// a single inline string (e.g. "Won · {market}", "Called · {market}",
 	// "Receive", "Send") so the row reads at a glance.
 	const marketTitle = (marketId: string | undefined): string | undefined =>
 		nonNullish(marketId) ? $displayMarkets.get(marketId)?.title : undefined;
