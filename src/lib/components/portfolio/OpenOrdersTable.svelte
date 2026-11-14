@@ -6,6 +6,7 @@
 	import BaseButton from '#lib/components/ui/BaseButton.svelte';
 	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import Pagination from '#lib/components/ui/Pagination.svelte';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import {
 		PORTFOLIO_DEFAULT_DECIMALS,
@@ -125,7 +126,7 @@
 						{#if catLabel}
 							<span style:color={catAccent} class="portfolio-row-cat">{catLabel}</span>
 						{:else}
-							<span class="portfolio-row-cat is-dim">–</span>
+							<span class="portfolio-row-cat is-dim">{EMPTY_VALUE}</span>
 						{/if}
 						<span class="portfolio-row-side portfolio-row-side-{sideKey}">
 							{isBuy

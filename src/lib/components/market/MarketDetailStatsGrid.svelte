@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { EMPTY_VALUE, ZERO } from '#lib/constants/app.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { Market } from '#lib/types/market.ts';
 	import type { Position, ResolvedPosition } from '#lib/types/position.ts';
@@ -123,7 +123,7 @@
 					? t({ locale: $localeStore, key: 'outcome.yes' })
 					: myCall === 'NO'
 						? t({ locale: $localeStore, key: 'outcome.no' })
-						: (myCall ?? '–'),
+						: (myCall ?? EMPTY_VALUE),
 			suffix: '',
 			mute: isNullish(myCall),
 			loading: myCallPending

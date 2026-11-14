@@ -31,6 +31,7 @@
 	import DashCallRow from '#lib/components/dash/DashCallRow.svelte';
 	import type { OpenCallRow } from '#lib/components/dash/DashCallsZone.svelte';
 	import DashGettingStarted from '#lib/components/dash/DashGettingStarted.svelte';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
@@ -108,7 +109,7 @@
 		<div class="db-hrow">
 			<span class="db-lbl">{t({ locale: $localeStore, key: 'dash.accuracy.eyebrow' })}</span>
 		</div>
-		<div class="db-big num db-muted">–<span class="db-u">%</span></div>
+		<div class="db-big num db-muted">{EMPTY_VALUE}<span class="db-u">%</span></div>
 		<div class="db-cal">{calibratingCaption}</div>
 		<div class="db-areachart db-empty">
 			<svg preserveAspectRatio="none" viewBox="0 0 360 48">

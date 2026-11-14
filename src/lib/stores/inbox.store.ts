@@ -1,5 +1,6 @@
 import {
 	DAY_IN_MS,
+	EMPTY_VALUE,
 	MILLISECOND_IN_NANOSECONDS,
 	USD_DECIMALS,
 	ZERO
@@ -443,7 +444,7 @@ const resolvedSide = ({
 
 	const label = outcomeId
 		? (market?.outcomes?.find((o) => o.id === outcomeId)?.title ?? outcomeId)
-		: '–';
+		: EMPTY_VALUE;
 
 	return { label, sideKey: 'hold' };
 };

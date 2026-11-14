@@ -4,7 +4,7 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
-	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { DAY_IN_MS, EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { track } from '#lib/services/analytics.services.ts';
 	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
@@ -266,7 +266,7 @@
 
 			return nonNullish(pct)
 				? t({ locale: $localeStore, key: 'leagues.battle.score_pct', params: { pct } })
-				: '–';
+				: EMPTY_VALUE;
 		}
 
 		if (isLive && nonNullish(liveScore)) {
@@ -275,7 +275,7 @@
 			return t({ locale: $localeStore, key: 'leagues.battle.score_pct', params: { pct } });
 		}
 
-		return '–';
+		return EMPTY_VALUE;
 	};
 
 	// Whether a side is ahead: the resolved winner once resolved, the live

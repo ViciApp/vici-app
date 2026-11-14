@@ -10,6 +10,7 @@
 	 * (aria-hidden) and scrolls via CSS (paused under reduced-motion).
 	 */
 	import { onMount } from 'svelte';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { LANDING_PROOF_CHIPS } from '#lib/constants/landing-data.constants.ts';
 	import { getViciUserCount } from '#lib/services/landing-proof.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -61,7 +62,7 @@
 	<div class="lpc-wrap lpc-proof-inner">
 		<div class="lpc-proof-num" class:is-loading={isNullish(countLabel)}>
 			{#if isNullish(countLabel)}
-				<span class="acc" aria-hidden="true">–</span>
+				<span class="acc" aria-hidden="true">{EMPTY_VALUE}</span>
 			{:else}
 				<span class="acc">{countLabel}</span>
 			{/if}
