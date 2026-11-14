@@ -40,35 +40,35 @@
 	import { goto } from '$app/navigation';
 
 	/**
-	 * Battles inbox — the surface users reach for when looking for a
+	 * Battles inbox: the surface users reach for when looking for a
 	 * "battle request". League-vs-league battles are still *managed*
 	 * under the Leagues surface (a league owner accepts from the league
 	 * detail page), but a challenge the caller has *received* must be
-	 * discoverable here too — otherwise a recipient who looks in Battles
+	 * discoverable here too: otherwise a recipient who looks in Battles
 	 * finds nothing and assumes it never arrived. The page is composed
 	 * of surface-grouped sections (grouped by **surface**, never by
 	 * battle state):
 	 *
-	 *  1. Incoming league challenges — proposed battles where a league
+	 *  1. Incoming league challenges: proposed battles where a league
 	 *     the caller *owns* is the challenged side (`sideB`). Read-only
 	 *     pointers: each row deep-links to that league's detail page,
 	 *     where the owner accepts. Sourced from the shared `leagues`
 	 *     store so it stays in sync with the Leagues tab badge.
 	 *
-	 *  2. Optional "What's a battle?" intro card — dismissible, persists
+	 *  2. Optional "What's a battle?" intro card: dismissible, persists
 	 *     via `localStorage['vici.battles-intro-seen']`. The locked
 	 *     design calls for cross-device `preferences` storage; that
 	 *     is deferred until the satellite `preferences` schema can be
 	 *     migrated without a Candid + Rust binding regen.
 	 *
-	 *  3. Worlds Universities — featured WC podium card (top 3 by
+	 *  3. Worlds Universities: featured WC podium card (top 3 by
 	 *     lifetime accuracy) + monthly compact card linking to the
 	 *     Worlds detail surface.
 	 *
-	 *  4. Worlds Countries — same shape as Universities, sourced off
+	 *  4. Worlds Countries: same shape as Universities, sourced off
 	 *     `listAffiliationStats({ kind: 'country' })`.
 	 *
-	 *  5. Monthly Tournament curated card — rendered only when the
+	 *  5. Monthly Tournament curated card: rendered only when the
 	 *     current tournament has unresolved rounds in flight.
 	 *
 	 * A footer link routes to the Leagues tab, where league battles are
@@ -76,7 +76,7 @@
 	 */
 
 	interface Props {
-		// When true, hide the page's own appbar — the container is
+		// When true, hide the page's own appbar; the container is
 		// expected to render one (e.g. the tabbed Arena parent).
 		embedded?: boolean;
 	}
@@ -86,7 +86,7 @@
 	// ─── Battles inbox state ──────────────────────────────────────────
 	let loadState: 'loading' | 'ready' | 'error' = $state('loading');
 	let errorMessage: string | null = $state(null);
-	// League ids the caller belongs to — feeds the tournament card's
+	// League ids the caller belongs to: feeds the tournament card's
 	// "your league is in" row. Derived from the same `leagues` store the
 	// incoming-challenge section reads, so league membership has a single
 	// source of truth and the inbox never re-lists the caller's leagues.
@@ -118,7 +118,7 @@
 		shortLeagueId(id);
 
 	// A challenger can send more than one challenge to the same league, so
-	// the card must show what sets each apart — duration · scope · optional
+	// the card must show what sets each apart: duration · scope · optional
 	// wager. Without it two proposals render identically and the recipient
 	// can't tell why they have two.
 	const challengeFacts = (battle: BattleDoc): string => {
@@ -156,7 +156,7 @@
 	};
 
 	// ─── Live battles ───────────────────────────────────────────────
-	// Every battle under way across the leagues the caller belongs to —
+	// Every battle under way across the leagues the caller belongs to:
 	// the surface a user looks for after accepting a challenge. Sourced
 	// from `listMyBattles` (one authoritative cross-league read, the same
 	// the detail page uses) rather than fanning out over the per-league
@@ -218,12 +218,12 @@
 
 	// ─── Intro card dismissal ───────────────────────────────────────
 	// Persisted via the `BATTLES_INTRO_SEEN_KEY` localStorage flag. Future
-	// migration to cross-device preferences is deferred — adding a new field
+	// migration to cross-device preferences is deferred: adding a new field
 	// to the satellite preferences schema requires a Candid + Rust binding
 	// regen scoped outside this work.
 	let battlesIntroSeen = $state(false);
 
-	// Create-a-battle wizard — opened from the intro CTA and the slim
+	// Create-a-battle wizard: opened from the intro CTA and the slim
 	// "Start a battle" row.
 	let createBoutOpen = $state(false);
 
@@ -252,7 +252,7 @@
 			try {
 				battlesIntroSeen = localStorage.getItem(BATTLES_INTRO_SEEN_KEY) === '1';
 			} catch {
-				// Storage unavailable — keep the intro visible.
+				// Storage unavailable: keep the intro visible.
 			}
 		}
 
@@ -268,7 +268,7 @@
 			try {
 				localStorage.setItem(BATTLES_INTRO_SEEN_KEY, '1');
 			} catch {
-				// Storage unavailable — dismissal won't survive a reload.
+				// Storage unavailable: dismissal won't survive a reload.
 			}
 		}
 	};
@@ -287,16 +287,16 @@
 	};
 
 	// ─── Worlds roster helpers ──────────────────────────────────────
-	// The single Worlds battle card owns its own scope ranking — it
+	// The single Worlds battle card owns its own scope ranking; it
 	// receives the full roster `stats` and re-sorts per the active
-	// scope — so the parent only supplies the roster, the viewer's
+	// scope, so the parent only supplies the roster, the viewer's
 	// affiliation, the total size, and the two countdowns.
 	const universityCount = WORLDS_UNIVERSITIES.length;
 	const countryCount = WORLDS_COUNTRIES.length;
 
 	const eventDaysLeft = $derived($daysToFinal);
 
-	// Days left in the current calendar month — the Season scope's
+	// Days left in the current calendar month; the Season scope's
 	// countdown. The season always runs to the end of the active month.
 	const monthDaysLeft = $derived.by((): number => {
 		const now = new Date();
@@ -311,7 +311,7 @@
 	});
 
 	// Open a roster's detail surface on the scope the viewer was looking
-	// at — the detail page reads `?scope=wc|month` to land on the same
+	// at: the detail page reads `?scope=wc|month` to land on the same
 	// ranking.
 	const goWorldsUniversities = (scope: 'wc' | 'month') => {
 		const suffix = scope === 'month' ? '?scope=month' : '';
@@ -366,7 +366,7 @@
 			return null;
 		}
 
-		// Use the earliest open match's window — that's when the
+		// Use the earliest open match's window: that's when the
 		// current round closes.
 		const earliestEnd = Math.min(...ms.filter((m) => m.endMs > Date.now()).map((m) => m.endMs));
 		const delta = earliestEnd - Date.now();
@@ -853,7 +853,7 @@
 		border: 1px solid color-mix(in srgb, #b49cff 30%, transparent);
 	}
 
-	/* An incoming challenge is the recipient's call to action — lean on the
+	/* An incoming challenge is the recipient's call to action: lean on the
 	   laurel accent the rest of the inbox uses for league surfaces. */
 	.battles-card.is-incoming {
 		border-color: color-mix(in srgb, var(--laurel) 34%, var(--border-base));
@@ -991,7 +991,7 @@
 	}
 
 	/* The window line is the card's last visible row now that the
-	   "view battle" label is gone — drop its trailing margin so the
+	   "view battle" label is gone: drop its trailing margin so the
 	   body centers cleanly against the arrow. */
 	.battles-card.is-live-link .battles-card-meta {
 		margin-bottom: 0;

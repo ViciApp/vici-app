@@ -6,8 +6,8 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * XpToast — the commit pop. A swipe PLACES a call; it doesn't win one,
-	 * so the pop confirms the act — "CALLED YES · {stake} IN PLAY" — light
+	 * XpToast: the commit pop. A swipe PLACES a call; it doesn't win one,
+	 * so the pop confirms the act, "CALLED YES · {stake} IN PLAY", light
 	 * and celebratory, never implying a payout. A genuine milestone /
 	 * streak bonus (real VXP grant) rides along as a trailing chip. Fires
 	 * on every committed YES / NO swipe; renders nothing for SKIP.

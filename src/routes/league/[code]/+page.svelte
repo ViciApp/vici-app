@@ -21,20 +21,20 @@
 	import { page } from '$app/state';
 
 	/**
-	 * League-invite landing page — the single canonical URL the "Invite"
+	 * League-invite landing page: the single canonical URL the "Invite"
 	 * buttons copy (`{origin}/league/{code}`). Mirrors the `/i/[code]`
 	 * referral landing. The `[code]` slug is a 6-char `[A-Z0-9]` invite
 	 * code enforced by `LEAGUE_INVITE_CODE_REGEX`. Branches on auth state:
 	 *
-	 *   1. **Invalid code shape** — toast + bail to the leagues list.
-	 *   2. **Signed-out (or a brand-new account still mid-onboarding)** —
+	 *   1. **Invalid code shape**: toast + bail to the leagues list.
+	 *   2. **Signed-out (or a brand-new account still mid-onboarding)**:
 	 *      stash the code into the `vici:pending-onboarding` payload and
 	 *      route to `/signup`. The (app) layout's pending-onboarding drain
 	 *      then auto-joins the league once the new account is in place.
 	 *      Returning users (a profile already existed at sign-in) skip this
 	 *      and join directly, even if their legacy profile never flipped
 	 *      `onboardingCompleted` to `true`.
-	 *   3. **Signed-in & onboarded** — resolve the league, join it (or
+	 *   3. **Signed-in & onboarded**: resolve the league, join it (or
 	 *      route straight in if already a member), then land on the
 	 *      league detail page.
 	 *
@@ -44,8 +44,8 @@
 	 * signed-out → stash it next to the league invite so the signup drain
 	 * redeems it (friendship + new-user bonus); signed-in returning user →
 	 * claim the friendship directly after the join (no bonus, idempotent).
-	 * The pending-onboarding slot is signed-out machinery — its drain toasts
-	 * "account exists" for returning users — so we never stash `?ref=` for a
+	 * The pending-onboarding slot is signed-out machinery: its drain toasts
+	 * "account exists" for returning users, so we never stash `?ref=` for a
 	 * signed-in session.
 	 */
 
@@ -71,7 +71,7 @@
 	);
 	// A returning user (the satellite already held a profile at sign-in) is
 	// past onboarding even if their legacy profile still defaults
-	// `onboardingCompleted` to `false` — only a brand-new account needs the
+	// `onboardingCompleted` to `false`: only a brand-new account needs the
 	// signup drain. Mirrors the (app) layout's onboarding gate.
 	const needsOnboarding = $derived(!onboardingCompleted && !$userStore.profileExisted);
 
@@ -86,13 +86,13 @@
 			return;
 		}
 
-		// Wait for the auth handshake before deciding what to do — reacting
+		// Wait for the auth handshake before deciding what to do: reacting
 		// too early would always read `userSignedIn=false`.
 		if ($authBusy) {
 			return;
 		}
 
-		// One-shot — we navigate away in every branch, and the `onMount`
+		// One-shot: we navigate away in every branch, and the `onMount`
 		// mutation guard would otherwise re-fire on the post-nav re-render.
 		if (untrack(() => resolved)) {
 			return;
@@ -126,7 +126,7 @@
 		// route to signup. The (app) layout drain redeems the invite once the
 		// profile exists. Returning users join directly (see `needsOnboarding`).
 		// The common signed-out case (no signed-in hint on the device) never
-		// reaches here — `+page.ts` fast-paths it before the auth handshake;
+		// reaches here: `+page.ts` fast-paths it before the auth handshake;
 		// this branch covers a stale hint whose session turned out expired.
 		if (!$userSignedIn || needsOnboarding) {
 			stashLeagueInviteForSignup({ inviteCode: normalizedCode, referralCode });
@@ -135,7 +135,7 @@
 			return;
 		}
 
-		// Existing signed-in user — resolve the league first so we can route
+		// Existing signed-in user: resolve the league first so we can route
 		// the user in and name the league in the toast, regardless of the
 		// join outcome.
 		try {
@@ -169,7 +169,7 @@
 			} catch (err: unknown) {
 				const message = err instanceof Error ? err.message : '';
 
-				// Already a member is a no-op success — fall through and route in.
+				// Already a member is a no-op success: fall through and route in.
 				if (message !== 'Already a member of this league.') {
 					console.error('League invite join failed', err);
 					notificationsStore.add({
@@ -185,7 +185,7 @@
 			}
 
 			// A league invite implies a friend invite. A signed-in returning user
-			// is past the signup window, so there's no VXP bonus — just land them
+			// is past the signup window, so there's no VXP bonus: just land them
 			// in the sharer's friends list. Best-effort and idempotent: the
 			// satellite no-ops an existing relation and rejects self-referral.
 			if (nonNullish(referralCode)) {

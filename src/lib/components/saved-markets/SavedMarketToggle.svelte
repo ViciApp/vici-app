@@ -21,30 +21,30 @@
 		marketId: string;
 		/** Visual size variant.
 		 *
-		 *  - `sm` (default) — compact 28×28 px circle, intended for inline
+		 *  - `sm` (default): compact 28×28 px circle, intended for inline
 		 *    use in card headers (see `MarketCard`).
-		 *  - `md` — 36×36 px pill, intended for prominent app-bar slots
+		 *  - `md`: 36×36 px pill, intended for prominent app-bar slots
 		 *    (see `MarketDetailHeader`).
 		 */
 		size?: ToggleSize;
 		/** Glyph used for the affordance.
 		 *
-		 *  - `heart` (default) — the bookmark heart used on market cards.
-		 *  - `eye` — a "watch this market" eye, used in the detail
+		 *  - `heart` (default): the bookmark heart used on market cards.
+		 *  - `eye`: a "watch this market" eye, used in the detail
 		 *    header where the control reads as add-to-watchlist.
 		 */
 		icon?: ToggleIcon;
 		/** Treatment variant.
 		 *
-		 *  - `pill` (default) — bordered laurel pill; the saved state fills
+		 *  - `pill` (default): bordered laurel pill; the saved state fills
 		 *    with the laurel wash. Used by `MarketCard` and other default
 		 *    callers.
-		 *  - `flow-ghost` — borderless square (8 px radius) that sits flush
+		 *  - `flow-ghost`: borderless square (8 px radius) that sits flush
 		 *    in a dense action row; transparent until hovered, and the
 		 *    saved heart turns pink rather than laurel so it reads as a
 		 *    personal watchlist mark next to the neutral share control
 		 *    (see `FlowBackHeader`).
-		 *  - `header-ghost` — the faint header icon-button look that sits
+		 *  - `header-ghost`: the faint header icon-button look that sits
 		 *    as one set with the back chevron and share control on the
 		 *    detail app-bar (rounded rect, foreground wash + border); the
 		 *    saved state reads via the laurel accent (see the market
@@ -159,7 +159,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Flow-ghost treatment — a borderless 8 px-radius square that reads
+	/* Flow-ghost treatment: a borderless 8 px-radius square that reads
 	   as a neutral icon affordance until interacted with. Saved state
 	   turns the heart pink so a watchlisted card is unmistakable next to
 	   the neutral share control in the dense flow-back action row. Keeps
@@ -181,7 +181,7 @@
 		color: #ff6b8a;
 	}
 
-	/* Header-ghost treatment — the faint header icon-button look that
+	/* Header-ghost treatment: the faint header icon-button look that
 	   matches the back chevron and share control on the detail app-bar.
 	   The fill is a foreground wash so it adapts across themes (dark /
 	   light / peach) rather than a hardcoded dark-only rgba. Drops the
@@ -210,7 +210,7 @@
 		color: var(--laurel);
 	}
 
-	/* Heart-pop envelope on save toggle — visual punch that
+	/* Heart-pop envelope on save toggle: visual punch that
 	   substitutes for the haptic on iOS Safari (Vibration API
 	   absent there). */
 	.saved-market-icon {

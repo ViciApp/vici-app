@@ -9,7 +9,7 @@
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 
 	/**
-	 * Info / legal doc page — single-column reading view with:
+	 * Info / legal doc page: single-column reading view with:
 	 *  - top-left circular back chevron + the doc title flowing alongside it
 	 *  - small accent-coloured eyebrow under the title
 	 *  - serif-italic lede paragraph
@@ -19,7 +19,7 @@
 	 *  - bottom "Back to settings" affordance below a 1px divider
 	 *
 	 * Lists carry a 4px accent dot positioned absolutely at the left of
-	 * each item — not the default `list-disc`. Mail links use the mono
+	 * each item, not the default `list-disc`. Mail links use the mono
 	 * font + accent underline + 3px text-underline-offset.
 	 */
 
@@ -29,13 +29,13 @@
 
 	let { doc }: Props = $props();
 
-	// Resolve the document title once for the header + `<title>` —
+	// Resolve the document title once for the header + `<title>`:
 	// literal for legal docs, keyed (localized) for help docs.
 	const title = $derived(
 		'title' in doc ? doc.title : t({ locale: $localeStore, key: doc.titleKey })
 	);
 
-	// Eyebrow line — literal for legal docs, keyed for help docs.
+	// Eyebrow line: literal for legal docs, keyed for help docs.
 	const eyebrow = $derived(
 		'eyebrow' in doc ? doc.eyebrow : t({ locale: $localeStore, key: doc.eyebrowKey })
 	);
@@ -113,7 +113,7 @@
 		</article>
 
 		<!--
-			Bottom back-to-settings affordance — divider + ghost button.
+			Bottom back-to-settings affordance: divider + ghost button.
 			Lands on Settings for signed-in users, Welcome otherwise.
 		-->
 		<div class="info-foot">
@@ -174,7 +174,7 @@
 		width: 100%;
 	}
 
-	/* Editorial eyebrow under the title — accent colour + 0.16em
+	/* Editorial eyebrow under the title: accent colour + 0.16em
 	   tracking. */
 	.info-eyebrow {
 		margin: 0.75rem 0 1rem;
@@ -189,7 +189,7 @@
 		flex-direction: column;
 	}
 
-	/* Serif-italic lede — sets the editorial tone before the body. */
+	/* Serif-italic lede: sets the editorial tone before the body. */
 	.info-lede {
 		margin: 0 0 1.5rem;
 		font-size: clamp(1.15rem, 4.2vw, 1.5rem);
@@ -213,7 +213,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Custom accent-dot list — 4px primary-coloured dot at the left of
+	/* Custom accent-dot list: 4px primary-coloured dot at the left of
 	   each item, no default `list-disc` bullet. */
 	.info-list {
 		margin: 0 0 0.875rem;

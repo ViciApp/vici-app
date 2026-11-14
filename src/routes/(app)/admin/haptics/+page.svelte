@@ -32,7 +32,7 @@
 	const fmt = (value: number | readonly number[]): string =>
 		typeof value === 'number' ? `${value}ms` : `[${value.join(', ')}]`;
 
-	// Raw fire — bypasses the haptic() pipeline (no preference gate, no
+	// Raw fire: bypasses the haptic() pipeline (no preference gate, no
 	// Android floor) so you can feel exactly what the hardware does with
 	// the authored envelope. Returns navigator.vibrate's boolean.
 	const fireRaw = ({ value, label }: { value: number | number[]; label: string }): void => {
@@ -50,7 +50,7 @@
 		}
 	};
 
-	// Pipeline fire — the real path users hit (respects hapticsEnabled +
+	// Pipeline fire: the real path users hit (respects hapticsEnabled +
 	// Android floor). If the preference is off, this is a no-op by design.
 	const firePipeline = (pattern: HapticPattern): void => {
 		haptic(pattern);
@@ -58,7 +58,7 @@
 	};
 
 	// Svelte coerces a `type="number"` bind to a number, but a cleared
-	// field binds `null` — normalize + validate before firing so the
+	// field binds `null`; normalize + validate before firing so the
 	// tester never hands `navigator.vibrate` a NaN / 0 no-op.
 	let customMs = $state<number | null>(200);
 

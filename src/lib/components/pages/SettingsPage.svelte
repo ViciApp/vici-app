@@ -67,17 +67,17 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 
-	// Delete-account flow — the six-beat flow lives in
+	// Delete-account flow: the six-beat flow lives in
 	// `DeleteAccountFlow`; this page only owns the open/close toggle.
 	let deleteSheetOpen = $state(false);
 
-	// Language picker — the two-axis (Language ▸ Region) picker lives in
+	// Language picker: the two-axis (Language ▸ Region) picker lives in
 	// `LocaleSheet`; the row below opens it and reflects the active locale.
 	// Resolved against the full registry so a regional edition (e.g. `pt-BR`)
 	// shows its own native label and short code, not just the live base set.
 	let langSheetOpen = $state(false);
 
-	// Install sheet — the Add-to-Home-Screen flow lives in `A2hsSheet`; this
+	// Install sheet: the Add-to-Home-Screen flow lives in `A2hsSheet`; this
 	// row only owns the open toggle and is gated on `$canInstall`.
 	let a2hsSheetOpen = $state(false);
 
@@ -129,7 +129,7 @@
 		}, 1800);
 	};
 
-	// Joined date — sourced from the Juno profile doc's `created_at` (ns).
+	// Joined date: sourced from the Juno profile doc's `created_at` (ns).
 	// Mirrors the `ProfilePage` loader so the identity row's "Joined …"
 	// line stays in sync with the dashboard's joined chip.
 	let joinedAtNs = $state<bigint | undefined>(undefined);
@@ -174,7 +174,7 @@
 	const email = $derived($userStore.email);
 	const hasEmail = $derived(email.length > 0);
 
-	// Sign-in method sub — derived from the provider Juno records on the
+	// Sign-in method sub: derived from the provider Juno records on the
 	// `#user` doc (refined by whether an email is on file), so Google /
 	// Passkey accounts surface their own label instead of collapsing into
 	// the old email-vs-II heuristic. Email-backed accounts show the address.
@@ -196,7 +196,7 @@
 		}
 	});
 
-	// Email row sub — just the address; the "verified" affordance is
+	// Email row sub: just the address; the "verified" affordance is
 	// rendered as a separate green badge.
 	const emailSub = $derived(
 		hasEmail ? email : t({ locale: $localeStore, key: 'settings.account.email.empty' })
@@ -223,7 +223,7 @@
 
 	const themeLabel = $derived($theme.charAt(0).toUpperCase() + $theme.slice(1));
 
-	// About line — `VICI · v{version} · Build {sha}`. Both values are
+	// About line: `VICI · v{version} · Build {sha}`. Both values are
 	// injected at build time via vite `define` (see `vite.config.ts`),
 	// so the line surfaces the actual shipped artefact and not a
 	// hard-coded literal.
@@ -279,7 +279,7 @@
 		// Emit + flush BEFORE the auth drop: `flushEvents` is fire-and-forget
 		// (it never blocks or fails the sign-out), but starting it while the
 		// session is still live lets the satellite stitch the principal onto
-		// the event — after `signOut()` the batch would land anonymous.
+		// the event; after `signOut()` the batch would land anonymous.
 		track({ name: 'signed_out', source: 'settings' });
 		void flushEvents();
 
@@ -287,8 +287,8 @@
 			await dropAuth();
 		} catch {
 			// Sign-out failed before the session changed. `dropAuth` set the
-			// global `authBusy` flag and only `onAuthStateChange` clears it —
-			// which won't fire now — so clear it here, otherwise the (app)
+			// global `authBusy` flag and only `onAuthStateChange` clears it,
+			// which won't fire now, so clear it here, otherwise the (app)
 			// shell stays stuck on its `authResolving` loader instead of the
 			// restored confirm controls. Then re-enable so the user can retry.
 			setAuthBusy(false);
@@ -301,7 +301,7 @@
 		// Auth is dropped. Drive the redirect from here instead of waiting for
 		// the (app) layout's auth-gate effect to react and paint the shell's
 		// hydration spinner first, which reads as a sluggish sign-out. The
-		// button stays `pending` through the navigation — this component
+		// button stays `pending` through the navigation; this component
 		// unmounts on the route change, so the spinner never flickers back to
 		// the idle label. Deliberately outside the try: a `goto` abort (a
 		// concurrent redirect already taking us away) is not a sign-out failure
@@ -517,7 +517,7 @@
 		</SettingsSection>
 
 		<!--
-			Secondary "Privacy" card — the two opt-out share toggles
+			Secondary "Privacy" card: the two opt-out share toggles
 			(global leaderboard, Worlds Universities) distinct from the
 			privacy-and-security set above. Both persist through the
 			`preferences.sharing` slice and are enforced: leaderboard via
@@ -690,7 +690,7 @@
 	{#if nonNullish(toastMessage)}
 		<!--
 			Pill-shaped transient toast pinned to the bottom of the page.
-			Local to this surface — used for low-stakes confirmations
+			Local to this surface: used for low-stakes confirmations
 			(Saved / coming soon) that don't warrant a global
 			notification entry.
 		-->
@@ -731,7 +731,7 @@
 		width: 2.5rem;
 	}
 
-	/* Verified email pill — small green badge rendered in the SetRow
+	/* Verified email pill: small green badge rendered in the SetRow
 	   `right` snippet. Uses YES (green) tokens to read as a positive
 	   verification affordance, distinct from the laurel-gold default
 	   badge slot. */
@@ -748,7 +748,7 @@
 		text-transform: uppercase;
 	}
 
-	/* Language row trailing affordance — the active locale's short code
+	/* Language row trailing affordance: the active locale's short code
 	   (mono, muted) sitting beside the chevron, mirroring the row's
 	   `right` slot. */
 	.settings-lang-right {
@@ -836,7 +836,7 @@
 	}
 
 	/* Sign-out as a 12-px rounded rectangle (intentionally NOT a
-	   full pill — pairs with the destructive band below). Danger text
+	   full pill: pairs with the destructive band below). Danger text
 	   + danger-tinted border on top of a subtle ghost-button surface;
 	   hover lifts the danger wash without flipping to a fully filled
 	   destructive button so the action still requires the explicit

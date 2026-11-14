@@ -16,7 +16,7 @@
 	 * active tabs. Flow gets a permanent faint laurel halo behind its
 	 * icon and the indicator turns laurel when Flow is the active tab.
 	 *
-	 * Active-state aliasing — paths that don't have their own slot but
+	 * Active-state aliasing: paths that don't have their own slot but
 	 * should still highlight a parent tab:
 	 *
 	 *  - Markets ← /app, /markets, /markets/*
@@ -70,13 +70,13 @@
 	const isFlowActive = $derived(activeIndex >= 0 && isFlowPath(navItems[activeIndex].path));
 
 	const handleNav = (path: AppPath) => {
-		// Light tap on tab change — wired through the real Vibration API.
+		// Light tap on tab change: wired through the real Vibration API.
 		haptic('light-tap');
 		goto(path);
 	};
 
 	/* ------------------------------------------------------------------
-	 * Sliding indicator — measure the active tab and centre a 28px pill
+	 * Sliding indicator: measure the active tab and centre a 28px pill
 	 * over it. Recomputed via ResizeObserver so the indicator tracks
 	 * orientation changes / nav-width shifts.
 	 * ------------------------------------------------------------------ */
@@ -403,7 +403,7 @@
 		justify-content: center;
 	}
 
-	/* Background pill behind icon — scales in on active. */
+	/* Background pill behind icon: scales in on active. */
 	.pillnav-icon-bg {
 		position: absolute;
 		inset: -1px 6px;
@@ -428,7 +428,7 @@
 		transform: scaleX(1);
 	}
 
-	/* Flow-and-here reads as a step up from Flow-as-primary — the active
+	/* Flow-and-here reads as a step up from Flow-as-primary; the active
 	   pill brightens past the always-on halo below it. */
 	.pillnav-tab.flow-tab.active .pillnav-icon-bg {
 		background: rgba(226, 184, 66, 0.28);
@@ -462,12 +462,12 @@
 		font-weight: 600;
 	}
 
-	/* Flow tab — always laurel-tinted with a faint ever-on halo. */
+	/* Flow tab: always laurel-tinted with a faint ever-on halo. */
 	.pillnav-tab.flow-tab {
 		color: var(--accent, var(--color-primary));
 	}
 
-	/* Always-on laurel halo behind Flow's icon — a soft glowing pill that
+	/* Always-on laurel halo behind Flow's icon; a soft glowing pill that
 	   marks Flow as the primary action even when it isn't the current tab.
 	   Paints beneath both the icon (z-index 1) and the active-state
 	   `.pillnav-icon-bg`, so the active pill layers over it for a stronger

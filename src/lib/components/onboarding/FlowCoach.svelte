@@ -10,17 +10,17 @@
 	import { browser } from '$app/env';
 
 	/**
-	 * FlowCoach — first-run gesture map shown the first time any user
+	 * FlowCoach: first-run gesture map shown the first time any user
 	 * reaches the prediction card (the deck is open to guests too). It is
 	 * a NON-BLOCKING overlay: the card below stays fully readable and
 	 * swipeable, and only the opt-out button captures pointer events. The
-	 * coach teaches by doing — it does not hijack the card, run a timer,
+	 * coach teaches by doing: it does not hijack the card, run a timer,
 	 * or drift the deck.
 	 *
 	 * Dismissal is learn-by-doing: the coach clears itself the moment the
 	 * user places their FIRST real call, reacting to the `commitSignal`
 	 * counter. The deck only bumps that counter on a committed YES / NO,
-	 * which is reachable only when signed in — so for guests the "Got it"
+	 * which is reachable only when signed in, so for guests the "Got it"
 	 * opt-out is the dismissal path. On the first commit it flashes a
 	 * short confirmation, then unmounts; "Got it" dismisses immediately,
 	 * without the flash. Either path persists the seen flag so the coach
@@ -35,7 +35,7 @@
 		/**
 		 * Monotonic counter the deck bumps on every committed YES / NO. The
 		 * coach captures its value when it becomes visible and dismisses as
-		 * soon as it advances past that baseline — the user's first real call.
+		 * soon as it advances past that baseline; the user's first real call.
 		 */
 		commitSignal?: number;
 	}
@@ -77,7 +77,7 @@
 		try {
 			localStorage.setItem(storageKey, '1');
 		} catch {
-			// localStorage write blocked — accept the loss; the coach will
+			// localStorage write blocked: accept the loss; the coach will
 			// reappear next session for this device.
 		}
 	};
@@ -195,7 +195,7 @@
 
 <style lang="postcss">
 	/* Non-blocking scrim: the card below stays readable and swipeable, so
-	   the overlay itself ignores pointer events — only the opt-out button
+	   the overlay itself ignores pointer events; only the opt-out button
 	   (and the confirm flash) opt back in. */
 	.flow-coach {
 		position: absolute;
@@ -297,7 +297,7 @@
 		color: var(--text-muted);
 	}
 
-	/* YES / NO are the committing actions — full token color carries the
+	/* YES / NO are the committing actions: full token color carries the
 	   visual weight; SKIP / TAP stay neutral and de-emphasized. */
 	.fc-arm-yes .fc-glyph,
 	.fc-arm-yes .fc-label {

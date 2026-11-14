@@ -48,21 +48,21 @@
 	 * The board ranks by **confidence-adjusted accuracy**. The canister returns
 	 * the slice ordered by net P&L; `globalStandingsRows` re-ranks it and splits
 	 * it into two partitions (see `standings.constants`):
-	 *  - **ranked** — predictors who cleared the qualify gate (settled calls ≥
+	 *  - **ranked**: predictors who cleared the qualify gate (settled calls ≥
 	 *    the effective threshold), ordered by a Bayesian-shrinkage score so a
 	 *    thin record can't top a proven one. Each carries a 1-based `displayRank`
 	 *    (we render this, never `entry.rank`, the canister's P&L rank).
-	 *  - **provisional** — predictors below the gate: unranked, shown in a
+	 *  - **provisional**: predictors below the gate, unranked, shown in a
 	 *    separate section with `{done}/{min} to qualify` progress.
 	 *
 	 * Layout is a single column:
 	 *  - chip-style window tabs at the top
 	 *  - 3-tile podium row (top-3, #1 gets the gold halo + tinted bg)
 	 *  - flat list of remaining ranked rows (rank, avatar, handle + calls ·
-	 *    streak, accuracy on the right — coloured `--yes` once accuracy ≥ 78%)
+	 *    streak, accuracy on the right, coloured `--yes` once accuracy ≥ 78%)
 	 *  - the Provisional section (only when non-empty)
 	 *
-	 * Every row and podium tile shows its **call count** — the trust signal that
+	 * Every row and podium tile shows its **call count**: the trust signal that
 	 * makes the shrinkage legible. Accuracy and settled count are authoritative
 	 * from the clearing canister; handle / avatar / streak are overlaid from the
 	 * shared profile cache (the viewer's own row from their live profile). The
@@ -134,7 +134,7 @@
 		});
 	});
 
-	// Hydrate the shared profile cache for the rows this surface paints —
+	// Hydrate the shared profile cache for the rows this surface paints:
 	// handle / avatar / streak overlay onto the standing reactively as profiles
 	// land. `loadGlobalStandings` no longer hydrates (the dash shares its cached
 	// slice but only needs the viewer's own rank), so the Leaderboard owns this.
@@ -146,7 +146,7 @@
 	// a not-yet-hydrated (or opted-out) row is absent from the partition.
 	// Hydrating only the visible rows would never fetch the missing profiles, so
 	// an opted-in row could never resolve into view. The viewer's own row is
-	// excluded — `globalStandingsRows` overlays it from the live
+	// excluded: `globalStandingsRows` overlays it from the live
 	// `userStore.profile`, so hydrating it would only add a redundant
 	// `getProfile` on every visit / window switch.
 	$effect(() => {
@@ -193,7 +193,7 @@
 	let mutatingOwner = $state<string | undefined>(undefined);
 
 	const openSheet = (row: StandingsRow) => {
-		// The viewer's own row is informational — there's nothing to add.
+		// The viewer's own row is informational: there's nothing to add.
 		if (row.isSelf) {
 			return;
 		}
@@ -247,7 +247,7 @@
 		} catch (err: unknown) {
 			console.error(err);
 
-			// `{detail}` only exists in the send key — unfriend/cancel copies
+			// `{detail}` only exists in the send key; unfriend/cancel copies
 			// ignore the param. It keeps an unexpected failure screenshotable.
 			const detail = err instanceof Error ? err.message.trim().slice(0, 140) : '';
 
@@ -268,7 +268,7 @@
 
 <!-- The ↑/↓ rank-delta pill was dropped here: it was derived from the canister's
      prior *P&L* rank, which is meaningless now that the board is ordered by
-     accuracy — it would point the wrong way and mislead. The `rankDelta` field
+     accuracy: it would point the wrong way and mislead. The `rankDelta` field
      stays on the model for other (P&L-ranked) surfaces. -->
 
 <div class="leaderboard-page">
@@ -280,7 +280,7 @@
 		title={t({ locale: $localeStore, key: 'leaderboard.title' })}
 	/>
 
-	<!-- Window chips — `This week / This month / All time`. -->
+	<!-- Window chips: `This week / This month / All time`. -->
 	<div class="leaderboard-scopes" role="tablist">
 		{#each windows as window (window.id)}
 			<button
@@ -311,7 +311,7 @@
 	{:else}
 		<!-- The ranked podium + list render only when at least one predictor has
 		     qualified. With everyone still below the gate (e.g. a high Tweak
-		     threshold) the board is all-Provisional — skip straight to that
+		     threshold) the board is all-Provisional: skip straight to that
 		     section rather than painting an empty podium. -->
 		{#if rankedRows.length > 0}
 			<!-- 3-tile podium row. #1 gets the gold halo + tinted bg; #2 / #3 stay
@@ -419,7 +419,7 @@
 			</ul>
 		{/if}
 
-		<!-- Provisional — predictors who've predicted but are below the qualify
+		<!-- Provisional: predictors who've predicted but are below the qualify
 		     gate. Unranked, shown with progress so newcomers see a path, not a
 		     phantom #1. Only rendered when at least one predictor is provisional. -->
 		{#if provisionalRows.length > 0}
@@ -492,7 +492,7 @@
 	{/if}
 </div>
 
-<!-- Mini-profile bottom sheet — opens on row / podium tap. Shows the tapped
+<!-- Mini-profile bottom sheet: opens on row / podium tap. Shows the tapped
      predictor's window accuracy, settled count and streak with an add- or
      remove-friend action that routes through the shared relation services. -->
 <BottomSheet isOpen={nonNullish(openRow)} onClose={closeSheet}>
@@ -588,7 +588,7 @@
 		padding: 0 1.25rem 6rem;
 	}
 
-	/* Window chip strip — `This week / This month / All time`. */
+	/* Window chip strip: `This week / This month / All time`. */
 	.leaderboard-scopes {
 		display: flex;
 		gap: 0.375rem;
@@ -634,7 +634,7 @@
 		background: color-mix(in srgb, var(--color-primary) 12%, var(--bg-surface));
 	}
 
-	/* Podium — three tiles in a row. Tile 0 is #1 (the gold one). */
+	/* Podium: three tiles in a row. Tile 0 is #1 (the gold one). */
 	.leaderboard-podium {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
@@ -726,7 +726,7 @@
 		color: var(--color-primary);
 	}
 
-	/* Call count — the trust signal under each podium tile's accuracy. */
+	/* Call count: the trust signal under each podium tile's accuracy. */
 	.leaderboard-podium-calls {
 		margin-top: 0.1rem;
 		font-size: var(--t-10);
@@ -735,7 +735,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Rest rows — simple flat row card. */
+	/* Rest rows: simple flat row card. */
 	.leaderboard-rows {
 		display: flex;
 		flex-direction: column;
@@ -874,7 +874,7 @@
 		font-weight: 600;
 	}
 
-	/* Provisional rows read a touch quieter than ranked ones — they're a path,
+	/* Provisional rows read a touch quieter than ranked ones: they're a path,
 	   not a standing. */
 	.leaderboard-row-provisional:not(.is-you) {
 		opacity: 0.86;

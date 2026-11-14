@@ -40,8 +40,8 @@
 	// sections resolve through the i18n catalog.
 	const navLabel = (section: NavSection): string =>
 		isNullish(section.labelKey) ? 'FAQ' : t({ locale: $localeStore, key: section.labelKey });
-	// Theme labels resolve from the canonical `ui.theme.*` catalog — the
-	// same source AppearancePicker uses — so the appearance tooltips/aria
+	// Theme labels resolve from the canonical `ui.theme.*` catalog, the
+	// same source AppearancePicker uses, so the appearance tooltips/aria
 	// stay localized and in sync rather than hardcoded English.
 	const themeOpts = $derived(
 		THEME_SWATCHES.map(({ id, labelKey }) => ({
@@ -65,7 +65,7 @@
 
 	// What actually scrolls differs by platform: on iOS the landing scrolls
 	// inside the `.lpc` viewport (contained scroll, like the authenticated app
-	// shell — see `html[data-ios] .lpc` in `landing.css`), everywhere else the
+	// shell: see `html[data-ios] .lpc` in `landing.css`), everywhere else the
 	// window scrolls. Resolve it at mount by walking up to the nearest
 	// scrollable ancestor so frost-on-scroll, scroll-spy and smooth-scroll all
 	// track whichever one is live, with no per-platform branching elsewhere.
@@ -114,7 +114,7 @@
 		onScroll();
 		root.addEventListener('scroll', onScroll, { passive: true });
 
-		// Scroll spy — observe against the live scroll root so it still fires
+		// Scroll spy: observe against the live scroll root so it still fires
 		// when `.lpc` (not the window) is the scroller. `rootMargin` collapses
 		// the root to a thin band in the upper-middle of the viewport; whichever
 		// observed section sits in that band is the active one. We gate on
@@ -122,7 +122,7 @@
 		// `#faq` can only ever overlap a thin slice of the band, so its ratio
 		// never crosses a fixed threshold and the indicator would never advance
 		// to it. Sections between observed ones aren't tracked, so the last
-		// active section persists across them — which is the desired behaviour.
+		// active section persists across them, which is the desired behaviour.
 		const els = sections
 			.map((s) => document.getElementById(s.id))
 			.filter((el): el is HTMLElement => Boolean(el));
@@ -256,7 +256,7 @@
 		};
 
 	// Mobile menu links: scroll via `onLinkClick` (works whether the window or
-	// `.lpc` is the active scroller — native `#` fragment scrolling is
+	// `.lpc` is the active scroller: native `#` fragment scrolling is
 	// unreliable on iOS once the document is locked) then close the sheet.
 	const onMenuLinkClick =
 		(id: string) =>

@@ -36,7 +36,7 @@
 	}: Props = $props();
 
 	// Each peg label is centred on the slider stop it selects, so the
-	// number sits directly under the handle position it maps to — the
+	// number sits directly under the handle position it maps to; the
 	// first peg at 0 %, the last at 100 %, and the middle rungs at their
 	// exact fraction of the ladder.
 	const pegPct = (index: number): number =>
@@ -122,7 +122,7 @@
 <style lang="postcss">
 	/* Shared block wrapper (from the FlowCardBack `.flow-back-block` rule)
 	   and the section surface (from the grouped `.flow-resolution,
-	   .flow-community, .flow-stake, .flow-split` rule) — duplicated here so
+	   .flow-community, .flow-stake, .flow-split` rule): duplicated here so
 	   the extracted section keeps its spacing + surface under Svelte's
 	   per-component style scoping. */
 	.flow-back-block {
@@ -145,8 +145,8 @@
 	}
 
 	/* Cap state: when the user hits the top rung of the stake ladder
-	   we flip every accent surface — wash, border, label, value,
-	   slider fill, handle, active peg — from laurel to `--no` red so
+	   we flip every accent surface: wash, border, label, value,
+	   slider fill, handle, active peg, all from laurel to `--no` red so
 	   the user feels the upper bound visually instead of having to
 	   read it. */
 	.flow-stake.is-cap {
@@ -311,7 +311,7 @@
 		letter-spacing: 0.1em;
 	}
 
-	/* Proactive size warning — reuses the cap's red tint so a problematic
+	/* Proactive size warning: reuses the cap's red tint so a problematic
 	   size reads as a soft warning, not an error banner. One dense line. */
 	.flow-stake-warning {
 		margin: 0.5rem 0 0;

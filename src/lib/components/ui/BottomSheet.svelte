@@ -8,14 +8,14 @@
 	import { browser } from '$app/env';
 
 	/**
-	 * Bottom-sheet primitive — full-width sheet docked at the bottom of
+	 * Bottom-sheet primitive: full-width sheet docked at the bottom of
 	 * the viewport with a grip handle, blurred backdrop, and safe-area
 	 * inset. Used by the leagues / worlds / battles surfaces in place of
 	 * the centred {@link Modal} when a sheet treatment fits better.
 	 *
 	 * The component manages chrome only (scrim, grip, close affordance
 	 * via `Escape` + backdrop click). Children own their own header
-	 * copy + body layout — keep them short enough that the sheet doesn't
+	 * copy + body layout: keep them short enough that the sheet doesn't
 	 * exceed `max-height: 92vh`.
 	 *
 	 * Custom (non-native-dialog) sheet, so focus management is manual:
@@ -39,7 +39,7 @@
 		 * Optional non-scrolling footer pinned to the bottom of the sheet.
 		 * Rendered through {@link SheetFooter} as a `flex-shrink: 0` sibling
 		 * after the scrolling `.sheet-body`, so a primary CTA stays in view
-		 * no matter how long the body grows — the body scrolls under it. The
+		 * no matter how long the body grows; the body scrolls under it. The
 		 * footer carries the docked-footer bottom inset itself (safe area +
 		 * iOS bottom bar, via `--docked-footer-inset`); the sheet's own
 		 * bottom inset collapses to the side metric when a footer is present
@@ -48,7 +48,7 @@
 		 */
 		footer?: Snippet;
 		/**
-		 * Re-anchor the sheet as a centred modal card on ≥768px viewports —
+		 * Re-anchor the sheet as a centred modal card on ≥768px viewports:
 		 * full rounded border, zoom-in entrance instead of a slide-up, grip
 		 * hidden. Phone widths keep the standard bottom-docked treatment.
 		 * One set of content, switched purely in CSS, for confirm-style
@@ -123,7 +123,7 @@
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => {
 				// Keys are swallowed so outer surfaces stay inert while the sheet
-				// is open — which also keeps Escape from the `svelte:window`
+				// is open, which also keeps Escape from the `svelte:window`
 				// listener (focus lives inside the sheet via the trap), so close
 				// on it here.
 				e.stopPropagation();
@@ -156,7 +156,7 @@
 	/* Hide the floating mobile pill-nav (`.pillnav-wrap`, fixed bottom,
 	 * z-index 50) whenever a sheet is open. It sits at the same lower
 	 * edge as the sheet and clips the actions row on short viewports
-	 * (e.g. with the soft keyboard open) — and isn't usable from inside
+	 * (e.g. with the soft keyboard open), and isn't usable from inside
 	 * a modal flow anyway. */
 	:global(body:has(.sheet) .pillnav-wrap) {
 		display: none;
@@ -168,10 +168,10 @@
 		 * (inline `top`/`left`/`width`/`height` from `window.visualViewport`),
 		 * which is the only reliable measure on iOS. A fixed `inset: 0` resolves
 		 * against the *large* layout viewport (toolbars retracted) and iOS Chrome
-		 * doesn't honour `100dvh`, so the sheet — docked at this scrim's bottom
-		 * via `flex-end` — would land behind the bottom toolbar and clip its CTA
+		 * doesn't honour `100dvh`, so the sheet, docked at this scrim's bottom
+		 * via `flex-end`, would land behind the bottom toolbar and clip its CTA
 		 * (#670). `visualViewport.height` also excludes the on-screen keyboard, so
-		 * the same pin lifts the sheet above the keyboard — no `--kb-inset`
+		 * the same pin lifts the sheet above the keyboard; no `--kb-inset`
 		 * needed. The `100dvh`/`100vh` here is the desktop / no-`visualViewport`
 		 * fallback. */
 		top: 0;
@@ -197,9 +197,9 @@
 		max-width: 32rem;
 		/* Fill at most 92% of the scrim so the grip + body stay within the
 		 * visible area and the body scrolls inside. `%` resolves against the
-		 * scrim, which always has a definite height — the inline `visualViewport`
+		 * scrim, which always has a definite height, the inline `visualViewport`
 		 * pin (which also shrinks it when the keyboard opens) or the `100dvh` /
-		 * `100vh` CSS fallback — so no `dvh`/`vh` cap is needed here (and a `dvh`
+		 * `100vh` CSS fallback, so no `dvh`/`vh` cap is needed here (and a `dvh`
 		 * cap would be wrong on iOS Chrome, which doesn't honour it). */
 		max-height: 92%;
 		/* Side inset defaults to the shared 1.1rem; hosts can override just
@@ -269,13 +269,13 @@
 		overflow-y: auto;
 		/* A scroll container clips on BOTH axes (`overflow-x` can't stay
 		 * `visible` once `overflow-y` is `auto`), which shears off any glow /
-		 * shadow a child paints past the body's left or right edge — e.g. the
+		 * shadow a child paints past the body's left or right edge: e.g. the
 		 * menagerie badge aura in the achievement detail sheet. Reclaim the
 		 * side-inset metric as bleed room: widen the scroll container by
 		 * `--sheet-side-padding` per side and re-apply the same metric as
 		 * padding, so content lands exactly where it did but the clip boundary
 		 * moves outward by that amount. (On the desktop-centered variant the
-		 * sheet padding is 1.5rem, so the body stops short of the sheet edge —
+		 * sheet padding is 1.5rem, so the body stops short of the sheet edge:
 		 * the bleed room is still the full side-inset metric.) */
 		margin-inline: calc(-1 * var(--sheet-side-padding, 1.1rem));
 		padding-inline: var(--sheet-side-padding, 1.1rem);

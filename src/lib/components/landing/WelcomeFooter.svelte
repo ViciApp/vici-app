@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * Landing footer — brand block (wordmark + tagline + Latin motto)
+	 * Landing footer: brand block (wordmark + tagline + Latin motto)
 	 * beside two link columns (Help / Legal), then the FIFA
 	 * registered-trademark line and the entertainment / VXP-has-
 	 * no-cash-value disclosure.

@@ -18,18 +18,18 @@
 
 	const { isOpen, onClose, onSaved, leagueId, currentPrivacy }: Props = $props();
 
-	// Same order the create sheet uses — Open / Private — so the picker
+	// Same order the create sheet uses, Open / Private, so the picker
 	// reads identically across both surfaces.
 	const OPTIONS = [LeaguePrivacy.OPEN, LeaguePrivacy.PRIVATE] as const;
 
 	// Seeded from `currentPrivacy` every time the sheet opens (see the
 	// `$effect` below), so the initial value here is just a placeholder
-	// until then — referencing the prop at init would freeze it.
+	// until then: referencing the prop at init would freeze it.
 	let selected = $state<LeaguePrivacy>(LeaguePrivacy.OPEN);
 	// Second step shown only for the loosen-to-Open direction: switching a
 	// non-public league to Open exposes its existing members in public
 	// lists + friend recommendations, which can't be undone for anyone who
-	// has already seen it — so we gate it behind an explicit confirmation.
+	// has already seen it, so we gate it behind an explicit confirmation.
 	let confirming = $state(false);
 	let submitting = $state(false);
 	let submitError: string | null = $state(null);

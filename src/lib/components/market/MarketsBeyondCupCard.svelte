@@ -18,20 +18,20 @@
 	 * "Beyond the Cup" skill gate. During the World-Cup focus the Markets board
 	 * surfaces only the World-Cup category; every other category stays locked
 	 * behind a calibrated-accuracy goal. This card sits high on the board as the
-	 * unlock motivator (not a waitlist — a target): it shows the viewer's
+	 * unlock motivator (not a waitlist; a target): it shows the viewer's
 	 * calibrated accuracy and a progress bar toward {@link UNLOCK_ACC}, and
 	 * expands to preview the locked categories.
 	 *
 	 * The gate is EARNED, not optimistic: it reads the viewer's *real* decisive
 	 * win-rate (`profile.accuracy`, a 0..100 figure that is `0` until calls
-	 * settle) — never the empty-state 100% that own-stat surfaces show — and
+	 * settle), never the empty-state 100% that own-stat surfaces show, and
 	 * requires both a minimum sample of decisive calls
 	 * ({@link BEYOND_CUP_MIN_CALLS}) and the accuracy threshold. A brand-new
 	 * user therefore reads LOCKED at their real 0%, so the skill gate can't be
 	 * unlocked before any skill is shown.
 	 *
 	 * `BEYOND_CUP_MIN_CALLS` is a dedicated gate (no app-wide lifetime min-calls
-	 * display constant exists — the leaderboard's `MIN_CALLS_FOR_RANK` is 50 and
+	 * display constant exists: the leaderboard's `MIN_CALLS_FOR_RANK` is 50 and
 	 * the monthly award's `MONTHLY_MIN_CALLS` is month-scoped, both wrong here).
 	 *
 	 * Locked categories = the taxonomy macro board. World Cup lives under the
@@ -45,7 +45,7 @@
 		markets: Market[];
 		/** Per-market tag lookup (`market.id` → stored tags), from `$marketTags`. */
 		tagsByMarket: Record<string, string[]>;
-		/** Whether tag metadata has loaded — the count is `0` until it has. */
+		/** Whether tag metadata has loaded: the count is `0` until it has. */
 		tagsInitialized: boolean;
 	}
 
@@ -102,7 +102,7 @@
 
 <div class="beyond-wrap">
 	<button class="card-surface beyond" aria-expanded={open} onclick={toggle} type="button">
-		<!-- Compact header — always visible -->
+		<!-- Compact header: always visible -->
 		<div style="align-items: center; gap: 12px;" class="row between">
 			<div style="gap: 10px; align-items: center; min-width: 0;" class="row">
 				<span class="beyond-icon" class:unlocked aria-hidden="true">
@@ -141,7 +141,7 @@
 			</div>
 		</div>
 
-		<!-- Thin progress bar — always visible -->
+		<!-- Thin progress bar: always visible -->
 		<div class="beyond-track">
 			<div
 				style:width={`${progress * 100}%`}

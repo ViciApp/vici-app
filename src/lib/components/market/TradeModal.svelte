@@ -29,14 +29,14 @@
 	 * Chrome (scrim, grip, safe-area inset, Escape, focus trap, viewport
 	 * pinning, pill-nav hide) comes from the shared {@link BottomSheet}
 	 * primitive in its `desktopCentered` variant: a bottom-docked sheet on
-	 * phone widths and a centred modal on wider viewports — one set of
+	 * phone widths and a centred modal on wider viewports; one set of
 	 * content, switched purely in CSS so there is no forked markup.
 	 *
 	 * Sizing is a slider that steps through the fixed stake ladder
 	 * (`VXP_STAKE_LADDER`) rather than a free continuous range, because
 	 * `executeOutcomeTrade` rejects any premium that isn't a ladder rung
-	 * on ViciXp markets — so every selectable value must be a valid rung.
-	 * No limit-order / target-price path lives here — the only submission
+	 * on ViciXp markets, so every selectable value must be a valid rung.
+	 * No limit-order / target-price path lives here; the only submission
 	 * is a market order; the clearing layer still picks `MARKET` vs
 	 * `LIMIT` execution from live depth under the hood.
 	 */
@@ -59,7 +59,7 @@
 	const tr = ({ key, params }: { key: MessageKey; params?: Record<string, string | number> }) =>
 		t({ locale: $localeStore, key, params });
 
-	// Call-size slider — an index-based control over the fixed stake
+	// Call-size slider: an index-based control over the fixed stake
 	// ladder, so every stop is a valid rung the backend will accept (a
 	// free continuous range would let the user pick amounts ViciXp markets
 	// reject). Defaults to the smallest rung; `size` is the selected rung
@@ -88,7 +88,7 @@
 		return Math.round(size / sideExecutionPrice);
 	});
 
-	// Available collateral for this market's balance domain — the shared
+	// Available collateral for this market's balance domain; the shared
 	// "spendable margin" derivation, so the figure matches the wallet, the
 	// Dashboard, and every other prediction surface.
 	const availableMargin = $derived($vxpSpendable);

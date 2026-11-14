@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * Stand-in for a market's odds when the probability is unknown — rendered in
+	 * Stand-in for a market's odds when the probability is unknown: rendered in
 	 * place of the percentage so the UI never shows a misleading 0.5 placeholder.
 	 *
 	 * - `loading`: the order book hasn't been read yet → pulsing bar (`aria-busy`).
