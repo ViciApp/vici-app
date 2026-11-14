@@ -1,3 +1,4 @@
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 import { isNullish } from '@dfinity/utils';
 
@@ -125,7 +126,7 @@ export const dayDelta = ({ from, to }: { from: string; to: string }): number => 
 		return Infinity;
 	}
 
-	return Math.round((b - a) / (1000 * 60 * 60 * 24));
+	return Math.round((b - a) / DAY_IN_MS);
 };
 
 export interface DailyStreakBump {

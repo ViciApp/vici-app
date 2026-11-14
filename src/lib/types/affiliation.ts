@@ -1,3 +1,5 @@
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+
 /**
  * Worlds affiliations: a user's self-selected university and /
  * or country. Carries the signature 90-day lock: once you pick an
@@ -52,7 +54,7 @@ export const AFFILIATION_KINDS: ReadonlySet<AffiliationKind> = new Set<Affiliati
 /**
  * Lock window: 90 days.
  */
-export const AFFILIATION_LOCK_MS = 90 * 24 * 60 * 60 * 1000;
+export const AFFILIATION_LOCK_MS = 90 * DAY_IN_MS;
 
 /**
  * Canonical key builder: keep all `affiliations` writes in lockstep

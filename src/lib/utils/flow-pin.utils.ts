@@ -1,3 +1,4 @@
+import { HOUR_IN_MS } from '#lib/constants/app.constants.ts';
 import {
 	del as storageDel,
 	get as storageGet,
@@ -25,7 +26,7 @@ const FLOW_PIN_STORAGE_KEY = 'vici.flow.pinned-market.v1';
 
 // An hour comfortably covers "click link → detail → sign up → onboard → Flow"
 // while keeping a stale pin from resurfacing days later.
-const FLOW_PIN_TTL_MS = 60 * 60 * 1000;
+const FLOW_PIN_TTL_MS = HOUR_IN_MS;
 
 interface PinnedFlowMarket {
 	id: string;

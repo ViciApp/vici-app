@@ -25,7 +25,7 @@
  * hand-crafted write cannot post a false score.
  */
 
-import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 import { MACRO_IDS, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
 import type { CategoryStatsBucket } from '#lib/types/user-stats.ts';
 
@@ -83,7 +83,7 @@ export const BATTLE_MAX_CONCURRENT_IN_FLIGHT = 100;
  * enough to absorb that skew, tiny next to a multi-day window, so a
  * backdated window can't slip through.
  */
-export const BATTLE_ACCEPT_CLOCK_TOLERANCE_MS = 5 * 60 * 1000;
+export const BATTLE_ACCEPT_CLOCK_TOLERANCE_MS = 5 * MINUTE_IN_MS;
 
 export interface BattleDoc {
 	/** Stable battle id — matches the doc key. */

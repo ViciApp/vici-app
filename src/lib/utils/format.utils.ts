@@ -1,5 +1,11 @@
 import type { ClearingDid } from '#declarations';
-import { MILLISECOND_IN_NANOSECONDS, USD_DECIMALS } from '#lib/constants/app.constants.ts';
+import {
+	DAY_IN_MS,
+	HOUR_IN_MS,
+	MILLISECOND_IN_NANOSECONDS,
+	MINUTE_IN_MS,
+	USD_DECIMALS
+} from '#lib/constants/app.constants.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import Decimal from 'decimal.js';
 import { type BigNumberish, formatUnits } from 'ethers/utils';
@@ -151,12 +157,12 @@ export const formatNanosecondsToDate = ({ nanoseconds }: { nanoseconds: bigint }
  * absolute count is `>= 1`.
  */
 const RELATIVE_TIME_UNITS: ReadonlyArray<{ unit: Intl.RelativeTimeFormatUnit; ms: number }> = [
-	{ unit: 'year', ms: 365 * 24 * 60 * 60 * 1000 },
-	{ unit: 'month', ms: 30 * 24 * 60 * 60 * 1000 },
-	{ unit: 'week', ms: 7 * 24 * 60 * 60 * 1000 },
-	{ unit: 'day', ms: 24 * 60 * 60 * 1000 },
-	{ unit: 'hour', ms: 60 * 60 * 1000 },
-	{ unit: 'minute', ms: 60 * 1000 }
+	{ unit: 'year', ms: 365 * DAY_IN_MS },
+	{ unit: 'month', ms: 30 * DAY_IN_MS },
+	{ unit: 'week', ms: 7 * DAY_IN_MS },
+	{ unit: 'day', ms: DAY_IN_MS },
+	{ unit: 'hour', ms: HOUR_IN_MS },
+	{ unit: 'minute', ms: MINUTE_IN_MS }
 ];
 
 /**
@@ -244,7 +250,7 @@ export const formatRelativeAgoShort = ({
 	nowMs?: number;
 }): string => {
 	const deltaMs = nowMs - timestampMs;
-	const minutes = Math.floor(deltaMs / 60_000);
+	const minutes = Math.floor(deltaMs / MINUTE_IN_MS);
 
 	if (minutes < 60) {
 		return `${Math.max(1, minutes)}m`;
@@ -277,21 +283,19 @@ export const relativeAgoBucketFromMs = ({
 	timestampMs: number;
 	nowMs?: number;
 }): { unit: 'now' | 'hours' | 'days'; value: number } => {
-	const HOUR_MS = 60 * 60 * 1000;
-	const DAY_MS = 24 * HOUR_MS;
 	const diffMs = nowMs - timestampMs;
 
-	if (diffMs < HOUR_MS) {
+	if (diffMs < HOUR_IN_MS) {
 		return { unit: 'now', value: 0 };
 	}
 
-	const days = Math.floor(diffMs / DAY_MS);
+	const days = Math.floor(diffMs / DAY_IN_MS);
 
 	if (days >= 1) {
 		return { unit: 'days', value: days };
 	}
 
-	return { unit: 'hours', value: Math.floor(diffMs / HOUR_MS) };
+	return { unit: 'hours', value: Math.floor(diffMs / HOUR_IN_MS) };
 };
 
 /**

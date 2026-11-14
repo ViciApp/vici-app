@@ -1,3 +1,4 @@
+import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import { track } from '#lib/services/analytics.services.ts';
 import {
 	get as storageGet,
@@ -36,7 +37,7 @@ export const A2HS_FALLBACK_CALLS = 10;
 const A2HS_FALLBACK_SESSIONS = 2;
 
 /** Re-ask no sooner than 14 days after a dismissal. */
-export const A2HS_COOLOFF_MS = 14 * 24 * 60 * 60 * 1000;
+export const A2HS_COOLOFF_MS = 14 * DAY_IN_MS;
 
 const KEY_SESSIONS = 'vici.a2hs.sessions';
 const KEY_DISMISSED = 'vici.a2hs.dismissed';
