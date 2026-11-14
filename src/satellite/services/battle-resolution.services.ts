@@ -6,6 +6,7 @@ import {
 	BATTLE_SCOPE_DEFAULT,
 	battleAccuracyPct,
 	deriveBattleWinner,
+	readBattleDoc,
 	type BattleDoc,
 	type BattleScope,
 	type BattleWinner
@@ -261,7 +262,7 @@ export const resolveBattleFromSettlementsFn = async ({
 		throw new Error(`Battle "${battleId}" not found.`);
 	}
 
-	const battle = decodeDocData<BattleDoc>(existing.data);
+	const battle = readBattleDoc(decodeDocData<BattleDoc>(existing.data));
 
 	if (battle.state === 'resolved') {
 		return battle;
@@ -352,7 +353,7 @@ export const readBattleLiveScoreFn = async ({
 		return;
 	}
 
-	const battle = decodeDocData<BattleDoc>(existing.data);
+	const battle = readBattleDoc(decodeDocData<BattleDoc>(existing.data));
 
 	if (
 		battle.kind !== 'league' ||

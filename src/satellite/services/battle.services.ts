@@ -2,15 +2,16 @@ import { Collection } from '#lib/constants/collections.constants.ts';
 import { LeaguePrivacy } from '#lib/enums/league.ts';
 import {
 	BATTLE_ACCEPT_CLOCK_TOLERANCE_MS,
+	BATTLE_AMOUNT_MAX,
+	BATTLE_AMOUNT_MIN,
 	BATTLE_KINDS,
 	BATTLE_SCOPE_DEFAULT,
 	BATTLE_SCOPES,
 	BATTLE_STATES,
 	BATTLE_TRANSITIONS,
 	BATTLE_TRASH_TALK_MAX_LENGTH,
-	BATTLE_WAGER_MAX,
-	BATTLE_WAGER_MIN,
 	deriveBattleWinner,
+	readBattleDoc,
 	type BattleDoc,
 	type BattleScope,
 	type BattleWinner
@@ -61,7 +62,7 @@ const bucketsNullableEqual = (
  *  1. **Key shape.** Doc key equals the embedded `id`.
  *
  *  2. **Identity fields immutable.** `id`, `kind`, `sideA`, `sideB`,
- *     `proposer`, `scope`, `wager`, `trashTalk` are write-once. The
+ *     `proposer`, `scope`, `amount`, `trashTalk` are write-once. The
  *     `baselineA` / `baselineB` snapshots are stamped at kickoff and
  *     frozen thereafter.
  *
@@ -131,7 +132,7 @@ export const assertSetBattle = ({
 		return;
 	}
 
-	const proposedDoc = decodeDocData<BattleDoc>(proposed.data);
+	const proposedDoc = readBattleDoc(decodeDocData<BattleDoc>(proposed.data));
 
 	// 1. Key shape.
 	if (key !== proposedDoc.id) {
@@ -155,7 +156,7 @@ export const assertSetBattle = ({
 		throw new Error('battles kickoffMs must be strictly before settleMs.');
 	}
 
-	// Scope / wager / trash-talk shape: all optional, validated only
+	// Scope / amount / trash-talk shape: all optional, validated only
 	// when present. These are write-once identity fields (enforced on the
 	// edit path below); enforcing the bounds here covers the creation
 	// path and any same-state proposed-doc edit.
@@ -166,13 +167,13 @@ export const assertSetBattle = ({
 	}
 
 	if (
-		nonNullish(proposedDoc.wager) &&
-		(!Number.isFinite(proposedDoc.wager) ||
-			proposedDoc.wager < BATTLE_WAGER_MIN ||
-			proposedDoc.wager > BATTLE_WAGER_MAX)
+		nonNullish(proposedDoc.amount) &&
+		(!Number.isFinite(proposedDoc.amount) ||
+			proposedDoc.amount < BATTLE_AMOUNT_MIN ||
+			proposedDoc.amount > BATTLE_AMOUNT_MAX)
 	) {
 		throw new Error(
-			`battles wager must be within [${BATTLE_WAGER_MIN}, ${BATTLE_WAGER_MAX}] (got ${proposedDoc.wager}).`
+			`battles amount must be within [${BATTLE_AMOUNT_MIN}, ${BATTLE_AMOUNT_MAX}] (got ${proposedDoc.amount}).`
 		);
 	}
 
@@ -354,7 +355,7 @@ export const assertSetBattle = ({
 
 	// Edit path: enforce identity-field immutability, state-machine
 	// transitions, and per-state authorisation.
-	const currentDoc = decodeDocData<BattleDoc>(current.data);
+	const currentDoc = readBattleDoc(decodeDocData<BattleDoc>(current.data));
 
 	if (
 		currentDoc.id !== proposedDoc.id ||
@@ -363,12 +364,12 @@ export const assertSetBattle = ({
 		currentDoc.sideB !== proposedDoc.sideB ||
 		currentDoc.proposer !== proposedDoc.proposer ||
 		currentDoc.scope !== proposedDoc.scope ||
-		currentDoc.wager !== proposedDoc.wager ||
+		currentDoc.amount !== proposedDoc.amount ||
 		currentDoc.trashTalk !== proposedDoc.trashTalk ||
 		currentDoc.respondByMs !== proposedDoc.respondByMs
 	) {
 		throw new Error(
-			'battles identity fields are immutable (id, kind, sideA, sideB, proposer, scope, wager, trashTalk, respondByMs).'
+			'battles identity fields are immutable (id, kind, sideA, sideB, proposer, scope, amount, trashTalk, respondByMs).'
 		);
 	}
 
@@ -383,7 +384,7 @@ export const assertSetBattle = ({
 	// no snapshot to score against, so it can neither show live standings nor
 	// resolve; it hangs in `in_flight` forever. A re-kick restarts its window
 	// from now with a fresh baseline, leaving every identity field (proposer,
-	// scope, wager, original duration) intact. Only valid while the row still
+	// scope, amount, original duration) intact. Only valid while the row still
 	// lacks baselines; once stamped it rejoins the normal scoring path.
 	const isRekick =
 		currentDoc.state === 'in_flight' &&

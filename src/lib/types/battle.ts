@@ -28,6 +28,7 @@
 import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 import { MACRO_IDS, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
 import type { CategoryStatsBucket } from '#lib/types/user-stats.ts';
+import { isNullish } from '@dfinity/utils';
 
 export type BattleKind = 'league' | 'duel';
 
@@ -53,10 +54,10 @@ export const BATTLE_SCOPE_DEFAULT: BattleScope = 'all';
 export const isBattleScope = (value: string): value is BattleScope =>
 	(BATTLE_SCOPES as ReadonlySet<string>).has(value);
 
-/** Inclusive wager bounds, in VXP. A wager of `0` means "no stake". */
-export const BATTLE_WAGER_MIN = 0;
-export const BATTLE_WAGER_MAX = 500;
-export const BATTLE_WAGER_DEFAULT = BATTLE_WAGER_MIN;
+/** Inclusive bounds of the optional battle amount, in VXP. `0` means "pride only". */
+export const BATTLE_AMOUNT_MIN = 0;
+export const BATTLE_AMOUNT_MAX = 500;
+export const BATTLE_AMOUNT_DEFAULT = BATTLE_AMOUNT_MIN;
 
 /** Trash-talk message length cap; brevity is rewarded. */
 export const BATTLE_TRASH_TALK_MAX_LENGTH = 60;
@@ -112,13 +113,14 @@ export interface BattleDoc {
 	 */
 	scope?: BattleScope;
 	/**
-	 * Optional VXP stake on the battle outcome, in
-	 * [{@link BATTLE_WAGER_MIN}, {@link BATTLE_WAGER_MAX}]. `0` (the
-	 * default) means no stake. Chosen at proposal time and immutable
+	 * Optional VXP amount shown on the battle, in
+	 * [{@link BATTLE_AMOUNT_MIN}, {@link BATTLE_AMOUNT_MAX}]. `0` (the
+	 * default) means pride only. Chosen at proposal time and immutable
 	 * thereafter. Absent on legacy rows; callers fall back to
-	 * {@link BATTLE_WAGER_DEFAULT}.
+	 * {@link BATTLE_AMOUNT_DEFAULT}. Read stored docs through
+	 * {@link readBattleDoc}: older ones carry it under another name.
 	 */
-	wager?: number;
+	amount?: number;
 	/**
 	 * Optional short trash-talk message the proposer attaches, capped at
 	 * {@link BATTLE_TRASH_TALK_MAX_LENGTH} chars. Chosen at proposal time
@@ -164,6 +166,24 @@ export interface BattleDoc {
 	/** When the battle resolved (ms since epoch). Write-once at `resolved`. */
 	resolvedAtMs?: number;
 }
+
+/**
+ * A battle doc as read from storage or an older API. Docs proposed before
+ * the field was renamed hold the amount as `wager`, and Juno docs are never
+ * rewritten in place.
+ */
+type StoredBattleDoc = BattleDoc & { wager?: number };
+
+/**
+ * The one read path for a stored battle doc: takes `amount`, falls back to
+ * the legacy `wager`, and returns the doc without `wager`, so a doc spread
+ * back into a write stores only `amount`.
+ */
+export const readBattleDoc = ({ wager, ...doc }: StoredBattleDoc): BattleDoc => {
+	const amount = doc.amount ?? wager;
+
+	return isNullish(amount) ? doc : { ...doc, amount };
+};
 
 /**
  * Window accuracy as a 0–100 percentage from a counter delta. A side

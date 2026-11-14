@@ -581,16 +581,16 @@
 					>{battleScopeLabel({ scope: battle.scope, locale: $localeStore })}</span
 				>
 			</div>
-			{#if nonNullish(battle.wager) && battle.wager > 0}
+			{#if nonNullish(battle.amount) && battle.amount > 0}
 				<div class="battle-detail-meta-row">
 					<span class="eyebrow"
-						>{t({ locale: $localeStore, key: 'battle.detail.wager_label' })}</span
+						>{t({ locale: $localeStore, key: 'battle.detail.amount_label' })}</span
 					>
 					<span class="num">
 						{t({
 							locale: $localeStore,
-							key: 'battle.detail.wager_value',
-							params: { amount: battle.wager }
+							key: 'battle.detail.amount_value',
+							params: { amount: battle.amount }
 						})}
 					</span>
 				</div>

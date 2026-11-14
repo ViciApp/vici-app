@@ -460,6 +460,20 @@ owner-leagues guard:
 'league_resolution_failed'` + `failedLeagueId` + `resolutionReason`);
   resolutions that already committed stand.
 
+## Renaming a stored doc field
+
+Juno docs are never rewritten in place, so a renamed field lives on under
+its old name in every doc written before the change. Give the collection
+**one read helper** that takes the new field, falls back to the old one,
+and returns the doc without the old key, and route every decode through
+it (asserts, endpoints, the FE `getDoc` paths, the web2 mapping). Writes
+then carry only the new name, including a doc spread back into a
+`setDoc`. The assert compares the normalised docs, so an immutable field
+still matches across a legacy current doc and a renamed proposal. The
+reference is `readBattleDoc` in
+[`battle.ts`](../../../src/lib/types/battle.ts) (`wager` became
+`amount`); the Postgres side of the same rename is a numbered migration.
+
 ## Cross-canister calls
 
 When a hook calls another canister (typically the icdc-core registry):

@@ -5,7 +5,9 @@
 
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
+import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
+import { app } from '../src/index';
 import {
 	acceptDuel,
 	acceptLeagueBattle,
@@ -152,6 +154,57 @@ describe.if(dbAvailable)('battle proposal', () => {
 				settleMs: nowMs + 2 * DAY_MS
 			})
 		).rejects.toThrow('sideA for kind="duel"');
+	});
+
+	test('stores the optional amount and rejects one out of bounds', async () => {
+		const a = await seedLeague();
+		const b = await seedLeague();
+		const nowMs = Date.now();
+		const id = uniqueId('bt');
+		const proposal = {
+			kind: 'league' as const,
+			sideA: a.leagueId,
+			sideB: b.leagueId,
+			proposerUserId: a.ownerId,
+			kickoffMs: nowMs + DAY_MS,
+			settleMs: nowMs + 2 * DAY_MS
+		};
+
+		expect((await proposeBattle({ ...proposal, id, amount: 200 })).amount).toBe(200);
+		expect((await getBattle(id))?.amount).toBe(200);
+
+		expect(proposeBattle({ ...proposal, id: uniqueId('bt'), amount: 501 })).rejects.toThrow(
+			'amount must be within'
+		);
+	});
+
+	test('the propose route reads the amount from the old `wager` field', async () => {
+		const a = await seedLeague();
+		const b = await seedLeague();
+		const nowMs = Date.now();
+		const id = uniqueId('bt');
+
+		const res = await app.handle(
+			new Request('http://localhost/api/v1/battles/', {
+				method: 'POST',
+				headers: {
+					cookie: `vici_session=${await createSession(a.ownerId)}`,
+					'content-type': 'application/json'
+				},
+				body: JSON.stringify({
+					id,
+					kind: 'league',
+					sideA: a.leagueId,
+					sideB: b.leagueId,
+					kickoffMs: nowMs + DAY_MS,
+					settleMs: nowMs + 2 * DAY_MS,
+					wager: 300
+				})
+			})
+		);
+
+		expect(res.status).toBe(201);
+		expect((await getBattle(id))?.amount).toBe(300);
 	});
 });
 

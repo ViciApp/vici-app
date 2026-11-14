@@ -27,8 +27,8 @@ export type BattleState =
 	'proposed' | 'accepted' | 'in_flight' | 'resolved' | 'declined' | 'expired';
 export type BattleWinner = 'A' | 'B' | 'draw';
 
-export const BATTLE_WAGER_MIN = 0;
-export const BATTLE_WAGER_MAX = 500;
+export const BATTLE_AMOUNT_MIN = 0;
+export const BATTLE_AMOUNT_MAX = 500;
 export const BATTLE_TRASH_TALK_MAX_LENGTH = 60;
 export const BATTLE_RESPOND_BY_MS = 3 * DAY_IN_MS;
 export const BATTLE_SCOPE_DEFAULT: BattleScope = 'all';
@@ -43,7 +43,7 @@ export interface Battle {
 	kickoffMs: number;
 	settleMs: number;
 	scope?: BattleScope;
-	wager?: number;
+	amount?: number;
 	trashTalk?: string;
 	respondByMs?: number;
 	respondedAtMs?: number;
@@ -67,7 +67,7 @@ interface BattleRow {
 	kickoff_ms: string;
 	settle_ms: string;
 	scope: string | null;
-	wager: number | null;
+	amount: number | null;
 	trash_talk: string | null;
 	respond_by_ms: string | null;
 	responded_at_ms: string | null;
@@ -82,7 +82,7 @@ interface BattleRow {
 }
 
 const BATTLE_COLUMNS = `id, kind, side_a, side_b, proposer_user_id, state,
-	kickoff_ms::text, settle_ms::text, scope, wager, trash_talk,
+	kickoff_ms::text, settle_ms::text, scope, amount, trash_talk,
 	respond_by_ms::text, responded_at_ms::text, baseline_a, baseline_b,
 	score_a, score_b, calls_a, calls_b, winner, resolved_at_ms::text`;
 
@@ -96,7 +96,7 @@ export const shapeBattle = (row: BattleRow): Battle => ({
 	kickoffMs: Number(row.kickoff_ms),
 	settleMs: Number(row.settle_ms),
 	scope: nonNullish(row.scope) ? (row.scope as BattleScope) : undefined,
-	wager: row.wager ?? undefined,
+	amount: row.amount ?? undefined,
 	trashTalk: row.trash_talk ?? undefined,
 	respondByMs: optionalMs(row.respond_by_ms),
 	respondedAtMs: optionalMs(row.responded_at_ms),
@@ -261,7 +261,7 @@ export const proposeBattle = async ({
 	kickoffMs,
 	settleMs,
 	scope,
-	wager,
+	amount,
 	trashTalk,
 	nowMs = Date.now()
 }: {
@@ -273,7 +273,7 @@ export const proposeBattle = async ({
 	kickoffMs: number;
 	settleMs: number;
 	scope?: string;
-	wager?: number;
+	amount?: number;
 	trashTalk?: string;
 	nowMs?: number;
 }): Promise<Battle> => {
@@ -290,11 +290,11 @@ export const proposeBattle = async ({
 	}
 
 	if (
-		nonNullish(wager) &&
-		(!Number.isFinite(wager) || wager < BATTLE_WAGER_MIN || wager > BATTLE_WAGER_MAX)
+		nonNullish(amount) &&
+		(!Number.isFinite(amount) || amount < BATTLE_AMOUNT_MIN || amount > BATTLE_AMOUNT_MAX)
 	) {
 		throw new BattleError(
-			`battles wager must be within [${BATTLE_WAGER_MIN}, ${BATTLE_WAGER_MAX}] (got ${wager}).`
+			`battles amount must be within [${BATTLE_AMOUNT_MIN}, ${BATTLE_AMOUNT_MAX}] (got ${amount}).`
 		);
 	}
 
@@ -331,7 +331,7 @@ export const proposeBattle = async ({
 
 		const rows = await q<BattleRow>(
 			`insert into battles (id, kind, side_a, side_b, proposer_user_id, state, kickoff_ms,
-			   settle_ms, scope, wager, trash_talk, respond_by_ms)
+			   settle_ms, scope, amount, trash_talk, respond_by_ms)
 			 values ($1, $2, $3, $4, $5, 'proposed', $6, $7, $8, $9, $10, $11)
 			 returning ${BATTLE_COLUMNS}`,
 			[
@@ -343,7 +343,7 @@ export const proposeBattle = async ({
 				kickoffMs,
 				settleMs,
 				scope ?? null,
-				wager ?? null,
+				amount ?? null,
 				trashTalk ?? null,
 				nowMs + BATTLE_RESPOND_BY_MS
 			]

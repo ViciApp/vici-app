@@ -987,13 +987,15 @@ const importBattles: ImporterRun = perDoc(async (doc, { q, mapper, nowMs, stats 
 		kind === 'duel' ? await mapper.userIdFor(side) : side;
 
 	const winner = optStr(d.winner);
-	const wager = optNum(d.wager);
+	// Docs proposed before the rename hold the amount as `wager`; Juno docs are
+	// never rewritten, so the old name is read when `amount` is absent.
+	const amount = optNum(d.amount) ?? optNum(d.wager);
 	const scoreA = optNum(d.scoreA);
 	const scoreB = optNum(d.scoreB);
 
 	await q(
 		`insert into battles (id, kind, side_a, side_b, proposer_user_id, state, kickoff_ms, settle_ms,
-		   scope, wager, trash_talk, respond_by_ms, responded_at_ms, baseline_a, baseline_b,
+		   scope, amount, trash_talk, respond_by_ms, responded_at_ms, baseline_a, baseline_b,
 		   score_a, score_b, calls_a, calls_b, winner, resolved_at_ms, created_at, updated_at)
 		 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
 		   $19, $20, $21, $22, $23)
@@ -1020,7 +1022,7 @@ const importBattles: ImporterRun = perDoc(async (doc, { q, mapper, nowMs, stats 
 			kickoffMs,
 			settleMs,
 			optStr(d.scope),
-			nonNullish(wager) ? clamp({ v: wager, lo: 0, hi: 500 }) : null,
+			nonNullish(amount) ? clamp({ v: amount, lo: 0, hi: 500 }) : null,
 			optStr(d.trashTalk)?.slice(0, 60) ?? null,
 			optNum(d.respondByMs),
 			optNum(d.respondedAtMs),
