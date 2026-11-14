@@ -1,3 +1,4 @@
+import { hyphenateSlug } from '#lib/utils/slug.utils.ts';
 import { notEmptyString } from '@dfinity/utils';
 
 /**
@@ -39,12 +40,7 @@ const SLUG_ID_SUFFIX_LENGTH = 8;
  * URL length limits.
  */
 export const slugifyMarketTitle = (title: string): string =>
-	title
-		.toLowerCase()
-		.normalize('NFKD')
-		.replace(/[̀-ͯ]/g, '')
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '');
+	hyphenateSlug(title.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, ''));
 
 /**
  * The `/m/{param}` path segment for a market: `slug~id8`, or the bare id
