@@ -49,14 +49,14 @@ type ListedDocEntry = ReturnType<typeof listDocsStore>['items'][number];
 export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * 86_400_000;
 
 /**
- * Account deletion — Proposal 4 in `docs/backend-proposals/README.md`
+ * Account deletion: Proposal 4 in `docs/backend-proposals/README.md`
  * (Delete account v2: soft-delete + recovery + admin sweep, with
  * league resolution).
  *
  * `deleteMyAccount` runs four steps in order:
  *
  *  1. **League resolution.** If the caller passes `leagueResolutions`,
- *     each is applied IMMEDIATELY before the blocking guard — a
+ *     each is applied IMMEDIATELY before the blocking guard: a
  *     `transfer` reuses {@link transferLeagueOwnershipFn} (hand the
  *     league to another member), a `delete` reuses {@link
  *     deleteLeagueFn} (disband the league entirely). Only leagues the
@@ -65,7 +65,7 @@ export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * 86_400_000;
  *     below decides whether that leaves a blocker). If any resolution
  *     fails, the WHOLE delete aborts with `reason:
  *     'league_resolution_failed'` (plus `failedLeagueId` +
- *     `resolutionReason`) and NOTHING further runs — but resolutions
+ *     `resolutionReason`) and NOTHING further runs, but resolutions
  *     applied before the failure have already committed (see the
  *     recovery caveat below).
  *
@@ -76,7 +76,7 @@ export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * 86_400_000;
  *
  *  3. **Soft-delete.** The caller's profile gets `deletedAtMs = now`
  *     (decision 4.1, soft-delete preserves the audit trail). NO data
- *     is removed — recovery must be able to restore the full account.
+ *     is removed: recovery must be able to restore the full account.
  *     The nickname is left untouched so the handle stays reserved
  *     (`checkNicknameAvailability` scans every profile doc). A second
  *     soft-delete keeps the EARLIEST `deletedAtMs` so the recovery
@@ -85,7 +85,7 @@ export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * 86_400_000;
  *
  *  4. **Exit-signal write.** A single `EXIT_SIGNALS` doc is appended
  *     with the chosen reason + optional note. The doc has no
- *     principal field — it's intentionally unlinkable from the
+ *     principal field: it's intentionally unlinkable from the
  *     account that wrote it. Skipped when step 3 reports
  *     `alreadyDeleted` (a re-delete inside the recovery window), so a
  *     repeated `deleteMyAccount` can't over-count churn.
@@ -100,7 +100,7 @@ export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * 86_400_000;
  *
  * **Recovery caveat (deliberate, not a bug).** League resolutions are
  * applied IMMEDIATELY (a real transfer / disband), matching the
- * delete-v2 contract — they are NOT deferred to the hard-delete. So a
+ * delete-v2 contract; they are NOT deferred to the hard-delete. So a
  * user who soft-deletes while resolving leagues and then
  * `recoverMyAccount`s within the recovery window gets their ACCOUNT
  * back but NOT the relinquished leagues: a transferred league now
@@ -159,14 +159,14 @@ export type RecoverMyAccountResult =
 	{ ok: true; recovered: boolean } | { ok: false; reason: 'expired' };
 
 /**
- * Result of {@link sweepExpiredDeletionsFn} — count of accounts purged.
+ * Result of {@link sweepExpiredDeletionsFn}: count of accounts purged.
  *
  * Purge failures are NOT folded into this count (a failed purge does
  * NOT increment `swept`); they're logged via `logError` with the
  * stable `sweep_expired_deletions_purge_failed` tag plus a
  * `sweep_expired_deletions_under_purged` summary, so the external
  * trigger can detect an under-purge from the Console. We deliberately
- * do not surface a `failed` count on the wire — that would widen the
+ * do not surface a `failed` count on the wire: that would widen the
  * `sweepExpiredDeletions` Candid result and force a binding regen for
  * a value operators already get from the logs.
  */
@@ -177,11 +177,11 @@ export interface SweepExpiredDeletionsResult {
 /**
  * Result of {@link hibernateMyAccountFn}, discriminated by `ok`.
  *
- *  - `{ ok: true }` — the caller's profile is now hibernated (idempotent:
+ *  - `{ ok: true }`: the caller's profile is now hibernated (idempotent:
  *    re-hibernating keeps the earliest mark).
- *  - `{ ok: false; reason: 'no_profile' }` — the caller never onboarded,
+ *  - `{ ok: false; reason: 'no_profile' }`: the caller never onboarded,
  *    so there was no profile to hibernate.
- *  - `{ ok: false; reason: 'deleted' }` — the account is already
+ *  - `{ ok: false; reason: 'deleted' }`: the account is already
  *    soft-deleted. Hibernation and soft-delete are mutually exclusive
  *    states, so we refuse cleanly rather than stacking the two markers.
  */
@@ -201,12 +201,12 @@ export interface ResumeMyAccountResult {
 /**
  * Outcome of {@link mutateOwnProfile}, discriminated by `status`:
  *
- *  - `'no_profile'` — the caller had no `PROFILES` doc (never onboarded,
+ *  - `'no_profile'`: the caller had no `PROFILES` doc (never onboarded,
  *    or already hard-deleted). No read-back, nothing written.
- *  - `'skipped'` — a profile existed but `transform` returned `null`, so
+ *  - `'skipped'`: a profile existed but `transform` returned `null`, so
  *    no write was issued (a clean no-op, e.g. the marker was already in
  *    the desired state). `profile` is the decoded (pre-transform) doc.
- *  - `'written'` — `transform` returned a profile and it was persisted
+ *  - `'written'`: `transform` returned a profile and it was persisted
  *    via a version-locked overwrite. `profile` is the decoded
  *    (pre-transform) doc.
  *
@@ -222,7 +222,7 @@ type MutateOwnProfileResult =
 /**
  * Shared read-modify-write envelope for the caller's own `PROFILES` doc.
  * Reads the doc via `getDocStore` (PROFILES is keyed by principal text,
- * one doc per user, and is user-owned — so the write is authorised by the
+ * one doc per user, and is user-owned, so the write is authorised by the
  * REAL caller, never an admin key), null-guards a missing doc, decodes it,
  * then runs `transform`:
  *
@@ -316,7 +316,7 @@ const validateInput = ({
  * still have other members so the caller can transfer ownership
  * before retrying delete.
  *
- * A league with only the owner row counts as empty — that row is
+ * A league with only the owner row counts as empty: that row is
  * deleted by the cascade anyway, and the league itself is hard-
  * deleted at the end. The guard protects against orphaning *other*
  * users' membership in a league with no owner.
@@ -431,7 +431,7 @@ const deletePrefixedDocs = ({
 /**
  * Drop the caller's profile (`profiles` is keyed by principal text,
  * one doc per user). The doc may not exist if the user never
- * completed onboarding — silently no-op in that case.
+ * completed onboarding: silently no-op in that case.
  */
 const deleteOwnProfile = ({
 	callerText,
@@ -449,7 +449,7 @@ const deleteOwnProfile = ({
 /**
  * Drop the caller's owner-private `profile_private` doc (the account
  * email). Exactly one doc keyed by the principal, so this is a direct
- * versioned read + delete — no collection scan. Silently no-ops when the
+ * versioned read + delete; no collection scan. Silently no-ops when the
  * account never stored one.
  */
 const deleteOwnPrivateProfile = ({
@@ -480,7 +480,7 @@ const deleteOwnPrivateProfile = ({
 };
 
 /**
- * Drop the caller's relations (friend / follow rows) — keyed by
+ * Drop the caller's relations (friend / follow rows): keyed by
  * relation id, not principal, so we scan + filter by
  * `participants[*] === callerText`. Deletes the row entirely; the
  * other participant loses the relation too (mirrors the
@@ -526,7 +526,7 @@ const deleteOwnRelations = ({
 
 /**
  * Drop the caller's referral code (`referral_codes` is reverse-
- * indexed — key is the code, value is the owner). One row max per
+ * indexed: key is the code, value is the owner). One row max per
  * user; iterate to find theirs.
  */
 const deleteOwnReferralCode = ({
@@ -569,7 +569,7 @@ const deleteOwnReferralCode = ({
 
 /**
  * Drop the caller's referral-redemption row (`referrals` is keyed
- * by the *referee* principal — so the caller's row lives at their
+ * by the *referee* principal, so the caller's row lives at their
  * own principal text). Other users' rows whose `referrer` equals
  * the caller are left in place (they document the referee's
  * payout history, which is auditable independent of the referrer).
@@ -614,7 +614,7 @@ const deleteOwnReferralRedemption = ({
 };
 
 /**
- * Drop affiliation rows (`${member}/${kind}/${affiliationIdentifier}` —
+ * Drop affiliation rows (`${member}/${kind}/${affiliationIdentifier}`:
  * prefix-keyed). The 90-day lock assert is bypassed in this code
  * path because we delete via the satellite caller with no app-side
  * `assertDeleteAffiliation` re-entry on raw datastore drops; if
@@ -626,7 +626,7 @@ const deleteOwnAffiliations = deletePrefixedDocs;
 
 /**
  * Drop league memberships where the caller is the member (key
- * suffix `/${callerText}`). Owner rows are removed too — the
+ * suffix `/${callerText}`). Owner rows are removed too: the
  * owned-empty leagues themselves are dropped in the next step.
  */
 const deleteOwnLeagueMemberships = ({
@@ -681,13 +681,13 @@ const deleteOwnLeagueMemberships = ({
  *    deleting, so self-joiners during the recovery window aren't
  *    orphaned. This branch only triggers on the guard-less paths
  *    (recovery-expiry purge + admin sweep), where membership may have
- *    grown after the soft-delete. A deterministic survivor — the first
- *    remaining member row in `LEAGUE_MEMBERS` iteration order — becomes
+ *    grown after the soft-delete. A deterministic survivor, the first
+ *    remaining member row in `LEAGUE_MEMBERS` iteration order, becomes
  *    the new owner: `league.owner` is re-encoded onto the league doc
  *    (version-locked) and that member's row `role` is bumped to
  *    `'owner'` (also version-locked).
  *
- * The caller's own membership row is excluded from the survivor scan —
+ * The caller's own membership row is excluded from the survivor scan:
  * it was already dropped by `deleteOwnLeagueMemberships` earlier in the
  * cascade, but we filter defensively in case ordering ever changes.
  *
@@ -759,7 +759,7 @@ const resolveOwnedLeague = ({
 
 	const prefix = `${league.id}/`;
 
-	// First remaining member row that isn't the caller — deterministic
+	// First remaining member row that isn't the caller: deterministic
 	// survivor in `LEAGUE_MEMBERS` iteration order.
 	const survivor = memberItems.find(([docKey, item]) => {
 		if (!docKey.startsWith(prefix)) {
@@ -776,7 +776,7 @@ const resolveOwnedLeague = ({
 	});
 
 	if (isNullish(survivor)) {
-		// No other members — drop the orphaned league.
+		// No other members: drop the orphaned league.
 		deleteDocStore({
 			collection: Collection.LEAGUES,
 			key: leagueKey,
@@ -789,11 +789,11 @@ const resolveOwnedLeague = ({
 		return 1;
 	}
 
-	// Other members remain — transfer ownership instead of deleting.
+	// Other members remain: transfer ownership instead of deleting.
 	// Mirror `transferLeagueOwnershipFn`'s two-caller dance: the league-doc
 	// owner swap is authorised by the OUTGOING owner (still the owner at
 	// this point), but the survivor's membership-role bump must be
-	// authorised by the NEW owner — once `league.owner` flips below,
+	// authorised by the NEW owner; once `league.owner` flips below,
 	// `assertSetLeagueMember` only accepts a role change from the current
 	// (survivor) owner, so writing it as `callerBytes` would be rejected
 	// and leave a half-transferred league.
@@ -829,10 +829,10 @@ const resolveOwnedLeague = ({
  * identity-keyed to the principal: profile, VXP awards / onboarding,
  * referral code + redemption record, affiliations, relations, league
  * memberships. Owned leagues are then either deleted (no other members
- * left) or transferred to a surviving member — see
+ * left) or transferred to a surviving member: see
  * {@link disbandOrTransferOwnedLeagues}; self-joiners during the recovery
  * window are never orphaned. Shared audit rows (activities, battles,
- * comments) are left in place — the principal is gone, so they're
+ * comments) are left in place: the principal is gone, so they're
  * orphaned but immutable (decision 4.1).
  *
  * Order matters only between league memberships → owned leagues (the
@@ -841,7 +841,7 @@ const resolveOwnedLeague = ({
  *
  * Takes the principal explicitly (does NOT call `msgCaller()`) so the
  * admin sweep can run it for any account, not just the caller. Returns
- * the number of docs deleted. Idempotent — a re-run on an
+ * the number of docs deleted. Idempotent: a re-run on an
  * already-purged account finds nothing and returns 0.
  */
 export const hardDeleteAccountFn = ({
@@ -881,8 +881,8 @@ export const hardDeleteAccountFn = ({
 
 /**
  * Read a single `LEAGUES` doc as the caller and report whether the
- * caller owns it. Used to gate league resolutions on actual ownership
- * — a resolution targeting a league the caller doesn't own is skipped
+ * caller owns it. Used to gate league resolutions on actual ownership;
+ * a resolution targeting a league the caller doesn't own is skipped
  * (the blocking guard then decides whether that's a problem) rather
  * than surfaced as a resolution failure.
  */
@@ -915,11 +915,11 @@ const callerOwnsLeague = ({
 /**
  * Apply one league resolution (transfer / delete) on behalf of the
  * caller. Returns `null` on success (or when the league isn't owned by
- * the caller — a clean skip), or a populated failure object to abort
+ * the caller: a clean skip), or a populated failure object to abort
  * the surrounding delete.
  *
  * `transfer` reuses {@link transferLeagueOwnershipFn} (which reads
- * `msgCaller()` internally — the same caller as `deleteMyAccountFn`, so
+ * `msgCaller()` internally: the same caller as `deleteMyAccountFn`, so
  * no caller is threaded through). `delete` reuses {@link deleteLeagueFn}
  * (which takes the caller explicitly).
  */
@@ -972,7 +972,7 @@ export const deleteMyAccountFn = ({
 	note: string;
 	leagueResolutions?: LeagueResolution[];
 }): DeleteMyAccountResult => {
-	// Invalid `reason`/`note` is a typed refusal, not a trap — `validateInput`
+	// Invalid `reason`/`note` is a typed refusal, not a trap: `validateInput`
 	// throws, so catch it and return the documented `invalid_input` shape.
 	let validated: { reason: ExitSignalReason; note: string };
 
@@ -988,14 +988,14 @@ export const deleteMyAccountFn = ({
 
 	// Churn funnel: reaching this endpoint with valid input means the
 	// type-to-confirm gate passed (the FE only calls after the handle
-	// matched), so this call IS the `delete_confirmed` moment — including
+	// matched), so this call IS the `delete_confirmed` moment, including
 	// a re-confirm after a refusal bounce, which is a genuine new attempt.
 	captureDeleteEvents([{ name: 'delete_confirmed', principal: callerText }]);
 
-	// Step 1 — league resolution. Apply each transfer / delete the
+	// Step 1: league resolution. Apply each transfer / delete the
 	// caller chose, BEFORE the blocking guard. A failed resolution
 	// aborts the whole delete (resolutions are applied immediately, so
-	// any that already committed stand — see the recovery caveat in the
+	// any that already committed stand: see the recovery caveat in the
 	// JSDoc above).
 	for (const resolution of leagueResolutions ?? []) {
 		const failure = applyLeagueResolution({ resolution, callerText, callerBytes });
@@ -1010,7 +1010,7 @@ export const deleteMyAccountFn = ({
 		}
 	}
 
-	// Step 2 — owner-leagues guard. If any owned league still has
+	// Step 2: owner-leagues guard. If any owned league still has
 	// another member (and wasn't resolved above), refuse and surface
 	// the list to the FE.
 	const blockingLeagueIds = findOwnedNonEmptyLeagues({ callerText, callerBytes });
@@ -1026,18 +1026,18 @@ export const deleteMyAccountFn = ({
 	const nowNs = time();
 	const nowMs = Number(nowNs / 1_000_000n);
 
-	// Step 3 — soft-delete. Mark the profile `deletedAtMs = now` and keep
+	// Step 3: soft-delete. Mark the profile `deletedAtMs = now` and keep
 	// every other row intact so recovery can restore the account. A caller
-	// who never onboarded has no profile doc — that's a clean no-op
+	// who never onboarded has no profile doc: that's a clean no-op
 	// (nothing to soft-delete). A second soft-delete keeps the earliest
 	// timestamp so the recovery clock can't be reset, and reports
 	// `alreadyDeleted` so the churn signal isn't double-counted below.
 	const { softDeleted, alreadyDeleted } = softDeleteProfile({ callerText, callerBytes, nowMs });
 
-	// Step 4 — exit-signal write. Compact base36 key, anonymous body. The
+	// Step 4: exit-signal write. Compact base36 key, anonymous body. The
 	// chain timestamp (ns) is the entropy source; we pad it into a 16-char
 	// alphanumeric string to keep the key compact. Skipped on a re-delete
-	// inside the recovery window (`alreadyDeleted`) — appending a second
+	// inside the recovery window (`alreadyDeleted`): appending a second
 	// anonymous signal for the same departure would over-count churn and
 	// break idempotency.
 	if (!alreadyDeleted) {
@@ -1059,7 +1059,7 @@ export const deleteMyAccountFn = ({
 
 		// Churn funnel tail, once per departure (the `alreadyDeleted` guard
 		// mirrors the exit-signal idempotency above). `exit_signal` carries
-		// only the bounded reason bucket and — like the exit-signal doc — no
+		// only the bounded reason bucket and, like the exit-signal doc, no
 		// principal; the free-text note never leaves the doc.
 		captureDeleteEvents([
 			{ name: 'delete_succeeded', principal: callerText },
@@ -1080,7 +1080,7 @@ interface SoftDeleteProfileResult {
 	/**
 	 * `true` when the profile was ALREADY soft-deleted before this call
 	 * (a re-delete inside the recovery window). Callers use it to skip
-	 * side effects that must run only once per departure — notably the
+	 * side effects that must run only once per departure: notably the
 	 * anonymous churn signal in {@link deleteMyAccountFn}.
 	 */
 	alreadyDeleted: boolean;
@@ -1110,7 +1110,7 @@ const softDeleteProfile = ({
 		callerText,
 		callerBytes,
 		transform: (profile) => {
-			// Keep the earliest mark — re-deleting must not reset the clock.
+			// Keep the earliest mark: re-deleting must not reset the clock.
 			const deletedAtMs = isNullish(profile.deletedAtMs)
 				? nowMs
 				: Math.min(profile.deletedAtMs, nowMs);
@@ -1164,13 +1164,13 @@ export const recoverMyAccountFn = (): RecoverMyAccountResult => {
 			}
 
 			if (nowMs - profile.deletedAtMs >= ACCOUNT_RECOVERY_WINDOW_MS) {
-				// Window elapsed — refuse the recovery and purge below.
+				// Window elapsed: refuse the recovery and purge below.
 				expired = true;
 
 				return null;
 			}
 
-			// Inside the window — clear the marker via the version-locked write.
+			// Inside the window: clear the marker via the version-locked write.
 			const { deletedAtMs: _drop, ...rest } = profile;
 
 			return rest;
@@ -1178,7 +1178,7 @@ export const recoverMyAccountFn = (): RecoverMyAccountResult => {
 	});
 
 	if (expired) {
-		// Window elapsed — purge now and refuse the recovery.
+		// Window elapsed: purge now and refuse the recovery.
 		hardDeleteAccountFn({ callerText, callerBytes });
 
 		return { ok: false, reason: 'expired' };
@@ -1188,12 +1188,12 @@ export const recoverMyAccountFn = (): RecoverMyAccountResult => {
 };
 
 /**
- * Hibernate the caller's own account (Delete account v2 — the reversible
+ * Hibernate the caller's own account (Delete account v2: the reversible
  * retention off-ramp offered alongside deletion). Sets `hibernatedAtMs =
  * now` on the caller's profile via a version-locked overwrite (read →
  * decode → mark → re-encode → `setDocStore` with the current `version`, so
  * a concurrent profile write can't be silently clobbered). NO data is ever
- * removed — hibernation freezes the account's shared stats (it's inactive)
+ * removed: hibernation freezes the account's shared stats (it's inactive)
  * and hides the profile from public reads, and the owner can
  * `resumeMyAccount` at any time.
  *
@@ -1220,7 +1220,7 @@ export const hibernateMyAccountFn = (): HibernateMyAccountResult => {
 		callerText,
 		callerBytes,
 		transform: (profile) => {
-			// Mutually exclusive with soft-delete — a deleted account can't be
+			// Mutually exclusive with soft-delete: a deleted account can't be
 			// hibernated. The FE should never reach here (it offers hibernation
 			// as an alternative to delete), but guard defensively.
 			if (isSoftDeleted(profile)) {
@@ -1229,7 +1229,7 @@ export const hibernateMyAccountFn = (): HibernateMyAccountResult => {
 				return null;
 			}
 
-			// Keep the earliest mark — re-hibernating must not reset the clock.
+			// Keep the earliest mark: re-hibernating must not reset the clock.
 			const hibernatedAtMs = isHibernated(profile)
 				? Math.min(profile.hibernatedAtMs ?? nowMs, nowMs)
 				: nowMs;
@@ -1253,7 +1253,7 @@ export const hibernateMyAccountFn = (): HibernateMyAccountResult => {
  * Resume the caller's own hibernated account (Delete account v2). Clears
  * `hibernatedAtMs` via a version-locked overwrite (destructure-drop +
  * re-encode, mirroring how `recoverMyAccountFn` clears `deletedAtMs`), so
- * the account becomes active again — its profile reappears on public reads
+ * the account becomes active again; its profile reappears on public reads
  * and stats fan-out resumes on the next trade.
  *
  *  - Not hibernated (or no profile) → no-op: `{ ok: true, resumed: false }`.
@@ -1293,14 +1293,14 @@ export const resumeMyAccountFn = (): ResumeMyAccountResult => {
  * recovery window has elapsed (Delete account v2). Scans `PROFILES`
  * for docs with `deletedAtMs` older than {@link
  * ACCOUNT_RECOVERY_WINDOW_MS} and runs {@link hardDeleteAccountFn} for
- * each. Returns `{ swept }` — the number of accounts purged.
+ * each. Returns `{ swept }`: the number of accounts purged.
  *
- * **Admin-only** — refuses non-admins via the shared `isAdmin` check.
+ * **Admin-only**: refuses non-admins via the shared `isAdmin` check.
  *
  * Juno exposes no scheduler primitive (the same reason the worlds
- * podium payout is modelled as a user-claim — see
+ * podium payout is modelled as a user-claim: see
  * `vxp-worlds-podium.services.ts`), so this is triggered externally:
- * an operator/cron calls it. Idempotent — already-purged accounts no
+ * an operator/cron calls it. Idempotent: already-purged accounts no
  * longer carry a profile doc, so a re-run only sweeps newly-expired
  * accounts.
  *
@@ -1357,7 +1357,7 @@ export const sweepExpiredDeletionsFn = (): SweepExpiredDeletionsResult => {
  * Narrow decode-and-expiry check for {@link sweepExpiredDeletionsFn}.
  * Returns `true` only for a profile that is soft-deleted past the
  * recovery window. A row that can't be decoded is treated as `false`
- * (skipped, malformed) — this is the ONLY step wrapped in a try/catch,
+ * (skipped, malformed); this is the ONLY step wrapped in a try/catch,
  * so a downstream purge failure can never be mistaken for a malformed
  * row.
  */
@@ -1384,7 +1384,7 @@ const isExpiredDeletion = ({
  * Hard-delete one swept account for {@link sweepExpiredDeletionsFn}.
  * `profiles` is keyed by the owner's principal text, so we trust the
  * DOC KEY (not the decoded `profile.owner`, which writes don't enforce
- * to equal the key) — a mismatched stored `owner` can't make us purge
+ * to equal the key): a mismatched stored `owner` can't make us purge
  * the wrong principal. Runs OUTSIDE the malformed-row guard: a bad key
  * or a cascade error is logged via `logError` and reported as
  * `'failed'` so the run can't under-purge silently. Returns `'swept'`

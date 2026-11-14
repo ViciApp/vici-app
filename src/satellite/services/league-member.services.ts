@@ -21,9 +21,9 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
  *     slipping through; this assertion makes it impossible.
  *
  *  2. **Authorisation model.** A user can write their own
- *     membership row (`member === caller`) — that covers the
+ *     membership row (`member === caller`): that covers the
  *     join-by-code flow. A league owner can also write rows for
- *     other principals — that covers admin promotion / member
+ *     other principals: that covers admin promotion / member
  *     invite. (Demotion / removal under the same gate; a separate
  *     `assertDeleteDoc` will handle leave / kick in a follow-up.)
  *
@@ -37,7 +37,7 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
  *     to mint a second `owner` row for the same league.
  *
  * Follow-up `battles` collection references both `leagueId` and the
- * member roster — so the integrity guarantees here flow into the
+ * member roster, so the integrity guarantees here flow into the
  * battle state machine.
  */
 export const assertSetLeagueMember = ({
@@ -54,7 +54,7 @@ export const assertSetLeagueMember = ({
 
 	const proposedDoc = decodeDocData<LeagueMemberDoc>(proposed.data);
 
-	// 1. Key shape — must match the canonical builder.
+	// 1. Key shape: must match the canonical builder.
 	const expectedKey = leagueMemberKey({
 		leagueId: proposedDoc.leagueId,
 		memberPrincipal: proposedDoc.member
@@ -66,7 +66,7 @@ export const assertSetLeagueMember = ({
 		);
 	}
 
-	// Member principal must parse — defensive against malformed writes.
+	// Member principal must parse: defensive against malformed writes.
 	try {
 		Principal.fromText(proposedDoc.member);
 	} catch {
@@ -80,7 +80,7 @@ export const assertSetLeagueMember = ({
 		);
 	}
 
-	// Look up the parent league once — both the auth check and the
+	// Look up the parent league once: both the auth check and the
 	// "no second owner" rule depend on it. Missing parent league = the
 	// membership has nothing to attach to; reject.
 	const leagueDoc = getDocStore({
@@ -98,7 +98,7 @@ export const assertSetLeagueMember = ({
 	const callerIsOwner = league.owner === callerText;
 	const callerIsSelf = proposedDoc.member === callerText;
 
-	// 2. Authorisation — self-join OR league owner writing for someone.
+	// 2. Authorisation: self-join OR league owner writing for someone.
 	if (!callerIsSelf && !callerIsOwner) {
 		throw new Error(
 			'league_members may only be written by the member themselves or the league owner.'
@@ -106,14 +106,14 @@ export const assertSetLeagueMember = ({
 	}
 
 	// 4 (continued). The `owner` role is reserved for the principal
-	// that owns the league doc — even an owner-as-caller can't grant
+	// that owns the league doc: even an owner-as-caller can't grant
 	// `owner` to a different principal, since league ownership is a
 	// property of the parent doc, not the membership row.
 	if (proposedDoc.role === 'owner' && proposedDoc.member !== league.owner) {
 		throw new Error('league_members role="owner" is reserved for the league owner principal.');
 	}
 
-	// Creation path — nothing more to check beyond shape + auth.
+	// Creation path: nothing more to check beyond shape + auth.
 	if (isNullish(current)) {
 		return;
 	}
@@ -129,7 +129,7 @@ export const assertSetLeagueMember = ({
 		throw new Error('league_members identity fields are immutable (leagueId, member, joinedAtMs).');
 	}
 
-	// Role transitions on existing rows are owner-only — a self-edit
+	// Role transitions on existing rows are owner-only: a self-edit
 	// can re-write the same row (idempotent) but cannot promote oneself.
 	if (currentDoc.role !== proposedDoc.role && !callerIsOwner) {
 		throw new Error('league_members role changes require the league owner.');
@@ -140,18 +140,18 @@ export const assertSetLeagueMember = ({
  * Pre-delete guard for `league_members`. Closes the membership
  * lifecycle: join (write) → leave / kick (delete).
  *
- *  1. **Owner cannot be removed.** A league always has an owner — even
+ *  1. **Owner cannot be removed.** A league always has an owner: even
  *     transferring ownership is a *role change* on the rows, not a
  *     delete-then-recreate. Deleting the owner row would orphan the
  *     league.
  *
  *  2. **Self-leave OR owner-kick.** Either the member themselves
  *     (`caller === currentDoc.member`) or the league owner can remove
- *     a membership row. Admins can't kick — the remove-other action
+ *     a membership row. Admins can't kick: the remove-other action
  *     is reserved for owners so a rogue admin can't quietly empty a
  *     league.
  *
- *  3. **Parent league must exist.** Defensive — if the league has
+ *  3. **Parent league must exist.** Defensive: if the league has
  *     already been deleted (which would only happen if a future
  *     `assertDeleteLeague` lands and cascades) the membership is
  *     orphaned and any caller can clean it up. Until then, this is a
@@ -187,7 +187,7 @@ export const assertDeleteLeagueMember = ({
 		caller
 	});
 
-	// 3. Orphaned membership — parent league missing. Let it through;
+	// 3. Orphaned membership: parent league missing. Let it through;
 	//    cleanup is harmless and avoids stuck dangling rows.
 	if (isNullish(leagueDoc)) {
 		return;

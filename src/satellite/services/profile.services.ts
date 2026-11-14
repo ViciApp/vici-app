@@ -30,13 +30,13 @@ import type { PrincipalText } from '@junobuild/schema';
  *
  * Two failure modes to defend against:
  *
- * 1. **Missing required nested fields** — profile docs predate several
+ * 1. **Missing required nested fields**: profile docs predate several
  *    fields (most recently `preferences.defaultAmount`), so the Sputnik
  *    JsonData→Candid encoder would trap with `Error converting from js
  *    'JsonData' into type 'Candid': missing field <name>` on the first
  *    legacy row. Fix: backfill nested defaults explicitly.
  *
- * 2. **Extra unknown fields** — older code stored fields like `bio` or
+ * 2. **Extra unknown fields**: older code stored fields like `bio` or
  *    `createdAt`/`updatedAt` that have since been removed from the
  *    schema. `defineQuery`'s result parse validates each row against
  *    `UserProfileSchema`, which uses `strictObject` and *rejects* unknown
@@ -47,8 +47,8 @@ import type { PrincipalText } from '@junobuild/schema';
  *
  * `app_get_profile` happens to work on clean rows because there's only
  * one to encode and it passes parse; `app_list_leaderboard` iterates
- * everyone and hits the first dirty row. So keep this helper authoritative
- * — and keep it in sync with `UserProfileSchema`
+ * everyone and hits the first dirty row. So keep this helper authoritative,
+ * and keep it in sync with `UserProfileSchema`
  * (`src/lib/schema/profile.schema.ts`).
  */
 export const withProfileDefaults = (profile: UserProfile): UserProfile => {
@@ -73,7 +73,7 @@ export const withProfileDefaults = (profile: UserProfile): UserProfile => {
 				incoming?.sharing?.profileVisibility === 'friends' ||
 				incoming?.sharing?.profileVisibility === 'private'
 					? incoming.sharing.profileVisibility
-					: // No stored sharing slice — derive from the canonical top-level
+					: // No stored sharing slice: derive from the canonical top-level
 						// `visibility` so legacy rows reflect their actual visibility
 						// (FRIENDS_ONLY → 'private') instead of defaulting to public.
 						visibilityFromProfile(profile.visibility),
@@ -122,7 +122,7 @@ export const withProfileDefaults = (profile: UserProfile): UserProfile => {
 		// `optional()` in the schema, so an absent value stays absent (active
 		// account) and a present value round-trips unchanged.
 		deletedAtMs: profile.deletedAtMs,
-		// Forward the hibernation marker verbatim (Delete account v2 — the
+		// Forward the hibernation marker verbatim (Delete account v2: the
 		// reversible sibling of soft-delete). Same `optional()` round-trip
 		// semantics as `deletedAtMs`: absent stays absent (active), present
 		// round-trips unchanged.
@@ -174,8 +174,8 @@ export const withProfileDefaults = (profile: UserProfile): UserProfile => {
 
 /**
  * A `YYYY-MM-DD` local-day key is well-formed iff its parsed components
- * round-trip exactly through a UTC date (so `2026-02-31` — which `Date`
- * would silently normalize to March 3 — is rejected). The satellite has
+ * round-trip exactly through a UTC date (so `2026-02-31`, which `Date`
+ * would silently normalize to March 3, is rejected). The satellite has
  * no notion of the caller's timezone, so it does NOT compute the day
  * itself; it accepts the client's local-day key and uses it only as the
  * rollover boundary. The structural check here is the only validation:
@@ -210,7 +210,7 @@ export interface RecordFlowSwipeResult {
 }
 
 /**
- * Authoritative per-swipe daily-counter increment — the satellite owns the
+ * Authoritative per-swipe daily-counter increment: the satellite owns the
  * Flow daily hard cap, not the client.
  *
  * The client never sends a count: it sends only its local-day key
@@ -223,7 +223,7 @@ export interface RecordFlowSwipeResult {
  *  - otherwise starts the day fresh at 1 under `dayKey`.
  *
  * The result is written back via a version-locked `setDocStore` (PROFILES
- * is user-owned, so the write is authorised by the REAL caller — never an
+ * is user-owned, so the write is authorised by the REAL caller, never an
  * admin key). With the monotonic-per-day assert as the backstop, a cleared
  * or stale client can no longer roll the count backward within a day, so
  * the cap survives reloads, cleared storage, sign-outs, and device
@@ -252,7 +252,7 @@ export const recordFlowSwipeFn = async ({
 	// A swipe only ever comes from a signed-in caller, who always has a
 	// profile (created at onboarding); a missing doc here means a broken or
 	// half-created account. Fail fast rather than fabricate an
-	// authoritative-shaped count — the Flow commit's catch clamps the
+	// authoritative-shaped count: the Flow commit's catch clamps the
 	// optimistic tally to the last server-confirmed value, so a rejection
 	// degrades gracefully instead of silently re-opening the cap.
 	if (isNullish(profileDoc)) {
@@ -293,22 +293,22 @@ export const recordFlowSwipeFn = async ({
 
 /**
  * A profile is soft-deleted (Delete account v2) iff `deletedAtMs` is
- * present. Absence is the meaningful "active account" state — see the
+ * present. Absence is the meaningful "active account" state: see the
  * field comment in `src/lib/schema/profile.schema.ts`. Used by the
  * PUBLIC profile reads to make a deleted user disappear from
  * leaderboard / search / direct lookup. `getProfile` additionally lets
  * the owner read their own soft-deleted doc (it knows the caller and the
  * looked-up principal), and the owner's raw read via Juno `getDoc` is
- * also never gated — both so the FE can still offer recovery within the
+ * also never gated: both so the FE can still offer recovery within the
  * window.
  */
 export const isSoftDeleted = (profile: Pick<UserProfile, 'deletedAtMs'>): boolean =>
 	nonNullish(profile.deletedAtMs);
 
 /**
- * A profile is hibernated (Delete account v2 — the reversible sibling of
+ * A profile is hibernated (Delete account v2: the reversible sibling of
  * soft-delete) iff `hibernatedAtMs` is present. Absence is the meaningful
- * "active account" state — see the field comment in
+ * "active account" state: see the field comment in
  * `src/lib/schema/profile.schema.ts`. Hibernation is fully reversible: no
  * data is removed, the owner can `resumeMyAccount` at any time. While
  * hibernated the account freezes its shared stats (it's inactive) and
@@ -349,7 +349,7 @@ export const getProfile = (principal: PrincipalText): UserProfile | undefined =>
 
 	// Public lookup: a soft-deleted OR hibernated account is invisible to
 	// OTHER callers, but the owner can always read their own (possibly
-	// hidden) doc — the FE relies on this to drive recovery / resume within
+	// hidden) doc: the FE relies on this to drive recovery / resume within
 	// the window, so the query agrees with the raw Juno `getDoc` path
 	// instead of hiding the state only there.
 	if (isPubliclyHidden(profile) && caller.toText() !== principal) {
@@ -412,11 +412,11 @@ export const searchProfiles = (query: string): UserProfile[] => {
  * without parsing error strings.
  *
  * `reason` is set only when `available` is `false`:
- * - `required`  — empty / whitespace.
- * - `too_short` — under `MIN_NICKNAME_LENGTH`.
- * - `invalid`   — contains characters outside `NICKNAME_PATTERN`
+ * - `required`: empty / whitespace.
+ * - `too_short`: under `MIN_NICKNAME_LENGTH`.
+ * - `invalid`: contains characters outside `NICKNAME_PATTERN`
  *                 (`[a-z0-9._-]`), e.g. a space in the middle.
- * - `taken`     — another principal already owns this nickname.
+ * - `taken`: another principal already owns this nickname.
  */
 export type NicknameAvailability =
 	| { available: true }
@@ -428,7 +428,7 @@ export type NicknameAvailability =
  * UI and the satellite always agree on what "taken" means.
  *
  * `excludeKey` is the doc key (principal) to skip when scanning for
- * collisions — pass the editing user's principal so a user's own current
+ * collisions: pass the editing user's principal so a user's own current
  * nickname doesn't count as a conflict.
  */
 export const checkNicknameAvailabilityFn = ({
@@ -450,7 +450,7 @@ export const checkNicknameAvailabilityFn = ({
 
 	// Charset guard (server-authoritative): reject whitespace, `@` and other
 	// out-of-charset chars a direct `setDoc` could smuggle past the FE. Tested
-	// on the RAW value (the stored one) — not `trimmedNickname` — so surrounding
+	// on the RAW value (the stored one), not `trimmedNickname`, so surrounding
 	// whitespace is rejected too. The pattern allows upper/lowercase + accents.
 	if (!NICKNAME_PATTERN.test(nickname)) {
 		return { available: false, reason: 'invalid' };
@@ -493,13 +493,13 @@ export const checkNicknameAvailabilityFn = ({
  * submitted, so by the time the assert runs the value is a few hundred ms in
  * the past relative to the satellite's `time()`. Allow a small slack on both
  * sides (clock skew + request latency) but reject values that are clearly
- * stale or in the future — the client must not be trusted to backdate the
+ * stale or in the future: the client must not be trusted to backdate the
  * stamp and dodge the cooldown.
  */
 const HANDLE_LAST_CHANGE_TOLERANCE_MS = 5 * 60 * 1000;
 
 // Handle-change detection uses the uniqueness fold, so re-casing/re-accenting
-// your own handle isn't a "change" (no cooldown, no new stamp) — the stored
+// your own handle isn't a "change" (no cooldown, no new stamp): the stored
 // value still updates.
 const normalizeNickname = (nickname: string | undefined | null): string =>
 	nicknameUniqueKey(nickname ?? '');
@@ -507,10 +507,10 @@ const normalizeNickname = (nickname: string | undefined | null): string =>
 /**
  * Set-profile assertion for the `profiles` collection. Two concerns:
  *
- * 1. **Nickname validity + uniqueness** — the shared
+ * 1. **Nickname validity + uniqueness**: the shared
  *    {@link checkNicknameAvailabilityFn} (write-time guard mirroring the
  *    read-time availability probe).
- * 2. **Handle-change cooldown** — the handle is the `nickname` field. It can
+ * 2. **Handle-change cooldown**: the handle is the `nickname` field. It can
  *    only change once every {@link HANDLE_COOLDOWN_DAYS} days. This is the
  *    server-authoritative half of the rule (the {@link HandleEditor} mirrors
  *    it client-side). When the normalized nickname CHANGES versus the stored
@@ -539,7 +539,7 @@ export const assertValidNickname = ({
 	// A first write (no stored doc) seeds the handle; an update where the
 	// normalized nickname differs sets a NEW handle. Both must clear the
 	// validity + uniqueness guard. An update that leaves the nickname
-	// untouched must NOT — the stored handle is grandfathered (it already
+	// untouched must NOT: the stored handle is grandfathered (it already
 	// passed, or predates, these rules), and the uniqueness probe is a FULL
 	// collection scan, so running it on every routine profile write (streak
 	// bumps, stats syncs, the email migration's rewrites) made each write
@@ -625,9 +625,9 @@ export const assertValidNickname = ({
  * day, nor push it past {@link DAILY_HARD_CAP}.
  *
  * `recordFlowSwipe` is the normal write path (it computes the count
- * server-side); this assert ensures a stale or cleared client — which
+ * server-side); this assert ensures a stale or cleared client, which
  * re-fetches the profile, sees a lower count, and `set_doc`s the whole
- * doc back — can't overwrite the authoritative total downward and re-open
+ * doc back, can't overwrite the authoritative total downward and re-open
  * a fresh allotment (the reported honest-reset leak).
  *
  * Rules, comparing the proposed doc against the CURRENT stored doc:

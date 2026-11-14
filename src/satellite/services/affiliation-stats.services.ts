@@ -11,7 +11,7 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  * Pre-write guard for `affiliation_stats`.
  *
  * The collection is now write-`controllers` and holds **only** immutable
- * frozen monthly snapshots — one per `(kind, affiliationIdentifier, monthAnchor)`,
+ * frozen monthly snapshots: one per `(kind, affiliationIdentifier, monthAnchor)`,
  * keyed `${kind}/${affiliationIdentifier}/${monthAnchor}` (3 segments). They are
  * written by the Worlds podium freeze (`vxp-worlds-podium.services`) as a
  * controller at the moment a closed month's podium is first claimed, capturing
@@ -25,11 +25,11 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  *  2. **Snapshot key only.** The key must equal the canonical snapshot key for
  *     the doc's `(kind, affiliationIdentifier, monthAnchor)`. Rolling
  *     (2-segment) keys are no longer written and are rejected.
- *  3. **Write-once.** A frozen month is immutable history — any write over an
+ *  3. **Write-once.** A frozen month is immutable history: any write over an
  *     existing snapshot is rejected.
  *  4. **`monthAnchor` format.** Must be a well-formed `YYYY-MM`.
  *  5. **Counter sanity.** Both windows' counters are finite, non-negative
- *     integers, and `wins ≤ totalCalls` / `monthWins ≤ monthTotalCalls` — a
+ *     integers, and `wins ≤ totalCalls` / `monthWins ≤ monthTotalCalls`: a
  *     corrupted snapshot would otherwise break the ranking math it feeds.
  */
 const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -74,7 +74,7 @@ export const assertSetAffiliationStats = ({
 		);
 	}
 
-	// Counters must be finite, non-negative integers on both windows —
+	// Counters must be finite, non-negative integers on both windows:
 	// NaN / Infinity / fractional / negative would corrupt ranking math.
 	if (
 		!isNonNegativeInteger(proposedDoc.totalCalls) ||

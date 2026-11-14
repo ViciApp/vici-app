@@ -77,7 +77,7 @@ export const upsertMarketMetadata = async ({
 		caller
 	});
 
-	// Keep the reverse index in sync inline — Juno hooks don't fire on
+	// Keep the reverse index in sync inline: Juno hooks don't fire on
 	// serverless `setDocStore`, so this is the only place a metadata write can
 	// update it. The index maintains a bucket per micro AND per derived macro;
 	// it re-derives those bucket keys from each tag set itself.

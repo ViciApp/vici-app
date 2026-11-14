@@ -20,7 +20,7 @@ import {
 
 /**
  * Pre-write guard for `league_stats`. Same shape rules as
- * `affiliation_stats` but simpler — lifetime counters only, no
+ * `affiliation_stats` but simpler: lifetime counters only, no
  * monthly rollover (the tournament uses 7-day windows, not month
  * boundaries, so monthly snapshots aren't useful here).
  *
@@ -28,7 +28,7 @@ import {
  *  2. **Key shape.** Doc key must equal the embedded `leagueId`.
  *  3. **Caller is a member.** The caller must have a row in
  *     `league_members` for the same leagueId. Binds the assert to
- *     legitimate hook writes — only a hook signing on behalf of an
+ *     legitimate hook writes, only a hook signing on behalf of an
  *     actual member can write, so an outsider can't inflate a rival
  *     league's numbers.
  *  4. **Counters move forward.** Lifetime counters cannot decrease
@@ -72,7 +72,7 @@ export const assertSetLeagueStats = ({
 		);
 	}
 
-	// 5. Wins ≤ totalCalls — sanity invariant (aggregate + every bucket).
+	// 5. Wins ≤ totalCalls: sanity invariant (aggregate + every bucket).
 	if (proposedDoc.wins > proposedDoc.totalCalls) {
 		throw new Error(
 			`league_stats wins (${proposedDoc.wins}) cannot exceed totalCalls (${proposedDoc.totalCalls}).`
@@ -86,7 +86,7 @@ export const assertSetLeagueStats = ({
 	const currentDoc = nonNullish(current) ? decodeDocData<LeagueStatsDoc>(current.data) : undefined;
 
 	for (const [tag, bucket] of Object.entries(proposedDoc.categories ?? {})) {
-		// Keys are bounded to the known macro categories — the collection is
+		// Keys are bounded to the known macro categories: the collection is
 		// member-writable, so an unconstrained key set would let any member
 		// bloat the doc with arbitrary categories. Validate the key on every
 		// entry, including nullish buckets, so a `null` value can't smuggle an
@@ -342,7 +342,7 @@ export const onUserStatsSetForLeagueStats = (ctx: OnSetDocContext): void => {
 
 	const callerText = Principal.fromUint8Array(caller).toText();
 
-	// Stats freeze — a hibernated account must not move shared stats.
+	// Stats freeze: a hibernated account must not move shared stats.
 	const profile = getDocStore({
 		collection: Collection.PROFILES,
 		key: callerText,
@@ -355,13 +355,13 @@ export const onUserStatsSetForLeagueStats = (ctx: OnSetDocContext): void => {
 				return;
 			}
 		} catch {
-			// Unreadable profile — fall through and let the deltas apply.
+			// Unreadable profile: fall through and let the deltas apply.
 		}
 	}
 
 	// Per-category deltas, clamped ≥ 0. A re-aggregation only grows in
 	// practice; the clamp defends the forward-only assert regardless. Buckets
-	// are keyed by macro category — the closed {@link MACRO_IDS} set — so a
+	// are keyed by macro category, the closed {@link MACRO_IDS} set, so a
 	// legacy flat-tag key in `categoryStats` (e.g. `wc`) is simply not read.
 	const deltas: Partial<Record<MacroId, CategoryStatsBucket>> = {};
 	let hasDelta = false;
@@ -449,7 +449,7 @@ const incrementLeagueStatsCategories = ({
 			}
 		: decodeDocData<LeagueStatsDoc>(existing.data);
 
-	// Preserve any legacy (non-macro) keys already on the doc — they're carried
+	// Preserve any legacy (non-macro) keys already on the doc: they're carried
 	// untouched so an existing row isn't rewritten under the forward-only assert;
 	// only the macro-keyed deltas below mutate.
 	const categories: Partial<Record<string, CategoryStatsBucket>> = { ...baseDoc.categories };
@@ -505,6 +505,6 @@ export const getLeagueStatsFn = ({
 	try {
 		return decodeDocData<LeagueStatsDoc>(doc.data);
 	} catch {
-		// Malformed payload — fall through to undefined.
+		// Malformed payload: fall through to undefined.
 	}
 };

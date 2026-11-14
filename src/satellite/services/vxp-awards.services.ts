@@ -7,8 +7,8 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
 
 /**
  * Pre-write guard for `vxp_awards`. The collection holds server-fired
- * payouts — streak milestones, calibration rewards, referral payouts,
- * Worlds podium — so the rules here protect the economy from forgery and
+ * payouts (streak milestones, calibration rewards, referral payouts,
+ * Worlds podium), so the rules here protect the economy from forgery and
  * accidental double-credit.
  *
  *  1. **Key shape.** The doc key must equal
@@ -49,7 +49,7 @@ export const assertSetVxpAward = ({
 
 	const proposedDoc = decodeDocData<VxpAwardDoc>(proposed.data);
 
-	// 1. Key shape — must match the canonical builder.
+	// 1. Key shape: must match the canonical builder.
 	const expectedKey = vxpAwardKey({
 		recipient: proposedDoc.recipient,
 		awardType: proposedDoc.awardType,
@@ -62,8 +62,8 @@ export const assertSetVxpAward = ({
 		);
 	}
 
-	// 2. Recipient binds caller. Caller arrives as the raw principal bytes
-	//    — compare against the recipient field's text form. The satellite's
+	// 2. Recipient binds caller. Caller arrives as the raw principal bytes:
+	//    compare against the recipient field's text form. The satellite's
 	//    own writes satisfy this because the hook caller wiring signs as
 	//    the recipient's principal on its behalf (same pattern as
 	//    `assertSetReferral`).
@@ -73,7 +73,7 @@ export const assertSetVxpAward = ({
 		throw new Error('vxp_awards recipient must match the caller principal.');
 	}
 
-	// Creation path — nothing more to check beyond shape; status must
+	// Creation path: nothing more to check beyond shape; status must
 	// start at `pending`.
 	if (isNullish(current)) {
 		if (proposedDoc.status !== 'pending') {
@@ -83,7 +83,7 @@ export const assertSetVxpAward = ({
 		return;
 	}
 
-	// Edit path — enforce immutability + forward-only status.
+	// Edit path: enforce immutability + forward-only status.
 	const currentDoc = decodeDocData<VxpAwardDoc>(current.data);
 
 	if (

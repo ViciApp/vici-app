@@ -17,12 +17,12 @@ import { j, PrincipalTextSchema } from '@junobuild/schema';
  * `Vec<NestedStruct>` as well as `Option<…>`, so **both** serialise nested
  * structs in camelCase on the wire. These schemas therefore use camelCase keys
  * matching the app-side domain types, identically for `j.array(...)` and
- * `j.optional(...)` results — no more snake_case parallel schemas. The
+ * `j.optional(...)` results: no more snake_case parallel schemas. The
  * `toWire…` converters just project the domain shape (defaults / enum
  * normalisation); `fromWire…` re-narrows loose wire string unions back to the
  * app enums.
  *
- * Requires juno CLI ≥ 0.15.6 to build/deploy — older toolchains expect
+ * Requires juno CLI ≥ 0.15.6 to build/deploy: older toolchains expect
  * snake_case for `Vec` results and will trap at runtime.
  */
 
@@ -32,7 +32,7 @@ export const UserProfileWireSchema = j.strictObject({
 	owner: PrincipalTextSchema,
 	nickname: j.string().default(''),
 	avatar: j.string().default(''),
-	// Serialized faceted-avatar picks (compact JSON string) — carried so
+	// Serialized faceted-avatar picks (compact JSON string): carried so
 	// every surface renders the owner's saved face, not a principal-seeded
 	// fallback. Empty = never customised.
 	avatarParts: j.string().default(''),
@@ -65,7 +65,7 @@ export const UserProfileWireSchema = j.strictObject({
 
 export type WireUserProfile = j.infer<typeof UserProfileWireSchema>;
 
-// Local TS shape this converter accepts — exactly mirrors UserProfile from
+// Local TS shape this converter accepts: exactly mirrors UserProfile from
 // `src/lib/types/profile.ts`. Kept inline (instead of importing UserProfile)
 // so a future divergence of either shape doesn't silently break the wire.
 interface AppProfileLike {
@@ -159,7 +159,7 @@ export interface ApiWireProfile {
 /**
  * Inverse of {@link toWireProfile}. Re-camelCases a row coming back from a
  * satellite query whose `result` schema uses {@link UserProfileWireSchema}
- * (i.e. every `j.array(UserProfileWireSchema)` endpoint —
+ * (i.e. every `j.array(UserProfileWireSchema)` endpoint:
  * `listLeaderboard`, `searchProfiles`, …). Frontend callers should funnel
  * wire items through this before handing them to UI / stores typed as
  * {@link UserProfile}.
@@ -200,7 +200,7 @@ export const fromWireProfile = (profile: ApiWireProfile): UserProfile => ({
 	// wire (those surfaces don't read it), so default it like the other
 	// non-wire fields below to keep the rebuilt UserProfile fully shaped.
 	topDecileStreak: 0,
-	// The wire format only carries `default_amount` — the leaderboard /
+	// The wire format only carries `default_amount`: the leaderboard /
 	// search endpoints don't read the user-experience preferences
 	// (`notify`, `flowTags`, `savedMarketIds`, etc.), so they're not
 	// round-tripped on this path. Default the rest to the schema's
@@ -487,7 +487,7 @@ export const toWireLeague = (league: {
 	emblem: league.emblem,
 	// Emit a concrete privacy on the wire, coercing legacy at-rest shapes
 	// to the narrowed two-tier enum. Asserts only run on WRITE, so docs
-	// persisted under the retired three-way model are still read here —
+	// persisted under the retired three-way model are still read here,
 	// and once the Candid variant no longer contains `invite`, emitting it
 	// would fail encoding and break league listing. So:
 	//   - a stored `privacy === 'invite'` (retired invite-only tier; hidden
@@ -559,7 +559,7 @@ export const BattleWireSchema = j.strictObject({
 	kickoffMs: j.number(),
 	settleMs: j.number(),
 	// Deadline to accept before the proposal lapses to `expired`, and when
-	// the challenged side responded (accept/decline). Both optional —
+	// the challenged side responded (accept/decline). Both optional:
 	// absent on legacy rows and on still-`proposed` battles respectively.
 	respondByMs: j.number().optional(),
 	respondedAtMs: j.number().optional(),
@@ -571,7 +571,7 @@ export const BattleWireSchema = j.strictObject({
 	trashTalk: j.string().optional(),
 	scoreA: j.number().optional(),
 	scoreB: j.number().optional(),
-	// Window call counts per side (`Δcalls`) — let the FE tell a real
+	// Window call counts per side (`Δcalls`): let the FE tell a real
 	// draw (tied accuracy) from a void face-off (both sides zero calls).
 	callsA: j.number().optional(),
 	callsB: j.number().optional(),
@@ -626,7 +626,7 @@ export const toWireBattle = (battle: {
 // ─── Affiliations ───────────────────────────────────────────────
 
 // Wire shape for both `j.array(...)` (`listWorldsRoster`) and
-// `j.optional(...)` (`listMyAffiliations`) endpoints — camelCase keys
+// `j.optional(...)` (`listMyAffiliations`) endpoints: camelCase keys
 // matching the in-memory `AffiliationDoc`, so optional handlers can
 // return the projected doc directly without a `toWire` step.
 export const AffiliationWireSchema = j.strictObject({

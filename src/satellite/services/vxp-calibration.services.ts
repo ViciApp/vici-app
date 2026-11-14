@@ -32,18 +32,18 @@ import {
 } from '@junobuild/functions/sdk';
 
 /**
- * Calibration reward — a fixed VXP bonus paid the first time a
+ * Calibration reward: a fixed VXP bonus paid the first time a
  * *recovering* user correctly calls a finalised Vici binary market.
  *
  * The product intent: a user who has spent their balance down stays
  * engaged by reading markets right. The reward is small, fixed, and
  * only fires while the caller's available balance is below the recovery
- * floor — so it nudges depleted users back into the loop without paying
+ * floor, so it nudges depleted users back into the loop without paying
  * out to anyone with a healthy balance.
  *
  * Because this mints real on-chain VXP, every gate is enforced
  * server-side and the winning side is re-derived from the clearing
- * settlement — the FE-supplied `chosenSide` is only compared, never
+ * settlement: the FE-supplied `chosenSide` is only compared, never
  * trusted to define correctness. The caller can therefore never forge a
  * win. A wrong guess returns `{ correct: false }`, writes no award doc,
  * and applies no penalty.
@@ -285,7 +285,7 @@ export const claimCalibrationRewardFn = async ({
 		awardKey: seriesId
 	});
 
-	// 6 (early). Per-market dedupe — any prior award doc for this market
+	// 6 (early). Per-market dedupe: any prior award doc for this market
 	// short-circuits before any cross-canister work. Already-claimed
 	// markets report `correct: true` (the reward only exists when the
 	// call was right) without re-paying.
@@ -304,7 +304,7 @@ export const claimCalibrationRewardFn = async ({
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: 'not_engaged_yet' };
 	}
 
-	// 3. Balance floor — the core bound: pay only while recovering.
+	// 3. Balance floor, the core bound: pay only while recovering.
 	const ledger = new IcrcLedgerCanister({
 		canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
 	});
@@ -316,14 +316,14 @@ export const claimCalibrationRewardFn = async ({
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: 'balance_above_floor' };
 	}
 
-	// 4. Vici-market gate — engine eng_0 + Binary payoff.
+	// 4. Vici-market gate: engine eng_0 + Binary payoff.
 	const marketReason = await checkMarketShape(seriesId);
 
 	if (nonNullish(marketReason)) {
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: marketReason };
 	}
 
-	// 5. Resolution gate — Finalised + derive the winning side.
+	// 5. Resolution gate: Finalised + derive the winning side.
 	const resolution = await deriveWinningSide(seriesId);
 
 	if ('reason' in resolution) {
@@ -341,7 +341,7 @@ export const claimCalibrationRewardFn = async ({
 
 	const nowMs = Number(time() / 1_000_000n);
 
-	// 7. Rate limits — rolling 1h / 24h windows off `created_at`.
+	// 7. Rate limits: rolling 1h / 24h windows off `created_at`.
 	const rateReason = checkRateLimits({ caller, recipient, nowMs });
 
 	if (nonNullish(rateReason)) {
@@ -367,7 +367,7 @@ export const claimCalibrationRewardFn = async ({
 			doc: { data: encodeDocData(pending) }
 		});
 	} catch (e: unknown) {
-		// A concurrent invocation already wrote the pending doc — treat as
+		// A concurrent invocation already wrote the pending doc: treat as
 		// already-claimed rather than double-paying.
 		const msg = e instanceof Error ? e.message : String(e);
 
