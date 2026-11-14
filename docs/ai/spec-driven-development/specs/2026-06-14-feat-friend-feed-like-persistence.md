@@ -40,7 +40,7 @@ Frontend, [`src/lib/components/arena/FriendsTab.svelte`](../../../../src/lib/com
   commit animation and stays local (transient motion only).
 - `activityKey(activity)` (line 674) returns `${activity.timestamp}#${activity.user}`:
   a per-row UI identity, **not** the satellite doc key.
-- `toggleLike(activity)` (line 678) mutates `likedKeys` only, no service
+- `toggleLike(activity)` (line 678) mutates `likedKeys` only; no service
   call.
 - Button markup ≈ lines 1090–1110 (`button.feed-react`, `class:is-liked`,
   `aria-label` = `arena.friends.feed.like`, the `<Zap>` glyph and the

@@ -186,7 +186,7 @@ dimensions needed: `label` exists.
 
 ## Acceptance criteria
 
-- [ ] Adding an existing friend shows the "already friends" message,
+- [ ] Adding an existing friend shows the "already friends" message;
       no generic failure.
 - [ ] Re-sending while a request is pending shows the "already sent"
       message.

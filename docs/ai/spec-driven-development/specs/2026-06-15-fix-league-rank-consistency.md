@@ -64,7 +64,7 @@ metric-bound are, in the prototype, **purely decorative** and must be kept
 as-is:
 
 - **Trend arrow** (`screens.jsx:6051`): `const trend = (seedFromId(league.id) % 7) - 3;`:
-  seeded noise rendered as "▲ N this week" / "– even". Never tied to any
+  seeded noise rendered as "▲ N this week" / "· even". Never tied to any
   metric. Production wired it to the real weekly-P&L `rankDelta`; that
   weekly-momentum flourish is retained (it is _not_ claimed to be
   accuracy-rank movement).

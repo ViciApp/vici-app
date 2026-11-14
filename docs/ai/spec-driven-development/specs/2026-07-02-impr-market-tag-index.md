@@ -138,7 +138,7 @@ None: no frontend surface changes.
 ## Decisions
 
 - **Inline maintenance, not a hook.** Juno hooks don't fire on serverless
-  `setDocStore`, so the upsert endpoint maintains the index inline, the
+  `setDocStore`, so the upsert endpoint maintains the index inline: the
   same pattern already used by `activity_reaction_counts` and
   `event_rollups`.
 - **No new `docs/ai` page.** The collection is documented inline in

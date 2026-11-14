@@ -29,7 +29,7 @@ maker. The honest mechanism to disclose is therefore the real one:
   disclosure must describe _that_ book-seeding mechanism, not a
   client-side maker.
 - Existing honest cold-start copy: `market.detail.coldstart.lead` /
-  `.body` ("New market." / "No one has called this market yet, your
+  `.body` ("New market." / "No one has called this market yet; your
   prediction sets the first read."), rendered at
   `src/routes/(app)/markets/[id]/+page.svelte:748`. This covers the
   _empty_ state but says nothing about maker liquidity once a line exists.

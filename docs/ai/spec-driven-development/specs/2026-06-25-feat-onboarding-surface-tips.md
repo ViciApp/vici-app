@@ -67,7 +67,7 @@ App side (real paths to touch / reuse):
   the nav already defines.
 - Gating signal (calls < 5): the lifetime call count is
   `UserProfile.totalTrades` (`src/lib/schema/profile.schema.ts`), read
-  from `$userStore.profile`. Guest detection: see Open questions, guest
+  from `$userStore.profile`. Guest detection: see Open questions; guest
   mode is not yet in the app, so v1 gates on `totalTrades` only.
 - i18n catalogs: `src/lib/constants/messages/*` (12 locales: `de`, `en`,
   `es`, `es-419`, `es-AR`, `es-MX`, `fr`, `it`, `ja`, `pt`, `pt-BR`,

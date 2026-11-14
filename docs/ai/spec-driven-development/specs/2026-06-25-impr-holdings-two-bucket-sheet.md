@@ -277,8 +277,8 @@ decisions. If we decline it, this section's rationale is the explicit
   chip) could share the same split-bar bucket block. Should this PR also
   convert that header for parity, or is it a fast-follow? Default:
   fast-follow, to keep this a single-surface sheet rework. (Needs the
-  product owner's call once the fact, that the header is a separate,
-  already-shipped block, is acknowledged; could move to Pending
+  product owner's call once the fact that the header is a separate,
+  already-shipped block is acknowledged; could move to Pending
   decisions.)
 
 ## Pending decisions
