@@ -23,7 +23,7 @@ Both are wired into this repo's [`dfx.json`](../dfx.json) under `remote.id` (`ic
 
 > [!CAUTION]
 > Historically this repo had a single `dfx.json` entry, keyed `staging`, that actually held
-> the **production** canister IDs — so every `--staging` command (registry reinstall, role
+> the **production** canister IDs, so every `--staging` command (registry reinstall, role
 > grants, market seeding) hit **production**. That has been fixed: `staging` now points at
 > icdc-core staging, and `ic` holds production. Still treat any production operation with
 > care: `dfx deploy --network ic --mode reinstall registry` wipes production engine / role /
@@ -82,13 +82,13 @@ Responsibilities:
 ## Role mapping
 
 Regular users have **no role doc** in Juno. That state is what was previously encoded as
-`USER` / `MODERATOR` and grants nothing — no engine role, no entry in
+`USER` / `MODERATOR` and grants nothing: no engine role, no entry in
 `VICI_ORACLE_V1.authorized_principals`. See `UserRole` in `src/lib/enums/user.ts` for the
 canonical list of grantable roles.
 
 | Juno `UserRole` | icdc-core `EngineRole`s granted | Added to `VICI_ORACLE_V1.authorized_principals`? |
 | --------------- | ------------------------------- | ------------------------------------------------ |
-| `CONTROLLER`    | _(none — controllers bypass)_   | _(no — controllers bypass)_                      |
+| `CONTROLLER`    | _(none: controllers bypass)_    | _(no: controllers bypass)_                       |
 | `ADMIN`         | `Creator`, `OracleAdmin`        | yes                                              |
 | `SOLVER`        | `OracleAdmin`                   | yes                                              |
 | `CREATOR`       | `Creator`                       | no                                               |
@@ -103,7 +103,7 @@ protocol level. On delete, the hook revokes whatever the deleted doc was mapped 
 If the oracle is not yet registered when the hook runs (e.g. a role is assigned before
 `init:registry` has been executed), `OracleNotFound` is logged as `engine_sync_skipped_missing_oracle`
 and the engine-role grant still proceeds. Once the oracle is bootstrapped, save the role
-doc again to replay the sync — or reconcile manually via `dfx`.
+doc again to replay the sync, or reconcile manually via `dfx`.
 
 ### Why oracle settlers piggyback on roles
 
@@ -125,12 +125,12 @@ The mappings live in `ROLE_TO_ENGINE_ROLES` and `shouldBeOracleSettler` inside
 The engine's `admins` vec is the list of principals that can call `grant_engine_role` /
 `revoke_engine_role` / `update_engine_*` on the Vici engine. It contains:
 
-1. **The Juno satellite canister principal** — so the `syncRoleToEngine` hook can call
+1. **The Juno satellite canister principal**, so the `syncRoleToEngine` hook can call
    `grant_engine_role` as the caller. This is the hot path.
-2. **The 2 `SATELLITE_CONTROLLERS`** (from `src/lib/constants/controllers.constants.ts`) —
+2. **The 2 `SATELLITE_CONTROLLERS`** (from `src/lib/constants/controllers.constants.ts`):
    human admins, so if the satellite hook is ever broken or a manual override is needed we
    can still reach the engine directly via `dfx`.
-3. **The deploying `dfx identity`** — only meaningful on local, added for convenience.
+3. **The deploying `dfx identity`**: only meaningful on local, added for convenience.
 
 To rotate admins:
 
@@ -167,17 +167,17 @@ satellite.
 
 Operational procedures live as step-by-step workflows under [`.agents/workflows/`](../.agents/workflows/):
 
-- [`deployment.md`](../.agents/workflows/deployment.md) — local deploy with engine init.
-- [`icdc-engine-reset.md`](../.agents/workflows/icdc-engine-reset.md) — fresh registry
+- [`deployment.md`](../.agents/workflows/deployment.md): local deploy with engine init.
+- [`icdc-engine-reset.md`](../.agents/workflows/icdc-engine-reset.md): fresh registry
   reset on local, staging, or production (wipes engine + role + series state).
-- [`icdc-engine-operations.md`](../.agents/workflows/icdc-engine-operations.md) — day-2
+- [`icdc-engine-operations.md`](../.agents/workflows/icdc-engine-operations.md): day-2
   ops: reconcile a grant, audit role grants, rotate admins, kill-switch.
 
 ## Persistence across registry reinstalls
 
 `dfx deploy --mode reinstall registry` wipes `eng_0.role_grants`. The intended source of
 truth is the Juno `ROLES` collection, and `syncRoleToEngineOnSet` mirrors writes into the
-registry — but only on writes, not on startup. So after a reset the engine's `role_grants`
+registry, but only on writes, not on startup. So after a reset the engine's `role_grants`
 starts empty until role docs are re-saved (or grants are replayed out-of-band via `dfx`).
 
 Three options today, in order of durability:
@@ -195,8 +195,8 @@ Three options today, in order of durability:
    ```
 
    The trailing `init:icdc-dev-bootstrap` step in `init:icdc` runs
-   `scripts/init/init.icdc-dev-bootstrap.sh`, which — when `NETWORK=local` and the env
-   var is set — grants `Creator` + `OracleAdmin` on `eng_0` and adds the principal to
+   `scripts/init/init.icdc-dev-bootstrap.sh`, which, when `NETWORK=local` and the env
+   var is set, grants `Creator` + `OracleAdmin` on `eng_0` and adds the principal to
    `VICI_ORACLE_V1.authorized_principals`. No-op on any non-local network (`staging` / `ic`),
    hard-gated. Idempotent:
    replays return `RoleAlreadyGranted` and the oracle set is a `BTreeSet`.
@@ -209,7 +209,7 @@ Three options today, in order of durability:
 
 > [!NOTE]
 > Option 3 is intentionally out-of-band from Juno (no `roles` doc is written). The
-> cross-environment fix is a Juno-driven reconcile step on the satellite — either an
+> cross-environment fix is a Juno-driven reconcile step on the satellite: either an
 > admin endpoint that re-fires the sync for every `roles` doc, or an init-script pass
 > that enumerates the collection and replays writes. Tracked as future work.
 
@@ -226,6 +226,6 @@ Three options today, in order of durability:
     `NonMonetary` payout + `Restricted` trading access); anything else is rejected
     with `EngineIdRequired`.
 - Market creation is still gated to `ADMIN` / `CREATOR` users in the UI via
-  `market.services.ts` — the engine-level `Creator` grant is a necessary, not sufficient,
+  `market.services.ts`; the engine-level `Creator` grant is a necessary, not sufficient,
   condition for calling `add_series`. To open creation to a wider audience, relax the check
   in `market.services.ts` **and** ensure the target users have the Juno `CREATOR` role.
