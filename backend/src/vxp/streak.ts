@@ -1,8 +1,8 @@
 // Streak-milestone awards: when a profile write moves dailyStreak across one
 // of the milestone boundaries (3 / 7 / 14 / 30), the matching VXP bonus is
 // credited once ever per milestone, keyed streak_<m>. Plus the idempotent
-// underpayment backfill for imported awards that were paid in whole-VXP
-// figures instead of base units.
+// underpayment backfill for awards this backend granted below their
+// milestone's bonus.
 
 import { isNullish } from '@dfinity/utils';
 import { query } from '../db/client';
@@ -89,14 +89,6 @@ interface UnderpaidRow {
 const MILESTONE_RE = /^streak_(\d+)$/;
 
 /**
- * Idempotent remediation for underpaid streak awards (paid rows whose amount
- * is below the milestone's correct base units, e.g. legacy rows imported
- * from a period when the bonus was booked as whole-VXP figures). Each
- * shortfall is minted once via a streak_<m>_backfill marker award, so a
- * re-run skips anything already topped up; correctly-paid rows are never
- * touched. dryRun (the default) reports without minting.
- */
-/**
  * Remediates one paid streak row. Returns the shortfall it identified
  * (counted into the running total whether or not it was minted this run),
  * or ZERO for rows that do not qualify. Mutates the report counters; early
@@ -174,6 +166,19 @@ const remediateRow = async ({
 	return shortfall;
 };
 
+/**
+ * Idempotent remediation for underpaid streak awards (paid rows whose amount
+ * is below the milestone's correct base units). Each shortfall is minted
+ * once via a streak_<m>_backfill marker award, so a re-run skips anything
+ * already topped up; correctly-paid rows are never touched. dryRun (the
+ * default) reports without minting.
+ *
+ * Only live rows are read. An imported (etl) row's amount and status are
+ * what the legacy app recorded, not something this backend's ledger checks
+ * back, and the origin rule keeps imported rows out of this backend's
+ * payouts, a top-up sized from one included. The legacy whole-VXP
+ * underpayment has its own one-time remediation on the legacy stack.
+ */
 export const backfillStreakUnderpayments = async ({
 	dryRun = true
 }: { dryRun?: boolean } = {}): Promise<StreakBackfillReport> => {
@@ -192,7 +197,8 @@ export const backfillStreakUnderpayments = async ({
 	const rows = await query<UnderpaidRow>(
 		`select user_id, award_key, amount_base_units, earned_at_ms::text
 		 from vxp_awards
-		 where award_type = 'streak' and status = 'paid' and award_key ~ '^streak_[0-9]+$'`,
+		 where award_type = 'streak' and status = 'paid' and origin = 'live'
+		   and award_key ~ '^streak_[0-9]+$'`,
 		[]
 	);
 

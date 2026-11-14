@@ -116,10 +116,10 @@ describe('underpayment backfill', () => {
 		stub = stubVxpLedger();
 		const userId = await createTestUser();
 
-		// A legacy import paid streak_7 as 150 base units instead of 150 VXP.
+		// A live award booked streak_7 as 150 base units instead of 150 VXP.
 		await query(
-			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, paid_at_ms, block_index)
-			 values ($1, 'streak', 'streak_7', '150', 'paid', 1, 1, '1')`,
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, paid_at_ms, block_index, origin)
+			 values ($1, 'streak', 'streak_7', '150', 'paid', 1, 1, '1', 'live')`,
 			[userId]
 		);
 
@@ -183,6 +183,35 @@ describe('underpayment backfill', () => {
 
 			expect(report.failedMarkers).toBeGreaterThanOrEqual(1);
 			expect(streakBackfillLogLine(report)).toBeDefined();
+			expect(stub.transfers).toHaveLength(0);
+		} finally {
+			await query(`delete from vxp_awards where user_id = $1`, [userId]);
+		}
+	});
+
+	test('imported awards are never topped up, whatever amount they record', async () => {
+		stub = stubVxpLedger();
+		const userId = await createTestUser();
+
+		// Imported rows recording a token amount and the exact whole-VXP
+		// figure the legacy underpayment produced: neither sizes a payout here.
+		await query(
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, paid_at_ms, block_index, origin)
+			 values ($1, 'streak', 'streak_30', '1', 'paid', 1, 1, '1', 'etl'),
+			        ($1, 'streak', 'streak_3', '50', 'paid', 1, 1, '1', 'etl')`,
+			[userId]
+		);
+
+		try {
+			await backfillStreakUnderpayments({ dryRun: false });
+			await backfillStreakUnderpayments({ dryRun: false });
+
+			expect(
+				await readAwardRow({ userId, awardType: 'streak', awardKey: 'streak_30_backfill' })
+			).toBeUndefined();
+			expect(
+				await readAwardRow({ userId, awardType: 'streak', awardKey: 'streak_3_backfill' })
+			).toBeUndefined();
 			expect(stub.transfers).toHaveLength(0);
 		} finally {
 			await query(`delete from vxp_awards where user_id = $1`, [userId]);

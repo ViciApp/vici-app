@@ -84,7 +84,7 @@ export const jobs: WorkerJob[] = [
 		}
 	},
 	{
-		// Idempotent underpayment remediation for imported streak awards; the
+		// Idempotent underpayment remediation for live streak awards; the
 		// backfill marker keys make re-runs skip anything already topped up.
 		// Mints only when the treasury is live; in record-only mode the dry-run
 		// report still surfaces the shortfall for the logs.
