@@ -1090,8 +1090,9 @@ export const getWalletDepositAddress = async (
  * The API executes best-effort inline, so the returned row already carries the
  * outcome state (`submitted`, or `failed` with the hold refunded).
  * `idempotencyKey` is fresh for each withdrawal the user asks for and resent
- * unchanged on any retry of it: the API answers a repeated key with the
- * withdrawal it already filed instead of holding the funds a second time.
+ * unchanged on any retry of it (the Wallet send keeps it with `pendingSendFor`):
+ * the API answers a repeated key with the withdrawal it already filed instead
+ * of holding the funds a second time.
  */
 export const requestWalletWithdrawal = async ({
 	assetId,

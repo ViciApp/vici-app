@@ -25,6 +25,7 @@
 	import { clearingTransactions } from '#lib/derived/wallet-feed.derived.ts';
 	import {
 		loadSendableWalletAssets,
+		pendingSendAfterError,
 		sendToken,
 		SendTokenError
 	} from '#lib/services/send.services.ts';
@@ -48,7 +49,12 @@
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { parseToken } from '#lib/utils/parse.utils.ts';
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
-	import { filterSendableTokens } from '#lib/utils/send.utils.ts';
+	import {
+		filterSendableTokens,
+		pendingSendFor,
+		type PendingSend,
+		type SendIntent
+	} from '#lib/utils/send.utils.ts';
 	import { mergeWalletFeed, weeklyVxpDeltaBaseUnits } from '#lib/utils/transactions.utils.ts';
 	import type { Web2WalletAsset } from '#lib/web2/client.ts';
 	import { goto } from '$app/navigation';
@@ -267,6 +273,33 @@
 
 	const selectedTokenForSend = $derived(selectedToken ?? sendableTokens[0]);
 
+	// Not `$state`: nothing renders it. It carries a send's idempotency key from
+	// a try whose outcome is unknown to the user's retry of the same send.
+	let pendingSend: PendingSend | undefined;
+
+	const submitSend = async ({ token, intent }: { token: Token; intent: SendIntent }) => {
+		const send = pendingSendFor({ pending: pendingSend, intent });
+
+		pendingSend = send;
+
+		try {
+			// The service resolves the transport (user-signed ICRC transfer, or a
+			// custodial withdrawal in web2 mode) and the auth that goes with it.
+			await sendToken({
+				token,
+				to: intent.to,
+				amount: intent.amount,
+				idempotencyKey: send.idempotencyKey
+			});
+		} catch (err: unknown) {
+			pendingSend = pendingSendAfterError({ pending: send, err });
+
+			throw err;
+		}
+
+		pendingSend = undefined;
+	};
+
 	const handleSend = async () => {
 		if (sending) {
 			return;
@@ -279,15 +312,16 @@
 		sending = true;
 
 		try {
-			// The service resolves the transport (user-signed ICRC transfer, or a
-			// custodial withdrawal in web2 mode) and the auth that goes with it.
-			await sendToken({
+			await submitSend({
 				token: selectedTokenForSend,
-				to: recipient,
-				amount: parseToken({
-					value: `${amount}`,
-					unitName: selectedTokenForSend.decimals
-				})
+				intent: {
+					ledgerCanisterId: selectedTokenForSend.ledgerCanisterId,
+					to: recipient,
+					amount: parseToken({
+						value: `${amount}`,
+						unitName: selectedTokenForSend.decimals
+					})
+				}
 			});
 
 			emit({ message: 'viciRefreshBalances' });

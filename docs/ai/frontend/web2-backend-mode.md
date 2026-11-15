@@ -462,9 +462,16 @@ the exact candid shapes.
   it sees on-chain and a sweep debits nothing. The request also holds the
   asset's network fee on top of the amount (quoted as `withdrawalFee` on
   `/wallet/assets`, returned as `fee` on the withdrawal), so the most a
-  user can send is the balance less that fee. Each send carries a fresh
-  `idempotencyKey`, which any retry of that send must reuse: the API answers
-  a repeated key with the withdrawal it already filed.
+  user can send is the balance less that fee. `sendToken` takes the
+  `idempotencyKey` from its caller and never mints one: the key belongs to
+  the send (asset, amount, destination), not to the call. The Wallet page
+  keeps it with `send.utils.ts` `pendingSendFor` and resends it on a retry
+  of the same send, so the API answers with the withdrawal it already filed;
+  `send.services.ts` `pendingSendAfterError` keeps it only while the outcome
+  is unknown (network failure, timeout, 408, 5xx). A success, a `failed`
+  withdrawal (hold refunded) or any other 4xx settles the send, and the next
+  one, like a changed asset, amount or destination, gets a fresh key. The
+  key lives in the page, so a retry after a reload is a new send.
 - The Send tab offers only tokens whose custody asset is `withdrawable` on
   `/wallet/assets` (the API refuses VXP withdrawals with
   `asset_not_withdrawable`). `loadSendableWalletAssets` hands the page the
