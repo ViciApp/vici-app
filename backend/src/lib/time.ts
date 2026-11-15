@@ -19,6 +19,9 @@ export const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export const msToNs = (ms: number): bigint => BigInt(ms) * NS_PER_MS;
 
+/** Whole milliseconds of a nanosecond timestamp (sub-millisecond precision is dropped). */
+export const nsToMs = (ns: bigint): number => Number(ns / NS_PER_MS);
+
 export const nowNs = (): bigint => msToNs(Date.now());
 
 /** A nullable `bigint` milliseconds column, selected as `::text`, as an optional number. */
@@ -30,6 +33,14 @@ export const monthAnchorFromMs = (ms: number): string => {
 	const d = new Date(ms);
 
 	return `${d.getUTCFullYear()}-${(d.getUTCMonth() + 1).toString().padStart(2, '0')}`;
+};
+
+/** UTC `YYYY-MM-DD` day key for a ms timestamp: the server's own calendar
+ * day, never a client's local one. */
+export const dayKeyFromMs = (ms: number): string => {
+	const d = new Date(ms);
+
+	return `${monthAnchorFromMs(ms)}-${d.getUTCDate().toString().padStart(2, '0')}`;
 };
 
 /** The first instant (UTC) of a `YYYY-MM` anchor's month, in ms. */

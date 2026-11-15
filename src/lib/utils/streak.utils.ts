@@ -63,6 +63,14 @@ export const FLAME_STAGE_LABEL_KEYS: Record<FlameStage, MessageKey> = {
 	inferno: 'flame.inferno'
 };
 
+/**
+ * The widest day delta between two active days that still continues the
+ * streak: 1 is a clean consecutive day, 2 forgives exactly one fully-missed
+ * day. The API derives its award streak from server-recorded activity days
+ * with the same rule.
+ */
+export const STREAK_MAX_CONTINUING_DAY_DELTA = 2;
+
 /** A `YYYY-MM-DD` day key as `todayKey` writes it, capturing year, month and day. */
 export const DAY_KEY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -188,7 +196,7 @@ export const applyDailyStreakBump = ({
 		};
 	}
 
-	if (delta <= 2) {
+	if (delta <= STREAK_MAX_CONTINUING_DAY_DELTA) {
 		// `delta === 1` is a clean consecutive day; `delta === 2` means
 		// exactly one fully-missed day, which the forgiveness window lets
 		// slide: the streak still increments.

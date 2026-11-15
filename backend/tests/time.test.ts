@@ -1,10 +1,12 @@
 import { describe, expect, setSystemTime, test } from 'bun:test';
 import {
+	dayKeyFromMs,
 	monthAnchorFromMs,
 	monthEndMs,
 	monthStartMs,
 	msToNs,
 	nowNs,
+	nsToMs,
 	optionalMs,
 	previousMonthAnchor
 } from '../src/lib/time';
@@ -14,6 +16,20 @@ describe('msToNs', () => {
 		expect(msToNs(0)).toBe(BigInt(0));
 		expect(msToNs(1)).toBe(BigInt(1_000_000));
 		expect(msToNs(1_700_000_000_123)).toBe(BigInt('1700000000123000000'));
+	});
+});
+
+describe('nsToMs', () => {
+	test('scales nanoseconds down to whole milliseconds', () => {
+		expect(nsToMs(BigInt('1700000000123456789'))).toBe(1_700_000_000_123);
+		expect(nsToMs(BigInt(999_999))).toBe(0);
+	});
+});
+
+describe('dayKeyFromMs', () => {
+	test('is the UTC calendar day, zero-padded', () => {
+		expect(dayKeyFromMs(Date.UTC(2026, 0, 5, 0, 0, 0))).toBe('2026-01-05');
+		expect(dayKeyFromMs(Date.UTC(2026, 11, 31, 23, 59, 59, 999))).toBe('2026-12-31');
 	});
 });
 

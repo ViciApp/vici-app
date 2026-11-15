@@ -78,14 +78,14 @@ describe('milestone crossing math', () => {
 	});
 });
 
-describe('profile trigger', () => {
-	test('a crossing pays the whole-VXP bonus in base units, once ever', async () => {
+describe('streak trigger', () => {
+	test('a milestone pays the whole-VXP bonus in base units, once ever', async () => {
 		stub = stubVxpLedger();
 		const userId = await createTestUser();
 
-		await runStreakAwardTrigger({ userId, prevDailyStreak: 0, nextDailyStreak: 3 });
-		// A replayed write at the same milestone must not double-credit.
-		await runStreakAwardTrigger({ userId, prevDailyStreak: 0, nextDailyStreak: 3 });
+		await runStreakAwardTrigger({ userId, dailyStreak: 3 });
+		// A replay at the same streak must not double-credit.
+		await runStreakAwardTrigger({ userId, dailyStreak: 3 });
 
 		expect(stub.transfers).toHaveLength(1);
 		expect(stub.transfers[0]?.amount).toBe(parseVxp(50));
@@ -97,11 +97,11 @@ describe('profile trigger', () => {
 		expect(row?.amount_base_units).toBe(parseVxp(50).toString());
 	});
 
-	test('a multi-boundary jump credits every crossed milestone', async () => {
+	test('a streak past several boundaries credits every reached milestone', async () => {
 		stub = stubVxpLedger();
 		const userId = await createTestUser();
 
-		await runStreakAwardTrigger({ userId, prevDailyStreak: 2, nextDailyStreak: 15 });
+		await runStreakAwardTrigger({ userId, dailyStreak: 15 });
 
 		expect(stub.transfers.map(({ amount }) => amount)).toEqual([
 			parseVxp(50),

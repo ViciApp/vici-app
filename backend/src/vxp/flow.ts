@@ -1,9 +1,9 @@
 // Flow VXP awards, the two Flow earn surfaces:
 //
-//  - flow_milestone: crossing a lifetime call-count boundary
-//    (10 / 100 / 500 / 1000), once each ever, off the profile write's
-//    totalTrades delta (the same client-synced count the other award paths
-//    trust).
+//  - flow_milestone: reaching a lifetime call-count boundary
+//    (10 / 100 / 500 / 1000), once each ever, off the caller's executed
+//    predictions in the engine (never the profile's client-written
+//    totalTrades), evaluated on each trade activity.
 //  - flow_overtime: finishing a day at the Flow daily hard cap, minted
 //    inline from the flow-swipe endpoint, once per day key, bounded by a
 //    rolling wall-clock cap because the day key is client-supplied and only
@@ -36,21 +36,16 @@ export const flowMilestonesCrossed = ({ prev, next }: { prev: number; next: numb
 	return FLOW_MILESTONES.filter((m) => prev < m && m <= next);
 };
 
-/** Profile-write trigger: credits every lifetime-call milestone crossed
- * between the stored and the written totalTrades. */
+/** Trade-activity trigger: credits every lifetime-call milestone the
+ * executed prediction count has reached, each once ever via its award key. */
 export const runFlowMilestoneTrigger = async ({
 	userId,
-	prevTotalTrades,
-	nextTotalTrades
+	executedPredictions
 }: {
 	userId: string;
-	prevTotalTrades: number;
-	nextTotalTrades: number;
+	executedPredictions: number;
 }): Promise<void> => {
-	for (const milestone of flowMilestonesCrossed({
-		prev: prevTotalTrades,
-		next: nextTotalTrades
-	})) {
+	for (const milestone of flowMilestonesCrossed({ prev: 0, next: executedPredictions })) {
 		try {
 			await grantAward({
 				userId,

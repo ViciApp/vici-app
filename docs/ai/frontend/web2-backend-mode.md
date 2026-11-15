@@ -392,8 +392,9 @@ the exact candid shapes.
   variants ride `/engine/orders` + `/engine/orders/cancel`. The trade
   activity-feed write rides the swapped activities domain (its HTTP POST
   also fires the trade-triggered awards; see the activities section); the
-  daily-streak bump keeps riding the swapped profile writes with the
-  session account id as owner.
+  displayed daily-streak bump keeps riding the swapped profile writes with
+  the session account id as owner (the API derives the award streak
+  itself).
 - Order refusals: the order routes answer a refusal the user can act on as
   a 4xx with a stable code (table in
   [`backend/README.md`](../../../backend/README.md#order-rejections)).
@@ -588,11 +589,17 @@ the caller's own on-file email. Rides `/api/v1/vxp`, `/api/v1/referrals`,
 On the satellite, VXP awards ride post-write hooks (a trade activity
 fires the onboarding call-count milestones and the referral settlement; a
 profile write fires the streak / achievement awards). The HTTP API runs
-the same triggers inside the matching routes: the activity POST runs the
-trade triggers after the write commits, and the profile PUT diffs the
-stored row against the incoming one. So the swapped services need no
-extra calls: `logActivity` posting a trade in web2 mode produces exactly
-the awards the satellite hook would have. `placeOrder` now logs the trade
+the awards inside the matching routes, from server-side truth: the
+activity POST runs the trade triggers after the write commits (the
+onboarding call-count milestones, the referral settlement, the Flow
+volume milestones and the achievements the engine history proves, plus
+the fill days behind the streak and the comeback), and the Flow swipe
+POST records the server day as active. The profile PUT carries only the
+registration grant: its streak, call-count, achievement and last-active
+fields are the client's display copy and never mint (see
+[`economy.md`](../economy.md#caps-and-gates-the-anti-farming-spine)). So
+the swapped services need no extra calls: `logActivity` posting a trade
+in web2 mode is all the trade awards need. `placeOrder` now logs the trade
 activity on both transports for the same reason. The API counts the
 caller's executed fills in the engine, not the posted activities, so the
 activity only triggers the check: a resting limit order counts once it

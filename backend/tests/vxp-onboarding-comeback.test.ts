@@ -56,8 +56,8 @@ describe('comeback restore', () => {
 
 		await runComebackRestoreTrigger({
 			userId,
-			prevLastActiveDay: '2026-08-01',
-			nextLastActiveDay: '2026-08-10'
+			previousActiveDay: '2026-08-01',
+			activeDay: '2026-08-10'
 		});
 
 		expect(stub.transfers).toHaveLength(1);
@@ -71,8 +71,8 @@ describe('comeback restore', () => {
 		// A later qualifying return must not restore again.
 		await runComebackRestoreTrigger({
 			userId,
-			prevLastActiveDay: '2026-09-01',
-			nextLastActiveDay: '2026-09-20'
+			previousActiveDay: '2026-09-01',
+			activeDay: '2026-09-20'
 		});
 
 		expect(stub.transfers).toHaveLength(1);
@@ -84,8 +84,8 @@ describe('comeback restore', () => {
 
 		await runComebackRestoreTrigger({
 			userId: shortGapUser,
-			prevLastActiveDay: '2026-08-01',
-			nextLastActiveDay: '2026-08-05'
+			previousActiveDay: '2026-08-01',
+			activeDay: '2026-08-05'
 		});
 
 		expect(stub.transfers).toHaveLength(0);
@@ -97,21 +97,21 @@ describe('comeback restore', () => {
 
 		await runComebackRestoreTrigger({
 			userId: healthyUser,
-			prevLastActiveDay: '2026-08-01',
-			nextLastActiveDay: '2026-08-20'
+			previousActiveDay: '2026-08-01',
+			activeDay: '2026-08-20'
 		});
 
 		expect(stub.transfers).toHaveLength(0);
 	});
 
-	test('a brand-new profile (no prior day) can never be a return', async () => {
+	test('a first-ever active day can never be a return', async () => {
 		stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(0)) });
 		const userId = await createTestUser();
 
 		await runComebackRestoreTrigger({
 			userId,
-			prevLastActiveDay: undefined,
-			nextLastActiveDay: '2026-08-10'
+			previousActiveDay: undefined,
+			activeDay: '2026-08-10'
 		});
 
 		expect(stub.transfers).toHaveLength(0);

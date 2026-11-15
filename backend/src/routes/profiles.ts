@@ -22,7 +22,7 @@ import {
 import { upsertMyProfile } from '../profiles/profile-write';
 import { getUserStats, upsertMonthlyStats, upsertUserStats } from '../profiles/stats';
 import { mintFlowOvertime } from '../vxp/flow';
-import { runProfileAwardTriggers } from '../vxp/triggers';
+import { runFlowSwipeActivityTriggers, runProfileAwardTriggers } from '../vxp/triggers';
 
 // Search is public and enumerable, so it is limited per client IP. The budget
 // leaves room for a debounced live search behind a shared school network.
@@ -48,33 +48,16 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 		}
 
 		try {
-			// Snapshot the stored slice BEFORE the write: the award triggers run
-			// off the before/after delta, mirroring the post-write hook model
-			// (only client writes fire awards; internal server writes never do).
-			const before = await getProfileRow({ userId: user.id });
-
 			const profile = await upsertMyProfile({
 				userId: user.id,
 				body: (body ?? {}) as Record<string, unknown>
 			});
 
-			await runProfileAwardTriggers({
-				userId: user.id,
-				before: isNullish(before)
-					? undefined
-					: {
-							dailyStreak: before.daily_streak ?? 0,
-							totalTrades: before.total_trades ?? 0,
-							unlockedAchievements: before.unlocked_achievements ?? [],
-							lastActiveDay: before.last_active_day ?? undefined
-						},
-				after: {
-					dailyStreak: profile.dailyStreak,
-					totalTrades: profile.totalTrades,
-					unlockedAchievements: profile.unlockedAchievements,
-					lastActiveDay: profile.lastActiveDay
-				}
-			});
+			// Only the registration grant rides the profile write. The streak,
+			// call-count, achievement and comeback fields here are the client's
+			// display copy and never mint: those awards read server-side truth
+			// on the trade activity and Flow swipe writes.
+			await runProfileAwardTriggers({ userId: user.id });
 
 			return { profile };
 		} catch (err) {
@@ -141,6 +124,10 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 				if (result.capReached) {
 					await mintFlowOvertime({ userId: user.id, dayKey: result.dailyGoalDate });
 				}
+
+				// A recorded swipe makes today's server day an active one, the
+				// streak and comeback source. Never throws.
+				await runFlowSwipeActivityTriggers({ userId: user.id });
 
 				return result;
 			} catch (err) {

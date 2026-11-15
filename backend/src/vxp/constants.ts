@@ -43,6 +43,11 @@ export const VXP_STREAK_BONUSES: Readonly<Record<number, number>> = Object.freez
 	30: 1000
 });
 
+/** Widest gap, in days, between two server-recorded activity days that
+ * still continues the daily streak (one fully-missed day is forgiven),
+ * mirrored from the app's streak engine. */
+export const STREAK_MAX_CONTINUING_DAY_DELTA = 2;
+
 /** Flow volume milestones in whole VXP, keyed by the lifetime call-count
  * threshold crossed. Once each ever; calls 1 and 25 are deliberately not
  * milestones. */
@@ -119,6 +124,30 @@ export const ACHIEVEMENT_XP: Readonly<Record<string, number>> = Object.freeze({
 	'sharpest-eye': 750,
 	'bold-caller': 600
 });
+
+// Achievement unlock rules the server evaluates from its own data (engine
+// fills and settlements, activity days, league rosters), mirrored from the
+// app's achievement evaluator.
+
+/** Executed predictions before accuracy counts toward an achievement. */
+export const ACHIEVEMENT_ACCURACY_GATE_CALLS = 30;
+
+/** contrarian: settled wins taken at or below this consensus price. */
+export const CONTRARIAN_PRICE_THRESHOLD = 0.3;
+export const CONTRARIAN_WIN_TARGET = 10;
+
+/** on-fire: consecutive winning settlements, most recent first. */
+export const ON_FIRE_STREAK_TARGET = 10;
+
+/** oracle: accuracy (percent of winning settlements) over a call count. */
+export const ORACLE_ACCURACY_TARGET = 80;
+export const ORACLE_TRADES_TARGET = 50;
+
+/** marathon: the daily streak this long. */
+export const MARATHON_DAILY_STREAK_TARGET = 30;
+
+/** league-founder: owning a league with at least this many members. */
+export const LEAGUE_FOUNDER_MIN_MEMBERS = 3;
 
 /** Flat referee bonus: every eligible new sign-up gets it exactly once. */
 export const REFERRAL_VXP_BONUS_BASE_UNITS = parseVxp(500);

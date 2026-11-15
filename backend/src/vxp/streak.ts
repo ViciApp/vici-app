@@ -1,8 +1,9 @@
-// Streak-milestone awards: when a profile write moves dailyStreak across one
-// of the milestone boundaries (3 / 7 / 14 / 30), the matching VXP bonus is
-// credited once ever per milestone, keyed streak_<m>. Plus the idempotent
-// underpayment backfill for awards this backend granted below their
-// milestone's bonus.
+// Streak-milestone awards: once the server-derived daily streak (from the
+// recorded activity days, never the profile's client-written dailyStreak)
+// reaches one of the milestone boundaries (3 / 7 / 14 / 30), the matching VXP
+// bonus is credited once ever per milestone, keyed streak_<m>. Plus the
+// idempotent underpayment backfill for awards this backend granted below
+// their milestone's bonus.
 
 import { isNullish } from '@dfinity/utils';
 import { query } from '../db/client';
@@ -33,20 +34,19 @@ export const milestonesCrossed = ({ prev, next }: { prev: number; next: number }
 export const streakAwardKey = (milestone: number): string => `streak_${milestone}`;
 
 /**
- * Profile-write trigger: credits every milestone crossed between the stored
- * and the written dailyStreak. Idempotent per milestone via the award key;
- * a failure on one milestone does not block the others.
+ * Activity-day trigger: credits every milestone the server-derived streak has
+ * reached. Each milestone is paid once ever via its award key, so running it
+ * on every recorded day only pays what is still owed (and retries nothing that
+ * already has a row); a failure on one milestone does not block the others.
  */
 export const runStreakAwardTrigger = async ({
 	userId,
-	prevDailyStreak,
-	nextDailyStreak
+	dailyStreak
 }: {
 	userId: string;
-	prevDailyStreak: number;
-	nextDailyStreak: number;
+	dailyStreak: number;
 }): Promise<void> => {
-	for (const milestone of milestonesCrossed({ prev: prevDailyStreak, next: nextDailyStreak })) {
+	for (const milestone of milestonesCrossed({ prev: 0, next: dailyStreak })) {
 		try {
 			await grantAward({
 				userId,

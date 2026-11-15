@@ -488,11 +488,18 @@ describe('trade-activity trigger', () => {
 		expect(
 			(await readAwardRow({ userId: referrer, awardType: 'referral', awardKey: referee }))?.status
 		).toBe('paid');
-		expect(stub.transfers).toHaveLength(2);
+
+		// The same fill also pays the referee's first-call achievement.
+		const referralTransfers = (): number =>
+			stub?.transfers.filter(({ memo }) => memo?.startsWith('vxp:referral:') === true).length ?? 0;
+
+		expect(referralTransfers()).toBe(2);
+		expect(stub.transfers).toHaveLength(3);
 
 		// Another activity on the same fill converges: nothing pays twice.
 		expect((await postTradeActivity({ token, timestamp: base + 2 })).status).toBe(201);
-		expect(stub.transfers).toHaveLength(2);
+		expect(referralTransfers()).toBe(2);
+		expect(stub.transfers).toHaveLength(3);
 	});
 });
 

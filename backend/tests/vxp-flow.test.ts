@@ -31,12 +31,12 @@ describe('milestone crossing math', () => {
 });
 
 describe('flow milestone trigger', () => {
-	test('crossing 10 pays 50 VXP once; a replay collides', async () => {
+	test('reaching 10 calls pays 50 VXP once; a replay collides', async () => {
 		stub = stubVxpLedger();
 		const userId = await createTestUser();
 
-		await runFlowMilestoneTrigger({ userId, prevTotalTrades: 8, nextTotalTrades: 12 });
-		await runFlowMilestoneTrigger({ userId, prevTotalTrades: 8, nextTotalTrades: 12 });
+		await runFlowMilestoneTrigger({ userId, executedPredictions: 12 });
+		await runFlowMilestoneTrigger({ userId, executedPredictions: 12 });
 
 		expect(stub.transfers).toHaveLength(1);
 		expect(stub.transfers[0]?.amount).toBe(parseVxp(50));

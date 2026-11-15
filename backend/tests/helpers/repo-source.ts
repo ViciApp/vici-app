@@ -161,6 +161,23 @@ export const extractIntConst = ({
 	return Number(match[1]);
 };
 
+/** The decimal literal of `<constName> = 0.3;` (an integer matches too). */
+export const extractDecimalConst = ({
+	source,
+	constName
+}: {
+	source: string;
+	constName: string;
+}): number => {
+	const match = source.match(new RegExp(`${constName}\\s*=\\s*(\\d+(?:\\.\\d+)?)\\s*;`));
+
+	if (!match) {
+		throw new Error(`no decimal literal for: ${constName}`);
+	}
+
+	return Number(match[1]);
+};
+
 /** The value of `<constName> = a * b * ...;`. A factor is an integer or a
  * named unit (`DAY_IN_MS`) the caller resolves through `units`, since the
  * app module that defines the unit cannot be imported from here. */

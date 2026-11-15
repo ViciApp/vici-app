@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { ZERO } from '../../src/lib/constants';
 import { DAY_IN_MS } from '../../src/lib/time';
 import {
+	ACHIEVEMENT_ACCURACY_GATE_CALLS,
 	ACHIEVEMENT_XP,
 	CALIBRATION_DAILY_CAP,
 	CALIBRATION_HOURLY_CAP,
@@ -9,13 +10,21 @@ import {
 	COMEBACK_AWAY_DAYS,
 	COMEBACK_BALANCE_FLOOR_BASE_UNITS,
 	COMEBACK_RESTORE_TARGET_BASE_UNITS,
+	CONTRARIAN_PRICE_THRESHOLD,
+	CONTRARIAN_WIN_TARGET,
+	LEAGUE_FOUNDER_MIN_MEMBERS,
+	MARATHON_DAILY_STREAK_TARGET,
+	ON_FIRE_STREAK_TARGET,
 	ONBOARDING_M2_TRADE_COUNT,
 	ONBOARDING_M3_TRADE_COUNT,
 	ONBOARDING_MILESTONE_AMOUNTS,
+	ORACLE_ACCURACY_TARGET,
+	ORACLE_TRADES_TARGET,
 	parseVxp,
 	REFERRAL_MAX_PAID,
 	REFERRAL_VXP_BONUS_BASE_UNITS,
 	referrerRewardBaseUnits,
+	STREAK_MAX_CONTINUING_DAY_DELTA,
 	TOURNAMENT_PRIZE_TIERS,
 	VXP_CALIBRATION_REWARD_BASE_UNITS,
 	VXP_DECIMALS,
@@ -30,6 +39,7 @@ import {
 } from '../../src/vxp/constants';
 import {
 	extractBlock,
+	extractDecimalConst,
 	extractIntConst,
 	extractNumericRecord,
 	extractProductConst,
@@ -219,6 +229,45 @@ describe('shared drift: VXP amounts', () => {
 
 		expect(anchors.length).toBeGreaterThan(0);
 		expect({ ...ACHIEVEMENT_XP }).toEqual(app);
+	});
+});
+
+describe('shared drift: server-evaluated award rules', () => {
+	const achievements = readRepoSource('src/lib/utils/achievements.utils.ts');
+
+	test('the streak forgiveness window matches the app streak engine', () => {
+		expect(STREAK_MAX_CONTINUING_DAY_DELTA).toBe(
+			extractIntConst({
+				source: readRepoSource('src/lib/utils/streak.utils.ts'),
+				constName: 'STREAK_MAX_CONTINUING_DAY_DELTA'
+			})
+		);
+	});
+
+	test('achievement unlock thresholds match the app evaluator', () => {
+		expect(ACHIEVEMENT_ACCURACY_GATE_CALLS).toBe(
+			extractIntConst({
+				source: readRepoSource('src/lib/constants/flow-rewards.constants.ts'),
+				constName: 'ACCURACY_GATE_CALLS'
+			})
+		);
+
+		const thresholds: Record<string, number> = {
+			CONTRARIAN_PRICE_THRESHOLD,
+			CONTRARIAN_WIN_TARGET,
+			ON_FIRE_STREAK_TARGET,
+			ORACLE_ACCURACY_TARGET,
+			ORACLE_TRADES_TARGET,
+			MARATHON_DAILY_STREAK_TARGET,
+			LEAGUE_FOUNDER_MIN_MEMBERS
+		};
+
+		for (const [constName, backend] of Object.entries(thresholds)) {
+			expect({ constName, value: backend }).toEqual({
+				constName,
+				value: extractDecimalConst({ source: achievements, constName })
+			});
+		}
 	});
 });
 

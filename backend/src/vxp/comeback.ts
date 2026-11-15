@@ -1,9 +1,11 @@
 // Comeback restore: a one-time top-up for a returning user whose stack ran
-// dry. Fires off the profile write's lastActiveDay jump (that field only
-// advances when the user predicts on a new day, so the trigger is
-// re-engagement, not mere app-open), and only tops a genuinely depleted
-// balance up TO the target. The single fixed comeback/restore award key is
-// the anti-farming bound: at most once per account, ever.
+// dry. Fires when a newly recorded activity day (an executed fill or a Flow
+// swipe, dated by the server, never the profile's client-written
+// lastActiveDay) follows the previous recorded day by the absence threshold,
+// so the trigger is re-engagement, not mere app-open, and only tops a
+// genuinely depleted balance up TO the target. The single fixed
+// comeback/restore award key is the anti-farming bound: at most once per
+// account, ever.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { ZERO } from '../lib/constants';
@@ -39,26 +41,27 @@ export const daysBetween = ({
 	return Math.floor((toMs - fromMs) / DAY_IN_MS);
 };
 
-/** Profile-write trigger: grants the restore when the lastActiveDay gap
- * reaches the absence threshold and the ledger balance sits below the floor.
- * Never throws; a hiccup is logged and the trigger can fire again later. */
+/** Activity-day trigger: grants the restore when the gap between the
+ * previous and the newly recorded active day reaches the absence threshold
+ * and the ledger balance sits below the floor. Never throws; a hiccup is
+ * logged. */
 export const runComebackRestoreTrigger = async ({
 	userId,
-	prevLastActiveDay,
-	nextLastActiveDay
+	previousActiveDay,
+	activeDay
 }: {
 	userId: string;
-	prevLastActiveDay: string | undefined;
-	nextLastActiveDay: string | undefined;
+	previousActiveDay: string | undefined;
+	activeDay: string | undefined;
 }): Promise<void> => {
 	try {
-		// Both endpoints of the gap are needed: a brand-new profile cannot be a
-		// return.
-		if (isNullish(prevLastActiveDay) || isNullish(nextLastActiveDay)) {
+		// Both endpoints of the gap are needed: a first-ever active day cannot
+		// be a return.
+		if (isNullish(previousActiveDay) || isNullish(activeDay)) {
 			return;
 		}
 
-		const gap = daysBetween({ fromDay: prevLastActiveDay, toDay: nextLastActiveDay });
+		const gap = daysBetween({ fromDay: previousActiveDay, toDay: activeDay });
 
 		if (isNullish(gap) || gap < COMEBACK_AWAY_DAYS) {
 			return;
