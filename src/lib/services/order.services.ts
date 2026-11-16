@@ -137,7 +137,7 @@ export const placeOrder = async ({
 	// so an amount smaller than one contract's price arrives here as zero;
 	// reject it before any state changes or activity logging.
 	if (qty <= ZERO) {
-		throw new Error('Stake is too small for this price: the order quantity rounds to zero');
+		throw new Error('Call size is too small for this price: the order quantity rounds to zero');
 	}
 
 	// In web2 mode there is no local signing identity: the API signs engine
