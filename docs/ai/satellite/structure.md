@@ -122,7 +122,8 @@ Collection names are written in three places that must stay in sync:
 When adding a new collection, update all three in the same PR.
 `src/tests/lib/constants/collections.constants.spec.ts` (`npm test`)
 fails when `juno.config.ts` deploys a different set of datastore
-collections than `juno.collections.json` names. The
+collections than `juno.collections.json` names, or when the typed
+`Collection` has a different set of keys or names than the JSON. The
 satellite's `setDocCollections` / `deleteDocCollections` /
 `assertSetDocCollections` arrays use the typed enum, so a missing entry
 becomes a TS error at the dispatch table.

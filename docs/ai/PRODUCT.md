@@ -596,9 +596,8 @@ deferred to the post-signup Profile, so the onboarding handoff always
 carries a `null` team/side; the first prediction now happens free in the
 app. The screen also links to `/signin` ("Already a member?") and offers a
 "Skip · preview first, sign up later" escape into the signed-out Flow
-preview. The earlier multi-beat flow (team → first call → handle → auth)
-is kept in the tree behind the off path until the one-screen flow is
-verified in production; flipping the flag off restores it intact.
+preview. This is the only onboarding flow: there is no flag and no
+earlier variant to fall back to.
 
 The screen reuses, rather than re-implements, the handle machinery (live
 availability probe, session-taken cache, claim-time re-check), the
