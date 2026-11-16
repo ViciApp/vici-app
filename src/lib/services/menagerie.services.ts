@@ -9,6 +9,8 @@ import {
 	myReferralCountStore
 } from '#lib/stores/menagerie.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { getUserRankAndCount as getUserRankAndCountWeb2 } from '#lib/web2/client.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 import { get } from 'svelte/store';
@@ -73,9 +75,9 @@ export const loadMyMenagerieSignals = async (): Promise<void> => {
 						return;
 					}
 
-					const { rank, count } = await functions.getUserRankAndCount({
-						principalStr: owner
-					});
+					const { rank, count } = isWeb2Backend()
+						? await getUserRankAndCountWeb2({ userId: owner })
+						: await functions.getUserRankAndCount({ principalStr: owner });
 
 					if (isCurrent()) {
 						myGlobalRankStore.set({ rank, totalRanked: count });
