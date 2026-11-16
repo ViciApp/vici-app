@@ -17,7 +17,6 @@ import {
 	InsufficientBalanceError,
 	requestWithdrawal,
 	transitionWithdrawal,
-	userChainBalance,
 	WITHDRAWAL_TRANSITIONS,
 	type Withdrawal,
 	type WithdrawalState
@@ -25,6 +24,7 @@ import {
 import { query, tx } from '../src/db/client';
 import { ZERO } from '../src/lib/constants';
 import { createTestUser, ensureMigrated } from './helpers/auth';
+import { userChainBalance } from './helpers/custody';
 import { dbAvailable } from './helpers/setup';
 
 describe('withdrawable assets', () => {

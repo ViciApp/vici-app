@@ -10,7 +10,10 @@ import { readBattleLiveScore, resolveBattleFromSettlements } from '../leagues/ba
 import {
 	acceptDuel,
 	acceptLeagueBattle,
+	BATTLE_AMOUNT_MAX,
+	BATTLE_AMOUNT_MIN,
 	BattleError,
+	BattleExistsError,
 	declineBattle,
 	expireBattle,
 	getBattle,
@@ -26,6 +29,12 @@ import {
 import { badRequest } from '../lib/http';
 
 type BattleAction = (args: { battleId: string; callerId: string }) => Promise<unknown>;
+
+// Postgres rejects a fraction or an out-of-range value for the integer columns
+// as a fault, so the shape is held here: the window lands in `bigint` and must
+// stay exact as a JS number, the amount in an `int` with the domain's bounds.
+const epochMsSchema = t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER });
+const amountSchema = t.Integer({ minimum: BATTLE_AMOUNT_MIN, maximum: BATTLE_AMOUNT_MAX });
 
 export const battlesRoutes = new Elysia({ prefix: '/api/v1/battles' })
 	.get('/mine', async ({ request, set }) => {
@@ -103,6 +112,12 @@ export const battlesRoutes = new Elysia({ prefix: '/api/v1/battles' })
 					return badRequest(set, err.message);
 				}
 
+				if (err instanceof BattleExistsError) {
+					set.status = 409;
+
+					return { error: 'battle_exists' };
+				}
+
 				throw err;
 			}
 		},
@@ -112,13 +127,13 @@ export const battlesRoutes = new Elysia({ prefix: '/api/v1/battles' })
 				kind: t.Union([t.Literal('league'), t.Literal('duel')]),
 				sideA: t.String(),
 				sideB: t.String(),
-				kickoffMs: t.Number(),
-				settleMs: t.Number(),
+				kickoffMs: epochMsSchema,
+				settleMs: epochMsSchema,
 				scope: t.Optional(t.String()),
-				amount: t.Optional(t.Number()),
+				amount: t.Optional(amountSchema),
 				// The field was called `wager` before; app bundles still cached on
 				// devices send that name, so it is read when `amount` is absent.
-				wager: t.Optional(t.Number()),
+				wager: t.Optional(amountSchema),
 				trashTalk: t.Optional(t.String())
 			})
 		}

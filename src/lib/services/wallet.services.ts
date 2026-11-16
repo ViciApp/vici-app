@@ -3,7 +3,7 @@ import { getAccountState } from '#lib/api/clearing.api.ts';
 import { getTransactions as getIcpTransactionsApi } from '#lib/api/icp-index.api.ts';
 import { getTransactions as getIcrcTransactionsApi } from '#lib/api/icrc-index-ng.api.ts';
 import { balance as getLedgerBalance } from '#lib/api/icrc-ledger.api.ts';
-import { WALLET_PAGINATION, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import {
 	CKUSDC_INDEX_CANISTER_ID,
 	ICP_INDEX_CANISTER_ID,
@@ -359,15 +359,6 @@ export const getTransactionsPage = async ({
 			hasMore: false
 		};
 	}
-};
-
-/**
- * Backwards-compatible helper: first batch only.
- */
-export const getTransactions = async (): Promise<Transaction[]> => {
-	const result = await getTransactionsPage({ batchSize: WALLET_PAGINATION });
-
-	return result.transactions;
 };
 
 /**

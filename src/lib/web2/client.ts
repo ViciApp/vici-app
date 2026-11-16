@@ -437,22 +437,6 @@ export const searchProfiles = async (queryStr: string): Promise<UserProfile[]> =
 	return items.map(mapProfile);
 };
 
-/** Whether two users hold an active friendship. */
-export const checkFriendship = async ({
-	userA,
-	userB
-}: {
-	userA: string;
-	userB: string;
-}): Promise<boolean> => {
-	const { isFriend } = await request<{ isFriend: boolean }>({
-		path: `/api/v1/social/friendship?${encodeQuery({ userA, userB })}`,
-		method: 'GET'
-	});
-
-	return isFriend;
-};
-
 /** The caller's dashboard stat cache, or `undefined` before the first sync. */
 export const getUserStats = async (): Promise<UserStatsDoc | undefined> => {
 	const { stats } = await request<{ stats: Web2UserStatsWire | null }>({
@@ -490,19 +474,6 @@ export const listLeaderboard = async (): Promise<UserProfile[]> => {
 	});
 
 	return items.map(mapProfile);
-};
-
-/** The caller's rival across the full ranking, or `undefined` when unranked /
- * the lone ranked profile. `rivalIsTrailing` frames the gap as a lead. */
-export const getMyRival = async (): Promise<
-	{ profile: UserProfile; isTrailing: boolean } | undefined
-> => {
-	const { rival, rivalIsTrailing } = await request<{
-		rival: Web2ProfileWire | null;
-		rivalIsTrailing: boolean;
-	}>({ path: '/api/v1/leaderboard/rival', method: 'GET' });
-
-	return isNullish(rival) ? undefined : { profile: mapProfile(rival), isTrailing: rivalIsTrailing };
 };
 
 const listRelations = async (path: string): Promise<Relation[]> => {
@@ -557,13 +528,6 @@ export const followUser = async (target: string): Promise<void> => {
 		path: '/api/v1/social/follow',
 		method: 'POST',
 		body: { target }
-	});
-};
-
-export const unfollowUser = async (userId: string): Promise<void> => {
-	await request<{ ok: boolean }>({
-		path: `/api/v1/social/follow/${encodeURIComponent(userId)}`,
-		method: 'DELETE'
 	});
 };
 
@@ -989,23 +953,6 @@ export const depositEngineCollateral = async ({
 		path: '/api/v1/engine/collateral/deposit',
 		method: 'POST',
 		body: { depositId, assetId, amount: amount.toString() }
-	});
-};
-
-/** Release clearing collateral back to the custodial account. */
-export const withdrawEngineCollateral = async ({
-	withdrawalId,
-	assetId,
-	amount
-}: {
-	withdrawalId: string;
-	assetId: string;
-	amount: bigint;
-}): Promise<void> => {
-	await request<{ ok: boolean }>({
-		path: '/api/v1/engine/collateral/withdraw',
-		method: 'POST',
-		body: { withdrawalId, assetId, amount: amount.toString() }
 	});
 };
 
@@ -1831,16 +1778,6 @@ export const claimCalibrationReward = async ({
 		body: { seriesId, chosenSide }
 	});
 
-/** Retry / self-heal a referral payout. Omitting the referee targets the
- * caller's own referee row; other rows are admin-only server-side. */
-export const settleReferralPayout = async (refereeUserId?: string): Promise<void> => {
-	await request<Record<string, unknown>>({
-		path: '/api/v1/vxp/referral/settle',
-		method: 'POST',
-		body: isNullish(refereeUserId) ? {} : { refereeUserId }
-	});
-};
-
 // ─── Referrals ───────────────────────────────────────────────────────────
 
 interface Web2ReferralPayoutWire {
@@ -2063,35 +2000,6 @@ export const listActivities = async ({
 	});
 
 	return items.map(mapActivity);
-};
-
-/** Like one activity. The route derives the liker from the session and
- * maintains the count rollup transactionally with the write. */
-export const likeActivity = async ({
-	activityKey,
-	timestamp,
-	activityTitle,
-	marketId
-}: {
-	activityKey: string;
-	timestamp: number;
-	activityTitle: string;
-	marketId?: string;
-}): Promise<void> => {
-	await request<{ ok: boolean }>({
-		path: '/api/v1/social/activity-reactions',
-		method: 'POST',
-		body: { activityKey, timestamp, activityTitle, marketId }
-	});
-};
-
-/** Remove the caller's like; idempotent when no like exists. */
-export const unlikeActivity = async ({ activityKey }: { activityKey: string }): Promise<void> => {
-	await request<{ ok: boolean }>({
-		path: '/api/v1/social/activity-reactions',
-		method: 'DELETE',
-		body: { activityKey }
-	});
 };
 
 /** The most-recent reactions across all users (public read), newest first.

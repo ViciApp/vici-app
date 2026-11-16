@@ -5,7 +5,7 @@ import {
 	type LeagueMemberDoc
 } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
@@ -204,31 +204,4 @@ export const assertDeleteLeagueMember = ({
 			'league_members may only be removed by the member themselves or the league owner.'
 		);
 	}
-};
-
-// Exported for future battle / standings services that need to enforce
-// "only members of league X can write Y." Keeping the predicate next
-// to the assert keeps the auth contract in one place.
-export const isLeagueMember = ({
-	leagueId,
-	principal,
-	caller
-}: {
-	leagueId: string;
-	principal: string;
-	caller: Uint8Array;
-}): boolean => {
-	const doc = getDocStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		key: leagueMemberKey({ leagueId, memberPrincipal: principal }),
-		caller
-	});
-
-	if (isNullish(doc)) {
-		return false;
-	}
-
-	const { role } = decodeDocData<LeagueMemberDoc>(doc.data);
-
-	return nonNullish(role);
 };

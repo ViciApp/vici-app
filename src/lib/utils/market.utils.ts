@@ -1,11 +1,6 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
 import { ZERO } from '#lib/constants/app.constants.ts';
-import {
-	DAY_IN_MS,
-	HOUR_IN_MS,
-	MILLISECOND_IN_NANOSECONDS,
-	MINUTE_IN_MS
-} from '#lib/constants/time.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import type { Market, MarketStatus, Outcome, TradingAccessUI } from '#lib/types/market.ts';
 import type { OrderBookLevel, OrderType } from '#lib/types/order.ts';
 import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
@@ -335,29 +330,6 @@ export const calculateMarketStats = ({
 		asks,
 		midPrice: calculateProbability({ bids, asks })
 	};
-};
-
-export const getTimeRemaining = (expiry: bigint): string => {
-	const now = BigInt(Date.now());
-	const diff = Number(expiry - now);
-
-	if (diff <= 0) {
-		return 'Expired';
-	}
-
-	const days = Math.floor(diff / DAY_IN_MS);
-	const hours = Math.floor((diff % DAY_IN_MS) / HOUR_IN_MS);
-	const minutes = Math.floor((diff % HOUR_IN_MS) / MINUTE_IN_MS);
-
-	if (days > 0) {
-		return `${days}d ${hours}h`;
-	}
-
-	if (hours > 0) {
-		return `${hours}h ${minutes}m`;
-	}
-
-	return `${minutes}m remaining`;
 };
 
 /**

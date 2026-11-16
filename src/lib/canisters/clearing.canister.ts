@@ -45,38 +45,6 @@ export class ClearingCanister extends Canister<ClearingService> {
 		throw new Error(`Failed to deposit collateral: ${JSON.stringify(result.Err, jsonReplacer)}`);
 	};
 
-	withdrawCollateral = async ({
-		params,
-		...queryParams
-	}: {
-		params: ClearingDid.WithdrawCollateralParams;
-	} & QueryParams): Promise<void> => {
-		const { withdraw_collateral } = this.caller(queryParams);
-		const result = await withdraw_collateral(params);
-
-		if ('Ok' in result) {
-			return;
-		}
-
-		throw new Error(`Failed to withdraw collateral: ${JSON.stringify(result.Err, jsonReplacer)}`);
-	};
-
-	submitMatchedTrade = async ({
-		params,
-		...queryParams
-	}: {
-		params: ClearingDid.SubmitMatchedTradeParams;
-	} & QueryParams): Promise<boolean> => {
-		const { submit_matched_trade } = this.caller(queryParams);
-		const result = await submit_matched_trade(params);
-
-		if ('Ok' in result) {
-			return result.Ok;
-		}
-
-		throw new Error(`Failed to submit matched trade: ${JSON.stringify(result.Err, jsonReplacer)}`);
-	};
-
 	getAccountState = async ({
 		params,
 		...queryParams
@@ -112,18 +80,6 @@ export class ClearingCanister extends Canister<ClearingService> {
 		const { list_collateral_assets } = this.caller(queryParams);
 
 		return await list_collateral_assets();
-	};
-
-	getPosition = async ({
-		params,
-		...queryParams
-	}: {
-		params: ClearingDid.GetPositionParams;
-	} & QueryParams): Promise<ClearingDid.Position | undefined> => {
-		const { get_position } = this.caller(queryParams);
-		const result = await get_position(params);
-
-		return fromNullable(result);
 	};
 
 	getPositions = async (queryParams: QueryParams): Promise<ClearingDid.Position[]> => {
@@ -439,42 +395,6 @@ export class ClearingCanister extends Canister<ClearingService> {
 		return await list_series_traded_volumes({ series_ids: seriesIds });
 	};
 
-	mintCompleteSet = async ({
-		seriesId,
-		qty,
-		...queryParams
-	}: {
-		seriesId: string;
-		qty: bigint;
-	} & QueryParams): Promise<boolean> => {
-		const { mint_complete_set } = this.caller(queryParams);
-		const result = await mint_complete_set(seriesId, qty);
-
-		if ('Ok' in result) {
-			return result.Ok;
-		}
-
-		throw new Error(`Failed to mint complete set: ${JSON.stringify(result.Err, jsonReplacer)}`);
-	};
-
-	redeemCompleteSet = async ({
-		seriesId,
-		qty,
-		...queryParams
-	}: {
-		seriesId: string;
-		qty: bigint;
-	} & QueryParams): Promise<boolean> => {
-		const { redeem_complete_set } = this.caller(queryParams);
-		const result = await redeem_complete_set(seriesId, qty);
-
-		if ('Ok' in result) {
-			return result.Ok;
-		}
-
-		throw new Error(`Failed to redeem complete set: ${JSON.stringify(result.Err, jsonReplacer)}`);
-	};
-
 	/**
 	 * Per-window ranked standings (week / month / all-time) by net realized
 	 * P&L, draining the clearing canister's exclusive `start_after` cursor.
@@ -532,21 +452,5 @@ export class ClearingCanister extends Canister<ClearingService> {
 		}
 
 		return { items, total };
-	};
-
-	registerIcrcAsset = async ({
-		params,
-		...queryParams
-	}: {
-		params: ClearingDid.RegisterIcrcAssetParams;
-	} & QueryParams): Promise<void> => {
-		const { register_icrc_asset } = this.caller(queryParams);
-		const result = await register_icrc_asset(params);
-
-		if ('Ok' in result) {
-			return;
-		}
-
-		throw new Error(`Failed to register ICRC asset: ${JSON.stringify(result.Err, jsonReplacer)}`);
 	};
 }

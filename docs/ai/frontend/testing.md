@@ -394,17 +394,16 @@ await expect(page).toHaveScreenshot('logged-in.png', {
 the size of the element's bounding box, so a chip that renders `"7d 14h"`
 on one run and `"6d 23h"` on the next produces a different-sized
 rectangle and the snapshot diffs anyway. For wall-clock-relative text
-(the `MarketTimeRemaining` chip is the canonical example) and for any
-other element whose text varies per CI run (notably the shortened
-principal rendered by `CopyableAddress`: Juno's dev mock identity is
-deterministic within a CI run but the PocketIC emulator container
-mints a different principal on every fresh boot), overwrite the
-`textContent` to a fixed string before screenshot; call
+and for any other element whose text varies per CI run (the canonical
+example is the shortened principal rendered by `CopyableAddress`: Juno's
+dev mock identity is deterministic within a CI run but the PocketIC
+emulator container mints a different principal on every fresh boot),
+overwrite the `textContent` to a fixed string before screenshot; call
 `home.stabilizeForSnapshot()` (defined in
 [`e2e/pages/home.page.ts`](../../../e2e/pages/home.page.ts)), which
-waits for `document.fonts.ready` and pins every time-remaining chip
-and principal-display element
-to a constant placeholder:
+waits for `document.fonts.ready` and pins every principal-display
+element and every entry of `PINNED_SNAPSHOT_TEXT` to a constant
+placeholder:
 
 ```ts
 await home.stabilizeForSnapshot();
