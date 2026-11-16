@@ -38,11 +38,9 @@ SATELLITE="${VICI_JUNO_SATELLITE_PRINCIPAL:-auamu-4x777-77775-aaaaa-cai}"
 DEPLOY_PRINCIPAL="$(dfx identity get-principal)"
 
 # Human admins that should always be able to reach the engine directly via dfx.
-# Keep in sync with src/lib/constants/controllers.constants.ts.
-HUMAN_ADMINS=(
-  "fi5zj-aw22p-wi734-xvevg-m74nl-hv4m7-x6p5d-nzdid-eafyu-retk2-nqe"
-  "eqorn-r44tj-eoohr-ffgzt-avuid-bqfhx-wqmlw-xowii-gcqim-wvdnk-4qe"
-)
+# Read as a plain assignment first so a failed read stops the script (`set -e`).
+HUMAN_ADMINS_LIST="$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/satellite-controllers.ts)"
+read -r -a HUMAN_ADMINS <<<"$HUMAN_ADMINS_LIST"
 
 build_admins_vec() {
   local -a principals=("$SATELLITE" "$DEPLOY_PRINCIPAL" "${HUMAN_ADMINS[@]}")
