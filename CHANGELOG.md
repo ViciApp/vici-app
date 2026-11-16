@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.8.59](https://github.com/ViciApp/vici-app/compare/v1.8.58...v1.8.59) (2026-11-16)
+
+
+### Bug Fixes
+
+* **backend:** answer invalid battle proposals with a 4xx, not a 500 ([#1540](https://github.com/ViciApp/vici-app/issues/1540)) ([60a5557](https://github.com/ViciApp/vici-app/commit/60a5557a93e4a92def0d71865198e47e9e0b73f3))
+* **backend:** bound the work and input of unthrottled API routes ([#1544](https://github.com/ViciApp/vici-app/issues/1544)) ([0a680d8](https://github.com/ViciApp/vici-app/commit/0a680d810a82fd8d6621d7a0a8d7664045d5ee53))
+* **frontend:** say call size, not stake, in the order-too-small error ([#1543](https://github.com/ViciApp/vici-app/issues/1543)) ([a64aa92](https://github.com/ViciApp/vici-app/commit/a64aa927b6755b0bc7fef3afaba0f88095b34641))
+
+
+### Documentation
+
+* **ai:** match comments and agent docs to the code, fourth pass ([#1550](https://github.com/ViciApp/vici-app/issues/1550)) ([7975f49](https://github.com/ViciApp/vici-app/commit/7975f499364d74b951d956f55e25be453663e34a))
+
+
+### Code Refactoring
+
+* **backend,frontend:** write the VXP award types once per stack ([#1546](https://github.com/ViciApp/vici-app/issues/1546)) ([6451eb0](https://github.com/ViciApp/vici-app/commit/6451eb030bc686013cff85b48e6987c49d30f1bf))
+* **backend,scripts:** remove dead code and orphan lint scripts ([#1541](https://github.com/ViciApp/vici-app/issues/1541)) ([268b69d](https://github.com/ViciApp/vici-app/commit/268b69d582c7f823be9a2e33dbb55128d7441ff2))
+* **frontend,satellite,backend:** write the affiliation kinds once per stack ([#1549](https://github.com/ViciApp/vici-app/issues/1549)) ([6e6ed17](https://github.com/ViciApp/vici-app/commit/6e6ed17ff2dd41391f27615e2877c1359838ca12))
+* **frontend:** build the tournament round window from the shared time units ([#1542](https://github.com/ViciApp/vici-app/issues/1542)) ([50ccf68](https://github.com/ViciApp/vici-app/commit/50ccf68d732c5414cdf8189e48929e5a5becf770))
+* **frontend:** delete the service wrappers and primitives nothing calls ([#1545](https://github.com/ViciApp/vici-app/issues/1545)) ([ad70a74](https://github.com/ViciApp/vici-app/commit/ad70a746bda03f07f54edbb2ea80cc3f74786621))
+* **i18n:** remove the 258 catalog keys nothing reads ([#1548](https://github.com/ViciApp/vici-app/issues/1548)) ([0b3e8d8](https://github.com/ViciApp/vici-app/commit/0b3e8d8d387beb114523572f43285987ce11eb3b))
+
+
+### Tests
+
+* **backend:** pin the mirrored validation bounds, windows and ids in the drift suite ([#1551](https://github.com/ViciApp/vici-app/issues/1551)) ([54e2c24](https://github.com/ViciApp/vici-app/commit/54e2c24b46075c6181cd0db1a958bc276a44f3f2))
+
+
+### Continuous Integration
+
+* **web2:** run the web2 deploy only from a release tag ([#1547](https://github.com/ViciApp/vici-app/issues/1547)) ([8586afc](https://github.com/ViciApp/vici-app/commit/8586afce02ff1b211696ec9ebd329164159b55bf))
+
 ## [1.8.58](https://github.com/ViciApp/vici-app/compare/v1.8.57...v1.8.58) (2026-11-15)
 
 
