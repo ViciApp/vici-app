@@ -60,6 +60,12 @@ one pattern. Each of these has bitten a PR before:
   podium pays only a slot whose `created_at` precedes the month's close
   (`joinedBeforeMonthClose` in
   [`worlds-podium.utils.ts`](../../../src/satellite/utils/worlds-podium.utils.ts)).
+- **A calibration call is judged once.** `judgeCalibrationCall`
+  ([`vxp-calibration.services.ts`](../../../src/satellite/services/vxp-calibration.services.ts))
+  records the first side called on a market in the controllers-scoped
+  `calibration_attempts` collection before comparing it with the outcome,
+  as the API does in its table of the same name: a miss is on record, and
+  a later call on the other side is refused (`already_called`).
 - **Every award is a real ICRC transfer** through the shared payout
   service
   ([`vxp-payout.services.ts`](../../../src/satellite/services/vxp-payout.services.ts));

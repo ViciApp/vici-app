@@ -782,8 +782,8 @@ const resolveOwnedLeague = ({
 /**
  * Cascade hard-delete for a single account. Removes every row
  * identity-keyed to the principal: profile, VXP awards / onboarding,
- * referral code + redemption record, affiliations, relations, league
- * memberships. Owned leagues are then either deleted (no other members
+ * calibration attempts, referral code + redemption record, affiliations,
+ * relations, league memberships. Owned leagues are then either deleted (no other members
  * left) or transferred to a surviving member: see
  * {@link disbandOrTransferOwnedLeagues}; self-joiners during the recovery
  * window are never orphaned. Shared audit rows (activities, battles,
@@ -818,6 +818,12 @@ export const hardDeleteAccountFn = ({
 	docsDeleted += deleteOwnPrivateProfile(step);
 	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.VXP_AWARDS });
 	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.VXP_ONBOARDING });
+	// Controllers-scoped: listed as the controller too.
+	docsDeleted += deletePrefixedDocs({
+		...step,
+		callerBytes: step.writer,
+		collection: Collection.CALIBRATION_ATTEMPTS
+	});
 	docsDeleted += deleteOwnReferralCode(step);
 	docsDeleted += deleteOwnReferralRedemption(step);
 	docsDeleted += deleteOwnAffiliations({ ...step, collection: Collection.AFFILIATIONS });

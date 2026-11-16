@@ -19,6 +19,9 @@
 //     app settled it to the recipient's legacy principal, and a legacy
 //     'pending' / 'owed' / 'processing' state cannot rule out a transfer that
 //     landed before its bookkeeping write.
+//   - calibration_attempts keeps the first side called per user and market,
+//     keyed `${principal}/${seriesId}`, into the table of the same name; an
+//     existing row wins, as it does for a live call.
 //   - vxp_onboarding has no table of its own: each non-'none' milestone
 //     becomes a vxp_awards row ('onboarding', m1|m2|m3) so the onboarding
 //     trigger's idempotency key collides instead of re-granting.
@@ -41,6 +44,7 @@ import { nicknameUniqueKey } from '../../src/profiles/nickname';
 import { activityKey as webActivityKey } from '../../src/social/activities';
 import { followRelationKey, friendRelationKey } from '../../src/social/relations';
 import { isVxpAwardType } from '../../src/vxp/awards';
+import { isCallSide } from '../../src/vxp/calibration';
 import { isAffiliationKind } from '../../src/worlds/affiliations';
 import { msFromNs, type ExportedDoc, type SatelliteCollection } from './lib';
 
@@ -607,6 +611,31 @@ const importResolvedResults: ImporterRun = perDoc(async (doc, { q, mapper, stats
 			num(d.netVxp),
 			num(d.resolvedAtMs)
 		]
+	);
+
+	return true;
+});
+
+// ---------------------------------------------------------------------------
+// calibration_attempts
+
+const importCalibrationAttempts: ImporterRun = perDoc(async (doc, { q, mapper, stats }) => {
+	const chosenSide = str(rec(doc.data).chosenSide);
+	const separator = doc.key.indexOf('/');
+	const principal = doc.key.slice(0, separator);
+	const seriesId = doc.key.slice(separator + 1);
+
+	if (!isCallSide(chosenSide) || separator <= 0 || seriesId === '') {
+		stats.warnings.push(`calibration_attempts: unsupported shape on ${doc.key}; skipped`);
+
+		return false;
+	}
+
+	await q(
+		`insert into calibration_attempts (user_id, series_id, chosen_side)
+		 values ($1, $2, $3)
+		 on conflict (user_id, series_id) do nothing`,
+		[await mapper.userIdFor(principal), seriesId, chosenSide]
 	);
 
 	return true;
@@ -1497,6 +1526,12 @@ export const IMPORTERS: CollectionImporter[] = [
 		run: importVxpAwards,
 		pgCount: (q) =>
 			countSql(q, `select count(*)::text as count from vxp_awards where award_type <> 'onboarding'`)
+	},
+	{
+		collection: 'calibration_attempts',
+		mode: 'import',
+		run: importCalibrationAttempts,
+		pgCount: (q) => countSql(q, `select count(*)::text as count from calibration_attempts`)
 	},
 	{
 		collection: 'vxp_onboarding',

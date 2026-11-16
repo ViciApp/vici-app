@@ -1657,6 +1657,7 @@ const AppClaimCalibrationRewardResultSchema = j.strictObject({
 			'not_binary',
 			'not_finalised',
 			'outcome_undetermined',
+			'already_called',
 			'rate_limited_hourly',
 			'rate_limited_daily',
 			'transfer_failed'

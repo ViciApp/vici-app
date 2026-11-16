@@ -26,6 +26,7 @@ enum JunoDatastoreCollection {
 	RESOLVED_RESULTS = 'resolved_results',
 	VXP_ONBOARDING = 'vxp_onboarding',
 	VXP_AWARDS = 'vxp_awards',
+	CALIBRATION_ATTEMPTS = 'calibration_attempts',
 	REFERRAL_CODES = 'referral_codes',
 	REFERRALS = 'referrals',
 	LEAGUES = 'leagues',
@@ -230,6 +231,16 @@ export default defineConfig(({ mode }) => ({
 					memory: 'stable',
 					read: 'public',
 					write: 'public'
+				},
+				// The first side each user called on each finalised market for a
+				// calibration reward, so a miss cannot be called again on the
+				// other side. Controllers-only: the `claimCalibrationReward`
+				// endpoint is the sole reader and writer (as a controller).
+				{
+					collection: JunoDatastoreCollection.CALIBRATION_ATTEMPTS,
+					memory: 'stable',
+					read: 'controllers',
+					write: 'controllers'
 				},
 				{
 					collection: JunoDatastoreCollection.REFERRAL_CODES,
