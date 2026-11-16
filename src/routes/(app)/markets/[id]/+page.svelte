@@ -25,7 +25,7 @@
 	import { SUPPORTED_LOCALES } from '#lib/constants/locale.constants.ts';
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
-	import { visibleLeaderboard } from '#lib/derived/leaderboard.derived.ts';
+	import { leaderboard, visibleLeaderboard } from '#lib/derived/leaderboard.derived.ts';
 	import { marketMetadata } from '#lib/derived/market-metadata.derived.ts';
 	import { marketTags } from '#lib/derived/market-tags.derived.ts';
 	import { pageMarketId } from '#lib/derived/page-market.derived.ts';
@@ -41,6 +41,7 @@
 	import { listMarketTranslations } from '#lib/services/market-translation.services.ts';
 	import { loadMarket } from '#lib/services/market.services.ts';
 	import { getPositionsForMarket } from '#lib/services/position.services.ts';
+	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
 	import { getMarketTopPredictors } from '#lib/services/top-predictors.services.ts';
 	import { getSeriesTradeVolume, loadMarketPriceCandles } from '#lib/services/trade.services.ts';
 	import { showCompanion } from '#lib/stores/companion.store.ts';
@@ -112,7 +113,11 @@
 	// are both known. `undefined` while unresolved so the section can tell
 	// "still loading" apart from "nobody's here".
 	let topPredictors = $state<TopPredictorSignal[] | undefined>();
-	let topPredictorsMarketId = $state<MarketId | undefined>();
+	// The market and candidate set the list was last resolved for. The
+	// candidates depend on the viewer and on which profiles have loaded, so a
+	// sign-in, sign-out or opt-out change re-probes rather than keeping the
+	// list resolved for a different set.
+	let topPredictorsKey = $state<string | undefined>();
 
 	// Chart period chip selection. Drives which window of market-wide price
 	// history the chart fetches and plots (see priceHistoryByPeriod).
@@ -161,9 +166,9 @@
 			priceHistoryByPeriod = {};
 
 			// Same for the top-predictors list: clearing the resolved
-			// market id re-arms the fetch effect for the new market.
+			// key re-arms the fetch effect for the new market.
 			topPredictors = undefined;
-			topPredictorsMarketId = undefined;
+			topPredictorsKey = undefined;
 
 			// Re-arm the volume read for the new market (pulse until it drains).
 			marketVolume = undefined;
@@ -314,36 +319,85 @@
 		}
 	};
 
-	// Resolve the top-predictors list once the market and the cached global
-	// leaderboard are both known. Like the price history this works
-	// signed-out and rides behind the first paint;
-	// the resolved-market guard keeps the 30s poll and unrelated leaderboard
-	// ticks from re-probing every run.
-	$effect(() => {
-		const id = market?.id;
-		const candidates = $visibleLeaderboard;
+	// Every leaderboard owner but the viewer, whose live profile `Authn`
+	// already mirrors into the profile cache. `visibleLeaderboard` reads the
+	// opt-out from that cache and hides a row until its profile is loaded, so
+	// these are hydrated from the raw leaderboard: hydrating only the visible
+	// rows would never fetch the hidden ones.
+	const leaderboardOwners = $derived(
+		$leaderboard.map(({ owner }) => owner).filter((owner) => owner !== $authPrincipal)
+	);
+	const leaderboardOwnersKey = $derived(leaderboardOwners.join(','));
 
-		if (isNullish(id) || candidates.length === 0 || topPredictorsMarketId === id) {
+	// The owner set whose profiles have finished loading, so the probe below
+	// waits for the full candidate set instead of resolving a partial one and
+	// flashing the empty state. The plain `let` only stops a leaderboard tick
+	// from starting a second load for a set already loading.
+	let hydratedLeaderboardKey = $state<string | undefined>();
+	let hydratingLeaderboardKey: string | undefined;
+
+	$effect(() => {
+		const key = leaderboardOwnersKey;
+
+		if (key === hydratedLeaderboardKey || key === hydratingLeaderboardKey) {
 			return;
 		}
 
-		topPredictorsMarketId = id;
-		void fetchTopPredictors({ id, candidates: candidates.map(({ owner }) => owner) });
+		hydratingLeaderboardKey = key;
+		void loadProfilesByPrincipals({ principals: leaderboardOwners }).then(() => {
+			hydratedLeaderboardKey = key;
+		});
+	});
+
+	// Resolve the top-predictors list once the market is known and the
+	// leaderboard's profiles have loaded. Like the price history this works
+	// signed-out and rides behind the first paint. Keyed on the market and the
+	// candidate owners, so the 30s poll and unrelated leaderboard ticks never
+	// re-probe, while a change in who may be listed does.
+	$effect(() => {
+		const id = market?.id;
+		const candidates = $visibleLeaderboard.map(({ owner }) => owner);
+
+		if (
+			isNullish(id) ||
+			candidates.length === 0 ||
+			hydratedLeaderboardKey !== leaderboardOwnersKey
+		) {
+			return;
+		}
+
+		const key = `${id}|${candidates.join(',')}`;
+
+		if (topPredictorsKey === key) {
+			return;
+		}
+
+		topPredictorsKey = key;
+		void fetchTopPredictors({ id, key, candidates });
 	});
 
 	// Fails open: an error leaves the list empty rather than blocking the
-	// page, and a late response from a previously-viewed market is dropped.
-	const fetchTopPredictors = async ({ id, candidates }: { id: MarketId; candidates: string[] }) => {
+	// page, and a late response for a market or candidate set the page has
+	// since moved past is dropped.
+	const fetchTopPredictors = async ({
+		id,
+		key,
+		candidates
+	}: {
+		id: MarketId;
+		key: string;
+		candidates: string[];
+	}) => {
 		try {
 			const signals = await getMarketTopPredictors({ marketId: id, candidates });
 
-			if (market?.id !== id) {
+			if (topPredictorsKey !== key) {
 				return;
 			}
 
 			topPredictors = signals;
 		} catch {
-			if (market?.id === id) {
+			if (topPredictorsKey === key) {
 				topPredictors = [];
 			}
 		}
@@ -466,7 +520,7 @@
 			// The viewer may themselves rank on the leaderboard, in which
 			// case their fresh call belongs in the top-predictors list;
 			// re-arm the fetch effect rather than waiting for a navigation.
-			topPredictorsMarketId = undefined;
+			topPredictorsKey = undefined;
 
 			// The viewer's trade adds to volume: re-arm the drain to refresh it
 			// in place (the existing value stays put, so the tile doesn't pulse).
