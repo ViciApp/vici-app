@@ -101,10 +101,11 @@ backs it. Amounts are **not** repeated here; follow the link.
 | **Worlds podium**          | Tiered award for a top-three monthly finish.                                                                                                                                                                        | `VXP_WORLDS_PODIUM` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                             |
 
 The authoritative list of award **types** is the `VxpAwardType` union
-([`vxp-award.ts`](../../src/lib/types/vxp-award.ts)) mirrored by the
-`VxpAwardTypeSchema` Zod enum
-([`vxp-award.schema.ts`](../../src/lib/schema/vxp-award.schema.ts)),
-both must carry every type (see
+([`vxp-award.ts`](../../src/lib/types/vxp-award.ts)). The API books the
+same set plus `onboarding` from `VXP_AWARD_TYPES`
+([`backend/src/vxp/awards.ts`](../../backend/src/vxp/awards.ts)); its
+tests pin that array to the union and to the `vxp_awards` check
+constraint (see
 [`satellite/economy.md`](./satellite/economy.md#invariants)).
 
 ## Caps and gates: the anti-farming spine

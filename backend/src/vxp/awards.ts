@@ -23,18 +23,27 @@ import { MINUTE_IN_MS, msToNs, nowNs, optionalMs } from '../lib/time';
 import { vxpFromBaseUnits } from './constants';
 import { findTreasuryTransferToUser, transferVxpToUser } from './payout';
 
-export type VxpAwardType =
-	| 'onboarding'
-	| 'streak'
-	| 'calibration'
-	| 'referral'
-	| 'worlds_podium'
-	| 'tournament_prize'
-	| 'achievement'
-	| 'comeback'
-	| 'flow_milestone'
-	| 'flow_overtime'
-	| 'league_founder';
+/** Every award type the awards table books: the app's `VxpAwardType` plus
+ * the onboarding starter. The shared-drift suite pins it to the app union and
+ * the awards suite to the `vxp_awards.award_type` check constraint. */
+export const VXP_AWARD_TYPES = [
+	'onboarding',
+	'streak',
+	'calibration',
+	'referral',
+	'worlds_podium',
+	'tournament_prize',
+	'achievement',
+	'comeback',
+	'flow_milestone',
+	'flow_overtime',
+	'league_founder'
+] as const;
+
+export type VxpAwardType = (typeof VXP_AWARD_TYPES)[number];
+
+export const isVxpAwardType = (value: string): value is VxpAwardType =>
+	(VXP_AWARD_TYPES as readonly string[]).includes(value);
 
 export type VxpAwardStatus = 'pending' | 'processing' | 'paid' | 'failed';
 

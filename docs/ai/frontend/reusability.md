@@ -421,7 +421,6 @@ Static brand assets that aren't components live in `static/branding/`:
 | `market-translation.schema` | Market translations and their endpoint args; locale ids stay `j.string()` because candid enums reject hyphens (`zh-Hans`).                       |
 | `referral.schema`           | Referral endpoint args (redeem, lookup, claim friendship, settle).                                                                               |
 | `resolved-result.schema`    | `ResolvedResultSchema`: one friend-readable `resolved_results` row, shared by the satellite endpoint and the FE.                                 |
-| `vxp-award.schema`          | Zod mirror of the persisted award types (`VxpAwardTypeSchema`). A new award type goes in both this enum and the `VxpAwardType` union.            |
 
 When in doubt, look at the satellite's `src/satellite/index.ts` to see
 which schemas are reused there: those are the ones whose shape is _shared
