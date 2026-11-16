@@ -18,7 +18,8 @@ import { get } from 'svelte/store';
  * profile doc: the viewer's global rank + ranked-population size (Goat, via
  * the satellite's full-ranking self-rank query) and the viewer's referral
  * count (Parrot). The global `'all'` standings window is refreshed alongside
- * them: the profile dashboard's credibility line still reads it.
+ * them, which warms the cache the leaderboard and the Arena ranking card read;
+ * no Menagerie or profile figure depends on it.
  *
  * Both the profile rail (`ProfileDashboard`) and the album route (`AlbumPage`)
  * call this on mount: it is the single hydration entry point so the two
