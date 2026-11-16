@@ -521,7 +521,8 @@
 				const candidate = Number(fromProfile);
 
 				tradeAmount = isVxpCallSize(candidate) ? String(candidate) : String(VXP_MIN_CALL_SIZE);
-			} else if (fromProfile) {
+			} else if (nonNullish(fromProfile) && Number(fromProfile) > 0) {
+				// The stored default `'0'` means no call size was ever saved.
 				tradeAmount = fromProfile;
 			}
 		} catch (e: unknown) {

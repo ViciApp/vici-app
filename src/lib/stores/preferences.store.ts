@@ -1,5 +1,5 @@
 import { MACRO_IDS } from '#lib/constants/market-taxonomy.constants.ts';
-import { PREFERENCES_STORAGE_KEY } from '#lib/constants/settings.constants.ts';
+import { defaultPreferences, PREFERENCES_STORAGE_KEY } from '#lib/constants/settings.constants.ts';
 import { authPrincipal } from '#lib/derived/user.derived.ts';
 import { track } from '#lib/services/analytics.services.ts';
 import { persistPreferences } from '#lib/services/profile.services.ts';
@@ -31,30 +31,7 @@ import { get, writable } from 'svelte/store';
  * from the profile.
  */
 
-export const DEFAULT_PREFERENCES: UserPreferences = {
-	defaultAmount: { flow: '0', manual: '0' },
-	notify: {
-		streakReminder: true,
-		marketAlerts: true,
-		friendActivity: false,
-		weeklyDigest: true
-	},
-	flowSessionLength: 10,
-	hapticsEnabled: true,
-	soundEnabled: true,
-	sharing: {
-		profileVisibility: 'private',
-		callsPublic: true,
-		leaderboardOptIn: true,
-		worldsOptIn: true
-	},
-	flowTags: [...MACRO_IDS],
-	worldCupMode: false,
-	savedMarketIds: [],
-	favoriteParticipantId: '',
-	favoriteSide: '',
-	onboardingCompleted: false
-};
+const DEFAULT_PREFERENCES = defaultPreferences();
 
 /**
  * Loose shape the hydrator accepts. The wire schema infers
@@ -194,10 +171,13 @@ const clearLegacyLocalStorage = () => {
 	}
 };
 
+// The local mirror before a profile loads, and after sign-out.
+const INITIAL_PREFERENCES = hydrateShape({ partial: defaultPreferences() });
+
 // Local writable store: components subscribe to this. The actual
 // source of truth is `userStore.profile.preferences`; this store
 // mirrors it for synchronous reads + write-through semantics.
-const internal = writable<UserPreferences>({ ...DEFAULT_PREFERENCES });
+const internal = writable<UserPreferences>({ ...INITIAL_PREFERENCES });
 
 let legacyMigrationAttempted = false;
 
@@ -331,7 +311,7 @@ if (browser) {
 		if (isNullish(profile)) {
 			// User signed out: reset to defaults so the next sign-in
 			// doesn't leak the previous user's settings.
-			internal.set({ ...DEFAULT_PREFERENCES });
+			internal.set({ ...INITIAL_PREFERENCES });
 			legacyMigrationAttempted = false;
 
 			return;
