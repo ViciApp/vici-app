@@ -1,7 +1,8 @@
 // Withdrawal confirmations: a submitted withdrawal reaches confirmed, or failed
 // with its hold refunded once, from what its chain reports; a pending one waits;
-// a chain that stops answering is not read again in the same tick. The per-chain
-// status readers are checked over a stubbed RPC.
+// a chain that stops answering is not read again in the same tick; a backlog on
+// a disabled chain never takes an enabled chain's place in the batch. The
+// per-chain status readers are checked over a stubbed RPC.
 
 import { isNullish } from '@dfinity/utils';
 import { afterEach, beforeAll, describe, expect, spyOn, test } from 'bun:test';
@@ -326,5 +327,44 @@ describe.if(dbAvailable)('withdrawal confirmation tick', () => {
 
 		expect(reads).toEqual([]);
 		expect(await stateOf(id)).toBe('submitted');
+	});
+
+	test('a backlog on a disabled chain does not keep an enabled chain out of the batch', async () => {
+		const btc = await getAssetBySymbol({ chain: 'btc', symbol: 'BTC' });
+
+		if (isNullish(btc)) {
+			throw new Error('BTC asset missing from seed');
+		}
+
+		const owner = await createTestUser();
+		// More than one batch, all checked longer ago than any ic row.
+		const backlog = await query<{ id: string }>(
+			`insert into withdrawals (user_id, asset_id, amount, destination, state, tx_ref, updated_at)
+			 select $1, $2, 1, 'bc1-test', 'submitted', 'btc-' || g, '1990-01-01'
+			 from generate_series(1, 60) g
+			 returning id`,
+			[owner, btc.id]
+		);
+		const txRef = `behind-${crypto.randomUUID()}`;
+		const { id } = await submitted({ amount: BigInt(10), txRef });
+
+		await query(`update withdrawals set updated_at = '1995-01-01' where id = $1`, [id]);
+
+		const reads: string[] = [];
+		const ic = scripted((ref) => (ref === txRef ? Promise.resolve('confirmed') : undefined), reads);
+
+		try {
+			await tickWithdrawalConfirmations({
+				adapterFor: (chain) => (chain === 'ic' ? ic : { ...ic, enabled: false })
+			});
+		} finally {
+			await query(`delete from withdrawals where id = any($1::uuid[])`, [
+				backlog.map((row) => row.id)
+			]);
+		}
+
+		expect(reads).toContain(txRef);
+		expect(reads.filter((ref) => ref.startsWith('btc-'))).toEqual([]);
+		expect(await stateOf(id)).toBe('confirmed');
 	});
 });
