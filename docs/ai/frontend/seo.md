@@ -95,9 +95,9 @@ existing surfaces (a specific market → its detail page; category browsing
   working in-app search endpoint, which is dead code today.)
 - **Live probability in the snippet.** Per-market descriptions gain a
   `Community odds: Yes N%` sentence, read at deploy time from the clearing
-  canister's order book (`list_orders`) and folded through a
-  `midYesProbability` helper that mirrors `calculateProbability` in
-  `#lib/utils/market.utils.ts`. Reads run with bounded concurrency
+  canister's order book (`list_orders`) and folded through the app's own
+  `calculateMarketStats` (`#lib/utils/market.utils.ts`), so the snippet's
+  odds are the market page's YES mid. Reads run with bounded concurrency
   (`PROBABILITY_CONCURRENCY`). All figures are a **snapshot as of deploy**: there
   is no SSR, so they age until the next deploy.
 - **Resolved markets are answer pages, not stale trading pages.** The vast

@@ -5,8 +5,8 @@ import type { AccessKeys } from '@junobuild/functions/sdk';
 /**
  * Host stand-ins for satellite asserts under Node, which has no satellite
  * host: the IC clock behind `time()`, the access-key list behind
- * `getAdminAccessKeys()`, the decoder behind `decodeDocData`, and an
- * in-memory datastore behind `getDocStore`.
+ * `getAdminAccessKeys()`, the codec behind `decodeDocData` / `encodeDocData`,
+ * and an in-memory datastore behind `getDocStore` / `setDocStore`.
  */
 
 export const controller = Principal.fromUint8Array(new Uint8Array([1, 1, 1]));
@@ -99,13 +99,15 @@ export const hostNowMs = 1_800_000_000_000;
 
 /** The installed host. */
 export interface SatelliteHost {
+	/** A stored doc's decoded data, or nothing. */
+	readDoc: <T>({ collection, key }: { collection: string; key: string }) => T | undefined;
 	/** Remove every global the host defined. */
 	restore: () => void;
 }
 
 /**
  * Defines the host globals the SDK calls. `docs` seeds the datastore
- * `getDocStore` reads.
+ * `getDocStore` reads, and `setDocStore` writes into it.
  */
 export const installSatelliteHost = ({
 	docs = {},
@@ -132,6 +134,20 @@ export const installSatelliteHost = ({
 			return (
 				data && storedDoc({ data, owner: controller, createdAtNs: createdAtNs[collection]?.[key] })
 			);
+		},
+		__juno_satellite_datastore_raw_data_from_text: (text: string): Uint8Array =>
+			new TextEncoder().encode(text),
+		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
+		__juno_satellite_datastore_set_doc_store: (
+			_caller: unknown,
+			collection: string,
+			key: string,
+			{ data }: { data: Uint8Array }
+		): void => {
+			docs[collection] = {
+				...docs[collection],
+				[key]: JSON.parse(new TextDecoder().decode(data)) as object
+			};
 		}
 	};
 
@@ -140,6 +156,8 @@ export const installSatelliteHost = ({
 	}
 
 	return {
+		readDoc: <T>({ collection, key }: { collection: string; key: string }) =>
+			docs[collection]?.[key] as T | undefined,
 		restore: () => {
 			for (const name of Object.keys(globals)) {
 				Reflect.deleteProperty(globalThis, name);

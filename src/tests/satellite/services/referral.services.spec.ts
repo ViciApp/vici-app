@@ -17,7 +17,8 @@ import {
 import {
 	assertDeleteReferral,
 	assertDeleteReferralCode,
-	assertSetReferral
+	assertSetReferral,
+	isReferralPayoutRecord
 } from '#satellite/services/referral.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import assert from 'node:assert/strict';
@@ -142,6 +143,43 @@ describe('referral.services', () => {
 			);
 		});
 
+		it('rejects a satellite write that moves an armed referrer side back to none', () => {
+			const armed: ReferralDoc = { ...redeemed, withinReferrerCap: true, referrerPayout: owed };
+
+			assert.throws(
+				() =>
+					assertSetReferral(
+						update({
+							caller: controller,
+							current: armed,
+							proposed: {
+								...armed,
+								withinReferrerCap: false,
+								referrerPayout: { status: 'none', amountBaseUnits: '0' }
+							}
+						})
+					),
+				/only moves forward/
+			);
+		});
+
+		it('lets a failed transfer hand processing back to owed', () => {
+			const processing: ReferralDoc = {
+				...settled,
+				referrerPayout: { ...owed, status: 'processing' }
+			};
+
+			assert.doesNotThrow(() =>
+				assertSetReferral(
+					update({
+						caller: controller,
+						current: processing,
+						proposed: { ...processing, referrerPayout: owed }
+					})
+				)
+			);
+		});
+
 		it('lets the satellite record a redemption inside the signup window', () => {
 			assert.doesNotThrow(() => assertSetReferral(create({ caller: controller })));
 		});
@@ -207,6 +245,18 @@ describe('referral.services', () => {
 
 		it('lets a satellite controller delete it', () => {
 			assert.doesNotThrow(() => assertDeleteReferral(remove(controller)));
+		});
+	});
+
+	describe('isReferralPayoutRecord', () => {
+		it('keeps a row whose bonus or referrer side has started paying', () => {
+			assert.equal(isReferralPayoutRecord(settled), true);
+			assert.equal(isReferralPayoutRecord({ ...redeemed, refereePayout: paid }), true);
+			assert.equal(isReferralPayoutRecord({ ...redeemed, referrerPayout: owed }), true);
+		});
+
+		it('lets the purge drop a row that has not started paying', () => {
+			assert.equal(isReferralPayoutRecord(redeemed), false);
 		});
 	});
 });

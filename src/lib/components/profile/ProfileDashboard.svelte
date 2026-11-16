@@ -188,8 +188,7 @@
 	// Canonical invite URL: `https://{origin}/join/{code}`. The slug is the viewer's
 	// stable referral code (never their mutable handle), so a shared link never rots on a
 	// rename. `/join/[code]` and `/i/[code]` render the same landing, so this resolves the
-	// same as the Arena Friends hero's `/i/{code}` link. The handle-based `/join/{handle}`
-	// link this used to build had no matching route and 404'd.
+	// same as the Arena Friends hero's `/i/{code}` link.
 	const inviteUrl = $derived(
 		nonNullish(inviteCode) && typeof window !== 'undefined'
 			? `${window.location.origin}/join/${inviteCode}`

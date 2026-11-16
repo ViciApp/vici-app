@@ -358,6 +358,12 @@ export interface VerifySchoolCodeResult {
 	message?: string;
 }
 
+/** The answer to a submission id that names no submission. */
+export const SUBMISSION_NOT_FOUND: Readonly<VerifySchoolCodeResult> = {
+	ok: false,
+	message: 'not-found'
+};
+
 /**
  * Verify a mailed code against its submission: only the submission's owner
  * may verify it; TTL and the attempt cap are enforced before the digest
@@ -394,7 +400,7 @@ export const verifySchoolCode = async ({
 	const [submission] = rows;
 
 	if (isNullish(submission)) {
-		return { ok: false, message: 'not-found' };
+		return SUBMISSION_NOT_FOUND;
 	}
 
 	if (submission.user_id !== userId) {

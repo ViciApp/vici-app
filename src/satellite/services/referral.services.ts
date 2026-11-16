@@ -17,7 +17,7 @@ import { ActivityType } from '#lib/enums/social.ts';
 import type { ReferralCodeDoc, ReferralDoc, ReferralListItem } from '#lib/types/referral.ts';
 import type { Relation } from '#lib/types/relation.ts';
 import type { Activity } from '#lib/types/social.ts';
-import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
+import type { VxpMilestonePayoutStatus, VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
 import { fnv1a64 } from '#lib/utils/hash.utils.ts';
 import {
 	assertControllerCaller,
@@ -556,6 +556,47 @@ const assertPaidSideKept = ({
 };
 
 /**
+ * Order of a payout side's states. `owed` and `processing` share a stage because a failed transfer
+ * hands a side back from `processing` to `owed` for the retry. An unknown status ranks below
+ * everything, so a tampered value never counts as progress.
+ */
+const payoutStage = (status: VxpMilestonePayoutStatus): number => {
+	switch (status) {
+		case 'none':
+			return 0;
+		case 'owed':
+		case 'processing':
+			return 1;
+		case 'paid':
+			return 2;
+		default:
+			return -1;
+	}
+};
+
+/**
+ * The referrer tier and lifetime cap count every row whose referrer side left `none`
+ * ({@link countReferrerCredits}), and a paid side is what stops a second transfer. A write that
+ * moved either side back could re-arm a paid bonus or drop a credited row out of the referrer's
+ * count.
+ */
+const payoutMovesBack = ({
+	current,
+	proposed
+}: {
+	current: VxpMilestoneState;
+	proposed: VxpMilestoneState;
+}): boolean => payoutStage(proposed.status) < payoutStage(current.status);
+
+/**
+ * Whether a referral row has started paying: the referee bonus has left its redeem-time `owed`, or
+ * the referrer side has left `none`. Such a row is a permanent record: deleting it would free a
+ * slot in the referrer's lifetime count and let the referee redeem a second bonus.
+ */
+export const isReferralPayoutRecord = ({ refereePayout, referrerPayout }: ReferralDoc): boolean =>
+	refereePayout.status !== 'owed' || referrerPayout.status !== 'none';
+
+/**
  * Pre-write guard for `referrals`. The record holds both payout sides, which
  * {@link settleReferralPayout} pays while they are `owed`, so it is server-owned:
  * only a satellite controller writes it. {@link redeemReferralCodeFn} creates it
@@ -566,7 +607,8 @@ const assertPaidSideKept = ({
  * real and owned by the referrer; the referee redeems inside the signup window
  * ({@link assertWithinRedemptionWindow}); and both payout sides start unarmed
  * (the referee bonus `owed` at the flat amount, the referrer side `none`).
- * Updates keep the core fields and never reopen a paid side.
+ * Updates keep the core fields, only move a payout side forward and never
+ * reopen a paid side.
  */
 export const assertSetReferral = ({
 	caller,
@@ -602,6 +644,13 @@ export const assertSetReferral = ({
 
 	assertPaidSideKept({ current: currentDoc.refereePayout, proposed: proposedDoc.refereePayout });
 	assertPaidSideKept({ current: currentDoc.referrerPayout, proposed: proposedDoc.referrerPayout });
+
+	if (
+		payoutMovesBack({ current: currentDoc.refereePayout, proposed: proposedDoc.refereePayout }) ||
+		payoutMovesBack({ current: currentDoc.referrerPayout, proposed: proposedDoc.referrerPayout })
+	) {
+		throw new Error('Referral payout state only moves forward.');
+	}
 };
 
 /** The create path of {@link assertSetReferral}: the redemption rules. */
@@ -687,7 +736,9 @@ export const assertDeleteReferralCode = ({
 /**
  * A referral record is the proof its bonuses were paid: deleted, its referee
  * could redeem again and be paid again. Only the satellite deletes one (the
- * account purge).
+ * account purge), and the purge keeps a row that has started paying
+ * ({@link isReferralPayoutRecord}), which holds its slot in the referrer's
+ * lifetime count.
  */
 export const assertDeleteReferral = ({
 	caller,

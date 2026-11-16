@@ -62,6 +62,7 @@ export interface AppClaimCalibrationRewardResult {
 				| { rate_limited_daily: null }
 				| { anonymous: null }
 				| { balance_above_floor: null }
+				| { already_called: null }
 				| { not_finalised: null }
 				| { outcome_undetermined: null }
 				| { not_vici_market: null }

@@ -182,6 +182,8 @@ export const hardDeleteAccount = async (userId: string): Promise<void> => {
 		// Referee-side rows go with the account; referrer-side rows stay so a
 		// referred user keeps their own pending bonus. The settlement path
 		// skips the referrer reward once users.hard_deleted_at is stamped.
+		// The referrer's award for this referee stays too, and keeps its slot
+		// in the referrer's tier count.
 		await q(`delete from referrals where referee_user_id = $1`, [userId]);
 		await q(`delete from affiliations where member_user_id = $1`, [userId]);
 		await q(`delete from relations where participant_one = $1 or participant_two = $1`, [userId]);

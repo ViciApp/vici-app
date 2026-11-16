@@ -209,7 +209,10 @@ import {
 	assertDeleteVxpAward,
 	assertSetVxpAward
 } from '#satellite/services/vxp-awards.services.ts';
-import { claimCalibrationRewardFn } from '#satellite/services/vxp-calibration.services.ts';
+import {
+	CALIBRATION_REASONS,
+	claimCalibrationRewardFn
+} from '#satellite/services/vxp-calibration.services.ts';
 import { onProfileSetForComebackRestore } from '#satellite/services/vxp-comeback-awards.services.ts';
 import { onProfileSetForFlowMilestone } from '#satellite/services/vxp-flow-awards.services.ts';
 import {
@@ -997,20 +1000,7 @@ export const claimCalibrationReward = defineUpdate({
 		rewardBaseUnits: j.optional(j.string()),
 		newBalanceBaseUnits: j.optional(j.string()),
 		blockIndex: j.optional(j.string()),
-		reason: j.optional(
-			j.enum([
-				'anonymous',
-				'not_engaged_yet',
-				'balance_above_floor',
-				'not_vici_market',
-				'not_binary',
-				'not_finalised',
-				'outcome_undetermined',
-				'rate_limited_hourly',
-				'rate_limited_daily',
-				'transfer_failed'
-			])
-		),
+		reason: j.optional(j.enum(CALIBRATION_REASONS)),
 		errorMessage: j.optional(j.string())
 	}),
 	handler: claimCalibrationRewardFn

@@ -19,3 +19,20 @@ export interface CalibrationCard {
  * gesture: every card is a definite YES / NO call).
  */
 export type CalibrationSide = CallSide;
+
+/**
+ * The first judged calibration call of one user on one market, stored in
+ * the `calibration_attempts` collection under {@link calibrationAttemptKey}.
+ */
+export interface CalibrationAttemptDoc {
+	chosenSide: CalibrationSide;
+	calledAtMs: number;
+}
+
+export const calibrationAttemptKey = ({
+	recipient,
+	seriesId
+}: {
+	recipient: string;
+	seriesId: string;
+}): string => `${recipient}/${seriesId}`;

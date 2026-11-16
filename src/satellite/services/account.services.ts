@@ -19,6 +19,7 @@ import {
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
+import { isReferralPayoutRecord } from '#satellite/services/referral.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -549,9 +550,12 @@ const deleteOwnReferralCode = ({ callerText, callerBytes, writer }: CascadeStep)
 /**
  * Drop the caller's referral-redemption row (`referrals` is keyed
  * by the *referee* principal, so the caller's row lives at their
- * own principal text). Other users' rows whose `referrer` equals
- * the caller are left in place (they document the referee's
- * payout history, which is auditable independent of the referrer).
+ * own principal text) unless it has started paying: that row keeps
+ * its slot in the referrer's lifetime count, so deleting referred
+ * accounts can never reset the referrer's tier. Other users' rows
+ * whose `referrer` equals the caller are left in place (they
+ * document the referee's payout history, which is auditable
+ * independent of the referrer).
  */
 const deleteOwnReferralRedemption = ({ callerText, callerBytes, writer }: CascadeStep): number => {
 	const { items } = listDocsStore({
@@ -565,18 +569,17 @@ const deleteOwnReferralRedemption = ({ callerText, callerBytes, writer }: Cascad
 	for (const [docKey, item] of items) {
 		if (docKey === callerText) {
 			try {
-				// Belt-and-braces: only delete if the embedded doc agrees
-				// the row is keyed to the caller.
-				decodeDocData<ReferralDoc>(item.data);
-				deleteDocStore({
-					collection: Collection.REFERRALS,
-					key: docKey,
-					caller: writer,
-					doc: {
-						version: item.version
-					}
-				});
-				deleted += 1;
+				if (!isReferralPayoutRecord(decodeDocData<ReferralDoc>(item.data))) {
+					deleteDocStore({
+						collection: Collection.REFERRALS,
+						key: docKey,
+						caller: writer,
+						doc: {
+							version: item.version
+						}
+					});
+					deleted += 1;
+				}
 			} catch {
 				// skip malformed
 			}
@@ -782,8 +785,8 @@ const resolveOwnedLeague = ({
 /**
  * Cascade hard-delete for a single account. Removes every row
  * identity-keyed to the principal: profile, VXP awards / onboarding,
- * referral code + redemption record, affiliations, relations, league
- * memberships. Owned leagues are then either deleted (no other members
+ * calibration attempts, referral code + redemption record, affiliations,
+ * relations, league memberships. Owned leagues are then either deleted (no other members
  * left) or transferred to a surviving member: see
  * {@link disbandOrTransferOwnedLeagues}; self-joiners during the recovery
  * window are never orphaned. Shared audit rows (activities, battles,
@@ -818,6 +821,12 @@ export const hardDeleteAccountFn = ({
 	docsDeleted += deleteOwnPrivateProfile(step);
 	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.VXP_AWARDS });
 	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.VXP_ONBOARDING });
+	// Controllers-scoped: listed as the controller too.
+	docsDeleted += deletePrefixedDocs({
+		...step,
+		callerBytes: step.writer,
+		collection: Collection.CALIBRATION_ATTEMPTS
+	});
 	docsDeleted += deleteOwnReferralCode(step);
 	docsDeleted += deleteOwnReferralRedemption(step);
 	docsDeleted += deleteOwnAffiliations({ ...step, collection: Collection.AFFILIATIONS });

@@ -145,7 +145,7 @@ type AppCancelFriendRequestArgs = record { relation_id : text };
 
 type AppClaimCalibrationRewardArgs = record { series_id : text; chosen_side : variant { YES; NO } };
 
-type AppClaimCalibrationRewardResult = record { correct : bool; paid_now : bool; already_claimed : bool; reward_base_units : opt text; new_balance_base_units : opt text; block_index : opt text; reason : opt variant { anonymous; not_engaged_yet; balance_above_floor; not_vici_market; not_binary; not_finalised; outcome_undetermined; rate_limited_hourly; rate_limited_daily; transfer_failed }; error_message : opt text };
+type AppClaimCalibrationRewardResult = record { correct : bool; paid_now : bool; already_claimed : bool; reward_base_units : opt text; new_balance_base_units : opt text; block_index : opt text; reason : opt variant { anonymous; not_engaged_yet; balance_above_floor; not_vici_market; not_binary; not_finalised; outcome_undetermined; already_called; rate_limited_hourly; rate_limited_daily; transfer_failed }; error_message : opt text };
 
 type AppClaimReferralFriendshipArgs = record { code : text };
 

@@ -71,6 +71,13 @@ export const Collection = {
 	 */
 	VXP_AWARDS: collections.VXP_AWARDS,
 	/**
+	 * The first side a user called on a finalised market for a calibration reward, keyed
+	 * `${recipient}/${seriesId}`. The claim judges that side only: a miss is recorded here, and a
+	 * later call on the other side is refused. Controllers-scoped: only the satellite
+	 * `claimCalibrationReward` endpoint reads and writes it.
+	 */
+	CALIBRATION_ATTEMPTS: collections.CALIBRATION_ATTEMPTS,
+	/**
 	 * Reverse index from referral code (key) to owning principal. One row per user; written by the
 	 * satellite profile hook on first profile create.
 	 */

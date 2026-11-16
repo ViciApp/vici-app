@@ -796,10 +796,9 @@ export const ensureProfile = async (
 	// The synthetic shell from `getProfile` never carries a version. To
 	// detect "has the satellite ever stored a profile for this
 	// principal?" we have to read the doc directly via Juno's SDK:
-	// `version` is only populated on real stored docs. This is what
-	// previously caused every returning user to fall through to the
-	// upsert path and have any pending onboarding silently overwrite
-	// their saved nickname.
+	// `version` is only populated on real stored docs. Reading the shell
+	// instead would send every returning user down the upsert path, where
+	// a pending onboarding silently overwrites their saved nickname.
 	const existing = await getDoc<UserProfile>({
 		collection: Collection.PROFILES,
 		key: principal

@@ -45,6 +45,11 @@ const refereeHasTraded = async (refereeUserId: string): Promise<boolean> =>
  * moving any row's reward. Filtering on settlement state instead would let
  * an earlier-but-unsettled redemption go uncounted, so tiers would depend on
  * WHEN settlements happen to run.
+ *
+ * A referee's hard delete removes their redemption row, so the referrer's
+ * own referral awards are counted too wherever their redemption is gone:
+ * those award rows outlive the referee, so deleting converted referees can
+ * never give the referrer back a top tier or a slot under the lifetime cap.
  */
 const countPriorReferrerRedemptions = async ({
 	referrerUserId,
@@ -56,10 +61,19 @@ const countPriorReferrerRedemptions = async ({
 	redeemedAtMs: number;
 }): Promise<number> => {
 	const rows = await query<{ count: string }>(
-		`select count(*)::text as count from referrals
-		 where referrer_user_id = $1
-		   and referee_user_id <> $2
-		   and (redeemed_at_ms < $3 or (redeemed_at_ms = $3 and referee_user_id::text < $2::text))`,
+		`select count(*)::text as count from (
+		   select referee_user_id::text as referee from referrals
+		   where referrer_user_id = $1
+		     and referee_user_id <> $2
+		     and (redeemed_at_ms < $3 or (redeemed_at_ms = $3 and referee_user_id::text < $2::text))
+		   union
+		   select award_key as referee from vxp_awards a
+		   where a.user_id = $1
+		     and a.award_type = 'referral'
+		     and a.award_key <> $1::text
+		     and a.award_key <> $2::text
+		     and not exists (select 1 from referrals r where r.referee_user_id::text = a.award_key)
+		 ) prior`,
 		[referrerUserId, refereeUserId, redeemedAtMs]
 	);
 

@@ -47,7 +47,7 @@ interface SelfOverlay {
  * leaderboard splices in. Paired with the single-row splice below (only the
  * viewer's own entry is copied, every other row keeps its reference) this keeps
  * an unrelated `userStore` tick (`authBusy` toggle, balance change, …) from
- * re-allocating the whole array the way the previous `.map()` did.
+ * re-allocating the whole array.
  */
 const selfOverlay: Readable<SelfOverlay | undefined> = derived(userStore, ({ user, profile }) =>
 	user && profile
