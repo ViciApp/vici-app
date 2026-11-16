@@ -49,6 +49,9 @@ jobs:
               - dfx.json
               - juno.config.ts
               - scripts/**/*
+              # The Juno CLI this job installs: a bump changes only this
+              # file, and the new CLI must run the suite before it merges.
+              - .github/juno-cli-version
 
   e2e:
     runs-on: ubuntu-24.04
