@@ -50,7 +50,9 @@ build_admins_vec() {
   for p in "${principals[@]}"; do
     [ -z "$p" ] && continue
     seen=0
-    for u in "${unique[@]}"; do
+    # The `+` guard: bash 3.2 (macOS /bin/bash) treats an empty array as
+    # unbound under `set -u`, and `unique` starts empty.
+    for u in ${unique[@]+"${unique[@]}"}; do
       [ "$u" = "$p" ] && seen=1 && break
     done
     [ "$seen" -eq 0 ] && unique+=("$p")
