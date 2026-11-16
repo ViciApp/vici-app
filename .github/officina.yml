@@ -45,10 +45,17 @@ release:
   on_merge: nothing
 
 setup: ['npm ci', 'npm run prepare', 'bun install --cwd backend --frozen-lockfile']
-# The CI gates an agent sandbox can run. Left to CI: the backend `bun test` (ten DB suites do not
-# skip without Postgres yet) and `satellite-schema` (needs a global Juno CLI, and any drift it finds
-# lands in src/satellite/**, a red path the builder may not touch).
-verify: ['npm run quality', 'npm run check', 'npm test', 'bun run --cwd backend typecheck']
+# The CI gates an agent sandbox can run. The sandbox has no Postgres, so its backend `bun test`
+# skips the DB-backed suites; CI runs them. Left to CI: `satellite-schema` (needs a global Juno CLI,
+# and any drift it finds lands in src/satellite/**, a red path the builder may not touch).
+verify:
+  [
+    'npm run quality',
+    'npm run check',
+    'npm test',
+    'bun run --cwd backend typecheck',
+    'bun run --cwd backend test'
+  ]
 
 lanes:
   # Agents never build in the red lane: they may write the spec, a person implements it.
