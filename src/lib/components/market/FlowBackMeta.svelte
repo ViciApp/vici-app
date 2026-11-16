@@ -38,11 +38,9 @@
 		})
 	);
 
-	// Computed *live* countdown: recomputes on each minute tick.
-	// `getTimeRemaining` already produces "Xd Yh remaining" / "Xh Ym
-	// remaining" / "Xm remaining" / "Expired"; we strip the trailing
-	// noun and swap to the shorter "Nd left" / "Nh left" / "Nm left"
-	// form for the compact meta row.
+	// Computed *live* countdown: recomputes on each minute tick, in the
+	// short "Nd left" / "Nh left" / "Nm left" form the compact meta row
+	// has room for.
 	const liveCountdown = $derived.by(() => {
 		nowTick; // touch so the derived re-runs on tick
 		const ms = Number(market.expiryDate) - Date.now();

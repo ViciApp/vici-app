@@ -7,7 +7,6 @@ import {
 	listMyReferrals as listMyReferralsWeb2,
 	lookupReferralCode as lookupReferralCodeWeb2,
 	redeemReferralCode as redeemReferralCodeWeb2,
-	settleReferralPayout as settleReferralPayoutWeb2,
 	Web2ApiError
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
@@ -98,24 +97,6 @@ export const redeemReferralCode = async ({ code }: { code: string }): Promise<vo
 	}
 
 	await functions.redeemReferralCode({ code });
-};
-
-/**
- * Drives (or retries) the VXP payout for a referral row, keyed by the referee principal. The redeem
- * call already pays out inline; this is the self-heal / retry path for a payout that failed or that
- * predates the inline-payout fix. Idempotent server-side: safe to call for one's own principal on
- * every load.
- */
-export const settleReferral = async ({ referee }: { referee: PrincipalText }): Promise<void> => {
-	// `referee` is the account id in this mode; the route lets a non-admin
-	// caller target only their own row, which is the sole FE use case.
-	if (isWeb2Backend()) {
-		await settleReferralPayoutWeb2(referee);
-
-		return;
-	}
-
-	await functions.settleReferral({ referee });
 };
 
 /**

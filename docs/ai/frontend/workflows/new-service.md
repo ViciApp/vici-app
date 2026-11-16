@@ -73,9 +73,10 @@ Component (.svelte)
 
 5. **Stores / derived (only if needed).**
    - Add a Svelte store under `#lib/stores/` when the value must be
-     observable across views. Use the `certified.store` pattern when the
-     data is certified IC state and you want the standard query → update
-     upgrade.
+     observable across views. When the data is certified IC state, load
+     it through `loadWithCertification`
+     (`#lib/services/query-update.services.ts`) for the standard query →
+     update upgrade.
    - Add a `derived(...)` store in `#lib/derived/` for cross-store
      computations.
    - Don't cache server data twice; let the store own that.

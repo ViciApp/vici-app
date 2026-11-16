@@ -23,7 +23,6 @@ export enum TestId {
 	MarketFeed = 'market-feed',
 	MarketCard = 'market-card',
 	MarketCardSkeleton = 'market-card-skeleton',
-	MarketTimeRemaining = 'market-time-remaining',
 	PrincipalDisplay = 'principal-display',
 	// Onboarding (`/signup`): the outer wrapper, the handle input, the skip
 	// escape, and the primary CTA (claim / finish).
