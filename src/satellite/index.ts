@@ -186,7 +186,10 @@ import {
 } from '#satellite/services/user-monthly-stats.services.ts';
 import { assertSetUserStats } from '#satellite/services/user-stats.services.ts';
 import { onProfileSetForAchievementAward } from '#satellite/services/vxp-achievement-awards.services.ts';
-import { assertSetVxpAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	assertDeleteVxpAward,
+	assertSetVxpAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { claimCalibrationRewardFn } from '#satellite/services/vxp-calibration.services.ts';
 import { onProfileSetForComebackRestore } from '#satellite/services/vxp-comeback-awards.services.ts';
 import { onProfileSetForFlowMilestone } from '#satellite/services/vxp-flow-awards.services.ts';
@@ -1414,7 +1417,8 @@ export const assertSetDoc = defineAssert<AssertSetDoc>({
 const assertDeleteDocCollections = [
 	Collection.LEAGUE_MEMBERS,
 	Collection.AFFILIATIONS,
-	Collection.BATTLES
+	Collection.BATTLES,
+	Collection.VXP_AWARDS
 ] as const;
 
 type AssertDeleteDocCollection = (typeof assertDeleteDocCollections)[number];
@@ -1425,7 +1429,8 @@ export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({
 		const fn: Record<AssertDeleteDocCollection, (ctx: AssertDeleteDocContext) => void> = {
 			[Collection.LEAGUE_MEMBERS]: assertDeleteLeagueMember,
 			[Collection.AFFILIATIONS]: assertDeleteAffiliation,
-			[Collection.BATTLES]: assertDeleteBattle
+			[Collection.BATTLES]: assertDeleteBattle,
+			[Collection.VXP_AWARDS]: assertDeleteVxpAward
 		};
 
 		fn[context.data.collection]?.(context);

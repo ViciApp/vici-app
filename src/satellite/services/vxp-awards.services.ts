@@ -1,9 +1,10 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
+import { isControllerText } from '#satellite/services/authz.services.ts';
 import { isTournamentPrizeAwardKey } from '#satellite/utils/tournament-prize.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
 
 /**
@@ -40,7 +41,8 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  *     earlier per-place keys still settle through the edit path.
  *
  * The streak / calibration / referral / Worlds-podium paths create
- * these docs; this assert is the safety net those paths rely on.
+ * these docs; this assert, with {@link assertDeleteVxpAward}, is the
+ * safety net those paths rely on.
  */
 export const assertSetVxpAward = ({
 	caller,
@@ -149,6 +151,29 @@ export const assertSetVxpAward = ({
 	) {
 		throw new Error('vxp_awards status="failed" cannot carry paidAtMs / blockIndex.');
 	}
+};
+
+/**
+ * Pre-delete guard for `vxp_awards`. The award doc IS the idempotency
+ * record, so removing it would let the same award be claimed and paid
+ * again. The collection is `write: 'public'` and the recipient owns the
+ * doc, so without this guard any client could delete it. Only the
+ * satellite's own controller writes may remove one (the account purge,
+ * see `hardDeleteAccountFn`).
+ */
+export const assertDeleteVxpAward = ({
+	caller,
+	data: { collection }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.VXP_AWARDS) {
+		return;
+	}
+
+	if (isControllerText(Principal.fromUint8Array(caller).toText())) {
+		return;
+	}
+
+	throw new Error('vxp_awards docs are permanent records and cannot be deleted.');
 };
 
 /**

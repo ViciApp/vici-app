@@ -46,6 +46,13 @@ one pattern. Each of these has bitten a PR before:
   through a settle/retry endpoint; there is no hook replay (see
   [hooks fire only for client writes](./patterns.md#hooks-fire-only-for-client-writes-never-for-serverless-setdocstore)),
   so endpoint-triggered payouts run **inline** in the endpoint.
+- **Award docs are never deleted by a client.** The collection is
+  `write: 'public'`, so any client could delete one and reopen its key
+  for a second payout. `assertDeleteVxpAward` rejects every delete
+  whose caller is not a satellite controller. Serverless
+  `deleteDocStore` runs the assert too, so a satellite path that must
+  remove award docs (the account purge in `hardDeleteAccountFn`) signs
+  as `controllerCaller(...)`.
 - **Eligibility times are server-stamped.** A gate on when something
   happened (a join, an activity day) reads a time the satellite wrote:
   the doc's Juno `created_at` or `timeMs()`, never a caller-written `*Ms`

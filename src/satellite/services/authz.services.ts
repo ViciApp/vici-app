@@ -4,7 +4,7 @@ import { Collection } from '#lib/constants/collections.constants.ts';
 import { UserRole } from '#lib/enums/user.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { isNullish } from '@dfinity/utils';
-import type { Principal } from '@icp-sdk/core/principal';
+import { Principal } from '@icp-sdk/core/principal';
 import { call } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, getAdminAccessKeys, getDocStore } from '@junobuild/functions/sdk';
 
@@ -84,3 +84,14 @@ export const controllerCaller = (purpose: string): Uint8Array => {
 
 	return first;
 };
+
+/**
+ * Whether `callerText` is one of the satellite's controllers. Asserts use it
+ * to trust a write only when the satellite made it as a controller (see
+ * {@link controllerCaller}): a client call never carries a controller
+ * principal.
+ */
+export const isControllerText = (callerText: string): boolean =>
+	getAdminAccessKeys().some(
+		([keyBytes]) => Principal.fromUint8Array(keyBytes).toText() === callerText
+	);
