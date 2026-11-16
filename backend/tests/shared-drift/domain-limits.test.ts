@@ -167,6 +167,7 @@ describe('shared drift: profiles', () => {
 		expect(USER_STATS_RECENT_LIMIT).toBe(
 			extractIntConst({ source: appSource.userStats, constName: 'USER_STATS_RECENT_LIMIT' })
 		);
+
 		expectPairs({
 			pairs: { MONTHLY_CONSENSUS_LIMIT, MONTHLY_MIN_CALLS, BOLD_CALLER_MEDIAN_THRESHOLD },
 			read: (constName) => extractDecimalConst({ source: appSource.monthlyStats, constName })
@@ -217,6 +218,7 @@ describe('shared drift: leagues and battles', () => {
 			pairs: { BATTLE_AMOUNT_MIN, BATTLE_AMOUNT_MAX, BATTLE_TRASH_TALK_MAX_LENGTH },
 			read: (constName) => extractIntConst({ source: appSource.battle, constName })
 		});
+
 		expect(BATTLE_RESPOND_BY_MS).toBe(
 			extractProductConst({ source: appSource.battle, constName: 'BATTLE_RESPOND_BY_MS', units })
 		);
@@ -233,6 +235,7 @@ describe('shared drift: leagues and battles', () => {
 		expect(TOURNAMENT_BRACKET_SIZE).toBe(app.TOURNAMENT_BRACKET_SIZE);
 		expect(TOURNAMENT_MIN_CALLS_PER_MATCH).toBe(app.TOURNAMENT_MIN_CALLS_PER_MATCH);
 		expect(TOURNAMENT_ROUND_DURATION_MS).toBe(app.TOURNAMENT_ROUND_DURATION_MS);
+
 		const rounds: string[] = [...TOURNAMENT_ROUNDS];
 
 		expect(rounds).toEqual([...app.TOURNAMENT_ROUNDS]);
@@ -271,10 +274,12 @@ describe('shared drift: worlds', () => {
 				units
 			})
 		);
+
 		expectPairs({
 			pairs: { SCHOOL_CODE_MAX_ATTEMPTS, SCHOOL_VERIFY_DAILY_CAP },
 			read: (constName) => extractIntConst({ source: appSource.schoolPicker, constName })
 		});
+
 		expect(SCHOOL_VERIFIED_PUBLIC_THRESHOLD).toBe(
 			extractIntConst({ source: appSource.school, constName: 'SCHOOL_VERIFIED_PUBLIC_THRESHOLD' })
 		);
