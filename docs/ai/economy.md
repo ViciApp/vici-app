@@ -91,7 +91,7 @@ backs it. Amounts are **not** repeated here; follow the link.
 | **Onboarding grant**       | A single registration grant; no engagement-gated drip (the call-gated milestones are retained at zero).                                                                                                             | `NEW_USER_VXP_TOTAL_BASE_UNITS` ([`vxp-onboarding.constants.ts`](../../src/lib/constants/vxp-onboarding.constants.ts))                                                                                           |
 | **Referral: referee**      | Flat, one-time, paid to a new user who redeems within the post-signup window and then makes a first prediction.                                                                                                     | `REFERRAL_VXP_BONUS_BASE_UNITS`, `REFERRAL_SIGNUP_WINDOW_MS` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                          |
 | **Referral: referrer**     | **Diminishing** by lifetime conversions, then **hard-capped to zero**. Authoritative count is the satellite's own scan, never the client.                                                                           | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
-| **Daily-streak milestone** | Tiered, granted once when the daily streak hits a milestone, counted over server-recorded activity days (UTC days with an executed fill or a recorded Flow swipe), never the client's `dailyStreak`.                | `VXP_STREAK_BONUSES`, `STREAK_MAX_CONTINUING_DAY_DELTA` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts), [`streak.utils.ts`](../../src/lib/utils/streak.utils.ts))               |
+| **Daily-streak milestone** | Tiered, granted once when the daily streak hits a milestone, counted over server-recorded activity days (UTC days with an executed fill; a Flow swipe alone records none), never the client's `dailyStreak`.        | `VXP_STREAK_BONUSES`, `STREAK_MAX_CONTINUING_DAY_DELTA` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts), [`streak.utils.ts`](../../src/lib/utils/streak.utils.ts))               |
 | **Flow volume milestone**  | One-time per lifetime call-count threshold reached, counted as the caller's executed predictions in the engine on each trade activity, never the client's `totalTrades`.                                            | `VXP_FLOW_MILESTONES` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                           |
 | **Flow overtime**          | Repeatable, once per day on an overtime finish (daily counter hits the hard cap), minted inline by the Flow swipe write; a rolling wall-clock cap, counted before each mint, limits it (the day key is client-set). | `VXP_FLOW_OVERTIME_BONUS`, `VXP_FLOW_OVERTIME_ROLLING_CAP`, `VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                               |
 | **Calibration recovery**   | Pays for a correct call on a finalized market **only while the caller's balance is below the recovery floor**; bounded by a daily and an hourly cap. The skill-based way back from depletion.                       | `VXP_CALIBRATION_REWARD_BASE_UNITS`, `CALIBRATION_RECOVERY_FLOOR_BASE_UNITS`, `CALIBRATION_DAILY_CAP`, `CALIBRATION_HOURLY_CAP` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts)) |
@@ -123,8 +123,8 @@ The bound that protects each surface today:
   post-signup redemption window.
 - **Streak / flow-volume milestones**: one-time per milestone, per
   lifetime, counted from server-side truth only: the streak from the
-  server-recorded activity days, the call count from the engine's
-  executed fills.
+  server-recorded activity days (the UTC days of executed fills, never a
+  bare Flow swipe), the call count from the engine's executed fills.
 - **Achievements**: one-time per achievement id, minted only for an
   unlock the server evaluates itself: `first-call`, `oracle`, `on-fire`
   and `contrarian` from the engine's fills and settlements, `marathon`
@@ -160,7 +160,8 @@ The bound that protects each surface today:
   call on the other side is refused, so a market cannot be called both
   ways until it pays.
 - **Comeback**: balance-gated and absence-gated, the absence measured
-  between server-recorded activity days, so it cannot be declared.
+  between server-recorded activity days (executed-fill days), so it
+  cannot be declared and a bare Flow swipe cannot end it.
 - **League founder**: lifetime per-account cap.
 - **Worlds podium**: once per month and place, for a member at
   month-end whatever their join date, but only if the slot was joined

@@ -1,8 +1,9 @@
 // The streak, call-count, achievement and comeback awards are minted from
-// server-side truth only: the engine's fills and settlements, the server's
-// own record of Flow swipes, and the league rosters. A profile write that
-// declares those figures mints nothing beyond the registration grant, and a
-// user with the real activity behind them is paid each award exactly once.
+// server-side truth only: the engine's fills and settlements and the league
+// rosters. A Flow swipe (a counter with no fill behind it) mints none of them,
+// a profile write that declares those figures mints nothing beyond the
+// registration grant, and a user with the real activity behind them is paid
+// each award exactly once.
 
 import { Principal } from '@icp-sdk/core/principal';
 import { afterEach, beforeAll, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
@@ -14,6 +15,7 @@ import { setEngineActorProvider } from '../src/engine/actors';
 import { app } from '../src/index';
 import { userIcPrincipalText } from '../src/lib/keys';
 import { DAY_IN_MS } from '../src/lib/time';
+import { listActivityDays } from '../src/vxp/activity-days';
 import type { CallSide } from '../src/vxp/calibration';
 import { ACHIEVEMENT_XP, parseVxp } from '../src/vxp/constants';
 import { createTestUser, ensureMigrated } from './helpers/auth';
@@ -316,7 +318,7 @@ describe('server-recorded activity', () => {
 		expect(keys).not.toContain('achievement/contrarian');
 	});
 
-	test('Flow swipes on consecutive server days build the streak', async () => {
+	test('Flow swipes on 30 consecutive server days, with no fill behind them, record no day and pay no streak or marathon', async () => {
 		stub = stubVxpLedger();
 		const { userId, token, nickname } = await newAccount();
 		const start = Date.now();
@@ -325,17 +327,17 @@ describe('server-recorded activity', () => {
 
 		// Past days only: a future-dated award would leave analytics rollups
 		// ahead of today for the suites that read the latest day.
-		for (let day = 2; day >= 0; day--) {
+		for (let day = 29; day >= 0; day--) {
 			setSystemTime(new Date(start - day * DAY_IN_MS));
 			await swipe({ token });
-			// A second swipe on the same day adds no day.
 			await swipe({ token });
 		}
 
-		expect(await awardKeys(userId)).toEqual(['onboarding/m1', 'streak/streak_3']);
+		expect(await listActivityDays({ userId })).toEqual([]);
+		expect(await awardKeys(userId)).toEqual(['onboarding/m1']);
 	});
 
-	test('a Flow swipe after a real absence restores a depleted balance once', async () => {
+	test('a Flow swipe after a real absence restores nothing; a fill that day does, once', async () => {
 		stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(40)) });
 		const { userId, token, nickname } = await newAccount();
 		const now = Date.now();
@@ -346,16 +348,50 @@ describe('server-recorded activity', () => {
 		fill({ userId, atMs: now - 10 * DAY_IN_MS });
 		await postTradeActivity({ token });
 
+		await swipe({ token });
+		await swipe({ token });
+
+		expect(await listActivityDays({ userId })).toEqual([dayKey(now - 10 * DAY_IN_MS)]);
 		expect(await awardKeys(userId)).not.toContain('comeback/restore');
 
-		await swipe({ token });
-		await swipe({ token });
+		fill({ userId, atMs: now });
+		await postTradeActivity({ token });
+		await postTradeActivity({ token });
 
-		expect(await awardKeys(userId)).toContain('comeback/restore');
+		expect(await listActivityDays({ userId })).toEqual([dayKey(now - 10 * DAY_IN_MS), dayKey(now)]);
 		expect(stub.transfers.filter(({ memo }) => memo === 'vxp:comeback:restore')).toHaveLength(1);
 		expect(stub.transfers.find(({ memo }) => memo === 'vxp:comeback:restore')?.amount).toBe(
 			parseVxp(210)
 		);
+	});
+
+	test('fills on three consecutive days build the streak, swipes on the days before add nothing', async () => {
+		stub = stubVxpLedger();
+		const { userId, token, nickname } = await newAccount();
+		const start = Date.now();
+
+		await putProfile({ token, body: { nickname } });
+
+		// Swipes alone on the four days before, then a fill on each of the last
+		// three: were swipes active days, this would be a 7-day streak.
+		for (let day = 6; day >= 0; day--) {
+			setSystemTime(new Date(start - day * DAY_IN_MS));
+			await swipe({ token });
+
+			if (day <= 2) {
+				fill({ userId, atMs: Date.now() });
+				await postTradeActivity({ token });
+			}
+		}
+
+		expect(await listActivityDays({ userId })).toEqual(
+			[2, 1, 0].map((day) => dayKey(start - day * DAY_IN_MS))
+		);
+		expect(await awardKeys(userId)).toEqual([
+			'achievement/first-call',
+			'onboarding/m1',
+			'streak/streak_3'
+		]);
 	});
 
 	test('owning a league of three members pays league-founder on the next trade', async () => {

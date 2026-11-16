@@ -1,9 +1,9 @@
 // Comeback restore: a one-time top-up for a returning user whose stack ran
-// dry. Fires when a newly recorded activity day (an executed fill or a Flow
-// swipe, dated by the server, never the profile's client-written
-// lastActiveDay) follows the previous recorded day by the absence threshold,
-// so the trigger is re-engagement, not mere app-open, and only tops a
-// genuinely depleted balance up TO the target. The single fixed
+// dry. Fires when a newly recorded activity day (an executed fill, dated by
+// the engine, never the profile's client-written lastActiveDay) follows the
+// previous recorded day by the absence threshold, so the trigger is a real
+// prediction after an absence, not mere app-open, and only tops a genuinely
+// depleted balance up TO the target. The single fixed
 // comeback/restore award key is the anti-farming bound: at most once per
 // account, ever.
 
