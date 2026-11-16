@@ -1,0 +1,12 @@
+name: Install Juno CLI
+
+description: Installs the pinned juno CLI globally, the one version every workflow builds and runs the satellite with
+
+runs:
+  using: composite
+  steps:
+    # Pinned to a known-good version: an unpinned `latest` would let an upstream
+    # breaking change silently red every workflow. Bump deliberately, here only.
+    - name: Install Juno CLI
+      shell: bash
+      run: npm i -g @junobuild/cli@0.15.6
