@@ -59,9 +59,8 @@ export interface PrepareFlowOpts {
  * the ranked queue (already sliced and featured-event filtered),
  * the tag map, per-market metadata, and user signals.
  *
- * Mirrors what `FlowMode.svelte` used to fetch inline in `onMount`,
- * so a pre-warmed result drops into the component without changing
- * what the deck consumes downstream.
+ * Returns exactly what `FlowMode.svelte` consumes, so a pre-warmed
+ * result drops into the component as is.
  */
 export const prepareFlow = async ({
 	domain,
