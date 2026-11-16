@@ -31,4 +31,16 @@ describe('UserProfileSchema preferences defaults', () => {
 		assert.notEqual(first.savedMarketIds, second.savedMarketIds);
 		assert.notEqual(first.notify, second.notify);
 	});
+
+	it('never shares a nested default between decodes of a partial shape', () => {
+		const first = preferences.parse({});
+
+		first.defaultAmount.flow = '5';
+		first.notify.weeklyDigest = false;
+		first.sharing.callsPublic = false;
+		first.flowTags.push('sports');
+		first.savedMarketIds.push('market-1');
+
+		assert.deepEqual(preferences.parse({}), defaultPreferences());
+	});
 });

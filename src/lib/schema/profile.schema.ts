@@ -22,6 +22,8 @@ export const ProfilePrivateSchema = j.strictObject({
 	email: j.string().default('')
 });
 
+// Read only for primitive leaves: an object or array default calls
+// `defaultPreferences()` on each decode, so no two decoded profiles share one.
 const PREFERENCE_DEFAULTS = defaultPreferences();
 
 export const UserProfileSchema = j.strictObject({
@@ -218,7 +220,7 @@ export const UserProfileSchema = j.strictObject({
 					flow: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.flow),
 					manual: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.manual)
 				})
-				.default(PREFERENCE_DEFAULTS.defaultAmount),
+				.default(() => defaultPreferences().defaultAmount),
 			notify: j
 				.strictObject({
 					streakReminder: j.boolean().default(PREFERENCE_DEFAULTS.notify.streakReminder),
@@ -226,7 +228,7 @@ export const UserProfileSchema = j.strictObject({
 					friendActivity: j.boolean().default(PREFERENCE_DEFAULTS.notify.friendActivity),
 					weeklyDigest: j.boolean().default(PREFERENCE_DEFAULTS.notify.weeklyDigest)
 				})
-				.default(PREFERENCE_DEFAULTS.notify),
+				.default(() => defaultPreferences().notify),
 			flowSessionLength: j.number().default(PREFERENCE_DEFAULTS.flowSessionLength),
 			hapticsEnabled: j.boolean().default(PREFERENCE_DEFAULTS.hapticsEnabled),
 			soundEnabled: j.boolean().default(PREFERENCE_DEFAULTS.soundEnabled),
@@ -247,10 +249,10 @@ export const UserProfileSchema = j.strictObject({
 					leaderboardOptIn: j.boolean().default(PREFERENCE_DEFAULTS.sharing.leaderboardOptIn),
 					worldsOptIn: j.boolean().default(PREFERENCE_DEFAULTS.sharing.worldsOptIn)
 				})
-				.default(PREFERENCE_DEFAULTS.sharing),
-			flowTags: j.array(j.string()).default(PREFERENCE_DEFAULTS.flowTags),
+				.default(() => defaultPreferences().sharing),
+			flowTags: j.array(j.string()).default(() => defaultPreferences().flowTags),
 			worldCupMode: j.boolean().default(PREFERENCE_DEFAULTS.worldCupMode),
-			savedMarketIds: j.array(j.string()).default(PREFERENCE_DEFAULTS.savedMarketIds),
+			savedMarketIds: j.array(j.string()).default(() => defaultPreferences().savedMarketIds),
 			// Onboarding picks (Beat 1.a + 1.b). Empty string for
 			// `favoriteParticipantId` means the user skipped the team
 			// pick; empty string for `favoriteSide` means no YES/NO

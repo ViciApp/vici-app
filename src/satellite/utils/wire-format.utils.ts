@@ -29,6 +29,8 @@ import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 // ─── UserProfile wire format ─────────────────────────────────────────────
 
+// Read only for primitive leaves: an object or array default calls
+// `defaultPreferences()` on each decode, so no two decoded profiles share one.
 const PREFERENCE_DEFAULTS = defaultPreferences();
 
 export const UserProfileWireSchema = j.strictObject({
@@ -61,7 +63,7 @@ export const UserProfileWireSchema = j.strictObject({
 					flow: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.flow),
 					manual: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.manual)
 				})
-				.default(PREFERENCE_DEFAULTS.defaultAmount)
+				.default(() => defaultPreferences().defaultAmount)
 		})
 		.optional()
 });
