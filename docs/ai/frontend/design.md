@@ -569,7 +569,7 @@ back into the gated route.
 | `/signup`          | Pre-sign-in onboarding (see §8.3): one screen to claim a handle and sign up (passkey/OAuth). No team-pick, gesture-practice or category-picker steps. |
 | `/auth/callback/*` | OAuth callback handlers (Google today). Public: `signInWithGoogle` redirects through these.                                                           |
 
-`PublicPath` enum + `isPublicPath(pathname)` helper live in
+The `PublicPath` enum lives in
 [`src/lib/constants/routes.constants.ts`](../../../src/lib/constants/routes.constants.ts).
 
 ### 8.3 Onboarding

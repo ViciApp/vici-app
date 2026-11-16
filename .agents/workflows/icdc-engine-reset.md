@@ -76,14 +76,19 @@ npm run init:registry -- --staging
 
 ```bash
 npm run juno:functions:build
+juno functions upgrade -m production
 ```
 
-Then upgrade the satellite via the Juno Console (no CLI equivalent today).
+`juno functions upgrade` needs an identity that administers the satellite (`juno login`, or
+an Administrator access key in `JUNO_TOKEN`, which is how `deploy.yml` runs the same step on
+every release). The Juno Console works too.
 
-5. Smoke-test:
+5. Smoke-test, against the satellite principal the engine was registered with in step 2 (the
+   script defaults to the local dev id, and its admin check fails for any other):
 
 ```bash
-npm run test:engine-sync -- --staging
+VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
+  npm run test:engine-sync -- --staging
 ```
 
 ## Production
@@ -104,8 +109,10 @@ dfx deploy --network ic --mode reinstall registry
 VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
   npm run init:icdc-engine -- --production
 npm run init:registry -- --production
-npm run juno:functions:build   # then upgrade the satellite via the Juno Console
-npm run test:engine-sync -- --production
+npm run juno:functions:build
+juno functions upgrade -m production
+VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
+  npm run test:engine-sync -- --production
 ```
 
 ## Post-reset sanity check

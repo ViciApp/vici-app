@@ -29,7 +29,7 @@
 #
 # Usage:
 #   ./scripts/translate-markets.sh <markets-json-file> [--local|--staging|--production]
-#   npm run translate:markets -- scripts/data/markets.deck-2026.json --production
+#   npm run translate:markets -- path/to/deck.json --production
 #
 # Auth: runs as the current dfx identity, which must be the markets' CREATOR
 # (the identity that ran deploy-markets.sh) or a satellite ADMIN; see

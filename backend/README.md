@@ -1,6 +1,6 @@
 # VICI backend
 
-Bun + Elysia + Postgres API for the VICI app. Purely additive for now: the production app keeps running on the current stack while the domains are ported here phase by phase.
+Bun + Elysia + Postgres API for the VICI app. It serves the web2 build (`VITE_BACKEND=web2`) at vici.app; the default build still talks to the Juno satellite and the canisters directly.
 
 ## Local development
 
@@ -268,7 +268,7 @@ Two Fly apps, both in `ams`:
 - `vici-app-backend` (`backend/fly.toml`): the API plus a `worker` process. DB migrations run atomically as the `release_command` before traffic shifts, so a failed migration aborts the deploy.
 - `vici-app-web` (`fly.web.toml` at the repo root): the static SPA behind nginx (`Dockerfile.web`, `nginx.web.conf`) with SPA fallback and immutable asset caching.
 
-Neither app exists yet. First-time setup:
+Both apps exist. Recreating one from scratch:
 
 ```bash
 cd backend && fly launch --no-deploy            # creates vici-app-backend
@@ -288,12 +288,20 @@ backend/
     index.ts        # Elysia app: security headers, CORS, error mapping, /health
     worker.ts       # background job loop (registry of idempotent named jobs)
     env.ts          # validated environment
+    account/        # account lifecycle (soft/hard delete, hibernation, sweep), referral codes
+    admin/          # roles and their engine-registry sync, runtime app settings
     analytics/      # behavioural event ingest, rollups, warehouse export + drain
     auth/           # sessions, guards, identity resolution, OTP, Google, Apple
     chains/         # chain adapters (ic/evm/sol/btc) + registry + deposit watchers
     custody/        # assets, custody accounts, double-entry ledger, withdrawals
+    leagues/        # leagues, members, battles and their resolution, cover images, stats
     markets/        # market metadata, translations, tag index, curator gate
+    profiles/       # profiles, nicknames, Flow swipes, leaderboard, stat caches
+    school/         # school directory, email-domain matching, code verification
+    social/         # relations, friend activity feed, resolved-results digest
+    tournaments/    # monthly league tournament: draw, rounds, prizes
     vxp/            # award economy: grant core, payout, triggers, calibration, referral settlement
+    worlds/         # affiliations, their stats and the monthly podium
     declarations/   # vendored candid bindings for clearing + registry + satellite (generated, never hand-edited)
     engine/         # actor provider, TTL cache, typed clearing/registry wrappers
     routes/         # /api/v1 route modules (auth, wallet, engine, markets, events, ...)

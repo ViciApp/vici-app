@@ -11,8 +11,8 @@
 #
 # Examples:
 #   ./scripts/deploy-markets.sh scripts/data/markets.json --local
-#   ./scripts/deploy-markets.sh scripts/data/markets.deck-2026.json --staging
-#   npm run deploy:markets -- scripts/data/markets.deck-2026.json --production
+#   ./scripts/deploy-markets.sh path/to/deck.json --staging
+#   npm run deploy:markets -- path/to/deck.json --production
 #
 # The file is a JSON array of market objects (see scripts/data/markets.json).
 #
