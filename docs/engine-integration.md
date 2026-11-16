@@ -101,7 +101,7 @@ call when the user's `OracleAdmin` membership changes. Everything is idempotent:
 protocol level. On delete, the hook revokes whatever the deleted doc was mapped to.
 
 If the oracle is not yet registered when the hook runs (e.g. a role is assigned before
-`init:registry` has been executed), `OracleNotFound` is logged as `engine_sync_skipped_missing_oracle`
+`init:registry` has been executed), `OracleNotFound` is logged as `oracle_settler_skipped_missing_oracle`
 and the engine-role grant still proceeds. Once the oracle is bootstrapped, save the role
 doc again to replay the sync, or reconcile manually via `dfx`.
 

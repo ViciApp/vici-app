@@ -587,8 +587,8 @@ sign-up is unchanged.
 
 ### Onboarding: one screen, claim a handle and sign up
 
-The default new-user flow is a single screen (`OnboardingV3`, gated by
-`ONBOARDING_V3_ENABLED`, default on): the user claims a handle (live
+The new-user flow is a single screen (`Onboarding`, in
+`src/lib/components/onboarding/`): the user claims a handle (live
 availability check with a Roman-pool suggestion as the empty-field
 placeholder) and signs up with any enabled provider on one surface,
 anchored by the "1,500 VXP starter pack" reward chip. Team selection is
