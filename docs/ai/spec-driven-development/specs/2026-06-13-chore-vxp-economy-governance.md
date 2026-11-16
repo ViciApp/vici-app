@@ -42,7 +42,7 @@ Today the economy lives in:
   behaviour summary.
 - Award type union + Zod mirror:
   [`vxp-award.ts`](../../../../src/lib/types/vxp-award.ts) /
-  [`vxp-award.schema.ts`](../../../../src/lib/schema/vxp-award.schema.ts);
+  `vxp-award.schema.ts` (since removed: the union is now the single source);
   payouts through
   [`vxp-payout.utils.ts`](../../../../src/satellite/utils/vxp-payout.utils.ts),
   recorded in the `vxp_awards` collection.
