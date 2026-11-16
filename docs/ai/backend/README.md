@@ -26,7 +26,7 @@ The operator-facing facts (local setup, every env var, auth, custody, engine bri
 ## API-specific things to check (every change)
 
 - [ ] **Gates:** `cd backend && bun run typecheck && bun test` with Postgres up (`docker compose up -d`), plus the root `npm run lint` (ESLint covers `backend/**/*.ts` through `backend/tsconfig.json`).
-- [ ] **Mirrors:** if I changed a value the app also holds (locales, market taxonomy, analytics taxonomy, VXP amounts, claim message, order-rejection codes, ledger ids), I changed both sides; `tests/shared-drift/` fails otherwise. The pairs are in [`backend/README.md` "Mirrored constants"](../../../backend/README.md#mirrored-constants).
+- [ ] **Mirrors:** if I changed a value the app also holds (locales, market taxonomy, analytics taxonomy, VXP amounts, claim message, order-rejection codes, ledger ids, validation bounds and windows such as league, battle, nickname, referral-code and school-code limits, engine ids), I changed both sides; `tests/shared-drift/` fails otherwise. The pairs are in [`backend/README.md` "Mirrored constants"](../../../backend/README.md#mirrored-constants).
 - [ ] **Wire contract:** if a route's response shape changed, the typed wrapper in `src/lib/web2/client.ts` changed in the same PR.
 - [ ] **Protected paths:** auth, custody, chains, VXP, engine, db, env and the value-moving routes are in the [boundaries table](../governance.md#boundaries). Call them out in the PR body.
 - [ ] **Money is base units.** Amounts are `bigint` in code and `numeric` in SQL, never `number`; serialize with `toJson` (bigint becomes a string).

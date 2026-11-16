@@ -227,3 +227,59 @@ export const extractStringConst = ({
 
 	return match[1];
 };
+
+/** The regular-expression literal of `<constName> = /.../flags`. */
+export const extractRegexLiteral = ({
+	source,
+	constName
+}: {
+	source: string;
+	constName: string;
+}): RegExp => {
+	const match = source.match(
+		new RegExp(`${constName}\\s*=\\s*\\/((?:\\\\.|[^/\\\\\\n])+)\\/([a-z]*)`)
+	);
+
+	if (!match || !match[1]) {
+		throw new Error(`no regex literal for: ${constName}`);
+	}
+
+	return new RegExp(match[1], match[2]);
+};
+
+/** The value of a single-quoted TS string literal's body (`\\`, `\'`,
+ * `\uXXXX` and friends resolved), as the compiler would read it. */
+const unescapeStringLiteral = (body: string): string =>
+	body.replace(/\\(u[0-9a-fA-F]{4}|.)/g, (_, escape: string) => {
+		if (escape.length === 5 && escape.startsWith('u')) {
+			return String.fromCharCode(parseInt(escape.slice(1), 16));
+		}
+
+		return { n: '\n', r: '\r', t: '\t' }[escape] ?? escape;
+	});
+
+/** The first `new RegExp('pattern', 'flags')` with string-literal arguments
+ * after `marker`, built the way the app builds it. */
+export const extractRegExpConstructor = ({
+	source,
+	marker
+}: {
+	source: string;
+	marker: string;
+}): RegExp => {
+	const markerIdx = source.indexOf(marker);
+
+	if (markerIdx < 0) {
+		throw new Error(`marker not found in source: ${marker}`);
+	}
+
+	const match = source
+		.slice(markerIdx)
+		.match(/new RegExp\(\s*'((?:\\.|[^'\\])*)'\s*(?:,\s*'([a-z]*)'\s*)?\)/);
+
+	if (!match || isNullish(match[1])) {
+		throw new Error(`no new RegExp('...') after marker: ${marker}`);
+	}
+
+	return new RegExp(unescapeStringLiteral(match[1]), match[2]);
+};
