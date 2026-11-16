@@ -209,9 +209,9 @@ and `ref: github.event.pull_request.head.ref || github.ref`; it refuses a
 detached HEAD, and it won't commit again when the branch head is already its own commit (output that still drifts then isn't converging, so it is reported instead of looping). `dependabot-bun-lock.yml` stays on plain git: under
 `pull_request_target` it must not run action code from the PR tree.
 
-A job that needs the juno CLI (`satellite-schema`, `e2e`) installs it through
-[`.github/actions/install-juno-cli`](../../.github/actions/install-juno-cli/action.yml),
-the one place its version is pinned: bump it there, never in a workflow.
+A job that needs the juno CLI (`satellite-schema`, `e2e`) installs the version
+in [`.github/juno-cli-version`](../../.github/juno-cli-version), the one place it
+is pinned: bump it there, never in a workflow.
 
 `config apply` (**applies** `juno.config.ts`, collection rules + authentication
 config, to the production satellite) is **run manually**, not in CI. Use

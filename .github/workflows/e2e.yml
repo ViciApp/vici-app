@@ -112,7 +112,8 @@ jobs:
         uses: ./.github/actions/prepare
 
       - name: Install Juno CLI
-        uses: ./.github/actions/install-juno-cli
+        # Pinned once, in .github/juno-cli-version: bump it there, never here.
+        run: npm i -g "@junobuild/cli@$(cat .github/juno-cli-version)"
 
       - name: Install dfx
         # Match the version pinned in dfx.json. dfx.json's `local` network

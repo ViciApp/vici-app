@@ -173,7 +173,8 @@ jobs:
       # The npm-installed CLI runs against our own `node_modules`, picks up the
       # right bindgen, and reproduces the local build output byte-for-byte.
       - name: Install Juno CLI
-        uses: ./.github/actions/install-juno-cli
+        # Pinned once, in .github/juno-cli-version: bump it there, never here.
+        run: npm i -g "@junobuild/cli@$(cat .github/juno-cli-version)"
 
       - name: Regenerate satellite Candid surface
         run: npm run juno:functions:build
