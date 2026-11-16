@@ -4,7 +4,7 @@ Bun + Elysia + Postgres API for the VICI app. Purely additive for now: the produ
 
 ## Local development
 
-Requirements: [Bun](https://bun.sh) >= 1.3 and Docker.
+Requirements: [Bun](https://bun.sh) (the version in `.bun-version`, which CI and the Fly image both run) and Docker.
 
 ```bash
 cd backend
@@ -276,7 +276,7 @@ fly secrets set DATABASE_URL=... SESSION_SECRET=... ROOT_SECRET=... RESEND_API_K
 cd .. && fly launch --no-deploy --config fly.web.toml   # creates vici-app-web
 ```
 
-Deploys go through `.github/workflows/web2-deploy.yml`, dispatched by hand from a `v*` release tag only (`gh workflow run web2-deploy.yml --ref vX.Y.Z`): its first job fails the run on any other ref, because the backend deploy runs the migrations against the production database. It needs the repo secrets `FLY_API_TOKEN_WEB2_BACKEND` and `FLY_API_TOKEN_WEB2_WEB`, one `fly tokens create deploy` token per app. Break-glass only, when the workflow cannot run (GitHub Actions down): from a clean checkout of the same release tag (`git checkout vX.Y.Z`, no local changes), `flyctl deploy --remote-only` from `backend/`, and `flyctl deploy --config fly.web.toml --remote-only` from the repo root. Never deploy a branch or a dirty tree: the backend deploy runs its migrations against production.
+Deploys go through `.github/workflows/web2-deploy.yml`, dispatched by hand from a `v*` release tag only (`gh workflow run web2-deploy.yml --ref vX.Y.Z`): its first job fails the run on any other ref, because the backend deploy runs the migrations against the production database. It needs the repo secrets `FLY_API_TOKEN_WEB2_BACKEND` and `FLY_API_TOKEN_WEB2_WEB`, one `fly tokens create deploy` token per app. Break-glass only, when the workflow cannot run (GitHub Actions down): from a clean checkout of the same release tag (`git checkout vX.Y.Z`, no local changes), `flyctl deploy --remote-only --build-arg BUN_VERSION="$(cat .bun-version)"` from `backend/`, and `flyctl deploy --config fly.web.toml --remote-only` from the repo root. Never deploy a branch or a dirty tree: the backend deploy runs its migrations against production.
 
 `GET /health` answers 200 with `{ ok: true, db: 'connected' }` when the DB probe (bounded by `HEALTH_PROBE_TIMEOUT_MS`) succeeds, 503 otherwise; `HEALTH_EXIT_THRESHOLD` consecutive failures exit the process for a supervised restart with a fresh pool.
 

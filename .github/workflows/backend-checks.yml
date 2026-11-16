@@ -15,11 +15,31 @@ on:
 permissions: {}
 
 jobs:
-  backend:
+  # A job's container image cannot be read from a file, so the Bun pin is read
+  # here and handed to the job below.
+  bun-version:
     runs-on: ubuntu-24.04
-    # Pinned Bun image for a reproducible runtime matching the Dockerfile base;
-    # module resolution is part of what this job asserts.
-    container: oven/bun:1.3
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the pinned Bun version
+        id: read
+        run: echo "version=$(cat backend/.bun-version)" >> "$GITHUB_OUTPUT"
+
+  backend:
+    needs: ['bun-version']
+    runs-on: ubuntu-24.04
+    # The Bun version the production image runs (backend/.bun-version, passed to
+    # backend/Dockerfile at deploy); module resolution is part of what this job
+    # asserts.
+    container: oven/bun:${{ needs.bun-version.outputs.version }}
     permissions:
       contents: read
     defaults:
@@ -86,7 +106,7 @@ jobs:
 
   backend-checks-pass:
     if: always()
-    needs: ['backend']
+    needs: ['bun-version', 'backend']
     runs-on: ubuntu-24.04
     permissions:
       contents: read
