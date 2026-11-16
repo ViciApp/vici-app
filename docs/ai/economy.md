@@ -169,7 +169,9 @@ The bound that protects each surface today:
   before the month closed. A first join has no switch lock, so without
   this anyone could join last month's winner after close and collect its
   prize; a switch or a leave resets the join time, so a move after close
-  never carries tenure.
+  never carries tenure. The join time is server-stamped on both backends
+  (the API's `joined_at_ms`, the satellite doc's `created_at`), never a
+  caller-written field.
 - **Tournament prize**: once per member per tournament, whatever the
   place: a member of several podium leagues gets the highest tier, and a
   claim for a second place is refused. Only a membership that predates

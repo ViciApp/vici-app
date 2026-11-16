@@ -46,6 +46,13 @@ one pattern. Each of these has bitten a PR before:
   through a settle/retry endpoint; there is no hook replay (see
   [hooks fire only for client writes](./patterns.md#hooks-fire-only-for-client-writes-never-for-serverless-setdocstore)),
   so endpoint-triggered payouts run **inline** in the endpoint.
+- **Eligibility times are server-stamped.** A gate on when something
+  happened (a join, an activity day) reads a time the satellite wrote:
+  the doc's Juno `created_at` or `timeMs()`, never a caller-written `*Ms`
+  field, which an assert can only hold to a tolerance. The Worlds
+  podium pays only a slot whose `created_at` precedes the month's close
+  (`joinedBeforeMonthClose` in
+  [`worlds-podium.utils.ts`](../../../src/satellite/utils/worlds-podium.utils.ts)).
 - **Every award is a real ICRC transfer** through the shared payout
   service
   ([`vxp-payout.services.ts`](../../../src/satellite/services/vxp-payout.services.ts));

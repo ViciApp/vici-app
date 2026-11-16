@@ -15,6 +15,7 @@ import {
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
+import { joinedBeforeMonthClose } from '#satellite/utils/worlds-podium.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
@@ -39,7 +40,8 @@ import {
  *     from the FE: typically on the first visit of a new month.
  *  2. The endpoint reads the closed month's snapshot from
  *     `AFFILIATION_STATS`, finds the top-3 ranking per kind, and
- *     checks if the caller's current affiliations match.
+ *     checks if the caller's current affiliations match and were
+ *     joined before the month closed.
  *  3. For each match (up to two: one university, one country),
  *     the endpoint creates a `VXP_AWARDS` doc keyed
  *     `${caller}/worlds_podium/${YYYY-MM}_${place}` and credits
@@ -50,10 +52,12 @@ import {
  * recipient-binds-caller invariant is preserved because the user
  * is writing their own award.
  *
- * Eligibility: a member at month-end qualifies regardless of join date. The 90-day affiliation
- * lock means a user who joined late in the month is still locked
- * in for the next quarter, which is the engagement-incentive
- * trade-off the user signed up for.
+ * Eligibility: a member at month-end qualifies regardless of join date,
+ * as long as the slot was joined before the month closed
+ * ({@link joinedBeforeMonthClose}). The 90-day affiliation lock means a
+ * user who joined late in the month is still locked in for the next
+ * quarter, which is the engagement-incentive trade-off the user signed
+ * up for.
  *
  * Tie-break: accuracy → totalCalls → affiliationIdentifier asc.
  * `listAffiliationStatsForMonthFn` already sorts this way, so the
@@ -188,12 +192,17 @@ export const claimWorldsPodiumPrizeFn = async ({
 		// claimants. A no-op once the month is already frozen.
 		freezeMonthlySnapshotsIfNeeded({ kind, monthAnchor, nowMs });
 
-		// Read the caller's current affiliation for this kind.
-		const myAffiliation = readMyAffiliation({ callerText, callerBytes, kind });
+		const mine = readMyAffiliation({ callerText, callerBytes, kind });
 
-		if (isNullish(myAffiliation)) {
-			// No affiliation for this kind: caller is not eligible.
+		if (
+			isNullish(mine) ||
+			// Juno's own `created_at`, not caller-written `joinedAtMs` (held to ±10 min, enough to backdate a join).
+			!joinedBeforeMonthClose({ joinedAtNs: mine.createdAtNs, monthAnchor })
+		) {
+			// No affiliation for this kind, or one joined after close: not eligible.
 		} else {
+			const { affiliation: myAffiliation } = mine;
+
 			// Top-3 for the requested (now frozen) month.
 			const top3 = listAffiliationStatsForMonthFn({ kind, monthAnchor }).slice(0, 3);
 			const placeIndex = top3.findIndex(
@@ -378,7 +387,7 @@ const readMyAffiliation = ({
 	callerText: string;
 	callerBytes: Uint8Array;
 	kind: AffiliationKind;
-}): AffiliationDoc | undefined => {
+}): { affiliation: AffiliationDoc; createdAtNs: bigint } | undefined => {
 	// The affiliation doc key is `${memberPrincipal}/${kind}/${affiliationIdentifier}`:
 	// we don't know `affiliationIdentifier` yet, so we scan and filter. Two
 	// max possibilities per user (one per kind), so the bound is tight.
@@ -399,7 +408,7 @@ const readMyAffiliation = ({
 				const doc = readAffiliationDoc(item.data);
 
 				if (nonNullish(doc) && doc.kind === kind && doc.member === callerText) {
-					return doc;
+					return { affiliation: doc, createdAtNs: item.created_at };
 				}
 			} catch {
 				// skip malformed
