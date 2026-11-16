@@ -26,7 +26,7 @@ import type { AffiliationKind } from '#lib/types/affiliation.ts';
 export interface AffiliationStatsDoc {
 	/** External id: matches `AffiliationDoc.affiliationIdentifier`. */
 	affiliationIdentifier: string;
-	/** `university` | `country`: same enum as `AffiliationDoc.kind`. */
+	/** Same kind as `AffiliationDoc.kind`. */
 	kind: AffiliationKind;
 	/** Lifetime resolved-call count across the current roster. */
 	totalCalls: number;

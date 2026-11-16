@@ -44,6 +44,7 @@ import {
 	ListFriendResolvedResultsArgsSchema,
 	ResolvedResultSchema
 } from '#lib/schema/resolved-result.schema.ts';
+import { AFFILIATION_KINDS } from '#lib/types/affiliation.ts';
 import {
 	deleteMyAccountFn,
 	hibernateMyAccountFn,
@@ -829,7 +830,7 @@ export const listMyAffiliations = defineQuery({
 
 export const listWorldsRoster = defineQuery({
 	args: j.strictObject({
-		kind: j.enum(['university', 'country']),
+		kind: j.enum(AFFILIATION_KINDS),
 		affiliationIdentifier: j.string()
 	}),
 	result: j.strictObject({
@@ -845,7 +846,7 @@ export const listWorldsRoster = defineQuery({
 // resolution events yet and therefore no doc.
 export const getAffiliationStats = defineQuery({
 	args: j.strictObject({
-		kind: j.enum(['university', 'country']),
+		kind: j.enum(AFFILIATION_KINDS),
 		affiliationIdentifier: j.string()
 	}),
 	result: j.strictObject({
@@ -862,7 +863,7 @@ export const getAffiliationStats = defineQuery({
 // Below MIN_CALLS_FOR_RANK is filtered out by the aggregator.
 export const listAffiliationStats = defineQuery({
 	args: j.strictObject({
-		kind: j.enum(['university', 'country']),
+		kind: j.enum(AFFILIATION_KINDS),
 		limit: j.number().optional()
 	}),
 	result: j.strictObject({
@@ -879,7 +880,7 @@ export const listAffiliationStats = defineQuery({
 // paging the full roster per affiliation.
 export const listWorldsMemberCounts = defineQuery({
 	args: j.strictObject({
-		kind: j.enum(['university', 'country'])
+		kind: j.enum(AFFILIATION_KINDS)
 	}),
 	result: j.strictObject({
 		items: j.array(AffiliationMemberCountWireSchema)
@@ -895,7 +896,7 @@ export const listWorldsMemberCounts = defineQuery({
 // with a ranked leader (there is no scheduled season-conclusion job).
 export const listAffiliationChampionships = defineQuery({
 	args: j.strictObject({
-		kind: j.enum(['university', 'country']),
+		kind: j.enum(AFFILIATION_KINDS),
 		affiliationIdentifier: j.string()
 	}),
 	result: j.strictObject({

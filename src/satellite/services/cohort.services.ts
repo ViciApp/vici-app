@@ -1,7 +1,11 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { MIN_CALLS_FOR_RANK, type AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
-import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
+import {
+	isAffiliationKind,
+	type AffiliationDoc,
+	type AffiliationKind
+} from '#lib/types/affiliation.ts';
 import { readBattleDoc, type BattleDoc } from '#lib/types/battle.ts';
 import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import {
@@ -741,7 +745,7 @@ export const listMyAffiliationsFn = (): {
  *  - `affiliationIdentifier` (or legacy `affiliationId`): non-empty string
  *  - `member`: non-empty string (a real principal-text check costs more
  *    than it's worth here; the write-time assert already enforced it)
- *  - `kind`: `'university' | 'country'`
+ *  - `kind`: an `AffiliationKind`
  *  - `joinedAtMs` / `lockedUntilMs`: finite numbers (guards against
  *    `NaN` flowing into the Option-schema parse and into roster sort
  *    comparisons in `listWorldsRosterFn`)
@@ -762,7 +766,7 @@ export const readAffiliationDoc = (data: Uint8Array): AffiliationDoc | undefined
 		return;
 	}
 
-	if (raw.kind !== 'university' && raw.kind !== 'country') {
+	if (!isAffiliationKind(raw.kind)) {
 		return;
 	}
 

@@ -15,6 +15,7 @@ import {
 	listAffiliationStatsForMonth
 } from '../worlds/affiliation-stats';
 import {
+	AFFILIATION_KINDS,
 	AffiliationError,
 	isAffiliationKind,
 	listMyAffiliations,
@@ -25,7 +26,7 @@ import {
 } from '../worlds/affiliations';
 import { claimWorldsPodiumPrize } from '../worlds/podium';
 
-const KIND_SCHEMA = t.Union([t.Literal('university'), t.Literal('country')]);
+const KIND_SCHEMA = t.Union(AFFILIATION_KINDS.map((kind) => t.Literal(kind)));
 
 export const worldsRoutes = new Elysia({ prefix: '/api/v1/worlds' })
 	.get('/affiliations/mine', async ({ request, set }) => {

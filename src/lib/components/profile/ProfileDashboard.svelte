@@ -290,7 +290,7 @@
 	 * shows only the affiliations a user can actually set.
 	 */
 	interface AffilSlot {
-		key: 'university' | 'country';
+		key: AffiliationKind;
 		kind: AffiliationKind;
 		labelKey: MessageKey;
 		filled: boolean;
