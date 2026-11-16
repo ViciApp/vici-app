@@ -6,6 +6,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 - One Elysia instance per area with a prefix: `src/routes/wallet.ts` (`walletRoutes`). Mounted with `.use(...)` on `app` in `src/index.ts`.
 - Request shapes are Elysia `t` schemas in the route options (`src/routes/wallet.ts`, the `body` of `POST /withdrawals`). Zod is not used in the API; do not add it.
+- A number bound for an `int` or `bigint` column is `t.Integer` with its bounds (the domain's constants, or `Number.MAX_SAFE_INTEGER` for a `bigint` that must stay exact): Postgres refuses a fraction or an out-of-range value as a fault, so `t.Number` there turns bad input into a 500 (`src/routes/battles.ts`, `POST /`).
 - A handler gates first, then calls a domain function, then shapes the response: `src/routes/wallet.ts` (`/balances`).
 - Responses that carry candid values (bigint, `Principal`, bytes) go through `toJson` (`src/engine/serialize.ts`); never hand-convert.
 
@@ -19,6 +20,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 - The wire envelope is always `{ error: string }`, with a stable snake_case code (`insufficient_balance`, `chain_unavailable`). The frontend switches on that code through `Web2ApiError.code`, so a code is a contract: renaming one is a breaking change.
 - A 400 with a code is `badRequest(set, code)` from `src/lib/http.ts`; its `StatusContext` is the one type for Elysia's `set` in a helper signature.
 - Domain failures are `class XError extends Error {}` in the domain (`src/leagues/leagues.ts` `LeagueError`); the route maps them with `instanceof` and rethrows anything else: `src/routes/wallet.ts` `refusedWithdrawal`.
+- A create whose client-chosen id is already taken answers 409 with a `<thing>_exists` code, never the 500 of the raw unique violation: `insert ... on conflict (id) do nothing returning` and a typed error when no row comes back (`src/leagues/battles.ts` `BattleExistsError`, mapped in `src/routes/battles.ts`).
 - Everything unmapped falls to the global `onError` handler in `src/index.ts` (404 `not found`, 400 `bad request`, 503 `unavailable` when the database is down, 500 `internal`). Do not catch-and-500 in a route.
 - Engine order rejections have their own code table: [`backend/README.md` "Order rejections"](../../../backend/README.md#order-rejections).
 
