@@ -14,5 +14,8 @@ export const LATIN_MOTTO_TAIL = 'Vici.';
 /** The wordmark: the landing's whole document title. */
 export const BRAND_WORDMARK = 'VICI';
 
-/** The document title of every other page: its localized name, then the wordmark. */
+/**
+ * The standard document title: the page's localized name, then the
+ * wordmark. The market-detail page keeps its own SEO-specific title shape.
+ */
 export const pageTitle = (name: string): string => `${name} · ${BRAND_WORDMARK}`;
