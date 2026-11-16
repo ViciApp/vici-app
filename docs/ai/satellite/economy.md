@@ -33,17 +33,45 @@ one pattern. Each of these has bitten a PR before:
   `${recipient}/${awardType}/${awardKey}` via `vxpAwardKey()`; a
   retry collides with the existing doc and that collision is the
   dedup. No separate "already paid?" check; pick an `awardKey` that
-  encodes the one-shot unit (league id, milestone, month).
+  encodes the one-shot unit (league id, milestone, month). When the
+  unit is coarser than an old key, the old keys must still block: the
+  tournament prize is keyed on the tournament alone, and
+  `decideTournamentPrize`
+  ([`tournament-prize.utils.ts`](../../../src/satellite/utils/tournament-prize.utils.ts))
+  also treats a doc under any per-place key (`<tournamentId>_place_<n>`)
+  of an earlier claim as claimed; `assertSetVxpAward` refuses a new
+  prize under a per-place key.
 - **Lifecycle is `pending → paid | failed`, then frozen.** Paid docs
   are immutable (`assertSetVxpAward`). A `failed` payout is re-driven
   through a settle/retry endpoint; there is no hook replay (see
   [hooks fire only for client writes](./patterns.md#hooks-fire-only-for-client-writes-never-for-serverless-setdocstore)),
   so endpoint-triggered payouts run **inline** in the endpoint.
+- **Award docs are never deleted by a client.** The collection is
+  `write: 'public'`, so any client could delete one and reopen its key
+  for a second payout. `assertDeleteVxpAward` rejects every delete
+  whose caller is not a satellite controller. Serverless
+  `deleteDocStore` runs the assert too, so a satellite path that must
+  remove award docs (the account purge in `hardDeleteAccountFn`) signs
+  as `controllerCaller(...)`.
+- **Eligibility times are server-stamped.** A gate on when something
+  happened (a join, an activity day) reads a time the satellite wrote:
+  the doc's Juno `created_at` or `timeMs()`, never a caller-written `*Ms`
+  field, which an assert can only hold to a tolerance. The Worlds
+  podium pays only a slot whose `created_at` precedes the month's close
+  (`joinedBeforeMonthClose` in
+  [`worlds-podium.utils.ts`](../../../src/satellite/utils/worlds-podium.utils.ts)).
 - **Every award is a real ICRC transfer** through the shared payout
   service
   ([`vxp-payout.services.ts`](../../../src/satellite/services/vxp-payout.services.ts));
   no satellite award path increments a counter instead of moving
   tokens.
+- **What decides an award is server-written too.** A claim endpoint
+  that pays from a doc (the tournament prize reads the concluded
+  bracket) is only as safe as that doc. `tournaments` and
+  `tournament_matches` are `write: 'public'`, so their asserts accept
+  only a satellite controller, and the draw and resolution endpoints
+  write as `controllerCaller(...)` (see
+  [endpoint-computed docs](./patterns.md#endpoint-computed-docs-controller-only-assert)).
 
 ## Adding a new award type: checklist
 

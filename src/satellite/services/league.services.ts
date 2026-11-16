@@ -105,9 +105,10 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
  *     transfers (see §2), and the owner can change the league's
  *     visibility and cover image after creation.
  *
- *  4. **Shape validation.** Name 3–40 chars, description ≤240 chars,
- *     invite code matches `[A-Z0-9]{6}`. Owner is a valid principal
- *     text.
+ *  4. **Shape validation.** Name within `LEAGUE_NAME_MIN_LENGTH` to
+ *     `LEAGUE_NAME_MAX_LENGTH`, description within
+ *     `LEAGUE_DESCRIPTION_MAX_LENGTH`, invite code matching
+ *     `LEAGUE_INVITE_CODE_REGEX`. Owner is a valid principal text.
  */
 export const assertSetLeague = ({
 	caller,

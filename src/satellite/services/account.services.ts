@@ -16,7 +16,7 @@ import {
 	captureServerEvents,
 	type ServerEventInput
 } from '#satellite/services/analytics.services.ts';
-import { isAdmin } from '#satellite/services/authz.services.ts';
+import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
@@ -42,9 +42,8 @@ import {
 type ListedDocEntry = ReturnType<typeof listDocsStore>['items'][number];
 
 /**
- * Account deletion: Proposal 4 in `docs/backend-proposals/README.md`
- * (Delete account v2: soft-delete + recovery + admin sweep, with
- * league resolution).
+ * Account deletion: soft-delete + recovery + admin sweep, with league
+ * resolution.
  *
  * `deleteMyAccount` runs four steps in order:
  *
@@ -848,10 +847,12 @@ export const hardDeleteAccountFn = ({
 
 	docsDeleted += deleteOwnProfile({ callerText, callerBytes });
 	docsDeleted += deleteOwnPrivateProfile({ callerText, callerBytes });
+	// `assertDeleteVxpAward` lets only a controller remove an award doc; the
+	// serverless delete runs that assert too, so the purge signs as one.
 	docsDeleted += deletePrefixedDocs({
 		collection: Collection.VXP_AWARDS,
 		callerText,
-		callerBytes
+		callerBytes: controllerCaller('account purge of vxp_awards')
 	});
 	docsDeleted += deletePrefixedDocs({
 		collection: Collection.VXP_ONBOARDING,

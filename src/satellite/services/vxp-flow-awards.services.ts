@@ -23,12 +23,12 @@ import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/
  * surfaces:
  *
  *  - `flow_milestone`: crossing a lifetime call-count boundary
- *    (10 / 100 / 500 / 1000 → 50 / 100 / 250 / 500 VXP), once each ever.
+ *    (`VXP_FLOW_MILESTONES`), once each ever.
  *    Fired from the `profiles` post-write hook off the lifetime
  *    `totalTrades` delta (the same client-synced count the affiliation /
  *    podium awards already trust).
  *  - `flow_overtime`: finishing a day in overtime (the Flow daily counter
- *    hitting the hard cap → 25 VXP). Minted *inline* from
+ *    hitting the hard cap pays `VXP_FLOW_OVERTIME_BONUS`). Minted *inline* from
  *    `recordFlowSwipeFn`, because that endpoint writes the counter with
  *    `setDocStore` and serverless writes fire no `onSetDoc` hook.
  *

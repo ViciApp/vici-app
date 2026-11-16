@@ -1,8 +1,9 @@
 // The streak, call-count, achievement and comeback awards are minted from
-// server-side truth only: the engine's fills and settlements, the server's
-// own record of Flow swipes, and the league rosters. A profile write that
-// declares those figures mints nothing beyond the registration grant, and a
-// user with the real activity behind them is paid each award exactly once.
+// server-side truth only: the engine's fills and settlements and the league
+// rosters. A Flow swipe (a counter with no fill behind it) mints none of them,
+// a profile write that declares those figures mints nothing beyond the
+// registration grant, and a user with the real activity behind them is paid
+// each award exactly once.
 
 import { Principal } from '@icp-sdk/core/principal';
 import { afterEach, beforeAll, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
@@ -14,6 +15,8 @@ import { setEngineActorProvider } from '../src/engine/actors';
 import { app } from '../src/index';
 import { userIcPrincipalText } from '../src/lib/keys';
 import { DAY_IN_MS } from '../src/lib/time';
+import { listActivityDays } from '../src/vxp/activity-days';
+import type { CallSide } from '../src/vxp/calibration';
 import { ACHIEVEMENT_XP, parseVxp } from '../src/vxp/constants';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { uniqueNickname } from './helpers/profiles';
@@ -51,26 +54,29 @@ afterEach(() => {
 	restoreEngine = undefined;
 });
 
+interface EventSpec {
+	eventType: ClearingDid.EventType;
+	qty: bigint;
+	atMs: number;
+	price?: number;
+	seriesId?: string;
+}
+
 const engineEvent = ({
 	userId,
 	eventType,
 	qty,
 	atMs,
-	price = 0.5
-}: {
-	userId: string;
-	eventType: ClearingDid.EventType;
-	qty: bigint;
-	atMs: number;
-	price?: number;
-}): void => {
+	price = 0.5,
+	seriesId = 'series-server-derived-awards'
+}: EventSpec & { userId: string }): void => {
 	const owner = userIcPrincipalText(userId);
 
 	history.set(owner, [
 		...(history.get(owner) ?? []),
 		{
 			event_id: BigInt(nextEventId++),
-			series_id: 'series-server-derived-awards',
+			series_id: seriesId,
 			user: Principal.fromText(owner),
 			clearing_id: Principal.anonymous(),
 			qty,
@@ -87,6 +93,33 @@ const engineEvent = ({
 
 const fill = ({ userId, atMs }: { userId: string; atMs: number }): void =>
 	engineEvent({ userId, eventType: { Executed: null }, qty: BigInt(10), atMs });
+
+/** A call on a binary series as the engine fills it: YES is a buy at the
+ * side's price, NO a sell at one minus it. */
+const callFill = ({
+	side,
+	price,
+	...spec
+}: Omit<EventSpec, 'eventType' | 'qty' | 'price'> & {
+	side: CallSide;
+	price: number;
+}): EventSpec => ({
+	...spec,
+	eventType: { Executed: null },
+	qty: side === 'YES' ? BigInt(10) : BigInt(-10),
+	price: side === 'YES' ? price : 1 - price
+});
+
+/** A winning settlement at its real payoff: 1 when YES resolves, 0 when NO does. */
+const winningSettlement = ({
+	resolved,
+	...spec
+}: Omit<EventSpec, 'eventType' | 'qty' | 'price'> & { resolved: CallSide }): EventSpec => ({
+	...spec,
+	eventType: { Settled: null },
+	qty: BigInt(10),
+	price: resolved === 'YES' ? 1 : 0
+});
 
 const request = ({
 	token,
@@ -193,24 +226,27 @@ describe('server-recorded activity', () => {
 		const { userId, token, nickname } = await newAccount();
 		const now = Date.now();
 
-		// One fill on each of the last 30 UTC days, 20 more today: 50 calls.
+		// One fill on each of the last 30 UTC days, 10 more today, and the 10
+		// calls behind the wins below: 50 calls.
 		for (let day = 29; day >= 0; day--) {
 			fill({ userId, atMs: now - day * DAY_IN_MS });
 		}
 
-		for (let extra = 0; extra < 20; extra++) {
+		for (let extra = 0; extra < 10; extra++) {
 			fill({ userId, atMs: now - extra });
 		}
 
-		// Ten winning settlements, all taken at a 25% consensus.
+		// Ten winning settlements at their real payoffs, each on a side taken
+		// as a long shot: five YES taken at 20%, five NO at 15% (engine sells at 85%).
 		for (let win = 0; win < 10; win++) {
+			const side: CallSide = win % 2 === 0 ? 'YES' : 'NO';
+			const seriesId = `series-long-shot-${userId}-${win}`;
+
 			engineEvent({
 				userId,
-				eventType: { Settled: null },
-				qty: BigInt(10),
-				atMs: now - win,
-				price: 0.25
+				...callFill({ seriesId, side, price: side === 'YES' ? 0.2 : 0.15, atMs: now - 100 - win })
 			});
+			engineEvent({ userId, ...winningSettlement({ seriesId, resolved: side, atMs: now - win }) });
 		}
 
 		// The profile claims nothing: the awards come from the engine.
@@ -257,7 +293,32 @@ describe('server-recorded activity', () => {
 		expect(stub.transfers).toHaveLength(paid);
 	});
 
-	test('Flow swipes on consecutive server days build the streak', async () => {
+	test('ten NO wins taken as the favourite pay no contrarian, though each Settled price reads 0', async () => {
+		stub = stubVxpLedger();
+		const { userId, token, nickname } = await newAccount();
+		const now = Date.now();
+
+		// NO taken at 80% (an engine sell at 20%): the market's favourite.
+		for (let win = 0; win < 10; win++) {
+			const seriesId = `series-favourite-${userId}-${win}`;
+
+			engineEvent({
+				userId,
+				...callFill({ seriesId, side: 'NO', price: 0.8, atMs: now - 100 - win })
+			});
+			engineEvent({ userId, ...winningSettlement({ seriesId, resolved: 'NO', atMs: now - win }) });
+		}
+
+		await putProfile({ token, body: { nickname } });
+		await postTradeActivity({ token });
+
+		const keys = await awardKeys(userId);
+
+		expect(keys).toContain('achievement/on-fire');
+		expect(keys).not.toContain('achievement/contrarian');
+	});
+
+	test('Flow swipes on 30 consecutive server days, with no fill behind them, record no day and pay no streak or marathon', async () => {
 		stub = stubVxpLedger();
 		const { userId, token, nickname } = await newAccount();
 		const start = Date.now();
@@ -266,17 +327,17 @@ describe('server-recorded activity', () => {
 
 		// Past days only: a future-dated award would leave analytics rollups
 		// ahead of today for the suites that read the latest day.
-		for (let day = 2; day >= 0; day--) {
+		for (let day = 29; day >= 0; day--) {
 			setSystemTime(new Date(start - day * DAY_IN_MS));
 			await swipe({ token });
-			// A second swipe on the same day adds no day.
 			await swipe({ token });
 		}
 
-		expect(await awardKeys(userId)).toEqual(['onboarding/m1', 'streak/streak_3']);
+		expect(await listActivityDays({ userId })).toEqual([]);
+		expect(await awardKeys(userId)).toEqual(['onboarding/m1']);
 	});
 
-	test('a Flow swipe after a real absence restores a depleted balance once', async () => {
+	test('a Flow swipe after a real absence restores nothing; a fill that day does, once', async () => {
 		stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(40)) });
 		const { userId, token, nickname } = await newAccount();
 		const now = Date.now();
@@ -287,16 +348,50 @@ describe('server-recorded activity', () => {
 		fill({ userId, atMs: now - 10 * DAY_IN_MS });
 		await postTradeActivity({ token });
 
+		await swipe({ token });
+		await swipe({ token });
+
+		expect(await listActivityDays({ userId })).toEqual([dayKey(now - 10 * DAY_IN_MS)]);
 		expect(await awardKeys(userId)).not.toContain('comeback/restore');
 
-		await swipe({ token });
-		await swipe({ token });
+		fill({ userId, atMs: now });
+		await postTradeActivity({ token });
+		await postTradeActivity({ token });
 
-		expect(await awardKeys(userId)).toContain('comeback/restore');
+		expect(await listActivityDays({ userId })).toEqual([dayKey(now - 10 * DAY_IN_MS), dayKey(now)]);
 		expect(stub.transfers.filter(({ memo }) => memo === 'vxp:comeback:restore')).toHaveLength(1);
 		expect(stub.transfers.find(({ memo }) => memo === 'vxp:comeback:restore')?.amount).toBe(
 			parseVxp(210)
 		);
+	});
+
+	test('fills on three consecutive days build the streak, swipes on the days before add nothing', async () => {
+		stub = stubVxpLedger();
+		const { userId, token, nickname } = await newAccount();
+		const start = Date.now();
+
+		await putProfile({ token, body: { nickname } });
+
+		// Swipes alone on the four days before, then a fill on each of the last
+		// three: were swipes active days, this would be a 7-day streak.
+		for (let day = 6; day >= 0; day--) {
+			setSystemTime(new Date(start - day * DAY_IN_MS));
+			await swipe({ token });
+
+			if (day <= 2) {
+				fill({ userId, atMs: Date.now() });
+				await postTradeActivity({ token });
+			}
+		}
+
+		expect(await listActivityDays({ userId })).toEqual(
+			[2, 1, 0].map((day) => dayKey(start - day * DAY_IN_MS))
+		);
+		expect(await awardKeys(userId)).toEqual([
+			'achievement/first-call',
+			'onboarding/m1',
+			'streak/streak_3'
+		]);
 	});
 
 	test('owning a league of three members pays league-founder on the next trade', async () => {

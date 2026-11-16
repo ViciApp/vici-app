@@ -423,8 +423,10 @@ The full tournament chain has landed.
 - `TOURNAMENT_MATCHES` collection + `assertSetTournamentMatch`
   (key shape, write-once invariants on team / accuracy / winner /
   start-snapshot fields).
-- `triggerTournamentDraw({ monthAnchor })`: anyone can call;
-  idempotent via doc-key collision on the month anchor. Scans
+- `triggerTournamentDraw({ monthAnchor })`: anyone can call, for the
+  current UTC month only (a closed month is `invalid_input`, a future
+  one `month_not_started`); idempotent via doc-key collision on the
+  month anchor. Scans
   `LEAGUE_MEMBERS`, counts members per league, seeds the top-16
   into Round 1 + creates TBD slots for the later rounds so the FE
   bracket renders the skeleton immediately. Snapshots each seeded
@@ -454,13 +456,12 @@ The full tournament chain has landed.
   final settles.
 - `claimTournamentPrize({ tournamentId })`: user-claim per
   caller. Reads the bracket's winning + losing finalists and the
-  semifinal losers; checks the caller's league memberships;
-  credits a single `VXP_AWARDS` doc keyed
-  `${caller}/tournament_prize/${tournamentId}_place_${1|2|3}`
-  per the prize tier table (5000 / 2500 / 1000 VXP). Idempotent
-  via the award doc key: a second call returns
-  `awardsAlreadyClaimed > 0`. Members of multiple winning leagues
-  get only their highest-tier award.
+  semifinal losers; checks the caller's league memberships stored
+  by the draw; credits a single `VXP_AWARDS` doc keyed
+  `${caller}/tournament_prize/${tournamentId}` per the prize tier
+  table. One prize per caller per tournament: a second call (for
+  any place) returns `awardsAlreadyClaimed > 0`. Members of
+  multiple winning leagues get only their highest-tier award.
 - FE wiring: `TournamentPage` fires the draw on mount, then
   walks forward through the bracket and fires
   `resolveTournamentRound` for each round whose `endMs <= now`.

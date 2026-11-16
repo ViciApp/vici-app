@@ -22,7 +22,7 @@ import {
 import { upsertMyProfile } from '../profiles/profile-write';
 import { getUserStats, upsertMonthlyStats, upsertUserStats } from '../profiles/stats';
 import { mintFlowOvertime } from '../vxp/flow';
-import { runFlowSwipeActivityTriggers, runProfileAwardTriggers } from '../vxp/triggers';
+import { runProfileAwardTriggers } from '../vxp/triggers';
 
 // Search is public and enumerable, so it is limited per client IP. The budget
 // leaves room for a debounced live search behind a shared school network.
@@ -56,7 +56,7 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 			// Only the registration grant rides the profile write. The streak,
 			// call-count, achievement and comeback fields here are the client's
 			// display copy and never mint: those awards read server-side truth
-			// on the trade activity and Flow swipe writes.
+			// on the trade activity write.
 			await runProfileAwardTriggers({ userId: user.id });
 
 			return { profile };
@@ -124,10 +124,6 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 				if (result.capReached) {
 					await mintFlowOvertime({ userId: user.id, dayKey: result.dailyGoalDate });
 				}
-
-				// A recorded swipe makes today's server day an active one, the
-				// streak and comeback source. Never throws.
-				await runFlowSwipeActivityTriggers({ userId: user.id });
 
 				return result;
 			} catch (err) {

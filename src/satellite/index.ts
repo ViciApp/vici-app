@@ -173,6 +173,7 @@ import {
 import { assertSetRole } from '#satellite/services/roles.services.ts';
 import { submitSchoolFn, verifySchoolCodeFn } from '#satellite/services/school.services.ts';
 import {
+	assertDeleteTournamentDoc,
 	assertSetTournament,
 	assertSetTournamentMatch,
 	claimTournamentPrizeFn,
@@ -186,7 +187,10 @@ import {
 } from '#satellite/services/user-monthly-stats.services.ts';
 import { assertSetUserStats } from '#satellite/services/user-stats.services.ts';
 import { onProfileSetForAchievementAward } from '#satellite/services/vxp-achievement-awards.services.ts';
-import { assertSetVxpAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	assertDeleteVxpAward,
+	assertSetVxpAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { claimCalibrationRewardFn } from '#satellite/services/vxp-calibration.services.ts';
 import { onProfileSetForComebackRestore } from '#satellite/services/vxp-comeback-awards.services.ts';
 import { onProfileSetForFlowMilestone } from '#satellite/services/vxp-flow-awards.services.ts';
@@ -675,7 +679,7 @@ export const listMyLeagues = defineQuery({
 });
 
 /**
- * Retroactive self-heal for the "Founder +100 VXP" reward. The `leagues`
+ * Retroactive self-heal for the league-founder reward. The `leagues`
  * `onSetDoc` hook pays this on creation going forward; this endpoint
  * back-pays leagues founded before the hook shipped. Idempotent (shares
  * the hook's dedupe key) and safe to call on every Leagues-page mount:
@@ -1011,7 +1015,7 @@ export const claimWorldsPodiumPrize = defineUpdate({
 	handler: claimWorldsPodiumPrizeFn
 });
 
-// Account deletion: Proposal 4. Pre-flight query that surfaces the
+// Account deletion pre-flight: a query that surfaces the
 // "you still own this non-empty league" guard so the FE can show
 // the transfer-first prompt before the user even picks a reason.
 export const listMyBlockingLeagues = defineQuery({
@@ -1203,12 +1207,9 @@ export const pruneResolvedResults = defineUpdate({
 	handler: () => pruneResolvedResultsFn()
 });
 
-// Monthly tournament: Proposal 3. The draw is fire-and-forget on
-// every Tournament-page mount: idempotent via doc-key collision on
-// the month anchor (a second call returns `already_drawn` cleanly).
-// Round resolution + prize claim are documented Proposal 3 follow-ups;
-// they need a per-window accuracy aggregation pipeline that
-// doesn't exist yet, so the bracket structure ships first.
+// Monthly tournament draw: fire-and-forget on every Tournament-page
+// mount, idempotent via doc-key collision on the month anchor (a second
+// call returns `already_drawn` cleanly).
 export const triggerTournamentDraw = defineUpdate({
 	args: j.strictObject({
 		monthAnchor: j.string()
@@ -1417,7 +1418,10 @@ export const assertSetDoc = defineAssert<AssertSetDoc>({
 const assertDeleteDocCollections = [
 	Collection.LEAGUE_MEMBERS,
 	Collection.AFFILIATIONS,
-	Collection.BATTLES
+	Collection.BATTLES,
+	Collection.VXP_AWARDS,
+	Collection.TOURNAMENTS,
+	Collection.TOURNAMENT_MATCHES
 ] as const;
 
 type AssertDeleteDocCollection = (typeof assertDeleteDocCollections)[number];
@@ -1428,7 +1432,10 @@ export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({
 		const fn: Record<AssertDeleteDocCollection, (ctx: AssertDeleteDocContext) => void> = {
 			[Collection.LEAGUE_MEMBERS]: assertDeleteLeagueMember,
 			[Collection.AFFILIATIONS]: assertDeleteAffiliation,
-			[Collection.BATTLES]: assertDeleteBattle
+			[Collection.BATTLES]: assertDeleteBattle,
+			[Collection.VXP_AWARDS]: assertDeleteVxpAward,
+			[Collection.TOURNAMENTS]: assertDeleteTournamentDoc,
+			[Collection.TOURNAMENT_MATCHES]: assertDeleteTournamentDoc
 		};
 
 		fn[context.data.collection]?.(context);
