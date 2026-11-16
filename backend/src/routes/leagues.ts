@@ -23,9 +23,17 @@ import {
 import { joinLeagueByInvite, removeLeagueMember, upsertLeagueMember } from '../leagues/members';
 import { getLeagueStats } from '../leagues/stats';
 import { badRequest } from '../lib/http';
+import { enforceLimit } from '../lib/rate-limit';
+import { HOUR_IN_MS } from '../lib/time';
 import { settleFounderAwards } from '../vxp/founder';
 
 const PRIVACY_SCHEMA = t.Union([t.Literal('open'), t.Literal('private')]);
+
+// An invite code is six guessable characters, so the lookup and the join
+// share one budget, keyed by account rather than IP: students on one campus
+// network share an address, and the guessing being bounded is per account.
+const LEAGUE_INVITE_LIMIT_PER_HOUR = 30;
+const LEAGUE_INVITE_LIMIT_NAME = 'league_invite';
 
 export const leaguesRoutes = new Elysia({ prefix: '/api/v1/leagues' })
 	.get('/mine', async ({ request, set }) => {
@@ -60,6 +68,18 @@ export const leaguesRoutes = new Elysia({ prefix: '/api/v1/leagues' })
 
 		if (isNullish(user)) {
 			return unauthenticated(set);
+		}
+
+		const limited = enforceLimit({
+			set,
+			name: LEAGUE_INVITE_LIMIT_NAME,
+			ip: user.id,
+			limit: LEAGUE_INVITE_LIMIT_PER_HOUR,
+			windowMs: HOUR_IN_MS
+		});
+
+		if (limited) {
+			return limited;
 		}
 
 		return { league: await lookupLeagueByInvite(params.inviteCode) };
@@ -190,6 +210,18 @@ export const leaguesRoutes = new Elysia({ prefix: '/api/v1/leagues' })
 
 			if (isNullish(user)) {
 				return unauthenticated(set);
+			}
+
+			const limited = enforceLimit({
+				set,
+				name: LEAGUE_INVITE_LIMIT_NAME,
+				ip: user.id,
+				limit: LEAGUE_INVITE_LIMIT_PER_HOUR,
+				windowMs: HOUR_IN_MS
+			});
+
+			if (limited) {
+				return limited;
 			}
 
 			try {
