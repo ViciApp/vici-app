@@ -250,6 +250,8 @@ so doc-only changes typically pass it trivially.
 
 `package.json#packageManager` pins the npm that Dependabot installs (through corepack) to rewrite `package-lock.json`. Keep it on the latest npm 11, not on the npm bundled with `.node-version`: npm 11.6.1 drops the `@emnapi/*` entries of `@tailwindcss/oxide-wasm32-wasi` when it updates the lock, and `npm ci` then rejects the lockfile as out of sync. Stay below 12 while `@dfinity/eslint-config-oisy-wallet` declares `npm <12`: with `engine-strict=true` in `.npmrc`, any npm 12 install fails with `EBADENGINE`.
 
+A security alert on a transitive dependency is fixed in the lockfile first: `npm update <pkg>` (or of its parent) within the ranges already declared. Only when a parent's latest release still pins a vulnerable range does `package.json#overrides` take over, scoped to that parent (`"<parent>": { "<pkg>": "<patched range>" }`), never a top-level entry that would also rewrite every other consumer. Each scoped entry goes once the parent ships a patched range of its own. An alert with no patched version stays open: say who pulls the package in and whether it ever reaches the shipped bundle, never dismiss it.
+
 ### Merge queue (`merge_group`)
 
 Every PR-triggered workflow also answers `merge_group`, so the suites re-run against the queued combination and not only against each PR alone. `dependabot-bun-lock.yml` is the exception: it is `pull_request_target`, and a lockfile repair that pushes to the PR head means nothing against a queue ref.
