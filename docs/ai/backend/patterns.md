@@ -6,6 +6,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 - One Elysia instance per area with a prefix: `src/routes/wallet.ts` (`walletRoutes`). Mounted with `.use(...)` on `app` in `src/index.ts`.
 - Request shapes are Elysia `t` schemas in the route options (`src/routes/wallet.ts`, the `body` of `POST /withdrawals`). Zod is not used in the API; do not add it.
+- A number that reaches an `int` or `bigint` column with no domain check before the write is `t.Integer` with its bounds (the domain's constants, or `Number.MAX_SAFE_INTEGER` for a `bigint` that must stay exact): Postgres refuses a fraction or an out-of-range value as a fault, so `t.Number` there turns bad input into a 500 (`src/routes/battles.ts`, `POST /`). A value the domain already checks as an integer, like the duel scores in `resolveDuel` (`src/leagues/battles.ts`), may stay `t.Number`.
 - A handler gates first, then calls a domain function, then shapes the response: `src/routes/wallet.ts` (`/balances`).
 - Responses that carry candid values (bigint, `Principal`, bytes) go through `toJson` (`src/engine/serialize.ts`); never hand-convert.
 
@@ -19,6 +20,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 - The wire envelope is always `{ error: string }`, with a stable snake_case code (`insufficient_balance`, `chain_unavailable`). The frontend switches on that code through `Web2ApiError.code`, so a code is a contract: renaming one is a breaking change.
 - A 400 with a code is `badRequest(set, code)` from `src/lib/http.ts`; its `StatusContext` is the one type for Elysia's `set` in a helper signature.
 - Domain failures are `class XError extends Error {}` in the domain (`src/leagues/leagues.ts` `LeagueError`); the route maps them with `instanceof` and rethrows anything else: `src/routes/wallet.ts` `refusedWithdrawal`.
+- A create whose client-chosen id is already taken answers 409 with a `<thing>_exists` code, never the 500 of the raw unique violation: `insert ... on conflict (id) do nothing returning` and a typed error when no row comes back (`src/leagues/battles.ts` `BattleExistsError`, mapped in `src/routes/battles.ts`).
 - Everything unmapped falls to the global `onError` handler in `src/index.ts` (404 `not found`, 400 `bad request`, 503 `unavailable` when the database is down, 500 `internal`). Do not catch-and-500 in a route.
 - Engine order rejections have their own code table: [`backend/README.md` "Order rejections"](../../../backend/README.md#order-rejections).
 
@@ -47,6 +49,6 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 ## Rate limiting
 
-- `enforceLimit({ set, name, ip, limit, windowMs })` (`src/lib/rate-limit.ts`) with `clientIp(request)` from `src/lib/http.ts`, on every unauthenticated endpoint that sends email, issues a session, writes rows or can be enumerated. A signed-in endpoint that checks a guessable code keys it by the account instead (`ip: user.id`, `src/routes/school.ts` `/verify`), so a shared campus network does not pool users. In-memory, per instance.
+- `enforceLimit({ set, name, ip, limit, windowMs })` (`src/lib/rate-limit.ts`) with `clientIp(request)` from `src/lib/http.ts`, on every unauthenticated endpoint that sends email, issues a session, writes rows or can be enumerated. A signed-in endpoint that checks a guessable code, or fans out costly work on every call, keys it by the account instead (`ip: user.id`, `src/routes/school.ts` `/verify`, the trade activity in `src/routes/social.ts`), so a shared campus network does not pool users. In-memory, per instance.
 - An endpoint that writes what an anonymous caller sends also bounds its size: `maxItems` on the body array and a length cap on every free string, both as named constants in the domain (`MAX_EVENTS_PER_BATCH`, `MAX_PATH_LENGTH` in `src/analytics/events.ts`). Under that, `MAX_REQUEST_BODY_BYTES` (`src/index.ts`) caps every request body in the server.
 - Each limit is a named constant at the top of its route module, with its window in the name (`OTP_VERIFY_LIMIT_PER_TEN_MINUTES` in `src/routes/auth.ts`, `INGEST_LIMIT_PER_MINUTE` in `src/routes/events.ts`), and the window is a duration from `src/lib/time.ts`; never an inline number in the `enforceLimit` call.

@@ -431,13 +431,3 @@ export const syncRoleToEngineOnDelete = async (ctx: OnDeleteDocContext): Promise
 		throw e;
 	}
 };
-
-/**
- * Exposed for unit testing: the UserRole → EngineRole mapping table.
- */
-export const __testOnly = {
-	ROLE_TO_ENGINE_ROLES,
-	diffRoles,
-	engineRoleKey,
-	shouldBeOracleSettler
-};

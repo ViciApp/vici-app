@@ -10,7 +10,6 @@ import {
 	deriveServiceKey,
 	deriveUserKey,
 	engineReaderIcIdentity,
-	publicKeyForChain,
 	treasuryIcIdentity,
 	userIcIdentity,
 	userIcPrincipalText
@@ -48,19 +47,6 @@ describe('deriveUserKey', () => {
 		for (const chain of ['evm', 'btc'] as const) {
 			expect(secp256k1.utils.isValidSecretKey(deriveUserKey({ userId: USER_A, chain }))).toBe(true);
 		}
-	});
-
-	test('public keys derive on the right curve (32B ed25519, 33B secp)', () => {
-		expect(
-			publicKeyForChain({ privateKey: deriveUserKey({ userId: USER_A, chain: 'ic' }), chain: 'ic' })
-				.length
-		).toBe(32);
-		expect(
-			publicKeyForChain({
-				privateKey: deriveUserKey({ userId: USER_A, chain: 'evm' }),
-				chain: 'evm'
-			}).length
-		).toBe(33);
 	});
 });
 

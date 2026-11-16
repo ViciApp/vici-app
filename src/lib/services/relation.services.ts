@@ -2,7 +2,6 @@ import { functions } from '#declarations/satellite/satellite.api.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { syncGroupAdminsAfterUnfriend } from '#lib/services/group.services.ts';
 import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
-import { toRelationId } from '#lib/utils/relation.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	acceptFriendRequest as acceptFriendRequestWeb2,
@@ -11,7 +10,6 @@ import {
 	rejectFriendRequest as rejectFriendRequestWeb2,
 	searchProfiles as searchProfilesWeb2,
 	sendFriendRequest as sendFriendRequestWeb2,
-	unfollowUser as unfollowUserWeb2,
 	unfriendUser as unfriendUserWeb2
 } from '#lib/web2/client.ts';
 import { isNullish } from '@dfinity/utils';
@@ -241,35 +239,4 @@ export const followUser = async ({
 	}
 
 	await functions.followUser({ target });
-};
-
-export const unfollowUser = async (params: {
-	sender: PrincipalText;
-	target: PrincipalText;
-}): Promise<void> => {
-	if (isWeb2Backend()) {
-		await unfollowUserWeb2(params.target);
-
-		return;
-	}
-
-	const relationId = toRelationId(params);
-
-	const doc = await getDoc<Relation>({
-		collection: Collection.RELATIONS,
-		key: relationId
-	});
-
-	if (isNullish(doc)) {
-		throw new Error('Relation does not exist');
-	}
-
-	try {
-		await deleteDoc({
-			collection: Collection.RELATIONS,
-			doc
-		});
-	} catch (e: unknown) {
-		console.error('Failed to unfollow', e);
-	}
 };

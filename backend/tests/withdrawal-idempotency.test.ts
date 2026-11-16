@@ -14,12 +14,12 @@ import { createSession } from '../src/auth/sessions';
 import { ensureInternalAccount, ensureUserAccount } from '../src/custody/accounts';
 import { getAssetBySymbol, type Asset } from '../src/custody/assets';
 import { postLedgerEvent } from '../src/custody/ledger';
-import { userChainBalance } from '../src/custody/withdrawals';
 import { query, tx } from '../src/db/client';
 import { setEngineActorProvider, type IcrcLedgerActor } from '../src/engine/actors';
 import { app } from '../src/index';
 import { userIcPrincipalText } from '../src/lib/keys';
 import { createTestUser, ensureMigrated } from './helpers/auth';
+import { userChainBalance } from './helpers/custody';
 import { dbAvailable } from './helpers/setup';
 
 const FEE = BigInt(10);

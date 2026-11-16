@@ -103,7 +103,6 @@ snippets:
 - `src/lib/components/ui/InfiniteScroll.svelte`
 - `src/lib/components/ui/LoadingSpinner.svelte`
 - `src/lib/components/ui/Notifications.svelte` (renders toasts from `notification.store`)
-- `src/lib/components/ui/PopOver.svelte`
 - `src/lib/components/ui/PrincipalText.svelte` (formatted principal: code-shaped, not translated)
 - `src/lib/components/ui/Tabs.svelte` (consumers pass localized `label`s)
 
