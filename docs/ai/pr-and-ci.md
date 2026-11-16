@@ -209,6 +209,8 @@ and `ref: github.event.pull_request.head.ref || github.ref`; it refuses a
 detached HEAD, and it won't commit again when the branch head is already its own commit (output that still drifts then isn't converging, so it is reported instead of looping). `dependabot-bun-lock.yml` stays on plain git: under
 `pull_request_target` it must not run action code from the PR tree.
 
+A job that checks out a pull request by branch name (`github.event.pull_request.head.ref`, as every `apply-changes` job must) never writes a cache: it restores with `actions/cache/restore` the caches a sibling job saves from the default checkout (`format` reads the ones `lint` saves). A job that needs the PR's code but not its branch checks it out by `github.event.pull_request.head.sha` (`e2e`). The reason is GitHub's cache scopes: a run on `push` to `main`, `schedule` or `workflow_dispatch` writes to `main`'s scope, which every branch and PR reads. CodeQL's cache-poisoning queries (`actions/cache-poisoning/*`) take a job's events from the workflow's `on:` and ignore `if:`, so an `event_name` guard on the checkout does not count: in a workflow that also runs on `schedule` or `workflow_dispatch`, a checkout by PR branch name followed by a cache write, or in a job without secrets by any step that runs repo code, is flagged.
+
 `config apply` (**applies** `juno.config.ts`, collection rules + authentication
 config, to the production satellite) is **run manually**, not in CI. Use
 `juno config apply` locally with the Administrator `JUNO_TOKEN`. The repo stays
