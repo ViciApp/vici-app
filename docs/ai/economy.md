@@ -172,14 +172,18 @@ The bound that protects each surface today:
   never carries tenure. The join time is server-stamped on both backends
   (the API's `joined_at_ms`, the satellite doc's `created_at`), never a
   caller-written field.
-- **Tournament prize**: once per member per tournament, whatever the
-  place: a member of several podium leagues gets the highest tier, and a
-  claim for a second place is refused. Only a membership that predates
-  the draw counts: the draw seeds the bracket from that roster, so joining
-  a placed league afterwards (including after the tournament concluded)
-  earns nothing, and a member who left before claiming has no membership
-  left to count. The satellite judges the join by the membership doc's
-  stored creation time, never the client-written join field.
+- **Tournament prize**: the draw runs for the current UTC month only. A
+  closed month has every round window behind it, so drawing it would
+  conclude the bracket at once on double forfeits and pay prizes for a
+  tournament nobody played. The prize is once per member per tournament,
+  whatever the place: a member of several podium leagues gets the
+  highest tier, and a claim for a second place is refused. Only a
+  membership that predates the draw counts: the draw seeds the bracket
+  from that roster, so joining a placed league afterwards (including
+  after the tournament concluded) earns nothing, and a member who left
+  before claiming has no membership left to count. The satellite judges
+  the join by the membership doc's stored creation time, never the
+  client-written join field.
 
 Every count-bounded cap (flow overtime, calibration, league founder) is
 **strict**, never a soft limit: the count and the award insert run in one

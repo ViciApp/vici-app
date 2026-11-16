@@ -4,6 +4,7 @@ import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
 import {
 	matchCountForRound,
+	monthStartMs,
 	roundWindow,
 	TOURNAMENT_BRACKET_SIZE,
 	TOURNAMENT_MIN_CALLS_PER_MATCH,
@@ -23,6 +24,7 @@ import { getLeagueStatsFn } from '#satellite/services/league-stats.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
+import { tournamentDrawMonthRefusal } from '#satellite/utils/tournament-draw.utils.ts';
 import {
 	decideTournamentPrize,
 	tournamentPodium,
@@ -48,9 +50,10 @@ import {
  *    write or delete (see `assertControllerWriter`), then key shape,
  *    write-once invariants on team / accuracy / winner / start-snapshot
  *    fields, forward-only state machine `in_flight → concluded`.
- *  - `triggerTournamentDrawFn`: anyone can call; idempotent via
- *    doc-key collision on the month anchor. Scans LEAGUE_MEMBERS,
- *    counts members per league, seeds the top-16 into Round 1, and
+ *  - `triggerTournamentDrawFn`: anyone can call, for the current UTC
+ *    month only; idempotent via doc-key collision on the month
+ *    anchor. Scans LEAGUE_MEMBERS, counts members per league,
+ *    seeds the top-16 into Round 1, and
  *    snapshots each seeded league's `(totalCalls, wins)` for the
  *    per-window accuracy computation in resolution.
  *  - `getCurrentTournamentFn`: returns the latest tournament + its
@@ -379,7 +382,9 @@ export interface TriggerTournamentDrawResult {
  * Run the monthly draw for `monthAnchor`. Anyone can call (the
  * doc-key collision makes the draw idempotent: a second call for
  * the same month returns `already_drawn` cleanly), so the FE can
- * fire-and-forget on every Tournament-page mount.
+ * fire-and-forget on every Tournament-page mount. Only the current
+ * UTC month is drawn; any other month is refused before any read
+ * (`tournamentDrawMonthRefusal`).
  *
  * Refuses if fewer than `TOURNAMENT_BRACKET_SIZE` leagues exist:
  * the data set is too small to seed a full bracket. The FE surfaces
@@ -390,8 +395,11 @@ export const triggerTournamentDrawFn = ({
 }: {
 	monthAnchor: string;
 }): TriggerTournamentDrawResult => {
-	if (!MONTH_ANCHOR_RE.test(monthAnchor)) {
-		return { ok: false, reason: 'invalid_input' };
+	const nowMs = timeMs();
+	const monthRefusal = tournamentDrawMonthRefusal({ monthAnchor, nowMs });
+
+	if (nonNullish(monthRefusal)) {
+		return { ok: false, reason: monthRefusal };
 	}
 
 	const caller = msgCaller();
@@ -408,17 +416,7 @@ export const triggerTournamentDrawFn = ({
 		return { ok: false, reason: 'already_drawn', tournamentId: monthAnchor };
 	}
 
-	// Compute the month's window. The draw can be triggered for any
-	// month that has *started*; the lazy-on-mount pattern triggers
-	// the draw on the first day of a new month.
-	const nowMs = timeMs();
-	const [year, monthStr] = monthAnchor.split('-');
-	const monthDate = new Date(Date.UTC(Number(year), Number(monthStr) - 1, 1, 0, 0, 0, 0));
-	const startMs = monthDate.getTime();
-
-	if (startMs > nowMs) {
-		return { ok: false, reason: 'month_not_started' };
-	}
+	const startMs = monthStartMs(nowMs);
 
 	const ranking = countMembersPerLeague(callerBytes);
 

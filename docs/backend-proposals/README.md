@@ -423,8 +423,10 @@ The full tournament chain has landed.
 - `TOURNAMENT_MATCHES` collection + `assertSetTournamentMatch`
   (key shape, write-once invariants on team / accuracy / winner /
   start-snapshot fields).
-- `triggerTournamentDraw({ monthAnchor })`: anyone can call;
-  idempotent via doc-key collision on the month anchor. Scans
+- `triggerTournamentDraw({ monthAnchor })`: anyone can call, for the
+  current UTC month only (a closed month is `invalid_input`, a future
+  one `month_not_started`); idempotent via doc-key collision on the
+  month anchor. Scans
   `LEAGUE_MEMBERS`, counts members per league, seeds the top-16
   into Round 1 + creates TBD slots for the later rounds so the FE
   bracket renders the skeleton immediately. Snapshots each seeded
