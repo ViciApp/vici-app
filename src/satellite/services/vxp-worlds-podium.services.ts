@@ -2,7 +2,11 @@ import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VXP_WORLDS_PODIUM } from '#lib/constants/vxp-economy.constants.ts';
 import { affiliationStatsSnapshotKey } from '#lib/types/affiliation-stats.ts';
-import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
+import {
+	AFFILIATION_KINDS,
+	type AffiliationDoc,
+	type AffiliationKind
+} from '#lib/types/affiliation.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
@@ -77,8 +81,6 @@ const PODIUM_PLACES: ReadonlyArray<{
 	{ place: 'silver', amount: vxpBaseUnits(VXP_WORLDS_PODIUM.silver) },
 	{ place: 'bronze', amount: vxpBaseUnits(VXP_WORLDS_PODIUM.bronze) }
 ] as const;
-
-const KINDS: ReadonlyArray<AffiliationKind> = ['university', 'country'] as const;
 
 export interface ClaimWorldsPodiumPrizeResult {
 	monthAnchor: string;
@@ -186,7 +188,7 @@ export const claimWorldsPodiumPrizeFn = async ({
 	let awardsAlreadyClaimed = 0;
 	let foundAnyEligibleAffiliation = false;
 
-	for (const kind of KINDS) {
+	for (const kind of AFFILIATION_KINDS) {
 		// Frozen-at-close: the first claim of the month captures the ranking over
 		// the current opted-in roster so the podium + cup stay stable across
 		// claimants. A no-op once the month is already frozen.

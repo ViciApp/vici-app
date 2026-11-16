@@ -29,14 +29,10 @@
 	import DashStackCard from '#lib/components/dash/DashStackCard.svelte';
 	import DashStackSheet from '#lib/components/dash/DashStackSheet.svelte';
 	import ResolutionReveal from '#lib/components/market/ResolutionReveal.svelte';
-	import {
-		DAY_IN_MS,
-		MILLISECOND_IN_NANOSECONDS,
-		USD_DECIMALS,
-		ZERO
-	} from '#lib/constants/app.constants.ts';
+	import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { marketTags } from '#lib/derived/market-tags.derived.ts';
 	import { orders } from '#lib/derived/orders.derived.ts';

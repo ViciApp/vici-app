@@ -1,4 +1,5 @@
 import type { RegistryDid } from '#declarations';
+import { DAY_IN_MS, WEEK_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { isDev } from '#lib/env/app.env.ts';
 import { toNullable, type Nullable } from '@dfinity/utils';
 
@@ -28,22 +29,6 @@ export const RESOLUTION_CLAUSE_MAX_LENGTH = 1024;
 /** Placeholder for an absent / not-yet-served value in the UI: an en dash,
  * which code standard rule 14 allows on its own (it bans only the em dash). */
 export const EMPTY_VALUE = '–';
-
-export const SECOND_IN_NANOSECONDS = 1_000_000_000n;
-export const MILLISECOND_IN_NANOSECONDS = 1_000_000n;
-
-/** One minute in milliseconds. */
-export const MINUTE_IN_MS = 60_000;
-/** One hour in milliseconds. */
-export const HOUR_IN_MS = 60 * MINUTE_IN_MS;
-/** One day in milliseconds: `24 × 60 × 60 × 1000`. */
-export const DAY_IN_MS = 24 * HOUR_IN_MS;
-export const MINUTE_IN_SECONDS = 60n;
-export const HOUR_IN_SECONDS = 60n * MINUTE_IN_SECONDS;
-export const DAY_IN_SECONDS = 24n * HOUR_IN_SECONDS;
-export const DAY_IN_NANOSECONDS = DAY_IN_SECONDS * SECOND_IN_NANOSECONDS;
-export const WEEK_IN_SECONDS = 7n * DAY_IN_SECONDS;
-export const WEEK_IN_NANOSECONDS = WEEK_IN_SECONDS * SECOND_IN_NANOSECONDS;
 
 /**
  * Retention horizon for the `resolved_results` collection, in milliseconds.

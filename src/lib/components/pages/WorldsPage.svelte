@@ -20,6 +20,7 @@
 	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
+	import type { AffiliationKind } from '#lib/types/affiliation.ts';
 	import { affiliationChipStyle } from '#lib/utils/affiliation-chip.utils.ts';
 	import {
 		affiliationLifetimeAccuracy,
@@ -71,7 +72,7 @@
 
 	let scope = $state<Scope>('wc');
 	let expanded = $state(false);
-	let pickerKind = $state<'university' | 'country' | null>(null);
+	let pickerKind = $state<AffiliationKind | null>(null);
 
 	let podiumClaim = $state<{ monthAnchor: string; awardsCreated: number } | null>(null);
 

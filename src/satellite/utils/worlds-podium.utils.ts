@@ -1,4 +1,4 @@
-import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { monthEndMs } from '#lib/utils/month-anchor.utils.ts';
 
 /**

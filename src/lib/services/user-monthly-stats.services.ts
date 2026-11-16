@@ -1,7 +1,8 @@
 import type * as ClearingDid from '#declarations/clearing/clearing.d.ts';
 import { functions } from '#declarations/satellite/satellite.api.ts';
-import { MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import {
 	MONTHLY_CONSENSUS_LIMIT,
 	userMonthlyStatsKey,

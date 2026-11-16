@@ -22,8 +22,9 @@
  * satellite.
  */
 
-import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import {
 	ANALYTICS_PROP_KEYS,

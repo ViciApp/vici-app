@@ -4,8 +4,9 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
-	import { DAY_IN_MS, EMPTY_VALUE } from '#lib/constants/app.constants.ts';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { track } from '#lib/services/analytics.services.ts';
 	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 	import {

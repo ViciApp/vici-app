@@ -1,9 +1,6 @@
 import type { ClearingDid } from '#declarations';
-import {
-	DAY_IN_NANOSECONDS,
-	MILLISECOND_IN_NANOSECONDS,
-	ZERO
-} from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { DAY_IN_NANOSECONDS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
 
 /**

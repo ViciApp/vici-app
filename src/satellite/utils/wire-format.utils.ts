@@ -2,6 +2,7 @@ import { LeaguePrivacy } from '#lib/enums/league.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { UserRole } from '#lib/enums/user.ts';
+import { AFFILIATION_KINDS, type AffiliationKind } from '#lib/types/affiliation.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { ReferralListItem } from '#lib/types/referral.ts';
 import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
@@ -603,7 +604,7 @@ export const toWireBattle = (battle: {
 // return the projected doc directly without a `toWire` step.
 export const AffiliationWireSchema = j.strictObject({
 	member: PrincipalTextSchema,
-	kind: j.enum(['university', 'country']),
+	kind: j.enum(AFFILIATION_KINDS),
 	affiliationIdentifier: j.string(),
 	joinedAtMs: j.number(),
 	lockedUntilMs: j.number()
@@ -613,7 +614,7 @@ export type WireAffiliation = j.infer<typeof AffiliationWireSchema>;
 
 export const toWireAffiliation = (aff: {
 	member: string;
-	kind: 'university' | 'country';
+	kind: AffiliationKind;
 	affiliationIdentifier: string;
 	joinedAtMs: number;
 	lockedUntilMs: number;
@@ -631,7 +632,7 @@ export const toWireAffiliation = (aff: {
 // `j.optional(...)` (`getAffiliationStats`) endpoints.
 export const AffiliationStatsWireSchema = j.strictObject({
 	affiliationIdentifier: j.string(),
-	kind: j.enum(['university', 'country']),
+	kind: j.enum(AFFILIATION_KINDS),
 	totalCalls: j.number(),
 	wins: j.number(),
 	monthAnchor: j.string(),
@@ -644,7 +645,7 @@ export type WireAffiliationStats = j.infer<typeof AffiliationStatsWireSchema>;
 
 export const toWireAffiliationStats = (stats: {
 	affiliationIdentifier: string;
-	kind: 'university' | 'country';
+	kind: AffiliationKind;
 	totalCalls: number;
 	wins: number;
 	monthAnchor: string;
@@ -666,7 +667,7 @@ export const toWireAffiliationStats = (stats: {
 // member-count endpoint.
 export const AffiliationMemberCountWireSchema = j.strictObject({
 	affiliationIdentifier: j.string(),
-	kind: j.enum(['university', 'country']),
+	kind: j.enum(AFFILIATION_KINDS),
 	memberCount: j.number()
 });
 
@@ -674,7 +675,7 @@ export type WireAffiliationMemberCount = j.infer<typeof AffiliationMemberCountWi
 
 export const toWireAffiliationMemberCount = (count: {
 	affiliationIdentifier: string;
-	kind: 'university' | 'country';
+	kind: AffiliationKind;
 	memberCount: number;
 }): WireAffiliationMemberCount => ({
 	affiliationIdentifier: count.affiliationIdentifier,

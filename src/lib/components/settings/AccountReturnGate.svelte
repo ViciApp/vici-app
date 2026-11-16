@@ -2,7 +2,8 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Loader2 } from '@lucide/svelte/icons';
 	import Button from '#lib/components/ui/Button.svelte';
-	import { ACCOUNT_RECOVERY_WINDOW_MS, DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { ACCOUNT_RECOVERY_WINDOW_MS } from '#lib/constants/app.constants.ts';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { recoverMyAccount, resumeMyAccount } from '#lib/services/account.services.ts';
 	// The dual-mode sign-out: the Juno delegation drop on the default
 	// backend, the cookie-session revoke in web2 mode.

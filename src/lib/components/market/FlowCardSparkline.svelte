@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { MarketEvent } from '#lib/types/market-metadata.ts';
 	import { sparklinePoints } from '#lib/utils/flow-card-display.utils.ts';

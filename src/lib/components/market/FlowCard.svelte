@@ -7,7 +7,7 @@
 	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
 	import SeededAvatarStack from '#lib/components/ui/SeededAvatarStack.svelte';
-	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { VXP_DEFAULT_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 	import { lookupWcMarketSubtitle } from '#lib/constants/wc-market-subtitles.constants.ts';
 	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';

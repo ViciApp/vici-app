@@ -1,9 +1,10 @@
-import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import {
 	AFFILIATION_KINDS,
 	AFFILIATION_LOCK_MS,
 	affiliationKey,
+	isAffiliationKind,
 	type AffiliationDoc
 } from '#lib/types/affiliation.ts';
 import { captureServerEvents } from '#satellite/services/analytics.services.ts';
@@ -27,7 +28,7 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  *     between key and embedded fields is rejected.
  *  2. **Member binds caller.** A user can only write their own
  *     affiliation rows.
- *  3. **Kind validation.** Must be 'university' or 'country'.
+ *  3. **Kind validation.** Must be one of `AFFILIATION_KINDS`.
  *  4. **Server-computed lock.** `lockedUntilMs` must equal
  *     `joinedAtMs + AFFILIATION_LOCK_MS`. The user can't extend or
  *     shorten the window: the server arithmetic is the source of
@@ -68,9 +69,9 @@ export const assertSetAffiliation = ({
 	}
 
 	// 3. Kind validation.
-	if (!AFFILIATION_KINDS.has(proposedDoc.kind)) {
+	if (!isAffiliationKind(proposedDoc.kind)) {
 		throw new Error(
-			`affiliations kind must be one of ${[...AFFILIATION_KINDS].join(' | ')} (got "${proposedDoc.kind}").`
+			`affiliations kind must be one of ${AFFILIATION_KINDS.join(' | ')} (got "${proposedDoc.kind}").`
 		);
 	}
 

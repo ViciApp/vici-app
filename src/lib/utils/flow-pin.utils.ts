@@ -1,4 +1,4 @@
-import { HOUR_IN_MS } from '#lib/constants/app.constants.ts';
+import { HOUR_IN_MS } from '#lib/constants/time.constants.ts';
 import {
 	del as storageDel,
 	get as storageGet,

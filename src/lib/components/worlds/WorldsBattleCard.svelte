@@ -7,6 +7,7 @@
 	} from '#lib/constants/worlds-affiliations.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
+	import type { AffiliationKind } from '#lib/types/affiliation.ts';
 	import { affiliationChipStyle } from '#lib/utils/affiliation-chip.utils.ts';
 	import { affiliationDisplayName } from '#lib/utils/affiliation-name.utils.ts';
 	import {
@@ -39,7 +40,7 @@
 	 * detail surface uses.
 	 */
 	interface Props {
-		kind: 'university' | 'country';
+		kind: AffiliationKind;
 		// Full roster stats; the card sorts these per the active scope.
 		stats: AffiliationStatsDoc[];
 		// Viewer's affiliation identifier, or undefined when unaffiliated.

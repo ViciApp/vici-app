@@ -1,10 +1,5 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
-import {
-	DAY_IN_MS,
-	HOUR_IN_MS,
-	MILLISECOND_IN_NANOSECONDS,
-	ZERO
-} from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import {
 	CLEARING_CANISTER_ID,
 	REGISTRY_CANISTER_ID,
@@ -12,6 +7,11 @@ import {
 } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
+import {
+	DAY_IN_MS,
+	HOUR_IN_MS,
+	MILLISECOND_IN_NANOSECONDS
+} from '#lib/constants/time.constants.ts';
 import {
 	CALIBRATION_DAILY_CAP,
 	CALIBRATION_HOURLY_CAP,

@@ -1,10 +1,4 @@
-import {
-	DAY_IN_MS,
-	EMPTY_VALUE,
-	MILLISECOND_IN_NANOSECONDS,
-	USD_DECIMALS,
-	ZERO
-} from '#lib/constants/app.constants.ts';
+import { EMPTY_VALUE, USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import {
 	INBOX_DISMISSED_STORAGE_KEY,
 	INBOX_PROGRESS_STORAGE_KEY,
@@ -13,6 +7,7 @@ import {
 } from '#lib/constants/inbox.constants.ts';
 import { DEFAULT_LOCALE, type AppLocale } from '#lib/constants/locale.constants.ts';
 import { AppPath } from '#lib/constants/routes.constants.ts';
+import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { marketsNotInitialized } from '#lib/derived/markets.derived.ts';
 import {
 	resolvedPositions,

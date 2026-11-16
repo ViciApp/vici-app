@@ -1,4 +1,4 @@
-import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 import { isNullish } from '@dfinity/utils';
 

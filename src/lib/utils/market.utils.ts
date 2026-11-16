@@ -1,5 +1,6 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
-import { MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import type { Market, MarketStatus, Outcome, TradingAccessUI } from '#lib/types/market.ts';
 import type { OrderBookLevel, OrderType } from '#lib/types/order.ts';
 import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';

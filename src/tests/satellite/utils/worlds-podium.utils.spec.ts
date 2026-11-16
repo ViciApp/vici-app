@@ -1,4 +1,4 @@
-import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { joinedBeforeMonthClose } from '#satellite/utils/worlds-podium.utils.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';

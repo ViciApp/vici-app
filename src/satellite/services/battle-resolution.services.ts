@@ -1,7 +1,7 @@
 import type { ClearingDid } from '#declarations';
-import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import {
 	BATTLE_SCOPE_DEFAULT,
 	battleAccuracyPct,

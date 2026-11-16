@@ -1,11 +1,11 @@
 import type { ClearingDid } from '#declarations';
+import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
 import {
 	DAY_IN_MS,
 	HOUR_IN_MS,
 	MILLISECOND_IN_NANOSECONDS,
-	MINUTE_IN_MS,
-	USD_DECIMALS
-} from '#lib/constants/app.constants.ts';
+	MINUTE_IN_MS
+} from '#lib/constants/time.constants.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import Decimal from 'decimal.js';
 import { type BigNumberish, formatUnits } from 'ethers/utils';

@@ -1,4 +1,4 @@
-import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 
 /**
  * Worlds affiliations: a user's self-selected university and /
@@ -27,13 +27,19 @@ import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
  * sidesteps the rename quirk.
  */
 
-export type AffiliationKind = 'university' | 'country';
+/** The Worlds slots: a user holds at most one affiliation of each kind. */
+export const AFFILIATION_KINDS = ['university', 'country'] as const;
+
+export type AffiliationKind = (typeof AFFILIATION_KINDS)[number];
+
+export const isAffiliationKind = (value: string): value is AffiliationKind =>
+	(AFFILIATION_KINDS as readonly string[]).includes(value);
 
 export interface AffiliationDoc {
 	/** Member principal text. Matches the prefix in the doc key. */
 	member: string;
-	/** Which slot: university or country. Part of the doc key so a
-	 *  user can hold one of each at once. */
+	/** Which slot. Part of the doc key so a user can hold one of each
+	 *  kind at once. */
 	kind: AffiliationKind;
 	/** External identifier: university slug (`mit`, `usp`) or
 	 *  ISO-3166 alpha-2 country code. */
@@ -45,11 +51,6 @@ export interface AffiliationDoc {
 	 *  to reject early-leave attempts. */
 	lockedUntilMs: number;
 }
-
-export const AFFILIATION_KINDS: ReadonlySet<AffiliationKind> = new Set<AffiliationKind>([
-	'university',
-	'country'
-]);
 
 /**
  * Lock window: 90 days.
