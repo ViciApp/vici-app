@@ -1,4 +1,3 @@
-import { MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAILY_HARD_CAP } from '#lib/constants/flow-rewards.constants.ts';
 import {
@@ -7,6 +6,7 @@ import {
 	NICKNAME_PATTERN,
 	nicknameUniqueKey
 } from '#lib/constants/profile.constants.ts';
+import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import type { UserRole } from '#lib/enums/user.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { DAY_KEY_RE } from '#lib/utils/streak.utils.ts';

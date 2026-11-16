@@ -1,6 +1,6 @@
 import { functions } from '#declarations/satellite/satellite.api.ts';
-import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import type { AffiliationChampionship, AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
 import {

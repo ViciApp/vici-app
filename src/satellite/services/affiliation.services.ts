@@ -1,5 +1,5 @@
-import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import {
 	AFFILIATION_KINDS,
 	AFFILIATION_LOCK_MS,

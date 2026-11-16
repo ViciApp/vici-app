@@ -1,6 +1,7 @@
-import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import {
 	COMEBACK_AWAY_DAYS,
 	COMEBACK_BALANCE_FLOOR_BASE_UNITS,

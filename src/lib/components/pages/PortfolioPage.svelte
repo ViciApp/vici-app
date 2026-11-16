@@ -8,13 +8,10 @@
 	import PortfolioEmptyState from '#lib/components/portfolio/PortfolioEmptyState.svelte';
 	import PortfolioHero from '#lib/components/portfolio/PortfolioHero.svelte';
 	import PortfolioPerformanceCard from '#lib/components/portfolio/PortfolioPerformanceCard.svelte';
-	import {
-		EMPTY_VALUE,
-		MILLISECOND_IN_NANOSECONDS,
-		USD_DECIMALS
-	} from '#lib/constants/app.constants.ts';
+	import { EMPTY_VALUE, USD_DECIMALS } from '#lib/constants/app.constants.ts';
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import { marketTags } from '#lib/derived/market-tags.derived.ts';
 	import { markets, marketsNotInitialized } from '#lib/derived/markets.derived.ts';

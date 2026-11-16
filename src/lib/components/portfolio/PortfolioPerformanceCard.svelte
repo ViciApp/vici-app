@@ -1,10 +1,7 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import {
-		DAY_IN_MS,
-		MILLISECOND_IN_NANOSECONDS,
-		USD_DECIMALS
-	} from '#lib/constants/app.constants.ts';
+	import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
+	import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { Market } from '#lib/types/market.ts';

@@ -11,7 +11,7 @@
  * See `vxp-economy.utils.ts` for the payout formula.
  */
 
-import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**

@@ -1,4 +1,5 @@
-import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**

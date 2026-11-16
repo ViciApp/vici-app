@@ -1,4 +1,4 @@
-import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { track } from '#lib/services/analytics.services.ts';
 import {
 	get as storageGet,

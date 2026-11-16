@@ -2,8 +2,8 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Search, X } from '@lucide/svelte/icons';
 	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
-	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		listChallengeableLeagues,

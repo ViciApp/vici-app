@@ -2,8 +2,9 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
-	import { DAY_IN_MS, EMPTY_VALUE, MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 	import {
 		claimTournamentPrize,
 		getCurrentTournament,
