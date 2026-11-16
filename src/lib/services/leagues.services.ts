@@ -541,8 +541,9 @@ export const createLeague = async ({
  * `id`, `createdAtMs`, `inviteCode`, and `emblem` stay frozen: `name`,
  * `privacy`, and `imageUrl` are the mutable fields.
  *
- * Pass `name` to rename (trimmed + re-validated against the same 3–40
- * char window the create flow enforces; an invalid name throws before
+ * Pass `name` to rename (trimmed + re-validated against the same
+ * `LEAGUE_NAME_MIN_LENGTH`–`LEAGUE_NAME_MAX_LENGTH` window the create
+ * flow enforces; an invalid name throws before
  * any write). Pass `privacy` to change the league's visibility (any of
  * the three variants; the assert range-checks it). Pass `imageUrl` to
  * set or change the cover image, or `''` to clear it (the field is

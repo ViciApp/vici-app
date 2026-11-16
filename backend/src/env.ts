@@ -1,10 +1,10 @@
 // Validated environment. In production DATABASE_URL, SESSION_SECRET,
 // RESEND_API_KEY and ROOT_SECRET are required and the process refuses to boot
-// without them; everything else is optional. In dev every var carries a local default so `bun dev` works with
-// just the docker-compose Postgres.
+// without them; everything else is optional. In dev every var carries a local
+// default so `bun dev` works with just the docker-compose Postgres.
 //
-// Optional integrations added by later phases (email, object storage, chain
-// adapters) follow a two-mode degrade: when unconfigured they log or stub
+// Optional integrations (email, object storage, chain adapters) follow a
+// two-mode degrade: when unconfigured they log or stub
 // (storage falls back to local disk in dev; email prints to the console, but
 // only outside production, where the console would carry sign-in codes)
 // instead of crashing, each exposed via an `enabled` getter on its own group.
@@ -142,7 +142,7 @@ export const loadEnv = (source: EnvSource): Env => {
 		port,
 		databaseUrl: requiredInProd('DATABASE_URL', 'postgres://vici:vici@localhost:5432/vici'),
 		// The public origin of the SPA: drives the credentialed CORS allowlist
-		// (and, in later phases, OAuth redirects). Defaults to the Vite dev server.
+		// and the post-sign-in redirects. Defaults to the Vite dev server.
 		publicAppUrl: optional('PUBLIC_APP_URL', 'http://localhost:5173'),
 		// Where THIS server is reachable, for building absolute callback URLs.
 		apiBaseUrl: optional('API_BASE_URL', `http://localhost:${port}`),

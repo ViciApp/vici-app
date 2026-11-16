@@ -44,9 +44,8 @@ import {
 type ListedDocEntry = ReturnType<typeof listDocsStore>['items'][number];
 
 /**
- * Account deletion: Proposal 4 in `docs/backend-proposals/README.md`
- * (Delete account v2: soft-delete + recovery + admin sweep, with
- * league resolution).
+ * Account deletion: soft-delete + recovery + admin sweep, with league
+ * resolution.
  *
  * `deleteMyAccount` runs four steps in order:
  *

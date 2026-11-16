@@ -675,7 +675,7 @@ export const listMyLeagues = defineQuery({
 });
 
 /**
- * Retroactive self-heal for the "Founder +100 VXP" reward. The `leagues`
+ * Retroactive self-heal for the league-founder reward. The `leagues`
  * `onSetDoc` hook pays this on creation going forward; this endpoint
  * back-pays leagues founded before the hook shipped. Idempotent (shares
  * the hook's dedupe key) and safe to call on every Leagues-page mount:
@@ -1011,7 +1011,7 @@ export const claimWorldsPodiumPrize = defineUpdate({
 	handler: claimWorldsPodiumPrizeFn
 });
 
-// Account deletion: Proposal 4. Pre-flight query that surfaces the
+// Account deletion pre-flight: a query that surfaces the
 // "you still own this non-empty league" guard so the FE can show
 // the transfer-first prompt before the user even picks a reason.
 export const listMyBlockingLeagues = defineQuery({
@@ -1203,12 +1203,9 @@ export const pruneResolvedResults = defineUpdate({
 	handler: () => pruneResolvedResultsFn()
 });
 
-// Monthly tournament: Proposal 3. The draw is fire-and-forget on
-// every Tournament-page mount: idempotent via doc-key collision on
-// the month anchor (a second call returns `already_drawn` cleanly).
-// Round resolution + prize claim are documented Proposal 3 follow-ups;
-// they need a per-window accuracy aggregation pipeline that
-// doesn't exist yet, so the bracket structure ships first.
+// Monthly tournament draw: fire-and-forget on every Tournament-page
+// mount, idempotent via doc-key collision on the month anchor (a second
+// call returns `already_drawn` cleanly).
 export const triggerTournamentDraw = defineUpdate({
 	args: j.strictObject({
 		monthAnchor: j.string()

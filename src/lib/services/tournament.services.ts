@@ -9,7 +9,7 @@ import {
 } from '#lib/web2/client.ts';
 
 /**
- * Monthly tournament: Proposal 3 FE wrappers.
+ * Monthly tournament FE wrappers.
  *
  * Pattern is the same as the Worlds podium: the satellite has no
  * scheduler, so the draw is fire-and-forget on every Tournament-

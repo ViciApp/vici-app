@@ -93,8 +93,7 @@ export const affiliationStatsSnapshotKey = ({
  * Minimum resolved-call count before an affiliation appears on the
  * ranked leaderboard. Below this, accuracy is too noisy to be
  * meaningful (a single-member school at 1/1 = 100% would otherwise
- * top the chart). Set per product decision (Proposal 1.2 in
- * `docs/backend-proposals/README.md`): low bar for the first launch
- * to keep the leaderboard populated as activity ramps.
+ * top the chart). A product decision: a low bar for the first launch
+ * keeps the leaderboard populated as activity ramps.
  */
 export const MIN_CALLS_FOR_RANK = 50;
