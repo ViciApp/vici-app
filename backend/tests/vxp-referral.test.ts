@@ -503,6 +503,78 @@ describe('trade-activity trigger', () => {
 	});
 });
 
+describe('hard-deleted referees', () => {
+	test('a paid conversion keeps its slot in the referrer tier after the referee is deleted', async () => {
+		stub = stubVxpLedger();
+		const referrer = await createTestUser();
+		const settled: string[] = [];
+
+		for (let i = 0; i < 5; i++) {
+			const referee = await createTestUser();
+
+			settled.push(referee);
+			await recordReferralRedemption({
+				refereeUserId: referee,
+				referrerUserId: referrer,
+				code: 'CODE0HDR',
+				redeemedAtMs: 4000 + i
+			});
+			await recordTrade(referee);
+			await settleReferralPayout({ refereeUserId: referee });
+		}
+
+		for (const referee of settled) {
+			await hardDeleteAccount(referee);
+		}
+
+		const next = await createTestUser();
+
+		await recordReferralRedemption({
+			refereeUserId: next,
+			referrerUserId: referrer,
+			code: 'CODE0HDR',
+			redeemedAtMs: 4010
+		});
+		await recordTrade(next);
+		await settleReferralPayout({ refereeUserId: next });
+
+		expect(
+			(await readAwardRow({ userId: referrer, awardType: 'referral', awardKey: next }))
+				?.amount_base_units
+		).toBe(parseVxp(250).toString());
+	});
+
+	test('a referee deleted before converting frees no paid slot and is never counted twice', async () => {
+		stub = stubVxpLedger();
+		const referrer = await createTestUser();
+		const unconverted = await createTestUser();
+
+		await recordReferralRedemption({
+			refereeUserId: unconverted,
+			referrerUserId: referrer,
+			code: 'CODE0HDU',
+			redeemedAtMs: 5000
+		});
+		await hardDeleteAccount(unconverted);
+
+		const next = await createTestUser();
+
+		await recordReferralRedemption({
+			refereeUserId: next,
+			referrerUserId: referrer,
+			code: 'CODE0HDU',
+			redeemedAtMs: 5001
+		});
+		await recordTrade(next);
+		await settleReferralPayout({ refereeUserId: next });
+
+		expect(
+			(await readAwardRow({ userId: referrer, awardType: 'referral', awardKey: next }))
+				?.amount_base_units
+		).toBe(parseVxp(500).toString());
+	});
+});
+
 describe('hard-deleted referrer', () => {
 	test('settlement still pays the referee and decides the cap slot, but never the dead referrer', async () => {
 		stub = stubVxpLedger();

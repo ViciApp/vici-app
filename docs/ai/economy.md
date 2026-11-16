@@ -119,7 +119,15 @@ The bound that protects each surface today:
   multiple) and the call-size ladder cap.
 - **Referrer reward**: diminishing curve **and** a hard lifetime cap
   to zero; the count comes from the satellite's own scan, so the client
-  cannot inflate it.
+  cannot inflate it, and deleting referred accounts never shrinks it. On
+  the web2 API a paid conversion keeps its slot through the referrer's
+  own referral award, which outlives the referee's redemption row
+  (`countPriorReferrerRedemptions` in
+  [`backend/src/vxp/referral.ts`](../../backend/src/vxp/referral.ts)).
+  On the satellite only a controller deletes a referral row, the account
+  purge keeps one that has started paying, and its payout state only
+  moves forward (`assertSetReferral`, `isReferralPayoutRecord` in
+  [`referral.services.ts`](../../src/satellite/services/referral.services.ts)).
 - **Referee reward**: one-time per account, only inside the
   post-signup redemption window.
 - **Streak / flow-volume milestones**: one-time per milestone, per

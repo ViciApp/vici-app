@@ -53,6 +53,13 @@ one pattern. Each of these has bitten a PR before:
   `deleteDocStore` runs the assert too, so a satellite path that must
   remove award docs (the account purge in `hardDeleteAccountFn`) signs
   as `controllerCaller(...)`.
+- **Referral rows keep their payout history.** `referrals` is
+  `write: 'public'` and holds both payout sides, and the referrer's
+  lifetime count is a scan of it. `assertSetReferral` lets a side's
+  state only move forward (`processing` back to `owed` is the one
+  retry step), and the account purge keeps a row that has started
+  paying (`isReferralPayoutRecord`), so deleting referred accounts never
+  frees a slot in the referrer's count.
 - **Eligibility times are server-stamped.** A gate on when something
   happened (a join, an activity day) reads a time the satellite wrote:
   the doc's Juno `created_at` or `timeMs()`, never a caller-written `*Ms`
