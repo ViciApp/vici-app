@@ -136,6 +136,21 @@ The bound that protects each surface today:
   **Owner decision pending:** give them a server-side source (a daily
   leaderboard snapshot, server-computed monthly awards), or leave them
   unpaid.
+- **Contrarian wins** are judged on the entry price, never on the
+  `Settled` event's price: that is the settlement price (1 for YES, 0
+  for NO), so it would make every NO win a long shot. The entry price
+  is the average cost of the side held into settlement, rebuilt from
+  the caller's `Executed` fills on that market: a buy takes YES at the
+  fill price, a sell takes NO at one minus it; a fill that adds to the
+  position folds in at its volume, one that reduces it leaves the
+  average unchanged, one that flips the side restarts it. Self-matched
+  trades (both rows of one event) are left out, since their price is
+  free to choose. A win counts when the held side is the side the
+  market paid and its entry price is at or below
+  `CONTRARIAN_PRICE_THRESHOLD`. Only binary price settlements are
+  judged: a categorical fill carries no outcome id, so the outcome held
+  cannot be priced. Code: `heldBinaryPosition` in
+  [`backend/src/vxp/predictions.ts`](../../backend/src/vxp/predictions.ts).
 - **Flow overtime**: once per day key, plus a rolling wall-clock cap
   counted off server-stamped creation times, so forged day keys cannot
   farm it.
