@@ -31,7 +31,7 @@ Already in place:
 
 - Award types: `flow_milestone`, `flow_overtime` in the `VxpAwardType`
   union (`src/lib/types/vxp-award.ts`) and its Zod mirror
-  (`src/lib/schema/vxp-award.schema.ts`). The doc comment already fixes the
+  (`src/lib/schema/vxp-award.schema.ts`, since removed). The doc comment already fixes the
   `awardKey` shapes: `flow_milestone` = the crossed threshold as text
   (`'10' | '100' | '500' | '1000'`); `flow_overtime` = the Flow
   daily-counter local-day key (`'<YYYY-MM-DD>'`, the `dayKey`
