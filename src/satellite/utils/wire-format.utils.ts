@@ -1,3 +1,4 @@
+import { defaultPreferences } from '#lib/constants/settings.constants.ts';
 import { LeaguePrivacy } from '#lib/enums/league.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
@@ -28,6 +29,8 @@ import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 // ─── UserProfile wire format ─────────────────────────────────────────────
 
+const PREFERENCE_DEFAULTS = defaultPreferences();
+
 export const UserProfileWireSchema = j.strictObject({
 	owner: PrincipalTextSchema,
 	nickname: j.string().default(''),
@@ -55,10 +58,10 @@ export const UserProfileWireSchema = j.strictObject({
 		.strictObject({
 			defaultAmount: j
 				.strictObject({
-					flow: j.string().default('0'),
-					manual: j.string().default('0')
+					flow: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.flow),
+					manual: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.manual)
 				})
-				.default({ flow: '0', manual: '0' })
+				.default(PREFERENCE_DEFAULTS.defaultAmount)
 		})
 		.optional()
 });
@@ -114,8 +117,9 @@ export const toWireProfile = (profile: AppProfileLike): WireUserProfile => ({
 	preferences: profile.preferences
 		? {
 				defaultAmount: {
-					flow: profile.preferences.defaultAmount?.flow ?? '0',
-					manual: profile.preferences.defaultAmount?.manual ?? '0'
+					flow: profile.preferences.defaultAmount?.flow ?? PREFERENCE_DEFAULTS.defaultAmount.flow,
+					manual:
+						profile.preferences.defaultAmount?.manual ?? PREFERENCE_DEFAULTS.defaultAmount.manual
 				}
 			}
 		: undefined
@@ -206,34 +210,18 @@ export const fromWireProfile = (profile: ApiWireProfile): UserProfile => ({
 	// round-tripped on this path. Default the rest to the schema's
 	// initial values so the rebuilt UserProfile is fully shaped.
 	preferences: {
+		...defaultPreferences(),
 		defaultAmount: {
-			flow: profile.preferences?.defaultAmount?.flow ?? '0',
-			manual: profile.preferences?.defaultAmount?.manual ?? '0'
+			flow: profile.preferences?.defaultAmount?.flow ?? PREFERENCE_DEFAULTS.defaultAmount.flow,
+			manual: profile.preferences?.defaultAmount?.manual ?? PREFERENCE_DEFAULTS.defaultAmount.manual
 		},
-		notify: {
-			streakReminder: true,
-			marketAlerts: true,
-			friendActivity: false,
-			weeklyDigest: true
-		},
-		flowSessionLength: 10,
-		hapticsEnabled: true,
-		soundEnabled: true,
 		sharing: {
+			...PREFERENCE_DEFAULTS.sharing,
 			// Derive from the canonical top-level `visibility` so the settings
 			// source-of-truth slice agrees with the real visibility on this
 			// wire profile (FRIENDS_ONLY → 'private') instead of hard-coding it.
-			profileVisibility: visibilityFromProfile(profile.visibility as ProfileVisibility),
-			callsPublic: true,
-			leaderboardOptIn: true,
-			worldsOptIn: true
-		},
-		flowTags: [],
-		worldCupMode: false,
-		savedMarketIds: [],
-		favoriteParticipantId: '',
-		favoriteSide: '',
-		onboardingCompleted: false
+			profileVisibility: visibilityFromProfile(profile.visibility as ProfileVisibility)
+		}
 	}
 });
 
