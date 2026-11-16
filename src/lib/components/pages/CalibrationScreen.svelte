@@ -34,7 +34,8 @@
 	 * hidden and calls YES / NO. The call is sent to the satellite, which
 	 * re-derives the winning side from the clearing settlement and is the
 	 * sole authority on correctness: the client never decides whether the
-	 * call was right. A correct call mints a fixed +20 VXP; a wrong call
+	 * call was right. A correct call mints the fixed
+	 * `VXP_CALIBRATION_REWARD_BASE_UNITS`; a wrong call
 	 * mints nothing and applies no penalty (losses are shielded), shown
 	 * honestly. A short pacing countdown arms the next card so the session
 	 * stays deliberate rather than a rapid-fire grind.

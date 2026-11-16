@@ -10,7 +10,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
-import { DAY_IN_MS } from '../lib/time';
+import { daysBetween } from '../lib/time';
 import { getAward, grantAward } from './awards';
 import {
 	COMEBACK_AWAY_DAYS,
@@ -20,26 +20,6 @@ import {
 import { getVxpBalance } from './payout';
 
 const COMEBACK_AWARD_KEY = 'restore';
-
-/** Whole days between two YYYY-MM-DD day strings (UTC-anchored), undefined
- * when either is missing/unparseable or the span is negative (clock skew or
- * a backdated day must not satisfy the absence gate). */
-export const daysBetween = ({
-	fromDay,
-	toDay
-}: {
-	fromDay: string;
-	toDay: string;
-}): number | undefined => {
-	const fromMs = Date.parse(`${fromDay}T00:00:00Z`);
-	const toMs = Date.parse(`${toDay}T00:00:00Z`);
-
-	if (Number.isNaN(fromMs) || Number.isNaN(toMs) || toMs < fromMs) {
-		return;
-	}
-
-	return Math.floor((toMs - fromMs) / DAY_IN_MS);
-};
 
 /** Activity-day trigger: grants the restore when the gap between the
  * previous and the newly recorded active day reaches the absence threshold

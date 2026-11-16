@@ -6,8 +6,7 @@
 
 import { isNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
-import { dayKeyFromMs } from '../lib/time';
-import { daysBetween } from './comeback';
+import { dayKeyFromMs, daysBetween } from '../lib/time';
 import { STREAK_MAX_CONTINUING_DAY_DELTA } from './constants';
 
 /**

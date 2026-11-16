@@ -28,11 +28,10 @@ import {
 } from '@junobuild/functions/sdk';
 
 /**
- * Worlds podium monthly payout: user-claim variant
- * (Proposal 2 in `docs/backend-proposals/README.md`).
+ * Worlds podium monthly payout: user-claim variant.
  *
- * The economy fires monthly podium awards (400/200/100
- * VXP for top-3 affiliations of each kind × every member). Juno
+ * The economy fires monthly podium awards (`VXP_WORLDS_PODIUM`, for
+ * top-3 affiliations of each kind × every member). Juno
  * doesn't expose a scheduled-task primitive yet, so we model the
  * payout as a **user-claim** rather than an admin fan-out:
  *
@@ -51,19 +50,18 @@ import {
  * recipient-binds-caller invariant is preserved because the user
  * is writing their own award.
  *
- * Eligibility per backend-proposals/README.md §2.3: member at
- * month-end qualifies regardless of join date. The 90-day affiliation
+ * Eligibility: a member at month-end qualifies regardless of join date. The 90-day affiliation
  * lock means a user who joined late in the month is still locked
  * in for the next quarter, which is the engagement-incentive
  * trade-off the user signed up for.
  *
- * Tie-break per §2.2: accuracy → totalCalls → affiliationIdentifier asc.
+ * Tie-break: accuracy → totalCalls → affiliationIdentifier asc.
  * `listAffiliationStatsForMonthFn` already sorts this way, so the
  * leaderboard and the claim agree on who's gold/silver/bronze.
  */
 
-// `VXP_WORLDS_PODIUM` holds the human-readable whole-VXP prizes
-// (400 / 200 / 100: the same values the FE renders). VXP has 4 decimals
+// `VXP_WORLDS_PODIUM` holds the human-readable whole-VXP prizes (the
+// same values the FE renders). VXP has 4 decimals
 // and this award pays the ledger inline (see `processAward`), so the
 // amounts must be base units sized via `vxpBaseUnits`: `BigInt(400)` would
 // transfer 400 base units = 0.04 VXP, a 10⁴x under-pay.
@@ -154,8 +152,7 @@ const freezeMonthlySnapshotsIfNeeded = ({
 
 /**
  * Per-user claim endpoint. Returns counts so the FE can render a
- * toast like "+400 VXP for your school's gold finish" when at
- * least one award lands.
+ * toast for the finish when at least one award lands.
  */
 export const claimWorldsPodiumPrizeFn = async ({
 	monthAnchor

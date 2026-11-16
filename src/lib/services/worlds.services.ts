@@ -341,8 +341,8 @@ export const listAffiliationChampionships = async ({
 };
 
 /**
- * Fire the Worlds podium claim for a closed month. Per backend
- * Proposal 2: the user calls this themselves (typically when
+ * Fire the Worlds podium claim for a closed month. The backend has
+ * no scheduler, so the user calls this themselves (typically when
  * they first land on the Worlds surface in a new calendar
  * month), and the satellite credits VXP if their current
  * affiliation finished top-3 in the snapshot.

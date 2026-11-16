@@ -26,46 +26,50 @@ Tests connect to `TEST_DATABASE_URL` (default: the docker-compose Postgres). CI 
 
 ## Environment
 
-Validated fail-fast in `src/env.ts`. In production the required vars abort boot when missing; in dev everything has a local default. Optional integrations added by later phases degrade instead of crashing when unconfigured (storage falls back to local disk in dev). Email logs to the console only outside production, which requires `RESEND_API_KEY`.
+Validated fail-fast in `src/env.ts`. In production the required vars abort boot when missing; in dev everything has a local default. Optional integrations degrade instead of crashing when unconfigured (league image storage falls back to local disk under `uploads/`). Email logs to the console only outside production, which requires `RESEND_API_KEY`.
 
-| Var                       | Required (prod) | Default (dev)                                | Purpose                                                                                     |
-| ------------------------- | --------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`            | yes             | `postgres://vici:vici@localhost:5432/vici`   | Postgres connection string                                                                  |
-| `SESSION_SECRET`          | yes             | dev placeholder                              | HMAC pepper for session token hashes                                                        |
-| `PORT`                    | no              | `8787`                                       | API listen port                                                                             |
-| `PUBLIC_APP_URL`          | no              | `http://localhost:5173`                      | SPA origin: credentialed CORS allowlist (+ www/apex twin)                                   |
-| `API_BASE_URL`            | no              | `http://localhost:<port>`                    | This server's public origin (absolute callback URLs)                                        |
-| `LOG_LEVEL`               | no              | `info`                                       | `debug` / `info` / `warn` / `error`                                                         |
-| `WORKER_POLL_INTERVAL_MS` | no              | `60000`                                      | Worker loop poll interval                                                                   |
-| `SESSION_TTL_HOURS`       | no              | `720`                                        | Session lifetime (30 days)                                                                  |
-| `COOKIE_DOMAIN`           | no              | empty (host-only)                            | Cookie Domain attribute for prod cross-subdomain sessions                                   |
-| `GOOGLE_CLIENT_ID`        | no              | empty (google disabled)                      | Google OAuth client id                                                                      |
-| `GOOGLE_CLIENT_SECRET`    | no              | empty (google disabled)                      | Google OAuth client secret                                                                  |
-| `GOOGLE_REDIRECT_URI`     | no              | `<API_BASE_URL>/api/v1/auth/google/callback` | Override for the Google callback URL                                                        |
-| `APPLE_CLIENT_ID`         | no              | empty (apple disabled)                       | Sign in with Apple services id                                                              |
-| `APPLE_TEAM_ID`           | no              | empty (apple disabled)                       | Apple developer team id                                                                     |
-| `APPLE_KEY_ID`            | no              | empty (apple disabled)                       | Key id of the .p8 signing key                                                               |
-| `APPLE_PRIVATE_KEY`       | no              | empty (apple disabled)                       | .p8 PKCS#8 PEM (literal or \n-escaped newlines)                                             |
-| `APPLE_REDIRECT_URI`      | no              | `<API_BASE_URL>/api/v1/auth/apple/callback`  | Override for the Apple callback URL                                                         |
-| `RESEND_API_KEY`          | yes             | empty (email logs to console)                | Resend API key for transactional email                                                      |
-| `EMAIL_FROM`              | no              | `VICI <no-reply@vici.app>`                   | From header for transactional email                                                         |
-| `ROOT_SECRET`             | yes             | dev placeholder                              | HKDF root for per-user per-chain custody keys (rotating it rotates every custodial address) |
-| `TREASURY_PEM`            | no              | empty (svc-derived key)                      | PEM override for the treasury IC identity                                                   |
-| `ADMIN_PEM`               | no              | empty (svc-derived key)                      | PEM override for the admin IC identity                                                      |
-| `CUSTODY_ENABLED_ASSETS`  | no              | empty (all ic assets)                        | Comma list of `symbol` or `chain:symbol` to enable                                          |
-| `VXP_TREASURY_DISABLED`   | no              | empty (transfers live)                       | `1` = record-only mode: awards are recorded, no ledger transfer fires                       |
-| `IC_HOST`                 | no              | `https://icp-api.io`                         | IC API host (adapter enabled by default)                                                    |
-| `VXP_INDEX_CANISTER_ID`   | no              | mainnet id                                   | VXP ledger index canister: the transfer history unconfirmed award payouts are settled from  |
-| `CLEARING_CANISTER_ID`    | no              | mainnet id                                   | Clearing canister id                                                                        |
-| `REGISTRY_CANISTER_ID`    | no              | mainnet id                                   | Registry canister id                                                                        |
-| `EVM_RPC_URL`             | no              | empty (evm disabled)                         | EVM JSON-RPC endpoint                                                                       |
-| `EVM_CHAIN_ID`            | no              | `1`                                          | EVM chain id for EIP-1559 signing                                                           |
-| `EVM_CONFIRMATIONS`       | no              | `12`                                         | Deposit confirmation depth                                                                  |
-| `SOL_RPC_URL`             | no              | empty (sol disabled)                         | Solana JSON-RPC endpoint                                                                    |
-| `SOL_COMMITMENT`          | no              | `finalized`                                  | Solana commitment level                                                                     |
-| `BTC_ESPLORA_URL`         | no              | empty (btc disabled)                         | Esplora-compatible API base (e.g. mempool.space/api)                                        |
-| `BTC_NETWORK`             | no              | `mainnet`                                    | `mainnet` / `testnet` / `regtest`                                                           |
-| `BTC_CONFIRMATIONS`       | no              | `2`                                          | Deposit confirmation depth                                                                  |
+| Var                       | Required (prod) | Default (dev)                                | Purpose                                                                                                                              |
+| ------------------------- | --------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`            | yes             | `postgres://vici:vici@localhost:5432/vici`   | Postgres connection string                                                                                                           |
+| `SESSION_SECRET`          | yes             | dev placeholder                              | HMAC pepper for session token hashes                                                                                                 |
+| `PORT`                    | no              | `8787`                                       | API listen port                                                                                                                      |
+| `PUBLIC_APP_URL`          | no              | `http://localhost:5173`                      | SPA origin: credentialed CORS allowlist (+ www/apex twin)                                                                            |
+| `API_BASE_URL`            | no              | `http://localhost:<port>`                    | This server's public origin (absolute callback URLs)                                                                                 |
+| `LOG_LEVEL`               | no              | `info`                                       | `debug` / `info` / `warn` / `error`                                                                                                  |
+| `WORKER_POLL_INTERVAL_MS` | no              | `60000`                                      | Worker loop poll interval                                                                                                            |
+| `SESSION_TTL_HOURS`       | no              | `720`                                        | Session lifetime (30 days)                                                                                                           |
+| `COOKIE_DOMAIN`           | no              | empty (host-only)                            | Cookie Domain attribute for prod cross-subdomain sessions                                                                            |
+| `GOOGLE_CLIENT_ID`        | no              | empty (google disabled)                      | Google OAuth client id                                                                                                               |
+| `GOOGLE_CLIENT_SECRET`    | no              | empty (google disabled)                      | Google OAuth client secret                                                                                                           |
+| `GOOGLE_REDIRECT_URI`     | no              | `<API_BASE_URL>/api/v1/auth/google/callback` | Override for the Google callback URL                                                                                                 |
+| `APPLE_CLIENT_ID`         | no              | empty (apple disabled)                       | Sign in with Apple services id                                                                                                       |
+| `APPLE_TEAM_ID`           | no              | empty (apple disabled)                       | Apple developer team id                                                                                                              |
+| `APPLE_KEY_ID`            | no              | empty (apple disabled)                       | Key id of the .p8 signing key                                                                                                        |
+| `APPLE_PRIVATE_KEY`       | no              | empty (apple disabled)                       | .p8 PKCS#8 PEM (literal or \n-escaped newlines)                                                                                      |
+| `APPLE_REDIRECT_URI`      | no              | `<API_BASE_URL>/api/v1/auth/apple/callback`  | Override for the Apple callback URL                                                                                                  |
+| `RESEND_API_KEY`          | yes             | empty (email logs to console)                | Resend API key for transactional email                                                                                               |
+| `EMAIL_FROM`              | no              | `VICI <no-reply@vici.app>`                   | From header for transactional email                                                                                                  |
+| `ROOT_SECRET`             | yes             | dev placeholder                              | HKDF root for per-user per-chain custody keys (rotating it rotates every custodial address)                                          |
+| `TREASURY_PEM`            | no              | empty (svc-derived key)                      | PEM override for the treasury IC identity                                                                                            |
+| `ADMIN_PEM`               | no              | empty (svc-derived key)                      | PEM override for the admin IC identity                                                                                               |
+| `CUSTODY_ENABLED_ASSETS`  | no              | empty (all ic assets)                        | Comma list of `symbol` or `chain:symbol` to enable                                                                                   |
+| `VXP_TREASURY_DISABLED`   | no              | empty (transfers live)                       | `1` = record-only mode: awards are recorded, no ledger transfer fires                                                                |
+| `IC_HOST`                 | no              | `https://icp-api.io`                         | IC API host (adapter enabled by default)                                                                                             |
+| `VXP_INDEX_CANISTER_ID`   | no              | mainnet id                                   | VXP ledger index canister: the transfer history unconfirmed award payouts are settled from                                           |
+| `CLEARING_CANISTER_ID`    | no              | mainnet id                                   | Clearing canister id                                                                                                                 |
+| `REGISTRY_CANISTER_ID`    | no              | mainnet id                                   | Registry canister id                                                                                                                 |
+| `EVM_RPC_URL`             | no              | empty (evm disabled)                         | EVM JSON-RPC endpoint                                                                                                                |
+| `EVM_CHAIN_ID`            | no              | `1`                                          | EVM chain id for EIP-1559 signing                                                                                                    |
+| `EVM_CONFIRMATIONS`       | no              | `12`                                         | Deposit confirmation depth                                                                                                           |
+| `SOL_RPC_URL`             | no              | empty (sol disabled)                         | Solana JSON-RPC endpoint                                                                                                             |
+| `SOL_COMMITMENT`          | no              | `finalized`                                  | Solana commitment level                                                                                                              |
+| `BTC_ESPLORA_URL`         | no              | empty (btc disabled)                         | Esplora-compatible API base (e.g. mempool.space/api)                                                                                 |
+| `BTC_NETWORK`             | no              | `mainnet`                                    | `mainnet` / `testnet` / `regtest`                                                                                                    |
+| `BTC_CONFIRMATIONS`       | no              | `2`                                          | Deposit confirmation depth                                                                                                           |
+| `S3_ENDPOINT`             | no              | empty (local disk)                           | S3-compatible endpoint for league images (the bucket is used only when all four `S3_*` resolve); falls back to `AWS_ENDPOINT_URL_S3` |
+| `S3_BUCKET`               | no              | empty (local disk)                           | Bucket for league images; falls back to `BUCKET_NAME`                                                                                |
+| `S3_ACCESS_KEY_ID`        | no              | empty (local disk)                           | Bucket access key id; falls back to `AWS_ACCESS_KEY_ID`                                                                              |
+| `S3_SECRET_ACCESS_KEY`    | no              | empty (local disk)                           | Bucket secret key; falls back to `AWS_SECRET_ACCESS_KEY`                                                                             |
 
 ETL-only vars (read by `scripts/etl/*`, never by the server):
 
@@ -82,7 +86,7 @@ Sessions are opaque 256-bit tokens in the HttpOnly `vici_session` cookie (SameSi
 Endpoints under `/api/v1`:
 
 - `GET /auth/providers`: which sign-in methods are live. A provider whose env is not configured reports `coming_soon` (the FE renders a disabled button) and its endpoints answer `503 { "error": "provider_unavailable" }`.
-- `POST /auth/otp/request` + `POST /auth/otp/verify`: email one-time codes (10 min TTL, single-use, 5-attempt lockout, hashed at rest, identical responses for known and unknown addresses).
+- `POST /auth/otp/request` + `POST /auth/otp/verify`: email one-time codes (`OTP_TTL_MINUTES` lifetime, single-use, `OTP_MAX_ATTEMPTS` lockout, hashed at rest, identical responses for known and unknown addresses).
 - `GET /auth/google` + `GET /auth/google/callback`: Google OAuth code flow with an HMAC-signed state cookie.
 - `GET /auth/apple` + `POST /auth/apple/callback`: Sign in with Apple (ES256 client secret from the .p8 key, `form_post` callback, SameSite=None state cookie).
 - `POST /auth/logout`, `GET /me`.
@@ -163,7 +167,7 @@ Chain adapters live under `src/chains/` behind one interface (`chains/types.ts`)
 
 `src/markets/` carries the market curation surface: per-series editorial metadata (`market_metadata`), per-locale translation overlays (`market_translations`, validated against the registered locale ids), and the tag reverse index (`market_tag_index`) derived from the closed 3-layer taxonomy (micros plus their macros; free tags are never indexed). Writes go through the curator gate: an admin may edit any series, the series creator their own, where the creator principal from the registry is matched against the caller's derived custodial identity or a linked legacy principal. The index is maintained in the same transaction as each metadata write and can be rebuilt from scratch via the admin corrective (`POST /api/v1/markets/tags/rebuild`).
 
-`src/analytics/` is the behavioural event pipeline: `POST /api/v1/events` ingests client batches (public: anonymous visitors track too; a session adds the pseudonymous user link), capped at 100 events per call with server-authoritative timestamps, and bumps the per-day rollup counters in the same transaction. `captureServerEvents` is the internal bridge other domains call for server-originated events (VXP payouts, settlements). Admin endpoints mirror the warehouse contract: daily summary, keyset event export with an idempotent drain delete, the registered-account count, and the profile-created export.
+`src/analytics/` is the behavioural event pipeline: `POST /api/v1/events` ingests client batches (public: anonymous visitors track too; a session adds the pseudonymous user link), capped at `MAX_EVENTS_PER_BATCH` events per call with server-authoritative timestamps, and bumps the per-day rollup counters in the same transaction. `captureServerEvents` is the internal bridge other domains call for server-originated events (VXP payouts, settlements). Admin endpoints mirror the warehouse contract: daily summary, keyset event export with an idempotent drain delete, the registered-account count, and the profile-created export.
 
 ## VXP economy
 
@@ -206,7 +210,7 @@ Scripts (also exposed as `bun run etl:*`):
 - `drain-auth-identities.ts`: calls the satellite's admin-gated auth-identity export and upserts into `legacy_auth_identities` (the table the login auto-match reads). Resumable: the keyset cursor persists in `etl_cursors` after every page, and clears on completion so the next run re-walks from the start.
 - `export-collections.ts [dir] [--fresh] [collection ...]`: drains every datastore collection into `<dir>/<collection>.jsonl` via the datastore list API signed with the admin identity, keyset-paged on doc keys. Resumable per collection through a `<collection>.cursor` sidecar file (`done` once complete); `--fresh` wipes and re-exports, which is how the delta pass re-pulls.
 - `import-collections.ts [dir] [collection ...]`: transforms the JSONL into the relational tables, one transaction per collection, in dependency order. Principals resolve through `legacy_principals`; an unmatched principal gets a provisional `users` row flagged `claim_pending` plus an `'etl'`-provenance link, adopted later by a matching first login or by the claim flow (see [Provisional account adoption](#provisional-account-adoption)).
-- `migrate-league-images.ts [--dry-run]`: downloads league covers still pointing at legacy storage URLs, re-encodes them through the standard 256px cover path (S3 or local disk) and rewrites the rows to this API's serving URL.
+- `migrate-league-images.ts [--dry-run]`: downloads league covers still pointing at legacy storage URLs, re-encodes them through the standard `LEAGUE_IMAGE_SIZE_PX` cover path (S3 or local disk) and rewrites the rows to this API's serving URL.
 - `verify-parity.ts [dir] [--sample N] [--offline] [collection ...]`: per-collection counts (satellite vs JSONL vs Postgres, mapping-aware) plus N random spot checks probing exported docs for their target rows.
 
 Mapping notes (the transforms in `scripts/etl/transforms.ts` are the authority):
@@ -267,7 +271,7 @@ cd .. && fly launch --no-deploy --config fly.web.toml   # creates vici-app-web
 
 Deploys go through `.github/workflows/web2-deploy.yml` (manual `workflow_dispatch` only). It needs the repo secrets `FLY_API_TOKEN_WEB2_BACKEND` and `FLY_API_TOKEN_WEB2_WEB`, one `fly tokens create deploy` token per app. Manual fallback: `flyctl deploy --remote-only` from `backend/`, and `flyctl deploy --config fly.web.toml --remote-only` from the repo root.
 
-`GET /health` answers 200 with `{ ok: true, db: 'connected' }` when the bounded (2.5s) DB probe succeeds, 503 otherwise; three consecutive failures exit the process for a supervised restart with a fresh pool.
+`GET /health` answers 200 with `{ ok: true, db: 'connected' }` when the DB probe (bounded by `HEALTH_PROBE_TIMEOUT_MS`) succeeds, 503 otherwise; `HEALTH_EXIT_THRESHOLD` consecutive failures exit the process for a supervised restart with a fresh pool.
 
 ## Layout
 
