@@ -13,6 +13,7 @@ import { query } from '../src/db/client';
 import type { ClearingDid, ClearingService, RegistryService } from '../src/declarations';
 import { setEngineActorProvider } from '../src/engine/actors';
 import { app } from '../src/index';
+import { createLeague } from '../src/leagues/leagues';
 import { userIcPrincipalText } from '../src/lib/keys';
 import { DAY_IN_MS } from '../src/lib/time';
 import { listActivityDays } from '../src/vxp/activity-days';
@@ -419,5 +420,34 @@ describe('server-recorded activity', () => {
 		await postTradeActivity({ token });
 
 		expect(await awardKeys(userId)).toContain('achievement/league-founder');
+	});
+
+	test('members the owner tries to add without their invite never count toward league-founder', async () => {
+		stub = stubVxpLedger();
+		const { userId, token, nickname } = await newAccount();
+		const league = await createLeague({
+			id: `league-${randomBytes(6).toString('hex')}`,
+			name: 'Founders',
+			ownerUserId: userId
+		});
+
+		await putProfile({ token, body: { nickname } });
+
+		for (const stranger of [await createTestUser(), await createTestUser()]) {
+			const res = await app.handle(
+				new Request(`http://localhost/api/v1/leagues/${league.id}/members/${stranger}`, {
+					method: 'PUT',
+					headers: { cookie: `vici_session=${token}`, 'content-type': 'application/json' },
+					body: JSON.stringify({ role: 'member' })
+				})
+			);
+
+			expect(res.status).toBe(400);
+		}
+
+		fill({ userId, atMs: Date.now() });
+		await postTradeActivity({ token });
+
+		expect(await awardKeys(userId)).not.toContain('achievement/league-founder');
 	});
 });

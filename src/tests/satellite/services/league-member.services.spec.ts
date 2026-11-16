@@ -69,8 +69,30 @@ describe('league-member.services', () => {
 			assert.doesNotThrow(() => assertSetLeagueMember(join({ caller: joiner, role: 'member' })));
 		});
 
-		it('lets the league owner add someone as an admin', () => {
-			assert.doesNotThrow(() => assertSetLeagueMember(join({ caller: owner, role: 'admin' })));
+		it('rejects the owner creating a row for someone who has not joined', () => {
+			assert.throws(
+				() => assertSetLeagueMember(join({ caller: owner, role: 'member' })),
+				/created only by the member joining/
+			);
+			assert.throws(
+				() => assertSetLeagueMember(join({ caller: owner, role: 'admin' })),
+				/created only by the member joining/
+			);
+		});
+
+		it('lets the owner change the role of an existing member', () => {
+			assert.doesNotThrow(() =>
+				assertSetLeagueMember(
+					setContext({
+						caller: owner,
+						collection: Collection.LEAGUE_MEMBERS,
+						key: leagueMemberKey({ leagueId: league.id, memberPrincipal: joiner.toText() }),
+						current: membership({ member: joiner, role: 'member' }),
+						currentOwner: joiner,
+						proposed: membership({ member: joiner, role: 'admin' })
+					})
+				)
+			);
 		});
 	});
 

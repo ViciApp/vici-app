@@ -138,7 +138,9 @@ The bound that protects each surface today:
   unlock the server evaluates itself: `first-call`, `oracle`, `on-fire`
   and `contrarian` from the engine's fills and settlements, `marathon`
   from the server-derived streak, `league-founder` from the league
-  rosters. `top-decile` (days held in the leaderboard's top decile),
+  rosters, where every row is a member who joined themselves (a league
+  owner changes an existing member's role but never adds anyone, on
+  either backend). `top-decile` (days held in the leaderboard's top decile),
   `sharpest-eye` and `bold-caller` (monthly accuracy awards) depend on
   figures only the client computes (the top-decile day counter and the
   monthly stats it writes), so the web2 API pays nothing for them.

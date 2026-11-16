@@ -117,24 +117,23 @@ describe.if(dbAvailable)('membership key discipline', () => {
 		for (const role of ['admin', 'member'] as const) {
 			expect(
 				upsertLeagueMember({ leagueId, callerId: outsider, memberUserId: outsider, role })
-			).rejects.toThrow('invite code or the league owner');
+			).rejects.toThrow('not a member');
 		}
 
 		expect(await getLeagueMember({ leagueId, memberUserId: outsider })).toBeUndefined();
 	});
 
-	test('the owner can add a new member row directly', async () => {
+	test('the owner cannot add a member who has not joined', async () => {
 		const { ownerId, leagueId } = await seedLeague();
 		const userId = await createTestUser();
 
-		const added = await upsertLeagueMember({
-			leagueId,
-			callerId: ownerId,
-			memberUserId: userId,
-			role: 'member'
-		});
+		for (const role of ['admin', 'member'] as const) {
+			expect(
+				upsertLeagueMember({ leagueId, callerId: ownerId, memberUserId: userId, role })
+			).rejects.toThrow('not a member');
+		}
 
-		expect(added.role).toBe('member');
+		expect(await getLeagueMember({ leagueId, memberUserId: userId })).toBeUndefined();
 	});
 
 	test('the owner role is reserved for the league owner', async () => {
