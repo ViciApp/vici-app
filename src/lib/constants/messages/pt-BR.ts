@@ -1739,8 +1739,6 @@ export const ptBRMessages = {
 	'settings.profile_visibility.private': 'Privado',
 	'settings.profile_visibility.public': 'Público',
 	'settings.profile_visibility.sub': 'Quem pode ver suas previsões e precisão',
-	'settings.public_calls': 'Histórico público de previsões',
-	'settings.public_calls.sub': 'Mostrar suas últimas 30 previsões no seu perfil',
 	'settings.sign_out': 'Sair',
 	'settings.sign_out.cancel': 'Cancelar',
 	'settings.sign_out.confirm': 'Sair e voltar para a tela de entrada?',

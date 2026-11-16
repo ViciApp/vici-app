@@ -19,9 +19,9 @@ export interface DefaultAmountPrefs {
 }
 
 /**
- * Privacy / sharing preference group. The four user-facing controls in
- * the Settings privacy sections round-trip through here so they sync
- * across devices.
+ * Privacy / sharing preference group. The user-facing controls in the
+ * Settings privacy sections round-trip through here so they sync across
+ * devices.
  *
  * `profileVisibility` is the settings-grouped source for who can see the
  * profile; it is mirrored to the top-level `profile.visibility` enum on
@@ -36,7 +36,11 @@ export interface DefaultAmountPrefs {
  */
 export interface SharingPrefs {
 	profileVisibility: SettingsVisibility;
-	/** Show the user's last-30 call history publicly on their profile. */
+	/**
+	 * Kept only so stored profiles keep decoding (the profile schema is
+	 * strict): no control sets it and nothing reads it, since there is no
+	 * public call-history surface.
+	 */
 	callsPublic: boolean;
 	/** Surface the user's rank on the global leaderboard. */
 	leaderboardOptIn: boolean;

@@ -2058,8 +2058,6 @@ export const deMessages = {
 	'settings.profile_visibility.private': 'Privat',
 	'settings.profile_visibility.public': 'Öffentlich',
 	'settings.profile_visibility.sub': 'Wer deine Calls und Genauigkeit sehen kann',
-	'settings.public_calls': 'Öffentlicher Call-Verlauf',
-	'settings.public_calls.sub': 'Zeige die letzten 30 Calls auf deinem Profil',
 	'settings.sign_out': 'Abmelden',
 	'settings.sign_out.cancel': 'Abbrechen',
 	'settings.sign_out.confirm': 'Abmelden und zum Anmeldebildschirm zurückkehren?',
