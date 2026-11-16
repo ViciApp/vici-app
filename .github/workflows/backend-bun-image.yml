@@ -1,0 +1,50 @@
+name: Backend Bun Image
+
+# The `oven/bun` image the backend runs in, from the pin in
+# backend/.bun-version: the base of backend/Dockerfile (Alpine), so Backend
+# Checks tests the Fly runtime, sharp's musl build included, and the
+# Dependabot lockfile repair resolves in that same image. A job's container
+# image cannot be read from a file, hence a called workflow with an output.
+#
+# The pin comes from the caller's tree, which on a pull request is
+# PR-controlled, so it must be a plain version before it names an image.
+# Callers reference this file with `./`, so it runs from the caller's own
+# commit: under `pull_request_target` that is the base branch, never the PR.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit to read the pin from; empty means the caller's.
+        type: string
+        default: ''
+    outputs:
+      image:
+        description: The pinned `oven/bun` Alpine image.
+        value: ${{ jobs.read.outputs.image }}
+
+permissions: {}
+
+jobs:
+  read:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      image: ${{ steps.read.outputs.image }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Read the pinned Bun version
+        id: read
+        run: |
+          version="$(cat backend/.bun-version)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::backend/.bun-version is not a plain version: $version"
+            exit 1
+          fi
+          echo "image=oven/bun:${version}-alpine" >> "$GITHUB_OUTPUT"

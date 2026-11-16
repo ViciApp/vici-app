@@ -27,12 +27,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  regenerate:
+  bun-image:
     # Same-repo Dependabot branches only: a fork cannot be pushed to, and a
-    # human-authored PR is expected to carry its own lockfile.
+    # human-authored PR is expected to carry its own lockfile. `regenerate`
+    # needs this job, so it is skipped with it.
     if: >-
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/backend-bun-image.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
+    permissions:
+      contents: read
+
+  regenerate:
+    needs: ['bun-image']
     runs-on: ubuntu-24.04
     # Nothing uses GITHUB_TOKEN here; checkout and push both run on the
     # short-lived app installation token minted below, which is what gets
@@ -53,23 +62,18 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
 
-      # Resolved inside the same pinned image Backend Checks runs
-      # (backend/.bun-version), so the lockfile written here is byte-identical
-      # to the one that job then verifies with `--frozen-lockfile`. The image is
-      # not used as the job `container:` because it ships without git, which the
-      # steps below need. The pin is read from the PR's tree, so it must be a
-      # plain version before it names an image.
+      # Resolved inside the same pinned image Backend Checks runs, so the
+      # lockfile written here is byte-identical to the one that job then
+      # verifies with `--frozen-lockfile`. The image is not used as the job
+      # `container:` because it ships without git, which the steps below need.
       - name: Regenerate bun.lock
+        env:
+          BUN_IMAGE: ${{ needs.bun-image.outputs.image }}
         run: |
-          version="$(cat backend/.bun-version)"
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::backend/.bun-version is not a plain version: $version"
-            exit 1
-          fi
           docker run --rm \
             --volume "$GITHUB_WORKSPACE:/workspace" \
             --workdir /workspace/backend \
-            "oven/bun:${version}" \
+            "$BUN_IMAGE" \
             bun install --lockfile-only
 
       - name: Check for changes
