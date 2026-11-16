@@ -6,7 +6,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 - One Elysia instance per area with a prefix: `src/routes/wallet.ts` (`walletRoutes`). Mounted with `.use(...)` on `app` in `src/index.ts`.
 - Request shapes are Elysia `t` schemas in the route options (`src/routes/wallet.ts`, the `body` of `POST /withdrawals`). Zod is not used in the API; do not add it.
-- A number bound for an `int` or `bigint` column is `t.Integer` with its bounds (the domain's constants, or `Number.MAX_SAFE_INTEGER` for a `bigint` that must stay exact): Postgres refuses a fraction or an out-of-range value as a fault, so `t.Number` there turns bad input into a 500 (`src/routes/battles.ts`, `POST /`).
+- A number that reaches an `int` or `bigint` column with no domain check before the write is `t.Integer` with its bounds (the domain's constants, or `Number.MAX_SAFE_INTEGER` for a `bigint` that must stay exact): Postgres refuses a fraction or an out-of-range value as a fault, so `t.Number` there turns bad input into a 500 (`src/routes/battles.ts`, `POST /`). A value the domain already checks as an integer, like the duel scores in `resolveDuel` (`src/leagues/battles.ts`), may stay `t.Number`.
 - A handler gates first, then calls a domain function, then shapes the response: `src/routes/wallet.ts` (`/balances`).
 - Responses that carry candid values (bigint, `Principal`, bytes) go through `toJson` (`src/engine/serialize.ts`); never hand-convert.
 
