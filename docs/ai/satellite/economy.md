@@ -33,7 +33,14 @@ one pattern. Each of these has bitten a PR before:
   `${recipient}/${awardType}/${awardKey}` via `vxpAwardKey()`; a
   retry collides with the existing doc and that collision is the
   dedup. No separate "already paid?" check; pick an `awardKey` that
-  encodes the one-shot unit (league id, milestone, month).
+  encodes the one-shot unit (league id, milestone, month). When the
+  unit is coarser than an old key, the old keys must still block: the
+  tournament prize is keyed on the tournament alone, and
+  `decideTournamentPrize`
+  ([`tournament-prize.utils.ts`](../../../src/satellite/utils/tournament-prize.utils.ts))
+  also treats a doc under any per-place key (`<tournamentId>_place_<n>`)
+  of an earlier claim as claimed; `assertSetVxpAward` refuses a new
+  prize under a per-place key.
 - **Lifecycle is `pending → paid | failed`, then frozen.** Paid docs
   are immutable (`assertSetVxpAward`). A `failed` payout is re-driven
   through a settle/retry endpoint; there is no hook replay (see

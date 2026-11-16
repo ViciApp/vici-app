@@ -99,6 +99,7 @@ backs it. Amounts are **not** repeated here; follow the link.
 | **Achievement unlock**     | Catalog XP, once per achievement, only for an unlock the server evaluates from its own data, never the client's `unlockedAchievements`; three achievements mint nothing (see the caps section).                     | `ACHIEVEMENTS` ([`achievements.constants.ts`](../../src/lib/constants/achievements.constants.ts)), thresholds in [`achievements.utils.ts`](../../src/lib/utils/achievements.utils.ts)                            |
 | **League founder**         | Awarded once per league founded, bounded by a lifetime per-account cap.                                                                                                                                             | `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS`, `VXP_LEAGUE_FOUNDER_MAX_AWARDS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                         |
 | **Worlds podium**          | Tiered award for a top-three monthly finish.                                                                                                                                                                        | `VXP_WORLDS_PODIUM` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                             |
+| **Tournament prize**       | Tiered award for a member of a monthly tournament's podium leagues (winner, other finalist, either semifinal loser), one per member per tournament whatever the place.                                              | `TOURNAMENT_PRIZE_TIERS` ([`tournament.ts`](../../src/lib/types/tournament.ts))                                                                                                                                  |
 
 The authoritative list of award **types** is the `VxpAwardType` union
 ([`vxp-award.ts`](../../src/lib/types/vxp-award.ts)). The API books the
@@ -169,6 +170,14 @@ The bound that protects each surface today:
   this anyone could join last month's winner after close and collect its
   prize; a switch or a leave resets the join time, so a move after close
   never carries tenure.
+- **Tournament prize**: once per member per tournament, whatever the
+  place: a member of several podium leagues gets the highest tier, and a
+  claim for a second place is refused. Only a membership that predates
+  the draw counts: the draw seeds the bracket from that roster, so joining
+  a placed league afterwards (including after the tournament concluded)
+  earns nothing, and a member who left before claiming has no membership
+  left to count. The satellite judges the join by the membership doc's
+  stored creation time, never the client-written join field.
 
 Every count-bounded cap (flow overtime, calibration, league founder) is
 **strict**, never a soft limit: the count and the award insert run in one

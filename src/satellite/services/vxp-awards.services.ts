@@ -1,5 +1,6 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
+import { isTournamentPrizeAwardKey } from '#satellite/utils/tournament-prize.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
@@ -31,6 +32,12 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  *
  *  5. **Identity fields are immutable.** `awardType`, `awardKey`,
  *     `amountBaseUnits`, `earnedAtMs`, `recipient` are write-once.
+ *
+ *  6. **One tournament prize per tournament.** A new `tournament_prize`
+ *     doc must be keyed on the tournament alone
+ *     (`isTournamentPrizeAwardKey`), never per place, so two places of
+ *     one tournament collide on the same key. Docs written under the
+ *     earlier per-place keys still settle through the edit path.
  *
  * The streak / calibration / referral / Worlds-podium paths create
  * these docs; this assert is the safety net those paths rely on.
@@ -78,6 +85,13 @@ export const assertSetVxpAward = ({
 	if (isNullish(current)) {
 		if (proposedDoc.status !== 'pending') {
 			throw new Error('New vxp_awards docs must start with status="pending".');
+		}
+
+		if (
+			proposedDoc.awardType === 'tournament_prize' &&
+			!isTournamentPrizeAwardKey(proposedDoc.awardKey)
+		) {
+			throw new Error('New tournament_prize awards must be keyed on the tournament id alone.');
 		}
 
 		return;
