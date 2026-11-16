@@ -178,6 +178,9 @@ describe.if(dbAvailable)('battle proposal', () => {
 		expect(proposeBattle({ ...proposal, id: uniqueId('bt'), amount: 501 })).rejects.toThrow(
 			'amount must be within'
 		);
+		expect(proposeBattle({ ...proposal, id: uniqueId('bt'), amount: 1.5 })).rejects.toThrow(
+			'amount must be within'
+		);
 	});
 
 	test('the propose route reads the amount from the old `wager` field', async () => {

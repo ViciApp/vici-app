@@ -53,8 +53,8 @@ current head is ignored, because it was about code that is no longer there.
 
 Nothing. Merging into `main` deploys nothing (`release.on_merge: nothing` in the config): releases
 run from `v*` tags (`deploy.yml`, `publish.yml`), which are cut when a person merges the
-release-please pull request, and `web2-deploy.yml` is started by hand. Officina never touches the
-release pull request.
+release-please pull request, and `web2-deploy.yml` is started by hand from a release tag. Officina
+never touches the release pull request.
 
 ## Lanes
 

@@ -231,7 +231,7 @@ outcome…"` with the date formatted in the active locale via
   the live `card.prior_call_drift` line (`{when} · consensus {drift}
 pts since`).
 - ✅ Back: live countdown, `$effect` interval ticks `nowTick` once per
-  minute; `getTimeRemaining` is derived off the tick. Urgent state (≤
+  minute; `FlowBackMeta` derives the countdown copy off the tick. Urgent state (≤
   24h) drives a pulse dot next to the settles line.
 - ✅ Back: track-record line, `card.your_accuracy_line` (`Your
 {category} accuracy: {pct}% · {calls} calls`), coloured per the
@@ -304,8 +304,8 @@ transparent 32%)` over the surface-popover linear base. Back panel
   YES%+pair chips) vs `MarketsListRow` for the list (row layout,
   inline tag · volume · close meta, bar+pct foot).
 - ✅ Volume + close eyebrow on list cards: `MarketsListRow` head
-  renders `"{volume} · {timeLeft}"` via `formatVolume` +
-  `getTimeRemaining`.
+  renders `"{volume} · {closes}"`: the token volume and the
+  localized close date.
 - ✅ Section heading "All markets / Saved / {label}" with count:
   `.markets-section-head` renders the active category label (via
   `MARKET_TAG_LABEL_KEYS`) and the list length in the trailing

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { ZERO } from '../../src/lib/constants';
 import { DAY_IN_MS } from '../../src/lib/time';
+import { VXP_AWARD_TYPES } from '../../src/vxp/awards';
 import {
 	ACHIEVEMENT_ACCURACY_GATE_CALLS,
 	ACHIEVEMENT_XP,
@@ -46,7 +47,6 @@ import {
 	extractUnionLiterals,
 	extractVxpBaseUnitsWhole,
 	importRepoModule,
-	quotedStrings,
 	readRepoSource
 } from '../helpers/repo-source';
 
@@ -63,27 +63,13 @@ describe('shared drift: VXP award types', () => {
 		typeName: 'VxpAwardType'
 	});
 
-	test('the app TS union and its Zod mirror agree', () => {
-		const appEnum = quotedStrings(
-			extractBlock({
-				source: readRepoSource('src/lib/schema/vxp-award.schema.ts'),
-				marker: 'export const VxpAwardTypeSchema'
-			})
-		);
-
-		expect(appEnum).toEqual(appUnion);
-	});
-
-	test('backend VxpAwardType is the app union plus the onboarding starter', () => {
-		const backendUnion = extractUnionLiterals({
-			source: readRepoSource('backend/src/vxp/awards.ts'),
-			typeName: 'VxpAwardType'
-		});
-
+	test('backend award types are the app union plus the onboarding starter', () => {
 		// The backend books the onboarding starter through the same awards
 		// table, while the satellite tracked it in a dedicated collection, so
 		// 'onboarding' is the single deliberate backend-only member.
-		expect(backendUnion).toEqual(['onboarding', ...appUnion]);
+		const backend: string[] = [...VXP_AWARD_TYPES];
+
+		expect(backend).toEqual(['onboarding', ...appUnion]);
 	});
 });
 

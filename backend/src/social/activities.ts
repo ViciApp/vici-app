@@ -31,6 +31,11 @@ export const ACTIVITY_TITLE_MAX_LENGTH = 500;
  * schema counts UTF-16 code units and one character can take two. */
 export const ACTIVITY_DETAILS_MAX_LENGTH = 2048;
 
+/** Upper bound on the market id an activity or a reaction carries. Registry
+ * series ids are 64-character SHA-256 hex; the cap leaves headroom without
+ * letting a caller store an arbitrary string. */
+export const ACTIVITY_MARKET_ID_MAX_LENGTH = 128;
+
 /** Upper bound on the denormalized activityTitle a reaction may carry, so a
  * liker cannot bloat the row the inbox card reads. It copies the activity
  * title, so it shares that bound. */
@@ -364,35 +369,6 @@ export const listReactions = async ({ limit }: { limit: number }): Promise<Activ
 	);
 
 	return rows.map(shapeReaction);
-};
-
-export interface ActivityReactionCount {
-	activityKey: string;
-	count: number;
-	updatedAtMs: number;
-}
-
-/** Rollup counters for the given activity keys. */
-export const getReactionCounts = async ({
-	activityKeys
-}: {
-	activityKeys: string[];
-}): Promise<ActivityReactionCount[]> => {
-	if (activityKeys.length === 0) {
-		return [];
-	}
-
-	const rows = await query<{ activity_key: string; count: number; updated_at_ms: string }>(
-		`select activity_key, count, updated_at_ms::text
-		 from activity_reaction_counts where activity_key = any($1)`,
-		[activityKeys]
-	);
-
-	return rows.map((row) => ({
-		activityKey: row.activity_key,
-		count: row.count,
-		updatedAtMs: Number(row.updated_at_ms)
-	}));
 };
 
 /**

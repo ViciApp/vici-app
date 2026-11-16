@@ -18,30 +18,6 @@ export const depositCollateral = async ({
 	return await depositCollateral(rest);
 };
 
-export const withdrawCollateral = async ({
-	identity,
-	...rest
-}: {
-	identity: Identity;
-	params: ClearingDid.WithdrawCollateralParams;
-} & QueryParams): Promise<void> => {
-	const { withdrawCollateral } = await clearingCanister({ identity });
-
-	return await withdrawCollateral(rest);
-};
-
-export const submitMatchedTrade = async ({
-	identity,
-	...rest
-}: {
-	identity: Identity;
-	params: ClearingDid.SubmitMatchedTradeParams;
-} & QueryParams): Promise<boolean> => {
-	const { submitMatchedTrade } = await clearingCanister({ identity });
-
-	return await submitMatchedTrade(rest);
-};
-
 export const getAccountState = async ({
 	identity,
 	...rest
@@ -152,18 +128,6 @@ export const settleSeries = async ({
 	const { settleSeries } = await clearingCanister({ identity });
 
 	return await settleSeries(rest);
-};
-
-export const getPosition = async ({
-	identity,
-	...rest
-}: {
-	identity: Identity;
-	params: ClearingDid.GetPositionParams;
-} & QueryParams): Promise<ClearingDid.Position | undefined> => {
-	const { getPosition } = await clearingCanister({ identity });
-
-	return await getPosition(rest);
 };
 
 export const submitLimitOrder = async ({
@@ -307,45 +271,6 @@ export const listOrders = async ({
 	const { listOrders } = await clearingCanister({ identity });
 
 	return await listOrders(rest);
-};
-
-export const mintCompleteSet = async ({
-	identity,
-	...rest
-}: {
-	identity: Identity;
-	seriesId: string;
-	qty: bigint;
-} & QueryParams): Promise<boolean> => {
-	const { mintCompleteSet } = await clearingCanister({ identity });
-
-	return await mintCompleteSet(rest);
-};
-
-export const redeemCompleteSet = async ({
-	identity,
-	...rest
-}: {
-	identity: Identity;
-	seriesId: string;
-	qty: bigint;
-} & QueryParams): Promise<boolean> => {
-	const { redeemCompleteSet } = await clearingCanister({ identity });
-
-	return await redeemCompleteSet(rest);
-};
-
-export const registerIcrcAsset = async ({
-	identity,
-	params,
-	...queryParams
-}: {
-	identity: Identity;
-	params: ClearingDid.RegisterIcrcAssetParams;
-} & QueryParams): Promise<void> => {
-	const { registerIcrcAsset } = await clearingCanister({ identity });
-
-	return await registerIcrcAsset({ params, ...queryParams });
 };
 
 /**

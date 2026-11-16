@@ -22,12 +22,13 @@ one pattern. Each of these has bitten a PR before:
   [`vxp-economy.constants.ts`](../../../src/lib/constants/vxp-economy.constants.ts));
   services import them. Never restate a value in a second file, a
   spec, or a comment.
-- **A new award type lands in TWO places:** the `VxpAwardType` union
-  in [`vxp-award.ts`](../../../src/lib/types/vxp-award.ts) **and** the
-  `VxpAwardTypeSchema` Zod enum in
-  [`vxp-award.schema.ts`](../../../src/lib/schema/vxp-award.schema.ts).
-  `svelte-check` only catches the union; a missing enum entry fails
-  at runtime.
+- **A new award type has one app home:** the `VxpAwardType` union
+  in [`vxp-award.ts`](../../../src/lib/types/vxp-award.ts). The API
+  derives its type and runtime guard from `VXP_AWARD_TYPES` in
+  [`backend/src/vxp/awards.ts`](../../../backend/src/vxp/awards.ts);
+  the shared-drift suite fails until that array is the union plus
+  `onboarding`, and the awards suite until the `vxp_awards.award_type`
+  check constraint admits exactly it.
 - **Idempotency IS the doc key.** Award docs in `vxp_awards` are keyed
   `${recipient}/${awardType}/${awardKey}` via `vxpAwardKey()`; a
   retry collides with the existing doc and that collision is the
@@ -46,11 +47,13 @@ one pattern. Each of these has bitten a PR before:
 
 ## Adding a new award type: checklist
 
-1. **Type, in both places:** add the member to the `VxpAwardType`
-   union ([`vxp-award.ts`](../../../src/lib/types/vxp-award.ts)) and
-   the `VxpAwardTypeSchema` Zod enum
-   ([`vxp-award.schema.ts`](../../../src/lib/schema/vxp-award.schema.ts)),
-   and document the trigger in the union's doc comment.
+1. **Type:** add the member to the `VxpAwardType` union
+   ([`vxp-award.ts`](../../../src/lib/types/vxp-award.ts)) and
+   document the trigger in the union's doc comment. On the API side,
+   add it to `VXP_AWARD_TYPES`
+   ([`backend/src/vxp/awards.ts`](../../../backend/src/vxp/awards.ts))
+   and widen the `vxp_awards.award_type` check constraint in a new
+   migration.
 2. **Parameters:** add the constant(s) to
    [`vxp-economy.constants.ts`](../../../src/lib/constants/vxp-economy.constants.ts)
    in base units via `vxpBaseUnits`.

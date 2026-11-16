@@ -10,32 +10,15 @@ import { treasuryIcPrincipalText } from '../lib/keys';
 import { logger } from '../lib/logger';
 import {
 	getTreasuryBacklog,
+	isVxpAwardType,
 	isVxpTreasuryDisabled,
 	listUserAwards,
-	reconcileUnpaidAwards,
-	type VxpAwardType
+	reconcileUnpaidAwards
 } from '../vxp/awards';
 import { claimCalibrationReward } from '../vxp/calibration';
 import { getTreasuryVxpBalance } from '../vxp/payout';
 import { settleReferralPayout } from '../vxp/referral';
 import { backfillStreakUnderpayments } from '../vxp/streak';
-
-const AWARD_TYPES: readonly VxpAwardType[] = [
-	'onboarding',
-	'streak',
-	'calibration',
-	'referral',
-	'worlds_podium',
-	'tournament_prize',
-	'achievement',
-	'comeback',
-	'flow_milestone',
-	'flow_overtime',
-	'league_founder'
-];
-
-const isAwardType = (value: string): value is VxpAwardType =>
-	(AWARD_TYPES as readonly string[]).includes(value);
 
 export const vxpRoutes = new Elysia({ prefix: '/api/v1/vxp' })
 	.get(
@@ -49,7 +32,7 @@ export const vxpRoutes = new Elysia({ prefix: '/api/v1/vxp' })
 
 			const { type } = params;
 
-			if (nonNullish(type) && !isAwardType(type)) {
+			if (nonNullish(type) && !isVxpAwardType(type)) {
 				set.status = 400;
 
 				return { error: 'unknown_award_type' };
@@ -58,7 +41,7 @@ export const vxpRoutes = new Elysia({ prefix: '/api/v1/vxp' })
 			return {
 				items: await listUserAwards({
 					userId: user.id,
-					awardType: nonNullish(type) && isAwardType(type) ? type : undefined
+					awardType: nonNullish(type) && isVxpAwardType(type) ? type : undefined
 				})
 			};
 		},

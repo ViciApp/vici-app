@@ -91,8 +91,7 @@ per-domain sections:
 - **Market creation and admin settlement**
   (`createMarket`, `settleMarket`): user-signed registry /
   clearing writes; curator / admin surfaces stay on the on-chain identity,
-  as do `registerIcrcAsset` and the roles / admin services.
-- **Complete-set mint / redeem**: no HTTP route and no live caller.
+  as do the roles / admin services.
 - **Direct ICRC ledger / index reads and user-held transfers**: web2 mode
   surfaces custodial balances and routes sends through withdrawals; the
   paged ledger history returns empty there.
@@ -258,14 +257,14 @@ Each read/write branches on `isWeb2Backend()` inside its owning
 the on-chain call untouched on the default side:
 
 - `profile.services.ts`: `getProfile`, `searchProfiles`,
-  `checkNicknameAvailability`, `checkFriendship`, `recordFlowSwipe`,
+  `checkNicknameAvailability`, `recordFlowSwipe`,
   `upsertProfile`. The composed writers (`patchProfile`, `persistDailyStreak`,
   `applyOnboardingPicks`, `persistPreferences`, `recordActivity`) ride the
   swap for free: they route through `getProfile` + `upsertProfile`.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
-- `leaderboard.services.ts`: `getLeaderboard`, `getMyRival`.
+- `leaderboard.services.ts`: `getLeaderboard`.
 - `relation.services.ts`: `sendFriendRequest` (with a web2 `@handle` / account-id
-  resolver), `accept` / `reject` / `cancel`, `unfriend`, `follow`, `unfollow`.
+  resolver), `accept` / `reject` / `cancel`, `unfriend`, `follow`.
 - `relation-queries.services.ts`: friends, followers, following, friend
   requests (sent + received), friend-scoped resolved results.
 
@@ -408,8 +407,8 @@ the exact candid shapes.
   `/engine/trade-history`; the domain scoping still runs through the
   (dual-mode) market catalog. Single web2 responses are delivered as the
   final `certified: true` pass, like every other bridge read.
-- `collateral.services.ts`: deposits and withdrawals post to
-  `/engine/collateral/*`, and the clearing `asset_id` still resolves
+- `collateral.services.ts`: deposits post to
+  `/engine/collateral/deposit`, and the clearing `asset_id` still resolves
   client-side from the public collateral catalog. The deposit route
   approves clearing for `amount + fee` from the custodial identity, then
   calls `deposit_collateral`; both routes take the ledger and the balance
@@ -427,7 +426,7 @@ the exact candid shapes.
   (`503 collateral_unavailable`) frees the id, and an unknown outcome keeps
   it for a 15 minute lease, after which a retry goes straight to clearing
   without a second approval.
-- Account state (`getAccountState` / `loadAccountState`,
+- Account state (`loadAccountState`,
   `wallet.services.ts` `getCollateralBalances`) reads
   `/engine/account?domain=<variant>`, clearing's domain-scoped update read
   with `refresh` off, delivered as the `certified: true` pass. Clearing's
@@ -492,10 +491,6 @@ the exact candid shapes.
   the book read inside `placeOrder`'s market-order walk) stay anonymous
   on-chain queries in BOTH modes: the book is public IC data and no HTTP
   surface exists for it.
-- Complete-set mint / redeem (`trade.services.ts`) has no HTTP route and
-  no live caller; it stays on the on-chain identity.
-- `registerIcrcAsset` (collateral admin) stays on the on-chain admin
-  identity.
 - Direct ICRC ledger / index reads and user-held ICRC transfers are
   web3-only by construction; web2 mode surfaces custodial balances and
   routes sends through withdrawals instead.

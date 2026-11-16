@@ -416,27 +416,3 @@ export const getWithdrawal = async (id: string): Promise<Withdrawal | null> => {
 
 	return rows[0] ?? null;
 };
-
-/** Used by tests and future reconciliation: a transaction-scoped balance read
- * without opening a new pool client. */
-export const userChainBalance = async ({
-	q,
-	userId,
-	asset
-}: {
-	q: TxQuery;
-	userId: string;
-	asset: Asset;
-}): Promise<bigint> => {
-	const rows = await q<{ id: string }>(
-		`select id from custody_accounts where user_id = $1 and chain = $2`,
-		[userId, asset.chain]
-	);
-	const accountId = rows[0]?.id;
-
-	if (isNullish(accountId)) {
-		return ZERO;
-	}
-
-	return accountBalance({ q, accountId, assetId: asset.id });
-};
