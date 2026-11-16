@@ -24,7 +24,8 @@ name: Release Please
 # (and PRs) created with GITHUB_TOKEN do not trigger further workflow runs.
 # The vici-release-bot GitHub App (owned by the ViciApp org) mints a
 # short-lived installation token per run; release-please creates the tag
-# with it. Needs the `RELEASE_BOT_PRIVATE_KEY` repo secret.
+# with it. Needs the `RELEASE_BOT_PRIVATE_KEY` repo secret. Nothing here
+# uses the default GITHUB_TOKEN, so it gets no scopes.
 
 on:
   push:
@@ -35,9 +36,7 @@ concurrency:
   group: release-please-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   release-please:
