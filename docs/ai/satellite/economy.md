@@ -65,6 +65,13 @@ one pattern. Each of these has bitten a PR before:
   ([`vxp-payout.services.ts`](../../../src/satellite/services/vxp-payout.services.ts));
   no satellite award path increments a counter instead of moving
   tokens.
+- **What decides an award is server-written too.** A claim endpoint
+  that pays from a doc (the tournament prize reads the concluded
+  bracket) is only as safe as that doc. `tournaments` and
+  `tournament_matches` are `write: 'public'`, so their asserts accept
+  only a satellite controller, and the draw and resolution endpoints
+  write as `controllerCaller(...)` (see
+  [endpoint-computed docs](./patterns.md#endpoint-computed-docs-controller-only-assert)).
 
 ## Adding a new award type: checklist
 

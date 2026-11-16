@@ -18,6 +18,7 @@ import {
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
+import { controllerCaller, isControllerText } from '#satellite/services/authz.services.ts';
 import { getLeagueStatsFn } from '#satellite/services/league-stats.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -29,7 +30,7 @@ import {
 } from '#satellite/utils/tournament-prize.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
@@ -43,9 +44,10 @@ import {
 /**
  * Monthly tournament: the full chain.
  *
- *  - Asserts for both collections (key shape, write-once invariants
- *    on team / accuracy / winner / start-snapshot fields, forward-only
- *    state machine `in_flight → concluded`).
+ *  - Asserts for both collections: only a satellite controller may
+ *    write or delete (see `assertControllerWriter`), then key shape,
+ *    write-once invariants on team / accuracy / winner / start-snapshot
+ *    fields, forward-only state machine `in_flight → concluded`.
  *  - `triggerTournamentDrawFn`: anyone can call; idempotent via
  *    doc-key collision on the month anchor. Scans LEAGUE_MEMBERS,
  *    counts members per league, seeds the top-16 into Round 1, and
@@ -70,6 +72,27 @@ import {
 
 const ASSERT_PREFIX = 'tournament';
 
+const writerPurpose = 'tournament bracket write';
+
+/**
+ * Both collections are `write: 'public'`, and their docs decide who may
+ * claim the tournament prize (real VXP). The draw and round-resolution
+ * endpoints compute every doc themselves and write it as a controller,
+ * so a client write, which never carries a controller principal, is
+ * rejected before its payload is read.
+ */
+const assertControllerWriter = ({
+	caller,
+	collection
+}: {
+	caller: Uint8Array;
+	collection: string;
+}): void => {
+	if (!isControllerText(Principal.fromUint8Array(caller).toText())) {
+		throw new Error(`${collection}: only the satellite writes tournament docs.`);
+	}
+};
+
 /**
  * Single-doc-per-month assert. Key must equal `${id}` and match
  * `monthAnchorFromMs(monthStartMs)`. `bracketSize` and
@@ -77,6 +100,7 @@ const ASSERT_PREFIX = 'tournament';
  * field that ever mutates is `state` (in_flight → concluded).
  */
 export const assertSetTournament = ({
+	caller,
 	data: {
 		collection,
 		key,
@@ -86,6 +110,8 @@ export const assertSetTournament = ({
 	if (collection !== Collection.TOURNAMENTS) {
 		return;
 	}
+
+	assertControllerWriter({ caller, collection });
 
 	const proposedDoc = decodeDocData<TournamentDoc>(proposed.data);
 
@@ -156,6 +182,7 @@ export const assertSetTournament = ({
  * immutable; accuracy + winner are write-once (null → number).
  */
 export const assertSetTournamentMatch = ({
+	caller,
 	data: {
 		collection,
 		key,
@@ -165,6 +192,8 @@ export const assertSetTournamentMatch = ({
 	if (collection !== Collection.TOURNAMENT_MATCHES) {
 		return;
 	}
+
+	assertControllerWriter({ caller, collection });
 
 	const proposedDoc = decodeDocData<TournamentMatchDoc>(proposed.data);
 	const expectedKey = tournamentMatchKey({
@@ -262,6 +291,22 @@ export const assertSetTournamentMatch = ({
 	) {
 		throw new Error(`${ASSERT_PREFIX}_match: winnerLeagueId is write-once.`);
 	}
+};
+
+/**
+ * Pre-delete guard for both collections. No satellite path deletes a
+ * tournament or a match; dropping one would let a client reopen a month
+ * for a fresh draw, so only a controller may.
+ */
+export const assertDeleteTournamentDoc = ({
+	caller,
+	data: { collection }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.TOURNAMENTS && collection !== Collection.TOURNAMENT_MATCHES) {
+		return;
+	}
+
+	assertControllerWriter({ caller, collection });
 };
 
 /**
@@ -417,6 +462,8 @@ export const triggerTournamentDrawFn = ({
 		};
 	}
 
+	const writer = controllerCaller(writerPurpose);
+
 	// Write the tournament doc first so the asserts on the match docs
 	// have something to reference.
 	const tournamentDoc: TournamentDoc = {
@@ -432,7 +479,7 @@ export const triggerTournamentDrawFn = ({
 	setDocStore({
 		collection: Collection.TOURNAMENTS,
 		key: monthAnchor,
-		caller: callerBytes,
+		caller: writer,
 		doc: {
 			data: encodeDocData(tournamentDoc)
 		}
@@ -475,7 +522,7 @@ export const triggerTournamentDrawFn = ({
 		setDocStore({
 			collection: Collection.TOURNAMENT_MATCHES,
 			key: tournamentMatchKey({ tournamentId: monthAnchor, round: 'r1', index }),
-			caller: callerBytes,
+			caller: writer,
 			doc: {
 				data: encodeDocData(matchDoc)
 			}
@@ -511,7 +558,7 @@ export const triggerTournamentDrawFn = ({
 			setDocStore({
 				collection: Collection.TOURNAMENT_MATCHES,
 				key: tournamentMatchKey({ tournamentId: monthAnchor, round, index }),
-				caller: callerBytes,
+				caller: writer,
 				doc: {
 					data: encodeDocData(matchDoc)
 				}
@@ -745,7 +792,7 @@ const resolveMatchInPlace = ({
 	winner,
 	round,
 	matchesByRound,
-	caller
+	writer
 }: {
 	entry: { key: string; doc: TournamentMatchDoc; version?: bigint };
 	fromEval: { qualifies: boolean; accuracy: number };
@@ -756,7 +803,7 @@ const resolveMatchInPlace = ({
 		TournamentRound,
 		Array<{ key: string; doc: TournamentMatchDoc; version?: bigint }>
 	>;
-	caller: Uint8Array;
+	writer: Uint8Array;
 }): number => {
 	const updated: TournamentMatchDoc = {
 		...entry.doc,
@@ -768,7 +815,7 @@ const resolveMatchInPlace = ({
 	setDocStore({
 		collection: Collection.TOURNAMENT_MATCHES,
 		key: entry.key,
-		caller,
+		caller: writer,
 		doc: {
 			data: encodeDocData(updated),
 			version: entry.version
@@ -783,7 +830,7 @@ const resolveMatchInPlace = ({
 		index: entry.doc.index,
 		winnerLeagueId: winner,
 		matchesByRound,
-		caller
+		writer
 	});
 
 	return 1;
@@ -894,6 +941,8 @@ export const resolveTournamentRoundFn = ({
 		}
 	}
 
+	const writer = controllerCaller(writerPurpose);
+
 	// Resolve every still-open match in the target round.
 	let matchesResolved = 0;
 
@@ -932,7 +981,7 @@ export const resolveTournamentRoundFn = ({
 					winner,
 					round: round_,
 					matchesByRound,
-					caller: callerBytes
+					writer
 				});
 			}
 		}
@@ -948,7 +997,7 @@ export const resolveTournamentRoundFn = ({
 			setDocStore({
 				collection: Collection.TOURNAMENTS,
 				key: tournamentId,
-				caller: callerBytes,
+				caller: writer,
 				doc: {
 					data: encodeDocData<TournamentDoc>({
 						...tournament,
@@ -984,7 +1033,7 @@ const propagateWinnerToNextRound = ({
 	index,
 	winnerLeagueId,
 	matchesByRound,
-	caller
+	writer
 }: {
 	round: TournamentRound;
 	index: number;
@@ -993,7 +1042,7 @@ const propagateWinnerToNextRound = ({
 		TournamentRound,
 		Array<{ key: string; doc: TournamentMatchDoc; version?: bigint }>
 	>;
-	caller: Uint8Array;
+	writer: Uint8Array;
 }): void => {
 	const nextRoundIndex = TOURNAMENT_ROUNDS.indexOf(round) + 1;
 
@@ -1020,7 +1069,7 @@ const propagateWinnerToNextRound = ({
 		return;
 	}
 
-	const snapshot = readLeagueStartSnapshot({ leagueId: winnerLeagueId, caller });
+	const snapshot = readLeagueStartSnapshot({ leagueId: winnerLeagueId, caller: writer });
 	const updated: TournamentMatchDoc = {
 		...nextMatchEntry.doc,
 		...(isFromSlot
@@ -1039,7 +1088,7 @@ const propagateWinnerToNextRound = ({
 	setDocStore({
 		collection: Collection.TOURNAMENT_MATCHES,
 		key: nextMatchEntry.key,
-		caller,
+		caller: writer,
 		doc: {
 			data: encodeDocData(updated),
 			version: nextMatchEntry.version

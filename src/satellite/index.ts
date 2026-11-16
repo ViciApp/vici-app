@@ -173,6 +173,7 @@ import {
 import { assertSetRole } from '#satellite/services/roles.services.ts';
 import { submitSchoolFn, verifySchoolCodeFn } from '#satellite/services/school.services.ts';
 import {
+	assertDeleteTournamentDoc,
 	assertSetTournament,
 	assertSetTournamentMatch,
 	claimTournamentPrizeFn,
@@ -1418,7 +1419,9 @@ const assertDeleteDocCollections = [
 	Collection.LEAGUE_MEMBERS,
 	Collection.AFFILIATIONS,
 	Collection.BATTLES,
-	Collection.VXP_AWARDS
+	Collection.VXP_AWARDS,
+	Collection.TOURNAMENTS,
+	Collection.TOURNAMENT_MATCHES
 ] as const;
 
 type AssertDeleteDocCollection = (typeof assertDeleteDocCollections)[number];
@@ -1430,7 +1433,9 @@ export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({
 			[Collection.LEAGUE_MEMBERS]: assertDeleteLeagueMember,
 			[Collection.AFFILIATIONS]: assertDeleteAffiliation,
 			[Collection.BATTLES]: assertDeleteBattle,
-			[Collection.VXP_AWARDS]: assertDeleteVxpAward
+			[Collection.VXP_AWARDS]: assertDeleteVxpAward,
+			[Collection.TOURNAMENTS]: assertDeleteTournamentDoc,
+			[Collection.TOURNAMENT_MATCHES]: assertDeleteTournamentDoc
 		};
 
 		fn[context.data.collection]?.(context);
