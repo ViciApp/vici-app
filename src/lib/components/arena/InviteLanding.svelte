@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import InviteFriendshipSheet from '#lib/components/arena/InviteFriendshipSheet.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { pageTitle } from '#lib/constants/brand.constants.ts';
 	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
 	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
@@ -57,10 +58,6 @@
 	// `onboardingCompleted` to `false`: only a brand-new account needs the
 	// signup drain. Mirrors the (app) layout's onboarding gate.
 	const needsOnboarding = $derived(!onboardingCompleted && !$userStore.profileExisted);
-
-	onMount(() => {
-		document.title = 'Invite · VICI';
-	});
 
 	$effect(() => {
 		if (!browser) {
@@ -229,6 +226,10 @@
 		goHome();
 	};
 </script>
+
+<svelte:head>
+	<title>{pageTitle(t({ locale: $localeStore, key: 'seo.invite.title' }))}</title>
+</svelte:head>
 
 <div class="flex min-h-screen w-full flex-col items-center justify-center p-6">
 	{#if mode === 'loading' || mode === 'redirecting'}

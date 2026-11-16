@@ -1908,6 +1908,9 @@ export const itMessages = {
 	'seo.home.description':
 		'Negozia su mercati a esito binario con funzioni social su Internet Computer.',
 	'seo.home.title': 'VICI Social Markets | Prevedi. Negozia. Vinci.',
+	'seo.invite.title': 'Invito',
+	'seo.league_join.title': 'Unisciti alla lega',
+	'seo.signup.title': 'Crea account',
 	'settings.about': 'VICI · v{version} · Build {build}',
 	'settings.account': 'Account',
 	'settings.account.email': 'Email',

@@ -1929,6 +1929,9 @@ export const deMessages = {
 	'seo.home.description':
 		'Handle auf binären Ergebnismärkten mit sozialen Features auf dem Internet Computer.',
 	'seo.home.title': 'VICI Social Markets | Vorhersagen. Handeln. Gewinnen.',
+	'seo.invite.title': 'Einladung',
+	'seo.league_join.title': 'Liga beitreten',
+	'seo.signup.title': 'Konto erstellen',
 	'settings.about': 'VICI · v{version} · Build {build}',
 	'settings.account': 'Konto',
 	'settings.account.email': 'E-Mail',

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ChevronLeft } from '@lucide/svelte/icons';
+	import { pageTitle } from '#lib/constants/brand.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { userSignedIn } from '#lib/derived/user.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -51,7 +52,7 @@
 </script>
 
 <svelte:head>
-	<title>{title} · VICI</title>
+	<title>{pageTitle(title)}</title>
 </svelte:head>
 
 <div class="info-page">
