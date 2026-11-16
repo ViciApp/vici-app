@@ -1,3 +1,4 @@
+import type { CallSide } from '#lib/types/market.ts';
 import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { writable } from 'svelte/store';
@@ -21,7 +22,7 @@ import { writable } from 'svelte/store';
  */
 export interface GuestPreviewPick {
 	marketId: string;
-	side: 'YES' | 'NO';
+	side: CallSide;
 	ts: number;
 }
 

@@ -671,7 +671,7 @@
 		}
 	});
 
-	const handlePick = (side: 'YES' | 'NO') => {
+	const handlePick = (side: CallSide) => {
 		// Only an open market accepts calls: expired/resolved short-circuit.
 		if (!isLive) {
 			return;

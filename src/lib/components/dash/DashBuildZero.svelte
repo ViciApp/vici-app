@@ -1,8 +1,9 @@
 <script lang="ts" module>
+	import type { CallSide } from '#lib/types/market.ts';
 	export interface ZeroMarketRow {
 		marketId: string;
 		question: string;
-		side?: 'YES' | 'NO';
+		side?: CallSide;
 		context: string;
 		timer: string;
 	}
