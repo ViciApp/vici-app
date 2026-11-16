@@ -6,8 +6,6 @@ import {
 } from '#lib/api/clearing.api.ts';
 import { addSeries, getSeries, listSeries } from '#lib/api/registry.api.ts';
 import {
-	DAY_IN_MS,
-	MILLISECOND_IN_NANOSECONDS,
 	PAYOFF_TYPE,
 	PRICE_DECIMALS,
 	RESOLUTION_CLAUSE_MAX_LENGTH,
@@ -19,6 +17,7 @@ import { CURRENT_FEATURED_EVENT } from '#lib/constants/featured-event.constants.
 import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
 import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import { classificationMacros } from '#lib/constants/market-taxonomy.constants.ts';
+import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import { UserRole } from '#lib/enums/user.ts';
 import { getSettlementActivities, logActivity } from '#lib/services/activity.services.ts';

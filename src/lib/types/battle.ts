@@ -25,8 +25,8 @@
  * hand-crafted write cannot post a false score.
  */
 
-import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/app.constants.ts';
 import { MACRO_IDS, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
+import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import type { CategoryStatsBucket } from '#lib/types/user-stats.ts';
 import { isNullish } from '@dfinity/utils';
 

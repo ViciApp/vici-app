@@ -29,6 +29,7 @@
  * conventional "highest seed meets lowest seed" first-round matchup.
  */
 
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import type { PrincipalText } from '@junobuild/schema';
 
 /**
@@ -51,7 +52,7 @@ export const TOURNAMENT_BRACKET_SIZE = 16;
  * the four rounds (28 days) fit inside any calendar month.
  */
 export const TOURNAMENT_ROUND_DURATION_DAYS = 7;
-export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * 24 * 60 * 60 * 1000;
+export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * DAY_IN_MS;
 
 /**
  * Per-match qualification threshold. A league with fewer than this

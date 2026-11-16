@@ -1,8 +1,6 @@
-import {
-	ACCOUNT_RECOVERY_WINDOW_MS,
-	MILLISECOND_IN_NANOSECONDS
-} from '#lib/constants/app.constants.ts';
+import { ACCOUNT_RECOVERY_WINDOW_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import {
 	EXIT_SIGNAL_NOTE_MAX_LENGTH,
 	EXIT_SIGNAL_REASONS,

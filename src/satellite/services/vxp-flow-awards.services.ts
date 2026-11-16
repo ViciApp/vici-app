@@ -1,6 +1,6 @@
-import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import {
 	VXP_FLOW_MILESTONES,
 	VXP_FLOW_OVERTIME_BONUS,

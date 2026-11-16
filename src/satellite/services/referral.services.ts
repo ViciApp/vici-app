@@ -1,4 +1,4 @@
-import { MILLISECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
@@ -11,6 +11,7 @@ import {
 	REFERRAL_VXP_BONUS_BASE_UNITS,
 	referrerRewardBaseUnits
 } from '#lib/constants/referral.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import type { ReferralCodeDoc, ReferralDoc, ReferralListItem } from '#lib/types/referral.ts';

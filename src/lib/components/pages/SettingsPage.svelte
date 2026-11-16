@@ -37,11 +37,11 @@
 	import AppearancePicker from '#lib/components/ui/AppearancePicker.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import LocaleSheet from '#lib/components/ui/LocaleSheet.svelte';
-	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 	import { Collection } from '#lib/constants/collections.constants.ts';
 	import { LOCALE_REGISTRY } from '#lib/constants/locale.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
 	import { flushEvents, track } from '#lib/services/analytics.services.ts';
 	import {

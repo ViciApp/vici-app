@@ -1,6 +1,6 @@
-import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { FRIEND_REQUEST_REJECTED_COOLDOWN_MS } from '#lib/constants/relation.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';

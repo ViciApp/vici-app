@@ -8,8 +8,9 @@ import {
 	withdrawCollateral as withdrawCollateralApi
 } from '#lib/api/clearing.api.ts';
 import { approve, balance as getLedgerBalance, transactionFee } from '#lib/api/icrc-ledger.api.ts';
-import { SECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { SECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import { getIdentity, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import { loadWithCertification } from '#lib/services/query-update.services.ts';

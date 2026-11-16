@@ -12,12 +12,13 @@
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import BaseButton from '#lib/components/ui/BaseButton.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
-	import { MILLISECOND_IN_NANOSECONDS, USD_DECIMALS } from '#lib/constants/app.constants.ts';
+	import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
 	import {
 		cumulativeReferrerRewardBaseUnits,
 		REFERRAL_MAX_PAID
 	} from '#lib/constants/referral.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import { ownGlobalStanding } from '#lib/derived/standings.derived.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';

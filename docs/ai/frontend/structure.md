@@ -140,7 +140,7 @@ Time values must carry their unit in the variable name:
   boundary or an idempotency key (`requestId_ns`, `submittedAt_ns`).
 
 Convert with `MILLISECOND_IN_NANOSECONDS` from
-`#lib/constants/app.constants` (divide nanoseconds by it, as
+`#lib/constants/time.constants` (divide nanoseconds by it, as
 `market.utils.ts` does), and name a helper after the unit it takes, so
 the caller sees which one to pass (`formatRelativeAgoFromNs` in
 `format.utils.ts`).

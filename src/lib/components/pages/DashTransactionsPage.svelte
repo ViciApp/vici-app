@@ -28,12 +28,12 @@
 	import Pagination from '#lib/components/ui/Pagination.svelte';
 	import {
 		EMPTY_VALUE,
-		MILLISECOND_IN_NANOSECONDS,
 		TRANSACTION_HISTORY_PAGE_SIZE,
 		USD_DECIMALS,
 		ZERO
 	} from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { openCallCount } from '#lib/derived/open-call-count.derived.ts';
 	import { tradeHistory, tradeHistoryNotInitialized } from '#lib/derived/trade-history.derived.ts';
 	import {

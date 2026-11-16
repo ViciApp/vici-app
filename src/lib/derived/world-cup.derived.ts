@@ -1,5 +1,5 @@
-import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 import { CURRENT_FEATURED_EVENT } from '#lib/constants/featured-event.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { featuredEventActive } from '#lib/derived/featured-event.derived.ts';
 import { minuteTick_ms } from '#lib/derived/time.derived.ts';
 import { preferencesStore } from '#lib/stores/preferences.store.ts';

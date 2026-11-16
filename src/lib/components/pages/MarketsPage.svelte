@@ -5,7 +5,6 @@
 	import MarketsCategoryChips from '#lib/components/market/MarketsCategoryChips.svelte';
 	import MarketsListRow from '#lib/components/market/MarketsListRow.svelte';
 	import WorldCupRecapCard from '#lib/components/market/WorldCupRecapCard.svelte';
-	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 	import {
 		classificationMacros,
 		classificationMicros,
@@ -14,6 +13,7 @@
 		type MicroId
 	} from '#lib/constants/market-taxonomy.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { marketTags, marketTagsNotInitialized } from '#lib/derived/market-tags.derived.ts';
 	import { markets, marketsNotInitialized } from '#lib/derived/markets.derived.ts';
 	import { minuteTick_ms } from '#lib/derived/time.derived.ts';

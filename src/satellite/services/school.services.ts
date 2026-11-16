@@ -27,13 +27,13 @@
  * attempt cap + TTL + rate limit (see `school-picker.constants.ts`).
  */
 
-import { DAY_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	SCHOOL_CODE_MAX_ATTEMPTS,
 	SCHOOL_CODE_TTL_MS,
 	SCHOOL_VERIFY_DAILY_CAP
 } from '#lib/constants/school-picker.constants.ts';
+import { DAY_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { WORLDS_UNIVERSITIES } from '#lib/constants/worlds-affiliations.constants.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import {

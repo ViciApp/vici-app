@@ -21,8 +21,8 @@
 	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import YouBadge from '#lib/components/ui/YouBadge.svelte';
-	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
 	import { LeaguePrivacy } from '#lib/enums/league.ts';
 	import { track } from '#lib/services/analytics.services.ts';

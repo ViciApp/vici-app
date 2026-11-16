@@ -417,7 +417,7 @@ export const triggerTournamentDrawFn = ({
 	const tournamentDoc: TournamentDoc = {
 		id: monthAnchor,
 		monthStartMs: startMs,
-		monthEndMs: startMs + 4 * TOURNAMENT_ROUND_DURATION_MS,
+		monthEndMs: startMs + TOURNAMENT_ROUNDS.length * TOURNAMENT_ROUND_DURATION_MS,
 		bracketSize: TOURNAMENT_BRACKET_SIZE,
 		state: 'in_flight',
 		seededLeagueIds: verifiedSeeded,
