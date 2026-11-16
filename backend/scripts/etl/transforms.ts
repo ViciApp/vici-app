@@ -40,6 +40,7 @@ import { MONTH_ANCHOR_RE } from '../../src/lib/time';
 import { nicknameUniqueKey } from '../../src/profiles/nickname';
 import { activityKey as webActivityKey } from '../../src/social/activities';
 import { followRelationKey, friendRelationKey } from '../../src/social/relations';
+import { isAffiliationKind } from '../../src/worlds/affiliations';
 import { msFromNs, type ExportedDoc, type SatelliteCollection } from './lib';
 
 // ---------------------------------------------------------------------------
@@ -1047,14 +1048,12 @@ const importBattles: ImporterRun = perDoc(async (doc, { q, mapper, nowMs, stats 
 // ---------------------------------------------------------------------------
 // affiliations + affiliation_stats
 
-const AFFILIATION_KINDS = new Set(['university', 'country']);
-
 const importAffiliations: ImporterRun = perDoc(async (doc, { q, mapper, stats }) => {
 	const d = rec(doc.data);
 	const kind = str(d.kind);
 	const identifier = str(d.affiliationIdentifier);
 
-	if (!AFFILIATION_KINDS.has(kind) || identifier === '') {
+	if (!isAffiliationKind(kind) || identifier === '') {
 		stats.warnings.push(`affiliations: unsupported shape on ${doc.key}; skipped`);
 
 		return false;
@@ -1085,7 +1084,7 @@ const importAffiliationStats: ImporterRun = perDoc(async (doc, { q, stats }) => 
 	const identifier = str(d.affiliationIdentifier);
 	const monthAnchor = str(d.monthAnchor);
 
-	if (!AFFILIATION_KINDS.has(kind) || identifier === '' || !MONTH_ANCHOR_RE.test(monthAnchor)) {
+	if (!isAffiliationKind(kind) || identifier === '' || !MONTH_ANCHOR_RE.test(monthAnchor)) {
 		stats.warnings.push(`affiliation_stats: unsupported shape on ${doc.key}; skipped`);
 
 		return false;

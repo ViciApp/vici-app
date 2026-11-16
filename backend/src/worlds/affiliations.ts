@@ -10,9 +10,12 @@ import { DAY_IN_MS } from '../lib/time';
 
 export class AffiliationError extends Error {}
 
-export type AffiliationKind = 'university' | 'country';
+/** The Worlds slots. The shared-drift suite pins this to the app's
+ * `AFFILIATION_KINDS` and the affiliations suite to the `kind` check
+ * constraints. */
+export const AFFILIATION_KINDS = ['university', 'country'] as const;
 
-export const AFFILIATION_KINDS: readonly AffiliationKind[] = ['university', 'country'];
+export type AffiliationKind = (typeof AFFILIATION_KINDS)[number];
 
 /** Lock window: 90 days. */
 export const AFFILIATION_LOCK_MS = 90 * DAY_IN_MS;
