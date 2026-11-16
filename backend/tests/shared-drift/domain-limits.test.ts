@@ -320,19 +320,27 @@ describe('shared drift: referral codes', () => {
 		expect(REFERRAL_CODE_ALPHABET).toBe(alphabet);
 
 		// The app derives the format from the alphabet and length; evaluate its
-		// template with the app's own values.
-		const template = extractBlock({
+		// template with the app's own values, and read its flags too, since a
+		// flag such as `i` changes what the format accepts.
+		const args = extractBlock({
 			source: appSource.referral,
 			marker: 'export const REFERRAL_CODE_REGEX = new RegExp',
 			open: '(',
 			close: ')'
 		})
 			.trim()
-			.replace(/^`|`$/g, '')
+			.match(/^`([^`]*)`\s*(?:,\s*'([a-z]*)')?\s*,?$/);
+
+		expect(args).not.toBeNull();
+
+		const [, rawTemplate = '', flags = ''] = args ?? [];
+		const template = rawTemplate
 			.replace('${REFERRAL_CODE_ALPHABET}', alphabet)
 			.replace('${REFERRAL_CODE_LENGTH}', String(length));
+		const appRegex = new RegExp(template, flags);
 
-		expect(REFERRAL_CODE_REGEX.source).toBe(new RegExp(template).source);
+		expect(REFERRAL_CODE_REGEX.source).toBe(appRegex.source);
+		expect(REFERRAL_CODE_REGEX.flags).toBe(appRegex.flags);
 
 		expect(REFERRAL_SIGNUP_WINDOW_MS).toBe(
 			extractProductConst({
