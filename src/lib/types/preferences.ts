@@ -1,3 +1,4 @@
+import type { CallSide } from '#lib/types/market.ts';
 export type FlowSessionLength = 5 | 10 | 20;
 
 export type SettingsVisibility = 'public' | 'friends' | 'private';
@@ -96,7 +97,7 @@ export interface UserPreferences {
 	 * YES/NO commitment locked in during Beat 1.b of onboarding. Empty
 	 * string means no commitment was made (skip path).
 	 */
-	favoriteSide: '' | 'YES' | 'NO';
+	favoriteSide: '' | CallSide;
 	/**
 	 * Flips to `true` once the 3-beat onboarding flow finishes,
 	 * regardless of which picks were ultimately persisted. Source of

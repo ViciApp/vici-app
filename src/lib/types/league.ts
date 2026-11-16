@@ -96,6 +96,12 @@ export const LEAGUE_EMBLEMS = ['⚔', '☼', '✦', '✧', '◎', '⌬', '⊿', 
 export const [LEAGUE_EMBLEM_DEFAULT] = LEAGUE_EMBLEMS;
 
 /**
+ * Accent for a league with no stored `accentColor`. A hex literal, not a CSS
+ * variable: the tile gradients append an alpha suffix to it.
+ */
+export const LEAGUE_ACCENT_FALLBACK = '#7e9b6a';
+
+/**
  * Resolve the glyph to render for a league. Prefers the stored
  * `emblem`; for legacy rows written before the picker shipped, derives
  * a single-glyph mark from the first code-point of the name when it is

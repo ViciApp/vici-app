@@ -55,7 +55,7 @@
 	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
 	import { profilesStore } from '#lib/stores/profiles.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
-	import type { Market } from '#lib/types/market.ts';
+	import type { CallSide, Market } from '#lib/types/market.ts';
 	import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 	import {
 		decimalFixedValueToNumber,
@@ -153,7 +153,7 @@
 
 	// A resting limit order reads as YES exposure when buying, NO when selling;
 	// mirrors how `OpenOrdersTable` labels the same orders.
-	const orderSide = (order: ClearingDid.LimitOrder): 'YES' | 'NO' =>
+	const orderSide = (order: ClearingDid.LimitOrder): CallSide =>
 		'Buy' in order.side ? 'YES' : 'NO';
 
 	// Open call rows: soonest-expiring first. Live positions AND resting limit

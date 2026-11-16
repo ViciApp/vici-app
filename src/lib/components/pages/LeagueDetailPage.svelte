@@ -60,6 +60,7 @@
 	} from '#lib/types/battle.ts';
 	import type { LeagueMemberDoc, LeagueMemberRole } from '#lib/types/league-member.ts';
 	import {
+		LEAGUE_ACCENT_FALLBACK,
 		leagueEmblem,
 		leaguePrivacy,
 		LEAGUE_NAME_MAX_LENGTH,
@@ -148,7 +149,7 @@
 		}
 	});
 
-	const accent = $derived(league?.accentColor ?? '#7e9b6a');
+	const accent = $derived(league?.accentColor ?? LEAGUE_ACCENT_FALLBACK);
 
 	// The emblem rendered inside the gradient tile: the owner's stored
 	// pick, with a name-derived 1-char fallback for legacy rows written
