@@ -43,7 +43,6 @@ import { applyDailyStreakBump, todayKey } from '#lib/utils/streak.utils.ts';
 import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
-	checkFriendship as checkFriendshipWeb2,
 	checkNicknameAvailability as checkNicknameAvailabilityWeb2,
 	getMyProfileEmail as getMyProfileEmailWeb2,
 	getMyProfile as getMyProfileWeb2,
@@ -911,25 +910,6 @@ export const ensureProfile = async (
 
 		throw err;
 	}
-};
-
-/**
- * Checks if two users have an active friend relation via secure satellite query.
- */
-export const checkFriendship = async ({
-	userA,
-	userB
-}: {
-	userA: PrincipalText;
-	userB: PrincipalText;
-}): Promise<boolean> => {
-	if (isWeb2Backend()) {
-		return checkFriendshipWeb2({ userA, userB });
-	}
-
-	const { isFriend } = await functions.checkFriendship({ userA, userB });
-
-	return isFriend;
 };
 
 /**
