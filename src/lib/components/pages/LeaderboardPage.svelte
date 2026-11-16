@@ -97,6 +97,13 @@
 	// shows an error with a retry until a load succeeds.
 	const failedWindows = new SvelteSet<StandingsWindow>();
 
+	// Windows with a load still pending. The hydrate effect re-runs on every tab
+	// switch, so without this a switch away and back before the read settles
+	// would start a second paged read for the same window, and whichever
+	// settled last would overwrite the shared cache. Kept apart from
+	// `failedWindows` so a retry stays explicit.
+	const inFlightWindows = new SvelteSet<StandingsWindow>();
+
 	const loadFailed = $derived(isNullish(partition) && failedWindows.has(activeWindow));
 	const loading = $derived(isNullish(partition) && !loadFailed);
 	const rankedRows = $derived(partition?.ranked ?? []);
@@ -115,11 +122,14 @@
 	$effect(() => {
 		const window = activeWindow;
 
-		if (isNullish(partition) && !failedWindows.has(window)) {
-			void loadGlobalStandings({ window }).catch((err: unknown) => {
-				console.error(err);
-				failedWindows.add(window);
-			});
+		if (isNullish(partition) && !failedWindows.has(window) && !inFlightWindows.has(window)) {
+			inFlightWindows.add(window);
+			void loadGlobalStandings({ window })
+				.catch((err: unknown) => {
+					console.error(err);
+					failedWindows.add(window);
+				})
+				.finally(() => inFlightWindows.delete(window));
 		}
 	});
 
