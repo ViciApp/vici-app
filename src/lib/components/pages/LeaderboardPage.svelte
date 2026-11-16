@@ -136,7 +136,7 @@
 
 	// Hydrate the shared profile cache for the rows this surface paints:
 	// handle / avatar / streak overlay onto the standing reactively as profiles
-	// land. `loadGlobalStandings` no longer hydrates (the dash shares its cached
+	// land. `loadGlobalStandings` does not hydrate (the dash shares its cached
 	// slice but only needs the viewer's own rank), so the Leaderboard owns this.
 	// `loadProfilesByPrincipals` dedupes against the cache, so the re-run this
 	// triggers once profiles arrive is a no-op.

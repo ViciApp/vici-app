@@ -20,12 +20,12 @@ import { derived, type Readable } from 'svelte/store';
  *
  * Goat's global-rank signal comes from `myGlobalRankStore`: the satellite's
  * full-ranking self-rank query, so it resolves for every ranked viewer on
- * every surface, the always-mounted celebration host included. The previous
- * source (the viewer's index in the cached top-50 points leaderboard) only
- * resolved while that window happened to contain them, which is why Goat could
- * read earned on one screen and locked elsewhere. Parrot's referral count
- * comes from the shared `myReferralCountStore`. Both extra signals are
- * hydrated by `loadMyMenagerieSignals` (see `menagerie.services`).
+ * every surface, the always-mounted celebration host included; the cached
+ * top-50 points leaderboard would only resolve it while that window contains
+ * the viewer, so Goat would read earned on one screen and locked on another.
+ * Parrot's referral count comes from the shared `myReferralCountStore`. Both
+ * extra signals are hydrated by `loadMyMenagerieSignals` (see
+ * `menagerie.services`).
  */
 export const myMenagerieStats: Readable<MenagerieStats> = derived(
 	[userStore, myGlobalRankStore, myReferralCountStore],
