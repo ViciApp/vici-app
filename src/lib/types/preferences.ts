@@ -37,9 +37,11 @@ export interface DefaultAmountPrefs {
 export interface SharingPrefs {
 	profileVisibility: SettingsVisibility;
 	/**
-	 * Kept only so stored profiles keep decoding (the profile schema is
-	 * strict): no control sets it and nothing reads it, since there is no
-	 * public call-history surface.
+	 * Kept so stored profiles keep decoding (the profile schema is
+	 * strict). The schema defaults, the satellite's preference merge and
+	 * `hydrateSharing` still read and carry it so legacy rows round-trip,
+	 * but no control sets it and no surface is gated on it, since there
+	 * is no public call-history surface.
 	 */
 	callsPublic: boolean;
 	/** Surface the user's rank on the global leaderboard. */
