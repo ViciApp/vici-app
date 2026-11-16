@@ -121,7 +121,7 @@
 	const founded = $derived(rows.filter((r) => r.role === 'owner'));
 	const joined = $derived(rows.filter((r) => r.role !== 'owner'));
 
-	// Retroactively back-pay the "Founder +100 VXP" reward for any league
+	// Retroactively back-pay the league-founder reward for any league
 	// the caller founded before the founder-award hook shipped. Gated on the
 	// loaded list actually containing an owned league, so a member who never
 	// founded one makes no (state-changing) update call, and fired at most

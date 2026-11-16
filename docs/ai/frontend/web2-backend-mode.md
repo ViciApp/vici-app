@@ -588,9 +588,10 @@ the awards inside the matching routes, from server-side truth: the
 activity POST runs the trade triggers after the write commits (the
 onboarding call-count milestones, the referral settlement, the Flow
 volume milestones and the achievements the engine history proves, plus
-the fill days behind the streak and the comeback), and the Flow swipe
-POST records the server day as active. The profile PUT carries only the
-registration grant: its streak, call-count, achievement and last-active
+the fill days behind the streak and the comeback). The Flow swipe POST
+is only the daily counter (and the overtime mint): it records no active
+day, since a real Flow prediction posts its own trade activity. The
+profile PUT carries only the registration grant: its streak, call-count, achievement and last-active
 fields are the client's display copy and never mint (see
 [`economy.md`](../economy.md#caps-and-gates-the-anti-farming-spine)). So
 the swapped services need no extra calls: `logActivity` posting a trade

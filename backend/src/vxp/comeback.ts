@@ -1,16 +1,16 @@
 // Comeback restore: a one-time top-up for a returning user whose stack ran
-// dry. Fires when a newly recorded activity day (an executed fill or a Flow
-// swipe, dated by the server, never the profile's client-written
-// lastActiveDay) follows the previous recorded day by the absence threshold,
-// so the trigger is re-engagement, not mere app-open, and only tops a
-// genuinely depleted balance up TO the target. The single fixed
+// dry. Fires when a newly recorded activity day (an executed fill, dated by
+// the engine, never the profile's client-written lastActiveDay) follows the
+// previous recorded day by the absence threshold, so the trigger is a real
+// prediction after an absence, not mere app-open, and only tops a genuinely
+// depleted balance up TO the target. The single fixed
 // comeback/restore award key is the anti-farming bound: at most once per
 // account, ever.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
-import { DAY_IN_MS } from '../lib/time';
+import { daysBetween } from '../lib/time';
 import { getAward, grantAward } from './awards';
 import {
 	COMEBACK_AWAY_DAYS,
@@ -20,26 +20,6 @@ import {
 import { getVxpBalance } from './payout';
 
 const COMEBACK_AWARD_KEY = 'restore';
-
-/** Whole days between two YYYY-MM-DD day strings (UTC-anchored), undefined
- * when either is missing/unparseable or the span is negative (clock skew or
- * a backdated day must not satisfy the absence gate). */
-export const daysBetween = ({
-	fromDay,
-	toDay
-}: {
-	fromDay: string;
-	toDay: string;
-}): number | undefined => {
-	const fromMs = Date.parse(`${fromDay}T00:00:00Z`);
-	const toMs = Date.parse(`${toDay}T00:00:00Z`);
-
-	if (Number.isNaN(fromMs) || Number.isNaN(toMs) || toMs < fromMs) {
-		return;
-	}
-
-	return Math.floor((toMs - fromMs) / DAY_IN_MS);
-};
 
 /** Activity-day trigger: grants the restore when the gap between the
  * previous and the newly recorded active day reaches the absence threshold

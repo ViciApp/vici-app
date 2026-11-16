@@ -20,8 +20,8 @@ import { countDocsStore, decodeDocData, getDocStore } from '@junobuild/functions
 /**
  * League-founder hook. Runs after every `leagues` write; on the
  * *creation* write (no `before` doc) it credits the founder the
- * "Founder +100 VXP" the create-league CTA promises and persists the
- * payout in `vxp_awards`.
+ * `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS` the create-league CTA promises
+ * and persists the payout in `vxp_awards`.
  *
  * This hook genuinely fires because `leagues` rows are written by the
  * **client** (`createLeague` calls `setDoc`), and Juno only invokes
@@ -255,7 +255,7 @@ export const onLeagueSetForFounderVxpPayout = async (ctx: OnSetDocContext): Prom
 
 /**
  * Result of a self-heal settle pass: how many founder rewards this call
- * newly paid. The FE surfaces a one-off "+100 VXP" beat when `settled > 0`.
+ * newly paid. The FE surfaces a one-off reward beat when `settled > 0`.
  */
 export interface SettleFounderAwardsResult {
 	settled: number;

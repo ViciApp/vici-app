@@ -8,12 +8,13 @@
 // conditions rest on client-computed leaderboard and monthly figures the
 // server cannot check, so they mint nothing here (see docs/ai/economy.md).
 
-import { nonNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import type { ClearingDid } from '../declarations';
 import { listMyLeagues } from '../leagues/leagues';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { grantAward } from './awards';
+import type { CallSide } from './calibration';
 import {
 	ACHIEVEMENT_ACCURACY_GATE_CALLS,
 	ACHIEVEMENT_XP,
@@ -26,6 +27,7 @@ import {
 	ORACLE_TRADES_TARGET,
 	parseVxp
 } from './constants';
+import { heldBinaryPosition } from './predictions';
 
 /** What the engine history proves about a user's calls and settlements. */
 export interface EngineAchievementFacts {
@@ -34,15 +36,44 @@ export interface EngineAchievementFacts {
 	wins: number;
 	/** Consecutive winning settlements, most recent first. */
 	currentWinStreak: number;
-	/** Winning settlements taken at or below the contrarian price. */
+	/** Winning binary settlements whose held side was entered at or below the
+	 * contrarian price. */
 	contrarianWins: number;
 }
 
 const isWinningSettlement = ({ event_type, qty }: ClearingDid.Event): boolean =>
 	'Settled' in event_type && qty > ZERO;
 
-const priceOf = ({ price }: ClearingDid.Event): number =>
-	Number(price.decimal.value) / 10 ** price.decimal.decimals;
+/** The side a binary settlement paid: a Settled event's price is the
+ * settlement price (1 for YES, 0 for NO), never the price a call was taken
+ * at. An Outcome settlement carries the engine's placeholder 1 at zero
+ * decimals instead; its fills hold no outcome id, so the outcome a caller
+ * held cannot be told from the others and it is never judged. */
+const settledBinarySide = ({ price: { decimal } }: ClearingDid.Event): CallSide | undefined => {
+	if (decimal.value === ZERO) {
+		return 'NO';
+	}
+
+	if (decimal.decimals > 0 && decimal.value === BigInt(10) ** BigInt(decimal.decimals)) {
+		return 'YES';
+	}
+};
+
+/** A win on a side the market priced as a long shot when the caller took it:
+ * judged on the entry price of the position held into settlement, side-aware. */
+const isContrarianWin =
+	(events: readonly ClearingDid.Event[]) =>
+	(settlement: ClearingDid.Event): boolean => {
+		const paidSide = settledBinarySide(settlement);
+
+		if (isNullish(paidSide)) {
+			return false;
+		}
+
+		const held = heldBinaryPosition({ events, seriesId: settlement.series_id });
+
+		return held?.side === paidSide && held.entryPrice <= CONTRARIAN_PRICE_THRESHOLD;
+	};
 
 /** The settlement figures of a trade history: a settlement's signed qty is
  * its realized cashflow, so a positive one is a win. */
@@ -64,7 +95,7 @@ export const engineAchievementFacts = ({
 		settledCount: settled.length,
 		wins: wins.length,
 		currentWinStreak: firstNonWin === -1 ? settled.length : firstNonWin,
-		contrarianWins: wins.filter((event) => priceOf(event) <= CONTRARIAN_PRICE_THRESHOLD).length
+		contrarianWins: wins.filter(isContrarianWin(events)).length
 	};
 };
 

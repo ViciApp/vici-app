@@ -924,7 +924,7 @@
 		// this swipe above, capped at the hard cap) is that cumulative number;
 		// `sittingGoal` is the day's ceiling: 15 in overtime, so
 		// `dailyTarget >= DAILY_HARD_CAP` flips the engine into overtime and the
-		// calls-11 / 13 beats plus the overtime-complete +25 VXP fire.
+		// calls-11 / 13 beats plus the overtime-complete bonus fire.
 		const dailyDone = goalBump.done; // this swipe included (bumped above)
 		const dailyJustCompleted = dailyDone >= sittingGoal;
 
@@ -1111,7 +1111,7 @@
 	// For a fresh-day user (sessionBaseline = 0): maxCalls goes 10 → 15, and
 	// `dailyTarget = sittingGoal = 15 >= DAILY_HARD_CAP` keeps the engine in
 	// overtime mode so the calls-11 / 13 beats and the overtime-complete
-	// +25 VXP fire correctly. For a user who carried prior calls in, the
+	// bonus fire correctly. For a user who carried prior calls in, the
 	// overtime arc is proportionally shorter: intentional, the cap stays 15.
 	const handleExtend = () => {
 		pushedToOvertime = true;

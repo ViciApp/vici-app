@@ -10,7 +10,7 @@ import {
 } from '#lib/web2/client.ts';
 
 /**
- * Account deletion: Proposal 4. FE wrappers around the
+ * Account deletion: FE wrappers around the
  * `listMyBlockingLeagues` query + `deleteMyAccount` update.
  *
  * The deletion flow is two phases on the satellite:

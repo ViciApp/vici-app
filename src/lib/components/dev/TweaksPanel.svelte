@@ -140,9 +140,7 @@
 					</div>
 				</section>
 
-				<p class="tweaks-foot">
-					Dev-only panel. User-facing settings follow in the Settings phase.
-				</p>
+				<p class="tweaks-foot">Dev-only panel. User-facing settings live on the Settings page.</p>
 			</aside>
 		{/if}
 	</div>
