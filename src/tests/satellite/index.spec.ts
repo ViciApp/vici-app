@@ -37,7 +37,7 @@ describe('satellite index', () => {
 
 		assert.deepEqual(
 			publicWriteCollections().filter((collection) => !guarded.includes(collection)),
-			['vxp_onboarding']
+			[]
 		);
 	});
 
@@ -46,7 +46,7 @@ describe('satellite index', () => {
 
 		assert.deepEqual(
 			publicWriteCollections().filter((collection) => !guarded.includes(collection)),
-			['vxp_onboarding']
+			[]
 		);
 	});
 
@@ -63,7 +63,8 @@ describe('satellite index', () => {
 			Collection.CHATS,
 			Collection.COMMENTS,
 			Collection.MARKET_METADATA,
-			Collection.MARKET_TRANSLATIONS
+			Collection.MARKET_TRANSLATIONS,
+			Collection.VXP_ONBOARDING
 		];
 
 		for (const collection of serverWritten) {

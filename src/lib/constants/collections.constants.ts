@@ -57,7 +57,9 @@ export const Collection = {
 	 */
 	RESOLVED_RESULTS: collections.RESOLVED_RESULTS,
 	/**
-	 * Server-driven VXP new-user ladder state (owed vs paid); written from satellite hooks.
+	 * Server-driven VXP new-user ladder state (owed vs paid). Server-owned: the satellite hooks
+	 * write it as a controller, and its assert refuses every client write or delete, since the
+	 * payout trusts the milestone states.
 	 */
 	VXP_ONBOARDING: collections.VXP_ONBOARDING,
 	/**

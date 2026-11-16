@@ -217,6 +217,7 @@ import {
 	settleFounderAwardsFn
 } from '#satellite/services/vxp-league-founder-awards.services.ts';
 import {
+	assertVxpOnboardingWrite,
 	onProfileSetForVxpOnboarding,
 	onTradeActivityForVxpOnboarding
 } from '#satellite/services/vxp-onboarding.services.ts';
@@ -1393,6 +1394,7 @@ const assertSetDocCollections = [
 	Collection.MARKET_TRANSLATIONS,
 	Collection.REFERRAL_CODES,
 	Collection.REFERRALS,
+	Collection.VXP_ONBOARDING,
 	Collection.VXP_AWARDS,
 	Collection.LEAGUES,
 	Collection.LEAGUE_MEMBERS,
@@ -1425,6 +1427,7 @@ export const assertSetDoc = defineAssert<AssertSetDoc>({
 			[Collection.MARKET_TRANSLATIONS]: assertControllerWrite,
 			[Collection.REFERRAL_CODES]: assertSetReferralCode,
 			[Collection.REFERRALS]: assertSetReferral,
+			[Collection.VXP_ONBOARDING]: assertVxpOnboardingWrite,
 			[Collection.VXP_AWARDS]: assertSetVxpAward,
 			[Collection.LEAGUES]: assertSetLeague,
 			[Collection.LEAGUE_MEMBERS]: assertSetLeagueMember,
@@ -1460,6 +1463,7 @@ const assertDeleteDocCollections = [
 	Collection.AFFILIATIONS,
 	Collection.BATTLES,
 	Collection.EXIT_SIGNALS,
+	Collection.VXP_ONBOARDING,
 	Collection.VXP_AWARDS,
 	Collection.TOURNAMENTS,
 	Collection.TOURNAMENT_MATCHES,
@@ -1490,6 +1494,7 @@ export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({
 			[Collection.AFFILIATIONS]: assertDeleteAffiliation,
 			[Collection.BATTLES]: assertDeleteBattle,
 			[Collection.EXIT_SIGNALS]: assertControllerWrite,
+			[Collection.VXP_ONBOARDING]: assertVxpOnboardingWrite,
 			[Collection.VXP_AWARDS]: assertDeleteVxpAward,
 			[Collection.TOURNAMENTS]: assertDeleteTournamentDoc,
 			[Collection.TOURNAMENT_MATCHES]: assertDeleteTournamentDoc,

@@ -96,7 +96,9 @@ export interface CalibrationRewardResult {
  * Engagement gate: the caller has at least one paid VXP-onboarding
  * milestone (m1 / m2 / m3). Cheap proxy for "this user has actually
  * used the app", so a fresh signup can't farm rewards. Mirrors the
- * onboarding read used by the other award paths.
+ * onboarding read used by the other award paths. Only the satellite
+ * writes the ladder doc (`assertVxpOnboardingWrite`), so a caller cannot
+ * mark a milestone paid to pass this gate.
  */
 const hasEngaged = ({ caller, userKey }: { caller: Uint8Array; userKey: string }): boolean => {
 	const onboardingDoc = getDocStore({

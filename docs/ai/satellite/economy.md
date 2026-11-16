@@ -65,6 +65,13 @@ one pattern. Each of these has bitten a PR before:
   ([`vxp-payout.services.ts`](../../../src/satellite/services/vxp-payout.services.ts));
   no satellite award path increments a counter instead of moving
   tokens.
+- **Payout state is server-owned.** A doc whose status the payout trusts
+  (`owed` pays, `paid` below the expected amount tops up) must be one no
+  client can rewrite or delete, or the owner is paid again. The
+  `vxp_onboarding` ladder is set and deleted by a satellite controller
+  only (`assertVxpOnboardingWrite`), and the onboarding hooks write it as
+  `controllerCaller(...)`; the calibration engagement gate reads the same
+  doc.
 - **What decides an award is server-written too.** A claim endpoint
   that pays from a doc (the tournament prize reads the concluded
   bracket) is only as safe as that doc. `tournaments` and

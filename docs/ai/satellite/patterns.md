@@ -649,8 +649,9 @@ or hook that computes the doc signs its write with `controllerCaller(...)`.
 That covers `relations` (every set goes through the friend-request
 endpoints), `market_metadata` and `market_translations` (the upsert
 endpoints check creator-or-admin, then write as a controller),
-`league_stats` (fanned out by the profile and user-stats hooks), and the
-dormant `chats` and `comments`. A delete with no app flow behind it is
+`league_stats` (fanned out by the profile and user-stats hooks),
+`vxp_onboarding` (the onboarding payout ladder), and the dormant `chats`
+and `comments`. A delete with no app flow behind it is
 controller-only too (`exit_signals`, `user_stats`).
 
 **Every serverless write passes the same asserts.** `setDocStore` and
