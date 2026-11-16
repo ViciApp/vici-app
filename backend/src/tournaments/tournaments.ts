@@ -186,6 +186,10 @@ export interface TriggerTournamentDrawResult {
  * count desc with the league id as the tie-break, top 16 taken; the same
  * roster always draws the same bracket. Idempotent by the tournament
  * primary-key collision on the month anchor.
+ *
+ * Only the current UTC month can be drawn. A closed month has every round
+ * window behind it, so its bracket would resolve and conclude at once on
+ * double forfeits and pay prizes for a tournament nobody played.
  */
 export const triggerTournamentDraw = async ({
 	monthAnchor,
@@ -198,11 +202,17 @@ export const triggerTournamentDraw = async ({
 		return { ok: false, reason: 'invalid_input' };
 	}
 
-	const startMs = monthStartMs(monthAnchor);
+	const currentMonthAnchor = monthAnchorFromMs(nowMs);
 
-	if (startMs > nowMs) {
+	if (monthAnchor > currentMonthAnchor) {
 		return { ok: false, reason: 'month_not_started' };
 	}
+
+	if (monthAnchor !== currentMonthAnchor) {
+		return { ok: false, reason: 'invalid_input' };
+	}
+
+	const startMs = monthStartMs(monthAnchor);
 
 	return await tx(async (q) => {
 		const existing = await q<{ id: string }>(`select id from tournaments where id = $1`, [

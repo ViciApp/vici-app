@@ -43,6 +43,26 @@ export const dayKeyFromMs = (ms: number): string => {
 	return `${monthAnchorFromMs(ms)}-${d.getUTCDate().toString().padStart(2, '0')}`;
 };
 
+/** Whole days between two YYYY-MM-DD day keys (UTC-anchored), undefined
+ * when either is missing/unparseable or the span is negative (clock skew or
+ * a backdated day must not satisfy the absence gate). */
+export const daysBetween = ({
+	fromDay,
+	toDay
+}: {
+	fromDay: string;
+	toDay: string;
+}): number | undefined => {
+	const fromMs = Date.parse(`${fromDay}T00:00:00Z`);
+	const toMs = Date.parse(`${toDay}T00:00:00Z`);
+
+	if (Number.isNaN(fromMs) || Number.isNaN(toMs) || toMs < fromMs) {
+		return;
+	}
+
+	return Math.floor((toMs - fromMs) / DAY_IN_MS);
+};
+
 /** The first instant (UTC) of a `YYYY-MM` anchor's month, in ms. */
 export const monthStartMs = (monthAnchor: string): number => {
 	const [year, month] = monthAnchor.split('-');

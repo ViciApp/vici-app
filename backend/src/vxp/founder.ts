@@ -1,8 +1,8 @@
 // League-founder reward: 100 VXP once per league a user founds, keyed by
 // league id so retries are naturally idempotent. Founding a league is free,
-// so the per-account cap bounds an otherwise unbounded mint. The league
-// domain itself lands with the leagues phase; this exposes the award side so
-// the create-league path (and its retroactive self-heal pass) can call it.
+// so the per-account cap bounds an otherwise unbounded mint. The create-league
+// route does not pay it: the self-heal pass below, which the Leagues page
+// fires on mount, pays every owned league that still lacks it.
 
 import { logger } from '../lib/logger';
 import { grantCappedAward } from './awards';
@@ -62,7 +62,7 @@ export const grantLeagueFounderAward = async ({
  * Retroactive self-heal: pays any of the caller's owned leagues that still
  * lack a founder award, sequentially so the per-account cap holds across the
  * batch. Idempotent and safe to call on every Leagues-page mount; the
- * leagues phase passes the caller's owned league ids.
+ * leagues route passes the caller's owned league ids.
  */
 export const settleFounderAwards = async ({
 	userId,

@@ -20,23 +20,12 @@ import { leagueMemberKey, type LeagueMemberDoc } from '#lib/types/league-member.
 import { leagueStatsBucket, leagueStatsKey, type LeagueStatsDoc } from '#lib/types/league-stats.ts';
 import { leaguePrivacy, type LeagueDoc } from '#lib/types/league.ts';
 import type { CategoryStatsBucket } from '#lib/types/user-stats.ts';
+import { isControllerText } from '#satellite/services/authz.services.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
-import { decodeDocData, getAdminAccessKeys, getDocStore } from '@junobuild/functions/sdk';
-
-/**
- * Whether `callerText` is one of the satellite's controllers. The trust anchor
- * for controller-written league resolutions: the resolve endpoint derives the
- * scoreline from clearing settlement history and writes the resolved doc as a
- * controller, so the assert, which cannot make that inter-canister call to
- * re-derive it, trusts a league resolve only from a controller.
- */
-const isControllerText = (callerText: string): boolean =>
-	getAdminAccessKeys().some(
-		([keyBytes]) => Principal.fromUint8Array(keyBytes).toText() === callerText
-	);
+import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
 
 // eslint-disable-next-line local-rules/prefer-object-params -- equality predicate; a/b read best positionally
 const bucketsEqual = (a: CategoryStatsBucket, b: CategoryStatsBucket): boolean =>

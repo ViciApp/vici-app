@@ -621,6 +621,30 @@ principal with no profile, because new accounts live on the new stack:
 - **Run the cheap gate before expensive siblings** in the composed assert
   (`assertProfile` checks it before the nickname scan).
 
+## Endpoint-computed docs: controller-only assert
+
+When every doc of a `read: 'public'` collection is computed by a satellite
+endpoint, and something of value (a prize, a ranking) reads it, no client
+may write it. The reference is the monthly tournament
+([`tournament.services.ts`](../../../src/satellite/services/tournament.services.ts)):
+`tournaments` and `tournament_matches` decide who claims the tournament
+prize.
+
+- **Gate the caller first in the set and delete asserts.** A
+  `write: 'public'` rule does no owner check, so the assert is the only
+  guard: `assertSetTournament`, `assertSetTournamentMatch` and
+  `assertDeleteTournamentDoc` reject any caller for which
+  `isControllerText` is false, before decoding the payload. The shape and
+  write-once checks still run for the controller.
+- **The endpoint signs its writes as a controller.** Serverless
+  `setDocStore` / `deleteDocStore` run the asserts with the `caller` they
+  are given, so the draw and round-resolution endpoints pass
+  `controllerCaller(...)` for every write and keep the real caller for
+  reads. Anyone may still call the endpoint; it computes the doc itself.
+- **Prefer the assert over `write: 'controllers'`.** The rule lives in
+  code and ships with the satellite build; a `juno.config.ts` rule change
+  needs `juno config apply` on every satellite.
+
 ## Logging
 
 - Use the helpers in

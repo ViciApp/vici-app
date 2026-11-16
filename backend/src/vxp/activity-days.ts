@@ -1,13 +1,12 @@
 // Server-recorded activity days: the UTC calendar days on which a user made an
-// executed fill (dated by the engine's fill timestamp) or a Flow swipe the API
-// recorded (dated by the server clock). The daily streak and the comeback
-// absence the economy pays on are derived from these rows only, never from the
-// profile's client-written dailyStreak or lastActiveDay.
+// executed fill, dated by the engine's fill timestamp. The daily streak and the
+// comeback absence the economy pays on are derived from these rows only, never
+// from the profile's client-written dailyStreak or lastActiveDay. A Flow swipe
+// is only a counter with no fill behind it, so it never records a day here.
 
 import { isNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
-import { dayKeyFromMs } from '../lib/time';
-import { daysBetween } from './comeback';
+import { daysBetween } from '../lib/time';
 import { STREAK_MAX_CONTINUING_DAY_DELTA } from './constants';
 
 /**
@@ -33,10 +32,6 @@ export const recordActivityDays = async (
 
 	return rows.map(({ day_key }) => day_key);
 };
-
-/** Records the current server day; answers it when it was new, else nothing. */
-export const recordActivityToday = async ({ userId }: { userId: string }): Promise<string[]> =>
-	await recordActivityDays({ userId, dayKeys: [dayKeyFromMs(Date.now())] });
 
 /** Every recorded activity day of the user, oldest first. */
 export const listActivityDays = async ({ userId }: { userId: string }): Promise<string[]> => {

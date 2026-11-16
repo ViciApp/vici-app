@@ -3,7 +3,8 @@
 // once-ever restore bound.
 
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
-import { daysBetween, runComebackRestoreTrigger } from '../src/vxp/comeback';
+import { daysBetween } from '../src/lib/time';
+import { runComebackRestoreTrigger } from '../src/vxp/comeback';
 import { parseVxp } from '../src/vxp/constants';
 import { runOnboardingProfileTrigger } from '../src/vxp/onboarding';
 import { createTestUser, ensureMigrated } from './helpers/auth';

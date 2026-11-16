@@ -16,7 +16,7 @@ import { nonNullish } from '@dfinity/utils';
 export interface LeagueDoc {
 	/** Stable slug identifier: matches the doc key. */
 	id: string;
-	/** Display name (3–40 chars, free-form). */
+	/** Display name, free-form within `LEAGUE_NAME_MIN_LENGTH`–`LEAGUE_NAME_MAX_LENGTH`. */
 	name: string;
 	/** Optional short editorial blurb shown on the league detail page. */
 	description?: string;

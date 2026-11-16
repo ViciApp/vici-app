@@ -194,6 +194,49 @@ describe.if(dbAvailable)('tournament', () => {
 		expect(secondRows[0]?.seeded_league_ids).toEqual(leagueIds);
 	});
 
+	test('only the current UTC month is drawn: a closed or future month is refused', async () => {
+		const { monthAnchor, startMs } = uniqueMonth();
+		const next = uniqueMonth();
+
+		// The month that just closed, at the rollover and later on.
+		for (const nowMs of [next.startMs, next.startMs + 20 * TOURNAMENT_ROUND_DURATION_MS]) {
+			const closed = await triggerTournamentDraw({ monthAnchor, nowMs });
+
+			expect(closed).toEqual({ ok: false, reason: 'invalid_input' });
+		}
+
+		const future = await triggerTournamentDraw({
+			monthAnchor: next.monthAnchor,
+			nowMs: startMs + 1000
+		});
+
+		expect(future).toEqual({ ok: false, reason: 'month_not_started' });
+
+		const refused = await query<{ id: string }>(`select id from tournaments where id in ($1, $2)`, [
+			monthAnchor,
+			next.monthAnchor
+		]);
+
+		expect(refused).toEqual([]);
+
+		// The current month still draws on its last day.
+		const lastDay = await triggerTournamentDraw({ monthAnchor, nowMs: next.startMs - 1 });
+
+		expect(lastDay.ok).toBe(true);
+
+		// A drawn month that has since closed is left as it is.
+		const afterClose = await triggerTournamentDraw({ monthAnchor, nowMs: next.startMs + 1000 });
+
+		expect(afterClose.reason).toBe('invalid_input');
+
+		const drawn = await query<{ id: string; month_start_ms: string }>(
+			`select id, month_start_ms::text from tournaments where id = $1`,
+			[monthAnchor]
+		);
+
+		expect(drawn).toEqual([{ id: monthAnchor, month_start_ms: String(startMs) }]);
+	});
+
 	test('two concurrent draws of the same month: one draws, the other reports already_drawn', async () => {
 		const { monthAnchor, startMs } = uniqueMonth();
 		const nowMs = startMs + 1000;

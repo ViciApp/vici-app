@@ -1,5 +1,5 @@
 // Award-trigger composition for the write surfaces the economy hangs off:
-// profile writes, trade activities and Flow swipes. Routes call these AFTER
+// profile writes and trade activities. Routes call these AFTER
 // the domain write commits, mirroring the post-write hook model the awards
 // were designed around. Only the registration grant rides the profile write:
 // every other award reads server-side truth (the engine's fills and
@@ -18,12 +18,7 @@ import {
 	grantAchievementAwards,
 	ownsQualifyingLeague
 } from './achievements';
-import {
-	dailyStreakOf,
-	listActivityDays,
-	recordActivityDays,
-	recordActivityToday
-} from './activity-days';
+import { dailyStreakOf, listActivityDays, recordActivityDays } from './activity-days';
 import { runComebackRestoreTrigger } from './comeback';
 import { runFlowMilestoneTrigger } from './flow';
 import { runOnboardingProfileTrigger, runOnboardingTradeTrigger } from './onboarding';
@@ -119,28 +114,5 @@ export const runTradeActivityTriggers = async ({ userId }: { userId: string }): 
 		await runEngineHistoryAwards({ userId, events, executedPredictions: tradeCount });
 	} catch (err) {
 		logger.error(`trade activity award triggers failed for ${userId}:`, err);
-	}
-};
-
-/**
- * Post-write trigger for a recorded Flow swipe: today's server day counts as
- * active, and a day this swipe added re-derives the streak awards and the
- * comeback. A second swipe on the same day records nothing and pays nothing.
- */
-export const runFlowSwipeActivityTriggers = async ({
-	userId
-}: {
-	userId: string;
-}): Promise<void> => {
-	try {
-		const recordedDays = await recordActivityToday({ userId });
-
-		if (recordedDays.length === 0) {
-			return;
-		}
-
-		await runActivityDayAwards({ userId, recordedDays });
-	} catch (err) {
-		logger.error(`flow swipe award triggers failed for ${userId}:`, err);
 	}
 };

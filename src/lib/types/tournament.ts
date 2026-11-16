@@ -1,9 +1,8 @@
 /**
  * Monthly tournament.
  *
- * The TournamentBattleDetail surface presents a 16-league single-
- * elimination bracket with per-match accuracy. We model the structure
- * as two collections:
+ * `TournamentPage` presents a single-elimination league bracket with
+ * per-match accuracy. We model the structure as two collections:
  *
  *  - **`TOURNAMENTS`**: one doc per monthly tournament. Doc key is
  *    the month anchor (`YYYY-MM`) so a single draw per month is
@@ -14,12 +13,13 @@
  *
  * Rules:
  *
- *  - Entry criterion: top-16 leagues by member count. The
- *    aggregator scans LEAGUE_MEMBERS, counts rows per leagueId,
- *    sorts desc, takes the first 16.
- *  - Round windows: 7 / 7 / 7 / 7 days (Round 1 → Final).
- *  - Minimum 50 calls per league per match to qualify; a
- *    league that falls short forfeits the match.
+ *  - Entry criterion: the top `TOURNAMENT_BRACKET_SIZE` leagues by
+ *    member count. The aggregator scans LEAGUE_MEMBERS, counts rows
+ *    per leagueId, sorts desc, takes the first `TOURNAMENT_BRACKET_SIZE`.
+ *  - Round windows: one `TOURNAMENT_ROUND_DURATION_DAYS` window per
+ *    round (Round 1 → Final).
+ *  - A league needs `TOURNAMENT_MIN_CALLS_PER_MATCH` calls per match
+ *    to qualify; a league that falls short forfeits the match.
  *  - Forfeit ⇒ opponent advances. If both forfeit, the
  *    lower-seed advances (deterministic for tie-break parity with
  *    the seed order).
@@ -64,10 +64,10 @@ export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * 24 
 export const TOURNAMENT_MIN_CALLS_PER_MATCH = 50;
 
 /**
- * Prize VXP per place. Top-4 each get an award: matches the
- * Three tiers: Gold / Silver / Bronze at 5000 / 2500 / 1000 VXP.
- * Both semifinal losers share the bronze tier: each is credited
- * 1000 VXP independently when they call `claimTournamentPrize`.
+ * Prize VXP per place, in three tiers (gold, silver, bronze). The top
+ * four each get an award: both semifinal losers share the bronze tier,
+ * each credited its amount independently when they call
+ * `claimTournamentPrize`.
  */
 export const TOURNAMENT_PRIZE_TIERS: ReadonlyArray<{
 	place: 1 | 2 | 3;
