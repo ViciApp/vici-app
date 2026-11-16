@@ -40,6 +40,7 @@ import { MONTH_ANCHOR_RE } from '../../src/lib/time';
 import { nicknameUniqueKey } from '../../src/profiles/nickname';
 import { activityKey as webActivityKey } from '../../src/social/activities';
 import { followRelationKey, friendRelationKey } from '../../src/social/relations';
+import { isVxpAwardType } from '../../src/vxp/awards';
 import { isAffiliationKind } from '../../src/worlds/affiliations';
 import { msFromNs, type ExportedDoc, type SatelliteCollection } from './lib';
 
@@ -614,20 +615,6 @@ const importResolvedResults: ImporterRun = perDoc(async (doc, { q, mapper, stats
 // ---------------------------------------------------------------------------
 // vxp_awards (+ onboarding and referral synthesis)
 
-const AWARD_TYPES = new Set([
-	'onboarding',
-	'streak',
-	'calibration',
-	'referral',
-	'worlds_podium',
-	'tournament_prize',
-	'achievement',
-	'comeback',
-	'flow_milestone',
-	'flow_overtime',
-	'league_founder'
-]);
-
 const AWARD_STATUSES = new Set(['pending', 'paid', 'failed']);
 
 /** Insert an award row as origin 'etl'; an existing row only updates while
@@ -695,7 +682,7 @@ const importVxpAwards: ImporterRun = perDoc(async (doc, { q, mapper, stats }) =>
 	const status = str(d.status);
 	const amount = parseBaseUnits(d.amountBaseUnits);
 
-	if (!AWARD_TYPES.has(awardType) || !AWARD_STATUSES.has(status) || amount <= ZERO) {
+	if (!isVxpAwardType(awardType) || !AWARD_STATUSES.has(status) || amount <= ZERO) {
 		stats.warnings.push(`vxp_awards: unsupported shape on ${doc.key}; skipped`);
 
 		return false;

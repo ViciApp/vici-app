@@ -10,7 +10,8 @@ import {
 	grantAward,
 	PROCESSING_STALE_MS,
 	reconcileUnpaidAwards,
-	setVxpTreasuryDisabled
+	setVxpTreasuryDisabled,
+	VXP_AWARD_TYPES
 } from '../src/vxp/awards';
 import { parseVxp } from '../src/vxp/constants';
 import { createTestUser, ensureMigrated } from './helpers/auth';
@@ -346,5 +347,26 @@ describe('analytics bridge', () => {
 		const events = await awardEvents(userId);
 
 		expect(events.map(({ name }) => name)).toContain('vxp_awarded');
+	});
+});
+
+describe('award type set', () => {
+	test('the vxp_awards check constraint admits exactly VXP_AWARD_TYPES', async () => {
+		// A migration cannot import the TS list, so the constraint spells it a
+		// second time by necessity; pinning the two makes a new award type that
+		// skips its constraint migration fail here instead of at its first grant.
+		const rows = await query<{ def: string }>(
+			`select pg_get_constraintdef(oid) as def from pg_constraint
+			 where conrelid = 'vxp_awards'::regclass and contype = 'c'
+			   and pg_get_constraintdef(oid) like '%award_type%'`
+		);
+
+		expect(rows).toHaveLength(1);
+
+		const admitted = [...(rows[0]?.def ?? '').matchAll(/'([a-z_]+)'::text/g)].map(
+			(match) => match[1]
+		);
+
+		expect(admitted.toSorted()).toEqual([...VXP_AWARD_TYPES].toSorted());
 	});
 });

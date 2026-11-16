@@ -3,9 +3,7 @@ import {
 	depositCollateral as depositCollateralApi,
 	getAccountState as getAccountStateApi,
 	getAccountStateQuery as getAccountStateQueryApi,
-	listCollateralAssets as listCollateralAssetsApi,
-	registerIcrcAsset as registerIcrcAssetApi,
-	withdrawCollateral as withdrawCollateralApi
+	listCollateralAssets as listCollateralAssetsApi
 } from '#lib/api/clearing.api.ts';
 import { approve, balance as getLedgerBalance, transactionFee } from '#lib/api/icrc-ledger.api.ts';
 import { SECOND_IN_NANOSECONDS, ZERO } from '#lib/constants/app.constants.ts';
@@ -21,8 +19,7 @@ import {
 	depositEngineCollateral as depositEngineCollateralWeb2,
 	getEngineAccountState as getEngineAccountStateWeb2,
 	getWalletBalances as getWalletBalancesWeb2,
-	listEngineCollateralAssets as listEngineCollateralAssetsWeb2,
-	withdrawEngineCollateral as withdrawEngineCollateralWeb2
+	listEngineCollateralAssets as listEngineCollateralAssetsWeb2
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
 import { isNullish, nowInBigIntNanoSeconds, toNullable } from '@dfinity/utils';
@@ -98,50 +95,6 @@ export const depositCollateral = async ({
 };
 
 /**
- * Withdraws collateral from clearing to the user for the given ledger asset.
- */
-export const withdrawCollateral = async ({
-	assetPrincipal,
-	amount,
-	domain
-}: {
-	assetPrincipal: string;
-	amount: bigint;
-	domain: ClearingDid.BalanceDomain;
-}): Promise<void> => {
-	// web2: the release runs server-side under the derived identity, back to
-	// the caller's custodial account; the route resolves the domain from the
-	// asset.
-	if (isWeb2Backend()) {
-		await withdrawEngineCollateralWeb2({
-			withdrawalId: makeOperationId({ prefix: 'WITHDRAW', hint: amount }),
-			assetId: resolveClearingAssetId(assetPrincipal),
-			amount
-		});
-
-		refreshAllBalances();
-
-		return;
-	}
-
-	const identity = await safeGetIdentityOnce();
-
-	const asset_id = resolveClearingAssetId(assetPrincipal);
-
-	await withdrawCollateralApi({
-		identity,
-		params: {
-			withdrawal_id: makeOperationId({ prefix: 'WITHDRAW', hint: amount }),
-			domain: toNullable(domain),
-			asset_id,
-			amount
-		}
-	});
-
-	refreshAllBalances();
-};
-
-/**
  * Core account-state fetch: routes to the right canister method per path.
  *
  * - Uncertified (query) → `get_account_state_query` (declared `query` in Candid,
@@ -175,26 +128,9 @@ const fetchAccountState = ({
 };
 
 /**
- * Fetches clearing account state (balances per domain) for the signed-in user.
- *
- * Performs a single certified update. Prefer {@link loadAccountState} for UI
- * flows that benefit from the fast-then-certified render pattern.
- */
-export const getAccountState = async (
-	domain: ClearingDid.BalanceDomain
-): Promise<ClearingDid.AccountStateResponse> => {
-	if (isWeb2Backend()) {
-		return await getEngineAccountStateWeb2(domain);
-	}
-
-	const identity = await safeGetIdentityOnce();
-
-	return fetchAccountState({ identity, certified: true, domain });
-};
-
-/**
- * Callback-based variant of {@link getAccountState}. No-op when the user is
- * not signed in.
+ * Fetches clearing account state (balances per domain) for the signed-in user
+ * with the fast-then-certified render pattern. No-op when the user is not
+ * signed in.
  */
 export const loadAccountState = async ({
 	domain,
@@ -363,20 +299,4 @@ export const getSweepableVxpAmount = async (): Promise<bigint> => {
 	const reserve = fee * SWEEP_FEE_RESERVE_MULTIPLIER;
 
 	return rawBalance > reserve ? rawBalance - reserve : ZERO;
-};
-
-/**
- * Registers an ICRC ledger as a collateral asset on clearing (admin-style operation).
- */
-export const registerIcrcAsset = async (
-	params: ClearingDid.RegisterIcrcAssetParams
-): Promise<void> => {
-	const identity = await safeGetIdentityOnce();
-
-	await registerIcrcAssetApi({
-		identity,
-		params
-	});
-
-	refreshAllBalances();
 };

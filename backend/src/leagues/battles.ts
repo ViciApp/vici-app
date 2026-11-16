@@ -22,6 +22,9 @@ import {
 
 export class BattleError extends Error {}
 
+/** A proposal whose client-chosen id is already taken. */
+export class BattleExistsError extends Error {}
+
 export type BattleKind = 'league' | 'duel';
 export type BattleState =
 	'proposed' | 'accepted' | 'in_flight' | 'resolved' | 'declined' | 'expired';
@@ -291,10 +294,10 @@ export const proposeBattle = async ({
 
 	if (
 		nonNullish(amount) &&
-		(!Number.isFinite(amount) || amount < BATTLE_AMOUNT_MIN || amount > BATTLE_AMOUNT_MAX)
+		(!Number.isInteger(amount) || amount < BATTLE_AMOUNT_MIN || amount > BATTLE_AMOUNT_MAX)
 	) {
 		throw new BattleError(
-			`battles amount must be within [${BATTLE_AMOUNT_MIN}, ${BATTLE_AMOUNT_MAX}] (got ${amount}).`
+			`battles amount must be within [${BATTLE_AMOUNT_MIN}, ${BATTLE_AMOUNT_MAX}] as a whole number (got ${amount}).`
 		);
 	}
 
@@ -335,6 +338,7 @@ export const proposeBattle = async ({
 			`insert into battles (id, kind, side_a, side_b, proposer_user_id, state, kickoff_ms,
 			   settle_ms, scope, amount, wager, trash_talk, respond_by_ms)
 			 values ($1, $2, $3, $4, $5, 'proposed', $6, $7, $8, $9, $9, $10, $11)
+			 on conflict (id) do nothing
 			 returning ${BATTLE_COLUMNS}`,
 			[
 				id,
@@ -353,7 +357,7 @@ export const proposeBattle = async ({
 		const [row] = rows;
 
 		if (isNullish(row)) {
-			throw new BattleError('battle insert returned no row.');
+			throw new BattleExistsError(`Battle "${id}" already exists.`);
 		}
 
 		return shapeBattle(row);

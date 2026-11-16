@@ -2,9 +2,7 @@ import type { ClearingDid, RegistryDid } from '#declarations';
 import {
 	getSeriesPriceHistory as getSeriesPriceHistoryApi,
 	getTradeHistory as getTradeHistoryApi,
-	listSeriesTradeHistory as listSeriesTradeHistoryApi,
-	mintCompleteSet as mintCompleteSetApi,
-	redeemCompleteSet as redeemCompleteSetApi
+	listSeriesTradeHistory as listSeriesTradeHistoryApi
 } from '#lib/api/clearing.api.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import {
@@ -280,42 +278,4 @@ export const getSeriesTradeVolume = async ({
 	}
 
 	return volume;
-};
-
-/**
- * Mints a complete YES/NO set on clearing for `qty`.
- */
-export const mintCompleteSet = async ({
-	seriesId,
-	qty
-}: {
-	seriesId: string;
-	qty: bigint;
-}): Promise<boolean> => {
-	const identity = await safeGetIdentityOnce();
-
-	return await mintCompleteSetApi({
-		identity,
-		seriesId,
-		qty
-	});
-};
-
-/**
- * Redeems a complete set back into collateral for `qty`.
- */
-export const redeemCompleteSet = async ({
-	seriesId,
-	qty
-}: {
-	seriesId: string;
-	qty: bigint;
-}): Promise<boolean> => {
-	const identity = await safeGetIdentityOnce();
-
-	return await redeemCompleteSetApi({
-		identity,
-		seriesId,
-		qty
-	});
 };

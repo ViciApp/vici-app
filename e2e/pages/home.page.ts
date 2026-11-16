@@ -77,7 +77,6 @@ export class HomePage {
 	readonly marketFeed: Locator;
 	readonly marketCard: Locator;
 	readonly marketCardSkeleton: Locator;
-	readonly marketTimeRemaining: Locator;
 	readonly signInDevButton: Locator;
 	/**
 	 * The signed-in account control. The desktop top-nav profile handle and
@@ -110,7 +109,6 @@ export class HomePage {
 		this.marketFeed = page.getByTestId(TestId.MarketFeed);
 		this.marketCard = page.getByTestId(TestId.MarketCard);
 		this.marketCardSkeleton = page.getByTestId(TestId.MarketCardSkeleton);
-		this.marketTimeRemaining = page.getByTestId(TestId.MarketTimeRemaining);
 		this.signInDevButton = page.getByTestId(TestId.SignInDev);
 		this.userMenu = page.locator(`[data-tid="${TestId.UserMenu}"]:visible`);
 		this.signOutButton = page.getByTestId(TestId.SignOutButton);
@@ -212,13 +210,6 @@ export class HomePage {
 	 *   of every text run) are stable. Without this, snapshots taken before
 	 *   `document.fonts.ready` use the system fallback font and any later
 	 *   run-with-fonts produces a multi-pixel diff on every character.
-	 * - Replaces every `MarketTimeRemaining` chip with a fixed-width placeholder.
-	 *   `getTimeRemaining()` is wall-clock-relative (`"7d 14h"`, `"0d 23h"`,
-	 *   `"15m remaining"`, …); the strings have different rendered widths,
-	 *   and Playwright's `mask` option overlays a magenta rectangle the size
-	 *   of the element's bounding box, so even masked the rectangle width
-	 *   drifts run-to-run and the diff fires. Owning the text content is the
-	 *   only way to make it byte-stable.
 	 * - Replaces every `PrincipalDisplay` (the shortened principal text
 	 *   rendered by `CopyableAddress`) with a fixed-width placeholder.
 	 *   Juno's dev mock identity is deterministic WITHIN a CI run but the
@@ -226,9 +217,11 @@ export class HomePage {
 	 *   fresh boot, so the rendered shortened form (e.g. `aapr-r…dnh-4qe`
 	 *   vs `xqzm-i…inh-4qe`) drifts run-to-run wherever a `CopyableAddress`
 	 *   appears outside the (already-masked) `userMenu`, most notably on
-	 *   the profile page body. Same byte-stability rationale as the time
-	 *   chip: pinning the text is the only fix that doesn't trade one
-	 *   variable-width drift for another.
+	 *   the profile page body. The strings have different rendered widths,
+	 *   and Playwright's `mask` option overlays a magenta rectangle the size
+	 *   of the element's bounding box, so even masked the rectangle width
+	 *   drifts run-to-run and the diff fires. Owning the text content is the
+	 *   only way to make it byte-stable.
 	 * - Replaces the remaining per-run identities and figures listed in
 	 *   {@link PINNED_SNAPSHOT_TEXT}, each of which was observed rewriting its
 	 *   baseline on consecutive CI runs of the same commit.
@@ -246,11 +239,7 @@ export class HomePage {
 		});
 
 		await this.page.evaluate(
-			({ timeRemainingSel, principalSel, pinned }) => {
-				for (const el of document.querySelectorAll<HTMLElement>(timeRemainingSel)) {
-					el.textContent = '-- remaining';
-				}
-
+			({ principalSel, pinned }) => {
 				for (const el of document.querySelectorAll<HTMLElement>(principalSel)) {
 					el.textContent = 'xxxxxxx…xxxxxxx';
 				}
@@ -262,7 +251,6 @@ export class HomePage {
 				}
 			},
 			{
-				timeRemainingSel: `[data-tid="${TestId.MarketTimeRemaining}"]`,
 				principalSel: `[data-tid="${TestId.PrincipalDisplay}"]`,
 				pinned: PINNED_SNAPSHOT_TEXT
 			}
