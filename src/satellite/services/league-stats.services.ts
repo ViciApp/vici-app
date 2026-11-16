@@ -1,9 +1,10 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { isMacroId, MACRO_IDS, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
-import { leagueMemberKey, type LeagueMemberDoc } from '#lib/types/league-member.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import { leagueStatsKey, type LeagueStatsDoc } from '#lib/types/league-stats.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { CategoryStatsBucket, UserStatsDoc } from '#lib/types/user-stats.ts';
+import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
 import { isHibernated } from '#satellite/services/profile.services.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -18,6 +19,8 @@ import {
 	setDocStore
 } from '@junobuild/functions/sdk';
 
+const LEAGUE_STATS_WRITE_PURPOSE = 'league_stats fan-out';
+
 /**
  * Pre-write guard for `league_stats`. Same shape rules as
  * `affiliation_stats` but simpler: lifetime counters only, no
@@ -26,11 +29,10 @@ import {
  *
  *  1. **Collection scope.** No-op for any non-stats collection.
  *  2. **Key shape.** Doc key must equal the embedded `leagueId`.
- *  3. **Caller is a member.** The caller must have a row in
- *     `league_members` for the same leagueId. Binds the assert to
- *     legitimate hook writes, only a hook signing on behalf of an
- *     actual member can write, so an outsider can't inflate a rival
- *     league's numbers.
+ *  3. **Only the satellite writes.** The counters are fanned out by the
+ *     profile and user-stats hooks, which sign as a controller; a client
+ *     write (a member's included) is rejected, so no one can inflate a
+ *     league's accuracy, which battles and tournament prizes read.
  *  4. **Counters move forward.** Lifetime counters cannot decrease
  *     across writes.
  *  5. **Wins ≤ totalCalls.** Sanity invariant.
@@ -47,6 +49,9 @@ export const assertSetLeagueStats = ({
 		return;
 	}
 
+	// 3. Only the satellite writes.
+	assertControllerCaller({ caller, collection });
+
 	const proposedDoc = decodeDocData<LeagueStatsDoc>(proposed.data);
 
 	// 2. Key shape.
@@ -55,20 +60,6 @@ export const assertSetLeagueStats = ({
 	if (key !== expectedKey) {
 		throw new Error(
 			`league_stats key mismatch: expected ${expectedKey}, got ${key} (leagueId must match the doc body).`
-		);
-	}
-
-	// 3. Caller is a member of this league.
-	const callerText = Principal.fromUint8Array(caller).toText();
-	const membershipDoc = getDocStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		key: leagueMemberKey({ leagueId: proposedDoc.leagueId, memberPrincipal: callerText }),
-		caller
-	});
-
-	if (isNullish(membershipDoc)) {
-		throw new Error(
-			`league_stats writes require the caller to be a member of league "${proposedDoc.leagueId}".`
 		);
 	}
 
@@ -296,7 +287,7 @@ const incrementLeagueStats = ({
 	setDocStore({
 		collection: Collection.LEAGUE_STATS,
 		key: docKey,
-		caller,
+		caller: controllerCaller(LEAGUE_STATS_WRITE_PURPOSE),
 		doc: {
 			data: encodeDocData(next),
 			version: existing?.version
@@ -473,7 +464,7 @@ const incrementLeagueStatsCategories = ({
 	setDocStore({
 		collection: Collection.LEAGUE_STATS,
 		key: docKey,
-		caller,
+		caller: controllerCaller(LEAGUE_STATS_WRITE_PURPOSE),
 		doc: {
 			data: encodeDocData(next),
 			version: existing?.version

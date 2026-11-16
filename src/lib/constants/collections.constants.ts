@@ -13,7 +13,9 @@ export const Collection = {
 	 */
 	PROFILE_PRIVATE: collections.PROFILE_PRIVATE,
 	RELATIONS: collections.RELATIONS,
+	/** Dormant: nothing in the app reads or writes it; only a satellite controller may. */
 	CHATS: collections.CHATS,
+	/** Dormant: nothing in the app reads or writes it; only a satellite controller may. */
 	COMMENTS: collections.COMMENTS,
 	MARKET_METADATA: collections.MARKET_METADATA,
 	/**
@@ -55,7 +57,9 @@ export const Collection = {
 	 */
 	RESOLVED_RESULTS: collections.RESOLVED_RESULTS,
 	/**
-	 * Server-driven VXP new-user ladder state (owed vs paid); written from satellite hooks.
+	 * Server-driven VXP new-user ladder state (owed vs paid). Server-owned: the satellite hooks
+	 * write it as a controller, and its assert refuses every client write or delete, since the
+	 * payout trusts the milestone states.
 	 */
 	VXP_ONBOARDING: collections.VXP_ONBOARDING,
 	/**
@@ -73,8 +77,9 @@ export const Collection = {
 	REFERRAL_CODES: collections.REFERRAL_CODES,
 	/**
 	 * Per-referee redemption record (key = referee principal). Tracks the referrer, the code, and
-	 * the payout state for both sides. Written by `redeemReferralCode`; payout state is updated by
-	 * the satellite referral hook.
+	 * the payout state for both sides. Server-owned: `redeemReferralCode` creates it and the
+	 * referral settle path moves the payout state, both writing as a controller; its asserts refuse
+	 * every client write or delete.
 	 */
 	REFERRALS: collections.REFERRALS,
 	/**
@@ -87,8 +92,9 @@ export const Collection = {
 	/**
 	 * Per-member membership row, keyed by `${leagueId}/${memberPrincipal}`. Holds the member's
 	 * role inside the league (owner / admin / member) and the joinedAt timestamp. Self-joins
-	 * write directly; owner / admin can write rows for other principals (e.g. promote a member
-	 * to admin). Drift between key and embedded fields is rejected by the satellite assert.
+	 * write directly, always as `member`; the league owner can write rows for other principals
+	 * (e.g. promote a member to admin). Drift between key and embedded fields is rejected by the
+	 * satellite assert.
 	 */
 	LEAGUE_MEMBERS: collections.LEAGUE_MEMBERS,
 	/**

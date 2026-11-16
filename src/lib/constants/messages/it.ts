@@ -2036,8 +2036,6 @@ export const itMessages = {
 	'settings.profile_visibility.private': 'Privato',
 	'settings.profile_visibility.public': 'Pubblico',
 	'settings.profile_visibility.sub': 'Chi può vedere le tue previsioni e la precisione',
-	'settings.public_calls': 'Cronologia previsioni pubblica',
-	'settings.public_calls.sub': 'Mostra le tue ultime 30 previsioni sul profilo',
 	'settings.sign_out': 'Esci',
 	'settings.sign_out.cancel': 'Annulla',
 	'settings.sign_out.confirm': 'Uscire e tornare alla schermata di accesso?',

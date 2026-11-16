@@ -3,11 +3,13 @@
 	import type { Doc } from '@junobuild/core';
 	import { UserMinus, UserPlus } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { fade, fly } from 'svelte/transition';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import BaseButton from '#lib/components/ui/BaseButton.svelte';
 	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { globalStandingsRows, type StandingsRow } from '#lib/derived/standings.derived.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
@@ -90,7 +92,20 @@
 	const partitionStore = $derived(globalStandingsRows(activeWindow));
 	const partition = $derived($partitionStore);
 
-	const loading = $derived(isNullish(partition));
+	// Windows whose last load attempt rejected. Without it a failed read would
+	// leave `partition` unset and the spinner up for good; instead the window
+	// shows an error with a retry until a load succeeds.
+	const failedWindows = new SvelteSet<StandingsWindow>();
+
+	// Windows with a load still pending. The hydrate effect re-runs on every tab
+	// switch, so without this a switch away and back before the read settles
+	// would start a second paged read for the same window, and whichever
+	// settled last would overwrite the shared cache. Kept apart from
+	// `failedWindows` so a retry stays explicit.
+	const inFlightWindows = new SvelteSet<StandingsWindow>();
+
+	const loadFailed = $derived(isNullish(partition) && failedWindows.has(activeWindow));
+	const loading = $derived(isNullish(partition) && !loadFailed);
 	const rankedRows = $derived(partition?.ranked ?? []);
 	const provisionalRows = $derived(partition?.provisional ?? []);
 
@@ -102,16 +117,25 @@
 	const selfRow = $derived([...rankedRows, ...provisionalRows].find((row) => row.isSelf));
 
 	// Hydrate each window on first view. The store caches per-window, so a
-	// repeat visit short-circuits the fetch and re-renders the cached slice.
+	// repeat visit short-circuits the fetch and re-renders the cached slice. A
+	// failed window waits for the retry instead of refetching on every run.
 	$effect(() => {
 		const window = activeWindow;
 
-		if (isNullish(partition)) {
-			void loadGlobalStandings({ window }).catch((err: unknown) => {
-				console.error(err);
-			});
+		if (isNullish(partition) && !failedWindows.has(window) && !inFlightWindows.has(window)) {
+			inFlightWindows.add(window);
+			void loadGlobalStandings({ window })
+				.catch((err: unknown) => {
+					console.error(err);
+					failedWindows.add(window);
+				})
+				.finally(() => inFlightWindows.delete(window));
 		}
 	});
+
+	const retryLoad = () => {
+		failedWindows.delete(activeWindow);
+	};
 
 	// Fire `leaderboard_viewed` once per window load / tab switch (not on every
 	// profile trickle that re-derives the partition). `ok` = the viewer cleared
@@ -300,6 +324,15 @@
 		<div class="leaderboard-loading">
 			<div class="leaderboard-spinner"></div>
 			<p class="allcaps">{t({ locale: $localeStore, key: 'leaderboard.loading' })}</p>
+		</div>
+	{:else if loadFailed}
+		<div class="leaderboard-empty" role="alert">
+			<p class="leaderboard-empty-sub">
+				{t({ locale: $localeStore, key: 'common.error.generic' })}
+			</p>
+			<Button onclick={retryLoad} size="sm" variant="outline">
+				{t({ locale: $localeStore, key: 'arena.boundary.retry' })}
+			</Button>
 		</div>
 	{:else if rankedRows.length === 0 && provisionalRows.length === 0}
 		<div class="leaderboard-empty">

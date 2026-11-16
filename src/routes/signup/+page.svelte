@@ -15,6 +15,7 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { setAuthBusy, userStore } from '#lib/stores/user.store.ts';
+	import type { OnboardingPicks } from '#lib/types/onboarding.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { browser } from '$app/env';
@@ -83,11 +84,7 @@
 		}
 	};
 
-	const handleCompletePreAuth = (result: {
-		participantId: string | null;
-		side: 'YES' | 'NO' | null;
-		handle: string | null;
-	}) => {
+	const handleCompletePreAuth = (result: OnboardingPicks) => {
 		if (!browser) {
 			return;
 		}
@@ -146,11 +143,7 @@
 	// the handle).
 	let applyingAuthenticatedHandoff = $state(false);
 
-	const handleCompleteAuthenticated = async (result: {
-		participantId: string | null;
-		side: 'YES' | 'NO' | null;
-		handle: string | null;
-	}) => {
+	const handleCompleteAuthenticated = async (result: OnboardingPicks) => {
 		if (!browser || applyingAuthenticatedHandoff) {
 			return;
 		}
@@ -249,11 +242,7 @@
 		}
 	};
 
-	const handleComplete = (result: {
-		participantId: string | null;
-		side: 'YES' | 'NO' | null;
-		handle: string | null;
-	}) => {
+	const handleComplete = (result: OnboardingPicks) => {
 		if (authenticated) {
 			void handleCompleteAuthenticated(result);
 

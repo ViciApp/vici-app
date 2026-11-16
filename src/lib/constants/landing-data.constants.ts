@@ -1,3 +1,4 @@
+import type { CallSide } from '#lib/types/market.ts';
 /**
  * Landing-only mock data.
  *
@@ -122,11 +123,9 @@ export const landingStatusUniversities = (locale: string): readonly string[] =>
 
 /* ── Landing proof ticker (live calls) ─────────────────────────────── */
 
-export type LandingCallSide = 'YES' | 'NO';
-
 export interface LandingProofChip {
 	readonly who: string;
-	readonly side: LandingCallSide;
+	readonly side: CallSide;
 	readonly q: string;
 }
 

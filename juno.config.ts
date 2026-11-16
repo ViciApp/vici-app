@@ -100,6 +100,11 @@ export default defineConfig(({ mode }) => ({
 			}
 		},
 		collections: {
+			// `write: 'public'` lets any caller create, update or delete any doc:
+			// Juno does no owner check. Each such collection has a set and a
+			// delete assert in `src/satellite/index.ts` that admits only the doc's
+			// owner, a satellite controller, or a named cross-user rule (see
+			// `docs/ai/satellite/patterns.md`).
 			datastore: [
 				{
 					collection: JunoDatastoreCollection.ROLES,
@@ -132,6 +137,9 @@ export default defineConfig(({ mode }) => ({
 					read: 'public',
 					write: 'public'
 				},
+				// `chats` and `comments` are dormant: nothing in the app reads or
+				// writes them (the web2 export still drains them), so their set
+				// and delete asserts accept only a controller.
 				{
 					collection: JunoDatastoreCollection.CHATS,
 					memory: 'stable',
@@ -177,9 +185,10 @@ export default defineConfig(({ mode }) => ({
 				// Per-liker reaction docs for the friend activity feed (one doc
 				// per activity-per-liker). Public read so counts + my-likes
 				// hydrate on load; public write so a user persists their own
-				// like. `assertSetActivityReaction` binds each write to its
-				// caller (liker === caller, key shape), and Juno's owner-scoped
-				// delete keeps an unlike to the liker's own doc.
+				// like. Juno does no owner check on a public collection, so
+				// `assertSetActivityReaction` binds each write to its caller
+				// (liker === caller, key shape) and
+				// `assertDeleteActivityReaction` keeps an unlike to the liker.
 				{
 					collection: JunoDatastoreCollection.ACTIVITY_REACTIONS,
 					memory: 'stable',

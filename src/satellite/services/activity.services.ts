@@ -1,8 +1,9 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import type { Activity } from '#lib/types/social.ts';
+import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
 
 const ACTIVITY_TYPES: readonly string[] = Object.values(ActivityType);
@@ -71,4 +72,22 @@ export const assertSetActivity = ({
 	if (!Number.isSafeInteger(activity.timestamp) || `${activity.timestamp}` !== parts[1]) {
 		throw new Error('Activity timestamp must be a safe integer matching the key.');
 	}
+};
+
+/**
+ * An activity is keyed `${user}#${timestamp}#${type}` (see
+ * {@link assertSetActivity}), so the key's first segment is its actor: only
+ * that actor or the satellite may delete it.
+ */
+export const assertDeleteActivity = ({
+	caller,
+	data: { collection, key }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.ACTIVITIES) {
+		return;
+	}
+
+	const [actor] = key.split('#');
+
+	assertOwnerOrController({ caller, owner: actor, collection });
 };

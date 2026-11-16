@@ -1,7 +1,8 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { USER_STATS_RECENT_LIMIT, type UserStatsDoc } from '#lib/types/user-stats.ts';
+import { assertControllerCaller } from '#satellite/services/authz.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
 
 /**
@@ -85,4 +86,21 @@ export const assertSetUserStats = ({
 			throw new Error('user_stats recentSettlements contrarian must be a boolean.');
 		}
 	}
+};
+
+/**
+ * Pre-delete guard for `user_stats`: only the satellite deletes a dashboard
+ * cache. No app flow deletes one, and `onUserStatsSetForLeagueStats` treats a
+ * re-created doc as all-new counters, so a delete then re-write would add the
+ * owner's whole history to every league's `league_stats` a second time.
+ */
+export const assertDeleteUserStats = ({
+	caller,
+	data: { collection }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.USER_STATS) {
+		return;
+	}
+
+	assertControllerCaller({ caller, collection });
 };

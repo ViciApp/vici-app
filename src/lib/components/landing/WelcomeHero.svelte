@@ -30,6 +30,7 @@
 	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { CallSide } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { splitHeadline } from '#lib/utils/landing-headline.utils.ts';
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
@@ -46,10 +47,8 @@
 	const winNo = Math.round(XP / (NO / 100)) - XP;
 
 	type Phase = 'rest' | 'gone' | 'payoff';
-	type Side = 'YES' | 'NO';
-
 	let phase = $state<Phase>('rest');
-	let side = $state<Side | null>(null);
+	let side = $state<CallSide | null>(null);
 	let dx = $state(0);
 	let dragging = $state(false);
 	let xpShown = $state(0);
@@ -152,7 +151,7 @@
 		};
 	});
 
-	const commit = (s: Side): void => {
+	const commit = (s: CallSide): void => {
 		side = s;
 		dragging = false;
 		dx = s === 'YES' ? 520 : -520;

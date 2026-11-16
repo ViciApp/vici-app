@@ -2044,8 +2044,6 @@ export const esMessages = {
 	'settings.profile_visibility.private': 'Privado',
 	'settings.profile_visibility.public': 'Público',
 	'settings.profile_visibility.sub': 'Quién puede ver tus predicciones y precisión',
-	'settings.public_calls': 'Historial público de predicciones',
-	'settings.public_calls.sub': 'Muestra tus últimas 30 predicciones en tu perfil',
 	'settings.sign_out': 'Cerrar sesión',
 	'settings.sign_out.cancel': 'Cancelar',
 	'settings.sign_out.confirm': '¿Cerrar sesión y volver a la pantalla de inicio?',

@@ -17,6 +17,8 @@ import { claimReferralFriendship, redeemReferralCode } from '#lib/services/refer
 import { notificationsStore } from '#lib/stores/notification.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
 import { LEAGUE_INVITE_CODE_REGEX } from '#lib/types/league.ts';
+import type { CallSide } from '#lib/types/market.ts';
+import type { OnboardingPicks } from '#lib/types/onboarding.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { t } from '#lib/utils/i18n.utils.ts';
 import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
@@ -29,10 +31,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
  * `/league/[code]` invite landing, or a share-link `?ref=` capture). Drained post-signin by
  * {@link drainPendingOnboarding}.
  */
-interface PendingOnboarding {
-	handle: string | null;
-	participantId: string | null;
-	side: 'YES' | 'NO' | null;
+interface PendingOnboarding extends OnboardingPicks {
 	interests: string[];
 	email?: string;
 	referralCode?: string;
@@ -132,7 +131,7 @@ const parsePendingOnboarding = (raw: string): PendingOnboarding | undefined => {
 			? parsed.participantId
 			: null;
 	const rawSide = 'side' in parsed && typeof parsed.side === 'string' ? parsed.side : null;
-	const side: 'YES' | 'NO' | null = rawSide === 'YES' || rawSide === 'NO' ? rawSide : null;
+	const side: CallSide | null = rawSide === 'YES' || rawSide === 'NO' ? rawSide : null;
 
 	const interests =
 		'interests' in parsed && Array.isArray(parsed.interests)

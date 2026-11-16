@@ -1,9 +1,10 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import { ACTIVITY_REACTION_TITLE_MAX_LENGTH, type ActivityReaction } from '#lib/types/social.ts';
+import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
 
 const ACTIVITY_TYPES: readonly string[] = Object.values(ActivityType);
@@ -22,8 +23,8 @@ const ACTIVITY_TYPES: readonly string[] = Object.values(ActivityType);
  *  - `data.timestamp` must be a safe integer; the denormalized `activityTitle` is a bounded string
  *    and `marketId`, when present, a string, so a liker can't bloat the doc the inbox card reads.
  *
- * Deletes (unlike) are owner-scoped by Juno on this public collection, so a liker can only remove
- * their own reaction; no delete assert is needed.
+ * Deletes (unlike) are guarded by {@link assertDeleteActivityReaction}: Juno does no owner check on
+ * a public collection.
  */
 export const assertSetActivityReaction = ({
 	caller,
@@ -103,4 +104,22 @@ export const assertSetActivityReaction = ({
 	if (nonNullish(reaction.marketId) && typeof reaction.marketId !== 'string') {
 		throw new Error('Activity reaction marketId must be a string.');
 	}
+};
+
+/**
+ * Unlike: the reaction key ends with its liker (see {@link assertSetActivityReaction}), and only
+ * that liker or the satellite may remove it. The delete hook moves the shared like count, so a
+ * stranger's delete would also erase someone else's like from it.
+ */
+export const assertDeleteActivityReaction = ({
+	caller,
+	data: { collection, key }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.ACTIVITY_REACTIONS) {
+		return;
+	}
+
+	const liker = key.split('#').at(-1) ?? '';
+
+	assertOwnerOrController({ caller, owner: liker, collection });
 };
