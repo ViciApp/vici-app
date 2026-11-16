@@ -25,7 +25,7 @@
 	import { SUPPORTED_LOCALES } from '#lib/constants/locale.constants.ts';
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
-	import { leaderboard } from '#lib/derived/leaderboard.derived.ts';
+	import { visibleLeaderboard } from '#lib/derived/leaderboard.derived.ts';
 	import { marketMetadata } from '#lib/derived/market-metadata.derived.ts';
 	import { marketTags } from '#lib/derived/market-tags.derived.ts';
 	import { pageMarketId } from '#lib/derived/page-market.derived.ts';
@@ -106,7 +106,8 @@
 	let priorCall = $state<PriorCallSignal | undefined>();
 
 	// Leaderboard-ranked predictors holding a live position on this market,
-	// with the side they took. Public data (same list for every visitor),
+	// with the side they took. Public data (the same list for every visitor,
+	// bar the viewer's own row when they opted out of the global leaderboard),
 	// resolved against the cached global leaderboard once it and the market
 	// are both known. `undefined` while unresolved so the section can tell
 	// "still loading" apart from "nobody's here".
@@ -314,13 +315,13 @@
 	};
 
 	// Resolve the top-predictors list once the market and the cached global
-	// leaderboard are both known. Like the price history this is
-	// viewer-independent (works signed-out) and rides behind the first paint;
+	// leaderboard are both known. Like the price history this works
+	// signed-out and rides behind the first paint;
 	// the resolved-market guard keeps the 30s poll and unrelated leaderboard
 	// ticks from re-probing every run.
 	$effect(() => {
 		const id = market?.id;
-		const candidates = $leaderboard;
+		const candidates = $visibleLeaderboard;
 
 		if (isNullish(id) || candidates.length === 0 || topPredictorsMarketId === id) {
 			return;

@@ -2,6 +2,7 @@ import { cachedListOrEmpty } from '#lib/derived/cached.derived.ts';
 import { leaderboardStore } from '#lib/stores/leaderboard.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
+import { isShownOnGlobalLeaderboard } from '#lib/utils/visibility.utils.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**
@@ -84,4 +85,20 @@ export const leaderboard: Readable<UserProfile[]> = derived(
 
 		return next;
 	}
+);
+
+const selfOwner: Readable<string | undefined> = derived(userStore, ({ user }) => user?.owner);
+
+/**
+ * {@link leaderboard} as a ranked list other people may see: profiles that
+ * turned off "Show on global leaderboard" are dropped, the viewer keeps their
+ * own row. Read this, not {@link leaderboard}, wherever the rows surface
+ * other predictors.
+ */
+export const visibleLeaderboard: Readable<UserProfile[]> = derived(
+	[leaderboard, selfOwner],
+	([$leaderboard, $selfOwner]) =>
+		$leaderboard.filter((profile) =>
+			isShownOnGlobalLeaderboard({ owner: profile.owner, profile, selfOwner: $selfOwner })
+		)
 );
