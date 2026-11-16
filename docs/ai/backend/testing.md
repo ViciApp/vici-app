@@ -18,6 +18,7 @@ Paths are under `backend/`.
 | `profiles.ts`    | `createTestProfile`, `softDeleteProfile`, `hibernateProfile`, `uniqueNickname`                                 |
 | `adoption.ts`    | `seedImportedAccount`, `linkOf`, `claimPendingOf`, `userCount`                                                 |
 | `vxp.ts`         | `stubVxpLedger`, `readAwardRow`                                                                                |
+| `custody.ts`     | `userChainBalance` (a user's internal balance on an asset's chain, inside the caller's transaction)            |
 | `repo-source.ts` | `readRepoFile`, `readRepoSource`, `importRepoModule`, `extract*` literal extractors for the shared-drift suite |
 
 ## Rules learnt the hard way

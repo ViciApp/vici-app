@@ -15,17 +15,13 @@ import { ensureInternalAccount, ensureUserAccount } from '../src/custody/account
 import { getAssetBySymbol, type Asset } from '../src/custody/assets';
 import * as ledger from '../src/custody/ledger';
 import { postLedgerEvent } from '../src/custody/ledger';
-import {
-	getWithdrawal,
-	requestWithdrawal,
-	transitionWithdrawal,
-	userChainBalance
-} from '../src/custody/withdrawals';
+import { getWithdrawal, requestWithdrawal, transitionWithdrawal } from '../src/custody/withdrawals';
 import { query, tx } from '../src/db/client';
 import { env } from '../src/env';
 import { ZERO } from '../src/lib/constants';
 import { logger } from '../src/lib/logger';
 import { createTestUser, ensureMigrated } from './helpers/auth';
+import { userChainBalance } from './helpers/custody';
 import { dbAvailable } from './helpers/setup';
 
 /** Bun's `typeof fetch` also carries `preconnect`, so a bare function is not one. */

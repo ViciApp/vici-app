@@ -14,7 +14,6 @@ import {
 	ActivityNotFoundError,
 	ActivityValidationError,
 	createActivity,
-	getReactionCounts,
 	isActivityType,
 	likeActivity,
 	listActivities,
@@ -361,13 +360,6 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 			})
 		})
 	}))
-	.post(
-		'/activity-reactions/counts',
-		async ({ body }) => ({
-			items: await getReactionCounts({ activityKeys: body.activityKeys })
-		}),
-		{ body: t.Object({ activityKeys: t.Array(t.String(), { maxItems: 1000 }) }) }
-	)
 	.post(
 		'/activity-reactions',
 		async ({ request, set, body }) => {
