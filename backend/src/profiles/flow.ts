@@ -12,12 +12,6 @@ import { tx } from '../db/client';
  */
 export const DAILY_HARD_CAP = 15;
 
-/**
- * The daily goal itself (10) is a client rendering concern; the server owns
- * only the count and the hard cap.
- */
-export const DAILY_GOAL_TARGET = 10;
-
 /** Typed failure for a swipe from an account with no profile yet. */
 export class NoProfileError extends Error {
 	constructor() {

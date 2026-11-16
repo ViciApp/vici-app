@@ -366,35 +366,6 @@ export const listReactions = async ({ limit }: { limit: number }): Promise<Activ
 	return rows.map(shapeReaction);
 };
 
-export interface ActivityReactionCount {
-	activityKey: string;
-	count: number;
-	updatedAtMs: number;
-}
-
-/** Rollup counters for the given activity keys. */
-export const getReactionCounts = async ({
-	activityKeys
-}: {
-	activityKeys: string[];
-}): Promise<ActivityReactionCount[]> => {
-	if (activityKeys.length === 0) {
-		return [];
-	}
-
-	const rows = await query<{ activity_key: string; count: number; updated_at_ms: string }>(
-		`select activity_key, count, updated_at_ms::text
-		 from activity_reaction_counts where activity_key = any($1)`,
-		[activityKeys]
-	);
-
-	return rows.map((row) => ({
-		activityKey: row.activity_key,
-		count: row.count,
-		updatedAtMs: Number(row.updated_at_ms)
-	}));
-};
-
 /**
  * Admin corrective: re-derive every activity's exact like count from the
  * reaction rows and overwrite the counters, healing any drift and zeroing

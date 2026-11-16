@@ -19,7 +19,6 @@
 import type { SignIdentity } from '@icp-sdk/core/agent';
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
 import { Secp256k1KeyIdentity } from '@icp-sdk/core/identity/secp256k1';
-import { ed25519 } from '@noble/curves/ed25519.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { hkdf } from '@noble/hashes/hkdf.js';
 import { sha256 } from '@noble/hashes/sha2.js';
@@ -66,18 +65,6 @@ export const deriveUserKey = ({ userId, chain }: { userId: string; chain: Chain 
  * derivation space disjoint from user keys. */
 export const deriveServiceKey = ({ name, chain }: { name: string; chain: Chain }): Uint8Array =>
 	deriveForCurve(`svc:${name}:${chain}`, chain);
-
-/** The public key bytes for a derived key on its chain's curve. */
-export const publicKeyForChain = ({
-	privateKey,
-	chain
-}: {
-	privateKey: Uint8Array;
-	chain: Chain;
-}): Uint8Array =>
-	ED25519_CHAINS.has(chain)
-		? ed25519.getPublicKey(privateKey)
-		: secp256k1.getPublicKey(privateKey, true);
 
 /** The user's custodial IC identity: signs engine calls and ICRC transfers on
  * the user's behalf. */
