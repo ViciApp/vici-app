@@ -444,12 +444,13 @@ owner-leagues guard:
   through, and its `not_owner` / `new_owner_not_member` / … validation is
   the single source of truth. A `delete` action calls the new
   `deleteLeagueFn({ leagueId, callerText, callerBytes })` (owner disband).
-- **SDK `deleteDocStore` bypasses asserts.** `deleteLeagueFn` drops every
+- **The disband deletes as a controller.** `deleteLeagueFn` drops every
   `LEAGUE_MEMBERS` row for the league, including the `owner` row, which
-  `assertDeleteLeagueMember` forbids on the FE path ("transfer ownership
-  first"). The satellite's own store drops never re-enter the assert, which
-  is exactly why the cascade (`deleteOwnLeagueMemberships`) and this disband
-  can remove owner rows. Distinct from the cascade's
+  `assertDeleteLeagueMember` forbids to everyone but a controller
+  ("transfer ownership first"). Serverless `deleteDocStore` runs that
+  assert too, so once the endpoint has checked the caller owns the league
+  it signs the deletes with `controllerCaller(...)`, as the account purge
+  (`hardDeleteAccountFn`) does for every row it removes. Distinct from the cascade's
   `disbandOrTransferOwnedLeagues`, which only drops leagues that are
   _already_ empty and hands the others to a remaining member.
 - **Applied immediately ⇒ not reversed by recovery.** Resolutions are real
@@ -620,6 +621,43 @@ principal with no profile, because new accounts live on the new stack:
   (`canisterSelf()`); a deployed satellite can never carry it.
 - **Run the cheap gate before expensive siblings** in the composed assert
   (`assertProfile` checks it before the nickname scan).
+
+## Public-write collections: owner or controller on every write and delete
+
+Juno's `write: 'public'` rule does no owner check: any caller may create,
+update or delete any doc of such a collection. Every public-write collection
+in [`juno.config.ts`](../../../juno.config.ts) therefore has both a set and a
+delete assert wired in `index.ts` (`src/tests/satellite/index.spec.ts` fails
+when one is missing), and each assert lets through only:
+
+- **the doc's owner**, read from the key or the payload the set assert binds
+  to the caller: a profile's key, an activity's or a reaction's key segment,
+  a referral code's `owner`, a league's `owner`, a month row's key prefix.
+  `assertOwnerOrController` in
+  [`authz.services.ts`](../../../src/satellite/services/authz.services.ts)
+  is the shared check;
+- **a satellite controller**, which is how the satellite itself writes (see
+  below);
+- **a narrow, named cross-user rule** where the app needs one, written in the
+  collection's assert: the league owner kicks a member or changes a role, a
+  relation's participants end an active friendship and its sender withdraws
+  a pending request, an admin grants or removes a role.
+
+A collection whose docs the satellite computes has no owner path at all: the
+assert accepts only a controller (`assertControllerWrite`) and the endpoint
+or hook that computes the doc signs its write with `controllerCaller(...)`.
+That covers `relations` (every set goes through the friend-request
+endpoints), `market_metadata` and `market_translations` (the upsert
+endpoints check creator-or-admin, then write as a controller),
+`league_stats` (fanned out by the profile and user-stats hooks), and the
+dormant `chats` and `comments`. A delete with no app flow behind it is
+controller-only too (`exit_signals`, `user_stats`).
+
+**Every serverless write passes the same asserts.** `setDocStore` and
+`deleteDocStore` run them with the `caller` they are given, so a satellite
+path that acts for the system rather than for the caller (the account purge,
+the league disband, an endpoint-computed doc) signs as
+`controllerCaller(...)` and keeps the real caller for reads.
 
 ## Endpoint-computed docs: controller-only assert
 

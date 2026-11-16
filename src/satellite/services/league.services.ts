@@ -10,9 +10,14 @@ import {
 	LEAGUE_NAME_MIN_LENGTH,
 	type LeagueDoc
 } from '#lib/types/league.ts';
+import {
+	assertOwnerOrController,
+	controllerCaller,
+	isControllerText
+} from '#satellite/services/authz.services.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { canisterSelf, msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
@@ -210,8 +215,10 @@ export const assertSetLeague = ({
 	// 2 (edit path). The current owner is the only principal that
 	// can edit. The transfer-of-ownership endpoint impersonates the
 	// outgoing owner (msgCaller) for the swap, then impersonates the
-	// new owner for the membership-role updates.
-	if (currentDoc.owner !== callerText) {
+	// new owner for the membership-role updates. The satellite itself
+	// (a controller) may edit too: the account purge hands an owned league
+	// to a surviving member.
+	if (currentDoc.owner !== callerText && !isControllerText(callerText)) {
 		throw new Error('leagues edits must be made by the current owner.');
 	}
 
@@ -242,6 +249,27 @@ export const assertSetLeague = ({
 	// values up front so a cleared image is an absent field (not an empty
 	// string) and a member can never be served an untrusted URL.
 	assertValidLeagueImageUrl(proposedDoc.imageUrl);
+};
+
+/**
+ * Pre-delete guard for `leagues`: only the owner (or the satellite) may
+ * delete a league. Anyone else could otherwise delete it and re-create the
+ * same id as its owner, inheriting every membership row.
+ */
+export const assertDeleteLeague = ({
+	caller,
+	data: {
+		collection,
+		data: { current }
+	}
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.LEAGUES || isNullish(current)) {
+		return;
+	}
+
+	const { owner } = decodeDocData<LeagueDoc>(current.data);
+
+	assertOwnerOrController({ caller, owner, collection });
 };
 
 /**
@@ -434,13 +462,12 @@ export const transferLeagueOwnershipFn = ({
  * gone (e.g. deleted by a concurrent caller between an ownership
  * precheck and this call), the desired end state already holds.
  *
- * The disband runs as the satellite SDK caller (passed in as
- * `callerBytes`), so it deletes via `deleteDocStore` directly: that
- * path does NOT re-enter `assertDeleteLeagueMember`, which is why this
- * can drop the `owner` member row too (the assert would otherwise
- * reject it as "transfer ownership first"). Order is membership rows
- * first, then the league doc, mirroring the cascade's
- * memberships → owned-empty-leagues sequencing.
+ * Once the caller is confirmed as the owner, the deletes are signed as a
+ * satellite controller: serverless `deleteDocStore` runs
+ * `assertDeleteLeagueMember` too, and that assert lets only a controller
+ * drop the `owner` member row (anyone else gets "transfer ownership
+ * first"). Order is membership rows first, then the league doc, mirroring
+ * the cascade's memberships → owned-empty-leagues sequencing.
  *
  * This is a deliberate, complete disband: distinct from the account-
  * delete cascade's `disbandOrTransferOwnedLeagues`, which only drops
@@ -480,9 +507,10 @@ export const deleteLeagueFn = ({
 		return { ok: false, reason: 'not_owner' };
 	}
 
+	const writer = controllerCaller('league disband');
+
 	// Delete every membership row for this league (prefix scan on
-	// `${leagueId}/`). The owner row is included: the SDK drop bypasses
-	// `assertDeleteLeagueMember`'s "owner row can't be deleted" guard.
+	// `${leagueId}/`), the owner row included.
 	//
 	// Match on the key prefix alone, NOT the decoded payload: membership
 	// keys are already namespaced by `${leagueId}/`, so the prefix is
@@ -502,7 +530,7 @@ export const deleteLeagueFn = ({
 			deleteDocStore({
 				collection: Collection.LEAGUE_MEMBERS,
 				key: docKey,
-				caller: callerBytes,
+				caller: writer,
 				doc: {
 					version: item.version
 				}
@@ -514,7 +542,7 @@ export const deleteLeagueFn = ({
 	deleteDocStore({
 		collection: Collection.LEAGUES,
 		key: leagueId,
-		caller: callerBytes,
+		caller: writer,
 		doc: {
 			version: leagueDoc.version
 		}

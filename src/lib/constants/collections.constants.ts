@@ -13,7 +13,9 @@ export const Collection = {
 	 */
 	PROFILE_PRIVATE: collections.PROFILE_PRIVATE,
 	RELATIONS: collections.RELATIONS,
+	/** Dormant: nothing in the app reads or writes it; only a satellite controller may. */
 	CHATS: collections.CHATS,
+	/** Dormant: nothing in the app reads or writes it; only a satellite controller may. */
 	COMMENTS: collections.COMMENTS,
 	MARKET_METADATA: collections.MARKET_METADATA,
 	/**
@@ -87,8 +89,9 @@ export const Collection = {
 	/**
 	 * Per-member membership row, keyed by `${leagueId}/${memberPrincipal}`. Holds the member's
 	 * role inside the league (owner / admin / member) and the joinedAt timestamp. Self-joins
-	 * write directly; owner / admin can write rows for other principals (e.g. promote a member
-	 * to admin). Drift between key and embedded fields is rejected by the satellite assert.
+	 * write directly, always as `member`; the league owner can write rows for other principals
+	 * (e.g. promote a member to admin). Drift between key and embedded fields is rejected by the
+	 * satellite assert.
 	 */
 	LEAGUE_MEMBERS: collections.LEAGUE_MEMBERS,
 	/**

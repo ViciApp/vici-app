@@ -19,12 +19,17 @@ import type { Relation } from '#lib/types/relation.ts';
 import type { Activity } from '#lib/types/social.ts';
 import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
 import { fnv1a64 } from '#lib/utils/hash.utils.ts';
+import { assertOwnerOrController, controllerCaller } from '#satellite/services/authz.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext, OnSetDocContext } from '@junobuild/functions';
+import type {
+	AssertDeleteDocContext,
+	AssertSetDocContext,
+	OnSetDocContext
+} from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import {
@@ -319,7 +324,7 @@ const writeConfirmedFriendship = ({
 	setDocStore({
 		collection: Collection.RELATIONS,
 		key: relationId,
-		caller,
+		caller: controllerCaller('referral friendship'),
 		doc: {
 			data: encodeDocData(relation)
 		}
@@ -575,6 +580,41 @@ export const assertSetReferral = ({
 	if (owner !== proposedDoc.referrer) {
 		throw new Error('Referrer does not match the referral code owner.');
 	}
+};
+
+/**
+ * A referral code is bound to its owner (write-once, `owner === caller`), so
+ * only that owner or the satellite may drop it.
+ */
+export const assertDeleteReferralCode = ({
+	caller,
+	data: {
+		collection,
+		data: { current }
+	}
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.REFERRAL_CODES || isNullish(current)) {
+		return;
+	}
+
+	const { owner } = decodeDocData<ReferralCodeDoc>(current.data);
+
+	assertOwnerOrController({ caller, owner, collection });
+};
+
+/**
+ * A referral record is keyed by its referee: only that referee or the
+ * satellite may delete it.
+ */
+export const assertDeleteReferral = ({
+	caller,
+	data: { collection, key }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.REFERRALS) {
+		return;
+	}
+
+	assertOwnerOrController({ caller, owner: key, collection });
 };
 
 // ─── Payout hook ─────────────────────────────────────────────────────────
