@@ -476,6 +476,22 @@ export const listLeaderboard = async (): Promise<UserProfile[]> => {
 	return items.map(mapProfile);
 };
 
+/** One account's place in the full points ranking plus the ranked population
+ * size, the counterpart of the satellite's self-rank query. The wire carries
+ * an unranked account's `rank` as `null`; the app shape leaves it absent. */
+export const getUserRankAndCount = async ({
+	userId
+}: {
+	userId: string;
+}): Promise<{ rank?: number; count: number }> => {
+	const { rank, count } = await request<{ rank: number | null; count: number }>({
+		path: `/api/v1/leaderboard/rank/${encodeURIComponent(userId)}`,
+		method: 'GET'
+	});
+
+	return isNullish(rank) ? { count } : { rank, count };
+};
+
 const listRelations = async (path: string): Promise<Relation[]> => {
 	const { items } = await request<{ items: Web2RelationWire[] }>({ path, method: 'GET' });
 
