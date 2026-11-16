@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
-	import { leaderboard } from '#lib/derived/leaderboard.derived.ts';
+	import { visibleLeaderboard } from '#lib/derived/leaderboard.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { FollowedLeanSignal, TopPredictorSignal } from '#lib/types/market-signals.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
@@ -26,15 +26,16 @@
 
 	const followedNo = $derived(nonNullish(followedLean) ? followedLean.total - followedLean.yes : 0);
 
-	// Join each signal back onto its cached leaderboard row for the display
+	// Join each signal back onto its visible leaderboard row for the display
 	// fields (nickname / avatar / accuracy / streak). The signals were
-	// resolved from this same store's principal order, so a miss only
-	// happens if the board refreshed mid-flight: drop that row rather
-	// than render a half-empty identity.
+	// resolved from this same store's principal order, so a miss means the
+	// board refreshed mid-flight or the row is no longer visible (its owner
+	// opted out, or it was the viewer's own row and they signed out): drop it
+	// at once rather than wait for the page to re-probe.
 	const rows = $derived(
 		(topPredictors ?? [])
 			.map((signal) => {
-				const user = $leaderboard.find(({ owner }) => owner === signal.owner);
+				const user = $visibleLeaderboard.find(({ owner }) => owner === signal.owner);
 
 				return nonNullish(user) ? { user, side: signal.side } : undefined;
 			})

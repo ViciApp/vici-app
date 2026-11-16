@@ -398,12 +398,20 @@ ranking surfaces. Both default **on** (legacy / unset reads as on).
   compress with no gap. They keep their own rank: their `You` row and
   the Arena "Global ranking" card (`ownGlobalStanding`) still resolve,
   and their top-decile achievement (a separate satellite points-rank
-  path) is unaffected. Enforced FE-side in `globalStandingsRows`,
-  **failing closed**: a non-self row appears only once its profile is
-  loaded and not opted out, so an opted-out predictor never flashes onto
-  the board before their preference is known. The leaderboard hydrates
-  every raw-slice principal (not just visible rows), so opted-in rows
-  fill in as profiles land rather than starving. The clearing canister
+  path) is unaffected. Enforced FE-side by one predicate,
+  `isShownOnGlobalLeaderboard` (`visibility.utils`), applied to the
+  global leaderboard (`globalStandingsRows`) and to the market detail's
+  "Top predictors here" candidates (`visibleLeaderboard`), **failing
+  closed**: a non-self row appears only once its profile is loaded and
+  not opted out, so an opted-out predictor never flashes onto a list
+  before their preference is known. The preference is always read from
+  the hydrated profile cache (`profilesStore`), never from a leaderboard
+  row: the satellite's leaderboard wire carries no sharing preferences.
+  Both surfaces hydrate every raw principal (not just visible rows), so
+  opted-in rows fill in as profiles land rather than starving; the
+  market detail waits for that hydration before it probes, and
+  re-probes whenever the candidate set changes (sign-in, sign-out, an
+  opt-out). The clearing canister
   still publishes raw P&L + principals, so this is a display opt-out,
   not a data-hiding guarantee (canister-level hiding is a tracked
   fast-follow).

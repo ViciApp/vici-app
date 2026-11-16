@@ -1,7 +1,10 @@
 import { cachedListOrEmpty } from '#lib/derived/cached.derived.ts';
+import { authPrincipal } from '#lib/derived/user.derived.ts';
 import { leaderboardStore } from '#lib/stores/leaderboard.store.ts';
+import { profilesStore } from '#lib/stores/profiles.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
+import { isShownOnGlobalLeaderboard } from '#lib/utils/visibility.utils.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**
@@ -84,4 +87,29 @@ export const leaderboard: Readable<UserProfile[]> = derived(
 
 		return next;
 	}
+);
+
+/**
+ * {@link leaderboard} as a ranked list other people may see: profiles that
+ * turned off "Show on global leaderboard" are dropped, the viewer keeps their
+ * own row. Read this, not {@link leaderboard}, wherever the rows surface
+ * other predictors.
+ *
+ * The opt-out is read from the hydrated profile cache, never from the
+ * leaderboard row itself: the satellite's leaderboard wire carries no sharing
+ * preferences (the row decodes as opted in), and the cached rows are not
+ * refreshed when their owner changes a preference. A row whose profile is not
+ * cached is hidden (fail closed), so a surface reading this hydrates the
+ * leaderboard's owners through `loadProfilesByPrincipals`.
+ */
+export const visibleLeaderboard: Readable<UserProfile[]> = derived(
+	[leaderboard, profilesStore, authPrincipal],
+	([$leaderboard, $profiles, $authPrincipal]) =>
+		$leaderboard.filter(({ owner }) =>
+			isShownOnGlobalLeaderboard({
+				owner,
+				profile: $profiles.get(owner),
+				selfOwner: $authPrincipal
+			})
+		)
 );

@@ -29,10 +29,11 @@ export interface DefaultAmountPrefs {
  * for leaderboard / search filtering.
  *
  * `leaderboardOptIn` and `worldsOptIn` are opt-out flags (default `true`,
- * matching the current always-shown behaviour). They persist the user's
- * intent today; server-side enforcement (actually hiding an opted-out
- * user from the global leaderboard or Worlds Universities) is a separate
- * follow-up.
+ * matching the always-shown behaviour). `leaderboardOptIn` is enforced
+ * client-side by `isShownOnGlobalLeaderboard` on every ranked list other
+ * people see; `worldsOptIn` is enforced at read time by the Worlds
+ * aggregators. See `docs/ai/PRODUCT.md` (Privacy: leaderboard & Worlds
+ * sharing opt-outs).
  */
 export interface SharingPrefs {
 	profileVisibility: SettingsVisibility;
