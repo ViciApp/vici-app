@@ -52,7 +52,7 @@ describe('league-member.services', () => {
 	let host: SatelliteHost;
 
 	beforeEach(() => {
-		host = installSatelliteHost({ [Collection.LEAGUES]: { [league.id]: league } });
+		host = installSatelliteHost({ docs: { [Collection.LEAGUES]: { [league.id]: league } } });
 	});
 
 	afterEach(() => host.restore());

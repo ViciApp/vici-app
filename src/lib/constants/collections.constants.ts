@@ -77,8 +77,9 @@ export const Collection = {
 	REFERRAL_CODES: collections.REFERRAL_CODES,
 	/**
 	 * Per-referee redemption record (key = referee principal). Tracks the referrer, the code, and
-	 * the payout state for both sides. Written by `redeemReferralCode`; payout state is updated by
-	 * the satellite referral hook.
+	 * the payout state for both sides. Server-owned: `redeemReferralCode` creates it and the
+	 * referral settle path moves the payout state, both writing as a controller; its asserts refuse
+	 * every client write or delete.
 	 */
 	REFERRALS: collections.REFERRALS,
 	/**

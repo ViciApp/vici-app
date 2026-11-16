@@ -71,7 +71,12 @@ one pattern. Each of these has bitten a PR before:
   `vxp_onboarding` ladder is set and deleted by a satellite controller
   only (`assertVxpOnboardingWrite`), and the onboarding hooks write it as
   `controllerCaller(...)`; the calibration engagement gate reads the same
-  doc.
+  doc. The `referrals` record is the same: `assertSetReferral` accepts only
+  a controller, a paid side never changes again, and a new record must
+  satisfy the redemption rules itself (a profile, inside the signup window,
+  both sides unarmed), so a direct write cannot skip
+  `redeemReferralCode`. Only a controller deletes one, since a deleted
+  record would let its referee redeem again.
 - **What decides an award is server-written too.** A claim endpoint
   that pays from a doc (the tournament prize reads the concluded
   bracket) is only as safe as that doc. `tournaments` and

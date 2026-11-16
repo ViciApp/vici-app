@@ -28,7 +28,7 @@ describe('roles.services', () => {
 
 	beforeEach(() => {
 		host = installSatelliteHost({
-			[Collection.ROLES]: { [admin.toText()]: { role: UserRole.ADMIN } }
+			docs: { [Collection.ROLES]: { [admin.toText()]: { role: UserRole.ADMIN } } }
 		});
 	});
 

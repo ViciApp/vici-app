@@ -194,8 +194,9 @@ Consequences:
   prediction: a client `setDoc` to `activities`, whose `onSetDoc` hook
   genuinely fires (`onTradeActivityForReferral`), with a `settleReferral`
   endpoint as the manual retry/backfill path. The `onReferralSetForVxpPayout`
-  hook on the (serverless-written) referrals row stays wired only as a
-  harmless safety net for client writes.
+  hook on the referrals row only runs for a `set_doc` through the public API,
+  which `assertSetReferral` allows to a controller alone (a hand-written row in
+  the Console).
 - Make the inline work **idempotent + retry-safe** (lock → act →
   finalize, short-circuit on already-done), and expose a settle/retry
   endpoint so a failed transfer can be re-driven; there is no hook replay

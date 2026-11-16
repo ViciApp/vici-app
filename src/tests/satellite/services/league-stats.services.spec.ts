@@ -28,12 +28,14 @@ describe('league-stats.services', () => {
 
 	beforeEach(() => {
 		host = installSatelliteHost({
-			[Collection.LEAGUE_MEMBERS]: {
-				[leagueMemberKey({ leagueId, memberPrincipal: member.toText() })]: {
-					leagueId,
-					member: member.toText(),
-					joinedAtMs: 1,
-					role: 'member'
+			docs: {
+				[Collection.LEAGUE_MEMBERS]: {
+					[leagueMemberKey({ leagueId, memberPrincipal: member.toText() })]: {
+						leagueId,
+						member: member.toText(),
+						joinedAtMs: 1,
+						role: 'member'
+					}
 				}
 			}
 		});

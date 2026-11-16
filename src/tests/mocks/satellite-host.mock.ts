@@ -22,11 +22,19 @@ interface StoredDoc {
 	version: bigint;
 }
 
-export const storedDoc = ({ data, owner }: { data: object; owner: Principal }): StoredDoc => ({
+export const storedDoc = ({
+	data,
+	owner,
+	createdAtNs = 1n
+}: {
+	data: object;
+	owner: Principal;
+	createdAtNs?: bigint;
+}): StoredDoc => ({
 	owner: owner.toUint8Array(),
 	data: docBytes(data),
-	created_at: 1n,
-	updated_at: 1n,
+	created_at: createdAtNs,
+	updated_at: createdAtNs,
 	version: 1n
 });
 
@@ -83,6 +91,12 @@ export const deleteContext = ({
 /** Docs readable through `getDocStore`, by collection then key. */
 export type HostDocs = Record<string, Record<string, object>>;
 
+/** The stored `created_at` of some of those docs, same shape; 1 ns otherwise. */
+export type HostCreatedAtNs = Record<string, Record<string, bigint>>;
+
+/** The host clock, fixed so a spec can place `created_at` stamps around it. */
+export const hostNowMs = 1_800_000_000_000;
+
 /** The installed host. */
 export interface SatelliteHost {
 	/** Remove every global the host defined. */
@@ -93,9 +107,15 @@ export interface SatelliteHost {
  * Defines the host globals the SDK calls. `docs` seeds the datastore
  * `getDocStore` reads.
  */
-export const installSatelliteHost = (docs: HostDocs = {}): SatelliteHost => {
+export const installSatelliteHost = ({
+	docs = {},
+	createdAtNs = {}
+}: {
+	docs?: HostDocs;
+	createdAtNs?: HostCreatedAtNs;
+} = {}): SatelliteHost => {
 	const globals = {
-		__ic_cdk_time: (): bigint => BigInt(Date.now()) * 1_000_000n,
+		__ic_cdk_time: (): bigint => BigInt(hostNowMs) * 1_000_000n,
 		__juno_satellite_get_admin_access_keys: (): AccessKeys => [
 			[controller.toUint8Array(), { metadata: [], created_at: 1n, updated_at: 1n, scope: 'admin' }]
 		],
@@ -109,7 +129,9 @@ export const installSatelliteHost = (docs: HostDocs = {}): SatelliteHost => {
 		): StoredDoc | undefined => {
 			const data = docs[collection]?.[key];
 
-			return data && storedDoc({ data, owner: controller });
+			return (
+				data && storedDoc({ data, owner: controller, createdAtNs: createdAtNs[collection]?.[key] })
+			);
 		}
 	};
 
