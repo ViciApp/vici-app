@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { onMount } from 'svelte';
 	import MovedToNewApp from '#lib/components/authn/MovedToNewApp.svelte';
 	import Onboarding from '#lib/components/onboarding/Onboarding.svelte';
+	import { pageTitle } from '#lib/constants/brand.constants.ts';
 	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { userSignedIn } from '#lib/derived/user.derived.ts';
@@ -47,10 +47,6 @@
 		) {
 			void goto(resolveAppPath(AppPath.Flow), { replace: true });
 		}
-	});
-
-	onMount(() => {
-		document.title = 'Create account · VICI';
 	});
 
 	// Every sign-up entry on the legacy build (landing CTAs, the sign-in
@@ -269,6 +265,10 @@
 		void goto(resolveAppPath(AppPath.Flow), { replace: true });
 	};
 </script>
+
+<svelte:head>
+	<title>{pageTitle(t({ locale: $localeStore, key: 'seo.signup.title' }))}</title>
+</svelte:head>
 
 {#if signupsMoved}
 	<MovedToNewApp onSignIn={() => void goto(resolve(PublicPath.SignIn))} reason="signup" />

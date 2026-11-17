@@ -1904,6 +1904,9 @@ export const enMessages = {
 	'seo.home.description':
 		'Trade on binary outcome markets with social features on the Internet Computer.',
 	'seo.home.title': 'VICI Social Markets | Predict. Trade. Win.',
+	'seo.invite.title': 'Invite',
+	'seo.league_join.title': 'Join league',
+	'seo.signup.title': 'Create account',
 	'settings.about': 'VICI · v{version} · Build {build}',
 	'settings.account': 'Account',
 	'settings.account.email': 'Email',
