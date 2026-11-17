@@ -24,14 +24,11 @@ import { runOnboardingProfileTrigger } from '../src/vxp/onboarding';
 import { recordReferralRedemption, settleReferralPayout } from '../src/vxp/referral';
 import { ensureMigrated, uniqueEmail } from './helpers/auth';
 import { uniqueNickname } from './helpers/profiles';
+import { dbAvailable } from './helpers/setup';
 import { readAwardRow, stubVxpLedger, type LedgerStub } from './helpers/vxp';
 
 let stub: LedgerStub | undefined;
 let restoreEngine: (() => void) | undefined;
-
-beforeAll(async () => {
-	await ensureMigrated();
-});
 
 afterEach(() => {
 	stub?.restore();
@@ -57,7 +54,11 @@ const markerRows = async (): Promise<
 		`select identity_digest, award_type, award_key from vxp_award_markers`
 	);
 
-describe('a deleted account cannot collect its one-time awards again', () => {
+describe.if(dbAvailable)('a deleted account cannot collect its one-time awards again', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
 	test('the registration grant pays the same email address once, across a re-sign-up', async () => {
 		stub = stubVxpLedger();
 		const email = uniqueEmail();

@@ -556,7 +556,7 @@ describe.if(dbAvailable)('beta gate on the Google callback', () => {
 	});
 });
 
-describe('beta gate: apple callback', () => {
+describe.if(dbAvailable)('beta gate: apple callback', () => {
 	const savedApple = { ...env.apple };
 
 	beforeAll(async () => {

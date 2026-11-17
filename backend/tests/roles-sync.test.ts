@@ -11,10 +11,7 @@ import type { ClearingService, RegistryDid, RegistryService } from '../src/decla
 import { setEngineActorProvider } from '../src/engine/actors';
 import { userIcPrincipalText } from '../src/lib/keys';
 import { createTestUser, ensureMigrated } from './helpers/auth';
-
-beforeAll(async () => {
-	await ensureMigrated();
-});
+import { dbAvailable } from './helpers/setup';
 
 let restore: (() => void) | undefined;
 
@@ -108,123 +105,129 @@ describe('mapping table', () => {
 	});
 });
 
-describe('grant', () => {
-	test('granting admin persists the role and mirrors both engine roles plus the settler add', async () => {
-		const calls = mockRegistry();
-		const userId = await createTestUser();
-		const principal = userIcPrincipalText(userId);
-
-		const assignment = await setUserRole({ userId, role: 'admin' });
-
-		expect(assignment).toEqual({ userId, role: 'admin', principal });
-		expect(await storedRole(userId)).toBe('admin');
-		expect(calls).toEqual([
-			{ method: 'grant', role: 'Creator', grantee: principal, engineId: 'eng_0' },
-			{ method: 'grant', role: 'OracleAdmin', grantee: principal, engineId: 'eng_0' },
-			{ method: 'oracle', oracleId: 'VICI_ORACLE_V1', add: [principal], remove: [] }
-		]);
+describe.if(dbAvailable)('role sync', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
 	});
 
-	test('an admin-to-solver change issues only the minimum diff and keeps settler membership', async () => {
-		mockRegistry();
-		const userId = await createTestUser();
+	describe('grant', () => {
+		test('granting admin persists the role and mirrors both engine roles plus the settler add', async () => {
+			const calls = mockRegistry();
+			const userId = await createTestUser();
+			const principal = userIcPrincipalText(userId);
 
-		await setUserRole({ userId, role: 'admin' });
+			const assignment = await setUserRole({ userId, role: 'admin' });
 
-		restore?.();
+			expect(assignment).toEqual({ userId, role: 'admin', principal });
+			expect(await storedRole(userId)).toBe('admin');
+			expect(calls).toEqual([
+				{ method: 'grant', role: 'Creator', grantee: principal, engineId: 'eng_0' },
+				{ method: 'grant', role: 'OracleAdmin', grantee: principal, engineId: 'eng_0' },
+				{ method: 'oracle', oracleId: 'VICI_ORACLE_V1', add: [principal], remove: [] }
+			]);
+		});
 
-		const calls = mockRegistry();
+		test('an admin-to-solver change issues only the minimum diff and keeps settler membership', async () => {
+			mockRegistry();
+			const userId = await createTestUser();
 
-		await setUserRole({ userId, role: 'solver' });
+			await setUserRole({ userId, role: 'admin' });
 
-		expect(await storedRole(userId)).toBe('solver');
-		// Creator goes, OracleAdmin stays, and the oracle set is untouched
-		// (the settler status did not change).
-		expect(calls).toEqual([
-			{
-				method: 'revoke',
-				role: 'Creator',
-				grantee: userIcPrincipalText(userId),
-				engineId: 'eng_0'
-			}
-		]);
+			restore?.();
+
+			const calls = mockRegistry();
+
+			await setUserRole({ userId, role: 'solver' });
+
+			expect(await storedRole(userId)).toBe('solver');
+			// Creator goes, OracleAdmin stays, and the oracle set is untouched
+			// (the settler status did not change).
+			expect(calls).toEqual([
+				{
+					method: 'revoke',
+					role: 'Creator',
+					grantee: userIcPrincipalText(userId),
+					engineId: 'eng_0'
+				}
+			]);
+		});
+
+		test('an already-granted engine answer reads as success', async () => {
+			mockRegistry({ grantResult: { Err: { RoleAlreadyGranted: null } } });
+			const userId = await createTestUser();
+
+			expect(await storedRole(userId)).toBe('user');
+
+			await setUserRole({ userId, role: 'creator' });
+
+			expect(await storedRole(userId)).toBe('creator');
+		});
+
+		test('a missing oracle is tolerated: the role grant stands', async () => {
+			mockRegistry({ oracleResult: { Err: { OracleNotFound: null } } });
+			const userId = await createTestUser();
+
+			await setUserRole({ userId, role: 'solver' });
+
+			expect(await storedRole(userId)).toBe('solver');
+		});
+
+		test('a genuine engine refusal surfaces after the role persisted', async () => {
+			mockRegistry({ grantResult: { Err: { Unauthorized: null } } });
+			const userId = await createTestUser();
+
+			expect(setUserRole({ userId, role: 'creator' })).rejects.toThrow(
+				'grant_engine_role failed: Unauthorized'
+			);
+			expect(await storedRole(userId)).toBe('creator');
+		});
 	});
 
-	test('an already-granted engine answer reads as success', async () => {
-		mockRegistry({ grantResult: { Err: { RoleAlreadyGranted: null } } });
-		const userId = await createTestUser();
+	describe('revoke', () => {
+		test('revoking clears the column and mirrors the full revoke including the settler removal', async () => {
+			mockRegistry();
+			const userId = await createTestUser();
+			const principal = userIcPrincipalText(userId);
 
-		expect(await storedRole(userId)).toBe('user');
+			await setUserRole({ userId, role: 'admin' });
 
-		await setUserRole({ userId, role: 'creator' });
+			restore?.();
 
-		expect(await storedRole(userId)).toBe('creator');
+			const calls = mockRegistry({ revokeResult: { Err: { RoleNotGranted: null } } });
+
+			const result = await revokeUserRole({ userId });
+
+			expect(result).toEqual({ userId, revoked: true });
+			expect(await storedRole(userId)).toBe('user');
+			// Both mapped roles are revoked (idempotent answers tolerated) and the
+			// settler membership is removed.
+			expect(calls).toEqual([
+				{ method: 'revoke', role: 'Creator', grantee: principal, engineId: 'eng_0' },
+				{ method: 'revoke', role: 'OracleAdmin', grantee: principal, engineId: 'eng_0' },
+				{ method: 'oracle', oracleId: 'VICI_ORACLE_V1', add: [], remove: [principal] }
+			]);
+		});
+
+		test('revoking a plain user is a clean no-op with no engine calls', async () => {
+			const calls = mockRegistry();
+			const userId = await createTestUser();
+
+			expect(await revokeUserRole({ userId })).toEqual({ userId, revoked: false });
+			expect(calls).toHaveLength(0);
+		});
 	});
 
-	test('a missing oracle is tolerated: the role grant stands', async () => {
-		mockRegistry({ oracleResult: { Err: { OracleNotFound: null } } });
-		const userId = await createTestUser();
+	describe('listing', () => {
+		test('role holders list with their engine principal', async () => {
+			mockRegistry();
+			const userId = await createTestUser();
 
-		await setUserRole({ userId, role: 'solver' });
+			await setUserRole({ userId, role: 'creator' });
 
-		expect(await storedRole(userId)).toBe('solver');
-	});
+			const assignments = await listRoleAssignments();
+			const mine = assignments.find((a) => a.userId === userId);
 
-	test('a genuine engine refusal surfaces after the role persisted', async () => {
-		mockRegistry({ grantResult: { Err: { Unauthorized: null } } });
-		const userId = await createTestUser();
-
-		expect(setUserRole({ userId, role: 'creator' })).rejects.toThrow(
-			'grant_engine_role failed: Unauthorized'
-		);
-		expect(await storedRole(userId)).toBe('creator');
-	});
-});
-
-describe('revoke', () => {
-	test('revoking clears the column and mirrors the full revoke including the settler removal', async () => {
-		mockRegistry();
-		const userId = await createTestUser();
-		const principal = userIcPrincipalText(userId);
-
-		await setUserRole({ userId, role: 'admin' });
-
-		restore?.();
-
-		const calls = mockRegistry({ revokeResult: { Err: { RoleNotGranted: null } } });
-
-		const result = await revokeUserRole({ userId });
-
-		expect(result).toEqual({ userId, revoked: true });
-		expect(await storedRole(userId)).toBe('user');
-		// Both mapped roles are revoked (idempotent answers tolerated) and the
-		// settler membership is removed.
-		expect(calls).toEqual([
-			{ method: 'revoke', role: 'Creator', grantee: principal, engineId: 'eng_0' },
-			{ method: 'revoke', role: 'OracleAdmin', grantee: principal, engineId: 'eng_0' },
-			{ method: 'oracle', oracleId: 'VICI_ORACLE_V1', add: [], remove: [principal] }
-		]);
-	});
-
-	test('revoking a plain user is a clean no-op with no engine calls', async () => {
-		const calls = mockRegistry();
-		const userId = await createTestUser();
-
-		expect(await revokeUserRole({ userId })).toEqual({ userId, revoked: false });
-		expect(calls).toHaveLength(0);
-	});
-});
-
-describe('listing', () => {
-	test('role holders list with their engine principal', async () => {
-		mockRegistry();
-		const userId = await createTestUser();
-
-		await setUserRole({ userId, role: 'creator' });
-
-		const assignments = await listRoleAssignments();
-		const mine = assignments.find((a) => a.userId === userId);
-
-		expect(mine).toEqual({ userId, role: 'creator', principal: userIcPrincipalText(userId) });
+			expect(mine).toEqual({ userId, role: 'creator', principal: userIcPrincipalText(userId) });
+		});
 	});
 });

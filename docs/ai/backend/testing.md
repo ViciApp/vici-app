@@ -25,6 +25,7 @@ Paths are under `backend/`.
 ## Rules learnt the hard way
 
 - **The database is never reset between runs.** Locally the same Postgres serves every run, and suites share it within one. Fixtures must be collision-free: unique ids from the helpers (`uniqueEmail`, `uniqueNickname`, ...), values drawn from a reserved range rather than at random (#1429), and a suite that seeds global state cleans exactly its own rows (#1434). A test that passes once and fails on the second run is a bug in the test.
+- **No DB work in a top-level hook.** Bun runs a file's top-level `beforeAll` even when every `describe` in it is skipped, so an `ensureMigrated()` there fails the whole file without Postgres instead of skipping it. The hook goes inside the `describe.if(dbAvailable)` block; a file mixing pure and DB-backed tests keeps the pure `describe`s outside it so they still run (`tests/vxp-flow.test.ts`).
 - **CI sets `REQUIRE_DB_TESTS=1`** so a missing database fails instead of skipping every DB suite. Run with Postgres up locally too, or the suite proves nothing.
 - **A shared-drift failure means the two sides disagree**: fix the side that is wrong, never the extractor, unless the app module was refactored on purpose.
 

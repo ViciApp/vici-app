@@ -95,10 +95,10 @@ green lane names a product approver although nobody holds that domain today.
 
 ## What the builder cannot run
 
-The sandbox has no running Postgres, and ten backend suites still fail instead of skipping without
-one, so the backend `bun test` runs only in `backend-checks.yml`. The `satellite-schema` drift check
-also stays in CI: its fix lands in `src/satellite/**`, a red path. When either fails, the task goes
-back to the builder or stops for the owner.
+The sandbox has no running Postgres, so its backend `bun test` runs the pure suites and skips every
+DB-backed one; those run only in `backend-checks.yml`, against a real database. The
+`satellite-schema` drift check also stays in CI: its fix lands in `src/satellite/**`, a red path.
+When either fails, the task goes back to the builder or stops for the owner.
 
 ## When the config changes
 
