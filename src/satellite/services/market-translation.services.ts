@@ -5,7 +5,7 @@ import {
 	type AppLocale
 } from '#lib/constants/locale.constants.ts';
 import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
-import { isCreatorOrAdmin } from '#satellite/services/authz.services.ts';
+import { controllerCaller, isCreatorOrAdmin } from '#satellite/services/authz.services.ts';
 import { logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -188,7 +188,9 @@ export const upsertMarketTranslation = async ({
 			description: seriesId,
 			data: encodeDocData(translation)
 		},
-		caller
+		// Only a controller may write the collection (see `assertControllerWrite`): the
+		// creator-or-admin gate above is what authorises the caller.
+		caller: controllerCaller('market translation upsert')
 	});
 
 	return translation;

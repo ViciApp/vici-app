@@ -1,3 +1,4 @@
+import { defaultPreferences } from '#lib/constants/settings.constants.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
 import { UserRole } from '#lib/enums/user.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
@@ -20,6 +21,10 @@ export const ProfilePrivateSchema = j.strictObject({
 	owner: PrincipalTextSchema,
 	email: j.string().default('')
 });
+
+// Read only for primitive leaves: an object or array default calls
+// `defaultPreferences()` on each decode, so no two decoded profiles share one.
+const PREFERENCE_DEFAULTS = defaultPreferences();
 
 export const UserProfileSchema = j.strictObject({
 	owner: PrincipalTextSchema,
@@ -212,26 +217,21 @@ export const UserProfileSchema = j.strictObject({
 		.strictObject({
 			defaultAmount: j
 				.strictObject({
-					flow: j.string().default('0'),
-					manual: j.string().default('0')
+					flow: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.flow),
+					manual: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.manual)
 				})
-				.default({ flow: '0', manual: '0' }),
+				.default(() => defaultPreferences().defaultAmount),
 			notify: j
 				.strictObject({
-					streakReminder: j.boolean().default(true),
-					marketAlerts: j.boolean().default(true),
-					friendActivity: j.boolean().default(false),
-					weeklyDigest: j.boolean().default(true)
+					streakReminder: j.boolean().default(PREFERENCE_DEFAULTS.notify.streakReminder),
+					marketAlerts: j.boolean().default(PREFERENCE_DEFAULTS.notify.marketAlerts),
+					friendActivity: j.boolean().default(PREFERENCE_DEFAULTS.notify.friendActivity),
+					weeklyDigest: j.boolean().default(PREFERENCE_DEFAULTS.notify.weeklyDigest)
 				})
-				.default({
-					streakReminder: true,
-					marketAlerts: true,
-					friendActivity: false,
-					weeklyDigest: true
-				}),
-			flowSessionLength: j.number().default(10),
-			hapticsEnabled: j.boolean().default(true),
-			soundEnabled: j.boolean().default(true),
+				.default(() => defaultPreferences().notify),
+			flowSessionLength: j.number().default(PREFERENCE_DEFAULTS.flowSessionLength),
+			hapticsEnabled: j.boolean().default(PREFERENCE_DEFAULTS.hapticsEnabled),
+			soundEnabled: j.boolean().default(PREFERENCE_DEFAULTS.soundEnabled),
 			// Privacy / sharing preference group (Settings privacy
 			// sections). Every leaf is defaulted for the same reason as the
 			// surrounding fields: a partial `preferences` shape on a legacy
@@ -244,20 +244,15 @@ export const UserProfileSchema = j.strictObject({
 			// `src/satellite/api-schemas.ts`.
 			sharing: j
 				.strictObject({
-					profileVisibility: j.string().default('private'),
-					callsPublic: j.boolean().default(true),
-					leaderboardOptIn: j.boolean().default(true),
-					worldsOptIn: j.boolean().default(true)
+					profileVisibility: j.string().default(PREFERENCE_DEFAULTS.sharing.profileVisibility),
+					callsPublic: j.boolean().default(PREFERENCE_DEFAULTS.sharing.callsPublic),
+					leaderboardOptIn: j.boolean().default(PREFERENCE_DEFAULTS.sharing.leaderboardOptIn),
+					worldsOptIn: j.boolean().default(PREFERENCE_DEFAULTS.sharing.worldsOptIn)
 				})
-				.default({
-					profileVisibility: 'private',
-					callsPublic: true,
-					leaderboardOptIn: true,
-					worldsOptIn: true
-				}),
-			flowTags: j.array(j.string()).default([]),
-			worldCupMode: j.boolean().default(false),
-			savedMarketIds: j.array(j.string()).default([]),
+				.default(() => defaultPreferences().sharing),
+			flowTags: j.array(j.string()).default(() => defaultPreferences().flowTags),
+			worldCupMode: j.boolean().default(PREFERENCE_DEFAULTS.worldCupMode),
+			savedMarketIds: j.array(j.string()).default(() => defaultPreferences().savedMarketIds),
 			// Onboarding picks (Beat 1.a + 1.b). Empty string for
 			// `favoriteParticipantId` means the user skipped the team
 			// pick; empty string for `favoriteSide` means no YES/NO
@@ -265,32 +260,9 @@ export const UserProfileSchema = j.strictObject({
 			// once the 3-beat flow finishes, regardless of which picks
 			// were ultimately persisted; it's the source of truth for
 			// whether to re-prompt the user on next sign-in.
-			favoriteParticipantId: j.string().default(''),
-			favoriteSide: j.string().default(''),
-			onboardingCompleted: j.boolean().default(false)
+			favoriteParticipantId: j.string().default(PREFERENCE_DEFAULTS.favoriteParticipantId),
+			favoriteSide: j.string().default(PREFERENCE_DEFAULTS.favoriteSide),
+			onboardingCompleted: j.boolean().default(PREFERENCE_DEFAULTS.onboardingCompleted)
 		})
-		.default({
-			defaultAmount: { flow: '0', manual: '0' },
-			notify: {
-				streakReminder: true,
-				marketAlerts: true,
-				friendActivity: false,
-				weeklyDigest: true
-			},
-			flowSessionLength: 10,
-			hapticsEnabled: true,
-			soundEnabled: true,
-			sharing: {
-				profileVisibility: 'private',
-				callsPublic: true,
-				leaderboardOptIn: true,
-				worldsOptIn: true
-			},
-			flowTags: [],
-			worldCupMode: false,
-			savedMarketIds: [],
-			favoriteParticipantId: '',
-			favoriteSide: '',
-			onboardingCompleted: false
-		})
+		.default(defaultPreferences)
 });

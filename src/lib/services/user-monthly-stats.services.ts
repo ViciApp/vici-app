@@ -32,9 +32,10 @@ import type { PrincipalText } from '@junobuild/schema';
  * restricts writes to the caller's own row and enforces structural sanity
  * (`monthWins <= monthCalls`, bounded consensus array, values in [0, 1]), but
  * it does NOT re-derive the counters from real history; a determined user
- * could inflate their own monthly numbers. The award carries no VXP payout
- * (cosmetic album tile), so this matches the existing `user_stats` posture
- * rather than warranting a server-side recompute.
+ * could inflate their own monthly numbers. So the rows feed views only (the
+ * album tiles, the live Worlds month window): the Worlds podium VXP is ranked
+ * from settled history the satellite reads from the clearing canister, never
+ * from these rows.
  */
 
 interface MonthBucket {

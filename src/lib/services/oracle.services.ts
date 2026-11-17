@@ -90,12 +90,14 @@ export const registerViciOracle = async ({
 	await addOracle({ identity, params });
 };
 
-// Note: direct add/remove of oracle settlers used to live here. It is now driven
-// automatically by the `syncRoleToEngine` satellite hook (see
-// `src/satellite/services/engine-sync.services.ts`): assigning the `ADMIN` or
-// `SOLVER` role to a user both grants them `OracleAdmin` on the Vici engine and
-// adds them to `VICI_ORACLE_V1.authorized_principals`. For manual reconciliation,
-// see `.agents/workflows/icdc-engine-operations.md`.
+// On the normal role-sync path, oracle settlers are granted and revoked by the
+// `syncRoleToEngine` satellite hook
+// (`src/satellite/services/engine-sync.services.ts`), not from here: assigning
+// the `ADMIN` or `SOLVER` role to a user both grants them `OracleAdmin` on the
+// Vici engine and adds them to `VICI_ORACLE_V1.authorized_principals`. The one
+// write from this module is `reconcileOracleSettlersFromRoles` below, a manual
+// backfill for role docs the hook never synced; see
+// `.agents/workflows/icdc-engine-operations.md`.
 
 /**
  * Set of `UserRole` values that should be mirrored into the Vici oracle's

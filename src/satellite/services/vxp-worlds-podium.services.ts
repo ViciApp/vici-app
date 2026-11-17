@@ -11,10 +11,10 @@ import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import {
+	frozenMonthlyRanking,
 	hasFrozenMonthlySnapshotFn,
-	listAffiliationStatsForMonthFn,
-	liveMonthlyRows,
-	readAffiliationDoc
+	readAffiliationDoc,
+	settledMonthlyRows
 } from '#satellite/services/cohort.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -42,8 +42,9 @@ import {
  *
  *  1. The user calls `claimWorldsPodiumPrize({ monthAnchor })`
  *     from the FE: typically on the first visit of a new month.
- *  2. The endpoint reads the closed month's snapshot from
- *     `AFFILIATION_STATS`, finds the top-3 ranking per kind, and
+ *  2. The endpoint reads the closed month's frozen snapshot from
+ *     `AFFILIATION_STATS` (freezing it from settled history on the
+ *     month's first claim), finds the top-3 ranking per kind, and
  *     checks if the caller's current affiliations match and were
  *     joined before the month closed.
  *  3. For each match (up to two: one university, one country),
@@ -63,9 +64,10 @@ import {
  * quarter, which is the engagement-incentive trade-off the user signed
  * up for.
  *
- * Tie-break: accuracy → totalCalls → affiliationIdentifier asc.
- * `listAffiliationStatsForMonthFn` already sorts this way, so the
- * leaderboard and the claim agree on who's gold/silver/bronze.
+ * Ranking: each affiliation's members' settled calls and wins over the
+ * closed month, read from the clearing canister ({@link settledMonthlyRows}),
+ * never the client-written monthly stats the live board displays. Tie-break:
+ * accuracy → totalCalls → affiliationIdentifier asc, the leaderboard's rule.
  */
 
 // `VXP_WORLDS_PODIUM` holds the human-readable whole-VXP prizes (the
@@ -93,7 +95,7 @@ export interface ClaimWorldsPodiumPrizeResult {
  * Freeze a closed month's affiliation ranking the first time its podium is
  * claimed (frozen-at-close). The live windows recompute over the current
  * roster on every read; a *closed* month is instead captured once here: the
- * ranking over the then-current opted-in roster ({@link liveMonthlyRows}) is
+ * ranking computed from settled history ({@link settledMonthlyRows}) is
  * written as immutable snapshot docs, so the podium payout and the champion
  * cup stay stable and can't drift as members later churn.
  *
@@ -110,7 +112,7 @@ export interface ClaimWorldsPodiumPrizeResult {
  * caller can retry once a controller is configured; no payout on an
  * unfrozen month.
  */
-const freezeMonthlySnapshotsIfNeeded = ({
+const freezeMonthlySnapshotsIfNeeded = async ({
 	kind,
 	monthAnchor,
 	nowMs
@@ -118,7 +120,7 @@ const freezeMonthlySnapshotsIfNeeded = ({
 	kind: AffiliationKind;
 	monthAnchor: string;
 	nowMs: number;
-}): void => {
+}): Promise<void> => {
 	if (hasFrozenMonthlySnapshotFn({ kind, monthAnchor })) {
 		return;
 	}
@@ -136,7 +138,7 @@ const freezeMonthlySnapshotsIfNeeded = ({
 		);
 	}
 
-	const { rows } = liveMonthlyRows({ kind, monthAnchor, nowMs });
+	const rows = await settledMonthlyRows({ kind, monthAnchor, nowMs });
 
 	for (const row of rows) {
 		const key = affiliationStatsSnapshotKey({
@@ -189,10 +191,10 @@ export const claimWorldsPodiumPrizeFn = async ({
 	let foundAnyEligibleAffiliation = false;
 
 	for (const kind of AFFILIATION_KINDS) {
-		// Frozen-at-close: the first claim of the month captures the ranking over
-		// the current opted-in roster so the podium + cup stay stable across
-		// claimants. A no-op once the month is already frozen.
-		freezeMonthlySnapshotsIfNeeded({ kind, monthAnchor, nowMs });
+		// Frozen-at-close: the first claim of the month captures the ranking from
+		// settled history so the podium + cup stay stable across claimants. A
+		// no-op once the month is already frozen.
+		await freezeMonthlySnapshotsIfNeeded({ kind, monthAnchor, nowMs });
 
 		const mine = readMyAffiliation({ callerText, callerBytes, kind });
 
@@ -205,8 +207,9 @@ export const claimWorldsPodiumPrizeFn = async ({
 		} else {
 			const { affiliation: myAffiliation } = mine;
 
-			// Top-3 for the requested (now frozen) month.
-			const top3 = listAffiliationStatsForMonthFn({ kind, monthAnchor }).slice(0, 3);
+			// Top-3 of the frozen month only: an unfrozen month (nothing cleared
+			// the rank floor) has no podium, never a fallback to the live board.
+			const top3 = frozenMonthlyRanking({ kind, monthAnchor }).slice(0, 3);
 			const placeIndex = top3.findIndex(
 				(s) => s.affiliationIdentifier === myAffiliation.affiliationIdentifier
 			);

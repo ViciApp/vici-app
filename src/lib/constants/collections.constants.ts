@@ -13,7 +13,9 @@ export const Collection = {
 	 */
 	PROFILE_PRIVATE: collections.PROFILE_PRIVATE,
 	RELATIONS: collections.RELATIONS,
+	/** Dormant: nothing in the app reads or writes it; only a satellite controller may. */
 	CHATS: collections.CHATS,
+	/** Dormant: nothing in the app reads or writes it; only a satellite controller may. */
 	COMMENTS: collections.COMMENTS,
 	MARKET_METADATA: collections.MARKET_METADATA,
 	/**
@@ -55,7 +57,9 @@ export const Collection = {
 	 */
 	RESOLVED_RESULTS: collections.RESOLVED_RESULTS,
 	/**
-	 * Server-driven VXP new-user ladder state (owed vs paid); written from satellite hooks.
+	 * Server-driven VXP new-user ladder state (owed vs paid). Server-owned: the satellite hooks
+	 * write it as a controller, and its assert refuses every client write or delete, since the
+	 * payout trusts the milestone states.
 	 */
 	VXP_ONBOARDING: collections.VXP_ONBOARDING,
 	/**
@@ -67,14 +71,30 @@ export const Collection = {
 	 */
 	VXP_AWARDS: collections.VXP_AWARDS,
 	/**
+	 * The first side a user called on a finalised market for a calibration reward, keyed
+	 * `${recipient}/${seriesId}`. The claim judges that side only: a miss is recorded here, and a
+	 * later call on the other side is refused. Controllers-scoped: only the satellite
+	 * `claimCalibrationReward` endpoint reads and writes it.
+	 */
+	CALIBRATION_ATTEMPTS: collections.CALIBRATION_ATTEMPTS,
+	/**
+	 * An anonymous marker per one-time award a purged account was paid, keyed
+	 * `${identityDigest(principal)}/${awardType}/${awardKey}` (`award-marker.utils.ts`): no
+	 * principal, no data. The account purge writes them; `assertSetVxpAward`, the onboarding payout
+	 * and the league-founder cap read them, so the same principal signing up again cannot collect a
+	 * one-time award twice. Controllers-scoped.
+	 */
+	VXP_AWARD_MARKERS: collections.VXP_AWARD_MARKERS,
+	/**
 	 * Reverse index from referral code (key) to owning principal. One row per user; written by the
 	 * satellite profile hook on first profile create.
 	 */
 	REFERRAL_CODES: collections.REFERRAL_CODES,
 	/**
 	 * Per-referee redemption record (key = referee principal). Tracks the referrer, the code, and
-	 * the payout state for both sides. Written by `redeemReferralCode`; payout state is updated by
-	 * the satellite referral hook.
+	 * the payout state for both sides. Server-owned: `redeemReferralCode` creates it and the
+	 * referral settle path moves the payout state, both writing as a controller; its asserts refuse
+	 * every client write or delete.
 	 */
 	REFERRALS: collections.REFERRALS,
 	/**
@@ -87,8 +107,9 @@ export const Collection = {
 	/**
 	 * Per-member membership row, keyed by `${leagueId}/${memberPrincipal}`. Holds the member's
 	 * role inside the league (owner / admin / member) and the joinedAt timestamp. Self-joins
-	 * write directly; owner / admin can write rows for other principals (e.g. promote a member
-	 * to admin). Drift between key and embedded fields is rejected by the satellite assert.
+	 * write directly, always as `member`; the league owner can write rows for other principals
+	 * (e.g. promote a member to admin). Drift between key and embedded fields is rejected by the
+	 * satellite assert.
 	 */
 	LEAGUE_MEMBERS: collections.LEAGUE_MEMBERS,
 	/**
@@ -139,9 +160,8 @@ export const Collection = {
 	 * Per-league rolling stats: lifetime resolved-call count + wins. One doc per league
 	 * keyed by `leagueId`. Written exclusively by the satellite hook on `profiles` updates:
 	 * when a user's `totalTrades` increments, the hook scans their league memberships and
-	 * fans the delta out. Used by the tournament round-resolution flow to compute per-window
-	 * accuracy as the delta between the round's start-of-window snapshot (frozen on the
-	 * match doc) and the current rolling counter.
+	 * fans the delta out. A display cache: tournament matches and league battles are scored
+	 * from the members' settled history read from the clearing canister, never from it.
 	 */
 	LEAGUE_STATS: collections.LEAGUE_STATS,
 	/**

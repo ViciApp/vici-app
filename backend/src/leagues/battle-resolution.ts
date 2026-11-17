@@ -5,12 +5,9 @@
 // the derived custodial identity plus any linked legacy principals, so
 // history from before an account was matched still counts.
 
-import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
-import { Principal } from '@icp-sdk/core/principal';
-import { query, tx } from '../db/client';
-import { aggregateSettlementAccuracy } from '../engine/clearing';
-import { userIcPrincipalText } from '../lib/keys';
-import { msToNs } from '../lib/time';
+import { isNullish, nonNullish } from '@dfinity/utils';
+import { tx } from '../db/client';
+import { settledTotals } from '../engine/clearing';
 import { seriesIdsForTag } from '../markets/tag-index';
 import {
 	BATTLE_SCOPE_DEFAULT,
@@ -22,32 +19,8 @@ import {
 	type Battle,
 	type BattleWinner
 } from './battles';
-import { getLeagueMember } from './members';
+import { getLeagueMember, leagueMemberPrincipals } from './members';
 import type { BattleScope } from './stats';
-
-/** Every on-chain principal a set of league members can have settled under:
- * each member's derived custodial principal plus their linked legacy ones. */
-const memberPrincipals = async (leagueId: string): Promise<Principal[]> => {
-	const rows = await query<{ member_user_id: string; principal: string | null }>(
-		`select m.member_user_id, lp.principal
-		 from league_members m
-		 left join legacy_principals lp on lp.user_id = m.member_user_id
-		 where m.league_id = $1`,
-		[leagueId]
-	);
-
-	const principals = new Set<string>();
-
-	for (const row of rows) {
-		principals.add(userIcPrincipalText(row.member_user_id));
-
-		if (nonNullish(row.principal)) {
-			principals.add(row.principal);
-		}
-	}
-
-	return [...principals].map((text) => Principal.fromText(text));
-};
 
 /** The series allow-list for a scope: undefined = every series counts; a tag
  * scope reads its index bucket, and an empty bucket scores the battle as a
@@ -58,44 +31,6 @@ const scopeSeriesIds = async (scope: BattleScope): Promise<string[] | undefined>
 	}
 
 	return await seriesIdsForTag(scope);
-};
-
-interface SideTotals {
-	calls: number;
-	wins: number;
-}
-
-const sideTotals = async ({
-	members,
-	fromMs,
-	toMs,
-	seriesIds
-}: {
-	members: Principal[];
-	fromMs: number;
-	toMs: number;
-	seriesIds: string[] | undefined;
-}): Promise<SideTotals> => {
-	if (members.length === 0 || (nonNullish(seriesIds) && seriesIds.length === 0)) {
-		return { calls: 0, wins: 0 };
-	}
-
-	const entries = await aggregateSettlementAccuracy({
-		members,
-		from_ts: toNullable(msToNs(fromMs)),
-		to_ts: toNullable(msToNs(toMs)),
-		series_ids: isNullish(seriesIds) ? [] : [seriesIds]
-	});
-
-	let calls = 0;
-	let wins = 0;
-
-	for (const entry of entries) {
-		calls += Number(entry.settled_count);
-		wins += Number(entry.win_count);
-	}
-
-	return { calls, wins };
 };
 
 interface BattleScoreline {
@@ -117,14 +52,14 @@ const computeScoreline = async ({
 	const seriesIds = await scopeSeriesIds(scope);
 
 	const [a, b] = await Promise.all([
-		sideTotals({
-			members: await memberPrincipals(battle.sideA),
+		settledTotals({
+			members: await leagueMemberPrincipals({ leagueId: battle.sideA }),
 			fromMs: battle.kickoffMs,
 			toMs,
 			seriesIds
 		}),
-		sideTotals({
-			members: await memberPrincipals(battle.sideB),
+		settledTotals({
+			members: await leagueMemberPrincipals({ leagueId: battle.sideB }),
 			fromMs: battle.kickoffMs,
 			toMs,
 			seriesIds

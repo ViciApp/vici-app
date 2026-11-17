@@ -1916,6 +1916,9 @@ export const frMessages = {
 	'seo.home.description':
 		'Tradez sur des marchés à résultat binaire avec des fonctionnalités sociales sur l’Internet Computer.',
 	'seo.home.title': 'VICI Social Markets | Prédire. Trader. Gagner.',
+	'seo.invite.title': 'Invitation',
+	'seo.league_join.title': 'Rejoins la ligue',
+	'seo.signup.title': 'Créer un compte',
 	'settings.about': 'VICI · v{version} · Build {build}',
 	'settings.account': 'Compte',
 	'settings.account.email': 'E-mail',
@@ -2042,8 +2045,6 @@ export const frMessages = {
 	'settings.profile_visibility.private': 'Privé',
 	'settings.profile_visibility.public': 'Public',
 	'settings.profile_visibility.sub': 'Qui peut voir vos pronostics et votre précision',
-	'settings.public_calls': 'Historique public des pronostics',
-	'settings.public_calls.sub': 'Afficher vos 30 derniers pronostics sur votre profil',
 	'settings.sign_out': 'Se déconnecter',
 	'settings.sign_out.cancel': 'Annuler',
 	'settings.sign_out.confirm': 'Se déconnecter et revenir à l’écran de connexion ?',

@@ -3,7 +3,9 @@
 // aggregate fanout, the user_stats upsert calls the category fanout), so a
 // crash can never leave the league counters half-applied. Counters only move
 // forward, wins never exceed calls, and category keys are bounded to the
-// closed macro taxonomy.
+// closed macro taxonomy. They follow the client's own profile figures, so
+// they are a display cache: tournament matches and battles are scored from
+// settled history, never from these rows.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';

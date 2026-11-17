@@ -8,6 +8,7 @@ import {
 	type AffiliationDoc
 } from '#lib/types/affiliation.ts';
 import { captureServerEvents } from '#satellite/services/analytics.services.ts';
+import { isControllerText } from '#satellite/services/authz.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -138,6 +139,9 @@ export const assertSetAffiliation = ({
  *     `Date.now() < currentDoc.lockedUntilMs`. After the lock
  *     expires, the user can leave (or switch by deleting then
  *     creating a new row).
+ *
+ * A satellite controller skips both: the account purge removes a deleted
+ * account's rows whatever their lock, signing as a controller.
  */
 export const assertDeleteAffiliation = ({
 	caller,
@@ -154,11 +158,15 @@ export const assertDeleteAffiliation = ({
 		return;
 	}
 
+	const callerText = Principal.fromUint8Array(caller).toText();
+
+	if (isControllerText(callerText)) {
+		return;
+	}
+
 	const currentDoc = decodeDocData<AffiliationDoc>(current.data);
 
 	// 1. Caller binds member.
-	const callerText = Principal.fromUint8Array(caller).toText();
-
 	if (currentDoc.member !== callerText) {
 		throw new Error('affiliations may only be removed by the member themselves.');
 	}

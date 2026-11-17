@@ -8,7 +8,7 @@ import { isNullish } from '@dfinity/utils';
 import type { Asset } from '../custody/assets';
 import { transitionWithdrawal } from '../custody/withdrawals';
 import { query } from '../db/client';
-import type { Chain } from '../lib/keys';
+import { CHAINS, type Chain } from '../lib/keys';
 import { logger } from '../lib/logger';
 import { getAdapter } from './registry';
 import type { ChainAdapter } from './types';
@@ -36,15 +36,20 @@ export const tickWithdrawalConfirmations = async ({
 	adapterFor?: (chain: Chain) => ChainAdapter;
 	timeout_ms?: number;
 } = {}): Promise<void> => {
+	// Only chains that can answer take a place in the batch: rows of a disabled
+	// chain are never read, so they would stay least recently checked and, past
+	// a batch of them, keep every enabled chain's rows out of the tick. They wait
+	// untouched until their chain is enabled again.
+	const enabledChains = CHAINS.filter((chain) => adapterFor(chain).enabled);
 	const rows = await query<SubmittedRow>(
 		`select w.id as withdrawal_id, w.tx_ref,
 			 a.id, a.chain, a.symbol, a.decimals, a.ledger_ref, a.enabled
 		 from withdrawals w
 		 join assets a on a.id = w.asset_id
-		 where w.state = 'submitted' and w.tx_ref is not null
+		 where w.state = 'submitted' and w.tx_ref is not null and a.chain = any($2::text[])
 		 order by w.updated_at
 		 limit $1`,
-		[BATCH]
+		[BATCH, enabledChains]
 	);
 	// A chain whose node stopped answering gets no more reads this tick, so the
 	// worker's other jobs are held up by at most one timeout per chain.
@@ -53,7 +58,7 @@ export const tickWithdrawalConfirmations = async ({
 	for (const { withdrawal_id: id, tx_ref: txRef, ...asset } of rows) {
 		const adapter = adapterFor(asset.chain);
 
-		if (adapter.enabled && !stalled.has(asset.chain)) {
+		if (!stalled.has(asset.chain)) {
 			try {
 				const status = await withTimeout({
 					work: adapter.transferStatus({ txRef, asset }),

@@ -127,8 +127,11 @@ export const VXP_CALIBRATION_REWARD_BASE_UNITS = vxpBaseUnits(20);
  * The reward only pays while the caller's available balance is *below*
  * this floor: it is the core bound that keeps calibration a recovery
  * mechanic for depleted users rather than a steady income stream for
- * everyone. Compared directly against the ledger balance (also base
- * units), so it is sized via `vxpBaseUnits`. Tunable.
+ * everyone. The web2 API compares it against the caller's holdings (ledger
+ * wallet plus ViciXp clearing equity, since the playground auto-deposit keeps
+ * the wallet near zero); the satellite, which cannot read a user's clearing
+ * account, compares the ledger wallet. Base units, so it is sized via
+ * `vxpBaseUnits`. Tunable.
  */
 export const CALIBRATION_RECOVERY_FLOOR_BASE_UNITS = vxpBaseUnits(100);
 
@@ -155,7 +158,8 @@ export const COMEBACK_RESTORE_TARGET_BASE_UNITS = vxpBaseUnits(250);
 
 /**
  * Balance floor (100 VXP) below which a returning user qualifies for the comeback restore, in
- * **base units**. Compared directly against the ledger balance. Tunable.
+ * **base units**. Measured like {@link CALIBRATION_RECOVERY_FLOOR_BASE_UNITS}: holdings on the web2
+ * API, the ledger wallet on the satellite. Tunable.
  */
 export const COMEBACK_BALANCE_FLOOR_BASE_UNITS = vxpBaseUnits(100);
 

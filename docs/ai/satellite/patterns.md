@@ -194,8 +194,9 @@ Consequences:
   prediction: a client `setDoc` to `activities`, whose `onSetDoc` hook
   genuinely fires (`onTradeActivityForReferral`), with a `settleReferral`
   endpoint as the manual retry/backfill path. The `onReferralSetForVxpPayout`
-  hook on the (serverless-written) referrals row stays wired only as a
-  harmless safety net for client writes.
+  hook on the referrals row only runs for a `set_doc` through the public API,
+  which `assertSetReferral` allows to a controller alone (a hand-written row in
+  the Console).
 - Make the inline work **idempotent + retry-safe** (lock → act →
   finalize, short-circuit on already-done), and expose a settle/retry
   endpoint so a failed transfer can be re-driven; there is no hook replay
@@ -330,10 +331,14 @@ monthly album awards). The pattern:
   `assertSetUserMonthlyStats` reject any write whose key (and embedded
   `owner`) isn't the caller, plus structural sanity (`wins <= calls`,
   bounded arrays, values in range). It does **not** re-derive the counters
-  from real history; a determined user could inflate their own row. Use
-  this only for **cosmetic** signals (album tiles, Dash cache) with **no VXP
-  payout**; anything that moves real value belongs in a hook or an icdc-core
-  path that the user can't forge.
+  from real history, and `user_monthly_stats` accepts any month; a
+  determined user could inflate their own row. Use this only for
+  **display** (album tiles, Dash cache, the live Worlds month window): no
+  VXP is ever ranked or paid from these rows. Anything that moves real value
+  reads a source the user can't forge: the Worlds podium and tournament
+  matches are ranked from settled history read from the clearing canister
+  (`settled-history.services.ts`), the same source league battles are scored
+  from.
 - **Lazy month rollover = a new key, not a reset.** Because each month is a
   distinct doc key, "rolling over" is just writing under the new month's key
   on the first sync of that month; no scheduler, no in-place reset. A
@@ -346,9 +351,11 @@ monthly album awards). The pattern:
   `monthConsensus` sample array (`MONTHLY_CONSENSUS_LIMIT`), keeping the most
   recent values; the assert enforces the cap so the doc can't be bloated.
 
-Contrast with the hook-driven fan-out (`onProfileSetForLeagueStats`): use a
-hook when **shared** stats (a league row many users contribute to) must move
-on the server so no single user can forge the aggregate. Use the client-write pattern when the row is
+Contrast with the hook-driven fan-out (`onProfileSetForLeagueStats`), which
+keeps a **shared** row (a league's `league_stats`) moving on the server, signed
+as a controller so no single member writes the aggregate. Its counters still
+follow each member's client-reported `totalTrades`, so the row is a display
+cache too, and tournament matches read settled history instead. Use the client-write pattern when the row is
 **owned by one user** and the signal is cosmetic.
 
 ## Soft-delete + lazy hard-delete (no scheduler)
@@ -393,6 +400,11 @@ is the reference shape:
   `owner`. The interactive `deleteMyAccount` has an up-front
   `owns_non_empty_league` guard; the guard-less recovery-expiry + sweep
   paths rely on this transfer.
+- **Purge the data, keep the one-time awards one-time.** The cascade
+  deletes every award doc, so it first records an anonymous marker per
+  one-time award the account was paid (`recordAccountAwardMarkers`, see
+  [economy invariants](./economy.md#invariants)); a principal that signs
+  up again starts over everywhere but there.
 - **Keep the marker monotonic + the side effects once-only.**
   Re-deleting keeps the EARLIEST `deletedAtMs` so the recovery clock
   can't be reset. Recovery clears the field; both are version-locked
@@ -444,12 +456,13 @@ owner-leagues guard:
   through, and its `not_owner` / `new_owner_not_member` / … validation is
   the single source of truth. A `delete` action calls the new
   `deleteLeagueFn({ leagueId, callerText, callerBytes })` (owner disband).
-- **SDK `deleteDocStore` bypasses asserts.** `deleteLeagueFn` drops every
+- **The disband deletes as a controller.** `deleteLeagueFn` drops every
   `LEAGUE_MEMBERS` row for the league, including the `owner` row, which
-  `assertDeleteLeagueMember` forbids on the FE path ("transfer ownership
-  first"). The satellite's own store drops never re-enter the assert, which
-  is exactly why the cascade (`deleteOwnLeagueMemberships`) and this disband
-  can remove owner rows. Distinct from the cascade's
+  `assertDeleteLeagueMember` forbids to everyone but a controller
+  ("transfer ownership first"). Serverless `deleteDocStore` runs that
+  assert too, so once the endpoint has checked the caller owns the league
+  it signs the deletes with `controllerCaller(...)`, as the account purge
+  (`hardDeleteAccountFn`) does for every row it removes. Distinct from the cascade's
   `disbandOrTransferOwnedLeagues`, which only drops leagues that are
   _already_ empty and hands the others to a remaining member.
 - **Applied immediately ⇒ not reversed by recovery.** Resolutions are real
@@ -620,6 +633,44 @@ principal with no profile, because new accounts live on the new stack:
   (`canisterSelf()`); a deployed satellite can never carry it.
 - **Run the cheap gate before expensive siblings** in the composed assert
   (`assertProfile` checks it before the nickname scan).
+
+## Public-write collections: owner or controller on every write and delete
+
+Juno's `write: 'public'` rule does no owner check: any caller may create,
+update or delete any doc of such a collection. Every public-write collection
+in [`juno.config.ts`](../../../juno.config.ts) therefore has both a set and a
+delete assert wired in `index.ts` (`src/tests/satellite/index.spec.ts` fails
+when one is missing), and each assert lets through only:
+
+- **the doc's owner**, read from the key or the payload the set assert binds
+  to the caller: a profile's key, an activity's or a reaction's key segment,
+  a referral code's `owner`, a league's `owner`, a month row's key prefix.
+  `assertOwnerOrController` in
+  [`authz.services.ts`](../../../src/satellite/services/authz.services.ts)
+  is the shared check;
+- **a satellite controller**, which is how the satellite itself writes (see
+  below);
+- **a narrow, named cross-user rule** where the app needs one, written in the
+  collection's assert: the league owner kicks a member or changes a role, a
+  relation's participants end an active friendship and its sender withdraws
+  a pending request, an admin grants or removes a role.
+
+A collection whose docs the satellite computes has no owner path at all: the
+assert accepts only a controller (`assertControllerWrite`) and the endpoint
+or hook that computes the doc signs its write with `controllerCaller(...)`.
+That covers `relations` (every set goes through the friend-request
+endpoints), `market_metadata` and `market_translations` (the upsert
+endpoints check creator-or-admin, then write as a controller),
+`league_stats` (fanned out by the profile and user-stats hooks),
+`vxp_onboarding` (the onboarding payout ladder), and the dormant `chats`
+and `comments`. A delete with no app flow behind it is
+controller-only too (`exit_signals`, `user_stats`).
+
+**Every serverless write passes the same asserts.** `setDocStore` and
+`deleteDocStore` run them with the `caller` they are given, so a satellite
+path that acts for the system rather than for the caller (the account purge,
+the league disband, an endpoint-computed doc) signs as
+`controllerCaller(...)` and keeps the real caller for reads.
 
 ## Endpoint-computed docs: controller-only assert
 

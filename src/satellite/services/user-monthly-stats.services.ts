@@ -8,9 +8,10 @@ import {
 } from '#lib/types/user-monthly-stats.ts';
 import { MONTH_ANCHOR_RE } from '#lib/utils/month-anchor.utils.ts';
 import { median } from '#lib/utils/stats.utils.ts';
+import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, listDocsStore } from '@junobuild/functions/sdk';
 
@@ -39,10 +40,12 @@ import { decodeDocData, listDocsStore } from '@junobuild/functions/sdk';
  *     median gate with out-of-range prices.
  *
  * Note (integrity trade-off): like `user_stats`, the assert does NOT verify
- * the counters against real clearing history: a determined user could
- * inflate their own monthly numbers. The award is cosmetic (no VXP payout),
- * so this matches the documented `user_stats` posture rather than warranting
- * a server-side history re-derivation.
+ * the counters against real clearing history, and it accepts any month: a
+ * determined user could inflate their own monthly numbers. So the rows feed
+ * views only (the monthly leaderboard behind the album tiles, the live Worlds
+ * month window) and no VXP is ranked from them: the Worlds podium is ranked
+ * from settled history read from the clearing canister
+ * (`settledMonthlyRows`), never from this collection.
  */
 export const assertSetUserMonthlyStats = ({
 	caller,
@@ -135,6 +138,24 @@ export const assertSetUserMonthlyStats = ({
 			throw new Error('user_monthly_stats monthConsensus values must be finite numbers in [0, 1].');
 		}
 	}
+};
+
+/**
+ * A month row is keyed `${owner}/${monthAnchor}` (see
+ * {@link assertSetUserMonthlyStats}): only that owner or the satellite may
+ * delete it.
+ */
+export const assertDeleteUserMonthlyStats = ({
+	caller,
+	data: { collection, key }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.USER_MONTHLY_STATS) {
+		return;
+	}
+
+	const [owner] = key.split('/');
+
+	assertOwnerOrController({ caller, owner, collection });
 };
 
 /**

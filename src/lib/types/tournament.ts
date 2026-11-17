@@ -18,8 +18,11 @@
  *    per leagueId, sorts desc, takes the first `TOURNAMENT_BRACKET_SIZE`.
  *  - Round windows: one `TOURNAMENT_ROUND_DURATION_DAYS` window per
  *    round (Round 1 → Final).
- *  - A league needs `TOURNAMENT_MIN_CALLS_PER_MATCH` calls per match
- *    to qualify; a league that falls short forfeits the match.
+ *  - A match is scored from each league's members' settled history
+ *    over the round window (the clearing engine's record, the source
+ *    league battles are scored from). A league needs
+ *    `TOURNAMENT_MIN_CALLS_PER_MATCH` settled calls in the window to
+ *    qualify; a league that falls short forfeits the match.
  *  - Forfeit ⇒ opponent advances. If both forfeit, the
  *    lower-seed advances (deterministic for tie-break parity with
  *    the seed order).
@@ -39,6 +42,18 @@ import type { PrincipalText } from '@junobuild/schema';
 export const TOURNAMENT_ROUNDS = ['r1', 'quarter', 'semifinal', 'final'] as const;
 
 export type TournamentRound = (typeof TOURNAMENT_ROUNDS)[number];
+
+/** Why a draw was refused: the month is already drawn, it has not started,
+ * fewer leagues than a bracket exist, or the month cannot be drawn (a
+ * malformed anchor, a closed month, or a month whose round 1 has closed). */
+export const TOURNAMENT_DRAW_REFUSAL_REASONS = [
+	'already_drawn',
+	'month_not_started',
+	'insufficient_leagues',
+	'invalid_input'
+] as const;
+
+export type TriggerTournamentDrawRefusalReason = (typeof TOURNAMENT_DRAW_REFUSAL_REASONS)[number];
 
 /**
  * Bracket size is fixed at 16: every tournament uses the same shape,
@@ -114,12 +129,9 @@ export interface TournamentMatchDoc {
 	fromLeagueId: string | null;
 	toLeagueId: string | null;
 	/**
-	 * Per-league `(totalCalls, wins)` snapshot at the moment the
-	 * league was assigned to this slot. Frozen at draw-time for R1,
-	 * frozen at previous-round resolution for later rounds. The
-	 * round-resolution endpoint reads the current rolling
-	 * `LEAGUE_STATS` doc and computes the window delta as
-	 * `current - start`. `null` until the slot has a league assigned.
+	 * Not written: a match is scored from its leagues' members' settled
+	 * history over `[startMs, endMs)`, so the draw and the resolution
+	 * leave these `null`. Nothing reads them.
 	 */
 	fromStartCalls: number | null;
 	fromStartWins: number | null;
@@ -127,7 +139,8 @@ export interface TournamentMatchDoc {
 	toStartWins: number | null;
 	/**
 	 * Per-league accuracy in the round window: populated by the
-	 * round-resolution endpoint as `(deltaWins / deltaCalls)`.
+	 * round-resolution endpoint as `wins / calls` over the members'
+	 * settled history in the window; `null` for a forfeit.
 	 */
 	fromAcc: number | null;
 	toAcc: number | null;

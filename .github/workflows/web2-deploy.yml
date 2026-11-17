@@ -51,7 +51,9 @@ jobs:
         working-directory: backend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_WEB2_BACKEND }}
-        run: flyctl deploy --remote-only
+        # The image's Bun version is the pin in backend/.bun-version, the one
+        # Backend Checks tests against.
+        run: flyctl deploy --remote-only --build-arg BUN_VERSION="$(cat .bun-version)"
 
   deploy-web:
     needs: ['require-release-tag']

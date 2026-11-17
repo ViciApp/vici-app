@@ -11,7 +11,7 @@
 #
 # Usage:
 #   ./scripts/tag-markets.sh <markets-json-file> [--local|--staging|--production]
-#   npm run tag:markets -- scripts/data/markets.deck-2026.json --production
+#   npm run tag:markets -- path/to/deck.json --production
 #
 # Auth: runs as the current dfx identity, which must be the markets' CREATOR
 # (the identity that ran deploy-markets.sh) or a satellite ADMIN; see

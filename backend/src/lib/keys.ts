@@ -10,7 +10,7 @@
 //
 // Service (treasury / admin / engine reader) keys use a distinct `svc:` info
 // prefix so they can never collide with a user key even if a user id were
-// attacker-chosen.
+// attacker-chosen. The identity digest key uses its own `digest:` prefix.
 // PEM env vars (TREASURY_PEM / ADMIN_PEM) override the derived service keys
 // for deployments that keep those keys off-box; the overrides are loaded via
 // Secp256k1KeyIdentity, so supply secp256k1 PEMs there even though derived
@@ -21,7 +21,9 @@ import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
 import { Secp256k1KeyIdentity } from '@icp-sdk/core/identity/secp256k1';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { hkdf } from '@noble/hashes/hkdf.js';
+import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 import { env } from '../env';
 
 export type Chain = 'ic' | 'evm' | 'sol' | 'btc';
@@ -101,3 +103,14 @@ export const adminIcIdentity = (): SignIdentity =>
  * engine role, so it needs no off-box PEM override either. */
 export const engineReaderIcIdentity = (): SignIdentity =>
 	Ed25519KeyIdentity.fromSecretKey(deriveServiceKey({ name: 'engine-reader', chain: 'ic' }));
+
+/**
+ * A one-way digest of a sign-in identity, for records that must outlive the
+ * account without naming it (the one-time award markers). HMAC-SHA256 under a
+ * key derived from ROOT_SECRET, so a leaked table cannot be matched against
+ * guessed addresses, and ROOT_SECRET never rotates (the custodial keys derive
+ * from it), so a digest stays the same for good, unlike one peppered with the
+ * session secret.
+ */
+export const identityDigest = (identity: string): string =>
+	bytesToHex(hmac(sha256, deriveBytes('digest:identity'), utf8(identity)));

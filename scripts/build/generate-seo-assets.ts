@@ -51,14 +51,16 @@
  * canister must never fail a deploy, so they degrade to "no probability clause" and
  * "treat as unresolved" respectively, never a throw.
  */
-import type { _SERVICE as ClearingService, LimitOrder } from '#declarations/clearing/clearing.d.ts';
+import type { _SERVICE as ClearingService } from '#declarations/clearing/clearing.d.ts';
 import { idlFactory as clearingIdlFactory } from '#declarations/clearing/clearing.idl.js';
 import type { _SERVICE as RegistryService, Series } from '#declarations/registry/registry.d.ts';
 import { idlFactory as registryIdlFactory } from '#declarations/registry/registry.idl.js';
 import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
 import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import type { Outcome } from '#lib/types/market.ts';
 import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
+import { calculateMarketStats } from '#lib/utils/market.utils.ts';
 import { settlementInputOutcome } from '#lib/utils/payoff.utils.ts';
 import { isMarketRevealed } from '#lib/utils/wc-schedule.utils.ts';
 import { fromNullable, isNullish, nonNullish, toNullable } from '@dfinity/utils';
@@ -73,7 +75,7 @@ const BUILD_DIR = join(SCRIPT_DIR, '..', '..', 'build');
 
 const PROD_ORIGIN = 'https://vici.market';
 const IC_HOST = 'https://icp-api.io';
-const ENGINE_ID = process.env.VICI_ENGINE_ID ?? 'eng_0';
+const ENGINE_ID = process.env.VICI_ENGINE_ID ?? VICI_ENGINE_ID;
 const PAGE_SIZE = 200n;
 
 // Bounded fan-out for the per-market probability reads: enough to keep the deploy
@@ -228,42 +230,6 @@ const listAllSeries = async (registry: ActorSubclass<RegistryService>): Promise<
 };
 
 /**
- * Current YES probability (0..1) from the resting order book, mirroring the
- * FE's `calculateMarketStats` / `calculateProbability` in
- * `#lib/utils/market.utils.ts`: best-bid/best-ask mid when both sides exist,
- * the single side when one-sided, `undefined` when the book is empty (never
- * a 0.5 placeholder). NO orders are flipped to the YES perspective the same
- * way the live UI does.
- */
-const midYesProbability = (orders: LimitOrder[]): number | undefined => {
-	const bidPrices: number[] = [];
-	const askPrices: number[] = [];
-
-	for (const order of orders) {
-		const side = 'Buy' in order.side ? 'BUY' : 'SELL';
-		const outcomeId = fromNullable(order.outcome_id) ?? 'YES';
-		const rawPrice = Number(order.price.decimal.value) / 10 ** Number(order.price.decimal.decimals);
-
-		if (outcomeId === 'YES') {
-			(side === 'BUY' ? bidPrices : askPrices).push(rawPrice);
-		} else if (outcomeId === 'NO') {
-			// Flip the binary opposite to the YES perspective (mirrors the live
-			// UI); any other outcome is categorical and irrelevant to a Yes %.
-			(side === 'BUY' ? askPrices : bidPrices).push(1 - rawPrice);
-		}
-	}
-
-	const bestBid = bidPrices.length > 0 ? Math.max(...bidPrices) : undefined;
-	const bestAsk = askPrices.length > 0 ? Math.min(...askPrices) : undefined;
-
-	if (nonNullish(bestBid) && nonNullish(bestAsk)) {
-		return (bestBid + bestAsk) / 2;
-	}
-
-	return bestBid ?? bestAsk;
-};
-
-/**
  * Reads one market's current YES probability. Soft by contract: any clearing
  * error degrades to `undefined` (no probability clause) rather than failing the
  * deploy: the probability is a nice-to-have on top of the always-present title/desc.
@@ -278,7 +244,7 @@ const fetchYesProbability = async ({
 	try {
 		const orders = await clearing.list_orders({ series_id: toNullable(seriesId) });
 
-		return midYesProbability(orders);
+		return calculateMarketStats({ orders, outcome: 'YES' }).midPrice;
 	} catch (err) {
 		// Soft dependency: swallow and fall through to "no probability" (returns
 		// undefined) rather than fail the deploy: the probability is optional garnish.

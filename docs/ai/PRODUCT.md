@@ -398,12 +398,20 @@ ranking surfaces. Both default **on** (legacy / unset reads as on).
   compress with no gap. They keep their own rank: their `You` row and
   the Arena "Global ranking" card (`ownGlobalStanding`) still resolve,
   and their top-decile achievement (a separate satellite points-rank
-  path) is unaffected. Enforced FE-side in `globalStandingsRows`,
-  **failing closed**: a non-self row appears only once its profile is
-  loaded and not opted out, so an opted-out predictor never flashes onto
-  the board before their preference is known. The leaderboard hydrates
-  every raw-slice principal (not just visible rows), so opted-in rows
-  fill in as profiles land rather than starving. The clearing canister
+  path) is unaffected. Enforced FE-side by one predicate,
+  `isShownOnGlobalLeaderboard` (`visibility.utils`), applied to the
+  global leaderboard (`globalStandingsRows`) and to the market detail's
+  "Top predictors here" candidates (`visibleLeaderboard`), **failing
+  closed**: a non-self row appears only once its profile is loaded and
+  not opted out, so an opted-out predictor never flashes onto a list
+  before their preference is known. The preference is always read from
+  the hydrated profile cache (`profilesStore`), never from a leaderboard
+  row: the satellite's leaderboard wire carries no sharing preferences.
+  Both surfaces hydrate every raw principal (not just visible rows), so
+  opted-in rows fill in as profiles land rather than starving; the
+  market detail waits for that hydration before it probes, and
+  re-probes whenever the candidate set changes (sign-in, sign-out, an
+  opt-out). The clearing canister
   still publishes raw P&L + principals, so this is a display opt-out,
   not a data-hiding guarantee (canister-level hiding is a tracked
   fast-follow).
@@ -419,6 +427,33 @@ Each toggle emits `privacy_sharing_toggled` (`source: leaderboard |
 worlds`, `label: on | off`). Decision record:
 [`specs/2026-06-28-feat-sharing-opt-out-enforcement.md`](./spec-driven-development/specs/2026-06-28-feat-sharing-opt-out-enforcement.md).
 
+### Privacy: what survives an account's deletion
+
+Deleting an account (after the 30-day recovery window, or at once on a
+too-late recovery) removes the profile, the private email, the sign-in
+identities and sessions, the VXP award history and onboarding ladder,
+calibration attempts, referral code, affiliations, relations and league
+memberships; owned leagues are disbanded or handed to a member. What
+stays, by design:
+
+- **One anonymous marker per one-time VXP award the account was paid**
+  (onboarding grant, referee bonus, milestones, achievements, founder
+  awards and the others in
+  [`economy.md`](./economy.md#caps-and-gates-the-anti-farming-spine)):
+  a one-way digest of the sign-in identity (on the web2 API each provider
+  subject and verified address, keyed with a server secret; on the
+  satellite the principal) plus the award type and key. No name, email,
+  user id or principal is stored. Signing up again with the same
+  identity is a fresh account in every other way, but it cannot collect
+  those awards a second time, and the league-founder and referrer
+  lifetime counts carry over.
+- **Referral history the referrer's lifetime count needs**: on the
+  satellite a referral record that has started paying (keyed by the
+  referee principal); on the web2 API the rows naming the deleted account
+  as referrer, and a referrer's award for a deleted referee.
+- **Shared audit rows** the account took part in (activities, battles,
+  analytics), orphaned and immutable, and the anonymous exit signal.
+
 ### Worlds Universities: standings reflect the current opted-in roster
 
 A school's / country's Worlds standing is its **current members'** record,
@@ -433,9 +468,13 @@ next read: a member can no longer pump a school and keep crediting it after
 leaving.
 
 A **closed** month is different: it is **frozen at close**. The first time
-anyone claims that month's podium, the ranking over the then-current
-opted-in roster is captured as an immutable snapshot, and the podium payout
-and the champion cup read from it thereafter. A later leave does not rewrite
+anyone claims that month's podium, the ranking is computed from **settled
+history**, each opted-in member's settled calls and wins over the month as
+recorded by the clearing engine (the same source league battles are scored
+from), counting only members whose slot was joined before the month closed,
+and captured as an immutable snapshot; the podium payout and the champion
+cup read from it thereafter. The live month column is a view of the
+members' own synced monthly stats and never decides a payout. A later leave does not rewrite
 a month that has already ended, so awards and cups stay stable and can't
 drift between two people claiming the same month. The podium award goes
 to a member at month-end whatever their join date, but only for a slot
@@ -587,8 +626,8 @@ sign-up is unchanged.
 
 ### Onboarding: one screen, claim a handle and sign up
 
-The default new-user flow is a single screen (`OnboardingV3`, gated by
-`ONBOARDING_V3_ENABLED`, default on): the user claims a handle (live
+The new-user flow is a single screen (`Onboarding`, in
+`src/lib/components/onboarding/`): the user claims a handle (live
 availability check with a Roman-pool suggestion as the empty-field
 placeholder) and signs up with any enabled provider on one surface,
 anchored by the "1,500 VXP starter pack" reward chip. Team selection is
@@ -596,9 +635,8 @@ deferred to the post-signup Profile, so the onboarding handoff always
 carries a `null` team/side; the first prediction now happens free in the
 app. The screen also links to `/signin` ("Already a member?") and offers a
 "Skip · preview first, sign up later" escape into the signed-out Flow
-preview. The earlier multi-beat flow (team → first call → handle → auth)
-is kept in the tree behind the off path until the one-screen flow is
-verified in production; flipping the flag off restores it intact.
+preview. This is the only onboarding flow: there is no flag and no
+earlier variant to fall back to.
 
 The screen reuses, rather than re-implements, the handle machinery (live
 availability probe, session-taken cache, claim-time re-check), the

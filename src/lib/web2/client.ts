@@ -25,7 +25,11 @@ import type { CallSide } from '#lib/types/market.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
 import type { Activity, ActivityReaction, ResolvedResult } from '#lib/types/social.ts';
-import type { TournamentDoc, TournamentMatchDoc } from '#lib/types/tournament.ts';
+import type {
+	TournamentDoc,
+	TournamentMatchDoc,
+	TriggerTournamentDrawRefusalReason
+} from '#lib/types/tournament.ts';
 import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 import { web2ApiBaseUrl } from '#lib/web2/backend-mode.ts';
 import {
@@ -474,6 +478,22 @@ export const listLeaderboard = async (): Promise<UserProfile[]> => {
 	});
 
 	return items.map(mapProfile);
+};
+
+/** One account's place in the full points ranking plus the ranked population
+ * size, the counterpart of the satellite's self-rank query. The wire carries
+ * an unranked account's `rank` as `null`; the app shape leaves it absent. */
+export const getUserRankAndCount = async ({
+	userId
+}: {
+	userId: string;
+}): Promise<{ rank?: number; count: number }> => {
+	const { rank, count } = await request<{ rank: number | null; count: number }>({
+		path: `/api/v1/leaderboard/rank/${encodeURIComponent(userId)}`,
+		method: 'GET'
+	});
+
+	return isNullish(rank) ? { count } : { rank, count };
 };
 
 const listRelations = async (path: string): Promise<Relation[]> => {
@@ -1690,7 +1710,7 @@ export const triggerTournamentDraw = async ({
 }): Promise<{
 	ok: boolean;
 	tournamentId?: string;
-	reason?: 'already_drawn' | 'month_not_started' | 'insufficient_leagues' | 'invalid_input';
+	reason?: TriggerTournamentDrawRefusalReason;
 	availableLeagues?: number;
 }> => await request({ path: '/api/v1/tournaments/draw', method: 'POST', body: { monthAnchor } });
 

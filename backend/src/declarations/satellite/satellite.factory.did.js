@@ -60,6 +60,7 @@ export const idlFactory = ({ IDL }) => {
 				rate_limited_daily: IDL.Null,
 				anonymous: IDL.Null,
 				balance_above_floor: IDL.Null,
+				already_called: IDL.Null,
 				not_finalised: IDL.Null,
 				outcome_undetermined: IDL.Null,
 				not_vici_market: IDL.Null,

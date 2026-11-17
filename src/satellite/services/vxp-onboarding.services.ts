@@ -13,11 +13,17 @@ import type {
 	VxpNewUserMilestoneKey,
 	VxpOnboardingDoc
 } from '#lib/types/vxp-onboarding.ts';
+import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
+import { hasAwardMarker } from '#satellite/services/vxp-award-markers.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { OnSetDocContext } from '@junobuild/functions';
+import type {
+	AssertDeleteDocContext,
+	AssertSetDocContext,
+	OnSetDocContext
+} from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
 import {
 	countDocsStore,
@@ -52,13 +58,29 @@ const amountForMilestone = (key: VxpNewUserMilestoneKey): bigint => {
 	}
 };
 
-const persistOnboarding = ({
+/**
+ * The ladder doc is server-owned: the payout trusts its milestone states
+ * (`owed` pays, `paid` below the expected amount tops up), so a client that
+ * could rewrite or delete it would be paid again. Only a satellite controller
+ * sets or deletes it; the hooks below write through {@link persistOnboarding},
+ * which signs as one, and the account purge deletes as one.
+ */
+export const assertVxpOnboardingWrite = ({
 	caller,
+	data: { collection }
+}: AssertSetDocContext | AssertDeleteDocContext): void => {
+	if (collection !== Collection.VXP_ONBOARDING) {
+		return;
+	}
+
+	assertControllerCaller({ caller, collection });
+};
+
+const persistOnboarding = ({
 	key,
 	doc,
 	version
 }: {
-	caller: Uint8Array;
 	key: string;
 	doc: VxpOnboardingDoc;
 	version?: bigint;
@@ -76,7 +98,7 @@ const persistOnboarding = ({
 	});
 
 	setDocStore({
-		caller,
+		caller: controllerCaller('vxp onboarding ladder'),
 		collection: Collection.VXP_ONBOARDING,
 		key,
 		doc: {
@@ -165,7 +187,7 @@ const reconcileLegacyOnboardingState = ({
 		legacyOnboardingSynced: true
 	};
 
-	persistOnboarding({ caller, key: userKey, doc, version });
+	persistOnboarding({ key: userKey, doc, version });
 };
 
 /**
@@ -214,7 +236,6 @@ const ensureRegistrationMilestoneIfEligible = ({
 	};
 
 	persistOnboarding({
-		caller,
 		key: userKey,
 		doc: { ...doc, milestones },
 		version: existing.version
@@ -279,11 +300,17 @@ const payOutMilestoneIfNeeded = async ({
 		return;
 	}
 
+	// The principal collected this milestone under an account it deleted.
+	if (hasAwardMarker({ principalText: userKey, awardType: 'onboarding', awardKey: mk })) {
+		logInfo({ message: 'payout_refused_marker', detail: { user: userKey, milestone: mk } });
+
+		return;
+	}
+
 	const expectedAmount = amountForMilestone(mk);
 
 	try {
 		persistOnboarding({
-			caller,
 			key: userKey,
 			doc: {
 				...snapshotDoc,
@@ -384,7 +411,6 @@ const payOutMilestoneIfNeeded = async ({
 
 		try {
 			persistOnboarding({
-				caller,
 				key: userKey,
 				doc: {
 					...latestDoc,
@@ -605,7 +631,6 @@ export const onTradeActivityForVxpOnboarding = async (ctx: OnSetDocContext): Pro
 		);
 
 		persistOnboarding({
-			caller,
 			key: userKey,
 			doc: {
 				...base,

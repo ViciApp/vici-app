@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { ZERO } from '../../src/lib/constants';
 import { DAY_IN_MS } from '../../src/lib/time';
+import { REPEATABLE_VXP_AWARD_TYPES } from '../../src/vxp/award-markers';
 import { VXP_AWARD_TYPES } from '../../src/vxp/awards';
 import {
 	ACHIEVEMENT_ACCURACY_GATE_CALLS,
@@ -70,6 +71,16 @@ describe('shared drift: VXP award types', () => {
 		const backend: string[] = [...VXP_AWARD_TYPES];
 
 		expect(backend).toEqual(['onboarding', ...appUnion]);
+	});
+
+	test('both stacks agree which award types are repeatable (no one-time marker)', async () => {
+		const app = await importRepoModule<{ REPEATABLE_VXP_AWARD_TYPES: readonly string[] }>(
+			'src/lib/types/vxp-award.ts'
+		);
+
+		const backend: string[] = [...REPEATABLE_VXP_AWARD_TYPES];
+
+		expect(backend).toEqual([...app.REPEATABLE_VXP_AWARD_TYPES]);
 	});
 });
 

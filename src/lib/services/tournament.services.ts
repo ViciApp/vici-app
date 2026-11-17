@@ -1,5 +1,10 @@
 import { functions } from '#declarations/satellite/satellite.api.ts';
-import type { TournamentDoc, TournamentMatchDoc, TournamentRound } from '#lib/types/tournament.ts';
+import type {
+	TournamentDoc,
+	TournamentMatchDoc,
+	TournamentRound,
+	TriggerTournamentDrawRefusalReason
+} from '#lib/types/tournament.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	claimTournamentPrize as claimTournamentPrizeWeb2,
@@ -81,7 +86,7 @@ export const getCurrentTournament = async (): Promise<{
 export interface TriggerTournamentDrawResult {
 	ok: boolean;
 	tournamentId?: string;
-	reason?: 'already_drawn' | 'month_not_started' | 'insufficient_leagues' | 'invalid_input';
+	reason?: TriggerTournamentDrawRefusalReason;
 	availableLeagues?: number;
 }
 

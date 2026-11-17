@@ -11,7 +11,6 @@
 		Info,
 		Key,
 		Languages,
-		LineChart,
 		Lock,
 		Mail,
 		Moon,
@@ -501,19 +500,6 @@
 				options={visibilityOptions}
 				sub={t({ locale: $localeStore, key: 'settings.profile_visibility.sub' })}
 				value={settingsVisibility}
-			/>
-
-			<SetToggle
-				checked={$preferencesStore.sharing.callsPublic}
-				icon={LineChart}
-				label={t({ locale: $localeStore, key: 'settings.public_calls' })}
-				onchange={(value) => {
-					preferencesStore.update((prefs) => ({
-						...prefs,
-						sharing: { ...prefs.sharing, callsPublic: value }
-					}));
-				}}
-				sub={t({ locale: $localeStore, key: 'settings.public_calls.sub' })}
 			/>
 		</SettingsSection>
 

@@ -14,6 +14,8 @@
 	"RESOLVED_RESULTS": "resolved_results",
 	"VXP_ONBOARDING": "vxp_onboarding",
 	"VXP_AWARDS": "vxp_awards",
+	"CALIBRATION_ATTEMPTS": "calibration_attempts",
+	"VXP_AWARD_MARKERS": "vxp_award_markers",
 	"REFERRAL_CODES": "referral_codes",
 	"REFERRALS": "referrals",
 	"LEAGUES": "leagues",

@@ -20,7 +20,7 @@ import {
 	shapeOwnProfile
 } from '../profiles/profile';
 import { upsertMyProfile } from '../profiles/profile-write';
-import { getUserStats, upsertMonthlyStats, upsertUserStats } from '../profiles/stats';
+import { getUserStats, upsertUserStats } from '../profiles/stats';
 import { mintFlowOvertime } from '../vxp/flow';
 import { runProfileAwardTriggers } from '../vxp/triggers';
 
@@ -191,44 +191,6 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 					})
 				),
 				computedAtMs: t.Number()
-			})
-		}
-	)
-	.put(
-		'/me/monthly-stats',
-		async ({ request, set, body }) => {
-			const user = await requireUser(request);
-
-			if (isNullish(user)) {
-				return unauthenticated(set);
-			}
-
-			try {
-				const stats = await upsertMonthlyStats({
-					userId: user.id,
-					monthAnchor: body.monthAnchor,
-					monthCalls: body.monthCalls,
-					monthWins: body.monthWins,
-					monthConsensus: body.monthConsensus,
-					updatedAtMs: body.updatedAtMs
-				});
-
-				return { stats };
-			} catch (err) {
-				if (err instanceof ProfileValidationError) {
-					return badRequest(set, err.message);
-				}
-
-				throw err;
-			}
-		},
-		{
-			body: t.Object({
-				monthAnchor: t.String(),
-				monthCalls: t.Number(),
-				monthWins: t.Number(),
-				monthConsensus: t.Array(t.Number()),
-				updatedAtMs: t.Number()
 			})
 		}
 	)

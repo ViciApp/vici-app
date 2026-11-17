@@ -37,7 +37,7 @@ Two files under `src/lib/web2/`:
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Analytics                                       | `analytics.services.ts` (flush call site)                                                                                                                                                                                                 | The reference for the per-service swap below.                                                                              |
 | Auth                                            | `authn/SignInProviderStack.svelte`, `authn/Authn.svelte`                                                                                                                                                                                  | The identity layer, not a per-service swap. See "Auth" below.                                                              |
-| Profiles + social                               | `profile.services.ts`, `user-stats.services.ts`, `relation.services.ts`, `relation-queries.services.ts`, `leaderboard.services.ts`                                                                                                        | Per-service swaps. Plus the app-shell hydration in `Authn.svelte`. See "Profiles and social" below.                        |
+| Profiles + social                               | `profile.services.ts`, `user-stats.services.ts`, `relation.services.ts`, `relation-queries.services.ts`, `leaderboard.services.ts`, `menagerie.services.ts`                                                                               | Per-service swaps. Plus the app-shell hydration in `Authn.svelte`. See "Profiles and social" below.                        |
 | Markets + public engine reads                   | `market.services.ts`, `market-metadata.services.ts`, `market-translation.services.ts`, `resolution.services.ts`, `trade.services.ts`, `standings.services.ts`, `collateral.services.ts`                                                   | Public reads only. See "Markets and public engine reads" below.                                                            |
 | Engine account ops + wallet                     | `order.services.ts`, `position.services.ts`, `trade.services.ts`, `collateral.services.ts`, `wallet.services.ts`, `send.services.ts`                                                                                                      | The session-gated engine surface and the custodial wallet. See "Engine account operations and the custodial wallet" below. |
 | Leagues + battles + worlds + tournaments        | `leagues.services.ts`, `worlds.services.ts`, `tournament.services.ts`, `storage.services.ts` (league cover), `standings.services.ts` (league slice)                                                                                       | The social competition surfaces. See "Leagues, battles, worlds and tournaments" below.                                     |
@@ -263,6 +263,9 @@ the on-chain call untouched on the default side:
   swap for free: they route through `getProfile` + `upsertProfile`.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
 - `leaderboard.services.ts`: `getLeaderboard`.
+- `menagerie.services.ts`: the viewer's rank + ranked-population size in
+  `loadMyMenagerieSignals` (Goat and the profile's "Top X%" line), read
+  from `GET /api/v1/leaderboard/rank/:userId`.
 - `relation.services.ts`: `sendFriendRequest` (with a web2 `@handle` / account-id
   resolver), `accept` / `reject` / `cancel`, `unfriend`, `follow`.
 - `relation-queries.services.ts`: friends, followers, following, friend
@@ -526,7 +529,8 @@ shapes are identity-free (league ids and aggregates) and pass through.
   carries the definitive code); the API join is idempotent instead of
   throwing on re-join; battle ids are uuids (the route caps ids at 64
   chars); accept / kickoff baselines are stamped server-side, so the
-  client never reads `league_stats`; `loadLeaguesByIds` hydrates the
+  client never reads `league_stats` (tournament matches are scored from
+  settled history server-side, never from it either); `loadLeaguesByIds` hydrates the
   league directory from the caller's own list reads because no public
   by-id league read exists yet; the share URL stays plain (no `?ref=`)
   until referrals swap.

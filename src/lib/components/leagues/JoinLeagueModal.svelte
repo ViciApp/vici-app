@@ -5,6 +5,7 @@
 	import { joinLeagueByInvite, lookupLeagueByInvite } from '#lib/services/leagues.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
+		LEAGUE_ACCENT_FALLBACK,
 		LEAGUE_INVITE_CODE_EXAMPLE,
 		LEAGUE_INVITE_CODE_REGEX,
 		leagueEmblem,
@@ -42,6 +43,7 @@
 	const normalisedCode = $derived(code.trim().toUpperCase());
 	const codeIsValid = $derived(LEAGUE_INVITE_CODE_REGEX.test(normalisedCode));
 	const canSubmit = $derived(!submitting && nonNullish(matched));
+	const matchedAccent = $derived(matched?.accentColor ?? LEAGUE_ACCENT_FALLBACK);
 
 	// Resolve the league as the user finishes typing a valid code. Each
 	// keystroke that yields a complete code kicks off a lookup; stale
@@ -214,8 +216,8 @@
 		{#if matched}
 			<div class="league-match-preview" aria-live="polite">
 				<span
-					style:--accent={matched.accentColor ?? 'var(--laurel)'}
-					style:--accent-grad={`linear-gradient(160deg, ${matched.accentColor ?? '#e2b842'}33 0%, ${matched.accentColor ?? '#e2b842'}11 40%, var(--bg-surface) 100%)`}
+					style:--accent={matchedAccent}
+					style:--accent-grad={`linear-gradient(160deg, ${matchedAccent}33 0%, ${matchedAccent}11 40%, var(--bg-surface) 100%)`}
 					class="league-match-logo"
 				>
 					<span class="league-match-emblem">

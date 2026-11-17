@@ -6,20 +6,17 @@ import { isNullish } from '@dfinity/utils';
  * Per-league rolling stats. One doc per league under the
  * `LEAGUE_STATS` collection, keyed by `leagueId`.
  *
- * The doc tracks lifetime counters only: no monthly snapshots,
- * because the tournament uses arbitrary 7-day round windows (not
- * month boundaries), so a monthly anchor would be the wrong frame.
- * Instead, the tournament-resolution endpoint snapshots a league's
- * `(totalCalls, wins)` into the match doc when the league is first
- * assigned to a bracket slot, and reads the current rolling doc at
- * resolution time; the per-window accuracy is the delta between the
- * two. Battles use the same snapshot-delta over a per-battle window.
+ * The doc tracks lifetime counters only, as a display cache: any
+ * member may write their league's row, so nothing that decides an
+ * award reads it. Tournament matches and league battles are scored
+ * from the members' settled history over their window, read from the
+ * clearing canister.
  *
- * Writes are gated by `assertSetLeagueStats`: only the stats hook
- * (signing as the user whose `USER_STATS` just updated) can write, and
- * only against leagues the caller is a member of. The hook's
- * recipient-binds-caller invariant matches the pattern used by
- * `AFFILIATION_STATS`.
+ * Writes are gated by `assertSetLeagueStats`: the caller must be a
+ * member of the league, counters only move forward and wins never
+ * exceed calls. The stats hook (signing as the user whose profile just
+ * updated) is the intended writer, but the assert cannot tell it from
+ * a member's own write.
  */
 export interface LeagueStatsDoc {
 	/** Parent league id: matches the doc key. */

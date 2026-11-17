@@ -74,8 +74,9 @@ export const VXP_FLOW_OVERTIME_ROLLING_CAP = 8;
  * recovering user calls correctly. */
 export const VXP_CALIBRATION_REWARD_BASE_UNITS = parseVxp(20);
 
-/** The reward only pays while the caller's balance is below this floor: it
- * is a recovery nudge, not an income stream. */
+/** The reward only pays while the caller's holdings (wallet plus deposited,
+ * `getVxpHoldings`) are below this floor: it is a recovery nudge, not an
+ * income stream. */
 export const CALIBRATION_RECOVERY_FLOOR_BASE_UNITS = parseVxp(100);
 
 /** Rolling calibration caps, counted off the caller's award rows. */
@@ -83,8 +84,8 @@ export const CALIBRATION_DAILY_CAP = 15;
 export const CALIBRATION_HOURLY_CAP = 6;
 
 // Comeback restore: a one-time top-up for a returning user whose stack ran
-// dry (away at least COMEBACK_AWAY_DAYS, balance below the floor); the
-// balance is topped up TO the target, not BY it.
+// dry (away at least COMEBACK_AWAY_DAYS, holdings below the floor); the
+// holdings are topped up TO the target, not BY it.
 export const COMEBACK_RESTORE_TARGET_BASE_UNITS = parseVxp(250);
 export const COMEBACK_BALANCE_FLOOR_BASE_UNITS = parseVxp(100);
 export const COMEBACK_AWAY_DAYS = 7;

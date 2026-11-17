@@ -5,6 +5,7 @@
 	import Logo from '#lib/components/layout/Logo.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { pageTitle } from '#lib/constants/brand.constants.ts';
 	import { CLAIM_BLOB_STORAGE_KEY } from '#lib/constants/claim.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
@@ -164,7 +165,7 @@
 </script>
 
 <svelte:head>
-	<title>{t({ locale: $localeStore, key: 'claim.page.title' })} · VICI</title>
+	<title>{pageTitle(t({ locale: $localeStore, key: 'claim.page.title' }))}</title>
 </svelte:head>
 
 {#if enabled}

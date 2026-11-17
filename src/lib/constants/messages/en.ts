@@ -1904,6 +1904,9 @@ export const enMessages = {
 	'seo.home.description':
 		'Trade on binary outcome markets with social features on the Internet Computer.',
 	'seo.home.title': 'VICI Social Markets | Predict. Trade. Win.',
+	'seo.invite.title': 'Invite',
+	'seo.league_join.title': 'Join league',
+	'seo.signup.title': 'Create account',
 	'settings.about': 'VICI · v{version} · Build {build}',
 	'settings.account': 'Account',
 	'settings.account.email': 'Email',
@@ -2028,8 +2031,6 @@ export const enMessages = {
 	'settings.profile_visibility.private': 'Private',
 	'settings.profile_visibility.public': 'Public',
 	'settings.profile_visibility.sub': 'Who can see your calls and accuracy',
-	'settings.public_calls': 'Public call history',
-	'settings.public_calls.sub': 'Show your last 30 calls on your profile',
 	'settings.sign_out': 'Sign out',
 	'settings.sign_out.cancel': 'Cancel',
 	'settings.sign_out.confirm': 'Sign out and return to the sign-in screen?',

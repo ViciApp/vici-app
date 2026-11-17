@@ -2,20 +2,42 @@
 // 1,500 VXP starter, the absence-gap math, the balance-floor gate and the
 // once-ever restore bound.
 
-import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import type { ClearingService, RegistryService } from '../src/declarations';
+import { setEngineActorProvider } from '../src/engine/actors';
 import { daysBetween } from '../src/lib/time';
 import { runComebackRestoreTrigger } from '../src/vxp/comeback';
 import { parseVxp } from '../src/vxp/constants';
 import { runOnboardingProfileTrigger } from '../src/vxp/onboarding';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
-import { readAwardRow, stubVxpLedger, type LedgerStub } from './helpers/vxp';
+import {
+	accountStateWithEquity,
+	readAwardRow,
+	stubVxpLedger,
+	type LedgerStub
+} from './helpers/vxp';
 
 let stub: LedgerStub | undefined;
+let restoreEngine: (() => void) | undefined;
+let depositedEquity = BigInt(0);
+
+beforeEach(() => {
+	depositedEquity = BigInt(0);
+	restoreEngine = setEngineActorProvider({
+		clearing: () =>
+			Promise.resolve({
+				get_account_state: () => Promise.resolve(accountStateWithEquity(depositedEquity))
+			} as unknown as ClearingService),
+		registry: () => Promise.resolve({} as unknown as RegistryService)
+	});
+});
 
 afterEach(() => {
 	stub?.restore();
 	stub = undefined;
+	restoreEngine?.();
+	restoreEngine = undefined;
 });
 
 describe('absence-gap math', () => {
@@ -105,6 +127,34 @@ describe.if(dbAvailable)('onboarding and comeback awards', () => {
 			});
 
 			expect(stub.transfers).toHaveLength(0);
+		});
+
+		test('VXP deposited in clearing counts toward the floor and the top-up', async () => {
+			stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(0)) });
+			depositedEquity = parseVxp(5000);
+			const funded = await createTestUser();
+
+			await runComebackRestoreTrigger({
+				userId: funded,
+				previousActiveDay: '2026-08-01',
+				activeDay: '2026-08-20'
+			});
+
+			expect(stub.transfers).toHaveLength(0);
+
+			// 10 VXP in the wallet and 30 deposited: 40 held, topped up by 210.
+			stub.restore();
+			stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(10)) });
+			depositedEquity = parseVxp(30);
+			const depleted = await createTestUser();
+
+			await runComebackRestoreTrigger({
+				userId: depleted,
+				previousActiveDay: '2026-08-01',
+				activeDay: '2026-08-20'
+			});
+
+			expect(stub.transfers.map(({ amount }) => amount)).toEqual([parseVxp(210)]);
 		});
 
 		test('a first-ever active day can never be a return', async () => {

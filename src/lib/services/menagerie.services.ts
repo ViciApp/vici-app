@@ -9,6 +9,8 @@ import {
 	myReferralCountStore
 } from '#lib/stores/menagerie.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { getUserRankAndCount as getUserRankAndCountWeb2 } from '#lib/web2/client.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 import { get } from 'svelte/store';
@@ -18,7 +20,8 @@ import { get } from 'svelte/store';
  * profile doc: the viewer's global rank + ranked-population size (Goat, via
  * the satellite's full-ranking self-rank query) and the viewer's referral
  * count (Parrot). The global `'all'` standings window is refreshed alongside
- * them: the profile dashboard's credibility line still reads it.
+ * them, which warms the cache the leaderboard and the Arena ranking card read;
+ * no Menagerie or profile figure depends on it.
  *
  * Both the profile rail (`ProfileDashboard`) and the album route (`AlbumPage`)
  * call this on mount: it is the single hydration entry point so the two
@@ -72,9 +75,9 @@ export const loadMyMenagerieSignals = async (): Promise<void> => {
 						return;
 					}
 
-					const { rank, count } = await functions.getUserRankAndCount({
-						principalStr: owner
-					});
+					const { rank, count } = isWeb2Backend()
+						? await getUserRankAndCountWeb2({ userId: owner })
+						: await functions.getUserRankAndCount({ principalStr: owner });
 
 					if (isCurrent()) {
 						myGlobalRankStore.set({ rank, totalRanked: count });

@@ -26,6 +26,8 @@ enum JunoDatastoreCollection {
 	RESOLVED_RESULTS = 'resolved_results',
 	VXP_ONBOARDING = 'vxp_onboarding',
 	VXP_AWARDS = 'vxp_awards',
+	CALIBRATION_ATTEMPTS = 'calibration_attempts',
+	VXP_AWARD_MARKERS = 'vxp_award_markers',
 	REFERRAL_CODES = 'referral_codes',
 	REFERRALS = 'referrals',
 	LEAGUES = 'leagues',
@@ -100,6 +102,11 @@ export default defineConfig(({ mode }) => ({
 			}
 		},
 		collections: {
+			// `write: 'public'` lets any caller create, update or delete any doc:
+			// Juno does no owner check. Each such collection has a set and a
+			// delete assert in `src/satellite/index.ts` that admits only the doc's
+			// owner, a satellite controller, or a named cross-user rule (see
+			// `docs/ai/satellite/patterns.md`).
 			datastore: [
 				{
 					collection: JunoDatastoreCollection.ROLES,
@@ -132,6 +139,9 @@ export default defineConfig(({ mode }) => ({
 					read: 'public',
 					write: 'public'
 				},
+				// `chats` and `comments` are dormant: nothing in the app reads or
+				// writes them (the web2 export still drains them), so their set
+				// and delete asserts accept only a controller.
 				{
 					collection: JunoDatastoreCollection.CHATS,
 					memory: 'stable',
@@ -177,9 +187,10 @@ export default defineConfig(({ mode }) => ({
 				// Per-liker reaction docs for the friend activity feed (one doc
 				// per activity-per-liker). Public read so counts + my-likes
 				// hydrate on load; public write so a user persists their own
-				// like. `assertSetActivityReaction` binds each write to its
-				// caller (liker === caller, key shape), and Juno's owner-scoped
-				// delete keeps an unlike to the liker's own doc.
+				// like. Juno does no owner check on a public collection, so
+				// `assertSetActivityReaction` binds each write to its caller
+				// (liker === caller, key shape) and
+				// `assertDeleteActivityReaction` keeps an unlike to the liker.
 				{
 					collection: JunoDatastoreCollection.ACTIVITY_REACTIONS,
 					memory: 'stable',
@@ -221,6 +232,27 @@ export default defineConfig(({ mode }) => ({
 					memory: 'stable',
 					read: 'public',
 					write: 'public'
+				},
+				// The first side each user called on each finalised market for a
+				// calibration reward, so a miss cannot be called again on the
+				// other side. Controllers-only: the `claimCalibrationReward`
+				// endpoint is the sole reader and writer (as a controller).
+				{
+					collection: JunoDatastoreCollection.CALIBRATION_ATTEMPTS,
+					memory: 'stable',
+					read: 'controllers',
+					write: 'controllers'
+				},
+				// An anonymous marker per one-time award a purged account was paid:
+				// a digest of the principal, the award type and key, nothing else.
+				// The award asserts and payouts refuse an award whose marker
+				// exists, so signing up again never pays it twice. Controllers-only:
+				// the account purge writes them and the award paths read them.
+				{
+					collection: JunoDatastoreCollection.VXP_AWARD_MARKERS,
+					memory: 'stable',
+					read: 'controllers',
+					write: 'controllers'
 				},
 				{
 					collection: JunoDatastoreCollection.REFERRAL_CODES,

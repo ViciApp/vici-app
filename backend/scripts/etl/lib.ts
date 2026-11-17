@@ -42,6 +42,8 @@ export const SATELLITE_COLLECTIONS = [
 	'resolved_results',
 	'vxp_onboarding',
 	'vxp_awards',
+	'calibration_attempts',
+	'vxp_award_markers',
 	'referral_codes',
 	'referrals',
 	'leagues',

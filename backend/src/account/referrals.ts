@@ -10,6 +10,7 @@ import { query } from '../db/client';
 import { logger } from '../lib/logger';
 import { DAY_IN_MS } from '../lib/time';
 import { friendRelationKey } from '../social/relations';
+import { hasAwardMarker } from '../vxp/award-markers';
 
 /** Client-facing referral refusal; routes answer it as a 400 with the message. */
 export class ReferralError extends Error {}
@@ -186,7 +187,12 @@ export const redeemReferralCode = async ({
 		[userId]
 	);
 
-	if (nonNullish(existing[0])) {
+	// A deleted account of the same identity that collected its referee bonus
+	// counts as a redemption too: the bonus is one-time per person.
+	if (
+		nonNullish(existing[0]) ||
+		(await hasAwardMarker({ userId, awardType: 'referral', awardKey: userId }))
+	) {
 		throw new ReferralError('You have already redeemed a referral code.');
 	}
 

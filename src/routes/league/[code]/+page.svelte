@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { pageTitle } from '#lib/constants/brand.constants.ts';
 	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
@@ -76,10 +77,6 @@
 	const needsOnboarding = $derived(!onboardingCompleted && !$userStore.profileExisted);
 
 	const leaguesListPath = `${resolveAppPath(AppPath.Arena)}/leagues`;
-
-	onMount(() => {
-		document.title = 'Join league · VICI';
-	});
 
 	$effect(() => {
 		if (!browser) {
@@ -213,6 +210,10 @@
 		}
 	};
 </script>
+
+<svelte:head>
+	<title>{pageTitle(t({ locale: $localeStore, key: 'seo.league_join.title' }))}</title>
+</svelte:head>
 
 <div
 	class="flex min-h-screen w-full flex-col items-center justify-center p-6"

@@ -18,7 +18,13 @@ import {
 import { grantLeagueFounderAward } from '../src/vxp/founder';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
-import { readAwardRow, stubVxpLedger, type LedgerStub, type RecordedTransfer } from './helpers/vxp';
+import {
+	accountStateWithEquity,
+	readAwardRow,
+	stubVxpLedger,
+	type LedgerStub,
+	type RecordedTransfer
+} from './helpers/vxp';
 
 let stub: LedgerStub | undefined;
 let restoreActors: (() => void) | undefined;
@@ -35,12 +41,14 @@ const mockEngine = ({
 	engineId = 'eng_0',
 	payoff = { Binary: null },
 	finalised = true,
-	priceValue = BigInt(1)
+	priceValue = BigInt(1),
+	depositedEquity = BigInt(0)
 }: {
 	engineId?: string;
 	payoff?: Record<string, null>;
 	finalised?: boolean;
 	priceValue?: bigint;
+	depositedEquity?: bigint;
 } = {}): void => {
 	const series = { engine_id: [engineId], payoff_type: payoff };
 	const view = {
@@ -51,7 +59,8 @@ const mockEngine = ({
 	restoreActors = setEngineActorProvider({
 		clearing: () =>
 			Promise.resolve({
-				get_settlement_status: () => Promise.resolve([view])
+				get_settlement_status: () => Promise.resolve([view]),
+				get_account_state: () => Promise.resolve(accountStateWithEquity(depositedEquity))
 			} as unknown as ClearingService),
 		registry: () =>
 			Promise.resolve({
@@ -106,6 +115,19 @@ describe.if(dbAvailable)('calibration and founder awards', () => {
 			const result = await claimCalibrationReward({ userId, seriesId: 's2', chosenSide: 'YES' });
 
 			expect(result.reason).toBe('balance_above_floor');
+		});
+
+		test('VXP deposited in clearing counts toward the recovery floor', async () => {
+			stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(0)) });
+			mockEngine({ depositedEquity: parseVxp(5000) });
+			const userId = await createTestUser();
+
+			await engageUser(userId);
+
+			const result = await claimCalibrationReward({ userId, seriesId: 's2d', chosenSide: 'YES' });
+
+			expect(result.reason).toBe('balance_above_floor');
+			expect(calibrationTransfers(stub)).toHaveLength(0);
 		});
 
 		test('only Vici engine markets qualify', async () => {

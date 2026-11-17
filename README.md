@@ -1,12 +1,12 @@
 # Vici Social Markets
 
-Vici Social Markets is a modern prediction platform built on the **Internet Computer**. It allows users to trade on binary outcome markets (YES/NO) with integrated social features, IC wallet management, and a streamlined mobile-first "Rush Mode" trading interface.
+Vici Social Markets is a modern prediction platform built on the **Internet Computer**. It allows users to trade on binary outcome markets (YES/NO) with integrated social features, IC wallet management, and a streamlined mobile-first "Flow Mode" trading interface.
 
 ## 🚀 Key Features
 
 - **Binary Outcome Markets**: Trade on YES/NO outcomes across various categories.
 - **Social Integration**: Market-specific discussions, user profiles, following system, and activity feeds.
-- **Rush Mode**: A swipe-based rapid trading interface designed for mobile-first engagement.
+- **Flow Mode**: A swipe-based rapid trading interface designed for mobile-first engagement.
 - **On-Chain Settlement**: Fully functional trading and settlement using the `clearing` and `registry` canisters.
 - **Wallet & Portfolio**: Integrated collateral management for ICP and ckUSDC with real-time position tracking.
 - **Leaders**: Track top performers based on P&L and trading volume.
