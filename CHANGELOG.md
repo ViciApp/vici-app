@@ -1,5 +1,54 @@
 # Changelog
 
+## [1.8.60](https://github.com/ViciApp/vici-app/compare/v1.8.59...v1.8.60) (2026-11-17)
+
+
+### Bug Fixes
+
+* **backend:** answer a non-uuid id at the route instead of a 500 ([#1563](https://github.com/ViciApp/vici-app/issues/1563)) ([59acbcc](https://github.com/ViciApp/vici-app/commit/59acbccd146d37e7c35f02cf833d5f7f9d477359))
+* **backend:** limit invite-code lookups and joins per account ([#1564](https://github.com/ViciApp/vici-app/issues/1564)) ([ccbea49](https://github.com/ViciApp/vici-app/commit/ccbea49e7ef619eb812388d25a1a4e74deff149f))
+* **custody:** keep disabled chains out of the confirmation batch ([#1565](https://github.com/ViciApp/vici-app/issues/1565)) ([2dca223](https://github.com/ViciApp/vici-app/commit/2dca223d68059db8a313c04ae4ef6137c9c7f1eb))
+* **frontend:** compute the profile's top-percent line from one ranking ([#1554](https://github.com/ViciApp/vici-app/issues/1554)) ([7b5749c](https://github.com/ViciApp/vici-app/commit/7b5749c6191cb57bd5fc1f23388210ac7b519863))
+* **frontend:** drop leaderboard opt-outs from the market's top predictors ([#1553](https://github.com/ViciApp/vici-app/issues/1553)) ([ad53c29](https://github.com/ViciApp/vici-app/commit/ad53c296ff084d6e8aaa95c5d34bf7d1865bb53b))
+* **frontend:** localize the sign-in, sign-up and invite page titles ([#1559](https://github.com/ViciApp/vici-app/issues/1559)) ([bb49676](https://github.com/ViciApp/vici-app/commit/bb49676866887fc29fdf92e973224f92f68be9f4))
+* **frontend:** remove the public call history toggle that did nothing ([#1556](https://github.com/ViciApp/vici-app/issues/1556)) ([f691934](https://github.com/ViciApp/vici-app/commit/f691934f24ad8509fc06b4bdc38fad4faefcafc8))
+* **frontend:** show a retry when a leaderboard window fails to load ([#1555](https://github.com/ViciApp/vici-app/issues/1555)) ([6203592](https://github.com/ViciApp/vici-app/commit/62035928297da07330a831920cc51b837ccfd8cd))
+
+
+### Documentation
+
+* **ai:** match the agent docs to the code and pin the collections list ([#1569](https://github.com/ViciApp/vici-app/issues/1569)) ([143a925](https://github.com/ViciApp/vici-app/commit/143a925f4ea73385726c7ff4c1e8bc1ae6fe5793))
+
+
+### Miscellaneous Chores
+
+* **npm-deps-dev:** move minimatch and brace-expansion to patched versions ([#1570](https://github.com/ViciApp/vici-app/issues/1570)) ([fdf68f2](https://github.com/ViciApp/vici-app/commit/fdf68f2d3f26b0fa65bd052160a17265643b55af))
+
+
+### Code Refactoring
+
+* **frontend,satellite:** write the default preferences once ([#1557](https://github.com/ViciApp/vici-app/issues/1557)) ([0044f74](https://github.com/ViciApp/vici-app/commit/0044f7436028a783573d6b18ad670baa9d1dab63))
+* **frontend:** make comments say why and drop the unused toRelationId ([#1560](https://github.com/ViciApp/vici-app/issues/1560)) ([c9e762a](https://github.com/ViciApp/vici-app/commit/c9e762a4c435d1cbbcd6b0e40087aab2d80d4668))
+* **frontend:** read the call side, onboarding picks and league accent from one place ([#1558](https://github.com/ViciApp/vici-app/issues/1558)) ([dab553d](https://github.com/ViciApp/vici-app/commit/dab553d5c16055e7e76e1775bf367d3d256b45c6))
+* **scripts:** read the engine id, odds and engine admins from the app ([#1561](https://github.com/ViciApp/vici-app/issues/1561)) ([dc36604](https://github.com/ViciApp/vici-app/commit/dc366047edf0811ede6e83ceb8ba4fa71e5c7e18))
+
+
+### Tests
+
+* **backend:** skip the DB suites cleanly when Postgres is down ([#1567](https://github.com/ViciApp/vici-app/issues/1567)) ([fa72dc2](https://github.com/ViciApp/vici-app/commit/fa72dc20dc1f972e7ae2d77c705917ee190557b2))
+
+
+### Build System
+
+* **backend:** pin one Bun version for CI and the Fly image ([#1568](https://github.com/ViciApp/vici-app/issues/1568)) ([20cda5f](https://github.com/ViciApp/vici-app/commit/20cda5f096e91ea37462daabcc574d71324ea7fb))
+
+
+### Continuous Integration
+
+* **release:** narrow the credentials of the release workflows ([#1566](https://github.com/ViciApp/vici-app/issues/1566)) ([c8fec99](https://github.com/ViciApp/vici-app/commit/c8fec992037c077e6174c36cbf96dd63155497b1))
+* **satellite:** pin the juno CLI version in one file ([#1562](https://github.com/ViciApp/vici-app/issues/1562)) ([2defe64](https://github.com/ViciApp/vici-app/commit/2defe64fcd46d1eb1ce7b3df3177fb2fca0b4e6c))
+* **workflows:** keep pull request branch checkouts from writing main's cache ([#1571](https://github.com/ViciApp/vici-app/issues/1571)) ([24e364d](https://github.com/ViciApp/vici-app/commit/24e364d2aa3bfb739d41e9636c48a959c6068f69))
+
 ## [1.8.59](https://github.com/ViciApp/vici-app/compare/v1.8.58...v1.8.59) (2026-11-16)
 
 
