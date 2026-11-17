@@ -494,7 +494,7 @@
 	},
 	"src/satellite/services/tournament.services.ts": {
 		"complexity": {
-			"count": 3
+			"count": 2
 		},
 		"max-lines": {
 			"count": 1

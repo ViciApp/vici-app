@@ -6,9 +6,7 @@
 // history from before an account was matched still counts.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { Principal } from '@icp-sdk/core/principal';
-import { settlementPrincipalsByUser } from '../auth/identity';
-import { query, tx } from '../db/client';
+import { tx } from '../db/client';
 import { settledTotals } from '../engine/clearing';
 import { seriesIdsForTag } from '../markets/tag-index';
 import {
@@ -21,19 +19,8 @@ import {
 	type Battle,
 	type BattleWinner
 } from './battles';
-import { getLeagueMember } from './members';
+import { getLeagueMember, leagueMemberPrincipals } from './members';
 import type { BattleScope } from './stats';
-
-/** Every on-chain principal a league's members can have settled under. */
-const memberPrincipals = async (leagueId: string): Promise<Principal[]> => {
-	const rows = await query<{ member_user_id: string }>(
-		`select member_user_id from league_members where league_id = $1`,
-		[leagueId]
-	);
-	const byUser = await settlementPrincipalsByUser(rows.map((row) => row.member_user_id));
-
-	return [...byUser.values()].flat().map((text) => Principal.fromText(text));
-};
 
 /** The series allow-list for a scope: undefined = every series counts; a tag
  * scope reads its index bucket, and an empty bucket scores the battle as a
@@ -66,13 +53,13 @@ const computeScoreline = async ({
 
 	const [a, b] = await Promise.all([
 		settledTotals({
-			members: await memberPrincipals(battle.sideA),
+			members: await leagueMemberPrincipals({ leagueId: battle.sideA }),
 			fromMs: battle.kickoffMs,
 			toMs,
 			seriesIds
 		}),
 		settledTotals({
-			members: await memberPrincipals(battle.sideB),
+			members: await leagueMemberPrincipals({ leagueId: battle.sideB }),
 			fromMs: battle.kickoffMs,
 			toMs,
 			seriesIds

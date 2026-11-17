@@ -529,7 +529,8 @@ shapes are identity-free (league ids and aggregates) and pass through.
   carries the definitive code); the API join is idempotent instead of
   throwing on re-join; battle ids are uuids (the route caps ids at 64
   chars); accept / kickoff baselines are stamped server-side, so the
-  client never reads `league_stats`; `loadLeaguesByIds` hydrates the
+  client never reads `league_stats` (tournament matches are scored from
+  settled history server-side, never from it either); `loadLeaguesByIds` hydrates the
   league directory from the caller's own list reads because no public
   by-id league read exists yet; the share URL stays plain (no `?ref=`)
   until referrals swap.

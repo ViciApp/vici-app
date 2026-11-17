@@ -24,15 +24,18 @@ const LEAGUE_STATS_WRITE_PURPOSE = 'league_stats fan-out';
 /**
  * Pre-write guard for `league_stats`. Same shape rules as
  * `affiliation_stats` but simpler: lifetime counters only, no
- * monthly rollover (the tournament uses 7-day windows, not month
- * boundaries, so monthly snapshots aren't useful here).
+ * monthly rollover.
+ *
+ * The counters follow each member's own `totalTrades`, so they are a
+ * display cache and decide nothing: tournament matches and league
+ * battles are scored from the members' settled history read from the
+ * clearing canister (`settled-history.services.ts`).
  *
  *  1. **Collection scope.** No-op for any non-stats collection.
  *  2. **Key shape.** Doc key must equal the embedded `leagueId`.
  *  3. **Only the satellite writes.** The counters are fanned out by the
  *     profile and user-stats hooks, which sign as a controller; a client
- *     write (a member's included) is rejected, so no one can inflate a
- *     league's accuracy, which battles and tournament prizes read.
+ *     write (a member's included) is rejected.
  *  4. **Counters move forward.** Lifetime counters cannot decrease
  *     across writes.
  *  5. **Wins ≤ totalCalls.** Sanity invariant.

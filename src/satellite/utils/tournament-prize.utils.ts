@@ -53,8 +53,7 @@ export const tournamentPodium = (
 /**
  * The place a caller's memberships earn, highest first. Only memberships
  * stored at or before the draw count: the draw seeds the bracket from that
- * roster and snapshots the stats every score is a delta from, so joining a
- * placed league afterwards (including once the tournament has concluded)
+ * roster, so joining a placed league afterwards (including once the tournament has concluded)
  * earns nothing. A member who left before claiming has no membership left
  * and earns nothing either.
  */

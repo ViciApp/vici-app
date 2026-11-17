@@ -8,22 +8,15 @@ import {
 	type BattleScope,
 	type BattleWinner
 } from '#lib/types/battle.ts';
-import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import { controllerCaller } from '#satellite/services/authz.services.ts';
+import { leagueMemberPrincipals } from '#satellite/services/league-member.services.ts';
 import { seriesIdsForTag } from '#satellite/services/market-tag-index.services.ts';
 import { settledTotals } from '#satellite/services/settled-history.services.ts';
-import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
-import {
-	decodeDocData,
-	encodeDocData,
-	getDocStore,
-	listDocsStore,
-	setDocStore
-} from '@junobuild/functions/sdk';
+import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
 
 /**
  * League-battle resolution from real settled-call history (controller-trusted).
@@ -45,46 +38,6 @@ import {
 
 /** A satellite controller principal: the `caller` for the controller-trusted resolved write. */
 const adminCaller = (): Uint8Array => controllerCaller('battle resolution');
-
-/**
- * Current member principals of a league. The `league_members` key is
- * `${leagueId}/${principal}`, so the scan is anchored to that prefix with a
- * key matcher: the datastore skips (and never decodes) rows for other
- * leagues, keeping this O(this-league's-members) rather than O(all-members).
- */
-const leagueMemberPrincipals = ({
-	leagueId,
-	caller
-}: {
-	leagueId: string;
-	caller: Uint8Array;
-}): Principal[] => {
-	const prefix = `${leagueId}/`;
-
-	const { items } = listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller,
-		params: { matcher: { key: `^${escapeRegex(prefix)}` } }
-	});
-
-	const principals: Principal[] = [];
-
-	for (const [key, item] of items) {
-		if (key.startsWith(prefix)) {
-			try {
-				const member = decodeDocData<LeagueMemberDoc>(item.data);
-
-				if (member.leagueId === leagueId) {
-					principals.push(Principal.fromText(member.member));
-				}
-			} catch {
-				// A malformed row can't contribute a member: skip it.
-			}
-		}
-	}
-
-	return principals;
-};
 
 /**
  * The series allow-list for a battle scope. `'all'` returns `undefined` (no

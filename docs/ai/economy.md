@@ -99,7 +99,7 @@ backs it. Amounts are **not** repeated here; follow the link.
 | **Achievement unlock**     | Catalog XP, once per achievement, only for an unlock the server evaluates from its own data, never the client's `unlockedAchievements`; three achievements mint nothing (see the caps section).                     | `ACHIEVEMENTS` ([`achievements.constants.ts`](../../src/lib/constants/achievements.constants.ts)), thresholds in [`achievements.utils.ts`](../../src/lib/utils/achievements.utils.ts)                            |
 | **League founder**         | Awarded once per league founded, bounded by a lifetime per-account cap.                                                                                                                                             | `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS`, `VXP_LEAGUE_FOUNDER_MAX_AWARDS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                         |
 | **Worlds podium**          | Tiered award for a top-three monthly finish, ranked from the members' settled history over the closed month, never a client-written counter.                                                                        | `VXP_WORLDS_PODIUM` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                             |
-| **Tournament prize**       | Tiered award for a member of a monthly tournament's podium leagues (winner, other finalist, either semifinal loser), one per member per tournament whatever the place.                                              | `TOURNAMENT_PRIZE_TIERS` ([`tournament.ts`](../../src/lib/types/tournament.ts))                                                                                                                                  |
+| **Tournament prize**       | Tiered award for a member of a monthly tournament's podium leagues (winner, other finalist, either semifinal loser), one per member per tournament whatever the place; every match is scored from settled history.  | `TOURNAMENT_PRIZE_TIERS` ([`tournament.ts`](../../src/lib/types/tournament.ts))                                                                                                                                  |
 
 The authoritative list of award **types** is the `VxpAwardType` union
 ([`vxp-award.ts`](../../src/lib/types/vxp-award.ts)). The API books the
@@ -201,7 +201,15 @@ The bound that protects each surface today:
   never carries tenure. The join time is server-stamped on both backends
   (the API's `joined_at_ms`, the satellite doc's `created_at`), never a
   caller-written field.
-- **Tournament prize**: the draw runs for the current UTC month only. A
+- **Tournament prize**: every match is scored from **settled
+  history**: each league's members' settled calls and wins over the
+  round window, read from the clearing canister through the helper
+  league battles are scored with, counting only memberships joined
+  before the window closed. A league below the per-match floor
+  forfeits. Nothing a member writes decides a match: `league_stats`
+  (fed by each member's client-reported `totalTrades` on both backends)
+  is a display cache that no award reads. The draw runs for
+  the current UTC month only. A
   closed month has every round window behind it, so drawing it would
   conclude the bracket at once on double forfeits and pay prizes for a
   tournament nobody played. The prize is once per member per tournament,
@@ -223,8 +231,9 @@ ledger transfer.
 
 No profile field the client writes (`dailyStreak`, `lastActiveDay`,
 `totalTrades`, `unlockedAchievements`) drives a mint on the web2 API:
-those fields are the client's display copy. The profile write carries
-only the registration grant.
+those fields are the client's display copy, and so are the `league_stats`
+counters `totalTrades` fans out to. The profile write carries only the
+registration grant.
 
 Every server-fired award is also keyed for **idempotency** in
 `vxp_awards` (`recipient/awardType/awardKey`), so a hook retry can

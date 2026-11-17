@@ -1,4 +1,5 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import {
 	LEAGUE_MEMBER_ROLES,
 	leagueMemberKey,
@@ -6,10 +7,11 @@ import {
 } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
 import { isControllerText } from '#satellite/services/authz.services.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
-import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
 
 /**
  * Pre-write guard for `league_members`. The collection holds the
@@ -230,4 +232,56 @@ export const assertDeleteLeagueMember = ({
 			'league_members may only be removed by the member themselves or the league owner.'
 		);
 	}
+};
+
+/**
+ * Current member principals of a league: the members whose settled history a
+ * league's score is read from. The `league_members` key is
+ * `${leagueId}/${principal}`, so the scan is anchored to that prefix with a
+ * key matcher: the datastore skips (and never decodes) rows for other
+ * leagues, keeping this O(this-league's-members) rather than O(all-members).
+ *
+ * `joinedBeforeMs` keeps only memberships stored before that instant (the
+ * doc's own `created_at`, never the client-written `joinedAtMs`), so a
+ * member who joins after a scoring window cannot lift it.
+ */
+export const leagueMemberPrincipals = ({
+	leagueId,
+	caller,
+	joinedBeforeMs
+}: {
+	leagueId: string;
+	caller: Uint8Array;
+	joinedBeforeMs?: number;
+}): Principal[] => {
+	const prefix = `${leagueId}/`;
+	const joinedBeforeNs = isNullish(joinedBeforeMs)
+		? undefined
+		: BigInt(joinedBeforeMs) * MILLISECOND_IN_NANOSECONDS;
+
+	const { items } = listDocsStore({
+		collection: Collection.LEAGUE_MEMBERS,
+		caller,
+		params: { matcher: { key: `^${escapeRegex(prefix)}` } }
+	});
+
+	const principals: Principal[] = [];
+
+	for (const [key, item] of items) {
+		const inWindow = isNullish(joinedBeforeNs) || item.created_at < joinedBeforeNs;
+
+		if (key.startsWith(prefix) && inWindow) {
+			try {
+				const member = decodeDocData<LeagueMemberDoc>(item.data);
+
+				if (member.leagueId === leagueId) {
+					principals.push(Principal.fromText(member.member));
+				}
+			} catch {
+				// A malformed row can't contribute a member: skip it.
+			}
+		}
+	}
+
+	return principals;
 };

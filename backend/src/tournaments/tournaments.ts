@@ -1,12 +1,15 @@
 // Monthly tournament: a 16-league single-elimination bracket drawn once per
 // month (the YYYY-MM primary key makes a re-draw collide), seeded by member
 // count with the league id as the deterministic tie-break, resolved round by
-// round from league_stats window deltas (7-day windows, 50-call forfeit
-// floor), and paid out through the economy's idempotent prize grants.
+// round from each league's members' settled history over the round window
+// (7-day windows, 50-call forfeit floor; read from the clearing canister like
+// league battles, never from the member-writable league_stats), and paid out
+// through the economy's idempotent prize grants.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, tx, type TxQuery } from '../db/client';
-import { getLeagueStats } from '../leagues/stats';
+import { settledTotals } from '../engine/clearing';
+import { leagueMemberPrincipals } from '../leagues/members';
 import { logger } from '../lib/logger';
 import { DAY_IN_MS, MONTH_ANCHOR_RE, monthAnchorFromMs, monthStartMs } from '../lib/time';
 import { TOURNAMENT_PRIZE_TIERS } from '../vxp/constants';
@@ -159,18 +162,6 @@ const seedFirstRoundPairs = (
 	return pairs;
 };
 
-const readLeagueStartSnapshot = async ({
-	leagueId,
-	q
-}: {
-	leagueId: string;
-	q: TxQuery;
-}): Promise<{ totalCalls: number; wins: number }> => {
-	const stats = await getLeagueStats(leagueId, q);
-
-	return { totalCalls: stats?.totalCalls ?? 0, wins: stats?.wins ?? 0 };
-};
-
 export type TriggerTournamentDrawRefusalReason =
 	'already_drawn' | 'month_not_started' | 'insufficient_leagues' | 'invalid_input';
 
@@ -266,8 +257,6 @@ export const triggerTournamentDraw = async ({
 			return { ok: false, reason: 'already_drawn', tournamentId: monthAnchor };
 		}
 
-		// Round 1 slots carry each side's league_stats snapshot so resolution
-		// can score the window delta later.
 		const r1Pairs = seedFirstRoundPairs(seededLeagueIds);
 		const r1Window = roundWindow({ tournamentMonthStartMs: startMs, round: 'r1' });
 
@@ -278,31 +267,16 @@ export const triggerTournamentDraw = async ({
 				break;
 			}
 
-			const fromSnapshot = await readLeagueStartSnapshot({ leagueId: pair.fromLeagueId, q });
-			const toSnapshot = await readLeagueStartSnapshot({ leagueId: pair.toLeagueId, q });
-
 			await q(
 				`insert into tournament_matches (tournament_id, round, index, from_league_id,
-				   to_league_id, from_start_calls, from_start_wins, to_start_calls, to_start_wins,
-				   start_ms, end_ms)
-				 values ($1, 'r1', $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-				[
-					monthAnchor,
-					index,
-					pair.fromLeagueId,
-					pair.toLeagueId,
-					fromSnapshot.totalCalls,
-					fromSnapshot.wins,
-					toSnapshot.totalCalls,
-					toSnapshot.wins,
-					r1Window.startMs,
-					r1Window.endMs
-				]
+				   to_league_id, start_ms, end_ms)
+				 values ($1, 'r1', $2, $3, $4, $5, $6)`,
+				[monthAnchor, index, pair.fromLeagueId, pair.toLeagueId, r1Window.startMs, r1Window.endMs]
 			);
 		}
 
 		// TBD slots for the later rounds so the bracket renders immediately;
-		// snapshots stay null until a resolution promotes the winner in.
+		// a resolution promotes each winner in.
 		for (const round of ['quarter', 'semifinal', 'final'] as const) {
 			const window = roundWindow({ tournamentMonthStartMs: startMs, round });
 			const count = matchCountForRound(round);
@@ -356,26 +330,34 @@ export const getCurrentTournament = async (): Promise<{
 	return { tournament: shapeTournament(row), matches: await listMatches(row.id) };
 };
 
+interface WindowScore {
+	qualifies: boolean;
+	accuracy: number;
+}
+
+/** A league's accuracy in a round window, from its members' settled history
+ * over [startMs, endMs): the source league battles are scored from, never the
+ * member-writable league_stats. Only memberships joined before the window
+ * closed count. Below the per-match floor the league forfeits. */
 const leagueWindowAccuracy = async ({
 	leagueId,
-	startCalls,
-	startWins,
-	q
+	startMs,
+	endMs
 }: {
-	leagueId: string;
-	startCalls: number;
-	startWins: number;
-	q: TxQuery;
-}): Promise<{ qualifies: boolean; accuracy: number }> => {
-	const current = await getLeagueStats(leagueId, q);
-	const deltaCalls = Math.max(0, (current?.totalCalls ?? 0) - startCalls);
-	const deltaWins = Math.max(0, Math.min(deltaCalls, (current?.wins ?? 0) - startWins));
+	leagueId: string | null;
+	startMs: number;
+	endMs: number;
+}): Promise<WindowScore> => {
+	const members = isNullish(leagueId)
+		? []
+		: await leagueMemberPrincipals({ leagueId, joinedBeforeMs: endMs });
+	const { calls, wins } = await settledTotals({ members, fromMs: startMs, toMs: endMs });
 
-	if (deltaCalls < TOURNAMENT_MIN_CALLS_PER_MATCH) {
+	if (calls < TOURNAMENT_MIN_CALLS_PER_MATCH) {
 		return { qualifies: false, accuracy: 0 };
 	}
 
-	return { qualifies: true, accuracy: deltaWins / deltaCalls };
+	return { qualifies: true, accuracy: wins / calls };
 };
 
 /** Winner rule: forfeit hands the match to the opponent; a double forfeit
@@ -455,55 +437,64 @@ const propagateWinnerToNextRound = async ({
 
 	const nextIndex = Math.floor(index / 2);
 	const isFromSlot = index % 2 === 0;
-	const snapshot = await readLeagueStartSnapshot({ leagueId: winnerLeagueId, q });
 
 	// Write-once slot fill: the null guard in the predicate keeps an
 	// idempotent re-run from overwriting an already-promoted winner.
 	if (isFromSlot) {
 		await q(
-			`update tournament_matches
-			 set from_league_id = $4, from_start_calls = $5, from_start_wins = $6
+			`update tournament_matches set from_league_id = $4
 			 where tournament_id = $1 and round = $2 and index = $3 and from_league_id is null`,
-			[tournamentId, nextRound, nextIndex, winnerLeagueId, snapshot.totalCalls, snapshot.wins]
+			[tournamentId, nextRound, nextIndex, winnerLeagueId]
 		);
 
 		return;
 	}
 
 	await q(
-		`update tournament_matches
-		 set to_league_id = $4, to_start_calls = $5, to_start_wins = $6
+		`update tournament_matches set to_league_id = $4
 		 where tournament_id = $1 and round = $2 and index = $3 and to_league_id is null`,
-		[tournamentId, nextRound, nextIndex, winnerLeagueId, snapshot.totalCalls, snapshot.wins]
+		[tournamentId, nextRound, nextIndex, winnerLeagueId]
 	);
 };
 
-/** Score one open match, write the result and propagate the winner into the
- * next round's slot. Returns 1 when a winner landed, 0 for a no-op. */
+/** Both sides' window scores for a match, read before the resolving
+ * transaction so no row lock is held across the clearing reads. */
+const scoreMatch = async (
+	match: TournamentMatch
+): Promise<{ index: number; fromEval: WindowScore; toEval: WindowScore }> => {
+	const [fromEval, toEval] = await Promise.all([
+		leagueWindowAccuracy({
+			leagueId: match.fromLeagueId,
+			startMs: match.startMs,
+			endMs: match.endMs
+		}),
+		leagueWindowAccuracy({
+			leagueId: match.toLeagueId,
+			startMs: match.startMs,
+			endMs: match.endMs
+		})
+	]);
+
+	return { index: match.index, fromEval, toEval };
+};
+
+/** Write a scored open match and propagate the winner into the next round's
+ * slot. Returns 1 when a winner landed, 0 for a no-op. */
 const resolveOpenMatch = async ({
 	tournamentId,
 	round,
 	match,
+	fromEval,
+	toEval,
 	q
 }: {
 	tournamentId: string;
 	round: TournamentRound;
 	match: TournamentMatch;
+	fromEval: WindowScore;
+	toEval: WindowScore;
 	q: TxQuery;
 }): Promise<number> => {
-	const fromEval = await leagueWindowAccuracy({
-		leagueId: match.fromLeagueId ?? '',
-		startCalls: match.fromStartCalls ?? 0,
-		startWins: match.fromStartWins ?? 0,
-		q
-	});
-	const toEval = await leagueWindowAccuracy({
-		leagueId: match.toLeagueId ?? '',
-		startCalls: match.toStartCalls ?? 0,
-		startWins: match.toStartWins ?? 0,
-		q
-	});
-
 	const winner = pickMatchWinner({
 		fromLeagueId: match.fromLeagueId,
 		toLeagueId: match.toLeagueId,
@@ -542,11 +533,45 @@ const resolveOpenMatch = async ({
 	return 1;
 };
 
+/** Why `round` cannot be resolved at `nowMs`: it has no matches, its window
+ * has not closed, or an earlier round still has an open match. Nothing when
+ * it can. */
+const roundRefusal = ({
+	matches,
+	round,
+	nowMs
+}: {
+	matches: TournamentMatch[];
+	round: TournamentRound;
+	nowMs: number;
+}): ResolveTournamentRoundRefusalReason | undefined => {
+	const firstTarget = matches.find((m) => m.round === round);
+
+	if (isNullish(firstTarget)) {
+		return 'no_matches';
+	}
+
+	if (firstTarget.endMs > nowMs) {
+		return 'round_not_yet_closed';
+	}
+
+	const roundIndex = TOURNAMENT_ROUNDS.indexOf(round);
+	const unresolvedEarlier = matches.some(
+		(m) => TOURNAMENT_ROUNDS.indexOf(m.round) < roundIndex && isNullish(m.winnerLeagueId)
+	);
+
+	if (unresolvedEarlier) {
+		return 'previous_round_not_resolved';
+	}
+};
+
 /**
  * Resolve every still-open match of a closed round. Idempotent: settled
  * matches are skipped, and the write-once slot fill keeps propagation from
  * overwriting. Earlier rounds must be fully resolved first; resolving the
- * final concludes the tournament.
+ * final concludes the tournament. The window scores are read before the
+ * transaction; a closed window's settled history does not change, so a
+ * concurrent resolver writes the same result.
  */
 export const resolveTournamentRound = async ({
 	tournamentId,
@@ -562,45 +587,51 @@ export const resolveTournamentRound = async ({
 	}
 
 	const round_ = round as TournamentRound;
+	const known = await query<{ id: string }>(`select id from tournaments where id = $1`, [
+		tournamentId
+	]);
+
+	if (isNullish(known[0])) {
+		return { ok: false, reason: 'tournament_not_found' };
+	}
+
+	const scoredMatches = await listMatches(tournamentId);
+	const refusal = roundRefusal({ matches: scoredMatches, round: round_, nowMs });
+
+	if (nonNullish(refusal)) {
+		return { ok: false, reason: refusal };
+	}
+
+	const scores = await Promise.all(
+		scoredMatches.filter((m) => m.round === round_ && isNullish(m.winnerLeagueId)).map(scoreMatch)
+	);
 
 	return await tx(async (q) => {
-		const tournamentRows = await q<TournamentRow>(
-			`select ${TOURNAMENT_COLUMNS} from tournaments where id = $1 for update`,
-			[tournamentId]
-		);
-
-		if (isNullish(tournamentRows[0])) {
-			return { ok: false, reason: 'tournament_not_found' };
-		}
+		await q(`select id from tournaments where id = $1 for update`, [tournamentId]);
 
 		const matches = await listMatches(tournamentId, q);
-		const targetMatches = matches.filter((m) => m.round === round_);
-		const [firstTarget] = targetMatches;
+		const lockedRefusal = roundRefusal({ matches, round: round_, nowMs });
 
-		if (isNullish(firstTarget)) {
-			return { ok: false, reason: 'no_matches' };
-		}
-
-		if (firstTarget.endMs > nowMs) {
-			return { ok: false, reason: 'round_not_yet_closed' };
-		}
-
-		const roundIndex = TOURNAMENT_ROUNDS.indexOf(round_);
-		const unresolvedEarlier = matches.some(
-			(m) => TOURNAMENT_ROUNDS.indexOf(m.round) < roundIndex && isNullish(m.winnerLeagueId)
-		);
-
-		if (unresolvedEarlier) {
-			return { ok: false, reason: 'previous_round_not_resolved' };
+		if (nonNullish(lockedRefusal)) {
+			return { ok: false, reason: lockedRefusal };
 		}
 
 		let matchesResolved = 0;
 
-		// Already-settled matches are skipped (idempotent re-run); a match with
-		// no winner pick (missing league ids) is a no-op.
-		for (const match of targetMatches) {
-			if (isNullish(match.winnerLeagueId)) {
-				matchesResolved += await resolveOpenMatch({ tournamentId, round: round_, match, q });
+		// A match settled meanwhile is skipped (idempotent re-run); a match
+		// with no winner pick (missing league ids) is a no-op.
+		for (const { index, fromEval, toEval } of scores) {
+			const match = matches.find((m) => m.round === round_ && m.index === index);
+
+			if (nonNullish(match) && isNullish(match.winnerLeagueId)) {
+				matchesResolved += await resolveOpenMatch({
+					tournamentId,
+					round: round_,
+					match,
+					fromEval,
+					toEval,
+					q
+				});
 			}
 		}
 
@@ -681,8 +712,7 @@ export const claimTournamentPrize = async ({
 			: finalMatch.fromLeagueId;
 
 	// The draw is the kickoff: it seeds the bracket from the member counts of
-	// that moment and stamps the round 1 stats snapshots every score is a
-	// delta from, so its roster is the one that played. month_start_ms is only
+	// that moment, so its roster is the one that played. month_start_ms is only
 	// the calendar anchor of the round windows and can precede a late draw.
 	// Joining a placed league afterwards (or being added by its owner) earns
 	// nothing.

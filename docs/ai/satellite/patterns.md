@@ -335,8 +335,8 @@ monthly album awards). The pattern:
   determined user could inflate their own row. Use this only for
   **display** (album tiles, Dash cache, the live Worlds month window): no
   VXP is ever ranked or paid from these rows. Anything that moves real value
-  reads a source the user can't forge: the Worlds podium is ranked from
-  settled history read from the clearing canister
+  reads a source the user can't forge: the Worlds podium and tournament
+  matches are ranked from settled history read from the clearing canister
   (`settled-history.services.ts`), the same source league battles are scored
   from.
 - **Lazy month rollover = a new key, not a reset.** Because each month is a
@@ -351,9 +351,11 @@ monthly album awards). The pattern:
   `monthConsensus` sample array (`MONTHLY_CONSENSUS_LIMIT`), keeping the most
   recent values; the assert enforces the cap so the doc can't be bloated.
 
-Contrast with the hook-driven fan-out (`onProfileSetForLeagueStats`): use a
-hook when **shared** stats (a league row many users contribute to) must move
-on the server so no single user can forge the aggregate. Use the client-write pattern when the row is
+Contrast with the hook-driven fan-out (`onProfileSetForLeagueStats`), which
+keeps a **shared** row (a league's `league_stats`) moving on the server, signed
+as a controller so no single member writes the aggregate. Its counters still
+follow each member's client-reported `totalTrades`, so the row is a display
+cache too, and tournament matches read settled history instead. Use the client-write pattern when the row is
 **owned by one user** and the signal is cosmetic.
 
 ## Soft-delete + lazy hard-delete (no scheduler)

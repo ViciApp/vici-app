@@ -1,4 +1,6 @@
+import type { ClearingDid } from '#declarations';
 import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { IDL } from '@icp-sdk/core/candid';
 import { Principal } from '@icp-sdk/core/principal';
@@ -317,4 +319,64 @@ export const installSatelliteHost = ({
 			}
 		}
 	};
+};
+
+/** A settled-history record the clearing stand-in answers from. */
+export interface MockSettlement {
+	principal: Principal;
+	atMs: number;
+	calls: number;
+	wins: number;
+}
+
+/**
+ * Answer the clearing canister's `aggregate_settlement_accuracy` from
+ * `settlements` (read at call time, so a spec may push more later) the way
+ * clearing does: only the requested members, only inside the half-open
+ * `[from_ts, to_ts)` window.
+ */
+export const answerSettlementAccuracy = ({
+	host,
+	settlements
+}: {
+	host: SatelliteHost;
+	settlements: MockSettlement[];
+}): void => {
+	const { argTypes, result } = candidMethod({
+		canister: 'clearing',
+		method: 'aggregate_settlement_accuracy'
+	});
+
+	host.onCall({
+		method: 'aggregate_settlement_accuracy',
+		argTypes,
+		result,
+		handler: ([params]) => {
+			const {
+				members,
+				from_ts: [fromNs],
+				to_ts: [toNs]
+			} = params as ClearingDid.AggregateSettlementAccuracyParams;
+			const wanted = new Set(members.map((member) => member.toText()));
+			const entries = new Map<string, ClearingDid.SettlementAccuracyEntry>();
+
+			for (const { principal, atMs, calls, wins } of settlements) {
+				const atNs = BigInt(atMs) * MILLISECOND_IN_NANOSECONDS;
+				const inWindow = (isNullish(fromNs) || atNs >= fromNs) && (isNullish(toNs) || atNs < toNs);
+
+				if (wanted.has(principal.toText()) && inWindow) {
+					const previous = entries.get(principal.toText());
+
+					entries.set(principal.toText(), {
+						principal,
+						realized_pnl: BigInt(0),
+						settled_count: (previous?.settled_count ?? BigInt(0)) + BigInt(calls),
+						win_count: (previous?.win_count ?? BigInt(0)) + BigInt(wins)
+					});
+				}
+			}
+
+			return [...entries.values()];
+		}
+	});
 };

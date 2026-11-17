@@ -1,15 +1,15 @@
-import type { ClearingDid } from '#declarations';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import type { AffiliationDoc } from '#lib/types/affiliation.ts';
 import type { UserMonthlyStatsDoc } from '#lib/types/user-monthly-stats.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import {
+	answerSettlementAccuracy,
 	installSatelliteHost,
+	type MockSettlement,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
 import { claimWorldsPodiumPrizeFn } from '#satellite/services/vxp-worlds-podium.services.ts';
-import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerIdl } from '@junobuild/functions/canisters/ledger/icrc';
 import assert from 'node:assert/strict';
@@ -24,13 +24,6 @@ const monthStartMs = Date.UTC(2026, 9, 1);
 const monthCloseMs = Date.UTC(2026, 10, 1);
 const claimMs = Date.UTC(2026, 10, 15);
 
-interface Settlement {
-	principal: Principal;
-	atMs: number;
-	calls: number;
-	wins: number;
-}
-
 const goldKey = (recipient: Principal): string =>
 	vxpAwardKey({
 		recipient: recipient.toText(),
@@ -40,7 +33,7 @@ const goldKey = (recipient: Principal): string =>
 
 describe('claimWorldsPodiumPrizeFn', () => {
 	let host: SatelliteHost;
-	let settlements: Settlement[];
+	let settlements: MockSettlement[];
 
 	const join = ({
 		principal,
@@ -97,40 +90,7 @@ describe('claimWorldsPodiumPrizeFn', () => {
 		host = installSatelliteHost();
 		host.setNowMs(claimMs);
 
-		const accuracy = candidMethod({
-			canister: 'clearing',
-			method: 'aggregate_settlement_accuracy'
-		});
-
-		host.onCall({
-			method: 'aggregate_settlement_accuracy',
-			argTypes: accuracy.argTypes,
-			result: accuracy.result,
-			handler: ([params]) => {
-				const { members, from_ts, to_ts } = params as ClearingDid.AggregateSettlementAccuracyParams;
-				const wanted = new Set(members.map((p) => p.toText()));
-				const entries = new Map<string, ClearingDid.SettlementAccuracyEntry>();
-
-				for (const { principal, atMs, calls, wins } of settlements) {
-					const atNs = BigInt(atMs) * BigInt(1_000_000);
-					const inWindow =
-						(from_ts.length === 0 || atNs >= from_ts[0]) && (to_ts.length === 0 || atNs < to_ts[0]);
-
-					if (wanted.has(principal.toText()) && inWindow) {
-						const previous = entries.get(principal.toText());
-
-						entries.set(principal.toText(), {
-							principal,
-							realized_pnl: BigInt(0),
-							settled_count: (previous?.settled_count ?? BigInt(0)) + BigInt(calls),
-							win_count: (previous?.win_count ?? BigInt(0)) + BigInt(wins)
-						});
-					}
-				}
-
-				return [...entries.values()];
-			}
-		});
+		answerSettlementAccuracy({ host, settlements });
 
 		host.onCall({
 			method: 'icrc1_transfer',

@@ -1,4 +1,6 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import {
 	roundWindow,
 	TOURNAMENT_BRACKET_SIZE,
@@ -8,17 +10,25 @@ import {
 	type TournamentMatchDoc
 } from '#lib/types/tournament.ts';
 import {
+	answerSettlementAccuracy,
+	controller,
+	deleteContext,
+	installSatelliteHost,
+	setContext,
+	type MockSettlement,
+	type SatelliteHost
+} from '#root/src/tests/mocks/satellite-host.mock.ts';
+import {
 	assertDeleteTournamentDoc,
 	assertSetTournament,
-	assertSetTournamentMatch
+	assertSetTournamentMatch,
+	resolveTournamentRoundFn
 } from '#satellite/services/tournament.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
-import type { AccessKeys } from '@junobuild/functions/sdk';
+import type { AssertSetDocContext } from '@junobuild/functions';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-const controller = Principal.fromUint8Array(new Uint8Array([1, 1, 1]));
 const user = Principal.fromUint8Array(new Uint8Array([2, 2, 2]));
 
 const monthAnchor = '2026-11';
@@ -55,87 +65,14 @@ const finalMatch: TournamentMatchDoc = {
 
 const finalMatchKey = tournamentMatchKey({ tournamentId: monthAnchor, round: 'final', index: 0 });
 
-const bytes = (doc: object): Uint8Array<ArrayBuffer> =>
-	new TextEncoder().encode(JSON.stringify(doc));
-
-const setContext = ({
-	caller,
-	collection,
-	key,
-	proposed,
-	current
-}: {
-	caller: Principal;
-	collection: string;
-	key: string;
-	proposed: object;
-	current?: object;
-}): AssertSetDocContext => ({
-	caller: caller.toUint8Array(),
-	data: {
-		collection,
-		key,
-		data: {
-			current: current && {
-				owner: controller.toUint8Array(),
-				data: bytes(current),
-				created_at: 1n,
-				updated_at: 1n,
-				version: 1n
-			},
-			proposed: { data: bytes(proposed), version: current && 1n }
-		}
-	}
-});
-
-const deleteContext = ({
-	caller,
-	collection,
-	key
-}: {
-	caller: Principal;
-	collection: string;
-	key: string;
-}): AssertDeleteDocContext => ({
-	caller: caller.toUint8Array(),
-	data: {
-		collection,
-		key,
-		data: {
-			current: {
-				owner: controller.toUint8Array(),
-				data: bytes({}),
-				created_at: 1n,
-				updated_at: 1n,
-				version: 1n
-			},
-			proposed: { version: 1n }
-		}
-	}
-});
-
-// The satellite host bindings `getAdminAccessKeys()` and `decodeDocData()`
-// read; Node has no host.
-const hostGlobals = {
-	__juno_satellite_get_admin_access_keys: (): AccessKeys => [
-		[controller.toUint8Array(), { metadata: [], created_at: 1n, updated_at: 1n, scope: 'admin' }]
-	],
-	__juno_satellite_datastore_raw_data_to_text: (data: Uint8Array): string =>
-		new TextDecoder().decode(data)
-};
-
 describe('tournament.services', () => {
+	let host: SatelliteHost;
+
 	beforeEach(() => {
-		for (const [name, value] of Object.entries(hostGlobals)) {
-			Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
-		}
+		host = installSatelliteHost();
 	});
 
-	afterEach(() => {
-		for (const name of Object.keys(hostGlobals)) {
-			Reflect.deleteProperty(globalThis, name);
-		}
-	});
+	afterEach(() => host.restore());
 
 	describe('assertSetTournament', () => {
 		const create = (caller: Principal): AssertSetDocContext =>
@@ -257,14 +194,19 @@ describe('tournament.services', () => {
 		for (const { collection, key } of cases) {
 			it(`rejects a user deleting a ${collection} doc`, () => {
 				assert.throws(
-					() => assertDeleteTournamentDoc(deleteContext({ caller: user, collection, key })),
+					() =>
+						assertDeleteTournamentDoc(
+							deleteContext({ caller: user, collection, key, current: {} })
+						),
 					/only the satellite writes/
 				);
 			});
 
 			it(`lets a satellite controller delete a ${collection} doc`, () => {
 				assert.doesNotThrow(() =>
-					assertDeleteTournamentDoc(deleteContext({ caller: controller, collection, key }))
+					assertDeleteTournamentDoc(
+						deleteContext({ caller: controller, collection, key, current: {} })
+					)
 				);
 			});
 		}
@@ -272,9 +214,160 @@ describe('tournament.services', () => {
 		it('ignores other collections', () => {
 			assert.doesNotThrow(() =>
 				assertDeleteTournamentDoc(
-					deleteContext({ caller: user, collection: Collection.LEAGUE_MEMBERS, key: 'x' })
+					deleteContext({
+						caller: user,
+						collection: Collection.LEAGUE_MEMBERS,
+						key: 'x',
+						current: {}
+					})
 				)
 			);
 		});
+	});
+});
+
+describe('resolveTournamentRoundFn', () => {
+	const leagueA = 'league-a';
+	const leagueB = 'league-b';
+	const memberA = Principal.fromUint8Array(new Uint8Array([3, 3, 3]));
+	const memberB = Principal.fromUint8Array(new Uint8Array([4, 4, 4]));
+	const latecomer = Principal.fromUint8Array(new Uint8Array([5, 5, 5]));
+
+	const octoberStartMs = Date.UTC(2026, 9, 1);
+	const r1 = roundWindow({ tournamentMonthStartMs: octoberStartMs, round: 'r1' });
+	const tournamentId = '2026-10';
+
+	let host: SatelliteHost;
+	let settlements: MockSettlement[];
+
+	const joinLeague = ({
+		leagueId,
+		member,
+		joinedAtMs
+	}: {
+		leagueId: string;
+		member: Principal;
+		joinedAtMs: number;
+	}): void => {
+		const doc: LeagueMemberDoc = {
+			leagueId,
+			member: member.toText(),
+			role: 'member',
+			joinedAtMs
+		};
+
+		host.putDoc({
+			collection: Collection.LEAGUE_MEMBERS,
+			key: `${leagueId}/${member.toText()}`,
+			data: doc,
+			owner: member,
+			createdAtMs: joinedAtMs
+		});
+	};
+
+	const r1Match = (): TournamentMatchDoc | undefined =>
+		host.readDoc<TournamentMatchDoc>({
+			collection: Collection.TOURNAMENT_MATCHES,
+			key: tournamentMatchKey({ tournamentId, round: 'r1', index: 0 })
+		});
+
+	beforeEach(() => {
+		settlements = [];
+		host = installSatelliteHost();
+		host.setCaller(user);
+		host.setNowMs(r1.endMs + DAY_IN_MS);
+		answerSettlementAccuracy({ host, settlements });
+
+		host.putDoc({
+			collection: Collection.TOURNAMENTS,
+			key: tournamentId,
+			data: {
+				...tournament,
+				id: tournamentId,
+				monthStartMs: octoberStartMs,
+				monthEndMs: octoberStartMs + 4 * TOURNAMENT_ROUND_DURATION_MS
+			},
+			owner: controller,
+			createdAtMs: octoberStartMs
+		});
+
+		const match: TournamentMatchDoc = {
+			...finalMatch,
+			tournamentId,
+			round: 'r1',
+			fromLeagueId: leagueA,
+			toLeagueId: leagueB,
+			fromStartCalls: 0,
+			fromStartWins: 0,
+			toStartCalls: 0,
+			toStartWins: 0,
+			startMs: r1.startMs,
+			endMs: r1.endMs
+		};
+
+		host.putDoc({
+			collection: Collection.TOURNAMENT_MATCHES,
+			key: tournamentMatchKey({ tournamentId, round: 'r1', index: 0 }),
+			data: match,
+			owner: controller,
+			createdAtMs: octoberStartMs
+		});
+
+		joinLeague({ leagueId: leagueA, member: memberA, joinedAtMs: octoberStartMs - DAY_IN_MS });
+		joinLeague({ leagueId: leagueB, member: memberB, joinedAtMs: octoberStartMs - DAY_IN_MS });
+	});
+
+	afterEach(() => {
+		host.restore();
+	});
+
+	it('scores a match from settled history, not the member-written league stats', async () => {
+		// League A's members wrote themselves a perfect window; only league B
+		// has calls that settled in it.
+		host.putDoc({
+			collection: Collection.LEAGUE_STATS,
+			key: leagueA,
+			data: { leagueId: leagueA, totalCalls: 1_000, wins: 1_000, updatedAtMs: r1.startMs },
+			owner: memberA
+		});
+		settlements.push({ principal: memberB, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 40 });
+
+		const result = await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
+
+		assert.equal(result.ok, true);
+		assert.equal(result.matchesResolved, 1);
+		assert.equal(r1Match()?.winnerLeagueId, leagueB);
+		assert.equal(r1Match()?.fromAcc, null);
+		assert.equal(r1Match()?.toAcc, 40 / 60);
+	});
+
+	it('counts only settlements inside the round window', async () => {
+		settlements.push({ principal: memberA, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 30 });
+		settlements.push({ principal: memberB, atMs: r1.startMs - 1, calls: 60, wins: 60 });
+		settlements.push({ principal: memberB, atMs: r1.endMs, calls: 60, wins: 60 });
+
+		await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
+
+		assert.equal(r1Match()?.winnerLeagueId, leagueA);
+		assert.equal(r1Match()?.toAcc, null);
+	});
+
+	it('does not let a member who joined after the window lift the score', async () => {
+		settlements.push({ principal: memberA, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 30 });
+		settlements.push({ principal: latecomer, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 60 });
+		joinLeague({ leagueId: leagueB, member: latecomer, joinedAtMs: r1.endMs });
+
+		await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
+
+		assert.equal(r1Match()?.winnerLeagueId, leagueA);
+	});
+
+	it('refuses a round whose window has not closed', async () => {
+		host.setNowMs(r1.endMs - 1);
+
+		const result = await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
+
+		assert.deepEqual(result, { ok: false, reason: 'round_not_yet_closed' });
+		assert.equal(r1Match()?.winnerLeagueId, null);
 	});
 });

@@ -8,6 +8,8 @@
 // tournament seeding.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
+import { settlementPrincipalsByUser } from '../auth/identity';
 import { query, tx, type TxQuery } from '../db/client';
 import {
 	LeagueError,
@@ -47,6 +49,29 @@ export const isLeagueMember = async ({
 	leagueId: string;
 	userId: string;
 }): Promise<boolean> => nonNullish(await getLeagueMember({ leagueId, memberUserId: userId }));
+
+/**
+ * Every on-chain principal a league's members can have settled under: the
+ * members whose settled history a league's score is read from.
+ * `joinedBeforeMs` keeps only memberships joined (server-stamped) before
+ * that instant, so a member who joins after a scoring window cannot lift it.
+ */
+export const leagueMemberPrincipals = async ({
+	leagueId,
+	joinedBeforeMs
+}: {
+	leagueId: string;
+	joinedBeforeMs?: number;
+}): Promise<Principal[]> => {
+	const rows = await query<{ member_user_id: string }>(
+		`select member_user_id from league_members
+		 where league_id = $1 and ($2::bigint is null or joined_at_ms < $2)`,
+		[leagueId, joinedBeforeMs ?? null]
+	);
+	const byUser = await settlementPrincipalsByUser(rows.map((row) => row.member_user_id));
+
+	return [...byUser.values()].flat().map((text) => Principal.fromText(text));
+};
 
 /** Join by invite code: the self-join path. Idempotent on re-join (the
  * existing row is returned unchanged, identity fields preserved). */

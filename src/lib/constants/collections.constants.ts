@@ -152,9 +152,8 @@ export const Collection = {
 	 * Per-league rolling stats: lifetime resolved-call count + wins. One doc per league
 	 * keyed by `leagueId`. Written exclusively by the satellite hook on `profiles` updates:
 	 * when a user's `totalTrades` increments, the hook scans their league memberships and
-	 * fans the delta out. Used by the tournament round-resolution flow to compute per-window
-	 * accuracy as the delta between the round's start-of-window snapshot (frozen on the
-	 * match doc) and the current rolling counter.
+	 * fans the delta out. A display cache: tournament matches and league battles are scored
+	 * from the members' settled history read from the clearing canister, never from it.
 	 */
 	LEAGUE_STATS: collections.LEAGUE_STATS,
 	/**
