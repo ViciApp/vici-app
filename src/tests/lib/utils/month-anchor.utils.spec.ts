@@ -1,6 +1,7 @@
 import {
 	MONTH_ANCHOR_RE,
 	monthAnchorFromMs,
+	monthAnchorStartMs,
 	monthEndMs,
 	previousMonthAnchor
 } from '#lib/utils/month-anchor.utils.ts';
@@ -36,6 +37,22 @@ describe('previousMonthAnchor', () => {
 
 	it('is not thrown off by month lengths', () => {
 		assert.equal(previousMonthAnchor(Date.UTC(2026, 2, 31, 23, 59, 59, 999)), '2026-02');
+	});
+});
+
+describe('monthAnchorStartMs', () => {
+	it('is the first UTC instant of the month', () => {
+		assert.equal(monthAnchorStartMs('2026-10'), Date.UTC(2026, 9, 1));
+		assert.equal(monthAnchorStartMs('2026-01'), Date.UTC(2026, 0, 1));
+	});
+
+	it('is the instant monthAnchorFromMs moves to the anchor', () => {
+		assert.equal(monthAnchorFromMs(monthAnchorStartMs('2026-03') - 1), '2026-02');
+		assert.equal(monthAnchorFromMs(monthAnchorStartMs('2026-03')), '2026-03');
+	});
+
+	it('is where the previous month ends', () => {
+		assert.equal(monthAnchorStartMs('2027-01'), monthEndMs('2026-12'));
 	});
 });
 

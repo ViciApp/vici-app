@@ -1,7 +1,4 @@
-import type { ClearingDid } from '#declarations';
-import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import {
 	BATTLE_SCOPE_DEFAULT,
 	battleAccuracyPct,
@@ -14,12 +11,12 @@ import {
 import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import { controllerCaller } from '#satellite/services/authz.services.ts';
 import { seriesIdsForTag } from '#satellite/services/market-tag-index.services.ts';
-import { candidMethod } from '#satellite/utils/candid.utils.ts';
+import { settledTotals } from '#satellite/services/settled-history.services.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import { call, msgCaller } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -111,65 +108,6 @@ const scopeSeriesIds = ({
 	return seriesIdsForTag({ tag: scope, caller });
 };
 
-/** Per-side settled-call totals over a window, summed across the side's members. */
-interface SideTotals {
-	/** Settled positions in the window: the battle's `calls`. */
-	calls: number;
-	/** Net-positive settlements: the battle's `wins`. */
-	wins: number;
-}
-
-/**
- * Sum a side's members' settled-position win/total counts over `[fromMs,
- * toMs)`, scoped to `seriesIds` when present, by calling the clearing canister.
- * An empty member set (or an empty-but-present series scope) returns zeroes
- * without a call.
- */
-const sideTotals = async ({
-	members,
-	fromMs,
-	toMs,
-	seriesIds
-}: {
-	members: Principal[];
-	fromMs: number;
-	toMs: number;
-	seriesIds: string[] | undefined;
-}): Promise<SideTotals> => {
-	if (members.length === 0 || (nonNullish(seriesIds) && seriesIds.length === 0)) {
-		return { calls: 0, wins: 0 };
-	}
-
-	const { argTypes, result } = candidMethod({
-		canister: 'clearing',
-		method: 'aggregate_settlement_accuracy'
-	});
-
-	const params: ClearingDid.AggregateSettlementAccuracyParams = {
-		members,
-		from_ts: [BigInt(fromMs) * MILLISECOND_IN_NANOSECONDS],
-		to_ts: [BigInt(toMs) * MILLISECOND_IN_NANOSECONDS],
-		series_ids: nonNullish(seriesIds) ? [seriesIds] : []
-	};
-
-	const entries = await call<ClearingDid.SettlementAccuracyEntry[]>({
-		canisterId: CLEARING_CANISTER_ID,
-		method: 'aggregate_settlement_accuracy',
-		args: [[argTypes[0], params]],
-		result
-	});
-
-	let calls = 0;
-	let wins = 0;
-
-	for (const entry of entries) {
-		calls += Number(entry.settled_count);
-		wins += Number(entry.win_count);
-	}
-
-	return { calls, wins };
-};
-
 /** The windowed scoreline both sides over `[fromMs, toMs)`, from clearing. */
 interface BattleScoreline {
 	scoreA: number;
@@ -192,13 +130,13 @@ const computeScoreline = async ({
 	const seriesIds = scopeSeriesIds({ scope, caller });
 
 	const [a, b] = await Promise.all([
-		sideTotals({
+		settledTotals({
 			members: leagueMemberPrincipals({ leagueId: battle.sideA, caller }),
 			fromMs: battle.kickoffMs,
 			toMs,
 			seriesIds
 		}),
-		sideTotals({
+		settledTotals({
 			members: leagueMemberPrincipals({ leagueId: battle.sideB, caller }),
 			fromMs: battle.kickoffMs,
 			toMs,

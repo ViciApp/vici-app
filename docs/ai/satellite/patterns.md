@@ -331,10 +331,14 @@ monthly album awards). The pattern:
   `assertSetUserMonthlyStats` reject any write whose key (and embedded
   `owner`) isn't the caller, plus structural sanity (`wins <= calls`,
   bounded arrays, values in range). It does **not** re-derive the counters
-  from real history; a determined user could inflate their own row. Use
-  this only for **cosmetic** signals (album tiles, Dash cache) with **no VXP
-  payout**; anything that moves real value belongs in a hook or an icdc-core
-  path that the user can't forge.
+  from real history, and `user_monthly_stats` accepts any month; a
+  determined user could inflate their own row. Use this only for
+  **display** (album tiles, Dash cache, the live Worlds month window): no
+  VXP is ever ranked or paid from these rows. Anything that moves real value
+  reads a source the user can't forge: the Worlds podium is ranked from
+  settled history read from the clearing canister
+  (`settled-history.services.ts`), the same source league battles are scored
+  from.
 - **Lazy month rollover = a new key, not a reset.** Because each month is a
   distinct doc key, "rolling over" is just writing under the new month's key
   on the first sync of that month; no scheduler, no in-place reset. A

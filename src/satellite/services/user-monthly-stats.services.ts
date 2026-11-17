@@ -40,10 +40,12 @@ import { decodeDocData, listDocsStore } from '@junobuild/functions/sdk';
  *     median gate with out-of-range prices.
  *
  * Note (integrity trade-off): like `user_stats`, the assert does NOT verify
- * the counters against real clearing history: a determined user could
- * inflate their own monthly numbers. The award is cosmetic (no VXP payout),
- * so this matches the documented `user_stats` posture rather than warranting
- * a server-side history re-derivation.
+ * the counters against real clearing history, and it accepts any month: a
+ * determined user could inflate their own monthly numbers. So the rows feed
+ * views only (the monthly leaderboard behind the album tiles, the live Worlds
+ * month window) and no VXP is ranked from them: the Worlds podium is ranked
+ * from settled history read from the clearing canister
+ * (`settledMonthlyRows`), never from this collection.
  */
 export const assertSetUserMonthlyStats = ({
 	caller,

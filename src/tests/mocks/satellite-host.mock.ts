@@ -1,12 +1,27 @@
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+import { isNullish, nonNullish } from '@dfinity/utils';
+import { IDL } from '@icp-sdk/core/candid';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
+import type {
+	AssertDeleteDocContext,
+	AssertSetDocContext,
+	Doc,
+	ListParams,
+	ListResults,
+	SetDoc
+} from '@junobuild/functions';
 import type { AccessKeys } from '@junobuild/functions/sdk';
 
 /**
- * Host stand-ins for satellite asserts under Node, which has no satellite
- * host: the IC clock behind `time()`, the access-key list behind
- * `getAdminAccessKeys()`, the codec behind `decodeDocData` / `encodeDocData`,
- * and an in-memory datastore behind `getDocStore` / `setDocStore`.
+ * The one in-memory Juno satellite host for specs under Node, which has no
+ * satellite host. The SDK's `getDocStore` / `listDocsStore` / `setDocStore`,
+ * `decodeDocData` / `encodeDocData`, `msgCaller`, `time`,
+ * `getAdminAccessKeys` and `call` are thin wrappers over host globals; this
+ * defines those globals over a map of docs and a table of canister method
+ * handlers. An assert spec builds its context with {@link setContext} /
+ * {@link deleteContext}; a service spec drives the real service end to end.
+ * Asserts and hooks do not run on a host write: seed only docs the real
+ * asserts would accept.
  */
 
 export const controller = Principal.fromUint8Array(new Uint8Array([1, 1, 1]));
@@ -16,7 +31,7 @@ export const docBytes = (doc: object): Uint8Array<ArrayBuffer> =>
 
 interface StoredDoc {
 	owner: Uint8Array;
-	data: Uint8Array<ArrayBuffer>;
+	data: Uint8Array;
 	created_at: bigint;
 	updated_at: bigint;
 	version: bigint;
@@ -88,26 +103,56 @@ export const deleteContext = ({
 	}
 });
 
-/** Docs readable through `getDocStore`, by collection then key. */
+/** Docs to seed the datastore with, by collection then key, owned by {@link controller}. */
 export type HostDocs = Record<string, Record<string, object>>;
 
 /** The stored `created_at` of some of those docs, same shape; 1 ns otherwise. */
 export type HostCreatedAtNs = Record<string, Record<string, bigint>>;
 
-/** The host clock, fixed so a spec can place `created_at` stamps around it. */
+/** The host clock until a spec sets it, so a spec can place `created_at` stamps around it. */
 export const hostNowMs = 1_800_000_000_000;
+
+interface CanisterMethod {
+	argTypes: IDL.Type[];
+	result: IDL.Type;
+	handler: (args: unknown[]) => unknown;
+}
 
 /** The installed host. */
 export interface SatelliteHost {
+	/** The principal `msgCaller()` returns ({@link controller} until set). */
+	setCaller: (caller: Principal) => void;
+	/** The IC time `time()` returns, in ms ({@link hostNowMs} until set). */
+	setNowMs: (nowMs: number) => void;
+	/** Store a doc as it would be after a write at `createdAtMs` (default: now). */
+	putDoc: (doc: {
+		collection: string;
+		key: string;
+		data: object;
+		owner: Principal;
+		createdAtMs?: number;
+	}) => void;
 	/** A stored doc's decoded data, or nothing. */
 	readDoc: <T>({ collection, key }: { collection: string; key: string }) => T | undefined;
+	/** The keys stored in a collection. */
+	keys: (collection: string) => string[];
+	/** Answer `method` on any canister: `handler` gets the decoded arguments and
+	 * returns the value encoded with `result`. */
+	onCall: ({ method, argTypes, result, handler }: CanisterMethod & { method: string }) => void;
+	/** Every canister method called, in order. */
+	calls: () => string[];
 	/** Remove every global the host defined. */
 	restore: () => void;
 }
 
+const encodeText = (text: string): Uint8Array<ArrayBuffer> => new TextEncoder().encode(text);
+
+const toDoc = (stored: StoredDoc): Doc => ({ ...stored });
+
 /**
- * Defines the host globals the SDK calls. `docs` seeds the datastore
- * `getDocStore` reads, and `setDocStore` writes into it.
+ * Defines the host globals the SDK calls. `docs` (with their `createdAtNs`)
+ * seed the datastore that `getDocStore` / `listDocsStore` read and
+ * `setDocStore` writes, versioned as Juno does.
  */
 export const installSatelliteHost = ({
 	docs = {},
@@ -116,38 +161,117 @@ export const installSatelliteHost = ({
 	docs?: HostDocs;
 	createdAtNs?: HostCreatedAtNs;
 } = {}): SatelliteHost => {
-	const globals = {
-		__ic_cdk_time: (): bigint => BigInt(hostNowMs) * 1_000_000n,
+	const collections = new Map<string, Map<string, StoredDoc>>();
+	const methods = new Map<string, CanisterMethod>();
+	const called: string[] = [];
+	let caller = controller;
+	let nowNs = BigInt(hostNowMs) * MILLISECOND_IN_NANOSECONDS;
+
+	const collection = (name: string): Map<string, StoredDoc> => {
+		const existing = collections.get(name);
+
+		if (nonNullish(existing)) {
+			return existing;
+		}
+
+		const created = new Map<string, StoredDoc>();
+		collections.set(name, created);
+
+		return created;
+	};
+
+	for (const [name, seeded] of Object.entries(docs)) {
+		for (const [key, data] of Object.entries(seeded)) {
+			collection(name).set(
+				key,
+				storedDoc({ data, owner: controller, createdAtNs: createdAtNs[name]?.[key] })
+			);
+		}
+	}
+
+	const globals: Record<string, unknown> = {
+		__ic_cdk_caller: (): Uint8Array => caller.toUint8Array(),
+		__ic_cdk_id: (): Uint8Array => controller.toUint8Array(),
+		__ic_cdk_time: (): bigint => nowNs,
 		__juno_satellite_get_admin_access_keys: (): AccessKeys => [
 			[controller.toUint8Array(), { metadata: [], created_at: 1n, updated_at: 1n, scope: 'admin' }]
 		],
 		__juno_satellite_datastore_raw_data_to_text: (data: Uint8Array): string =>
 			new TextDecoder().decode(data),
+		__juno_satellite_datastore_raw_data_from_text: (text: string): Uint8Array => encodeText(text),
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_get_doc_store: (
-			_caller: unknown,
-			collection: string,
+			_caller: Uint8Array,
+			name: string,
 			key: string
-		): StoredDoc | undefined => {
-			const data = docs[collection]?.[key];
+		): Doc | undefined => {
+			const stored = collection(name).get(key);
 
-			return (
-				data && storedDoc({ data, owner: controller, createdAtNs: createdAtNs[collection]?.[key] })
-			);
+			return isNullish(stored) ? undefined : toDoc(stored);
 		},
-		__juno_satellite_datastore_raw_data_from_text: (text: string): Uint8Array =>
-			new TextEncoder().encode(text),
+		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
+		__juno_satellite_datastore_list_docs_store: (
+			_caller: Uint8Array,
+			name: string,
+			params: ListParams
+		): ListResults<Doc> => {
+			const matcher = params.matcher?.key;
+			const keyMatches = nonNullish(matcher) ? new RegExp(matcher) : undefined;
+			const items: [string, Doc][] = [...collection(name)]
+				.filter(([key]) => isNullish(keyMatches) || keyMatches.test(key))
+				.map(([key, stored]) => [key, toDoc(stored)]);
+			const length = BigInt(items.length);
+
+			return { items, items_length: length, matches_length: length };
+		},
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_set_doc_store: (
-			_caller: unknown,
-			collection: string,
+			setter: Uint8Array,
+			name: string,
 			key: string,
-			{ data }: { data: Uint8Array }
-		): void => {
-			docs[collection] = {
-				...docs[collection],
-				[key]: JSON.parse(new TextDecoder().decode(data)) as object
+			value: SetDoc
+		) => {
+			const before = collection(name).get(key);
+
+			if (nonNullish(before) && value.version !== before.version) {
+				throw new Error(
+					`${name}/${key}: version ${value.version} does not match ${before.version}.`
+				);
+			}
+
+			const after: StoredDoc = {
+				owner: before?.owner ?? setter,
+				data: value.data,
+				created_at: before?.created_at ?? nowNs,
+				updated_at: nowNs,
+				version: (before?.version ?? BigInt(0)) + BigInt(1)
 			};
+
+			collection(name).set(key, after);
+
+			return {
+				key,
+				collection: name,
+				data: { before: isNullish(before) ? undefined : toDoc(before), after: toDoc(after) }
+			};
+		},
+		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
+		__ic_cdk_call_raw: (
+			_canisterId: Uint8Array,
+			method: string,
+			args: Uint8Array
+		): Promise<Uint8Array> => {
+			called.push(method);
+
+			const entry = methods.get(method);
+
+			if (isNullish(entry)) {
+				return Promise.reject(new Error(`No handler for canister method "${method}".`));
+			}
+
+			const decoded = IDL.decode(entry.argTypes, args);
+
+			return Promise.resolve(new Uint8Array(IDL.encode([entry.result], [entry.handler(decoded)])));
 		}
 	};
 
@@ -156,8 +280,37 @@ export const installSatelliteHost = ({
 	}
 
 	return {
-		readDoc: <T>({ collection, key }: { collection: string; key: string }) =>
-			docs[collection]?.[key] as T | undefined,
+		setCaller: (next) => {
+			caller = next;
+		},
+		setNowMs: (nowMs) => {
+			nowNs = BigInt(nowMs) * MILLISECOND_IN_NANOSECONDS;
+		},
+		putDoc: ({ collection: name, key, data, owner, createdAtMs }) => {
+			const createdNs = nonNullish(createdAtMs)
+				? BigInt(createdAtMs) * MILLISECOND_IN_NANOSECONDS
+				: nowNs;
+
+			collection(name).set(key, {
+				owner: owner.toUint8Array(),
+				data: docBytes(data),
+				created_at: createdNs,
+				updated_at: createdNs,
+				version: BigInt(1)
+			});
+		},
+		readDoc: <T>({ collection: name, key }: { collection: string; key: string }) => {
+			const stored = collection(name).get(key);
+
+			return isNullish(stored)
+				? undefined
+				: (JSON.parse(new TextDecoder().decode(stored.data)) as T);
+		},
+		keys: (name) => [...collection(name).keys()],
+		onCall: ({ method, argTypes, result, handler }) => {
+			methods.set(method, { argTypes, result, handler });
+		},
+		calls: () => [...called],
 		restore: () => {
 			for (const name of Object.keys(globals)) {
 				Reflect.deleteProperty(globalThis, name);

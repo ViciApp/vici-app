@@ -441,9 +441,13 @@ next read: a member can no longer pump a school and keep crediting it after
 leaving.
 
 A **closed** month is different: it is **frozen at close**. The first time
-anyone claims that month's podium, the ranking over the then-current
-opted-in roster is captured as an immutable snapshot, and the podium payout
-and the champion cup read from it thereafter. A later leave does not rewrite
+anyone claims that month's podium, the ranking is computed from **settled
+history**, each opted-in member's settled calls and wins over the month as
+recorded by the clearing engine (the same source league battles are scored
+from), counting only members whose slot was joined before the month closed,
+and captured as an immutable snapshot; the podium payout and the champion
+cup read from it thereafter. The live month column is a view of the
+members' own synced monthly stats and never decides a payout. A later leave does not rewrite
 a month that has already ended, so awards and cups stay stable and can't
 drift between two people claiming the same month. The podium award goes
 to a member at month-end whatever their join date, but only for a slot

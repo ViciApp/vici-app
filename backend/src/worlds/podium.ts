@@ -1,9 +1,9 @@
 // Worlds podium monthly payout, user-claim model: the member claims a closed
-// month's finish; the first claim freezes that month's ranking, eligibility
-// is the caller's current affiliation appearing in the frozen top-3 and
-// joined before the month closed, and the payment itself goes through the
-// economy's idempotent award grant (keyed <YYYY-MM>_<place>, so a second
-// claim collides cleanly).
+// month's finish; the first claim freezes that month's ranking from settled
+// history, eligibility is the caller's current affiliation appearing in the
+// frozen top-3 and joined before the month closed, and the payment itself
+// goes through the economy's idempotent award grant (keyed
+// <YYYY-MM>_<place>, so a second claim collides cleanly).
 
 import { nonNullish } from '@dfinity/utils';
 import { MONTH_ANCHOR_RE, monthAnchorFromMs, monthEndMs } from '../lib/time';
@@ -11,7 +11,7 @@ import { grantWorldsPodiumPrize, type PodiumPlace } from '../vxp/prizes';
 import {
 	AffiliationStatsError,
 	freezeMonthlySnapshots,
-	listAffiliationStatsForMonth
+	frozenMonthlyRanking
 } from './affiliation-stats';
 import { AFFILIATION_KINDS, getMyAffiliation } from './affiliations';
 
@@ -72,7 +72,9 @@ export const claimWorldsPodiumPrize = async ({
 		// server-stamped, kept on a re-join of the same slot and reset by a
 		// switch or a leave, so a move after close never carries tenure.
 		if (nonNullish(myAffiliation) && myAffiliation.joinedAtMs < monthClosedMs) {
-			const top3 = (await listAffiliationStatsForMonth({ kind, monthAnchor, nowMs })).slice(0, 3);
+			// The frozen ranking only: a month where nothing cleared the rank
+			// floor has no podium, never a fallback to the live monthly view.
+			const top3 = (await frozenMonthlyRanking({ kind, monthAnchor })).slice(0, 3);
 			const placeIndex = top3.findIndex(
 				(s) => s.affiliationIdentifier === myAffiliation.affiliationIdentifier
 			);

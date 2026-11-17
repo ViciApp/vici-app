@@ -98,7 +98,7 @@ backs it. Amounts are **not** repeated here; follow the link.
 | **Comeback restore**       | One-time top-up _to_ a target for a user returning after an absence (between two server-recorded activity days) with a depleted balance. The re-engagement nudge, triggered by absence, not skill.                  | `COMEBACK_RESTORE_TARGET_BASE_UNITS`, `COMEBACK_BALANCE_FLOOR_BASE_UNITS`, `COMEBACK_AWAY_DAYS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                 |
 | **Achievement unlock**     | Catalog XP, once per achievement, only for an unlock the server evaluates from its own data, never the client's `unlockedAchievements`; three achievements mint nothing (see the caps section).                     | `ACHIEVEMENTS` ([`achievements.constants.ts`](../../src/lib/constants/achievements.constants.ts)), thresholds in [`achievements.utils.ts`](../../src/lib/utils/achievements.utils.ts)                            |
 | **League founder**         | Awarded once per league founded, bounded by a lifetime per-account cap.                                                                                                                                             | `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS`, `VXP_LEAGUE_FOUNDER_MAX_AWARDS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                         |
-| **Worlds podium**          | Tiered award for a top-three monthly finish.                                                                                                                                                                        | `VXP_WORLDS_PODIUM` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                             |
+| **Worlds podium**          | Tiered award for a top-three monthly finish, ranked from the members' settled history over the closed month, never a client-written counter.                                                                        | `VXP_WORLDS_PODIUM` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                             |
 | **Tournament prize**       | Tiered award for a member of a monthly tournament's podium leagues (winner, other finalist, either semifinal loser), one per member per tournament whatever the place.                                              | `TOURNAMENT_PRIZE_TIERS` ([`tournament.ts`](../../src/lib/types/tournament.ts))                                                                                                                                  |
 
 The authoritative list of award **types** is the `VxpAwardType` union
@@ -182,9 +182,20 @@ The bound that protects each surface today:
   between server-recorded activity days (executed-fill days), so it
   cannot be declared and a bare Flow swipe cannot end it.
 - **League founder**: lifetime per-account cap.
-- **Worlds podium**: once per month and place, for a member at
-  month-end whatever their join date, but only if the slot was joined
-  before the month closed. A first join has no switch lock, so without
+- **Worlds podium**: ranked from **settled history**: each
+  affiliation's tally is its opted-in members' settled calls and wins
+  over the closed month (`[month start, month close)`), read from the
+  clearing canister through the helper league battles are scored with
+  (`settled-history.services.ts` on the satellite, `settledTotalsByPrincipal`
+  in [`backend/src/engine/clearing.ts`](../../backend/src/engine/clearing.ts)
+  on the API), counting only members whose slot was joined before the
+  month closed. The ranking is frozen on the month's first claim and the
+  podium pays from that frozen ranking only; a month where no affiliation
+  clears the rank floor has no podium. The monthly stats the client
+  writes (`user_monthly_stats`) feed the live month view and never a
+  payout, and the API has no route that writes them. Paid once per month
+  and place, for a member at month-end whatever their join date, but only
+  if the slot was joined before the month closed. A first join has no switch lock, so without
   this anyone could join last month's winner after close and collect its
   prize; a switch or a leave resets the join time, so a move after close
   never carries tenure. The join time is server-stamped on both backends

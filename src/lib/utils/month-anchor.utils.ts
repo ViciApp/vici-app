@@ -28,6 +28,13 @@ export const previousMonthAnchor = (nowMs: number = Date.now()): string => {
 	return monthAnchorFromMs(d.getTime());
 };
 
+/** The first UTC instant of a `YYYY-MM` anchor's month, in ms: the moment the month opens. */
+export const monthAnchorStartMs = (monthAnchor: string): number => {
+	const [year, month] = monthAnchor.split('-');
+
+	return Date.UTC(Number(year), Number(month) - 1, 1);
+};
+
 /**
  * The first UTC instant after a `YYYY-MM` anchor's month, in ms: the moment
  * the month closes.
