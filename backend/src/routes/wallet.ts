@@ -20,7 +20,7 @@ import {
 	type Withdrawal
 } from '../custody/withdrawals';
 import { cached } from '../engine/cache';
-import { ZERO } from '../lib/constants';
+import { UUID_RE, ZERO } from '../lib/constants';
 import { badRequest, serviceUnavailable, type StatusContext } from '../lib/http';
 import { userIcPrincipalText } from '../lib/keys';
 import { logger } from '../lib/logger';
@@ -216,7 +216,9 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallet' })
 				return unauthenticated(set);
 			}
 
-			const asset = await getAssetById(body.assetId);
+			// Assets are keyed by uuid: any other id names no asset, and would
+			// fail the uuid bind in the lookup as a 500.
+			const asset = UUID_RE.test(body.assetId) ? await getAssetById(body.assetId) : null;
 
 			if (isNullish(asset) || !asset.enabled) {
 				return badRequest(set, 'unknown_asset');

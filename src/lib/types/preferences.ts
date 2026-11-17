@@ -1,3 +1,4 @@
+import type { CallSide } from '#lib/types/market.ts';
 export type FlowSessionLength = 5 | 10 | 20;
 
 export type SettingsVisibility = 'public' | 'friends' | 'private';
@@ -19,9 +20,9 @@ export interface DefaultAmountPrefs {
 }
 
 /**
- * Privacy / sharing preference group. The four user-facing controls in
- * the Settings privacy sections round-trip through here so they sync
- * across devices.
+ * Privacy / sharing preference group. The user-facing controls in the
+ * Settings privacy sections round-trip through here so they sync across
+ * devices.
  *
  * `profileVisibility` is the settings-grouped source for who can see the
  * profile; it is mirrored to the top-level `profile.visibility` enum on
@@ -29,14 +30,21 @@ export interface DefaultAmountPrefs {
  * for leaderboard / search filtering.
  *
  * `leaderboardOptIn` and `worldsOptIn` are opt-out flags (default `true`,
- * matching the current always-shown behaviour). They persist the user's
- * intent today; server-side enforcement (actually hiding an opted-out
- * user from the global leaderboard or Worlds Universities) is a separate
- * follow-up.
+ * matching the always-shown behaviour). `leaderboardOptIn` is enforced
+ * client-side by `isShownOnGlobalLeaderboard` on every ranked list other
+ * people see; `worldsOptIn` is enforced at read time by the Worlds
+ * aggregators. See `docs/ai/PRODUCT.md` (Privacy: leaderboard & Worlds
+ * sharing opt-outs).
  */
 export interface SharingPrefs {
 	profileVisibility: SettingsVisibility;
-	/** Show the user's last-30 call history publicly on their profile. */
+	/**
+	 * Kept so stored profiles keep decoding (the profile schema is
+	 * strict). The schema defaults, the satellite's preference merge and
+	 * `hydrateSharing` still read and carry it so legacy rows round-trip,
+	 * but no control sets it and no surface is gated on it, since there
+	 * is no public call-history surface.
+	 */
 	callsPublic: boolean;
 	/** Surface the user's rank on the global leaderboard. */
 	leaderboardOptIn: boolean;
@@ -89,7 +97,7 @@ export interface UserPreferences {
 	 * YES/NO commitment locked in during Beat 1.b of onboarding. Empty
 	 * string means no commitment was made (skip path).
 	 */
-	favoriteSide: '' | 'YES' | 'NO';
+	favoriteSide: '' | CallSide;
 	/**
 	 * Flips to `true` once the 3-beat onboarding flow finishes,
 	 * regardless of which picks were ultimately persisted. Source of

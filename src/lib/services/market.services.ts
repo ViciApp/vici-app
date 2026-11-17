@@ -1186,12 +1186,10 @@ export const rankMarkets = ({
 		const cultureScore =
 			hasCultureTag && (userInterests.size === 0 || userInterests.has('culture')) ? 500 : 0;
 
-		// `liquidityScore` and `volumeScore` used to live here but were
-		// dropped: `volumeScore` keyed off `Market.totalVolume`, which
-		// `mapMarketData` hardcodes to `ZERO`, so it never fired. And
-		// the Flow ranking path now ranks before fetching order books
-		// (see `getFlowQueue` + `enrichMarketsWithOrderBook`), so
-		// `bestBid`/`bestAsk` aren't populated at sort time anyway.
+		// No volume or liquidity term: `mapMarketData` hardcodes
+		// `Market.totalVolume` to `ZERO`, and the Flow path ranks before it
+		// fetches order books (`getFlowQueue` + `enrichMarketsWithOrderBook`),
+		// so `bestBid` / `bestAsk` are not populated at sort time.
 		const recencyScore = Number(m.createdAt) / 1e12;
 
 		const score = suggested + interestScore + cultureScore + recencyScore;

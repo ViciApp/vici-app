@@ -1927,8 +1927,6 @@ export const zhHansMessages = {
 	'settings.profile_visibility.private': '私密',
 	'settings.profile_visibility.public': '公开',
 	'settings.profile_visibility.sub': '谁可以看到你的预测与准确率',
-	'settings.public_calls': '公开预测历史',
-	'settings.public_calls.sub': '在你的资料上显示最近 30 次预测',
 	'settings.sign_out': '退出登录',
 	'settings.sign_out.cancel': '取消',
 	'settings.sign_out.confirm': '退出并返回登录界面？',

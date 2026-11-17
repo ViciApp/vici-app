@@ -8,6 +8,7 @@ import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { StandingEntry, StandingsWindow } from '#lib/types/standings.ts';
+import { isShownOnGlobalLeaderboard } from '#lib/utils/visibility.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 import { derived, type Readable } from 'svelte/store';
@@ -207,27 +208,16 @@ export const globalStandingsRows = (
 					selfProfile: profile
 				});
 
-			// Honor the "Show on global leaderboard" opt-out, failing CLOSED: a
-			// non-self row is shown only once its profile is loaded AND not
-			// opted out. While the profile is still hydrating it stays hidden,
-			// so an opted-out predictor never flashes onto the board in the gap
-			// before we know their preference (showing-then-hiding is itself a
-			// leak). The viewer always keeps their own row and rank;
-			// `ownGlobalStanding` reads this same self-inclusive slice, so the
-			// two surfaces never disagree. The leaderboard page hydrates every
-			// raw-slice entry (not just the visible rows), so opted-in rows fill
-			// in as profiles land rather than starving: see LeaderboardPage's
-			// hydration effect. A nullish flag on a loaded profile (legacy row)
-			// reads as opted-in, matching the always-shown default.
-			const visible = [...result.entries].filter((entry) => {
-				if (entry.owner === selfOwner) {
-					return true;
-				}
-
-				const profile = $profiles.get(entry.owner);
-
-				return nonNullish(profile) && profile.preferences.sharing.leaderboardOptIn !== false;
-			});
+			// The "Show on global leaderboard" opt-out, failing closed (see
+			// `isShownOnGlobalLeaderboard`). `ownGlobalStanding` reads this same
+			// self-inclusive slice, so the viewer's row and their Arena rank
+			// never disagree. The leaderboard page hydrates every raw-slice
+			// entry (not just the visible rows), so opted-in rows fill in as
+			// profiles land rather than starving behind the filter: see
+			// LeaderboardPage's hydration effect.
+			const visible = [...result.entries].filter(({ owner }) =>
+				isShownOnGlobalLeaderboard({ owner, profile: $profiles.get(owner), selfOwner })
+			);
 			const qualified = visible.filter((entry) => entry.settledCount >= $qualifyMin);
 			const provisional = visible.filter((entry) => entry.settledCount < $qualifyMin);
 

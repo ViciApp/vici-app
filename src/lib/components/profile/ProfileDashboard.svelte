@@ -16,7 +16,6 @@
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { SCHOOL_PASS2_ENABLED } from '#lib/constants/school-picker.constants.ts';
 	import { lookupWorldsAffiliation } from '#lib/constants/worlds-affiliations.constants.ts';
-	import { leaderboard } from '#lib/derived/leaderboard.derived.ts';
 	import { myMenagerieLoading, myMenagerieRows } from '#lib/derived/menagerie.derived.ts';
 	import { userIsAdmin } from '#lib/derived/user.derived.ts';
 	import { loadMyMenagerieSignals } from '#lib/services/menagerie.services.ts';
@@ -27,8 +26,8 @@
 	import { myAvatarParts } from '#lib/stores/avatar.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
+	import { myGlobalRankStore } from '#lib/stores/menagerie.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
-	import { globalStandingsStore } from '#lib/stores/standings.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import type { AffiliationKind } from '#lib/types/affiliation.ts';
 	import type { UserProfile } from '#lib/types/profile.ts';
@@ -136,43 +135,34 @@
 
 	// The viewer's lifetime record (accuracy, rank, streak, calls) surfaces on
 	// the Dashboard and Arena; the Profile hero is identity-focused. The few
-	// figures kept here drive the credibility line, the Oracle insight, and the
-	// Menagerie tiers, not a stats card.
+	// figures kept here drive the Oracle insight, not a stats card.
 	const accuracy = $derived(profile.accuracy ?? 0);
 	const dailyStreak = $derived(profile.dailyStreak ?? 0);
 	const totalTrades = $derived(profile.totalTrades ?? 0);
 
 	/**
-	 * Global rank: viewer's 1-based index in the cached leaderboard. Drives the
-	 * "Top X%" credibility line below the handle and the rank-gated Menagerie
-	 * tiers (Goat). The leaderboard is populated lazily by `LoaderLeaderboard`
-	 * on app boot; when the slice hasn't resolved yet (or the viewer isn't in
-	 * it), the credibility line simply doesn't render.
-	 */
-	const globalRank = $derived.by<number | undefined>(() => {
-		const idx = $leaderboard.findIndex((entry) => entry.owner === profile.owner);
-
-		return idx === -1 ? undefined : idx + 1;
-	});
-
-	/**
-	 * Credibility line: "Top X% of global predictors". The hero surfaces one
-	 * quiet line of social standing under the handle. The percentile is the
-	 * viewer's rank over the size of the global ("all") standings window (the
-	 * total ranked field). Below 1% it floors to "Top 1%"; we only render the
-	 * line once a real rank + a non-empty ranked field exist, so it never reads
-	 * as "Top 100%" on an unranked or unloaded profile.
+	 * Credibility line: "Top X% of global predictors", one quiet line of social
+	 * standing under the handle. Rank and ranked-population size come from one
+	 * query over the full ranking (`myGlobalRankStore`, the signal behind Goat),
+	 * so the percentile never exceeds 100% and resolves for every ranked viewer.
+	 * Below 1% it floors to "Top 1%". `myGlobalRankStore` is the viewer's own
+	 * rank, so the line renders only on their own profile, and only once they
+	 * are ranked in a non-empty field: an unranked or unloaded profile shows
+	 * nothing.
 	 */
 	const topPercentLabel = $derived.by<string | undefined>(() => {
-		// The window's `total` is the full ranked population (`entries` is only the
-		// paged slice), so the credibility line agrees with Goat's percentile.
-		const total = $globalStandingsStore.get('all')?.total;
-
-		if (isNullish(globalRank) || isNullish(total) || total <= 0) {
+		if (!isOwnProfile) {
 			return;
 		}
 
-		const pct = (globalRank / total) * 100;
+		const rank = $myGlobalRankStore?.rank;
+		const total = $myGlobalRankStore?.totalRanked;
+
+		if (isNullish(rank) || isNullish(total) || total <= 0) {
+			return;
+		}
+
+		const pct = (rank / total) * 100;
 		const rounded = pct < 1 ? 1 : Math.ceil(pct);
 
 		return t({
@@ -198,8 +188,7 @@
 	// Canonical invite URL: `https://{origin}/join/{code}`. The slug is the viewer's
 	// stable referral code (never their mutable handle), so a shared link never rots on a
 	// rename. `/join/[code]` and `/i/[code]` render the same landing, so this resolves the
-	// same as the Arena Friends hero's `/i/{code}` link. The handle-based `/join/{handle}`
-	// link this used to build had no matching route and 404'd.
+	// same as the Arena Friends hero's `/i/{code}` link.
 	const inviteUrl = $derived(
 		nonNullish(inviteCode) && typeof window !== 'undefined'
 			? `${window.location.origin}/join/${inviteCode}`

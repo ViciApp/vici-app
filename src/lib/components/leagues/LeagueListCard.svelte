@@ -10,7 +10,7 @@
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { profilesStore } from '#lib/stores/profiles.store.ts';
 	import type { LeagueMemberRole } from '#lib/types/league-member.ts';
-	import { leagueEmblem, type LeagueDoc } from '#lib/types/league.ts';
+	import { LEAGUE_ACCENT_FALLBACK, leagueEmblem, type LeagueDoc } from '#lib/types/league.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
@@ -116,7 +116,7 @@
 	 */
 	const emblem = $derived(leagueEmblem(league));
 
-	const accent = $derived(league.accentColor ?? '#7e9b6a');
+	const accent = $derived(league.accentColor ?? LEAGUE_ACCENT_FALLBACK);
 
 	const roleLabel = $derived.by(() => {
 		if (!role) {

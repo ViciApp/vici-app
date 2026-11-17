@@ -11,11 +11,12 @@ import type { UserRole } from '#lib/enums/user.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { DAY_KEY_RE } from '#lib/utils/streak.utils.ts';
 import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
+import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
 import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
 import { mintFlowOvertime } from '#satellite/services/vxp-flow-awards.services.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
@@ -684,12 +685,29 @@ export const assertDailyGoalMonotonic = ({
 };
 
 /**
+ * A profile is keyed by its owner's principal, and only that owner (or the
+ * satellite, signing as a controller) may write or delete it: soft-delete
+ * markers, nickname and counters all live on this doc.
+ */
+export const assertProfileOwner = ({
+	caller,
+	data: { collection, key }
+}: AssertSetDocContext | AssertDeleteDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	assertOwnerOrController({ caller, owner: key, collection });
+};
+
+/**
  * The `profiles` pre-write veto: one dispatch-table entry composing the
  * sub-asserts, each exported on its own so it stays unit-testable. A throw
- * from any one rejects the write. The new-profile gate runs first so a refused
- * create skips the nickname check's full collection scan.
+ * from any one rejects the write. The owner check and the new-profile gate run
+ * first so a refused write skips the nickname check's full collection scan.
  */
 export const assertProfile = (context: AssertSetDocContext): void => {
+	assertProfileOwner(context);
 	assertNewProfileAllowed(context);
 	assertValidNickname(context);
 	assertDailyGoalMonotonic(context);

@@ -5,6 +5,7 @@ import {
 	type LeagueMemberDoc
 } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
+import { isControllerText } from '#satellite/services/authz.services.ts';
 import { isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
@@ -20,12 +21,17 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
  *     fields is the most common path to a duplicate membership
  *     slipping through; this assertion makes it impossible.
  *
- *  2. **Authorisation model.** A user can write their own
+ *  2. **Authorisation model.** Only the member creates their own
  *     membership row (`member === caller`): that covers the
- *     join-by-code flow. A league owner can also write rows for
- *     other principals: that covers admin promotion / member
- *     invite. (Demotion / removal under the same gate; a separate
- *     `assertDeleteDoc` will handle leave / kick in a follow-up.)
+ *     join-by-code flow, and a self-join is always a plain `member`
+ *     (only the owner's own row, written at league creation, starts
+ *     as `owner`). A league owner may rewrite an existing row for
+ *     another principal (admin promotion / demotion) but never create
+ *     one: the roster gates the league-founder achievement and the
+ *     tournament seeding, so nobody is added without joining. A
+ *     satellite controller may rewrite a row too (the account purge
+ *     hands an owned league to a surviving member); the shape and role
+ *     rules still hold for it. Leave / kick is {@link assertDeleteLeagueMember}.
  *
  *  3. **Identity fields are immutable.** `leagueId`, `member`, and
  *     `joinedAtMs` are write-once. Only `role` can change after the
@@ -95,7 +101,8 @@ export const assertSetLeagueMember = ({
 
 	const league = decodeDocData<LeagueDoc>(leagueDoc.data);
 	const callerText = Principal.fromUint8Array(caller).toText();
-	const callerIsOwner = league.owner === callerText;
+	const callerIsController = isControllerText(callerText);
+	const callerIsOwner = league.owner === callerText || callerIsController;
 	const callerIsSelf = proposedDoc.member === callerText;
 
 	// 2. Authorisation: self-join OR league owner writing for someone.
@@ -113,8 +120,19 @@ export const assertSetLeagueMember = ({
 		throw new Error('league_members role="owner" is reserved for the league owner principal.');
 	}
 
-	// Creation path: nothing more to check beyond shape + auth.
+	// Creation path: only the member joining creates a row, and a self-join
+	// can't grant itself a role. Only the owner's own row starts above
+	// `member`, and the reserved-owner check above already ties that one to
+	// the league owner.
 	if (isNullish(current)) {
+		if (!callerIsSelf) {
+			throw new Error('league_members rows are created only by the member joining.');
+		}
+
+		if (!callerIsOwner && proposedDoc.role !== 'member') {
+			throw new Error('league_members self-join must use role="member".');
+		}
+
 		return;
 	}
 
@@ -151,6 +169,10 @@ export const assertSetLeagueMember = ({
  *     is reserved for owners so a rogue admin can't quietly empty a
  *     league.
  *
+ * A satellite controller skips both rules: the owner disband
+ * (`deleteLeagueFn`) and the account purge remove every row of a league,
+ * the owner row included, and sign those deletes as a controller.
+ *
  *  3. **Parent league must exist.** Defensive: if the league has
  *     already been deleted (which would only happen if a future
  *     `assertDeleteLeague` lands and cascades) the membership is
@@ -171,6 +193,10 @@ export const assertDeleteLeagueMember = ({
 	// No existing doc → nothing to delete; juno typically won't even
 	// call the assert in this case, but defend against it anyway.
 	if (isNullish(current)) {
+		return;
+	}
+
+	if (isControllerText(Principal.fromUint8Array(caller).toText())) {
 		return;
 	}
 

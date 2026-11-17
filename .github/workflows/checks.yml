@@ -181,9 +181,9 @@ jobs:
       # `service : {}`). Both make the drift check a permanent false positive.
       # The npm-installed CLI runs against our own `node_modules`, picks up the
       # right bindgen, and reproduces the local build output byte-for-byte.
-      # Pin to a known-good version (same as `e2e.yml`); bump deliberately.
       - name: Install Juno CLI
-        run: npm i -g @junobuild/cli@0.15.6
+        # Pinned once, in .github/juno-cli-version: bump it there, never here.
+        run: npm i -g "@junobuild/cli@$(cat .github/juno-cli-version)"
 
       - name: Regenerate satellite Candid surface
         run: npm run juno:functions:build

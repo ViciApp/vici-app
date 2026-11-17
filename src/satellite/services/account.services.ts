@@ -19,6 +19,7 @@ import {
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
+import { isReferralPayoutRecord } from '#satellite/services/referral.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -381,6 +382,19 @@ const findOwnedNonEmptyLeagues = ({
 };
 
 /**
+ * One step of the account purge ({@link hardDeleteAccountFn}). It reads as
+ * the purged account (`callerBytes`) and deletes or rewrites as `writer`, a
+ * satellite controller: serverless writes run the collection asserts too, and
+ * the purge removes rows the account itself may not (a locked affiliation, a
+ * league owner row, a referral record, an award) or hands a league over.
+ */
+interface CascadeStep {
+	callerText: string;
+	callerBytes: Uint8Array;
+	writer: Uint8Array;
+}
+
+/**
  * Drop every doc whose key starts with `${callerText}/` from the
  * collection. Used for collections that prefix-key on the user's
  * principal (`affiliations`, `vxp_awards`, `vxp_onboarding`).
@@ -388,12 +402,9 @@ const findOwnedNonEmptyLeagues = ({
 const deletePrefixedDocs = ({
 	collection,
 	callerText,
-	callerBytes
-}: {
-	collection: Collection;
-	callerText: string;
-	callerBytes: Uint8Array;
-}): number => {
+	callerBytes,
+	writer
+}: CascadeStep & { collection: Collection }): number => {
 	const { items } = listDocsStore({
 		collection,
 		caller: callerBytes,
@@ -408,7 +419,7 @@ const deletePrefixedDocs = ({
 			deleteDocStore({
 				collection,
 				key: docKey,
-				caller: callerBytes,
+				caller: writer,
 				doc: {
 					version: item.version
 				}
@@ -425,17 +436,12 @@ const deletePrefixedDocs = ({
  * one doc per user). The doc may not exist if the user never
  * completed onboarding: silently no-op in that case.
  */
-const deleteOwnProfile = ({
-	callerText,
-	callerBytes
-}: {
-	callerText: string;
-	callerBytes: Uint8Array;
-}): number =>
+const deleteOwnProfile = ({ callerText, callerBytes, writer }: CascadeStep): number =>
 	deletePrefixedDocs({
 		collection: Collection.PROFILES,
 		callerText,
-		callerBytes
+		callerBytes,
+		writer
 	});
 
 /**
@@ -444,13 +450,7 @@ const deleteOwnProfile = ({
  * versioned read + delete; no collection scan. Silently no-ops when the
  * account never stored one.
  */
-const deleteOwnPrivateProfile = ({
-	callerText,
-	callerBytes
-}: {
-	callerText: string;
-	callerBytes: Uint8Array;
-}): number => {
+const deleteOwnPrivateProfile = ({ callerText, callerBytes, writer }: CascadeStep): number => {
 	const doc = getDocStore({
 		collection: Collection.PROFILE_PRIVATE,
 		key: callerText,
@@ -464,7 +464,7 @@ const deleteOwnPrivateProfile = ({
 	deleteDocStore({
 		collection: Collection.PROFILE_PRIVATE,
 		key: callerText,
-		caller: callerBytes,
+		caller: writer,
 		doc: { version: doc.version }
 	});
 
@@ -478,13 +478,7 @@ const deleteOwnPrivateProfile = ({
  * other participant loses the relation too (mirrors the
  * `cancelFriendRequest` / `unfollow` semantics).
  */
-const deleteOwnRelations = ({
-	callerText,
-	callerBytes
-}: {
-	callerText: string;
-	callerBytes: Uint8Array;
-}): number => {
+const deleteOwnRelations = ({ callerText, callerBytes, writer }: CascadeStep): number => {
 	const { items } = listDocsStore({
 		collection: Collection.RELATIONS,
 		caller: callerBytes,
@@ -501,7 +495,7 @@ const deleteOwnRelations = ({
 				deleteDocStore({
 					collection: Collection.RELATIONS,
 					key: docKey,
-					caller: callerBytes,
+					caller: writer,
 					doc: {
 						version: item.version
 					}
@@ -521,13 +515,7 @@ const deleteOwnRelations = ({
  * indexed: key is the code, value is the owner). One row max per
  * user; iterate to find theirs.
  */
-const deleteOwnReferralCode = ({
-	callerText,
-	callerBytes
-}: {
-	callerText: string;
-	callerBytes: Uint8Array;
-}): number => {
+const deleteOwnReferralCode = ({ callerText, callerBytes, writer }: CascadeStep): number => {
 	const { items } = listDocsStore({
 		collection: Collection.REFERRAL_CODES,
 		caller: callerBytes,
@@ -544,7 +532,7 @@ const deleteOwnReferralCode = ({
 				deleteDocStore({
 					collection: Collection.REFERRAL_CODES,
 					key: docKey,
-					caller: callerBytes,
+					caller: writer,
 					doc: {
 						version: item.version
 					}
@@ -562,17 +550,14 @@ const deleteOwnReferralCode = ({
 /**
  * Drop the caller's referral-redemption row (`referrals` is keyed
  * by the *referee* principal, so the caller's row lives at their
- * own principal text). Other users' rows whose `referrer` equals
- * the caller are left in place (they document the referee's
- * payout history, which is auditable independent of the referrer).
+ * own principal text) unless it has started paying: that row keeps
+ * its slot in the referrer's lifetime count, so deleting referred
+ * accounts can never reset the referrer's tier. Other users' rows
+ * whose `referrer` equals the caller are left in place (they
+ * document the referee's payout history, which is auditable
+ * independent of the referrer).
  */
-const deleteOwnReferralRedemption = ({
-	callerText,
-	callerBytes
-}: {
-	callerText: string;
-	callerBytes: Uint8Array;
-}): number => {
+const deleteOwnReferralRedemption = ({ callerText, callerBytes, writer }: CascadeStep): number => {
 	const { items } = listDocsStore({
 		collection: Collection.REFERRALS,
 		caller: callerBytes,
@@ -584,18 +569,17 @@ const deleteOwnReferralRedemption = ({
 	for (const [docKey, item] of items) {
 		if (docKey === callerText) {
 			try {
-				// Belt-and-braces: only delete if the embedded doc agrees
-				// the row is keyed to the caller.
-				decodeDocData<ReferralDoc>(item.data);
-				deleteDocStore({
-					collection: Collection.REFERRALS,
-					key: docKey,
-					caller: callerBytes,
-					doc: {
-						version: item.version
-					}
-				});
-				deleted += 1;
+				if (!isReferralPayoutRecord(decodeDocData<ReferralDoc>(item.data))) {
+					deleteDocStore({
+						collection: Collection.REFERRALS,
+						key: docKey,
+						caller: writer,
+						doc: {
+							version: item.version
+						}
+					});
+					deleted += 1;
+				}
 			} catch {
 				// skip malformed
 			}
@@ -607,12 +591,8 @@ const deleteOwnReferralRedemption = ({
 
 /**
  * Drop affiliation rows (`${member}/${kind}/${affiliationIdentifier}`:
- * prefix-keyed). The 90-day lock assert is bypassed in this code
- * path because we delete via the satellite caller with no app-side
- * `assertDeleteAffiliation` re-entry on raw datastore drops; if
- * future Juno versions tighten that, we'll need a system-bypass
- * branch in the delete assert keyed off a "during-account-delete"
- * flag. For now the satellite SDK drop is unconditional.
+ * prefix-keyed), whatever their 90-day lock: `assertDeleteAffiliation`
+ * lets the controller `writer` through.
  */
 const deleteOwnAffiliations = deletePrefixedDocs;
 
@@ -621,13 +601,7 @@ const deleteOwnAffiliations = deletePrefixedDocs;
  * suffix `/${callerText}`). Owner rows are removed too: the
  * owned-empty leagues themselves are dropped in the next step.
  */
-const deleteOwnLeagueMemberships = ({
-	callerText,
-	callerBytes
-}: {
-	callerText: string;
-	callerBytes: Uint8Array;
-}): number => {
+const deleteOwnLeagueMemberships = ({ callerText, callerBytes, writer }: CascadeStep): number => {
 	const { items } = listDocsStore({
 		collection: Collection.LEAGUE_MEMBERS,
 		caller: callerBytes,
@@ -646,7 +620,7 @@ const deleteOwnLeagueMemberships = ({
 					deleteDocStore({
 						collection: Collection.LEAGUE_MEMBERS,
 						key: docKey,
-						caller: callerBytes,
+						caller: writer,
 						doc: {
 							version: item.version
 						}
@@ -691,11 +665,9 @@ const deleteOwnLeagueMemberships = ({
  */
 const disbandOrTransferOwnedLeagues = ({
 	callerText,
-	callerBytes
-}: {
-	callerText: string;
-	callerBytes: Uint8Array;
-}): number => {
+	callerBytes,
+	writer
+}: CascadeStep): number => {
 	const { items: leagueItems } = listDocsStore({
 		collection: Collection.LEAGUES,
 		caller: callerBytes,
@@ -710,7 +682,7 @@ const disbandOrTransferOwnedLeagues = ({
 
 	return leagueItems.reduce(
 		(deleted, [leagueKey, leagueItem]) =>
-			deleted + resolveOwnedLeague({ leagueKey, leagueItem, memberItems, callerText, callerBytes }),
+			deleted + resolveOwnedLeague({ leagueKey, leagueItem, memberItems, callerText, writer }),
 		0
 	);
 };
@@ -728,13 +700,13 @@ const resolveOwnedLeague = ({
 	leagueItem,
 	memberItems,
 	callerText,
-	callerBytes
+	writer
 }: {
 	leagueKey: string;
 	leagueItem: ListedDocEntry[1];
 	memberItems: ReadonlyArray<ListedDocEntry>;
 	callerText: string;
-	callerBytes: Uint8Array;
+	writer: Uint8Array;
 }): number => {
 	let league: LeagueDoc;
 
@@ -772,7 +744,7 @@ const resolveOwnedLeague = ({
 		deleteDocStore({
 			collection: Collection.LEAGUES,
 			key: leagueKey,
-			caller: callerBytes,
+			caller: writer,
 			doc: {
 				version: leagueItem.version
 			}
@@ -781,22 +753,16 @@ const resolveOwnedLeague = ({
 		return 1;
 	}
 
-	// Other members remain: transfer ownership instead of deleting.
-	// Mirror `transferLeagueOwnershipFn`'s two-caller dance: the league-doc
-	// owner swap is authorised by the OUTGOING owner (still the owner at
-	// this point), but the survivor's membership-role bump must be
-	// authorised by the NEW owner; once `league.owner` flips below,
-	// `assertSetLeagueMember` only accepts a role change from the current
-	// (survivor) owner, so writing it as `callerBytes` would be rejected
-	// and leave a half-transferred league.
+	// Other members remain: transfer ownership instead of deleting. Both
+	// writes are signed as the controller, which `assertSetLeague` and
+	// `assertSetLeagueMember` accept as the owner.
 	const [survivorKey, survivorItem] = survivor;
 	const survivorMember = decodeDocData<LeagueMemberDoc>(survivorItem.data);
-	const survivorBytes = Principal.fromText(survivorMember.member).toUint8Array();
 
 	setDocStore({
 		collection: Collection.LEAGUES,
 		key: leagueKey,
-		caller: callerBytes,
+		caller: writer,
 		doc: {
 			data: encodeDocData<LeagueDoc>({ ...league, owner: survivorMember.member }),
 			version: leagueItem.version
@@ -806,7 +772,7 @@ const resolveOwnedLeague = ({
 	setDocStore({
 		collection: Collection.LEAGUE_MEMBERS,
 		key: survivorKey,
-		caller: survivorBytes,
+		caller: writer,
 		doc: {
 			data: encodeDocData<LeagueMemberDoc>({ ...survivorMember, role: 'owner' }),
 			version: survivorItem.version
@@ -819,8 +785,8 @@ const resolveOwnedLeague = ({
 /**
  * Cascade hard-delete for a single account. Removes every row
  * identity-keyed to the principal: profile, VXP awards / onboarding,
- * referral code + redemption record, affiliations, relations, league
- * memberships. Owned leagues are then either deleted (no other members
+ * calibration attempts, referral code + redemption record, affiliations,
+ * relations, league memberships. Owned leagues are then either deleted (no other members
  * left) or transferred to a surviving member: see
  * {@link disbandOrTransferOwnedLeagues}; self-joiners during the recovery
  * window are never orphaned. Shared audit rows (activities, battles,
@@ -843,32 +809,30 @@ export const hardDeleteAccountFn = ({
 	callerText: string;
 	callerBytes: Uint8Array;
 }): number => {
+	const step: CascadeStep = {
+		callerText,
+		callerBytes,
+		writer: controllerCaller('account purge')
+	};
+
 	let docsDeleted = 0;
 
-	docsDeleted += deleteOwnProfile({ callerText, callerBytes });
-	docsDeleted += deleteOwnPrivateProfile({ callerText, callerBytes });
-	// `assertDeleteVxpAward` lets only a controller remove an award doc; the
-	// serverless delete runs that assert too, so the purge signs as one.
+	docsDeleted += deleteOwnProfile(step);
+	docsDeleted += deleteOwnPrivateProfile(step);
+	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.VXP_AWARDS });
+	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.VXP_ONBOARDING });
+	// Controllers-scoped: listed as the controller too.
 	docsDeleted += deletePrefixedDocs({
-		collection: Collection.VXP_AWARDS,
-		callerText,
-		callerBytes: controllerCaller('account purge of vxp_awards')
+		...step,
+		callerBytes: step.writer,
+		collection: Collection.CALIBRATION_ATTEMPTS
 	});
-	docsDeleted += deletePrefixedDocs({
-		collection: Collection.VXP_ONBOARDING,
-		callerText,
-		callerBytes
-	});
-	docsDeleted += deleteOwnReferralCode({ callerText, callerBytes });
-	docsDeleted += deleteOwnReferralRedemption({ callerText, callerBytes });
-	docsDeleted += deleteOwnAffiliations({
-		collection: Collection.AFFILIATIONS,
-		callerText,
-		callerBytes
-	});
-	docsDeleted += deleteOwnRelations({ callerText, callerBytes });
-	docsDeleted += deleteOwnLeagueMemberships({ callerText, callerBytes });
-	docsDeleted += disbandOrTransferOwnedLeagues({ callerText, callerBytes });
+	docsDeleted += deleteOwnReferralCode(step);
+	docsDeleted += deleteOwnReferralRedemption(step);
+	docsDeleted += deleteOwnAffiliations({ ...step, collection: Collection.AFFILIATIONS });
+	docsDeleted += deleteOwnRelations(step);
+	docsDeleted += deleteOwnLeagueMemberships(step);
+	docsDeleted += disbandOrTransferOwnedLeagues(step);
 
 	return docsDeleted;
 };

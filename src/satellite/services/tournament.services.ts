@@ -19,7 +19,7 @@ import {
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
-import { controllerCaller, isControllerText } from '#satellite/services/authz.services.ts';
+import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
 import { getLeagueStatsFn } from '#satellite/services/league-stats.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -47,7 +47,7 @@ import {
  * Monthly tournament: the full chain.
  *
  *  - Asserts for both collections: only a satellite controller may
- *    write or delete (see `assertControllerWriter`), then key shape,
+ *    write or delete (see `assertControllerCaller`), then key shape,
  *    write-once invariants on team / accuracy / winner / start-snapshot
  *    fields, forward-only state machine `in_flight → concluded`.
  *  - `triggerTournamentDrawFn`: anyone can call, for the current UTC
@@ -78,26 +78,13 @@ const ASSERT_PREFIX = 'tournament';
 const writerPurpose = 'tournament bracket write';
 
 /**
- * Both collections are `write: 'public'`, and their docs decide who may
- * claim the tournament prize (real VXP). The draw and round-resolution
- * endpoints compute every doc themselves and write it as a controller,
- * so a client write, which never carries a controller principal, is
- * rejected before its payload is read.
- */
-const assertControllerWriter = ({
-	caller,
-	collection
-}: {
-	caller: Uint8Array;
-	collection: string;
-}): void => {
-	if (!isControllerText(Principal.fromUint8Array(caller).toText())) {
-		throw new Error(`${collection}: only the satellite writes tournament docs.`);
-	}
-};
-
-/**
- * Single-doc-per-month assert. Key must equal `${id}` and match
+ * Single-doc-per-month assert. Both tournament collections are
+ * `write: 'public'` and their docs decide who may claim the tournament prize
+ * (real VXP), so the draw and round-resolution endpoints compute every doc and
+ * write it as a controller; a client write is rejected before its payload is
+ * read.
+ *
+ * Key must equal `${id}` and match
  * `monthAnchorFromMs(monthStartMs)`. `bracketSize` and
  * `seededLeagueIds` are immutable after the initial write; the only
  * field that ever mutates is `state` (in_flight → concluded).
@@ -114,7 +101,7 @@ export const assertSetTournament = ({
 		return;
 	}
 
-	assertControllerWriter({ caller, collection });
+	assertControllerCaller({ caller, collection });
 
 	const proposedDoc = decodeDocData<TournamentDoc>(proposed.data);
 
@@ -196,7 +183,7 @@ export const assertSetTournamentMatch = ({
 		return;
 	}
 
-	assertControllerWriter({ caller, collection });
+	assertControllerCaller({ caller, collection });
 
 	const proposedDoc = decodeDocData<TournamentMatchDoc>(proposed.data);
 	const expectedKey = tournamentMatchKey({
@@ -309,7 +296,7 @@ export const assertDeleteTournamentDoc = ({
 		return;
 	}
 
-	assertControllerWriter({ caller, collection });
+	assertControllerCaller({ caller, collection });
 };
 
 /**

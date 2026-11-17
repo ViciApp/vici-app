@@ -58,8 +58,11 @@ import {
 	onActivityReactionSet,
 	recomputeActivityReactionCountsFn
 } from '#satellite/services/activity-reaction-count.services.ts';
-import { assertSetActivityReaction } from '#satellite/services/activity-reaction.services.ts';
-import { assertSetActivity } from '#satellite/services/activity.services.ts';
+import {
+	assertDeleteActivityReaction,
+	assertSetActivityReaction
+} from '#satellite/services/activity-reaction.services.ts';
+import { assertDeleteActivity, assertSetActivity } from '#satellite/services/activity.services.ts';
 import { assertSetAffiliationStats } from '#satellite/services/affiliation-stats.services.ts';
 import {
 	assertDeleteAffiliation,
@@ -77,6 +80,7 @@ import {
 	trackEventsFn
 } from '#satellite/services/analytics.services.ts';
 import { getAuthIdentitiesFn } from '#satellite/services/auth-identity-export.services.ts';
+import { assertControllerWrite } from '#satellite/services/authz.services.ts';
 import {
 	readBattleLiveScoreFn,
 	resolveBattleFromSettlementsFn
@@ -117,7 +121,11 @@ import {
 	onProfileSetForLeagueStats,
 	onUserStatsSetForLeagueStats
 } from '#satellite/services/league-stats.services.ts';
-import { assertSetLeague, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
+import {
+	assertDeleteLeague,
+	assertSetLeague,
+	transferLeagueOwnershipFn
+} from '#satellite/services/league.services.ts';
 import {
 	getMarketMetadata as getMarketMetadataFn,
 	upsertMarketMetadata as upsertMarketMetadataFn
@@ -135,12 +143,15 @@ import {
 import { assertProfilePrivate } from '#satellite/services/profile-private.services.ts';
 import {
 	assertProfile,
+	assertProfileOwner,
 	checkNicknameAvailabilityFn,
 	getProfile as getProfileFn,
 	recordFlowSwipeFn,
 	searchProfiles as searchProfilesFn
 } from '#satellite/services/profile.services.ts';
 import {
+	assertDeleteReferral,
+	assertDeleteReferralCode,
 	assertSetReferral,
 	assertSetReferralCode,
 	claimReferralFriendshipFn,
@@ -155,6 +166,8 @@ import {
 } from '#satellite/services/referral.services.ts';
 import {
 	acceptFriendRequest as acceptFriendRequestFn,
+	assertDeleteRelation,
+	assertSetRelation,
 	cancelFriendRequest as cancelFriendRequestFn,
 	checkFriendship as checkFriendshipFn,
 	followUser as followUserFn,
@@ -171,7 +184,7 @@ import {
 	onActivitySetForResolvedResults,
 	pruneResolvedResultsFn
 } from '#satellite/services/resolved-results.services.ts';
-import { assertSetRole } from '#satellite/services/roles.services.ts';
+import { assertDeleteRole, assertSetRole } from '#satellite/services/roles.services.ts';
 import { submitSchoolFn, verifySchoolCodeFn } from '#satellite/services/school.services.ts';
 import {
 	assertDeleteTournamentDoc,
@@ -183,16 +196,23 @@ import {
 	triggerTournamentDrawFn
 } from '#satellite/services/tournament.services.ts';
 import {
+	assertDeleteUserMonthlyStats,
 	assertSetUserMonthlyStats,
 	getMonthlyLeaderboardFn
 } from '#satellite/services/user-monthly-stats.services.ts';
-import { assertSetUserStats } from '#satellite/services/user-stats.services.ts';
+import {
+	assertDeleteUserStats,
+	assertSetUserStats
+} from '#satellite/services/user-stats.services.ts';
 import { onProfileSetForAchievementAward } from '#satellite/services/vxp-achievement-awards.services.ts';
 import {
 	assertDeleteVxpAward,
 	assertSetVxpAward
 } from '#satellite/services/vxp-awards.services.ts';
-import { claimCalibrationRewardFn } from '#satellite/services/vxp-calibration.services.ts';
+import {
+	CALIBRATION_REASONS,
+	claimCalibrationRewardFn
+} from '#satellite/services/vxp-calibration.services.ts';
 import { onProfileSetForComebackRestore } from '#satellite/services/vxp-comeback-awards.services.ts';
 import { onProfileSetForFlowMilestone } from '#satellite/services/vxp-flow-awards.services.ts';
 import {
@@ -200,6 +220,7 @@ import {
 	settleFounderAwardsFn
 } from '#satellite/services/vxp-league-founder-awards.services.ts';
 import {
+	assertVxpOnboardingWrite,
 	onProfileSetForVxpOnboarding,
 	onTradeActivityForVxpOnboarding
 } from '#satellite/services/vxp-onboarding.services.ts';
@@ -979,20 +1000,7 @@ export const claimCalibrationReward = defineUpdate({
 		rewardBaseUnits: j.optional(j.string()),
 		newBalanceBaseUnits: j.optional(j.string()),
 		blockIndex: j.optional(j.string()),
-		reason: j.optional(
-			j.enum([
-				'anonymous',
-				'not_engaged_yet',
-				'balance_above_floor',
-				'not_vici_market',
-				'not_binary',
-				'not_finalised',
-				'outcome_undetermined',
-				'rate_limited_hourly',
-				'rate_limited_daily',
-				'transfer_failed'
-			])
-		),
+		reason: j.optional(j.enum(CALIBRATION_REASONS)),
 		errorMessage: j.optional(j.string())
 	}),
 	handler: claimCalibrationRewardFn
@@ -1369,8 +1377,14 @@ const assertSetDocCollections = [
 	Collection.PROFILES,
 	Collection.PROFILE_PRIVATE,
 	Collection.ROLES,
+	Collection.RELATIONS,
+	Collection.CHATS,
+	Collection.COMMENTS,
+	Collection.MARKET_METADATA,
+	Collection.MARKET_TRANSLATIONS,
 	Collection.REFERRAL_CODES,
 	Collection.REFERRALS,
+	Collection.VXP_ONBOARDING,
 	Collection.VXP_AWARDS,
 	Collection.LEAGUES,
 	Collection.LEAGUE_MEMBERS,
@@ -1396,8 +1410,14 @@ export const assertSetDoc = defineAssert<AssertSetDoc>({
 			[Collection.PROFILES]: assertProfile,
 			[Collection.PROFILE_PRIVATE]: assertProfilePrivate,
 			[Collection.ROLES]: assertSetRole,
+			[Collection.RELATIONS]: assertSetRelation,
+			[Collection.CHATS]: assertControllerWrite,
+			[Collection.COMMENTS]: assertControllerWrite,
+			[Collection.MARKET_METADATA]: assertControllerWrite,
+			[Collection.MARKET_TRANSLATIONS]: assertControllerWrite,
 			[Collection.REFERRAL_CODES]: assertSetReferralCode,
 			[Collection.REFERRALS]: assertSetReferral,
+			[Collection.VXP_ONBOARDING]: assertVxpOnboardingWrite,
 			[Collection.VXP_AWARDS]: assertSetVxpAward,
 			[Collection.LEAGUES]: assertSetLeague,
 			[Collection.LEAGUE_MEMBERS]: assertSetLeagueMember,
@@ -1417,12 +1437,29 @@ export const assertSetDoc = defineAssert<AssertSetDoc>({
 });
 
 const assertDeleteDocCollections = [
+	Collection.ROLES,
+	Collection.PROFILES,
+	Collection.RELATIONS,
+	Collection.CHATS,
+	Collection.COMMENTS,
+	Collection.MARKET_METADATA,
+	Collection.MARKET_TRANSLATIONS,
+	Collection.ACTIVITIES,
+	Collection.ACTIVITY_REACTIONS,
+	Collection.REFERRAL_CODES,
+	Collection.REFERRALS,
+	Collection.LEAGUES,
 	Collection.LEAGUE_MEMBERS,
 	Collection.AFFILIATIONS,
 	Collection.BATTLES,
+	Collection.EXIT_SIGNALS,
+	Collection.VXP_ONBOARDING,
 	Collection.VXP_AWARDS,
 	Collection.TOURNAMENTS,
-	Collection.TOURNAMENT_MATCHES
+	Collection.TOURNAMENT_MATCHES,
+	Collection.LEAGUE_STATS,
+	Collection.USER_STATS,
+	Collection.USER_MONTHLY_STATS
 ] as const;
 
 type AssertDeleteDocCollection = (typeof assertDeleteDocCollections)[number];
@@ -1431,12 +1468,29 @@ export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({
 	collections: assertDeleteDocCollections,
 	assert: (context) => {
 		const fn: Record<AssertDeleteDocCollection, (ctx: AssertDeleteDocContext) => void> = {
+			[Collection.ROLES]: assertDeleteRole,
+			[Collection.PROFILES]: assertProfileOwner,
+			[Collection.RELATIONS]: assertDeleteRelation,
+			[Collection.CHATS]: assertControllerWrite,
+			[Collection.COMMENTS]: assertControllerWrite,
+			[Collection.MARKET_METADATA]: assertControllerWrite,
+			[Collection.MARKET_TRANSLATIONS]: assertControllerWrite,
+			[Collection.ACTIVITIES]: assertDeleteActivity,
+			[Collection.ACTIVITY_REACTIONS]: assertDeleteActivityReaction,
+			[Collection.REFERRAL_CODES]: assertDeleteReferralCode,
+			[Collection.REFERRALS]: assertDeleteReferral,
+			[Collection.LEAGUES]: assertDeleteLeague,
 			[Collection.LEAGUE_MEMBERS]: assertDeleteLeagueMember,
 			[Collection.AFFILIATIONS]: assertDeleteAffiliation,
 			[Collection.BATTLES]: assertDeleteBattle,
+			[Collection.EXIT_SIGNALS]: assertControllerWrite,
+			[Collection.VXP_ONBOARDING]: assertVxpOnboardingWrite,
 			[Collection.VXP_AWARDS]: assertDeleteVxpAward,
 			[Collection.TOURNAMENTS]: assertDeleteTournamentDoc,
-			[Collection.TOURNAMENT_MATCHES]: assertDeleteTournamentDoc
+			[Collection.TOURNAMENT_MATCHES]: assertDeleteTournamentDoc,
+			[Collection.LEAGUE_STATS]: assertControllerWrite,
+			[Collection.USER_STATS]: assertDeleteUserStats,
+			[Collection.USER_MONTHLY_STATS]: assertDeleteUserMonthlyStats
 		};
 
 		fn[context.data.collection]?.(context);

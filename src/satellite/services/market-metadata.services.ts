@@ -1,7 +1,7 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { normalizeStoredTags } from '#lib/constants/market-taxonomy.constants.ts';
 import type { MarketMetadata, MarketMetadataInput } from '#lib/types/market-metadata.ts';
-import { isAdmin, isCreatorOrAdmin } from '#satellite/services/authz.services.ts';
+import { controllerCaller, isAdmin, isCreatorOrAdmin } from '#satellite/services/authz.services.ts';
 import { updateMarketTagIndex } from '#satellite/services/market-tag-index.services.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish } from '@dfinity/utils';
@@ -75,7 +75,9 @@ export const upsertMarketMetadata = async ({
 			version: current?.version,
 			data: encodeDocData(metadata)
 		},
-		caller
+		// Only a controller may write the collection (see `assertControllerWrite`): the
+		// creator-or-admin gate above is what authorises the caller.
+		caller: controllerCaller('market metadata upsert')
 	});
 
 	// Keep the reverse index in sync inline: Juno hooks don't fire on

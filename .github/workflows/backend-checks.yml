@@ -15,11 +15,17 @@ on:
 permissions: {}
 
 jobs:
+  bun-image:
+    uses: ./.github/workflows/backend-bun-image.yml
+    permissions:
+      contents: read
+
   backend:
+    needs: ['bun-image']
     runs-on: ubuntu-24.04
-    # Pinned Bun image for a reproducible runtime matching the Dockerfile base;
-    # module resolution is part of what this job asserts.
-    container: oven/bun:1.3
+    # The image backend/Dockerfile builds on, so the install, the native
+    # packages it picks and module resolution are the ones production gets.
+    container: ${{ needs.bun-image.outputs.image }}
     permissions:
       contents: read
     defaults:
@@ -86,7 +92,7 @@ jobs:
 
   backend-checks-pass:
     if: always()
-    needs: ['backend']
+    needs: ['bun-image', 'backend']
     runs-on: ubuntu-24.04
     permissions:
       contents: read

@@ -21,7 +21,12 @@ import {
 } from './constants';
 import { getVxpBalance } from './payout';
 
-export type CallSide = 'YES' | 'NO';
+export const CALL_SIDES = ['YES', 'NO'] as const;
+
+export type CallSide = (typeof CALL_SIDES)[number];
+
+export const isCallSide = (value: string): value is CallSide =>
+	(CALL_SIDES as readonly string[]).includes(value);
 
 export type CalibrationReason =
 	| 'not_engaged_yet'

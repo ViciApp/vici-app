@@ -17,6 +17,7 @@
 	import { track } from '#lib/services/analytics.services.ts';
 	import { checkNicknameAvailability } from '#lib/services/profile.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { OnboardingPicks } from '#lib/types/onboarding.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
@@ -37,19 +38,11 @@
 	 */
 	interface Props {
 		// Fires after the provider stack resolves in-page (non-redirect).
-		onComplete: (result: {
-			participantId: string | null;
-			side: 'YES' | 'NO' | null;
-			handle: string | null;
-		}) => void;
+		onComplete: (result: OnboardingPicks) => void;
 		// Fires once an available handle is claimed, BEFORE any provider runs,
 		// so a full-page redirect provider (Google) carries the handle
 		// through the auth-gate stash.
-		onPicksReady?: (result: {
-			participantId: string | null;
-			side: 'YES' | 'NO' | null;
-			handle: string | null;
-		}) => void;
+		onPicksReady?: (result: OnboardingPicks) => void;
 		// "Already a member? Sign in".
 		onSignIn: () => void;
 		// "Skip: preview first, sign up later". Carries the selected handle so

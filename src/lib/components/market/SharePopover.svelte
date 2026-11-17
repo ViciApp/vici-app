@@ -13,7 +13,7 @@
 	import { getMyReferralCode, listMyReferrals } from '#lib/services/referral.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
-	import type { Market } from '#lib/types/market.ts';
+	import type { CallSide, Market } from '#lib/types/market.ts';
 	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import { type FlowArtCategory, resolveFlowArtCategory } from '#lib/utils/flow-art.utils.ts';
 	import { haptic } from '#lib/utils/haptics.utils.ts';
@@ -38,7 +38,7 @@
 	 * from their own redemption rows.
 	 */
 	interface PriorCallLite {
-		side: 'YES' | 'NO';
+		side: CallSide;
 	}
 
 	interface Props {

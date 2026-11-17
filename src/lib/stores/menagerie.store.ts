@@ -13,8 +13,9 @@ export const myReferralCountStore = writable<number | undefined>(undefined);
 
 /**
  * The signed-in viewer's global rank over the FULL ranking; the live signal
- * behind the Goat trophy. Fetched from the satellite's self-rank query
- * (`getUserRankAndCount`) rather than derived from the cached top-50
+ * behind the Goat trophy and the profile's "Top X%" line. Fetched from the
+ * self-rank query (`getUserRankAndCount`, the satellite's or the HTTP API's
+ * by backend mode) rather than derived from the cached top-50
  * leaderboard window, so Goat resolves for every ranked user on every surface
  * (the always-mounted celebration host included), not just while the
  * leaderboard cache happens to contain the viewer. `rank` is absent for an

@@ -3,8 +3,15 @@ import { FRIEND_REQUEST_REJECTED_COOLDOWN_MS } from '#lib/constants/relation.con
 import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
+import {
+	assertControllerCaller,
+	controllerCaller,
+	isControllerText
+} from '#satellite/services/authz.services.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
@@ -15,6 +22,62 @@ import {
 	setDocStore
 } from '@junobuild/functions/sdk';
 import type { PrincipalText } from '@junobuild/schema';
+
+/**
+ * The `controllerCaller` purpose for every relation write: the endpoints
+ * below check who may move a relation, then write it as the satellite.
+ */
+const RELATION_WRITE_PURPOSE = 'relation write';
+
+/**
+ * Relations are only ever set by the endpoints in this file (and the referral
+ * friendship), which decide who may send, accept or reject and then write as a
+ * controller. A client `set_doc` would otherwise forge a friendship with anyone
+ * or clear a rejection.
+ */
+export const assertSetRelation = ({ caller, data: { collection } }: AssertSetDocContext): void => {
+	if (collection !== Collection.RELATIONS) {
+		return;
+	}
+
+	assertControllerCaller({ caller, collection });
+};
+
+/**
+ * Who may remove a relation, by its state: either participant ends an active
+ * friendship or follow (unfriend), only the sender withdraws a pending
+ * request, and a rejection or a block stays until the satellite removes it, so
+ * the rejected sender cannot clear the retry cooldown and a block cannot be
+ * lifted by the blocked side.
+ */
+export const assertDeleteRelation = ({
+	caller,
+	data: {
+		collection,
+		data: { current }
+	}
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.RELATIONS || isNullish(current)) {
+		return;
+	}
+
+	const callerText = Principal.fromUint8Array(caller).toText();
+
+	if (isControllerText(callerText)) {
+		return;
+	}
+
+	const { state, participants } = decodeDocData<Relation>(current.data);
+	const [sender] = participants;
+
+	const allowed =
+		(state === RelationState.ACTIVE && participants.includes(callerText)) ||
+		(state === RelationState.PENDING && sender === callerText);
+
+	if (!allowed) {
+		throw new Error(`relations: a ${state} relation cannot be removed by this caller.`);
+	}
+};
 
 export const listFriends = (): Relation[] => {
 	const caller = msgCaller();
@@ -179,7 +242,7 @@ export const sendFriendRequest = ({ target }: { target: PrincipalText }): Friend
 				version,
 				data: encodeDocData(relation)
 			},
-			caller
+			caller: controllerCaller(RELATION_WRITE_PURPOSE)
 		});
 	};
 
@@ -215,7 +278,7 @@ export const sendFriendRequest = ({ target }: { target: PrincipalText }): Friend
 						state: RelationState.ACTIVE
 					})
 				},
-				caller
+				caller: controllerCaller(RELATION_WRITE_PURPOSE)
 			});
 
 			return { status: 'auto_accepted' };
@@ -282,7 +345,7 @@ export const acceptFriendRequest = ({ relationId }: { relationId: string }): voi
 				state: RelationState.ACTIVE
 			})
 		},
-		caller
+		caller: controllerCaller(RELATION_WRITE_PURPOSE)
 	});
 };
 
@@ -370,7 +433,7 @@ export const rejectFriendRequest = ({ relationId }: { relationId: string }): voi
 				state: RelationState.REJECTED
 			})
 		},
-		caller
+		caller: controllerCaller(RELATION_WRITE_PURPOSE)
 	});
 };
 
@@ -393,6 +456,6 @@ export const followUser = ({ target }: { target: PrincipalText }): void => {
 		doc: {
 			data: encodeDocData(relation)
 		},
-		caller
+		caller: controllerCaller(RELATION_WRITE_PURPOSE)
 	});
 };

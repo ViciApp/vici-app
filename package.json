@@ -98,6 +98,9 @@
 	"overrides": {
 		"@dfinity/eslint-config-oisy-wallet": {
 			"typescript": "$typescript"
+		},
+		"@typescript-eslint/typescript-estree": {
+			"minimatch": "^11.0.1"
 		}
 	},
 	"imports": {

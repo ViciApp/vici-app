@@ -1,6 +1,7 @@
 import {
 	cancelEngineOrder,
 	getEngineAccountState,
+	getUserRankAndCount,
 	listEngineSettlementStatuses,
 	requestWalletWithdrawal,
 	Web2ApiError
@@ -263,5 +264,37 @@ describe('requestWalletWithdrawal', () => {
 			selfCustody: true,
 			idempotencyKey: 'k1'
 		});
+	});
+});
+
+describe('getUserRankAndCount', () => {
+	const originalFetch = globalThis.fetch;
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
+	const stubRank = ({ body, urls }: { body: Record<string, unknown>; urls: string[] }): void => {
+		globalThis.fetch = (...[url]: Parameters<typeof fetch>): Promise<Response> => {
+			urls.push(String(url));
+
+			return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+		};
+	};
+
+	it("reads the account's rank and the ranked population", async () => {
+		const urls: string[] = [];
+
+		stubRank({ body: { rank: 3, count: 40 }, urls });
+
+		assert.deepEqual(await getUserRankAndCount({ userId: 'user-1' }), { rank: 3, count: 40 });
+		assert.equal(urls.length, 1);
+		assert.ok(urls[0].endsWith('/api/v1/leaderboard/rank/user-1'));
+	});
+
+	it('leaves the rank absent for an unranked account', async () => {
+		stubRank({ body: { rank: null, count: 40 }, urls: [] });
+
+		assert.deepEqual(await getUserRankAndCount({ userId: 'user-2' }), { count: 40 });
 	});
 });

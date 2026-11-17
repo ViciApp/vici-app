@@ -18,9 +18,15 @@ import {
 	CALIBRATION_RECOVERY_FLOOR_BASE_UNITS,
 	VXP_CALIBRATION_REWARD_BASE_UNITS
 } from '#lib/constants/vxp-economy.constants.ts';
+import {
+	calibrationAttemptKey,
+	type CalibrationAttemptDoc,
+	type CalibrationSide
+} from '#lib/types/calibration.ts';
 import type { CallSide } from '#lib/types/market.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import type { VxpOnboardingDoc } from '#lib/types/vxp-onboarding.ts';
+import { controllerCaller } from '#satellite/services/authz.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -51,29 +57,37 @@ import {
  * server-side and the winning side is re-derived from the clearing
  * settlement: the FE-supplied `chosenSide` is only compared, never
  * trusted to define correctness. The caller can therefore never forge a
- * win. A wrong guess returns `{ correct: false }`, writes no award doc,
- * and applies no penalty.
+ * win. The first side called on a market is the one judged
+ * ({@link judgeCalibrationCall}): a wrong guess returns `{ correct: false }`,
+ * pays nothing and applies no penalty, but is recorded, so a later call on
+ * the other side is refused (`already_called`).
  *
  * Idempotency and rate limiting both come off the `vxp_awards`
- * collection (no new collection): the per-market award doc key
+ * collection: the per-market award doc key
  * `{caller}/calibration/{seriesId}` makes a second claim on the same
  * market a collision, and the caller's `calibration` docs are counted by
- * key prefix to enforce the rolling hourly / daily caps.
+ * key prefix to enforce the rolling hourly / daily caps. The side on record
+ * lives apart, in `calibration_attempts`, since a miss has no award doc.
  */
 
 const CALIBRATION_AWARD_TYPE = 'calibration';
 
-type CalibrationReason =
-	| 'anonymous'
-	| 'not_engaged_yet'
-	| 'balance_above_floor'
-	| 'not_vici_market'
-	| 'not_binary'
-	| 'not_finalised'
-	| 'outcome_undetermined'
-	| 'rate_limited_hourly'
-	| 'rate_limited_daily'
-	| 'transfer_failed';
+/** Every reason a claim pays nothing; also the endpoint's result enum. */
+export const CALIBRATION_REASONS = [
+	'anonymous',
+	'not_engaged_yet',
+	'balance_above_floor',
+	'not_vici_market',
+	'not_binary',
+	'not_finalised',
+	'outcome_undetermined',
+	'already_called',
+	'rate_limited_hourly',
+	'rate_limited_daily',
+	'transfer_failed'
+] as const;
+
+type CalibrationReason = (typeof CALIBRATION_REASONS)[number];
 
 /**
  * Structured result the FE switches on. `correct` is the calibration
@@ -96,7 +110,9 @@ export interface CalibrationRewardResult {
  * Engagement gate: the caller has at least one paid VXP-onboarding
  * milestone (m1 / m2 / m3). Cheap proxy for "this user has actually
  * used the app", so a fresh signup can't farm rewards. Mirrors the
- * onboarding read used by the other award paths.
+ * onboarding read used by the other award paths. Only the satellite
+ * writes the ladder doc (`assertVxpOnboardingWrite`), so a caller cannot
+ * mark a milestone paid to pass this gate.
  */
 const hasEngaged = ({ caller, userKey }: { caller: Uint8Array; userKey: string }): boolean => {
 	const onboardingDoc = getDocStore({
@@ -188,6 +204,74 @@ const deriveWinningSide = async (
 	}
 
 	return { side: view.settlement.Price.decimal.value > ZERO ? 'YES' : 'NO' };
+};
+
+/** How a call on a finalised market is judged; see {@link judgeCalibrationCall}. */
+export type CalibrationVerdict = 'correct' | 'miss' | 'already_called';
+
+/**
+ * Records the caller's first judged call on a market (as a controller, the
+ * `calibration_attempts` collection being controllers-scoped) and returns the
+ * side on record. Read and write run in one message with no await between
+ * them, so two claims cannot both record a side.
+ */
+const recordCalibrationCall = ({
+	recipient,
+	seriesId,
+	chosenSide
+}: {
+	recipient: string;
+	seriesId: string;
+	chosenSide: CalibrationSide;
+}): CalibrationSide => {
+	const writer = controllerCaller('calibration attempt');
+	const key = calibrationAttemptKey({ recipient, seriesId });
+
+	const existing = getDocStore({
+		collection: Collection.CALIBRATION_ATTEMPTS,
+		key,
+		caller: writer
+	});
+
+	if (nonNullish(existing)) {
+		return decodeDocData<CalibrationAttemptDoc>(existing.data).chosenSide;
+	}
+
+	setDocStore({
+		collection: Collection.CALIBRATION_ATTEMPTS,
+		key,
+		caller: writer,
+		doc: { data: encodeDocData<CalibrationAttemptDoc>({ chosenSide, calledAtMs: timeMs() }) }
+	});
+
+	return chosenSide;
+};
+
+/**
+ * The first side called on a finalised market is the one judged. The call is
+ * recorded before the sides are compared, so the outcome is only ever revealed
+ * for the side on record: a call on the other side is `already_called`, and
+ * the side on record is judged `correct` or a `miss` every time it comes back
+ * (a correct call that hit a rate limit is retried later).
+ */
+export const judgeCalibrationCall = ({
+	recipient,
+	seriesId,
+	chosenSide,
+	winningSide
+}: {
+	recipient: string;
+	seriesId: string;
+	chosenSide: CalibrationSide;
+	winningSide: CalibrationSide;
+}): CalibrationVerdict => {
+	const calledSide = recordCalibrationCall({ recipient, seriesId, chosenSide });
+
+	if (calledSide !== chosenSide) {
+		return 'already_called';
+	}
+
+	return chosenSide === winningSide ? 'correct' : 'miss';
 };
 
 /**
@@ -336,12 +420,21 @@ export const claimCalibrationRewardFn = async ({
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: resolution.reason };
 	}
 
-	const correct = chosenSide === resolution.side;
+	const verdict = judgeCalibrationCall({
+		recipient,
+		seriesId,
+		chosenSide,
+		winningSide: resolution.side
+	});
 
-	// 8 (wrong path). A wrong call mints nothing, writes no doc, applies
-	// no penalty. Returned before the rate-limit check so a wrong guess
+	if (verdict === 'already_called') {
+		return { correct: false, paidNow: false, alreadyClaimed: false, reason: 'already_called' };
+	}
+
+	// 8 (wrong path). A wrong call mints nothing and applies no penalty; it
+	// is on record now. Returned before the rate-limit check so a wrong guess
 	// doesn't consume the user's hourly / daily budget.
-	if (!correct) {
+	if (verdict === 'miss') {
 		return { correct: false, paidNow: false, alreadyClaimed: false };
 	}
 

@@ -8,9 +8,10 @@ import {
 } from '#lib/types/user-monthly-stats.ts';
 import { MONTH_ANCHOR_RE } from '#lib/utils/month-anchor.utils.ts';
 import { median } from '#lib/utils/stats.utils.ts';
+import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, listDocsStore } from '@junobuild/functions/sdk';
 
@@ -135,6 +136,24 @@ export const assertSetUserMonthlyStats = ({
 			throw new Error('user_monthly_stats monthConsensus values must be finite numbers in [0, 1].');
 		}
 	}
+};
+
+/**
+ * A month row is keyed `${owner}/${monthAnchor}` (see
+ * {@link assertSetUserMonthlyStats}): only that owner or the satellite may
+ * delete it.
+ */
+export const assertDeleteUserMonthlyStats = ({
+	caller,
+	data: { collection, key }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.USER_MONTHLY_STATS) {
+		return;
+	}
+
+	const [owner] = key.split('/');
+
+	assertOwnerOrController({ caller, owner, collection });
 };
 
 /**

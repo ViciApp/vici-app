@@ -2042,8 +2042,6 @@ export const frMessages = {
 	'settings.profile_visibility.private': 'Privé',
 	'settings.profile_visibility.public': 'Public',
 	'settings.profile_visibility.sub': 'Qui peut voir vos pronostics et votre précision',
-	'settings.public_calls': 'Historique public des pronostics',
-	'settings.public_calls.sub': 'Afficher vos 30 derniers pronostics sur votre profil',
 	'settings.sign_out': 'Se déconnecter',
 	'settings.sign_out.cancel': 'Annuler',
 	'settings.sign_out.confirm': 'Se déconnecter et revenir à l’écran de connexion ?',

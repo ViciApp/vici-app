@@ -5,6 +5,7 @@ import { UserRole } from '#lib/enums/user.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { call } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, getAdminAccessKeys, getDocStore } from '@junobuild/functions/sdk';
 
@@ -95,3 +96,52 @@ export const isControllerText = (callerText: string): boolean =>
 	getAdminAccessKeys().some(
 		([keyBytes]) => Principal.fromUint8Array(keyBytes).toText() === callerText
 	);
+
+/**
+ * Rejects any caller but a satellite controller. Juno does no owner check on a
+ * `write: 'public'` collection, so for a collection only the satellite writes
+ * this assert is the whole guard.
+ */
+export const assertControllerCaller = ({
+	caller,
+	collection
+}: {
+	caller: Uint8Array;
+	collection: string;
+}): void => {
+	if (!isControllerText(Principal.fromUint8Array(caller).toText())) {
+		throw new Error(`${collection}: only the satellite writes these docs.`);
+	}
+};
+
+/**
+ * {@link assertControllerCaller} as a set or delete assert, for a dispatch
+ * table entry that needs no other check.
+ */
+export const assertControllerWrite = ({
+	caller,
+	data: { collection }
+}: AssertSetDocContext | AssertDeleteDocContext): void =>
+	assertControllerCaller({ caller, collection });
+
+/**
+ * Lets `owner` (the principal text a collection binds its doc to, from the key
+ * or the payload) or a satellite controller through. Everyone else is
+ * rejected: Juno itself never compares a `write: 'public'` caller with the
+ * doc it changes.
+ */
+export const assertOwnerOrController = ({
+	caller,
+	owner,
+	collection
+}: {
+	caller: Uint8Array;
+	owner: string;
+	collection: string;
+}): void => {
+	const callerText = Principal.fromUint8Array(caller).toText();
+
+	if (callerText !== owner && !isControllerText(callerText)) {
+		throw new Error(`${collection}: only the owner or the satellite may change this doc.`);
+	}
+};

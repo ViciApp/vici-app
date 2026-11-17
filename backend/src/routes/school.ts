@@ -5,6 +5,7 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
+import { UUID_RE } from '../lib/constants';
 import { badRequest } from '../lib/http';
 import { enforceLimit } from '../lib/rate-limit';
 import { HOUR_IN_MS } from '../lib/time';
@@ -14,6 +15,7 @@ import {
 	listAllSchools,
 	listPublicSchools,
 	SchoolVerificationError,
+	SUBMISSION_NOT_FOUND,
 	submitSchool,
 	verifySchoolCode
 } from '../school/verification';
@@ -76,6 +78,12 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 
 			if (limited) {
 				return limited;
+			}
+
+			// Submissions are keyed by uuid: any other id names no submission, and
+			// would fail the uuid bind in the lookup as a 500.
+			if (!UUID_RE.test(body.submissionId)) {
+				return SUBMISSION_NOT_FOUND;
 			}
 
 			return await verifySchoolCode({

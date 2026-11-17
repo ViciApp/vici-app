@@ -222,6 +222,49 @@ describe.if(dbAvailable)('profiles import', () => {
 	});
 });
 
+describe.if(dbAvailable)('calibration attempts import', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('keeps the first side on record per user and market', async () => {
+		const principal = uniquePrincipal();
+		const first = doc({ key: `${principal}/series-1`, data: { chosenSide: 'NO', calledAtMs: 1 } });
+		const flipped = doc({
+			key: `${principal}/series-1`,
+			data: { chosenSide: 'YES', calledAtMs: 2 }
+		});
+
+		const stats = await importDocs({ collection: 'calibration_attempts', docs: [first] });
+
+		expect(stats.imported).toBe(1);
+
+		await importDocs({ collection: 'calibration_attempts', docs: [flipped] });
+
+		const rows = await query<{ chosen_side: string }>(
+			`select chosen_side from calibration_attempts where user_id = $1 and series_id = 'series-1'`,
+			[await userIdForPrincipal(principal)]
+		);
+
+		expect(rows).toEqual([{ chosen_side: 'NO' }]);
+	});
+
+	test('skips a doc with no side or no market', async () => {
+		const principal = uniquePrincipal();
+
+		const stats = await importDocs({
+			collection: 'calibration_attempts',
+			docs: [
+				doc({ key: `${principal}/series-1`, data: { chosenSide: 'MAYBE' } }),
+				doc({ key: principal, data: { chosenSide: 'YES' } })
+			]
+		});
+
+		expect(stats.imported).toBe(0);
+		expect(stats.skipped).toBe(2);
+	});
+});
+
 describe.if(dbAvailable)('vxp awards import', () => {
 	beforeAll(async () => {
 		await ensureMigrated();

@@ -28,8 +28,8 @@ export type VxpCalibrationReason =
 	| 'outcome_undetermined'
 	| 'rate_limited_hourly'
 	| 'rate_limited_daily'
-	// HTTP API only: the other side of this market is already on record, so
-	// this call is not judged.
+	// The other side of this market is already on record, so this call is not
+	// judged.
 	| 'already_called'
 	// HTTP API only: the award was recorded without a transfer (treasury
 	// parallel-run mode); the reconciliation job pays it out later.

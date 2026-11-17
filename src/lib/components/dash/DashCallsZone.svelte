@@ -1,8 +1,9 @@
 <script lang="ts" module>
+	import type { CallSide } from '#lib/types/market.ts';
 	export interface OpenCallRow {
 		key: string;
 		question: string;
-		side?: 'YES' | 'NO';
+		side?: CallSide;
 		context: string;
 		timer: string;
 		marketId: string;
@@ -11,7 +12,7 @@
 	export interface ResolvedCallRow {
 		key: string;
 		question: string;
-		side?: 'YES' | 'NO';
+		side?: CallSide;
 		context: string;
 		end: string;
 		won: boolean;

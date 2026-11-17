@@ -5,6 +5,8 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
+import { UUID_RE } from '../lib/constants';
+import { badRequest } from '../lib/http';
 import { getMyRival, getUserRankAndCount, listLeaderboard } from '../profiles/leaderboard';
 import { getMonthlyLeaderboard } from '../profiles/stats';
 
@@ -25,7 +27,13 @@ export const leaderboardRoutes = new Elysia({ prefix: '/api/v1/leaderboard' })
 		'/monthly/:monthAnchor',
 		async ({ params }) => await getMonthlyLeaderboard({ monthAnchor: params.monthAnchor })
 	)
-	.get('/rank/:userId', async ({ params }) => {
+	.get('/rank/:userId', async ({ params, set }) => {
+		// Accounts are keyed by uuid: any other id would fail the uuid bind in
+		// the rank query as a 500.
+		if (!UUID_RE.test(params.userId)) {
+			return badRequest(set, 'invalid_user_id');
+		}
+
 		const { rank, count } = await getUserRankAndCount({ userId: params.userId });
 
 		return { rank: rank ?? null, count };

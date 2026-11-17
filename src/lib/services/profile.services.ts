@@ -8,6 +8,7 @@ import {
 	nicknameUniqueKey,
 	sanitizeNickname
 } from '#lib/constants/profile.constants.ts';
+import { defaultPreferences } from '#lib/constants/settings.constants.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
 import { notifyAchievementsUnlocked } from '#lib/services/achievements.services.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
@@ -40,7 +41,6 @@ import {
 	isWinningSettledEvent
 } from '#lib/utils/resolved-position.utils.ts';
 import { applyDailyStreakBump, todayKey } from '#lib/utils/streak.utils.ts';
-import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	checkNicknameAvailability as checkNicknameAvailabilityWeb2,
@@ -90,35 +90,7 @@ export const emptyProfile = (owner: PrincipalText): UserProfile => ({
 	unlockedAchievements: [],
 	contrarianWins: 0,
 	topDecileStreak: 0,
-	preferences: {
-		defaultAmount: {
-			flow: '1.0',
-			manual: '1.0'
-		},
-		notify: {
-			streakReminder: true,
-			marketAlerts: true,
-			friendActivity: false,
-			weeklyDigest: true
-		},
-		flowSessionLength: 10,
-		hapticsEnabled: true,
-		soundEnabled: true,
-		sharing: {
-			// Mirror the top-level `visibility` default
-			// (FRIENDS_ONLY → 'private'); opt-ins default on.
-			profileVisibility: visibilityFromProfile(ProfileVisibility.FRIENDS_ONLY),
-			callsPublic: true,
-			leaderboardOptIn: true,
-			worldsOptIn: true
-		},
-		flowTags: [],
-		worldCupMode: false,
-		savedMarketIds: [],
-		favoriteParticipantId: '',
-		favoriteSide: '',
-		onboardingCompleted: false
-	}
+	preferences: defaultPreferences()
 });
 
 /**
@@ -824,10 +796,9 @@ export const ensureProfile = async (
 	// The synthetic shell from `getProfile` never carries a version. To
 	// detect "has the satellite ever stored a profile for this
 	// principal?" we have to read the doc directly via Juno's SDK:
-	// `version` is only populated on real stored docs. This is what
-	// previously caused every returning user to fall through to the
-	// upsert path and have any pending onboarding silently overwrite
-	// their saved nickname.
+	// `version` is only populated on real stored docs. Reading the shell
+	// instead would send every returning user down the upsert path, where
+	// a pending onboarding silently overwrites their saved nickname.
 	const existing = await getDoc<UserProfile>({
 		collection: Collection.PROFILES,
 		key: principal

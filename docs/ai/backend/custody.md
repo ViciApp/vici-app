@@ -34,6 +34,10 @@ The rules of the deposit watcher and the withdrawal path in `backend/src/chains/
   out, stays `pending`: refunding one that later lands pays the user twice.
   Every `submitted` row counts as in flight in the `balance` delta, so a chain
   must eventually answer `confirmed` (ic does at once: a block index is final).
+  The job's batch selects rows of enabled chains only: a disabled chain's rows
+  are never read, so in the batch they would stay least recently checked and,
+  once they fill it, starve every enabled chain. They wait untouched until
+  their chain is enabled again.
 - **The deposit watcher never books VXP, and withdrawals never accept it:
   two separate guards.** The watcher skips VXP (`isVxp` in `backend/src/custody/assets.ts`)
   because its balance is read live from the ledger. `requestWithdrawal`

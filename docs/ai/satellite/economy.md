@@ -53,6 +53,13 @@ one pattern. Each of these has bitten a PR before:
   `deleteDocStore` runs the assert too, so a satellite path that must
   remove award docs (the account purge in `hardDeleteAccountFn`) signs
   as `controllerCaller(...)`.
+- **Referral rows keep their payout history.** `referrals` is
+  `write: 'public'` and holds both payout sides, and the referrer's
+  lifetime count is a scan of it. `assertSetReferral` lets a side's
+  state only move forward (`processing` back to `owed` is the one
+  retry step), and the account purge keeps a row that has started
+  paying (`isReferralPayoutRecord`), so deleting referred accounts never
+  frees a slot in the referrer's count.
 - **Eligibility times are server-stamped.** A gate on when something
   happened (a join, an activity day) reads a time the satellite wrote:
   the doc's Juno `created_at` or `timeMs()`, never a caller-written `*Ms`
@@ -60,11 +67,29 @@ one pattern. Each of these has bitten a PR before:
   podium pays only a slot whose `created_at` precedes the month's close
   (`joinedBeforeMonthClose` in
   [`worlds-podium.utils.ts`](../../../src/satellite/utils/worlds-podium.utils.ts)).
+- **A calibration call is judged once.** `judgeCalibrationCall`
+  ([`vxp-calibration.services.ts`](../../../src/satellite/services/vxp-calibration.services.ts))
+  records the first side called on a market in the controllers-scoped
+  `calibration_attempts` collection before comparing it with the outcome,
+  as the API does in its table of the same name: a miss is on record, and
+  a later call on the other side is refused (`already_called`).
 - **Every award is a real ICRC transfer** through the shared payout
   service
   ([`vxp-payout.services.ts`](../../../src/satellite/services/vxp-payout.services.ts));
   no satellite award path increments a counter instead of moving
   tokens.
+- **Payout state is server-owned.** A doc whose status the payout trusts
+  (`owed` pays, `paid` below the expected amount tops up) must be one no
+  client can rewrite or delete, or the owner is paid again. The
+  `vxp_onboarding` ladder is set and deleted by a satellite controller
+  only (`assertVxpOnboardingWrite`), and the onboarding hooks write it as
+  `controllerCaller(...)`; the calibration engagement gate reads the same
+  doc. The `referrals` record is the same: `assertSetReferral` accepts only
+  a controller, a paid side never changes again, and a new record must
+  satisfy the redemption rules itself (a profile, inside the signup window,
+  both sides unarmed), so a direct write cannot skip
+  `redeemReferralCode`. Only a controller deletes one, since a deleted
+  record would let its referee redeem again.
 - **What decides an award is server-written too.** A claim endpoint
   that pays from a doc (the tournament prize reads the concluded
   bracket) is only as safe as that doc. `tournaments` and

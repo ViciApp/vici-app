@@ -30,15 +30,6 @@ export const sendIcrc = ({
 		amount
 	});
 
-/**
- * Backend-agnostic wallet send. On the default backend it is the user-signed
- * ICRC transfer. In web2 mode the funds are custodial, so the send becomes a
- * self-custody withdrawal request: the API executes the transfer from the
- * user's custodial account to the destination the user typed. Either way the
- * user hands over a destination and an amount and the tokens leave their
- * wallet balance.
- */
-
 /** Localizable send failure: the UI translates `messageKey` (with `params`)
  * instead of showing service-built English, appending `detail` when the API
  * reported a concrete reason. */
@@ -122,8 +113,17 @@ export const sendCustodialToken = async ({
 	}
 };
 
-/** `idempotencyKey` only reaches the web2 withdrawal: the user-signed ICRC
- * transfer is not a request the API could file twice. */
+/**
+ * Backend-agnostic wallet send. On the default backend it is the user-signed
+ * ICRC transfer. In web2 mode the funds are custodial, so the send becomes a
+ * self-custody withdrawal request: the API executes the transfer from the
+ * user's custodial account to the destination the user typed. Either way the
+ * user hands over a destination and an amount and the tokens leave their
+ * wallet balance.
+ *
+ * `idempotencyKey` only reaches the web2 withdrawal: the user-signed ICRC
+ * transfer is not a request the API could file twice.
+ */
 export const sendToken = async ({
 	token,
 	to,
