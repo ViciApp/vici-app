@@ -87,17 +87,20 @@ jobs:
       CI: 'true'
 
     steps:
-      # On same-repo PRs, check out the actual head ref so any later snapshot
-      # work in `finalize-snapshots-update` lands on the PR's tip rather than
-      # the temporary merge commit GitHub creates. For pushes / merge_group /
-      # fork PRs the default checkout is fine.
+      # On same-repo PRs, test the PR's head commit rather than the temporary
+      # merge commit GitHub creates, so the baselines `finalize-snapshots-update`
+      # commits onto the PR branch come from the PR's own tree. For pushes /
+      # merge_group / fork PRs the default checkout is fine. By head SHA, not
+      # branch name: this job runs repo code in a workflow that also runs on
+      # schedule and dispatch, and CodeQL reads a checkout by PR branch name
+      # there as untrusted code with access to main's cache, `if` or not.
       - name: Checkout (same-repo PR head)
         if: >-
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
       - name: Checkout (default)

@@ -12,6 +12,11 @@ on:
 
 permissions: {}
 
+env:
+  # One cache generation per main commit, pull request, queue entry or other
+  # run; every job's restore-keys fall back to the newest main generation.
+  CACHE_KEY_SUFFIX: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+
 jobs:
   format:
     runs-on: ubuntu-24.04
@@ -29,23 +34,27 @@ jobs:
       - name: Prepare
         uses: ./.github/actions/prepare
 
+      # This job checks out the pull request branch by name (apply-changes
+      # commits onto it) on a workflow that also runs on push and dispatch,
+      # so it never saves a cache: it only restores the ones `lint` saves
+      # from the default checkout.
       - name: Restore Prettier Cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./node_modules/.cache/prettier/.prettier-cache
-          key: ${{ runner.os }}-prettier-cache-format-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-prettier-cache-lint-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
-            ${{ runner.os }}-prettier-cache-format-main-
-            ${{ runner.os }}-prettier-cache-format-
+            ${{ runner.os }}-prettier-cache-lint-main-
+            ${{ runner.os }}-prettier-cache-lint-
 
       - name: Restore ESLint Cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .eslintcache
-          key: ${{ runner.os }}-eslint-cache-format-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-eslint-cache-lint-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
-            ${{ runner.os }}-eslint-cache-format-main-
-            ${{ runner.os }}-eslint-cache-format-
+            ${{ runner.os }}-eslint-cache-lint-main-
+            ${{ runner.os }}-eslint-cache-lint-
 
       - name: Format
         run: npm run format
@@ -80,7 +89,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./node_modules/.cache/prettier/.prettier-cache
-          key: ${{ runner.os }}-prettier-cache-lint-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-prettier-cache-lint-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
             ${{ runner.os }}-prettier-cache-lint-main-
             ${{ runner.os }}-prettier-cache-lint-
@@ -89,7 +98,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .eslintcache
-          key: ${{ runner.os }}-eslint-cache-lint-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-eslint-cache-lint-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
             ${{ runner.os }}-eslint-cache-lint-main-
             ${{ runner.os }}-eslint-cache-lint-
@@ -150,7 +159,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./node_modules/.cache/prettier/.prettier-cache
-          key: ${{ runner.os }}-prettier-cache-quality-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-prettier-cache-quality-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
             ${{ runner.os }}-prettier-cache-quality-main-
             ${{ runner.os }}-prettier-cache-quality-
@@ -159,7 +168,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .eslintcache
-          key: ${{ runner.os }}-eslint-cache-quality-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-eslint-cache-quality-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
             ${{ runner.os }}-eslint-cache-quality-main-
             ${{ runner.os }}-eslint-cache-quality-
