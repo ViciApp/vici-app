@@ -37,7 +37,6 @@ import {
 } from '../../src/profiles/nickname';
 import {
 	BOLD_CALLER_MEDIAN_THRESHOLD,
-	MONTHLY_CONSENSUS_LIMIT,
 	MONTHLY_MIN_CALLS,
 	USER_STATS_RECENT_LIMIT
 } from '../../src/profiles/stats';
@@ -169,7 +168,7 @@ describe('shared drift: profiles', () => {
 		);
 
 		expectPairs({
-			pairs: { MONTHLY_CONSENSUS_LIMIT, MONTHLY_MIN_CALLS, BOLD_CALLER_MEDIAN_THRESHOLD },
+			pairs: { MONTHLY_MIN_CALLS, BOLD_CALLER_MEDIAN_THRESHOLD },
 			read: (constName) => extractDecimalConst({ source: appSource.monthlyStats, constName })
 		});
 	});

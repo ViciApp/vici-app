@@ -179,9 +179,6 @@ export const getUserStats = async ({
 
 // user_monthly_stats
 
-/** Upper bound on the per-month consensus sample array. */
-export const MONTHLY_CONSENSUS_LIMIT = 100;
-
 /** Minimum resolved calls in a month before a user is eligible for the
  * sharpest-eye podium; below this, monthly accuracy is too noisy. */
 export const MONTHLY_MIN_CALLS = 30;
@@ -228,104 +225,6 @@ const shapeMonthlyStats = (row: UserMonthlyStatsRow): UserMonthlyStats => ({
 	monthConsensus: row.month_consensus,
 	updatedAtMs: Number(row.updated_at_ms)
 });
-
-/**
- * Structural guard for a monthly-stats write: a well-formed month anchor,
- * finite non-negative integer counters with wins bounded by calls, and a
- * bounded consensus array of [0, 1] samples that must be non-empty whenever
- * the user has calls (so an empty array cannot game the bold-caller gate).
- */
-const validateMonthlyStats = ({
-	monthAnchor,
-	monthCalls,
-	monthWins,
-	monthConsensus
-}: {
-	monthAnchor: string;
-	monthCalls: number;
-	monthWins: number;
-	monthConsensus: number[];
-}): void => {
-	if (!MONTH_ANCHOR_RE.test(monthAnchor)) {
-		throw new ProfileValidationError(
-			`user_monthly_stats monthAnchor "${monthAnchor}" must match YYYY-MM (e.g. 2026-05).`
-		);
-	}
-
-	if (
-		!Number.isFinite(monthCalls) ||
-		!Number.isFinite(monthWins) ||
-		!Number.isInteger(monthCalls) ||
-		!Number.isInteger(monthWins) ||
-		monthCalls < 0 ||
-		monthWins < 0
-	) {
-		throw new ProfileValidationError(
-			'user_monthly_stats counters must be finite, non-negative integers (NaN / Infinity not allowed).'
-		);
-	}
-
-	if (monthWins > monthCalls) {
-		throw new ProfileValidationError('user_monthly_stats monthWins cannot exceed monthCalls.');
-	}
-
-	if (monthCalls > 0 && monthConsensus.length === 0) {
-		throw new ProfileValidationError(
-			'user_monthly_stats monthConsensus must be non-empty when monthCalls > 0.'
-		);
-	}
-
-	if (monthConsensus.length > MONTHLY_CONSENSUS_LIMIT) {
-		throw new ProfileValidationError(
-			`user_monthly_stats monthConsensus length (${monthConsensus.length}) exceeds limit ${MONTHLY_CONSENSUS_LIMIT}.`
-		);
-	}
-
-	for (const value of monthConsensus) {
-		if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
-			throw new ProfileValidationError(
-				'user_monthly_stats monthConsensus values must be finite numbers in [0, 1].'
-			);
-		}
-	}
-};
-
-export const upsertMonthlyStats = async ({
-	userId,
-	monthAnchor,
-	monthCalls,
-	monthWins,
-	monthConsensus,
-	updatedAtMs
-}: {
-	userId: string;
-	monthAnchor: string;
-	monthCalls: number;
-	monthWins: number;
-	monthConsensus: number[];
-	updatedAtMs: number;
-}): Promise<UserMonthlyStats> => {
-	validateMonthlyStats({ monthAnchor, monthCalls, monthWins, monthConsensus });
-
-	const rows = await query<UserMonthlyStatsRow>(
-		`insert into user_monthly_stats (user_id, month_anchor, month_calls, month_wins, month_consensus, updated_at_ms)
-		 values ($1, $2, $3, $4, $5, $6)
-		 on conflict (user_id, month_anchor) do update set
-		   month_calls = excluded.month_calls,
-		   month_wins = excluded.month_wins,
-		   month_consensus = excluded.month_consensus,
-		   updated_at_ms = excluded.updated_at_ms
-		 returning user_id, month_anchor, month_calls, month_wins, month_consensus, updated_at_ms::text`,
-		[userId, monthAnchor, monthCalls, monthWins, JSON.stringify(monthConsensus), updatedAtMs]
-	);
-	const [row] = rows;
-
-	if (isNullish(row)) {
-		throw new Error('user_monthly_stats upsert returned no row');
-	}
-
-	return shapeMonthlyStats(row);
-};
 
 /** One sharpest-eye podium entry: placement 1 (gold) / 2 (silver) /
  * 3 (bronze), accuracy as a 0..100 percentage. */

@@ -21,7 +21,7 @@ import type { CallSide } from '../src/vxp/calibration';
 import { ACHIEVEMENT_XP, parseVxp } from '../src/vxp/constants';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { uniqueNickname } from './helpers/profiles';
-import { stubVxpLedger, type LedgerStub } from './helpers/vxp';
+import { accountStateWithEquity, stubVxpLedger, type LedgerStub } from './helpers/vxp';
 
 let stub: LedgerStub | undefined;
 let restoreEngine: (() => void) | undefined;
@@ -40,7 +40,8 @@ beforeEach(() => {
 			const events = history.get(identity.getPrincipal().toText()) ?? [];
 
 			return Promise.resolve({
-				get_trade_history: () => Promise.resolve(events)
+				get_trade_history: () => Promise.resolve(events),
+				get_account_state: () => Promise.resolve(accountStateWithEquity(BigInt(0)))
 			} as unknown as ClearingService);
 		},
 		registry: () => Promise.resolve({} as unknown as RegistryService)

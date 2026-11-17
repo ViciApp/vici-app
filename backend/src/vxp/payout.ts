@@ -7,7 +7,7 @@
 // ledger's dedup window a replay proves nothing, so the treasury's transfer
 // history (index canister) is the authority on whether a transfer landed.
 
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 import {
 	IcrcIndexCanister,
 	IcrcLedgerCanister,
@@ -16,6 +16,7 @@ import {
 import { Principal } from '@icp-sdk/core/principal';
 import { encodeTransferMemo, icrcTransferErrorVariant, transferErrorText } from '../chains/ic/icrc';
 import { getAssetBySymbol } from '../custody/assets';
+import { getAccountState } from '../engine/clearing';
 import { env } from '../env';
 import { buildAgent } from '../lib/ic-agent';
 import { treasuryIcIdentity, treasuryIcPrincipalText, userIcPrincipalText } from '../lib/keys';
@@ -297,6 +298,27 @@ export const getVxpBalance = async (userId: string): Promise<bigint> => {
 		owner: Principal.fromText(userIcPrincipalText(userId)),
 		certified: false
 	});
+};
+
+/**
+ * Every VXP the user holds (base units): the ledger wallet plus their equity
+ * in clearing's ViciXp domain. The default playground auto-deposit sweeps the
+ * wallet into that domain within seconds, so the wallet alone reads near zero
+ * for an active user whatever they hold. Equity is collateral plus realised
+ * cash, so it follows wins and losses; the ViciXp domain prices VXP 1:1 in the
+ * clearing unit, whose 4 decimals are VXP's, so it adds as base units. This
+ * is the figure the recovery-floor gates measure.
+ */
+export const getVxpHoldings = async (userId: string): Promise<bigint> => {
+	const [wallet, account] = await Promise.all([
+		getVxpBalance(userId),
+		getAccountState({
+			userId,
+			params: { domain: toNullable({ ViciXp: null }), refresh: toNullable(false) }
+		})
+	]);
+
+	return wallet + account.total_equity_usd;
 };
 
 /** The treasury's own spendable VXP balance (base units): what the award

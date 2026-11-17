@@ -10,7 +10,8 @@
 // on-chain history follows the user to this stack without a manual claim.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { tx, type TxQuery } from '../db/client';
+import { query, tx, type TxQuery } from '../db/client';
+import { userIcPrincipalText } from '../lib/keys';
 import { adoptOnFirstLogin, lockLoginEmails } from './adoption';
 
 export type Provider = 'google' | 'apple' | 'email';
@@ -185,4 +186,32 @@ export const deleteSignInIdentities = async ({
 
 	await q(`delete from otp_codes where lower(email) = any($1::text[])`, [emails]);
 	await q(`delete from auth_identities where user_id = $1`, [userId]);
+};
+
+/**
+ * Every on-chain principal each user can have settled under, keyed by user
+ * id: the derived custodial principal plus any linked legacy principals, so
+ * history from before an account was matched still counts. The one mapping
+ * every settled-history score (battles, the Worlds podium, tournament
+ * matches) reads members through.
+ */
+export const settlementPrincipalsByUser = async (
+	userIds: readonly string[]
+): Promise<Map<string, string[]>> => {
+	const principals = new Map(userIds.map((userId) => [userId, [userIcPrincipalText(userId)]]));
+
+	if (userIds.length === 0) {
+		return principals;
+	}
+
+	const rows = await query<{ user_id: string; principal: string }>(
+		`select user_id, principal from legacy_principals where user_id = any($1::uuid[])`,
+		[[...userIds]]
+	);
+
+	for (const row of rows) {
+		principals.get(row.user_id)?.push(row.principal);
+	}
+
+	return principals;
 };

@@ -1,12 +1,12 @@
-// Worlds standings: the write-once monthly freeze (frozen rows never drift
-// as the roster later churns), the frozen-vs-provisional month read, the
-// champion history derived from frozen months, and the opt-out gate on the
-// recomputed windows.
+// Worlds standings: the write-once monthly freeze from settled history
+// (frozen rows never drift as the roster later churns), the
+// frozen-vs-provisional month read, the champion history derived from
+// frozen months, and the opt-out gate on the recomputed windows.
 
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
-import { monthAnchorFromMs } from '../src/lib/time';
+import { DAY_IN_MS, monthAnchorFromMs, monthStartMs } from '../src/lib/time';
 import {
 	freezeMonthlySnapshots,
 	getAffiliationStats,
@@ -18,6 +18,7 @@ import {
 import { setAffiliation } from '../src/worlds/affiliations';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { uniqueNickname } from './helpers/profiles';
+import { stubSettledHistory, type SettledHistoryStub } from './helpers/settlements';
 import { dbAvailable } from './helpers/setup';
 
 const uniqueSlug = (): string => `w-${randomBytes(6).toString('hex')}`;
@@ -53,7 +54,19 @@ const clearTestMonths = async (): Promise<void> => {
 	await query(`delete from user_monthly_stats where month_anchor >= $1`, [FIRST_TEST_MONTH_ANCHOR]);
 };
 
-/** A member of `slug` with a profile and a month row for the anchor. */
+let settled: SettledHistoryStub | undefined;
+
+beforeEach(() => {
+	settled = stubSettledHistory();
+});
+
+afterEach(() => {
+	settled?.restore();
+	settled = undefined;
+});
+
+/** A member of `slug` with a profile, a month row for the anchor and the
+ * same calls settled inside that month. */
 const seedMember = async ({
 	slug,
 	monthAnchor,
@@ -84,6 +97,12 @@ const seedMember = async ({
 		 values ($1, $2, $3, $4, $5)`,
 		[userId, monthAnchor, monthCalls, monthWins, Date.now()]
 	);
+	settled?.settle({
+		userId,
+		atMs: monthStartMs(monthAnchor) + DAY_IN_MS,
+		calls: monthCalls,
+		wins: monthWins
+	});
 	await setAffiliation({ userId, kind: 'university', affiliationIdentifier: slug });
 
 	return userId;

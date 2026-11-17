@@ -67,11 +67,6 @@
 			"count": 1
 		}
 	},
-	"backend/src/profiles/stats.ts": {
-		"complexity": {
-			"count": 1
-		}
-	},
 	"backend/src/routes/auth.ts": {
 		"complexity": {
 			"count": 1
@@ -463,10 +458,10 @@
 	},
 	"src/satellite/services/cohort.services.ts": {
 		"complexity": {
-			"count": 3
+			"count": 2
 		},
 		"max-depth": {
-			"count": 3
+			"count": 2
 		},
 		"max-lines": {
 			"count": 1
@@ -499,7 +494,7 @@
 	},
 	"src/satellite/services/tournament.services.ts": {
 		"complexity": {
-			"count": 3
+			"count": 2
 		},
 		"max-lines": {
 			"count": 1

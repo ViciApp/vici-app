@@ -78,6 +78,14 @@ export const Collection = {
 	 */
 	CALIBRATION_ATTEMPTS: collections.CALIBRATION_ATTEMPTS,
 	/**
+	 * An anonymous marker per one-time award a purged account was paid, keyed
+	 * `${identityDigest(principal)}/${awardType}/${awardKey}` (`award-marker.utils.ts`): no
+	 * principal, no data. The account purge writes them; `assertSetVxpAward`, the onboarding payout
+	 * and the league-founder cap read them, so the same principal signing up again cannot collect a
+	 * one-time award twice. Controllers-scoped.
+	 */
+	VXP_AWARD_MARKERS: collections.VXP_AWARD_MARKERS,
+	/**
 	 * Reverse index from referral code (key) to owning principal. One row per user; written by the
 	 * satellite profile hook on first profile create.
 	 */
@@ -152,9 +160,8 @@ export const Collection = {
 	 * Per-league rolling stats: lifetime resolved-call count + wins. One doc per league
 	 * keyed by `leagueId`. Written exclusively by the satellite hook on `profiles` updates:
 	 * when a user's `totalTrades` increments, the hook scans their league memberships and
-	 * fans the delta out. Used by the tournament round-resolution flow to compute per-window
-	 * accuracy as the delta between the round's start-of-window snapshot (frozen on the
-	 * match doc) and the current rolling counter.
+	 * fans the delta out. A display cache: tournament matches and league battles are scored
+	 * from the members' settled history read from the clearing canister, never from it.
 	 */
 	LEAGUE_STATS: collections.LEAGUE_STATS,
 	/**

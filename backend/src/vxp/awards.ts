@@ -20,6 +20,7 @@ import { env } from '../env';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { MINUTE_IN_MS, msToNs, nowNs, optionalMs } from '../lib/time';
+import { countAwardMarkers, hasAwardMarker } from './award-markers';
 import { vxpFromBaseUnits } from './constants';
 import { findTreasuryTransferToUser, transferVxpToUser } from './payout';
 
@@ -508,11 +509,16 @@ const settleInsertedAward = async ({
  * The single grant path: insert the pending row (colliding silently when the
  * award already exists), then either leave it recorded (record-only mode) or
  * drive the treasury transfer and the paid/failed transition. Non-positive
- * amounts are skipped entirely; nothing is owed.
+ * amounts are skipped entirely; nothing is owed. A one-time award the user's
+ * identity was paid under a deleted account answers 'already' too.
  */
 export const grantAward = async (grant: GrantAwardParams): Promise<GrantAwardOutcome> => {
 	if (grant.amountBaseUnits <= ZERO) {
 		return { outcome: 'skipped_zero' };
+	}
+
+	if (await hasAwardMarker(grant)) {
+		return { outcome: 'already' };
 	}
 
 	const id = await insertPendingAward(grant);
@@ -542,7 +548,9 @@ export type CappedGrantOutcome<Reason extends string> =
  * each one counts the rows the earlier ones inserted: a cap is never
  * exceeded, however many claims race. The lock is released at commit, before
  * the transfer, so a slow ledger never holds up the next grant. Every row
- * counts whatever its status: anything in flight consumes a slot.
+ * counts whatever its status: anything in flight consumes a slot. A lifetime
+ * cap also counts the awards the user's identities were paid under deleted
+ * accounts (their markers), so deleting an account never resets it.
  */
 export const grantCappedAward = async <Reason extends string>({
 	caps,
@@ -559,6 +567,10 @@ export const grantCappedAward = async <Reason extends string>({
 			`vxp-award-cap:${grant.userId}:${grant.awardType}`
 		]);
 
+		if (await hasAwardMarker(grant, q)) {
+			return {};
+		}
+
 		const nowMs = Date.now();
 
 		for (const cap of caps) {
@@ -570,8 +582,13 @@ export const grantCappedAward = async <Reason extends string>({
 				},
 				q
 			);
+			// A lifetime cap also counts what the user's identities were paid
+			// under earlier, deleted accounts; a window cap has no such history.
+			const heldBefore = nonNullish(cap.windowMs)
+				? 0
+				: await countAwardMarkers({ userId: grant.userId, awardType: grant.awardType }, q);
 
-			if (held >= cap.max) {
+			if (held + heldBefore >= cap.max) {
 				return { capped: cap.reason };
 			}
 		}

@@ -331,10 +331,14 @@ monthly album awards). The pattern:
   `assertSetUserMonthlyStats` reject any write whose key (and embedded
   `owner`) isn't the caller, plus structural sanity (`wins <= calls`,
   bounded arrays, values in range). It does **not** re-derive the counters
-  from real history; a determined user could inflate their own row. Use
-  this only for **cosmetic** signals (album tiles, Dash cache) with **no VXP
-  payout**; anything that moves real value belongs in a hook or an icdc-core
-  path that the user can't forge.
+  from real history, and `user_monthly_stats` accepts any month; a
+  determined user could inflate their own row. Use this only for
+  **display** (album tiles, Dash cache, the live Worlds month window): no
+  VXP is ever ranked or paid from these rows. Anything that moves real value
+  reads a source the user can't forge: the Worlds podium and tournament
+  matches are ranked from settled history read from the clearing canister
+  (`settled-history.services.ts`), the same source league battles are scored
+  from.
 - **Lazy month rollover = a new key, not a reset.** Because each month is a
   distinct doc key, "rolling over" is just writing under the new month's key
   on the first sync of that month; no scheduler, no in-place reset. A
@@ -347,9 +351,11 @@ monthly album awards). The pattern:
   `monthConsensus` sample array (`MONTHLY_CONSENSUS_LIMIT`), keeping the most
   recent values; the assert enforces the cap so the doc can't be bloated.
 
-Contrast with the hook-driven fan-out (`onProfileSetForLeagueStats`): use a
-hook when **shared** stats (a league row many users contribute to) must move
-on the server so no single user can forge the aggregate. Use the client-write pattern when the row is
+Contrast with the hook-driven fan-out (`onProfileSetForLeagueStats`), which
+keeps a **shared** row (a league's `league_stats`) moving on the server, signed
+as a controller so no single member writes the aggregate. Its counters still
+follow each member's client-reported `totalTrades`, so the row is a display
+cache too, and tournament matches read settled history instead. Use the client-write pattern when the row is
 **owned by one user** and the signal is cosmetic.
 
 ## Soft-delete + lazy hard-delete (no scheduler)
@@ -394,6 +400,11 @@ is the reference shape:
   `owner`. The interactive `deleteMyAccount` has an up-front
   `owns_non_empty_league` guard; the guard-less recovery-expiry + sweep
   paths rely on this transfer.
+- **Purge the data, keep the one-time awards one-time.** The cascade
+  deletes every award doc, so it first records an anonymous marker per
+  one-time award the account was paid (`recordAccountAwardMarkers`, see
+  [economy invariants](./economy.md#invariants)); a principal that signs
+  up again starts over everywhere but there.
 - **Keep the marker monotonic + the side effects once-only.**
   Re-deleting keeps the EARLIEST `deletedAtMs` so the recovery clock
   can't be reset. Recovery clears the field; both are version-locked

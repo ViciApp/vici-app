@@ -1,6 +1,7 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
 import { isControllerText } from '#satellite/services/authz.services.ts';
+import { hasAwardMarker } from '#satellite/services/vxp-award-markers.services.ts';
 import { isTournamentPrizeAwardKey } from '#satellite/utils/tournament-prize.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
@@ -39,6 +40,11 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  *     (`isTournamentPrizeAwardKey`), never per place, so two places of
  *     one tournament collide on the same key. Docs written under the
  *     earlier per-place keys still settle through the edit path.
+ *
+ *  7. **One-time across a purge.** A new doc for a one-time award the
+ *     recipient was paid under an account it deleted is refused: the
+ *     purge leaves a marker of it (`hasAwardMarker`), since it deletes
+ *     the award docs that would otherwise collide.
  *
  * The streak / calibration / referral / Worlds-podium paths create
  * these docs; this assert, with {@link assertDeleteVxpAward}, is the
@@ -94,6 +100,16 @@ export const assertSetVxpAward = ({
 			!isTournamentPrizeAwardKey(proposedDoc.awardKey)
 		) {
 			throw new Error('New tournament_prize awards must be keyed on the tournament id alone.');
+		}
+
+		if (
+			hasAwardMarker({
+				principalText: proposedDoc.recipient,
+				awardType: proposedDoc.awardType,
+				awardKey: proposedDoc.awardKey
+			})
+		) {
+			throw new Error('vxp_awards: this one-time award was already paid to the principal.');
 		}
 
 		return;

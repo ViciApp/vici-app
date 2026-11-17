@@ -1915,6 +1915,9 @@ export const esMessages = {
 	'seo.home.description':
 		'Opera sobre mercados de resultado binario con funciones sociales en Internet Computer.',
 	'seo.home.title': 'VICI Mercados Sociales | Predice. Opera. Gana.',
+	'seo.invite.title': 'Invitación',
+	'seo.league_join.title': 'Únete a la liga',
+	'seo.signup.title': 'Crear cuenta',
 	'settings.about': 'VICI · v{version} · Build {build}',
 	'settings.account': 'Cuenta',
 	'settings.account.email': 'Correo',

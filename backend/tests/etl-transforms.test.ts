@@ -78,7 +78,8 @@ describe('etl collection registry', () => {
 			'events',
 			'event_rollups',
 			'chats',
-			'comments'
+			'comments',
+			'vxp_award_markers'
 		]) {
 			const importer = importerFor(collection);
 

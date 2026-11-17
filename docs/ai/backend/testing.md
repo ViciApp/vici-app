@@ -7,19 +7,20 @@ Paths are under `backend/`.
 - **Every test is `tests/<topic>.test.ts`** (one suite per domain or behaviour), run by `bun test`. Nothing sits next to the source. Mirror-pair checks live in `tests/shared-drift/`.
 - **Real Postgres, no DB mocks.** `bunfig.toml` preloads `tests/helpers/setup.ts`, which points `DATABASE_URL` at `TEST_DATABASE_URL` (default: the docker-compose database), pins `ROOT_SECRET`, and exports `dbAvailable`. A DB-backed suite is `describe.if(dbAvailable)(...)` and calls `ensureMigrated()` in `beforeAll`: `tests/guard.test.ts`.
 - **HTTP behaviour** is tested through the real app: `app.handle(new Request('http://localhost/api/v1/...'))` with a `vici_session` cookie from `createSession` (`tests/guard.test.ts`).
-- **External systems go through seams, never module mocks:** `setEngineActorProvider` (canisters), `setVxpLedgerProvider` / `stubVxpLedger` (VXP ledger), `setEmailTransport` (email), plus `resetRateLimits` and `clearCache` between tests.
+- **External systems go through seams, never module mocks:** `setEngineActorProvider` (canisters; `stubSettledHistory` for settled history), `setVxpLedgerProvider` / `stubVxpLedger` (VXP ledger), `setEmailTransport` (email), plus `resetRateLimits` and `clearCache` between tests.
 
 ## Helpers (`tests/helpers/`)
 
-| File             | Exports                                                                                                        |
-| ---------------- | -------------------------------------------------------------------------------------------------------------- |
-| `setup.ts`       | `dbAvailable` (preloaded)                                                                                      |
-| `auth.ts`        | `ensureMigrated`, `uniqueEmail`, `uniquePrincipal`, `createTestUser(role?)`                                    |
-| `profiles.ts`    | `createTestProfile`, `softDeleteProfile`, `hibernateProfile`, `uniqueNickname`                                 |
-| `adoption.ts`    | `seedImportedAccount`, `linkOf`, `claimPendingOf`, `userCount`                                                 |
-| `vxp.ts`         | `stubVxpLedger`, `readAwardRow`                                                                                |
-| `custody.ts`     | `userChainBalance` (a user's internal balance on an asset's chain, inside the caller's transaction)            |
-| `repo-source.ts` | `readRepoFile`, `readRepoSource`, `importRepoModule`, `extract*` literal extractors for the shared-drift suite |
+| File             | Exports                                                                                                                                         |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup.ts`       | `dbAvailable` (preloaded)                                                                                                                       |
+| `auth.ts`        | `ensureMigrated`, `uniqueEmail`, `uniquePrincipal`, `createTestUser(role?)`                                                                     |
+| `profiles.ts`    | `createTestProfile`, `softDeleteProfile`, `hibernateProfile`, `uniqueNickname`                                                                  |
+| `adoption.ts`    | `seedImportedAccount`, `linkOf`, `claimPendingOf`, `userCount`                                                                                  |
+| `vxp.ts`         | `stubVxpLedger`, `readAwardRow`, `accountStateWithEquity` (a clearing account-state answer for the holdings gates)                              |
+| `settlements.ts` | `stubSettledHistory`: a clearing stub answering `aggregate_settlement_accuracy` from recorded settlements, honouring the members and the window |
+| `custody.ts`     | `userChainBalance` (a user's internal balance on an asset's chain, inside the caller's transaction)                                             |
+| `repo-source.ts` | `readRepoFile`, `readRepoSource`, `importRepoModule`, `extract*` literal extractors for the shared-drift suite                                  |
 
 ## Rules learnt the hard way
 

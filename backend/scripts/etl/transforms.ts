@@ -34,6 +34,9 @@
 //   - events / event_rollups are skipped: the behavioural history was already
 //     drained to the warehouse through the analytics export contract.
 //   - chats / comments are skipped: dormant surfaces with no target tables.
+//   - vxp_award_markers is skipped: each is a digest of a purged principal,
+//     and no account on this stack can be derived from one (the API writes
+//     its own markers, keyed by sign-in identity, in vxp_award_markers).
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { createHash } from 'node:crypto';
@@ -1682,6 +1685,11 @@ export const IMPORTERS: CollectionImporter[] = [
 		collection: 'event_rollups',
 		mode: 'skip',
 		skipReason: 'derived from events, which are skipped; rollups rebuild from fresh ingest'
+	},
+	{
+		collection: 'vxp_award_markers',
+		mode: 'skip',
+		skipReason: 'digests of purged principals; no account on this stack derives from one'
 	}
 ];
 

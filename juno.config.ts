@@ -27,6 +27,7 @@ enum JunoDatastoreCollection {
 	VXP_ONBOARDING = 'vxp_onboarding',
 	VXP_AWARDS = 'vxp_awards',
 	CALIBRATION_ATTEMPTS = 'calibration_attempts',
+	VXP_AWARD_MARKERS = 'vxp_award_markers',
 	REFERRAL_CODES = 'referral_codes',
 	REFERRALS = 'referrals',
 	LEAGUES = 'leagues',
@@ -238,6 +239,17 @@ export default defineConfig(({ mode }) => ({
 				// endpoint is the sole reader and writer (as a controller).
 				{
 					collection: JunoDatastoreCollection.CALIBRATION_ATTEMPTS,
+					memory: 'stable',
+					read: 'controllers',
+					write: 'controllers'
+				},
+				// An anonymous marker per one-time award a purged account was paid:
+				// a digest of the principal, the award type and key, nothing else.
+				// The award asserts and payouts refuse an award whose marker
+				// exists, so signing up again never pays it twice. Controllers-only:
+				// the account purge writes them and the award paths read them.
+				{
+					collection: JunoDatastoreCollection.VXP_AWARD_MARKERS,
 					memory: 'stable',
 					read: 'controllers',
 					write: 'controllers'

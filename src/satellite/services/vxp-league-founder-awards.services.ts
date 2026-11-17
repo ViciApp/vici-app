@@ -7,6 +7,7 @@ import {
 import type { LeagueDoc } from '#lib/types/league.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { listMyLeaguesFn } from '#satellite/services/cohort.services.ts';
+import { countAwardMarkers } from '#satellite/services/vxp-award-markers.services.ts';
 import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -42,11 +43,13 @@ import { countDocsStore, decodeDocData, getDocStore } from '@junobuild/functions
 const AWARD_TYPE = 'league_founder' as const;
 
 /**
- * Count of `league_founder` award docs this recipient already owns. The
- * docs are keyed `{recipient}/league_founder/{leagueId}`, so the builder
- * with an empty `awardKey` yields the caller's founder-award key prefix;
- * `matcher.key` is matched as a regex by the datastore, so anchor it to
- * the start to bound the scan to just this caller's founder docs.
+ * Count of `league_founder` award docs this recipient already owns, plus
+ * the founder awards it was paid under accounts it deleted (their markers),
+ * so a purge never resets the lifetime cap. The docs are keyed
+ * `{recipient}/league_founder/{leagueId}`, so the builder with an empty
+ * `awardKey` yields the caller's founder-award key prefix; `matcher.key` is
+ * matched as a regex by the datastore, so anchor it to the start to bound
+ * the scan to just this caller's founder docs.
  */
 const founderAwardCount = ({
 	caller,
@@ -57,12 +60,14 @@ const founderAwardCount = ({
 }): number => {
 	const prefix = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey: '' });
 
-	return Number(
-		countDocsStore({
-			collection: Collection.VXP_AWARDS,
-			caller,
-			params: { matcher: { key: `^${prefix}` } }
-		})
+	return (
+		Number(
+			countDocsStore({
+				collection: Collection.VXP_AWARDS,
+				caller,
+				params: { matcher: { key: `^${prefix}` } }
+			})
+		) + countAwardMarkers({ principalText: recipient, awardType: AWARD_TYPE })
 	);
 };
 

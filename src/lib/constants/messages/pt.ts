@@ -1907,6 +1907,9 @@ export const ptMessages = {
 	'seo.home.description':
 		'Negoceia em mercados de resultado binário com recursos sociais no Internet Computer.',
 	'seo.home.title': 'VICI Social Markets | Prevê. Negoceia. Vence.',
+	'seo.invite.title': 'Convite',
+	'seo.league_join.title': 'Entra na liga',
+	'seo.signup.title': 'Criar conta',
 	'settings.about': 'VICI · v{version} · Build {build}',
 	'settings.account': 'Conta',
 	'settings.account.email': 'E-mail',

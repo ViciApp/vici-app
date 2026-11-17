@@ -1,7 +1,4 @@
-import type { ClearingDid } from '#declarations';
-import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import {
 	BATTLE_SCOPE_DEFAULT,
 	battleAccuracyPct,
@@ -11,22 +8,15 @@ import {
 	type BattleScope,
 	type BattleWinner
 } from '#lib/types/battle.ts';
-import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import { controllerCaller } from '#satellite/services/authz.services.ts';
+import { leagueMemberPrincipals } from '#satellite/services/league-member.services.ts';
 import { seriesIdsForTag } from '#satellite/services/market-tag-index.services.ts';
-import { candidMethod } from '#satellite/utils/candid.utils.ts';
-import { escapeRegex } from '#satellite/utils/regex.utils.ts';
+import { settledTotals } from '#satellite/services/settled-history.services.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import { call, msgCaller } from '@junobuild/functions/ic-cdk';
-import {
-	decodeDocData,
-	encodeDocData,
-	getDocStore,
-	listDocsStore,
-	setDocStore
-} from '@junobuild/functions/sdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
+import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
 
 /**
  * League-battle resolution from real settled-call history (controller-trusted).
@@ -50,46 +40,6 @@ import {
 const adminCaller = (): Uint8Array => controllerCaller('battle resolution');
 
 /**
- * Current member principals of a league. The `league_members` key is
- * `${leagueId}/${principal}`, so the scan is anchored to that prefix with a
- * key matcher: the datastore skips (and never decodes) rows for other
- * leagues, keeping this O(this-league's-members) rather than O(all-members).
- */
-const leagueMemberPrincipals = ({
-	leagueId,
-	caller
-}: {
-	leagueId: string;
-	caller: Uint8Array;
-}): Principal[] => {
-	const prefix = `${leagueId}/`;
-
-	const { items } = listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller,
-		params: { matcher: { key: `^${escapeRegex(prefix)}` } }
-	});
-
-	const principals: Principal[] = [];
-
-	for (const [key, item] of items) {
-		if (key.startsWith(prefix)) {
-			try {
-				const member = decodeDocData<LeagueMemberDoc>(item.data);
-
-				if (member.leagueId === leagueId) {
-					principals.push(Principal.fromText(member.member));
-				}
-			} catch {
-				// A malformed row can't contribute a member: skip it.
-			}
-		}
-	}
-
-	return principals;
-};
-
-/**
  * The series allow-list for a battle scope. `'all'` returns `undefined` (no
  * filter: every series counts); a market-tag scope returns that tag's series
  * set read straight from the `market_tag_index` bucket: O(matching-series),
@@ -109,65 +59,6 @@ const scopeSeriesIds = ({
 	}
 
 	return seriesIdsForTag({ tag: scope, caller });
-};
-
-/** Per-side settled-call totals over a window, summed across the side's members. */
-interface SideTotals {
-	/** Settled positions in the window: the battle's `calls`. */
-	calls: number;
-	/** Net-positive settlements: the battle's `wins`. */
-	wins: number;
-}
-
-/**
- * Sum a side's members' settled-position win/total counts over `[fromMs,
- * toMs)`, scoped to `seriesIds` when present, by calling the clearing canister.
- * An empty member set (or an empty-but-present series scope) returns zeroes
- * without a call.
- */
-const sideTotals = async ({
-	members,
-	fromMs,
-	toMs,
-	seriesIds
-}: {
-	members: Principal[];
-	fromMs: number;
-	toMs: number;
-	seriesIds: string[] | undefined;
-}): Promise<SideTotals> => {
-	if (members.length === 0 || (nonNullish(seriesIds) && seriesIds.length === 0)) {
-		return { calls: 0, wins: 0 };
-	}
-
-	const { argTypes, result } = candidMethod({
-		canister: 'clearing',
-		method: 'aggregate_settlement_accuracy'
-	});
-
-	const params: ClearingDid.AggregateSettlementAccuracyParams = {
-		members,
-		from_ts: [BigInt(fromMs) * MILLISECOND_IN_NANOSECONDS],
-		to_ts: [BigInt(toMs) * MILLISECOND_IN_NANOSECONDS],
-		series_ids: nonNullish(seriesIds) ? [seriesIds] : []
-	};
-
-	const entries = await call<ClearingDid.SettlementAccuracyEntry[]>({
-		canisterId: CLEARING_CANISTER_ID,
-		method: 'aggregate_settlement_accuracy',
-		args: [[argTypes[0], params]],
-		result
-	});
-
-	let calls = 0;
-	let wins = 0;
-
-	for (const entry of entries) {
-		calls += Number(entry.settled_count);
-		wins += Number(entry.win_count);
-	}
-
-	return { calls, wins };
 };
 
 /** The windowed scoreline both sides over `[fromMs, toMs)`, from clearing. */
@@ -192,13 +83,13 @@ const computeScoreline = async ({
 	const seriesIds = scopeSeriesIds({ scope, caller });
 
 	const [a, b] = await Promise.all([
-		sideTotals({
+		settledTotals({
 			members: leagueMemberPrincipals({ leagueId: battle.sideA, caller }),
 			fromMs: battle.kickoffMs,
 			toMs,
 			seriesIds
 		}),
-		sideTotals({
+		settledTotals({
 			members: leagueMemberPrincipals({ leagueId: battle.sideB, caller }),
 			fromMs: battle.kickoffMs,
 			toMs,

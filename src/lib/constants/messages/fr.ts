@@ -1916,6 +1916,9 @@ export const frMessages = {
 	'seo.home.description':
 		'Tradez sur des marchés à résultat binaire avec des fonctionnalités sociales sur l’Internet Computer.',
 	'seo.home.title': 'VICI Social Markets | Prédire. Trader. Gagner.',
+	'seo.invite.title': 'Invitation',
+	'seo.league_join.title': 'Rejoins la ligue',
+	'seo.signup.title': 'Créer un compte',
 	'settings.about': 'VICI · v{version} · Build {build}',
 	'settings.account': 'Compte',
 	'settings.account.email': 'E-mail',

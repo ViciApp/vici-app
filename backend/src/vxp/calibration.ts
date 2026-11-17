@@ -19,7 +19,7 @@ import {
 	CALIBRATION_RECOVERY_FLOOR_BASE_UNITS,
 	VXP_CALIBRATION_REWARD_BASE_UNITS
 } from './constants';
-import { getVxpBalance } from './payout';
+import { getVxpBalance, getVxpHoldings } from './payout';
 
 export const CALL_SIDES = ['YES', 'NO'] as const;
 
@@ -171,10 +171,10 @@ export const claimCalibrationReward = async ({
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: 'not_engaged_yet' };
 	}
 
-	// Balance floor: the core bound, pay only while recovering.
-	const balance = await getVxpBalance(userId);
+	// Holdings floor: the core bound, pay only while recovering.
+	const holdings = await getVxpHoldings(userId);
 
-	if (balance >= CALIBRATION_RECOVERY_FLOOR_BASE_UNITS) {
+	if (holdings >= CALIBRATION_RECOVERY_FLOOR_BASE_UNITS) {
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: 'balance_above_floor' };
 	}
 

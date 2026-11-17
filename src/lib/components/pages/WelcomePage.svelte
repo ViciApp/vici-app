@@ -26,9 +26,10 @@
 	import WelcomeStatus from '#lib/components/landing/WelcomeStatus.svelte';
 	import WelcomeTrust from '#lib/components/landing/WelcomeTrust.svelte';
 	import WelcomeNav from '#lib/components/layout/WelcomeNav.svelte';
+	import { BRAND_WORDMARK } from '#lib/constants/brand.constants.ts';
 
 	onMount(() => {
-		document.title = 'VICI';
+		document.title = BRAND_WORDMARK;
 
 		// Opt the landing into the contained-scroll viewport (see `.lpc` in
 		// `landing.css`). On iOS this moves scrolling off the document into

@@ -15,9 +15,16 @@ import {
 } from '#lib/types/league.ts';
 import type { Relation } from '#lib/types/relation.ts';
 import type { UserMonthlyStatsDoc } from '#lib/types/user-monthly-stats.ts';
-import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
+import {
+	monthAnchorFromMs,
+	monthAnchorStartMs,
+	monthEndMs
+} from '#lib/utils/month-anchor.utils.ts';
+import { settledTotalsByPrincipal } from '#satellite/services/settled-history.services.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
+import { joinedBeforeMonthClose } from '#satellite/utils/worlds-podium.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
 
@@ -74,6 +81,12 @@ const compareAffiliationRank =
 				? 1
 				: 0;
 	};
+
+/** The monthly surfaces' ranking: the podium, the frozen month, the champion cup. */
+const monthlyRankComparator = compareAffiliationRank({
+	accuracyOf: (doc) => doc.monthWins / doc.monthTotalCalls,
+	callsOf: (doc) => doc.monthTotalCalls
+});
 
 /** Hydrated `LeagueDoc` paired with the caller's role inside it. */
 export interface LeagueWithRole {
@@ -980,12 +993,7 @@ export const listAffiliationChampionshipsFn = ({
 	for (const [monthAnchor, bucket] of byMonth.entries()) {
 		// Same tie-break as the podium / leaderboard: accuracy desc →
 		// monthTotalCalls desc → affiliationIdentifier asc.
-		bucket.sort(
-			compareAffiliationRank({
-				accuracyOf: (doc) => doc.monthWins / doc.monthTotalCalls,
-				callsOf: (doc) => doc.monthTotalCalls
-			})
-		);
+		bucket.sort(monthlyRankComparator);
 
 		const [winner] = bucket;
 
@@ -1028,6 +1036,27 @@ interface ProfileLifetimeSlice {
  */
 const isWorldsOptedOut = (slice: ProfileLifetimeSlice): boolean =>
 	slice.preferences?.sharing?.worldsOptIn === false;
+
+/** {@link isWorldsOptedOut} read off a member's profile doc; a missing or malformed profile is opted-in (shown). */
+const isMemberWorldsOptedOut = ({
+	member,
+	caller
+}: {
+	member: string;
+	caller: Uint8Array;
+}): boolean => {
+	const profileDoc = getDocStore({ collection: Collection.PROFILES, key: member, caller });
+
+	if (isNullish(profileDoc)) {
+		return false;
+	}
+
+	try {
+		return isWorldsOptedOut(decodeDocData<ProfileLifetimeSlice>(profileDoc.data));
+	} catch {
+		return false;
+	}
+};
 
 /**
  * Real lifetime tally for a Worlds kind, summed over each affiliation's
@@ -1116,7 +1145,7 @@ const aggregateMembersLifetime = ({
 };
 
 /**
- * Real per-month tally for a Worlds kind, summed over each affiliation's
+ * Display per-month tally for a Worlds kind, summed over each affiliation's
  * CURRENT opted-in roster. The monthly mirror of {@link aggregateMembersLifetime}:
  * where the lifetime aggregate reads each member's profile totals, this reads
  * each member's `USER_MONTHLY_STATS[${member}/${monthAnchor}]` row and folds
@@ -1124,8 +1153,9 @@ const aggregateMembersLifetime = ({
  *
  * This is what lets the monthly Worlds window retract on leave / opt-out with
  * no per-month deltas on the profile: the month's numbers live per-member in
- * `USER_MONTHLY_STATS` (written from real clearing history by the FE), and the
- * aggregate is recomputed over whoever is a current, opted-in member now.
+ * `USER_MONTHLY_STATS`, and the aggregate is recomputed over whoever is a
+ * current, opted-in member now. Those rows are client-written, so this tally
+ * only ever feeds a view: the podium pays from {@link settledMonthlyRows}.
  *
  * Cost: one `USER_MONTHLY_STATS` scan (filtered by the `/${monthAnchor}`
  * suffix, same shape as `getMonthlyLeaderboard`) + one `affiliations` scan +
@@ -1199,34 +1229,15 @@ const aggregateMembersForMonth = ({
 
 			// Only members with activity in the month can contribute; skip the
 			// profile read entirely for members with no month row.
-			if (nonNullish(owned)) {
-				const profileDoc = getDocStore({
-					collection: Collection.PROFILES,
-					key: aff.member,
-					caller
-				});
+			if (nonNullish(owned) && !isMemberWorldsOptedOut({ member: aff.member, caller })) {
+				const bucket = monthly.get(aff.affiliationIdentifier) ?? {
+					monthTotalCalls: 0,
+					monthWins: 0
+				};
 
-				let optedOut = false;
-
-				if (nonNullish(profileDoc)) {
-					try {
-						optedOut = isWorldsOptedOut(decodeDocData<ProfileLifetimeSlice>(profileDoc.data));
-					} catch {
-						// Malformed profile: treat as opted-in (shown).
-						optedOut = false;
-					}
-				}
-
-				if (!optedOut) {
-					const bucket = monthly.get(aff.affiliationIdentifier) ?? {
-						monthTotalCalls: 0,
-						monthWins: 0
-					};
-
-					bucket.monthTotalCalls += owned.monthCalls;
-					bucket.monthWins += owned.monthWins;
-					monthly.set(aff.affiliationIdentifier, bucket);
-				}
+				bucket.monthTotalCalls += owned.monthCalls;
+				bucket.monthWins += owned.monthWins;
+				monthly.set(aff.affiliationIdentifier, bucket);
 			}
 		}
 	}
@@ -1349,19 +1360,50 @@ export const listAffiliationStatsFn = ({
 };
 
 /**
- * Ranked affiliation rows for a specific completed month: the input the
- * Worlds podium reads to pick top-3.
- *
- * Frozen-at-close: once a month's podium has been claimed the ranking is
- * captured as immutable snapshot docs (`${kind}/${affiliationIdentifier}/${monthAnchor}`,
- * written by the freeze in `vxp-worlds-podium.services`). This function
- * returns those frozen rows when they exist, so awards and the champion cup
- * are stable and can't drift as members later churn. Before a month has been
- * frozen (no claim yet) it live-recomputes over the current opted-in roster
- * via {@link aggregateMembersForMonth} as a **provisional** view: the same
- * data the freeze will capture. Sort key matches `listAffiliationStatsFn`.
+ * Month-scoped `AffiliationStatsDoc` rows for the affiliations clearing
+ * `MIN_CALLS_FOR_RANK`. The lifetime fields mirror the monthly ones (the
+ * podium reads only the monthly window). `nowMs` stamps `updatedAtMs`; a
+ * query context that needs no real timestamp may pass `0`.
  */
-export const listAffiliationStatsForMonthFn = ({
+const rankEligibleMonthlyRows = ({
+	kind,
+	monthAnchor,
+	nowMs,
+	monthly
+}: {
+	kind: AffiliationKind;
+	monthAnchor: string;
+	nowMs: number;
+	monthly: Map<string, { monthTotalCalls: number; monthWins: number }>;
+}): AffiliationStatsDoc[] => {
+	const rows: AffiliationStatsDoc[] = [];
+
+	for (const [affiliationIdentifier, m] of monthly) {
+		if (m.monthTotalCalls >= MIN_CALLS_FOR_RANK) {
+			rows.push({
+				kind,
+				affiliationIdentifier,
+				totalCalls: m.monthTotalCalls,
+				wins: m.monthWins,
+				monthAnchor,
+				monthTotalCalls: m.monthTotalCalls,
+				monthWins: m.monthWins,
+				updatedAtMs: nowMs
+			});
+		}
+	}
+
+	return rows;
+};
+
+/**
+ * The frozen ranking of a closed month: the immutable snapshot docs
+ * (`${kind}/${affiliationIdentifier}/${monthAnchor}`) the podium freeze in
+ * `vxp-worlds-podium.services` writes from settled history the first time the
+ * month's podium is claimed, ranked by the leaderboard's rule. Empty until the
+ * month is frozen; the podium pays from this and nothing else.
+ */
+export const frozenMonthlyRanking = ({
 	kind,
 	monthAnchor
 }: {
@@ -1401,31 +1443,48 @@ export const listAffiliationStatsForMonthFn = ({
 		}
 	}
 
-	// Frozen snapshot present → that's the immutable ranking. Otherwise fall
-	// back to a provisional live recompute over the current opted-in roster.
-	const stats = frozen.length > 0 ? frozen : liveMonthlyRows({ kind, monthAnchor, nowMs: 0 }).rows;
-
-	stats.sort(
-		compareAffiliationRank({
-			accuracyOf: (doc) => doc.monthWins / doc.monthTotalCalls,
-			callsOf: (doc) => doc.monthTotalCalls
-		})
-	);
-
-	return stats;
+	return frozen.sort(monthlyRankComparator);
 };
 
 /**
- * Build ranked-eligible `AffiliationStatsDoc` rows for a month from the live
- * roster recompute (used as the provisional fallback before a month is frozen,
- * and as the source the freeze snapshots). Only affiliations clearing
- * `MIN_CALLS_FOR_RANK` are returned. For a month-scoped row the lifetime
- * fields mirror the monthly ones (the podium reads only the monthly window).
- *
- * `nowMs` stamps `updatedAtMs`; callers in a query context that don't need a
- * real timestamp may pass `0`.
+ * Ranked affiliation rows for a specific month, for display: the frozen
+ * ranking ({@link frozenMonthlyRanking}) once the month's podium has been
+ * claimed, else a **provisional** live recompute over the current opted-in
+ * roster from the client-written monthly stats ({@link aggregateMembersForMonth}).
+ * Sort key matches `listAffiliationStatsFn`.
  */
-export const liveMonthlyRows = ({
+export const listAffiliationStatsForMonthFn = ({
+	kind,
+	monthAnchor
+}: {
+	kind: AffiliationKind;
+	monthAnchor: string;
+}): AffiliationStatsDoc[] => {
+	const frozen = frozenMonthlyRanking({ kind, monthAnchor });
+
+	if (frozen.length > 0) {
+		return frozen;
+	}
+
+	return rankEligibleMonthlyRows({
+		kind,
+		monthAnchor,
+		nowMs: 0,
+		monthly: aggregateMembersForMonth({ kind, monthAnchor })
+	}).sort(monthlyRankComparator);
+};
+
+/**
+ * The rank-eligible rows of a closed month computed from settled history:
+ * what the podium freeze captures and pays from. Each affiliation's tally is
+ * its members' settled calls and wins over the month window
+ * `[month start, month close)`, read from the clearing canister (the same
+ * source league battles are scored from), never the client-written monthly
+ * stats. A member counts when they are opted in to Worlds sharing and hold a
+ * slot joined before the month closed (the satellite doc's own `created_at`),
+ * so a join after close can neither collect the prize nor lift the ranking.
+ */
+export const settledMonthlyRows = async ({
 	kind,
 	monthAnchor,
 	nowMs
@@ -1433,26 +1492,68 @@ export const liveMonthlyRows = ({
 	kind: AffiliationKind;
 	monthAnchor: string;
 	nowMs: number;
-}): { rows: AffiliationStatsDoc[] } => {
-	const monthly = aggregateMembersForMonth({ kind, monthAnchor });
-	const rows: AffiliationStatsDoc[] = [];
+}): Promise<AffiliationStatsDoc[]> => {
+	const caller = msgCaller().toUint8Array();
 
-	for (const [affiliationIdentifier, m] of monthly) {
-		if (m.monthTotalCalls >= MIN_CALLS_FOR_RANK) {
-			rows.push({
-				kind,
-				affiliationIdentifier,
-				totalCalls: m.monthTotalCalls,
-				wins: m.monthWins,
-				monthAnchor,
-				monthTotalCalls: m.monthTotalCalls,
-				monthWins: m.monthWins,
-				updatedAtMs: nowMs
-			});
+	const { items } = listDocsStore({
+		collection: Collection.AFFILIATIONS,
+		caller,
+		params: {}
+	});
+
+	const affiliationOf = new Map<string, string>();
+
+	for (const [, item] of items) {
+		let aff: AffiliationDoc | undefined;
+
+		try {
+			aff = readAffiliationDoc(item.data);
+		} catch {
+			// skip malformed
+			aff = undefined;
+		}
+
+		if (
+			nonNullish(aff) &&
+			aff.kind === kind &&
+			joinedBeforeMonthClose({ joinedAtNs: item.created_at, monthAnchor }) &&
+			!isMemberWorldsOptedOut({ member: aff.member, caller })
+		) {
+			affiliationOf.set(aff.member, aff.affiliationIdentifier);
 		}
 	}
 
-	return { rows };
+	const members: Principal[] = [];
+
+	for (const member of affiliationOf.keys()) {
+		try {
+			members.push(Principal.fromText(member));
+		} catch {
+			// A malformed member principal has no settled history to count.
+		}
+	}
+
+	const settled = await settledTotalsByPrincipal({
+		members,
+		fromMs: monthAnchorStartMs(monthAnchor),
+		toMs: monthEndMs(monthAnchor)
+	});
+
+	const monthly = new Map<string, { monthTotalCalls: number; monthWins: number }>();
+
+	for (const [member, { calls, wins }] of settled) {
+		const affiliationIdentifier = affiliationOf.get(member);
+
+		if (nonNullish(affiliationIdentifier)) {
+			const bucket = monthly.get(affiliationIdentifier) ?? { monthTotalCalls: 0, monthWins: 0 };
+
+			bucket.monthTotalCalls += calls;
+			bucket.monthWins += wins;
+			monthly.set(affiliationIdentifier, bucket);
+		}
+	}
+
+	return rankEligibleMonthlyRows({ kind, monthAnchor, nowMs, monthly });
 };
 
 /**
