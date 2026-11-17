@@ -43,6 +43,18 @@ export const TOURNAMENT_ROUNDS = ['r1', 'quarter', 'semifinal', 'final'] as cons
 
 export type TournamentRound = (typeof TOURNAMENT_ROUNDS)[number];
 
+/** Why a draw was refused: the month is already drawn, it has not started,
+ * fewer leagues than a bracket exist, or the month cannot be drawn (a
+ * malformed anchor, a closed month, or a month whose round 1 has closed). */
+export const TOURNAMENT_DRAW_REFUSAL_REASONS = [
+	'already_drawn',
+	'month_not_started',
+	'insufficient_leagues',
+	'invalid_input'
+] as const;
+
+export type TriggerTournamentDrawRefusalReason = (typeof TOURNAMENT_DRAW_REFUSAL_REASONS)[number];
+
 /**
  * Bracket size is fixed at 16: every tournament uses the same shape,
  * so a constant keeps the assert tight and the bracket layout

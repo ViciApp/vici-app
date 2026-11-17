@@ -14,7 +14,8 @@ import {
 	tournamentMatchKey,
 	type TournamentDoc,
 	type TournamentMatchDoc,
-	type TournamentRound
+	type TournamentRound,
+	type TriggerTournamentDrawRefusalReason
 } from '#lib/types/tournament.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
@@ -25,7 +26,7 @@ import { settledTotals } from '#satellite/services/settled-history.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
-import { tournamentDrawMonthRefusal } from '#satellite/utils/tournament-draw.utils.ts';
+import { tournamentDrawRefusal } from '#satellite/utils/tournament-draw.utils.ts';
 import {
 	decideTournamentPrize,
 	tournamentPodium,
@@ -52,8 +53,8 @@ import {
  *    write-once invariants on team / accuracy / winner / start-snapshot
  *    fields, forward-only state machine `in_flight → concluded`.
  *  - `triggerTournamentDrawFn`: anyone can call, for the current UTC
- *    month only; idempotent via doc-key collision on the month
- *    anchor. Scans LEAGUE_MEMBERS, counts members per league, and
+ *    month only and only while its round 1 window is open;
+ *    idempotent via doc-key collision on the month anchor. Scans LEAGUE_MEMBERS, counts members per league, and
  *    seeds the top-16 into Round 1.
  *  - `getCurrentTournamentFn`: returns the latest tournament + its
  *    matches for the FE bracket.
@@ -355,9 +356,6 @@ const seedFirstRoundPairs = (
 	return pairs;
 };
 
-export type TriggerTournamentDrawRefusalReason =
-	'already_drawn' | 'month_not_started' | 'insufficient_leagues' | 'invalid_input';
-
 export interface TriggerTournamentDrawResult {
 	ok: boolean;
 	tournamentId?: string;
@@ -370,8 +368,8 @@ export interface TriggerTournamentDrawResult {
  * doc-key collision makes the draw idempotent: a second call for
  * the same month returns `already_drawn` cleanly), so the FE can
  * fire-and-forget on every Tournament-page mount. Only the current
- * UTC month is drawn; any other month is refused before any read
- * (`tournamentDrawMonthRefusal`).
+ * UTC month is drawn, and only while its round 1 window is open; any
+ * other draw is refused before any read (`tournamentDrawRefusal`).
  *
  * Refuses if fewer than `TOURNAMENT_BRACKET_SIZE` leagues exist:
  * the data set is too small to seed a full bracket. The FE surfaces
@@ -383,10 +381,10 @@ export const triggerTournamentDrawFn = ({
 	monthAnchor: string;
 }): TriggerTournamentDrawResult => {
 	const nowMs = timeMs();
-	const monthRefusal = tournamentDrawMonthRefusal({ monthAnchor, nowMs });
+	const refusal = tournamentDrawRefusal({ monthAnchor, nowMs });
 
-	if (nonNullish(monthRefusal)) {
-		return { ok: false, reason: monthRefusal };
+	if (nonNullish(refusal)) {
+		return { ok: false, reason: refusal };
 	}
 
 	const caller = msgCaller();

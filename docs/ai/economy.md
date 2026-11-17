@@ -209,10 +209,15 @@ The bound that protects each surface today:
   forfeits. Nothing a member writes decides a match: `league_stats`
   (fed by each member's client-reported `totalTrades` on both backends)
   is a display cache that no award reads. The draw runs for
-  the current UTC month only. A
-  closed month has every round window behind it, so drawing it would
-  conclude the bracket at once on double forfeits and pay prizes for a
-  tournament nobody played. The prize is once per member per tournament,
+  the current UTC month only, and only while its round 1 window is still
+  open: the round windows are anchored at the month start, so a bracket
+  drawn later (or for a closed month) would conclude its closed rounds at
+  once on double forfeits and pay prizes for matches nobody played. After
+  round 1 closes, that month has no tournament. The rule lives in one
+  place per stack (`tournamentDrawRefusal` in
+  [`tournament-draw.utils.ts`](../../src/satellite/utils/tournament-draw.utils.ts)
+  and in [`backend/src/tournaments/tournaments.ts`](../../backend/src/tournaments/tournaments.ts))
+  and refuses with `invalid_input`. The prize is once per member per tournament,
   whatever the place: a member of several podium leagues gets the
   highest tier, and a claim for a second place is refused. Only a
   membership that predates the draw counts: the draw seeds the bracket

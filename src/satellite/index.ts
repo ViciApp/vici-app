@@ -45,6 +45,7 @@ import {
 	ResolvedResultSchema
 } from '#lib/schema/resolved-result.schema.ts';
 import { AFFILIATION_KINDS } from '#lib/types/affiliation.ts';
+import { TOURNAMENT_DRAW_REFUSAL_REASONS } from '#lib/types/tournament.ts';
 import {
 	deleteMyAccountFn,
 	hibernateMyAccountFn,
@@ -1226,9 +1227,7 @@ export const triggerTournamentDraw = defineUpdate({
 	result: j.strictObject({
 		ok: j.boolean(),
 		tournamentId: j.optional(j.string()),
-		reason: j.optional(
-			j.enum(['already_drawn', 'month_not_started', 'insufficient_leagues', 'invalid_input'])
-		),
+		reason: j.optional(j.enum(TOURNAMENT_DRAW_REFUSAL_REASONS)),
 		availableLeagues: j.optional(j.number())
 	}),
 	handler: triggerTournamentDrawFn

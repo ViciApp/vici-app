@@ -173,14 +173,47 @@ export interface TriggerTournamentDrawResult {
 }
 
 /**
+ * Why the draw for `monthAnchor` is refused at `nowMs`, or nothing when that
+ * month can be drawn. Only the current UTC month can, and only while its
+ * round 1 window is still open: the round windows are anchored at the month
+ * start, so a bracket drawn after round 1 closed would resolve its closed
+ * rounds at once on double forfeits and pay prizes for matches nobody played.
+ * After that, the month has no tournament. A closed month has every window
+ * behind it and is refused the same way.
+ */
+export const tournamentDrawRefusal = ({
+	monthAnchor,
+	nowMs
+}: {
+	monthAnchor: string;
+	nowMs: number;
+}): TriggerTournamentDrawRefusalReason | undefined => {
+	if (!MONTH_ANCHOR_RE.test(monthAnchor)) {
+		return 'invalid_input';
+	}
+
+	const currentMonthAnchor = monthAnchorFromMs(nowMs);
+
+	if (monthAnchor > currentMonthAnchor) {
+		return 'month_not_started';
+	}
+
+	const roundOne = roundWindow({
+		tournamentMonthStartMs: monthStartMs(currentMonthAnchor),
+		round: 'r1'
+	});
+
+	if (monthAnchor !== currentMonthAnchor || nowMs >= roundOne.endMs) {
+		return 'invalid_input';
+	}
+};
+
+/**
  * Run the monthly draw. Deterministic seeding: leagues ranked by member
  * count desc with the league id as the tie-break, top 16 taken; the same
  * roster always draws the same bracket. Idempotent by the tournament
- * primary-key collision on the month anchor.
- *
- * Only the current UTC month can be drawn. A closed month has every round
- * window behind it, so its bracket would resolve and conclude at once on
- * double forfeits and pay prizes for a tournament nobody played.
+ * primary-key collision on the month anchor. Only a month
+ * {@link tournamentDrawRefusal} accepts is drawn.
  */
 export const triggerTournamentDraw = async ({
 	monthAnchor,
@@ -189,18 +222,10 @@ export const triggerTournamentDraw = async ({
 	monthAnchor: string;
 	nowMs?: number;
 }): Promise<TriggerTournamentDrawResult> => {
-	if (!MONTH_ANCHOR_RE.test(monthAnchor)) {
-		return { ok: false, reason: 'invalid_input' };
-	}
+	const refusal = tournamentDrawRefusal({ monthAnchor, nowMs });
 
-	const currentMonthAnchor = monthAnchorFromMs(nowMs);
-
-	if (monthAnchor > currentMonthAnchor) {
-		return { ok: false, reason: 'month_not_started' };
-	}
-
-	if (monthAnchor !== currentMonthAnchor) {
-		return { ok: false, reason: 'invalid_input' };
+	if (nonNullish(refusal)) {
+		return { ok: false, reason: refusal };
 	}
 
 	const startMs = monthStartMs(monthAnchor);

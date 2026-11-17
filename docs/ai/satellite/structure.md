@@ -24,7 +24,7 @@ src/satellite/
     ├── logger.utils.ts             Structured logging wrapper
     ├── regex.utils.ts              escapeRegex
     ├── time.utils.ts               timeMs (IC time in ms)
-    ├── tournament-draw.utils.ts    Which month a tournament draw accepts
+    ├── tournament-draw.utils.ts    When a tournament draw is accepted
     ├── tournament-prize.utils.ts   Tournament podium + prize claim decision
     ├── vxp-payout.utils.ts         VXP transfer error mapping
     └── wire-format.utils.ts        camelCase wire schemas + toWire / fromWire

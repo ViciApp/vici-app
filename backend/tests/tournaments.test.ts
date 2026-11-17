@@ -202,7 +202,7 @@ describe.if(dbAvailable)('tournament', () => {
 		expect(secondRows[0]?.seeded_league_ids).toEqual(leagueIds);
 	});
 
-	test('only the current UTC month is drawn: a closed or future month is refused', async () => {
+	test('only the current UTC month is drawn, while its round 1 is open: a late, closed or future month is refused', async () => {
 		const { monthAnchor, startMs } = uniqueMonth();
 		const next = uniqueMonth();
 
@@ -227,10 +227,22 @@ describe.if(dbAvailable)('tournament', () => {
 
 		expect(refused).toEqual([]);
 
-		// The current month still draws on its last day.
-		const lastDay = await triggerTournamentDraw({ monthAnchor, nowMs: next.startMs - 1 });
+		// Once round 1 has closed, the current month has no tournament: its
+		// closed rounds would conclude at once on double forfeits.
+		const roundOne = roundWindow({ tournamentMonthStartMs: startMs, round: 'r1' });
 
-		expect(lastDay.ok).toBe(true);
+		for (const nowMs of [roundOne.endMs, next.startMs - 1]) {
+			const late = await triggerTournamentDraw({ monthAnchor, nowMs });
+
+			expect(late).toEqual({ ok: false, reason: 'invalid_input' });
+		}
+
+		expect(await query(`select id from tournaments where id = $1`, [monthAnchor])).toEqual([]);
+
+		// It still draws on the last instant of round 1.
+		const lastChance = await triggerTournamentDraw({ monthAnchor, nowMs: roundOne.endMs - 1 });
+
+		expect(lastChance.ok).toBe(true);
 
 		// A drawn month that has since closed is left as it is.
 		const afterClose = await triggerTournamentDraw({ monthAnchor, nowMs: next.startMs + 1000 });
