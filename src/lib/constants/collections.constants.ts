@@ -78,6 +78,14 @@ export const Collection = {
 	 */
 	CALIBRATION_ATTEMPTS: collections.CALIBRATION_ATTEMPTS,
 	/**
+	 * An anonymous marker per one-time award a purged account was paid, keyed
+	 * `${identityDigest(principal)}/${awardType}/${awardKey}` (`award-marker.utils.ts`): no
+	 * principal, no data. The account purge writes them; `assertSetVxpAward`, the onboarding payout
+	 * and the league-founder cap read them, so the same principal signing up again cannot collect a
+	 * one-time award twice. Controllers-scoped.
+	 */
+	VXP_AWARD_MARKERS: collections.VXP_AWARD_MARKERS,
+	/**
 	 * Reverse index from referral code (key) to owning principal. One row per user; written by the
 	 * satellite profile hook on first profile create.
 	 */

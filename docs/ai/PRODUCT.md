@@ -427,6 +427,33 @@ Each toggle emits `privacy_sharing_toggled` (`source: leaderboard |
 worlds`, `label: on | off`). Decision record:
 [`specs/2026-06-28-feat-sharing-opt-out-enforcement.md`](./spec-driven-development/specs/2026-06-28-feat-sharing-opt-out-enforcement.md).
 
+### Privacy: what survives an account's deletion
+
+Deleting an account (after the 30-day recovery window, or at once on a
+too-late recovery) removes the profile, the private email, the sign-in
+identities and sessions, the VXP award history and onboarding ladder,
+calibration attempts, referral code, affiliations, relations and league
+memberships; owned leagues are disbanded or handed to a member. What
+stays, by design:
+
+- **One anonymous marker per one-time VXP award the account was paid**
+  (onboarding grant, referee bonus, milestones, achievements, founder
+  awards and the others in
+  [`economy.md`](./economy.md#caps-and-gates-the-anti-farming-spine)):
+  a one-way digest of the sign-in identity (on the web2 API each provider
+  subject and verified address, keyed with a server secret; on the
+  satellite the principal) plus the award type and key. No name, email,
+  user id or principal is stored. Signing up again with the same
+  identity is a fresh account in every other way, but it cannot collect
+  those awards a second time, and the league-founder and referrer
+  lifetime counts carry over.
+- **Referral history the referrer's lifetime count needs**: on the
+  satellite a referral record that has started paying (keyed by the
+  referee principal); on the web2 API the rows naming the deleted account
+  as referrer, and a referrer's award for a deleted referee.
+- **Shared audit rows** the account took part in (activities, battles,
+  analytics), orphaned and immutable, and the anonymous exit signal.
+
 ### Worlds Universities: standings reflect the current opted-in roster
 
 A school's / country's Worlds standing is its **current members'** record,

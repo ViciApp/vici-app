@@ -3,7 +3,8 @@
 // delete (it is the identity anchor, like the principal that outlives an
 // on-chain account), stamped dead for good; what the cascade removes is every
 // way back in (auth identities, sessions, pending one-time codes) and exactly
-// the domain rows the account accumulated: profile, VXP award history,
+// the domain rows the account accumulated: profile, VXP award history (an
+// anonymous marker of each paid one-time award stays, see vxp/award-markers),
 // referral code and redemption, affiliations, relations, league memberships,
 // and owned leagues (deleted when empty, transferred to a surviving member
 // otherwise).
@@ -16,6 +17,7 @@ import { query, tx, type TxQuery } from '../db/client';
 import { deleteLeague, transferLeagueOwnership } from '../leagues/leagues';
 import { logger } from '../lib/logger';
 import { DAY_IN_MS } from '../lib/time';
+import { recordAwardMarkers } from '../vxp/award-markers';
 
 /** Recovery window for soft-deleted accounts: past this the account is
  * eligible for the sweep's hard delete (and a too-late recovery attempt
@@ -165,13 +167,16 @@ const disbandOrTransferOwnedLeagues = async ({ userId, q }: { userId: string; q:
  * audit rows (activities, battles, analytics) stay in place: the identity
  * is gone, so they are orphaned but immutable. The sign-in paths go first,
  * under the login locks, so the user id can never be signed into again: a
- * later sign-in with the same address provisions a new account, which is
- * why deleting the award history cannot let this id earn twice. Membership
+ * later sign-in with the same address provisions a new account. Before they
+ * go, the one-time awards the account was paid are written as anonymous
+ * markers of its identities, so that new account cannot collect them again
+ * once the award history is deleted. Membership
  * rows must go before the owned-league resolution so the survivor scan sees
  * the right remaining members. Idempotent: the first stamp stands.
  */
 export const hardDeleteAccount = async (userId: string): Promise<void> => {
 	await tx(async (q) => {
+		await recordAwardMarkers({ userId, q });
 		await deleteSignInIdentities({ q, userId });
 		await revokeAllForUser(userId, q);
 		await q(`delete from profiles where user_id = $1`, [userId]);

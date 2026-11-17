@@ -128,8 +128,9 @@ The bound that protects each surface today:
   purge keeps one that has started paying, and its payout state only
   moves forward (`assertSetReferral`, `isReferralPayoutRecord` in
   [`referral.services.ts`](../../src/satellite/services/referral.services.ts)).
-- **Referee reward**: one-time per account, only inside the
-  post-signup redemption window.
+- **Referee reward**: one-time per person (a deleted account's identity
+  cannot redeem again, see below), only inside the post-signup
+  redemption window.
 - **Streak / flow-volume milestones**: one-time per milestone, per
   lifetime, counted from server-side truth only: the streak from the
   server-recorded activity days (the UTC days of executed fills, never a
@@ -181,7 +182,8 @@ The bound that protects each surface today:
   absence-gated, the absence measured
   between server-recorded activity days (executed-fill days), so it
   cannot be declared and a bare Flow swipe cannot end it.
-- **League founder**: lifetime per-account cap.
+- **League founder**: lifetime per-account cap, which counts the founder
+  awards the identity was paid under deleted accounts too.
 - **Worlds podium**: ranked from **settled history**: each
   affiliation's tally is its opted-in members' settled calls and wins
   over the closed month (`[month start, month close)`), read from the
@@ -245,6 +247,42 @@ Every server-fired award is also keyed for **idempotency** in
 never double-pay; see
 [`satellite/economy.md`](./satellite/economy.md#invariants).
 
+**One-time means once per person, across account deletion.** Every
+award but the repeatable `flow_overtime` (`REPEATABLE_VXP_AWARD_TYPES`)
+is one-time per key: the onboarding milestones, the referee bonus, the
+referrer reward per referee, streak and flow-volume milestones,
+achievements, comeback, calibration per market, league founder per
+league, the Worlds podium per month and place and the tournament prize
+per tournament. The hard delete removes the award records, and the same
+identity can sign up again, so the purge keeps an **anonymous marker** of
+each one-time award the account was paid (or may have been, while its
+transfer was in flight): a one-way digest of the identity plus the award
+type and key, nothing else. A grant whose marker exists is refused, and a
+lifetime cap or tier (league founder, referrer) counts the markers, so
+deleting the account resets none of them.
+
+- **Web2 API:** the identity is each sign-in identity the account held,
+  a provider subject and a verified address (a new account reached by
+  either is the same person), digested with HMAC-SHA256 under a key
+  derived from `ROOT_SECRET` (`identityDigest` in
+  [`backend/src/lib/keys.ts`](../../backend/src/lib/keys.ts)). Markers
+  live in the `vxp_award_markers` table, written by `hardDeleteAccount`
+  and read by `grantAward` / `grantCappedAward`, the referrer tier
+  count and the referral redemption
+  ([`backend/src/vxp/award-markers.ts`](../../backend/src/vxp/award-markers.ts)).
+  The referee bonus is keyed by the account's own id, so its marker key
+  is `self`.
+- **Satellite:** the identity is the principal, which signing up again
+  reuses, digested with SHA-224 (the satellite has no secret, so the
+  digest is unkeyed; it keeps the principal out of the record). Markers
+  live in the controllers-scoped `vxp_award_markers` collection, written
+  by the account purge and read by `assertSetVxpAward`, the onboarding
+  payout and the league-founder cap
+  ([`vxp-award-markers.services.ts`](../../src/satellite/services/vxp-award-markers.services.ts)).
+  The referee bonus needs no marker there: the purge keeps a referral
+  record that has started paying (see the referrer reward above), and a
+  principal holding one cannot redeem again.
+
 ## Known open farm vectors
 
 Recorded deliberately so the next agent inherits them. These are
@@ -255,7 +293,9 @@ Recorded deliberately so the next agent inherits them. These are
    needs no prior activity. The current defense is the cost of a fresh
    sign-in identity per account: an Internet Identity on the satellite,
    a verified email address (one-time code) or a Google / Apple account
-   on the web2 API. Harden further only if abuse appears. Tracking:
+   on the web2 API. Deleting an account and signing up again with the
+   same identity does not count: its one-time award markers refuse a
+   second grant. Harden further only if abuse appears. Tracking:
    **#543**.
 2. **Satellite payouts trust the client-written activity log.** On the
    satellite, referral and onboarding payouts trigger off the user's

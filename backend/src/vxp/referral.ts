@@ -9,6 +9,7 @@ import { isNullish } from '@dfinity/utils';
 import { query } from '../db/client';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
+import { countAwardMarkers } from './award-markers';
 import { grantAward } from './awards';
 import { REFERRAL_VXP_BONUS_BASE_UNITS, referrerRewardBaseUnits } from './constants';
 import { countExecutedPredictions } from './predictions';
@@ -50,6 +51,8 @@ const refereeHasTraded = async (refereeUserId: string): Promise<boolean> =>
  * own referral awards are counted too wherever their redemption is gone:
  * those award rows outlive the referee, so deleting converted referees can
  * never give the referrer back a top tier or a slot under the lifetime cap.
+ * The referrer's own hard delete removes those awards, so the conversions its
+ * identity was paid for under deleted accounts (their markers) count as well.
  */
 const countPriorReferrerRedemptions = async ({
 	referrerUserId,
@@ -76,8 +79,9 @@ const countPriorReferrerRedemptions = async ({
 		 ) prior`,
 		[referrerUserId, refereeUserId, redeemedAtMs]
 	);
+	const paidBefore = await countAwardMarkers({ userId: referrerUserId, awardType: 'referral' });
 
-	return Number(rows[0]?.count ?? 0);
+	return Number(rows[0]?.count ?? 0) + paidBefore;
 };
 
 export interface SettleReferralResult {

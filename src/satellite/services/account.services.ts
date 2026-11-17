@@ -20,6 +20,7 @@ import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
 import { isReferralPayoutRecord } from '#satellite/services/referral.services.ts';
+import { recordAccountAwardMarkers } from '#satellite/services/vxp-award-markers.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -784,7 +785,9 @@ const resolveOwnedLeague = ({
 
 /**
  * Cascade hard-delete for a single account. Removes every row
- * identity-keyed to the principal: profile, VXP awards / onboarding,
+ * identity-keyed to the principal: profile, VXP awards / onboarding (an
+ * anonymous marker of each paid one-time award stays, see
+ * {@link recordAccountAwardMarkers}),
  * calibration attempts, referral code + redemption record, affiliations,
  * relations, league memberships. Owned leagues are then either deleted (no other members
  * left) or transferred to a surviving member: see
@@ -816,6 +819,10 @@ export const hardDeleteAccountFn = ({
 	};
 
 	let docsDeleted = 0;
+
+	// Before the award history goes: what keeps the same principal, signing up
+	// again, from collecting a one-time award twice.
+	recordAccountAwardMarkers({ callerText, writer: step.writer });
 
 	docsDeleted += deleteOwnProfile(step);
 	docsDeleted += deleteOwnPrivateProfile(step);

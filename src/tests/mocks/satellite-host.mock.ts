@@ -7,6 +7,7 @@ import { Principal } from '@icp-sdk/core/principal';
 import type {
 	AssertDeleteDocContext,
 	AssertSetDocContext,
+	DelDoc,
 	Doc,
 	ListParams,
 	ListResults,
@@ -16,7 +17,8 @@ import type { AccessKeys } from '@junobuild/functions/sdk';
 
 /**
  * The one in-memory Juno satellite host for specs under Node, which has no
- * satellite host. The SDK's `getDocStore` / `listDocsStore` / `setDocStore`,
+ * satellite host. The SDK's `getDocStore` / `listDocsStore` / `countDocsStore`
+ * / `setDocStore` / `deleteDocStore`,
  * `decodeDocData` / `encodeDocData`, `msgCaller`, `time`,
  * `getAdminAccessKeys` and `call` are thin wrappers over host globals; this
  * defines those globals over a map of docs and a table of canister method
@@ -182,6 +184,21 @@ export const installSatelliteHost = ({
 		return created;
 	};
 
+	/** The docs `listDocsStore` and `countDocsStore` answer: the key matcher and the owner filter. */
+	const listed = ({ name, params }: { name: string; params: ListParams }): [string, Doc][] => {
+		const matcher = params.matcher?.key;
+		const keyMatches = nonNullish(matcher) ? new RegExp(matcher) : undefined;
+		const owner = nonNullish(params.owner) ? Principal.fromUint8Array(params.owner) : undefined;
+
+		return [...collection(name)]
+			.filter(([key]) => isNullish(keyMatches) || keyMatches.test(key))
+			.filter(
+				([, stored]) =>
+					isNullish(owner) || Principal.fromUint8Array(stored.owner).compareTo(owner) === 'eq'
+			)
+			.map(([key, stored]) => [key, toDoc(stored)]);
+	};
+
 	for (const [name, seeded] of Object.entries(docs)) {
 		for (const [key, data] of Object.entries(seeded)) {
 			collection(name).set(
@@ -217,15 +234,17 @@ export const installSatelliteHost = ({
 			name: string,
 			params: ListParams
 		): ListResults<Doc> => {
-			const matcher = params.matcher?.key;
-			const keyMatches = nonNullish(matcher) ? new RegExp(matcher) : undefined;
-			const items: [string, Doc][] = [...collection(name)]
-				.filter(([key]) => isNullish(keyMatches) || keyMatches.test(key))
-				.map(([key, stored]) => [key, toDoc(stored)]);
+			const items = listed({ name, params });
 			const length = BigInt(items.length);
 
 			return { items, items_length: length, matches_length: length };
 		},
+		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
+		__juno_satellite_datastore_count_docs_store: (
+			_caller: Uint8Array,
+			name: string,
+			params: ListParams
+		): bigint => BigInt(listed({ name, params }).length),
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_set_doc_store: (
 			setter: Uint8Array,
@@ -256,6 +275,25 @@ export const installSatelliteHost = ({
 				collection: name,
 				data: { before: isNullish(before) ? undefined : toDoc(before), after: toDoc(after) }
 			};
+		},
+		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
+		__juno_satellite_datastore_delete_doc_store: (
+			_caller: Uint8Array,
+			name: string,
+			key: string,
+			value: DelDoc
+		): Doc | undefined => {
+			const before = collection(name).get(key);
+
+			if (nonNullish(before) && value.version !== before.version) {
+				throw new Error(
+					`${name}/${key}: version ${value.version} does not match ${before.version}.`
+				);
+			}
+
+			collection(name).delete(key);
+
+			return isNullish(before) ? undefined : toDoc(before);
 		},
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__ic_cdk_call_raw: (

@@ -400,6 +400,11 @@ is the reference shape:
   `owner`. The interactive `deleteMyAccount` has an up-front
   `owns_non_empty_league` guard; the guard-less recovery-expiry + sweep
   paths rely on this transfer.
+- **Purge the data, keep the one-time awards one-time.** The cascade
+  deletes every award doc, so it first records an anonymous marker per
+  one-time award the account was paid (`recordAccountAwardMarkers`, see
+  [economy invariants](./economy.md#invariants)); a principal that signs
+  up again starts over everywhere but there.
 - **Keep the marker monotonic + the side effects once-only.**
   Re-deleting keeps the EARLIEST `deletedAtMs` so the recovery clock
   can't be reset. Recovery clears the field; both are version-locked

@@ -53,6 +53,20 @@ one pattern. Each of these has bitten a PR before:
   `deleteDocStore` runs the assert too, so a satellite path that must
   remove award docs (the account purge in `hardDeleteAccountFn`) signs
   as `controllerCaller(...)`.
+- **A one-time award stays one-time across a purge.** The purge deletes
+  the award docs and the onboarding ladder, and the same principal can
+  sign up again, so before deleting it writes a marker per one-time award
+  the account was paid (every type but `REPEATABLE_VXP_AWARD_TYPES`, in
+  `vxp_awards` as `paid` or `pending`, and each onboarding milestone
+  `paid` or `processing`) into the controllers-scoped `vxp_award_markers`
+  collection (`recordAccountAwardMarkers` in
+  [`vxp-award-markers.services.ts`](../../../src/satellite/services/vxp-award-markers.services.ts)).
+  A marker key is a SHA-224 digest of the principal plus the award type
+  and key, with no data. `assertSetVxpAward` refuses a new award doc
+  whose marker exists, the onboarding payout skips a marked milestone,
+  and the league-founder cap counts the markers. A new one-time award
+  type needs nothing more; a new repeatable one joins
+  `REPEATABLE_VXP_AWARD_TYPES` on both stacks.
 - **Referral rows keep their payout history.** `referrals` is
   `write: 'public'` and holds both payout sides, and the referrer's
   lifetime count is a scan of it. `assertSetReferral` lets a side's
@@ -126,7 +140,12 @@ one pattern. Each of these has bitten a PR before:
    [patterns.md](./patterns.md#hooks-fire-only-for-client-writes-never-for-serverless-setdocstore)).
 5. **`awardKey` choice:** encode the one-shot unit so the key
    collision is the idempotency (per the invariant above), and expose
-   a settle/retry path if the payout can fail after the doc exists.
+   a settle/retry path if the payout can fail after the doc exists. A
+   type collected again under the same key (once per day, say) goes in
+   `REPEATABLE_VXP_AWARD_TYPES` on both stacks, or a purged account's
+   marker would refuse it forever; never key a one-time award by the
+   recipient's own id on the API, where a re-created account gets a new
+   one (the referee bonus is the one exception, marked as `self`).
 6. **Wire + regenerate:** register the hook / endpoint in
    [`src/satellite/index.ts`](../../../src/satellite/index.ts), run
    `npm run juno:functions:build`, commit the regenerated files.
