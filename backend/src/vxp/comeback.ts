@@ -17,14 +17,14 @@ import {
 	COMEBACK_BALANCE_FLOOR_BASE_UNITS,
 	COMEBACK_RESTORE_TARGET_BASE_UNITS
 } from './constants';
-import { getVxpBalance } from './payout';
+import { getVxpHoldings } from './payout';
 
 const COMEBACK_AWARD_KEY = 'restore';
 
 /** Activity-day trigger: grants the restore when the gap between the
  * previous and the newly recorded active day reaches the absence threshold
- * and the ledger balance sits below the floor. Never throws; a hiccup is
- * logged. */
+ * and the user's holdings (wallet plus deposited) sit below the floor. Never
+ * throws; a hiccup is logged. */
 export const runComebackRestoreTrigger = async ({
 	userId,
 	previousActiveDay,
@@ -58,14 +58,14 @@ export const runComebackRestoreTrigger = async ({
 			return;
 		}
 
-		const balance = await getVxpBalance(userId);
+		const holdings = await getVxpHoldings(userId);
 
 		// Only restore a genuinely depleted stack, and only up to the target.
-		if (balance >= COMEBACK_BALANCE_FLOOR_BASE_UNITS) {
+		if (holdings >= COMEBACK_BALANCE_FLOOR_BASE_UNITS) {
 			return;
 		}
 
-		const amount = COMEBACK_RESTORE_TARGET_BASE_UNITS - balance;
+		const amount = COMEBACK_RESTORE_TARGET_BASE_UNITS - holdings;
 
 		if (amount <= ZERO) {
 			return;

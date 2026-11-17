@@ -20,26 +20,26 @@ Search here before writing a helper in `backend/`. Adding a shared one? Add its 
 
 ## Shared modules outside `lib/`
 
-| File                                       | Exports                                                                                                                                        |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `env.ts`                                   | `env` (validated config), `loadEnv`                                                                                                            |
-| `db/client.ts`                             | `pool`, `query`, `tx`, `TxQuery`, `isDbUnavailable`                                                                                            |
-| `auth/guard.ts`                            | `requireUser`, `requireAdmin`, `unauthenticated`, `forbidden`, `AuthedUser`                                                                    |
-| `engine/actors.ts`                         | reader / user / admin actor factories for Clearing, Registry and ledgers; `setEngineActorProvider` (test seam)                                 |
-| `engine/clearing.ts`, `engine/registry.ts` | typed canister wrappers; `registry.ts` also owns `VICI_ENGINE_ID` (the engine id the app is registered under)                                  |
-| `engine/cache.ts`                          | `cached({ key, ttlMs, load })`, `PUBLIC_READ_TTL_MS` (the one TTL of public engine reads), `retain` / `getRetained`, `clearCache` (test seam)  |
-| `engine/result.ts`                         | `expectOk(result, label)`: unwraps a candid `Result`, throwing with the method label on `Err`                                                  |
-| `engine/serialize.ts`                      | `toJson` (bigint → string, `Principal` → text, bytes → hex, recursive)                                                                         |
-| `engine/order-rejections.ts`               | `ORDER_REJECTIONS` (code table), `orderRejectedError`                                                                                          |
-| `chains/types.ts`                          | `ChainAdapter`, `DepositEvent`, `TransferParams`, `TransferStatus`; `TransferRejectedError`, `TransferUnverifiableError`, `ChainDisabledError` |
-| `chains/registry.ts`                       | `getAdapter`, `listAdapters`, `enabledAdapters`, `isChain`                                                                                     |
-| `chains/ic/icrc.ts`                        | `encodeTransferMemo`, `icrcTransferErrorVariant`, `transferErrorText`, `DEDUP_SAFE_WINDOW_MS`, shared by withdrawals and VXP payouts           |
-| `custody/assets.ts`                        | `Asset`, `listEnabledAssets`, `getAssetById`, `getAssetBySymbol`, `isVxp`, `isWithdrawable`                                                    |
-| `custody/ledger.ts`                        | `postLedgerEvent(event, q?)` (double-entry, idempotent per event key), `accountBalance`                                                        |
-| `vxp/awards.ts`                            | `grantAward` (the one idempotent grant), `grantCappedAward` + `AwardCap` (lifetime or rolling-window caps, strict under concurrency)           |
-| `vxp/predictions.ts`                       | `countExecutedPredictions` (executed fills, never posted activities), `heldBinaryPosition` (side and average entry price held on a series)     |
-| `vxp/triggers.ts`                          | `runProfileAwardTriggers`, `runTradeActivityTriggers` (post-write award hooks for routes)                                                      |
-| `vxp/payout.ts`                            | `transferVxpToUser`, `transferVxpWithBadFeeRetry`, `getVxpBalance`, `getTreasuryVxpBalance`; `setVxpLedgerProvider` (test seam)                |
+| File                                       | Exports                                                                                                                                                                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `env.ts`                                   | `env` (validated config), `loadEnv`                                                                                                                                                                                |
+| `db/client.ts`                             | `pool`, `query`, `tx`, `TxQuery`, `isDbUnavailable`                                                                                                                                                                |
+| `auth/guard.ts`                            | `requireUser`, `requireAdmin`, `unauthenticated`, `forbidden`, `AuthedUser`                                                                                                                                        |
+| `engine/actors.ts`                         | reader / user / admin actor factories for Clearing, Registry and ledgers; `setEngineActorProvider` (test seam)                                                                                                     |
+| `engine/clearing.ts`, `engine/registry.ts` | typed canister wrappers; `registry.ts` also owns `VICI_ENGINE_ID` (the engine id the app is registered under)                                                                                                      |
+| `engine/cache.ts`                          | `cached({ key, ttlMs, load })`, `PUBLIC_READ_TTL_MS` (the one TTL of public engine reads), `retain` / `getRetained`, `clearCache` (test seam)                                                                      |
+| `engine/result.ts`                         | `expectOk(result, label)`: unwraps a candid `Result`, throwing with the method label on `Err`                                                                                                                      |
+| `engine/serialize.ts`                      | `toJson` (bigint → string, `Principal` → text, bytes → hex, recursive)                                                                                                                                             |
+| `engine/order-rejections.ts`               | `ORDER_REJECTIONS` (code table), `orderRejectedError`                                                                                                                                                              |
+| `chains/types.ts`                          | `ChainAdapter`, `DepositEvent`, `TransferParams`, `TransferStatus`; `TransferRejectedError`, `TransferUnverifiableError`, `ChainDisabledError`                                                                     |
+| `chains/registry.ts`                       | `getAdapter`, `listAdapters`, `enabledAdapters`, `isChain`                                                                                                                                                         |
+| `chains/ic/icrc.ts`                        | `encodeTransferMemo`, `icrcTransferErrorVariant`, `transferErrorText`, `DEDUP_SAFE_WINDOW_MS`, shared by withdrawals and VXP payouts                                                                               |
+| `custody/assets.ts`                        | `Asset`, `listEnabledAssets`, `getAssetById`, `getAssetBySymbol`, `isVxp`, `isWithdrawable`                                                                                                                        |
+| `custody/ledger.ts`                        | `postLedgerEvent(event, q?)` (double-entry, idempotent per event key), `accountBalance`                                                                                                                            |
+| `vxp/awards.ts`                            | `grantAward` (the one idempotent grant), `grantCappedAward` + `AwardCap` (lifetime or rolling-window caps, strict under concurrency)                                                                               |
+| `vxp/predictions.ts`                       | `countExecutedPredictions` (executed fills, never posted activities), `heldBinaryPosition` (side and average entry price held on a series)                                                                         |
+| `vxp/triggers.ts`                          | `runProfileAwardTriggers`, `runTradeActivityTriggers` (post-write award hooks for routes)                                                                                                                          |
+| `vxp/payout.ts`                            | `transferVxpToUser`, `transferVxpWithBadFeeRetry`, `getVxpBalance`, `getVxpHoldings` (wallet plus ViciXp clearing equity: the recovery-floor measure), `getTreasuryVxpBalance`; `setVxpLedgerProvider` (test seam) |
 
 ## Shared with the app
 

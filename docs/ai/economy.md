@@ -166,11 +166,19 @@ The bound that protects each surface today:
   counted off server-stamped creation times, so forged day keys cannot
   farm it.
 - **Calibration**: balance-gated (pays only below the recovery floor),
-  plus a daily **and** an hourly burst cap. The first side called on a
+  plus a daily **and** an hourly burst cap. The balance is the user's
+  holdings: the ledger wallet plus their ViciXp clearing equity
+  (`getVxpHoldings` in
+  [`backend/src/vxp/payout.ts`](../../backend/src/vxp/payout.ts)), since
+  the playground auto-deposit sweeps the wallet into clearing within
+  seconds. The satellite cannot read a user's clearing account (every
+  account read is scoped to the calling principal), so its gate still
+  reads the wallet alone. The first side called on a
   finalised market is the one judged: a miss is recorded, and a later
   call on the other side is refused, so a market cannot be called both
   ways until it pays.
-- **Comeback**: balance-gated and absence-gated, the absence measured
+- **Comeback**: balance-gated on the same holdings as calibration, and
+  absence-gated, the absence measured
   between server-recorded activity days (executed-fill days), so it
   cannot be declared and a bare Flow swipe cannot end it.
 - **League founder**: lifetime per-account cap.
