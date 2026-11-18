@@ -3,7 +3,7 @@
 // without tallying the reaction pages.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { query, tx } from '../db/client';
+import { query, tx, type TxQuery } from '../db/client';
 import { UUID_RE } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { fanOutResolvedResults } from './resolved-results';
@@ -354,6 +354,27 @@ export const unlikeActivity = async ({
 			[key, Date.now()]
 		);
 	});
+};
+
+/** Removes every like `likerId` gave and moves each liked activity's counter
+ * down (floored at 0), as an unlike would, inside the caller's transaction. */
+export const deleteReactionsBy = async ({
+	likerId,
+	q
+}: {
+	likerId: string;
+	q: TxQuery;
+}): Promise<void> => {
+	await q(
+		`with removed as (
+		   delete from activity_reactions where liker = $1 returning activity_key
+		 )
+		 update activity_reaction_counts c
+		 set count = greatest(0, c.count - r.removed), updated_at_ms = $2
+		 from (select activity_key, count(*)::int as removed from removed group by activity_key) r
+		 where c.activity_key = r.activity_key`,
+		[likerId, Date.now()]
+	);
 };
 
 /** The most-recent reactions across all users, bounded. */

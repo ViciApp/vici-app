@@ -93,7 +93,8 @@ export const shapeMember = (row: LeagueMemberRow): LeagueMember => ({
 
 const INVITE_CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
-const randomInviteCode = (): string =>
+/** A fresh invite code: also the stand-in the satellite import gives a league until its code lands. */
+export const randomInviteCode = (): string =>
 	Array.from({ length: 6 }, () =>
 		INVITE_CODE_ALPHABET.charAt(randomInt(INVITE_CODE_ALPHABET.length))
 	).join('');

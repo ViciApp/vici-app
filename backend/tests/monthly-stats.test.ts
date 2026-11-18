@@ -14,6 +14,7 @@ import {
 	upsertUserStats
 } from '../src/profiles/stats';
 import { createTestUser, ensureMigrated } from './helpers/auth';
+import { createTestProfile, hibernateProfile, softDeleteProfile } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
 
 /** A unique month anchor per call so suites never share an aggregation; a
@@ -177,7 +178,7 @@ describe.if(dbAvailable)('monthly leaderboard', () => {
 		monthWins: number;
 		monthConsensus: number[];
 	}): Promise<string> => {
-		const userId = await createTestUser();
+		const { userId } = await createTestProfile();
 
 		await query(
 			`insert into user_monthly_stats (user_id, month_anchor, month_calls, month_wins, month_consensus, updated_at_ms)
@@ -279,6 +280,26 @@ describe.if(dbAvailable)('monthly leaderboard', () => {
 
 		expect(ids).toEqual([bold, tied].sort());
 		expect(boldCaller.every((entry) => entry.accuracy === 80)).toBe(true);
+	});
+
+	test('leaves out soft-deleted, hibernated and purged accounts', async () => {
+		const monthAnchor = await uniqueMonthAnchor();
+		const seedBold = async (monthWins: number): Promise<string> =>
+			await seedMonth({ monthAnchor, monthCalls: 40, monthWins, monthConsensus: [0.2] });
+
+		const active = await seedBold(20);
+		const softDeleted = await seedBold(40);
+		const hibernated = await seedBold(39);
+		const purged = await seedBold(38);
+
+		await softDeleteProfile(softDeleted);
+		await hibernateProfile(hibernated);
+		await query(`delete from profiles where user_id = $1`, [purged]);
+
+		const { sharpestEye, boldCaller } = await getMonthlyLeaderboard({ monthAnchor });
+
+		expect(sharpestEye.map((entry) => entry.userId)).toEqual([active]);
+		expect(boldCaller.map((entry) => entry.userId)).toEqual([active]);
 	});
 
 	test('an unknown month or malformed anchor yields empty awards', async () => {
