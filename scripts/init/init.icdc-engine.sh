@@ -15,7 +15,7 @@
 #      added for convenience during local development.
 #
 # The engine declares `Creator` + `OracleAdmin` as `allowed_roles`. See `VICI_ENGINE_ID` in
-# src/lib/constants/icdc.constants.ts (currently hardcoded to `eng_0`, safe because we
+# src/lib/constants/icdc.constants.ts (the first id the registry assigns, safe because we
 # reset the registry before first run and Vici is the first engine registered).
 #
 # Prerequisites:
@@ -31,10 +31,10 @@ source "$(dirname "$0")/../lib/utils.sh" "$@"
 set -euo pipefail
 
 ENGINE_NAME="Vici"
-# The dev id stays a literal here: `ids.development` in juno.config.ts follows
-# the JUNO_EMULATOR swap (the e2e job sets it), so reading it would change
-# this default under the emulator.
-SATELLITE="${VICI_JUNO_SATELLITE_PRINCIPAL:-auamu-4x777-77775-aaaaa-cai}"
+# The dev id from juno.config.ts. JUNO_EMULATOR=false because the config swaps
+# `ids.development` to the emulator id when it is set (the e2e job sets it),
+# which would change this default under the emulator.
+SATELLITE="${VICI_JUNO_SATELLITE_PRINCIPAL:-$(cd "$PROJECT_ROOT" && JUNO_EMULATOR=false npx tsx scripts/lib/satellite-id.ts development)}"
 DEPLOY_PRINCIPAL="$(dfx identity get-principal)"
 
 # Human admins that should always be able to reach the engine directly via dfx.
@@ -135,10 +135,10 @@ else
 fi
 
 # Sanity check: warn (but do not fail) if the registered engine_id does not match the
-# value hardcoded in src/lib/constants/icdc.constants.ts. The frontend uses the constant
+# value in src/lib/constants/icdc.constants.ts. The frontend uses the constant
 # when calling `add_series` / `fork_series` so a mismatch means non-controller market
 # creation will fail.
-EXPECTED_ID="eng_0"
+EXPECTED_ID="$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/engine-id.ts)"
 if [ "$ENGINE_ID" != "$EXPECTED_ID" ]; then
   echo ""
   echo "WARNING: registered engine_id ($ENGINE_ID) does not match the expected value ($EXPECTED_ID)."

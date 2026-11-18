@@ -41,13 +41,22 @@
 
 # Capture the deck file (first positional) before utils.sh consumes "$@".
 MARKETS_FILE="${1:-}"
-if [[ -z "$MARKETS_FILE" || "$MARKETS_FILE" == -* || "$MARKETS_FILE" == "local" || "$MARKETS_FILE" == "staging" || "$MARKETS_FILE" == "ic" || "$MARKETS_FILE" == "production" ]]; then
+usage() {
 	echo "Usage: $0 <markets-json-file> [--local|--staging|--production]" >&2
 	exit 1
+}
+
+if [[ -z "$MARKETS_FILE" || "$MARKETS_FILE" == -* ]]; then
+	usage
 fi
 shift
 
 source "$(dirname "$0")/lib/utils.sh" "$@"
+
+# A network name in the file's place means the file was left out.
+if is_network_name "$MARKETS_FILE"; then
+	usage
+fi
 
 # Byte-wise locale so sed/awk/string-compare handle non-ASCII titles (e.g.
 # "Mbappé", curly quotes) without "illegal byte sequence" and so registry
