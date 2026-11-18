@@ -257,9 +257,12 @@ export interface TournamentMatchDoc {
 
 ## Proposal 4: Account deletion / exit-signals endpoint
 
-> **Why:** the account-deletion feedback (`vici.exit-signals`) was
-> kept only in the browser and should hit a real endpoint.
-> Settings → Delete account had no backend wired.
+> **Shipped.** Settings → Delete account runs `deleteMyAccount` on the
+> satellite and `POST /api/v1/account/delete` in web2
+> (`backend/src/routes/account.ts`); both write the anonymous exit
+> signal. The original motivation: the deletion feedback was kept
+> only in the browser and had no endpoint. The sections below keep
+> the design record, with the v2 update.
 
 Smallest of the four.
 
