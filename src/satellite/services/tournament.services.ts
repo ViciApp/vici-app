@@ -1071,7 +1071,9 @@ const propagateWinnerToNextRound = ({
 		...(isFromSlot ? { fromLeagueId: winnerLeagueId } : { toLeagueId: winnerLeagueId })
 	};
 
-	setDocStore({
+	const {
+		data: { after }
+	} = setDocStore({
 		collection: Collection.TOURNAMENT_MATCHES,
 		key: nextMatchEntry.key,
 		caller: writer,
@@ -1081,14 +1083,11 @@ const propagateWinnerToNextRound = ({
 		}
 	});
 
-	// Keep the in-memory matchesByRound in sync so subsequent
-	// resolution writes in the same call don't try to overwrite the
-	// freshly-populated slot. The `setDocStore` returns no version
-	// number we could re-stamp, so we just bump the doc payload;
-	// a follow-up `setDocStore` in the same call would race on
-	// version, but the round-by-round flow only propagates one win
-	// per next-round slot per call, so this stays safe.
+	// Matches 2k and 2k+1 both write next-round match k in the same call:
+	// the second write must carry the version the first one produced, or
+	// the datastore rejects it as stale.
 	nextMatchEntry.doc = updated;
+	nextMatchEntry.version = after.version;
 };
 
 // ─── Prize claim ─────────────────────────────────────────────────
