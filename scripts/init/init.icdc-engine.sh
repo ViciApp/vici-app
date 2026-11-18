@@ -138,7 +138,7 @@ fi
 # value in src/lib/constants/icdc.constants.ts. The frontend uses the constant
 # when calling `add_series` / `fork_series` so a mismatch means non-controller market
 # creation will fail.
-EXPECTED_ID="$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/engine-id.ts)"
+EXPECTED_ID="${VICI_ENGINE_ID:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/engine-id.ts)}"
 if [ "$ENGINE_ID" != "$EXPECTED_ID" ]; then
   echo ""
   echo "WARNING: registered engine_id ($ENGINE_ID) does not match the expected value ($EXPECTED_ID)."
