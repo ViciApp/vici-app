@@ -1,4 +1,5 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
 import {
 	AnalyticsSummarySchema,
 	AnalyticsUserStatsSchema,
@@ -45,6 +46,11 @@ import {
 	ResolvedResultSchema
 } from '#lib/schema/resolved-result.schema.ts';
 import { AFFILIATION_KINDS } from '#lib/types/affiliation.ts';
+import {
+	CREATE_LEAGUE_REFUSAL_REASONS,
+	JOIN_LEAGUE_REFUSAL_REASONS,
+	LEAGUE_IMAGES_COLLECTION
+} from '#lib/types/league.ts';
 import { TOURNAMENT_DRAW_REFUSAL_REASONS } from '#lib/types/tournament.ts';
 import {
 	deleteMyAccountFn,
@@ -114,6 +120,10 @@ import {
 	listLeaderboard as listLeaderboardFn
 } from '#satellite/services/leaderboard.services.ts';
 import {
+	assertDeleteLeagueImage,
+	assertUploadLeagueImage
+} from '#satellite/services/league-image.services.ts';
+import {
 	assertDeleteLeagueMember,
 	assertSetLeagueMember
 } from '#satellite/services/league-member.services.ts';
@@ -125,6 +135,9 @@ import {
 import {
 	assertDeleteLeague,
 	assertSetLeague,
+	createLeagueFn,
+	joinLeagueByInviteFn,
+	migrateLeagueInviteCodesFn,
 	transferLeagueOwnershipFn
 } from '#satellite/services/league.services.ts';
 import {
@@ -226,7 +239,6 @@ import {
 	onTradeActivityForVxpOnboarding
 } from '#satellite/services/vxp-onboarding.services.ts';
 import { onProfileSetForStreakAward } from '#satellite/services/vxp-streak-awards.services.ts';
-import { backfillStreakUnderpaymentsFn } from '#satellite/services/vxp-streak-backfill.services.ts';
 import { claimWorldsPodiumPrizeFn } from '#satellite/services/vxp-worlds-podium.services.ts';
 import {
 	AffiliationChampionshipWireSchema,
@@ -256,6 +268,7 @@ import {
 	toWireLeagueMember,
 	toWireLeagueWithRole,
 	toWireMarketTranslation,
+	toWireMemberLeague,
 	toWireMonthlyLeaderboardEntry,
 	toWireProfile,
 	toWireReferral,
@@ -270,10 +283,12 @@ import {
 	defineHook,
 	defineQuery,
 	defineUpdate,
+	type AssertDeleteAsset,
 	type AssertDeleteDoc,
 	type AssertDeleteDocContext,
 	type AssertSetDoc,
 	type AssertSetDocContext,
+	type AssertUploadAsset,
 	type OnDeleteDoc,
 	type OnDeleteDocContext,
 	type OnSetDoc,
@@ -394,8 +409,9 @@ export const checkNicknameAvailability = defineQuery({
 // caller's profile, rolls over by `dayKey`, and writes the capped increment
 // itself. The returned `dailyGoalDone` / `capReached` are the source of truth
 // for the cross-session "come back tomorrow" takeover, so a cleared or
-// signed-out client can no longer reset the cap. Backed by the monotonic
-// PROFILES assert (`assertDailyGoalMonotonic`).
+// signed-out client can no longer reset the cap. It is the only writer of the
+// count: the PROFILES assert (`assertDailyGoalUnchanged`) refuses a client
+// write that changes it.
 export const recordFlowSwipe = defineUpdate({
 	args: j.strictObject({
 		dayKey: j.string()
@@ -727,10 +743,58 @@ export const listLeagueMembers = defineQuery({
 	})
 });
 
-// Join-by-code resolver. The FE join modal posts the 6-char code,
-// the satellite scans `leagues` for a match, and the FE then
-// derives the leagueId and writes the `league_members` row through
-// the standard set-doc path (which goes through `assertSetLeagueMember`).
+// Founds a league: the public doc and the owner's row as the caller, the
+// invite code in the controllers-only `league_invites`, and the founder
+// reward inline. The only way to give a league an invite code.
+export const createLeague = defineUpdate({
+	args: j.strictObject({
+		id: j.string(),
+		name: j.string(),
+		description: j.string().optional(),
+		accentColor: j.string().optional(),
+		emblem: j.string().optional(),
+		privacy: j.enum(LeaguePrivacy).optional(),
+		inviteCode: j.string()
+	}),
+	result: j.strictObject({
+		league: j.optional(LeagueWireSchema),
+		reason: j.optional(j.enum(CREATE_LEAGUE_REFUSAL_REASONS))
+	}),
+	handler: async (args) => {
+		const { league, reason } = await createLeagueFn(args);
+
+		return { league: isNullish(league) ? undefined : toWireMemberLeague(league), reason };
+	}
+});
+
+// The only way into a league, Open or Private: checks the invite code,
+// then writes the caller's `league_members` row as a controller (the
+// assert admits no self-written join).
+export const joinLeagueByInvite = defineUpdate({
+	args: j.strictObject({
+		inviteCode: j.string()
+	}),
+	result: j.strictObject({
+		league: j.optional(LeagueWireSchema),
+		reason: j.optional(j.enum(JOIN_LEAGUE_REFUSAL_REASONS))
+	}),
+	handler: (args) => {
+		const { league, reason } = joinLeagueByInviteFn(args);
+
+		return { league: isNullish(league) ? undefined : toWireMemberLeague(league), reason };
+	}
+});
+
+// Admin-only, idempotent: moves the invite code off every league doc
+// written before codes moved to `league_invites`.
+export const migrateLeagueInviteCodes = defineUpdate({
+	result: j.strictObject({
+		migrated: j.number()
+	}),
+	handler: () => migrateLeagueInviteCodesFn()
+});
+
+// Join-by-code preview: the league an invite code opens, without the code.
 export const lookupLeagueByInvite = defineQuery({
 	args: j.strictObject({
 		inviteCode: j.string()
@@ -1145,23 +1209,6 @@ export const sweepExpiredDeletions = defineUpdate({
 // concurrent-like version race (the hooks are best-effort) and backfills
 // counts for likes that predate the rollup. Admin-gated; `recomputed` is
 // the number of counter docs written.
-// One-time streak-underpayment backfill. Admin-gated,
-// dryRun-default, idempotent. Remove in a follow-up PR after the prod run.
-export const backfillStreakUnderpayments = defineUpdate({
-	// `dryRun` is optional and defaults to `true` in the handler: omitting it
-	// is the safe report-only path; pass `false` to mint.
-	args: j.strictObject({ dryRun: j.optional(j.boolean()) }),
-	result: j.strictObject({
-		scanned: j.number(),
-		underpaid: j.number(),
-		alreadyBackfilled: j.number(),
-		minted: j.number(),
-		failed: j.number(),
-		totalShortfallBaseUnits: j.string()
-	}),
-	handler: async ({ dryRun }) => await backfillStreakUnderpaymentsFn({ dryRun })
-});
-
 export const recomputeActivityReactionCounts = defineUpdate({
 	result: j.strictObject({
 		recomputed: j.number()
@@ -1494,6 +1541,20 @@ export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({
 
 		fn[context.data.collection]?.(context);
 	}
+});
+
+// `league_images` is the one Storage collection, and public write: these
+// asserts are the only guard on who uploads over or deletes a cover.
+const assetCollections = [LEAGUE_IMAGES_COLLECTION] as const;
+
+export const assertUploadAsset = defineAssert<AssertUploadAsset>({
+	collections: assetCollections,
+	assert: assertUploadLeagueImage
+});
+
+export const assertDeleteAsset = defineAssert<AssertDeleteAsset>({
+	collections: assetCollections,
+	assert: assertDeleteLeagueImage
 });
 
 const setDocCollections = [

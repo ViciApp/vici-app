@@ -22,7 +22,6 @@ const joiner = Principal.fromUint8Array(new Uint8Array([3, 3, 3]));
 const league: LeagueDoc = {
 	id: 'the-league-1',
 	name: 'The League',
-	inviteCode: 'ABC123',
 	owner: owner.toText(),
 	createdAtMs: 1_700_000_000_000
 };
@@ -61,22 +60,48 @@ describe('league-member.services', () => {
 		it('rejects a self-join that grants admin', () => {
 			assert.throws(
 				() => assertSetLeagueMember(join({ caller: joiner, role: 'admin' })),
-				/self-join/
+				/joinLeagueByInvite/
 			);
 		});
 
-		it('lets a user join as a member', () => {
-			assert.doesNotThrow(() => assertSetLeagueMember(join({ caller: joiner, role: 'member' })));
+		it('rejects a user joining without the invite code', () => {
+			assert.throws(
+				() => assertSetLeagueMember(join({ caller: joiner, role: 'member' })),
+				/joinLeagueByInvite/
+			);
+		});
+
+		it('lets the satellite add a member who joined with the invite code', () => {
+			assert.doesNotThrow(() =>
+				assertSetLeagueMember(join({ caller: controller, role: 'member' }))
+			);
+			assert.throws(
+				() => assertSetLeagueMember(join({ caller: controller, role: 'admin' })),
+				/role="member"/
+			);
+		});
+
+		it('lets the owner write their own row when the league is created', () => {
+			assert.doesNotThrow(() =>
+				assertSetLeagueMember(
+					setContext({
+						caller: owner,
+						collection: Collection.LEAGUE_MEMBERS,
+						key: leagueMemberKey({ leagueId: league.id, memberPrincipal: owner.toText() }),
+						proposed: membership({ member: owner, role: 'owner' })
+					})
+				)
+			);
 		});
 
 		it('rejects the owner creating a row for someone who has not joined', () => {
 			assert.throws(
 				() => assertSetLeagueMember(join({ caller: owner, role: 'member' })),
-				/created only by the member joining/
+				/joinLeagueByInvite/
 			);
 			assert.throws(
 				() => assertSetLeagueMember(join({ caller: owner, role: 'admin' })),
-				/created only by the member joining/
+				/joinLeagueByInvite/
 			);
 		});
 
