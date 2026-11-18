@@ -431,7 +431,10 @@
 	{/if}
 
 	{#if incomingChallenges.length > 0}
-		<section class="battles-section" aria-label="Incoming challenges">
+		<section
+			class="battles-section"
+			aria-label={t({ locale: $localeStore, key: 'battles.section.incoming' })}
+		>
 			<header class="battles-section-head">
 				<span class="battles-eyebrow allcaps">
 					{t({ locale: $localeStore, key: 'battles.section.incoming' })}
@@ -564,7 +567,10 @@
 
 		<!-- ─── Monthly Tournament (curated, when active) ─────── -->
 		{#if nonNullish(tournament) && nonNullish(tournamentLiveRound)}
-			<section class="battles-section" aria-label="Tournament">
+			<section
+				class="battles-section"
+				aria-label={t({ locale: $localeStore, key: 'battles.section.tournament' })}
+			>
 				<header class="battles-section-head">
 					<span class="battles-eyebrow allcaps">
 						{t({ locale: $localeStore, key: 'battles.section.tournament' })}

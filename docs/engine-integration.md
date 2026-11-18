@@ -26,8 +26,8 @@ Both are wired into this repo's [`dfx.json`](../dfx.json) under `remote.id` (`ic
 > the **production** canister IDs, so every `--staging` command (registry reinstall, role
 > grants, market seeding) hit **production**. That has been fixed: `staging` now points at
 > icdc-core staging, and `ic` holds production. Still treat any production operation with
-> care: `dfx deploy --network ic --mode reinstall registry` wipes production engine / role /
-> oracle / series state.
+> care: a production registry reinstall (run from the icdc-core repo, since the registry is
+> `remote` here) wipes production engine / role / oracle / series state.
 
 The Vici **frontend** pins the production registry/clearing IDs in
 [`src/lib/constants/canisters.constants.ts`](../src/lib/constants/canisters.constants.ts), so

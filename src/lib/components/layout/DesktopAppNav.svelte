@@ -117,7 +117,11 @@
 			VICI
 		</a>
 
-		<nav bind:this={linksEl} class="app-desktop-nav-links" aria-label="Primary">
+		<nav
+			bind:this={linksEl}
+			class="app-desktop-nav-links"
+			aria-label={t({ locale: $localeStore, key: 'a11y.primary_nav' })}
+		>
 			{#each navItems as item, i (item.path)}
 				<a class="app-desktop-nav-link" class:is-active={i === activeIndex} href={item.path}>
 					{t({ locale: $localeStore, key: item.labelKey })}
