@@ -102,6 +102,18 @@ export const onActivityReactionSet = (ctx: OnSetDocContext): void => {
 };
 
 /**
+ * Decrement the liked activity's counter (floored at 0) for a removed reaction. Hooks do not run
+ * for a serverless `deleteDocStore`, so a satellite path that deletes reactions calls this itself.
+ */
+export const releaseReactionCount = (reactionKey: string): void => {
+	const activityKey = activityKeyFromReactionKey(reactionKey);
+
+	if (nonNullish(activityKey)) {
+		bumpCount({ activityKey, delta: -1 });
+	}
+};
+
+/**
  * `onDeleteDoc` for `activity_reactions`: decrement the activity's like counter (floored at 0) when
  * a like is removed (an unlike).
  */
@@ -114,11 +126,7 @@ export const onActivityReactionDelete = (ctx: OnDeleteDocContext): void => {
 		return;
 	}
 
-	const activityKey = activityKeyFromReactionKey(key);
-
-	if (nonNullish(activityKey)) {
-		bumpCount({ activityKey, delta: -1 });
-	}
+	releaseReactionCount(key);
 };
 
 /**
