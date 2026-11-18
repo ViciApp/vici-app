@@ -147,13 +147,13 @@ export const prepareFlow = async ({
 		const filtered = afterExclude.length > 0 ? afterExclude : afterPrior;
 
 		// Surface a shared-link market as the first card, ahead of the ranked
-		// deck. Sourced from `visibleQueue` (post WC-schedule gating, pre
+		// deck. Sourced from `visibleQueue` (after the release gate, before the
 		// featured-event scope) so a shared market outside the live tentpole
-		// still pins, while a withheld WC market can't be leaked into Flow
-		// through a shared link. Prepended *before* the slice so a low-ranked
-		// market isn't trimmed off the end. The prior-call filter still wins
-		// (guarded explicitly here too), so an already-predicted shared link
-		// falls through to the normal deck.
+		// still pins, while any market still before its `startDate` can't be
+		// leaked into Flow through a shared link. Prepended *before* the slice
+		// so a low-ranked market isn't trimmed off the end. The prior-call
+		// filter still wins (guarded explicitly here too), so an
+		// already-predicted shared link falls through to the normal deck.
 		const pinnedMarket = nonNullish(pinnedMarketId)
 			? visibleQueue.find((m) => m.id === pinnedMarketId)
 			: undefined;
