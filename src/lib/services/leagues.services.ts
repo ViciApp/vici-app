@@ -32,6 +32,7 @@ import {
 	LEAGUE_NAME_MIN_LENGTH,
 	type LeagueDoc
 } from '#lib/types/league.ts';
+import { appOrigin } from '#lib/utils/nav.utils.ts';
 import { hyphenateSlug } from '#lib/utils/slug.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
@@ -706,7 +707,7 @@ export const buildLeagueShareUrl = async ({
 }: {
 	inviteCode: string;
 }): Promise<{ url: string; withReferral: boolean }> => {
-	const base = `${window.location.origin}/league/${inviteCode}`;
+	const base = `${appOrigin()}/league/${inviteCode}`;
 	const referralCode = await resolveMyReferralCode();
 
 	if (nonNullish(referralCode) && REFERRAL_CODE_REGEX.test(referralCode)) {

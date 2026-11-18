@@ -19,6 +19,7 @@
 	import { haptic } from '#lib/utils/haptics.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
+	import { appOrigin } from '#lib/utils/nav.utils.ts';
 	import { renderPredictionCard, type ShareCardResult } from '#lib/utils/share-card.utils.ts';
 	import { browser } from '$app/env';
 
@@ -99,12 +100,11 @@
 	const nextRewardVxp = $derived(referrerRewardVxp(priorPaidCount));
 
 	const refToken = $derived(referralCode ?? handle);
-	const origin = $derived(browser ? window.location.origin : 'https://vici.market');
 	// Slugged from the on-chain (EN) title, never `displayTitle`: the SEO
 	// generator derives the same param from the registry title, and the two
 	// must agree for a shared link to land on its prerendered crawler page.
 	const url = $derived(
-		`${origin}/m/${marketShareParam({ title: market.title, seriesId: market.id })}?ref=${refToken}`
+		`${appOrigin()}/m/${marketShareParam({ title: market.title, seriesId: market.id })}?ref=${refToken}`
 	);
 
 	const text = $derived.by(() => {
