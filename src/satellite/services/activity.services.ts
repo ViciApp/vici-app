@@ -4,7 +4,7 @@ import type { Activity } from '#lib/types/social.ts';
 import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
-import { decodeDocData } from '@junobuild/functions/sdk';
+import { countDocsStore, decodeDocData } from '@junobuild/functions/sdk';
 
 const ACTIVITY_TYPES: readonly string[] = Object.values(ActivityType);
 
@@ -91,3 +91,16 @@ export const assertDeleteActivity = ({
 
 	assertOwnerOrController({ caller, owner: actor, collection });
 };
+
+/**
+ * How many predictions `caller` has made: its own `activities` rows whose key
+ * ends in `#trade` (the key shape {@link assertSetActivity} enforces), never a
+ * follow, comment or settlement. The one count the onboarding trade
+ * milestones and the referral first-prediction gate read.
+ */
+export const countTradeActivities = (caller: Uint8Array): bigint =>
+	countDocsStore({
+		collection: Collection.ACTIVITIES,
+		caller,
+		params: { owner: caller, matcher: { key: `#${ActivityType.TRADE}$` } }
+	});
