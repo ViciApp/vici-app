@@ -2,7 +2,7 @@
 
 source "$(dirname "$0")/lib/utils.sh" "$@"
 
-# Usage: ./scripts/send.tokens.sh [principal] [amount] [--local|--staging]  (from repo root)
+# Usage: ./scripts/send.tokens.sh [principal] [amount] [--local|--staging|--production]  (from repo root)
 
 if [[ -z "${1:-}" || "$1" == --* ]]; then
   if [[ -n "${2:-}" && "$2" != --* ]]; then
