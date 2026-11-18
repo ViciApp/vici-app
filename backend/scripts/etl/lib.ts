@@ -48,6 +48,7 @@ export const SATELLITE_COLLECTIONS = [
 	'referrals',
 	'leagues',
 	'league_members',
+	'league_invites',
 	'battles',
 	'affiliations',
 	'affiliation_stats',
