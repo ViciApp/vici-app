@@ -52,10 +52,13 @@ Targets icdc-core's **staging** deployment (dfx network `staging`, registry
 `5p3j2-miaaa-…`). The canister IDs are wired in [`dfx.json`](../../dfx.json) `remote.id`. The
 `dfx` identity running this workflow must be a controller of the staging registry.
 
-1. Reinstall the registry:
+1. Reinstall the registry **from the icdc-core repo**. Here the registry is `remote` on
+   `staging` and `ic`, so `dfx deploy` in this repo never installs it there; icdc-core's own
+   `dfx.json` deploys it:
 
 ```bash
-dfx deploy --network staging --mode reinstall registry
+# in icdc-core
+dfx deploy registry --network staging --mode reinstall
 ```
 
 2. Register the Vici engine, explicitly pointing at the **production satellite principal**
@@ -101,11 +104,16 @@ VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)
 Identical to the Staging steps, but with `--network ic` / `--production` (the
 `--production` flag is an alias for `--ic`; see
 [`scripts/lib/utils.sh`](../../scripts/lib/utils.sh)). The `dfx` identity must be a
-controller of the production registry.
+controller of the production registry. The reinstall again runs from the icdc-core repo:
 
 ```bash
-dfx deploy --network ic --mode reinstall registry
+# in icdc-core
+dfx deploy registry --network ic --mode reinstall
+```
 
+Then, in this repo:
+
+```bash
 VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
   npm run init:icdc-engine -- --production
 npm run init:registry -- --production
