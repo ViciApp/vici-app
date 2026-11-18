@@ -40,6 +40,10 @@ const DOM_QUIET_TIMEOUT_MS = 10_000;
  * - `.invite-copyurl`: the referral link. Its code is minted per profile by
  *   the satellite hook, so a fresh principal always gets a new one
  *   (`/i/JH3T2JAF` then `/i/5PBJ6STF`).
+ * - `.app-desktop-nav-handle span`: the same handle in the desktop nav's user
+ *   menu. The menu is masked, but a mask is a rectangle the size of the
+ *   element, so a handle of a different width shifts the mask and every nav
+ *   link left of it.
  * - `.portfolio-hero-stat dd.num`: the Portfolio hero stat figures (unrealized
  *   PnL, accuracy, rank). Accuracy is the observed offender: it reads `0.0%`
  *   until the profile hydrates and `100.0%` after, because `displayAccuracyPct`
@@ -54,6 +58,7 @@ const DOM_QUIET_TIMEOUT_MS = 10_000;
  */
 const PINNED_SNAPSHOT_TEXT: { selector: string; text: string }[] = [
 	{ selector: '.profile-hero-handle', text: '@xxxxxxxxxxx' },
+	{ selector: '.app-desktop-nav-handle span', text: '@xxxxxxxxxxx' },
 	{ selector: ARENA_INVITE_LINK_SELECTOR, text: 'xxxxxxxxxxxxxxxxx/i/XXXXXXXX' },
 	{ selector: '.portfolio-hero-stat dd.num', text: '000' }
 ];

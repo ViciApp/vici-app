@@ -38,7 +38,8 @@ jobs:
 
       # No prettier/eslint cache here: this job checks out the PR branch, and a
       # cache it saves could be restored on main (CodeQL cache poisoning). The
-      # price is an uncached format pass in did.sh.
+      # price is an uncached format pass in did.sh. Prepare's setup-node still
+      # saves the npm cache in its post step.
       - name: Regenerate Candid bindings
         run: ./scripts/did.sh
 
