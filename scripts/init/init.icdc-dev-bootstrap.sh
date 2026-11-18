@@ -2,7 +2,7 @@
 #
 # Local-only dev ergonomics for the icdc-core engine.
 #
-# A registry `--mode reinstall` wipes `eng_0.role_grants`. The intended source of
+# A registry `--mode reinstall` wipes the Vici engine's `role_grants`. The intended source of
 # truth is Juno's `ROLES` collection, and the `syncRoleToEngineOnSet` satellite hook
 # mirrors writes into the registry, but only on writes, not on startup. So after a
 # reset the engine's `role_grants` starts empty until role docs are re-saved or
@@ -27,7 +27,7 @@
 #   DEV_CREATOR_PRINCIPAL:  the II/Juno principal to bootstrap. Required; script
 #                           exits 0 silently if unset (so the step is safe to wire
 #                           unconditionally into `init:icdc`).
-#   VICI_ENGINE_ID:         defaults to `eng_0`. Keep in sync with
+#   VICI_ENGINE_ID:         defaults to `VICI_ENGINE_ID` in
 #                           `src/lib/constants/icdc.constants.ts`.
 
 # shellcheck source=scripts/lib/utils.sh
@@ -35,7 +35,7 @@ source "$(dirname "$0")/../lib/utils.sh" "$@"
 
 set -euo pipefail
 
-ENGINE_ID="${VICI_ENGINE_ID:-eng_0}"
+ENGINE_ID="${VICI_ENGINE_ID:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/engine-id.ts)}"
 ORACLE_ID="VICI_ORACLE_V1"
 
 if [ "$NETWORK" != "local" ]; then

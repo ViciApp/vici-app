@@ -151,8 +151,8 @@ Note: the engine Creator (the caller of `register_engine`) cannot be removed. Se
 
 ## Engine id is hardcoded to `eng_0`
 
-`VICI_ENGINE_ID` is pinned in `src/lib/constants/icdc.constants.ts` to `eng_0`. This works
-because:
+`VICI_ENGINE_ID` is pinned in `src/lib/constants/icdc.constants.ts` to `eng_0`; shell scripts
+read it with `npx tsx scripts/lib/engine-id.ts`. This works because:
 
 - `icdc-core` assigns engine ids sequentially (`eng_0`, `eng_1`, ...).
 - For every network, we register the Vici engine as the **first** engine after a registry
