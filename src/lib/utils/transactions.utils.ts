@@ -345,6 +345,28 @@ const sortNewestFirst = (txs: Transaction[]): Transaction[] =>
 	txs.sort((a, b) => (a.timestamp === b.timestamp ? 0 : a.timestamp > b.timestamp ? -1 : 1));
 
 /**
+ * Folds one ledger-history page into the rows already loaded: one row per
+ * transaction id and ledger (the page's copy wins, since index pages can
+ * overlap), sorted newest-first.
+ */
+export const mergeTransactionsPage = ({
+	transactions,
+	page
+}: {
+	transactions: Transaction[];
+	page: Transaction[];
+}): Transaction[] => {
+	const txKey = (tx: Transaction) => `${tx.id}-${tx.token.ledgerCanisterId}`;
+	const merged: Record<string, Transaction> = {};
+
+	for (const tx of [...transactions, ...page]) {
+		merged[txKey(tx)] = tx;
+	}
+
+	return sortNewestFirst(Object.values(merged));
+};
+
+/**
  * Assembles the unified Wallet activity feed: merges the paged ICRC ledger
  * rows with the clearing rows, keeps only the tokens the wallet currently
  * surfaces, and sorts newest-first.
