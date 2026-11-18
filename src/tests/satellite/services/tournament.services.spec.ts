@@ -362,6 +362,65 @@ describe('resolveTournamentRoundFn', () => {
 		assert.equal(r1Match()?.winnerLeagueId, leagueA);
 	});
 
+	it('fills both slots of a quarter-final fed by two first-round matches', async () => {
+		const leagueC = 'league-c';
+		const leagueD = 'league-d';
+		const quarter = roundWindow({ tournamentMonthStartMs: octoberStartMs, round: 'quarter' });
+		const quarterKey = tournamentMatchKey({ tournamentId, round: 'quarter', index: 0 });
+		const emptyMatch: TournamentMatchDoc = {
+			...finalMatch,
+			tournamentId,
+			fromStartCalls: null,
+			fromStartWins: null,
+			toStartCalls: null,
+			toStartWins: null
+		};
+
+		host.putDoc({
+			collection: Collection.TOURNAMENT_MATCHES,
+			key: tournamentMatchKey({ tournamentId, round: 'r1', index: 1 }),
+			data: {
+				...emptyMatch,
+				round: 'r1',
+				index: 1,
+				fromLeagueId: leagueC,
+				toLeagueId: leagueD,
+				startMs: r1.startMs,
+				endMs: r1.endMs
+			},
+			owner: controller,
+			createdAtMs: octoberStartMs
+		});
+		host.putDoc({
+			collection: Collection.TOURNAMENT_MATCHES,
+			key: quarterKey,
+			data: {
+				...emptyMatch,
+				round: 'quarter',
+				index: 0,
+				fromLeagueId: null,
+				toLeagueId: null,
+				startMs: quarter.startMs,
+				endMs: quarter.endMs
+			},
+			owner: controller,
+			createdAtMs: octoberStartMs
+		});
+		settlements.push({ principal: memberB, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 40 });
+
+		const result = await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
+
+		assert.deepEqual(result, { ok: true, matchesResolved: 2, tournamentConcluded: false });
+
+		const quarterMatch = host.readDoc<TournamentMatchDoc>({
+			collection: Collection.TOURNAMENT_MATCHES,
+			key: quarterKey
+		});
+
+		assert.equal(quarterMatch?.fromLeagueId, leagueB);
+		assert.equal(quarterMatch?.toLeagueId, leagueC);
+	});
+
 	it('refuses a round whose window has not closed', async () => {
 		host.setNowMs(r1.endMs - 1);
 

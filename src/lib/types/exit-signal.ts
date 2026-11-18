@@ -46,6 +46,7 @@ export interface ExitSignalDoc {
 	reason: ExitSignalReason;
 	/** Free-text note, capped at {@link EXIT_SIGNAL_NOTE_MAX_LENGTH}. Empty string when none. */
 	note: string;
-	/** Creation timestamp in ms since epoch. */
+	/** Start of the UTC day the account left, in ms since epoch: never the exact time, which
+	 * would match the profile's `deletedAtMs`. */
 	createdAtMs: number;
 }
