@@ -68,8 +68,9 @@ jobs:
         uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # v1.6
 
       # Static SPA (nginx). Build context is the repo root; fly.web.toml points
-      # at Dockerfile.web and bakes the VITE_* build args.
+      # at Dockerfile.web and bakes the VITE_* build args. The image's Node
+      # version is the pin in .node-version, the one CI builds and tests with.
       - name: Deploy web to Fly
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_WEB2_WEB }}
-        run: flyctl deploy --config fly.web.toml --remote-only
+        run: flyctl deploy --config fly.web.toml --remote-only --build-arg NODE_VERSION="$(cat .node-version)"

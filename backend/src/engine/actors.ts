@@ -9,9 +9,9 @@
 //     anonymous caller even on its read-only queries.
 //   - per-user: the caller's derived custodial identity signs the call, so
 //     the engine sees the same principal that owns the user's positions.
-//   - admin: the service identity for privileged methods (settlement, oracle
-//     and role management). Writes go through the certified factories so
-//     every update call gets a certified response.
+//   - admin: the service identity for privileged methods (engine role
+//     management). Writes go through the certified factories so every update
+//     call gets a certified response.
 //
 // ICRC ledgers join the same provider: clearing pulls collateral from a ledger
 // allowance, so the two only make sense faked together.
@@ -91,14 +91,8 @@ export const readerClearing = (): Promise<ClearingService> =>
 export const userClearing = (userId: string): Promise<ClearingService> =>
 	provider.clearing(userIcIdentity(userId), true);
 
-export const adminClearing = (): Promise<ClearingService> =>
-	provider.clearing(adminIcIdentity(), true);
-
 export const readerRegistry = (): Promise<RegistryService> =>
 	provider.registry(engineReaderIcIdentity(), false);
-
-export const userRegistry = (userId: string): Promise<RegistryService> =>
-	provider.registry(userIcIdentity(userId), true);
 
 export const adminRegistry = (): Promise<RegistryService> =>
 	provider.registry(adminIcIdentity(), true);

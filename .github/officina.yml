@@ -170,9 +170,10 @@ lanes:
 
   # User-facing copy only. A requirement nobody can meet yet (no product approver) is waived
   # automatically and recorded as waived, so this works today and tightens when the role is filled.
-  # auto_verify: a result the chooser judges needs no more than a glance merges without a person's
-  # check, which is allowed because a merge ships nothing (release.on_merge). People still approve
-  # the spec, and the branch rules (checks, threads, code-owner review) still decide the merge.
+  # auto_verify: a result the chooser judges needs no more than a glance skips a person's check and
+  # goes straight to merging, which is allowed because a merge ships nothing (release.on_merge).
+  # People still approve the spec, and a code owner still merges by hand: auto-merge stays off
+  # (pull_request.auto_merge is not set), and the branch rules still gate the merge.
   green:
     paths: ['src/lib/constants/messages/**']
     auto_verify: true

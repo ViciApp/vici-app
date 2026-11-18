@@ -68,11 +68,11 @@ Casing: `kebab-case` filenames, `camelCase` exports, `PascalCase` types.
 ## Imports
 
 Use the `#lib`, `#satellite`, `#declarations` and `#root` subpath imports
-from [`package.json`](../../../package.json) `imports`. Each is mirrored in the
-satellite [`tsconfig.json`](../../../src/satellite/tsconfig.json) `paths`,
-which `scripts/satellite-upgrade-needed.mjs` reads to walk the import graph:
-a subpath import missing there is treated as an npm package and silently
-skipped.
+from [`package.json`](../../../package.json) `imports`, which
+`scripts/satellite-upgrade-needed.mjs` reads to walk the import graph: a `#`
+import it cannot resolve forces the functions upgrade. The satellite
+[`tsconfig.json`](../../../src/satellite/tsconfig.json) `paths` mirror them for
+the type check only.
 
 ```ts
 import { Collection } from '#lib/constants/collections.constants.ts';

@@ -741,12 +741,10 @@ interface OpenIdProviderProfile {
 }
 
 /**
- * Reads the OpenID claims off the auth `User`. They live under
- * `user.data.providerData.openid` since the `@junobuild/core` v5 auth-client
- * migration (the pre-v5 `details.profile` shape this used to read no longer
- * exists). Returns `undefined` for providers that carry no OpenID metadata:
- * Internet Identity (including Apple-via-II), passkey/WebAuthn, and the dev
- * shortcut.
+ * The OpenID claims on the auth `User`, when there are any. OpenID metadata is
+ * optional and absent on every sign-in that does not go through an OpenID
+ * provider, so `undefined` is a normal result: profile enrichment from these
+ * claims is best-effort and must never block or fail profile creation.
  */
 const extractOpenIdProfile = (user: User): OpenIdProviderProfile | undefined => {
 	const { providerData } = user.data as {
