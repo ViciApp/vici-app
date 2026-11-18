@@ -281,7 +281,10 @@
 			<WorldsAffiliationPrompt onPick={() => (pickerKind = 'university')} />
 		{/if}
 
-		<section class="worlds-event" aria-label="World Cup battle">
+		<section
+			class="worlds-event"
+			aria-label={t({ locale: $localeStore, key: 'worlds.event.aria' })}
+		>
 			<div class="worlds-event-tags">
 				<span class="worlds-tag worlds-tag-wc">
 					{t({ locale: $localeStore, key: 'worlds.event.tag_wc' })}
@@ -361,7 +364,11 @@
 			</div>
 		</section>
 
-		<div class="worlds-scope" aria-label="Leaderboard scope" role="tablist">
+		<div
+			class="worlds-scope"
+			aria-label={t({ locale: $localeStore, key: 'worlds.scope.aria' })}
+			role="tablist"
+		>
 			<button
 				class:is-active={scope === 'month'}
 				aria-selected={scope === 'month'}
