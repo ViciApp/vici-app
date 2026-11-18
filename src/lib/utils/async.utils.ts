@@ -43,3 +43,73 @@ export const withTimeout = <T>({
  */
 export const sleep = (durationMs: number): Promise<void> =>
 	new Promise((resolve) => setTimeout(resolve, durationMs));
+
+/**
+ * Run `onLoad` on a self-rescheduling timer: `fastIntervalMs` between runs
+ * until `onShouldUseSlowInterval` answers true, `slowIntervalMs` after that.
+ * Runs never overlap. A failed run is logged and the next one is scheduled
+ * anyway: one transient error must not stop a loader for the rest of the
+ * session. Returns the stop function, which cancels any scheduled run.
+ */
+export const startPolling = ({
+	onLoad,
+	onShouldUseSlowInterval,
+	fastIntervalMs,
+	slowIntervalMs,
+	runImmediately
+}: {
+	onLoad: () => Promise<void>;
+	onShouldUseSlowInterval: () => Promise<boolean>;
+	fastIntervalMs: number;
+	slowIntervalMs: number;
+	runImmediately: boolean;
+}): (() => void) => {
+	let timeout: ReturnType<typeof setTimeout> | undefined;
+	let stopped = false;
+	let running = false;
+
+	const clearScheduled = () => {
+		clearTimeout(timeout);
+		timeout = undefined;
+	};
+
+	const scheduleNext = async () => {
+		if (stopped) {
+			return;
+		}
+
+		const delayMs = (await onShouldUseSlowInterval()) ? slowIntervalMs : fastIntervalMs;
+
+		if (stopped) {
+			return;
+		}
+
+		timeout = setTimeout(() => void tick(), delayMs);
+	};
+
+	const tick = async () => {
+		if (stopped || running) {
+			return;
+		}
+
+		running = true;
+		clearScheduled();
+
+		try {
+			await onLoad();
+		} catch (err: unknown) {
+			console.error('Polled load failed; retrying on the next interval', err);
+		} finally {
+			running = false;
+		}
+
+		await scheduleNext();
+	};
+
+	void (runImmediately ? tick() : scheduleNext());
+
+	return () => {
+		stopped = true;
+		clearScheduled();
+	};
+};
