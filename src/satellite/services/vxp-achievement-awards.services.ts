@@ -99,7 +99,7 @@ const payAchievement = async ({
 	};
 
 	try {
-		persistAward({ caller, recipient, awardType: AWARD_TYPE, awardKey, doc: pending });
+		persistAward({ recipient, awardType: AWARD_TYPE, awardKey, doc: pending });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 
@@ -132,7 +132,6 @@ const payAchievement = async ({
 		});
 
 		updateAward({
-			caller,
 			recipient,
 			awardType: AWARD_TYPE,
 			awardKey,
@@ -157,7 +156,6 @@ const payAchievement = async ({
 	});
 
 	updateAward({
-		caller,
 		recipient,
 		awardType: AWARD_TYPE,
 		awardKey,

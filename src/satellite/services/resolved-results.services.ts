@@ -116,8 +116,9 @@ const settlementPositions = async (
 
 /**
  * Writes one `resolved_results` row for a participant, version-locked upsert as admin. A re-fire on
- * the same `(owner, market)` overwrites the existing row (idempotent: a settlement is replayed to
- * the same outcome), so a hook replay can't duplicate or double-count.
+ * the same `(owner, market)` keeps the row's first `resolvedAtMs` (a later post of the same
+ * settlement must not move a result up the friends' digest) and skips the write when nothing else
+ * changed, so a hook replay can't duplicate, double-count or re-date.
  */
 const writeResolvedResult = ({
 	admin,
@@ -134,12 +135,22 @@ const writeResolvedResult = ({
 		caller: admin
 	});
 
+	const stored = nonNullish(existing) ? decodeDocData<ResolvedResult>(existing.data) : undefined;
+	const next: ResolvedResult = {
+		...result,
+		resolvedAtMs: stored?.resolvedAtMs ?? result.resolvedAtMs
+	};
+
+	if (nonNullish(stored) && JSON.stringify(stored) === JSON.stringify(next)) {
+		return;
+	}
+
 	setDocStore({
 		collection: Collection.RESOLVED_RESULTS,
 		key,
 		caller: admin,
 		doc: {
-			data: encodeDocData(result),
+			data: encodeDocData(next),
 			version: existing?.version
 		}
 	});
@@ -148,8 +159,9 @@ const writeResolvedResult = ({
 /**
  * `onSetDoc` for `activities`: on a SETTLEMENT activity CREATE, fan out one `resolved_results` row
  * per market participant. The settlement activity is a client `setDoc` (so this hook genuinely
- * fires), and the per-participant outcome + signed net VXP are derived server-side from the clearing
- * settlement plan, never from the client, so a user cannot forge a result. Best-effort: any
+ * fires) that only a role able to settle may post (`assertSetActivity`), and the per-participant
+ * outcome + signed net VXP are derived server-side from the clearing settlement plan, never from the
+ * client, so a user cannot forge a result. Best-effort: any
  * failure is logged and swallowed so it never disrupts the resolver's settlement write. Settlements
  * are rare, so the O(participants) fan-out is a bounded, cold path.
  */

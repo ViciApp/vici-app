@@ -5,9 +5,10 @@
 // way back in (auth identities, sessions, pending one-time codes) and exactly
 // the domain rows the account accumulated: profile, VXP award history (an
 // anonymous marker of each paid one-time award stays, see vxp/award-markers),
-// referral code and redemption, affiliations, relations, league memberships,
-// and owned leagues (deleted when empty, transferred to a surviving member
-// otherwise).
+// stats and monthly stats, resolved results, the likes it gave, school-email
+// submissions, referral code and redemption, affiliations, relations, league
+// memberships, and owned leagues (deleted when empty, transferred to a
+// surviving member otherwise).
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
@@ -17,6 +18,7 @@ import { query, tx, type TxQuery } from '../db/client';
 import { deleteLeague, transferLeagueOwnership } from '../leagues/leagues';
 import { logger } from '../lib/logger';
 import { DAY_IN_MS } from '../lib/time';
+import { deleteReactionsBy } from '../social/activities';
 import { recordAwardMarkers } from '../vxp/award-markers';
 
 /** Recovery window for soft-deleted accounts: past this the account is
@@ -183,6 +185,11 @@ export const hardDeleteAccount = async (userId: string): Promise<void> => {
 		await q(`delete from vxp_awards where user_id = $1`, [userId]);
 		await q(`delete from calibration_attempts where user_id = $1`, [userId]);
 		await q(`delete from activity_days where user_id = $1`, [userId]);
+		await q(`delete from user_stats where user_id = $1`, [userId]);
+		await q(`delete from user_monthly_stats where user_id = $1`, [userId]);
+		await q(`delete from resolved_results where user_id = $1`, [userId]);
+		await q(`delete from school_submissions where user_id = $1`, [userId]);
+		await deleteReactionsBy({ likerId: userId, q });
 		await q(`delete from referral_codes where owner_user_id = $1`, [userId]);
 		// Referee-side rows go with the account; referrer-side rows stay so a
 		// referred user keeps their own pending bonus. The settlement path
@@ -326,14 +333,16 @@ export const deleteMyAccount = async ({
 	});
 
 	// The exit signal is anonymous by design: no user reference in the row,
-	// so it outlives the account while staying unlinkable. Appended once per
-	// departure only, so a re-delete cannot over-count churn.
+	// a random id, and only the UTC day as its time (both columns), so it
+	// outlives the account while no timestamp joins it to the soft-delete
+	// mark. Appended once per departure only, so a re-delete cannot
+	// over-count churn.
 	if (!alreadyDeleted) {
-		await query(`insert into exit_signals (reason, note, created_at_ms) values ($1, $2, $3)`, [
-			validated.reason,
-			validated.note,
-			nowMs
-		]);
+		await query(
+			`insert into exit_signals (reason, note, created_at_ms, created_at)
+			 values ($1, $2, $3::bigint, to_timestamp($3::bigint / 1000.0))`,
+			[validated.reason, validated.note, nowMs - (nowMs % DAY_IN_MS)]
+		);
 
 		await captureDeleteEvents([
 			{ name: 'delete_succeeded', userId },

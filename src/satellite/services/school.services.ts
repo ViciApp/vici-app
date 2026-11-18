@@ -566,7 +566,6 @@ export const verifySchoolCodeFn = ({
 	code
 }: VerifySchoolCodeArgs): VerifySchoolCodeResult => {
 	const caller = msgCaller();
-	const callerBytes = caller.toUint8Array();
 	const memberText = caller.toText();
 	// Server-owned collections are controllers-scoped: access as admin.
 	const admin = adminCaller();
@@ -642,9 +641,9 @@ export const verifySchoolCodeFn = ({
 		}
 	});
 
-	// `profiles` is user-owned + public-write: keep the real caller so the
-	// doc stays owned by the user and the set-assert sees the right caller.
-	markProfileVerified({ caller: callerBytes, memberText });
+	// Signed as a controller: the `profiles` set-assert refuses a
+	// `schoolStatus` change from anyone else. The doc keeps its stored owner.
+	markProfileVerified({ caller: admin, memberText });
 
 	logInfo({
 		message: 'school_verified',

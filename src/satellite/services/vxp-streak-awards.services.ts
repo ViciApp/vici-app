@@ -101,7 +101,7 @@ const payStreakMilestone = async ({
 	};
 
 	try {
-		persistAward({ caller, recipient, awardType: AWARD_TYPE, awardKey, doc: pending });
+		persistAward({ recipient, awardType: AWARD_TYPE, awardKey, doc: pending });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 
@@ -135,7 +135,6 @@ const payStreakMilestone = async ({
 		});
 
 		updateAward({
-			caller,
 			recipient,
 			awardType: AWARD_TYPE,
 			awardKey,
@@ -160,7 +159,6 @@ const payStreakMilestone = async ({
 	});
 
 	updateAward({
-		caller,
 		recipient,
 		awardType: AWARD_TYPE,
 		awardKey,

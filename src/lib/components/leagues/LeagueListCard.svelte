@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { nonNullish } from '@dfinity/utils';
+	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Check, ChevronRight } from '@lucide/svelte/icons';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import Badge from '#lib/components/ui/Badge.svelte';
@@ -162,10 +162,15 @@
 	});
 
 	const handleCopy = async () => {
+		const { inviteCode } = league;
+
+		// Only a member's own leagues carry the code; a card without one has nothing to share.
+		if (isNullish(inviteCode)) {
+			return;
+		}
+
 		try {
-			const { url, withReferral } = await buildLeagueShareUrl({
-				inviteCode: league.inviteCode
-			});
+			const { url, withReferral } = await buildLeagueShareUrl({ inviteCode });
 			const shareText = t({
 				locale: $localeStore,
 				key: 'leagues.share_text'
