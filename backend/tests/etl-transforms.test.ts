@@ -567,6 +567,36 @@ describe.if(dbAvailable)('leagues import', () => {
 		await ensureMigrated();
 	});
 
+	test('takes the invite code of a league whose doc no longer carries it from league_invites', async () => {
+		const leagueId = `etl-invite-${crypto.randomUUID().slice(0, 8)}`;
+		const code = crypto
+			.randomUUID()
+			.replace(/[^0-9A-Z]/gi, 'B')
+			.slice(0, 6)
+			.toUpperCase();
+
+		await importDocs({
+			collection: 'leagues',
+			docs: [
+				doc({
+					key: leagueId,
+					data: { id: leagueId, name: 'Coded League', owner: uniquePrincipal(), createdAtMs: 1 }
+				})
+			]
+		});
+		await importDocs({
+			collection: 'league_invites',
+			docs: [doc({ key: leagueId, data: { leagueId, inviteCode: code } })]
+		});
+
+		const leagues = await query<{ invite_code: string }>(
+			`select invite_code from leagues where id = $1`,
+			[leagueId]
+		);
+
+		expect(leagues[0]?.invite_code).toBe(code);
+	});
+
 	test('imports leagues with legacy privacy fallback and duel side mapping', async () => {
 		const owner = uniquePrincipal();
 		const challenger = uniquePrincipal();

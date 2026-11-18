@@ -1,6 +1,10 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
-import { isControllerText } from '#satellite/services/authz.services.ts';
+import {
+	assertControllerCaller,
+	controllerCaller,
+	isControllerText
+} from '#satellite/services/authz.services.ts';
 import { hasAwardMarker } from '#satellite/services/vxp-award-markers.services.ts';
 import { isTournamentPrizeAwardKey } from '#satellite/utils/tournament-prize.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -19,10 +23,13 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  *     embedded fields is the most common path to a duplicate award
  *     slipping through; this assertion makes it impossible.
  *
- *  2. **Recipient binds caller.** A user can only write awards keyed
- *     to themselves. (The satellite itself signs writes when running
- *     hook code, but those writes still go through this assert with
- *     the recipient as the writing principal.)
+ *  2. **Server-only.** Only a satellite controller writes these docs:
+ *     the payout trusts their status (a `pending` doc blocks a second
+ *     payout, `paid` records the transfer), so a client that could write
+ *     one could invent an award, mark it paid with a made-up block, or
+ *     fail its own in-flight payout. Every award path writes through
+ *     {@link persistAward} / {@link updateAward}, which sign as a
+ *     controller.
  *
  *  3. **Immutable history.** Once a doc reaches `status: 'paid'`, the
  *     `paidAtMs` and `blockIndex` are frozen; any further write that
@@ -46,9 +53,8 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  *     purge leaves a marker of it (`hasAwardMarker`), since it deletes
  *     the award docs that would otherwise collide.
  *
- * The streak / calibration / referral / Worlds-podium paths create
- * these docs; this assert, with {@link assertDeleteVxpAward}, is the
- * safety net those paths rely on.
+ * The award paths create these docs; this assert, with
+ * {@link assertDeleteVxpAward}, is the safety net those paths rely on.
  */
 export const assertSetVxpAward = ({
 	caller,
@@ -61,6 +67,8 @@ export const assertSetVxpAward = ({
 	if (collection !== Collection.VXP_AWARDS) {
 		return;
 	}
+
+	assertControllerCaller({ caller, collection });
 
 	const proposedDoc = decodeDocData<VxpAwardDoc>(proposed.data);
 
@@ -75,17 +83,6 @@ export const assertSetVxpAward = ({
 		throw new Error(
 			`vxp_awards key mismatch: expected ${expectedKey}, got ${key} (recipient/type/key must match the doc body).`
 		);
-	}
-
-	// 2. Recipient binds caller. Caller arrives as the raw principal bytes:
-	//    compare against the recipient field's text form. The satellite's
-	//    own writes satisfy this because the hook caller wiring signs as
-	//    the recipient's principal on its behalf (same pattern as
-	//    `assertSetReferral`).
-	const callerText = Principal.fromUint8Array(caller).toText();
-
-	if (proposedDoc.recipient !== callerText) {
-		throw new Error('vxp_awards recipient must match the caller principal.');
 	}
 
 	// Creation path: nothing more to check beyond shape; status must
@@ -192,26 +189,27 @@ export const assertDeleteVxpAward = ({
 	throw new Error('vxp_awards docs are permanent records and cannot be deleted.');
 };
 
+/** The caller every award write signs with: {@link assertSetVxpAward} admits only a controller. */
+const awardWriter = (): Uint8Array => controllerCaller(Collection.VXP_AWARDS);
+
 /**
  * Creates the `pending` award doc. Carries no `version`, so a second write
  * for the same key traps on the existing doc: callers catch that as the
  * concurrent-firing case and stop before any ledger call.
  */
 export const persistAward = ({
-	caller,
 	recipient,
 	awardType,
 	awardKey,
 	doc
 }: {
-	caller: Uint8Array;
 	recipient: string;
 	awardType: VxpAwardType;
 	awardKey: string;
 	doc: VxpAwardDoc;
 }): void => {
 	setDocStore({
-		caller,
+		caller: awardWriter(),
 		collection: Collection.VXP_AWARDS,
 		key: vxpAwardKey({ recipient, awardType, awardKey }),
 		doc: { data: encodeDocData(doc) }
@@ -224,18 +222,17 @@ export const persistAward = ({
  * doc is a no-op: there is no pending record to settle.
  */
 export const updateAward = ({
-	caller,
 	recipient,
 	awardType,
 	awardKey,
 	patch
 }: {
-	caller: Uint8Array;
 	recipient: string;
 	awardType: VxpAwardType;
 	awardKey: string;
 	patch: Partial<VxpAwardDoc> & Pick<VxpAwardDoc, 'status'>;
 }): void => {
+	const caller = awardWriter();
 	const key = vxpAwardKey({ recipient, awardType, awardKey });
 	const existing = getDocStore({ collection: Collection.VXP_AWARDS, key, caller });
 
