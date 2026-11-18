@@ -1,5 +1,50 @@
 # Changelog
 
+## [1.8.61](https://github.com/ViciApp/vici-app/compare/v1.8.60...v1.8.61) (2026-11-18)
+
+
+### Bug Fixes
+
+* **ci:** judge the E2E result before the paths filter in e2e-tests-pass ([#1577](https://github.com/ViciApp/vici-app/issues/1577)) ([ece2adb](https://github.com/ViciApp/vici-app/commit/ece2adbc7d489fb8d827f28be289bb891c3801ee))
+* **ci:** never cancel an in-flight workflow run on main ([#1578](https://github.com/ViciApp/vici-app/issues/1578)) ([49e28a5](https://github.com/ViciApp/vici-app/commit/49e28a546257c5776b63a65b264f376d65a068ab))
+* **ci:** walk the satellite import graph from package.json imports ([#1581](https://github.com/ViciApp/vici-app/issues/1581)) ([c58c1b9](https://github.com/ViciApp/vici-app/commit/c58c1b9edb032789c5cf3628e4c55cf1ce6fd07a))
+* **frontend:** build invite and share links on the app's own origin ([#1585](https://github.com/ViciApp/vici-app/issues/1585)) ([a1f130d](https://github.com/ViciApp/vici-app/commit/a1f130d055ddefd2e2f89018b9d5bfc75372828a))
+* **frontend:** keep polling loaders alive after a failed load ([#1580](https://github.com/ViciApp/vici-app/issues/1580)) ([8cf422f](https://github.com/ViciApp/vici-app/commit/8cf422f7a2b4c9bc1755108ca3cb7b75cef7466c))
+* **frontend:** read the battle viewer from the mode-aware user store ([#1576](https://github.com/ViciApp/vici-app/issues/1576)) ([693aa51](https://github.com/ViciApp/vici-app/commit/693aa51f88a2b7da8b86fcb8601bd0802149ff43))
+* **frontend:** read the received-likes author from the mode-aware session ([#1579](https://github.com/ViciApp/vici-app/issues/1579)) ([b68d2e9](https://github.com/ViciApp/vici-app/commit/b68d2e9c56404cdc3d7d755298a82f90568dd5d0))
+* **frontend:** translate the hard-coded aria labels ([#1589](https://github.com/ViciApp/vici-app/issues/1589)) ([7e45dcc](https://github.com/ViciApp/vici-app/commit/7e45dcc46cb7f86f87b2961ba9b41e2f4211e2ac))
+* **market:** re-enable share controls after a failed card share ([#1584](https://github.com/ViciApp/vici-app/issues/1584)) ([b4a9054](https://github.com/ViciApp/vici-app/commit/b4a90543b75a894551cb9187773416d5f5eb0eef))
+* **market:** show the error state when the market detail load fails ([#1582](https://github.com/ViciApp/vici-app/issues/1582)) ([6ab9d2b](https://github.com/ViciApp/vici-app/commit/6ab9d2b9a385fedf0186b6c11d31dc780b3b546a))
+
+
+### Documentation
+
+* **ai:** correct the CI governance docs that contradict the config ([#1592](https://github.com/ViciApp/vici-app/issues/1592)) ([73dde83](https://github.com/ViciApp/vici-app/commit/73dde83b177816871214d04385590c53b4ecd14b))
+* **frontend:** drop the migration history from the OpenID claims comment ([#1594](https://github.com/ViciApp/vici-app/issues/1594)) ([74d9741](https://github.com/ViciApp/vici-app/commit/74d97414a19a50e1a69395f1a513e0fc9123d8a0))
+* **runbooks:** give only steps that run as written ([#1595](https://github.com/ViciApp/vici-app/issues/1595)) ([f276eed](https://github.com/ViciApp/vici-app/commit/f276eed49967655fb5cc1294d1d288ff0eae97b0))
+
+
+### Miscellaneous Chores
+
+* **backend:** treat league-image uploads as untracked local data ([#1587](https://github.com/ViciApp/vici-app/issues/1587)) ([a8c2577](https://github.com/ViciApp/vici-app/commit/a8c257774f05eda7639fad4c63344e5453d9b07a))
+
+
+### Code Refactoring
+
+* **backend:** remove wrappers nothing calls ([#1590](https://github.com/ViciApp/vici-app/issues/1590)) ([6b89d9e](https://github.com/ViciApp/vici-app/commit/6b89d9ee3215c3dc3e4280d48316555f6a679ef1))
+* **scripts:** read every hand-copied value from its owner ([#1586](https://github.com/ViciApp/vici-app/issues/1586)) ([5d3be36](https://github.com/ViciApp/vici-app/commit/5d3be36013cd673fd1aa0cbff26842f505f934cd))
+* **wallet:** share one ledger-history pager ([#1591](https://github.com/ViciApp/vici-app/issues/1591)) ([d8ef1b4](https://github.com/ViciApp/vici-app/commit/d8ef1b47f372f585673a7f8f16770f491afef278))
+
+
+### Tests
+
+* **e2e:** pin the desktop nav handle before signed-in snapshots ([#1575](https://github.com/ViciApp/vici-app/issues/1575)) ([fc86c8c](https://github.com/ViciApp/vici-app/commit/fc86c8c838b567961c17c221cb2edb10db4ab025))
+
+
+### Build System
+
+* **web2:** build the SPA image on the Node pinned in .node-version ([#1583](https://github.com/ViciApp/vici-app/issues/1583)) ([db3a199](https://github.com/ViciApp/vici-app/commit/db3a199eec57b0db042f9e0047ab5c4110b2466f))
+
 ## [1.8.60](https://github.com/ViciApp/vici-app/compare/v1.8.59...v1.8.60) (2026-11-17)
 
 
