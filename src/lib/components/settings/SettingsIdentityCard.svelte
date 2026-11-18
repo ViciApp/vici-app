@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import Avatar from '$lib/components/profile/Avatar.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		decisiveSettledCount,
 		resolvedPositionsNotInitialized
-	} from '$lib/derived/resolved-positions.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { UserProfile } from '$lib/types/profile';
-	import { displayAccuracyPct } from '$lib/utils/accuracy.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/derived/resolved-positions.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { UserProfile } from '#lib/types/profile.ts';
+	import { displayAccuracyPct } from '#lib/utils/accuracy.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
 
 	interface Props {
 		profile: UserProfile | undefined;
@@ -22,7 +22,7 @@
 
 	// Settings always shows the signed-in user's own identity, so a user with
 	// no settled predictions yet shows an optimistic 100% rather than a
-	// misleading 0% (display-only — see `displayAccuracyPct`).
+	// misleading 0% (display-only; see `displayAccuracyPct`).
 	const accuracyDisplay = $derived(
 		displayAccuracyPct({
 			accuracy: profile?.accuracy ?? 0,
@@ -32,7 +32,7 @@
 	);
 </script>
 
-<button class="set-identity" onclick={() => goto(resolve(AppPath.Profile))} type="button">
+<button class="set-identity" onclick={() => goto(resolveAppPath(AppPath.Profile))} type="button">
 	{#if profile}
 		<span class="set-identity-avatar">
 			<Avatar

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import SignInProviderStack from '$lib/components/authn/SignInProviderStack.svelte';
+	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
 
 	interface Props {
 		onSuccess?: () => void;
@@ -22,7 +22,7 @@
 	/* The provider stack carries a trailing margin tuned for the full
 	   sign-in screen's vertical rhythm. Inside the compact modal and
 	   gated surfaces that host these actions, that bottom gap isn't
-	   wanted — the surrounding surface owns the spacing. */
+	   wanted: the surrounding surface owns the spacing. */
 	.signin-actions :global(.signin-providers) {
 		margin-bottom: 0;
 	}

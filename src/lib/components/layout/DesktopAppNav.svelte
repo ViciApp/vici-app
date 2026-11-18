@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { Settings, User } from '@lucide/svelte/icons';
+	import { navItems } from '#lib/constants/nav.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { navItems } from '$lib/constants/nav.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { userSignedIn } from '$lib/derived/user.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	/**
-	 * Desktop chrome for the (app) shell — mirrors the LANDING page's
+	 * Desktop chrome for the (app) shell: mirrors the LANDING page's
 	 * top-nav pattern (brand wordmark on the left, primary nav in the
 	 * middle, user controls on the right) so the desktop authenticated
 	 * experience is a natural continuation of the marketing surface
@@ -57,7 +57,7 @@
 	const activeIndex = $derived(navItems.findIndex(({ path }) => isActive(path)));
 
 	/* ------------------------------------------------------------------
-	 * Sliding underline — measure the active link and slide a bar under
+	 * Sliding underline: measure the active link and slide a bar under
 	 * it (mirrors the MobileNav pillnav indicator). Recomputed via
 	 * ResizeObserver so the bar tracks viewport / font-load reflows.
 	 * ------------------------------------------------------------------ */
@@ -117,7 +117,11 @@
 			VICI
 		</a>
 
-		<nav bind:this={linksEl} class="app-desktop-nav-links" aria-label="Primary">
+		<nav
+			bind:this={linksEl}
+			class="app-desktop-nav-links"
+			aria-label={t({ locale: $localeStore, key: 'a11y.primary_nav' })}
+		>
 			{#each navItems as item, i (item.path)}
 				<a class="app-desktop-nav-link" class:is-active={i === activeIndex} href={item.path}>
 					{t({ locale: $localeStore, key: item.labelKey })}

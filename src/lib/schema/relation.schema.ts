@@ -1,5 +1,5 @@
-import { RelationCategory, RelationState } from '$lib/enums/relation';
-import { UserRole } from '$lib/enums/user';
+import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
+import { UserRole } from '#lib/enums/user.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 export const RelationCategorySchema = j.enum(RelationCategory);
@@ -21,7 +21,7 @@ export const CheckFriendshipArgsSchema = j.strictObject({
 });
 
 /**
- * Typed outcome of `sendFriendRequest` — known non-success cases are
+ * Typed outcome of `sendFriendRequest`: known non-success cases are
  * statuses, not traps, so the FE can surface a specific message (and,
  * for `rejected_cooldown`, the `retryAtMs` the wait is counted from).
  * Unexpected failures still trap and reach the FE as thrown errors.

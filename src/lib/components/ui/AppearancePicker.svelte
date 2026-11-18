@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import { THEME_SWATCHES, theme, type Theme } from '$lib/stores/theme.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { THEME_SWATCHES, theme, type Theme } from '#lib/stores/theme.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		variant?: 'dots' | 'tiles';
@@ -67,7 +67,7 @@
 {/if}
 
 <style lang="postcss">
-	/* Dots variant — landing footer, dropdown */
+	/* Dots variant: landing footer, dropdown */
 	.appearance-picker {
 		display: inline-flex;
 		align-items: center;
@@ -113,7 +113,7 @@
 		border-radius: var(--r-pill);
 	}
 
-	/* Tiles variant — settings preferences */
+	/* Tiles variant: settings preferences */
 	.appearance-tiles {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -1,4 +1,4 @@
-import type { ClearingDid } from '$declarations';
+import type { ClearingDid } from '#declarations';
 import { writable } from 'svelte/store';
 
 /**

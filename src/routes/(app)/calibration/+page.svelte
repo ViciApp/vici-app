@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
-	import LoginRequired from '$lib/components/authn/LoginRequired.svelte';
-	import CalibrationScreen from '$lib/components/pages/CalibrationScreen.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { authBusy } from '$lib/derived/user.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import LoginRequired from '#lib/components/authn/LoginRequired.svelte';
+	import CalibrationScreen from '#lib/components/pages/CalibrationScreen.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { authBusy } from '#lib/derived/user.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 </script>
 
 {#if $authBusy}

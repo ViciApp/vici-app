@@ -1,11 +1,11 @@
 <script lang="ts">
 	/**
-	 * Condensed trust band — a single reassuring one-liner with a seal
+	 * Condensed trust band: a single reassuring one-liner with a seal
 	 * icon. Sits between the proof band and the closing section.
 	 */
 	import { ShieldCheck } from '@lucide/svelte/icons';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 </script>
 
 <section id="trust" class="lpc-trust">

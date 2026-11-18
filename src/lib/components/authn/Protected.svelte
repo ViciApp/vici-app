@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import SignInModal from '$lib/components/authn/SignInModal.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { authBusy, userSignedIn } from '$lib/derived/user.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import SignInModal from '#lib/components/authn/SignInModal.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		children: Snippet;

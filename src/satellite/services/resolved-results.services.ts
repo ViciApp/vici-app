@@ -1,45 +1,33 @@
-import type { ClearingDid, RegistryDid } from '$declarations';
-import { RESOLVED_RESULTS_RETENTION_MS, ZERO } from '$lib/constants/app.constants';
-import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { ActivityType } from '$lib/enums/social';
-import type { Activity, ResolvedResult } from '$lib/types/social';
-import { isAdmin } from '$satellite/services/_authz';
-import { candidMethod } from '$satellite/utils/candid.utils';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { escapeRegex } from '$satellite/utils/regex.utils';
+import type { ClearingDid, RegistryDid } from '#declarations';
+import { RESOLVED_RESULTS_RETENTION_MS, ZERO } from '#lib/constants/app.constants.ts';
+import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import type { Activity, ResolvedResult } from '#lib/types/social.ts';
+import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
+import { candidMethod } from '#satellite/utils/candid.utils.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { OnSetDocContext } from '@junobuild/functions';
-import { call, msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { call, msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	deleteDocStore,
 	encodeDocData,
-	getAdminAccessKeys,
 	getDocStore,
 	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
 
-const MS_PER_NS = 1_000_000n;
-
-const nowMs = (): number => Number(time() / MS_PER_NS);
-
 /**
  * A satellite controller principal, used as the `caller` for the controllers-scoped
- * `resolved_results` writes — the resolver is not a controller, so each row is written as an admin
+ * `resolved_results` writes: the resolver is not a controller, so each row is written as an admin
  * (the `*DocStore` APIs enforce the collection rule against the caller they're given). Mirrors the
  * `activity_reaction_counts` rollup.
  */
-const adminCaller = (): Uint8Array => {
-	const first = getAdminAccessKeys()[0]?.[0];
-
-	if (isNullish(first)) {
-		throw new Error('No satellite controller available for resolved-results write.');
-	}
-
-	return first;
-};
+const adminCaller = (): Uint8Array => controllerCaller('resolved-results write');
 
 const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
 const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
@@ -47,7 +35,7 @@ const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
 /**
  * Whether a Candid `int` cashflow stays exact once narrowed to a JS `number`. Outside the
  * safe-integer range the `Number(...)` conversion silently loses precision, which would corrupt the
- * row's `netVxp` — such rows are dropped rather than written.
+ * row's `netVxp`: such rows are dropped rather than written.
  */
 const isSafeCashflow = (cashflowUsd: bigint): boolean =>
 	cashflowUsd <= MAX_SAFE && cashflowUsd >= MIN_SAFE;
@@ -76,7 +64,7 @@ const sideForPosition = ({
 
 /**
  * The market title for a resolved series, read from the registry (`get_series`). Falls back to the
- * resolver-written activity title when the series is unknown or the read fails — the row stays
+ * resolver-written activity title when the series is unknown or the read fails: the row stays
  * writable rather than aborting the whole fan-out on a transient registry hiccup.
  */
 const marketTitle = async ({
@@ -128,8 +116,9 @@ const settlementPositions = async (
 
 /**
  * Writes one `resolved_results` row for a participant, version-locked upsert as admin. A re-fire on
- * the same `(owner, market)` overwrites the existing row (idempotent — a settlement is replayed to
- * the same outcome), so a hook replay can't duplicate or double-count.
+ * the same `(owner, market)` keeps the row's first `resolvedAtMs` (a later post of the same
+ * settlement must not move a result up the friends' digest) and skips the write when nothing else
+ * changed, so a hook replay can't duplicate, double-count or re-date.
  */
 const writeResolvedResult = ({
 	admin,
@@ -146,12 +135,22 @@ const writeResolvedResult = ({
 		caller: admin
 	});
 
+	const stored = nonNullish(existing) ? decodeDocData<ResolvedResult>(existing.data) : undefined;
+	const next: ResolvedResult = {
+		...result,
+		resolvedAtMs: stored?.resolvedAtMs ?? result.resolvedAtMs
+	};
+
+	if (nonNullish(stored) && JSON.stringify(stored) === JSON.stringify(next)) {
+		return;
+	}
+
 	setDocStore({
 		collection: Collection.RESOLVED_RESULTS,
 		key,
 		caller: admin,
 		doc: {
-			data: encodeDocData(result),
+			data: encodeDocData(next),
 			version: existing?.version
 		}
 	});
@@ -160,8 +159,9 @@ const writeResolvedResult = ({
 /**
  * `onSetDoc` for `activities`: on a SETTLEMENT activity CREATE, fan out one `resolved_results` row
  * per market participant. The settlement activity is a client `setDoc` (so this hook genuinely
- * fires), and the per-participant outcome + signed net VXP are derived server-side from the clearing
- * settlement plan — never from the client — so a user cannot forge a result. Best-effort: any
+ * fires) that only a role able to settle may post (`assertSetActivity`), and the per-participant
+ * outcome + signed net VXP are derived server-side from the clearing settlement plan, never from the
+ * client, so a user cannot forge a result. Best-effort: any
  * failure is logged and swallowed so it never disrupts the resolver's settlement write. Settlements
  * are rare, so the O(participants) fan-out is a bounded, cold path.
  */
@@ -199,7 +199,7 @@ export const onActivitySetForResolvedResults = async (ctx: OnSetDocContext): Pro
 		}
 
 		const title = await marketTitle({ seriesId, fallback: activity.title });
-		const resolvedAtMs = nowMs();
+		const resolvedAtMs = timeMs();
 		const admin = adminCaller();
 
 		// `cashflow_usd` is a Candid `int` (`bigint`); `netVxp` is a JS `number`.
@@ -254,7 +254,7 @@ export const onActivitySetForResolvedResults = async (ctx: OnSetDocContext): Pro
 /**
  * Friend-scoped bulk read for the results digest. Given a set of friend principals, returns their
  * resolved-result rows over the active retention window in ONE bounded `listDocsStore` filtered to
- * the friend owner-prefixes — never one call per friend. Keys are `${owner}#${marketId}`, so a row
+ * the friend owner-prefixes, never one call per friend. Keys are `${owner}#${marketId}`, so a row
  * belongs to a friend when its key prefix (before the first `#`) is in the set; the key matcher
  * anchors the scan to those prefixes server-side.
  */
@@ -269,7 +269,7 @@ export const listFriendResolvedResultsFn = ({
 		return [];
 	}
 
-	const cutoffMs = nowMs() - RESOLVED_RESULTS_RETENTION_MS;
+	const cutoffMs = timeMs() - RESOLVED_RESULTS_RETENTION_MS;
 
 	// One bounded scan anchored to the friend owner-prefixes (`(^a#|^b#|…)`),
 	// not a per-friend round-trip. The decoded-`owner` re-check below is the
@@ -293,7 +293,7 @@ export const listFriendResolvedResultsFn = ({
 		try {
 			row = decodeDocData<ResolvedResult>(item.data);
 		} catch {
-			// A malformed row can't serve a read — skip it rather than abort the scan.
+			// A malformed row can't serve a read: skip it rather than abort the scan.
 			row = undefined;
 		}
 
@@ -307,7 +307,7 @@ export const listFriendResolvedResultsFn = ({
 
 /**
  * Controllers-only retention cleanup. Prunes every `resolved_results` row whose `resolvedAtMs` is
- * older than {@link RESOLVED_RESULTS_RETENTION_MS} — Juno has no scheduler, so this is admin/cron
+ * older than {@link RESOLVED_RESULTS_RETENTION_MS}: Juno has no scheduler, so this is admin/cron
  * triggered (mirrors `sweepExpiredDeletions`). Returns the number of rows pruned.
  */
 export const pruneResolvedResultsFn = (): { pruned: number } => {
@@ -318,7 +318,7 @@ export const pruneResolvedResultsFn = (): { pruned: number } => {
 	}
 
 	const admin = adminCaller();
-	const cutoffMs = nowMs() - RESOLVED_RESULTS_RETENTION_MS;
+	const cutoffMs = timeMs() - RESOLVED_RESULTS_RETENTION_MS;
 
 	const { items } = listDocsStore({
 		collection: Collection.RESOLVED_RESULTS,

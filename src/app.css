@@ -4,7 +4,7 @@
 /* ─── Self-hosted fonts ────────────────────────────────────────────
  * All three families are OFL-licensed. Files live under
  * `static/fonts/` and are served at `/fonts/*`. Hanken Grotesk is a
- * variable font — a single woff2 covers all four weights via
+ * variable font: a single woff2 covers all four weights via
  * `font-weight: 400 700`. Latin subset covers en / it / es / de / fr
  * / pt; CJK ranges fall back to the system stack in `--font-display`
  * / `--font-serif`, identical to the Google Fonts CDN behaviour.
@@ -53,13 +53,16 @@
 /* ─── VICI Design System ─── dark-first, warm near-black canvas */
 
 /* Extra bottom clearance for the NATIVE bottom bar every iOS browser paints
- * over the web view — the Chrome / Firefox / Edge / Google-app toolbars AND
+ * over the web view: the Chrome / Firefox / Edge / Google-app toolbars AND
  * Safari's own bottom bar (confirmed on device). No web API reports that bar's
  * height, so bottom-docked sheet footers add the `--ios-bottom-bar-inset` token
  * (declared in `:root` below) to lift their CTA above it. `data-ios-bottom-bar`
  * is stamped pre-paint in app.html for all iOS; the token is `0px` everywhere
- * else, so the inset is inert off iOS. Tunable in one place — adjust if the CTA
- * still clips or floats too high. */
+ * else, so the inset is inert off iOS. Tunable in one place; adjust if the CTA
+ * still clips or floats too high. This is the NOMINAL value; inside a
+ * `pinToVisualViewport` overlay the pin overrides it down to the residual the
+ * pin hasn't already cleared (0 in browsers whose visualViewport excludes the
+ * bar, e.g. Safari / in-app webviews), so the inset never doubles up. */
 html[data-ios-bottom-bar] {
 	--ios-bottom-bar-inset: 56px;
 }
@@ -69,7 +72,7 @@ html[data-ios-bottom-bar] {
 	--ios-bottom-bar-inset: 0px;
 
 	/* Bottom inset every docked sheet/panel footer must clear: the device
-	   safe area plus the iOS native bottom bar. Single source —
+	   safe area plus the iOS native bottom bar. Single source;
 	   footers add their own base padding on top: calc(<base> + var(--docked-footer-inset)). */
 	--docked-footer-inset: calc(env(safe-area-inset-bottom, 0px) + var(--ios-bottom-bar-inset, 0px));
 
@@ -81,7 +84,7 @@ html[data-ios-bottom-bar] {
 	--ink-line: rgba(242, 236, 220, 0.08);
 	--ink-line-strong: rgba(242, 236, 220, 0.18);
 
-	/* Foreground — parchment cream */
+	/* Foreground: parchment cream */
 	--parchment: #f2ecdc;
 	--parchment-dim: rgba(242, 236, 220, 0.72);
 	--parchment-mute: rgba(242, 236, 220, 0.5);
@@ -93,13 +96,13 @@ html[data-ios-bottom-bar] {
 	--laurel-glow: rgba(226, 184, 66, 0.18);
 	--terracotta: #b5462c;
 
-	/* Brand role aliases — name the laurel ramp by its identity role so
+	/* Brand role aliases: name the laurel ramp by its identity role so
 	 * call-sites can read `--brand` instead of the raw `--laurel`. */
 	--brand: var(--laurel);
 	--brand-deep: var(--laurel-deep);
 	--brand-glow: var(--laurel-glow);
 
-	/* Danger ramp — destructive actions (delete, sign-out, form errors).
+	/* Danger ramp: destructive actions (delete, sign-out, form errors).
 	 * Aliases the terracotta ramp so the two role tokens can't drift;
 	 * distinct from the `--no` signal which carries prediction NO
 	 * semantics. */
@@ -129,7 +132,7 @@ html[data-ios-bottom-bar] {
 	--text-muted: var(--parchment-mute);
 	--text-inverse: var(--ink);
 
-	/* Foreground tier aliases — landing.css already declares `--fg-dim` /
+	/* Foreground tier aliases: landing.css already declares `--fg-dim` /
 	 * `--fg-faint` at `:root`, but the app layer shouldn't depend on that
 	 * import to resolve them. Own the aliases here, mapped to the parchment
 	 * tiers. */
@@ -158,7 +161,7 @@ html[data-ios-bottom-bar] {
 	 * cascades correctly under each `[data-theme]`. */
 	--text-on-accent: var(--color-accent-foreground);
 
-	/* Plain `--accent` alias — app-shell call-sites read `var(--accent)`.
+	/* Plain `--accent` alias: app-shell call-sites read `var(--accent)`.
 	 * landing.css already declares it at `:root`, but own it here so the
 	 * app layer doesn't depend on landing.css import order. Mirrors
 	 * `--color-accent`. */
@@ -184,28 +187,28 @@ html[data-ios-bottom-bar] {
 	/* Motion (--ease-vici lives in `@theme` so Tailwind generates the
 	 * `ease-vici` utility; the value still cascades into `:root`).
 	 *
-	 * MOTION PRINCIPLE — how a moment is allowed to move:
+	 * MOTION PRINCIPLE (how a moment is allowed to move):
 	 *   • Rare peaks (an achievement unlock, an end-of-session
-	 *     celebration) MAY use spring / overshoot easing — they happen
+	 *     celebration) MAY use spring / overshoot easing; they happen
 	 *     seldom enough to earn the flourish.
 	 *   • Frequent rewards (a call settling, a routine grant) settle
-	 *     WITHOUT overshoot — repetition turns a bounce into noise.
+	 *     WITHOUT overshoot; repetition turns a bounce into noise.
 	 *   • Direct-action confirmations (a button press, a swipe commit)
-	 *     keep a small tactile pop — just enough to read as "registered",
+	 *     keep a small tactile pop, just enough to read as "registered",
 	 *     never a full bounce.
 	 * One easing curve (`--ease-vici`) is the app default; the durations
 	 * below are the standard scale. Every animation/transition must be
-	 * disabled under reduced motion — gate CSS with `@media
+	 * disabled under reduced motion; gate CSS with `@media
 	 * (prefers-reduced-motion: reduce)` and JS-driven Svelte transitions
 	 * with `prefersReducedMotion()` from
-	 * `$lib/utils/reduced-motion.utils.ts`. The narrative side of this
+	 * `#lib/utils/reduced-motion.utils.ts`. The narrative side of this
 	 * principle lives in `docs/ai/frontend/brand.md` §8 / `design.md` §7.1. */
 	--d-hover: 120ms;
 	--d-state: 200ms;
 	--d-enter: 320ms;
 	--d-hero: 600ms;
 
-	/* Semantic type scale — role-named six-step ramp. Components
+	/* Semantic type scale: role-named six-step ramp. Components
 	 * reference these by intent (display / h1 / h2 / body / meta /
 	 * eyebrow) rather than reaching for the numeric `--t-NN` steps;
 	 * they were previously undefined, forcing call-sites to hardcode
@@ -217,7 +220,7 @@ html[data-ios-bottom-bar] {
 	--t-meta: 0.8125rem;
 	--t-eyebrow: 0.6875rem;
 
-	/* Type scale — modular 1.250 (major third), tuned at top end. The
+	/* Type scale: modular 1.250 (major third), tuned at top end. The
 	 * Tailwind text utilities still cover most copy; these tokens are
 	 * for hand-tuned editorial moments (display, hero numeric). */
 	--t-10: 0.625rem;
@@ -246,7 +249,7 @@ html[data-ios-bottom-bar] {
 	--tracking-wide: 0.04em;
 	--tracking-allcaps: 0.12em;
 
-	/* Radii — the standard scale. Buttons 4, cards 12. Pills (999) are
+	/* Radii: the standard scale. Buttons 4, cards 12. Pills (999) are
 	 * rare. Don't deviate. Each `--r-NN` token is literal to its name:
 	 * `--r-12` is 12 px, matching the card-corner radius the design
 	 * system specifies (it had drifted to 16 px). */
@@ -256,27 +259,27 @@ html[data-ios-bottom-bar] {
 	--r-12: 12px;
 	--r-pill: 999px;
 
-	/* Role-named alias set for radii — names map onto the numeric
+	/* Role-named alias set for radii: names map onto the numeric
 	 * scale so call-sites can write `var(--r-m)` instead of memorising
 	 * `--r-8`. `--r-l` shares the card radius (12 px) with `--r-12`. */
 	--r-s: 4px;
 	--r-m: 8px;
 	--r-l: 12px;
 
-	/* Sanctioned large-radius one-offs — two intentional exceptions above
+	/* Sanctioned large-radius one-offs, two intentional exceptions above
 	 * the standard card scale, named by the surface they belong to so
 	 * call-sites read the intent rather than a bare literal:
-	 *   --radius-frame  18 px — elevated framed surfaces (the swipeable
+	 *   --radius-frame  18 px: elevated framed surfaces (the swipeable
 	 *                   onboarding card + its drop shadow); the largest
 	 *                   corner a content surface takes.
-	 *   --radius-nav    28 px — the floating bottom-nav pill shell only.
+	 *   --radius-nav    28 px: the floating bottom-nav pill shell only.
 	 * `--r-xl` is retained as a back-compat alias of `--radius-frame`
 	 * (the canonical name) so the two can't drift. */
 	--radius-frame: 18px;
 	--radius-nav: 28px;
 	--r-xl: var(--radius-frame);
 
-	/* Spacing scale — 8-point base, no exceptions outside this scale.
+	/* Spacing scale: 8-point base, no exceptions outside this scale.
 	 * Two parallel naming schemes are exposed: `--space-N` is the
 	 * semantic-rank scale; `--s-N` is the wider raw-pixel scale used
 	 * in dense layouts. */
@@ -300,7 +303,7 @@ html[data-ios-bottom-bar] {
 	--s-96: 96px;
 	--s-128: 128px;
 
-	/* Named layout gaps — role-named spacing decisions for vertical
+	/* Named layout gaps: role-named spacing decisions for vertical
 	 * rhythm. Components reference these by layout intent (gap inside a
 	 * card, between sections, around a screen hero, between list rows)
 	 * instead of picking a raw `--s-N` step per call-site. */
@@ -309,14 +312,14 @@ html[data-ios-bottom-bar] {
 	--gap-screen: 48px;
 	--gap-row: 12px;
 
-	/* Screen-edge horizontal padding — the single gutter a screen reserves
+	/* Screen-edge horizontal padding: the single gutter a screen reserves
 	 * between its content column and the viewport edge. Named separately
 	 * from `--gap-card` (which is a vertical in-card stack gap that happens
 	 * to share the 20 px value) so the two intents stay independently
 	 * tunable. Stray 18 px edge paddings reconcile to this token. */
 	--spacing-edge: 20px;
 
-	/* Named font-size tokens — locked role-named set. Sits alongside the
+	/* Named font-size tokens: locked role-named set. Sits alongside the
 	 * numeric `--t-*` scale (modular 1.25) so editorial / display moments
 	 * keep the numeric ramp, while UI labels read against the role names
 	 * (eyebrow / sub / body / h*). */
@@ -330,7 +333,7 @@ html[data-ios-bottom-bar] {
 	--text-h2: 22px;
 	--text-display: 32px;
 
-	/* Stagecraft / motion-engine aliases — name the motion language
+	/* Stagecraft / motion-engine aliases: name the motion language
 	 * explicitly. They fold onto the canonical curve and durations so
 	 * the whole app shares one easing and one timing scale; the quick /
 	 * stage pair had drifted to a separate curve and off-scale timings. */
@@ -345,7 +348,7 @@ html[data-ios-bottom-bar] {
 	--header-h: 56px;
 	--ticker-h: 32px;
 	--bottomnav-h: 64px;
-	/* Floating pillnav clearance — every surface that wants to avoid
+	/* Floating pillnav clearance: every surface that wants to avoid
 	 * sliding under the floating tab bar reads this token. 96 px pill
 	 * + `env(safe-area-inset-bottom)`. */
 	--bn-clear: calc(96px + env(safe-area-inset-bottom, 0px));
@@ -396,6 +399,12 @@ html[data-ios-bottom-bar] {
 	   stays a faint lightening on dark and a faint darkening on the
 	   parchment / peach canvases. */
 	--flow-res-fill: rgba(242, 236, 220, 0.03);
+
+	/* Floating companion chip (the bottom-right mascot toast). Its text
+	   reads `--text-base`, so the background must invert per theme or the
+	   ink-coloured copy blacks out on the light canvases. Dark keeps the
+	   translucent ink glass; light / peach get a translucent parchment. */
+	--companion-float-bg: rgba(14, 13, 11, 0.85);
 }
 
 [data-theme='light'] {
@@ -443,6 +452,8 @@ html[data-ios-bottom-bar] {
 	--shadow-card: var(--shadow-card-light);
 
 	--flow-res-fill: rgba(14, 13, 11, 0.025);
+
+	--companion-float-bg: rgba(250, 246, 234, 0.9);
 }
 
 [data-theme='peach'] {
@@ -462,7 +473,7 @@ html[data-ios-bottom-bar] {
 	--border-base: rgba(61, 36, 25, 0.1);
 	--border-strong: rgba(61, 36, 25, 0.18);
 
-	/* Signal overrides — the dark-theme YES / NO hues wash out on the
+	/* Signal overrides: the dark-theme YES / NO hues wash out on the
 	 * warm peach canvas, so step them to darker tones that hold contrast
 	 * against the light background. */
 	--yes: #2ba178;
@@ -497,6 +508,8 @@ html[data-ios-bottom-bar] {
 	--shadow-card: var(--shadow-card-light);
 
 	--flow-res-fill: rgba(14, 13, 11, 0.025);
+
+	--companion-float-bg: rgba(255, 243, 232, 0.92);
 }
 
 @theme {
@@ -533,7 +546,7 @@ html[data-ios-bottom-bar] {
 	--color-destructive: var(--color-destructive);
 	--color-destructive-foreground: var(--parchment);
 
-	/* Danger ramp — the canonical destructive-action role (delete,
+	/* Danger ramp: the canonical destructive-action role (delete,
 	 * sign-out, irreversible-action warnings). Maps to the terracotta
 	 * `--danger` ramp so danger UI stays visually distinct from the
 	 * prediction `--no` signal: destructive UI must NOT read as a NO
@@ -555,7 +568,7 @@ html[data-ios-bottom-bar] {
 	--color-input: var(--border-strong);
 	--color-ring: var(--laurel);
 
-	/* Prediction-market signals — preserve YES / NO / HOLD semantics so
+	/* Prediction-market signals: preserve YES / NO / HOLD semantics so
 	 * components can write `text-yes` / `bg-no-wash` instead of reaching
 	 * for arbitrary `[var(--yes)]` references. */
 	--color-yes: var(--yes);
@@ -570,21 +583,21 @@ html[data-ios-bottom-bar] {
 	--color-hold-deep: var(--hold-deep);
 	--color-hold-wash: var(--hold-wash);
 
-	/* Brand colour ramp (laurel) — `--color-primary` already maps to
+	/* Brand colour ramp (laurel): `--color-primary` already maps to
 	 * `--laurel`; these expose the deep / glow variants as `bg-laurel-deep`
 	 * and `bg-laurel-glow` utilities. */
 	--color-laurel: var(--laurel);
 	--color-laurel-deep: var(--laurel-deep);
 	--color-laurel-glow: var(--laurel-glow);
 
-	/* Canvas reference (text-on-laurel etc.) — exposed so components can
+	/* Canvas reference (text-on-laurel etc.), exposed so components can
 	 * write `text-ink` instead of `text-[var(--ink)]`. */
 	--color-ink: var(--ink);
 
 	/* Theme-stable parchment-tinted lines, used by surfaces that opt out
 	 * of theme switching (e.g. MobileNav has a hard-coded dark translucent
 	 * bg and needs the border to stay parchment in BOTH dark and light
-	 * themes — `--color-border` flips to a dark rgba in light theme and
+	 * themes: `--color-border` flips to a dark rgba in light theme and
 	 * would disappear against that bg). */
 	--color-ink-line: var(--ink-line);
 	--color-ink-line-strong: var(--ink-line-strong);
@@ -609,7 +622,7 @@ html[data-ios-bottom-bar] {
 	/* Modal shadow exposed as the `shadow-modal` utility. */
 	--shadow-modal: 0 24px 60px -20px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4);
 
-	/* Toast shadow exposed as the `shadow-toast` utility. Theme-stable —
+	/* Toast shadow exposed as the `shadow-toast` utility. Theme-stable:
 	 * toasts sit on a translucent dark surface in both themes, so the
 	 * drop-shadow value cascades unchanged. */
 	--shadow-toast: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
@@ -651,7 +664,7 @@ html[data-ios-bottom-bar] {
 	transition-duration: var(--d-state);
 }
 
-/* MobileNav active-tab shadow — composed from the laurel-glow drop +
+/* MobileNav active-tab shadow, composed from the laurel-glow drop +
  * a parchment inset highlight. Encapsulated as a named utility so the
  * call-site doesn't keep an arbitrary `shadow-[…var(--laurel-glow)…]`
  * value (which would re-introduce the [var(--token)] anti-pattern this
@@ -710,7 +723,7 @@ html {
 	 * dark/light and `--laurel-deep` in peach via theme overrides),
 	 * offset 2px from the element to read against any surface. Modern
 	 * browsers trace the outline along the element's intrinsic
-	 * `border-radius`, so we don't set one here — pill buttons / round
+	 * `border-radius`, so we don't set one here; pill buttons / round
 	 * avatars / rounded cards keep their natural shape on focus. Sites
 	 * that need a custom focus shape opt out by overriding
 	 * `:focus-visible` on their own selectors. */
@@ -725,7 +738,7 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
-/* Authenticated `(app)` shell viewport architecture — the document
+/* Authenticated `(app)` shell viewport architecture: the document
  * doesn't scroll; instead a single `.screen-scroll` viewport inside
  * the app shell hosts all page scrolling and reserves clearance for
  * the floating pillnav. Gated on `data-app="1"` on <html> so the
@@ -748,10 +761,18 @@ html[data-app='1'] body {
 	overflow-x: hidden;
 	overflow-y: auto;
 	-webkit-overflow-scrolling: touch;
+	/* Standalone PWA (Home-Screen icon) renders fullscreen under the
+	 * translucent iOS status bar, so every page in this single scroll
+	 * viewport must clear the top safe-area inset or its header tucks
+	 * under the clock. `env()` is 0 in a normal browser tab and on
+	 * desktop. Flow self-manages its own inset: while its top bar is
+	 * shown the `.flow-shell` is `position: fixed; inset: 0` and escapes
+	 * this scroll viewport entirely, so it never double-counts. */
+	padding-top: env(safe-area-inset-top, 0px);
 	padding-bottom: var(--bn-clear);
 }
 
-/* Desktop adaptation for the (app) shell — desktop picks up the
+/* Desktop adaptation for the (app) shell; desktop picks up the
  * landing page's responsive treatment: a top-nav shell hosts the
  * chrome, the mobile pillnav is hidden, and page content centres in
  * a comfortable reading column. Marketing routes (`/`, `/about`, …)
@@ -838,7 +859,7 @@ html[data-app='1'] body {
 }
 
 /* Compact eyebrow used in dense tables, order-book columns, position
- * pills, etc. 10px / wide tracking — same intent as `.eyebrow` but at
+ * pills, etc. 10px / wide tracking, same intent as `.eyebrow` but at
  * a step smaller. Drop-in replacement for the Tailwind blob
  * `text-[10px] font-bold tracking-widest uppercase` repeated across
  * 14+ market and order-book components. Color is inherited so the
@@ -859,15 +880,14 @@ html[data-app='1'] body {
 	letter-spacing: 0;
 }
 
-/* Brand accent inline — used in editorial copy alongside `.serif-italic`
- * for the "*Your call comes next.*" / "*Earned, not given.*" beats.
+/* Brand accent inline, used in editorial copy alongside `.serif-italic`.
  * `landing.css` defines the same `.acc { color: var(--accent); }`
  * rule; mirrored here so the onboarding surfaces pick it up. */
 .acc {
 	color: var(--laurel);
 }
 
-/* Editorial display — italic serif at hero scale. Used for first-launch
+/* Editorial display: italic serif at hero scale. Used for first-launch
  * "Veni." moments, FlowEnd headlines, "Identity, *not information.*"
  * type beats. Pairs with sans body copy. */
 .display {
@@ -879,7 +899,7 @@ html[data-app='1'] body {
 	letter-spacing: var(--tracking-tight);
 }
 
-/* Hero numeric — every big probability / XP total / streak count. Mono,
+/* Hero numeric: every big probability / XP total / streak count. Mono,
  * tabular, slashed-zero. */
 .display-num {
 	font-family: var(--font-mono);
@@ -891,7 +911,7 @@ html[data-app='1'] body {
 	font-variant-numeric: tabular-nums slashed-zero;
 }
 
-/* Lede — first-paragraph treatment (e.g. spec page intros). */
+/* Lede: first-paragraph treatment (e.g. spec page intros). */
 .lede {
 	font-size: var(--t-18);
 	line-height: var(--leading-loose);
@@ -916,7 +936,7 @@ html[data-app='1'] body {
 	box-shadow: var(--inset-hi);
 }
 
-/* Elevated surface — sheets, modals, popovers. Drops a soft modal
+/* Elevated surface: sheets, modals, popovers. Drops a soft modal
  * shadow on top of the inner highlight in dark theme. */
 .surface-elevated {
 	background: var(--bg-popover);
@@ -925,7 +945,7 @@ html[data-app='1'] body {
 	box-shadow: var(--inset-hi-strong), var(--shadow-modal);
 }
 
-/* Appbar icon button — single source of truth for every header-edge
+/* Appbar icon button: single source of truth for every header-edge
  * icon control (back arrow, settings cog, history, plus, chart,
  * etc.). A transparent, borderless ~36px circle that mirrors the
  * canonical title-block icon button and the `.notif-bell`: muted
@@ -951,7 +971,7 @@ html[data-app='1'] body {
 	background: color-mix(in srgb, var(--text-base) 6%, transparent);
 }
 
-/* Hairline — top divider. Minimal so it can't get any thicker. */
+/* Hairline: top divider. Minimal so it can't get any thicker. */
 .hairline {
 	border-top: 1px solid var(--border-base);
 }
@@ -1079,19 +1099,6 @@ html[data-app='1'] body {
 	}
 }
 
-/* Archivist chart redraw — line draws in over its cycle */
-@keyframes char-chart {
-	0% {
-		stroke-dasharray: 0 30;
-	}
-	60% {
-		stroke-dasharray: 30 0;
-	}
-	100% {
-		stroke-dasharray: 30 0;
-	}
-}
-
 @keyframes char-pop {
 	0% {
 		opacity: 0;
@@ -1144,10 +1151,6 @@ html[data-app='1'] body {
 .char-bolt {
 	animation: char-bolt 1.8s steps(1, end) infinite;
 }
-.char-chart {
-	stroke-dasharray: 0 30;
-	animation: char-chart 4s ease-out infinite;
-}
 .char-flicker {
 	animation: char-flicker 0.9s ease-in-out infinite;
 }
@@ -1165,21 +1168,14 @@ html[data-app='1'] body {
 	.char-ear,
 	.char-tail,
 	.char-bolt,
-	.char-chart,
 	.char-flicker,
-	.char-pop {
+	.char-pop,
+	.reso-row-q-skeleton {
 		animation: none;
-	}
-
-	/* The chart-redraw base rule leaves the line at `0 30` (undrawn). With
-	 * the animation suppressed, pin it to the fully-drawn state so the
-	 * Archivist chart stays visible for reduced-motion users. */
-	.char-chart {
-		stroke-dasharray: 30 0;
 	}
 }
 
-/* Optical-feedback keyframes — give swipe / award / save
+/* Optical-feedback keyframes: give swipe / award / save
    micro-interactions a visible envelope on iOS Safari (where
    `navigator.vibrate` is a no-op and haptics silently swallow). */
 
@@ -1268,7 +1264,7 @@ html[data-app='1'] body {
 	}
 }
 
-/* XP-award toast envelope — rises from the swipe-exit edge, overshoots,
+/* XP-award toast envelope: rises from the swipe-exit edge, overshoots,
    settles, then holds at full opacity for the bulk of the second so the
    "CALLED YES · N IN PLAY" pill stays legible before the gentle fade-out
    over the final stretch. The hold mirrors the reduced-motion variant
@@ -1348,7 +1344,7 @@ html[data-app='1'] body {
 }
 
 /* ============================================================
-   Animation set — per-category card breathers, World-Cup figure
+   Animation set: per-category card breathers, World-Cup figure
    motion, Flow micro-motion, sheet/toast envelopes, landing
    entrance fades, and assorted utilities. Kept in one block so
    the visual catalogue is greppable. All loops cap at ~9 s and
@@ -1553,7 +1549,7 @@ html[data-app='1'] body {
 	}
 }
 
-/* Default WC figure breath — every WC card breathes via the
+/* Default WC figure breath: every WC card breathes via the
    `.wc-figure` group emitted by `renderFlowArt`. Per-market
    variants override via the seed-specific selectors below. */
 .art-wc .wc-figure {
@@ -1643,54 +1639,6 @@ html[data-app='1'] body {
 	}
 	50% {
 		opacity: 0.55;
-	}
-}
-
-/* Flow coach choreography — full keyframe set. */
-@keyframes flow-coach-fade-in {
-	from {
-		opacity: 0;
-	}
-	to {
-		opacity: 1;
-	}
-}
-@keyframes flow-coach-tap-pulse {
-	0%,
-	100% {
-		transform: scale(1);
-		opacity: 0.95;
-	}
-	50% {
-		transform: scale(0.92);
-		opacity: 1;
-	}
-}
-@keyframes flow-coach-pulse-y {
-	0%,
-	100% {
-		transform: translateY(0);
-	}
-	50% {
-		transform: translateY(-4px);
-	}
-}
-@keyframes flow-coach-pulse-x-left {
-	0%,
-	100% {
-		transform: translateX(0);
-	}
-	50% {
-		transform: translateX(-4px);
-	}
-}
-@keyframes flow-coach-pulse-x-right {
-	0%,
-	100% {
-		transform: translateX(0);
-	}
-	50% {
-		transform: translateX(4px);
 	}
 }
 
@@ -1793,7 +1741,7 @@ html[data-app='1'] body {
 }
 
 /* Scroll-reveal helper. WelcomePage flips `data-reveal="on"` on the
-   shell once `onMount` has wired the IntersectionObserver — sections
+   shell once `onMount` has wired the IntersectionObserver; sections
    then start hidden and animate in as each scrolls into view. When
    JS is disabled (no shell flag), sections stay fully visible: no
    blank flash before hydration. */
@@ -1846,7 +1794,7 @@ html[data-app='1'] body {
 	}
 }
 
-/* Staggered entrance envelopes — FlowEnd (and any future surface
+/* Staggered entrance envelopes: FlowEnd (and any future surface
    that wants a top-to-bottom unveil) tags sequential sections with
    `.anim-in` / `.anim-in-2` / `.anim-in-3` to land them on a 0 /
    90 / 180 ms delay against the shared `fade-up` keyframe. Pure
@@ -1872,7 +1820,7 @@ html[data-app='1'] body {
    `xpPopBonus` envelopes already cover the VXP award entrance
    with a richer arc. */
 
-/* Reduced-motion guard — keep the visual structure but disable
+/* Reduced-motion guard: keep the visual structure but disable
    the looping kinetic envelopes from this block. */
 @media (prefers-reduced-motion: reduce) {
 	.art-macro,
@@ -1886,7 +1834,7 @@ html[data-app='1'] body {
 }
 
 /* ============================================================
- * Shared primitives — power the Markets / Dash / Flow / Social /
+ * Shared primitives: power the Markets / Dash / Flow / Social /
  * Profile surfaces. Tokens use the repo's renamed scale
  * (`--bg-surface`, `--border-base`, `--text-*`, `--laurel`,
  * `--ease-vici`).
@@ -1915,7 +1863,7 @@ html[data-app='1'] body {
 }
 
 /* Active filter/tab chip paints parchment-on-elevated, never the brand
-   laurel — laurel is reserved as an identity accent, not a selection state. */
+   laurel; laurel is reserved as an identity accent, not a selection state. */
 .chip.active {
 	background: var(--bg-popover);
 	color: var(--text-base);
@@ -1956,7 +1904,7 @@ html[data-app='1'] body {
 	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-base) 4%, transparent);
 }
 
-/* Surface — a self-contained tile (gap-card stack inside). Used for the
+/* Surface: a self-contained tile (gap-card stack inside). Used for the
    featured/trending carousel cards on Markets. */
 .card-surface {
 	background: var(--bg-surface);
@@ -1969,7 +1917,7 @@ html[data-app='1'] body {
 	gap: var(--gap-card);
 }
 
-/* Inline — a list row INSIDE a flush list. No nested background or border;
+/* Inline: a list row INSIDE a flush list. No nested background or border;
    a hairline-top separates rows, the parent provides the side padding. */
 .card-inline {
 	background: transparent;
@@ -1991,7 +1939,7 @@ html[data-app='1'] body {
 	padding-bottom: 0;
 }
 
-/* Inline rows are interactive in the Markets list — real <button>/<a>
+/* Inline rows are interactive in the Markets list: real <button>/<a>
    elements get hairline-bordered hover affordance, never a colour shift. */
 button.card-inline,
 a.card-inline {
@@ -2008,7 +1956,7 @@ a.card-inline:hover {
 	background: color-mix(in srgb, var(--text-base) 3%, transparent);
 }
 
-/* Empty — the only place dashed borders appear in product. */
+/* Empty: the only place dashed borders appear in product. */
 .card-empty {
 	background: transparent;
 	border: 1px dashed var(--border-strong);
@@ -2097,7 +2045,7 @@ a.card-inline:hover {
 	font-family: inherit;
 }
 
-/* Section "See all" affordance — mono, muted, with a trailing arrow. The
+/* Section "See all" affordance: mono, muted, with a trailing arrow. The
    arrow is appended via ::after so the label can be a plain translated
    string. Used in the section headers on Markets. */
 .title-action {
@@ -2114,7 +2062,7 @@ a.card-inline:hover {
 }
 
 /* Pointer cursor, hover colour shift, and trailing arrow only for
-   interactive variants — static <span> labels must not look tappable. */
+   interactive variants; static <span> labels must not look tappable. */
 button.title-action,
 a.title-action {
 	cursor: pointer;
@@ -2159,7 +2107,7 @@ a.title-action::after {
 }
 
 /* ============================================================
-   VICI — Sign-in screen styles
+   VICI: Sign-in screen styles
    ============================================================ */
 .signin-wrap {
 	position: absolute;
@@ -2237,7 +2185,7 @@ a.title-action::after {
 }
 
 /* ============================================================
-   Flow sub-component rules — `.flow-coach` / `.xp-toast` /
+   Flow sub-component rules: `.xp-toast` /
    `.swipe-hint` / `.share-pop` blocks. Built on the
    shared token set (`--text-base` / `--text-muted` /
    `--color-accent` / `--bg-popover` / `--bg-surface` /
@@ -2245,13 +2193,13 @@ a.title-action::after {
    one block so the visual catalogue is greppable.
    ============================================================ */
 
-/* ── XP toast — standalone pill (used by XpToast.svelte) ───── */
+/* ── XP toast: standalone pill (used by XpToast.svelte) ───── */
 .xp-toast {
 	position: absolute;
 	top: 92px;
 	z-index: 20;
 	display: inline-flex;
-	/* Center every part on a common line — the side label, the larger stake
+	/* Center every part on a common line: the side label, the larger amount
 	   number and the small "IN PLAY"/bonus run at different sizes, so baseline
 	   alignment left the small caps sitting low against the number. */
 	align-items: center;
@@ -2266,7 +2214,7 @@ a.title-action::after {
 	box-shadow:
 		0 0 0 4px rgba(226, 184, 66, 0.18),
 		0 6px 18px -6px rgba(226, 184, 66, 0.55);
-	animation: xp-toast-pop 1000ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+	animation: xp-toast-pop 1500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 .xp-toast .num {
 	font-size: var(--text-body);
@@ -2316,11 +2264,11 @@ a.title-action::after {
 		opacity: 0;
 	}
 }
-/* Reduced-motion: the spring collapses to a plain hold-then-fade — no
+/* Reduced-motion: the spring collapses to a plain hold-then-fade, no
    overshoot, no upward travel. */
 @media (prefers-reduced-motion: reduce) {
 	.xp-toast {
-		animation: xp-toast-rm 1000ms ease forwards;
+		animation: xp-toast-rm 1500ms ease forwards;
 	}
 }
 
@@ -2366,118 +2314,6 @@ a.title-action::after {
 	opacity: 0.55;
 }
 
-/* ── Flow coach overlay — phase machine ─────────────────── */
-.flow-coach {
-	position: absolute;
-	inset: 0;
-	z-index: 40;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: transparent;
-	pointer-events: none;
-	animation: flow-coach-fade-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
-	border-radius: inherit;
-}
-
-.flow-coach-center {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 0 28px;
-	pointer-events: auto;
-	text-align: center;
-	text-wrap: balance;
-	max-width: 80%;
-	animation: coach-line-in 360ms cubic-bezier(0.16, 1, 0.3, 1);
-	text-shadow:
-		0 2px 12px rgba(14, 13, 11, 0.85),
-		0 0 24px rgba(14, 13, 11, 0.7),
-		0 0 6px rgba(14, 13, 11, 0.5);
-}
-[data-theme='light'] .flow-coach-center,
-[data-theme='peach'] .flow-coach-center {
-	text-shadow:
-		0 2px 12px color-mix(in srgb, var(--text-base) 95%, transparent),
-		0 0 24px color-mix(in srgb, var(--text-base) 90%, transparent),
-		0 0 6px color-mix(in srgb, var(--text-base) 85%, transparent),
-		0 0 2px rgba(14, 13, 11, 0.2);
-}
-@keyframes coach-line-in {
-	from {
-		opacity: 0;
-		transform: translateY(6px) scale(0.96);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0) scale(1);
-	}
-}
-.flow-coach-line {
-	font-family: var(--font-serif);
-	font-style: italic;
-	font-size: var(--text-h2);
-	line-height: 1.3;
-	color: var(--text-base);
-	display: inline-flex;
-	align-items: baseline;
-	gap: 6px;
-	flex-wrap: wrap;
-	justify-content: center;
-}
-.flow-coach-accent {
-	font-family: var(--font-mono);
-	font-style: normal;
-	font-weight: 700;
-	font-size: 20px;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-	padding: 2px 10px;
-	border-radius: 6px;
-}
-.flow-coach-center.is-no .flow-coach-accent {
-	color: var(--no);
-	background: color-mix(in srgb, var(--no) 14%, transparent);
-}
-.flow-coach-center.is-yes .flow-coach-accent {
-	color: var(--yes);
-	background: color-mix(in srgb, var(--yes) 14%, transparent);
-}
-.flow-coach-center.is-skip .flow-coach-accent {
-	color: var(--color-accent);
-	background: rgba(226, 184, 66, 0.14);
-}
-.flow-coach-center.is-idle .flow-coach-accent {
-	color: var(--color-accent);
-	background: transparent;
-	font-family: 'Söhne', system-ui, sans-serif;
-	font-style: normal;
-	font-weight: 700;
-	font-size: 24px;
-	padding: 0 2px;
-	text-transform: none;
-	letter-spacing: 0;
-	animation: coach-idle-pulse 1.4s ease-in-out infinite;
-}
-@keyframes coach-idle-pulse {
-	0%,
-	100% {
-		transform: scale(1);
-		opacity: 1;
-	}
-	50% {
-		transform: scale(1.1);
-		opacity: 0.85;
-	}
-}
-.flow-coach-center.is-tap .flow-coach-accent {
-	color: var(--color-accent);
-	background: rgba(226, 184, 66, 0.1);
-	font-family: var(--font-serif);
-	font-style: italic;
-	font-weight: 400;
-	letter-spacing: 0;
-}
 .signin-title .acc {
 	color: var(--laurel);
 }
@@ -2602,7 +2438,7 @@ a.title-action::after {
 	border-color: #ffffff;
 }
 /* Secondary providers (email, Internet Identity, Passkey, dev) share a
-   faint translucent pill — lighter than the solid dark Google pill, so the
+   faint translucent pill, lighter than the solid dark Google pill, so the
    dark Google pill + the lighter email pill read as the primary pair. */
 .signin-provider-btn.is-onboarding.ob-faint {
 	background: color-mix(in srgb, var(--text-base) 6%, transparent);
@@ -2648,7 +2484,7 @@ a.title-action::after {
 	border-radius: 50%;
 	animation: signin-spin 720ms linear infinite;
 }
-/* On the cream pill the default light track blends into the background —
+/* On the cream pill the default light track blends into the background;
    use ink-toned tints so the loading ring stays visible. */
 .signin-provider-btn.is-onboarding.ob-cream .signin-spinner {
 	border-color: rgba(26, 24, 21, 0.2);
@@ -2711,8 +2547,7 @@ a.title-action::after {
 }
 
 /* ============================================================
-   VICI Onboarding v2 styles. Class prefix `ob2-*`. Token aliases
-   in use:
+   VICI Onboarding styles. Class prefix `ob-*`. Token aliases in use:
      --fg         → --parchment        (text-base)
      --fg-dim     → --parchment-dim
      --fg-mute    → --parchment-mute
@@ -2724,19 +2559,6 @@ a.title-action::after {
      --border-strong → --ink-line-strong
      --ease       → --ease-vici
    ============================================================ */
-
-.ob.ob-v2 {
-	display: flex;
-	flex-direction: column;
-	/* Viewport-relative rather than `height: 100%` — the SvelteKit page
-	   mounts inside a `display: contents` wrapper, through which a
-	   percentage height doesn't resolve, leaving the flex chain (and the
-	   card stage) collapsed to content height. `100dvh` fills the frame
-	   regardless. */
-	min-height: 100dvh;
-	background: var(--bg-base);
-	color: var(--text-base);
-}
 
 .ob-wrap {
 	display: flex;
@@ -2752,41 +2574,11 @@ a.title-action::after {
 	min-height: 0;
 }
 
-/* ─── Beat header ─────────────────────────────────────────── */
-.ob2-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 0 0 20px;
-	flex-shrink: 0;
-}
-.ob2-progress {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-}
-.ob2-progress-dot {
-	width: 24px;
-	height: 3px;
-	border-radius: 999px;
-	background: color-mix(in srgb, var(--text-base) 10%, transparent);
-	transition: background 240ms var(--ease-vici);
-}
-.ob2-progress-dot.filled {
-	background: var(--laurel);
-}
-.ob2-step-label {
-	font-family: var(--font-mono);
-	font-size: 9.5px;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-	color: var(--text-muted);
-}
-
-/* ─── Beat container ──────────────────────────────────────── */
-.ob2-beat {
+/* ─── Surface container ───────────────────────────────────── */
+.ob-beat {
 	display: flex;
 	flex-direction: column;
+	justify-content: flex-start;
 	/* Grow to fill the flex column rather than `height: 100%` so the
 	   card stage expands reliably without depending on percentage-height
 	   resolution up the chain. */
@@ -2795,7 +2587,7 @@ a.title-action::after {
 	padding: 16px 26px 22px;
 	overflow-y: auto;
 }
-.ob2-h1 {
+.ob-h1 {
 	font-size: 26px;
 	line-height: 1.05;
 	letter-spacing: -0.025em;
@@ -2803,522 +2595,15 @@ a.title-action::after {
 	margin: 0 0 4px;
 	flex-shrink: 0;
 }
-.ob2-sub {
+.ob-sub {
 	font-size: 13.5px;
 	line-height: 1.45;
 	color: var(--fg-dim);
 	margin: 0 0 14px;
 	flex-shrink: 0;
 }
-.ob2-sub b {
-	color: var(--text-base);
-	font-weight: 600;
-}
-/* Accent eyebrow above the Beat 2 title — sits tight to the heading
-   rather than carrying the full subtitle gap below it. */
-.ob2-sub-eyebrow {
-	margin-bottom: 2px;
-}
-/* Inline flag chip next to "Backing <team>". The CountryFlag default
-   class is replaced by `ob2-picked-flag`, so the size has to be set
-   here — without it the lipis SVG renders at its intrinsic 4×3 ratio
-   and dominates the screen. Sized to sit at roughly the emoji height
-   (~18px) of the surrounding "Backing <team>" copy. */
-.ob2-sub .ob2-picked-flag {
-	display: inline-block;
-	width: 22px;
-	height: 16px;
-	margin-right: 4px;
-	vertical-align: -3px;
-	border-radius: 2px;
-	object-fit: cover;
-}
 
-/* ─── Beat 1 · Phase 1.a · Team picker grid ──────────────── */
-.ob2-beat-pick {
-	justify-content: flex-start;
-}
-.ob2-team-grid {
-	display: grid;
-	grid-template-columns: repeat(2, 1fr);
-	gap: 8px;
-	margin-bottom: 14px;
-}
-.ob2-team-tile {
-	appearance: none;
-	cursor: pointer;
-	background: var(--bg-surface);
-	border: 1.5px solid var(--border-base);
-	border-radius: 14px;
-	padding: 16px 12px;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 6px;
-	color: var(--text-base);
-	font-family: inherit;
-	transition:
-		border-color 180ms var(--ease-vici),
-		transform 80ms var(--ease-vici);
-}
-.ob2-team-tile:active {
-	transform: scale(0.98);
-}
-.ob2-team-tile:hover {
-	border-color: var(--border-strong);
-}
-.ob2-team-flag-lg {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	height: 36px;
-	line-height: 1;
-}
-.ob2-team-flag-lg img {
-	display: block;
-	height: 100%;
-	width: auto;
-	border-radius: 3px;
-}
-.ob2-team-name-lg {
-	font-family: var(--font-mono);
-	font-size: 10.5px;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--text-base);
-	font-weight: 600;
-}
-.ob2-team-more-tile {
-	background: color-mix(in srgb, var(--text-base) 4%, transparent);
-	border-style: dashed;
-}
-.ob2-team-more-sub {
-	font-family: var(--font-mono);
-	font-size: 9px;
-	color: var(--text-muted);
-	letter-spacing: 0.06em;
-}
-.ob2-skip-team {
-	appearance: none;
-	border: 0;
-	background: transparent;
-	width: 100%;
-	margin-top: 4px;
-	padding: 14px;
-	color: var(--text-muted);
-	font-family: inherit;
-	font-size: 13px;
-	cursor: pointer;
-	transition: color 160ms var(--ease-vici);
-	flex-shrink: 0;
-}
-.ob2-skip-team:hover {
-	color: var(--text-base);
-}
-
-/* "Change team" link inline with sub copy */
-.ob2-change-team {
-	appearance: none;
-	border: 0;
-	background: transparent;
-	color: var(--laurel);
-	cursor: pointer;
-	font-family: inherit;
-	font-size: 12px;
-	margin-left: 8px;
-	text-decoration: underline;
-	text-underline-offset: 3px;
-	text-decoration-color: rgba(226, 184, 66, 0.4);
-}
-.ob2-change-team:hover {
-	text-decoration-color: var(--laurel);
-}
-
-/* ─── Beat 1 · WC framing (compact eyebrow) ──────────────── */
-.ob2-wc-eyebrow {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	margin-bottom: 8px;
-	flex-shrink: 0;
-}
-.ob2-wc-tag {
-	font-family: var(--font-mono);
-	font-size: 9.5px;
-	letter-spacing: 0.16em;
-	text-transform: uppercase;
-	color: var(--laurel);
-	font-weight: 700;
-}
-.ob2-wc-countdown {
-	font-family: var(--font-mono);
-	font-size: 10px;
-	letter-spacing: 0.06em;
-	color: var(--text-muted);
-}
-
-.ob2-card-stage {
-	position: relative;
-	flex: 1 1 auto;
-	min-height: 380px;
-	margin-bottom: 12px;
-	display: flex;
-	flex-direction: column;
-}
-.ob2-card-stage > .ob-stage {
-	flex: 1 1 auto;
-	min-height: 0;
-}
-
-/* ─── Bespoke onboarding first-call card ──────────────────────
- * The opening "make your first call" beat renders its own simpler
- * swipeable card (NOT the in-product Flow deck). These `.ob-*`
- * rules style that card: stage + shadow + the live card's head,
- * artwork band, probability split, footer, drag tints, swipe
- * stamps, and the built-in directional coach. Mounted only by
- * `OnboardingBeat1Card.svelte`. */
-.ob-stage {
-	position: relative;
-	flex: 1;
-	margin: 14px 0 6px;
-	min-height: 0;
-}
-.ob-shadow {
-	position: absolute;
-	left: 12px;
-	right: 12px;
-	top: 14px;
-	bottom: -2px;
-	background: linear-gradient(180deg, var(--bg-popover), var(--bg-surface));
-	border: 1px solid var(--border-base);
-	border-radius: var(--radius-frame);
-	transform: rotate(-2deg);
-	opacity: 0.45;
-	z-index: 1;
-}
-.ob-card {
-	position: absolute;
-	inset: 0;
-	background: linear-gradient(180deg, var(--bg-popover), var(--bg-surface));
-	border: 1px solid var(--border-strong);
-	border-radius: var(--radius-frame);
-	box-shadow:
-		0 18px 50px -16px rgba(0, 0, 0, 0.6),
-		inset 0 1px 0 color-mix(in srgb, var(--text-base) 8%, transparent);
-	overflow: hidden;
-	z-index: 2;
-	cursor: grab;
-	user-select: none;
-	touch-action: none;
-	display: flex;
-	flex-direction: column;
-}
-.ob-card:active {
-	cursor: grabbing;
-}
-.ob-card-head {
-	padding: 16px 18px 12px;
-	flex-shrink: 0;
-}
-.ob-card-head-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-}
-.ob-card-head-meta {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-.ob-tag {
-	display: inline-flex;
-	padding: 3px 7px;
-	border-radius: 4px;
-	font-family: var(--font-sans);
-	font-size: 10px;
-	font-weight: 700;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-}
-.ob-days {
-	font-family: var(--font-mono);
-	font-size: 11px;
-	font-weight: 600;
-	padding: 2px 8px;
-	border-radius: 999px;
-	background: color-mix(in srgb, var(--text-base) 5%, transparent);
-	border: 1px solid color-mix(in srgb, var(--text-base) 10%, transparent);
-	color: var(--fg-dim);
-}
-.ob-first-call {
-	font-family: var(--font-mono);
-	font-size: 9px;
-	letter-spacing: 0.14em;
-	font-weight: 700;
-	text-transform: uppercase;
-}
-.ob-q {
-	font-size: 20px;
-	line-height: 1.18;
-	letter-spacing: -0.01em;
-	font-weight: 600;
-	margin: 10px 0 4px;
-	text-wrap: balance;
-}
-.ob-ctx {
-	font-size: 12.5px;
-	color: var(--fg-dim);
-	margin: 0;
-	line-height: 1.4;
-}
-.ob-art {
-	flex: 1;
-	min-height: 120px;
-	border-bottom: 1px solid var(--border-base);
-	border-top: 1px solid var(--border-base);
-	position: relative;
-	overflow: hidden;
-}
-/* Fit the generative artwork by HEIGHT inside the band — the SVG
-   keeps its intrinsic aspect and centres, so the figure reads whole
-   rather than being stretched to the band's aspect ratio (the inline
-   SVG ignores `object-fit`, so size it by height explicitly).
-   Note: plain descendant selectors — this is a global CSS file, not a
-   Svelte component <style> block, so :global() would be invalid here. */
-.ob-art .market-artwork {
-	width: 100%;
-	height: 100%;
-}
-.ob-art .flow-art {
-	width: auto;
-	height: 100%;
-	max-width: 100%;
-	border-radius: 0;
-	box-shadow: none;
-}
-.ob-art .flow-art > svg {
-	width: auto;
-	height: 100%;
-	display: block;
-	margin: 0 auto;
-}
-.ob-body {
-	padding: 12px 18px 14px;
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-	flex-shrink: 0;
-}
-.ob-probs {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 8px;
-}
-.ob-prob {
-	padding: 10px 14px;
-	border: 1px solid var(--border-base);
-	border-radius: 11px;
-	background: color-mix(in srgb, var(--text-base) 2%, transparent);
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-.ob-prob-eyebrow {
-	font-family: var(--font-mono);
-	font-size: 10px;
-	letter-spacing: 0.12em;
-	font-weight: 700;
-	text-transform: uppercase;
-}
-.ob-prob.no .ob-prob-eyebrow {
-	color: var(--no);
-}
-.ob-prob.yes .ob-prob-eyebrow {
-	color: var(--yes);
-	align-self: flex-end;
-}
-.ob-prob.yes .ob-prob-num {
-	align-self: flex-end;
-}
-.ob-prob-num {
-	font-family: var(--font-mono);
-	font-size: 26px;
-	font-weight: 600;
-	letter-spacing: -0.02em;
-}
-.ob-foot {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	font-family: var(--font-mono);
-	font-size: 11px;
-	color: var(--text-muted);
-}
-.ob-foot-swipe {
-	letter-spacing: 0.14em;
-}
-
-/* Edge tints — light up the chosen side under a drag. */
-.ob-edge {
-	position: absolute;
-	inset: 0;
-	border-radius: inherit;
-	pointer-events: none;
-	transition: opacity 100ms linear;
-}
-.ob-edge.yes {
-	background: linear-gradient(
-		270deg,
-		color-mix(in srgb, var(--yes) 55%, transparent),
-		transparent 55%
-	);
-}
-.ob-edge.no {
-	background: linear-gradient(
-		90deg,
-		color-mix(in srgb, var(--no) 55%, transparent),
-		transparent 55%
-	);
-}
-
-/* Swipe stamps. */
-.ob-stamp {
-	position: absolute;
-	top: 22px;
-	padding: 6px 12px;
-	border: 2px solid currentColor;
-	border-radius: 6px;
-	font-family: var(--font-sans);
-	font-weight: 800;
-	font-size: 16px;
-	letter-spacing: 0.18em;
-	pointer-events: none;
-	transition: opacity 100ms linear;
-}
-.ob-stamp.yes {
-	right: 22px;
-	color: var(--yes);
-	transform: rotate(8deg);
-}
-.ob-stamp.no {
-	left: 22px;
-	color: var(--no);
-	transform: rotate(-8deg);
-}
-
-/* First-call gesture coach · card drift driven by data-coach-phase.
-   Onboarding-only mirror of the deck's `.flow-card` drift — the shared
-   `FlowCoach` (surface="onboarding") tags `.ob-card` each phase. Phases
-   0–2 drift + blur the card toward each gesture; phase 3 ("tap card")
-   settles it sharp a hair above rest (a zoom-and-de-blur, not a flip —
-   this card has no back face); phase 4 ("your turn") drops the attribute
-   and returns to rest. !important overrides the card's inline drag
-   transform. */
-.ob-card[data-coach-phase] {
-	transition:
-		transform 480ms cubic-bezier(0.16, 1, 0.3, 1),
-		filter 240ms ease !important;
-	filter: blur(1.4px) saturate(0.92) brightness(0.86);
-	pointer-events: none;
-}
-.ob-card[data-coach-phase='0'] {
-	transform: translate(-22px, 0) rotate(-2deg) !important;
-}
-.ob-card[data-coach-phase='1'] {
-	transform: translate(22px, 0) rotate(2deg) !important;
-}
-.ob-card[data-coach-phase='2'] {
-	transform: translate(0, -22px) !important;
-}
-.ob-card[data-coach-phase='3'] {
-	filter: none !important;
-	transform: scale(1.01) !important;
-	pointer-events: none;
-}
-@media (prefers-reduced-motion: reduce) {
-	.ob-card {
-		transition: none !important;
-	}
-	.ob-card[data-coach-phase] {
-		transform: none !important;
-		animation: none !important;
-	}
-}
-
-/* ─── Team rail (expanded all-teams) ──────────────────────
- * Mini-tile variant of `.ob2-team-tile` — same flag-on-top, name-below
- * structure so the favourites grid and the expanded all-teams grid
- * share a single visual language. */
-.ob2-team-chip {
-	appearance: none;
-	cursor: pointer;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 6px;
-	padding: 10px 6px 8px;
-	min-height: 64px;
-	border: 1px solid var(--border-base);
-	border-radius: 10px;
-	background: var(--bg-surface);
-	color: var(--text-base);
-	font-family: inherit;
-	text-transform: none;
-	/* allow the grid item to shrink so the name can wrap/clip inside it */
-	min-width: 0;
-	transition:
-		border-color 180ms var(--ease-vici),
-		transform 80ms var(--ease-vici);
-}
-.ob2-team-chip:active {
-	transform: scale(0.96);
-}
-
-/* Flow-deck gesture-coach card drift — driven by data-coach-phase.
-   Plain selectors: this is a global stylesheet (imported via
-   `routes/+layout.svelte`), NOT a Svelte `<style>` block, so `:global()`
-   would be passed to the browser verbatim and dropped as an invalid
-   pseudo — which is why the deck card never drifted/blurred. !important
-   overrides FlowCard's inline drag transform. Phases follow the swipe
-   directions: NO → left, YES → right, SKIP → up, then a settle on TAP. */
-.flow-card[data-coach-phase] {
-	transition:
-		transform 480ms cubic-bezier(0.16, 1, 0.3, 1),
-		filter 240ms ease !important;
-	filter: blur(1.4px) saturate(0.92) brightness(0.86);
-	pointer-events: none;
-}
-.flow-card[data-coach-phase='0'] {
-	transform: translate(-22px, 0) rotate(-2deg) !important;
-}
-.flow-card[data-coach-phase='1'] {
-	transform: translate(22px, 0) rotate(2deg) !important;
-}
-.flow-card[data-coach-phase='2'] {
-	transform: translate(0, -22px) !important;
-}
-/* Phase 3 ("tap card for detail") — de-blur and settle a hair above
-   rest (no pulse). The detail back is meant to reveal here via an
-   opacity crossfade; the deck card still uses a 3D rotateY flip, and a
-   follow-up will swap that flip for the opacity crossfade. Until then
-   the back-reveal is deferred to that change rather than forced through
-   the incompatible opacity override here (the back face is culled by
-   backface-visibility while the flipper sits at 0°). */
-.flow-card[data-coach-phase='3'] {
-	filter: none !important;
-	transform: scale(1.01) !important;
-	pointer-events: none;
-}
-@media (prefers-reduced-motion: reduce) {
-	.flow-card[data-coach-phase] {
-		transition: none !important;
-		transform: none !important;
-		animation: none !important;
-	}
-}
-
-/* ── Share popover — capability-aware ─────────────────── */
+/* ── Share popover: capability-aware ─────────────────── */
 .share-pop {
 	position: absolute;
 	top: 50px;
@@ -3440,84 +2725,6 @@ a.title-action::after {
 		border-color 180ms var(--ease-vici),
 		background 180ms var(--ease-vici);
 	flex-shrink: 0;
-}
-.ob2-team-chip:hover {
-	border-color: var(--border-strong);
-}
-.ob2-team-flag {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	height: 22px;
-	line-height: 1;
-}
-.ob2-team-flag img {
-	display: block;
-	height: 100%;
-	width: auto;
-	border-radius: 2px;
-}
-.ob2-team-name {
-	font-family: var(--font-mono);
-	font-size: 9.5px;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-	color: var(--fg-dim);
-	font-weight: 600;
-	max-width: 100%;
-	text-align: center;
-	line-height: 1.2;
-	/* wrap long names onto a 2nd line (clamped) instead of forcing one
-	   no-wrap line that pushes the column — and the whole grid — wider. */
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
-	overflow: hidden;
-	overflow-wrap: anywhere;
-}
-
-.ob2-all-teams {
-	margin-top: 8px;
-	padding: 12px;
-	background: var(--bg-popover);
-	border: 1px solid var(--border-base);
-	border-radius: 12px;
-	max-height: 280px;
-	overflow-y: auto;
-}
-.ob2-all-teams-grid {
-	display: grid;
-	/* minmax(0, …) lets columns shrink below their content's intrinsic
-	   width — without it, long no-wrap names blow the grid out sideways. */
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 6px;
-}
-
-/* ─── Beat 2 · Handle claim ───────────────────────────────── */
-.ob2-mode-tabs {
-	display: flex;
-	gap: 2px;
-	padding: 3px;
-	background: color-mix(in srgb, var(--text-base) 4%, transparent);
-	border: 1px solid var(--border-base);
-	border-radius: 10px;
-	margin-bottom: 16px;
-}
-.ob2-mode-tab {
-	appearance: none;
-	border: 0;
-	flex: 1;
-	background: transparent;
-	color: var(--text-muted);
-	cursor: pointer;
-	padding: 8px;
-	font-family: inherit;
-	font-size: 12px;
-	font-weight: 500;
-	border-radius: 7px;
-	transition:
-		background 200ms var(--ease-vici),
-		color 200ms var(--ease-vici);
 }
 /* Footer / cross-link ------------------------------------------ */
 .signin-foot {
@@ -3720,7 +2927,7 @@ a.title-action::after {
 }
 
 /* ============================================================
-   Flow entry overlay + ResolutionReveal — global keyframes &
+   Flow entry overlay + ResolutionReveal: global keyframes &
    surfaces. The Flow entry "while you were away" surface
    (`.flow-loading`) and the deferred resolution digest
    (`.reso-reveal`) live here (not scoped) because both replay a
@@ -3735,7 +2942,7 @@ a.title-action::after {
      --border-strong → --ink-line-strong · --ease → --ease-vici
    ============================================================ */
 
-/* Shared celebration primitives — a radial spark burst and a
+/* Shared celebration primitives: a radial spark burst and a
    single overshoot-free pop. Consumed by the entry away-burst and
    the away-net figure. */
 @keyframes fe-spark {
@@ -3833,7 +3040,7 @@ a.title-action::after {
 		width: 100%;
 	}
 }
-/* the deck riffling — three cards fan out and snap back, on loop */
+/* the deck riffling: three cards fan out and snap back, on loop */
 @keyframes riffleA {
 	0%,
 	100% {
@@ -3878,6 +3085,13 @@ a.title-action::after {
 		color-mix(in srgb, var(--laurel) 12%, color-mix(in srgb, var(--bg-base) 80%, transparent)),
 		color-mix(in srgb, var(--bg-base) 80%, transparent)
 	);
+}
+/* Desktop drops the floating pill, so the overlay no longer reserves
+   `--bn-clear` at the bottom; it spans the full viewport edge to edge. */
+@media (min-width: 56rem) {
+	.flow-loading {
+		inset: 0;
+	}
 }
 .flow-loading .deckwrap {
 	position: relative;
@@ -4017,7 +3231,7 @@ a.title-action::after {
 	line-height: 1.45;
 	margin-top: 2px;
 }
-/* digest view — header + resolved-calls list (decluttered, no deck) */
+/* digest view: header + resolved-calls list (decluttered, no deck) */
 .flow-loading .away-view {
 	display: flex;
 	flex-direction: column;
@@ -4193,7 +3407,7 @@ a.title-action::after {
 	.flow-loading .pc.c {
 		transform: rotate(10deg) translate(13px, 4px);
 	}
-	/* hold the copy static and fully visible — no fade-out to `opacity:0`
+	/* hold the copy static and fully visible, no fade-out to `opacity:0`
 	   that could leave an empty frame; the script cycles lines on a timer */
 	.flow-loading .line {
 		animation: none;
@@ -4236,7 +3450,7 @@ a.title-action::after {
 	animation: reso-overlay-in 200ms var(--ease-vici);
 	overflow: hidden;
 }
-/* Celebration burst — net-positive batches only. */
+/* Celebration burst: net-positive batches only. */
 .reso-burst {
 	position: absolute;
 	inset: 0;
@@ -4384,6 +3598,24 @@ a.title-action::after {
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
+.reso-row-q-skeleton {
+	flex: 1;
+	min-width: 0;
+	max-width: 60%;
+	height: 0.72em;
+	border-radius: 4px;
+	background: color-mix(in srgb, var(--fg-dim) 22%, transparent);
+	animation: reso-skeleton-pulse 1.2s ease-in-out infinite;
+}
+@keyframes reso-skeleton-pulse {
+	0%,
+	100% {
+		opacity: 0.4;
+	}
+	50% {
+		opacity: 0.8;
+	}
+}
 .reso-row-out {
 	flex-shrink: 0;
 	font-size: var(--text-eyebrow);
@@ -4440,7 +3672,7 @@ a.title-action::after {
 .reso-reveal-card .btn-ghost:hover {
 	color: var(--text-base);
 }
-/* Right-call celebration — dopamine hit on settled wins. No
+/* Right-call celebration: dopamine hit on settled wins. No
    bounce/overshoot per brand: scale + opacity rises only. */
 .reso-burst.is-win span {
 	background: var(--yes);
@@ -4551,146 +3783,7 @@ a.title-action::after {
 		animation: none;
 	}
 }
-
-.ob2-mode-tab.active {
-	background: var(--bg-popover);
-	color: var(--text-base);
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
-}
-
-.ob2-pool-grid {
-	display: grid;
-	grid-template-columns: repeat(2, 1fr);
-	gap: 6px;
-	margin-bottom: 14px;
-}
-.ob2-pool-chip {
-	appearance: none;
-	border: 1px solid var(--border-base);
-	background: var(--bg-surface);
-	padding: 10px 12px;
-	border-radius: 8px;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 6px;
-	font-family: var(--font-mono);
-	font-size: 12.5px;
-	color: var(--text-base);
-	cursor: pointer;
-	letter-spacing: 0.02em;
-	transition:
-		border-color 180ms var(--ease-vici),
-		background 180ms var(--ease-vici);
-}
-.ob2-pool-chip:hover:not(:disabled) {
-	border-color: var(--laurel);
-}
-.ob2-pool-chip.picked {
-	border-color: var(--laurel);
-	background: rgba(226, 184, 66, 0.06);
-	color: var(--laurel);
-}
-.ob2-pool-chip.taken {
-	opacity: 0.4;
-	cursor: not-allowed;
-	text-decoration: line-through;
-}
-.ob2-pool-taken {
-	font-family: var(--font-mono);
-	font-size: 9px;
-	letter-spacing: 0.1em;
-	color: var(--no);
-	text-transform: uppercase;
-	text-decoration: none;
-}
-.ob2-at {
-	color: var(--text-muted);
-	font-weight: 600;
-	margin-right: 1px;
-}
-
-.ob2-pool-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	margin-bottom: 6px;
-}
-.ob2-pool-eyebrow {
-	font-family: var(--font-mono);
-	font-size: 9px;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-	color: var(--text-muted);
-}
-.ob2-pool-refresh {
-	appearance: none;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 26px;
-	height: 26px;
-	padding: 0;
-	border: 1px solid var(--border-base);
-	border-radius: 999px;
-	background: var(--bg-surface);
-	color: var(--text-muted);
-	cursor: pointer;
-	transition:
-		border-color 180ms var(--ease-vici),
-		color 180ms var(--ease-vici),
-		background 180ms var(--ease-vici);
-}
-.ob2-pool-refresh:hover:not(:disabled) {
-	border-color: var(--laurel);
-	color: var(--laurel);
-}
-.ob2-pool-refresh:disabled {
-	cursor: not-allowed;
-	opacity: 0.7;
-}
-.ob2-pool-refresh.spinning svg {
-	animation: ob2-spin 800ms linear infinite;
-}
-@keyframes ob2-spin {
-	to {
-		transform: rotate(360deg);
-	}
-}
-
-.ob2-pool-chip-skeleton {
-	display: block;
-	min-height: 38px;
-	background: linear-gradient(
-		90deg,
-		var(--bg-surface) 0%,
-		var(--bg-popover) 50%,
-		var(--bg-surface) 100%
-	);
-	background-size: 200% 100%;
-	animation: ob2-shimmer 1.2s ease-in-out infinite;
-	cursor: default;
-}
-@keyframes ob2-shimmer {
-	0% {
-		background-position: 200% 0;
-	}
-	100% {
-		background-position: -200% 0;
-	}
-}
-@media (prefers-reduced-motion: reduce) {
-	.ob2-pool-refresh.spinning svg {
-		animation: none;
-	}
-	.ob2-pool-chip-skeleton {
-		animation: none;
-		background: var(--bg-surface);
-	}
-}
-
-.ob2-custom-input-wrap {
+.ob-custom-input-wrap {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -4700,13 +3793,13 @@ a.title-action::after {
 	border-radius: 12px;
 	margin-bottom: 14px;
 }
-.ob2-at-large {
+.ob-at-large {
 	font-family: var(--font-mono);
 	font-size: 22px;
 	color: var(--text-muted);
 	font-weight: 600;
 }
-.ob2-custom-input {
+.ob-custom-input {
 	flex: 1;
 	appearance: none;
 	background: transparent;
@@ -4718,11 +3811,11 @@ a.title-action::after {
 	font-weight: 600;
 	letter-spacing: 0.01em;
 }
-.ob2-custom-input::placeholder {
+.ob-custom-input::placeholder {
 	color: var(--fg-faint);
 }
 
-.ob2-avail {
+.ob-avail {
 	font-family: var(--font-mono);
 	font-size: 11px;
 	letter-spacing: 0.08em;
@@ -4731,82 +3824,22 @@ a.title-action::after {
 	margin-bottom: 14px;
 	text-transform: uppercase;
 }
-.ob2-avail.ok {
+.ob-avail.ok {
 	color: var(--yes);
 	background: color-mix(in srgb, var(--yes) 8%, transparent);
 	border: 1px solid color-mix(in srgb, var(--yes) 20%, transparent);
 }
-.ob2-avail.no {
+.ob-avail.no {
 	color: var(--no);
 	background: color-mix(in srgb, var(--no) 8%, transparent);
 	border: 1px solid color-mix(in srgb, var(--no) 20%, transparent);
 }
-.ob2-avail.checking {
+.ob-avail.checking {
 	color: var(--text-muted);
 	background: color-mix(in srgb, var(--text-muted) 6%, transparent);
 	border: 1px solid color-mix(in srgb, var(--text-muted) 16%, transparent);
 }
-
-.ob2-affil-preview {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 12px 14px;
-	background: var(--bg-popover);
-	border: 1px solid var(--border-base);
-	border-radius: 12px;
-	margin-bottom: 18px;
-}
-.ob2-affil-flag {
-	width: 44px;
-	height: 44px;
-	border-radius: 10px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 22px;
-	flex-shrink: 0;
-}
-.ob2-affil-text {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	min-width: 0;
-}
-.ob2-affil-eyebrow {
-	font-family: var(--font-mono);
-	font-size: 9px;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-	color: var(--text-muted);
-}
-.ob2-affil-name {
-	font-size: 13.5px;
-	font-weight: 600;
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-.ob2-affil-name .serif-italic {
-	font-size: 14px;
-}
-.ob2-affil-tag {
-	font-family: var(--font-mono);
-	font-size: 9px;
-	letter-spacing: 0.1em;
-	font-weight: 700;
-	padding: 2px 5px;
-	border-radius: 3px;
-}
-
-/* ─── Action row ──────────────────────────────────────────── */
-.ob2-actions {
-	display: flex;
-	gap: 8px;
-	margin-top: auto;
-	flex-shrink: 0;
-}
-.ob2-btn-primary {
+.ob-btn-primary {
 	flex: 1;
 	appearance: none;
 	border: 0;
@@ -4820,28 +3853,12 @@ a.title-action::after {
 	border-radius: 999px;
 	transition: opacity 180ms;
 }
-.ob2-btn-primary:disabled {
+.ob-btn-primary:disabled {
 	opacity: 0.4;
 	cursor: not-allowed;
 }
-.ob2-btn-ghost {
-	appearance: none;
-	border: 1px solid var(--border-base);
-	background: color-mix(in srgb, var(--text-base) 4%, transparent);
-	color: var(--text-base);
-	cursor: pointer;
-	padding: 12px 16px;
-	font-family: inherit;
-	font-weight: 500;
-	font-size: 13px;
-	border-radius: 999px;
-	transition: background 180ms;
-}
-.ob2-btn-ghost:hover {
-	background: color-mix(in srgb, var(--text-base) 8%, transparent);
-}
 
-.ob2-skip-link {
+.ob-skip-link {
 	appearance: none;
 	border: 0;
 	background: transparent;
@@ -4855,24 +3872,60 @@ a.title-action::after {
 	margin-top: 8px;
 	flex-shrink: 0;
 }
-.ob2-skip-link:hover {
+.ob-skip-link:hover {
 	color: var(--text-base);
 }
 
-/* ─── Beat 3 · Auth ───────────────────────────────────────── */
-.ob2-summary {
+/* Guest escape promoted to a peer of the auth stack: a full-width ghost
+   button so "continue without signing up" reads as a real, reassuring
+   option rather than fine print. Sits inside `.ob-auth-buttons`, so the
+   8px column gap places it directly under the provider stack. */
+.ob-guest-btn {
+	appearance: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	width: 100%;
+	cursor: pointer;
+	background: transparent;
+	color: var(--text-base);
+	border: 1px solid var(--border-strong);
+	padding: 12px 16px;
+	font-family: inherit;
+	font-weight: 600;
+	font-size: 14px;
+	border-radius: 999px;
+	transition:
+		border-color 180ms,
+		background 180ms;
+}
+.ob-guest-btn:hover {
+	border-color: var(--laurel);
+	background: var(--laurel-glow);
+}
+.ob-guest-reassure {
+	text-align: center;
+	font-size: 11.5px;
+	color: var(--text-muted);
+	margin: 8px 0 0;
+	flex-shrink: 0;
+}
+
+/* ─── Reward strip + auth ─────────────────────────────────── */
+.ob-summary {
 	padding: 14px;
 	background: var(--bg-popover);
 	border: 1px solid var(--border-base);
 	border-radius: 12px;
 	margin-bottom: 18px;
 }
-.ob2-summary-row {
+.ob-summary-row {
 	display: flex;
 	align-items: center;
 	gap: 12px;
 }
-.ob2-summary-flag {
+.ob-summary-flag {
 	width: 44px;
 	height: 44px;
 	border-radius: 10px;
@@ -4881,14 +3934,14 @@ a.title-action::after {
 	justify-content: center;
 	flex-shrink: 0;
 }
-.ob2-summary-q {
+.ob-summary-q {
 	font-size: 14px;
 	font-weight: 600;
 }
-.ob2-summary-q b {
+.ob-summary-q b {
 	color: var(--laurel);
 }
-.ob2-summary-meta {
+.ob-summary-meta {
 	font-family: var(--font-mono);
 	font-size: 10px;
 	letter-spacing: 0.06em;
@@ -4896,63 +3949,39 @@ a.title-action::after {
 	margin-top: 2px;
 }
 
-/* Starter-pack strip — gold-tinted variant of the summary card framing
+/* Starter-pack strip: gold-tinted variant of the summary card framing
    the reward at the auth gate. */
-.ob2-summary-starter {
+.ob-summary-starter {
 	border-color: rgba(226, 184, 66, 0.3);
 	background: rgba(226, 184, 66, 0.06);
 }
-.ob2-summary-flag-starter {
+.ob-summary-flag-starter {
 	background: rgba(226, 184, 66, 0.16);
 	color: var(--laurel);
 }
 
-.ob2-auth-buttons {
+.ob-auth-buttons {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 }
 
-.ob2-tos {
-	font-size: 11px;
-	line-height: 1.55;
-	color: var(--text-muted);
-	margin-top: 18px;
-	text-align: center;
-}
-.ob2-tos a {
-	color: var(--laurel);
-	text-decoration: underline;
-	text-underline-offset: 2px;
-}
-.ob2-tos-play {
-	margin-bottom: 6px;
-	color: var(--fg-dim);
-}
-.ob2-tos .serif-italic {
-	color: var(--fg-dim);
-}
-
 /* ============================================================
-   VICI Onboarding (one-screen) styles. Class prefix `ob-v3-*`.
-   Reuses the `ob2-*` surface primitives (beat, hero, handle input,
-   availability hint, reward strip, auth stack, ToS) — these rules
-   add only the one-screen envelope, brand wordmark, lock cue, and
-   the sign-in / legal footer. Theme tokens resolve dark + light/peach
-   the same way the `ob2-*` block does, so the Google-pill contrast
-   fix carried by `SignInProviderStack` survives unchanged.
+   Onboarding envelope + chrome: the page wrapper, brand wordmark,
+   lock cue, and the sign-in / legal footer that sit around the
+   shared `ob-*` surface primitives above (hero, handle input,
+   availability hint, reward strip, auth stack). Theme tokens
+   resolve dark + light/peach the same way, so the Google-pill
+   contrast fix carried by `SignInProviderStack` survives unchanged.
    ============================================================ */
-.ob.ob-v3 {
+.ob {
 	display: flex;
 	flex-direction: column;
 	min-height: 100dvh;
 	background: var(--bg-base);
 	color: var(--text-base);
 }
-.ob-v3-beat {
-	justify-content: flex-start;
-}
-.ob-v3-brand {
+.ob-brand {
 	font-family: var(--font-mono);
 	font-size: 11px;
 	letter-spacing: 0.32em;
@@ -4962,7 +3991,7 @@ a.title-action::after {
 	margin-bottom: 18px;
 	flex-shrink: 0;
 }
-.ob-v3-lock {
+.ob-lock {
 	font-family: var(--font-mono);
 	font-size: 10px;
 	letter-spacing: 0.12em;
@@ -4971,17 +4000,17 @@ a.title-action::after {
 	margin: 2px 0 12px;
 	flex-shrink: 0;
 }
-.ob-v3-lock.ready {
+.ob-lock.ready {
 	color: var(--laurel);
 }
-.ob-v3-signin {
+.ob-signin {
 	text-align: center;
 	font-size: 12.5px;
 	color: var(--text-muted);
 	margin-top: 4px;
 	flex-shrink: 0;
 }
-.ob-v3-signin-link {
+.ob-signin-link {
 	appearance: none;
 	border: 0;
 	background: transparent;
@@ -4995,10 +4024,10 @@ a.title-action::after {
 	text-underline-offset: 3px;
 	text-decoration-color: rgba(226, 184, 66, 0.4);
 }
-.ob-v3-signin-link:hover {
+.ob-signin-link:hover {
 	text-decoration-color: var(--laurel);
 }
-.ob-v3-legal {
+.ob-legal {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -5061,7 +4090,7 @@ a.title-action::after {
 	flex-shrink: 0;
 }
 
-/* ─── Friends sheets — shared CTA button styles ─── */
+/* ─── Friends sheets: shared CTA button styles ─── */
 /* Used by both FriendProfileSheet (Remove/Close) and AddFriendSheet
    (Submit = remove+primary / Close). Centralised here so the two sheets
    can't drift apart. */
@@ -5099,7 +4128,7 @@ a.title-action::after {
 }
 
 /* =====================================================================
-   Dashboard — three-zone build (Performance · Stack · Calls).
+   Dashboard: three-zone build (Performance · Stack · Calls).
    Namespaced `.db-*`, theme-aware via the app tokens. The accuracy hero
    is the screen masthead; type/spacing/easing are tuned for an at-a-
    glance read rather than a dense data grid.
@@ -5706,6 +4735,131 @@ a.title-action::after {
 	font-style: normal;
 	color: var(--text-muted);
 	font-size: 11px;
+}
+
+/* Getting-started checklist: accent-tinted raised card at the top of the
+   first-run build (see `DashGettingStarted`). */
+.gst-card {
+	background: var(--bg-surface);
+	border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+	border-radius: 14px;
+	padding: 13px 14px 8px;
+	margin-bottom: 4px;
+}
+.gst-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 6px;
+}
+.gst-head-l {
+	display: flex;
+	align-items: baseline;
+	gap: 9px;
+}
+.gst-title {
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var(--text-base);
+	letter-spacing: -0.01em;
+}
+.gst-count {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--accent);
+	font-weight: 600;
+}
+.gst-skip {
+	appearance: none;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	font-family: var(--font-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+	padding: 4px 2px;
+	transition: color 140ms var(--ease-vici);
+}
+.gst-skip:hover {
+	color: var(--text-base);
+}
+.gst-steps {
+	display: flex;
+	flex-direction: column;
+}
+.gst-step {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	width: 100%;
+	appearance: none;
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	text-align: left;
+	font-family: inherit;
+	color: inherit;
+	padding: 9px 2px;
+	border-top: 1px solid var(--border-base);
+}
+.gst-steps .gst-step:first-child {
+	border-top: 0;
+}
+.gst-check {
+	width: 20px;
+	height: 20px;
+	flex-shrink: 0;
+	border-radius: 999px;
+	border: 1.5px solid var(--border-strong);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-inverse);
+	transition:
+		background 140ms var(--ease-vici),
+		border-color 140ms var(--ease-vici);
+}
+.gst-step.is-done .gst-check {
+	background: var(--accent);
+	border-color: var(--accent);
+}
+.gst-step-txt {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+.gst-step-label {
+	font-size: 13.5px;
+	color: var(--text-base);
+	letter-spacing: -0.01em;
+}
+.gst-step.is-done .gst-step-label {
+	color: var(--text-muted);
+	text-decoration: line-through;
+	text-decoration-color: var(--border-strong);
+}
+.gst-step-sub {
+	font-size: 11px;
+	color: var(--text-muted);
+	margin-top: 1px;
+}
+.gst-step.is-done .gst-step-sub {
+	display: none;
+}
+.gst-step-arrow {
+	flex-shrink: 0;
+	display: inline-flex;
+	color: var(--fg-faint);
+	transition:
+		color 140ms var(--ease-vici),
+		transform 140ms var(--ease-vici);
+}
+.gst-step:hover .gst-step-arrow {
+	color: var(--accent);
+	transform: translateX(2px);
 }
 
 @media (prefers-reduced-motion: reduce) {

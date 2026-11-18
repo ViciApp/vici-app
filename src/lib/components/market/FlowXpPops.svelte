@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { XpPop } from '$lib/types/flow';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { XpPop } from '#lib/types/flow.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * FlowXpPops — multi-pop manager for the centered VXP-grant envelopes.
+	 * FlowXpPops: multi-pop manager for the centered VXP-grant envelopes.
 	 * A routine swipe mints nothing (deflation-safe economy, see
 	 * `docs/ai/frontend/design.md` §7.3), so every pop is a genuine engine
-	 * award — the overtime finish or a lifetime-volume milestone — rendered
+	 * award, the overtime finish or a lifetime-volume milestone, rendered
 	 * as the laurel-ring bonus envelope with its paired serif-italic copy.
 	 * The per-swipe commit confirmation is a separate surface (`XpToast`,
 	 * owned by `FlowMode`); this aggregator owns position + fan-out.
@@ -64,7 +64,7 @@
 		text-transform: uppercase;
 		opacity: 0.7;
 	}
-	/* Bonus pop — milestone reward (rarity ladder). Laurel ring, larger
+	/* Bonus pop: milestone reward (rarity ladder). Laurel ring, larger
 	   amount, paired serif-italic copy on top, longer dwell. */
 	.xp-pop-bonus {
 		flex-direction: column;
@@ -78,7 +78,7 @@
 			0 0 32px var(--laurel-glow),
 			var(--shadow-card);
 		animation:
-			xpPopBonus 1.8s var(--ease-vici) forwards,
+			xpPopBonus 2.6s var(--ease-vici) forwards,
 			none;
 	}
 	.xp-pop-copy {

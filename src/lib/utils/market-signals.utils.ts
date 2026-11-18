@@ -1,25 +1,21 @@
-import type { ClearingDid } from '$declarations';
-import { ZERO } from '$lib/constants/app.constants';
-import { primaryMarketTag, type MarketTag } from '$lib/constants/market-tags.constants';
-import type { CallSide, MarketId } from '$lib/types/market';
+import type { ClearingDid } from '#declarations';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import type {
 	CategoryAccuracySignal,
 	PriorCallSignal,
 	UserMarketSignals
-} from '$lib/types/market-signals';
-import {
-	FLOW_ART_CATEGORY_SET,
-	resolveFlowArtCategory,
-	type FlowArtCategory
-} from '$lib/utils/flow-art.utils';
+} from '#lib/types/market-signals.ts';
+import type { CallSide, MarketId } from '#lib/types/market.ts';
+import { resolveFlowArtCategory, type FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
 import {
 	eventExecutionPrice,
 	isExecutedEvent,
 	isSettledEvent,
 	isWinningSettledEvent
-} from '$lib/utils/resolved-position.utils';
-import { parseMarketId } from '$lib/validation/market.validation';
-import { isNullish, nonNullish } from '@dfinity/utils';
+} from '#lib/utils/resolved-position.utils.ts';
+import { parseMarketId } from '#lib/validation/market.validation.ts';
+import { isNullish } from '@dfinity/utils';
 
 const eventSide = (event: ClearingDid.Event): CallSide => (event.qty >= ZERO ? 'YES' : 'NO');
 
@@ -28,20 +24,15 @@ const eventCategory = ({
 	tagsBySeries
 }: {
 	event: ClearingDid.Event;
-	tagsBySeries: Record<string, MarketTag[]>;
+	tagsBySeries: Record<string, string[]>;
 }): FlowArtCategory => {
 	const marketId = parseMarketId(event.series_id);
-	const primary = primaryMarketTag(tagsBySeries[marketId]);
 
-	if (nonNullish(primary) && FLOW_ART_CATEGORY_SET.has(primary)) {
-		return primary;
-	}
-
-	return resolveFlowArtCategory({ categoryId: primary, seed: marketId });
+	return resolveFlowArtCategory({ tags: tagsBySeries[marketId], seed: marketId });
 };
 
 const formatWhen = (timestampNs: bigint): string => {
-	const date = new Date(Number(timestampNs / 1_000_000n));
+	const date = new Date(Number(timestampNs / MILLISECOND_IN_NANOSECONDS));
 
 	if (Number.isNaN(date.getTime())) {
 		return '';
@@ -65,7 +56,7 @@ export const deriveCategoryAccuracySignals = ({
 	tagMappings
 }: {
 	events: ClearingDid.Event[];
-	tagMappings: Record<string, MarketTag[]>;
+	tagMappings: Record<string, string[]>;
 }): Partial<Record<FlowArtCategory, CategoryAccuracySignal>> => {
 	const bucket = new Map<FlowArtCategory, { calls: number; wins: number }>();
 
@@ -118,7 +109,7 @@ export const derivePriorCallSignals = (
 };
 
 /**
- * The set of market ids the viewer has an executed call on — the
+ * The set of market ids the viewer has an executed call on: the
  * deck-exclusion input for Flow (`prepareFlow`). Deliberately lighter than
  * {@link derivePriorCallSignals}: it skips the per-market latest-event
  * resolution, date formatting, and consensus conversion that only the
@@ -144,8 +135,8 @@ export const deriveCalledMarketIds = (events: ClearingDid.Event[]): Set<MarketId
 /**
  * Trade-history-derived signals (category accuracy + prior calls). The
  * friends-lean signal is sourced separately from the clearing canister's
- * privacy-preserving `aggregate_lean` query — see
- * `$lib/services/followed-lean.services` — and merged in by the caller, so
+ * privacy-preserving `aggregate_lean` query, see
+ * `#lib/services/followed-lean.services.ts`, and merged in by the caller, so
  * it is not produced here.
  */
 export const deriveUserMarketSignals = ({
@@ -153,7 +144,7 @@ export const deriveUserMarketSignals = ({
 	tagMappings
 }: {
 	events: ClearingDid.Event[];
-	tagMappings: Record<string, MarketTag[]>;
+	tagMappings: Record<string, string[]>;
 }): Omit<UserMarketSignals, 'followedLean'> => ({
 	categoryAcc: deriveCategoryAccuracySignals({ events, tagMappings }),
 	priorCalls: derivePriorCallSignals(events)

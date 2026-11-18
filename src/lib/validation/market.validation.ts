@@ -1,5 +1,5 @@
-import { MarketIdSchema } from '$lib/schema/market.schema';
-import type { MarketId } from '$lib/types/market';
+import { MarketIdSchema } from '#lib/schema/market.schema.ts';
+import type { MarketId } from '#lib/types/market.ts';
 import * as z from 'zod';
 
 const MarketIdStringSchema = z.string();

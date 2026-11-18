@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import type { ClearingDid } from '$declarations';
-	import IdentityAwareLoader from '$lib/components/loaders/IdentityAwareLoader.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { SUPPORTED_TOKENS } from '$lib/constants/tokens/tokens.ic.constants';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
-	import { loadAccountState, loadCollateralAssets } from '$lib/services/collateral.services';
-	import { collateralsStore } from '$lib/stores/collaterals.store';
-	import type { TokenId } from '$lib/types/token';
-	import { findSupportedTokenForClearingAssetId } from '$lib/utils/asset-ref.utils';
-	import { compareBalanceDomains, isSettlement } from '$lib/utils/balance-domain.utils';
+	import type { ClearingDid } from '#declarations';
+	import IdentityAwareLoader from '#lib/components/loaders/IdentityAwareLoader.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { SUPPORTED_TOKENS } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+	import { loadAccountState, loadCollateralAssets } from '#lib/services/collateral.services.ts';
+	import { collateralsStore } from '#lib/stores/collaterals.store.ts';
+	import type { TokenId } from '#lib/types/token.ts';
+	import { findSupportedTokenForClearingAssetId } from '#lib/utils/asset-ref.utils.ts';
+	import { compareBalanceDomains, isSettlement } from '#lib/utils/balance-domain.utils.ts';
 
 	let prevDomain: ClearingDid.BalanceDomain | undefined = undefined;
 

@@ -4,20 +4,28 @@ name: Release Please
 #
 # On every push to `main`, release-please maintains a standing "release PR"
 # that bumps the version and regenerates CHANGELOG.md from the commits since
-# the last release. Merging that PR cuts a `vX.Y.Z` tag + GitHub Release —
+# the last release. Merging that PR cuts a `vX.Y.Z` tag + GitHub Release,
 # which is exactly the event `deploy.yml` and `publish.yml` already trigger
 # on (`push: tags: v*`). So merging the release PR is the deliberate ship.
 #
 # It bumps BOTH `package.json#version` and `package.json#juno.functions.version`
 # in lockstep (see release-please-config.json `extra-files`).
 #
+# BUMP POLICY: `versioning: always-bump-patch` (release-please-config.json): so
+# EVERY release is a patch by default, regardless of commit type. `feat:` does
+# NOT bump the minor on its own. Minor/major bumps are commanded explicitly: put
+# a `Release-As: X.Y.Z` footer in a commit on `main` (e.g. an empty
+# `git commit --allow-empty -m "chore: release 1.9.0" -m "Release-As: 1.9.0"`),
+# and the next release PR targets that exact version. Conventional Commit types
+# still drive the CHANGELOG sections; they just no longer drive the bump.
+#
 # TOKEN: for the cut tag to trigger deploy.yml/publish.yml, release-please
-# must create it with a token OTHER than the default GITHUB_TOKEN — tags
+# must create it with a token OTHER than the default GITHUB_TOKEN. Tags
 # (and PRs) created with GITHUB_TOKEN do not trigger further workflow runs.
-# Add a fine-grained PAT with `contents: write` + `pull-requests: write` as
-# the `RELEASE_PLEASE_PAT` repo secret. Without it this still works (the
-# fallback below uses GITHUB_TOKEN), but you must then run deploy.yml /
-# publish.yml via manual dispatch after the release tag lands.
+# The vici-release-bot GitHub App (owned by the ViciApp org) mints a
+# short-lived installation token per run; release-please creates the tag
+# with it. Needs the `RELEASE_BOT_PRIVATE_KEY` repo secret. Nothing here
+# uses the default GITHUB_TOKEN, so it gets no scopes.
 
 on:
   push:
@@ -28,24 +36,29 @@ concurrency:
   group: release-please-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   release-please:
     runs-on: ubuntu-24.04
     steps:
+      - name: Mint app token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+
       # When updating this action, also bump the $schema version in
       # release-please-config.json to match the bundled release-please version
       # (check the action's release notes).
       - uses: googleapis/release-please-action@0b6b3fc0186a2f7118bfd88fab9ea481e1839504 # v4.4.0
         with:
-          token: ${{ secrets.RELEASE_PLEASE_PAT || secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           # Pinned to main, not github.ref_name: workflow_dispatch can run from
           # any branch, and a dynamic target would let a dispatch on a non-main
-          # branch cut a v* tag there — which deploy.yml/publish.yml trigger on
+          # branch cut a v* tag there, which deploy.yml/publish.yml trigger on
           # (push: tags: v*). Releases only ever come off main.
           target-branch: main

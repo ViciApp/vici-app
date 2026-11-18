@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { Share2 } from '@lucide/svelte/icons';
-	import { browser } from '$app/environment';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { notifyShareFailed } from '#lib/services/share.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { browser } from '$app/env';
 
 	interface Props {
 		title: string;
@@ -27,7 +29,14 @@
 			}
 
 			if (nonNullish(navigator.clipboard)) {
-				await navigator.clipboard.writeText(url);
+				const ok = await writeToClipboard(url);
+
+				if (!ok) {
+					notifyShareFailed();
+
+					return;
+				}
+
 				notificationsStore.add({
 					title: t({ locale: $localeStore, key: 'market.detail.share.copied_title' }),
 					message: t({ locale: $localeStore, key: 'market.detail.share.copied' }),
@@ -35,21 +44,17 @@
 				});
 			}
 		} catch (err) {
-			// User-cancelled native share sheets reject — treat as silent no-op.
+			// User-cancelled native share sheets reject: treat as silent no-op.
 			if (err instanceof DOMException && err.name === 'AbortError') {
 				return;
 			}
 
-			notificationsStore.add({
-				title: t({ locale: $localeStore, key: 'market.detail.share.failed_title' }),
-				message: t({ locale: $localeStore, key: 'market.detail.share.failed' }),
-				type: 'error'
-			});
+			notifyShareFailed();
 		}
 	};
 </script>
 
-<!-- Share button on the Market detail appbar — prefers the native Web
+<!-- Share button on the Market detail appbar: prefers the native Web
      Share sheet (mobile), falls back to clipboard copy on desktop with
      a toast acknowledgement. Wears the faint ghost icon-button look so
      it reads as one set with the back chevron and the save control. -->

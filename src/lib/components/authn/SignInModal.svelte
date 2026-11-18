@@ -1,7 +1,7 @@
 <script lang="ts">
-	import SignInActions from '$lib/components/authn/SignInActions.svelte';
-	import Dialog from '$lib/components/ui/Dialog.svelte';
-	import { setAuthBusy } from '$lib/stores/user.store';
+	import SignInActions from '#lib/components/authn/SignInActions.svelte';
+	import Dialog from '#lib/components/ui/Dialog.svelte';
+	import { setAuthBusy } from '#lib/stores/user.store.ts';
 
 	interface Props {
 		show: boolean;

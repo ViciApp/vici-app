@@ -1,13 +1,13 @@
 /**
  * Disallow hardcoded user-visible text inside `.svelte` files that have
- * already opted in to i18n (i.e. that import `$lib/utils/i18n.utils`).
+ * already opted in to i18n (i.e. that import `#lib/utils/i18n.utils.ts`).
  *
  * Rationale
  * ---------
  * The repo has a typed i18n layer (`t({ locale, key, params })` from
- * `$lib/utils/i18n.utils`). Once a component imports it, every other
+ * `#lib/utils/i18n.utils.ts`). Once a component imports it, every other
  * user-visible string in that component should go through `t(...)` too
- * — otherwise it ships in English to every locale.
+ * (otherwise it ships in English to every locale).
  *
  * We deliberately scope this rule to files that already import
  * `i18n.utils` so it doesn't drown the long tail of untranslated
@@ -35,7 +35,7 @@
  *     extracted into a `{brand}` interpolation.)
  *
  * Attribute literals (`aria-label="Close"`) are intentionally NOT
- * flagged by this rule — they live in a different node type
+ * flagged by this rule: they live in a different node type
  * (`SvelteLiteral`) and a per-attribute allowlist would be needed to
  * keep noise down. They're covered by code review and the i18n.md
  * checklist for now.
@@ -45,7 +45,7 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { isNullish, nonNullish } = require('@dfinity/utils');
 
-const I18N_UTILS_PATH = '$lib/utils/i18n.utils';
+const I18N_UTILS_PATH = '#lib/utils/i18n.utils.ts';
 const LETTER_RUN = /[A-Za-zÀ-ÖØ-öø-ÿ]{4,}/;
 const SKIP_PARENT_TYPES = new Set(['SvelteScriptElement', 'SvelteStyleElement']);
 
@@ -55,7 +55,7 @@ const SKIP_PARENT_TYPES = new Set(['SvelteScriptElement', 'SvelteStyleElement'])
 // "VICI · v0.0.7" no longer fires the rule.
 //
 // Multi-word entries (e.g. `Internet Computer`) must come before any
-// of their prefixes (`Internet`) when both are listed — the longest
+// of their prefixes (`Internet`) when both are listed: the longest
 // match wins because `BRAND_TOKENS_RE` is built as a single alternation
 // and ordered explicitly here.
 const BRAND_TOKENS = [
@@ -78,7 +78,7 @@ const BRAND_TOKENS_RE = new RegExp(
 );
 
 // Version-like fragments (`v0.0.7`, `v1.2.3-beta`). Code-shaped, not
-// user copy — strip alongside brand tokens.
+// user copy; strip alongside brand tokens.
 const VERSION_RE = /\bv\d+(?:\.\d+){1,3}(?:[-+][A-Za-z0-9.]+)?\b/g;
 
 const stripExemptTokens = (text) => text.replace(BRAND_TOKENS_RE, '').replace(VERSION_RE, '');
@@ -130,13 +130,13 @@ module.exports = {
 		type: 'suggestion',
 		docs: {
 			description:
-				'Disallow hardcoded user-visible text in .svelte files that already import $lib/utils/i18n.utils.',
+				'Disallow hardcoded user-visible text in .svelte files that already import #lib/utils/i18n.utils.ts.',
 			category: 'i18n',
 			recommended: false
 		},
 		messages: {
 			bareText:
-				'Hardcoded text "{{snippet}}" — route it through t({ locale: $localeStore, key }) from $lib/utils/i18n.utils, and add the key to every catalog under src/lib/constants/messages/. See docs/ai/frontend/i18n.md.'
+				'Hardcoded text "{{snippet}}": route it through t({ locale: $localeStore, key }) from #lib/utils/i18n.utils.ts, and add the key to every catalog under src/lib/constants/messages/. See docs/ai/frontend/i18n.md.'
 		},
 		schema: []
 	},

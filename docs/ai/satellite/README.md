@@ -26,12 +26,13 @@ It **is not**:
 
 - The on-chain risk engine. That's the Rust canisters in
   [`../icdc-core/`](../../../../icdc-core/) (Clearing + Registry).
-- A general-purpose backend — keep logic close to data; if it doesn't
-  need to be on-canister, it belongs in `$lib/services/` instead.
+- A general-purpose backend: keep logic close to data; if it doesn't
+  need to be on-canister, it belongs in `#lib/services/` instead.
 
 ## Satellite-specific things to check (every change)
 
-Generic agent hygiene (read first, run lint/check, atomic PRs) is in
+Generic agent hygiene (read first, run lint/check,
+[scoped PRs](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#2-scoped)) is in
 [`AGENTS.md`](../../../AGENTS.md) and [`pr-and-ci.md`](../pr-and-ci.md).
 What is specific to the satellite:
 
@@ -51,13 +52,14 @@ What is specific to the satellite:
 
 ## Non-obvious satellite gotchas
 
-The stack is `src/satellite/package.json` and the layout is `ls src/satellite/`.
+The satellite has no `package.json` of its own: its dependencies are in the root [`package.json`](../../../package.json), and the layout is `ls src/satellite/`.
 What the code will not tell you:
 
-- **`@junobuild/core` is FE-only.** Never import it from the satellite —
+- **`@junobuild/core` is FE-only.** Never import it from the satellite;
   satellite code uses `@junobuild/functions` primitives directly.
-- **The satellite has its own [`tsconfig.json`](../../../src/satellite/tsconfig.json)** —
-  no DOM-only imports from `$lib/`.
+- **The satellite has its own [`tsconfig.json`](../../../src/satellite/tsconfig.json)**,
+  checked by `npm run check`. It keeps the `dom` lib because dependency typings
+  need it, so it does not catch DOM use: no DOM-only imports from `#lib/`.
 - **`src/satellite/api-schemas.ts`, `satellite.did`, `satellite_extension.did`
   are generated** by `npm run juno:functions:build`. Don't hand-edit.
 
@@ -65,7 +67,7 @@ Full taxonomy: [`structure.md`](./structure.md). Idioms: [`patterns.md`](./patte
 
 ## Local development
 
-- **Replica:** `juno emulator start` — the Juno emulator is the only
+- **Replica:** `juno emulator start`: the Juno emulator is the only
   local replica (never `dfx start`, see
   [`AGENTS.md`](../../../AGENTS.md)).
 - **Local Console:** [http://localhost:5866](http://localhost:5866).
@@ -75,8 +77,14 @@ Full taxonomy: [`structure.md`](./structure.md). Idioms: [`patterns.md`](./patte
   TypeScript hooks/asserts/endpoints into the satellite extension
   Wasm.
 - **Satellite IDs:** pinned in [`juno.config.ts`](../../../juno.config.ts)
-  (dev + prod). That file is the source of truth — don't copy them
-  elsewhere.
+  (dev + prod + emulator). That file is the source of truth; don't copy
+  them elsewhere. Shell scripts, workflows and runbooks read an id with
+  `npx tsx scripts/lib/satellite-id.ts <production|development>`; a
+  script that wants the dev id even under the emulator runs it with
+  `JUNO_EMULATOR=false`, since the config swaps the dev id when that is
+  `true`. The one exception, with a comment saying why: the emulator id in
+  `src/satellite/services/new-profile-gate.services.ts` (the satellite
+  cannot import the config).
 
 ## Where to look
 

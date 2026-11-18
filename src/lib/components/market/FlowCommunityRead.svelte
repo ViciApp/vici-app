@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
-	import FlowCardSparkline from '$lib/components/market/FlowCardSparkline.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { CallSide, Market } from '$lib/types/market';
-	import type { MarketMetadata } from '$lib/types/market-metadata';
-	import { t } from '$lib/utils/i18n.utils';
+	import FlowCardSparkline from '#lib/components/market/FlowCardSparkline.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
+	import type { CallSide, Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		market: Market;
@@ -16,7 +16,7 @@
 		crowdSide: CallSide;
 		// Real, market-wide 7d price history (0–100 YES series, oldest first)
 		// from the clearing canister. Absent until FlowMode resolves it for the
-		// focused card — the sparkline and the weekly delta then fall back to
+		// focused card: the sparkline and the weekly delta then fall back to
 		// the seed-based shape / prior heuristic.
 		points?: number[];
 		// Parallel x-fractions (0–1) placing each `points` entry on the time
@@ -28,7 +28,7 @@
 
 	const yesPct = $derived(crowdPct);
 	const noPct = $derived(100 - yesPct);
-	// Headline number must read off `crowdSide` — the majority side the
+	// Headline number must read off `crowdSide`, the majority side the
 	// label shows. `crowdPct` is always the YES share, so a NO-leaning
 	// market needs `noPct` here or the figure contradicts its own label.
 	const crowdSidePct = $derived(crowdSide === 'YES' ? yesPct : noPct);
@@ -87,8 +87,8 @@
 		flex-direction: column;
 	}
 
-	/* The community read is bare — number + sparkline sit directly on the
-	   card with no surface box; only the resolution / stake / split
+	/* The community read is bare: number + sparkline sit directly on the
+	   card with no surface box; only the resolution / call-size / split
 	   blocks are framed. */
 	.flow-community {
 		gap: 0.25rem;

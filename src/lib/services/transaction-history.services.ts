@@ -1,18 +1,18 @@
-import { getTransactions as getIcrcTransactionsApi } from '$lib/api/icrc-index-ng.api';
+import { getTransactions as getIcrcTransactionsApi } from '#lib/api/icrc-index-ng.api.ts';
 import {
 	TRANSACTION_HISTORY_LEDGER_PAGE_SIZE,
 	TRANSACTION_HISTORY_MAX_LEDGER_PAGES,
 	ZERO
-} from '$lib/constants/app.constants';
-import { VXP_INDEX_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { getIdentity } from '$lib/services/identity.services';
-import type { TransactionHistoryBonusTag } from '$lib/types/transaction-history';
+} from '#lib/constants/app.constants.ts';
+import { VXP_INDEX_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { getIdentity } from '#lib/services/identity.services.ts';
+import type { TransactionHistoryBonusTag } from '#lib/types/transaction-history.ts';
 import {
 	decodeVxpAwardMemo,
 	type TransactionHistoryLedgerEntry
-} from '$lib/utils/transaction-history.utils';
-import { mapIcrcTransaction, mapTransactionIcrcToSelf } from '$lib/utils/transactions.utils';
+} from '#lib/utils/transaction-history.utils.ts';
+import { mapIcrcTransaction, mapTransactionIcrcToSelf } from '#lib/utils/transactions.utils.ts';
 import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
 import type { IcrcIndexDid } from '@icp-sdk/canisters/ledger/icrc';
 import type { Identity } from '@icp-sdk/core/agent';
@@ -31,7 +31,7 @@ interface LedgerTxMeta {
 /**
  * Memo + fee live on the raw candid operation, which the shared
  * `mapIcrcTransaction` deliberately drops from the unified `Transaction`
- * shape — pull them out here so bonus labeling and fee accounting survive
+ * shape: pull them out here so bonus labeling and fee accounting survive
  * the mapping.
  */
 const extractTxMeta = (transaction: IcrcIndexDid.Transaction): LedgerTxMeta => {
@@ -53,7 +53,7 @@ const extractTxMeta = (transaction: IcrcIndexDid.Transaction): LedgerTxMeta => {
  * Walk the VXP ICRC index to exhaustion (newest → oldest), capped at
  * `TRANSACTION_HISTORY_MAX_LEDGER_PAGES` pages so a pathological account
  * stays bounded. Returns `undefined` when not signed in or when the very
- * first page fails — partial pages collected before a mid-walk failure are
+ * first page fails: partial pages collected before a mid-walk failure are
  * still returned (flagged `truncated`) so the history degrades instead of
  * blanking.
  */
@@ -126,7 +126,7 @@ const mapRawToEntries = ({
 	// The wallet mapper expands a self-transfer into send + receive
 	// pseudo-rows (`-self` id suffix on the receive leg). On this page the
 	// only real spendable change is the fee, so the receive leg is dropped
-	// and the remaining leg flagged — `ledgerEntry` turns it into a hidden
+	// and the remaining leg flagged: `ledgerEntry` turns it into a hidden
 	// fee-only contribution instead of two phantom rows.
 	const selfIds = new Set(
 		mapped.filter(({ id }) => id.endsWith('-self')).map(({ id }) => id.replace(/-self$/, ''))

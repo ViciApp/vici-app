@@ -1,25 +1,25 @@
 <script lang="ts">
 	import { Check, Shuffle, X } from '@lucide/svelte/icons';
 	import { untrack } from 'svelte';
-	import { pinToVisualViewport } from '$lib/actions/pin-to-visual-viewport';
-	import { saveMyAvatarParts } from '$lib/stores/avatar.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import { pinToVisualViewport } from '#lib/actions/pin-to-visual-viewport.ts';
+	import { saveMyAvatarParts } from '#lib/stores/avatar.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 	import {
 		AVATAR_PARTS,
 		normalizeParts,
 		renderAvatarSvg,
 		type ViciAvatarParts,
 		type ViciAvatarPartKey
-	} from '$lib/utils/vici-avatar.utils';
+	} from '#lib/utils/vici-avatar.utils.ts';
 
 	interface Props {
 		/** The parts to seed the editor with (the user's current avatar). */
 		initial: ViciAvatarParts;
-		/** Discard and close (the X) — never persists. */
+		/** Discard and close (the X); never persists. */
 		onClose: () => void;
 		/** Persist the draft and close (Done). */
 		onSaved?: () => void;
@@ -29,7 +29,7 @@
 
 	// Draft-then-Done: the editor holds a local draft. The X discards it; only
 	// Done persists. Seeded once at open (the sheet is remounted per open), so
-	// capturing the prop's initial value is intentional — there's no later
+	// capturing the prop's initial value is intentional; there's no later
 	// `initial` change to track within a single open.
 	let draft = $state<ViciAvatarParts>(untrack(() => normalizeParts(initial)));
 	let activeTab = $state<TabId>('skin');
@@ -41,7 +41,7 @@
 	// Snapshot the parts the editor opened on, so we can tell an untouched
 	// close (just dismiss) from one that would drop unsaved edits (confirm
 	// first). The sheet is remounted per open, so capturing the seed once is
-	// correct — there is no later `initial` change to track within an open.
+	// correct: there is no later `initial` change to track within an open.
 	const initialSerialized = untrack(() => JSON.stringify(normalizeParts(initial)));
 	const dirty = $derived(JSON.stringify(draft) !== initialSerialized);
 
@@ -56,7 +56,7 @@
 		{ id: 'bg', key: 'profile.avatar.tab.backdrop' }
 	];
 
-	// Per-value option labels — keyed by part then value.
+	// Per-value option labels: keyed by part then value.
 	const optionKey = ({ part, value }: { part: ViciAvatarPartKey; value: string }): MessageKey =>
 		`profile.avatar.option.${part}.${value}` as MessageKey;
 
@@ -90,7 +90,7 @@
 		// Mid-save, a close gesture is ignored rather than routed to the confirm
 		// sheet: the sheet's Save would be disabled next to a live Discard, so
 		// the only actionable button would drop the work being saved. The save
-		// settles in seconds — closing on success, error toast (editor stays
+		// settles in seconds, closing on success, error toast (editor stays
 		// open) on failure.
 		if (saving) {
 			return;
@@ -214,8 +214,8 @@
      `use:pinToVisualViewport` sizes it to the actually-visible region via
      `window.visualViewport`, because on iOS a fixed overlay resolves against
      the large layout viewport (toolbars retracted) and iOS Chrome doesn't
-     honour `100dvh` — so the pinned-bottom footer would otherwise land behind
-     the bottom toolbar and get clipped (#670, #673). A tap on any uncovered
+     honour `100dvh`, so the pinned-bottom footer would otherwise land behind
+     the bottom toolbar and get clipped. A tap on any uncovered
      scrim area runs the same close guard as the ✕ so it never silently drops
      unsaved edits. -->
 <div
@@ -320,10 +320,10 @@
 			</button>
 		</div>
 
-		<!-- Unsaved-changes guard — fires when a close gesture lands with pending
+		<!-- Unsaved-changes guard: fires when a close gesture lands with pending
 	     edits, so the natural "I'm done" tap never drops the user's work. -->
 		{#if confirmClose}
-			<!-- Dimmed overlay — a tap dismisses just the confirm sheet (back to
+			<!-- Dimmed overlay: a tap dismisses just the confirm sheet (back to
 		     editing), mirroring the editor's own backdrop. -->
 			<div
 				class="avatar-editor-confirm-scrim"
@@ -389,7 +389,7 @@
 
 <style lang="postcss">
 	/* Lock background scroll + hide the floating pill-nav while the full-screen
-	   editor is open — the nav lives in a separate stacking context and would
+	   editor is open: the nav lives in a separate stacking context and would
 	   otherwise paint in front of the panel, and it isn't usable mid-edit. */
 	:global(body:has(.avatar-editor)) {
 		overflow: hidden;
@@ -401,8 +401,8 @@
 
 	/* Full-screen takeover (not a bottom sheet): an opaque panel that fills the
 	   visible viewport, matching the design. `use:pinToVisualViewport` sizes it
-	   to `window.visualViewport` so the sticky footer clears the iOS toolbar
-	   (#670/#673); the `100dvh`/`100vh` here is the desktop / no-`visualViewport`
+	   to `window.visualViewport` so the sticky footer clears the iOS toolbar;
+	   the `100dvh`/`100vh` here is the desktop / no-`visualViewport`
 	   fallback. The floating pill-nav is hidden while open (see the `:global`
 	   rules below) so it can't sit in front of the panel. */
 	.avatar-editor-scrim {
@@ -543,7 +543,7 @@
 	.avatar-editor-body {
 		flex: 1;
 		/* `min-height: 0` lets this flex child shrink below its content so the
-		 * grid scrolls *inside* the panel — without it the body keeps its full
+		 * grid scrolls *inside* the panel; without it the body keeps its full
 		 * intrinsic height and pushes the footer past the panel's bottom edge
 		 * (clipped behind the iOS browser toolbar). */
 		min-height: 0;
@@ -677,7 +677,7 @@
 		cursor: default;
 	}
 
-	/* Discard-confirm — a sheet pinned to the bottom of the editor, over its
+	/* Discard-confirm: a sheet pinned to the bottom of the editor, over its
 	   own dimmed overlay. */
 	.avatar-editor-confirm-scrim {
 		position: absolute;

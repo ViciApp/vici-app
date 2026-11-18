@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { Bell } from '@lucide/svelte/icons';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { combinedInboxUnreadCount } from '#lib/stores/inbox.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { combinedInboxUnreadCount } from '$lib/stores/inbox.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	/**
-	 * NotifBell — bell button + unread red-dot badge. Drop into any header;
+	 * NotifBell: bell button + unread red-dot badge. Drop into any header;
 	 * tapping it opens the Notifications inbox. The badge tracks the real
 	 * `combinedInboxUnreadCount` (settled events + friend requests + seed
 	 * history) and collapses to `9+` past nine so it never stretches the bar.
@@ -22,7 +22,7 @@
 	 * (the muted token disappears against those surfaces).
 	 */
 	interface Props {
-		/** Render the bell in its cream variant — for placement over a dark
+		/** Render the bell in its cream variant: for placement over a dark
 		 *  scrim (e.g. the profile hero's translucent control disc) where the
 		 *  muted-text default would read too dim. */
 		light?: boolean;
@@ -34,7 +34,7 @@
 	const badge = $derived(count > 9 ? '9+' : String(count));
 
 	const openNotifications = () => {
-		void goto(resolve(AppPath.Notifications));
+		void goto(resolveAppPath(AppPath.Notifications));
 	};
 </script>
 
@@ -79,7 +79,7 @@
 		background: color-mix(in srgb, var(--text-base) 6%, transparent);
 	}
 
-	/* Cream variant — sits on the profile hero's translucent disc, over a dark
+	/* Cream variant: sits on the profile hero's translucent disc, over a dark
 	   scrim, so it ignores the theme's muted-text default and stays legible. */
 	.notif-bell.is-light {
 		color: var(--parchment);

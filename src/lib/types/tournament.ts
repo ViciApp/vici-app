@@ -1,26 +1,29 @@
 /**
- * Monthly tournament — Proposal 3 in `docs/backend-proposals/README.md`.
+ * Monthly tournament.
  *
- * The TournamentBattleDetail surface presents a 16-league single-
- * elimination bracket with per-match accuracy. We model the structure
- * as two collections:
+ * `TournamentPage` presents a single-elimination league bracket with
+ * per-match accuracy. We model the structure as two collections:
  *
- *  - **`TOURNAMENTS`** — one doc per monthly tournament. Doc key is
+ *  - **`TOURNAMENTS`**: one doc per monthly tournament. Doc key is
  *    the month anchor (`YYYY-MM`) so a single draw per month is
  *    enforced by the datastore (re-running the draw collides on key).
- *  - **`TOURNAMENT_MATCHES`** — one doc per (tournament, round,
+ *  - **`TOURNAMENT_MATCHES`**: one doc per (tournament, round,
  *    match-index). Keyed `${tournamentId}/${round}/${index}` so the
  *    bracket reads as a single prefix scan.
  *
- * Per locked decisions:
+ * Rules:
  *
- *  - 3.1 — entry criterion: top-16 leagues by member count. The
- *    aggregator scans LEAGUE_MEMBERS, counts rows per leagueId,
- *    sorts desc, takes the first 16.
- *  - 3.2 — round windows: 7 / 7 / 7 / 7 days (Round 1 → Final).
- *  - 3.3 — minimum 50 calls per league per match to qualify; a
- *    league that falls short forfeits the match.
- *  - 3.4 — forfeit ⇒ opponent advances. If both forfeit, the
+ *  - Entry criterion: the top `TOURNAMENT_BRACKET_SIZE` leagues by
+ *    member count. The aggregator scans LEAGUE_MEMBERS, counts rows
+ *    per leagueId, sorts desc, takes the first `TOURNAMENT_BRACKET_SIZE`.
+ *  - Round windows: one `TOURNAMENT_ROUND_DURATION_DAYS` window per
+ *    round (Round 1 → Final).
+ *  - A match is scored from each league's members' settled history
+ *    over the round window (the clearing engine's record, the source
+ *    league battles are scored from). A league needs
+ *    `TOURNAMENT_MIN_CALLS_PER_MATCH` settled calls in the window to
+ *    qualify; a league that falls short forfeits the match.
+ *  - Forfeit ⇒ opponent advances. If both forfeit, the
  *    lower-seed advances (deterministic for tie-break parity with
  *    the seed order).
  *
@@ -29,6 +32,7 @@
  * conventional "highest seed meets lowest seed" first-round matchup.
  */
 
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import type { PrincipalText } from '@junobuild/schema';
 
 /**
@@ -39,36 +43,47 @@ export const TOURNAMENT_ROUNDS = ['r1', 'quarter', 'semifinal', 'final'] as cons
 
 export type TournamentRound = (typeof TOURNAMENT_ROUNDS)[number];
 
+/** Why a draw was refused: the month is already drawn, it has not started,
+ * fewer leagues than a bracket exist, or the month cannot be drawn (a
+ * malformed anchor, a closed month, or a month whose round 1 has closed). */
+export const TOURNAMENT_DRAW_REFUSAL_REASONS = [
+	'already_drawn',
+	'month_not_started',
+	'insufficient_leagues',
+	'invalid_input'
+] as const;
+
+export type TriggerTournamentDrawRefusalReason = (typeof TOURNAMENT_DRAW_REFUSAL_REASONS)[number];
+
 /**
- * Bracket size is fixed at 16 per decision 3.1. The proposal left
- * the field configurable (`8 | 16 | 32`), but in practice all
- * future tournaments use the same shape; flagging it as a constant
- * here keeps the assert tight and the FE table layout predictable.
+ * Bracket size is fixed at 16: every tournament uses the same shape,
+ * so a constant keeps the assert tight and the bracket layout
+ * predictable.
  */
 export const TOURNAMENT_BRACKET_SIZE = 16;
 
 /**
- * Round duration. 7-day windows ("DAY 3 OF 7") for every round,
- * per the locked decision 3.2 (7/7/7/7).
+ * Round duration: one 7-day window ("DAY 3 OF 7") for every round, so
+ * the four rounds (28 days) fit inside any calendar month.
  */
 export const TOURNAMENT_ROUND_DURATION_DAYS = 7;
-export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * 24 * 60 * 60 * 1000;
+export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * DAY_IN_MS;
 
 /**
  * Per-match qualification threshold. A league with fewer than this
- * many resolved calls in the round window forfeits the match
- * (decision 3.3). Mirrors `MIN_CALLS_FOR_RANK` in the affiliation
- * stats — the two thresholds are deliberately separate so a
+ * many resolved calls in the round window forfeits the match.
+ * Mirrors `MIN_CALLS_FOR_RANK` in the affiliation
+ * stats: the two thresholds are deliberately separate so a
  * tournament can tighten its bar without affecting the Worlds
  * leaderboard.
  */
 export const TOURNAMENT_MIN_CALLS_PER_MATCH = 50;
 
 /**
- * Prize VXP per place. Top-4 each get an award — matches the
- * Three tiers — Gold / Silver / Bronze at 5000 / 2500 / 1000 VXP.
- * Both semifinal losers share the bronze tier: each is credited
- * 1000 VXP independently when they call `claimTournamentPrize`.
+ * Prize VXP per place, in three tiers (gold, silver, bronze). The top
+ * four each get an award: both semifinal losers share the bronze tier,
+ * each credited its amount independently when they call
+ * `claimTournamentPrize`.
  */
 export const TOURNAMENT_PRIZE_TIERS: ReadonlyArray<{
 	place: 1 | 2 | 3;
@@ -83,7 +98,7 @@ export const TOURNAMENT_PRIZE_TIERS: ReadonlyArray<{
 export type TournamentState = 'in_flight' | 'concluded';
 
 export interface TournamentDoc {
-	/** Month anchor — `YYYY-MM`. Matches the doc key. */
+	/** Month anchor: `YYYY-MM`. Matches the doc key. */
 	id: string;
 	/** UTC ms timestamp of the first day of the month. */
 	monthStartMs: number;
@@ -94,7 +109,7 @@ export interface TournamentDoc {
 	/** Lifecycle state. `in_flight` until the final match resolves; then `concluded`. */
 	state: TournamentState;
 	/**
-	 * League ids in seed order — index 0 is the top seed (most
+	 * League ids in seed order: index 0 is the top seed (most
 	 * members), index 15 is the bottom seed. Read via a single
 	 * `listLeagueMembers` scan + `sort by count desc`.
 	 */
@@ -110,24 +125,22 @@ export interface TournamentMatchDoc {
 	round: TournamentRound;
 	/** Match index within the round (0..7 for r1, 0..3 for quarter, etc.). */
 	index: number;
-	/** The "from" / "to" league ids — `null` when the slot is TBD (winner of an upstream match). */
+	/** The "from" / "to" league ids: `null` when the slot is TBD (winner of an upstream match). */
 	fromLeagueId: string | null;
 	toLeagueId: string | null;
 	/**
-	 * Per-league `(totalCalls, wins)` snapshot at the moment the
-	 * league was assigned to this slot. Frozen at draw-time for R1,
-	 * frozen at previous-round resolution for later rounds. The
-	 * round-resolution endpoint reads the current rolling
-	 * `LEAGUE_STATS` doc and computes the window delta as
-	 * `current - start`. `null` until the slot has a league assigned.
+	 * Not written: a match is scored from its leagues' members' settled
+	 * history over `[startMs, endMs)`, so the draw and the resolution
+	 * leave these `null`. Nothing reads them.
 	 */
 	fromStartCalls: number | null;
 	fromStartWins: number | null;
 	toStartCalls: number | null;
 	toStartWins: number | null;
 	/**
-	 * Per-league accuracy in the round window — populated by the
-	 * round-resolution endpoint as `(deltaWins / deltaCalls)`.
+	 * Per-league accuracy in the round window: populated by the
+	 * round-resolution endpoint as `wins / calls` over the members'
+	 * settled history in the window; `null` for a forfeit.
 	 */
 	fromAcc: number | null;
 	toAcc: number | null;
@@ -142,7 +155,7 @@ export interface TournamentMatchDoc {
 /**
  * Canonical key builder for `tournament_matches`. The assert checks
  * that the embedded `tournamentId / round / index` agree with the
- * key — same drift-protection as `vxpAwardKey`.
+ * key: same drift-protection as `vxpAwardKey`.
  */
 export const tournamentMatchKey = ({
 	tournamentId,
@@ -153,15 +166,6 @@ export const tournamentMatchKey = ({
 	round: TournamentRound;
 	index: number;
 }): string => `${tournamentId}/${round}/${index}`;
-
-/**
- * UTC `YYYY-MM` anchor from a ms timestamp.
- */
-export const monthAnchorFromMs = (ms: number): string => {
-	const d = new Date(ms);
-
-	return `${d.getUTCFullYear()}-${(d.getUTCMonth() + 1).toString().padStart(2, '0')}`;
-};
 
 /**
  * UTC ms timestamp of the first day of the month containing `ms`.
@@ -207,19 +211,6 @@ export const roundWindow = ({
 	const startMs = tournamentMonthStartMs + roundIndex * TOURNAMENT_ROUND_DURATION_MS;
 
 	return { startMs, endMs: startMs + TOURNAMENT_ROUND_DURATION_MS };
-};
-
-/**
- * The previous-month anchor relative to `nowMs`. Used by the FE to
- * default the draw trigger to "last completed month".
- */
-export const previousMonthAnchor = (nowMs: number): string => {
-	const d = new Date(nowMs);
-	d.setUTCDate(1);
-	d.setUTCHours(0, 0, 0, 0);
-	d.setUTCMonth(d.getUTCMonth() - 1);
-
-	return monthAnchorFromMs(d.getTime());
 };
 
 // Re-export `PrincipalText` so consumers don't need to import from

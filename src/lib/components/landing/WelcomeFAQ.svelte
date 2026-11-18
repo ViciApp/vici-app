@@ -8,11 +8,11 @@
 	 * rest of the landing surface.
 	 */
 	import { ChevronDown } from '@lucide/svelte/icons';
-	import { INFO_EMAIL } from '$lib/constants/contact.constants';
-	import { PublicPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { mailtoHref } from '$lib/utils/email.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import { INFO_EMAIL } from '#lib/constants/contact.constants.ts';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { mailtoHref } from '#lib/utils/email.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	type FaqIndex = 1 | 2 | 3 | 4 | 5 | 6;
 

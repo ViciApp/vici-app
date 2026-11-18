@@ -12,108 +12,65 @@ on:
 
 permissions: {}
 
+env:
+  # One cache generation per main commit, pull request, queue entry or other
+  # run; every job's restore-keys fall back to the newest main generation.
+  CACHE_KEY_SUFFIX: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+
 jobs:
-  pr-title:
-    runs-on: ubuntu-24.04
-    # No API access needed — the title comes from the event payload, not the API.
-    permissions: {}
-    steps:
-      - name: Skip outside pull requests
-        if: github.event_name != 'pull_request'
-        run: echo "PR title check only runs for pull_request events."
-
-      - name: Validate Conventional Commit PR title (scope required)
-        if: github.event_name == 'pull_request'
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          # Scope is REQUIRED: type(scope): description — or type(scope)!: … for a breaking change.
-          pattern='^(feat|fix|perf|deps|revert|docs|style|chore|refactor|test|build|ci)\([-a-zA-Z0-9,._/]+\)!?: .+$'
-
-          if [[ "$PR_TITLE" =~ $pattern ]]; then
-            echo "PR title OK."
-            exit 0
-          fi
-
-          # Keep the title off the start of a line so it can't inject a ::workflow:: command.
-          echo "::error::PR title must be a Conventional Commit WITH A SCOPE: 'type(scope): description' (or 'type(scope)!: …' for a breaking change)."
-          echo "::error::Scope = the affected area/package, or a short area such as 'deps' for tooling. E.g. 'feat(market): add filters'."
-          echo "Got title: $PR_TITLE"
-          exit 1
-
   format:
     runs-on: ubuntu-24.04
     permissions:
-      contents: write
+      contents: read
 
     steps:
-      - name: Check if commits can be added
-        id: check_can_add_commit
-        run: |
-          echo "can_add_commit=$CAN_ADD_COMMIT" >> $GITHUB_OUTPUT
-        env:
-          CAN_ADD_COMMIT: ${{ steps.app-token.outputs.token != '' && github.event_name == 'pull_request' }}
-
-      - name: Checkout for pull request
-        if: steps.check_can_add_commit.outputs.can_add_commit == 'true'
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: false
-
       - name: Checkout
-        if: steps.check_can_add_commit.outputs.can_add_commit == 'false'
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
           persist-credentials: false
 
       - name: Prepare
         uses: ./.github/actions/prepare
 
+      # This job checks out the pull request branch by name (apply-changes
+      # commits onto it) on a workflow that also runs on push and dispatch,
+      # so it saves no prettier or eslint cache: it only restores the ones
+      # `lint` saves from the default checkout. Prepare's setup-node still
+      # saves the npm cache in its post step.
       - name: Restore Prettier Cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./node_modules/.cache/prettier/.prettier-cache
-          key: ${{ runner.os }}-prettier-cache-format-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-prettier-cache-lint-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
-            ${{ runner.os }}-prettier-cache-format-main-
-            ${{ runner.os }}-prettier-cache-format-
+            ${{ runner.os }}-prettier-cache-lint-main-
+            ${{ runner.os }}-prettier-cache-lint-
 
       - name: Restore ESLint Cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .eslintcache
-          key: ${{ runner.os }}-eslint-cache-format-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-eslint-cache-lint-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
-            ${{ runner.os }}-eslint-cache-format-main-
-            ${{ runner.os }}-eslint-cache-format-
+            ${{ runner.os }}-eslint-cache-lint-main-
+            ${{ runner.os }}-eslint-cache-lint-
 
       - name: Format
         run: npm run format
 
-      - name: Check for Changes
-        id: check_changes
-        run: |
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo "changes_detected=true" >> $GITHUB_OUTPUT
-          else
-            echo "changes_detected=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Commit format
-        if: steps.check_changes.outputs.changes_detected == 'true'
-        uses: ./.github/actions/add-and-commit
+      - name: Apply formatting changes
+        uses: ./.github/actions/apply-changes
         with:
-          message: '🤖 Apply formatting changes'
-          token: ${{ steps.app-token.outputs.token }}
-
-      - name: Fail for formatting issues without personal access token
-        if: steps.check_can_add_commit.outputs.can_add_commit == 'false' && steps.check_changes.outputs.changes_detected == 'true'
-        run: |
-          echo "Formatting changes are needed but couldn't be committed because the personal access token isn't available or this isn't a pull request."
-          exit 1
+          paths: .
+          commit-message: '🤖 Apply formatting changes'
+          pr-branch: bot-format
+          pr-title: 'style(format): apply formatting changes'
+          pr-body: '`npm run format` changed files on `main`.'
+          app-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
+          app-private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          fix-hint: "Run 'npm run format' locally and commit the result."
 
   lint:
     runs-on: ubuntu-24.04
@@ -122,7 +79,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -130,19 +87,19 @@ jobs:
         uses: ./.github/actions/prepare
 
       - name: Restore Prettier Cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./node_modules/.cache/prettier/.prettier-cache
-          key: ${{ runner.os }}-prettier-cache-lint-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-prettier-cache-lint-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
             ${{ runner.os }}-prettier-cache-lint-main-
             ${{ runner.os }}-prettier-cache-lint-
 
       - name: Restore ESLint Cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .eslintcache
-          key: ${{ runner.os }}-eslint-cache-lint-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-eslint-cache-lint-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
             ${{ runner.os }}-eslint-cache-lint-main-
             ${{ runner.os }}-eslint-cache-lint-
@@ -157,7 +114,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -167,6 +124,24 @@ jobs:
       - name: Check
         run: npm run check
 
+  test:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare
+        uses: ./.github/actions/prepare
+
+      # Pure-logic specs under src/tests/ on Node's built-in runner (tsx --test).
+      - name: Test
+        run: npm test
+
   satellite-schema:
     runs-on: ubuntu-24.04
     permissions:
@@ -174,7 +149,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -182,34 +157,34 @@ jobs:
         uses: ./.github/actions/prepare
 
       - name: Restore Prettier Cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./node_modules/.cache/prettier/.prettier-cache
-          key: ${{ runner.os }}-prettier-cache-quality-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-prettier-cache-quality-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
             ${{ runner.os }}-prettier-cache-quality-main-
             ${{ runner.os }}-prettier-cache-quality-
 
       - name: Restore ESLint Cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .eslintcache
-          key: ${{ runner.os }}-eslint-cache-quality-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+          key: ${{ runner.os }}-eslint-cache-quality-${{ env.CACHE_KEY_SUFFIX }}
           restore-keys: |
             ${{ runner.os }}-eslint-cache-quality-main-
             ${{ runner.os }}-eslint-cache-quality-
 
       # Install the juno CLI directly instead of using `junobuild/juno-action@full`.
-      # The docker image bundles its own toolchain — at the time of writing it
+      # The docker image bundles its own toolchain: at the time of writing it
       # ships `@icp-sdk/bindgen@0.3.0` while our `package.json` devDep is `^0.4.0`,
       # AND it fails to enumerate the `defineQuery` / `defineUpdate` exports from
       # `src/satellite/index.ts` (it rewrites `satellite_extension.did` as
       # `service : {}`). Both make the drift check a permanent false positive.
       # The npm-installed CLI runs against our own `node_modules`, picks up the
       # right bindgen, and reproduces the local build output byte-for-byte.
-      # Pin to a known-good version (same as `e2e.yml`); bump deliberately.
       - name: Install Juno CLI
-        run: npm i -g @junobuild/cli@0.15.6
+        # Pinned once, in .github/juno-cli-version: bump it there, never here.
+        run: npm i -g "@junobuild/cli@$(cat .github/juno-cli-version)"
 
       - name: Regenerate satellite Candid surface
         run: npm run juno:functions:build
@@ -234,12 +209,12 @@ jobs:
 
   checks-pass:
     if: always()
-    needs: ['pr-title', 'format', 'lint', 'check', 'satellite-schema']
+    needs: ['format', 'lint', 'check', 'test', 'satellite-schema']
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/needs_success

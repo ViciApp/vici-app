@@ -1,15 +1,15 @@
 /**
- * Social cohorts — battles.
+ * Social cohorts: battles.
  *
  * A battle is a time-bound competition between two parties:
  *
- *   - `league` — leagueA vs leagueB. Either league's owner can
+ *   - `league`: leagueA vs leagueB. Either league's owner can
  *     propose; the other league's owner accepts. The score is each
  *     league's prediction accuracy over the battle window, computed by
  *     the satellite from the delta of its `league_stats` counters
  *     between kickoff and settle (no human enters a score).
  *
- *   - `duel` — proposer principal vs challenger principal. Same
+ *   - `duel`: proposer principal vs challenger principal. Same
  *     state machine, simpler auth (both principals are explicit
  *     on the doc). Duels have no `league_stats` to delta, so they are
  *     out of scope for auto-resolution for now.
@@ -25,42 +25,28 @@
  * hand-crafted write cannot post a false score.
  */
 
-import { DAY_IN_MS } from '$lib/constants/app.constants';
-import { MARKET_TAGS, type MarketTag } from '$lib/constants/market-tags.constants';
-import type { CategoryStatsBucket } from '$lib/types/user-stats';
+import { MACRO_IDS, type MacroId } from '#lib/constants/market-taxonomy.constants.ts';
+import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
+import type { CategoryStatsBucket } from '#lib/types/user-stats.ts';
+import { isNullish } from '@dfinity/utils';
 
 export type BattleKind = 'league' | 'duel';
 
 export type BattleState =
-	| 'proposed'
-	| 'accepted'
-	| 'in_flight'
-	| 'resolved'
-	| 'declined'
-	| 'expired';
+	'proposed' | 'accepted' | 'in_flight' | 'resolved' | 'declined' | 'expired';
 
 export type BattleWinner = 'A' | 'B' | 'draw';
 
-/** Terminal states — no further transition is allowed. */
-export const BATTLE_TERMINAL_STATES: ReadonlySet<BattleState> = new Set<BattleState>([
-	'resolved',
-	'declined',
-	'expired'
-]);
-
 /**
  * Which calls count toward a battle's scoreline. `'all'` counts every
- * settled call regardless of category; any {@link MarketTag} narrows the
- * battle to a single market category (e.g. `'wc'`, `'macro'`). Picked
+ * settled call regardless of category; any {@link MacroId} narrows the
+ * battle to a single macro category (e.g. `'sports'`, `'economy'`). Picked
  * once at proposal time and frozen alongside the other identity fields.
  */
-export type BattleScope = 'all' | MarketTag;
+export type BattleScope = 'all' | MacroId;
 
-/** Allowed scope values: `'all'` plus every market category tag. */
-export const BATTLE_SCOPES: ReadonlySet<BattleScope> = new Set<BattleScope>([
-	'all',
-	...MARKET_TAGS
-]);
+/** Allowed scope values: `'all'` plus every macro category. */
+export const BATTLE_SCOPES: ReadonlySet<BattleScope> = new Set<BattleScope>(['all', ...MACRO_IDS]);
 
 /** Default scope when the proposer doesn't narrow the category. */
 export const BATTLE_SCOPE_DEFAULT: BattleScope = 'all';
@@ -68,12 +54,12 @@ export const BATTLE_SCOPE_DEFAULT: BattleScope = 'all';
 export const isBattleScope = (value: string): value is BattleScope =>
 	(BATTLE_SCOPES as ReadonlySet<string>).has(value);
 
-/** Inclusive wager bounds, in VXP. A wager of `0` means "no stake". */
-export const BATTLE_WAGER_MIN = 0;
-export const BATTLE_WAGER_MAX = 500;
-export const BATTLE_WAGER_DEFAULT = BATTLE_WAGER_MIN;
+/** Inclusive bounds of the optional battle amount, in VXP. `0` means "pride only". */
+export const BATTLE_AMOUNT_MIN = 0;
+export const BATTLE_AMOUNT_MAX = 500;
+export const BATTLE_AMOUNT_DEFAULT = BATTLE_AMOUNT_MIN;
 
-/** Trash-talk message length cap — brevity is rewarded. */
+/** Trash-talk message length cap; brevity is rewarded. */
 export const BATTLE_TRASH_TALK_MAX_LENGTH = 60;
 
 /**
@@ -85,7 +71,7 @@ export const BATTLE_RESPOND_BY_MS = 3 * DAY_IN_MS;
 
 /**
  * Far upper bound on a single league's simultaneous `in_flight` battles.
- * A safety rail, not a product limit — normal use never approaches it.
+ * A safety rail, not a product limit; normal use never approaches it.
  * Enforced client-side (the accept CTA is blocked at the cap); see the
  * spec for why a server-side count was deliberately not added.
  */
@@ -94,14 +80,14 @@ export const BATTLE_MAX_CONCURRENT_IN_FLIGHT = 100;
 /**
  * Tolerance when the assert checks that an accept stamped `kickoffMs ≈
  * now`. The client uses `Date.now()` just before the call; the satellite
- * compares against IC `time()` at execution — a few seconds apart. Wide
+ * compares against IC `time()` at execution, a few seconds apart. Wide
  * enough to absorb that skew, tiny next to a multi-day window, so a
  * backdated window can't slip through.
  */
-export const BATTLE_ACCEPT_CLOCK_TOLERANCE_MS = 5 * 60 * 1000;
+export const BATTLE_ACCEPT_CLOCK_TOLERANCE_MS = 5 * MINUTE_IN_MS;
 
 export interface BattleDoc {
-	/** Stable battle id — matches the doc key. */
+	/** Stable battle id: matches the doc key. */
 	id: string;
 	/** League-vs-league or principal-vs-principal? */
 	kind: BattleKind;
@@ -120,20 +106,21 @@ export interface BattleDoc {
 	settleMs: number;
 	/**
 	 * Which market category the battle counts. `'all'` (the default)
-	 * counts every settled call; a {@link MarketTag} narrows to one
+	 * counts every settled call; a {@link MacroId} narrows to one
 	 * category. Chosen at proposal time and immutable thereafter.
-	 * Absent on legacy rows written before the picker shipped — callers
+	 * Absent on legacy rows written before the picker shipped; callers
 	 * fall back to {@link BATTLE_SCOPE_DEFAULT}.
 	 */
 	scope?: BattleScope;
 	/**
-	 * Optional VXP stake on the battle outcome, in
-	 * [{@link BATTLE_WAGER_MIN}, {@link BATTLE_WAGER_MAX}]. `0` (the
-	 * default) means no stake. Chosen at proposal time and immutable
-	 * thereafter. Absent on legacy rows — callers fall back to
-	 * {@link BATTLE_WAGER_DEFAULT}.
+	 * Optional VXP amount shown on the battle, in
+	 * [{@link BATTLE_AMOUNT_MIN}, {@link BATTLE_AMOUNT_MAX}]. `0` (the
+	 * default) means pride only. Chosen at proposal time and immutable
+	 * thereafter. Absent on legacy rows; callers fall back to
+	 * {@link BATTLE_AMOUNT_DEFAULT}. Read stored docs through
+	 * {@link readBattleDoc}: older ones carry it under another name.
 	 */
-	wager?: number;
+	amount?: number;
 	/**
 	 * Optional short trash-talk message the proposer attaches, capped at
 	 * {@link BATTLE_TRASH_TALK_MAX_LENGTH} chars. Chosen at proposal time
@@ -144,16 +131,16 @@ export interface BattleDoc {
 	 * Deadline (ms since epoch) by which the challenged side must accept
 	 * or the proposal lapses to `expired`. Stamped at proposal as
 	 * `now + {@link BATTLE_RESPOND_BY_MS}`. Absent on legacy rows written
-	 * before expiry shipped — callers fall back to `kickoffMs` (the old
+	 * before expiry shipped; callers fall back to `kickoffMs` (the old
 	 * "starts tomorrow" deadline). Immutable after the proposed state.
 	 */
 	respondByMs?: number;
 	/**
-	 * When the challenged side responded to the proposal — stamped on the
+	 * When the challenged side responded to the proposal, stamped on the
 	 * league accept (`proposed → in_flight`, where it equals the freshly
 	 * set `kickoffMs`) and on decline (`proposed → declined`). Not set by a
 	 * duel accept (`proposed → accepted`), which doesn't start a clock, nor
-	 * by `expired` (no response — that card uses {@link respondByMs}).
+	 * by `expired` (no response; that card uses {@link respondByMs}).
 	 * Drives the proposer's inbox card "when".
 	 */
 	respondedAtMs?: number;
@@ -170,7 +157,7 @@ export interface BattleDoc {
 	scoreA?: number;
 	/** Side B accuracy score (0–100) over the window. Write-once at `resolved`. */
 	scoreB?: number;
-	/** Side A window call count (`Δcalls`) — the accuracy tie-break. Write-once at `resolved`. */
+	/** Side A window call count (`Δcalls`), the accuracy tie-break. Write-once at `resolved`. */
 	callsA?: number;
 	/** Side B window call count (`Δcalls`). Write-once at `resolved`. */
 	callsB?: number;
@@ -179,6 +166,24 @@ export interface BattleDoc {
 	/** When the battle resolved (ms since epoch). Write-once at `resolved`. */
 	resolvedAtMs?: number;
 }
+
+/**
+ * A battle doc as read from storage or an older API. Docs proposed before
+ * the field was renamed hold the amount as `wager`, and Juno docs are never
+ * rewritten in place.
+ */
+type StoredBattleDoc = BattleDoc & { wager?: number };
+
+/**
+ * The one read path for a stored battle doc: takes `amount`, falls back to
+ * the legacy `wager`, and returns the doc without `wager`, so a doc spread
+ * back into a write stores only `amount`.
+ */
+export const readBattleDoc = ({ wager, ...doc }: StoredBattleDoc): BattleDoc => {
+	const amount = doc.amount ?? wager;
+
+	return isNullish(amount) ? doc : { ...doc, amount };
+};
 
 /**
  * Window accuracy as a 0–100 percentage from a counter delta. A side
@@ -233,7 +238,7 @@ export const BATTLE_KINDS: ReadonlySet<BattleKind> = new Set<BattleKind>(['leagu
  *
  * A `proposed` battle can: be accepted (duels go through `accepted`,
  * then a separate kickoff), kick off directly (league accept fuses the
- * kickoff — the window starts at acceptance), be declined by the
+ * kickoff; the window starts at acceptance), be declined by the
  * challenged side, or expire once `respondByMs` passes.
  */
 export const BATTLE_TRANSITIONS: Readonly<Record<BattleState, ReadonlySet<BattleState>>> = {

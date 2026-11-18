@@ -15,9 +15,11 @@ on:
 
 permissions: {}
 
+# A newer PR push supersedes the running suite; a run on main (push, nightly)
+# is never cancelled, so a merged commit is not left without a verdict.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check-e2e-changes:
@@ -28,13 +30,14 @@ jobs:
       e2e-or-config-changed: ${{ steps.change.outputs.e2e }}
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: change
         with:
+          base: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_ref || '' }}
           filters: |
             e2e:
               - playwright.config.ts
@@ -48,6 +51,9 @@ jobs:
               - dfx.json
               - juno.config.ts
               - scripts/**/*
+              # The Juno CLI this job installs: a bump changes only this
+              # file, and the new CLI must run the suite before it merges.
+              - .github/juno-cli-version
 
   e2e:
     runs-on: ubuntu-24.04
@@ -61,7 +67,9 @@ jobs:
     needs: check-e2e-changes
     # Skip the suite on PRs / merge-group when no E2E-relevant file changed,
     # unless the PR carries the `run-e2e-snapshots` opt-in label. Push / cron
-    # / workflow_dispatch always run.
+    # / workflow_dispatch always run. The label leg is pull_request-only:
+    # `merge_group` has no PR payload, and it could not commit a rewrite back
+    # from the queue anyway.
     if: >-
       (github.event_name != 'pull_request' && github.event_name != 'merge_group') ||
       (
@@ -81,24 +89,27 @@ jobs:
       CI: 'true'
 
     steps:
-      # On same-repo PRs, check out the actual head ref so any later snapshot
-      # work in `finalize-snapshots-update` lands on the PR's tip rather than
-      # the temporary merge commit GitHub creates. For pushes / merge_group /
-      # fork PRs the default checkout is fine.
+      # On same-repo PRs, test the PR's head commit rather than the temporary
+      # merge commit GitHub creates, so the baselines `finalize-snapshots-update`
+      # commits onto the PR branch come from the PR's own tree. For pushes /
+      # merge_group / fork PRs the default checkout is fine. By head SHA, not
+      # branch name: this job runs repo code in a workflow that also runs on
+      # schedule and dispatch, and CodeQL reads a checkout by PR branch name
+      # there as untrusted code with access to main's cache, `if` or not.
       - name: Checkout (same-repo PR head)
         if: >-
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
       - name: Checkout (default)
         if: >-
           github.event_name != 'pull_request' ||
           github.event.pull_request.head.repo.full_name != github.repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -109,10 +120,8 @@ jobs:
         uses: ./.github/actions/prepare
 
       - name: Install Juno CLI
-        # Pin to a known-good version. Bump deliberately when @junobuild/cli
-        # ships a release we want to track; an unpinned `latest` would let
-        # an upstream breaking change silently red the whole pipeline.
-        run: npm i -g @junobuild/cli@0.15.6
+        # Pinned once, in .github/juno-cli-version: bump it there, never here.
+        run: npm i -g "@junobuild/cli@$(cat .github/juno-cli-version)"
 
       - name: Install dfx
         # Match the version pinned in dfx.json. dfx.json's `local` network
@@ -121,7 +130,7 @@ jobs:
         # works against the running emulator without extra plumbing.
         #
         # `pipefail` is needed so a failed `curl` doesn't get masked by a
-        # successful `sh` exit — otherwise the step "succeeds" with no dfx
+        # successful `sh` exit; otherwise the step "succeeds" with no dfx
         # installed and the next step fails with a confusing PATH error.
         env:
           DFX_VERSION: '0.26.1'
@@ -161,7 +170,7 @@ jobs:
 
       - name: Deploy icdc-core canisters
         # Mirrors the local `npm run deploy` flow: dfx pulls the icdc-core
-        # WASMs from the AntonioVentilii/icdc-core / vici-points / vici-icrc
+        # WASMs from the AntonioVentilii/icdc-core, ViciApp/vici-points and ViciApp/vici-icrc
         # GitHub releases (see scripts/build/download.*.sh) and installs
         # them into the PocketIC instance the emulator is already running.
         # After this, the registry / clearing / vUSD / VXP / vici / cketh /
@@ -188,7 +197,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-report
           path: playwright-report/
@@ -196,7 +205,7 @@ jobs:
 
       - name: Upload Playwright results
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-results
           path: test-results/
@@ -218,11 +227,11 @@ jobs:
 
       - name: Save changed snapshots
         if: steps.check_snapshots.outputs.CHANGES == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           # Named with a `snapshots-*` prefix to match the download pattern
-          # used by `finalize-snapshots-update`. The suffix is informational
-          # — if/when this job gains a shard or OS matrix, append those to
+          # used by `finalize-snapshots-update`. The suffix is informational:
+          # if/when this job gains a shard or OS matrix, append those to
           # the suffix to keep artifact names unique.
           name: snapshots-ubuntu-24.04
           path: e2e/snapshots/
@@ -231,98 +240,46 @@ jobs:
   finalize-snapshots-update:
     name: Finalize Snapshots Update
     runs-on: ubuntu-24.04
+    # Commits and PRs go through the bot app token minted in apply-changes.
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     needs: [e2e]
     outputs:
-      e2e-snapshots-changed: ${{ steps.e2e-check-snapshots.outputs.e2e-snapshots-changed }}
+      e2e-snapshots-changed: ${{ steps.e2e-check-snapshots.outputs.changed }}
     # Don't run if the e2e job didn't run (skipped via paths filter) or was
     # cancelled. Failed e2e runs may still have produced snapshot artifacts
     # worth committing, so allow `failure()` through.
     if: ${{ needs.e2e.result == 'success' || needs.e2e.result == 'failure' }}
 
     steps:
-      - name: Checkout (same-repo PR head)
-        if: >-
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          persist-credentials: false
-
-      - name: Checkout (default)
-        if: >-
-          github.event_name != 'pull_request' ||
-          github.event.pull_request.head.repo.full_name != github.repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
           persist-credentials: false
 
       - name: Download All Snapshot Artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: snapshots-*
           merge-multiple: true
           path: e2e/snapshots
 
-      - name: Check for Final Changes
+      # Fork PRs can't receive the commit; e2e-tests-pass blocks them on the
+      # `changed` output instead of this step failing.
+      - name: Apply snapshot changes
         id: e2e-check-snapshots
-        run: |
-          if [ -n "$(git status --porcelain e2e)" ]; then
-            echo "FINAL_CHANGES=true" >> $GITHUB_ENV
-            echo "e2e-snapshots-changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "FINAL_CHANGES=false" >> $GITHUB_ENV
-            echo "e2e-snapshots-changed=false" >> $GITHUB_OUTPUT
-          fi
-
-      # Same-repo PR: push the snapshot update back onto the PR's head ref so
-      # the diff lands in code review. Fork PRs are skipped because the
-      # default `GITHUB_TOKEN` can't write to a fork.
-      - name: Commit and push updates
-        uses: ./.github/actions/add-and-commit
-        if: >-
-          env.FINAL_CHANGES == 'true' &&
-          github.ref != 'refs/heads/main' &&
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository
+        uses: ./.github/actions/apply-changes
         with:
-          add: e2e
-          message: '🤖 chore(e2e): update Playwright snapshots'
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Stage Changes on main
-        if: env.FINAL_CHANGES == 'true' && github.ref == 'refs/heads/main'
-        run: git add e2e
-
-      - name: Check the Changed Files
-        if: env.FINAL_CHANGES == 'true' && github.ref == 'refs/heads/main'
-        run: |
-          MODIFIED_FILES=$(git diff --cached --name-only)
-          echo "MODIFIED_FILES<<EOF" >> $GITHUB_ENV
-          echo "$MODIFIED_FILES" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      # On `main`, the workflow can't push directly to a protected branch, so
-      # open a follow-up PR with the snapshot diff. Note: PRs created with the
-      # default `GITHUB_TOKEN` do not retrigger downstream workflows, so the
-      # opened PR's own CI will need a manual nudge (close/reopen or empty
-      # commit). Switching to a GitHub App token would lift that.
-      - name: Create Pull Request (if changes and on main)
-        if: env.FINAL_CHANGES == 'true' && github.ref == 'refs/heads/main'
-        uses: ./.github/actions/create-pr
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: bot-e2e-update-snapshots
-          paths: e2e/
-          title: 'chore(e2e): Update Playwright E2E Snapshots'
-          body: |
-            The following E2E snapshots have been updated:
-            ```
-            ${{ env.MODIFIED_FILES }}
-            ```
+          paths: e2e
+          commit-message: '🤖 chore(e2e): update Playwright snapshots'
+          pr-branch: bot-e2e-update-snapshots
+          pr-title: 'chore(e2e): Update Playwright E2E Snapshots'
+          pr-body: The E2E run on `main` produced new Playwright snapshots.
+          app-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
+          app-private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          fail-when-blocked: 'false'
 
   e2e-tests-pass:
     if: always()
@@ -333,15 +290,19 @@ jobs:
     steps:
       - name: Cleared for merging
         # Three exit paths:
-        # 1. Paths filter skipped E2E entirely → clear to merge.
-        # 2. E2E ran, succeeded, no snapshot drift → clear to merge.
+        # 1. E2E ran, succeeded, no snapshot drift → clear to merge.
+        # 2. E2E was skipped because the paths filter saw no E2E or config
+        #    change → clear to merge.
         # 3. Anything else (failure, snapshot drift requiring re-review,
         #    cancellation) → block the merge.
+        # The result is checked before the paths filter: the suite also runs
+        # with no matching change (the opt-in label, a push to main, the
+        # nightly), and a failure there must not read as cleared.
         run: |
-          if [ "$E2E_OR_CONFIG_CHANGED" == "false" ]; then
-            echo "No E2E or config changes detected. PR is cleared for merging."
-          elif [[ "$E2E_RESULT" == "success" ]] && [[ "$E2E_SNAPSHOTS_CHANGED" == "false" ]]; then
+          if [[ "$E2E_RESULT" == "success" ]] && [[ "$E2E_SNAPSHOTS_CHANGED" == "false" ]]; then
             echo "This PR is cleared for merging"
+          elif [[ "$E2E_RESULT" == "skipped" ]] && [[ "$E2E_OR_CONFIG_CHANGED" == "false" ]]; then
+            echo "No E2E or config changes detected. PR is cleared for merging."
           else
             echo "This PR is not cleared for merging"
             exit 1

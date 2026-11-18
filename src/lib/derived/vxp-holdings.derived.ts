@@ -1,18 +1,18 @@
-import { browser } from '$app/environment';
-import type { ClearingDid } from '$declarations';
-import { HOLDINGS_SNAPSHOT_STORAGE_KEY, ZERO } from '$lib/constants/app.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { balanceDomain } from '$lib/derived/balance-domain.derived';
-import { walletUiTokens } from '$lib/derived/tokens.derived';
-import { authPrincipal } from '$lib/derived/user.derived';
-import { balancesStore } from '$lib/stores/balances.store';
-import { collateralsStore } from '$lib/stores/collaterals.store';
-import { icrcLedgerDecimalsFromCollateralConfig } from '$lib/utils/asset-ref.utils';
+import type { ClearingDid } from '#declarations';
+import { HOLDINGS_SNAPSHOT_STORAGE_KEY, ZERO } from '#lib/constants/app.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+import { walletUiTokens } from '#lib/derived/tokens.derived.ts';
+import { authPrincipal } from '#lib/derived/user.derived.ts';
+import { balancesStore } from '#lib/stores/balances.store.ts';
+import { collateralsStore } from '#lib/stores/collaterals.store.ts';
+import { icrcLedgerDecimalsFromCollateralConfig } from '#lib/utils/asset-ref.utils.ts';
 import {
 	intuitiveAvailableMarginUsd,
 	nativeToClearingMarginUnits
-} from '$lib/utils/playground-display.utils';
-import { get as getStorage, set as setStorage } from '$lib/utils/storage.utils';
+} from '#lib/utils/playground-display.utils.ts';
+import { get as getStorage, set as setStorage } from '#lib/utils/storage.utils.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { derived, type Readable } from 'svelte/store';
 
@@ -21,8 +21,8 @@ import { derived, type Readable } from 'svelte/store';
  * Dash, Portfolio, and Wallet surfaces.
  *
  * All figures are in the clearing-margin scale (4 decimals). On the ViciXp
- * playground domain — where the collateral asset is VXP, pegged 1:1 to the
- * clearing unit and sharing the same 4 decimals — they are plain VXP base
+ * playground domain: where the collateral asset is VXP, pegged 1:1 to the
+ * clearing unit and sharing the same 4 decimals; they are plain VXP base
  * units, no conversion needed. (The clearing canister names its fields
  * `*_usd` because it is asset-agnostic; that suffix is the engine's accounting
  * unit, not real dollars.) Values are base units; never compare or sum in
@@ -32,7 +32,7 @@ import { derived, type Readable } from 'svelte/store';
 // Raw VXP balance sitting in the user's ICRC ledger wallet (un-deposited).
 // Trends toward ~0 as VXP is swept into the clearing canister as collateral.
 // Kept as its own concept for the Wallet surface (ledger balance + the
-// low-balance "recovery" gate); the Dash "available to bet" figure is
+// low-balance "recovery" gate); the Dash "available to predict with" figure is
 // `vxpSpendable`, which also counts deposited clearing collateral.
 export const vxpFree: Readable<bigint> = derived(
 	balancesStore,
@@ -41,16 +41,16 @@ export const vxpFree: Readable<bigint> = derived(
 
 interface Holdings {
 	/**
-	 * Spendable: every VXP the user holds — free in the wallet **and**
-	 * deposited as clearing collateral — minus everything reserved for open
-	 * positions and resting orders. The honest "available to bet" figure.
+	 * Spendable: every VXP the user holds, free in the wallet **and**
+	 * deposited as clearing collateral: minus everything reserved for open
+	 * positions and resting orders. The honest "available to predict with" figure.
 	 */
 	spendable: bigint;
 	/** Reserved for open positions **and** resting limit orders. */
 	backed: bigint;
 }
 
-/** Wire shape of the localStorage snapshot — bigints travel as strings. */
+/** Wire shape of the localStorage snapshot: bigints travel as strings. */
 interface HoldingsSnapshot {
 	spendable: string;
 	backed: string;
@@ -77,7 +77,7 @@ const readHoldingsSnapshot = (params: {
 	try {
 		return { spendable: BigInt(snapshot.spendable), backed: BigInt(snapshot.backed) };
 	} catch (_err: unknown) {
-		// Corrupt payload — fall back to the unloaded defaults.
+		// Corrupt payload: fall back to the unloaded defaults.
 	}
 };
 
@@ -87,7 +87,7 @@ interface HoldingsState {
 	 * False until the figures are displayable: either live data from both
 	 * source stores (they reset to `undefined` on balance-domain switches too)
 	 * or a persisted last-known snapshot. While false, every figure reads as a
-	 * misleading 0 / wallet-only partial — surfaces should render a placeholder
+	 * misleading 0 / wallet-only partial: surfaces should render a placeholder
 	 * instead of a real-looking number.
 	 */
 	initialized: boolean;
@@ -102,7 +102,7 @@ const holdingsState: Readable<HoldingsState> = derived(
 		$authPrincipal,
 		$balanceDomain
 	]): HoldingsState => {
-		// Un-deposited wallet VXP — spendable too, since it is swept into
+		// Un-deposited wallet VXP: spendable too, since it is swept into
 		// clearing when the user places a call.
 		let walletMargin = ZERO;
 
@@ -122,7 +122,7 @@ const holdingsState: Readable<HoldingsState> = derived(
 
 		// Clearing state not loaded yet. Before falling back to "wallet only"
 		// (which pulses a placeholder over Holdings/In play for the whole first
-		// fetch), show the signed-in user's last persisted snapshot —
+		// fetch), show the signed-in user's last persisted snapshot:
 		// stale-while-revalidate. Without it, every app open hides the figures
 		// until the certified update lands.
 		if (isNullish($collateralsStore) || isNullish(account)) {
@@ -135,11 +135,11 @@ const holdingsState: Readable<HoldingsState> = derived(
 			}
 
 			// No clearing account yet (e.g. a fresh user who hasn't deposited):
-			// all they can stake is whatever sits in the wallet.
+			// all they can commit is whatever sits in the wallet.
 			return { holdings: { spendable: walletMargin, backed: ZERO }, initialized: bothLoaded };
 		}
 
-		// Clearing collateral raw balances — the mark-value fallback used when
+		// Clearing collateral raw balances: the mark-value fallback used when
 		// the account carries no priced `assets`.
 		let clearingFallback = ZERO;
 
@@ -184,21 +184,21 @@ const holdings: Readable<Holdings> = derived(
 	($holdingsState) => $holdingsState.holdings
 );
 
-// True while the holdings figures are not displayable yet — see
+// True while the holdings figures are not displayable yet: see
 // `HoldingsState.initialized`. Surfaces gate their placeholder pulse on this.
 export const vxpHoldingsNotInitialized: Readable<boolean> = derived(
 	holdingsState,
 	($holdingsState) => !$holdingsState.initialized
 );
 
-// "Available to bet": wallet VXP + deposited clearing collateral, minus
+// "Available to predict with": wallet VXP + deposited clearing collateral, minus
 // everything reserved for open positions and resting orders.
 export const vxpSpendable: Readable<bigint> = derived(holdings, ($holdings) => $holdings.spendable);
 
 // Reserved for open positions + resting orders (the "Backed" figure).
 export const vxpBacked: Readable<bigint> = derived(holdings, ($holdings) => $holdings.backed);
 
-// Total holdings = spendable + backed — everything the user owns in this
+// Total holdings = spendable + backed: everything the user owns in this
 // domain (free + locked), in base units.
 export const vxpHoldingsTotal: Readable<bigint> = derived(
 	holdings,

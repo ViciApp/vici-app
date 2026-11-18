@@ -1,26 +1,29 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { ActivityType } from '$lib/enums/social';
-import type { Activity } from '$lib/types/social';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import type { Activity } from '#lib/types/social.ts';
+import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
+import { maySettle } from '#satellite/services/engine-sync.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
-import { decodeDocData } from '@junobuild/functions/sdk';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
+import { countDocsStore, decodeDocData } from '@junobuild/functions/sdk';
 
 const ACTIVITY_TYPES: readonly string[] = Object.values(ActivityType);
 
 /**
  * Write-time guard for the `activities` collection. The collection is public-write (it's the social
- * feed), and several server flows now read it — the onboarding milestones and the referral
+ * feed), and several server flows now read it: the onboarding milestones and the referral
  * first-prediction payout both key off a caller's `trade` activity. Without a guard a client could
  * `set_doc` an activity attributed to **another** principal (feed spoofing) or under a malformed
  * key. This assert binds every activity to its writer:
  *
- *  - `data.user` (the actor) MUST equal the caller — no writing activity as someone else.
+ *  - `data.user` (the actor) MUST equal the caller; no writing activity as someone else.
  *  - `type` must be a known {@link ActivityType}.
  *  - the doc key must be `${caller}#${timestamp}#${type}` (the shape `logActivity` writes), so the
  *    owner-scoped reads + the `#trade`-suffix matcher used by the payout gates stay trustworthy.
+ *  - a `settlement` activity comes only from a role that can settle ({@link maySettle}).
  *
  * NOTE: this stops impersonation, not a user self-faking their *own* `trade` to trigger their own
- * reward — that requires verifying an authoritative cleared trade on the engine (tracked in #543).
+ * reward: that requires verifying an authoritative cleared trade on the engine (tracked in #543).
  */
 export const assertSetActivity = ({
 	caller,
@@ -52,6 +55,13 @@ export const assertSetActivity = ({
 		throw new Error('Activity user must match the caller.');
 	}
 
+	// A settlement activity fans out every participant's resolved result
+	// (`onActivitySetForResolvedResults`), so only a role that can settle may
+	// record one.
+	if (activity.type === ActivityType.SETTLEMENT && !maySettle(Principal.fromUint8Array(caller))) {
+		throw new Error('Only a role that can settle markets may record a settlement.');
+	}
+
 	// `logActivity` keys every row `${user}#${timestamp}#${type}`. Principals / numeric timestamps /
 	// type tokens never contain `#`, so the split is exactly three parts.
 	const parts = key.split('#');
@@ -67,8 +77,39 @@ export const assertSetActivity = ({
 
 	// `timestamp` drives UI rendering (`new Date(...)`) and client-side ordering, so reject a
 	// malformed value (string / NaN / Infinity). It must be a safe integer and equal the key's
-	// timestamp segment — the shape `logActivity` writes (`Date.now()` in both places).
+	// timestamp segment: the shape `logActivity` writes (`Date.now()` in both places).
 	if (!Number.isSafeInteger(activity.timestamp) || `${activity.timestamp}` !== parts[1]) {
 		throw new Error('Activity timestamp must be a safe integer matching the key.');
 	}
 };
+
+/**
+ * An activity is keyed `${user}#${timestamp}#${type}` (see
+ * {@link assertSetActivity}), so the key's first segment is its actor: only
+ * that actor or the satellite may delete it.
+ */
+export const assertDeleteActivity = ({
+	caller,
+	data: { collection, key }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.ACTIVITIES) {
+		return;
+	}
+
+	const [actor] = key.split('#');
+
+	assertOwnerOrController({ caller, owner: actor, collection });
+};
+
+/**
+ * How many predictions `caller` has made: its own `activities` rows whose key
+ * ends in `#trade` (the key shape {@link assertSetActivity} enforces), never a
+ * follow, comment or settlement. The one count the onboarding trade
+ * milestones and the referral first-prediction gate read.
+ */
+export const countTradeActivities = (caller: Uint8Array): bigint =>
+	countDocsStore({
+		collection: Collection.ACTIVITIES,
+		caller,
+		params: { owner: caller, matcher: { key: `#${ActivityType.TRADE}$` } }
+	});

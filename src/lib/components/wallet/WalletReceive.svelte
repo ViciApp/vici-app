@@ -1,21 +1,19 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import type { Principal } from '@icp-sdk/core/principal';
 	import { onMount } from 'svelte';
-	import CopyableAddress from '$lib/components/ui/CopyableAddress.svelte';
-	import { safeGetIdentityOnce } from '$lib/services/identity.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import CopyableAddress from '#lib/components/ui/CopyableAddress.svelte';
+	import { getReceiveAddress } from '#lib/services/wallet.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
-	let principal = $state<Principal | undefined>();
+	// The service resolves the deposit target per backend: the signed-in
+	// principal on-chain, the custodial IC principal in web2 mode. Both are IC
+	// principals, so the copy below stays accurate.
+	let principalText = $state<string | undefined>();
 
 	onMount(async () => {
-		const identity = await safeGetIdentityOnce();
-
-		principal = identity.getPrincipal();
+		principalText = await getReceiveAddress();
 	});
-
-	const principalText = $derived(nonNullish(principal) ? principal.toText() : undefined);
 </script>
 
 <div class="flex flex-col items-center space-y-5 text-center">

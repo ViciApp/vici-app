@@ -2,7 +2,7 @@
 	import { nonNullish } from '@dfinity/utils';
 	/**
 	 * Accuracy-as-status section: an anchored headline beside a board
-	 * that cycles three labelled tabs — Friends / Universities /
+	 * that cycles three labelled tabs: Friends / Universities /
 	 * Workplace. A gentle ~5s auto-advance pauses on hover/focus, stops
 	 * for good once the visitor explicitly picks a tab, and is disabled
 	 * under reduced-motion. Same footprint as a single board.
@@ -13,11 +13,11 @@
 		landingStatusUniversities,
 		type LandingStatusRow,
 		type LandingStatusTabId
-	} from '$lib/constants/landing-data.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { splitHeadline } from '$lib/utils/landing-headline.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	} from '#lib/constants/landing-data.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { splitHeadline } from '#lib/utils/landing-headline.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface StatusTab {
 		readonly id: LandingStatusTabId;
@@ -29,7 +29,7 @@
 	const tt = (key: MessageKey) => t({ locale: $localeStore, key });
 
 	// Locale-matched universities; the leader is the highlighted "you" row with
-	// the climb badge (illustrative — the board is a demo fixture, not live data).
+	// the climb badge (illustrative; the board is a demo fixture, not live data).
 	const uniRows = $derived<readonly LandingStatusRow[]>(
 		landingStatusUniversities($localeStore).map((name, i) => ({
 			rank: i + 1,
@@ -83,7 +83,7 @@
 	let focusWithin = $state(false);
 	// An explicit tab pick stops the rotation for good: once the visitor has
 	// chosen a tab the board never auto-advances again this session, so it
-	// can't flip away from what they're reading. This is sticky — unlike the
+	// can't flip away from what they're reading. This is sticky: unlike the
 	// hover/focus pause above, it is never cleared.
 	let userPicked = $state(false);
 	const paused = $derived(hovering || focusWithin || userPicked);
@@ -95,8 +95,19 @@
 
 	// `focusout`/`pointerleave` confirm focus has actually left the container
 	// (relatedTarget can be null on click-away) before clearing focus-within.
-	const focusStillInside = ({ el, next }: { el: HTMLElement; next: EventTarget | null }): boolean =>
-		(next instanceof Node && el.contains(next)) || el.contains(document.activeElement);
+	const focusStillInside = ({
+		el,
+		next
+	}: {
+		el: HTMLElement;
+		next: EventTarget | null;
+	}): boolean => {
+		if (next instanceof Node && el.contains(next)) {
+			return true;
+		}
+
+		return el.contains(document.activeElement);
+	};
 
 	const tab = $derived(tabs[active]);
 	const headline = $derived(splitHeadline(tt('welcome.status.headline')));

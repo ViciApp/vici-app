@@ -1,0 +1,72 @@
+name: Bindings
+
+# Regenerates the engine Candid bindings from the pinned ICDC_CORE_VERSION, so a
+# version bump (by hand or by update-icdc-core.yml) never needs a manual
+# `npm run did`. Drift is committed onto PRs and opened as a PR on main by
+# .github/actions/apply-changes.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions: {}
+
+# A newer PR push supersedes the running regeneration; a run on main is never
+# cancelled, so the drift of a merged commit is not dropped mid-flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  bindings:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          persist-credentials: false
+
+      - name: Prepare
+        uses: ./.github/actions/prepare
+
+      # No prettier/eslint cache here: this job checks out the PR branch, and a
+      # cache it saves could be restored on main (CodeQL cache poisoning). The
+      # price is an uncached format pass in did.sh. Prepare's setup-node still
+      # saves the npm cache in its post step.
+      - name: Regenerate Candid bindings
+        run: ./scripts/did.sh
+
+      - name: Apply bindings changes
+        uses: ./.github/actions/apply-changes
+        with:
+          paths: src/declarations backend/src/declarations
+          commit-message: '🤖 chore(declarations): apply bindings changes'
+          pr-branch: bot-update-bindings
+          pr-title: 'chore(declarations): regenerate bindings'
+          pr-body: The Candid bindings on `main` don't match what `./scripts/did.sh` generates from the pinned `ICDC_CORE_VERSION`. Review the regenerated `.did` surface before merging.
+          app-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
+          app-private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          fix-hint: "Run 'npm run did' locally and commit the result."
+
+  bindings-pass:
+    if: always()
+    needs: ['bindings']
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/needs_success
+        with:
+          needs: '${{ toJson(needs) }}'

@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { CallSide } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		yesPercent: number;
 		noPercent: number;
 		disabled?: boolean;
-		onPick: (side: 'YES' | 'NO') => void;
+		onPick: (side: CallSide) => void;
 	}
 
 	const { yesPercent, noPercent, disabled = false, onPick }: Props = $props();

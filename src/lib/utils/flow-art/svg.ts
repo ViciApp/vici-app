@@ -1,12 +1,12 @@
-// Flow Mode generative artwork — SVG scaffolding primitives.
+// Flow Mode generative artwork: SVG scaffolding primitives.
 //
 // Shared math helpers (deg / lerp) used by the category renderers,
 // plus the document open/close + background helpers.
 
-import type { FlowArtCategory, FlowArtPalette, FlowArtState } from '$lib/utils/flow-art/types';
+import type { FlowArtCategory, FlowArtPalette, FlowArtState } from '#lib/utils/flow-art/types.ts';
 
 export const deg = (d: number): number => (d * Math.PI) / 180;
-// Standard math-helper signature `(a, b, t)` — `prefer-object-params`
+// Standard math-helper signature `(a, b, t)`: `prefer-object-params`
 // relaxed since `lerp` is called dozens of times per render and an
 // object form would obscure the math.
 // eslint-disable-next-line local-rules/prefer-object-params

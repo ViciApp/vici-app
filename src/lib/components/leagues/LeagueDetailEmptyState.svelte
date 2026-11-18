@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { ArrowLeft } from '@lucide/svelte/icons';
-	import { resolve } from '$app/paths';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 </script>
 
 <section class="league-detail-empty">
 	<h2>{t({ locale: $localeStore, key: 'leagues.detail.not_member.title' })}</h2>
 	<p>{t({ locale: $localeStore, key: 'leagues.detail.not_member.sub' })}</p>
-	<a class="league-detail-back-link" href={`${resolve(AppPath.Arena)}/leagues`}>
+	<a class="league-detail-back-link" href={`${resolveAppPath(AppPath.Arena)}/leagues`}>
 		<ArrowLeft aria-hidden="true" size={16} strokeWidth={2.2} />
 		<span>{t({ locale: $localeStore, key: 'leagues.detail.back' })}</span>
 	</a>

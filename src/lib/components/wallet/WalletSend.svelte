@@ -1,14 +1,14 @@
 <script lang="ts">
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { walletUiTokens } from '$lib/derived/tokens.derived';
-	import { isDev } from '$lib/env/app.env';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import type { Token } from '$lib/types/token';
-	import { t } from '$lib/utils/i18n.utils';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { isDev } from '#lib/env/app.env.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import type { Token } from '#lib/types/token.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
+		tokens: Token[];
 		recipient: string;
 		amount: string;
 		selectedToken: Token | undefined;
@@ -20,6 +20,7 @@
 	}
 
 	const {
+		tokens,
 		recipient,
 		amount,
 		selectedToken,
@@ -37,7 +38,7 @@
 	<div class="space-y-2">
 		<span class="eyebrow">{t({ locale: $localeStore, key: 'wallet.send.token' })}</span>
 		<div class="grid grid-cols-2 gap-2.5">
-			{#each $walletUiTokens as token (token.ledgerCanisterId)}
+			{#each tokens as token (token.ledgerCanisterId)}
 				<button
 					class="shadow-card flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-all {isSelected(
 						token

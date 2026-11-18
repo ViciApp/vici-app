@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { CategoryAccuracySignal, PriorCallSignal } from '$lib/types/market-signals';
-	import type { FlowArtCategory } from '$lib/utils/flow-art.utils';
-	import { probabilityToPercent } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { CategoryAccuracySignal, PriorCallSignal } from '#lib/types/market-signals.ts';
+	import type { FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
+	import { probabilityToPercent } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		category: FlowArtCategory;
@@ -15,7 +15,7 @@
 
 	const { category, yesPct, categoryAcc, priorCall }: Props = $props();
 
-	// Friends-followed accuracy line — shown when the user has any
+	// Friends-followed accuracy line: shown when the user has any
 	// followed predictors who've called this market.
 	const categoryAccLine = $derived(
 		nonNullish(categoryAcc)
@@ -101,7 +101,7 @@
 		color: var(--no);
 	}
 
-	/* Prior-call pill — always the laurel-gold treatment, not a
+	/* Prior-call pill: always the laurel-gold treatment, not a
 	   category-accent tint. Eyebrow + value sit at opposite ends. */
 	.flow-back-prior {
 		display: flex;

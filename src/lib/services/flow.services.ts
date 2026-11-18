@@ -1,5 +1,5 @@
-import { refreshAllBalances, refreshOrders, refreshPositions } from '$lib/utils/refresh.utils';
-import { executeOutcomeTrade, type TradeParams } from '$lib/utils/trade.utils';
+import { refreshAllBalances, refreshOrders, refreshPositions } from '#lib/utils/refresh.utils.ts';
+import { executeOutcomeTrade, type TradeParams } from '#lib/utils/trade.utils.ts';
 
 /**
  * Batches refresh side-effects across a "Flow" session of rapid sequential
@@ -16,7 +16,7 @@ export class FlowTradeService {
 	}
 
 	/**
-	 * Rejections propagate to the caller in BOTH modes — inside a session the
+	 * Rejections propagate to the caller in BOTH modes: inside a session the
 	 * refresh is deferred, never the failure, so callers can roll back their
 	 * optimistic accounting and surface the error.
 	 */

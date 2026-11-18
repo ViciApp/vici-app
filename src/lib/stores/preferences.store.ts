@@ -1,11 +1,12 @@
-import { browser } from '$app/environment';
-import { MARKET_TAGS } from '$lib/constants/market-tags.constants';
-import { PREFERENCES_STORAGE_KEY } from '$lib/constants/settings.constants';
-import { authPrincipal } from '$lib/derived/user.derived';
-import { persistPreferences } from '$lib/services/profile.services';
-import { userStore } from '$lib/stores/user.store';
-import type { SettingsVisibility, SharingPrefs, UserPreferences } from '$lib/types/preferences';
-import { visibilityFromProfile } from '$lib/utils/visibility.utils';
+import { MACRO_IDS } from '#lib/constants/market-taxonomy.constants.ts';
+import { defaultPreferences, PREFERENCES_STORAGE_KEY } from '#lib/constants/settings.constants.ts';
+import { authPrincipal } from '#lib/derived/user.derived.ts';
+import { track } from '#lib/services/analytics.services.ts';
+import { persistPreferences } from '#lib/services/profile.services.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import type { SettingsVisibility, SharingPrefs, UserPreferences } from '#lib/types/preferences.ts';
+import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { get, writable } from 'svelte/store';
 
@@ -30,30 +31,7 @@ import { get, writable } from 'svelte/store';
  * from the profile.
  */
 
-export const DEFAULT_PREFERENCES: UserPreferences = {
-	defaultAmount: { flow: '0', manual: '0' },
-	notify: {
-		streakReminder: true,
-		marketAlerts: true,
-		friendActivity: false,
-		weeklyDigest: true
-	},
-	flowSessionLength: 10,
-	hapticsEnabled: true,
-	soundEnabled: true,
-	sharing: {
-		profileVisibility: 'private',
-		callsPublic: true,
-		leaderboardOptIn: true,
-		worldsOptIn: true
-	},
-	flowTags: [...MARKET_TAGS],
-	worldCupMode: false,
-	savedMarketIds: [],
-	favoriteParticipantId: '',
-	favoriteSide: '',
-	onboardingCompleted: false
-};
+const DEFAULT_PREFERENCES = defaultPreferences();
 
 /**
  * Loose shape the hydrator accepts. The wire schema infers
@@ -135,10 +113,7 @@ const hydrateShape = ({
 		flow: partial?.defaultAmount?.flow ?? DEFAULT_PREFERENCES.defaultAmount.flow,
 		manual: partial?.defaultAmount?.manual ?? DEFAULT_PREFERENCES.defaultAmount.manual
 	},
-	notify: {
-		...DEFAULT_PREFERENCES.notify,
-		...(partial?.notify ?? {})
-	},
+	notify: { ...DEFAULT_PREFERENCES.notify, ...(partial?.notify ?? {}) },
 	flowSessionLength: coerceFlowSessionLength(partial?.flowSessionLength),
 	hapticsEnabled: partial?.hapticsEnabled ?? DEFAULT_PREFERENCES.hapticsEnabled,
 	soundEnabled: partial?.soundEnabled ?? DEFAULT_PREFERENCES.soundEnabled,
@@ -146,7 +121,7 @@ const hydrateShape = ({
 	flowTags:
 		Array.isArray(partial?.flowTags) && partial.flowTags.length > 0
 			? partial.flowTags
-			: [...MARKET_TAGS],
+			: [...MACRO_IDS],
 	worldCupMode: partial?.worldCupMode ?? DEFAULT_PREFERENCES.worldCupMode,
 	savedMarketIds: Array.isArray(partial?.savedMarketIds) ? partial.savedMarketIds : [],
 	favoriteParticipantId:
@@ -159,7 +134,7 @@ const hydrateShape = ({
 /**
  * Read the legacy localStorage payload (if any). Returns `undefined`
  * when nothing is stored or the blob is malformed. After a successful
- * migration the caller is expected to clear the entry — this read is
+ * migration the caller is expected to clear the entry; this read is
  * idempotent and the second call returns `undefined`.
  */
 const readLegacyLocalStorage = (): Partial<UserPreferences> | undefined => {
@@ -180,7 +155,7 @@ const readLegacyLocalStorage = (): Partial<UserPreferences> | undefined => {
 			return parsed;
 		}
 	} catch {
-		// Corrupt payload — ignore and let defaults take over.
+		// Corrupt payload: ignore and let defaults take over.
 	}
 };
 
@@ -196,15 +171,18 @@ const clearLegacyLocalStorage = () => {
 	}
 };
 
-// Local writable store — components subscribe to this. The actual
+// The local mirror before a profile loads, and after sign-out.
+const INITIAL_PREFERENCES = hydrateShape({ partial: defaultPreferences() });
+
+// Local writable store: components subscribe to this. The actual
 // source of truth is `userStore.profile.preferences`; this store
 // mirrors it for synchronous reads + write-through semantics.
-const internal = writable<UserPreferences>({ ...DEFAULT_PREFERENCES });
+const internal = writable<UserPreferences>({ ...INITIAL_PREFERENCES });
 
 let legacyMigrationAttempted = false;
 
 /**
- * The preference leaves this store owns — everything except the
+ * The preference leaves this store owns: everything except the
  * onboarding-owned picks (`favoriteParticipantId`, `favoriteSide`,
  * `onboardingCompleted`), which only the onboarding handoff writes. The
  * local mirror seeds those to the schema defaults before the profile
@@ -229,7 +207,7 @@ const STORE_OWNED_PREFERENCE_KEYS = [
  * object/array leaves (`notify`, `defaultAmount`, `sharing`, `flowTags`,
  * `savedMarketIds`) on every write, so reference equality would flag them
  * as changed even when their values didn't move. Falling back to a
- * stable JSON compare keeps the diff semantic — the leaf shapes are small
+ * stable JSON compare keeps the diff semantic; the leaf shapes are small
  * and JSON-safe with deterministic key order from `hydrateShape`.
  */
 // eslint-disable-next-line local-rules/prefer-object-params -- equality predicate; a/b read best positionally
@@ -270,7 +248,7 @@ const changedPreferenceLeaves = ({
  *
  * A full-snapshot write from this local mirror would carry a stale
  * `favoriteParticipantId` (the mirror seeds it to '' before the profile
- * loads) and revert a freshly onboarded country pick — so we send only
+ * loads) and revert a freshly onboarded country pick, so we send only
  * the changed store-owned leaves and let the queue merge.
  */
 const persistToProfile = ({
@@ -288,7 +266,7 @@ const persistToProfile = ({
 	const principal = get(authPrincipal);
 
 	if (isNullish(profile) || isNullish(principal)) {
-		// Profile not loaded yet — the write will get picked up on
+		// Profile not loaded yet: the write will get picked up on
 		// hydrate when the migration path runs.
 		return;
 	}
@@ -331,9 +309,9 @@ if (browser) {
 		const { profile } = data;
 
 		if (isNullish(profile)) {
-			// User signed out — reset to defaults so the next sign-in
+			// User signed out: reset to defaults so the next sign-in
 			// doesn't leak the previous user's settings.
-			internal.set({ ...DEFAULT_PREFERENCES });
+			internal.set({ ...INITIAL_PREFERENCES });
 			legacyMigrationAttempted = false;
 
 			return;
@@ -358,7 +336,7 @@ if (browser) {
 				// level (`preferences.callsPublic`). Fold any such legacy
 				// root value into `sharing.callsPublic` so a user who had
 				// opted out of public call history isn't silently reset to
-				// the default — a stored `sharing.callsPublic` still wins.
+				// the default; a stored `sharing.callsPublic` still wins.
 				const legacyCallsPublic = (legacy as { callsPublic?: boolean }).callsPublic;
 				const mergedPartial: PartialPrefsInput = {
 					...fromProfile,
@@ -367,7 +345,9 @@ if (browser) {
 						...fromProfile.sharing,
 						...legacy.sharing,
 						...(typeof legacyCallsPublic === 'boolean'
-							? { callsPublic: legacy.sharing?.callsPublic ?? legacyCallsPublic }
+							? {
+									callsPublic: legacy.sharing?.callsPublic ?? legacyCallsPublic
+								}
 							: {})
 					}
 				};
@@ -393,7 +373,7 @@ if (browser) {
  * don't re-enter the subscriber chain while the local store is
  * mid-write. The userStore subscriber will fire once the
  * persistToProfile-driven userStore.update lands, but by then the
- * local internal store is already at the target value — the
+ * local internal store is already at the target value; the
  * subscriber's `internal.set(fromProfile)` is a no-op write of the
  * same payload.
  */
@@ -414,13 +394,6 @@ export const preferencesStore = {
 };
 
 /**
- * Derived view of the current `flowSessionLength` ceiling, so callers
- * don't have to keep destructuring the store. Pure helper retained
- * for back-compat with the previous module shape.
- */
-export const flowSessionMaxBets = (prefs: UserPreferences): number => prefs.flowSessionLength;
-
-/**
  * Add or remove a market id from the saved-markets list. The store
  * write path round-trips through the profile, so the heart toggle
  * persists across devices.
@@ -428,7 +401,14 @@ export const flowSessionMaxBets = (prefs: UserPreferences): number => prefs.flow
 export const toggleSavedMarket = ({ marketId }: { marketId: string }): void => {
 	preferencesStore.update((current) => {
 		const ids = current.savedMarketIds;
-		const next = ids.includes(marketId) ? ids.filter((id) => id !== marketId) : [...ids, marketId];
+		const removing = ids.includes(marketId);
+
+		const next = removing ? ids.filter((id) => id !== marketId) : [...ids, marketId];
+
+		track({
+			name: removing ? 'watchlist_removed' : 'watchlist_added',
+			marketId
+		});
 
 		return { ...current, savedMarketIds: next };
 	});

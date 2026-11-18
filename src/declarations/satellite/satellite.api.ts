@@ -133,6 +133,7 @@ const AppGetAnalyticsEventsResultSchema = j.strictObject({
 				'watchlist_removed',
 				'orderbook_viewed',
 				'market_translation_toggled',
+				'market_category_filter',
 				'position_taken',
 				'position_closed',
 				'prediction_created',
@@ -168,6 +169,7 @@ const AppGetAnalyticsEventsResultSchema = j.strictObject({
 				'leaderboard_viewed',
 				'affiliation_set',
 				'affiliation_removed',
+				'privacy_sharing_toggled',
 				'school_picker_opened',
 				'school_picked',
 				'school_verify_email_submitted',
@@ -197,7 +199,9 @@ const AppGetAnalyticsEventsResultSchema = j.strictObject({
 			value: j.optional(j.number()),
 			count: j.optional(j.number()),
 			durationMs: j.optional(j.number()),
-			ok: j.optional(j.boolean())
+			ok: j.optional(j.boolean()),
+			country: j.optional(j.string()),
+			locale: j.optional(j.string())
 		})
 	),
 	hasMore: j.boolean()
@@ -219,6 +223,36 @@ const getAnalyticsEvents = async (
 
 	const result = schemaFromIdl({ schema: AppGetAnalyticsEventsResultSchema, value: idlResult });
 	return AppGetAnalyticsEventsResultSchema.parse(result);
+};
+
+const AppGetAnalyticsProfileCreatedArgsSchema = j.strictObject({
+	afterKey: j.optional(j.string()),
+	limit: j.number()
+});
+const AppGetAnalyticsProfileCreatedResultSchema = j.strictObject({
+	rows: j.array(j.strictObject({ key: j.string(), createdAtNs: j.string() })),
+	hasMore: j.boolean()
+});
+
+const getAnalyticsProfileCreated = async (
+	args: j.infer<typeof AppGetAnalyticsProfileCreatedArgsSchema>
+): Promise<j.infer<typeof AppGetAnalyticsProfileCreatedResultSchema>> => {
+	const parsedArgs = AppGetAnalyticsProfileCreatedArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppGetAnalyticsProfileCreatedArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_get_analytics_profile_created']>[0];
+
+	const { app_get_analytics_profile_created } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_get_analytics_profile_created(idlArgs);
+
+	const result = schemaFromIdl({
+		schema: AppGetAnalyticsProfileCreatedResultSchema,
+		value: idlResult
+	});
+	return AppGetAnalyticsProfileCreatedResultSchema.parse(result);
 };
 
 const AppGetAnalyticsSummaryArgsSchema = j.strictObject({ days: j.number() });
@@ -250,6 +284,7 @@ const AppGetAnalyticsSummaryResultSchema = j.strictObject({
 				'watchlist_removed',
 				'orderbook_viewed',
 				'market_translation_toggled',
+				'market_category_filter',
 				'position_taken',
 				'position_closed',
 				'prediction_created',
@@ -285,6 +320,7 @@ const AppGetAnalyticsSummaryResultSchema = j.strictObject({
 				'leaderboard_viewed',
 				'affiliation_set',
 				'affiliation_removed',
+				'privacy_sharing_toggled',
 				'school_picker_opened',
 				'school_picked',
 				'school_verify_email_submitted',
@@ -321,6 +357,57 @@ const getAnalyticsSummary = async (
 
 	const result = schemaFromIdl({ schema: AppGetAnalyticsSummaryResultSchema, value: idlResult });
 	return AppGetAnalyticsSummaryResultSchema.parse(result);
+};
+
+const AppGetAnalyticsUserStatsResultSchema = j.strictObject({ registered: j.number() });
+
+const getAnalyticsUserStats = async (): Promise<
+	j.infer<typeof AppGetAnalyticsUserStatsResultSchema>
+> => {
+	const { app_get_analytics_user_stats } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_get_analytics_user_stats();
+
+	const result = schemaFromIdl({ schema: AppGetAnalyticsUserStatsResultSchema, value: idlResult });
+	return AppGetAnalyticsUserStatsResultSchema.parse(result);
+};
+
+const AppGetAuthIdentitiesArgsSchema = j.strictObject({
+	afterKey: j.optional(j.string()),
+	limit: j.number()
+});
+const AppGetAuthIdentitiesResultSchema = j.strictObject({
+	rows: j.array(
+		j.strictObject({
+			key: j.string(),
+			createdAtNs: j.string(),
+			updatedAtNs: j.string(),
+			provider: j.optional(j.string()),
+			openidEmail: j.optional(j.string()),
+			openidName: j.optional(j.string()),
+			profileEmail: j.optional(j.string())
+		})
+	),
+	hasMore: j.boolean()
+});
+
+const getAuthIdentities = async (
+	args: j.infer<typeof AppGetAuthIdentitiesArgsSchema>
+): Promise<j.infer<typeof AppGetAuthIdentitiesResultSchema>> => {
+	const parsedArgs = AppGetAuthIdentitiesArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppGetAuthIdentitiesArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_get_auth_identities']>[0];
+
+	const { app_get_auth_identities } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_get_auth_identities(idlArgs);
+
+	const result = schemaFromIdl({ schema: AppGetAuthIdentitiesResultSchema, value: idlResult });
+	return AppGetAuthIdentitiesResultSchema.parse(result);
 };
 
 const AppGetCurrentTournamentResultSchema = j.strictObject({
@@ -406,6 +493,18 @@ const getMarketMetadata = async (
 
 	const result = schemaFromIdl({ schema: AppGetMarketMetadataResultSchema, value: idlResult });
 	return AppGetMarketMetadataResultSchema.parse(result);
+};
+
+const AppGetMarketTagsResultSchema = j.strictObject({
+	buckets: j.array(j.strictObject({ tag: j.string(), seriesIds: j.array(j.string()) }))
+});
+
+const getMarketTags = async (): Promise<j.infer<typeof AppGetMarketTagsResultSchema>> => {
+	const { app_get_market_tags } = await getSatelliteExtendedActor<SatelliteActor>({ idlFactory });
+	const idlResult = await app_get_market_tags();
+
+	const result = schemaFromIdl({ schema: AppGetMarketTagsResultSchema, value: idlResult });
+	return AppGetMarketTagsResultSchema.parse(result);
 };
 
 const AppGetMarketTranslationArgsSchema = j.strictObject({
@@ -516,7 +615,6 @@ const AppGetMyRivalResultSchema = j.strictObject({
 			nickname: j.string(),
 			avatar: j.string(),
 			avatarParts: j.string(),
-			email: j.string(),
 			pnl: j.number(),
 			visibility: j.enum(['public', 'friends_and_followers', 'friends_only']),
 			role: j.optional(j.enum(['controller', 'admin', 'solver', 'creator'])),
@@ -595,7 +693,6 @@ const AppGetProfileResultSchema = j.strictObject({
 			nickname: j.string(),
 			avatar: j.string(),
 			avatarParts: j.string(),
-			email: j.string(),
 			pnl: j.number(),
 			visibility: j.enum(['public', 'friends_and_followers', 'friends_only']),
 			role: j.optional(j.enum(['controller', 'admin', 'solver', 'creator'])),
@@ -770,12 +867,12 @@ const AppListChallengeableLeaguesResultSchema = j.strictObject({
 			id: j.string(),
 			name: j.string(),
 			description: j.optional(j.string()),
-			inviteCode: j.string(),
+			inviteCode: j.optional(j.string()),
 			owner: j.string(),
 			createdAtMs: j.number(),
 			accentColor: j.optional(j.string()),
 			emblem: j.optional(j.string()),
-			privacy: j.enum(['private', 'invite', 'open']),
+			privacy: j.enum(['private', 'open']),
 			imageUrl: j.optional(j.string())
 		})
 	)
@@ -845,12 +942,12 @@ const AppListFriendRecommendedLeaguesResultSchema = j.strictObject({
 				id: j.string(),
 				name: j.string(),
 				description: j.optional(j.string()),
-				inviteCode: j.string(),
+				inviteCode: j.optional(j.string()),
 				owner: j.string(),
 				createdAtMs: j.number(),
 				accentColor: j.optional(j.string()),
 				emblem: j.optional(j.string()),
-				privacy: j.enum(['private', 'invite', 'open']),
+				privacy: j.enum(['private', 'open']),
 				imageUrl: j.optional(j.string())
 			}),
 			memberCount: j.number(),
@@ -961,7 +1058,6 @@ const AppListLeaderboardResultSchema = j.strictObject({
 			nickname: j.string(),
 			avatar: j.string(),
 			avatarParts: j.string(),
-			email: j.string(),
 			pnl: j.number(),
 			visibility: j.enum(['public', 'friends_and_followers', 'friends_only']),
 			role: j.optional(j.enum(['controller', 'admin', 'solver', 'creator'])),
@@ -1007,7 +1103,7 @@ const AppListLeagueBattlesResultSchema = j.strictObject({
 			respondByMs: j.optional(j.number()),
 			respondedAtMs: j.optional(j.number()),
 			scope: j.optional(j.string()),
-			wager: j.optional(j.number()),
+			amount: j.optional(j.number()),
 			trashTalk: j.optional(j.string()),
 			scoreA: j.optional(j.number()),
 			scoreB: j.optional(j.number()),
@@ -1185,7 +1281,7 @@ const AppListMyBattlesResultSchema = j.strictObject({
 			respondByMs: j.optional(j.number()),
 			respondedAtMs: j.optional(j.number()),
 			scope: j.optional(j.string()),
-			wager: j.optional(j.number()),
+			amount: j.optional(j.number()),
 			trashTalk: j.optional(j.string()),
 			scoreA: j.optional(j.number()),
 			scoreB: j.optional(j.number()),
@@ -1226,12 +1322,12 @@ const AppListMyLeaguesResultSchema = j.strictObject({
 				id: j.string(),
 				name: j.string(),
 				description: j.optional(j.string()),
-				inviteCode: j.string(),
+				inviteCode: j.optional(j.string()),
 				owner: j.string(),
 				createdAtMs: j.number(),
 				accentColor: j.optional(j.string()),
 				emblem: j.optional(j.string()),
-				privacy: j.enum(['private', 'invite', 'open']),
+				privacy: j.enum(['private', 'open']),
 				imageUrl: j.optional(j.string())
 			}),
 			role: j.enum(['owner', 'admin', 'member']),
@@ -1378,12 +1474,12 @@ const AppLookupLeagueByInviteResultSchema = j.strictObject({
 			id: j.string(),
 			name: j.string(),
 			description: j.optional(j.string()),
-			inviteCode: j.string(),
+			inviteCode: j.optional(j.string()),
 			owner: j.string(),
 			createdAtMs: j.number(),
 			accentColor: j.optional(j.string()),
 			emblem: j.optional(j.string()),
-			privacy: j.enum(['private', 'invite', 'open']),
+			privacy: j.enum(['private', 'open']),
 			imageUrl: j.optional(j.string())
 		})
 	)
@@ -1436,7 +1532,6 @@ const AppSearchProfilesResultSchema = j.strictObject({
 			nickname: j.string(),
 			avatar: j.string(),
 			avatarParts: j.string(),
-			email: j.string(),
 			pnl: j.number(),
 			visibility: j.enum(['public', 'friends_and_followers', 'friends_only']),
 			role: j.optional(j.enum(['controller', 'admin', 'solver', 'creator'])),
@@ -1529,6 +1624,7 @@ const AppClaimCalibrationRewardResultSchema = j.strictObject({
 			'not_binary',
 			'not_finalised',
 			'outcome_undetermined',
+			'already_called',
 			'rate_limited_hourly',
 			'rate_limited_daily',
 			'transfer_failed'
@@ -1627,6 +1723,70 @@ const claimWorldsPodiumPrize = async (
 	return AppClaimWorldsPodiumPrizeResultSchema.parse(result);
 };
 
+const AppCreateLeagueArgsSchema = j.strictObject({
+	id: j.string(),
+	name: j.string(),
+	description: j.optional(j.string()),
+	accentColor: j.optional(j.string()),
+	emblem: j.optional(j.string()),
+	privacy: j.optional(j.enum(['private', 'open'])),
+	inviteCode: j.string()
+});
+const AppCreateLeagueResultSchema = j.strictObject({
+	league: j.optional(
+		j.strictObject({
+			id: j.string(),
+			name: j.string(),
+			description: j.optional(j.string()),
+			inviteCode: j.optional(j.string()),
+			owner: j.string(),
+			createdAtMs: j.number(),
+			accentColor: j.optional(j.string()),
+			emblem: j.optional(j.string()),
+			privacy: j.enum(['private', 'open']),
+			imageUrl: j.optional(j.string())
+		})
+	),
+	reason: j.optional(j.enum(['invite_code_taken']))
+});
+
+const createLeague = async (
+	args: j.infer<typeof AppCreateLeagueArgsSchema>
+): Promise<j.infer<typeof AppCreateLeagueResultSchema>> => {
+	const parsedArgs = AppCreateLeagueArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppCreateLeagueArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_create_league']>[0];
+
+	const { app_create_league } = await getSatelliteExtendedActor<SatelliteActor>({ idlFactory });
+	const idlResult = await app_create_league(idlArgs);
+
+	const result = schemaFromIdl({ schema: AppCreateLeagueResultSchema, value: idlResult });
+	return AppCreateLeagueResultSchema.parse(result);
+};
+
+const AppDeleteAnalyticsEventsArgsSchema = j.strictObject({ keys: j.array(j.string()) });
+const AppDeleteAnalyticsEventsResultSchema = j.strictObject({ deleted: j.number() });
+
+const deleteAnalyticsEvents = async (
+	args: j.infer<typeof AppDeleteAnalyticsEventsArgsSchema>
+): Promise<j.infer<typeof AppDeleteAnalyticsEventsResultSchema>> => {
+	const parsedArgs = AppDeleteAnalyticsEventsArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppDeleteAnalyticsEventsArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_delete_analytics_events']>[0];
+
+	const { app_delete_analytics_events } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_delete_analytics_events(idlArgs);
+
+	const result = schemaFromIdl({ schema: AppDeleteAnalyticsEventsResultSchema, value: idlResult });
+	return AppDeleteAnalyticsEventsResultSchema.parse(result);
+};
+
 const AppDeleteMyAccountArgsSchema = j.strictObject({
 	reason: j.string(),
 	note: j.string(),
@@ -1694,6 +1854,60 @@ const hibernateMyAccount = async (): Promise<j.infer<typeof AppHibernateMyAccoun
 	return AppHibernateMyAccountResultSchema.parse(result);
 };
 
+const AppJoinLeagueByInviteArgsSchema = j.strictObject({ inviteCode: j.string() });
+const AppJoinLeagueByInviteResultSchema = j.strictObject({
+	league: j.optional(
+		j.strictObject({
+			id: j.string(),
+			name: j.string(),
+			description: j.optional(j.string()),
+			inviteCode: j.optional(j.string()),
+			owner: j.string(),
+			createdAtMs: j.number(),
+			accentColor: j.optional(j.string()),
+			emblem: j.optional(j.string()),
+			privacy: j.enum(['private', 'open']),
+			imageUrl: j.optional(j.string())
+		})
+	),
+	reason: j.optional(j.enum(['not_found', 'already_member']))
+});
+
+const joinLeagueByInvite = async (
+	args: j.infer<typeof AppJoinLeagueByInviteArgsSchema>
+): Promise<j.infer<typeof AppJoinLeagueByInviteResultSchema>> => {
+	const parsedArgs = AppJoinLeagueByInviteArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppJoinLeagueByInviteArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_join_league_by_invite']>[0];
+
+	const { app_join_league_by_invite } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_join_league_by_invite(idlArgs);
+
+	const result = schemaFromIdl({ schema: AppJoinLeagueByInviteResultSchema, value: idlResult });
+	return AppJoinLeagueByInviteResultSchema.parse(result);
+};
+
+const AppMigrateLeagueInviteCodesResultSchema = j.strictObject({ migrated: j.number() });
+
+const migrateLeagueInviteCodes = async (): Promise<
+	j.infer<typeof AppMigrateLeagueInviteCodesResultSchema>
+> => {
+	const { app_migrate_league_invite_codes } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_migrate_league_invite_codes();
+
+	const result = schemaFromIdl({
+		schema: AppMigrateLeagueInviteCodesResultSchema,
+		value: idlResult
+	});
+	return AppMigrateLeagueInviteCodesResultSchema.parse(result);
+};
+
 const AppPruneResolvedResultsResultSchema = j.strictObject({ pruned: j.number() });
 
 const pruneResolvedResults = async (): Promise<
@@ -1706,6 +1920,54 @@ const pruneResolvedResults = async (): Promise<
 
 	const result = schemaFromIdl({ schema: AppPruneResolvedResultsResultSchema, value: idlResult });
 	return AppPruneResolvedResultsResultSchema.parse(result);
+};
+
+const AppReadBattleLiveScoreArgsSchema = j.strictObject({ battleId: j.string() });
+const AppReadBattleLiveScoreResultSchema = j.strictObject({
+	score: j.optional(
+		j.strictObject({
+			scoreA: j.number(),
+			scoreB: j.number(),
+			callsA: j.number(),
+			callsB: j.number(),
+			leader: j.enum(['A', 'B', 'draw'])
+		})
+	)
+});
+
+const readBattleLiveScore = async (
+	args: j.infer<typeof AppReadBattleLiveScoreArgsSchema>
+): Promise<j.infer<typeof AppReadBattleLiveScoreResultSchema>> => {
+	const parsedArgs = AppReadBattleLiveScoreArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppReadBattleLiveScoreArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_read_battle_live_score']>[0];
+
+	const { app_read_battle_live_score } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_read_battle_live_score(idlArgs);
+
+	const result = schemaFromIdl({ schema: AppReadBattleLiveScoreResultSchema, value: idlResult });
+	return AppReadBattleLiveScoreResultSchema.parse(result);
+};
+
+const AppRebuildMarketTagIndexResultSchema = j.strictObject({
+	buckets: j.number(),
+	series: j.number()
+});
+
+const rebuildMarketTagIndex = async (): Promise<
+	j.infer<typeof AppRebuildMarketTagIndexResultSchema>
+> => {
+	const { app_rebuild_market_tag_index } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_rebuild_market_tag_index();
+
+	const result = schemaFromIdl({ schema: AppRebuildMarketTagIndexResultSchema, value: idlResult });
+	return AppRebuildMarketTagIndexResultSchema.parse(result);
 };
 
 const AppRecomputeActivityReactionCountsResultSchema = j.strictObject({ recomputed: j.number() });
@@ -1795,6 +2057,47 @@ const rejectFriendRequest = async (
 		idlFactory
 	});
 	await app_reject_friend_request(idlArgs);
+};
+
+const AppResolveBattleArgsSchema = j.strictObject({ battleId: j.string() });
+const AppResolveBattleResultSchema = j.strictObject({
+	battle: j.strictObject({
+		id: j.string(),
+		kind: j.enum(['league', 'duel']),
+		sideA: j.string(),
+		sideB: j.string(),
+		proposer: j.string(),
+		state: j.enum(['proposed', 'accepted', 'in_flight', 'resolved', 'declined', 'expired']),
+		kickoffMs: j.number(),
+		settleMs: j.number(),
+		respondByMs: j.optional(j.number()),
+		respondedAtMs: j.optional(j.number()),
+		scope: j.optional(j.string()),
+		amount: j.optional(j.number()),
+		trashTalk: j.optional(j.string()),
+		scoreA: j.optional(j.number()),
+		scoreB: j.optional(j.number()),
+		callsA: j.optional(j.number()),
+		callsB: j.optional(j.number()),
+		winner: j.optional(j.enum(['A', 'B', 'draw'])),
+		resolvedAtMs: j.optional(j.number())
+	})
+});
+
+const resolveBattle = async (
+	args: j.infer<typeof AppResolveBattleArgsSchema>
+): Promise<j.infer<typeof AppResolveBattleResultSchema>> => {
+	const parsedArgs = AppResolveBattleArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppResolveBattleArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_resolve_battle']>[0];
+
+	const { app_resolve_battle } = await getSatelliteExtendedActor<SatelliteActor>({ idlFactory });
+	const idlResult = await app_resolve_battle(idlArgs);
+
+	const result = schemaFromIdl({ schema: AppResolveBattleResultSchema, value: idlResult });
+	return AppResolveBattleResultSchema.parse(result);
 };
 
 const AppResolveTournamentRoundArgsSchema = j.strictObject({
@@ -1966,6 +2269,7 @@ const AppTrackEventsArgsSchema = j.strictObject({
 				'watchlist_removed',
 				'orderbook_viewed',
 				'market_translation_toggled',
+				'market_category_filter',
 				'position_taken',
 				'position_closed',
 				'prediction_created',
@@ -2001,6 +2305,7 @@ const AppTrackEventsArgsSchema = j.strictObject({
 				'leaderboard_viewed',
 				'affiliation_set',
 				'affiliation_removed',
+				'privacy_sharing_toggled',
 				'school_picker_opened',
 				'school_picked',
 				'school_verify_email_submitted',
@@ -2029,6 +2334,8 @@ const AppTrackEventsArgsSchema = j.strictObject({
 			count: j.optional(j.number()),
 			durationMs: j.optional(j.number()),
 			ok: j.optional(j.boolean()),
+			country: j.optional(j.string()),
+			locale: j.optional(j.string()),
 			occurredAtMs: j.optional(j.number())
 		})
 	)
@@ -2250,9 +2557,13 @@ export const functions = {
 	checkNicknameAvailability,
 	getAffiliationStats,
 	getAnalyticsEvents,
+	getAnalyticsProfileCreated,
 	getAnalyticsSummary,
+	getAnalyticsUserStats,
+	getAuthIdentities,
 	getCurrentTournament,
 	getMarketMetadata,
+	getMarketTags,
 	getMarketTranslation,
 	getMonthlyLeaderboard,
 	getMyBattleStats,
@@ -2291,15 +2602,22 @@ export const functions = {
 	claimReferralFriendship,
 	claimTournamentPrize,
 	claimWorldsPodiumPrize,
+	createLeague,
+	deleteAnalyticsEvents,
 	deleteMyAccount,
 	followUser,
 	hibernateMyAccount,
+	joinLeagueByInvite,
+	migrateLeagueInviteCodes,
 	pruneResolvedResults,
+	readBattleLiveScore,
+	rebuildMarketTagIndex,
 	recomputeActivityReactionCounts,
 	recordFlowSwipe,
 	recoverMyAccount,
 	redeemReferralCode,
 	rejectFriendRequest,
+	resolveBattle,
 	resolveTournamentRound,
 	resumeMyAccount,
 	sendFriendRequest,

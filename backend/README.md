@@ -1,0 +1,317 @@
+# VICI backend
+
+Bun + Elysia + Postgres API for the VICI app. It serves the web2 build (`VITE_BACKEND=web2`) at vici.app; the default build still talks to the Juno satellite and the canisters directly.
+
+## Local development
+
+Requirements: [Bun](https://bun.sh) (the version in `.bun-version`, which CI and the Fly image both run) and Docker.
+
+```bash
+cd backend
+docker compose up -d      # local Postgres 16 (db/user/password: vici)
+bun install
+bun run migrate           # apply src/db/migrations/*.sql
+bun dev                   # API on http://localhost:8787 (watch mode)
+bun run worker            # background worker loop (optional locally)
+```
+
+Checks:
+
+```bash
+bun run typecheck         # tsc --noEmit
+bun test                  # unit + DB-backed tests (skip DB suites if Postgres is down)
+```
+
+Tests connect to `TEST_DATABASE_URL` (default: the docker-compose Postgres). CI sets `REQUIRE_DB_TESTS=1` so a missing database fails the build instead of silently skipping the DB-backed suites.
+
+## Environment
+
+Validated fail-fast in `src/env.ts`. In production the required vars abort boot when missing; in dev everything has a local default. Optional integrations degrade instead of crashing when unconfigured (league image storage falls back to local disk under `uploads/`). Email logs to the console only outside production, which requires `RESEND_API_KEY`.
+
+| Var                       | Required (prod) | Default (dev)                                | Purpose                                                                                                                              |
+| ------------------------- | --------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`            | yes             | `postgres://vici:vici@localhost:5432/vici`   | Postgres connection string                                                                                                           |
+| `SESSION_SECRET`          | yes             | dev placeholder                              | HMAC pepper for session token hashes                                                                                                 |
+| `PORT`                    | no              | `8787`                                       | API listen port                                                                                                                      |
+| `PUBLIC_APP_URL`          | no              | `http://localhost:5173`                      | SPA origin: credentialed CORS allowlist (+ www/apex twin)                                                                            |
+| `API_BASE_URL`            | no              | `http://localhost:<port>`                    | This server's public origin (absolute callback URLs)                                                                                 |
+| `LOG_LEVEL`               | no              | `info`                                       | `debug` / `info` / `warn` / `error`                                                                                                  |
+| `WORKER_POLL_INTERVAL_MS` | no              | `60000`                                      | Worker loop poll interval                                                                                                            |
+| `SESSION_TTL_HOURS`       | no              | `720`                                        | Session lifetime (30 days)                                                                                                           |
+| `COOKIE_DOMAIN`           | no              | empty (host-only)                            | Cookie Domain attribute for prod cross-subdomain sessions                                                                            |
+| `GOOGLE_CLIENT_ID`        | no              | empty (google disabled)                      | Google OAuth client id                                                                                                               |
+| `GOOGLE_CLIENT_SECRET`    | no              | empty (google disabled)                      | Google OAuth client secret                                                                                                           |
+| `GOOGLE_REDIRECT_URI`     | no              | `<API_BASE_URL>/api/v1/auth/google/callback` | Override for the Google callback URL                                                                                                 |
+| `APPLE_CLIENT_ID`         | no              | empty (apple disabled)                       | Sign in with Apple services id                                                                                                       |
+| `APPLE_TEAM_ID`           | no              | empty (apple disabled)                       | Apple developer team id                                                                                                              |
+| `APPLE_KEY_ID`            | no              | empty (apple disabled)                       | Key id of the .p8 signing key                                                                                                        |
+| `APPLE_PRIVATE_KEY`       | no              | empty (apple disabled)                       | .p8 PKCS#8 PEM (literal or \n-escaped newlines)                                                                                      |
+| `APPLE_REDIRECT_URI`      | no              | `<API_BASE_URL>/api/v1/auth/apple/callback`  | Override for the Apple callback URL                                                                                                  |
+| `RESEND_API_KEY`          | yes             | empty (email logs to console)                | Resend API key for transactional email                                                                                               |
+| `EMAIL_FROM`              | no              | `VICI <no-reply@vici.app>`                   | From header for transactional email                                                                                                  |
+| `ROOT_SECRET`             | yes             | dev placeholder                              | HKDF root for per-user per-chain custody keys (rotating it rotates every custodial address)                                          |
+| `TREASURY_PEM`            | no              | empty (svc-derived key)                      | PEM override for the treasury IC identity                                                                                            |
+| `ADMIN_PEM`               | no              | empty (svc-derived key)                      | PEM override for the admin IC identity                                                                                               |
+| `CUSTODY_ENABLED_ASSETS`  | no              | empty (all ic assets)                        | Comma list of `symbol` or `chain:symbol` to enable                                                                                   |
+| `VXP_TREASURY_DISABLED`   | no              | empty (transfers live)                       | `1` = record-only mode: awards are recorded, no ledger transfer fires                                                                |
+| `IC_HOST`                 | no              | `https://icp-api.io`                         | IC API host (adapter enabled by default)                                                                                             |
+| `VXP_INDEX_CANISTER_ID`   | no              | mainnet id                                   | VXP ledger index canister: the transfer history unconfirmed award payouts are settled from                                           |
+| `CLEARING_CANISTER_ID`    | no              | mainnet id                                   | Clearing canister id                                                                                                                 |
+| `REGISTRY_CANISTER_ID`    | no              | mainnet id                                   | Registry canister id                                                                                                                 |
+| `EVM_RPC_URL`             | no              | empty (evm disabled)                         | EVM JSON-RPC endpoint                                                                                                                |
+| `EVM_CHAIN_ID`            | no              | `1`                                          | EVM chain id for EIP-1559 signing                                                                                                    |
+| `EVM_CONFIRMATIONS`       | no              | `12`                                         | Deposit confirmation depth                                                                                                           |
+| `SOL_RPC_URL`             | no              | empty (sol disabled)                         | Solana JSON-RPC endpoint                                                                                                             |
+| `SOL_COMMITMENT`          | no              | `finalized`                                  | Solana commitment level                                                                                                              |
+| `BTC_ESPLORA_URL`         | no              | empty (btc disabled)                         | Esplora-compatible API base (e.g. mempool.space/api)                                                                                 |
+| `BTC_NETWORK`             | no              | `mainnet`                                    | `mainnet` / `testnet` / `regtest`                                                                                                    |
+| `BTC_CONFIRMATIONS`       | no              | `2`                                          | Deposit confirmation depth                                                                                                           |
+| `S3_ENDPOINT`             | no              | empty (local disk)                           | S3-compatible endpoint for league images (the bucket is used only when all four `S3_*` resolve); falls back to `AWS_ENDPOINT_URL_S3` |
+| `S3_BUCKET`               | no              | empty (local disk)                           | Bucket for league images; falls back to `BUCKET_NAME`                                                                                |
+| `S3_ACCESS_KEY_ID`        | no              | empty (local disk)                           | Bucket access key id; falls back to `AWS_ACCESS_KEY_ID`                                                                              |
+| `S3_SECRET_ACCESS_KEY`    | no              | empty (local disk)                           | Bucket secret key; falls back to `AWS_SECRET_ACCESS_KEY`                                                                             |
+
+ETL-only vars (read by `scripts/etl/*`, never by the server):
+
+| Var                       | Purpose                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `ETL_SATELLITE_PEM`       | Path to the satellite ADMIN identity key file (PKCS#8 Ed25519 or secp256k1 PEM) |
+| `ETL_SATELLITE_ID`        | Satellite canister id to drain                                                  |
+| `ETL_SATELLITE_CONTAINER` | Optional emulator URL for a local satellite; unset targets production           |
+
+## Auth
+
+Sessions are opaque 256-bit tokens in the HttpOnly `vici_session` cookie (SameSite=Lax, Secure in prod, Domain from `COOKIE_DOMAIN`); the database stores only `HMAC-SHA256(token, SESSION_SECRET)`. Login always rotates the token; logout revokes it server-side. A hard-deleted account loses every sign-in path in the same transaction (auth identities, sessions, pending one-time codes), and neither the session guard nor identity resolution ever resolves a hard-deleted user id, so a later sign-in with the same address provisions a new account.
+
+Endpoints under `/api/v1`:
+
+- `GET /auth/providers`: which sign-in methods are live. A provider whose env is not configured reports `coming_soon` (the FE renders a disabled button) and its endpoints answer `503 { "error": "provider_unavailable" }`.
+- `POST /auth/otp/request` + `POST /auth/otp/verify`: email one-time codes (`OTP_TTL_MINUTES` lifetime, single-use, `OTP_MAX_ATTEMPTS` lockout, hashed at rest, identical responses for known and unknown addresses).
+- `GET /auth/google` + `GET /auth/google/callback`: Google OAuth code flow with an HMAC-signed state cookie.
+- `GET /auth/apple` + `POST /auth/apple/callback`: Sign in with Apple (ES256 client secret from the .p8 key, `form_post` callback, SameSite=None state cookie).
+- `POST /auth/logout`, `GET /me`.
+
+### Beta access gate
+
+Sign-in can be limited to an allowlist through the `beta_gate` app setting, managed with the generic admin settings CRUD (no dedicated endpoint):
+
+```
+PUT /api/v1/admin/settings/beta_gate
+{ "value": { "enabled": true, "emails": ["founder@example.com", "tester@example.com"] } }
+```
+
+While `enabled` is `true`, only the listed addresses (case-insensitive) can sign in: a non-allowlisted email gets `403 { "error": "beta_closed" }` from `POST /auth/otp/request` and `POST /auth/otp/verify`, and the OAuth callbacks bounce to `/signin?e=beta` (the screen that renders the refusal) instead of minting a session. The refusal is identical for every address, so it leaks nothing about whether an account exists. Setting absent or `enabled: false` (or deleting the key) turns the gate off and everyone passes. An enabled gate with a missing or malformed `emails` list admits no one, and a single non-string entry fails the whole list closed rather than honouring the well-formed ones. The gate guards sign-in only: sessions established before it flips on keep working. It is a rollout valve, not a security boundary.
+
+`allowNewUsers: true` opens the enabled gate to new people while holding legacy accounts on the legacy app until cutover (so nobody forks their history into an empty twin account before the final import):
+
+```
+PUT /api/v1/admin/settings/beta_gate
+{ "value": { "enabled": true, "emails": ["founder@example.com"], "allowNewUsers": true } }
+```
+
+| Caller                                                                                                                  | Verdict                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Email on the allowlist                                                                                                  | admitted                                                                                  |
+| Already holds a web2 sign-in identity (`auth_identities` email, case-insensitive; or the same OAuth provider + subject) | admitted                                                                                  |
+| Email matches `legacy_auth_identities.openid_email` or `profile_email` (case-insensitive, same match as the auto-link)  | `403 { "error": "legacy_account_pending" }`; OAuth callbacks bounce to `/signin?e=legacy` |
+| Anyone else                                                                                                             | admitted (a new person)                                                                   |
+
+Only the exact boolean `true` opens it; absent, `false` or any other value keeps the strict allowlist above, and a missing or malformed `emails` list still admits no one, so keep `emails` present (an empty list is fine). `legacy_account_pending` necessarily tells the caller that the address has a legacy account, and nothing else about it; the OTP request is still refused before any code is sent. Legacy users whose old login carried no email (passkey, Internet Identity) cannot be recognised and are admitted as new; they can still carry their principal over with the signed claim flow, and if they have already populated the new account by then, the claim files an `account_not_empty` conflict for the admin queue (see [Provisional account adoption](#provisional-account-adoption)).
+
+First verified login auto-links legacy on-chain identities: when the account has no `legacy_principals` row yet and the exported `legacy_auth_identities` table contains a row whose `openid_email` (first) or `profile_email` (fallback) matches the verified address, the principal links with the corresponding `matched_via`.
+
+### Provisional account adoption
+
+The ETL importer parks every legacy principal's data on a provisional `claim_pending` account linked with `matched_via = 'etl'` (see [Data migration](#data-migration-etl)). `src/auth/adoption.ts` hands those accounts to their owners:
+
+- **Login.** A first sign-in (no auth identity by subject or by email yet) whose email matches an `'etl'`-linked provisional account adopts it in place: the auth identity attaches to it, `claim_pending` clears, the link's `matched_via` becomes `openid_email` / `profile_email`, and no new users row is created. Still-unlinked principals carrying the same email link to it as well. `resolveIdentity` holds a per-email advisory lock and locks the provisional row, so concurrent first logins adopt once.
+- **Claim.** `POST /api/v1/claim` for a principal on a provisional account folds the caller's account into it when the caller's account is empty: auth identities, sessions and legacy links move over, analytics and market edit stamps are re-pointed, unused custody rows and the caller's users row are deleted, and the link becomes `matched_via = 'claim'`. The response carries `adopted: true`; the session cookie is unchanged but now resolves to the adopted user id. Empty means no row in any user-owned table (profiles, stats, feed, reactions, results, awards, referrals, leagues, battles, affiliations, school submissions, withdrawals, custody ledger or deposits) and no granted role.
+- **Never merged.** Two populated accounts are not merged automatically: user ids are embedded in activity and relation keys, and VXP was paid to each account's own derived principal. A claim from a non-empty account answers `409 { "error": "account_not_empty" }` and changes nothing; a login email matching several provisional accounts adopts one (openid match before profile match, then the most imported activity, then principal order) and leaves the rest provisional.
+- **Admin queue.** Both cases write a `legacy_adoption_conflicts` row (principal, provisional user, the account the person ended up with, reason). `GET /api/v1/admin/legacy-adoption-conflicts` lists the rows whose provisional account is still unadopted. Resolution is manual and per case: there is no merge endpoint, and moving the on-chain VXP between derived principals is out of scope here.
+
+## Custody
+
+Every user gets deterministic per-chain custodial keys, HKDF-SHA256 derived from `ROOT_SECRET` with the info string `user:<userId>:<chain>` (ed25519 for `ic`/`sol`, secp256k1 for `evm`/`btc`); the database stores addresses only, never key material. Treasury/admin service identities derive under a disjoint `svc:` prefix, or come from `TREASURY_PEM` / `ADMIN_PEM`; the engine reader identity (public engine reads, no funds, no engine role) always derives there.
+
+Balances live on a double-entry ledger (`ledger_entries` + the `custody_balances` view): every event posts legs summing to zero per asset, keyed for idempotent replay. Withdrawals hold the amount at request time (a retry carrying the first request's `idempotencyKey` gets that withdrawal back instead of a second hold) and refund on failure/rejection through the state machine `requested -> processing -> submitted -> confirmed` (with `failed` / `rejected` exits); self-custody exits are the same flow with a user-controlled destination. The worker's `withdrawal-confirmations` job moves `submitted` rows to `confirmed` once the chain reports the transfer final (at once on `ic`, where a returned block index is final), or to `failed` with a refund on a definite on-chain failure; a status it cannot read leaves the row `submitted` for the next tick. A withdrawal is refunded only on a definite rejection: the request route makes the first attempt, and a transfer whose outcome is unknown (network error, timeout, a crash before the result is written) leaves the row `processing`. The worker's `withdrawal-recovery` job executes `requested` rows older than 2 minutes (the request died before execution) and, on a replay-safe chain (`ic`), resends `processing` rows older than 10 minutes with the dedup fields fixed when the row was claimed (`transfer_memo`, `transfer_created_at_ns`), so a transfer that already landed answers with its original block instead of paying twice. A `processing` row it cannot resend (a chain that cannot deduplicate, a row sent before those fields existed, or a stamp past the 23-hour dedup margin) is only logged as an error each pass and needs a manual look at the chain. Deposits are credited by per-chain watchers running from the worker loop; only chains whose adapter is enabled are polled. Adapters read per address (`ic`, `sol`, `btc`) are swept in pages across ticks, 250 accounts a tick and 24 reads at once under a 30s budget, with the position kept in `chain_cursors` under `watch:<chain>`, so a deposit is seen within one sweep (four ticks at 1,000 accounts). A failed or timed-out read is logged per asset and read again on the next sweep. `evm` walks a block cursor and gets every address every tick.
+
+The `ic` chain is the exception on reads: `GET /wallet/balances` reports the live ledger balance of the user's custodial principal (default subaccount) and provisions their `custody_accounts` row, because awards land there with no ledger entry and sweeps into clearing post none. The internal ledger still gates `POST /wallet/withdrawals`, so an `ic` withdrawal can disagree with that figure. The deposit watcher skips VXP on purpose: it is read live and stays non-withdrawable, so it must never be booked on the internal ledger.
+
+Chain adapters live under `src/chains/` behind one interface (`chains/types.ts`). The `ic` adapter is enabled by default (mainnet host); `evm`, `sol` and `btc` enable through their env vars and answer `503 { "error": "chain_unavailable" }` until configured. Asset seeding is in migration `0003_custody.sql`, with seed corrections in later migrations; the `CUSTODY_ENABLED_ASSETS` allowlist is re-applied at boot. An `ic` row whose ledger id is not a valid principal is left out of `listEnabledAssets` and reported once per process, so it cannot fail every wallet request or abort the deposit watcher's whole pass.
+
+## Engine bridge
+
+`src/engine/` wraps the on-chain clearing + registry canisters with the same method surface the app consumes, over candid bindings vendored under `src/declarations/` (verbatim copies of the app's generated bindings; refresh by re-copying, never hand-edit). Public market reads sign with the engine reader identity (a service key derived as `svc:engine-reader:ic`, so it needs no secret of its own) behind a 15s in-memory TTL cache: clearing rejects the anonymous caller even on its read-only queries, and a read served to every visitor never borrows a user's key. Concurrent reads of one key share a single load, and a rejected load is never cached. A `Finalised` settlement is immutable, so it stays in a separate store outside the TTL and the 500-entry bound; every other status stays on the TTL. Account-scoped calls (orders, collateral, positions) sign with the calling user's derived custodial IC identity; settlement-grade calls sign with the admin identity. `POST /engine/collateral/deposit` approves clearing on the ledger named by the collateral catalog for `amount + fee`, then calls `deposit_collateral` in the domain the catalog allows (clearing reads a missing domain as Settlement). Deposit and withdrawal ids are claimed in `collateral_operations` first, because clearing only replays an id safely in sequence: a finished id answers with no ledger work, a held one answers `409 operation_in_progress`, a refusal or a read failing before anything is signed (`503 collateral_unavailable`) frees the id, and an unknown outcome keeps it for a 15 minute lease that outlives the call, after which a retry skips the approval. `GET /engine/account?domain=<variant>` is the domain-scoped update read; without `domain` the route serves clearing's query, whose equity and margin are always Settlement's. A custodial principal clearing holds no account for (`NoAccountStateFound`: every account that has not deposited yet) reads as an empty account, the same state clearing's refreshing read answers, instead of an error. Routes: `routes/engine.ts` (public reads + session-gated trading) and `routes/wallet.ts` (balances, deposit addresses, withdrawals).
+
+### Order rejections
+
+`POST /engine/orders/{limit,market,cancel}` answer a refusal the user can act on as a 4xx with a stable code, and never the engine's own text. `engine/order-rejections.ts` classifies every `TradeError` variant, so a bindings bump fails the typecheck until a new variant is decided. The app maps the codes to messages in `src/lib/canisters/clearing.errors.ts`, pinned by `tests/shared-drift/order-rejections.test.ts`.
+
+| Engine variant           | Status | Code                       |
+| ------------------------ | ------ | -------------------------- |
+| `InsufficientMargin`     | 400    | `insufficient_balance`     |
+| `Common(InvalidInput)`   | 400    | `invalid_order`            |
+| `NotAuthorizedToTrade`   | 403    | `market_restricted`        |
+| `NotOrderCreator`        | 403    | `not_order_creator`        |
+| `OrderNotFound`          | 404    | `order_not_found`          |
+| `SeriesNotFound`         | 404    | `market_not_found`         |
+| `ArbitrageLimitExceeded` | 409    | `arbitrage_limit_exceeded` |
+| `SelfTradingNotAllowed`  | 409    | `self_trade`               |
+| `SeriesAlreadySettled`   | 409    | `market_settled`           |
+| `SeriesExpired`          | 409    | `market_closed`            |
+| `SeriesNotStarted`       | 409    | `market_not_started`       |
+
+`insufficient_balance` also carries `available` and `required`, decimal strings in USD base units. `RegistryError`, the other `Common` variants, a variant these bindings do not know and an engine that does not answer all stay `500 { "error": "internal" }`, because none of them is something the user could change.
+
+## Markets and analytics
+
+`src/markets/` carries the market curation surface: per-series editorial metadata (`market_metadata`), per-locale translation overlays (`market_translations`, validated against the registered locale ids), and the tag reverse index (`market_tag_index`) derived from the closed 3-layer taxonomy (micros plus their macros; free tags are never indexed). Writes go through the curator gate: an admin may edit any series, the series creator their own, where the creator principal from the registry is matched against the caller's derived custodial identity or a linked legacy principal. The index is maintained in the same transaction as each metadata write and can be rebuilt from scratch via the admin corrective (`POST /api/v1/markets/tags/rebuild`).
+
+`src/analytics/` is the behavioural event pipeline: `POST /api/v1/events` ingests client batches (public: anonymous visitors track too; a session adds the pseudonymous user link), capped at `MAX_EVENTS_PER_BATCH` events per call with server-authoritative timestamps, and bumps the per-day rollup counters in the same transaction. `captureServerEvents` is the internal bridge other domains call for server-originated events (VXP payouts, settlements). Admin endpoints mirror the warehouse contract: daily summary, keyset event export with an idempotent drain delete, the registered-account count, and the profile-created export.
+
+## VXP economy
+
+`src/vxp/` is the server-fired award economy. Every award funnels through one grant path (`vxp/awards.ts`): a `vxp_awards` row is inserted `pending` under the `(user, award_type, award_key)` unique index, so a duplicate trigger collides instead of double-crediting; the treasury then transfers real VXP (ICRC-1 `icrc1_transfer` from the treasury's own ledger balance, signed by the treasury identity, one automatic retry on `BadFee` with the ledger-reported fee) and the row transitions `paid` (with `paid_at_ms` + `block_index`) or `failed` (terminal, with the error recorded). An `InsufficientFunds` rejection moved nothing, so the row goes back to `pending` for the next reconciliation pass instead of failing. The memo (capped at the ledger's 32-byte limit) and `created_at_time` are fixed on the row at the first claim and replayed by every later attempt, so a row reclaimed after a crash whose transfer had already landed gets the ledger's `Duplicate` answer and settles `paid` without a second payment. That only holds inside the ledger's 24-hour dedup window, so a stale claim is replayed only while its stamp is younger than 23 hours. A row whose transfer may have landed without being confirmed (an ambiguous error, a failed replay, or a stale claim past that window) is quarantined as `needs_ledger_check` and never marked `failed` on that basis. The reconciler settles it from the treasury's transfer history in the VXP index canister, matched on recipient, amount, memo and `created_at_time` with certified reads. If the transfer is found, the row is `paid` with that block. If it is provably absent (the index has synced to the ledger tip), the row is sent again with a fresh stamp, up to 3 attempts, then `failed`. Anything less certain leaves the row quarantined. Clients see a quarantined award as `processing`. The pending-to-paid transition emits `vxp_awarded` (and `streak_milestone` for streaks) through the analytics bridge, exactly once per award.
+
+With `VXP_TREASURY_DISABLED=1` the economy runs record-only: awards are recorded `pending` and no transfer fires, the parallel-run safety before cutover. `reconcileUnpaidAwards` (worker job + `POST /api/v1/vxp/admin/reconcile`) pays recorded-unpaid awards once the treasury is live, and doubles as the retry for grants that died between insert and transfer.
+
+Only rows with `origin = 'live'` (granted by this backend) can ever be claimed for payment. Rows imported from the legacy on-chain app carry `origin = 'etl'`: the legacy app paid them to the recipients' legacy principals, and its non-terminal states (`pending`, `owed`, `processing`) cannot rule out a transfer that landed before its bookkeeping write, so they are never paid here whatever their status. Migration `0012` marks every row that existed when it ran as `etl`: pre-migration rows cannot be told apart reliably, and pre-migration `processing` rows were sent without `created_at_time`, so nothing that predates it is ever paid automatically; anything genuinely owed from before shows in the admin backlog for manual handling. The streak underpayment backfill follows the same rule: it reads live rows only, so an imported row's recorded amount never sizes a new payout.
+
+The treasury principal (public; the account the VXP minter registers as a reserve to keep funded) is printed in the worker boot log and returned by the admin-only `GET /api/v1/vxp/admin/treasury`, together with its ledger balance and the backlog (live awards still owed, imported or pre-migration ones left unsettled, live ones awaiting a ledger check). Before switching record-only mode off, fund the treasury to at least the live backlog: a dry treasury only defers payouts, but the sweep stops at the first deferral.
+
+Award triggers mirror the post-write hook model: routes fire them AFTER the domain write commits, best-effort (an award hiccup never fails the write), and only for client-driven writes (`vxp/triggers.ts`). Profile upserts drive only the onboarding registration grant (m1, the full 1,500 VXP starter): the profile's `dailyStreak`, `totalTrades`, `unlockedAchievements` and `lastActiveDay` are the client's display copy and never mint. Trade activities read the caller's trade history in the engine (`vxp/predictions.ts`), never the client-posted activities, so a trade activity without a real fill unlocks nothing; off that history they drive the onboarding call-count milestones, the referral settlement (flat 500 VXP referee bonus + the diminishing referrer curve 500/250/100/50 with the 1000-redemption hard cap, nothing pays before the referee's first prediction), the flow lifetime milestones (10/100/500/1000 executed predictions at 50/100/250/500 VXP) and the achievements the engine proves (`first-call`, `oracle`, `on-fire`, `contrarian`, catalog XP as real VXP), and they record the UTC day of every executed fill in `activity_days`. Nothing else writes there: a Flow swipe is only the daily counter, with no fill behind it, so it records no activity day (a real Flow prediction posts its own trade activity, which records its fill day). The flow-swipe endpoint mints the 25 VXP overtime bonus at the daily hard cap, once per day key, bounded by a rolling 7-day cap of 8 counted off server-stamped creation times. The daily streak over the recorded days (one missed day forgiven, `vxp/activity-days.ts`) drives the streak milestones (3/7/14/30 at 50/150/400/1000 VXP) and `marathon`; a newly recorded day 7 or more days after the previous one drives the one-time comeback restore (top-up to 250 VXP below the 100 VXP floor, ledger-balance gated); owning a league of 3 or more members drives `league-founder`. `top-decile`, `sharpest-eye` and `bold-caller` rest on client-computed figures and are not paid. The calibration claim (`POST /api/v1/vxp/calibration/claim`) pays 20 VXP for a correct call on a finalised Vici binary market while the caller's balance sits below the 100 VXP recovery floor, rate-limited 6/hour and 15/day. `grantLeagueFounderAward` / `settleFounderAwards` (100 VXP per league, 100 per account) and the worlds-podium / tournament-prize grant helpers (`vxp/prizes.ts`) expose the payment side for the leagues, worlds and tournaments domain.
+
+## Mirrored constants
+
+While both stacks coexist, some contracts are deliberately duplicated between the app code under `src/` and this backend. The drift suite (`tests/shared-drift/`) pins each mirror pair so a change on either side fails `bun test`; the backend CI workflow also triggers on the app-side files, so the suite runs whichever side a PR touches. The pairs:
+
+| Backend                                      | App source                                                                                                                                                                                                                                                                                                                                                   | Compared                                                                        |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `src/markets/locales.ts`                     | `src/lib/constants/locale.constants.ts`                                                                                                                                                                                                                                                                                                                      | registered locale ids (module import)                                           |
+| `src/markets/taxonomy.ts`                    | `src/lib/constants/market-taxonomy.constants.ts`                                                                                                                                                                                                                                                                                                             | macro/micro vocabulary and `MICRO_TO_MACRO` (static extraction)                 |
+| `src/analytics/taxonomy.ts`                  | `src/lib/types/analytics-event.ts` + `src/lib/schema/analytics-event.schema.ts`                                                                                                                                                                                                                                                                              | event names (union + Zod enum, static extraction) and prop keys (module import) |
+| `src/vxp/constants.ts` + `src/vxp/awards.ts` | `src/lib/types/vxp-award.ts`, `src/lib/constants/vxp-economy.constants.ts`, `src/lib/constants/vxp-onboarding.constants.ts`, `src/lib/constants/achievements.constants.ts`, `src/lib/constants/referral.constants.ts`, `src/lib/constants/tokens/tokens.ic.constants.ts`, `src/lib/types/tournament.ts`, `src/satellite/services/vxp-onboarding.services.ts` | award-type set and every award amount in base units (mostly static extraction)  |
+| `src/vxp/constants.ts`                       | `src/lib/utils/achievements.utils.ts`, `src/lib/utils/streak.utils.ts`, `src/lib/constants/flow-rewards.constants.ts`                                                                                                                                                                                                                                        | achievement thresholds and streak window (static extraction)                    |
+| `src/account/`                               | `src/lib/constants/app.constants.ts`, `src/lib/types/exit-signal.ts`, `src/lib/constants/referral.constants.ts`                                                                                                                                                                                                                                              | recovery window, exit-signal reasons and note cap, referral code format         |
+| `src/profiles/`                              | `src/lib/constants/profile.constants.ts`, `src/lib/constants/flow-rewards.constants.ts`, `src/lib/types/user-stats.ts`, `src/lib/types/user-monthly-stats.ts`                                                                                                                                                                                                | nickname bounds and charset, handle cooldown, Flow hard cap, stats limits       |
+| `src/leagues/` + `src/tournaments/`          | `src/lib/types/league.ts`, `src/lib/types/battle.ts`, `src/lib/types/tournament.ts`                                                                                                                                                                                                                                                                          | league and battle bounds, cover encoding, tournament bracket and windows        |
+| `src/worlds/` + `src/school/`                | `src/lib/types/affiliation.ts`, `src/lib/types/affiliation-stats.ts`, `src/lib/utils/month-anchor.utils.ts`, `src/lib/types/school.ts`, `src/lib/constants/school-picker.constants.ts`                                                                                                                                                                       | switch lock, ranking bar, month anchor, school code limits                      |
+| `src/social/`                                | `src/lib/constants/relation.constants.ts`, `src/lib/constants/app.constants.ts`                                                                                                                                                                                                                                                                              | friend-request cooldown, resolved-results retention                             |
+| `src/engine/registry.ts`, `src/admin/`       | `src/lib/constants/icdc.constants.ts`, `src/lib/constants/app.constants.ts`                                                                                                                                                                                                                                                                                  | Vici engine id and oracle name                                                  |
+| `src/worlds/affiliations.ts`                 | `src/lib/types/affiliation.ts`                                                                                                                                                                                                                                                                                                                               | Worlds affiliation kinds (static extraction)                                    |
+| `src/declarations/**`                        | `src/declarations/**`                                                                                                                                                                                                                                                                                                                                        | vendored candid files, byte-for-byte                                            |
+| `src/db/migrations/` (asset seeds)           | `src/lib/constants/canisters.constants.ts`                                                                                                                                                                                                                                                                                                                   | IC ledger ids of the seeds plus later fixes, also valid principals              |
+
+App modules are imported directly only when they have no value imports (importing anything else would need the repo root `node_modules`, which the backend CI job does not install); everything else is pinned by reading the source text and extracting the declared literals (`tests/helpers/repo-source.ts`). Extraction throws loudly when a marker disappears, so a refactor of a mirrored app module fails the suite instead of silently comparing nothing.
+
+## Worker
+
+`src/worker.ts` (the Fly `worker` process) is a single poll loop over a registry of named jobs, interval-driven by `WORKER_POLL_INTERVAL_MS`. Each entry is a `WorkerJob { name, run, everyNthTick? }`: `run` must be idempotent (dedupe lives in the domain, e.g. the `vxp_awards` unique key or the deposits `tx_ref` key) and failures are caught and logged per job so one bad job never stalls the rest; `everyNthTick` throttles cheap-to-skip sweeps. A job is added as a new entry calling the domain's exported function, with a stable name for the logs. The registry in `src/worker.ts` is the list of jobs; read it there rather than here.
+
+## Data migration (ETL)
+
+`scripts/etl/` moves the legacy satellite data into Postgres. Every script is idempotent and re-runnable: writes upsert on the stable legacy identifiers, so re-running any step (including a full re-export) converges instead of duplicating. That property IS the cutover plan: an initial bulk run while the legacy stack is still live, then one final delta run during the write freeze.
+
+Scripts (also exposed as `bun run etl:*`):
+
+- `drain-auth-identities.ts`: calls the satellite's admin-gated auth-identity export and upserts into `legacy_auth_identities` (the table the login auto-match reads). Resumable: the keyset cursor persists in `etl_cursors` after every page, and clears on completion so the next run re-walks from the start.
+- `export-collections.ts [dir] [--fresh] [collection ...]`: drains every datastore collection into `<dir>/<collection>.jsonl` via the datastore list API signed with the admin identity, keyset-paged on doc keys. Resumable per collection through a `<collection>.cursor` sidecar file (`done` once complete); `--fresh` wipes and re-exports, which is how the delta pass re-pulls.
+- `import-collections.ts [dir] [collection ...]`: transforms the JSONL into the relational tables, one transaction per collection, in dependency order. Principals resolve through `legacy_principals`; an unmatched principal gets a provisional `users` row flagged `claim_pending` plus an `'etl'`-provenance link, adopted later by a matching first login or by the claim flow (see [Provisional account adoption](#provisional-account-adoption)).
+- `migrate-league-images.ts [--dry-run]`: downloads league covers still pointing at legacy storage URLs, re-encodes them through the standard `LEAGUE_IMAGE_SIZE_PX` cover path (S3 or local disk) and rewrites the rows to this API's serving URL.
+- `verify-parity.ts [dir] [--sample N] [--offline] [collection ...]`: per-collection counts (satellite vs JSONL vs Postgres, mapping-aware) plus N random spot checks probing exported docs for their target rows.
+
+Mapping notes (the transforms in `scripts/etl/transforms.ts` are the authority):
+
+- `roles` only fills `users.role` while it is still `user`; roles granted on this stack are never clobbered, and `controller` (infrastructure, not grantable) is skipped.
+- `vxp_awards` keeps the exported status verbatim and stamps every row `origin = 'etl'`, which this backend never pays; an existing row only updates while still `pending` (taking over a pending live row for the same award), so a payout recorded on either stack is never demoted or re-fired. Referral award keys are rewritten from the referee principal to the referee user id, matching the settlement path's idempotency key.
+- `vxp_onboarding` has no table of its own: each non-`none` milestone becomes a `vxp_awards` row (`onboarding`, `m1|m2|m3`) so the onboarding trigger collides instead of re-granting. `referrals` likewise synthesizes both payout-side award rows from the doc's payout states.
+- `school_submissions` is skipped by design: rows are ephemeral verification codes (salted digests with a short TTL); the durable outcome already lands via `schools` and `profiles.school_status`.
+- `events` / `event_rollups` are skipped: the behavioural history was already drained to the warehouse through the analytics export contract, and rollups rebuild from fresh ingest.
+- `chats` / `comments` are skipped: dormant surfaces with no target tables.
+
+Runbook (bulk run, repeatable):
+
+```bash
+cd backend
+export DATABASE_URL=...                      # target Postgres
+export ETL_SATELLITE_PEM=/path/to/admin.pem  # satellite ADMIN identity
+export ETL_SATELLITE_ID=<satellite-id>
+
+bun run migrate                              # 1. schema up to date
+bun run etl:drain-auth                       # 2. legacy_auth_identities (login auto-match)
+bun run etl:export -- ./etl-export           # 3. raw JSONL snapshot per collection
+bun run etl:import -- ./etl-export           # 4. transform into the tables
+bun run etl:images                           # 5. re-host league covers
+bun run etl:verify -- ./etl-export           # 6. parity report + spot checks
+```
+
+Cutover delta run: freeze legacy writes, then repeat steps 2-6 with a fresh export (`bun run etl:export -- ./etl-export-delta --fresh`, then import/verify against that directory). Because every import upserts and award/referral progress is never demoted, the delta pass only applies what changed since the bulk run.
+
+## End-to-end stack (test only)
+
+`e2e/` holds what the web2 Playwright suite (`e2e-web2/` at the repo root, see `docs/ai/frontend/testing.md`) runs the API with. None of it is reachable in production:
+
+- `e2e/server.ts` (`bun run e2e:server`) imports the production app from `src/index.ts` and, before listening, swaps its external dependencies through the existing test seams: `setEngineActorProvider` and `setVxpLedgerProvider` install the fakes in `e2e/fake-engine.ts`, and `setEmailTransport` (`src/lib/email.ts`) routes email into an in-memory outbox. It adds two routes that `src/index.ts` never registers: `GET /__e2e/otp/:email` (the latest sign-in code sent to an address) and `POST /__e2e/reset-rate-limits` (every local request shares the limiter's "unknown IP" key).
+- `e2e/fake-engine.ts` answers the public reads from `e2e/fixtures.ts` (live markets, one settled market, the VXP collateral asset, empty tapes and leaderboards) and every account as the never-deposited empty one until a deposit lands. Its ledgers hold balances and allowances in memory (zero until `fundFakeAccount`), and `deposit_collateral` enforces the real rules: `icrc2_transfer_from` needs an allowance covering amount + fee, the asset's allowed domains apply, an id replays without moving funds. Any other method rejects, so an unexpected engine call surfaces as a failing request. The treasury side of the VXP ledger fake refuses transfers.
+- `bun run e2e:stack` is the one entry Playwright uses: `e2e/preflight.ts` runs the guard first, so a non-loopback database is refused before `migrate` connects to it, then migrate, seed and server.
+- `e2e/seed.ts` (`bun run e2e:seed`, after `bun run migrate`) imports the legacy fixture accounts through the real ETL importer, writes their exported legacy identities and creates the admin account. Idempotent.
+
+Production guards, independent of each other:
+
+- `e2e/guard.ts` refuses to run the preflight, the seed or the server unless `NODE_ENV=test`, `VICI_E2E=1`, `VXP_TREASURY_DISABLED=1`, and both `DATABASE_URL` and `IC_HOST` point at a loopback host. The production image pins `NODE_ENV=production` and no deployed config sets `VICI_E2E`; the loopback `IC_HOST` also means any engine path the fakes miss fails locally instead of reaching mainnet.
+- `.dockerignore` excludes `e2e/` from the image, so a deployed machine has no copy of these entrypoints; the Fly processes and the release command only run entrypoints under `src/`.
+
+## Deploy (Fly.io)
+
+Two Fly apps, both in `ams`:
+
+- `vici-app-backend` (`backend/fly.toml`): the API plus a `worker` process. DB migrations run atomically as the `release_command` before traffic shifts, so a failed migration aborts the deploy.
+- `vici-app-web` (`fly.web.toml` at the repo root): the static SPA behind nginx (`Dockerfile.web`, `nginx.web.conf`) with SPA fallback and immutable asset caching.
+
+Both apps exist. Recreating one from scratch:
+
+```bash
+cd backend && fly launch --no-deploy            # creates vici-app-backend
+fly secrets set DATABASE_URL=... SESSION_SECRET=... ROOT_SECRET=... RESEND_API_KEY=...
+cd .. && fly launch --no-deploy --config fly.web.toml   # creates vici-app-web
+```
+
+Deploys go through `.github/workflows/web2-deploy.yml`, dispatched by hand from a `v*` release tag only (`gh workflow run web2-deploy.yml --ref vX.Y.Z`): its first job fails the run on any other ref, because the backend deploy runs the migrations against the production database. It needs the repo secrets `FLY_API_TOKEN_WEB2_BACKEND` and `FLY_API_TOKEN_WEB2_WEB`, one `fly tokens create deploy` token per app. Break-glass only, when the workflow cannot run (GitHub Actions down): from a clean checkout of the same release tag (`git checkout vX.Y.Z`, no local changes), `flyctl deploy --remote-only --build-arg BUN_VERSION="$(cat .bun-version)"` from `backend/`, and `flyctl deploy --config fly.web.toml --remote-only --build-arg NODE_VERSION="$(cat .node-version)"` from the repo root. Never deploy a branch or a dirty tree: the backend deploy runs its migrations against production.
+
+`GET /health` answers 200 with `{ ok: true, db: 'connected' }` when the DB probe (bounded by `HEALTH_PROBE_TIMEOUT_MS`) succeeds, 503 otherwise; `HEALTH_EXIT_THRESHOLD` consecutive failures exit the process for a supervised restart with a fresh pool.
+
+## Layout
+
+```
+backend/
+  src/
+    index.ts        # Elysia app: security headers, CORS, error mapping, /health
+    worker.ts       # background job loop (registry of idempotent named jobs)
+    env.ts          # validated environment
+    account/        # account lifecycle (soft/hard delete, hibernation, sweep), referral codes
+    admin/          # roles and their engine-registry sync, runtime app settings
+    analytics/      # behavioural event ingest, rollups, warehouse export + drain
+    auth/           # sessions, guards, identity resolution, OTP, Google, Apple
+    chains/         # chain adapters (ic/evm/sol/btc) + registry + deposit watchers
+    custody/        # assets, custody accounts, double-entry ledger, withdrawals
+    leagues/        # leagues, members, battles and their resolution, cover images, stats
+    markets/        # market metadata, translations, tag index, curator gate
+    profiles/       # profiles, nicknames, Flow swipes, leaderboard, stat caches
+    school/         # school directory, email-domain matching, code verification
+    social/         # relations, friend activity feed, resolved-results digest
+    tournaments/    # monthly league tournament: draw, rounds, prizes
+    vxp/            # award economy: grant core, payout, triggers, calibration, referral settlement
+    worlds/         # affiliations, their stats and the monthly podium
+    declarations/   # vendored candid bindings for clearing + registry + satellite (generated, never hand-edited)
+    engine/         # actor provider, TTL cache, typed clearing/registry wrappers
+    routes/         # /api/v1 route modules (auth, wallet, engine, markets, events, ...)
+    lib/            # logger, crypto, keys (HKDF derivation), ic-agent, cookies, email, rate limiting
+    db/
+      client.ts     # pg pool, query/tx helpers, isDbUnavailable
+      migrate.ts    # forward-only migration runner (_migrations tracking)
+      migrations/   # NNNN_name.sql, lexical order, never edited after merge
+  tests/            # bun test suites (real Postgres, no mocks for DB paths)
+  e2e/              # test-only E2E server, fake engine, fixtures and seed (not in the image)
+  scripts/
+    etl/            # data-migration tooling: drain, export, import, image re-host, parity
+```

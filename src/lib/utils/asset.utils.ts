@@ -1,8 +1,8 @@
-import type { RegistryDid } from '$declarations';
-import { USD_ASSET } from '$lib/constants/tokens/assets.fiat.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import type { Token } from '$lib/types/token';
-import { findTokenByLedgerId } from '$lib/utils/tokens.utils';
+import type { RegistryDid } from '#declarations';
+import { USD_ASSET } from '#lib/constants/tokens/assets.fiat.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import type { Token } from '#lib/types/token.ts';
+import { findTokenByLedgerId } from '#lib/utils/tokens.utils.ts';
 import { assertNever } from '@dfinity/utils';
 
 export const assetToToken = (payoutUnit: RegistryDid.PayoutUnit): Token | undefined => {

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { Icon as LucideIcon } from '@lucide/svelte';
+	import type { LucideIcon } from '@lucide/svelte';
 
 	interface Props {
 		label: string;
 		sub?: string;
-		icon?: typeof LucideIcon;
+		icon?: LucideIcon;
 		checked: boolean;
 		onchange: (value: boolean) => void;
 		disabled?: boolean;
@@ -64,7 +64,7 @@
 		background: var(--bg-surface);
 	}
 
-	/* Bare inline glyph, tinted to the dim foreground tier — matches the
+	/* Bare inline glyph, tinted to the dim foreground tier: matches the
 	   settings-row icon treatment (no tinted tile). */
 	.set-toggle-icon {
 		display: flex;

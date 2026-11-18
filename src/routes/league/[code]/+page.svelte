@@ -1,39 +1,41 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { onMount, untrack } from 'svelte';
-	import { browser } from '$app/environment';
+	import { untrack } from 'svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { pageTitle } from '#lib/constants/brand.constants.ts';
+	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { joinLeagueByInvite, lookupLeagueByInvite } from '#lib/services/leagues.services.ts';
+	import { claimReferralFriendship } from '#lib/services/referral.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { LEAGUE_INVITE_CODE_REGEX } from '#lib/types/league.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { stashLeagueInviteForSignup } from '#lib/utils/pending-onboarding.utils.ts';
+	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
-	import { REFERRAL_CODE_REGEX } from '$lib/constants/referral.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { authBusy, userSignedIn } from '$lib/derived/user.derived';
-	import { track } from '$lib/services/analytics.services';
-	import { joinLeagueByInvite, lookupLeagueByInvite } from '$lib/services/leagues.services';
-	import { claimReferralFriendship } from '$lib/services/referral.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { LEAGUE_INVITE_CODE_REGEX } from '$lib/types/league';
-	import { t } from '$lib/utils/i18n.utils';
 
 	/**
-	 * League-invite landing page — the single canonical URL the "Invite"
+	 * League-invite landing page: the single canonical URL the "Invite"
 	 * buttons copy (`{origin}/league/{code}`). Mirrors the `/i/[code]`
 	 * referral landing. The `[code]` slug is a 6-char `[A-Z0-9]` invite
 	 * code enforced by `LEAGUE_INVITE_CODE_REGEX`. Branches on auth state:
 	 *
-	 *   1. **Invalid code shape** — toast + bail to the leagues list.
-	 *   2. **Signed-out (or a brand-new account still mid-onboarding)** —
+	 *   1. **Invalid code shape**: toast + bail to the leagues list.
+	 *   2. **Signed-out (or a brand-new account still mid-onboarding)**:
 	 *      stash the code into the `vici:pending-onboarding` payload and
 	 *      route to `/signup`. The (app) layout's pending-onboarding drain
 	 *      then auto-joins the league once the new account is in place.
 	 *      Returning users (a profile already existed at sign-in) skip this
 	 *      and join directly, even if their legacy profile never flipped
 	 *      `onboardingCompleted` to `true`.
-	 *   3. **Signed-in & onboarded** — resolve the league, join it (or
+	 *   3. **Signed-in & onboarded**: resolve the league, join it (or
 	 *      route straight in if already a member), then land on the
 	 *      league detail page.
 	 *
@@ -43,8 +45,8 @@
 	 * signed-out → stash it next to the league invite so the signup drain
 	 * redeems it (friendship + new-user bonus); signed-in returning user →
 	 * claim the friendship directly after the join (no bonus, idempotent).
-	 * The pending-onboarding slot is signed-out machinery — its drain toasts
-	 * "account exists" for returning users — so we never stash `?ref=` for a
+	 * The pending-onboarding slot is signed-out machinery: its drain toasts
+	 * "account exists" for returning users, so we never stash `?ref=` for a
 	 * signed-in session.
 	 */
 
@@ -70,28 +72,24 @@
 	);
 	// A returning user (the satellite already held a profile at sign-in) is
 	// past onboarding even if their legacy profile still defaults
-	// `onboardingCompleted` to `false` — only a brand-new account needs the
+	// `onboardingCompleted` to `false`: only a brand-new account needs the
 	// signup drain. Mirrors the (app) layout's onboarding gate.
 	const needsOnboarding = $derived(!onboardingCompleted && !$userStore.profileExisted);
 
-	const leaguesListPath = `${resolve(AppPath.Arena)}/leagues`;
-
-	onMount(() => {
-		document.title = 'Join league · VICI';
-	});
+	const leaguesListPath = `${resolveAppPath(AppPath.Arena)}/leagues`;
 
 	$effect(() => {
 		if (!browser) {
 			return;
 		}
 
-		// Wait for the auth handshake before deciding what to do — reacting
+		// Wait for the auth handshake before deciding what to do: reacting
 		// too early would always read `userSignedIn=false`.
 		if ($authBusy) {
 			return;
 		}
 
-		// One-shot — we navigate away in every branch, and the `onMount`
+		// One-shot: we navigate away in every branch, and the `onMount`
 		// mutation guard would otherwise re-fire on the post-nav re-render.
 		if (untrack(() => resolved)) {
 			return;
@@ -104,41 +102,8 @@
 		void handleInvite();
 	});
 
-	const stashCodeForSignup = () => {
-		try {
-			const raw = localStorage.getItem(PENDING_ONBOARDING_STORAGE_KEY);
-			const parsed: Record<string, unknown> =
-				nonNullish(raw) && typeof raw === 'string'
-					? ((): Record<string, unknown> => {
-							try {
-								const v = JSON.parse(raw);
-
-								return typeof v === 'object' && nonNullish(v) ? (v as Record<string, unknown>) : {};
-							} catch {
-								return {};
-							}
-						})()
-					: {};
-			parsed.leagueInvite = normalizedCode;
-
-			// First-referrer-wins: a code stashed by an earlier `?ref=` (e.g. a
-			// market share) is never overwritten. Mirrors the (app) layout's
-			// capture rule, which is itself signed-out-only.
-			const hasReferral = typeof parsed.referralCode === 'string' && parsed.referralCode.length > 0;
-
-			if (nonNullish(referralCode) && !hasReferral) {
-				parsed.referralCode = referralCode;
-			}
-
-			localStorage.setItem(PENDING_ONBOARDING_STORAGE_KEY, JSON.stringify(parsed));
-		} catch {
-			// Best-effort: signup still works without the stashed invite —
-			// the user can join manually with the code afterwards.
-		}
-	};
-
 	const goLeaguesList = () => {
-		void goto(leaguesListPath, { replaceState: true });
+		void goto(leaguesListPath, { replace: true });
 	};
 
 	const handleInvite = async () => {
@@ -157,14 +122,17 @@
 		// Signed-out OR a brand-new account still mid-onboarding → stash +
 		// route to signup. The (app) layout drain redeems the invite once the
 		// profile exists. Returning users join directly (see `needsOnboarding`).
+		// The common signed-out case (no signed-in hint on the device) never
+		// reaches here: `+page.ts` fast-paths it before the auth handshake;
+		// this branch covers a stale hint whose session turned out expired.
 		if (!$userSignedIn || needsOnboarding) {
-			stashCodeForSignup();
-			void goto(resolve(PublicPath.SignUp), { replaceState: true });
+			stashLeagueInviteForSignup({ inviteCode: normalizedCode, referralCode });
+			void goto(resolve(PublicPath.SignUp), { replace: true });
 
 			return;
 		}
 
-		// Existing signed-in user — resolve the league first so we can route
+		// Existing signed-in user: resolve the league first so we can route
 		// the user in and name the league in the toast, regardless of the
 		// join outcome.
 		try {
@@ -198,7 +166,7 @@
 			} catch (err: unknown) {
 				const message = err instanceof Error ? err.message : '';
 
-				// Already a member is a no-op success — fall through and route in.
+				// Already a member is a no-op success: fall through and route in.
 				if (message !== 'Already a member of this league.') {
 					console.error('League invite join failed', err);
 					notificationsStore.add({
@@ -214,7 +182,7 @@
 			}
 
 			// A league invite implies a friend invite. A signed-in returning user
-			// is past the signup window, so there's no VXP bonus — just land them
+			// is past the signup window, so there's no VXP bonus: just land them
 			// in the sharer's friends list. Best-effort and idempotent: the
 			// satellite no-ops an existing relation and rejects self-referral.
 			if (nonNullish(referralCode)) {
@@ -229,7 +197,7 @@
 				}
 			}
 
-			void goto(`${leaguesListPath}/${league.id}`, { replaceState: true });
+			void goto(`${leaguesListPath}/${league.id}`, { replace: true });
 		} catch (err: unknown) {
 			console.error('League invite resolve failed', err);
 			notificationsStore.add({
@@ -242,6 +210,10 @@
 		}
 	};
 </script>
+
+<svelte:head>
+	<title>{pageTitle(t({ locale: $localeStore, key: 'seo.league_join.title' }))}</title>
+</svelte:head>
 
 <div
 	class="flex min-h-screen w-full flex-col items-center justify-center p-6"

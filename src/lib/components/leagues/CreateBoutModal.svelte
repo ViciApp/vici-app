@@ -1,52 +1,51 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Search, X } from '@lucide/svelte/icons';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { MARKET_TAG_LABEL_KEYS } from '$lib/constants/market-tags.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { track } from '$lib/services/analytics.services';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		listChallengeableLeagues,
 		listMyLeagues,
 		proposeBattle,
 		type LeagueWithRole
-	} from '$lib/services/leagues.services';
-	import { localeStore } from '$lib/stores/locale.store';
+	} from '#lib/services/leagues.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		BATTLE_TRASH_TALK_MAX_LENGTH,
-		BATTLE_WAGER_DEFAULT,
-		BATTLE_WAGER_MAX,
-		BATTLE_WAGER_MIN,
+		BATTLE_AMOUNT_DEFAULT,
+		BATTLE_AMOUNT_MAX,
+		BATTLE_AMOUNT_MIN,
 		type BattleDoc,
 		type BattleScope
-	} from '$lib/types/battle';
-	import { isLeaguePubliclyListed, type LeagueDoc } from '$lib/types/league';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	} from '#lib/types/battle.ts';
+	import { isLeaguePubliclyListed, type LeagueDoc } from '#lib/types/league.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
 
 	/**
-	 * Create-a-battle wizard — the multi-step "start a battle" sheet
+	 * Create-a-battle wizard: the multi-step "start a battle" sheet
 	 * reachable from the Battles surface and from a league's own detail
 	 * page (where `fromLeagueId` pins the challenger side).
 	 *
 	 * Steps (steps the caller sees collapse when the data is
 	 * unambiguous):
 	 *
-	 *  1. Pick your league — only the leagues the caller owns or admins
+	 *  1. Pick your league; only the leagues the caller owns or admins
 	 *     can send a challenge (the satellite assert hard-rejects everyone
 	 *     else). Auto-skipped when the caller owns/admins exactly one league
 	 *     or when `fromLeagueId` pins the challenger; the empty state routes
 	 *     to Leagues when they have none.
-	 *  2. Opponent — a searchable list of challengeable leagues
+	 *  2. Opponent; a searchable list of challengeable leagues
 	 *     (`listChallengeableLeagues`): public leagues plus the caller's
 	 *     own memberships, minus the leagues the caller owns. The caller
 	 *     filters by name and taps the opponent.
-	 *  3. Scope — which calls count: all, or a single market category.
-	 *  4. Wager — an optional VXP stake (0–500); 0 means no stake.
-	 *  5. Trash-talk — an optional short message (brevity rewarded).
-	 *  6. Duration — 7 / 14 / 30 days, mapped to the kickoff → settle
+	 *  3. Scope: which calls count (all, or a single market category).
+	 *  4. Amount: an optional VXP amount (0–500); 0 means pride only.
+	 *  5. Trash-talk: an optional short message (brevity rewarded).
+	 *  6. Duration: 7 / 14 / 30 days, mapped to the kickoff → settle
 	 *     window the satellite stores.
 	 *
 	 * Wraps the same `proposeBattle` service the league-detail Challenge
@@ -57,7 +56,7 @@
 		isOpen: boolean;
 		/**
 		 * When set, pins the challenger side to this league and collapses
-		 * the pick-your-league step — used by the league-detail entry point,
+		 * the pick-your-league step: used by the league-detail entry point,
 		 * where the caller is already acting on a specific league they own.
 		 */
 		fromLeagueId?: string;
@@ -70,13 +69,12 @@
 	const DURATIONS = [7, 14, 30] as const;
 	type Duration = (typeof DURATIONS)[number];
 
-	// Scope options surfaced in the picker — `all` plus the two
-	// category narrowings the design highlights. Labels reuse the
-	// canonical market-tag catalog so they never drift.
+	// Scope options surfaced in the picker; `all` plus the two macro
+	// narrowings the design highlights, labelled via the macro catalog.
 	const SCOPE_OPTIONS: readonly { value: BattleScope; key: MessageKey }[] = [
 		{ value: 'all', key: 'battles.create.scope_all' },
-		{ value: 'wc', key: MARKET_TAG_LABEL_KEYS.wc },
-		{ value: 'macro', key: MARKET_TAG_LABEL_KEYS.macro }
+		{ value: 'sports', key: 'market.macro.sports' },
+		{ value: 'economy', key: 'market.macro.economy' }
 	];
 
 	// Start as 'loading' so the first open shows the spinner immediately
@@ -90,7 +88,7 @@
 	let opponent: LeagueDoc | undefined = $state();
 	let opponentSearch = $state('');
 	let scope = $state<BattleScope>('all');
-	let wager = $state<number>(BATTLE_WAGER_DEFAULT);
+	let amount = $state<number>(BATTLE_AMOUNT_DEFAULT);
 	let trashTalk = $state('');
 	let duration = $state<Duration>(7);
 
@@ -113,7 +111,7 @@
 	const trashTalkRemaining = $derived(BATTLE_TRASH_TALK_MAX_LENGTH - trashTalk.length);
 
 	// True once the load resolves a pinned `fromLeagueId` to a league the
-	// caller actually owns — collapses the pick-your-league step.
+	// caller actually owns: collapses the pick-your-league step.
 	const isPinned = $derived(
 		nonNullish(fromLeagueId) && ownedLeagues.some((owned) => owned.league.id === fromLeagueId)
 	);
@@ -134,7 +132,7 @@
 	);
 
 	// The wizard's actions dock in the sheet's non-scrolling footer (so the
-	// CTA never gets clipped on short iOS viewports — same treatment as the
+	// CTA never gets clipped on short iOS viewports: same treatment as the
 	// affiliation picker). Only the ready form state has docked actions; the
 	// loading / error / no-leagues states keep their own short body buttons.
 	const showFooter = $derived.by(() => loadState === 'ready' && ownedLeagues.length > 0);
@@ -169,7 +167,7 @@
 		opponent = undefined;
 		opponentSearch = '';
 		scope = 'all';
-		wager = BATTLE_WAGER_DEFAULT;
+		amount = BATTLE_AMOUNT_DEFAULT;
 		trashTalk = '';
 		duration = 7;
 		submitting = false;
@@ -183,7 +181,7 @@
 
 	const goToLeagues = () => {
 		handleClose();
-		void goto(`${resolve(AppPath.Arena)}/leagues`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/leagues`);
 	};
 
 	const selectLeague = (league: LeagueDoc) => {
@@ -219,7 +217,7 @@
 				sideB: opponent.id,
 				durationMs: duration * DAY_IN_MS,
 				scope,
-				wager,
+				amount,
 				trashTalk
 			});
 
@@ -250,7 +248,7 @@
 		{/if}
 
 		{#if opponent}
-			<!-- Real submit button linked to the form via the `form` attribute —
+			<!-- Real submit button linked to the form via the `form` attribute:
 				 it lives in the sheet's non-scrolling footer (outside the <form>)
 				 but keeps native submit semantics (Enter / implicit submission /
 				 assistive tech). -->
@@ -299,7 +297,7 @@
 				{t({ locale: $localeStore, key: 'common.error.generic' })}
 			</p>
 		{:else if ownedLeagues.length === 0}
-			<!-- No owned leagues — you must admin a league to challenge. -->
+			<!-- No owned leagues: you must admin a league to challenge. -->
 			<p class="serif-italic create-bout-lede">
 				{t({ locale: $localeStore, key: 'battles.create.empty_lede' })}
 			</p>
@@ -336,7 +334,7 @@
 				{:else if fromLeague}
 					<!-- Exactly one owned league: it's auto-selected as the
 						 challenger. Surface it read-only so the caller sees their
-						 league IS in the battle — otherwise the step is invisible and
+						 league IS in the battle: otherwise the step is invisible and
 						 they look for their league in the opponent list (where it is
 						 correctly excluded, since a league can't challenge itself). -->
 					<div class="create-bout-field">
@@ -448,31 +446,31 @@
 							</div>
 						</fieldset>
 
-						<!-- Step 4 · Wager (optional) -->
+						<!-- Step 4 · Amount (optional) -->
 						<div class="create-bout-field">
-							<div class="create-bout-wager-head">
+							<div class="create-bout-amount-head">
 								<span class="allcaps create-bout-label">
-									{t({ locale: $localeStore, key: 'battles.create.label_wager' })}
+									{t({ locale: $localeStore, key: 'battles.create.label_amount' })}
 								</span>
-								<span class="num create-bout-wager-value">
-									{wager === BATTLE_WAGER_MIN
-										? t({ locale: $localeStore, key: 'battles.create.wager_none' })
+								<span class="num create-bout-amount-value">
+									{amount === BATTLE_AMOUNT_MIN
+										? t({ locale: $localeStore, key: 'battles.create.amount_none' })
 										: t({
 												locale: $localeStore,
-												key: 'battles.create.wager_value',
-												params: { amount: wager }
+												key: 'battles.create.amount_value',
+												params: { amount }
 											})}
 								</span>
 							</div>
 							<input
 								class="create-bout-slider"
-								aria-label={t({ locale: $localeStore, key: 'battles.create.label_wager' })}
-								max={BATTLE_WAGER_MAX}
-								min={BATTLE_WAGER_MIN}
-								oninput={(event) => (wager = Number(event.currentTarget.value))}
+								aria-label={t({ locale: $localeStore, key: 'battles.create.label_amount' })}
+								max={BATTLE_AMOUNT_MAX}
+								min={BATTLE_AMOUNT_MIN}
+								oninput={(event) => (amount = Number(event.currentTarget.value))}
 								step="10"
 								type="range"
-								value={wager}
+								value={amount}
 							/>
 						</div>
 
@@ -685,7 +683,7 @@
 		/* No inner max-height / overflow: the sheet body is the single
 		 * scroller, so the whole opponent list is reachable by scrolling.
 		 * A nested scroll region traps the wheel/touch on iOS and hides the
-		 * lower leagues (#552). */
+		 * lower leagues. */
 	}
 
 	.create-bout-opponent {
@@ -729,14 +727,14 @@
 		letter-spacing: var(--tracking-allcaps);
 	}
 
-	.create-bout-wager-head {
+	.create-bout-amount-head {
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
 		gap: 0.5rem;
 	}
 
-	.create-bout-wager-value {
+	.create-bout-amount-value {
 		font-size: var(--t-13);
 		font-weight: 700;
 		color: var(--laurel);

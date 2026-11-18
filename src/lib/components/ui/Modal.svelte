@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { X } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		isOpen: boolean;

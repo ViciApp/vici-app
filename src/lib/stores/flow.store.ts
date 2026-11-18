@@ -1,11 +1,11 @@
-import { browser } from '$app/environment';
-import type { ClearingDid } from '$declarations';
-import { balanceDomain } from '$lib/derived/balance-domain.derived';
-import { featuredEvent, featuredEventActive } from '$lib/derived/featured-event.derived';
-import { userSignedIn } from '$lib/derived/user.derived';
-import { prepareFlow, type PreparedFlow } from '$lib/services/flow-prep.services';
-import { userStore } from '$lib/stores/user.store';
-import { compareBalanceDomains } from '$lib/utils/balance-domain.utils';
+import type { ClearingDid } from '#declarations';
+import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+import { featuredEvent, featuredEventActive } from '#lib/derived/featured-event.derived.ts';
+import { userSignedIn } from '#lib/derived/user.derived.ts';
+import { prepareFlow, type PreparedFlow } from '#lib/services/flow-prep.services.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { derived, get, writable, type Readable } from 'svelte/store';
 
@@ -27,13 +27,12 @@ const internal = writable<FlowStoreData>(initial);
 
 /**
  * Monotonic token used to drop stale builds that resolve after a
- * newer invalidate. Bumped at the start of every build attempt —
+ * newer invalidate. Bumped at the start of every build attempt:
  * any in-flight call older than the latest token is discarded on
  * resolve.
  */
 let buildToken = 0;
 let initialized = false;
-
 const currentTag = (): string | undefined =>
 	get(featuredEventActive) ? get(featuredEvent).categoryTag : undefined;
 
@@ -55,7 +54,7 @@ const runBuild = async (
 			exclude
 		});
 	} catch (e: unknown) {
-		// Non-fatal — keep `result` undefined so callers leave the
+		// Non-fatal: keep `result` undefined so callers leave the
 		// store untouched and rely on the existing payload (or a
 		// subsequent invalidate) instead of clobbering it.
 		console.error('Flow prewarm failed', e);
@@ -80,7 +79,7 @@ const warm = async (): Promise<void> => {
 	const { result: current, token } = await runBuild([]);
 
 	// If a newer build started while ours was in flight, let it own
-	// the next status transition — touching state here could flip
+	// the next status transition: touching state here could flip
 	// status back to `ready` while a fresh build is still running.
 	if (token !== buildToken) {
 		return;
@@ -108,7 +107,7 @@ const warm = async (): Promise<void> => {
  * Mark the cache as stale and rebuild in the background. The
  * previous `current` deck stays visible to consumers until the
  * rebuild lands so the UI never blocks on the refresh. `next` is
- * always cleared, however — it was paired with the now-stale
+ * always cleared, however: it was paired with the now-stale
  * inputs and would otherwise let `advanceFlow()` promote a
  * follow-up deck built for the wrong domain / event / interests.
  */
@@ -204,7 +203,7 @@ export const peekFlow = ({
  * an initial warm. Call once from `(app)/+layout.svelte` on mount.
  *
  * Each subscription only invalidates when its tracked slice
- * actually changes — the initial fire (which mirrors current
+ * actually changes: the initial fire (which mirrors current
  * state) is absorbed, and an explicit `invalidateFlow()` call at
  * the end of init does the first warm so we don't depend on a
  * spurious change to seed the cache.
@@ -260,7 +259,7 @@ export const initFlowPrewarm = (): (() => void) => {
 		onChange({ store: trackedProfileSig, toKey: (v) => v })
 	];
 
-	// Initial warm — fires after subscriptions are wired so any
+	// Initial warm: fires after subscriptions are wired so any
 	// input that mutates during the warm triggers a follow-up build.
 	invalidateFlow();
 

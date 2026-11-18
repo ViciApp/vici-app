@@ -1,5 +1,6 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { LeaguePrivacy } from '$lib/enums/league';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
+import { leagueMemberKey, type LeagueMemberDoc } from '#lib/types/league-member.ts';
 import {
 	LEAGUE_DESCRIPTION_MAX_LENGTH,
 	LEAGUE_EMBLEMS,
@@ -7,12 +8,27 @@ import {
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
+	type CreateLeagueRefusalReason,
+	type JoinLeagueRefusalReason,
 	type LeagueDoc
-} from '$lib/types/league';
-import { leagueMemberKey, type LeagueMemberDoc } from '$lib/types/league-member';
+} from '#lib/types/league.ts';
+import {
+	assertOwnerOrController,
+	controllerCaller,
+	isAdmin,
+	isControllerText
+} from '#satellite/services/authz.services.ts';
+import {
+	deleteLeagueInvite,
+	leagueIdForInviteCode,
+	recordLeagueInvite
+} from '#satellite/services/league-invite.services.ts';
+import { payLeagueFounderReward } from '#satellite/services/vxp-league-founder-awards.services.ts';
+import { logError } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { canisterSelf, msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
@@ -30,7 +46,7 @@ import {
  * `https://<satelliteId>.<host><fullPath>` with `fullPath` starting at
  * `/league_images/`).
  *
- * Absent or `undefined` means "no image" — allowed (the field is
+ * Absent or `undefined` means "no image": allowed (the field is
  * cleared, never an empty string). When present we reject anything that
  * isn't ours: surrounding whitespace, a non-`https:` scheme (blocks
  * `data:`/`javascript:` and other foreign schemes), a host whose
@@ -43,7 +59,7 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
 		return;
 	}
 
-	// The stored value must already be its trimmed form — the FE
+	// The stored value must already be its trimmed form: the FE
 	// normalises before write, so any surrounding whitespace here is a
 	// crafted payload.
 	if (imageUrl !== imageUrl.trim() || imageUrl.length === 0) {
@@ -58,7 +74,7 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
 		throw new Error('leagues imageUrl must be a well-formed URL.');
 	}
 
-	// HTTPS only — blocks data:/javascript:/blob: and any foreign scheme.
+	// HTTPS only: blocks data:/javascript:/blob, and any foreign scheme.
 	if (url.protocol !== 'https:') {
 		throw new Error('leagues imageUrl must use the https scheme.');
 	}
@@ -90,24 +106,25 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
  *
  *  2. **Authorisation.** On creation, the caller becomes the owner
  *     (`proposed.owner === caller`). On edits, the *current* owner is
- *     the only principal that can write — but they're free to flip
+ *     the only principal that can write, but they're free to flip
  *     `owner` to any valid principal (transfer-of-ownership flow).
  *     The owner-rotation invariant is "only the outgoing owner can
  *     authorise the swap"; the new owner must already be a member of
  *     the league (enforced by the endpoint, not this assert, since
  *     the assert can't cheaply scan `league_members`).
  *
- *  3. **Identity fields are immutable.** `id`, `createdAtMs`,
- *     `inviteCode`, and `emblem` are write-once. Even the owner can't
- *     rotate the invite code after creation — the join-by-code flow
- *     relies on codes being stable for the league's lifetime. `owner`,
+ *  3. **Identity fields are immutable.** `id`, `createdAtMs` and
+ *     `emblem` are write-once. A new doc never carries `inviteCode`: the
+ *     code lives in the controllers-only `league_invites` collection
+ *     (see `league-invite.services.ts`); a doc written before that keeps
+ *     its code until the satellite takes it off. `owner`,
  *     `privacy`, and `imageUrl` are the editable exceptions: ownership
  *     transfers (see §2), and the owner can change the league's
  *     visibility and cover image after creation.
  *
- *  4. **Shape validation.** Name 3–40 chars, description ≤240 chars,
- *     invite code matches `[A-Z0-9]{6}`. Owner is a valid principal
- *     text.
+ *  4. **Shape validation.** Name within `LEAGUE_NAME_MIN_LENGTH` to
+ *     `LEAGUE_NAME_MAX_LENGTH`, description within
+ *     `LEAGUE_DESCRIPTION_MAX_LENGTH`. Owner is a valid principal text.
  */
 export const assertSetLeague = ({
 	caller,
@@ -123,7 +140,7 @@ export const assertSetLeague = ({
 
 	const proposedDoc = decodeDocData<LeagueDoc>(proposed.data);
 
-	// 1. Key shape — must match the embedded id.
+	// 1. Key shape: must match the embedded id.
 	if (key !== proposedDoc.id) {
 		throw new Error(`leagues key mismatch: expected ${proposedDoc.id}, got ${key}.`);
 	}
@@ -145,13 +162,7 @@ export const assertSetLeague = ({
 		throw new Error(`leagues description must be at most ${LEAGUE_DESCRIPTION_MAX_LENGTH} chars.`);
 	}
 
-	if (!LEAGUE_INVITE_CODE_REGEX.test(proposedDoc.inviteCode)) {
-		throw new Error(
-			`leagues inviteCode must match ${LEAGUE_INVITE_CODE_REGEX} (got "${proposedDoc.inviteCode}").`
-		);
-	}
-
-	// Owner principal must parse — defensive against malformed writes.
+	// Owner principal must parse: defensive against malformed writes.
 	try {
 		Principal.fromText(proposedDoc.owner);
 	} catch {
@@ -159,7 +170,7 @@ export const assertSetLeague = ({
 	}
 
 	// Privacy drives every visibility decision, so any value that lands on
-	// the doc — on creation OR on a later owner edit — must be one of the
+	// the doc, on creation OR on a later owner edit, must be one of the
 	// three known variants (or absent for legacy-style rows, which resolve
 	// to `open`). Validated on both paths because privacy is owner-mutable
 	// after creation (an owner can tighten or loosen a league's visibility);
@@ -175,12 +186,18 @@ export const assertSetLeague = ({
 
 	const callerText = Principal.fromUint8Array(caller).toText();
 
-	// Creation path — caller must equal proposed owner. No `current`
+	// Creation path: caller must equal proposed owner. No `current`
 	// to compare against, so the "current owner authorises edits"
 	// rule below doesn't apply.
 	if (isNullish(current)) {
 		if (proposedDoc.owner !== callerText) {
 			throw new Error('leagues owner must match the caller principal on creation.');
+		}
+
+		// The invite code is the only way in, and this doc is public: it
+		// lives in the controllers-only `league_invites` collection instead.
+		if (nonNullish(proposedDoc.inviteCode)) {
+			throw new Error('leagues docs never carry the invite code; create through createLeague.');
 		}
 
 		// Emblem renders in the UI and is frozen after creation, so it
@@ -197,7 +214,7 @@ export const assertSetLeague = ({
 		}
 
 		// A cover image may be seeded at creation; same validation as the
-		// edit path — when present it must be one of our own league_images
+		// edit path; when present it must be one of our own league_images
 		// Storage URLs, else the field stays absent ("no image").
 		assertValidLeagueImageUrl(proposedDoc.imageUrl);
 
@@ -209,12 +226,14 @@ export const assertSetLeague = ({
 	// 2 (edit path). The current owner is the only principal that
 	// can edit. The transfer-of-ownership endpoint impersonates the
 	// outgoing owner (msgCaller) for the swap, then impersonates the
-	// new owner for the membership-role updates.
-	if (currentDoc.owner !== callerText) {
+	// new owner for the membership-role updates. The satellite itself
+	// (a controller) may edit too: the account purge hands an owned league
+	// to a surviving member.
+	if (currentDoc.owner !== callerText && !isControllerText(callerText)) {
 		throw new Error('leagues edits must be made by the current owner.');
 	}
 
-	// 3. Identity fields are immutable on edits — `owner` is now
+	// 3. Identity fields are immutable on edits: `owner` is now
 	// editable, the rest stay frozen. The emblem is chosen once at creation
 	// and frozen alongside the identity fields so the league's logo glyph
 	// can't silently shift under existing members.
@@ -225,16 +244,25 @@ export const assertSetLeague = ({
 	// direction) and set/change/clear its cover image after creation (see
 	// §4 below), so neither is frozen here. The proposed privacy value is
 	// still range-checked against the known variants up top.
+	//
+	// A doc written before invite codes moved to `league_invites` still
+	// carries its code; only the satellite takes it off
+	// (`migrateLeagueInviteCodes`, after copying it there).
+	const dropsLegacyCode =
+		nonNullish(currentDoc.inviteCode) &&
+		isNullish(proposedDoc.inviteCode) &&
+		isControllerText(callerText);
+
 	if (
 		currentDoc.id !== proposedDoc.id ||
 		currentDoc.createdAtMs !== proposedDoc.createdAtMs ||
-		currentDoc.inviteCode !== proposedDoc.inviteCode ||
+		(currentDoc.inviteCode !== proposedDoc.inviteCode && !dropsLegacyCode) ||
 		(currentDoc.emblem ?? '') !== (proposedDoc.emblem ?? '')
 	) {
 		throw new Error('leagues identity fields are immutable (id, createdAtMs, inviteCode, emblem).');
 	}
 
-	// 4. Cover image — owner-mutable. The owner (the only principal that
+	// 4. Cover image: owner-mutable. The owner (the only principal that
 	// reaches this point, per §2) may set, change, or clear `imageUrl`.
 	// When present it must be one of THIS satellite's `league_images`
 	// Storage download URLs; we reject blanks/external/foreign-scheme
@@ -244,7 +272,28 @@ export const assertSetLeague = ({
 };
 
 /**
- * League ownership transfer — defineUpdate handler.
+ * Pre-delete guard for `leagues`: only the owner (or the satellite) may
+ * delete a league. Anyone else could otherwise delete it and re-create the
+ * same id as its owner, inheriting every membership row.
+ */
+export const assertDeleteLeague = ({
+	caller,
+	data: {
+		collection,
+		data: { current }
+	}
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.LEAGUES || isNullish(current)) {
+		return;
+	}
+
+	const { owner } = decodeDocData<LeagueDoc>(current.data);
+
+	assertOwnerOrController({ caller, owner, collection });
+};
+
+/**
+ * League ownership transfer: defineUpdate handler.
  *
  * The flow runs three writes in order:
  *
@@ -252,7 +301,7 @@ export const assertSetLeague = ({
  *     caller) to the new owner. Done as the *outgoing* owner so the
  *     assert's "edits made by current owner" rule accepts the swap.
  *  2. Promote `LEAGUE_MEMBERS[${leagueId}/${newOwner}]` to
- *     `role='owner'`. Done as the *new* owner — by this point
+ *     `role='owner'`. Done as the *new* owner: by this point
  *     `league.owner === newOwner`, so the assert's "callerIsOwner"
  *     branch passes and the "owner role reserved for league owner
  *     principal" check also passes.
@@ -269,14 +318,14 @@ export const assertSetLeague = ({
  * background sweeper can repair stragglers.
  *
  * Refusal reasons:
- *  - `not_owner` — caller is not the current owner.
- *  - `league_not_found` — leagueId has no doc.
- *  - `new_owner_not_member` — target principal isn't a member of the
+ *  - `not_owner`: caller is not the current owner.
+ *  - `league_not_found`: leagueId has no doc.
+ *  - `new_owner_not_member`: target principal isn't a member of the
  *    league. (Only a current member can become owner.)
- *  - `new_owner_is_caller` — caller is trying to transfer to
+ *  - `new_owner_is_caller`: caller is trying to transfer to
  *    themselves; a no-op we reject explicitly so the FE can render
  *    a clearer error than a silent success.
- *  - `invalid_input` — `newOwnerPrincipal` is not a valid principal
+ *  - `invalid_input`: `newOwnerPrincipal` is not a valid principal
  *    text.
  */
 
@@ -364,7 +413,7 @@ export const transferLeagueOwnershipFn = ({
 		caller: callerBytes
 	});
 
-	// Step 1 — flip league.owner. Caller is the outgoing owner.
+	// Step 1: flip league.owner. Caller is the outgoing owner.
 	setDocStore({
 		collection: Collection.LEAGUES,
 		key: leagueId,
@@ -378,7 +427,7 @@ export const transferLeagueOwnershipFn = ({
 		}
 	});
 
-	// Step 2 — promote the new owner's member row. From here on we
+	// Step 2: promote the new owner's member row. From here on we
 	// impersonate the new owner so the assert sees `callerIsOwner`
 	// (which is true now that league.owner has flipped).
 	const newOwnerMember = decodeDocData<LeagueMemberDoc>(newOwnerMemberDoc.data);
@@ -396,10 +445,10 @@ export const transferLeagueOwnershipFn = ({
 		}
 	});
 
-	// Step 3 — demote the old owner's member row to `admin`. The
+	// Step 3: demote the old owner's member row to `admin`. The
 	// member doc *should* exist (every owner has a corresponding
-	// `role='owner'` member row), but defensively skip if missing
-	// — we've already swapped league.owner so the auth model is
+	// `role='owner'` member row), but defensively skip if missing;
+	// we've already swapped league.owner so the auth model is
 	// consistent regardless.
 	if (nonNullish(oldOwnerMemberDoc)) {
 		const oldOwnerMember = decodeDocData<LeagueMemberDoc>(oldOwnerMemberDoc.data);
@@ -422,34 +471,34 @@ export const transferLeagueOwnershipFn = ({
 };
 
 /**
- * Owner-authorised league disband — full delete of a league and all
+ * Owner-authorised league disband: full delete of a league and all
  * its membership rows.
  *
  * Refusal reasons:
- *  - `not_owner` — caller is not the current owner of the league.
+ *  - `not_owner`: caller is not the current owner of the league.
  *
- * A missing league doc is NOT a refusal — it's a clean no-op success
+ * A missing league doc is NOT a refusal: it's a clean no-op success
  * (`{ ok: true }`). The disband is idempotent: if the league is already
  * gone (e.g. deleted by a concurrent caller between an ownership
  * precheck and this call), the desired end state already holds.
  *
- * The disband runs as the satellite SDK caller (passed in as
- * `callerBytes`), so it deletes via `deleteDocStore` directly — that
- * path does NOT re-enter `assertDeleteLeagueMember`, which is why this
- * can drop the `owner` member row too (the assert would otherwise
- * reject it as "transfer ownership first"). Order is membership rows
- * first, then the league doc, mirroring the cascade's
- * memberships → owned-empty-leagues sequencing.
+ * Once the caller is confirmed as the owner, the deletes are signed as a
+ * satellite controller: serverless `deleteDocStore` runs
+ * `assertDeleteLeagueMember` too, and that assert lets only a controller
+ * drop the `owner` member row (anyone else gets "transfer ownership
+ * first"). Order is membership rows first, then the league doc, mirroring
+ * the cascade's memberships → owned-empty-leagues sequencing.
  *
- * This is a deliberate, complete disband — distinct from the account-
- * delete cascade's `deleteOwnedEmptyLeagues`, which only drops leagues
- * that are ALREADY empty (every other member has left). Here the owner
+ * This is a deliberate, complete disband: distinct from the account-
+ * delete cascade's `disbandOrTransferOwnedLeagues`, which only drops
+ * leagues that are ALREADY empty (every other member has left) and hands
+ * the others to a remaining member. Here the owner
  * is explicitly choosing to remove a league that may still have other
  * members, evicting everyone.
  *
  * Idempotent: a missing league doc or missing membership rows are
  * clean no-ops. The version-locked deletes detect a concurrent mutation
- * (a member joining/leaving mid-disband) by trapping — the caller can
+ * (a member joining/leaving mid-disband) by trapping: the caller can
  * retry and the prefix scan re-reads the current rows.
  */
 export const deleteLeagueFn = ({
@@ -478,9 +527,10 @@ export const deleteLeagueFn = ({
 		return { ok: false, reason: 'not_owner' };
 	}
 
+	const writer = controllerCaller('league disband');
+
 	// Delete every membership row for this league (prefix scan on
-	// `${leagueId}/`). The owner row is included — the SDK drop bypasses
-	// `assertDeleteLeagueMember`'s "owner row can't be deleted" guard.
+	// `${leagueId}/`), the owner row included.
 	//
 	// Match on the key prefix alone, NOT the decoded payload: membership
 	// keys are already namespaced by `${leagueId}/`, so the prefix is
@@ -500,7 +550,7 @@ export const deleteLeagueFn = ({
 			deleteDocStore({
 				collection: Collection.LEAGUE_MEMBERS,
 				key: docKey,
-				caller: callerBytes,
+				caller: writer,
 				doc: {
 					version: item.version
 				}
@@ -508,15 +558,200 @@ export const deleteLeagueFn = ({
 		}
 	}
 
-	// Drop the league doc itself.
+	// Drop the league doc itself, and its invite code.
 	deleteDocStore({
 		collection: Collection.LEAGUES,
 		key: leagueId,
-		caller: callerBytes,
+		caller: writer,
 		doc: {
 			version: leagueDoc.version
 		}
 	});
 
+	deleteLeagueInvite({ leagueId });
+
 	return { ok: true };
+};
+
+/** What a caller sends to found a league: the doc's own fields plus its invite code. */
+export type CreateLeagueArgs = Pick<
+	LeagueDoc,
+	'id' | 'name' | 'description' | 'accentColor' | 'emblem' | 'privacy'
+> & { inviteCode: string };
+
+export interface CreateLeagueResult {
+	/** The new league, with its invite code for the founder to share. */
+	league?: LeagueDoc;
+	/** Nothing was written. */
+	reason?: CreateLeagueRefusalReason;
+}
+
+/**
+ * Founds a league for the caller: the public league doc and the owner's
+ * membership row, written as the caller so `assertSetLeague` and
+ * `assertSetLeagueMember` hold them to the same rules as a client write,
+ * and the invite code in the controllers-only `league_invites` collection,
+ * never on the public doc. The code is the caller's (the create sheet shows
+ * it before submit) and must be free. Hooks never fire for these serverless
+ * writes, so the founder reward is paid inline.
+ */
+export const createLeagueFn = async ({
+	inviteCode,
+	...fields
+}: CreateLeagueArgs): Promise<CreateLeagueResult> => {
+	const caller = msgCaller();
+
+	if (caller.isAnonymous()) {
+		throw new Error('Sign in to create a league.');
+	}
+
+	if (!LEAGUE_INVITE_CODE_REGEX.test(inviteCode)) {
+		throw new Error(`leagues inviteCode must match ${LEAGUE_INVITE_CODE_REGEX}.`);
+	}
+
+	if (nonNullish(leagueIdForInviteCode(inviteCode))) {
+		return { reason: 'invite_code_taken' };
+	}
+
+	const callerText = caller.toText();
+	const callerBytes = caller.toUint8Array();
+	const createdAtMs = timeMs();
+	const league: LeagueDoc = { ...fields, owner: callerText, createdAtMs };
+
+	setDocStore({
+		caller: callerBytes,
+		collection: Collection.LEAGUES,
+		key: league.id,
+		doc: { data: encodeDocData(league) }
+	});
+
+	setDocStore({
+		caller: callerBytes,
+		collection: Collection.LEAGUE_MEMBERS,
+		key: leagueMemberKey({ leagueId: league.id, memberPrincipal: callerText }),
+		doc: {
+			data: encodeDocData<LeagueMemberDoc>({
+				leagueId: league.id,
+				member: callerText,
+				joinedAtMs: createdAtMs,
+				role: 'owner'
+			})
+		}
+	});
+
+	recordLeagueInvite({ leagueId: league.id, inviteCode });
+
+	try {
+		await payLeagueFounderReward({
+			caller: callerBytes,
+			recipient: callerText,
+			leagueId: league.id
+		});
+	} catch (e: unknown) {
+		// The league stands either way; `settleFounderAwards` retries the reward.
+		logError({
+			message: 'league_founder_award_error',
+			detail: {
+				league: league.id,
+				user: callerText,
+				error: e instanceof Error ? e.message : `${e}`
+			}
+		});
+	}
+
+	return { league: { ...league, inviteCode } };
+};
+
+export interface JoinLeagueByInviteResult {
+	/** The league joined. */
+	league?: LeagueDoc;
+	reason?: JoinLeagueRefusalReason;
+}
+
+/**
+ * Joins the caller to the league `inviteCode` opens: the only way into a
+ * league, Open or Private. `assertSetLeagueMember` admits a new member row
+ * only from a satellite controller, so this endpoint, having checked the
+ * code, writes the row as one.
+ */
+export const joinLeagueByInviteFn = ({
+	inviteCode
+}: {
+	inviteCode: string;
+}): JoinLeagueByInviteResult => {
+	const caller = msgCaller();
+
+	if (caller.isAnonymous()) {
+		throw new Error('Sign in to join a league.');
+	}
+
+	const leagueId = leagueIdForInviteCode(inviteCode);
+	const callerBytes = caller.toUint8Array();
+	const leagueDoc = isNullish(leagueId)
+		? undefined
+		: getDocStore({ caller: callerBytes, collection: Collection.LEAGUES, key: leagueId });
+
+	if (isNullish(leagueDoc)) {
+		return { reason: 'not_found' };
+	}
+
+	const league = decodeDocData<LeagueDoc>(leagueDoc.data);
+	const callerText = caller.toText();
+	const key = leagueMemberKey({ leagueId: league.id, memberPrincipal: callerText });
+
+	if (
+		nonNullish(getDocStore({ caller: callerBytes, collection: Collection.LEAGUE_MEMBERS, key }))
+	) {
+		return { reason: 'already_member' };
+	}
+
+	setDocStore({
+		caller: controllerCaller('league join'),
+		collection: Collection.LEAGUE_MEMBERS,
+		key,
+		doc: {
+			data: encodeDocData<LeagueMemberDoc>({
+				leagueId: league.id,
+				member: callerText,
+				joinedAtMs: timeMs(),
+				role: 'member'
+			})
+		}
+	});
+
+	return { league };
+};
+
+/**
+ * Admin-gated, idempotent: moves the invite code of every league doc
+ * written before codes left the public doc into `league_invites`, then
+ * takes it off the doc. Returns how many docs it rewrote.
+ */
+export const migrateLeagueInviteCodesFn = (): { migrated: number } => {
+	const caller = msgCaller();
+
+	if (!isAdmin({ caller })) {
+		throw new Error('Only an admin can migrate league invite codes.');
+	}
+
+	const writer = controllerCaller('league invite migration');
+	const { items } = listDocsStore({ caller: writer, collection: Collection.LEAGUES, params: {} });
+	let migrated = 0;
+
+	for (const [key, { data, version }] of items) {
+		const { inviteCode, ...league } = decodeDocData<LeagueDoc>(data);
+
+		if (nonNullish(inviteCode) && recordLeagueInvite({ leagueId: league.id, inviteCode })) {
+			setDocStore({
+				caller: writer,
+				collection: Collection.LEAGUES,
+				key,
+				doc: { data: encodeDocData<LeagueDoc>(league), version }
+			});
+
+			migrated += 1;
+		}
+	}
+
+	return { migrated };
 };

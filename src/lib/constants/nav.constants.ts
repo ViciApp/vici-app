@@ -1,5 +1,5 @@
-import { AppPath } from '$lib/constants/routes.constants';
-import type { NavItem } from '$lib/types/nav';
+import { AppPath } from '#lib/constants/routes.constants.ts';
+import type { NavItem } from '#lib/types/nav.ts';
 import { CircleUserRound, House, LayoutDashboard, Users, Zap } from '@lucide/svelte/icons';
 
 /**

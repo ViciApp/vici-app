@@ -9,10 +9,10 @@ import {
 	TICRC1_LEDGER_CANISTER_ID,
 	VICI_LEDGER_CANISTER_ID,
 	VXP_LEDGER_CANISTER_ID
-} from '$lib/constants/canisters.constants';
-import { isDev } from '$lib/env/app.env';
-import type { Token } from '$lib/types/token';
-import { parseTokenId } from '$lib/validation/token.validation';
+} from '#lib/constants/canisters.constants.ts';
+import { isDev } from '#lib/env/app.env.ts';
+import type { Token } from '#lib/types/token.ts';
+import { parseTokenId } from '#lib/validation/token.validation.ts';
 
 export const ICP_TOKEN: Token = {
 	id: parseTokenId('ICP'),

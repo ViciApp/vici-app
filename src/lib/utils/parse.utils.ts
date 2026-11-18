@@ -1,4 +1,4 @@
-import { PRICE_DECIMALS, USD_DECIMALS } from '$lib/constants/app.constants';
+import { PRICE_DECIMALS, USD_DECIMALS } from '#lib/constants/app.constants.ts';
 import { parseUnits, type BigNumberish } from 'ethers/utils';
 
 /**

@@ -1,10 +1,4 @@
-import { browser } from '$app/environment';
-import {
-	DAY_IN_MS,
-	MILLISECOND_IN_NANOSECONDS,
-	USD_DECIMALS,
-	ZERO
-} from '$lib/constants/app.constants';
+import { EMPTY_VALUE, USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import {
 	INBOX_DISMISSED_STORAGE_KEY,
 	INBOX_MARKET_ALERTS_STORAGE_KEY,
@@ -15,38 +9,51 @@ import {
 	MARKET_ALERT_MAX,
 	MARKET_ALERT_WINDOW_MS,
 	MARKET_MOVE_THRESHOLD
-} from '$lib/constants/inbox.constants';
-import type { AppLocale } from '$lib/constants/locale.constants';
-import { AppPath } from '$lib/constants/routes.constants';
-import { marketById } from '$lib/derived/market-by-id.derived';
+} from '#lib/constants/inbox.constants.ts';
+import { DEFAULT_LOCALE, type AppLocale } from '#lib/constants/locale.constants.ts';
+import { AppPath } from '#lib/constants/routes.constants.ts';
+import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+import { marketById } from '#lib/derived/market-by-id.derived.ts';
+import { marketsNotInitialized } from '#lib/derived/markets.derived.ts';
 import {
 	resolvedPositions,
 	resolvedPositionsNotInitialized
-} from '$lib/derived/resolved-positions.derived';
-import { receivedReactionsStore } from '$lib/stores/activity-reactions.store';
-import { friendRequestsStore, friendsRelationsLoadedStore } from '$lib/stores/friends.store';
-import { leagueDirectoryStore } from '$lib/stores/league-directory.store';
-import { leagueBattlesStore, leaguesLoadedStore, myLeaguesStore } from '$lib/stores/leagues.store';
-import { localeStore } from '$lib/stores/locale.store';
-import { preferencesStore } from '$lib/stores/preferences.store';
-import { profilesStore } from '$lib/stores/profiles.store';
-import { userStore } from '$lib/stores/user.store';
-import type { ResolutionItem, ResolutionRevealData } from '$lib/types/flow';
-import type { InboxNotification, InboxNotificationKind } from '$lib/types/inbox';
-import type { Market, MarketId } from '$lib/types/market';
-import type { ResolvedPosition } from '$lib/types/position';
-import type { Relation } from '$lib/types/relation';
-import type { ActivityReaction } from '$lib/types/social';
+} from '#lib/derived/resolved-positions.derived.ts';
+import { receivedReactionsStore } from '#lib/stores/activity-reactions.store.ts';
+import { friendRequestsStore, friendsRelationsLoadedStore } from '#lib/stores/friends.store.ts';
+import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
+import {
+	leagueBattlesStore,
+	leaguesLoadedStore,
+	myLeaguesStore
+} from '#lib/stores/leagues.store.ts';
+import { localeStore } from '#lib/stores/locale.store.ts';
+import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
+import { displayMarkets, marketTranslations } from '#lib/stores/market-translations.store.ts';
+import { preferencesStore } from '#lib/stores/preferences.store.ts';
+import { profilesStore } from '#lib/stores/profiles.store.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import type { ResolutionItem, ResolutionRevealData } from '#lib/types/flow.ts';
+import type { InboxNotification, InboxNotificationKind } from '#lib/types/inbox.ts';
+import type { Market, MarketId } from '#lib/types/market.ts';
+import type { ResolvedPosition } from '#lib/types/position.ts';
+import type { Relation } from '#lib/types/relation.ts';
+import type { ActivityReaction } from '#lib/types/social.ts';
 import {
 	decimalFixedValueToNumber,
 	formatRelativeAgoFromNs,
 	shortenWithMiddleEllipsis,
 	shortLeagueId
-} from '$lib/utils/format.utils';
-import { t } from '$lib/utils/i18n.utils';
-import { inferResolvedOutcomeId } from '$lib/utils/resolved-position.utils';
-import { get, set as setStorage } from '$lib/utils/storage.utils';
-import { FLAME_STAGE_LABEL_KEYS, stageForStreak, streakMilestone } from '$lib/utils/streak.utils';
+} from '#lib/utils/format.utils.ts';
+import { t } from '#lib/utils/i18n.utils.ts';
+import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
+import { get, set as setStorage } from '#lib/utils/storage.utils.ts';
+import {
+	FLAME_STAGE_LABEL_KEYS,
+	stageForStreak,
+	streakMilestone
+} from '#lib/utils/streak.utils.ts';
+import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Doc } from '@junobuild/core';
 import { derived, get as getStore, writable, type Readable } from 'svelte/store';
@@ -54,7 +61,7 @@ import { derived, get as getStore, writable, type Readable } from 'svelte/store'
 /**
  * Turns the viewer's pending friend requests into inbox cards. They are
  * synthetic (not persisted in localStorage) and remain `unread` until the
- * underlying request is accepted or rejected — at which point they drop
+ * underlying request is accepted or rejected: at which point they drop
  * out of `friendRequestsStore` and disappear from the inbox automatically.
  */
 const friendRequestInboxStore: Readable<InboxNotification[]> = derived(
@@ -97,7 +104,7 @@ const friendRequestInboxStore: Readable<InboxNotification[]> = derived(
 // Juno docs aren't pushed live across users, so a league owner whose
 // challenge the opponent just accepted or declined wouldn't otherwise know.
 // We derive a card from the battles the viewer *proposed* that have left the
-// `proposed` state recently — the proposer's league is always `sideA`. The
+// `proposed` state recently: the proposer's league is always `sideA`. The
 // card ages out of the window so it can't linger forever; resolution has its
 // own surface (the league detail), so resolved battles don't notify here.
 
@@ -122,8 +129,12 @@ const battleInboxStore: Readable<InboxNotification[]> = derived(
 					battle.proposer === viewer &&
 					(battle.state === 'in_flight' || battle.state === 'declined')
 			);
+
 		const matched = [...new Map(proposed.map((battle) => [battle.id, battle])).values()]
-			.map((battle) => ({ battle, respondedAtMs: battle.respondedAtMs ?? battle.kickoffMs }))
+			.map((battle) => ({
+				battle,
+				respondedAtMs: battle.respondedAtMs ?? battle.kickoffMs
+			}))
 			.filter(({ respondedAtMs }) => now - respondedAtMs <= BATTLE_NOTIFICATION_WINDOW_MS);
 
 		return matched
@@ -135,6 +146,7 @@ const battleInboxStore: Readable<InboxNotification[]> = derived(
 				return {
 					id: `battle-${battle.state}-${battle.id}`,
 					kind: accepted ? ('battle_accepted' as const) : ('battle_declined' as const),
+
 					title: t({
 						locale: $locale,
 						key: accepted ? 'inbox.battle_accepted.title' : 'inbox.battle_declined.title'
@@ -263,10 +275,20 @@ const settledReadStore = writable<Set<bigint>>(loadSettledReadSet());
  * already-existing "X.YZ USD" presentation downstream surfaces use.
  */
 const settledInboxStore: Readable<InboxNotification[]> = derived(
-	[resolvedPositions, marketById, settledReadStore, localeStore],
-	([$resolved, $marketById, $read, $locale]) =>
-		$resolved.map((entry): InboxNotification => {
-			const market = $marketById.get(entry.marketId);
+	[resolvedPositions, displayMarkets, marketsNotInitialized, settledReadStore, localeStore],
+	([$resolved, $displayMarkets, $marketsNotInitialized, $read, $locale]) => {
+		// The card body bakes the market title into its copy ("You won $X on
+		// {market}"), so there is no room for a title skeleton: until the
+		// catalog loads we'd render "Unknown Market" inline. Hold the settled
+		// cards back instead; they surface the moment titles resolve. Read state
+		// lives in `settledReadStore`, so this display-only gate can't lose an
+		// acknowledgement.
+		if ($marketsNotInitialized) {
+			return [];
+		}
+
+		return $resolved.map((entry): InboxNotification => {
+			const market = $displayMarkets.get(entry.marketId);
 
 			const variant: 'won' | 'lost' | 'neutral' = entry.result;
 			const titleKey =
@@ -303,24 +325,25 @@ const settledInboxStore: Readable<InboxNotification[]> = derived(
 				when: formatRelativeAgoFromNs({ timestampNs: entry.timestampNs, locale: $locale }),
 				unread: !$read.has(entry.eventId),
 				// Deep-link to the resolved market's detail via the kind router
-				// (`notificationDestination`) — `mid` carries the market id.
+				// (`notificationDestination`): `mid` carries the market id.
 				mid: entry.marketId
 			};
-		})
+		});
+	}
 );
 
 // ── Likes received on your own calls ────────────────────────────────────────
 
 /**
- * Likes other users left on the viewer's OWN friend-feed calls, as inbox cards. Synthetic — derived
- * live from `receivedReactionsStore` (a key-prefix read scoped to the viewer), not persisted — so a
+ * Likes other users left on the viewer's OWN friend-feed calls, as inbox cards. Synthetic: derived
+ * live from `receivedReactionsStore` (a key-prefix read scoped to the viewer), not persisted, so a
  * card disappears automatically when its reaction doc is deleted (an unlike), with no history store
  * to retain it. Self-likes are excluded. Mirrors {@link friendRequestInboxStore}; the per-id read
  * overlay in {@link combinedInboxStore} drives the read/unread state.
  *
  * Aggregated: all likes on one call collapse into a SINGLE card ("{user} and N more liked your
  * call"), keyed by the activity (not per-liker), so a burst of likes is one inbox entry and one
- * toast — not N. The card carries the most-recent liker's name + timestamp; marking it read marks
+ * toast: not N. The card carries the most-recent liker's name + timestamp; marking it read marks
  * the whole burst. The stable per-activity id means a later like on an already-read call updates the
  * count in place without re-pinging.
  */
@@ -347,7 +370,7 @@ const likesReceivedInboxStore: Readable<InboxNotification[]> = derived(
 
 		return Array.from(byActivity.values(), (likes): InboxNotification => {
 			// Most-recent like fronts the card (name + timestamp + denormalized title / market).
-			// Single pass for the latest reaction — no sort allocation; the count is the rest.
+			// Single pass for the latest reaction: no sort allocation; the count is the rest.
 			// `likes` is non-empty (a group exists only because a reaction was pushed into it).
 			const latest = likes.reduce((max, reaction) =>
 				reaction.timestamp > max.timestamp ? reaction : max
@@ -394,7 +417,7 @@ const likesReceivedInboxStore: Readable<InboxNotification[]> = derived(
 // the calls that settled since the user last acknowledged their resolutions.
 // "Unacknowledged" is the same per-event read marker the Settled inbox cards
 // use (`settledReadStore`), so opening the digest and marking it seen keeps the
-// banner and the bell badge in lockstep — one settlement is never counted twice
+// banner and the bell badge in lockstep; one settlement is never counted twice
 // or surfaced in one place after being cleared in the other.
 
 /**
@@ -422,7 +445,7 @@ const resolvedSide = ({
 
 	const label = outcomeId
 		? (market?.outcomes?.find((o) => o.id === outcomeId)?.title ?? outcomeId)
-		: '—';
+		: EMPTY_VALUE;
 
 	return { label, sideKey: 'hold' };
 };
@@ -432,17 +455,33 @@ const resolvedSide = ({
  * aggregated into net VXP, win/loss tallies, and per-call rows. A `count` of 0
  * means there is nothing new to reveal. Per-call and net VXP are carried at
  * full precision; the digest renderers round for display (a sub-1 favourite
- * win reads "<1" rather than a broken "+0" — see `formatWholeVxpMagnitude`).
+ * win reads "<1" rather than a broken "+0": see `formatWholeVxpMagnitude`).
  */
 export const maturedResolutions: Readable<ResolutionRevealData> = derived(
-	[resolvedPositions, marketById, settledReadStore, localeStore],
-	([$resolved, $marketById, $read, $locale]) => {
+	[
+		resolvedPositions,
+		displayMarkets,
+		marketsNotInitialized,
+		settledReadStore,
+		localeStore,
+		marketTranslations,
+		marketLanguagePreference
+	],
+	([
+		$resolved,
+		$displayMarkets,
+		$marketsNotInitialized,
+		$read,
+		$locale,
+		$translations,
+		$preference
+	]) => {
 		const unseen = $resolved.filter((entry) => !$read.has(entry.eventId));
 
 		const items: ResolutionItem[] = unseen.map((entry) => {
-			const market = $marketById.get(entry.marketId);
+			const market = $displayMarkets.get(entry.marketId);
 			const { label, sideKey } = resolvedSide({ resolved: entry, market });
-			// Full precision — the digest renderers round for display via
+			// Full precision: the digest renderers round for display via
 			// `formatWholeVxpMagnitude` (a sub-1 favourite win reads "<1", not a
 			// broken "+0"). Summing the precise per-call nets also keeps the
 			// digest total honest rather than dropping every sub-1 win to zero.
@@ -467,20 +506,41 @@ export const maturedResolutions: Readable<ResolutionRevealData> = derived(
 		const neutrals = items.filter((it) => it.result === 'neutral').length;
 		const netVxp = items.reduce((sum, it) => sum + it.net, 0);
 
+		// For a non-English reader showing translations, a title is only final
+		// once the translation overlay has answered for its market; the overlay
+		// gains an entry per series when its locale chain has been fetched,
+		// translation and confirmed-absent alike, so a missing key means the
+		// lookup is still in flight. Only markets the catalog knows about count:
+		// an id the catalog itself can't resolve is a genuine `Unknown Market`,
+		// not a pending one.
+		const translationsPending =
+			$locale !== DEFAULT_LOCALE &&
+			$preference === 'translated' &&
+			unseen.some(
+				(entry) => $displayMarkets.has(entry.marketId) && !$translations.has(entry.marketId)
+			);
+
 		return {
 			items,
 			count: items.length,
 			wins,
 			losses: items.length - wins - neutrals,
 			neutrals,
-			netVxp
+			netVxp,
+			// Counts and net VXP above come straight off the positions and are
+			// already correct; only the per-row titles depend on the catalog and
+			// the translation overlay. The reveals hold or skeleton the titles
+			// while this is true, rather than rendering the `Unknown Market`
+			// fallback (a genuine miss once the catalog is in) or flashing the
+			// untranslated original.
+			titlesLoading: $marketsNotInitialized || translationsPending
 		};
 	}
 );
 
 /**
  * Acknowledges every call currently in the away-digest by adding its
- * `eventId` to the persisted read set — the same marker the Settled inbox
+ * `eventId` to the persisted read set: the same marker the Settled inbox
  * cards use. Called when the user enters Flow (the entry digest settles) or
  * opens the Dashboard ResolutionReveal, so the banner and bell badge clear
  * together. Idempotent: re-running with the digest empty is a no-op.
@@ -507,12 +567,12 @@ export const markResolutionsSeen = (): void => {
 
 // ── Per-id read overlay + dismissed set ─────────────────────────────────────
 // Two persisted string-id sets, keyed by the notification `id`:
-//   • read     — overlays `unread` for cards NOT backed by the settled
+//   • read: overlays `unread` for cards NOT backed by the settled
 //                 read-set (synthetic friend requests, seeds), so tapping a
 //                 card's unread dot marks it read in place across reloads.
-//   • dismissed — cards the user swiped away; filtered out of the list.
+//   • dismissed: cards the user swiped away; filtered out of the list.
 // Settled cards keep using `settledReadStore` (keyed by `event_id`) so the
-// away-digest banner and the bell badge stay in lockstep — the read overlay
+// away-digest banner and the bell badge stay in lockstep; the read overlay
 // here is purely additive on top of that.
 
 const loadStringSet = (key: string): Set<string> => {
@@ -535,10 +595,10 @@ const inboxDismissedStore = writable<Set<string>>(loadStringSet(INBOX_DISMISSED_
 // ── Streak + level progress notifications ───────────────────────────────────
 // `level` and the daily-streak milestone are monotonic counters: a pure
 // derivation of "you're level 4" would pin the card forever and replay it on a
-// fresh device. So a persisted high-water marker gates each card — a card
+// fresh device. So a persisted high-water marker gates each card; a card
 // exists only while the live value exceeds the marker. The marker seeds to the
 // current value on first observation (no retroactive backlog), advances on
-// acknowledge, and — for the streak, which resets to SPARK on a break — lowers
+// acknowledge, and, for the streak, which resets to SPARK on a break, lowers
 // when the run drops below it so re-climbing re-notifies. `initInboxProgress`
 // (mounted by `NotifToastHost`) maintains the marker and records when an
 // unacknowledged milestone first appeared (`*CrossedAt_ms`, for the card's
@@ -583,7 +643,7 @@ const updateInboxProgress = (updater: (current: InboxProgress) => InboxProgress)
  */
 const milestoneWhen = ({ atMs, locale }: { atMs?: number; locale: AppLocale }): string =>
 	// Guard `Number.isFinite` so a corrupt / hand-edited persisted stamp (NaN,
-	// Infinity) can't reach `BigInt(...)` and throw — fall back to "just now".
+	// Infinity) can't reach `BigInt(...)` and throw: fall back to "just now".
 	nonNullish(atMs) && Number.isFinite(atMs)
 		? formatRelativeAgoFromNs({
 				timestampNs: BigInt(Math.round(atMs)) * MILLISECOND_IN_NANOSECONDS,
@@ -709,12 +769,12 @@ const acknowledgeStreak = (): void => {
  *   • records the crossing time the first time the live value exceeds the
  *     marker (for the card's `when` label),
  *   • lowers the streak marker when the run resets below it, so re-climbing
- *     re-notifies (the streak — unlike the monotonic level — breaks to SPARK).
+ *     re-notifies (the streak, unlike the monotonic level, breaks to SPARK).
  * The marker only moves *up* on acknowledge, which is what surfaces the card.
  *
  * On an owner change it reloads the marker from localStorage, which
  * `reconcileIdentityScopedStorage` (run by `Authn` before the new profile is
- * set) has already cleared on a real account switch — so the previous user's
+ * set) has already cleared on a real account switch, so the previous user's
  * `seen*` markers can't suppress the next user's cards. (The other in-memory
  * inbox stores only carry read-state and re-read on the next app load; this
  * one gates card *visibility*, so it re-reads on the switch itself.)
@@ -769,16 +829,15 @@ export const initInboxProgress = (): (() => void) => {
 };
 
 // ── Saved-market move notifications ─────────────────────────────────────────
-// A market the viewer SAVED (the heart toggle — `preferences.savedMarketIds`)
+// A market the viewer SAVED (the heart toggle, `preferences.savedMarketIds`)
 // whose YES probability shifts by at least `MARKET_MOVE_THRESHOLD` since they
 // last saw it surfaces a move alert, gated by `preferences.notify.marketAlerts`.
 // Unlike the monotonic streak/level markers, a move is a transient event with
 // no re-derivable source, so we persist both a per-market baseline (the
 // last-shown probability) and a capped, windowed list of fired alerts.
-// `initMarketMoveAlerts` (mounted by `NotifToastHost`) snapshots saved-market
-// probabilities, seeds baselines, detects threshold crossings, appends alerts,
-// and prunes baselines for markets no longer saved; `marketMoveInboxStore`
-// derives the cards (read/dismiss handled by the generic per-id overlay).
+// `initMarketMoveAlerts` (mounted by `NotifToastHost`) maintains both;
+// `marketMoveInboxStore` derives the cards, and read/dismiss go through the
+// generic per-id overlay.
 
 interface MarketBaseline {
 	yes: number;
@@ -795,7 +854,7 @@ interface MarketMoveAlert {
 const loadMarketBaselines = (): Record<string, MarketBaseline> => {
 	const raw = get<Record<string, MarketBaseline>>({ key: INBOX_MARKET_BASELINE_STORAGE_KEY });
 
-	return nonNullish(raw) && typeof raw === 'object' ? raw : {};
+	return nonNullish(raw) && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
 };
 
 const loadMarketAlerts = (): MarketMoveAlert[] => {
@@ -809,19 +868,26 @@ const marketAlertsStore = writable<MarketMoveAlert[]>(loadMarketAlerts());
 
 /**
  * Saved-market move cards, derived from the persisted alert list joined to the
- * live catalog for the market title. Alerts whose market vanished, resolved,
- * or aged out of the window are dropped. `unread` defaults true; the per-id
- * read overlay in `combinedInboxStore` applies the read/dismiss state.
+ * translated catalog for the market title. Held back until the catalog loads
+ * (the title is baked into the body, as for the settled cards). Alerts whose
+ * market vanished, is no longer open, or aged out of the window are dropped.
+ * `unread` defaults true; the per-id read overlay in `combinedInboxStore`
+ * applies the read/dismiss state.
  */
 const marketMoveInboxStore: Readable<InboxNotification[]> = derived(
-	[marketAlertsStore, marketById, localeStore],
-	([$alerts, $marketById, $locale]) => {
+	[marketAlertsStore, displayMarkets, marketsNotInitialized, localeStore],
+	([$alerts, $displayMarkets, $marketsNotInitialized, $locale]) => {
+		if ($marketsNotInitialized) {
+			return [];
+		}
+
 		const now = Date.now();
 
 		return $alerts.flatMap((alert): InboxNotification[] => {
-			const market = $marketById.get(alert.marketId);
+			const market = $displayMarkets.get(alert.marketId);
 
 			if (
+				!Number.isFinite(alert.at_ms) ||
 				now - alert.at_ms > MARKET_ALERT_WINDOW_MS ||
 				isNullish(market) ||
 				market.status !== 'Open'
@@ -854,10 +920,18 @@ const marketMoveInboxStore: Readable<InboxNotification[]> = derived(
 /**
  * Snapshots the YES probability of every saved, open market; seeds a baseline
  * on first observation (no alert), and when the probability has moved at least
- * `MARKET_MOVE_THRESHOLD` since the baseline, advances the baseline and — when
- * `notify.marketAlerts` is on — records a move alert. Baselines for markets no
+ * `MARKET_MOVE_THRESHOLD` since the baseline, advances the baseline and, when
+ * `notify.marketAlerts` is on, records a move alert. Baselines for markets no
  * longer saved are pruned. The baseline advances on a qualifying move even
  * when alerts are off, so toggling them back on never replays a stale move.
+ *
+ * Runs only once the profile is loaded: until then `preferencesStore` holds
+ * the defaults (no saved markets), and pruning against that empty set would
+ * wipe every baseline on each cold start, so no move could ever span a
+ * reload. On an owner change both stores re-read localStorage, which
+ * `reconcileIdentityScopedStorage` has already cleared on a real account
+ * switch, so the previous user's baselines and alerts never carry over.
+ *
  * Mounted from `NotifToastHost`; returns a teardown.
  */
 export const initMarketMoveAlerts = (): (() => void) => {
@@ -865,11 +939,25 @@ export const initMarketMoveAlerts = (): (() => void) => {
 		return () => undefined;
 	}
 
-	return derived([marketById, preferencesStore], ([$marketById, $prefs]) => ({
+	let lastOwner: string | undefined;
+
+	return derived([userStore, marketById, preferencesStore], ([$user, $marketById, $prefs]) => ({
+		owner: $user.user?.owner,
+		profileLoaded: nonNullish($user.profile),
 		markets: $marketById,
 		savedSet: new Set<string>($prefs.savedMarketIds),
 		enabled: $prefs.notify.marketAlerts
-	})).subscribe(({ markets, savedSet, enabled }) => {
+	})).subscribe(({ owner, profileLoaded, markets, savedSet, enabled }) => {
+		if (owner !== lastOwner) {
+			lastOwner = owner;
+			marketBaselineStore.set(loadMarketBaselines());
+			marketAlertsStore.set(loadMarketAlerts());
+		}
+
+		if (!profileLoaded) {
+			return;
+		}
+
 		const now = Date.now();
 		const newAlerts: MarketMoveAlert[] = [];
 
@@ -877,8 +965,8 @@ export const initMarketMoveAlerts = (): (() => void) => {
 			let changed = false;
 			const next: Record<string, MarketBaseline> = {};
 
-			// Carry forward only still-saved baselines (prune the rest so a
-			// re-saved market re-seeds rather than firing off a stale delta).
+			// Carry forward only still-saved baselines, so a re-saved market
+			// re-seeds rather than firing off a stale delta.
 			for (const [id, baseline] of Object.entries(current)) {
 				if (savedSet.has(id)) {
 					next[id] = baseline;
@@ -890,10 +978,9 @@ export const initMarketMoveAlerts = (): (() => void) => {
 			for (const market of markets.values()) {
 				const yes = market.yesProbability;
 
-				// Only saved, open markets with a loaded probability; resolved /
-				// expired markets settle through the `resolve` card instead. The
-				// guard is inlined (not hoisted to a boolean) so `nonNullish`
-				// narrows `yes` to a number inside the block.
+				// Resolved / expired markets settle through the `resolve` card
+				// instead. The guard stays inline (not hoisted to a boolean) so
+				// `nonNullish` narrows `yes` to a number inside the block.
 				if (
 					savedSet.has(market.id) &&
 					market.status === 'Open' &&
@@ -903,7 +990,6 @@ export const initMarketMoveAlerts = (): (() => void) => {
 					const baseline = next[market.id];
 
 					if (isNullish(baseline)) {
-						// First observation — seed, no alert.
 						next[market.id] = { yes, at_ms: now };
 						changed = true;
 					} else if (Math.abs(yes - baseline.yes) >= MARKET_MOVE_THRESHOLD) {
@@ -916,8 +1002,6 @@ export const initMarketMoveAlerts = (): (() => void) => {
 							});
 						}
 
-						// Advance the baseline regardless of `enabled` so the same move
-						// doesn't re-fire and a later toggle-on doesn't replay it.
 						next[market.id] = { yes, at_ms: now };
 						changed = true;
 					}
@@ -938,8 +1022,7 @@ export const initMarketMoveAlerts = (): (() => void) => {
 		}
 
 		marketAlertsStore.update((current) => {
-			// One live alert per market — a fresh move supersedes an older,
-			// un-aged one — then window-prune and cap to the most recent.
+			// One live alert per market: a fresh move supersedes an older one.
 			const superseded = new Set(newAlerts.map((alert) => alert.marketId));
 			const kept = current.filter(
 				(alert) => !superseded.has(alert.marketId) && now - alert.at_ms <= MARKET_ALERT_WINDOW_MS
@@ -960,7 +1043,7 @@ export const initMarketMoveAlerts = (): (() => void) => {
  * view. Order: live actionable items (friend requests), then incoming league
  * challenges, then battle responses, then real settled-event notifications,
  * then likes received on your calls, then saved-market move alerts, then
- * streak / level milestones. Every card is derived from live data — there is
+ * streak / level milestones. Every card is derived from live data: there is
  * no seeded/mock layer.
  *
  * Dismissed cards are filtered out, and the per-id read overlay is applied
@@ -1013,24 +1096,24 @@ export const combinedInboxUnreadCount: Readable<number> = derived(
 
 // ── New-arrival toast feed ──────────────────────────────────────────────────
 // The slide-in popup (`NotifToastHost`) surfaces on a genuinely NEW inbox
-// item — a real event (a freshly-settled market, an incoming friend request,
+// item: a real event (a freshly-settled market, an incoming friend request,
 // …) that wasn't present on the previous tick.
 //
 // Gating strategy: user-scoped async sources (trade history / resolvedPositions,
 // friend relations) are still loading at cold start. The first synchronous
-// `combinedInboxStore` emission carries an incomplete snapshot — if we diffed
+// `combinedInboxStore` emission carries an incomplete snapshot: if we diffed
 // from that we'd fire arrival toasts for every pre-existing unread item.
 // Instead we delay the diff until BOTH async sources report ready:
 //   • `resolvedPositionsNotInitialized` flips false → trade history has loaded
 //   • `friendsRelationsLoadedStore` flips true → friend relations have loaded
 // Until then every emission is treated as baseline-only (ids are accumulated,
-// no toast is fired). The seed store (localStorage) is synchronous — its
+// no toast is fired). The seed store (localStorage) is synchronous; its
 // content is included in the baseline naturally.
 //
 // On auth transitions `Authn.svelte` resets `tradeHistoryStore` to `undefined`
 // and calls `clearFriendRelations()`, which reverts both signals to
 // "not loaded". That drives `sourcesHydrated` back to `false`, so the next
-// sign-in's cold-start data is baseline-only too — a different principal's
+// sign-in's cold-start data is baseline-only too: a different principal's
 // existing unreads never replay as arrival toasts.
 
 export interface InboxToast {
@@ -1065,7 +1148,7 @@ export const clearInboxToast = (): void => {
  * - `friendsRelationsLoadedStore` starts `false`, flips `true` once the
  *   first `refreshFriendRelations()` call completes.
  * - `receivedReactionsStore` starts `undefined`, becomes an array once the
- *   first received-reactions load completes (even if empty) — so a cold-start
+ *   first received-reactions load completes (even if empty), so a cold-start
  *   backlog of likes on the viewer's calls is absorbed into the baseline
  *   instead of replaying as arrival toasts.
  *
@@ -1087,7 +1170,7 @@ const sourcesHydrated: Readable<boolean> = derived(
  * into {@link inboxToastStore}. The "seen" baseline is kept LOCAL to this
  * subscription rather than at module scope, so the side-effect only runs while
  * `NotifToastHost` is mounted (it calls this once and tears it down on
- * destroy). Returns a teardown that stops the subscription — mirrors
+ * destroy). Returns a teardown that stops the subscription: mirrors
  * `initFlowPrewarm` in `flow.store.ts`.
  *
  * Baseline semantics are unchanged: until both async sources hydrate, every
@@ -1123,7 +1206,7 @@ export const initInboxToasts = (): (() => void) => {
 		})
 	).subscribe(({ items, hydrated, leaguesLoaded }) => {
 		if (!hydrated) {
-			// Sources still loading — accumulate ids as baseline without diffing.
+			// Sources still loading: accumulate ids as baseline without diffing.
 			seenInboxIds = new Set(items.map((item) => item.id));
 
 			return;
@@ -1138,7 +1221,7 @@ export const initInboxToasts = (): (() => void) => {
 			return;
 		}
 
-		// Leagues just finished their first load this tick — the incoming
+		// Leagues just finished their first load this tick; the incoming
 		// backlog appears all at once. Suppress the incoming diff for this one
 		// tick so the backlog is absorbed; non-incoming kinds still diff.
 		const leaguesJustLoaded = leaguesLoaded && !leaguesLoadedSeen;
@@ -1147,7 +1230,7 @@ export const initInboxToasts = (): (() => void) => {
 		const baseline = seenInboxIds;
 		// An incoming-challenge id can't be a genuine arrival until leagues have
 		// loaded (the source hasn't been fetched), and the first loaded tick is
-		// the cold-start backlog — treat incoming as already-seen in both cases.
+		// the cold-start backlog: treat incoming as already-seen in both cases.
 		const incomingSettled = leaguesLoaded && !leaguesJustLoaded;
 		const next = items.find(
 			(item) =>
@@ -1186,7 +1269,7 @@ const markAllSettledRead = (): void => {
 		return;
 	}
 
-	// `settled-<eventId>` — strip the prefix to recover the bigint id.
+	// `settled-<eventId>`: strip the prefix to recover the bigint id.
 	const SETTLED_PREFIX = 'settled-';
 	const idsToMark = visible.flatMap((item) => {
 		if (!item.id.startsWith(SETTLED_PREFIX)) {
@@ -1196,7 +1279,7 @@ const markAllSettledRead = (): void => {
 		try {
 			return [BigInt(item.id.slice(SETTLED_PREFIX.length))];
 		} catch {
-			// Defensive — non-numeric id shouldn't reach here.
+			// Defensive: non-numeric id shouldn't reach here.
 			return [];
 		}
 	});
@@ -1281,7 +1364,7 @@ export const markInboxRead = (id: string): void => {
  * Dismisses a single inbox card by its `id`, persisting the dismissal so the
  * card stays hidden across reloads. Filtered out of {@link combinedInboxStore}.
  * Streak / level cards instead advance their high-water marker (no separate
- * dismissed entry needed — the marker drops the card and a later, higher
+ * dismissed entry needed: the marker drops the card and a later, higher
  * milestone still surfaces under a fresh id).
  */
 export const dismissInboxNotification = (id: string): void => {
@@ -1315,7 +1398,7 @@ export const dismissInboxNotification = (id: string): void => {
  * and the streak / level high-water markers, and overlays a read marker on
  * every other currently-visible card (synthetic friend requests, battle
  * responses, likes) so the badge fully clears. Callers (NotificationsPage,
- * bell action) should use this — never the layer-specific helpers directly.
+ * bell action) should use this: never the layer-specific helpers directly.
  */
 export const markAllInboxRead = (): void => {
 	markAllSettledRead();

@@ -1,51 +1,65 @@
-import type { RegistryDid } from '$declarations';
+import type { RegistryDid } from '#declarations';
 import {
 	getSettlementStatus,
 	listOrders as listOrdersApi,
 	listSeriesTradedVolumes as listSeriesTradedVolumesApi
-} from '$lib/api/clearing.api';
-import { addSeries, forkSeries, getSeries, listSeries } from '$lib/api/registry.api';
+} from '#lib/api/clearing.api.ts';
+import { addSeries, getSeries, listSeries } from '#lib/api/registry.api.ts';
 import {
-	DAY_IN_MS,
-	MILLISECOND_IN_NANOSECONDS,
 	PAYOFF_TYPE,
 	PRICE_DECIMALS,
 	RESOLUTION_CLAUSE_MAX_LENGTH,
 	STRIKE,
 	USD_DECIMALS,
 	VICI_ORACLE_V1
-} from '$lib/constants/app.constants';
-import { CURRENT_FEATURED_EVENT } from '$lib/constants/featured-event.constants';
-import { VICI_ENGINE_ID } from '$lib/constants/icdc.constants';
-import type { AppLocale } from '$lib/constants/locale.constants';
-import type { MarketTag } from '$lib/constants/market-tags.constants';
-import { ActivityType } from '$lib/enums/social';
-import { UserRole } from '$lib/enums/user';
-import { getSettlementActivities, logActivity } from '$lib/services/activity.services';
-import { getIdentityOrAnonymous, safeGetIdentityOnce } from '$lib/services/identity.services';
+} from '#lib/constants/app.constants.ts';
+import { CURRENT_FEATURED_EVENT } from '#lib/constants/featured-event.constants.ts';
+import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import { classificationMacros } from '#lib/constants/market-taxonomy.constants.ts';
+import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import { UserRole } from '#lib/enums/user.ts';
+import { getSettlementActivities, logActivity } from '#lib/services/activity.services.ts';
+import { getIdentityOrAnonymous, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import {
 	listMarketMetadataBySeries,
 	listMarketTagsBySeries
-} from '$lib/services/market-tags.services';
-import { getOrderBook } from '$lib/services/order.services';
-import { getProfile } from '$lib/services/profile.services';
-import { loadWithCertification } from '$lib/services/query-update.services';
-import { getSettledSeriesIds } from '$lib/services/resolution.services';
-import type { Market, MarketId, MarketStatus, Outcome } from '$lib/types/market';
-import type { MarketMetadata } from '$lib/types/market-metadata';
-import type { Activity } from '$lib/types/social';
-import { filterByPlaygroundExpandedDomain } from '$lib/utils/balance-domain.utils';
-import { participantMarketIds } from '$lib/utils/featured-event.utils';
-import { cacheMarketPrices, readCachedYesProbabilities } from '$lib/utils/market-price-cache.utils';
+} from '#lib/services/market-tags.services.ts';
+import { getOrderBook } from '#lib/services/order.services.ts';
+import { getProfile } from '#lib/services/profile.services.ts';
+import { loadWithCertification } from '#lib/services/query-update.services.ts';
+import {
+	getSettledSeriesIds,
+	loadSettlementOutcomes,
+	type SettlementDetails
+} from '#lib/services/resolution.services.ts';
+import type { MarketMetadata } from '#lib/types/market-metadata.ts';
+import type { Market, MarketId, MarketStatus, Outcome } from '#lib/types/market.ts';
+import type { Activity } from '#lib/types/social.ts';
+import { filterByPlaygroundExpandedDomain } from '#lib/utils/balance-domain.utils.ts';
+import { participantMarketIds } from '#lib/utils/featured-event.utils.ts';
+import {
+	cacheMarketPrices,
+	readCachedYesProbabilities
+} from '#lib/utils/market-price-cache.utils.ts';
 import {
 	calculateCategoricalProbabilities,
 	calculateMarketStats,
 	mapMarketData,
 	parseSettlementOutcome
-} from '$lib/utils/market.utils';
-import { settlementInputOutcome } from '$lib/utils/payoff.utils';
-import { refreshMarkets } from '$lib/utils/refresh.utils';
-import { parseMarketId } from '$lib/validation/market.validation';
+} from '#lib/utils/market.utils.ts';
+import { settlementInputOutcome, settlementInputTimestamp } from '#lib/utils/payoff.utils.ts';
+import { refreshMarkets } from '#lib/utils/refresh.utils.ts';
+import { parseMarketId } from '#lib/validation/market.validation.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import {
+	getEngineSeries as getEngineSeriesWeb2,
+	getEngineSettlementStatus as getEngineSettlementStatusWeb2,
+	listEngineSeriesVolumes as listEngineSeriesVolumesWeb2,
+	listEngineSeries as listEngineSeriesWeb2
+} from '#lib/web2/client.ts';
+import { getWeb2User } from '#lib/web2/session.ts';
 import { isEmptyString, isNullish, nonNullish, notEmptyString, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 
@@ -75,7 +89,7 @@ export const createMarket = async ({
 	 */
 	resolution: string;
 	/**
-	 * Free-text descriptive blurb. Optional — when omitted (or blank) it falls
+	 * Free-text descriptive blurb. Optional: when omitted (or blank) it falls
 	 * back to the {@link resolution} clause, since `AddSeriesParams.description`
 	 * is still a required field on chain.
 	 */
@@ -169,6 +183,9 @@ export const createMarket = async ({
 		},
 		resolution: { clause: resolutionClause },
 		expiry_ns: expiryDate * MILLISECOND_IN_NANOSECONDS,
+		// `None` registers the series as already live (no future trading-open gate);
+		// Vici markets open immediately and close at `expiry_ns`.
+		start_ns: toNullable(),
 		payout_unit: payoutUnit,
 		strike: STRIKE,
 		icon_url: toNullable(),
@@ -240,13 +257,16 @@ const fetchMarkets = async ({
 	domain: RegistryDid.BalanceDomain;
 	// When `false`, skip the per-market `getOrderBook` round-trip and leave
 	// probability unknown (no placeholder). Callers that only need the market *set*
-	// (id / domain / status / outcome) for filtering — positions, trade
-	// history, the calibration deck — pass `false` to avoid an N-wide
+	// (id / domain / status / outcome) for filtering (positions, trade
+	// history, the calibration deck) pass `false` to avoid an N-wide
 	// order-book fan-out they'd immediately discard (see {@link getMarketsLite}).
 	includeOrderBook?: boolean;
 }): Promise<Market[]> => {
 	const [allSeries, settledIds, settlementActivities] = await Promise.all([
-		listSeries({ identity, certified }),
+		// The catalog is a public engine read: web2 routes it through the HTTP
+		// bridge (which runs the same anonymous registry query server-side);
+		// the default path is the untouched on-chain call.
+		isWeb2Backend() ? listEngineSeriesWeb2() : listSeries({ identity, certified }),
 		getSettledSeriesIds({ identity, certified }),
 		getSettlementActivities({ certified })
 	]);
@@ -273,9 +293,9 @@ const fetchMarkets = async ({
 			// made markets "un-resolve" once newer activity pushed the row out
 			// of the window.
 			const status: MarketStatus = isResolved ? 'Resolved' : isExpired ? 'Expired' : 'Open';
-			const outcome: Outcome | undefined = isResolved
-				? resolutionMap[s.series_id]?.outcome
-				: undefined;
+			const { outcome, resolvedAt } = isResolved
+				? (resolutionMap[s.series_id] ?? {})
+				: { outcome: undefined, resolvedAt: undefined };
 
 			// Lite mode: callers that only filter by the market set don't need
 			// book-derived prices. Leave probability unknown (no 0.5 placeholder)
@@ -285,7 +305,8 @@ const fetchMarkets = async ({
 				return mapMarketData({
 					series: s,
 					status,
-					outcome
+					outcome,
+					resolvedAt
 				});
 			}
 
@@ -305,6 +326,7 @@ const fetchMarkets = async ({
 					priceLoaded: true,
 					status,
 					outcome,
+					resolvedAt,
 					categoricalProbabilities
 				});
 			}
@@ -320,7 +342,7 @@ const fetchMarkets = async ({
 				outcome: 'YES'
 			});
 
-			// `midPrice` is undefined for an empty book — keep it unknown (no 0.5
+			// `midPrice` is undefined for an empty book; keep it unknown (no 0.5
 			// placeholder); `priceLoaded: true` marks the book as read so the UI
 			// shows a no-liquidity dash rather than a perpetual skeleton.
 			return mapMarketData({
@@ -333,7 +355,8 @@ const fetchMarkets = async ({
 				bestBidQty: bids[0]?.totalQty,
 				bestAskQty: asks[0]?.totalQty,
 				status,
-				outcome
+				outcome,
+				resolvedAt
 			});
 		})
 	);
@@ -347,7 +370,9 @@ const fetchMarkets = async ({
 		[...settledIds]
 			.filter((id) => !activeSeriesIds.has(id))
 			.map(async (id) => {
-				const series = await getSeries({ identity, certified, seriesId: id });
+				const series = isWeb2Backend()
+					? await getEngineSeriesWeb2(id)
+					: await getSeries({ identity, certified, seriesId: id });
 
 				if (isNullish(series)) {
 					return;
@@ -358,7 +383,7 @@ const fetchMarkets = async ({
 					return;
 				}
 
-				const resolvedOutcome = resolutionMap[id]?.outcome;
+				const { outcome: resolvedOutcome, resolvedAt } = resolutionMap[id] ?? {};
 				const yesWon = resolvedOutcome === 'YES';
 
 				return mapMarketData({
@@ -367,7 +392,8 @@ const fetchMarkets = async ({
 					noProbability: nonNullish(resolvedOutcome) ? (yesWon ? 0 : 1) : undefined,
 					priceLoaded: true,
 					status: 'Resolved',
-					outcome: resolvedOutcome
+					outcome: resolvedOutcome,
+					resolvedAt
 				});
 			})
 	);
@@ -393,9 +419,13 @@ const unexpiredSeriesParams = (): RegistryDid.ListSeriesParams => ({
 	pagination: toNullable(),
 	underlying: toNullable(),
 	only_unexpired: toNullable(true),
+	// `None` applies no extra window filter: `only_unexpired` already drops
+	// expired series, and Vici series carry no future start gate.
+	tradeable_now: toNullable(),
 	search_term: toNullable(),
 	balance_domain: toNullable(),
-	oracle_source: toNullable()
+	oracle_source: toNullable(),
+	due: toNullable()
 });
 
 /**
@@ -411,7 +441,7 @@ const unexpiredSeriesParams = (): RegistryDid.ListSeriesParams => ({
  *     subtracted here.
  *
  * This replaces the previous reconstruction that pulled every series and
- * scanned the (capped) global ACTIVITIES log for settlement events — the
+ * scanned the (capped) global ACTIVITIES log for settlement events, the
  * root cause of Flow-mode slowness, and unsound besides since the activity
  * page was bounded while the catalog was not.
  *
@@ -433,10 +463,15 @@ const fetchOpenBinaryMarketsLite = async ({
 	// set is the registry's expiry-filtered catalog; the settled set is
 	// clearing's authoritative resolved ids. Domain scoping stays client-side
 	// via `filterByPlaygroundExpandedDomain` because ViciXp expands to include
-	// Social — narrowing either query by a single `balance_domain` would drop
+	// Social; narrowing either query by a single `balance_domain` would drop
 	// the Social half of the playground feed.
 	const [unexpiredSeries, settledIds] = await Promise.all([
-		listSeries({ identity, certified, params: unexpiredSeriesParams() }),
+		// web2 asks the HTTP bridge for the tradeable-now catalog, which equals
+		// the on-chain `only_unexpired` read for this app's series (none carries
+		// a future start gate, so tradeable-now reduces to unexpired).
+		isWeb2Backend()
+			? listEngineSeriesWeb2({ tradeableNow: true })
+			: listSeries({ identity, certified, params: unexpiredSeriesParams() }),
 		getSettledSeriesIds({ identity, certified })
 	]);
 
@@ -462,8 +497,8 @@ const fetchOpenBinaryMarketsLite = async ({
  * Adds book-derived fields (`yesProbability`, `noProbability`,
  * `bestBid`/`bestAsk`) to lite `Market` objects (from
  * {@link fetchOpenBinaryMarketsLite} or {@link fetchMarketsLite}). Callers
- * pass a bounded slice — the Flow deck's top-N, or one
- * {@link loadMarketsProgressive} batch — so we never fan out one request per
+ * pass a bounded slice (the Flow deck's top-N, or one
+ * {@link loadMarketsProgressive} batch), so we never fan out one request per
  * open series at once.
  */
 const enrichMarketsWithOrderBook = async ({
@@ -485,7 +520,7 @@ const enrichMarketsWithOrderBook = async ({
 				identity,
 				certified
 			}).catch((e: unknown) => {
-				// A single failed book read should not collapse the whole deck — let
+				// A single failed book read should not collapse the whole deck; let
 				// the rest of the cards render. The failing market keeps its unknown
 				// probability but is marked `priceLoaded` below, so it shows a
 				// no-liquidity dash, never a 0.5 placeholder.
@@ -499,7 +534,7 @@ const enrichMarketsWithOrderBook = async ({
 				outcome: 'YES'
 			});
 
-			// `midPrice` is undefined for an empty/failed book — keep it unknown.
+			// `midPrice` is undefined for an empty/failed book; keep it unknown.
 			// Only a liquidity-backed mid goes to the persisted seed cache, so a
 			// placeholder never clobbers a real last-known price.
 			if (nonNullish(midPrice)) {
@@ -525,25 +560,31 @@ const enrichMarketsWithOrderBook = async ({
 };
 
 /**
- * Extracts a `seriesId -> { outcome }` label map from Juno SETTLEMENT
- * activities. Details are expected to be stringified JSON (`{ outcome, price }`).
+ * Extracts a `seriesId -> { outcome, resolvedAt }` label map from Juno
+ * SETTLEMENT activities. Details are expected to be stringified JSON
+ * (`{ outcome, price }`); `resolvedAt` is the activity's own timestamp.
  *
- * Only the outcome *label* comes from here — the resolved predicate itself is
- * clearing's `list_settled_series` (see {@link fetchMarkets}) — so a missing
- * or malformed row degrades to `Resolved` with no winner badge, never to an
- * unresolved market.
+ * Only the outcome *label* and its time come from here; the resolved predicate
+ * itself is clearing's `list_settled_series` (see {@link fetchMarkets}), so a
+ * missing or malformed row degrades to `Resolved` with no winner badge, never to
+ * an unresolved market. Rows are absent entirely for series settled outside this
+ * app's admin flow, and the page is bounded; {@link backfillResolutionOutcomes}
+ * repairs both cases from clearing.
  */
-const buildResolutionMap = (activities: Activity[]): Record<string, { outcome?: Outcome }> =>
+const buildResolutionMap = (activities: Activity[]): Record<string, SettlementDetails> =>
 	activities
 		.filter((a) => a.type === ActivityType.SETTLEMENT && nonNullish(a.marketId))
-		.reduce<Record<string, { outcome?: Outcome }>>((acc, a) => {
-			const { marketId, details } = a;
+		.reduce<Record<string, SettlementDetails>>((acc, a) => {
+			const { marketId, details, timestamp } = a;
 
 			if (!nonNullish(marketId)) {
 				return acc;
 			}
 
-			acc[marketId] = { outcome: parseSettlementOutcome(details) };
+			acc[marketId] = {
+				outcome: parseSettlementOutcome(details),
+				resolvedAt: BigInt(timestamp)
+			};
 
 			return acc;
 		}, {});
@@ -554,13 +595,13 @@ const buildResolutionMap = (activities: Activity[]): Record<string, { outcome?: 
  * list path is {@link loadMarketsProgressive} (instant lite render, then
  * background book enrichment).
  *
- * For callers that consume only the market *set* — `id`, `balanceDomain`,
- * `status`, `outcome`, `engineId`, `payoffType` — to filter their own data:
+ * For callers that consume only the market *set* (`id`, `balanceDomain`,
+ * `status`, `outcome`, `engineId`, `payoffType`) to filter their own data:
  * positions, trade history, and the calibration deck. These ran the full
  * fan-out purely to derive an id set, multiplying first-load cost by the
- * catalog size; this skips it. Probability fields are NOT meaningful here —
+ * catalog size; this skips it. Probability fields are NOT meaningful here:
  * open series are seeded neutral 0.5, resolved series keep `mapMarketData`'s
- * defaults — so callers must not read them.
+ * defaults, so callers must not read them.
  *
  * Certification is threaded so this composes with `queryAndUpdate`: the
  * uncertified query pass and the certified update pass each fetch the market
@@ -589,10 +630,10 @@ export const getMarketsLite = async (domain: RegistryDid.BalanceDomain): Promise
 // How many order-book reads the progressive list enrichment runs at once. The
 // list can span the whole catalog, so an unbounded `Promise.all` would open a
 // request per open market and saturate the browser's per-host connection pool
-// during the cold-load burst — the very contention this path exists to avoid.
+// during the cold-load burst, the very contention this path exists to avoid.
 /**
- * Rescales an engine traded-volume figure — whole payout-token notional in
- * `USD_DECIMALS` base units — to a market's own token precision, so it formats
+ * Rescales an engine traded-volume figure (whole payout-token notional in
+ * `USD_DECIMALS` base units) to a market's own token precision, so it formats
  * like the rest of the UI's `totalVolume` (and matches the detail page's
  * volume). Identity for the common 4-decimal token; only ICP-style 8-decimal
  * markets actually shift.
@@ -624,7 +665,7 @@ const scaleVolumeToTokenBase = ({
  * renders (cards fall back to the "New" cue).
  *
  * No-op for the anonymous identity: `list_series_traded_volumes` is guarded by
- * `caller_is_not_anonymous`, so a signed-out call can only reject — short-circuit
+ * `caller_is_not_anonymous`, so a signed-out call can only reject; short-circuit
  * it so a logged-out visitor (e.g. the public homepage feed) paints instantly on
  * the seeded volume rather than waiting on a round-trip that can't succeed.
  */
@@ -637,16 +678,21 @@ const enrichMarketsWithVolume = async ({
 	identity: Identity;
 	certified: boolean;
 }): Promise<Market[]> => {
-	if (markets.length === 0 || identity.getPrincipal().isAnonymous()) {
+	// The anonymous short-circuit is on-chain-only: the HTTP bridge exposes the
+	// volumes read publicly (its server-side call is not anonymous), so web2
+	// mode, which holds no signing identity at all, must not skip it.
+	if (markets.length === 0 || (!isWeb2Backend() && identity.getPrincipal().isAnonymous())) {
 		return markets;
 	}
 
 	try {
-		const volumes = await listSeriesTradedVolumesApi({
-			identity,
-			certified,
-			seriesIds: markets.map(({ id }) => id)
-		});
+		const volumes = isWeb2Backend()
+			? await listEngineSeriesVolumesWeb2(markets.map(({ id }) => id))
+			: await listSeriesTradedVolumesApi({
+					identity,
+					certified,
+					seriesIds: markets.map(({ id }) => id)
+				});
 
 		const volumeById = new Map(volumes.map(({ series_id, volume }) => [series_id, volume]));
 
@@ -672,8 +718,8 @@ const MARKETS_ENRICH_BATCH_SIZE = 8;
 
 /**
  * Progressive markets-list loader. Renders instantly from the order-book-free
- * lite set — so first paint and the rest of the shell's cold-load aren't
- * blocked on a catalog-wide book fan-out — then fills in book-derived prices in
+ * lite set (so first paint and the rest of the shell's cold-load aren't
+ * blocked on a catalog-wide book fan-out), then fills in book-derived prices in
  * the background, a bounded batch at a time, invoking `onUpdate` after each so
  * the list "fills in" top-first.
  *
@@ -690,13 +736,73 @@ const MARKETS_ENRICH_BATCH_SIZE = 8;
  * omitted/empty for a cold load (or a balance-domain switch, where the prior
  * domain's prices must not leak). Markets without an in-memory prior seed from
  * the persisted last-session prices instead (see `market-price-cache.utils`),
- * so a page refresh paints last-known consensus rather than a wall of 50% —
+ * so a page refresh paints last-known consensus rather than a wall of 50%,
  * keyed by globally-unique market id, so a domain switch can't surface another
  * domain's price.
  *
  * `isStale` lets the caller abort a run superseded by a balance-domain switch
  * before it writes a stale slice.
  */
+/**
+ * Fills in the winning outcome for resolved markets the `SETTLEMENT` activity
+ * log left unlabelled, reading clearing's authoritative settlement input.
+ *
+ * Without this a market settled outside the admin UI, or one whose activity row
+ * aged out of the bounded page, renders as a permanent "Unknown" badge, and its
+ * holders' settled positions can't be priced (`position.utils` needs the
+ * outcome). Scoped to the unlabelled subset, so the common case costs nothing;
+ * fails open, returning the input rows unchanged when clearing can't be read.
+ *
+ * Also pins the resolved market's probabilities to its recovered outcome, the
+ * same way the phase-1 seeding does for markets that arrived already labelled.
+ */
+const backfillResolutionOutcomes = async ({
+	markets,
+	identity,
+	certified
+}: {
+	markets: Market[];
+	identity: Identity;
+	certified: boolean;
+}): Promise<Market[]> => {
+	const unlabelled = markets.filter(
+		({ status, outcome }) => status === 'Resolved' && isNullish(outcome)
+	);
+
+	if (unlabelled.length === 0) {
+		return markets;
+	}
+
+	const details = await loadSettlementOutcomes({
+		seriesIds: unlabelled.map(({ id }) => id),
+		identity,
+		certified
+	});
+
+	if (details.size === 0) {
+		return markets;
+	}
+
+	return markets.map((market) => {
+		const detail = details.get(market.id);
+
+		if (isNullish(detail) || isNullish(detail.outcome)) {
+			return market;
+		}
+
+		const yesWon = detail.outcome === 'YES';
+
+		return {
+			...market,
+			outcome: detail.outcome,
+			resolvedAt: detail.resolvedAt ?? market.resolvedAt,
+			yesProbability: yesWon ? 1 : 0,
+			noProbability: yesWon ? 0 : 1,
+			priceLoaded: true
+		};
+	});
+};
+
 export const loadMarketsProgressive = async ({
 	domain,
 	onUpdate,
@@ -710,7 +816,7 @@ export const loadMarketsProgressive = async ({
 }): Promise<void> => {
 	const identity = await getIdentityOrAnonymous();
 
-	// Phase 1 — instant render from the order-book-free set (open + resolved).
+	// Phase 1: instant render from the order-book-free set (open + resolved).
 	const lite = await fetchMarkets({ identity, certified: false, domain, includeOrderBook: false });
 
 	if (isStale?.()) {
@@ -719,12 +825,12 @@ export const loadMarketsProgressive = async ({
 
 	// Seed each row's book-derived fields before enrichment:
 	//  - a resolved market with a known outcome renders deterministically from
-	//    that outcome (YES won → 100/0, NO won → 0/100) — no order-book read;
+	//    that outcome (YES won → 100/0, NO won → 0/100), no order-book read;
 	//  - everything else overlays last-known prices from `previous` so a refresh
 	//    doesn't flash priced rows back to a skeleton while re-enrichment runs;
 	//  - with no in-memory prior (cold load, page refresh), the persisted
-	//    last-session price takes over — probability only, since stale bid/ask
-	//    depth must not masquerade as live liquidity — and a genuinely new market
+	//    last-session price takes over (probability only, since stale bid/ask
+	//    depth must not masquerade as live liquidity), and a genuinely new market
 	//    keeps its unknown probability, rendering a skeleton until enrichment.
 	const priceById = new Map((previous ?? []).map((market) => [market.id, market]));
 	const cachedYesById = readCachedYesProbabilities();
@@ -768,7 +874,7 @@ export const loadMarketsProgressive = async ({
 			: { ...market, yesProbability: cachedYes, noProbability: 1 - cachedYes };
 	});
 
-	// Phase 1.5 — one batch read fills in real traded volume before first paint,
+	// Phase 1.5: one batch read fills in real traded volume before first paint,
 	// so the volume-sorted list lands in its final order instead of reshuffling
 	// when volume arrives. Fails open (keeps the seeded / last-known volume).
 	const withVolume = await enrichMarketsWithVolume({ markets: seeded, identity, certified: false });
@@ -779,14 +885,29 @@ export const loadMarketsProgressive = async ({
 
 	onUpdate(withVolume);
 
-	// Phase 2 — background book enrichment for every non-resolved market (open
+	// Phase 1.75: repair resolved markets the activity log couldn't label, from
+	// clearing. Runs behind the painted list and only over the unlabelled subset,
+	// so a healthy catalog pays nothing.
+	const repaired = await backfillResolutionOutcomes({
+		markets: withVolume,
+		identity,
+		certified: false
+	});
+
+	if (isStale?.()) {
+		return;
+	}
+
+	onUpdate(repaired);
+
+	// Phase 2: background book enrichment for every non-resolved market (open
 	// *and* expired-but-unresolved both carry a live/last book the list prices
 	// off). Resolved markets are skipped: they're already pinned to their
 	// outcome above. Built on the volume-enriched set, whose `totalVolume` the
 	// book enrichment preserves (it only overlays price/book fields).
-	const enriched = [...withVolume];
-	const indexById = new Map(withVolume.map((market, index) => [market.id, index]));
-	const pending = withVolume.filter((market) => market.status !== 'Resolved');
+	const enriched = [...repaired];
+	const indexById = new Map(repaired.map((market, index) => [market.id, index]));
+	const pending = repaired.filter((market) => market.status !== 'Resolved');
 
 	for (let start = 0; start < pending.length; start += MARKETS_ENRICH_BATCH_SIZE) {
 		if (isStale?.()) {
@@ -824,10 +945,26 @@ const fetchMarket = async ({
 	certified: boolean;
 	marketId: MarketId;
 }): Promise<Market | undefined> => {
+	// Series + settlement are public engine reads with a web2 HTTP path; the
+	// order book has no HTTP surface yet and stays an anonymous on-chain query
+	// on both transports (it is publicly readable, so web2 mode still prices).
 	const [s, rawOrders, settlementStatus] = await Promise.all([
-		getSeries({ identity, certified, seriesId: marketId }),
-		getOrderBook({ marketId, identity, certified }),
-		getSettlementStatus({ identity, certified, seriesId: marketId })
+		isWeb2Backend()
+			? getEngineSeriesWeb2(marketId)
+			: getSeries({ identity, certified, seriesId: marketId }),
+		// In web2 mode the book is the page's only on-chain read, next to two
+		// HTTP ones: a failed book read prices the market as unknown (empty
+		// book) instead of failing the whole detail and blanking the page.
+		isWeb2Backend()
+			? getOrderBook({ marketId, identity, certified }).catch((err: unknown) => {
+					console.warn('market detail: order book read failed, pricing as unknown', err);
+
+					return [];
+				})
+			: getOrderBook({ marketId, identity, certified }),
+		isWeb2Backend()
+			? getEngineSettlementStatusWeb2(marketId)
+			: getSettlementStatus({ identity, certified, seriesId: marketId })
 	]);
 
 	const { midPrice, bids, asks } = calculateMarketStats({
@@ -858,7 +995,7 @@ const fetchMarket = async ({
 			: undefined;
 
 	// Clearing's settlement view exists from the moment a settlement plan opens
-	// — same predicate as the list path's `list_settled_series` — and carries
+	// (same predicate as the list path's `list_settled_series`) and carries
 	// the authoritative settlement input the winning outcome derives from.
 	const status: MarketStatus = nonNullish(settlementStatus)
 		? 'Resolved'
@@ -868,10 +1005,13 @@ const fetchMarket = async ({
 	const outcome: Outcome | undefined = nonNullish(settlementStatus)
 		? settlementInputOutcome(settlementStatus.settlement)
 		: undefined;
+	const resolvedAt = nonNullish(settlementStatus)
+		? settlementInputTimestamp(settlementStatus.settlement)
+		: undefined;
 
 	// Resolved markets pin to their outcome (YES won → 1, NO won → 0); everything
 	// else uses the live book mid, left unknown for an empty book (no 0.5
-	// placeholder). `priceLoaded: true` — this path always reads the book.
+	// placeholder). `priceLoaded: true` (this path always reads the book).
 	const isResolvedOutcome = status === 'Resolved' && nonNullish(outcome);
 	const yesProbability = isResolvedOutcome ? (outcome === 'YES' ? 1 : 0) : midPrice;
 	const noProbability = nonNullish(yesProbability) ? 1 - yesProbability : undefined;
@@ -887,49 +1027,42 @@ const fetchMarket = async ({
 		bestAskQty,
 		status,
 		outcome,
+		resolvedAt,
 		categoricalProbabilities
 	});
 };
 
 /**
  * Single-market detail with book, categorical probabilities if applicable, and
- * resolution status from clearing's `get_settlement_status`.
- *
- * Performs a single certified update. Prefer {@link loadMarket} for UI flows
- * that should render fast then upgrade once verified.
- */
-export const getMarket = async (marketId: MarketId): Promise<Market | undefined> => {
-	const identity = await getIdentityOrAnonymous();
-
-	return fetchMarket({ identity, certified: true, marketId });
-};
-
-/**
- * Callback-based variant of {@link getMarket} that fires `onLoad` up to twice:
- * once for the uncertified query, then again for the certified update. Stale
+ * resolution status from clearing's `get_settlement_status`. Fires `onLoad` up
+ * to twice: once for the uncertified query, then again for the certified update. Stale
  * query responses that arrive after the update has settled are dropped by the
- * underlying `queryAndUpdate`.
+ * underlying `queryAndUpdate`. A load that delivers nothing fires both
+ * `onQueryError` and `onUpdateError`.
  */
 export const loadMarket = ({
 	marketId,
 	onLoad,
+	onQueryError,
 	onUpdateError
 }: {
 	marketId: MarketId;
 	onLoad: (options: { certified: boolean; response: Market | undefined }) => void;
+	onQueryError?: (error: unknown) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> =>
 	loadWithCertification<Market | undefined>({
 		request: ({ certified, identity }) => fetchMarket({ identity, certified, marketId }),
 		onLoad,
+		onQueryError,
 		onUpdateError
 	});
 
 /**
  * Editorial-boost magnitude for markets flipped to `suggested = true`.
  * Sits above the interest tier (1000) and the culture-fallback tier
- * (500) so a single admin flag dominates every organic ranking signal
- * — but stays additive, so two suggested markets still order by
+ * (500) so a single admin flag dominates every organic ranking signal,
+ * but stays additive, so two suggested markets still order by
  * volume / liquidity / recency between themselves.
  */
 const SUGGESTED_BOOST_BASE = 5000;
@@ -937,7 +1070,7 @@ const SUGGESTED_BOOST_BASE = 5000;
 /**
  * Linear decay window for the suggested boost. After this many ms the
  * editorial weight is fully gone and the market falls back to its
- * organic rank — no admin maintenance required to un-suggest stale
+ * organic rank, no admin maintenance required to un-suggest stale
  * picks. Tracked from `metadata.updatedAt` (set on every metadata
  * upsert in `market-metadata.services.ts`).
  */
@@ -952,7 +1085,7 @@ const SUGGESTED_DECAY_MS = 14 * DAY_IN_MS;
  *
  * Exported so the "Suggested for you" rail (which only wants markets
  * with a non-zero current boost) reuses the same gating rules as the
- * sort tier — single source of truth, no chance of the rail showing a
+ * sort tier: single source of truth, no chance of the rail showing a
  * market that the sort already let fall off the top.
  */
 export const suggestedScore = ({
@@ -984,7 +1117,7 @@ export const suggestedScore = ({
 
 /**
  * Score multiplier applied to the Flow markets tied to the user's
- * favourite team (`preferences.favoriteParticipantId`) — a 60% score
+ * favourite team (`preferences.favoriteParticipantId`): a 60% score
  * boost that lifts their country higher in the World Cup deck ranking
  * (a deterministic sort, not a probabilistic draw). See `rankMarkets`.
  */
@@ -1002,21 +1135,21 @@ export const FAVORITE_COUNTRY_BOOST = 1.6;
  * which `mapMarketData` hardcodes to `ZERO` (the field is never
  * populated upstream), so it never contributed. `liquidityScore`
  * needed `bestBid` / `bestAsk`, which the Flow path no longer fetches
- * until *after* ranking — see `getFlowQueue` +
- * `enrichFlowMarketsWithOrderBook`. The dropped tier was a 100-point
+ * until *after* ranking (see `getFlowQueue` +
+ * `enrichFlowMarketsWithOrderBook`). The dropped tier was a 100-point
  * flag dwarfed by the interest (1000) and suggested (~5000) tiers, so
  * the top-N ordering is effectively unchanged.
  *
  * `tagMappings` is the `seriesId → MarketTag[]` projection produced by
  * {@link listMarketTagsBySeries}; a market matches user interest when
  * *any* of its tags is in the user's declared interest set. The
- * `culture` boost is unchanged from the legacy single-category logic —
+ * `culture` boost is unchanged from the legacy single-category logic;
  * it now fires when the market carries the `culture` tag and the user
  * either has no interests or explicitly opted into culture.
  *
  * `metadataBySeries` (optional) carries the full `MarketMetadata` doc
  * keyed by `seriesId`. When omitted, the suggested-market boost
- * silently no-ops — every other tier behaves identically, so callers
+ * silently no-ops; every other tier behaves identically, so callers
  * that haven't been migrated to pass metadata see no regression.
  *
  * `favoriteMarketIds` (optional) is the set of featured-event market ids
@@ -1036,7 +1169,7 @@ export const rankMarkets = ({
 }: {
 	markets: Market[];
 	userInterests: Set<string>;
-	tagMappings: Record<string, MarketTag[]>;
+	tagMappings: Record<string, string[]>;
 	metadataBySeries?: Record<string, MarketMetadata>;
 	favoriteMarketIds?: ReadonlySet<string>;
 }): Market[] => {
@@ -1047,18 +1180,20 @@ export const rankMarkets = ({
 
 		const suggested = suggestedScore({ market: m, metadata: metadataBySeries[m.id], nowMs });
 
-		const interestScore = tags.some((tag) => userInterests.has(tag)) ? 1000 : 0;
+		const macros = classificationMacros(tags);
+		const interestScore =
+			tags.some((tag) => userInterests.has(tag)) || macros.some((macro) => userInterests.has(macro))
+				? 1000
+				: 0;
 
-		const hasCultureTag = tags.includes('culture');
+		const hasCultureTag = macros.includes('culture');
 		const cultureScore =
 			hasCultureTag && (userInterests.size === 0 || userInterests.has('culture')) ? 500 : 0;
 
-		// `liquidityScore` and `volumeScore` used to live here but were
-		// dropped: `volumeScore` keyed off `Market.totalVolume`, which
-		// `mapMarketData` hardcodes to `ZERO`, so it never fired. And
-		// the Flow ranking path now ranks before fetching order books
-		// (see `getFlowQueue` + `enrichMarketsWithOrderBook`), so
-		// `bestBid`/`bestAsk` aren't populated at sort time anyway.
+		// No volume or liquidity term: `mapMarketData` hardcodes
+		// `Market.totalVolume` to `ZERO`, and the Flow path ranks before it
+		// fetches order books (`getFlowQueue` + `enrichMarketsWithOrderBook`),
+		// so `bestBid` / `bestAsk` are not populated at sort time.
 		const recencyScore = Number(m.createdAt) / 1e12;
 
 		const score = suggested + interestScore + cultureScore + recencyScore;
@@ -1066,7 +1201,7 @@ export const rankMarkets = ({
 		// Lift the markets tied to the user's favourite team by a flat
 		// 60% so their country trends to the top of the deck. Applied as a
 		// multiplier on the whole score (not an additive tier) so the
-		// boost scales with whatever already ranked the market — a
+		// boost scales with whatever already ranked the market: a
 		// suggested favourite stays ahead of a plain favourite.
 		return favoriteMarketIds?.has(m.id) === true ? score * FAVORITE_COUNTRY_BOOST : score;
 	};
@@ -1093,7 +1228,7 @@ export const rankMarkets = ({
  * inputs: callers that already hold these (e.g. `prepareFlow`, which
  * shares them with the signals derivation) can pass them in to avoid
  * a duplicate satellite round-trip. Plain values, promises, or
- * promise-wrapped results all work — `Promise.all` collapses them.
+ * promise-wrapped results all work; `Promise.all` collapses them.
  */
 export const getFlowQueue = async ({
 	domain,
@@ -1101,11 +1236,16 @@ export const getFlowQueue = async ({
 	metadataBySeries
 }: {
 	domain: RegistryDid.BalanceDomain;
-	tagMappings?: Record<string, MarketTag[]> | Promise<Record<string, MarketTag[]>>;
+	tagMappings?: Record<string, string[]> | Promise<Record<string, string[]>>;
 	metadataBySeries?: Record<string, MarketMetadata> | Promise<Record<string, MarketMetadata>>;
 }): Promise<Market[]> => {
 	const identity = await getIdentityOrAnonymous();
-	const principal = identity.getPrincipal().toText();
+	// web2 keys profiles by the session's account id: there is no on-chain
+	// identity, so the principal above is the anonymous placeholder and owns no
+	// profile (a signed-out visitor still falls back to it and reads empty).
+	const profileOwner = isWeb2Backend()
+		? (getWeb2User()?.id ?? identity.getPrincipal().toText())
+		: identity.getPrincipal().toText();
 
 	const [markets, profile, resolvedTags, resolvedMeta] = await Promise.all([
 		// The Flow deck is a read-only preview: ranking candidates only needs
@@ -1114,7 +1254,7 @@ export const getFlowQueue = async ({
 		// latency on the entry critical path. Certified reads still back the
 		// market-detail / trade-execution paths (`fetchMarket`, order placement).
 		fetchOpenBinaryMarketsLite({ identity, certified: false, domain }),
-		getProfile(principal),
+		getProfile(profileOwner),
 		tagMappings ?? listMarketTagsBySeries().catch(() => ({})),
 		metadataBySeries ?? listMarketMetadataBySeries().catch(() => ({}))
 	]);
@@ -1142,7 +1282,7 @@ export const getFlowQueue = async ({
 /**
  * Public wrapper around {@link enrichMarketsWithOrderBook} for the Flow
  * pipeline. Resolves the identity once and fans out one parallel book
- * fetch per market — meant to be called with the already-sliced top-N
+ * fetch per market, meant to be called with the already-sliced top-N
  * (see `MAX_MARKETS` in `flow-prep.services.ts`), so the network cost
  * is bounded by deck size instead of the number of open series.
  */
@@ -1157,8 +1297,8 @@ export const enrichFlowMarketsWithOrderBook = async (markets: Market[]): Promise
 	// consensus % per card, not a settlement-grade figure, so the fast query
 	// path is the right trade-off for the swipe preview.
 	//
-	// Why this is safe: the value-bearing path is certified *by construction*
-	// — `submit_limit_order` / `submit_market_order` / collateral / settlement
+	// Why this is safe: the value-bearing path is certified *by construction*;
+	// `submit_limit_order` / `submit_market_order` / collateral / settlement
 	// hardcode `caller({ certified: true })` (see `clearing.canister.ts`), and
 	// the clearing canister executes against the real on-chain book. So a
 	// falsified query response can mislead a swipe decision but can never move
@@ -1168,74 +1308,8 @@ export const enrichFlowMarketsWithOrderBook = async (markets: Market[]): Promise
 	// Known trade-off: the displayed % is the one decision-influencing datum
 	// and is unverified at glance-time. If decision-time integrity is ever
 	// wanted, lazy-certify only the *focused* card (one certified `getOrderBook`
-	// as a card reaches the top of the deck) — do NOT revert all ≤MAX_MARKETS
+	// as a card reaches the top of the deck); do NOT revert all ≤MAX_MARKETS
 	// reads to certified, which would just reintroduce the slow fan-out this
 	// path exists to remove.
 	return enrichMarketsWithOrderBook({ markets, identity, certified: false });
-};
-
-/**
- * Forks an existing market into a new restricted-access clone ("circle match").
- *
- * Uses the registry's `fork_series` endpoint so the resulting market carries a
- * `forked_from` reference back to the source. This lineage is what powers the
- * stacked-card UI and lets us enforce per-user fork limits on the backend.
- *
- * The fork inherits the source's title, description, outcomes, expiry,
- * balance domain, payout unit, etc. — the caller only supplies the target
- * group(s) and (optionally) a custom title/description.
- */
-export const forkMarket = async ({
-	marketId,
-	groupIds,
-	title,
-	description,
-	resolution,
-	locale
-}: {
-	marketId: MarketId;
-	groupIds: string[];
-	title?: string;
-	description?: string;
-	/**
-	 * Optional settlement-clause override for the fork. When omitted, the
-	 * registry inherits the source series' resolution (`fork_series` treats a
-	 * `None` resolution as "keep the source's"), which is what we want for
-	 * "Challenge your friends" forks that don't restate how the market settles.
-	 */
-	resolution?: string;
-	/**
-	 * Optional BCP 47 source-language override for the forked market's
-	 * `title`/`description`. When omitted, the registry inherits the source
-	 * series' locale, which is what we want for non-translating "Challenge
-	 * your friends" forks. Pass an explicit value only when the fork
-	 * intentionally retitles into a different language.
-	 */
-	locale?: AppLocale;
-}): Promise<string> => {
-	if (groupIds.length === 0) {
-		throw new Error('Fork requires at least one target group');
-	}
-
-	const identity = await safeGetIdentityOnce();
-
-	const trimmedResolution = resolution?.trim();
-
-	const params: RegistryDid.ForkSeriesParams = {
-		source_series_id: marketId,
-		title: toNullable(title),
-		description: toNullable(
-			nonNullish(description) ? { plain: description, html: [], markdown: [] } : undefined
-		),
-		resolution: toNullable(
-			notEmptyString(trimmedResolution)
-				? { clause: trimmedResolution.slice(0, RESOLUTION_CLAUSE_MAX_LENGTH) }
-				: undefined
-		),
-		trading_access: [{ Restricted: { groups: groupIds } }],
-		engine_id: toNullable(VICI_ENGINE_ID),
-		locale: toNullable(locale)
-	};
-
-	return await forkSeries({ identity, params });
 };

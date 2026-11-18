@@ -1,4 +1,4 @@
-import { del, get, set as setStorage } from '$lib/utils/storage.utils';
+import { del, get, set as setStorage } from '#lib/utils/storage.utils.ts';
 import { writable, type Writable } from 'svelte/store';
 
 type StorageStoreData<T> = T;

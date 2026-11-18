@@ -1,5 +1,5 @@
 /**
- * Roman/Latin handle pool — used to seed the onboarding handle
+ * Roman/Latin handle pool: used to seed the onboarding handle
  * picker (Beat 2). The register matches the brand's Veni · Vidi ·
  * Vici framing: classical names (augustus, livia, seneca…), oracular
  * and augury terms (augur, oracle, cassandra, sibyl…), and short

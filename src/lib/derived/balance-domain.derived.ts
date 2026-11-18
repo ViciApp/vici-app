@@ -1,5 +1,5 @@
-import type { ClearingDid } from '$declarations';
-import { balanceDomainStore } from '$lib/stores/balance-domain.store';
+import type { ClearingDid } from '#declarations';
+import { balanceDomainStore } from '#lib/stores/balance-domain.store.ts';
 import { derived, type Readable } from 'svelte/store';
 
 export const balanceDomain: Readable<ClearingDid.BalanceDomain> = derived(

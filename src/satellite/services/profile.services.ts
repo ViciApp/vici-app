@@ -1,18 +1,28 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { DAILY_HARD_CAP } from '$lib/constants/flow-rewards.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAILY_HARD_CAP } from '#lib/constants/flow-rewards.constants.ts';
 import {
 	handleCooldownDaysLeft,
 	MIN_NICKNAME_LENGTH,
 	NICKNAME_PATTERN,
 	nicknameUniqueKey
-} from '$lib/constants/profile.constants';
-import type { UserRole } from '$lib/enums/user';
-import type { UserProfile } from '$lib/types/profile';
-import { visibilityFromProfile } from '$lib/utils/visibility.utils';
-import { mintFlowOvertime } from '$satellite/services/vxp-flow-awards.services';
+} from '#lib/constants/profile.constants.ts';
+import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
+import type { UserRole } from '#lib/enums/user.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import { DAY_KEY_RE } from '#lib/utils/streak.utils.ts';
+import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
+import {
+	assertOwnerOrController,
+	controllerCaller,
+	isControllerText
+} from '#satellite/services/authz.services.ts';
+import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
+import { mintFlowOvertime } from '#satellite/services/vxp-flow-awards.services.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import type { AssertSetDocContext } from '@junobuild/functions';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { Principal } from '@icp-sdk/core/principal';
+import type { AssertDeleteDocContext, AssertSetDocContext, Doc } from '@junobuild/functions';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -29,13 +39,13 @@ import type { PrincipalText } from '@junobuild/schema';
  *
  * Two failure modes to defend against:
  *
- * 1. **Missing required nested fields** — profile docs predate several
+ * 1. **Missing required nested fields**: profile docs predate several
  *    fields (most recently `preferences.defaultAmount`), so the Sputnik
  *    JsonData→Candid encoder would trap with `Error converting from js
  *    'JsonData' into type 'Candid': missing field <name>` on the first
  *    legacy row. Fix: backfill nested defaults explicitly.
  *
- * 2. **Extra unknown fields** — older code stored fields like `bio` or
+ * 2. **Extra unknown fields**: older code stored fields like `bio` or
  *    `createdAt`/`updatedAt` that have since been removed from the
  *    schema. `defineQuery`'s result parse validates each row against
  *    `UserProfileSchema`, which uses `strictObject` and *rejects* unknown
@@ -46,8 +56,8 @@ import type { PrincipalText } from '@junobuild/schema';
  *
  * `app_get_profile` happens to work on clean rows because there's only
  * one to encode and it passes parse; `app_list_leaderboard` iterates
- * everyone and hits the first dirty row. So keep this helper authoritative
- * — and keep it in sync with `UserProfileSchema`
+ * everyone and hits the first dirty row. So keep this helper authoritative,
+ * and keep it in sync with `UserProfileSchema`
  * (`src/lib/schema/profile.schema.ts`).
  */
 export const withProfileDefaults = (profile: UserProfile): UserProfile => {
@@ -72,7 +82,7 @@ export const withProfileDefaults = (profile: UserProfile): UserProfile => {
 				incoming?.sharing?.profileVisibility === 'friends' ||
 				incoming?.sharing?.profileVisibility === 'private'
 					? incoming.sharing.profileVisibility
-					: // No stored sharing slice — derive from the canonical top-level
+					: // No stored sharing slice: derive from the canonical top-level
 						// `visibility` so legacy rows reflect their actual visibility
 						// (FRIENDS_ONLY → 'private') instead of defaulting to public.
 						visibilityFromProfile(profile.visibility),
@@ -99,7 +109,6 @@ export const withProfileDefaults = (profile: UserProfile): UserProfile => {
 		// field decodes as absent; backfill to '' (no saved picks → the
 		// surface falls back to a principal-seeded face).
 		avatarParts: profile.avatarParts ?? '',
-		email: profile.email ?? '',
 		pnl: profile.pnl ?? 0,
 		visibility: profile.visibility,
 		role: profile.role,
@@ -122,7 +131,7 @@ export const withProfileDefaults = (profile: UserProfile): UserProfile => {
 		// `optional()` in the schema, so an absent value stays absent (active
 		// account) and a present value round-trips unchanged.
 		deletedAtMs: profile.deletedAtMs,
-		// Forward the hibernation marker verbatim (Delete account v2 — the
+		// Forward the hibernation marker verbatim (Delete account v2: the
 		// reversible sibling of soft-delete). Same `optional()` round-trip
 		// semantics as `deletedAtMs`: absent stays absent (active), present
 		// round-trips unchanged.
@@ -174,8 +183,8 @@ export const withProfileDefaults = (profile: UserProfile): UserProfile => {
 
 /**
  * A `YYYY-MM-DD` local-day key is well-formed iff its parsed components
- * round-trip exactly through a UTC date (so `2026-02-31` — which `Date`
- * would silently normalize to March 3 — is rejected). The satellite has
+ * round-trip exactly through a UTC date (so `2026-02-31`, which `Date`
+ * would silently normalize to March 3, is rejected). The satellite has
  * no notion of the caller's timezone, so it does NOT compute the day
  * itself; it accepts the client's local-day key and uses it only as the
  * rollover boundary. The structural check here is the only validation:
@@ -183,7 +192,7 @@ export const withProfileDefaults = (profile: UserProfile): UserProfile => {
  * bypass that's explicitly out of scope for the honest-reset fix.
  */
 const isWellFormedDayKey = (key: string): boolean => {
-	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+	const match = DAY_KEY_RE.exec(key);
 
 	if (isNullish(match)) {
 		return false;
@@ -210,7 +219,7 @@ export interface RecordFlowSwipeResult {
 }
 
 /**
- * Authoritative per-swipe daily-counter increment — the satellite owns the
+ * Authoritative per-swipe daily-counter increment: the satellite owns the
  * Flow daily hard cap, not the client.
  *
  * The client never sends a count: it sends only its local-day key
@@ -222,13 +231,13 @@ export interface RecordFlowSwipeResult {
  *    `dailyGoalDone` (capped at {@link DAILY_HARD_CAP});
  *  - otherwise starts the day fresh at 1 under `dayKey`.
  *
- * The result is written back via a version-locked `setDocStore` (PROFILES
- * is user-owned, so the write is authorised by the REAL caller — never an
- * admin key). With the monotonic-per-day assert as the backstop, a cleared
- * or stale client can no longer roll the count backward within a day, so
- * the cap survives reloads, cleared storage, sign-outs, and device
- * switches. A caller with no profile yet (not onboarded) is a no-op that
- * reports a 1-of-cap day so the FE can still gate the session.
+ * The result is written back via a version-locked `setDocStore` signed as
+ * a satellite controller: this is the only writer of `dailyGoalDone` /
+ * `dailyGoalDate`, and {@link assertDailyGoalUnchanged} refuses any other
+ * caller that changes them, so the overtime award at the cap is reached only
+ * through recorded swipes. Juno keeps the stored doc's owner on an update,
+ * so the profile stays the user's. The cap survives reloads, cleared
+ * storage, sign-outs, and device switches.
  */
 export const recordFlowSwipeFn = async ({
 	dayKey
@@ -252,7 +261,7 @@ export const recordFlowSwipeFn = async ({
 	// A swipe only ever comes from a signed-in caller, who always has a
 	// profile (created at onboarding); a missing doc here means a broken or
 	// half-created account. Fail fast rather than fabricate an
-	// authoritative-shaped count — the Flow commit's catch clamps the
+	// authoritative-shaped count: the Flow commit's catch clamps the
 	// optimistic tally to the last server-confirmed value, so a rejection
 	// degrades gracefully instead of silently re-opening the cap.
 	if (isNullish(profileDoc)) {
@@ -271,7 +280,7 @@ export const recordFlowSwipeFn = async ({
 	setDocStore({
 		collection: Collection.PROFILES,
 		key: callerText,
-		caller: callerBytes,
+		caller: controllerCaller('flow daily goal'),
 		doc: {
 			data: encodeDocData<UserProfile>(next),
 			version: profileDoc.version
@@ -293,22 +302,22 @@ export const recordFlowSwipeFn = async ({
 
 /**
  * A profile is soft-deleted (Delete account v2) iff `deletedAtMs` is
- * present. Absence is the meaningful "active account" state — see the
+ * present. Absence is the meaningful "active account" state: see the
  * field comment in `src/lib/schema/profile.schema.ts`. Used by the
  * PUBLIC profile reads to make a deleted user disappear from
  * leaderboard / search / direct lookup. `getProfile` additionally lets
  * the owner read their own soft-deleted doc (it knows the caller and the
  * looked-up principal), and the owner's raw read via Juno `getDoc` is
- * also never gated — both so the FE can still offer recovery within the
+ * also never gated: both so the FE can still offer recovery within the
  * window.
  */
 export const isSoftDeleted = (profile: Pick<UserProfile, 'deletedAtMs'>): boolean =>
 	nonNullish(profile.deletedAtMs);
 
 /**
- * A profile is hibernated (Delete account v2 — the reversible sibling of
+ * A profile is hibernated (Delete account v2: the reversible sibling of
  * soft-delete) iff `hibernatedAtMs` is present. Absence is the meaningful
- * "active account" state — see the field comment in
+ * "active account" state: see the field comment in
  * `src/lib/schema/profile.schema.ts`. Hibernation is fully reversible: no
  * data is removed, the owner can `resumeMyAccount` at any time. While
  * hibernated the account freezes its shared stats (it's inactive) and
@@ -332,6 +341,36 @@ export const isPubliclyHidden = (
 	profile: Pick<UserProfile, 'deletedAtMs' | 'hibernatedAtMs'>
 ): boolean => isSoftDeleted(profile) || isHibernated(profile);
 
+/**
+ * A stored profile as every read reports it: identified by its doc key, the
+ * principal the owner check binds it to, never by the embedded `owner` a
+ * legacy write could have pointed at someone else.
+ */
+export const decodeStoredProfile = ([key, doc]: [string, Pick<Doc, 'data'>]): UserProfile => ({
+	...decodeDocData<UserProfile>(doc.data),
+	owner: key
+});
+
+/** {@link withProfileDefaults} with the role the profile's principal holds. */
+export const withProfileRole = ({
+	profile,
+	caller
+}: {
+	profile: UserProfile;
+	caller: Principal;
+}): UserProfile => {
+	const roleDoc = getDocStore({
+		collection: Collection.ROLES,
+		key: profile.owner,
+		caller
+	});
+
+	return withProfileDefaults({
+		...profile,
+		role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
+	});
+};
+
 export const getProfile = (principal: PrincipalText): UserProfile | undefined => {
 	const caller = msgCaller();
 
@@ -345,27 +384,18 @@ export const getProfile = (principal: PrincipalText): UserProfile | undefined =>
 		return;
 	}
 
-	const profile = decodeDocData<UserProfile>(profileDoc.data);
+	const profile = decodeStoredProfile([principal, profileDoc]);
 
 	// Public lookup: a soft-deleted OR hibernated account is invisible to
 	// OTHER callers, but the owner can always read their own (possibly
-	// hidden) doc — the FE relies on this to drive recovery / resume within
+	// hidden) doc: the FE relies on this to drive recovery / resume within
 	// the window, so the query agrees with the raw Juno `getDoc` path
 	// instead of hiding the state only there.
 	if (isPubliclyHidden(profile) && caller.toText() !== principal) {
 		return;
 	}
 
-	const roleDoc = getDocStore({
-		collection: Collection.ROLES,
-		key: profile.owner,
-		caller
-	});
-
-	return withProfileDefaults({
-		...profile,
-		role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
-	});
+	return withProfileRole({ profile, caller });
 };
 
 export const searchProfiles = (query: string): UserProfile[] => {
@@ -381,23 +411,12 @@ export const searchProfiles = (query: string): UserProfile[] => {
 
 	return (
 		items
-			.map(([_, item]) => decodeDocData<UserProfile>(item.data))
+			.map(decodeStoredProfile)
 			// Public search: soft-deleted OR hibernated accounts are
 			// invisible (Delete account v2). Drop them before the role
 			// lookup + hydrate.
 			.filter((profile) => !isPubliclyHidden(profile))
-			.map((profile) => {
-				const roleDoc = getDocStore({
-					collection: Collection.ROLES,
-					key: profile.owner,
-					caller
-				});
-
-				return withProfileDefaults({
-					...profile,
-					role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
-				});
-			})
+			.map((profile) => withProfileRole({ profile, caller }))
 			.filter((p) => {
 				const matches = [p.nickname, p.owner].some((val) => val.toLowerCase().includes(lowerQuery));
 
@@ -412,11 +431,11 @@ export const searchProfiles = (query: string): UserProfile[] => {
  * without parsing error strings.
  *
  * `reason` is set only when `available` is `false`:
- * - `required`  — empty / whitespace.
- * - `too_short` — under `MIN_NICKNAME_LENGTH`.
- * - `invalid`   — contains characters outside `NICKNAME_PATTERN`
+ * - `required`: empty / whitespace.
+ * - `too_short`: under `MIN_NICKNAME_LENGTH`.
+ * - `invalid`: contains characters outside `NICKNAME_PATTERN`
  *                 (`[a-z0-9._-]`), e.g. a space in the middle.
- * - `taken`     — another principal already owns this nickname.
+ * - `taken`: another principal already owns this nickname.
  */
 export type NicknameAvailability =
 	| { available: true }
@@ -428,7 +447,7 @@ export type NicknameAvailability =
  * UI and the satellite always agree on what "taken" means.
  *
  * `excludeKey` is the doc key (principal) to skip when scanning for
- * collisions — pass the editing user's principal so a user's own current
+ * collisions: pass the editing user's principal so a user's own current
  * nickname doesn't count as a conflict.
  */
 export const checkNicknameAvailabilityFn = ({
@@ -450,7 +469,7 @@ export const checkNicknameAvailabilityFn = ({
 
 	// Charset guard (server-authoritative): reject whitespace, `@` and other
 	// out-of-charset chars a direct `setDoc` could smuggle past the FE. Tested
-	// on the RAW value (the stored one) — not `trimmedNickname` — so surrounding
+	// on the RAW value (the stored one), not `trimmedNickname`, so surrounding
 	// whitespace is rejected too. The pattern allows upper/lowercase + accents.
 	if (!NICKNAME_PATTERN.test(nickname)) {
 		return { available: false, reason: 'invalid' };
@@ -493,13 +512,13 @@ export const checkNicknameAvailabilityFn = ({
  * submitted, so by the time the assert runs the value is a few hundred ms in
  * the past relative to the satellite's `time()`. Allow a small slack on both
  * sides (clock skew + request latency) but reject values that are clearly
- * stale or in the future — the client must not be trusted to backdate the
+ * stale or in the future: the client must not be trusted to backdate the
  * stamp and dodge the cooldown.
  */
-const HANDLE_LAST_CHANGE_TOLERANCE_MS = 5 * 60 * 1000;
+const HANDLE_LAST_CHANGE_TOLERANCE_MS = 5 * MINUTE_IN_MS;
 
 // Handle-change detection uses the uniqueness fold, so re-casing/re-accenting
-// your own handle isn't a "change" (no cooldown, no new stamp) — the stored
+// your own handle isn't a "change" (no cooldown, no new stamp): the stored
 // value still updates.
 const normalizeNickname = (nickname: string | undefined | null): string =>
 	nicknameUniqueKey(nickname ?? '');
@@ -507,10 +526,10 @@ const normalizeNickname = (nickname: string | undefined | null): string =>
 /**
  * Set-profile assertion for the `profiles` collection. Two concerns:
  *
- * 1. **Nickname validity + uniqueness** — the shared
+ * 1. **Nickname validity + uniqueness**: the shared
  *    {@link checkNicknameAvailabilityFn} (write-time guard mirroring the
  *    read-time availability probe).
- * 2. **Handle-change cooldown** — the handle is the `nickname` field. It can
+ * 2. **Handle-change cooldown**: the handle is the `nickname` field. It can
  *    only change once every {@link HANDLE_COOLDOWN_DAYS} days. This is the
  *    server-authoritative half of the rule (the {@link HandleEditor} mirrors
  *    it client-side). When the normalized nickname CHANGES versus the stored
@@ -538,41 +557,40 @@ export const assertValidNickname = ({
 
 	// A first write (no stored doc) seeds the handle; an update where the
 	// normalized nickname differs sets a NEW handle. Both must clear the
-	// charset/format guard. An update that leaves the nickname untouched
-	// must NOT — so a legacy profile whose stored nickname predates this
-	// rule (e.g. one already containing a space) can still edit unrelated
-	// fields without being locked out. They are only forced to clean it up
-	// the moment they actually change the handle.
+	// validity + uniqueness guard. An update that leaves the nickname
+	// untouched must NOT: the stored handle is grandfathered (it already
+	// passed, or predates, these rules), and the uniqueness probe is a FULL
+	// collection scan, so running it on every routine profile write (streak
+	// bumps, stats syncs, the email migration's rewrites) made each write
+	// O(collection) for no protective value.
 	const settingNewHandle =
 		isNullish(currentProfile) ||
 		normalizeNickname(proposedProfile.nickname) !== normalizeNickname(currentProfile.nickname);
 
-	const result = checkNicknameAvailabilityFn({ nickname, excludeKey: documentKey });
+	if (settingNewHandle) {
+		const result = checkNicknameAvailabilityFn({ nickname, excludeKey: documentKey });
 
-	if (!result.available) {
-		if (result.reason === 'required') {
-			throw new Error('Nickname is required.');
-		}
+		if (!result.available) {
+			if (result.reason === 'required') {
+				throw new Error('Nickname is required.');
+			}
 
-		if (result.reason === 'too_short') {
-			throw new Error(`Nickname must be at least ${MIN_NICKNAME_LENGTH} characters.`);
-		}
+			if (result.reason === 'too_short') {
+				throw new Error(`Nickname must be at least ${MIN_NICKNAME_LENGTH} characters.`);
+			}
 
-		if (result.reason === 'invalid') {
-			// Grandfather an unchanged legacy nickname; reject only when this
-			// write actually sets the bad handle.
-			if (settingNewHandle) {
+			if (result.reason === 'invalid') {
 				throw new Error(
-					`The handle "${nickname}" contains invalid characters — use lowercase letters, numbers and . _ - only (no spaces).`
+					`The handle "${nickname}" contains invalid characters: use lowercase letters, numbers and . _ - only (no spaces).`
 				);
 			}
-		} else {
+
 			throw new Error(`The nickname "${nickname}" is already taken.`);
 		}
 	}
 
 	const proposedLastChangeMs = proposedProfile.handleLastChangeMs;
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	// First write (account creation): there is no stored handle yet, so this
 	// is not a cooldown-gated change. Only guard against a forged future /
@@ -605,7 +623,7 @@ export const assertValidNickname = ({
 
 	if (daysLeft > 0) {
 		throw new Error(
-			`The handle was changed recently — it can be changed again in ${daysLeft} day(s).`
+			`The handle was changed recently: it can be changed again in ${daysLeft} day(s).`
 		);
 	}
 
@@ -621,34 +639,23 @@ export const assertValidNickname = ({
 };
 
 /**
- * Backstop for the server-authoritative Flow daily cap: any direct client
- * `set_doc` to PROFILES must not roll the daily counter backward within a
- * day, nor push it past {@link DAILY_HARD_CAP}.
+ * The Flow daily goal (`dailyGoalDone` / `dailyGoalDate`) is written only by
+ * {@link recordFlowSwipeFn}, signing as a controller: it reaches the hard cap
+ * that mints the overtime award, so a client write must carry the stored
+ * values unchanged (no count and no day on a new profile). Otherwise a client
+ * could set the count one short of the cap, or move the day to restart it,
+ * and reach the award with a single swipe.
  *
- * `recordFlowSwipe` is the normal write path (it computes the count
- * server-side); this assert ensures a stale or cleared client — which
- * re-fetches the profile, sees a lower count, and `set_doc`s the whole
- * doc back — can't overwrite the authoritative total downward and re-open
- * a fresh allotment (the reported honest-reset leak).
- *
- * Rules, comparing the proposed doc against the CURRENT stored doc:
- *
- *  - First write (no stored doc) → allowed, but still capped at the hard
- *    cap so a forged first profile can't seed an over-cap count.
- *  - `dailyGoalDate` advances (a genuine new day) → reset to any value
- *    within `0..cap` is allowed.
- *  - `dailyGoalDate` unchanged → the proposed `dailyGoalDone` may not be
- *    LOWER than the stored one, and may not exceed the hard cap.
- *
- * Manipulating `dailyGoalDate` to a different (valid) day to force a reset
- * is an adversarial bypass, out of scope for the honest-reset fix.
+ * The satellite's own write is still bounded to a whole count within
+ * `0..`{@link DAILY_HARD_CAP}.
  */
-export const assertDailyGoalMonotonic = ({
+export const assertDailyGoalUnchanged = ({
+	caller,
 	data: {
 		collection,
 		data: { proposed, current }
 	}
-}: AssertSetDocContext) => {
+}: AssertSetDocContext): void => {
 	if (collection !== Collection.PROFILES) {
 		return;
 	}
@@ -656,27 +663,110 @@ export const assertDailyGoalMonotonic = ({
 	const proposedProfile = decodeDocData<UserProfile>(proposed.data);
 	const proposedDone = proposedProfile.dailyGoalDone ?? 0;
 
-	// Reject non-integer / negative / non-finite counts outright: the cap
-	// invariant assumes a whole-number tally in [0, cap], and a NaN or
-	// fractional value would slip past the bounds checks below.
-	if (!Number.isInteger(proposedDone) || proposedDone < 0) {
-		throw new Error('dailyGoalDone must be a non-negative integer.');
-	}
+	if (isControllerText(Principal.fromUint8Array(caller).toText())) {
+		// A NaN or fractional count would slip past the cap comparison.
+		if (!Number.isInteger(proposedDone) || proposedDone < 0) {
+			throw new Error('dailyGoalDone must be a non-negative integer.');
+		}
 
-	if (proposedDone > DAILY_HARD_CAP) {
-		throw new Error(`dailyGoalDone cannot exceed the daily hard cap of ${DAILY_HARD_CAP}.`);
+		if (proposedDone > DAILY_HARD_CAP) {
+			throw new Error(`dailyGoalDone cannot exceed the daily hard cap of ${DAILY_HARD_CAP}.`);
+		}
+
+		return;
 	}
 
 	const currentProfile = nonNullish(current) ? decodeDocData<UserProfile>(current.data) : undefined;
 
-	// First write, or a genuine new-day reset: nothing to roll back against.
-	if (isNullish(currentProfile) || currentProfile.dailyGoalDate !== proposedProfile.dailyGoalDate) {
+	// A legacy doc that predates the counter reads as 0, the value
+	// `withProfileDefaults` hands the client back.
+	if (
+		proposedDone !== (currentProfile?.dailyGoalDone ?? 0) ||
+		proposedProfile.dailyGoalDate !== currentProfile?.dailyGoalDate
+	) {
+		throw new Error('profiles: the Flow daily goal is set by the satellite.');
+	}
+};
+
+/**
+ * A profile is keyed by its owner's principal, and only that owner (or the
+ * satellite, signing as a controller) may write or delete it: soft-delete
+ * markers, nickname and counters all live on this doc.
+ */
+export const assertProfileOwner = ({
+	caller,
+	data: { collection, key }
+}: AssertSetDocContext | AssertDeleteDocContext): void => {
+	if (collection !== Collection.PROFILES) {
 		return;
 	}
 
-	// Same day → the count is monotonic non-decreasing. A stale client that
-	// re-saves a lower total is rejected so the server's progress stands.
-	if (proposedDone < (currentProfile.dailyGoalDone ?? 0)) {
-		throw new Error('dailyGoalDone cannot decrease within the same day.');
+	assertOwnerOrController({ caller, owner: key, collection });
+};
+
+/**
+ * The embedded `owner` is the identity every profile read reports and looks
+ * the role up by, so it must name the principal the doc is keyed by:
+ * otherwise a user could key a profile by their own principal and claim
+ * someone else's identity (and role) inside it.
+ */
+export const assertProfileOwnerField = ({
+	data: {
+		collection,
+		key,
+		data: { proposed }
 	}
+}: AssertSetDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	if (decodeDocData<UserProfile>(proposed.data).owner !== key) {
+		throw new Error('profiles: owner must be the doc key.');
+	}
+};
+
+/**
+ * `schoolStatus` records a verification only the satellite performs
+ * (`verifySchoolCode`, signing as a controller), so a client write must carry
+ * the stored value unchanged: absent on a new profile.
+ */
+export const assertSchoolStatusUnchanged = ({
+	caller,
+	data: {
+		collection,
+		data: { proposed, current }
+	}
+}: AssertSetDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	if (isControllerText(Principal.fromUint8Array(caller).toText())) {
+		return;
+	}
+
+	const proposedStatus = decodeDocData<UserProfile>(proposed.data).schoolStatus;
+	const currentStatus = nonNullish(current)
+		? decodeDocData<UserProfile>(current.data).schoolStatus
+		: undefined;
+
+	if (proposedStatus !== currentStatus) {
+		throw new Error('profiles: schoolStatus is set by the satellite.');
+	}
+};
+
+/**
+ * The `profiles` pre-write veto: one dispatch-table entry composing the
+ * sub-asserts, each exported on its own so it stays unit-testable. A throw
+ * from any one rejects the write. The owner checks and the new-profile gate run
+ * first so a refused write skips the nickname check's full collection scan.
+ */
+export const assertProfile = (context: AssertSetDocContext): void => {
+	assertProfileOwner(context);
+	assertProfileOwnerField(context);
+	assertSchoolStatusUnchanged(context);
+	assertNewProfileAllowed(context);
+	assertValidNickname(context);
+	assertDailyGoalUnchanged(context);
 };

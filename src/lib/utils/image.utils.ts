@@ -2,8 +2,8 @@ import { isNullish } from '@dfinity/utils';
 
 /**
  * Client-side image helpers. Kept framework-free so any surface can
- * downscale a user-picked file before handing the bytes to Juno Storage
- * — we never upload the raw camera-resolution original.
+ * downscale a user-picked file before handing the bytes to Juno Storage;
+ * we never upload the raw camera-resolution original.
  */
 
 /**

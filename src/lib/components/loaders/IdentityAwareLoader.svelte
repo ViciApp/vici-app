@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { nonNullish } from '@dfinity/utils';
-	import AtomicLoader from '$lib/components/loaders/AtomicLoader.svelte';
-	import { getIdentity } from '$lib/services/identity.services';
+	import AtomicLoader from '#lib/components/loaders/AtomicLoader.svelte';
+	import { isSignedIn } from '#lib/services/identity.services.ts';
 
 	interface Props {
 		onLoad: () => Promise<void>;
@@ -17,16 +16,14 @@
 		runImmediately = true
 	}: Props = $props();
 
-	const onShouldUseSlowInterval = async (): Promise<boolean> => {
-		const identity = await getIdentity();
-
-		return nonNullish(identity);
-	};
+	// `isSignedIn` is backend-agnostic: the Juno identity check on the default
+	// on-chain backend, the cookie-session store in web2 mode. Gating on the
+	// identity directly would leave every loader permanently idle in web2 mode,
+	// where no local identity ever exists.
+	const onShouldUseSlowInterval = (): Promise<boolean> => isSignedIn();
 
 	const safeOnLoad = async () => {
-		const identity = await getIdentity();
-
-		if (nonNullish(identity)) {
+		if (await isSignedIn()) {
 			await onLoad();
 		}
 	};

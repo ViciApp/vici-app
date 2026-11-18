@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { HTMLButtonAttributes } from 'svelte/elements';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import type { ButtonStatus } from '$lib/types/components';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import type { ButtonStatus } from '#lib/types/components.ts';
 
 	interface Props extends Omit<HTMLButtonAttributes, 'disabled' | 'aria-busy'> {
 		status?: ButtonStatus;
@@ -38,7 +38,7 @@
 	// Padding + type scale: default = `14px 20px / 14px text`, large =
 	// `16px 22px / 16px text`, small scales down proportionally. Every
 	// size shares the full pill radius (`rounded-full`) set on the
-	// wrapper below — the shape is a pill across all variants and sizes.
+	// wrapper below: the shape is a pill across all variants and sizes.
 	const sizes: Record<NonNullable<Props['size']>, string> = {
 		sm: 'px-3 py-2 text-xs',
 		md: 'px-5 py-3.5 text-sm',

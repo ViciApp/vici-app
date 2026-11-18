@@ -1,8 +1,10 @@
-import type { ClearingDid } from '$declarations';
-import { listLeaderboard } from '$lib/api/clearing.api';
-import { safeGetIdentityOnce } from '$lib/services/identity.services';
-import { setGlobalStandings } from '$lib/stores/standings.store';
-import type { StandingEntry, StandingsResult, StandingsWindow } from '$lib/types/standings';
+import type { ClearingDid } from '#declarations';
+import { listLeaderboard } from '#lib/api/clearing.api.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import { setGlobalStandings } from '#lib/stores/standings.store.ts';
+import type { StandingEntry, StandingsResult, StandingsWindow } from '#lib/types/standings.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { listEngineLeaderboard as listEngineLeaderboardWeb2 } from '#lib/web2/client.ts';
 import { fromNullable, isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { PrincipalText } from '@junobuild/schema';
@@ -17,7 +19,7 @@ import type { PrincipalText } from '@junobuild/schema';
  * membership, so the league filter is supplied by the caller as a principal
  * set (`members`). This service maps the wire aggregate onto the FE
  * {@link StandingEntry} view model (rank, prior-window rank, the ↑/↓ delta,
- * realized P&L, and a `win_count / settled_count` accuracy) — it never
+ * realized P&L, and a `win_count / settled_count` accuracy); it never
  * fabricates a figure: an empty window simply yields no entries.
  */
 
@@ -73,6 +75,20 @@ export const getStandings = async ({
 }: {
 	window: StandingsWindow;
 }): Promise<StandingsResult> => {
+	// The global ranking is a public engine read on the HTTP bridge, so web2
+	// needs no signed identity. `owner` on each entry stays the on-chain
+	// principal from clearing (the ranking's native key) until the engine and
+	// wallet swap maps engine identities onto accounts. The bridge drains the
+	// ranking with its own page bound, which covers the same visible depth.
+	if (isWeb2Backend()) {
+		const { items, total } = await listEngineLeaderboardWeb2({
+			window: toWindow(window),
+			limit: STANDINGS_PAGE_LIMIT
+		});
+
+		return { window, entries: items.map(toEntry), total: Number(total) };
+	}
+
 	const identity = await safeGetIdentityOnce();
 
 	const { items, total } = await listLeaderboard({
@@ -88,14 +104,14 @@ export const getStandings = async ({
 
 /**
  * Loads one window's global standings ranking and merges it into
- * {@link globalStandingsStore}. Ranking only — it deliberately does NOT
+ * {@link globalStandingsStore}. Ranking only: it deliberately does NOT
  * hydrate the profile cache.
  *
  * Profile hydration is the caller's job, because the two consumers have wildly
  * different needs from the SAME cached slice: the dashboard rank tile renders
  * only the viewer's own rank (no other handle/avatar), whereas the Leaderboard
  * renders every row. Folding a hydrate-everyone fan-out in here meant the dash
- * — hit on the first authenticated page of a session — fired one `getProfile`
+ * (hit on the first authenticated page of a session) fired one `getProfile`
  * per ranked principal (up to {@link MAX_STANDINGS_PAGES} × 500), a multi-
  * thousand request burst it threw away. The Leaderboard now hydrates only the
  * rows it actually paints (see `LeaderboardPage`).
@@ -113,6 +129,13 @@ export const loadGlobalStandings = async ({
  * supplied member set in isolation (inactive members are included with a
  * zeroed aggregate, so the slice covers the whole roster). Returns an empty
  * result when the roster is empty.
+ *
+ * Empty on the web2 backend for now: the HTTP bridge's leaderboard read has
+ * no member filter, and with the leagues domain swapped the rosters carry
+ * account ids while this clearing query scopes by on-chain principals, so a
+ * member-filtered bridge read (with the identity mapping) has to exist before
+ * this can swap. Until then every member-scoped slice renders as "no
+ * standings yet", which each caller already handles.
  */
 export const getLeagueStandings = async ({
 	window,
@@ -121,7 +144,7 @@ export const getLeagueStandings = async ({
 	window: StandingsWindow;
 	members: PrincipalText[];
 }): Promise<StandingsResult> => {
-	if (members.length === 0) {
+	if (members.length === 0 || isWeb2Backend()) {
 		return { window, entries: [], total: 0 };
 	}
 
@@ -137,40 +160,6 @@ export const getLeagueStandings = async ({
 	});
 
 	return { window, entries: items.map(toEntry), total: Number(total) };
-};
-
-/**
- * The viewer's percentile band for a ranked slice — the "Top X%" figure shown
- * on the dashboard rank tiles.
- *
- * NOTE: this band, `findOwnStanding`, and the Dash rank tile all read the
- * canister's net-P&L `rank` — they are deliberately NOT re-ranked by accuracy
- * the way the leaderboard view is (see `globalStandingsRows`). That leaves the
- * Dash rank tile on a different ranking basis than the leaderboard, a known
- * inconsistency to reconcile later — kept as a conscious choice, not an
- * oversight, until accuracy ranking moves into the clearing canister.
- *
- * Derived purely from a 1-based `rank` within a
- * `total` ranked set: `ceil(rank / total * 100)`, floored at 1 so the very top
- * of a large set still reads "Top 1%" rather than "Top 0%", and capped at 100.
- * `undefined` when the slice is empty (no `total`) or the rank is unknown, so
- * the caller can fall back rather than render a meaningless band.
- *
- * This is a band, not a rank: it never fabricates a position, it only restates
- * an authoritative `rank` / `total` pair as a coarse percentile.
- */
-export const percentileBand = ({
-	rank,
-	total
-}: {
-	rank: number;
-	total: number;
-}): number | undefined => {
-	if (total <= 0 || rank <= 0) {
-		return;
-	}
-
-	return Math.max(1, Math.min(100, Math.ceil((rank / total) * 100)));
 };
 
 /**

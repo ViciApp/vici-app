@@ -1,7 +1,7 @@
 # Coding standards (Claude pointer)
 
 `docs/ai/` is the source of truth. This card only surfaces a few
-high-violation reminders so they land in Claude's prompt — for anything
+high-violation reminders so they land in Claude's prompt; for anything
 substantive, read the canonical docs.
 
 **Read first:**
@@ -13,8 +13,8 @@ substantive, read the canonical docs.
 - Reusability catalog (`$lib/components/ui/`, shared utils / stores /
   services) →
   [`docs/ai/frontend/reusability.md`](../../docs/ai/frontend/reusability.md)
-- Project commandments →
-  [`AGENTS.md`](../../AGENTS.md#2-project-specific-commandments)
+- Vici-specific rules →
+  [`AGENTS.md`](../../AGENTS.md#4-vici-specific-rules)
 - Quality gates + PR conventions →
   [`docs/ai/pr-and-ci.md`](../../docs/ai/pr-and-ci.md)
 - i18n catalogs + lint rule →
@@ -36,9 +36,9 @@ substantive, read the canonical docs.
   [`reusability.md`](../../docs/ai/frontend/reusability.md) before
   creating a new component / util / store / service.
 - **Comments: why, never what.** No narration (`// fetch the profile`),
-  no diff commentary (`// changed to…`, `// fixed per review`) — that
+  no diff commentary (`// changed to…`, `// fixed per review`); that
   belongs in the PR body. See
   [`pr-and-ci.md` § 10](../../docs/ai/pr-and-ci.md#10-code-comments).
 - **PR bodies: no hard-wrap, no filler, no diff narration.** Follow the
   guidance comments in the PR template and
-  [`pr-and-ci.md` § 2](../../docs/ai/pr-and-ci.md#2-pr-body--template).
+  [`pr-and-ci.md` § 2](../../docs/ai/pr-and-ci.md#2-pr-body-template).

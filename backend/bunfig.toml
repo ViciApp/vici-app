@@ -1,0 +1,5 @@
+[test]
+# Runs before every test file. src/env.ts reads process.env once at module
+# scope, so the database URL must be in place before anything imports it.
+# See tests/helpers/setup.ts.
+preload = ["./tests/helpers/setup.ts"]

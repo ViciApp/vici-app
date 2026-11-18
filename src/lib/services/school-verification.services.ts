@@ -1,5 +1,5 @@
 /**
- * School membership verification — submit + 6-digit code (backend B.1).
+ * School membership verification: submit + 6-digit code (backend B.1).
  *
  * Thin FE wrapper over the two satellite endpoints:
  *
@@ -26,9 +26,14 @@
  * returns a "relay not configured" error instead of mailing a code.
  */
 
-import { functions } from '$declarations/satellite/satellite.api';
-import type { AppLocale } from '$lib/constants/locale.constants';
-import { withTimeout } from '$lib/utils/async.utils';
+import { functions } from '#declarations/satellite/satellite.api.ts';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import { withTimeout } from '#lib/utils/async.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import {
+	submitSchool as submitSchoolWeb2,
+	verifySchoolCode as verifySchoolCodeWeb2
+} from '#lib/web2/client.ts';
 
 /** Hard timeout for either verification round-trip. */
 const SCHOOL_VERIFY_TIMEOUT_MS = 15_000;
@@ -42,7 +47,7 @@ export interface SchoolSubmitInput {
 	email: string;
 	/** Set when verifying membership of an existing directory school. */
 	schoolId?: string;
-	/** Active UI locale — forwarded so the emailed code is localized. */
+	/** Active UI locale: forwarded so the emailed code is localized. */
 	locale: AppLocale;
 }
 
@@ -59,18 +64,18 @@ export interface SchoolVerifyInput {
 
 export interface SchoolVerifyResult {
 	ok: boolean;
-	/** Present on success — the canonical school id to attach. */
+	/** Present on success: the canonical school id to attach. */
 	schoolId?: string;
-	/** Present on success — the resulting school visibility. */
+	/** Present on success: the resulting school visibility. */
 	status?: 'pending' | 'public';
-	/** Present on failure — a machine-readable reason. */
+	/** Present on failure: a machine-readable reason. */
 	message?: string;
 }
 
 /**
  * `POST /schools/submit`. Asks the satellite to mail a fresh 6-digit code
  * to `email`. Throws on transport failure / timeout / server rejection
- * (bad domain, rate limit, relay unconfigured) — the picker maps that to
+ * (bad domain, rate limit, relay unconfigured): the picker maps that to
  * its "couldn't send" copy.
  */
 export const submitSchool = async ({
@@ -80,14 +85,19 @@ export const submitSchool = async ({
 	schoolId,
 	locale
 }: SchoolSubmitInput): Promise<SchoolSubmitResult> => {
+	// The HTTP route re-resolves the school from the email domain (plus
+	// name/country for a new entry) server-side, so the `schoolId` hint is
+	// not part of its contract; the same shared timeout wraps both transports.
 	const { submissionId } = await withTimeout({
-		operation: functions.submitSchool({
-			name,
-			country: country ?? undefined,
-			schoolId: schoolId ?? undefined,
-			email,
-			locale
-		}),
+		operation: isWeb2Backend()
+			? submitSchoolWeb2({ name, country, email, locale })
+			: functions.submitSchool({
+					name,
+					country: country ?? undefined,
+					schoolId: schoolId ?? undefined,
+					email,
+					locale
+				}),
 		timeoutMs: SCHOOL_VERIFY_TIMEOUT_MS,
 		label: 'submitSchool'
 	});
@@ -106,7 +116,9 @@ export const verifySchoolCode = async ({
 	code
 }: SchoolVerifyInput): Promise<SchoolVerifyResult> => {
 	const result = await withTimeout({
-		operation: functions.verifySchoolCode({ submissionId, code }),
+		operation: isWeb2Backend()
+			? verifySchoolCodeWeb2({ submissionId, code })
+			: functions.verifySchoolCode({ submissionId, code }),
 		timeoutMs: SCHOOL_VERIFY_TIMEOUT_MS,
 		label: 'verifySchoolCode'
 	});

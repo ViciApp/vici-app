@@ -5,11 +5,11 @@
 // that depend on `notificationsStore` from a non-component context
 // stay narrow and discoverable.
 
-import { ACHIEVEMENT_MAP } from '$lib/constants/achievements.constants';
-import { localeStore } from '$lib/stores/locale.store';
-import { notificationsStore } from '$lib/stores/notification.store';
-import type { AchievementEvaluation } from '$lib/utils/achievements.utils';
-import { t } from '$lib/utils/i18n.utils';
+import { ACHIEVEMENT_MAP } from '#lib/constants/achievements.constants.ts';
+import { localeStore } from '#lib/stores/locale.store.ts';
+import { notificationsStore } from '#lib/stores/notification.store.ts';
+import type { AchievementEvaluation } from '#lib/utils/achievements.utils.ts';
+import { t } from '#lib/utils/i18n.utils.ts';
 import { get } from 'svelte/store';
 
 /**

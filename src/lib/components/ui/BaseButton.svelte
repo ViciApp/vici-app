@@ -3,7 +3,7 @@
 	import { LoaderCircle } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import type { HTMLButtonAttributes } from 'svelte/elements';
-	import type { ButtonStatus } from '$lib/types/components';
+	import type { ButtonStatus } from '#lib/types/components.ts';
 
 	interface Props extends Omit<HTMLButtonAttributes, 'disabled' | 'aria-busy'> {
 		status?: ButtonStatus;

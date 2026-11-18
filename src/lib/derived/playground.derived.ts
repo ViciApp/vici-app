@@ -1,5 +1,5 @@
-import { balanceDomainStore } from '$lib/stores/balance-domain.store';
-import { flowTradeDenominationLabel } from '$lib/utils/playground-display.utils';
+import { balanceDomainStore } from '#lib/stores/balance-domain.store.ts';
+import { flowTradeDenominationLabel } from '#lib/utils/playground-display.utils.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**

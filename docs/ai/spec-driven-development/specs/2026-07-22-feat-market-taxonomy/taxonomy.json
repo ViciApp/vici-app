@@ -1,0 +1,583 @@
+{
+	"version": 1,
+	"note": "3-layer market taxonomy. Layer 1 (macro) and Layer 2 (micro) are CLOSED enums; a market resolves to 1..N macros with exactly one PRIMARY. Layer 3 (tags) is OPEN and OPTIONAL (event/entity level, e.g. bitcoin-etf, super-bowl). Every micro belongs to exactly one macro, so macro is derived from micro. Runtime source of truth is src/lib/constants/market-taxonomy.constants.ts; this JSON mirrors it. The UI renders only macros/micros whose market_tag_index bucket is non-empty.",
+	"layers": {
+		"1": {
+			"name": "macro",
+			"cardinality": "one-or-more (one primary)",
+			"required": true,
+			"closed": true
+		},
+		"2": {
+			"name": "micro",
+			"cardinality": "one-or-more (first = primary)",
+			"required": true,
+			"closed": true
+		},
+		"3": {
+			"name": "tag",
+			"cardinality": "zero-or-more",
+			"required": false,
+			"closed": false
+		}
+	},
+	"macros": [
+		{
+			"id": "politics",
+			"label": "Politics",
+			"color": "#FF6B6B",
+			"micros": [
+				{
+					"id": "trump",
+					"label": "Trump"
+				},
+				{
+					"id": "us-elections",
+					"label": "US Elections"
+				},
+				{
+					"id": "us-president",
+					"label": "US President"
+				},
+				{
+					"id": "congress",
+					"label": "Congress"
+				},
+				{
+					"id": "senate",
+					"label": "Senate"
+				},
+				{
+					"id": "house",
+					"label": "House"
+				},
+				{
+					"id": "us-policy",
+					"label": "US Policy"
+				},
+				{
+					"id": "immigration",
+					"label": "Immigration"
+				},
+				{
+					"id": "appointments",
+					"label": "Appointments"
+				},
+				{
+					"id": "courts-legal",
+					"label": "Courts & Legal"
+				},
+				{
+					"id": "supreme-court",
+					"label": "Supreme Court"
+				},
+				{
+					"id": "polls",
+					"label": "Polls"
+				},
+				{
+					"id": "politics-other",
+					"label": "Other Politics"
+				}
+			]
+		},
+		{
+			"id": "world",
+			"label": "World",
+			"color": "#E2B842",
+			"micros": [
+				{
+					"id": "geopolitics",
+					"label": "Geopolitics"
+				},
+				{
+					"id": "middle-east",
+					"label": "Middle East"
+				},
+				{
+					"id": "israel",
+					"label": "Israel"
+				},
+				{
+					"id": "iran",
+					"label": "Iran"
+				},
+				{
+					"id": "gaza",
+					"label": "Gaza"
+				},
+				{
+					"id": "russia-ukraine",
+					"label": "Russia & Ukraine"
+				},
+				{
+					"id": "china",
+					"label": "China"
+				},
+				{
+					"id": "taiwan",
+					"label": "Taiwan"
+				},
+				{
+					"id": "north-korea",
+					"label": "North Korea"
+				},
+				{
+					"id": "europe",
+					"label": "Europe"
+				},
+				{
+					"id": "uk",
+					"label": "United Kingdom"
+				},
+				{
+					"id": "asia",
+					"label": "Asia"
+				},
+				{
+					"id": "india",
+					"label": "India"
+				},
+				{
+					"id": "latin-america",
+					"label": "Latin America"
+				},
+				{
+					"id": "africa",
+					"label": "Africa"
+				},
+				{
+					"id": "global-elections",
+					"label": "Global Elections"
+				},
+				{
+					"id": "foreign-policy",
+					"label": "Foreign Policy"
+				},
+				{
+					"id": "world-other",
+					"label": "Other World"
+				}
+			]
+		},
+		{
+			"id": "economy",
+			"label": "Economy",
+			"color": "#7EB6FF",
+			"micros": [
+				{
+					"id": "fed-rates",
+					"label": "Fed & Rates"
+				},
+				{
+					"id": "inflation",
+					"label": "Inflation"
+				},
+				{
+					"id": "growth-recession",
+					"label": "Growth & Recession"
+				},
+				{
+					"id": "gdp",
+					"label": "GDP"
+				},
+				{
+					"id": "jobs",
+					"label": "Jobs"
+				},
+				{
+					"id": "stocks",
+					"label": "Stocks"
+				},
+				{
+					"id": "earnings",
+					"label": "Earnings"
+				},
+				{
+					"id": "ipos",
+					"label": "IPOs"
+				},
+				{
+					"id": "mergers",
+					"label": "Mergers & Acquisitions"
+				},
+				{
+					"id": "commodities",
+					"label": "Commodities"
+				},
+				{
+					"id": "oil",
+					"label": "Oil"
+				},
+				{
+					"id": "gold",
+					"label": "Gold"
+				},
+				{
+					"id": "housing",
+					"label": "Housing"
+				},
+				{
+					"id": "trade",
+					"label": "Trade & Tariffs"
+				},
+				{
+					"id": "economy-other",
+					"label": "Other Economy"
+				}
+			]
+		},
+		{
+			"id": "crypto",
+			"label": "Crypto",
+			"color": "#F7931A",
+			"micros": [
+				{
+					"id": "bitcoin",
+					"label": "Bitcoin"
+				},
+				{
+					"id": "ethereum",
+					"label": "Ethereum"
+				},
+				{
+					"id": "solana",
+					"label": "Solana"
+				},
+				{
+					"id": "xrp",
+					"label": "XRP"
+				},
+				{
+					"id": "bnb",
+					"label": "BNB"
+				},
+				{
+					"id": "cardano",
+					"label": "Cardano"
+				},
+				{
+					"id": "dogecoin",
+					"label": "Dogecoin"
+				},
+				{
+					"id": "memecoins",
+					"label": "Memecoins"
+				},
+				{
+					"id": "altcoins",
+					"label": "Altcoins"
+				},
+				{
+					"id": "etfs",
+					"label": "ETFs"
+				},
+				{
+					"id": "defi",
+					"label": "DeFi"
+				},
+				{
+					"id": "stablecoins",
+					"label": "Stablecoins"
+				},
+				{
+					"id": "nfts",
+					"label": "NFTs"
+				},
+				{
+					"id": "exchanges",
+					"label": "Exchanges"
+				},
+				{
+					"id": "crypto-regulation",
+					"label": "Regulation"
+				},
+				{
+					"id": "mining",
+					"label": "Mining"
+				},
+				{
+					"id": "crypto-other",
+					"label": "Other Crypto"
+				}
+			]
+		},
+		{
+			"id": "tech",
+			"label": "Tech",
+			"color": "#B49CFF",
+			"micros": [
+				{
+					"id": "ai",
+					"label": "AI"
+				},
+				{
+					"id": "openai",
+					"label": "OpenAI"
+				},
+				{
+					"id": "anthropic",
+					"label": "Anthropic"
+				},
+				{
+					"id": "elon-musk",
+					"label": "Elon Musk"
+				},
+				{
+					"id": "tesla",
+					"label": "Tesla"
+				},
+				{
+					"id": "spacex",
+					"label": "SpaceX"
+				},
+				{
+					"id": "apple",
+					"label": "Apple"
+				},
+				{
+					"id": "google",
+					"label": "Google"
+				},
+				{
+					"id": "meta",
+					"label": "Meta"
+				},
+				{
+					"id": "microsoft",
+					"label": "Microsoft"
+				},
+				{
+					"id": "nvidia",
+					"label": "Nvidia"
+				},
+				{
+					"id": "big-tech",
+					"label": "Big Tech"
+				},
+				{
+					"id": "space",
+					"label": "Space"
+				},
+				{
+					"id": "gadgets",
+					"label": "Gadgets"
+				},
+				{
+					"id": "science",
+					"label": "Science"
+				},
+				{
+					"id": "cybersecurity",
+					"label": "Cybersecurity"
+				},
+				{
+					"id": "tech-other",
+					"label": "Other Tech"
+				}
+			]
+		},
+		{
+			"id": "culture",
+			"label": "Culture",
+			"color": "#FFB066",
+			"micros": [
+				{
+					"id": "movies",
+					"label": "Movies"
+				},
+				{
+					"id": "box-office",
+					"label": "Box Office"
+				},
+				{
+					"id": "music",
+					"label": "Music"
+				},
+				{
+					"id": "awards",
+					"label": "Awards"
+				},
+				{
+					"id": "oscars",
+					"label": "Oscars"
+				},
+				{
+					"id": "grammys",
+					"label": "Grammys"
+				},
+				{
+					"id": "emmys",
+					"label": "Emmys"
+				},
+				{
+					"id": "celebrities",
+					"label": "Celebrities"
+				},
+				{
+					"id": "taylor-swift",
+					"label": "Taylor Swift"
+				},
+				{
+					"id": "kanye-west",
+					"label": "Kanye West"
+				},
+				{
+					"id": "tv-streaming",
+					"label": "TV & Streaming"
+				},
+				{
+					"id": "netflix",
+					"label": "Netflix"
+				},
+				{
+					"id": "gaming",
+					"label": "Gaming"
+				},
+				{
+					"id": "social-media",
+					"label": "Social Media"
+				},
+				{
+					"id": "mentions",
+					"label": "Mentions"
+				},
+				{
+					"id": "weather",
+					"label": "Weather"
+				},
+				{
+					"id": "novelty",
+					"label": "Novelty"
+				},
+				{
+					"id": "culture-other",
+					"label": "Other Culture"
+				}
+			]
+		},
+		{
+			"id": "sports",
+			"label": "Sports",
+			"color": "#6FE0B6",
+			"micros": [
+				{
+					"id": "soccer",
+					"label": "Soccer"
+				},
+				{
+					"id": "premier-league",
+					"label": "Premier League"
+				},
+				{
+					"id": "la-liga",
+					"label": "La Liga"
+				},
+				{
+					"id": "serie-a",
+					"label": "Serie A"
+				},
+				{
+					"id": "bundesliga",
+					"label": "Bundesliga"
+				},
+				{
+					"id": "champions-league",
+					"label": "Champions League"
+				},
+				{
+					"id": "world-cup",
+					"label": "World Cup"
+				},
+				{
+					"id": "mls",
+					"label": "MLS"
+				},
+				{
+					"id": "nfl",
+					"label": "NFL"
+				},
+				{
+					"id": "nba",
+					"label": "NBA"
+				},
+				{
+					"id": "wnba",
+					"label": "WNBA"
+				},
+				{
+					"id": "mlb",
+					"label": "MLB"
+				},
+				{
+					"id": "nhl",
+					"label": "NHL"
+				},
+				{
+					"id": "tennis",
+					"label": "Tennis"
+				},
+				{
+					"id": "ufc",
+					"label": "UFC"
+				},
+				{
+					"id": "boxing",
+					"label": "Boxing"
+				},
+				{
+					"id": "golf",
+					"label": "Golf"
+				},
+				{
+					"id": "f1",
+					"label": "Formula 1"
+				},
+				{
+					"id": "nascar",
+					"label": "NASCAR"
+				},
+				{
+					"id": "motorsport",
+					"label": "Motorsport"
+				},
+				{
+					"id": "cricket",
+					"label": "Cricket"
+				},
+				{
+					"id": "rugby",
+					"label": "Rugby"
+				},
+				{
+					"id": "college-football",
+					"label": "College Football"
+				},
+				{
+					"id": "college-basketball",
+					"label": "College Basketball"
+				},
+				{
+					"id": "esports",
+					"label": "Esports"
+				},
+				{
+					"id": "olympics",
+					"label": "Olympics"
+				},
+				{
+					"id": "chess",
+					"label": "Chess"
+				},
+				{
+					"id": "darts",
+					"label": "Darts"
+				},
+				{
+					"id": "sports-other",
+					"label": "Other Sports"
+				}
+			]
+		}
+	]
+}

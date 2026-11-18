@@ -1,20 +1,21 @@
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
 import {
 	BOLD_CALLER_MEDIAN_THRESHOLD,
-	median,
 	MONTHLY_CONSENSUS_LIMIT,
 	MONTHLY_MIN_CALLS,
 	userMonthlyStatsKey,
 	type UserMonthlyStatsDoc
-} from '$lib/types/user-monthly-stats';
+} from '#lib/types/user-monthly-stats.ts';
+import { MONTH_ANCHOR_RE } from '#lib/utils/month-anchor.utils.ts';
+import { median } from '#lib/utils/stats.utils.ts';
+import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
+import { isPubliclyHidden } from '#satellite/services/profile.services.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
-import { decodeDocData, listDocsStore } from '@junobuild/functions/sdk';
-
-/** Regex for the `YYYY-MM` anchor format. */
-const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
 
 /**
  * Pre-write guard for `user_monthly_stats`. The collection caches each
@@ -24,7 +25,7 @@ const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
  *
  *  1. **Collection scope.** No-op for any other collection.
  *  2. **Key shape.** Doc key must equal `${owner}/${monthAnchor}` and match
- *     the embedded `(owner, monthAnchor)` — one canonical row per user-month.
+ *     the embedded `(owner, monthAnchor)`: one canonical row per user-month.
  *  3. **monthAnchor format.** Must match `YYYY-MM` and agree with the key's
  *     month segment so a writer can't supply a structurally valid key with a
  *     mismatched embedded anchor.
@@ -37,14 +38,16 @@ const MONTH_ANCHOR_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
  *     writer with calls but no samples qualify for the bold-caller gate.
  *  7. **Consensus bounded + valid.** The consensus array can't grow past
  *     {@link MONTHLY_CONSENSUS_LIMIT}, and each value must be finite and in
- *     [0, 1] — a malicious or buggy writer can't bloat the doc or skew the
+ *     [0, 1]: a malicious or buggy writer can't bloat the doc or skew the
  *     median gate with out-of-range prices.
  *
  * Note (integrity trade-off): like `user_stats`, the assert does NOT verify
- * the counters against real clearing history — a determined user could
- * inflate their own monthly numbers. The award is cosmetic (no VXP payout),
- * so this matches the documented `user_stats` posture rather than warranting
- * a server-side history re-derivation.
+ * the counters against real clearing history, and it accepts any month: a
+ * determined user could inflate their own monthly numbers. So the rows feed
+ * views only (the monthly leaderboard behind the album tiles, the live Worlds
+ * month window) and no VXP is ranked from them: the Worlds podium is ranked
+ * from settled history read from the clearing canister
+ * (`settledMonthlyRows`), never from this collection.
  */
 export const assertSetUserMonthlyStats = ({
 	caller,
@@ -140,6 +143,24 @@ export const assertSetUserMonthlyStats = ({
 };
 
 /**
+ * A month row is keyed `${owner}/${monthAnchor}` (see
+ * {@link assertSetUserMonthlyStats}): only that owner or the satellite may
+ * delete it.
+ */
+export const assertDeleteUserMonthlyStats = ({
+	caller,
+	data: { collection, key }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.USER_MONTHLY_STATS) {
+		return;
+	}
+
+	const [owner] = key.split('/');
+
+	assertOwnerOrController({ caller, owner, collection });
+};
+
+/**
  * One sharpest-eye podium entry. `placement` is 1 (gold) / 2 (silver) /
  * 3 (bronze). Accuracy is the month's `monthWins / monthCalls` as a 0..100
  * percentage.
@@ -153,7 +174,7 @@ export interface MonthlyLeaderboardEntry {
 }
 
 /**
- * One bold-caller entry — the month's best accuracy among users whose median
+ * One bold-caller entry: the month's best accuracy among users whose median
  * consensus-at-call is below {@link BOLD_CALLER_MEDIAN_THRESHOLD}. Ties on
  * accuracy yield more than one entry. `medianConsensus` is the on-read median
  * of the user's bounded consensus array.
@@ -180,7 +201,7 @@ const decodeMonthlyStats = (
 	try {
 		return decodeDocData<UserMonthlyStatsDoc>(data);
 	} catch {
-		// Malformed payload — treated as absent (the caller filters it out).
+		// Malformed payload: treated as absent (the caller filters it out).
 	}
 };
 
@@ -200,6 +221,12 @@ const decodeMonthlyStats = (
  * Bounded by the number of users active in the month. The median is computed
  * on read from each doc's bounded consensus array.
  */
+const isPubliclyListed = ({ owner, caller }: { owner: string; caller: Principal }): boolean => {
+	const profileDoc = getDocStore({ collection: Collection.PROFILES, key: owner, caller });
+
+	return nonNullish(profileDoc) && !isPubliclyHidden(decodeDocData<UserProfile>(profileDoc.data));
+};
+
 export const getMonthlyLeaderboardFn = ({
 	monthAnchor
 }: {
@@ -226,11 +253,14 @@ export const getMonthlyLeaderboardFn = ({
 		.filter((doc): doc is UserMonthlyStatsDoc => nonNullish(doc))
 		// Guard against a stale month doc whose embedded anchor disagrees with
 		// the key suffix (e.g. a malformed write that slipped the assert).
-		.filter((doc) => doc.monthAnchor === monthAnchor);
+		.filter((doc) => doc.monthAnchor === monthAnchor)
+		// A public board: only accounts the global leaderboard shows, so no
+		// soft-deleted, hibernated or purged account is listed.
+		.filter((doc) => isPubliclyListed({ owner: doc.owner, caller }));
 
 	const eligible = docs.filter((doc) => doc.monthCalls >= MONTHLY_MIN_CALLS);
 
-	// sharpest-eye — top-3 by accuracy, deterministic tie-break.
+	// sharpest-eye: top-3 by accuracy, deterministic tie-break.
 	const sharpestEye: MonthlyLeaderboardEntry[] = [...eligible]
 		.sort((a, b) => {
 			const accDelta = accuracyOf(b) - accuracyOf(a);
@@ -256,7 +286,7 @@ export const getMonthlyLeaderboardFn = ({
 			placement: index + 1
 		}));
 
-	// bold-caller — best accuracy among eligible users whose median
+	// bold-caller: best accuracy among eligible users whose median
 	// consensus-at-call is below the threshold. Return every user tied at
 	// that best accuracy.
 	const bold = eligible

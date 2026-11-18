@@ -10,16 +10,16 @@
 	 * `dash-trend.utils`) and always ends exactly on the live number, so the
 	 * line never contradicts the headline figure above it.
 	 */
-	import { localeStore } from '$lib/stores/locale.store';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		buildAccuracyTrend,
 		buildTrendPath,
 		TREND_WINDOW_ORDER
-	} from '$lib/utils/dash-trend.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/utils/dash-trend.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
-		/** Current accuracy as a 0..100 percentage — anchors every window. */
+		/** Current accuracy as a 0..100 percentage: anchors every window. */
 		accuracyPct: number;
 	}
 
@@ -29,7 +29,7 @@
 	const H = 86;
 	const SWIPE_THRESHOLD_PX = 28;
 
-	// Default to the 30-day window (index 1) — the most representative span.
+	// Default to the 30-day window (index 1); the most representative span.
 	let index = $state(1);
 	let pointerDownX: number | null = null;
 

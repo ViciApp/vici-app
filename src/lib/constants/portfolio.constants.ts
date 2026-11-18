@@ -1,4 +1,4 @@
-import { ICP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
+import { ICP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 
 export const PORTFOLIO_DEFAULT_DECIMALS = ICP_TOKEN.decimals;
 

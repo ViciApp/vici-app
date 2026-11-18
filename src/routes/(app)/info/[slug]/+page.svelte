@@ -1,9 +1,9 @@
 <script lang="ts">
+	import InfoPage from '#lib/components/pages/InfoPage.svelte';
+	import { INFO_DOCS } from '#lib/constants/info-docs.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import { page } from '$app/state';
-	import InfoPage from '$lib/components/pages/InfoPage.svelte';
-	import { INFO_DOCS } from '$lib/constants/info-docs.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	const doc = $derived(INFO_DOCS[page.params.slug ?? '']);
 </script>

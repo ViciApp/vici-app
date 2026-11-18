@@ -1,38 +1,47 @@
 <script lang="ts">
-	import MarketsBeyondCupCard from '$lib/components/market/MarketsBeyondCupCard.svelte';
-	import MarketsCarousel from '$lib/components/market/MarketsCarousel.svelte';
-	import MarketsListRow from '$lib/components/market/MarketsListRow.svelte';
-	import WorldCupRecapCard from '$lib/components/market/WorldCupRecapCard.svelte';
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { primaryMarketTag, type MarketTag } from '$lib/constants/market-tags.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { marketTags, marketTagsNotInitialized } from '$lib/derived/market-tags.derived';
-	import { markets, marketsNotInitialized } from '$lib/derived/markets.derived';
-	import { minuteTick_ms } from '$lib/derived/time.derived';
-	import { worldCupPhase } from '$lib/derived/world-cup.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { hydrate as hydrateMarketTranslations } from '$lib/stores/market-translations.store';
-	import { preferencesStore } from '$lib/stores/preferences.store';
-	import type { Market } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import { filterScheduledWcMarkets } from '$lib/utils/wc-schedule.utils';
+	import { nonNullish } from '@dfinity/utils';
+	import MarketsBeyondCupCard from '#lib/components/market/MarketsBeyondCupCard.svelte';
+	import MarketsCarousel from '#lib/components/market/MarketsCarousel.svelte';
+	import MarketsCategoryChips from '#lib/components/market/MarketsCategoryChips.svelte';
+	import MarketsListRow from '#lib/components/market/MarketsListRow.svelte';
+	import WorldCupRecapCard from '#lib/components/market/WorldCupRecapCard.svelte';
+	import {
+		classificationMacros,
+		classificationMicros,
+		primaryMicro,
+		type MacroId,
+		type MicroId
+	} from '#lib/constants/market-taxonomy.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+	import { marketTags, marketTagsNotInitialized } from '#lib/derived/market-tags.derived.ts';
+	import { markets, marketsNotInitialized } from '#lib/derived/markets.derived.ts';
+	import { minuteTick_ms } from '#lib/derived/time.derived.ts';
+	import { worldCupPhase } from '#lib/derived/world-cup.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { hydrate as hydrateMarketTranslations } from '#lib/stores/market-translations.store.ts';
+	import { preferencesStore } from '#lib/stores/preferences.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { filterRevealedMarkets } from '#lib/utils/market-reveal.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
-	 * Markets screen — a section-based board (no filter chips). The World Cup
-	 * is the in-focus category; every other category stays locked behind the
-	 * "Beyond the Cup" skill gate (`MarketsBeyondCupCard`), surfaced high. The
-	 * board itself is three sections: Saved (the viewer's watchlist), Resolving
-	 * soon (the soonest-closing available lines), and Available predictions.
+	 * Markets screen: a section-based board with a category browse nav. The
+	 * macro bar (+ micro sub-chips) filters every board section; the World-Cup
+	 * arc chrome (eyebrow, recap, and the "Beyond the Cup" skill gate,
+	 * `MarketsBeyondCupCard`) still rides on top. The board itself is three
+	 * sections: Saved (the viewer's watchlist), Resolving soon (the
+	 * soonest-closing available lines), and Available predictions.
 	 *
-	 * Placing a call happens in Flow — this board has no buy path; rows deep-link
+	 * Placing a call happens in Flow; this board has no buy path; rows deep-link
 	 * to market detail. Saved-ids persist under `vici.saved-markets` via
 	 * `$preferencesStore.savedMarketIds`.
 	 */
 
 	// A market counts as "resolving soon" when it closes within this window.
 	// Our market type has no curated `fast` flag, so we proxy it by closeness to
-	// the `expiryDate` — the soonest-closing lines surface first, framing the
+	// the `expiryDate`: the soonest-closing lines surface first, framing the
 	// board as "what settles soon" for new users.
 	const RESOLVING_SOON_WINDOW_MS = 7 * DAY_IN_MS;
 	const TRENDING_LIMIT = 8;
@@ -53,35 +62,62 @@
 	);
 
 	// Loading covers both feeds the board depends on: the markets list and the
-	// tag metadata. Tags are required in *every* phase now, not just World-Cup
-	// focus: the discovery feeds (available + trending) run through the WC
-	// release schedule, which identifies WC markets by tag — an empty tag map
-	// would make every market look non-WC and let unreleased WC markets leak in.
-	// Without the guard the board also flashes the "no markets" empty state over
-	// loaded markets while tags fetch. Tags load globally in the (app) shell and
-	// resolve to `{}` even on failure, so this never stalls.
+	// tag metadata the category browse and the row labels read. The release
+	// gate needs only each market's `startDate`, so tags never decide whether a
+	// market is revealed. Without the guard the board flashes the "no markets"
+	// empty state over loaded markets while tags fetch. Tags load globally in
+	// the (app) shell and resolve to `{}` even on failure, so this never stalls.
 	const loading = $derived($marketsNotInitialized || $marketTagsNotInitialized);
 
 	const savedSet = $derived(new Set($preferencesStore.savedMarketIds));
-	// Saved = the viewer's watchlist, kept even if an entry isn't World Cup.
+	// Saved = the viewer's watchlist, shown in full: the release gate below
+	// leaves it out, so a saved market stays listed before its start.
 	const savedMarkets = $derived($markets.filter((m) => savedSet.has(m.id)));
 
 	const tagsByMarket = $derived($marketTags);
 
-	const matchesTag = ({ market, tag }: { market: Market; tag: MarketTag }): boolean =>
-		tagsByMarket[market.id]?.includes(tag) ?? false;
+	// Category browse selection. `undefined` macro = the "All" board;
+	// selecting a macro narrows to it and (optionally) to one of its micros.
+	let selectedMacro = $state<MacroId | undefined>(undefined);
+	let selectedMicro = $state<MicroId | undefined>(undefined);
 
-	// Temporary hardcoded World-Cup release schedule: WC markets surface only
-	// once their Show Date (00:00 UTC) has arrived, and WC markets absent from
-	// the calendar stay hidden. Applied to the discovery feeds (available +
-	// trending) below; non-WC markets pass through, and the viewer's explicit
-	// Saved watchlist is intentionally left ungated. Re-derives on the minute
-	// tick so a market appears the moment its release lands.
+	const onSelectMacro = (macro: MacroId | undefined): void => {
+		selectedMacro = macro;
+		// A macro switch resets any drilled-in micro so the sub-filter never
+		// dangles under a different (or the "All") macro.
+		selectedMicro = undefined;
+	};
+
+	const onSelectMicro = (micro: MicroId | undefined): void => {
+		selectedMicro = micro;
+	};
+
+	// Does a market pass the active category selection? Micro wins when set;
+	// otherwise the macro; otherwise (All) everything passes.
+	const matchesSelection = (market: Market): boolean => {
+		const tags = tagsByMarket[market.id] ?? [];
+
+		if (nonNullish(selectedMicro)) {
+			return classificationMicros(tags).includes(selectedMicro);
+		}
+
+		if (nonNullish(selectedMacro)) {
+			return classificationMacros(tags).includes(selectedMacro);
+		}
+
+		return true;
+	};
+
+	// Release gating: any scheduled market surfaces only once its on-chain
+	// trading start (`start_ns`) has arrived; markets with no start are live.
+	// Applied to the discovery feeds (available + trending) below; the viewer's
+	// explicit Saved watchlist is intentionally left ungated. Re-derives on the
+	// minute tick so a market appears the moment its release lands.
 	const visibleMarkets = $derived(
-		filterScheduledWcMarkets({ markets: $markets, tagsByMarket, now: $minuteTick_ms })
+		filterRevealedMarkets({ markets: $markets, now: $minuteTick_ms })
 	);
 
-	// Volume-sort helper — the same trending signal the carousel uses, applied
+	// Volume-sort helper: the same trending signal the carousel uses, applied
 	// to give a stable deck that doesn't reshuffle as the user scans it.
 	// eslint-disable-next-line local-rules/prefer-object-params -- Array.sort comparators take two positional args by contract
 	const byVolumeDesc = (a: Market, b: Market): number => {
@@ -92,26 +128,14 @@
 		return b.totalVolume > a.totalVolume ? 1 : -1;
 	};
 
-	// The "available" board. While the World Cup is in focus the board is the WC
-	// category only (the single open event); once the arc opens up (`open` /
-	// `off`) it's every market — so the page keeps working past the Cup. Gated
-	// on tag metadata being initialized so a WC filter doesn't collapse the board
-	// to empty before tags load. Both branches list only `Open` (callable) lines
-	// — matching the section label and the Open-only Trending rail — so resolved
-	// / expired markets never surface under "Available predictions".
-	const availableMarkets = $derived.by((): Market[] => {
-		const openMarkets = visibleMarkets.filter((m) => m.status === 'Open');
-
-		if (!wcFocus) {
-			return [...openMarkets].sort(byVolumeDesc);
-		}
-
-		if ($marketTagsNotInitialized) {
-			return [];
-		}
-
-		return openMarkets.filter((m) => matchesTag({ market: m, tag: 'wc' }));
-	});
+	// The "available" board: every open (callable) line, narrowed by the
+	// active category selection. Listing only `Open` lines matches the section
+	// label and the Open-only Trending rail, so resolved / expired markets
+	// never surface under "Available predictions". The board is volume-sorted
+	// for a stable deck that doesn't reshuffle as the user scans it.
+	const availableMarkets = $derived.by((): Market[] =>
+		[...visibleMarkets.filter((m) => m.status === 'Open' && matchesSelection(m))].sort(byVolumeDesc)
+	);
 
 	// Resolving soon: available lines closing within the window, soonest first.
 	const resolvingSoon = $derived.by((): Market[] => {
@@ -134,11 +158,12 @@
 		[...availableMarkets].filter((m) => !resolvingSoonIds.has(m.id)).sort(byVolumeDesc)
 	);
 
-	// Trending rail: highest-volume open markets. Our backend carries no curated
-	// "hot" flag, so volume is the proxy.
+	// Trending rail: highest-volume open markets within the active category
+	// selection. Our backend carries no curated "hot" flag, so volume is the
+	// proxy.
 	const trendingMarkets = $derived(
 		[...visibleMarkets]
-			.filter((m) => m.status === 'Open')
+			.filter((m) => m.status === 'Open' && matchesSelection(m))
 			.sort(byVolumeDesc)
 			.slice(0, TRENDING_LIMIT)
 	);
@@ -163,7 +188,7 @@
 	});
 
 	// "See all" on the trending rail scrolls to the main list rather than a
-	// separate route — the list is sorted by the same volume signal.
+	// separate route; the list is sorted by the same volume signal.
 	let mainListEl: HTMLElement | undefined = $state();
 
 	const scrollToMainList = (): void => {
@@ -176,7 +201,7 @@
 
 <div class="screen-scroll" data-tid={TestId.MarketFeed}>
 	<!-- Header context eyebrow: the featured event as a mono-uppercase eyebrow
-	     line — matching the Dash / Arena eyebrow treatment — omitted entirely
+	     line, matching the Dash / Arena eyebrow treatment, omitted entirely
 	     once no event is in focus. -->
 	{#if eventEyebrow}
 		<div class="markets-eyebrow-row">
@@ -190,12 +215,15 @@
 		<WorldCupRecapCard onExplore={scrollToMainList} />
 	{/if}
 
-	<!-- Beyond the Cup — the skill-gate unlock goal, surfaced high. -->
+	<!-- Beyond the Cup: the skill-gate unlock goal, surfaced high. -->
 	<MarketsBeyondCupCard
 		markets={$markets}
 		{tagsByMarket}
 		tagsInitialized={!$marketTagsNotInitialized}
 	/>
+
+	<!-- Category browse nav: macro bar + micro sub-chips (populated only). -->
+	<MarketsCategoryChips {onSelectMacro} {onSelectMicro} {selectedMacro} {selectedMicro} />
 
 	<!-- Trending rail. -->
 	{#if trendingMarkets.length > 0}
@@ -208,13 +236,13 @@
 		/>
 	{/if}
 
-	<!-- Saved (primary) — the viewer's watchlist. -->
+	<!-- Saved (primary): the viewer's watchlist. -->
 	<div class="section-h">
 		<h3>{t({ locale: $localeStore, key: 'markets.section.saved' })}</h3>
 		<span class="mute t-sub">{savedMarkets.length}</span>
 	</div>
 	{#if loading}
-		<!-- Suppress the "nothing saved yet" card while markets load — saved IDs
+		<!-- Suppress the "nothing saved yet" card while markets load: saved IDs
 		     may exist but their markets haven't resolved into the list yet. -->
 		<div style="gap: 8px; padding: 0 20px 20px;" class="col">
 			{#each Array(2) as _, index (index)}
@@ -238,12 +266,12 @@
 	{:else}
 		<div style="gap: 0; padding: 0 20px 20px;" class="col">
 			{#each savedMarkets as m (m.id)}
-				<MarketsListRow market={m} tag={primaryMarketTag(tagsByMarket[m.id])} />
+				<MarketsListRow market={m} tag={primaryMicro(tagsByMarket[m.id] ?? [])} />
 			{/each}
 		</div>
 	{/if}
 
-	<!-- Resolving soon — the soonest-closing available lines first. -->
+	<!-- Resolving soon: the soonest-closing available lines first. -->
 	{#if resolvingSoon.length > 0}
 		<div class="section-h">
 			<h3>{t({ locale: $localeStore, key: 'markets.section.resolving_soon' })}</h3>
@@ -251,12 +279,12 @@
 		</div>
 		<div style="gap: 0; padding: 0 20px 20px;" class="col">
 			{#each resolvingSoon as m (m.id)}
-				<MarketsListRow market={m} tag={primaryMarketTag(tagsByMarket[m.id])} />
+				<MarketsListRow market={m} tag={primaryMicro(tagsByMarket[m.id] ?? [])} />
 			{/each}
 		</div>
 	{/if}
 
-	<!-- Available predictions — the rest of the available board. -->
+	<!-- Available predictions: the rest of the available board. -->
 	<div bind:this={mainListEl} style="scroll-margin-top: 12px;" class="section-h">
 		<h3>{t({ locale: $localeStore, key: 'markets.section.available' })}</h3>
 		<span class="mute t-sub">{restMarkets.length}</span>
@@ -281,14 +309,14 @@
 	{:else}
 		<div style="gap: 0; padding: 0 20px calc(96px + env(safe-area-inset-bottom, 0px));" class="col">
 			{#each restMarkets as m (m.id)}
-				<MarketsListRow market={m} tag={primaryMarketTag(tagsByMarket[m.id])} />
+				<MarketsListRow market={m} tag={primaryMicro(tagsByMarket[m.id] ?? [])} />
 			{/each}
 		</div>
 	{/if}
 </div>
 
 <style lang="postcss">
-	/* Featured-event eyebrow row — sits where the header bar would, padded to
+	/* Featured-event eyebrow row: sits where the header bar would, padded to
 	   the screen edge so it lines up with the section headers below. */
 	.markets-eyebrow-row {
 		padding: 10px var(--spacing-edge);

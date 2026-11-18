@@ -306,7 +306,7 @@ The Beta version is structured around **five core systems**:
 
 # 5. Development Timeline (Simplified)
 
-### Phase 1 — Product Definition
+### Phase 1: Product Definition
 
 - Finalise feed + Flow Mode UX
 - Define APIs
@@ -314,7 +314,7 @@ The Beta version is structured around **five core systems**:
 
 ---
 
-### Phase 2 — Feed & Backend
+### Phase 2: Feed & Backend
 
 - Tagging system
 - Feed ranking
@@ -323,7 +323,7 @@ The Beta version is structured around **five core systems**:
 
 ---
 
-### Phase 3 — Profiles & Gamification
+### Phase 3: Profiles & Gamification
 
 - Scoring system
 - Streaks
@@ -332,7 +332,7 @@ The Beta version is structured around **five core systems**:
 
 ---
 
-### Phase 4 — Optimisation & Beta
+### Phase 4: Optimisation & Beta
 
 - Performance optimisation
 - UX polish

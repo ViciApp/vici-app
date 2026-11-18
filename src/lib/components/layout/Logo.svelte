@@ -1,7 +1,9 @@
 <script lang="ts">
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import { goto } from '$app/navigation';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
 
 	interface Props {
 		/** When set, render a link (for public landing) instead of the in-app home button. */
@@ -14,7 +16,7 @@
 		goto(path);
 	};
 
-	// Type-set live in product per the brand book — Hanken Grotesk Bold,
+	// Type-set live in product per the brand book: Hanken Grotesk Bold,
 	// ALL CAPS, 0.18em tracking. Colour resolves to parchment on dark
 	// surfaces and ink on light via `text-foreground`; laurel gold is
 	// reserved for the app-icon tile and must not appear on the mark.
@@ -36,7 +38,7 @@
 {:else}
 	<BaseButton
 		class="group flex items-center"
-		aria-label="VICI — go to home"
+		aria-label={t({ locale: $localeStore, key: 'a11y.logo_home' })}
 		onclick={() => handleNav(AppPath.Home)}
 	>
 		{@render wordmark()}

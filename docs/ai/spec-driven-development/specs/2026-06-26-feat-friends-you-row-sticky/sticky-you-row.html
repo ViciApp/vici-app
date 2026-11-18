@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Friends Ranked: sticky YOU row mock</title>
+		<style>
+			[data-theme='dark'] {
+				--bg: #080705;
+				--surface: #0e0d0b;
+				--popover: #1e1b14;
+				--text: #f2ecdc;
+				--muted: rgba(242, 236, 220, 0.5);
+				--border: rgba(242, 236, 220, 0.08);
+				--primary: #e2b842;
+				--primary-fg: #0e0d0b;
+				--yes: #4fd3a1;
+				--no: #ff6b6b;
+			}
+			[data-theme='light'] {
+				--bg: #e7ddc6;
+				--surface: #f2ecdc;
+				--popover: #ffffff;
+				--text: #0e0d0b;
+				--muted: rgba(14, 13, 11, 0.5);
+				--border: rgba(14, 13, 11, 0.1);
+				--primary: #b68b1f;
+				--primary-fg: #ffffff;
+				--yes: #2ba178;
+				--no: #c84545;
+			}
+			[data-theme='peach'] {
+				--bg: #f4d2b8;
+				--surface: #fae0cc;
+				--popover: #fff3e8;
+				--text: #3d2419;
+				--muted: rgba(61, 36, 25, 0.5);
+				--border: rgba(61, 36, 25, 0.1);
+				--primary: #b68b1f;
+				--primary-fg: #fff3e8;
+				--yes: #2ba178;
+				--no: #c84545;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 1rem;
+				padding: 1.5rem 1rem 4rem;
+				background: var(--bg);
+				color: var(--text);
+				font-family:
+					system-ui,
+					-apple-system,
+					sans-serif;
+				transition:
+					background 160ms ease,
+					color 160ms ease;
+			}
+			h1 {
+				font-size: 1rem;
+				font-weight: 700;
+				margin: 0;
+			}
+			.explain {
+				max-width: 380px;
+				font-size: 0.78rem;
+				line-height: 1.5;
+				color: var(--muted);
+				text-align: center;
+			}
+			.panel {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				width: 380px;
+				max-width: 100%;
+			}
+			.panel-row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.35rem;
+				align-items: center;
+			}
+			.panel-row > .label {
+				font-size: 0.66rem;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: var(--muted);
+				width: 100%;
+			}
+			button.opt {
+				border: 1px solid var(--border);
+				background: var(--popover);
+				color: var(--text);
+				font-size: 0.72rem;
+				font-weight: 600;
+				padding: 0.35rem 0.7rem;
+				border-radius: 999px;
+				cursor: pointer;
+			}
+			button.opt.active {
+				border-color: var(--primary);
+				color: var(--primary);
+				background: color-mix(in srgb, var(--primary) 14%, var(--popover));
+			}
+			button.copy {
+				border: 1px solid var(--primary);
+				background: var(--primary);
+				color: var(--primary-fg);
+				font-size: 0.74rem;
+				font-weight: 700;
+				padding: 0.45rem 0.9rem;
+				border-radius: 999px;
+				cursor: pointer;
+			}
+
+			.frame {
+				width: 380px;
+				max-width: 100%;
+				border: 1px solid var(--border);
+				border-radius: 18px;
+				background: var(--surface);
+				overflow: hidden;
+			}
+			.eyebrow {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 0.9rem 1rem 0.6rem;
+				font-family: ui-monospace, Menlo, monospace;
+				font-size: 0.68rem;
+				letter-spacing: 0.12em;
+				color: var(--muted);
+				text-transform: uppercase;
+			}
+			.eyebrow .count {
+				color: var(--text);
+				font-weight: 700;
+			}
+			.scroll {
+				height: 360px;
+				overflow-y: auto;
+				position: relative;
+				scrollbar-width: thin;
+			}
+			.row {
+				display: grid;
+				grid-template-columns: 28px 32px minmax(0, 1fr) auto;
+				gap: 0.65rem;
+				align-items: center;
+				padding: 0.7rem 0.85rem;
+				border-top: 1px solid var(--border);
+			}
+			.row:first-child {
+				border-top: 0;
+			}
+			.num {
+				font-family: ui-monospace, Menlo, monospace;
+				font-size: 0.72rem;
+				font-weight: 800;
+				color: var(--muted);
+				text-align: center;
+			}
+			.avatar {
+				width: 2rem;
+				height: 2rem;
+				border-radius: 999px;
+				background: color-mix(in srgb, var(--primary) 22%, var(--popover));
+			}
+			.copy-col {
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+				gap: 0.1rem;
+			}
+			.name-row {
+				display: flex;
+				align-items: center;
+				gap: 0.4rem;
+				min-width: 0;
+			}
+			.name {
+				min-width: 0;
+				font-size: 0.82rem;
+				font-weight: 700;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.meta {
+				font-family: ui-monospace, Menlo, monospace;
+				font-size: 0.72rem;
+				color: var(--muted);
+			}
+			.h2h {
+				min-width: 42px;
+				text-align: center;
+				font-size: 0.72rem;
+				font-weight: 700;
+				padding: 0.2rem 0.5rem;
+				border-radius: 999px;
+				border: 1px solid transparent;
+			}
+			.h2h.ahead {
+				color: var(--yes);
+				background: color-mix(in srgb, var(--yes) 16%, transparent);
+				border-color: color-mix(in srgb, var(--yes) 25%, transparent);
+			}
+			.h2h.behind {
+				color: var(--no);
+				background: color-mix(in srgb, var(--no) 14%, transparent);
+				border-color: color-mix(in srgb, var(--no) 22%, transparent);
+			}
+			.badge {
+				font-size: 9px;
+				font-weight: 700;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				padding: 0.12rem 0.4rem;
+				border-radius: 999px;
+				color: var(--primary);
+				background: color-mix(in srgb, var(--primary) 14%, transparent);
+				border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+				flex-shrink: 0;
+			}
+
+			/* ★ the whole trick: sticky to BOTH edges. The YOU row sits
+			   inline at its real rank when visible; glues to the nearest
+			   edge when its slot is scrolled out of view. No JS. */
+			.row.you {
+				position: sticky;
+				top: 6px;
+				bottom: 6px;
+				z-index: 5;
+				border: 0;
+				margin: 4px 6px;
+				border-radius: 12px;
+				background: color-mix(in srgb, var(--primary) 16%, var(--popover));
+				box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.45);
+				outline: 1px solid color-mix(in srgb, var(--primary) 32%, transparent);
+			}
+			.row.you .num,
+			.row.you .name {
+				color: var(--primary);
+			}
+			.vxp {
+				font-family: ui-monospace, Menlo, monospace;
+				font-size: 0.78rem;
+				font-weight: 700;
+				color: var(--primary);
+			}
+			.see-all {
+				width: 100%;
+				border: 0;
+				border-top: 1px solid var(--border);
+				background: transparent;
+				color: var(--muted);
+				font-size: 0.72rem;
+				font-weight: 600;
+				padding: 0.7rem;
+				cursor: pointer;
+			}
+			textarea {
+				width: 380px;
+				max-width: 100%;
+				height: 90px;
+				background: var(--popover);
+				color: var(--text);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				padding: 0.6rem;
+				font-size: 0.7rem;
+				font-family: ui-monospace, Menlo, monospace;
+				resize: vertical;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Friends Ranked: sticky YOU row</h1>
+		<p class="explain">
+			Your row sits at its <strong>real rank by accuracy</strong> and stays visible, gluing to the
+			top edge when its slot is above the fold, the bottom edge when below, and dropping inline the
+			moment its true position scrolls into view. Pure CSS:
+			<code>position: sticky; top; bottom;</code>. Use the controls to verify each scenario and pick
+			the final product variants, then <strong>Copy instructions</strong> to hand your choices back
+			to the chat.
+		</p>
+
+		<div class="panel">
+			<div class="panel-row">
+				<span class="label">Theme (renders the way the app does)</span>
+				<button class="opt" data-kind="theme" data-val="dark">Dark</button>
+				<button class="opt" data-kind="theme" data-val="light">Light</button>
+				<button class="opt" data-kind="theme" data-val="peach">Peach</button>
+			</div>
+			<div class="panel-row">
+				<span class="label">Your position (test scenario)</span>
+				<button class="opt" data-kind="acc" data-val="99">Top</button>
+				<button class="opt" data-kind="acc" data-val="57.5">Upper-mid (visible)</button>
+				<button class="opt" data-kind="acc" data-val="45">Middle · real 45%</button>
+				<button class="opt" data-kind="acc" data-val="22">Lower-mid</button>
+				<button class="opt" data-kind="acc" data-val="-1">Bottom</button>
+			</div>
+			<div class="panel-row">
+				<span class="label">YOU row trailing value (product decision)</span>
+				<button class="opt" data-kind="trail" data-val="vxp">VXP balance</button>
+				<button class="opt" data-kind="trail" data-val="h2h">Head-to-head</button>
+			</div>
+			<div class="panel-row">
+				<span class="label">List length (product decision)</span>
+				<button class="opt" data-kind="len" data-val="cap">Top 10 + See all</button>
+				<button class="opt" data-kind="len" data-val="full">Full list</button>
+			</div>
+		</div>
+
+		<div class="frame">
+			<div class="eyebrow">
+				<span>Friends Ranked</span>
+				<span class="count" id="count">16</span>
+			</div>
+			<div class="scroll" id="scroll"></div>
+		</div>
+
+		<p class="explain" id="readout"></p>
+
+		<div class="panel">
+			<button class="copy" id="copyBtn">Copy instructions</button>
+			<textarea id="instr" readonly></textarea>
+		</div>
+
+		<script>
+			const friends = [
+				{ h: 'edict', a: 83 },
+				{ h: 'cathie', a: 60 },
+				{ h: 'amanda', a: 58 },
+				{ h: 'Giovanni', a: 57 },
+				{ h: 'tim', a: 56 },
+				{ h: 'av-old', a: 44 },
+				{ h: 'kingpin', a: 44 },
+				{ h: 'nino', a: 30 },
+				{ h: 'timotheus', a: 23 },
+				{ h: 'FrancoDogana', a: 21 },
+				{ h: 'ventilii', a: 0 },
+				{ h: 'tactus', a: 0 },
+				{ h: 'viscasso', a: 0 },
+				{ h: 'antoniov', a: 0 },
+				{ h: 'nmattia', a: 0 },
+				{ h: 'antonio', a: 0 }
+			];
+
+			const state = { theme: 'dark', acc: 45, trail: 'vxp', len: 'full' };
+
+			const fmtH2h = (friendAcc, myAcc) => {
+				const d = Math.round((myAcc - friendAcc) * 10) / 10;
+				return { txt: (d >= 0 && d !== 0 ? '+' : '') + d, ahead: d >= 0 };
+			};
+
+			const youTrailing = (rank, myAcc) => {
+				if (state.trail === 'h2h') {
+					// vs the rank-1 leader, as an illustrative head-to-head.
+					const top = [...friends].sort((x, y) => y.a - x.a)[0].a;
+					const { txt, ahead } = fmtH2h(top, myAcc);
+					return `<span class="h2h ${ahead ? 'ahead' : 'behind'}">${txt}</span>`;
+				}
+				return `<span class="vxp">13,799</span>`;
+			};
+
+			const youRow = (rank, myAcc) => `
+				<div class="row you">
+					<span class="num">${String(rank).padStart(2, '0')}</span>
+					<span class="avatar"></span>
+					<span class="copy-col">
+						<span class="name-row"><span class="name">@av</span><span class="badge">You</span></span>
+						<span class="meta">${myAcc}% · 1d</span>
+					</span>
+					${youTrailing(rank, myAcc)}
+				</div>`;
+
+			const render = () => {
+				document.documentElement.setAttribute('data-theme', state.theme);
+				const myAcc = state.acc;
+				const sorted = [...friends].sort((x, y) => y.a - x.a);
+				const rank = sorted.filter((f) => f.a > myAcc).length + 1;
+
+				const capped = state.len === 'cap';
+				const list = capped ? sorted.slice(0, 10) : sorted;
+
+				const rows = [];
+				let placed = false;
+				list.forEach((f, i) => {
+					const realIdx = sorted.indexOf(f);
+					if (!placed && rank === realIdx + 1) {
+						rows.push(youRow(rank, myAcc));
+						placed = true;
+					}
+					const { txt, ahead } = fmtH2h(myAcc, f.a);
+					rows.push(`
+						<div class="row">
+							<span class="num">${String(realIdx + 1).padStart(2, '0')}</span>
+							<span class="avatar"></span>
+							<span class="copy-col">
+								<span class="name-row"><span class="name">@${f.h}</span></span>
+								<span class="meta">${f.a}% · 1d</span>
+							</span>
+							<span class="h2h ${ahead ? 'ahead' : 'behind'}">${txt}</span>
+						</div>`);
+				});
+				// If capped and YOU rank past the cut, or bottom case: append.
+				if (!placed) rows.push(youRow(rank, myAcc));
+				if (capped && sorted.length > 10) {
+					rows.push(`<button class="see-all">See all ${friends.length}</button>`);
+				}
+
+				document.getElementById('scroll').innerHTML = rows.join('');
+				document.getElementById('count').textContent = friends.length;
+				document.getElementById('readout').innerHTML =
+					`At <strong>${myAcc}%</strong> you are <strong>rank ${rank} of ${friends.length + 1}</strong>. Scroll to watch the row glue to the nearest edge, then settle inline at rank ${rank}.`;
+
+				document.querySelectorAll('button.opt').forEach((b) => {
+					const k = b.dataset.kind;
+					b.classList.toggle('active', String(state[k]) === b.dataset.val);
+				});
+				writeInstructions(rank);
+			};
+
+			const writeInstructions = (rank) => {
+				const trail =
+					state.trail === 'vxp'
+						? 'keep the VXP balance on the right of the YOU row'
+						: 'show a head-to-head delta chip on the right of the YOU row (not VXP)';
+				const len =
+					state.len === 'full'
+						? 'render the full ranked list (drop the top-10 cap) so the YOU row always has a real inline slot to settle into'
+						: 'keep the top-10 cap + "See all"; the YOU row glues to an edge and only settles inline once "See all" is expanded';
+				document.getElementById('instr').value = [
+					'Implement the friends ranked YOU row per the mock:',
+					`- Place the YOU row at its real rank by accuracy (here rank ${rank}) inside the list, not pinned to the bottom.`,
+					'- Make it sticky to BOTH edges (position: sticky; top + bottom) so it glues to the nearest edge off-screen and settles inline when its slot is visible.',
+					`- ${trail}.`,
+					`- ${len}.`,
+					'- Keep the rank number + YouBadge beside the handle (already shipped in #1017).',
+					`- Verify in all themes; the version I reviewed looks right in: ${state.theme}.`
+				].join('\n');
+			};
+
+			document.querySelectorAll('button.opt').forEach((b) => {
+				b.onclick = () => {
+					const k = b.dataset.kind;
+					state[k] = k === 'acc' ? Number(b.dataset.val) : b.dataset.val;
+					render();
+				};
+			});
+			document.getElementById('copyBtn').onclick = async () => {
+				const ta = document.getElementById('instr');
+				ta.select();
+				try {
+					await navigator.clipboard.writeText(ta.value);
+				} catch (e) {
+					document.execCommand('copy');
+				}
+				const btn = document.getElementById('copyBtn');
+				const prev = btn.textContent;
+				btn.textContent = 'Copied ✓';
+				setTimeout(() => (btn.textContent = prev), 1400);
+			};
+
+			render();
+		</script>
+	</body>
+</html>

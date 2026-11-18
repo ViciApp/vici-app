@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { isEmptyString, isNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import type { RegistryDid } from '$declarations';
-	import SocialPremiumPicker from '$lib/components/arena/SocialPremiumPicker.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { RESOLUTION_CLAUSE_MAX_LENGTH } from '$lib/constants/app.constants';
+	import type { RegistryDid } from '#declarations';
+	import SocialPremiumPicker from '#lib/components/arena/SocialPremiumPicker.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { RESOLUTION_CLAUSE_MAX_LENGTH } from '#lib/constants/app.constants.ts';
 	import {
 		DEFAULT_SOCIAL_PREMIUM_ID,
 		formatSocialPremium,
 		type SocialPremiumOptionId
-	} from '$lib/constants/social-premium.constants';
-	import { listGroups } from '$lib/services/group.services';
-	import { createMarket } from '$lib/services/market.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/constants/social-premium.constants.ts';
+	import { listGroups } from '#lib/services/group.services.ts';
+	import { createMarket } from '#lib/services/market.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		onAddMarketSuccess: () => Promise<void>;
@@ -212,8 +212,7 @@
 					key: 'admin.markets.form.field.resolution_placeholder'
 				})}
 				rows="4"
-				value={resolution}
-			></textarea>
+				value={resolution}></textarea>
 			<p class="text-muted-foreground text-[10px]">
 				{t({
 					locale: $localeStore,
@@ -239,8 +238,7 @@
 					key: 'admin.markets.form.field.description_placeholder'
 				})}
 				rows="4"
-				value={description}
-			></textarea>
+				value={description}></textarea>
 		</div>
 
 		<div class="space-y-2">

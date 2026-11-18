@@ -1,0 +1,215 @@
+// Profile surface: own-profile read/write, the availability probe, public
+// lookup and search, the server-authoritative Flow swipe counter, and the
+// dashboard stat caches. Reads that back public surfaces stay public;
+// everything caller-scoped is session-gated.
+
+import { isNullish } from '@dfinity/utils';
+import { Elysia, t } from 'elysia';
+import { requireUser, unauthenticated } from '../auth/guard';
+import { UUID_RE } from '../lib/constants';
+import { badRequest, clientIp } from '../lib/http';
+import { enforceLimit } from '../lib/rate-limit';
+import { HOUR_IN_MS } from '../lib/time';
+import { InvalidDayKeyError, NoProfileError, recordFlowSwipe } from '../profiles/flow';
+import { checkNicknameAvailability } from '../profiles/nickname';
+import {
+	getProfileRow,
+	getProfileView,
+	ProfileValidationError,
+	searchProfiles,
+	shapeOwnProfile
+} from '../profiles/profile';
+import { upsertMyProfile } from '../profiles/profile-write';
+import { getUserStats, upsertUserStats } from '../profiles/stats';
+import { mintFlowOvertime } from '../vxp/flow';
+import { runProfileAwardTriggers } from '../vxp/triggers';
+
+// Search is public and enumerable, so it is limited per client IP. The budget
+// leaves room for a debounced live search behind a shared school network.
+const PROFILE_SEARCH_LIMIT_PER_HOUR = 300;
+
+export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
+	.get('/me', async ({ request, set }) => {
+		const user = await requireUser(request);
+
+		if (isNullish(user)) {
+			return unauthenticated(set);
+		}
+
+		const row = await getProfileRow({ userId: user.id });
+
+		return { profile: isNullish(row) ? null : shapeOwnProfile(row) };
+	})
+	.put('/me', async ({ request, set, body }) => {
+		const user = await requireUser(request);
+
+		if (isNullish(user)) {
+			return unauthenticated(set);
+		}
+
+		try {
+			const profile = await upsertMyProfile({
+				userId: user.id,
+				body: (body ?? {}) as Record<string, unknown>
+			});
+
+			// Only the registration grant rides the profile write. The streak,
+			// call-count, achievement and comeback fields here are the client's
+			// display copy and never mint: those awards read server-side truth
+			// on the trade activity write.
+			await runProfileAwardTriggers({ userId: user.id });
+
+			return { profile };
+		} catch (err) {
+			if (err instanceof ProfileValidationError) {
+				return badRequest(set, err.message);
+			}
+
+			throw err;
+		}
+	})
+	.get(
+		'/nickname-availability',
+		async ({ request, set, query: params }) => {
+			const user = await requireUser(request);
+
+			if (isNullish(user)) {
+				return unauthenticated(set);
+			}
+
+			// The caller's own current nickname never counts as a conflict.
+			const result = await checkNicknameAvailability({
+				nickname: params.nickname,
+				excludeUserId: user.id
+			});
+
+			return result;
+		},
+		{ query: t.Object({ nickname: t.String() }) }
+	)
+	.get(
+		'/search',
+		async ({ request, set, query: params }) => {
+			const limited = enforceLimit({
+				set,
+				name: 'profile_search',
+				ip: clientIp(request),
+				limit: PROFILE_SEARCH_LIMIT_PER_HOUR,
+				windowMs: HOUR_IN_MS
+			});
+
+			if (limited) {
+				return limited;
+			}
+
+			return { items: await searchProfiles(params.q) };
+		},
+		{ query: t.Object({ q: t.String() }) }
+	)
+	.post(
+		'/flow-swipe',
+		async ({ request, set, body }) => {
+			const user = await requireUser(request);
+
+			if (isNullish(user)) {
+				return unauthenticated(set);
+			}
+
+			try {
+				const result = await recordFlowSwipe({ userId: user.id, dayKey: body.dayKey });
+
+				// The overtime bonus fires at the daily hard cap, inline with the
+				// counter write. Never throws; a payout hiccup leaves the counter
+				// result intact.
+				if (result.capReached) {
+					await mintFlowOvertime({ userId: user.id, dayKey: result.dailyGoalDate });
+				}
+
+				return result;
+			} catch (err) {
+				if (err instanceof NoProfileError) {
+					set.status = 409;
+
+					return { error: 'no_profile' };
+				}
+
+				if (err instanceof InvalidDayKeyError) {
+					return badRequest(set, 'invalid_day_key');
+				}
+
+				throw err;
+			}
+		},
+		{ body: t.Object({ dayKey: t.String() }) }
+	)
+	.get('/me/stats', async ({ request, set }) => {
+		const user = await requireUser(request);
+
+		if (isNullish(user)) {
+			return unauthenticated(set);
+		}
+
+		return { stats: (await getUserStats({ userId: user.id })) ?? null };
+	})
+	.put(
+		'/me/stats',
+		async ({ request, set, body }) => {
+			const user = await requireUser(request);
+
+			if (isNullish(user)) {
+				return unauthenticated(set);
+			}
+
+			try {
+				const stats = await upsertUserStats({
+					userId: user.id,
+					categoryStats: body.categoryStats,
+					recentSettlements: body.recentSettlements,
+					computedAtMs: body.computedAtMs
+				});
+
+				return { stats };
+			} catch (err) {
+				if (err instanceof ProfileValidationError) {
+					return badRequest(set, err.message);
+				}
+
+				throw err;
+			}
+		},
+		{
+			body: t.Object({
+				categoryStats: t.Record(t.String(), t.Object({ calls: t.Number(), wins: t.Number() })),
+				recentSettlements: t.Array(
+					t.Object({
+						marketId: t.String(),
+						tag: t.String(),
+						win: t.Boolean(),
+						settledAtMs: t.Number(),
+						vxp: t.Number(),
+						contrarian: t.Boolean()
+					})
+				),
+				computedAtMs: t.Number()
+			})
+		}
+	)
+	.get('/:userId', async ({ request, params }) => {
+		// Accounts are keyed by uuid, so any other id (an on-chain principal,
+		// say) can never match a row; answer it as absent instead of letting the
+		// uuid bind fail the query as a 500.
+		if (!UUID_RE.test(params.userId)) {
+			return { profile: null };
+		}
+
+		// The caller (when signed in) may read their own hidden profile; any
+		// other hidden profile reads as absent.
+		const user = await requireUser(request);
+
+		const profile = await getProfileView({
+			userId: params.userId,
+			callerId: user?.id
+		});
+
+		return { profile: profile ?? null };
+	});

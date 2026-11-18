@@ -1,5 +1,5 @@
-import { Permission } from '$lib/enums/permission';
-import { UserRole } from '$lib/enums/user';
+import { Permission } from '#lib/enums/permission.ts';
+import { UserRole } from '#lib/enums/user.ts';
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 	[UserRole.CONTROLLER]: [

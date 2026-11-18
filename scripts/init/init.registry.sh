@@ -10,8 +10,8 @@ source "$(dirname "$0")/../lib/utils.sh" "$@"
 #   3. Seeds the default market deck from scripts/data/markets.json by
 #      delegating to scripts/deploy-markets.sh.
 #
-# To deploy a different deck (e.g. scripts/data/markets.deck-2026.json), call
-# `deploy-markets.sh <file>` directly — see that script's usage. This init only
+# To deploy a different deck (any JSON file shaped like scripts/data/markets.json), call
+# `deploy-markets.sh <file>` directly; see that script's usage. This init only
 # wires the oracle + principals and seeds the default file.
 #
 # Notes on oracle authorisation:

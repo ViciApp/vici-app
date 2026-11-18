@@ -1,25 +1,26 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
-	import type { PrincipalText } from '@junobuild/schema';
 	import { onMount } from 'svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import CopyableAddress from '$lib/components/ui/CopyableAddress.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { VICI_ORACLE_V1 } from '$lib/constants/app.constants';
-	import { safeGetIdentityOnce } from '$lib/services/identity.services';
+	import Button from '#lib/components/ui/Button.svelte';
+	import CopyableAddress from '#lib/components/ui/CopyableAddress.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { VICI_ORACLE_V1 } from '#lib/constants/app.constants.ts';
+	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 	import {
 		getViciOracle,
 		reconcileOracleSettlersFromRoles,
-		registerViciOracle
-	} from '$lib/services/oracle.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { t } from '$lib/utils/i18n.utils';
+		registerViciOracle,
+		resolveOracleSettlers,
+		type OracleSettlerEntry
+	} from '#lib/services/oracle.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	type Status = 'loading' | 'missing' | 'ready' | 'error';
 
 	let status = $state<Status>('loading');
-	let authorizedPrincipals = $state<PrincipalText[]>([]);
+	let settlers = $state<OracleSettlerEntry[]>([]);
 	let errorMessage = $state<string | undefined>();
 	let isSubmitting = $state(false);
 	let isReconciling = $state(false);
@@ -33,12 +34,12 @@
 
 			if (isNullish(oracle)) {
 				status = 'missing';
-				authorizedPrincipals = [];
+				settlers = [];
 
 				return;
 			}
 
-			authorizedPrincipals = oracle.authorized_principals.map((p) => p.toText());
+			settlers = await resolveOracleSettlers(oracle.authorized_principals.map((p) => p.toText()));
 			status = 'ready';
 		} catch (e: unknown) {
 			status = 'error';
@@ -190,7 +191,7 @@
 					{t({
 						locale: $localeStore,
 						key: 'admin.oracle.authorized_count',
-						params: { count: authorizedPrincipals.length }
+						params: { count: settlers.length }
 					})}
 				</h3>
 				<Button
@@ -207,19 +208,26 @@
 				{t({ locale: $localeStore, key: 'admin.oracle.reconcile.hint' })}
 			</p>
 
-			{#if authorizedPrincipals.length === 0}
+			{#if settlers.length === 0}
 				<p class="text-muted-foreground text-sm italic">
 					{t({ locale: $localeStore, key: 'admin.oracle.no_authorized' })}
 				</p>
 			{:else}
 				<ul class="divide-border border-border divide-y overflow-hidden rounded-md border">
-					{#each authorizedPrincipals as principal (principal)}
+					{#each settlers as settler (settler.principal)}
 						<li class="px-6 py-4">
-							<div class="text-foreground min-w-0 text-sm">
-								<CopyableAddress
-									address={principal}
-									label={t({ locale: $localeStore, key: 'profile.dashboard.principal' })}
-								/>
+							<div class="min-w-0">
+								{#if settler.nickname}
+									<span class="text-foreground block text-sm font-semibold">
+										{settler.nickname}
+									</span>
+								{/if}
+								<span class="text-muted-foreground text-sm" class:font-medium={!settler.nickname}>
+									<CopyableAddress
+										address={settler.principal}
+										label={t({ locale: $localeStore, key: 'profile.dashboard.principal' })}
+									/>
+								</span>
 							</div>
 						</li>
 					{/each}

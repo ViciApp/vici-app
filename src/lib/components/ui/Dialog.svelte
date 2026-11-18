@@ -3,8 +3,8 @@
 	import { X } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		show: boolean;
@@ -70,7 +70,7 @@
 	/* Lock body scroll while open, mirroring Modal (`.wrapper`) and
 	 * BottomSheet (`.sheet`). Keyed on the `[open]` attribute the native
 	 * `<dialog>` carries only while shown, so the body stays locked as
-	 * long as any open overlay's marker is present — stacked overlays no
+	 * long as any open overlay's marker is present: stacked overlays no
 	 * longer desync the lock. */
 	:global(body:has(dialog[open])) {
 		overflow: hidden;

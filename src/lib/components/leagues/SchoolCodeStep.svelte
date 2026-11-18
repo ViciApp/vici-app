@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Mail } from '@lucide/svelte/icons';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * Pass-2 inbox step — the 6-digit code entry shown after a verification
+	 * Pass-2 inbox step: the 6-digit code entry shown after a verification
 	 * mail is sent (both the add-your-own and verify-existing flows land
 	 * here). The owning {@link AffiliationPickerModal} keeps the state
 	 * machine (and sanitizes the raw input); this component renders the

@@ -1,18 +1,18 @@
-// Flow Mode generative-artwork palettes — six categories × theme ×
+// Flow Mode generative-artwork palettes: six categories × theme ×
 // state. Pure colour data consumed by `renderFlowArt`; extracted from
 // `flow-art.utils.ts` to keep the renderer module readable.
 
 import type {
-	FlowArtCategory,
+	FlowArtBucket,
 	FlowArtPalette,
 	FlowArtState,
 	FlowArtTheme
-} from '$lib/utils/flow-art/types';
+} from '#lib/utils/flow-art/types.ts';
 
 type CategoryPalettes = Record<FlowArtState, FlowArtPalette>;
 type ThemePalettes = Record<FlowArtTheme, Partial<CategoryPalettes> & { neutral: FlowArtPalette }>;
 
-export const PAL: Record<FlowArtCategory, ThemePalettes> = {
+export const PAL: Record<FlowArtBucket | 'wc', ThemePalettes> = {
 	macro: {
 		dark: {
 			neutral: {
@@ -336,7 +336,7 @@ export const PAL: Record<FlowArtCategory, ThemePalettes> = {
 			}
 		}
 	},
-	// World Cup — pitch green base with chalk-line architecture + gold
+	// World Cup: pitch green base with chalk-line architecture + gold
 	// accent. Tentpole-only: emitted exclusively when a market belongs
 	// to the active FeaturedEvent (see `FLOW_ART_CATEGORIES`, which
 	// excludes `wc` so the random fallback never selects it).

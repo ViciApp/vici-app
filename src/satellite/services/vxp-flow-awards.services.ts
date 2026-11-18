@@ -1,45 +1,40 @@
-import { VXP_LEDGER_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
+import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import {
 	VXP_FLOW_MILESTONES,
 	VXP_FLOW_OVERTIME_BONUS,
 	VXP_FLOW_OVERTIME_ROLLING_CAP,
 	VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS
-} from '$lib/constants/vxp-economy.constants';
-import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '$lib/types/vxp-award';
-import { parseToken } from '$lib/utils/parse.utils';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';
-import { isNullish, nonNullish } from '@dfinity/utils';
+} from '#lib/constants/vxp-economy.constants.ts';
+import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
+import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import {
-	decodeDocData,
-	encodeDocData,
-	getDocStore,
-	listDocsStore,
-	setDocStore
-} from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
 
 /**
- * Flow VXP award hooks — the real-credit path for the two Flow earn
- * surfaces scaffolded in #562 and tracked by #350:
+ * Flow VXP award hooks: the real-credit path for the two Flow earn
+ * surfaces:
  *
- *  - `flow_milestone` — crossing a lifetime call-count boundary
- *    (10 / 100 / 500 / 1000 → 50 / 100 / 250 / 500 VXP), once each ever.
+ *  - `flow_milestone`: crossing a lifetime call-count boundary
+ *    (`VXP_FLOW_MILESTONES`), once each ever.
  *    Fired from the `profiles` post-write hook off the lifetime
  *    `totalTrades` delta (the same client-synced count the affiliation /
  *    podium awards already trust).
- *  - `flow_overtime` — finishing a day in overtime (the Flow daily counter
- *    hitting the hard cap → 25 VXP). Minted *inline* from
+ *  - `flow_overtime`: finishing a day in overtime (the Flow daily counter
+ *    hitting the hard cap pays `VXP_FLOW_OVERTIME_BONUS`). Minted *inline* from
  *    `recordFlowSwipeFn`, because that endpoint writes the counter with
  *    `setDocStore` and serverless writes fire no `onSetDoc` hook.
  *
  * Both reuse the existing server-fired `vxp_awards` pending→paid machinery
  * and its structural idempotency (`${recipient}/${awardType}/${awardKey}`).
- * Amounts are sized via `parseToken` — the constants are whole VXP and the
+ * Amounts are sized via `vxpBaseUnits`: the constants are whole VXP and the
  * ledger works in base units (mirrors the podium award; a raw `BigInt`
  * would under-pay by `10 ** VXP_TOKEN.decimals`).
  */
@@ -49,10 +44,6 @@ const FLOW_MILESTONES: readonly number[] = Object.freeze(
 		.map((k) => Number(k))
 		.sort((a, b) => a - b)
 );
-
-/** Whole-VXP award value → base units. */
-const flowAwardBaseUnits = (wholeVxp: number): bigint =>
-	parseToken({ value: wholeVxp.toString(), unitName: VXP_TOKEN.decimals });
 
 /** Subset of the profile the milestone hook reads. */
 interface TotalTradesSlice {
@@ -72,63 +63,9 @@ const milestonesCrossed = ({ prev, next }: { prev: number; next: number }): numb
 	return FLOW_MILESTONES.filter((m) => prev < m && m <= next);
 };
 
-const persistPending = ({
-	caller,
-	recipient,
-	awardType,
-	awardKey,
-	doc
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	awardType: VxpAwardType;
-	awardKey: string;
-	doc: VxpAwardDoc;
-}): void => {
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key: vxpAwardKey({ recipient, awardType, awardKey }),
-		doc: { data: encodeDocData(doc) }
-	});
-};
-
-const patchAward = ({
-	caller,
-	recipient,
-	awardType,
-	awardKey,
-	patch
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	awardType: VxpAwardType;
-	awardKey: string;
-	patch: Partial<VxpAwardDoc> & Pick<VxpAwardDoc, 'status'>;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType, awardKey });
-	const existing = getDocStore({ collection: Collection.VXP_AWARDS, key, caller });
-
-	if (isNullish(existing)) {
-		return;
-	}
-
-	const existingDoc = decodeDocData<VxpAwardDoc>(existing.data);
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData<VxpAwardDoc>({ ...existingDoc, ...patch }),
-			version: existing.version
-		}
-	});
-};
-
 /**
  * Files a pending award doc, issues the ledger transfer, and records the
- * paid / failed outcome — the shared body behind both flow award types.
+ * paid / failed outcome: the shared body behind both flow award types.
  * Idempotent: an existing doc for the key short-circuits before any
  * ledger call. `logTag` carries the award-specific log scope + detail.
  */
@@ -158,7 +95,7 @@ const payFlowAward = async ({
 		return;
 	}
 
-	const amount = flowAwardBaseUnits(wholeVxp);
+	const amount = vxpBaseUnits(wholeVxp);
 
 	const pending: VxpAwardDoc = {
 		recipient,
@@ -170,10 +107,10 @@ const payFlowAward = async ({
 	};
 
 	try {
-		persistPending({ caller, recipient, awardType, awardKey, doc: pending });
+		persistAward({ recipient, awardType, awardKey, doc: pending });
 	} catch (e: unknown) {
 		// Most likely a concurrent write already created the pending doc;
-		// surface and stop — the other path will issue (or has issued) the
+		// surface and stop: the other path will issue (or has issued) the
 		// transfer.
 		logInfo({
 			message: `${logScope}_pending_blocked`,
@@ -196,8 +133,7 @@ const payFlowAward = async ({
 			detail: { ...logDetail, amount: amount.toString(), block_index: result.blockIndex.toString() }
 		});
 
-		patchAward({
-			caller,
+		updateAward({
 			recipient,
 			awardType,
 			awardKey,
@@ -212,8 +148,7 @@ const payFlowAward = async ({
 		detail: { ...logDetail, amount: amount.toString(), error: result.error }
 	});
 
-	patchAward({
-		caller,
+	updateAward({
 		recipient,
 		awardType,
 		awardKey,
@@ -225,7 +160,7 @@ const ledgerActor = (): IcrcLedgerCanister =>
 	new IcrcLedgerCanister({ canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID) });
 
 /**
- * Profile post-write hook — credits any lifetime-call milestone the user
+ * Profile post-write hook: credits any lifetime-call milestone the user
  * just crossed. Composes alongside the other `profiles` award hooks; reads
  * the client-synced `totalTrades` delta (same trust model as the streak
  * and Worlds-podium awards).
@@ -294,7 +229,7 @@ export const onProfileSetForFlowMilestone = async (ctx: OnSetDocContext): Promis
  * Counts the caller's `flow_overtime` award docs whose store-stamped
  * `created_at` falls within the rolling window. `created_at` (not the
  * in-body `earnedAtMs`) is the boundary because the datastore stamps it on
- * write and the caller cannot forge it — `recordFlowSwipe` validates only
+ * write and the caller cannot forge it: `recordFlowSwipe` validates only
  * that `dayKey` is well-formed, so a replayed day key cannot inflate this.
  */
 const overtimeAwardsInWindow = ({
@@ -307,7 +242,7 @@ const overtimeAwardsInWindow = ({
 	nowMs: number;
 }): number => {
 	const prefix = vxpAwardKey({ recipient, awardType: 'flow_overtime', awardKey: '' });
-	const cutoffNs = BigInt(nowMs - VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS) * 1_000_000n;
+	const cutoffNs = BigInt(nowMs - VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS) * MILLISECOND_IN_NANOSECONDS;
 
 	const { items } = listDocsStore({
 		collection: Collection.VXP_AWARDS,
@@ -325,7 +260,7 @@ const overtimeAwardsInWindow = ({
  * `recordFlowSwipeFn` once the daily counter reaches the hard cap.
  * Idempotent per day via the `${recipient}/flow_overtime/${dayKey}` key,
  * and bounded by the rolling wall-clock cap so a client replaying forged
- * day keys can't farm it. Never throws — a payout failure is logged and
+ * day keys can't farm it. Never throws: a payout failure is logged and
  * recorded on the award doc, leaving the swipe counter result intact.
  */
 export const mintFlowOvertime = async ({
@@ -340,7 +275,7 @@ export const mintFlowOvertime = async ({
 	try {
 		const key = vxpAwardKey({ recipient, awardType: 'flow_overtime', awardKey: dayKey });
 
-		// Idempotent per day — skip before the rolling-window scan.
+		// Idempotent per day: skip before the rolling-window scan.
 		if (nonNullish(getDocStore({ collection: Collection.VXP_AWARDS, key, caller }))) {
 			return;
 		}

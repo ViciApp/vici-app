@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Check, X } from '@lucide/svelte';
 	import { fade } from 'svelte/transition';
-	import { notificationsStore } from '$lib/stores/notification.store';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
 
 	const remove = (id: string) => notificationsStore.remove(id);
 </script>

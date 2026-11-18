@@ -1,6 +1,8 @@
-import { functions } from '$declarations/satellite/satellite.api';
-import type { UserProfile } from '$lib/types/profile';
-import { fromWireProfile } from '$satellite/utils/wire-format.utils';
+import { functions } from '#declarations/satellite/satellite.api.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import { listLeaderboard as listLeaderboardWeb2 } from '#lib/web2/client.ts';
+import { fromWireProfile } from '#satellite/utils/wire-format.utils.ts';
 
 /**
  * Fetches the top profiles ranked by points (XP) from the satellite-side
@@ -16,26 +18,11 @@ import { fromWireProfile } from '$satellite/utils/wire-format.utils';
  * sort happens satellite-side too so client and server agree on rank.
  */
 export const getLeaderboard = async (): Promise<UserProfile[]> => {
+	if (isWeb2Backend()) {
+		return listLeaderboardWeb2();
+	}
+
 	const { items } = await functions.listLeaderboard();
 
 	return items.map(fromWireProfile);
-};
-
-/**
- * The caller's rival — the profile adjacent to them across the full points
- * ranking (not just the top-{@link getLeaderboard} slice), so the "Your
- * rival" insight resolves for every ranked user. Usually the competitor
- * one rank above; for rank 1 it's the runner-up below, flagged
- * `isTrailing` so the gap reads as a lead. `undefined` when the caller is
- * unranked or the lone ranked profile.
- *
- * The satellite returns the profile in camelCase (`j.optional(Record)`),
- * so no wire decode is needed — it's the same shape as `getProfile`.
- */
-export const getMyRival = async (): Promise<
-	{ profile: UserProfile; isTrailing: boolean } | undefined
-> => {
-	const { rival, rivalIsTrailing } = await functions.getMyRival();
-
-	return rival ? { profile: rival as UserProfile, isTrailing: rivalIsTrailing } : undefined;
 };

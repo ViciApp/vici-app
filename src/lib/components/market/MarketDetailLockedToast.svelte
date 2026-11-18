@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Check } from '@lucide/svelte/icons';
 	import { fade } from 'svelte/transition';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		open: boolean;
@@ -52,7 +52,7 @@
 		color: var(--laurel);
 	}
 
-	/* Serif-italic brand treatment — the `.serif-italic` utility on the
+	/* Serif-italic brand treatment: the `.serif-italic` utility on the
 	   element supplies font-family + italic + weight; we only set the
 	   surface-specific size / colour / rhythm here. */
 	.market-locked-toast-msg {

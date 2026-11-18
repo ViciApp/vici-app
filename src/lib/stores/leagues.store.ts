@@ -5,10 +5,10 @@ import {
 	listMyLeagues,
 	type FriendRecommendedLeague,
 	type LeagueWithRole
-} from '$lib/services/leagues.services';
-import { loadProfilesByPrincipals } from '$lib/services/profile.services';
-import type { BattleDoc } from '$lib/types/battle';
-import type { LeagueMemberDoc } from '$lib/types/league-member';
+} from '#lib/services/leagues.services.ts';
+import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
+import type { BattleDoc } from '#lib/types/battle.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import { writable } from 'svelte/store';
 
 /**
@@ -40,7 +40,7 @@ export const leagueBattlesStore = writable<Map<string, BattleDoc[]>>(new Map());
 
 /**
  * Public leagues the caller's confirmed friends are in but the caller is
- * not — the "Friends are in" recommendations row at the foot of the
+ * not: the "Friends are in" recommendations row at the foot of the
  * Leagues list. Refreshed alongside the caller's own leagues; an empty
  * array means there's nothing to recommend (no friends, or no friend is
  * in a public league the caller hasn't joined).
@@ -64,7 +64,7 @@ export const leaguesLoadedStore = writable<boolean>(false);
 export const leaguesErrorStore = writable<boolean>(false);
 
 const runRefresh = async (): Promise<void> => {
-	// Recommendations refresh in parallel with the caller's own leagues —
+	// Recommendations refresh in parallel with the caller's own leagues;
 	// a flaky recommendation fetch falls back to an empty row rather than
 	// tanking the whole list.
 	const [memberships, recommendations] = await Promise.all([
@@ -78,7 +78,7 @@ const runRefresh = async (): Promise<void> => {
 
 	// Fan out the per-league roster + battle fetches. A single flaky
 	// league falls back to an empty roster / no battles so it can't tank
-	// the whole list — matches the prior per-row hydration in LeaguesPage.
+	// the whole list: matches the prior per-row hydration in LeaguesPage.
 	const hydrated = await Promise.all(
 		memberships.map(async (m) => {
 			try {
@@ -127,7 +127,7 @@ const runRefresh = async (): Promise<void> => {
 
 	for (const rec of recommendations) {
 		// LeagueListCard renders only the first 3 overlapping friend avatars,
-		// so hydrate just those profiles — loading the rest is unused work.
+		// so hydrate just those profiles: loading the rest is unused work.
 		for (const friend of rec.friendMembers.slice(0, 3)) {
 			allMembers.add(friend);
 		}

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { Icon as LucideIcon } from '@lucide/svelte';
+	import type { LucideIcon } from '@lucide/svelte';
 	import { ChevronRight } from '@lucide/svelte/icons';
 	import type { Snippet } from 'svelte';
 
 	interface Props {
 		label: string;
 		sub?: string;
-		icon?: typeof LucideIcon;
+		icon?: LucideIcon;
 		badge?: string;
 		muted?: boolean;
 		onclick?: () => void;
@@ -69,15 +69,15 @@
 		color: var(--text-muted);
 	}
 
-	/* Muted rows soften the label one tier — lighter weight and the dim
-	   foreground — so secondary actions (help / legal links) read quieter
+	/* Muted rows soften the label one tier: lighter weight and the dim
+	   foreground, so secondary actions (help / legal links) read quieter
 	   than the primary account / preference rows. */
 	.set-row.is-muted .set-row-label {
 		color: var(--fg-dim);
 		font-weight: 400;
 	}
 
-	/* Settings row glyph — a bare inline icon (no tinted tile), tinted
+	/* Settings row glyph: a bare inline icon (no tinted tile), tinted
 	   to the dim foreground tier so it reads as a quiet leading marker
 	   rather than a coloured chip. Muted rows drop one tier further to
 	   the muted foreground. */

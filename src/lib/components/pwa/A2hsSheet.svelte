@@ -1,25 +1,30 @@
 <script lang="ts">
 	import { Download, Share, SquarePlus } from '@lucide/svelte/icons';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { track } from '$lib/services/analytics.services';
-	import { markDismissed, nativePrompt, platform, type A2hsPlatform } from '$lib/stores/a2hs.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { track } from '#lib/services/analytics.services.ts';
+	import {
+		markDismissed,
+		nativePrompt,
+		platform,
+		type A2hsPlatform
+	} from '#lib/stores/a2hs.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Add-to-Home-Screen install sheet. One more {@link BottomSheet} host
 	 * (like {@link LocaleSheet} / {@link DeleteAccountFlow}): Android gets a
 	 * single one-tap CTA that replays the captured `beforeinstallprompt`; iOS
 	 * gets the two manual Share → Add to Home Screen steps (no install API
-	 * exists there). Dismiss starts the cool-off. No `window` global — state
+	 * exists there). Dismiss starts the cool-off. No `window` global: state
 	 * comes from `a2hs.store`.
 	 */
 	interface Props {
 		isOpen: boolean;
-		/** Surface the sheet was opened from — analytics dimension. */
+		/** Surface the sheet was opened from: analytics dimension. */
 		source: 'settings' | 'flow_end';
 		onClose: () => void;
 	}
@@ -33,7 +38,7 @@
 
 	let installStatus = $state<ButtonStatus>('enabled');
 
-	// Open is the funnel's top — fire once per open transition. `wasOpen`
+	// Open is the funnel's top: fire once per open transition. `wasOpen`
 	// guards the effect so it only tracks the false→true edge, not every
 	// re-run while the sheet stays open.
 	let wasOpen = false;

@@ -1,21 +1,24 @@
 {
 	"name": "vici-app",
-	"version": "1.8.0",
+	"version": "1.8.61",
 	"juno": {
 		"functions": {
-			"version": "1.8.0"
+			"version": "1.8.61"
 		}
 	},
 	"private": true,
+	"packageManager": "npm@11.21.1",
 	"scripts": {
 		"dev": "vite dev --force",
 		"build": "tsc --noEmit && vite build",
+		"seo:assets": "tsx scripts/build/generate-seo-assets.ts",
 		"prepare": "svelte-kit sync",
 		"preview": "vite preview",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p src/satellite/tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"check:i18n": "node scripts/check-locale-catalogs.mjs",
-		"lint": "prettier --cache ${CI:+--cache-strategy content} --check . && eslint . --cache ${CI:+--cache-strategy content} --max-warnings 0 && npm run check:i18n",
+		"check:dashes": "node scripts/check-dashes.mjs",
+		"lint": "prettier --cache ${CI:+--cache-strategy content} --check . && eslint . --cache ${CI:+--cache-strategy content} --max-warnings 0 && npm run check:i18n && npm run check:dashes",
 		"format": "prettier --cache ${CI:+--cache-strategy content} --write . && eslint . --cache ${CI:+--cache-strategy content} --fix",
 		"quality": "npm run format && npm run lint",
 		"did": "./scripts/did.sh && npm run format && npm run lint",
@@ -28,6 +31,7 @@
 		"tag:markets": "./scripts/tag-markets.sh",
 		"translate:markets": "./scripts/translate-markets.sh",
 		"init:icdc": "npm run init:clearing && npm run init:icdc-engine && npm run init:registry && npm run init:icdc-dev-bootstrap",
+		"test": "tsx --test \"src/tests/**/*.spec.ts\"",
 		"test:engine-sync": "./scripts/test/test-engine-sync.sh",
 		"init:vxp-treasury": "./scripts/init/init.vxp-treasury.sh",
 		"juno:functions:build": "juno functions build --lang ts",
@@ -39,56 +43,71 @@
 		"playwright:install": "playwright install --with-deps",
 		"e2e": "npm run playwright:install && playwright test",
 		"e2e:ci": "playwright test --update-snapshots=changed --reporter=html,list",
-		"e2e:report": "playwright show-report"
+		"e2e:report": "playwright show-report",
+		"e2e:web2": "playwright install chromium && npm run e2e:web2:ci",
+		"e2e:web2:ci": "playwright test --config playwright.web2.config.ts",
+		"e2e:web2:report": "playwright show-report playwright-report-web2"
 	},
 	"devDependencies": {
-		"@dfinity/eslint-config-oisy-wallet": "^0.5.0",
-		"@icp-sdk/bindgen": "^0.4.0",
+		"@dfinity/eslint-config-oisy-wallet": "^0.5.1",
+		"@icp-sdk/bindgen": "^0.4.1",
 		"@junobuild/config": "^3.0.1",
 		"@junobuild/vite-plugin": "^4.7.1",
-		"@playwright/test": "^1.59.1",
-		"@sveltejs/adapter-static": "^3.0.9",
-		"@sveltejs/kit": "^2.65.0",
-		"@sveltejs/vite-plugin-svelte": "^7.1.2",
-		"@tailwindcss/postcss": "^4.2.4",
-		"@tailwindcss/vite": "^4.2.2",
+		"@playwright/test": "^1.62.1",
+		"@sveltejs/adapter-static": "^4.0.1",
+		"@sveltejs/kit": "^3.1.1",
+		"@sveltejs/vite-plugin-svelte": "^7.3.1",
+		"@tailwindcss/postcss": "^4.3.3",
+		"@tailwindcss/vite": "^4.3.3",
 		"@types/eslint": "^9.6.1",
-		"@types/node": "^25.9.2",
-		"eslint": "^10.5.0",
+		"@types/node": "^26.6.5",
+		"eslint": "^10.13.0",
 		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-svelte": "^3.19.0",
-		"globals": "^17.3.0",
-		"playwright": "^1.59.1",
-		"postcss": "^8.5.15",
-		"prettier": "^3.8.4",
+		"eslint-plugin-svelte": "^3.23.1",
+		"globals": "^17.13.0",
+		"playwright": "^1.64.1",
+		"postcss": "^8.5.31",
+		"prettier": "^3.9.10",
 		"prettier-plugin-organize-imports": "^4.3.0",
 		"prettier-plugin-svelte": "^4.1.0",
-		"prettier-plugin-tailwindcss": "^0.8.0",
-		"svelte": "^5.56.3",
-		"svelte-check": "^4.4.6",
-		"tailwindcss": "^4.2.4",
+		"prettier-plugin-tailwindcss": "^0.8.1",
+		"svelte": "^5.57.2",
+		"svelte-check": "^4.7.7",
+		"tailwindcss": "^4.3.3",
 		"tslib": "^2.8.1",
-		"typescript": "^5.9.2",
-		"typescript-eslint": "^8.61.1",
-		"vite": "^8.0.16"
+		"tsx": "^4.23.15",
+		"typescript": "^6.0.0",
+		"typescript-eslint": "^8.72.0",
+		"vite": "^8.3.5"
 	},
 	"type": "module",
 	"dependencies": {
 		"@dfinity/utils": "^4.2.1",
 		"@icp-sdk/canisters": "^3.5.2",
 		"@icp-sdk/core": "^5.4.0",
-		"@icp-sdk/signer": "^5.4.0",
+		"@icp-sdk/signer": "^5.6.2",
 		"@junobuild/core": "^5.4.0",
 		"@junobuild/functions": "^0.9.0",
 		"@junobuild/schema": "^1.2.4",
-		"@lucide/svelte": "^1.18.0",
+		"@lucide/svelte": "^1.61.0",
 		"decimal.js": "^10.6.0",
-		"ethers": "^6.16.0",
+		"ethers": "^6.17.0",
 		"icp-auth-openid": "npm:@icp-sdk/auth@^6.2.2",
-		"nanoid": "^5.1.11"
+		"nanoid": "^6.0.2"
 	},
 	"overrides": {
-		"cookie": "^0.7.0",
-		"ws": "^8.21.0"
+		"@dfinity/eslint-config-oisy-wallet": {
+			"typescript": "$typescript"
+		},
+		"@typescript-eslint/typescript-estree": {
+			"minimatch": "^11.0.1"
+		}
+	},
+	"imports": {
+		"#declarations": "./src/declarations/index.ts",
+		"#declarations/*": "./src/declarations/*",
+		"#lib/*": "./src/lib/*",
+		"#root/*": "./*",
+		"#satellite/*": "./src/satellite/*"
 	}
 }

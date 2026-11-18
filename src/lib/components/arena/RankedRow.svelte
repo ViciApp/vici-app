@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PrincipalText } from '@junobuild/schema';
-	import Avatar from '$lib/components/profile/Avatar.svelte';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import YouBadge from '#lib/components/ui/YouBadge.svelte';
 
 	/**
 	 * A single row in the Arena → Friends ranked list. Purely
@@ -22,7 +23,7 @@
 	 */
 	interface Props {
 		variant: 'friend' | 'you';
-		/** Rank index (`01`, `02`, …) for friends; the localized YOU label. */
+		/** Rank index (`01`, `02`, …); for the `you` row, the viewer's own standing. */
 		numLabel: string;
 		avatar: string | null | undefined;
 		/** Serialized faceted-avatar picks of `owner` (see `Avatar`). */
@@ -33,15 +34,15 @@
 		displayName: string;
 		/** Pre-formatted accuracy, e.g. `48.4%`. */
 		accuracyLabel: string;
-		/** Consecutive active days (the Flame engine) — rendered as `{n}d`. */
+		/** Consecutive active days (the Flame engine): rendered as `{n}d`. */
 		dailyStreak: number;
-		/** friend only — opens the mini-profile sheet. */
+		/** friend only: opens the mini-profile sheet. */
 		onOpen?: () => void;
-		/** friend only — head-to-head accuracy delta, e.g. `+12.3`. */
+		/** friend only: head-to-head accuracy delta, e.g. `+12.3`. */
 		h2hValue?: string;
-		/** friend only — whether the viewer is ahead (tints the chip). */
+		/** friend only: whether the viewer is ahead (tints the chip). */
 		h2hAhead?: boolean;
-		/** you only — pre-formatted VXP balance. */
+		/** you only: pre-formatted VXP balance. */
 		vxpLabel?: string;
 	}
 
@@ -68,8 +69,13 @@
 		<Avatar class="h-full w-full" {avatar} {avatarParts} {nickname} {owner} />
 	</span>
 	<span class="ranked-copy">
-		<span class="ranked-name" class:ranked-name-you={variant === 'you'}>
-			@{displayName}
+		<span class="ranked-name-row">
+			<span class="ranked-name" class:ranked-name-you={variant === 'you'}>
+				@{displayName}
+			</span>
+			{#if variant === 'you'}
+				<YouBadge />
+			{/if}
 		</span>
 		<span class="num ranked-meta">
 			{accuracyLabel} · {dailyStreak}d
@@ -114,7 +120,7 @@
 		background: color-mix(in srgb, var(--color-primary) 10%, var(--bg-popover));
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
-		box-shadow: 0 -6px 16px -8px rgba(0, 0, 0, 0.3);
+		box-shadow: 0 0 16px -6px rgba(0, 0, 0, 0.3);
 		cursor: default;
 	}
 
@@ -122,7 +128,7 @@
 		background: color-mix(in srgb, var(--color-primary) 10%, var(--bg-popover));
 	}
 
-	/* Rank index — centered in a fixed-width column so 01/02/… and the
+	/* Rank index: centered in a fixed-width column so 01/02/… and the
 	   YOU label align under one another. */
 	.ranked-num {
 		min-width: 26px;
@@ -155,7 +161,15 @@
 		gap: 0.1rem;
 	}
 
+	.ranked-name-row {
+		display: flex;
+		min-width: 0;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
 	.ranked-name {
+		min-width: 0;
 		overflow: hidden;
 		color: var(--text-base);
 		font-size: var(--t-13);
@@ -173,7 +187,7 @@
 		font-size: var(--t-12);
 	}
 
-	/* Head-to-head accuracy delta chip — centered with a min-width so
+	/* Head-to-head accuracy delta chip: centered with a min-width so
 	   single- and double-digit deltas line up in a column, and a 1px
 	   tinted border on both the ahead and behind variants. */
 	.ranked-h2h {

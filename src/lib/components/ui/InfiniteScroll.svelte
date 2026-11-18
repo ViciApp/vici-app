@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 
 	interface Props {
 		loading: boolean;

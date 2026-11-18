@@ -1,14 +1,14 @@
-import type { ClearingDid } from '$declarations';
+import type { ClearingDid } from '#declarations';
 import {
 	CKUSDC_LEDGER_CANISTER_ID,
 	ICP_LEDGER_CANISTER_ID,
 	VICI_LEDGER_CANISTER_ID,
 	VXP_LEDGER_CANISTER_ID
-} from '$lib/constants/canisters.constants';
-import { CKUSDC_TOKEN, ICP_TOKEN, VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import type { Token } from '$lib/types/token';
-import { icrcLedgerIdsEqual } from '$lib/utils/asset-ref.utils';
-import { isSettlement, isSocial, isViciXp } from '$lib/utils/balance-domain.utils';
+} from '#lib/constants/canisters.constants.ts';
+import { CKUSDC_TOKEN, ICP_TOKEN, VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import type { Token } from '#lib/types/token.ts';
+import { icrcLedgerIdsEqual } from '#lib/utils/asset-ref.utils.ts';
+import { isSettlement, isSocial, isViciXp } from '#lib/utils/balance-domain.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 
 /**
@@ -23,7 +23,7 @@ const SETTLEMENT_LEDGER_ORDER = [ICP_LEDGER_CANISTER_ID, CKUSDC_LEDGER_CANISTER_
 
 /**
  * After clearing has already filtered by `allowed_balance_domains`, restrict **which ICRC
- * ledger** the UI exposes per experience — by **ledger canister id**, not symbol:
+ * ledger** the UI exposes per experience: by **ledger canister id**, not symbol:
  * - **ViciXp (playground):** VXP ledger only.
  * - **Settlement:** ICP + ckUSDC ledgers only.
  * - **Social:** VXP ledger (social challenges can coexist with VXP display).
@@ -59,7 +59,7 @@ export const filterTokensForBalanceDomain = ({
 
 /**
  * When `list_collateral_assets` has not loaded yet, show a minimal ledger list so wallet rows
- * still render. **Not** authorization — deposit/withdraw uses {@link supportedTokens} only.
+ * still render. **Not** authorization: deposit/withdraw uses {@link supportedTokens} only.
  */
 export const walletLedgerDisplayFallbackTokens = (
 	balanceDomain: ClearingDid.BalanceDomain

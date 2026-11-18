@@ -1,5 +1,11 @@
-import type { ClearingDid } from '$declarations';
-import { MILLISECOND_IN_NANOSECONDS, USD_DECIMALS } from '$lib/constants/app.constants';
+import type { ClearingDid } from '#declarations';
+import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
+import {
+	DAY_IN_MS,
+	HOUR_IN_MS,
+	MILLISECOND_IN_NANOSECONDS,
+	MINUTE_IN_MS
+} from '#lib/constants/time.constants.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import Decimal from 'decimal.js';
 import { type BigNumberish, formatUnits } from 'ethers/utils';
@@ -22,7 +28,7 @@ const MAX_DEFAULT_DISPLAY_DECIMALS = 8;
  * `BigInt(x)` raises a `RangeError` when `x` is non-integer (float), `NaN`,
  * or `±Infinity`. Several surfaces feed it numbers that come straight from
  * stored profile / activity documents whose schema only guarantees
- * `j.number()` (an unconstrained JS number, not an integer) — a single
+ * `j.number()` (an unconstrained JS number, not an integer): a single
  * malformed or legacy value would otherwise throw and bring the whole view
  * down. This truncates toward zero and falls back to `0` for any
  * non-finite input, optionally clamping to a minimum, so the conversion is
@@ -31,7 +37,7 @@ const MAX_DEFAULT_DISPLAY_DECIMALS = 8;
 export const safeBigInt = ({ value, min }: { value: number; min?: bigint }): bigint => {
 	const numeric = Number(value);
 	// `Math.trunc(±Infinity)` is still `±Infinity` and `Number(NaN)` stays
-	// `NaN` — `BigInt(…)` throws on both — so gate on finiteness, not a
+	// `NaN`; `BigInt(…)` throws on both, so gate on finiteness, not a
 	// truthy check, before truncating toward zero.
 	const truncated = Number.isFinite(numeric) ? Math.trunc(numeric) : 0;
 	const result = BigInt(truncated);
@@ -42,7 +48,7 @@ export const safeBigInt = ({ value, min }: { value: number; min?: bigint }): big
 /**
  * Adds locale-aware thousands separators to the integer part of a string
  * already in `[-]?\d+(\.\d+)?` form (the output of `Decimal.toFixed`). The
- * fractional part — including its precision — is preserved verbatim so we
+ * fractional part, including its precision, is preserved verbatim so we
  * don't reintroduce rounding on numbers that have already been quantised.
  */
 export const groupIntegerPart = ({
@@ -151,12 +157,12 @@ export const formatNanosecondsToDate = ({ nanoseconds }: { nanoseconds: bigint }
  * absolute count is `>= 1`.
  */
 const RELATIVE_TIME_UNITS: ReadonlyArray<{ unit: Intl.RelativeTimeFormatUnit; ms: number }> = [
-	{ unit: 'year', ms: 365 * 24 * 60 * 60 * 1000 },
-	{ unit: 'month', ms: 30 * 24 * 60 * 60 * 1000 },
-	{ unit: 'week', ms: 7 * 24 * 60 * 60 * 1000 },
-	{ unit: 'day', ms: 24 * 60 * 60 * 1000 },
-	{ unit: 'hour', ms: 60 * 60 * 1000 },
-	{ unit: 'minute', ms: 60 * 1000 }
+	{ unit: 'year', ms: 365 * DAY_IN_MS },
+	{ unit: 'month', ms: 30 * DAY_IN_MS },
+	{ unit: 'week', ms: 7 * DAY_IN_MS },
+	{ unit: 'day', ms: DAY_IN_MS },
+	{ unit: 'hour', ms: HOUR_IN_MS },
+	{ unit: 'minute', ms: MINUTE_IN_MS }
 ];
 
 /**
@@ -164,7 +170,7 @@ const RELATIVE_TIME_UNITS: ReadonlyArray<{ unit: Intl.RelativeTimeFormatUnit; ms
  * largest unit whose count is `>= 1`, falling back to "just now" when
  * the delta is under a minute. Use this for any human-readable
  * timestamp that's part of an i18n'd surface (inbox, history rows,
- * activity feed) — `formatNanosecondsToDate` always renders in
+ * activity feed): `formatNanosecondsToDate` always renders in
  * English and is reserved for log-style timestamps.
  */
 export const formatRelativeAgoFromNs = ({
@@ -194,7 +200,7 @@ export const formatRelativeAgoFromNs = ({
 		}
 	}
 
-	// Unreachable — the loop covers all positive deltas above one minute.
+	// Unreachable: the loop covers all positive deltas above one minute.
 	return rtf.format(0, 'second');
 };
 
@@ -204,7 +210,7 @@ export const formatRelativeAgoFromNs = ({
  * Picks the largest unit with a whole count ≥ 1, then **rounds up**
  * within that unit so the displayed wait is never shorter than the
  * real one (telling a user to retry too early would just fail again).
- * Never renders a zero phrase — sub-second deltas read "in 1 second".
+ * Never renders a zero phrase: sub-second deltas read "in 1 second".
  */
 export const formatRelativeUntilFromMs = ({
 	targetMs,
@@ -230,7 +236,7 @@ export const formatRelativeUntilFromMs = ({
 /**
  * Compact, locale-independent "time ago" for dense data rows that show a
  * bare unit suffix (e.g. `5m`, `3h`, `2d`) rather than a full localized
- * phrase — the Dash past-prediction list. Floors to the largest whole
+ * phrase: the Dash past-prediction list. Floors to the largest whole
  * unit; the minute branch never reports `0m` (a just-settled row reads
  * `1m`), matching the original inline formatter. Output is intentionally
  * NOT i18n'd: the suffixes are bare ASCII glyphs the calling surface wraps
@@ -244,7 +250,7 @@ export const formatRelativeAgoShort = ({
 	nowMs?: number;
 }): string => {
 	const deltaMs = nowMs - timestampMs;
-	const minutes = Math.floor(deltaMs / 60_000);
+	const minutes = Math.floor(deltaMs / MINUTE_IN_MS);
 
 	if (minutes < 60) {
 		return `${Math.max(1, minutes)}m`;
@@ -267,7 +273,7 @@ export const formatRelativeAgoShort = ({
  * history row). Returns the largest applicable bucket and its whole
  * count: under an hour is `now` (count `0`), then `days` (>= 1 day),
  * else `hours`. This is the threshold ladder the inline
- * `resolvedAgoDisplay` used — coarser than {@link formatRelativeAgoFromNs}
+ * `resolvedAgoDisplay` used: coarser than {@link formatRelativeAgoFromNs}
  * (no minute bucket, sub-hour collapses to "now").
  */
 export const relativeAgoBucketFromMs = ({
@@ -277,26 +283,24 @@ export const relativeAgoBucketFromMs = ({
 	timestampMs: number;
 	nowMs?: number;
 }): { unit: 'now' | 'hours' | 'days'; value: number } => {
-	const HOUR_MS = 60 * 60 * 1000;
-	const DAY_MS = 24 * HOUR_MS;
 	const diffMs = nowMs - timestampMs;
 
-	if (diffMs < HOUR_MS) {
+	if (diffMs < HOUR_IN_MS) {
 		return { unit: 'now', value: 0 };
 	}
 
-	const days = Math.floor(diffMs / DAY_MS);
+	const days = Math.floor(diffMs / DAY_IN_MS);
 
 	if (days >= 1) {
 		return { unit: 'days', value: days };
 	}
 
-	return { unit: 'hours', value: Math.floor(diffMs / HOUR_MS) };
+	return { unit: 'hours', value: Math.floor(diffMs / HOUR_IN_MS) };
 };
 
 /**
  * Render an epoch-ms instant as a compact ISO calendar day (`YYYY-MM-DD`)
- * in UTC. Locale-independent by design — the Tournament bracket lists
+ * in UTC. Locale-independent by design: the Tournament bracket lists
  * match end dates as stable, sortable calendar days, not localized prose.
  */
 export const formatIsoDateUtc = ({ timestampMs }: { timestampMs: number }): string => {
@@ -312,7 +316,7 @@ export const formatIsoDateUtc = ({ timestampMs }: { timestampMs: number }): stri
  * Render a `YYYY-MM` month anchor as a localized "Month YYYY" label
  * (e.g. `June 2026`), anchored in UTC to mirror how the underlying
  * stats are bucketed. Falls back to the raw anchor when it isn't two
- * finite numeric components — the champion-history list never shows a
+ * finite numeric components: the champion-history list never shows a
  * malformed date.
  */
 export const formatMonthAnchorLabel = ({
@@ -359,7 +363,7 @@ export const formatDate = (date: bigint | number): string =>
 	new Date(Number(date)).toLocaleDateString();
 
 /**
- * Long date — e.g. `June 11, 2026`. Used on surfaces where the closes
+ * Long date: e.g. `June 11, 2026`. Used on surfaces where the closes
  * date sits inline with prose and reads as a sentence (Market detail
  * CLOSES stat) rather than as a compact data row.
  *
@@ -435,13 +439,13 @@ export const shortenWithMiddleEllipsis = ({
  * Compact principal for inline display: `abcde…wxyz`, keeping the
  * leading and trailing 5 characters. Short principals (≤ 12 chars)
  * are returned untouched. Uses a single-glyph ellipsis (`…`) rather
- * than `...` — distinct from {@link shortenWithMiddleEllipsis}.
+ * than `...`: distinct from {@link shortenWithMiddleEllipsis}.
  */
 export const shortenPrincipal = (principal: string): string =>
 	principal.length > 12 ? `${principal.slice(0, 5)}…${principal.slice(-5)}` : principal;
 
 /**
- * Compact league id (`giorgi…87499`) — last-resort fallback for when a
+ * Compact league id (`giorgi…87499`): last-resort fallback for when a
  * league's current name can't be resolved (deleted / not yet hydrated).
  */
 export const shortLeagueId = (id: string): string =>

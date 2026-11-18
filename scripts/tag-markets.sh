@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# tag-markets.sh — bulk-set market metadata (tags) for markets that already
+# tag-markets.sh: bulk-set market metadata (tags) for markets that already
 # exist on the registry, from a deck JSON file.
 #
 # `deploy-markets.sh` only registers markets on-chain (add_series); their tags
@@ -11,10 +11,10 @@
 #
 # Usage:
 #   ./scripts/tag-markets.sh <markets-json-file> [--local|--staging|--production]
-#   npm run tag:markets -- scripts/data/markets.deck-2026.json --production
+#   npm run tag:markets -- path/to/deck.json --production
 #
 # Auth: runs as the current dfx identity, which must be the markets' CREATOR
-# (the identity that ran deploy-markets.sh) or a satellite ADMIN — see
+# (the identity that ran deploy-markets.sh) or a satellite ADMIN; see
 # assertCanWriteMarketMetadata in src/satellite/services/market-metadata.services.ts.
 #
 # Only `categories` -> `tags` is written here (whyNow/events/suggested/subtitle
@@ -23,13 +23,22 @@
 
 # Capture the deck file (first positional) before utils.sh consumes "$@".
 MARKETS_FILE="${1:-}"
-if [[ -z "$MARKETS_FILE" || "$MARKETS_FILE" == -* || "$MARKETS_FILE" == "local" || "$MARKETS_FILE" == "staging" || "$MARKETS_FILE" == "ic" || "$MARKETS_FILE" == "production" ]]; then
+usage() {
 	echo "Usage: $0 <markets-json-file> [--local|--staging|--production]" >&2
 	exit 1
+}
+
+if [[ -z "$MARKETS_FILE" || "$MARKETS_FILE" == -* ]]; then
+	usage
 fi
 shift
 
 source "$(dirname "$0")/lib/utils.sh" "$@"
+
+# A network name in the file's place means the file was left out.
+if is_network_name "$MARKETS_FILE"; then
+	usage
+fi
 
 # Byte-wise locale so sed/awk/string-compare handle non-ASCII titles (e.g.
 # "Mbappé", curly quotes) without "illegal byte sequence" and so registry
@@ -42,9 +51,10 @@ if [ ! -f "$MARKETS_FILE" ]; then
 fi
 
 # Resolve the Juno satellite canister id for this network. The satellite is not
-# a dfx canister alias here, so default by network (override with SATELLITE_ID).
+# a dfx canister alias here, so default by network (override with SATELLITE_ID):
+# production reads the id juno.config.ts pins.
 case "$NETWORK" in
-	ic | production) SATELLITE_ID="${SATELLITE_ID:-7scay-7yaaa-aaaal-asxqa-cai}" ;;
+	ic | production) SATELLITE_ID="${SATELLITE_ID:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/satellite-id.ts production)}" ;;
 	local) SATELLITE_ID="${SATELLITE_ID:-$(dfx canister id satellite --network "$NETWORK" 2>/dev/null)}" ;;
 	*) SATELLITE_ID="${SATELLITE_ID:-}" ;;
 esac

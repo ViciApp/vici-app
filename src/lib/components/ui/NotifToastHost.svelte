@@ -2,27 +2,27 @@
 	import { isNullish } from '@dfinity/utils';
 	import { X } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import {
 		notificationDestination,
 		notificationKindConfig
-	} from '$lib/constants/notification-kind.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { track } from '$lib/services/analytics.services';
+	} from '#lib/constants/notification-kind.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		clearInboxToast,
 		initInboxProgress,
-		initMarketMoveAlerts,
 		initInboxToasts,
+		initMarketMoveAlerts,
 		latestInboxToast
-	} from '$lib/stores/inbox.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/stores/inbox.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goto } from '$app/navigation';
 
 	/**
-	 * NotifToastHost — slides a toast in from the top of the app shell when a
+	 * NotifToastHost: slides a toast in from the top of the app shell when a
 	 * genuinely NEW inbox item arrives (driven by `latestInboxToast`, which
-	 * diffs live inbox snapshots — see `inbox.store.ts`). It auto-dismisses
+	 * diffs live inbox snapshots; see `inbox.store.ts`). It auto-dismisses
 	 * after a short dwell, can be tapped to open the item's destination, and
 	 * carries a dismiss button.
 	 *
@@ -82,9 +82,9 @@
 	});
 
 	// Start the arrival-toast diff, the streak/level progress-marker
-	// maintenance, and the saved-market move detector on mount; unsubscribe
-	// all on destroy, so they only run while the host is rendered (not at
-	// module scope).
+	// maintenance and the saved-market move detector on mount, unsubscribe all
+	// on destroy, so they only run while the host is rendered (not at module
+	// scope).
 	onMount(() => {
 		const stopToasts = initInboxToasts();
 		const stopProgress = initInboxProgress();
@@ -176,7 +176,7 @@
 	}
 
 	/* Centre the toast on wider viewports so it doesn't stretch edge to
-	   edge — the shell content column is mobile-width. With both `left`
+	   edge: the shell content column is mobile-width. With both `left`
 	   and `right` insets set, `margin-inline: auto` centres the capped
 	   width without a `translateX`, leaving the `translateY` slide-in
 	   keyframe free of transform conflicts. */

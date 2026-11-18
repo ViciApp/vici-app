@@ -1,6 +1,6 @@
-import { browser } from '$app/environment';
-import { maintenanceStore } from '$lib/stores/maintenance.store';
-import { isCanisterStoppedError } from '$lib/utils/maintenance.utils';
+import { maintenanceStore } from '#lib/stores/maintenance.store.ts';
+import { isCanisterStoppedError } from '#lib/utils/maintenance.utils.ts';
+import { browser } from '$app/env';
 
 /**
  * Maintenance-window detection for satellite deploys.
@@ -9,8 +9,8 @@ import { isCanisterStoppedError } from '$lib/utils/maintenance.utils';
  * for that window every satellite call rejects with "Canister … is stopped".
  * Errors that smell like that are funnelled here (global listeners via
  * {@link initMaintenanceWatch} catch the rejections the polling loaders let
- * bubble); a reachability probe against our own origin — served by the same
- * canister — confirms the outage before the overlay shows, then polls until
+ * bubble); a reachability probe against our own origin, served by the same
+ * canister, confirms the outage before the overlay shows, then polls until
  * the satellite answers again and reloads to pick up the freshly deployed
  * frontend.
  */
@@ -26,7 +26,7 @@ const satelliteReachable = async (): Promise<boolean> => {
 
 		// The gateway answers 503 precisely while the canister is stopped; any
 		// other status (2xx, but also 3xx/304) means the satellite is serving
-		// again — don't let an unrelated non-2xx trap users in the overlay.
+		// again: don't let an unrelated non-2xx trap users in the overlay.
 		return response.status !== 503;
 	} catch {
 		return false;
@@ -53,7 +53,7 @@ export const reportMaintenanceCandidate = async (err: unknown): Promise<void> =>
 	watching = true;
 
 	if (await satelliteReachable()) {
-		// False alarm — the satellite answered, so this was a transient error.
+		// False alarm: the satellite answered, so this was a transient error.
 		watching = false;
 
 		return;

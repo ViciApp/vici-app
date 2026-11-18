@@ -1,14 +1,14 @@
 <script lang="ts">
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import Card from '$lib/components/ui/Card.svelte';
-	import Dialog from '$lib/components/ui/Dialog.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { settleMarket } from '$lib/services/resolution.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import type { Market } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import Card from '#lib/components/ui/Card.svelte';
+	import Dialog from '#lib/components/ui/Dialog.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { settleMarket } from '#lib/services/resolution.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		market: Market;
@@ -169,8 +169,7 @@
 						locale: $localeStore,
 						key: 'market.resolution.placeholder.text'
 					})}
-					bind:value={resolutionText}
-				></textarea>
+					bind:value={resolutionText}></textarea>
 			</div>
 
 			<div class="space-y-2">

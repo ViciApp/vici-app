@@ -1,14 +1,25 @@
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import {
 	AFFILIATION_KINDS,
 	AFFILIATION_LOCK_MS,
 	affiliationKey,
+	isAffiliationKind,
 	type AffiliationDoc
-} from '$lib/types/affiliation';
-import { isNullish } from '@dfinity/utils';
+} from '#lib/types/affiliation.ts';
+import { captureServerEvents } from '#satellite/services/analytics.services.ts';
+import { isControllerText } from '#satellite/services/authz.services.ts';
+import { heldAffiliations } from '#satellite/services/cohort.services.ts';
+import { logError } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
-import { time } from '@junobuild/functions/ic-cdk';
+import type {
+	AssertDeleteDocContext,
+	AssertSetDocContext,
+	OnDeleteDocContext,
+	OnSetDocContext
+} from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
 
 /**
@@ -19,10 +30,10 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  *     between key and embedded fields is rejected.
  *  2. **Member binds caller.** A user can only write their own
  *     affiliation rows.
- *  3. **Kind validation.** Must be 'university' or 'country'.
+ *  3. **Kind validation.** Must be one of `AFFILIATION_KINDS`.
  *  4. **Server-computed lock.** `lockedUntilMs` must equal
  *     `joinedAtMs + AFFILIATION_LOCK_MS`. The user can't extend or
- *     shorten the window — the server arithmetic is the source of
+ *     shorten the window: the server arithmetic is the source of
  *     truth.
  *  5. **joinedAtMs sanity.** Must be within ±10 minutes of the
  *     satellite's clock to defend against pre-/post-dated writes
@@ -31,6 +42,10 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  *     `affiliationIdentifier`, `joinedAtMs`, `lockedUntilMs` are write-once.
  *     A row that exists is the affiliation; switching requires
  *     delete (gated by the lock) then re-create.
+ *  7. **One per kind.** A new row is refused while the member holds a
+ *     row of the same kind, so a switch must first leave (which the
+ *     lock gates) and a member never counts for two schools or
+ *     countries in the standings and the podium.
  */
 export const assertSetAffiliation = ({
 	caller,
@@ -60,9 +75,9 @@ export const assertSetAffiliation = ({
 	}
 
 	// 3. Kind validation.
-	if (!AFFILIATION_KINDS.has(proposedDoc.kind)) {
+	if (!isAffiliationKind(proposedDoc.kind)) {
 		throw new Error(
-			`affiliations kind must be one of ${[...AFFILIATION_KINDS].join(' | ')} (got "${proposedDoc.kind}").`
+			`affiliations kind must be one of ${AFFILIATION_KINDS.join(' | ')} (got "${proposedDoc.kind}").`
 		);
 	}
 
@@ -88,18 +103,23 @@ export const assertSetAffiliation = ({
 		);
 	}
 
-	// 5. joinedAtMs sanity — within ±10 minutes of the satellite clock.
-	// `time()` returns nanoseconds; convert to ms.
-	const nowMs = Number(time() / 1_000_000n);
+	// 5. joinedAtMs sanity: within ±10 minutes of the satellite clock.
+	const nowMs = timeMs();
 	const driftMs = Math.abs(nowMs - proposedDoc.joinedAtMs);
-	const TEN_MINUTES_MS = 10 * 60 * 1000;
+	const TEN_MINUTES_MS = 10 * MINUTE_IN_MS;
 
 	if (driftMs > TEN_MINUTES_MS) {
 		throw new Error('affiliations joinedAtMs must be within ±10 minutes of the satellite clock.');
 	}
 
-	// Creation path — done.
+	// Creation path: 7. one affiliation per kind.
 	if (isNullish(current)) {
+		if (heldAffiliations({ caller, member: callerText, kind: proposedDoc.kind }).length > 0) {
+			throw new Error(
+				`affiliations: a member holds one ${proposedDoc.kind} at a time; leave it to switch.`
+			);
+		}
+
 		return;
 	}
 
@@ -124,12 +144,15 @@ export const assertSetAffiliation = ({
  * leave path:
  *
  *  1. **Caller binds member.** Only the affiliation's owner can
- *     remove their row — admins / staff don't get a kick path on
- *     Worlds slots — the user owns their identity.
+ *     remove their row: admins / staff don't get a kick path on
+ *     Worlds slots: the user owns their identity.
  *  2. **Lock enforced.** The delete is rejected if
  *     `Date.now() < currentDoc.lockedUntilMs`. After the lock
  *     expires, the user can leave (or switch by deleting then
  *     creating a new row).
+ *
+ * A satellite controller skips both: the account purge removes a deleted
+ * account's rows whatever their lock, signing as a controller.
  */
 export const assertDeleteAffiliation = ({
 	caller,
@@ -146,20 +169,114 @@ export const assertDeleteAffiliation = ({
 		return;
 	}
 
+	const callerText = Principal.fromUint8Array(caller).toText();
+
+	if (isControllerText(callerText)) {
+		return;
+	}
+
 	const currentDoc = decodeDocData<AffiliationDoc>(current.data);
 
 	// 1. Caller binds member.
-	const callerText = Principal.fromUint8Array(caller).toText();
-
 	if (currentDoc.member !== callerText) {
 		throw new Error('affiliations may only be removed by the member themselves.');
 	}
 
 	// 2. Lock enforced.
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
 	if (nowMs < currentDoc.lockedUntilMs) {
-		const daysLeft = Math.ceil((currentDoc.lockedUntilMs - nowMs) / (24 * 60 * 60 * 1000));
-		throw new Error(`affiliations lock active — cannot leave for another ${daysLeft} day(s).`);
+		const daysLeft = Math.ceil((currentDoc.lockedUntilMs - nowMs) / DAY_IN_MS);
+		throw new Error(`affiliations lock active: cannot leave for another ${daysLeft} day(s).`);
+	}
+};
+
+/**
+ * `affiliations` post-write analytics: emit `affiliation_set` on the CREATE
+ * of a row (the client `setDoc` in the Worlds join flow). Updates are
+ * skipped: the identity fields are immutable (see `assertSetAffiliation`
+ * rule 6), so a re-set of an existing key carries no new affiliation and
+ * must not double-count. `source` carries the kind (`university | country`),
+ * `label` the affiliation identifier (a school slug / ISO country code:
+ * behavioural, never PII). Best-effort: a capture failure is logged and
+ * swallowed so analytics can never break the join.
+ */
+export const onAffiliationSetForAnalytics = (ctx: OnSetDocContext): void => {
+	try {
+		const {
+			data: {
+				collection,
+				data: { before, after }
+			}
+		} = ctx;
+
+		if (collection !== Collection.AFFILIATIONS || nonNullish(before)) {
+			return;
+		}
+
+		const doc = decodeDocData<AffiliationDoc>(after.data);
+
+		captureServerEvents({
+			events: [
+				{
+					name: 'affiliation_set',
+					principal: doc.member,
+					props: { source: doc.kind, label: doc.affiliationIdentifier }
+				}
+			]
+		});
+	} catch (err) {
+		logError({
+			message: 'affiliation analytics capture failed (join still committed)',
+			detail: { error: err instanceof Error ? err.message : `${err}` }
+		});
+	}
+};
+
+/**
+ * `affiliations` post-delete analytics: emit `affiliation_removed` on the
+ * client `deleteDoc` leave path (only reachable after the 90-day lock:
+ * `assertDeleteAffiliation` vetoes earlier). Dimensions are parsed from the
+ * doc key (`${member}/${kind}/${affiliationIdentifier}`, defended by
+ * `assertSetAffiliation` rule 1) so no decode of the deleted body is
+ * needed. The account-deletion cascade drops affiliation rows via the
+ * serverless `deleteDocStore`, which never fires hooks, so a departing
+ * account does not spray `affiliation_removed` events. Best-effort.
+ */
+export const onAffiliationDeleteForAnalytics = (ctx: OnDeleteDocContext): void => {
+	try {
+		const {
+			data: { collection, key }
+		} = ctx;
+
+		if (collection !== Collection.AFFILIATIONS) {
+			return;
+		}
+
+		// `split` yields (possibly empty) strings, never nullish: require
+		// exactly three non-empty segments so a malformed key can't emit an
+		// event with an empty principal or dimension.
+		const segments = key.split('/');
+
+		if (segments.length !== 3 || segments.some((segment) => segment.length === 0)) {
+			return;
+		}
+
+		const [member, kind, affiliationIdentifier] = segments;
+
+		captureServerEvents({
+			events: [
+				{
+					name: 'affiliation_removed',
+					principal: member,
+					props: { source: kind, label: affiliationIdentifier }
+				}
+			]
+		});
+	} catch (err) {
+		logError({
+			message: 'affiliation analytics capture failed (leave still committed)',
+			detail: { error: err instanceof Error ? err.message : `${err}` }
+		});
 	}
 };

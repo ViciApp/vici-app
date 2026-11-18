@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# translate-markets.sh — bulk-set market translations for markets that already
+# translate-markets.sh: bulk-set market translations for markets that already
 # exist on the registry, from a deck JSON file.
 #
 # `deploy-markets.sh` registers markets on-chain (add_series) in their base
@@ -12,7 +12,7 @@
 #
 # Expected per-row shape (alongside the usual deck fields):
 #   {
-#     "title": "Will Brazil win the 2026 World Cup?",   // English — the registry match key
+#     "title": "Will Brazil win the 2026 World Cup?",   // English, the registry match key
 #     "translations": {
 #       "it": {
 #         "title": "Il Brasile vincerà i Mondiali 2026?",
@@ -29,10 +29,10 @@
 #
 # Usage:
 #   ./scripts/translate-markets.sh <markets-json-file> [--local|--staging|--production]
-#   npm run translate:markets -- scripts/data/markets.deck-2026.json --production
+#   npm run translate:markets -- path/to/deck.json --production
 #
 # Auth: runs as the current dfx identity, which must be the markets' CREATOR
-# (the identity that ran deploy-markets.sh) or a satellite ADMIN — see
+# (the identity that ran deploy-markets.sh) or a satellite ADMIN; see
 # assertCanWriteMarketTranslation in
 # src/satellite/services/market-translation.services.ts.
 #
@@ -41,13 +41,22 @@
 
 # Capture the deck file (first positional) before utils.sh consumes "$@".
 MARKETS_FILE="${1:-}"
-if [[ -z "$MARKETS_FILE" || "$MARKETS_FILE" == -* || "$MARKETS_FILE" == "local" || "$MARKETS_FILE" == "staging" || "$MARKETS_FILE" == "ic" || "$MARKETS_FILE" == "production" ]]; then
+usage() {
 	echo "Usage: $0 <markets-json-file> [--local|--staging|--production]" >&2
 	exit 1
+}
+
+if [[ -z "$MARKETS_FILE" || "$MARKETS_FILE" == -* ]]; then
+	usage
 fi
 shift
 
 source "$(dirname "$0")/lib/utils.sh" "$@"
+
+# A network name in the file's place means the file was left out.
+if is_network_name "$MARKETS_FILE"; then
+	usage
+fi
 
 # Byte-wise locale so sed/awk/string-compare handle non-ASCII titles (e.g.
 # "Mbappé", curly quotes) without "illegal byte sequence" and so registry
@@ -60,9 +69,10 @@ if [ ! -f "$MARKETS_FILE" ]; then
 fi
 
 # Resolve the Juno satellite canister id for this network. The satellite is not
-# a dfx canister alias here, so default by network (override with SATELLITE_ID).
+# a dfx canister alias here, so default by network (override with SATELLITE_ID):
+# production reads the id juno.config.ts pins.
 case "$NETWORK" in
-	ic | production) SATELLITE_ID="${SATELLITE_ID:-7scay-7yaaa-aaaal-asxqa-cai}" ;;
+	ic | production) SATELLITE_ID="${SATELLITE_ID:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/satellite-id.ts production)}" ;;
 	local) SATELLITE_ID="${SATELLITE_ID:-$(dfx canister id satellite --network "$NETWORK" 2>/dev/null)}" ;;
 	*) SATELLITE_ID="${SATELLITE_ID:-}" ;;
 esac
@@ -107,7 +117,7 @@ FAILED=0
 # the locale, and a ready-made Candid `data = record { ... }` fragment. We do NOT
 # use @tsv (it would double every backslash); we join with a literal tab and emit
 # raw (-r). Text is rendered via @json so each field is a single line with no raw
-# tabs/newlines — @json's escapes (\", \\, \n) are valid Candid text escapes too,
+# tabs/newlines; @json's escapes (\", \\, \n) are valid Candid text escapes too,
 # and non-ASCII passes through as raw UTF-8 which Candid text accepts. series_id
 # is filled in below once resolved from the registry.
 while IFS=$'\t' read -r title locale data_candid; do

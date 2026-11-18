@@ -5,7 +5,7 @@
 		/**
 		 * Drop-in contextual loader: wrap the spinner in
 		 * `flex justify-center py-24`. This centers it horizontally and
-		 * adds vertical breathing room — it does NOT center vertically in
+		 * adds vertical breathing room; it does NOT center vertically in
 		 * the viewport. For full-screen states leave this off (the default)
 		 * and let the caller own the centering with an explicit-height flex
 		 * wrapper.

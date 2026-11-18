@@ -1,22 +1,23 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
+	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
+	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import SignInProviderStack from '$lib/components/authn/SignInProviderStack.svelte';
-	import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
 
 	interface Props {
 		// Mode: `signin` for returning users (welcome-back framing),
 		// `signup` for new accounts.
 		mode?: 'signin' | 'signup';
 		// Callback for after a successful auth handshake. Defaults to
-		// navigating to `AppPath.Flow` — the canonical first surface for
+		// navigating to `AppPath.Flow`; the canonical first surface for
 		// every authenticated session; routes calling this from a layout
 		// can pass a different post-auth target.
 		onSuccess?: () => void;
@@ -25,7 +26,7 @@
 	const {
 		mode = 'signin',
 		onSuccess = () => {
-			void goto(resolve(AppPath.Flow));
+			void goto(resolveAppPath(AppPath.Flow));
 		}
 	}: Props = $props();
 
@@ -46,7 +47,7 @@
 	);
 
 	// The signin hero ("Welcome back.") already carries the welcome beat in its
-	// accent word, so the eyebrow would only echo it — drop it on the signin
+	// accent word, so the eyebrow would only echo it: drop it on the signin
 	// path. Signup/onboarded keep their distinct eyebrows.
 	const eyebrowKey = $derived<MessageKey | null>(
 		onboardingComplete ? 'signin.eyebrow.onboarded' : isSignUp ? 'signin.eyebrow.signup' : null

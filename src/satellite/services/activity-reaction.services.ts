@@ -1,29 +1,30 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { ActivityType } from '$lib/enums/social';
-import { ACTIVITY_REACTION_TITLE_MAX_LENGTH, type ActivityReaction } from '$lib/types/social';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { ActivityType } from '#lib/enums/social.ts';
+import { ACTIVITY_REACTION_TITLE_MAX_LENGTH, type ActivityReaction } from '#lib/types/social.ts';
+import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
 
 const ACTIVITY_TYPES: readonly string[] = Object.values(ActivityType);
 
 /**
- * Write-time guard for the `activity_reactions` collection — one doc per `(activity, liker)`. The
+ * Write-time guard for the `activity_reactions` collection: one doc per `(activity, liker)`. The
  * collection is public-write (each user persists their own like), and a like can be read back by
  * anyone (counts + the like-received inbox card), so without a guard a client could `set_doc` a
  * reaction attributed to **another** principal (feed spoofing) or under a malformed key. This assert
  * binds every reaction to its writer, mirroring {@link assertSetActivity}:
  *
- *  - `data.liker` MUST equal the caller — no liking as someone else.
+ *  - `data.liker` MUST equal the caller; no liking as someone else.
  *  - the doc key must be `${actor}#${timestamp}#${type}#${liker}`: the liked activity's own doc key
  *    (the shape `logActivity` writes, so the embedded segments stay trustworthy) plus the caller.
  *  - `data.activityKey` MUST equal the key's embedded `${actor}#${timestamp}#${type}` prefix.
  *  - `data.timestamp` must be a safe integer; the denormalized `activityTitle` is a bounded string
- *    and `marketId`, when present, a string — so a liker can't bloat the doc the inbox card reads.
+ *    and `marketId`, when present, a string, so a liker can't bloat the doc the inbox card reads.
  *
- * Deletes (unlike) are owner-scoped by Juno on this public collection, so a liker can only remove
- * their own reaction; no delete assert is needed.
+ * Deletes (unlike) are guarded by {@link assertDeleteActivityReaction}: Juno does no owner check on
+ * a public collection.
  */
 export const assertSetActivityReaction = ({
 	caller,
@@ -71,7 +72,7 @@ export const assertSetActivityReaction = ({
 		throw new Error('Activity reaction actor segment must be a valid principal.');
 	}
 
-	// Must be the canonical `${timestamp}` `logActivity` writes — a safe integer whose string form
+	// Must be the canonical `${timestamp}` `logActivity` writes: a safe integer whose string form
 	// round-trips (rejects leading zeros / oversized values), mirroring `assertSetActivity`.
 	const timestampValue = Number(timestampSegment);
 
@@ -103,4 +104,22 @@ export const assertSetActivityReaction = ({
 	if (nonNullish(reaction.marketId) && typeof reaction.marketId !== 'string') {
 		throw new Error('Activity reaction marketId must be a string.');
 	}
+};
+
+/**
+ * Unlike: the reaction key ends with its liker (see {@link assertSetActivityReaction}), and only
+ * that liker or the satellite may remove it. The delete hook moves the shared like count, so a
+ * stranger's delete would also erase someone else's like from it.
+ */
+export const assertDeleteActivityReaction = ({
+	caller,
+	data: { collection, key }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.ACTIVITY_REACTIONS) {
+		return;
+	}
+
+	const liker = key.split('#').at(-1) ?? '';
+
+	assertOwnerOrController({ caller, owner: liker, collection });
 };

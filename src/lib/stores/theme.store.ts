@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import { isNullish } from '@dfinity/utils';
 import { writable } from 'svelte/store';
 
@@ -9,17 +9,17 @@ export const THEMES: readonly Theme[] = ['dark', 'light', 'peach'] as const;
 
 /**
  * Theme-label i18n keys consumed by `AppearancePicker` (settings tile +
- * dropdown dots). Centralised so the picker variants and the welcome
- * theme picker can share the same labelling without each carrying its
- * own literal map.
+ * dropdown dots) and the `WelcomeNav` theme control. Centralised so the
+ * pickers share the same labelling without each carrying its own literal
+ * map.
  */
 export type ThemeLabelKey = 'ui.theme.dark' | 'ui.theme.light' | 'ui.theme.peach';
 
 /**
  * Background / dot hex pairs for theme preview chips. Single source of
- * truth for `AppearancePicker` (settings + dropdown variants) and
- * `WelcomeThemePicker`. Hex values intentionally diverge from the
- * runtime `--bg-base` / `--text-base` tokens — these are static preview
+ * truth for `AppearancePicker` (settings + dropdown variants) and the
+ * `WelcomeNav` theme control. Hex values intentionally diverge from the
+ * runtime `--bg-base` / `--text-base` tokens; these are static preview
  * swatches that must read correctly even when the *opposite* theme is
  * currently active.
  */

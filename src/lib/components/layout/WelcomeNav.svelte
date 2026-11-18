@@ -10,21 +10,21 @@
 	 */
 	import { Globe, Lock } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import Logo from '$lib/components/layout/Logo.svelte';
-	import LocalePicker from '$lib/components/ui/LocalePicker.svelte';
-	import LocaleSheet from '$lib/components/ui/LocaleSheet.svelte';
-	import { LOCALE_REGISTRY, type AppLocale } from '$lib/constants/locale.constants';
-	import { PublicPath } from '$lib/constants/routes.constants';
+	import Logo from '#lib/components/layout/Logo.svelte';
+	import LocalePicker from '#lib/components/ui/LocalePicker.svelte';
+	import LocaleSheet from '#lib/components/ui/LocaleSheet.svelte';
+	import { LOCALE_REGISTRY, type AppLocale } from '#lib/constants/locale.constants.ts';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import {
 		clearLocaleChoice,
 		detectedLocale,
 		localeChoiceExplicit,
 		localeStore,
 		setLocale
-	} from '$lib/stores/locale.store';
-	import { theme } from '$lib/stores/theme.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/stores/locale.store.ts';
+	import { THEME_SWATCHES, theme } from '#lib/stores/theme.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goto } from '$app/navigation';
 
 	// Landing in-page sections the nav links to. `status` (the
 	// accuracy-as-status board) reuses the `nav.leaderboard` label
@@ -40,14 +40,13 @@
 	// sections resolve through the i18n catalog.
 	const navLabel = (section: NavSection): string =>
 		isNullish(section.labelKey) ? 'FAQ' : t({ locale: $localeStore, key: section.labelKey });
-	// Theme labels resolve from the canonical `ui.theme.*` catalog — the
-	// same source AppearancePicker uses — so the appearance tooltips/aria
+	// Theme labels resolve from the canonical `ui.theme.*` catalog, the
+	// same source AppearancePicker uses, so the appearance tooltips/aria
 	// stay localized and in sync rather than hardcoded English.
-	const THEME_IDS = ['dark', 'light', 'peach'] as const;
 	const themeOpts = $derived(
-		THEME_IDS.map((id) => ({
+		THEME_SWATCHES.map(({ id, labelKey }) => ({
 			id,
-			label: t({ locale: $localeStore, key: `ui.theme.${id}` as const })
+			label: t({ locale: $localeStore, key: labelKey })
 		}))
 	);
 
@@ -66,7 +65,7 @@
 
 	// What actually scrolls differs by platform: on iOS the landing scrolls
 	// inside the `.lpc` viewport (contained scroll, like the authenticated app
-	// shell — see `html[data-ios] .lpc` in `landing.css`), everywhere else the
+	// shell: see `html[data-ios] .lpc` in `landing.css`), everywhere else the
 	// window scrolls. Resolve it at mount by walking up to the nearest
 	// scrollable ancestor so frost-on-scroll, scroll-spy and smooth-scroll all
 	// track whichever one is live, with no per-platform branching elsewhere.
@@ -115,7 +114,7 @@
 		onScroll();
 		root.addEventListener('scroll', onScroll, { passive: true });
 
-		// Scroll spy — observe against the live scroll root so it still fires
+		// Scroll spy: observe against the live scroll root so it still fires
 		// when `.lpc` (not the window) is the scroller. `rootMargin` collapses
 		// the root to a thin band in the upper-middle of the viewport; whichever
 		// observed section sits in that band is the active one. We gate on
@@ -123,7 +122,7 @@
 		// `#faq` can only ever overlap a thin slice of the band, so its ratio
 		// never crosses a fixed threshold and the indicator would never advance
 		// to it. Sections between observed ones aren't tracked, so the last
-		// active section persists across them — which is the desired behaviour.
+		// active section persists across them, which is the desired behaviour.
 		const els = sections
 			.map((s) => document.getElementById(s.id))
 			.filter((el): el is HTMLElement => Boolean(el));
@@ -194,9 +193,10 @@
 		}
 
 		const onDoc = (e: MouseEvent) => {
-			const target = e.target as Node | null;
+			const { target } = e;
 
-			if (dnavLangRef && target && !dnavLangRef.contains(target)) {
+			// `instanceof` narrowing (not a cast): `contains` needs a `Node`.
+			if (dnavLangRef && target instanceof Node && !dnavLangRef.contains(target)) {
 				dnavLangOpen = false;
 			}
 		};
@@ -256,7 +256,7 @@
 		};
 
 	// Mobile menu links: scroll via `onLinkClick` (works whether the window or
-	// `.lpc` is the active scroller — native `#` fragment scrolling is
+	// `.lpc` is the active scroller: native `#` fragment scrolling is
 	// unreliable on iOS once the document is locked) then close the sheet.
 	const onMenuLinkClick =
 		(id: string) =>

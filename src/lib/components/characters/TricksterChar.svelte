@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { CHAR_CREAM, CHAR_INK, CHAR_PALETTE } from '$lib/constants/characters.constants';
+	import { CHAR_CREAM, CHAR_INK, CHAR_PALETTE } from '#lib/constants/characters.constants.ts';
 
 	interface Props {
 		size?: number;

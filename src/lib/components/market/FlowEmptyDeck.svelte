@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
-	import ViciChar from '$lib/components/characters/ViciChar.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import ViciChar from '#lib/components/characters/ViciChar.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
 		onBackToMarkets: () => void;

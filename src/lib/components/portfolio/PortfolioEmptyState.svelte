@@ -1,9 +1,9 @@
 <script lang="ts">
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
 </script>
 
 <section class="portfolio-empty">
@@ -15,7 +15,7 @@
 	</p>
 	<button
 		class="portfolio-empty-cta"
-		onclick={() => void goto(resolve(AppPath.Flow))}
+		onclick={() => void goto(resolveAppPath(AppPath.Flow))}
 		type="button"
 	>
 		{t({ locale: $localeStore, key: 'portfolio.empty.cta' })}

@@ -1,5 +1,4 @@
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { parseToken } from '$lib/utils/parse.utils';
+import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**
  * Total VXP granted per user as the new-user starter (onboarding reserve): a single
@@ -7,17 +6,14 @@ import { parseToken } from '$lib/utils/parse.utils';
  * first prediction → resolution → payout loop before hitting any wall.
  *
  * The starter is granted in full on registration (milestone 1). The two call-gated milestones
- * (`m2`/`m3`) are retained at **0** — the payout path skips any milestone whose amount is ≤ 0 —
+ * (`m2`/`m3`) are retained at **0**; the payout path skips any milestone whose amount is ≤ 0,
  * so there is no engagement-gated drip. Making predictions is rewarded by gameplay payouts, the
  * first-call achievement, and the referral bonus instead.
  */
-export const NEW_USER_VXP_TOTAL_BASE_UNITS = parseToken({
-	value: '1500',
-	unitName: VXP_TOKEN.decimals
-});
+export const NEW_USER_VXP_TOTAL_BASE_UNITS = vxpBaseUnits(1500);
 
-const MILESTONE_1_VXP = parseToken({ value: '1500', unitName: VXP_TOKEN.decimals });
-const MILESTONE_2_VXP = parseToken({ value: '0', unitName: VXP_TOKEN.decimals });
+const MILESTONE_1_VXP = vxpBaseUnits(1500);
+const MILESTONE_2_VXP = vxpBaseUnits(0);
 
 export const newUserVxpAmountMilestone1BaseUnits = (): bigint => MILESTONE_1_VXP;
 

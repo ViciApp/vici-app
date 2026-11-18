@@ -1,14 +1,14 @@
 /**
- * School registry + app runtime config — backend item B.1.
+ * School registry + app runtime config: backend item B.1.
  *
  * Two server-owned shapes that back email-verified university membership:
  *
- *  - {@link SchoolDoc} — one row per verified school in the `schools`
+ *  - {@link SchoolDoc}: one row per verified school in the `schools`
  *    collection, keyed by `schoolId`. Holds the running
  *    `verifiedMemberCount` and the public/pending gate. Written ONLY by
  *    the satellite's `verifySchoolCode` (controllers-scoped write); read
  *    is public so picker surfaces can eventually list public schools.
- *  - {@link AppConfigDoc} — the `app_config` collection (controllers
+ *  - {@link AppConfigDoc}: the `app_config` collection (controllers
  *    read+write) holding non-repo runtime config. The
  *    {@link APP_CONFIG_SCHOOL_RELAY_KEY} doc carries the `vici-courier`
  *    base URL + bearer token, set by a controller after deploy so no
@@ -24,7 +24,7 @@ export const SCHOOL_VERIFIED_PUBLIC_THRESHOLD = 3;
 export type SchoolStatus = 'pending' | 'public';
 
 export interface SchoolDoc {
-	/** Canonical id — directory `WorldsAffiliationOption.id` or name slug. */
+	/** Canonical id: directory `WorldsAffiliationOption.id` or name slug. */
 	schoolId: string;
 	/** Display name. */
 	name: string;
@@ -56,7 +56,7 @@ export interface SchoolRelayConfig {
 	/**
 	 * Server-side kill switch. The whole verification feature is OFF until a
 	 * controller writes this doc, and stays callable only while this is not
-	 * `false` — so the live `defineUpdate` endpoints can't trigger outbound
+	 * `false`, so the live `defineUpdate` endpoints can't trigger outbound
 	 * email even if the FE `SCHOOL_PASS2_ENABLED` flag is flipped early or
 	 * an agent calls them directly. Omit (or `true`) to enable.
 	 */

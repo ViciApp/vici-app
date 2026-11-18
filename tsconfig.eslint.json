@@ -6,11 +6,12 @@
 		"./scripts/",
 		"./src/",
 		"./e2e/",
+		"./e2e-web2/",
 		"./eslint.config.js",
 		"./eslint-local-rules.cjs",
 		"./juno.config.ts",
 		"./playwright.config.ts",
-		"./svelte.config.js",
+		"./playwright.web2.config.ts",
 		"./vite.config.ts"
 	],
 	"exclude": ["./node_modules/**"]

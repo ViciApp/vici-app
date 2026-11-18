@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	/**
-	 * Interactive swipe hero — the centerpiece of the landing.
+	 * Interactive swipe hero: the centerpiece of the landing.
 	 *
 	 * A stranger can MAKE A REAL CALL before signup: drag the demo
-	 * World-Cup card left (NO) or right (YES). Committing a side plays a
+	 * market card left (NO) or right (YES). Committing a side plays a
 	 * payoff celebration (confetti + spark burst, the Oracle/Trickster
 	 * character beat, an XP count-up) and then a brief "leaderboard
-	 * climb" moment — the competitive hook — before the sign-up ask.
+	 * climb" moment, the competitive hook, before the sign-up ask.
 	 *
 	 * The card reuses the real Flow-front markup (`.flow-card` /
 	 * `.flow-face`, styled in `src/landing.css`) so the demo matches the
@@ -15,41 +15,40 @@
 	 */
 	import { ChevronRight, RotateCcw } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import OracleChar from '$lib/components/characters/OracleChar.svelte';
-	import TricksterChar from '$lib/components/characters/TricksterChar.svelte';
-	import ViciChar from '$lib/components/characters/ViciChar.svelte';
-	import LandingConsensusCompass from '$lib/components/landing/LandingConsensusCompass.svelte';
-	import MarketArtwork from '$lib/components/market/MarketArtwork.svelte';
+	import OracleChar from '#lib/components/characters/OracleChar.svelte';
+	import TricksterChar from '#lib/components/characters/TricksterChar.svelte';
+	import ViciChar from '#lib/components/characters/ViciChar.svelte';
+	import LandingConsensusCompass from '#lib/components/landing/LandingConsensusCompass.svelte';
+	import MarketArtwork from '#lib/components/market/MarketArtwork.svelte';
 	import {
 		LANDING_CAT_COLORS,
 		LANDING_CAT_LABELS,
 		LANDING_HERO_CARD,
 		LANDING_HERO_CLIMB,
-		LANDING_HERO_STAKE
-	} from '$lib/constants/landing-data.constants';
-	import { PublicPath } from '$lib/constants/routes.constants';
-	import { daysToKickoff } from '$lib/derived/featured-event.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { splitHeadline } from '$lib/utils/landing-headline.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+		LANDING_HERO_CALL_SIZE
+	} from '#lib/constants/landing-data.constants.ts';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
+	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { CallSide } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { splitHeadline } from '#lib/utils/landing-headline.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
-	const XP = LANDING_HERO_STAKE;
+	const XP = LANDING_HERO_CALL_SIZE;
 	const YES = LANDING_HERO_CARD.yes;
 	const NO = 100 - YES;
-	const accent = LANDING_CAT_COLORS.wc;
-	const catLabel = LANDING_CAT_LABELS.wc;
-	const artMarket = { cat: 'wc', id: LANDING_HERO_CARD.artSeed } as const;
+	const accent = LANDING_CAT_COLORS.crypto;
+	const catLabel = LANDING_CAT_LABELS.crypto;
+	const artMarket = { cat: 'crypto', id: LANDING_HERO_CARD.artSeed } as const;
 
-	// Payout-from-stake for each side (long-shot pays more).
+	// Payout-from-amount for each side (long-shot pays more).
 	const winYes = Math.round(XP / (YES / 100)) - XP;
 	const winNo = Math.round(XP / (NO / 100)) - XP;
 
 	type Phase = 'rest' | 'gone' | 'payoff';
-	type Side = 'YES' | 'NO';
-
 	let phase = $state<Phase>('rest');
-	let side = $state<Side | null>(null);
+	let side = $state<CallSide | null>(null);
 	let dx = $state(0);
 	let dragging = $state(false);
 	let xpShown = $state(0);
@@ -152,7 +151,7 @@
 		};
 	});
 
-	const commit = (s: Side): void => {
+	const commit = (s: CallSide): void => {
 		side = s;
 		dragging = false;
 		dx = s === 'YES' ? 520 : -520;
@@ -257,7 +256,7 @@
 
 <header class="lpc-hero">
 	<div class="lpc-wrap lpc-hero-grid">
-		<!-- Copy column — kicker + headline -->
+		<!-- Copy column: kicker + headline -->
 		<div class="lpc-hero-copy">
 			<span class="lpc-kicker lpc-rise" data-i="0">
 				<span class="pulse" aria-hidden="true"></span>
@@ -316,7 +315,7 @@
 								<div class="flow-art-bleed">
 									<MarketArtwork
 										bleed
-										category="wc"
+										category="crypto"
 										seed={artMarket.id}
 										size={420}
 										state="neutral"

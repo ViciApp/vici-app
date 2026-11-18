@@ -1,17 +1,16 @@
-import type { ClearingDid, RegistryDid } from '$declarations';
-import type { MarketTag } from '$lib/constants/market-tags.constants';
-import { getFollowedLean } from '$lib/services/followed-lean.services';
-import { listMarketTagsBySeries } from '$lib/services/market-tags.services';
-import { getFollowing } from '$lib/services/relation-queries.services';
-import { getUserTradeHistory } from '$lib/services/trade.services';
-import type { MarketId } from '$lib/types/market';
-import type { UserMarketSignals } from '$lib/types/market-signals';
-import { deriveUserMarketSignals } from '$lib/utils/market-signals.utils';
+import type { ClearingDid, RegistryDid } from '#declarations';
+import { getFollowedLean } from '#lib/services/followed-lean.services.ts';
+import { listMarketTagsBySeries } from '#lib/services/market-tags.services.ts';
+import { getFollowing } from '#lib/services/relation-queries.services.ts';
+import { getUserTradeHistory } from '#lib/services/trade.services.ts';
+import type { UserMarketSignals } from '#lib/types/market-signals.ts';
+import type { MarketId } from '#lib/types/market.ts';
+import { deriveUserMarketSignals } from '#lib/utils/market-signals.utils.ts';
 
 /**
  * `marketIds` scopes the per-market `followedLean` fan-out to the markets the
- * viewer is actually looking at — the sliced Flow deck, or the single market on
- * a detail page — rather than every tagged series in the catalog. Without it the
+ * viewer is actually looking at (the sliced Flow deck, or the single market on
+ * a detail page) rather than every tagged series in the catalog. Without it the
  * query both wastes round-trips on markets the viewer can't see and (capped at
  * `MAX_MARKETS`) can drop the lean for markets they *can*. Accepts a promise so
  * Flow can derive it from the still-resolving queue without serialising the
@@ -36,7 +35,7 @@ export const getUserMarketSignals = async ({
 }: {
 	domain: RegistryDid.BalanceDomain;
 	marketIds: MarketId[] | Promise<MarketId[]>;
-	tagMappings?: Record<string, MarketTag[]> | Promise<Record<string, MarketTag[]>>;
+	tagMappings?: Record<string, string[]> | Promise<Record<string, string[]>>;
 	tradeHistory?: ClearingDid.Event[] | Promise<ClearingDid.Event[]>;
 }): Promise<UserMarketSignals> => {
 	const [events, resolvedTags, following] = await Promise.all([

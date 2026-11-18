@@ -1,22 +1,22 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onDestroy } from 'svelte';
-	import { browser } from '$app/environment';
-	import { page } from '$app/state';
-	import SurfaceTip from '$lib/components/onboarding/SurfaceTip.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { track } from '$lib/services/analytics.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import SurfaceTip from '#lib/components/onboarding/SurfaceTip.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 	import {
 		TIP_ARENA_SEEN_KEY,
 		TIP_DASH_SEEN_KEY,
 		TIP_PROFILE_SEEN_KEY
-	} from '$lib/utils/onboarding-flags.utils';
+	} from '#lib/utils/onboarding-flags.utils.ts';
+	import { browser } from '$app/env';
+	import { page } from '$app/state';
 
 	/**
-	 * SurfaceTipHost — layer 2 of the first-run tutorial system. Mounted once at
+	 * SurfaceTipHost: layer 2 of the first-run tutorial system. Mounted once at
 	 * the (app) shell beside `<MobileNav>`. The first time a qualifying early
 	 * user navigates to Dash / Arena / Profile, it slides in a single
 	 * `SurfaceTip` above the floating pillnav explaining the surface, marks that
@@ -25,7 +25,7 @@
 	 * route-gated (not a queue); nothing fires up front.
 	 *
 	 * Gating: only an early user (`totalTrades < 5`) with the surface flag still
-	 * unset ever sees a tip — an established user is never interrupted. The
+	 * unset ever sees a tip: an established user is never interrupted. The
 	 * per-surface flags are identity-scoped (`onboarding-flags.utils`), so a
 	 * principal change and `clearOnboardingSeenFlags()` both reset them.
 	 *
@@ -97,14 +97,14 @@
 		try {
 			localStorage.setItem(key, '1');
 		} catch {
-			// localStorage write blocked — accept the loss; the tip may
+			// localStorage write blocked: accept the loss; the tip may
 			// reappear next session on this device.
 		}
 	};
 
 	// Only an actually-hydrated profile can qualify. During the auth-hydration
 	// window (`userSignedIn === true` but `profile` still `undefined`) we must
-	// not treat the user as early — an established user would otherwise slip
+	// not treat the user as early; an established user would otherwise slip
 	// through the `?? 0` gate and get a tip shown + seen flag written.
 	const isEarlyUser = $derived(
 		nonNullish($userStore.profile) && $userStore.profile.totalTrades < 5

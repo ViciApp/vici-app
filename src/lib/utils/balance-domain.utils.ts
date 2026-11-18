@@ -1,6 +1,6 @@
-import type { ClearingDid } from '$declarations';
-import type { MarketId } from '$lib/types/market';
-import { parseMarketId } from '$lib/validation/market.validation';
+import type { ClearingDid } from '#declarations';
+import type { MarketId } from '#lib/types/market.ts';
+import { parseMarketId } from '#lib/validation/market.validation.ts';
 
 /**
  * Converts a domain string (e.g. from JSON) to a Clearing BalanceDomain variant.
@@ -36,9 +36,6 @@ export const isViciXp = (domain: ClearingDid.BalanceDomain): boolean => 'ViciXp'
 
 export const isSocial = (domain: ClearingDid.BalanceDomain): boolean => 'Social' in domain;
 
-export const isPlaygroundExperience = (domain: ClearingDid.BalanceDomain): boolean =>
-	isViciXp(domain);
-
 // eslint-disable-next-line local-rules/prefer-object-params -- Compare functions are more readable with primitive params
 export const compareBalanceDomains = (
 	a: ClearingDid.BalanceDomain,
@@ -65,8 +62,7 @@ export const compareBalanceDomains = (
 
 export const filterByBalanceDomain = <
 	T extends
-		| { balanceDomain: ClearingDid.BalanceDomain }
-		| { balance_domain: ClearingDid.BalanceDomain }
+		{ balanceDomain: ClearingDid.BalanceDomain } | { balance_domain: ClearingDid.BalanceDomain }
 >({
 	items,
 	targetDomain
@@ -86,8 +82,7 @@ export const filterByBalanceDomain = <
  */
 export const filterByPlaygroundExpandedDomain = <
 	T extends
-		| { balanceDomain: ClearingDid.BalanceDomain }
-		| { balance_domain: ClearingDid.BalanceDomain }
+		{ balanceDomain: ClearingDid.BalanceDomain } | { balance_domain: ClearingDid.BalanceDomain }
 >({
 	items,
 	targetDomain

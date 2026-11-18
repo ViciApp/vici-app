@@ -1,8 +1,8 @@
-import type { ClearingDid } from '$declarations';
-import { ZERO } from '$lib/constants/app.constants';
-import type { Market } from '$lib/types/market';
-import type { Position } from '$lib/types/position';
-import { parseMarketId } from '$lib/validation/market.validation';
+import type { ClearingDid } from '#declarations';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import type { Market } from '#lib/types/market.ts';
+import type { Position } from '#lib/types/position.ts';
+import { parseMarketId } from '#lib/validation/market.validation.ts';
 import { nonNullish } from '@dfinity/utils';
 
 export const mapPositionData = (position: ClearingDid.Position): Position => {
@@ -43,7 +43,7 @@ export const positionResolvedResult = ({
 	// `qty > ZERO ? 'YES' : 'NO'` fallback in `mapPositionData`). A
 	// zero quantity means the user has fully exited; treat that as
 	// "no position" and skip the won/lost classification. Sign of
-	// `netQty` itself doesn't carry side information here — the
+	// `netQty` itself doesn't carry side information here: the
 	// `outcomeId` field is the source of truth for which outcome
 	// the user predicted.
 	if (position.netQty === ZERO) {

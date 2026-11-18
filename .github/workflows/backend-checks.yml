@@ -1,0 +1,105 @@
+name: Backend Checks
+
+# Runs on every PR with no path filter: `backend-checks-pass` is a required
+# check, so it must always report, and the shared-drift suite
+# (backend/tests/shared-drift/) reads app files that a hand-kept path list
+# would miss.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  bun-image:
+    uses: ./.github/workflows/backend-bun-image.yml
+    permissions:
+      contents: read
+
+  backend:
+    needs: ['bun-image']
+    runs-on: ubuntu-24.04
+    # The image backend/Dockerfile builds on, so the install, the native
+    # packages it picks and module resolution are the ones production gets.
+    container: ${{ needs.bun-image.outputs.image }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: backend
+    # The tests exercise real migrations and transactions, so they need a real
+    # Postgres rather than a mock. Reachable as `postgres` from the job container.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vici
+          POSTGRES_PASSWORD: vici
+          POSTGRES_DB: vici
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Full frozen install so the typecheck has its devDependencies.
+      - name: Install (frozen lockfile)
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      # REQUIRE_DB_TESTS turns a missing database into a red build: without it
+      # a misconfigured URL would skip every DB-backed suite and CI would go
+      # green having asserted nothing.
+      - name: Test
+        env:
+          TEST_DATABASE_URL: postgres://vici:vici@postgres:5432/vici
+          REQUIRE_DB_TESTS: '1'
+        run: bun test
+
+      # Re-install exactly what the Fly image does (frozen AND --production),
+      # then resolve every boot-time import from that pruned tree. A phantom
+      # dep hoisted from devDependencies fails here instead of crash-looping
+      # the api machine in production.
+      - name: Install production dependencies (frozen, no dev)
+        run: bun install --frozen-lockfile --production
+
+      - name: Resolve smoke (entrypoints must build)
+        run: |
+          bun build src/index.ts --target=bun --outdir "$RUNNER_TEMP/backend-build-check"
+          bun build src/worker.ts --target=bun --outdir "$RUNNER_TEMP/backend-build-check"
+
+      # Bundling resolves specifiers but never runs module initializers, so a
+      # dependency whose runtime API drifted (e.g. a mixed major tree that only
+      # materialises under the pruned production hoisting) still crashes the
+      # machine at boot. Importing the entrypoints executes those initializers;
+      # the serving arm is import-safe by design, so this exits cleanly when
+      # every module-level line runs.
+      - name: Boot smoke (entrypoint imports must execute)
+        run: |
+          bun -e 'await import("./src/index.ts"); process.exit(0)'
+          bun -e 'await import("./src/worker.ts"); process.exit(0)'
+
+  backend-checks-pass:
+    if: always()
+    needs: ['bun-image', 'backend']
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/needs_success
+        with:
+          needs: '${{ toJson(needs) }}'

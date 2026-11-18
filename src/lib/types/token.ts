@@ -1,4 +1,4 @@
-import type { TokenIdSchema, TokenSchema } from '$lib/schema/token.schema';
+import type { TokenIdSchema, TokenSchema } from '#lib/schema/token.schema.ts';
 import type * as z from 'zod';
 
 export type TokenId = z.infer<typeof TokenIdSchema>;

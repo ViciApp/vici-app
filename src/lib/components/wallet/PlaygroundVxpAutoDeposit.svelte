@@ -1,13 +1,10 @@
 <script lang="ts">
-	import { isNullish, nonNullish } from '@dfinity/utils';
+	import { nonNullish } from '@dfinity/utils';
 	import { get } from 'svelte/store';
-	import { balance as getLedgerBalance, transactionFee } from '$lib/api/icrc-ledger.api';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { depositCollateral } from '$lib/services/collateral.services';
-	import { getIdentity } from '$lib/services/identity.services';
-	import { balanceDomainStore } from '$lib/stores/balance-domain.store';
-	import { getIcrcAccount } from '$lib/utils/transactions.utils';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { depositCollateral, getSweepableVxpAmount } from '#lib/services/collateral.services.ts';
+	import { balanceDomainStore } from '#lib/stores/balance-domain.store.ts';
 
 	/**
 	 * Playground-only sweep of VXP ledger balance into clearing (ViciXp).
@@ -16,8 +13,6 @@
 	 * drops `alive` so async work cannot reschedule after teardown or domain switch.
 	 */
 	const POLL_MS = 10_000;
-
-	const feeReserveMultiplier = 2n;
 
 	const isPlayground = $derived($balanceDomainStore.value === 'playground');
 
@@ -62,25 +57,13 @@
 				return;
 			}
 
-			const identity = await getIdentity();
-
-			if (!alive || !playgroundNow() || isNullish(identity)) {
-				scheduleNext();
-
-				return;
-			}
-
-			const { ledgerCanisterId } = VXP_TOKEN;
-			const account = getIcrcAccount(identity.getPrincipal());
-
-			let rawBalance: bigint;
-			let fee: bigint;
+			// The service owns the balance / fee reads (and their per-backend
+			// transport); it resolves to ZERO when signed out, folding the old
+			// identity gate into the amount gate below.
+			let amount: bigint;
 
 			try {
-				[rawBalance, fee] = await Promise.all([
-					getLedgerBalance({ identity, ledgerCanisterId, account }),
-					transactionFee({ identity, ledgerCanisterId })
-				]);
+				amount = await getSweepableVxpAmount();
 			} catch (e: unknown) {
 				console.warn('Playground VXP auto-deposit: balance/fee read failed', e);
 				scheduleNext();
@@ -92,9 +75,6 @@
 				return;
 			}
 
-			const reserve = fee * feeReserveMultiplier;
-			const amount = rawBalance > reserve ? rawBalance - reserve : ZERO;
-
 			if (amount <= ZERO) {
 				scheduleNext();
 
@@ -105,7 +85,7 @@
 
 			try {
 				await depositCollateral({
-					assetPrincipal: ledgerCanisterId,
+					assetPrincipal: VXP_TOKEN.ledgerCanisterId,
 					amount,
 					domain: { ViciXp: null }
 				});

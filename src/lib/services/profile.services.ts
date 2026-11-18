@@ -1,46 +1,57 @@
-import type { RegistryDid } from '$declarations';
-import { functions } from '$declarations/satellite/satellite.api';
-import { USD_DECIMALS, ZERO } from '$lib/constants/app.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { COMEBACK_COLD_STREAK_LOSSES } from '$lib/constants/menagerie.constants';
+import type { RegistryDid } from '#declarations';
+import { functions } from '#declarations/satellite/satellite.api.ts';
+import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { COMEBACK_COLD_STREAK_LOSSES } from '#lib/constants/menagerie.constants.ts';
 import {
 	MIN_NICKNAME_LENGTH,
 	nicknameUniqueKey,
 	sanitizeNickname
-} from '$lib/constants/profile.constants';
-import { ProfileVisibility } from '$lib/enums/profile';
-import type { UserRole } from '$lib/enums/user';
-import { notifyAchievementsUnlocked } from '$lib/services/achievements.services';
-import { getMyBattleStats, listMyLeagues } from '$lib/services/leagues.services';
-import { getUserTradeHistory } from '$lib/services/trade.services';
+} from '#lib/constants/profile.constants.ts';
+import { defaultPreferences } from '#lib/constants/settings.constants.ts';
+import { ProfileVisibility } from '#lib/enums/profile.ts';
+import { notifyAchievementsUnlocked } from '#lib/services/achievements.services.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import { getMyBattleStats, listMyLeagues } from '#lib/services/leagues.services.ts';
+import { areNewSignupsMoved } from '#lib/services/new-app-redirect.services.ts';
+import { getUserTradeHistory } from '#lib/services/trade.services.ts';
 import {
 	bestSharpestEyeTier,
 	evaluateMonthlyAwards,
 	syncMyMonthlyStats
-} from '$lib/services/user-monthly-stats.services';
-import { computeUserStatsSnapshot, persistMyUserStats } from '$lib/services/user-stats.services';
-import { marketMetadataStore } from '$lib/stores/market-metadata.store';
-import { profilesStore } from '$lib/stores/profiles.store';
-import { userStore } from '$lib/stores/user.store';
-import type { Nickname, UserProfile } from '$lib/types/profile';
-import type { UserStatsDoc } from '$lib/types/user-stats';
+} from '#lib/services/user-monthly-stats.services.ts';
+import { computeUserStatsSnapshot, persistMyUserStats } from '#lib/services/user-stats.services.ts';
+import { marketMetadataStore } from '#lib/stores/market-metadata.store.ts';
+import { profilesStore } from '#lib/stores/profiles.store.ts';
+import { userStore } from '#lib/stores/user.store.ts';
+import type { ProfilePrivate, UserProfile } from '#lib/types/profile.ts';
+import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 import {
 	CONTRARIAN_PRICE_THRESHOLD,
 	evaluateAchievements,
 	LEAGUE_FOUNDER_MIN_MEMBERS,
 	mergeUnlockedAchievements
-} from '$lib/utils/achievements.utils';
-import { decimalFixedValueToNumber, shortenWithMiddleEllipsis } from '$lib/utils/format.utils';
-import { countWinningCategories } from '$lib/utils/menagerie.utils';
+} from '#lib/utils/achievements.utils.ts';
+import { decimalFixedValueToNumber, shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
+import { countWinningCategories } from '#lib/utils/menagerie.utils.ts';
 import {
 	eventExecutionPrice,
 	isExecutedEvent,
 	isSettledEvent,
 	isWinningSettledEvent
-} from '$lib/utils/resolved-position.utils';
-import { applyDailyStreakBump, todayKey } from '$lib/utils/streak.utils';
-import { visibilityFromProfile } from '$lib/utils/visibility.utils';
-import { fromWireProfile } from '$satellite/utils/wire-format.utils';
+} from '#lib/utils/resolved-position.utils.ts';
+import { applyDailyStreakBump, todayKey } from '#lib/utils/streak.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import {
+	checkNicknameAvailability as checkNicknameAvailabilityWeb2,
+	getMyProfileEmail as getMyProfileEmailWeb2,
+	getMyProfile as getMyProfileWeb2,
+	getProfileById as getProfileWeb2,
+	recordFlowSwipe as recordFlowSwipeWeb2,
+	searchProfiles as searchProfilesWeb2,
+	upsertMyProfile as upsertMyProfileWeb2
+} from '#lib/web2/client.ts';
+import { fromWireProfile } from '#satellite/utils/wire-format.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { getDoc, setDoc, type Doc, type User } from '@junobuild/core';
@@ -48,79 +59,80 @@ import type { PrincipalText } from '@junobuild/schema';
 import { get } from 'svelte/store';
 
 /**
- * Loads a user profile from Juno or returns a default shell; merges role from the satellite query.
+ * The default profile shell for an owner with no stored doc yet. Shared by the
+ * on-chain and web2 read paths and the web2 app-shell hydration so a
+ * never-written account renders identically on both backends.
+ */
+export const emptyProfile = (owner: PrincipalText): UserProfile => ({
+	owner,
+	nickname: shortenWithMiddleEllipsis({ text: owner, splitLength: 5 }),
+	avatar: '',
+	avatarParts: '',
+	pnl: 0,
+	visibility: ProfileVisibility.FRIENDS_ONLY,
+	totalTrades: 0,
+	winRate: 0,
+	dailyStreak: 0,
+	longestStreak: 0,
+	dailyGoalDone: 0,
+	streak: 0,
+	onFireStreak: 0,
+	comebacks: 0,
+	winningCategories: 0,
+	leaguesJoined: 0,
+	boutsWon: 0,
+	leaguesFounded: 0,
+	accuracy: 0,
+	points: 0,
+	level: 1,
+	archetype: '',
+	interests: [],
+	unlockedAchievements: [],
+	contrarianWins: 0,
+	topDecileStreak: 0,
+	preferences: defaultPreferences()
+});
+
+/**
+ * Loads a user profile from the backend or returns a default shell. web2 reads
+ * the HTTP API (`owner` is the account id there); the default on-chain path
+ * merges role from the satellite query. Both branches return the same
+ * `Doc<UserProfile>` shape so every caller stays backend-agnostic.
  */
 export const getProfile = async (principal: PrincipalText): Promise<Doc<UserProfile>> => {
+	if (isWeb2Backend()) {
+		const profile = await getProfileWeb2(principal);
+
+		return { key: principal, data: profile ?? emptyProfile(principal) };
+	}
+
 	const { profile } = await functions.getProfile({ principalStr: principal });
 
 	if (isNullish(profile)) {
-		return {
-			key: principal,
-			data: {
-				owner: principal,
-				nickname: shortenWithMiddleEllipsis({ text: principal, splitLength: 5 }),
-				avatar: '',
-				avatarParts: '',
-				email: '',
-				pnl: 0,
-				visibility: ProfileVisibility.FRIENDS_ONLY,
-				totalTrades: 0,
-				winRate: 0,
-				dailyStreak: 0,
-				longestStreak: 0,
-				dailyGoalDone: 0,
-				streak: 0,
-				onFireStreak: 0,
-				comebacks: 0,
-				winningCategories: 0,
-				leaguesJoined: 0,
-				boutsWon: 0,
-				leaguesFounded: 0,
-				accuracy: 0,
-				points: 0,
-				level: 1,
-				archetype: '',
-				interests: [],
-				unlockedAchievements: [],
-				contrarianWins: 0,
-				topDecileStreak: 0,
-				preferences: {
-					defaultAmount: {
-						flow: '1.0',
-						manual: '1.0'
-					},
-					notify: {
-						streakReminder: true,
-						marketAlerts: true,
-						friendActivity: false,
-						weeklyDigest: true
-					},
-					flowSessionLength: 10,
-					hapticsEnabled: true,
-					soundEnabled: true,
-					sharing: {
-						// Mirror the top-level `visibility` default
-						// (FRIENDS_ONLY → 'private'); opt-ins default on.
-						profileVisibility: visibilityFromProfile(ProfileVisibility.FRIENDS_ONLY),
-						callsPublic: true,
-						leaderboardOptIn: true,
-						worldsOptIn: true
-					},
-					flowTags: [],
-					worldCupMode: false,
-					savedMarketIds: [],
-					favoriteParticipantId: '',
-					favoriteSide: '',
-					onboardingCompleted: false
-				}
-			}
-		};
+		return { key: principal, data: emptyProfile(principal) };
 	}
 
 	return {
 		key: principal,
 		data: profile as UserProfile
 	};
+};
+
+/**
+ * The signed-in user's own profile for the web2 app-shell hydration. Returns
+ * the default shell (with `existed: false`) for a freshly created account that
+ * has no stored profile yet, so the onboarding drain runs exactly as it does
+ * for a new on-chain user. web2 only; the on-chain path hydrates via
+ * {@link ensureProfile}.
+ */
+export const loadWeb2ProfileShell = async (
+	owner: PrincipalText
+): Promise<{ profile: UserProfile; existed: boolean }> => {
+	const profile = await getMyProfileWeb2();
+
+	return isNullish(profile)
+		? { profile: emptyProfile(owner), existed: false }
+		: { profile, existed: true };
 };
 
 /**
@@ -184,16 +196,6 @@ export const loadProfilesByPrincipals = async ({
 	});
 };
 
-export const updateInterests = async ({
-	principal,
-	interests
-}: {
-	principal: PrincipalText;
-	interests: string[];
-}): Promise<void> => {
-	await patchProfile({ principal, patch: { interests } });
-};
-
 /**
  * Persist a partial `preferences` change through the serialized patch
  * queue, leaf-merging onto the freshest stored slice. Settings surfaces
@@ -231,7 +233,7 @@ export const persistPreferences = ({
 let profilePatchQueue: Promise<unknown> = Promise.resolve();
 
 /**
- * A `patchProfile` patch may carry only the preference leaves it owns —
+ * A `patchProfile` patch may carry only the preference leaves it owns:
  * the queue merges them onto the freshest stored `preferences` rather
  * than replacing the whole slice. So a `favoriteSide`-only write can't
  * drop a concurrently-written `favoriteParticipantId`, and vice versa.
@@ -290,7 +292,7 @@ const patchProfile = ({
  * after `applyDailyStreakBump` flips the locally held value, so a
  * refresh mid-session doesn't reset the Flame stage.
  *
- * Best-effort — callers should fire-and-forget; the local UI already
+ * Best-effort: callers should fire-and-forget; the local UI already
  * reflects the bumped values for the rest of the session even if the
  * round-trip fails. Serialized via `patchProfile` so it can't clobber a
  * concurrent daily-goal write (and vice versa).
@@ -319,7 +321,7 @@ export const persistDailyStreak = ({
 /**
  * Record one committed Flow swipe against the server-authoritative daily
  * cap. The satellite owns the count: we send only our local-day key (the
- * `YYYY-MM-DD` from `todayKey`) as the rollover boundary — never a count —
+ * `YYYY-MM-DD` from `todayKey`) as the rollover boundary, never a count,
  * and the server reads the caller's profile, rolls over by the key, and
  * writes the capped increment itself.
  *
@@ -336,15 +338,15 @@ export const recordFlowSwipe = ({
 }: {
 	dayKey: string;
 }): Promise<{ dailyGoalDone: number; dailyGoalDate: string; capReached: boolean }> =>
-	functions.recordFlowSwipe({ dayKey });
+	isWeb2Backend() ? recordFlowSwipeWeb2({ dayKey }) : functions.recordFlowSwipe({ dayKey });
 
 /**
- * Persist the Menagerie celebration ledger — the set of `${slug}:${tier}` keys
+ * Persist the Menagerie celebration ledger: the set of `${slug}:${tier}` keys
  * the owner has already seen a reveal for. Drives the once-per-crossing guard:
  * the celebration host writes the full current earned set after seeding (first
  * load, silently) and after each genuine crossing.
  *
- * Best-effort and fire-and-forget — the reveal already played from the local
+ * Best-effort and fire-and-forget: the reveal already played from the local
  * queue; a failed round-trip just means it may re-evaluate next load (the diff
  * engine is idempotent against the persisted ledger). The local `userStore` is
  * synced so the host's own detection settles immediately and doesn't re-fire.
@@ -374,6 +376,18 @@ export const persistEarnedMenagerie = async ({
 export const upsertProfile = async (
 	profileDoc: Doc<UserProfile> | { key: string; data: UserProfile }
 ): Promise<void> => {
+	// web2 is a full-doc PUT: the server locks the caller's row, applies the
+	// same nickname / handle-cooldown guards, keeps the stored Flow daily goal,
+	// and returns the stored result. The caller's session identifies the row,
+	// so `owner` / role in the body are ignored; the account email lives on the
+	// auth identity in this mode, not the profile doc, so it is intentionally
+	// not sent here.
+	if (isWeb2Backend()) {
+		await upsertMyProfileWeb2(profileDoc.data);
+
+		return;
+	}
+
 	const { key } = profileDoc;
 	const existing = await getDoc<UserProfile>({
 		collection: Collection.PROFILES,
@@ -381,17 +395,29 @@ export const upsertProfile = async (
 	});
 
 	const base = existing?.data ?? profileDoc.data;
-	const data: UserProfile = {
+	// Strip the legacy `email` field AFTER the merge: both the stored doc and
+	// the caller's payload can still carry it at runtime (pre-migration rows,
+	// snapshots built from raw `getDoc` reads) even though the schema no
+	// longer declares it, and re-spreading it would re-persist the address
+	// onto the public doc. Every write from here on leaves the profile clean:
+	// the address lives in `profile_private`.
+	const { email: _legacyEmail, ...data } = {
 		...base,
 		...profileDoc.data,
+		// The Flow daily goal is written only by `recordFlowSwipe`, and the
+		// `profiles` assert refuses a write that changes it. A full-snapshot
+		// caller's copy can trail a swipe recorded since, so the write always
+		// carries the stored values (none on a new profile).
+		dailyGoalDone: existing?.data.dailyGoalDone ?? 0,
+		dailyGoalDate: existing?.data.dailyGoalDate,
 		// Leaf-merge `preferences` onto the freshest stored slice rather than
 		// replacing it. Full-snapshot callers (avatar parts, handle rename)
 		// carry a `preferences` they built from an in-store snapshot that can
-		// predate a concurrent write — without this merge, an avatar save right
+		// predate a concurrent write; without this merge, an avatar save right
 		// after onboarding would replace `preferences` and drop the just-picked
 		// `favoriteParticipantId`.
 		preferences: { ...base.preferences, ...profileDoc.data.preferences }
-	};
+	} as UserProfile & { email?: string };
 
 	if (isNullish(existing)) {
 		await setDoc({
@@ -424,19 +450,19 @@ export const upsertProfile = async (
  * login that finishes onboarding, {@link calculateAndSyncStats} writes the same doc concurrently
  * (it's awaited right after `userStore.set` in `Authn.svelte`, so it overlaps the post-signin
  * drain). A full-snapshot write built from the pre-sync profile would lose the optimistic-version
- * race and throw — silently dropping the user's picks (the "could not save your onboarding
+ * race and throw, silently dropping the user's picks (the "could not save your onboarding
  * choices" report: handle present from the bootstrap, country/team blank). A field-level patch on
  * the freshest doc both avoids the conflict and leaves the concurrently-written stats intact.
  *
- * `setHandle` is gated by the caller's availability probe — pass `true` only when the picked handle
+ * `setHandle` is gated by the caller's availability probe; pass `true` only when the picked handle
  * is free. The handle-change cooldown stamp is decided here against the FRESH stored nickname so a
  * concurrent rename can't desync it.
  *
  * Resolves to `{ profile, handleApplied }`. `handleApplied` is `false` when the handle was never
  * requested (`setHandle: false`) OR when it was claimed in the TOCTOU window between the caller's
  * probe and this write (the satellite rejects the whole doc with "already taken"): in that case
- * the handle is dropped and the rest of the picks are retried so team/side/completion — which are
- * independent of the handle — still persist. The caller maps `setHandle && !handleApplied` to a
+ * the handle is dropped and the rest of the picks are retried so team/side/completion, which are
+ * independent of the handle, still persist. The caller maps `setHandle && !handleApplied` to a
  * collision toast.
  */
 export const applyOnboardingPicks = async ({
@@ -444,7 +470,6 @@ export const applyOnboardingPicks = async ({
 	handle,
 	setHandle,
 	interests,
-	email,
 	favoriteParticipantId,
 	favoriteSide
 }: {
@@ -452,7 +477,6 @@ export const applyOnboardingPicks = async ({
 	handle: string | null;
 	setHandle: boolean;
 	interests?: string[];
-	email?: string;
 	favoriteParticipantId: string;
 	favoriteSide: string;
 }): Promise<{ profile: UserProfile; handleApplied: boolean }> => {
@@ -474,15 +498,11 @@ export const applyOnboardingPicks = async ({
 				patch.interests = interests;
 			}
 
-			if (nonNullish(email) && email.length > 0) {
-				patch.email = email;
-			}
-
 			if (includeHandle && nonNullish(handle)) {
 				patch.nickname = handle;
 
 				// Stamp the handle-change time only on a real change so the
-				// set-profile assertion accepts the write — the bootstrapped
+				// set-profile assertion accepts the write; the bootstrapped
 				// nickname almost always differs from the picked handle.
 				if (nicknameUniqueKey(handle) !== nicknameUniqueKey(current.nickname ?? '')) {
 					patch.handleLastChangeMs = Date.now();
@@ -525,13 +545,17 @@ export const applyOnboardingPicks = async ({
  * Case-insensitive search over nickname, owner, and document key via secure satellite query.
  */
 export const searchProfiles = async (query: string): Promise<UserProfile[]> => {
+	if (isWeb2Backend()) {
+		return searchProfilesWeb2(query);
+	}
+
 	const { items } = await functions.searchProfiles({ queryStr: query });
 
 	return items.map(fromWireProfile);
 };
 
 /**
- * Outcome of a nickname availability probe — mirrors
+ * Outcome of a nickname availability probe; it mirrors
  * `NicknameAvailability` on the satellite side. The FE uses this to
  * render typed inline errors (instead of regex-parsing thrown messages).
  */
@@ -555,34 +579,158 @@ export const checkNicknameAvailability = async ({
 	nickname: string;
 	principal?: PrincipalText;
 }): Promise<NicknameAvailability> => {
-	const result = await functions.checkNicknameAvailability({
-		nickname,
-		excludePrincipalStr: principal ?? ''
-	});
+	// web2 excludes the caller's own current nickname via the session, so the
+	// `principal` hint is not needed on that transport.
+	const result = isWeb2Backend()
+		? await checkNicknameAvailabilityWeb2(nickname)
+		: await functions.checkNicknameAvailability({
+				nickname,
+				excludePrincipalStr: principal ?? ''
+			});
 
 	if (result.available) {
 		return { available: true };
 	}
 
-	return { available: false, reason: result.reason ?? 'taken' };
+	// The web2 validator can report `too_long`, which the shared FE outcome
+	// folds into `invalid` (the charset/format bucket) so both transports
+	// surface the same set of inline reasons.
+	const reason = result.reason === 'too_long' ? 'invalid' : (result.reason ?? 'taken');
+
+	return { available: false, reason };
 };
 
 /**
- * Result of `ensureProfile` — `existed` flags whether the satellite
+ * Reads the signed-in user's own on-file email from the owner-private
+ * `profile_private` doc. The collection is `managed` (owner +
+ * controllers), so this only resolves for the caller's own principal;
+ * never call it for a counterpart. Returns the empty string when no doc
+ * (or no address) is stored.
+ */
+export const getMyEmail = async (principal: PrincipalText): Promise<string> => {
+	// web2 keys the read on the session, not the passed principal, and the
+	// address lives on the caller's own profile row rather than a private doc
+	// (the row's email never rides a public profile object client-side).
+	if (isWeb2Backend()) {
+		return await getMyProfileEmailWeb2();
+	}
+
+	const doc = await getDoc<ProfilePrivate>({
+		collection: Collection.PROFILE_PRIVATE,
+		key: principal
+	});
+
+	return doc?.data.email.trim() ?? '';
+};
+
+/**
+ * Persists the signed-in user's email onto their owner-private
+ * `profile_private` doc (version-safe upsert). The satellite assert
+ * binds both the doc key and the embedded `owner` to the caller, so
+ * this can only ever write the caller's own doc.
+ */
+export const saveMyEmail = async ({
+	principal,
+	email
+}: {
+	principal: PrincipalText;
+	email: string;
+}): Promise<void> => {
+	// web2 stores the address on the owner profile row and the PUT is a
+	// full-doc write, so read-modify-write the stored profile. With no profile
+	// row yet the address already rides the auth identity (sign-in is
+	// email-verified on this transport), and writing a default shell here
+	// would falsely flip a fresh account to "existed" for the onboarding
+	// drain, so skip instead.
+	if (isWeb2Backend()) {
+		const profile = await getMyProfileWeb2();
+
+		if (isNullish(profile)) {
+			return;
+		}
+
+		await upsertMyProfileWeb2({ ...profile, email });
+
+		return;
+	}
+
+	const existing = await getDoc<ProfilePrivate>({
+		collection: Collection.PROFILE_PRIVATE,
+		key: principal
+	});
+
+	await setDoc({
+		collection: Collection.PROFILE_PRIVATE,
+		doc: {
+			key: principal,
+			...(nonNullish(existing?.version) && { version: existing.version }),
+			data: { owner: principal, email }
+		}
+	});
+};
+
+/**
+ * Post-sign-in email hydration + provider backfill. Reads the stored
+ * private address; when there is none and the IdP shared one this
+ * sign-in, captures it onto the private doc. Never overwrites an
+ * address already on file (a manually-entered one, or one from an
+ * earlier provider), so switching IdPs can't silently replace it.
+ * Best-effort: a failed read/write never blocks sign-in; the resolved
+ * on-file address (possibly '') is returned for the user store.
+ */
+const hydrateMyEmail = async ({
+	principal,
+	providerEmail
+}: {
+	principal: PrincipalText;
+	providerEmail: string;
+}): Promise<string> => {
+	try {
+		const stored = await getMyEmail(principal);
+
+		if (stored.length > 0 || providerEmail.length === 0) {
+			return stored;
+		}
+
+		await saveMyEmail({ principal, email: providerEmail });
+
+		return providerEmail;
+	} catch (err: unknown) {
+		console.warn('profile email hydration failed', err);
+
+		return '';
+	}
+};
+
+/**
+ * Result of `ensureProfile`: `existed` flags whether the satellite
  * already held a profile doc for this principal at sign-in time. The
  * post-sign-in handoff in `(app)/+layout.svelte` uses this to decide
  * whether to apply a pending pre-auth onboarding payload (new user)
- * or preserve the existing profile (returning user).
+ * or preserve the existing profile (returning user). `email` is the
+ * user's own on-file address from the owner-private `profile_private`
+ * doc (possibly just backfilled from the IdP), hydrated here so the
+ * user store never has to read it from the public profile.
  */
 export interface EnsureProfileResult {
 	profile: UserProfile;
 	existed: boolean;
+	email: string;
+}
+
+/**
+ * `ensureProfile` outcome when the principal has no profile and this build
+ * sends new accounts to the new app (`areNewSignupsMoved`): nothing was
+ * written, and the caller is expected to sign the session back out.
+ */
+export interface EnsureProfileMovedResult {
+	newAccountMoved: true;
 }
 
 /**
  * OpenID profile metadata Juno attaches to the auth `User` for OpenID-backed
  * providers (Google, GitHub). Every field is optional: the IdP only returns
- * what the user consented to share, so any of these — `email` included — can
+ * what the user consented to share, so any of these, `email` included, can
  * be missing on any given sign-in.
  */
 interface OpenIdProviderProfile {
@@ -593,12 +741,10 @@ interface OpenIdProviderProfile {
 }
 
 /**
- * Reads the OpenID claims off the auth `User`. They live under
- * `user.data.providerData.openid` since the `@junobuild/core` v5 auth-client
- * migration (the pre-v5 `details.profile` shape this used to read no longer
- * exists). Returns `undefined` for providers that carry no OpenID metadata —
- * Internet Identity (including Apple-via-II), passkey/WebAuthn, and the dev
- * shortcut.
+ * The OpenID claims on the auth `User`, when there are any. OpenID metadata is
+ * optional and absent on every sign-in that does not go through an OpenID
+ * provider, so `undefined` is a normal result: profile enrichment from these
+ * claims is best-effort and must never block or fail profile creation.
  */
 const extractOpenIdProfile = (user: User): OpenIdProviderProfile | undefined => {
 	const { providerData } = user.data as {
@@ -621,7 +767,7 @@ const bootstrappedThisSession = new Set<PrincipalText>();
 
 /**
  * True when `ensureProfile` created this principal's profile during the
- * current browser session — authoritative regardless of a later racy
+ * current browser session, authoritative regardless of a later racy
  * `getDoc` read. Used by the onboarding drain to decide new-vs-returning.
  */
 export const wasBootstrappedThisSession = (principal: PrincipalText): boolean =>
@@ -630,7 +776,7 @@ export const wasBootstrappedThisSession = (principal: PrincipalText): boolean =>
 /**
  * Reset the bootstrapped-this-session capture. Called on sign-out (which always
  * fires `onAuthStateChange(null)`), so a user who created a profile earlier in
- * this tab, signed out, and signs back in is correctly seen as RETURNING — not
+ * this tab, signed out, and signs back in is correctly seen as RETURNING, not
  * re-classified as new (which would let a referral-only pending payload run the
  * new-user branch and clobber their saved picks). The double-`onAuthStateChange`
  * race this set guards happens within a single sign-in (both passes carry a
@@ -640,57 +786,43 @@ export const forgetBootstrappedThisSession = (): void => {
 	bootstrappedThisSession.clear();
 };
 
-export const ensureProfile = async (user: User): Promise<EnsureProfileResult> => {
+export const ensureProfile = async (
+	user: User
+): Promise<EnsureProfileResult | EnsureProfileMovedResult> => {
 	const principal = user.key;
 	const profileDoc = await getProfile(principal);
 
 	const openid = extractOpenIdProfile(user);
 	// Best-effort: the IdP only returns an email when the user consented to
 	// share it (and only OpenID providers expose one at all), so this is
-	// frequently empty — capture it when present, never depend on it.
+	// frequently empty; capture it when present, never depend on it.
 	const providerEmail = openid?.email?.trim() ?? '';
 
 	// The synthetic shell from `getProfile` never carries a version. To
 	// detect "has the satellite ever stored a profile for this
-	// principal?" we have to read the doc directly via Juno's SDK —
-	// `version` is only populated on real stored docs. This is what
-	// previously caused every returning user to fall through to the
-	// upsert path and have any pending onboarding silently overwrite
-	// their saved nickname.
+	// principal?" we have to read the doc directly via Juno's SDK:
+	// `version` is only populated on real stored docs. Reading the shell
+	// instead would send every returning user down the upsert path, where
+	// a pending onboarding silently overwrites their saved nickname.
 	const existing = await getDoc<UserProfile>({
 		collection: Collection.PROFILES,
 		key: principal
 	});
 
 	if (nonNullish(existing) && nonNullish(existing.version)) {
-		// Backfill the provider email onto a returning user whose profile
-		// has none yet — e.g. they signed up before we captured it, or via a
-		// provider that didn't expose one then. Only when currently empty:
-		// never overwrite an address the user already has (a manually-entered
-		// one, or one from an earlier provider), so switching IdPs can't
-		// silently replace it. Best-effort — a failed backfill never blocks
-		// sign-in.
-		if (providerEmail.length > 0 && (existing.data.email ?? '').trim().length === 0) {
-			const backfilled: UserProfile = { ...existing.data, email: providerEmail };
+		// The address lives on the owner-private `profile_private` doc, never
+		// on the public profile; hydrate it (and backfill the provider email
+		// when nothing is on file yet) without touching the profile doc.
+		const email = await hydrateMyEmail({ principal, providerEmail });
 
-			try {
-				// Write against the version we just read (optimistic concurrency)
-				// rather than via `upsertProfile`, which re-reads and overlays this
-				// full snapshot onto the latest doc — that would clobber any other
-				// field changed in between. A stale version makes `setDoc` fail, so
-				// a concurrent write wins; this best-effort backfill just no-ops.
-				await setDoc({
-					collection: Collection.PROFILES,
-					doc: { key: principal, version: existing.version, data: backfilled }
-				});
+		return { profile: existing.data, existed: true, email };
+	}
 
-				return { profile: backfilled, existed: true };
-			} catch (err: unknown) {
-				console.warn('profile email backfill failed', err);
-			}
-		}
-
-		return { profile: existing.data, existed: true };
+	// Checked before the first write on purpose: the email hydration below
+	// creates the owner-private doc, and the seed patch creates the profile, so
+	// bailing any later would leave a half-created account behind.
+	if (areNewSignupsMoved()) {
+		return { newAccountMoved: true };
 	}
 
 	const fullName = nonNullish(openid)
@@ -698,8 +830,8 @@ export const ensureProfile = async (user: User): Promise<EnsureProfileResult> =>
 		: '';
 
 	// Seed a VALID handle on first touch. Both candidates carry characters
-	// the handle charset forbids — the OAuth display name (`"John Doe"`) has
-	// spaces, the shortened-principal default carries an `…` ellipsis — and
+	// the handle charset forbids (the OAuth display name (`"John Doe"`) has
+	// spaces, the shortened-principal default carries an `…` ellipsis) and
 	// the satellite now rejects those. Sanitise to `[a-z0-9._-]`; if nothing
 	// usable survives (e.g. a non-latin display name sanitises to empty),
 	// fall back to the raw principal, which is all lowercase/digits/hyphens
@@ -709,9 +841,9 @@ export const ensureProfile = async (user: User): Promise<EnsureProfileResult> =>
 	const sanitizedSeed = sanitizeNickname(seedSource);
 	const nickname = sanitizedSeed.length >= MIN_NICKNAME_LENGTH ? sanitizedSeed : principal;
 
-	// First-touch bootstrap. Seed the nickname (and provider email when present)
-	// through the SAME serialized `patchProfile` queue that `calculateAndSyncStats`
-	// — awaited right after sign-in on this finishing login — and the onboarding
+	// First-touch bootstrap. Seed the nickname through the SAME serialized
+	// `patchProfile` queue that `calculateAndSyncStats`
+	// (awaited right after sign-in on this finishing login) and the onboarding
 	// drain use. A direct full-snapshot `upsertProfile` here is NOT serialized
 	// against that concurrent stats write, so its read-then-write loses the
 	// optimistic-version race and throws ("set doc version"), stranding the user
@@ -720,13 +852,10 @@ export const ensureProfile = async (user: User): Promise<EnsureProfileResult> =>
 	// write instead, so whichever runs first, the other reads its version.
 	//
 	// The default nickname is the user's shortened principal, which can collide
-	// with another provider's shortened principal — fall back to the unshortened
+	// with another provider's shortened principal; fall back to the unshortened
 	// principal so the assertion cannot veto this implicit write. The user can
 	// change it later from the profile dashboard.
-	const seedPatch: ProfilePatch = {
-		nickname,
-		...(providerEmail.length > 0 && { email: providerEmail })
-	};
+	const seedPatch: ProfilePatch = { nickname };
 
 	// Record the bootstrap BEFORE the write awaits. A fresh sign-in can fire a
 	// second `onAuthStateChange` pass whose profile read resolves after the
@@ -738,58 +867,25 @@ export const ensureProfile = async (user: User): Promise<EnsureProfileResult> =>
 	// `existed: false` (the new-user path) on any retry.
 	bootstrappedThisSession.add(principal);
 
+	// Capture the provider email (when shared) onto the owner-private doc,
+	// same best-effort semantics as the returning-user hydration above.
+	const email = await hydrateMyEmail({ principal, providerEmail });
+
 	try {
-		return { profile: await patchProfile({ principal, patch: seedPatch }), existed: false };
+		return { profile: await patchProfile({ principal, patch: seedPatch }), existed: false, email };
 	} catch (err: unknown) {
 		const message = err instanceof Error ? err.message : '';
 
 		if (message.includes('already taken')) {
 			return {
 				profile: await patchProfile({ principal, patch: { ...seedPatch, nickname: principal } }),
-				existed: false
+				existed: false,
+				email
 			};
 		}
 
 		throw err;
 	}
-};
-
-/**
- * Falls back to a shortened principal so the UI never renders an empty
- * name when a profile has no nickname set.
- */
-export const getDisplayName = ({
-	profile
-}: {
-	profile: {
-		owner: PrincipalText;
-		nickname: Nickname;
-		visibility?: ProfileVisibility;
-	};
-	viewerPrincipal?: PrincipalText;
-	viewerRole?: UserRole;
-	isFriend?: boolean;
-}): string => {
-	if (!profile.nickname || profile.nickname.trim() === '') {
-		return shortenWithMiddleEllipsis({ text: profile.owner });
-	}
-
-	return profile.nickname;
-};
-
-/**
- * Checks if two users have an active friend relation via secure satellite query.
- */
-export const checkFriendship = async ({
-	userA,
-	userB
-}: {
-	userA: PrincipalText;
-	userB: PrincipalText;
-}): Promise<boolean> => {
-	const { isFriend } = await functions.checkFriendship({ userA, userB });
-
-	return isFriend;
 };
 
 /**
@@ -811,7 +907,7 @@ export const calculateAndSyncStats = async ({
 	// Lifetime realized P&L: sum the signed realized cashflow each
 	// clearing `Settled` event already carries. A settlement's signed
 	// `qty` IS the realized `cashflow_usd` in `USD_DECIMALS` base units
-	// (see `resolved-position.utils.ts` / the `ResolvedPosition` docs) —
+	// (see `resolved-position.utils.ts` / the `ResolvedPosition` docs),
 	// not a contract quantity to re-multiply by price. Summed as `bigint`
 	// base units and decoded once at the end, so the conversion is exact
 	// (no per-event float accumulation). NOT clamped: lifetime P&L is net
@@ -844,10 +940,10 @@ export const calculateAndSyncStats = async ({
 		return eventExecutionPrice(event) <= CONTRARIAN_PRICE_THRESHOLD;
 	}).length;
 
-	// Rarest single upset (Octopus) — the smallest execution consensus among
+	// Rarest single upset (Octopus): the smallest execution consensus among
 	// settled wins; lower = rarer. A consensus price is a probability, so only
 	// finite values in (0, 1] count: NaN / ±Infinity (malformed event) and
-	// out-of-range values are no data, not a best-ever upset — same defence as
+	// out-of-range values are no data, not a best-ever upset, same defence as
 	// the monthly consensus aggregation, but excluding rather than clamping,
 	// since clamping would fabricate a value for a MIN metric. `undefined`
 	// when there's no winning settlement yet, so the trophy stays at its
@@ -863,7 +959,7 @@ export const calculateAndSyncStats = async ({
 
 	const chronoHistory = [...history].sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
 
-	// Longest consecutive-win run ever (Snake) — the high-water sibling of
+	// Longest consecutive-win run ever (Snake): the high-water sibling of
 	// the current `streak`. Recomputed over the full chronological history;
 	// kept monotonic against the persisted value below so the trophy never
 	// regresses even if the readable history window ever shrinks.
@@ -879,10 +975,10 @@ export const calculateAndSyncStats = async ({
 		{ longestRun: 0, run: 0 }
 	);
 
-	// Cold-streak recoveries (Honey Badger) — each settled win that snaps a
+	// Cold-streak recoveries (Honey Badger): each settled win that snaps a
 	// run of at least `COMEBACK_COLD_STREAK_LOSSES` consecutive settled
 	// losses. Only a genuinely negative settlement counts as a loss: a
-	// neutral one (`qty === 0` — see `settledEventToResolvedPosition`) is
+	// neutral one (`qty === 0`, see `settledEventToResolvedPosition`) is
 	// neither a loss nor a recovery, so it breaks the run without scoring.
 	// Like `onFireStreak`, recomputed over the full chronological history
 	// and kept monotonic against the persisted value below.
@@ -936,7 +1032,7 @@ export const calculateAndSyncStats = async ({
 	// `USER_STATS` after the patch. Best-effort like the other auxiliary
 	// reads: malformed market metadata must not abort the whole stats sync,
 	// so a failed computation degrades to no `USER_STATS` refresh and a 0
-	// breadth count — which the monotonic patch below keeps from regressing
+	// breadth count, which the monotonic patch below keeps from regressing
 	// the persisted value.
 	let snapshot: UserStatsDoc | undefined;
 	let winningCategories = 0;
@@ -955,7 +1051,7 @@ export const calculateAndSyncStats = async ({
 
 	const profileDoc = await getProfile(principal);
 
-	// `league-founder` — does the caller own a league with at least
+	// `league-founder`: does the caller own a league with at least
 	// `LEAGUE_FOUNDER_MIN_MEMBERS` members? Read from `listMyLeagues`
 	// (carries `memberCount`). Best-effort: a failed read leaves the award
 	// un-flipped this pass, but it's sticky once earned, so a later sync
@@ -979,7 +1075,7 @@ export const calculateAndSyncStats = async ({
 	}
 
 	// Resolved battles the caller's side won (Bee's "win a bout" rung),
-	// tallied server-side by `getMyBattleStats` — duels by principal match
+	// tallied server-side by `getMyBattleStats`: duels by principal match
 	// on the winning side, league bouts by ownership of the winning league.
 	// Best-effort like the league read: a failed read computes 0 and the
 	// monotonic patch below keeps the persisted tally.
@@ -991,11 +1087,11 @@ export const calculateAndSyncStats = async ({
 		console.error('calculateAndSyncStats: failed to read battles for bouts-won', err);
 	}
 
-	// `top-decile` — bump the consecutive-day streak at most once per
+	// `top-decile`: bump the consecutive-day streak at most once per
 	// local calendar day when the caller sits in the top 10% of the
 	// global leaderboard (rank ≤ count / 10), reset to 0 otherwise.
 	// Mirrors the `dailyStreak` once-per-day pattern: same-day re-syncs
-	// don't move the streak. Best-effort — a failed rank read keeps the
+	// don't move the streak. Best-effort: a failed rank read keeps the
 	// persisted streak + day untouched so a transient error neither bumps
 	// nor resets.
 	const today = todayKey();
@@ -1022,7 +1118,7 @@ export const calculateAndSyncStats = async ({
 
 	// Monthly album awards (sharpest-eye, bold-caller). Re-derive the
 	// caller's current + prior month stats docs from clearing history and
-	// persist them (lazy month rollover — no scheduler), then evaluate the
+	// persist them (lazy month rollover, no scheduler), then evaluate the
 	// just-closed (prior) month's leaderboard for the caller's standing. The
 	// awards are for COMPLETED months, so the prior month is the one that can
 	// flip a fresh unlock. `sharpestEyeBestTier` is kept monotonic (a worse
@@ -1053,7 +1149,7 @@ export const calculateAndSyncStats = async ({
 	// Evaluate achievements against the freshly-computed snapshot and
 	// fold any newly-unlocked ids into the persisted set. Newly
 	// unlocked achievements also credit their XP into the points total
-	// before we recompute the level — so an achievement that pushes a
+	// before we recompute the level, so an achievement that pushes a
 	// user across a 500-point boundary correctly bumps the level in
 	// the same write.
 	const evaluations = evaluateAchievements({
@@ -1078,7 +1174,7 @@ export const calculateAndSyncStats = async ({
 	const level = Math.floor(adjustedPoints / 500) + 1;
 
 	// Patch (not full-snapshot write): the profile read at the top is stale by
-	// now — re-sending it would revert a handle picked during onboarding mid-sync
+	// now; re-sending it would revert a handle picked during onboarding mid-sync
 	// and trip the server handle-cooldown assert.
 	await patchProfile({
 		principal,
@@ -1096,7 +1192,7 @@ export const calculateAndSyncStats = async ({
 			comebacks: Math.max(coldStreakComebacks, profileDoc.data.comebacks ?? 0),
 			// Monotonic like the other trophy stats: when market metadata isn't
 			// hydrated the tag lookup degrades to "untagged" and the fresh count
-			// reads 0 — a thin sync must not strip an earned rung.
+			// reads 0; a thin sync must not strip an earned rung.
 			winningCategories: Math.max(winningCategories, profileDoc.data.winningCategories ?? 0),
 			leaguesJoined: Math.max(leaguesJoined, profileDoc.data.leaguesJoined ?? 0),
 			boutsWon: Math.max(boutsWon, profileDoc.data.boutsWon ?? 0),
@@ -1113,7 +1209,7 @@ export const calculateAndSyncStats = async ({
 	// keeping the snapshot fresh here means the categories tile +
 	// recent-history tile stay in sync with the user's last
 	// resolution event. Failures are logged but don't block the
-	// profile write — the cache will be rebuilt on the next sync.
+	// profile write; the cache will be rebuilt on the next sync.
 	try {
 		if (nonNullish(snapshot)) {
 			await persistMyUserStats(snapshot);
@@ -1126,13 +1222,34 @@ export const calculateAndSyncStats = async ({
 };
 
 /**
- * Record that the user did something predictable today — bumps the
+ * {@link calculateAndSyncStats} for the signed-in user. The recompute reads
+ * the clearing history with the user's on-chain identity, which a web2
+ * session never has, so web2 mode skips it instead of failing on the missing
+ * identity (a deliberate on-chain-only remainder, see
+ * `docs/ai/frontend/web2-backend-mode.md`).
+ */
+export const syncMyStats = async ({
+	domain
+}: {
+	domain: RegistryDid.BalanceDomain;
+}): Promise<void> => {
+	if (isWeb2Backend()) {
+		return;
+	}
+
+	const identity = await safeGetIdentityOnce();
+
+	await calculateAndSyncStats({ identity, domain });
+};
+
+/**
+ * Record that the user did something predictable today: bumps the
  * daily-streak engine and persists the result. Currently called from
  * the trade-execution path (`placeOrder`) so a successful trade keeps
  * the Flame alive for the day.
  *
  * Uses the same `applyDailyStreakBump` engine as Flow Mode, so the
- * two writers produce identical values for the same local day — no
+ * two writers produce identical values for the same local day: no
  * race, no UTC-vs-local drift. Same-day calls early-return without
  * a write.
  */
@@ -1151,7 +1268,7 @@ export const recordActivity = async (principal: PrincipalText): Promise<void> =>
 	// on the very write that crosses the threshold, rather than
 	// waiting for the next sign-in `calculateAndSyncStats`. The other
 	// achievement axes (trades, accuracy, contrarian, league-founder,
-	// top-decile) re-use the persisted values — they're not the trigger
+	// top-decile) re-use the persisted values; they're not the trigger
 	// here, and any already-earned sticky award stays unlocked through
 	// the merge. `ownsQualifyingLeague` is left `false`: this path never
 	// flips `league-founder` on (that's `calculateAndSyncStats`' job),
@@ -1164,7 +1281,7 @@ export const recordActivity = async (principal: PrincipalText): Promise<void> =>
 		contrarianWins: profileDoc.data.contrarianWins ?? 0,
 		ownsQualifyingLeague: false,
 		topDecileStreak: profileDoc.data.topDecileStreak ?? 0,
-		// Monthly awards are computed in `calculateAndSyncStats`, not here —
+		// Monthly awards are computed in `calculateAndSyncStats`, not here;
 		// reuse the persisted state so this path can't rescind a sticky
 		// unlock (the `marathon` daily-streak bump is the only trigger here).
 		sharpestEyeBestTier: profileDoc.data.sharpestEyeBestTier,

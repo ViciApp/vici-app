@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import Modal from '$lib/components/ui/Modal.svelte';
-	import { transferLeagueOwnership } from '$lib/services/leagues.services';
-	import { loadProfilesByPrincipals } from '$lib/services/profile.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import type { LeagueMemberDoc } from '$lib/types/league-member';
-	import { shortenPrincipal } from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import Modal from '#lib/components/ui/Modal.svelte';
+	import { transferLeagueOwnership } from '#lib/services/leagues.services.ts';
+	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+	import { shortenPrincipal } from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		isOpen: boolean;
@@ -21,7 +21,7 @@
 		 * the picker only shows promotable members.
 		 */
 		members: LeagueMemberDoc[];
-		/** Current owner's principal — excluded from the picker. */
+		/** Current owner's principal: excluded from the picker. */
 		currentOwnerPrincipal: string;
 	}
 
@@ -33,7 +33,7 @@
 	let submitError: MessageKey | string | null = $state(null);
 
 	// Filter out the current owner + any defensive duplicate-owner rows.
-	// Sort by joined-ascending so longest-tenured members sit first —
+	// Sort by joined-ascending so longest-tenured members sit first:
 	// the most common transfer target.
 	const candidates = $derived(
 		[...members]
@@ -112,7 +112,7 @@
 	};
 
 	onMount(() => {
-		// Hydrate nicknames for the candidate list — the league-detail
+		// Hydrate nicknames for the candidate list; the league-detail
 		// page may not have loaded them yet if the user opens this modal
 		// before scrolling the roster.
 		void loadProfilesByPrincipals({ principals: candidates.map((c) => c.member) });

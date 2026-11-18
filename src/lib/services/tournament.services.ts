@@ -1,14 +1,20 @@
-import { functions } from '$declarations/satellite/satellite.api';
+import { functions } from '#declarations/satellite/satellite.api.ts';
+import type {
+	TournamentDoc,
+	TournamentMatchDoc,
+	TournamentRound,
+	TriggerTournamentDrawRefusalReason
+} from '#lib/types/tournament.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
-	monthAnchorFromMs,
-	type TournamentDoc,
-	type TournamentMatchDoc,
-	type TournamentRound
-} from '$lib/types/tournament';
-import { isNullish } from '@dfinity/utils';
+	claimTournamentPrize as claimTournamentPrizeWeb2,
+	getCurrentTournament as getCurrentTournamentWeb2,
+	resolveTournamentRound as resolveTournamentRoundWeb2,
+	triggerTournamentDraw as triggerTournamentDrawWeb2
+} from '#lib/web2/client.ts';
 
 /**
- * Monthly tournament — Proposal 3 FE wrappers.
+ * Monthly tournament FE wrappers.
  *
  * Pattern is the same as the Worlds podium: the satellite has no
  * scheduler, so the draw is fire-and-forget on every Tournament-
@@ -17,30 +23,8 @@ import { isNullish } from '@dfinity/utils';
  */
 
 /**
- * Project the satellite's snake_case wire schema for a tournament
- * to FE camelCase.
- */
-const projectTournamentWire = (wire: {
-	id: string;
-	monthStartMs: number;
-	monthEndMs: number;
-	bracketSize: number;
-	state: 'in_flight' | 'concluded';
-	seededLeagueIds: string[];
-	createdAtMs: number;
-}): TournamentDoc => ({
-	id: wire.id,
-	monthStartMs: wire.monthStartMs,
-	monthEndMs: wire.monthEndMs,
-	bracketSize: wire.bracketSize,
-	state: wire.state,
-	seededLeagueIds: wire.seededLeagueIds,
-	createdAtMs: wire.createdAtMs
-});
-
-/**
- * Project the satellite's snake_case wire schema for a match to FE
- * camelCase. Optional snake_case fields land as `undefined`; we
+ * Project the satellite's wire row for a match to the FE shape.
+ * Optional wire fields land as `undefined`; we
  * normalise to `null` so the FE can pattern-match on `=== null` to
  * detect "TBD" slots.
  */
@@ -78,17 +62,23 @@ const projectMatchWire = (wire: {
 
 /**
  * Read the current tournament + its matches. Returns `null` for
- * the tournament when none has been drawn yet — the FE should
+ * the tournament when none has been drawn yet; the FE should
  * render a "draw a bracket" state.
  */
 export const getCurrentTournament = async (): Promise<{
 	tournament: TournamentDoc | null;
 	matches: TournamentMatchDoc[];
 }> => {
+	// The HTTP API already emits the FE doc shapes with explicit nulls for
+	// TBD slots, so no wire projection applies on this transport.
+	if (isWeb2Backend()) {
+		return await getCurrentTournamentWeb2();
+	}
+
 	const { tournament, matches } = await functions.getCurrentTournament();
 
 	return {
-		tournament: isNullish(tournament) ? null : projectTournamentWire(tournament),
+		tournament: tournament ?? null,
 		matches: matches.map(projectMatchWire)
 	};
 };
@@ -96,12 +86,12 @@ export const getCurrentTournament = async (): Promise<{
 export interface TriggerTournamentDrawResult {
 	ok: boolean;
 	tournamentId?: string;
-	reason?: 'already_drawn' | 'month_not_started' | 'insufficient_leagues' | 'invalid_input';
+	reason?: TriggerTournamentDrawRefusalReason;
 	availableLeagues?: number;
 }
 
 /**
- * Fire the draw for `monthAnchor`. Idempotent — a second call for
+ * Fire the draw for `monthAnchor`. Idempotent: a second call for
  * the same month returns `already_drawn` cleanly. Safe to
  * fire-and-forget on every Tournament-page mount.
  */
@@ -109,7 +99,12 @@ export const triggerTournamentDraw = ({
 	monthAnchor
 }: {
 	monthAnchor: string;
-}): Promise<TriggerTournamentDrawResult> => functions.triggerTournamentDraw({ monthAnchor });
+}): Promise<TriggerTournamentDrawResult> =>
+	// The web2 API also runs the draw from its worker; the lazy page-mount
+	// trigger stays for parity and collides idempotently with it.
+	isWeb2Backend()
+		? triggerTournamentDrawWeb2({ monthAnchor })
+		: functions.triggerTournamentDraw({ monthAnchor });
 
 export interface ResolveTournamentRoundResult {
 	ok: boolean;
@@ -125,7 +120,7 @@ export interface ResolveTournamentRoundResult {
 
 /**
  * Resolve every match in a closed round. Idempotent via the match
- * doc's `winnerLeagueId` write-once invariant — already-resolved
+ * doc's `winnerLeagueId` write-once invariant: already-resolved
  * matches are skipped. Returns the number of matches settled in
  * this call + whether the tournament has concluded.
  *
@@ -139,7 +134,11 @@ export const resolveTournamentRound = ({
 	tournamentId: string;
 	round: TournamentRound;
 }): Promise<ResolveTournamentRoundResult> =>
-	functions.resolveTournamentRound({ tournamentId, round });
+	// Also a worker job on the web2 API; the mount-time trigger stays for
+	// parity and skips already-settled matches server-side.
+	isWeb2Backend()
+		? resolveTournamentRoundWeb2({ tournamentId, round })
+		: functions.resolveTournamentRound({ tournamentId, round });
 
 export interface ClaimTournamentPrizeResult {
 	ok: boolean;
@@ -155,7 +154,7 @@ export interface ClaimTournamentPrizeResult {
  * in the bracket's winning leagues; the satellite writes a single
  * `VXP_AWARDS` doc + reports the VXP credited.
  *
- * Idempotent via the award doc key — a second call returns
+ * Idempotent via the award doc key: a second call returns
  * `awardsAlreadyClaimed > 0` and `awardsCreated === 0`.
  *
  * The FE fires this on every Tournament-page mount once the
@@ -165,10 +164,7 @@ export const claimTournamentPrize = ({
 	tournamentId
 }: {
 	tournamentId: string;
-}): Promise<ClaimTournamentPrizeResult> => functions.claimTournamentPrize({ tournamentId });
-
-/**
- * Convenience: the current calendar month's anchor (UTC). Used by
- * the FE to default the draw trigger to the in-progress month.
- */
-export const currentMonthAnchor = (nowMs: number = Date.now()): string => monthAnchorFromMs(nowMs);
+}): Promise<ClaimTournamentPrizeResult> =>
+	isWeb2Backend()
+		? claimTournamentPrizeWeb2({ tournamentId })
+		: functions.claimTournamentPrize({ tournamentId });

@@ -15,10 +15,10 @@ mkdir -p "$DIR"
 rm -f "$DIR"/vxp_minter.*
 
 "$SCRIPTS_LIB/download-immutable.sh" \
-	"https://github.com/AntonioVentilii/vici-points/releases/download/$VICI_POINTS_VERSION/minter.wasm.gz" \
+	"https://github.com/ViciApp/vici-points/releases/download/$VICI_POINTS_VERSION/minter.wasm.gz" \
 	"$DIR/vxp_minter.wasm.gz"
 gunzip -f "$DIR/vxp_minter.wasm.gz"
 
 "$SCRIPTS_LIB/download-immutable.sh" \
-	"https://github.com/AntonioVentilii/vici-points/releases/download/$VICI_POINTS_VERSION/minter.did" \
+	"https://github.com/ViciApp/vici-points/releases/download/$VICI_POINTS_VERSION/minter.did" \
 	"$DIR/vxp_minter.did"

@@ -1,23 +1,24 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { signOut } from '@junobuild/core';
 	import { ArrowLeftRight, Check, ChevronRight, Mail } from '@lucide/svelte/icons';
 	import { onDestroy } from 'svelte';
+	import IconGoogle from '#lib/components/icons/IconGoogle.svelte';
+	import IconIc from '#lib/components/icons/IconIC.svelte';
+	import IconPasskey from '#lib/components/icons/IconPasskey.svelte';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { flushEvents, track } from '#lib/services/analytics.services.ts';
+	import { signOut } from '#lib/services/identity.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { resolveSignInMethod } from '#lib/utils/signin-method.utils.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import IconGoogle from '$lib/components/icons/IconGoogle.svelte';
-	import IconIc from '$lib/components/icons/IconIC.svelte';
-	import IconPasskey from '$lib/components/icons/IconPasskey.svelte';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { resolveSignInMethod } from '$lib/utils/signin-method.utils';
 
 	/**
-	 * Account settings — current sign-in method + email address. Two
+	 * Account settings: current sign-in method + email address. Two
 	 * editorial cards: the method tile (glyph + label + address) over a
 	 * switch action, and the email card with an `idle → editing → sent`
 	 * change flow.
@@ -43,7 +44,9 @@
 
 	const EMAIL_CHANGE_ENABLED = false;
 
-	const email = $derived($userStore.profile?.email ?? '');
+	// The address lives on the owner-private `profile_private` doc (hydrated
+	// into the store at sign-in), never on the public profile.
+	const email = $derived($userStore.email);
 	const hasEmail = $derived(email.length > 0);
 
 	const method = $derived(resolveSignInMethod({ user: $userStore.user, hasEmail }));
@@ -93,6 +96,11 @@
 		}
 
 		switchingMethod = true;
+
+		// Emit + flush before the auth drop so the principal is still
+		// stitched onto the event; fire-and-forget, never blocks sign-out.
+		track({ name: 'signed_out', source: 'account_settings', label: 'switch_method' });
+		void flushEvents();
 
 		try {
 			await signOut();
@@ -149,7 +157,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'account.back' }),
-			onBack: () => goBack(resolve(AppPath.Settings))
+			onBack: () => goBack(resolveAppPath(AppPath.Settings))
 		}}
 		title={t({ locale: $localeStore, key: 'account.title' })}
 	/>
@@ -480,7 +488,7 @@
 	   width: a compact, content-sized rounded control (corner radius
 	   inherited from the shared `.account-ghost` 12-px rule) anchored to
 	   the start of the column. The shared full-width `.account-switch`
-	   and the 50/50 `.account-edit-cancel` are untouched — only this
+	   and the 50/50 `.account-edit-cancel` are untouched; only this
 	   secondary action collapses to its content. */
 	.account-email-change {
 		width: auto;

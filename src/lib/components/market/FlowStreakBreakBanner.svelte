@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { backOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
-	import { FLAME_STAGE_LABEL_KEYS, type FlameStage } from '$lib/utils/streak.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
+	import { FLAME_STAGE_LABEL_KEYS, type FlameStage } from '#lib/utils/streak.utils.ts';
 
 	interface Props {
 		stage: FlameStage;
@@ -15,7 +15,7 @@
 
 <!-- Streak-break choreography: single low thud (haptic fires in
      handleAction), banner names the stage that ended, fresh start
-     at SPARK. Only shown once the forgiveness window is exhausted —
+     at SPARK. Only shown once the forgiveness window is exhausted:
      two or more fully-missed days. -->
 <div
 	class="streak-break"
@@ -40,7 +40,7 @@
 </div>
 
 <style lang="postcss">
-	/* Streak-break banner — shows once when the previous-day gap broke
+	/* Streak-break banner: shows once when the previous-day gap broke
 	   the streak. Mute palette (parchment-mute, no laurel celebration);
 	   spec is explicit that the break is honest, not consoling. */
 	.streak-break {

@@ -1,5 +1,8 @@
-import { ProfileVisibility } from '$lib/enums/profile';
-import type { SettingsVisibility } from '$lib/types/preferences';
+import { ProfileVisibility } from '#lib/enums/profile.ts';
+import type { SettingsVisibility } from '#lib/types/preferences.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import { nonNullish } from '@dfinity/utils';
+import type { PrincipalText } from '@junobuild/schema';
 
 /**
  * Map the persisted {@link ProfileVisibility} enum to the three-way
@@ -34,3 +37,23 @@ export const visibilityToProfile = (value: SettingsVisibility): ProfileVisibilit
 
 	return ProfileVisibility.FRIENDS_ONLY;
 };
+
+/**
+ * Whether `owner` may appear on a global ranking surface, honouring the
+ * "Show on global leaderboard" opt-out. Fails closed: a profile that is not
+ * loaded yet is hidden, so an opted-out predictor never flashes onto a list
+ * before their preference is known (showing-then-hiding is itself a leak).
+ * The viewer always keeps their own entry. A nullish flag on a loaded legacy
+ * profile reads as opted in, matching the always-shown default.
+ */
+export const isShownOnGlobalLeaderboard = ({
+	owner,
+	profile,
+	selfOwner
+}: {
+	owner: PrincipalText;
+	profile: UserProfile | undefined;
+	selfOwner: PrincipalText | undefined;
+}): boolean =>
+	owner === selfOwner ||
+	(nonNullish(profile) && profile.preferences.sharing.leaderboardOptIn !== false);

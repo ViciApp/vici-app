@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 </script>
 
 <!-- Pulsing LIVE pill that sits beside the category chip on the Market
      detail hero. The dot pulses at 1.6s, same beat as the Welcome /
-     Tournament heroes — three surfaces now share the same `pulse-live`
+     Tournament heroes: three surfaces now share the same `pulse-live`
      keyframe so future tweaks land in one place. The pill suppresses
      itself for resolved markets via the caller; this component is
      visual-only. -->

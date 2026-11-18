@@ -5,11 +5,11 @@ import {
 	INBOX_PROGRESS_STORAGE_KEY,
 	INBOX_READ_STORAGE_KEY,
 	INBOX_SETTLED_READ_STORAGE_KEY
-} from '$lib/constants/inbox.constants';
-import { clearDailyGoalMirror } from '$lib/utils/daily-goal.utils';
-import { resetMotionState } from '$lib/utils/motion-engine.utils';
-import { clearOnboardingSeenFlags } from '$lib/utils/onboarding-flags.utils';
-import { del, get, set } from '$lib/utils/storage.utils';
+} from '#lib/constants/inbox.constants.ts';
+import { clearDailyGoalMirror } from '#lib/utils/daily-goal.utils.ts';
+import { resetMotionState } from '#lib/utils/motion-engine.utils.ts';
+import { clearOnboardingSeenFlags } from '#lib/utils/onboarding-flags.utils.ts';
+import { del, get, set } from '#lib/utils/storage.utils.ts';
 import { isNullish } from '@dfinity/utils';
 
 // Principal the identity-scoped caches currently belong to. Persisted so a
@@ -21,13 +21,13 @@ const STORAGE_OWNER_KEY = 'vici.storage-owner.v1';
  * principal changes to a different *defined* owner (sign-in as a different
  * user, account switch), so one identity's state never bleeds into the next
  * on a shared device. The signed-out (`undefined`) transition does NOT clear
- * — see the note below.
+ * (see the note below).
  *
- * Only clears on an actual owner change — NOT on a same-user reload, which
+ * Only clears on an actual owner change, NOT on a same-user reload, which
  * would defeat the offline-resilient daily-goal mirror (it exists to survive
  * a refresh after a dropped server write). Scope is local-authoritative state
- * with no server copy to reload from; server-backed caches are handled
- * separately in `Authn`.
+ * with no server copy to reload from; server-backed caches are reset beside
+ * it in `resetIdentityScopedState`.
  *
  * First observation (no persisted owner yet) counts as a change and clears:
  * that's intentional, so already-affected devices from before this guard
@@ -47,7 +47,7 @@ export const reconcileIdentityScopedStorage = ({
 }: {
 	ownerKey: string | undefined;
 }): void => {
-	// Ignore the signed-out / bootstrap `null` transition — keep the remembered
+	// Ignore the signed-out / bootstrap `null` transition: keep the remembered
 	// owner so a same-user re-auth is recognised and not treated as a switch.
 	if (isNullish(ownerKey)) {
 		return;

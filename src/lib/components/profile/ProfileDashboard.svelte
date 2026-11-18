@@ -2,49 +2,47 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Check, Pencil, Settings, Shield, Users } from '@lucide/svelte';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import AffiliationPickerModal from '$lib/components/leagues/AffiliationPickerModal.svelte';
-	import MenagerieBadge from '$lib/components/menagerie/MenagerieBadge.svelte';
-	import MenagerieBadgeSkeleton from '$lib/components/menagerie/MenagerieBadgeSkeleton.svelte';
-	import AvatarEditor from '$lib/components/profile/AvatarEditor.svelte';
-	import HandleEditor from '$lib/components/profile/HandleEditor.svelte';
-	import ProfileOracleInsight from '$lib/components/profile/ProfileOracleInsight.svelte';
-	import CountryFlag from '$lib/components/ui/CountryFlag.svelte';
-	import NotifBell from '$lib/components/ui/NotifBell.svelte';
-	import ViciAvatar from '$lib/components/ui/ViciAvatar.svelte';
-	import { MENAGERIE } from '$lib/constants/menagerie.constants';
-	import { nicknameUniqueKey } from '$lib/constants/profile.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { SCHOOL_PASS2_ENABLED } from '$lib/constants/school-picker.constants';
-	import { lookupWorldsAffiliation } from '$lib/constants/worlds-affiliations.constants';
-	import { leaderboard } from '$lib/derived/leaderboard.derived';
-	import { marketById } from '$lib/derived/market-by-id.derived';
-	import { myMenagerieLoading, myMenagerieRows } from '$lib/derived/menagerie.derived';
-	import { userIsAdmin } from '$lib/derived/user.derived';
-	import { loadMyMenagerieSignals } from '$lib/services/menagerie.services';
-	import { upsertProfile } from '$lib/services/profile.services';
-	import { getMyReferralCode } from '$lib/services/referral.services';
-	import { loadMyUserStats } from '$lib/services/user-stats.services';
-	import { myAffiliationsStore, refreshMyAffiliations } from '$lib/stores/affiliations.store';
-	import { myAvatarParts } from '$lib/stores/avatar.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { globalStandingsStore } from '$lib/stores/standings.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { AffiliationKind } from '$lib/types/affiliation';
-	import type { MarketId } from '$lib/types/market';
-	import type { UserProfile } from '$lib/types/profile';
-	import type { UserStatsDoc } from '$lib/types/user-stats';
-	import { affiliationChipStyle } from '$lib/utils/affiliation-chip.utils';
-	import { countryDisplayName } from '$lib/utils/affiliation-name.utils';
-	import { writeToClipboard } from '$lib/utils/clipboard.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import AffiliationPickerModal from '#lib/components/leagues/AffiliationPickerModal.svelte';
+	import MenagerieBadge from '#lib/components/menagerie/MenagerieBadge.svelte';
+	import MenagerieBadgeSkeleton from '#lib/components/menagerie/MenagerieBadgeSkeleton.svelte';
+	import AvatarEditor from '#lib/components/profile/AvatarEditor.svelte';
+	import HandleEditor from '#lib/components/profile/HandleEditor.svelte';
+	import ProfileOracleInsight from '#lib/components/profile/ProfileOracleInsight.svelte';
+	import CountryFlag from '#lib/components/ui/CountryFlag.svelte';
+	import NotifBell from '#lib/components/ui/NotifBell.svelte';
+	import ViciAvatar from '#lib/components/ui/ViciAvatar.svelte';
+	import { MENAGERIE } from '#lib/constants/menagerie.constants.ts';
+	import { nicknameUniqueKey } from '#lib/constants/profile.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { SCHOOL_PASS2_ENABLED } from '#lib/constants/school-picker.constants.ts';
+	import { lookupWorldsAffiliation } from '#lib/constants/worlds-affiliations.constants.ts';
+	import { myMenagerieLoading, myMenagerieRows } from '#lib/derived/menagerie.derived.ts';
+	import { userIsAdmin } from '#lib/derived/user.derived.ts';
+	import { loadMyMenagerieSignals } from '#lib/services/menagerie.services.ts';
+	import { upsertProfile } from '#lib/services/profile.services.ts';
+	import { getMyReferralCode } from '#lib/services/referral.services.ts';
+	import { loadMyUserStats } from '#lib/services/user-stats.services.ts';
+	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
+	import { myAvatarParts } from '#lib/stores/avatar.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
+	import { myGlobalRankStore } from '#lib/stores/menagerie.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { AffiliationKind } from '#lib/types/affiliation.ts';
+	import type { UserProfile } from '#lib/types/profile.ts';
+	import type { UserStatsDoc } from '#lib/types/user-stats.ts';
+	import { affiliationChipStyle } from '#lib/utils/affiliation-chip.utils.ts';
+	import { countryDisplayName } from '#lib/utils/affiliation-name.utils.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { appOrigin, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import {
 		avatarBackdropPlanes,
 		deterministicParts,
 		parseParts
-	} from '$lib/utils/vici-avatar.utils';
+	} from '#lib/utils/vici-avatar.utils.ts';
+	import { goto } from '$app/navigation';
 
 	interface Props {
 		profile: UserProfile;
@@ -58,7 +56,7 @@
 	/* Editable handle -------------------------------------------------- */
 
 	// The handle (public `@`-name) is edited through the dedicated
-	// {@link HandleEditor} sheet — a single input with an inline
+	// {@link HandleEditor} sheet: a single input with an inline
 	// availability indicator and a 30-day change limit. The limit is
 	// server-authoritative (the set-profile assertion is the authority,
 	// keyed off the profile's `handleLastChangeMs`); the editor mirrors it
@@ -86,7 +84,7 @@
 		// update back verbatim if the persist fails.
 		const previousProfile = profile;
 
-		// Stamp the change time only on a real (folded) change — a pure
+		// Stamp the change time only on a real (folded) change: a pure
 		// re-casing folds to the same key, where the assertion rejects a moved
 		// stamp. On a real change the assertion validates it's ~now and starts
 		// the cooldown.
@@ -137,43 +135,34 @@
 
 	// The viewer's lifetime record (accuracy, rank, streak, calls) surfaces on
 	// the Dashboard and Arena; the Profile hero is identity-focused. The few
-	// figures kept here drive the credibility line, the Oracle insight, and the
-	// Menagerie tiers — not a stats card.
+	// figures kept here drive the Oracle insight, not a stats card.
 	const accuracy = $derived(profile.accuracy ?? 0);
 	const dailyStreak = $derived(profile.dailyStreak ?? 0);
 	const totalTrades = $derived(profile.totalTrades ?? 0);
 
 	/**
-	 * Global rank — viewer's 1-based index in the cached leaderboard. Drives the
-	 * "Top X%" credibility line below the handle and the rank-gated Menagerie
-	 * tiers (Goat). The leaderboard is populated lazily by `LoaderLeaderboard`
-	 * on app boot; when the slice hasn't resolved yet (or the viewer isn't in
-	 * it), the credibility line simply doesn't render.
-	 */
-	const globalRank = $derived.by<number | undefined>(() => {
-		const idx = $leaderboard.findIndex((entry) => entry.owner === profile.owner);
-
-		return idx === -1 ? undefined : idx + 1;
-	});
-
-	/**
-	 * Credibility line — "Top X% of global predictors". The hero surfaces one
-	 * quiet line of social standing under the handle. The percentile is the
-	 * viewer's rank over the size of the global ("all") standings window (the
-	 * total ranked field). Below 1% it floors to "Top 1%"; we only render the
-	 * line once a real rank + a non-empty ranked field exist, so it never reads
-	 * as "Top 100%" on an unranked or unloaded profile.
+	 * Credibility line: "Top X% of global predictors", one quiet line of social
+	 * standing under the handle. Rank and ranked-population size come from one
+	 * query over the full ranking (`myGlobalRankStore`, the signal behind Goat),
+	 * so the percentile never exceeds 100% and resolves for every ranked viewer.
+	 * Below 1% it floors to "Top 1%". `myGlobalRankStore` is the viewer's own
+	 * rank, so the line renders only on their own profile, and only once they
+	 * are ranked in a non-empty field: an unranked or unloaded profile shows
+	 * nothing.
 	 */
 	const topPercentLabel = $derived.by<string | undefined>(() => {
-		// The window's `total` is the full ranked population (`entries` is only the
-		// paged slice), so the credibility line agrees with Goat's percentile.
-		const total = $globalStandingsStore.get('all')?.total;
-
-		if (isNullish(globalRank) || isNullish(total) || total <= 0) {
+		if (!isOwnProfile) {
 			return;
 		}
 
-		const pct = (globalRank / total) * 100;
+		const rank = $myGlobalRankStore?.rank;
+		const total = $myGlobalRankStore?.totalRanked;
+
+		if (isNullish(rank) || isNullish(total) || total <= 0) {
+			return;
+		}
+
+		const pct = (rank / total) * 100;
 		const rounded = pct < 1 ? 1 : Math.ceil(pct);
 
 		return t({
@@ -183,10 +172,10 @@
 		});
 	});
 
-	/* Invite Friends — growth loop ------------------------------------- */
+	/* Invite Friends: growth loop ------------------------------------- */
 
 	// The viewer's auto-assigned referral code, fetched on mount so the share
-	// URL is ready synchronously when the CTA is tapped — `navigator.share()`
+	// URL is ready synchronously when the CTA is tapped: `navigator.share()`
 	// must fire inside the user gesture (an `await` first makes iOS Safari drop
 	// it for losing user activation), so we can't resolve the code on demand.
 	let inviteCode = $state<string | undefined>(undefined);
@@ -196,14 +185,13 @@
 	// instead of popping in once the code lands.
 	let inviteCodeLoading = $state(true);
 
-	// Canonical invite URL — `https://{origin}/join/{code}`. The slug is the viewer's
+	// Canonical invite URL: `https://{origin}/join/{code}`. The slug is the viewer's
 	// stable referral code (never their mutable handle), so a shared link never rots on a
 	// rename. `/join/[code]` and `/i/[code]` render the same landing, so this resolves the
-	// same as the Arena Friends hero's `/i/{code}` link. The handle-based `/join/{handle}`
-	// link this used to build had no matching route and 404'd.
+	// same as the Arena Friends hero's `/i/{code}` link.
 	const inviteUrl = $derived(
 		nonNullish(inviteCode) && typeof window !== 'undefined'
-			? `${window.location.origin}/join/${inviteCode}`
+			? `${appOrigin()}/join/${inviteCode}`
 			: undefined
 	);
 
@@ -229,7 +217,7 @@
 
 				return;
 			} catch (_: unknown) {
-				// Cancelled or unsupported — fall through to clipboard.
+				// Cancelled or unsupported: fall through to clipboard.
 			}
 		}
 
@@ -240,7 +228,7 @@
 		}
 	};
 
-	/* Hero gradient — recoloured from the avatar's own backdrop palette ---- */
+	/* Hero gradient: recoloured from the avatar's own backdrop palette ---- */
 
 	// The full-bleed hero figure renders with `noBg`, so it sits on a gradient
 	// built from the same two backdrop planes the avatar would otherwise draw.
@@ -257,14 +245,14 @@
 	const heroPalette = $derived(avatarBackdropPlanes(heroParts));
 
 	const handleOpenSettings = () => {
-		void goto(resolve(AppPath.Settings));
+		void goto(resolveAppPath(AppPath.Settings));
 	};
 
 	const handleOpenAdmin = () => {
-		void goto(resolve(AppPath.Admin));
+		void goto(resolveAppPath(AppPath.Admin));
 	};
 
-	/* User-stats — drives the Oracle insight's latest-settled record line. */
+	/* User-stats: drives the Oracle insight's latest-settled record line. */
 
 	let userStats = $state<UserStatsDoc | undefined>(undefined);
 
@@ -279,34 +267,34 @@
 
 	// Read the caller's affiliations from the shared cache (populated by
 	// `refreshMyAffiliations`). Only the caller's own profile surfaces
-	// the affiliation grid — other profiles keep the slots empty, as
+	// the affiliation grid: other profiles keep the slots empty, as
 	// before.
 	const myUni = $derived(isOwnProfile ? $myAffiliationsStore.university : undefined);
 	const myCountry = $derived(isOwnProfile ? $myAffiliationsStore.country : undefined);
 
 	/**
-	 * Affiliation grid — the two wired slots, Alma Mater + Citizen. The
+	 * Affiliation grid: the two wired slots, Alma Mater + Citizen. The
 	 * earlier locked City / Company "coming soon" placeholders are gone: an
 	 * empty slot that can never be filled reads as broken chrome, so the grid
 	 * shows only the affiliations a user can actually set.
 	 */
 	interface AffilSlot {
-		key: 'university' | 'country';
+		key: AffiliationKind;
 		kind: AffiliationKind;
 		labelKey: MessageKey;
 		filled: boolean;
 		value: string | null;
-		/** Stored affiliation id — ISO-2 for countries, slug for unis.
+		/** Stored affiliation id: ISO-2 for countries, slug for unis.
 		 *  Needed at render time so the country slot can pass an ID to
 		 *  `<CountryFlag>` rather than the display `value` (name). */
 		affiliationIdentifier: string | null;
 		glyph: string;
-		/** Affiliation brand palette — tints the filled-slot icon in the
+		/** Affiliation brand palette: tints the filled-slot icon in the
 		 *  school's / country's own colour. Absent for roster entries
 		 *  without a curated palette. */
 		color: string | null;
 		text: string | null;
-		/** Alma Mater verification state — only meaningful on the
+		/** Alma Mater verification state: only meaningful on the
 		 *  `university` slot when filled. `null` on every other slot. */
 		status: SchoolStatus | null;
 	}
@@ -316,7 +304,7 @@
 	 * string; a filled university slot with no stored status reads as
 	 * `'unverified'`. `'pending'` / `'verified'` are reached through the
 	 * membership-email verification flow, which is deferred to its own
-	 * roadmap item — until then `'unverified'` is the only state a freshly
+	 * roadmap item: until then `'unverified'` is the only state a freshly
 	 * picked school can hold.
 	 */
 	type SchoolStatus = 'unverified' | 'pending' | 'verified';
@@ -395,20 +383,21 @@
 
 	let avatarEditorOpen = $state(false);
 
-	// Seed the editor with the user's saved picks, or — for a user who has
-	// never customised — a deterministic face derived from their immutable
+	// Seed the editor with the user's saved picks, or, for a user who has
+	// never customised, a deterministic face derived from their immutable
 	// principal, so the editor opens on the same face the rest of the app
 	// already shows them.
 	const avatarInitialParts = $derived($myAvatarParts ?? deterministicParts(profile.owner));
 
-	/* Oracle weekly insight — the latest settled call as a record line --- */
+	/* Oracle weekly insight: the latest settled call as a record line --- */
 
-	// The newest settled call in the recent window — drives the Oracle's
-	// record card: a win reads "You called it — '{q}?'", a loss reads "The
-	// market went the other way — '{q}?'". `recentSettlements` is newest-first,
+	// The newest settled call in the recent window: drives the Oracle's
+	// record card: a win reads "You called it: '{q}?'", a loss reads "The
+	// market went the other way: '{q}?'". `recentSettlements` is newest-first,
 	// so the head is the latest resolution. The market title (the question) is
-	// resolved live from the shared `marketById` map; it falls back to the
-	// market id only when the market hasn't loaded.
+	// resolved live from the shared `displayMarkets` map so it shows the
+	// reader's locale; it falls back to the market id only when the market
+	// hasn't loaded.
 	const latestSettlement = $derived(recentSettlements.at(0));
 
 	interface OracleRecord {
@@ -422,7 +411,7 @@
 		}
 
 		const title =
-			$marketById.get(latestSettlement.marketId as MarketId)?.title ?? latestSettlement.marketId;
+			$displayMarkets.get(latestSettlement.marketId)?.title ?? latestSettlement.marketId;
 		// Drop a trailing "?" so the copy can re-add a single one inside the
 		// quotes ("…'{q}?'") regardless of how the title is punctuated.
 		const question = title.replace(/\?\s*$/, '');
@@ -430,7 +419,7 @@
 		return { win: latestSettlement.win, question };
 	});
 
-	// Fallback insight string — shown when there is no settled call to surface
+	// Fallback insight string: shown when there is no settled call to surface
 	// as a record line (a fresh account, or someone else's profile). Kept lean,
 	// no archetype fiction.
 	const oracleInsight = $derived.by(() => {
@@ -473,10 +462,10 @@
 		});
 	});
 
-	/* Achievements — the Menagerie trophy layer ------------------------ */
+	/* Achievements: the Menagerie trophy layer ------------------------ */
 
 	// All twelve animals, decorated with each one's live tier + progress and
-	// sorted earned-first, plus the load gate — both read from the single shared
+	// sorted earned-first, plus the load gate: both read from the single shared
 	// `menagerie.derived` source the Album route also reads, so a trophy can
 	// never show as earned here yet locked there. `myMenagerieLoading` holds the
 	// rail in its skeleton state until the rank / referral signals resolve, so a
@@ -504,7 +493,7 @@
 		// Fetch the viewer's referral code so the hero's "Invite Friends" CTA can
 		// build the canonical `/join/{code}` share URL. The code is assigned by the
 		// satellite profile hook on first profile create (backfilled on the next
-		// save for older accounts) — if it's missing the CTA simply hides.
+		// save for older accounts), if it's missing the CTA simply hides.
 		void (async () => {
 			try {
 				inviteCode = await getMyReferralCode();
@@ -561,7 +550,7 @@
 		<!-- Top scrim so the floating controls read over any backdrop. -->
 		<span class="profile-hero-scrim" aria-hidden="true"></span>
 
-		<!-- Floating controls — notification bell + settings (+ admin), on
+		<!-- Floating controls: notification bell + settings (+ admin), on
 		     translucent discs. The bell uses its cream variant for contrast. -->
 		<div class="profile-hero-controls">
 			<span class="profile-hero-disc">
@@ -696,13 +685,13 @@
 					{:else if slot.status === 'unverified'}
 						<!-- Unverified Alma Mater. When membership-email verification
 						     is live ({@link SCHOOL_PASS2_ENABLED}), surface an
-						     actionable "Verify your school →" footnote — the slot is
+						     actionable "Verify your school →" footnote; the slot is
 						     a button, so tapping it opens the picker straight on this
 						     school's verify step (see `handleSlotClick`). When the flow
 						     is gated off, fall back to a subtle, non-actionable
-						     "verification — coming soon" hint (a bare "Unverified" pill
+						     "verification: coming soon" hint (a bare "Unverified" pill
 						     on every Alma Mater would read as a defect). Either way it
-						     flows in-line as a footnote — too long for the top-right
+						     flows in-line as a footnote, too long for the top-right
 						     pill slot used by the verified / pending badges. -->
 						<span class="affil-slot-hint num" class:affil-slot-cta={SCHOOL_PASS2_ENABLED}>
 							{t({
@@ -718,7 +707,7 @@
 		</div>
 	</section>
 
-	<!-- Achievements — the Menagerie trophy layer. Each animal renders as a
+	<!-- Achievements: the Menagerie trophy layer. Each animal renders as a
 	     squircle badge (the shared `MenagerieBadge`) at its live tier, earned
 	     trophies first; "All" opens the full Menagerie album. -->
 	<section class="profile-achievements">
@@ -728,7 +717,7 @@
 			</h2>
 			<button
 				class="profile-achievements-all"
-				onclick={() => goto(resolve(AppPath.Album))}
+				onclick={() => goto(resolveAppPath(AppPath.Album))}
 				type="button"
 			>
 				{t({ locale: $localeStore, key: 'profile.dashboard.all' })}
@@ -748,7 +737,7 @@
 					{@const earned = nonNullish(row.tier)}
 					<button
 						class="profile-menagerie-tile"
-						onclick={() => goto(resolve(AppPath.Album))}
+						onclick={() => goto(resolveAppPath(AppPath.Album))}
 						type="button"
 					>
 						<MenagerieBadge size={68} slug={row.animal.slug} tier={row.tier} />
@@ -770,7 +759,7 @@
 		</div>
 	</section>
 
-	<!-- Oracle weekly insight — the latest settled call as a record line. -->
+	<!-- Oracle weekly insight: the latest settled call as a record line. -->
 	<ProfileOracleInsight {oracleInsight} record={oracleRecord} />
 </div>
 
@@ -877,7 +866,7 @@
 		height: 100% !important;
 	}
 
-	/* Soft fade into the page — short + low so it never clips the bust.
+	/* Soft fade into the page: short + low so it never clips the bust.
 	   Fade from the page colour at *zero alpha*, not bare `transparent`:
 	   `transparent` is transparent-black, so over the avatar's coloured
 	   backdrop the gradient passed through a muddy grey midtone that read as a
@@ -1035,7 +1024,7 @@
 		white-space: nowrap;
 	}
 
-	/* Invite Friends — gold-accent growth CTA. */
+	/* Invite Friends: gold-accent growth CTA. */
 	.profile-hero-invite {
 		display: inline-flex;
 		align-items: center;
@@ -1084,7 +1073,7 @@
 		}
 	}
 
-	/* Country-flag SVG inside an affiliation tile — fills the same 1.6rem
+	/* Country-flag SVG inside an affiliation tile: fills the same 1.6rem
 	   square as the alphabetic glyph so the row geometry is stable. */
 	.profile-dashboard :global(.affil-slot-flag) {
 		width: 100%;
@@ -1207,7 +1196,7 @@
 		color: var(--laurel);
 	}
 
-	/* Brand-tinted slot icon (university with a curated palette) — the
+	/* Brand-tinted slot icon (university with a curated palette): the
 	   inline `background`/`color` carry the school's own colour, so the
 	   icon just adds the inset highlight that reads on a saturated fill,
 	   overriding the laurel stand-in above. */
@@ -1269,13 +1258,13 @@
 		white-space: nowrap;
 	}
 
-	/* "Verification — coming soon" hint. Deliberately quiet and
+	/* "Verification: coming soon" hint. Deliberately quiet and
 	   theme-adaptive (neutral muted text, no chrome) so it
 	   reads as a passive promise rather than the actionable / attention-
 	   seeking pill the verified (gold) and pending (amber) states use.
 	   Too long to pin to the corner like those pills, so it flows in-line at
 	   the bottom of the slot (`margin-top: auto`) and stays within the tile's
-	   width. No live control hangs off it — the verify flow is gated off
+	   width. No live control hangs off it; the verify flow is gated off
 	   until the membership-email pass ships. */
 	.affil-slot-hint {
 		margin-top: auto;
@@ -1298,7 +1287,7 @@
 	}
 
 	.affil-slot-badge-pending {
-		/* Amber "awaiting verification" — distinct from the gold accent
+		/* Amber "awaiting verification": distinct from the gold accent
 		   (verified) and the blue unverified pill. */
 		color: #d8a23a;
 		background: color-mix(in srgb, #d8a23a 12%, transparent);
@@ -1340,7 +1329,7 @@
 		display: none;
 	}
 
-	/* Menagerie tile — a squircle badge with the animal name + its concept /
+	/* Menagerie tile: a squircle badge with the animal name + its concept /
 	   "Locked" line, centred in a fixed-width carousel card. Tapping opens the
 	   Menagerie album. */
 	.profile-menagerie-tile {
@@ -1379,7 +1368,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Skeleton tile — same footprint as a real tile, with the badge + the two
+	/* Skeleton tile: same footprint as a real tile, with the badge + the two
 	   text lines replaced by pulsing placeholders while the trophy signals load. */
 	.profile-menagerie-tile.is-skeleton {
 		cursor: default;
@@ -1401,7 +1390,7 @@
 		background: color-mix(in srgb, var(--text-base) 8%, transparent);
 	}
 
-	/* Confirmation toast — floats above the pill-nav after a handle
+	/* Confirmation toast: floats above the pill-nav after a handle
 	   change, auto-dismisses after ~1.9s. */
 	.profile-toast {
 		position: fixed;

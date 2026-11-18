@@ -1,0 +1,27 @@
+# VICI SPA image for Fly.io: builds the static SvelteKit output and serves it
+# with nginx + SPA fallback. Vite inlines VITE_* vars at build time, so they
+# are build ARGs, not runtime secrets. Deployed by the manual workflow
+# .github/workflows/web2-deploy.yml, which bakes the args from fly.web.toml.
+# The Node version is pinned once, in .node-version at the repo root; the deploy
+# and .github/workflows/web2-image.yml pass it in. With no value the FROM below
+# does not resolve, so a build that forgets it fails instead of picking a version.
+ARG NODE_VERSION
+FROM node:${NODE_VERSION}-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+# The API origin the SPA calls and the backend mode switch. Empty defaults
+# keep a bare `docker build` on the web3 stack; fly.web.toml sets the web2 values.
+ARG VITE_WEB2_API_URL=""
+ARG VITE_BACKEND=""
+ENV VITE_WEB2_API_URL=$VITE_WEB2_API_URL
+ENV VITE_BACKEND=$VITE_BACKEND
+# `npm ci` ran `svelte-kit sync` before the sources existed, so the generated
+# $app tsconfig and route types the type-check in `build` needs are missing.
+RUN npx svelte-kit sync && npm run build
+
+FROM nginx:alpine
+COPY nginx.web.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/build /usr/share/nginx/html
+EXPOSE 8080

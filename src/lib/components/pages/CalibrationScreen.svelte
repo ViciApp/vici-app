@@ -2,39 +2,40 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Check, X } from '@lucide/svelte/icons';
 	import { onDestroy, onMount } from 'svelte';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import {
 		CALIBRATION_DAILY_CAP,
 		CALIBRATION_RECOVERY_FLOOR_BASE_UNITS,
 		VXP_CALIBRATION_REWARD_BASE_UNITS
-	} from '$lib/constants/vxp-economy.constants';
-	import { getCalibrationDeck } from '$lib/services/calibration.services';
+	} from '#lib/constants/vxp-economy.constants.ts';
+	import { getCalibrationDeck } from '#lib/services/calibration.services.ts';
 	import {
 		claimCalibrationReward,
 		type VxpCalibrationClaim,
 		type VxpCalibrationReason
-	} from '$lib/services/vxp-awards.services';
-	import { balancesStore } from '$lib/stores/balances.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { CalibrationCard, CalibrationSide } from '$lib/types/calibration';
-	import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	} from '#lib/services/vxp-awards.services.ts';
+	import { balancesStore } from '#lib/stores/balances.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { hydrate, marketDisplay } from '#lib/stores/market-translations.store.ts';
+	import type { CalibrationCard, CalibrationSide } from '#lib/types/calibration.ts';
+	import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
-	 * Calibration practice — a recovery surface for a depleted user.
+	 * Calibration practice: a recovery surface for a depleted user.
 	 *
 	 * The user reads a finalised Vici binary market with its outcome
 	 * hidden and calls YES / NO. The call is sent to the satellite, which
 	 * re-derives the winning side from the clearing settlement and is the
-	 * sole authority on correctness — the client never decides whether the
-	 * call was right. A correct call mints a fixed +20 VXP; a wrong call
+	 * sole authority on correctness: the client never decides whether the
+	 * call was right. A correct call mints the fixed
+	 * `VXP_CALIBRATION_REWARD_BASE_UNITS`; a wrong call
 	 * mints nothing and applies no penalty (losses are shielded), shown
 	 * honestly. A short pacing countdown arms the next card so the session
 	 * stays deliberate rather than a rapid-fire grind.
@@ -55,13 +56,13 @@
 	let deck = $state<CalibrationCard[]>([]);
 	let cardIndex = $state(0);
 	let claiming = $state(false);
-	// Last server result for the current card — drives the instant feedback
+	// Last server result for the current card: drives the instant feedback
 	// overlay (correct celebration / shielded miss / already-claimed note).
 	let lastClaim = $state<VxpCalibrationClaim | null>(null);
 	// Reason a rate-limit / ineligible state was entered, for the right copy.
 	let blockedReason = $state<VxpCalibrationReason | null>(null);
 
-	// Session tally — surfaced honestly: calls made, calls the server scored
+	// Session tally, surfaced honestly: calls made, calls the server scored
 	// correct, and the VXP minted (only correct calls move this).
 	let sessionCalls = $state(0);
 	let sessionCorrect = $state(0);
@@ -73,7 +74,7 @@
 
 	const reduceMotion = $derived(prefersReducedMotion());
 
-	// Free VXP balance, in base units, read from the wallet store — the same
+	// Free VXP balance, in base units, read from the wallet store, the same
 	// source the Wallet hero and Dash read. The recovery banner / disarm gate
 	// keys off this against the recovery floor (also base units).
 	const vxpBalanceBaseUnits = $derived.by((): bigint => $balancesStore?.[VXP_TOKEN.id] ?? ZERO);
@@ -85,7 +86,7 @@
 	// comparison is base-unit vs base-unit.
 	const shielded = $derived(vxpBalanceBaseUnits < CALIBRATION_RECOVERY_FLOOR_BASE_UNITS);
 
-	// Whole-VXP display values for copy — derived from the base-unit constants
+	// Whole-VXP display values for copy: derived from the base-unit constants
 	// so the numbers shown to the user track the authoritative thresholds.
 	const recoveryFloorVxp = $derived(
 		decimalFixedValueToNumber({
@@ -101,6 +102,16 @@
 	);
 
 	const currentCard = $derived<CalibrationCard | undefined>(deck[cardIndex]);
+
+	// Hydrate translations for the calibration deck so each card's question reads
+	// in the reader's language.
+	$effect(() => {
+		const ids = deck.map((card) => card.market.id);
+
+		if (ids.length > 0) {
+			void hydrate([...new Set(ids)]);
+		}
+	});
 
 	onMount(async () => {
 		try {
@@ -136,7 +147,7 @@
 		}
 
 		if (reason === 'balance_above_floor') {
-			// The user climbed back to the recovery floor mid-session — disarm
+			// The user climbed back to the recovery floor mid-session: disarm
 			// into the "you're recovered" beat rather than keep practising.
 			blockedReason = reason;
 			phase = 'recovered';
@@ -169,8 +180,8 @@
 			if (claim.correct && claim.paidNow) {
 				sessionCorrect += 1;
 				// Add the reward the server actually paid (base units, decimal
-				// string) converted to whole-VXP for display — never the local
-				// constant — so the tally stays correct if the server reward
+				// string) converted to whole-VXP for display, never the local
+				// constant, so the tally stays correct if the server reward
 				// ever differs from our compile-time guess.
 				sessionVxp += nonNullish(claim.rewardBaseUnits)
 					? decimalFixedValueToNumber({
@@ -202,7 +213,7 @@
 
 	// Enter the pacing beat: hold the feedback, run the countdown, then arm
 	// the next card (or finish the deck). Reduced-motion still waits out the
-	// timer so the cadence is identical — only the ring animation collapses.
+	// timer so the cadence is identical; only the ring animation collapses.
 	const startPacing = () => {
 		phase = 'pacing';
 		secondsLeft = PACING_COUNTDOWN_SECONDS;
@@ -231,13 +242,13 @@
 		phase = 'active';
 	};
 
-	// Skip the remaining countdown — the user taps "Next" to arm immediately.
+	// Skip the remaining countdown: the user taps "Next" to arm immediately.
 	const skipPacing = () => {
 		armNextCard();
 	};
 
 	const back = () => {
-		goBack(resolve(AppPath.Flow));
+		goBack(resolveAppPath(AppPath.Flow));
 	};
 
 	// Countdown ring geometry. The dash offset shrinks as `secondsLeft`
@@ -255,7 +266,7 @@
 	/>
 
 	{#if shielded && (phase === 'active' || phase === 'pacing')}
-		<!-- Persistent recovery banner — up while the user is below the
+		<!-- Persistent recovery banner: up while the user is below the
 		     recovery floor, so the loss-shield promise stays visible. -->
 		<div class="calib-banner" role="status">
 			{t({
@@ -365,11 +376,11 @@
 				<div class="eyebrow calib-card-tag">
 					{t({ locale: $localeStore, key: 'calibration.card.tag' })}
 				</div>
-				<h2 class="calib-card-q">{currentCard.market.title}</h2>
+				<h2 class="calib-card-q">{$marketDisplay(currentCard.market).title}</h2>
 				<div class="eyebrow calib-card-meta">
 					{t({ locale: $localeStore, key: 'calibration.card.meta' })}
 				</div>
-				<div class="calib-card-stakes">
+				<div class="calib-card-outcomes">
 					<span>
 						{t({ locale: $localeStore, key: 'calibration.card.if_right' })}
 						<b class="is-yes"
@@ -604,7 +615,7 @@
 		color: var(--text-muted);
 	}
 
-	.calib-card-stakes {
+	.calib-card-outcomes {
 		display: flex;
 		justify-content: space-between;
 		gap: 0.5rem;
@@ -614,7 +625,7 @@
 		padding-top: 0.75rem;
 	}
 
-	.calib-card-stakes b {
+	.calib-card-outcomes b {
 		font-weight: 600;
 	}
 

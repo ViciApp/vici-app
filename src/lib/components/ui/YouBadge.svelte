@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		label?: string;

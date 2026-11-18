@@ -1,5 +1,5 @@
-import type { ClearingDid } from '$declarations';
-import type { Token } from '$lib/types/token';
+import type { ClearingDid } from '#declarations';
+import type { Token } from '#lib/types/token.ts';
 import { Principal } from '@icp-sdk/core/principal';
 
 /**

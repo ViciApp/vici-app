@@ -1,7 +1,7 @@
 <script lang="ts">
-	import MarketsPage from '$lib/components/pages/MarketsPage.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import MarketsPage from '#lib/components/pages/MarketsPage.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 </script>
 
 <svelte:head>

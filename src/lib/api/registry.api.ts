@@ -1,7 +1,7 @@
-import type { RegistryDid } from '$declarations';
-import { getAgent } from '$lib/actors/agents.ic';
-import { RegistryCanister } from '$lib/canisters/registry.canister';
-import { REGISTRY_CANISTER_ID } from '$lib/constants/canisters.constants';
+import type { RegistryDid } from '#declarations';
+import { getAgent } from '#lib/actors/agents.ic.ts';
+import { RegistryCanister } from '#lib/canisters/registry.canister.ts';
+import { REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import type { QueryParams } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 
@@ -16,19 +16,6 @@ export const addSeries = async ({
 	const { addSeries } = await registryCanister({ identity });
 
 	return await addSeries({ params, ...queryParams });
-};
-
-export const forkSeries = async ({
-	identity,
-	params,
-	...queryParams
-}: {
-	identity: Identity;
-	params: RegistryDid.ForkSeriesParams;
-} & QueryParams): Promise<string> => {
-	const { forkSeries } = await registryCanister({ identity });
-
-	return await forkSeries({ params, ...queryParams });
 };
 
 export const getSeries = async ({
@@ -57,45 +44,6 @@ export const listSeries = async ({
 	return await listSeries({ params, ...queryParams });
 };
 
-export const createGroup = async ({
-	identity,
-	params,
-	...queryParams
-}: {
-	identity: Identity;
-	params: RegistryDid.CreateGroupParams;
-} & QueryParams): Promise<string> => {
-	const { createGroup } = await registryCanister({ identity });
-
-	return await createGroup({ params, ...queryParams });
-};
-
-export const updateGroup = async ({
-	identity,
-	params,
-	...queryParams
-}: {
-	identity: Identity;
-	params: RegistryDid.UpdateGroupParams;
-} & QueryParams): Promise<void> => {
-	const { updateGroup } = await registryCanister({ identity });
-
-	return await updateGroup({ params, ...queryParams });
-};
-
-export const addGroupAdmins = async ({
-	identity,
-	params,
-	...queryParams
-}: {
-	identity: Identity;
-	params: RegistryDid.UpdateGroupAdminsParams;
-} & QueryParams): Promise<void> => {
-	const { addGroupAdmins } = await registryCanister({ identity });
-
-	return await addGroupAdmins({ params, ...queryParams });
-};
-
 export const removeGroupAdmins = async ({
 	identity,
 	params,
@@ -109,45 +57,6 @@ export const removeGroupAdmins = async ({
 	return await removeGroupAdmins({ params, ...queryParams });
 };
 
-export const addGroupMembers = async ({
-	identity,
-	params,
-	...queryParams
-}: {
-	identity: Identity;
-	params: RegistryDid.UpdateGroupAdminsParams;
-} & QueryParams): Promise<void> => {
-	const { addGroupMembers } = await registryCanister({ identity });
-
-	return await addGroupMembers({ params, ...queryParams });
-};
-
-export const removeGroupMembers = async ({
-	identity,
-	params,
-	...queryParams
-}: {
-	identity: Identity;
-	params: RegistryDid.UpdateGroupAdminsParams;
-} & QueryParams): Promise<void> => {
-	const { removeGroupMembers } = await registryCanister({ identity });
-
-	return await removeGroupMembers({ params, ...queryParams });
-};
-
-export const getGroup = async ({
-	identity,
-	groupId,
-	...queryParams
-}: {
-	identity: Identity;
-	groupId: string;
-} & QueryParams): Promise<RegistryDid.Group | undefined> => {
-	const { getGroup } = await registryCanister({ identity });
-
-	return await getGroup({ groupId, ...queryParams });
-};
-
 export const listGroups = async ({
 	identity,
 	creator,
@@ -159,32 +68,6 @@ export const listGroups = async ({
 	const { listGroups } = await registryCanister({ identity });
 
 	return await listGroups({ creator, ...queryParams });
-};
-
-export const deleteGroup = async ({
-	identity,
-	groupId,
-	...queryParams
-}: {
-	identity: Identity;
-	groupId: string;
-} & QueryParams): Promise<void> => {
-	const { deleteGroup } = await registryCanister({ identity });
-
-	return await deleteGroup({ groupId, ...queryParams });
-};
-
-export const updateTradingAccess = async ({
-	identity,
-	params,
-	...queryParams
-}: {
-	identity: Identity;
-	params: RegistryDid.UpdateTradingAccessParams;
-} & QueryParams): Promise<void> => {
-	const { updateTradingAccess } = await registryCanister({ identity });
-
-	return await updateTradingAccess({ params, ...queryParams });
 };
 
 export const getOracle = async ({

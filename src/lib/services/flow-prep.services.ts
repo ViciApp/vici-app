@@ -1,13 +1,16 @@
-import type { ClearingDid, RegistryDid } from '$declarations';
-import { getUserMarketSignals } from '$lib/services/market-signals.services';
-import { deriveTagsBySeries, listMarketMetadataBySeries } from '$lib/services/market-tags.services';
-import { enrichFlowMarketsWithOrderBook, getFlowQueue } from '$lib/services/market.services';
-import { getUserTradeHistory } from '$lib/services/trade.services';
-import type { Market, MarketId } from '$lib/types/market';
-import type { MarketMetadata } from '$lib/types/market-metadata';
-import type { UserMarketSignals } from '$lib/types/market-signals';
-import { deriveCalledMarketIds } from '$lib/utils/market-signals.utils';
-import { filterScheduledWcMarkets } from '$lib/utils/wc-schedule.utils';
+import type { ClearingDid, RegistryDid } from '#declarations';
+import { getUserMarketSignals } from '#lib/services/market-signals.services.ts';
+import {
+	deriveTagsBySeries,
+	listMarketMetadataBySeries
+} from '#lib/services/market-tags.services.ts';
+import { enrichFlowMarketsWithOrderBook, getFlowQueue } from '#lib/services/market.services.ts';
+import { getUserTradeHistory } from '#lib/services/trade.services.ts';
+import type { MarketMetadata } from '#lib/types/market-metadata.ts';
+import type { UserMarketSignals } from '#lib/types/market-signals.ts';
+import type { Market, MarketId } from '#lib/types/market.ts';
+import { filterRevealedMarkets } from '#lib/utils/market-reveal.utils.ts';
+import { deriveCalledMarketIds } from '#lib/utils/market-signals.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**
@@ -43,9 +46,9 @@ export interface PrepareFlowOpts {
 	 * Market id to surface as the first card, set when the viewer arrived from
 	 * a shared prediction link (see `consumePinnedFlowMarket`). Pinned ahead of
 	 * the ranked deck and exempt from the featured-event scope and the
-	 * seen-exclude set — a deliberately shared link wins over those soft
+	 * seen-exclude set: a deliberately shared link wins over those soft
 	 * filters. NOT exempt from the prior-call filter: a market the viewer
-	 * already called stays dropped (#595), so a shared link they've already
+	 * already called stays dropped, so a shared link they've already
 	 * predicted on simply shows their normal deck.
 	 */
 	pinnedMarketId?: string;
@@ -56,9 +59,8 @@ export interface PrepareFlowOpts {
  * the ranked queue (already sliced and featured-event filtered),
  * the tag map, per-market metadata, and user signals.
  *
- * Mirrors what `FlowMode.svelte` used to fetch inline in `onMount`,
- * so a pre-warmed result drops into the component without changing
- * what the deck consumes downstream.
+ * Returns exactly what `FlowMode.svelte` consumes, so a pre-warmed
+ * result drops into the component as is.
  */
 export const prepareFlow = async ({
 	domain,
@@ -73,7 +75,7 @@ export const prepareFlow = async ({
 	// scan (`listMarketTagsBySeries`). The shared promises are awaited in
 	// parallel inside each callee via `Promise.all`, so the dependent
 	// calls still overlap with the rest of their fetches (markets,
-	// profile, trade history, follows) — only the duplicate I/O is removed.
+	// profile, trade history, follows): only the duplicate I/O is removed.
 	const metadataPromise = listMarketMetadataBySeries().catch(() => ({}));
 	const tagsPromise = metadataPromise.then(deriveTagsBySeries);
 
@@ -84,11 +86,11 @@ export const prepareFlow = async ({
 	});
 
 	// Markets the viewer has already called drop out of the deck entirely:
-	// re-serving a card they've predicted on is the "Flow keeps showing the
-	// same cards" bug (#595). Derived from the *full* certified trade history
-	// (not the deck slice), so a call from any earlier day or session counts —
+	// re-serving a card they've predicted on makes Flow look stuck on the same
+	// cards. Derived from the *full* certified trade history
+	// (not the deck slice), so a call from any earlier day or session counts;
 	// the per-deck `exclude` set only spans the immediately-previous deck and
-	// resets on reload, which is why prior calls leaked back in. Shared with
+	// resets on reload, so on its own it lets prior calls back in. Shared with
 	// the signals fetch below so the history round-trip is issued once.
 	const tradeHistoryPromise: Promise<ClearingDid.Event[]> = signedIn
 		? getUserTradeHistory(domain).catch(() => [])
@@ -96,7 +98,7 @@ export const prepareFlow = async ({
 	const priorCallIdsPromise = tradeHistoryPromise.then(deriveCalledMarketIds);
 
 	// Compose the deck (featured scope → prior-call exclude → seen exclude →
-	// slice) up front so `deckIds` — which scopes the followed-lean fan-out —
+	// slice) up front so `deckIds`, which scopes the followed-lean fan-out,
 	// matches the markets actually rendered. Deriving the ids off the *full*
 	// queue would scope the lean to candidates the filters then drop, silently
 	// starving the promoted markets of their friends-lean row.
@@ -106,24 +108,19 @@ export const prepareFlow = async ({
 			tagsPromise,
 			priorCallIdsPromise
 		]);
-		const tagsByMarket = tagMap as Record<string, string[]>;
+		const tagsByMarket = tagMap;
 		const excludeSet = new Set(exclude);
 
-		// Temporary hardcoded World-Cup release schedule: a WC market is
-		// withheld until its Show Date (00:00 UTC), and WC markets absent
-		// from the calendar stay hidden entirely. Applied to the whole
-		// queue up front so withheld markets can't leak back in through the
-		// featured-scope fallback below. Non-WC markets pass through.
-		const visibleQueue = filterScheduledWcMarkets({
-			markets: queue,
-			tagsByMarket,
-			now: Date.now()
-		});
+		// Release gating: ANY market with a scheduled on-chain trading start
+		// (`start_ns`) is withheld until that instant; markets with no start are
+		// live. Applied to the whole queue up front so withheld markets can't
+		// leak back in through the featured-scope fallback below.
+		const visibleQueue = filterRevealedMarkets({ markets: queue, now: Date.now() });
 
 		// When a featured event is active, narrow to markets carrying
 		// the event's category tag so the swipe deck tracks the live
 		// tentpole. Fall back to the full queue when the filter would
-		// empty the deck — users always see *some* content.
+		// empty the deck: users always see *some* content.
 		const eventScoped = !isNullish(featuredEventTag)
 			? visibleQueue.filter((market) =>
 					(tagsByMarket[market.id] ?? []).some((tag) => tag === featuredEventTag)
@@ -133,8 +130,8 @@ export const prepareFlow = async ({
 
 		// Hard filter, no recycle: if the viewer has genuinely called every
 		// open market, the empty deck is the *correct* surface ("you're all
-		// caught up"). Recycling here would reintroduce the exact cards #595 is
-		// about.
+		// caught up"). Recycling here would re-serve cards the viewer already
+		// called.
 		const afterPrior =
 			priorCallIds.size > 0 ? sourceQueue.filter((m) => !priorCallIds.has(m.id)) : sourceQueue;
 
@@ -142,7 +139,7 @@ export const prepareFlow = async ({
 			excludeSet.size > 0 ? afterPrior.filter((m) => !excludeSet.has(m.id)) : afterPrior;
 		// Recycle the prior-call-filtered queue (never the already-called
 		// markets) when the seen-set wipes it but unseen markets still exist.
-		// An empty deck must mean "nothing left to call" — never "you've
+		// An empty deck must mean "nothing left to call", never "you've
 		// already seen all of them". Without this, a small inventory (open
 		// series ≤ MAX_MARKETS) empties the follow-up deck the moment the prior
 		// deck is excluded, landing re-entry on the empty state. Mirrors the
@@ -150,13 +147,13 @@ export const prepareFlow = async ({
 		const filtered = afterExclude.length > 0 ? afterExclude : afterPrior;
 
 		// Surface a shared-link market as the first card, ahead of the ranked
-		// deck. Sourced from `visibleQueue` (post WC-schedule gating, pre
+		// deck. Sourced from `visibleQueue` (after the release gate, before the
 		// featured-event scope) so a shared market outside the live tentpole
-		// still pins, while a withheld WC market can't be leaked into Flow
-		// through a shared link. Prepended *before* the slice so a low-ranked
-		// market isn't trimmed off the end. The prior-call filter still wins
-		// (guarded explicitly here too), so an already-predicted shared link
-		// falls through to the normal deck.
+		// still pins, while any market still before its `startDate` can't be
+		// leaked into Flow through a shared link. Prepended *before* the slice
+		// so a low-ranked market isn't trimmed off the end. The prior-call
+		// filter still wins (guarded explicitly here too), so an
+		// already-predicted shared link falls through to the normal deck.
 		const pinnedMarket = nonNullish(pinnedMarketId)
 			? visibleQueue.find((m) => m.id === pinnedMarketId)
 			: undefined;
@@ -170,7 +167,7 @@ export const prepareFlow = async ({
 		// fan-out is bounded by `MAX_MARKETS` instead of by the total
 		// number of open series. The ranker doesn't need book data
 		// (see `getFlowQueue`), so the lite list is sufficient to pick
-		// the top-N — we only pay the round-trips for what we display.
+		// the top-N: we only pay the round-trips for what we display.
 		return deck.slice(0, MAX_MARKETS);
 	})();
 	const deckIdsPromise = deckPromise.then((deck) => deck.map((m) => m.id));
@@ -189,7 +186,7 @@ export const prepareFlow = async ({
 		metadataPromise
 	]);
 
-	const tagsByMarket = tagMap as Record<string, string[]>;
+	const tagsByMarket = tagMap;
 	const markets = await enrichFlowMarketsWithOrderBook(deck);
 
 	const metadataById = new Map<MarketId, MarketMetadata>();

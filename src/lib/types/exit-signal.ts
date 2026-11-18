@@ -4,7 +4,7 @@
  * The delete-account flow asks the leaving user to pick
  * one of six reasons and optionally leave a short note. We persist
  * those signals so the team can read churn trends without keeping
- * any handle on who left — the doc has **no principal field** and
+ * any handle on who left: the doc has **no principal field** and
  * its key is a random UUID, so the row outlives the account that
  * generated it while staying unlinkable.
  *
@@ -13,7 +13,7 @@
  *    hard-deletes the caller's profile + identity-keyed rows.
  *  - Never edited (the assert rejects writes when `current` is
  *    non-null).
- *  - Never deleted (no delete assert handler — admin-only via
+ *  - Never deleted (no delete assert handler: admin-only via
  *    direct console access if a future privacy request lands).
  */
 
@@ -46,6 +46,7 @@ export interface ExitSignalDoc {
 	reason: ExitSignalReason;
 	/** Free-text note, capped at {@link EXIT_SIGNAL_NOTE_MAX_LENGTH}. Empty string when none. */
 	note: string;
-	/** Creation timestamp in ms since epoch. */
+	/** Start of the UTC day the account left, in ms since epoch: never the exact time, which
+	 * would match the profile's `deletedAtMs`. */
 	createdAtMs: number;
 }

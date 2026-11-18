@@ -11,16 +11,19 @@
 # (the account that sends VXP in `src/satellite/services/vxp-onboarding.services.ts`).
 #
 # Env:
-#   VICI_JUNO_SATELLITE_PRINCIPAL — satellite canister id (default: dev id from juno.config.ts).
-#   VXP_RESERVE_ID — skip add_reserve and use this reserve (e.g. after first run).
-#   VXP_TREASURY_TOPUP_BASE_UNITS — minted amount (default: 1e11 = 10M VXP at 4 decimals).
+#   VICI_JUNO_SATELLITE_PRINCIPAL: satellite canister id (default: dev id from juno.config.ts).
+#   VXP_RESERVE_ID: skip add_reserve and use this reserve (e.g. after first run).
+#   VXP_TREASURY_TOPUP_BASE_UNITS: minted amount (default: 1e11 = 10M VXP at 4 decimals).
 #
 # shellcheck source=scripts/lib/utils.sh
 source "$(dirname "$0")/../lib/utils.sh" "$@"
 
 set -euo pipefail
 
-SATELLITE="${VICI_JUNO_SATELLITE_PRINCIPAL:-auamu-4x777-77775-aaaaa-cai}"
+# The dev id from juno.config.ts. JUNO_EMULATOR=false because the config swaps
+# `ids.development` to the emulator id when it is set (the e2e job sets it),
+# which would change this default under the emulator.
+SATELLITE="${VICI_JUNO_SATELLITE_PRINCIPAL:-$(cd "$PROJECT_ROOT" && JUNO_EMULATOR=false npx tsx scripts/lib/satellite-id.ts development)}"
 TOPUP="${VXP_TREASURY_TOPUP_BASE_UNITS:-100000000000}"
 
 echo "Satellite (VXP sender): $SATELLITE"

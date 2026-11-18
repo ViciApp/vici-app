@@ -1,0 +1,73 @@
+name: Update icdc-core
+
+# Bumps only the pinned ICDC_CORE_VERSION. The Candid bindings are regenerated
+# and committed onto the resulting PR by bindings.yml, the same as for a bump
+# made by hand.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'
+
+concurrency:
+  group: update-icdc-core
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update-icdc-core:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Bump ICDC_CORE_VERSION to latest release
+        id: bump
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          common="scripts/build/download.icdc.common.sh"
+
+          latest="$(curl -sSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/AntonioVentilii/icdc-core/releases/latest \
+            | jq -r '.tag_name')"
+
+          if [[ -z "$latest" || "$latest" == "null" ]]; then
+            echo "::error::Could not resolve the latest icdc-core release tag."
+            exit 1
+          fi
+
+          current="$(grep -oE 'ICDC_CORE_VERSION="[^"]+"' "$common" | head -1 | sed -E 's/.*"([^"]+)".*/\1/')"
+          echo "Current: $current, latest: $latest"
+
+          sed -i -E "s|^ICDC_CORE_VERSION=\"[^\"]*\"|ICDC_CORE_VERSION=\"$latest\"|" "$common"
+
+          echo "version=$latest" >> "$GITHUB_OUTPUT"
+
+      - name: Mint app token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+
+      - name: Create Pull Request
+        uses: ./.github/actions/create-pr
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: bot-update-icdc-core
+          paths: scripts/build/download.icdc.common.sh
+          title: 'chore(icdc-core): bump version to ${{ steps.bump.outputs.version }}'
+          body: |
+            Automated bump of the pinned [`AntonioVentilii/icdc-core`](https://github.com/AntonioVentilii/icdc-core) release.
+
+            - Bumped `ICDC_CORE_VERSION` in `scripts/build/download.icdc.common.sh` to `${{ steps.bump.outputs.version }}`.
+            - The `Bindings` workflow (`bindings.yml`) regenerates `src/declarations/**` (and the vendored `backend/src/declarations/**`) from that tag and commits them onto this PR.
+
+            Review the regenerated `.did` surface before merging.

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	/**
-	 * Zone 1 · Performance — the Dashboard masthead. A large mono accuracy
+	 * Zone 1 · Performance: the Dashboard masthead. A large mono accuracy
 	 * number anchors the screen; beneath it sit the session delta + streak
 	 * flame, a tappable benchmark toggle (global average ⇄ friends), and the
 	 * swipeable accuracy-trend chart.
@@ -13,9 +13,9 @@
 	 * synthesised deterministically (see `DashTrendChart`).
 	 */
 	import { Flame, Globe } from '@lucide/svelte/icons';
-	import DashTrendChart from '$lib/components/dash/DashTrendChart.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import DashTrendChart from '#lib/components/dash/DashTrendChart.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		/** Accuracy as a 0..100 percentage. */
@@ -35,7 +35,7 @@
 	let { accuracyValue, accuracyPct, sessionDelta, streak, friendsAhead, friendsTotal }: Props =
 		$props();
 
-	// The global benchmark the anchor line compares against — the same 30-day
+	// The global benchmark the anchor line compares against, the same 30-day
 	// network average surfaced elsewhere on the dashboard copy.
 	const GLOBAL_AVERAGE = 62.1;
 
@@ -110,7 +110,7 @@
 </div>
 
 <style lang="postcss">
-	/* Delta colour modifiers — the shared `.db-delta` weight/spacing lives in
+	/* Delta colour modifiers: the shared `.db-delta` weight/spacing lives in
 	   `app.css`; only the semantic tint is component-local. */
 	:global(.db-anchorline .db-delta.db-delta-pos) {
 		color: var(--yes);

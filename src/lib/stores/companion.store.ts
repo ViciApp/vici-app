@@ -1,4 +1,4 @@
-import type { FlameStage } from '$lib/utils/streak.utils';
+import type { FlameStage } from '#lib/utils/streak.utils.ts';
 import { writable } from 'svelte/store';
 
 type CompanionWho = 'vici' | 'oracle' | 'trickster' | 'flame';

@@ -6,20 +6,20 @@
 	 *
 	 *   - pass `parts` directly (the logged-in user's persisted picks); or
 	 *   - pass a `seed` string and the face is derived deterministically
-	 *     from it (everyone who isn't the logged-in user — seeded by their
-	 *     immutable principal — and the decorative social-proof stacks).
+	 *     from it (everyone who isn't the logged-in user, seeded by their
+	 *     immutable principal, and the decorative social-proof stacks).
 	 *
 	 * Pure, client-only, no backend and no network. The idle motion (blink +
 	 * gentle bob) is gated behind `prefers-reduced-motion`: a reduced-motion
 	 * user gets the exact same portrait, rendered static.
 	 */
 
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 	import {
 		deterministicParts,
 		renderAvatarSvg,
 		type ViciAvatarParts
-	} from '$lib/utils/vici-avatar.utils';
+	} from '#lib/utils/vici-avatar.utils.ts';
 
 	interface Props {
 		/** Explicit parts object. Wins over `seed` when both are set. */
@@ -40,7 +40,7 @@
 		 *  surface (e.g. the profile hero's palette gradient). */
 		noBg?: boolean;
 		/** Whether idle motion is desired. Always re-gated behind
-		 *  `prefers-reduced-motion` — passing `true` never overrides a
+		 *  `prefers-reduced-motion`; passing `true` never overrides a
 		 *  reduced-motion preference. */
 		animate?: boolean;
 		/** Extra classes forwarded to the wrapper. */
@@ -63,7 +63,7 @@
 
 	// Motion is opt-in by the caller AND only ever runs when the user has
 	// not asked for reduced motion. A reduced-motion user always gets the
-	// static portrait — same geometry, no blink / bob.
+	// static portrait: same geometry, no blink / bob.
 	const motion = $derived(animate && !prefersReducedMotion());
 
 	const svg = $derived(

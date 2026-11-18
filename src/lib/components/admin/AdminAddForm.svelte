@@ -1,8 +1,8 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/Button.svelte';
-	import { UserRole } from '$lib/enums/user';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { UserRole } from '#lib/enums/user.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	let {
 		principal = '',

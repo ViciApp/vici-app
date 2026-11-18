@@ -1,21 +1,21 @@
 <script lang="ts">
-	import MarketOddsSkeleton from '$lib/components/market/MarketOddsSkeleton.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { CallSide } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
+	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { CallSide } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		yesPercent: number;
 		noPercent: number;
 		/**
-		 * Whether the odds are known. When `false` the hero renders an odds
+		 * Whether the probability is known. When `false` the hero renders a probability
 		 * skeleton in place of both percentages (and a neutral bar) rather than
 		 * a misleading 0/100 split for an unpriced or empty book.
 		 */
 		known?: boolean;
 		/**
-		 * Whether the order book has been read — picks the skeleton variant when
-		 * the odds are unknown (`empty` dash vs `loading` bar).
+		 * Whether the order book has been read: picks the skeleton variant when
+		 * the probability is unknown (`empty` dash vs `loading` bar).
 		 */
 		priceLoaded?: boolean;
 		/**
@@ -38,7 +38,7 @@
 	}: Props = $props();
 
 	// Dim the side that lost once settled (only when we know the
-	// outcome). The winning side — and the live presentation — stay at
+	// outcome). The winning side, and the live presentation, stay at
 	// full strength.
 	const yesLost = $derived(resolved && resolvedOutcome === 'NO');
 	const noLost = $derived(resolved && resolvedOutcome === 'YES');
@@ -46,13 +46,13 @@
 
 <!-- Probability hero: large YES percent on the left baseline-aligned
      with the "YES" eyebrow, mirrored on the right with a smaller NO
-     percent. Below sits the split bar (the page's `ProbBar` equivalent —
+     percent. Below sits the split bar (the page's `ProbBar` equivalent:
      same shape as `forecast-split-bar` on the old card). -->
 <div class="prob-hero">
 	<div class="prob-hero-row">
 		<div class="prob-hero-side prob-hero-yes" class:is-lost={yesLost}>
 			<span class="num prob-hero-yes-pct">
-				{#if known}{yesPercent}%{:else}<MarketOddsSkeleton
+				{#if known}{yesPercent}%{:else}<MarketProbabilitySkeleton
 						variant={priceLoaded ? 'empty' : 'loading'}
 					/>{/if}
 			</span>
@@ -69,7 +69,7 @@
 					: t({ locale: $localeStore, key: 'outcome.no' })}
 			</span>
 			<span class="num prob-hero-no-pct">
-				{#if known}{noPercent}%{:else}<MarketOddsSkeleton
+				{#if known}{noPercent}%{:else}<MarketProbabilitySkeleton
 						variant={priceLoaded ? 'empty' : 'loading'}
 					/>{/if}
 			</span>
@@ -103,7 +103,7 @@
 		min-width: 0;
 	}
 
-	/* Settled losing side — dimmed so the winning outcome reads as the
+	/* Settled losing side: dimmed so the winning outcome reads as the
 	   final answer. Reduced opacity only; the side keeps its colour. */
 	.prob-hero-side.is-lost {
 		opacity: 0.55;

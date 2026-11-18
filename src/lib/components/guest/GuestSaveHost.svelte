@@ -2,20 +2,21 @@
 	import { isNullish } from '@dfinity/utils';
 	import { Sparkles } from '@lucide/svelte/icons';
 	import { untrack } from 'svelte';
+	import GuestSaveSheet from '#lib/components/guest/GuestSaveSheet.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { newUserVxpAmountMilestone1BaseUnits } from '#lib/constants/vxp-onboarding.constants.ts';
+	import { guestHandle, guestMode, guestPickCount } from '#lib/derived/guest.derived.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { pendingOnboardingProvider } from '#lib/services/onboarding-handoff.services.ts';
+	import { flowBeatActiveStore } from '#lib/stores/flow-beat.store.ts';
+	import { clearGuestSession } from '#lib/stores/guest.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { menagerieCelebrationStore } from '#lib/stores/menagerie-celebration.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 	import { page } from '$app/state';
-	import GuestSaveSheet from '$lib/components/guest/GuestSaveSheet.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { newUserVxpAmountMilestone1BaseUnits } from '$lib/constants/vxp-onboarding.constants';
-	import { guestHandle, guestMode, guestPickCount } from '$lib/derived/guest.derived';
-	import { userSignedIn } from '$lib/derived/user.derived';
-	import { track } from '$lib/services/analytics.services';
-	import { flowBeatActiveStore } from '$lib/stores/flow-beat.store';
-	import { clearGuestSession } from '$lib/stores/guest.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { menagerieCelebrationStore } from '$lib/stores/menagerie-celebration.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
 
 	/**
 	 * Guest conversion funnel host. Mounted once at the app shell. For a
@@ -33,7 +34,7 @@
 	const onFlow = $derived(page.url.pathname.startsWith(AppPath.Flow));
 	const isGuestOnFlow = $derived($guestMode && onFlow);
 
-	// Once a real session lands, the guest preview is over — clear any lingering
+	// Once a real session lands, the guest preview is over: clear any lingering
 	// guest state so it never leaks into the authenticated experience. The
 	// convert path also clears explicitly; this is the belt-and-braces for a
 	// provider whose session flips before `onConverted` runs (the dev / II
@@ -59,7 +60,7 @@
 	// opens the sheet exactly once per qualifying pick.
 	let lastAutoFiredCount = $state(0);
 
-	// Cadence — auto-open the sheet on pick 1 (soft) and every 5th pick after
+	// Cadence: auto-open the sheet on pick 1 (soft) and every 5th pick after
 	// (remind). Tracks the session count; gated on the guest being on Flow with
 	// no overlay in the way. The fire is recorded so dismissing keeps the guest
 	// previewing without the same pick re-opening it.
@@ -114,11 +115,21 @@
 		// Demo-drop: discard the in-session preview and route the guest through
 		// the normal new-member path. The pre-auth stash already carries the
 		// handle/identity handoff; the existing onboarding grant fires on profile
-		// creation and the portfolio starts empty. No pick is ever staked.
+		// creation and the portfolio starts empty. No pick ever commits VXP.
 		const locale = $localeStore;
 		const vxp = formatVxpBalance({ value: newUserVxpAmountMilestone1BaseUnits() });
 
-		track({ name: 'signed_up', source: 'guest_convert' });
+		// `label` carries the auth method: `SignInProviderStack` stashed the
+		// provider into the pending-onboarding payload before it ran, so it is
+		// readable here without threading it through the sheet callbacks.
+		// Best-effort: absent when storage was unavailable.
+		const provider = pendingOnboardingProvider();
+
+		track({
+			name: 'signed_up',
+			source: 'guest_convert',
+			...(isNullish(provider) ? {} : { label: provider })
+		});
 
 		clearGuestSession();
 		sheetOpen = false;

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { Copy, Check } from '@lucide/svelte/icons';
 	import { fade } from 'svelte/transition';
-	import YouBadge from '$lib/components/ui/YouBadge.svelte';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { copyToClipboard } from '$lib/utils/clipboard.utils';
-	import { shortenWithMiddleEllipsis } from '$lib/utils/format.utils';
+	import YouBadge from '#lib/components/ui/YouBadge.svelte';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { copyToClipboard } from '#lib/utils/clipboard.utils.ts';
+	import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
 
 	interface Props {
 		address: string;

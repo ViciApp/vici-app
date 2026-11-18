@@ -1,42 +1,30 @@
-import { Collection } from '$lib/constants/collections.constants';
-import type { ActivityReactionCount } from '$lib/types/social';
-import { isAdmin } from '$satellite/services/_authz';
-import { logError } from '$satellite/utils/logger.utils';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import type { ActivityReactionCount } from '#lib/types/social.ts';
+import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
+import { logError } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { OnDeleteDocContext, OnSetDocContext } from '@junobuild/functions';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
-	getAdminAccessKeys,
 	getDocStore,
 	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
 
-const MS_PER_NS = 1_000_000n;
-
-const nowMs = (): number => Number(time() / MS_PER_NS);
-
 /**
  * A satellite controller principal, used as the `caller` for writes to the controllers-scoped
- * `activity_reaction_counts` collection — the liker is not a controller, so the counter is moved as
+ * `activity_reaction_counts` collection: the liker is not a controller, so the counter is moved as
  * an admin (the `*DocStore` APIs enforce the collection rule against the caller they're given).
  */
-const adminCaller = (): Uint8Array => {
-	const first = getAdminAccessKeys()[0]?.[0];
-
-	if (isNullish(first)) {
-		throw new Error('No satellite controller available for reaction-count rollup.');
-	}
-
-	return first;
-};
+const adminCaller = (): Uint8Array => controllerCaller('reaction-count rollup');
 
 /**
  * The liked activity's doc key from a reaction doc key. A reaction is keyed
  * `${author}#${timestamp}#${type}#${liker}` (see `assertSetActivityReaction`), so the activity key
- * is the first three `#`-segments. Returns `undefined` for a malformed key (defensive — the assert
+ * is the first three `#`-segments. Returns `undefined` for a malformed key (defensive: the assert
  * already enforces the shape on write).
  */
 const activityKeyFromReactionKey = (reactionKey: string): string | undefined => {
@@ -49,7 +37,7 @@ const activityKeyFromReactionKey = (reactionKey: string): string | undefined => 
  * Move an activity's like counter by `delta`, floored at 0. Version-locked read-modify-write as
  * admin. Best-effort: a rare version race under concurrent likes on the same activity is logged and
  * swallowed (the reaction doc is the source of truth, and the admin `recomputeActivityReactionCounts`
- * endpoint re-derives exact counts) — mirroring the analytics rollup's bump.
+ * endpoint re-derives exact counts), mirroring the analytics rollup's bump.
  */
 const bumpCount = ({ activityKey, delta }: { activityKey: string; delta: number }): void => {
 	try {
@@ -68,7 +56,7 @@ const bumpCount = ({ activityKey, delta }: { activityKey: string; delta: number 
 		const next: ActivityReactionCount = {
 			activityKey,
 			count: Math.max(0, current + delta),
-			updatedAtMs: nowMs()
+			updatedAtMs: timeMs()
 		};
 
 		setDocStore({
@@ -89,7 +77,7 @@ const bumpCount = ({ activityKey, delta }: { activityKey: string; delta: number 
 };
 
 /**
- * `onSetDoc` for `activity_reactions`: increment the activity's like counter — but only on a genuine
+ * `onSetDoc` for `activity_reactions`: increment the activity's like counter, but only on a genuine
  * CREATE (`before` absent). An update (a re-`setDoc` of an existing like) leaves the count unchanged,
  * so a double-like can't double-count.
  */
@@ -114,6 +102,18 @@ export const onActivityReactionSet = (ctx: OnSetDocContext): void => {
 };
 
 /**
+ * Decrement the liked activity's counter (floored at 0) for a removed reaction. Hooks do not run
+ * for a serverless `deleteDocStore`, so a satellite path that deletes reactions calls this itself.
+ */
+export const releaseReactionCount = (reactionKey: string): void => {
+	const activityKey = activityKeyFromReactionKey(reactionKey);
+
+	if (nonNullish(activityKey)) {
+		bumpCount({ activityKey, delta: -1 });
+	}
+};
+
+/**
  * `onDeleteDoc` for `activity_reactions`: decrement the activity's like counter (floored at 0) when
  * a like is removed (an unlike).
  */
@@ -126,11 +126,7 @@ export const onActivityReactionDelete = (ctx: OnDeleteDocContext): void => {
 		return;
 	}
 
-	const activityKey = activityKeyFromReactionKey(key);
-
-	if (nonNullish(activityKey)) {
-		bumpCount({ activityKey, delta: -1 });
-	}
+	releaseReactionCount(key);
 };
 
 /**
@@ -138,7 +134,7 @@ export const onActivityReactionDelete = (ctx: OnDeleteDocContext): void => {
  * overwrite the counter docs. Heals any drift from a concurrent-like version race and backfills
  * counts for likes that predate the rollup hooks. Admin-gated (mirrors `sweepExpiredDeletions`).
  *
- * Single pass over both collections — fine at current volume; a very large reaction set would want
+ * Single pass over both collections: fine at current volume; a very large reaction set would want
  * pagination (noted as the scale caveat in the spec).
  */
 export const recomputeActivityReactionCountsFn = (): { recomputed: number } => {
@@ -160,7 +156,7 @@ export const recomputeActivityReactionCountsFn = (): { recomputed: number } => {
 	const tally = new Map<string, number>();
 
 	for (const [reactionKey] of reactionItems) {
-		// Derive the activity key from the doc KEY, not the payload — so a malformed reaction body
+		// Derive the activity key from the doc KEY, not the payload, so a malformed reaction body
 		// doesn't drop a like from the exact recount (the key shape is assert-enforced on write).
 		const activityKey = activityKeyFromReactionKey(reactionKey);
 
@@ -169,7 +165,7 @@ export const recomputeActivityReactionCountsFn = (): { recomputed: number } => {
 		}
 	}
 
-	// Reconcile every counter doc to its exact tally — including existing docs whose activity now has
+	// Reconcile every counter doc to its exact tally, including existing docs whose activity now has
 	// zero likes (set to 0 so a drifted-up count is corrected down).
 	const { items: countItems } = listDocsStore({
 		collection: Collection.ACTIVITY_REACTION_COUNTS,
@@ -183,7 +179,7 @@ export const recomputeActivityReactionCountsFn = (): { recomputed: number } => {
 		keys.add(countKey);
 	}
 
-	const now = nowMs();
+	const now = timeMs();
 	let recomputed = 0;
 
 	for (const activityKey of keys) {
@@ -201,12 +197,12 @@ export const recomputeActivityReactionCountsFn = (): { recomputed: number } => {
 			try {
 				current = decodeDocData<ActivityReactionCount>(existing.data).count;
 			} catch {
-				// Malformed counter doc — don't let it abort the repair; treat as needing a rewrite.
+				// Malformed counter doc: don't let it abort the repair; treat as needing a rewrite.
 				current = undefined;
 			}
 		}
 
-		// Only write docs that are off-target — skip the ones already exact.
+		// Only write docs that are off-target: skip the ones already exact.
 		if (current !== target) {
 			const next: ActivityReactionCount = { activityKey, count: target, updatedAtMs: now };
 

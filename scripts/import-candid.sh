@@ -2,37 +2,40 @@
 
 source "$(dirname "$0")/lib/utils.sh" "$@"
 
+# The bindings track the same pinned release as the local wasm downloads, so a
+# regeneration is reproducible and only moves when ICDC_CORE_VERSION is bumped.
+source "$BUILD_SCRIPTS_DIR/download.icdc.common.sh"
+
+ICDC_CORE_REPO="AntonioVentilii/icdc-core"
+
 download_did() {
-  local raw_url="$1"
-  local out_filename="$2"
-  local dir="$3"
+  local file_path="$1"
+  local out_path="$2"
 
-  local out_path="${dir}/${out_filename}"
+  local raw_url="https://raw.githubusercontent.com/${ICDC_CORE_REPO}/refs/tags/${ICDC_CORE_VERSION}/${file_path}"
+  local tmp_path="$(mktemp)"
 
-  local repo=$(echo "$raw_url" | awk -F '/' '{print $4"/"$5}')
-  local branch=$(echo "$raw_url" | awk -F '/' '{print $6}')
-  local file_path=$(echo "$raw_url" | awk -F "$branch/" '{print $2}')
+  echo "Downloading ${raw_url} -> REPO_ROOT/${out_path}"
 
-  local api_url="https://api.github.com/repos/${repo}/commits?path=${file_path}&sha=${branch}"
-  local commit_hash=$(curl -s "$api_url" | jq -r '.[0].sha')
-
-  if [ -z "$commit_hash" ]; then
-    echo "Failed to retrieve commit hash for ${file_path} in ${repo}."
+  # Every PR runs this in the required `bindings` job, so ride out a brief
+  # network blip instead of failing an unrelated merge.
+  if ! curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 "$raw_url" -o "$tmp_path"; then
+    echo "Failed to download ${file_path} from ${ICDC_CORE_REPO}@${ICDC_CORE_VERSION}."
+    rm -f "$tmp_path"
     return 1
   fi
 
-  echo "Downloading ${raw_url} -> REPO_ROOT/${out_path}"
+  mkdir -p "$(dirname "$out_path")"
   {
-    echo "// Generated from ${repo} commit ${commit_hash} for file '${file_path}'"
+    echo "// Generated from ${ICDC_CORE_REPO} ${ICDC_CORE_VERSION} for file '${file_path}'"
     echo ""
-    curl -s "$raw_url"
-  } >"${out_path}"
+    cat "$tmp_path"
+  } >"$out_path"
+
+  rm -f "$tmp_path"
 }
 
-cd "$SCRIPT_DIR/.."
+cd "$PROJECT_ROOT"
 
-mkdir -p src/declarations/registry
-download_did https://raw.githubusercontent.com/AntonioVentilii/icdc-core/main/src/registry/registry.did "registry.did" "src/declarations/registry"
-
-mkdir -p src/declarations/clearing
-download_did https://raw.githubusercontent.com/AntonioVentilii/icdc-core/main/src/clearing/clearing.did "clearing.did" "src/declarations/clearing"
+download_did src/registry/registry.did src/declarations/registry/registry.did
+download_did src/clearing/clearing.did src/declarations/clearing/clearing.did

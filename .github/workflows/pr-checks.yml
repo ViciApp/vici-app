@@ -1,0 +1,22 @@
+# The shared pull request rules (title, no empty change, release PR freshness in the queue) live in
+# ViciApp/.github; the org ruleset requires the `pr-checks / pass` context this job reports.
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+  merge_group:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  pr-checks:
+    uses: ViciApp/.github/.github/workflows/pull-request.yml@main
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read

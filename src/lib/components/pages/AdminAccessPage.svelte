@@ -1,17 +1,22 @@
 <script lang="ts">
 	import type { PrincipalText } from '@junobuild/schema';
 	import { onMount } from 'svelte';
-	import AdminAddForm from '$lib/components/admin/AdminAddForm.svelte';
-	import AdminList from '$lib/components/admin/AdminList.svelte';
-	import AdminOracleManager from '$lib/components/admin/AdminOracleManager.svelte';
-	import AdminPrincipalSearch from '$lib/components/admin/AdminPrincipalSearch.svelte';
-	import AdminSubPageHeader from '$lib/components/admin/AdminSubPageHeader.svelte';
-	import { UserRole } from '$lib/enums/user';
-	import { getProfile } from '$lib/services/profile.services';
-	import { listRoles, removeRole, setRole, type UserRoleEntry } from '$lib/services/roles.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import AdminAddForm from '#lib/components/admin/AdminAddForm.svelte';
+	import AdminList from '#lib/components/admin/AdminList.svelte';
+	import AdminOracleManager from '#lib/components/admin/AdminOracleManager.svelte';
+	import AdminPrincipalSearch from '#lib/components/admin/AdminPrincipalSearch.svelte';
+	import AdminSubPageHeader from '#lib/components/admin/AdminSubPageHeader.svelte';
+	import { UserRole } from '#lib/enums/user.ts';
+	import { getProfile } from '#lib/services/profile.services.ts';
+	import {
+		listRoles,
+		removeRole,
+		setRole,
+		type UserRoleEntry
+	} from '#lib/services/roles.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	let roleEntries = $state<UserRoleEntry[]>([]);
 	let isAssigningRole = $state(false);

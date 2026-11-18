@@ -1,21 +1,27 @@
 <script lang="ts">
-	import type { ClearingDid } from '$declarations';
-	import BaseButton from '$lib/components/ui/BaseButton.svelte';
-	import EmptyState from '$lib/components/ui/EmptyState.svelte';
-	import Pagination from '$lib/components/ui/Pagination.svelte';
-	import { primaryMarketTag } from '$lib/constants/market-tags.constants';
+	import { isNullish, nonNullish } from '@dfinity/utils';
+	import type { ClearingDid } from '#declarations';
+	import { orderRejectionMessage } from '#lib/canisters/clearing.errors.ts';
+	import MarketTitleSkeleton from '#lib/components/market/MarketTitleSkeleton.svelte';
+	import BaseButton from '#lib/components/ui/BaseButton.svelte';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
+	import Pagination from '#lib/components/ui/Pagination.svelte';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
+	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import {
 		PORTFOLIO_DEFAULT_DECIMALS,
 		PORTFOLIO_PAGE_SIZE
-	} from '$lib/constants/portfolio.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { marketTags } from '$lib/derived/market-tags.derived';
-	import { cancelLimitOrder } from '$lib/services/order.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market, MarketId } from '$lib/types/market';
-	import { formatPrice, formatQuantity } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
+	} from '#lib/constants/portfolio.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { marketTags } from '#lib/derived/market-tags.derived.ts';
+	import { marketsNotInitialized } from '#lib/derived/markets.derived.ts';
+	import { cancelLimitOrder } from '#lib/services/order.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { Market, MarketId } from '#lib/types/market.ts';
+	import { formatPrice, formatQuantity } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	interface Props {
 		orders: ClearingDid.LimitOrder[];
@@ -47,15 +53,15 @@
 
 	/** Category accent color for the row tag chip; mirrors PortfolioPage. */
 	const categoryAccent = (marketId: MarketId): string => {
-		const tag = primaryMarketTag($marketTags[marketId]);
+		const micro = primaryMicro($marketTags[marketId] ?? []);
 
-		return tagColor(tag ?? '');
+		return tagColor(micro ?? '');
 	};
 
 	const categoryLabel = (marketId: MarketId): string | null => {
-		const tag = primaryMarketTag($marketTags[marketId]);
+		const micro = primaryMicro($marketTags[marketId] ?? []);
 
-		return tag ? tag.toUpperCase() : null;
+		return nonNullish(micro) ? micro.toUpperCase() : null;
 	};
 
 	const handleCancel = async ({
@@ -74,6 +80,21 @@
 
 		try {
 			await cancelLimitOrder(orderId);
+			onRefresh();
+		} catch (err: unknown) {
+			const rejection = orderRejectionMessage(err);
+
+			if (isNullish(rejection)) {
+				throw err;
+			}
+
+			notificationsStore.add({
+				title: t({ locale: $localeStore, key: 'portfolio.orders.cancel_failed' }),
+				message: t({ locale: $localeStore, ...rejection }),
+				type: 'error'
+			});
+
+			// The usual refusal is an order that already left the book, so the row is stale.
 			onRefresh();
 		} finally {
 			cancellingId = null;
@@ -96,14 +117,16 @@
 			<li>
 				<a
 					class="portfolio-row portfolio-row-card"
-					aria-label={market?.title ?? t({ locale: $localeStore, key: 'portfolio.unknown_market' })}
+					aria-label={$marketsNotInitialized && isNullish(market)
+						? t({ locale: $localeStore, key: 'ui.loading' })
+						: (market?.title ?? t({ locale: $localeStore, key: 'portfolio.unknown_market' }))}
 					href="{AppPath.Markets}/{marketId}"
 				>
 					<div class="portfolio-row-tags">
 						{#if catLabel}
 							<span style:color={catAccent} class="portfolio-row-cat">{catLabel}</span>
 						{:else}
-							<span class="portfolio-row-cat is-dim">—</span>
+							<span class="portfolio-row-cat is-dim">{EMPTY_VALUE}</span>
 						{/if}
 						<span class="portfolio-row-side portfolio-row-side-{sideKey}">
 							{isBuy
@@ -112,7 +135,11 @@
 						</span>
 					</div>
 					<div class="portfolio-row-title">
-						{market?.title ?? t({ locale: $localeStore, key: 'portfolio.unknown_market' })}
+						{#if $marketsNotInitialized && isNullish(market)}
+							<MarketTitleSkeleton />
+						{:else}
+							{market?.title ?? t({ locale: $localeStore, key: 'portfolio.unknown_market' })}
+						{/if}
 					</div>
 					<div class="portfolio-row-meta">
 						<span class="num portfolio-row-prob">

@@ -1,30 +1,33 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
+	import ArenaStandingHero from '#lib/components/arena/ArenaStandingHero.svelte';
+	import FriendsTab from '#lib/components/arena/FriendsTab.svelte';
+	import BattlesInboxPage from '#lib/components/pages/BattlesInboxPage.svelte';
+	import LeaguesPage from '#lib/components/pages/LeaguesPage.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { browser } from '$app/env';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import ArenaStandingHero from '$lib/components/arena/ArenaStandingHero.svelte';
-	import FriendsTab from '$lib/components/arena/FriendsTab.svelte';
-	import BattlesInboxPage from '$lib/components/pages/BattlesInboxPage.svelte';
-	import LeaguesPage from '$lib/components/pages/LeaguesPage.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
 
 	/**
-	 * Arena — the three-tab page (Friends / Leagues /
+	 * Arena: the three-tab page (Friends / Leagues /
 	 * Battles) that anchors every cohort surface. Each tab embeds the
 	 * existing page component with `embedded={true}` so their own
 	 * appbars stay quiet. The page leads with the standing hero (its
 	 * own eyebrow carries the context, e.g. GLOBAL RANK) directly above
-	 * the tab strip — there's no page-title header.
+	 * the tab strip: there's no page-title header.
 	 *
-	 * Tab state persists in localStorage under `vici.arena-tab`,
-	 * so a user returning to /arena lands on the tab they last
-	 * looked at. Legacy values (`worlds`, `global`) fall through to
-	 * the new `friends` default.
+	 * Friends is the default tab: entering /arena *without* `?tab=` (nav
+	 * click, cold load, a bare bookmark) always opens Friends. Selecting a
+	 * tab mirrors it into the URL via `replaceState` (see `selectTab`), so
+	 * `?tab=` then acts as the tab pointer: `history.back()` from a
+	 * drill-down (e.g. a battle opened off the Battles tab) restores the
+	 * originating tab, and a reload/bookmark/share of the current URL
+	 * reopens it (see `focusTabKey`). The tab is never written to storage:
+	 * it lives only in the URL, so a fresh `/arena` always resets to Friends.
 	 */
-
-	const STORAGE_KEY = 'vici.arena-tab';
 
 	type Tab = 'friends' | 'leagues' | 'battles';
 
@@ -42,28 +45,34 @@
 	// view, so the recipient lands on the Accept affordance.
 	const focusRequestKey = $derived(page.url.searchParams.get('request') ?? undefined);
 
+	const isTab = (value: string | null): value is Tab =>
+		value === 'friends' || value === 'leagues' || value === 'battles';
+
+	// A back-nav fallback can target a specific tab via `/arena?tab=battles`
+	// (e.g. closing a battle opened from a cold/deep link). It outranks the
+	// Friends default, but a friend-request deep link still wins.
+	const focusTabKey = $derived.by((): Tab | undefined => {
+		const tab = page.url.searchParams.get('tab');
+
+		return isTab(tab) ? tab : undefined;
+	});
+
 	onMount(() => {
 		if (!browser) {
 			return;
 		}
 
-		// The deep-link param wins over the last-opened tab.
+		// A friend-request deep link forces Friends; otherwise a `?tab=`
+		// back-nav target wins. Absent both, `activeTab` keeps its Friends
+		// default: entry into Arena always opens Friends.
 		if (nonNullish(focusRequestKey)) {
 			activeTab = 'friends';
 
 			return;
 		}
 
-		try {
-			const stored = localStorage.getItem(STORAGE_KEY);
-
-			if (stored === 'leagues' || stored === 'battles') {
-				activeTab = stored;
-			} else {
-				activeTab = 'friends';
-			}
-		} catch {
-			activeTab = 'friends';
+		if (nonNullish(focusTabKey)) {
+			activeTab = focusTabKey;
 		}
 	});
 
@@ -75,38 +84,53 @@
 		}
 	});
 
+	// Same catch for a `?tab=` deep-link arriving via client-side navigation.
+	// A friend-request deep link still outranks it (matching onMount), so bail
+	// while one is forcing the Friends tab.
 	$effect(() => {
-		if (!browser) {
-			return;
-		}
-
-		// Don't persist the tab while a deep-link is forcing Friends — the
-		// forced switch is transient, so writing it would clobber the user's
-		// real last-opened preference just because they followed a link.
 		if (nonNullish(focusRequestKey)) {
 			return;
 		}
 
-		try {
-			localStorage.setItem(STORAGE_KEY, activeTab);
-		} catch {
-			// localStorage may be blocked (private mode); not fatal.
+		if (nonNullish(focusTabKey)) {
+			activeTab = focusTabKey;
 		}
 	});
 
 	const TABS: readonly Tab[] = ['friends', 'leagues', 'battles'] as const;
+
+	// Switch tab and mirror it into the URL (`?tab=`) without a navigation, so
+	// `history.back()` from a drill-down lands back on the tab it was opened
+	// from. A one-shot `request` focus is dropped on the way: keeping it would
+	// re-force Friends via the deep-link effect and trap the user there.
+	const selectTab = (tab: Tab) => {
+		activeTab = tab;
+
+		if (!browser) {
+			return;
+		}
+
+		const url = new URL(page.url.href);
+		url.searchParams.set('tab', tab);
+		url.searchParams.delete('request');
+		goto(url, { shallow: true, replace: true, state: page.state });
+	};
 </script>
 
 <div class="arena-page">
-	<ArenaStandingHero onSelectTab={(tab) => (activeTab = tab)} />
+	<ArenaStandingHero onSelectTab={selectTab} />
 
-	<div class="arena-tabs" aria-label="Arena sections" role="tablist">
+	<div
+		class="arena-tabs"
+		aria-label={t({ locale: $localeStore, key: 'arena.tabs.aria' })}
+		role="tablist"
+	>
 		{#each TABS as tab (tab)}
 			<button
 				class="arena-tab"
 				class:is-active={activeTab === tab}
 				aria-selected={activeTab === tab}
-				onclick={() => (activeTab = tab)}
+				onclick={() => selectTab(tab)}
 				role="tab"
 				type="button"
 			>
@@ -217,7 +241,7 @@
 		flex: 1;
 	}
 
-	/* Inline fallback for the tab boundary — a quiet card, not a
+	/* Inline fallback for the tab boundary; a quiet card, not a
 	   full-screen error, so the surrounding Arena shell stays usable. */
 	.arena-boundary {
 		display: flex;

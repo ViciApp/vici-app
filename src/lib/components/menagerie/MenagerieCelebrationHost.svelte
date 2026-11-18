@@ -1,19 +1,23 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
-	import MenagerieReveal from '$lib/components/menagerie/MenagerieReveal.svelte';
-	import MenagerieSprite from '$lib/components/menagerie/MenagerieSprite.svelte';
-	import { myMenagerieStats } from '$lib/derived/menagerie.derived';
-	import { loadMyMenagerieSignals } from '$lib/services/menagerie.services';
-	import { persistEarnedMenagerie } from '$lib/services/profile.services';
-	import { flowBeatActiveStore } from '$lib/stores/flow-beat.store';
+	import MenagerieReveal from '#lib/components/menagerie/MenagerieReveal.svelte';
+	import MenagerieSprite from '#lib/components/menagerie/MenagerieSprite.svelte';
+	import { myMenagerieStats } from '#lib/derived/menagerie.derived.ts';
+	import { loadMyMenagerieSignals } from '#lib/services/menagerie.services.ts';
+	import { persistEarnedMenagerie } from '#lib/services/profile.services.ts';
+	import { flowBeatActiveStore } from '#lib/stores/flow-beat.store.ts';
 	import {
 		advanceMenagerieCelebration,
 		enqueueMenagerieCelebrations,
 		menagerieCelebrationStore,
 		resetMenagerieCelebrations
-	} from '$lib/stores/menagerie-celebration.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { detectNewMenagerieTiers } from '$lib/utils/menagerie.utils';
+	} from '#lib/stores/menagerie-celebration.store.ts';
+	import {
+		myMenagerieSignalsGeneration,
+		myMenagerieSignalsOwner
+	} from '#lib/stores/menagerie.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { detectNewMenagerieTiers } from '#lib/utils/menagerie.utils.ts';
 
 	// App-shell celebration pipeline for the Menagerie trophy layer. Mounted once
 	// at the (app) shell so a freshly-crossed tier celebrates on any surface.
@@ -22,14 +26,15 @@
 	//   1. Mount the glyph sprite once (every badge across the app references it).
 	//   2. Watch the owner's stats; on a genuinely new tier crossing, queue a
 	//      celebration. FIRST-EVER load (the `earnedMenagerie` field is absent)
-	//      seeds the ledger SILENTLY — no celebration storm for a stocked profile.
+	//      seeds the ledger SILENTLY: no celebration storm for a stocked profile
+	//      once the live signals below have settled for that owner.
 	//   3. Persist the celebrated-key ledger so a crossing fires exactly once.
 	//   4. Render the reveal, HELD while a Flow character beat is on screen so the
 	//      two never collide (card → character beat → trophy).
 	//
 	// Beyond the stats carried on the profile doc, the host reads the SAME shared
-	// `menagerie.derived` snapshot the profile rail + album grid render from —
-	// referral count + global rank folded in — so Parrot / Goat / Badger
+	// `menagerie.derived` snapshot the profile rail + album grid render from:
+	// referral count + global rank folded in, so Parrot / Goat / Badger
 	// celebrate from exactly the tier the user sees, never a divergent one. The
 	// host is always mounted at the (app) shell, so it also hydrates those live
 	// signals app-wide; any source that's missing just leaves its animal at
@@ -37,25 +42,27 @@
 
 	const profile = $derived($userStore.profile);
 
-	// Hydrate the shared live signals once per distinct signed-in owner —
+	// Hydrate the shared live signals once per distinct signed-in owner:
 	// keyed on the owner rather than fired once at mount, because the host
 	// is always mounted and can race auth: a pre-auth load has no principal
 	// for the self-rank query and skips that leg, so re-firing when the
 	// owner lands lets Goat's rank self-heal app-wide instead of reading
 	// baseline until some other surface happens to reload the signals. The
-	// initial `undefined` sentinel still fires the signed-out load (global
-	// standings need no principal); the service's in-flight dedup keeps
-	// concurrent surface mounts single-flight.
-	let signalsOwner = $state<string | null | undefined>(undefined);
+	// key also carries the signals generation, because an auth transition
+	// that keeps the same owner still clears the caches and the first-load
+	// seed below waits on them. The initial `undefined` sentinel still fires
+	// the signed-out load (global standings need no principal); the
+	// service's in-flight dedup keeps concurrent surface mounts single-flight.
+	let signalsKey = $state<string | undefined>(undefined);
 
 	$effect(() => {
-		const owner = profile?.owner ?? null;
+		const key = `${profile?.owner ?? ''}:${$myMenagerieSignalsGeneration}`;
 
-		if (owner === signalsOwner) {
+		if (key === signalsKey) {
 			return;
 		}
 
-		signalsOwner = owner;
+		signalsKey = key;
 		void loadMyMenagerieSignals();
 	});
 
@@ -76,6 +83,16 @@
 		const stats = $myMenagerieStats;
 		const diff = detectNewMenagerieTiers({ stats, celebrated: current.earnedMenagerie });
 
+		// Hold the silent seed until this owner's live signals have settled. A
+		// seed taken from the profile doc alone leaves out every trophy the
+		// signals carry (Goat's rank, Parrot's referrals), so when the rank lands
+		// a moment later Goat celebrates as a "new" crossing the owner already
+		// had. Returning before `lastSignature` is set lets the signals landing
+		// re-run this pass.
+		if (diff.firstRun && $myMenagerieSignalsOwner !== current.owner) {
+			return;
+		}
+
 		// Signature = the earned-set + whether the ledger was seeded. Re-running
 		// only when one of these changes avoids reacting to unrelated profile
 		// writes (avatar, settings, …); the earned-set already folds in the live
@@ -89,7 +106,7 @@
 		lastSignature = signature;
 
 		if (diff.firstRun) {
-			// Seed the ledger silently — the owner has "always had" these.
+			// Seed the ledger silently: the owner has "always had" these.
 			void persistEarnedMenagerie({ owner: current.owner, keys: diff.all });
 
 			return;

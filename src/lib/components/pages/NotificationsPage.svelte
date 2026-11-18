@@ -1,31 +1,30 @@
 <script lang="ts">
 	import { ArrowLeft, Bell } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import NotifRow from '$lib/components/ui/NotifRow.svelte';
-	import { notificationDestination } from '$lib/constants/notification-kind.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { track } from '$lib/services/analytics.services';
-	import { refreshFriendRelations } from '$lib/stores/friends.store';
+	import NotifRow from '#lib/components/ui/NotifRow.svelte';
+	import { notificationDestination } from '#lib/constants/notification-kind.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { refreshFriendRelations } from '#lib/stores/friends.store.ts';
 	import {
 		combinedInboxStore,
 		dismissInboxNotification,
 		markAllInboxRead,
 		markInboxRead
-	} from '$lib/stores/inbox.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { InboxNotification } from '$lib/types/inbox';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/stores/inbox.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { InboxNotification } from '#lib/types/inbox.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
 
 	const unread = $derived($combinedInboxStore.filter((item) => item.unread));
 	const earlier = $derived($combinedInboxStore.filter((item) => !item.unread));
 	const hasUnread = $derived(unread.length > 0);
 
 	// Tap router: mark the card read, then deep-link to its market when one is
-	// attached (`mid`), otherwise fall back to the kind's home surface — a
+	// attached (`mid`), otherwise fall back to the kind's home surface: a
 	// single source via `notificationDestination`. `goto` takes the raw string
 	// because the market path is dynamic.
 	const open = (notification: InboxNotification) => {
@@ -66,7 +65,7 @@
 		<button
 			class="appbar-icon-btn"
 			aria-label={t({ locale: $localeStore, key: 'notifications.back_flow' })}
-			onclick={() => goBack(resolve(AppPath.Flow))}
+			onclick={() => goBack(resolveAppPath(AppPath.Flow))}
 			type="button"
 		>
 			<ArrowLeft aria-hidden="true" size={18} strokeWidth={1.8} />
@@ -85,7 +84,7 @@
 	</header>
 
 	{#if $combinedInboxStore.length === 0}
-		<!-- Polished empty state — dashed surface with serif-italic headline.
+		<!-- Polished empty state: dashed surface with serif-italic headline.
 		     The bell icon is faint by design (no event to draw the eye). -->
 		<div class="notifications-empty" aria-live="polite" role="status">
 			<Bell class="notifications-empty-icon" aria-hidden="true" size={28} strokeWidth={1.4} />
@@ -146,7 +145,7 @@
 		color: var(--text-base);
 	}
 
-	/* Text-only ghost — `btn btn-ghost t-eyebrow` appbar variant. */
+	/* Text-only ghost: `btn btn-ghost t-eyebrow` appbar variant. */
 	.notifications-mark-read {
 		appearance: none;
 		padding: 0.375rem 0.625rem;
@@ -178,7 +177,7 @@
 		padding: 0;
 	}
 
-	/* Section header — `New` / `Earlier` eyebrow plus a count badge. The
+	/* Section header: `New` / `Earlier` eyebrow plus a count badge. The
 	   Earlier head gets extra top padding when it sits below the New group. */
 	.notifications-section-head {
 		display: flex;

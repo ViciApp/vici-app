@@ -28,8 +28,13 @@ target
 
 /playwright-report/
 /test-results/
+/playwright-report-web2/
+/test-results-web2/
 /playwright/.cache/
 
 
 
 
+
+# Backend local-disk upload fallback (dev/test artifacts)
+/backend/uploads/

@@ -1,45 +1,51 @@
 <script lang="ts">
 	import { Check, ChevronDown, ChevronRight, Lock } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
-	import { MARKET_TAGS, type MarketTag } from '$lib/constants/market-tags.constants';
-	import { decisiveSettledCount } from '$lib/derived/resolved-positions.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { Market } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
-	import { categoryLabel } from '$lib/utils/market-tags.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import {
+		classificationTags,
+		MACRO_IDS,
+		type MacroId
+	} from '#lib/constants/market-taxonomy.constants.ts';
+	import { decisiveSettledCount } from '#lib/derived/resolved-positions.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
 	 * "Beyond the Cup" skill gate. During the World-Cup focus the Markets board
 	 * surfaces only the World-Cup category; every other category stays locked
 	 * behind a calibrated-accuracy goal. This card sits high on the board as the
-	 * unlock motivator (not a waitlist — a target): it shows the viewer's
+	 * unlock motivator (not a waitlist; a target): it shows the viewer's
 	 * calibrated accuracy and a progress bar toward {@link UNLOCK_ACC}, and
 	 * expands to preview the locked categories.
 	 *
 	 * The gate is EARNED, not optimistic: it reads the viewer's *real* decisive
 	 * win-rate (`profile.accuracy`, a 0..100 figure that is `0` until calls
-	 * settle) — never the empty-state 100% that own-stat surfaces show — and
+	 * settle), never the empty-state 100% that own-stat surfaces show, and
 	 * requires both a minimum sample of decisive calls
 	 * ({@link BEYOND_CUP_MIN_CALLS}) and the accuracy threshold. A brand-new
 	 * user therefore reads LOCKED at their real 0%, so the skill gate can't be
 	 * unlocked before any skill is shown.
 	 *
 	 * `BEYOND_CUP_MIN_CALLS` is a dedicated gate (no app-wide lifetime min-calls
-	 * display constant exists — the leaderboard's `MIN_CALLS_FOR_RANK` is 50 and
+	 * display constant exists: the leaderboard's `MIN_CALLS_FOR_RANK` is 50 and
 	 * the monthly award's `MONTHLY_MIN_CALLS` is month-scoped, both wrong here).
 	 *
-	 * Locked categories = the closed `MARKET_TAGS` taxonomy minus `wc`. There is
-	 * no buy path here — the gate only previews what unlocking opens.
+	 * Locked categories = the taxonomy macro board. World Cup lives under the
+	 * `sports` macro with a `world-cup` free tag; the board's WC focus surfaces
+	 * only markets carrying that free tag, and this gate previews the full macro
+	 * board that unlocking opens.
 	 */
 
 	interface Props {
 		/** All known markets, used to count the open non-World-Cup lines. */
 		markets: Market[];
-		/** Per-market tag lookup (`market.id` → tags), from `$marketTags`. */
-		tagsByMarket: Record<string, MarketTag[]>;
-		/** Whether tag metadata has loaded — the count is `0` until it has. */
+		/** Per-market tag lookup (`market.id` → stored tags), from `$marketTags`. */
+		tagsByMarket: Record<string, string[]>;
+		/** Whether tag metadata has loaded: the count is `0` until it has. */
 		tagsInitialized: boolean;
 	}
 
@@ -75,16 +81,18 @@
 	const progress = $derived(Math.max(0, Math.min(1, accuracyPctRaw / 100 / UNLOCK_ACC)));
 	const remaining = $derived(Math.max(0, target - pct));
 
-	// Locked categories: the closed taxonomy minus the World-Cup category.
-	const lockedCategories = $derived<MarketTag[]>(MARKET_TAGS.filter((tag) => tag !== 'wc'));
+	// Locked categories: the full macro board that unlocking opens.
+	const lockedCategories = $derived<MacroId[]>([...MACRO_IDS]);
 
 	// What unlocking opens, counted in MARKETS (not categories): open lines that
-	// aren't World-Cup. `0` until tags load so the headline never overcounts.
+	// aren't World-Cup (no `world-cup` free tag). `0` until tags load so the
+	// headline never overcounts.
 	const nonWcOpenMarketsCount = $derived(
 		tagsInitialized
 			? markets.filter(
 					(market) =>
-						market.status === 'Open' && !(tagsByMarket[market.id]?.includes('wc') ?? false)
+						market.status === 'Open' &&
+						!classificationTags(tagsByMarket[market.id] ?? []).includes('world-cup')
 				).length
 			: 0
 	);
@@ -94,7 +102,7 @@
 
 <div class="beyond-wrap">
 	<button class="card-surface beyond" aria-expanded={open} onclick={toggle} type="button">
-		<!-- Compact header — always visible -->
+		<!-- Compact header: always visible -->
 		<div style="align-items: center; gap: 12px;" class="row between">
 			<div style="gap: 10px; align-items: center; min-width: 0;" class="row">
 				<span class="beyond-icon" class:unlocked aria-hidden="true">
@@ -133,7 +141,7 @@
 			</div>
 		</div>
 
-		<!-- Thin progress bar — always visible -->
+		<!-- Thin progress bar: always visible -->
 		<div class="beyond-track">
 			<div
 				style:width={`${progress * 100}%`}

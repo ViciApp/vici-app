@@ -1,6 +1,8 @@
-import type { ClearingDid } from '$declarations';
-import { ZERO } from '$lib/constants/app.constants';
-import type { Outcome } from '$lib/types/market';
+import type { ClearingDid } from '#declarations';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+import type { Outcome } from '#lib/types/market.ts';
+import { nonNullish } from '@dfinity/utils';
 
 /**
  * Binary settlement price for the clearing canister: YES → 100, NO → 0; other outcomes → undefined.
@@ -31,3 +33,23 @@ export const settlementInputOutcome = (
 	settlement: ClearingDid.SettlementInput
 ): Outcome | undefined =>
 	'Outcome' in settlement ? settlement.Outcome : binaryPayoffLabel(settlement.Price.decimal.value);
+
+/**
+ * Settlement time (ms) from clearing's on-chain `SettlementInput`.
+ *
+ * Only price settlements carry a timestamp, and even there it's optional: the
+ * categorical `Outcome` variant has no time field at all. `undefined` therefore
+ * means "settled, time unknown", never "unsettled"; callers ordering by
+ * resolution recency must keep those rows rather than dropping them.
+ */
+export const settlementInputTimestamp = (
+	settlement: ClearingDid.SettlementInput
+): bigint | undefined => {
+	if ('Outcome' in settlement) {
+		return;
+	}
+
+	const timestampNs = settlement.Price.timestamp?.[0];
+
+	return nonNullish(timestampNs) ? timestampNs / MILLISECOND_IN_NANOSECONDS : undefined;
+};

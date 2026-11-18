@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import FlowCardSparkline from '$lib/components/market/FlowCardSparkline.svelte';
-	import { marketMetadata } from '$lib/derived/market-metadata.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import type { PriceHistoryPeriod } from '$lib/utils/market-price-history.utils';
+	import FlowCardSparkline from '#lib/components/market/FlowCardSparkline.svelte';
+	import { marketMetadata } from '#lib/derived/market-metadata.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import type { PriceHistoryPeriod } from '#lib/utils/market-price-history.utils.ts';
 
 	interface Props {
 		marketId: string;
@@ -48,8 +48,8 @@
 	// Event markers are authored against a relative "this week" day index, so
 	// they only line up on the 7d window: feed them through for the seed
 	// fallback (no real `points`) and for real history on the 7d period (the
-	// sparkline anchors them on its time axis there). Other periods — and the
-	// true cold-start (real but empty) — suppress them.
+	// sparkline anchors them on its time axis there). Other periods and the
+	// true cold-start (real but empty) suppress them.
 	const showEvents = $derived(isNullish(points) || (period === '7d' && points.length > 0));
 	const events = $derived(showEvents ? ($marketMetadata[marketId]?.events ?? []) : []);
 </script>
@@ -121,7 +121,7 @@
 		text-transform: uppercase;
 	}
 
-	/* Cold-start note — sits between the eyebrow and the period chips,
+	/* Cold-start note: sits between the eyebrow and the period chips,
 	   muted so it reads as a quiet status rather than a value. */
 	.market-chart-coldstart {
 		margin-left: auto;

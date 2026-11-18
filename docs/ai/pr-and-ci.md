@@ -15,7 +15,7 @@ with a **required scope**. Templates:
 - `chore(npm-deps-dev): bump @junobuild/config from 3.0.0 to 3.0.1`
 - `docs(readme): replace Motoko mention with Rust`
 
-Pattern: `type(scope): description` — the scope is **required** (the `pr-title` check rejects a scopeless title).
+Pattern: `type(scope): description`: the scope is **required** (the `pr-checks` title check rejects a scopeless title).
 
 ### Verbs
 
@@ -24,13 +24,15 @@ Pattern: `type(scope): description` — the scope is **required** (the `pr-title
 | `feat`     | new user-visible feature                                     |
 | `fix`      | bug fix                                                      |
 | `refactor` | internal change with no behaviour change                     |
-| `style`    | visual / CSS only — no logic change                          |
+| `style`    | visual / CSS only, no logic change                           |
 | `perf`     | performance improvement                                      |
 | `docs`     | docs only (incl. `docs/ai/**`, `README.md`, …)               |
 | `test`     | tests only                                                   |
 | `chore`    | misc maintenance (dependency bumps, release housekeeping, …) |
 | `build`    | build system / packaging                                     |
 | `ci`       | CI workflows / actions                                       |
+| `deps`     | accepted by the title check, unused: bumps are `chore`       |
+| `revert`   | reverts an earlier commit                                    |
 
 ### Scope
 
@@ -55,10 +57,10 @@ feat(satellite)!: change profile schema field name
 
 …and add a `BREAKING CHANGE:` block in the body explaining the migration.
 
-## 2. PR body — template
+## 2. PR body: template
 
-Honor [`.github/pull_request_template.md`](../../.github/pull_request_template.md)
-— three sections, `# Motivation` / `# Changes` / `# Tests`, with per-section
+Honor [`.github/pull_request_template.md`](../../.github/pull_request_template.md):
+three sections, `# Motivation` / `# Changes` / `# Tests`, with per-section
 guidance embedded as comments in the template itself.
 
 Rules:
@@ -66,27 +68,26 @@ Rules:
 - **All three sections are required.** Don't leave them empty. Even a tiny PR fills each section with at least one line.
 - **Use the exact section headings** (`# Motivation`, `# Changes`, `# Tests`) so downstream tooling (release notes, search, changelog grep) can find them.
 - **Concise but complete.** A reviewer should understand what changed and why without opening the diff. Motivation: 1–3 sentences. Changes: one bullet per logical change, outcome first. Cut anything that doesn't change what the reviewer does next.
-- **Write what the diff can't say.** Don't narrate the diff line by line — it's attached. Spend the words on the why, the trade-offs considered, and what was deliberately left out of scope.
-- **No filler.** Drop openers like "This PR…" / "In this change…" — start with the substance.
+- **Write what the diff can't say.** Don't narrate the diff line by line; it's attached. Spend the words on the why, the trade-offs considered, and what was deliberately left out of scope.
+- **No filler.** Drop openers like "This PR…" / "In this change…": start with the substance.
 - **Tests are concrete.** Name the commands run and their outcome, the tests added, the manual steps taken. "Tests pass" alone says nothing.
-- **Do not hard-wrap lines.** Write one line per paragraph or list item and let the GitHub renderer wrap. Hard-wrapping at ~80 columns (a default many models fall back to) breaks rendering inside lists, blockquotes, and tables, and makes later edits in the GitHub UI ugly. This applies to the PR body only — source files still follow `.prettierrc`.
-- **Atomicity statement** if the PR touches more than one logical thing — add a one-liner explaining why they belong together. If you can't, split.
+- **Do not hard-wrap lines.** Write one line per paragraph or list item and let the GitHub renderer wrap. Hard-wrapping at ~80 columns (a default many models fall back to) breaks rendering inside lists, blockquotes, and tables, and makes later edits in the GitHub UI ugly. This applies to the PR body only; source files still follow `.prettierrc`.
+- **One purpose.** The title names it in one line; a title that needs an "and" is two PRs (see [§ 3](#3-scope-and-parallel-prs)).
 - **Mention `docs/ai/` updates** under `# Changes` whenever the [meta-update rule](./governance.md#meta-update-rule) fired.
-- **Screenshots are welcome** for visual changes — link them; don't paste giant base64 in the body.
+- **Screenshots are welcome** for visual changes: link them; don't paste giant base64 in the body.
 - **For interface-breaking changes** (satellite `.did`, `juno.config.ts` collections), include a `BREAKING CHANGE:` block in `# Changes` listing what callers / data has to do to migrate.
 - **For changes that depend on `../icdc-core/`** (e.g. you regenerated Candid bindings against a new icdc-core version), call out the upstream PR / commit in `# Motivation` so reviewers can sequence the deploy.
 
-## 3. Atomicity
+## 3. Scope and parallel PRs
 
-One logical change per PR. If you catch yourself writing
-"and also" / "while I was here" / "I noticed that" in the body, split.
+One purpose per PR, whatever its size ([rule 2](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#2-scoped)), and PRs side by side from `main`, stacked only when one needs the other's code ([rule 3](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#3-parallel-not-stacked)). How that splits the usual Vici changes:
 
-| Anti-pattern                                | Do this instead                                                                |
-| ------------------------------------------- | ------------------------------------------------------------------------------ |
-| "Add feature X and rename old component"    | PR 1: `refactor: rename`. PR 2: `feat: X`.                                     |
-| "Fix bug Y and update unrelated typography" | Two PRs.                                                                       |
-| "Refactor 5 components into shared `Foo`"   | PR 1: introduce `Foo` + migrate 1 caller. PR 2..N: migrate the others.         |
-| "New satellite endpoint + add it to the FE" | Usually two PRs (satellite first, FE second). One only if both are very small. |
+| Change                                      | Split                                                                                                                         |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| "Add feature X and rename old component"    | `refactor: rename` and `feat: X`, both from `main` in parallel; the rename lands first only if X needs it.                    |
+| "Fix bug Y and update unrelated typography" | Two PRs from `main`, in parallel.                                                                                             |
+| "Refactor 5 components into shared `Foo`"   | One PR: the purpose is "consolidate into `Foo`", whatever the number of callers.                                              |
+| "New satellite endpoint + add it to the FE" | Two PRs: the satellite endpoint, then the FE that calls it. The FE needs the endpoint deployed, so this is a justified stack. |
 
 ## 4. Local quality gates
 
@@ -95,42 +96,86 @@ From the repo root, before opening the PR:
 ```bash
 # Always
 npm run format          # prettier --write + eslint --fix
-npm run lint            # prettier --check + eslint
-npm run check           # svelte-check
+npm run lint            # prettier --check + eslint + locale catalogs + dash check
+npm run check           # svelte-check, then tsc over the satellite tsconfig
+npm test                # pure-logic specs under src/tests/
 
 # Or in one shot (matches what humans usually run)
 npm run quality         # = format && lint
 
-# Bindings (only if you changed Candid sources or upgraded an upstream canister)
+# Bindings (only if you bumped ICDC_CORE_VERSION; the `Bindings` workflow also
+# commits the result onto same-repo PRs)
 npm run did             # ./scripts/did.sh + format + lint
 
-# Satellite: run whenever you touch src/satellite/** OR a $lib/schema/*
+# Satellite: run whenever you touch src/satellite/** OR a #lib/schema/*
 # file imported by src/satellite/index.ts. CI's `satellite-schema` job
 # fails on any drift it produces, so commit the regenerated outputs.
 # Pair with `npm run quality` so the drift check compares apples to apples.
+# The backend vendors two of the regenerated declarations, pinned
+# byte-for-byte by backend/tests/shared-drift/declarations.test.ts: copy them
+# after the format pass, which is what the copy must match.
 npm run juno:functions:build && npm run quality
+cp src/declarations/satellite/{satellite.did.d.ts,satellite.factory.did.js} backend/src/declarations/satellite/
 
 # Engine sanity (after re-init or refactors that touch engine wiring)
 npm run test:engine-sync
+
+# Web2 API: whenever you touch backend/** or a mirrored app constant
+# (backend/tests/shared-drift/ reads app files). Needs Postgres up.
+(cd backend && docker compose up -d && bun run typecheck && bun test)
 ```
 
 The CI workflow [`.github/workflows/checks.yml`](../../.github/workflows/checks.yml)
-runs `format`, `lint`, and `check`. The `format` job auto-commits prettier
-fixes back to your branch on PRs from non-forks; you should still run
-`npm run format` locally to keep diffs reviewable.
+runs `format`, `lint`, `check` and `test`. The `format` job auto-commits prettier
+fixes back to your branch on PRs from non-forks (and opens a `bot-format` PR if
+`main` itself drifts); you should still run `npm run format` locally to keep
+diffs reviewable.
+
+### Size and shape limits (ratchet)
+
+`npm run lint` enforces `complexity` 15, `max-depth` 4, `max-params` 4,
+`max-nested-callbacks` 4 and `max-lines` 500 (blank lines and comments not
+counted; locale catalogs exempt) on every linted file, frontend, satellite
+and API alike. The code that already broke them is listed in
+[`eslint-suppressions.json`](../../eslint-suppressions.json), which ESLint
+reads on its own:
+
+- **New code meets the limits.** A violation in a file with no entry, or one
+  more than a file's count, fails lint. Split the function or the file; do
+  not raise a limit or add an entry.
+- **The count is per file and rule, not per function.** Fixing one suppressed
+  violation and adding another of the same rule in the same file keeps the
+  count and passes lint. Do not do that: a new or edited function meets the
+  limits even inside a suppressed file, and a reviewer rejects a swap.
+- **Never hand-edit the suppressions file.** It is generated.
+- **Fixed one? Prune it.** When a change brings a suppressed file under a
+  limit, ESLint fails on the now-unused entry: run
+  `npx eslint . --prune-suppressions` and commit the smaller file. No file's
+  count can grow, so the list only shrinks.
 
 ## 5. CI jobs you must keep green
 
-| Workflow             | Job(s)             | What it runs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| -------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `checks.yml`         | `format`           | `npm run format`. Auto-commits prettier fixes on non-fork PRs.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `checks.yml`         | `lint`             | `npm run lint` (prettier `--check` + eslint).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `checks.yml`         | `check`            | `npm run check` (`svelte-check`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `checks.yml`         | `satellite-schema` | `juno functions build --lang ts` then fails if `src/satellite/{satellite,satellite_extension}.did`, `api-schemas.ts`, or `src/declarations/satellite/**` drift. Run `npm run juno:functions:build` locally and commit the result.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `checks.yml`         | `checks-pass`      | Aggregator — must be green to merge.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `deploy.yml`         | deploy             | `functions build` + `functions upgrade` (Administrator `JUNO_TOKEN`) **then** `hosting deploy` (OIDC), in one sequential job — upgrades the satellite functions and ships the frontend. Runs on `v*` tags and via manual dispatch. Don't bypass. The two `functions` steps are **skipped when the satellite wasm cannot have changed** since the previous `v*` tag: `scripts/satellite-upgrade-needed.mjs` walks the value-import graph of `src/satellite/index.ts` (type-only imports excluded) and intersects it with the diff, plus always-upgrade triggers (`src/satellite/**`, `package(-lock).json`, `juno.config.ts`, the workflow, the script). The upgrade stops the satellite — which also serves the frontend — so a frontend-only release this way ships with zero downtime. Any doubt fails safe to upgrading. |
-| `publish.yml`        | publish            | `functions build` + `functions publish` (OIDC) — stages the functions wasm to the satellite CDN. Runs on `v*` tags and manual dispatch.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `release-please.yml` | release-please     | On every `main` push, maintains a standing "release PR" (version bump + `CHANGELOG.md`) from Conventional Commits. Merging that PR cuts the `vX.Y.Z` tag. Does **not** touch the satellite, so it's outside the `juno-satellite` group.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Workflow                  | Job(s)             | What it runs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `checks.yml`              | `format`           | `npm run format`. Auto-commits prettier fixes on non-fork PRs, opens a `bot-format` PR on `main` drift (via `apply-changes`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `checks.yml`              | `lint`             | `npm run lint` (prettier `--check` + eslint + `check:i18n` + `check:dashes`: no em dash, no spaced en dash, rule 14).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `checks.yml`              | `check`            | `npm run check` (`svelte-check`, then `tsc` over the satellite's own `tsconfig.json`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `checks.yml`              | `test`             | `npm test` (`tsx --test` over `src/tests/**/*.spec.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `checks.yml`              | `satellite-schema` | `juno functions build --lang ts` then fails if `src/satellite/{satellite,satellite_extension}.did`, `api-schemas.ts`, or `src/declarations/satellite/**` drift. Run `npm run juno:functions:build` locally and commit the result.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `bindings.yml`            | `bindings`         | `./scripts/did.sh` against the pinned `ICDC_CORE_VERSION`, then checks `src/declarations/**` and the vendored `backend/src/declarations/**`. Its own workflow, so it runs, reports and can be dispatched on its own. Lands drift via `apply-changes`: commits onto non-fork PRs (so the version-only PRs from `update-icdc-core.yml` get their bindings) and onto a branch it is dispatched on; on `main` (push or dispatch) opens a `bot-update-bindings` PR; fails on fork PRs and the merge queue. Aggregated by `bindings-pass` (required).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `checks.yml`              | `checks-pass`      | Aggregator of the jobs above, required in the `main` ruleset.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `pr-checks.yml`           | `pr-checks / pass` | Calls the org-wide pull request rules in `ViciApp/.github` (`.github/workflows/pull-request.yml`), the one copy every ViciApp repository runs: a Conventional Commit title with a scope, no empty change (against the base on the PR, and against the entry ahead in the merge queue, so a PR an earlier entry made redundant bounces), and in the queue a release PR passes only when nothing is queued ahead of it and release-please has finished on the current `main`. Required by the org `baseline` ruleset, not by this repo's.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `backend-checks.yml`      | `backend`          | In the image `backend/Dockerfile` builds on (`oven/bun` Alpine at the `backend/.bun-version` pin, from `backend-bun-image.yml`), so the install picks the musl native packages production runs: `bun install --frozen-lockfile`, `bun run typecheck`, `bun test` against a real Postgres, then a `--production` reinstall plus a resolve smoke build of `src/index.ts` and `src/worker.ts`. Runs on every PR with no path filter (the shared-drift suite reads app files). Aggregated by `backend-checks-pass` (required).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `backend-bun-image.yml`   | `read`             | Called by `backend-checks.yml` and `dependabot-bun-lock.yml`, never on its own: reads `backend/.bun-version`, fails unless it is a plain `X.Y.Z` (on a PR the file is PR-controlled and becomes an image tag), and outputs the `oven/bun:<version>-alpine` image. Change the variant here and in `backend/Dockerfile` together.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `e2e.yml`                 | `e2e`              | The web3 build end to end on the Juno emulator: upgrades the satellite functions, installs and initializes the icdc-core canisters (`npm run deploy`, then `init:clearing`, `init:icdc-engine`, `init:registry`), then runs `npm run e2e:ci` (Playwright). Runs on every push to `main`, nightly and on dispatch; on a PR or merge-queue entry only when a path in the `e2e` filter of its `check-e2e-changes` job changed (the list lives in the workflow), or when the PR carries the `run-e2e-snapshots` label. `finalize-snapshots-update` lands rewritten baselines via `apply-changes`. Aggregated by `e2e-tests-pass` (not required), which also fails on snapshot drift. See [`frontend/testing.md`](./frontend/testing.md#e2e-playwright).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `e2e-web2.yml`            | `e2e-web2`         | The web2 bundle (`VITE_BACKEND=web2`) end to end against the real API on a `postgres:16` service, through the API's test-only E2E entrypoint (fake engine and VXP ledger, in-memory email; no secrets, no mainnet). Runs on every PR, push to `main` and merge-queue entry with no path filter. Aggregated by `e2e-web2-pass` (not required, like `e2e-tests-pass`). See [`frontend/testing.md`](./frontend/testing.md#e2e-against-the-web2-backend).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `web2-image.yml`          | `web-image`        | Builds `Dockerfile.web` with the Dockerfile path and `VITE_*` build args read from `fly.web.toml` (the same source `web2-deploy.yml` deploys from) and the Node version from `.node-version`, never pushes it, then runs the container and asserts `/` and an SPA deep link return 200, the Search Console verification file in `static/` is served, and the built JS contains the configured API origin (which must be an `https` origin). Runs on every PR and `main` push with no path filter, since `COPY . .` lets almost any file reach the image; the buildx GitHub Actions cache keeps it fast. Aggregated by `web2-image-pass` (required).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `dependabot-bun-lock.yml` | `regenerate`       | Repair job for Dependabot PRs only. Dependabot supports bun for version updates but **not** for security updates, so a backend security alert opens a PR that bumps `backend/package.json` and leaves `backend/bun.lock` stale, red-lining `backend-checks.yml` and breaking the Fly image build. This job regenerates the lockfile with `bun install --lockfile-only`, in the image from `backend-bun-image.yml`, and pushes it onto the PR branch.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `update-icdc-core.yml`    | `update-icdc-core` | Weekly (Monday 04:00 UTC) and on dispatch: bumps `ICDC_CORE_VERSION` in `scripts/build/download.icdc.common.sh` to the latest icdc-core release and opens a `bot-update-icdc-core` PR with the bot app token. It bumps the version only: `bindings.yml` then regenerates and commits the bindings onto that PR. See [§ 9](#9-cross-repo-changes-icdc-core).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `deploy.yml`              | deploy             | `functions build` + `functions upgrade` **then** `hosting deploy` (all on Administrator `JUNO_TOKEN`), in one sequential job: upgrades the satellite functions and ships the frontend. Runs on `v*` tags and via manual dispatch. Don't bypass. `scripts/verify-satellite-upgrade.mjs` then fails the job unless the canister's certified module hash equals the sha256 of the wasm that run built, because `functions upgrade` can exit 0 without swapping the module. Those steps must stay on the `-full` juno-action SHA (`gh api repos/junobuild/juno-action/git/ref/tags/<tag>-full`), so `junobuild/juno-action` is excluded from Dependabot and bumped by hand. The two `functions` steps are **skipped when the satellite wasm cannot have changed** since the previous `v*` tag: `scripts/satellite-upgrade-needed.mjs` walks the value-import graph of `src/satellite/index.ts` (type-only imports excluded) and intersects it with the diff, plus always-upgrade triggers (`src/satellite/**`, `package(-lock).json`, `juno.config.ts`, the workflow, the script). The upgrade stops the satellite, which also serves the frontend, so a frontend-only release this way ships with zero downtime. Any doubt fails safe to upgrading. |
+| `publish.yml`             | publish            | `functions build` + `functions publish` (Administrator `JUNO_TOKEN`): stages the functions wasm to the satellite CDN. Runs on `v*` tags and manual dispatch.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `release-please.yml`      | release-please     | On every `main` push, maintains a standing "release PR" (version bump + `CHANGELOG.md`) from Conventional Commits. Merging that PR cuts the `vX.Y.Z` tag. **Bump policy is `always-bump-patch`** (config `versioning`): every release is a patch by default, `feat:` does **not** bump the minor. Minor/major bumps are commanded with a `Release-As: X.Y.Z` commit footer on `main`. Commit types still drive `CHANGELOG.md` sections, just not the bump. Does **not** touch the satellite, so it's outside the `juno-satellite` group.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `web2-deploy.yml`         | `deploy-*`         | Manual dispatch from a `v*` release tag only (a first `require-release-tag` job fails the run on any other ref, so a branch never runs production migrations), then `flyctl deploy --remote-only` of the API (`backend/fly.toml`, whose `release_command` runs the DB migrations; the Bun version comes from `backend/.bun-version` as a build arg) and of the web SPA (`fly.web.toml`, which bakes the `VITE_*` build args; the Node version comes from `.node-version` as a build arg), as two parallel jobs, each with a deploy token scoped to its one Fly app. Shares the `web2-deploy` concurrency group, never cancelled mid-flight.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 Neither `deploy.yml` nor `publish.yml` runs on a `main` push: both are
 **`v*`-tag + manual-dispatch only**, so merging to `main` ships nothing on its
@@ -140,42 +185,93 @@ satellite and frontend; use manual dispatch for an off-tag run.
 The `v*` tag is produced by **release-please** (`release-please.yml`), not by
 hand: it bumps the version and regenerates `CHANGELOG.md` in a standing release
 PR, and merging that PR cuts the tag. So **merging the release PR is the
-release event** — it cascades into `deploy.yml` + `publish.yml`. release-please
+release event**: it cascades into `deploy.yml` + `publish.yml`. release-please
 keeps `package.json#version` and `package.json#juno.functions.version` in
 lockstep (config `extra-files`), so from the first release on, the two numbers
 are identical. For the cut tag to actually trigger the two deploy workflows,
-release-please must run with the `RELEASE_PLEASE_PAT` secret (a tag created with
-the default `GITHUB_TOKEN` does not trigger further workflows); without it, the
-release PR still works but you must dispatch `deploy.yml` / `publish.yml`
-manually after the tag lands.
+release-please must run with a token other than the default `GITHUB_TOKEN` (a
+tag created with `GITHUB_TOKEN` does not trigger further workflows). It mints a
+short-lived installation token from the **vici-release-bot** GitHub App via the
+`RELEASE_BOT_PRIVATE_KEY` secret; without that secret the release PR still works
+but you must dispatch `deploy.yml` / `publish.yml` manually after the tag lands.
+The same reasoning applies to every workflow that pushes a commit or opens a PR
+that CI must then run on, so `checks.yml` (`format`), `bindings.yml`, `update-icdc-core.yml`,
+`e2e.yml` and `dependabot-bun-lock.yml` all mint the same token. The app id is
+the `PR_AUTOMATION_BOT_APP_ID` repository variable; only the private key is a
+secret. If you add another such workflow, mint the token too, or its bot commits
+will land with no checks attached. A commit pushed with `GITHUB_TOKEN` is worse
+than unchecked: its runs are authored by `github-actions[bot]`, which the repo's
+first-time-contributor policy holds for manual approval.
 
-`config apply` (**applies** `juno.config.ts` — collection rules + authentication
-config — to the production satellite) is **run manually**, not in CI. Use
+A job that regenerates files and must land them uses
+[`.github/actions/apply-changes`](../../.github/actions/apply-changes/action.yml)
+(`format`, `bindings.yml`, the e2e snapshot finalizer) instead of wiring
+`add-and-commit` / `create-pr` by hand. It mints the token itself and picks by
+context: a commit onto a same-repo PR branch or a manually dispatched branch, a
+bot PR on `main` (push, schedule or dispatch), and a failure on fork PRs, the
+merge queue and tags (`fail-when-blocked: 'false'` to only report via its
+`changed` output). Check out the branch it commits to with
+`repository: github.event.pull_request.head.repo.full_name || github.repository`
+and `ref: github.event.pull_request.head.ref || github.ref`; it refuses a
+detached HEAD, and it won't commit again when the branch head is already its own commit (output that still drifts then isn't converging, so it is reported instead of looping). `dependabot-bun-lock.yml` stays on plain git: under
+`pull_request_target` it must not run action code from the PR tree.
+
+A job that checks out a pull request by branch name (`github.event.pull_request.head.ref`, as every `apply-changes` job must) adds no cache of its own: it restores with `actions/cache/restore` the caches a sibling job saves from the default checkout (`format` reads the ones `lint` saves). The one cache such a job still saves is setup-node's npm cache, which [`prepare`](../../.github/actions/prepare/action.yml) (`cache: 'npm'`) writes in its post step, keyed on `package-lock.json`. A job that needs the PR's code but not its branch checks it out by `github.event.pull_request.head.sha` (`e2e`). The reason is GitHub's cache scopes: a run on `push` to `main`, `schedule` or `workflow_dispatch` writes to `main`'s scope, which every branch and PR reads. CodeQL's cache-poisoning queries (`actions/cache-poisoning/*`) take a job's events from the workflow's `on:` and ignore `if:`, so an `event_name` guard on the checkout does not count: in a workflow that also runs on `schedule` or `workflow_dispatch`, a checkout by PR branch name followed by a cache write, or in a job without secrets by any step that runs repo code, is flagged.
+
+A job that needs the juno CLI (`satellite-schema`, `e2e`) installs the version
+in [`.github/juno-cli-version`](../../.github/juno-cli-version), the one place it
+is pinned: bump it there, never in a workflow. The file is in `e2e`'s change
+filter, so a PR that only bumps it still runs the suite on the new CLI.
+
+`config apply` (**applies** `juno.config.ts`, collection rules + authentication
+config, to the production satellite) is **run manually**, not in CI. Use
 `juno config apply` locally with the Administrator `JUNO_TOKEN`. The repo stays
 source of truth: a run re-syncs the satellite to `juno.config.ts`, reverting any
 out-of-band Console edits. It used to be a push-triggered `config.yml` sharing
-the `juno-satellite` group — see why that was removed below.
+the `juno-satellite` group; see why that was removed below.
 
 `deploy.yml` and `publish.yml` share one concurrency group (`juno-satellite`,
 `cancel-in-progress: false`) so they never run at the same time. They mutate the
-same satellite canister, and `functions upgrade` **stops** it mid-upgrade — a
+same satellite canister, and `functions upgrade` **stops** it mid-upgrade: a
 concurrent mutation would otherwise be rejected with `Canister … is stopped`
 (IC0508). The shared queue serializes every satellite mutation; a running one is
 never cancelled.
 
 A `v*` tag fires **both** workflows, so two group members queue behind whichever
-runs first — fine, because the queue serializes them. The hazard to respect is
+runs first; fine, because the queue serializes them. The hazard to respect is
 GitHub's single _pending_ slot per concurrency group: if a **third** member
 queues behind a running one and a waiting one, the older waiting run is silently
 cancelled (`Canceling since a higher priority waiting request for juno-satellite
-exists`). That bit us twice — the standalone `upgrade.yml` (folded into
-`deploy.yml`) and the push-triggered `config.yml` (now manual-only) each added a
-third member. Don't reintroduce one: keep the group at these two `v*`-triggered
+exists`). That bit us twice: the standalone `upgrade.yml` (folded into
+`deploy.yml`) and the push-triggered `config.yml` (removed; the production `juno config apply` is now a local
+command, while the e2e job still applies the development config to its
+emulator) each added a third member. Don't reintroduce one: keep the group at these two `v*`-triggered
 workflows and don't add a third.
 
 If your change is doc-only, the `format` and `lint` jobs still run because
 they cover the whole repo. The `check` job covers `*.svelte` / `*.ts` only,
 so doc-only changes typically pass it trivially.
+
+`package.json#packageManager` pins the npm that Dependabot installs (through corepack) to rewrite `package-lock.json`. Keep it on the latest npm 11, not on the npm bundled with `.node-version`: npm 11.6.1 drops the `@emnapi/*` entries of `@tailwindcss/oxide-wasm32-wasi` when it updates the lock, and `npm ci` then rejects the lockfile as out of sync. Stay below 12 while `@dfinity/eslint-config-oisy-wallet` declares `npm <12`: with `engine-strict=true` in `.npmrc`, any npm 12 install fails with `EBADENGINE`.
+
+A security alert on a transitive dependency is fixed in the lockfile first: `npm update <pkg>` (or of its parent) within the ranges already declared. Only when a parent's latest release still pins a vulnerable range does `package.json#overrides` take over, scoped to that parent (`"<parent>": { "<pkg>": "<patched range>" }`), never a top-level entry that would also rewrite every other consumer. Each scoped entry goes once the parent ships a patched range of its own. An alert with no patched version stays open: say who pulls the package in and whether it ever reaches the shipped bundle, never dismiss it.
+
+### Merge queue (`merge_group`)
+
+Every PR-triggered workflow also answers `merge_group`, so the suites re-run against the queued combination and not only against each PR alone. `dependabot-bun-lock.yml` is the exception: it is `pull_request_target`, and a lockfile repair that pushes to the PR head means nothing against a queue ref.
+
+Constraints that shape those workflows:
+
+- **`github.event.pull_request.*` is null.** Guard anything reading the PR number, head ref, labels, title or author on `github.event_name == 'pull_request'`, and give it a defined behaviour when the guard is false. `github.event.merge_group.head_sha` / `base_ref` are the queue equivalents (see the `checks.yml` cache keys).
+- **The queue ref `refs/heads/gh-readonly-queue/main/pr-<n>-<sha>` is read-only.** Auto-commit paths (`apply-changes`: `format`, `bindings.yml`, the e2e snapshot commit-back) never commit there; in the queue the same drift is a hard failure that bounces the PR out. A fix belongs on the PR, not on the queue branch.
+- **`branches` filters work, `paths` filters don't.** Either run unconditionally (`backend-checks.yml`) or gate in-job against `github.event.merge_group.base_ref` (`e2e.yml`).
+- **Only an always-reporting aggregator can be a required context.** Every PR workflow ends with a `<workflow>-pass` job (`if: always()`, `needs` every other job, `./.github/actions/needs_success`), and only those are required in the `main` ruleset: `checks-pass`, `bindings-pass`, `backend-checks-pass`, `web2-image-pass`, plus `pr-checks / pass` from the org `baseline` ruleset. The E2E aggregators (`e2e-tests-pass`, `e2e-web2-pass`) are deliberately not required. Two exceptions to the naming: `e2e.yml` keeps `e2e-tests-pass`, and `dependabot-bun-lock.yml` (a Dependabot-only `pull_request_target` repair job, not a check) has no aggregator. A new PR workflow gets its own `-pass` job, no `paths` filter (a required check that never reports blocks the PR forever), and an entry in the ruleset.
+
+The queue is **on** for `main` (this repo's `merge-queue` ruleset, since GitHub has no merge queue rule at org level: squash, up to 5 entries per group, merge on all green), and `strict_required_status_checks_policy` is **off**: the queue supersedes "branches up to date". `e2e-tests-pass` is still not required, so the queue does not gate on E2E. Queuing a PR is merging it, so the same rule holds: only the owner queues, and nothing turns on auto-merge.
+
+**The release PR goes in the queue on its own.** release-please rebuilds it after every push to `main`, but the queue can merge it right behind another entry before release-please has run, and the commits merged just before it would then never reach a changelog. The `release-fresh` job of `pr-checks` fails a queued release PR that has another entry ahead of it, or whose `main` release-please has not finished on yet; it leaves the queue, and you queue it again once release-please has rebuilt it.
+
+**A merge from a security advisory needs a forced release.** GitHub lands a temporary private fork's pull request as `Merge commit from fork`, which is not a Conventional Commit: release-please skips it, opens no release PR, and the fix never ships. Follow it with a pull request whose squash message ends in a `Release-As: X.Y.Z` footer (the next patch), so the release PR covers it.
 
 ## 6. After CI fails
 
@@ -190,7 +286,7 @@ so doc-only changes typically pass it trivially.
     against `null`/`undefined`) → `isNullish(x)` / `nonNullish(x)` from
     `@dfinity/utils`.
   - Relative imports under `src/**` → use the path aliases (see
-    [`frontend/structure.md`](./frontend/structure.md#imports)).
+    [`frontend/structure.md`](./frontend/structure.md#imports-aliases-only)).
 - **`check` failed** → fix `svelte-check` errors. No `// @ts-ignore`,
   no `as any`, no `as unknown as …`.
 - **`checks-pass` red but children green** → the aggregator has a stale
@@ -202,7 +298,7 @@ so doc-only changes typically pass it trivially.
   `git commit --amend` after pushing. Don't rebase a PR onto `main` to
   "tidy history".
 - **What counts as "the user explicitly asks":** the user names the
-  operation directly — any unambiguous phrasing works. Examples that
+  operation directly; any unambiguous phrasing works. Examples that
   count: "force-push", "force push", "push --force", "push -f",
   "amend", "amend the commit", "git commit --amend", "rebase",
   "git rebase", "rewrite history", "rewrite the history". Selecting
@@ -229,7 +325,7 @@ so doc-only changes typically pass it trivially.
 ## 8. CODEOWNERS auto-routing
 
 [`.github/CODEOWNERS`](../../.github/CODEOWNERS) routes reviews. Agents do
-not assign reviewers — the file does it.
+not assign reviewers: the file does it.
 
 ## 9. Cross-repo changes (icdc-core)
 
@@ -238,14 +334,18 @@ If your change requires changes in [`icdc-core`](https://github.com/AntonioVenti
 
 1. Land the icdc-core PR first (or simultaneously, with the icdc-core PR
    merging into a tagged version).
-2. In this repo, regenerate the Candid bindings against the new tag:
+2. In this repo, bump `ICDC_CORE_VERSION` in
+   `scripts/build/download.icdc.common.sh` to the new tag (or build on
+   the weekly `update-icdc-core.yml` PR) and regenerate the Candid
+   bindings:
 
    ```bash
    npm run did
    ```
 
-   Commit the regenerated `src/declarations/**` together with the
-   FE wiring changes.
+   Commit the regenerated `src/declarations/**` and
+   `backend/src/declarations/**` together with the FE wiring changes.
+   If you skip it, the `Bindings` workflow commits them for you.
 
 3. Reference the icdc-core PR / commit in `# Motivation` so a reviewer
    can sequence the deploy.
@@ -258,35 +358,35 @@ for resetting an environment after a breaking change.
 
 ## 10. Code comments
 
-Comments carry what the code **cannot** say. Any reader — human or
-agent — can read the code itself; a comment earns its line only with
+Comments carry what the code **cannot** say. Any reader, human or
+agent, can read the code itself; a comment earns its line only with
 the **why**, never the **what**.
 
 Write a comment only for:
 
-- **Intent / why** — the reason this approach won over the obvious
+- **Intent / why**: the reason this approach won over the obvious
   alternative.
-- **Invariants & constraints** — what must hold but isn't visible in
+- **Invariants & constraints**: what must hold but isn't visible in
   the code (ordering requirements, idempotency-key shape, instruction
   caps, units).
-- **Deliberate weirdness** — code that looks wrong but is right. Point
+- **Deliberate weirdness**: code that looks wrong but is right. Point
   at the governing `docs/ai/**` page instead of re-explaining it.
-- **Warnings** — landmines for the next editor.
+- **Warnings**: landmines for the next editor.
 
 Never write:
 
-- **Narration** — `// fetch the profile` above `getProfile()`.
+- **Narration**: `// fetch the profile` above `getProfile()`.
   Restating names, types, or control flow the next line already
   declares.
-- **Diff commentary** — `// changed to use X`, `// new helper`,
+- **Diff commentary**: `// changed to use X`, `// new helper`,
   `// fixed per review`, `// removed the old check`. That's
   PR-conversation addressed to the reviewer; it is noise the moment
   the PR merges. Put it in the PR body instead.
-- **Source references** — where behaviour was ported or copied from
-  (see [commandment 5](../../AGENTS.md#2-project-specific-commandments)).
+- **Source references**: where behaviour was ported or copied from
+  (see [rule 6](../../AGENTS.md#4-vici-specific-rules)).
 
-If the code needs narration to be understandable, fix the code — a
-better name, a smaller function, an extracted constant — instead of
+If the code needs narration to be understandable, fix the code (a
+better name, a smaller function, an extracted constant) instead of
 captioning it. Match the comment density of the file you're editing;
 a diff whose comments mostly describe the diff itself is a
 review-blocking smell.

@@ -1,45 +1,47 @@
-import { ACHIEVEMENTS } from '$lib/constants/achievements.constants';
-import { VXP_LEDGER_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { Collection } from '$lib/constants/collections.constants';
-import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-import { vxpAwardKey, type VxpAwardDoc } from '$lib/types/vxp-award';
-import { parseToken } from '$lib/utils/parse.utils';
-import { logError, logInfo } from '$satellite/utils/logger.utils';
-import { transferWithBadFeeRetry } from '$satellite/utils/vxp-payout.utils';
+import { ACHIEVEMENTS } from '#lib/constants/achievements.constants.ts';
+import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
+import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
 
 /**
  * Achievement-unlock hook. Runs after every `profiles` write; when an id appears in
  * `unlockedAchievements` for the first time, it mints the achievement's catalog XP value as real,
  * spendable VXP to the user's ledger account and records the payout in `vxp_awards`. The cosmetic
- * `points` accumulation (leaderboard XP) is maintained elsewhere and is untouched here — this adds
+ * `points` accumulation (leaderboard XP) is maintained elsewhere and is untouched here; this adds
  * the real-VXP grant on top.
  *
  * Idempotency is structural, mirroring the streak hook: the award doc key is
- * `${recipient}/achievement/${achievementId}` — a second firing for the same id collides with the
+ * `${recipient}/achievement/${achievementId}`: a second firing for the same id collides with the
  * first and the assert blocks the duplicate. Combined with the append-only `unlockedAchievements`
  * array, each achievement pays at most once per account.
  *
- * Only the delta (newly added ids on this write) is paid — achievements already unlocked before
+ * Only the delta (newly added ids on this write) is paid: achievements already unlocked before
  * this write are never retroactively minted.
  */
+
+const AWARD_TYPE = 'achievement' as const;
 
 /** Catalog XP per achievement id (whole VXP), frozen at module load. */
 const ACHIEVEMENT_XP: Readonly<Record<string, number>> = Object.freeze(
 	Object.fromEntries(ACHIEVEMENTS.map(({ id, xp }) => [id, xp]))
 );
 
-/** Subset of the profile shape this hook reads — the full `UserProfile` isn't needed. */
+/** Subset of the profile shape this hook reads: the full `UserProfile` isn't needed. */
 interface UnlockedAchievementsSlice {
 	unlockedAchievements?: string[];
 }
 
 /**
- * Ids newly present in `next` versus `prev` — the achievements unlocked on this write. Empty in the
+ * Ids newly present in `next` versus `prev`: the achievements unlocked on this write. Empty in the
  * common case (most profile writes don't unlock anything).
  */
 const newlyUnlocked = ({ prev, next }: { prev: string[]; next: string[] }): string[] => {
@@ -50,65 +52,6 @@ const newlyUnlocked = ({ prev, next }: { prev: string[]; next: string[] }): stri
 	const known = new Set(prev);
 
 	return next.filter((id) => !known.has(id));
-};
-
-const persistAward = ({
-	caller,
-	recipient,
-	awardKey,
-	doc
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	awardKey: string;
-	doc: VxpAwardDoc;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType: 'achievement', awardKey });
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData(doc)
-		}
-	});
-};
-
-const updateAward = ({
-	caller,
-	recipient,
-	awardKey,
-	patch
-}: {
-	caller: Uint8Array;
-	recipient: string;
-	awardKey: string;
-	patch: Partial<VxpAwardDoc> & Pick<VxpAwardDoc, 'status'>;
-}): void => {
-	const key = vxpAwardKey({ recipient, awardType: 'achievement', awardKey });
-	const existing = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key,
-		caller
-	});
-
-	if (isNullish(existing)) {
-		return;
-	}
-
-	const existingDoc = decodeDocData<VxpAwardDoc>(existing.data);
-	const next: VxpAwardDoc = { ...existingDoc, ...patch };
-
-	setDocStore({
-		caller,
-		collection: Collection.VXP_AWARDS,
-		key,
-		doc: {
-			data: encodeDocData(next),
-			version: existing.version
-		}
-	});
 };
 
 const payAchievement = async ({
@@ -124,18 +67,18 @@ const payAchievement = async ({
 }): Promise<void> => {
 	const xp = ACHIEVEMENT_XP[achievementId];
 
-	// Unknown id (not in the catalog) or a non-positive reward — nothing to mint.
+	// Unknown id (not in the catalog) or a non-positive reward; nothing to mint.
 	if (isNullish(xp) || xp <= 0) {
 		return;
 	}
 
-	const amount = parseToken({ value: `${xp}`, unitName: VXP_TOKEN.decimals });
+	const amount = vxpBaseUnits(xp);
 	const awardKey = achievementId;
 	const earnedAtMs = Date.now();
 
-	// Idempotency: if the award doc already exists, skip — the assert rejects duplicate creations
+	// Idempotency: if the award doc already exists, skip; the assert rejects duplicate creations
 	// anyway, but checking up front avoids the wasted ledger call.
-	const existingKey = vxpAwardKey({ recipient, awardType: 'achievement', awardKey });
+	const existingKey = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey });
 	const existing = getDocStore({
 		collection: Collection.VXP_AWARDS,
 		key: existingKey,
@@ -148,7 +91,7 @@ const payAchievement = async ({
 
 	const pending: VxpAwardDoc = {
 		recipient,
-		awardType: 'achievement',
+		awardType: AWARD_TYPE,
 		awardKey,
 		amountBaseUnits: amount.toString(),
 		status: 'pending',
@@ -156,11 +99,11 @@ const payAchievement = async ({
 	};
 
 	try {
-		persistAward({ caller, recipient, awardKey, doc: pending });
+		persistAward({ recipient, awardType: AWARD_TYPE, awardKey, doc: pending });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 
-		// Most likely a concurrent hook firing already wrote the pending doc. Surface and stop — the
+		// Most likely a concurrent hook firing already wrote the pending doc. Surface and stop: the
 		// other firing will (or has already) issued the transfer.
 		logInfo({
 			message: 'achievement_award_pending_blocked',
@@ -189,8 +132,8 @@ const payAchievement = async ({
 		});
 
 		updateAward({
-			caller,
 			recipient,
+			awardType: AWARD_TYPE,
 			awardKey,
 			patch: {
 				status: 'paid',
@@ -213,8 +156,8 @@ const payAchievement = async ({
 	});
 
 	updateAward({
-		caller,
 		recipient,
+		awardType: AWARD_TYPE,
 		awardKey,
 		patch: {
 			status: 'failed',
@@ -224,7 +167,7 @@ const payAchievement = async ({
 };
 
 /**
- * Profile post-write hook — composes alongside the other `profiles` hooks in `satellite/index.ts`.
+ * Profile post-write hook: composes alongside the other `profiles` hooks in `satellite/index.ts`.
  * Mints real VXP for every achievement unlocked on this write.
  */
 export const onProfileSetForAchievementAward = async (ctx: OnSetDocContext): Promise<void> => {

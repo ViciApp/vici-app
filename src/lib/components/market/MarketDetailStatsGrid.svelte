@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import type { Position, ResolvedPosition } from '$lib/types/position';
-	import { formatLongDate, formatToken } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { marketBookLiquidity } from '$lib/utils/market.utils';
-	import { inferResolvedOutcomeId } from '$lib/utils/resolved-position.utils';
+	import { EMPTY_VALUE, ZERO } from '#lib/constants/app.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import type { Position, ResolvedPosition } from '#lib/types/position.ts';
+	import { formatLongDate, formatToken } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { marketBookLiquidity } from '#lib/utils/market.utils.ts';
+	import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
 
 	interface Props {
 		market: Market;
@@ -23,7 +23,7 @@
 		/**
 		 * `true` while the viewer's positions for this market are still being
 		 * read (signed-in only). Drives a pulse in the MY CALL tile so it
-		 * doesn't flash an empty `—` before the position read lands. Once the
+		 * doesn't flash an empty `–` before the position read lands. Once the
 		 * read resolves the real call (or genuine "no call") shows.
 		 */
 		myCallLoading?: boolean;
@@ -56,8 +56,8 @@
 
 	/**
 	 * Recover the user's side from the resolution event stream when the
-	 * live position is gone. Inference rules — winners' exact side,
-	 * binary losers' opposite side, categorical losers unknown — live
+	 * live position is gone. Inference rules: winners' exact side,
+	 * binary losers' opposite side, categorical losers unknown. They live
 	 * in `inferResolvedOutcomeId` so they stay aligned with the
 	 * Portfolio row helpers.
 	 */
@@ -78,7 +78,7 @@
 
 	// Cold-start: an untraded market reads "New" instead of "0 VXP", and an
 	// empty book reads "Be first". Both use real values (traded notional, book
-	// depth) — never a synthetic crowd. The copy is suppressed (suffix dropped,
+	// depth): never a synthetic crowd. The copy is suppressed (suffix dropped,
 	// tile muted) so the grid frames the empty market as an opportunity. Volume
 	// is `undefined` until its read drains, which holds the tile in a pulse.
 	const volumeLoading = $derived(isNullish(volume));
@@ -86,7 +86,7 @@
 	const freshLiquidity = $derived(liquidity === ZERO);
 
 	// Hold the MY CALL tile in a loading state until the position read lands,
-	// but only when there's nothing to show yet — a known call (live or from
+	// but only when there's nothing to show yet; a known call (live or from
 	// the resolved fallback) renders immediately.
 	const myCallPending = $derived(myCallLoading && isNullish(myCall));
 
@@ -123,7 +123,7 @@
 					? t({ locale: $localeStore, key: 'outcome.yes' })
 					: myCall === 'NO'
 						? t({ locale: $localeStore, key: 'outcome.no' })
-						: (myCall ?? '—'),
+						: (myCall ?? EMPTY_VALUE),
 			suffix: '',
 			mute: isNullish(myCall),
 			loading: myCallPending
@@ -204,7 +204,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Tile-level loading pulse — mirrors the market-detail skeleton's block
+	/* Tile-level loading pulse: mirrors the market-detail skeleton's block
 	   so a tile still resolving (e.g. MY CALL waiting on the position read)
 	   shows a shimmer instead of a placeholder value. */
 	.market-stats-skeleton {

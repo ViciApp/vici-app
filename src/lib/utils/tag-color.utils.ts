@@ -1,25 +1,33 @@
-// Per-tag chip / accent color. These are the *brand* accents the UI
-// uses for tag chips, tabs, and hover affordances — NOT the same as
-// the `hot` highlight inside the generative `flow-art` SVGs
-// (`flow-art.utils.ts` PAL), which is palette- and state-dependent
-// and intentionally diverges so the chip and the artwork read as two
-// distinct moments.
+import {
+	isMacroId,
+	isMicroId,
+	macroColor,
+	microColor
+} from '#lib/constants/market-taxonomy.constants.ts';
+
+// Chip / accent color for a taxonomy category id. Macros carry the brand
+// accent; micros inherit their parent macro's hue (the chip's meaning is
+// the macro family, not a per-micro colour). These are the *brand* accents
+// the UI uses for category chips, tabs, and hover affordances: NOT the
+// same as the `hot` highlight inside the generative `flow-art` SVGs
+// (`flow-art.utils.ts` PAL), which is palette- and state-dependent and
+// intentionally diverges so the chip and the artwork read as two distinct
+// moments.
 //
-// If you're tempted to fold this into FlowArt PAL: don't. Crypto's
-// chip is brand-orange `#F7931A`; its artwork "hot" is laser-purple.
-// Sports chip is mint; sports artwork hot is sunset orange. Etc. The
-// only happy accident is macro (`#7EB6FF` in both).
+// Unknown ids (Layer-3 free tags, legacy strings) fall back to the laurel-
+// gold accent so the surface never renders a colourless chip.
+const FALLBACK_COLOR = '#E2B842';
 
-const TAG_COLORS: Record<string, string> = {
-	// World Cup — laurel-gold, stays inside the brand accent family;
-	// the FIFA-themed Flow deck uses the same accent for the WC tag pill.
-	wc: '#E2B842',
-	macro: '#7EB6FF',
-	crypto: '#F7931A',
-	politics: '#FF6B6B',
-	tech: '#B49CFF',
-	sports: '#6FE0B6',
-	culture: '#FFB066'
+export const tagColor = (id: string): string => {
+	const value = id.toLowerCase();
+
+	if (isMacroId(value)) {
+		return macroColor(value);
+	}
+
+	if (isMicroId(value)) {
+		return microColor(value);
+	}
+
+	return FALLBACK_COLOR;
 };
-
-export const tagColor = (tag: string): string => TAG_COLORS[tag.toLowerCase()] ?? '#E2B842';

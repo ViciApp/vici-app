@@ -6,31 +6,46 @@ on:
     tags:
       - v*
 
-# Shared group with deploy.yml — serializes all mutations of the satellite
+# Shared group with deploy.yml: serializes all mutations of the satellite
 # canister so a publish never overlaps deploy.yml's `functions upgrade`
 # (which stops the canister) or its `hosting deploy`.
 concurrency:
-  group: juno-satellite-publish
+  group: juno-satellite
   cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      contents: read
     steps:
+      - name: Verify JUNO_TOKEN is set
+        env:
+          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+        run: |
+          if [ -z "$JUNO_TOKEN" ]; then
+            echo "::error::JUNO_TOKEN secret is not set. Generate an Administrator access key in the Juno Console and add it as the JUNO_TOKEN repo secret (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
       - name: Check out the repo
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Prepare
         uses: ./.github/actions/prepare
 
       - name: Build
-        uses: junobuild/juno-action@full
+        uses: junobuild/juno-action@93149e31c67f45835953ed2e1abe0e910af625fc # v0.7.5-full
         with:
           args: functions build
+        env:
+          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 
       - name: Publish
-        uses: junobuild/juno-action@full
+        uses: junobuild/juno-action@93149e31c67f45835953ed2e1abe0e910af625fc # v0.7.5-full
         with:
           args: functions publish
+        env:
+          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}

@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 
-# deploy-markets.sh — register a batch of prediction markets from a JSON file.
+# deploy-markets.sh: register a batch of prediction markets from a JSON file.
 #
 # Usage:
 #   ./scripts/deploy-markets.sh <markets-json-file> [--local|--staging|--production]
 #
 # `--staging` targets icdc-core staging; `--production` (alias `--ic`) targets icdc-core
-# production — the registry the live Vici frontend reads. See
+# production, the registry the live Vici frontend reads. See
 # docs/engine-integration.md ("icdc-core deployments: staging and production").
 #
 # Examples:
 #   ./scripts/deploy-markets.sh scripts/data/markets.json --local
-#   ./scripts/deploy-markets.sh scripts/data/markets.deck-2026.json --staging
-#   npm run deploy:markets -- scripts/data/markets.deck-2026.json --production
+#   ./scripts/deploy-markets.sh path/to/deck.json --staging
+#   npm run deploy:markets -- path/to/deck.json --production
 #
 # The file is a JSON array of market objects (see scripts/data/markets.json).
 #
@@ -23,34 +23,43 @@
 #
 # NOT consumed by this script (kept for parity with the FE create flow, but
 # `add_series` has no field for them):
-#   - `categories` — market TAGS live off-chain in the Juno `MARKET_METADATA`
+#   - `categories`: market TAGS live off-chain in the Juno `MARKET_METADATA`
 #     collection (written via the satellite, see market-tags.services.ts), not
 #     on the registry series. A deck deployed here registers UNTAGGED; tag it
 #     separately (admin UI, or a future metadata seeder).
-#   - `inviteOnly` — trading_access is fixed to `Open` here.
-#   - `balanceDomain` — fixed to `ViciXp` here.
+#   - `inviteOnly`: trading_access is fixed to `Open` here.
+#   - `balanceDomain`: fixed to `ViciXp` here.
 #   - `consensus` and any other unknown keys are ignored.
 #
 # Markets are attributed to the Vici engine and settled by the VICI oracle.
 # Override via env:
-#   ORACLE_ID=...        (default VICI_ORACLE_V1 — the oracle must already exist;
+#   ORACLE_ID=...        (default VICI_ORACLE_V1; the oracle must already exist;
 #                         init.registry.sh registers it before calling this)
-#   VICI_ENGINE_ID=...   (default eng_0)
+#   VICI_ENGINE_ID=...   (default VICI_ENGINE_ID in src/lib/constants/icdc.constants.ts)
 #
-# NOTE: this only registers market metadata via `add_series` — it does NOT seed
+# NOTE: this only registers market metadata via `add_series`: it does NOT seed
 # prices, liquidity, or quotes. A freshly registered market opens with an empty
 # order book (mid-price defaults to 0.5 until real orders arrive).
 
 # Capture the markets file (first positional) before utils.sh consumes "$@" for
 # network-flag parsing.
 MARKETS_FILE="${1:-}"
-if [[ -z "$MARKETS_FILE" || "$MARKETS_FILE" == -* || "$MARKETS_FILE" == "local" || "$MARKETS_FILE" == "staging" || "$MARKETS_FILE" == "ic" || "$MARKETS_FILE" == "production" ]]; then
+usage() {
 	echo "Usage: $0 <markets-json-file> [--local|--staging|--production]" >&2
 	exit 1
+}
+
+if [[ -z "$MARKETS_FILE" || "$MARKETS_FILE" == -* ]]; then
+	usage
 fi
 shift
 
 source "$(dirname "$0")/lib/utils.sh" "$@"
+
+# A network name in the file's place means the file was left out.
+if is_network_name "$MARKETS_FILE"; then
+	usage
+fi
 
 # BSD/macOS `sed`/`tr` raise "illegal byte sequence" on multibyte UTF-8 (e.g.
 # "Mbappé", curly quotes) under a UTF-8 locale. Force a byte-wise locale so the
@@ -66,11 +75,11 @@ fi
 
 ORACLE_ID="${ORACLE_ID:-VICI_ORACLE_V1}"
 
-# Keep in sync with src/lib/constants/icdc.constants.ts. The script runs as the
+# Read from src/lib/constants/icdc.constants.ts. The script runs as the
 # registry canister controller, so `engine_id` is optional (controllers bypass
 # the check), but we attribute seeded markets to the Vici engine for consistency
 # with frontend-created ones.
-VICI_ENGINE_ID="${VICI_ENGINE_ID:-eng_0}"
+VICI_ENGINE_ID="${VICI_ENGINE_ID:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/engine-id.ts)}"
 
 slugify() {
 	printf '%s' "$1" |
@@ -95,15 +104,33 @@ for ((i = 0; i < length; i++)); do
 
 	# BCP 47 locale tag for the market's title/description. Defaults to "en" when
 	# the data file omits it. The icdc-core registry stores this as metadata and
-	# does NOT include it in `series_id` hashing — translations remain off-chain.
+	# does NOT include it in `series_id` hashing: translations remain off-chain.
 	locale=$(jq -r '.locale // "en"' <<<"$market" | sed 's/\\/\\\\/g; s/"/\\"/g')
 
 	expiration_iso=$(echo "$market" | jq -r '.expiryDate')
 
 	underlying=$(slugify "$title")
 
-	expiration_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%S.000Z" "$expiration_iso" "+%s" 2>/dev/null || date -d "$expiration_iso" "+%s")
+	# BSD `date -j -f` treats the literal `Z` in this format as text and parses in
+	# the local zone, so without `TZ=UTC` every instant shifts by the machine's
+	# offset. `expiry_ns` and `start_ns` are immutable once registered.
+	expiration_seconds=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%S.000Z" "$expiration_iso" "+%s" 2>/dev/null || date -d "$expiration_iso" "+%s")
 	expiration_ns=$((expiration_seconds * 1000000000))
+
+	# Optional `startDate` (ISO): trading opens at this instant (registry
+	# `start_ns`; a staggered release schedule lives in the deck, not in cron).
+	# Omitted => null => live immediately. add_series rejects a start in the past.
+	start_iso=$(jq -r '.startDate // empty' <<<"$market")
+	if [ -n "$start_iso" ]; then
+		start_seconds=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%S.000Z" "$start_iso" "+%s" 2>/dev/null || date -d "$start_iso" "+%s" 2>/dev/null)
+		if ! [[ "$start_seconds" =~ ^[0-9]+$ ]]; then
+			echo "Error: unparseable startDate '$start_iso' for market: $title" >&2
+			exit 1
+		fi
+		start_ns_candid="opt $((start_seconds * 1000000000))"
+	else
+		start_ns_candid="null"
+	fi
 
 	echo "Adding market: $title ($underlying)"
 
@@ -134,6 +161,7 @@ for ((i = 0; i < length; i++)); do
         trading_access = vec { variant { Open } };
         engine_id = opt \"$VICI_ENGINE_ID\";
         locale = opt \"$locale\";
+        start_ns = $start_ns_candid;
     })"
 done
 

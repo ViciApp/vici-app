@@ -3,14 +3,14 @@
 	 * Resolution banner · while-you-were-away. Leads the standard dashboard
 	 * when calls settled since the user last acknowledged them. Tapping
 	 * opens the ResolutionReveal overlay. `is-neg` flips the accent to
-	 * measured (no laurel / pulse) on a net-negative batch — the system
+	 * measured (no laurel / pulse) on a net-negative batch; the system
 	 * never borrows celebratory styling for a loss. Class names live in
 	 * `app.css`.
 	 */
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { ResolutionRevealData } from '$lib/types/flow';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatWholeVxpMagnitude } from '$lib/utils/playground-display.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { ResolutionRevealData } from '#lib/types/flow.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatWholeVxpMagnitude } from '#lib/utils/playground-display.utils.ts';
 
 	interface Props {
 		digest: ResolutionRevealData;

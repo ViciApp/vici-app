@@ -14,8 +14,8 @@ export const cachedListOrEmpty = <T>(store: Readable<T[] | undefined>): Readable
 
 /**
  * Returns `true` while the store's value is still `undefined` (i.e. the
- * initial fetch hasn't completed yet). Once any value — including an empty
- * list — has been written, it flips to `false` and stays there, so consumers
+ * initial fetch hasn't completed yet). Once any value, including an empty
+ * list, has been written, it flips to `false` and stays there, so consumers
  * can show a spinner on first visit and skip it on every subsequent
  * navigation back to the page (the cached value sticks around in the store).
  */

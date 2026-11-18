@@ -1,10 +1,10 @@
-// Flow Mode generative artwork — deterministic hash + PRNG.
+// Flow Mode generative artwork: deterministic hash + PRNG.
 //
 // FNV-1a hash + mulberry32 keep every render byte-stable across
 // reloads for the same seed.
 
-import type { Rng } from '$lib/utils/flow-art/types';
-import { fnv1a32 } from '$lib/utils/hash.utils';
+import type { Rng } from '#lib/utils/flow-art/types.ts';
+import { fnv1a32 } from '#lib/utils/hash.utils.ts';
 
 const hashStr = fnv1a32;
 
@@ -25,7 +25,7 @@ const makeRng = (seed: string | number): Rng => {
 	const r = mulberry32(typeof seed === 'string' ? hashStr(seed) : seed);
 
 	// `prefer-object-params` is intentionally relaxed for `range` and
-	// `int` here — positional `(lo, hi)` is the standard PRNG / math
+	// `int` here: positional `(lo, hi)` is the standard PRNG / math
 	// signature and is called thousands of times across the six
 	// category renderers. An object form would hurt readability and
 	// generate per-call allocations on every random draw.

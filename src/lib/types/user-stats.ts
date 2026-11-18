@@ -1,9 +1,8 @@
-import type { MarketTag } from '$lib/constants/market-tags.constants';
 import type { PrincipalText } from '@junobuild/schema';
 
 /**
  * Per-category accuracy bucket. The Dash renders one of these per
- * market tag the user has called on.
+ * market category the user has called on.
  */
 export interface CategoryStatsBucket {
 	calls: number;
@@ -17,19 +16,23 @@ export interface CategoryStatsBucket {
 export interface RecentSettlementSnapshot {
 	/** Series / market id the user called on. */
 	marketId: string;
-	/** Market category tag (one of `MARKET_TAGS`). `''` if untagged. */
-	tag: MarketTag | '';
+	/**
+	 * Market category key: the primary macro of the market's taxonomy
+	 * (see `primaryMacro`). `''` if the market carries no classifying micro.
+	 * Kept as an open `string` while the frontend transitions from the legacy
+	 * flat tags to the macro/micro taxonomy.
+	 */
+	tag: string;
 	/** `true` if the user's side matched the resolved outcome. */
 	win: boolean;
 	/** UTC ms timestamp of the settlement event. */
 	settledAtMs: number;
 	/**
-	 * Realized VXP for this settlement — the clearing `Settled` event's
+	 * Realized VXP for this settlement: the clearing `Settled` event's
 	 * signed `qty` (the realized cashflow, in `USD_DECIMALS` units), clamped
 	 * to `≥ 0` so only a win's positive payout is carried. Stored at full
-	 * precision; the Oracle insight rounds for display via
-	 * `formatWholeVxpMagnitude` (a sub-1 favourite win reads "<1"), so this
-	 * is no longer pre-rounded to a whole number.
+	 * precision, not rounded: the Oracle insight rounds for display via
+	 * `formatWholeVxpMagnitude`, so a sub-1 favourite win can read "<1".
 	 */
 	vxp: number;
 	/**
@@ -47,8 +50,8 @@ export interface RecentSettlementSnapshot {
  * caller's principal. The FE writes this from `calculateAndSyncStats`
  * after re-aggregating the user's clearing history.
  *
- * `categoryStats` is keyed by market tag; missing tags render as
- * "0 calls" on the Dash. `recentSettlements` is capped at
+ * `categoryStats` is keyed by market category (macro id); missing
+ * categories render as "0 calls" on the Dash. `recentSettlements` is capped at
  * {@link USER_STATS_RECENT_LIMIT} so the doc stays bounded.
  */
 export interface UserStatsDoc {

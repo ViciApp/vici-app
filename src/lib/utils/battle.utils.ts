@@ -1,7 +1,7 @@
-import type { AppLocale } from '$lib/constants/locale.constants';
-import { isMarketTag, MARKET_TAG_LABEL_KEYS } from '$lib/constants/market-tags.constants';
-import { BATTLE_SCOPE_DEFAULT, type BattleScope } from '$lib/types/battle';
-import { t } from '$lib/utils/i18n.utils';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import { isMacroId, macroLabelKey } from '#lib/constants/market-taxonomy.constants.ts';
+import { BATTLE_SCOPE_DEFAULT, type BattleScope } from '#lib/types/battle.ts';
+import { t } from '#lib/utils/i18n.utils.ts';
 
 /**
  * Single source of truth for a battle's scope label. `all` (and legacy
@@ -19,7 +19,7 @@ export const battleScopeLabel = ({
 }): string => {
 	const resolved = scope ?? BATTLE_SCOPE_DEFAULT;
 
-	return resolved !== 'all' && isMarketTag(resolved)
-		? t({ locale, key: MARKET_TAG_LABEL_KEYS[resolved] })
+	return resolved !== 'all' && isMacroId(resolved)
+		? t({ locale, key: macroLabelKey(resolved) })
 		: t({ locale, key: 'battle.detail.scope_all' });
 };

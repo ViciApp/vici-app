@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { getDoc, signOut } from '@junobuild/core';
+	import { getDoc } from '@junobuild/core';
 	import {
 		Bell,
 		ChevronLeft,
@@ -11,10 +11,10 @@
 		Info,
 		Key,
 		Languages,
-		LineChart,
 		Lock,
 		Mail,
 		Moon,
+		Rocket,
 		Scale,
 		Search,
 		Share2,
@@ -26,49 +26,58 @@
 		Volume2
 	} from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
+	import A2hsSheet from '#lib/components/pwa/A2hsSheet.svelte';
+	import DeleteAccountFlow from '#lib/components/settings/DeleteAccountFlow.svelte';
+	import SetRow from '#lib/components/settings/SetRow.svelte';
+	import SetSegmented from '#lib/components/settings/SetSegmented.svelte';
+	import SetToggle from '#lib/components/settings/SetToggle.svelte';
+	import SettingsIdentityCard from '#lib/components/settings/SettingsIdentityCard.svelte';
+	import SettingsSection from '#lib/components/settings/SettingsSection.svelte';
+	import AppearancePicker from '#lib/components/ui/AppearancePicker.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import LocaleSheet from '#lib/components/ui/LocaleSheet.svelte';
+	import { Collection } from '#lib/constants/collections.constants.ts';
+	import { LOCALE_REGISTRY } from '#lib/constants/locale.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { flushEvents, track } from '#lib/services/analytics.services.ts';
+	import {
+		isClaimHandoffAvailable,
+		startClaimHandoff
+	} from '#lib/services/claim-handoff.services.ts';
+	// The dual-mode sign-out: the Juno delegation drop on the default
+	// backend, the cookie-session revoke in web2 mode.
+	import { signOut } from '#lib/services/identity.services.ts';
+	import { persistPreferences } from '#lib/services/profile.services.ts';
+	import { canInstall } from '#lib/stores/a2hs.store.ts';
+	import { localeStore, setLocale } from '#lib/stores/locale.store.ts';
+	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
+	import { preferencesStore } from '#lib/stores/preferences.store.ts';
+	import { theme } from '#lib/stores/theme.store.ts';
+	import { setAuthBusy, userStore } from '#lib/stores/user.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import type { SettingsVisibility } from '#lib/types/preferences.ts';
+	import type { UserProfile } from '#lib/types/profile.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { resolveSignInMethod } from '#lib/utils/signin-method.utils.ts';
+	import { visibilityToProfile } from '#lib/utils/visibility.utils.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import A2hsSheet from '$lib/components/pwa/A2hsSheet.svelte';
-	import DeleteAccountFlow from '$lib/components/settings/DeleteAccountFlow.svelte';
-	import SetRow from '$lib/components/settings/SetRow.svelte';
-	import SetSegmented from '$lib/components/settings/SetSegmented.svelte';
-	import SetToggle from '$lib/components/settings/SetToggle.svelte';
-	import SettingsIdentityCard from '$lib/components/settings/SettingsIdentityCard.svelte';
-	import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
-	import AppearancePicker from '$lib/components/ui/AppearancePicker.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import LocaleSheet from '$lib/components/ui/LocaleSheet.svelte';
-	import { Collection } from '$lib/constants/collections.constants';
-	import { LOCALE_REGISTRY } from '$lib/constants/locale.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { persistPreferences } from '$lib/services/profile.services';
-	import { canInstall } from '$lib/stores/a2hs.store';
-	import { localeStore, setLocale } from '$lib/stores/locale.store';
-	import { marketLanguagePreference } from '$lib/stores/market-language.store';
-	import { preferencesStore } from '$lib/stores/preferences.store';
-	import { theme } from '$lib/stores/theme.store';
-	import { setAuthBusy, userStore } from '$lib/stores/user.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import type { SettingsVisibility } from '$lib/types/preferences';
-	import type { UserProfile } from '$lib/types/profile';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { resolveSignInMethod } from '$lib/utils/signin-method.utils';
-	import { visibilityToProfile } from '$lib/utils/visibility.utils';
 
-	// Delete-account flow — the six-beat flow lives in
+	// Delete-account flow: the six-beat flow lives in
 	// `DeleteAccountFlow`; this page only owns the open/close toggle.
 	let deleteSheetOpen = $state(false);
 
-	// Language picker — the two-axis (Language ▸ Region) picker lives in
+	// Language picker: the two-axis (Language ▸ Region) picker lives in
 	// `LocaleSheet`; the row below opens it and reflects the active locale.
 	// Resolved against the full registry so a regional edition (e.g. `pt-BR`)
 	// shows its own native label and short code, not just the live base set.
 	let langSheetOpen = $state(false);
 
-	// Install sheet — the Add-to-Home-Screen flow lives in `A2hsSheet`; this
+	// Install sheet: the Add-to-Home-Screen flow lives in `A2hsSheet`; this
 	// row only owns the open toggle and is gated on `$canInstall`.
 	let a2hsSheetOpen = $state(false);
 
@@ -78,6 +87,29 @@
 
 	let signOutStatus = $state<ButtonStatus>('enabled');
 	let confirmingSignOut = $state(false);
+
+	// Account-claim handoff: a legacy-build-only row that signs the claim
+	// payload and opens the claim portal on the new stack in a new tab.
+	const claimAvailable = isClaimHandoffAvailable();
+	let claimBusy = $state(false);
+
+	const onStartClaim = async () => {
+		if (claimBusy) {
+			return;
+		}
+
+		claimBusy = true;
+
+		try {
+			const opened = await startClaimHandoff();
+
+			if (!opened) {
+				flashToast(t({ locale: $localeStore, key: 'claim.handoff.error' }));
+			}
+		} finally {
+			claimBusy = false;
+		}
+	};
 
 	// Local transient toast pill. Kept page-local instead of routing
 	// through `notificationsStore` because the surface wants a compact
@@ -97,7 +129,7 @@
 		}, 1800);
 	};
 
-	// Joined date — sourced from the Juno profile doc's `created_at` (ns).
+	// Joined date: sourced from the Juno profile doc's `created_at` (ns).
 	// Mirrors the `ProfilePage` loader so the identity row's "Joined …"
 	// line stays in sync with the dashboard's joined chip.
 	let joinedAtNs = $state<bigint | undefined>(undefined);
@@ -120,7 +152,7 @@
 			return null;
 		}
 
-		const ms = Number(joinedAtNs / 1_000_000n);
+		const ms = Number(joinedAtNs / MILLISECOND_IN_NANOSECONDS);
 		const date = new Date(ms);
 
 		try {
@@ -137,10 +169,12 @@
 
 	const profile = $derived($userStore.profile);
 	const nickname = $derived(profile?.nickname ?? '');
-	const email = $derived(profile?.email ?? '');
+	// The address lives on the owner-private `profile_private` doc (hydrated
+	// into the store at sign-in), never on the public profile.
+	const email = $derived($userStore.email);
 	const hasEmail = $derived(email.length > 0);
 
-	// Sign-in method sub — derived from the provider Juno records on the
+	// Sign-in method sub: derived from the provider Juno records on the
 	// `#user` doc (refined by whether an email is on file), so Google /
 	// Passkey accounts surface their own label instead of collapsing into
 	// the old email-vs-II heuristic. Email-backed accounts show the address.
@@ -162,7 +196,7 @@
 		}
 	});
 
-	// Email row sub — just the address; the "verified" affordance is
+	// Email row sub: just the address; the "verified" affordance is
 	// rendered as a separate green badge.
 	const emailSub = $derived(
 		hasEmail ? email : t({ locale: $localeStore, key: 'settings.account.email.empty' })
@@ -189,7 +223,7 @@
 
 	const themeLabel = $derived($theme.charAt(0).toUpperCase() + $theme.slice(1));
 
-	// About line — `VICI · v{version} · Build {sha}`. Both values are
+	// About line: `VICI · v{version} · Build {sha}`. Both values are
 	// injected at build time via vite `define` (see `vite.config.ts`),
 	// so the line surfaces the actual shipped artefact and not a
 	// hard-coded literal.
@@ -242,12 +276,37 @@
 	const doSignOut = async () => {
 		signOutStatus = 'pending';
 
+		// Emit + flush BEFORE the auth drop: `flushEvents` is fire-and-forget
+		// (it never blocks or fails the sign-out), but starting it while the
+		// session is still live lets the satellite stitch the principal onto
+		// the event; after `signOut()` the batch would land anonymous.
+		track({ name: 'signed_out', source: 'settings' });
+		void flushEvents();
+
 		try {
 			await dropAuth();
-		} finally {
+		} catch {
+			// Sign-out failed before the session changed. `dropAuth` set the
+			// global `authBusy` flag and only `onAuthStateChange` clears it,
+			// which won't fire now, so clear it here, otherwise the (app)
+			// shell stays stuck on its `authResolving` loader instead of the
+			// restored confirm controls. Then re-enable so the user can retry.
+			setAuthBusy(false);
 			signOutStatus = 'enabled';
 			confirmingSignOut = false;
+
+			return;
 		}
+
+		// Auth is dropped. Drive the redirect from here instead of waiting for
+		// the (app) layout's auth-gate effect to react and paint the shell's
+		// hydration spinner first, which reads as a sluggish sign-out. The
+		// button stays `pending` through the navigation; this component
+		// unmounts on the route change, so the spinner never flickers back to
+		// the idle label. Deliberately outside the try: a `goto` abort (a
+		// concurrent redirect already taking us away) is not a sign-out failure
+		// and must not re-enable the controls.
+		await goto(resolve(PublicPath.SignIn), { replace: true });
 	};
 
 	/**
@@ -271,7 +330,7 @@
 			// Open sheets own Escape while visible (they close themselves,
 			// not the page); don't navigate away underneath them.
 			if (event.key === 'Escape' && !deleteSheetOpen && !langSheetOpen && !a2hsSheetOpen) {
-				void goto(resolve(AppPath.Profile));
+				void goto(resolveAppPath(AppPath.Profile));
 			}
 		};
 
@@ -292,7 +351,7 @@
 		<button
 			class="appbar-icon-btn"
 			aria-label={t({ locale: $localeStore, key: 'settings.back_profile' })}
-			onclick={() => goBack(resolve(AppPath.Profile))}
+			onclick={() => goBack(resolveAppPath(AppPath.Profile))}
 			type="button"
 		>
 			<ChevronLeft aria-hidden="true" size={18} strokeWidth={1.6} />
@@ -310,14 +369,14 @@
 			<SetRow
 				icon={Key}
 				label={t({ locale: $localeStore, key: 'settings.account.signin_method' })}
-				onclick={() => goto(resolve(AppPath.AccountSettings))}
+				onclick={() => goto(resolveAppPath(AppPath.AccountSettings))}
 				sub={signinMethodSub}
 			/>
 
 			<SetRow
 				icon={Mail}
 				label={t({ locale: $localeStore, key: 'settings.account.email' })}
-				onclick={() => goto(resolve(AppPath.AccountSettings))}
+				onclick={() => goto(resolveAppPath(AppPath.AccountSettings))}
 				sub={emailSub}
 			>
 				{#snippet right()}
@@ -328,6 +387,15 @@
 					{/if}
 				{/snippet}
 			</SetRow>
+
+			{#if claimAvailable}
+				<SetRow
+					icon={Rocket}
+					label={t({ locale: $localeStore, key: 'claim.settings.label' })}
+					onclick={onStartClaim}
+					sub={t({ locale: $localeStore, key: 'claim.settings.sub' })}
+				/>
+			{/if}
 		</SettingsSection>
 
 		<SettingsSection title={t({ locale: $localeStore, key: 'settings.preferences' })}>
@@ -353,7 +421,7 @@
 			<SetRow
 				icon={Bell}
 				label={t({ locale: $localeStore, key: 'settings.notifications' })}
-				onclick={() => goto(resolve(AppPath.Notifications))}
+				onclick={() => goto(resolveAppPath(AppPath.Notifications))}
 				sub={t({
 					locale: $localeStore,
 					key: 'settings.notifications.sub',
@@ -433,28 +501,14 @@
 				sub={t({ locale: $localeStore, key: 'settings.profile_visibility.sub' })}
 				value={settingsVisibility}
 			/>
-
-			<SetToggle
-				checked={$preferencesStore.sharing.callsPublic}
-				icon={LineChart}
-				label={t({ locale: $localeStore, key: 'settings.public_calls' })}
-				onchange={(value) => {
-					preferencesStore.update((prefs) => ({
-						...prefs,
-						sharing: { ...prefs.sharing, callsPublic: value }
-					}));
-				}}
-				sub={t({ locale: $localeStore, key: 'settings.public_calls.sub' })}
-			/>
 		</SettingsSection>
 
 		<!--
-			Secondary "Privacy" card — the two opt-out share toggles
+			Secondary "Privacy" card: the two opt-out share toggles
 			(global leaderboard, Worlds Universities) distinct from the
 			privacy-and-security set above. Both persist through the
-			`preferences.sharing` slice. They record the user's intent
-			today; server-side enforcement (actually hiding an opted-out
-			user from those surfaces) is a follow-up.
+			`preferences.sharing` slice and are enforced: leaderboard via
+			the FE standings filter, Worlds via the affiliation-stats hook.
 		-->
 		<SettingsSection title={t({ locale: $localeStore, key: 'settings.privacy_share' })}>
 			<SetToggle
@@ -466,6 +520,11 @@
 						...prefs,
 						sharing: { ...prefs.sharing, leaderboardOptIn: value }
 					}));
+					track({
+						name: 'privacy_sharing_toggled',
+						source: 'leaderboard',
+						label: value ? 'on' : 'off'
+					});
 				}}
 				sub={t({ locale: $localeStore, key: 'settings.privacy_share.global.sub' })}
 			/>
@@ -479,6 +538,7 @@
 						...prefs,
 						sharing: { ...prefs.sharing, worldsOptIn: value }
 					}));
+					track({ name: 'privacy_sharing_toggled', source: 'worlds', label: value ? 'on' : 'off' });
 				}}
 				sub={t({ locale: $localeStore, key: 'settings.privacy_share.worlds.sub' })}
 			/>
@@ -506,17 +566,17 @@
 			<SetRow
 				icon={Info}
 				label={t({ locale: $localeStore, key: 'settings.help.resolution' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/how-resolution-works`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/how-resolution-works`))}
 			/>
 			<SetRow
 				icon={Search}
 				label={t({ locale: $localeStore, key: 'settings.help.faq' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/faq`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/faq`))}
 			/>
 			<SetRow
 				icon={Share2}
 				label={t({ locale: $localeStore, key: 'settings.help.support' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/contact`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/contact`))}
 			/>
 		</SettingsSection>
 
@@ -524,37 +584,37 @@
 			<SetRow
 				icon={Lock}
 				label={t({ locale: $localeStore, key: 'settings.legal.terms' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/terms`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/terms`))}
 			/>
 			<SetRow
 				icon={Eye}
 				label={t({ locale: $localeStore, key: 'settings.legal.privacy' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/privacy`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/privacy`))}
 			/>
 			<SetRow
 				icon={Globe}
 				label={t({ locale: $localeStore, key: 'settings.legal.aviso' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/aviso`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/aviso`))}
 			/>
 			<SetRow
 				icon={Globe}
 				label={t({ locale: $localeStore, key: 'settings.legal.aviso_br' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/aviso-br`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/aviso-br`))}
 			/>
 			<SetRow
 				icon={Cookie}
 				label={t({ locale: $localeStore, key: 'settings.legal.cookies' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/cookies`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/cookies`))}
 			/>
 			<SetRow
 				icon={Info}
 				label={t({ locale: $localeStore, key: 'settings.legal.rules' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/resolution-rules`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/resolution-rules`))}
 			/>
 			<SetRow
 				icon={Scale}
 				label={t({ locale: $localeStore, key: 'settings.legal.imprint' })}
-				onclick={() => goto(resolve(`${PublicPath.Info}/imprint`))}
+				onclick={() => goto(resolveAppPath(`${PublicPath.Info}/imprint`))}
 			/>
 		</SettingsSection>
 
@@ -617,7 +677,7 @@
 	{#if nonNullish(toastMessage)}
 		<!--
 			Pill-shaped transient toast pinned to the bottom of the page.
-			Local to this surface — used for low-stakes confirmations
+			Local to this surface: used for minor confirmations
 			(Saved / coming soon) that don't warrant a global
 			notification entry.
 		-->
@@ -658,7 +718,7 @@
 		width: 2.5rem;
 	}
 
-	/* Verified email pill — small green badge rendered in the SetRow
+	/* Verified email pill: small green badge rendered in the SetRow
 	   `right` snippet. Uses YES (green) tokens to read as a positive
 	   verification affordance, distinct from the laurel-gold default
 	   badge slot. */
@@ -675,7 +735,7 @@
 		text-transform: uppercase;
 	}
 
-	/* Language row trailing affordance — the active locale's short code
+	/* Language row trailing affordance: the active locale's short code
 	   (mono, muted) sitting beside the chevron, mirroring the row's
 	   `right` slot. */
 	.settings-lang-right {
@@ -763,7 +823,7 @@
 	}
 
 	/* Sign-out as a 12-px rounded rectangle (intentionally NOT a
-	   full pill — pairs with the destructive band below). Danger text
+	   full pill: pairs with the destructive band below). Danger text
 	   + danger-tinted border on top of a subtle ghost-button surface;
 	   hover lifts the danger wash without flipping to a fully filled
 	   destructive button so the action still requires the explicit

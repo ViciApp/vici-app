@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Companion from '$lib/components/ui/Companion.svelte';
-	import { companionStore, dismissCompanion } from '$lib/stores/companion.store';
+	import Companion from '#lib/components/ui/Companion.svelte';
+	import { companionStore, dismissCompanion } from '#lib/stores/companion.store.ts';
 </script>
 
 {#if $companionStore}

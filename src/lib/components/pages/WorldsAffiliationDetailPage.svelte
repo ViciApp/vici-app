@@ -2,43 +2,45 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { ChevronRight } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import CountryFlag from '$lib/components/ui/CountryFlag.svelte';
-	import { hasCountryFlag } from '$lib/constants/country-flags.constants';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import CountryFlag from '#lib/components/ui/CountryFlag.svelte';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
+	import { hasCountryFlag } from '#lib/constants/country-flags.constants.ts';
 	import {
 		lookupWorldsAffiliation,
 		WORLDS_COUNTRIES,
 		WORLDS_UNIVERSITIES
-	} from '$lib/constants/worlds-affiliations.constants';
+	} from '#lib/constants/worlds-affiliations.constants.ts';
 	import {
 		getAffiliationStats,
 		listAffiliationChampionships,
 		listAffiliationStats,
 		listWorldsMemberCounts
-	} from '$lib/services/worlds.services';
-	import { myAffiliationsStore, refreshMyAffiliations } from '$lib/stores/affiliations.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { AffiliationKind } from '$lib/types/affiliation';
+	} from '#lib/services/worlds.services.ts';
+	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		MIN_CALLS_FOR_RANK,
 		type AffiliationChampionship,
 		type AffiliationStatsDoc
-	} from '$lib/types/affiliation-stats';
-	import { affiliationChipStyle } from '$lib/utils/affiliation-chip.utils';
-	import { affiliationDisplayName } from '$lib/utils/affiliation-name.utils';
+	} from '#lib/types/affiliation-stats.ts';
+	import type { AffiliationKind } from '#lib/types/affiliation.ts';
+	import { affiliationChipStyle } from '#lib/utils/affiliation-chip.utils.ts';
+	import { affiliationDisplayName } from '#lib/utils/affiliation-name.utils.ts';
 	import {
 		affiliationLifetimeAccuracy,
 		affiliationMonthlyAccuracy,
 		affiliationRankComparator,
 		formatAccuracyPercent
-	} from '$lib/utils/affiliation-stats.utils';
-	import { formatMonthAnchorLabel } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/utils/affiliation-stats.utils.ts';
+	import { formatMonthAnchorLabel } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	/**
-	 * Worlds affiliation detail — drill-down from `WorldsPage` and the
+	 * Worlds affiliation detail: drill-down from `WorldsPage` and the
 	 * battle standings. The same component serves both the university
 	 * ("school") and country ("nation") variant; the two mirror each
 	 * other in layout and differ only in the kind label, the identity
@@ -50,17 +52,17 @@
 	 *  1. Compact bar (`ScreenHeader`) with an inline back control and
 	 *     the affiliation name, followed by a scrollable context-chip
 	 *     row (kind · members · champion count · your-marker).
-	 *  2. Identity card — a brand-coloured letter badge (or flag) beside
+	 *  2. Identity card: a brand-coloured letter badge (or flag) beside
 	 *     a season-rank line.
-	 *  3. Three-stat grid — May rank, WC-Battle rank (accented), and
+	 *  3. Three-stat grid: May rank, WC-Battle rank (accented), and
 	 *     all-time accuracy.
-	 *  4. Activity block — an under-threshold empty state encouraging
+	 *  4. Activity block: an under-threshold empty state encouraging
 	 *     calls, or the live accuracy split for active affiliations.
 	 *  5. A standings CTA back to the full battle list.
 	 *
 	 * Stats are populated by the satellite hook on `profiles` updates,
 	 * so the user's own resolved calls are already folded into the
-	 * affiliation totals server-side — no client-side session delta is
+	 * affiliation totals server-side; no client-side session delta is
 	 * applied here (that would double-count).
 	 */
 	interface Props {
@@ -83,7 +85,7 @@
 	let loadState: 'loading' | 'ready' | 'error' = $state('loading');
 	let errorMessage: string | null = $state(null);
 
-	// Whether this affiliation is the caller's own — read from the shared
+	// Whether this affiliation is the caller's own: read from the shared
 	// cache so the "your marker" chip survives re-entry without a refetch.
 	const isMine = $derived(
 		(kind === 'university' ? $myAffiliationsStore.university : $myAffiliationsStore.country)
@@ -113,13 +115,15 @@
 	});
 
 	const accuracyPctLifetime = $derived(
-		stats && stats.totalCalls > 0 ? formatAccuracyPercent(affiliationLifetimeAccuracy(stats)) : '—'
+		stats && stats.totalCalls > 0
+			? formatAccuracyPercent(affiliationLifetimeAccuracy(stats))
+			: EMPTY_VALUE
 	);
 
 	const accuracyPctMonth = $derived(
 		stats && stats.monthTotalCalls > 0
 			? formatAccuracyPercent(affiliationMonthlyAccuracy(stats))
-			: '—'
+			: EMPTY_VALUE
 	);
 
 	const hasActivity = $derived(nonNullish(stats) && stats.totalCalls > 0);
@@ -153,8 +157,8 @@
 	const wcRank = $derived(rankBy({ key: 'lifetime' }));
 	const monthRank = $derived(rankBy({ key: 'month' }));
 
-	const monthRankLabel = $derived(monthRank > 0 ? `#${monthRank}` : '—');
-	const wcRankLabel = $derived(wcRank > 0 ? `#${wcRank}` : '—');
+	const monthRankLabel = $derived(monthRank > 0 ? `#${monthRank}` : EMPTY_VALUE);
+	const wcRankLabel = $derived(wcRank > 0 ? `#${wcRank}` : EMPTY_VALUE);
 
 	const headerName = $derived(
 		nonNullish(option)
@@ -171,7 +175,7 @@
 	const championCount = $derived(championships.length);
 
 	/**
-	 * Context chips below the bar — the kind label, member count, the
+	 * Context chips below the bar: the kind label, member count, the
 	 * champion-cup count (only once the affiliation has at least one
 	 * recorded cup), and (when this is the caller's own affiliation) the
 	 * Alma Mater / Citizen marker.
@@ -231,15 +235,15 @@
 	);
 
 	const backToWorlds = () => {
-		void goto(`${resolve('/arena')}/worlds`);
+		goBack(`${resolve('arena')}/worlds`);
 	};
 
 	const openStandings = () => {
-		void goto(`${resolve('/arena')}/worlds/${isCountry ? 'countries' : 'schools'}`);
+		void goto(`${resolve('arena')}/worlds/${isCountry ? 'countries' : 'schools'}`);
 	};
 
 	const openFlow = () => {
-		void goto(resolve('/flow'));
+		void goto(resolve('flow'));
 	};
 </script>
 

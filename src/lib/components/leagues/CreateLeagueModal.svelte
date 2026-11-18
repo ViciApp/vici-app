@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { ChevronRight, X } from '@lucide/svelte/icons';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import { LeaguePrivacy } from '$lib/enums/league';
-	import { track } from '$lib/services/analytics.services';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import { LeaguePrivacy } from '#lib/enums/league.ts';
+	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		createLeague,
 		generateInviteCode,
 		validateLeagueDraft
-	} from '$lib/services/leagues.services';
-	import { localeStore } from '$lib/stores/locale.store';
+	} from '#lib/services/leagues.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		LEAGUE_DESCRIPTION_MAX_LENGTH,
 		LEAGUE_EMBLEM_DEFAULT,
@@ -16,13 +16,13 @@
 		LEAGUE_NAME_MAX_LENGTH,
 		LEAGUE_NAME_MIN_LENGTH,
 		type LeagueDoc
-	} from '$lib/types/league';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	} from '#lib/types/league.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		isOpen: boolean;
 		onClose: () => void;
-		// Fires after a successful create — parent re-fetches the list and
+		// Fires after a successful create: parent re-fetches the list and
 		// can navigate the user into the new league's detail page once it
 		// lands.
 		onCreated: (league: LeagueDoc) => void;
@@ -31,8 +31,8 @@
 	const { isOpen, onClose, onCreated }: Props = $props();
 
 	// The emblem, colour, and privacy choice all persist onto the league
-	// doc — the emblem as `emblem`, the colour as `accentColor`, and the
-	// privacy choice as the league's `privacy` field — and drive the live
+	// doc: the emblem as `emblem`, the colour as `accentColor`, and the
+	// privacy choice as the league's `privacy` field, and drive the live
 	// preview tile in this sheet.
 	const COLORS = [
 		{ id: 'laurel', value: '#e2b842' },
@@ -42,12 +42,12 @@
 		{ id: 'violet', value: '#b49cff' },
 		{ id: 'parch', value: '#f2ecdc' }
 	] as const;
-	// Three-way privacy selector — Private / Invite-only / Open, ordered
-	// most → least restrictive, defaulting to Open (new leagues are
-	// publicly listed and battle-eligible from creation; owners tighten in
-	// two taps). The chosen value persists onto the league doc's `privacy`
-	// field and reads back as the detail header's privacy chip.
-	const PRIVACIES = [LeaguePrivacy.PRIVATE, LeaguePrivacy.INVITE, LeaguePrivacy.OPEN] as const;
+	// Two-way privacy selector: Open / Private, defaulting to Open (new
+	// leagues are discoverable and battle-eligible from creation; owners
+	// tighten to hidden in two taps). The chosen value persists onto the
+	// league doc's `privacy` field and reads back as the detail header's
+	// privacy chip.
+	const PRIVACIES = [LeaguePrivacy.OPEN, LeaguePrivacy.PRIVATE] as const;
 
 	const [DEFAULT_COLOR] = COLORS;
 
@@ -60,7 +60,7 @@
 	let submitError: string | null = $state(null);
 	// The 6-char invite code the owner shares to bring members in. Our
 	// codes are client-generated (see `createLeague`), so we mint one up
-	// front and surface it on this sheet as a format affordance — then
+	// front and surface it on this sheet as a format affordance, then
 	// hand the same value to `createLeague` so the code the owner sees is
 	// the one persisted. Re-minted on every open of a fresh draft.
 	let inviteCode = $state(generateInviteCode());
@@ -181,7 +181,7 @@
 			</button>
 		</header>
 
-		<!-- Live preview card — mirrors the leagues-list row so the
+		<!-- Live preview card: mirrors the leagues-list row so the
 		     owner sees exactly how their league reads before creating. -->
 		{#if showPreview}
 			<div
@@ -300,7 +300,7 @@
 			</div>
 		</fieldset>
 
-		<!-- Invite-code affordance — surfaces the league's real 6-char code
+		<!-- Invite-code affordance: surfaces the league's real 6-char code
 		     so the owner can share it the moment they create. Read-only;
 		     the value is minted client-side and handed to `createLeague`. -->
 		<div class="league-invite-code">
@@ -341,7 +341,7 @@
 		gap: 0.85rem;
 	}
 
-	/* Title + top-right close × on one row — mirrors the sheet header in
+	/* Title + top-right close × on one row: mirrors the sheet header in
 	   the source design (title left, circular ghost close right). */
 	.league-form-head {
 		display: flex;
@@ -602,7 +602,7 @@
 	/* ─── Invite-code affordance ────────────────────────────────── */
 
 	/* Dashed read-only box: the league's real code (accent, tracked) on
-	   the left, an "Invite code" eyebrow on the right — the owner's cue
+	   the left, an "Invite code" eyebrow on the right; the owner's cue
 	   for what to share. */
 	.league-invite-code {
 		display: flex;
@@ -635,7 +635,7 @@
 		color: var(--no);
 	}
 
-	/* Single full-width CTA — no Cancel; the sheet scrim / grip is the
+	/* Single full-width CTA: no Cancel; the sheet scrim / grip is the
 	   dismiss affordance, so the create action owns the row edge to edge. */
 	.league-form-actions {
 		display: flex;

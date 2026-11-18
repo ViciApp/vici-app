@@ -1,29 +1,27 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import AffiliationPickerModal from '$lib/components/leagues/AffiliationPickerModal.svelte';
-	import WorldsAffiliationPrompt from '$lib/components/worlds/WorldsAffiliationPrompt.svelte';
-	import WorldsPodiumClaim from '$lib/components/worlds/WorldsPodiumClaim.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import AffiliationPickerModal from '#lib/components/leagues/AffiliationPickerModal.svelte';
+	import WorldsAffiliationPrompt from '#lib/components/worlds/WorldsAffiliationPrompt.svelte';
+	import WorldsPodiumClaim from '#lib/components/worlds/WorldsPodiumClaim.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		lookupWorldsAffiliation,
 		WORLDS_UNIVERSITIES,
 		type WorldsAffiliationOption
-	} from '$lib/constants/worlds-affiliations.constants';
-	import { daysToFinal } from '$lib/derived/featured-event.derived';
+	} from '#lib/constants/worlds-affiliations.constants.ts';
+	import { daysToFinal } from '#lib/derived/featured-event.derived.ts';
 	import {
 		claimWorldsPodiumPrize,
 		listAffiliationStats,
-		listWorldsMemberCounts,
-		previousMonthAnchor
-	} from '$lib/services/worlds.services';
-	import { myAffiliationsStore, refreshMyAffiliations } from '$lib/stores/affiliations.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { AffiliationStatsDoc } from '$lib/types/affiliation-stats';
-	import { affiliationChipStyle } from '$lib/utils/affiliation-chip.utils';
+		listWorldsMemberCounts
+	} from '#lib/services/worlds.services.ts';
+	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
+	import type { AffiliationKind } from '#lib/types/affiliation.ts';
+	import { affiliationChipStyle } from '#lib/utils/affiliation-chip.utils.ts';
 	import {
 		affiliationLifetimeAccuracy,
 		affiliationMonthlyAccuracy,
@@ -31,29 +29,32 @@
 		compareAffiliationByLifetime,
 		compareAffiliationByMonth,
 		formatAccuracyPercent
-	} from '$lib/utils/affiliation-stats.utils';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/utils/affiliation-stats.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { previousMonthAnchor } from '#lib/utils/month-anchor.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { goto } from '$app/navigation';
 
 	/**
-	 * Worlds — institutional battle surface.
+	 * Worlds: institutional battle surface.
 	 *
 	 * Layout:
 	 *
-	 *  1. Optional podium-claim banner — surfaces VXP credits when the
+	 *  1. Optional podium-claim banner: surfaces VXP credits when the
 	 *     previous month's snapshot awarded the user.
-	 *  2. Affiliation prompt — "Where did you study?" card, shown only
+	 *  2. Affiliation prompt: "Where did you study?" card, shown only
 	 *     when the user has no school affiliation. Opens
 	 *     `AffiliationPickerModal` on tap.
-	 *  3. Hero event card — `FIFA WORLD CUP · Live` tags + WC Battle
+	 *  3. Hero event card: `FIFA WORLD CUP · Live` tags + WC Battle
 	 *     title + top-3 podium tiles (driven by lifetime accuracy on
 	 *     `listAffiliationStats({ kind: 'university' })`).
-	 *  4. Scope toggle — current month season vs WC Battle (`{N}d left`).
+	 *  4. Scope toggle: current month season vs WC Battle (`{N}d left`).
 	 *  5. Top-6 leaderboard with school glyph + calls eyebrow. When the
 	 *     user is affiliated and outside the visible window, a sticky
 	 *     `is-you` row pins to the bottom.
 	 *
 	 * Note: the per-affiliation `wins/totalCalls` accuracy we project here is
-	 * the all-time bucket — the satellite sums the current roster's real
+	 * the all-time bucket: the satellite sums the current roster's real
 	 * lifetime record, so the "WC" scope ranks by the members' actual history.
 	 * The "month" scope ranks by the current-month window the rolling stats
 	 * doc accrues.
@@ -71,7 +72,7 @@
 
 	let scope = $state<Scope>('wc');
 	let expanded = $state(false);
-	let pickerKind = $state<'university' | 'country' | null>(null);
+	let pickerKind = $state<AffiliationKind | null>(null);
 
 	let podiumClaim = $state<{ monthAnchor: string; awardsCreated: number } | null>(null);
 
@@ -103,9 +104,9 @@
 	 * wasn't eligible), the server-side fast-path returns cleanly. If
 	 * new awards landed, we surface a one-shot toast.
 	 *
-	 * This is the "scheduled task without a scheduler" pattern — user
+	 * This is the "scheduled task without a scheduler" pattern: user
 	 * visits act as the trigger. Kept across the parity rewrite as
-	 * tier C-29 — production claim flow has no alternative trigger.
+	 * tier C-29: production claim flow has no alternative trigger.
 	 */
 	const tryClaimPodium = async () => {
 		try {
@@ -120,7 +121,7 @@
 			}
 		} catch {
 			// First visit before any closed month exists, or other
-			// transient failure. Silent — claim retries on next mount.
+			// transient failure. Silent: claim retries on next mount.
 		}
 	};
 
@@ -150,7 +151,7 @@
 	});
 
 	/**
-	 * Top three by WC (lifetime) accuracy — driven by the same data
+	 * Top three by WC (lifetime) accuracy, driven by the same data
 	 * regardless of the visible scope toggle, because the hero card
 	 * always frames the World Cup battle.
 	 */
@@ -192,7 +193,7 @@
 		lookupWorldsAffiliation({ kind: 'university', id });
 
 	/**
-	 * Podium tile background — a top-down wash of the school's own brand
+	 * Podium tile background: a top-down wash of the school's own brand
 	 * colour fading into the surface, so each tile reads as that school.
 	 * Gold (rank 1) layers a faint accent tint underneath; silver/bronze
 	 * fade straight to transparent. Falls back to the medal-tinted CSS
@@ -209,7 +210,7 @@
 	};
 
 	/**
-	 * Letter-badge styling for a leaderboard row — the school's brand
+	 * Letter-badge styling for a leaderboard row: the school's brand
 	 * colour as the fill with its readable foreground. Empty string when
 	 * the school has no colour so the CSS laurel default applies.
 	 */
@@ -217,7 +218,7 @@
 		affiliationChipStyle({ color: opt?.color, text: opt?.text });
 
 	/**
-	 * Per-school signal for the affiliation picker — real member count
+	 * Per-school signal for the affiliation picker: real member count
 	 * (from `listWorldsMemberCounts`) plus the monthly-accuracy rank when
 	 * the school is ranked. Schools with members but no stats doc carry a
 	 * count with `monthRank` unset so the picker shows "{N} members"
@@ -241,7 +242,7 @@
 
 	const rosterSize = WORLDS_UNIVERSITIES.length;
 
-	const detailPath = (id: string): string => `${resolve(AppPath.Arena)}/worlds/school/${id}`;
+	const detailPath = (id: string): string => `${resolveAppPath(AppPath.Arena)}/worlds/school/${id}`;
 
 	const handleRowNav = (id: string) => {
 		void goto(detailPath(id));
@@ -280,7 +281,10 @@
 			<WorldsAffiliationPrompt onPick={() => (pickerKind = 'university')} />
 		{/if}
 
-		<section class="worlds-event" aria-label="World Cup battle">
+		<section
+			class="worlds-event"
+			aria-label={t({ locale: $localeStore, key: 'worlds.event.aria' })}
+		>
 			<div class="worlds-event-tags">
 				<span class="worlds-tag worlds-tag-wc">
 					{t({ locale: $localeStore, key: 'worlds.event.tag_wc' })}
@@ -360,7 +364,11 @@
 			</div>
 		</section>
 
-		<div class="worlds-scope" aria-label="Leaderboard scope" role="tablist">
+		<div
+			class="worlds-scope"
+			aria-label={t({ locale: $localeStore, key: 'worlds.scope.aria' })}
+			role="tablist"
+		>
 			<button
 				class:is-active={scope === 'month'}
 				aria-selected={scope === 'month'}

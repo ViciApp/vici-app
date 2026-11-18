@@ -1,41 +1,43 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { onMount, untrack } from 'svelte';
-	import { browser } from '$app/environment';
+	import { untrack } from 'svelte';
+	import InviteFriendshipSheet from '#lib/components/arena/InviteFriendshipSheet.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { pageTitle } from '#lib/constants/brand.constants.ts';
+	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
+	import { claimReferralFriendship, lookupReferralCode } from '#lib/services/referral.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import InviteFriendshipSheet from '$lib/components/arena/InviteFriendshipSheet.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
-	import { REFERRAL_CODE_REGEX } from '$lib/constants/referral.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { authBusy, userSignedIn } from '$lib/derived/user.derived';
-	import { claimReferralFriendship, lookupReferralCode } from '$lib/services/referral.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	/**
-	 * Invite-link landing — the shared body behind both canonical invite URLs, `/i/[code]` and
+	 * Invite-link landing: the shared body behind both canonical invite URLs, `/i/[code]` and
 	 * `/join/[code]`. Both routes carry the same 8-char Crockford-base32 referral code in their
 	 * `[code]` slug and render this component, so the two paths behave identically (single source
-	 * of truth — no duplicated branching). Branches on the caller's auth state:
+	 * of truth: no duplicated branching). Branches on the caller's auth state:
 	 *
-	 *   1. **Invalid code shape** — bail to home with an error toast.
-	 *   2. **Signed-out (or a brand-new account still mid-onboarding)** — stash the code
+	 *   1. **Invalid code shape**: bail to home with an error toast.
+	 *   2. **Signed-out (or a brand-new account still mid-onboarding)**: stash the code
 	 *      into the existing `vici:pending-onboarding` payload (merged with whatever
 	 *      Beat-1/2 picks are already there) and route to `/signup`. The (app) layout's
 	 *      pending-onboarding drain then calls `redeemReferralCode` post-signin.
-	 *   3. **Signed-in & past onboarding** — the user is past the signup window
+	 *   3. **Signed-in & past onboarding**: the user is past the signup window
 	 *      (or in any case ineligible for the FE-driven redemption path). Look up the
 	 *      referrer principal and render the friendship-only explainer sheet. The sheet's
 	 *      CTA calls `claimReferralFriendship` (no VXP, just a confirmed bilateral
 	 *      friendship).
 	 *
 	 * Note: only a brand-new account (no profile existed at sign-in) still has an unfinished
-	 * onboarding flow; we treat that case the same as signed-out — stash the code and route
+	 * onboarding flow; we treat that case the same as signed-out: stash the code and route
 	 * to `/signup` so the existing drain can pick it up. A returning user whose legacy profile
 	 * never flipped `onboardingCompleted` to `true` is treated as onboarded.
 	 */
@@ -53,27 +55,23 @@
 	);
 	// A returning user (the satellite already held a profile at sign-in) is
 	// past onboarding even if their legacy profile still defaults
-	// `onboardingCompleted` to `false` — only a brand-new account needs the
+	// `onboardingCompleted` to `false`: only a brand-new account needs the
 	// signup drain. Mirrors the (app) layout's onboarding gate.
 	const needsOnboarding = $derived(!onboardingCompleted && !$userStore.profileExisted);
-
-	onMount(() => {
-		document.title = 'Invite · VICI';
-	});
 
 	$effect(() => {
 		if (!browser) {
 			return;
 		}
 
-		// Wait for the auth handshake before deciding what to do — `authBusy` flips to
+		// Wait for the auth handshake before deciding what to do: `authBusy` flips to
 		// `false` once the userStore has either hydrated a session or confirmed the user is
 		// signed out. Reacting too early would always read `userSignedIn=false`.
 		if ($authBusy) {
 			return;
 		}
 
-		// One-shot — we navigate away in every branch, and the `onMount` mutation guard
+		// One-shot: we navigate away in every branch, and the `onMount` mutation guard
 		// would otherwise re-fire on the post-nav re-render of this same page instance.
 		if (untrack(() => resolved)) {
 			return;
@@ -109,11 +107,11 @@
 	};
 
 	const goHome = () => {
-		void goto(resolve(AppPath.Home), { replaceState: true });
+		void goto(resolveAppPath(AppPath.Home), { replace: true });
 	};
 
 	const goSignup = () => {
-		void goto(resolve(PublicPath.SignUp), { replaceState: true });
+		void goto(resolve(PublicPath.SignUp), { replace: true });
 	};
 
 	const handleInvite = async () => {
@@ -142,7 +140,7 @@
 		}
 
 		// Existing signed-in user. Resolve the referrer principal so the sheet can show "you
-		// can't redeem (no bonus) but here's the inviter — add as friend".
+		// can't redeem (no bonus) but here's the inviter: add as friend".
 		try {
 			const owner = await lookupReferralCode({ code: normalizedCode });
 
@@ -188,7 +186,7 @@
 	};
 
 	/**
-	 * Sheet CTA — attempts to add the referrer as a friend (no VXP transfer). Idempotent
+	 * Sheet CTA: attempts to add the referrer as a friend (no VXP transfer). Idempotent
 	 * server-side: a no-op if a relation already exists in any state.
 	 */
 	let claiming = $state(false);
@@ -228,6 +226,10 @@
 		goHome();
 	};
 </script>
+
+<svelte:head>
+	<title>{pageTitle(t({ locale: $localeStore, key: 'seo.invite.title' }))}</title>
+</svelte:head>
 
 <div class="flex min-h-screen w-full flex-col items-center justify-center p-6">
 	{#if mode === 'loading' || mode === 'redirecting'}

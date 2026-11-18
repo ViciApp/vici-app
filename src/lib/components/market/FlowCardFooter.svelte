@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
-		sizeStake: number;
-		// Guided (onboarding first-call) mode — the depth hint becomes a
+		callSize: number;
+		// Guided (onboarding first-call) mode; the depth hint becomes a
 		// commit prompt since the card can't flip there.
 		guided?: boolean;
 	}
 
-	let { sizeStake, guided = false }: Props = $props();
+	let { callSize, guided = false }: Props = $props();
 
 	const hintKey = $derived(guided ? 'card.swipe_to_call' : 'card.tap_depth');
 </script>
@@ -19,7 +19,7 @@
 		<span class="flow-foot-size-label">
 			{t({ locale: $localeStore, key: 'card.size_label' })}
 		</span>
-		<span class="flow-foot-size-num">{sizeStake}</span>
+		<span class="flow-foot-size-num">{callSize}</span>
 		<span class="flow-foot-size-unit">VXP</span>
 	</span>
 	<span class="flow-foot-hint allcaps">

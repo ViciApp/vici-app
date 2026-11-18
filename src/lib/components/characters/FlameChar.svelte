@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { CHAR_INK, FLAME_STAGES } from '$lib/constants/characters.constants';
-	import type { FlameStage } from '$lib/utils/streak.utils';
+	import { CHAR_INK, FLAME_STAGES } from '#lib/constants/characters.constants.ts';
+	import type { FlameStage } from '#lib/utils/streak.utils.ts';
 
 	interface Props {
 		size?: number;

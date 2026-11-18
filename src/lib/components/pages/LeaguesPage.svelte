@@ -3,18 +3,16 @@
 	import { Plus } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import CreateLeagueModal from '$lib/components/leagues/CreateLeagueModal.svelte';
-	import JoinLeagueModal from '$lib/components/leagues/JoinLeagueModal.svelte';
-	import LeagueCtaCard from '$lib/components/leagues/LeagueCtaCard.svelte';
-	import LeagueListCard from '$lib/components/leagues/LeagueListCard.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { authPrincipal } from '$lib/derived/user.derived';
-	import { settleFounderAwards, type LeagueWithRole } from '$lib/services/leagues.services';
-	import { findOwnStanding, getLeagueStandings } from '$lib/services/standings.services';
-	import { friendsListStore, refreshFriendRelations } from '$lib/stores/friends.store';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import CreateLeagueModal from '#lib/components/leagues/CreateLeagueModal.svelte';
+	import JoinLeagueModal from '#lib/components/leagues/JoinLeagueModal.svelte';
+	import LeagueCtaCard from '#lib/components/leagues/LeagueCtaCard.svelte';
+	import LeagueListCard from '#lib/components/leagues/LeagueListCard.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { settleFounderAwards, type LeagueWithRole } from '#lib/services/leagues.services.ts';
+	import { findOwnStanding, getLeagueStandings } from '#lib/services/standings.services.ts';
+	import { friendsListStore, refreshFriendRelations } from '#lib/stores/friends.store.ts';
 	import {
 		friendRecommendedLeaguesStore,
 		leagueBattlesStore,
@@ -23,14 +21,15 @@
 		leaguesLoadedStore,
 		myLeaguesStore,
 		refreshMyLeagues
-	} from '$lib/stores/leagues.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import type { LeagueMemberDoc } from '$lib/types/league-member';
-	import { t } from '$lib/utils/i18n.utils';
-	import { leagueRankOf, rankLeagueMembers } from '$lib/utils/league-rank.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { refreshAllBalances } from '$lib/utils/refresh.utils';
+	} from '#lib/stores/leagues.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { leagueRankOf, rankLeagueMembers } from '#lib/utils/league-rank.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { refreshAllBalances } from '#lib/utils/refresh.utils.ts';
+	import { goto } from '$app/navigation';
 
 	/**
 	 * Social cohorts list page.
@@ -45,11 +44,11 @@
 	 * badge, and an inline copy-invite pill.
 	 *
 	 * The Create + Join entries live in a trailing "Start or join"
-	 * CTA grid — never as a top-of-list pill row.
+	 * CTA grid: never as a top-of-list pill row.
 	 */
 
 	interface Props {
-		// When true, hide the page's own appbar — the container is
+		// When true, hide the page's own appbar: the container is
 		// expected to render one (e.g. the tabbed Arena parent).
 		embedded?: boolean;
 	}
@@ -122,10 +121,10 @@
 	const founded = $derived(rows.filter((r) => r.role === 'owner'));
 	const joined = $derived(rows.filter((r) => r.role !== 'owner'));
 
-	// Retroactively back-pay the "Founder +100 VXP" reward for any league
+	// Retroactively back-pay the league-founder reward for any league
 	// the caller founded before the founder-award hook shipped. Gated on the
-	// loaded list actually containing an owned league — so a member who never
-	// founded one makes no (state-changing) update call — and fired at most
+	// loaded list actually containing an owned league, so a member who never
+	// founded one makes no (state-changing) update call, and fired at most
 	// once per mount. Idempotent server-side; refresh balances only when
 	// something was newly settled so the credit shows without a reload.
 	let founderSettleTried = false;
@@ -144,7 +143,7 @@
 		});
 	});
 
-	// "Friends are in" — public leagues the caller's confirmed friends are
+	// "Friends are in": public leagues the caller's confirmed friends are
 	// in but the caller is not. Capped so the row stays a discovery nudge
 	// at the foot of the list, not a directory.
 	const FRIEND_RECS_LIMIT = 5;
@@ -196,7 +195,7 @@
 		$profilesStore.get(principal)?.dailyStreak ?? 0;
 
 	/**
-	 * Caller's 1-indexed rank per league — the same accuracy-first ranking the
+	 * Caller's 1-indexed rank per league: the same accuracy-first ranking the
 	 * detail page and its leaderboard use, so the card badge agrees with both.
 	 * Computed once per (rows, viewer, profile-cache) change rather than per
 	 * card render: the page re-renders for unrelated reactive churn (trend
@@ -292,7 +291,7 @@
 		}
 	});
 
-	// The card's `trend` value for a league — 0 (no arrow) until its weekly
+	// The card's `trend` value for a league: 0 (no arrow) until its weekly
 	// standing has resolved a comparable prior-week rank for the viewer.
 	const trendFor = (row: LeagueRow): number => leagueTrends.get(row.league.id) ?? 0;
 
@@ -320,7 +319,7 @@
 	};
 
 	const handleCardClick = (leagueId: string) => {
-		void goto(`${resolve(AppPath.Arena)}/leagues/${leagueId}`);
+		void goto(`${resolveAppPath(AppPath.Arena)}/leagues/${leagueId}`);
 	};
 </script>
 
@@ -340,7 +339,7 @@
 		<ScreenHeader
 			back={{
 				label: t({ locale: $localeStore, key: 'leagues.back' }),
-				onBack: () => goBack(resolve(AppPath.Arena))
+				onBack: () => goBack(resolveAppPath(AppPath.Arena))
 			}}
 			right={leaguesCreateAction}
 			title={t({ locale: $localeStore, key: 'leagues.title' })}
@@ -422,7 +421,7 @@
 			</section>
 		{/if}
 
-		<!-- Start or join — secondary actions, deliberately lighter than the
+		<!-- Start or join: secondary actions, deliberately lighter than the
 		     league cards above so the leagues you're in stay the focus. -->
 		<section class="leagues-section">
 			<h2 class="leagues-eyebrow allcaps">
@@ -559,7 +558,7 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 0.6rem;
-		/* Gold-washed, dashed-laurel "invite-only" panel — distinct from
+		/* Gold-washed, dashed-laurel "invite-only" panel: distinct from
 		   the neutral surface cards so the zero-state reads as an
 		   editorial prompt, not a plain empty card. */
 		padding: 1.5rem 1.375rem;

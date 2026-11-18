@@ -1,10 +1,11 @@
-import { CONTACT_DOMAIN } from '$lib/constants/contact.constants';
-import type { CallSide } from '$lib/types/market';
-import type { FlowArtCategory } from '$lib/utils/flow-art.utils';
+import { CONTACT_DOMAIN } from '#lib/constants/contact.constants.ts';
+import type { CallSide } from '#lib/types/market.ts';
+import type { FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
+import { tagColor } from '#lib/utils/tag-color.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**
- * Client-side renderer for the shareable prediction card — a 1080×1920
+ * Client-side renderer for the shareable prediction card: a 1080×1920
  * story-format PNG drawn on an offscreen `<canvas>`, on-brand, so it can
  * be posted to image-only surfaces (Instagram / TikTok / Snapchat /
  * Facebook stories) that don't accept links.
@@ -15,19 +16,6 @@ import { isNullish, nonNullish } from '@dfinity/utils';
  * faces declared in `app.css`; we await `document.fonts.ready` so the
  * canvas picks them up instead of falling back to a system face.
  */
-
-/** Per-category accent hex used for the card's glow + category tag. */
-const CATEGORY_ACCENT: Record<FlowArtCategory, string> = {
-	macro: '#7EB6FF',
-	crypto: '#F7931A',
-	sports: '#6FE0B6',
-	politics: '#FF6B6B',
-	tech: '#B49CFF',
-	culture: '#FFB066',
-	wc: '#E2B842'
-};
-
-const ACCENT_FALLBACK = '#E2B842';
 
 /** Fixed brand palette for the rendered card (theme-independent). */
 const CARD_BG = '#0E0D0B';
@@ -128,7 +116,7 @@ const setLetterSpacing = (ctx: CanvasRenderingContext2D, value: string): void =>
 	try {
 		(ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = value;
 	} catch {
-		// Unsupported — spacing is cosmetic, render continues.
+		// Unsupported: spacing is cosmetic, render continues.
 	}
 };
 
@@ -173,7 +161,8 @@ export const renderPredictionCard = async ({
 		return null;
 	}
 
-	const accent = CATEGORY_ACCENT[market.category] ?? ACCENT_FALLBACK;
+	// `wc` and unknowns fall back to the laurel-gold accent inside `tagColor`.
+	const accent = tagColor(market.category);
 	const yes = Math.max(0, Math.min(100, Math.round(market.yesPercent)));
 
 	// Background + accent glow + frame.

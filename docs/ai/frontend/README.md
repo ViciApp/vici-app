@@ -8,7 +8,8 @@ it once per session.
 
 ## Vici-specific things to check (every change)
 
-Generic agent hygiene (read first, run lint/check, atomic PRs) is in
+Generic agent hygiene (read first, run lint/check,
+[scoped PRs](https://github.com/AntonioVentilii/officina/blob/main/standards/code.md#2-scoped)) is in
 [`AGENTS.md`](../../../AGENTS.md) and [`pr-and-ci.md`](../pr-and-ci.md).
 What is specific to Vici:
 
@@ -45,12 +46,19 @@ idioms.
 Non-obvious points the codebase will not tell you:
 
 - ESLint's local rule `local-rules/no-relative-imports` is **`error`** under
-  `src/**` — always import via the aliases in
-  [`svelte.config.js`](../../../svelte.config.js).
-- `0n` and `return undefined;` are eslint-flagged — use `ZERO` from
-  `$lib/constants/app.constants` and bare `return;`.
-- No test runner is wired yet — when the first Vitest spec lands,
-  [`testing.md`](./testing.md) becomes the contract.
+  `src/**`; always import via the subpath imports in
+  [`package.json`](../../../package.json) `imports`.
+- `0n` and `return undefined;` are eslint-flagged; use `ZERO` from
+  `#lib/constants/app.constants` and bare `return;`.
+- Pure-logic specs run on Node's built-in runner (`npm test`); there is no
+  component-test runner yet. [`testing.md`](./testing.md) is the contract.
+- The crawler-facing surface (sitemap + per-market meta pages) is generated
+  at deploy time, not at runtime; see [`seo.md`](./seo.md) before touching
+  `src/app.html` head tags, `robots.txt`, or the hosting `predeploy` chain.
+- A build-time backend seam (`VITE_BACKEND`) can route migrated domains to
+  the repo's HTTP API; the default is unchanged current behavior. Read
+  [`web2-backend-mode.md`](./web2-backend-mode.md) before adding any
+  `isWeb2Backend()` branch.
 
 ## What "good" looks like in this repo
 
@@ -58,13 +66,13 @@ A 10x change is small, focused, and reuses what's there. Recent merged PRs
 to learn from (from `git log` on `main`):
 
 - `fix(collateral): use nanoid for operation IDs (replaces insecure Math.random fallback)`
-  (#75) — single bug, contained fix, calls out the security angle.
-- `feat: count docs instead of list` (#65) — single primitive change, swaps
+  (#75): single bug, contained fix, calls out the security angle.
+- `feat: count docs instead of list` (#65): single primitive change, swaps
   an O(n) read for the dedicated counter.
 - `feat: upgrade juno functions v0.9 and drop candid for ledger transfer`
-  (#64) — single dependency upgrade, removes an old code path in the same
+  (#64): single dependency upgrade, removes an old code path in the same
   step because it's part of the upgrade.
-- `fix: market resolution & settlement UX` (#51) — bounded UX fix.
+- `fix: market resolution & settlement UX` (#51): bounded UX fix.
 
 If your PR doesn't look like one of those (single verb, single concern,
 small diff), reconsider scope before continuing.

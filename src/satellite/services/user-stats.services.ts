@@ -1,17 +1,18 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { USER_STATS_RECENT_LIMIT, type UserStatsDoc } from '$lib/types/user-stats';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { USER_STATS_RECENT_LIMIT, type UserStatsDoc } from '#lib/types/user-stats.ts';
+import { assertControllerCaller } from '#satellite/services/authz.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
 
 /**
  * Pre-write guard for `user_stats`. The collection caches the
- * caller's Dash aggregates — per-category accuracy + recent
+ * caller's Dash aggregates: per-category accuracy + recent
  * settlements. Writes are scoped to one's own row.
  *
  *  1. **Collection scope.** No-op for any other collection.
  *  2. **Key shape.** Doc key must equal the embedded `owner`
- *     principal — a single canonical row per user.
+ *     principal: a single canonical row per user.
  *  3. **Owner binds caller.** Only the user themselves can write
  *     their dashboard cache (mirrors the affiliation-stats and
  *     league-stats invariants).
@@ -85,4 +86,21 @@ export const assertSetUserStats = ({
 			throw new Error('user_stats recentSettlements contrarian must be a boolean.');
 		}
 	}
+};
+
+/**
+ * Pre-delete guard for `user_stats`: only the satellite deletes a dashboard
+ * cache. No app flow deletes one, and `onUserStatsSetForLeagueStats` treats a
+ * re-created doc as all-new counters, so a delete then re-write would add the
+ * owner's whole history to every league's `league_stats` a second time.
+ */
+export const assertDeleteUserStats = ({
+	caller,
+	data: { collection }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.USER_STATS) {
+		return;
+	}
+
+	assertControllerCaller({ caller, collection });
 };

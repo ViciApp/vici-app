@@ -6,16 +6,26 @@ updates:
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
-      interval: weekly
+      interval: monthly
     commit-message:
       prefix: 'chore(github-actions): '
     cooldown:
       default-days: 7
+    # juno-action publishes each release twice, plain and `-full`, and only
+    # `-full` carries the Rust toolchain. Dependabot keeps repinning the `-full`
+    # steps to the plain SHA, which turns `functions upgrade` into a silent
+    # no-op, so this action is bumped by hand.
+    ignore:
+      - dependency-name: 'junobuild/juno-action'
 
+  # Dependabot runs npm through corepack, so it uses the version pinned in
+  # package.json#packageManager. Without that pin it picks its own default,
+  # and npm 12 trips engine-strict on @dfinity/eslint-config-oisy-wallet
+  # (npm <12), failing every npm update as "can't resolve dependency files".
   - package-ecosystem: npm
     directory: '/'
     schedule:
-      interval: weekly
+      interval: monthly
     commit-message:
       prefix: 'chore(npm-deps): '
       prefix-development: 'chore(npm-deps-dev): '
@@ -41,3 +51,33 @@ updates:
           - '@junobuild/core'
           - '@junobuild/functions'
           - '@junobuild/schema'
+
+  # The backend is a standalone Bun project with its own bun.lock. It is not a
+  # workspace of the root package.json, so the npm entry above never sees it.
+  # Dependabot supports bun for VERSION updates only; its SECURITY updates
+  # still open package.json-only PRs that leave bun.lock stale, which is what
+  # .github/workflows/dependabot-bun-lock.yml repairs.
+  # https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories
+  - package-ecosystem: bun
+    directory: '/backend'
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'chore(backend-deps): '
+      prefix-development: 'chore(backend-deps-dev): '
+    cooldown:
+      default-days: 7
+    allow:
+      - dependency-type: all
+    # The noble/scure crypto primitives version-lock each other and pin API
+    # shapes the custody code depends on; a lone major bump can resolve into a
+    # mixed v1/v2 tree that only breaks in the pruned production install.
+    # Majors here ride deliberate upgrade PRs instead.
+    ignore:
+      - dependency-name: '@noble/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@scure/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'micro-packed'
+        update-types: ['version-update:semver-major']
+    open-pull-requests-limit: 10

@@ -1,6 +1,6 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { normalizeMarketTags, type MarketTag } from '$lib/constants/market-tags.constants';
-import type { MarketMetadata } from '$lib/types/market-metadata';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { normalizeStoredTags } from '#lib/constants/market-taxonomy.constants.ts';
+import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 import { listDocs } from '@junobuild/core';
 
 /**
@@ -9,18 +9,18 @@ import { listDocs } from '@junobuild/core';
  * payload (whyNow / events / suggested are not needed for tag lookup).
  *
  * `MARKET_METADATA` is `read: 'public'`, so this works for anonymous
- * viewers too. Unknown tag strings are filtered through
- * {@link normalizeMarketTags} on the client as well as on write (in the
- * satellite) — defense in depth so a stale persisted value can never
- * leak an unknown id into the UI.
+ * viewers too. Stored tags are trimmed / de-duplicated through
+ * {@link normalizeStoredTags} on the client (order-preserving, primary
+ * micro first): defense in depth so a stale blank value can never leak
+ * into the UI. Both micro ids and Layer-3 free tags are retained.
  */
-export const listMarketTagsBySeries = async (): Promise<Record<string, MarketTag[]>> => {
+export const listMarketTagsBySeries = async (): Promise<Record<string, string[]>> => {
 	const { items } = await listDocs<MarketMetadata>({
 		collection: Collection.MARKET_METADATA
 	});
 
-	return items.reduce<Record<string, MarketTag[]>>((acc, { data }) => {
-		const tags = normalizeMarketTags(data.tags ?? []);
+	return items.reduce<Record<string, string[]>>((acc, { data }) => {
+		const tags = normalizeStoredTags(data.tags ?? []);
 
 		if (tags.length > 0) {
 			acc[data.seriesId] = tags;
@@ -47,7 +47,7 @@ export const listMarketMetadataBySeries = async (): Promise<Record<string, Marke
 	return items.reduce<Record<string, MarketMetadata>>((acc, { data }) => {
 		acc[data.seriesId] = {
 			...data,
-			tags: normalizeMarketTags(data.tags ?? [])
+			tags: normalizeStoredTags(data.tags ?? [])
 		};
 
 		return acc;
@@ -57,7 +57,7 @@ export const listMarketMetadataBySeries = async (): Promise<Record<string, Marke
 /**
  * Projects an already-fetched `seriesId → MarketMetadata` map down to the
  * same `seriesId → tags` shape that {@link listMarketTagsBySeries} returns
- * — but without a second `listDocs(MARKET_METADATA)` round-trip.
+ * but without a second `listDocs(MARKET_METADATA)` round-trip.
  *
  * `listMarketTagsBySeries` and `listMarketMetadataBySeries` scan the exact
  * same public collection, so a caller that already holds the full metadata
@@ -68,9 +68,9 @@ export const listMarketMetadataBySeries = async (): Promise<Record<string, Marke
  */
 export const deriveTagsBySeries = (
 	metadataBySeries: Record<string, MarketMetadata>
-): Record<string, MarketTag[]> =>
-	Object.entries(metadataBySeries).reduce<Record<string, MarketTag[]>>((acc, [seriesId, meta]) => {
-		const tags = normalizeMarketTags(meta.tags ?? []);
+): Record<string, string[]> =>
+	Object.entries(metadataBySeries).reduce<Record<string, string[]>>((acc, [seriesId, meta]) => {
+		const tags = normalizeStoredTags(meta.tags ?? []);
 
 		if (tags.length > 0) {
 			acc[seriesId] = tags;

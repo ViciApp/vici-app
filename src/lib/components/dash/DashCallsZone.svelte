@@ -1,8 +1,9 @@
 <script lang="ts" module>
+	import type { CallSide } from '#lib/types/market.ts';
 	export interface OpenCallRow {
 		key: string;
 		question: string;
-		side?: 'YES' | 'NO';
+		side?: CallSide;
 		context: string;
 		timer: string;
 		marketId: string;
@@ -11,7 +12,7 @@
 	export interface ResolvedCallRow {
 		key: string;
 		question: string;
-		side?: 'YES' | 'NO';
+		side?: CallSide;
 		context: string;
 		end: string;
 		won: boolean;
@@ -21,7 +22,7 @@
 
 <script lang="ts">
 	/**
-	 * Zone 3 · Calls — an Open / Resolved segmented toggle over compact call
+	 * Zone 3 · Calls: an Open / Resolved segmented toggle over compact call
 	 * rows. Each tab previews the first three rows and reveals the rest inline
 	 * via "see all". Open rows carry a pending dot + live timer; resolved rows
 	 * carry a won/lost dot + signed VXP. The empty Open state nudges into Flow.
@@ -29,12 +30,12 @@
 	 * Rows arrive fully shaped from the host (`DashPage`) so the data-derivation
 	 * stays in one place and this component owns only the tab + expansion state.
 	 */
+	import DashCallRow from '#lib/components/dash/DashCallRow.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import DashCallRow from '$lib/components/dash/DashCallRow.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
 
 	interface Props {
 		openCalls: OpenCallRow[];
@@ -50,7 +51,7 @@
 	let tab = $state<'open' | 'resolved'>('open');
 	let expanded = $state(false);
 
-	// Each tab starts collapsed to its preview length — reset on tab flip.
+	// Each tab starts collapsed to its preview length: reset on tab flip.
 	$effect(() => {
 		// Touch `tab` so the reset runs whenever it changes.
 		void tab;
@@ -61,11 +62,11 @@
 	const resolvedVisible = $derived(expanded ? resolvedCalls : resolvedCalls.slice(0, PREVIEW));
 
 	const openMarket = (marketId: string): void => {
-		void goto(resolve(`${AppPath.Markets}/${marketId}`));
+		void goto(resolveAppPath(`${AppPath.Markets}/${marketId}`));
 	};
 
 	const openFlow = (): void => {
-		void goto(resolve(AppPath.Flow));
+		void goto(resolveAppPath(AppPath.Flow));
 	};
 </script>
 

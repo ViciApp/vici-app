@@ -1,12 +1,13 @@
-import { LeaguePrivacy } from '$lib/enums/league';
-import { ProfileVisibility } from '$lib/enums/profile';
-import { RelationCategory, RelationState } from '$lib/enums/relation';
-import { UserRole } from '$lib/enums/user';
-import type { MarketTranslation } from '$lib/types/market-translation';
-import type { UserProfile } from '$lib/types/profile';
-import type { ReferralListItem } from '$lib/types/referral';
-import type { VxpMilestoneState } from '$lib/types/vxp-onboarding';
-import { visibilityFromProfile } from '$lib/utils/visibility.utils';
+import { defaultPreferences } from '#lib/constants/settings.constants.ts';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
+import { ProfileVisibility } from '#lib/enums/profile.ts';
+import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
+import { UserRole } from '#lib/enums/user.ts';
+import { AFFILIATION_KINDS, type AffiliationKind } from '#lib/types/affiliation.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import type { ReferralListItem } from '#lib/types/referral.ts';
+import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
+import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 /**
@@ -17,26 +18,29 @@ import { j, PrincipalTextSchema } from '@junobuild/schema';
  * `Vec<NestedStruct>` as well as `Option<…>`, so **both** serialise nested
  * structs in camelCase on the wire. These schemas therefore use camelCase keys
  * matching the app-side domain types, identically for `j.array(...)` and
- * `j.optional(...)` results — no more snake_case parallel schemas. The
+ * `j.optional(...)` results: no more snake_case parallel schemas. The
  * `toWire…` converters just project the domain shape (defaults / enum
  * normalisation); `fromWire…` re-narrows loose wire string unions back to the
  * app enums.
  *
- * Requires juno CLI ≥ 0.15.6 to build/deploy — older toolchains expect
+ * Requires juno CLI ≥ 0.15.6 to build/deploy: older toolchains expect
  * snake_case for `Vec` results and will trap at runtime.
  */
 
 // ─── UserProfile wire format ─────────────────────────────────────────────
 
+// Read only for primitive leaves: an object or array default calls
+// `defaultPreferences()` on each decode, so no two decoded profiles share one.
+const PREFERENCE_DEFAULTS = defaultPreferences();
+
 export const UserProfileWireSchema = j.strictObject({
 	owner: PrincipalTextSchema,
 	nickname: j.string().default(''),
 	avatar: j.string().default(''),
-	// Serialized faceted-avatar picks (compact JSON string) — carried so
+	// Serialized faceted-avatar picks (compact JSON string): carried so
 	// every surface renders the owner's saved face, not a principal-seeded
 	// fallback. Empty = never customised.
 	avatarParts: j.string().default(''),
-	email: j.string().default(''),
 	pnl: j.number().default(0),
 	visibility: j.enum(ProfileVisibility).default(ProfileVisibility.FRIENDS_ONLY),
 	role: j.enum(UserRole).optional(),
@@ -56,17 +60,17 @@ export const UserProfileWireSchema = j.strictObject({
 		.strictObject({
 			defaultAmount: j
 				.strictObject({
-					flow: j.string().default('0'),
-					manual: j.string().default('0')
+					flow: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.flow),
+					manual: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.manual)
 				})
-				.default({ flow: '0', manual: '0' })
+				.default(() => defaultPreferences().defaultAmount)
 		})
 		.optional()
 });
 
 export type WireUserProfile = j.infer<typeof UserProfileWireSchema>;
 
-// Local TS shape this converter accepts — exactly mirrors UserProfile from
+// Local TS shape this converter accepts: exactly mirrors UserProfile from
 // `src/lib/types/profile.ts`. Kept inline (instead of importing UserProfile)
 // so a future divergence of either shape doesn't silently break the wire.
 interface AppProfileLike {
@@ -74,7 +78,6 @@ interface AppProfileLike {
 	nickname?: string;
 	avatar?: string;
 	avatarParts?: string;
-	email?: string;
 	pnl?: number;
 	visibility: WireUserProfile['visibility'];
 	role?: WireUserProfile['role'];
@@ -98,7 +101,6 @@ export const toWireProfile = (profile: AppProfileLike): WireUserProfile => ({
 	nickname: profile.nickname ?? '',
 	avatar: profile.avatar ?? '',
 	avatarParts: profile.avatarParts ?? '',
-	email: profile.email ?? '',
 	pnl: profile.pnl ?? 0,
 	visibility: profile.visibility,
 	role: profile.role,
@@ -117,8 +119,9 @@ export const toWireProfile = (profile: AppProfileLike): WireUserProfile => ({
 	preferences: profile.preferences
 		? {
 				defaultAmount: {
-					flow: profile.preferences.defaultAmount?.flow ?? '0',
-					manual: profile.preferences.defaultAmount?.manual ?? '0'
+					flow: profile.preferences.defaultAmount?.flow ?? PREFERENCE_DEFAULTS.defaultAmount.flow,
+					manual:
+						profile.preferences.defaultAmount?.manual ?? PREFERENCE_DEFAULTS.defaultAmount.manual
 				}
 			}
 		: undefined
@@ -139,7 +142,6 @@ export interface ApiWireProfile {
 	nickname: string;
 	avatar: string;
 	avatarParts: string;
-	email: string;
 	pnl: number;
 	visibility: `${ProfileVisibility}`;
 	role?: `${UserRole}`;
@@ -163,7 +165,7 @@ export interface ApiWireProfile {
 /**
  * Inverse of {@link toWireProfile}. Re-camelCases a row coming back from a
  * satellite query whose `result` schema uses {@link UserProfileWireSchema}
- * (i.e. every `j.array(UserProfileWireSchema)` endpoint —
+ * (i.e. every `j.array(UserProfileWireSchema)` endpoint:
  * `listLeaderboard`, `searchProfiles`, …). Frontend callers should funnel
  * wire items through this before handing them to UI / stores typed as
  * {@link UserProfile}.
@@ -173,7 +175,6 @@ export const fromWireProfile = (profile: ApiWireProfile): UserProfile => ({
 	nickname: profile.nickname,
 	avatar: profile.avatar,
 	avatarParts: profile.avatarParts,
-	email: profile.email,
 	pnl: profile.pnl,
 	visibility: profile.visibility as ProfileVisibility,
 	role: profile.role as UserRole | undefined,
@@ -205,40 +206,24 @@ export const fromWireProfile = (profile: ApiWireProfile): UserProfile => ({
 	// wire (those surfaces don't read it), so default it like the other
 	// non-wire fields below to keep the rebuilt UserProfile fully shaped.
 	topDecileStreak: 0,
-	// The wire format only carries `default_amount` — the leaderboard /
+	// The wire format only carries `default_amount`: the leaderboard /
 	// search endpoints don't read the user-experience preferences
 	// (`notify`, `flowTags`, `savedMarketIds`, etc.), so they're not
 	// round-tripped on this path. Default the rest to the schema's
 	// initial values so the rebuilt UserProfile is fully shaped.
 	preferences: {
+		...defaultPreferences(),
 		defaultAmount: {
-			flow: profile.preferences?.defaultAmount?.flow ?? '0',
-			manual: profile.preferences?.defaultAmount?.manual ?? '0'
+			flow: profile.preferences?.defaultAmount?.flow ?? PREFERENCE_DEFAULTS.defaultAmount.flow,
+			manual: profile.preferences?.defaultAmount?.manual ?? PREFERENCE_DEFAULTS.defaultAmount.manual
 		},
-		notify: {
-			streakReminder: true,
-			marketAlerts: true,
-			friendActivity: false,
-			weeklyDigest: true
-		},
-		flowSessionLength: 10,
-		hapticsEnabled: true,
-		soundEnabled: true,
 		sharing: {
+			...PREFERENCE_DEFAULTS.sharing,
 			// Derive from the canonical top-level `visibility` so the settings
 			// source-of-truth slice agrees with the real visibility on this
 			// wire profile (FRIENDS_ONLY → 'private') instead of hard-coding it.
-			profileVisibility: visibilityFromProfile(profile.visibility as ProfileVisibility),
-			callsPublic: true,
-			leaderboardOptIn: true,
-			worldsOptIn: true
-		},
-		flowTags: [],
-		worldCupMode: false,
-		savedMarketIds: [],
-		favoriteParticipantId: '',
-		favoriteSide: '',
-		onboardingCompleted: false
+			profileVisibility: visibilityFromProfile(profile.visibility as ProfileVisibility)
+		}
 	}
 });
 
@@ -317,25 +302,6 @@ export const toWireMarketTranslation = (
 	updatedBy: translation.updatedBy
 });
 
-/**
- * Inverse of {@link toWireMarketTranslation}. Used by frontend services
- * consuming `listMarketTranslations` (which returns
- * `j.array(MarketTranslationWireSchema)`) so the items land typed as
- * {@link MarketTranslation}.
- */
-export const fromWireMarketTranslation = (
-	translation: WireMarketTranslation
-): MarketTranslation => ({
-	seriesId: translation.seriesId,
-	locale: translation.locale,
-	title: translation.title,
-	description: translation.description,
-	resolution: translation.resolution,
-	outcomes: translation.outcomes,
-	updatedAt: translation.updatedAt,
-	updatedBy: translation.updatedBy
-});
-
 // ─── Referral wire format ────────────────────────────────────────────────
 
 const VxpMilestoneStateWireSchema = j.strictObject({
@@ -401,13 +367,6 @@ export interface ApiWireReferral {
 	};
 }
 
-const fromWireMilestone = (state: ApiWireReferral['refereePayout']): VxpMilestoneState => ({
-	status: state.status,
-	amountBaseUnits: state.amountBaseUnits,
-	blockIndex: state.blockIndex,
-	lastError: state.lastError
-});
-
 /**
  * Inverse of {@link toWireReferral}. Frontend callers funnel `listMyReferrals` items
  * through this so the UI consumes camelCase {@link ReferralListItem} values.
@@ -419,28 +378,30 @@ export const fromWireReferral = (referral: ApiWireReferral): ReferralListItem =>
 	code: referral.code,
 	redeemedAtMs: referral.redeemedAtMs,
 	withinReferrerCap: referral.withinReferrerCap,
-	refereePayout: fromWireMilestone(referral.refereePayout),
-	referrerPayout: fromWireMilestone(referral.referrerPayout)
+	refereePayout: referral.refereePayout,
+	referrerPayout: referral.referrerPayout
 });
 
 // ─── Leagues ────────────────────────────────────────────────────
-// Wire schemas use snake_case per the juno codegen constraint on
-// `Vec<NestedStruct>` (see UserProfileWireSchema header). FE callers
-// hit `fromWireLeague` / `fromWireLeagueMember` to project back to
-// the camelCase domain types.
+// Wire schemas are camelCase like every nested result (see the module
+// header). The FE leagues service re-narrows the loose wire unions
+// (league privacy, battle scope) back to the domain types.
 
 export const LeagueWireSchema = j.strictObject({
 	id: j.string(),
 	name: j.string(),
 	description: j.string().optional(),
-	inviteCode: j.string(),
+	// Only the caller's own leagues carry their invite code (`listMyLeagues`,
+	// `createLeague`): it is the one way in, so no other read returns it.
+	inviteCode: j.string().optional(),
 	owner: PrincipalTextSchema,
 	createdAtMs: j.number(),
 	accentColor: j.string().optional(),
 	emblem: j.string().optional(),
-	// Three-way visibility. `toWireLeague` always emits a concrete value
-	// (mapping the legacy `private` boolean: `true` → `invite`, else
-	// `open`), so this default only guards a genuinely absent field.
+	// Two-way visibility. `toWireLeague` always emits a concrete value
+	// (mapping the legacy `private` boolean and the retired `'invite'`
+	// tier to `private`, else `open`), so this default only guards a
+	// genuinely absent field.
 	privacy: j.enum(LeaguePrivacy).default(LeaguePrivacy.OPEN),
 	imageUrl: j.string().optional()
 });
@@ -465,17 +426,22 @@ export const LeagueMemberWireSchema = j.strictObject({
 
 export type WireLeagueMember = j.infer<typeof LeagueMemberWireSchema>;
 
+/**
+ * A league as every read returns it: without its invite code, even when a
+ * doc written before the code moved to `league_invites` still carries it.
+ * {@link toWireMemberLeague} adds it for the caller's own leagues.
+ */
 export const toWireLeague = (league: {
 	id: string;
 	name: string;
 	description?: string;
-	inviteCode: string;
+	inviteCode?: string;
 	owner: string;
 	createdAtMs: number;
 	accentColor?: string;
 	emblem?: string;
 	privacy?: LeaguePrivacy;
-	/** Legacy boolean still carried by rows written before the 3-way
+	/** Legacy boolean still carried by rows written before the typed
 	 *  model; mapped to a concrete `privacy` below so an old private
 	 *  league doesn't serialize as `open`. */
 	private?: boolean;
@@ -484,17 +450,34 @@ export const toWireLeague = (league: {
 	id: league.id,
 	name: league.name,
 	description: league.description,
-	inviteCode: league.inviteCode,
 	owner: league.owner,
 	createdAtMs: league.createdAtMs,
 	accentColor: league.accentColor,
 	emblem: league.emblem,
-	// Emit a concrete privacy on the wire. Legacy rows (no `privacy`) map
-	// from the old boolean: `private === true` (code-gated + hidden from
-	// public lists) → `invite` so it's never leaked as Open; otherwise →
-	// `open` (the old publicly-listed default).
-	privacy: league.privacy ?? (league.private === true ? LeaguePrivacy.INVITE : LeaguePrivacy.OPEN),
+	// Emit a concrete privacy on the wire, coercing legacy at-rest shapes
+	// to the narrowed two-tier enum. Asserts only run on WRITE, so docs
+	// persisted under the retired three-way model are still read here,
+	// and once the Candid variant no longer contains `invite`, emitting it
+	// would fail encoding and break league listing. So:
+	//   - a stored `privacy === 'invite'` (retired invite-only tier; hidden
+	//     from public lists) → `private` so it's never leaked as Open;
+	//   - a legacy `private === true` boolean (code-gated + hidden) →
+	//     `private`;
+	//   - everything else → its stored value, or `open` (the old
+	//     publicly-listed default) when truly absent.
+	// Legacy invite docs thus encode validly as Private and self-heal to
+	// `'private'` on their next write.
+	privacy:
+		(league.privacy as string | undefined) === 'invite'
+			? LeaguePrivacy.PRIVATE
+			: (league.privacy ?? (league.private === true ? LeaguePrivacy.PRIVATE : LeaguePrivacy.OPEN)),
 	imageUrl: league.imageUrl
+});
+
+/** A league the caller belongs to (or just founded), with its invite code to share. */
+export const toWireMemberLeague = (league: Parameters<typeof toWireLeague>[0]): WireLeague => ({
+	...toWireLeague(league),
+	inviteCode: league.inviteCode
 });
 
 export const toWireLeagueWithRole = (entry: {
@@ -503,7 +486,7 @@ export const toWireLeagueWithRole = (entry: {
 	joinedAtMs: number;
 	memberCount: number;
 }): WireLeagueWithRole => ({
-	league: toWireLeague(entry.league),
+	league: toWireMemberLeague(entry.league),
 	role: entry.role,
 	joinedAtMs: entry.joinedAtMs,
 	memberCount: entry.memberCount
@@ -551,7 +534,7 @@ export const BattleWireSchema = j.strictObject({
 	kickoffMs: j.number(),
 	settleMs: j.number(),
 	// Deadline to accept before the proposal lapses to `expired`, and when
-	// the challenged side responded (accept/decline). Both optional —
+	// the challenged side responded (accept/decline). Both optional:
 	// absent on legacy rows and on still-`proposed` battles respectively.
 	respondByMs: j.number().optional(),
 	respondedAtMs: j.number().optional(),
@@ -559,11 +542,11 @@ export const BattleWireSchema = j.strictObject({
 	// without the field, and any future category tag, decode without a
 	// migration. The FE re-narrows via `isBattleScope`.
 	scope: j.string().optional(),
-	wager: j.number().optional(),
+	amount: j.number().optional(),
 	trashTalk: j.string().optional(),
 	scoreA: j.number().optional(),
 	scoreB: j.number().optional(),
-	// Window call counts per side (`Δcalls`) — let the FE tell a real
+	// Window call counts per side (`Δcalls`): let the FE tell a real
 	// draw (tied accuracy) from a void face-off (both sides zero calls).
 	callsA: j.number().optional(),
 	callsB: j.number().optional(),
@@ -585,7 +568,7 @@ export const toWireBattle = (battle: {
 	respondByMs?: number;
 	respondedAtMs?: number;
 	scope?: string;
-	wager?: number;
+	amount?: number;
 	trashTalk?: string;
 	scoreA?: number;
 	scoreB?: number;
@@ -605,7 +588,7 @@ export const toWireBattle = (battle: {
 	respondByMs: battle.respondByMs,
 	respondedAtMs: battle.respondedAtMs,
 	scope: battle.scope,
-	wager: battle.wager,
+	amount: battle.amount,
 	trashTalk: battle.trashTalk,
 	scoreA: battle.scoreA,
 	scoreB: battle.scoreB,
@@ -618,12 +601,12 @@ export const toWireBattle = (battle: {
 // ─── Affiliations ───────────────────────────────────────────────
 
 // Wire shape for both `j.array(...)` (`listWorldsRoster`) and
-// `j.optional(...)` (`listMyAffiliations`) endpoints — camelCase keys
+// `j.optional(...)` (`listMyAffiliations`) endpoints: camelCase keys
 // matching the in-memory `AffiliationDoc`, so optional handlers can
 // return the projected doc directly without a `toWire` step.
 export const AffiliationWireSchema = j.strictObject({
 	member: PrincipalTextSchema,
-	kind: j.enum(['university', 'country']),
+	kind: j.enum(AFFILIATION_KINDS),
 	affiliationIdentifier: j.string(),
 	joinedAtMs: j.number(),
 	lockedUntilMs: j.number()
@@ -633,7 +616,7 @@ export type WireAffiliation = j.infer<typeof AffiliationWireSchema>;
 
 export const toWireAffiliation = (aff: {
 	member: string;
-	kind: 'university' | 'country';
+	kind: AffiliationKind;
 	affiliationIdentifier: string;
 	joinedAtMs: number;
 	lockedUntilMs: number;
@@ -651,7 +634,7 @@ export const toWireAffiliation = (aff: {
 // `j.optional(...)` (`getAffiliationStats`) endpoints.
 export const AffiliationStatsWireSchema = j.strictObject({
 	affiliationIdentifier: j.string(),
-	kind: j.enum(['university', 'country']),
+	kind: j.enum(AFFILIATION_KINDS),
 	totalCalls: j.number(),
 	wins: j.number(),
 	monthAnchor: j.string(),
@@ -664,7 +647,7 @@ export type WireAffiliationStats = j.infer<typeof AffiliationStatsWireSchema>;
 
 export const toWireAffiliationStats = (stats: {
 	affiliationIdentifier: string;
-	kind: 'university' | 'country';
+	kind: AffiliationKind;
 	totalCalls: number;
 	wins: number;
 	monthAnchor: string;
@@ -686,7 +669,7 @@ export const toWireAffiliationStats = (stats: {
 // member-count endpoint.
 export const AffiliationMemberCountWireSchema = j.strictObject({
 	affiliationIdentifier: j.string(),
-	kind: j.enum(['university', 'country']),
+	kind: j.enum(AFFILIATION_KINDS),
 	memberCount: j.number()
 });
 
@@ -694,7 +677,7 @@ export type WireAffiliationMemberCount = j.infer<typeof AffiliationMemberCountWi
 
 export const toWireAffiliationMemberCount = (count: {
 	affiliationIdentifier: string;
-	kind: 'university' | 'country';
+	kind: AffiliationKind;
 	memberCount: number;
 }): WireAffiliationMemberCount => ({
 	affiliationIdentifier: count.affiliationIdentifier,
@@ -810,8 +793,8 @@ export const toWireTournamentMatch = (doc: {
 // `getMonthlyLeaderboard` returns a result with two arrays:
 // `items` (sharpest-eye podium, IDL field `items`) and `boldCallers`
 // (bold-caller winners, IDL field `bold_callers`). Both contain
-// `Vec<NestedStruct>` values, so both need snake_case wire schemas per
-// the `Vec<NestedStruct>` quirk above.
+// `Vec<NestedStruct>` values, carried in camelCase like every nested
+// result (see the module header).
 
 export const MonthlyLeaderboardEntryWireSchema = j.strictObject({
 	owner: PrincipalTextSchema,

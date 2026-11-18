@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { userPermissions } from '$lib/derived/user.derived';
-	import type { Permission } from '$lib/enums/permission';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { userPermissions } from '#lib/derived/user.derived.ts';
+	import type { Permission } from '#lib/enums/permission.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		children: Snippet;

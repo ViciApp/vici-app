@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { DAY_IN_MS } from '$lib/constants/app.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
+	import { DAY_IN_MS, HOUR_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		market: Market;
@@ -14,19 +14,19 @@
 
 	const title = $derived(displayTitle ?? market.title);
 
-	// Live countdown — minute-tick interval. Only runs while this back
+	// Live countdown: minute-tick interval. Only runs while this back
 	// panel is mounted (Svelte cleans up the timer on destroy). 60 s is
 	// fine: the label tier doesn't shift faster than a minute.
 	let nowTick = $state(Date.now());
 	$effect(() => {
 		const id = setInterval(() => {
 			nowTick = Date.now();
-		}, 60_000);
+		}, MINUTE_IN_MS);
 
 		return () => clearInterval(id);
 	});
 
-	// Long-form settlement date — "July 19, 2026", locale-aware via
+	// Long-form settlement date: "July 19, 2026", locale-aware via
 	// `toLocaleDateString({ month: 'long', day: 'numeric', year:
 	// 'numeric' })`. Replaces the default short `MM/DD/YYYY` format
 	// so the meta row reads as editorial copy rather than a stamp.
@@ -38,11 +38,9 @@
 		})
 	);
 
-	// Computed *live* countdown — recomputes on each minute tick.
-	// `getTimeRemaining` already produces "Xd Yh remaining" / "Xh Ym
-	// remaining" / "Xm remaining" / "Expired"; we strip the trailing
-	// noun and swap to the shorter "Nd left" / "Nh left" / "Nm left"
-	// form for the compact meta row.
+	// Computed *live* countdown: recomputes on each minute tick, in the
+	// short "Nd left" / "Nh left" / "Nm left" form the compact meta row
+	// has room for.
 	const liveCountdown = $derived.by(() => {
 		nowTick; // touch so the derived re-runs on tick
 		const ms = Number(market.expiryDate) - Date.now();
@@ -52,8 +50,8 @@
 		}
 
 		const days = Math.floor(ms / DAY_IN_MS);
-		const hours = Math.floor((ms % DAY_IN_MS) / 3_600_000);
-		const mins = Math.floor((ms % 3_600_000) / 60_000);
+		const hours = Math.floor((ms % DAY_IN_MS) / HOUR_IN_MS);
+		const mins = Math.floor((ms % HOUR_IN_MS) / MINUTE_IN_MS);
 
 		if (days >= 1) {
 			return t({
@@ -84,7 +82,7 @@
 		return ms > 0 && ms <= DAY_IN_MS;
 	});
 
-	// When the market carries outcome data we surface the real headcount —
+	// When the market carries outcome data we surface the real headcount:
 	// including a genuine 0 ("0 predicting"). Only when no outcome data is
 	// present at all do we fall back to a representative figure, so the
 	// meta row still reads as a complete editorial line.
@@ -133,7 +131,7 @@
 	}
 
 	/* Single editorial meta line: `Settles {date} · {countdown} ·
-	   {N} predicting` — settlement, countdown, and headcount share one
+	   {N} predicting`: settlement, countdown, and headcount share one
 	   dot-separated row rather than splitting onto separate lines. */
 	.flow-back-meta {
 		display: inline-flex;
@@ -150,7 +148,7 @@
 		opacity: 0.5;
 	}
 	/* The countdown segment is the live, decision-relevant figure, so it
-	   reads at full foreground brightness against the muted meta row —
+	   reads at full foreground brightness against the muted meta row,
 	   and shifts to terracotta when the market is inside its final day. */
 	.flow-back-countdown {
 		color: var(--text-base);

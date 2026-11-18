@@ -1,9 +1,11 @@
-import { Collection } from '$lib/constants/collections.constants';
-import { normalizeMarketTags } from '$lib/constants/market-tags.constants';
-import type { MarketMetadata, MarketMetadataInput } from '$lib/types/market-metadata';
-import { isAdmin, isCreatorOrAdmin } from '$satellite/services/_authz';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { normalizeStoredTags } from '#lib/constants/market-taxonomy.constants.ts';
+import type { MarketMetadata, MarketMetadataInput } from '#lib/types/market-metadata.ts';
+import { controllerCaller, isAdmin, isCreatorOrAdmin } from '#satellite/services/authz.services.ts';
+import { updateMarketTagIndex } from '#satellite/services/market-tag-index.services.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish } from '@dfinity/utils';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
 
 const callerText = (): string => msgCaller().toText();
@@ -59,10 +61,10 @@ export const upsertMarketMetadata = async ({
 		seriesId,
 		whyNow: data.whyNow,
 		events: data.events ?? [],
-		tags: normalizeMarketTags(data.tags ?? []),
+		tags: normalizeStoredTags(data.tags ?? []),
 		suggested,
 		subtitle: data.subtitle,
-		updatedAt: Number(time() / 1_000_000n),
+		updatedAt: timeMs(),
 		updatedBy: callerText()
 	};
 
@@ -73,7 +75,19 @@ export const upsertMarketMetadata = async ({
 			version: current?.version,
 			data: encodeDocData(metadata)
 		},
-		caller
+		// Only a controller may write the collection (see `assertControllerWrite`): the
+		// creator-or-admin gate above is what authorises the caller.
+		caller: controllerCaller('market metadata upsert')
+	});
+
+	// Keep the reverse index in sync inline: Juno hooks don't fire on
+	// serverless `setDocStore`, so this is the only place a metadata write can
+	// update it. The index maintains a bucket per micro AND per derived macro;
+	// it re-derives those bucket keys from each tag set itself.
+	updateMarketTagIndex({
+		seriesId,
+		oldTags: currentData?.tags ?? [],
+		newTags: metadata.tags
 	});
 
 	return metadata;

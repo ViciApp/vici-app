@@ -1,26 +1,22 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { USD_DECIMALS } from '$lib/constants/app.constants';
-	import {
-		isMarketTag,
-		MARKET_TAG_LABEL_KEYS,
-		primaryMarketTag,
-		type MarketTag
-	} from '$lib/constants/market-tags.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import type { Position } from '$lib/types/position';
-	import { decimalFixedValueToNumber } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
+	import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
+	import { isMacroId, primaryMacro } from '#lib/constants/market-taxonomy.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import type { Position } from '#lib/types/position.ts';
+	import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	/**
 	 * Portfolio · Allocation
 	 *
-	 * Groups the user's open VXP positions by primary market tag, sums
+	 * Groups the user's open VXP positions by primary macro category, sums
 	 * `lockedCollateral` per bucket, and renders the top 5 + "Other"
-	 * as horizontal progress bars tinted with the per-tag accent.
+	 * as horizontal progress bars tinted with the per-category accent.
 	 *
 	 * The caller hides this card when the user has no open VXP positions;
 	 * this component does not render anything in that case either, so it
@@ -29,14 +25,14 @@
 	interface Props {
 		positions: Position[];
 		markets: Market[];
-		marketTags: Record<string, readonly MarketTag[]>;
+		marketTags: Record<string, readonly string[]>;
 	}
 
 	const TOP_N = 5;
 
 	// Neutral colour for the synthetic "Other" bucket so it never collides
-	// with a real tag accent (notably `wc` and the `tagColor` default both
-	// resolve to `#E2B842`).
+	// with a real category accent (the `tagColor` default resolves to the same
+	// laurel-gold as some macros).
 	const OTHER_COLOR = 'var(--text-muted)';
 
 	const { positions, markets, marketTags }: Props = $props();
@@ -57,7 +53,7 @@
 				});
 
 				if (cost > 0) {
-					const tag = primaryMarketTag(marketTags[pos.marketId]) ?? 'other';
+					const tag = primaryMacro(marketTags[pos.marketId] ?? []) ?? 'other';
 
 					byTag[tag] = (byTag[tag] ?? 0) + cost;
 					total += cost;
@@ -93,8 +89,8 @@
 	});
 
 	const tagLabel = (tag: string): string => {
-		if (isMarketTag(tag)) {
-			return t({ locale: $localeStore, key: MARKET_TAG_LABEL_KEYS[tag] });
+		if (isMacroId(tag)) {
+			return categoryLabel({ category: tag, variant: 'full', locale: $localeStore });
 		}
 
 		return t({ locale: $localeStore, key: 'portfolio.allocation.other' });

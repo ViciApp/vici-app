@@ -14,7 +14,7 @@ import type { PrincipalText } from '@junobuild/schema';
 export type StandingsWindow = 'week' | 'month' | 'all';
 
 /**
- * One principal's standing within a window — an aggregate, never a per-call
+ * One principal's standing within a window: an aggregate, never a per-call
  * breakdown.
  */
 export interface StandingEntry {

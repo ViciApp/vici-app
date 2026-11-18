@@ -1,27 +1,34 @@
-import { LeaguePrivacy } from '$lib/enums/league';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
 import { nonNullish } from '@dfinity/utils';
 
 /**
- * Social cohorts — leagues.
+ * Social cohorts: leagues.
  *
  * A league is a user-created cohort with a 6-char alphanumeric invite
  * code that the owner shares to bring members in. Members and battles
  * live in follow-up collections (`league_members`, `battles`) so the
  * league metadata stays cheap to list without joining membership.
  *
- * Doc key for `leagues` is the league id — a slug-style identifier
+ * Doc key for `leagues` is the league id; a slug-style identifier
  * picked by the owner at creation. Drift between key and the embedded
  * `id` field is rejected by the assert.
  */
 export interface LeagueDoc {
-	/** Stable slug identifier — matches the doc key. */
+	/** Stable slug identifier: matches the doc key. */
 	id: string;
-	/** Display name (3–40 chars, free-form). */
+	/** Display name, free-form within `LEAGUE_NAME_MIN_LENGTH`–`LEAGUE_NAME_MAX_LENGTH`. */
 	name: string;
 	/** Optional short editorial blurb shown on the league detail page. */
 	description?: string;
-	/** 6-char `[A-Z0-9]` invite code; the join-by-code flow looks the league up by this. */
-	inviteCode: string;
+	/**
+	 * 6-char `[A-Z0-9]` invite code, the only way into the league. Never
+	 * stored on the public `leagues` doc: it lives in the controllers-only
+	 * `league_invites` collection ({@link LeagueInviteDoc}), and only the
+	 * league's own members receive it (`listMyLeagues`). A doc written before
+	 * that move still carries it here until `migrateLeagueInviteCodes` takes
+	 * it off.
+	 */
+	inviteCode?: string;
 	/** Owning principal (text form). Immutable after creation. */
 	owner: string;
 	/** Creation timestamp in ms since epoch. Immutable. */
@@ -33,27 +40,28 @@ export interface LeagueDoc {
 	 * at creation. Rendered inside the gradient logo tile everywhere the
 	 * league surfaces. Chosen once at creation and frozen alongside the
 	 * identity fields. Absent on legacy rows written before the picker
-	 * shipped — callers fall back to {@link leagueEmblem}.
+	 * shipped: callers fall back to {@link leagueEmblem}.
 	 */
 	emblem?: string;
 	/**
-	 * Three-way visibility, set at creation and owner-mutable thereafter
+	 * Two-way visibility, set at creation and owner-mutable thereafter
 	 * (the owner can tighten or loosen a league's visibility; see the
 	 * assert and `updateLeague`):
 	 *
-	 * - {@link LeaguePrivacy.PRIVATE} — hidden; reachable only by invite
-	 *   code, never surfaced in any public list or recommendation.
-	 * - {@link LeaguePrivacy.INVITE} — NOT publicly listed; still
-	 *   recommendable to a member's friends. Reachable by invite code.
-	 * - {@link LeaguePrivacy.OPEN} — publicly listed; surfaced in challenge
-	 *   pools and friend recommendations to anyone. Still joined by invite
-	 *   code (privacy gates discovery, not the join).
+	 * - {@link LeaguePrivacy.PRIVATE}: hidden; reachable only by invite
+	 *   code, never surfaced in any public list, recommendation, or
+	 *   challenge pool.
+	 * - {@link LeaguePrivacy.OPEN}: discoverable; surfaced in challenge
+	 *   pools, recommendations, and public lists to anyone. Still joined by
+	 *   invite code (privacy gates discovery, not the join).
 	 *
-	 * Absent on legacy rows written before this field shipped — callers
+	 * Absent on legacy rows written before this field shipped; callers
 	 * treat absent as {@link LeaguePrivacy.OPEN} (the legacy
 	 * `private === false/undefined` default). The legacy boolean's
-	 * `private === true` maps to {@link LeaguePrivacy.INVITE} (it carried
-	 * an invite code and was hidden from public lists).
+	 * `private === true`, and any row persisted under the retired
+	 * invite-only tier, both resolve to {@link LeaguePrivacy.PRIVATE} (they
+	 * were hidden from public lists), so a hidden league is never leaked as
+	 * Open.
 	 */
 	privacy?: LeaguePrivacy;
 	/**
@@ -61,7 +69,7 @@ export interface LeagueDoc {
 	 * Juno Storage (the {@link LEAGUE_IMAGES_COLLECTION} collection). When
 	 * set, every league surface renders this image (cover-fit) in place of
 	 * the {@link leagueEmblem} glyph; clearing it falls back to the emblem.
-	 * Only the URL reference lives on the doc — the bytes live in Storage,
+	 * Only the URL reference lives on the doc; the bytes live in Storage,
 	 * never a base64 data URL. Unlike the emblem, the owner can set, change,
 	 * or clear this after creation.
 	 */
@@ -75,6 +83,42 @@ export interface LeagueDoc {
  * `Collection` enum in `collections.constants.ts`.
  */
 export const LEAGUE_IMAGES_COLLECTION = 'league_images';
+
+/**
+ * The one media type a league cover is stored as: the upload downscales
+ * every picked image to a JPEG, and the satellite refuses any other type
+ * (an HTML or SVG asset would be served from the app's own origin).
+ */
+export const LEAGUE_IMAGE_CONTENT_TYPE = 'image/jpeg';
+
+const LEAGUE_IMAGE_EXTENSION = 'jpg';
+
+/**
+ * The asset name of a league cover: `<leagueId>-<uploadedAtMs>.jpg`, so a
+ * re-upload never collides with the cover it replaces.
+ */
+export const leagueImageFileName = ({
+	leagueId,
+	uploadedAtMs
+}: {
+	leagueId: string;
+	uploadedAtMs: number;
+}): string => `${leagueId}-${uploadedAtMs}.${LEAGUE_IMAGE_EXTENSION}`;
+
+/** The Storage full path of a league cover named by {@link leagueImageFileName}. */
+export const leagueImageFullPath = (params: { leagueId: string; uploadedAtMs: number }): string =>
+	`/${LEAGUE_IMAGES_COLLECTION}/${leagueImageFileName(params)}`;
+
+const LEAGUE_IMAGE_FULL_PATH_REGEX = new RegExp(
+	`^/${LEAGUE_IMAGES_COLLECTION}/(.+)-\\d+\\.${LEAGUE_IMAGE_EXTENSION}$`
+);
+
+/**
+ * The league a cover's Storage full path names, or `undefined` when the
+ * path is not one {@link leagueImageFullPath} builds.
+ */
+export const leagueIdFromImageFullPath = (fullPath: string): string | undefined =>
+	LEAGUE_IMAGE_FULL_PATH_REGEX.exec(fullPath)?.[1];
 
 /**
  * Edge length (px) of the square league cover we downscale to before
@@ -93,6 +137,12 @@ export const LEAGUE_EMBLEMS = ['⚔', '☼', '✦', '✧', '◎', '⌬', '⊿', 
 
 /** Default emblem when the owner doesn't change the selection. */
 export const [LEAGUE_EMBLEM_DEFAULT] = LEAGUE_EMBLEMS;
+
+/**
+ * Accent for a league with no stored `accentColor`. A hex literal, not a CSS
+ * variable: the tile gradients append an alpha suffix to it.
+ */
+export const LEAGUE_ACCENT_FALLBACK = '#7e9b6a';
 
 /**
  * Resolve the glyph to render for a league. Prefers the stored
@@ -115,14 +165,34 @@ export const leagueEmblem = (league: Pick<LeagueDoc, 'emblem' | 'name'>): string
 };
 
 /**
- * Invite-code shape. Six uppercase alphanumeric characters — the join
+ * Invite-code shape. Six uppercase alphanumeric characters: the join
  * flow expects exactly this pattern, so the assert enforces it on every
  * write.
  */
 export const LEAGUE_INVITE_CODE_REGEX = /^[A-Z0-9]{6}$/;
 
 /**
- * Sample invite code shown as a format affordance — the join sheet's
+ * A league's invite code in the controllers-only `league_invites`
+ * collection, keyed by the league id. The code is also the Juno doc's
+ * description, which a join matches on to find the league.
+ */
+export interface LeagueInviteDoc {
+	leagueId: string;
+	inviteCode: string;
+}
+
+/** Why `createLeague` refused: another league already holds the invite code. */
+export const CREATE_LEAGUE_REFUSAL_REASONS = ['invite_code_taken'] as const;
+
+export type CreateLeagueRefusalReason = (typeof CREATE_LEAGUE_REFUSAL_REASONS)[number];
+
+/** Why `joinLeagueByInvite` refused: no league holds the code, or the caller is already in it. */
+export const JOIN_LEAGUE_REFUSAL_REASONS = ['not_found', 'already_member'] as const;
+
+export type JoinLeagueRefusalReason = (typeof JOIN_LEAGUE_REFUSAL_REASONS)[number];
+
+/**
+ * Sample invite code shown as a format affordance; the join sheet's
  * helper line and the field placeholder both render this so the
  * expected shape (6 uppercase alphanumerics) reads at a glance. Kept as
  * a single constant so the two spots can never drift apart, and shaped
@@ -131,20 +201,20 @@ export const LEAGUE_INVITE_CODE_REGEX = /^[A-Z0-9]{6}$/;
 export const LEAGUE_INVITE_CODE_EXAMPLE = 'ABC123';
 
 /**
- * Display-name length window — 3 chars keeps single-letter junk out,
+ * Display-name length window: 3 chars keeps single-letter junk out,
  * 40 keeps the chip readable on a phone screen.
  */
 export const LEAGUE_NAME_MIN_LENGTH = 3;
 export const LEAGUE_NAME_MAX_LENGTH = 40;
 
 /**
- * Description length cap — 240 chars covers a Twitter-style blurb
+ * Description length cap: 240 chars covers a Twitter-style blurb
  * without bloating the league list payload.
  */
 export const LEAGUE_DESCRIPTION_MAX_LENGTH = 240;
 
 /**
- * Fallback privacy for legacy rows that predate the `privacy` field —
+ * Fallback privacy for legacy rows that predate the `privacy` field;
  * NOT the default applied to newly created leagues (that default lives
  * on the create surface and the `createLeague` service, which both pick
  * {@link LeaguePrivacy.OPEN}). A legacy row with no stored value reads
@@ -156,40 +226,46 @@ export const LEAGUE_PRIVACY_LEGACY_FALLBACK = LeaguePrivacy.OPEN;
 /**
  * A league shape readable for its effective privacy: the current
  * `privacy` field, plus the optional legacy `private` boolean still
- * carried by rows written before the 3-way model.
+ * carried by rows written before the typed model.
  */
 type LeaguePrivacyReadable = Pick<LeagueDoc, 'privacy'> & { private?: boolean };
 
 /**
  * Resolve a league's effective privacy. Single source of truth for every
- * visibility / recommendation decision. Legacy rows (no `privacy`) map
- * from the old boolean: `private === true` carried an invite code + was
- * hidden from public lists → {@link LeaguePrivacy.INVITE} (so a legacy
- * private league is NEVER leaked as Open); otherwise →
+ * visibility / recommendation decision.
+ *
+ * Normalizes the retired invite-only tier: a stored `privacy === 'invite'`
+ * (persisted under the old three-way model) collapses to
+ * {@link LeaguePrivacy.PRIVATE}: it was hidden from public lists, so it
+ * must never leak as Open, and the value is no longer a member of the
+ * narrowed enum / Candid variant.
+ *
+ * Legacy rows with no `privacy` map from the old boolean: `private === true`
+ * carried an invite code + was hidden from public lists →
+ * {@link LeaguePrivacy.PRIVATE}; otherwise →
  * {@link LEAGUE_PRIVACY_LEGACY_FALLBACK} (Open, the old public default).
  */
 export const leaguePrivacy = (league: LeaguePrivacyReadable): LeaguePrivacy => {
 	if (nonNullish(league.privacy)) {
-		return league.privacy;
+		return (league.privacy as string) === 'invite' ? LeaguePrivacy.PRIVATE : league.privacy;
 	}
 
-	return league.private === true ? LeaguePrivacy.INVITE : LEAGUE_PRIVACY_LEGACY_FALLBACK;
+	return league.private === true ? LeaguePrivacy.PRIVATE : LEAGUE_PRIVACY_LEGACY_FALLBACK;
 };
 
 /**
  * Whether a league appears in public, non-member-scoped lists (challenge
  * pools, the open directory). Only {@link LeaguePrivacy.OPEN} leagues are
- * publicly listed; invite-only and private leagues are reachable by code
- * only.
+ * publicly listed; {@link LeaguePrivacy.PRIVATE} leagues are reachable by
+ * code only.
  */
 export const isLeaguePubliclyListed = (league: LeaguePrivacyReadable): boolean =>
 	leaguePrivacy(league) === LeaguePrivacy.OPEN;
 
 /**
  * Whether a league may be surfaced to a member's friends in the
- * friend-recommendations row. Both {@link LeaguePrivacy.OPEN} and
- * {@link LeaguePrivacy.INVITE} leagues qualify (invite-only is a code
- * gate, not secrecy); {@link LeaguePrivacy.PRIVATE} is never recommended.
+ * friend-recommendations row. Only {@link LeaguePrivacy.OPEN} leagues
+ * qualify; {@link LeaguePrivacy.PRIVATE} (hidden) is never recommended.
  */
 export const isLeagueRecommendableToFriends = (league: LeaguePrivacyReadable): boolean =>
-	leaguePrivacy(league) !== LeaguePrivacy.PRIVATE;
+	leaguePrivacy(league) === LeaguePrivacy.OPEN;

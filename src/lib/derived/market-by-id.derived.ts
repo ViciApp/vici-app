@@ -1,5 +1,5 @@
-import { markets } from '$lib/derived/markets.derived';
-import type { Market, MarketId } from '$lib/types/market';
+import { markets } from '#lib/derived/markets.derived.ts';
+import type { Market, MarketId } from '#lib/types/market.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**

@@ -9,8 +9,8 @@ Status: Implemented (#893)
 
 A member sees **one** rank for themselves in a given league, no matter
 where it is shown. Today the same user in the same league reads as three
-different positions on screen at once — `#2` on the leagues card, `#1` in
-the detail-page hero, and row `03` in that page's own leaderboard list —
+different positions on screen at once: `#2` on the leagues card, `#1` in
+the detail-page hero, and row `03` in that page's own leaderboard list,
 because each surface ranks by a different metric. After this change all
 three derive from a single accuracy-first ranking, so the hero badge
 matches the list directly beneath it and the card matches both.
@@ -20,12 +20,12 @@ matches the list directly beneath it and the card matches both.
 Three surfaces each compute the caller's rank independently, from three
 different sort keys:
 
-- **Leagues card** — [`LeaguesPage.svelte:188`](../../../src/lib/components/pages/LeaguesPage.svelte)
+- **Leagues card**: [`LeaguesPage.svelte:188`](../../../src/lib/components/pages/LeaguesPage.svelte)
   (`yourRankFor`) ranks by **roster join order**:
   `row.members.indexOf(selfPrincipal) + 1`. Rendered by
   [`LeagueListCard.svelte`](../../../src/lib/components/leagues/LeagueListCard.svelte)
   as `#{rank} of {memberCount}`.
-- **Detail hero** — [`LeagueDetailPage.svelte:414`](../../../src/lib/components/pages/LeagueDetailPage.svelte)
+- **Detail hero**: [`LeagueDetailPage.svelte:414`](../../../src/lib/components/pages/LeagueDetailPage.svelte)
   (`yourRank`) prefers `standingRank`, the **net realized P&L** rank from
   the clearing canister's `list_leaderboard`
   ([`standings.services.ts:117`](../../../src/lib/services/standings.services.ts),
@@ -33,25 +33,25 @@ different sort keys:
   active week/all tab; it falls back to the accuracy index only while that
   load is pending. Rendered at `LeagueDetailPage.svelte:1011` (corner
   badge) and `:1066` (`#{yourRank}` in the rank block).
-- **Detail leaderboard list** — [`LeagueDetailPage.svelte:570`](../../../src/lib/components/pages/LeagueDetailPage.svelte)
+- **Detail leaderboard list**: [`LeagueDetailPage.svelte:570`](../../../src/lib/components/pages/LeagueDetailPage.svelte)
   (`sortedMembers`) ranks by **prediction accuracy** (desc), tie-broken on
   `dailyStreak` (desc) then `joinedAtMs` (asc). Accuracy and streak come
   from the shared profile cache
   ([`profilesStore`](../../../src/lib/stores/profiles.store.ts);
   `memberAccuracy`/`memberStreak` at `:553`–`:557`). Rows render at `:1192`,
   the sticky "YOU" row (when the caller is outside the visible top-6) at
-  `:1239` — and the sticky row prints `yourRank` (the P&L number), so it can
+  `:1239`, and the sticky row prints `yourRank` (the P&L number), so it can
   disagree with where the same user would sort in the list it sits under.
 
 The chosen canonical metric is **accuracy-first**, matching what the
 leaderboard list already visibly shows and what the _global_ leaderboard
-already does — [`LeaderboardPage.svelte:50`](../../../src/lib/components/pages/LeaderboardPage.svelte)
+already does: [`LeaderboardPage.svelte:50`](../../../src/lib/components/pages/LeaderboardPage.svelte)
 notes `globalStandingsRows` re-ranks the clearing P&L slice by accuracy
 before display. This makes the league surfaces window-independent (the
 profile-cache accuracy is a single lifetime figure, identical on the week
 and all-time tabs).
 
-**Point of truth — the prototype.** The VICI design prototype
+**Point of truth: the prototype.** The VICI design prototype
 (`../VICI-1.7-Engineering-Handover`, identical across V1.4→V1.7) ranks
 league members **exclusively by prediction accuracy**: `data.js` orders
 each league's `members` by descending `acc`, and both the hero
@@ -63,23 +63,23 @@ is the source of the inconsistency. Two adjacent elements that look
 metric-bound are, in the prototype, **purely decorative** and must be kept
 as-is:
 
-- **Trend arrow** (`screens.jsx:6051`): `const trend = (seedFromId(league.id) % 7) - 3;`
-  — seeded noise rendered as "▲ N this week" / "— even". Never tied to any
+- **Trend arrow** (`screens.jsx:6051`): `const trend = (seedFromId(league.id) % 7) - 3;`:
+  seeded noise rendered as "▲ N this week" / "· even". Never tied to any
   metric. Production wired it to the real weekly-P&L `rankDelta`; that
   weekly-momentum flourish is retained (it is _not_ claimed to be
   accuracy-rank movement).
 - **THIS WEEK / ALL TIME tabs** (`screens.jsx:6109`): the prototype renders
-  `members.slice(0, 6)` identically for both tabs — switching tabs changes
+  `members.slice(0, 6)` identically for both tabs: switching tabs changes
   nothing. They are decorative and are kept.
 
-No shared league-ranking helper exists today — both `sortedMembers` and
+No shared league-ranking helper exists today: both `sortedMembers` and
 `yourRankFor` are inline. There is an `accuracy.utils.ts` and an
 `affiliation-stats.utils.ts` under
 [`src/lib/utils/`](../../../src/lib/utils/) but no `league-*` util yet.
 `LeagueMemberDoc` is defined in
 [`league-member.ts`](../../../src/lib/types/league-member.ts).
 
-`getLeagueStandings` stays in the service regardless — it is still used by
+`getLeagueStandings` stays in the service regardless: it is still used by
 [`ArenaStandingHero.svelte:314`](../../../src/lib/components/arena/ArenaStandingHero.svelte).
 
 ## Scope
@@ -109,26 +109,26 @@ No shared league-ranking helper exists today — both `sortedMembers` and
    the `standingRank` state + `$effect` (`LeagueDetailPage.svelte:336`,
    `:346`–`:365`) become dead (nothing reads the value) and are removed.
 
-**Explicitly unchanged** (prototype-faithful — see _Decisions_):
+**Explicitly unchanged** (prototype-faithful, see _Decisions_):
 
 - The **trend arrow** (`standingTrend` on the hero `:1074`, `leagueTrends`
-  on the card `:206`) stays exactly as-is — the prototype's arrow is
+  on the card `:206`) stays exactly as-is: the prototype's arrow is
   decorative, so production's weekly-P&L momentum flourish is fine beside
   an accuracy rank. `getLeagueStandings` and `findOwnStanding` therefore
   stay imported (still used by the trend effect + `ArenaStandingHero`).
-- The **THIS WEEK / ALL TIME tabs** stay — decorative in the prototype, and
+- The **THIS WEEK / ALL TIME tabs** stay: decorative in the prototype, and
   retained here.
 
 ### Out of scope
 
-- The **global** leaderboard / dashboard rank tiles — they already re-rank
+- The **global** leaderboard / dashboard rank tiles: they already re-rank
   by accuracy for display; the P&L-vs-accuracy split on the Dash tile is a
   separately tracked known inconsistency (documented in
   `standings.services.ts:142`) and is not touched here.
 - Moving accuracy ranking into the clearing canister (would make a
   windowed, authoritative accuracy rank possible; flagged in
   `standings.services.ts` as future work).
-- Making the trend arrow or the week/all tabs metric-accurate — both are
+- Making the trend arrow or the week/all tabs metric-accurate: both are
   decorative in the prototype and stay that way.
 
 ## Linked issues
@@ -141,7 +141,7 @@ explicitly out of scope. No closing keyword.
 ## Analytics
 
 No new analytics. This is a correctness/consistency bugfix to how an
-existing, already-rendered number is computed — it adds no new surface,
+existing, already-rendered number is computed: it adds no new surface,
 flow, or user action to instrument, and emits no behavioural signal that
 isn't already covered. Existing league events (`league_invite_sent`, etc.)
 are untouched.
@@ -184,20 +184,20 @@ are untouched.
 - [ ] A member with no settled predictions (0% accuracy) sorts to the foot
       rather than riding join order or role to the top.
 - [ ] `rankLeagueMembers` / `leagueRankOf` are the only definition of
-      league rank — no surface re-implements the comparator.
+      league rank: no surface re-implements the comparator.
 - [ ] `npm run quality` and `npm run check` pass.
 
 ## Decisions
 
 All resolved against the design prototype (the point of truth) and the
-product owner — none outstanding.
+product owner: none outstanding.
 
 - **Canonical metric: accuracy-first** (accuracy desc → streak desc →
   join order asc), window-independent. Confirmed by the prototype, which
   ranks league members exclusively by `acc` across V1.4→V1.7, and by the
   product owner. Chosen over net-P&L (clearing) and join order because it
   is what the design specifies, what the leaderboard list already displays,
-  and what the global leaderboard already ranks by — the smallest change
+  and what the global leaderboard already ranks by: the smallest change
   that makes the three numbers agree. (Streak as the first tie-breaker is a
   production refinement; the prototype's seeded data never ties.)
 - **Card badge: hydrate & rank.** `LeaguesPage` hydrates its leagues'

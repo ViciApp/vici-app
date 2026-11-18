@@ -1,36 +1,57 @@
-import { Collection } from '$lib/constants/collections.constants';
+import { Collection } from '#lib/constants/collections.constants.ts';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
 import {
 	AnalyticsSummarySchema,
+	AnalyticsUserStatsSchema,
+	DeleteAnalyticsEventsArgsSchema,
+	DeleteAnalyticsEventsResultSchema,
 	GetAnalyticsEventsArgsSchema,
 	GetAnalyticsEventsResultSchema,
+	GetAnalyticsProfileCreatedArgsSchema,
+	GetAnalyticsProfileCreatedResultSchema,
 	GetAnalyticsSummaryArgsSchema,
 	TrackEventsArgsSchema,
 	TrackEventsResultSchema
-} from '$lib/schema/analytics-event.schema';
+} from '#lib/schema/analytics-event.schema.ts';
+import {
+	GetAuthIdentitiesArgsSchema,
+	GetAuthIdentitiesResultSchema
+} from '#lib/schema/auth-identity.schema.ts';
 import {
 	GetMarketMetadataArgsSchema,
+	GetMarketTagsResultSchema,
 	MarketMetadataSchema,
 	UpsertMarketMetadataArgsSchema
-} from '$lib/schema/market-metadata.schema';
+} from '#lib/schema/market-metadata.schema.ts';
 import {
 	GetMarketTranslationArgsSchema,
 	ListMarketTranslationsArgsSchema,
 	ListMarketTranslationsForLocalesArgsSchema,
 	MarketTranslationSchema,
 	UpsertMarketTranslationArgsSchema
-} from '$lib/schema/market-translation.schema';
-import { UserProfileSchema } from '$lib/schema/profile.schema';
+} from '#lib/schema/market-translation.schema.ts';
+import { UserProfileSchema } from '#lib/schema/profile.schema.ts';
 import {
 	ClaimReferralFriendshipArgsSchema,
 	LookupReferralCodeArgsSchema,
 	RedeemReferralCodeArgsSchema,
 	SettleReferralArgsSchema
-} from '$lib/schema/referral.schema';
-import { CheckFriendshipArgsSchema, FriendRequestOutcomeSchema } from '$lib/schema/relation.schema';
+} from '#lib/schema/referral.schema.ts';
+import {
+	CheckFriendshipArgsSchema,
+	FriendRequestOutcomeSchema
+} from '#lib/schema/relation.schema.ts';
 import {
 	ListFriendResolvedResultsArgsSchema,
 	ResolvedResultSchema
-} from '$lib/schema/resolved-result.schema';
+} from '#lib/schema/resolved-result.schema.ts';
+import { AFFILIATION_KINDS } from '#lib/types/affiliation.ts';
+import {
+	CREATE_LEAGUE_REFUSAL_REASONS,
+	JOIN_LEAGUE_REFUSAL_REASONS,
+	LEAGUE_IMAGES_COLLECTION
+} from '#lib/types/league.ts';
+import { TOURNAMENT_DRAW_REFUSAL_REASONS } from '#lib/types/tournament.ts';
 import {
 	deleteMyAccountFn,
 	hibernateMyAccountFn,
@@ -38,28 +59,40 @@ import {
 	recoverMyAccountFn,
 	resumeMyAccountFn,
 	sweepExpiredDeletionsFn
-} from '$satellite/services/account.services';
+} from '#satellite/services/account.services.ts';
 import {
 	onActivityReactionDelete,
 	onActivityReactionSet,
 	recomputeActivityReactionCountsFn
-} from '$satellite/services/activity-reaction-count.services';
-import { assertSetActivityReaction } from '$satellite/services/activity-reaction.services';
-import { assertSetActivity } from '$satellite/services/activity.services';
+} from '#satellite/services/activity-reaction-count.services.ts';
 import {
-	assertSetAffiliationStats,
-	onProfileSetForAffiliationStats
-} from '$satellite/services/affiliation-stats.services';
+	assertDeleteActivityReaction,
+	assertSetActivityReaction
+} from '#satellite/services/activity-reaction.services.ts';
+import { assertDeleteActivity, assertSetActivity } from '#satellite/services/activity.services.ts';
+import { assertSetAffiliationStats } from '#satellite/services/affiliation-stats.services.ts';
 import {
 	assertDeleteAffiliation,
-	assertSetAffiliation
-} from '$satellite/services/affiliation.services';
+	assertSetAffiliation,
+	onAffiliationDeleteForAnalytics,
+	onAffiliationSetForAnalytics
+} from '#satellite/services/affiliation.services.ts';
 import {
+	deleteAnalyticsEventsFn,
 	getAnalyticsEventsFn,
+	getAnalyticsProfileCreatedFn,
 	getAnalyticsSummaryFn,
+	getAnalyticsUserStatsFn,
+	onVxpAwardSetForAnalytics,
 	trackEventsFn
-} from '$satellite/services/analytics.services';
-import { assertDeleteBattle, assertSetBattle } from '$satellite/services/battle.services';
+} from '#satellite/services/analytics.services.ts';
+import { getAuthIdentitiesFn } from '#satellite/services/auth-identity-export.services.ts';
+import { assertControllerWrite } from '#satellite/services/authz.services.ts';
+import {
+	readBattleLiveScoreFn,
+	resolveBattleFromSettlementsFn
+} from '#satellite/services/battle-resolution.services.ts';
+import { assertDeleteBattle, assertSetBattle } from '#satellite/services/battle.services.ts';
 import {
 	getAffiliationStatsFn,
 	getMyBattleStatsFn,
@@ -75,46 +108,64 @@ import {
 	listWorldsMemberCountsFn,
 	listWorldsRosterFn,
 	lookupLeagueByInviteFn
-} from '$satellite/services/cohort.services';
+} from '#satellite/services/cohort.services.ts';
 import {
 	syncRoleToEngineOnDelete,
 	syncRoleToEngineOnSet
-} from '$satellite/services/engine-sync.services';
-import { assertSetExitSignal } from '$satellite/services/exit-signal.services';
+} from '#satellite/services/engine-sync.services.ts';
+import { assertSetExitSignal } from '#satellite/services/exit-signal.services.ts';
 import {
 	getMyRivalFn,
 	getUserRankAndCountFn,
 	listLeaderboard as listLeaderboardFn
-} from '$satellite/services/leaderboard.services';
+} from '#satellite/services/leaderboard.services.ts';
+import {
+	assertDeleteLeagueImage,
+	assertUploadLeagueImage
+} from '#satellite/services/league-image.services.ts';
 import {
 	assertDeleteLeagueMember,
 	assertSetLeagueMember
-} from '$satellite/services/league-member.services';
+} from '#satellite/services/league-member.services.ts';
 import {
 	assertSetLeagueStats,
 	onProfileSetForLeagueStats,
 	onUserStatsSetForLeagueStats
-} from '$satellite/services/league-stats.services';
-import { assertSetLeague, transferLeagueOwnershipFn } from '$satellite/services/league.services';
+} from '#satellite/services/league-stats.services.ts';
+import {
+	assertDeleteLeague,
+	assertSetLeague,
+	createLeagueFn,
+	joinLeagueByInviteFn,
+	migrateLeagueInviteCodesFn,
+	transferLeagueOwnershipFn
+} from '#satellite/services/league.services.ts';
 import {
 	getMarketMetadata as getMarketMetadataFn,
 	upsertMarketMetadata as upsertMarketMetadataFn
-} from '$satellite/services/market-metadata.services';
+} from '#satellite/services/market-metadata.services.ts';
+import {
+	getMarketTagsFn,
+	rebuildMarketTagIndexFn
+} from '#satellite/services/market-tag-index.services.ts';
 import {
 	getMarketTranslation as getMarketTranslationFn,
 	listMarketTranslations as listMarketTranslationsFn,
 	listMarketTranslationsForLocales as listMarketTranslationsForLocalesFn,
 	upsertMarketTranslation as upsertMarketTranslationFn
-} from '$satellite/services/market-translation.services';
+} from '#satellite/services/market-translation.services.ts';
+import { assertProfilePrivate } from '#satellite/services/profile-private.services.ts';
 import {
-	assertDailyGoalMonotonic,
-	assertValidNickname,
+	assertProfile,
+	assertProfileOwner,
 	checkNicknameAvailabilityFn,
 	getProfile as getProfileFn,
 	recordFlowSwipeFn,
 	searchProfiles as searchProfilesFn
-} from '$satellite/services/profile.services';
+} from '#satellite/services/profile.services.ts';
 import {
+	assertDeleteReferral,
+	assertDeleteReferralCode,
 	assertSetReferral,
 	assertSetReferralCode,
 	claimReferralFriendshipFn,
@@ -126,9 +177,11 @@ import {
 	onTradeActivityForReferral,
 	redeemReferralCodeFn,
 	settleReferralFn
-} from '$satellite/services/referral.services';
+} from '#satellite/services/referral.services.ts';
 import {
 	acceptFriendRequest as acceptFriendRequestFn,
+	assertDeleteRelation,
+	assertSetRelation,
 	cancelFriendRequest as cancelFriendRequestFn,
 	checkFriendship as checkFriendshipFn,
 	followUser as followUserFn,
@@ -139,42 +192,54 @@ import {
 	listSentFriendRequests as listSentFriendRequestsFn,
 	rejectFriendRequest as rejectFriendRequestFn,
 	sendFriendRequest as sendFriendRequestFn
-} from '$satellite/services/relation.services';
+} from '#satellite/services/relation.services.ts';
 import {
 	listFriendResolvedResultsFn,
 	onActivitySetForResolvedResults,
 	pruneResolvedResultsFn
-} from '$satellite/services/resolved-results.services';
-import { assertSetRole } from '$satellite/services/roles.services';
-import { submitSchoolFn, verifySchoolCodeFn } from '$satellite/services/school.services';
+} from '#satellite/services/resolved-results.services.ts';
+import { assertDeleteRole, assertSetRole } from '#satellite/services/roles.services.ts';
+import { submitSchoolFn, verifySchoolCodeFn } from '#satellite/services/school.services.ts';
 import {
+	assertDeleteTournamentDoc,
 	assertSetTournament,
 	assertSetTournamentMatch,
 	claimTournamentPrizeFn,
 	getCurrentTournamentFn,
 	resolveTournamentRoundFn,
 	triggerTournamentDrawFn
-} from '$satellite/services/tournament.services';
+} from '#satellite/services/tournament.services.ts';
 import {
+	assertDeleteUserMonthlyStats,
 	assertSetUserMonthlyStats,
 	getMonthlyLeaderboardFn
-} from '$satellite/services/user-monthly-stats.services';
-import { assertSetUserStats } from '$satellite/services/user-stats.services';
-import { onProfileSetForAchievementAward } from '$satellite/services/vxp-achievement-awards.services';
-import { assertSetVxpAward } from '$satellite/services/vxp-awards.services';
-import { claimCalibrationRewardFn } from '$satellite/services/vxp-calibration.services';
-import { onProfileSetForComebackRestore } from '$satellite/services/vxp-comeback-awards.services';
-import { onProfileSetForFlowMilestone } from '$satellite/services/vxp-flow-awards.services';
+} from '#satellite/services/user-monthly-stats.services.ts';
+import {
+	assertDeleteUserStats,
+	assertSetUserStats
+} from '#satellite/services/user-stats.services.ts';
+import { onProfileSetForAchievementAward } from '#satellite/services/vxp-achievement-awards.services.ts';
+import {
+	assertDeleteVxpAward,
+	assertSetVxpAward
+} from '#satellite/services/vxp-awards.services.ts';
+import {
+	CALIBRATION_REASONS,
+	claimCalibrationRewardFn
+} from '#satellite/services/vxp-calibration.services.ts';
+import { onProfileSetForComebackRestore } from '#satellite/services/vxp-comeback-awards.services.ts';
+import { onProfileSetForFlowMilestone } from '#satellite/services/vxp-flow-awards.services.ts';
 import {
 	onLeagueSetForFounderVxpPayout,
 	settleFounderAwardsFn
-} from '$satellite/services/vxp-league-founder-awards.services';
+} from '#satellite/services/vxp-league-founder-awards.services.ts';
 import {
+	assertVxpOnboardingWrite,
 	onProfileSetForVxpOnboarding,
 	onTradeActivityForVxpOnboarding
-} from '$satellite/services/vxp-onboarding.services';
-import { onProfileSetForStreakAward } from '$satellite/services/vxp-streak-awards.services';
-import { claimWorldsPodiumPrizeFn } from '$satellite/services/vxp-worlds-podium.services';
+} from '#satellite/services/vxp-onboarding.services.ts';
+import { onProfileSetForStreakAward } from '#satellite/services/vxp-streak-awards.services.ts';
+import { claimWorldsPodiumPrizeFn } from '#satellite/services/vxp-worlds-podium.services.ts';
 import {
 	AffiliationChampionshipWireSchema,
 	AffiliationMemberCountWireSchema,
@@ -203,6 +268,7 @@ import {
 	toWireLeagueMember,
 	toWireLeagueWithRole,
 	toWireMarketTranslation,
+	toWireMemberLeague,
 	toWireMonthlyLeaderboardEntry,
 	toWireProfile,
 	toWireReferral,
@@ -210,17 +276,19 @@ import {
 	toWireTournament,
 	toWireTournamentMatch,
 	UserProfileWireSchema
-} from '$satellite/utils/wire-format.utils';
+} from '#satellite/utils/wire-format.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import {
 	defineAssert,
 	defineHook,
 	defineQuery,
 	defineUpdate,
+	type AssertDeleteAsset,
 	type AssertDeleteDoc,
 	type AssertDeleteDocContext,
 	type AssertSetDoc,
 	type AssertSetDocContext,
+	type AssertUploadAsset,
 	type OnDeleteDoc,
 	type OnDeleteDocContext,
 	type OnSetDoc,
@@ -261,7 +329,7 @@ export const getUserRankAndCount = defineQuery({
 	handler: ({ principalStr }) => getUserRankAndCountFn({ principal: principalStr })
 });
 
-// The caller's rival — the profile adjacent to them across the FULL
+// The caller's rival: the profile adjacent to them across the FULL
 // ranking, not the top-50 slice `listLeaderboard` returns. Lets the
 // dashboard "Your rival" insight resolve for every ranked user instead
 // of only those in the visible top N. Usually the competitor one rank
@@ -270,7 +338,7 @@ export const getUserRankAndCount = defineQuery({
 // caller is unranked or the lone ranked profile.
 //
 // `j.optional(<Record>)` returns camelCase, so the handler returns the
-// domain profile directly (no `toWireProfile`) — mirrors `getProfile`.
+// domain profile directly (no `toWireProfile`): mirrors `getProfile`.
 export const getMyRival = defineQuery({
 	result: j.strictObject({
 		rival: j.optional(UserProfileSchema),
@@ -310,7 +378,7 @@ export const searchProfiles = defineQuery({
 // before attempting `setDoc`. The same validator backs `assertValidNickname`
 // (write-time guard), so client and server agree on what "taken" means.
 //
-// `excludePrincipalStr` is the editing user's principal — passed so a user
+// `excludePrincipalStr` is the editing user's principal: passed so a user
 // editing their own profile is not told their own nickname is taken.
 // `principal` is reserved by the schema layer; we expose it as
 // `excludePrincipalStr` and treat the empty string as "no exclusion".
@@ -337,12 +405,13 @@ export const checkNicknameAvailability = defineQuery({
 
 // Server-authoritative Flow daily-cap increment. Called once per committed
 // Flow swipe. The client sends only its local-day key (`YYYY-MM-DD`, from
-// `todayKey`) as the rollover boundary — never a count: the server reads the
+// `todayKey`) as the rollover boundary, never a count: the server reads the
 // caller's profile, rolls over by `dayKey`, and writes the capped increment
 // itself. The returned `dailyGoalDone` / `capReached` are the source of truth
 // for the cross-session "come back tomorrow" takeover, so a cleared or
-// signed-out client can no longer reset the cap. Backed by the monotonic
-// PROFILES assert (`assertDailyGoalMonotonic`).
+// signed-out client can no longer reset the cap. It is the only writer of the
+// count: the PROFILES assert (`assertDailyGoalUnchanged`) refuses a client
+// write that changes it.
 export const recordFlowSwipe = defineUpdate({
 	args: j.strictObject({
 		dayKey: j.string()
@@ -536,7 +605,7 @@ export const redeemReferralCode = defineUpdate({
 });
 
 /**
- * Settles — or retries — the VXP payout for a referral row, keyed by the referee principal. The
+ * Settles, or retries, the VXP payout for a referral row, keyed by the referee principal. The
  * bonus is normally driven by the referred user's first prediction (the `activities` hook); this
  * endpoint exists so a payout that failed (or whose triggering activity hook didn't complete) can
  * be driven to completion by the FE or an operator. Idempotent.
@@ -562,7 +631,7 @@ export const claimReferralFriendship = defineUpdate({
  * Batch event capture. The FE flushes behavioural events here; the server
  * stamps the timestamp + derives the pseudonymous principal, writes the
  * append-only `events` docs, and bumps the day's rollup inline. Anyone
- * (incl. anonymous, pre-auth) may call — events are validated against the
+ * (incl. anonymous, pre-auth) may call: events are validated against the
  * taxonomy and carry no PII.
  */
 export const trackEvents = defineUpdate({
@@ -584,12 +653,57 @@ export const getAnalyticsSummary = defineQuery({
 /**
  * Admin-gated raw-event export for the cockpit warehouse: the next page of
  * `events` after the given keyset cursor, flattened. Same admin gate as
- * `getAnalyticsSummary` — restricted to the cockpit's reader principal.
+ * `getAnalyticsSummary`: restricted to the cockpit's reader principal.
  */
 export const getAnalyticsEvents = defineQuery({
 	args: GetAnalyticsEventsArgsSchema,
 	result: GetAnalyticsEventsResultSchema,
 	handler: (args) => getAnalyticsEventsFn(args)
+});
+
+/**
+ * Admin-gated all-time registered-account count for the cockpit's
+ * "Registered" tile. Same admin gate as `getAnalyticsSummary`: restricted
+ * to the cockpit's reader principal. No args: the count is global.
+ */
+export const getAnalyticsUserStats = defineQuery({
+	result: AnalyticsUserStatsSchema,
+	handler: () => getAnalyticsUserStatsFn()
+});
+
+/**
+ * Admin-gated profile-created export for the cockpit warehouse: doc keys +
+ * envelope `created_at` (ns), keyset-paged by key. The TRUE sign-up series:
+ * the event stream only starts at capture and early `signed_up` events cover
+ * one sign-up path only, so window cohorts need the profile envelope. Same
+ * admin gate as the other analytics exports; no profile body field leaves.
+ */
+export const getAnalyticsProfileCreated = defineQuery({
+	args: GetAnalyticsProfileCreatedArgsSchema,
+	result: GetAnalyticsProfileCreatedResultSchema,
+	handler: (args) => getAnalyticsProfileCreatedFn(args)
+});
+
+// The cockpit's DRAIN step: delete a page of events after the warehouse has
+// durably ingested it, so the on-chain `events` collection stays a small buffer and
+// the export query never blows the instruction budget (IC0522). Admin-gated update.
+export const deleteAnalyticsEvents = defineUpdate({
+	args: DeleteAnalyticsEventsArgsSchema,
+	result: DeleteAnalyticsEventsResultSchema,
+	handler: (args) => deleteAnalyticsEventsFn(args)
+});
+
+/**
+ * Admin-gated export of the principal ⇄ sign-in-identity mapping: one row per
+ * `#user` doc (provider + consented OpenID email/name) joined with the
+ * best-effort `profiles.email`, keyset-paged by key. Exists so an off-chain
+ * system can match accounts to the same login elsewhere. Same admin gate as
+ * the analytics exports; deliberately exports addresses, admin-only.
+ */
+export const getAuthIdentities = defineQuery({
+	args: GetAuthIdentitiesArgsSchema,
+	result: GetAuthIdentitiesResultSchema,
+	handler: (args) => getAuthIdentitiesFn(args)
 });
 
 // ─── Social cohorts ─────────────────────────────────────────────
@@ -604,10 +718,10 @@ export const listMyLeagues = defineQuery({
 });
 
 /**
- * Retroactive self-heal for the "Founder +100 VXP" reward. The `leagues`
+ * Retroactive self-heal for the league-founder reward. The `leagues`
  * `onSetDoc` hook pays this on creation going forward; this endpoint
  * back-pays leagues founded before the hook shipped. Idempotent (shares
- * the hook's dedupe key) and safe to call on every Leagues-page mount —
+ * the hook's dedupe key) and safe to call on every Leagues-page mount:
  * returns how many rewards it newly settled this call.
  */
 export const settleFounderAwards = defineUpdate({
@@ -629,10 +743,58 @@ export const listLeagueMembers = defineQuery({
 	})
 });
 
-// Join-by-code resolver. The FE join modal posts the 6-char code,
-// the satellite scans `leagues` for a match, and the FE then
-// derives the leagueId and writes the `league_members` row through
-// the standard set-doc path (which goes through `assertSetLeagueMember`).
+// Founds a league: the public doc and the owner's row as the caller, the
+// invite code in the controllers-only `league_invites`, and the founder
+// reward inline. The only way to give a league an invite code.
+export const createLeague = defineUpdate({
+	args: j.strictObject({
+		id: j.string(),
+		name: j.string(),
+		description: j.string().optional(),
+		accentColor: j.string().optional(),
+		emblem: j.string().optional(),
+		privacy: j.enum(LeaguePrivacy).optional(),
+		inviteCode: j.string()
+	}),
+	result: j.strictObject({
+		league: j.optional(LeagueWireSchema),
+		reason: j.optional(j.enum(CREATE_LEAGUE_REFUSAL_REASONS))
+	}),
+	handler: async (args) => {
+		const { league, reason } = await createLeagueFn(args);
+
+		return { league: isNullish(league) ? undefined : toWireMemberLeague(league), reason };
+	}
+});
+
+// The only way into a league, Open or Private: checks the invite code,
+// then writes the caller's `league_members` row as a controller (the
+// assert admits no self-written join).
+export const joinLeagueByInvite = defineUpdate({
+	args: j.strictObject({
+		inviteCode: j.string()
+	}),
+	result: j.strictObject({
+		league: j.optional(LeagueWireSchema),
+		reason: j.optional(j.enum(JOIN_LEAGUE_REFUSAL_REASONS))
+	}),
+	handler: (args) => {
+		const { league, reason } = joinLeagueByInviteFn(args);
+
+		return { league: isNullish(league) ? undefined : toWireMemberLeague(league), reason };
+	}
+});
+
+// Admin-only, idempotent: moves the invite code off every league doc
+// written before codes moved to `league_invites`.
+export const migrateLeagueInviteCodes = defineUpdate({
+	result: j.strictObject({
+		migrated: j.number()
+	}),
+	handler: () => migrateLeagueInviteCodesFn()
+});
+
+// Join-by-code preview: the league an invite code opens, without the code.
 export const lookupLeagueByInvite = defineQuery({
 	args: j.strictObject({
 		inviteCode: j.string()
@@ -647,7 +809,7 @@ export const lookupLeagueByInvite = defineQuery({
 	}
 });
 
-// Opponent pool for the create-battle picker — public leagues plus the
+// Opponent pool for the create-battle picker: public leagues plus the
 // caller's own memberships, minus leagues the caller owns. Distinct from
 // the join-by-code resolver (`lookupLeagueByInvite`) and from any public
 // JOIN-by-directory (intentionally not built).
@@ -661,7 +823,7 @@ export const listChallengeableLeagues = defineQuery({
 });
 
 // Recommendation pool for the "Friends are in" row at the foot of the
-// Leagues list — Open and Invite-only leagues the caller's confirmed
+// Leagues list: Open and Invite-only leagues the caller's confirmed
 // friends are in but the caller is not, with the per-league friend
 // overlap for the avatar cluster + count. "Friend" = active bilateral
 // friendship (same definition as `listFriends`); Private leagues are
@@ -706,6 +868,40 @@ export const getMyBattleStats = defineQuery({
 	handler: () => getMyBattleStatsFn()
 });
 
+// Resolve a settled league battle from clearing settlement history
+// (controller-trusted). Idempotent + the lazy liveness path: the FE calls this
+// the first time a member of either side opens a settled battle. An `update`
+// because it reads the clearing canister and writes the resolved doc.
+export const resolveBattle = defineUpdate({
+	args: j.strictObject({ battleId: j.string() }),
+	result: j.strictObject({ battle: BattleWireSchema }),
+	handler: async ({ battleId }) => ({
+		battle: toWireBattle(await resolveBattleFromSettlementsFn({ battleId }))
+	})
+});
+
+// Provisional standings of an in-flight league battle, projected from the same
+// clearing settlement history over [kickoff, now). `score` is absent for a
+// battle that can't be scored live or for a non-member caller. An `update`
+// (not a query) because it makes an inter-canister call to clearing.
+export const readBattleLiveScore = defineUpdate({
+	args: j.strictObject({ battleId: j.string() }),
+	result: j.strictObject({
+		score: j.optional(
+			j.strictObject({
+				scoreA: j.number(),
+				scoreB: j.number(),
+				callsA: j.number(),
+				callsB: j.number(),
+				leader: j.enum(['A', 'B', 'draw'])
+			})
+		)
+	}),
+	handler: async ({ battleId }) => ({
+		score: await readBattleLiveScoreFn({ battleId })
+	})
+});
+
 // ─── Worlds affiliations ────────────────────────────────────────
 
 export const listMyAffiliations = defineQuery({
@@ -720,7 +916,7 @@ export const listMyAffiliations = defineQuery({
 
 export const listWorldsRoster = defineQuery({
 	args: j.strictObject({
-		kind: j.enum(['university', 'country']),
+		kind: j.enum(AFFILIATION_KINDS),
 		affiliationIdentifier: j.string()
 	}),
 	result: j.strictObject({
@@ -736,7 +932,7 @@ export const listWorldsRoster = defineQuery({
 // resolution events yet and therefore no doc.
 export const getAffiliationStats = defineQuery({
 	args: j.strictObject({
-		kind: j.enum(['university', 'country']),
+		kind: j.enum(AFFILIATION_KINDS),
 		affiliationIdentifier: j.string()
 	}),
 	result: j.strictObject({
@@ -753,7 +949,7 @@ export const getAffiliationStats = defineQuery({
 // Below MIN_CALLS_FOR_RANK is filtered out by the aggregator.
 export const listAffiliationStats = defineQuery({
 	args: j.strictObject({
-		kind: j.enum(['university', 'country']),
+		kind: j.enum(AFFILIATION_KINDS),
 		limit: j.number().optional()
 	}),
 	result: j.strictObject({
@@ -765,12 +961,12 @@ export const listAffiliationStats = defineQuery({
 });
 
 // Real member tally per affiliation of a kind. One scan over
-// `affiliations`, bucketed by affiliationIdentifier — feeds the "N
+// `affiliations`, bucketed by affiliationIdentifier: feeds the "N
 // members" line on the Worlds picker / detail surfaces without
 // paging the full roster per affiliation.
 export const listWorldsMemberCounts = defineQuery({
 	args: j.strictObject({
-		kind: j.enum(['university', 'country'])
+		kind: j.enum(AFFILIATION_KINDS)
 	}),
 	result: j.strictObject({
 		items: j.array(AffiliationMemberCountWireSchema)
@@ -780,13 +976,13 @@ export const listWorldsMemberCounts = defineQuery({
 	})
 });
 
-// Champion history for one affiliation — the past months it finished
+// Champion history for one affiliation: the past months it finished
 // first in its kind's monthly ranking, derived from the frozen
 // `affiliation_stats` snapshots. Empty until a month has rolled over
 // with a ranked leader (there is no scheduled season-conclusion job).
 export const listAffiliationChampionships = defineQuery({
 	args: j.strictObject({
-		kind: j.enum(['university', 'country']),
+		kind: j.enum(AFFILIATION_KINDS),
 		affiliationIdentifier: j.string()
 	}),
 	result: j.strictObject({
@@ -821,7 +1017,7 @@ export const submitSchool = defineUpdate({
 		submissionId: j.string()
 	}),
 	// MUST be `async`: `submitSchoolFn` is async, and the Sputnik runtime
-	// only awaits handlers declared `async` — a plain arrow returning the
+	// only awaits handlers declared `async`: a plain arrow returning the
 	// promise gets validated as the (un-resolved) Promise, which trips the
 	// result schema with `submissionId: undefined`.
 	handler: async (args) =>
@@ -848,7 +1044,7 @@ export const verifySchoolCode = defineUpdate({
 	handler: (args) => verifySchoolCodeFn(args)
 });
 
-// Calibration reward — pays a fixed VXP bonus when a recovering user
+// Calibration reward: pays a fixed VXP bonus when a recovering user
 // (available balance below the recovery floor) correctly called a
 // finalised Vici binary market. The FE passes the market and the side
 // the user picked; the server re-derives the winning side from the
@@ -869,26 +1065,13 @@ export const claimCalibrationReward = defineUpdate({
 		rewardBaseUnits: j.optional(j.string()),
 		newBalanceBaseUnits: j.optional(j.string()),
 		blockIndex: j.optional(j.string()),
-		reason: j.optional(
-			j.enum([
-				'anonymous',
-				'not_engaged_yet',
-				'balance_above_floor',
-				'not_vici_market',
-				'not_binary',
-				'not_finalised',
-				'outcome_undetermined',
-				'rate_limited_hourly',
-				'rate_limited_daily',
-				'transfer_failed'
-			])
-		),
+		reason: j.optional(j.enum(CALIBRATION_REASONS)),
 		errorMessage: j.optional(j.string())
 	}),
 	handler: claimCalibrationRewardFn
 });
 
-// Worlds podium monthly payout — user-claim variant. The caller
+// Worlds podium monthly payout: user-claim variant. The caller
 // passes `monthAnchor` (YYYY-MM) for a closed month; if their
 // current affiliation finished top-3 in that month's snapshot,
 // VXP_AWARDS docs are created (gold/silver/bronze) and a ledger
@@ -906,7 +1089,7 @@ export const claimWorldsPodiumPrize = defineUpdate({
 	handler: claimWorldsPodiumPrizeFn
 });
 
-// Account deletion — Proposal 4. Pre-flight query that surfaces the
+// Account deletion pre-flight: a query that surfaces the
 // "you still own this non-empty league" guard so the FE can show
 // the transfer-first prompt before the user even picks a reason.
 export const listMyBlockingLeagues = defineQuery({
@@ -916,11 +1099,11 @@ export const listMyBlockingLeagues = defineQuery({
 	handler: listMyBlockingLeaguesFn
 });
 
-// Account deletion — the deletion itself (Delete account v2). First
+// Account deletion: the deletion itself (Delete account v2). First
 // applies any `leagueResolutions` the caller chose (transfer ownership
 // of, or disband, each owned league), then writes an anonymous
 // `EXIT_SIGNALS` doc and SOFT-deletes the caller's profile
-// (`deletedAtMs = now`). No identity-keyed data is removed — the account
+// (`deletedAtMs = now`). No identity-keyed data is removed: the account
 // can be recovered via `recoverMyAccount` within the recovery window;
 // past the window it's hard-deleted (on a late recovery attempt or by
 // the admin `sweepExpiredDeletions`). The handle stays reserved because
@@ -929,14 +1112,14 @@ export const listMyBlockingLeagues = defineQuery({
 // `leagueResolutions` is an array of strict objects (cleaner in Candid
 // than a map). Each is `{ leagueId, action: 'transfer' | 'delete',
 // transferTo? }`; `transferTo` (the new-owner principal text) is
-// required when `action === 'transfer'`. Resolutions apply IMMEDIATELY
-// — a recovered account does NOT get relinquished leagues back.
+// required when `action === 'transfer'`. Resolutions apply IMMEDIATELY;
+// a recovered account does NOT get relinquished leagues back.
 //
 // Refusal reasons:
-//  - `owns_non_empty_league` — the caller still owns a league with
+//  - `owns_non_empty_league`: the caller still owns a league with
 //    other members after resolution; `blockingLeagueIds` lists them and
 //    the FE renders a transfer-first guard.
-//  - `league_resolution_failed` — a transfer / disband failed;
+//  - `league_resolution_failed`: a transfer / disband failed;
 //    `failedLeagueId` + `resolutionReason` carry the underlying cause.
 //    The whole delete aborts (resolutions that committed before the
 //    failure stand).
@@ -980,15 +1163,15 @@ export const recoverMyAccount = defineUpdate({
 	handler: recoverMyAccountFn
 });
 
-// Account hibernation (Delete account v2 — the reversible retention
+// Account hibernation (Delete account v2: the reversible retention
 // off-ramp offered alongside delete). Sets `hibernatedAtMs = now` on the
 // caller's profile: stats freeze (the account is inactive) and the profile
 // hides from public reads, but NO data is removed and the owner can
-// `resumeMyAccount` at any time. Idempotent — keeps the earliest mark.
+// `resumeMyAccount` at any time. Idempotent: keeps the earliest mark.
 //
 // Refusal reasons:
-//  - `no_profile` — the caller never onboarded.
-//  - `deleted` — the account is already soft-deleted; the two states are
+//  - `no_profile`: the caller never onboarded.
+//  - `deleted`: the account is already soft-deleted; the two states are
 //    mutually exclusive.
 export const hibernateMyAccount = defineUpdate({
 	result: j.strictObject({
@@ -1033,10 +1216,32 @@ export const recomputeActivityReactionCounts = defineUpdate({
 	handler: () => recomputeActivityReactionCountsFn()
 });
 
+// Admin-only: re-derive the `market_tag_index` buckets from a single scan of
+// `market_metadata`. Run once after deploy to backfill the index for markets
+// that predate it; also heals any drift from a concurrent-write version race.
+export const rebuildMarketTagIndex = defineUpdate({
+	result: j.strictObject({
+		buckets: j.number(),
+		series: j.number()
+	}),
+	handler: () => rebuildMarketTagIndexFn()
+});
+
+/**
+ * Admin-gated read of every `market_tag_index` bucket (`tag → seriesIds`) for
+ * the cockpit; it classifies markets (sport vs non-sport) for the campaign
+ * hypothesis register. Same admin gate as the analytics exports. Seven keyed
+ * reads, never a collection scan.
+ */
+export const getMarketTags = defineQuery({
+	result: GetMarketTagsResultSchema,
+	handler: () => getMarketTagsFn()
+});
+
 // Friend-scoped bulk read for the resolved-results digest (the consumer that
 // renders these rows ships separately). Returns the supplied friend set's
 // resolved-result rows over the active retention window in ONE bounded
-// owner-prefix scan — never one call per friend. Public read; the FE scopes the
+// owner-prefix scan, never one call per friend. Public read; the FE scopes the
 // `friends` set to the caller's confirmed friends.
 export const listFriendResolvedResults = defineQuery({
 	args: ListFriendResolvedResultsArgsSchema,
@@ -1048,7 +1253,7 @@ export const listFriendResolvedResults = defineQuery({
 	})
 });
 
-// Retention cleanup for `resolved_results` — prunes rows older than the
+// Retention cleanup for `resolved_results`: prunes rows older than the
 // configured horizon. Admin-gated; Juno has no scheduler so this is triggered
 // externally (admin/cron), mirroring `sweepExpiredDeletions`. `pruned` is the
 // number of rows removed.
@@ -1059,12 +1264,9 @@ export const pruneResolvedResults = defineUpdate({
 	handler: () => pruneResolvedResultsFn()
 });
 
-// Monthly tournament — Proposal 3. The draw is fire-and-forget on
-// every Tournament-page mount: idempotent via doc-key collision on
-// the month anchor (a second call returns `already_drawn` cleanly).
-// Round resolution + prize claim are documented Proposal 3 follow-ups
-// — they need a per-window accuracy aggregation pipeline that
-// doesn't exist yet, so the bracket structure ships first.
+// Monthly tournament draw: fire-and-forget on every Tournament-page
+// mount, idempotent via doc-key collision on the month anchor (a second
+// call returns `already_drawn` cleanly).
 export const triggerTournamentDraw = defineUpdate({
 	args: j.strictObject({
 		monthAnchor: j.string()
@@ -1072,26 +1274,24 @@ export const triggerTournamentDraw = defineUpdate({
 	result: j.strictObject({
 		ok: j.boolean(),
 		tournamentId: j.optional(j.string()),
-		reason: j.optional(
-			j.enum(['already_drawn', 'month_not_started', 'insufficient_leagues', 'invalid_input'])
-		),
+		reason: j.optional(j.enum(TOURNAMENT_DRAW_REFUSAL_REASONS)),
 		availableLeagues: j.optional(j.number())
 	}),
 	handler: triggerTournamentDrawFn
 });
 
-// League ownership transfer — used by the league-detail "transfer
+// League ownership transfer: used by the league-detail "transfer
 // ownership" CTA and surfaced from the account-delete owner guard
 // so the user can resolve the blocking guard in one click.
 //
 // Refusal reasons:
-//  - `not_owner` — caller isn't the current owner.
-//  - `league_not_found` — leagueId resolves to nothing.
-//  - `new_owner_not_member` — target principal isn't a member of
+//  - `not_owner`: caller isn't the current owner.
+//  - `league_not_found`: leagueId resolves to nothing.
+//  - `new_owner_not_member`: target principal isn't a member of
 //    the league.
-//  - `new_owner_is_caller` — no-op self-transfer rejected
+//  - `new_owner_is_caller`: no-op self-transfer rejected
 //    explicitly so the FE can render a clear error.
-//  - `invalid_input` — `newOwnerPrincipal` is not a valid principal
+//  - `invalid_input`: `newOwnerPrincipal` is not a valid principal
 //    text.
 export const transferLeagueOwnership = defineUpdate({
 	args: j.strictObject({
@@ -1128,19 +1328,19 @@ export const getCurrentTournament = defineQuery({
 	}
 });
 
-// Round resolution — user-claim; idempotent via the `winnerLeagueId`
+// Round resolution: user-claim; idempotent via the `winnerLeagueId`
 // write-once invariant on match docs. Anyone can call when a round
 // has closed; the FE fires this on every Tournament-page mount for
 // each round whose `endMs <= now` and which still has unresolved
 // matches.
 //
 // Refusal reasons:
-//  - `tournament_not_found` — tournamentId resolves to nothing.
-//  - `round_not_yet_closed` — the round's `endMs` is still in the future.
-//  - `previous_round_not_resolved` — an earlier round has unresolved
+//  - `tournament_not_found`: tournamentId resolves to nothing.
+//  - `round_not_yet_closed`: the round's `endMs` is still in the future.
+//  - `previous_round_not_resolved`: an earlier round has unresolved
 //    matches; the bracket has to advance in order.
-//  - `no_matches` — no match docs for the round (shouldn't happen).
-//  - `invalid_input` — `round` is not one of `r1|quarter|semifinal|final`.
+//  - `no_matches`: no match docs for the round (shouldn't happen).
+//  - `invalid_input`: `round` is not one of `r1|quarter|semifinal|final`.
 export const resolveTournamentRound = defineUpdate({
 	args: j.strictObject({
 		tournamentId: j.string(),
@@ -1163,15 +1363,15 @@ export const resolveTournamentRound = defineUpdate({
 	handler: resolveTournamentRoundFn
 });
 
-// Prize claim — user-claim; idempotent via the VXP_AWARDS doc key.
+// Prize claim: user-claim; idempotent via the VXP_AWARDS doc key.
 // Caller computes their highest-tier placement (1 / 2 / 3) by
 // checking membership in the bracket's winning leagues; the
 // satellite writes a VXP_AWARDS doc and returns the credited amount.
 //
 // Refusal reasons:
-//  - `tournament_not_found` — tournamentId resolves to nothing.
-//  - `tournament_not_concluded` — bracket is still in flight.
-//  - `not_member_of_top_league` — caller isn't a member of any
+//  - `tournament_not_found`: tournamentId resolves to nothing.
+//  - `tournament_not_concluded`: bracket is still in flight.
+//  - `not_member_of_top_league`: caller isn't a member of any
 //    top-3 league.
 export const claimTournamentPrize = defineUpdate({
 	args: j.strictObject({
@@ -1189,15 +1389,15 @@ export const claimTournamentPrize = defineUpdate({
 	handler: claimTournamentPrizeFn
 });
 
-// Monthly album awards — aggregates every `user_monthly_stats` doc for the
+// Monthly album awards: aggregates every `user_monthly_stats` doc for the
 // requested `monthAnchor` (YYYY-MM) and returns:
 //  - `sharpestEye`: top-3 by accuracy among users with ≥ MONTHLY_MIN_CALLS
 //    resolved calls, with gold/silver/bronze `placement`.
 //  - `boldCaller`: the best accuracy among those eligible users whose median
 //    consensus-at-call is below the bold threshold; returns every user tied
 //    at that best accuracy.
-// Both arrays use the snake_case wire schemas (the `Vec<NestedStruct>`
-// quirk). The median is computed on read from each doc's bounded consensus
+// Both arrays use the camelCase wire schemas from `wire-format.utils.ts`.
+// The median is computed on read from each doc's bounded consensus
 // array.
 export const getMonthlyLeaderboard = defineQuery({
 	args: j.strictObject({
@@ -1217,24 +1417,20 @@ export const getMonthlyLeaderboard = defineQuery({
 	}
 });
 
-/**
- * Composed `profiles` pre-write veto. Each sub-assert (`assertValidNickname`,
- * `assertDailyGoalMonotonic`) is exported independently from its service so
- * they stay unit-testable; we compose them here to keep the dispatch table's
- * one-assert-per-collection invariant. A throw from either rejects the write.
- */
-const assertProfile = (context: AssertSetDocContext): void => {
-	assertValidNickname(context);
-	assertDailyGoalMonotonic(context);
-};
-
 const assertSetDocCollections = [
 	Collection.ACTIVITIES,
 	Collection.ACTIVITY_REACTIONS,
 	Collection.PROFILES,
+	Collection.PROFILE_PRIVATE,
 	Collection.ROLES,
+	Collection.RELATIONS,
+	Collection.CHATS,
+	Collection.COMMENTS,
+	Collection.MARKET_METADATA,
+	Collection.MARKET_TRANSLATIONS,
 	Collection.REFERRAL_CODES,
 	Collection.REFERRALS,
+	Collection.VXP_ONBOARDING,
 	Collection.VXP_AWARDS,
 	Collection.LEAGUES,
 	Collection.LEAGUE_MEMBERS,
@@ -1258,9 +1454,16 @@ export const assertSetDoc = defineAssert<AssertSetDoc>({
 			[Collection.ACTIVITIES]: assertSetActivity,
 			[Collection.ACTIVITY_REACTIONS]: assertSetActivityReaction,
 			[Collection.PROFILES]: assertProfile,
+			[Collection.PROFILE_PRIVATE]: assertProfilePrivate,
 			[Collection.ROLES]: assertSetRole,
+			[Collection.RELATIONS]: assertSetRelation,
+			[Collection.CHATS]: assertControllerWrite,
+			[Collection.COMMENTS]: assertControllerWrite,
+			[Collection.MARKET_METADATA]: assertControllerWrite,
+			[Collection.MARKET_TRANSLATIONS]: assertControllerWrite,
 			[Collection.REFERRAL_CODES]: assertSetReferralCode,
 			[Collection.REFERRALS]: assertSetReferral,
+			[Collection.VXP_ONBOARDING]: assertVxpOnboardingWrite,
 			[Collection.VXP_AWARDS]: assertSetVxpAward,
 			[Collection.LEAGUES]: assertSetLeague,
 			[Collection.LEAGUE_MEMBERS]: assertSetLeagueMember,
@@ -1280,9 +1483,29 @@ export const assertSetDoc = defineAssert<AssertSetDoc>({
 });
 
 const assertDeleteDocCollections = [
+	Collection.ROLES,
+	Collection.PROFILES,
+	Collection.RELATIONS,
+	Collection.CHATS,
+	Collection.COMMENTS,
+	Collection.MARKET_METADATA,
+	Collection.MARKET_TRANSLATIONS,
+	Collection.ACTIVITIES,
+	Collection.ACTIVITY_REACTIONS,
+	Collection.REFERRAL_CODES,
+	Collection.REFERRALS,
+	Collection.LEAGUES,
 	Collection.LEAGUE_MEMBERS,
 	Collection.AFFILIATIONS,
-	Collection.BATTLES
+	Collection.BATTLES,
+	Collection.EXIT_SIGNALS,
+	Collection.VXP_ONBOARDING,
+	Collection.VXP_AWARDS,
+	Collection.TOURNAMENTS,
+	Collection.TOURNAMENT_MATCHES,
+	Collection.LEAGUE_STATS,
+	Collection.USER_STATS,
+	Collection.USER_MONTHLY_STATS
 ] as const;
 
 type AssertDeleteDocCollection = (typeof assertDeleteDocCollections)[number];
@@ -1291,13 +1514,47 @@ export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({
 	collections: assertDeleteDocCollections,
 	assert: (context) => {
 		const fn: Record<AssertDeleteDocCollection, (ctx: AssertDeleteDocContext) => void> = {
+			[Collection.ROLES]: assertDeleteRole,
+			[Collection.PROFILES]: assertProfileOwner,
+			[Collection.RELATIONS]: assertDeleteRelation,
+			[Collection.CHATS]: assertControllerWrite,
+			[Collection.COMMENTS]: assertControllerWrite,
+			[Collection.MARKET_METADATA]: assertControllerWrite,
+			[Collection.MARKET_TRANSLATIONS]: assertControllerWrite,
+			[Collection.ACTIVITIES]: assertDeleteActivity,
+			[Collection.ACTIVITY_REACTIONS]: assertDeleteActivityReaction,
+			[Collection.REFERRAL_CODES]: assertDeleteReferralCode,
+			[Collection.REFERRALS]: assertDeleteReferral,
+			[Collection.LEAGUES]: assertDeleteLeague,
 			[Collection.LEAGUE_MEMBERS]: assertDeleteLeagueMember,
 			[Collection.AFFILIATIONS]: assertDeleteAffiliation,
-			[Collection.BATTLES]: assertDeleteBattle
+			[Collection.BATTLES]: assertDeleteBattle,
+			[Collection.EXIT_SIGNALS]: assertControllerWrite,
+			[Collection.VXP_ONBOARDING]: assertVxpOnboardingWrite,
+			[Collection.VXP_AWARDS]: assertDeleteVxpAward,
+			[Collection.TOURNAMENTS]: assertDeleteTournamentDoc,
+			[Collection.TOURNAMENT_MATCHES]: assertDeleteTournamentDoc,
+			[Collection.LEAGUE_STATS]: assertControllerWrite,
+			[Collection.USER_STATS]: assertDeleteUserStats,
+			[Collection.USER_MONTHLY_STATS]: assertDeleteUserMonthlyStats
 		};
 
 		fn[context.data.collection]?.(context);
 	}
+});
+
+// `league_images` is the one Storage collection, and public write: these
+// asserts are the only guard on who uploads over or deletes a cover.
+const assetCollections = [LEAGUE_IMAGES_COLLECTION] as const;
+
+export const assertUploadAsset = defineAssert<AssertUploadAsset>({
+	collections: assetCollections,
+	assert: assertUploadLeagueImage
+});
+
+export const assertDeleteAsset = defineAssert<AssertDeleteAsset>({
+	collections: assetCollections,
+	assert: assertDeleteLeagueImage
 });
 
 const setDocCollections = [
@@ -1307,7 +1564,9 @@ const setDocCollections = [
 	Collection.ROLES,
 	Collection.REFERRALS,
 	Collection.LEAGUES,
-	Collection.USER_STATS
+	Collection.USER_STATS,
+	Collection.VXP_AWARDS,
+	Collection.AFFILIATIONS
 ] as const;
 
 type OnSetDocCollection = (typeof setDocCollections)[number];
@@ -1325,7 +1584,6 @@ const onProfileSetComposed: RunFunction<OnSetDocContext> = async (context) => {
 	await onProfileSetForFlowMilestone(context);
 	await onProfileSetForAchievementAward(context);
 	await onProfileSetForComebackRestore(context);
-	onProfileSetForAffiliationStats(context);
 	onProfileSetForLeagueStats(context);
 };
 
@@ -1350,14 +1608,24 @@ export const onSetDoc = defineHook<OnSetDoc>({
 			[Collection.ROLES]: syncRoleToEngineOnSet,
 			[Collection.REFERRALS]: onReferralSetForVxpPayout,
 			[Collection.LEAGUES]: onLeagueSetForFounderVxpPayout,
-			[Collection.USER_STATS]: onUserStatsSetForLeagueStats
+			[Collection.USER_STATS]: onUserStatsSetForLeagueStats,
+			// Server-side capture: every VXP payout (any award service) emits
+			// `vxp_awarded` (+ `streak_milestone`) on its pending→paid transition.
+			[Collection.VXP_AWARDS]: onVxpAwardSetForAnalytics,
+			// Server-side capture: a Worlds join (client `setDoc`) emits
+			// `affiliation_set` on row creation.
+			[Collection.AFFILIATIONS]: onAffiliationSetForAnalytics
 		};
 
 		await fn[context.data.collection]?.(context);
 	}
 });
 
-const deleteDocCollections = [Collection.ROLES, Collection.ACTIVITY_REACTIONS] as const;
+const deleteDocCollections = [
+	Collection.ROLES,
+	Collection.ACTIVITY_REACTIONS,
+	Collection.AFFILIATIONS
+] as const;
 
 type OnDeleteDocCollection = (typeof deleteDocCollections)[number];
 
@@ -1366,7 +1634,10 @@ export const onDeleteDoc = defineHook<OnDeleteDoc>({
 	run: async (context) => {
 		const fn: Record<OnDeleteDocCollection, RunFunction<OnDeleteDocContext>> = {
 			[Collection.ROLES]: syncRoleToEngineOnDelete,
-			[Collection.ACTIVITY_REACTIONS]: onActivityReactionDelete
+			[Collection.ACTIVITY_REACTIONS]: onActivityReactionDelete,
+			// Server-side capture: a Worlds leave (client `deleteDoc`, only
+			// reachable past the 90-day lock) emits `affiliation_removed`.
+			[Collection.AFFILIATIONS]: onAffiliationDeleteForAnalytics
 		};
 
 		await fn[context.data.collection]?.(context);

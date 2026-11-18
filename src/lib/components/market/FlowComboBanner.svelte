@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { backOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
-	import { prefersReducedMotion } from '$lib/utils/reduced-motion.utils';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
 		count: number;

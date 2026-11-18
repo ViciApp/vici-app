@@ -1,0 +1,76 @@
+name: Web2 Deploy
+
+# Manual-only: dispatch from a release tag to ship both apps
+# (`gh workflow run web2-deploy.yml --ref vX.Y.Z`). Each FLY_API_TOKEN_WEB2_*
+# secret is a `fly tokens create deploy` token scoped to ONE app (least privilege).
+# Per-app runtime secrets/env live on Fly; CI only ships the image. Backend
+# DB migrations run atomically as the fly.toml release_command. The web
+# image's VITE_* build args are baked from fly.web.toml.
+on:
+  workflow_dispatch:
+
+# One deploy at a time; never cancel a deploy mid-flight.
+concurrency:
+  group: web2-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # A dispatch can name any ref, and the backend deploy runs its migrations
+  # against the production database, so only a release tag may ship: a
+  # branch would apply unreviewed, possibly irreversible migrations.
+  require-release-tag:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require a v* release tag
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [[ "${REF}" != refs/tags/v* ]]; then
+            echo "::error::web2-deploy ships production only from a release tag, got ${REF}. Dispatch it with: gh workflow run web2-deploy.yml --ref vX.Y.Z"
+            exit 1
+          fi
+
+  # Both apps deploy in parallel (independent); a backend migration failure
+  # (release_command) aborts only the backend deploy, never the web one.
+  deploy-backend:
+    needs: ['require-release-tag']
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # v1.6
+
+      - name: Deploy backend to Fly
+        working-directory: backend
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_WEB2_BACKEND }}
+        # The image's Bun version is the pin in backend/.bun-version, the one
+        # Backend Checks tests against.
+        run: flyctl deploy --remote-only --build-arg BUN_VERSION="$(cat .bun-version)"
+
+  deploy-web:
+    needs: ['require-release-tag']
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # v1.6
+
+      # Static SPA (nginx). Build context is the repo root; fly.web.toml points
+      # at Dockerfile.web and bakes the VITE_* build args. The image's Node
+      # version is the pin in .node-version, the one CI builds and tests with.
+      - name: Deploy web to Fly
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_WEB2_WEB }}
+        run: flyctl deploy --config fly.web.toml --remote-only --build-arg NODE_VERSION="$(cat .node-version)"

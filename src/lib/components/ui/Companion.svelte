@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import FlameChar from '$lib/components/characters/FlameChar.svelte';
-	import OracleChar from '$lib/components/characters/OracleChar.svelte';
-	import TricksterChar from '$lib/components/characters/TricksterChar.svelte';
-	import ViciChar from '$lib/components/characters/ViciChar.svelte';
-	import type { FlameStage } from '$lib/utils/streak.utils';
+	import FlameChar from '#lib/components/characters/FlameChar.svelte';
+	import OracleChar from '#lib/components/characters/OracleChar.svelte';
+	import TricksterChar from '#lib/components/characters/TricksterChar.svelte';
+	import ViciChar from '#lib/components/characters/ViciChar.svelte';
+	import type { FlameStage } from '#lib/utils/streak.utils.ts';
 
 	type CompanionWho = 'vici' | 'oracle' | 'trickster' | 'flame';
 	type CompanionAnchor = 'br' | 'tr' | 'inline';
@@ -119,7 +119,7 @@
 		right: 16px;
 		padding: 8px 14px 8px 8px;
 		border-radius: var(--r-pill);
-		background: rgba(14, 13, 11, 0.85);
+		background: var(--companion-float-bg);
 		backdrop-filter: blur(16px);
 		border: 1px solid var(--border-base);
 		box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.6);

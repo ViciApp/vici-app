@@ -2,36 +2,40 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount, type Snippet } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import GuestSaveHost from '$lib/components/guest/GuestSaveHost.svelte';
-	import DesktopAppNav from '$lib/components/layout/DesktopAppNav.svelte';
-	import MobileNav from '$lib/components/layout/MobileNav.svelte';
-	import Loaders from '$lib/components/loaders/Loaders.svelte';
-	import MenagerieCelebrationHost from '$lib/components/menagerie/MenagerieCelebrationHost.svelte';
-	import SurfaceTipHost from '$lib/components/onboarding/SurfaceTipHost.svelte';
-	import AccountReturnGate from '$lib/components/settings/AccountReturnGate.svelte';
-	import CompanionOverlay from '$lib/components/ui/CompanionOverlay.svelte';
-	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import NotifToastHost from '$lib/components/ui/NotifToastHost.svelte';
-	import { PENDING_ONBOARDING_STORAGE_KEY } from '$lib/constants/profile.constants';
-	import { REFERRAL_CODE_REGEX } from '$lib/constants/referral.constants';
-	import { AppPath, PublicPath } from '$lib/constants/routes.constants';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { guestMode } from '$lib/derived/guest.derived';
-	import { authBusy, userSignedIn, userSignedOutResolved } from '$lib/derived/user.derived';
+	import ClaimBanner from '#lib/components/claim/ClaimBanner.svelte';
+	import MoveNoticeBanner from '#lib/components/claim/MoveNoticeBanner.svelte';
+	import GuestSaveHost from '#lib/components/guest/GuestSaveHost.svelte';
+	import DesktopAppNav from '#lib/components/layout/DesktopAppNav.svelte';
+	import MobileNav from '#lib/components/layout/MobileNav.svelte';
+	import Loaders from '#lib/components/loaders/Loaders.svelte';
+	import MenagerieCelebrationHost from '#lib/components/menagerie/MenagerieCelebrationHost.svelte';
+	import SurfaceTipHost from '#lib/components/onboarding/SurfaceTipHost.svelte';
+	import AccountReturnGate from '#lib/components/settings/AccountReturnGate.svelte';
+	import CompanionOverlay from '#lib/components/ui/CompanionOverlay.svelte';
+	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import NotifToastHost from '#lib/components/ui/NotifToastHost.svelte';
+	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { guestMode } from '#lib/derived/guest.derived.ts';
+	import { authBusy, userSignedIn, userSignedOutResolved } from '#lib/derived/user.derived.ts';
+	import { installE2eResetHook } from '#lib/dev/e2e-reset.ts';
 	import {
 		drainPendingOnboarding,
 		hasPendingOnboarding
-	} from '$lib/services/onboarding-handoff.services';
-	import { initA2hs } from '$lib/stores/a2hs.store';
-	import { initFlowPrewarm } from '$lib/stores/flow.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import { userStore } from '$lib/stores/user.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/services/onboarding-handoff.services.ts';
+	import { initA2hs } from '#lib/stores/a2hs.store.ts';
+	import { initFlowPrewarm } from '#lib/stores/flow.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { browser } from '$app/env';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 
 	interface Props {
 		children: Snippet;
@@ -42,7 +46,7 @@
 	// Pre-warm the Flow deck so opening `/flow` is instantaneous.
 	// Subscriptions inside re-warm in the background on sign-in,
 	// balance-domain switch, featured-event toggle, or interest
-	// edits — components never block on the rebuild.
+	// edits: components never block on the rebuild.
 	//
 	// Gated on `$userSignedIn` so anonymous visitors on the public
 	// `/markets` browse surface don't kick off Flow's tag / metadata /
@@ -65,17 +69,21 @@
 	onMount(() => {
 		document.documentElement.dataset.app = '1';
 
-		// Capture Chrome's `beforeinstallprompt` before any child mounts — the
+		// Capture Chrome's `beforeinstallprompt` before any child mounts: the
 		// browser fires it once, early, on a cold load. Idempotent and
 		// browser-only (see `a2hs.store`).
 		initA2hs();
+
+		// Dev-only: expose the e2e profile-reset hook so the onboarding spec can
+		// escape the shared dev mock identity. No-op in production.
+		installE2eResetHook();
 
 		return () => {
 			delete document.documentElement.dataset.app;
 		};
 	});
 
-	// Public markets surface — any visitor can open a market's detail
+	// Public markets surface: any visitor can open a market's detail
 	// (`/markets/[id]`) before signing up. Auth-requiring affordances on
 	// the detail page (placing a call, saving, resolving) bounce to
 	// `/signin` at the point of action. The bare `/markets` path is now a
@@ -90,22 +98,22 @@
 	// Info / legal docs (`/info/[slug]`) sit inside the (app) shell so
 	// signed-in users get the navpill while reading them, but they
 	// must also stay reachable from pre-auth surfaces (the signup
-	// terms / privacy links in `OnboardingBeat3`). Treat them as a
+	// terms / privacy links in onboarding). Treat them as a
 	// public route alongside the markets exemption above.
 	const isPublicInfoRoute = $derived(page.url.pathname.startsWith('/info/'));
 
-	// Guest preview surface — an active guest session (the onboarding Skip path)
+	// Guest preview surface: an active guest session (the onboarding Skip path)
 	// may reach Flow to predict freely with no account. Scoped to Flow: that is
 	// all the preview funnel needs, and it keeps a plain signed-out visitor (no
 	// guest session) bounced to /signin everywhere as before. A guest never has
 	// a real principal, so every auth-requiring path past Flow stays gated.
 	const isGuestAllowedRoute = $derived(
-		$guestMode && page.url.pathname.startsWith(resolve(AppPath.Flow))
+		$guestMode && page.url.pathname.startsWith(resolveAppPath(AppPath.Flow))
 	);
 
 	// Auth-hydration window. After a provider resolves (notably the
 	// Internet Identity multi-account path), `goto(Flow)` can mount this
-	// shell while `onAuthStateChange` is still hydrating the profile —
+	// shell while `onAuthStateChange` is still hydrating the profile:
 	// `authBusy` is true, or the session is present but `profile` hasn't
 	// landed yet. In that window neither redirect effect below should fire
 	// (they'd bounce mid-hydration) and the shell must not paint an empty
@@ -121,12 +129,12 @@
 
 	// Share-link referral attribution. The prediction-share sheet hands out
 	// `/m/{id}?ref={code}` (aliased to `/markets/{id}?ref={code}`, which lands
-	// inside this layout). Reading the param here — the first place a freshly
-	// arriving visitor is handled — lets us credit the referral without a
+	// inside this layout). Reading the param here, the first place a freshly
+	// arriving visitor is handled, lets us credit the referral without a
 	// dedicated landing route: we stash the code into the SAME
 	// `vici:pending-onboarding` slot that `/i/{code}` uses, and the drain below
 	// redeems it post-signin (or, for a returning user, falls back to the
-	// friendship-only path). The market context is preserved — we only read the
+	// friendship-only path). The market context is preserved: we only read the
 	// query string, never redirect.
 	//
 	// Idempotency / guard rails:
@@ -152,7 +160,7 @@
 					})()
 				: {};
 
-			// Never overwrite an existing attribution — first referrer wins.
+			// Never overwrite an existing attribution: first referrer wins.
 			if (typeof parsed.referralCode === 'string' && parsed.referralCode.length > 0) {
 				return;
 			}
@@ -172,7 +180,7 @@
 
 		// Attribution targets *incoming* visitors only. An already-signed-in
 		// session that opens a share link is an established user who was never
-		// referred — stashing the `?ref=` code here would let the post-signin
+		// referred; stashing the `?ref=` code here would let the post-signin
 		// drain below mis-fire `claimReferralFriendship` for them. Skip the
 		// capture for signed-in sessions, mirroring how the genuine `/i/{code}`
 		// pre-auth stash only runs while signed-out.
@@ -195,7 +203,7 @@
 		captureSharedReferral(normalized);
 	});
 
-	// Auth gate — every (app) route requires a session. We only
+	// Auth gate: every (app) route requires a session. We only
 	// redirect once `userSignedOutResolved` is true, i.e. after the
 	// initial auth handshake has completed. Reacting to `authBusy`
 	// directly would bounce users to /signin during a normal page
@@ -205,7 +213,7 @@
 	// `authBusy` flip during a hot in-app navigation (e.g. just after
 	// `signIn()` resolves but before the userStore has finished
 	// hydrating the new principal's profile) doesn't briefly bounce a
-	// signed-in user back to /signin — the visible "double sign-in"
+	// signed-in user back to /signin: the visible "double sign-in"
 	// flash the user reported on 2026-05-27.
 	$effect(() => {
 		if (!browser) {
@@ -225,7 +233,7 @@
 		}
 
 		if ($userSignedOutResolved && !$userSignedIn) {
-			void goto(resolve(PublicPath.SignIn), { replaceState: true });
+			void goto(resolve(PublicPath.SignIn), { replace: true });
 		}
 	});
 
@@ -298,8 +306,8 @@
 	// Brand-new signed-in users who skipped `/signup` (signed in via
 	// `/signin` or via the auth landing flow) end up with a fresh
 	// profile whose `preferences.onboardingCompleted === false`. Route
-	// them to the 3-beat onboarding (which renders in authenticated mode
-	// — Beat 3 swaps the provider stack for a Finish button). We gate on
+	// them to the 3-beat onboarding (which renders in authenticated mode;
+	// Beat 3 swaps the provider stack for a Finish button). We gate on
 	// `!profileExisted` so returning users whose legacy profiles default
 	// `onboardingCompleted` to `false` are NOT re-prompted; their
 	// existing satellite-side profile wins.
@@ -327,14 +335,14 @@
 		}
 
 		// If a pending payload is still being applied in the same tick,
-		// let that path finish — it will set `onboardingCompleted: true`.
+		// let that path finish; it will set `onboardingCompleted: true`.
 		const raw = localStorage.getItem(PENDING_ONBOARDING_STORAGE_KEY);
 
 		if (nonNullish(raw)) {
 			return;
 		}
 
-		void goto(resolve(PublicPath.SignUp), { replaceState: true });
+		void goto(resolve(PublicPath.SignUp), { replace: true });
 	});
 </script>
 
@@ -343,7 +351,7 @@
 	class="relative isolate flex h-full flex-col"
 >
 	<!--
-		Desktop chrome — landing-style top nav. Hidden at <56rem; the
+		Desktop chrome: landing-style top nav. Hidden at <56rem; the
 		mobile floating pillnav (rendered below as `<MobileNav>`) owns
 		the chrome at narrower viewports.
 
@@ -353,23 +361,35 @@
 	-->
 	<DesktopAppNav />
 
+	<!--
+		Legacy-build-only migration banners for signed-in users: an informational
+		"VICI is moving" notice until the cutover switch, then the claim banner
+		that invites them to carry their account over. The claim service gates
+		both on the same switch so at most one renders, and neither on the web2
+		build.
+	-->
+	{#if $userSignedIn}
+		<MoveNoticeBanner />
+		<ClaimBanner />
+	{/if}
+
 	<main class="screen-scroll">
 		{#if authResolving}
 			<!--
-				Auth-hydration window — show a loader rather than the child
+				Auth-hydration window: show a loader rather than the child
 				snippet. After a provider resolves (notably the Internet Identity
 				multi-account path), this shell can mount while the session /
 				profile is still settling; painting `children()` here risks a
 				blank shell, and the redirect effects above are held off too.
 			-->
 			<div
-				class="flex min-h-[calc(100vh-10rem)] items-center justify-center"
+				class="flex min-h-full items-center justify-center"
 				aria-label={t({ locale: $localeStore, key: 'authn.checking.aria' })}
 				aria-live="polite"
 				data-tid={TestId.AppMain}
 				role="status"
 			>
-				<LoadingSpinner size="md" />
+				<LoadingSpinner size="lg" />
 			</div>
 		{:else}
 			{#key page.url.pathname}
@@ -390,7 +410,7 @@
 	<!--
 		Bottom nav is visible on every signed-in surface including
 		Flow and market detail. The one exception is anonymous visitors
-		on public routes (`/markets`, `/markets/*`, `/info/*`) — the
+		on public routes (`/markets`, `/markets/*`, `/info/*`): the
 		navpill's tabs all point at auth-gated areas, so showing it to a
 		signed-out user is a dead-end. On market detail the YES/NO CTA
 		bar floats above the navpill rather than replacing it.
@@ -402,7 +422,7 @@
 	<CompanionOverlay />
 
 	<!--
-		Menagerie achievement layer — mounts the glyph sprite once and drives the
+		Menagerie achievement layer: mounts the glyph sprite once and drives the
 		one-at-a-time celebration reveal when the owner crosses a new animal tier.
 		First-ever load seeds the celebrated-keys ledger silently; the reveal is
 		held while a Flow character beat is on screen so the two never collide.
@@ -412,7 +432,7 @@
 	{/if}
 
 	<!--
-		First-run surface tips — layer 2 of the tutorial system. The first time an
+		First-run surface tips: layer 2 of the tutorial system. The first time an
 		early user (`totalTrades < 5`) lands on Dash / Arena / Profile, a single
 		non-blocking tip slides in above the pillnav, shown at most once per
 		surface per device. Distinct from the in-flow `FlowCoach` (layer 1).

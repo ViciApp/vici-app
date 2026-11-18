@@ -1,4 +1,4 @@
-import { MINUTE_IN_MS } from '$lib/constants/app.constants';
+import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import { readable, type Readable } from 'svelte/store';
 
 /**
@@ -8,7 +8,7 @@ import { readable, type Readable } from 'svelte/store';
  * arc, kickoff countdowns) derive off this single tick so they flip in
  * step rather than each spinning up its own out-of-phase `setInterval`.
  * One-minute precision is plenty for "is the event live / how many days
- * left" — sub-minute cadence buys nothing for any surface we render.
+ * left": sub-minute cadence buys nothing for any surface we render.
  *
  * Tests can substitute a mock store by importing the consumer from a
  * different module.

@@ -1,70 +1,72 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import MarketOddsSkeleton from '$lib/components/market/MarketOddsSkeleton.svelte';
-	import OpenOrdersTable from '$lib/components/portfolio/OpenOrdersTable.svelte';
-	import PortfolioAllocationCard from '$lib/components/portfolio/PortfolioAllocationCard.svelte';
-	import PortfolioEmptyState from '$lib/components/portfolio/PortfolioEmptyState.svelte';
-	import PortfolioHero from '$lib/components/portfolio/PortfolioHero.svelte';
-	import PortfolioPerformanceCard from '$lib/components/portfolio/PortfolioPerformanceCard.svelte';
-	import { EM_DASH, MILLISECOND_IN_NANOSECONDS, USD_DECIMALS } from '$lib/constants/app.constants';
-	import { primaryMarketTag } from '$lib/constants/market-tags.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_TOKEN } from '$lib/constants/tokens/tokens.ic.constants';
-	import { marketTags } from '$lib/derived/market-tags.derived';
-	import { markets, marketsNotInitialized } from '$lib/derived/markets.derived';
-	import { orders, ordersNotInitialized } from '$lib/derived/orders.derived';
-	import { playgroundVxpUnitMode } from '$lib/derived/playground.derived';
-	import { positions, positionsNotInitialized } from '$lib/derived/positions.derived';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
+	import MarketTitleSkeleton from '#lib/components/market/MarketTitleSkeleton.svelte';
+	import OpenOrdersTable from '#lib/components/portfolio/OpenOrdersTable.svelte';
+	import PortfolioAllocationCard from '#lib/components/portfolio/PortfolioAllocationCard.svelte';
+	import PortfolioEmptyState from '#lib/components/portfolio/PortfolioEmptyState.svelte';
+	import PortfolioHero from '#lib/components/portfolio/PortfolioHero.svelte';
+	import PortfolioPerformanceCard from '#lib/components/portfolio/PortfolioPerformanceCard.svelte';
+	import { EMPTY_VALUE, USD_DECIMALS } from '#lib/constants/app.constants.ts';
+	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+	import { marketTags } from '#lib/derived/market-tags.derived.ts';
+	import { markets, marketsNotInitialized } from '#lib/derived/markets.derived.ts';
+	import { orders, ordersNotInitialized } from '#lib/derived/orders.derived.ts';
+	import { playgroundVxpUnitMode } from '#lib/derived/playground.derived.ts';
+	import { positions, positionsNotInitialized } from '#lib/derived/positions.derived.ts';
 	import {
 		decisiveSettledCount,
 		resolvedPositions,
 		resolvedPositionsNotInitialized
-	} from '$lib/derived/resolved-positions.derived';
-	import { tradeHistoryNotInitialized } from '$lib/derived/trade-history.derived';
-	import { vxpHoldingsTotal } from '$lib/derived/vxp-holdings.derived';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { Position, ResolvedPosition } from '$lib/types/position';
-	import { displayAccuracyPct } from '$lib/utils/accuracy.utils';
-	import { decimalFixedValueToNumber, relativeAgoBucketFromMs } from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/derived/resolved-positions.derived.ts';
+	import { tradeHistoryNotInitialized } from '#lib/derived/trade-history.derived.ts';
+	import { vxpHoldingsTotal } from '#lib/derived/vxp-holdings.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { Position, ResolvedPosition } from '#lib/types/position.ts';
+	import { displayAccuracyPct } from '#lib/utils/accuracy.utils.ts';
+	import { decimalFixedValueToNumber, relativeAgoBucketFromMs } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import {
 		formatPositionPnLWithOptionalUnit,
 		formatVxpBalance
-	} from '$lib/utils/playground-display.utils';
-	import { calculatePositionPnL, positionEntryProbability } from '$lib/utils/portfolio.utils';
-	import { refreshOrders, refreshPositions } from '$lib/utils/refresh.utils';
-	import { inferResolvedOutcomeId } from '$lib/utils/resolved-position.utils';
-	import { tagColor } from '$lib/utils/tag-color.utils';
+	} from '#lib/utils/playground-display.utils.ts';
+	import { calculatePositionPnL, positionEntryProbability } from '#lib/utils/portfolio.utils.ts';
+	import { refreshOrders, refreshPositions } from '#lib/utils/refresh.utils.ts';
+	import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
+	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	/**
-	 * Portfolio page — single-page hero + flat lists.
+	 * Portfolio page: single-page hero + flat lists.
 	 *
 	 * Layout (top → bottom)
 	 * - `ScreenHeader`, back control + centered title "Portfolio".
-	 * - Hero card (left-aligned, gradient surface) — TOTAL HOLDINGS
+	 * - Hero card (left-aligned, gradient surface): TOTAL HOLDINGS
 	 *   eyebrow, 38 px VXP balance + unit, 3-col stat row
 	 *   (Unrealized P&L · 7D Accuracy · Rank).
 	 * - Performance · 30D card with signed % delta and sparkline of
 	 *   cumulative realised PnL over 30 days. Hidden when the user has
 	 *   no settled VXP events in window.
-	 * - Allocation card — per-tag share of open VXP capital, top 5 +
+	 * - Allocation card: per-tag share of open VXP capital, top 5 +
 	 *   Other, sorted by descending share. Hidden when no open VXP
 	 *   positions.
-	 * - Active calls — flat list with per-category accent tag + side
+	 * - Active calls: flat list with per-category accent tag + side
 	 *   tag, market title, "Entry X% → Y%" entry-to-current probability,
 	 *   and signed "+N VXP · +M%" PnL (delta also expressed as
 	 *   price-move %).
-	 * - Recent history — flat resolved rows: title, side tag, "Xd ago",
-	 *   WIN/LOSS label, signed +VXP.
-	 * - Open orders — same card shape as active calls, with the order's
+	 * - Recent history: flat resolved rows (title, side tag, "Xd ago",
+	 *   WIN/LOSS label, signed +VXP).
+	 * - Open orders: same card shape as active calls, with the order's
 	 *   limit price + qty in place of the entry → current strip, plus
 	 *   an inline cancel button.
 	 *
-	 * Rank: not yet served by the satellite — rendered as `EM_DASH`
+	 * Rank: not yet served by the satellite, rendered as `EMPTY_VALUE`
 	 * placeholder, mirroring the Dash page treatment.
 	 */
 
@@ -81,11 +83,14 @@
 		refreshPositions();
 	};
 
-	const getMarketById = (id: string) => $markets.find((m) => m.id === id);
+	// Markets in the reader's language (see `displayMarkets`); every numeric /
+	// status field is the untouched canonical value, so this is the right source
+	// for both the row titles and the PnL / probability math below.
+	const getMarketById = (id: string) => $displayMarkets.get(id);
 
 	// Live positions whose market hasn't resolved yet. The clearing canister
 	// deletes positions on settlement, so anything still in `$positions` is
-	// by definition unresolved — but keep the explicit filter so a brief
+	// by definition unresolved, but keep the explicit filter so a brief
 	// staleness window (positions seen before the market list catches up)
 	// can't show a settled row in the Active section.
 	const openPositions = $derived(
@@ -121,7 +126,7 @@
 			const pnl = calculatePositionPnL({ position: pos, market });
 
 			// Skip positions whose value is still unknown (book not read / empty)
-			// instead of treating them as 0 — see `calculatePositionValue`.
+			// instead of treating them as 0; see `calculatePositionValue`.
 			return nonNullish(pnl) ? acc + pnl : acc;
 		}, 0)
 	);
@@ -151,12 +156,12 @@
 	});
 
 	// `profile.accuracy` is persisted as a 0..100 percentage (see
-	// `profile.services.ts` `calculateAndSyncStats`). Render directly —
+	// `profile.services.ts` `calculateAndSyncStats`). Render directly:
 	// multiplying by 100 here gave 10000% for a fully-accurate user.
 	const accuracyValue = $derived($userStore.profile?.accuracy ?? 0);
 
 	// A user with no settled predictions yet shows an optimistic 100% rather
-	// than a misleading 0% (display-only — see `displayAccuracyPct`). This is
+	// than a misleading 0% (display-only; see `displayAccuracyPct`). This is
 	// always the viewer's own portfolio, so the `resolvedPositions`-derived
 	// count is the right gate.
 	const accuracyDisplay = $derived(
@@ -187,25 +192,25 @@
 	};
 
 	const categoryLabel = (marketId: string): string | null => {
-		const tag = primaryMarketTag($marketTags[marketId]);
+		const micro = primaryMicro($marketTags[marketId] ?? []);
 
-		return tag ? tag.toUpperCase() : null;
+		return nonNullish(micro) ? micro.toUpperCase() : null;
 	};
 
 	/**
 	 * Per-category accent for the row tag chip. Falls back to the
-	 * laurel-gold default when the market has no recognised tag — same
+	 * laurel-gold default when the market has no recognised micro: same
 	 * fallback `tagColor()` uses internally.
 	 */
 	const categoryAccent = (marketId: string): string => {
-		const tag = primaryMarketTag($marketTags[marketId]);
+		const micro = primaryMicro($marketTags[marketId] ?? []);
 
-		return tagColor(tag ?? '');
+		return tagColor(micro ?? '');
 	};
 
 	// Current implied probability for the position's side, or `undefined` when
 	// the market's probability is unknown (book not read / empty). Never coerce
-	// the unknown state to a fabricated 0% — callers render a placeholder.
+	// the unknown state to a fabricated 0%; callers render a placeholder.
 	const positionSideProb = (pos: Position): number | undefined => {
 		const market = getMarketById(pos.marketId);
 		const yesProb = market?.yesProbability;
@@ -252,7 +257,7 @@
 
 	/**
 	 * Display side label for a resolved row. Side-inference rules live in
-	 * `inferResolvedOutcomeId` — see that helper for the per-payoff-type
+	 * `inferResolvedOutcomeId`: see that helper for the per-payoff-type
 	 * fallback behavior (binary losers map to the opposite outcome,
 	 * categorical losers stay unknown).
 	 */
@@ -261,7 +266,7 @@
 		const outcomeId = inferResolvedOutcomeId({ resolved, market });
 
 		if (isNullish(outcomeId)) {
-			return EM_DASH;
+			return EMPTY_VALUE;
 		}
 
 		return market?.outcomes?.find((o) => o.id === outcomeId)?.title ?? outcomeId;
@@ -321,7 +326,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'portfolio.back' }),
-			onBack: () => goBack(resolve(AppPath.Dash))
+			onBack: () => goBack(resolveAppPath(AppPath.Dash))
 		}}
 		title={t({ locale: $localeStore, key: 'portfolio.title' })}
 	/>
@@ -368,34 +373,39 @@
 						{@const entry = positionEntryProb(pos)}
 						{@const current = positionSideProb(pos)}
 						{@const move = positionMoveDisplay(pos)}
-						{@const oddsVariant = market?.priceLoaded === true ? 'empty' : 'loading'}
+						{@const probabilityVariant = market?.priceLoaded === true ? 'empty' : 'loading'}
 						{@const catLabel = categoryLabel(pos.marketId)}
 						{@const catAccent = categoryAccent(pos.marketId)}
 
 						<li>
 							<a
 								class="portfolio-row portfolio-row-card portfolio-row-inline"
-								aria-label={market?.title ??
-									t({ locale: $localeStore, key: 'portfolio.unknown_market' })}
+								aria-label={$marketsNotInitialized && isNullish(market)
+									? t({ locale: $localeStore, key: 'ui.loading' })
+									: (market?.title ?? t({ locale: $localeStore, key: 'portfolio.unknown_market' }))}
 								href="{AppPath.Markets}/{pos.marketId}"
 							>
 								<div class="portfolio-row-tags">
 									{#if catLabel}
 										<span style:color={catAccent} class="portfolio-row-cat">{catLabel}</span>
 									{:else}
-										<span class="portfolio-row-cat is-dim">{EM_DASH}</span>
+										<span class="portfolio-row-cat is-dim">{EMPTY_VALUE}</span>
 									{/if}
 									<span class="portfolio-row-side portfolio-row-side-{sideKey}">
 										{sideLabel(pos)}
 									</span>
 								</div>
 								<div class="portfolio-row-title">
-									{market?.title ?? t({ locale: $localeStore, key: 'portfolio.unknown_market' })}
+									{#if $marketsNotInitialized && isNullish(market)}
+										<MarketTitleSkeleton />
+									{:else}
+										{market?.title ?? t({ locale: $localeStore, key: 'portfolio.unknown_market' })}
+									{/if}
 								</div>
 								<div class="portfolio-row-meta">
 									<span class="num portfolio-row-prob">
 										{#if isNullish(current)}
-											<MarketOddsSkeleton variant={oddsVariant} />
+											<MarketProbabilitySkeleton variant={probabilityVariant} />
 										{:else if nonNullish(entry)}
 											{t({
 												locale: $localeStore,
@@ -416,7 +426,7 @@
 										class:is-positive={nonNullish(pnl) && pnl >= 0}
 									>
 										{#if isNullish(pnl)}
-											<MarketOddsSkeleton variant={oddsVariant} />
+											<MarketProbabilitySkeleton variant={probabilityVariant} />
 										{:else}
 											{formatRowPnl(pnl)}{#if nonNullish(move)}<span class="portfolio-row-move">
 													· {move}</span
@@ -454,7 +464,12 @@
 							<a class="portfolio-history-row" href="{AppPath.Markets}/{resolved.marketId}">
 								<div class="portfolio-history-body">
 									<div class="portfolio-history-title">
-										{market?.title ?? t({ locale: $localeStore, key: 'portfolio.unknown_market' })}
+										{#if $marketsNotInitialized && isNullish(market)}
+											<MarketTitleSkeleton />
+										{:else}
+											{market?.title ??
+												t({ locale: $localeStore, key: 'portfolio.unknown_market' })}
+										{/if}
 									</div>
 									<div class="portfolio-history-meta">
 										<span class="portfolio-row-side portfolio-row-side-{sideKey}">
@@ -470,7 +485,7 @@
 										{:else if resolved.result === 'lost'}
 											{t({ locale: $localeStore, key: 'portfolio.row.loss' })}
 										{:else}
-											{EM_DASH}
+											{EMPTY_VALUE}
 										{/if}
 									</span>
 									<span
@@ -496,7 +511,11 @@
 					</h2>
 					<span class="num portfolio-section-count">{$orders.length}</span>
 				</header>
-				<OpenOrdersTable markets={$markets} onRefresh={onOrdersRefresh} orders={$orders} />
+				<OpenOrdersTable
+					markets={[...$displayMarkets.values()]}
+					onRefresh={onOrdersRefresh}
+					orders={$orders}
+				/>
 			</section>
 		{/if}
 	{/if}
@@ -583,7 +602,7 @@
 
 	/* Active calls render as hairline-separated inline rows (no card
 	   chrome) rather than bordered chips: transparent surface, a top
-	   border between rows, square corners, and a subtle hover tint —
+	   border between rows, square corners, and a subtle hover tint:
 	   the inline-row treatment shared with other list surfaces. */
 	.portfolio-row-inline {
 		background: transparent;

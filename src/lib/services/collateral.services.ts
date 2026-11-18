@@ -1,21 +1,30 @@
-import type { ClearingDid } from '$declarations';
+import type { ClearingDid } from '#declarations';
 import {
 	depositCollateral as depositCollateralApi,
 	getAccountState as getAccountStateApi,
 	getAccountStateQuery as getAccountStateQueryApi,
-	listCollateralAssets as listCollateralAssetsApi,
-	registerIcrcAsset as registerIcrcAssetApi,
-	withdrawCollateral as withdrawCollateralApi
-} from '$lib/api/clearing.api';
-import { approve, transactionFee } from '$lib/api/icrc-ledger.api';
-import { CLEARING_CANISTER_ID } from '$lib/constants/canisters.constants';
-import { getIdentity, safeGetIdentityOnce } from '$lib/services/identity.services';
-import { loadWithCertification } from '$lib/services/query-update.services';
-import { refreshAllBalances } from '$lib/utils/refresh.utils';
-import { resolveClearingAssetId } from '$lib/utils/tokens.utils';
-import { getIcrcAccount } from '$lib/utils/transactions.utils';
+	listCollateralAssets as listCollateralAssetsApi
+} from '#lib/api/clearing.api.ts';
+import { approve, balance as getLedgerBalance, transactionFee } from '#lib/api/icrc-ledger.api.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { SECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { getIdentity, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import { loadWithCertification } from '#lib/services/query-update.services.ts';
+import { refreshAllBalances } from '#lib/utils/refresh.utils.ts';
+import { resolveClearingAssetId } from '#lib/utils/tokens.utils.ts';
+import { getIcrcAccount } from '#lib/utils/transactions.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
+import {
+	depositEngineCollateral as depositEngineCollateralWeb2,
+	getEngineAccountState as getEngineAccountStateWeb2,
+	getWalletBalances as getWalletBalancesWeb2,
+	listEngineCollateralAssets as listEngineCollateralAssetsWeb2
+} from '#lib/web2/client.ts';
+import { getWeb2User } from '#lib/web2/session.ts';
 import { isNullish, nowInBigIntNanoSeconds, toNullable } from '@dfinity/utils';
-import type { Identity } from '@icp-sdk/core/agent';
+import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 import { getIdentityOnce } from '@junobuild/core';
 import { nanoid } from 'nanoid';
 
@@ -40,6 +49,23 @@ export const depositCollateral = async ({
 	amount: bigint;
 	domain: ClearingDid.BalanceDomain;
 }): Promise<void> => {
+	// web2: the API owns the custodial keys, so the ICRC approval and the
+	// clearing deposit both run server-side under the caller's derived
+	// identity; the route resolves the balance domain from the asset. The
+	// clearing `asset_id` still resolves client-side from the (public,
+	// dual-mode) collateral catalog.
+	if (isWeb2Backend()) {
+		await depositEngineCollateralWeb2({
+			depositId: makeOperationId({ prefix: 'DEPOSIT', hint: amount }),
+			assetId: resolveClearingAssetId(assetPrincipal),
+			amount
+		});
+
+		refreshAllBalances();
+
+		return;
+	}
+
 	const identity = await safeGetIdentityOnce();
 
 	const ledgerFee = await transactionFee({ identity, ledgerCanisterId: assetPrincipal });
@@ -51,7 +77,7 @@ export const depositCollateral = async ({
 		ledgerCanisterId: assetPrincipal,
 		amount: approvalAmount,
 		spender: getIcrcAccount(CLEARING_CANISTER_ID),
-		expiresAt: nowInBigIntNanoSeconds() + 60n * 1_000_000_000n // 1 minute
+		expiresAt: nowInBigIntNanoSeconds() + 60n * SECOND_IN_NANOSECONDS
 	});
 
 	const asset_id = resolveClearingAssetId(assetPrincipal);
@@ -60,35 +86,6 @@ export const depositCollateral = async ({
 		identity,
 		params: {
 			deposit_id: makeOperationId({ prefix: 'DEPOSIT', hint: amount }),
-			domain: toNullable(domain),
-			asset_id,
-			amount
-		}
-	});
-
-	refreshAllBalances();
-};
-
-/**
- * Withdraws collateral from clearing to the user for the given ledger asset.
- */
-export const withdrawCollateral = async ({
-	assetPrincipal,
-	amount,
-	domain
-}: {
-	assetPrincipal: string;
-	amount: bigint;
-	domain: ClearingDid.BalanceDomain;
-}): Promise<void> => {
-	const identity = await safeGetIdentityOnce();
-
-	const asset_id = resolveClearingAssetId(assetPrincipal);
-
-	await withdrawCollateralApi({
-		identity,
-		params: {
-			withdrawal_id: makeOperationId({ prefix: 'WITHDRAW', hint: amount }),
 			domain: toNullable(domain),
 			asset_id,
 			amount
@@ -132,22 +129,9 @@ const fetchAccountState = ({
 };
 
 /**
- * Fetches clearing account state (balances per domain) for the signed-in user.
- *
- * Performs a single certified update. Prefer {@link loadAccountState} for UI
- * flows that benefit from the fast-then-certified render pattern.
- */
-export const getAccountState = async (
-	domain: ClearingDid.BalanceDomain
-): Promise<ClearingDid.AccountStateResponse> => {
-	const identity = await safeGetIdentityOnce();
-
-	return fetchAccountState({ identity, certified: true, domain });
-};
-
-/**
- * Callback-based variant of {@link getAccountState}. No-op when the user is
- * not signed in.
+ * Fetches clearing account state (balances per domain) for the signed-in user
+ * with the fast-then-certified render pattern. No-op when the user is not
+ * signed in.
  */
 export const loadAccountState = async ({
 	domain,
@@ -158,6 +142,24 @@ export const loadAccountState = async ({
 	onLoad: (options: { certified: boolean; response: ClearingDid.AccountStateResponse }) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> => {
+	// web2 reads the account state once and delivers it as the final
+	// (`certified: true`) pass: no query/update pair exists on that transport,
+	// and delivering it uncertified would trip the Settlement-only gate in
+	// `LoaderCollaterals` and leave the store empty forever.
+	if (isWeb2Backend()) {
+		if (isNullish(getWeb2User())) {
+			return;
+		}
+
+		try {
+			onLoad({ certified: true, response: await getEngineAccountStateWeb2(domain) });
+		} catch (err: unknown) {
+			onUpdateError?.(err);
+		}
+
+		return;
+	}
+
 	const identity = await getIdentity();
 
 	if (isNullish(identity)) {
@@ -192,6 +194,12 @@ const fetchCollateralAssets = ({
  * UI flows that benefit from the fast-then-certified render pattern.
  */
 export const getCollateralAssets = async (): Promise<ClearingDid.CollateralAssetInfo[]> => {
+	// The asset catalog is a public engine read on the HTTP bridge, so web2
+	// needs no on-chain identity (none exists in that mode).
+	if (isWeb2Backend()) {
+		return await listEngineCollateralAssetsWeb2();
+	}
+
 	const identity = await getIdentityOnce();
 
 	if (isNullish(identity)) {
@@ -212,6 +220,19 @@ export const loadCollateralAssets = async ({
 	onLoad: (options: { certified: boolean; response: ClearingDid.CollateralAssetInfo[] }) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> => {
+	// web2 reads the public HTTP bridge once: no query/update pair exists on
+	// that transport, so the single response is delivered as the final
+	// (`certified: true`) pass.
+	if (isWeb2Backend()) {
+		try {
+			onLoad({ certified: true, response: await listEngineCollateralAssetsWeb2() });
+		} catch (err: unknown) {
+			onUpdateError?.(err);
+		}
+
+		return;
+	}
+
 	const identity = await getIdentity();
 
 	if (isNullish(identity)) {
@@ -227,18 +248,56 @@ export const loadCollateralAssets = async ({
 	});
 };
 
+// The sweep leaves a small fee reserve behind so the source account can still
+// pay the approve + transfer fees of the deposit itself.
+const SWEEP_FEE_RESERVE_MULTIPLIER = 2n;
+
 /**
- * Registers an ICRC ledger as a collateral asset on clearing (admin-style operation).
+ * Free VXP available to auto-sweep into clearing collateral, minus the
+ * ledger-fee reserve, in base units. `ZERO` when signed out or when nothing
+ * exceeds the reserve, so the sweep loop gates on a single figure.
+ *
+ * On the default backend this reads the signed-in user's ICRC ledger balance;
+ * in web2 mode the free balance is the custodial one held by the API (there
+ * is no local identity), while the fee stays a public ledger query read
+ * anonymously like the other public on-chain reads.
  */
-export const registerIcrcAsset = async (
-	params: ClearingDid.RegisterIcrcAssetParams
-): Promise<void> => {
-	const identity = await safeGetIdentityOnce();
+export const getSweepableVxpAmount = async (): Promise<bigint> => {
+	const { ledgerCanisterId } = VXP_TOKEN;
 
-	await registerIcrcAssetApi({
-		identity,
-		params
-	});
+	if (isWeb2Backend()) {
+		if (isNullish(getWeb2User())) {
+			return ZERO;
+		}
 
-	refreshAllBalances();
+		const [{ balances }, fee] = await Promise.all([
+			getWalletBalancesWeb2(),
+			transactionFee({ identity: new AnonymousIdentity(), ledgerCanisterId })
+		]);
+
+		const rawBalance =
+			balances.find(({ chain, symbol }) => chain === 'ic' && symbol === VXP_TOKEN.symbol)
+				?.balance ?? ZERO;
+
+		const reserve = fee * SWEEP_FEE_RESERVE_MULTIPLIER;
+
+		return rawBalance > reserve ? rawBalance - reserve : ZERO;
+	}
+
+	const identity = await getIdentity();
+
+	if (isNullish(identity)) {
+		return ZERO;
+	}
+
+	const account = getIcrcAccount(identity.getPrincipal());
+
+	const [rawBalance, fee] = await Promise.all([
+		getLedgerBalance({ identity, ledgerCanisterId, account }),
+		transactionFee({ identity, ledgerCanisterId })
+	]);
+
+	const reserve = fee * SWEEP_FEE_RESERVE_MULTIPLIER;
+
+	return rawBalance > reserve ? rawBalance - reserve : ZERO;
 };

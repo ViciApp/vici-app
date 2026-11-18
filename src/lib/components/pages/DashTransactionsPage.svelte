@@ -1,8 +1,8 @@
 <script lang="ts">
 	/**
-	 * Transaction history — every event that changed what the user owns,
+	 * Transaction history: every event that changed what the user owns,
 	 * newest first: bonuses (labelled from the ledger award memo),
-	 * prediction stakes, settlements, and external transfers. The last
+	 * prediction fills, settlements, and external transfers. The last
 	 * column carries the running total balance after each event, anchored on
 	 * the live total-holdings figure so the top row always matches the Dash
 	 * hero and old rows never drift negative. The headline triple reconciles
@@ -22,46 +22,51 @@
 		Zap
 	} from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import EmptyState from '$lib/components/ui/EmptyState.svelte';
-	import Pagination from '$lib/components/ui/Pagination.svelte';
+	import DashHoldingsBreakdown from '#lib/components/dash/DashHoldingsBreakdown.svelte';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
+	import Pagination from '#lib/components/ui/Pagination.svelte';
 	import {
-		MILLISECOND_IN_NANOSECONDS,
+		EMPTY_VALUE,
 		TRANSACTION_HISTORY_PAGE_SIZE,
 		USD_DECIMALS,
 		ZERO
-	} from '$lib/constants/app.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { marketById } from '$lib/derived/market-by-id.derived';
-	import { tradeHistory, tradeHistoryNotInitialized } from '$lib/derived/trade-history.derived';
+	} from '#lib/constants/app.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+	import { openCallCount } from '#lib/derived/open-call-count.derived.ts';
+	import { tradeHistory, tradeHistoryNotInitialized } from '#lib/derived/trade-history.derived.ts';
 	import {
 		vxpBacked,
 		vxpHoldingsNotInitialized,
 		vxpHoldingsTotal,
 		vxpSpendable
-	} from '$lib/derived/vxp-holdings.derived';
-	import { track } from '$lib/services/analytics.services';
+	} from '#lib/derived/vxp-holdings.derived.ts';
+	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		loadVxpLedgerHistory,
 		type VxpLedgerHistory
-	} from '$lib/services/transaction-history.services';
-	import { localeStore } from '$lib/stores/locale.store';
+	} from '#lib/services/transaction-history.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
 	import type {
 		TransactionHistoryBonusTag,
 		TransactionHistoryFilter,
 		TransactionHistoryRow
-	} from '$lib/types/transaction-history';
+	} from '#lib/types/transaction-history.ts';
 	import {
 		decimalFixedValueToNumber,
 		formatLongDate,
 		formatNanosecondsToDate
-	} from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { goBack } from '$lib/utils/nav.utils';
-	import { formatVxpBalance, formatWholeVxpMagnitude } from '$lib/utils/playground-display.utils';
-	import { assembleTransactionHistory } from '$lib/utils/transaction-history.utils';
+	} from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import {
+		formatVxpBalance,
+		formatWholeVxpMagnitude
+	} from '#lib/utils/playground-display.utils.ts';
+	import { assembleTransactionHistory } from '#lib/utils/transaction-history.utils.ts';
+	import { page } from '$app/state';
 
 	const FILTERS: TransactionHistoryFilter[] = ['all', 'predictions', 'results', 'bonuses'];
 
@@ -189,7 +194,7 @@
 		}
 
 		const kindLabel = t({ locale, key: `transactions.kind.${row.kind}` as const });
-		const market = nonNullish(row.marketId) ? $marketById.get(row.marketId) : undefined;
+		const market = nonNullish(row.marketId) ? $displayMarkets.get(row.marketId) : undefined;
 
 		return nonNullish(market) ? `${kindLabel} · ${market.title}` : kindLabel;
 	};
@@ -202,13 +207,13 @@
 
 		const when = formatNanosecondsToDate({ nanoseconds: row.timestampNs });
 
-		// A fill moves the stake into play without changing total — surface the
-		// committed margin here so the muted "—" amount reads as "still yours".
-		if (row.kind === 'prediction' && nonNullish(row.stake) && row.stake > ZERO) {
+		// A fill moves the amount into play without changing total; surface the
+		// committed margin here so the muted "–" amount reads as "still yours".
+		if (row.kind === 'prediction' && nonNullish(row.inPlay) && row.inPlay > ZERO) {
 			return `${when} · ${t({
 				locale: $localeStore,
 				key: 'transactions.in_play',
-				params: { amount: formatVxpBalance({ value: row.stake, decimals: USD_DECIMALS }) }
+				params: { amount: formatVxpBalance({ value: row.inPlay, decimals: USD_DECIMALS }) }
 			})}`;
 		}
 
@@ -217,9 +222,9 @@
 
 	const deltaDisplay = (row: TransactionHistoryRow): string => {
 		// Placing a prediction is wealth-neutral (VXP moves into play, total is
-		// unchanged), so it carries no signed amount — the meta shows the stake.
+		// unchanged), so it carries no signed amount; the meta shows the amount in play.
 		if (row.kind === 'prediction') {
-			return '—';
+			return EMPTY_VALUE;
 		}
 
 		const value = decimalFixedValueToNumber({ value: row.delta, decimals: USD_DECIMALS });
@@ -239,29 +244,20 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'transactions.back' }),
-			onBack: () => goBack(resolve(AppPath.Dash))
+			onBack: () => goBack(resolveAppPath(AppPath.Dash))
 		}}
 		title={t({ locale: $localeStore, key: 'transactions.title' })}
 	/>
 
 	<div class="txh-summary">
-		<span class="txh-total">
-			<em>{t({ locale: $localeStore, key: 'transactions.total' })}</em>
-			<span class="num">{totalDisplay} VXP</span>
-		</span>
-		<div class="txh-breakdown">
-			<span class="txh-stat">
-				<em>{t({ locale: $localeStore, key: 'transactions.available' })}</em>
-				<span class="num">{availableDisplay}</span>
-			</span>
-			<span class="txh-inplay num">
-				{t({
-					locale: $localeStore,
-					key: 'transactions.in_play',
-					params: { amount: inPlayDisplay }
-				})}
-			</span>
-		</div>
+		<DashHoldingsBreakdown
+			{availableDisplay}
+			availableValue={$vxpSpendable}
+			holdingsDisplay={totalDisplay}
+			{inPlayDisplay}
+			inPlayValue={$vxpBacked}
+			openCallCount={$openCallCount}
+		/>
 	</div>
 
 	<div
@@ -327,7 +323,7 @@
 						<span class="txh-meta">{rowMeta(row)}</span>
 					</span>
 					<span class="txh-amt num is-{deltaTone(row)}">
-						{row.kind === 'joined' ? '—' : deltaDisplay(row)}
+						{row.kind === 'joined' ? EMPTY_VALUE : deltaDisplay(row)}
 					</span>
 					<span class="txh-bal num"
 						>{formatVxpBalance({ value: row.balance, decimals: USD_DECIMALS })}</span
@@ -357,61 +353,7 @@
 	}
 
 	.txh-summary {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
 		padding: 2px var(--spacing-edge) 12px;
-	}
-
-	.txh-total {
-		display: flex;
-		align-items: baseline;
-		gap: 8px;
-		color: var(--text-base);
-		font-size: var(--t-20);
-		font-weight: 600;
-	}
-
-	.txh-total em {
-		color: var(--text-muted);
-		font-size: var(--t-11);
-		font-style: normal;
-		font-weight: 400;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-	}
-
-	.txh-breakdown {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-	}
-
-	.txh-stat {
-		display: flex;
-		align-items: baseline;
-		gap: 6px;
-		color: var(--text-base);
-		font-size: var(--t-13);
-		font-weight: 600;
-	}
-
-	.txh-stat em {
-		color: var(--text-muted);
-		font-size: var(--t-11);
-		font-style: normal;
-		font-weight: 400;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-	}
-
-	.txh-inplay {
-		padding: 3px 10px;
-		border: 1px solid var(--border-base);
-		border-radius: var(--r-pill);
-		color: var(--text-muted);
-		font-size: var(--t-11);
-		white-space: nowrap;
 	}
 
 	.txh-filters {

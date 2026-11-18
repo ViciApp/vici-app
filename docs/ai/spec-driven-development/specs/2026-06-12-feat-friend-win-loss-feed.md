@@ -8,12 +8,12 @@ Status: Draft
 ## Goal
 
 Make the Arena → Friends "Recent activity" feed show only **friends'
-daily win/loss** — each friend's decisive position outcomes (won /
-lost) from the last 24 hours — instead of a generic action log. The
+daily win/loss** (each friend's decisive position outcomes (won /
+lost) from the last 24 hours) instead of a generic action log. The
 surface becomes a rolling 24h scoreboard of how the friend graph
 actually did.
 
-## Context — why this needs backend work
+## Context: why this needs backend work
 
 The naive reading ("filter the activity feed to settlements in 24h")
 does not work, and this spec exists to record why:
@@ -37,25 +37,25 @@ does not work, and this spec exists to record why:
 So the feed needs a **new read** that returns recent settled positions
 (or a win/loss summary) for a set of friend principals, windowed to 24h.
 
-## Scope (proposed — to refine before build)
+## Scope (proposed, to refine before build)
 
 - A backend read that, given a set of principals (the viewer's friend
   set, `friendsListStore`) and a 24h window, returns each friend's
   decisive settled positions (or an aggregated per-friend win/loss).
 - A frontend store/derived/loader to consume it, then render windowed
   win/loss rows in `FriendsTab.svelte` with the `--yes` / `--no` signal
-  per outcome (no fourth signal — brand §4.2).
+  per outcome (no fourth signal: brand §4.2).
 - Empty state: settlements are sparse, so the 24h window is often empty;
   keep a quiet copy block.
 
 ### Out of scope
 
-- The reaction affordance — shipped in
+- The reaction affordance, shipped in
   [`2026-06-12-feat-friend-feed-reaction-redesign.md`](./2026-06-12-feat-friend-feed-reaction-redesign.md).
-- Aggregated net daily P&L (summed VXP up/down) — a summary chip can be
+- Aggregated net daily P&L (summed VXP up/down): a summary chip can be
   a later follow-up; this spec shows per-position win/loss rows.
 
-## Technical requirements (satellite / backend) — mandatory, to complete
+## Technical requirements (satellite / backend): mandatory, to complete
 
 This section must be filled before the spec leaves `Draft`. Open
 questions to resolve first:
@@ -76,7 +76,7 @@ window)`, or is a new `defineQuery` / clearing method required? If the
 - **Memory & storage.** No new collection expected if served from
   clearing; confirm.
 - **Security.** A friend's win/loss is semi-public within the friend
-  graph — confirm the caller-permission model for reading another
+  graph: confirm the caller-permission model for reading another
   principal's settled outcomes (the clearing settlement-derived reads
   are guarded by `caller_is_not_anonymous`).
 - **Parameters.** Reuse `DAY_IN_MS` from

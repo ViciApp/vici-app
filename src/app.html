@@ -12,7 +12,7 @@
 			sizes="32x32"
 			href="%sveltekit.assets%/branding/vici-favicon-32.png"
 		/>
-		<!-- iOS rejects SVG for the home-screen icon — needs a 180×180 PNG. -->
+		<!-- iOS rejects SVG for the home-screen icon: needs a 180×180 PNG. -->
 		<link
 			rel="apple-touch-icon"
 			sizes="180x180"
@@ -21,7 +21,25 @@
 		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
 
 		<!--
-			`minimum-scale=1` blocks pinch-zoom-OUT below device width — the app
+			Capture `beforeinstallprompt` at the earliest possible point. Chrome fires
+			it once, during initial load, before the app hydrates, so a listener
+			registered later (when the app layout calls `initA2hs`) misses it and the
+			in-app "Add to home screen" affordance never appears. Stash the deferred
+			event here; `a2hs.store` adopts it on init.
+		-->
+		<script>
+			window.addEventListener(
+				'beforeinstallprompt',
+				function (event) {
+					event.preventDefault();
+					window.__viciDeferredInstallPrompt = event;
+				},
+				{ once: true }
+			);
+		</script>
+
+		<!--
+			`minimum-scale=1` blocks pinch-zoom-OUT below device width; the app
 			is tuned to device-width and zooming out just exposes background
 			chrome. We intentionally do NOT set `maximum-scale` or
 			`user-scalable=no` so users with low vision can still zoom IN on
@@ -45,32 +63,68 @@
 
 		<meta
 			name="description"
-			content="VICI is a consumer-first prediction platform. Forecast outcomes, build a reputation, and earn XP."
+			content="VICI is a consumer-first prediction market. Forecast sports, crypto, politics and culture outcomes on live community odds, build a reputation, and earn XP."
 		/>
 		<link rel="canonical" href="https://vici.market/" />
 
+		<!-- Site-wide structured data (schema.org). Organization + WebSite
+			 apply to every page; per-market and per-topic JSON-LD is injected
+			 on top by scripts/build/generate-seo-assets.ts at deploy time.
+			 Do NOT write literal head-tag markup (the title or description-meta
+			 openers) into this block or its comments: the generator counts those
+			 patterns in the built shell and hard-fails on a second match. -->
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@graph": [
+					{
+						"@type": "Organization",
+						"@id": "https://vici.market/#org",
+						"name": "VICI",
+						"url": "https://vici.market/",
+						"logo": "https://vici.market/branding/og-image.png"
+					},
+					{
+						"@type": "WebSite",
+						"@id": "https://vici.market/#website",
+						"name": "VICI",
+						"url": "https://vici.market/",
+						"publisher": { "@id": "https://vici.market/#org" },
+						"description": "VICI is a consumer-first prediction market: forecast sports, crypto, politics and culture outcomes on live community odds."
+					}
+				]
+			}
+		</script>
+
 		<!-- Open Graph / Twitter. The og:image is a 1200×630 raster rendered
 			 from the brand SVGs (wordmark on the ink canvas + tagline). Twitter
-			 card upgraded to `summary_large_image` to honour it. -->
+			 card upgraded to `summary_large_image` to honour it.
+
+			 Deploy-time contract: `scripts/build/generate-seo-assets.ts` rewrites
+			 the title tag, description meta, canonical link, the og:
+			 type/url/title/description tags and the twitter: title/description
+			 tags into per-market copies of the built shell. Renaming or
+			 restructuring these tags breaks its patterns; the deploy fails
+			 loudly, but keep them in sync. -->
 		<meta property="og:type" content="website" />
 		<meta property="og:site_name" content="VICI" />
 		<meta property="og:url" content="https://vici.market/" />
-		<meta property="og:title" content="VICI — Predict at the speed of thought" />
+		<meta property="og:title" content="VICI: Predict at the speed of thought" />
 		<meta property="og:description" content="Forecast outcomes, build a reputation, and earn XP." />
 		<meta property="og:image" content="https://vici.market/branding/og-image.png" />
 		<meta property="og:image:secure_url" content="https://vici.market/branding/og-image.png" />
 		<meta property="og:image:width" content="1200" />
 		<meta property="og:image:height" content="630" />
 		<meta property="og:image:type" content="image/png" />
-		<meta property="og:image:alt" content="VICI — Predict at the speed of thought." />
+		<meta property="og:image:alt" content="VICI: Predict at the speed of thought." />
 		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:title" content="VICI — Predict at the speed of thought" />
+		<meta name="twitter:title" content="VICI: Predict at the speed of thought" />
 		<meta
 			name="twitter:description"
 			content="Forecast outcomes, build a reputation, and earn XP."
 		/>
 		<meta name="twitter:image" content="https://vici.market/branding/og-image.png" />
-		<meta name="twitter:image:alt" content="VICI — Predict at the speed of thought." />
+		<meta name="twitter:image:alt" content="VICI: Predict at the speed of thought." />
 
 		<script>
 			// No-FOUC theme bootstrap. Read the saved theme synchronously
@@ -104,19 +158,19 @@
 						document.documentElement.setAttribute('data-ios', '');
 						// Standalone / PWA mode (added to Home Screen) has NO browser
 						// bottom bar, so the inset would just push docked footers up
-						// for nothing — detect it via the legacy `navigator.standalone`
+						// for nothing: detect it via the legacy `navigator.standalone`
 						// (iOS-only) plus the standard display-mode media query.
 						var standalone =
 							(window.navigator && window.navigator.standalone === true) ||
 							(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
 						// Every iOS browser draws a NATIVE bottom bar over the web
 						// view: the Chrome/Firefox/Edge/Google-app toolbars AND
-						// Safari's own bottom bar (confirmed on device — it overlays
+						// Safari's own bottom bar (confirmed on device; it overlays
 						// docked modal footers the same way). The page renders UNDER
 						// it and no web API (visualViewport / dvh / svh /
 						// safe-area-inset) reports its height, so a bottom-docked CTA
-						// gets clipped. Stamp the flag for ALL iOS browsers — but NOT
-						// standalone/PWA, which has no browser bar — so CSS can add
+						// gets clipped. Stamp the flag for ALL iOS browsers, but NOT
+						// standalone/PWA, which has no browser bar, so CSS can add
 						// `--ios-bottom-bar-inset` to docked footers.
 						if (!standalone) {
 							document.documentElement.setAttribute('data-ios-bottom-bar', '');
@@ -129,7 +183,7 @@
 
 			// Flash-free locale boot. Runs before the first paint so
 			// <html lang>, dir, and [data-locale] are correct on the first
-			// frame — the static-host equivalent of SSR locale negotiation.
+			// frame: the static-host equivalent of SSR locale negotiation.
 			// A saved choice wins instantly; otherwise the device language
 			// seeds it. The i18n layer re-resolves authoritatively after
 			// hydrate, so a stale/missing value just falls through here.
@@ -165,26 +219,30 @@
 
 		<title>VICI</title>
 
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<!-- Fonts are fully self-hosted (see the `@font-face` block in
+			 `app.css`: files under `static/fonts/`). No Google Fonts
+			 stylesheet: the extra origin's DNS/TLS + render-blocking CSS
+			 fetch cost ~600ms on a cold mobile load, and its declarations
+			 shadowed the self-hosted faces for overlapping weights. -->
 		<link
-			href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-			rel="stylesheet"
+			rel="preload"
+			href="/fonts/hanken-grotesk-variable-latin.woff2"
+			as="font"
+			type="font/woff2"
+			crossorigin
 		/>
-
-		<!-- Font preloads -->
 		<link
 			rel="preload"
 			href="/fonts/jetbrainsmono-regular.woff2"
 			as="font"
-			type="font/woff"
+			type="font/woff2"
 			crossorigin
 		/>
 		<link
 			rel="preload"
 			href="/fonts/jetbrainsmono-bold.woff2"
 			as="font"
-			type="font/woff"
+			type="font/woff2"
 			crossorigin
 		/>
 	</head>

@@ -2,34 +2,33 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { X } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { resolve } from '$app/paths';
-	import ScreenHeader from '$lib/components/layout/ScreenHeader.svelte';
-	import MenagerieBadge from '$lib/components/menagerie/MenagerieBadge.svelte';
-	import MenagerieBadgeSkeleton from '$lib/components/menagerie/MenagerieBadgeSkeleton.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
+	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import MenagerieBadge from '#lib/components/menagerie/MenagerieBadge.svelte';
+	import MenagerieBadgeSkeleton from '#lib/components/menagerie/MenagerieBadgeSkeleton.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
 	import {
 		MENAGERIE,
 		MENAGERIE_TIER_RANK,
 		type MenagerieSlug
-	} from '$lib/constants/menagerie.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
+	} from '#lib/constants/menagerie.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import {
 		myMenagerieLoading,
 		myMenagerieRows,
 		myMenagerieStats
-	} from '$lib/derived/menagerie.derived';
-	import { loadMyMenagerieSignals } from '$lib/services/menagerie.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t } from '$lib/utils/i18n.utils';
+	} from '#lib/derived/menagerie.derived.ts';
+	import { loadMyMenagerieSignals } from '#lib/services/menagerie.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import {
 		menagerieConceptKey,
 		menagerieTierColor,
 		type MenagerieRow
-	} from '$lib/utils/menagerie.utils';
-	import { goBack } from '$lib/utils/nav.utils';
+	} from '#lib/utils/menagerie.utils.ts';
+	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 
 	/**
-	 * The Menagerie — the achievement trophy layer. Reached as a profile
+	 * The Menagerie: the achievement trophy layer. Reached as a profile
 	 * sub-route. Renders all twelve animals as squircle badges in a 3-column
 	 * grid (earned first, then locked-by-progress), each with the animal's
 	 * current tier derived live from the owner's real stats. Tapping a badge
@@ -38,11 +37,11 @@
 	 *
 	 * Animals whose metric reads a stat the backend does not yet populate
 	 * (Raven / Octopus / Magpie / Bee) resolve to LOCKED and show as "soon"
-	 * tiles — see the per-hook notes in `$lib/utils/menagerie.utils`.
+	 * tiles: see the per-hook notes in `#lib/utils/menagerie.utils.ts`.
 	 */
 
-	// The trophy layer reads from the single shared `menagerie.derived` source —
-	// the same stats / rows / load gate the profile rail reads — so an animal can
+	// The trophy layer reads from the single shared `menagerie.derived` source:
+	// the same stats / rows / load gate the profile rail reads, so an animal can
 	// never resolve to a different tier across the two surfaces. On mount we
 	// hydrate its live signals (global standings + referral count); until they
 	// resolve, `loading` holds the grid in its skeleton state so a not-yet-loaded
@@ -67,7 +66,7 @@
 	<ScreenHeader
 		back={{
 			label: t({ locale: $localeStore, key: 'menagerie.back' }),
-			onBack: () => goBack(resolve(AppPath.Profile))
+			onBack: () => goBack(resolveAppPath(AppPath.Profile))
 		}}
 		title={t({ locale: $localeStore, key: 'menagerie.title' })}
 	/>
@@ -311,7 +310,7 @@
 		transition:
 			transform 0.12s ease,
 			border-color 0.12s ease;
-		/* staggered grid reveal — the collection blooms in rather than dumping */
+		/* staggered grid reveal: the collection blooms in rather than dumping */
 		animation: men-tile-in 0.44s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 		animation-delay: calc(var(--ti, 0) * 34ms);
 	}
@@ -352,7 +351,7 @@
 		text-align: center;
 	}
 
-	/* Skeleton tiles — same footprint as a real tile, with the badge + the two
+	/* Skeleton tiles: same footprint as a real tile, with the badge + the two
 	   text lines replaced by pulsing placeholders while the trophy signals load. */
 	.men-tile.is-skeleton {
 		cursor: default;

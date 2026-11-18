@@ -1,5 +1,5 @@
-import { deg } from '$lib/utils/flow-art/svg';
-import type { RenderArgs } from '$lib/utils/flow-art/types';
+import { deg } from '#lib/utils/flow-art/svg.ts';
+import type { RenderArgs } from '#lib/utils/flow-art/types.ts';
 
 export const renderCulture = ({ rng, p, state, uid }: RenderArgs): string => {
 	let s = '';
@@ -18,7 +18,7 @@ export const renderCulture = ({ rng, p, state, uid }: RenderArgs): string => {
 	}
 
 	// Culture is the only category that requires the extended six-colour
-	// ink set; fall back to accent if it's missing (defensive — shouldn't
+	// ink set; fall back to accent if it's missing (defensive: shouldn't
 	// happen for `culture` per PAL definition above).
 	const inks = p.inks ?? [p.accent];
 	const blobCount = rng.int(1, 2);

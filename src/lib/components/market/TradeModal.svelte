@@ -1,25 +1,25 @@
 <script lang="ts">
 	import { X } from '@lucide/svelte/icons';
-	import { browser } from '$app/environment';
-	import { resolve } from '$app/paths';
-	import { tradeErrorMessage } from '$lib/canisters/clearing.errors';
-	import SignInActions from '$lib/components/authn/SignInActions.svelte';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { VXP_STAKE_LADDER } from '$lib/constants/vxp-economy.constants';
-	import { playgroundVxpUnitMode } from '$lib/derived/playground.derived';
-	import { userSignedIn } from '$lib/derived/user.derived';
-	import { vxpSpendable } from '$lib/derived/vxp-holdings.derived';
-	import { getBalances } from '$lib/services/wallet.service';
-	import { collateralsStore } from '$lib/stores/collaterals.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import type { CallSide, Market } from '$lib/types/market';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { resolveOutcomeExecutionPrice } from '$lib/utils/market.utils';
-	import { formatAvailableMarginForUi } from '$lib/utils/playground-display.utils';
-	import { executeOutcomeTrade } from '$lib/utils/trade.utils';
+	import { tradeErrorMessage } from '#lib/canisters/clearing.errors.ts';
+	import SignInActions from '#lib/components/authn/SignInActions.svelte';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_CALL_SIZE_LADDER } from '#lib/constants/vxp-economy.constants.ts';
+	import { playgroundVxpUnitMode } from '#lib/derived/playground.derived.ts';
+	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { vxpSpendable } from '#lib/derived/vxp-holdings.derived.ts';
+	import { getBalances } from '#lib/services/wallet.services.ts';
+	import { collateralsStore } from '#lib/stores/collaterals.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { CallSide, Market } from '#lib/types/market.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { formatAvailableMarginForUi } from '#lib/utils/playground-display.utils.ts';
+	import { executeOutcomeTrade } from '#lib/utils/trade.utils.ts';
+	import { browser } from '$app/env';
 
 	/**
 	 * Prediction-confirmation surface for a binary market. A user has
@@ -29,14 +29,14 @@
 	 * Chrome (scrim, grip, safe-area inset, Escape, focus trap, viewport
 	 * pinning, pill-nav hide) comes from the shared {@link BottomSheet}
 	 * primitive in its `desktopCentered` variant: a bottom-docked sheet on
-	 * phone widths and a centred modal on wider viewports — one set of
+	 * phone widths and a centred modal on wider viewports; one set of
 	 * content, switched purely in CSS so there is no forked markup.
 	 *
-	 * Sizing is a slider that steps through the fixed stake ladder
-	 * (`VXP_STAKE_LADDER`) rather than a free continuous range, because
+	 * Sizing is a slider that steps through the fixed call-size ladder
+	 * (`VXP_CALL_SIZE_LADDER`) rather than a free continuous range, because
 	 * `executeOutcomeTrade` rejects any premium that isn't a ladder rung
-	 * on ViciXp markets — so every selectable value must be a valid rung.
-	 * No limit-order / target-price path lives here — the only submission
+	 * on ViciXp markets, so every selectable value must be a valid rung.
+	 * No limit-order / target-price path lives here; the only submission
 	 * is a market order; the clearing layer still picks `MARKET` vs
 	 * `LIMIT` execution from live depth under the hood.
 	 */
@@ -59,13 +59,13 @@
 	const tr = ({ key, params }: { key: MessageKey; params?: Record<string, string | number> }) =>
 		t({ locale: $localeStore, key, params });
 
-	// Call-size slider — an index-based control over the fixed stake
+	// Call-size slider: an index-based control over the fixed call-size
 	// ladder, so every stop is a valid rung the backend will accept (a
 	// free continuous range would let the user pick amounts ViciXp markets
 	// reject). Defaults to the smallest rung; `size` is the selected rung
 	// amount, derived from the slider index.
 	let sizeIndex = $state(0);
-	const size = $derived(VXP_STAKE_LADDER[sizeIndex]);
+	const size = $derived(VXP_CALL_SIZE_LADDER[sizeIndex]);
 
 	let loading = $state(false);
 	let error = $state('');
@@ -88,7 +88,7 @@
 		return Math.round(size / sideExecutionPrice);
 	});
 
-	// Available collateral for this market's balance domain — the shared
+	// Available collateral for this market's balance domain; the shared
 	// "spendable margin" derivation, so the figure matches the wallet, the
 	// Dashboard, and every other prediction surface.
 	const availableMargin = $derived($vxpSpendable);
@@ -191,7 +191,7 @@
 			<input
 				class="confirm-range"
 				aria-label={tr({ key: 'prediction.how_much' })}
-				max={VXP_STAKE_LADDER.length - 1}
+				max={VXP_CALL_SIZE_LADDER.length - 1}
 				min={0}
 				step={1}
 				type="range"
@@ -228,7 +228,7 @@
 		<div class="confirm-signin">
 			<p class="confirm-signin-copy">{tr({ key: 'prediction.sign_in' })}</p>
 			<SignInActions />
-			<a class="confirm-deposit" href={resolve(AppPath.Wallet)}>
+			<a class="confirm-deposit" href={resolveAppPath(AppPath.Wallet)}>
 				{tr({ key: 'prediction.deposit_wallet' })}
 			</a>
 		</div>

@@ -3,8 +3,8 @@ import {
 	localeFallbackChain,
 	SUPPORTED_LOCALES,
 	type AppLocale
-} from '$lib/constants/locale.constants';
-import type { MarketTranslation } from '$lib/types/market-translation';
+} from '#lib/constants/locale.constants.ts';
+import type { MarketTranslation } from '#lib/types/market-translation.ts';
 import { nonNullish, notEmptyString } from '@dfinity/utils';
 
 const supportedLocaleIds = new Set<string>(SUPPORTED_LOCALES.map(({ id }) => id));
@@ -48,7 +48,7 @@ export const resolveMarketTranslation = ({
 export const translatedLanguageLabel = (locale: string): string =>
 	SUPPORTED_LOCALES.find(({ id }) => id === locale)?.label ?? locale;
 
-interface MarketDisplayOriginal {
+export interface MarketDisplayOriginal {
 	title: string;
 	description: string;
 	resolution: string;
@@ -67,7 +67,7 @@ export interface MarketDisplayText {
  * Single place that decides which text a market surface renders, so the eight
  * display surfaces never scatter ad-hoc `translation?.title ?? market.title`
  * fallbacks. Each field is the translated value when showing translated and a
- * non-blank translation exists, otherwise the on-chain original — translations
+ * non-blank translation exists, otherwise the on-chain original: translations
  * are user-authored, so a stray empty field can never blank out a title.
  *
  * `showOriginal` is the per-item toggle state (seeded from the global

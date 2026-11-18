@@ -9,8 +9,8 @@
  * optional strings and make optional nested objects non-optional (with defaults)
  * so the generated Rust code compiles to WASM.
  */
-import { ProfileVisibility } from '$lib/enums/profile';
-import { RelationCategory, RelationState } from '$lib/enums/relation';
+import { ProfileVisibility } from '#lib/enums/profile.ts';
+import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 export const UserProfileApiSchema = j.strictObject({

@@ -2,42 +2,45 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Copy, Image as ImageIcon } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import IconFacebook from '$lib/components/icons/IconFacebook.svelte';
-	import IconInstagram from '$lib/components/icons/IconInstagram.svelte';
-	import IconSnapchat from '$lib/components/icons/IconSnapchat.svelte';
-	import IconTelegram from '$lib/components/icons/IconTelegram.svelte';
-	import IconTikTok from '$lib/components/icons/IconTikTok.svelte';
-	import IconWhatsApp from '$lib/components/icons/IconWhatsApp.svelte';
-	import IconX from '$lib/components/icons/IconX.svelte';
-	import { referrerRewardVxp } from '$lib/constants/referral.constants';
-	import { getMyReferralCode, listMyReferrals } from '$lib/services/referral.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { Market } from '$lib/types/market';
-	import { writeToClipboard } from '$lib/utils/clipboard.utils';
-	import { type FlowArtCategory, resolveFlowArtCategory } from '$lib/utils/flow-art.utils';
-	import { haptic } from '$lib/utils/haptics.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { renderPredictionCard, type ShareCardResult } from '$lib/utils/share-card.utils';
+	import IconFacebook from '#lib/components/icons/IconFacebook.svelte';
+	import IconInstagram from '#lib/components/icons/IconInstagram.svelte';
+	import IconSnapchat from '#lib/components/icons/IconSnapchat.svelte';
+	import IconTelegram from '#lib/components/icons/IconTelegram.svelte';
+	import IconTikTok from '#lib/components/icons/IconTikTok.svelte';
+	import IconWhatsApp from '#lib/components/icons/IconWhatsApp.svelte';
+	import IconX from '#lib/components/icons/IconX.svelte';
+	import { referrerRewardVxp } from '#lib/constants/referral.constants.ts';
+	import { getMyReferralCode, listMyReferrals } from '#lib/services/referral.services.ts';
+	import { notifyShareFailed } from '#lib/services/share.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { CallSide, Market } from '#lib/types/market.ts';
+	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
+	import { type FlowArtCategory, resolveFlowArtCategory } from '#lib/utils/flow-art.utils.ts';
+	import { haptic } from '#lib/utils/haptics.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
+	import { appOrigin } from '#lib/utils/nav.utils.ts';
+	import { renderPredictionCard, type ShareCardResult } from '#lib/utils/share-card.utils.ts';
+	import { browser } from '$app/env';
 
 	/**
-	 * SharePopover — the prediction-share menu anchored above the card.
+	 * SharePopover: the prediction-share menu anchored above the card.
 	 *
 	 * The headline is a slim card-image preview of the actual prediction,
 	 * rendered client-side to a 1080×1920 story PNG (`renderPredictionCard`)
 	 * and offered as the primary CTA. Two labelled rows of circular channel
-	 * tiles follow: POST TO STORY (image-only surfaces — Instagram, TikTok,
+	 * tiles follow: POST TO STORY (image-only surfaces: Instagram, TikTok,
 	 * Snapchat, Facebook) routes through the OS share sheet
 	 * (`navigator.share({ files })`); OR SEND A LINK (WhatsApp, Telegram, X,
 	 * Copy) shares the referral URL. Desktop / no-file-share falls back to
 	 * saving the PNG and opening the target app. A referral hook sits at
-	 * the foot — its headline VXP figure reflects the sharer's *next*
+	 * the foot: its headline VXP figure reflects the sharer's *next*
 	 * referrer-reward tier on the diminishing curve, derived client-side
 	 * from their own redemption rows.
 	 */
 	interface PriorCallLite {
-		side: 'YES' | 'NO';
+		side: CallSide;
 	}
 
 	interface Props {
@@ -60,7 +63,7 @@
 
 	// Crowd YES percentage, or `undefined` when the probability is unknown
 	// (book unread / no liquidity). The share text and card must not claim a
-	// fabricated 50% — when unknown we drop the stat from the copy entirely and
+	// fabricated 50%: when unknown we drop the stat from the copy entirely and
 	// suppress the percentage-bearing card image rather than minting a number.
 	const yesPct = $derived<number | undefined>(
 		isNullish(market.yesProbability) ? undefined : Math.round(market.yesProbability * 100)
@@ -68,14 +71,14 @@
 
 	// The shareable card image renders the YES percentage prominently, so it's
 	// only offered once the probability is known. Until then the image surfaces
-	// (preview, "Share card" CTA, story tiles) are disabled — link sharing,
+	// (preview, "Share card" CTA, story tiles) are disabled: link sharing,
 	// which carries no percentage, stays available.
 	const cardAvailable = $derived(nonNullish(yesPct));
 
 	// Category for the card artwork accent + tag. Falls back to a
 	// deterministic per-market resolution when the host didn't supply one.
 	const cardCategory = $derived<FlowArtCategory>(
-		category ?? resolveFlowArtCategory({ categoryId: undefined, seed: market.id })
+		category ?? resolveFlowArtCategory({ tags: [], seed: market.id })
 	);
 
 	const handle = $derived(
@@ -83,7 +86,7 @@
 	);
 	const accuracy = $derived($userStore.profile?.accuracy);
 
-	// Referral code resolved from the satellite — the share URL carries it
+	// Referral code resolved from the satellite; the share URL carries it
 	// so a friend's signup is attributed to the sharer. Falls back to the
 	// handle until the code loads (or if it's unavailable), so the link is
 	// always shareable.
@@ -98,8 +101,12 @@
 	const nextRewardVxp = $derived(referrerRewardVxp(priorPaidCount));
 
 	const refToken = $derived(referralCode ?? handle);
-	const origin = $derived(browser ? window.location.origin : 'https://vici.market');
-	const url = $derived(`${origin}/m/${market.id}?ref=${refToken}`);
+	// Slugged from the on-chain (EN) title, never `displayTitle`: the SEO
+	// generator derives the same param from the registry title, and the two
+	// must agree for a shared link to land on its prerendered crawler page.
+	const url = $derived(
+		`${appOrigin()}/m/${marketShareParam({ title: market.title, seriesId: market.id })}?ref=${refToken}`
+	);
 
 	const text = $derived.by(() => {
 		if (nonNullish(priorCall)) {
@@ -123,7 +130,7 @@
 		});
 	});
 
-	// Native share sheet — Safari (iOS) and Chrome (Android) expose
+	// Native share sheet: Safari (iOS) and Chrome (Android) expose
 	// `navigator.share`. File-share is a narrower capability (story apps
 	// need it); desktop typically has neither.
 	const hasNativeShare = $derived(
@@ -147,7 +154,7 @@
 	let preview = $state<string | undefined>(undefined);
 	let busy = $state(false);
 
-	// Render the preview once per market — the card is deterministic given
+	// Render the preview once per market; the card is deterministic given
 	// the market + prior call, so a single render covers the popover's life.
 	onMount(() => {
 		let alive = true;
@@ -176,7 +183,7 @@
 					preview = result.dataUrl;
 				}
 			} catch {
-				// Preview is decorative — leave the placeholder on failure.
+				// Preview is decorative: leave the placeholder on failure.
 			}
 		})();
 
@@ -199,14 +206,14 @@
 				if (alive) {
 					// Mirror the satellite's authoritative credited-referrals tally (the
 					// count that feeds the tier curve): rows whose `referrerPayout.status`
-					// has left `none` (owed / processing / paid). Anything still `none` —
-					// including over-cap monitoring rows — does not count.
+					// has left `none` (owed / processing / paid). Anything still `none`,
+					// including over-cap monitoring rows, does not count.
 					priorPaidCount = items.filter(
 						({ referrerPayout }) => referrerPayout.status !== 'none'
 					).length;
 				}
 			} catch {
-				// Keep the optimistic top-tier figure on failure — the footer is a
+				// Keep the optimistic top-tier figure on failure; the footer is a
 				// soft nudge, and the satellite is authoritative on the real payout.
 			}
 		})();
@@ -219,10 +226,7 @@
 	interface StoryApp {
 		key: string;
 		labelKey:
-			| 'flow.share.instagram'
-			| 'flow.share.tiktok'
-			| 'flow.share.snapchat'
-			| 'flow.share.facebook';
+			'flow.share.instagram' | 'flow.share.tiktok' | 'flow.share.snapchat' | 'flow.share.facebook';
 		tint: string;
 		bg?: string;
 		web?: string;
@@ -261,10 +265,7 @@
 	interface LinkApp {
 		key: string;
 		labelKey:
-			| 'flow.share.whatsapp'
-			| 'flow.share.telegram'
-			| 'flow.share.twitter'
-			| 'flow.share.copy';
+			'flow.share.whatsapp' | 'flow.share.telegram' | 'flow.share.twitter' | 'flow.share.copy';
 		tint: string;
 		href?: string;
 	}
@@ -291,7 +292,7 @@
 		{ key: 'copy', labelKey: 'flow.share.copy', tint: 'var(--accent)' }
 	]);
 
-	// Primary CTA label — depends on whether the OS can ingest the file
+	// Primary CTA label: depends on whether the OS can ingest the file
 	// (true "share") or we must save it locally first ("save").
 	const cardCtaKey = $derived<
 		'flow.share.preparing' | 'flow.share.share_card' | 'flow.share.save_card'
@@ -299,7 +300,7 @@
 		busy ? 'flow.share.preparing' : canShareFiles ? 'flow.share.share_card' : 'flow.share.save_card'
 	);
 
-	// Image share — routes to the OS share sheet (IG / TikTok / Snapchat /
+	// Image share: routes to the OS share sheet (IG / TikTok / Snapchat /
 	// Facebook stories all live there). Desktop with no file-share support
 	// saves the PNG and opens the target app's web home.
 	const shareImage = async (app?: StoryApp) => {
@@ -331,7 +332,7 @@
 			});
 
 			if (isNullish(result)) {
-				// No canvas — degrade to a plain link share / copy.
+				// No canvas: degrade to a plain link share / copy.
 				await fallbackShareLink();
 
 				return;
@@ -356,15 +357,14 @@
 				}
 			}
 		} catch (e: unknown) {
-			// User-cancelled share sheets reject with AbortError — silent.
-			if (e instanceof DOMException && e.name === 'AbortError') {
-				busy = false;
-
-				return;
+			// User-cancelled share sheets reject with AbortError: silent.
+			if (!(e instanceof DOMException && e.name === 'AbortError')) {
+				console.error('SharePopover: card share failed', e);
+				notifyShareFailed();
 			}
+		} finally {
+			busy = false;
 		}
-
-		busy = false;
 	};
 
 	// Link-only fallback when no canvas / file share is available.
@@ -379,6 +379,10 @@
 				if (e instanceof DOMException && e.name === 'AbortError') {
 					return;
 				}
+
+				// Not a cancel: the copy below still gets the link out, and
+				// reports the failure itself if it cannot.
+				console.error('SharePopover: link share failed', e);
 			}
 		}
 
@@ -395,10 +399,14 @@
 		haptic('light-tap');
 		const copied = await writeToClipboard(url);
 
-		if (copied) {
-			onCopied?.();
-			onClose?.();
+		if (!copied) {
+			notifyShareFailed();
+
+			return;
 		}
+
+		onCopied?.();
+		onClose?.();
 	};
 
 	const stop = (event: Event) => {
@@ -438,7 +446,7 @@
 		</div>
 	</div>
 
-	<!-- Post to story — image-only surfaces via the OS share sheet -->
+	<!-- Post to story: image-only surfaces via the OS share sheet -->
 	<span class="share-row-label">
 		{t({ locale: $localeStore, key: 'flow.share.post_to_story' })}
 	</span>
@@ -513,7 +521,7 @@
 		{/each}
 	</div>
 
-	<!-- Referral incentive — quiet growth hook. The headline VXP reflects the
+	<!-- Referral incentive: quiet growth hook. The headline VXP reflects the
 	     sharer's next referrer-reward tier; past the cap it falls back to the
 	     friend's guaranteed bonus so the promise stays honest. -->
 	<div class="share-pop-referral">
@@ -571,7 +579,7 @@
 		gap: 14px;
 		align-items: center;
 		/* The 2px top nudge stays; the 12px flex gap on .share-pop already
-		   supplies the spacing below this header — no extra margin-bottom. */
+		   supplies the spacing below this header; no extra margin-bottom. */
 		margin: 2px 0;
 	}
 

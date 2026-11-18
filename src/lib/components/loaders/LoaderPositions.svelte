@@ -1,8 +1,8 @@
 <script lang="ts">
-	import DomainCachedLoader from '$lib/components/loaders/DomainCachedLoader.svelte';
-	import { VICI_EVENTS } from '$lib/constants/events.constants';
-	import { loadPositions } from '$lib/services/position.services';
-	import { positionsStore } from '$lib/stores/positions.store';
+	import DomainCachedLoader from '#lib/components/loaders/DomainCachedLoader.svelte';
+	import { VICI_EVENTS } from '#lib/constants/events.constants.ts';
+	import { loadPositions } from '#lib/services/position.services.ts';
+	import { positionsStore } from '#lib/stores/positions.store.ts';
 </script>
 
 <DomainCachedLoader

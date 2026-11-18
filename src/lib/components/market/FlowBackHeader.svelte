@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { Share } from '@lucide/svelte/icons';
-	import SharePopover from '$lib/components/market/SharePopover.svelte';
-	import SavedMarketToggle from '$lib/components/saved-markets/SavedMarketToggle.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { notificationsStore } from '$lib/stores/notification.store';
-	import type { Market } from '$lib/types/market';
-	import type { PriorCallSignal } from '$lib/types/market-signals';
-	import type { FlowArtCategory } from '$lib/utils/flow-art.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { categoryLabel } from '$lib/utils/market-tags.utils';
+	import SharePopover from '#lib/components/market/SharePopover.svelte';
+	import SavedMarketToggle from '#lib/components/saved-markets/SavedMarketToggle.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import type { PriorCallSignal } from '#lib/types/market-signals.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import type { FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 
 	interface Props {
 		market: Market;
@@ -20,12 +20,12 @@
 
 	const { market, category, priorCall, displayTitle }: Props = $props();
 
-	// FlowCard back is a full / detail surface — render the localized
+	// FlowCard back is a full / detail surface: render the localized
 	// category label ("World Cup") rather than the raw `wc` id. CSS
 	// uppercases it (.allcaps) where the design shouts.
 	const catLabel = $derived(categoryLabel({ category, variant: 'full', locale: $localeStore }));
 
-	// Share popover toggle — anchored above the share button. The
+	// Share popover toggle: anchored above the share button. The
 	// popover handles native / clipboard / channel paths itself; this
 	// component owns just the open/close state and the toast we show
 	// on successful clipboard copy.
@@ -36,7 +36,7 @@
 	};
 
 	// Called on a successful copy (no arg) or a saved-card fallback (the
-	// "Card saved — post it" message is passed through). The popover owns
+	// "Card saved: post it" message is passed through). The popover owns
 	// the channel logic; we only surface the resulting toast.
 	const onCopied = (message?: string) => {
 		notificationsStore.add({
@@ -83,7 +83,7 @@
 		border-bottom: 1px solid var(--border-base);
 	}
 
-	/* Category chip — a subtle neutral pill (parchment-wash background)
+	/* Category chip: a subtle neutral pill (parchment-wash background)
 	   with category-colored ink, rather than a plain colored label. */
 	.flow-back-cat {
 		display: inline-flex;
@@ -105,7 +105,7 @@
 		flex-shrink: 0;
 	}
 
-	/* Share-pop anchor button — a borderless ghost control that matches
+	/* Share-pop anchor button: a borderless ghost control that matches
 	   the saved-market toggle beside it: transparent until hovered, then
 	   a faint parchment wash with full-brightness ink. It stays inline
 	   here because the popover is anchored relative to

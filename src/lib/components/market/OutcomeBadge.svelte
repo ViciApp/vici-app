@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Outcome } from '$lib/types/market';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { getOutcomeVariant } from '$lib/utils/market.utils';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Outcome } from '#lib/types/market.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { getOutcomeVariant } from '#lib/utils/market.utils.ts';
 
 	interface Props {
 		outcome?: Outcome | string;

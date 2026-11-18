@@ -1,4 +1,4 @@
-// Generated from AntonioVentilii/icdc-core commit 48d16d5cf97cc97b7443a60ee2b77d85049be00b for file 'src/clearing/clearing.did'
+// Generated from AntonioVentilii/icdc-core v0.1.8 for file 'src/clearing/clearing.did'
 
 // Outcome of a position transfer acceptance.
 type AcceptPositionTransferResult = variant {
@@ -63,6 +63,40 @@ type AggregateLeanParams = record {
 	// counts. The clearing layer ascribes no meaning to the set; how it is
 	// chosen is entirely a consumer concern.
 	principals : vec principal
+};
+// Input parameters for
+// [`aggregate_settlement_accuracy`](super::aggregate_settlement_accuracy).
+//
+// Aggregates each supplied principal's settled-position win/total counts over
+// an arbitrary half-open time window `[from_ts, to_ts)`. Unlike
+// [`ListLeaderboardParams`] — which ranks over fixed calendar windows backed
+// by the maintained `SETTLEMENT_LEADERBOARD` index — this scans the raw event
+// log so a consumer can score a cohort over a bespoke window (e.g. a league
+// "battle" running an arbitrary 7-day span that does not align to a calendar
+// week). The clearing layer ascribes no meaning to the set or the window; how
+// they are chosen is entirely a consumer concern.
+type AggregateSettlementAccuracyParams = record {
+	// Exclusive upper bound on a settlement's `timestamp` (ns). `None` runs
+	// through the latest settlement. The window is half-open `[from_ts,
+	// to_ts)` so two adjacent windows that share an endpoint never both count
+	// the same settlement.
+	to_ts : opt nat64;
+	// The principals to aggregate over (e.g. a league's member set). The set
+	// is caller-controlled and scanned in full, so it is capped at 10,000 —
+	// any realistic cohort is well under this; a longer list is truncated to
+	// the first 10,000. Duplicate principals are de-duplicated and never
+	// double-count.
+	members : vec principal;
+	// Inclusive lower bound on a settlement's `timestamp` (ns since the Unix
+	// epoch). `None` starts from the earliest settlement.
+	from_ts : opt nat64;
+	// Optional series allow-list. `None` counts settlements on every series;
+	// `Some(set)` counts only settlements whose `series_id` is in the set, so
+	// a consumer can scope a cohort's accuracy to a market category (e.g. a
+	// battle scoped to one tag passes that tag's series). An empty `Some(vec)`
+	// therefore matches nothing. The clearing layer ascribes no meaning to the
+	// set; how it is chosen is entirely a consumer concern.
+	series_ids : opt vec text
 };
 // Represents a supported asset in the ICDC ecosystem.
 type Asset = variant {
@@ -528,6 +562,20 @@ type ListOrdersParams = record {
 	series_id : opt text
 };
 // Input parameters for
+// [`list_series_settlement_statuses`](super::list_series_settlement_statuses).
+//
+// Batches the per-series settlement check a resolution solver would otherwise
+// make one call at a time. Callers pass the (bounded) set of series they care
+// about — typically the "due" candidates from the registry — and receive one
+// status per id in request order. Unknown or still-open series come back with a
+// `None` status. The read looks each id up in `SETTLEMENT_PLANS`, so the work is
+// `O(#series_ids)` regardless of how many plans exist. Mirrors
+// [`ListSeriesTradedVolumesParams`](crate::api::trade::params::ListSeriesTradedVolumesParams).
+type ListSeriesSettlementStatusesParams = record {
+	// The series to check. Results are returned one per id, in this order.
+	series_ids : vec text
+};
+// Input parameters for
 // [`list_series_trade_history`](super::list_series_trade_history).
 //
 // Returns the market-wide executed-trade history for a single series so a
@@ -775,6 +823,23 @@ type Series = record {
 	expiry_ns : nat64;
 	// An optional banner URL for the market.
 	banner_url : opt text;
+	// Optional timestamp in nanoseconds since UNIX epoch at which trading opens.
+	//
+	// `None` means the series is tradeable from the moment it is registered —
+	// the historical behavior, and the canonical way to express "live now".
+	// `Some(t)` schedules the series: it is listed and discoverable immediately
+	// but trading is rejected until `t`. The window is inclusive at the open
+	// (`now >= start_ns` is live) and exclusive at the close (`now < expiry_ns`
+	// is unexpired), so a series is tradeable over `[start_ns, expiry_ns)`.
+	//
+	// Participates in `series_id` hashing (see [`Series::generate_id`]): two
+	// series that differ only in their trading window are distinct contracts,
+	// so a scheduled series can never silently collide with an already-live one
+	// and inherit a start date its creator did not ask for. To keep that
+	// guarantee meaningful `None` is the only encoding of "already live" —
+	// `add_series` rejects a `start_ns` at or before the current time, so the
+	// same market cannot exist under two ids.
+	start_ns : opt nat64;
 	// Unique identifier computed from series parameters.
 	series_id : text;
 	// The underlying asset ticker or identifier (e.g., "ICP/USD").
@@ -864,6 +929,21 @@ type SeriesPriceHistory = record {
 	// points.
 	candles : vec SeriesPriceCandle
 };
+// One series' settlement status, paired with the id it was requested for.
+//
+// `status` is `Some` when a settlement plan exists for the series (in any
+// [`PlanStatus`](crate::types::plans::PlanStatus) — a plan is opened the moment
+// settlement begins) and `None` otherwise. A `None` covers both a still-open
+// series and an unknown id; the two are not distinguished here. The `series_id`
+// is echoed on each entry so callers can align results with their requested ids
+// and attribute a `None`, which carries no id of its own.
+type SeriesSettlementStatus = record {
+	// The settlement progress, or `None` if the series has no settlement plan
+	// yet (still open / not being settled).
+	status : opt SettlementStatusView;
+	// The series this status is for (echoes the requested id).
+	series_id : text
+};
 // A page of executed trades scoped to a single series.
 type SeriesTradeHistoryPage = record {
 	// When `Some`, pass back as `start_after` to fetch the next page (it is the
@@ -932,6 +1012,25 @@ type SettledSeriesPage = record {
 	next_cursor : opt text;
 	// Settled series ids in this page, ascending.
 	items : vec text
+};
+// One principal's settled-position accuracy over a requested window.
+//
+// Mirrors the aggregate-only contract of [`LeaderboardEntry`]: window totals
+// (settled / win counts plus net realized `PnL`) and never a per-settlement
+// breakdown. `win_count / settled_count` is the window accuracy. Only
+// principals with at least one settlement in the window are returned — a
+// member with no settlement contributes nothing to a cohort's accuracy, and
+// the caller already knows the full set it asked for.
+type SettlementAccuracyEntry = record {
+	// The aggregated principal.
+	"principal" : principal;
+	// Net realized `PnL` over the window, in internal USD (`vUSD`) base units —
+	// the signed sum of the principal's settlement cashflows.
+	realized_pnl : int;
+	// Number of those settlements that were net positive (`cashflow_usd > 0`).
+	win_count : nat64;
+	// Number of settled positions in the window.
+	settled_count : nat64
 };
 // Errors occurring during derivative series settlement.
 type SettlementError = variant {
@@ -1098,6 +1197,18 @@ type TradeError = variant {
 	SelfTradingNotAllowed;
 	// The specified order was not found.
 	OrderNotFound : text;
+	// The series is scheduled and its trading window has not opened yet, so no
+	// trades, orders, or transfers can be initiated on it.
+	//
+	// Returned whenever a trade-initiating path sees a series whose `start_ns`
+	// is still in the future. Carries the open so the caller can render a
+	// countdown or retry at the right moment instead of polling blindly.
+	SeriesNotStarted : record {
+		// The timestamp (nanoseconds since the UNIX epoch) at which it opens.
+		start_ns : nat64;
+		// The series that is not yet open.
+		series_id : text
+	};
 	// The trade would violate the no-arbitrage principle (e.g., sum of outcome prices > 1.0).
 	ArbitrageLimitExceeded : record {
 		// The hard limit (usually 1.0 USD).
@@ -1107,6 +1218,19 @@ type TradeError = variant {
 	};
 	// Failed to communicate with the registry canister.
 	RegistryError : text;
+	// The series' trading window has closed, so no new exposure can be opened
+	// on it.
+	//
+	// Returned to exposure-opening paths only. Redeeming a complete set and
+	// accepting a transferred position stay available after expiry, because they
+	// only release exposure that already exists and settlement may not run for
+	// some time after the window closes.
+	SeriesExpired : record {
+		// The timestamp (nanoseconds since the UNIX epoch) at which it closed.
+		expiry_ns : nat64;
+		// The series whose window has closed.
+		series_id : text
+	};
 	// The user has insufficient margin to open or maintain the position.
 	InsufficientMargin : record {
 		// Current margin balance.
@@ -1273,6 +1397,29 @@ service : (Config) -> {
 	// The supplied set is de-duplicated and capped at `MAX_AGGREGATE_PRINCIPALS`.
 	// Guarded by `caller_is_not_anonymous`, matching the other position reads.
 	aggregate_lean : (AggregateLeanParams) -> (AggregateLean) query;
+	// Aggregates each supplied principal's settled-position win/total counts (and
+	// net realized `PnL`) over an arbitrary half-open window `[from_ts, to_ts)`.
+	//
+	// `win_count / settled_count` per entry is that principal's window accuracy —
+	// the same metric [`list_leaderboard`] exposes, but over a caller-chosen span
+	// rather than a fixed calendar bucket. A consumer scoring a cohort (e.g. one
+	// league side of a "battle") sums the entries it gets back for that side's
+	// members.
+	//
+	// Unlike [`list_leaderboard`], the arbitrary window cannot use the
+	// `(window, period)` index, so this scans the raw `EVENTS` log once —
+	// `O(events)`, the same cost class as [`get_trade_history`] and the
+	// post-upgrade leaderboard rebuild. Only `Settled` events count; a `Settled`
+	// event's `qty` is the position's signed `cashflow_usd`, so a win is
+	// `qty > 0`, matching the leaderboard's rule exactly. Pass `series_ids` to
+	// scope the count to a set of series (e.g. one market category); `None`
+	// counts every series. Guarded by `caller_is_not_anonymous`, matching the
+	// other settlement-derived reads.
+	//
+	// [`get_trade_history`]: crate::api::trade::get_trade_history
+	aggregate_settlement_accuracy : (AggregateSettlementAccuracyParams) -> (
+		vec SettlementAccuracyEntry
+	) query;
 	// One-shot, idempotent backfill of `Settled` events for plans finalized
 	// before per-user event emission was added to `apply_settlement_accounting_logic`.
 	//
@@ -1407,6 +1554,28 @@ service : (Config) -> {
 	list_orders : (ListOrdersParams) -> (vec LimitOrder) query;
 	// Returns a list of all derivative series currently cached in the clearing canister.
 	list_series : () -> (vec Series) query;
+	// Returns each requested series' settlement status in one call — the batch form
+	// of [`get_settlement_status`].
+	//
+	// A resolution solver checks "is this market already settled?" for every due
+	// market on each pass; done one id at a time that is N sequential canister
+	// calls. This collapses them into one: each id is looked up in
+	// `SETTLEMENT_PLANS` and returned with its [`SettlementStatusView`], or `None`
+	// when no plan exists yet (the series is still open / not being settled).
+	// Results are one per requested id, in request order, so the caller can zip them
+	// back against its input; the `series_id` is echoed on each entry so a `None`
+	// status is still attributable.
+	//
+	// The work is `O(#series_ids)` map lookups — bounded by the request, not by the
+	// number of plans — so callers should pass the (already bounded) set they care
+	// about, e.g. the registry's "due" candidates. Reads the same
+	// `SETTLEMENT_PLANS` map as [`get_settlement_status`] and mirrors the
+	// aggregate-read shape of
+	// [`list_series_traded_volumes`](crate::api::trade::list_series_traded_volumes).
+	// Guarded by `caller_is_not_anonymous`, matching the other settlement reads.
+	list_series_settlement_statuses : (ListSeriesSettlementStatusesParams) -> (
+		vec SeriesSettlementStatus
+	) query;
 	// Returns the executed-trade history for a single series, with stable cursor
 	// pagination.
 	//

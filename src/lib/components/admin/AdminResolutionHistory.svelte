@@ -1,15 +1,33 @@
 <script lang="ts">
-	import OutcomeBadge from '$lib/components/market/OutcomeBadge.svelte';
-	import { TestId } from '$lib/constants/test-ids.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import type { Market } from '$lib/types/market';
-	import { t } from '$lib/utils/i18n.utils';
+	import OutcomeBadge from '#lib/components/market/OutcomeBadge.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { Market } from '#lib/types/market.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		markets: Market[];
 	}
 
 	const { markets }: Props = $props();
+
+	const RECENT_RESOLUTIONS_COUNT = 5;
+
+	// The incoming order is the catalog's, which says nothing about when anything
+	// was called: taking the first five off it showed an arbitrary sample under a
+	// "Recent" heading. Sort by settlement time, newest first; markets whose
+	// settlement carries no timestamp sort last rather than jumping to the top.
+	const recentMarkets = $derived(
+		[...markets]
+			.sort((a, b) => {
+				const left = a.resolvedAt ?? ZERO;
+				const right = b.resolvedAt ?? ZERO;
+
+				return right > left ? 1 : right < left ? -1 : 0;
+			})
+			.slice(0, RECENT_RESOLUTIONS_COUNT)
+	);
 </script>
 
 <div
@@ -20,7 +38,7 @@
 		{t({ locale: $localeStore, key: 'admin.resolution.history.title' })}
 	</h2>
 	<div class="space-y-4">
-		{#each markets.slice(0, 5) as market (market.id)}
+		{#each recentMarkets as market (market.id)}
 			<div
 				class="border-border flex items-start justify-between gap-3 border-b pb-4 last:border-0 last:pb-0"
 				data-market-id={market.id}

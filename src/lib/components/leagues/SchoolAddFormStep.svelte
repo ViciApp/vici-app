@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { WorldsAffiliationOption } from '$lib/constants/worlds-affiliations.constants';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
+	import type { WorldsAffiliationOption } from '#lib/constants/worlds-affiliations.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * Pass-2 "add your own school" email step — collects the school email
+	 * Pass-2 "add your own school" email step: collects the school email
 	 * for a brand-new entry, blocking consumer domains and redirecting to
 	 * an existing directory school when the typed domain already belongs
 	 * to one. The owning {@link AffiliationPickerModal} keeps the state

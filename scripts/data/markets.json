@@ -4,7 +4,7 @@
 		"description": "Traders speculate on whether the US Consumer Price Index report for March will exceed 3.4%.",
 		"resolution": "Traders speculate on whether the US Consumer Price Index report for March will exceed 3.4%.",
 		"expiryDate": "2026-04-15T21:59:59.000Z",
-		"categories": ["macro"],
+		"categories": ["inflation", "cpi"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -14,7 +14,7 @@
 		"description": "Settlement depends on the S&P 500’s official closing value on that date.",
 		"resolution": "Settlement depends on the S&P 500’s official closing value on that date.",
 		"expiryDate": "2026-06-30T21:59:59.000Z",
-		"categories": ["macro"],
+		"categories": ["stocks", "sp500"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -24,7 +24,7 @@
 		"description": "The contract resolves YES if BTC/USD touches or exceeds $100k at any time before end of year.",
 		"resolution": "The contract resolves YES if BTC/USD touches or exceeds $100k at any time before end of year.",
 		"expiryDate": "2026-12-31T22:59:59.000Z",
-		"categories": ["crypto", "macro"],
+		"categories": ["bitcoin", "bitcoin-price"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -34,7 +34,7 @@
 		"description": "Outcome determined by the official results issued by the Electoral Commission.",
 		"resolution": "Outcome determined by the official results issued by the Electoral Commission.",
 		"expiryDate": "2026-05-05T21:59:59.000Z",
-		"categories": ["politics"],
+		"categories": ["global-elections", "uk-election"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -44,7 +44,7 @@
 		"description": "Settles YES if a bill becomes law before expiry.",
 		"resolution": "Settles YES if a bill becomes law before expiry.",
 		"expiryDate": "2026-12-31T22:59:59.000Z",
-		"categories": ["politics", "tech"],
+		"categories": ["congress"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -54,7 +54,7 @@
 		"description": "Based on official NOAA snowfall measurements for the month.",
 		"resolution": "Based on official NOAA snowfall measurements for the month.",
 		"expiryDate": "2026-02-01T22:59:59.000Z",
-		"categories": ["culture"],
+		"categories": ["weather", "snowfall"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -64,7 +64,7 @@
 		"description": "Requires at least one named storm making landfall, per the National Hurricane Center.",
 		"resolution": "Requires at least one named storm making landfall, per the National Hurricane Center.",
 		"expiryDate": "2026-11-30T22:59:59.000Z",
-		"categories": ["culture"],
+		"categories": ["weather", "hurricane"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -74,7 +74,7 @@
 		"description": "YES if the studio or director confirms the film publicly via official channels.",
 		"resolution": "YES if the studio or director confirms the film publicly via official channels.",
 		"expiryDate": "2026-10-01T21:59:59.000Z",
-		"categories": ["culture"],
+		"categories": ["movies"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -84,7 +84,7 @@
 		"description": "Verification uses Billboard’s official weekly chart records.",
 		"resolution": "Verification uses Billboard’s official weekly chart records.",
 		"expiryDate": "2026-12-31T22:59:59.000Z",
-		"categories": ["culture"],
+		"categories": ["music", "billboard"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -94,7 +94,7 @@
 		"description": "Based on Tesla’s end-of-year delivery report.",
 		"resolution": "Based on Tesla’s end-of-year delivery report.",
 		"expiryDate": "2027-01-15T22:59:59.000Z",
-		"categories": ["tech", "macro"],
+		"categories": ["elon-musk", "tesla"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -104,7 +104,7 @@
 		"description": "YES if Apple publicly launches or announces a foldable iPhone model.",
 		"resolution": "YES if Apple publicly launches or announces a foldable iPhone model.",
 		"expiryDate": "2026-12-31T22:59:59.000Z",
-		"categories": ["tech"],
+		"categories": ["big-tech", "apple"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -114,7 +114,7 @@
 		"description": "Outcome follows the Premier League’s official final table.",
 		"resolution": "Outcome follows the Premier League’s official final table.",
 		"expiryDate": "2026-05-20T21:59:59.000Z",
-		"categories": ["sports"],
+		"categories": ["soccer", "premier-league"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -124,7 +124,7 @@
 		"description": "YES if he appears in the first-round draw and plays.",
 		"resolution": "YES if he appears in the first-round draw and plays.",
 		"expiryDate": "2026-05-25T21:59:59.000Z",
-		"categories": ["sports"],
+		"categories": ["tennis", "roland-garros"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -134,7 +134,7 @@
 		"description": "Settles on publicly verifiable video evidence during the match.",
 		"resolution": "Settles on publicly verifiable video evidence during the match.",
 		"expiryDate": "2026-07-12T21:59:59.000Z",
-		"categories": ["sports", "culture"],
+		"categories": ["tennis", "novelty"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -144,7 +144,7 @@
 		"description": "YES if that date is the hottest daily maximum temperature in Met Office records.",
 		"resolution": "YES if that date is the hottest daily maximum temperature in Met Office records.",
 		"expiryDate": "2026-12-31T22:59:59.000Z",
-		"categories": ["culture"],
+		"categories": ["weather", "temperature-record"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -154,7 +154,7 @@
 		"description": "Verified via public mathematical registries.",
 		"resolution": "Verified via public mathematical registries.",
 		"expiryDate": "2027-12-31T22:59:59.000Z",
-		"categories": ["tech"],
+		"categories": ["science"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -164,7 +164,7 @@
 		"description": "Requires an official TfL report confirming a full-network disruption.",
 		"resolution": "Requires an official TfL report confirming a full-network disruption.",
 		"expiryDate": "2026-12-01T22:59:59.000Z",
-		"categories": ["culture"],
+		"categories": ["novelty"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -174,7 +174,7 @@
 		"description": "YES if the first 2026 launch results in a confirmed orbital insertion.",
 		"resolution": "YES if the first 2026 launch results in a confirmed orbital insertion.",
 		"expiryDate": "2026-03-31T21:59:59.000Z",
-		"categories": ["tech"],
+		"categories": ["space", "spacex"],
 		"inviteOnly": false,
 		"balanceDomain": "ViciXp",
 		"locale": "en"
@@ -184,7 +184,7 @@
 		"description": "Prediction on the champion of the 2026 FIFA World Cup.",
 		"resolution": "Prediction on the champion of the 2026 FIFA World Cup.",
 		"expiryDate": "2026-07-20T21:59:59.000Z",
-		"categories": ["wc", "sports"],
+		"categories": ["soccer", "world-cup"],
 		"inviteOnly": false,
 		"outcomes": [
 			"Italy",
@@ -205,7 +205,7 @@
 		"description": "Speculation on the actor officially announced to lead the next 007 film.",
 		"resolution": "Speculation on the actor officially announced to lead the next 007 film.",
 		"expiryDate": "2026-12-31T22:59:59.000Z",
-		"categories": ["culture"],
+		"categories": ["movies"],
 		"inviteOnly": false,
 		"outcomes": [
 			"Aaron Taylor-Johnson",

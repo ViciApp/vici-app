@@ -1,5 +1,1218 @@
 # Changelog
 
+## [1.8.61](https://github.com/ViciApp/vici-app/compare/v1.8.60...v1.8.61) (2026-11-18)
+
+
+### Bug Fixes
+
+* **ci:** judge the E2E result before the paths filter in e2e-tests-pass ([#1577](https://github.com/ViciApp/vici-app/issues/1577)) ([ece2adb](https://github.com/ViciApp/vici-app/commit/ece2adbc7d489fb8d827f28be289bb891c3801ee))
+* **ci:** never cancel an in-flight workflow run on main ([#1578](https://github.com/ViciApp/vici-app/issues/1578)) ([49e28a5](https://github.com/ViciApp/vici-app/commit/49e28a546257c5776b63a65b264f376d65a068ab))
+* **ci:** walk the satellite import graph from package.json imports ([#1581](https://github.com/ViciApp/vici-app/issues/1581)) ([c58c1b9](https://github.com/ViciApp/vici-app/commit/c58c1b9edb032789c5cf3628e4c55cf1ce6fd07a))
+* **frontend:** build invite and share links on the app's own origin ([#1585](https://github.com/ViciApp/vici-app/issues/1585)) ([a1f130d](https://github.com/ViciApp/vici-app/commit/a1f130d055ddefd2e2f89018b9d5bfc75372828a))
+* **frontend:** keep polling loaders alive after a failed load ([#1580](https://github.com/ViciApp/vici-app/issues/1580)) ([8cf422f](https://github.com/ViciApp/vici-app/commit/8cf422f7a2b4c9bc1755108ca3cb7b75cef7466c))
+* **frontend:** read the battle viewer from the mode-aware user store ([#1576](https://github.com/ViciApp/vici-app/issues/1576)) ([693aa51](https://github.com/ViciApp/vici-app/commit/693aa51f88a2b7da8b86fcb8601bd0802149ff43))
+* **frontend:** read the received-likes author from the mode-aware session ([#1579](https://github.com/ViciApp/vici-app/issues/1579)) ([b68d2e9](https://github.com/ViciApp/vici-app/commit/b68d2e9c56404cdc3d7d755298a82f90568dd5d0))
+* **frontend:** translate the hard-coded aria labels ([#1589](https://github.com/ViciApp/vici-app/issues/1589)) ([7e45dcc](https://github.com/ViciApp/vici-app/commit/7e45dcc46cb7f86f87b2961ba9b41e2f4211e2ac))
+* **market:** re-enable share controls after a failed card share ([#1584](https://github.com/ViciApp/vici-app/issues/1584)) ([b4a9054](https://github.com/ViciApp/vici-app/commit/b4a90543b75a894551cb9187773416d5f5eb0eef))
+* **market:** show the error state when the market detail load fails ([#1582](https://github.com/ViciApp/vici-app/issues/1582)) ([6ab9d2b](https://github.com/ViciApp/vici-app/commit/6ab9d2b9a385fedf0186b6c11d31dc780b3b546a))
+
+
+### Documentation
+
+* **ai:** correct the CI governance docs that contradict the config ([#1592](https://github.com/ViciApp/vici-app/issues/1592)) ([73dde83](https://github.com/ViciApp/vici-app/commit/73dde83b177816871214d04385590c53b4ecd14b))
+* **frontend:** drop the migration history from the OpenID claims comment ([#1594](https://github.com/ViciApp/vici-app/issues/1594)) ([74d9741](https://github.com/ViciApp/vici-app/commit/74d97414a19a50e1a69395f1a513e0fc9123d8a0))
+* **runbooks:** give only steps that run as written ([#1595](https://github.com/ViciApp/vici-app/issues/1595)) ([f276eed](https://github.com/ViciApp/vici-app/commit/f276eed49967655fb5cc1294d1d288ff0eae97b0))
+
+
+### Miscellaneous Chores
+
+* **backend:** treat league-image uploads as untracked local data ([#1587](https://github.com/ViciApp/vici-app/issues/1587)) ([a8c2577](https://github.com/ViciApp/vici-app/commit/a8c257774f05eda7639fad4c63344e5453d9b07a))
+
+
+### Code Refactoring
+
+* **backend:** remove wrappers nothing calls ([#1590](https://github.com/ViciApp/vici-app/issues/1590)) ([6b89d9e](https://github.com/ViciApp/vici-app/commit/6b89d9ee3215c3dc3e4280d48316555f6a679ef1))
+* **scripts:** read every hand-copied value from its owner ([#1586](https://github.com/ViciApp/vici-app/issues/1586)) ([5d3be36](https://github.com/ViciApp/vici-app/commit/5d3be36013cd673fd1aa0cbff26842f505f934cd))
+* **wallet:** share one ledger-history pager ([#1591](https://github.com/ViciApp/vici-app/issues/1591)) ([d8ef1b4](https://github.com/ViciApp/vici-app/commit/d8ef1b47f372f585673a7f8f16770f491afef278))
+
+
+### Tests
+
+* **e2e:** pin the desktop nav handle before signed-in snapshots ([#1575](https://github.com/ViciApp/vici-app/issues/1575)) ([fc86c8c](https://github.com/ViciApp/vici-app/commit/fc86c8c838b567961c17c221cb2edb10db4ab025))
+
+
+### Build System
+
+* **web2:** build the SPA image on the Node pinned in .node-version ([#1583](https://github.com/ViciApp/vici-app/issues/1583)) ([db3a199](https://github.com/ViciApp/vici-app/commit/db3a199eec57b0db042f9e0047ab5c4110b2466f))
+
+## [1.8.60](https://github.com/ViciApp/vici-app/compare/v1.8.59...v1.8.60) (2026-11-17)
+
+
+### Bug Fixes
+
+* **backend:** answer a non-uuid id at the route instead of a 500 ([#1563](https://github.com/ViciApp/vici-app/issues/1563)) ([59acbcc](https://github.com/ViciApp/vici-app/commit/59acbccd146d37e7c35f02cf833d5f7f9d477359))
+* **backend:** limit invite-code lookups and joins per account ([#1564](https://github.com/ViciApp/vici-app/issues/1564)) ([ccbea49](https://github.com/ViciApp/vici-app/commit/ccbea49e7ef619eb812388d25a1a4e74deff149f))
+* **custody:** keep disabled chains out of the confirmation batch ([#1565](https://github.com/ViciApp/vici-app/issues/1565)) ([2dca223](https://github.com/ViciApp/vici-app/commit/2dca223d68059db8a313c04ae4ef6137c9c7f1eb))
+* **frontend:** compute the profile's top-percent line from one ranking ([#1554](https://github.com/ViciApp/vici-app/issues/1554)) ([7b5749c](https://github.com/ViciApp/vici-app/commit/7b5749c6191cb57bd5fc1f23388210ac7b519863))
+* **frontend:** drop leaderboard opt-outs from the market's top predictors ([#1553](https://github.com/ViciApp/vici-app/issues/1553)) ([ad53c29](https://github.com/ViciApp/vici-app/commit/ad53c296ff084d6e8aaa95c5d34bf7d1865bb53b))
+* **frontend:** localize the sign-in, sign-up and invite page titles ([#1559](https://github.com/ViciApp/vici-app/issues/1559)) ([bb49676](https://github.com/ViciApp/vici-app/commit/bb49676866887fc29fdf92e973224f92f68be9f4))
+* **frontend:** remove the public call history toggle that did nothing ([#1556](https://github.com/ViciApp/vici-app/issues/1556)) ([f691934](https://github.com/ViciApp/vici-app/commit/f691934f24ad8509fc06b4bdc38fad4faefcafc8))
+* **frontend:** show a retry when a leaderboard window fails to load ([#1555](https://github.com/ViciApp/vici-app/issues/1555)) ([6203592](https://github.com/ViciApp/vici-app/commit/62035928297da07330a831920cc51b837ccfd8cd))
+
+
+### Documentation
+
+* **ai:** match the agent docs to the code and pin the collections list ([#1569](https://github.com/ViciApp/vici-app/issues/1569)) ([143a925](https://github.com/ViciApp/vici-app/commit/143a925f4ea73385726c7ff4c1e8bc1ae6fe5793))
+
+
+### Miscellaneous Chores
+
+* **npm-deps-dev:** move minimatch and brace-expansion to patched versions ([#1570](https://github.com/ViciApp/vici-app/issues/1570)) ([fdf68f2](https://github.com/ViciApp/vici-app/commit/fdf68f2d3f26b0fa65bd052160a17265643b55af))
+
+
+### Code Refactoring
+
+* **frontend,satellite:** write the default preferences once ([#1557](https://github.com/ViciApp/vici-app/issues/1557)) ([0044f74](https://github.com/ViciApp/vici-app/commit/0044f7436028a783573d6b18ad670baa9d1dab63))
+* **frontend:** make comments say why and drop the unused toRelationId ([#1560](https://github.com/ViciApp/vici-app/issues/1560)) ([c9e762a](https://github.com/ViciApp/vici-app/commit/c9e762a4c435d1cbbcd6b0e40087aab2d80d4668))
+* **frontend:** read the call side, onboarding picks and league accent from one place ([#1558](https://github.com/ViciApp/vici-app/issues/1558)) ([dab553d](https://github.com/ViciApp/vici-app/commit/dab553d5c16055e7e76e1775bf367d3d256b45c6))
+* **scripts:** read the engine id, odds and engine admins from the app ([#1561](https://github.com/ViciApp/vici-app/issues/1561)) ([dc36604](https://github.com/ViciApp/vici-app/commit/dc366047edf0811ede6e83ceb8ba4fa71e5c7e18))
+
+
+### Tests
+
+* **backend:** skip the DB suites cleanly when Postgres is down ([#1567](https://github.com/ViciApp/vici-app/issues/1567)) ([fa72dc2](https://github.com/ViciApp/vici-app/commit/fa72dc20dc1f972e7ae2d77c705917ee190557b2))
+
+
+### Build System
+
+* **backend:** pin one Bun version for CI and the Fly image ([#1568](https://github.com/ViciApp/vici-app/issues/1568)) ([20cda5f](https://github.com/ViciApp/vici-app/commit/20cda5f096e91ea37462daabcc574d71324ea7fb))
+
+
+### Continuous Integration
+
+* **release:** narrow the credentials of the release workflows ([#1566](https://github.com/ViciApp/vici-app/issues/1566)) ([c8fec99](https://github.com/ViciApp/vici-app/commit/c8fec992037c077e6174c36cbf96dd63155497b1))
+* **satellite:** pin the juno CLI version in one file ([#1562](https://github.com/ViciApp/vici-app/issues/1562)) ([2defe64](https://github.com/ViciApp/vici-app/commit/2defe64fcd46d1eb1ce7b3df3177fb2fca0b4e6c))
+* **workflows:** keep pull request branch checkouts from writing main's cache ([#1571](https://github.com/ViciApp/vici-app/issues/1571)) ([24e364d](https://github.com/ViciApp/vici-app/commit/24e364d2aa3bfb739d41e9636c48a959c6068f69))
+
+## [1.8.59](https://github.com/ViciApp/vici-app/compare/v1.8.58...v1.8.59) (2026-11-16)
+
+
+### Bug Fixes
+
+* **backend:** answer invalid battle proposals with a 4xx, not a 500 ([#1540](https://github.com/ViciApp/vici-app/issues/1540)) ([60a5557](https://github.com/ViciApp/vici-app/commit/60a5557a93e4a92def0d71865198e47e9e0b73f3))
+* **backend:** bound the work and input of unthrottled API routes ([#1544](https://github.com/ViciApp/vici-app/issues/1544)) ([0a680d8](https://github.com/ViciApp/vici-app/commit/0a680d810a82fd8d6621d7a0a8d7664045d5ee53))
+* **frontend:** say call size, not stake, in the order-too-small error ([#1543](https://github.com/ViciApp/vici-app/issues/1543)) ([a64aa92](https://github.com/ViciApp/vici-app/commit/a64aa927b6755b0bc7fef3afaba0f88095b34641))
+
+
+### Documentation
+
+* **ai:** match comments and agent docs to the code, fourth pass ([#1550](https://github.com/ViciApp/vici-app/issues/1550)) ([7975f49](https://github.com/ViciApp/vici-app/commit/7975f499364d74b951d956f55e25be453663e34a))
+
+
+### Code Refactoring
+
+* **backend,frontend:** write the VXP award types once per stack ([#1546](https://github.com/ViciApp/vici-app/issues/1546)) ([6451eb0](https://github.com/ViciApp/vici-app/commit/6451eb030bc686013cff85b48e6987c49d30f1bf))
+* **backend,scripts:** remove dead code and orphan lint scripts ([#1541](https://github.com/ViciApp/vici-app/issues/1541)) ([268b69d](https://github.com/ViciApp/vici-app/commit/268b69d582c7f823be9a2e33dbb55128d7441ff2))
+* **frontend,satellite,backend:** write the affiliation kinds once per stack ([#1549](https://github.com/ViciApp/vici-app/issues/1549)) ([6e6ed17](https://github.com/ViciApp/vici-app/commit/6e6ed17ff2dd41391f27615e2877c1359838ca12))
+* **frontend:** build the tournament round window from the shared time units ([#1542](https://github.com/ViciApp/vici-app/issues/1542)) ([50ccf68](https://github.com/ViciApp/vici-app/commit/50ccf68d732c5414cdf8189e48929e5a5becf770))
+* **frontend:** delete the service wrappers and primitives nothing calls ([#1545](https://github.com/ViciApp/vici-app/issues/1545)) ([ad70a74](https://github.com/ViciApp/vici-app/commit/ad70a746bda03f07f54edbb2ea80cc3f74786621))
+* **i18n:** remove the 258 catalog keys nothing reads ([#1548](https://github.com/ViciApp/vici-app/issues/1548)) ([0b3e8d8](https://github.com/ViciApp/vici-app/commit/0b3e8d8d387beb114523572f43285987ce11eb3b))
+
+
+### Tests
+
+* **backend:** pin the mirrored validation bounds, windows and ids in the drift suite ([#1551](https://github.com/ViciApp/vici-app/issues/1551)) ([54e2c24](https://github.com/ViciApp/vici-app/commit/54e2c24b46075c6181cd0db1a958bc276a44f3f2))
+
+
+### Continuous Integration
+
+* **web2:** run the web2 deploy only from a release tag ([#1547](https://github.com/ViciApp/vici-app/issues/1547)) ([8586afc](https://github.com/ViciApp/vici-app/commit/8586afce02ff1b211696ec9ebd329164159b55bf))
+
+## [1.8.58](https://github.com/ViciApp/vici-app/compare/v1.8.57...v1.8.58) (2026-11-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **repo:** the battle records returned by `app_list_league_battles`, `app_list_my_battles` and `app_resolve_battle` carry the optional VXP amount as `amount` instead of `wager`. Callers read `amount`; stored Juno docs need no migration, since they are read through `readBattleDoc`, and Postgres keeps `wager` until the follow-up release drops it.
+
+### Documentation
+
+* **ai:** match the agent docs to the code, third pass ([#1531](https://github.com/ViciApp/vici-app/issues/1531)) ([356c787](https://github.com/ViciApp/vici-app/commit/356c78796fc354669b9c09fd85e931d6c214bf7b))
+
+
+### Miscellaneous Chores
+
+* **e2e:** Update Playwright E2E Snapshots ([#1518](https://github.com/ViciApp/vici-app/issues/1518)) ([e1099c8](https://github.com/ViciApp/vici-app/commit/e1099c8d70ec6035ecf3bde824558b85d356d80e))
+
+
+### Code Refactoring
+
+* **backend:** name the rate-limit numbers once ([#1534](https://github.com/ViciApp/vici-app/issues/1534)) ([014e652](https://github.com/ViciApp/vici-app/commit/014e65220f5db4f34f8f286b39cc412a500ca23a))
+* **frontend:** delete the components and loaders nothing renders ([#1530](https://github.com/ViciApp/vici-app/issues/1530)) ([3c63c66](https://github.com/ViciApp/vici-app/commit/3c63c66b4d5a536bab122c4e9e246ac69de7c0e9))
+* **frontend:** name stakes and odds after predictions ([#1537](https://github.com/ViciApp/vici-app/issues/1537)) ([702e005](https://github.com/ViciApp/vici-app/commit/702e0055fd9d752342a197945f25083d671a34ac))
+* **frontend:** rename wallet.service.ts to wallet.services.ts ([#1535](https://github.com/ViciApp/vici-app/issues/1535)) ([da9ceac](https://github.com/ViciApp/vici-app/commit/da9ceac1f7c029b4736437252ec5858da95b28bf))
+* **repo:** comments say why, not what changed ([#1536](https://github.com/ViciApp/vici-app/issues/1536)) ([4b019f5](https://github.com/ViciApp/vici-app/commit/4b019f52304f77336bb18e22ee0d282c1d6bbff7))
+* **repo:** rename the battle wager to the battle amount ([#1538](https://github.com/ViciApp/vici-app/issues/1538)) ([713178c](https://github.com/ViciApp/vici-app/commit/713178c72b36914f32e202e9092b5f278233047a))
+
+## [1.8.57](https://github.com/ViciApp/vici-app/compare/v1.8.56...v1.8.57) (2026-11-14)
+
+
+### Bug Fixes
+
+* **i18n:** replace the betting words left in the copy ([#1527](https://github.com/ViciApp/vici-app/issues/1527)) ([3142cb2](https://github.com/ViciApp/vici-app/commit/3142cb2d65b8d9e39be58e204edc93234221884e))
+* **satellite:** validate month anchors with MONTH_ANCHOR_RE ([#1517](https://github.com/ViciApp/vici-app/issues/1517)) ([7de31e0](https://github.com/ViciApp/vici-app/commit/7de31e089cdfced42e8f5b208600d8d37558c87b))
+
+
+### Documentation
+
+* **ai:** match the agent docs to the code again ([#1519](https://github.com/ViciApp/vici-app/issues/1519)) ([8a7e7e3](https://github.com/ViciApp/vici-app/commit/8a7e7e358c5805803d3eb73e455964dc2b0ab8e3))
+
+
+### Code Refactoring
+
+* **backend:** one MINUTE_IN_MS ([#1521](https://github.com/ViciApp/vici-app/issues/1521)) ([1efa180](https://github.com/ViciApp/vici-app/commit/1efa180c38414cdb9e9dbbb55ea94fce0951131f))
+* **frontend:** call Flow calls calls, not bets ([#1524](https://github.com/ViciApp/vici-app/issues/1524)) ([44967f7](https://github.com/ViciApp/vici-app/commit/44967f7e8afea2c2f541a2a652282efbf94aeb70))
+* **frontend:** drop the wire projectors that copy fields one to one ([#1514](https://github.com/ViciApp/vici-app/issues/1514)) ([5eebcee](https://github.com/ViciApp/vici-app/commit/5eebcee83ce8d443dd2d084175163f612146ecc0))
+* **frontend:** one owner for the email and day-key patterns ([#1523](https://github.com/ViciApp/vici-app/issues/1523)) ([1a3899f](https://github.com/ViciApp/vici-app/commit/1a3899f752c10362710a4b5ff1ee7df84728546e))
+* **frontend:** one slugify ([#1522](https://github.com/ViciApp/vici-app/issues/1522)) ([47ca232](https://github.com/ViciApp/vici-app/commit/47ca2322fe49f07b3c77c0f70e21c5653e7fe0b5))
+* **frontend:** render the empty-value glyph from EMPTY_VALUE ([#1516](https://github.com/ViciApp/vici-app/issues/1516)) ([4c9f9ab](https://github.com/ViciApp/vici-app/commit/4c9f9abade97e31940141d0bb04fa309bcace729))
+* **frontend:** the last inline durations use the shared time constants ([#1520](https://github.com/ViciApp/vici-app/issues/1520)) ([0841e09](https://github.com/ViciApp/vici-app/commit/0841e0976e5738cb7eacd14713895b57920f7afa))
+* **frontend:** use the shared nanosecond constants in src/lib ([#1515](https://github.com/ViciApp/vici-app/issues/1515)) ([8114eb8](https://github.com/ViciApp/vici-app/commit/8114eb80dff6d1d0b3c4d392df6113175d22f5d3))
+* **repo:** drop three unused types and the stale #lib import map ([#1525](https://github.com/ViciApp/vici-app/issues/1525)) ([7aec2cd](https://github.com/ViciApp/vici-app/commit/7aec2cd170b596dee45cbfd571d63c40b4687db5))
+* **repo:** read satellite ids from juno.config ([#1526](https://github.com/ViciApp/vici-app/issues/1526)) ([5ef91b2](https://github.com/ViciApp/vici-app/commit/5ef91b2ad133931a30a2a3f69327e13b4f6bfe55))
+
+
+### Continuous Integration
+
+* **repo:** fail lint on an em dash or a spaced en dash ([#1512](https://github.com/ViciApp/vici-app/issues/1512)) ([786e243](https://github.com/ViciApp/vici-app/commit/786e243df510c0ff8cd9c0a3e53aeb041deb3ea8))
+
+## [1.8.56](https://github.com/ViciApp/vici-app/compare/v1.8.55...v1.8.56) (2026-11-14)
+
+
+### Bug Fixes
+
+* **frontend:** drop em dashes from UI strings, glyphs and config ([#1507](https://github.com/ViciApp/vici-app/issues/1507)) ([04b10ca](https://github.com/ViciApp/vici-app/commit/04b10ca401ea9a0d3ec194bbe933c7da8ecded89))
+* **i18n:** drop em dashes from the app copy in every locale ([#1510](https://github.com/ViciApp/vici-app/issues/1510)) ([625d7e6](https://github.com/ViciApp/vici-app/commit/625d7e6ad9c515d32f2154e1c5c1235f2a77a942))
+* **legal:** drop em dashes from the legal documents ([#1508](https://github.com/ViciApp/vici-app/issues/1508)) ([60e40ca](https://github.com/ViciApp/vici-app/commit/60e40ca0b30ca54d019c0863f81bb5eebf7ea3e7))
+
+
+### Documentation
+
+* **ai:** ban the whole betting lexicon in every locale, not just "bet" ([#1492](https://github.com/ViciApp/vici-app/issues/1492)) ([1ffcd15](https://github.com/ViciApp/vici-app/commit/1ffcd150b99a061213c7169af7ef9057fd91dd46))
+* **ai:** describe the satellite wire format as it is (camelCase) ([#1499](https://github.com/ViciApp/vici-app/issues/1499)) ([6faca9f](https://github.com/ViciApp/vici-app/commit/6faca9f40f1f28815eff59480a0f70f3b9c3dca4))
+* **ai:** drop em dashes from the historical specs ([#1509](https://github.com/ViciApp/vici-app/issues/1509)) ([79bdb6a](https://github.com/ViciApp/vici-app/commit/79bdb6ae0b3d4859c0b51e345cc4824af9a3e4cb))
+* **frontend:** drop em dashes from code comments in src/lib ([#1496](https://github.com/ViciApp/vici-app/issues/1496)) ([4516d32](https://github.com/ViciApp/vici-app/commit/4516d3267ebb53da064ac5e8deed077420baf6ee))
+* **frontend:** drop em dashes from comments in components, routes and styles ([#1497](https://github.com/ViciApp/vici-app/issues/1497)) ([88d21a1](https://github.com/ViciApp/vici-app/commit/88d21a1b049244740d388195dedd0f5d04d43527))
+* **frontend:** drop the last em dashes from code comments ([#1505](https://github.com/ViciApp/vici-app/issues/1505)) ([40c5e83](https://github.com/ViciApp/vici-app/commit/40c5e83c97fdadf58a4311a339e5593ba53abe69))
+* **repo:** drop em dashes from the docs and the root readmes ([#1506](https://github.com/ViciApp/vici-app/issues/1506)) ([8e75861](https://github.com/ViciApp/vici-app/commit/8e7586183f647decb8f6760ec48797d7e434f0fa))
+* **satellite:** drop em dashes from code comments ([#1495](https://github.com/ViciApp/vici-app/issues/1495)) ([217fd14](https://github.com/ViciApp/vici-app/commit/217fd14b2aa83505283909ffda7976932240bc46))
+
+
+### Miscellaneous Chores
+
+* **officina:** list the agent docs pages by area ([#1501](https://github.com/ViciApp/vici-app/issues/1501)) ([01b4be3](https://github.com/ViciApp/vici-app/commit/01b4be314f8519d5ce452135b01b642bf1f47389))
+
+
+### Code Refactoring
+
+* **backend:** month-anchor helpers live in lib/time ([#1500](https://github.com/ViciApp/vici-app/issues/1500)) ([ff35586](https://github.com/ViciApp/vici-app/commit/ff35586f7fdd0ae398ddc4b73e623938a260aa20))
+* **backend:** one owner for hour and day durations ([#1494](https://github.com/ViciApp/vici-app/issues/1494)) ([1cfdca9](https://github.com/ViciApp/vici-app/commit/1cfdca97b5d890e95ed90c6fc29ca666f8170bcc))
+* **frontend:** market.utils uses the shared time constants ([#1503](https://github.com/ViciApp/vici-app/issues/1503)) ([ed25f88](https://github.com/ViciApp/vici-app/commit/ed25f883ebca404e46ad94d6c1f7073d4927fcd1))
+* **repo:** delete code nothing uses ([#1491](https://github.com/ViciApp/vici-app/issues/1491)) ([ff5baf8](https://github.com/ViciApp/vici-app/commit/ff5baf8686cc0fe98c4615389d3b7ff1f81355ea))
+* **repo:** delete the code the last cleanup left unused ([#1504](https://github.com/ViciApp/vici-app/issues/1504)) ([9b7e393](https://github.com/ViciApp/vici-app/commit/9b7e39336d5ae6317d6ef1434c55361cdcb5533a))
+* **satellite:** use the shared time constants everywhere ([#1502](https://github.com/ViciApp/vici-app/issues/1502)) ([ee20a70](https://github.com/ViciApp/vici-app/commit/ee20a708eb0e8c0903d8c36b66e59b10aa570d9b))
+
+## [1.8.55](https://github.com/ViciApp/vici-app/compare/v1.8.54...v1.8.55) (2026-11-13)
+
+
+### Bug Fixes
+
+* **ui:** open Banner links with rel noopener ([#1484](https://github.com/ViciApp/vici-app/issues/1484)) ([8feab80](https://github.com/ViciApp/vici-app/commit/8feab805136d24bfcf4858f4d6e2a931a5596359))
+
+
+### Documentation
+
+* **ai:** match the agent docs to the code ([#1485](https://github.com/ViciApp/vici-app/issues/1485)) ([f1d4b7f](https://github.com/ViciApp/vici-app/commit/f1d4b7f80e3dfb4e154e978d2dbc6702285ce08e))
+* **release:** force a release after a security advisory merge ([#1478](https://github.com/ViciApp/vici-app/issues/1478)) ([46285e1](https://github.com/ViciApp/vici-app/commit/46285e1684df1f3e16327d2891ecb4bba5e7c64b))
+
+
+### Miscellaneous Chores
+
+* **repo:** drop the last em and en dashes outside ranges ([#1486](https://github.com/ViciApp/vici-app/issues/1486)) ([a72aa77](https://github.com/ViciApp/vici-app/commit/a72aa77f08f41ceb42cd0b985a01724f74d3c75b))
+
+
+### Code Refactoring
+
+* **backend:** drop the as-unknown-as casts ([#1483](https://github.com/ViciApp/vici-app/issues/1483)) ([0b7777e](https://github.com/ViciApp/vici-app/commit/0b7777eb44e7b347c5cb540abf9c2231eaf97bb7))
+* **backend:** one MONTH_ANCHOR_RE ([#1490](https://github.com/ViciApp/vici-app/issues/1490)) ([123d5f9](https://github.com/ViciApp/vici-app/commit/123d5f9c2143cb8188de5c868b05b3a74de43237))
+* **backend:** one owner for engine read helpers ([#1489](https://github.com/ViciApp/vici-app/issues/1489)) ([cf13407](https://github.com/ViciApp/vici-app/commit/cf134072c8d8238d35530febddc0a9ab0d87c616))
+* **frontend:** one owner for month anchors ([#1487](https://github.com/ViciApp/vici-app/issues/1487)) ([6e40ebb](https://github.com/ViciApp/vici-app/commit/6e40ebbd04a1cc2eb48d6fc6a971f3099683fe1a))
+* **frontend:** type the A2HS window field ([#1482](https://github.com/ViciApp/vici-app/issues/1482)) ([cda6e5a](https://github.com/ViciApp/vici-app/commit/cda6e5a9ece3d38b498619a381a9aabfd18ec539))
+* **satellite:** one persistAward for the VXP award services ([#1481](https://github.com/ViciApp/vici-app/issues/1481)) ([68b1828](https://github.com/ViciApp/vici-app/commit/68b182817592a1dfbf37b0ba0970d14c87e7c9d7))
+* **satellite:** use the shared ns and day constants ([#1488](https://github.com/ViciApp/vici-app/issues/1488)) ([21e8aed](https://github.com/ViciApp/vici-app/commit/21e8aed638c421b1ca627ec7cc50ccacb5ee7f37))
+
+
+### Build System
+
+* **satellite:** type-check the satellite in npm run check ([#1480](https://github.com/ViciApp/vici-app/issues/1480)) ([fdb0512](https://github.com/ViciApp/vici-app/commit/fdb0512d66cb318620674696ee10754974d4466e))
+
+## [1.8.54](https://github.com/ViciApp/vici-app/compare/v1.8.53...v1.8.54) (2026-11-12)
+
+
+### Bug Fixes
+
+* **backend:** require RESEND_API_KEY in production ([#1477](https://github.com/ViciApp/vici-app/issues/1477)) ([a40d8ac](https://github.com/ViciApp/vici-app/commit/a40d8ac63f743c3b9814b147cec1924369529161))
+* **backend:** validate the withdrawal destination per chain ([#1476](https://github.com/ViciApp/vici-app/issues/1476)) ([f91d112](https://github.com/ViciApp/vici-app/commit/f91d112e94a10febd1603a9f39ca6d8c38560e64))
+
+
+### Documentation
+
+* **ai:** drop em dashes from the agent docs ([#1475](https://github.com/ViciApp/vici-app/issues/1475)) ([c121202](https://github.com/ViciApp/vici-app/commit/c121202664450feb2e09556a1b9cf4c12818d60c))
+* **frontend:** describe the consensus dial needle as it is drawn ([#1466](https://github.com/ViciApp/vici-app/issues/1466)) ([5278c49](https://github.com/ViciApp/vici-app/commit/5278c494bff3224e68521e18dd70e14d91065aea))
+
+
+### Code Refactoring
+
+* **backend:** keep one ms-to-ns conversion in lib/time ([#1462](https://github.com/ViciApp/vici-app/issues/1462)) ([1184f9a](https://github.com/ViciApp/vici-app/commit/1184f9aeac699c3c2ce8f2b38bcc33716597f093))
+* **backend:** keep one optionalMs in lib/time ([#1473](https://github.com/ViciApp/vici-app/issues/1473)) ([18b4ff0](https://github.com/ViciApp/vici-app/commit/18b4ff0845e61113fc2354e50ef52b1d37eb779a))
+* **backend:** move route SQL into domain functions ([#1474](https://github.com/ViciApp/vici-app/issues/1474)) ([71f8c2b](https://github.com/ViciApp/vici-app/commit/71f8c2bf876aa9b04ca0daec1ffa5a787d6ba62d))
+* **backend:** shape league member rows in one place ([#1471](https://github.com/ViciApp/vici-app/issues/1471)) ([417946d](https://github.com/ViciApp/vici-app/commit/417946d4663c8ce1a8ac9045942cd6231469bbf4))
+* **backend:** share the 503 status helper from lib/http ([#1469](https://github.com/ViciApp/vici-app/issues/1469)) ([8a5407a](https://github.com/ViciApp/vici-app/commit/8a5407a2be9c640238118e6152af95f4274323ed))
+* **frontend:** keep one isRegisteredLocale guard in locale.constants ([#1464](https://github.com/ViciApp/vici-app/issues/1464)) ([bba8cef](https://github.com/ViciApp/vici-app/commit/bba8cefd75c14ac743f2f409e3b7ba08c40ee86d))
+* **frontend:** move median from types to stats.utils ([#1463](https://github.com/ViciApp/vici-app/issues/1463)) ([6989ce5](https://github.com/ViciApp/vici-app/commit/6989ce5817baf48f8d7e99ca721552a49e992660))
+* **frontend:** read the Vite env through one viteEnv in app.env ([#1468](https://github.com/ViciApp/vici-app/issues/1468)) ([e57737c](https://github.com/ViciApp/vici-app/commit/e57737cbd83812a76180ee6e5c297029932a8a82))
+* **frontend:** size whole VXP in base units through one vxpBaseUnits ([#1472](https://github.com/ViciApp/vici-app/issues/1472)) ([7368129](https://github.com/ViciApp/vici-app/commit/7368129ab7301c4f14fa4b080538a90398c96a32))
+* **satellite:** move the composed profile asserts into their services ([#1465](https://github.com/ViciApp/vici-app/issues/1465)) ([502fb9b](https://github.com/ViciApp/vici-app/commit/502fb9b9edbea0db4641eabae02eddbb81ae0210))
+* **satellite:** read the controller caller through one authz helper ([#1470](https://github.com/ViciApp/vici-app/issues/1470)) ([b6e230e](https://github.com/ViciApp/vici-app/commit/b6e230e51e984fbca95d6b2f94669d098d2bfef6))
+
+
+### Continuous Integration
+
+* **officina:** ask Copilot to review Officina's pull requests ([#1461](https://github.com/ViciApp/vici-app/issues/1461)) ([f6341c8](https://github.com/ViciApp/vici-app/commit/f6341c8642dc80cab6a397e9fc829292c3da8493))
+
+## [1.8.53](https://github.com/ViciApp/vici-app/compare/v1.8.52...v1.8.53) (2026-11-12)
+
+
+### Documentation
+
+* **ai:** link the universal standard and document the web2 API ([#1443](https://github.com/ViciApp/vici-app/issues/1443)) ([9e1b211](https://github.com/ViciApp/vici-app/commit/9e1b21173ef7946b0fce83b2149e9cc51cf18815))
+* **ai:** point frontend docs at the components that replaced removed ones ([#1453](https://github.com/ViciApp/vici-app/issues/1453)) ([f4631c7](https://github.com/ViciApp/vici-app/commit/f4631c7548c07df7872c5b8567dddb6be90d9ad4))
+* **ai:** say the merge queue ruleset belongs to this repository ([#1455](https://github.com/ViciApp/vici-app/issues/1455)) ([019baba](https://github.com/ViciApp/vici-app/commit/019baba1356f8dd9efb014e5107ad43a6df1d8b7))
+
+
+### Miscellaneous Chores
+
+* **e2e:** Update Playwright E2E Snapshots ([#1442](https://github.com/ViciApp/vici-app/issues/1442)) ([a690b55](https://github.com/ViciApp/vici-app/commit/a690b55e5a7a1723c0ec72d00daf81dd49beb50f))
+* **lint:** ratchet complexity, depth, params and file size against a baseline ([#1444](https://github.com/ViciApp/vici-app/issues/1444)) ([d2f5eca](https://github.com/ViciApp/vici-app/commit/d2f5ecaf4053d91d1287b0b59e07fe6bd1c57819))
+
+
+### Code Refactoring
+
+* **backend:** keep one concatBytes in lib ([#1459](https://github.com/ViciApp/vici-app/issues/1459)) ([3cd2f70](https://github.com/ViciApp/vici-app/commit/3cd2f70f52ec5831e9123227eaaa8cb6b11f13f9))
+* **backend:** keep one UUID_RE in lib ([#1456](https://github.com/ViciApp/vici-app/issues/1456)) ([924629c](https://github.com/ViciApp/vici-app/commit/924629cda0c791b4c6f7e22bdb621eb8db7be3f5))
+* **backend:** move the guarded profile write into profiles/profile-write.ts ([#1452](https://github.com/ViciApp/vici-app/issues/1452)) ([3e21ce2](https://github.com/ViciApp/vici-app/commit/3e21ce286d00d3c991383cd2cf59f4d2b515cc13))
+* **backend:** read the session once in the admin gate ([#1449](https://github.com/ViciApp/vici-app/issues/1449)) ([08d1a1c](https://github.com/ViciApp/vici-app/commit/08d1a1cb56131c2a6fa5d855d8e7bd0183ea0b45))
+* **backend:** share StatusContext and badRequest from lib/http ([#1446](https://github.com/ViciApp/vici-app/issues/1446)) ([dc5ca56](https://github.com/ViciApp/vici-app/commit/dc5ca56c58cb29bf24f1fea22a77864997f432c9))
+* **frontend:** copy to the clipboard through clipboard.utils ([#1457](https://github.com/ViciApp/vici-app/issues/1457)) ([7f805da](https://github.com/ViciApp/vici-app/commit/7f805da979e0f0b948c90c87c0fd54457d675de9))
+* **frontend:** draw both consensus dials from one consensusLean helper ([#1460](https://github.com/ViciApp/vici-app/issues/1460)) ([3920d2d](https://github.com/ViciApp/vici-app/commit/3920d2d5274ecf0045ba848d8506c7287355fdfb))
+* **frontend:** keep one UTF-8 FNV-1a 64 in hash.utils ([#1447](https://github.com/ViciApp/vici-app/issues/1447)) ([219160c](https://github.com/ViciApp/vici-app/commit/219160ca0110f653331bfdc917eb30ec6299b481))
+* **frontend:** read the welcome nav theme options from theme.store ([#1451](https://github.com/ViciApp/vici-app/issues/1451)) ([dd07eb6](https://github.com/ViciApp/vici-app/commit/dd07eb6654bb51fd4912b86155d0e8eef6103768))
+* **frontend:** use format.utils for the tournament accuracy label ([#1450](https://github.com/ViciApp/vici-app/issues/1450)) ([4255c90](https://github.com/ViciApp/vici-app/commit/4255c904d13dcb7467bf5db22f32d18dd9fb1148))
+* **satellite:** move the VXP ledger transfer to vxp-payout.services ([#1448](https://github.com/ViciApp/vici-app/issues/1448)) ([2659421](https://github.com/ViciApp/vici-app/commit/2659421cc8ac78a11cd801d10069e263876034b8))
+* **satellite:** name the caller-role checks authz.services.ts ([#1458](https://github.com/ViciApp/vici-app/issues/1458)) ([895c687](https://github.com/ViciApp/vici-app/commit/895c687e7ce0bb6a18dc8cd98523ad01c2389ae1))
+
+
+### Continuous Integration
+
+* **pr-checks:** run the org-wide pull request checks and document the merge queue ([#1454](https://github.com/ViciApp/vici-app/issues/1454)) ([980d566](https://github.com/ViciApp/vici-app/commit/980d5662eaad21df107f0600ce1af80d969e894d))
+
+## [1.8.52](https://github.com/ViciApp/vici-app/compare/v1.8.51...v1.8.52) (2026-11-05)
+
+
+### Miscellaneous Chores
+
+* **backend:** bump [@noble](https://github.com/noble) and [@scure](https://github.com/scure) to v2 ([#1440](https://github.com/ViciApp/vici-app/issues/1440)) ([3c3ff87](https://github.com/ViciApp/vici-app/commit/3c3ff875266fdcd4d75139a645f1ab361c8341a7))
+* **backend:** bump TypeScript to 6 ([#1441](https://github.com/ViciApp/vici-app/issues/1441)) ([be33bf0](https://github.com/ViciApp/vici-app/commit/be33bf0b771f48f812919d039077f1cfb671f052))
+* **ci:** move to Node 26 ([#1438](https://github.com/ViciApp/vici-app/issues/1438)) ([0302e84](https://github.com/ViciApp/vici-app/commit/0302e842229da8c38e63597b2cec098a3a3477f7))
+* **frontend:** migrate to SvelteKit 3 ([#1437](https://github.com/ViciApp/vici-app/issues/1437)) ([df880ed](https://github.com/ViciApp/vici-app/commit/df880ed935e6920804f8292bda485d64b23781f6))
+
+
+### Code Refactoring
+
+* **frontend:** replace config aliases with subpath imports ([#1439](https://github.com/ViciApp/vici-app/issues/1439)) ([21178e2](https://github.com/ViciApp/vici-app/commit/21178e217a616bb8afba5c2e9fefe644c58acd8c))
+
+
+### Continuous Integration
+
+* **workflows:** pass client-id to create-github-app-token ([#1435](https://github.com/ViciApp/vici-app/issues/1435)) ([74a2910](https://github.com/ViciApp/vici-app/commit/74a2910609c64aba60abae8e9858d8a29454e20f))
+
+## [1.8.51](https://github.com/ViciApp/vici-app/compare/v1.8.50...v1.8.51) (2026-11-02)
+
+
+### Bug Fixes
+
+* **custody:** hold and book the network fee on withdrawals ([#1432](https://github.com/ViciApp/vici-app/issues/1432)) ([ead154c](https://github.com/ViciApp/vici-app/commit/ead154c4b64a6dd9812466ecd0be357adf7c3806))
+* **wallet:** offer only withdrawable tokens in Send on the web2 backend ([#1431](https://github.com/ViciApp/vici-app/issues/1431)) ([efa6a81](https://github.com/ViciApp/vici-app/commit/efa6a81dc2f12a4617430017e6f2129feedf857c))
+* **watcher:** filter EVM token logs by contract and recipient ([#1430](https://github.com/ViciApp/vici-app/issues/1430)) ([cd37021](https://github.com/ViciApp/vici-app/commit/cd37021a80b61f44eb80987abf548175b59e471a))
+
+
+### Tests
+
+* **backend:** draw tournament months from a reserved range ([#1429](https://github.com/ViciApp/vici-app/issues/1429)) ([9a59e03](https://github.com/ViciApp/vici-app/commit/9a59e03f383c35605ef312a89ef57f61b7e35851))
+* **vxp:** keep the streak backfill tests green on a reused database ([#1434](https://github.com/ViciApp/vici-app/issues/1434)) ([4c05c2f](https://github.com/ViciApp/vici-app/commit/4c05c2f3c23bacfc1b6fc3011b5ac29b7d4561fa))
+
+## [1.8.50](https://github.com/ViciApp/vici-app/compare/v1.8.49...v1.8.50) (2026-11-02)
+
+
+### Bug Fixes
+
+* **custody:** recover stuck withdrawals and refund only on a definite rejection ([#1427](https://github.com/ViciApp/vici-app/issues/1427)) ([4d13f2c](https://github.com/ViciApp/vici-app/commit/4d13f2c1c9de895e0bcb8610bec8101c1dc53e5c))
+* **vxp:** log the streak backfill job only when something is pending ([#1424](https://github.com/ViciApp/vici-app/issues/1424)) ([4d9161b](https://github.com/ViciApp/vici-app/commit/4d9161b18cd2728c34c62dca94c98a5ab394b69e))
+* **wallet:** reject VXP withdrawals explicitly ([#1425](https://github.com/ViciApp/vici-app/issues/1425)) ([61d643a](https://github.com/ViciApp/vici-app/commit/61d643a26c5bb73dd2566ba09256d2e70fe8a93c))
+
+
+### Tests
+
+* **backend:** make profile-guards and affiliation-stats fixtures collision-free ([#1426](https://github.com/ViciApp/vici-app/issues/1426)) ([43d155e](https://github.com/ViciApp/vici-app/commit/43d155e09a52ea586c67c0185c6bb7fb2ca6dc5b))
+
+## [1.8.49](https://github.com/ViciApp/vici-app/compare/v1.8.48...v1.8.49) (2026-11-02)
+
+
+### Bug Fixes
+
+* **custody:** confirm submitted withdrawals from the chain ([#1411](https://github.com/ViciApp/vici-app/issues/1411)) ([4bbfdba](https://github.com/ViciApp/vici-app/commit/4bbfdba947c75d23b6133189fe296c035507c364))
+
+
+### Miscellaneous Chores
+
+* **backend-deps-dev:** bump @types/bun from 1.4.3 to 1.4.4 in /backend ([#1386](https://github.com/ViciApp/vici-app/issues/1386)) ([ac06d2a](https://github.com/ViciApp/vici-app/commit/ac06d2a93e623cbbc6c3ae22cccb8c48ff80a644))
+* **dependabot:** check for updates monthly instead of weekly ([#1410](https://github.com/ViciApp/vici-app/issues/1410)) ([2d78714](https://github.com/ViciApp/vici-app/commit/2d7871444a6bf04e384df24a028b2c1eb82b2b8f))
+* **npm-deps-dev:** bump @alloc/quick-lru from 5.2.0 to 5.3.0 ([#1418](https://github.com/ViciApp/vici-app/issues/1418)) ([18abc0d](https://github.com/ViciApp/vici-app/commit/18abc0dce7e368fc28e4f25928361adfac9f62ab))
+* **npm-deps-dev:** bump @sveltejs/vite-plugin-svelte from 7.3.0 to 7.3.1 ([#1387](https://github.com/ViciApp/vici-app/issues/1387)) ([f31f26a](https://github.com/ViciApp/vici-app/commit/f31f26a23492e145508d9d5a0fcf6ae6df59c5ec))
+* **npm-deps-dev:** bump eslint-plugin-prettier from 5.5.6 to 5.5.7 ([#1416](https://github.com/ViciApp/vici-app/issues/1416)) ([57b2375](https://github.com/ViciApp/vici-app/commit/57b2375cb23ee17d1fc4c5ea2f59638fa282541c))
+* **npm-deps-dev:** bump napi-postinstall from 0.3.4 to 0.3.7 ([#1390](https://github.com/ViciApp/vici-app/issues/1390)) ([acdffe1](https://github.com/ViciApp/vici-app/commit/acdffe1bc275f5ae0cc980a8f649ba90a566b848))
+* **npm-deps-dev:** bump prettier from 3.9.6 to 3.9.10 ([#1421](https://github.com/ViciApp/vici-app/issues/1421)) ([60ec4c6](https://github.com/ViciApp/vici-app/commit/60ec4c63f11ed4164cfe9be992a5c755a3938521))
+* **npm-deps-dev:** bump rolldown from 1.2.9 to 1.2.16 ([#1385](https://github.com/ViciApp/vici-app/issues/1385)) ([6a453d7](https://github.com/ViciApp/vici-app/commit/6a453d7fd02eed31bf20058f0d7f20bff5807973))
+* **npm-deps-dev:** bump svelte from 5.56.9 to 5.57.2 ([#1420](https://github.com/ViciApp/vici-app/issues/1420)) ([af59041](https://github.com/ViciApp/vici-app/commit/af590413b88b0754aa2ae99e707e9faaa5ff5248))
+* **npm-deps-dev:** bump svelte-check from 4.7.6 to 4.7.7 ([#1392](https://github.com/ViciApp/vici-app/issues/1392)) ([f14b10e](https://github.com/ViciApp/vici-app/commit/f14b10e7fcf1895424b0adc45e0adfe1087b794d))
+* **npm-deps-dev:** bump svelte-eslint-parser from 1.8.1 to 1.10.0 ([#1415](https://github.com/ViciApp/vici-app/issues/1415)) ([0c9246a](https://github.com/ViciApp/vici-app/commit/0c9246ae776b2a7ae08e74337d091957c1ac691a))
+* **npm-deps-dev:** bump tsx from 4.23.12 to 4.23.15 ([#1417](https://github.com/ViciApp/vici-app/issues/1417)) ([640f0d7](https://github.com/ViciApp/vici-app/commit/640f0d73c7d79fe68b89957353691bc1c26efc0d))
+* **npm-deps-dev:** bump vite from 8.2.1 to 8.3.5 ([#1399](https://github.com/ViciApp/vici-app/issues/1399)) ([2432af5](https://github.com/ViciApp/vici-app/commit/2432af566b6b941b79c66a450a4080c910fc5eaa))
+* **npm-deps:** bump @lucide/svelte from 1.47.0 to 1.61.0 ([#1414](https://github.com/ViciApp/vici-app/issues/1414)) ([e637e89](https://github.com/ViciApp/vici-app/commit/e637e89ab9340fda5886856d61118641ac4877a1))
+* **npm-deps:** bump acorn from 8.18.0 to 8.19.0 ([#1383](https://github.com/ViciApp/vici-app/issues/1383)) ([3a6cd42](https://github.com/ViciApp/vici-app/commit/3a6cd4282f09e1ba459e92c3144f9a5c4bdf90b1))
+* **npm-deps:** bump asn1js from 3.0.10 to 3.1.0 ([#1391](https://github.com/ViciApp/vici-app/issues/1391)) ([30c6851](https://github.com/ViciApp/vici-app/commit/30c68516ede84b6bfd6e0dea549bc22bc28fc8c9))
+* **npm-deps:** bump nanoid from 6.0.1 to 6.0.2 ([#1393](https://github.com/ViciApp/vici-app/issues/1393)) ([0acba59](https://github.com/ViciApp/vici-app/commit/0acba59400a768447cf67c465f85cb7359e96fac))
+* **npm-deps:** bump postcss-selector-parser from 7.1.5 to 7.1.7 ([#1398](https://github.com/ViciApp/vici-app/issues/1398)) ([7e30b76](https://github.com/ViciApp/vici-app/commit/7e30b7633529aa7bceb7fbc093ac22cda87a2b5e))
+* **npm-deps:** bump zimmerframe from 1.1.4 to 1.1.5 ([#1389](https://github.com/ViciApp/vici-app/issues/1389)) ([4aa57b9](https://github.com/ViciApp/vici-app/commit/4aa57b9cc9a73110f29d4b9d2f9d666f97da7f41))
+* **npm-deps:** drop the ws override now that ethers pins a patched ws ([#1423](https://github.com/ViciApp/vici-app/issues/1423)) ([62cbf8e](https://github.com/ViciApp/vici-app/commit/62cbf8ecb2817bd20fea527591245d6d9d03beff))
+
+## [1.8.48](https://github.com/ViciApp/vici-app/compare/v1.8.47...v1.8.48) (2026-11-02)
+
+
+### Bug Fixes
+
+* **watcher:** bound the deposit tick, isolate failed reads, credit repeated balances ([#1407](https://github.com/ViciApp/vici-app/issues/1407)) ([8f6d650](https://github.com/ViciApp/vici-app/commit/8f6d650baba9698f4b0b3487c9974ded2df8e212))
+
+## [1.8.47](https://github.com/ViciApp/vici-app/compare/v1.8.46...v1.8.47) (2026-11-02)
+
+
+### Bug Fixes
+
+* **engine:** answer expected order rejections with stable 4xx codes ([#1406](https://github.com/ViciApp/vici-app/issues/1406)) ([41d4e43](https://github.com/ViciApp/vici-app/commit/41d4e43d79af8eb2394abc9c24d78469ed0975c2))
+* **wallet:** correct the ckBTC and ckETH ledger ids ([#1405](https://github.com/ViciApp/vici-app/issues/1405)) ([d4b16f8](https://github.com/ViciApp/vici-app/commit/d4b16f8e7276ab26296624dd847d1d7d634d705f))
+
+## [1.8.46](https://github.com/ViciApp/vici-app/compare/v1.8.45...v1.8.46) (2026-11-01)
+
+
+### Bug Fixes
+
+* **landing:** remove the finished World Cup from the home page ([#1403](https://github.com/ViciApp/vici-app/issues/1403)) ([850094a](https://github.com/ViciApp/vici-app/commit/850094a1f332f93f2bc3a3d582841af393b44225))
+
+## [1.8.45](https://github.com/ViciApp/vici-app/compare/v1.8.44...v1.8.45) (2026-11-01)
+
+
+### Bug Fixes
+
+* **wallet:** show live VXP and fund collateral deposits on web2 ([#1401](https://github.com/ViciApp/vici-app/issues/1401)) ([3b79e24](https://github.com/ViciApp/vici-app/commit/3b79e247457b40154d8b82daaf504f535863a49c))
+
+## [1.8.44](https://github.com/ViciApp/vici-app/compare/v1.8.43...v1.8.44) (2026-10-31)
+
+
+### Bug Fixes
+
+* **ci:** make satellite upgrades real again ([#1394](https://github.com/ViciApp/vici-app/issues/1394)) ([83f49bb](https://github.com/ViciApp/vici-app/commit/83f49bbe3f852692671d031815dee385be018d66))
+* **engine:** read settlement statuses in bulk on web2 ([#1396](https://github.com/ViciApp/vici-app/issues/1396)) ([e1a892a](https://github.com/ViciApp/vici-app/commit/e1a892aed536252ea3a74781b3b1b3dc8453ad02))
+* **scripts:** parse deck dates as UTC when deploying markets ([#1397](https://github.com/ViciApp/vici-app/issues/1397)) ([e925139](https://github.com/ViciApp/vici-app/commit/e925139e601c27580979545bb1483b615ca4580b))
+
+## [1.8.43](https://github.com/ViciApp/vici-app/compare/v1.8.42...v1.8.43) (2026-10-30)
+
+
+### Bug Fixes
+
+* **menagerie:** seed the trophy ledger only after the owner's signals settle ([#1382](https://github.com/ViciApp/vici-app/issues/1382)) ([e691e49](https://github.com/ViciApp/vici-app/commit/e691e494ac29bbb44c52cca3c04c4937fd09f94c))
+
+
+### Miscellaneous Chores
+
+* **icdc-core:** bump version to v0.1.8 ([#1380](https://github.com/ViciApp/vici-app/issues/1380)) ([df80ece](https://github.com/ViciApp/vici-app/commit/df80ece3cd26368f4103d755981af2aa4cc64d16))
+* **officina:** merges ship nothing, copy auto-verifies, wider red lane and builder checks ([#1362](https://github.com/ViciApp/vici-app/issues/1362)) ([c20b2ef](https://github.com/ViciApp/vici-app/commit/c20b2ef8bdea80ff25fe1ce095f88a23c7863247))
+
+
+### Tests
+
+* **e2e:** dismiss the Menagerie trophy reveal before signed-in snapshots ([#1377](https://github.com/ViciApp/vici-app/issues/1377)) ([77ecb2a](https://github.com/ViciApp/vici-app/commit/77ecb2ae65fa087427a61b7b2021044771f92adf))
+
+
+### Continuous Integration
+
+* **actions:** land regenerated files through a shared apply-changes action ([#1379](https://github.com/ViciApp/vici-app/issues/1379)) ([c920512](https://github.com/ViciApp/vici-app/commit/c920512c6469666ed1e7c89e957c39d054b7072f))
+* **bindings:** run the bindings check as its own workflow ([#1378](https://github.com/ViciApp/vici-app/issues/1378)) ([c17b0f9](https://github.com/ViciApp/vici-app/commit/c17b0f9ebf85fdd76719bb4c418aa1b5782f4e8d))
+* **checks:** add a -pass aggregator to every PR workflow ([#1381](https://github.com/ViciApp/vici-app/issues/1381)) ([a3a8446](https://github.com/ViciApp/vici-app/commit/a3a8446a3377c1e17f7d533acf5d66cd9c591fb7))
+* **icdc-core:** split version bump from bindings regeneration ([#1374](https://github.com/ViciApp/vici-app/issues/1374)) ([cdf9809](https://github.com/ViciApp/vici-app/commit/cdf9809302787a0b3eaec622f418f2071422d336))
+
+## [1.8.42](https://github.com/ViciApp/vici-app/compare/v1.8.41...v1.8.42) (2026-10-28)
+
+
+### Features
+
+* **backend:** open the beta gate to new users while holding legacy accounts until cutover ([#1331](https://github.com/ViciApp/vici-app/issues/1331)) ([b1d23a2](https://github.com/ViciApp/vici-app/commit/b1d23a23b48e8c6f01cbc4f6afde2b85ad8e51ba))
+* **web3:** send new users on vici.market to vici.app ([#1334](https://github.com/ViciApp/vici-app/issues/1334)) ([ebdde50](https://github.com/ViciApp/vici-app/commit/ebdde501a932f9a5991353a3bf58baf90aa3fab7))
+* **web3:** tell vici.market users that VICI is moving to vici.app ([#1338](https://github.com/ViciApp/vici-app/issues/1338)) ([58c5d75](https://github.com/ViciApp/vici-app/commit/58c5d751f7879f22e9d49d3dff0a5492cbfd2065))
+
+
+### Bug Fixes
+
+* **backend:** never re-pay imported VXP awards when the treasury turns on ([#1333](https://github.com/ViciApp/vici-app/issues/1333)) ([a9a7b12](https://github.com/ViciApp/vici-app/commit/a9a7b12238367cfba0fad022953b32f083a9aa81))
+* **backend:** serve engine reads with a reader identity and treat missing accounts as empty ([#1332](https://github.com/ViciApp/vici-app/issues/1332)) ([8da80b3](https://github.com/ViciApp/vici-app/commit/8da80b3bef8d883c2abeadadacbf6fc46f4f09bb))
+* **backend:** sync vendored satellite declarations with bindgen 0.4.1 headers ([#1373](https://github.com/ViciApp/vici-app/issues/1373)) ([9d87eee](https://github.com/ViciApp/vici-app/commit/9d87eeed523966b978e9c7fdcb0e705c99dbd687))
+* **i18n:** replace wager wording in battle copy ([#1330](https://github.com/ViciApp/vici-app/issues/1330)) ([61a7f16](https://github.com/ViciApp/vici-app/commit/61a7f16ff8f4a10b8ff91c7182c621292a2f25dc))
+* **web3:** keep the moved screen across the auth worker's sign-out reload ([#1336](https://github.com/ViciApp/vici-app/issues/1336)) ([f5c0efb](https://github.com/ViciApp/vici-app/commit/f5c0efbc280421e6b9b1cc17739ecc0153005815))
+
+
+### Documentation
+
+* **spec:** keep spec asset folders after merge ([#1328](https://github.com/ViciApp/vici-app/issues/1328)) ([26efa5f](https://github.com/ViciApp/vici-app/commit/26efa5f47e8749aaafd3d2a41fe3dcb1619fe379))
+
+
+### Miscellaneous Chores
+
+* **backend-deps-dev:** bump @types/bun from 1.4.2 to 1.4.3 in /backend ([#1359](https://github.com/ViciApp/vici-app/issues/1359)) ([c9e77d9](https://github.com/ViciApp/vici-app/commit/c9e77d951490feec052830f0f9db4172bd01c21f))
+* **backend-deps:** bump @dfinity/utils from 4.2.1 to 5.0.0 in /backend ([#1343](https://github.com/ViciApp/vici-app/issues/1343)) ([5cc742a](https://github.com/ViciApp/vici-app/commit/5cc742a370389e2ae270d0209e7a41411156b170))
+* **backend-deps:** bump @icp-sdk/canisters from 3.6.0 to 4.0.0 in /backend ([#1342](https://github.com/ViciApp/vici-app/issues/1342)) ([f4bf755](https://github.com/ViciApp/vici-app/commit/f4bf755306d94b86d23bc05057ae8fda6860d8d3))
+* **backend-deps:** bump @icp-sdk/core from 5.4.0 to 6.1.1 in /backend ([#1360](https://github.com/ViciApp/vici-app/issues/1360)) ([c84851e](https://github.com/ViciApp/vici-app/commit/c84851e05977f87e96ded1c911c9ccdcf5afcd11))
+* **backend-deps:** bump file-type from 22.1.1 to 22.2.0 in /backend ([#1358](https://github.com/ViciApp/vici-app/issues/1358)) ([db23698](https://github.com/ViciApp/vici-app/commit/db2369855b202ed0fe12d21c7fcb07da7e631f37))
+* **backend-deps:** bump pg from 8.23.0 to 8.23.1 in /backend ([#1353](https://github.com/ViciApp/vici-app/issues/1353)) ([5c1367f](https://github.com/ViciApp/vici-app/commit/5c1367f24a40f6dd489e9c241395430c47f5fedc))
+* **backend-deps:** bump sharp from 0.35.4 to 0.35.5 in /backend ([#1354](https://github.com/ViciApp/vici-app/issues/1354)) ([f3e0017](https://github.com/ViciApp/vici-app/commit/f3e00177df6d61cef01f53c97bf364a7f2193e8e))
+* **e2e:** Update Playwright E2E Snapshots ([#1337](https://github.com/ViciApp/vici-app/issues/1337)) ([b208b71](https://github.com/ViciApp/vici-app/commit/b208b71d8cb323aa0fad19491f5cdad27a114386))
+* **github-actions:** bump actions/create-github-app-token from 3.2.0 to 3.3.0 ([#1357](https://github.com/ViciApp/vici-app/issues/1357)) ([bd64bac](https://github.com/ViciApp/vici-app/commit/bd64bac797aed0117bafe6771fbf78a33e6e4d0e))
+* **github-actions:** bump actions/download-artifact from 8.0.1 to 8.0.2 ([#1356](https://github.com/ViciApp/vici-app/issues/1356)) ([fa33d1c](https://github.com/ViciApp/vici-app/commit/fa33d1caf8c2e8749627c649a0fb20f1a9a5718f))
+* **github-actions:** bump actions/upload-artifact from 7.0.1 to 7.0.2 ([#1355](https://github.com/ViciApp/vici-app/issues/1355)) ([b734483](https://github.com/ViciApp/vici-app/commit/b73448370643a5cc9509675827883b7f44aeb84a))
+* **npm-deps-dev:** bump @icp-sdk/bindgen from 0.4.0 to 0.4.1 ([#1347](https://github.com/ViciApp/vici-app/issues/1347)) ([66340df](https://github.com/ViciApp/vici-app/commit/66340dfaf7aa27d37d0420dba0bf42a518a8b113))
+* **npm-deps-dev:** bump @types/node from 26.2.0 to 26.6.5 ([#1370](https://github.com/ViciApp/vici-app/issues/1370)) ([377f617](https://github.com/ViciApp/vici-app/commit/377f617d85c789cb6f8426ec4376fba072617deb))
+* **npm-deps-dev:** bump postcss from 8.5.26 to 8.5.31 ([#1371](https://github.com/ViciApp/vici-app/issues/1371)) ([4821402](https://github.com/ViciApp/vici-app/commit/482140270d8f0036665e8582b553663a24f7bd11))
+* **npm-deps-dev:** bump postcss-safe-parser from 7.0.1 to 7.1.0 ([#1366](https://github.com/ViciApp/vici-app/issues/1366)) ([999c29a](https://github.com/ViciApp/vici-app/commit/999c29a6768a50170636cc1ae1bb7940c391dd8a))
+* **npm-deps-dev:** bump the lint-kit group across 1 directory with 4 updates ([#1363](https://github.com/ViciApp/vici-app/issues/1363)) ([6dd8f0e](https://github.com/ViciApp/vici-app/commit/6dd8f0e607c9fa6a59d93748bc9dc68e60e7bfd4))
+* **npm-deps:** bump @lucide/svelte from 1.31.0 to 1.47.0 ([#1312](https://github.com/ViciApp/vici-app/issues/1312)) ([f5c37f4](https://github.com/ViciApp/vici-app/commit/f5c37f494c211af058aeca41337cc87061849e5c))
+* **npm-deps:** bump @sveltejs/acorn-typescript from 1.0.12 to 1.0.13 ([#1301](https://github.com/ViciApp/vici-app/issues/1301)) ([31ac282](https://github.com/ViciApp/vici-app/commit/31ac28218ea5cd0b654ca2292c18481894ae3351))
+* **npm-deps:** bump esrap from 2.3.2 to 2.4.0 ([#1300](https://github.com/ViciApp/vici-app/issues/1300)) ([232b3de](https://github.com/ViciApp/vici-app/commit/232b3de7dbd9b6068f03e5cb91f73bdc9e01faf2))
+* **npm-deps:** bump esrap from 2.3.7 to 2.4.0 ([#1368](https://github.com/ViciApp/vici-app/issues/1368)) ([f49a0a0](https://github.com/ViciApp/vici-app/commit/f49a0a068bbee2feb86c75b030502331114b7604))
+
+
+### Build System
+
+* **deps:** pin npm 11 via packageManager so Dependabot updates resolve ([#1361](https://github.com/ViciApp/vici-app/issues/1361)) ([47d2794](https://github.com/ViciApp/vici-app/commit/47d279486f3a94eaa1b904328099fc9172cb0da3))
+* **deps:** pin npm 11.21.1 so Dependabot writes a valid lockfile ([#1372](https://github.com/ViciApp/vici-app/issues/1372)) ([173b305](https://github.com/ViciApp/vici-app/commit/173b30590e089a322c74a5cbc893ab50a6416961))
+
+
+### Continuous Integration
+
+* **officina:** require the conventional pull request title format ([#1335](https://github.com/ViciApp/vici-app/issues/1335)) ([550c09e](https://github.com/ViciApp/vici-app/commit/550c09ec31823b8e5b4cd1166ef848d75414c138))
+* **web2:** build and smoke-test the vici.app image on pull requests ([#1339](https://github.com/ViciApp/vici-app/issues/1339)) ([a84369b](https://github.com/ViciApp/vici-app/commit/a84369b1654cef535c3246f8b9b5cea43d88b864))
+* **web2:** run end-to-end tests against the web2 app and backend ([#1340](https://github.com/ViciApp/vici-app/issues/1340)) ([8ad05ff](https://github.com/ViciApp/vici-app/commit/8ad05ffd1c01c4ef8cfa29389d19be5dc2ee7603))
+
+## [1.8.41](https://github.com/ViciApp/vici-app/compare/v1.8.40...v1.8.41) (2026-09-27)
+
+
+### Features
+
+* **backend:** beta access gate on web2 sign-in ([#1296](https://github.com/ViciApp/vici-app/issues/1296)) ([79e7cdc](https://github.com/ViciApp/vici-app/commit/79e7cdc25ba54dd24ad63d3a4113e382a3ca8da8))
+* **web2:** account claim flow with signed principal handoff ([#1297](https://github.com/ViciApp/vici-app/issues/1297)) ([5460a07](https://github.com/ViciApp/vici-app/commit/5460a07f5c82ab7abfa3b1348bb91025a7e2dcc2))
+
+
+### Bug Fixes
+
+* **backend:** adopt imported provisional accounts on login and claim ([#1322](https://github.com/ViciApp/vici-app/issues/1322)) ([29161a5](https://github.com/ViciApp/vici-app/commit/29161a5df2e0d25227a4b105f1dc2dda2eaa11db))
+* **web2:** run svelte-kit sync after copying sources in the web image ([#1327](https://github.com/ViciApp/vici-app/issues/1327)) ([a7b1104](https://github.com/ViciApp/vici-app/commit/a7b1104eaab1fdcd8e8cc326355460e11ab7e157))
+
+
+### Miscellaneous Chores
+
+* **backend-deps-dev:** bump @types/bun from 1.3.14 to 1.4.2 in /backend ([#1320](https://github.com/ViciApp/vici-app/issues/1320)) ([aa303c1](https://github.com/ViciApp/vici-app/commit/aa303c150b56391b46cb8739c933438b53978689))
+* **backend-deps-dev:** bump @types/pg from 8.21.0 to 8.23.1 in /backend ([#1305](https://github.com/ViciApp/vici-app/issues/1305)) ([e2696af](https://github.com/ViciApp/vici-app/commit/e2696afe87754726c4a83ce54275e8ee702ee71d))
+* **backend-deps:** bump @icp-sdk/auth from 5.0.0 to 10.0.1 in /backend ([#1326](https://github.com/ViciApp/vici-app/issues/1326)) ([3917fd1](https://github.com/ViciApp/vici-app/commit/3917fd1b8796ac443ffa59513c91e7ccaebec711))
+* **backend-deps:** bump elysia from 1.4.29 to 1.4.30 in /backend ([#1314](https://github.com/ViciApp/vici-app/issues/1314)) ([2f310d1](https://github.com/ViciApp/vici-app/commit/2f310d191ee07290c96f6abd01588ee9d71e56c4))
+* **backend-deps:** bump file-type from 22.0.2 to 22.1.1 in /backend ([#1319](https://github.com/ViciApp/vici-app/issues/1319)) ([2edfddb](https://github.com/ViciApp/vici-app/commit/2edfddbdf4d09d7222f30612bae78d2e2a94edd6))
+* **backend-deps:** bump sharp from 0.35.3 to 0.35.4 in /backend ([#1315](https://github.com/ViciApp/vici-app/issues/1315)) ([ee9cc59](https://github.com/ViciApp/vici-app/commit/ee9cc594c786f7637f52e54387ec842a322498f1))
+* **e2e:** Update Playwright E2E Snapshots ([#1303](https://github.com/ViciApp/vici-app/issues/1303)) ([3b2a7cf](https://github.com/ViciApp/vici-app/commit/3b2a7cf6cc929a83be0ba0265470b430718876ab))
+* **npm-deps-dev:** bump @sveltejs/kit from 2.70.2 to 2.70.3 ([#1310](https://github.com/ViciApp/vici-app/issues/1310)) ([40f6968](https://github.com/ViciApp/vici-app/commit/40f6968fd69c2852f97009a649849bcbf6a967b4))
+* **npm-deps-dev:** bump get-tsconfig from 4.14.2 to 4.14.3 ([#1311](https://github.com/ViciApp/vici-app/issues/1311)) ([0885308](https://github.com/ViciApp/vici-app/commit/0885308b83bcb8270535dec3abf841adb10cc76a))
+* **npm-deps-dev:** bump js-yaml from 4.3.1 to 4.3.2 ([#1318](https://github.com/ViciApp/vici-app/issues/1318)) ([5c2d865](https://github.com/ViciApp/vici-app/commit/5c2d86538d4f0321f1f67ca01eac7172029d084b))
+* **npm-deps-dev:** bump rolldown from 1.2.4 to 1.2.11 ([#1309](https://github.com/ViciApp/vici-app/issues/1309)) ([83b7bab](https://github.com/ViciApp/vici-app/commit/83b7bab279f3b1bf3be802233c76b8c715d338ac))
+* **npm-deps-dev:** bump svelte-eslint-parser from 1.8.0 to 1.8.1 ([#1307](https://github.com/ViciApp/vici-app/issues/1307)) ([47c299a](https://github.com/ViciApp/vici-app/commit/47c299ab3ae4039b486489ac27d263af618f350d))
+* **npm-deps-dev:** bump the lint-kit group across 1 directory with 4 updates ([#1325](https://github.com/ViciApp/vici-app/issues/1325)) ([1c8d936](https://github.com/ViciApp/vici-app/commit/1c8d9367631697faabba9bf9987847749fe3be89))
+* **npm-deps:** bump devalue from 5.9.0 to 5.9.4 ([#1308](https://github.com/ViciApp/vici-app/issues/1308)) ([bdde857](https://github.com/ViciApp/vici-app/commit/bdde8573103b4f3e37af4df7226e351459944387))
+* **seo:** add Google Search Console verification file for vici.app ([#1298](https://github.com/ViciApp/vici-app/issues/1298)) ([c0016d7](https://github.com/ViciApp/vici-app/commit/c0016d7cb36c13bbc92f89b77b9d11398944ac48))
+
+
+### Continuous Integration
+
+* **officina:** adopt the agent workshop for vici-app ([#1324](https://github.com/ViciApp/vici-app/issues/1324)) ([b89b516](https://github.com/ViciApp/vici-app/commit/b89b51625d8d40ab337ae8a21831f0724b536062))
+* **web2:** build the vici.app image in web2 mode ([#1321](https://github.com/ViciApp/vici-app/issues/1321)) ([a64bd1f](https://github.com/ViciApp/vici-app/commit/a64bd1f927202b6878145603c4575eb77543ebb6))
+
+## [1.8.40](https://github.com/ViciApp/vici-app/compare/v1.8.39...v1.8.40) (2026-08-20)
+
+
+### Bug Fixes
+
+* **backend:** pin scure btc-signer to the noble v1 line and guard crypto majors ([#1284](https://github.com/ViciApp/vici-app/issues/1284)) ([95b3631](https://github.com/ViciApp/vici-app/commit/95b363177a4e29bd8f7c8455bb02d21741e1ddd5))
+
+
+### Miscellaneous Chores
+
+* **npm-deps-dev:** bump @tailwindcss/postcss from 4.3.2 to 4.3.3 ([#1294](https://github.com/ViciApp/vici-app/issues/1294)) ([d131ad9](https://github.com/ViciApp/vici-app/commit/d131ad994d5bc41d5658e283d392bd6b3fed8475))
+* **npm-deps-dev:** bump comment-parser from 1.4.7 to 1.4.8 ([#1291](https://github.com/ViciApp/vici-app/issues/1291)) ([607e16d](https://github.com/ViciApp/vici-app/commit/607e16dceb9225e7f827d0bdd6d1567a2c6d4e54))
+* **npm-deps-dev:** bump esbuild from 0.28.1 to 0.28.2 ([#1289](https://github.com/ViciApp/vici-app/issues/1289)) ([108be66](https://github.com/ViciApp/vici-app/commit/108be66950164152790eaf2f7730f6647a060e0c))
+* **npm-deps-dev:** bump flatted from 3.4.2 to 3.4.4 ([#1288](https://github.com/ViciApp/vici-app/issues/1288)) ([b6d8291](https://github.com/ViciApp/vici-app/commit/b6d8291dea6f4ed3bbd1af28dc3557bb5e27de82))
+* **npm-deps-dev:** bump get-tsconfig from 4.14.0 to 4.14.3 ([#1286](https://github.com/ViciApp/vici-app/issues/1286)) ([613cac7](https://github.com/ViciApp/vici-app/commit/613cac76947678333ad2541809f368f87a9bff7a))
+* **npm-deps-dev:** bump postcss-selector-parser from 7.1.4 to 7.1.5 ([#1290](https://github.com/ViciApp/vici-app/issues/1290)) ([282ff6b](https://github.com/ViciApp/vici-app/commit/282ff6b0445f4ae67cf516b9fea37f8601cf381b))
+* **npm-deps-dev:** bump svelte from 5.56.8 to 5.56.9 ([#1292](https://github.com/ViciApp/vici-app/issues/1292)) ([8d5c7b2](https://github.com/ViciApp/vici-app/commit/8d5c7b26b2e758632216a0cad753b0d8f2f18e86))
+* **npm-deps-dev:** bump svelte-check from 4.7.5 to 4.7.6 ([#1287](https://github.com/ViciApp/vici-app/issues/1287)) ([971bb82](https://github.com/ViciApp/vici-app/commit/971bb820b86cf7dcd030300317b6810ff512d734))
+* **npm-deps:** bump @lucide/svelte from 1.24.0 to 1.31.0 ([#1293](https://github.com/ViciApp/vici-app/issues/1293)) ([31f7880](https://github.com/ViciApp/vici-app/commit/31f7880212a271f862c7294b49ecdd9cf5bc99cd))
+* **npm-deps:** bump pvutils from 1.1.5 to 1.2.0 ([#1295](https://github.com/ViciApp/vici-app/issues/1295)) ([a55421e](https://github.com/ViciApp/vici-app/commit/a55421e9008ede44f74be3d28649944ce02ac23d))
+
+## [1.8.39](https://github.com/ViciApp/vici-app/compare/v1.8.38...v1.8.39) (2026-08-20)
+
+
+### Features
+
+* **frontend:** web2 engine operations and custodial wallet behind the flag ([#1279](https://github.com/ViciApp/vici-app/issues/1279)) ([a864d70](https://github.com/ViciApp/vici-app/commit/a864d7021382a9502647f069e9abaa6a5b8a31b2))
+* **frontend:** web2 leagues, battles, worlds and tournaments behind the flag ([#1280](https://github.com/ViciApp/vici-app/issues/1280)) ([f115fa5](https://github.com/ViciApp/vici-app/commit/f115fa5d9cac9c4123db45c870b9954fa26a8c48))
+* **frontend:** web2 markets and public engine reads behind the flag ([#1274](https://github.com/ViciApp/vici-app/issues/1274)) ([dd8d774](https://github.com/ViciApp/vici-app/commit/dd8d774c419cde6ee7cbe05dcee389d29efb3ba5))
+* **frontend:** web2 profiles, social and app-shell hydration behind the flag ([#1271](https://github.com/ViciApp/vici-app/issues/1271)) ([b3ff690](https://github.com/ViciApp/vici-app/commit/b3ff6908689b87a6545a1ed30d6d02198b63a0cf))
+* **frontend:** web2 vxp, referrals, school and account lifecycle behind the flag ([#1283](https://github.com/ViciApp/vici-app/issues/1283)) ([4d31216](https://github.com/ViciApp/vici-app/commit/4d31216d9ea4f55d17ad39b44d9f84897d1d1a88))
+
+
+### Bug Fixes
+
+* **backend:** keep email off public profile shapes ([#1272](https://github.com/ViciApp/vici-app/issues/1272)) ([16394ed](https://github.com/ViciApp/vici-app/commit/16394edf836ff65d81bed8470723b8dabf60b8e7))
+* **leagues:** clear league cover imageUrl when removing the image ([#1282](https://github.com/ViciApp/vici-app/issues/1282)) ([ceee562](https://github.com/ViciApp/vici-app/commit/ceee562f02e6dd2468a757263f54a7ff4026c0dc))
+* **legal:** publish the appointed EU/UK GDPR representative (Art. 27) ([#842](https://github.com/ViciApp/vici-app/issues/842)) ([1b53cb1](https://github.com/ViciApp/vici-app/commit/1b53cb1ccf01e52f5503d0ed1b3cb599a15e76c4))
+
+
+### Miscellaneous Chores
+
+* **backend-deps:** bump @scure/btc-signer from 1.8.1 to 2.3.0 in /backend ([#1254](https://github.com/ViciApp/vici-app/issues/1254)) ([b04b8f5](https://github.com/ViciApp/vici-app/commit/b04b8f518820ca7e9902ac95e5815f92d9ceb734))
+* **npm-deps-dev:** bump the lint-kit group across 1 directory with 4 updates ([#1277](https://github.com/ViciApp/vici-app/issues/1277)) ([a4be491](https://github.com/ViciApp/vici-app/commit/a4be49158f91eea73c92d27bc01eed1a4a37f3f0))
+
+
+### Continuous Integration
+
+* **merge-queue:** trigger every PR-gated workflow on merge_group ([#1278](https://github.com/ViciApp/vici-app/issues/1278)) ([e243c49](https://github.com/ViciApp/vici-app/commit/e243c49c5fab4ec7cebf6df25012022e3e5e251b))
+
+## [1.8.38](https://github.com/ViciApp/vici-app/compare/v1.8.37...v1.8.38) (2026-08-20)
+
+
+### Features
+
+* **frontend:** web2 auth path behind the backend-mode flag ([#1269](https://github.com/ViciApp/vici-app/issues/1269)) ([f22c72b](https://github.com/ViciApp/vici-app/commit/f22c72b1793ec2485e45c707c27bfa9d0fdcfd82))
+
+
+### Bug Fixes
+
+* **backend:** align affiliations import conflict target with the tightened primary key ([#1246](https://github.com/ViciApp/vici-app/issues/1246)) ([d710f1b](https://github.com/ViciApp/vici-app/commit/d710f1b9f215c85c5b5044e16662015c86a4a925))
+* **backend:** regenerate bun.lock for the sharp 0.35.3 bump ([#1245](https://github.com/ViciApp/vici-app/issues/1245)) ([d2838c7](https://github.com/ViciApp/vici-app/commit/d2838c7a560841befe94fc317e06dd8087319d2b))
+* **ci:** create the e2e snapshot PR with the release bot token ([#1268](https://github.com/ViciApp/vici-app/issues/1268)) ([179d765](https://github.com/ViciApp/vici-app/commit/179d765e798325c835fe119dc17d848357ac8e2b))
+* **ci:** create the icdc-core sync PR with the release bot token ([#1261](https://github.com/ViciApp/vici-app/issues/1261)) ([db85174](https://github.com/ViciApp/vici-app/commit/db85174bdf9f46d1804a2419c378dbaf6ff8ebaf))
+* **ci:** mint the app token the format job commits with ([#1248](https://github.com/ViciApp/vici-app/issues/1248)) ([4dc92d1](https://github.com/ViciApp/vici-app/commit/4dc92d1059da337e07344b4d0ff904d7f7fc0515))
+
+
+### Documentation
+
+* **ci:** keep the reason the lockfile job needs an app token ([#1273](https://github.com/ViciApp/vici-app/issues/1273)) ([2071577](https://github.com/ViciApp/vici-app/commit/2071577d3f6ea23298afb43fb29dbb7816fb3651))
+
+
+### Miscellaneous Chores
+
+* **ci:** read the bot app id from a repository variable ([#1270](https://github.com/ViciApp/vici-app/issues/1270)) ([6fa55b6](https://github.com/ViciApp/vici-app/commit/6fa55b64d2245180b5e4d8bfa1c320e79764dfc7))
+* **deps:** bump sharp from 0.34.5 to 0.35.3 in /backend in the npm_and_yarn group across 1 directory ([#1242](https://github.com/ViciApp/vici-app/issues/1242)) ([7c182f9](https://github.com/ViciApp/vici-app/commit/7c182f9bdb362ea090854aed02099452c3baa886))
+* **github-actions:** bump junobuild/juno-action from 0.7.5.pre.full to 0.7.5 ([#1250](https://github.com/ViciApp/vici-app/issues/1250)) ([23917aa](https://github.com/ViciApp/vici-app/commit/23917aaa48514ced8e79cf793f517cd8fec78c90))
+* **npm-deps-dev:** bump @sveltejs/vite-plugin-svelte from 7.2.0 to 7.3.0 ([#1260](https://github.com/ViciApp/vici-app/issues/1260)) ([9716e2b](https://github.com/ViciApp/vici-app/commit/9716e2b737f1466664931554bb7c93468ac42036))
+* **npm-deps-dev:** bump @tailwindcss/vite from 4.3.2 to 4.3.3 ([#1266](https://github.com/ViciApp/vici-app/issues/1266)) ([8015e5b](https://github.com/ViciApp/vici-app/commit/8015e5b3177fed4208cef57850703a475441a1b7))
+* **npm-deps-dev:** bump @types/node from 26.1.1 to 26.2.0 ([#1263](https://github.com/ViciApp/vici-app/issues/1263)) ([da2c5f6](https://github.com/ViciApp/vici-app/commit/da2c5f63be5415782bb8ab31a75dc49a61d1215b))
+* **npm-deps-dev:** bump tailwindcss from 4.3.2 to 4.3.3 ([#1267](https://github.com/ViciApp/vici-app/issues/1267)) ([525c4c3](https://github.com/ViciApp/vici-app/commit/525c4c3afc31fa8bafd34b61d5c141aa9c2d2d0c))
+* **npm-deps-dev:** bump tsx from 4.23.1 to 4.23.12 ([#1265](https://github.com/ViciApp/vici-app/issues/1265)) ([c0bf443](https://github.com/ViciApp/vici-app/commit/c0bf44310132077abfe49a247e0c0b0b335689c1))
+* **npm-deps-dev:** bump vite from 8.1.3 to 8.2.1 ([#1257](https://github.com/ViciApp/vici-app/issues/1257)) ([43083f0](https://github.com/ViciApp/vici-app/commit/43083f03af0aa8355f8d820b469593a0381e0410))
+* **npm-deps:** bump @icp-sdk/signer from 5.4.0 to 5.6.2 ([#1264](https://github.com/ViciApp/vici-app/issues/1264)) ([94b83fc](https://github.com/ViciApp/vici-app/commit/94b83fca71dd985adbf385b5dd7434aef015c7f5))
+* **npm-deps:** bump acorn from 8.17.0 to 8.18.0 ([#1262](https://github.com/ViciApp/vici-app/issues/1262)) ([5c60d64](https://github.com/ViciApp/vici-app/commit/5c60d6490b9153a7719ad84a196d7af0a86585b0))
+* **npm-deps:** bump esrap from 2.2.13 to 2.3.5 ([#1259](https://github.com/ViciApp/vici-app/issues/1259)) ([7d2eef3](https://github.com/ViciApp/vici-app/commit/7d2eef3eeb0deb1b23d81f74d7e862a582421a02))
+
+
+### Continuous Integration
+
+* **backend-deps:** regenerate bun.lock on backend dependabot PRs ([#1247](https://github.com/ViciApp/vici-app/issues/1247)) ([6f6e06a](https://github.com/ViciApp/vici-app/commit/6f6e06a2886443ac4abcd74b834459eda7723596))
+* **checks:** revert the dependabot mint skip from [#1275](https://github.com/ViciApp/vici-app/issues/1275) ([#1276](https://github.com/ViciApp/vici-app/issues/1276)) ([a69a561](https://github.com/ViciApp/vici-app/commit/a69a56192323a40b73b5cbe25e1919b4d9c4caa3))
+* **checks:** skip app-token mint on dependabot runs ([#1275](https://github.com/ViciApp/vici-app/issues/1275)) ([45eebd6](https://github.com/ViciApp/vici-app/commit/45eebd6a17daa2004a58935e257bb3c9377b382f))
+
+## [1.8.37](https://github.com/ViciApp/vici-app/compare/v1.8.36...v1.8.37) (2026-08-19)
+
+
+### Features
+
+* **backend:** auth service with sessions, email OTP, Google and env-gated Apple ([#1225](https://github.com/ViciApp/vici-app/issues/1225)) ([164b34a](https://github.com/ViciApp/vici-app/commit/164b34aa51e681ee16c589dbd7f3bafba6b6af55))
+* **backend:** leagues, battles, worlds and tournaments port ([#1232](https://github.com/ViciApp/vici-app/issues/1232)) ([37b662a](https://github.com/ViciApp/vici-app/commit/37b662a216180cea7c98226614b6de6fbbaec04f))
+* **backend:** market metadata, translations, tags and analytics port ([#1229](https://github.com/ViciApp/vici-app/issues/1229)) ([1a14a9c](https://github.com/ViciApp/vici-app/commit/1a14a9c826253416038e6df34287e2e85dac863d))
+* **backend:** multi-chain custody service and on-chain engine bridge ([#1226](https://github.com/ViciApp/vici-app/issues/1226)) ([4cf50cf](https://github.com/ViciApp/vici-app/commit/4cf50cf27a410ae537bc514cbba8457b1b65a30e))
+* **backend:** profiles, social graph, leaderboards and activity port ([#1227](https://github.com/ViciApp/vici-app/issues/1227)) ([48962a5](https://github.com/ViciApp/vici-app/commit/48962a5a64aad2b82481bd71411ce6d33e95807e))
+* **backend:** referrals, school verification, account lifecycle and admin port ([#1233](https://github.com/ViciApp/vici-app/issues/1233)) ([f174044](https://github.com/ViciApp/vici-app/commit/f1740442e3cb79c0ff6c9388c3a63189d68ba868))
+* **backend:** satellite ETL, principal mapping and parity tooling ([#1234](https://github.com/ViciApp/vici-app/issues/1234)) ([bbda75d](https://github.com/ViciApp/vici-app/commit/bbda75df0c5a0d217dd260e52f8eeece5d56994a))
+* **backend:** VXP economy, treasury payouts and worker job loop ([#1231](https://github.com/ViciApp/vici-app/issues/1231)) ([2b94603](https://github.com/ViciApp/vici-app/commit/2b9460357c9507e419264b843b4e593c50cb6041))
+* **backend:** web2 backend scaffold, local stack and CI ([#1223](https://github.com/ViciApp/vici-app/issues/1223)) ([7deae44](https://github.com/ViciApp/vici-app/commit/7deae44608d3f230e57fd55f8981fe71251dcc5d))
+* **frontend:** web2 backend mode seam and typed API client ([#1235](https://github.com/ViciApp/vici-app/issues/1235)) ([88070b8](https://github.com/ViciApp/vici-app/commit/88070b8012ec857bae3758e9b81b827aba4f23a1))
+
+
+### Tests
+
+* **backend:** drift tests for constants mirrored across stacks ([#1240](https://github.com/ViciApp/vici-app/issues/1240)) ([631325a](https://github.com/ViciApp/vici-app/commit/631325a491dcae08895e93c7d4a1b43e5a652dcd))
+* **backend:** make analytics pagination test self-contained ([#1241](https://github.com/ViciApp/vici-app/issues/1241)) ([43faf4e](https://github.com/ViciApp/vici-app/commit/43faf4e656394aad1763f44077e6d088fe80724d))
+
+## [1.8.36](https://github.com/ViciApp/vici-app/compare/v1.8.35...v1.8.36) (2026-08-19)
+
+
+### Miscellaneous Chores
+
+* **github-actions:** bump actions/create-github-app-token from 2.2.2 to 3.2.0 ([#1222](https://github.com/ViciApp/vici-app/issues/1222)) ([a527ef5](https://github.com/ViciApp/vici-app/commit/a527ef5d7791a44356792912ce28516688820f73))
+* **github-actions:** bump dorny/paths-filter from 4.0.2 to 4.0.3 ([#1209](https://github.com/ViciApp/vici-app/issues/1209)) ([53e8aed](https://github.com/ViciApp/vici-app/commit/53e8aed48a5899c50d9a88e2a390ce3fee2d1513))
+* **npm-deps-dev:** bump @eslint-community/eslint-utils from 4.9.1 to 4.10.1 ([#1217](https://github.com/ViciApp/vici-app/issues/1217)) ([1bbfa52](https://github.com/ViciApp/vici-app/commit/1bbfa52f20ca3782ade13c2e1225dc6155bc529f))
+* **npm-deps-dev:** bump @sveltejs/kit from 2.70.1 to 2.70.2 ([#1214](https://github.com/ViciApp/vici-app/issues/1214)) ([c706a5c](https://github.com/ViciApp/vici-app/commit/c706a5caf2922769eb0606bf1ad9eecb8eec1bd0))
+* **npm-deps-dev:** bump @vitest/eslint-plugin from 1.6.23 to 1.6.27 ([#1210](https://github.com/ViciApp/vici-app/issues/1210)) ([2cf4251](https://github.com/ViciApp/vici-app/commit/2cf425112d3b9d668dd9b8df362689c88c458561))
+* **npm-deps-dev:** bump prettier from 3.9.5 to 3.9.6 ([#1211](https://github.com/ViciApp/vici-app/issues/1211)) ([bd002ea](https://github.com/ViciApp/vici-app/commit/bd002ea5177cfb38e9259608c5dcf3e31edfec26))
+* **npm-deps-dev:** bump svelte from 5.56.6 to 5.56.8 ([#1216](https://github.com/ViciApp/vici-app/issues/1216)) ([5b1148a](https://github.com/ViciApp/vici-app/commit/5b1148a4b59b3dd29bf72437366ff2f1893543b4))
+* **npm-deps-dev:** bump svelte-check from 4.7.3 to 4.7.5 ([#1215](https://github.com/ViciApp/vici-app/issues/1215)) ([4deef45](https://github.com/ViciApp/vici-app/commit/4deef458ed73542c33674cfcb04cf8ff2ab33f50))
+* **npm-deps:** bump @sveltejs/acorn-typescript from 1.0.11 to 1.0.13 ([#1213](https://github.com/ViciApp/vici-app/issues/1213)) ([fd0f670](https://github.com/ViciApp/vici-app/commit/fd0f670232a847cf5e1adb57ef3a467a82d55aa2))
+* **npm-deps:** bump nanoid from 6.0.0 to 6.0.1 ([#1218](https://github.com/ViciApp/vici-app/issues/1218)) ([5e064e2](https://github.com/ViciApp/vici-app/commit/5e064e21c0061c360faaa948da3ab92d4fb67746))
+* **npm-deps:** bump ws from 8.21.0 to 8.21.3 ([#1219](https://github.com/ViciApp/vici-app/issues/1219)) ([cdca20d](https://github.com/ViciApp/vici-app/commit/cdca20da32168ded9af101fa85734c4d2ab648f3))
+* **satellite:** remove the one-shot migrateProfileEmails endpoint ([#1238](https://github.com/ViciApp/vici-app/issues/1238)) ([469cf06](https://github.com/ViciApp/vici-app/commit/469cf06d90d85f7f8a47e24dddd0f66db8268fe0))
+
+## [1.8.35](https://github.com/ViciApp/vici-app/compare/v1.8.34...v1.8.35) (2026-08-19)
+
+
+### Bug Fixes
+
+* **ci:** repoint juno-action -full pins at the real v0.7.5-full SHA ([#1228](https://github.com/ViciApp/vici-app/issues/1228)) ([49f0bff](https://github.com/ViciApp/vici-app/commit/49f0bff674a1ad302158657251ffaecddcb240d8))
+* **satellite:** keyset-paginate migrateProfileEmails ([#1230](https://github.com/ViciApp/vici-app/issues/1230)) ([8393dc9](https://github.com/ViciApp/vici-app/commit/8393dc9bd17d296432b556ffa76b747dd3d08495))
+
+## [1.8.34](https://github.com/ViciApp/vici-app/compare/v1.8.33...v1.8.34) (2026-08-17)
+
+
+### Features
+
+* **satellite:** admin-gated auth-identity export (principal ⇄ sign-in identity) ([#1208](https://github.com/ViciApp/vici-app/issues/1208)) ([643463f](https://github.com/ViciApp/vici-app/commit/643463ffb727191fdd36eb8435e0b212c7f0b7b3))
+
+
+### Bug Fixes
+
+* **privacy:** move account email off the public profiles doc into profile_private ([#1224](https://github.com/ViciApp/vici-app/issues/1224)) ([cedd3b3](https://github.com/ViciApp/vici-app/commit/cedd3b3d818c3b36cf0dfb165ef35f5a5ef060ff))
+
+
+### Miscellaneous Chores
+
+* **repo:** point repo links at the ViciApp org ([#1220](https://github.com/ViciApp/vici-app/issues/1220)) ([bbaca0d](https://github.com/ViciApp/vici-app/commit/bbaca0d28ff77d82e9dd91e144d0a3aca507df62))
+
+## [1.8.33](https://github.com/AntonioVentilii/vici-app/compare/v1.8.32...v1.8.33) (2026-08-11)
+
+
+### Documentation
+
+* **seo:** correct the volume-deferral premise; record why it stays out ([#1193](https://github.com/AntonioVentilii/vici-app/issues/1193)) ([f17da16](https://github.com/AntonioVentilii/vici-app/commit/f17da16ceaddd191a185a713ae983238427055fc))
+
+
+### Miscellaneous Chores
+
+* **npm-deps-dev:** bump brace-expansion from 1.1.16 to 1.1.18 ([#1196](https://github.com/AntonioVentilii/vici-app/issues/1196)) ([db1cbd2](https://github.com/AntonioVentilii/vici-app/commit/db1cbd210f51dee4dbb47f9d69b17c9d73105cb0))
+* **npm-deps-dev:** bump js-yaml from 4.3.0 to 4.3.1 ([#1195](https://github.com/AntonioVentilii/vici-app/issues/1195)) ([0ad03d0](https://github.com/AntonioVentilii/vici-app/commit/0ad03d029015fbfe69675330656a85d91ea3c534))
+* **npm-deps-dev:** bump postcss from 8.5.18 to 8.5.26 ([#1207](https://github.com/AntonioVentilii/vici-app/issues/1207)) ([7a4baa1](https://github.com/AntonioVentilii/vici-app/commit/7a4baa19a0da3e00a68998d7de54581394734040))
+* **npm-deps-dev:** bump prettier-plugin-tailwindcss from 0.8.0 to 0.8.1 ([#1199](https://github.com/AntonioVentilii/vici-app/issues/1199)) ([1c0f239](https://github.com/AntonioVentilii/vici-app/commit/1c0f239a5b403025e3ebed44eb63aacaad98971e))
+* **npm-deps-dev:** bump the lint-kit group across 1 directory with 4 updates ([#1203](https://github.com/AntonioVentilii/vici-app/issues/1203)) ([bbd208a](https://github.com/AntonioVentilii/vici-app/commit/bbd208a4a68e675a7ddfe5edab0512ed0e2c1e06))
+* **npm-deps:** bump devalue from 5.8.1 to 5.9.0 ([#1198](https://github.com/AntonioVentilii/vici-app/issues/1198)) ([e68a95f](https://github.com/AntonioVentilii/vici-app/commit/e68a95f67fd1a3c0eb864598927636276cf285d9))
+* **npm-deps:** bump idb-keyval from 6.2.5 to 6.3.0 ([#1197](https://github.com/AntonioVentilii/vici-app/issues/1197)) ([23c81a9](https://github.com/AntonioVentilii/vici-app/commit/23c81a905faad379b052628dafc586b8b27a087b))
+
+## [1.8.32](https://github.com/AntonioVentilii/vici-app/compare/v1.8.31...v1.8.32) (2026-08-10)
+
+
+### Bug Fixes
+
+* **e2e:** make onboarding reset deterministic by awaiting login stats sync ([#1169](https://github.com/AntonioVentilii/vici-app/issues/1169)) ([d45c4c3](https://github.com/AntonioVentilii/vici-app/commit/d45c4c3e70861d0180fc60045b092391f5e65c47))
+
+
+### Tests
+
+* **e2e:** stabilize the drifting signed-in snapshots ([#1205](https://github.com/AntonioVentilii/vici-app/issues/1205)) ([e030bc6](https://github.com/AntonioVentilii/vici-app/commit/e030bc6b2c2ddf3964d684136aee58c71292c194))
+
+## [1.8.31](https://github.com/AntonioVentilii/vici-app/compare/v1.8.30...v1.8.31) (2026-07-27)
+
+
+### Bug Fixes
+
+* **seo:** gate SEO asset visibility on start_ns, not deleted deck files ([#1192](https://github.com/AntonioVentilii/vici-app/issues/1192)) ([63475f4](https://github.com/AntonioVentilii/vici-app/commit/63475f45de52e514717adacd98bd14d53ab635f1))
+
+
+### Miscellaneous Chores
+
+* **github-actions:** bump actions/checkout from 7.0.0 to 7.0.1 ([#1178](https://github.com/AntonioVentilii/vici-app/issues/1178)) ([2426554](https://github.com/AntonioVentilii/vici-app/commit/242655472381375bdd2bc284841d4de05ec58d78))
+* **github-actions:** bump junobuild/juno-action from 0.7.5.pre.full to 0.7.5 ([#1175](https://github.com/AntonioVentilii/vici-app/issues/1175)) ([e9e4619](https://github.com/AntonioVentilii/vici-app/commit/e9e4619a2a5542a9260a3825ce6576b4508d6f28))
+* **npm-deps-dev:** bump @eslint/eslintrc from 3.3.5 to 3.3.6 ([#1182](https://github.com/AntonioVentilii/vici-app/issues/1182)) ([7b97ba5](https://github.com/AntonioVentilii/vici-app/commit/7b97ba5801aa5abdc92cba8582ed3a28c4514814))
+* **npm-deps-dev:** bump @sveltejs/kit from 2.69.2 to 2.70.1 ([#1183](https://github.com/AntonioVentilii/vici-app/issues/1183)) ([f4314c1](https://github.com/AntonioVentilii/vici-app/commit/f4314c1ebca704ba0f44c15f86930add875663fa))
+* **npm-deps-dev:** bump obug from 2.1.3 to 2.1.4 ([#1185](https://github.com/AntonioVentilii/vici-app/issues/1185)) ([7056675](https://github.com/AntonioVentilii/vici-app/commit/705667550bbbe206b7cc4d165392bcd2993c5141))
+* **npm-deps-dev:** bump svelte from 5.56.4 to 5.56.6 ([#1180](https://github.com/AntonioVentilii/vici-app/issues/1180)) ([e86ef0c](https://github.com/AntonioVentilii/vici-app/commit/e86ef0ca8c189b5649cbe199fec811ac80cf90fc))
+* **npm-deps-dev:** bump svelte-check from 4.7.1 to 4.7.3 ([#1184](https://github.com/AntonioVentilii/vici-app/issues/1184)) ([4ae9f39](https://github.com/AntonioVentilii/vici-app/commit/4ae9f398c4987fbc27007ee5c7df3c9474e6a05f))
+* **npm-deps-dev:** bump the lint-kit group across 1 directory with 2 updates ([#1190](https://github.com/AntonioVentilii/vici-app/issues/1190)) ([de84e13](https://github.com/AntonioVentilii/vici-app/commit/de84e13ec94e31ec728460c274807dcabeca4730))
+* **npm-deps-dev:** bump tsx from 4.23.0 to 4.23.1 ([#1181](https://github.com/AntonioVentilii/vici-app/issues/1181)) ([ce3c86d](https://github.com/AntonioVentilii/vici-app/commit/ce3c86db3024dac18590174503ea63f4946ca5b0))
+* **npm-deps:** bump nanoid from 5.1.16 to 6.0.0 ([#1187](https://github.com/AntonioVentilii/vici-app/issues/1187)) ([a2bcdea](https://github.com/AntonioVentilii/vici-app/commit/a2bcdea6765c3ed79701d973b84801eb0096d975))
+
+## [1.8.30](https://github.com/AntonioVentilii/vici-app/compare/v1.8.29...v1.8.30) (2026-07-26)
+
+
+### Bug Fixes
+
+* **markets:** generalize scheduled reveal beyond WC + start_ns in deploy-markets ([#1188](https://github.com/AntonioVentilii/vici-app/issues/1188)) ([e11aa0b](https://github.com/AntonioVentilii/vici-app/commit/e11aa0bfff49e1af59c1212889e2329d8280c6c2))
+
+## [1.8.29](https://github.com/AntonioVentilii/vici-app/compare/v1.8.28...v1.8.29) (2026-07-22)
+
+
+### Bug Fixes
+
+* **ci:** restore junobuild/juno-action -full variant (Dependabot dropped the toolchain) ([#1174](https://github.com/AntonioVentilii/vici-app/issues/1174)) ([1a57721](https://github.com/AntonioVentilii/vici-app/commit/1a57721530fcbad68bbfb5f5759ea69d2c652747))
+
+
+### Miscellaneous Chores
+
+* **icdc-core:** sync bindings and bump version to v0.1.6 ([#1172](https://github.com/AntonioVentilii/vici-app/issues/1172)) ([6148137](https://github.com/AntonioVentilii/vici-app/commit/61481372743a012dc84c2fbb2d85027f11d8c610))
+
+
+### Continuous Integration
+
+* **icdc-core:** weekly workflow to bump version and regenerate bindings ([#1170](https://github.com/AntonioVentilii/vici-app/issues/1170)) ([64517ea](https://github.com/AntonioVentilii/vici-app/commit/64517eaf63dde2790c7c5d2bdae76ce92340708d))
+
+## [1.8.28](https://github.com/AntonioVentilii/vici-app/compare/v1.8.27...v1.8.28) (2026-07-22)
+
+
+### Bug Fixes
+
+* **admin:** source resolution outcomes from clearing and sort history by settlement time ([#1165](https://github.com/AntonioVentilii/vici-app/issues/1165)) ([5eacaa0](https://github.com/AntonioVentilii/vici-app/commit/5eacaa05547c1d8d5048660505a5eb866d0665d2))
+* **flow:** hold the away recap until market titles resolve instead of flashing Unknown Market ([#1166](https://github.com/AntonioVentilii/vici-app/issues/1166)) ([5e54227](https://github.com/AntonioVentilii/vici-app/commit/5e54227f698855b046e5854aa10b8ffacc0c1f34))
+
+## [1.8.27](https://github.com/AntonioVentilii/vici-app/compare/v1.8.26...v1.8.27) (2026-07-20)
+
+
+### Features
+
+* **seo:** turn resolved market pages into answer pages ([#1156](https://github.com/AntonioVentilii/vici-app/issues/1156)) ([b390ae4](https://github.com/AntonioVentilii/vici-app/commit/b390ae410557f49d2a49eb507adccec88e2cacb2))
+
+
+### Bug Fixes
+
+* **arena:** localize friends digest standout call title ([#1157](https://github.com/AntonioVentilii/vici-app/issues/1157)) ([8894857](https://github.com/AntonioVentilii/vici-app/commit/88948571335f36fe170a38f995783fca06ce496b))
+* **onboarding:** retry league invite auto-join on transient drain failure ([#1159](https://github.com/AntonioVentilii/vici-app/issues/1159)) ([8bf5edc](https://github.com/AntonioVentilii/vici-app/commit/8bf5edc10ceec05740149716ac681acf5305c33c))
+* **onboarding:** surface league invite drain failures to the user ([#1160](https://github.com/AntonioVentilii/vici-app/issues/1160)) ([677da1f](https://github.com/AntonioVentilii/vici-app/commit/677da1fa410b25b3f97bf6f519828c88d61ed738))
+* **profile:** translate oracle record market title ([#1158](https://github.com/AntonioVentilii/vici-app/issues/1158)) ([f0ae137](https://github.com/AntonioVentilii/vici-app/commit/f0ae1374dba8841af6783d4dac79e35ddcaa1037))
+
+
+### Performance Improvements
+
+* **fonts:** drop the Google Fonts stylesheet in favor of the self-hosted faces ([#1164](https://github.com/AntonioVentilii/vici-app/issues/1164)) ([3ebdf1e](https://github.com/AntonioVentilii/vici-app/commit/3ebdf1ea691724cc91af6786b720212f94881ee9))
+* **i18n:** load locale catalogs on demand instead of bundling all locales ([#1161](https://github.com/AntonioVentilii/vici-app/issues/1161)) ([5883dda](https://github.com/AntonioVentilii/vici-app/commit/5883dda890f4a99e772350aa22c66e6a61e81037))
+* **league:** fast-path signed-out invitees to signup before the auth handshake ([#1162](https://github.com/AntonioVentilii/vici-app/issues/1162)) ([9a15aa8](https://github.com/AntonioVentilii/vici-app/commit/9a15aa80d849dd418aafdffed90f3df7b1c544ff))
+
+
+### Miscellaneous Chores
+
+* **npm-deps-dev:** bump @sveltejs/kit from 2.68.0 to 2.69.2 ([#1144](https://github.com/AntonioVentilii/vici-app/issues/1144)) ([f38c9f3](https://github.com/AntonioVentilii/vici-app/commit/f38c9f3e96c70c053aed54f5fbd99d94cd5b541c))
+* **npm-deps-dev:** bump @sveltejs/vite-plugin-svelte from 7.1.2 to 7.2.0 ([#1149](https://github.com/AntonioVentilii/vici-app/issues/1149)) ([d41b7e9](https://github.com/AntonioVentilii/vici-app/commit/d41b7e95002341e13679c5f1699fccc01a59c0da))
+* **npm-deps-dev:** bump @types/node from 26.0.1 to 26.1.1 ([#1151](https://github.com/AntonioVentilii/vici-app/issues/1151)) ([13a4101](https://github.com/AntonioVentilii/vici-app/commit/13a41010505c624210852f3df3bb677d8cf008c6))
+* **npm-deps-dev:** bump picomatch from 4.0.4 to 4.0.5 ([#1148](https://github.com/AntonioVentilii/vici-app/issues/1148)) ([9ff71f0](https://github.com/AntonioVentilii/vici-app/commit/9ff71f0c834e21c5c0087e35cdf3bfb2415d72bd))
+* **npm-deps-dev:** bump set-cookie-parser from 3.1.1 to 3.1.2 ([#1145](https://github.com/AntonioVentilii/vici-app/issues/1145)) ([2ad001b](https://github.com/AntonioVentilii/vici-app/commit/2ad001bf574785c1e0606331b58523630aeebb9b))
+* **npm-deps-dev:** bump the lint-kit group across 1 directory with 2 updates ([#1143](https://github.com/AntonioVentilii/vici-app/issues/1143)) ([e296ca2](https://github.com/AntonioVentilii/vici-app/commit/e296ca236296c9195f4fbe8294c9c49d17610a46))
+* **npm-deps:** bump @lucide/svelte from 1.23.0 to 1.24.0 ([#1147](https://github.com/AntonioVentilii/vici-app/issues/1147)) ([f05fcb8](https://github.com/AntonioVentilii/vici-app/commit/f05fcb8d9b4fc931e2a55aca51c25e6d2cbfc760))
+* **npm-deps:** bump @sveltejs/acorn-typescript from 1.0.10 to 1.0.11 ([#1150](https://github.com/AntonioVentilii/vici-app/issues/1150)) ([4a9a4d7](https://github.com/AntonioVentilii/vici-app/commit/4a9a4d7e33932cde66938be2471d949c98461a8b))
+
+## [1.8.26](https://github.com/AntonioVentilii/vici-app/compare/v1.8.25...v1.8.26) (2026-07-19)
+
+
+### Features
+
+* **wc:** add Final market deck with 7-locale translations ([#1154](https://github.com/AntonioVentilii/vici-app/issues/1154)) ([821abbd](https://github.com/AntonioVentilii/vici-app/commit/821abbd23bdadcbecf0404601748f790ee7c1d25))
+* **wc:** schedule Final market releases ([#1153](https://github.com/AntonioVentilii/vici-app/issues/1153)) ([7d813b5](https://github.com/AntonioVentilii/vici-app/commit/7d813b588661aac86fd867561a751893e06e14ad))
+
+
+### Miscellaneous Chores
+
+* **github-actions:** bump dorny/paths-filter from 4.0.1 to 4.0.2 ([#1120](https://github.com/AntonioVentilii/vici-app/issues/1120)) ([0baaa39](https://github.com/AntonioVentilii/vici-app/commit/0baaa39bd718535840e01cb07aa654508a471284))
+
+## [1.8.25](https://github.com/AntonioVentilii/vici-app/compare/v1.8.24...v1.8.25) (2026-07-15)
+
+
+### Features
+
+* **seo:** structured data, live-odds snippets & World Cup topic page ([#1136](https://github.com/AntonioVentilii/vici-app/issues/1136)) ([89e74b9](https://github.com/AntonioVentilii/vici-app/commit/89e74b91d59588bf4724c503e65ce757f0c614d4))
+
+
+### Tests
+
+* **e2e:** stop onboarding reset from being resurrected by the sign-out nav ([#1139](https://github.com/AntonioVentilii/vici-app/issues/1139)) ([5207d2b](https://github.com/AntonioVentilii/vici-app/commit/5207d2b8de19ae22917c06f67ae3276d55f8b5f6))
+
+## [1.8.24](https://github.com/AntonioVentilii/vici-app/compare/v1.8.23...v1.8.24) (2026-07-15)
+
+
+### Bug Fixes
+
+* **i18n:** translate market title on remaining detail-page + card surfaces ([#1137](https://github.com/AntonioVentilii/vici-app/issues/1137)) ([4a3111d](https://github.com/AntonioVentilii/vici-app/commit/4a3111dc4f836597af35009163c2fd05024a2bba))
+
+## [1.8.23](https://github.com/AntonioVentilii/vici-app/compare/v1.8.22...v1.8.23) (2026-07-13)
+
+
+### Bug Fixes
+
+* **wc:** reveal France·Spain SF markets on 07-13 ([#1134](https://github.com/AntonioVentilii/vici-app/issues/1134)) ([1a2097b](https://github.com/AntonioVentilii/vici-app/commit/1a2097b8fa6de76e9e12e58ff23ba377d13ed4b7))
+
+## [1.8.22](https://github.com/AntonioVentilii/vici-app/compare/v1.8.21...v1.8.22) (2026-07-13)
+
+
+### Features
+
+* **wc:** add SF market deck with 7-locale translations ([#1131](https://github.com/AntonioVentilii/vici-app/issues/1131)) ([679bd12](https://github.com/AntonioVentilii/vici-app/commit/679bd126f6ada703729a73366e15bb09b18b00dc))
+* **wc:** schedule SF market releases ([#1132](https://github.com/AntonioVentilii/vici-app/issues/1132)) ([803ad0b](https://github.com/AntonioVentilii/vici-app/commit/803ad0bec3096ac95c58b795fb7da39bec617df6))
+
+
+### Miscellaneous Chores
+
+* **github-actions:** bump junobuild/juno-action from 0.7.5.pre.full to 0.7.5 ([#1119](https://github.com/AntonioVentilii/vici-app/issues/1119)) ([923f70f](https://github.com/AntonioVentilii/vici-app/commit/923f70fd474ba7dbd8bdd8c9f272816139ded739))
+* **npm-deps-dev:** bump @tailwindcss/postcss from 4.3.1 to 4.3.2 ([#1129](https://github.com/AntonioVentilii/vici-app/issues/1129)) ([b73bf6b](https://github.com/AntonioVentilii/vici-app/commit/b73bf6b7f4782c9150731361b3a5df5798074cd4))
+* **npm-deps-dev:** bump @tailwindcss/vite from 4.3.1 to 4.3.2 ([#1125](https://github.com/AntonioVentilii/vici-app/issues/1125)) ([077f3f3](https://github.com/AntonioVentilii/vici-app/commit/077f3f316a01ef2e929229d19a1bc93ef7438a59))
+* **npm-deps-dev:** bump @vitest/eslint-plugin from 1.6.20 to 1.6.23 ([#1123](https://github.com/AntonioVentilii/vici-app/issues/1123)) ([d7ac68c](https://github.com/AntonioVentilii/vici-app/commit/d7ac68cb6e5f896227ee5b06de526dde5233217a))
+* **npm-deps-dev:** bump brace-expansion from 1.1.15 to 1.1.16 ([#1124](https://github.com/AntonioVentilii/vici-app/issues/1124)) ([40e6b7d](https://github.com/AntonioVentilii/vici-app/commit/40e6b7d91a5980d918fe010a7fc2c2bb9ddadb78))
+* **npm-deps-dev:** bump eslint-plugin-import-x from 4.17.0 to 4.17.1 ([#1126](https://github.com/AntonioVentilii/vici-app/issues/1126)) ([34fe224](https://github.com/AntonioVentilii/vici-app/commit/34fe2243c6f0f670ce7fb7637afe8f8e9ea64a48))
+* **npm-deps-dev:** bump rolldown from 1.1.3 to 1.1.5 ([#1130](https://github.com/AntonioVentilii/vici-app/issues/1130)) ([3ee5f4a](https://github.com/AntonioVentilii/vici-app/commit/3ee5f4a13dee7626742e5973bff2da182f0a31cf))
+* **npm-deps-dev:** bump typescript-eslint from 8.62.0 to 8.62.1 in the lint-kit group ([#1121](https://github.com/AntonioVentilii/vici-app/issues/1121)) ([718ed54](https://github.com/AntonioVentilii/vici-app/commit/718ed54590da728e7a2306433515f8d2bec9804d))
+* **npm-deps-dev:** bump vite from 8.1.0 to 8.1.3 ([#1128](https://github.com/AntonioVentilii/vici-app/issues/1128)) ([b9c73b1](https://github.com/AntonioVentilii/vici-app/commit/b9c73b1bd1f892a5a83ecee2032c13f6114732a4))
+* **npm-deps:** bump @lucide/svelte from 1.21.0 to 1.23.0 ([#1127](https://github.com/AntonioVentilii/vici-app/issues/1127)) ([4392bdf](https://github.com/AntonioVentilii/vici-app/commit/4392bdffd2db96ed3ae1d0b0f589a36324e50273))
+
+## [1.8.21](https://github.com/AntonioVentilii/vici-app/compare/v1.8.20...v1.8.21) (2026-07-09)
+
+
+### Features
+
+* **satellite:** admin-gated profile-created + market-tags exports for the cockpit ([#1117](https://github.com/AntonioVentilii/vici-app/issues/1117)) ([10a04e4](https://github.com/AntonioVentilii/vici-app/commit/10a04e488b0da8121a5d854b92ddd0073fabbbff))
+
+## [1.8.20](https://github.com/AntonioVentilii/vici-app/compare/v1.8.19...v1.8.20) (2026-07-08)
+
+
+### Bug Fixes
+
+* **analytics:** lower the export page ceiling to fit the IC instruction budget ([#1115](https://github.com/AntonioVentilii/vici-app/issues/1115)) ([009529f](https://github.com/AntonioVentilii/vici-app/commit/009529f80c473d47fd524574eefacd274d4287a9))
+
+## [1.8.19](https://github.com/AntonioVentilii/vici-app/compare/v1.8.18...v1.8.19) (2026-07-08)
+
+
+### Continuous Integration
+
+* **deploy:** static JUNO_TOKEN auth only — stop the access-key bleed ([#1113](https://github.com/AntonioVentilii/vici-app/issues/1113)) ([6f3c60e](https://github.com/AntonioVentilii/vici-app/commit/6f3c60e729981804469563006d2ea3f4312a3c10))
+
+## [1.8.18](https://github.com/AntonioVentilii/vici-app/compare/v1.8.17...v1.8.18) (2026-07-08)
+
+
+### Features
+
+* **analytics:** emit the silent taxonomy events on their existing write paths ([#1112](https://github.com/AntonioVentilii/vici-app/issues/1112)) ([14498ca](https://github.com/AntonioVentilii/vici-app/commit/14498ca097306981cee4d9bbb343b5e5dc02d11d))
+* **satellite:** add app_get_analytics_user_stats query ([#1110](https://github.com/AntonioVentilii/vici-app/issues/1110)) ([0f253e3](https://github.com/AntonioVentilii/vici-app/commit/0f253e39f9582541b056ce81d5083132e267997c))
+
+## [1.8.17](https://github.com/AntonioVentilii/vici-app/compare/v1.8.16...v1.8.17) (2026-07-08)
+
+
+### Features
+
+* **wc:** add QF market deck with 7-locale translations ([#1108](https://github.com/AntonioVentilii/vici-app/issues/1108)) ([e8b9bf8](https://github.com/AntonioVentilii/vici-app/commit/e8b9bf8b12dbccb9302e172fdbf92f37b9bd54d7))
+* **wc:** schedule QF market releases ([#1107](https://github.com/AntonioVentilii/vici-app/issues/1107)) ([2cfdf0b](https://github.com/AntonioVentilii/vici-app/commit/2cfdf0b68da0cf720a5e3866d652497daa10e197))
+
+## [1.8.16](https://github.com/AntonioVentilii/vici-app/compare/v1.8.15...v1.8.16) (2026-07-07)
+
+
+### Bug Fixes
+
+* **sw:** pass successful non-HTML navigations through instead of serving the shell ([#1104](https://github.com/AntonioVentilii/vici-app/issues/1104)) ([5094649](https://github.com/AntonioVentilii/vici-app/commit/50946492c6278b9b08810ba54506666ac86f1f0f))
+
+
+### Styles
+
+* **format:** reapply prettier 3.9 formatting ([#1106](https://github.com/AntonioVentilii/vici-app/issues/1106)) ([abf2714](https://github.com/AntonioVentilii/vici-app/commit/abf2714d1bad40ead60b51014787774ed9a503de))
+
+
+### Miscellaneous Chores
+
+* **github-actions:** bump actions/cache from 5.0.5 to 6.1.0 ([#1093](https://github.com/AntonioVentilii/vici-app/issues/1093)) ([2f7fade](https://github.com/AntonioVentilii/vici-app/commit/2f7fade570f0e87826d707f938a889cc5835de70))
+* **npm-deps-dev:** bump @types/node from 26.0.0 to 26.0.1 ([#1094](https://github.com/AntonioVentilii/vici-app/issues/1094)) ([fdaa13a](https://github.com/AntonioVentilii/vici-app/commit/fdaa13a2fe7677c82282489e9dca55618accae46))
+* **npm-deps-dev:** bump js-yaml from 4.2.0 to 4.3.0 ([#1097](https://github.com/AntonioVentilii/vici-app/issues/1097)) ([ecf50ec](https://github.com/AntonioVentilii/vici-app/commit/ecf50ec5d4d8f8014f5d6cea5cf85526ded13f37))
+* **npm-deps-dev:** bump prettier from 3.8.5 to 3.9.3 ([#1096](https://github.com/AntonioVentilii/vici-app/issues/1096)) ([71d1cf2](https://github.com/AntonioVentilii/vici-app/commit/71d1cf268e9496454f28673a475b28483585cd9f))
+* **npm-deps:** bump esrap from 2.2.12 to 2.2.13 ([#1095](https://github.com/AntonioVentilii/vici-app/issues/1095)) ([92cbe95](https://github.com/AntonioVentilii/vici-app/commit/92cbe9570a4dc19808b5f323ff1a1b2f4957d8b6))
+
+## [1.8.15](https://github.com/AntonioVentilii/vici-app/compare/v1.8.14...v1.8.15) (2026-07-06)
+
+
+### Bug Fixes
+
+* **seo:** emit one page per market to stay under the certification instruction budget ([#1102](https://github.com/AntonioVentilii/vici-app/issues/1102)) ([46ca87a](https://github.com/AntonioVentilii/vici-app/commit/46ca87a62d196c5fad3c597971d25f34da36d93b))
+
+## [1.8.14](https://github.com/AntonioVentilii/vici-app/compare/v1.8.13...v1.8.14) (2026-07-06)
+
+
+### Features
+
+* **seo:** generate sitemap + per-market crawler pages at deploy ([#1098](https://github.com/AntonioVentilii/vici-app/issues/1098)) ([c16a879](https://github.com/AntonioVentilii/vici-app/commit/c16a8791729c2060b2e99d8ddb2598ade15a1413))
+* **seo:** keyword slugs for market share links ([#1100](https://github.com/AntonioVentilii/vici-app/issues/1100)) ([88ab0af](https://github.com/AntonioVentilii/vici-app/commit/88ab0af12536ff62ce0625f351858d9eecad4c88))
+
+
+### Bug Fixes
+
+* **seo:** strict share-param suffix, unique-match resolution ([#1101](https://github.com/AntonioVentilii/vici-app/issues/1101)) ([e12aae3](https://github.com/AntonioVentilii/vici-app/commit/e12aae3ce93db3009d21f4938f884b76fd6f13f5))
+
+## [1.8.13](https://github.com/AntonioVentilii/vici-app/compare/v1.8.12...v1.8.13) (2026-07-03)
+
+
+### Features
+
+* **analytics:** country/locale dims + instrument real trades, league joins & watchlist ([#1089](https://github.com/AntonioVentilii/vici-app/issues/1089)) ([1707990](https://github.com/AntonioVentilii/vici-app/commit/170799043543de7eb36070bd2cf785a1bf1c2747))
+* **analytics:** server-side capture of VXP payouts (vxp_awarded + streak_milestone) ([#1090](https://github.com/AntonioVentilii/vici-app/issues/1090)) ([ebac1d1](https://github.com/AntonioVentilii/vici-app/commit/ebac1d120c8913c9daf1fe023bc637b57d7c1af0))
+
+
+### Documentation
+
+* **spec:** reconcile merged spec statuses and PRODUCT.md drift ([#1087](https://github.com/AntonioVentilii/vici-app/issues/1087)) ([4fc4177](https://github.com/AntonioVentilii/vici-app/commit/4fc4177117811d0ab501057e3ff8810bcda9f268))
+
+
+### Miscellaneous Chores
+
+* **github-actions:** bump actions/checkout from 6.0.3 to 7.0.0 ([#1030](https://github.com/AntonioVentilii/vici-app/issues/1030)) ([8a78aa0](https://github.com/AntonioVentilii/vici-app/commit/8a78aa0717a7865446ddfdf3ff01c3e12ebf7739))
+
+## [1.8.12](https://github.com/AntonioVentilii/vici-app/compare/v1.8.11...v1.8.12) (2026-07-02)
+
+
+### Features
+
+* **satellite:** add admin-gated app_delete_analytics_events (cockpit drain) ([#1085](https://github.com/AntonioVentilii/vici-app/issues/1085)) ([e0677c2](https://github.com/AntonioVentilii/vici-app/commit/e0677c207b43298700944eec6aeef773de5bf62d))
+
+
+### Performance Improvements
+
+* **satellite:** index market tags so battle scoping skips the metadata scan ([#1060](https://github.com/AntonioVentilii/vici-app/issues/1060)) ([e252f2d](https://github.com/AntonioVentilii/vici-app/commit/e252f2da28e0895572336ee4c4969d6e6b3c348e))
+
+## [1.8.11](https://github.com/AntonioVentilii/vici-app/compare/v1.8.10...v1.8.11) (2026-07-02)
+
+
+### Bug Fixes
+
+* **satellite:** page analytics-events export by key, not updated_at (IC0522) ([#1083](https://github.com/AntonioVentilii/vici-app/issues/1083)) ([d50e78b](https://github.com/AntonioVentilii/vici-app/commit/d50e78bb09891f7d2df047b193945ab71074a771))
+
+## [1.8.10](https://github.com/AntonioVentilii/vici-app/compare/v1.8.9...v1.8.10) (2026-07-01)
+
+
+### Features
+
+* **worlds:** standings reflect current opted-in roster; freeze closed months ([#1068](https://github.com/AntonioVentilii/vici-app/issues/1068)) ([5b6de71](https://github.com/AntonioVentilii/vici-app/commit/5b6de71a99a9691859e77c63d0b582f1e0a1acd3))
+
+## [1.8.9](https://github.com/AntonioVentilii/vici-app/compare/v1.8.8...v1.8.9) (2026-07-01)
+
+
+### Features
+
+* **i18n:** translate market names on personal surfaces ([#1079](https://github.com/AntonioVentilii/vici-app/issues/1079)) ([cbe9bba](https://github.com/AntonioVentilii/vici-app/commit/cbe9bba28b0f54b56c8ac3a9f731c19af535e346))
+* **wc:** add refreshed opening odds to R32 deck ([#1074](https://github.com/AntonioVentilii/vici-app/issues/1074)) ([d9bd99d](https://github.com/AntonioVentilii/vici-app/commit/d9bd99d563b6d4d25d42620b9fd6fde3ae3d9bc4))
+
+
+### Bug Fixes
+
+* **flow:** keep the daily-goal count monotonic under fast swiping ([#1080](https://github.com/AntonioVentilii/vici-app/issues/1080)) ([4162fb4](https://github.com/AntonioVentilii/vici-app/commit/4162fb4ee12233d96878399031310aad0a3ea835))
+* **flow:** skeleton resolved-call titles until the markets catalog loads ([#1076](https://github.com/AntonioVentilii/vici-app/issues/1076)) ([8053ad1](https://github.com/AntonioVentilii/vici-app/commit/8053ad1ba812829011bfce0b94d795076bd89c24))
+* **trade:** reject predictions placed after market expiry ([#1078](https://github.com/AntonioVentilii/vici-app/issues/1078)) ([0d58894](https://github.com/AntonioVentilii/vici-app/commit/0d58894b966be3a4f559ed888542ae0c5dc1b5eb))
+* **wc:** remove matchday-squad void clause from R32 market resolutions ([#1077](https://github.com/AntonioVentilii/vici-app/issues/1077)) ([f944aec](https://github.com/AntonioVentilii/vici-app/commit/f944aec984ff62f85b13b84447b36bc520882684))
+
+
+### Miscellaneous Chores
+
+* **npm-deps-dev:** bump @types/node from 25.9.4 to 26.0.0 ([#1031](https://github.com/AntonioVentilii/vici-app/issues/1031)) ([45f5510](https://github.com/AntonioVentilii/vici-app/commit/45f55102aa76414ab2729ef2f6afad9fe5f7324e))
+* **satellite:** remove dead clearing-executed-counts helper ([#1081](https://github.com/AntonioVentilii/vici-app/issues/1081)) ([e842797](https://github.com/AntonioVentilii/vici-app/commit/e842797e8c7452345f249f999f9b1be2ba78f56c))
+
+## [1.8.8](https://github.com/AntonioVentilii/vici-app/compare/v1.8.7...v1.8.8) (2026-06-29)
+
+
+### Features
+
+* **wc:** add R32 market deck with 7-locale translations ([#1071](https://github.com/AntonioVentilii/vici-app/issues/1071)) ([cb79ed0](https://github.com/AntonioVentilii/vici-app/commit/cb79ed02b047e3284c505a8d8f6258b0496680bd))
+* **wc:** schedule R32 market releases ([#1072](https://github.com/AntonioVentilii/vici-app/issues/1072)) ([22f4f3f](https://github.com/AntonioVentilii/vici-app/commit/22f4f3f7180227bbb8da82cadc88e813ce9fcff2))
+
+## [1.8.7](https://github.com/AntonioVentilii/vici-app/compare/v1.8.6...v1.8.7) (2026-06-28)
+
+
+### Features
+
+* **privacy:** enforce leaderboard & Worlds sharing opt-outs ([#1069](https://github.com/AntonioVentilii/vici-app/issues/1069)) ([f395535](https://github.com/AntonioVentilii/vici-app/commit/f3955358d163bfe35a1664b24b5ddb151ae12a22))
+
+
+### Tests
+
+* **e2e:** unblock the two deterministically-failing Playwright specs ([#1066](https://github.com/AntonioVentilii/vici-app/issues/1066)) ([d176116](https://github.com/AntonioVentilii/vici-app/commit/d176116daa777cb2f3ea38204a7128fae6ed4ba6))
+
+## [1.8.6](https://github.com/AntonioVentilii/vici-app/compare/v1.8.5...v1.8.6) (2026-06-28)
+
+
+### Features
+
+* **arena:** pulse battle scores while results compute ([#1061](https://github.com/AntonioVentilii/vici-app/issues/1061)) ([c7696db](https://github.com/AntonioVentilii/vici-app/commit/c7696db45c274a168ed22a263a2ad9dd3a8391f0))
+* **onboarding:** redesign the in-flow gesture coach to dismiss on first call ([#1059](https://github.com/AntonioVentilii/vici-app/issues/1059)) ([b95374a](https://github.com/AntonioVentilii/vici-app/commit/b95374adeb244dd9100b06eefff1e672eb9013af))
+
+
+### Bug Fixes
+
+* **arena:** return to the originating tab when leaving a battle ([#1062](https://github.com/AntonioVentilii/vici-app/issues/1062)) ([5889d35](https://github.com/AntonioVentilii/vici-app/commit/5889d355ac79b47389e4e0a5142993d68ddc74c7))
+* **wc:** reveal knockout-stage markets hidden by the release calendar ([#1064](https://github.com/AntonioVentilii/vici-app/issues/1064)) ([17b592d](https://github.com/AntonioVentilii/vici-app/commit/17b592d68e5ac40eccf5c1cdbc42f25484c8b136))
+
+## [1.8.5](https://github.com/AntonioVentilii/vici-app/compare/v1.8.4...v1.8.5) (2026-06-27)
+
+
+### Features
+
+* **arena:** resolve league battles from clearing settlement history ([#1056](https://github.com/AntonioVentilii/vici-app/issues/1056)) ([2a3cb88](https://github.com/AntonioVentilii/vici-app/commit/2a3cb888d52f39fb74bd248c536819e64c6803cf))
+* **onboarding:** cycle the handle placeholder with a typewriter animation ([#1053](https://github.com/AntonioVentilii/vici-app/issues/1053)) ([b48072e](https://github.com/AntonioVentilii/vici-app/commit/b48072e52381e5e03afdf43dbcaea550f7bb5946))
+* **onboarding:** promote guest preview to a ghost button on sign-up ([#1057](https://github.com/AntonioVentilii/vici-app/issues/1057)) ([f1bbe17](https://github.com/AntonioVentilii/vici-app/commit/f1bbe177c445495b17957babd97967c341dd3390))
+
+
+### Bug Fixes
+
+* **arena:** keep viewer off a false [#01](https://github.com/AntonioVentilii/vici-app/issues/01) when friends tie on accuracy ([#1058](https://github.com/AntonioVentilii/vici-app/issues/1058)) ([290995c](https://github.com/AntonioVentilii/vici-app/commit/290995c1205c0dd12acad368d0d7b6aaeef7e64b))
+* **flow:** out-of-funds takeover when VXP is fully in play ([#1048](https://github.com/AntonioVentilii/vici-app/issues/1048)) ([709faf6](https://github.com/AntonioVentilii/vici-app/commit/709faf6460af8f83cabdff1e7b59087472ae1f4d))
+* **ios:** clear the status-bar safe-area on the authenticated app shell in standalone PWA ([#1054](https://github.com/AntonioVentilii/vici-app/issues/1054)) ([8cb72a4](https://github.com/AntonioVentilii/vici-app/commit/8cb72a4be8123ca046d0e94cd59a4d9b0691d289))
+* **onboarding:** drop em dash from the skip-onboarding label ([#1051](https://github.com/AntonioVentilii/vici-app/issues/1051)) ([58067a3](https://github.com/AntonioVentilii/vici-app/commit/58067a358b6c286864dd7ac1f50769c5767c9adf))
+* **settings:** make sign-out feel responsive ([#1052](https://github.com/AntonioVentilii/vici-app/issues/1052)) ([46d8d75](https://github.com/AntonioVentilii/vici-app/commit/46d8d756f5e7d681e0ef245ae72b485243628c86))
+
+
+### Miscellaneous Chores
+
+* Update ICDC declarations ([e193ed3](https://github.com/AntonioVentilii/vici-app/commit/e193ed3cc80b1695bc5649a8e617344802f62a76))
+
+
+### Code Refactoring
+
+* **arena:** replace live battle card CTA label with a centered arrow ([#1042](https://github.com/AntonioVentilii/vici-app/issues/1042)) ([949c15e](https://github.com/AntonioVentilii/vici-app/commit/949c15e05c2693c47c679299f4a62e8ab2455885))
+
+## [1.8.4](https://github.com/AntonioVentilii/vici-app/compare/v1.8.3...v1.8.4) (2026-06-27)
+
+
+### Features
+
+* **leagues:** collapse visibility model to Open and Private ([#1045](https://github.com/AntonioVentilii/vici-app/issues/1045)) ([5177ba7](https://github.com/AntonioVentilii/vici-app/commit/5177ba72b2a552e6dc89ca0f8ba3a9a4d33d9d2b))
+
+
+### Bug Fixes
+
+* **flow:** hold transient banners longer so they stay readable ([#1050](https://github.com/AntonioVentilii/vici-app/issues/1050)) ([9869aa5](https://github.com/AntonioVentilii/vici-app/commit/9869aa5fb72a02629a2a63898a3a9de7cfc50b16))
+* **flow:** span the entry overlay full-bleed on desktop ([#1049](https://github.com/AntonioVentilii/vici-app/issues/1049)) ([83e8616](https://github.com/AntonioVentilii/vici-app/commit/83e8616227607ff196833aa0d30c60e7d23cbd3e))
+* **pwa:** navigation-fallback service worker to mask transient gateway 500s on OAuth return ([#1046](https://github.com/AntonioVentilii/vici-app/issues/1046)) ([64c67a1](https://github.com/AntonioVentilii/vici-app/commit/64c67a145c3226dd319015c217d824f35bc4096d))
+
+
+### Miscellaneous Chores
+
+* Update ICDC declarations ([35a2a4b](https://github.com/AntonioVentilii/vici-app/commit/35a2a4bd712b9b8acfdd7ed5aba9d9a9acaf74a3))
+
+## [1.8.3](https://github.com/AntonioVentilii/vici-app/compare/v1.8.2...v1.8.3) (2026-06-27)
+
+
+### Features
+
+* **arena:** friends YOU row at its real rank, sticky to nearest edge ([#1020](https://github.com/AntonioVentilii/vici-app/issues/1020)) ([1e323bd](https://github.com/AntonioVentilii/vici-app/commit/1e323bdcd23da4c5bf0c814dbd23873dd2a9a8e0))
+* **arena:** show viewer's real rank on the friends YOU row ([#1017](https://github.com/AntonioVentilii/vici-app/issues/1017)) ([e06a1dd](https://github.com/AntonioVentilii/vici-app/commit/e06a1dd0d3230ab934ae72d4788f224cc51d21e8))
+* **dash:** getting-started checklist on the first-run dashboard ([#1039](https://github.com/AntonioVentilii/vici-app/issues/1039)) ([db26aea](https://github.com/AntonioVentilii/vici-app/commit/db26aeaa20dd810f90ab703e2bd0bef42f72bf54))
+
+
+### Bug Fixes
+
+* **arena:** always open Friends on Arena entry ([#1038](https://github.com/AntonioVentilii/vici-app/issues/1038)) ([0df462a](https://github.com/AntonioVentilii/vici-app/commit/0df462aa2bbc2c99e45a42a07d1da8fa088275ee))
+* **auth:** request persistent storage to survive iOS delegation eviction ([#1035](https://github.com/AntonioVentilii/vici-app/issues/1035)) ([cb03c6a](https://github.com/AntonioVentilii/vici-app/commit/cb03c6ac6fe874d49af94c68d37acd723ce059aa))
+* **dash:** unify transaction-history summary with holdings breakdown ([#1040](https://github.com/AntonioVentilii/vici-app/issues/1040)) ([32ebd7e](https://github.com/AntonioVentilii/vici-app/commit/32ebd7e65ba5965f584e8ccc57ef23d8217dd2a7))
+* **ios:** clear the status-bar safe-area on the landing nav in standalone PWA ([#1044](https://github.com/AntonioVentilii/vici-app/issues/1044)) ([b4572fc](https://github.com/AntonioVentilii/vici-app/commit/b4572fc4ed25752eb3dcbbcd699d5b6c7d55a4d4))
+* **ios:** stop the bottom-sheet inset doubling up with the visual-viewport pin ([#1041](https://github.com/AntonioVentilii/vici-app/issues/1041)) ([01e7a28](https://github.com/AntonioVentilii/vici-app/commit/01e7a2877d804f643412e8c3ccc1fa6f7ac54b57))
+* **onboarding:** drop duplicate legal block from sign-up step ([#1032](https://github.com/AntonioVentilii/vici-app/issues/1032)) ([96e8932](https://github.com/AntonioVentilii/vici-app/commit/96e8932743e1c3a153d611cd8322f61841ee1dbb))
+* **onboarding:** restore earned-handle subtitle copy ([#1036](https://github.com/AntonioVentilii/vici-app/issues/1036)) ([9f60d23](https://github.com/AntonioVentilii/vici-app/commit/9f60d23d93d9f5b216b6db17b6051fa1cbae323c))
+* **pwa:** lock installed app to portrait and match splash background ([#1028](https://github.com/AntonioVentilii/vici-app/issues/1028)) ([4227697](https://github.com/AntonioVentilii/vici-app/commit/42276974f4794437c7849e433abb950e0359782b))
+* **ui:** center auth-hydration loader and match boot-loader size ([#1033](https://github.com/AntonioVentilii/vici-app/issues/1033)) ([40b69ef](https://github.com/AntonioVentilii/vici-app/commit/40b69ef02afcca98545ad829b9a8aa2a324b6da1))
+* **ui:** theme-aware floating companion background ([#1027](https://github.com/AntonioVentilii/vici-app/issues/1027)) ([bdabc11](https://github.com/AntonioVentilii/vici-app/commit/bdabc11ac68c752e362c130f14992eade181b432))
+
+
+### Documentation
+
+* **spec:** mark friends YOU row sticky spec Implemented ([#1029](https://github.com/AntonioVentilii/vici-app/issues/1029)) ([1544e83](https://github.com/AntonioVentilii/vici-app/commit/1544e838418931a295e67e5b21097a4429ccea4e))
+
+
+### Continuous Integration
+
+* **release-please:** always-bump-patch, command minor/major via Release-As ([#1025](https://github.com/AntonioVentilii/vici-app/issues/1025)) ([9c628bd](https://github.com/AntonioVentilii/vici-app/commit/9c628bd2020e0c455f0d407809c388fed557626b))
+
+## [1.8.2](https://github.com/AntonioVentilii/vici-app/compare/v1.8.1...v1.8.2) (2026-06-26)
+
+
+### Features
+
+* **admin:** show settler handle alongside principal in Oracle Settlers ([#1021](https://github.com/AntonioVentilii/vici-app/issues/1021)) ([c6163ab](https://github.com/AntonioVentilii/vici-app/commit/c6163ab6046de158e7e07cb4523031557bd21919))
+* **inbox:** live streak and level milestone notifications ([#1006](https://github.com/AntonioVentilii/vici-app/issues/1006)) ([5ab9f8e](https://github.com/AntonioVentilii/vici-app/commit/5ab9f8e6584f4ba6cc3f4e048b71132bd1ff8edb))
+
+
+### Bug Fixes
+
+* **arena:** align Global ranking card with the leaderboard's accuracy rank ([#1018](https://github.com/AntonioVentilii/vici-app/issues/1018)) ([87cd24d](https://github.com/AntonioVentilii/vici-app/commit/87cd24dd335b8836082d07314e454d4dfad5be08))
+* **arena:** clarify friend results — passive "resolved" copy + W/L record ([#1016](https://github.com/AntonioVentilii/vici-app/issues/1016)) ([b122f1a](https://github.com/AntonioVentilii/vici-app/commit/b122f1a0472bf606b815993c10bb739a83e99de1))
+* **battle:** back nav returns to actual previous page ([#1015](https://github.com/AntonioVentilii/vici-app/issues/1015)) ([c385103](https://github.com/AntonioVentilii/vici-app/commit/c3851030f4994faa5b966cfd8a0b6a6fe2e05e00))
+* **battles:** restart baseline-less legacy battles so they show live results ([#1019](https://github.com/AntonioVentilii/vici-app/issues/1019)) ([5ebc9c9](https://github.com/AntonioVentilii/vici-app/commit/5ebc9c9aaab0b9fff233bfac334ac7102d554efd))
+* **lint:** resolve preserve-caught-error and no-useless-assignment errors ([#1013](https://github.com/AntonioVentilii/vici-app/issues/1013)) ([74ccbf5](https://github.com/AntonioVentilii/vici-app/commit/74ccbf5d589ae2b0a35cd296d01e16e6f505f5d8))
+* **signup:** route into app immediately after in-page passkey sign-up ([#1014](https://github.com/AntonioVentilii/vici-app/issues/1014)) ([beea2f1](https://github.com/AntonioVentilii/vici-app/commit/beea2f1fbe4972f852611d6bc580aa19758928df))
+
+
+### Miscellaneous Chores
+
+* npm install ([315e487](https://github.com/AntonioVentilii/vici-app/commit/315e4872b93f5730796998ef9e8f044445a8b84a))
+* **release:** force v1.8.2 patch ([#1023](https://github.com/AntonioVentilii/vici-app/issues/1023)) ([9edbef3](https://github.com/AntonioVentilii/vici-app/commit/9edbef34552cd1d694162de39a2030a0370eef6f))
+* **vxp:** one-time streak-underpayment backfill endpoint ([#1004](https://github.com/AntonioVentilii/vici-app/issues/1004)) ([7d6bc6e](https://github.com/AntonioVentilii/vici-app/commit/7d6bc6e61bcce1353361f4450b669c2b1fb0bdd0))
+
+
+### Code Refactoring
+
+* **onboarding:** collapse to a single unversioned onboarding ([#1011](https://github.com/AntonioVentilii/vici-app/issues/1011)) ([ac5c771](https://github.com/AntonioVentilii/vici-app/commit/ac5c771c2dcd946f06a6cf41e599d4caa1436b5a))
+
+## [1.8.1](https://github.com/AntonioVentilii/vici-app/compare/v1.8.0...v1.8.1) (2026-06-26)
+
+
+### Features
+
+* **arena:** battle proposer handle + settling state (resolution spec) ([#1003](https://github.com/AntonioVentilii/vici-app/issues/1003)) ([ee041f3](https://github.com/AntonioVentilii/vici-app/commit/ee041f39b3bb817d32374a805696958a5fcc6619))
+
+
+### Bug Fixes
+
+* **analytics:** paginate getAnalyticsEvents at the datastore (IC0522) ([#1001](https://github.com/AntonioVentilii/vici-app/issues/1001)) ([4bba1d7](https://github.com/AntonioVentilii/vici-app/commit/4bba1d7e262c2394cbe3cc90dfaaae19eb4a0144))
+* **onboarding:** remove double @ in handle input placeholder ([#1009](https://github.com/AntonioVentilii/vici-app/issues/1009)) ([ec2d213](https://github.com/AntonioVentilii/vici-app/commit/ec2d2139b611e611337a34ced9cdbe06671c9596))
+* **pwa:** capture beforeinstallprompt early so the install row shows ([#1005](https://github.com/AntonioVentilii/vici-app/issues/1005)) ([8f2ca2c](https://github.com/AntonioVentilii/vici-app/commit/8f2ca2cb2e030a95036216f8fd471844929fbe8a))
+
+
+### Miscellaneous Chores
+
+* **release:** force v1.8.1 patch ([#1010](https://github.com/AntonioVentilii/vici-app/issues/1010)) ([0c802e8](https://github.com/AntonioVentilii/vici-app/commit/0c802e8e3ac7f7432f4cc473b4d38cef0bd56878))
+
 ## [1.8.0](https://github.com/AntonioVentilii/vici-app/compare/v0.3.0...v1.8.0) (2026-06-26)
 
 

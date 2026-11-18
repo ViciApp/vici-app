@@ -3,40 +3,41 @@
 	import { ArrowRight, Check } from '@lucide/svelte/icons';
 	import { onMount, tick } from 'svelte';
 	import { get } from 'svelte/store';
-	import { browser } from '$app/environment';
-	import type { ClearingDid } from '$declarations';
-	import BottomSheet from '$lib/components/ui/BottomSheet.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { ZERO } from '$lib/constants/app.constants';
-	import { INFO_EMAIL } from '$lib/constants/contact.constants';
-	import { PLAYGROUND_CLEARING_MARGIN_DECIMALS } from '$lib/constants/playground.constants';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
+	import type { ClearingDid } from '#declarations';
+	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { ZERO } from '#lib/constants/app.constants.ts';
+	import { INFO_EMAIL } from '#lib/constants/contact.constants.ts';
+	import { PLAYGROUND_CLEARING_MARGIN_DECIMALS } from '#lib/constants/playground.constants.ts';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import {
 		deleteMyAccount,
 		hibernateMyAccount,
 		type LeagueResolution,
 		listMyBlockingLeagues
-	} from '$lib/services/account.services';
-	import { listLeagueMembers, listMyLeagues } from '$lib/services/leagues.services';
-	import { cancelLimitOrder, getUserOrders } from '$lib/services/order.services';
-	import { getPositions } from '$lib/services/position.services';
-	import { loadProfilesByPrincipals } from '$lib/services/profile.services';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import type { ButtonStatus } from '$lib/types/components';
-	import { EXIT_SIGNAL_NOTE_MAX_LENGTH, type ExitSignalReason } from '$lib/types/exit-signal';
-	import type { LeagueMemberDoc } from '$lib/types/league-member';
-	import { mailtoHref } from '$lib/utils/email.utils';
-	import { createFocusTrap, type FocusTrap } from '$lib/utils/focus-trap.utils';
-	import { shortenPrincipal } from '$lib/utils/format.utils';
-	import { t, type MessageKey } from '$lib/utils/i18n.utils';
-	import { formatVxpBalance } from '$lib/utils/playground-display.utils';
+	} from '#lib/services/account.services.ts';
+	import { track } from '#lib/services/analytics.services.ts';
+	import { listLeagueMembers, listMyLeagues } from '#lib/services/leagues.services.ts';
+	import { cancelLimitOrder, getUserOrders } from '#lib/services/order.services.ts';
+	import { getPositions } from '#lib/services/position.services.ts';
+	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import type { ButtonStatus } from '#lib/types/components.ts';
+	import { EXIT_SIGNAL_NOTE_MAX_LENGTH, type ExitSignalReason } from '#lib/types/exit-signal.ts';
+	import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+	import { mailtoHref } from '#lib/utils/email.utils.ts';
+	import { createFocusTrap, type FocusTrap } from '#lib/utils/focus-trap.utils.ts';
+	import { shortenPrincipal } from '#lib/utils/format.utils.ts';
+	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
+	import { browser } from '$app/env';
 
 	/**
 	 * Six-beat account-deletion flow, docked in a {@link BottomSheet}.
 	 *
 	 * `reason → what-happens → leagues → confirm → gone`. The
-	 * `deleting` beat is folded into `confirm`'s spinner — there is no
+	 * `deleting` beat is folded into `confirm`'s spinner: there is no
 	 * separate sheet for the in-flight moment. Owned non-empty leagues
 	 * must be resolved (transferred or disbanded) before the confirm
 	 * step unlocks; open orders are cancelled FE-side first because the
@@ -44,7 +45,7 @@
 	 */
 	interface Props {
 		isOpen: boolean;
-		/** The user's handle — typed back on the confirm step. */
+		/** The user's handle: typed back on the confirm step. */
 		nickname: string;
 		onClose: () => void;
 		/** Sign-out path reused from the host page. */
@@ -135,7 +136,7 @@
 	let errorParams = $state<Record<string, string | number> | undefined>(undefined);
 	let confirmInputEl = $state<HTMLInputElement | undefined>();
 
-	// Gone takeover — focus trap
+	// Gone takeover: focus trap
 	let goneDialogEl = $state<HTMLDivElement | undefined>();
 	let goneTrap: FocusTrap | null = null;
 
@@ -234,7 +235,7 @@
 
 			const hydrated = await Promise.all(
 				owned.map(async ({ league }) => {
-					let members: LeagueMemberDoc[] = [];
+					let members: LeagueMemberDoc[];
 
 					try {
 						members = await listLeagueMembers({ leagueId: league.id });
@@ -341,7 +342,7 @@
 		// + the owner-leagues guard BEFORE the soft-delete, so a refusal
 		// (`owns_non_empty_league` / `league_resolution_failed`) leaves the
 		// account fully intact. We must not cancel the user's open orders
-		// until the delete has actually committed — otherwise a transient
+		// until the delete has actually committed; otherwise a transient
 		// refusal would irreversibly wipe orders without deleting anything.
 		let result: Awaited<ReturnType<typeof deleteMyAccount>>;
 
@@ -387,8 +388,8 @@
 
 		// Soft-delete committed. Now cancel open orders FE-side (the satellite
 		// can't reach the clearing engine). A cancel failure here can't undo
-		// the delete — the account is recoverable for 30 days and any open
-		// trades settle at expiry regardless — so we still proceed to `gone`.
+		// the delete; the account is recoverable for 30 days and any open
+		// trades settle at expiry regardless, so we still proceed to `gone`.
 		try {
 			for (const order of openOrders) {
 				await cancelLimitOrder(order.order_id);
@@ -427,10 +428,14 @@
 	};
 
 	// Reset to the first beat each time the sheet (re)opens so a
-	// re-entry never lands mid-flow on stale state.
+	// re-entry never lands mid-flow on stale state. Each (re)open is a
+	// genuine churn-funnel entry, so it also emits `delete_flow_opened`:
+	// the top of the delete funnel the server-side `delete_confirmed` /
+	// `delete_succeeded` events complete.
 	$effect(() => {
 		if (isOpen) {
 			resetState();
+			track({ name: 'delete_flow_opened', source: 'settings' });
 		} else {
 			clearCountdown();
 		}
@@ -438,7 +443,7 @@
 
 	// Manage the focus trap for the full-bleed "gone" takeover. The dialog
 	// auto-redirects via countdown, so the trap stays active until finish()
-	// clears it and closes the flow. Esc is intentionally not wired here —
+	// clears it and closes the flow. Esc is intentionally not wired here;
 	// the takeover redirects automatically and there is no cancel action.
 	$effect(() => {
 		if (!browser) {
@@ -497,8 +502,7 @@
 					maxlength={EXIT_SIGNAL_NOTE_MAX_LENGTH}
 					placeholder={t({ locale: $localeStore, key: 'settings.delete.note_placeholder' })}
 					rows="3"
-					bind:value={note}
-				></textarea>
+					bind:value={note}></textarea>
 			{/if}
 
 			<div class="del-retain">
@@ -642,12 +646,12 @@
 			</ul>
 
 			<div class="del-actions">
-				<Button onclick={() => (step = 'reason')} variant="ghost">
-					{t({ locale: $localeStore, key: 'settings.delete.back' })}
-				</Button>
-				<Button class="del-danger-btn" onclick={advanceFromDisclosure} variant="danger">
-					{t({ locale: $localeStore, key: 'settings.delete.understand' })}
-				</Button>
+				<Button onclick={() => (step = 'reason')} variant="ghost"
+					>{t({ locale: $localeStore, key: 'settings.delete.back' })}</Button
+				>
+				<Button class="del-danger-btn" onclick={advanceFromDisclosure} variant="danger"
+					>{t({ locale: $localeStore, key: 'settings.delete.understand' })}</Button
+				>
 			</div>
 		</div>
 	{:else if step === 'leagues'}
@@ -731,7 +735,8 @@
 												...resolutions,
 												[league.id]: {
 													...draft,
-													transferTo: e.currentTarget.value || null
+													transferTo:
+														e.currentTarget.value.length > 0 ? e.currentTarget.value : null
 												}
 											})}
 										value={draft.transferTo ?? ''}
@@ -781,9 +786,10 @@
 			</div>
 
 			<div class="del-actions">
-				<Button onclick={() => (step = 'what-happens')} variant="ghost">
-					{t({ locale: $localeStore, key: 'settings.delete.back' })}
-				</Button>
+				<Button onclick={() => (step = 'what-happens')} variant="ghost"
+					>{t({ locale: $localeStore, key: 'settings.delete.back' })}</Button
+				>
+
 				<Button
 					class="del-danger-btn"
 					onclick={enterConfirm}
@@ -947,7 +953,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Serif-italic lede — the empathetic voice for the opener and the
+	/* Serif-italic lede: the empathetic voice for the opener and the
 	   honest-disclosure intro. */
 	.del-lede {
 		margin: 0 0 0.15rem;
@@ -967,7 +973,7 @@
 		font-style: normal;
 	}
 
-	/* Reason picker — 2-col grid of soft-square chips. Active state
+	/* Reason picker: 2-col grid of soft-square chips. Active state
 	   adopts the laurel accent (the empathetic step stays warm; the
 	   danger tone is reserved for the steps past the opener). */
 	.del-reasons {
@@ -1011,7 +1017,7 @@
 		resize: vertical;
 	}
 
-	/* Retention off-ramp — dashed laurel-tinted card, sits above the
+	/* Retention off-ramp: dashed laurel-tinted card, sits above the
 	   footer so the "stay" path is offered before the user commits. */
 	.del-retain {
 		padding: 0.65rem 0.7rem;
@@ -1063,7 +1069,7 @@
 		background: color-mix(in srgb, var(--accent) 8%, transparent);
 	}
 
-	/* Disclosure rows — icon + text, divider-separated. The ok rows take
+	/* Disclosure rows: icon + text, divider-separated. The ok rows take
 	   a laurel-green tick; the rows the user can't make reversible (active
 	   trades, owned leagues) take a danger bang. */
 	.del-rows {
@@ -1263,7 +1269,7 @@
 		color: var(--danger);
 	}
 
-	/* Inline disband confirm — text + danger pill, mirrors the source's
+	/* Inline disband confirm: text + danger pill, mirrors the source's
 	   two-tap guard before a league is wiped for all members. */
 	.del-league-confirm {
 		display: flex;
@@ -1429,7 +1435,7 @@
 		flex: 1;
 	}
 
-	/* Destructive footer CTA — the `danger` Button variant wires to the
+	/* Destructive footer CTA: the `danger` Button variant wires to the
 	   prediction-NO red; the delete flow's terracotta danger ramp is the
 	   correct destructive-action tone, so override the fill here. */
 	:global(.del-danger-btn) {
@@ -1441,7 +1447,7 @@
 		background: var(--danger-deep);
 	}
 
-	/* Gone — full-bleed Vale takeover, layered above the sheet so it
+	/* Gone: full-bleed Vale takeover, layered above the sheet so it
 	   reads as a final farewell rather than another sheet beat. No
 	   backdrop-click / Escape close: the only way out is the CTA (or the
 	   auto-redirect when the counter reaches zero). */

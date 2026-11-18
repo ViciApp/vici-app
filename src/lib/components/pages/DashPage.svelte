@@ -1,72 +1,76 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	/**
-	 * Dash screen — a glanceable, three-zone surface over the user's real
+	 * Dash screen: a glanceable, three-zone surface over the user's real
 	 * performance, stack, and calls:
 	 *
-	 *   1 · Performance — the accuracy hero (big mono number), a swipeable
+	 *   1 · Performance: the accuracy hero (big mono number), a swipeable
 	 *       accuracy trend (7 / 30 / 90-day windows), the session delta + streak,
 	 *       and a global ⇄ friends benchmark toggle.
-	 *   2 · Stack       — the holdings card; tapping opens a breakdown sheet
+	 *   2 · Stack: the holdings card; tapping opens a breakdown sheet
 	 *       (Your VXP hero + Available / In-play split).
-	 *   3 · Calls       — an Open / Resolved segmented toggle over compact call
+	 *   3 · Calls: an Open / Resolved segmented toggle over compact call
 	 *       rows with status dots and an inline "see all".
 	 *
 	 * Before any call has settled the same framework renders the Day-0/Day-1
 	 * calibrating state (see {@link DashBuildZero}). Every figure is read from
 	 * the real stores; the only synthesised data is the accuracy trail (no
-	 * per-window time-series is persisted yet — see `dash-trend.utils`).
+	 * per-window time-series is persisted yet; see `dash-trend.utils`).
 	 */
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import type { ClearingDid } from '$declarations';
-	import DashBuildHero from '$lib/components/dash/DashBuildHero.svelte';
-	import DashBuildZero, { type ZeroMarketRow } from '$lib/components/dash/DashBuildZero.svelte';
+	import type { ClearingDid } from '#declarations';
+	import DashBuildHero from '#lib/components/dash/DashBuildHero.svelte';
+	import DashBuildZero, { type ZeroMarketRow } from '#lib/components/dash/DashBuildZero.svelte';
 	import DashCallsZone, {
 		type OpenCallRow,
 		type ResolvedCallRow
-	} from '$lib/components/dash/DashCallsZone.svelte';
-	import DashResolutionBanner from '$lib/components/dash/DashResolutionBanner.svelte';
-	import DashStackCard from '$lib/components/dash/DashStackCard.svelte';
-	import DashStackSheet from '$lib/components/dash/DashStackSheet.svelte';
-	import ResolutionReveal from '$lib/components/market/ResolutionReveal.svelte';
-	import { USD_DECIMALS, ZERO } from '$lib/constants/app.constants';
-	import { MARKET_TAG_LABEL_KEYS, type MarketTag } from '$lib/constants/market-tags.constants';
-	import { AppPath } from '$lib/constants/routes.constants';
-	import { balanceDomain } from '$lib/derived/balance-domain.derived';
-	import { marketTags } from '$lib/derived/market-tags.derived';
-	import { orders } from '$lib/derived/orders.derived';
-	import { positions } from '$lib/derived/positions.derived';
+	} from '#lib/components/dash/DashCallsZone.svelte';
+	import DashResolutionBanner from '#lib/components/dash/DashResolutionBanner.svelte';
+	import DashStackCard from '#lib/components/dash/DashStackCard.svelte';
+	import DashStackSheet from '#lib/components/dash/DashStackSheet.svelte';
+	import ResolutionReveal from '#lib/components/market/ResolutionReveal.svelte';
+	import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
+	import { marketTags } from '#lib/derived/market-tags.derived.ts';
+	import { orders } from '#lib/derived/orders.derived.ts';
+	import { positions } from '#lib/derived/positions.derived.ts';
 	import {
 		resolvedPositions,
 		resolvedPositionsNotInitialized
-	} from '$lib/derived/resolved-positions.derived';
+	} from '#lib/derived/resolved-positions.derived.ts';
 	import {
 		vxpBacked,
 		vxpHoldingsNotInitialized,
 		vxpHoldingsTotal,
 		vxpSpendable
-	} from '$lib/derived/vxp-holdings.derived';
-	import { safeGetIdentityOnce } from '$lib/services/identity.services';
-	import { calculateAndSyncStats, getProfile } from '$lib/services/profile.services';
-	import { loadMyUserStats } from '$lib/services/user-stats.services';
-	import { friendsListStore } from '$lib/stores/friends.store';
-	import { markResolutionsSeen, maturedResolutions } from '$lib/stores/inbox.store';
-	import { localeStore } from '$lib/stores/locale.store';
-	import { marketsStore } from '$lib/stores/markets.store';
-	import { profilesStore } from '$lib/stores/profiles.store';
-	import { userStore } from '$lib/stores/user.store';
-	import type { Market } from '$lib/types/market';
-	import type { UserStatsDoc } from '$lib/types/user-stats';
+	} from '#lib/derived/vxp-holdings.derived.ts';
+	import { getProfile, syncMyStats } from '#lib/services/profile.services.ts';
+	import { loadMyUserStats } from '#lib/services/user-stats.services.ts';
+	import { friendsListStore } from '#lib/stores/friends.store.ts';
+	import { markResolutionsSeen, maturedResolutions } from '#lib/stores/inbox.store.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
+	import { profilesStore } from '#lib/stores/profiles.store.ts';
+	import { userStore } from '#lib/stores/user.store.ts';
+	import type { CallSide, Market } from '#lib/types/market.ts';
+	import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 	import {
 		decimalFixedValueToNumber,
 		formatRelativeAgoShort,
 		probabilityToPercent
-	} from '$lib/utils/format.utils';
-	import { t } from '$lib/utils/i18n.utils';
-	import { formatVxpBalance, formatWholeVxpMagnitude } from '$lib/utils/playground-display.utils';
-	import { inferResolvedOutcomeId } from '$lib/utils/resolved-position.utils';
+	} from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import {
+		formatVxpBalance,
+		formatWholeVxpMagnitude
+	} from '#lib/utils/playground-display.utils.ts';
+	import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
+	import { goto } from '$app/navigation';
 
 	// ─── Reactive backend reads ────────────────────────────────────────
 	const profile = $derived($userStore.profile);
@@ -88,7 +92,10 @@
 	const inPlayDisplay = $derived(formatVxpBalance({ value: $vxpBacked, decimals: USD_DECIMALS }));
 
 	// ─── Markets ───────────────────────────────────────────────────────
-	const marketById = $derived(new Map<string, Market>(($marketsStore ?? []).map((m) => [m.id, m])));
+	// Markets in the reader's language (see `displayMarkets`): every numeric /
+	// status field is the untouched canonical value, so the call-row math and
+	// `isUnresolved` status checks below read from it unchanged.
+	const marketById = $derived($displayMarkets);
 
 	// Short, year-stripped close label so the row end stays compact.
 	const timerOf = (market: Market): string => {
@@ -98,7 +105,7 @@
 			return t({ locale: $localeStore, key: 'dash.build.timer_closed' });
 		}
 
-		const days = Math.ceil((expiry - Date.now()) / (1000 * 60 * 60 * 24));
+		const days = Math.ceil((expiry - Date.now()) / DAY_IN_MS);
 
 		return days <= 1
 			? t({ locale: $localeStore, key: 'dash.active.hours_left', params: { count: 24 } })
@@ -106,14 +113,14 @@
 	};
 
 	const categoryOf = (market: Market): string => {
-		const [tag]: (MarketTag | undefined)[] = $marketTags[market.id] ?? [];
+		const micro = primaryMicro($marketTags[market.id] ?? []);
 
-		return nonNullish(tag) && nonNullish(MARKET_TAG_LABEL_KEYS[tag])
-			? t({ locale: $localeStore, key: MARKET_TAG_LABEL_KEYS[tag] })
+		return nonNullish(micro)
+			? categoryLabel({ category: micro, variant: 'full', locale: $localeStore })
 			: t({ locale: $localeStore, key: 'dash.build.category_fallback' });
 	};
 
-	// Day-0/1 market context — "{category} · {pct}% YES" from live consensus.
+	// Day-0/1 market context: "{category} · {pct}% YES" from live consensus.
 	// When the probability is still unknown (book not yet read or empty; see
 	// `Market.yesProbability`) we drop the "{pct}% YES" clause and show the
 	// bare category rather than a fabricated "0% YES" / "NaN%".
@@ -133,7 +140,7 @@
 
 	// ─── Positions / orders ────────────────────────────────────────────
 	// The clearing canister deletes positions on settlement, so anything in
-	// `$positions` is normally unresolved — but a market can flip to
+	// `$positions` is normally unresolved, but a market can flip to
 	// `Resolved` before its settlement lands (and before the stores catch
 	// up). Filter that window out so a decided call never shows as an open
 	// "Closing" row; it surfaces in the Resolved tab once its settlement
@@ -144,12 +151,12 @@
 	const openOrdersAll = $derived($orders.filter(({ series_id }) => isUnresolved(series_id)));
 	const liveCallCount = $derived(activePositionsAll.length + openOrdersAll.length);
 
-	// A resting limit order reads as YES exposure when buying, NO when selling —
+	// A resting limit order reads as YES exposure when buying, NO when selling;
 	// mirrors how `OpenOrdersTable` labels the same orders.
-	const orderSide = (order: ClearingDid.LimitOrder): 'YES' | 'NO' =>
+	const orderSide = (order: ClearingDid.LimitOrder): CallSide =>
 		'Buy' in order.side ? 'YES' : 'NO';
 
-	// Open call rows — soonest-expiring first. Live positions AND resting limit
+	// Open call rows: soonest-expiring first. Live positions AND resting limit
 	// orders both count as open calls, so the Open tab stays consistent with
 	// `liveCallCount` / the Day-0 gating (a user holding only limit orders must
 	// not see the "no live calls" empty state).
@@ -205,7 +212,7 @@
 				const market = marketById.get(row.marketId);
 				const outcomeId = inferResolvedOutcomeId({ resolved: row, market });
 				const side = outcomeId === 'YES' ? 'YES' : outcomeId === 'NO' ? 'NO' : undefined;
-				const settledAtMs = Number(row.timestampNs / 1_000_000n);
+				const settledAtMs = Number(row.timestampNs / MILLISECOND_IN_NANOSECONDS);
 				const won = row.result === 'won';
 				const pnl = decimalFixedValueToNumber({
 					value: row.realizedPnlUsd,
@@ -249,12 +256,12 @@
 	const recentSettlements = $derived(userStats?.recentSettlements ?? []);
 
 	// `user_stats` is fetched after mount, so the TODAY figure pulses a
-	// placeholder until the doc lands — distinct from a loaded-but-quiet window,
+	// placeholder until the doc lands, distinct from a loaded-but-quiet window,
 	// which reads a real `0` rather than skeleton.
 	const todayLoading = $derived(isNullish(userStats));
 
 	// Net VXP across the recent settlement window: wins add their payout, losses
-	// have no payout (the stake is already gone), so a quiet/loss-only window
+	// have no payout (the committed amount is already gone), so a quiet/loss-only window
 	// reads 0. `null` only when there is no settlement data at all.
 	const todayDelta = $derived.by<number | null>(() => {
 		if (recentSettlements.length === 0) {
@@ -305,7 +312,7 @@
 	const onRevealDismiss = (): void => {
 		markResolutionsSeen();
 		revealOpen = false;
-		void goto(resolve(AppPath.Flow));
+		void goto(resolveAppPath(AppPath.Flow));
 	};
 
 	// ─── Three-state gate ──────────────────────────────────────────────
@@ -315,10 +322,10 @@
 	const isDay1Pending = $derived(!isDay0 && settledTotal === 0);
 
 	// ─── Zero-state markets ────────────────────────────────────────────
-	// Open markets, most-traded first — the starter list (Day 0) and the
+	// Open markets, most-traded first: the starter list (Day 0) and the
 	// "add another while you wait" pair (Day 1).
 	const openMarketsByVolume = $derived.by<Market[]>(() =>
-		[...($marketsStore ?? [])]
+		[...$displayMarkets.values()]
 			.filter((m) => m.status === 'Open')
 			.sort((a, b) => {
 				if (b.totalVolume === a.totalVolume) {
@@ -338,7 +345,7 @@
 	const starterRows = $derived(openMarketsByVolume.slice(0, 3).map(toZeroRow));
 	const moreRows = $derived(openMarketsByVolume.slice(0, 2).map(toZeroRow));
 
-	// Day-1 calibrating caption — names when the soonest-expiring live position
+	// Day-1 calibrating caption: names when the soonest-expiring live position
 	// settles. The in-flight list itself is the full `openCalls` set below.
 	const firstCallEntry = $derived.by<{ market: Market } | undefined>(() => {
 		const [position] = [...activePositionsAll].sort((a, b) => {
@@ -365,8 +372,7 @@
 		}
 
 		try {
-			const identity = await safeGetIdentityOnce();
-			await calculateAndSyncStats({ identity, domain: $balanceDomain });
+			await syncMyStats({ domain: $balanceDomain });
 			const profileDoc = await getProfile(profile.owner);
 			userStore.update((s) => ({ ...s, profile: profileDoc.data }));
 		} catch (err) {
@@ -387,7 +393,7 @@
      document outline still has a top-level h1 without a visible title. -->
 <h1 class="sr-only">{t({ locale: $localeStore, key: 'dash.title' })}</h1>
 {#if resolvedPosNotInit && callsPlaced > 0}
-	<!-- LOADING · trade-history not yet initialized — gating on `settledTotal`
+	<!-- LOADING · trade-history not yet initialized: gating on `settledTotal`
 		     here would misroute a returning user to Day-1. Render nothing until
 		     the resolved-positions store is ready (the window is brief). -->
 {:else if isDay0 || isDay1Pending}

@@ -1,10 +1,10 @@
-import type { ClearingDid } from '$declarations';
-import { aggregateLean as aggregateLeanApi } from '$lib/api/clearing.api';
-import { MAX_MARKETS } from '$lib/services/flow-prep.services';
-import { safeGetIdentityOnce } from '$lib/services/identity.services';
-import type { MarketId } from '$lib/types/market';
-import type { FollowedLeanSignal } from '$lib/types/market-signals';
-import { parseMarketId } from '$lib/validation/market.validation';
+import type { ClearingDid } from '#declarations';
+import { aggregateLean as aggregateLeanApi } from '#lib/api/clearing.api.ts';
+import { MAX_MARKETS } from '#lib/services/flow-prep.services.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import type { FollowedLeanSignal } from '#lib/types/market-signals.ts';
+import type { MarketId } from '#lib/types/market.ts';
+import { parseMarketId } from '#lib/validation/market.validation.ts';
 import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';
@@ -14,7 +14,7 @@ import type { PrincipalText } from '@junobuild/schema';
  * Maps one series' aggregate lean onto the binary YES/NO shape the Flow card
  * consumes. The clearing query reports per-outcome counts; the card's social
  * row is the binary payoff, so we read the `None` (binary long-vs-short)
- * outcome — `long` = YES holders, `short` = NO holders. Returns `undefined`
+ * outcome: `long` = YES holders, `short` = NO holders. Returns `undefined`
  * when no followed principal holds a non-flat binary position, so the caller
  * omits the market (the card then shows its neutral fallback line rather than
  * an awkward "0 · 0").
@@ -48,7 +48,7 @@ const toFollowedLean = ({
  * Given the viewer's followed principal set, each market is aggregated over
  * that set: the query returns counts only (never identities, sides, amounts,
  * or P&L), so no individual follow's own position is ever singled out. The
- * result is a sparse map — markets with no non-flat followed position are
+ * result is a sparse map: markets with no non-flat followed position are
  * omitted, and the whole signal is empty when the viewer follows no one.
  *
  * Fails open: any per-market query error drops that market from the map
@@ -89,17 +89,16 @@ const aggregateFollowedLean = async ({
 	seriesIds: MarketId[];
 }): Promise<Partial<Record<MarketId, FollowedLeanSignal>>> => {
 	const entries = await Promise.all(
-		seriesIds.map(
-			(marketId): Promise<FollowedLeanSignal | undefined> =>
-				aggregateLeanApi({
-					identity,
-					params: { series_id: marketId, principals },
-					certified: false
-				})
-					.then((lean) => toFollowedLean({ marketId: parseMarketId(marketId), lean }))
-					// Per-market failures are non-fatal: drop this market from the
-					// lean map so the card falls back rather than blocking the deck.
-					.catch(() => undefined)
+		seriesIds.map((marketId): Promise<FollowedLeanSignal | undefined> =>
+			aggregateLeanApi({
+				identity,
+				params: { series_id: marketId, principals },
+				certified: false
+			})
+				.then((lean) => toFollowedLean({ marketId: parseMarketId(marketId), lean }))
+				// Per-market failures are non-fatal: drop this market from the
+				// lean map so the card falls back rather than blocking the deck.
+				.catch(() => undefined)
 		)
 	);
 
