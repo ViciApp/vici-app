@@ -15,9 +15,11 @@ on:
 
 permissions: {}
 
+# A newer PR push supersedes the running suite; a run on main (push, nightly)
+# is never cancelled, so a merged commit is not left without a verdict.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check-e2e-changes:

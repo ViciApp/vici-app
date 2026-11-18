@@ -15,9 +15,11 @@ on:
 
 permissions: {}
 
+# A newer PR push supersedes the running regeneration; a run on main is never
+# cancelled, so the drift of a merged commit is not dropped mid-flight.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   bindings:
