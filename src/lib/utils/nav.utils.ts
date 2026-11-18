@@ -6,6 +6,14 @@ import { nonNullish } from '@dfinity/utils';
 import { get } from 'svelte/store';
 
 /**
+ * This build's own origin, for absolute links shared outside the app
+ * (invites, share cards, OAuth redirects): `vici.app` on the web2 build,
+ * `vici.market` on the legacy one, the dev host locally. Never hard-code a
+ * domain for these: a link from one build must land on that same build.
+ */
+export const appOrigin = (): string => window.location.origin;
+
+/**
  * Navigate "back" in a way that respects the user's actual entry point.
  *
  * - If a prior in-app navigation occurred, calls `history.back()` so the

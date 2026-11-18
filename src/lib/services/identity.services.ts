@@ -44,6 +44,20 @@ export const isSignedIn = async (): Promise<boolean> => {
 };
 
 /**
+ * Backend-agnostic owner key of the signed-in user, read from the same source
+ * {@link isSignedIn} gates on: the Juno principal on the default backend, the
+ * session account id in web2 mode (the key `owner` fields and activity keys
+ * carry there). `undefined` when signed out.
+ */
+export const getSignedInOwner = async (): Promise<string | undefined> => {
+	if (isWeb2Backend()) {
+		return getWeb2User()?.id;
+	}
+
+	return (await getIdentity())?.getPrincipal().toText();
+};
+
+/**
  * Backend-agnostic sign-out for surfaces outside the sanctioned auth trio
  * (the settings page's sign-out and the account return gate). The default
  * on-chain path drops the Juno delegation exactly as before; web2 revokes

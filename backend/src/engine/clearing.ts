@@ -2,8 +2,7 @@
 // consumes on-chain today, re-exposed server-side. Public market-wide reads
 // sign with the engine reader identity behind a short TTL cache (clearing
 // rejects anonymous callers); account-scoped calls sign with the calling
-// user's derived custodial identity; settlement-grade calls sign with the
-// admin identity.
+// user's derived custodial identity.
 
 import {
 	fromNullable,
@@ -20,7 +19,7 @@ import { env } from '../env';
 import { ZERO } from '../lib/constants';
 import { userIcIdentity } from '../lib/keys';
 import { msToNs } from '../lib/time';
-import { adminClearing, readerClearing, userClearing, userLedger } from './actors';
+import { readerClearing, userClearing, userLedger } from './actors';
 import { cached, getRetained, PUBLIC_READ_TTL_MS, retain } from './cache';
 import { orderRejectedError } from './order-rejections';
 import { expectOk } from './result';
@@ -276,18 +275,6 @@ export const getPositions = async ({
 	return await actor.get_positions();
 };
 
-export const getPosition = async ({
-	userId,
-	params
-}: {
-	userId: string;
-	params: ClearingDid.GetPositionParams;
-}): Promise<ClearingDid.Position | undefined> => {
-	const actor = await userClearing(userId);
-
-	return fromNullable(await actor.get_position(params));
-};
-
 export const getOrders = async ({
 	userId
 }: {
@@ -296,18 +283,6 @@ export const getOrders = async ({
 	const actor = await userClearing(userId);
 
 	return await actor.get_orders();
-};
-
-export const listOrders = async ({
-	userId,
-	params
-}: {
-	userId: string;
-	params: ClearingDid.ListOrdersParams;
-}): Promise<ClearingDid.LimitOrder[]> => {
-	const actor = await userClearing(userId);
-
-	return await actor.list_orders(params);
 };
 
 export const getTradeHistory = async ({
@@ -356,34 +331,6 @@ export const cancelLimitOrder = async ({
 	return expectOrderOk(await actor.cancel_limit_order(params), 'cancel_limit_order');
 };
 
-export const mintCompleteSet = async ({
-	userId,
-	seriesId,
-	qty
-}: {
-	userId: string;
-	seriesId: string;
-	qty: bigint;
-}): Promise<boolean> => {
-	const actor = await userClearing(userId);
-
-	return expectOk(await actor.mint_complete_set(seriesId, qty), 'mint_complete_set');
-};
-
-export const redeemCompleteSet = async ({
-	userId,
-	seriesId,
-	qty
-}: {
-	userId: string;
-	seriesId: string;
-	qty: bigint;
-}): Promise<boolean> => {
-	const actor = await userClearing(userId);
-
-	return expectOk(await actor.redeem_complete_set(seriesId, qty), 'redeem_complete_set');
-};
-
 // Public market-wide reads (engine reader identity, cached)
 
 export const listCollateralAssets = (): Promise<ClearingDid.CollateralAssetInfo[]> =>
@@ -396,14 +343,6 @@ export const listCollateralAssets = (): Promise<ClearingDid.CollateralAssetInfo[
 			return await actor.list_collateral_assets();
 		}
 	});
-
-export const aggregateLean = async (
-	params: ClearingDid.AggregateLeanParams
-): Promise<ClearingDid.AggregateLean> => {
-	const actor = await readerClearing();
-
-	return await actor.aggregate_lean(params);
-};
 
 /** Per-principal settled-position win/total counts over an arbitrary
  * half-open window. Uncached: each read scores a bespoke window. */
@@ -736,36 +675,4 @@ export const listLeaderboard = async ({
 	}
 
 	return { items, total };
-};
-
-// Privileged calls (admin identity)
-
-export const submitMatchedTrade = async (
-	params: ClearingDid.SubmitMatchedTradeParams
-): Promise<boolean> => {
-	const actor = await adminClearing();
-
-	return expectOk(await actor.submit_matched_trade(params), 'submit_matched_trade');
-};
-
-export const settleSeries = async (params: ClearingDid.SettleSeriesParams): Promise<void> => {
-	const actor = await adminClearing();
-
-	for (;;) {
-		const result = await actor.settle_series(params);
-
-		if (!('Processing' in result)) {
-			expectOk(result, 'settle_series');
-
-			return;
-		}
-	}
-};
-
-export const registerIcrcAsset = async (
-	params: ClearingDid.RegisterIcrcAssetParams
-): Promise<void> => {
-	const actor = await adminClearing();
-
-	expectOk(await actor.register_icrc_asset(params), 'register_icrc_asset');
 };
