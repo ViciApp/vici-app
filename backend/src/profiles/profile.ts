@@ -161,9 +161,9 @@ const asStringArray = (value: unknown): string[] =>
 
 /**
  * Hydrates AND sanitizes the preferences bag so every field is present with
- * its default before the value reaches a client. Missing nested fields are
- * backfilled (legacy rows predate several of them) and unknown keys are
- * dropped, keeping the read shape canonical.
+ * its default before the value reaches a client or the table. Missing nested
+ * fields are backfilled (legacy rows predate several of them) and unknown
+ * keys are dropped, keeping the stored and the read shape canonical.
  */
 export const sanitizePreferences = ({
 	preferences,

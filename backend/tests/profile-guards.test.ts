@@ -285,3 +285,36 @@ describe.if(dbAvailable)('email privacy split', () => {
 		}
 	});
 });
+
+describe.if(dbAvailable)('preferences on write', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('are stored in the read shape: a non-boolean flag falls back, unknown keys drop', async () => {
+		const { userId, profile } = await createTestProfile();
+
+		await upsertMyProfile({
+			userId,
+			body: {
+				nickname: profile.nickname,
+				preferences: {
+					sharing: { worldsOptIn: 'x', leaderboardOptIn: false },
+					notify: { weeklyDigest: 2 },
+					unknownKey: 'kept nowhere'
+				}
+			}
+		});
+
+		const [stored] = await query<{ preferences: Record<string, unknown> }>(
+			`select preferences from profiles where user_id = $1`,
+			[userId]
+		);
+
+		expect(stored?.preferences).toMatchObject({
+			sharing: { worldsOptIn: true, leaderboardOptIn: false },
+			notify: { weeklyDigest: true }
+		});
+		expect(stored?.preferences).not.toHaveProperty('unknownKey');
+	});
+});

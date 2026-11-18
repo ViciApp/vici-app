@@ -15,12 +15,13 @@ import {
 	nicknameUniqueKey
 } from './nickname';
 import {
-	asRecord,
 	getProfileRow,
 	PROFILE_VISIBILITIES,
 	ProfileValidationError,
+	sanitizePreferences,
 	shapeOwnProfile,
 	type OwnProfile,
+	type ProfilePreferences,
 	type ProfileRow,
 	type ProfileVisibility
 } from './profile';
@@ -61,7 +62,7 @@ export interface ProfileInput {
 	schoolStatus?: string;
 	earnedMenagerie?: string[];
 	handleLastChangeMs?: number;
-	preferences: unknown;
+	preferences: ProfilePreferences;
 }
 
 const finiteNumber = (value: unknown, field: string, fallback: number): number => {
@@ -162,7 +163,12 @@ export const parseProfileInput = (body: Record<string, unknown>): ProfileInput =
 			? undefined
 			: stringArray(body.earnedMenagerie, 'earnedMenagerie'),
 		handleLastChangeMs: optionalFiniteNumber(body.handleLastChangeMs, 'handleLastChangeMs'),
-		preferences: body.preferences ?? {}
+		// Shaped by the read schema before it is stored, so SQL that reads a
+		// preference leaf only ever meets the types that schema guarantees.
+		preferences: sanitizePreferences({
+			preferences: body.preferences,
+			visibility: visibility as ProfileVisibility
+		})
 	};
 };
 
@@ -436,7 +442,7 @@ export const upsertMyProfile = async ({
 					proposed.schoolStatus ?? null,
 					nonNullish(proposed.earnedMenagerie) ? JSON.stringify(proposed.earnedMenagerie) : null,
 					proposed.handleLastChangeMs ?? null,
-					JSON.stringify(asRecord(proposed.preferences))
+					JSON.stringify(proposed.preferences)
 				]
 			);
 		} catch (err) {
