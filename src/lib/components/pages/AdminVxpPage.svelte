@@ -3,24 +3,18 @@
 	import { onMount } from 'svelte';
 	import AdminSubPageHeader from '#lib/components/admin/AdminSubPageHeader.svelte';
 	import Card from '#lib/components/ui/Card.svelte';
-	import InfiniteScroll from '#lib/components/ui/InfiniteScroll.svelte';
 	import Tabs from '#lib/components/ui/Tabs.svelte';
-	import WalletHistory from '#lib/components/wallet/WalletHistory.svelte';
+	import WalletHistoryPanel from '#lib/components/wallet/WalletHistoryPanel.svelte';
 	import WalletReceive from '#lib/components/wallet/WalletReceive.svelte';
 	import WalletSend from '#lib/components/wallet/WalletSend.svelte';
 	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import { walletUiTokens } from '#lib/derived/tokens.derived.ts';
 	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 	import { sendIc } from '#lib/services/send.services.ts';
-	import {
-		getTransactionsPage,
-		type WalletTransactionsCursors,
-		type WalletTransactionsDone
-	} from '#lib/services/wallet.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { WalletHistoryPager } from '#lib/stores/wallet-history-pager.svelte.ts';
 	import type { Token } from '#lib/types/token.ts';
-	import type { Transaction } from '#lib/types/wallet.ts';
 	import { emit } from '#lib/utils/events.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { parseToken } from '#lib/utils/parse.utils.ts';
@@ -33,16 +27,9 @@
 	 * start as `done` so `getTransactionsPage` never queries them.
 	 */
 
-	const vxpOnlyDone = (): WalletTransactionsDone => ({ icp: true, ckUsdc: true, vxp: false });
-
-	let transactions = $state<Transaction[]>([]);
-	let batchSize = $state<bigint>(20n);
-	const batchSizeOptions: bigint[] = [10n, 20n, 50n];
-	let loadingHistory = $state(false);
-	let hasMoreHistory = $state(true);
-
-	let cursors = $state<WalletTransactionsCursors>({});
-	let done = $state<WalletTransactionsDone>(vxpOnlyDone());
+	const pager = new WalletHistoryPager({
+		initialDone: () => ({ icp: true, ckUsdc: true, vxp: false })
+	});
 
 	let activeTab = $state('send');
 
@@ -52,56 +39,8 @@
 		{ value: 'receive', label: t({ locale: $localeStore, key: 'wallet.tab.receive' }) }
 	]);
 
-	const sortNewestFirst = (arr: Transaction[]) =>
-		arr.sort((a, b) => (a.timestamp === b.timestamp ? 0 : a.timestamp > b.timestamp ? -1 : 1));
-
-	const resetHistory = () => {
-		transactions = [];
-		cursors = {};
-		done = vxpOnlyDone();
-		hasMoreHistory = true;
-		loadingHistory = false;
-	};
-
-	const loadNextBatch = async () => {
-		if (loadingHistory || !hasMoreHistory) {
-			return;
-		}
-
-		loadingHistory = true;
-
-		try {
-			const result = await getTransactionsPage({ batchSize, cursors, done });
-
-			const txKey = (tx: Transaction) => `${tx.id}-${tx.token.ledgerCanisterId}`;
-			const merged: Record<string, Transaction> = {};
-
-			for (const t of transactions) {
-				merged[txKey(t)] = t;
-			}
-
-			for (const tx of result.transactions) {
-				merged[txKey(tx)] = tx;
-			}
-
-			transactions = sortNewestFirst(Object.values(merged));
-
-			const { cursors: nextCursors, done: nextDone, hasMore: nextHasMore } = result;
-			cursors = nextCursors;
-			done = nextDone;
-			hasMoreHistory = nextHasMore;
-		} finally {
-			loadingHistory = false;
-		}
-	};
-
-	const reloadHistory = async () => {
-		resetHistory();
-		await loadNextBatch();
-	};
-
 	onMount(() => {
-		void reloadHistory();
+		void pager.reload();
 	});
 
 	let recipient = $state('');
@@ -142,7 +81,7 @@
 
 			emit({ message: 'viciRefreshBalances' });
 
-			await reloadHistory();
+			await pager.reload();
 
 			amount = '';
 
@@ -198,48 +137,7 @@
 			{:else if activeTab === 'receive'}
 				<WalletReceive />
 			{:else if activeTab === 'history'}
-				<div class="space-y-4">
-					<div class="flex items-center justify-between gap-4">
-						<div class="eyebrow">
-							{t({ locale: $localeStore, key: 'wallet.history.batch_size' })}
-						</div>
-						<div class="flex items-center gap-2">
-							<select
-								class="border-border bg-foreground/5 text-foreground focus:border-primary rounded-full border px-3 py-1.5 text-sm"
-								aria-label={t({ locale: $localeStore, key: 'wallet.history.batch_size_label' })}
-								disabled={loadingHistory}
-								onchange={(e) => {
-									batchSize = BigInt((e.target as HTMLSelectElement).value);
-									void reloadHistory();
-								}}
-							>
-								{#each batchSizeOptions as option (option.toString())}
-									<option selected={option === batchSize} value={option.toString()}>
-										{option.toString()}
-									</option>
-								{/each}
-							</select>
-						</div>
-					</div>
-
-					<WalletHistory {transactions} />
-
-					<div class="flex flex-col items-center gap-3 pt-6 pb-2">
-						{#if !loadingHistory && !hasMoreHistory && transactions.length > 0}
-							<div class="text-muted-foreground text-xs">
-								{t({ locale: $localeStore, key: 'wallet.history.all_caught_up' })}
-							</div>
-						{/if}
-
-						<InfiniteScroll
-							hasMore={hasMoreHistory}
-							loading={loadingHistory}
-							onLoadMore={() => {
-								void loadNextBatch();
-							}}
-						/>
-					</div>
-				</div>
+				<WalletHistoryPanel {pager} transactions={pager.transactions} />
 			{/if}
 		</div>
 	</Card>
