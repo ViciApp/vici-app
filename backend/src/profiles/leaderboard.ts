@@ -5,13 +5,19 @@
 
 import { isNullish } from '@dfinity/utils';
 import { query } from '../db/client';
-import { PROFILE_COLUMNS, shapeProfile, type Profile, type ProfileRow } from './profile';
+import {
+	PROFILE_COLUMNS,
+	PUBLICLY_VISIBLE_PROFILE_SQL,
+	shapeProfile,
+	type Profile,
+	type ProfileRow
+} from './profile';
 
 const LEADERBOARD_LIMIT = 50;
 
 const RANKED_FROM = `from profiles p
 	 join users u on u.id = p.user_id
-	 where p.deleted_at_ms is null and p.hibernated_at_ms is null`;
+	 where ${PUBLICLY_VISIBLE_PROFILE_SQL}`;
 
 const RANKED_ORDER = `order by p.points desc, p.user_id asc`;
 

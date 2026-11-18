@@ -23,6 +23,9 @@ export interface SettledHistoryStub {
 	/** Record `calls` settled positions (`wins` of them net positive) for a
 	 * user's custodial principal at `atMs`. */
 	settle: (settlement: { userId: string; atMs: number; calls: number; wins: number }) => void;
+	/** Make every accuracy read that asks for this user's principal fail, the
+	 * way an unreachable or trapping clearing canister answers. */
+	failReadsFor: (userId: string) => void;
 	/** How many accuracy reads clearing answered. */
 	reads: () => number;
 	restore: () => void;
@@ -30,6 +33,7 @@ export interface SettledHistoryStub {
 
 export const stubSettledHistory = (): SettledHistoryStub => {
 	const settlements: RecordedSettlement[] = [];
+	const failingPrincipals = new Set<string>();
 	let readCount = 0;
 
 	const aggregate = (
@@ -37,9 +41,14 @@ export const stubSettledHistory = (): SettledHistoryStub => {
 	): ClearingDid.SettlementAccuracyEntry[] => {
 		readCount += 1;
 
+		const wanted = new Set(params.members.map((member) => member.toText()));
+
+		if ([...wanted].some((principal) => failingPrincipals.has(principal))) {
+			throw new Error('clearing unavailable');
+		}
+
 		const [fromNs] = params.from_ts;
 		const [toNs] = params.to_ts;
-		const wanted = new Set(params.members.map((member) => member.toText()));
 		const byPrincipal = new Map<string, { calls: number; wins: number }>();
 
 		for (const { principal, atMs, calls, wins } of settlements) {
@@ -76,6 +85,9 @@ export const stubSettledHistory = (): SettledHistoryStub => {
 	return {
 		settle: ({ userId, atMs, calls, wins }) => {
 			settlements.push({ principal: userIcPrincipalText(userId), atMs, calls, wins });
+		},
+		failReadsFor: (userId) => {
+			failingPrincipals.add(userIcPrincipalText(userId));
 		},
 		reads: () => readCount,
 		restore

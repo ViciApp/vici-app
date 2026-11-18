@@ -1,7 +1,9 @@
 import {
+	LEAGUE_IMAGE_CONTENT_TYPE,
 	LEAGUE_IMAGE_JPEG_QUALITY,
 	LEAGUE_IMAGE_SIZE_PX,
-	LEAGUE_IMAGES_COLLECTION
+	LEAGUE_IMAGES_COLLECTION,
+	leagueImageFileName
 } from '#lib/types/league.ts';
 import { downscaleImageToSquareJpeg } from '#lib/utils/image.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
@@ -28,10 +30,10 @@ import { deleteAsset, uploadFile } from '@junobuild/core';
  * the league-images Storage collection. Returns the public download URL
  * to persist on the league doc's `imageUrl`.
  *
- * The asset is keyed under `/<collection>/<leagueId>-<timestamp>.jpg`
- * so a re-upload for the same league never collides with the prior
- * asset (the caller clears the old one separately via
- * {@link deleteLeagueImageByUrl}).
+ * The asset is keyed by {@link leagueImageFileName}, which the satellite
+ * reads back to authorise the upload against the league's owner; a
+ * re-upload never collides with the prior asset (the caller clears the
+ * old one separately via {@link deleteLeagueImageByUrl}).
  *
  * Throws when the picked file can't be decoded/painted (the caller
  * surfaces a friendly error) so a half-uploaded state never reaches the
@@ -70,7 +72,9 @@ export const uploadLeagueImage = async ({
 
 	const { downloadUrl } = await uploadFile({
 		collection: LEAGUE_IMAGES_COLLECTION,
-		data: new File([downscaled], `${leagueId}-${Date.now()}.jpg`, { type: 'image/jpeg' })
+		data: new File([downscaled], leagueImageFileName({ leagueId, uploadedAtMs: Date.now() }), {
+			type: LEAGUE_IMAGE_CONTENT_TYPE
+		})
 	});
 
 	return downloadUrl;

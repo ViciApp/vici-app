@@ -81,6 +81,13 @@ one pattern. Each of these has bitten a PR before:
   podium pays only a slot whose `created_at` precedes the month's close
   (`joinedBeforeMonthClose` in
   [`worlds-podium.utils.ts`](../../../src/satellite/utils/worlds-podium.utils.ts)).
+- **One affiliation per kind, read one way.** `assertSetAffiliation`
+  refuses a new `affiliations` row while the member holds one of that kind,
+  and every reader (standings, roster, member counts, the monthly ranking
+  and the podium's own slot) goes through `heldAffiliations` in
+  [`cohort.services.ts`](../../../src/satellite/services/cohort.services.ts),
+  which keeps a member's earliest-stored row of a kind, so the podium pays
+  the slot it ranked.
 - **A calibration call is judged once.** `judgeCalibrationCall`
   ([`vxp-calibration.services.ts`](../../../src/satellite/services/vxp-calibration.services.ts))
   records the first side called on a market in the controllers-scoped
@@ -94,7 +101,11 @@ one pattern. Each of these has bitten a PR before:
   tokens.
 - **Payout state is server-owned.** A doc whose status the payout trusts
   (`owed` pays, `paid` below the expected amount tops up) must be one no
-  client can rewrite or delete, or the owner is paid again. The
+  client can rewrite or delete, or the owner is paid again. `vxp_awards`
+  is set by a satellite controller only (`assertSetVxpAward`): every award
+  path writes through `persistAward` / `updateAward`, which sign as
+  `controllerCaller(...)`, so no client can create an award, mark one
+  `paid` with an invented block or fail its own in-flight payout. The
   `vxp_onboarding` ladder is set and deleted by a satellite controller
   only (`assertVxpOnboardingWrite`), and the onboarding hooks write it as
   `controllerCaller(...)`; the calibration engagement gate reads the same
