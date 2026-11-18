@@ -1,11 +1,9 @@
+import { ICP_TOKEN as ICP, VXP_TOKEN as VXP } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import type { Token } from '#lib/types/token.ts';
 import type { Transaction } from '#lib/types/wallet.ts';
 import { mergeTransactionsPage } from '#lib/utils/transactions.utils.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-
-const ICP = { ledgerCanisterId: 'ryjl3-tyaaa-aaaaa-aaaba-cai' } as Token;
-const VXP = { ledgerCanisterId: 'vxp-ledger' } as Token;
 
 const tx = ({
 	id,
@@ -17,7 +15,16 @@ const tx = ({
 	timestamp: number;
 	token?: Token;
 	amount?: bigint;
-}): Transaction => ({ id, timestamp: BigInt(timestamp), token, amount }) as unknown as Transaction;
+}): Transaction => ({
+	id,
+	user: 'aaaaa-aa',
+	timestamp: BigInt(timestamp),
+	type: 'Receive',
+	source: 'ledger',
+	domain: 'wallet',
+	amount,
+	token
+});
 
 const ids = (txs: Transaction[]): string[] =>
 	txs.map(({ id, token }) => `${id}@${token.ledgerCanisterId}`);
