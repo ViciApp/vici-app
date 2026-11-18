@@ -27,6 +27,7 @@ import type { CallSide } from '#lib/types/market.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import type { VxpOnboardingDoc } from '#lib/types/vxp-onboarding.ts';
 import { controllerCaller } from '#satellite/services/authz.services.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -459,11 +460,11 @@ export const claimCalibrationRewardFn = async ({
 	};
 
 	try {
-		setDocStore({
-			caller,
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			doc: { data: encodeDocData(pending) }
+		persistAward({
+			recipient,
+			awardType: CALIBRATION_AWARD_TYPE,
+			awardKey: seriesId,
+			doc: pending
 		});
 	} catch (e: unknown) {
 		// A concurrent invocation already wrote the pending doc: treat as
@@ -485,12 +486,6 @@ export const claimCalibrationRewardFn = async ({
 		memo: `vxp:calibration:${seriesId}`
 	});
 
-	const latest = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller
-	});
-
 	if (result.ok) {
 		logInfo({
 			message: 'calibration_paid',
@@ -502,22 +497,12 @@ export const claimCalibrationRewardFn = async ({
 			}
 		});
 
-		if (nonNullish(latest)) {
-			const latestDoc = decodeDocData<VxpAwardDoc>(latest.data);
-			const paid: VxpAwardDoc = {
-				...latestDoc,
-				status: 'paid',
-				paidAtMs: nowMs,
-				blockIndex: result.blockIndex.toString()
-			};
-
-			setDocStore({
-				caller,
-				collection: Collection.VXP_AWARDS,
-				key: docKey,
-				doc: { data: encodeDocData(paid), version: latest.version }
-			});
-		}
+		updateAward({
+			recipient,
+			awardType: CALIBRATION_AWARD_TYPE,
+			awardKey: seriesId,
+			patch: { status: 'paid', paidAtMs: nowMs, blockIndex: result.blockIndex.toString() }
+		});
 
 		const newBalance = await ledger.icrc1BalanceOf({
 			account: { owner: callerPrincipal }
@@ -543,21 +528,12 @@ export const claimCalibrationRewardFn = async ({
 		}
 	});
 
-	if (nonNullish(latest)) {
-		const latestDoc = decodeDocData<VxpAwardDoc>(latest.data);
-		const failed: VxpAwardDoc = {
-			...latestDoc,
-			status: 'failed',
-			errorMessage: result.error
-		};
-
-		setDocStore({
-			caller,
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			doc: { data: encodeDocData(failed), version: latest.version }
-		});
-	}
+	updateAward({
+		recipient,
+		awardType: CALIBRATION_AWARD_TYPE,
+		awardKey: seriesId,
+		patch: { status: 'failed', errorMessage: result.error }
+	});
 
 	return {
 		correct: true,

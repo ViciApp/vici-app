@@ -5,6 +5,7 @@ import type { ReferralDoc } from '#lib/types/referral.ts';
 import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
 import type { VxpOnboardingDoc } from '#lib/types/vxp-onboarding.ts';
 import {
+	controller,
 	docBytes,
 	installSatelliteHost,
 	setContext,
@@ -100,7 +101,7 @@ describe('a deleted account cannot collect its one-time awards again', () => {
 	const createAward = (doc: VxpAwardDoc) =>
 		assertSetVxpAward(
 			setContext({
-				caller: Principal.fromText(doc.recipient),
+				caller: controller,
 				collection: Collection.VXP_AWARDS,
 				key: vxpAwardKey(doc),
 				proposed: doc

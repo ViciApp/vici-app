@@ -9,6 +9,7 @@ import {
 	type MockSettlement,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
+import { assertDeleteDoc, assertSetDoc } from '#satellite/index.ts';
 import { claimWorldsPodiumPrizeFn } from '#satellite/services/vxp-worlds-podium.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerIdl } from '@junobuild/functions/canisters/ledger/icrc';
@@ -87,7 +88,10 @@ describe('claimWorldsPodiumPrizeFn', () => {
 
 	beforeEach(() => {
 		settlements = [];
-		host = installSatelliteHost();
+		// The real asserts run on every serverless write, as on the satellite.
+		host = installSatelliteHost({
+			asserts: { set: assertSetDoc.assert, remove: assertDeleteDoc.assert }
+		});
 		host.setNowMs(claimMs);
 
 		answerSettlementAccuracy({ host, settlements });
@@ -161,5 +165,20 @@ describe('claimWorldsPodiumPrizeFn', () => {
 
 		assert.equal(result.notEligible, true);
 		assert.ok(!host.calls().includes('icrc1_transfer'));
+	});
+
+	it('ranks and pays a member holding two slots of a kind for the one taken first', async () => {
+		join({ principal: member, affiliationIdentifier: 'first-u', joinedAtMs: monthStartMs });
+		join({ principal: member, affiliationIdentifier: 'second-u', joinedAtMs: monthStartMs + 1 });
+		settlements.push({ principal: member, atMs: monthStartMs + DAY_IN_MS, calls: 60, wins: 50 });
+
+		const result = await claimAs(member);
+
+		assert.equal(result.awardsCreated, 1);
+		assert.equal(
+			host.readDoc<VxpAwardDoc>({ collection: Collection.VXP_AWARDS, key: goldKey(member) })
+				?.status,
+			'paid'
+		);
 	});
 });
