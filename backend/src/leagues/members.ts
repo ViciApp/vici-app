@@ -42,14 +42,6 @@ export const getLeagueMember = async (
 	return nonNullish(rows[0]) ? shapeMember(rows[0]) : undefined;
 };
 
-export const isLeagueMember = async ({
-	leagueId,
-	userId
-}: {
-	leagueId: string;
-	userId: string;
-}): Promise<boolean> => nonNullish(await getLeagueMember({ leagueId, memberUserId: userId }));
-
 /**
  * Every on-chain principal a league's members can have settled under: the
  * members whose settled history a league's score is read from.

@@ -1,16 +1,21 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
-import {
-	createSession,
-	revokeAllForUser,
-	revokeToken,
-	rotateSession,
-	userIdForToken
-} from '../src/auth/sessions';
+import { requireUser } from '../src/auth/guard';
+import { createSession, revokeAllForUser, revokeToken, rotateSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
-import { buildCookie, sessionCookie } from '../src/lib/cookie';
+import { buildCookie, SESSION_COOKIE, sessionCookie } from '../src/lib/cookie';
 import { peppered } from '../src/lib/crypto';
 import { createTestUser as createUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
+
+/** The user a request carrying `token` resolves to, through the guard every
+ * route uses. */
+const sessionUserId = async (token: string): Promise<string | null> => {
+	const user = await requireUser(
+		new Request('http://localhost/api/v1/me', { headers: { cookie: `${SESSION_COOKIE}=${token}` } })
+	);
+
+	return user?.id ?? null;
+};
 
 describe.if(dbAvailable)('sessions', () => {
 	beforeAll(async () => {
@@ -21,7 +26,7 @@ describe.if(dbAvailable)('sessions', () => {
 		const userId = await createUser();
 		const token = await createSession(userId);
 
-		expect(await userIdForToken(token)).toBe(userId);
+		expect(await sessionUserId(token)).toBe(userId);
 
 		const rows = await query<{ id: string }>(`select id from sessions where user_id = $1`, [
 			userId
@@ -39,7 +44,7 @@ describe.if(dbAvailable)('sessions', () => {
 			peppered(token)
 		]);
 
-		expect(await userIdForToken(token)).toBeNull();
+		expect(await sessionUserId(token)).toBeNull();
 	});
 
 	test('revoke invalidates the token and is idempotent', async () => {
@@ -48,7 +53,7 @@ describe.if(dbAvailable)('sessions', () => {
 
 		await revokeToken(token);
 
-		expect(await userIdForToken(token)).toBeNull();
+		expect(await sessionUserId(token)).toBeNull();
 
 		await revokeToken(token);
 	});
@@ -59,15 +64,15 @@ describe.if(dbAvailable)('sessions', () => {
 		const token = await rotateSession({ userId, previousToken });
 
 		expect(token).not.toBe(previousToken);
-		expect(await userIdForToken(previousToken)).toBeNull();
-		expect(await userIdForToken(token)).toBe(userId);
+		expect(await sessionUserId(previousToken)).toBeNull();
+		expect(await sessionUserId(token)).toBe(userId);
 	});
 
 	test('rotation without a previous token still creates a session', async () => {
 		const userId = await createUser();
 		const token = await rotateSession({ userId, previousToken: null });
 
-		expect(await userIdForToken(token)).toBe(userId);
+		expect(await sessionUserId(token)).toBe(userId);
 	});
 
 	test('revokeAllForUser signs out every session of the user', async () => {
@@ -77,8 +82,8 @@ describe.if(dbAvailable)('sessions', () => {
 
 		await revokeAllForUser(userId);
 
-		expect(await userIdForToken(a)).toBeNull();
-		expect(await userIdForToken(b)).toBeNull();
+		expect(await sessionUserId(a)).toBeNull();
+		expect(await sessionUserId(b)).toBeNull();
 	});
 });
 
