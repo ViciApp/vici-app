@@ -9,7 +9,8 @@ import type { Principal } from '@icp-sdk/core/principal';
  *                      recovery floor) correctly called a finalised Vici
  *                      binary market. One reward per market.
  *  - `referral`: referrer is credited on a referee's onboarding
- *                      completion. Capped per calendar month.
+ *                      completion, on a diminishing curve up to a lifetime
+ *                      cap (`REFERRAL_MAX_PAID`); no monthly cap.
  *  - `worlds_podium`: recipient's school finished top-3 in the monthly
  *                      battle. Awarded at month rollover.
  *  - `achievement`: an Album achievement was unlocked for the first

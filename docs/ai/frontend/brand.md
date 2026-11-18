@@ -432,8 +432,7 @@ them by name, never by raw ms.
 ## 10. Known surfaces that still drift
 
 Treat this list as the brand-alignment backlog. When a row is closed,
-move the entry to the matching section of [`design.md`](./design.md)
-"Recent alignment commits" and delete it here.
+delete it here; the commit that closed it is the record.
 
 | Surface                                                                                 | Drift                                                                         | Suggested fix                                                                                                                                     |
 | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
