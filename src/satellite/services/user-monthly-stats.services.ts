@@ -1,4 +1,5 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
 import {
 	BOLD_CALLER_MEDIAN_THRESHOLD,
 	MONTHLY_CONSENSUS_LIMIT,
@@ -9,11 +10,12 @@ import {
 import { MONTH_ANCHOR_RE } from '#lib/utils/month-anchor.utils.ts';
 import { median } from '#lib/utils/stats.utils.ts';
 import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
+import { isPubliclyHidden } from '#satellite/services/profile.services.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
-import { decodeDocData, listDocsStore } from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
 
 /**
  * Pre-write guard for `user_monthly_stats`. The collection caches each
@@ -219,6 +221,12 @@ const decodeMonthlyStats = (
  * Bounded by the number of users active in the month. The median is computed
  * on read from each doc's bounded consensus array.
  */
+const isPubliclyListed = ({ owner, caller }: { owner: string; caller: Principal }): boolean => {
+	const profileDoc = getDocStore({ collection: Collection.PROFILES, key: owner, caller });
+
+	return nonNullish(profileDoc) && !isPubliclyHidden(decodeDocData<UserProfile>(profileDoc.data));
+};
+
 export const getMonthlyLeaderboardFn = ({
 	monthAnchor
 }: {
@@ -245,7 +253,10 @@ export const getMonthlyLeaderboardFn = ({
 		.filter((doc): doc is UserMonthlyStatsDoc => nonNullish(doc))
 		// Guard against a stale month doc whose embedded anchor disagrees with
 		// the key suffix (e.g. a malformed write that slipped the assert).
-		.filter((doc) => doc.monthAnchor === monthAnchor);
+		.filter((doc) => doc.monthAnchor === monthAnchor)
+		// A public board: only accounts the global leaderboard shows, so no
+		// soft-deleted, hibernated or purged account is listed.
+		.filter((doc) => isPubliclyListed({ owner: doc.owner, caller }));
 
 	const eligible = docs.filter((doc) => doc.monthCalls >= MONTHLY_MIN_CALLS);
 

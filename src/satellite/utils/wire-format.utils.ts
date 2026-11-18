@@ -391,7 +391,9 @@ export const LeagueWireSchema = j.strictObject({
 	id: j.string(),
 	name: j.string(),
 	description: j.string().optional(),
-	inviteCode: j.string(),
+	// Only the caller's own leagues carry their invite code (`listMyLeagues`,
+	// `createLeague`): it is the one way in, so no other read returns it.
+	inviteCode: j.string().optional(),
 	owner: PrincipalTextSchema,
 	createdAtMs: j.number(),
 	accentColor: j.string().optional(),
@@ -424,11 +426,16 @@ export const LeagueMemberWireSchema = j.strictObject({
 
 export type WireLeagueMember = j.infer<typeof LeagueMemberWireSchema>;
 
+/**
+ * A league as every read returns it: without its invite code, even when a
+ * doc written before the code moved to `league_invites` still carries it.
+ * {@link toWireMemberLeague} adds it for the caller's own leagues.
+ */
 export const toWireLeague = (league: {
 	id: string;
 	name: string;
 	description?: string;
-	inviteCode: string;
+	inviteCode?: string;
 	owner: string;
 	createdAtMs: number;
 	accentColor?: string;
@@ -443,7 +450,6 @@ export const toWireLeague = (league: {
 	id: league.id,
 	name: league.name,
 	description: league.description,
-	inviteCode: league.inviteCode,
 	owner: league.owner,
 	createdAtMs: league.createdAtMs,
 	accentColor: league.accentColor,
@@ -468,13 +474,19 @@ export const toWireLeague = (league: {
 	imageUrl: league.imageUrl
 });
 
+/** A league the caller belongs to (or just founded), with its invite code to share. */
+export const toWireMemberLeague = (league: Parameters<typeof toWireLeague>[0]): WireLeague => ({
+	...toWireLeague(league),
+	inviteCode: league.inviteCode
+});
+
 export const toWireLeagueWithRole = (entry: {
 	league: Parameters<typeof toWireLeague>[0];
 	role: 'owner' | 'admin' | 'member';
 	joinedAtMs: number;
 	memberCount: number;
 }): WireLeagueWithRole => ({
-	league: toWireLeague(entry.league),
+	league: toWireMemberLeague(entry.league),
 	role: entry.role,
 	joinedAtMs: entry.joinedAtMs,
 	memberCount: entry.memberCount

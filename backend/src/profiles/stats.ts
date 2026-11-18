@@ -7,7 +7,7 @@ import { isNullish } from '@dfinity/utils';
 import { query, tx } from '../db/client';
 import { fanoutCategoryDeltasToLeagueStats } from '../leagues/stats';
 import { MONTH_ANCHOR_RE } from '../lib/time';
-import { ProfileValidationError } from './profile';
+import { ProfileValidationError, PUBLICLY_VISIBLE_PROFILE_SQL } from './profile';
 
 // user_stats
 
@@ -272,9 +272,14 @@ export const getMonthlyLeaderboard = async ({
 		return { sharpestEye: [], boldCaller: [] };
 	}
 
+	// A public board: only accounts the global leaderboard shows, so no
+	// soft-deleted, hibernated or purged account is listed.
 	const rows = await query<UserMonthlyStatsRow>(
-		`select user_id, month_anchor, month_calls, month_wins, month_consensus, updated_at_ms::text
-		 from user_monthly_stats where month_anchor = $1`,
+		`select s.user_id, s.month_anchor, s.month_calls, s.month_wins, s.month_consensus,
+		        s.updated_at_ms::text
+		 from user_monthly_stats s
+		 join profiles p on p.user_id = s.user_id
+		 where s.month_anchor = $1 and ${PUBLICLY_VISIBLE_PROFILE_SQL}`,
 		[monthAnchor]
 	);
 

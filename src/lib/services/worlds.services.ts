@@ -97,11 +97,10 @@ export const joinAffiliation = async ({
 	const lockedUntilMs = joinedAtMs + AFFILIATION_LOCK_MS;
 	const key = affiliationKey({ memberPrincipal, kind, affiliationIdentifier });
 
-	// Pre-empt the "second slot of same kind" branch with a getDoc.
-	// The doc key carries `${kind}/${id}` so the existing row would be
-	// keyed differently (different id) for a fresh switch, but checking
-	// any-row-for-the-kind needs a scan; defer that to the picker UI
-	// which derives state from `listMyAffiliations`.
+	// Pre-empt a re-join of the same option with a getDoc. A row of the
+	// same kind under another option is refused by the satellite
+	// (`assertSetAffiliation`: one per kind); the picker derives that state
+	// from `listMyAffiliations` and switches through `switchAffiliation`.
 	const existing = await withTimeout({
 		operation: getDoc<AffiliationDoc>({
 			collection: Collection.AFFILIATIONS,
