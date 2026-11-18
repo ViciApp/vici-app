@@ -19,6 +19,7 @@ import type { Relation } from '#lib/types/relation.ts';
 import type { Activity } from '#lib/types/social.ts';
 import type { VxpMilestonePayoutStatus, VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
 import { fnv1a64 } from '#lib/utils/hash.utils.ts';
+import { countTradeActivities } from '#satellite/services/activity.services.ts';
 import {
 	assertControllerCaller,
 	assertOwnerOrController,
@@ -37,7 +38,6 @@ import type {
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import {
-	countDocsStore,
 	decodeDocData,
 	encodeDocData,
 	getDocStore,
@@ -1128,20 +1128,13 @@ const armReferrerPayoutIfFirstFire = ({
 /**
  * Whether the referee has made at least one prediction. The referral bonus is gated on the referred
  * user's first prediction (a `trade` activity), so redeeming a code alone never pays; it only
- * records the `owed` row. Counts only the caller's own **trade** activity rows: `logActivity` keys
- * them `${user}#${timestamp}#${type}`, so a key ending in `#trade` is a prediction. Non-trade
- * activities (settlement / comment / follow / vote) must NOT satisfy the gate. Guarded: a count
- * failure reads as "not yet" rather than throwing the payout path.
+ * records the `owed` row. Counts only the caller's own predictions ({@link countTradeActivities}):
+ * a settlement, comment, follow or vote must NOT satisfy the gate. Guarded: a count failure reads
+ * as "not yet" rather than throwing the payout path.
  */
 const refereeHasTraded = (caller: Uint8Array): boolean => {
 	try {
-		return (
-			countDocsStore({
-				collection: Collection.ACTIVITIES,
-				caller,
-				params: { owner: caller, matcher: { key: `#${ActivityType.TRADE}$` } }
-			}) > ZERO
-		);
+		return countTradeActivities(caller) > ZERO;
 	} catch {
 		return false;
 	}
