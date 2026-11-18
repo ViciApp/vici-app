@@ -12,8 +12,8 @@
  * changes: the satellite imports shared code from `#lib/**` (schemas, types,
  * constants, utils) and `#declarations`. So instead of a hand-maintained
  * path list, this script walks the REAL import graph from
- * `src/satellite/index.ts` (resolving the aliases declared in
- * `src/satellite/tsconfig.json`) and intersects that closure with the files
+ * `src/satellite/index.ts` (resolving the subpath imports declared in
+ * `package.json` `imports`) and intersects that closure with the files
  * changed since the previous release tag.
  *
  * Usage: node scripts/satellite-upgrade-needed.mjs --base <git-ref>
@@ -32,7 +32,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 const ENTRY = 'src/satellite/index.ts';
-const SATELLITE_TSCONFIG = 'src/satellite/tsconfig.json';
+const PACKAGE_JSON = 'package.json';
 
 /**
  * Paths whose change always forces an upgrade, no matter what the import
@@ -59,34 +59,35 @@ const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
 const toRepoRelative = (absolute) => path.relative(repoRoot, absolute).split(path.sep).join('/');
 
 /**
- * Alias map from the satellite tsconfig `paths` (e.g. `#lib/*` →
- * `src/lib/*`), with targets resolved against the tsconfig directory.
+ * Alias map from the `package.json` `imports` field (e.g. `#lib/*` →
+ * `src/lib/*`), the one place the subpath imports are declared, with targets
+ * resolved against the repo root. A shape this walk cannot follow (a
+ * conditional target, a `*` that is not trailing) throws, which the caller
+ * treats as "upgrade".
  *
  * @returns {{exact: Map<string, string>, wildcard: Map<string, string>}}
  */
 const readAliases = () => {
-	const tsconfigPath = path.join(repoRoot, SATELLITE_TSCONFIG);
-	const { config, error } = ts.readConfigFile(tsconfigPath, (p) => fs.readFileSync(p, 'utf8'));
-
-	if (nonNullish(error)) {
-		throw new Error(
-			`Cannot parse ${SATELLITE_TSCONFIG}: ${ts.flattenDiagnosticMessageText(error.messageText, ' ')}`
-		);
-	}
-
-	const paths = config?.compilerOptions?.paths ?? {};
-	const baseDir = path.dirname(tsconfigPath);
+	const { imports = {} } = JSON.parse(fs.readFileSync(path.join(repoRoot, PACKAGE_JSON), 'utf8'));
 
 	const exact = new Map();
 	const wildcard = new Map();
 
-	for (const [pattern, targets] of Object.entries(paths)) {
-		const target = path.resolve(baseDir, targets[0]);
+	for (const [pattern, target] of Object.entries(imports)) {
+		const wildcardCount = pattern.split('*').length - 1;
+		const trailingWildcard =
+			wildcardCount === 1 && pattern.endsWith('/*') && String(target).endsWith('/*');
 
-		if (pattern.endsWith('/*')) {
-			wildcard.set(pattern.slice(0, -1), `${target.replace(/\*$/, '')}`);
+		if (typeof target !== 'string' || (wildcardCount > 0 && !trailingWildcard)) {
+			throw new Error(`Unsupported ${PACKAGE_JSON} import ${pattern}: ${JSON.stringify(target)}`);
+		}
+
+		const resolved = path.resolve(repoRoot, target);
+
+		if (trailingWildcard) {
+			wildcard.set(pattern.slice(0, -1), resolved.slice(0, -1));
 		} else {
-			exact.set(pattern, target);
+			exact.set(pattern, resolved);
 		}
 	}
 
@@ -94,12 +95,23 @@ const readAliases = () => {
 };
 
 /**
- * Resolve an import specifier to an absolute path candidate (without
- * extension probing), or `null` for bare npm packages; those are covered
- * by the `package-lock.json` always-upgrade trigger instead.
+ * Bare npm package specifiers (`@junobuild/functions`, `zod`, …) are not
+ * walked: they are covered by the `package-lock.json` always-upgrade trigger
+ * instead. A `#` specifier is a subpath import by definition, never a
+ * package.
+ *
+ * @param {string} specifier
+ * @returns {boolean}
+ */
+const isPackageSpecifier = (specifier) => !specifier.startsWith('.') && !specifier.startsWith('#');
+
+/**
+ * Resolve a relative or subpath import specifier to an absolute path
+ * candidate (without extension probing), or `undefined` when no alias
+ * matches it.
  *
  * @param {{specifier: string, importerDir: string, aliases: {exact: Map<string, string>, wildcard: Map<string, string>}}} params
- * @returns {string | null}
+ * @returns {string | undefined}
  */
 const resolveSpecifier = ({ specifier, importerDir, aliases }) => {
 	if (specifier.startsWith('.')) {
@@ -117,9 +129,6 @@ const resolveSpecifier = ({ specifier, importerDir, aliases }) => {
 			return path.join(target, specifier.slice(prefix.length));
 		}
 	}
-
-	// Bare package specifier (`@junobuild/functions`, `zod`, …).
-	return null;
 };
 
 /**
@@ -248,22 +257,24 @@ const collectClosure = () => {
 		if (!closure.has(relative) && scannable) {
 			const source = fs.readFileSync(file, 'utf8');
 
-			for (const specifier of valueImports({ fileName: file, source })) {
+			const specifiers = valueImports({ fileName: file, source }).filter(
+				(specifier) => !isPackageSpecifier(specifier)
+			);
+
+			for (const specifier of specifiers) {
 				const candidate = resolveSpecifier({
 					specifier,
 					importerDir: path.dirname(file),
 					aliases
 				});
 
-				if (nonNullish(candidate)) {
-					const resolved = probeFiles(candidate);
+				const resolved = nonNullish(candidate) ? probeFiles(candidate) : [];
 
-					if (resolved.length === 0) {
-						unresolved.push(`${specifier} (from ${relative})`);
-					} else {
-						queue.push(...resolved);
-					}
+				if (resolved.length === 0) {
+					unresolved.push(`${specifier} (from ${relative})`);
 				}
+
+				queue.push(...resolved);
 			}
 		}
 

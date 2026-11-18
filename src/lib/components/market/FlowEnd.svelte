@@ -8,6 +8,7 @@
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { appOrigin } from '#lib/utils/nav.utils.ts';
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
@@ -124,8 +125,6 @@
 				})
 	);
 
-	const SHARE_URL = 'https://vici.market';
-
 	// Share → clipboard → confirmation toast. `navigator.share` is absent in
 	// embedded / desktop / non-secure contexts, and a bare clipboard write
 	// gives the user no feedback there; the tap feels dead. So when the
@@ -142,7 +141,7 @@
 	}) => {
 		if (navigator.share) {
 			try {
-				await navigator.share({ title: 'VICI', text, url: SHARE_URL });
+				await navigator.share({ title: 'VICI', text, url: appOrigin() });
 
 				return;
 			} catch (e: unknown) {
@@ -157,7 +156,7 @@
 			}
 		}
 
-		const copied = await writeToClipboard(`${text} ${SHARE_URL}`);
+		const copied = await writeToClipboard(`${text} ${appOrigin()}`);
 
 		notificationsStore.add({
 			title: t({ locale: $localeStore, key: 'flow.end.copy_toast_title' }),
