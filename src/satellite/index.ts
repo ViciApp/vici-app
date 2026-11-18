@@ -409,8 +409,9 @@ export const checkNicknameAvailability = defineQuery({
 // caller's profile, rolls over by `dayKey`, and writes the capped increment
 // itself. The returned `dailyGoalDone` / `capReached` are the source of truth
 // for the cross-session "come back tomorrow" takeover, so a cleared or
-// signed-out client can no longer reset the cap. Backed by the monotonic
-// PROFILES assert (`assertDailyGoalMonotonic`).
+// signed-out client can no longer reset the cap. It is the only writer of the
+// count: the PROFILES assert (`assertDailyGoalUnchanged`) refuses a client
+// write that changes it.
 export const recordFlowSwipe = defineUpdate({
 	args: j.strictObject({
 		dayKey: j.string()
