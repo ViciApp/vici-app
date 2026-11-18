@@ -77,10 +77,10 @@ stops and asks the owner.
 
 **Auto-verify (green only).** Because a merge ships nothing, a copy change can skip the person's
 check: when the chooser judges the result needs no more than a glance and adds no requirement,
-Officina turns on GitHub auto-merge instead of waiting for someone to verify. The spec is still
-approved by people, and the branch rules still decide: CI, resolved threads and the code-owner
-review. With `CODEOWNERS` covering every path, the pull request lands once a code owner approves it
-on GitHub.
+the task goes straight to merging instead of waiting for someone to verify. The spec is still
+approved by people, and nothing merges by itself: Officina never turns on GitHub auto-merge here
+(`pull_request.auto_merge` is left off), so a code owner merges the pull request by hand once the
+branch rules pass: CI, resolved threads and the code-owner review.
 
 A requirement nobody can meet yet is waived automatically and recorded as waived. That is why the
 green lane names a product approver although nobody holds that domain today.

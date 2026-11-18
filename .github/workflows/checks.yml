@@ -36,8 +36,9 @@ jobs:
 
       # This job checks out the pull request branch by name (apply-changes
       # commits onto it) on a workflow that also runs on push and dispatch,
-      # so it never saves a cache: it only restores the ones `lint` saves
-      # from the default checkout.
+      # so it saves no prettier or eslint cache: it only restores the ones
+      # `lint` saves from the default checkout. Prepare's setup-node still
+      # saves the npm cache in its post step.
       - name: Restore Prettier Cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
