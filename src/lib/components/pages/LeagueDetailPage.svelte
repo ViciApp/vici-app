@@ -448,14 +448,15 @@
 	};
 
 	const handleCopyInvite = async () => {
-		if (!league) {
+		// The code reaches only the league's own members.
+		if (!league || isNullish(league.inviteCode)) {
 			return;
 		}
 
+		const { inviteCode } = league;
+
 		try {
-			const { url, withReferral } = await buildLeagueShareUrl({
-				inviteCode: league.inviteCode
-			});
+			const { url, withReferral } = await buildLeagueShareUrl({ inviteCode });
 			const shareText = t({
 				locale: $localeStore,
 				key: 'leagues.share_text'

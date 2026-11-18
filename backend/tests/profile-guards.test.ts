@@ -1,92 +1,115 @@
-// Profile write guards: daily-goal monotonicity (the Flow cap backstop),
-// the handle-change cooldown with its ~now stamp requirement, and the
-// grandfather clause for legacy nicknames.
+// Profile write guards: the server-owned daily goal (the Flow cap backstop),
+// the integer counters, the handle-change cooldown with its ~now stamp
+// requirement, and the grandfather clause for legacy nicknames.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { beforeAll, describe, expect, test } from 'bun:test';
+import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
-import { DAILY_HARD_CAP } from '../src/profiles/flow';
+import { app } from '../src/index';
+import { DAILY_HARD_CAP, recordFlowSwipe } from '../src/profiles/flow';
 import { MAX_NICKNAME_LENGTH, nicknameUniqueKey } from '../src/profiles/nickname';
 import {
 	getProfileRow,
 	getProfileView,
+	ProfileValidationError,
 	searchProfiles,
 	shapeOwnProfile,
 	shapeProfile
 } from '../src/profiles/profile';
-import { upsertMyProfile } from '../src/profiles/profile-write';
+import { MAX_PROFILE_COUNTER, upsertMyProfile } from '../src/profiles/profile-write';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { createTestProfile, uniqueNickname } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-describe.if(dbAvailable)('daily-goal monotonicity', () => {
+describe.if(dbAvailable)('daily goal is server-owned', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
 	});
 
-	test('accepts a same-day increase and rejects a same-day decrease', async () => {
-		const { userId, profile } = await createTestProfile({
-			dailyGoalDone: 5,
+	test('the first write stores no count, whatever the client sends', async () => {
+		const { profile } = await createTestProfile({
+			dailyGoalDone: DAILY_HARD_CAP,
 			dailyGoalDate: '2026-08-17'
 		});
 
-		const raised = await upsertMyProfile({
-			userId,
-			body: { nickname: profile.nickname, dailyGoalDone: 7, dailyGoalDate: '2026-08-17' }
-		});
-
-		expect(raised.dailyGoalDone).toBe(7);
-
-		expect(
-			upsertMyProfile({
-				userId,
-				body: { nickname: profile.nickname, dailyGoalDone: 3, dailyGoalDate: '2026-08-17' }
-			})
-		).rejects.toThrow('cannot decrease within the same day');
+		expect(profile.dailyGoalDone).toBe(0);
+		expect(profile.dailyGoalDate).toBeUndefined();
 	});
 
-	test('allows a reset on a genuine new day', async () => {
-		const { userId, profile } = await createTestProfile({
-			dailyGoalDone: 9,
-			dailyGoalDate: '2026-08-17'
-		});
-
-		const next = await upsertMyProfile({
-			userId,
-			body: { nickname: profile.nickname, dailyGoalDone: 0, dailyGoalDate: '2026-08-18' }
-		});
-
-		expect(next.dailyGoalDone).toBe(0);
-	});
-
-	test('caps every write at the hard cap, including the first', async () => {
-		const userId = await createTestUser();
-
-		expect(
-			upsertMyProfile({
-				userId,
-				body: {
-					nickname: uniqueNickname(),
-					dailyGoalDone: DAILY_HARD_CAP + 1,
-					dailyGoalDate: '2026-08-17'
-				}
-			})
-		).rejects.toThrow(`cannot exceed the daily hard cap of ${DAILY_HARD_CAP}`);
-	});
-
-	test('rejects non-integer and negative counts', async () => {
+	test('a later write keeps the recorded count and day, whatever the client sends', async () => {
 		const { userId, profile } = await createTestProfile();
 
-		for (const dailyGoalDone of [1.5, -1]) {
-			expect(
-				upsertMyProfile({
-					userId,
-					body: { nickname: profile.nickname, dailyGoalDone, dailyGoalDate: '2026-08-17' }
-				})
-			).rejects.toThrow('non-negative integer');
+		for (let swipe = 0; swipe < 3; swipe++) {
+			await recordFlowSwipe({ userId, dayKey: '2026-08-17' });
 		}
+
+		const sent = [
+			{ dailyGoalDone: 0, dailyGoalDate: '2026-08-18' },
+			{ dailyGoalDone: 9, dailyGoalDate: '2026-08-17' },
+			{ dailyGoalDone: DAILY_HARD_CAP + 1, dailyGoalDate: '2026-08-17' },
+			{ dailyGoalDone: 1.5, dailyGoalDate: '2026-08-17' },
+			{ dailyGoalDone: -1 }
+		];
+
+		for (const fields of sent) {
+			const saved = await upsertMyProfile({
+				userId,
+				body: { nickname: profile.nickname, ...fields }
+			});
+
+			expect(saved.dailyGoalDone).toBe(3);
+			expect(saved.dailyGoalDate).toBe('2026-08-17');
+		}
+	});
+});
+
+describe.if(dbAvailable)('integer counters', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('a fraction, a negative or a value past the ceiling is a validation error', async () => {
+		const { userId, profile } = await createTestProfile();
+		const cases: Record<string, unknown>[] = [
+			{ totalTrades: 1.5 },
+			{ streak: -1 },
+			{ level: 3_000_000_000 },
+			{ comebacks: MAX_PROFILE_COUNTER + 1 },
+			{ topDecileStreak: '7' }
+		];
+
+		for (const fields of cases) {
+			expect(
+				upsertMyProfile({ userId, body: { nickname: profile.nickname, ...fields } })
+			).rejects.toBeInstanceOf(ProfileValidationError);
+		}
+
+		const accepted = await upsertMyProfile({
+			userId,
+			body: { nickname: profile.nickname, totalTrades: MAX_PROFILE_COUNTER, level: 4 }
+		});
+
+		expect(accepted.totalTrades).toBe(MAX_PROFILE_COUNTER);
+		expect(accepted.level).toBe(4);
+	});
+
+	test('the profile route answers an out-of-range counter with a 400', async () => {
+		const { userId, profile } = await createTestProfile();
+		const response = await app.handle(
+			new Request('http://localhost/api/v1/profiles/me', {
+				method: 'PUT',
+				headers: {
+					cookie: `vici_session=${await createSession(userId)}`,
+					'content-type': 'application/json'
+				},
+				body: JSON.stringify({ nickname: profile.nickname, totalTrades: 2_147_483_648 })
+			})
+		);
+
+		expect(response.status).toBe(400);
 	});
 });
 
@@ -283,5 +306,67 @@ describe.if(dbAvailable)('email privacy split', () => {
 		for (const item of await searchProfiles(userId)) {
 			expect('email' in item).toBeFalse();
 		}
+	});
+});
+
+describe.if(dbAvailable)('preferences on write', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('are stored in the read shape: a non-boolean flag falls back, unknown keys drop', async () => {
+		const { userId, profile } = await createTestProfile();
+
+		await upsertMyProfile({
+			userId,
+			body: {
+				nickname: profile.nickname,
+				preferences: {
+					sharing: { worldsOptIn: 'x', leaderboardOptIn: false },
+					notify: { weeklyDigest: 2 },
+					unknownKey: 'kept nowhere'
+				}
+			}
+		});
+
+		const [stored] = await query<{ preferences: Record<string, unknown> }>(
+			`select preferences from profiles where user_id = $1`,
+			[userId]
+		);
+
+		expect(stored?.preferences).toMatchObject({
+			sharing: { worldsOptIn: true, leaderboardOptIn: false },
+			notify: { weeklyDigest: true }
+		});
+		expect(stored?.preferences).not.toHaveProperty('unknownKey');
+	});
+});
+
+describe.if(dbAvailable)('server-set school status', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('a client write cannot set schoolStatus on a new profile', async () => {
+		const { profile } = await createTestProfile({ schoolStatus: 'verified' });
+
+		expect(profile.schoolStatus).toBeUndefined();
+	});
+
+	test('a client write keeps the stored schoolStatus', async () => {
+		const { userId, profile } = await createTestProfile();
+
+		await query(`update profiles set school_status = 'verified' where user_id = $1`, [userId]);
+
+		const cleared = await upsertMyProfile({ userId, body: { nickname: profile.nickname } });
+
+		expect(cleared.schoolStatus).toBe('verified');
+
+		const forged = await upsertMyProfile({
+			userId,
+			body: { nickname: profile.nickname, schoolStatus: 'pending' }
+		});
+
+		expect(forged.schoolStatus).toBe('verified');
 	});
 });
