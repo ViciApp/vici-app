@@ -322,10 +322,13 @@ export default defineConfig(({ mode }) => ({
 					read: 'public',
 					write: 'controllers'
 				},
+				// Controllers read the churn log: a doc's Juno timestamps are
+				// those of the soft-delete written in the same call, so a public
+				// read would let anyone tie a reason and note to the profile.
 				{
 					collection: JunoDatastoreCollection.EXIT_SIGNALS,
 					memory: 'stable',
-					read: 'public',
+					read: 'controllers',
 					write: 'public'
 				},
 				{

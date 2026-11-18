@@ -113,7 +113,10 @@ outcome (win / loss), the side they held, their signed net VXP, and the
 resolution time, keyed `${owner}#${marketId}`. The rows are written
 server-side from the clearing settlement plan at resolution time
 (controllers-write, mirroring `activity_reaction_counts`), so a user
-cannot forge a win for themselves or a friend. The collection is
+cannot forge a win for themselves or a friend. Only a role that can
+settle (or a controller) may post the settlement activity that triggers
+the write, on both stacks, and posting it again keeps every row's first
+resolution time. The collection is
 public-read and consumed friend-scoped (a single owner-prefix scan over
 a caller's friend set, never one call per friend) and is the data source
 for the friend results digest. There is **no source for a friend's
@@ -455,7 +458,11 @@ hibernated or deleted account. What stays, by design:
   referee principal); on the web2 API the rows naming the deleted account
   as referrer, and a referrer's award for a deleted referee.
 - **Shared audit rows** the account took part in (activities, battles,
-  analytics), orphaned and immutable, and the anonymous exit signal.
+  analytics), orphaned and immutable.
+- **The anonymous exit signal**: the reason and optional note picked at
+  deletion, under a random key, dated only by the UTC day the account
+  left, with no reference to the account. Only satellite controllers and
+  the API's database read it.
 
 ### Worlds Universities: standings reflect the current opted-in roster
 
@@ -587,12 +594,12 @@ Push-to-15 overtime) is counted on the **satellite**, not the client. A
 committed swipe calls `recordFlowSwipe`, sending only the client's local
 day key (`YYYY-MM-DD`); the server reads the caller's own profile, rolls
 over by that key, and writes the capped increment **itself**: the client
-never sends a count, so it can't reset or inflate the total. A
-monotonic-per-day assert on the `profiles` collection rejects any direct
-client write that lowers the day's count or pushes it past the cap. On the
-web2 API the count is server-owned outright: a profile write keeps the
-stored count and day, and only `POST /profiles/flow-swipe` moves them. The
-result: the "come back tomorrow" takeover holds across reloads, cleared
+never sends a count, so it can't reset or inflate the total. The count
+is server-owned outright: on the satellite `recordFlowSwipe` writes it
+signing as a controller, and the `profiles` assert rejects any client write
+that changes the stored count or day; on the web2 API a profile write keeps
+the stored count and day, and only `POST /profiles/flow-swipe` moves them.
+The result: the "come back tomorrow" takeover holds across reloads, cleared
 storage, sign-outs, and device switches, losing the localStorage mirror
 (now only an offline hint that can never raise the count above the server
 value) no longer hands a fresh allotment. **Known limitation (by
@@ -612,9 +619,11 @@ VXP) pays once each ever; reaching the daily hard cap ("overtime") pays 25
 VXP once per local day. Both mint through the existing `vxp_awards`
 pending→paid path: the milestone from a `profiles` hook off the lifetime
 call count, the overtime inline in `recordFlowSwipe` (its counter write
-fires no hook). Counts are client-trusted, the same model as the streak
-and Worlds-podium awards, so the overtime mint carries a rolling-window cap
-to bound farming. Earlier these grants were display-only by design (the
+fires no hook). The lifetime call count is client-trusted, the same model
+as the streak and Worlds-podium awards; the daily count behind the overtime
+is the satellite's own (only recorded swipes move it), and the day key is
+client-set, so the overtime mint carries a rolling-window cap to bound
+farming. Earlier these grants were display-only by design (the
 "deflation-safe economy pass" deliberately withheld the credit); this is the
 deferred real-credit path. Decision record:
 [`specs/2026-06-20-feat-flow-milestone-overtime-vxp-credit.md`](./spec-driven-development/specs/2026-06-20-feat-flow-milestone-overtime-vxp-credit.md).

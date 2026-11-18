@@ -11,7 +11,11 @@ import type { UserRole } from '#lib/enums/user.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { DAY_KEY_RE } from '#lib/utils/streak.utils.ts';
 import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
-import { assertOwnerOrController, isControllerText } from '#satellite/services/authz.services.ts';
+import {
+	assertOwnerOrController,
+	controllerCaller,
+	isControllerText
+} from '#satellite/services/authz.services.ts';
 import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
 import { mintFlowOvertime } from '#satellite/services/vxp-flow-awards.services.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -227,13 +231,13 @@ export interface RecordFlowSwipeResult {
  *    `dailyGoalDone` (capped at {@link DAILY_HARD_CAP});
  *  - otherwise starts the day fresh at 1 under `dayKey`.
  *
- * The result is written back via a version-locked `setDocStore` (PROFILES
- * is user-owned, so the write is authorised by the REAL caller, never an
- * admin key). With the monotonic-per-day assert as the backstop, a cleared
- * or stale client can no longer roll the count backward within a day, so
- * the cap survives reloads, cleared storage, sign-outs, and device
- * switches. A caller with no profile yet (not onboarded) is a no-op that
- * reports a 1-of-cap day so the FE can still gate the session.
+ * The result is written back via a version-locked `setDocStore` signed as
+ * a satellite controller: this is the only writer of `dailyGoalDone` /
+ * `dailyGoalDate`, and {@link assertDailyGoalUnchanged} refuses any other
+ * caller that changes them, so the overtime award at the cap is reached only
+ * through recorded swipes. Juno keeps the stored doc's owner on an update,
+ * so the profile stays the user's. The cap survives reloads, cleared
+ * storage, sign-outs, and device switches.
  */
 export const recordFlowSwipeFn = async ({
 	dayKey
@@ -276,7 +280,7 @@ export const recordFlowSwipeFn = async ({
 	setDocStore({
 		collection: Collection.PROFILES,
 		key: callerText,
-		caller: callerBytes,
+		caller: controllerCaller('flow daily goal'),
 		doc: {
 			data: encodeDocData<UserProfile>(next),
 			version: profileDoc.version
@@ -635,34 +639,23 @@ export const assertValidNickname = ({
 };
 
 /**
- * Backstop for the server-authoritative Flow daily cap: any direct client
- * `set_doc` to PROFILES must not roll the daily counter backward within a
- * day, nor push it past {@link DAILY_HARD_CAP}.
+ * The Flow daily goal (`dailyGoalDone` / `dailyGoalDate`) is written only by
+ * {@link recordFlowSwipeFn}, signing as a controller: it reaches the hard cap
+ * that mints the overtime award, so a client write must carry the stored
+ * values unchanged (no count and no day on a new profile). Otherwise a client
+ * could set the count one short of the cap, or move the day to restart it,
+ * and reach the award with a single swipe.
  *
- * `recordFlowSwipe` is the normal write path (it computes the count
- * server-side); this assert ensures a stale or cleared client, which
- * re-fetches the profile, sees a lower count, and `set_doc`s the whole
- * doc back, can't overwrite the authoritative total downward and re-open
- * a fresh allotment (the reported honest-reset leak).
- *
- * Rules, comparing the proposed doc against the CURRENT stored doc:
- *
- *  - First write (no stored doc) → allowed, but still capped at the hard
- *    cap so a forged first profile can't seed an over-cap count.
- *  - `dailyGoalDate` advances (a genuine new day) → reset to any value
- *    within `0..cap` is allowed.
- *  - `dailyGoalDate` unchanged → the proposed `dailyGoalDone` may not be
- *    LOWER than the stored one, and may not exceed the hard cap.
- *
- * Manipulating `dailyGoalDate` to a different (valid) day to force a reset
- * is an adversarial bypass, out of scope for the honest-reset fix.
+ * The satellite's own write is still bounded to a whole count within
+ * `0..`{@link DAILY_HARD_CAP}.
  */
-export const assertDailyGoalMonotonic = ({
+export const assertDailyGoalUnchanged = ({
+	caller,
 	data: {
 		collection,
 		data: { proposed, current }
 	}
-}: AssertSetDocContext) => {
+}: AssertSetDocContext): void => {
 	if (collection !== Collection.PROFILES) {
 		return;
 	}
@@ -670,28 +663,28 @@ export const assertDailyGoalMonotonic = ({
 	const proposedProfile = decodeDocData<UserProfile>(proposed.data);
 	const proposedDone = proposedProfile.dailyGoalDone ?? 0;
 
-	// Reject non-integer / negative / non-finite counts outright: the cap
-	// invariant assumes a whole-number tally in [0, cap], and a NaN or
-	// fractional value would slip past the bounds checks below.
-	if (!Number.isInteger(proposedDone) || proposedDone < 0) {
-		throw new Error('dailyGoalDone must be a non-negative integer.');
-	}
+	if (isControllerText(Principal.fromUint8Array(caller).toText())) {
+		// A NaN or fractional count would slip past the cap comparison.
+		if (!Number.isInteger(proposedDone) || proposedDone < 0) {
+			throw new Error('dailyGoalDone must be a non-negative integer.');
+		}
 
-	if (proposedDone > DAILY_HARD_CAP) {
-		throw new Error(`dailyGoalDone cannot exceed the daily hard cap of ${DAILY_HARD_CAP}.`);
+		if (proposedDone > DAILY_HARD_CAP) {
+			throw new Error(`dailyGoalDone cannot exceed the daily hard cap of ${DAILY_HARD_CAP}.`);
+		}
+
+		return;
 	}
 
 	const currentProfile = nonNullish(current) ? decodeDocData<UserProfile>(current.data) : undefined;
 
-	// First write, or a genuine new-day reset: nothing to roll back against.
-	if (isNullish(currentProfile) || currentProfile.dailyGoalDate !== proposedProfile.dailyGoalDate) {
-		return;
-	}
-
-	// Same day → the count is monotonic non-decreasing. A stale client that
-	// re-saves a lower total is rejected so the server's progress stands.
-	if (proposedDone < (currentProfile.dailyGoalDone ?? 0)) {
-		throw new Error('dailyGoalDone cannot decrease within the same day.');
+	// A legacy doc that predates the counter reads as 0, the value
+	// `withProfileDefaults` hands the client back.
+	if (
+		proposedDone !== (currentProfile?.dailyGoalDone ?? 0) ||
+		proposedProfile.dailyGoalDate !== currentProfile?.dailyGoalDate
+	) {
+		throw new Error('profiles: the Flow daily goal is set by the satellite.');
 	}
 };
 
@@ -775,5 +768,5 @@ export const assertProfile = (context: AssertSetDocContext): void => {
 	assertSchoolStatusUnchanged(context);
 	assertNewProfileAllowed(context);
 	assertValidNickname(context);
-	assertDailyGoalMonotonic(context);
+	assertDailyGoalUnchanged(context);
 };

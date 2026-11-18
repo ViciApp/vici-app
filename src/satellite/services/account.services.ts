@@ -1,6 +1,6 @@
 import { ACCOUNT_RECOVERY_WINDOW_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import {
 	EXIT_SIGNAL_NOTE_MAX_LENGTH,
 	EXIT_SIGNAL_REASONS,
@@ -81,9 +81,11 @@ type ListedDocEntry = ReturnType<typeof listDocsStore>['items'][number];
  *     `alreadyDeleted` to drive step 4's idempotency.
  *
  *  4. **Exit-signal write.** A single `EXIT_SIGNALS` doc is appended
- *     with the chosen reason + optional note. The doc has no
- *     principal field: it's intentionally unlinkable from the
- *     account that wrote it. Skipped when step 3 reports
+ *     with the chosen reason + optional note. It is unlinkable from the
+ *     account that wrote it: no principal field, a random key, only the
+ *     UTC day as its time, written as a controller, and readable by
+ *     controllers only (its Juno timestamps match the soft-delete's).
+ *     Skipped when step 3 reports
  *     `alreadyDeleted` (a re-delete inside the recovery window), so a
  *     repeated `deleteMyAccount` can't over-count churn.
  *
@@ -1076,24 +1078,22 @@ export const deleteMyAccountFn = ({
 	// `alreadyDeleted` so the churn signal isn't double-counted below.
 	const { softDeleted, alreadyDeleted } = softDeleteProfile({ callerText, callerBytes, nowMs });
 
-	// Step 4: exit-signal write. Compact base36 key, anonymous body. The
-	// chain timestamp (ns) is the entropy source; we pad it into a 16-char
-	// alphanumeric string to keep the key compact. Skipped on a re-delete
-	// inside the recovery window (`alreadyDeleted`): appending a second
-	// anonymous signal for the same departure would over-count churn and
-	// break idempotency.
+	// Step 4: exit-signal write, anonymous: a random key, only the UTC day
+	// the account left, and signed as a controller so the doc's owner is
+	// not the caller. Skipped on a re-delete inside the recovery window
+	// (`alreadyDeleted`): appending a second anonymous signal for the same
+	// departure would over-count churn and break idempotency.
 	if (!alreadyDeleted) {
-		const signalKey = exitSignalKeyFromNs(nowNs);
 		const signalDoc: ExitSignalDoc = {
 			reason: validated.reason,
 			note: validated.note,
-			createdAtMs: nowMs
+			createdAtMs: nowMs - (nowMs % DAY_IN_MS)
 		};
 
 		setDocStore({
 			collection: Collection.EXIT_SIGNALS,
-			key: signalKey,
-			caller: callerBytes,
+			key: randomExitSignalKey(),
+			caller: controllerCaller('exit signal'),
 			doc: {
 				data: encodeDocData(signalDoc)
 			}
@@ -1450,18 +1450,16 @@ const purgeSweptAccount = ({ docKey }: { docKey: string }): 'swept' | 'failed' =
 };
 
 /**
- * Build a compact 16-char alphanumeric key from the chain timestamp.
- * The endpoint runs synchronously per-caller, so even at the
- * theoretical ns-resolution collision risk the assert's
- * "current must be null" guard catches a collision cleanly.
+ * A 128-bit hex key from the satellite's seeded generator (`Math.random` is
+ * the one Juno installs), so the key carries neither the write time nor its
+ * order. A collision is refused by the append-only assert.
  */
-const exitSignalKeyFromNs = (nowNs: bigint): string => {
-	const base36 = nowNs.toString(36);
-
-	// Pad to a fixed width so keys sort lexicographically by write
-	// order (handy when the log grows).
-	return base36.padStart(16, '0');
-};
+const randomExitSignalKey = (): string =>
+	Array.from({ length: 4 }, () =>
+		Math.floor(Math.random() * 2 ** 32)
+			.toString(16)
+			.padStart(8, '0')
+	).join('');
 
 /**
  * Convenience: probe whether the caller has any owned league that

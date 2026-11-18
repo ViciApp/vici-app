@@ -22,7 +22,7 @@ import type { AccessKeys } from '@junobuild/functions/sdk';
  * The one in-memory Juno satellite host for specs under Node, which has no
  * satellite host. The SDK's `getDocStore` / `listDocsStore` / `countDocsStore`
  * / `setDocStore` / `deleteDocStore`,
- * `decodeDocData` / `encodeDocData`, `msgCaller`, `time`,
+ * `decodeDocData` / `encodeDocData`, `msgCaller`, `time`, Juno's `Math.random`,
  * `getAdminAccessKeys` and `call` are thin wrappers over host globals; this
  * defines those globals over a map of docs and a table of canister method
  * handlers. An assert spec builds its context with {@link setContext} /
@@ -308,6 +308,7 @@ export const installSatelliteHost = ({
 		__ic_cdk_time: (): bigint => nowNs,
 		// The satellite's console polyfill prints through this; specs stay quiet.
 		__ic_cdk_print: (): void => undefined,
+		__juno_satellite_random: (): number => crypto.getRandomValues(new Uint32Array(1))[0] ?? 0,
 		__juno_satellite_get_admin_access_keys: (): AccessKeys => [
 			[controller.toUint8Array(), { metadata: [], created_at: 1n, updated_at: 1n, scope: 'admin' }]
 		],

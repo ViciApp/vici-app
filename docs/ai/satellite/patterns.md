@@ -160,7 +160,7 @@ them into one dispatch-table entry rather than widening the table value to
 an array. The `profiles` slot maps to `assertProfile`, a small composed
 function exported from `profile.services.ts` next to its sub-asserts, that
 calls `assertNewProfileAllowed`, `assertValidNickname` and
-`assertDailyGoalMonotonic` in turn (a throw from any rejects the write);
+`assertDailyGoalUnchanged` in turn (a throw from any rejects the write);
 `assertProfilePrivate` in `profile-private.services.ts` does the same for
 `profile_private`. A composed assert lives in the service that owns the
 collection, never in `index.ts`, which only wires the dispatch table. Each
@@ -674,9 +674,11 @@ endpoints), `market_metadata` and `market_translations` (the upsert
 endpoints check creator-or-admin, then write as a controller),
 `league_stats` (fanned out by the profile and user-stats hooks),
 `vxp_onboarding` (the onboarding payout ladder), `vxp_awards` (every award
-path, through `persistAward` / `updateAward`), and the dormant `chats`
-and `comments`. A delete with no app flow behind it is
-controller-only too (`exit_signals`, `user_stats`).
+path, through `persistAward` / `updateAward`), `exit_signals` (the
+account deletion writes the churn row as a controller, so the doc's Juno
+owner is never the departing principal), and the dormant `chats` and
+`comments`. A delete with no app flow behind it is controller-only too
+(`exit_signals`, `user_stats`).
 
 **A secret that gates a write never sits on a public doc.** A league's
 invite code is the only way into it, so it lives in the controllers-only

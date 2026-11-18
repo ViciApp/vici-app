@@ -2,6 +2,7 @@ import { Collection } from '#lib/constants/collections.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import type { Activity } from '#lib/types/social.ts';
 import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
+import { maySettle } from '#satellite/services/engine-sync.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { countDocsStore, decodeDocData } from '@junobuild/functions/sdk';
@@ -19,6 +20,7 @@ const ACTIVITY_TYPES: readonly string[] = Object.values(ActivityType);
  *  - `type` must be a known {@link ActivityType}.
  *  - the doc key must be `${caller}#${timestamp}#${type}` (the shape `logActivity` writes), so the
  *    owner-scoped reads + the `#trade`-suffix matcher used by the payout gates stay trustworthy.
+ *  - a `settlement` activity comes only from a role that can settle ({@link maySettle}).
  *
  * NOTE: this stops impersonation, not a user self-faking their *own* `trade` to trigger their own
  * reward: that requires verifying an authoritative cleared trade on the engine (tracked in #543).
@@ -51,6 +53,13 @@ export const assertSetActivity = ({
 
 	if (activity.user !== callerText) {
 		throw new Error('Activity user must match the caller.');
+	}
+
+	// A settlement activity fans out every participant's resolved result
+	// (`onActivitySetForResolvedResults`), so only a role that can settle may
+	// record one.
+	if (activity.type === ActivityType.SETTLEMENT && !maySettle(Principal.fromUint8Array(caller))) {
+		throw new Error('Only a role that can settle markets may record a settlement.');
 	}
 
 	// `logActivity` keys every row `${user}#${timestamp}#${type}`. Principals / numeric timestamps /
