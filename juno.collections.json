@@ -20,6 +20,7 @@
 	"REFERRALS": "referrals",
 	"LEAGUES": "leagues",
 	"LEAGUE_MEMBERS": "league_members",
+	"LEAGUE_INVITES": "league_invites",
 	"BATTLES": "battles",
 	"AFFILIATIONS": "affiliations",
 	"AFFILIATION_STATS": "affiliation_stats",
