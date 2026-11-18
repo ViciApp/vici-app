@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import { Share2 } from '@lucide/svelte/icons';
+	import { notifyShareFailed } from '#lib/services/share.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
@@ -12,14 +13,6 @@
 	}
 
 	const { title }: Props = $props();
-
-	const notifyShareFailed = () => {
-		notificationsStore.add({
-			title: t({ locale: $localeStore, key: 'market.detail.share.failed_title' }),
-			message: t({ locale: $localeStore, key: 'market.detail.share.failed' }),
-			type: 'error'
-		});
-	};
 
 	const share = async () => {
 		if (!browser) {

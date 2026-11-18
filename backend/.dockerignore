@@ -2,3 +2,7 @@
 # for the web2 Playwright suite; keeping them out of the image means a deployed
 # machine has no copy of them to run. See e2e/guard.ts.
 e2e/
+
+# The local-disk upload fallback (dev and test runs); production stores league
+# images in Tigris, so an image needs no copy of whatever a dev run left here.
+uploads/

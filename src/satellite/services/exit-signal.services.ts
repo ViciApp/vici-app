@@ -4,6 +4,7 @@ import {
 	EXIT_SIGNAL_REASONS,
 	type ExitSignalDoc
 } from '#lib/types/exit-signal.ts';
+import { assertControllerCaller } from '#satellite/services/authz.services.ts';
 import { isNullish } from '@dfinity/utils';
 import type { AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
@@ -22,16 +23,16 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  *     `note` must be a string ≤ {@link EXIT_SIGNAL_NOTE_MAX_LENGTH}.
  *     `createdAtMs` must be finite + positive.
  *  3. **Anonymous shape.** We don't validate any principal field: the
- *     doc body has none. The key (random UUID, chosen by the caller)
+ *     doc body has none. The key (random, chosen by `deleteMyAccount`)
  *     is opaque to the assert; we just guarantee it's a non-empty
  *     string so we don't store an empty-keyed row by accident.
  *
- * Anyone authenticated can write. The endpoint that drives the
- * write (`deleteMyAccount`) is the only legitimate path, but if a
- * curious user pokes the datastore directly the worst they can do
- * is bloat the log: there's no PII or principal to leak.
+ * Only a controller writes: `deleteMyAccount` signs the write as one, so
+ * the doc's owner is never the departing principal and no client can
+ * forge churn rows.
  */
 export const assertSetExitSignal = ({
+	caller,
 	data: {
 		collection,
 		key,
@@ -41,6 +42,8 @@ export const assertSetExitSignal = ({
 	if (collection !== Collection.EXIT_SIGNALS) {
 		return;
 	}
+
+	assertControllerCaller({ caller, collection });
 
 	if (key.length === 0) {
 		throw new Error('exit_signals key must be a non-empty string.');

@@ -124,7 +124,11 @@
 </script>
 
 <div class="pillnav-wrap">
-	<nav bind:this={navEl} class="pillnav" aria-label="Primary">
+	<nav
+		bind:this={navEl}
+		class="pillnav"
+		aria-label={t({ locale: $localeStore, key: 'a11y.primary_nav' })}
+	>
 		<span
 			style:left="{indicatorLeft}px"
 			style:opacity={indicatorOpacity}

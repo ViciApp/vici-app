@@ -147,6 +147,10 @@
 	let volumeMarketId = $state<MarketId | undefined>(undefined);
 
 	let loading = $state(true);
+	// The last foreground load got nothing back (query and certified update
+	// both failed): the error state replaces the skeleton until a later load,
+	// the 30s poll included, delivers the market.
+	let loadFailed = $state(false);
 
 	let selectedSide = $state<CallSide | undefined>();
 
@@ -156,9 +160,19 @@
 	// paint: keeps the certified update's second `onLoad` from re-fetching.
 	let signalsFetchedForId: MarketId | undefined;
 
+	// Bumped by every foreground load. A load only writes page state while its
+	// generation is still the latest and the URL still names its market, so a
+	// poll or an older foreground load resolving after a navigation (or after a
+	// newer load) cannot overwrite the current market or its error state.
+	let loadGeneration = 0;
+
 	const fetchMarket = async ({ id, silent = false }: { id: MarketId; silent?: boolean }) => {
+		const generation = silent ? loadGeneration : ++loadGeneration;
+		const isCurrent = (): boolean => generation === loadGeneration && $pageMarketId === id;
+
 		if (!silent) {
 			loading = true;
+			loadFailed = false;
 			// Re-arm the MY CALL loading pulse for the new market until its
 			// position read lands (the silent poll keeps the prior value).
 			positionsLoaded = false;
@@ -187,14 +201,33 @@
 		// skeleton), then with the certified update which upgrades the view in
 		// place. We clear `loading` and fetch the viewer signals on the FIRST
 		// arrival only, so a foreground load paints from the query and the
-		// later certified result silently refreshes.
+		// later certified result silently refreshes. A silent poll that lands
+		// after a failed foreground load is that market's first paint.
+		let failedCalls = 0;
+
+		const onCallFailed = () => {
+			failedCalls++;
+
+			if (!silent && failedCalls === 2 && isCurrent()) {
+				loading = false;
+				loadFailed = true;
+			}
+		};
+
 		const [, positionsRes] = await Promise.all([
 			loadMarket({
 				marketId: id,
 				onLoad: ({ response }) => {
+					if (!isCurrent()) {
+						return;
+					}
+
 					market = response;
 
-					if (!silent) {
+					const firstPaint = !silent || loadFailed;
+					loadFailed = false;
+
+					if (firstPaint) {
 						loading = false;
 
 						// Signals only change with the viewer's own activity, not
@@ -208,8 +241,10 @@
 						}
 					}
 				},
+				onQueryError: onCallFailed,
 				onUpdateError: (error) => {
 					console.error('market detail: certified update failed', error);
+					onCallFailed();
 				}
 			}),
 			// Fail open: a positions-read error must not reject the whole load or
@@ -225,7 +260,7 @@
 		// Drop a late response from a previously-viewed market: a fast navigation
 		// can resolve an older market's positions after the current one's, which
 		// would otherwise clobber the live set (and its loaded/shimmer state).
-		if ($pageMarketId !== id) {
+		if (!isCurrent()) {
 			return;
 		}
 
@@ -480,8 +515,6 @@
 		if (nonNullish($pageMarketId)) {
 			track({ name: 'market_viewed', source: 'market_detail', marketId: $pageMarketId });
 
-			fetchMarket({ id: $pageMarketId });
-
 			intervalId = setInterval(() => {
 				if (nonNullish($pageMarketId)) {
 					fetchMarket({ id: $pageMarketId, silent: true });
@@ -496,6 +529,8 @@
 		};
 	});
 
+	// The only foreground load trigger, the first one included: a second
+	// caller would race this one for the same market.
 	$effect(() => {
 		if (nonNullish($pageMarketId) && (isNullish(market) || market.id !== $pageMarketId)) {
 			fetchMarket({ id: $pageMarketId });
@@ -777,8 +812,24 @@
 </svelte:head>
 
 <div class="market-detail-screen" class:market-detail-screen--readonly={!showTradeCta}>
+	{#snippet backToMarkets()}
+		<a
+			class="bg-primary text-primary-foreground hover:bg-primary/90 mt-8 rounded-xl px-8 py-3 font-bold transition-all"
+			href={resolveAppPath(AppPath.Home)}
+		>
+			{t({ locale: $localeStore, key: 'market.detail.not_found.cta' })}
+		</a>
+	{/snippet}
+
 	{#if loading}
 		<MarketDetailSkeleton />
+	{:else if loadFailed}
+		<div class="flex flex-col items-center justify-center py-24 text-center" role="alert">
+			<p class="text-muted-foreground">
+				{t({ locale: $localeStore, key: 'common.error.generic' })}
+			</p>
+			{@render backToMarkets()}
+		</div>
 	{:else if market}
 		{@const m = market}
 		{#snippet detailRight()}
@@ -1021,12 +1072,7 @@
 			<p class="text-muted-foreground mt-4">
 				{t({ locale: $localeStore, key: 'market.detail.not_found.sub' })}
 			</p>
-			<a
-				class="bg-primary text-primary-foreground hover:bg-primary/90 mt-8 rounded-xl px-8 py-3 font-bold transition-all"
-				href={resolveAppPath(AppPath.Home)}
-			>
-				{t({ locale: $localeStore, key: 'market.detail.not_found.cta' })}
-			</a>
+			{@render backToMarkets()}
 		</div>
 	{/if}
 </div>

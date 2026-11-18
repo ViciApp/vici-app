@@ -17,6 +17,24 @@ NETWORK="local"
 # (mirrors icdc-core's canister_ids.json). `--production` is an ergonomic alias for `ic`.
 ACCEPTABLE_NETWORKS=("local" "staging" "ic")
 
+# True when $1 is a network name (or the `production` alias), so a script that
+# takes a positional file can reject a network passed in its place.
+is_network_name() {
+	local candidate=$1 net
+
+	if [[ "$candidate" == "production" ]]; then
+		return 0
+	fi
+
+	for net in "${ACCEPTABLE_NETWORKS[@]}"; do
+		if [[ "$net" == "$candidate" ]]; then
+			return 0
+		fi
+	done
+
+	return 1
+}
+
 check_network() {
 	local requested_network=$1
 

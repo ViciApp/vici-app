@@ -155,7 +155,10 @@ the custodial wallet"), so no web2 path ever reaches for a Juno identity.
 Loaders that only gate on "is someone signed in" use
 `identity.services.isSignedIn()`, which is the Juno identity check on the
 default backend and the cookie-session store in web2 mode
-(`IdentityAwareLoader` runs every polling loader through it).
+(`IdentityAwareLoader` runs every polling loader through it). A loader that
+needs the signed-in user's own key reads `getSignedInOwner()` from the same
+source: the principal on the default backend, the session account id in web2
+mode.
 
 `client.ts` ships the auth surface: `getProviders()`, `getMe()`,
 `requestOtp()`, `verifyOtp()`, `googleSignInUrl()`, `logout()`.

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import BaseButton from '#lib/components/ui/BaseButton.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 	import { goto } from '$app/navigation';
 
 	interface Props {
@@ -36,7 +38,7 @@
 {:else}
 	<BaseButton
 		class="group flex items-center"
-		aria-label="VICI: go to home"
+		aria-label={t({ locale: $localeStore, key: 'a11y.logo_home' })}
 		onclick={() => handleNav(AppPath.Home)}
 	>
 		{@render wordmark()}

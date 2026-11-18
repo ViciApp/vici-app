@@ -8,13 +8,24 @@ import {
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
+	type CreateLeagueRefusalReason,
+	type JoinLeagueRefusalReason,
 	type LeagueDoc
 } from '#lib/types/league.ts';
 import {
 	assertOwnerOrController,
 	controllerCaller,
+	isAdmin,
 	isControllerText
 } from '#satellite/services/authz.services.ts';
+import {
+	deleteLeagueInvite,
+	leagueIdForInviteCode,
+	recordLeagueInvite
+} from '#satellite/services/league-invite.services.ts';
+import { payLeagueFounderReward } from '#satellite/services/vxp-league-founder-awards.services.ts';
+import { logError } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
@@ -102,18 +113,18 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
  *     the league (enforced by the endpoint, not this assert, since
  *     the assert can't cheaply scan `league_members`).
  *
- *  3. **Identity fields are immutable.** `id`, `createdAtMs`,
- *     `inviteCode`, and `emblem` are write-once. Even the owner can't
- *     rotate the invite code after creation: the join-by-code flow
- *     relies on codes being stable for the league's lifetime. `owner`,
+ *  3. **Identity fields are immutable.** `id`, `createdAtMs` and
+ *     `emblem` are write-once. A new doc never carries `inviteCode`: the
+ *     code lives in the controllers-only `league_invites` collection
+ *     (see `league-invite.services.ts`); a doc written before that keeps
+ *     its code until the satellite takes it off. `owner`,
  *     `privacy`, and `imageUrl` are the editable exceptions: ownership
  *     transfers (see §2), and the owner can change the league's
  *     visibility and cover image after creation.
  *
  *  4. **Shape validation.** Name within `LEAGUE_NAME_MIN_LENGTH` to
  *     `LEAGUE_NAME_MAX_LENGTH`, description within
- *     `LEAGUE_DESCRIPTION_MAX_LENGTH`, invite code matching
- *     `LEAGUE_INVITE_CODE_REGEX`. Owner is a valid principal text.
+ *     `LEAGUE_DESCRIPTION_MAX_LENGTH`. Owner is a valid principal text.
  */
 export const assertSetLeague = ({
 	caller,
@@ -151,12 +162,6 @@ export const assertSetLeague = ({
 		throw new Error(`leagues description must be at most ${LEAGUE_DESCRIPTION_MAX_LENGTH} chars.`);
 	}
 
-	if (!LEAGUE_INVITE_CODE_REGEX.test(proposedDoc.inviteCode)) {
-		throw new Error(
-			`leagues inviteCode must match ${LEAGUE_INVITE_CODE_REGEX} (got "${proposedDoc.inviteCode}").`
-		);
-	}
-
 	// Owner principal must parse: defensive against malformed writes.
 	try {
 		Principal.fromText(proposedDoc.owner);
@@ -187,6 +192,12 @@ export const assertSetLeague = ({
 	if (isNullish(current)) {
 		if (proposedDoc.owner !== callerText) {
 			throw new Error('leagues owner must match the caller principal on creation.');
+		}
+
+		// The invite code is the only way in, and this doc is public: it
+		// lives in the controllers-only `league_invites` collection instead.
+		if (nonNullish(proposedDoc.inviteCode)) {
+			throw new Error('leagues docs never carry the invite code; create through createLeague.');
 		}
 
 		// Emblem renders in the UI and is frozen after creation, so it
@@ -233,10 +244,19 @@ export const assertSetLeague = ({
 	// direction) and set/change/clear its cover image after creation (see
 	// §4 below), so neither is frozen here. The proposed privacy value is
 	// still range-checked against the known variants up top.
+	//
+	// A doc written before invite codes moved to `league_invites` still
+	// carries its code; only the satellite takes it off
+	// (`migrateLeagueInviteCodes`, after copying it there).
+	const dropsLegacyCode =
+		nonNullish(currentDoc.inviteCode) &&
+		isNullish(proposedDoc.inviteCode) &&
+		isControllerText(callerText);
+
 	if (
 		currentDoc.id !== proposedDoc.id ||
 		currentDoc.createdAtMs !== proposedDoc.createdAtMs ||
-		currentDoc.inviteCode !== proposedDoc.inviteCode ||
+		(currentDoc.inviteCode !== proposedDoc.inviteCode && !dropsLegacyCode) ||
 		(currentDoc.emblem ?? '') !== (proposedDoc.emblem ?? '')
 	) {
 		throw new Error('leagues identity fields are immutable (id, createdAtMs, inviteCode, emblem).');
@@ -538,7 +558,7 @@ export const deleteLeagueFn = ({
 		}
 	}
 
-	// Drop the league doc itself.
+	// Drop the league doc itself, and its invite code.
 	deleteDocStore({
 		collection: Collection.LEAGUES,
 		key: leagueId,
@@ -548,5 +568,190 @@ export const deleteLeagueFn = ({
 		}
 	});
 
+	deleteLeagueInvite({ leagueId });
+
 	return { ok: true };
+};
+
+/** What a caller sends to found a league: the doc's own fields plus its invite code. */
+export type CreateLeagueArgs = Pick<
+	LeagueDoc,
+	'id' | 'name' | 'description' | 'accentColor' | 'emblem' | 'privacy'
+> & { inviteCode: string };
+
+export interface CreateLeagueResult {
+	/** The new league, with its invite code for the founder to share. */
+	league?: LeagueDoc;
+	/** Nothing was written. */
+	reason?: CreateLeagueRefusalReason;
+}
+
+/**
+ * Founds a league for the caller: the public league doc and the owner's
+ * membership row, written as the caller so `assertSetLeague` and
+ * `assertSetLeagueMember` hold them to the same rules as a client write,
+ * and the invite code in the controllers-only `league_invites` collection,
+ * never on the public doc. The code is the caller's (the create sheet shows
+ * it before submit) and must be free. Hooks never fire for these serverless
+ * writes, so the founder reward is paid inline.
+ */
+export const createLeagueFn = async ({
+	inviteCode,
+	...fields
+}: CreateLeagueArgs): Promise<CreateLeagueResult> => {
+	const caller = msgCaller();
+
+	if (caller.isAnonymous()) {
+		throw new Error('Sign in to create a league.');
+	}
+
+	if (!LEAGUE_INVITE_CODE_REGEX.test(inviteCode)) {
+		throw new Error(`leagues inviteCode must match ${LEAGUE_INVITE_CODE_REGEX}.`);
+	}
+
+	if (nonNullish(leagueIdForInviteCode(inviteCode))) {
+		return { reason: 'invite_code_taken' };
+	}
+
+	const callerText = caller.toText();
+	const callerBytes = caller.toUint8Array();
+	const createdAtMs = timeMs();
+	const league: LeagueDoc = { ...fields, owner: callerText, createdAtMs };
+
+	setDocStore({
+		caller: callerBytes,
+		collection: Collection.LEAGUES,
+		key: league.id,
+		doc: { data: encodeDocData(league) }
+	});
+
+	setDocStore({
+		caller: callerBytes,
+		collection: Collection.LEAGUE_MEMBERS,
+		key: leagueMemberKey({ leagueId: league.id, memberPrincipal: callerText }),
+		doc: {
+			data: encodeDocData<LeagueMemberDoc>({
+				leagueId: league.id,
+				member: callerText,
+				joinedAtMs: createdAtMs,
+				role: 'owner'
+			})
+		}
+	});
+
+	recordLeagueInvite({ leagueId: league.id, inviteCode });
+
+	try {
+		await payLeagueFounderReward({
+			caller: callerBytes,
+			recipient: callerText,
+			leagueId: league.id
+		});
+	} catch (e: unknown) {
+		// The league stands either way; `settleFounderAwards` retries the reward.
+		logError({
+			message: 'league_founder_award_error',
+			detail: {
+				league: league.id,
+				user: callerText,
+				error: e instanceof Error ? e.message : `${e}`
+			}
+		});
+	}
+
+	return { league: { ...league, inviteCode } };
+};
+
+export interface JoinLeagueByInviteResult {
+	/** The league joined. */
+	league?: LeagueDoc;
+	reason?: JoinLeagueRefusalReason;
+}
+
+/**
+ * Joins the caller to the league `inviteCode` opens: the only way into a
+ * league, Open or Private. `assertSetLeagueMember` admits a new member row
+ * only from a satellite controller, so this endpoint, having checked the
+ * code, writes the row as one.
+ */
+export const joinLeagueByInviteFn = ({
+	inviteCode
+}: {
+	inviteCode: string;
+}): JoinLeagueByInviteResult => {
+	const caller = msgCaller();
+
+	if (caller.isAnonymous()) {
+		throw new Error('Sign in to join a league.');
+	}
+
+	const leagueId = leagueIdForInviteCode(inviteCode);
+	const callerBytes = caller.toUint8Array();
+	const leagueDoc = isNullish(leagueId)
+		? undefined
+		: getDocStore({ caller: callerBytes, collection: Collection.LEAGUES, key: leagueId });
+
+	if (isNullish(leagueDoc)) {
+		return { reason: 'not_found' };
+	}
+
+	const league = decodeDocData<LeagueDoc>(leagueDoc.data);
+	const callerText = caller.toText();
+	const key = leagueMemberKey({ leagueId: league.id, memberPrincipal: callerText });
+
+	if (
+		nonNullish(getDocStore({ caller: callerBytes, collection: Collection.LEAGUE_MEMBERS, key }))
+	) {
+		return { reason: 'already_member' };
+	}
+
+	setDocStore({
+		caller: controllerCaller('league join'),
+		collection: Collection.LEAGUE_MEMBERS,
+		key,
+		doc: {
+			data: encodeDocData<LeagueMemberDoc>({
+				leagueId: league.id,
+				member: callerText,
+				joinedAtMs: timeMs(),
+				role: 'member'
+			})
+		}
+	});
+
+	return { league };
+};
+
+/**
+ * Admin-gated, idempotent: moves the invite code of every league doc
+ * written before codes left the public doc into `league_invites`, then
+ * takes it off the doc. Returns how many docs it rewrote.
+ */
+export const migrateLeagueInviteCodesFn = (): { migrated: number } => {
+	const caller = msgCaller();
+
+	if (!isAdmin({ caller })) {
+		throw new Error('Only an admin can migrate league invite codes.');
+	}
+
+	const writer = controllerCaller('league invite migration');
+	const { items } = listDocsStore({ caller: writer, collection: Collection.LEAGUES, params: {} });
+	let migrated = 0;
+
+	for (const [key, { data, version }] of items) {
+		const { inviteCode, ...league } = decodeDocData<LeagueDoc>(data);
+
+		if (nonNullish(inviteCode) && recordLeagueInvite({ leagueId: league.id, inviteCode })) {
+			setDocStore({
+				caller: writer,
+				collection: Collection.LEAGUES,
+				key,
+				doc: { data: encodeDocData<LeagueDoc>(league), version }
+			});
+
+			migrated += 1;
+		}
+	}
+
+	return { migrated };
 };

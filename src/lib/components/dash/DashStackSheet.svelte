@@ -19,7 +19,7 @@
 	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import { haptic } from '#lib/utils/haptics.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { appOrigin, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	interface Props {
@@ -131,7 +131,7 @@
 			return;
 		}
 
-		const url = `${window.location.origin}/i/${code}`;
+		const url = `${appOrigin()}/i/${code}`;
 
 		const shareText = t({
 			locale: $localeStore,
