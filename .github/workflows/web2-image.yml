@@ -34,7 +34,8 @@ jobs:
           persist-credentials: false
 
       # fly.web.toml is what `flyctl deploy` reads, so the Dockerfile and build
-      # args come from it rather than from literals here that could drift.
+      # args come from it rather than from literals here that could drift. The
+      # Node version comes from .node-version, as web2-deploy.yml passes it.
       - name: Read build config from fly.web.toml
         id: fly
         run: |
@@ -43,7 +44,9 @@ jobs:
 
           with open("fly.web.toml", "rb") as f:
               build = tomllib.load(f)["build"]
-          args = build["args"]
+          with open(".node-version") as f:
+              node_version = f.read().strip()
+          args = {**build["args"], "NODE_VERSION": node_version}
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as out:
               out.write(f"dockerfile={build['dockerfile']}\n")
