@@ -120,7 +120,11 @@
 <div class="arena-page">
 	<ArenaStandingHero onSelectTab={selectTab} />
 
-	<div class="arena-tabs" aria-label="Arena sections" role="tablist">
+	<div
+		class="arena-tabs"
+		aria-label={t({ locale: $localeStore, key: 'arena.tabs.aria' })}
+		role="tablist"
+	>
 		{#each TABS as tab (tab)}
 			<button
 				class="arena-tab"

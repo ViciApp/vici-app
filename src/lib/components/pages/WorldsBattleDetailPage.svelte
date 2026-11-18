@@ -260,7 +260,11 @@
 		</section>
 
 		<!-- Scope toggle: WC vs Month -->
-		<div class="worlds-battle-scope" aria-label="Battle scope" role="tablist">
+		<div
+			class="worlds-battle-scope"
+			aria-label={t({ locale: $localeStore, key: 'worlds.battle.scope_aria' })}
+			role="tablist"
+		>
 			<button
 				class:is-active={scope === 'month'}
 				aria-selected={scope === 'month'}
@@ -395,7 +399,10 @@
 		</div>
 
 		<!-- Podium prizes: fixed VXP payouts for the battle -->
-		<section class="worlds-battle-podium" aria-label="Worlds podium prizes">
+		<section
+			class="worlds-battle-podium"
+			aria-label={t({ locale: $localeStore, key: 'worlds.podium.eyebrow' })}
+		>
 			<h2 class="eyebrow worlds-battle-section-eyebrow">
 				{t({ locale: $localeStore, key: 'worlds.podium.eyebrow' })}
 			</h2>
