@@ -58,6 +58,13 @@ enum JunoStorageCollection {
 	LEAGUE_IMAGES = 'league_images'
 }
 
+/**
+ * Per-asset cap of `league_images`. A cover is a 256 px square JPEG of a few
+ * tens of KB; the cap leaves room for that and nothing much bigger. Juno
+ * enforces it, so it lives only here.
+ */
+const LEAGUE_IMAGE_MAX_SIZE_BYTES = BigInt(512 * 1024);
+
 const delegation = {
 	// Like identities derived by Internet Identity, those derived with OpenID
 	// are allowed to interact with any canister on the Internet Computer.
@@ -393,15 +400,18 @@ export default defineConfig(({ mode }) => ({
 			],
 			// Owner-uploaded league cover images. Public read so every
 			// surface can render the cover; write is public so the owning
-			// principal can upload (the FE only offers the control to the
-			// league owner, and the doc-side `assertSetLeague` is what
-			// authorises which `imageUrl` lands on the league record).
+			// principal can upload. Juno does no owner check here either:
+			// `assertUploadAsset` / `assertDeleteAsset` in
+			// `src/satellite/index.ts` admit only the owner of the league the
+			// path names (or a controller) and a JPEG, and `maxSize` caps each
+			// asset.
 			storage: [
 				{
 					collection: JunoStorageCollection.LEAGUE_IMAGES,
 					memory: 'stable',
 					read: 'public',
-					write: 'public'
+					write: 'public',
+					maxSize: LEAGUE_IMAGE_MAX_SIZE_BYTES
 				}
 			]
 		}

@@ -666,6 +666,17 @@ endpoints check creator-or-admin, then write as a controller),
 and `comments`. A delete with no app flow behind it is
 controller-only too (`exit_signals`, `user_stats`).
 
+**Storage collections too.** A `write: 'public'` Storage collection lets any
+caller upload over or delete any asset, so it has an `assertUploadAsset` and
+an `assertDeleteAsset` entry in `index.ts` and a `maxSize` in
+`juno.config.ts` (the spec checks all three). `league_images`
+([`league-image.services.ts`](../../../src/satellite/services/league-image.services.ts))
+admits only the owner of the league its path names
+(`leagueImageFullPath` in `#lib/types/league.ts` builds the path, and
+`leagueIdFromImageFullPath` reads it back) or a controller, and only
+`LEAGUE_IMAGE_CONTENT_TYPE`: an HTML or SVG asset would be served from the
+app's own origin.
+
 **Every serverless write passes the same asserts.** `setDocStore` and
 `deleteDocStore` run them with the `caller` they are given, so a satellite
 path that acts for the system rather than for the caller (the account purge,

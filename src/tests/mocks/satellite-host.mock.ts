@@ -5,8 +5,11 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { IDL } from '@icp-sdk/core/candid';
 import { Principal } from '@icp-sdk/core/principal';
 import type {
+	AssertDeleteAssetContext,
 	AssertDeleteDocContext,
 	AssertSetDocContext,
+	AssertUploadAssetContext,
+	Asset,
 	DelDoc,
 	Doc,
 	ListParams,
@@ -105,6 +108,78 @@ export const deleteContext = ({
 			proposed: { version: 1n }
 		}
 	}
+});
+
+const storedAsset = ({
+	collection,
+	fullPath,
+	owner,
+	headers
+}: {
+	collection: string;
+	fullPath: string;
+	owner: Principal;
+	headers: [string, string][];
+}): Asset => ({
+	key: {
+		name: fullPath.split('/').pop() ?? fullPath,
+		full_path: fullPath,
+		collection,
+		owner: owner.toUint8Array()
+	},
+	headers,
+	encodings: [],
+	created_at: 1n,
+	updated_at: 1n,
+	version: 1n
+});
+
+/**
+ * An `assertUploadAsset` context: `caller` commits `fullPath` in `collection`
+ * with `contentType`, over an existing asset when `currentOwner` is given.
+ */
+export const uploadAssetContext = ({
+	caller,
+	collection,
+	fullPath,
+	contentType,
+	currentOwner
+}: {
+	caller: Principal;
+	collection: string;
+	fullPath: string;
+	contentType: string;
+	currentOwner?: Principal;
+}): AssertUploadAssetContext => {
+	const headers: [string, string][] = [['Content-Type', contentType]];
+	const { key } = storedAsset({ collection, fullPath, owner: caller, headers });
+
+	return {
+		caller: caller.toUint8Array(),
+		data: {
+			current: nonNullish(currentOwner)
+				? storedAsset({ collection, fullPath, owner: currentOwner, headers })
+				: undefined,
+			batch: { key, expires_at: 1n },
+			commit_batch: { batch_id: 1n, headers, chunk_ids: [1n] }
+		}
+	};
+};
+
+/** An `assertDeleteAsset` context: `caller` deletes `fullPath`, uploaded by `owner`. */
+export const deleteAssetContext = ({
+	caller,
+	collection,
+	fullPath,
+	owner = caller
+}: {
+	caller: Principal;
+	collection: string;
+	fullPath: string;
+	owner?: Principal;
+}): AssertDeleteAssetContext => ({
+	caller: caller.toUint8Array(),
+	data: storedAsset({ collection, fullPath, owner, headers: [] })
 });
 
 /** Docs to seed the datastore with, by collection then key, owned by {@link controller}. */

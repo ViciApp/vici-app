@@ -45,6 +45,7 @@ import {
 	ResolvedResultSchema
 } from '#lib/schema/resolved-result.schema.ts';
 import { AFFILIATION_KINDS } from '#lib/types/affiliation.ts';
+import { LEAGUE_IMAGES_COLLECTION } from '#lib/types/league.ts';
 import { TOURNAMENT_DRAW_REFUSAL_REASONS } from '#lib/types/tournament.ts';
 import {
 	deleteMyAccountFn,
@@ -113,6 +114,10 @@ import {
 	getUserRankAndCountFn,
 	listLeaderboard as listLeaderboardFn
 } from '#satellite/services/leaderboard.services.ts';
+import {
+	assertDeleteLeagueImage,
+	assertUploadLeagueImage
+} from '#satellite/services/league-image.services.ts';
 import {
 	assertDeleteLeagueMember,
 	assertSetLeagueMember
@@ -270,10 +275,12 @@ import {
 	defineHook,
 	defineQuery,
 	defineUpdate,
+	type AssertDeleteAsset,
 	type AssertDeleteDoc,
 	type AssertDeleteDocContext,
 	type AssertSetDoc,
 	type AssertSetDocContext,
+	type AssertUploadAsset,
 	type OnDeleteDoc,
 	type OnDeleteDocContext,
 	type OnSetDoc,
@@ -1494,6 +1501,20 @@ export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({
 
 		fn[context.data.collection]?.(context);
 	}
+});
+
+// `league_images` is the one Storage collection, and public write: these
+// asserts are the only guard on who uploads over or deletes a cover.
+const assetCollections = [LEAGUE_IMAGES_COLLECTION] as const;
+
+export const assertUploadAsset = defineAssert<AssertUploadAsset>({
+	collections: assetCollections,
+	assert: assertUploadLeagueImage
+});
+
+export const assertDeleteAsset = defineAssert<AssertDeleteAsset>({
+	collections: assetCollections,
+	assert: assertDeleteLeagueImage
 });
 
 const setDocCollections = [
