@@ -5,8 +5,11 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { IDL } from '@icp-sdk/core/candid';
 import { Principal } from '@icp-sdk/core/principal';
 import type {
+	AssertDeleteAssetContext,
 	AssertDeleteDocContext,
 	AssertSetDocContext,
+	AssertUploadAssetContext,
+	Asset,
 	DelDoc,
 	Doc,
 	ListParams,
@@ -19,13 +22,13 @@ import type { AccessKeys } from '@junobuild/functions/sdk';
  * The one in-memory Juno satellite host for specs under Node, which has no
  * satellite host. The SDK's `getDocStore` / `listDocsStore` / `countDocsStore`
  * / `setDocStore` / `deleteDocStore`,
- * `decodeDocData` / `encodeDocData`, `msgCaller`, `time`,
+ * `decodeDocData` / `encodeDocData`, `msgCaller`, `time`, Juno's `Math.random`,
  * `getAdminAccessKeys` and `call` are thin wrappers over host globals; this
  * defines those globals over a map of docs and a table of canister method
  * handlers. An assert spec builds its context with {@link setContext} /
  * {@link deleteContext}; a service spec drives the real service end to end.
- * Asserts and hooks do not run on a host write: seed only docs the real
- * asserts would accept.
+ * Hooks never run on a host write, and asserts only when the spec installs
+ * them: seed only docs the real asserts would accept.
  */
 
 export const controller = Principal.fromUint8Array(new Uint8Array([1, 1, 1]));
@@ -36,6 +39,7 @@ export const docBytes = (doc: object): Uint8Array<ArrayBuffer> =>
 interface StoredDoc {
 	owner: Uint8Array;
 	data: Uint8Array;
+	description?: string;
 	created_at: bigint;
 	updated_at: bigint;
 	version: bigint;
@@ -107,6 +111,78 @@ export const deleteContext = ({
 	}
 });
 
+const storedAsset = ({
+	collection,
+	fullPath,
+	owner,
+	headers
+}: {
+	collection: string;
+	fullPath: string;
+	owner: Principal;
+	headers: [string, string][];
+}): Asset => ({
+	key: {
+		name: fullPath.split('/').pop() ?? fullPath,
+		full_path: fullPath,
+		collection,
+		owner: owner.toUint8Array()
+	},
+	headers,
+	encodings: [],
+	created_at: 1n,
+	updated_at: 1n,
+	version: 1n
+});
+
+/**
+ * An `assertUploadAsset` context: `caller` commits `fullPath` in `collection`
+ * with `contentType`, over an existing asset when `currentOwner` is given.
+ */
+export const uploadAssetContext = ({
+	caller,
+	collection,
+	fullPath,
+	contentType,
+	currentOwner
+}: {
+	caller: Principal;
+	collection: string;
+	fullPath: string;
+	contentType: string;
+	currentOwner?: Principal;
+}): AssertUploadAssetContext => {
+	const headers: [string, string][] = [['Content-Type', contentType]];
+	const { key } = storedAsset({ collection, fullPath, owner: caller, headers });
+
+	return {
+		caller: caller.toUint8Array(),
+		data: {
+			current: nonNullish(currentOwner)
+				? storedAsset({ collection, fullPath, owner: currentOwner, headers })
+				: undefined,
+			batch: { key, expires_at: 1n },
+			commit_batch: { batch_id: 1n, headers, chunk_ids: [1n] }
+		}
+	};
+};
+
+/** An `assertDeleteAsset` context: `caller` deletes `fullPath`, uploaded by `owner`. */
+export const deleteAssetContext = ({
+	caller,
+	collection,
+	fullPath,
+	owner = caller
+}: {
+	caller: Principal;
+	collection: string;
+	fullPath: string;
+	owner?: Principal;
+}): AssertDeleteAssetContext => ({
+	caller: caller.toUint8Array(),
+	data: storedAsset({ collection, fullPath, owner, headers: [] })
+});
+
 /** Docs to seed the datastore with, by collection then key, owned by {@link controller}. */
 export type HostDocs = Record<string, Record<string, object>>;
 
@@ -153,17 +229,27 @@ const encodeText = (text: string): Uint8Array<ArrayBuffer> => new TextEncoder().
 
 const toDoc = (stored: StoredDoc): Doc => ({ ...stored });
 
+/** The satellite's own set / delete asserts, run on host writes as Juno runs them. */
+export interface HostAsserts {
+	set?: (context: AssertSetDocContext) => void;
+	remove?: (context: AssertDeleteDocContext) => void;
+}
+
 /**
  * Defines the host globals the SDK calls. `docs` (with their `createdAtNs`)
  * seed the datastore that `getDocStore` / `listDocsStore` read and
- * `setDocStore` writes, versioned as Juno does.
+ * `setDocStore` writes, versioned as Juno does. With `asserts`, every
+ * `setDocStore` / `deleteDocStore` first runs them with the caller it was
+ * given, as Juno does for a serverless write.
  */
 export const installSatelliteHost = ({
 	docs = {},
-	createdAtNs = {}
+	createdAtNs = {},
+	asserts = {}
 }: {
 	docs?: HostDocs;
 	createdAtNs?: HostCreatedAtNs;
+	asserts?: HostAsserts;
 } = {}): SatelliteHost => {
 	const collections = new Map<string, Map<string, StoredDoc>>();
 	const methods = new Map<string, CanisterMethod>();
@@ -184,14 +270,22 @@ export const installSatelliteHost = ({
 		return created;
 	};
 
-	/** The docs `listDocsStore` and `countDocsStore` answer: the key matcher and the owner filter. */
+	/** The docs `listDocsStore` and `countDocsStore` answer: the key and description matchers and the owner filter. */
 	const listed = ({ name, params }: { name: string; params: ListParams }): [string, Doc][] => {
 		const matcher = params.matcher?.key;
 		const keyMatches = nonNullish(matcher) ? new RegExp(matcher) : undefined;
+		const descriptionMatcher = params.matcher?.description;
+		const descriptionMatches = nonNullish(descriptionMatcher)
+			? new RegExp(descriptionMatcher)
+			: undefined;
 		const owner = nonNullish(params.owner) ? Principal.fromUint8Array(params.owner) : undefined;
 
 		return [...collection(name)]
 			.filter(([key]) => isNullish(keyMatches) || keyMatches.test(key))
+			.filter(
+				([, { description }]) =>
+					isNullish(descriptionMatches) || descriptionMatches.test(description ?? '')
+			)
 			.filter(
 				([, stored]) =>
 					isNullish(owner) || Principal.fromUint8Array(stored.owner).compareTo(owner) === 'eq'
@@ -212,6 +306,9 @@ export const installSatelliteHost = ({
 		__ic_cdk_caller: (): Uint8Array => caller.toUint8Array(),
 		__ic_cdk_id: (): Uint8Array => controller.toUint8Array(),
 		__ic_cdk_time: (): bigint => nowNs,
+		// The satellite's console polyfill prints through this; specs stay quiet.
+		__ic_cdk_print: (): void => undefined,
+		__juno_satellite_random: (): number => crypto.getRandomValues(new Uint32Array(1))[0] ?? 0,
 		__juno_satellite_get_admin_access_keys: (): AccessKeys => [
 			[controller.toUint8Array(), { metadata: [], created_at: 1n, updated_at: 1n, scope: 'admin' }]
 		],
@@ -254,6 +351,18 @@ export const installSatelliteHost = ({
 		) => {
 			const before = collection(name).get(key);
 
+			asserts.set?.({
+				caller: setter,
+				data: {
+					collection: name,
+					key,
+					data: {
+						current: isNullish(before) ? undefined : toDoc(before),
+						proposed: { data: value.data, version: value.version }
+					}
+				}
+			});
+
 			if (nonNullish(before) && value.version !== before.version) {
 				throw new Error(
 					`${name}/${key}: version ${value.version} does not match ${before.version}.`
@@ -263,6 +372,7 @@ export const installSatelliteHost = ({
 			const after: StoredDoc = {
 				owner: before?.owner ?? setter,
 				data: value.data,
+				description: value.description,
 				created_at: before?.created_at ?? nowNs,
 				updated_at: nowNs,
 				version: (before?.version ?? BigInt(0)) + BigInt(1)
@@ -278,12 +388,23 @@ export const installSatelliteHost = ({
 		},
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_delete_doc_store: (
-			_caller: Uint8Array,
+			remover: Uint8Array,
 			name: string,
 			key: string,
 			value: DelDoc
 		): Doc | undefined => {
 			const before = collection(name).get(key);
+
+			if (nonNullish(before)) {
+				asserts.remove?.({
+					caller: remover,
+					data: {
+						collection: name,
+						key,
+						data: { current: toDoc(before), proposed: { version: value.version } }
+					}
+				});
+			}
 
 			if (nonNullish(before) && value.version !== before.version) {
 				throw new Error(

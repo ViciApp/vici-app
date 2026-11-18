@@ -24,8 +24,8 @@ const STORAGE_OWNER_KEY = 'vici.storage-owner.v1';
  * Only clears on an actual owner change, NOT on a same-user reload, which
  * would defeat the offline-resilient daily-goal mirror (it exists to survive
  * a refresh after a dropped server write). Scope is local-authoritative state
- * with no server copy to reload from; server-backed caches are handled
- * separately in `Authn`.
+ * with no server copy to reload from; server-backed caches are reset beside
+ * it in `resetIdentityScopedState`.
  *
  * First observation (no persisted owner yet) counts as a change and clears:
  * that's intentional, so already-affected devices from before this guard

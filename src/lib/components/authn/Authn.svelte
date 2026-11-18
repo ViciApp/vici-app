@@ -8,7 +8,7 @@
 	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { trackLoginSyncSettled } from '#lib/dev/e2e-reset.ts';
-	import { reconcileIdentityScopedStorage } from '#lib/services/identity-storage.services.ts';
+	import { resetIdentityScopedState } from '#lib/services/identity-reset.services.ts';
 	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 	import {
 		ensureProfile,
@@ -16,16 +16,7 @@
 		forgetBootstrappedThisSession,
 		loadWeb2ProfileShell
 	} from '#lib/services/profile.services.ts';
-	import { receivedReactionsStore } from '#lib/stores/activity-reactions.store.ts';
-	import { clearAffiliations } from '#lib/stores/affiliations.store.ts';
-	import { followingStore } from '#lib/stores/following.store.ts';
-	import { clearFriendRelations } from '#lib/stores/friends.store.ts';
-	import { clearLeagues } from '#lib/stores/leagues.store.ts';
-	import { clearMyMenagerieSignals } from '#lib/stores/menagerie.store.ts';
-	import { positionsStore } from '#lib/stores/positions.store.ts';
 	import { setCachedProfile } from '#lib/stores/profiles.store.ts';
-	import { clearMyReferrals } from '#lib/stores/referrals.store.ts';
-	import { tradeHistoryStore } from '#lib/stores/trade-history.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 	import type { Web2Me } from '#lib/web2/client.ts';
@@ -149,26 +140,7 @@
 	const updateUserStore = async (user: User | null) => {
 		userStore.update((data) => ({ ...data, authBusy: true }));
 
-		// Drop the previous principal's user-scoped caches on every auth
-		// transition (sign-out, user switch, initial bootstrap). The next
-		// `<Loaders />` cycle repopulates them for the new identity; this
-		// just prevents user A's friends / positions / trade history from
-		// briefly bleeding into user B's UI. Public caches (markets,
-		// leaderboard, categories) intentionally stay populated.
-		clearFriendRelations();
-		clearAffiliations();
-		clearLeagues();
-		clearMyMenagerieSignals();
-		clearMyReferrals();
-		followingStore.set(undefined);
-		positionsStore.set(undefined);
-		tradeHistoryStore.set(undefined);
-		receivedReactionsStore.set(undefined);
-
-		// Same idea for the identity-scoped localStorage caches, except
-		// those are local-authoritative (not server-backed): see
-		// `reconcileIdentityScopedStorage`.
-		reconcileIdentityScopedStorage({ ownerKey: user?.owner });
+		resetIdentityScopedState({ ownerKey: user?.owner });
 
 		try {
 			if (isNullish(user)) {
@@ -285,9 +257,7 @@
 	const hydrateWeb2AppShell = async (me: Web2Me): Promise<boolean> => {
 		userStore.update((data) => ({ ...data, authBusy: true }));
 
-		// The celebration host gates its first-load trophy seed on these signals
-		// belonging to the profile it sees, so they must not survive a switch.
-		clearMyMenagerieSignals();
+		resetIdentityScopedState({ ownerKey: me.id });
 
 		try {
 			const user: User = { key: me.id, owner: me.id, data: {} };
@@ -309,9 +279,9 @@
 	};
 
 	const clearWeb2AppShell = (): void => {
+		resetIdentityScopedState({ ownerKey: undefined });
 		setSignedInFlag(false);
 		forgetBootstrappedThisSession();
-		clearMyMenagerieSignals();
 
 		userStore.set({
 			user: undefined,
