@@ -1,6 +1,6 @@
 # Prototype Parity Audit
 
-Source of truth: `../VICI WebApp Beta V1.2/`.
+Source of truth: the design, described in [`docs/ai/frontend/design.md`](./ai/frontend/design.md).
 
 This is the consolidated divergence list from a four-agent deep audit
 (2026-05-26). **~270 individual divergences** across **24+ surfaces**.
