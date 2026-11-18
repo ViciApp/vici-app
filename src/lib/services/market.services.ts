@@ -1037,20 +1037,24 @@ const fetchMarket = async ({
  * resolution status from clearing's `get_settlement_status`. Fires `onLoad` up
  * to twice: once for the uncertified query, then again for the certified update. Stale
  * query responses that arrive after the update has settled are dropped by the
- * underlying `queryAndUpdate`.
+ * underlying `queryAndUpdate`. A load that delivers nothing fires both
+ * `onQueryError` and `onUpdateError`.
  */
 export const loadMarket = ({
 	marketId,
 	onLoad,
+	onQueryError,
 	onUpdateError
 }: {
 	marketId: MarketId;
 	onLoad: (options: { certified: boolean; response: Market | undefined }) => void;
+	onQueryError?: (error: unknown) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> =>
 	loadWithCertification<Market | undefined>({
 		request: ({ certified, identity }) => fetchMarket({ identity, certified, marketId }),
 		onLoad,
+		onQueryError,
 		onUpdateError
 	});
 
