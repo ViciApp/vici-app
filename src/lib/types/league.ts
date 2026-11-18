@@ -20,8 +20,15 @@ export interface LeagueDoc {
 	name: string;
 	/** Optional short editorial blurb shown on the league detail page. */
 	description?: string;
-	/** 6-char `[A-Z0-9]` invite code; the join-by-code flow looks the league up by this. */
-	inviteCode: string;
+	/**
+	 * 6-char `[A-Z0-9]` invite code, the only way into the league. Never
+	 * stored on the public `leagues` doc: it lives in the controllers-only
+	 * `league_invites` collection ({@link LeagueInviteDoc}), and only the
+	 * league's own members receive it (`listMyLeagues`). A doc written before
+	 * that move still carries it here until `migrateLeagueInviteCodes` takes
+	 * it off.
+	 */
+	inviteCode?: string;
 	/** Owning principal (text form). Immutable after creation. */
 	owner: string;
 	/** Creation timestamp in ms since epoch. Immutable. */
@@ -78,6 +85,42 @@ export interface LeagueDoc {
 export const LEAGUE_IMAGES_COLLECTION = 'league_images';
 
 /**
+ * The one media type a league cover is stored as: the upload downscales
+ * every picked image to a JPEG, and the satellite refuses any other type
+ * (an HTML or SVG asset would be served from the app's own origin).
+ */
+export const LEAGUE_IMAGE_CONTENT_TYPE = 'image/jpeg';
+
+const LEAGUE_IMAGE_EXTENSION = 'jpg';
+
+/**
+ * The asset name of a league cover: `<leagueId>-<uploadedAtMs>.jpg`, so a
+ * re-upload never collides with the cover it replaces.
+ */
+export const leagueImageFileName = ({
+	leagueId,
+	uploadedAtMs
+}: {
+	leagueId: string;
+	uploadedAtMs: number;
+}): string => `${leagueId}-${uploadedAtMs}.${LEAGUE_IMAGE_EXTENSION}`;
+
+/** The Storage full path of a league cover named by {@link leagueImageFileName}. */
+export const leagueImageFullPath = (params: { leagueId: string; uploadedAtMs: number }): string =>
+	`/${LEAGUE_IMAGES_COLLECTION}/${leagueImageFileName(params)}`;
+
+const LEAGUE_IMAGE_FULL_PATH_REGEX = new RegExp(
+	`^/${LEAGUE_IMAGES_COLLECTION}/(.+)-\\d+\\.${LEAGUE_IMAGE_EXTENSION}$`
+);
+
+/**
+ * The league a cover's Storage full path names, or `undefined` when the
+ * path is not one {@link leagueImageFullPath} builds.
+ */
+export const leagueIdFromImageFullPath = (fullPath: string): string | undefined =>
+	LEAGUE_IMAGE_FULL_PATH_REGEX.exec(fullPath)?.[1];
+
+/**
  * Edge length (px) of the square league cover we downscale to before
  * upload, and the JPEG quality. A 256² cover JPEG is sharp on the logo
  * tile across every surface while keeping the stored asset tiny.
@@ -127,6 +170,26 @@ export const leagueEmblem = (league: Pick<LeagueDoc, 'emblem' | 'name'>): string
  * write.
  */
 export const LEAGUE_INVITE_CODE_REGEX = /^[A-Z0-9]{6}$/;
+
+/**
+ * A league's invite code in the controllers-only `league_invites`
+ * collection, keyed by the league id. The code is also the Juno doc's
+ * description, which a join matches on to find the league.
+ */
+export interface LeagueInviteDoc {
+	leagueId: string;
+	inviteCode: string;
+}
+
+/** Why `createLeague` refused: another league already holds the invite code. */
+export const CREATE_LEAGUE_REFUSAL_REASONS = ['invite_code_taken'] as const;
+
+export type CreateLeagueRefusalReason = (typeof CREATE_LEAGUE_REFUSAL_REASONS)[number];
+
+/** Why `joinLeagueByInvite` refused: no league holds the code, or the caller is already in it. */
+export const JOIN_LEAGUE_REFUSAL_REASONS = ['not_found', 'already_member'] as const;
+
+export type JoinLeagueRefusalReason = (typeof JOIN_LEAGUE_REFUSAL_REASONS)[number];
 
 /**
  * Sample invite code shown as a format affordance; the join sheet's

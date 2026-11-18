@@ -125,7 +125,7 @@ const payFounderReward = async ({
 	};
 
 	try {
-		persistAward({ caller, recipient, awardType: AWARD_TYPE, awardKey: leagueId, doc: pending });
+		persistAward({ recipient, awardType: AWARD_TYPE, awardKey: leagueId, doc: pending });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 
@@ -159,7 +159,6 @@ const payFounderReward = async ({
 		});
 
 		updateAward({
-			caller,
 			recipient,
 			awardType: AWARD_TYPE,
 			awardKey: leagueId,
@@ -184,7 +183,6 @@ const payFounderReward = async ({
 	});
 
 	updateAward({
-		caller,
 		recipient,
 		awardType: AWARD_TYPE,
 		awardKey: leagueId,
@@ -196,6 +194,28 @@ const payFounderReward = async ({
 
 	return 'failed';
 };
+
+/**
+ * Pays the founder reward of one league to its owner `recipient`, once and
+ * within the per-account cap. `createLeague` calls it inline, since hooks
+ * never fire for its serverless writes; the hook below covers a league a
+ * client writes itself.
+ */
+export const payLeagueFounderReward = async ({
+	caller,
+	recipient,
+	leagueId
+}: {
+	caller: Uint8Array;
+	recipient: string;
+	leagueId: string;
+}): Promise<FounderPayoutOutcome> =>
+	await payFounderReward({
+		ledger: new IcrcLedgerCanister({ canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID) }),
+		caller,
+		recipient,
+		leagueId
+	});
 
 /**
  * Leagues post-write hook: wired into the `leagues` dispatch in
@@ -225,23 +245,14 @@ export const onLeagueSetForFounderVxpPayout = async (ctx: OnSetDocContext): Prom
 		const league = decodeDocData<LeagueDoc>(after.data);
 		const callerText = Principal.fromUint8Array(caller).toText();
 
-		// Pay the owner, and only when the founder is the writing caller:
-		// the `vxp_awards` assert binds recipient to caller, and a league is
-		// created by its owner (`createLeague` sets `owner` to the signer).
+		// Pay the owner, and only when the founder is the writing caller: a
+		// league is created by its owner (`assertSetLeague` binds `owner` to
+		// the signer on creation).
 		if (league.owner !== callerText) {
 			return;
 		}
 
-		const ledger = new IcrcLedgerCanister({
-			canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
-		});
-
-		await payFounderReward({
-			ledger,
-			caller,
-			recipient: callerText,
-			leagueId: league.id
-		});
+		await payLeagueFounderReward({ caller, recipient: callerText, leagueId: league.id });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 		// `key` is the league id for this collection: the user is the
