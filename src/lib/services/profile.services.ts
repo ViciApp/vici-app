@@ -377,10 +377,11 @@ export const upsertProfile = async (
 	profileDoc: Doc<UserProfile> | { key: string; data: UserProfile }
 ): Promise<void> => {
 	// web2 is a full-doc PUT: the server locks the caller's row, applies the
-	// same nickname / handle-cooldown / daily-goal guards, and returns the
-	// stored result. The caller's session identifies the row, so `owner` / role
-	// in the body are ignored; the account email lives on the auth identity in
-	// this mode, not the profile doc, so it is intentionally not sent here.
+	// same nickname / handle-cooldown guards, keeps the stored Flow daily goal,
+	// and returns the stored result. The caller's session identifies the row,
+	// so `owner` / role in the body are ignored; the account email lives on the
+	// auth identity in this mode, not the profile doc, so it is intentionally
+	// not sent here.
 	if (isWeb2Backend()) {
 		await upsertMyProfileWeb2(profileDoc.data);
 
@@ -403,6 +404,12 @@ export const upsertProfile = async (
 	const { email: _legacyEmail, ...data } = {
 		...base,
 		...profileDoc.data,
+		// The Flow daily goal is written only by `recordFlowSwipe`, and the
+		// `profiles` assert refuses a write that changes it. A full-snapshot
+		// caller's copy can trail a swipe recorded since, so the write always
+		// carries the stored values (none on a new profile).
+		dailyGoalDone: existing?.data.dailyGoalDone ?? 0,
+		dailyGoalDate: existing?.data.dailyGoalDate,
 		// Leaf-merge `preferences` onto the freshest stored slice rather than
 		// replacing it. Full-snapshot callers (avatar parts, handle rename)
 		// carry a `preferences` they built from an in-store snapshot that can

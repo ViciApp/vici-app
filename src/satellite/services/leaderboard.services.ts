@@ -1,10 +1,13 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
-import type { UserRole } from '#lib/enums/user.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
-import { isPubliclyHidden, withProfileDefaults } from '#satellite/services/profile.services.ts';
+import {
+	decodeStoredProfile,
+	isPubliclyHidden,
+	withProfileRole
+} from '#satellite/services/profile.services.ts';
 import { isNullish } from '@dfinity/utils';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
-import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
+import { listDocsStore } from '@junobuild/functions/sdk';
 import type { PrincipalText } from '@junobuild/schema';
 
 const LEADERBOARD_LIMIT = 50;
@@ -30,7 +33,7 @@ const rankedProfiles = (): UserProfile[] => {
 	});
 
 	return items
-		.map(([_, item]) => decodeDocData<UserProfile>(item.data))
+		.map(decodeStoredProfile)
 		.filter((profile) => !isPubliclyHidden(profile))
 		.sort((a, b) => {
 			const delta = (b.points ?? 0) - (a.points ?? 0);
@@ -66,22 +69,11 @@ export const listLeaderboard = (): UserProfile[] => {
 
 	return (
 		items
-			.map(([_, item]) => decodeDocData<UserProfile>(item.data))
+			.map(decodeStoredProfile)
 			// Soft-deleted OR hibernated accounts (Delete account v2) drop
 			// off the public leaderboard before the role lookup + hydrate.
 			.filter((profile) => !isPubliclyHidden(profile))
-			.map((profile) => {
-				const roleDoc = getDocStore({
-					collection: Collection.ROLES,
-					key: profile.owner,
-					caller
-				});
-
-				return withProfileDefaults({
-					...profile,
-					role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
-				});
-			})
+			.map((profile) => withProfileRole({ profile, caller }))
 			.sort((a, b) => {
 				const delta = (b.points ?? 0) - (a.points ?? 0);
 
@@ -140,19 +132,7 @@ export const getMyRivalFn = (): {
 		return { rival: undefined, rivalIsTrailing: false };
 	}
 
-	const roleDoc = getDocStore({
-		collection: Collection.ROLES,
-		key: rival.owner,
-		caller
-	});
-
-	return {
-		rival: withProfileDefaults({
-			...rival,
-			role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
-		}),
-		rivalIsTrailing
-	};
+	return { rival: withProfileRole({ profile: rival, caller }), rivalIsTrailing };
 };
 
 /**
