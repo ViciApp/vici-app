@@ -7,8 +7,8 @@
 	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
 	import { track } from '#lib/services/analytics.services.ts';
-	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 	import {
 		acceptBattle,
 		declineBattle,
@@ -52,7 +52,7 @@
 
 	let battles: BattleDoc[] = $state([]);
 	let memberships: LeagueWithRole[] = $state([]);
-	let selfPrincipal: string | undefined = $state();
+	const selfPrincipal = $derived($authPrincipal);
 	let loadState: 'loading' | 'ready' | 'not_found' | 'error' = $state('loading');
 	let errorMessage: string | null = $state(null);
 	let actingBattleId = $state<string | null>(null);
@@ -83,14 +83,9 @@
 
 	const load = async () => {
 		try {
-			const [battleList, mineList, identity] = await Promise.all([
-				listMyBattles(),
-				listMyLeagues(),
-				safeGetIdentityOnce()
-			]);
+			const [battleList, mineList] = await Promise.all([listMyBattles(), listMyLeagues()]);
 			battles = battleList;
 			memberships = mineList;
-			selfPrincipal = identity.getPrincipal().toText();
 			const found = battles.find((b) => b.id === battleId);
 			loadState = nonNullish(found) ? 'ready' : 'not_found';
 
