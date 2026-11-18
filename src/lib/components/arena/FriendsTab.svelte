@@ -59,7 +59,7 @@
 	} from '#lib/utils/format.utils.ts';
 	import { haptic } from '#lib/utils/haptics.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { appOrigin, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import {
 		formatVxpBalance,
 		formatWholeVxpMagnitude,
@@ -159,7 +159,7 @@
 		}
 
 		// Fetch the viewer's referral code so the hero can render the canonical
-		// `vici.market/i/{code}` URL. The code is assigned by the satellite profile hook
+		// `{origin}/i/{code}` URL. The code is assigned by the satellite profile hook
 		// on first profile create; if missing today the next profile save backfills it
 		// (see `referral.services.ts`).
 		void (async () => {
@@ -195,7 +195,7 @@
 	// and native-share so what the user sees is exactly what gets pasted.
 	const inviteUrl = $derived(
 		nonNullish(inviteCode) && typeof window !== 'undefined'
-			? `${window.location.origin}/i/${inviteCode}`
+			? `${appOrigin()}/i/${inviteCode}`
 			: undefined
 	);
 	const inviteUrlDisplay = $derived(

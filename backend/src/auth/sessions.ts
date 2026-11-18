@@ -22,19 +22,6 @@ export const createSession = async (userId: string): Promise<string> => {
 	return token;
 };
 
-/** The user id behind a session token, or null if the session is invalid. */
-export const userIdForToken = async (token: string): Promise<string | null> => {
-	const rows = await query<{ user_id: string }>(
-		`select s.user_id from sessions s
-		 join users u on u.id = s.user_id and u.hard_deleted_at is null
-		 where s.id = $1 and s.expires_at > now()
-		 limit 1`,
-		[peppered(token)]
-	);
-
-	return rows[0]?.user_id ?? null;
-};
-
 /** Login rotation: revoke whatever session the request carried (regardless of
  * owner) and issue a fresh token, so a pre-login cookie can never be fixated
  * into an authenticated one. */
