@@ -288,15 +288,19 @@ jobs:
     steps:
       - name: Cleared for merging
         # Three exit paths:
-        # 1. Paths filter skipped E2E entirely → clear to merge.
-        # 2. E2E ran, succeeded, no snapshot drift → clear to merge.
+        # 1. E2E ran, succeeded, no snapshot drift → clear to merge.
+        # 2. E2E was skipped because the paths filter saw no E2E or config
+        #    change → clear to merge.
         # 3. Anything else (failure, snapshot drift requiring re-review,
         #    cancellation) → block the merge.
+        # The result is checked before the paths filter: the suite also runs
+        # with no matching change (the opt-in label, a push to main, the
+        # nightly), and a failure there must not read as cleared.
         run: |
-          if [ "$E2E_OR_CONFIG_CHANGED" == "false" ]; then
-            echo "No E2E or config changes detected. PR is cleared for merging."
-          elif [[ "$E2E_RESULT" == "success" ]] && [[ "$E2E_SNAPSHOTS_CHANGED" == "false" ]]; then
+          if [[ "$E2E_RESULT" == "success" ]] && [[ "$E2E_SNAPSHOTS_CHANGED" == "false" ]]; then
             echo "This PR is cleared for merging"
+          elif [[ "$E2E_RESULT" == "skipped" ]] && [[ "$E2E_OR_CONFIG_CHANGED" == "false" ]]; then
+            echo "No E2E or config changes detected. PR is cleared for merging."
           else
             echo "This PR is not cleared for merging"
             exit 1
