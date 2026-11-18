@@ -1,11 +1,12 @@
 // The owner's profile write: structural validation of the client-sent doc,
 // the server-enforced guards (nickname validity + uniqueness, the
-// handle-change cooldown, daily-goal monotonicity) and the guarded upsert.
+// handle-change cooldown) and the guarded upsert. The Flow daily goal
+// (`daily_goal_done` / `daily_goal_date`) is not part of the doc: only the
+// flow-swipe counter in `flow.ts` writes it.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { tx, type TxQuery } from '../db/client';
 import { fanoutProfileDeltaToLeagueStats } from '../leagues/stats';
-import { DAILY_HARD_CAP } from './flow';
 import {
 	checkNicknameAvailability,
 	HANDLE_LAST_CHANGE_TOLERANCE_MS,
@@ -15,17 +16,26 @@ import {
 	nicknameUniqueKey
 } from './nickname';
 import {
-	asRecord,
 	getProfileRow,
 	PROFILE_VISIBILITIES,
 	ProfileValidationError,
+	sanitizePreferences,
 	shapeOwnProfile,
 	type OwnProfile,
+	type ProfilePreferences,
 	type ProfileRow,
 	type ProfileVisibility
 } from './profile';
 
-/** Client-writable profile doc (everything but the identity and the role). */
+/** Ceiling of every client-written integer counter on the profile (the trade
+ * count, the streaks, the level, the achievement tallies): far above any real
+ * activity, and far below the `int` columns that hold them and the league
+ * sums they feed. */
+export const MAX_PROFILE_COUNTER = 1_000_000;
+
+/** Client-writable profile doc: everything but the identity, the role, the
+ * server-owned Flow daily goal and the server-set `schoolStatus` (only school
+ * verification writes it); a client write keeps those as stored. */
 export interface ProfileInput {
 	nickname: string;
 	avatar: string;
@@ -37,8 +47,6 @@ export interface ProfileInput {
 	winRate: number;
 	dailyStreak: number;
 	longestStreak: number;
-	dailyGoalDone: number;
-	dailyGoalDate?: string;
 	streak: number;
 	accuracy: number;
 	points: number;
@@ -58,10 +66,9 @@ export interface ProfileInput {
 	topDecileStreak: number;
 	lastTopDecileDay?: string;
 	sharpestEyeBestTier?: string;
-	schoolStatus?: string;
 	earnedMenagerie?: string[];
 	handleLastChangeMs?: number;
-	preferences: unknown;
+	preferences: ProfilePreferences;
 }
 
 const finiteNumber = (value: unknown, field: string, fallback: number): number => {
@@ -71,6 +78,28 @@ const finiteNumber = (value: unknown, field: string, fallback: number): number =
 
 	if (typeof value !== 'number' || !Number.isFinite(value)) {
 		throw new ProfileValidationError(`${field} must be a finite number.`);
+	}
+
+	return value;
+};
+
+/** A client-written count stored in an `int` column: an integer within
+ * [0, MAX_PROFILE_COUNTER], so a fraction or an out-of-range value is a 400
+ * and never a database fault. */
+const counter = (value: unknown, field: string, fallback: number): number => {
+	if (isNullish(value)) {
+		return fallback;
+	}
+
+	if (
+		typeof value !== 'number' ||
+		!Number.isInteger(value) ||
+		value < 0 ||
+		value > MAX_PROFILE_COUNTER
+	) {
+		throw new ProfileValidationError(
+			`${field} must be an integer between 0 and ${MAX_PROFILE_COUNTER}.`
+		);
 	}
 
 	return value;
@@ -132,37 +161,39 @@ export const parseProfileInput = (body: Record<string, unknown>): ProfileInput =
 		email: stringField(body.email, 'email', ''),
 		pnl: finiteNumber(body.pnl, 'pnl', 0),
 		visibility: visibility as ProfileVisibility,
-		totalTrades: finiteNumber(body.totalTrades, 'totalTrades', 0),
+		totalTrades: counter(body.totalTrades, 'totalTrades', 0),
 		winRate: finiteNumber(body.winRate, 'winRate', 0),
-		dailyStreak: finiteNumber(body.dailyStreak, 'dailyStreak', 0),
-		longestStreak: finiteNumber(body.longestStreak, 'longestStreak', 0),
-		dailyGoalDone: finiteNumber(body.dailyGoalDone, 'dailyGoalDone', 0),
-		dailyGoalDate: optionalString(body.dailyGoalDate, 'dailyGoalDate'),
-		streak: finiteNumber(body.streak, 'streak', 0),
+		dailyStreak: counter(body.dailyStreak, 'dailyStreak', 0),
+		longestStreak: counter(body.longestStreak, 'longestStreak', 0),
+		streak: counter(body.streak, 'streak', 0),
 		accuracy: finiteNumber(body.accuracy, 'accuracy', 0),
 		points: finiteNumber(body.points, 'points', 0),
-		level: finiteNumber(body.level, 'level', 1),
+		level: counter(body.level, 'level', 1),
 		archetype: stringField(body.archetype, 'archetype', ''),
 		interests: stringArray(body.interests, 'interests'),
 		lastActiveDay: optionalString(body.lastActiveDay, 'lastActiveDay'),
 		unlockedAchievements: stringArray(body.unlockedAchievements, 'unlockedAchievements'),
-		contrarianWins: finiteNumber(body.contrarianWins, 'contrarianWins', 0),
+		contrarianWins: counter(body.contrarianWins, 'contrarianWins', 0),
 		bestUpsetConsensus: optionalFiniteNumber(body.bestUpsetConsensus, 'bestUpsetConsensus'),
-		onFireStreak: finiteNumber(body.onFireStreak, 'onFireStreak', 0),
-		comebacks: finiteNumber(body.comebacks, 'comebacks', 0),
-		winningCategories: finiteNumber(body.winningCategories, 'winningCategories', 0),
-		leaguesJoined: finiteNumber(body.leaguesJoined, 'leaguesJoined', 0),
-		boutsWon: finiteNumber(body.boutsWon, 'boutsWon', 0),
-		leaguesFounded: finiteNumber(body.leaguesFounded, 'leaguesFounded', 0),
-		topDecileStreak: finiteNumber(body.topDecileStreak, 'topDecileStreak', 0),
+		onFireStreak: counter(body.onFireStreak, 'onFireStreak', 0),
+		comebacks: counter(body.comebacks, 'comebacks', 0),
+		winningCategories: counter(body.winningCategories, 'winningCategories', 0),
+		leaguesJoined: counter(body.leaguesJoined, 'leaguesJoined', 0),
+		boutsWon: counter(body.boutsWon, 'boutsWon', 0),
+		leaguesFounded: counter(body.leaguesFounded, 'leaguesFounded', 0),
+		topDecileStreak: counter(body.topDecileStreak, 'topDecileStreak', 0),
 		lastTopDecileDay: optionalString(body.lastTopDecileDay, 'lastTopDecileDay'),
 		sharpestEyeBestTier: optionalString(body.sharpestEyeBestTier, 'sharpestEyeBestTier'),
-		schoolStatus: optionalString(body.schoolStatus, 'schoolStatus'),
 		earnedMenagerie: isNullish(body.earnedMenagerie)
 			? undefined
 			: stringArray(body.earnedMenagerie, 'earnedMenagerie'),
 		handleLastChangeMs: optionalFiniteNumber(body.handleLastChangeMs, 'handleLastChangeMs'),
-		preferences: body.preferences ?? {}
+		// Shaped by the read schema before it is stored, so SQL that reads a
+		// preference leaf only ever meets the types that schema guarantees.
+		preferences: sanitizePreferences({
+			preferences: body.preferences,
+			visibility: visibility as ProfileVisibility
+		})
 	};
 };
 
@@ -288,42 +319,21 @@ const assertValidNickname = async ({
 };
 
 /**
- * Backstop for the server-authoritative Flow daily cap: a direct profile
- * write must not roll the daily counter backward within a day, nor push it
- * past the hard cap. A stale client that re-saves a lower same-day total is
- * rejected so the recorded progress stands; a new-day reset is allowed.
+ * The trade count only ever grows: a lower figure (a client reading a shorter
+ * history) keeps the stored one, so the league fan-out sees only new highs
+ * and a drop followed by a rise back counts once.
  */
-const assertDailyGoalMonotonic = ({
+const storedTradeCount = ({
 	proposed,
 	current
 }: {
 	proposed: ProfileInput;
 	current: ProfileRow | undefined;
-}): void => {
-	const proposedDone = proposed.dailyGoalDone ?? 0;
-
-	if (!Number.isInteger(proposedDone) || proposedDone < 0) {
-		throw new ProfileValidationError('dailyGoalDone must be a non-negative integer.');
-	}
-
-	if (proposedDone > DAILY_HARD_CAP) {
-		throw new ProfileValidationError(
-			`dailyGoalDone cannot exceed the daily hard cap of ${DAILY_HARD_CAP}.`
-		);
-	}
-
-	if (isNullish(current) || (current.daily_goal_date ?? undefined) !== proposed.dailyGoalDate) {
-		return;
-	}
-
-	if (proposedDone < (current.daily_goal_done ?? 0)) {
-		throw new ProfileValidationError('dailyGoalDone cannot decrease within the same day.');
-	}
-};
+}): number => Math.max(proposed.totalTrades, current?.total_trades ?? 0);
 
 /**
- * Full-doc upsert of the caller's own profile, guarded by the nickname and
- * daily-goal invariants. Runs in one transaction with the stored row locked,
+ * Full-doc upsert of the caller's own profile, guarded by the nickname
+ * invariants. Runs in one transaction with the stored row locked,
  * so concurrent writes serialize and the guards always compare against the
  * latest committed state; the unique nickname index remains the last-resort
  * backstop for a race on the same fold.
@@ -344,22 +354,23 @@ export const upsertMyProfile = async ({
 		const current = await getProfileRow({ userId, q });
 
 		await assertValidNickname({ userId, proposed, current, nowMs, q });
-		assertDailyGoalMonotonic({ proposed, current });
+
+		const totalTrades = storedTradeCount({ proposed, current });
 
 		try {
 			await q(
 				`insert into profiles (
 				   user_id, nickname, nickname_key, avatar, avatar_parts, email, pnl, visibility,
-				   total_trades, win_rate, daily_streak, longest_streak, daily_goal_done,
-				   daily_goal_date, streak, accuracy, points, level, archetype, interests,
-				   last_active_day, unlocked_achievements, contrarian_wins, best_upset_consensus,
-				   on_fire_streak, comebacks, winning_categories, leagues_joined, bouts_won,
-				   leagues_founded, top_decile_streak, last_top_decile_day, sharpest_eye_best_tier,
-				   school_status, earned_menagerie, handle_last_change_ms, preferences, updated_at
+				   total_trades, win_rate, daily_streak, longest_streak, streak, accuracy, points,
+				   level, archetype, interests, last_active_day, unlocked_achievements,
+				   contrarian_wins, best_upset_consensus, on_fire_streak, comebacks,
+				   winning_categories, leagues_joined, bouts_won, leagues_founded, top_decile_streak,
+				   last_top_decile_day, sharpest_eye_best_tier, earned_menagerie,
+				   handle_last_change_ms, preferences, updated_at
 				 ) values (
 				   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
 				   $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34,
-				   $35, $36, $37, now()
+				   now()
 				 )
 				 on conflict (user_id) do update set
 				   nickname = excluded.nickname,
@@ -373,8 +384,6 @@ export const upsertMyProfile = async ({
 				   win_rate = excluded.win_rate,
 				   daily_streak = excluded.daily_streak,
 				   longest_streak = excluded.longest_streak,
-				   daily_goal_done = excluded.daily_goal_done,
-				   daily_goal_date = excluded.daily_goal_date,
 				   streak = excluded.streak,
 				   accuracy = excluded.accuracy,
 				   points = excluded.points,
@@ -394,7 +403,6 @@ export const upsertMyProfile = async ({
 				   top_decile_streak = excluded.top_decile_streak,
 				   last_top_decile_day = excluded.last_top_decile_day,
 				   sharpest_eye_best_tier = excluded.sharpest_eye_best_tier,
-				   school_status = excluded.school_status,
 				   earned_menagerie = excluded.earned_menagerie,
 				   handle_last_change_ms = excluded.handle_last_change_ms,
 				   preferences = excluded.preferences,
@@ -408,12 +416,10 @@ export const upsertMyProfile = async ({
 					proposed.email,
 					proposed.pnl,
 					proposed.visibility,
-					proposed.totalTrades,
+					totalTrades,
 					proposed.winRate,
 					proposed.dailyStreak,
 					proposed.longestStreak,
-					proposed.dailyGoalDone,
-					proposed.dailyGoalDate ?? null,
 					proposed.streak,
 					proposed.accuracy,
 					proposed.points,
@@ -433,10 +439,9 @@ export const upsertMyProfile = async ({
 					proposed.topDecileStreak,
 					proposed.lastTopDecileDay ?? null,
 					proposed.sharpestEyeBestTier ?? null,
-					proposed.schoolStatus ?? null,
 					nonNullish(proposed.earnedMenagerie) ? JSON.stringify(proposed.earnedMenagerie) : null,
 					proposed.handleLastChangeMs ?? null,
-					JSON.stringify(asRecord(proposed.preferences))
+					JSON.stringify(proposed.preferences)
 				]
 			);
 		} catch (err) {
@@ -469,7 +474,7 @@ export const upsertMyProfile = async ({
 			before: nonNullish(current)
 				? { totalTrades: current.total_trades, winRate: current.win_rate }
 				: undefined,
-			after: { totalTrades: proposed.totalTrades, winRate: proposed.winRate },
+			after: { totalTrades, winRate: proposed.winRate },
 			afterHibernated: nonNullish(row.hibernated_at_ms),
 			nowMs
 		});

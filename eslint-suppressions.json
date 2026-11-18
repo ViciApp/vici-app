@@ -458,7 +458,7 @@
 	},
 	"src/satellite/services/cohort.services.ts": {
 		"complexity": {
-			"count": 2
+			"count": 1
 		},
 		"max-depth": {
 			"count": 2

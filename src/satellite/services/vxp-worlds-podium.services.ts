@@ -13,9 +13,10 @@ import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import {
 	frozenMonthlyRanking,
 	hasFrozenMonthlySnapshotFn,
-	readAffiliationDoc,
+	heldAffiliations,
 	settledMonthlyRows
 } from '#satellite/services/cohort.services.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -28,7 +29,6 @@ import {
 	encodeDocData,
 	getAdminAccessKeys,
 	getDocStore,
-	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
 
@@ -241,10 +241,8 @@ export const claimWorldsPodiumPrizeFn = async ({
 						place,
 						amount,
 						awardKey,
-						docKey,
 						caller,
 						callerText,
-						callerBytes,
 						monthAnchor,
 						nowMs
 					});
@@ -273,10 +271,8 @@ const processAward = async ({
 	place,
 	amount,
 	awardKey,
-	docKey,
 	caller,
 	callerText,
-	callerBytes,
 	monthAnchor,
 	nowMs
 }: {
@@ -284,10 +280,8 @@ const processAward = async ({
 	place: 'gold' | 'silver' | 'bronze';
 	amount: bigint;
 	awardKey: string;
-	docKey: string;
 	caller: Principal;
 	callerText: string;
-	callerBytes: Uint8Array;
 	monthAnchor: string;
 	nowMs: number;
 }): Promise<number> => {
@@ -303,14 +297,7 @@ const processAward = async ({
 		earnedAtMs: nowMs
 	};
 
-	setDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes,
-		doc: {
-			data: encodeDocData(pendingDoc)
-		}
-	});
+	persistAward({ recipient: callerText, awardType: 'worlds_podium', awardKey, doc: pendingDoc });
 
 	const ledger = new IcrcLedgerCanister({
 		canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
@@ -320,14 +307,6 @@ const processAward = async ({
 		toOwner: caller,
 		amount,
 		memo: `vxp:worlds_podium:${awardKey}`
-	});
-
-	// Re-read the doc to pick up the version stamp from the
-	// `pending` write above.
-	const pendingExisting = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes
 	});
 
 	if (transferResult.ok) {
@@ -341,18 +320,14 @@ const processAward = async ({
 				monthAnchor
 			}
 		});
-		setDocStore({
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			caller: callerBytes,
-			doc: {
-				data: encodeDocData<VxpAwardDoc>({
-					...pendingDoc,
-					status: 'paid',
-					paidAtMs: nowMs,
-					blockIndex: transferResult.blockIndex.toString()
-				}),
-				version: pendingExisting?.version
+		updateAward({
+			recipient: callerText,
+			awardType: 'worlds_podium',
+			awardKey,
+			patch: {
+				status: 'paid',
+				paidAtMs: nowMs,
+				blockIndex: transferResult.blockIndex.toString()
 			}
 		});
 	} else {
@@ -366,18 +341,11 @@ const processAward = async ({
 				error: transferResult.error
 			}
 		});
-		setDocStore({
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			caller: callerBytes,
-			doc: {
-				data: encodeDocData<VxpAwardDoc>({
-					...pendingDoc,
-					status: 'failed',
-					errorMessage: transferResult.error
-				}),
-				version: pendingExisting?.version
-			}
+		updateAward({
+			recipient: callerText,
+			awardType: 'worlds_podium',
+			awardKey,
+			patch: { status: 'failed', errorMessage: transferResult.error }
 		});
 	}
 
@@ -392,32 +360,6 @@ const readMyAffiliation = ({
 	callerText: string;
 	callerBytes: Uint8Array;
 	kind: AffiliationKind;
-}): { affiliation: AffiliationDoc; createdAtNs: bigint } | undefined => {
-	// The affiliation doc key is `${memberPrincipal}/${kind}/${affiliationIdentifier}`:
-	// we don't know `affiliationIdentifier` yet, so we scan and filter. Two
-	// max possibilities per user (one per kind), so the bound is tight.
-	// Skipping the scan entirely is hard without a reverse-index doc.
-	const prefix = `${callerText}/${kind}/`;
-
-	// `listDocsStore` doesn't support prefix params in the current
-	// SDK; we filter manually.
-	const { items } = listDocsStore({
-		collection: Collection.AFFILIATIONS,
-		caller: callerBytes,
-		params: {}
-	});
-
-	for (const [docKey, item] of items) {
-		if (docKey.startsWith(prefix)) {
-			try {
-				const doc = readAffiliationDoc(item.data);
-
-				if (nonNullish(doc) && doc.kind === kind && doc.member === callerText) {
-					return { affiliation: doc, createdAtNs: item.created_at };
-				}
-			} catch {
-				// skip malformed
-			}
-		}
-	}
-};
+}): { affiliation: AffiliationDoc; createdAtNs: bigint } | undefined =>
+	// The same row `settledMonthlyRows` ranks the member under.
+	heldAffiliations({ caller: callerBytes, member: callerText, kind })[0];

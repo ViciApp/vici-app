@@ -114,6 +114,14 @@ export const Collection = {
 	 */
 	LEAGUE_MEMBERS: collections.LEAGUE_MEMBERS,
 	/**
+	 * Invite code of each league, one doc per league keyed by the league id, the code also in the
+	 * doc's description so a join resolves it with a description matcher. Controllers-only: the code
+	 * is the only way into a league, so it never sits on the public {@link Collection.LEAGUES} doc;
+	 * `createLeague` writes it, `joinLeagueByInvite` reads it, and members read their leagues' codes
+	 * through `listMyLeagues`.
+	 */
+	LEAGUE_INVITES: collections.LEAGUE_INVITES,
+	/**
 	 * Battles: time-bound competitions. Two kinds: 'league' (leagueA vs leagueB) and
 	 * 'duel' (proposer principal vs challenger principal). Doc key is the battle id. State machine
 	 * `proposed → accepted → in_flight → resolved` enforced by the satellite assert; scores write
