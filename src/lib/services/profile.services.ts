@@ -9,6 +9,7 @@ import {
 	sanitizeNickname
 } from '#lib/constants/profile.constants.ts';
 import { defaultPreferences } from '#lib/constants/settings.constants.ts';
+import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
 import { notifyAchievementsUnlocked } from '#lib/services/achievements.services.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
@@ -151,8 +152,10 @@ export const loadWeb2ProfileShell = async (
  * opted in to every sharing preference, so caching one for an owner with no
  * readable profile (a hidden account, or in web2 mode a ranking row keyed by
  * an engine principal) would let them past the leaderboard opt-out, which
- * fails closed on an uncached owner. Those owners are remembered for the
- * session instead, so they are not fetched again.
+ * fails closed on an uncached owner. Those owners are remembered for
+ * {@link PROFILE_UNRESOLVED_RECHECK_MS} instead, so a large standings page
+ * does not refetch them on every hydration, yet a profile created or
+ * recovered meanwhile shows up without a reload.
  *
  * Fetches run in bounded batches ({@link PROFILE_HYDRATION_CONCURRENCY}) rather
  * than one big `Promise.all`: a large caller (e.g. the full Leaderboard) would
@@ -162,7 +165,22 @@ export const loadWeb2ProfileShell = async (
  */
 const PROFILE_HYDRATION_CONCURRENCY = 25;
 
-const unresolvedProfileOwners = new Set<PrincipalText>();
+const PROFILE_UNRESOLVED_RECHECK_MS = 5 * MINUTE_IN_MS;
+
+/** Owner → when the backend last answered that it has no profile to show. */
+const unresolvedProfileOwners = new Map<PrincipalText, number>();
+
+const isRecentlyUnresolved = ({
+	principal,
+	nowMs
+}: {
+	principal: PrincipalText;
+	nowMs: number;
+}): boolean => {
+	const markedAtMs = unresolvedProfileOwners.get(principal);
+
+	return nonNullish(markedAtMs) && nowMs - markedAtMs < PROFILE_UNRESOLVED_RECHECK_MS;
+};
 
 export const loadProfilesByPrincipals = async ({
 	principals
@@ -170,9 +188,10 @@ export const loadProfilesByPrincipals = async ({
 	principals: PrincipalText[];
 }): Promise<void> => {
 	const cached = get(profilesStore);
+	const nowMs = Date.now();
 	const unique = Array.from(new Set(principals)).filter(
 		(principal) =>
-			principal.length > 0 && !cached.has(principal) && !unresolvedProfileOwners.has(principal)
+			principal.length > 0 && !cached.has(principal) && !isRecentlyUnresolved({ principal, nowMs })
 	);
 
 	if (unique.length === 0) {
@@ -207,8 +226,9 @@ export const loadProfilesByPrincipals = async ({
 			const result = results[i];
 
 			if (result === 'absent') {
-				unresolvedProfileOwners.add(unique[i]);
+				unresolvedProfileOwners.set(unique[i], nowMs);
 			} else if (result !== 'failed') {
+				unresolvedProfileOwners.delete(unique[i]);
 				next.set(unique[i], result.profile);
 			}
 		}
