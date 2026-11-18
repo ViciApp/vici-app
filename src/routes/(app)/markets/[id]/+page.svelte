@@ -157,7 +157,16 @@
 	// paint: keeps the certified update's second `onLoad` from re-fetching.
 	let signalsFetchedForId: MarketId | undefined;
 
+	// Bumped by every foreground load. A load only writes page state while its
+	// generation is still the latest and the URL still names its market, so a
+	// poll or an older foreground load resolving after a navigation (or after a
+	// newer load) cannot overwrite the current market or its error state.
+	let loadGeneration = 0;
+
 	const fetchMarket = async ({ id, silent = false }: { id: MarketId; silent?: boolean }) => {
+		const generation = silent ? loadGeneration : ++loadGeneration;
+		const isCurrent = (): boolean => generation === loadGeneration && $pageMarketId === id;
+
 		if (!silent) {
 			loading = true;
 			loadFailed = false;
@@ -196,7 +205,7 @@
 		const onCallFailed = () => {
 			failedCalls++;
 
-			if (!silent && failedCalls === 2 && $pageMarketId === id) {
+			if (!silent && failedCalls === 2 && isCurrent()) {
 				loading = false;
 				loadFailed = true;
 			}
@@ -206,6 +215,10 @@
 			loadMarket({
 				marketId: id,
 				onLoad: ({ response }) => {
+					if (!isCurrent()) {
+						return;
+					}
+
 					market = response;
 
 					const firstPaint = !silent || loadFailed;
@@ -244,7 +257,7 @@
 		// Drop a late response from a previously-viewed market: a fast navigation
 		// can resolve an older market's positions after the current one's, which
 		// would otherwise clobber the live set (and its loaded/shimmer state).
-		if ($pageMarketId !== id) {
+		if (!isCurrent()) {
 			return;
 		}
 
@@ -493,8 +506,6 @@
 		if (nonNullish($pageMarketId)) {
 			track({ name: 'market_viewed', source: 'market_detail', marketId: $pageMarketId });
 
-			fetchMarket({ id: $pageMarketId });
-
 			intervalId = setInterval(() => {
 				if (nonNullish($pageMarketId)) {
 					fetchMarket({ id: $pageMarketId, silent: true });
@@ -509,6 +520,8 @@
 		};
 	});
 
+	// The only foreground load trigger, the first one included: a second
+	// caller would race this one for the same market.
 	$effect(() => {
 		if (nonNullish($pageMarketId) && (isNullish(market) || market.id !== $pageMarketId)) {
 			fetchMarket({ id: $pageMarketId });
