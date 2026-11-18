@@ -131,9 +131,6 @@
 	"scripts/satellite-upgrade-needed.mjs": {
 		"complexity": {
 			"count": 1
-		},
-		"max-depth": {
-			"count": 1
 		}
 	},
 	"src/lib/components/admin/AdminBulkMarketForm.svelte": {
