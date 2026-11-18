@@ -76,10 +76,12 @@ export const getStandings = async ({
 	window: StandingsWindow;
 }): Promise<StandingsResult> => {
 	// The global ranking is a public engine read on the HTTP bridge, so web2
-	// needs no signed identity. `owner` on each entry stays the on-chain
-	// principal from clearing (the ranking's native key) until the engine and
-	// wallet swap maps engine identities onto accounts. The bridge drains the
-	// ranking with its own page bound, which covers the same visible depth.
+	// needs no signed identity. `owner` on each entry is clearing's native key,
+	// the engine principal (for a web2 account, its custodial principal), never
+	// the account id: the bridge maps no principal back to an account, so no
+	// profile resolves for these rows and the leaderboard opt-out hides them
+	// (fail closed). The bridge drains the ranking with its own page bound,
+	// which covers the same visible depth.
 	if (isWeb2Backend()) {
 		const { items, total } = await listEngineLeaderboardWeb2({
 			window: toWindow(window),

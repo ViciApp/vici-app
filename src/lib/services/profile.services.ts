@@ -94,29 +94,31 @@ export const emptyProfile = (owner: PrincipalText): UserProfile => ({
 });
 
 /**
- * Loads a user profile from the backend or returns a default shell. web2 reads
- * the HTTP API (`owner` is the account id there); the default on-chain path
- * merges role from the satellite query. Both branches return the same
- * `Doc<UserProfile>` shape so every caller stays backend-agnostic.
+ * The stored profile, or `undefined` when the backend has none to show for
+ * this owner: no profile yet, a hidden (deleted or hibernated) account, or, in
+ * web2 mode, any owner that is not an account id (the API answers those as
+ * absent). web2 reads the HTTP API (`owner` is the account id there); the
+ * default on-chain path merges role from the satellite query.
  */
-export const getProfile = async (principal: PrincipalText): Promise<Doc<UserProfile>> => {
+const fetchProfile = async (principal: PrincipalText): Promise<UserProfile | undefined> => {
 	if (isWeb2Backend()) {
-		const profile = await getProfileWeb2(principal);
-
-		return { key: principal, data: profile ?? emptyProfile(principal) };
+		return (await getProfileWeb2(principal)) ?? undefined;
 	}
 
 	const { profile } = await functions.getProfile({ principalStr: principal });
 
-	if (isNullish(profile)) {
-		return { key: principal, data: emptyProfile(principal) };
-	}
-
-	return {
-		key: principal,
-		data: profile as UserProfile
-	};
+	return isNullish(profile) ? undefined : (profile as UserProfile);
 };
+
+/**
+ * Loads a user profile from the backend or returns a default shell. Both
+ * backends return the same `Doc<UserProfile>` shape so every caller stays
+ * backend-agnostic.
+ */
+export const getProfile = async (principal: PrincipalText): Promise<Doc<UserProfile>> => ({
+	key: principal,
+	data: (await fetchProfile(principal)) ?? emptyProfile(principal)
+});
 
 /**
  * The signed-in user's own profile for the web2 app-shell hydration. Returns
@@ -145,6 +147,13 @@ export const loadWeb2ProfileShell = async (
  * have an entry, and the UI is expected to fall back to a shortened
  * principal. This mirrors what every existing caller was already doing.
  *
+ * Only stored profiles are cached, never the default shell. A shell reads as
+ * opted in to every sharing preference, so caching one for an owner with no
+ * readable profile (a hidden account, or in web2 mode a ranking row keyed by
+ * an engine principal) would let them past the leaderboard opt-out, which
+ * fails closed on an uncached owner. Those owners are remembered for the
+ * session instead, so they are not fetched again.
+ *
  * Fetches run in bounded batches ({@link PROFILE_HYDRATION_CONCURRENCY}) rather
  * than one big `Promise.all`: a large caller (e.g. the full Leaderboard) would
  * otherwise open a request per principal at once, saturating the browser's
@@ -153,6 +162,8 @@ export const loadWeb2ProfileShell = async (
  */
 const PROFILE_HYDRATION_CONCURRENCY = 25;
 
+const unresolvedProfileOwners = new Set<PrincipalText>();
+
 export const loadProfilesByPrincipals = async ({
 	principals
 }: {
@@ -160,14 +171,17 @@ export const loadProfilesByPrincipals = async ({
 }): Promise<void> => {
 	const cached = get(profilesStore);
 	const unique = Array.from(new Set(principals)).filter(
-		(principal) => principal.length > 0 && !cached.has(principal)
+		(principal) =>
+			principal.length > 0 && !cached.has(principal) && !unresolvedProfileOwners.has(principal)
 	);
 
 	if (unique.length === 0) {
 		return;
 	}
 
-	const docs: (Awaited<ReturnType<typeof getProfile>> | undefined)[] = [];
+	// `absent`: the backend answered with no profile; `failed`: the read
+	// failed, so a later call may retry it.
+	const results: ({ profile: UserProfile } | 'absent' | 'failed')[] = [];
 
 	for (let start = 0; start < unique.length; start += PROFILE_HYDRATION_CONCURRENCY) {
 		const batch = unique.slice(start, start + PROFILE_HYDRATION_CONCURRENCY);
@@ -175,20 +189,27 @@ export const loadProfilesByPrincipals = async ({
 		// Batches run sequentially to cap concurrency; within a batch the
 		// per-principal fetches are parallel.
 		const settled = await Promise.all(
-			batch.map((principal) => getProfile(principal).catch(() => undefined))
+			batch.map((principal) =>
+				fetchProfile(principal).then(
+					(profile) => (nonNullish(profile) ? { profile } : ('absent' as const)),
+					() => 'failed' as const
+				)
+			)
 		);
 
-		docs.push(...settled);
+		results.push(...settled);
 	}
 
 	profilesStore.update((current) => {
 		const next = new Map(current);
 
 		for (let i = 0; i < unique.length; i++) {
-			const doc = docs[i];
+			const result = results[i];
 
-			if (doc) {
-				next.set(unique[i], doc.data);
+			if (result === 'absent') {
+				unresolvedProfileOwners.add(unique[i]);
+			} else if (result !== 'failed') {
+				next.set(unique[i], result.profile);
 			}
 		}
 

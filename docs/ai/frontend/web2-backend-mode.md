@@ -367,9 +367,13 @@ apply them at the fetch boundary.
   settlement (`resolution.services.ts` `settleMarket`) are user-signed
   registry / clearing writes with no HTTP route yet; curator / admin
   surfaces stay on the on-chain identity.
-- Leaderboard identity caveat: web2 standings entries keep the on-chain
-  principal as `owner` (clearing's native key) until the engine identity
-  mapping lands.
+- Leaderboard identity caveat: web2 standings entries keep the engine
+  principal (a web2 account's custodial principal) as `owner`, clearing's
+  native key; no API route maps it back to an account, so no profile
+  resolves for these rows. `loadProfilesByPrincipals` caches only stored
+  profiles, never the default shell, so the "Show on global leaderboard"
+  opt-out fails closed on them and the global standings render empty in web2
+  mode until a route that resolves engine principals to accounts exists.
 
 ## Engine account operations and the custodial wallet
 
