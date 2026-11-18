@@ -9,12 +9,12 @@ Status: Implemented (#838)
 
 When adding a friend fails, the user learns **why** in plain words
 instead of a blank "Failed to send request": already friends, request
-already pending, or "they declined — you can try again in 6 days"
+already pending, or "they declined; you can try again in 6 days"
 (scaled down to hours / minutes / seconds as the window shrinks).
 Unexpected failures stay friendly but carry a short technical detail
 the user can screenshot so we can diagnose. Behind it, the reject
 policy becomes recoverable: the **rejecter** may re-initiate anytime,
-the **rejected sender** may retry after a cooldown — today a single
+the **rejected sender** may retry after a cooldown: today a single
 rejection permanently bricks friend requests between the pair, in both
 directions. All friendship rules land in `docs/ai/PRODUCT.md` as the
 product-rules record.
@@ -27,16 +27,16 @@ product-rules record.
   FE-side `not_found` / `self` codes and collapses everything else to
   `arena.friends.error.send_failed`.
 - FE service: `sendFriendRequest` in
-  `src/lib/services/relation.services.ts` — resolves `@handle` /
+  `src/lib/services/relation.services.ts`: resolves `@handle` /
   principal via `searchProfiles`, then calls the satellite.
 - Satellite: `sendFriendRequest` in
-  `src/satellite/services/relation.services.ts` — throws
+  `src/satellite/services/relation.services.ts`: throws
   `Friend request already exists with state: <state>` for any existing
   relation (PENDING-where-caller-is-sender / ACTIVE / REJECTED). The
   mutual-request auto-accept (A→B pending + B adds A → ACTIVE) already
   exists there.
 - Reject: `rejectFriendRequest` flips the relation doc to
-  `RelationState.REJECTED` and nothing ever clears it — `accept` and
+  `RelationState.REJECTED` and nothing ever clears it: `accept` and
   `cancel` only operate on PENDING docs, `unfriend` only deletes ACTIVE
   ones. The doc's `updated_at` (ns) is the rejection time, since the
   reject write is the last write a REJECTED doc receives.
@@ -46,13 +46,13 @@ product-rules record.
   parsing trap message strings through the agent error chain.
 - Time formatting: `formatRelativeAgoFromNs` in
   `src/lib/utils/format.utils.ts` already does locale-aware
-  largest-unit selection via `Intl.RelativeTimeFormat` — the future
+  largest-unit selection via `Intl.RelativeTimeFormat`; the future
   direction ("in 3 days" / "in 5 hours" / "in 12 minutes" / "in 40
   seconds") reuses the same unit table.
 
 ## Scope
 
-1. **Satellite — typed outcome instead of a trap.**
+1. **Satellite: typed outcome instead of a trap.**
    `sendFriendRequest` returns
    `{ status: 'sent' | 'auto_accepted' | 'already_friends' | 'already_pending' | 'rejected_cooldown', retryAtMs? }`:
    - no existing relation → write PENDING, `sent`;
@@ -76,7 +76,7 @@ product-rules record.
    `FRIEND_REQUEST_REJECTED_COOLDOWN_MS` = **7 days** in a new shared
    `src/lib/constants/relation.constants.ts` (satellite already
    imports `#lib/constants/*`, cf. `collections.constants`). Picked as
-   a sensible default — flagged in the PR for product sign-off; one
+   a sensible default, flagged in the PR for product sign-off; one
    constant to change.
 3. **FE mapping.** `handleAddSubmit` branches on the returned status:
    - `sent` → close sheet (current success path);
@@ -84,17 +84,17 @@ product-rules record.
      friends");
    - `already_friends` / `already_pending` → informational toast with
      dedicated copy;
-   - `rejected_cooldown` → toast "They declined your last request — you
+   - `rejected_cooldown` → toast "They declined your last request; you
      can try again {when}", `{when}` from the new formatter below;
    - FE-side `not_found` / `self` keep their existing messages;
    - any thrown/unknown error → friendly copy **plus the raw error
      detail** (trimmed) so a screenshot is diagnosable:
-     "Something went wrong — screenshot this and tell us: {detail}".
+     "Something went wrong; screenshot this and tell us: {detail}".
 4. **Future-direction formatter.** `formatRelativeUntilFromMs({
 targetMs, locale, nowMs })` in `src/lib/utils/format.utils.ts`:
    `Intl.RelativeTimeFormat`, largest unit ≥ 1 from day → hour →
    minute, falling through to seconds (never an empty/zero phrase).
-   The toast renders the value once (static snapshot, no live tick) —
+   The toast renders the value once (static snapshot, no live tick):
    the unit scaling satisfies the days→…→seconds requirement.
 5. **i18n.** New keys under `arena.friends.*` in **all** catalogs in
    `src/lib/constants/messages/` (12 locales).
@@ -110,11 +110,11 @@ targetMs, locale, nowMs })` in `src/lib/utils/format.utils.ts`:
 - Live-ticking countdown UI inside the toast/sheet.
 - Notifying the rejected user when the cooldown lapses.
 - Surfacing rejected state in the outgoing-invites list
-  (`listSentFriendRequests` filters PENDING only — unchanged).
+  (`listSentFriendRequests` filters PENDING only: unchanged).
 
 ## Linked issues
 
-Closes #832 — "I cant add my friend @Pablo error Message why?": the
+Closes #832, "I cant add my friend @Pablo error Message why?": the
 generic toast is replaced by the specific reason, and the
 rejected-pair dead end (the likely underlying state) becomes
 recoverable per the policy above.
@@ -130,15 +130,15 @@ funnel (sends, auto-accepts) and the friction the issue reported
 (which block reasons users actually hit). Event name lands in **both**
 `src/lib/types/analytics-event.ts` (TS union) and
 `src/lib/schema/analytics-event.schema.ts` (Zod mirror). No new prop
-dimensions needed — `label` exists.
+dimensions needed: `label` exists.
 
-## Technical requirements (satellite / backend — mandatory)
+## Technical requirements (satellite / backend, mandatory)
 
 - **Performance.** `sendFriendRequest` is a user-initiated update call
-  (a few per user per day at most). The change adds zero reads — the
+  (a few per user per day at most). The change adds zero reads: the
   existing-doc read already happens; cooldown math is arithmetic on
   `doc.updated_at`. No new hooks.
-- **Memory & storage.** No new collection, no doc-shape change — the
+- **Memory & storage.** No new collection, no doc-shape change: the
   REJECTED→PENDING transition reuses the same `RELATIONS` doc key
   (sorted participant pair). Rejection time is read from the doc's
   Juno `updated_at`; nothing new is persisted.
@@ -150,12 +150,12 @@ dimensions needed — `label` exists.
   `satellite.did` / `satellite_extension.did` / `api-schemas.ts` /
   `src/declarations/satellite/**` in the same PR. The FE is the only
   consumer and ships in the same PR; deploy order (satellite upgrade
-  before FE) is the usual release flow — not marked breaking.
+  before FE) is the usual release flow, not marked breaking.
 - **Security.** No collection-rule changes. The caller can only ever
   create/overwrite a relation doc whose key includes their own
   principal; `setDocStore` runs with the real caller as today.
   `retryAtMs` leaks only the rejection time of the caller's own
-  rejected request — acceptable.
+  rejected request: acceptable.
 - **Parameters.** Cooldown lives only in
   `src/lib/constants/relation.constants.ts`
   (`FRIEND_REQUEST_REJECTED_COOLDOWN_MS`); docs reference the constant,
@@ -186,7 +186,7 @@ dimensions needed — `label` exists.
 
 ## Acceptance criteria
 
-- [ ] Adding an existing friend shows the "already friends" message —
+- [ ] Adding an existing friend shows the "already friends" message;
       no generic failure.
 - [ ] Re-sending while a request is pending shows the "already sent"
       message.
@@ -212,20 +212,20 @@ dimensions needed — `label` exists.
 
 ## Decisions
 
-- **Typed result over thrown errors** for known outcomes — mirrors
+- **Typed result over thrown errors** for known outcomes, mirrors
   `checkNicknameAvailability`'s reason enum; trap-message string
   parsing through the agent error chain is fragile and can't carry
   `retryAtMs` cleanly. Unknown failures still trap → FE catch-all.
-- **Cooldown = 7 days** — not specified by product; chosen as a
+- **Cooldown = 7 days**: not specified by product; chosen as a
   conservative default and isolated in one constant. Flag for
   sign-off in the PR.
-- **Rejection time = doc `updated_at`** — avoids a schema/data
+- **Rejection time = doc `updated_at`**: avoids a schema/data
   migration; the reject write is provably the last write to a REJECTED
   doc.
-- **Static "in X" snapshot, not a ticking countdown** — the message
+- **Static "in X" snapshot, not a ticking countdown**: the message
   lives in a transient toast; unit scaling (days→…→seconds) conveys
   the wait precisely enough without timer plumbing.
 - **Rejecter re-initiating flips `participants` order** to
-  `[newSender, newTarget]` — the doc key (sorted pair) is unchanged,
+  `[newSender, newTarget]`: the doc key (sorted pair) is unchanged,
   and all role checks (`participants[0]` = sender) stay consistent for
   the new request's lifecycle.

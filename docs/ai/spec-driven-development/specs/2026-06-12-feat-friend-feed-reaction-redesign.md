@@ -1,4 +1,4 @@
-# Spec: Friend activity feed — reaction redesign (Zap)
+# Spec: Friend activity feed: reaction redesign (Zap)
 
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
@@ -21,7 +21,7 @@ plus a `--laurel` particle burst; single tap-to-react interaction (one
 reaction per row, toggles on tap).
 
 > The separate "show only friends' daily win/loss in a 24h window"
-> change is **not** in this spec — tracing the data layer showed the
+> change is **not** in this spec: tracing the data layer showed the
 > friend feed has no per-friend win/loss source (the activity
 > `SETTLEMENT` rows are admin market-resolution events, not friends'
 > position outcomes). That work is split into
@@ -51,12 +51,12 @@ The feed and reaction live in
 Brand constraints
 ([`docs/ai/frontend/brand.md`](../../frontend/brand.md)):
 
-- §2.3 no emoji — Lucide glyph only (`@lucide/svelte` is the standard,
+- §2.3 no emoji: Lucide glyph only (`@lucide/svelte` is the standard,
   §6.1, stroke 1.6).
 - §4 `--laurel` (`#E2B842`) is the singular brand accent.
 - §8 motion: a per-row reaction is frequent, so the commit keeps a
   small tactile motion, never a full celebratory bounce; reduced motion
-  is non-negotiable — gate CSS with
+  is non-negotiable: gate CSS with
   `@media (prefers-reduced-motion: reduce)` and JS with
   `prefersReducedMotion()` from
   `src/lib/utils/reduced-motion.utils.ts`.
@@ -68,7 +68,7 @@ Brand constraints
 - Rename the local reaction state to read as a "like": `clappedKeys` →
   `likedKeys`, `toggleClap` → `toggleLike`, `.is-clapped` →
   `.is-liked`. Keep the local-only `SvelteSet` semantics (no
-  persistence — see Out of scope). Single tap toggles on/off.
+  persistence, see Out of scope). Single tap toggles on/off.
 - Committed (`.is-liked`) state: `color: var(--laurel)`,
   `background: color-mix(in srgb, var(--laurel) 15%, transparent)`.
 - Commit motion: a transient `is-firing` class drives `react-tilt`
@@ -87,7 +87,7 @@ Brand constraints
 - A persisted, satellite-backed reaction model (counts, who reacted).
   The reaction stays a local-only `SvelteSet`; persistence is a tracked
   follow-up.
-- The feed's data source / 24h win/loss window — owned by the separate
+- The feed's data source / 24h win/loss window, owned by the separate
   win/loss feed spec.
 - The non-friend / ranked-friends fallback branches of the feed.
 
@@ -101,7 +101,7 @@ restored: spec asset folders are kept after merge.
 
 ## Technical requirements (satellite / backend)
 
-Pure-frontend. No `src/satellite/**`, collection, or `.did` changes —
+Pure-frontend. No `src/satellite/**`, collection, or `.did` changes:
 the reaction stays local-only.
 
 ## Implementation outline
@@ -109,8 +109,8 @@ the reaction stays local-only.
 1. In `FriendsTab.svelte`, replace the `Sparkles` import with `Zap`.
 2. Rename `clappedKeys` → `likedKeys`, `toggleClap` → `toggleLike`; add
    a `firingKeys` `SvelteSet` and an `isFiring(activity)` check.
-3. In `toggleLike`: on add, `haptic('light-tap')`, and — unless
-   `prefersReducedMotion()` — add the key to `firingKeys`, port the
+3. In `toggleLike`: on add, `haptic('light-tap')`, and, unless
+   `prefersReducedMotion()`, add the key to `firingKeys`, port the
    artifact's `fireBurst` particle helper, and `setTimeout`-clear after
    600ms.
 4. Update the button markup: `<Zap size={16} strokeWidth={1.6} />`,
@@ -144,11 +144,11 @@ the reaction stays local-only.
   spring/overshoot, per brand §8. Both are reduced-motion gated.
 - **Local-only reaction retained.** Persisting reactions needs a
   satellite model and fan-out; out of scope here to keep the redesign
-  shippable. Tracked as a follow-up (later shipped — likes persist with
+  shippable. Tracked as a follow-up (later shipped: likes persist with
   counts, #891 / #897).
 - **Implementation deviated to `--color-primary` (code is canonical).**
   This spec's liked-state styling specced `--laurel`, but the shipped
   `FriendsTab.svelte` uses `--color-primary` (for contrast, per the code
   comment there). As an `Implemented` record this spec defers to the code:
   the `--laurel` references above are the original proposal, not shipped
-  truth — `FriendsTab.svelte` is authoritative.
+  truth: `FriendsTab.svelte` is authoritative.

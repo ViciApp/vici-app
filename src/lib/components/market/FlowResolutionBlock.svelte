@@ -50,7 +50,7 @@
 {/if}
 
 <style lang="postcss">
-	/* Shared block wrapper + section surface — duplicated here so the
+	/* Shared block wrapper + section surface: duplicated here so the
 	   extracted section keeps its spacing + surface under Svelte's
 	   per-component style scoping. */
 	.flow-back-block {
@@ -101,7 +101,7 @@
 		}
 	}
 
-	/* Stacked footer — source line sits above the rules toggle (was a
+	/* Stacked footer: source line sits above the rules toggle (was a
 	   single space-between row). */
 	.flow-res-foot {
 		display: flex;

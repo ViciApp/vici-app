@@ -11,7 +11,7 @@
 		/** The owner's serialized faceted-avatar picks (`profile.avatarParts`).
 		 *  Pass it on every surface that shows someone ELSE so their saved face
 		 *  renders instead of the principal-seeded fallback. Empty / absent /
-		 *  malformed falls back to the seeded face. Ignored when `self` — "you"
+		 *  malformed falls back to the seeded face. Ignored when `self`; "you"
 		 *  surfaces read the live picks from {@link myAvatarParts}. */
 		avatarParts?: string | null;
 		owner: PrincipalText;
@@ -22,7 +22,7 @@
 		 *  the editor re-renders them all. */
 		self?: boolean;
 		/** When true, overlay a gold pencil badge marking the avatar as
-		 *  editable. Purely a visual affordance — the surrounding surface owns
+		 *  editable. Purely a visual affordance: the surrounding surface owns
 		 *  the click target. */
 		editable?: boolean;
 		/** Allow idle motion (blink + bob), always re-gated behind
@@ -42,13 +42,13 @@
 		class: className = ''
 	}: Props = $props();
 
-	// Real uploads win over generated faces — for everyone, "you" included.
+	// Real uploads win over generated faces, for everyone, "you" included.
 	const isUploaded = $derived(hasUploadedAvatar(avatar));
 
 	// "You" surfaces render the user's saved picks (live, so a save in the
 	// editor re-renders here); everyone else renders the owner's saved picks
 	// when the surface carries them, falling back to a face seeded by their
-	// immutable principal (`owner`) — never the nickname, which can change.
+	// immutable principal (`owner`), never the nickname, which can change.
 	const parts = $derived(self ? ($myAvatarParts ?? null) : (parseParts(avatarParts) ?? null));
 </script>
 
@@ -99,7 +99,7 @@
 		height: 100%;
 	}
 
-	/* Gold pencil badge — marks the avatar as editable. Bottom-right,
+	/* Gold pencil badge: marks the avatar as editable. Bottom-right,
 		 overlapping the rim, in the brand accent. */
 	.avatar-edit-badge {
 		position: absolute;

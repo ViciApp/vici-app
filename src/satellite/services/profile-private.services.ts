@@ -6,7 +6,7 @@ import type { AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
 
 /**
- * Upper bound for a stored address — the RFC 5321 path limit. The doc is
+ * Upper bound for a stored address: the RFC 5321 path limit. The doc is
  * owner-written, so this is a bloat guard, not format validation (the FE
  * and the OpenID provider own that).
  */
@@ -15,7 +15,7 @@ const MAX_EMAIL_LENGTH = 320;
 /**
  * Set-doc assertion for the `profile_private` collection. The collection
  * is `managed` (owner + controllers), but `managed` still lets any
- * authenticated user CREATE a doc under an arbitrary free key — so
+ * authenticated user CREATE a doc under an arbitrary free key, so
  * without this guard a third party could squat another user's principal
  * key before their first write, blocking (or forging) the email the
  * server-side consumers read by key. Bind both the doc key and the

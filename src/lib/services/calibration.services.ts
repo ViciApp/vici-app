@@ -9,7 +9,7 @@ import type { Market } from '#lib/types/market.ts';
  * Builds the Calibration practice deck: finalised Vici-engine binary
  * markets, outcome hidden until the user commits.
  *
- * Our normal market list does not scope by engine — the live Flow / Markets
+ * Our normal market list does not scope by engine; the live Flow / Markets
  * surfaces show every engine's markets. Calibration is different: the
  * reward only mints for Vici-engine (`eng_0`) binary markets, so the deck
  * filters on `engineId` here to avoid arming the user on a card that the
@@ -17,18 +17,18 @@ import type { Market } from '#lib/types/market.ts';
  *
  * "Which markets are resolved" comes from clearing's authoritative
  * `list_settled_series` (scoped to the ViciXp domain) rather than from the
- * activity-log–derived `status`: clearing is the single source of truth for
+ * activity-log-derived `status`: clearing is the single source of truth for
  * resolution, so a series is in the deck only if it is in that settled set.
  * The market view-models still come from {@link getMarketsLite} (titles, engine,
  * payoff shape, and the activity-derived outcome label used only to drop
- * un-scoreable cards below) — the deck never reads order-book prices, so the
+ * un-scoreable cards below): the deck never reads order-book prices, so the
  * lite fetch avoids a catalog-wide book fan-out.
  *
  * Inclusion gate (all must hold):
- * - settled per `list_settled_series` — the authoritative resolved set;
- * - `engineId === VICI_ENGINE_ID` — matches the server's market gate;
- * - `payoffType === 'Binary'` — the only shape with a YES / NO call;
- * - `outcome` is `'YES'` or `'NO'` — a definite side. A settled market
+ * - settled per `list_settled_series`: the authoritative resolved set;
+ * - `engineId === VICI_ENGINE_ID`: matches the server's market gate;
+ * - `payoffType === 'Binary'`: the only shape with a YES / NO call;
+ * - `outcome` is `'YES'` or `'NO'`: a definite side. A settled market
  *   whose settlement was a cancellation / undetermined outcome carries no
  *   binary side, so the server would return `outcome_undetermined`; we
  *   drop it from the deck rather than surface an un-scoreable card.
@@ -38,7 +38,7 @@ import type { Market } from '#lib/types/market.ts';
  * change is deck-sourcing only.
  *
  * Per-market dedupe (already-earned markets) is enforced server-side via
- * the award-doc key, returning `alreadyClaimed` — the practice surface
+ * the award-doc key, returning `alreadyClaimed`: the practice surface
  * advances gracefully on that result rather than pre-excluding here, so
  * the deck never needs the user's full award history to build.
  */

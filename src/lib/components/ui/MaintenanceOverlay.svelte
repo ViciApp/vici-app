@@ -12,7 +12,7 @@
 	     `use:pinToVisualViewport` drives top/left/width/height off the
 	     visual viewport (iOS Chrome resolves fixed insets against the large
 	     layout viewport); `h-dvh w-screen` from the top-left corner is the
-	     no-visualViewport fallback — deliberately not `inset-0`, which would
+	     no-visualViewport fallback, deliberately not `inset-0`, which would
 	     fight the action's inline sizing. -->
 	<div
 		class="bg-background fixed top-0 left-0 z-[90] flex h-dvh w-screen items-center justify-center"

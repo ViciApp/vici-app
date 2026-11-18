@@ -2,7 +2,7 @@ import { guestStore } from '#lib/stores/guest.store.ts';
 import { derived, type Readable } from 'svelte/store';
 
 /**
- * `true` while an active guest session is in flight — a signed-out visitor who
+ * `true` while an active guest session is in flight; a signed-out visitor who
  * took the onboarding Skip path and may preview Flow freely. Surfaces gate on
  * this to render the predict control (rather than a sign-in prompt) and to let
  * the route gate pass the guest through to Flow.

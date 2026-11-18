@@ -53,8 +53,8 @@ current head is ignored, because it was about code that is no longer there.
 
 Nothing. Merging into `main` deploys nothing (`release.on_merge: nothing` in the config): releases
 run from `v*` tags (`deploy.yml`, `publish.yml`), which are cut when a person merges the
-release-please pull request, and `web2-deploy.yml` is started by hand. Officina never touches the
-release pull request.
+release-please pull request, and `web2-deploy.yml` is started by hand from a release tag. Officina
+never touches the release pull request.
 
 ## Lanes
 
@@ -77,10 +77,10 @@ stops and asks the owner.
 
 **Auto-verify (green only).** Because a merge ships nothing, a copy change can skip the person's
 check: when the chooser judges the result needs no more than a glance and adds no requirement,
-Officina turns on GitHub auto-merge instead of waiting for someone to verify. The spec is still
-approved by people, and the branch rules still decide: CI, resolved threads and the code-owner
-review. With `CODEOWNERS` covering every path, the pull request lands once a code owner approves it
-on GitHub.
+the task goes straight to merging instead of waiting for someone to verify. The spec is still
+approved by people, and nothing merges by itself: Officina never turns on GitHub auto-merge here
+(`pull_request.auto_merge` is left off), so a code owner merges the pull request by hand once the
+branch rules pass: CI, resolved threads and the code-owner review.
 
 A requirement nobody can meet yet is waived automatically and recorded as waived. That is why the
 green lane names a product approver although nobody holds that domain today.
@@ -95,10 +95,10 @@ green lane names a product approver although nobody holds that domain today.
 
 ## What the builder cannot run
 
-The sandbox has no running Postgres, and ten backend suites still fail instead of skipping without
-one, so the backend `bun test` runs only in `backend-checks.yml`. The `satellite-schema` drift check
-also stays in CI: its fix lands in `src/satellite/**`, a red path. When either fails, the task goes
-back to the builder or stops for the owner.
+The sandbox has no running Postgres, so its backend `bun test` runs the pure suites and skips every
+DB-backed one; those run only in `backend-checks.yml`, against a real database. The
+`satellite-schema` drift check also stays in CI: its fix lands in `src/satellite/**`, a red path.
+When either fails, the task goes back to the builder or stops for the owner.
 
 ## When the config changes
 

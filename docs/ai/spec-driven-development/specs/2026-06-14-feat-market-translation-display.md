@@ -8,7 +8,7 @@ Status: Implemented (#883)
 ## Goal
 
 A reader whose locale has a stored market translation sees the market in
-their own language by default on the market detail page — title and
+their own language by default on the market detail page: title and
 resolution clause. A small, secondary "View original" control lets them
 flip the metadata back to the language it was authored in, and back again.
 Today these translations are writable by creators/admins (PR #876) but
@@ -22,18 +22,18 @@ Translations already exist end-to-end on the write side:
   (`src/lib/constants/collections.constants.ts`), key `${seriesId}__${locale}`,
   one doc per `live` locale per market.
 - Shape: `MarketTranslationSchema`
-  (`src/lib/schema/market-translation.schema.ts`) — `title`, `description`,
+  (`src/lib/schema/market-translation.schema.ts`): `title`, `description`,
   `resolution`, `outcomes: { id, title }[]`, plus `updatedAt` / `updatedBy`.
 - Read services (already wired): `getMarketTranslation` and
   `listMarketTranslations` in
   `src/lib/services/market-translation.services.ts`.
 - Write-only UI today: `MetadataTranslationsTab.svelte`
-  (`src/lib/components/market/metadata/`) — admin/creator side-by-side editor.
+  (`src/lib/components/market/metadata/`): admin/creator side-by-side editor.
 
 Display surfaces and helpers to reuse:
 
-- Detail page: `src/routes/(app)/markets/[id]/+page.svelte`
-  — `<h1 class="market-detail-title">{market.title}</h1>` (line 563),
+- Detail page: `src/routes/(app)/markets/[id]/+page.svelte`:
+  `<h1 class="market-detail-title">{market.title}</h1>` (line 563),
   `MarketDetailResolutionCard` (line 637). `contextLine` (line 338) is the
   metadata **subtitle**, not the translatable `description`.
 - Resolution clause: `MarketDetailResolutionCard.svelte` renders
@@ -42,7 +42,7 @@ Display surfaces and helpers to reuse:
   `outcome.title`.
 - Active locale: `localeStore` (`src/lib/stores/locale.store.ts`).
 - Fallback resolution: `localeFallbackChain(locale)`
-  (`src/lib/constants/locale.constants.ts:427`) — itself → registered
+  (`src/lib/constants/locale.constants.ts:427`): itself → registered
   fallbacks → `en`. `SUPPORTED_LOCALES` is the allowlist of `live` locales
   that can carry a stored translation. `DEFAULT_LOCALE` is `en`.
 - The admin tab's `onMount` already demonstrates the bulk read +
@@ -57,7 +57,7 @@ Market **detail page** only.
    `{ translation, locale } | undefined`. Walks `localeFallbackChain(locale)`,
    returns the first entry that (a) is in `SUPPORTED_LOCALES` and (b) has a
    stored translation. Returns `undefined` when the chain resolves only to
-   `en` / no stored match — i.e. nothing to show beyond the original.
+   `en` / no stored match, i.e. nothing to show beyond the original.
 2. New component
    `src/lib/components/market/MarketTranslationToggle.svelte`: a small,
    muted inline control. Shown only when a translation is available. States:
@@ -77,12 +77,12 @@ Market **detail page** only.
      `activeTranslation` is defined.
 4. `MarketDetailResolutionCard.svelte`: add an optional
    `resolution?: string` override prop (falls back to `market.resolution`
-   when absent — backward compatible). Detail page passes the displayed clause.
+   when absent: backward compatible). Detail page passes the displayed clause.
 
 The two translatable fields the detail page actually renders are the
 **title** (`<h1>`) and the **resolution clause**. The `description` field
 renders only on cards (out of scope), and the detail page does not render a
-categorical **outcome** list at all — so outcome-title translation, though
+categorical **outcome** list at all, so outcome-title translation, though
 stored, has no display site here and lands with the cards fast-follow.
 
 ### Out of scope
@@ -91,8 +91,8 @@ stored, has no display site here and lands with the cards fast-follow.
   across a list; doing it right needs a bulk translation read keyed by the
   visible market ids and a global (not per-card) language preference rather
   than an inline toggle. Deferred to a fast-follow spec. This is why
-  `description` translation — which only renders on cards, not on the detail
-  page — is also deferred.
+  `description` translation, which only renders on cards, not on the detail
+  page, is also deferred.
 - The metadata `subtitle` / `whyNow` editorial fields: not part of
   `MarketTranslationSchema`, not translated here.
 - Categorical **outcome** labels: stored in the translation but not rendered
@@ -109,7 +109,7 @@ keyword.
 
 Instrument one new event.
 
-- `market_translation_toggled` — fired when the reader flips the toggle.
+- `market_translation_toggled`: fired when the reader flips the toggle.
   Props: `marketId`; `label` ∈ `{ 'original', 'translated' }` (bounded;
   `label` already exists in `AnalyticsEventProps`). No locale string sent
   (avoids unbounded-ish vocab and it's derivable from session locale if ever
@@ -117,13 +117,13 @@ Instrument one new event.
 - Add the event name to **both** `src/lib/types/analytics-event.ts` (TS
   union) and `src/lib/schema/analytics-event.schema.ts` (Zod mirror); capture
   via `track` in `src/lib/services/analytics.services.ts`.
-- No new event for "viewed a translated market" — the existing
+- No new event for "viewed a translated market": the existing
   `market_viewed` covers the view; a default-translated render is the norm,
   not a discrete action.
 
 ## Design artifacts (frontend)
 
-- [mockup.html](./2026-06-14-feat-market-translation-display/mockup.html) —
+- [mockup.html](./2026-06-14-feat-market-translation-display/mockup.html):
   detail hero + resolution card, translated and original states, with a
   theme switcher (dark / light / peach) and a "copy instructions" button.
 
@@ -165,10 +165,10 @@ Instrument one new event.
 ## Decisions
 
 - **One toggle flips all translatable metadata together** (title +
-  resolution), not per-field — confirmed by the reviewer against the mockup.
+  resolution), not per-field, confirmed by the reviewer against the mockup.
   Simpler mental model than per-field controls.
 - Read via one `listMarketTranslations(marketId)` bulk call rather than a
-  per-locale `getMarketTranslation` round-trip walking the fallback chain —
+  per-locale `getMarketTranslation` round-trip walking the fallback chain:
   one query, and it mirrors the existing admin-tab pattern.
 - Default to the translated view (the user's stated preference: "we should
   show it"); the original is the smaller, secondary affordance.

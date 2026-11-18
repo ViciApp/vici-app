@@ -29,7 +29,10 @@ export interface NewProfileGateConfig {
  * `juno.config.ts`). The Playwright suite creates brand-new profiles there on
  * every run, and it has no controller identity to write the kill switch with.
  * A deployed satellite can never carry this id, so the exemption cannot be
- * reached in production.
+ * reached in production. A copy rather than an import: `juno.config.ts`
+ * reads `process.env`, which the satellite runtime does not have, and the
+ * Juno CLI loads that file on its own, so it cannot import the id from here
+ * either.
  */
 const GATE_EXEMPT_SATELLITE_IDS: readonly string[] = ['jx5yt-yyaaa-aaaal-abzbq-cai'];
 

@@ -24,7 +24,6 @@ import {
 	claimWithdrawal,
 	getWithdrawal,
 	requestWithdrawal,
-	userChainBalance,
 	type Withdrawal
 } from '../src/custody/withdrawals';
 import { query, tx } from '../src/db/client';
@@ -34,6 +33,7 @@ import { ZERO } from '../src/lib/constants';
 import { userIcPrincipalText, type Chain } from '../src/lib/keys';
 import { logger } from '../src/lib/logger';
 import { createTestUser, ensureMigrated } from './helpers/auth';
+import { userChainBalance } from './helpers/custody';
 import { dbAvailable } from './helpers/setup';
 
 /** The network fee every test withdrawal holds unless it says otherwise. */

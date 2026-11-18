@@ -1,8 +1,9 @@
 <script lang="ts" module>
+	import type { CallSide } from '#lib/types/market.ts';
 	export interface ZeroMarketRow {
 		marketId: string;
 		question: string;
-		side?: 'YES' | 'NO';
+		side?: CallSide;
 		context: string;
 		timer: string;
 	}
@@ -10,7 +11,7 @@
 
 <script lang="ts">
 	/**
-	 * Day-0 / Day-1 Dashboard — the same three-zone framework as the standard
+	 * Day-0 / Day-1 Dashboard: the same three-zone framework as the standard
 	 * build, with every zero-data block swapped for calibrating / orientation
 	 * content:
 	 *
@@ -31,6 +32,7 @@
 	import DashCallRow from '#lib/components/dash/DashCallRow.svelte';
 	import type { OpenCallRow } from '#lib/components/dash/DashCallsZone.svelte';
 	import DashGettingStarted from '#lib/components/dash/DashGettingStarted.svelte';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
@@ -42,15 +44,15 @@
 		day1: boolean;
 		/** Spendable/starter balance, formatted whole-VXP. */
 		holdingsDisplay: string;
-		/** In-play (backed) VXP, formatted — Day 1 only. */
+		/** In-play (backed) VXP, formatted: Day 1 only. */
 		inPlayDisplay: string;
-		/** Figures not loaded yet — render pulsing placeholders instead of 0. */
+		/** Figures not loaded yet: render pulsing placeholders instead of 0. */
 		loading: boolean;
-		/** Number of live (unresolved) calls — Day 1 stack sub-stat. */
+		/** Number of live (unresolved) calls: Day 1 stack sub-stat. */
 		pendingCount: number;
 		/** When the first call settles (year-stripped), for the calibrating copy. */
 		firstCallTimer: string;
-		/** Starter markets (Day 0) — real open markets to make a first call on. */
+		/** Starter markets (Day 0): real open markets to make a first call on. */
 		starterRows: ZeroMarketRow[];
 		/** Every open call (positions + resting orders), soonest-first (Day 1+). */
 		openCalls: OpenCallRow[];
@@ -100,15 +102,15 @@
 </script>
 
 <div class="db-body">
-	<!-- Getting-started checklist — cross-surface direction for the first run -->
+	<!-- Getting-started checklist: cross-surface direction for the first run -->
 	<DashGettingStarted />
 
-	<!-- ZONE 1 · PERFORMANCE — calibrating -->
+	<!-- ZONE 1 · PERFORMANCE: calibrating -->
 	<div class="db-hero">
 		<div class="db-hrow">
 			<span class="db-lbl">{t({ locale: $localeStore, key: 'dash.accuracy.eyebrow' })}</span>
 		</div>
-		<div class="db-big num db-muted">—<span class="db-u">%</span></div>
+		<div class="db-big num db-muted">{EMPTY_VALUE}<span class="db-u">%</span></div>
 		<div class="db-cal">{calibratingCaption}</div>
 		<div class="db-areachart db-empty">
 			<svg preserveAspectRatio="none" viewBox="0 0 360 48">

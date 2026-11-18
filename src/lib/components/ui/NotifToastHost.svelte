@@ -19,9 +19,9 @@
 	import { goto } from '$app/navigation';
 
 	/**
-	 * NotifToastHost — slides a toast in from the top of the app shell when a
+	 * NotifToastHost: slides a toast in from the top of the app shell when a
 	 * genuinely NEW inbox item arrives (driven by `latestInboxToast`, which
-	 * diffs live inbox snapshots — see `inbox.store.ts`). It auto-dismisses
+	 * diffs live inbox snapshots; see `inbox.store.ts`). It auto-dismisses
 	 * after a short dwell, can be tapped to open the item's destination, and
 	 * carries a dismiss button.
 	 *
@@ -172,7 +172,7 @@
 	}
 
 	/* Centre the toast on wider viewports so it doesn't stretch edge to
-	   edge — the shell content column is mobile-width. With both `left`
+	   edge: the shell content column is mobile-width. With both `left`
 	   and `right` insets set, `margin-inline: auto` centres the capped
 	   width without a `translateX`, leaving the `translateY` slide-in
 	   keyframe free of transform conflicts. */

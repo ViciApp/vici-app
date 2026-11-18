@@ -3,7 +3,6 @@ import type { Relation } from '#lib/types/relation.ts';
 import type { ResolvedResult } from '#lib/types/social.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
-	listFollowers as listFollowersWeb2,
 	listFollowing as listFollowingWeb2,
 	listFriendRequests as listFriendRequestsWeb2,
 	listFriendResolvedResults as listFriendResolvedResultsWeb2,
@@ -23,7 +22,7 @@ const asRelationDoc = (relation: Relation): Doc<Relation> => ({
 /**
  * Read-only relation queries (friends, friend requests, follows). Split out
  * from the relation *mutation* layer (`relation.services`) so consumers that
- * only need to read the social graph — notably `group.services` — depend on
+ * only need to read the social graph, notably `group.services`, depend on
  * these without pulling in the mutation layer, which in turn depends on
  * `group.services`. Keeping the reads here breaks that import cycle without
  * any runtime `import()`. These are thin satellite passthroughs.
@@ -63,8 +62,8 @@ export const getSentFriendRequests = async (): Promise<Doc<Relation>[]> => {
  * Friend-scoped resolved-result rows backing the Arena results digest's standout
  * line. One bounded satellite read over the supplied friend set's
  * `resolved_results` rows (`${owner}#${marketId}`) within the active retention
- * window — never one call per friend. Returns an empty list for an empty set so
- * the digest can render its aggregate (W–L / net VXP) without a standout.
+ * window, never one call per friend. Returns an empty list for an empty set so
+ * the digest can render its aggregate (W-L / net VXP) without a standout.
  */
 export const getFriendResolvedResults = async ({
 	friends
@@ -92,14 +91,4 @@ export const getFollowing = async (): Promise<PrincipalText[]> => {
 	const { items } = await functions.listFollowing();
 
 	return items.map((r) => r.participants[1]);
-};
-
-export const getFollowers = async (): Promise<PrincipalText[]> => {
-	if (isWeb2Backend()) {
-		return (await listFollowersWeb2()).map((r) => r.participants[0]);
-	}
-
-	const { items } = await functions.listFollowers();
-
-	return items.map((r) => r.participants[0]);
 };

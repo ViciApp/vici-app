@@ -39,17 +39,17 @@ import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { hexToBytes } from '@noble/hashes/utils.js';
 import { concatBytes } from '../lib/bytes';
-import { msToNs } from '../lib/time';
+import { MINUTE_IN_MS, msToNs } from '../lib/time';
 
 /** Wire audience tag; mirrored by the app's claim handoff util (pinned by the
  * shared-drift suite). */
 export const CLAIM_AUDIENCE = 'vici-web2-claim';
 
 /** How old an issuedAtMs may be before the blob is refused. */
-export const CLAIM_FRESHNESS_MS = 10 * 60 * 1000;
+export const CLAIM_FRESHNESS_MS = 10 * MINUTE_IN_MS;
 
 /** Tolerated forward clock skew between the signing device and this server. */
-export const CLAIM_MAX_FUTURE_SKEW_MS = 2 * 60 * 1000;
+export const CLAIM_MAX_FUTURE_SKEW_MS = 2 * MINUTE_IN_MS;
 
 /** Hard bound on delegation hops; real chains carry one or two links. */
 const MAX_CHAIN_LENGTH = 4;

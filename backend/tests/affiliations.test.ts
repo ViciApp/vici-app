@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
 import {
+	AFFILIATION_KINDS,
 	AFFILIATION_LOCK_MS,
 	getMyAffiliation,
 	listMyAffiliations,
@@ -190,4 +191,33 @@ describe.if(dbAvailable)('worlds roster and member counts', () => {
 
 		expect(entry?.memberCount).toBe(2);
 	});
+});
+
+describe.if(dbAvailable)('affiliation kind constraints', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	// A migration cannot import the TS list, so each table's check constraint
+	// spells it again; pinning them makes a new kind that skips its constraint
+	// migration fail here instead of at its first write.
+	test.each(['affiliations', 'affiliation_stats'])(
+		'the %s kind check admits exactly AFFILIATION_KINDS',
+		async (table) => {
+			const rows = await query<{ def: string }>(
+				`select pg_get_constraintdef(oid) as def from pg_constraint
+				 where conrelid = $1::regclass and contype = 'c'
+				   and pg_get_constraintdef(oid) like '%(kind %'`,
+				[table]
+			);
+
+			expect(rows).toHaveLength(1);
+
+			const admitted = [...(rows[0]?.def ?? '').matchAll(/'([a-z_]+)'::text/g)].map(
+				(match) => match[1]
+			);
+
+			expect(admitted.toSorted()).toEqual([...AFFILIATION_KINDS].toSorted());
+		}
+	);
 });

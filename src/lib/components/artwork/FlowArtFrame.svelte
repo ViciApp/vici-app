@@ -8,10 +8,10 @@
 	} from '#lib/utils/flow-art.utils.ts';
 
 	interface Props {
-		// Visual language — a taxonomy macro (folded onto one of the six
+		// Visual language: a taxonomy macro (folded onto one of the six
 		// bespoke render buckets) or the `wc` tentpole editorial variant.
 		category: FlowArtCategory;
-		// Stable seed — pass `market.id` or any deterministic string /
+		// Stable seed: pass `market.id` or any deterministic string /
 		// number. Same seed + state always produces the same composition.
 		seed: string | number;
 		// Resolution state. Flow Mode only ever uses 'neutral'; 'won' /
@@ -25,14 +25,14 @@
 		frame?: boolean;
 		// When true, the frame fills its container (100% × 100%) instead
 		// of rendering at the fixed `size`. Paired with the WC `slice`
-		// viewBox this lets the art fill a tall bleed band — cropping
+		// viewBox this lets the art fill a tall bleed band: cropping
 		// horizontally rather than letterboxing in the middle. `size`
 		// still drives the SVG's internal resolution.
 		fill?: boolean;
 		// Optional market question text. Only the WC renderer consults it
-		// — to look up per-market artwork in the `WC_MARKET_ART` catalogue
-		// (then the heuristic resolver); omitting it leaves every render —
-		// WC or otherwise — unchanged.
+		// to look up per-market artwork in the `WC_MARKET_ART` catalogue
+		// (then the heuristic resolver); omitting it leaves every render,
+		// WC or otherwise, unchanged.
 		title?: string;
 		// Optional extra class on the wrapper for layout overrides.
 		class?: string;
@@ -80,7 +80,7 @@
 		flex: 0 0 auto;
 	}
 
-	/* Fill mode — stretch to the host band instead of the fixed size. */
+	/* Fill mode: stretch to the host band instead of the fixed size. */
 	.flow-art-frame.is-fill {
 		display: block;
 		width: 100%;
@@ -99,7 +99,7 @@
 	   register: a faceted figure (`wc-figure`), two spotlight cones
 	   (`wc-spot`, paired left/right), and 0–10 confetti shards
 	   (`wc-cnf` with a per-shard `wc-cnf-${i}` for stagger). These
-	   were inert until now — the CSS keyframes ship here
+	   were inert until now: the CSS keyframes ship here
 	   so every WC-tagged Flow card animates without changing the
 	   render layer.
 
@@ -128,7 +128,7 @@
 		animation: wc-cnf-drift 4.8s linear infinite;
 	}
 
-	/* Per-shard stagger — keeps shards from drifting in lockstep. The
+	/* Per-shard stagger: keeps shards from drifting in lockstep. The
 	   modulo-10 dispatcher inside `renderFlowArt` keeps indices in
 	   range, so the 10 hooks below cover every shard. */
 	.flow-art-frame :global(.wc-cnf-0) {

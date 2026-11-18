@@ -12,7 +12,7 @@ import { t } from '#lib/utils/i18n.utils.ts';
  *
  * Kept apart from `market-taxonomy.constants.ts` on purpose: that module is
  * bundled into the satellite wasm (via the classification helpers), and `t`
- * is a runtime value whose module statically imports every locale catalog —
+ * is a runtime value whose module statically imports every locale catalog:
  * a value import of it from the constants module would ship all catalogs
  * inside the satellite and make every copy-only release count as a satellite
  * change for the deploy pipeline's upgrade check.
@@ -35,7 +35,7 @@ export type CategoryLabelVariant = 'short' | 'full';
 
 /**
  * Single source of truth for rendering a market category label. `category`
- * may be a macro id OR a micro id — the localized `full` form picks the
+ * may be a macro id OR a micro id: the localized `full` form picks the
  * matching taxonomy label key (`macroLabelKey` / `microLabelKey`), so a
  * caller can pass either a top-level bucket or a subcategory chip.
  *

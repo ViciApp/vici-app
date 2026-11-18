@@ -34,8 +34,11 @@ import {
 import { constantTimeEqual, randomToken, signState, verifySignedState } from '../lib/crypto';
 import { clientIp, serviceUnavailable, type StatusContext } from '../lib/http';
 import { enforceLimit } from '../lib/rate-limit';
+import { TEN_MINUTES_IN_MS } from '../lib/time';
 
-const TEN_MIN_MS = 10 * 60 * 1000;
+const OTP_REQUEST_LIMIT_PER_TEN_MINUTES = 5;
+const OTP_VERIFY_LIMIT_PER_TEN_MINUTES = 15;
+const OAUTH_START_LIMIT_PER_TEN_MINUTES = 20;
 
 type ProviderStatus = 'available' | 'coming_soon';
 
@@ -141,8 +144,8 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 				set,
 				name: 'otp_request',
 				ip: clientIp(request),
-				limit: 5,
-				windowMs: TEN_MIN_MS
+				limit: OTP_REQUEST_LIMIT_PER_TEN_MINUTES,
+				windowMs: TEN_MINUTES_IN_MS
 			});
 
 			if (limited) {
@@ -180,8 +183,8 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 				set,
 				name: 'otp_verify',
 				ip: clientIp(request),
-				limit: 15,
-				windowMs: TEN_MIN_MS
+				limit: OTP_VERIFY_LIMIT_PER_TEN_MINUTES,
+				windowMs: TEN_MINUTES_IN_MS
 			});
 
 			if (limited) {
@@ -219,8 +222,8 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 			set,
 			name: 'google',
 			ip: clientIp(request),
-			limit: 20,
-			windowMs: TEN_MIN_MS
+			limit: OAUTH_START_LIMIT_PER_TEN_MINUTES,
+			windowMs: TEN_MINUTES_IN_MS
 		});
 
 		if (limited) {
@@ -297,8 +300,8 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 			set,
 			name: 'apple',
 			ip: clientIp(request),
-			limit: 20,
-			windowMs: TEN_MIN_MS
+			limit: OAUTH_START_LIMIT_PER_TEN_MINUTES,
+			windowMs: TEN_MINUTES_IN_MS
 		});
 
 		if (limited) {

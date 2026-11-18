@@ -1,16 +1,16 @@
-// WC per-market artwork — runtime question → template resolver.
+// WC per-market artwork: runtime question → template resolver.
 //
 // The curated `WC_RECIPES` table only keys ~121 tentpole market ids,
 // and the per-nation `WC_NATIONS` scenes only fire on `wc-{cc}-*` ids.
 // The live World-Cup universe is dominated by group-stage markets whose
 // ids match neither, so they all collapsed onto the single generic
-// fallback composition — every such card looked identical.
+// fallback composition: every such card looked identical.
 //
 // This resolver reads the market's question text (and optional category
 // hint) and, for the patterns it recognises, returns a template
 // descriptor the renderer composes into a distinct, nation-coloured
-// scene. Anything it doesn't recognise — or any team with no kit-colour
-// entry — returns `null`, so the existing generic fallback is preserved
+// scene. Anything it doesn't recognise, or any team with no kit-colour
+// entry, returns `null`, so the existing generic fallback is preserved
 // unchanged (no regression). Pure string logic, no DOM / I/O.
 
 import { WC_NATION_KITS, type WCKit } from '#lib/constants/flow-art-wc.constants.ts';
@@ -84,9 +84,9 @@ const QUALIFY_GROUP = /^will\s+(.+?)\s+win\s+group\s+[a-z]\s*\??$/i;
  * when no implemented pattern matches or a parsed team has no kit
  * colours. The pilot implements two patterns:
  *
- *   - `kit-clash`     — `Will {A} beat {B}?` /
+ *   - `kit-clash`: `Will {A} beat {B}?` /
  *                       `Will {A} vs {B} end in a draw?`
- *   - `qualify-bracket` — `Will {A} reach the Round of 32?` /
+ *   - `qualify-bracket`: `Will {A} reach the Round of 32?` /
  *                         `Will {A} win Group {X}?`
  *
  * `category` is accepted for forward-compatibility (future templates

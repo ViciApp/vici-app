@@ -1,9 +1,9 @@
 {
 	"name": "vici-app",
-	"version": "1.8.55",
+	"version": "1.8.61",
 	"juno": {
 		"functions": {
-			"version": "1.8.55"
+			"version": "1.8.61"
 		}
 	},
 	"private": true,
@@ -17,7 +17,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p src/satellite/tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"check:i18n": "node scripts/check-locale-catalogs.mjs",
-		"lint": "prettier --cache ${CI:+--cache-strategy content} --check . && eslint . --cache ${CI:+--cache-strategy content} --max-warnings 0 && npm run check:i18n",
+		"check:dashes": "node scripts/check-dashes.mjs",
+		"lint": "prettier --cache ${CI:+--cache-strategy content} --check . && eslint . --cache ${CI:+--cache-strategy content} --max-warnings 0 && npm run check:i18n && npm run check:dashes",
 		"format": "prettier --cache ${CI:+--cache-strategy content} --write . && eslint . --cache ${CI:+--cache-strategy content} --fix",
 		"quality": "npm run format && npm run lint",
 		"did": "./scripts/did.sh && npm run format && npm run lint",
@@ -97,12 +98,14 @@
 	"overrides": {
 		"@dfinity/eslint-config-oisy-wallet": {
 			"typescript": "$typescript"
+		},
+		"@typescript-eslint/typescript-estree": {
+			"minimatch": "^11.0.1"
 		}
 	},
 	"imports": {
 		"#declarations": "./src/declarations/index.ts",
 		"#declarations/*": "./src/declarations/*",
-		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*",
 		"#root/*": "./*",
 		"#satellite/*": "./src/satellite/*"

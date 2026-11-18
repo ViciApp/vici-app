@@ -51,7 +51,7 @@ in everything else.
 1. **Direct & declarative.** Second person, present tense, no hedging.
    _"You called it."_
 2. **Imperative for actions.** Buttons are commands, not invitations.
-   _"Predict." "Stake." "Lock in."_
+   _"Predict." "Call it." "Lock in."_
 3. **Confident, not cocky.** Earns gravitas by being short. _"Locked in."_
 4. **Latin, sparingly.** A drop-cap of classical posture, never cute.
    _"Veni." / "Vici."_
@@ -77,7 +77,7 @@ small icon. The brand carries weight by what it omits."_
 **Approved typographic glyphs** (use these in copy and in compact UI):
 
 ```
-·   →   ↑   ↓   ∞   ◎   ★   ⚡   ⌬   ⊿   ✦   ◐   ⧖   ⌘   ✓   —
+·   →   ↑   ↓   ∞   ◎   ★   ⚡   ⌬   ⊿   ✦   ◐   ⧖   ⌘   ✓   –
 ```
 
 **Forbidden in user-facing surfaces:**
@@ -288,7 +288,7 @@ block at the top of [`src/app.css`](../../../src/app.css).
 | Eyebrow        | UI     | 11 / 12, allcaps   | `.eyebrow`                 |
 | Allcaps tag    | UI     | 12, wide tracking  | `.allcaps`                 |
 | Body weights   | UI     | 400 → 700          | -                          |
-| Odds           | Data   | tabular, slashed 0 | `.num`                     |
+| Probability    | Data   | tabular, slashed 0 | `.num`                     |
 | Hero numeric   | Data   | 128 / 1            | `.display-num`             |
 | VXP delta      | Data   | `+240 VXP`         | `.num`                     |
 | Volume         | Data   | `2.4M vol`         | `.num`                     |
@@ -321,8 +321,6 @@ target · lock
 In the repo, branded glyphs live in
 [`src/lib/components/icons/`](../../../src/lib/components/icons/):
 
-- [`IconSignalYes`](../../../src/lib/components/icons/IconSignalYes.svelte)
-  / `IconSignalNo`
 - [`IconIC`](../../../src/lib/components/icons/IconIC.svelte) /
   `IconGoogle` / `IconPasskey` / `IconRobot`
 
@@ -360,7 +358,7 @@ loop and the rest stay off-stage. Archivist is held in v2 reserve.
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | **VICI**                 | Your guide. First launch, daily check-in, level-ups. _"Welcome back. 12 markets close today."_                       | `--char-vici` (#B7B0E8)         | [`ViciChar.svelte`](../../../src/lib/components/characters/ViciChar.svelte)                                                                 |
 | **Oracle**               | Seer of outcomes. Resolution, weekly review, accuracy reports. _"You called it. The crowd was 18 h late."_           | `--char-oracle` (laurel)        | [`OracleChar.svelte`](../../../src/lib/components/characters/OracleChar.svelte)                                                             |
-| **Trickster**            | Loves the contrarian. Appears only when you bet against the crowd. _"Only 18% agree. Bold."_                         | `--char-trickster` (warm coral) | [`TricksterChar.svelte`](../../../src/lib/components/characters/TricksterChar.svelte)                                                       |
+| **Trickster**            | Loves the contrarian. Appears only when you predict against the crowd. _"Only 18% agree. Bold."_                     | `--char-trickster` (warm coral) | [`TricksterChar.svelte`](../../../src/lib/components/characters/TricksterChar.svelte)                                                       |
 | **Flame**                | Fuel of streaks. _"Twelve days. Don't break."_ Five stages: spark · ember · flame · blaze · inferno. **Never dark.** | `--char-flame`                  | [`FlameChar.svelte`](../../../src/lib/components/characters/FlameChar.svelte) + [`streak.utils.ts`](../../../src/lib/utils/streak.utils.ts) |
 | Archivist _(v2 reserve)_ | -                                                                                                                    | `--char-archivist`              | -                                                                                                                                           |
 

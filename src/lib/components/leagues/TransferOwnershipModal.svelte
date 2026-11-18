@@ -21,7 +21,7 @@
 		 * the picker only shows promotable members.
 		 */
 		members: LeagueMemberDoc[];
-		/** Current owner's principal — excluded from the picker. */
+		/** Current owner's principal: excluded from the picker. */
 		currentOwnerPrincipal: string;
 	}
 
@@ -33,7 +33,7 @@
 	let submitError: MessageKey | string | null = $state(null);
 
 	// Filter out the current owner + any defensive duplicate-owner rows.
-	// Sort by joined-ascending so longest-tenured members sit first —
+	// Sort by joined-ascending so longest-tenured members sit first:
 	// the most common transfer target.
 	const candidates = $derived(
 		[...members]
@@ -112,7 +112,7 @@
 	};
 
 	onMount(() => {
-		// Hydrate nicknames for the candidate list — the league-detail
+		// Hydrate nicknames for the candidate list; the league-detail
 		// page may not have loaded them yet if the user opens this modal
 		// before scrolling the roster.
 		void loadProfilesByPrincipals({ principals: candidates.map((c) => c.member) });

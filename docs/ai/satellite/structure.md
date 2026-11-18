@@ -23,8 +23,11 @@ src/satellite/
     ├── candid.utils.ts             IDL types off the generated factories
     ├── logger.utils.ts             Structured logging wrapper
     ├── regex.utils.ts              escapeRegex
+    ├── time.utils.ts               timeMs (IC time in ms)
+    ├── tournament-draw.utils.ts    When a tournament draw is accepted
+    ├── tournament-prize.utils.ts   Tournament podium + prize claim decision
     ├── vxp-payout.utils.ts         VXP transfer error mapping
-    └── wire-format.utils.ts        snake_case wire schemas + toWire / fromWire
+    └── wire-format.utils.ts        camelCase wire schemas + toWire / fromWire
 ```
 
 ## What goes where
@@ -65,11 +68,11 @@ Casing: `kebab-case` filenames, `camelCase` exports, `PascalCase` types.
 ## Imports
 
 Use the `#lib`, `#satellite`, `#declarations` and `#root` subpath imports
-from [`package.json`](../../../package.json) `imports`. Each is mirrored in the
-satellite [`tsconfig.json`](../../../src/satellite/tsconfig.json) `paths`,
-which `scripts/satellite-upgrade-needed.mjs` reads to walk the import graph:
-a subpath import missing there is treated as an npm package and silently
-skipped.
+from [`package.json`](../../../package.json) `imports`, which
+`scripts/satellite-upgrade-needed.mjs` reads to walk the import graph: a `#`
+import it cannot resolve forces the functions upgrade. The satellite
+[`tsconfig.json`](../../../src/satellite/tsconfig.json) `paths` mirror them for
+the type check only.
 
 ```ts
 import { Collection } from '#lib/constants/collections.constants.ts';
@@ -85,8 +88,9 @@ boundaries.
 DOM: constants, schemas, types and pure utils (`collections.constants.ts`,
 `canisters.constants.ts`, `#lib/schema/*`, `types/vxp-award.ts`, ...).
 The frontend imports from `#satellite` only the `fromWire*` converters in
-`utils/wire-format.utils.ts` (profile, leaderboard, referral and
-market-translation services). Nothing else crosses in either direction.
+`utils/wire-format.utils.ts` (profile, leaderboard and referral services).
+A wire row that already has the domain shape is returned as is, with no
+converter. Nothing else crosses in either direction.
 
 ## Forbidden imports
 
@@ -102,14 +106,24 @@ market-translation services). Nothing else crosses in either direction.
 
 ## Collections and `juno.config.ts`
 
-Collection names are pinned in two places that must stay in sync:
+Collection names are written in three places that must stay in sync:
 
 - [`juno.config.ts`](../../../juno.config.ts): the deployment config
-  that creates and configures the collection on the satellite.
+  that creates and configures the collection on the satellite. It
+  spells the names again in its own `JunoDatastoreCollection` enum,
+  because the Juno CLI can evaluate it where the JSON file is not
+  available.
+- [`juno.collections.json`](../../../juno.collections.json): the names
+  the app reads.
 - [`src/lib/constants/collections.constants.ts`](../../../src/lib/constants/collections.constants.ts):
-  the typed `Collection` enum the satellite + FE both import.
+  the typed `Collection` object the satellite + FE both import, one key
+  per entry of `juno.collections.json`.
 
-When adding a new collection, update both files in the same PR. The
+When adding a new collection, update all three in the same PR.
+`src/tests/lib/constants/collections.constants.spec.ts` (`npm test`)
+fails when `juno.config.ts` deploys a different set of datastore
+collections than `juno.collections.json` names, or when the typed
+`Collection` has a different set of keys or names than the JSON. The
 satellite's `setDocCollections` / `deleteDocCollections` /
 `assertSetDocCollections` arrays use the typed enum, so a missing entry
 becomes a TS error at the dispatch table.

@@ -1,5 +1,5 @@
 /**
- * School membership verification — submit + 6-digit code (backend B.1).
+ * School membership verification: submit + 6-digit code (backend B.1).
  *
  * Thin FE wrapper over the two satellite endpoints:
  *
@@ -47,7 +47,7 @@ export interface SchoolSubmitInput {
 	email: string;
 	/** Set when verifying membership of an existing directory school. */
 	schoolId?: string;
-	/** Active UI locale — forwarded so the emailed code is localized. */
+	/** Active UI locale: forwarded so the emailed code is localized. */
 	locale: AppLocale;
 }
 
@@ -64,18 +64,18 @@ export interface SchoolVerifyInput {
 
 export interface SchoolVerifyResult {
 	ok: boolean;
-	/** Present on success — the canonical school id to attach. */
+	/** Present on success: the canonical school id to attach. */
 	schoolId?: string;
-	/** Present on success — the resulting school visibility. */
+	/** Present on success: the resulting school visibility. */
 	status?: 'pending' | 'public';
-	/** Present on failure — a machine-readable reason. */
+	/** Present on failure: a machine-readable reason. */
 	message?: string;
 }
 
 /**
  * `POST /schools/submit`. Asks the satellite to mail a fresh 6-digit code
  * to `email`. Throws on transport failure / timeout / server rejection
- * (bad domain, rate limit, relay unconfigured) — the picker maps that to
+ * (bad domain, rate limit, relay unconfigured): the picker maps that to
  * its "couldn't send" copy.
  */
 export const submitSchool = async ({

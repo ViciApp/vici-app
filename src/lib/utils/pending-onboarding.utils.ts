@@ -10,10 +10,10 @@ import { isNullish, nonNullish } from '@dfinity/utils';
  *
  * Merge rules mirror the signed-out capture semantics everywhere else:
  * the league invite always overwrites (latest link wins), while a referral
- * code is first-referrer-wins — a code stashed by an earlier `?ref=` capture
+ * code is first-referrer-wins: a code stashed by an earlier `?ref=` capture
  * (e.g. a market share) is never replaced.
  *
- * Best-effort: storage may be unavailable (private mode) or hold garbage —
+ * Best-effort: storage may be unavailable (private mode) or hold garbage:
  * signup still works without the stash, the user can join manually with the
  * code afterwards.
  */
@@ -54,6 +54,6 @@ export const stashLeagueInviteForSignup = ({
 
 		localStorage.setItem(PENDING_ONBOARDING_STORAGE_KEY, JSON.stringify(parsed));
 	} catch {
-		// Swallowed by design — see the doc comment.
+		// Swallowed by design: see the doc comment.
 	}
 };

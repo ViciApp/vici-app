@@ -57,7 +57,7 @@
 
 	$effect(() => {
 		// A boot from browser-cached assets can land mid-deploy while the
-		// satellite is stopped — route the failure into maintenance detection
+		// satellite is stopped: route the failure into maintenance detection
 		// instead of hanging on the boot spinner.
 		void init().catch((err: unknown) => {
 			// Keep the failure diagnosable when it is NOT a deploy window (the
@@ -73,7 +73,7 @@
 	// stopped" errors a deploy causes and trigger the maintenance overlay.
 	onMount(initMaintenanceWatch);
 
-	// RTL scripts — kept in sync with the flash-free locale boot in
+	// RTL scripts: kept in sync with the flash-free locale boot in
 	// `app.html` so the document direction stays correct after hydrate.
 	const RTL_LANGS = ['ar', 'he', 'fa', 'ur'];
 

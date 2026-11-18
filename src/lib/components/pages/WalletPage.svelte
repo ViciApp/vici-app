@@ -4,10 +4,9 @@
 	import { onMount, type Snippet } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import Card from '#lib/components/ui/Card.svelte';
-	import InfiniteScroll from '#lib/components/ui/InfiniteScroll.svelte';
 	import Tabs from '#lib/components/ui/Tabs.svelte';
 	import VxpRecoveryBeat from '#lib/components/wallet/VxpRecoveryBeat.svelte';
-	import WalletHistory from '#lib/components/wallet/WalletHistory.svelte';
+	import WalletHistoryPanel from '#lib/components/wallet/WalletHistoryPanel.svelte';
 	import WalletReceive from '#lib/components/wallet/WalletReceive.svelte';
 	import WalletSend from '#lib/components/wallet/WalletSend.svelte';
 	import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
@@ -25,17 +24,14 @@
 	import { clearingTransactions } from '#lib/derived/wallet-feed.derived.ts';
 	import {
 		loadSendableWalletAssets,
+		pendingSendAfterError,
 		sendToken,
 		SendTokenError
 	} from '#lib/services/send.services.ts';
-	import {
-		getTransactionsPage,
-		type WalletTransactionsCursors,
-		type WalletTransactionsDone
-	} from '#lib/services/wallet.service.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
+	import { WalletHistoryPager } from '#lib/stores/wallet-history-pager.svelte.ts';
 	import type { Token } from '#lib/types/token.ts';
 	import type { Transaction } from '#lib/types/wallet.ts';
 	import { emit } from '#lib/utils/events.utils.ts';
@@ -48,13 +44,18 @@
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { parseToken } from '#lib/utils/parse.utils.ts';
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
-	import { filterSendableTokens } from '#lib/utils/send.utils.ts';
+	import {
+		filterSendableTokens,
+		pendingSendFor,
+		type PendingSend,
+		type SendIntent
+	} from '#lib/utils/send.utils.ts';
 	import { mergeWalletFeed, weeklyVxpDeltaBaseUnits } from '#lib/utils/transactions.utils.ts';
 	import type { Web2WalletAsset } from '#lib/web2/client.ts';
 	import { goto } from '$app/navigation';
 
 	/**
-	 * Wallet — centered VXP balance hero + recent activity over the
+	 * Wallet: centered VXP balance hero + recent activity over the
 	 * real crypto send / receive / history surfaces.
 	 *
 	 * Layout
@@ -65,7 +66,7 @@
 	 *   row. Balance is read from `balancesStore` for the VXP ledger;
 	 *   weekly delta sums signed deltas from clearing settlements in
 	 *   the last 7 days.
-	 * - Recent activity (6 rows) — derived from the same merged
+	 * - Recent activity (6 rows): derived from the same merged
 	 *   `filteredTransactions` source as the History tab, surfacing
 	 *   real history.
 	 * - Send / Receive / History tabs remain below for actual wallet
@@ -73,19 +74,12 @@
 	 *   surface.
 	 *
 	 * The `CollateralStats` secondary card + its modal are intentionally
-	 * gone — collateral lives inside the History "Clearing" tagged rows
+	 * gone; collateral lives inside the History "Clearing" tagged rows
 	 * and the dedicated portfolio surface; it doesn't belong on the
 	 * Wallet hero.
 	 */
 
-	let transactions = $state<Transaction[]>([]);
-	let batchSize = $state<bigint>(20n);
-	const batchSizeOptions: bigint[] = [10n, 20n, 50n];
-	let loadingHistory = $state(false);
-	let hasMoreHistory = $state(true);
-
-	let cursors = $state<WalletTransactionsCursors>({});
-	let done = $state<WalletTransactionsDone>({ icp: false, ckUsdc: false, vxp: false });
+	const pager = new WalletHistoryPager();
 
 	let activeTab = $state('send');
 
@@ -102,7 +96,7 @@
 	// filtered to the wallet's surfaced tokens and sorted newest-first.
 	const filteredTransactions = $derived(
 		mergeWalletFeed({
-			ledgerTransactions: transactions,
+			ledgerTransactions: pager.transactions,
 			clearingTransactions: $clearingTransactions,
 			allowedLedgerCanisterIds: $walletUiTokens.map((token) => token.ledgerCanisterId)
 		})
@@ -111,11 +105,7 @@
 	// First 6 rows powering the "Recent activity" block.
 	const recentActivity = $derived(filteredTransactions.slice(0, 6));
 
-	const sortNewestFirst = (arr: Transaction[]) =>
-		arr.sort((a, b) => (a.timestamp === b.timestamp ? 0 : a.timestamp > b.timestamp ? -1 : 1));
-
-	// Live free VXP balance (`$vxpFree`) from the wallet store. Same source
-	// `WalletStats` and `WalletDropdown` read — keyed by `TokenId`.
+	// Live free VXP balance (`$vxpFree`) from the wallet store, keyed by `TokenId`.
 	const vxpBalanceDisplay = $derived(
 		formatVxpBalance({ value: $vxpFree, decimals: VXP_TOKEN.decimals })
 	);
@@ -139,7 +129,7 @@
 		$positions.filter((p) => marketById.get(p.marketId)?.token.symbol === VXP_TOKEN.symbol)
 	);
 
-	// Total VXP riding on open VXP-market positions, in base units — the
+	// Total VXP riding on open VXP-market positions, in base units: the
 	// deploy-floor gate. `$vxpBacked` is the shared sum of `lockedCollateral`
 	// across the user's VXP-market positions (see `vxp-holdings.derived`).
 
@@ -160,7 +150,7 @@
 		})
 	);
 
-	// Weekly VXP delta over the unified feed — signed settlement / trade flows
+	// Weekly VXP delta over the unified feed: signed settlement / trade flows
 	// on VXP-denominated rows from the last 7 days (in base units).
 	const weeklyVxpDelta = $derived(weeklyVxpDeltaBaseUnits(filteredTransactions));
 
@@ -188,51 +178,6 @@
 		return `${sign}${formatVxpBalance({ value: abs, decimals: VXP_TOKEN.decimals })}`;
 	});
 
-	const resetHistory = () => {
-		transactions = [];
-		cursors = {};
-		done = { icp: false, ckUsdc: false, vxp: false };
-		hasMoreHistory = true;
-		loadingHistory = false;
-	};
-
-	const loadNextBatch = async () => {
-		if (loadingHistory || !hasMoreHistory) {
-			return;
-		}
-
-		loadingHistory = true;
-
-		try {
-			const result = await getTransactionsPage({ batchSize, cursors, done });
-
-			const txKey = (tx: Transaction) => `${tx.id}-${tx.token.ledgerCanisterId}`;
-			const merged: Record<string, Transaction> = {};
-
-			for (const t of transactions) {
-				merged[txKey(t)] = t;
-			}
-
-			for (const tx of result.transactions) {
-				merged[txKey(tx)] = tx;
-			}
-
-			transactions = sortNewestFirst(Object.values(merged));
-
-			const { cursors: nextCursors, done: nextDone, hasMore: nextHasMore } = result;
-			cursors = nextCursors;
-			done = nextDone;
-			hasMoreHistory = nextHasMore;
-		} finally {
-			loadingHistory = false;
-		}
-	};
-
-	const reloadHistory = async () => {
-		resetHistory();
-		await loadNextBatch();
-	};
-
 	// The loader answers `undefined` on the default backend (no custody gate),
 	// so "still loading" needs its own flag.
 	let sendAssets = $state<Web2WalletAsset[] | undefined>();
@@ -251,7 +196,7 @@
 	};
 
 	onMount(() => {
-		void reloadHistory();
+		void pager.reload();
 		void loadSendAssets();
 	});
 
@@ -268,6 +213,33 @@
 
 	const selectedTokenForSend = $derived(selectedToken ?? sendableTokens[0]);
 
+	// Not `$state`: nothing renders it. It carries a send's idempotency key from
+	// a try whose outcome is unknown to the user's retry of the same send.
+	let pendingSend: PendingSend | undefined;
+
+	const submitSend = async ({ token, intent }: { token: Token; intent: SendIntent }) => {
+		const send = pendingSendFor({ pending: pendingSend, intent });
+
+		pendingSend = send;
+
+		try {
+			// The service resolves the transport (user-signed ICRC transfer, or a
+			// custodial withdrawal in web2 mode) and the auth that goes with it.
+			await sendToken({
+				token,
+				to: intent.to,
+				amount: intent.amount,
+				idempotencyKey: send.idempotencyKey
+			});
+		} catch (err: unknown) {
+			pendingSend = pendingSendAfterError({ pending: send, err });
+
+			throw err;
+		}
+
+		pendingSend = undefined;
+	};
+
 	const handleSend = async () => {
 		if (sending) {
 			return;
@@ -280,20 +252,21 @@
 		sending = true;
 
 		try {
-			// The service resolves the transport (user-signed ICRC transfer, or a
-			// custodial withdrawal in web2 mode) and the auth that goes with it.
-			await sendToken({
+			await submitSend({
 				token: selectedTokenForSend,
-				to: recipient,
-				amount: parseToken({
-					value: `${amount}`,
-					unitName: selectedTokenForSend.decimals
-				})
+				intent: {
+					ledgerCanisterId: selectedTokenForSend.ledgerCanisterId,
+					to: recipient,
+					amount: parseToken({
+						value: `${amount}`,
+						unitName: selectedTokenForSend.decimals
+					})
+				}
 			});
 
 			emit({ message: 'viciRefreshBalances' });
 
-			await reloadHistory();
+			await pager.reload();
 
 			amount = '';
 
@@ -326,9 +299,9 @@
 		});
 	};
 
-	// Row helpers — title / direction / amount label for the recent
+	// Row helpers: title / direction / amount label for the recent
 	// activity list. Mirrors `WalletHistory`'s `directionFor` but renders
-	// a single inline string (e.g. "Won · {market}", "Stake · {market}",
+	// a single inline string (e.g. "Won · {market}", "Called · {market}",
 	// "Receive", "Send") so the row reads at a glance.
 	const marketTitle = (marketId: string | undefined): string | undefined =>
 		nonNullish(marketId) ? $displayMarkets.get(marketId)?.title : undefined;
@@ -481,7 +454,7 @@
 		{/if}
 	</section>
 
-	<!-- Recent activity — top 6 from the unified transactions feed. -->
+	<!-- Recent activity: top 6 from the unified transactions feed. -->
 	<section bind:this={activityListEl} class="wallet-activity">
 		<h2 class="wallet-activity-title">
 			{t({ locale: $localeStore, key: 'wallet.recent_activity' })}
@@ -524,7 +497,7 @@
 	</section>
 
 	<!--
-		Send / Receive / History tabs. Visually toned-down — no big
+		Send / Receive / History tabs. Visually toned-down: no big
 		"TREASURY" eyebrow and no `CollateralStats` secondary card.
 	-->
 	<Card class="wallet-tabs-card bg-card/85 overflow-hidden" padding="none">
@@ -558,48 +531,7 @@
 			{:else if activeTab === 'receive'}
 				<WalletReceive />
 			{:else if activeTab === 'history'}
-				<div class="space-y-4">
-					<div class="flex items-center justify-between gap-4">
-						<div class="eyebrow">
-							{t({ locale: $localeStore, key: 'wallet.history.batch_size' })}
-						</div>
-						<div class="flex items-center gap-2">
-							<select
-								class="border-border bg-foreground/5 text-foreground focus:border-primary rounded-full border px-3 py-1.5 text-sm"
-								aria-label={t({ locale: $localeStore, key: 'wallet.history.batch_size_label' })}
-								disabled={loadingHistory}
-								onchange={(e) => {
-									batchSize = BigInt((e.target as HTMLSelectElement).value);
-									void reloadHistory();
-								}}
-							>
-								{#each batchSizeOptions as option (option.toString())}
-									<option selected={option === batchSize} value={option.toString()}>
-										{option.toString()}
-									</option>
-								{/each}
-							</select>
-						</div>
-					</div>
-
-					<WalletHistory transactions={filteredTransactions} />
-
-					<div class="flex flex-col items-center gap-3 pt-6 pb-2">
-						{#if !loadingHistory && !hasMoreHistory && transactions.length > 0}
-							<div class="text-muted-foreground text-xs">
-								{t({ locale: $localeStore, key: 'wallet.history.all_caught_up' })}
-							</div>
-						{/if}
-
-						<InfiniteScroll
-							hasMore={hasMoreHistory}
-							loading={loadingHistory}
-							onLoadMore={() => {
-								void loadNextBatch();
-							}}
-						/>
-					</div>
-				</div>
+				<WalletHistoryPanel {pager} transactions={filteredTransactions} />
 			{/if}
 		</div>
 	</Card>

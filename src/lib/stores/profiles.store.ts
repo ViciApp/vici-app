@@ -7,7 +7,7 @@ import { writable } from 'svelte/store';
  * to render a counterpart's name/avatar without re-hitting the satellite:
  * friends list, inbox, activity feed, market recent trades, market
  * discussion. Populated incrementally by `loadProfilesByPrincipals` (see
- * `profile.services.ts`) — callers pass the principals they're about to
+ * `profile.services.ts`): callers pass the principals they're about to
  * render and the missing ones get fetched and merged here.
  *
  * Profiles are public (nickname + avatar etc.) so this cache intentionally

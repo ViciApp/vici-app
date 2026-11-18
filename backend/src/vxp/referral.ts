@@ -9,8 +9,10 @@ import { isNullish } from '@dfinity/utils';
 import { query } from '../db/client';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
+import { countAwardMarkers } from './award-markers';
 import { grantAward } from './awards';
 import { REFERRAL_VXP_BONUS_BASE_UNITS, referrerRewardBaseUnits } from './constants';
+import { countExecutedPredictions } from './predictions';
 
 export interface ReferralRow {
 	referee_user_id: string;
@@ -31,16 +33,9 @@ export const getReferralRow = async (refereeUserId: string): Promise<ReferralRow
 };
 
 /** Whether the referee has made at least one prediction: the settlement gate.
- * Counts only trade activities, exactly like the first-prediction rule the
- * satellite applied. */
-const refereeHasTraded = async (refereeUserId: string): Promise<boolean> => {
-	const rows = await query<{ count: string }>(
-		`select count(*)::text as count from activities where user_id = $1 and type = 'trade'`,
-		[refereeUserId]
-	);
-
-	return Number(rows[0]?.count ?? 0) > 0;
-};
+ * Counts executed fills in the engine, never the client-posted activity log. */
+const refereeHasTraded = async (refereeUserId: string): Promise<boolean> =>
+	(await countExecutedPredictions({ userId: refereeUserId })) > 0;
 
 /**
  * The referrer's authoritative prior count for one redemption: every
@@ -51,6 +46,13 @@ const refereeHasTraded = async (refereeUserId: string): Promise<boolean> => {
  * moving any row's reward. Filtering on settlement state instead would let
  * an earlier-but-unsettled redemption go uncounted, so tiers would depend on
  * WHEN settlements happen to run.
+ *
+ * A referee's hard delete removes their redemption row, so the referrer's
+ * own referral awards are counted too wherever their redemption is gone:
+ * those award rows outlive the referee, so deleting converted referees can
+ * never give the referrer back a top tier or a slot under the lifetime cap.
+ * The referrer's own hard delete removes those awards, so the conversions its
+ * identity was paid for under deleted accounts (their markers) count as well.
  */
 const countPriorReferrerRedemptions = async ({
 	referrerUserId,
@@ -62,14 +64,24 @@ const countPriorReferrerRedemptions = async ({
 	redeemedAtMs: number;
 }): Promise<number> => {
 	const rows = await query<{ count: string }>(
-		`select count(*)::text as count from referrals
-		 where referrer_user_id = $1
-		   and referee_user_id <> $2
-		   and (redeemed_at_ms < $3 or (redeemed_at_ms = $3 and referee_user_id::text < $2::text))`,
+		`select count(*)::text as count from (
+		   select referee_user_id::text as referee from referrals
+		   where referrer_user_id = $1
+		     and referee_user_id <> $2
+		     and (redeemed_at_ms < $3 or (redeemed_at_ms = $3 and referee_user_id::text < $2::text))
+		   union
+		   select award_key as referee from vxp_awards a
+		   where a.user_id = $1
+		     and a.award_type = 'referral'
+		     and a.award_key <> $1::text
+		     and a.award_key <> $2::text
+		     and not exists (select 1 from referrals r where r.referee_user_id::text = a.award_key)
+		 ) prior`,
 		[referrerUserId, refereeUserId, redeemedAtMs]
 	);
+	const paidBefore = await countAwardMarkers({ userId: referrerUserId, awardType: 'referral' });
 
-	return Number(rows[0]?.count ?? 0);
+	return Number(rows[0]?.count ?? 0) + paidBefore;
 };
 
 export interface SettleReferralResult {
@@ -105,7 +117,7 @@ export const settleReferralPayout = async ({
 		awardType: 'referral',
 		awardKey: refereeUserId,
 		amountBaseUnits: REFERRAL_VXP_BONUS_BASE_UNITS,
-		memo: 'vxp:referral:referee'
+		memo: `vxp:referral:referee:${refereeUserId}`
 	});
 
 	// Referrer side: decide the cap slot once (write-once via the null guard),
@@ -149,7 +161,7 @@ export const settleReferralPayout = async ({
 				awardType: 'referral',
 				awardKey: refereeUserId,
 				amountBaseUnits: reward,
-				memo: 'vxp:referral:referrer'
+				memo: `vxp:referral:referrer:${refereeUserId}`
 			});
 		}
 	}

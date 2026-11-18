@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
-	import { leaderboard } from '#lib/derived/leaderboard.derived.ts';
+	import { visibleLeaderboard } from '#lib/derived/leaderboard.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { FollowedLeanSignal, TopPredictorSignal } from '#lib/types/market-signals.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
@@ -10,7 +10,7 @@
 		/**
 		 * Leaderboard-ranked predictors who hold a position on this market,
 		 * each with the side they actually took. `undefined` while the page
-		 * is still resolving them — the list area stays blank rather than
+		 * is still resolving them: the list area stays blank rather than
 		 * flashing the empty state at people who are about to appear.
 		 */
 		topPredictors?: TopPredictorSignal[];
@@ -26,15 +26,16 @@
 
 	const followedNo = $derived(nonNullish(followedLean) ? followedLean.total - followedLean.yes : 0);
 
-	// Join each signal back onto its cached leaderboard row for the display
+	// Join each signal back onto its visible leaderboard row for the display
 	// fields (nickname / avatar / accuracy / streak). The signals were
-	// resolved from this same store's principal order, so a miss only
-	// happens if the board refreshed mid-flight — drop that row rather
-	// than render a half-empty identity.
+	// resolved from this same store's principal order, so a miss means the
+	// board refreshed mid-flight or the row is no longer visible (its owner
+	// opted out, or it was the viewer's own row and they signed out): drop it
+	// at once rather than wait for the page to re-probe.
 	const rows = $derived(
 		(topPredictors ?? [])
 			.map((signal) => {
-				const user = $leaderboard.find(({ owner }) => owner === signal.owner);
+				const user = $visibleLeaderboard.find(({ owner }) => owner === signal.owner);
 
 				return nonNullish(user) ? { user, side: signal.side } : undefined;
 			})
@@ -45,7 +46,7 @@
 <!-- "Top predictors here" mini-leaderboard: the highest-ranked
      predictors on the global board who hold a live position on THIS
      market, tagged with the side they committed (resolved via
-     per-candidate `aggregate_lean` probes — see
+     per-candidate `aggregate_lean` probes: see
      `top-predictors.services.ts`). -->
 <section class="market-top-predictors" aria-labelledby="market-top-predictors-h">
 	<header class="market-top-predictors-head">
@@ -55,7 +56,7 @@
 	</header>
 
 	{#if isNullish(topPredictors)}
-		<!-- Still resolving — keep the area blank instead of flashing the
+		<!-- Still resolving: keep the area blank instead of flashing the
 		     empty state under people who are about to appear. -->
 	{:else if rows.length === 0}
 		<p class="market-top-predictors-empty">
@@ -233,7 +234,7 @@
 		color: var(--no);
 	}
 
-	/* Followed-lean row — how the people the viewer follows have called
+	/* Followed-lean row: how the people the viewer follows have called
 	   this market. A label + `N YES · M NO` count over a dot grid, so
 	   the social signal reads at a glance without a second list. */
 	.market-followed-lean {

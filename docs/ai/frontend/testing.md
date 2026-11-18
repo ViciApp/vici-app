@@ -299,7 +299,7 @@ pre-deployed.
   so E2E reuses development mode but exports `JUNO_EMULATOR=true`, which
   makes [`juno.config.ts`](../../../juno.config.ts) swap `ids.development`
   to the emulator's predictable satellite ID
-  (`jx5yt-yyaaa-aaaal-abzbq-cai`). Without that env flag, the dev satellite
+  (`EMULATOR_SATELLITE_ID` there). Without that env flag, the dev satellite
   ID still points at the real remote dev satellite.
 - **icdc-core canisters:** deployed by **`dfx`** into the same PocketIC
   instance the Juno emulator is running. The local `network` in
@@ -323,7 +323,9 @@ e2e/
 ├── pages/                # Page-Object Model classes
 │   └── home.page.ts
 ├── snapshots/            # Playwright visual baselines, committed
+├── arena-friend-request-deeplink.spec.ts # friend-request deep link opens the Arena Friends tab
 ├── auth.spec.ts          # dev sign-in (via onboarding) + Settings sign-out
+├── global-setup.ts       # fails fast when the dev server or the emulator is unreachable
 ├── homepage.spec.ts      # signed-in markets board: loading + loaded
 ├── invite.spec.ts        # /join + /i invite-link landing (anonymous)
 ├── moved-to-new-app.spec.ts # legacy build: /signup + no-profile sign-in go to the new app
@@ -333,9 +335,8 @@ e2e/
 
 ### Visual snapshots
 
-The snapshot specs end with `await expect(page).toHaveScreenshot(...)`; that's
-the same flow `oisy-wallet` and `gix-components` use: the PNG baselines
-live under [`e2e/snapshots/`](../../../e2e/snapshots/) and **are
+The snapshot specs end with `await expect(page).toHaveScreenshot(...)`; the
+PNG baselines live under [`e2e/snapshots/`](../../../e2e/snapshots/) and **are
 committed to the repo**, so any visual regression shows up directly in
 the PR diff.
 
@@ -393,17 +394,16 @@ await expect(page).toHaveScreenshot('logged-in.png', {
 the size of the element's bounding box, so a chip that renders `"7d 14h"`
 on one run and `"6d 23h"` on the next produces a different-sized
 rectangle and the snapshot diffs anyway. For wall-clock-relative text
-(the `MarketTimeRemaining` chip is the canonical example) and for any
-other element whose text varies per CI run (notably the shortened
-principal rendered by `CopyableAddress`: Juno's dev mock identity is
-deterministic within a CI run but the PocketIC emulator container
-mints a different principal on every fresh boot), overwrite the
-`textContent` to a fixed string before screenshot; call
+and for any other element whose text varies per CI run (the canonical
+example is the shortened principal rendered by `CopyableAddress`: Juno's
+dev mock identity is deterministic within a CI run but the PocketIC
+emulator container mints a different principal on every fresh boot),
+overwrite the `textContent` to a fixed string before screenshot; call
 `home.stabilizeForSnapshot()` (defined in
 [`e2e/pages/home.page.ts`](../../../e2e/pages/home.page.ts)), which
-waits for `document.fonts.ready` and pins every time-remaining chip
-and principal-display element
-to a constant placeholder:
+waits for `document.fonts.ready` and pins every principal-display
+element and every entry of `PINNED_SNAPSHOT_TEXT` to a constant
+placeholder:
 
 ```ts
 await home.stabilizeForSnapshot();
@@ -513,8 +513,8 @@ The [`.github/workflows/e2e.yml`](../../../.github/workflows/e2e.yml)
 workflow runs unconditionally on pushes to `main`, nightly, and on
 `workflow_dispatch`. On a **pull request** and in a **`merge_group`**
 the `check-e2e-changes` paths-filter job skips the suite unless the
-change touches `e2e/**`, `playwright.config.ts`, the workflow,
-`dfx.json`, `juno.config.ts`, or `scripts/**`; `e2e-tests-pass` still
+change touches a path in its `e2e` filter (the list lives in the
+workflow, with the reason for each entry); `e2e-tests-pass` still
 reports green when skipped. The `run-e2e-snapshots` label forces it on,
 on a PR only. Concurrency is grouped on the ref so pushing a new commit
 to a PR cancels the in-flight run.

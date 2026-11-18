@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import ProfileDashboard from '#lib/components/profile/ProfileDashboard.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
+	import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 	import { authBusy, authPrincipal } from '#lib/derived/user.derived.ts';
 	import { getProfile } from '#lib/services/profile.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -21,7 +22,7 @@
 
 		void refreshProfile();
 
-		intervalId = setInterval(refreshProfile, 60000);
+		intervalId = setInterval(refreshProfile, MINUTE_IN_MS);
 
 		return () => clearInterval(intervalId);
 	});
@@ -31,9 +32,8 @@
 	The Profile page leads with a full-bleed avatar hero (rendered inside
 	`ProfileDashboard`) rather than the shared section header: the avatar
 	scene IS the header, and the notification + settings controls float over
-	it. So this page intentionally does not wrap the loaded state in
-	`PageScaffold` — the dashboard owns its own chrome. The loading / empty
-	states keep the simple centered card.
+	it. So the dashboard owns its own chrome on the loaded state. The loading /
+	empty states keep the simple centered card.
 -->
 <div class="profile-page">
 	{#if $userStore.profile}

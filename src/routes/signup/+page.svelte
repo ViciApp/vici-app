@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { onMount } from 'svelte';
 	import MovedToNewApp from '#lib/components/authn/MovedToNewApp.svelte';
 	import Onboarding from '#lib/components/onboarding/Onboarding.svelte';
+	import { pageTitle } from '#lib/constants/brand.constants.ts';
 	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { userSignedIn } from '#lib/derived/user.derived.ts';
@@ -15,6 +15,7 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { setAuthBusy, userStore } from '#lib/stores/user.store.ts';
+	import type { OnboardingPicks } from '#lib/types/onboarding.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { browser } from '$app/env';
@@ -24,9 +25,9 @@
 	// Signed-in routing: a brand-new authenticated user who landed on
 	// `/signup` (typically routed here by the (app) layout because their
 	// profile has `onboardingCompleted: false`) claims a handle and finishes
-	// in place — the provider stack is swapped for a Finish button since they
+	// in place: the provider stack is swapped for a Finish button since they
 	// already have a session. A returning user is bounced into the app
-	// (`AppPath.Flow`) — either because onboarding is already complete, or
+	// (`AppPath.Flow`): either because onboarding is already complete, or
 	// because the satellite already held a profile at sign-in
 	// (`profileExisted`), in which case a legacy `onboardingCompleted: false`
 	// must not re-prompt.
@@ -48,10 +49,6 @@
 		}
 	});
 
-	onMount(() => {
-		document.title = 'Create account · VICI';
-	});
-
 	// Every sign-up entry on the legacy build (landing CTAs, the sign-in
 	// screen's switch, the invite and league landings, the share-link `?ref=`
 	// capture) funnels through this route, so replacing the flow here turns
@@ -59,7 +56,7 @@
 	// page lifetime, hence a plain read.
 	const signupsMoved = areNewSignupsMoved();
 
-	// Pre-auth completion (signed-out) — we persist the picks to
+	// Pre-auth completion (signed-out): we persist the picks to
 	// `PENDING_ONBOARDING_STORAGE_KEY` so the post-sign-in layout effect
 	// can upsert them into the new profile. The auth tap itself happens
 	// inside Beat 3 via `SignInProviderStack`; after it succeeds,
@@ -87,11 +84,7 @@
 		}
 	};
 
-	const handleCompletePreAuth = (result: {
-		participantId: string | null;
-		side: 'YES' | 'NO' | null;
-		handle: string | null;
-	}) => {
+	const handleCompletePreAuth = (result: OnboardingPicks) => {
 		if (!browser) {
 			return;
 		}
@@ -105,13 +98,13 @@
 		const existingEmail = typeof existing.email === 'string' ? existing.email : undefined;
 		// A league invite stashed by `/league/[code]` (the signed-out invite
 		// landing routes here through onboarding) must ALSO survive this
-		// rebuild — otherwise the drain never auto-joins the league and the
+		// rebuild: otherwise the drain never auto-joins the league and the
 		// invitee lands friended (from the referral) but not a member.
 		const existingLeagueInvite =
 			typeof existing.leagueInvite === 'string' ? existing.leagueInvite : undefined;
 
 		// Skip the write if the user bailed before making any pick **and** there's no
-		// stashed referral code, league invite, or email to carry forward — nothing to hand off.
+		// stashed referral code, league invite, or email to carry forward: nothing to hand off.
 		if (
 			isNullish(result.handle) &&
 			isNullish(result.participantId) &&
@@ -142,7 +135,7 @@
 		}
 	};
 
-	// Post-auth completion (already signed-in) — write the picks
+	// Post-auth completion (already signed-in): write the picks
 	// directly to the profile and route into the app. We reuse the same
 	// collision-aware pattern as `(app)/+layout.svelte`: probe nickname
 	// availability first when a handle was picked; on collision, still
@@ -150,11 +143,7 @@
 	// the handle).
 	let applyingAuthenticatedHandoff = $state(false);
 
-	const handleCompleteAuthenticated = async (result: {
-		participantId: string | null;
-		side: 'YES' | 'NO' | null;
-		handle: string | null;
-	}) => {
+	const handleCompleteAuthenticated = async (result: OnboardingPicks) => {
 		if (!browser || applyingAuthenticatedHandoff) {
 			return;
 		}
@@ -164,7 +153,7 @@
 		// The dev / Internet Identity providers resolve `signIn()`
 		// synchronously, so `SignInProviderStack` fires `onSuccess` while
 		// `$userSignedIn` has already flipped true but `onAuthStateChange`
-		// hasn't landed the profile yet — there's nothing to upsert the picks
+		// hasn't landed the profile yet: there's nothing to upsert the picks
 		// onto. Rather than drop them, hand off via the same pre-auth stash the
 		// signed-out path uses and route into the app, where the `(app)` layout
 		// drain applies handle/team/side (and stamps `onboardingCompleted`)
@@ -182,8 +171,8 @@
 		const participantPreference = result.participantId ?? '';
 
 		try {
-			// Probe the picked handle first. Any unavailable reason — `'taken'`, or the
-			// `'too_short'` / `'required'` cases a tolerated legacy payload can still produce —
+			// Probe the picked handle first. Any unavailable reason, `'taken'`, or the
+			// `'too_short'` / `'required'` cases a tolerated legacy payload can still produce,
 			// skips the nickname update so team/side/completion (the picks that matter) still
 			// persist; only the collision case is worth a toast. The user can rename later.
 			let setHandle = false;
@@ -204,7 +193,7 @@
 
 			// Field-level patch (NOT a full-snapshot write): `calculateAndSyncStats` writes this
 			// same doc concurrently on this finishing login, so a stale full snapshot would lose
-			// the optimistic-version race and throw — silently dropping these picks. A handle
+			// the optimistic-version race and throw: silently dropping these picks. A handle
 			// claimed in the TOCTOU window after the probe is dropped (the rest still persists),
 			// reported via `handleApplied`.
 			const { profile: nextProfile, handleApplied } = await applyOnboardingPicks({
@@ -239,7 +228,7 @@
 			void goto(resolveAppPath(AppPath.Flow), { replace: true });
 		} catch (err: unknown) {
 			// A handle collision is handled inside `applyOnboardingPicks` (it retries without the
-			// handle), so anything reaching here is a genuine failure to persist. Surface it — the
+			// handle), so anything reaching here is a genuine failure to persist. Surface it: the
 			// generic toast otherwise swallows it, which is what made this class of bug invisible.
 			console.error('Onboarding handoff (authenticated) failed:', err);
 
@@ -253,11 +242,7 @@
 		}
 	};
 
-	const handleComplete = (result: {
-		participantId: string | null;
-		side: 'YES' | 'NO' | null;
-		handle: string | null;
-	}) => {
+	const handleComplete = (result: OnboardingPicks) => {
 		if (authenticated) {
 			void handleCompleteAuthenticated(result);
 
@@ -267,7 +252,7 @@
 		// A signed-out visitor who just authenticated via an in-page provider
 		// (passkey / passkey-backed email). `signUp()` has resolved, but Juno's
 		// `onAuthStateChange` hasn't hydrated the profile yet, so the
-		// `authenticated` derived hasn't flipped — without an explicit nav the
+		// `authenticated` derived hasn't flipped: without an explicit nav the
 		// page would sit on /signup until hydration swaps in the Finish button,
 		// forcing a second tap (and a second round of network calls). Stash the
 		// picks and route straight into the app, mirroring the redirect-provider
@@ -280,6 +265,10 @@
 		void goto(resolveAppPath(AppPath.Flow), { replace: true });
 	};
 </script>
+
+<svelte:head>
+	<title>{pageTitle(t({ locale: $localeStore, key: 'seo.signup.title' }))}</title>
+</svelte:head>
 
 {#if signupsMoved}
 	<MovedToNewApp onSignIn={() => void goto(resolve(PublicPath.SignIn))} reason="signup" />

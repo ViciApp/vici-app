@@ -4,10 +4,11 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
-	import { DAY_IN_MS } from '#lib/constants/app.constants.ts';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+	import { authPrincipal } from '#lib/derived/user.derived.ts';
 	import { track } from '#lib/services/analytics.services.ts';
-	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 	import {
 		acceptBattle,
 		declineBattle,
@@ -33,8 +34,8 @@
 	import { page } from '$app/state';
 
 	/**
-	 * Battle detail — face-off view for a single battle. Shows sideA + sideB
-	 * cards with their league names + accents, current scores (or a "—"
+	 * Battle detail: face-off view for a single battle. Shows sideA + sideB
+	 * cards with their league names + accents, current scores (or a "–"
 	 * placeholder pre-resolve), the state pill, the kickoff/settle
 	 * window, and all the same inline transitions the inbox row exposes.
 	 *
@@ -51,16 +52,16 @@
 
 	let battles: BattleDoc[] = $state([]);
 	let memberships: LeagueWithRole[] = $state([]);
-	let selfPrincipal: string | undefined = $state();
+	const selfPrincipal = $derived($authPrincipal);
 	let loadState: 'loading' | 'ready' | 'not_found' | 'error' = $state('loading');
 	let errorMessage: string | null = $state(null);
 	let actingBattleId = $state<string | null>(null);
-	// Provisional standings while the battle is in flight — null until the
+	// Provisional standings while the battle is in flight: null until the
 	// read returns, or for any battle that can't be scored live (duel,
 	// non-in_flight, legacy row missing baselines).
 	let liveScore = $state<BattleLiveScore | null>(null);
 	// True only while the in-flight live-score read is in flight, so the
-	// face-off scores can pulse instead of sitting on a static "—" while the
+	// face-off scores can pulse instead of sitting on a static "–" while the
 	// two leagues' standings are still being computed.
 	let liveScoreLoading = $state(false);
 	// Fire `battle_viewed` exactly once per mount, on the first `ready`.
@@ -73,7 +74,7 @@
 	const MAX_AUTO_RESOLVE_ATTEMPTS = 3;
 
 	// Where the viewer arrived from, for the `battle_viewed` funnel. A
-	// bounded vocabulary — anything unrecognised falls back to deep_link.
+	// bounded vocabulary: anything unrecognised falls back to deep_link.
 	const viewSource = $derived.by((): 'inbox' | 'league' | 'deep_link' => {
 		const from = page.url.searchParams.get('from');
 
@@ -82,14 +83,9 @@
 
 	const load = async () => {
 		try {
-			const [battleList, mineList, identity] = await Promise.all([
-				listMyBattles(),
-				listMyLeagues(),
-				safeGetIdentityOnce()
-			]);
+			const [battleList, mineList] = await Promise.all([listMyBattles(), listMyLeagues()]);
 			battles = battleList;
 			memberships = mineList;
-			selfPrincipal = identity.getPrincipal().toText();
 			const found = battles.find((b) => b.id === battleId);
 			loadState = nonNullish(found) ? 'ready' : 'not_found';
 
@@ -98,11 +94,11 @@
 				track({ name: 'battle_viewed', battleId, label: found.state, source: viewSource });
 			}
 
-			// Provisional standings — read-only; resolution stays the lazy
-			// auto-resolve path. A failure degrades silently to the "—" render.
+			// Provisional standings: read-only; resolution stays the lazy
+			// auto-resolve path. A failure degrades silently to the "–" render.
 			if (nonNullish(found)) {
 				// Only league battles in flight return a live score; flagging
-				// just those keeps the pulse off rows that resolve to "—" anyway.
+				// just those keeps the pulse off rows that resolve to "–" anyway.
 				liveScoreLoading = found.state === 'in_flight' && found.kind === 'league';
 
 				try {
@@ -160,7 +156,7 @@
 	});
 
 	// Proposer handle (`@nickname`), falling back to the shortened principal
-	// until — or unless — a profile with a nickname is in the store.
+	// until, or unless, a profile with a nickname is in the store.
 	const proposerLabel = $derived.by((): string => {
 		if (!battle) {
 			return '';
@@ -234,23 +230,23 @@
 	const canKickoff = $derived(
 		battle?.state === 'accepted' && nonNullish(ownedSide) && Date.now() >= battle.kickoffMs
 	);
-	// Shown to everyone while a settled battle awaits its silent write —
+	// Shown to everyone while a settled battle awaits its silent write:
 	// there is no button to press, just a "finalizing" indicator.
 	const isFinalizing = $derived(
 		nonNullish(battle) && battle.state === 'in_flight' && Date.now() >= battle.settleMs
 	);
 
-	// Provisional standings are available — show running accuracy + a
-	// "leading" highlight in place of the pre-resolve "—".
+	// Provisional standings are available: show running accuracy + a
+	// "leading" highlight in place of the pre-resolve "–".
 	const isLive = $derived(
 		nonNullish(battle) && battle.state === 'in_flight' && nonNullish(liveScore)
 	);
 
-	// The two leagues' results are being computed — either the live-score read
+	// The two leagues' results are being computed: either the live-score read
 	// is in flight, or the battle has settled and is finalizing. League-only:
-	// duels carry no live league standings, so they keep a steady "—" rather
+	// duels carry no live league standings, so they keep a steady "–" rather
 	// than pulsing through the finalizing window. Drives a pulse on the scores
-	// so the wait reads as "calculating", not a stalled "—".
+	// so the wait reads as "calculating", not a stalled "–".
 	const isCalculating = $derived(
 		nonNullish(battle) &&
 			battle.kind === 'league' &&
@@ -266,7 +262,7 @@
 
 			return nonNullish(pct)
 				? t({ locale: $localeStore, key: 'leagues.battle.score_pct', params: { pct } })
-				: '—';
+				: EMPTY_VALUE;
 		}
 
 		if (isLive && nonNullish(liveScore)) {
@@ -275,10 +271,10 @@
 			return t({ locale: $localeStore, key: 'leagues.battle.score_pct', params: { pct } });
 		}
 
-		return '—';
+		return EMPTY_VALUE;
 	};
 
-	// Whether a side is ahead — the resolved winner once resolved, the live
+	// Whether a side is ahead: the resolved winner once resolved, the live
 	// leader while in flight. A draw highlights neither side.
 	const isLeading = (side: 'A' | 'B'): boolean => {
 		if (nonNullish(battle) && battle.state === 'resolved') {
@@ -289,7 +285,7 @@
 	};
 
 	// The side whose league the viewer belongs to (any role). Resolution is
-	// open to members, not just owners — the satellite re-derives the scores,
+	// open to members, not just owners; the satellite re-derives the scores,
 	// so the writer can't skew them. Duels carry no members, so they fall
 	// back to the principal-owned side.
 	const resolverSide = $derived.by((): string | undefined => {
@@ -309,7 +305,7 @@
 	});
 
 	// Resolution reads each side's accuracy from clearing settlement history,
-	// so it needs no kickoff baseline — a settled battle (legacy or not)
+	// so it needs no kickoff baseline; a settled battle (legacy or not)
 	// resolves once a member of either side opens it past its settle time.
 	const canResolve = $derived(
 		battle?.state === 'in_flight' && nonNullish(resolverSide) && Date.now() >= battle.settleMs
@@ -423,7 +419,7 @@
 
 	// Resolve the battle in one tap: scores are each league's window
 	// accuracy, computed by the service from `league_stats` and re-verified
-	// by the satellite assert — there is nothing for the user to enter.
+	// by the satellite assert: there is nothing for the user to enter.
 	const handleResolve = async (source: 'auto' | 'nudge') => {
 		const ourSide = resolverSide;
 
@@ -463,10 +459,10 @@
 		}
 	});
 
-	// Return to wherever the viewer came from in-app — `history.back()`
+	// Return to wherever the viewer came from in-app: `history.back()`
 	// restores the originating Arena tab (the tab strip mirrors itself into
-	// the URL on selection). When they landed here cold — a deep link or fresh
-	// tab with no in-app history — `goBack` falls back to Arena's Friends tab.
+	// the URL on selection). When they landed here cold; a deep link or fresh
+	// tab with no in-app history: `goBack` falls back to Arena's Friends tab.
 	const handleBack = () => {
 		goBack(resolveAppPath(AppPath.Arena));
 	};
@@ -581,16 +577,16 @@
 					>{battleScopeLabel({ scope: battle.scope, locale: $localeStore })}</span
 				>
 			</div>
-			{#if nonNullish(battle.wager) && battle.wager > 0}
+			{#if nonNullish(battle.amount) && battle.amount > 0}
 				<div class="battle-detail-meta-row">
 					<span class="eyebrow"
-						>{t({ locale: $localeStore, key: 'battle.detail.wager_label' })}</span
+						>{t({ locale: $localeStore, key: 'battle.detail.amount_label' })}</span
 					>
 					<span class="num">
 						{t({
 							locale: $localeStore,
-							key: 'battle.detail.wager_value',
-							params: { amount: battle.wager }
+							key: 'battle.detail.amount_value',
+							params: { amount: battle.amount }
 						})}
 					</span>
 				</div>
@@ -817,7 +813,7 @@
 	}
 
 	/* While the two leagues' results are being computed the score sits on a
-	   "—" placeholder; pulsing it reads as "calculating" rather than stalled. */
+	   "–" placeholder; pulsing it reads as "calculating" rather than stalled. */
 	.battle-detail-score.is-calculating {
 		animation: battle-detail-score-pulse 1.2s ease-in-out infinite;
 	}

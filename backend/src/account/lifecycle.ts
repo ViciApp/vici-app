@@ -1,21 +1,30 @@
 // Account lifecycle: soft-delete + recovery window + hard-delete cascade,
 // hibernation, and the retention sweep. The user row itself survives a hard
 // delete (it is the identity anchor, like the principal that outlives an
-// on-chain account); what the cascade removes is exactly the domain rows the
-// account accumulated: profile, VXP award history, referral code and
-// redemption, affiliations, relations, league memberships, and owned leagues
-// (deleted when empty, transferred to a surviving member otherwise).
+// on-chain account), stamped dead for good; what the cascade removes is every
+// way back in (auth identities, sessions, pending one-time codes) and exactly
+// the domain rows the account accumulated: profile, VXP award history (an
+// anonymous marker of each paid one-time award stays, see vxp/award-markers),
+// stats and monthly stats, resolved results, the likes it gave, school-email
+// submissions, referral code and redemption, affiliations, relations, league
+// memberships, and owned leagues (deleted when empty, transferred to a
+// surviving member otherwise).
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
+import { deleteSignInIdentities } from '../auth/identity';
+import { revokeAllForUser } from '../auth/sessions';
 import { query, tx, type TxQuery } from '../db/client';
 import { deleteLeague, transferLeagueOwnership } from '../leagues/leagues';
 import { logger } from '../lib/logger';
+import { DAY_IN_MS } from '../lib/time';
+import { deleteReactionsBy } from '../social/activities';
+import { recordAwardMarkers } from '../vxp/award-markers';
 
 /** Recovery window for soft-deleted accounts: past this the account is
  * eligible for the sweep's hard delete (and a too-late recovery attempt
  * hard-deletes on the spot). 30 days, in milliseconds. */
-export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * 86_400_000;
+export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * DAY_IN_MS;
 
 /** The six reason buckets the deletion picker exposes. */
 export const EXIT_SIGNAL_REASONS = [
@@ -158,24 +167,43 @@ const disbandOrTransferOwnedLeagues = async ({ userId, q }: { userId: string; q:
 /**
  * Cascade hard delete for one account, in a single transaction. Shared
  * audit rows (activities, battles, analytics) stay in place: the identity
- * is gone, so they are orphaned but immutable. Membership rows must go
- * before the owned-league resolution so the survivor scan sees the right
- * remaining members. Idempotent.
+ * is gone, so they are orphaned but immutable. The sign-in paths go first,
+ * under the login locks, so the user id can never be signed into again: a
+ * later sign-in with the same address provisions a new account. Before they
+ * go, the one-time awards the account was paid are written as anonymous
+ * markers of its identities, so that new account cannot collect them again
+ * once the award history is deleted. Membership
+ * rows must go before the owned-league resolution so the survivor scan sees
+ * the right remaining members. Idempotent: the first stamp stands.
  */
 export const hardDeleteAccount = async (userId: string): Promise<void> => {
 	await tx(async (q) => {
+		await recordAwardMarkers({ userId, q });
+		await deleteSignInIdentities({ q, userId });
+		await revokeAllForUser(userId, q);
 		await q(`delete from profiles where user_id = $1`, [userId]);
 		await q(`delete from vxp_awards where user_id = $1`, [userId]);
+		await q(`delete from calibration_attempts where user_id = $1`, [userId]);
+		await q(`delete from activity_days where user_id = $1`, [userId]);
+		await q(`delete from user_stats where user_id = $1`, [userId]);
+		await q(`delete from user_monthly_stats where user_id = $1`, [userId]);
+		await q(`delete from resolved_results where user_id = $1`, [userId]);
+		await q(`delete from school_submissions where user_id = $1`, [userId]);
+		await deleteReactionsBy({ likerId: userId, q });
 		await q(`delete from referral_codes where owner_user_id = $1`, [userId]);
 		// Referee-side rows go with the account; referrer-side rows stay so a
 		// referred user keeps their own pending bonus. The settlement path
 		// skips the referrer reward once users.hard_deleted_at is stamped.
+		// The referrer's award for this referee stays too, and keeps its slot
+		// in the referrer's tier count.
 		await q(`delete from referrals where referee_user_id = $1`, [userId]);
 		await q(`delete from affiliations where member_user_id = $1`, [userId]);
 		await q(`delete from relations where participant_one = $1 or participant_two = $1`, [userId]);
 		await q(`delete from league_members where member_user_id = $1`, [userId]);
 		await disbandOrTransferOwnedLeagues({ userId, q });
-		await q(`update users set hard_deleted_at = now() where id = $1`, [userId]);
+		await q(`update users set hard_deleted_at = coalesce(hard_deleted_at, now()) where id = $1`, [
+			userId
+		]);
 	});
 };
 
@@ -305,14 +333,16 @@ export const deleteMyAccount = async ({
 	});
 
 	// The exit signal is anonymous by design: no user reference in the row,
-	// so it outlives the account while staying unlinkable. Appended once per
-	// departure only, so a re-delete cannot over-count churn.
+	// a random id, and only the UTC day as its time (both columns), so it
+	// outlives the account while no timestamp joins it to the soft-delete
+	// mark. Appended once per departure only, so a re-delete cannot
+	// over-count churn.
 	if (!alreadyDeleted) {
-		await query(`insert into exit_signals (reason, note, created_at_ms) values ($1, $2, $3)`, [
-			validated.reason,
-			validated.note,
-			nowMs
-		]);
+		await query(
+			`insert into exit_signals (reason, note, created_at_ms, created_at)
+			 values ($1, $2, $3::bigint, to_timestamp($3::bigint / 1000.0))`,
+			[validated.reason, validated.note, nowMs - (nowMs % DAY_IN_MS)]
+		);
 
 		await captureDeleteEvents([
 			{ name: 'delete_succeeded', userId },

@@ -26,15 +26,15 @@
 	//   1. Mount the glyph sprite once (every badge across the app references it).
 	//   2. Watch the owner's stats; on a genuinely new tier crossing, queue a
 	//      celebration. FIRST-EVER load (the `earnedMenagerie` field is absent)
-	//      seeds the ledger SILENTLY — no celebration storm for a stocked profile
-	//      — once the live signals below have settled for that owner.
+	//      seeds the ledger SILENTLY: no celebration storm for a stocked profile
+	//      once the live signals below have settled for that owner.
 	//   3. Persist the celebrated-key ledger so a crossing fires exactly once.
 	//   4. Render the reveal, HELD while a Flow character beat is on screen so the
 	//      two never collide (card → character beat → trophy).
 	//
 	// Beyond the stats carried on the profile doc, the host reads the SAME shared
-	// `menagerie.derived` snapshot the profile rail + album grid render from —
-	// referral count + global rank folded in — so Parrot / Goat / Badger
+	// `menagerie.derived` snapshot the profile rail + album grid render from:
+	// referral count + global rank folded in, so Parrot / Goat / Badger
 	// celebrate from exactly the tier the user sees, never a divergent one. The
 	// host is always mounted at the (app) shell, so it also hydrates those live
 	// signals app-wide; any source that's missing just leaves its animal at
@@ -42,7 +42,7 @@
 
 	const profile = $derived($userStore.profile);
 
-	// Hydrate the shared live signals once per distinct signed-in owner —
+	// Hydrate the shared live signals once per distinct signed-in owner:
 	// keyed on the owner rather than fired once at mount, because the host
 	// is always mounted and can race auth: a pre-auth load has no principal
 	// for the self-rank query and skips that leg, so re-firing when the
@@ -106,7 +106,7 @@
 		lastSignature = signature;
 
 		if (diff.firstRun) {
-			// Seed the ledger silently — the owner has "always had" these.
+			// Seed the ledger silently: the owner has "always had" these.
 			void persistEarnedMenagerie({ owner: current.owner, keys: diff.all });
 
 			return;

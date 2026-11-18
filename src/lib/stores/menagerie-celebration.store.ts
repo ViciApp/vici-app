@@ -5,7 +5,7 @@ import { writable } from 'svelte/store';
 /**
  * Achievement celebration queue. A freshly-crossed Menagerie tier is enqueued
  * here; the celebration host shows them one at a time (springs the badge in,
- * flies it into the Profile nav), advancing only when the reveal finishes — and
+ * flies it into the Profile nav), advancing only when the reveal finishes, and
  * never while a Flow character beat is on screen (see `flow-beat.store`).
  *
  * Multiple same-tick crossings queue in catalogue (reveal-cadence) order.

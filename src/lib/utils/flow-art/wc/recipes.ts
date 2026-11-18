@@ -85,7 +85,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		h.goldenBoot({ cx: 220, cy: 60, scale: 1.0 }),
 
 	'wc-usa-quarter': (h) => {
-		// Stars-and-stripes hosted variant — bg striped + canton + bracket dot
+		// Stars-and-stripes hosted variant: bg striped + canton + bracket dot
 		let m = '';
 		m += `<rect width="280" height="100" fill="${h.p.base}"/>`;
 
@@ -261,7 +261,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		h.goldenBoot({ cx: 214, cy: 58, scale: 0.9 }),
 
 	// ─── BETA V1.4 MARQUEE (hand-authored for the 50-card expansion) ───
-	// Host opener — Mexican tricolor, jubilant home figure, ball at feet.
+	// Host opener: Mexican tricolor, jubilant home figure, ball at feet.
 	'wc-host-mex-opener': (h) =>
 		h.bgFlagVert({ c1: '#006847', c2: '#F2ECDC', c3: '#CE1126' }) +
 		h.wcFace({
@@ -276,7 +276,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		}) +
 		h.ballProp({ cx: 222, cy: 62, r: 6 }),
 
-	// USA on home soil — stars-and-stripes canton, focused host figure.
+	// USA on home soil: stars-and-stripes canton, focused host figure.
 	'wc-usa-r16': (h) => {
 		let m = `<rect width="280" height="100" fill="${h.p.base}"/>`;
 
@@ -308,7 +308,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		);
 	},
 
-	// Germany redemption — black/red/gold bands, determined figure.
+	// Germany redemption: black/red/gold bands, determined figure.
 	'wc-germany-advance': (h) =>
 		h.bgFlagHoriz({ c1: '#000000', c2: '#DD0000', c3: '#FFCE00' }) +
 		h.wcFace({
@@ -322,7 +322,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 			emotion: 'focus'
 		}),
 
-	// Portugal talisman — green/red vertical, anticipation, ball ready.
+	// Portugal talisman: green/red vertical, anticipation, ball ready.
 	'wc-portugal-goal-grp': (h) =>
 		h.bgFlagVert({ c1: '#046A38', c2: '#046A38', c3: '#DA291C' }) +
 		h.wcFace({
@@ -337,7 +337,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		}) +
 		h.ballProp({ cx: 224, cy: 60, r: 6 }),
 
-	// France QF — tricolore, composed figure, ball.
+	// France QF: tricolore, composed figure, ball.
 	'wc-france-qf': (h) =>
 		h.bgFlagVert({ c1: '#0055A4', c2: '#F2ECDC', c3: '#EF4135' }) +
 		h.wcFace({
@@ -352,7 +352,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		}) +
 		h.ballProp({ cx: 232, cy: 62, r: 6 }),
 
-	// Brazil QF — diagonal canary/green/blue, joyful figure.
+	// Brazil QF: diagonal canary/green/blue, joyful figure.
 	'wc-brazil-qf': (h) =>
 		h.bgFlagDiag({ c1: '#FFD800', c2: '#0F8C3A', c3: '#0033A0' }) +
 		h.wcFace({
@@ -367,7 +367,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		}) +
 		h.ballProp({ cx: 230, cy: 64, r: 6 }),
 
-	// Argentina QF — sky-blue/white bands, hopeful figure.
+	// Argentina QF: sky-blue/white bands, hopeful figure.
 	'wc-argentina-qf': (h) =>
 		h.bgFlagHoriz({ c1: '#75AADB', c2: '#F2ECDC', c3: '#75AADB' }) +
 		h.wcFace({
@@ -382,7 +382,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		}) +
 		h.ballProp({ cx: 232, cy: 62, r: 6 }),
 
-	// Host in the final — golden spotlight, trophy looming, lone host figure.
+	// Host in the final: golden spotlight, trophy looming, lone host figure.
 	'wc-host-in-final': (h) =>
 		h.bgSpotlight({ c1: WC_SHIRT.gold, c2: WC_SHIRT.cream }) +
 		h.wcFace({
@@ -398,7 +398,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		}) +
 		h.trophyIcon({ cx: 208, cy: 52, scale: 0.95 }),
 
-	// Final on penalties — broadcast TV frame, ball on the spot, ref focus.
+	// Final on penalties: broadcast TV frame, ball on the spot, ref focus.
 	'wc-final-penalties': (h) =>
 		h.bgTV(WC_SHIRT.gold) +
 		h.wcFace({
@@ -413,7 +413,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		}) +
 		h.ballProp({ cx: 206, cy: 70, r: 6 }),
 
-	// First-time champion — bunting + trophy raised, pure joy.
+	// First-time champion: bunting + trophy raised, pure joy.
 	'wc-first-time-winner': (h) =>
 		h.bgBunting({ c1: WC_SHIRT.gold, c2: '#FF6B6B', c3: '#6FE0B6' }) +
 		h.wcFace({

@@ -8,7 +8,7 @@ import { writable } from 'svelte/store';
  * instantly while a refresh runs, and the dashboard rank tiles can read the
  * same cached slice without a second round-trip.
  *
- * A missing key (`undefined` value) means "not yet loaded" — distinct from a
+ * A missing key (`undefined` value) means "not yet loaded": distinct from a
  * loaded-but-empty window, which is a `StandingsResult` with no entries.
  */
 export const globalStandingsStore = writable<Map<StandingsWindow, StandingsResult | undefined>>(

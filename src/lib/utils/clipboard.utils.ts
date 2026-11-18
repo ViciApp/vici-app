@@ -1,11 +1,11 @@
 import { notificationsStore } from '#lib/stores/notification.store.ts';
 
 /**
- * Pure clipboard write — wraps `navigator.clipboard.writeText` so we
+ * Pure clipboard write: wraps `navigator.clipboard.writeText` so we
  * centralise the (rare) `NotAllowedError` / missing-API failure modes
  * in one place. Resolves `true` on success, `false` if the write
  * fails. Use this when the caller manages its own success UI (e.g.
- * FlowInviteCard's inline toast).
+ * an inline toast).
  */
 export const writeToClipboard = async (value: string): Promise<boolean> => {
 	try {

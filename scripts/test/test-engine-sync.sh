@@ -26,8 +26,11 @@ source "$(dirname "$0")/../lib/utils.sh" "$@"
 set -euo pipefail
 
 ENGINE_NAME="Vici"
-EXPECTED_ENGINE_ID="${VICI_ENGINE_ID:-eng_0}"
-SATELLITE_PRINCIPAL="${VICI_JUNO_SATELLITE_PRINCIPAL:-auamu-4x777-77775-aaaaa-cai}"
+EXPECTED_ENGINE_ID="${VICI_ENGINE_ID:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/engine-id.ts)}"
+# The dev id from juno.config.ts. JUNO_EMULATOR=false because the config swaps
+# `ids.development` to the emulator id when it is set (the e2e job sets it),
+# which would change this default under the emulator.
+SATELLITE_PRINCIPAL="${VICI_JUNO_SATELLITE_PRINCIPAL:-$(cd "$PROJECT_ROOT" && JUNO_EMULATOR=false npx tsx scripts/lib/satellite-id.ts development)}"
 TEST_PRINCIPAL="${TEST_PRINCIPAL:-2vxsx-fae}"  # anonymous-ish test principal
 
 pass() { echo "  PASS: $1"; }

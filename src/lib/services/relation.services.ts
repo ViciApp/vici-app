@@ -2,7 +2,6 @@ import { functions } from '#declarations/satellite/satellite.api.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { syncGroupAdminsAfterUnfriend } from '#lib/services/group.services.ts';
 import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
-import { toRelationId } from '#lib/utils/relation.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	acceptFriendRequest as acceptFriendRequestWeb2,
@@ -11,7 +10,6 @@ import {
 	rejectFriendRequest as rejectFriendRequestWeb2,
 	searchProfiles as searchProfilesWeb2,
 	sendFriendRequest as sendFriendRequestWeb2,
-	unfollowUser as unfollowUserWeb2,
 	unfriendUser as unfriendUserWeb2
 } from '#lib/web2/client.ts';
 import { isNullish } from '@dfinity/utils';
@@ -72,10 +70,10 @@ const resolveTargetUserId = async ({
  * "Invalid textual representation of a Principal". So we resolve here before
  * calling through.
  *
- * Throws a typed `Error` with one of these codes on the message — the caller
+ * Throws a typed `Error` with one of these codes on the message; the caller
  * is expected to map them to i18n strings:
- *   - `not_found`    — nickname didn't match any profile
- *   - `self`         — input resolves to the caller
+ *   - `not_found`: nickname didn't match any profile
+ *   - `self`: input resolves to the caller
  */
 const resolveTargetPrincipal = async ({
 	input,
@@ -88,7 +86,7 @@ const resolveTargetPrincipal = async ({
 
 	// An input of just `@` (or whitespace) would otherwise fall through to
 	// `searchProfiles({ queryStr: '' })`, which matches every profile in the
-	// datastore — a needlessly heavy canister query from one malformed click.
+	// datastore: a needlessly heavy canister query from one malformed click.
 	if (stripped === '') {
 		throw new Error('not_found');
 	}
@@ -170,7 +168,7 @@ export const rejectFriendRequest = async ({
  * Cancels a friend request previously sent by the caller. The satellite
  * enforces atomicity via a version-locked delete: if the recipient
  * accepts or rejects between the FE click and the canister write, the
- * cancel traps and the user gets an error — there is no race window
+ * cancel traps and the user gets an error; there is no race window
  * where both a cancel and an accept succeed.
  */
 export const cancelFriendRequest = async ({
@@ -241,35 +239,4 @@ export const followUser = async ({
 	}
 
 	await functions.followUser({ target });
-};
-
-export const unfollowUser = async (params: {
-	sender: PrincipalText;
-	target: PrincipalText;
-}): Promise<void> => {
-	if (isWeb2Backend()) {
-		await unfollowUserWeb2(params.target);
-
-		return;
-	}
-
-	const relationId = toRelationId(params);
-
-	const doc = await getDoc<Relation>({
-		collection: Collection.RELATIONS,
-		key: relationId
-	});
-
-	if (isNullish(doc)) {
-		throw new Error('Relation does not exist');
-	}
-
-	try {
-		await deleteDoc({
-			collection: Collection.RELATIONS,
-			doc
-		});
-	} catch (e: unknown) {
-		console.error('Failed to unfollow', e);
-	}
 };

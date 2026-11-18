@@ -12,7 +12,7 @@
 	}
 
 	interface Props {
-		/** Fallback insight string — shown when no settled call is available
+		/** Fallback insight string: shown when no settled call is available
 		 *  to surface as a record line. */
 		oracleInsight: string;
 		/** The latest settled call, rendered as a record headline + sub. When
@@ -33,8 +33,8 @@
 			<span>{t({ locale: $localeStore, key: 'profile.dashboard.oracle_weekly' })}</span>
 		</p>
 		{#if nonNullish(record)}
-			<!-- Record line — a win reads "You called it — '{q}?'", a loss reads
-			     "The market went the other way — '{q}?'". The question carries the
+			<!-- Record line: a win reads "You called it: '{q}?'", a loss reads
+			     "The market went the other way: '{q}?'". The question carries the
 			     accent so the call stays the focal point. -->
 			<p class="profile-oracle-text serif-italic">
 				{t({
@@ -60,7 +60,7 @@
 </section>
 
 <style lang="postcss">
-	/* Accent "signal" treatment — the insight is a gold/laurel signal
+	/* Accent "signal" treatment: the insight is a gold/laurel signal
 	   card, not a character card: accent glow, accent border, accent
 	   eyebrow, mirroring the earned-achievement emblem and the other
 	   accent surfaces. Tri-theme via `--color-primary` / `--accent-glow`
@@ -111,7 +111,7 @@
 		line-height: var(--leading-snug);
 	}
 
-	/* The market question — accent so the call is the focal point. */
+	/* The market question: accent so the call is the focal point. */
 	.profile-oracle-q {
 		color: var(--color-primary);
 	}

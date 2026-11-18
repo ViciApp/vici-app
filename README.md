@@ -1,12 +1,12 @@
 # Vici Social Markets
 
-Vici Social Markets is a modern prediction platform built on the **Internet Computer**. It allows users to trade on binary outcome markets (YES/NO) with integrated social features, IC wallet management, and a streamlined mobile-first "Rush Mode" trading interface.
+Vici Social Markets is a modern prediction platform built on the **Internet Computer**. It allows users to trade on binary outcome markets (YES/NO) with integrated social features, IC wallet management, and a streamlined mobile-first "Flow Mode" trading interface.
 
 ## 🚀 Key Features
 
 - **Binary Outcome Markets**: Trade on YES/NO outcomes across various categories.
 - **Social Integration**: Market-specific discussions, user profiles, following system, and activity feeds.
-- **Rush Mode**: A swipe-based rapid trading interface designed for mobile-first engagement.
+- **Flow Mode**: A swipe-based rapid trading interface designed for mobile-first engagement.
 - **On-Chain Settlement**: Fully functional trading and settlement using the `clearing` and `registry` canisters.
 - **Wallet & Portfolio**: Integrated collateral management for ICP and ckUSDC with real-time position tracking.
 - **Leaders**: Track top performers based on P&L and trading volume.
@@ -41,26 +41,26 @@ This project follows strict development patterns and terminology. AI agents
 (Claude Code, Cursor, Copilot, Codex, …) and humans should start at the
 canonical entry point:
 
-- **[AGENTS.md](./AGENTS.md)** — universal entry for every AI agent.
-- **[CLAUDE.md](./CLAUDE.md)** — Claude-specific runtime layer (defers to
+- **[AGENTS.md](./AGENTS.md)**: universal entry for every AI agent.
+- **[CLAUDE.md](./CLAUDE.md)**: Claude-specific runtime layer (defers to
   AGENTS.md).
-- **[docs/ai/](./docs/ai/)** — long-form documentation:
-  - [`docs/ai/governance.md`](./docs/ai/governance.md) — truth hierarchy,
+- **[docs/ai/](./docs/ai/)**, long-form documentation:
+  - [`docs/ai/governance.md`](./docs/ai/governance.md): truth hierarchy,
     boundaries, capabilities, meta-update rule.
-  - [`docs/ai/pr-and-ci.md`](./docs/ai/pr-and-ci.md) — PR conventions, CI
+  - [`docs/ai/pr-and-ci.md`](./docs/ai/pr-and-ci.md): PR conventions, CI
     gates, local quality gates.
-  - [`docs/ai/frontend/`](./docs/ai/frontend/) — SvelteKit + Svelte 5 +
+  - [`docs/ai/frontend/`](./docs/ai/frontend/): SvelteKit + Svelte 5 +
     Tailwind v4 conventions, structure, reusability catalog, a11y, testing.
-  - [`docs/ai/satellite/`](./docs/ai/satellite/) — Juno satellite (TS hooks,
+  - [`docs/ai/satellite/`](./docs/ai/satellite/): Juno satellite (TS hooks,
     asserts, typed query / update endpoints) conventions and workflows.
   - [`docs/ai/backend/`](./docs/ai/backend/README.md): the web2 API in
     `backend/` (structure, patterns, catalog, tests, custody rules).
   - [`docs/ai/engine/`](./docs/ai/engine/README.md): pointer to
     [`../icdc-core/`](https://github.com/AntonioVentilii/icdc-core), where
     the on-chain Rust risk engine lives.
-- **[.agents/workflows/](./.agents/workflows/)** — operational runbooks
+- **[.agents/workflows/](./.agents/workflows/)**: operational runbooks
   (deployment, engine reset, engine ops).
-- **[.claude/rules/](./.claude/rules/)** — Claude-only quick-reference
+- **[.claude/rules/](./.claude/rules/)**: Claude-only quick-reference
   cards that defer to `docs/ai/`.
 - **Terminology:** always use **"prediction"** instead of "bet".
 - **Naming conventions:** suffix time-based variables with `_ms`

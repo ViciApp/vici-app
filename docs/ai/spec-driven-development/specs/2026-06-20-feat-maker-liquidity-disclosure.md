@@ -9,7 +9,7 @@ Status: Implemented (#947)
 
 Tell the user, in plain language on a market surface, that the price they
 see comes from a live order book seeded with resting liquidity by VICI's
-market maker — so an early or thin market still shows a moving line
+market maker, so an early or thin market still shows a moving line
 without implying phantom human predictors. Today the app shows the line
 and a `Predictors` count with no statement of where the liquidity comes
 from; a fresh market reads as if a crowd is already there, which is not
@@ -20,7 +20,7 @@ the contract we want to ship around real money.
 Production prices a market off the icdc-core CLOB, not a client-side
 maker. The honest mechanism to disclose is therefore the real one:
 
-- Price = best-bid/ask midpoint from the clearing order book —
+- Price = best-bid/ask midpoint from the clearing order book:
   `calculateProbability()` in `src/lib/utils/market.utils.ts`, fed by
   `fetchOrderBook()` in `src/lib/services/order.services.ts` and
   `listOrders()` in `src/lib/api/clearing.api.ts`.
@@ -29,16 +29,16 @@ maker. The honest mechanism to disclose is therefore the real one:
   disclosure must describe _that_ book-seeding mechanism, not a
   client-side maker.
 - Existing honest cold-start copy: `market.detail.coldstart.lead` /
-  `.body` ("New market." / "No one has called this market yet — your
+  `.body` ("New market." / "No one has called this market yet; your
   prediction sets the first read."), rendered at
   `src/routes/(app)/markets/[id]/+page.svelte:748`. This covers the
   _empty_ state but says nothing about maker liquidity once a line exists.
 - Stats surface: `src/lib/components/market/MarketDetailStatsGrid.svelte`
   (VOLUME / LIQUIDITY / CLOSES / MY CALL). Note `liquidity` here is a real
-  proxy — `min(yesVolume, noVolume)` — not fabricated depth.
+  proxy: `min(yesVolume, noVolume)`, not fabricated depth.
 - Resolution card: `src/lib/components/market/MarketDetailResolutionCard.svelte`
   (the existing "how / where / when" disclosure block, directly below the
-  stats grid — the natural neighbour for a "how is this priced" line).
+  stats grid: the natural neighbour for a "how is this priced" line).
 - i18n catalogs: `src/lib/constants/messages/*` (8 locales). New keys must
   land in every catalog or the i18n lint fails (`docs/ai/frontend/i18n.md`).
 
@@ -62,13 +62,13 @@ rather than introducing a new card primitive.
 ### Out of scope
 
 - The "Depth / ≈X VXP moves the line 1%" teaching readout and the
-  prototype's "drop the Liquidity tile" display-contract change — both are
+  prototype's "drop the Liquidity tile" display-contract change: both are
   a separate product decision (see the display-contract decision note;
   prod's Liquidity tile is a real proxy, not theatre, so removal is not
   obviously correct).
-- Any maker behaviour, depth tuning, or baseline-odds seeding — that lives
+- Any maker behaviour, depth tuning, or baseline-odds seeding: that lives
   in the `vici-maker` repo, not here.
-- Surfacing the disclosure in the Flow swipe deck and on market cards —
+- Surfacing the disclosure in the Flow swipe deck and on market cards:
   detail page first; fast-follow if it reads well.
 
 ## Linked issues
@@ -83,7 +83,7 @@ No new analytics. The disclosure is static, always-visible informational
 copy with no interaction to instrument; `market_viewed` already covers the
 surface. If the pending decision lands on an interactive info popover
 instead of a static line, that tap is worth a new
-`market_maker_info_viewed` event — which would require the dual-source
+`market_maker_info_viewed` event, which would require the dual-source
 addition (TS union + Zod mirror) and a declarations regen
 (`reference_analytics_event_is_candid_variant`); that cost is part of why
 the static line is the recommended default.
@@ -120,7 +120,7 @@ the static line is the recommended default.
   from the first call." Accurate to the CLOB + maker model; no
   phantom-human implication. Translated into all 7 live locales.
 - **Static line over interactive popover.** Shipped as an always-visible
-  muted caption — zero analytics/regen cost, and the message is short
+  muted caption: zero analytics/regen cost, and the message is short
   enough that a popover added friction without value.
 - **Placement & gating.** Rendered under the stats grid, gated to live
   markets (`{:else if isLive}` after `isColdStart`, which itself implies

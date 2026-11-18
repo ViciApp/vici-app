@@ -36,9 +36,6 @@ export const isViciXp = (domain: ClearingDid.BalanceDomain): boolean => 'ViciXp'
 
 export const isSocial = (domain: ClearingDid.BalanceDomain): boolean => 'Social' in domain;
 
-export const isPlaygroundExperience = (domain: ClearingDid.BalanceDomain): boolean =>
-	isViciXp(domain);
-
 // eslint-disable-next-line local-rules/prefer-object-params -- Compare functions are more readable with primitive params
 export const compareBalanceDomains = (
 	a: ClearingDid.BalanceDomain,

@@ -4,10 +4,11 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { appOrigin } from '#lib/utils/nav.utils.ts';
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	interface Props {
-		// The daily hard cap reached (15) — surfaced in the body copy.
+		// The daily hard cap reached (15): surfaced in the body copy.
 		hardCap: number;
 		// "Back to dashboard →" CTA.
 		onClose: () => void;
@@ -17,14 +18,12 @@
 
 	const reduce = $derived(prefersReducedMotion());
 
-	const SHARE_URL = 'https://vici.market';
-
 	const inviteFriend = async () => {
 		const text = t({ locale: $localeStore, key: 'flow.invite.share_text' });
 
 		if (navigator.share) {
 			try {
-				await navigator.share({ title: 'VICI', text, url: SHARE_URL });
+				await navigator.share({ title: 'VICI', text, url: appOrigin() });
 
 				return;
 			} catch (e: unknown) {
@@ -34,11 +33,11 @@
 			}
 		}
 
-		await writeToClipboard(`${text} ${SHARE_URL}`);
+		await writeToClipboard(`${text} ${appOrigin()}`);
 	};
 </script>
 
-<!-- Daily hard-cap gate — all of today's calls are in. Opening Flow shows
+<!-- Daily hard-cap gate: all of today's calls are in. Opening Flow shows
      this "come back tomorrow" takeover instead of a fresh deck, so the
      15/day model holds across sessions. -->
 <div class="flow-cap" class:is-static={reduce}>

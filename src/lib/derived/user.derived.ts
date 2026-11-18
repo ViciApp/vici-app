@@ -9,8 +9,6 @@ import { derived, type Readable } from 'svelte/store';
 
 export const userSignedIn: Readable<boolean> = derived(userStore, ({ user }) => nonNullish(user));
 
-export const userNotSignedIn: Readable<boolean> = derived(userSignedIn, (signedIn) => !signedIn);
-
 export const authBusy: Readable<boolean> = derived(userStore, ({ authBusy }) => authBusy);
 
 /**

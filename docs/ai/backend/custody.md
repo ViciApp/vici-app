@@ -22,12 +22,22 @@ The rules of the deposit watcher and the withdrawal path in `backend/src/chains/
   key. Read the credit count in the same statement as the internal balance: a
   count fresher than the balance gives a stale delta a key nobody else holds,
   and it double-credits.
+- **A `tx` deposit's key names one transfer, not one transaction.** Deposits
+  dedupe on `(account_id, asset_id, tx_ref)`, and one evm transaction can carry
+  several ERC-20 Transfer logs to one address, so a token log is keyed
+  `<txHash>:<logIndex>`. The first such log of a transaction to an address
+  keeps the bare hash: rows booked before the log index was in the key carry
+  it, and a rescan must collide with them, not credit them again.
 - **`transferStatus` answers `failed` only on a definite on-chain failure.**
   The `withdrawal-confirmations` job refunds a `failed` withdrawal, so a
   transfer the chain does not know yet, or a status read that errors or times
   out, stays `pending`: refunding one that later lands pays the user twice.
   Every `submitted` row counts as in flight in the `balance` delta, so a chain
   must eventually answer `confirmed` (ic does at once: a block index is final).
+  The job's batch selects rows of enabled chains only: a disabled chain's rows
+  are never read, so in the batch they would stay least recently checked and,
+  once they fill it, starve every enabled chain. They wait untouched until
+  their chain is enabled again.
 - **The deposit watcher never books VXP, and withdrawals never accept it:
   two separate guards.** The watcher skips VXP (`isVxp` in `backend/src/custody/assets.ts`)
   because its balance is read live from the ledger. `requestWithdrawal`
@@ -60,6 +70,20 @@ path. Each rule guards a withdrawal paid twice or stuck forever:
 - **Resend only after every earlier send resolved.** `PROCESSING_GRACE_MS`
   outlasts the IC ingress expiry and the route's transfer timeout, so a resend
   answered `InsufficientFunds` cannot refund a first send still about to land.
+- **A retried request is the withdrawal it already filed.** The client sends
+  a fresh `idempotencyKey` for each withdrawal the user asks for and resends
+  it on every retry. `requestWithdrawal` looks the key up under the account
+  lock, before the balance (the first hold already spent it), and returns
+  that row as it stands, with no second hold: the route answers 201 with it
+  and runs the first attempt again, and since only one claim of the row
+  wins, the transfer still goes out at most once. The same key for another asset, amount, destination
+  or `selfCustody` answers 409 `idempotency_key_reused`; the fee is not
+  compared, since the route reads it fresh. The key is unique per user
+  (partial index on `withdrawals (user_id, idempotency_key)`) and the insert
+  is `on conflict do nothing`, so a concurrent request the lock does not
+  serialise (another chain's account) still files one row and one hold. A
+  request without a key keeps filing a new withdrawal each time, for older
+  clients.
 - **The destination is checked before the hold.** The route refuses an
   address `adapter.isValidAddress` rejects with `invalid_destination`. An
   address the chain cannot parse fails inside the transfer as an unknown
@@ -82,3 +106,10 @@ path. Each rule guards a withdrawal paid twice or stuck forever:
 - **The ICRC helpers live in `chains/ic/icrc.ts`** (memo encoding, error
   variants, the dedup window), shared with the VXP award payouts. Do not add a
   second copy.
+- **Every ICRC send carries a memo unique to what it pays** (`withdrawal:<id>`,
+  `vxp:<type>:<key>`). The ledger deduplicates identical transfers and
+  `created_at_time` has millisecond resolution, so two payouts of one amount to
+  one account in one millisecond would otherwise collapse into one block. A
+  VXP award counts a `Duplicate` (or a history match) as paid only when it
+  replays its own earlier send and no other award holds that block; otherwise
+  nothing moved for it and it goes back to pending.

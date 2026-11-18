@@ -19,6 +19,7 @@ import { applyAssetAllowlist } from './custody/assets';
 import { env } from './env';
 import { treasuryIcPrincipalText } from './lib/keys';
 import { logger } from './lib/logger';
+import { HOUR_IN_MS } from './lib/time';
 import { pruneResolvedResults } from './social/resolved-results';
 import { tournamentDrawTick, tournamentResolveTick } from './tournaments/tournaments';
 import { isVxpTreasuryDisabled, reconcileUnpaidAwards } from './vxp/awards';
@@ -33,7 +34,7 @@ export interface WorkerJob {
 	everyNthTick?: number;
 }
 
-const HOURLY_TICKS = Math.max(1, Math.round((60 * 60 * 1000) / env.workerPollIntervalMs));
+const HOURLY_TICKS = Math.max(1, Math.round(HOUR_IN_MS / env.workerPollIntervalMs));
 
 export const jobs: WorkerJob[] = [
 	{
@@ -83,7 +84,7 @@ export const jobs: WorkerJob[] = [
 		}
 	},
 	{
-		// Idempotent underpayment remediation for imported streak awards; the
+		// Idempotent underpayment remediation for live streak awards; the
 		// backfill marker keys make re-runs skip anything already topped up.
 		// Mints only when the treasury is live; in record-only mode the dry-run
 		// report still surfaces the shortfall for the logs.

@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Minimal TikTok glyph — a single quaver-note silhouette traced as
+	// Minimal TikTok glyph: a single quaver-note silhouette traced as
 	// two strokes. There is no Lucide brand icon for TikTok, so this
 	// bespoke mark keeps the share tiles consistent with the other
 	// channel icons (24px box, currentColor stroke).

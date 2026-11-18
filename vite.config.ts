@@ -10,7 +10,7 @@ import { defineConfig } from 'vite';
 
 // Read package.json version + best-effort short commit SHA so the Settings
 // page's About line can surface `VICI · v{version} · Build {sha}`. The SHA
-// is the short HEAD hash at build time — falls back to `dev` when git is
+// is the short HEAD hash at build time; falls back to `dev` when git is
 // unavailable (CI without history, fresh clone, etc.).
 const pkg = JSON.parse(readFileSync(resolve('./package.json'), 'utf-8')) as {
 	version?: string;
@@ -53,7 +53,7 @@ export default defineConfig({
 	// dependency pre-bundling by default, so in dev every route that renders
 	// any icon (e.g. `BaseButton` → `LoaderCircle`, used app-wide) pulls the
 	// whole barrel and the browser fetches + compiles all ~1,600 icon modules
-	// on demand — making first navigation to each surface crawl. The
+	// on demand, making first navigation to each surface crawl. The
 	// deprecated `lucide-svelte` shipped compiled `.js` and was pre-bundled
 	// automatically; forcing the successor into the optimizer (compiled via
 	// the svelte esbuild plugin, since `prebundleSvelteLibraries` defaults on

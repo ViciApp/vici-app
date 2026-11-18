@@ -7,7 +7,7 @@
 // ledger's dedup window a replay proves nothing, so the treasury's transfer
 // history (index canister) is the authority on whether a transfer landed.
 
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 import {
 	IcrcIndexCanister,
 	IcrcLedgerCanister,
@@ -16,6 +16,7 @@ import {
 import { Principal } from '@icp-sdk/core/principal';
 import { encodeTransferMemo, icrcTransferErrorVariant, transferErrorText } from '../chains/ic/icrc';
 import { getAssetBySymbol } from '../custody/assets';
+import { getAccountState } from '../engine/clearing';
 import { env } from '../env';
 import { buildAgent } from '../lib/ic-agent';
 import { treasuryIcIdentity, treasuryIcPrincipalText, userIcPrincipalText } from '../lib/keys';
@@ -66,8 +67,10 @@ const sameBytes = (a: Uint8Array, b: Uint8Array): boolean =>
 
 /**
  * Looks a treasury transfer up in the index, matching recipient, amount,
- * memo and created_at_time (the stamp is unique per award row, which also
- * tells apart awards with identical memos and amounts). Every read is
+ * memo and created_at_time. The stamp has millisecond resolution, so two
+ * awards stamped in the same millisecond with the same memo and amount match
+ * the same transfer: the caller checks that no other award holds the block
+ * it gets back. Every read is
  * certified: an 'absent' answer leads to a fresh transfer, so it must not
  * rest on a single replica's word. The ledger tip is read first so a synced
  * index provably covers every block that existed when the lookup started.
@@ -170,16 +173,18 @@ export const setVxpLedgerProvider = (provider: VxpLedgerProvider): (() => void) 
  * checks the balance, so the award may be retried once the treasury is
  * refilled) and whether the outcome is ambiguous: an error that is not a
  * ledger rejection (network, timeout, canister reject) leaves open whether
- * the transfer executed. */
+ * the transfer executed. A success flagged `duplicate` moved nothing: it
+ * names the block of an identical earlier transfer, which is only the
+ * caller's own when the caller sent that transfer before. */
 export type VxpTransferResult =
-	| { ok: true; blockIndex: string }
+	| { ok: true; blockIndex: string; duplicate: boolean }
 	| { ok: false; error: string; insufficientFunds: boolean; ambiguous: boolean };
 
 const failedTransfer = (err: unknown): VxpTransferResult => {
 	const duplicate = icrcTransferErrorVariant(err)?.Duplicate;
 
 	if (nonNullish(duplicate)) {
-		return { ok: true, blockIndex: duplicate.duplicate_of.toString() };
+		return { ok: true, blockIndex: duplicate.duplicate_of.toString(), duplicate: true };
 	}
 
 	return {
@@ -222,7 +227,7 @@ export const transferVxpWithBadFeeRetry = async ({
 		});
 
 	try {
-		return { ok: true, blockIndex: (await tryTransfer()).toString() };
+		return { ok: true, blockIndex: (await tryTransfer()).toString(), duplicate: false };
 	} catch (firstErr) {
 		const badFee = icrcTransferErrorVariant(firstErr)?.BadFee;
 
@@ -231,7 +236,11 @@ export const transferVxpWithBadFeeRetry = async ({
 		}
 
 		try {
-			return { ok: true, blockIndex: (await tryTransfer(badFee.expected_fee)).toString() };
+			return {
+				ok: true,
+				blockIndex: (await tryTransfer(badFee.expected_fee)).toString(),
+				duplicate: false
+			};
 		} catch (retryErr) {
 			return failedTransfer(retryErr);
 		}
@@ -289,6 +298,27 @@ export const getVxpBalance = async (userId: string): Promise<bigint> => {
 		owner: Principal.fromText(userIcPrincipalText(userId)),
 		certified: false
 	});
+};
+
+/**
+ * Every VXP the user holds (base units): the ledger wallet plus their equity
+ * in clearing's ViciXp domain. The default playground auto-deposit sweeps the
+ * wallet into that domain within seconds, so the wallet alone reads near zero
+ * for an active user whatever they hold. Equity is collateral plus realised
+ * cash, so it follows wins and losses; the ViciXp domain prices VXP 1:1 in the
+ * clearing unit, whose 4 decimals are VXP's, so it adds as base units. This
+ * is the figure the recovery-floor gates measure.
+ */
+export const getVxpHoldings = async (userId: string): Promise<bigint> => {
+	const [wallet, account] = await Promise.all([
+		getVxpBalance(userId),
+		getAccountState({
+			userId,
+			params: { domain: toNullable({ ViciXp: null }), refresh: toNullable(false) }
+		})
+	]);
+
+	return wallet + account.total_equity_usd;
 };
 
 /** The treasury's own spendable VXP balance (base units): what the award

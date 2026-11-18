@@ -8,20 +8,20 @@ import { browser } from '$app/env';
 import { nonNullish } from '@dfinity/utils';
 
 /**
- * Resolve the locale to seed the app with on a first-time visit — before the
+ * Resolve the locale to seed the app with on a first-time visit: before the
  * visitor has ever made an explicit choice. The device language is "caught"
  * from `navigator.languages` / `navigator.language` and matched against the
  * locales we know about, falling back to English when nothing fits.
  *
  * Matching is two-tier and walks the navigator list in priority order:
  *
- * 1. **Exact tag** (case-insensitive) — a browser tag that exactly matches any
+ * 1. **Exact tag** (case-insensitive): a browser tag that exactly matches any
  *    registered locale wins, `live` and `soon` alike. So a `pt-BR` browser
  *    seeds `pt-BR` and an `es-MX` browser seeds `es-MX`, even though those
- *    catalogs are still `soon` — they render their language via the fallback
+ *    catalogs are still `soon`: they render their language via the fallback
  *    chain while their own deltas land, which is closer to the visitor's
  *    variant than collapsing onto the base.
- * 2. **Primary subtag** — scoped to the `live` set: `pt-PT` / `pt` resolve to
+ * 2. **Primary subtag**: scoped to the `live` set: `pt-PT` / `pt` resolve to
  *    `pt`, and `de-DE` / `de-AT` / `de` to `de`, so a regional tag with no
  *    registered catalog maps onto its shipped base instead of dropping to
  *    English.

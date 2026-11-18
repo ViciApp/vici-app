@@ -1,5 +1,5 @@
 /**
- * School-email membership verification — backend item B.1.
+ * School-email membership verification: backend item B.1.
  *
  * Two `defineUpdate` endpoints, wired in `src/satellite/index.ts`:
  *
@@ -8,7 +8,7 @@
  *       is advisory; this is authoritative)
  *     · rate-limits per principal + per email (rolling 24h)
  *     · derives a 6-digit code from the management canister's `raw_rand`
- *       (real entropy — codes can't be pre-computed)
+ *       (real entropy: codes can't be pre-computed)
  *     · persists a submission holding only an FNV digest of the code,
  *       a ~30-min TTL, and an attempt counter
  *     · mails the code via a single HTTPS outcall to the `vici-courier`
@@ -21,19 +21,19 @@
  *       count + flips the school public at 3) and marks the owner's
  *       profile `schoolStatus: 'verified'`
  *
- * The plaintext code never touches canister state — it lives only in the
+ * The plaintext code never touches canister state; it lives only in the
  * email and the outbound outcall body. The stored digest is FNV (no
  * crypto hash exists in Sputnik); the real guessing defenses are the
  * attempt cap + TTL + rate limit (see `school-picker.constants.ts`).
  */
 
-import { DAY_IN_NANOSECONDS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	SCHOOL_CODE_MAX_ATTEMPTS,
 	SCHOOL_CODE_TTL_MS,
 	SCHOOL_VERIFY_DAILY_CAP
 } from '#lib/constants/school-picker.constants.ts';
+import { DAY_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { WORLDS_UNIVERSITIES } from '#lib/constants/worlds-affiliations.constants.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import {
@@ -57,6 +57,7 @@ import {
 import { controllerCaller } from '#satellite/services/authz.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcManagementIdl } from '@junobuild/functions/canisters/ic-management';
@@ -91,8 +92,8 @@ const captureSchoolEvent = (event: ServerEventInput): void => {
  * A satellite controller principal, used as the `caller` for the
  * server-owned, `controllers`-scoped collections (`app_config`,
  * `school_submissions`, `schools`). The `*DocStore` APIs enforce the
- * collection's read/write rule against the `caller` they're given — and
- * the end user who invokes these endpoints is NOT a controller — so we
+ * collection's read/write rule against the `caller` they're given, and
+ * the end user who invokes these endpoints is NOT a controller, so we
  * read/write those collections as an admin. (User-owned `profiles` stays
  * on the real caller.) Throws if the satellite somehow has no controller.
  */
@@ -129,8 +130,6 @@ interface ResolvedSchool {
 	domains: string[];
 	isNew: boolean;
 }
-
-const nowMs = (): number => Number(time() / 1_000_000n);
 
 /**
  * Server-side re-run of the picker's domain gate. The directory is the
@@ -170,7 +169,7 @@ const resolveSchool = ({
 		};
 	}
 
-	// unknown-domain — a plausible new school.
+	// unknown-domain: a plausible new school.
 	const slug = spNormalize(name);
 
 	if (slug.length === 0) {
@@ -190,7 +189,7 @@ const resolveSchool = ({
  * Rolling-24h send counts for the caller, split per principal and per
  * email. The scan is bounded server-side to docs created in the last 24h
  * (the `created_at` matcher), so it never grows with the lifetime size of
- * the collection — only with the day's submission volume.
+ * the collection, only with the day's submission volume.
  */
 const recentSendCounts = ({
 	caller,
@@ -275,7 +274,7 @@ const readRelayConfig = (caller: Uint8Array): SchoolRelayConfig => {
 	});
 
 	if (isNullish(doc)) {
-		// The feature is OFF server-side until a controller writes this doc —
+		// The feature is OFF server-side until a controller writes this doc:
 		// so the live endpoints can't send email even if the FE flag is on.
 		throw new Error('School email relay is not configured.');
 	}
@@ -286,7 +285,7 @@ const readRelayConfig = (caller: Uint8Array): SchoolRelayConfig => {
 		throw new Error('School email relay config is incomplete.');
 	}
 
-	// Explicit server-side kill switch — independent of the FE flag.
+	// Explicit server-side kill switch: independent of the FE flag.
 	if (config.enabled === false) {
 		throw new Error('School email verification is disabled.');
 	}
@@ -298,7 +297,7 @@ const readRelayConfig = (caller: Uint8Array): SchoolRelayConfig => {
  * One HTTPS outcall to the `vici-courier` relay. `isReplicated: false`
  * keeps this non-idempotent send on a single node (the relay also dedupes
  * on `idempotency-key`, so a node-level retry never double-sends). The
- * request is semantic — `vici-courier` owns the localized template; the
+ * request is semantic: `vici-courier` owns the localized template; the
  * canister carries no email copy.
  */
 const sendCodeEmail = async ({
@@ -362,7 +361,7 @@ export const submitSchoolFn = async ({
 	// them as an admin (the invoking user isn't a controller).
 	const admin = adminCaller();
 
-	// 0. Server-side gate — throws unless a controller has set + enabled the
+	// 0. Server-side gate: throws unless a controller has set + enabled the
 	// relay config doc. Enforces "OFF" on the canister regardless of the FE
 	// flag, and is read before any work so a disabled feature rejects fast.
 	const relay = readRelayConfig(admin);
@@ -384,14 +383,14 @@ export const submitSchoolFn = async ({
 
 	// 3. Unpredictable code + per-submission salt + per-send nonce.
 	const { code, salt, nonce } = await generateCode();
-	const createdAtMs = nowMs();
+	const createdAtMs = timeMs();
 	const submissionId = schoolSubmissionKey({
 		member: memberText,
 		schoolId: resolved.schoolId,
 		nonce
 	});
 
-	// 4. Persist a fresh, immutable submission (digest only — never the
+	// 4. Persist a fresh, immutable submission (digest only, never the
 	// plaintext code). The per-send nonce makes the key unique, so this is
 	// always a create and never overwrites a prior (possibly verified) row.
 	const submission: SchoolSubmissionDoc = {
@@ -435,7 +434,7 @@ export const submitSchoolFn = async ({
 	});
 
 	// Verification funnel: a code email actually went out (the submission
-	// write + relay send above both succeeded). `label` is the school id —
+	// write + relay send above both succeeded). `label` is the school id:
 	// behavioural, never the address.
 	captureSchoolEvent({
 		name: 'school_verify_email_submitted',
@@ -450,7 +449,7 @@ export const submitSchoolFn = async ({
  * Recompute a school's verified-member count from the verified
  * submissions for its id (distinct members) and persist the `schools`
  * row, flipping it public at the threshold. Recomputing from source (vs
- * incrementing) keeps it idempotent + concurrency-safe — re-running, or
+ * incrementing) keeps it idempotent + concurrency-safe: re-running, or
  * two members verifying at once, can't double-count or undercount. The
  * scan is bounded server-side to this school's rows via the `key` matcher
  * (`/${schoolId}/` is the middle key segment; the JS check re-confirms
@@ -495,7 +494,7 @@ const upsertSchoolRegistry = ({
 	});
 
 	const existingDoc = nonNullish(existing) ? decodeDocData<SchoolDoc>(existing.data) : undefined;
-	const now = nowMs();
+	const now = timeMs();
 
 	const doc: SchoolDoc = {
 		schoolId: resolved.schoolId,
@@ -567,9 +566,8 @@ export const verifySchoolCodeFn = ({
 	code
 }: VerifySchoolCodeArgs): VerifySchoolCodeResult => {
 	const caller = msgCaller();
-	const callerBytes = caller.toUint8Array();
 	const memberText = caller.toText();
-	// Server-owned collections are controllers-scoped — access as admin.
+	// Server-owned collections are controllers-scoped: access as admin.
 	const admin = adminCaller();
 
 	// Authorize: the submission key is `${member}/…`, so only its owner
@@ -589,7 +587,7 @@ export const verifySchoolCodeFn = ({
 	}
 
 	const submission = decodeDocData<SchoolSubmissionDoc>(doc.data);
-	const now = nowMs();
+	const now = timeMs();
 
 	const persist = (next: SchoolSubmissionDoc): void => {
 		setDocStore({
@@ -643,9 +641,9 @@ export const verifySchoolCodeFn = ({
 		}
 	});
 
-	// `profiles` is user-owned + public-write — keep the real caller so the
-	// doc stays owned by the user and the set-assert sees the right caller.
-	markProfileVerified({ caller: callerBytes, memberText });
+	// Signed as a controller: the `profiles` set-assert refuses a
+	// `schoolStatus` change from anyone else. The doc keeps its stored owner.
+	markProfileVerified({ caller: admin, memberText });
 
 	logInfo({
 		message: 'school_verified',

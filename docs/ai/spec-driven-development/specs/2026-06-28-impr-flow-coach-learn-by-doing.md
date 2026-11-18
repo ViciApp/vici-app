@@ -11,7 +11,7 @@ The first-run gesture coach (`FlowCoach`, layer 1 of the first-run tutorial
 system) becomes a non-blocking gesture map laid over the live prediction
 card instead of a timer-driven carousel that dictated pace and animated the
 card. The user keeps interacting with the readable, swipeable card and the
-coach dismisses on their first real call — teaching by doing rather than
+coach dismisses on their first real call, teaching by doing rather than
 forcing a sequence.
 
 ## Context
@@ -25,23 +25,23 @@ was explaining.
 
 Touchpoints:
 
-- `src/lib/components/onboarding/FlowCoach.svelte` — both surfaces (`flow`
+- `src/lib/components/onboarding/FlowCoach.svelte`: both surfaces (`flow`
   and `onboarding`). The component owns the new overlay markup and its
   component-scoped styles.
-- `src/lib/components/market/FlowMode.svelte` — the deck. It already builds a
+- `src/lib/components/market/FlowMode.svelte`: the deck. It already builds a
   per-commit signal on every committed YES / NO; the coach consumes it.
-- `src/app.css` — held the legacy `.flow-coach*` overlay block and the
+- `src/app.css`: held the legacy `.flow-coach*` overlay block and the
   `[data-coach-phase]` card-drift rules.
-- i18n catalogs under `src/lib/constants/messages/` — held the old
+- i18n catalogs under `src/lib/constants/messages/`: held the old
   `flow.coach.hint_*` carousel keys.
-- `src/lib/utils/onboarding-flags.utils.ts` — the per-surface, identity-scoped
+- `src/lib/utils/onboarding-flags.utils.ts`: the per-surface, identity-scoped
   seen flags (`vici.coach-flow-seen` / `vici.coach-onboarding-seen`), reused
   unchanged.
 
 ## Scope
 
 - Replace the carousel with a static centered gesture map: a heading and a
-  cross — SKIP (up), NO (left), tap (center, detail), YES (right) — with
+  cross, SKIP (up), NO (left), tap (center, detail), YES (right), with
   YES / NO carrying the primary visual weight and SKIP / TAP de-emphasized.
 - Make the overlay non-blocking: `pointer-events: none` except the "Got it"
   opt-out button (and the confirm flash).
@@ -68,7 +68,7 @@ Touchpoints:
 
 ## Linked issues
 
-No related open issue — this is a fidelity improvement to an existing
+No related open issue; this is a fidelity improvement to an existing
 surface.
 
 ## Analytics
@@ -109,4 +109,4 @@ decision here, so none is added.
   shared store or a `window` event: the counter already lives one component
   up in the deck, so a prop is the most direct idiomatic wiring.
 - Guests can reach the deck but cannot commit, so their only dismissal path
-  is "Got it" — accepted by design rather than special-casing guest copy.
+  is "Got it", accepted by design rather than special-casing guest copy.

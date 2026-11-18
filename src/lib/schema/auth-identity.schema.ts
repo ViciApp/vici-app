@@ -1,6 +1,6 @@
 import { j } from '@junobuild/schema';
 
-/** Args for `getAuthIdentities` — keyset cursor on the `#user` doc KEY
+/** Args for `getAuthIdentities`: keyset cursor on the `#user` doc KEY
  * (principal text); blank = first page. */
 export const GetAuthIdentitiesArgsSchema = j.strictObject({
 	afterKey: j.optional(j.string()),
@@ -11,10 +11,10 @@ export const GetAuthIdentitiesArgsSchema = j.strictObject({
  * One exported auth-identity row: the `#user` doc envelope (key = the user's
  * principal text + ns timestamps) plus the sign-in provider and every address
  * the satellite holds for that principal. `openidEmail`/`openidName` come from
- * the persisted OpenID claims (Google — present only when the user consented
+ * the persisted OpenID claims (Google: present only when the user consented
  * to share them; Juno does not persist the OIDC `sub`), `profileEmail` from
- * the `profiles` doc (also fed by the passkey/email signup path). Flat — no
- * nested optional object — for the same codegen constraint as the analytics
+ * the `profiles` doc (also fed by the passkey/email signup path). Flat; no
+ * nested optional object, for the same codegen constraint as the analytics
  * export rows.
  */
 export const AuthIdentityExportRowSchema = j.strictObject({

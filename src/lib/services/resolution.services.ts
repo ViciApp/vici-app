@@ -26,7 +26,7 @@ import type { Identity } from '@icp-sdk/core/agent';
 
 /**
  * Fetches the authoritative set of settled (resolved) series ids from the
- * clearing canister — the single source of truth for resolution.
+ * clearing canister: the single source of truth for resolution.
  *
  * Front ends subtract this from the registry's open/unexpired catalog to
  * derive the open set (open = unexpired − settled), replacing the older,
@@ -71,7 +71,7 @@ export const getSettledSeriesIds = async ({
 	// Clearing rejects anonymous callers on `list_settled_series` (IC0406), so a
 	// signed-out / guest preview can't read the settled set. Degrade to an empty
 	// set rather than throwing: the open list is already expiry-filtered, so the
-	// guest deck simply skips the (resolved-but-unexpired) settled filter — an
+	// guest deck simply skips the (resolved-but-unexpired) settled filter; an
 	// acceptable preview trade-off, and the authoritative filter still applies
 	// for every authenticated read.
 	if (resolvedIdentity.getPrincipal().isAnonymous()) {
@@ -122,7 +122,7 @@ const SETTLEMENT_STATUS_BATCH_SIZE = 8;
  *
  * The bulk label source is the Juno `SETTLEMENT` activity log, which is only
  * *best-effort*: it holds a bounded page, and a row exists at all only when the
- * settlement went through this app's admin flow — a series settled by a script
+ * settlement went through this app's admin flow; a series settled by a script
  * or by a controller call has none. Both cases render as "settled, outcome
  * unknown". This reads the winning outcome from the same on-chain
  * `SettlementInput` the payouts were computed from, so the label can't drift

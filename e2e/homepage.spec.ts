@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { HomePage } from './pages/home.page';
 
-// Match every API version (v2/v3/v4 — the SDK uses v3 for `query` /
+// Match every API version (v2/v3/v4: the SDK uses v3 for `query` /
 // `read_state` and v4 for `call`) and any path under the Registry canister.
 // A v3-only glob lets v4 update calls leak through and quietly populate the
 // feed before the screenshot, which is exactly what made this test flaky.
@@ -25,8 +25,8 @@ test.describe('homepage (signed in)', () => {
 
 		// Stall every Registry call so the board stays in its loading state
 		// long enough for a deterministic screenshot. We hold the route
-		// handler on a deferred promise we explicitly release in `finally`
-		// — this avoids a long-lived `setTimeout` that could outlive the
+		// handler on a deferred promise we explicitly release in `finally`;
+		// this avoids a long-lived `setTimeout` that could outlive the
 		// test and keep the Playwright worker process alive.
 		let releaseStall!: () => void;
 		const stalled = new Promise<void>((resolve) => {

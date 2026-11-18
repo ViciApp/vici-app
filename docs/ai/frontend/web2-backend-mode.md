@@ -36,10 +36,10 @@ Two files under `src/lib/web2/`:
 | Domain                                          | Where the branch lives                                                                                                                                                                                                                    | Notes                                                                                                                      |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Analytics                                       | `analytics.services.ts` (flush call site)                                                                                                                                                                                                 | The reference for the per-service swap below.                                                                              |
-| Auth                                            | `authn/SignInProviderStack.svelte`, `authn/Authn.svelte`, `Logout.svelte`                                                                                                                                                                 | The identity layer, not a per-service swap. See "Auth" below.                                                              |
-| Profiles + social                               | `profile.services.ts`, `user-stats.services.ts`, `relation.services.ts`, `relation-queries.services.ts`, `leaderboard.services.ts`                                                                                                        | Per-service swaps. Plus the app-shell hydration in `Authn.svelte`. See "Profiles and social" below.                        |
+| Auth                                            | `authn/SignInProviderStack.svelte`, `authn/Authn.svelte`                                                                                                                                                                                  | The identity layer, not a per-service swap. See "Auth" below.                                                              |
+| Profiles + social                               | `profile.services.ts`, `user-stats.services.ts`, `relation.services.ts`, `relation-queries.services.ts`, `leaderboard.services.ts`, `menagerie.services.ts`                                                                               | Per-service swaps. Plus the app-shell hydration in `Authn.svelte`. See "Profiles and social" below.                        |
 | Markets + public engine reads                   | `market.services.ts`, `market-metadata.services.ts`, `market-translation.services.ts`, `resolution.services.ts`, `trade.services.ts`, `standings.services.ts`, `collateral.services.ts`                                                   | Public reads only. See "Markets and public engine reads" below.                                                            |
-| Engine account ops + wallet                     | `order.services.ts`, `position.services.ts`, `trade.services.ts`, `collateral.services.ts`, `wallet.service.ts`, `send.services.ts`                                                                                                       | The session-gated engine surface and the custodial wallet. See "Engine account operations and the custodial wallet" below. |
+| Engine account ops + wallet                     | `order.services.ts`, `position.services.ts`, `trade.services.ts`, `collateral.services.ts`, `wallet.services.ts`, `send.services.ts`                                                                                                      | The session-gated engine surface and the custodial wallet. See "Engine account operations and the custodial wallet" below. |
 | Leagues + battles + worlds + tournaments        | `leagues.services.ts`, `worlds.services.ts`, `tournament.services.ts`, `storage.services.ts` (league cover), `standings.services.ts` (league slice)                                                                                       | The social competition surfaces. See "Leagues, battles, worlds and tournaments" below.                                     |
 | VXP + referrals + school + account + activities | `vxp-awards.services.ts`, `referral.services.ts`, `school-verification.services.ts`, `account.services.ts`, `activity.services.ts`, `activity-reaction.services.ts`, `profile.services.ts` (own email), `identity.services.ts` (sign-out) | The last app domain set. See "VXP, referrals, school, account lifecycle and activities" below.                             |
 
@@ -88,20 +88,16 @@ per-domain sections:
 - **Bulk metadata projections** (`market-tags.services.ts`): public
   satellite `listDocs` scans until a public bulk-metadata HTTP read
   exists.
-- **Market creation / forking and admin settlement**
-  (`createMarket`, `forkMarket`, `settleMarket`): user-signed registry /
+- **Market creation and admin settlement**
+  (`createMarket`, `settleMarket`): user-signed registry /
   clearing writes; curator / admin surfaces stay on the on-chain identity,
-  as do `registerIcrcAsset` and the roles / admin services.
-- **Complete-set mint / redeem**: no HTTP route and no live caller.
+  as do the roles / admin services.
 - **Direct ICRC ledger / index reads and user-held transfers**: web2 mode
   surfaces custodial balances and routes sends through withdrawals; the
   paged ledger history returns empty there.
 - **League standings slice** (`getLeagueStandings`): empty in web2 mode
   until a member-filtered bridge read with the identity mapping exists;
   web2 standings entries also keep the on-chain principal as `owner`.
-- **Market discussion comments** (`discussion.services.ts`): the comments
-  collection has no HTTP route; the surface stays on the satellite (and is
-  effectively read-only without a Juno identity).
 - **Landing proof figure** (`landing-proof.services.ts`): an anonymous
   public satellite count; works identically from a web2 build.
 - **On-chain sign-in plumbing** (`apple-signin.services.ts` and the Juno
@@ -139,8 +135,8 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   `legacy_account_pending` / `e=legacy` render `signin.legacy_pending.*`
   with a link to `LEGACY_APP_URL`. Gate semantics live in
   [`backend/README.md`](../../../backend/README.md#beta-access-gate).
-- **Sign-out: `Logout.svelte`.** web2 calls `clearWeb2Session()`; on-chain
-  calls Juno `signOut()`.
+- **Sign-out: the dual-mode `signOut` in `identity.services.ts`.** web2
+  revokes the cookie session; on-chain calls Juno `signOut()`.
 
 Engine calls never read a local identity in web2 mode: public reads ride the
 HTTP bridge and the session-gated account surface is signed server-side with
@@ -149,7 +145,10 @@ the custodial wallet"), so no web2 path ever reaches for a Juno identity.
 Loaders that only gate on "is someone signed in" use
 `identity.services.isSignedIn()`, which is the Juno identity check on the
 default backend and the cookie-session store in web2 mode
-(`IdentityAwareLoader` runs every polling loader through it).
+(`IdentityAwareLoader` runs every polling loader through it). A loader that
+needs the signed-in user's own key reads `getSignedInOwner()` from the same
+source: the principal on the default backend, the session account id in web2
+mode.
 
 `client.ts` ships the auth surface: `getProviders()`, `getMe()`,
 `requestOtp()`, `verifyOtp()`, `googleSignInUrl()`, `logout()`.
@@ -261,14 +260,17 @@ Each read/write branches on `isWeb2Backend()` inside its owning
 the on-chain call untouched on the default side:
 
 - `profile.services.ts`: `getProfile`, `searchProfiles`,
-  `checkNicknameAvailability`, `checkFriendship`, `recordFlowSwipe`,
+  `checkNicknameAvailability`, `recordFlowSwipe`,
   `upsertProfile`. The composed writers (`patchProfile`, `persistDailyStreak`,
   `applyOnboardingPicks`, `persistPreferences`, `recordActivity`) ride the
   swap for free: they route through `getProfile` + `upsertProfile`.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
-- `leaderboard.services.ts`: `getLeaderboard`, `getMyRival`.
+- `leaderboard.services.ts`: `getLeaderboard`.
+- `menagerie.services.ts`: the viewer's rank + ranked-population size in
+  `loadMyMenagerieSignals` (Goat and the profile's "Top X%" line), read
+  from `GET /api/v1/leaderboard/rank/:userId`.
 - `relation.services.ts`: `sendFriendRequest` (with a web2 `@handle` / account-id
-  resolver), `accept` / `reject` / `cancel`, `unfriend`, `follow`, `unfollow`.
+  resolver), `accept` / `reject` / `cancel`, `unfriend`, `follow`.
 - `relation-queries.services.ts`: friends, followers, following, friend
   requests (sent + received), friend-scoped resolved results.
 
@@ -364,7 +366,7 @@ apply them at the fetch boundary.
   public `MARKET_METADATA` collection via Juno `listDocs`; the HTTP API
   has no public bulk-metadata list yet (its `/markets/tags` bucket index
   is admin-only), so these stay on the satellite until that read exists.
-- Market creation / forking (`createMarket`, `forkMarket`) and admin
+- Market creation (`createMarket`) and admin
   settlement (`resolution.services.ts` `settleMarket`) are user-signed
   registry / clearing writes with no HTTP route yet; curator / admin
   surfaces stay on the on-chain identity.
@@ -395,8 +397,9 @@ the exact candid shapes.
   variants ride `/engine/orders` + `/engine/orders/cancel`. The trade
   activity-feed write rides the swapped activities domain (its HTTP POST
   also fires the trade-triggered awards; see the activities section); the
-  daily-streak bump keeps riding the swapped profile writes with the
-  session account id as owner.
+  displayed daily-streak bump keeps riding the swapped profile writes with
+  the session account id as owner (the API derives the award streak
+  itself).
 - Order refusals: the order routes answer a refusal the user can act on as
   a 4xx with a stable code (table in
   [`backend/README.md`](../../../backend/README.md#order-rejections)).
@@ -410,8 +413,8 @@ the exact candid shapes.
   `/engine/trade-history`; the domain scoping still runs through the
   (dual-mode) market catalog. Single web2 responses are delivered as the
   final `certified: true` pass, like every other bridge read.
-- `collateral.services.ts`: deposits and withdrawals post to
-  `/engine/collateral/*`, and the clearing `asset_id` still resolves
+- `collateral.services.ts`: deposits post to
+  `/engine/collateral/deposit`, and the clearing `asset_id` still resolves
   client-side from the public collateral catalog. The deposit route
   approves clearing for `amount + fee` from the custodial identity, then
   calls `deposit_collateral`; both routes take the ledger and the balance
@@ -429,8 +432,8 @@ the exact candid shapes.
   (`503 collateral_unavailable`) frees the id, and an unknown outcome keeps
   it for a 15 minute lease, after which a retry goes straight to clearing
   without a second approval.
-- Account state (`getAccountState` / `loadAccountState`,
-  `wallet.service.ts` `getCollateralBalances`) reads
+- Account state (`loadAccountState`,
+  `wallet.services.ts` `getCollateralBalances`) reads
   `/engine/account?domain=<variant>`, clearing's domain-scoped update read
   with `refresh` off, delivered as the `certified: true` pass. Clearing's
   read-only query computes equity and margin for Settlement alone, which
@@ -440,7 +443,7 @@ the exact candid shapes.
 
 ### The custodial wallet
 
-- `wallet.service.ts` `getLedgerBalances`: `/wallet/balances`, keyed back
+- `wallet.services.ts` `getLedgerBalances`: `/wallet/balances`, keyed back
   to the app's token ids by symbol (the custody asset catalog mirrors the
   supported IC tokens). For `ic` assets the route reads the ledgers live
   for the custodial principal, default subaccount, and provisions the
@@ -465,7 +468,16 @@ the exact candid shapes.
   it sees on-chain and a sweep debits nothing. The request also holds the
   asset's network fee on top of the amount (quoted as `withdrawalFee` on
   `/wallet/assets`, returned as `fee` on the withdrawal), so the most a
-  user can send is the balance less that fee.
+  user can send is the balance less that fee. `sendToken` takes the
+  `idempotencyKey` from its caller and never mints one: the key belongs to
+  the send (asset, amount, destination), not to the call. The Wallet page
+  keeps it with `send.utils.ts` `pendingSendFor` and resends it on a retry
+  of the same send, so the API answers with the withdrawal it already filed;
+  `send.services.ts` `pendingSendAfterError` keeps it only while the outcome
+  is unknown (network failure, timeout, 408, 5xx). A success, a `failed`
+  withdrawal (hold refunded) or any other 4xx settles the send, and the next
+  one, like a changed asset, amount or destination, gets a fresh key. The
+  key lives in the page, so a retry after a reload is a new send.
 - The Send tab offers only tokens whose custody asset is `withdrawable` on
   `/wallet/assets` (the API refuses VXP withdrawals with
   `asset_not_withdrawable`). `loadSendableWalletAssets` hands the page the
@@ -481,14 +493,10 @@ the exact candid shapes.
 
 ### Deliberately on-chain in this domain
 
-- Order books (`order.services.ts` `getOrderBook` / `loadOrderBook`, and
+- Order books (`order.services.ts` `getOrderBook`, and
   the book read inside `placeOrder`'s market-order walk) stay anonymous
   on-chain queries in BOTH modes: the book is public IC data and no HTTP
   surface exists for it.
-- Complete-set mint / redeem (`trade.services.ts`) has no HTTP route and
-  no live caller; it stays on the on-chain identity.
-- `registerIcrcAsset` (collateral admin) stays on the on-chain admin
-  identity.
 - Direct ICRC ledger / index reads and user-held ICRC transfers are
   web3-only by construction; web2 mode surfaces custodial balances and
   routes sends through withdrawals instead.
@@ -524,7 +532,8 @@ shapes are identity-free (league ids and aggregates) and pass through.
   carries the definitive code); the API join is idempotent instead of
   throwing on re-join; battle ids are uuids (the route caps ids at 64
   chars); accept / kickoff baselines are stamped server-side, so the
-  client never reads `league_stats`; `loadLeaguesByIds` hydrates the
+  client never reads `league_stats` (tournament matches are scored from
+  settled history server-side, never from it either); `loadLeaguesByIds` hydrates the
   league directory from the caller's own list reads because no public
   by-id league read exists yet; the share URL stays plain (no `?ref=`)
   until referrals swap.
@@ -582,12 +591,22 @@ the caller's own on-file email. Rides `/api/v1/vxp`, `/api/v1/referrals`,
 On the satellite, VXP awards ride post-write hooks (a trade activity
 fires the onboarding call-count milestones and the referral settlement; a
 profile write fires the streak / achievement awards). The HTTP API runs
-the same triggers inside the matching routes: the activity POST runs the
-trade triggers after the write commits, and the profile PUT diffs the
-stored row against the incoming one. So the swapped services need no
-extra calls: `logActivity` posting a trade in web2 mode produces exactly
-the awards the satellite hook would have. `placeOrder` now logs the trade
-activity on both transports for the same reason.
+the awards inside the matching routes, from server-side truth: the
+activity POST runs the trade triggers after the write commits (the
+onboarding call-count milestones, the referral settlement, the Flow
+volume milestones and the achievements the engine history proves, plus
+the fill days behind the streak and the comeback). The Flow swipe POST
+is only the daily counter (and the overtime mint): it records no active
+day, since a real Flow prediction posts its own trade activity. The
+profile PUT carries only the registration grant: its streak, call-count, achievement and last-active
+fields are the client's display copy and never mint (see
+[`economy.md`](../economy.md#caps-and-gates-the-anti-farming-spine)). So
+the swapped services need no extra calls: `logActivity` posting a trade
+in web2 mode is all the trade awards need. `placeOrder` now logs the trade
+activity on both transports for the same reason. The API counts the
+caller's executed fills in the engine, not the posted activities, so the
+activity only triggers the check: a resting limit order counts once it
+fills, at the next trade activity or referral settle call.
 
 ### Service-layer branches
 
@@ -596,9 +615,7 @@ activity on both transports for the same reason.
   session covers the `anonymous` reason (a signed-out call 401s), and the
   web2-only `recorded_only` reason (treasury parallel-run mode: recorded,
   not transferred) was added to the shared reason union. It does not
-  block the calibration session. `client.ts` also ships
-  `listMyVxpAwards` (`GET /vxp/awards`) for the award-history surface;
-  no live FE caller yet.
+  block the calibration session.
 - `referral.services.ts`: all six functions. The code is assigned
   server-side on first read (no backfill wait); `lookupReferralCode`
   resolves to the owner's account id, which the swapped profile reads
@@ -619,14 +636,13 @@ activity on both transports for the same reason.
   dual-mode `signOut` in `identity.services.ts` (below).
 - `activity.services.ts`: `logActivity` posts to `/social/activities`
   (the route stamps the author from the session and enforces the same
-  `${user}#${timestamp}#${type}` key), `getGlobalActivities` and
-  `getSettlementActivities` read the public list (type-filtered
-  server-side instead of the key-suffix matcher).
+  `${user}#${timestamp}#${type}` key; a `settlement` is accepted only from
+  a role that settles, admin or solver, and answers 403 otherwise, since it
+  drives the resolved-results fan-out), and `getSettlementActivities`
+  reads the public list (type-filtered server-side instead of the
+  key-suffix matcher).
 - `activity-reaction.services.ts`: like / unlike (the route keeps the
-  count rollup transactionally; unlike is idempotent), the reactions
-  window, and the count read. The HTTP counts read is key-addressed, so
-  the web2 branch derives the keys from the recent activity window first
-  (two requests, same O(1)-per-activity result). The received-reactions
+  count rollup transactionally; unlike is idempotent). The received-reactions
   read (the like-received inbox) has no author-scoped HTTP route yet, so
   the web2 branch filters the recent global window by the activity-key
   author prefix, with the same bounded under-reporting as the on-chain
@@ -645,8 +661,8 @@ activity on both transports for the same reason.
 `AccountReturnGate` used to call Juno `signOut()` directly.
 `identity.services.ts` now exports a dual-mode `signOut` (delegation drop
 on the default backend, cookie-session revoke in web2 mode) and those
-components import it instead, staying flag-free. The sanctioned auth trio
-(`Authn` / `SignInProviderStack` / `Logout`) is unchanged.
+components import it instead, staying flag-free. The sanctioned auth pair
+(`Authn` / `SignInProviderStack`) is unchanged.
 
 ## Guardrails
 
@@ -655,8 +671,8 @@ components import it instead, staying flag-free. The sanctioned auth trio
 - No `isWeb2Backend()` branches in components or stores; the seam lives in
   services. The one sanctioned exception is the identity layer, whose swap
   is inherently UI-driven (one-time-code entry, redirect handoff): the auth
-  branches live in `Authn.svelte`, `SignInProviderStack.svelte`, and
-  `Logout.svelte`, with the session store in `web2/session.ts`.
+  branches live in `Authn.svelte` and `SignInProviderStack.svelte`, with
+  the session store in `web2/session.ts`.
 - Analytics event payloads stay behavioural and pseudonymous on both
   transports; the server stamps time and identity in both modes.
 - Constants mirrored between `src/` and `backend/` (locales, market

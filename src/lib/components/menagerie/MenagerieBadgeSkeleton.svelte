@@ -1,10 +1,10 @@
 <script lang="ts">
 	// A pulsing squircle placeholder that mirrors {@link MenagerieBadge}'s frame
 	// (same size + corner radius), shown while the trophy layer's live signals
-	// (global rank, referrals) are still loading — so a not-yet-resolved tier
+	// (global rank, referrals) are still loading, so a not-yet-resolved tier
 	// never flashes as a grey "locked" badge.
 	interface Props {
-		/** Square edge length in px — match the real badge it stands in for. */
+		/** Square edge length in px: match the real badge it stands in for. */
 		size?: number;
 	}
 

@@ -1,3 +1,4 @@
+import type { CallSide } from '#lib/types/market.ts';
 import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { writable } from 'svelte/store';
@@ -11,7 +12,7 @@ import { writable } from 'svelte/store';
  * Everything here is preview state, persisted to `localStorage` so a reload
  * keeps the funnel coherent and never written to the satellite (a session with
  * no principal has no doc). It is **cleared on conversion and whenever a real
- * authenticated session is detected** (both in `GuestSaveHost`) — preview
+ * authenticated session is detected** (both in `GuestSaveHost`): preview
  * picks are discarded, never turned into positions, and the converted member
  * starts with an empty portfolio.
  *
@@ -21,7 +22,7 @@ import { writable } from 'svelte/store';
  */
 export interface GuestPreviewPick {
 	marketId: string;
-	side: 'YES' | 'NO';
+	side: CallSide;
 	ts: number;
 }
 
@@ -121,14 +122,14 @@ export const startGuestSession = (handle: string | null): void => {
 
 // Cap the stored preview tail. The cadence only reads `sessionPickCount` (the
 // running total, kept separately), so the picks array is just a bounded recent
-// record — this keeps the per-pick serialize and the localStorage footprint
+// record: this keeps the per-pick serialize and the localStorage footprint
 // flat over a long guest session.
 const MAX_PREVIEW_PICKS = 50;
 
 /**
  * Record an in-session preview pick and advance the cadence counter. Captures
- * only what the nudges need (`marketId`, `side`, `ts`) — no entry price, no
- * stake — because nothing is reconciled at convert. Returns the new session
+ * only what the nudges need (`marketId`, `side`, `ts`); no entry price, no
+ * amount, because nothing is reconciled at convert. Returns the new session
  * pick count (the persisted cadence number) so callers attribute analytics to
  * it rather than an in-memory counter a reload would desync. No-op when not a
  * guest (returns the unchanged count).
@@ -156,7 +157,7 @@ export const recordGuestPick = (pick: Omit<GuestPreviewPick, 'ts'>): number => {
 };
 
 /**
- * Clear the guest session entirely — the preview picks are discarded, never
+ * Clear the guest session entirely: the preview picks are discarded, never
  * drained into positions. Called on conversion and when a real authenticated
  * session is detected.
  */

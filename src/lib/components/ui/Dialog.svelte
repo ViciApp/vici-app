@@ -70,7 +70,7 @@
 	/* Lock body scroll while open, mirroring Modal (`.wrapper`) and
 	 * BottomSheet (`.sheet`). Keyed on the `[open]` attribute the native
 	 * `<dialog>` carries only while shown, so the body stays locked as
-	 * long as any open overlay's marker is present — stacked overlays no
+	 * long as any open overlay's marker is present: stacked overlays no
 	 * longer desync the lock. */
 	:global(body:has(dialog[open])) {
 		overflow: hidden;

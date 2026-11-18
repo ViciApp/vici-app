@@ -2,8 +2,7 @@
 // consumes on-chain today, re-exposed server-side. Public market-wide reads
 // sign with the engine reader identity behind a short TTL cache (clearing
 // rejects anonymous callers); account-scoped calls sign with the calling
-// user's derived custodial identity; settlement-grade calls sign with the
-// admin identity.
+// user's derived custodial identity.
 
 import {
 	fromNullable,
@@ -19,7 +18,8 @@ import type { ClearingDid } from '../declarations';
 import { env } from '../env';
 import { ZERO } from '../lib/constants';
 import { userIcIdentity } from '../lib/keys';
-import { adminClearing, readerClearing, userClearing, userLedger } from './actors';
+import { msToNs } from '../lib/time';
+import { readerClearing, userClearing, userLedger } from './actors';
 import { cached, getRetained, PUBLIC_READ_TTL_MS, retain } from './cache';
 import { orderRejectedError } from './order-rejections';
 import { expectOk } from './result';
@@ -275,18 +275,6 @@ export const getPositions = async ({
 	return await actor.get_positions();
 };
 
-export const getPosition = async ({
-	userId,
-	params
-}: {
-	userId: string;
-	params: ClearingDid.GetPositionParams;
-}): Promise<ClearingDid.Position | undefined> => {
-	const actor = await userClearing(userId);
-
-	return fromNullable(await actor.get_position(params));
-};
-
 export const getOrders = async ({
 	userId
 }: {
@@ -295,18 +283,6 @@ export const getOrders = async ({
 	const actor = await userClearing(userId);
 
 	return await actor.get_orders();
-};
-
-export const listOrders = async ({
-	userId,
-	params
-}: {
-	userId: string;
-	params: ClearingDid.ListOrdersParams;
-}): Promise<ClearingDid.LimitOrder[]> => {
-	const actor = await userClearing(userId);
-
-	return await actor.list_orders(params);
 };
 
 export const getTradeHistory = async ({
@@ -355,34 +331,6 @@ export const cancelLimitOrder = async ({
 	return expectOrderOk(await actor.cancel_limit_order(params), 'cancel_limit_order');
 };
 
-export const mintCompleteSet = async ({
-	userId,
-	seriesId,
-	qty
-}: {
-	userId: string;
-	seriesId: string;
-	qty: bigint;
-}): Promise<boolean> => {
-	const actor = await userClearing(userId);
-
-	return expectOk(await actor.mint_complete_set(seriesId, qty), 'mint_complete_set');
-};
-
-export const redeemCompleteSet = async ({
-	userId,
-	seriesId,
-	qty
-}: {
-	userId: string;
-	seriesId: string;
-	qty: bigint;
-}): Promise<boolean> => {
-	const actor = await userClearing(userId);
-
-	return expectOk(await actor.redeem_complete_set(seriesId, qty), 'redeem_complete_set');
-};
-
 // Public market-wide reads (engine reader identity, cached)
 
 export const listCollateralAssets = (): Promise<ClearingDid.CollateralAssetInfo[]> =>
@@ -396,23 +344,100 @@ export const listCollateralAssets = (): Promise<ClearingDid.CollateralAssetInfo[
 		}
 	});
 
-export const aggregateLean = async (
-	params: ClearingDid.AggregateLeanParams
-): Promise<ClearingDid.AggregateLean> => {
-	const actor = await readerClearing();
-
-	return await actor.aggregate_lean(params);
-};
-
 /** Per-principal settled-position win/total counts over an arbitrary
- * half-open window: the source of truth league-battle scoring reads.
- * Uncached: each battle resolve/live read scores a bespoke window. */
-export const aggregateSettlementAccuracy = async (
+ * half-open window. Uncached: each read scores a bespoke window. */
+const aggregateSettlementAccuracy = async (
 	params: ClearingDid.AggregateSettlementAccuracyParams
 ): Promise<ClearingDid.SettlementAccuracyEntry[]> => {
 	const actor = await readerClearing();
 
 	return await actor.aggregate_settlement_accuracy(params);
+};
+
+/** Settled positions in a window (`calls`) and how many were net positive (`wins`). */
+export interface SettledTotals {
+	calls: number;
+	wins: number;
+}
+
+/** Clearing scans at most this many principals per call and truncates a longer set. */
+const SETTLEMENT_ACCURACY_MAX_MEMBERS = 10_000;
+
+/**
+ * Each principal's settled-position totals over [fromMs, toMs), keyed by
+ * principal text, scoped to `seriesIds` when present: the settled history
+ * every award judged on prediction accuracy reads (league battles, the
+ * Worlds podium, tournament matches), never a client-written counter. A
+ * principal with nothing settled in the window is absent; an empty member
+ * set or an empty-but-present series scope answers without a call.
+ */
+export const settledTotalsByPrincipal = async ({
+	members,
+	fromMs,
+	toMs,
+	seriesIds
+}: {
+	members: Principal[];
+	fromMs: number;
+	toMs: number;
+	seriesIds?: string[];
+}): Promise<Map<string, SettledTotals>> => {
+	const totals = new Map<string, SettledTotals>();
+
+	if (members.length === 0 || (nonNullish(seriesIds) && seriesIds.length === 0)) {
+		return totals;
+	}
+
+	// De-duplicated before chunking: clearing only de-duplicates within one call.
+	const unique = [...new Set(members.map((member) => member.toText()))].map((text) =>
+		Principal.fromText(text)
+	);
+	const chunks: Principal[][] = [];
+
+	for (let start = 0; start < unique.length; start += SETTLEMENT_ACCURACY_MAX_MEMBERS) {
+		chunks.push(unique.slice(start, start + SETTLEMENT_ACCURACY_MAX_MEMBERS));
+	}
+
+	const results = await Promise.all(
+		chunks.map((chunk) =>
+			aggregateSettlementAccuracy({
+				members: chunk,
+				from_ts: toNullable(msToNs(fromMs)),
+				to_ts: toNullable(msToNs(toMs)),
+				series_ids: toNullable(seriesIds)
+			})
+		)
+	);
+
+	for (const entry of results.flat()) {
+		const key = entry.principal.toText();
+		const previous = totals.get(key) ?? { calls: 0, wins: 0 };
+
+		totals.set(key, {
+			calls: previous.calls + Number(entry.settled_count),
+			wins: previous.wins + Number(entry.win_count)
+		});
+	}
+
+	return totals;
+};
+
+/** The members' settled-position totals over [fromMs, toMs), summed. */
+export const settledTotals = async (params: {
+	members: Principal[];
+	fromMs: number;
+	toMs: number;
+	seriesIds?: string[];
+}): Promise<SettledTotals> => {
+	let calls = 0;
+	let wins = 0;
+
+	for (const member of (await settledTotalsByPrincipal(params)).values()) {
+		calls += member.calls;
+		wins += member.wins;
+	}
+
+	return { calls, wins };
 };
 
 /** The per-participant settlement plan for a resolved series. Uncached: it
@@ -650,36 +675,4 @@ export const listLeaderboard = async ({
 	}
 
 	return { items, total };
-};
-
-// Privileged calls (admin identity)
-
-export const submitMatchedTrade = async (
-	params: ClearingDid.SubmitMatchedTradeParams
-): Promise<boolean> => {
-	const actor = await adminClearing();
-
-	return expectOk(await actor.submit_matched_trade(params), 'submit_matched_trade');
-};
-
-export const settleSeries = async (params: ClearingDid.SettleSeriesParams): Promise<void> => {
-	const actor = await adminClearing();
-
-	for (;;) {
-		const result = await actor.settle_series(params);
-
-		if (!('Processing' in result)) {
-			expectOk(result, 'settle_series');
-
-			return;
-		}
-	}
-};
-
-export const registerIcrcAsset = async (
-	params: ClearingDid.RegisterIcrcAssetParams
-): Promise<void> => {
-	const actor = await adminClearing();
-
-	expectOk(await actor.register_icrc_asset(params), 'register_icrc_asset');
 };

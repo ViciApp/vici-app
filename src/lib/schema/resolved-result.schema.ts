@@ -1,7 +1,7 @@
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 /**
- * Wire shape of a single `resolved_results` row — the friend-readable
+ * Wire shape of a single `resolved_results` row; the friend-readable
  * per-participant resolution outcome. Shared between the satellite read endpoint
  * (`listFriendResolvedResults`) and the FE consumer so the two can't drift.
  *

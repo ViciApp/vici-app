@@ -1,5 +1,5 @@
 /**
- * Social cohorts — league membership.
+ * Social cohorts: league membership.
  *
  * One doc per `(league, member)` pair. The doc key is
  * `${leagueId}/${memberPrincipal}` so:
@@ -10,7 +10,7 @@
  *   - duplicate joins by the same principal collide naturally
  *
  * Role transitions (`member ↔ admin`, owner transfer) are gated by
- * the satellite assert — only the league owner can promote.
+ * the satellite assert: only the league owner can promote.
  */
 
 export type LeagueMemberRole = 'owner' | 'admin' | 'member';
@@ -28,7 +28,7 @@ export interface LeagueMemberDoc {
 }
 
 /**
- * Canonical key builder — keep all `league_members` writes in
+ * Canonical key builder: keep all `league_members` writes in
  * lockstep with what the satellite assert expects. `${leagueId}/`
  * is intentionally chosen as the separator so the prefix scan for
  * "members of league X" is a single juno listDocs filter.

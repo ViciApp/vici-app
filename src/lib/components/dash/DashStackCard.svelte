@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	/**
-	 * Zone 2 · Stack — the holdings card. Shows total holdings as the headline
+	 * Zone 2 · Stack: the holdings card. Shows total holdings as the headline
 	 * with in-play (backed) and today's net delta as compact sub-stats. Tapping
 	 * the card opens the {@link DashStackSheet} breakdown.
 	 *
@@ -20,10 +20,10 @@
 		inPlayDisplay: string;
 		/** Signed net VXP delta over the recent window, or `null` when unknown. */
 		todayDelta: number | null;
-		/** Figures not loaded yet — render pulsing placeholders instead of 0. */
+		/** Figures not loaded yet: render pulsing placeholders instead of 0. */
 		loading: boolean;
 		/**
-		 * `user_stats` (which backs TODAY) not fetched yet — pulse its placeholder
+		 * `user_stats` (which backs TODAY) not fetched yet: pulse its placeholder
 		 * instead of the static em-dash a loaded-but-quiet window shows.
 		 */
 		todayLoading: boolean;
@@ -37,7 +37,7 @@
 </script>
 
 <!-- While loading, the breakdown sheet would expose the same misleading
-     zero/partial figures the placeholders hide — keep the card inert. -->
+     zero/partial figures the placeholders hide: keep the card inert. -->
 <button class="db-wallet" disabled={loading} onclick={onOpen} type="button">
 	<div class="db-left">
 		<div class="db-k">{t({ locale: $localeStore, key: 'dash.holdings.eyebrow' })}</div>

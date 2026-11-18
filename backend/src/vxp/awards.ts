@@ -15,26 +15,36 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
 import { DEDUP_SAFE_WINDOW_MS } from '../chains/ic/icrc';
-import { query } from '../db/client';
+import { query, tx, type TxQuery } from '../db/client';
 import { env } from '../env';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
-import { msToNs, nowNs, optionalMs } from '../lib/time';
+import { MINUTE_IN_MS, msToNs, nowNs, optionalMs } from '../lib/time';
+import { countAwardMarkers, hasAwardMarker } from './award-markers';
 import { vxpFromBaseUnits } from './constants';
 import { findTreasuryTransferToUser, transferVxpToUser } from './payout';
 
-export type VxpAwardType =
-	| 'onboarding'
-	| 'streak'
-	| 'calibration'
-	| 'referral'
-	| 'worlds_podium'
-	| 'tournament_prize'
-	| 'achievement'
-	| 'comeback'
-	| 'flow_milestone'
-	| 'flow_overtime'
-	| 'league_founder';
+/** Every award type the awards table books: the app's `VxpAwardType` plus
+ * the onboarding starter. The shared-drift suite pins it to the app union and
+ * the awards suite to the `vxp_awards.award_type` check constraint. */
+export const VXP_AWARD_TYPES = [
+	'onboarding',
+	'streak',
+	'calibration',
+	'referral',
+	'worlds_podium',
+	'tournament_prize',
+	'achievement',
+	'comeback',
+	'flow_milestone',
+	'flow_overtime',
+	'league_founder'
+] as const;
+
+export type VxpAwardType = (typeof VXP_AWARD_TYPES)[number];
+
+export const isVxpAwardType = (value: string): value is VxpAwardType =>
+	(VXP_AWARD_TYPES as readonly string[]).includes(value);
 
 export type VxpAwardStatus = 'pending' | 'processing' | 'paid' | 'failed';
 
@@ -42,8 +52,6 @@ export type VxpAwardStatus = 'pending' | 'processing' | 'paid' | 'failed';
  * whose outcome is unknown. Clients see a quarantined award as processing:
  * it is still in flight from their point of view. */
 type AwardRowStatus = VxpAwardStatus | 'needs_ledger_check';
-
-export type VxpAwardOrigin = 'live' | 'etl';
 
 /**
  * How long a claimed (processing) row stays off-limits before the
@@ -53,7 +61,7 @@ export type VxpAwardOrigin = 'live' | 'etl';
  * double-claimed, while still bounding how long a crashed run delays a
  * payout.
  */
-export const PROCESSING_STALE_MS = 10 * 60_000;
+export const PROCESSING_STALE_MS = 10 * MINUTE_IN_MS;
 
 /** Sends per award before one the history proves never landed is given up
  * as failed, so a deterministic rejection cannot loop forever. */
@@ -193,10 +201,51 @@ const markAwardPaid = async ({
 	}
 };
 
+/**
+ * Whether another award of the same recipient already holds a block. The
+ * ledger keeps one block per identical transfer, so a Duplicate or history
+ * match pointing at a block another award holds proves this award's own
+ * sends moved nothing: the two transfers were identical (same stamp, memo
+ * and amount) and the ledger deduplicated one into the other.
+ */
+const blockHeldByAnotherAward = async ({
+	id,
+	userId,
+	blockIndex
+}: {
+	id: string;
+	userId: string;
+	blockIndex: string;
+}): Promise<boolean> => {
+	const rows = await query<{ id: string }>(
+		`select id from vxp_awards where user_id = $1 and block_index = $2 and id <> $3 limit 1`,
+		[userId, blockIndex, id]
+	);
+
+	return rows.length > 0;
+};
+
+/** Returns a claimed row to pending once the ledger proved nothing moved.
+ * The stamp is cleared with the claim: no transfer carrying it belongs to
+ * this award, and a fresh one keeps the retry inside the ledger's dedup
+ * window. */
+const reopenUnsentAward = async ({ id, error }: { id: string; error: string }): Promise<void> => {
+	await query(
+		`update vxp_awards
+		 set status = 'pending', processing_at = null, transfer_created_at_ns = null,
+		     error_message = $2
+		 where id = $1 and status = 'processing'`,
+		[id, error]
+	);
+};
+
 interface SettleResult {
 	paid: boolean;
 	claimed: boolean;
 	deferred?: boolean;
+	/** Back to pending: the ledger answered Duplicate with another award's
+	 * block, so nothing moved for this one. */
+	reopened?: boolean;
 	quarantined?: boolean;
 	blockIndex?: string;
 	error?: string;
@@ -216,6 +265,9 @@ interface SettleResult {
  * Duplicate and the row settles paid without a second payment. Outcomes:
  * - insufficient funds: nothing moved (the ledger checks duplicates first),
  *   so the row goes back to pending for the next pass;
+ * - a Duplicate that cannot be this award's own transfer (answered to a
+ *   first send, or naming a block another award holds): nothing moved
+ *   either, so the row goes back to pending with its stamp cleared;
  * - a replay that is not answered with success or Duplicate, or any
  *   ambiguous error (the transfer may have executed): quarantined as
  *   needs_ledger_check, never failed, because only the ledger history can
@@ -270,6 +322,22 @@ const settlePendingAward = async ({
 		createdAtTimeNs
 	});
 
+	// A first send with this stamp cannot match an earlier send of this award,
+	// so a Duplicate there is another award's identical transfer.
+	if (
+		result.ok &&
+		result.duplicate &&
+		(!replay || (await blockHeldByAnotherAward({ id, userId, blockIndex: result.blockIndex })))
+	) {
+		const error = `Duplicate of block ${result.blockIndex}, another award's transfer`;
+
+		await reopenUnsentAward({ id, error });
+
+		logger.warn(`vxp award payout reopened (${awardType}/${awardKey} for ${userId}):`, error);
+
+		return { paid: false, claimed: true, reopened: true, error };
+	}
+
 	if (result.ok) {
 		await markAwardPaid({
 			id,
@@ -285,16 +353,7 @@ const settlePendingAward = async ({
 	}
 
 	if (result.insufficientFunds) {
-		// The stamp is cleared with the claim: no transfer carrying it exists,
-		// and a fresh one keeps the retry inside the ledger's dedup window
-		// however long the treasury stays dry.
-		await query(
-			`update vxp_awards
-			 set status = 'pending', processing_at = null, transfer_created_at_ns = null,
-			     error_message = $2
-			 where id = $1 and status = 'processing'`,
-			[id, result.error]
-		);
+		await reopenUnsentAward({ id, error: result.error });
 
 		logger.warn(
 			`vxp award payout deferred (${awardType}/${awardKey} for ${userId}):`,
@@ -330,6 +389,32 @@ const settlePendingAward = async ({
 	return { paid: false, claimed: true, error: result.error };
 };
 
+/** How many awards of one type the user holds, any status, optionally only
+ * those created after sinceMs. The row's server-stamped created_at is the
+ * window boundary because the caller cannot forge it, unlike any
+ * client-supplied day key. */
+const countUserAwards = async (
+	{
+		userId,
+		awardType,
+		sinceMs
+	}: {
+		userId: string;
+		awardType: VxpAwardType;
+		sinceMs?: number;
+	},
+	q: TxQuery
+): Promise<number> => {
+	const rows = await q<{ count: string }>(
+		`select count(*)::text as count from vxp_awards
+		 where user_id = $1 and award_type = $2
+		   and ($3::double precision is null or created_at > to_timestamp($3::double precision / 1000))`,
+		[userId, awardType, sinceMs ?? null]
+	);
+
+	return Number(rows[0]?.count ?? 0);
+};
+
 export type GrantAwardOutcome =
 	| { outcome: 'paid'; blockIndex: string }
 	| { outcome: 'recorded' }
@@ -337,66 +422,66 @@ export type GrantAwardOutcome =
 	| { outcome: 'skipped_zero' }
 	| { outcome: 'failed'; error: string };
 
-/**
- * The single grant path: insert the pending row (colliding silently when the
- * award already exists), then either leave it recorded (record-only mode) or
- * drive the treasury transfer and the paid/failed transition. Non-positive
- * amounts are skipped entirely; nothing is owed.
- */
-export const grantAward = async ({
-	userId,
-	awardType,
-	awardKey,
-	amountBaseUnits,
-	memo,
-	earnedAtMs
-}: {
+interface GrantAwardParams {
 	userId: string;
 	awardType: VxpAwardType;
 	awardKey: string;
 	amountBaseUnits: bigint;
 	memo?: string;
 	earnedAtMs?: number;
-}): Promise<GrantAwardOutcome> => {
-	if (amountBaseUnits <= ZERO) {
-		return { outcome: 'skipped_zero' };
-	}
+}
 
-	const transferMemo = memo ?? `vxp:${awardType}:${awardKey}`;
+const transferMemoOf = ({ awardType, awardKey, memo }: GrantAwardParams): string =>
+	memo ?? `vxp:${awardType}:${awardKey}`;
 
-	// The memo is stored with the row so a reconciler paying it later (after
-	// a record-only stretch or a crash) sends the same memo the grant chose.
-	const inserted = await query<{ id: string }>(
+/** Inserts the pending row; undefined when the award already exists. The
+ * memo is stored with the row so a reconciler paying it later (after a
+ * record-only stretch or a crash) sends the same memo the grant chose. The
+ * conflict clause names no target so a type-specific unique index (one
+ * tournament prize per tournament, migration 0018) collides into 'already'
+ * like the (user, award_type, award_key) one, instead of raising. */
+const insertPendingAward = async (
+	grant: GrantAwardParams,
+	q: TxQuery = query
+): Promise<string | undefined> => {
+	const inserted = await q<{ id: string }>(
 		`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, transfer_memo)
 		 values ($1, $2, $3, $4, 'pending', $5, $6)
-		 on conflict (user_id, award_type, award_key) do nothing
+		 on conflict do nothing
 		 returning id`,
 		[
-			userId,
-			awardType,
-			awardKey,
-			amountBaseUnits.toString(),
-			earnedAtMs ?? Date.now(),
-			transferMemo
+			grant.userId,
+			grant.awardType,
+			grant.awardKey,
+			grant.amountBaseUnits.toString(),
+			grant.earnedAtMs ?? Date.now(),
+			transferMemoOf(grant)
 		]
 	);
-	const id = inserted[0]?.id;
 
-	if (isNullish(id)) {
-		return { outcome: 'already' };
-	}
+	return inserted[0]?.id;
+};
 
+/** Drives a freshly inserted row to its outcome: recorded in record-only
+ * mode, otherwise the treasury transfer and the paid/failed transition. */
+const settleInsertedAward = async ({
+	id,
+	grant
+}: {
+	id: string;
+	grant: GrantAwardParams;
+}): Promise<GrantAwardOutcome> => {
 	if (isVxpTreasuryDisabled()) {
 		return { outcome: 'recorded' };
 	}
 
 	const settled = await settlePendingAward({
 		id,
-		userId,
-		awardType,
-		awardKey,
-		amountBaseUnits,
-		memo: transferMemo
+		userId: grant.userId,
+		awardType: grant.awardType,
+		awardKey: grant.awardKey,
+		amountBaseUnits: grant.amountBaseUnits,
+		memo: transferMemoOf(grant)
 	});
 
 	if (settled.paid) {
@@ -405,14 +490,121 @@ export const grantAward = async ({
 
 	// A lost claim means another runner (a zero-grace reconcile) already holds
 	// this freshly inserted row and will drive it to paid; a deferred one waits
-	// pending for the treasury refill; a quarantined one waits for the ledger
-	// check. Nothing is known to have failed, so the caller sees it as
-	// recorded.
-	if (!settled.claimed || settled.deferred === true || settled.quarantined === true) {
+	// pending for the treasury refill; a reopened one waits pending for the
+	// next sweep; a quarantined one waits for the ledger check. Nothing is
+	// known to have failed, so the caller sees it as recorded.
+	if (
+		!settled.claimed ||
+		settled.deferred === true ||
+		settled.reopened === true ||
+		settled.quarantined === true
+	) {
 		return { outcome: 'recorded' };
 	}
 
 	return { outcome: 'failed', error: settled.error ?? 'transfer failed' };
+};
+
+/**
+ * The single grant path: insert the pending row (colliding silently when the
+ * award already exists), then either leave it recorded (record-only mode) or
+ * drive the treasury transfer and the paid/failed transition. Non-positive
+ * amounts are skipped entirely; nothing is owed. A one-time award the user's
+ * identity was paid under a deleted account answers 'already' too.
+ */
+export const grantAward = async (grant: GrantAwardParams): Promise<GrantAwardOutcome> => {
+	if (grant.amountBaseUnits <= ZERO) {
+		return { outcome: 'skipped_zero' };
+	}
+
+	if (await hasAwardMarker(grant)) {
+		return { outcome: 'already' };
+	}
+
+	const id = await insertPendingAward(grant);
+
+	if (isNullish(id)) {
+		return { outcome: 'already' };
+	}
+
+	return await settleInsertedAward({ id, grant });
+};
+
+/** A ceiling on how many awards of one type a user may hold: over their
+ * lifetime, or inside a rolling wall-clock window when windowMs is set.
+ * reason is what the grant answers when this cap is the one reached. */
+export interface AwardCap<Reason extends string> {
+	max: number;
+	windowMs?: number;
+	reason: Reason;
+}
+
+export type CappedGrantOutcome<Reason extends string> =
+	GrantAwardOutcome | { outcome: 'capped'; reason: Reason };
+
+/**
+ * grantAward under caps. The count and the insert run in one transaction
+ * behind a per-user, per-type advisory lock, so concurrent grants queue and
+ * each one counts the rows the earlier ones inserted: a cap is never
+ * exceeded, however many claims race. The lock is released at commit, before
+ * the transfer, so a slow ledger never holds up the next grant. Every row
+ * counts whatever its status: anything in flight consumes a slot. A lifetime
+ * cap also counts the awards the user's identities were paid under deleted
+ * accounts (their markers), so deleting an account never resets it.
+ */
+export const grantCappedAward = async <Reason extends string>({
+	caps,
+	...grant
+}: GrantAwardParams & { caps: readonly AwardCap<Reason>[] }): Promise<
+	CappedGrantOutcome<Reason>
+> => {
+	if (grant.amountBaseUnits <= ZERO) {
+		return { outcome: 'skipped_zero' };
+	}
+
+	const claim = await tx(async (q): Promise<{ id?: string } | { capped: Reason }> => {
+		await q(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [
+			`vxp-award-cap:${grant.userId}:${grant.awardType}`
+		]);
+
+		if (await hasAwardMarker(grant, q)) {
+			return {};
+		}
+
+		const nowMs = Date.now();
+
+		for (const cap of caps) {
+			const held = await countUserAwards(
+				{
+					userId: grant.userId,
+					awardType: grant.awardType,
+					sinceMs: nonNullish(cap.windowMs) ? nowMs - cap.windowMs : undefined
+				},
+				q
+			);
+			// A lifetime cap also counts what the user's identities were paid
+			// under earlier, deleted accounts; a window cap has no such history.
+			const heldBefore = nonNullish(cap.windowMs)
+				? 0
+				: await countAwardMarkers({ userId: grant.userId, awardType: grant.awardType }, q);
+
+			if (held + heldBefore >= cap.max) {
+				return { capped: cap.reason };
+			}
+		}
+
+		return { id: await insertPendingAward(grant, q) };
+	});
+
+	if ('capped' in claim) {
+		return { outcome: 'capped', reason: claim.capped };
+	}
+
+	if (isNullish(claim.id)) {
+		return { outcome: 'already' };
+	}
+
+	return await settleInsertedAward({ id: claim.id, grant });
 };
 
 export const getAward = async ({
@@ -455,44 +647,6 @@ export const listUserAwards = async ({
 	return rows.map(shapeAward);
 };
 
-/** How many awards of one type the user holds, any status: anything in
- * flight consumes a slot, so racing triggers cannot slip past a cap. */
-export const countUserAwards = async ({
-	userId,
-	awardType
-}: {
-	userId: string;
-	awardType: VxpAwardType;
-}): Promise<number> => {
-	const rows = await query<{ count: string }>(
-		`select count(*)::text as count from vxp_awards where user_id = $1 and award_type = $2`,
-		[userId, awardType]
-	);
-
-	return Number(rows[0]?.count ?? 0);
-};
-
-/** Awards of one type created inside a rolling wall-clock window. The row's
- * server-stamped created_at is the boundary because the caller cannot forge
- * it, unlike any client-supplied day key. */
-export const countUserAwardsSince = async ({
-	userId,
-	awardType,
-	sinceMs
-}: {
-	userId: string;
-	awardType: VxpAwardType;
-	sinceMs: number;
-}): Promise<number> => {
-	const rows = await query<{ count: string }>(
-		`select count(*)::text as count from vxp_awards
-		 where user_id = $1 and award_type = $2 and created_at > to_timestamp($3::double precision / 1000)`,
-		[userId, awardType, sinceMs]
-	);
-
-	return Number(rows[0]?.count ?? 0);
-};
-
 export interface ReconcileReport {
 	scanned: number;
 	paid: number;
@@ -519,7 +673,8 @@ interface LedgerCheckRow {
  * Settles one quarantined row from the ledger history. Only rows whose last
  * send is older than PROCESSING_STALE_MS reach here, far past the ingress
  * expiry, so no message carrying the stamp can still land after the lookup.
- * found: paid with that block. absent (proven): back to pending with the
+ * found: paid with that block, unless another award holds it, which proves
+ * this one never landed (handled as absent). absent (proven): back to pending with the
  * stamp cleared so the sweep sends it fresh, or failed once the attempt cap
  * is reached. unknown (index behind, lookup error, no stamp to match): the
  * row stays quarantined for the next pass or an operator.
@@ -547,7 +702,14 @@ const resolveLedgerCheck = async ({
 		createdAtTimeNs: BigInt(row.transfer_created_at_ns)
 	});
 
-	if (lookup.status === 'found') {
+	if (
+		lookup.status === 'found' &&
+		!(await blockHeldByAnotherAward({
+			id: row.id,
+			userId: row.user_id,
+			blockIndex: lookup.blockIndex
+		}))
+	) {
 		await markAwardPaid({
 			id: row.id,
 			fromStatus: 'needs_ledger_check',
@@ -650,7 +812,7 @@ const recoverUnconfirmedTransfers = async ({
  * deferral: every later row would bounce off the same empty treasury.
  */
 export const reconcileUnpaidAwards = async ({
-	graceMs = 60_000,
+	graceMs = MINUTE_IN_MS,
 	limit = 200
 }: { graceMs?: number; limit?: number } = {}): Promise<ReconcileReport> => {
 	const report: ReconcileReport = {

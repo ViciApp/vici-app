@@ -4,7 +4,7 @@
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * Pass-2 "verify your school" step — the email-entry screen for a
+	 * Pass-2 "verify your school" step: the email-entry screen for a
 	 * directory university that carries an email domain. The owning
 	 * {@link AffiliationPickerModal} keeps the add/verify state machine;
 	 * this component renders the body and reports edits via callbacks.

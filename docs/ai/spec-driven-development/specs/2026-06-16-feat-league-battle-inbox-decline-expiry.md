@@ -1,4 +1,4 @@
-# Spec: League battle inbox — surface, decline, expire, and start the clock on accept
+# Spec: League battle inbox: surface, decline, expire, and start the clock on accept
 
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
@@ -7,11 +7,11 @@ Status: Implemented (#917)
 
 ## Goal
 
-A league owner can see and act on **every** incoming battle challenge —
-accept or decline — even while their league already has battles in
+A league owner can see and act on **every** incoming battle challenge:
+accept or decline, even while their league already has battles in
 flight. Unaccepted proposals no longer pile up forever: a proposal
 expires if it isn't answered by its respond-by deadline. And accepting a
-challenge is what **starts the competition clock** — the N-day accuracy
+challenge is what **starts the competition clock**: the N-day accuracy
 window begins at acceptance, not at a date the proposer guessed in
 advance. This completes the battle dynamic that
 [`2026-06-15-feat-battle-auto-resolution.md`](./2026-06-15-feat-battle-auto-resolution.md)
@@ -23,13 +23,13 @@ makes the **proposal → accept/decline/expire → kickoff** half coherent.
 #912 already shipped the hard part: scores are each league's real
 windowed accuracy (`Δwins/Δcalls` from a kickoff baseline), the
 satellite re-derives and rejects any falsified result, and a settled
-battle auto-resolves lazily on read. What it did **not** address — and
+battle auto-resolves lazily on read. What it did **not** address, and
 what this spec fixes:
 
 1. **Incoming proposals are masked.** The league detail battle section
    renders a single `activeBattle`, chosen as
-   `battles.find((b) => b.state === 'in_flight') ?? battles.find((b) => b.state === 'accepted' || b.state === 'proposed')`
-   — [`LeagueDetailPage.svelte:536`](../../../../src/lib/components/pages/LeagueDetailPage.svelte).
+   `battles.find((b) => b.state === 'in_flight') ?? battles.find((b) => b.state === 'accepted' || b.state === 'proposed')`:
+   [`LeagueDetailPage.svelte:536`](../../../../src/lib/components/pages/LeagueDetailPage.svelte).
    When a league already has an `in_flight` battle, an incoming
    `proposed` challenge is never the selected battle, so the
    `canAcceptBattle` CTA never renders. The proposal is invisible except
@@ -52,43 +52,43 @@ what this spec fixes:
 
 Files in scope:
 
-- `src/lib/types/battle.ts` — `BattleDoc`, `BattleState`,
+- `src/lib/types/battle.ts`: `BattleDoc`, `BattleState`,
   `BATTLE_TRANSITIONS`, `BATTLE_STATES`. Adds states + two doc fields.
-- `src/satellite/services/battle.services.ts` — `assertSetBattle`
+- `src/satellite/services/battle.services.ts`: `assertSetBattle`
   (per-transition auth + the trustless scoring guard). New transitions:
   `proposed → in_flight` (league accept-fuses-kickoff),
   `proposed → declined`, `proposed → expired`.
-- `src/lib/services/leagues.services.ts` — `proposeBattle` (767+),
+- `src/lib/services/leagues.services.ts`: `proposeBattle` (767+),
   `acceptBattle` (848+), `kickoffBattle` (905+, folded into accept for
   leagues), `resolveBattle` (974+, unchanged), `retractBattle`. New:
   `declineBattle`, lazy `maybeExpireBattle`.
-- `src/lib/components/pages/LeagueDetailPage.svelte` — replace the
+- `src/lib/components/pages/LeagueDetailPage.svelte`: replace the
   single-slot battle section with an active-battles list + a "Battle
   requests" list (Accept / Decline per row); add the lazy-expire sweep
   alongside the existing `autoResolveAttempted` lazy-resolve
   (line 639).
-- `src/lib/components/pages/BattleDetailPage.svelte` — handle the new
+- `src/lib/components/pages/BattleDetailPage.svelte`: handle the new
   terminal states; decline CTA for the recipient.
-- `src/lib/components/pages/BattlesInboxPage.svelte` — already lists
+- `src/lib/components/pages/BattlesInboxPage.svelte`: already lists
   incoming `proposed` where `sideB === leagueId`; add inline
   Accept / Decline (or keep deep-link) and hide expired/declined.
 - `src/lib/components/leagues/ChallengeLeagueModal.svelte` /
-  `CreateBoutModal.svelte` — propose a `durationMs` + `respondByMs`
+  `CreateBoutModal.svelte`: propose a `durationMs` + `respondByMs`
   instead of a precomputed `kickoffMs`/`settleMs`.
 - Generated wire layer: `src/satellite/utils/wire-format.utils.ts`,
-  `satellite_extension.did`, `src/declarations/**` — regenerated, never
+  `satellite_extension.did`, `src/declarations/**`: regenerated, never
   hand-edited.
 
 Reuse: the **lazy-on-read** pattern is already established by #912's
 auto-resolve (`autoResolveAttempted` set +
 `resolveBattle` idempotent early-return). Expiry mirrors it exactly.
 The accept-stamps-baseline mechanic already exists in `kickoffBattle`
-(905–934) — we move it onto the accept call.
+(905–934): we move it onto the accept call.
 
 ## Scope
 
 **Concurrency (FE only).** The backend already permits any number of
-battles per league — nothing in `assertSetBattle` caps them. Stop
+battles per league: nothing in `assertSetBattle` caps them. Stop
 collapsing to one `activeBattle`: render **all** `in_flight` battles and
 **all** incoming `proposed` requests. The masking bug is purely the
 single-slot `$derived`.
@@ -96,16 +96,16 @@ single-slot `$derived`.
 **Decline.** New terminal state `declined`. `proposed → declined` by the
 `sideB` owner (the challenged side). FE: a Decline button beside Accept
 in each request row. Decline both writes a recent-activity row on both
-leagues **and** sends the proposer a notification — because Juno docs
+leagues **and** sends the proposer a notification, because Juno docs
 are **not** live-pushed across users (the proposer's client only sees
 the `declined` flip on its next read), the notification is what actively
 surfaces it. Accept sends the proposer the symmetric "your challenge was
-accepted — battle is live" notification through the same mechanism.
+accepted: battle is live" notification through the same mechanism.
 
 **Expiry.** New terminal state `expired` + a `respondByMs` field on
 `BattleDoc`. A `proposed` battle whose `respondByMs` has passed is
 expired the first time a side owner reads the league/battle (lazy write,
-no scheduler — Juno has none). `proposed → expired` allowed by either
+no scheduler: Juno has none). `proposed → expired` allowed by either
 side owner once `now >= respondByMs`.
 
 **Accept starts the clock.** The proposer picks a **duration**
@@ -121,8 +121,8 @@ battles.
 
 **Concurrency cap (safety rail).** No product-level limit, but a far
 upper bound of **100 simultaneous `in_flight` battles per league**
-(`BATTLE_MAX_CONCURRENT_IN_FLIGHT`). Enforced **client-side** — the
-accept CTA is blocked at the cap — deliberately **not** in the assert: a
+(`BATTLE_MAX_CONCURRENT_IN_FLIGHT`). Enforced **client-side**; the
+accept CTA is blocked at the cap, deliberately **not** in the assert: a
 server-side count needs a full `listDocsStore` scan (a league appears as
 both the `sideA` key prefix and an embedded `sideB`, so no single prefix
 catches it) on every accept, which isn't worth the instruction budget
@@ -147,14 +147,14 @@ proposed ─accept─▶ in_flight ─(auto, #912)─▶ resolved
   existing `proposed → accepted → in_flight → resolved` manual-score
   path. New `declined`/`expired` transitions apply to both kinds for the
   proposal phase, but the accept-fuses-kickoff change is league-only.
-- **Server-side enforcement of the concurrency cap** — the 100-battle
+- **Server-side enforcement of the concurrency cap**: the 100-battle
   rail is a client-side guard only (see the cap note above).
 - **Cross-device dismissal** of the battles intro card (still
   localStorage, unchanged).
 
 ## Linked issues
 
-Search the repo's open issues before finalizing (none confirmed yet —
+Search the repo's open issues before finalizing (none confirmed yet,
 see open questions). If a "can't accept league challenge" issue exists,
 close it; otherwise state none.
 
@@ -165,38 +165,38 @@ Instrument the new user actions. Existing taxonomy
 `battle_proposed`, `battle_accepted`, `battle_resolved` and a
 `battleId` prop.
 
-- Add **`battle_declined`** — user action; props: `battleId`. Goes in
+- Add **`battle_declined`**: user action; props: `battleId`. Goes in
   **both** the TS union (`analytics-event.ts`) and the Zod mirror
   (`src/lib/schema/analytics-event.schema.ts`); capture via `track` in
   `analytics.services.ts`.
-- **`battle_expired`** — system-driven (lazy, not a tap). Proposed as
+- **`battle_expired`**: system-driven (lazy, not a tap). Proposed as
   optional; if we want expiry volume visible, add it the same way and
   fire it from the lazy-expire writer. Default: include it, since a
   proposal dying silently is otherwise invisible to product.
 - No new free-form props; `battleId` is bounded id data, no PII.
 
-## Technical requirements (satellite / backend — mandatory)
+## Technical requirements (satellite / backend, mandatory)
 
 - **Performance.** No new endpoints; all transitions stay client
   `setDoc` + `assertSetBattle`. The assert already does up to ~4
   `getDocStore` cross-collection reads (league, members, league_stats ×2)
   per battle write; decline/expire add a strictly cheaper subset (no
   baseline reads). Lazy-expire piggybacks on the existing
-  league/battle-detail read path — one extra `setDoc` per stale proposal,
+  league/battle-detail read path: one extra `setDoc` per stale proposal,
   once.
 - **Memory & storage.** Two new optional `BattleDoc` fields
   (`durationMs`, `respondByMs`: `number`). Two new `BattleState`
   variants. No new collection. Terminal `declined`/`expired` rows are
-  retained as history like `resolved` (or pruned — see pending
+  retained as history like `resolved` (or pruned, see pending
   decisions); growth is bounded by battle volume, same order as today.
 - **Scalability.** Surfacing all proposals is a client-side filter over
-  the already-loaded `leagueBattlesStore` list — no new fan-out. At 10×
+  the already-loaded `leagueBattlesStore` list: no new fan-out. At 10×
   battles per league the request list is still a short filtered render.
 - **Upgrade & compatibility.** `BattleState` gains `declined` /
   `expired` and `BattleDoc` gains two fields → the satellite wire format
   (`wire-format.utils.ts`), `satellite_extension.did`, and
   `src/declarations/**` regenerate via `npm run juno:functions:build`
-  (commit the result; the `state` Candid variant is **hash-sorted** —
+  (commit the result; the `state` Candid variant is **hash-sorted**:
   regenerate, never hand-place). This is a Candid surface change:
   FE reads must tolerate the new variants. **Legacy `proposed` rows**
   (written pre-spec, with a real `kickoffMs`/`settleMs` and no
@@ -217,13 +217,13 @@ durationMs` server-side so the recipient can't backdate the window.
 - **Concurrency-cap cost.** The 100-in-flight rail is **client-side**
   only. A server-side count would need a full `listDocsStore` scan per
   accept (a league appears as both the `sideA` key prefix and an
-  embedded `sideB`, so no single prefix catches it) — not worth the
+  embedded `sideB`, so no single prefix catches it), not worth the
   instruction budget for a far rail. Documented as a known gap.
-- **Notifications — no satellite change.** There is no notifications
+- **Notifications: no satellite change.** There is no notifications
   collection; the inbox is client-derived (the friend-request /
   like-received pattern). The proposer already loads their battles via
   `listMyBattles`, so a decline/accept card is derived from the battle
-  doc's own state + `respondedAtMs` in `inbox.store.ts` — no
+  doc's own state + `respondedAtMs` in `inbox.store.ts`: no
   cross-principal write, no new collection.
 - **Parameters.** Duration presets and any default respond-by window
   live as named constants (extend the battle constants in
@@ -234,7 +234,7 @@ durationMs` server-side so the recipient can't backdate the window.
 
 1. **Types** (`battle.ts`): add `'declined' | 'expired'` to
    `BattleState` + `BATTLE_STATES`; add `durationMs?`, `respondByMs?` to
-   `BattleDoc`; update `BATTLE_TRANSITIONS` —
+   `BattleDoc`; update `BATTLE_TRANSITIONS`:
    `proposed: {accepted, in_flight, declined, expired}`,
    `accepted: {in_flight}` (duel only), terminals empty.
 2. **Assert** (`battle.services.ts`): add the three transition branches
@@ -287,14 +287,14 @@ durationMs` server-side so the recipient can't backdate the window.
 
 Resolved during the build:
 
-- **Generated `state` Candid variant** — regenerated via
+- **Generated `state` Candid variant**: regenerated via
   `npm run juno:functions:build`; `svelte-check` passes against the new
   declarations, so the added `declined` / `expired` members decode
   cleanly.
-- **Notification mechanism** — there is no notifications collection; the
+- **Notification mechanism**: there is no notifications collection; the
   inbox is client-derived. No cross-principal write is needed (resolved
   in the technical-requirements note).
-- **Concurrency-cap counting** — resolved by keeping the cap client-side
+- **Concurrency-cap counting**: resolved by keeping the cap client-side
   (see the cap note); no assert scan.
 
 Still to verify against production data (no code dependency):
@@ -308,23 +308,23 @@ Still to verify against production data (no code dependency):
 
 Resolved with the product owner during spec authoring (2026-06-16):
 
-- **Concurrency:** fully concurrent — multiple live battles per league.
+- **Concurrency:** fully concurrent, multiple live battles per league.
   Backend already supports it; this spec only fixes FE rendering. Far
   abuse rail at **100** simultaneous `in_flight` battles per league.
-- **Decline:** yes — explicit recipient Decline → terminal `declined`.
+- **Decline:** yes, explicit recipient Decline → terminal `declined`.
   Surfaced **both** ways: a recent-activity row on both leagues **and** a
   notification to the proposer (Juno isn't live across users, so the
   notification is what actively reaches them). Accept fires the
   symmetric notification.
-- **Expiry:** yes — proposals auto-expire at `respondByMs` (lazy, no
+- **Expiry:** yes, proposals auto-expire at `respondByMs` (lazy, no
   scheduler). `respondByMs` is a **fixed `now + 3 days`** (named
   constant, not user-adjustable).
-- **Clock start:** at acceptance — N-day duration runs from accept;
+- **Clock start:** at acceptance, N-day duration runs from accept;
   accept fuses the old kickoff (stamps baselines, sets the window).
 - **Terminal-row retention:** keep `declined`/`expired` as history like
-  `resolved`, bounded by the existing recent-activity row cap — no
+  `resolved`, bounded by the existing recent-activity row cap: no
   prune logic.
-- **Resolution / real accuracy scoring:** already shipped by #912 — not
+- **Resolution / real accuracy scoring:** already shipped by #912, not
   re-specced here; this spec builds on it.
 - **Slicing:** one spec, one PR (per workflow) covering all of the
   above.

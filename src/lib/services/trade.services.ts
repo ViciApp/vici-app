@@ -1,11 +1,8 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
 import {
-	getPositions as getPositionsApi,
 	getSeriesPriceHistory as getSeriesPriceHistoryApi,
 	getTradeHistory as getTradeHistoryApi,
-	listSeriesTradeHistory as listSeriesTradeHistoryApi,
-	mintCompleteSet as mintCompleteSetApi,
-	redeemCompleteSet as redeemCompleteSetApi
+	listSeriesTradeHistory as listSeriesTradeHistoryApi
 } from '#lib/api/clearing.api.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import {
@@ -27,106 +24,12 @@ import {
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getEnginePriceHistory as getEnginePriceHistoryWeb2,
-	listEnginePositions as listEnginePositionsWeb2,
 	listEngineSeriesTrades as listEngineSeriesTradesWeb2,
 	listEngineTradeHistory as listEngineTradeHistoryWeb2
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
 import { fromNullable, isNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
-
-/**
- * Core fetch for a single-series position: threads identity + certified so it
- * composes with {@link loadPosition} / `queryAndUpdate`.
- */
-const fetchPosition = async ({
-	identity,
-	certified,
-	seriesId
-}: {
-	identity: Identity;
-	certified: boolean;
-	seriesId: string;
-}): Promise<ClearingDid.Position | undefined> => {
-	const positions = isWeb2Backend()
-		? await listEnginePositionsWeb2()
-		: await getPositionsApi({ identity, certified });
-
-	return positions.find((p) => p.series_id === seriesId);
-};
-
-/**
- * Clearing position for one series, if any.
- *
- * Performs a single certified update. Prefer {@link loadPosition} for UI flows
- * that should render fast then upgrade to a certified result.
- */
-export const getPosition = async (seriesId: string): Promise<ClearingDid.Position | undefined> => {
-	// web2 gates on the cookie session, mirroring the signed-out throw of the
-	// identity path; the API signs the read with the derived custodial identity.
-	if (isWeb2Backend()) {
-		if (isNullish(getWeb2User())) {
-			throw new Error('Not authenticated');
-		}
-
-		return fetchPosition({ identity: web2PlaceholderIdentity(), certified: true, seriesId });
-	}
-
-	const identity = await safeGetIdentityOnce();
-
-	return fetchPosition({ identity, certified: true, seriesId });
-};
-
-/**
- * Callback-based variant of {@link getPosition}. No-op when the user is not
- * signed in.
- */
-export const loadPosition = async ({
-	seriesId,
-	onLoad,
-	onUpdateError
-}: {
-	seriesId: string;
-	onLoad: (options: { certified: boolean; response: ClearingDid.Position | undefined }) => void;
-	onUpdateError?: (error: unknown) => void;
-}): Promise<void> => {
-	// web2 reads once: no query/update pair exists on that transport, so the
-	// single response is the final (`certified: true`) pass.
-	if (isWeb2Backend()) {
-		if (isNullish(getWeb2User())) {
-			return;
-		}
-
-		try {
-			onLoad({
-				certified: true,
-				response: await fetchPosition({
-					identity: web2PlaceholderIdentity(),
-					certified: true,
-					seriesId
-				})
-			});
-		} catch (err: unknown) {
-			onUpdateError?.(err);
-		}
-
-		return;
-	}
-
-	const identity = await getIdentity();
-
-	if (isNullish(identity)) {
-		return;
-	}
-
-	return loadWithCertification<ClearingDid.Position | undefined>({
-		identity,
-		request: ({ certified, identity: reqIdentity }) =>
-			fetchPosition({ identity: reqIdentity, certified, seriesId }),
-		onLoad,
-		onUpdateError
-	});
-};
 
 /**
  * Core fetch for user trade history, restricted to the current app domain.
@@ -238,8 +141,8 @@ export const loadUserTradeHistory = async ({
  *
  * The query is market-wide (not caller-scoped), so the derived
  * YES-percentage series reflects the TRUE market movement for every viewer
- * — including signed-out visitors, who read it under the anonymous identity
- * — rather than the viewer's own fills. `period` selects the query window
+ * including signed-out visitors, who read it under the anonymous identity
+ * rather than the viewer's own fills. `period` selects the query window
  * (resolution + lower bound; see {@link priceHistoryQueryWindow}) so the
  * `1d / 7d / 30d / all` chips re-scope the chart instead of replotting the
  * same window. {@link deriveMarketPriceSeries} maps each bucket's close into
@@ -315,7 +218,7 @@ export const loadMarketPriceCandles = async ({
 
 // Page size for the traded-volume drain. `list_series_trade_history` returns
 // *all* remaining trades when `limit` is omitted, which can blow past the IC
-// message-size cap (and balloon client allocations) on a busy series — so cap
+// message-size cap (and balloon client allocations) on a busy series, so cap
 // each page and follow `next_cursor`.
 const TRADE_HISTORY_PAGE_SIZE = BigInt(1000);
 
@@ -323,7 +226,7 @@ const TRADE_HISTORY_PAGE_SIZE = BigInt(1000);
  * Market-wide traded volume for one series, in payout-token base units.
  *
  * "Volume" on a market is the notional that changed hands, so this drains the
- * executed-trade tape (`list_series_trade_history` — every participant's
+ * executed-trade tape (`list_series_trade_history`: every participant's
  * fills, not the caller's) a bounded page at a time and aggregates `Σ qty·price`
  * via {@link tradeHistoryNotional}, folding each page in and discarding it so
  * neither the response nor the running set is unbounded. Following `next_cursor`
@@ -375,42 +278,4 @@ export const getSeriesTradeVolume = async ({
 	}
 
 	return volume;
-};
-
-/**
- * Mints a complete YES/NO set on clearing for `qty`.
- */
-export const mintCompleteSet = async ({
-	seriesId,
-	qty
-}: {
-	seriesId: string;
-	qty: bigint;
-}): Promise<boolean> => {
-	const identity = await safeGetIdentityOnce();
-
-	return await mintCompleteSetApi({
-		identity,
-		seriesId,
-		qty
-	});
-};
-
-/**
- * Redeems a complete set back into collateral for `qty`.
- */
-export const redeemCompleteSet = async ({
-	seriesId,
-	qty
-}: {
-	seriesId: string;
-	qty: bigint;
-}): Promise<boolean> => {
-	const identity = await safeGetIdentityOnce();
-
-	return await redeemCompleteSetApi({
-		identity,
-		seriesId,
-		qty
-	});
 };

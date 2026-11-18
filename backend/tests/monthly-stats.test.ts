@@ -1,17 +1,20 @@
-// Monthly stat cache: the structural write guard and the monthly award
-// aggregation (sharpest-eye podium, bold-caller median gate).
+// Stat caches: the user stats write guard, the monthly award aggregation
+// (sharpest-eye podium, bold-caller median gate) over the monthly rows, and
+// the absence of any route that lets a caller write those rows.
 
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { randomInt } from 'node:crypto';
+import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
+import { app } from '../src/index';
 import {
 	getMonthlyLeaderboard,
 	median,
 	MONTHLY_MIN_CALLS,
-	upsertMonthlyStats,
 	upsertUserStats
 } from '../src/profiles/stats';
 import { createTestUser, ensureMigrated } from './helpers/auth';
+import { createTestProfile, hibernateProfile, softDeleteProfile } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
 
 /** A unique month anchor per call so suites never share an aggregation; a
@@ -126,94 +129,36 @@ describe.if(dbAvailable)('user stats guard', () => {
 	});
 });
 
-describe.if(dbAvailable)('monthly stats guard', () => {
+describe.if(dbAvailable)('monthly stats writes', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
 	});
 
-	test('rejects a malformed anchor, broken counters and bad consensus', async () => {
-		const userId = await createTestUser();
-
-		expect(
-			upsertMonthlyStats({
-				userId,
-				monthAnchor: '2026-13',
-				monthCalls: 0,
-				monthWins: 0,
-				monthConsensus: [],
-				updatedAtMs: Date.now()
-			})
-		).rejects.toThrow('must match YYYY-MM');
-
-		expect(
-			upsertMonthlyStats({
-				userId,
-				monthAnchor: '2026-05',
-				monthCalls: 3,
-				monthWins: 4,
-				monthConsensus: [0.5],
-				updatedAtMs: Date.now()
-			})
-		).rejects.toThrow('monthWins cannot exceed monthCalls');
-
-		expect(
-			upsertMonthlyStats({
-				userId,
-				monthAnchor: '2026-05',
-				monthCalls: 3,
-				monthWins: 1,
-				monthConsensus: [],
-				updatedAtMs: Date.now()
-			})
-		).rejects.toThrow('non-empty when monthCalls > 0');
-
-		expect(
-			upsertMonthlyStats({
-				userId,
-				monthAnchor: '2026-05',
-				monthCalls: 3,
-				monthWins: 1,
-				monthConsensus: [1.5],
-				updatedAtMs: Date.now()
-			})
-		).rejects.toThrow('finite numbers in [0, 1]');
-
-		expect(
-			upsertMonthlyStats({
-				userId,
-				monthAnchor: '2026-05',
-				monthCalls: 2.5,
-				monthWins: 1,
-				monthConsensus: [0.5],
-				updatedAtMs: Date.now()
-			})
-		).rejects.toThrow('non-negative integers');
-	});
-
-	test('a re-upsert overwrites the month row', async () => {
+	test('no route writes a caller monthly stats row', async () => {
 		const userId = await createTestUser();
 		const monthAnchor = await uniqueMonthAnchor();
 
-		await upsertMonthlyStats({
-			userId,
-			monthAnchor,
-			monthCalls: 5,
-			monthWins: 2,
-			monthConsensus: [0.5],
-			updatedAtMs: Date.now()
-		});
+		const response = await app.handle(
+			new Request('http://localhost/api/v1/profiles/me/monthly-stats', {
+				method: 'PUT',
+				headers: {
+					cookie: `vici_session=${await createSession(userId)}`,
+					'content-type': 'application/json'
+				},
+				body: JSON.stringify({
+					monthAnchor,
+					monthCalls: 3_000_000_000,
+					monthWins: 3_000_000_000,
+					monthConsensus: [0.5],
+					updatedAtMs: Date.now()
+				})
+			})
+		);
 
-		const updated = await upsertMonthlyStats({
-			userId,
-			monthAnchor,
-			monthCalls: 8,
-			monthWins: 4,
-			monthConsensus: [0.5, 0.6],
-			updatedAtMs: Date.now()
-		});
-
-		expect(updated.monthCalls).toBe(8);
-		expect(updated.monthConsensus).toEqual([0.5, 0.6]);
+		expect(response.status).toBe(404);
+		expect(
+			await query(`select 1 from user_monthly_stats where user_id = $1`, [userId])
+		).toHaveLength(0);
 	});
 });
 
@@ -233,16 +178,13 @@ describe.if(dbAvailable)('monthly leaderboard', () => {
 		monthWins: number;
 		monthConsensus: number[];
 	}): Promise<string> => {
-		const userId = await createTestUser();
+		const { userId } = await createTestProfile();
 
-		await upsertMonthlyStats({
-			userId,
-			monthAnchor,
-			monthCalls,
-			monthWins,
-			monthConsensus,
-			updatedAtMs: Date.now()
-		});
+		await query(
+			`insert into user_monthly_stats (user_id, month_anchor, month_calls, month_wins, month_consensus, updated_at_ms)
+			 values ($1, $2, $3, $4, $5, $6)`,
+			[userId, monthAnchor, monthCalls, monthWins, JSON.stringify(monthConsensus), Date.now()]
+		);
 
 		return userId;
 	};
@@ -338,6 +280,26 @@ describe.if(dbAvailable)('monthly leaderboard', () => {
 
 		expect(ids).toEqual([bold, tied].sort());
 		expect(boldCaller.every((entry) => entry.accuracy === 80)).toBe(true);
+	});
+
+	test('leaves out soft-deleted, hibernated and purged accounts', async () => {
+		const monthAnchor = await uniqueMonthAnchor();
+		const seedBold = async (monthWins: number): Promise<string> =>
+			await seedMonth({ monthAnchor, monthCalls: 40, monthWins, monthConsensus: [0.2] });
+
+		const active = await seedBold(20);
+		const softDeleted = await seedBold(40);
+		const hibernated = await seedBold(39);
+		const purged = await seedBold(38);
+
+		await softDeleteProfile(softDeleted);
+		await hibernateProfile(hibernated);
+		await query(`delete from profiles where user_id = $1`, [purged]);
+
+		const { sharpestEye, boldCaller } = await getMonthlyLeaderboard({ monthAnchor });
+
+		expect(sharpestEye.map((entry) => entry.userId)).toEqual([active]);
+		expect(boldCaller.map((entry) => entry.userId)).toEqual([active]);
 	});
 
 	test('an unknown month or malformed anchor yields empty awards', async () => {

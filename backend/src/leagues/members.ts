@@ -1,11 +1,15 @@
-// League membership lifecycle: join (self via invite code, or owner-added),
-// role changes, leave and kick. The write discipline the satellite enforced
-// on the `(league, member)` key carries over: a member writes only their own
-// row, the owner writes anyone's, the `owner` role is reserved for the
+// League membership lifecycle: join (self via invite code), role changes,
+// leave and kick. The write discipline the satellite enforced on the
+// `(league, member)` key carries over: a member writes only their own row,
+// the owner changes anyone's role, the `owner` role is reserved for the
 // league's owner column, and the owner row can never be deleted (transfer
-// ownership first).
+// ownership first). Nobody is added to a league without joining it
+// themselves: the roster gates the league-founder achievement and the
+// tournament seeding.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
+import { settlementPrincipalsByUser } from '../auth/identity';
 import { query, tx, type TxQuery } from '../db/client';
 import {
 	LeagueError,
@@ -38,13 +42,28 @@ export const getLeagueMember = async (
 	return nonNullish(rows[0]) ? shapeMember(rows[0]) : undefined;
 };
 
-export const isLeagueMember = async ({
+/**
+ * Every on-chain principal a league's members can have settled under: the
+ * members whose settled history a league's score is read from.
+ * `joinedBeforeMs` keeps only memberships joined (server-stamped) before
+ * that instant, so a member who joins after a scoring window cannot lift it.
+ */
+export const leagueMemberPrincipals = async ({
 	leagueId,
-	userId
+	joinedBeforeMs
 }: {
 	leagueId: string;
-	userId: string;
-}): Promise<boolean> => nonNullish(await getLeagueMember({ leagueId, memberUserId: userId }));
+	joinedBeforeMs?: number;
+}): Promise<Principal[]> => {
+	const rows = await query<{ member_user_id: string }>(
+		`select member_user_id from league_members
+		 where league_id = $1 and ($2::bigint is null or joined_at_ms < $2)`,
+		[leagueId, joinedBeforeMs ?? null]
+	);
+	const byUser = await settlementPrincipalsByUser(rows.map((row) => row.member_user_id));
+
+	return [...byUser.values()].flat().map((text) => Principal.fromText(text));
+};
 
 /** Join by invite code: the self-join path. Idempotent on re-join (the
  * existing row is returned unchanged, identity fields preserved). */
@@ -82,16 +101,16 @@ interface LeagueMemberWrite {
 }
 
 /**
- * Write a membership row under the satellite's authorisation model: self-join
- * by invite code (role 'member') or the league owner writing any row. The
- * `owner` role is reserved for the league's owner; role changes on existing
- * rows are owner-only; joinedAtMs is write-once.
+ * Rewrite an existing membership row under the satellite's authorisation
+ * model: the member themselves or the league owner. The `owner` role is
+ * reserved for the league's owner; role changes are owner-only; joinedAtMs is
+ * write-once. A user who is not a member yet joins by invite code.
  */
 export const upsertLeagueMember = async (write: LeagueMemberWrite): Promise<LeagueMember> =>
 	await writeLeagueMember({ ...write, viaInvite: false });
 
 /** `viaInvite` is set only by the invite-code path, which has already proved
- * the caller holds the code: any other new row must come from the owner. */
+ * the caller holds the code: it is the only way a new row is created. */
 const writeLeagueMember = async ({
 	leagueId,
 	callerId,
@@ -136,9 +155,9 @@ const writeLeagueMember = async ({
 		const [current] = existing;
 
 		if (isNullish(current)) {
-			if (!callerIsOwner && !viaInvite) {
+			if (!viaInvite) {
 				throw new LeagueError(
-					'league_members new rows require an invite code or the league owner.'
+					'league_members: not a member (a new member joins with the invite code).'
 				);
 			}
 

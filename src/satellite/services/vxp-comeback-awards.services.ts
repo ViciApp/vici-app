@@ -1,6 +1,7 @@
-import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import {
 	COMEBACK_AWAY_DAYS,
 	COMEBACK_BALANCE_FLOOR_BASE_UNITS,
@@ -20,14 +21,14 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
  * Comeback-restore hook. Runs after every `profiles` write; when a user returns after an absence of
  * at least {@link COMEBACK_AWAY_DAYS} days (measured from the jump in `lastActiveDay`) with a free
  * balance below {@link COMEBACK_BALANCE_FLOOR_BASE_UNITS}, it tops their ledger balance up to
- * {@link COMEBACK_RESTORE_TARGET_BASE_UNITS} so they have stake to play again.
+ * {@link COMEBACK_RESTORE_TARGET_BASE_UNITS} so they have VXP to play again.
  *
  * `lastActiveDay` is only advanced when the user makes a prediction on a new day (there is no
  * app-open write), so the restore fires as the returning user re-engages rather than on mere
- * app-open — a deliberate, architecture-driven trigger.
+ * app-open: a deliberate, architecture-driven trigger.
  *
  * Idempotency is structural and one-time per account: the award doc key is
- * `${recipient}/comeback/restore` (a single fixed `awardKey`), so it can be granted at most once —
+ * `${recipient}/comeback/restore` (a single fixed `awardKey`), so it can be granted at most once:
  * the anti-farming bound that stops a deplete→wait→return loop from milking the restore repeatedly.
  *
  * Mirrors the streak / achievement award mechanism (`vxp_awards`, `pending`→`paid`/`failed`).
@@ -36,7 +37,7 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
 const AWARD_TYPE = 'comeback' as const;
 const COMEBACK_AWARD_KEY = 'restore';
 
-/** Subset of the profile shape this hook reads — the full `UserProfile` isn't needed. */
+/** Subset of the profile shape this hook reads: the full `UserProfile` isn't needed. */
 interface LastActiveDaySlice {
 	lastActiveDay?: string;
 }
@@ -64,7 +65,7 @@ const daysBetween = ({
 };
 
 /**
- * Profile post-write hook — composes alongside the other `profiles` hooks in `satellite/index.ts`.
+ * Profile post-write hook: composes alongside the other `profiles` hooks in `satellite/index.ts`.
  * Tops a returning, depleted user's balance back up once.
  */
 export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Promise<void> => {
@@ -150,7 +151,6 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 
 		try {
 			persistAward({
-				caller,
 				recipient: callerText,
 				awardType: AWARD_TYPE,
 				awardKey: COMEBACK_AWARD_KEY,
@@ -159,7 +159,7 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : String(e);
 
-			// A concurrent profile write already armed the restore — stop; the other firing pays it.
+			// A concurrent profile write already armed the restore: stop; the other firing pays it.
 			logInfo({
 				message: 'comeback_award_pending_blocked',
 				detail: { user: callerText, error: msg }
@@ -187,7 +187,6 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 			});
 
 			updateAward({
-				caller,
 				recipient: callerText,
 				awardType: AWARD_TYPE,
 				awardKey: COMEBACK_AWARD_KEY,
@@ -207,7 +206,6 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 		});
 
 		updateAward({
-			caller,
 			recipient: callerText,
 			awardType: AWARD_TYPE,
 			awardKey: COMEBACK_AWARD_KEY,

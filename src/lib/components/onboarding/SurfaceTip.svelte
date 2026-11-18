@@ -6,14 +6,14 @@
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
-	 * SurfaceTip — a small, non-blocking first-visit tip pinned just above the
+	 * SurfaceTip: a small, non-blocking first-visit tip pinned just above the
 	 * floating pillnav. Slides in (respecting `prefers-reduced-motion`),
 	 * announces itself as `role="status"` (never modal, never traps focus,
 	 * never blocks the content or tab bar below it), and is dismissed via its
 	 * lucide `X` button. Copy and the dismiss `aria-label` come from i18n; the
 	 * leading accent dot is a styled element, not an emoji.
 	 *
-	 * Layer 2 of the first-run tutorial system — see `SurfaceTipHost`, which
+	 * Layer 2 of the first-run tutorial system: see `SurfaceTipHost`, which
 	 * owns the route gating, the per-surface seen flags, and the analytics.
 	 */
 	interface Props {

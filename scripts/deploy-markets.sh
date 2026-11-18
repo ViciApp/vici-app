@@ -11,8 +11,8 @@
 #
 # Examples:
 #   ./scripts/deploy-markets.sh scripts/data/markets.json --local
-#   ./scripts/deploy-markets.sh scripts/data/markets.deck-2026.json --staging
-#   npm run deploy:markets -- scripts/data/markets.deck-2026.json --production
+#   ./scripts/deploy-markets.sh path/to/deck.json --staging
+#   npm run deploy:markets -- path/to/deck.json --production
 #
 # The file is a JSON array of market objects (see scripts/data/markets.json).
 #
@@ -35,7 +35,7 @@
 # Override via env:
 #   ORACLE_ID=...        (default VICI_ORACLE_V1; the oracle must already exist;
 #                         init.registry.sh registers it before calling this)
-#   VICI_ENGINE_ID=...   (default eng_0)
+#   VICI_ENGINE_ID=...   (default VICI_ENGINE_ID in src/lib/constants/icdc.constants.ts)
 #
 # NOTE: this only registers market metadata via `add_series`: it does NOT seed
 # prices, liquidity, or quotes. A freshly registered market opens with an empty
@@ -44,13 +44,22 @@
 # Capture the markets file (first positional) before utils.sh consumes "$@" for
 # network-flag parsing.
 MARKETS_FILE="${1:-}"
-if [[ -z "$MARKETS_FILE" || "$MARKETS_FILE" == -* || "$MARKETS_FILE" == "local" || "$MARKETS_FILE" == "staging" || "$MARKETS_FILE" == "ic" || "$MARKETS_FILE" == "production" ]]; then
+usage() {
 	echo "Usage: $0 <markets-json-file> [--local|--staging|--production]" >&2
 	exit 1
+}
+
+if [[ -z "$MARKETS_FILE" || "$MARKETS_FILE" == -* ]]; then
+	usage
 fi
 shift
 
 source "$(dirname "$0")/lib/utils.sh" "$@"
+
+# A network name in the file's place means the file was left out.
+if is_network_name "$MARKETS_FILE"; then
+	usage
+fi
 
 # BSD/macOS `sed`/`tr` raise "illegal byte sequence" on multibyte UTF-8 (e.g.
 # "Mbappé", curly quotes) under a UTF-8 locale. Force a byte-wise locale so the
@@ -66,11 +75,11 @@ fi
 
 ORACLE_ID="${ORACLE_ID:-VICI_ORACLE_V1}"
 
-# Keep in sync with src/lib/constants/icdc.constants.ts. The script runs as the
+# Read from src/lib/constants/icdc.constants.ts. The script runs as the
 # registry canister controller, so `engine_id` is optional (controllers bypass
 # the check), but we attribute seeded markets to the Vici engine for consistency
 # with frontend-created ones.
-VICI_ENGINE_ID="${VICI_ENGINE_ID:-eng_0}"
+VICI_ENGINE_ID="${VICI_ENGINE_ID:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/engine-id.ts)}"
 
 slugify() {
 	printf '%s' "$1" |

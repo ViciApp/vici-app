@@ -24,7 +24,7 @@
 	const hasUnread = $derived(unread.length > 0);
 
 	// Tap router: mark the card read, then deep-link to its market when one is
-	// attached (`mid`), otherwise fall back to the kind's home surface — a
+	// attached (`mid`), otherwise fall back to the kind's home surface: a
 	// single source via `notificationDestination`. `goto` takes the raw string
 	// because the market path is dynamic.
 	const open = (notification: InboxNotification) => {
@@ -84,7 +84,7 @@
 	</header>
 
 	{#if $combinedInboxStore.length === 0}
-		<!-- Polished empty state — dashed surface with serif-italic headline.
+		<!-- Polished empty state: dashed surface with serif-italic headline.
 		     The bell icon is faint by design (no event to draw the eye). -->
 		<div class="notifications-empty" aria-live="polite" role="status">
 			<Bell class="notifications-empty-icon" aria-hidden="true" size={28} strokeWidth={1.4} />
@@ -145,7 +145,7 @@
 		color: var(--text-base);
 	}
 
-	/* Text-only ghost — `btn btn-ghost t-eyebrow` appbar variant. */
+	/* Text-only ghost: `btn btn-ghost t-eyebrow` appbar variant. */
 	.notifications-mark-read {
 		appearance: none;
 		padding: 0.375rem 0.625rem;
@@ -177,7 +177,7 @@
 		padding: 0;
 	}
 
-	/* Section header — `New` / `Earlier` eyebrow plus a count badge. The
+	/* Section header: `New` / `Earlier` eyebrow plus a count badge. The
 	   Earlier head gets extra top padding when it sits below the New group. */
 	.notifications-section-head {
 		display: flex;

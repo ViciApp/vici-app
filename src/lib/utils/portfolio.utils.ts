@@ -12,7 +12,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
  * outcome, `ZERO` on every other outcome. Returns `undefined` if we don't
  * know which outcome won so the caller can fall back to live probabilities.
  *
- * Uses bigint arithmetic end-to-end — avoid routing position quantities
+ * Uses bigint arithmetic end-to-end: avoid routing position quantities
  * through `Number` here, which would lose precision on positions larger
  * than `Number.MAX_SAFE_INTEGER` (2^53 − 1).
  */
@@ -38,7 +38,7 @@ const resolvedPositionValue = ({
  * if lost) so the portfolio reflects the settled value rather than
  * pre-resolution midpoints.
  *
- * Returns `undefined` when the value cannot be computed — no market, or an
+ * Returns `undefined` when the value cannot be computed: no market, or an
  * open binary market whose implied probability is still unknown (the book
  * hasn't been read, or read empty; see {@link Market.yesProbability}). The
  * caller must treat `undefined` as "value unknown" and render a placeholder
@@ -72,7 +72,7 @@ export const calculatePositionValue = ({
 
 	// Unknown implied probability (binary market, book not yet read or empty).
 	// Bail out instead of coercing `undefined` through `Number` into a NaN /
-	// fabricated value — the caller surfaces a "value unknown" placeholder.
+	// fabricated value: the caller surfaces a "value unknown" placeholder.
 	if (isNullish(prob)) {
 		return;
 	}
@@ -116,7 +116,7 @@ export const calculatePositionPnL = ({
 };
 
 /**
- * Effective entry probability of a position — the volume-weighted average
+ * Effective entry probability of a position: the volume-weighted average
  * price the user paid per share, expressed as a 0..1 probability. Shown
  * as the "Entry X% → Y%" value in the Portfolio active-calls list.
  *

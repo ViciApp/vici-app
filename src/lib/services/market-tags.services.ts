@@ -11,7 +11,7 @@ import { listDocs } from '@junobuild/core';
  * `MARKET_METADATA` is `read: 'public'`, so this works for anonymous
  * viewers too. Stored tags are trimmed / de-duplicated through
  * {@link normalizeStoredTags} on the client (order-preserving, primary
- * micro first) — defense in depth so a stale blank value can never leak
+ * micro first): defense in depth so a stale blank value can never leak
  * into the UI. Both micro ids and Layer-3 free tags are retained.
  */
 export const listMarketTagsBySeries = async (): Promise<Record<string, string[]>> => {
@@ -57,7 +57,7 @@ export const listMarketMetadataBySeries = async (): Promise<Record<string, Marke
 /**
  * Projects an already-fetched `seriesId → MarketMetadata` map down to the
  * same `seriesId → tags` shape that {@link listMarketTagsBySeries} returns
- * — but without a second `listDocs(MARKET_METADATA)` round-trip.
+ * but without a second `listDocs(MARKET_METADATA)` round-trip.
  *
  * `listMarketTagsBySeries` and `listMarketMetadataBySeries` scan the exact
  * same public collection, so a caller that already holds the full metadata

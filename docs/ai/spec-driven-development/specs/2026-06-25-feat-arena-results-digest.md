@@ -1,4 +1,4 @@
-# Spec: Arena Friends — "Recent results" per-friend digest
+# Spec: Arena Friends: "Recent results" per-friend digest
 
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
@@ -7,26 +7,26 @@ Status: Implemented (#981)
 
 ## Dependencies
 
-Depends on Spec A —
+Depends on Spec A:
 [`2026-06-25-feat-resolved-results-collection.md`](./2026-06-25-feat-resolved-results-collection.md)
-(`resolved_results` — friend-readable per-participant resolution feed).
+(`resolved_results`: friend-readable per-participant resolution feed).
 Spec A is the additive satellite backend that writes and exposes the
 per-participant resolved-result rows this digest reads for its standout
 line; **Spec A merges first**. This spec (B) is a pure-frontend
-consumer — it adds no satellite collection, write path, or backend read
+consumer: it adds no satellite collection, write path, or backend read
 of its own.
 
 ## Goal
 
-Replace the Arena → Friends "Recent activity" firehose — one row per
-individual friend call ("@alice called YES on …") — with a per-friend
+Replace the Arena → Friends "Recent activity" firehose, one row per
+individual friend call ("@alice called YES on …"), with a per-friend
 "Recent results" digest. Each row summarises **one friend's** resolved
 record over a recent window: their win–loss tally, their net VXP, the
 **standout market** they called (their most notable resolved
-prediction — in v1, see Decisions), and a relative time window
+prediction, in v1, see Decisions), and a relative time window
 ("2h ago" / "today"), with the existing `Zap` reaction kept. Open /
 unresolved calls
-carry no outcome, so they are excluded — that "did-something" noise is
+carry no outcome, so they are excluded: that "did-something" noise is
 exactly what the firehose surfaced and what users asked to lose. The
 result reads as a quiet, skimmable scoreboard of how your friends are
 actually doing, not a stream of every move they make.
@@ -35,23 +35,23 @@ actually doing, not a stream of every move they make.
 
 **The design.** The Arena → Friends section presents a per-friend
 "Recent results" digest. Each row carries one friend's resolved record
-over the window — `{ handle, won, lost, net, when, standout }` where
-`standout` is a market id — rendered as `@handle · resolved N calls ·
+over the window: `{ handle, won, lost, net, when, standout }` where
+`standout` is a market id, rendered as `@handle · resolved N calls ·
 W–L`, a `{when} · incl. "{standout market question}"` meta line, the
 signed `net VXP`, and a reaction. The reaction is the app's `Zap` lucide
-glyph (the house icon system; no emoji — see Decisions).
+glyph (the house icon system; no emoji, see Decisions).
 
 **Friends-as-default-Arena-tab is already shipped** in the app and is
-**out of scope** here — this spec only swaps the feed section's data
+**out of scope** here: this spec only swaps the feed section's data
 model and copy.
 
-**App — the surface being changed.**
+**App: the surface being changed.**
 [`src/lib/components/arena/FriendsTab.svelte`](../../../../src/lib/components/arena/FriendsTab.svelte):
 
 - The "Friends feed" section (template ≈ lines 1149–1237) renders the
   firehose: `friendActivities` (≈ lines 661–663) =
-  `$globalActivities.filter((a) => friendIdSet.has(a.user)).slice(0, 20)`
-  — individual `Activity` rows drawn from the cached global activity
+  `$globalActivities.filter((a) => friendIdSet.has(a.user)).slice(0, 20)`:
+  individual `Activity` rows drawn from the cached global activity
   stream filtered to the friend set. Each row shows `activity.title`
   ("called YES on …") + an optional `activity.details` market line + the
   `Zap` reaction.
@@ -65,13 +65,13 @@ model and copy.
   event) is keyed to a per-`Activity` doc identity
   (`activityReactionKey({ activity })` =
   `${user}#${timestamp}#${type}`). A digest row is **not** an `Activity`
-  doc, so reactions cannot attach to a digest row unchanged — see
+  doc, so reactions cannot attach to a digest row unchanged, see
   Pending decisions.
 
-**App — the data shape that does NOT carry what the digest needs.**
+**App: the data shape that does NOT carry what the digest needs.**
 [`src/lib/types/social.ts`](../../../../src/lib/types/social.ts)
 `Activity` is `{ type, user, targetUser?, marketId?, title, details?,
-timestamp }`. It carries the **call** as display text only — no
+timestamp }`. It carries the **call** as display text only: no
 resolution outcome (win/loss) and no net VXP. The single
 `ActivityType.SETTLEMENT`
 ([`src/lib/enums/social.ts`](../../../../src/lib/enums/social.ts)) row is
@@ -79,13 +79,13 @@ logged by the **resolver** (admin), keyed by the resolver's principal,
 and says "Market Resolved: YES" with `details =
 JSON.stringify({ outcome, price })`
 ([`src/lib/services/resolution.services.ts`](../../../../src/lib/services/resolution.services.ts)
-`logActivity` call) — i.e. it describes the **market's** resolution, not
+`logActivity` call), i.e. it describes the **market's** resolution, not
 any individual friend's per-call result. So neither the global activity
 stream nor a settlement activity yields per-friend W–L or net VXP.
 
-**App — where per-friend resolution data DOES / could come from.**
+**App: where per-friend resolution data DOES / could come from.**
 
-- **Aggregate W–L + net VXP per friend, per window — available today.**
+- **Aggregate W–L + net VXP per friend, per window: available today.**
   [`src/lib/services/standings.services.ts`](../../../../src/lib/services/standings.services.ts)
   `getLeagueStandings({ window, members })` returns, per principal in
   `members`, a `StandingEntry`
@@ -96,12 +96,12 @@ winCount, accuracy, … }`. `winCount` = W, `settledCount - winCount` =
   `list_leaderboard` query and accepts a `members` principal filter, so
   it can be scoped to the friend set in **one** bulk call. Window is one
   of the three fixed calendar buckets `'week' | 'month' | 'all'`
-  (`StandingsWindow`) — **not** an arbitrary "last 48h" range.
+  (`StandingsWindow`): **not** an arbitrary "last 48h" range.
   `FriendsTab` already hydrates the all-time slice via
   `loadGlobalStandings({ window: 'all' })` for the ranked list's live
   accuracy (≈ lines 155–159, `globalStandingsStore`), so the
   infrastructure is present.
-- **Per-call breakdown (the standout market) — supplied by Spec A.** No
+- **Per-call breakdown (the standout market): supplied by Spec A.** No
   existing app surface yields a friend-readable per-call result:
   clearing trade-history is caller-scoped only (you can read your
   **own** per-call settlements via `ResolvedPosition`
@@ -109,7 +109,7 @@ winCount, accuracy, … }`. `winCount` = W, `settledCount - winCount` =
   and its derived store
   ([`src/lib/derived/resolved-positions.derived.ts`](../../../../src/lib/derived/resolved-positions.derived.ts)),
   not a friend's), and the single `ActivityType.SETTLEMENT` row is the
-  resolver's market-level result keyed by the resolver's principal — not
+  resolver's market-level result keyed by the resolver's principal, not
   a per-participant outcome. The standout therefore reads from the
   **`resolved_results` collection delivered by Spec A**
   ([`2026-06-25-feat-resolved-results-collection.md`](./2026-06-25-feat-resolved-results-collection.md)):
@@ -117,11 +117,11 @@ winCount, accuracy, … }`. `winCount` = W, `settledCount - winCount` =
   `{ owner, marketId, title, side, outcome, netVxp, resolvedAtMs }`,
   bulk-read friend-scoped via Spec A's read.
 
-**Reuse (cite first — `docs/ai/frontend/reusability.md`).**
+**Reuse (cite first: `docs/ai/frontend/reusability.md`).**
 
 - `getLeagueStandings` + `StandingEntry` + `StandingsWindow` +
-  `globalStandingsStore` — the per-friend W–L / net-VXP aggregate.
-- Spec A's `resolved_results` friend-scoped read — the per-call rows
+  `globalStandingsStore`: the per-friend W–L / net-VXP aggregate.
+- Spec A's `resolved_results` friend-scoped read: the per-call rows
   backing the standout line.
 - `formatRelativeAgoFromNs({ timestampNs, locale })`
   ([`src/lib/utils/format.utils.ts`](../../../../src/lib/utils/format.utils.ts))
@@ -135,7 +135,7 @@ winCount, accuracy, … }`. `winCount` = W, `settledCount - winCount` =
   - the `profilesStore` cache for each friend's handle / avatar (the
     feed already reads both).
 - The existing `.feed-row` / `.feed-react` / `.react-burst` markup +
-  `Zap` glyph in `FriendsTab.svelte` — reused for the digest row's
+  `Zap` glyph in `FriendsTab.svelte`, reused for the digest row's
   layout and reaction (pending the reaction-identity decision below).
 
 ## Scope
@@ -143,7 +143,7 @@ winCount, accuracy, … }`. `winCount` = W, `settledCount - winCount` =
 **Frontend only.** The aggregate W–L / net-VXP slice is built on the
 existing `getLeagueStandings` clearing query (no backend change), and
 the standout market reads from Spec A's `resolved_results` collection
-(merged first — Dependencies). This spec adds no satellite collection,
+(merged first: Dependencies). This spec adds no satellite collection,
 write path, or backend read; it consumes the two reads and renders the
 digest.
 
@@ -156,10 +156,10 @@ windowLabel, standoutMarketId? }`:
      (`winCount`, `settledCount - winCount`, `realizedPnl`) in the
      chosen window.
    - Rows with `settledCount === 0` are dropped (no resolved result to
-     report — the open-call exclusion).
-   - `windowLabel` — see Pending decisions on what timestamp drives it
+     report: the open-call exclusion).
+   - `windowLabel`: see Pending decisions on what timestamp drives it
      (the standings aggregate has no single "last resolved at" instant).
-   - `standout` (`{ marketId, title }`) — the friend's most notable
+   - `standout` (`{ marketId, title }`): the friend's most notable
      resolved prediction in the window, selected by the **largest
      |net VXP|, tie-break most recent `resolvedAtMs`** rule (Decisions),
      read from Spec A's `resolved_results` collection. Omitted only when
@@ -168,9 +168,9 @@ windowLabel, standoutMarketId? }`:
 2. **Fetch the friend-scoped standings slice + resolved-results.** Add
    hydration calls (in `onMount`, alongside the existing all-time fetch):
    - `getLeagueStandings({ window: <chosen>, members: [...friendIds] })`
-     for the W–L / net-VXP aggregate — one bulk call, no per-friend N+1.
+     for the W–L / net-VXP aggregate: one bulk call, no per-friend N+1.
    - Spec A's friend-scoped `resolved_results` bulk read for the
-     standout market — one bounded `listDocs` over the friend set,
+     standout market: one bounded `listDocs` over the friend set,
      **not** one call per friend. The standout is selected client-side
      per the largest-|net VXP| rule (Decisions).
 3. **Rewrite the feed section template** (≈ lines 1149–1237) to render
@@ -179,7 +179,7 @@ windowLabel, standoutMarketId? }`:
    only when `standoutMarketId` is present), the signed `{netVxp} VXP`
    colored win/loss, and the reaction. Tapping the row navigates to the
    standout market when present (mirroring the current `goToMarket`),
-   else is non-navigating (or navigates to the friend profile sheet —
+   else is non-navigating (or navigates to the friend profile sheet,
    Pending decisions).
 4. **Copy.** Repoint the eyebrow to a "Recent results" string and update
    the empty-state copy to describe results rather than calls. Keep the
@@ -194,23 +194,23 @@ windowLabel, standoutMarketId? }`:
 
 ### Out of scope
 
-- **Friends-as-default-Arena-tab** — already shipped; untouched.
+- **Friends-as-default-Arena-tab**: already shipped; untouched.
 - **The invite hero, pending/incoming requests, ranked list, global-rank
-  link, and both bottom sheets** in `FriendsTab.svelte` — only the feed
+  link, and both bottom sheets** in `FriendsTab.svelte`: only the feed
   section changes.
 - **The `resolved_results` collection, its write path, friend-scoped
-  read, retention, and collection wiring** — all delivered by Spec A
+  read, retention, and collection wiring**: all delivered by Spec A
   ([`2026-06-25-feat-resolved-results-collection.md`](./2026-06-25-feat-resolved-results-collection.md));
   this spec consumes the read, it does not build the backend.
 - **A new per-call resolved-position _feed_ for friends** (one visible
   row per resolved call, the firehose in a different coat). The digest
   stays one aggregate row per friend. Spec A's `resolved_results` source
-  backs only the single standout line per friend — it is not rendered as
+  backs only the single standout line per friend: it is not rendered as
   a per-call stream.
-- **Reviving the standalone global `ActivityFeed`** / `MarketRecentTrades`
-  — those keep the `Activity` model; this spec does not touch them. The
+- **Reviving the standalone global `ActivityFeed`** / `MarketRecentTrades`:
+  those keep the `Activity` model; this spec does not touch them. The
   `Activity` / `activities` collection itself is **not** removed (it
-  still powers market "Recent trades", VXP onboarding counts, etc.) —
+  still powers market "Recent trades", VXP onboarding counts, etc.):
   only the Friends tab stops reading it.
 - **An arbitrary rolling window** (e.g. exactly "last 24h"). v1 uses one
   of the fixed `StandingsWindow` calendar buckets (Pending decisions).
@@ -219,14 +219,14 @@ windowLabel, standoutMarketId? }`:
 
 No related open issue. Searched `ViciApp/vici-app` open issues
 for `friends` / `arena` / `activity` / `feed` / `digest` / `results` /
-`resolution outcome` — the only open Arena issue is
+`resolution outcome`: the only open Arena issue is
 [#970](https://github.com/ViciApp/vici-app/issues/970)
 ("I see battles duplicated in Arena"), which concerns the Battles tab,
 not the Friends feed. No closing keyword.
 
 ## Analytics
 
-Instrument — the feed is otherwise invisible to product analysis, and
+Instrument: the feed is otherwise invisible to product analysis, and
 "do friends engage with each other's _results_ more than the firehose?"
 is the question this change exists to answer. Reuse the existing
 `friend_feed_reaction` event for the reaction (its `label: 'like' |
@@ -236,21 +236,21 @@ reaction-engagement series stays continuous across the swap.
 Add **one** new event for opening a digest row, mirroring the existing
 social-event style:
 
-- `friend_digest_opened` — fired when a digest row is tapped through to a
+- `friend_digest_opened`: fired when a digest row is tapped through to a
   market / profile. Props: `source: 'arena'` (bounded), and `marketId`
   when the tap targets the standout market (reuses the existing
-  `marketId` dimension; omitted otherwise). Behavioural only — no W–L,
+  `marketId` dimension; omitted otherwise). Behavioural only: no W–L,
   net VXP, or handle is sent (those are per-user values bordering on
   PII-adjacent and add no analytical value here).
 
-A new event name lands in **both** halves of the dual-source pair —
+A new event name lands in **both** halves of the dual-source pair:
 `src/lib/types/analytics-event.ts` (TS union) **and**
 `src/lib/schema/analytics-event.schema.ts` (Zod mirror); svelte-check
 only catches the union, an enum mismatch fails at runtime. Capture via
 `track` in `src/lib/services/analytics.services.ts`. (If the owner
 decides a row tap is non-navigating and carries no meaningful action,
 drop `friend_digest_opened` and keep only the reused
-`friend_feed_reaction` — recorded under Pending decisions.)
+`friend_feed_reaction`: recorded under Pending decisions.)
 
 ## Implementation outline
 
@@ -303,8 +303,8 @@ lost, netVxp, windowLabel, standout? }` where `standout` is
 - [ ] Friends with no resolved predictions in the window do not appear
       (open / unresolved calls are excluded).
 - [ ] Each row with resolved results shows a standout "incl.
-      '{market}'" line — the friend's resolved call in the window with
-      the largest |net VXP| (tie-break most recent) — sourced from Spec
+      '{market}'" line: the friend's resolved call in the window with
+      the largest |net VXP| (tie-break most recent), sourced from Spec
       A's `resolved_results` collection.
 - [ ] The eyebrow reads "Recent results" (not "Recent activity") and the
       empty state describes results; all strings route through `t(...)`
@@ -317,7 +317,7 @@ lost, netVxp, windowLabel, standout? }` where `standout` is
       rendered in the Friends tab; the `activities` collection and other
       surfaces that consume it are unaffected.
 - [ ] `npm run quality` and `npm run check` pass. (No satellite change in
-      this spec — the `resolved_results` collection ships in Spec A.)
+      this spec: the `resolved_results` collection ships in Spec A.)
 
 ## Open questions
 
@@ -339,8 +339,8 @@ _All resolved during implementation (#981)._
   standings aggregate and the standout source span the same window.
 - **Reaction is transient on the digest row.** A digest row is not an
   `Activity` doc, so the `activity_reactions` key has nothing to bind to.
-  v1 keeps the reaction transient — visual `Zap` + motion only, no
-  persistence — and still fires `friend_feed_reaction` so the
+  v1 keeps the reaction transient (visual `Zap` + motion only, no
+  persistence) and still fires `friend_feed_reaction` so the
   engagement series stays continuous across the swap. A persisted
   digest-row reaction identity is a possible follow-up.
 - **Row-tap target.** A row taps through to its standout market via the
@@ -362,7 +362,7 @@ _All resolved during implementation (#981)._
   workflow's
   [one-spec-one-PR rule](./../workflow.md#non-negotiables), spec'd work
   that cannot fit one reviewable PR is split at the spec level first.
-- **Standout market in v1 — consume Spec A's backend source (owner,
+- **Standout market in v1: consume Spec A's backend source (owner,
   2026-06-25).** The spec previously considered shipping the aggregate
   digest frontend-only and deferring the standout line, because no
   friend-readable per-participant resolved-result source existed. The
@@ -373,14 +373,14 @@ _All resolved during implementation (#981)._
   (owner default, 2026-06-25).** Among a friend's resolved-result rows
   in the window, the standout is the call with the greatest absolute net
   VXP (their most consequential result, win or loss); ties break to the
-  most recent `resolvedAtMs`. Chosen as the sensible default — surfaces
-  the result a friend would most want to talk about — over alternatives
+  most recent `resolvedAtMs`. Chosen as the sensible default (surfaces
+  the result a friend would most want to talk about) over alternatives
   (most recent, biggest win only).
 - **Copy: "Recent activity" → "Recent results."** The eyebrow
   (`arena.friends.feed.eyebrow`) and the empty-state copy reframe the
-  section from per-call activity to resolved results — matching the new
+  section from per-call activity to resolved results, matching the new
   aggregate model.
-- **Keep the `Zap` reaction icon — no emoji.** The app standardises on
+- **Keep the `Zap` reaction icon: no emoji.** The app standardises on
   lucide icons, and the Friends section already uses `Zap`. The reaction
   glyph stays `Zap`, preserving the app's icon system and the existing
   reaction motion / a11y label.
@@ -389,7 +389,7 @@ _All resolved during implementation (#981)._
   house i18n rule.
 - **Aggregate digest over a per-call firehose-in-disguise.** The digest
   is intentionally one summarised row per friend (W–L + net VXP + a
-  single standout), not a per-resolved-call list — the latter would
+  single standout), not a per-resolved-call list: the latter would
   reintroduce the firehose this change set out to remove. Spec A's
   `resolved_results` source backs only the one standout line per friend,
   not a per-call stream.

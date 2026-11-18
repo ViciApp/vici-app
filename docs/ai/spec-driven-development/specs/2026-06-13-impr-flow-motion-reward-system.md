@@ -11,7 +11,7 @@ Reconcile Flow's beat selection and VXP economy against the Flow Motion
 design source, landing a single agreed truth across the shipped engine and
 `design.md` §7. The user-visible outcome is a Flow deck whose celebratory
 beats, cadence, and reward grants behave consistently with the documented
-design — no beat fires twice back to back, the economy stays
+design: no beat fires twice back to back, the economy stays
 deflation-safe, and a freshly-crossed Menagerie tier always sequences after
 the character beat rather than colliding with it.
 
@@ -27,7 +27,7 @@ shipped code disagree, the shipped code is canonical.
 The Flow motion layer is implemented and live. The pieces this spec
 touches or references:
 
-- **Beat resolver** —
+- **Beat resolver**:
   [`src/lib/utils/motion-engine.utils.ts`](../../../../src/lib/utils/motion-engine.utils.ts).
   `recordMotionSwipe(input) → { bonusXp, beat | null }`. Single-pass
   priority resolver: comeback opener → daily/overtime complete →
@@ -36,39 +36,39 @@ touches or references:
   rotating, non-repeating pool of **i18n keys** (`motion.pool.*`), never
   literals. VXP is credit-stacked across all eligible sources even though
   only the highest-priority beat animates.
-- **Reward gate** —
+- **Reward gate**:
   [`src/lib/constants/flow-rewards.constants.ts`](../../../../src/lib/constants/flow-rewards.constants.ts)
   (`ACCURACY_GATE_CALLS`, `isAccuracyUnlocked`). The economy is
   deflation-safe: a committed swipe mints nothing; VXP is minted only at
   the overtime finish (+25, repeatable) and rare lifetime-volume
   milestones (`VOLUME` in `motion-engine.utils.ts`).
-- **Beat host** —
+- **Beat host**:
   [`src/lib/components/market/MotionBeat.svelte`](../../../../src/lib/components/market/MotionBeat.svelte),
   consuming the `MotionBeatPayload` (copy / sub / treat / badge carried as
   i18n keys; `tier` for the Flame stage; `count` for volume count-up).
-- **Orchestration + sequencing** —
+- **Orchestration + sequencing**:
   [`src/lib/components/market/FlowMode.svelte`](../../../../src/lib/components/market/FlowMode.svelte).
   Renders the active beat (`onMotionBeatDone`, line ≈491), pauses the deck
   for gating beats, and flips the beat-active flag.
-- **No-collision contract** —
+- **No-collision contract**:
   [`src/lib/stores/flow-beat.store.ts`](../../../../src/lib/stores/flow-beat.store.ts)
   (`flowBeatActiveStore` / `setFlowBeatActive`). The achievement reveal in
   [`MenagerieCelebrationHost.svelte`](../../../../src/lib/components/menagerie/MenagerieCelebrationHost.svelte)
   is held while this flag is set, so the trophy sequences **after** the
   character beat (card → beat → trophy).
-- **Characters / menagerie** —
+- **Characters / menagerie**:
   [`src/lib/constants/characters.constants.ts`](../../../../src/lib/constants/characters.constants.ts),
   [`src/lib/constants/menagerie.constants.ts`](../../../../src/lib/constants/menagerie.constants.ts)
   and the
   [`src/lib/components/menagerie/`](../../../../src/lib/components/menagerie/)
   reveal layer.
-- **Streak tiers** — `tierForStreak` in `motion-engine.utils.ts`, mirroring
+- **Streak tiers**: `tierForStreak` in `motion-engine.utils.ts`, mirroring
   `stageForStreak` in
   [`src/lib/utils/streak.utils.ts`](../../../../src/lib/utils/streak.utils.ts)
   with the added `NONE` floor.
 
 Canonical product rules for all of the above live in
-[`docs/ai/frontend/design.md`](../../frontend/design.md) §7 — 7.3 economy
+[`docs/ai/frontend/design.md`](../../frontend/design.md) §7: 7.3 economy
 and beats, 7.4 Flame stages, 7.5 accuracy gate, 7.7 character-beat priority
 resolver, 7.9 haptics. Per [AGENTS.md §2.5](../../../AGENTS.md), the spec
 narrative describes behaviour and points at design.md §7; it does not carry
@@ -101,9 +101,9 @@ items found by diffing the source against `motion-engine.utils.ts`:
    being silently suppressed after the user leaves Flow mid-beat. Keep it,
    and lock it behind an acceptance test so a refactor cannot drop it.
 
-Everything else in the source — the priority order, the jittered rhythm
+Everything else in the source (the priority order, the jittered rhythm
 windows, the credit-stacking rule, the wildcard ~1/6 variable ratio, the
-comeback opener, the haptic patterns — is already faithfully implemented
+comeback opener, the haptic patterns) is already faithfully implemented
 and stays as-is unless an open decision below changes it.
 
 ### Out of scope
@@ -123,10 +123,10 @@ and stays as-is unless an open decision below changes it.
 ## Design source
 
 The design reference is **Doc C ("Flow Motion") of the VICI System Design
-handover** — a self-contained HTML spec plus a pure-JS reference engine
+handover**: a self-contained HTML spec plus a pure-JS reference engine
 (`motion-engine.js`) that documents which beat fires and when. Those files
 are **not committed here**: they contradict shipped reality in a couple of
-places (the call-13 character and the volume-ladder framing — see
+places (the call-13 character and the volume-ladder framing, see
 [Decisions](#decisions)) and predate this repo's terminology conventions,
 so committing them as repo truth would mislead. They live in the original
 handover and in the closed #867 PR's history for reference.
@@ -141,7 +141,7 @@ source informs the decision but never overrides the shipped code.
 Pure-frontend. No `src/satellite/**`, collection, `.did`, or icdc-core
 changes. The engine's only persistence is `localStorage`
 (`vici.motion.state.v3`: rotating-copy indices, the day's jittered
-schedule, first-flags, lifetime tally) — client-only, no canister state,
+schedule, first-flags, lifetime tally), client-only, no canister state,
 no instruction-budget or memory-growth impact. Volume milestones prefer
 the profile's real `me.calls` (`lifetimeCalls`) over the local tally, so
 correctness does not depend on `localStorage` surviving.
@@ -158,7 +158,7 @@ correctness does not depend on `localStorage` surviving.
    make design.md §7.3 agree.
 4. **Confirm the volume ladder** in `VOLUME` matches the decided economy;
    reconcile the design.md §7.3 economy table to the same numbers.
-5. **No-collision guard regression test — deferred.** The repo has no FE
+5. **No-collision guard regression test: deferred.** The repo has no FE
    unit-test harness (no `vitest` / `*.spec.ts` under `src/`), so locking
    the guard behind a test is a tracked follow-up, not this PR (see
    [Decisions](#decisions)). The guard itself (`FlowMode.svelte:253`) is
@@ -178,7 +178,7 @@ correctness does not depend on `localStorage` surviving.
 - [ ] The `VOLUME` ladder and design.md §7.3 economy table state the same
       mint values; the daily ten still mints nothing (deflation-safe).
 - [x] No-collision guard (`FlowMode.svelte:253`) verified present and
-      unchanged; the locking regression test is deferred (no FE test infra —
+      unchanged; the locking regression test is deferred (no FE test infra:
       see Decisions).
 - [ ] No two beats animate back to back; credit-stacking still grants all
       eligible VXP on a single beat.
@@ -190,7 +190,7 @@ correctness does not depend on `localStorage` surviving.
 
 - **Call-13 overtime character → `trickster` (shipped kept).** The design
   source assigns call-13 to `oracle`, but the shipped `OT_RHYTHM[13]` uses
-  `trickster`. Decision: keep `trickster` — zero behaviour change, no engine
+  `trickster`. Decision: keep `trickster`: zero behaviour change, no engine
   edit, lowest risk. The design source's `oracle` is overridden, and
   `design.md` §7.3 (which had drifted to "an Oracle beat at call 13") is
   corrected to `trickster` to match the engine. Reversible if the design
@@ -198,7 +198,7 @@ correctness does not depend on `localStorage` surviving.
 - **Volume ladder → confirmed `10/100/500/1000 → +50/+100/+250/+500`**
   (with `1` and `25` moment-only, no VXP). This is what the shipped `VOLUME`
   table holds, what `VXP_FLOW_MILESTONES` holds, and what the real-credit
-  path (the flow-milestone award) pays — display and credit agree. The
+  path (the flow-milestone award) pays: display and credit agree. The
   source comment's "×50 from 50 up" framing is **not** the ladder; the
   `design.md` §7.3 economy table (which had drifted to `50/250` thresholds)
   is corrected to these values.
@@ -212,4 +212,4 @@ correctness does not depend on `localStorage` surviving.
 Net: the shipped engine already matches the design source on every other
 point (priority order, jittered windows, credit-stacking, wildcard ratio,
 comeback opener, haptics). This PR's only change is the `design.md` §7.3
-doc alignment above — no behaviour change, so no `PRODUCT.md` update.
+doc alignment above: no behaviour change, so no `PRODUCT.md` update.

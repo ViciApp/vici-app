@@ -8,7 +8,7 @@
 	interface Props {
 		/**
 		 * The viewer's own prior call on this market, if any. Takes the
-		 * slot when present — a stronger "you already called this" cue
+		 * slot when present: a stronger "you already called this" cue
 		 * outranks the editorial why-now line.
 		 */
 		priorCall?: PriorCallSignal;
@@ -27,7 +27,7 @@
 			: t({ locale: $localeStore, key: 'outcome.no' });
 </script>
 
-<!-- Contextual cue under the title — either a "you already called this"
+<!-- Contextual cue under the title: either a "you already called this"
      badge (when the viewer holds a prior call) or the curated why-now
      line. Mirrors the Flow front-card treatment: a small pill whose dot
      is tinted by the cue kind so the surface reads as curated, not
@@ -75,7 +75,7 @@
 		box-shadow: 0 0 6px color-mix(in srgb, var(--laurel) 50%, transparent);
 	}
 
-	/* Kind-tinted dot — matches the Flow front-card why-now palette. */
+	/* Kind-tinted dot: matches the Flow front-card why-now palette. */
 	.md-whynow-closing .md-cue-dot {
 		background: var(--no);
 		box-shadow: 0 0 6px color-mix(in srgb, var(--no) 50%, transparent);
@@ -96,7 +96,7 @@
 		box-shadow: none;
 	}
 
-	/* Prior-call badge — stronger than why-now; takes its slot. */
+	/* Prior-call badge: stronger than why-now; takes its slot. */
 	.md-priorcall {
 		align-self: flex-start;
 		display: inline-flex;

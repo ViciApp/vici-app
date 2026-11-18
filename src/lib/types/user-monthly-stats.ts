@@ -5,9 +5,9 @@ import type { PrincipalText } from '@junobuild/schema';
  * under the `USER_MONTHLY_STATS` collection. Drives the two monthly
  * album awards:
  *
- *  - **sharpest-eye** — the month's top-3 by accuracy among users with at
+ *  - **sharpest-eye**: the month's top-3 by accuracy among users with at
  *    least {@link MONTHLY_MIN_CALLS} resolved calls (gold / silver / bronze).
- *  - **bold-caller** — the month's best accuracy among users whose *median*
+ *  - **bold-caller**: the month's best accuracy among users whose *median*
  *    consensus-at-call is below {@link BOLD_CALLER_MEDIAN_THRESHOLD} (i.e.
  *    they habitually back sides the market thinks are unlikely).
  *
@@ -15,19 +15,19 @@ import type { PrincipalText } from '@junobuild/schema';
  * fetches the user's full clearing history): the FE re-derives the current
  * and prior calendar month's counters from settled events and persists each
  * month's doc to the caller's own row. This mirrors the proven `USER_STATS`
- * client-write + assert pattern — Juno has no scheduler, so the month
+ * client-write + assert pattern: Juno has no scheduler, so the month
  * rollover is lazy (a new month's doc is simply written under a new
  * `${owner}/${YYYY-MM}` key on the first sync of that month) and `getMonthly
  * Leaderboard` aggregates whatever per-user docs exist for the requested
  * month. The `assertSetUserMonthlyStats` guard restricts writes to the
  * caller's own row and enforces structural sanity (`monthWins <= monthCalls`,
  * the consensus array is bounded). It does NOT verify the counters against
- * real history — same integrity trade-off as `USER_STATS`.
+ * real history: same integrity trade-off as `USER_STATS`.
  */
 export interface UserMonthlyStatsDoc {
-	/** Owner principal — matches the first key segment. */
+	/** Owner principal: matches the first key segment. */
 	owner: PrincipalText;
-	/** `YYYY-MM` tag that anchors the month — matches the second key segment. */
+	/** `YYYY-MM` tag that anchors the month: matches the second key segment. */
 	monthAnchor: string;
 	/** Resolved calls in this month. */
 	monthCalls: number;
@@ -47,7 +47,7 @@ export interface UserMonthlyStatsDoc {
 }
 
 /**
- * Canonical key builder — `${owner}/${YYYY-MM}`. The prefix scan on
+ * Canonical key builder: `${owner}/${YYYY-MM}`. The prefix scan on
  * `${owner}/` naturally groups a user's months; the per-month leaderboard
  * read instead scans the whole collection and filters by the `/${anchor}`
  * suffix (a user-count-bounded scan, same shape as the affiliation-stats

@@ -441,5 +441,3 @@ export const tickDepositWatchers = async ({
 		}
 	}
 };
-
-export const hasEnabledWatchers = (): boolean => nonNullish(enabledAdapters()[0]);

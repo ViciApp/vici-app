@@ -8,6 +8,7 @@ import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { StandingEntry, StandingsWindow } from '#lib/types/standings.ts';
+import { isShownOnGlobalLeaderboard } from '#lib/utils/visibility.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 import { derived, type Readable } from 'svelte/store';
@@ -18,7 +19,7 @@ import { derived, type Readable } from 'svelte/store';
  * A predictor's win rate is blended with a population prior, weighted by how
  * much evidence they have: `(PRIOR_MEAN·PRIOR_WEIGHT + wins) / (PRIOR_WEIGHT +
  * settled)`. A thin record decays toward the prior mean, so a 10/11 (≈0.91)
- * record scores below a 45/50 (0.90) record once shrunk — being right
+ * record scores below a 45/50 (0.90) record once shrunk, being right
  * *repeatedly* is the score, not a short lucky streak.
  *
  * Uses the raw `winCount / settledCount` ratio (reconstructed as `wins =
@@ -47,10 +48,10 @@ export const rankScore = ({
  * Shrinkage-first ordering for the *ranked* (qualified) leaderboard slice.
  *
  * The clearing canister hands us the slice ranked by net realized P&L (a
- * high-stakes loss can outrank a quiet 100%), so we re-rank it here on the FE
+ * single large loss can outrank a quiet 100%), so we re-rank it here on the FE
  * for this surface only. Other consumers of the same cached slice (the Dash
  * "Top X%" rank tile, `findOwnStanding`) deliberately keep the canister's P&L
- * rank — see `standings.services`.
+ * rank: see `standings.services`.
  *
  * Order: shrinkage score desc → settledCount desc (more proof breaks a score
  * tie) → realizedPnl desc → stable (equal entries fall through to the input
@@ -69,7 +70,7 @@ const byRankScore = (a: StandingEntry, b: StandingEntry): number => {
 		return b.settledCount - a.settledCount;
 	}
 
-	// `realizedPnl` is a signed bigint — compare directly, never via Number.
+	// `realizedPnl` is a signed bigint: compare directly, never via Number.
 	if (a.realizedPnl !== b.realizedPnl) {
 		return b.realizedPnl > a.realizedPnl ? 1 : -1;
 	}
@@ -103,18 +104,18 @@ export interface StandingsRow {
 	entry: StandingEntry;
 	owner: PrincipalText;
 	/**
-	 * 1-based position in the shrinkage-ordered ranked list — NOT `entry.rank`
+	 * 1-based position in the shrinkage-ordered ranked list, NOT `entry.rank`
 	 * (the canister's P&L rank). This is the number the leaderboard renders.
 	 * `undefined` for a provisional row (below the qualify gate, so unranked).
 	 */
 	displayRank: number | undefined;
 	nickname: string | undefined;
 	avatar: string | undefined;
-	/** Serialized faceted-avatar picks — lets the row render the predictor's
+	/** Serialized faceted-avatar picks: lets the row render the predictor's
 	 *  saved face instead of the principal-seeded fallback. */
 	avatarParts: string | undefined;
 	/**
-	 * Consecutive active days (the Flame engine) — the leaderboard renders
+	 * Consecutive active days (the Flame engine): the leaderboard renders
 	 * this as "{n}d streak", so it must be the days-based counter, not the
 	 * consecutive-wins `streak` field.
 	 */
@@ -172,7 +173,7 @@ export interface PartitionedStandings {
  * from {@link leaderboardQualifyMin} (the dev Tweaks knob), so changing it
  * re-partitions the board without a reload.
  *
- * This re-ranks the *fetched slice* — the canister returns the top-N by net
+ * This re-ranks the *fetched slice*: the canister returns the top-N by net
  * P&L, so re-ranking here is correct only while the whole user base fits within
  * the fetched pages. At scale, ranking should move into the clearing canister
  * (`list_leaderboard`) so high-accuracy / low-P&L predictors (and below-gate
@@ -207,27 +208,16 @@ export const globalStandingsRows = (
 					selfProfile: profile
 				});
 
-			// Honor the "Show on global leaderboard" opt-out, failing CLOSED: a
-			// non-self row is shown only once its profile is loaded AND not
-			// opted out. While the profile is still hydrating it stays hidden,
-			// so an opted-out predictor never flashes onto the board in the gap
-			// before we know their preference (showing-then-hiding is itself a
-			// leak). The viewer always keeps their own row and rank —
-			// `ownGlobalStanding` reads this same self-inclusive slice, so the
-			// two surfaces never disagree. The leaderboard page hydrates every
-			// raw-slice entry (not just the visible rows), so opted-in rows fill
-			// in as profiles land rather than starving — see LeaderboardPage's
-			// hydration effect. A nullish flag on a loaded profile (legacy row)
-			// reads as opted-in, matching the always-shown default.
-			const visible = [...result.entries].filter((entry) => {
-				if (entry.owner === selfOwner) {
-					return true;
-				}
-
-				const profile = $profiles.get(entry.owner);
-
-				return nonNullish(profile) && profile.preferences.sharing.leaderboardOptIn !== false;
-			});
+			// The "Show on global leaderboard" opt-out, failing closed (see
+			// `isShownOnGlobalLeaderboard`). `ownGlobalStanding` reads this same
+			// self-inclusive slice, so the viewer's row and their Arena rank
+			// never disagree. The leaderboard page hydrates every raw-slice
+			// entry (not just the visible rows), so opted-in rows fill in as
+			// profiles land rather than starving behind the filter: see
+			// LeaderboardPage's hydration effect.
+			const visible = [...result.entries].filter(({ owner }) =>
+				isShownOnGlobalLeaderboard({ owner, profile: $profiles.get(owner), selfOwner })
+			);
 			const qualified = visible.filter((entry) => entry.settledCount >= $qualifyMin);
 			const provisional = visible.filter((entry) => entry.settledCount < $qualifyMin);
 
@@ -242,7 +232,7 @@ export const globalStandingsRows = (
 	);
 
 /**
- * The viewer's own standing in one window — the exact rank the leaderboard
+ * The viewer's own standing in one window; the exact rank the leaderboard
  * renders for their `You` row, surfaced for compact callers (the Arena "Global
  * ranking" card) that show a single number instead of the full board, so the
  * two surfaces can never disagree about the viewer's position.
@@ -250,7 +240,7 @@ export const globalStandingsRows = (
  * `displayRank` is the shrinkage-ordered position once the viewer has cleared
  * the qualify gate; `provisional` is `true` when they're below it (unranked,
  * `displayRank` left `undefined`). `undefined` while the window's slice hasn't
- * loaded, or when the viewer isn't in the fetched slice at all — the same
+ * loaded, or when the viewer isn't in the fetched slice at all; the same
  * top-N limitation {@link globalStandingsRows} carries.
  */
 export interface OwnStanding {

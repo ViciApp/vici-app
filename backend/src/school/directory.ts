@@ -221,7 +221,7 @@ export const SCHOOL_DIRECTORY: readonly SchoolDirectoryEntry[] = [
 	{ id: 'hull', name: 'Hull', country: 'GB', domains: ['hull.ac.uk'] },
 	{
 		id: 'whu',
-		name: 'WHU – Otto Beisheim School of Management',
+		name: 'WHU - Otto Beisheim School of Management',
 		country: 'DE',
 		domains: ['whu.edu']
 	},

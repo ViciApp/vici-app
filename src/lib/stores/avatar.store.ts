@@ -18,7 +18,7 @@ import { derived, get, writable, type Readable } from 'svelte/store';
  * Keyed to the committing account's `owner` (principal text) so it only ever
  * applies to the account that made the edit. Without the key, a sign-out /
  * sign-in (or switching to a different account that never saved parts) would
- * resolve {@link myAvatarParts} to the previous account's cached face — a
+ * resolve {@link myAvatarParts} to the previous account's cached face; a
  * cross-account state leak, and permanently wrong for accounts with no saved
  * picks. The serialized form is stored so the parse only re-runs on change.
  */
@@ -31,7 +31,7 @@ const sessionAvatarParts = writable<CachedAvatarParts | undefined>(undefined);
 /**
  * The logged-in user's saved avatar parts, derived from the live profile in
  * {@link userStore}. Every "you" surface (profile identity card, nav, the
- * leaderboard "You" row) reads this so a save re-renders them all at once —
+ * leaderboard "You" row) reads this so a save re-renders them all at once;
  * the optimistic `userStore` write in {@link saveMyAvatarParts} flows
  * straight back out here. `undefined` means the user has never saved picks
  * (the surface falls back to a deterministic principal-seeded face).
@@ -55,7 +55,7 @@ export const myAvatarParts: Readable<ViciAvatarParts | undefined> = derived(
 		}
 
 		// Fall back to the session cache only when it belongs to the active
-		// account — never let one account see another's cached picks. Otherwise
+		// account: never let one account see another's cached picks. Otherwise
 		// resolve to nothing so the surface uses the principal-seeded default.
 		return nonNullish(session) && session.owner === owner
 			? parseParts(session.serialized)
@@ -65,8 +65,8 @@ export const myAvatarParts: Readable<ViciAvatarParts | undefined> = derived(
 
 /**
  * Persists the logged-in user's avatar parts. Optimistically writes the
- * serialized picks into {@link userStore} first — so every surface reading
- * {@link myAvatarParts} re-renders immediately — then commits to the
+ * serialized picks into {@link userStore} first, so every surface reading
+ * {@link myAvatarParts} re-renders immediately, then commits to the
  * profile. Rolls the optimistic update back on failure.
  */
 export const saveMyAvatarParts = async (parts: ViciAvatarParts): Promise<void> => {

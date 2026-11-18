@@ -13,7 +13,7 @@ export interface Activity {
 
 /**
  * A single like on a friend-feed activity. One doc per `(activity, liker)` in the
- * `activity_reactions` collection, keyed `${actor}#${timestamp}#${type}#${liker}` — the liked
+ * `activity_reactions` collection, keyed `${actor}#${timestamp}#${type}#${liker}`: the liked
  * activity's doc key (see `logActivity`) plus the liker. `activityTitle` / `marketId` are
  * denormalized copies of the liked activity's fields, written so the like-received inbox card can
  * render without re-fetching the activity; spec A (counts + persistence) doesn't read them.
@@ -27,7 +27,7 @@ export interface ActivityReaction {
 }
 
 /**
- * Upper bound on the denormalized `activityTitle` an `activity_reactions` doc may carry — enforced
+ * Upper bound on the denormalized `activityTitle` an `activity_reactions` doc may carry: enforced
  * by `assertSetActivityReaction` so a liker can't bloat the doc with an oversized title.
  */
 export const ACTIVITY_REACTION_TITLE_MAX_LENGTH = 500;
@@ -53,7 +53,7 @@ export interface ActivityReactionCount {
  * `netVxp` is the participant's realized net cashflow in `USD_DECIMALS` base units, signed (negative
  * for a loss); `outcome` mirrors its sign. `side` is the market outcome the participant held (the
  * settlement outcome id, or `YES`/`NO` derived from a binary net position). `resolvedAtMs` is the
- * resolution time in epoch milliseconds — the retention cleanup prunes on it.
+ * resolution time in epoch milliseconds: the retention cleanup prunes on it.
  */
 export interface ResolvedResult {
 	owner: PrincipalText;

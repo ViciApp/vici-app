@@ -28,6 +28,9 @@ export type VxpCalibrationReason =
 	| 'outcome_undetermined'
 	| 'rate_limited_hourly'
 	| 'rate_limited_daily'
+	// The other side of this market is already on record, so this call is not
+	// judged.
+	| 'already_called'
 	// HTTP API only: the award was recorded without a transfer (treasury
 	// parallel-run mode); the reconciliation job pays it out later.
 	| 'recorded_only'
@@ -63,7 +66,7 @@ export interface VxpCalibrationClaim {
  * (finalised), per-market dedupe, and the hourly / daily rate limits
  * before transferring the reward.
  *
- * Always resolves with a structured result — never rejects on expected
+ * Always resolves with a structured result: never rejects on expected
  * ineligibility. The FE renders a different state per `reason`.
  * Rejection here only happens on transport-level errors.
  */

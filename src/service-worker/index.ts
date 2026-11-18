@@ -1,6 +1,6 @@
 // OAuth (Google/Apple) returns to `/auth/callback/*` as a HARD document fetch
-// from the IC HTTP gateway. When the gateway transiently fails — certification
-// not yet settled, cold canister, boundary-node throttle — it serves its own
+// from the IC HTTP gateway. When the gateway transiently fails (certification
+// not yet settled, cold canister, boundary-node throttle), it serves its own
 // "500 Internal error" page before any app JS runs, so the in-page callback
 // handler never executes and the sign-in dies. This worker's sole job is to
 // intercept that failed navigation and serve the cached app shell, letting the
@@ -8,7 +8,7 @@
 //
 // Cache-scope safety: the ONLY things cached are (a) the immutable,
 // content-hashed Vite `build` assets and (b) the SPA shell HTML. We never cache
-// API / canister / satellite / auth / dynamic responses — those come back from
+// API / canister / satellite / auth / dynamic responses: those come back from
 // the IC uncertified inside the SW, and caching them would risk serving stale
 // or incorrect on-chain data. Anything that is not a same-origin build asset or
 // a navigation passes straight through to the network, untouched.
@@ -36,7 +36,7 @@ const SHELL_CACHE = 'vici-shell';
 
 // Stable key under which any successful navigation response is stored. Because
 // the app is `prerender:false` + SPA `fallback`, every route returns the same
-// shell HTML, so a single stored entry is a valid fallback for ALL routes —
+// shell HTML, so a single stored entry is a valid fallback for ALL routes,
 // including the OAuth callback.
 const SHELL_KEY = toPathname('__app_shell');
 
@@ -80,12 +80,12 @@ const handleNavigation = async (request: Request): Promise<Response> => {
 	try {
 		const res = await fetch(request);
 
-		// Every SUCCESSFUL navigation passes through untouched — including
+		// Every SUCCESSFUL navigation passes through untouched, including
 		// non-HTML documents (sitemap.xml, robots.txt), which the previous
 		// shell-substitution turned into an SPA 404 for any browser with this
 		// worker installed. Only cache a genuinely-served HTML shell (2xx +
-		// text/html): a gateway error page — the 5xx we exist to mask, but
-		// equally a 4xx/3xx HTML page — must never overwrite the last-good
+		// text/html): a gateway error page (the 5xx we exist to mask, but
+		// equally a 4xx/3xx HTML page) must never overwrite the last-good
 		// shell, or the fallback would serve the wrong document and break
 		// sign-in/recovery.
 		const contentType = res.headers.get('content-type') ?? '';

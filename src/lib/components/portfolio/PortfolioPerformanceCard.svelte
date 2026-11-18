@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { DAY_IN_MS, USD_DECIMALS } from '#lib/constants/app.constants.ts';
+	import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
+	import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { Market } from '#lib/types/market.ts';
@@ -17,7 +18,7 @@
 	 *
 	 * Reads from `resolvedPositions` rather than joining `tradeHistory`
 	 * against live `positions`, because the clearing canister deletes
-	 * positions at settlement — joining there would silently drop every
+	 * positions at settlement: joining there would silently drop every
 	 * historical resolution. Each `ResolvedPosition` already carries the
 	 * realized PnL (`realizedPnlUsd`, signed `cashflow_usd` in clearing
 	 * USD units) and the settlement timestamp, so we can attribute each
@@ -33,7 +34,6 @@
 	}
 
 	const WINDOW_DAYS = 30;
-	const NS_PER_MS = 1_000_000n;
 	const W = 320;
 	const H = 72;
 
@@ -59,7 +59,7 @@
 				return;
 			}
 
-			const tsMs = Number(resolved.timestampNs / NS_PER_MS);
+			const tsMs = Number(resolved.timestampNs / MILLISECOND_IN_NANOSECONDS);
 
 			if (tsMs < cutoffMs) {
 				return;

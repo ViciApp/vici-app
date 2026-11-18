@@ -19,7 +19,7 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
-		/** Current accuracy as a 0..100 percentage — anchors every window. */
+		/** Current accuracy as a 0..100 percentage: anchors every window. */
 		accuracyPct: number;
 	}
 
@@ -29,7 +29,7 @@
 	const H = 86;
 	const SWIPE_THRESHOLD_PX = 28;
 
-	// Default to the 30-day window (index 1) — the most representative span.
+	// Default to the 30-day window (index 1); the most representative span.
 	let index = $state(1);
 	let pointerDownX: number | null = null;
 

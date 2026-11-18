@@ -17,7 +17,7 @@ import {
  * Single source of truth for every notification kind. Maps a kind to its
  * icon, default tap destination, and a taxonomy label. The bell toast, the
  * list rows, and the tap router all read from here, so adding a new kind only
- * needs one entry — no more drifting switch statements duplicating the icon /
+ * needs one entry: no more drifting switch statements duplicating the icon /
  * destination per surface.
  *
  * `dest` is the kind's home surface, used when a notification carries no
@@ -25,7 +25,7 @@ import {
  * hosts the social / challenge surfaces, so those kinds route there.
  *
  * `label` is a developer-facing taxonomy name for the kind (not rendered to
- * users today — the list groups by read-state, not by kind), kept here so the
+ * users today: the list groups by read-state, not by kind), kept here so the
  * config is the single inspectable description of every kind.
  */
 export interface NotificationKindConfig {
@@ -48,7 +48,7 @@ export const NOTIFICATION_KIND_CONFIG: Record<InboxNotificationKind, Notificatio
 };
 
 /**
- * Fallback used when a kind is missing from the config (defensive — every
+ * Fallback used when a kind is missing from the config (defensive; every
  * member of the {@link InboxNotificationKind} union is covered above).
  */
 const NOTIFICATION_KIND_FALLBACK: NotificationKindConfig = {

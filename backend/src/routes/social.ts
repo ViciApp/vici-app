@@ -4,14 +4,19 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
+import { isSettlingRole } from '../admin/engine-sync';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
 import { UUID_RE } from '../lib/constants';
 import { badRequest } from '../lib/http';
+import { enforceLimit } from '../lib/rate-limit';
+import { MINUTE_IN_MS } from '../lib/time';
 import {
+	ACTIVITY_DETAILS_MAX_LENGTH,
+	ACTIVITY_MARKET_ID_MAX_LENGTH,
+	ACTIVITY_TITLE_MAX_LENGTH,
 	ActivityNotFoundError,
 	ActivityValidationError,
 	createActivity,
-	getReactionCounts,
 	isActivityType,
 	likeActivity,
 	listActivities,
@@ -42,6 +47,11 @@ export const DEFAULT_ACTIVITY_LIMIT = 50;
 export const MAX_ACTIVITY_LIMIT = 500;
 export const DEFAULT_REACTIONS_LIMIT = 1000;
 export const MAX_REACTIONS_LIMIT = 1000;
+
+// Every trade activity re-reads the caller's whole engine trade history to run
+// the award triggers, so the posts are limited per account. A person placing
+// predictions by hand stays far below the budget.
+const TRADE_ACTIVITY_LIMIT_PER_MINUTE = 30;
 
 /** Each list surface carries its own ceiling, so a surface whose default
  * exceeds another surface's cap (reactions vs activities) stays reachable. */
@@ -290,6 +300,27 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 				return unauthenticated(set);
 			}
 
+			// A settlement activity follows an on-chain settle and fans out
+			// every participant's resolved result, so only a role that can
+			// settle may record one.
+			if (body.type === 'settlement' && !isSettlingRole(user.role)) {
+				return forbidden(set);
+			}
+
+			if (body.type === 'trade') {
+				const limited = enforceLimit({
+					set,
+					name: 'trade_activity',
+					ip: user.id,
+					limit: TRADE_ACTIVITY_LIMIT_PER_MINUTE,
+					windowMs: MINUTE_IN_MS
+				});
+
+				if (limited) {
+					return limited;
+				}
+			}
+
 			try {
 				const activity = await createActivity({
 					userId: user.id,
@@ -301,9 +332,9 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 					timestamp: body.timestamp
 				});
 
-				// A trade activity is the economy's first-prediction signal: the
-				// onboarding call-count milestones and the referral settlement run
-				// off it, best-effort, after the write commits.
+				// A trade activity nudges the onboarding call-count milestones and
+				// the referral settlement, best-effort, after the write commits;
+				// both count the engine's executed fills, not activities.
 				if (activity.type === 'trade') {
 					await runTradeActivityTriggers({ userId: user.id });
 				}
@@ -335,9 +366,9 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 			body: t.Object({
 				type: t.String(),
 				targetUser: t.Optional(t.String({ format: 'uuid' })),
-				marketId: t.Optional(t.String()),
-				title: t.String(),
-				details: t.Optional(t.String()),
+				marketId: t.Optional(t.String({ maxLength: ACTIVITY_MARKET_ID_MAX_LENGTH })),
+				title: t.String({ maxLength: ACTIVITY_TITLE_MAX_LENGTH }),
+				details: t.Optional(t.String({ maxLength: ACTIVITY_DETAILS_MAX_LENGTH })),
 				timestamp: t.Number()
 			})
 		}
@@ -351,13 +382,6 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 			})
 		})
 	}))
-	.post(
-		'/activity-reactions/counts',
-		async ({ body }) => ({
-			items: await getReactionCounts({ activityKeys: body.activityKeys })
-		}),
-		{ body: t.Object({ activityKeys: t.Array(t.String(), { maxItems: 1000 }) }) }
-	)
 	.post(
 		'/activity-reactions',
 		async ({ request, set, body }) => {
@@ -396,7 +420,7 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 				activityKey: t.String(),
 				timestamp: t.Number(),
 				activityTitle: t.String(),
-				marketId: t.Optional(t.String())
+				marketId: t.Optional(t.String({ maxLength: ACTIVITY_MARKET_ID_MAX_LENGTH }))
 			})
 		}
 	)

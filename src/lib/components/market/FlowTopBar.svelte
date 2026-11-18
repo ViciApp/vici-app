@@ -11,7 +11,7 @@
 	import { goto } from '$app/navigation';
 
 	/**
-	 * FlowTopBar — sticky header for Flow Mode.
+	 * FlowTopBar: sticky header for Flow Mode.
 	 *
 	 * Layout: VICI wordmark + category deck badge ("WORLD CUP" /
 	 * "N CATS") + a daily-goal bolt chip on the left, streak flame +
@@ -22,7 +22,7 @@
 	 * The bolt chip, the secondary row's count text, and the thin progress
 	 * bar all track the same day-long goal (`dailyGoalDone` /
 	 * `dailyGoalTarget`), so the three read in lockstep and resume where the
-	 * day left off — re-entering Flow part-way through the day shows the
+	 * day left off: re-entering Flow part-way through the day shows the
 	 * day's accumulated progress, never a count or bar reset to empty, and
 	 * Push-to-15 lifts the shared denominator from ten to fifteen rather
 	 * than re-framing only one of them.
@@ -99,7 +99,7 @@
 		<div class="flow-topbar-right">
 			<!-- Streak chip: just the flame icon + the day count. We
 			     intentionally drop the `flameStage` label (SPARK / EMBER /
-			     etc.) and the `d` suffix — the stage colour is already
+			     etc.) and the `d` suffix; the stage colour is already
 			     encoded in the flame gradient and the number reads as
 			     "days" in context. Chip stays mounted at streak 0 so the
 			     top-bar row geometry never reflows. -->
@@ -204,7 +204,7 @@
 		background: transparent;
 	}
 
-	/* Category deck badge — laurel-tinted pill that reads as the
+	/* Category deck badge: laurel-tinted pill that reads as the
 	   featured arc ("WORLD CUP"). Gold fill + glowing dot mark it as
 	   the live, branded surface rather than a neutral chip. */
 	.flow-deck-badge {
@@ -247,7 +247,7 @@
 		line-height: 1;
 	}
 
-	/* Daily-goal bolt chip — parchment-tinted KPI pill. Tracks the
+	/* Daily-goal bolt chip: parchment-tinted KPI pill. Tracks the
 	   day-long goal, not the session counter on the row below. */
 	.flow-streak-chip {
 		display: inline-flex;
@@ -283,7 +283,7 @@
 		color: var(--color-primary);
 	}
 
-	/* Ghost action button — a faint parchment fill over the bar plus a
+	/* Ghost action button: a faint parchment fill over the bar plus a
 	   hairline border, matching the other Flow top-bar chips. Adapts
 	   across themes via `--text-base` / `--border-base` tokens rather
 	   than a fixed rgba, so the fill tracks the foreground on
@@ -310,7 +310,7 @@
 		transform: scale(0.94);
 	}
 
-	/* Unread-count badge — top-right corner pip on the bell. Tracks
+	/* Unread-count badge: top-right corner pip on the bell. Tracks
 	   `combinedInboxUnreadCount`; collapses to `9+` past nine to keep
 	   the bubble from stretching the bar. */
 	.flow-bell-badge {

@@ -13,6 +13,7 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
+	import { hyphenateSlug } from '#lib/utils/slug.utils.ts';
 	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	interface Props {
@@ -60,11 +61,7 @@
 		const out: string[] = [];
 
 		for (const raw of value.split(/[\s,]+/)) {
-			const kebab = raw
-				.trim()
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '');
+			const kebab = hyphenateSlug(raw.trim().toLowerCase());
 
 			if (kebab.length > 0 && !out.includes(kebab)) {
 				out.push(kebab);
@@ -147,7 +144,7 @@
 			{t({ locale: $localeStore, key: 'market.metadata.tags_help' })}
 		</p>
 
-		<!-- Selected micros — primary-first; the first chip is the primary
+		<!-- Selected micros: primary-first; the first chip is the primary
 		     classification that drives card art / accent. -->
 		{#if selectedMicros.length > 0}
 			<div class="market-metadata-tags-grid">
@@ -171,7 +168,7 @@
 			</div>
 		{/if}
 
-		<!-- Macro selector — picks which macro's micros to browse. -->
+		<!-- Macro selector: picks which macro's micros to browse. -->
 		<div class="market-metadata-macro-row">
 			{#each MACRO_IDS as macro (macro)}
 				<button
@@ -187,7 +184,7 @@
 			{/each}
 		</div>
 
-		<!-- Micros of the active macro — multi-select. -->
+		<!-- Micros of the active macro: multi-select. -->
 		<div class="market-metadata-tags-grid">
 			{#each microsOfMacro(activeMacro) as micro (micro)}
 				{@const selected = selectedMicros.includes(micro)}
@@ -204,7 +201,7 @@
 			{/each}
 		</div>
 
-		<!-- Free tags — comma/space separated, lowercase-kebab (e.g.
+		<!-- Free tags: comma/space separated, lowercase-kebab (e.g.
 		     `world-cup, bitcoin-etf`). -->
 		<label class="market-metadata-freetags">
 			<span>{t({ locale: $localeStore, key: 'market.metadata.free_tags' })}</span>

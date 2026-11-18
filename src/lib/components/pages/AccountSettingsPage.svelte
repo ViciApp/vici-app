@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { signOut } from '@junobuild/core';
 	import { ArrowLeftRight, Check, ChevronRight, Mail } from '@lucide/svelte/icons';
 	import { onDestroy } from 'svelte';
 	import IconGoogle from '#lib/components/icons/IconGoogle.svelte';
@@ -9,6 +8,7 @@
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { flushEvents, track } from '#lib/services/analytics.services.ts';
+	import { signOut } from '#lib/services/identity.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
@@ -18,7 +18,7 @@
 	import { resolve } from '$app/paths';
 
 	/**
-	 * Account settings — current sign-in method + email address. Two
+	 * Account settings: current sign-in method + email address. Two
 	 * editorial cards: the method tile (glyph + label + address) over a
 	 * switch action, and the email card with an `idle → editing → sent`
 	 * change flow.
@@ -488,7 +488,7 @@
 	   width: a compact, content-sized rounded control (corner radius
 	   inherited from the shared `.account-ghost` 12-px rule) anchored to
 	   the start of the column. The shared full-width `.account-switch`
-	   and the 50/50 `.account-edit-cancel` are untouched — only this
+	   and the 50/50 `.account-edit-cancel` are untouched; only this
 	   secondary action collapses to its content. */
 	.account-email-change {
 		width: auto;

@@ -67,11 +67,6 @@
 			"count": 1
 		}
 	},
-	"backend/src/profiles/stats.ts": {
-		"complexity": {
-			"count": 1
-		}
-	},
 	"backend/src/routes/auth.ts": {
 		"complexity": {
 			"count": 1
@@ -135,9 +130,6 @@
 	},
 	"scripts/satellite-upgrade-needed.mjs": {
 		"complexity": {
-			"count": 1
-		},
-		"max-depth": {
 			"count": 1
 		}
 	},
@@ -300,11 +292,6 @@
 			"count": 1
 		}
 	},
-	"src/lib/constants/wc-market-schedule.constants.ts": {
-		"max-lines": {
-			"count": 1
-		}
-	},
 	"src/lib/constants/worlds-affiliations.constants.ts": {
 		"max-lines": {
 			"count": 1
@@ -352,7 +339,7 @@
 			"count": 1
 		}
 	},
-	"src/lib/services/wallet.service.ts": {
+	"src/lib/services/wallet.services.ts": {
 		"complexity": {
 			"count": 1
 		}
@@ -468,10 +455,10 @@
 	},
 	"src/satellite/services/cohort.services.ts": {
 		"complexity": {
-			"count": 3
+			"count": 1
 		},
 		"max-depth": {
-			"count": 3
+			"count": 2
 		},
 		"max-lines": {
 			"count": 1
@@ -504,10 +491,7 @@
 	},
 	"src/satellite/services/tournament.services.ts": {
 		"complexity": {
-			"count": 4
-		},
-		"max-depth": {
-			"count": 1
+			"count": 2
 		},
 		"max-lines": {
 			"count": 1

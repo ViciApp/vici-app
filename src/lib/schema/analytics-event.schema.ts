@@ -2,7 +2,7 @@ import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 /**
  * Runtime mirror of `lib/types/analytics-event.ts`. The two MUST stay in
- * sync — svelte-check validates the TS union, but only this Zod enum
+ * sync: svelte-check validates the TS union, but only this Zod enum
  * guards values at write time (a missing entry fails at runtime, not at
  * type-check). Mirror order matches the type for easy diffing.
  */
@@ -99,45 +99,7 @@ export const AnalyticsEventNameSchema = j.enum([
 ]);
 
 /**
- * Bounded dimensional vocabulary — mirrors `AnalyticsEventProps`. Fixed,
- * primitive, optional fields only; never widen to an open record (keeps
- * "no PII" structural).
- */
-export const AnalyticsEventPropsSchema = j.strictObject({
-	marketId: j.optional(j.string()),
-	seriesId: j.optional(j.string()),
-	leagueId: j.optional(j.string()),
-	battleId: j.optional(j.string()),
-	source: j.optional(j.string()),
-	label: j.optional(j.string()),
-	step: j.optional(j.number()),
-	value: j.optional(j.number()),
-	count: j.optional(j.number()),
-	durationMs: j.optional(j.number()),
-	ok: j.optional(j.boolean()),
-	country: j.optional(j.string()),
-	locale: j.optional(j.string())
-});
-
-/**
- * Persisted shape for entries in the `events` collection. Mirrors
- * `AnalyticsEventDoc`. Written server-side after validation.
- *
- * NB: `principal` is one of `@junobuild/schema`'s reserved field names —
- * fine here because this schema is decoded/encoded by hand and is NOT a
- * `defineQuery` / `defineUpdate` signature (the codegen never sees it).
- */
-export const AnalyticsEventSchema = j.strictObject({
-	name: AnalyticsEventNameSchema,
-	tsMs: j.number(),
-	sessionId: j.string(),
-	principal: j.optional(PrincipalTextSchema),
-	path: j.optional(j.string()),
-	props: j.optional(AnalyticsEventPropsSchema)
-});
-
-/**
- * Args for the `trackEvents` update endpoint — a batch of client events.
+ * Args for the `trackEvents` update endpoint: a batch of client events.
  * The server derives identity + timestamp, so the input carries neither.
  *
  * The `AnalyticsEventProps` dimensions are **flattened** onto the input
@@ -175,13 +137,13 @@ export const TrackEventsResultSchema = j.strictObject({
 	accepted: j.number()
 });
 
-/** Args for `getAnalyticsSummary` — how many trailing days of rollups to return. */
+/** Args for `getAnalyticsSummary`: how many trailing days of rollups to return. */
 export const GetAnalyticsSummaryArgsSchema = j.strictObject({
 	days: j.number()
 });
 
 /**
- * Result of `getAnalyticsSummary` — a **flat** list of `(day, name, count)`
+ * Result of `getAnalyticsSummary`: a **flat** list of `(day, name, count)`
  * rows (the cockpit groups by `day` client-side). Kept single-level: the
  * codegen rejects an array nested inside another array's record. `day` is
  * the epoch-day index and `start` its start-of-day ms.
@@ -197,10 +159,10 @@ export const AnalyticsSummarySchema = j.strictObject({
 	)
 });
 
-/** Args for `getAnalyticsEvents` — keyset cursor + page size for the cockpit's
+/** Args for `getAnalyticsEvents`: keyset cursor + page size for the cockpit's
  * warehouse ingest. The cursor is the `(updated_at, key)` pair of the last
  * synced doc: `afterUpdatedAtNs` is the EXCLUSIVE `updated_at` lower bound (as
- * text — nat64 exceeds JS safe-int) and `afterKey` breaks ties between docs that
+ * text: nat64 exceeds JS safe-int) and `afterKey` breaks ties between docs that
  * share that `updated_at`. Both absent/empty starts from the beginning. The
  * cockpit advances the cursor from the last returned row's `(updatedAtNs, key)`. */
 export const GetAnalyticsEventsArgsSchema = j.strictObject({
@@ -211,8 +173,8 @@ export const GetAnalyticsEventsArgsSchema = j.strictObject({
 
 /**
  * One exported event row: the `events` doc envelope (key + ns timestamps +
- * version + owner) plus the FLATTENED behavioural payload. Flattened — not a
- * nested `props` — because the Sputnik codegen rejects a nested optional object
+ * version + owner) plus the FLATTENED behavioural payload. Flattened, not a
+ * nested `props`, because the Sputnik codegen rejects a nested optional object
  * inside an array element (same constraint as `TrackEventInputSchema`).
  *
  * Field names avoid the codegen-reserved `principal`/`variant`: identity is
@@ -249,22 +211,22 @@ export const GetAnalyticsEventsResultSchema = j.strictObject({
 	hasMore: j.boolean()
 });
 
-/** Args for `deleteAnalyticsEvents` — the cockpit's DRAIN step. After a page of
+/** Args for `deleteAnalyticsEvents`: the cockpit's DRAIN step. After a page of
  * events is durably written to the warehouse, the cockpit passes their `keys` back
  * to delete them, keeping the on-chain `events` collection a small buffer (a large
- * collection makes `listDocsStore` blow the query instruction budget — IC0522).
+ * collection makes `listDocsStore` blow the query instruction budget: IC0522).
  * Admin-gated; `keys` beyond the export page cap are ignored. */
 export const DeleteAnalyticsEventsArgsSchema = j.strictObject({
 	keys: j.array(j.string())
 });
 
 /** `deleted` is the count actually removed (missing keys are skipped, so a retried
- * page reports fewer than it sent — the call is idempotent). */
+ * page reports fewer than it sent: the call is idempotent). */
 export const DeleteAnalyticsEventsResultSchema = j.strictObject({
 	deleted: j.number()
 });
 
-/** Args for `getAnalyticsProfileCreated` — the cockpit's true-sign-up export.
+/** Args for `getAnalyticsProfileCreated`: the cockpit's true-sign-up export.
  * Keyset cursor on the profile doc KEY (principal text); blank = first page. */
 export const GetAnalyticsProfileCreatedArgsSchema = j.strictObject({
 	afterKey: j.optional(j.string()),
@@ -272,7 +234,7 @@ export const GetAnalyticsProfileCreatedArgsSchema = j.strictObject({
 });
 
 /** One profile-created row: the doc key (principal text) + envelope
- * `created_at` in nanoseconds (as text — nat64 exceeds JS safe-int). No profile
+ * `created_at` in nanoseconds (as text: nat64 exceeds JS safe-int). No profile
  * body field leaves the satellite. */
 export const ProfileCreatedExportRowSchema = j.strictObject({
 	key: j.string(),
@@ -285,7 +247,7 @@ export const GetAnalyticsProfileCreatedResultSchema = j.strictObject({
 });
 
 /**
- * Result of `getAnalyticsUserStats` — the all-time registered-account
+ * Result of `getAnalyticsUserStats`: the all-time registered-account
  * count for the cockpit's "Registered" tile. `registered` counts every
  * `profiles` doc, i.e. all accounts ever created including soft-deleted
  * ones (see `getAnalyticsUserStatsFn`). No args: the count is global.

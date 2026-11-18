@@ -5,6 +5,7 @@
 	import { joinLeagueByInvite, lookupLeagueByInvite } from '#lib/services/leagues.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
+		LEAGUE_ACCENT_FALLBACK,
 		LEAGUE_INVITE_CODE_EXAMPLE,
 		LEAGUE_INVITE_CODE_REGEX,
 		leagueEmblem,
@@ -30,18 +31,19 @@
 	let code = $state('');
 	let submitting = $state(false);
 	let submitError: MessageKey | string | null = $state(null);
-	// Live preview — the league a fully-typed code resolves to. Drives
+	// Live preview: the league a fully-typed code resolves to. Drives
 	// the green-bordered match card + the join button label so the user
 	// sees who they're about to join before committing.
 	let matched: LeagueDoc | undefined = $state();
 	let resolving = $state(false);
 	// A code found on the clipboard at open-time. Tapping the hint fills
-	// the field — saves the user a manual paste on mobile.
+	// the field: saves the user a manual paste on mobile.
 	let pasteHint: string | null = $state(null);
 
 	const normalisedCode = $derived(code.trim().toUpperCase());
 	const codeIsValid = $derived(LEAGUE_INVITE_CODE_REGEX.test(normalisedCode));
 	const canSubmit = $derived(!submitting && nonNullish(matched));
+	const matchedAccent = $derived(matched?.accentColor ?? LEAGUE_ACCENT_FALLBACK);
 
 	// Resolve the league as the user finishes typing a valid code. Each
 	// keystroke that yields a complete code kicks off a lookup; stale
@@ -103,7 +105,7 @@
 					pasteHint = cleaned;
 				}
 			} catch {
-				// No clipboard access — skip the hint.
+				// No clipboard access: skip the hint.
 			}
 		})();
 	});
@@ -214,8 +216,8 @@
 		{#if matched}
 			<div class="league-match-preview" aria-live="polite">
 				<span
-					style:--accent={matched.accentColor ?? 'var(--laurel)'}
-					style:--accent-grad={`linear-gradient(160deg, ${matched.accentColor ?? '#e2b842'}33 0%, ${matched.accentColor ?? '#e2b842'}11 40%, var(--bg-surface) 100%)`}
+					style:--accent={matchedAccent}
+					style:--accent-grad={`linear-gradient(160deg, ${matchedAccent}33 0%, ${matchedAccent}11 40%, var(--bg-surface) 100%)`}
 					class="league-match-logo"
 				>
 					<span class="league-match-emblem">
@@ -268,7 +270,7 @@
 		gap: 0.85rem;
 	}
 
-	/* Title + top-right close × on one row — mirrors the sheet header in
+	/* Title + top-right close × on one row: mirrors the sheet header in
 	   the source design (title left, circular ghost close right). The
 	   helper paragraph stays below the row. */
 	.league-form-head-row {
@@ -317,7 +319,7 @@
 		line-height: 1.5;
 	}
 
-	/* Inline sample code — mono, accent-tinted, so the expected format
+	/* Inline sample code: mono, accent-tinted, so the expected format
 	   stands out from the surrounding helper sentence. */
 	.league-code-example {
 		font-family: var(--font-mono);
@@ -465,7 +467,7 @@
 		color: var(--no);
 	}
 
-	/* Single full-width CTA — no Cancel; the disabled label doubles as
+	/* Single full-width CTA: no Cancel; the disabled label doubles as
 	   the inline hint ("Enter a valid code") until a code resolves. */
 	.league-form-actions {
 		display: flex;

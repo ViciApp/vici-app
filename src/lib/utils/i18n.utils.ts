@@ -15,7 +15,7 @@ type Catalog = Record<string, string>;
  *
  * Only `en` is bundled statically: it terminates every fallback chain (so
  * `t()` always has copy to render) and is the `MessageKey` type source.
- * Every other catalog loads on demand via {@link ensureLocaleCatalogs} —
+ * Every other catalog loads on demand via {@link ensureLocaleCatalogs}:
  * bundling them all put a catalog chunk the size of the rest of the app
  * combined on the critical path of every first visit.
  */
@@ -56,7 +56,7 @@ const loadCatalog = (locale: AppLocale): Promise<void> => {
 		})
 		.catch((err: unknown) => {
 			// A failed chunk fetch (offline, mid-deploy asset swap) must not
-			// wedge the caller — `t()` falls back through the chain to the
+			// wedge the caller: `t()` falls back through the chain to the
 			// bundled `en`, and dropping the memoized promise lets a later
 			// call retry the fetch.
 			catalogLoads.delete(locale);
@@ -69,11 +69,11 @@ const loadCatalog = (locale: AppLocale): Promise<void> => {
 };
 
 /**
- * Load the catalogs `t()` needs to render `locale` — the locale itself plus
+ * Load the catalogs `t()` needs to render `locale`: the locale itself plus
  * its whole fallback chain, since a partial catalog (e.g. `es-MX`) resolves
  * most keys through its ancestors. Idempotent and memoized; never rejects.
  * Resolution means every reachable catalog either landed in memory or had
- * its fetch fail (see `loadCatalog`) — in the failure case `t()` keeps
+ * its fetch fail (see `loadCatalog`): in the failure case `t()` keeps
  * rendering the bundled `en` copy and the next call retries the fetch, so
  * callers gating a locale switch on this can't deadlock on a flaky network.
  */
@@ -112,7 +112,7 @@ export const t = ({
 	// Walk the locale's fallback chain (itself → registered fallbacks → en)
 	// and take the first catalog that actually carries the key. A `soon`
 	// locale with no catalog, or a partial one missing this key, renders the
-	// first populated ancestor's copy — never the raw key.
+	// first populated ancestor's copy: never the raw key.
 	for (const candidate of localeFallbackChain(locale)) {
 		const template = catalogs[candidate]?.[key];
 

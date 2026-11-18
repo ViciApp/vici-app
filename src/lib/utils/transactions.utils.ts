@@ -1,6 +1,7 @@
 import type { ClearingDid } from '#declarations';
-import { DAY_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
+import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import type {
 	IcpTransaction,
@@ -344,6 +345,28 @@ const sortNewestFirst = (txs: Transaction[]): Transaction[] =>
 	txs.sort((a, b) => (a.timestamp === b.timestamp ? 0 : a.timestamp > b.timestamp ? -1 : 1));
 
 /**
+ * Folds one ledger-history page into the rows already loaded: one row per
+ * transaction id and ledger (the page's copy wins, since index pages can
+ * overlap), sorted newest-first.
+ */
+export const mergeTransactionsPage = ({
+	transactions,
+	page
+}: {
+	transactions: Transaction[];
+	page: Transaction[];
+}): Transaction[] => {
+	const txKey = (tx: Transaction) => `${tx.id}-${tx.token.ledgerCanisterId}`;
+	const merged: Record<string, Transaction> = {};
+
+	for (const tx of [...transactions, ...page]) {
+		merged[txKey(tx)] = tx;
+	}
+
+	return sortNewestFirst(Object.values(merged));
+};
+
+/**
  * Assembles the unified Wallet activity feed: merges the paged ICRC ledger
  * rows with the clearing rows, keeps only the tokens the wallet currently
  * surfaces, and sorts newest-first.
@@ -367,13 +390,13 @@ export const mergeWalletFeed = ({
 };
 
 /**
- * Weekly VXP delta — sums signed amounts on VXP-denominated rows from the last
+ * Weekly VXP delta: sums signed amounts on VXP-denominated rows from the last
  * 7 days. Settlements / receives / mints / rewards credit; trades / sends /
- * burns / liquidations debit (entry stake is never refunded). Result is in VXP
+ * burns / liquidations debit (the entry amount is never refunded). Result is in VXP
  * base units; format at display only.
  */
 export const weeklyVxpDeltaBaseUnits = (transactions: Transaction[]): bigint => {
-	const cutoffNs = BigInt(Date.now() - 7 * DAY_IN_MS) * 1_000_000n;
+	const cutoffNs = BigInt(Date.now() - 7 * DAY_IN_MS) * MILLISECOND_IN_NANOSECONDS;
 	let delta = ZERO;
 
 	const recentVxpTx = transactions.filter(

@@ -8,7 +8,9 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
+import { Principal } from '@icp-sdk/core/principal';
 import { query } from '../../src/db/client';
+import type { ClearingDid } from '../../src/declarations';
 import { setVxpLedgerProvider, type VxpLedger } from '../../src/vxp/payout';
 
 export interface RecordedTransfer {
@@ -30,6 +32,25 @@ export interface LedgerStub {
 }
 
 let nextBlock = BigInt(1);
+
+/**
+ * A clearing `get_account_state` answer whose ViciXp-domain equity is
+ * `equity`: the deposited side of the recovery-floor gates, next to the
+ * ledger stub's `balance`.
+ */
+export const accountStateWithEquity = (equity: bigint): ClearingDid.GetAccountStateResult => ({
+	Ok: {
+		assets: [],
+		state: {
+			user: Principal.anonymous(),
+			reserved_margins_usd: [],
+			cash_balances_usd: [],
+			balances: []
+		},
+		total_equity_usd: equity,
+		available_margin_usd: equity
+	}
+});
 
 /**
  * Installs a stub ledger. `transferImpl` may throw per call (BadFee tests);

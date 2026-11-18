@@ -9,7 +9,7 @@ import { listDocs } from '@junobuild/core';
  *
  * The figure is the count of docs in the public `profiles` datastore
  * collection ({@link Collection.PROFILES}, `read: 'public'`). That read is
- * anonymous by construction — the pre-auth landing already runs under an
+ * anonymous by construction: the pre-auth landing already runs under an
  * initialised satellite (see the root `+layout.svelte`), and public-collection
  * reads need no sign-in, the same path the rest of the marketing surface uses.
  *
@@ -20,7 +20,7 @@ import { listDocs } from '@junobuild/core';
  */
 
 /**
- * Session cache. The landing is a marketing surface — one anonymous read per
+ * Session cache. The landing is a marketing surface; one anonymous read per
  * session is plenty; we never poll. `undefined` means "not yet resolved".
  */
 let cached: number | undefined;
@@ -38,7 +38,7 @@ export const getViciUserCount = async (): Promise<number | undefined> => {
 	}
 
 	try {
-		// One minimal page — we only need the total, exposed as `matches_length`
+		// One minimal page: we only need the total, exposed as `matches_length`
 		// (total matching docs, ignoring pagination), never the doc bodies.
 		const { matches_length } = await listDocs<UserProfile>({
 			collection: Collection.PROFILES,

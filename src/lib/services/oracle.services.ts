@@ -3,11 +3,9 @@ import { functions } from '#declarations/satellite/satellite.api.ts';
 import { addOracle, getOracle, manageOraclePrincipals } from '#lib/api/registry.api.ts';
 import { VICI_ORACLE_V1 } from '#lib/constants/app.constants.ts';
 import { UserRole } from '#lib/enums/user.ts';
-import { getIdentity, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
-import { loadWithCertification } from '#lib/services/query-update.services.ts';
+import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import { listRoles } from '#lib/services/roles.services.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import type { Identity } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';
 import type { PrincipalText } from '@junobuild/schema';
 
@@ -16,9 +14,7 @@ import type { PrincipalText } from '@junobuild/schema';
  *
  * Returns `undefined` when the oracle has not been registered yet, in which
  * case the admin must call {@link registerViciOracle} to create it.
- *
- * Performs a single certified update. Prefer {@link loadViciOracle} for UI
- * flows that benefit from the fast-then-certified render pattern.
+ * Performs a single certified update.
  */
 export const getViciOracle = async (): Promise<RegistryDid.Oracle | undefined> => {
 	const identity = await safeGetIdentityOnce();
@@ -27,36 +23,10 @@ export const getViciOracle = async (): Promise<RegistryDid.Oracle | undefined> =
 };
 
 /**
- * Callback-based variant of {@link getViciOracle}. No-op when the user is not
- * signed in (mirrors `safeGetIdentityOnce` auth gating without throwing).
- */
-export const loadViciOracle = async ({
-	onLoad,
-	onUpdateError
-}: {
-	onLoad: (options: { certified: boolean; response: RegistryDid.Oracle | undefined }) => void;
-	onUpdateError?: (error: unknown) => void;
-}): Promise<void> => {
-	const identity = await getIdentity();
-
-	if (isNullish(identity)) {
-		return;
-	}
-
-	return loadWithCertification<RegistryDid.Oracle | undefined>({
-		identity,
-		request: ({ certified, identity: reqIdentity }: { certified: boolean; identity: Identity }) =>
-			getOracle({ identity: reqIdentity, oracleId: VICI_ORACLE_V1, certified }),
-		onLoad,
-		onUpdateError
-	});
-};
-
-/**
  * An oracle settler paired with its nickname for admin UIs. Mirrors the
  * `UserRoleEntry` shape so the settlers list can reuse the Roles list layout.
  * `nickname` is set when the principal has a real profile, and `undefined`
- * when none exists — settlers can be granted by raw principal, so the nickname
+ * when none exists: settlers can be granted by raw principal, so the nickname
  * is best-effort enrichment, not a guarantee.
  */
 export interface OracleSettlerEntry {
@@ -120,17 +90,19 @@ export const registerViciOracle = async ({
 	await addOracle({ identity, params });
 };
 
-// Note: direct add/remove of oracle settlers used to live here. It is now driven
-// automatically by the `syncRoleToEngine` satellite hook (see
-// `src/satellite/services/engine-sync.services.ts`) — assigning the `ADMIN` or
-// `SOLVER` role to a user both grants them `OracleAdmin` on the Vici engine and
-// adds them to `VICI_ORACLE_V1.authorized_principals`. For manual reconciliation,
-// see `.agents/workflows/icdc-engine-operations.md`.
+// On the normal role-sync path, oracle settlers are granted and revoked by the
+// `syncRoleToEngine` satellite hook
+// (`src/satellite/services/engine-sync.services.ts`), not from here: assigning
+// the `ADMIN` or `SOLVER` role to a user both grants them `OracleAdmin` on the
+// Vici engine and adds them to `VICI_ORACLE_V1.authorized_principals`. The one
+// write from this module is `reconcileOracleSettlersFromRoles` below, a manual
+// backfill for role docs the hook never synced; see
+// `.agents/workflows/icdc-engine-operations.md`.
 
 /**
  * Set of `UserRole` values that should be mirrored into the Vici oracle's
  * `authorized_principals`. Kept in lockstep with `shouldBeOracleSettler` in
- * `src/satellite/services/engine-sync.services.ts` — if that mapping changes,
+ * `src/satellite/services/engine-sync.services.ts`: if that mapping changes,
  * update both.
  */
 const SETTLER_ROLES: ReadonlySet<UserRole> = new Set([UserRole.ADMIN, UserRole.SOLVER]);
@@ -154,13 +126,13 @@ export interface OracleSettlerReconcileResult {
  * longer holding a settler role. The underlying canister uses a `BTreeSet`, so
  * duplicate adds and missing removes are silent no-ops.
  *
- * Throws if the oracle is not yet registered — call {@link registerViciOracle} first.
+ * Throws if the oracle is not yet registered: call {@link registerViciOracle} first.
  */
 export const reconcileOracleSettlersFromRoles = async (): Promise<OracleSettlerReconcileResult> => {
 	const oracle = await getViciOracle();
 
 	if (isNullish(oracle)) {
-		throw new Error('Vici oracle is not registered yet — register it before reconciling.');
+		throw new Error('Vici oracle is not registered yet; register it before reconciling.');
 	}
 
 	const desired = new Set(

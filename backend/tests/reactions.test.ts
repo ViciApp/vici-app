@@ -15,7 +15,6 @@ import {
 import {
 	ActivityNotFoundError,
 	createActivity,
-	getReactionCounts,
 	likeActivity,
 	listActivities,
 	listReactions,
@@ -26,9 +25,12 @@ import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 
 const countOf = async (activityKey: string): Promise<number | undefined> => {
-	const counts = await getReactionCounts({ activityKeys: [activityKey] });
+	const rows = await query<{ count: number }>(
+		`select count from activity_reaction_counts where activity_key = $1`,
+		[activityKey]
+	);
 
-	return counts[0]?.count;
+	return rows[0]?.count;
 };
 
 describe.if(dbAvailable)('activities', () => {

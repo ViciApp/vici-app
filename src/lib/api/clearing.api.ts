@@ -18,30 +18,6 @@ export const depositCollateral = async ({
 	return await depositCollateral(rest);
 };
 
-export const withdrawCollateral = async ({
-	identity,
-	...rest
-}: {
-	identity: Identity;
-	params: ClearingDid.WithdrawCollateralParams;
-} & QueryParams): Promise<void> => {
-	const { withdrawCollateral } = await clearingCanister({ identity });
-
-	return await withdrawCollateral(rest);
-};
-
-export const submitMatchedTrade = async ({
-	identity,
-	...rest
-}: {
-	identity: Identity;
-	params: ClearingDid.SubmitMatchedTradeParams;
-} & QueryParams): Promise<boolean> => {
-	const { submitMatchedTrade } = await clearingCanister({ identity });
-
-	return await submitMatchedTrade(rest);
-};
-
 export const getAccountState = async ({
 	identity,
 	...rest
@@ -95,7 +71,7 @@ export const getPositions = async ({
 
 /**
  * Aggregate long/short lean over a supplied principal set for one series. See
- * {@link ClearingCanister.aggregateLean} — returns counts only, no identities.
+ * {@link ClearingCanister.aggregateLean}: returns counts only, no identities.
  */
 export const aggregateLean = async ({
 	identity,
@@ -152,18 +128,6 @@ export const settleSeries = async ({
 	const { settleSeries } = await clearingCanister({ identity });
 
 	return await settleSeries(rest);
-};
-
-export const getPosition = async ({
-	identity,
-	...rest
-}: {
-	identity: Identity;
-	params: ClearingDid.GetPositionParams;
-} & QueryParams): Promise<ClearingDid.Position | undefined> => {
-	const { getPosition } = await clearingCanister({ identity });
-
-	return await getPosition(rest);
 };
 
 export const submitLimitOrder = async ({
@@ -225,7 +189,7 @@ export const getTradeHistory = async ({
 };
 
 /**
- * Market-wide price history for one series as fixed-width OHLC candles —
+ * Market-wide price history for one series as fixed-width OHLC candles:
  * every participant's fills, not just the caller's. See
  * {@link ClearingCanister.getSeriesPriceHistory}.
  */
@@ -309,48 +273,9 @@ export const listOrders = async ({
 	return await listOrders(rest);
 };
 
-export const mintCompleteSet = async ({
-	identity,
-	...rest
-}: {
-	identity: Identity;
-	seriesId: string;
-	qty: bigint;
-} & QueryParams): Promise<boolean> => {
-	const { mintCompleteSet } = await clearingCanister({ identity });
-
-	return await mintCompleteSet(rest);
-};
-
-export const redeemCompleteSet = async ({
-	identity,
-	...rest
-}: {
-	identity: Identity;
-	seriesId: string;
-	qty: bigint;
-} & QueryParams): Promise<boolean> => {
-	const { redeemCompleteSet } = await clearingCanister({ identity });
-
-	return await redeemCompleteSet(rest);
-};
-
-export const registerIcrcAsset = async ({
-	identity,
-	params,
-	...queryParams
-}: {
-	identity: Identity;
-	params: ClearingDid.RegisterIcrcAssetParams;
-} & QueryParams): Promise<void> => {
-	const { registerIcrcAsset } = await clearingCanister({ identity });
-
-	return await registerIcrcAsset({ params, ...queryParams });
-};
-
 /**
  * Per-window ranked standings (week / month / all-time) by net realized P&L.
- * See {@link ClearingCanister.listLeaderboard} — drains the cursor (bounded by
+ * See {@link ClearingCanister.listLeaderboard}: drains the cursor (bounded by
  * `maxPages`) and returns the ranked entries plus the full `total` count.
  */
 export const listLeaderboard = async ({

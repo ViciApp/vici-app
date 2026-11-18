@@ -46,7 +46,7 @@
 			beat.kind.startsWith('volume-')
 	);
 
-	// Ambient (`ambient-10`) is intentionally minimal — a small character
+	// Ambient (`ambient-10`) is intentionally minimal; a small character
 	// pop with no copy / chips. Everything else carries the full stack.
 	const isAmbient = $derived(beat.kind === 'ambient-10');
 
@@ -93,7 +93,7 @@
 	);
 
 	// Eased count-up for the VXP coin chip (cubic ease-out). Reduced-motion
-	// users jump straight to the final value — no rAF loop.
+	// users jump straight to the final value; no rAF loop.
 	let coinValue = $state(0);
 
 	const cleanups: Array<() => void> = [];
@@ -185,7 +185,7 @@
 
 <style lang="postcss">
 	/* Centered-in-the-gap staging: the REAL character stands LARGE in the
-	   empty slot — no pill chrome — with name / copy / chips / sub-label
+	   empty slot, no pill chrome, with name / copy / chips / sub-label
 	   stacked below and a soft radial glow behind. The card-out → gap →
 	   next-card-rise sequence is orchestrated by FlowMode; this overlay
 	   owns only the in-gap character moment. Global enter/exit keyframes
@@ -237,8 +237,8 @@
 
 	@media (prefers-reduced-motion: reduce) {
 		.motion-beat {
-			/* Springs collapse to a plain opacity fade — no overshoot, no
-			   travel — keeping the centred transform fixed at (-50%, 0). */
+			/* Springs collapse to a plain opacity fade; no overshoot, no
+			   travel: keeping the centred transform fixed at (-50%, 0). */
 			animation:
 				motion-beat-rm-in 200ms ease forwards,
 				motion-beat-rm-out 200ms ease forwards;
@@ -300,7 +300,7 @@
 		background: radial-gradient(circle, rgba(255, 138, 122, 0.18), transparent 64%);
 	}
 
-	/* Lively idle — the character keeps celebrating while it holds the gap.
+	/* Lively idle: the character keeps celebrating while it holds the gap.
 	   Starts once the pop-in has settled. The flame / trickster reward
 	   moments hop harder with a scale pulse on top of the bob + tilt.
 	   Ambient pops stay minimal: no continuous celebration loop. */
@@ -349,7 +349,7 @@
 		}
 	}
 
-	/* The radial glow breathes in time with the celebration — reward beats
+	/* The radial glow breathes in time with the celebration: reward beats
 	   only; ambient pops keep the static glow with no breathing pulse. */
 	.motion-beat:not(.is-ambient) .motion-beat-char::before {
 		animation: beat-glow-pulse 1s ease-in-out 0.46s infinite;
@@ -366,7 +366,7 @@
 		}
 	}
 
-	/* One-shot celebratory shockwave ring that fires once on entrance —
+	/* One-shot celebratory shockwave ring that fires once on entrance:
 	   reward beats only. Ambient pops never spawn the ring. Tinted to match
 	   the character; flame / trickster rings ride larger. */
 	.motion-beat:not(.is-ambient) .motion-beat-char::after {
@@ -405,7 +405,7 @@
 		}
 	}
 
-	/* Reduced-motion gate for the celebratory beat — the overshoot pop-in,
+	/* Reduced-motion gate for the celebratory beat; the overshoot pop-in,
 	   lively idle, glow breathing and shockwave ring all collapse to a
 	   static state. The plain opacity fade (rm-in / rm-out below) still
 	   carries the character in and out without travel or overshoot. */
@@ -460,7 +460,7 @@
 		flex-wrap: wrap;
 	}
 
-	/* Gold coin chip — the VXP grant riding along with the beat. */
+	/* Gold coin chip: the VXP grant riding along with the beat. */
 	.motion-beat-coin {
 		display: inline-flex;
 		align-items: center;
@@ -482,7 +482,7 @@
 		box-shadow: inset 0 0 0 1px rgba(120, 90, 15, 0.4);
 	}
 
-	/* Coral treat chip — the non-currency wildcard reward. */
+	/* Coral treat chip: the non-currency wildcard reward. */
 	.motion-beat-treat {
 		display: inline-flex;
 		font-family: var(--font-mono);

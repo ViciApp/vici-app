@@ -8,12 +8,12 @@
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	/**
-	 * Guest conversion sheet — the "start for real + claim VXP" ask shown to a
+	 * Guest conversion sheet: the "start for real + claim VXP" ask shown to a
 	 * signed-out guest previewing Flow. Two roles in one component: `soft` (the
 	 * celebratory first-pick ask) and `remind` (the every-5th nudge with the
 	 * in-session pick count as social proof).
 	 *
-	 * The copy never promises saving picks — preview picks are discarded on
+	 * The copy never promises saving picks: preview picks are discarded on
 	 * convert. The framing is "create your account / claim 1,500 VXP / start
 	 * predicting for real". The sign-up CTAs reuse {@link SignInProviderStack}
 	 * (`mode="signup"`) so conversion runs through the real, redirect-safe
@@ -22,7 +22,7 @@
 	interface Props {
 		isOpen: boolean;
 		kind: 'soft' | 'remind';
-		// Session preview-pick count — social proof only, never "saved".
+		// Session preview-pick count: social proof only, never "saved".
 		pickCount: number;
 		handle: string | null;
 		onClose: () => void;

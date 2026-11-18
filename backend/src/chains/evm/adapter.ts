@@ -163,10 +163,70 @@ interface RpcBlock {
 
 interface RpcLog {
 	transactionHash: string;
+	/** Hex quantity; null only on a pending log, which a confirmed range never holds. */
+	logIndex: string | null;
 	address: string;
 	topics: string[];
 	data: string;
 }
+
+interface TokenTransfer {
+	log: RpcLog;
+	asset: Asset;
+	to: string;
+	amount: bigint;
+}
+
+const logIndexOf = (log: RpcLog): bigint => {
+	if (isNullish(log.logIndex)) {
+		throw new Error(`evm log in ${log.transactionHash} has no logIndex`);
+	}
+
+	return BigInt(log.logIndex);
+};
+
+/**
+ * Deposit events for ERC-20 transfers. Deposits dedupe on (account, asset,
+ * tx_ref) and one transaction can carry several Transfer logs to the same
+ * address, so each log needs a key of its own: `<txHash>:<logIndex>`. The
+ * first log of a transaction to an address on a contract keeps the bare
+ * hash, the key every token deposit was recorded under before log indexes
+ * were part of it, which only ever credited that first log. A rescan of an
+ * old block then collides with the row already booked instead of crediting
+ * it twice.
+ */
+const tokenDepositEvents = (transfers: TokenTransfer[]): DepositEvent[] => {
+	const groupOf = ({ log, asset, to }: TokenTransfer): string =>
+		`${log.transactionHash}|${asset.id}|${to}`;
+	const firstIndex = new Map<string, bigint>();
+
+	for (const transfer of transfers) {
+		const group = groupOf(transfer);
+		const index = logIndexOf(transfer.log);
+		const first = firstIndex.get(group);
+
+		if (isNullish(first) || index < first) {
+			firstIndex.set(group, index);
+		}
+	}
+
+	return transfers.map((transfer) => {
+		const { log, asset, to, amount } = transfer;
+		const index = logIndexOf(log);
+
+		return {
+			kind: 'tx',
+			txRef:
+				index === firstIndex.get(groupOf(transfer))
+					? log.transactionHash
+					: `${log.transactionHash}:${index}`,
+			address: to,
+			amount,
+			asset,
+			confirmations: env.evm.confirmations
+		};
+	});
+};
 
 const readCursor = async (): Promise<bigint | null> => {
 	const rows = await query<{ cursor: string }>(
@@ -274,6 +334,8 @@ export const watchEvmDeposits = async ({
 
 		// The node already filtered by contract and recipient; checking again
 		// keeps a misbehaving provider from crediting someone else's transfer.
+		const transfers: TokenTransfer[] = [];
+
 		for (const log of logs) {
 			const asset = tokenAssets.find(
 				(candidate) => candidate.ledger_ref?.toLowerCase() === log.address.toLowerCase()
@@ -285,17 +347,12 @@ export const watchEvmDeposits = async ({
 				const amount = log.data === '0x' ? ZERO : BigInt(log.data);
 
 				if (addressSet.has(to) && amount > ZERO) {
-					events.push({
-						kind: 'tx',
-						txRef: log.transactionHash,
-						address: to,
-						amount,
-						asset,
-						confirmations: env.evm.confirmations
-					});
+					transfers.push({ log, asset, to, amount });
 				}
 			}
 		}
+
+		events.push(...tokenDepositEvents(transfers));
 	}
 
 	if (events.length > 0) {

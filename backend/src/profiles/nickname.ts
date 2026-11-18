@@ -6,6 +6,7 @@
 
 import { isNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
+import { DAY_IN_MS, MINUTE_IN_MS } from '../lib/time';
 
 export const MIN_NICKNAME_LENGTH = 2;
 export const MAX_NICKNAME_LENGTH = 16;
@@ -33,8 +34,6 @@ export const nicknameUniqueKey = (raw: string): string =>
  */
 export const HANDLE_COOLDOWN_DAYS = 30;
 
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
 /**
  * Tolerance (ms) for the "is handle_last_change_ms set to ~now?" check on an
  * allowed handle change. The client stamps its wall clock before the update
@@ -43,7 +42,7 @@ const DAY_IN_MS = 24 * 60 * 60 * 1000;
  * reject values that are clearly stale or in the future, so a client cannot
  * backdate the stamp and dodge the cooldown.
  */
-export const HANDLE_LAST_CHANGE_TOLERANCE_MS = 5 * 60 * 1000;
+export const HANDLE_LAST_CHANGE_TOLERANCE_MS = 5 * MINUTE_IN_MS;
 
 /**
  * Whole days the owner must still wait before the handle can change again.

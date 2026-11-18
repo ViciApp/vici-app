@@ -84,7 +84,13 @@ const allowedOrigins = (() => {
 	return [...origins];
 })();
 
-export const app = new Elysia()
+/** Request body ceiling, enforced by Bun before any route parses the body.
+ * Bun's own default (128 MB) lets an anonymous route buffer far more than any
+ * client sends; the largest legitimate body is a league cover upload
+ * (LEAGUE_IMAGE_MAX_BYTES plus multipart framing), well under this. */
+export const MAX_REQUEST_BODY_BYTES = 16 * 1024 * 1024;
+
+export const app = new Elysia({ serve: { maxRequestBodySize: MAX_REQUEST_BODY_BYTES } })
 	.onRequest(({ set }) => {
 		securityHeaders(set);
 	})

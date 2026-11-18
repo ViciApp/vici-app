@@ -9,8 +9,7 @@ import { getSettlementPlan } from '../engine/clearing';
 import { getSeries } from '../engine/registry';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
-
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
+import { DAY_IN_MS } from '../lib/time';
 
 /** How long a resolved-result row stays readable before the pruning job
  * removes it. */
@@ -49,7 +48,8 @@ const shapeResolvedResult = (row: ResolvedResultRow): ResolvedResult => ({
 /**
  * Idempotent upsert of one participant's row: a settlement replayed to the
  * same outcome overwrites the existing (user, market) row instead of
- * duplicating or double-counting it.
+ * duplicating or double-counting it, and keeps the first resolution time so
+ * a replay never moves the result back to the top of the digest.
  */
 export const upsertResolvedResult = async (result: ResolvedResult): Promise<void> => {
 	await query(
@@ -59,8 +59,7 @@ export const upsertResolvedResult = async (result: ResolvedResult): Promise<void
 		   title = excluded.title,
 		   side = excluded.side,
 		   outcome = excluded.outcome,
-		   net_vxp = excluded.net_vxp,
-		   resolved_at_ms = excluded.resolved_at_ms`,
+		   net_vxp = excluded.net_vxp`,
 		[
 			result.userId,
 			result.marketId,
@@ -167,13 +166,7 @@ const userIdsForPrincipals = async (principals: string[]): Promise<Map<string, s
  * activity write that triggered it. Settlements are rare, so the
  * O(participants) fan-out is a bounded, cold path.
  */
-export const fanOutResolvedResults = async ({
-	marketId,
-	fallbackTitle
-}: {
-	marketId: string;
-	fallbackTitle: string;
-}): Promise<void> => {
+export const fanOutResolvedResults = async ({ marketId }: { marketId: string }): Promise<void> => {
 	try {
 		const plan = await getSettlementPlan(marketId);
 		const positions = plan?.positions;
@@ -182,17 +175,16 @@ export const fanOutResolvedResults = async ({
 			return;
 		}
 
-		const title = await (async () => {
-			try {
-				const series = await getSeries(marketId);
+		// The title lands on every participant's row, so it only ever comes
+		// from the registry; without one no row is written, and the next
+		// settlement post for this market fills them in.
+		const title = (await getSeries(marketId))?.title;
 
-				return nonNullish(series?.title) && series.title.length > 0 ? series.title : fallbackTitle;
-			} catch (err) {
-				logger.error(`resolved-results title lookup failed for ${marketId}:`, err);
+		if (isNullish(title) || title.length === 0) {
+			logger.error(`resolved-results skipped for ${marketId}: the series has no title`);
 
-				return fallbackTitle;
-			}
-		})();
+			return;
+		}
 
 		const resolvedAtMs = Date.now();
 

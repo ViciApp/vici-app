@@ -7,7 +7,9 @@ import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { UUID_RE } from '../lib/constants';
-import { badRequest } from '../lib/http';
+import { badRequest, clientIp } from '../lib/http';
+import { enforceLimit } from '../lib/rate-limit';
+import { HOUR_IN_MS } from '../lib/time';
 import { InvalidDayKeyError, NoProfileError, recordFlowSwipe } from '../profiles/flow';
 import { checkNicknameAvailability } from '../profiles/nickname';
 import {
@@ -18,9 +20,13 @@ import {
 	shapeOwnProfile
 } from '../profiles/profile';
 import { upsertMyProfile } from '../profiles/profile-write';
-import { getUserStats, upsertMonthlyStats, upsertUserStats } from '../profiles/stats';
+import { getUserStats, upsertUserStats } from '../profiles/stats';
 import { mintFlowOvertime } from '../vxp/flow';
 import { runProfileAwardTriggers } from '../vxp/triggers';
+
+// Search is public and enumerable, so it is limited per client IP. The budget
+// leaves room for a debounced live search behind a shared school network.
+const PROFILE_SEARCH_LIMIT_PER_HOUR = 300;
 
 export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 	.get('/me', async ({ request, set }) => {
@@ -42,33 +48,16 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 		}
 
 		try {
-			// Snapshot the stored slice BEFORE the write: the award triggers run
-			// off the before/after delta, mirroring the post-write hook model
-			// (only client writes fire awards; internal server writes never do).
-			const before = await getProfileRow({ userId: user.id });
-
 			const profile = await upsertMyProfile({
 				userId: user.id,
 				body: (body ?? {}) as Record<string, unknown>
 			});
 
-			await runProfileAwardTriggers({
-				userId: user.id,
-				before: isNullish(before)
-					? undefined
-					: {
-							dailyStreak: before.daily_streak ?? 0,
-							totalTrades: before.total_trades ?? 0,
-							unlockedAchievements: before.unlocked_achievements ?? [],
-							lastActiveDay: before.last_active_day ?? undefined
-						},
-				after: {
-					dailyStreak: profile.dailyStreak,
-					totalTrades: profile.totalTrades,
-					unlockedAchievements: profile.unlockedAchievements,
-					lastActiveDay: profile.lastActiveDay
-				}
-			});
+			// Only the registration grant rides the profile write. The streak,
+			// call-count, achievement and comeback fields here are the client's
+			// display copy and never mint: those awards read server-side truth
+			// on the trade activity write.
+			await runProfileAwardTriggers({ userId: user.id });
 
 			return { profile };
 		} catch (err) {
@@ -98,9 +87,25 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 		},
 		{ query: t.Object({ nickname: t.String() }) }
 	)
-	.get('/search', async ({ query: params }) => ({ items: await searchProfiles(params.q) }), {
-		query: t.Object({ q: t.String() })
-	})
+	.get(
+		'/search',
+		async ({ request, set, query: params }) => {
+			const limited = enforceLimit({
+				set,
+				name: 'profile_search',
+				ip: clientIp(request),
+				limit: PROFILE_SEARCH_LIMIT_PER_HOUR,
+				windowMs: HOUR_IN_MS
+			});
+
+			if (limited) {
+				return limited;
+			}
+
+			return { items: await searchProfiles(params.q) };
+		},
+		{ query: t.Object({ q: t.String() }) }
+	)
 	.post(
 		'/flow-swipe',
 		async ({ request, set, body }) => {
@@ -186,44 +191,6 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 					})
 				),
 				computedAtMs: t.Number()
-			})
-		}
-	)
-	.put(
-		'/me/monthly-stats',
-		async ({ request, set, body }) => {
-			const user = await requireUser(request);
-
-			if (isNullish(user)) {
-				return unauthenticated(set);
-			}
-
-			try {
-				const stats = await upsertMonthlyStats({
-					userId: user.id,
-					monthAnchor: body.monthAnchor,
-					monthCalls: body.monthCalls,
-					monthWins: body.monthWins,
-					monthConsensus: body.monthConsensus,
-					updatedAtMs: body.updatedAtMs
-				});
-
-				return { stats };
-			} catch (err) {
-				if (err instanceof ProfileValidationError) {
-					return badRequest(set, err.message);
-				}
-
-				throw err;
-			}
-		},
-		{
-			body: t.Object({
-				monthAnchor: t.String(),
-				monthCalls: t.Number(),
-				monthWins: t.Number(),
-				monthConsensus: t.Array(t.Number()),
-				updatedAtMs: t.Number()
 			})
 		}
 	)

@@ -10,18 +10,18 @@ import {
 import type { InfoDoc } from '#lib/types/info-doc.ts';
 
 /**
- * Public information documents — Terms, Privacy, Resolution Rules,
+ * Public information documents: Terms, Privacy, Resolution Rules,
  * FAQ, Contact, "How resolution works".
  *
  * The localized help docs (FAQ, Contact, How resolution works, Resolution
  * rules) route their copy through i18n: every block references a
  * `MessageKey` (`info.doc.${slug}.${block}`) resolved per-locale at render
- * time. The full controlling legal docs (Terms — and Privacy in turn) carry
+ * time. The full controlling legal docs (Terms and Privacy in turn) carry
  * their English bodies as literal-text constants, kept out of the i18n
  * catalogs by design; see `legal-docs.constants`.
  *
  * Email addresses are real contact identifiers, not translatable copy:
- * they come from `contact.constants` — `mail` blocks carry the constant
+ * they come from `contact.constants`: `mail` blocks carry the constant
  * directly, and paragraphs that mention an address interpolate it via the
  * `{email}` param so the literal never duplicates across locales.
  */

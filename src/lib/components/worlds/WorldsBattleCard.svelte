@@ -7,6 +7,7 @@
 	} from '#lib/constants/worlds-affiliations.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
+	import type { AffiliationKind } from '#lib/types/affiliation.ts';
 	import { affiliationChipStyle } from '#lib/utils/affiliation-chip.utils.ts';
 	import { affiliationDisplayName } from '#lib/utils/affiliation-name.utils.ts';
 	import {
@@ -18,7 +19,7 @@
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * Worlds battle card — one card per roster (school / country) that
+	 * Worlds battle card: one card per roster (school / country) that
 	 * folds the World Cup event and the monthly Season into a single
 	 * surface behind a `World Cup ⇄ Season` scope toggle. Replaces the
 	 * earlier twin-card shape (a featured WC card stacked over a compact
@@ -35,11 +36,11 @@
 	 *
 	 * Accuracy basis note: the satellite does not yet write a WC-tagged
 	 * sub-bucket, so the `wc` scope ranks by lifetime accuracy and the
-	 * `month` scope by monthly accuracy — the same basis the Worlds
+	 * `month` scope by monthly accuracy: the same basis the Worlds
 	 * detail surface uses.
 	 */
 	interface Props {
-		kind: 'university' | 'country';
+		kind: AffiliationKind;
 		// Full roster stats; the card sorts these per the active scope.
 		stats: AffiliationStatsDoc[];
 		// Viewer's affiliation identifier, or undefined when unaffiliated.
@@ -75,7 +76,7 @@
 
 	const option = (id: string) => lookupWorldsAffiliation({ kind, id });
 
-	// Locale-aware roster label off an already-resolved option — country
+	// Locale-aware roster label off an already-resolved option: country
 	// names localize via `Intl.DisplayNames`; falls back to the raw id
 	// when the option is off the roster.
 	const displayName = ({
@@ -141,7 +142,7 @@
 		}
 	};
 
-	// Podium tile background — a top-down wash of the roster entry's brand
+	// Podium tile background: a top-down wash of the roster entry's brand
 	// colour fading into the surface. Gold (rank 1) layers a faint accent
 	// tint underneath; silver/bronze fade straight to transparent. Falls
 	// back to the medal-tinted CSS default when the entry has no colour.
@@ -341,7 +342,7 @@
 		gap: 0.5rem;
 	}
 
-	/* Separator between stacked roster sections — a hairline rule with a
+	/* Separator between stacked roster sections: a hairline rule with a
 	   short centered golden accent line riding the top edge. */
 	.battles-section.is-divided {
 		position: relative;

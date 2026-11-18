@@ -92,7 +92,7 @@
 		will-change: transform, opacity;
 	}
 
-	/* Bleed mode — edge-to-edge artwork frame. Inherit the host's
+	/* Bleed mode: edge-to-edge artwork frame. Inherit the host's
 	   rounding, drop the FlowArtFrame's own shadow so the breather
 	   isn't constrained by a visible card. */
 	.market-artwork.is-bleed :global(.flow-art) {
@@ -110,7 +110,7 @@
 	}
 
 	/* Pause the per-category breather when the viewer prefers reduced
-	   motion. Per-keyframe rules in `app.css` cover the WC sub-tree —
+	   motion. Per-keyframe rules in `app.css` cover the WC sub-tree;
 	   this guard short-circuits the host-level transform breath. */
 	@media (prefers-reduced-motion: reduce) {
 		.market-artwork {

@@ -3,7 +3,7 @@ import { DAILY_HARD_CAP } from '#lib/utils/motion-engine.utils.ts';
 
 // Sitting-ceiling arithmetic for a Flow session. Pure functions over the
 // daily-goal baseline and the per-day hard cap, kept out of the component
-// so the cross-session cap rules (#484/#485) live in one place. The
+// so the cross-session cap rules live in one place. The
 // component holds the reactive `$state`/`$derived` and delegates the math.
 
 /**
@@ -22,11 +22,11 @@ export const sittingGoalFor = ({
 
 /**
  * Swipes this sitting may still place: the sitting goal less what the day
- * already carried in. The run ends on the session counter reaching this —
- * exactly the cumulative daily count reaching `sittingGoal` — so the cap
+ * already carried in. The run ends on the session counter reaching this:
+ * exactly the cumulative daily count reaching `sittingGoal`, so the cap
  * holds regardless of how many times Flow is re-entered today.
  */
-export const maxBetsFor = ({
+export const maxCallsFor = ({
 	sittingGoal,
 	baseline
 }: {
@@ -35,7 +35,7 @@ export const maxBetsFor = ({
 }): number => Math.max(0, sittingGoal - baseline);
 
 /**
- * Whether the day's sitting goal is the hard cap (15) — the day entered in
+ * Whether the day's sitting goal is the hard cap (15): the day entered in
  * overtime or the user opted in via Push-to-15.
  */
 export const isOvertimeSession = (sittingGoal: number): boolean => sittingGoal >= DAILY_HARD_CAP;

@@ -52,7 +52,7 @@
 		color: var(--laurel);
 	}
 
-	/* Serif-italic brand treatment — the `.serif-italic` utility on the
+	/* Serif-italic brand treatment: the `.serif-italic` utility on the
 	   element supplies font-family + italic + weight; we only set the
 	   surface-specific size / colour / rhythm here. */
 	.market-locked-toast-msg {

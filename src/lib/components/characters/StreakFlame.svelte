@@ -3,7 +3,7 @@
 	import { stageForStreak, type FlameStage } from '#lib/utils/streak.utils.ts';
 
 	/**
-	 * Tiny inline streak-flame icon — a 16-px SVG flame filled with a
+	 * Tiny inline streak-flame icon: a 16-px SVG flame filled with a
 	 * stage-keyed vertical linear gradient (`spark` → `inferno` shift
 	 * the palette from cool orange to laurel-yellow). Used in stat
 	 * rows where the full-character {@link FlameChar} would be too
@@ -24,7 +24,7 @@
 		stageProp ?? (nonNullish(count) ? stageForStreak(count) : 'spark')
 	);
 
-	// Stage palettes — `[top, bottom]`. Top stop is the cooler hue, bottom
+	// Stage palettes: `[top, bottom]`. Top stop is the cooler hue, bottom
 	// the hotter one; gradient runs top → bottom so the base of the flame
 	// reads as the hot core.
 	const COLORS: Record<FlameStage, [string, string]> = {

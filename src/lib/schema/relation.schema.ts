@@ -21,7 +21,7 @@ export const CheckFriendshipArgsSchema = j.strictObject({
 });
 
 /**
- * Typed outcome of `sendFriendRequest` — known non-success cases are
+ * Typed outcome of `sendFriendRequest`: known non-success cases are
  * statuses, not traps, so the FE can surface a specific message (and,
  * for `rejected_cooldown`, the `retryAtMs` the wait is counted from).
  * Unexpected failures still trap and reach the FE as thrown errors.

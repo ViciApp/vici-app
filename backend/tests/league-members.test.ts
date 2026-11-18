@@ -1,9 +1,11 @@
 // League membership key discipline: who can write / change / remove a
-// membership row, the reserved owner role, and the atomic ownership
-// transfer.
+// membership row, the reserved owner role, the atomic ownership transfer, and
+// the per-account budget on invite-code guesses.
 
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
+import { createSession } from '../src/auth/sessions';
+import { app } from '../src/index';
 import {
 	createLeague,
 	deleteLeague,
@@ -19,6 +21,7 @@ import {
 	removeLeagueMember,
 	upsertLeagueMember
 } from '../src/leagues/members';
+import { resetRateLimits } from '../src/lib/rate-limit';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 
@@ -114,24 +117,23 @@ describe.if(dbAvailable)('membership key discipline', () => {
 		for (const role of ['admin', 'member'] as const) {
 			expect(
 				upsertLeagueMember({ leagueId, callerId: outsider, memberUserId: outsider, role })
-			).rejects.toThrow('invite code or the league owner');
+			).rejects.toThrow('not a member');
 		}
 
 		expect(await getLeagueMember({ leagueId, memberUserId: outsider })).toBeUndefined();
 	});
 
-	test('the owner can add a new member row directly', async () => {
+	test('the owner cannot add a member who has not joined', async () => {
 		const { ownerId, leagueId } = await seedLeague();
 		const userId = await createTestUser();
 
-		const added = await upsertLeagueMember({
-			leagueId,
-			callerId: ownerId,
-			memberUserId: userId,
-			role: 'member'
-		});
+		for (const role of ['admin', 'member'] as const) {
+			expect(
+				upsertLeagueMember({ leagueId, callerId: ownerId, memberUserId: userId, role })
+			).rejects.toThrow('not a member');
+		}
 
-		expect(added.role).toBe('member');
+		expect(await getLeagueMember({ leagueId, memberUserId: userId })).toBeUndefined();
 	});
 
 	test('the owner role is reserved for the league owner', async () => {
@@ -256,5 +258,54 @@ describe.if(dbAvailable)('ownership transfer', () => {
 
 		// Idempotent: disbanding an already-gone league is a clean success.
 		expect((await deleteLeague({ leagueId, callerId: ownerId })).ok).toBe(true);
+	});
+});
+
+describe.if(dbAvailable)('invite-code guesses', () => {
+	// No league is ever created with this code: it holds a digit-free letter
+	// run the generator can draw, but these suites never seed it.
+	const UNKNOWN_CODE = 'QQQQQQ';
+
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	beforeEach(() => {
+		resetRateLimits();
+	});
+
+	const lookupAs = (token: string): Promise<Response> =>
+		app.handle(
+			new Request(`http://localhost/api/v1/leagues/invite/${UNKNOWN_CODE}`, {
+				headers: { cookie: `vici_session=${token}` }
+			})
+		);
+
+	const joinAs = (token: string): Promise<Response> =>
+		app.handle(
+			new Request('http://localhost/api/v1/leagues/join', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', cookie: `vici_session=${token}` },
+				body: JSON.stringify({ inviteCode: UNKNOWN_CODE })
+			})
+		);
+
+	test('the lookup and the join share one budget per account, leaving other accounts untouched', async () => {
+		const token = await createSession(await createTestUser());
+		const otherToken = await createSession(await createTestUser());
+
+		for (let i = 0; i < 15; i++) {
+			expect((await lookupAs(token)).status).toBe(200);
+			expect((await joinAs(token)).status).toBe(400);
+		}
+
+		for (const limited of [await lookupAs(token), await joinAs(token)]) {
+			expect(limited.status).toBe(429);
+			expect(await limited.json()).toEqual({ error: 'rate_limited' });
+			expect(limited.headers.get('retry-after')).not.toBeNull();
+		}
+
+		expect((await lookupAs(otherToken)).status).toBe(200);
+		expect((await joinAs(otherToken)).status).toBe(400);
 	});
 });

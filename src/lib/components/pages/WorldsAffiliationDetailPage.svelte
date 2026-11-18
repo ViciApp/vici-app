@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import CountryFlag from '#lib/components/ui/CountryFlag.svelte';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { hasCountryFlag } from '#lib/constants/country-flags.constants.ts';
 	import {
 		lookupWorldsAffiliation,
@@ -39,7 +40,7 @@
 	import { resolve } from '$app/paths';
 
 	/**
-	 * Worlds affiliation detail — drill-down from `WorldsPage` and the
+	 * Worlds affiliation detail: drill-down from `WorldsPage` and the
 	 * battle standings. The same component serves both the university
 	 * ("school") and country ("nation") variant; the two mirror each
 	 * other in layout and differ only in the kind label, the identity
@@ -51,17 +52,17 @@
 	 *  1. Compact bar (`ScreenHeader`) with an inline back control and
 	 *     the affiliation name, followed by a scrollable context-chip
 	 *     row (kind · members · champion count · your-marker).
-	 *  2. Identity card — a brand-coloured letter badge (or flag) beside
+	 *  2. Identity card: a brand-coloured letter badge (or flag) beside
 	 *     a season-rank line.
-	 *  3. Three-stat grid — May rank, WC-Battle rank (accented), and
+	 *  3. Three-stat grid: May rank, WC-Battle rank (accented), and
 	 *     all-time accuracy.
-	 *  4. Activity block — an under-threshold empty state encouraging
+	 *  4. Activity block: an under-threshold empty state encouraging
 	 *     calls, or the live accuracy split for active affiliations.
 	 *  5. A standings CTA back to the full battle list.
 	 *
 	 * Stats are populated by the satellite hook on `profiles` updates,
 	 * so the user's own resolved calls are already folded into the
-	 * affiliation totals server-side — no client-side session delta is
+	 * affiliation totals server-side; no client-side session delta is
 	 * applied here (that would double-count).
 	 */
 	interface Props {
@@ -84,7 +85,7 @@
 	let loadState: 'loading' | 'ready' | 'error' = $state('loading');
 	let errorMessage: string | null = $state(null);
 
-	// Whether this affiliation is the caller's own — read from the shared
+	// Whether this affiliation is the caller's own: read from the shared
 	// cache so the "your marker" chip survives re-entry without a refetch.
 	const isMine = $derived(
 		(kind === 'university' ? $myAffiliationsStore.university : $myAffiliationsStore.country)
@@ -114,13 +115,15 @@
 	});
 
 	const accuracyPctLifetime = $derived(
-		stats && stats.totalCalls > 0 ? formatAccuracyPercent(affiliationLifetimeAccuracy(stats)) : '—'
+		stats && stats.totalCalls > 0
+			? formatAccuracyPercent(affiliationLifetimeAccuracy(stats))
+			: EMPTY_VALUE
 	);
 
 	const accuracyPctMonth = $derived(
 		stats && stats.monthTotalCalls > 0
 			? formatAccuracyPercent(affiliationMonthlyAccuracy(stats))
-			: '—'
+			: EMPTY_VALUE
 	);
 
 	const hasActivity = $derived(nonNullish(stats) && stats.totalCalls > 0);
@@ -154,8 +157,8 @@
 	const wcRank = $derived(rankBy({ key: 'lifetime' }));
 	const monthRank = $derived(rankBy({ key: 'month' }));
 
-	const monthRankLabel = $derived(monthRank > 0 ? `#${monthRank}` : '—');
-	const wcRankLabel = $derived(wcRank > 0 ? `#${wcRank}` : '—');
+	const monthRankLabel = $derived(monthRank > 0 ? `#${monthRank}` : EMPTY_VALUE);
+	const wcRankLabel = $derived(wcRank > 0 ? `#${wcRank}` : EMPTY_VALUE);
 
 	const headerName = $derived(
 		nonNullish(option)
@@ -172,7 +175,7 @@
 	const championCount = $derived(championships.length);
 
 	/**
-	 * Context chips below the bar — the kind label, member count, the
+	 * Context chips below the bar: the kind label, member count, the
 	 * champion-cup count (only once the affiliation has at least one
 	 * recorded cup), and (when this is the caller's own affiliation) the
 	 * Alma Mater / Citizen marker.

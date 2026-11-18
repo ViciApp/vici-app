@@ -34,15 +34,15 @@
 		displayName: string;
 		/** Pre-formatted accuracy, e.g. `48.4%`. */
 		accuracyLabel: string;
-		/** Consecutive active days (the Flame engine) — rendered as `{n}d`. */
+		/** Consecutive active days (the Flame engine): rendered as `{n}d`. */
 		dailyStreak: number;
-		/** friend only — opens the mini-profile sheet. */
+		/** friend only: opens the mini-profile sheet. */
 		onOpen?: () => void;
-		/** friend only — head-to-head accuracy delta, e.g. `+12.3`. */
+		/** friend only: head-to-head accuracy delta, e.g. `+12.3`. */
 		h2hValue?: string;
-		/** friend only — whether the viewer is ahead (tints the chip). */
+		/** friend only: whether the viewer is ahead (tints the chip). */
 		h2hAhead?: boolean;
-		/** you only — pre-formatted VXP balance. */
+		/** you only: pre-formatted VXP balance. */
 		vxpLabel?: string;
 	}
 
@@ -128,7 +128,7 @@
 		background: color-mix(in srgb, var(--color-primary) 10%, var(--bg-popover));
 	}
 
-	/* Rank index — centered in a fixed-width column so 01/02/… and the
+	/* Rank index: centered in a fixed-width column so 01/02/… and the
 	   YOU label align under one another. */
 	.ranked-num {
 		min-width: 26px;
@@ -187,7 +187,7 @@
 		font-size: var(--t-12);
 	}
 
-	/* Head-to-head accuracy delta chip — centered with a min-width so
+	/* Head-to-head accuracy delta chip: centered with a min-width so
 	   single- and double-digit deltas line up in a column, and a 1px
 	   tinted border on both the ahead and behind variants. */
 	.ranked-h2h {

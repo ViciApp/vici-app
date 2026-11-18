@@ -68,13 +68,13 @@ top-level group:
   `#lib/utils/flow-art.utils.ts`). Parallel to `characters/`.
 - `authn/`: authentication / Internet Identity / OAuth flows.
 - `authz/`: authorization (role gating, guards rendering).
-- `characters/`: character SVGs (Vici, Oracle, Trickster, Archivist, Flame).
+- `characters/`: character SVGs (Vici, Oracle, Trickster, Flame).
 - `claim/`: legacy-to-new-app migration banners.
 - `dash/`: Dashboard surfaces.
 - `dev/`: dev-build-only tooling (`TweaksPanel`).
 - `guest/`: signed-out guest conversion funnel.
 - `icons/`: bespoke icons not covered by `@lucide/svelte`.
-- `layout/`: app chrome (`ScreenHeader`, `PageScaffold`, `DesktopAppNav`, `MobileNav`, `WelcomeNav`).
+- `layout/`: app chrome (`ScreenHeader`, `DesktopAppNav`, `MobileNav`, `WelcomeNav`).
 - `landing/`: public marketing sections (`WelcomeHero`, `WelcomeProof`, `WelcomeFooter`, …).
 - `leagues/`: leagues, battles and the affiliation picker.
 - `loaders/`: loader shells and the `LoaderXxx` cache fillers mounted by `Loaders`.
@@ -104,7 +104,7 @@ so agents must.
 
 | Suffix               | Meaning                                                    | Example                                        |
 | -------------------- | ---------------------------------------------------------- | ---------------------------------------------- |
-| `*.svelte`           | Component (PascalCase filename)                            | `MarketCard.svelte`, `SignInModal.svelte`      |
+| `*.svelte`           | Component (PascalCase filename)                            | `FlowCard.svelte`, `SignInModal.svelte`        |
 | `*.svelte.ts`        | Module that uses Svelte 5 runes outside a component        | _(rare today; introduce as needed)_            |
 | `*.services.ts`      | Side-effectful module (calls APIs, mutates stores, toasts) | `market.services.ts`, `collateral.services.ts` |
 | `*.api.ts`           | Wrapper around a canister actor / generated declaration    | `clearing.api.ts`, `registry.api.ts`           |
@@ -121,10 +121,10 @@ so agents must.
 
 | Thing                    | Style                         | Example                               |
 | ------------------------ | ----------------------------- | ------------------------------------- |
-| `.svelte` filename       | `PascalCase`                  | `MarketCard.svelte`                   |
+| `.svelte` filename       | `PascalCase`                  | `FlowCard.svelte`                     |
 | `.ts` filename           | `kebab-case`                  | `market-price-history.utils.ts`       |
 | Folder                   | `kebab-case` (or single word) | `market/`, `wallet/`, `address-book/` |
-| Component name           | `PascalCase`                  | `MarketCard`                          |
+| Component name           | `PascalCase`                  | `FlowCard`                            |
 | TS type / interface      | `PascalCase`                  | `MarketSummary`                       |
 | Function / variable      | `camelCase`                   | `formatBalance`                       |
 | Constant export          | `SCREAMING_SNAKE`             | `VICI_ENGINE_ID`                      |
@@ -140,7 +140,7 @@ Time values must carry their unit in the variable name:
   boundary or an idempotency key (`requestId_ns`, `submittedAt_ns`).
 
 Convert with `MILLISECOND_IN_NANOSECONDS` from
-`#lib/constants/app.constants` (divide nanoseconds by it, as
+`#lib/constants/time.constants` (divide nanoseconds by it, as
 `market.utils.ts` does), and name a helper after the unit it takes, so
 the caller sees which one to pass (`formatRelativeAgoFromNs` in
 `format.utils.ts`).
@@ -178,7 +178,7 @@ one extensionless import: `package.json` maps it straight to
 ```ts
 import { localeStore } from '#lib/stores/locale.store.ts';
 import type { Market } from '#lib/types/market.ts';
-import { clearingApi } from '#lib/api/clearing.api.ts';
+import { getPositions } from '#lib/api/clearing.api.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { syncRoleToEngineOnSet } from '#satellite/services/engine-sync.services.ts';
 import { t } from '#lib/utils/i18n.utils.ts';
@@ -205,7 +205,11 @@ import type { _SERVICE as ClearingService } from '#declarations/clearing/clearin
   ESLint rule `local-rules/no-bare-svelte-text` flags this in components
   that already import `i18n.utils`. See [`i18n.md`](./i18n.md).
 - **Dynamic `import()` of internal (`#lib/**`) modules: avoid it.** The
-  codebase intentionally has **none**, and new ones are not welcome. It was
+  codebase has one deliberate exception: the per-locale catalog loader in
+  [`i18n.utils.ts`](../../../src/lib/utils/i18n.utils.ts) imports on demand
+  the non-English catalogs in the selected locale's fallback chain (a
+  partial `es-MX` also loads `es`), so a first visit downloads only those. That is a structural split, not a workaround; new dynamic
+  imports are not welcome. Dynamic import was
   previously used to paper over circular dependencies; that is the wrong
   fix. **Circular references are solved by extraction, not by deferring the
   import to runtime:** a cycle means a shared symbol lives in the wrong

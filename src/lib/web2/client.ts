@@ -10,7 +10,12 @@ import type {
 } from '#lib/types/affiliation-stats.ts';
 import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
 import type { TrackEventInput } from '#lib/types/analytics-event.ts';
-import { isBattleScope, type BattleDoc, type BattleWinner } from '#lib/types/battle.ts';
+import {
+	isBattleScope,
+	readBattleDoc,
+	type BattleDoc,
+	type BattleWinner
+} from '#lib/types/battle.ts';
 import type { ExitSignalReason } from '#lib/types/exit-signal.ts';
 import type { LeagueMemberDoc, LeagueMemberRole } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
@@ -19,13 +24,12 @@ import type { MarketTranslation, MarketTranslationInput } from '#lib/types/marke
 import type { CallSide } from '#lib/types/market.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
+import type { Activity, ActivityReaction, ResolvedResult } from '#lib/types/social.ts';
 import type {
-	Activity,
-	ActivityReaction,
-	ActivityReactionCount,
-	ResolvedResult
-} from '#lib/types/social.ts';
-import type { TournamentDoc, TournamentMatchDoc } from '#lib/types/tournament.ts';
+	TournamentDoc,
+	TournamentMatchDoc,
+	TriggerTournamentDrawRefusalReason
+} from '#lib/types/tournament.ts';
 import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 import { web2ApiBaseUrl } from '#lib/web2/backend-mode.ts';
 import {
@@ -242,7 +246,7 @@ export const verifyOtp = async ({
  * target (the API sets a signed state cookie and 302s on to Google), not a
  * fetch, so callers navigate to it. `returnTo` is the in-app path the API
  * redirects to after its callback; it must be a same-app absolute path
- * (`/flow?x=1`, never a full URL) — the API embeds it in the signed OAuth
+ * (`/flow?x=1`, never a full URL): the API embeds it in the signed OAuth
  * state and clamps anything else to `/` to rule out open redirects.
  */
 export const googleSignInUrl = ({ returnTo }: { returnTo?: string } = {}): string => {
@@ -437,22 +441,6 @@ export const searchProfiles = async (queryStr: string): Promise<UserProfile[]> =
 	return items.map(mapProfile);
 };
 
-/** Whether two users hold an active friendship. */
-export const checkFriendship = async ({
-	userA,
-	userB
-}: {
-	userA: string;
-	userB: string;
-}): Promise<boolean> => {
-	const { isFriend } = await request<{ isFriend: boolean }>({
-		path: `/api/v1/social/friendship?${encodeQuery({ userA, userB })}`,
-		method: 'GET'
-	});
-
-	return isFriend;
-};
-
 /** The caller's dashboard stat cache, or `undefined` before the first sync. */
 export const getUserStats = async (): Promise<UserStatsDoc | undefined> => {
 	const { stats } = await request<{ stats: Web2UserStatsWire | null }>({
@@ -492,17 +480,20 @@ export const listLeaderboard = async (): Promise<UserProfile[]> => {
 	return items.map(mapProfile);
 };
 
-/** The caller's rival across the full ranking, or `undefined` when unranked /
- * the lone ranked profile. `rivalIsTrailing` frames the gap as a lead. */
-export const getMyRival = async (): Promise<
-	{ profile: UserProfile; isTrailing: boolean } | undefined
-> => {
-	const { rival, rivalIsTrailing } = await request<{
-		rival: Web2ProfileWire | null;
-		rivalIsTrailing: boolean;
-	}>({ path: '/api/v1/leaderboard/rival', method: 'GET' });
+/** One account's place in the full points ranking plus the ranked population
+ * size, the counterpart of the satellite's self-rank query. The wire carries
+ * an unranked account's `rank` as `null`; the app shape leaves it absent. */
+export const getUserRankAndCount = async ({
+	userId
+}: {
+	userId: string;
+}): Promise<{ rank?: number; count: number }> => {
+	const { rank, count } = await request<{ rank: number | null; count: number }>({
+		path: `/api/v1/leaderboard/rank/${encodeURIComponent(userId)}`,
+		method: 'GET'
+	});
 
-	return isNullish(rival) ? undefined : { profile: mapProfile(rival), isTrailing: rivalIsTrailing };
+	return isNullish(rank) ? { count } : { rank, count };
 };
 
 const listRelations = async (path: string): Promise<Relation[]> => {
@@ -512,8 +503,6 @@ const listRelations = async (path: string): Promise<Relation[]> => {
 };
 
 export const listFriends = (): Promise<Relation[]> => listRelations('/api/v1/social/friends');
-
-export const listFollowers = (): Promise<Relation[]> => listRelations('/api/v1/social/followers');
 
 export const listFollowing = (): Promise<Relation[]> => listRelations('/api/v1/social/following');
 
@@ -559,13 +548,6 @@ export const followUser = async (target: string): Promise<void> => {
 		path: '/api/v1/social/follow',
 		method: 'POST',
 		body: { target }
-	});
-};
-
-export const unfollowUser = async (userId: string): Promise<void> => {
-	await request<{ ok: boolean }>({
-		path: `/api/v1/social/follow/${encodeURIComponent(userId)}`,
-		method: 'DELETE'
 	});
 };
 
@@ -994,23 +976,6 @@ export const depositEngineCollateral = async ({
 	});
 };
 
-/** Release clearing collateral back to the custodial account. */
-export const withdrawEngineCollateral = async ({
-	withdrawalId,
-	assetId,
-	amount
-}: {
-	withdrawalId: string;
-	assetId: string;
-	amount: bigint;
-}): Promise<void> => {
-	await request<{ ok: boolean }>({
-		path: '/api/v1/engine/collateral/withdraw',
-		method: 'POST',
-		body: { withdrawalId, assetId, amount: amount.toString() }
-	});
-};
-
 // ─── Custodial wallet ────────────────────────────────────────────────────
 //
 // Balances, deposit addresses and withdrawals live on the API's custody
@@ -1087,30 +1052,27 @@ export const getWalletDepositAddress = async (
 		method: 'GET'
 	});
 
-export const listWalletWithdrawals = async (): Promise<Web2WalletWithdrawal[]> => {
-	const { withdrawals } = await request<{ withdrawals: Web2WalletWithdrawal[] }>({
-		path: '/api/v1/wallet/withdrawals',
-		method: 'GET'
-	});
-
-	return withdrawals;
-};
-
 /**
  * Request a custodial withdrawal (the self-custody exit when `selfCustody`).
  * The API executes best-effort inline, so the returned row already carries the
  * outcome state (`submitted`, or `failed` with the hold refunded).
+ * `idempotencyKey` is fresh for each withdrawal the user asks for and resent
+ * unchanged on any retry of it (the Wallet send keeps it with `pendingSendFor`):
+ * the API answers a repeated key with the withdrawal it already filed instead
+ * of holding the funds a second time.
  */
 export const requestWalletWithdrawal = async ({
 	assetId,
 	amount,
 	destination,
-	selfCustody
+	selfCustody,
+	idempotencyKey
 }: {
 	assetId: string;
 	amount: bigint;
 	destination: string;
 	selfCustody?: boolean;
+	idempotencyKey: string;
 }): Promise<Web2WalletWithdrawal> => {
 	const { withdrawal } = await request<{ withdrawal: Web2WalletWithdrawal }>({
 		path: '/api/v1/wallet/withdrawals',
@@ -1119,7 +1081,8 @@ export const requestWalletWithdrawal = async ({
 			assetId,
 			amount: amount.toString(),
 			destination,
-			...(isNullish(selfCustody) ? {} : { selfCustody })
+			...(isNullish(selfCustody) ? {} : { selfCustody }),
+			idempotencyKey
 		}
 	});
 
@@ -1185,13 +1148,13 @@ type Web2BattleWire = Omit<BattleDoc, 'proposer' | 'scope'> & {
 const mapBattle = (wire: Web2BattleWire): BattleDoc => {
 	const { proposerUserId, scope, ...rest } = wire;
 
-	return {
+	return readBattleDoc({
 		...rest,
 		proposer: proposerUserId,
 		// Drop anything outside the closed scope set, like the satellite
 		// projection does for legacy / unknown values.
 		...(nonNullish(scope) && isBattleScope(scope) ? { scope } : {})
-	};
+	});
 };
 
 /** Every league the session user belongs to, with role and member tally. */
@@ -1482,7 +1445,7 @@ export const proposeBattle = async ({
 	kickoffMs,
 	settleMs,
 	scope,
-	wager,
+	amount,
 	trashTalk
 }: {
 	id: string;
@@ -1492,7 +1455,7 @@ export const proposeBattle = async ({
 	kickoffMs: number;
 	settleMs: number;
 	scope?: string;
-	wager?: number;
+	amount?: number;
 	trashTalk?: string;
 }): Promise<BattleDoc> => {
 	const { battle } = await request<{ battle: Web2BattleWire }>({
@@ -1506,7 +1469,7 @@ export const proposeBattle = async ({
 			kickoffMs,
 			settleMs,
 			...(isNullish(scope) ? {} : { scope }),
-			...(isNullish(wager) ? {} : { wager }),
+			...(isNullish(amount) ? {} : { amount }),
 			...(isNullish(trashTalk) ? {} : { trashTalk })
 		}
 	});
@@ -1747,7 +1710,7 @@ export const triggerTournamentDraw = async ({
 }): Promise<{
 	ok: boolean;
 	tournamentId?: string;
-	reason?: 'already_drawn' | 'month_not_started' | 'insufficient_leagues' | 'invalid_input';
+	reason?: TriggerTournamentDrawRefusalReason;
 	availableLeagues?: number;
 }> => await request({ path: '/api/v1/tournaments/draw', method: 'POST', body: { monthAnchor } });
 
@@ -1795,31 +1758,6 @@ export const claimTournamentPrize = async ({
 
 // ─── VXP economy ─────────────────────────────────────────────────────────
 
-/** One row of the caller's award ledger (amounts are VXP base units as
- * decimal strings; `status` tracks the pending -> paid transfer machine). */
-export interface Web2VxpAward {
-	id: string;
-	userId: string;
-	awardType: string;
-	awardKey: string;
-	amountBaseUnits: string;
-	status: 'pending' | 'processing' | 'paid' | 'failed';
-	earnedAtMs: number;
-	paidAtMs?: number;
-	blockIndex?: string;
-	errorMessage?: string;
-}
-
-/** The caller's own award history, newest first, optionally one type. */
-export const listMyVxpAwards = async (type?: string): Promise<Web2VxpAward[]> => {
-	const { items } = await request<{ items: Web2VxpAward[] }>({
-		path: `/api/v1/vxp/awards${isNullish(type) ? '' : `?${encodeQuery({ type })}`}`,
-		method: 'GET'
-	});
-
-	return items;
-};
-
 /** Structured calibration-claim result; `recorded_only` marks an award that
  * was recorded without a transfer (treasury parallel-run mode). */
 export interface Web2CalibrationClaim {
@@ -1836,6 +1774,7 @@ export interface Web2CalibrationClaim {
 		| 'not_binary'
 		| 'not_finalised'
 		| 'outcome_undetermined'
+		| 'already_called'
 		| 'rate_limited_hourly'
 		| 'rate_limited_daily'
 		| 'recorded_only'
@@ -1858,16 +1797,6 @@ export const claimCalibrationReward = async ({
 		method: 'POST',
 		body: { seriesId, chosenSide }
 	});
-
-/** Retry / self-heal a referral payout. Omitting the referee targets the
- * caller's own referee row; other rows are admin-only server-side. */
-export const settleReferralPayout = async (refereeUserId?: string): Promise<void> => {
-	await request<Record<string, unknown>>({
-		path: '/api/v1/vxp/referral/settle',
-		method: 'POST',
-		body: isNullish(refereeUserId) ? {} : { refereeUserId }
-	});
-};
 
 // ─── Referrals ───────────────────────────────────────────────────────────
 
@@ -2093,35 +2022,6 @@ export const listActivities = async ({
 	return items.map(mapActivity);
 };
 
-/** Like one activity. The route derives the liker from the session and
- * maintains the count rollup transactionally with the write. */
-export const likeActivity = async ({
-	activityKey,
-	timestamp,
-	activityTitle,
-	marketId
-}: {
-	activityKey: string;
-	timestamp: number;
-	activityTitle: string;
-	marketId?: string;
-}): Promise<void> => {
-	await request<{ ok: boolean }>({
-		path: '/api/v1/social/activity-reactions',
-		method: 'POST',
-		body: { activityKey, timestamp, activityTitle, marketId }
-	});
-};
-
-/** Remove the caller's like; idempotent when no like exists. */
-export const unlikeActivity = async ({ activityKey }: { activityKey: string }): Promise<void> => {
-	await request<{ ok: boolean }>({
-		path: '/api/v1/social/activity-reactions',
-		method: 'DELETE',
-		body: { activityKey }
-	});
-};
-
 /** The most-recent reactions across all users (public read), newest first.
  * The route caps `limit` at 1000. */
 export const listActivityReactions = async ({
@@ -2132,22 +2032,6 @@ export const listActivityReactions = async ({
 	const { items } = await request<{ items: ActivityReaction[] }>({
 		path: `/api/v1/social/activity-reactions?${encodeQuery({ limit: limit.toString() })}`,
 		method: 'GET'
-	});
-
-	return items;
-};
-
-/** Rollup like counts for the given activity keys (key-addressed, so the
- * caller derives the keys from the feed window it renders). */
-export const getActivityReactionCounts = async ({
-	activityKeys
-}: {
-	activityKeys: string[];
-}): Promise<ActivityReactionCount[]> => {
-	const { items } = await request<{ items: ActivityReactionCount[] }>({
-		path: '/api/v1/social/activity-reactions/counts',
-		method: 'POST',
-		body: { activityKeys }
 	});
 
 	return items;

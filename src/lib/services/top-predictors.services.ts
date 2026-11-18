@@ -25,7 +25,7 @@ const TOP_PREDICTORS_LIMIT = 4;
  * Returns `undefined` when the candidate holds no non-flat binary position on
  * the series, so the caller drops them from the list. With a single supplied
  * principal the binary outcome's `long`/`short` counts are that principal's
- * own lean — the same fact their trade already published to the public
+ * own lean: the same fact their trade already published to the public
  * activity feed, so no privacy boundary is crossed.
  */
 const toTopPredictor = ({
@@ -46,14 +46,14 @@ const toTopPredictor = ({
 
 /**
  * The leaderboard-ranked predictors who actually hold a position on one
- * market, each with the side they took — the data behind the market detail's
+ * market, each with the side they took; the data behind the market detail's
  * "Top predictors here" section.
  *
  * `candidates` is the global leaderboard's principal order (best first);
  * rank on the board is the "top" criterion, holding a live position here is
  * the "here" criterion. The first {@link TOP_PREDICTORS_SCAN_CAP} candidates
  * are probed concurrently and the first {@link TOP_PREDICTORS_LIMIT} holders
- * in rank order are returned. Public read — works signed-out via the
+ * in rank order are returned. Public read: works signed-out via the
  * anonymous identity.
  *
  * Fails open per candidate: a probe error drops that candidate rather than
@@ -85,7 +85,7 @@ export const getMarketTopPredictors = async ({
 
 					return toTopPredictor({ owner, lean });
 				} catch {
-					// The try also covers `Principal.fromText` — a malformed
+					// The try also covers `Principal.fromText`: a malformed
 					// owner string in the cached leaderboard drops just this
 					// candidate instead of rejecting the whole `Promise.all`.
 				}

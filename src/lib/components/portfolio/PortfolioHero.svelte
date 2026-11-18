@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { EM_DASH } from '#lib/constants/app.constants.ts';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 
@@ -46,7 +46,7 @@
 		</div>
 		<div class="portfolio-hero-stat">
 			<dt class="eyebrow">{t({ locale: $localeStore, key: 'portfolio.stat.rank' })}</dt>
-			<dd class="num">{EM_DASH}</dd>
+			<dd class="num">{EMPTY_VALUE}</dd>
 		</div>
 	</dl>
 </section>

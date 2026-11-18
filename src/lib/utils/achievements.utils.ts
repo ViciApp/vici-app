@@ -4,9 +4,9 @@
 // `ACHIEVEMENTS` are unlocked or in progress, given a snapshot of the
 // user's stats. Consumed by:
 //
-// - `profile.services.ts` — after recomputing stats, to detect newly
+// - `profile.services.ts`: after recomputing stats, to detect newly
 //   unlocked ids, credit XP, and persist them.
-// - `ProfileDashboard.svelte` — to render unlocked state + progress.
+// - `ProfileDashboard.svelte`: to render unlocked state + progress.
 //
 // Keep this file pure (no Svelte / stores / I/O). All inputs flow in
 // through `AchievementsInput`; outputs are deterministic.
@@ -27,7 +27,7 @@ export const ORACLE_ACCURACY_TARGET = 80;
 export const ORACLE_TRADES_TARGET = 50;
 export const MARATHON_DAILY_STREAK_TARGET = 30;
 // `league-founder` unlocks once the caller owns a league with at least
-// this many members (themselves included). Sticky — survives a later
+// this many members (themselves included). Sticky: survives a later
 // disband via `mergeUnlockedAchievements`.
 export const LEAGUE_FOUNDER_MIN_MEMBERS = 3;
 // `top-decile` unlocks after holding a top-10% global-leaderboard
@@ -55,7 +55,7 @@ export interface AchievementsInput {
 	 */
 	topDecileStreak: number;
 	/**
-	 * Best monthly sharpest-eye placement the caller has ever earned —
+	 * Best monthly sharpest-eye placement the caller has ever earned:
 	 * `'gold'` / `'silver'` / `'bronze'`, or `undefined` if they've never
 	 * placed top-3 in a completed month. Drives `sharpest-eye` (presence =
 	 * unlocked; the value picks the tier wash).
@@ -63,7 +63,7 @@ export interface AchievementsInput {
 	sharpestEyeBestTier?: string;
 	/**
 	 * `true` when the caller has won (or tied for) a completed month's
-	 * bold-caller award — best accuracy among users whose median
+	 * bold-caller award: best accuracy among users whose median
 	 * consensus-at-call is below the bold threshold. Drives `bold-caller`.
 	 */
 	wonBoldCallerMonth: boolean;
@@ -73,7 +73,7 @@ export interface AchievementEvaluation {
 	id: string;
 	def: AchievementDef;
 	unlocked: boolean;
-	/** 0..1 — capped. Always 1 when `unlocked` is true. */
+	/** 0..1: capped. Always 1 when `unlocked` is true. */
 	progress: number;
 }
 
@@ -115,7 +115,7 @@ const evaluateOne = ({
 			const accuracyHit = accuracyUnlocked && accuracy >= ORACLE_ACCURACY_TARGET;
 			const tradesHit = totalTrades >= ORACLE_TRADES_TARGET;
 
-			// Progress on the trade-count axis only — accuracy is a
+			// Progress on the trade-count axis only: accuracy is a
 			// quality gate, not a continuous bar. (We don't want to
 			// teach users that "more trades at 40% accuracy = closer
 			// to Oracle".)
@@ -146,7 +146,7 @@ const evaluateOne = ({
 		}
 
 		case 'league-founder': {
-			// Binary unlock — own a league of `LEAGUE_FOUNDER_MIN_MEMBERS`+
+			// Binary unlock: own a league of `LEAGUE_FOUNDER_MIN_MEMBERS`+
 			// members. Progress is 0/1 (no partial bar): the threshold is
 			// a membership count the caller doesn't directly control. Once
 			// merged into `unlockedAchievements` it's sticky, so a later
@@ -169,7 +169,7 @@ const evaluateOne = ({
 		}
 
 		case 'sharpest-eye': {
-			// Binary unlock — earned the first time the caller places top-3 in
+			// Binary unlock: earned the first time the caller places top-3 in
 			// a completed month's accuracy leaderboard. Presence of a best
 			// tier is the unlock signal (the tier picks the album wash). No
 			// partial bar: the placement is a monthly cohort ranking the caller
@@ -180,7 +180,7 @@ const evaluateOne = ({
 		}
 
 		case 'bold-caller': {
-			// Binary unlock — won (or tied for) a completed month's bold-caller
+			// Binary unlock: won (or tied for) a completed month's bold-caller
 			// award (best accuracy among habitual long-shot callers). 0/1
 			// progress for the same reason as `sharpest-eye`; sticky once
 			// earned.

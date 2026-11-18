@@ -8,7 +8,7 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * Friend mini-profile bottom sheet — opens on a ranked-row tap from
+	 * Friend mini-profile bottom sheet: opens on a ranked-row tap from
 	 * {@link FriendsTab}. Surfaces the friend's accuracy / streak / VXP
 	 * stats, the head-to-head accuracy delta, and a Remove action. Chrome
 	 * (scrim, grip, safe-area inset, Escape, focus-trap, pill-nav hide)
@@ -16,7 +16,7 @@
 	 * owns only the sheet body.
 	 *
 	 * The host passes formatted display values (accuracy / streak / VXP /
-	 * the h2h delta) and the friend identity rather than raw model rows —
+	 * the h2h delta) and the friend identity rather than raw model rows;
 	 * the formatters live in `FriendsTab` alongside the rank list so both
 	 * surfaces stay in lockstep.
 	 */
@@ -25,7 +25,7 @@
 		profile: UserProfile | undefined;
 		friendId: string;
 		accuracyValue: string;
-		/** Consecutive active days (the Flame engine) — rendered as `{n}d`. */
+		/** Consecutive active days (the Flame engine): rendered as `{n}d`. */
 		dailyStreak: number;
 		vxpValue: string;
 		h2hAhead: boolean;
@@ -163,7 +163,7 @@
 		text-transform: uppercase;
 	}
 
-	/* Open-column stats — label over value, no per-tile box. The block is
+	/* Open-column stats: label over value, no per-tile box. The block is
 	   bracketed by a top + bottom divider rule so the three columns read as
 	   one editorial band rather than three cards. */
 	.friends-sheet-stats {
@@ -198,7 +198,7 @@
 		font-weight: 700;
 	}
 
-	/* Head-to-head reads as a single open row — label left, delta right —
+	/* Head-to-head reads as a single open row: label left, delta right,
 	   sharing the open-column register of the stats band above (no box). */
 	.friends-sheet-h2h {
 		display: flex;

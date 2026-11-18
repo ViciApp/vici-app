@@ -4,6 +4,7 @@ import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
 import {
 	matchCountForRound,
+	monthStartMs,
 	roundWindow,
 	TOURNAMENT_BRACKET_SIZE,
 	TOURNAMENT_MIN_CALLS_PER_MATCH,
@@ -13,19 +14,30 @@ import {
 	tournamentMatchKey,
 	type TournamentDoc,
 	type TournamentMatchDoc,
-	type TournamentRound
+	type TournamentRound,
+	type TriggerTournamentDrawRefusalReason
 } from '#lib/types/tournament.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
+import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
-import { getLeagueStatsFn } from '#satellite/services/league-stats.services.ts';
+import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
+import { leagueMemberPrincipals } from '#satellite/services/league-member.services.ts';
+import { settledTotals } from '#satellite/services/settled-history.services.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
+import { tournamentDrawRefusal } from '#satellite/utils/tournament-draw.utils.ts';
+import {
+	decideTournamentPrize,
+	tournamentPodium,
+	type TournamentPrizeMembership
+} from '#satellite/utils/tournament-prize.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -35,42 +47,52 @@ import {
 } from '@junobuild/functions/sdk';
 
 /**
- * Monthly tournament — the full chain.
+ * Monthly tournament: the full chain.
  *
- *  - Asserts for both collections (key shape, write-once invariants
- *    on team / accuracy / winner / start-snapshot fields, forward-only
- *    state machine `in_flight → concluded`).
- *  - `triggerTournamentDrawFn` — anyone can call; idempotent via
- *    doc-key collision on the month anchor. Scans LEAGUE_MEMBERS,
- *    counts members per league, seeds the top-16 into Round 1, and
- *    snapshots each seeded league's `(totalCalls, wins)` for the
- *    per-window accuracy computation in resolution.
- *  - `getCurrentTournamentFn` — returns the latest tournament + its
+ *  - Asserts for both collections: only a satellite controller may
+ *    write or delete (see `assertControllerCaller`), then key shape,
+ *    write-once invariants on team / accuracy / winner / start-snapshot
+ *    fields, forward-only state machine `in_flight → concluded`.
+ *  - `triggerTournamentDrawFn`: anyone can call, for the current UTC
+ *    month only and only while its round 1 window is open;
+ *    idempotent via doc-key collision on the month anchor. Scans LEAGUE_MEMBERS, counts members per league, and
+ *    seeds the top-16 into Round 1.
+ *  - `getCurrentTournamentFn`: returns the latest tournament + its
  *    matches for the FE bracket.
- *  - `resolveTournamentRoundFn` — anyone can call once a round has
- *    closed; reads live LEAGUE_STATS, computes per-side window
- *    accuracy as `(currentStats - startSnapshot) / deltaCalls`,
- *    applies the 50-call forfeit rule, writes the winner + propagates
- *    them into the next round's slot. Idempotent via the match
- *    doc's `winnerLeagueId` write-once invariant.
- *  - `claimTournamentPrizeFn` — per-user claim once the tournament
+ *  - `resolveTournamentRoundFn`: anyone can call once a round has
+ *    closed; scores each side from its members' settled history over
+ *    the round window, read from the clearing canister (the source
+ *    league battles are scored from, never the member-writable
+ *    `league_stats`), applies the 50-call forfeit rule, writes the
+ *    winner + propagates them into the next round's slot. Idempotent
+ *    via the match doc's `winnerLeagueId` write-once invariant.
+ *  - `claimTournamentPrizeFn`: per-user claim once the tournament
  *    concludes; credits a single VXP_AWARDS doc per the caller's
  *    highest-tier placement.
  *
  * Forfeit rule: a league with fewer than 50 calls in the window
- * forfeits. If both sides forfeit, the lower-leagueId advances —
+ * forfeits. If both sides forfeit, the lower-leagueId advances:
  * keeps the bracket deterministic without needing a coin-flip RNG.
  */
 
 const ASSERT_PREFIX = 'tournament';
 
+const writerPurpose = 'tournament bracket write';
+
 /**
- * Single-doc-per-month assert. Key must equal `${id}` and match
+ * Single-doc-per-month assert. Both tournament collections are
+ * `write: 'public'` and their docs decide who may claim the tournament prize
+ * (real VXP), so the draw and round-resolution endpoints compute every doc and
+ * write it as a controller; a client write is rejected before its payload is
+ * read.
+ *
+ * Key must equal `${id}` and match
  * `monthAnchorFromMs(monthStartMs)`. `bracketSize` and
  * `seededLeagueIds` are immutable after the initial write; the only
  * field that ever mutates is `state` (in_flight → concluded).
  */
 export const assertSetTournament = ({
+	caller,
 	data: {
 		collection,
 		key,
@@ -81,6 +103,8 @@ export const assertSetTournament = ({
 		return;
 	}
 
+	assertControllerCaller({ caller, collection });
+
 	const proposedDoc = decodeDocData<TournamentDoc>(proposed.data);
 
 	if (key !== proposedDoc.id) {
@@ -89,7 +113,7 @@ export const assertSetTournament = ({
 		);
 	}
 
-	if (!/^\d{4}-\d{2}$/.test(proposedDoc.id)) {
+	if (!MONTH_ANCHOR_RE.test(proposedDoc.id)) {
 		throw new Error(
 			`${ASSERT_PREFIX}: id must be a YYYY-MM month anchor, got "${proposedDoc.id}".`
 		);
@@ -150,6 +174,7 @@ export const assertSetTournament = ({
  * immutable; accuracy + winner are write-once (null → number).
  */
 export const assertSetTournamentMatch = ({
+	caller,
 	data: {
 		collection,
 		key,
@@ -159,6 +184,8 @@ export const assertSetTournamentMatch = ({
 	if (collection !== Collection.TOURNAMENT_MATCHES) {
 		return;
 	}
+
+	assertControllerCaller({ caller, collection });
 
 	const proposedDoc = decodeDocData<TournamentMatchDoc>(proposed.data);
 	const expectedKey = tournamentMatchKey({
@@ -218,8 +245,8 @@ export const assertSetTournamentMatch = ({
 		throw new Error(`${ASSERT_PREFIX}_match: toLeagueId is immutable once set.`);
 	}
 
-	// Start-of-window stat snapshots — write-once from null. Set when
-	// a league is first assigned to a slot, frozen thereafter.
+	// Start-of-window counters: write-once from null. The draw and the
+	// resolution leave them null; a doc that carries them keeps them.
 	if (
 		nonNullish(currentDoc.fromStartCalls) &&
 		currentDoc.fromStartCalls !== proposedDoc.fromStartCalls
@@ -259,11 +286,27 @@ export const assertSetTournamentMatch = ({
 };
 
 /**
+ * Pre-delete guard for both collections. No satellite path deletes a
+ * tournament or a match; dropping one would let a client reopen a month
+ * for a fresh draw, so only a controller may.
+ */
+export const assertDeleteTournamentDoc = ({
+	caller,
+	data: { collection }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.TOURNAMENTS && collection !== Collection.TOURNAMENT_MATCHES) {
+		return;
+	}
+
+	assertControllerCaller({ caller, collection });
+};
+
+/**
  * Count active members per league by scanning LEAGUE_MEMBERS. Returns
  * a `[leagueId, memberCount]` array sorted by count desc; ties
  * broken by leagueId asc so the seeding is deterministic.
  *
- * Heavy scan, but the satellite has no compound index — and a
+ * Heavy scan, but the satellite has no compound index, and a
  * draw runs at most once per month, so the cost is acceptable.
  */
 const countMembersPerLeague = (callerBytes: Uint8Array): Array<[string, number]> => {
@@ -314,9 +357,6 @@ const seedFirstRoundPairs = (
 	return pairs;
 };
 
-export type TriggerTournamentDrawRefusalReason =
-	'already_drawn' | 'month_not_started' | 'insufficient_leagues' | 'invalid_input';
-
 export interface TriggerTournamentDrawResult {
 	ok: boolean;
 	tournamentId?: string;
@@ -326,11 +366,13 @@ export interface TriggerTournamentDrawResult {
 
 /**
  * Run the monthly draw for `monthAnchor`. Anyone can call (the
- * doc-key collision makes the draw idempotent — a second call for
+ * doc-key collision makes the draw idempotent: a second call for
  * the same month returns `already_drawn` cleanly), so the FE can
- * fire-and-forget on every Tournament-page mount.
+ * fire-and-forget on every Tournament-page mount. Only the current
+ * UTC month is drawn, and only while its round 1 window is open; any
+ * other draw is refused before any read (`tournamentDrawRefusal`).
  *
- * Refuses if fewer than `TOURNAMENT_BRACKET_SIZE` leagues exist —
+ * Refuses if fewer than `TOURNAMENT_BRACKET_SIZE` leagues exist:
  * the data set is too small to seed a full bracket. The FE surfaces
  * this as a "waiting on more leagues" hint.
  */
@@ -339,14 +381,17 @@ export const triggerTournamentDrawFn = ({
 }: {
 	monthAnchor: string;
 }): TriggerTournamentDrawResult => {
-	if (!/^\d{4}-\d{2}$/.test(monthAnchor)) {
-		return { ok: false, reason: 'invalid_input' };
+	const nowMs = timeMs();
+	const refusal = tournamentDrawRefusal({ monthAnchor, nowMs });
+
+	if (nonNullish(refusal)) {
+		return { ok: false, reason: refusal };
 	}
 
 	const caller = msgCaller();
 	const callerBytes = caller.toUint8Array();
 
-	// Idempotency — collide on doc key for the same month.
+	// Idempotency: collide on doc key for the same month.
 	const existing = getDocStore({
 		collection: Collection.TOURNAMENTS,
 		key: monthAnchor,
@@ -357,17 +402,7 @@ export const triggerTournamentDrawFn = ({
 		return { ok: false, reason: 'already_drawn', tournamentId: monthAnchor };
 	}
 
-	// Compute the month's window. The draw can be triggered for any
-	// month that has *started*; the lazy-on-mount pattern triggers
-	// the draw on the first day of a new month.
-	const nowMs = Number(time() / 1_000_000n);
-	const [year, monthStr] = monthAnchor.split('-');
-	const monthDate = new Date(Date.UTC(Number(year), Number(monthStr) - 1, 1, 0, 0, 0, 0));
-	const startMs = monthDate.getTime();
-
-	if (startMs > nowMs) {
-		return { ok: false, reason: 'month_not_started' };
-	}
+	const startMs = monthStartMs(nowMs);
 
 	const ranking = countMembersPerLeague(callerBytes);
 
@@ -411,12 +446,14 @@ export const triggerTournamentDrawFn = ({
 		};
 	}
 
+	const writer = controllerCaller(writerPurpose);
+
 	// Write the tournament doc first so the asserts on the match docs
 	// have something to reference.
 	const tournamentDoc: TournamentDoc = {
 		id: monthAnchor,
 		monthStartMs: startMs,
-		monthEndMs: startMs + 4 * TOURNAMENT_ROUND_DURATION_MS,
+		monthEndMs: startMs + TOURNAMENT_ROUNDS.length * TOURNAMENT_ROUND_DURATION_MS,
 		bracketSize: TOURNAMENT_BRACKET_SIZE,
 		state: 'in_flight',
 		seededLeagueIds: verifiedSeeded,
@@ -426,28 +463,18 @@ export const triggerTournamentDrawFn = ({
 	setDocStore({
 		collection: Collection.TOURNAMENTS,
 		key: monthAnchor,
-		caller: callerBytes,
+		caller: writer,
 		doc: {
 			data: encodeDocData(tournamentDoc)
 		}
 	});
 
-	// Write the 8 Round-1 matches with the seeded pairs. For each
-	// league we snapshot the current `LEAGUE_STATS` counters so the
-	// round-resolution endpoint can compute the window delta later.
+	// Write the 8 Round-1 matches with the seeded pairs.
 	const r1Pairs = seedFirstRoundPairs(verifiedSeeded);
 	const r1Window = roundWindow({ tournamentMonthStartMs: startMs, round: 'r1' });
 
 	for (let index = 0; index < r1Pairs.length; index += 1) {
 		const pair = r1Pairs[index];
-		const fromSnapshot = readLeagueStartSnapshot({
-			leagueId: pair.fromLeagueId,
-			caller: callerBytes
-		});
-		const toSnapshot = readLeagueStartSnapshot({
-			leagueId: pair.toLeagueId,
-			caller: callerBytes
-		});
 
 		const matchDoc: TournamentMatchDoc = {
 			tournamentId: monthAnchor,
@@ -455,10 +482,10 @@ export const triggerTournamentDrawFn = ({
 			index,
 			fromLeagueId: pair.fromLeagueId,
 			toLeagueId: pair.toLeagueId,
-			fromStartCalls: fromSnapshot.totalCalls,
-			fromStartWins: fromSnapshot.wins,
-			toStartCalls: toSnapshot.totalCalls,
-			toStartWins: toSnapshot.wins,
+			fromStartCalls: null,
+			fromStartWins: null,
+			toStartCalls: null,
+			toStartWins: null,
 			fromAcc: null,
 			toAcc: null,
 			winnerLeagueId: null,
@@ -469,7 +496,7 @@ export const triggerTournamentDrawFn = ({
 		setDocStore({
 			collection: Collection.TOURNAMENT_MATCHES,
 			key: tournamentMatchKey({ tournamentId: monthAnchor, round: 'r1', index }),
-			caller: callerBytes,
+			caller: writer,
 			doc: {
 				data: encodeDocData(matchDoc)
 			}
@@ -477,9 +504,8 @@ export const triggerTournamentDrawFn = ({
 	}
 
 	// Write the TBD-slot matches for quarter / semifinal / final so
-	// the bracket UI can render the skeleton immediately. Start
-	// snapshots are null until the previous round's resolution
-	// promotes the winner into the slot.
+	// the bracket UI can render the skeleton immediately; the previous
+	// round's resolution promotes each winner into its slot.
 	for (const round of ['quarter', 'semifinal', 'final'] as const) {
 		const window_ = roundWindow({ tournamentMonthStartMs: startMs, round });
 		const count = matchCountForRound(round);
@@ -505,7 +531,7 @@ export const triggerTournamentDrawFn = ({
 			setDocStore({
 				collection: Collection.TOURNAMENT_MATCHES,
 				key: tournamentMatchKey({ tournamentId: monthAnchor, round, index }),
-				caller: callerBytes,
+				caller: writer,
 				doc: {
 					data: encodeDocData(matchDoc)
 				}
@@ -517,31 +543,9 @@ export const triggerTournamentDrawFn = ({
 };
 
 /**
- * Read a league's current `(totalCalls, wins)` for the start-of-
- * window snapshot. Returns zeroes when the league has no stats doc
- * yet — a brand-new league with no resolved trades, which means its
- * round window will simply have `delta = 0` calls and forfeit per
- * the 50-call minimum.
- */
-const readLeagueStartSnapshot = ({
-	leagueId,
-	caller
-}: {
-	leagueId: string;
-	caller: Uint8Array;
-}): { totalCalls: number; wins: number } => {
-	const stats = getLeagueStatsFn({ leagueId, caller });
-
-	return {
-		totalCalls: stats?.totalCalls ?? 0,
-		wins: stats?.wins ?? 0
-	};
-};
-
-/**
  * Read the most recent tournament (highest YYYY-MM key) and its
  * matches. Returns `null` for the tournament when none has been
- * drawn yet — the FE renders the "no tournament yet" / draw CTA.
+ * drawn yet: the FE renders the "no tournament yet" / draw CTA.
  */
 export const getCurrentTournamentFn = (): {
 	tournament: TournamentDoc | null;
@@ -632,44 +636,40 @@ export interface ResolveTournamentRoundResult {
 }
 
 /**
- * Compute a league's accuracy in a single round window. The match
- * doc carries the league's `(totalCalls, wins)` snapshot at the
- * moment it was assigned to the slot; the current `LEAGUE_STATS`
- * doc carries the live counter. The window delta is the difference.
+ * A league's accuracy in one round window, from its members' settled
+ * history over `[startMs, endMs)` read from the clearing canister: the
+ * source league battles are scored from, never the member-writable
+ * `league_stats` counters. Only memberships stored before the window
+ * closed count, so a member who joins afterwards cannot lift the score.
  *
  * Returns:
  *  - `{ qualifies: false }` when fewer than
- *    `TOURNAMENT_MIN_CALLS_PER_MATCH` calls happened in the window
- *    — the league forfeits per decision 3.3.
- *  - `{ qualifies: true, accuracy, deltaCalls }` otherwise. Accuracy
- *    is in [0,1].
+ *    `TOURNAMENT_MIN_CALLS_PER_MATCH` calls settled in the window;
+ *    the league forfeits the match.
+ *  - `{ qualifies: true, accuracy, calls }` otherwise. Accuracy is in
+ *    [0,1].
  */
-const leagueWindowAccuracy = ({
+const leagueWindowAccuracy = async ({
 	leagueId,
-	startCalls,
-	startWins,
+	startMs,
+	endMs,
 	caller
 }: {
-	leagueId: string;
-	startCalls: number;
-	startWins: number;
+	leagueId: string | null;
+	startMs: number;
+	endMs: number;
 	caller: Uint8Array;
-}): { qualifies: boolean; accuracy: number; deltaCalls: number } => {
-	const current = getLeagueStatsFn({ leagueId, caller });
-	const currentCalls = current?.totalCalls ?? 0;
-	const currentWins = current?.wins ?? 0;
-	const deltaCalls = Math.max(0, currentCalls - startCalls);
-	const deltaWins = Math.max(0, Math.min(deltaCalls, currentWins - startWins));
+}): Promise<{ qualifies: boolean; accuracy: number; calls: number }> => {
+	const members = isNullish(leagueId)
+		? []
+		: leagueMemberPrincipals({ leagueId, caller, joinedBeforeMs: endMs });
+	const { calls, wins } = await settledTotals({ members, fromMs: startMs, toMs: endMs });
 
-	if (deltaCalls < TOURNAMENT_MIN_CALLS_PER_MATCH) {
-		return { qualifies: false, accuracy: 0, deltaCalls };
+	if (calls < TOURNAMENT_MIN_CALLS_PER_MATCH) {
+		return { qualifies: false, accuracy: 0, calls };
 	}
 
-	return {
-		qualifies: true,
-		accuracy: deltaWins / deltaCalls,
-		deltaCalls
-	};
+	return { qualifies: true, accuracy: wins / calls, calls };
 };
 
 /**
@@ -711,12 +711,12 @@ const pickMatchWinner = ({
 	}
 
 	if (!fromQualifies && !toQualifies) {
-		// Both forfeit — lower leagueId advances (matches the seeding
+		// Both forfeit: lower leagueId advances (matches the seeding
 		// tie-break in `countMembersPerLeague`).
 		return fromLeagueId < toLeagueId ? fromLeagueId : toLeagueId;
 	}
 
-	// Both qualify — higher accuracy wins. Tie-break: lower leagueId.
+	// Both qualify: higher accuracy wins. Tie-break: lower leagueId.
 	if (fromAccuracy === toAccuracy) {
 		return fromLeagueId < toLeagueId ? fromLeagueId : toLeagueId;
 	}
@@ -724,119 +724,28 @@ const pickMatchWinner = ({
 	return fromAccuracy > toAccuracy ? fromLeagueId : toLeagueId;
 };
 
-/**
- * Write the resolved-match payload to the datastore and propagate
- * the winner to the next round's slot. Returns 1 to bump the
- * `matchesResolved` counter in the caller.
- *
- * Split out of the resolution loop so the loop body has no `continue`
- * statements — every branch falls through cleanly.
- */
-const resolveMatchInPlace = ({
-	entry,
-	fromEval,
-	toEval,
-	winner,
-	round,
-	matchesByRound,
-	caller
-}: {
-	entry: { key: string; doc: TournamentMatchDoc; version?: bigint };
-	fromEval: { qualifies: boolean; accuracy: number };
-	toEval: { qualifies: boolean; accuracy: number };
-	winner: string;
-	round: TournamentRound;
-	matchesByRound: Record<
-		TournamentRound,
-		Array<{ key: string; doc: TournamentMatchDoc; version?: bigint }>
-	>;
-	caller: Uint8Array;
-}): number => {
-	const updated: TournamentMatchDoc = {
-		...entry.doc,
-		fromAcc: fromEval.qualifies ? fromEval.accuracy : null,
-		toAcc: toEval.qualifies ? toEval.accuracy : null,
-		winnerLeagueId: winner
-	};
+type MatchesByRound = Record<
+	TournamentRound,
+	Array<{ key: string; doc: TournamentMatchDoc; version?: bigint }>
+>;
 
-	setDocStore({
-		collection: Collection.TOURNAMENT_MATCHES,
-		key: entry.key,
-		caller,
-		doc: {
-			data: encodeDocData(updated),
-			version: entry.version
-		}
-	});
-
-	// Propagate the winner to the next round's slot. For a 16-team
-	// bracket the mapping is: match (i) feeds next-round match
-	// (i/2), alternating from/to slot by parity.
-	propagateWinnerToNextRound({
-		round,
-		index: entry.doc.index,
-		winnerLeagueId: winner,
-		matchesByRound,
-		caller
-	});
-
-	return 1;
-};
-
-/**
- * Resolve every match in a closed round. Anyone can call; idempotent
- * via the `winnerLeagueId` write-once invariant — a second call for
- * the same round either re-resolves any matches that haven't been
- * settled yet (no-op for already-settled ones) or returns the same
- * `matchesResolved` count.
- *
- * Refuses if `round.endMs > now` (round hasn't closed) or if any
- * earlier round has unresolved matches (the bracket must advance
- * in order so winners can propagate).
- *
- * On `final` resolution the tournament doc flips from `in_flight`
- * to `concluded` and the FE can fire prize claims.
- */
-export const resolveTournamentRoundFn = ({
+/** Every match doc of the tournament with its key and version, bucketed by
+ * round and sorted by index (populating next-round slots requires a
+ * deterministic order). */
+const readMatchesByRound = ({
 	tournamentId,
-	round
+	callerBytes
 }: {
 	tournamentId: string;
-	round: string;
-}): ResolveTournamentRoundResult => {
-	if (!TOURNAMENT_ROUNDS.includes(round as TournamentRound)) {
-		return { ok: false, reason: 'invalid_input' };
-	}
-
-	const round_ = round as TournamentRound;
-	const caller = msgCaller();
-	const callerBytes = caller.toUint8Array();
-
-	const tournamentDoc = getDocStore({
-		collection: Collection.TOURNAMENTS,
-		key: tournamentId,
-		caller: callerBytes
-	});
-
-	if (isNullish(tournamentDoc)) {
-		return { ok: false, reason: 'tournament_not_found' };
-	}
-
-	const tournament = decodeDocData<TournamentDoc>(tournamentDoc.data);
-	const nowMs = Number(time() / 1_000_000n);
-
-	// Scan match docs once; bucket by round so we can verify earlier
-	// rounds are resolved before settling this one.
+	callerBytes: Uint8Array;
+}): MatchesByRound => {
 	const { items } = listDocsStore({
 		collection: Collection.TOURNAMENT_MATCHES,
 		caller: callerBytes,
 		params: {}
 	});
 
-	const matchesByRound: Record<
-		TournamentRound,
-		Array<{ key: string; doc: TournamentMatchDoc; version?: bigint }>
-	> = {
+	const matchesByRound: MatchesByRound = {
 		r1: [],
 		quarter: [],
 		semifinal: [],
@@ -859,111 +768,258 @@ export const resolveTournamentRoundFn = ({
 		}
 	}
 
-	// Sort each round by match index — populating next-round slots
-	// requires deterministic ordering.
 	for (const r of TOURNAMENT_ROUNDS) {
 		matchesByRound[r].sort((a, b) => a.doc.index - b.doc.index);
 	}
 
-	const targetMatches = matchesByRound[round_];
+	return matchesByRound;
+};
 
-	if (targetMatches.length === 0) {
-		return { ok: false, reason: 'no_matches' };
+/** Why `round` cannot be resolved at `nowMs`: it has no matches, its window
+ * has not closed, or an earlier round still has an open match (the bracket
+ * advances in order so winners can propagate). Nothing when it can. */
+const roundRefusal = ({
+	matchesByRound,
+	round,
+	nowMs
+}: {
+	matchesByRound: MatchesByRound;
+	round: TournamentRound;
+	nowMs: number;
+}): ResolveTournamentRoundRefusalReason | undefined => {
+	const [first] = matchesByRound[round];
+
+	if (isNullish(first)) {
+		return 'no_matches';
 	}
 
-	// Round window must have closed.
-	if (targetMatches[0].doc.endMs > nowMs) {
-		return { ok: false, reason: 'round_not_yet_closed' };
+	if (first.doc.endMs > nowMs) {
+		return 'round_not_yet_closed';
 	}
 
-	// Earlier rounds must be fully resolved.
-	const roundIndex = TOURNAMENT_ROUNDS.indexOf(round_);
+	const earlierOpen = TOURNAMENT_ROUNDS.slice(0, TOURNAMENT_ROUNDS.indexOf(round)).some((r) =>
+		matchesByRound[r].some((m) => isNullish(m.doc.winnerLeagueId))
+	);
 
-	for (let i = 0; i < roundIndex; i += 1) {
-		const earlier = matchesByRound[TOURNAMENT_ROUNDS[i]];
-		const unresolved = earlier.find((m) => isNullish(m.doc.winnerLeagueId));
+	if (earlierOpen) {
+		return 'previous_round_not_resolved';
+	}
+};
 
-		if (nonNullish(unresolved)) {
-			return { ok: false, reason: 'previous_round_not_resolved' };
+/** Flip the tournament to `concluded` once the final has a winner; whether it did. */
+const concludeTournament = ({
+	tournamentId,
+	matchesByRound,
+	writer
+}: {
+	tournamentId: string;
+	matchesByRound: MatchesByRound;
+	writer: Uint8Array;
+}): boolean => {
+	const [finalMatch] = matchesByRound.final;
+	const tournamentDoc = getDocStore({
+		collection: Collection.TOURNAMENTS,
+		key: tournamentId,
+		caller: writer
+	});
+
+	if (
+		isNullish(finalMatch) ||
+		isNullish(finalMatch.doc.winnerLeagueId) ||
+		isNullish(tournamentDoc)
+	) {
+		return false;
+	}
+
+	setDocStore({
+		collection: Collection.TOURNAMENTS,
+		key: tournamentId,
+		caller: writer,
+		doc: {
+			data: encodeDocData<TournamentDoc>({
+				...decodeDocData<TournamentDoc>(tournamentDoc.data),
+				state: 'concluded'
+			}),
+			version: tournamentDoc.version
 		}
+	});
+
+	return true;
+};
+
+/**
+ * Write the resolved-match payload to the datastore and propagate
+ * the winner to the next round's slot. Returns 1 to bump the
+ * `matchesResolved` counter in the caller.
+ *
+ * Split out of the resolution loop so the loop body has no `continue`
+ * statements: every branch falls through cleanly.
+ */
+const resolveMatchInPlace = ({
+	entry,
+	fromEval,
+	toEval,
+	winner,
+	round,
+	matchesByRound,
+	writer
+}: {
+	entry: MatchesByRound[TournamentRound][number];
+	fromEval: { qualifies: boolean; accuracy: number };
+	toEval: { qualifies: boolean; accuracy: number };
+	winner: string;
+	round: TournamentRound;
+	matchesByRound: MatchesByRound;
+	writer: Uint8Array;
+}): number => {
+	const updated: TournamentMatchDoc = {
+		...entry.doc,
+		fromAcc: fromEval.qualifies ? fromEval.accuracy : null,
+		toAcc: toEval.qualifies ? toEval.accuracy : null,
+		winnerLeagueId: winner
+	};
+
+	setDocStore({
+		collection: Collection.TOURNAMENT_MATCHES,
+		key: entry.key,
+		caller: writer,
+		doc: {
+			data: encodeDocData(updated),
+			version: entry.version
+		}
+	});
+
+	// Propagate the winner to the next round's slot. For a 16-team
+	// bracket the mapping is: match (i) feeds next-round match
+	// (i/2), alternating from/to slot by parity.
+	propagateWinnerToNextRound({
+		round,
+		index: entry.doc.index,
+		winnerLeagueId: winner,
+		matchesByRound,
+		writer
+	});
+
+	return 1;
+};
+
+/**
+ * Resolve every match in a closed round. Anyone can call; idempotent
+ * via the `winnerLeagueId` write-once invariant: a second call for
+ * the same round either re-resolves any matches that haven't been
+ * settled yet (no-op for already-settled ones) or returns the same
+ * `matchesResolved` count.
+ *
+ * Refuses if `round.endMs > now` (round hasn't closed) or if any
+ * earlier round has unresolved matches (the bracket must advance
+ * in order so winners can propagate).
+ *
+ * On `final` resolution the tournament doc flips from `in_flight`
+ * to `concluded` and the FE can fire prize claims.
+ */
+export const resolveTournamentRoundFn = async ({
+	tournamentId,
+	round
+}: {
+	tournamentId: string;
+	round: string;
+}): Promise<ResolveTournamentRoundResult> => {
+	if (!TOURNAMENT_ROUNDS.includes(round as TournamentRound)) {
+		return { ok: false, reason: 'invalid_input' };
 	}
 
-	// Resolve every still-open match in the target round.
+	const round_ = round as TournamentRound;
+	const callerBytes = msgCaller().toUint8Array();
+
+	const tournamentExists = nonNullish(
+		getDocStore({
+			collection: Collection.TOURNAMENTS,
+			key: tournamentId,
+			caller: callerBytes
+		})
+	);
+
+	if (!tournamentExists) {
+		return { ok: false, reason: 'tournament_not_found' };
+	}
+
+	const scored = readMatchesByRound({ tournamentId, callerBytes });
+	const refusal = roundRefusal({ matchesByRound: scored, round: round_, nowMs: timeMs() });
+
+	if (nonNullish(refusal)) {
+		return { ok: false, reason: refusal };
+	}
+
+	// Already-settled matches are skipped (idempotent re-run).
+	const scores = await Promise.all(
+		scored[round_]
+			.filter((entry) => isNullish(entry.doc.winnerLeagueId))
+			.map(async ({ doc }) => {
+				const [fromEval, toEval] = await Promise.all([
+					leagueWindowAccuracy({
+						leagueId: doc.fromLeagueId,
+						startMs: doc.startMs,
+						endMs: doc.endMs,
+						caller: callerBytes
+					}),
+					leagueWindowAccuracy({
+						leagueId: doc.toLeagueId,
+						startMs: doc.startMs,
+						endMs: doc.endMs,
+						caller: callerBytes
+					})
+				]);
+
+				return { index: doc.index, fromEval, toEval };
+			})
+	);
+
+	// Re-read after the clearing reads: another resolver may have written
+	// the bracket meanwhile, and every write below goes against the
+	// versions stored now.
+	const matchesByRound = readMatchesByRound({ tournamentId, callerBytes });
+	const writer = controllerCaller(writerPurpose);
 	let matchesResolved = 0;
 
-	for (const entry of targetMatches) {
-		// Already-settled matches are skipped (idempotent re-run); a
-		// match with no league ids is also a no-op (malformed bracket).
-		// Both branches fall through cleanly without `continue`.
-		if (isNullish(entry.doc.winnerLeagueId)) {
-			const fromEval = leagueWindowAccuracy({
-				leagueId: entry.doc.fromLeagueId ?? '',
-				startCalls: entry.doc.fromStartCalls ?? 0,
-				startWins: entry.doc.fromStartWins ?? 0,
-				caller: callerBytes
-			});
-			const toEval = leagueWindowAccuracy({
-				leagueId: entry.doc.toLeagueId ?? '',
-				startCalls: entry.doc.toStartCalls ?? 0,
-				startWins: entry.doc.toStartWins ?? 0,
-				caller: callerBytes
-			});
-
-			const winner = pickMatchWinner({
-				fromLeagueId: entry.doc.fromLeagueId,
-				toLeagueId: entry.doc.toLeagueId,
-				fromQualifies: fromEval.qualifies,
-				toQualifies: toEval.qualifies,
-				fromAccuracy: fromEval.accuracy,
-				toAccuracy: toEval.accuracy
-			});
-
-			if (nonNullish(winner)) {
-				matchesResolved += resolveMatchInPlace({
-					entry,
-					fromEval,
-					toEval,
-					winner,
-					round: round_,
-					matchesByRound,
-					caller: callerBytes
+	for (const { index, fromEval, toEval } of scores) {
+		const entry = matchesByRound[round_].find((m) => m.doc.index === index);
+		const winner = isNullish(entry)
+			? null
+			: pickMatchWinner({
+					fromLeagueId: entry.doc.fromLeagueId,
+					toLeagueId: entry.doc.toLeagueId,
+					fromQualifies: fromEval.qualifies,
+					toQualifies: toEval.qualifies,
+					fromAccuracy: fromEval.accuracy,
+					toAccuracy: toEval.accuracy
 				});
-			}
-		}
-	}
 
-	// If this was the final round, flip the tournament to concluded.
-	let tournamentConcluded = false;
-
-	if (round_ === 'final') {
-		const [finalMatch] = matchesByRound.final;
-
-		if (nonNullish(finalMatch) && nonNullish(finalMatch.doc.winnerLeagueId)) {
-			setDocStore({
-				collection: Collection.TOURNAMENTS,
-				key: tournamentId,
-				caller: callerBytes,
-				doc: {
-					data: encodeDocData<TournamentDoc>({
-						...tournament,
-						state: 'concluded'
-					}),
-					version: tournamentDoc.version
-				}
+		// A match settled meanwhile, or with no league ids (malformed
+		// bracket), is a no-op.
+		if (nonNullish(entry) && isNullish(entry.doc.winnerLeagueId) && nonNullish(winner)) {
+			matchesResolved += resolveMatchInPlace({
+				entry,
+				fromEval,
+				toEval,
+				winner,
+				round: round_,
+				matchesByRound,
+				writer
 			});
-			tournamentConcluded = true;
 		}
 	}
+
+	const tournamentConcluded =
+		round_ === 'final' && concludeTournament({ tournamentId, matchesByRound, writer });
 
 	return { ok: true, matchesResolved, tournamentConcluded };
 };
 
 /**
  * After resolving a match, fill the matching slot in the next-round
- * match doc with the winner + their current `(totalCalls, wins)`
- * snapshot. The next match doc's `fromLeagueId` / `toLeagueId` slots
+ * match doc with the winner. The next match doc's `fromLeagueId` / `toLeagueId` slots
  * are write-once-from-null, so a second resolution call (idempotent)
- * is a no-op — the assert rejects the overwrite cleanly.
+ * is a no-op: the assert rejects the overwrite cleanly.
  *
  * Slot mapping for 16-team single-elim:
  *  - r1 match (2k)   → quarter match (k), from-slot
@@ -978,21 +1034,18 @@ const propagateWinnerToNextRound = ({
 	index,
 	winnerLeagueId,
 	matchesByRound,
-	caller
+	writer
 }: {
 	round: TournamentRound;
 	index: number;
 	winnerLeagueId: string;
-	matchesByRound: Record<
-		TournamentRound,
-		Array<{ key: string; doc: TournamentMatchDoc; version?: bigint }>
-	>;
-	caller: Uint8Array;
+	matchesByRound: MatchesByRound;
+	writer: Uint8Array;
 }): void => {
 	const nextRoundIndex = TOURNAMENT_ROUNDS.indexOf(round) + 1;
 
 	if (nextRoundIndex >= TOURNAMENT_ROUNDS.length) {
-		// Final round — no propagation.
+		// Final round: no propagation.
 		return;
 	}
 
@@ -1014,40 +1067,28 @@ const propagateWinnerToNextRound = ({
 		return;
 	}
 
-	const snapshot = readLeagueStartSnapshot({ leagueId: winnerLeagueId, caller });
 	const updated: TournamentMatchDoc = {
 		...nextMatchEntry.doc,
-		...(isFromSlot
-			? {
-					fromLeagueId: winnerLeagueId,
-					fromStartCalls: snapshot.totalCalls,
-					fromStartWins: snapshot.wins
-				}
-			: {
-					toLeagueId: winnerLeagueId,
-					toStartCalls: snapshot.totalCalls,
-					toStartWins: snapshot.wins
-				})
+		...(isFromSlot ? { fromLeagueId: winnerLeagueId } : { toLeagueId: winnerLeagueId })
 	};
 
-	setDocStore({
+	const {
+		data: { after }
+	} = setDocStore({
 		collection: Collection.TOURNAMENT_MATCHES,
 		key: nextMatchEntry.key,
-		caller,
+		caller: writer,
 		doc: {
 			data: encodeDocData(updated),
 			version: nextMatchEntry.version
 		}
 	});
 
-	// Keep the in-memory matchesByRound in sync so subsequent
-	// resolution writes in the same call don't try to overwrite the
-	// freshly-populated slot. The `setDocStore` returns no version
-	// number we could re-stamp, so we just bump the doc payload;
-	// a follow-up `setDocStore` in the same call would race on
-	// version, but the round-by-round flow only propagates one win
-	// per next-round slot per call, so this stays safe.
+	// Matches 2k and 2k+1 both write next-round match k in the same call:
+	// the second write must carry the version the first one produced, or
+	// the datastore rejects it as stale.
 	nextMatchEntry.doc = updated;
+	nextMatchEntry.version = after.version;
 };
 
 // ─── Prize claim ─────────────────────────────────────────────────
@@ -1065,9 +1106,9 @@ export interface ClaimTournamentPrizeResult {
 
 /**
  * Per-user claim endpoint. Reads the concluded tournament + matches,
- * computes the caller's eligible placements (1 / 2 / 3) by checking
- * `LEAGUE_MEMBERS` against the bracket's winning leagues, and
- * credits one `VXP_AWARDS` doc per placement.
+ * computes the caller's placement (1 / 2 / 3) by checking
+ * `LEAGUE_MEMBERS` against the bracket's podium leagues, and credits
+ * one `VXP_AWARDS` doc.
  *
  * Place 1: member of the final-winner league.
  * Place 2: member of the final-loser league (= the other finalist).
@@ -1075,14 +1116,12 @@ export interface ClaimTournamentPrizeResult {
  *          losers split the bronze tier evenly under the single
  *          bronze placement).
  *
- * A user who's a member of multiple eligible leagues only gets the
- * highest-tier award (place 1 trumps place 3, etc.) — the doc-key
- * collision invariant naturally enforces this since the award is
- * keyed `${caller}/tournament_prize/${tournamentId}_${place}` and
- * higher tiers write first.
- *
- * Idempotent via the doc key — a second claim returns
- * `awardsAlreadyClaimed > 0`.
+ * Only memberships stored at or before the draw count, and a member of
+ * several podium leagues is offered the highest tier
+ * (`decideTournamentPrize`). One prize per caller per tournament: the
+ * award is keyed on the tournament alone, and a doc under any per-place
+ * key of an earlier claim counts as claimed too, so a second claim (for
+ * the same place or another) returns `awardsAlreadyClaimed: 1`.
  */
 export const claimTournamentPrizeFn = async ({
 	tournamentId
@@ -1109,85 +1148,39 @@ export const claimTournamentPrizeFn = async ({
 		return { ok: false, reason: 'tournament_not_concluded' };
 	}
 
-	// Read the bracket — find the final match + the semifinal losers.
-	const { items } = listDocsStore({
-		collection: Collection.TOURNAMENT_MATCHES,
-		caller: callerBytes,
-		params: {}
-	});
+	const podium = tournamentPodium(readTournamentMatches({ tournamentId, callerBytes }));
 
-	let finalMatch: TournamentMatchDoc | undefined;
-	const semifinalLosers: string[] = [];
-	const prefix = `${tournamentId}/`;
-
-	for (const [docKey, item] of items) {
-		if (docKey.startsWith(prefix)) {
-			try {
-				const doc = decodeDocData<TournamentMatchDoc>(item.data);
-
-				if (doc.round === 'final' && doc.tournamentId === tournamentId) {
-					finalMatch = doc;
-				} else if (doc.round === 'semifinal' && nonNullish(doc.winnerLeagueId)) {
-					const loser = doc.winnerLeagueId === doc.fromLeagueId ? doc.toLeagueId : doc.fromLeagueId;
-
-					if (nonNullish(loser)) {
-						semifinalLosers.push(loser);
-					}
-				}
-			} catch {
-				// skip malformed
-			}
-		}
-	}
-
-	if (isNullish(finalMatch) || isNullish(finalMatch.winnerLeagueId)) {
+	if (isNullish(podium)) {
 		return { ok: false, reason: 'tournament_not_concluded' };
 	}
 
-	const placeOneLeague = finalMatch.winnerLeagueId;
-	const placeTwoLeague =
-		finalMatch.winnerLeagueId === finalMatch.fromLeagueId
-			? finalMatch.toLeagueId
-			: finalMatch.fromLeagueId;
+	const decision = decideTournamentPrize({
+		tournamentId,
+		podium,
+		memberships: readCallerMemberships({ callerText, callerBytes }),
+		// The doc's own `created_at` is the draw time: the `createdAtMs`
+		// field is written by whoever wrote the doc, so it cannot be the
+		// cutoff.
+		drawnAtNs: tournamentDoc.created_at,
+		isHeld: (heldAwardKey) =>
+			nonNullish(
+				getDocStore({
+					collection: Collection.VXP_AWARDS,
+					key: vxpAwardKey({
+						recipient: callerText,
+						awardType: 'tournament_prize',
+						awardKey: heldAwardKey
+					}),
+					caller: callerBytes
+				})
+			)
+	});
 
-	// Determine the caller's placement. Highest-tier wins.
-	const callerLeagueIds = readCallerLeagueIds({ callerText, callerBytes });
-	let myPlace: 1 | 2 | 3 | null = null;
-
-	if (callerLeagueIds.has(placeOneLeague)) {
-		myPlace = 1;
-	} else if (nonNullish(placeTwoLeague) && callerLeagueIds.has(placeTwoLeague)) {
-		myPlace = 2;
-	} else if (semifinalLosers.some((id) => callerLeagueIds.has(id))) {
-		myPlace = 3;
-	}
-
-	if (isNullish(myPlace)) {
+	if (decision.outcome === 'not_placed') {
 		return { ok: false, reason: 'not_member_of_top_league' };
 	}
 
-	const tier = TOURNAMENT_PRIZE_TIERS.find((t) => t.place === myPlace);
-
-	if (isNullish(tier)) {
-		// Defensive — should never happen since `myPlace` was just
-		// derived from the same enum, but guard anyway.
-		return { ok: false, reason: 'not_member_of_top_league' };
-	}
-
-	const awardKey = `${tournamentId}_place_${myPlace}`;
-	const docKey = vxpAwardKey({
-		recipient: callerText,
-		awardType: 'tournament_prize',
-		awardKey
-	});
-
-	const existing = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes
-	});
-
-	if (nonNullish(existing)) {
+	if (decision.outcome === 'already_claimed') {
 		return {
 			ok: true,
 			awardsCreated: 0,
@@ -1196,11 +1189,20 @@ export const claimTournamentPrizeFn = async ({
 		};
 	}
 
-	const nowMs = Number(time() / 1_000_000n);
+	const { place: myPlace, awardKey } = decision;
+	const tier = TOURNAMENT_PRIZE_TIERS.find((t) => t.place === myPlace);
+
+	if (isNullish(tier)) {
+		// Defensive: should never happen since `myPlace` was just
+		// derived from the same enum, but guard anyway.
+		return { ok: false, reason: 'not_member_of_top_league' };
+	}
+
+	const nowMs = timeMs();
 	// `tier.vxp` is the human-readable whole-VXP prize (5000 / 2500 / 1000),
 	// the same value the FE renders. The award doc / ledger work in base
 	// units (VXP has 4 decimals), so size it via `vxpBaseUnits` like every
-	// other award constant — writing the raw whole number here would
+	// other award constant: writing the raw whole number here would
 	// under-pay by 10⁴ (5000 base units = 0.5 VXP).
 	const amountBaseUnits = vxpBaseUnits(tier.vxp);
 	const pendingDoc: VxpAwardDoc = {
@@ -1212,17 +1214,10 @@ export const claimTournamentPrizeFn = async ({
 		earnedAtMs: nowMs
 	};
 
-	setDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes,
-		doc: {
-			data: encodeDocData(pendingDoc)
-		}
-	});
+	persistAward({ recipient: callerText, awardType: 'tournament_prize', awardKey, doc: pendingDoc });
 
-	// Pay the prize inline — same pending → paid/failed ledger pattern as
-	// claimWorldsPodiumPrize — so the award reflects a real transfer rather
+	// Pay the prize inline: same pending → paid/failed ledger pattern as
+	// claimWorldsPodiumPrize, so the award reflects a real transfer rather
 	// than sitting `pending` forever (nothing sweeps `tournament_prize`).
 	const ledger = new IcrcLedgerCanister({
 		canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
@@ -1234,26 +1229,15 @@ export const claimTournamentPrizeFn = async ({
 		memo: `vxp:tournament_prize:${awardKey}`
 	});
 
-	// Re-read to pick up the version stamp from the pending write.
-	const pendingExisting = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes
-	});
-
 	if (transferResult.ok) {
-		setDocStore({
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			caller: callerBytes,
-			doc: {
-				data: encodeDocData<VxpAwardDoc>({
-					...pendingDoc,
-					status: 'paid',
-					paidAtMs: nowMs,
-					blockIndex: transferResult.blockIndex.toString()
-				}),
-				version: pendingExisting?.version
+		updateAward({
+			recipient: callerText,
+			awardType: 'tournament_prize',
+			awardKey,
+			patch: {
+				status: 'paid',
+				paidAtMs: nowMs,
+				blockIndex: transferResult.blockIndex.toString()
 			}
 		});
 
@@ -1270,18 +1254,11 @@ export const claimTournamentPrizeFn = async ({
 		};
 	}
 
-	setDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes,
-		doc: {
-			data: encodeDocData<VxpAwardDoc>({
-				...pendingDoc,
-				status: 'failed',
-				errorMessage: transferResult.error
-			}),
-			version: pendingExisting?.version
-		}
+	updateAward({
+		recipient: callerText,
+		awardType: 'tournament_prize',
+		awardKey,
+		patch: { status: 'failed', errorMessage: transferResult.error }
 	});
 
 	logError({
@@ -1299,17 +1276,51 @@ export const claimTournamentPrizeFn = async ({
 	};
 };
 
+/** Every match doc of the tournament, in no particular order. */
+const readTournamentMatches = ({
+	tournamentId,
+	callerBytes
+}: {
+	tournamentId: string;
+	callerBytes: Uint8Array;
+}): TournamentMatchDoc[] => {
+	const { items } = listDocsStore({
+		collection: Collection.TOURNAMENT_MATCHES,
+		caller: callerBytes,
+		params: {}
+	});
+
+	const prefix = `${tournamentId}/`;
+	const out: TournamentMatchDoc[] = [];
+
+	for (const [docKey, item] of items) {
+		if (docKey.startsWith(prefix)) {
+			try {
+				const doc = decodeDocData<TournamentMatchDoc>(item.data);
+
+				if (doc.tournamentId === tournamentId) {
+					out.push(doc);
+				}
+			} catch {
+				// skip malformed
+			}
+		}
+	}
+
+	return out;
+};
+
 /**
- * Scan `LEAGUE_MEMBERS` for the caller's memberships. Returns the
- * set of league ids the caller currently belongs to.
+ * Scan `LEAGUE_MEMBERS` for the caller's current memberships, each with
+ * the time its doc was stored.
  */
-const readCallerLeagueIds = ({
+const readCallerMemberships = ({
 	callerText,
 	callerBytes
 }: {
 	callerText: string;
 	callerBytes: Uint8Array;
-}): Set<string> => {
+}): TournamentPrizeMembership[] => {
 	const { items } = listDocsStore({
 		collection: Collection.LEAGUE_MEMBERS,
 		caller: callerBytes,
@@ -1317,7 +1328,7 @@ const readCallerLeagueIds = ({
 	});
 
 	const suffix = `/${callerText}`;
-	const out = new Set<string>();
+	const out: TournamentPrizeMembership[] = [];
 
 	for (const [docKey, item] of items) {
 		if (docKey.endsWith(suffix)) {
@@ -1325,7 +1336,7 @@ const readCallerLeagueIds = ({
 				const member = decodeDocData<LeagueMemberDoc>(item.data);
 
 				if (member.member === callerText) {
-					out.add(member.leagueId);
+					out.push({ leagueId: member.leagueId, joinedAtNs: item.created_at });
 				}
 			} catch {
 				// skip malformed

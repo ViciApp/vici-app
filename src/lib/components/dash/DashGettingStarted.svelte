@@ -1,13 +1,13 @@
 <script lang="ts">
 	/**
-	 * Getting-started checklist — a compact, dismissible card at the top of the
+	 * Getting-started checklist: a compact, dismissible card at the top of the
 	 * first-run Dash giving cross-surface direction the starter-call list can't:
-	 * make a first call, pick a team, find a league. Non-linear — each row
+	 * make a first call, pick a team, find a league. Non-linear; each row
 	 * deep-links to its surface.
 	 *
 	 * Steps auto-tick from real state: "Make your first call" once any call is
 	 * placed, "Pick your team" once a school or country affiliation is set. "Find
-	 * your league" never auto-ticks (there's no single completion signal) — it
+	 * your league" never auto-ticks (there's no single completion signal); it
 	 * always points at the Arena hub. The card stays visible until the user
 	 * dismisses it; the dismissal persists per device (identity-scoped) via the
 	 * onboarding "seen" flags, so it doesn't reappear next session.
@@ -42,7 +42,7 @@
 			try {
 				dismissed = localStorage.getItem(CHECKLIST_DASH_SEEN_KEY) === '1';
 			} catch {
-				// Storage unavailable — keep the card visible.
+				// Storage unavailable: keep the card visible.
 			}
 		}
 	});
@@ -82,7 +82,7 @@
 			try {
 				localStorage.setItem(CHECKLIST_DASH_SEEN_KEY, '1');
 			} catch {
-				// Storage unavailable — dismissal won't survive a reload.
+				// Storage unavailable: dismissal won't survive a reload.
 			}
 		}
 	};

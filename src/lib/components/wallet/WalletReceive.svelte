@@ -2,7 +2,7 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import CopyableAddress from '#lib/components/ui/CopyableAddress.svelte';
-	import { getReceiveAddress } from '#lib/services/wallet.service.ts';
+	import { getReceiveAddress } from '#lib/services/wallet.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 

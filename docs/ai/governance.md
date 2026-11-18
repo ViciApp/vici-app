@@ -88,6 +88,10 @@ them without an explicit ask in the user prompt.
 | `src/satellite/api-schemas.ts`                                         | Generated schema bindings used by `defineQuery` / `defineUpdate`.                 | -                |
 | `src/declarations/**`                                                  | **Generated** by `npm run did` from upstream `.did` files.                        | -                |
 | `eslint.config.js`, `.prettierrc`, `tsconfig*.json`                    | Lint / format / TS policy.                                                        | repo maintainers |
+| `local-rules/**`, `eslint-local-rules.cjs`, `.prettierignore`          | Custom lint rules and format scope, the same policy as `eslint.config.js`.        | repo maintainers |
+| `.node-version`, `.npmrc`                                              | Toolchain pins: the Node CI and the web image build on, npm install policy.       | repo maintainers |
+| `release-please-config.json`, `.release-please-manifest.json`          | Release versioning policy.                                                        | repo maintainers |
+| `fly.web.toml`, `Dockerfile.web`, `nginx.web.conf`                     | Web2 SPA image, its nginx config and deploy.                                      | repo maintainers |
 | `eslint-suppressions.json`                                             | Generated lint baseline. Only ever shrinks, via `--prune-suppressions`.           | repo maintainers |
 | `scripts/build/**`, `scripts/lib/**`, `scripts/init/**`                | Reproducible-build + bootstrap pipeline. Touch only when prompted.                | repo maintainers |
 | `scripts/*`, `scripts/test/**`                                         | Deploy canisters, move tokens, act as the dfx identity, gate CI or releases.      | repo maintainers |

@@ -4,13 +4,14 @@ import { REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
 import { UserRole } from '#lib/enums/user.ts';
+import { isControllerText } from '#satellite/services/authz.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnDeleteDocContext, OnSetDocContext } from '@junobuild/functions';
 import { call } from '@junobuild/functions/ic-cdk';
-import { decodeDocData } from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
 
 type EngineRoleVariant = RegistryDid.EngineRole;
 
@@ -83,6 +84,23 @@ const errToString = (err: RegistryDid.EngineError | RegistryDid.OracleError): st
 const shouldBeOracleSettler = (role: UserRole | undefined): boolean =>
 	nonNullish(role) && ROLE_TO_ENGINE_ROLES[role].some((r) => engineRoleKey(r) === 'OracleAdmin');
 
+/**
+ * Whether `caller` may settle markets, and so record the settlement activity that follows an
+ * on-chain settle: a satellite controller, or a principal whose role makes it an oracle settler.
+ */
+export const maySettle = (caller: Principal): boolean => {
+	if (isControllerText(caller.toText())) {
+		return true;
+	}
+
+	const roleDoc = getDocStore({ collection: Collection.ROLES, key: caller.toText(), caller });
+
+	return (
+		nonNullish(roleDoc) &&
+		shouldBeOracleSettler(decodeDocData<{ role: UserRole }>(roleDoc.data).role)
+	);
+};
+
 const manageOraclePrincipal = async ({
 	principal,
 	action
@@ -124,7 +142,7 @@ const manageOraclePrincipal = async ({
 	}
 
 	// The oracle may not have been registered yet (fresh install before `init:registry`
-	// ran). Log a warning and keep going — the engine role grant still succeeded, and the
+	// ran). Log a warning and keep going: the engine role grant still succeeded, and the
 	// admin can reconcile manually by bootstrapping the oracle + replaying the role change.
 	if ('OracleNotFound' in result.Err) {
 		logError({
@@ -315,7 +333,7 @@ const applyDiff = async ({
  * doc. Idempotent: if the engine already has/lacks the role, the corresponding call short-
  * circuits without error.
  *
- * The doc key must be a principal text — this is enforced by `assertSetRole` upstream.
+ * The doc key must be a principal text; this is enforced by `assertSetRole` upstream.
  */
 export const syncRoleToEngineOnSet = async (ctx: OnSetDocContext): Promise<void> => {
 	const {
@@ -378,7 +396,7 @@ export const syncRoleToEngineOnSet = async (ctx: OnSetDocContext): Promise<void>
  * principal from `VICI_ORACLE_V1.authorized_principals` if the prior role was a settler.
  *
  * If the deleted doc's `data` cannot be decoded (legacy or partial state), the hook logs
- * `engine_sync_decode_failed` and becomes a **no-op** — we intentionally do NOT blindly
+ * `engine_sync_decode_failed` and becomes a **no-op**: we intentionally do NOT blindly
  * revoke the union of all possible engine roles on a decode failure, because that would
  * let a single malformed/transient write silently strip privileges from a principal whose
  * role we just can't see right now. Operators can reconcile manually via
@@ -430,14 +448,4 @@ export const syncRoleToEngineOnDelete = async (ctx: OnDeleteDocContext): Promise
 		});
 		throw e;
 	}
-};
-
-/**
- * Exposed for unit testing: the UserRole → EngineRole mapping table.
- */
-export const __testOnly = {
-	ROLE_TO_ENGINE_ROLES,
-	diffRoles,
-	engineRoleKey,
-	shouldBeOracleSettler
 };

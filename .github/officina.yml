@@ -8,6 +8,28 @@ docs:
   spec_template: docs/ai/spec-driven-development/template.md
   spec_dir: docs/ai/spec-driven-development/specs
   pr_template: .github/pull_request_template.md
+  # The agent docs live per area (docs/ai/README.md), not as one flat set, so Officina is told which
+  # pages to require instead of its defaults (structure.md, patterns.md, ... at the top of docs/ai).
+  pages:
+    - README.md
+    - governance.md
+    - pr-and-ci.md
+    - frontend/README.md
+    - frontend/structure.md
+    - frontend/stack-and-patterns.md
+    - frontend/reusability.md
+    - frontend/testing.md
+    - satellite/README.md
+    - satellite/structure.md
+    - satellite/patterns.md
+    - satellite/reusability.md
+    - satellite/testing.md
+    - backend/README.md
+    - backend/structure.md
+    - backend/patterns.md
+    - backend/reusability.md
+    - backend/testing.md
+    - engine/README.md
 
 # Same rule as the org-wide title check (ViciApp/.github, .github/workflows/pull-request.yml); Officina
 # reads its own copy here, so change both together.
@@ -23,10 +45,17 @@ release:
   on_merge: nothing
 
 setup: ['npm ci', 'npm run prepare', 'bun install --cwd backend --frozen-lockfile']
-# The CI gates an agent sandbox can run. Left to CI: the backend `bun test` (ten DB suites do not
-# skip without Postgres yet) and `satellite-schema` (needs a global Juno CLI, and any drift it finds
-# lands in src/satellite/**, a red path the builder may not touch).
-verify: ['npm run quality', 'npm run check', 'npm test', 'bun run --cwd backend typecheck']
+# The CI gates an agent sandbox can run. The sandbox has no Postgres, so its backend `bun test`
+# skips the DB-backed suites; CI runs them. Left to CI: `satellite-schema` (needs a global Juno CLI,
+# and any drift it finds lands in src/satellite/**, a red path the builder may not touch).
+verify:
+  [
+    'npm run quality',
+    'npm run check',
+    'npm test',
+    'bun run --cwd backend typecheck',
+    'bun run --cwd backend test'
+  ]
 
 lanes:
   # Agents never build in the red lane: they may write the spec, a person implements it.
@@ -141,9 +170,10 @@ lanes:
 
   # User-facing copy only. A requirement nobody can meet yet (no product approver) is waived
   # automatically and recorded as waived, so this works today and tightens when the role is filled.
-  # auto_verify: a result the chooser judges needs no more than a glance merges without a person's
-  # check, which is allowed because a merge ships nothing (release.on_merge). People still approve
-  # the spec, and the branch rules (checks, threads, code-owner review) still decide the merge.
+  # auto_verify: a result the chooser judges needs no more than a glance skips a person's check and
+  # goes straight to merging, which is allowed because a merge ships nothing (release.on_merge).
+  # People still approve the spec, and a code owner still merges by hand: auto-merge stays off
+  # (pull_request.auto_merge is not set), and the branch rules still gate the merge.
   green:
     paths: ['src/lib/constants/messages/**']
     auto_verify: true

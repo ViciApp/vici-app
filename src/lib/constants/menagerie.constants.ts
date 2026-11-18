@@ -1,7 +1,7 @@
 import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// THE MENAGERIE — the achievement trophy layer.
+// THE MENAGERIE: the achievement trophy layer.
 //
 // Twelve animals, each with a tier ladder (wood → silver → gold → iridescent).
 // An animal's current tier is derived live from the owner's real stats (see
@@ -22,7 +22,7 @@ import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 export const COMEBACK_COLD_STREAK_LOSSES = 3;
 
 /** A category counts toward the Magpie (all-rounder) metric once the owner
- * has at least this many settled calls in it — accuracy on fewer calls isn't
+ * has at least this many settled calls in it: accuracy on fewer calls isn't
  * yet a signal of breadth. */
 export const MAGPIE_MIN_CATEGORY_CALLS = 3;
 
@@ -40,7 +40,7 @@ export const MENAGERIE_TIER_RANK: Record<MenagerieTier, number> = {
 	irid: 4
 };
 
-/** Animal identifiers — also the sprite symbol + palette token suffix. */
+/** Animal identifiers: also the sprite symbol + palette token suffix. */
 export type MenagerieSlug =
 	| 'hatchling'
 	| 'beaver'
@@ -71,7 +71,7 @@ export interface MenagerieAnimal {
 	ruleKey: MessageKey;
 	/** Short concept label shown when the animal is earned ("Accuracy", "Volume"). */
 	conceptKey: MessageKey;
-	/** Per-tier milestone labels ("65%", "10 calls") — same length as `tiers`. */
+	/** Per-tier milestone labels ("65%", "10 calls"): same length as `tiers`. */
 	labelKeys: MessageKey[];
 	/** Hero animals get the "LEGENDARY" eyebrow + extra frame glow at top tiers. */
 	hero?: boolean;
@@ -108,7 +108,7 @@ export const MENAGERIE_TIER_COLORS: Record<MenagerieTier, string> = {
 	irid: '#C79BE8'
 };
 
-// ── The catalogue — 12 entries, ordered by reveal cadence (Hatchling first) ──
+// ── The catalogue: 12 entries, ordered by reveal cadence (Hatchling first) ──
 // Some ladders are 1-step (Hatchling), most are 3-step (volume / count), and the
 // skill ladders (Owl accuracy, Octopus upset, Goat rank) are 4-step.
 export const MENAGERIE: MenagerieAnimal[] = [
@@ -222,7 +222,7 @@ export const MENAGERIE: MenagerieAnimal[] = [
 			'menagerie.octopus.label.irid'
 		],
 		hero: true,
-		// Smallest consensus the user has won against — lower is rarer.
+		// Smallest consensus the user has won against: lower is rarer.
 		reversed: true,
 		tiers: [
 			{ tier: 'wood', t: 0.25 },
@@ -315,7 +315,7 @@ export const MENAGERIE: MenagerieAnimal[] = [
 			'menagerie.goat.label.irid'
 		],
 		hero: true,
-		// Percentile (rank / total) — lower is better. The iridescent rung uses
+		// Percentile (rank / total): lower is better. The iridescent rung uses
 		// a `-1` sentinel threshold (never auto-matched by the reversed compare);
 		// reaching world rank #1 promotes the earned tier to `irid` explicitly.
 		reversed: true,
@@ -330,7 +330,7 @@ export const MENAGERIE: MenagerieAnimal[] = [
 
 export const MENAGERIE_BY_SLUG = new Map(MENAGERIE.map((animal) => [animal.slug, animal]));
 
-/** Warm-bodied animals lose edge against the peach theme — the badge deepens
+/** Warm-bodied animals lose edge against the peach theme; the badge deepens
  * their aura + frame stroke to keep them legible. */
 export const MENAGERIE_WARM_SLUGS = new Set<MenagerieSlug>([
 	'hatchling',

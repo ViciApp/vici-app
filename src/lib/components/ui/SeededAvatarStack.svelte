@@ -3,7 +3,7 @@
 	 * Stack of overlapping circular avatars, each a deterministic
 	 * generated character face derived from its seed string. Used as
 	 * decorative social-proof on the FlowCard front face and the
-	 * landing-page hero deck — both surfaces want a small cluster of
+	 * landing-page hero deck: both surfaces want a small cluster of
 	 * faces that read as a crowd without exposing real user data.
 	 *
 	 * The default seed roster (`augustus / cassandra / nero / livia`)
@@ -16,9 +16,9 @@
 	import ViciAvatar from '#lib/components/ui/ViciAvatar.svelte';
 
 	interface Props {
-		/** Seed strings — one per avatar. Order is preserved. */
+		/** Seed strings: one per avatar. Order is preserved. */
 		seeds?: ReadonlyArray<string>;
-		/** Outer diameter in pixels. Default 22 — the compact size the
+		/** Outer diameter in pixels. Default 22: the compact size the
 		 *  social-proof row reads cleanly at. */
 		size?: number;
 		/** Border colour drawn between adjacent avatars so the
@@ -42,7 +42,7 @@
 	// left-to-right with `row-reverse` (see the style block). Avoiding `z-index`
 	// here is load-bearing: a flex item with `z-index` creates a stacking
 	// context, and iOS/WebKit hoists such children out of an ancestor's
-	// `backface-visibility: hidden` culling — which made this stack "flip
+	// `backface-visibility: hidden` culling, which made this stack "flip
 	// and stay" visible through the back of the FlowCard on iPhone while
 	// Chrome/Android/desktop culled it correctly.
 	const ordered = $derived([...seeds].reverse());
@@ -67,7 +67,7 @@
 		display: inline-flex;
 		/* `row-reverse` so the reversed DOM roster reads left-to-right in
 		   the original order while the first-listed avatar (last in the
-		   DOM) paints on top — overlap is driven by paint order, never
+		   DOM) paints on top; overlap is driven by paint order, never
 		   `z-index` (see the note in the script block). */
 		flex-direction: row-reverse;
 		align-items: center;

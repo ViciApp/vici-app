@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { signOut } from '@junobuild/core';
 	import { Wrench, X } from '@lucide/svelte/icons';
 	import AppearancePicker from '#lib/components/ui/AppearancePicker.svelte';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
@@ -7,13 +6,14 @@
 	import { userSignedIn } from '#lib/derived/user.derived.ts';
 	import { worldCupActive, worldCupMode } from '#lib/derived/world-cup.derived.ts';
 	import { isDev } from '#lib/env/app.env.ts';
+	import { signOut } from '#lib/services/identity.services.ts';
 	import { preferencesStore } from '#lib/stores/preferences.store.ts';
 	import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 
-	// Dev knob bounds for the leaderboard qualify gate — 0 disables the gate
+	// Dev knob bounds for the leaderboard qualify gate: 0 disables the gate
 	// (everyone ranked), 30 is a deliberately strict ceiling for feeling out
 	// the threshold.
 	const QUALIFY_MIN_FLOOR = 0;
@@ -38,7 +38,7 @@
 		try {
 			await signOut();
 		} catch {
-			// Already signed out / network glitch — push to /signin
+			// Already signed out / network glitch: push to /signin
 			// regardless so the panel doesn't get stuck.
 		}
 
@@ -140,9 +140,7 @@
 					</div>
 				</section>
 
-				<p class="tweaks-foot">
-					Dev-only panel. User-facing settings follow in the Settings phase.
-				</p>
+				<p class="tweaks-foot">Dev-only panel. User-facing settings live on the Settings page.</p>
 			</aside>
 		{/if}
 	</div>

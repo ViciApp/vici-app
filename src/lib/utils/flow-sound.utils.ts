@@ -2,24 +2,24 @@ import { preferencesStore } from '#lib/stores/preferences.store.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { get } from 'svelte/store';
 
-// Flow sound — a tiny Web Audio oscillator synth that gives Flow its
+// Flow sound: a tiny Web Audio oscillator synth that gives Flow its
 // tactile-adjacent feedback. On the web this matters more than haptics:
 // iOS Safari has no Vibration API, so SOUND is the only feedback iOS
 // users get. The AudioContext is lazy-initialised on the first cue
 // (autoplay policy: the context can only be created/resumed inside a
 // user gesture, and every Flow cue originates from a swipe) and the
 // whole module no-ops gracefully where Web Audio is unavailable
-// (SSR, hostile in-app browsers) — it never throws.
+// (SSR, hostile in-app browsers): it never throws.
 //
 // Call sites use the named cue (`flowTick`, `flowBeat`, `flowWild`,
-// `flowSummary`), not raw oscillator math — that keeps the vocabulary
+// `flowSummary`), not raw oscillator math: that keeps the vocabulary
 // inspectable and pairs each sound with its motion / haptic moment.
 //
 // The four cues are the full set:
-//   tick       — every committed call (per-swipe)
-//   beat(hard) — milestone beat; `hard` plays a bigger two-note figure
-//   wild       — wildcard treat (ascending arpeggio)
-//   summary    — session end (rising four-note chord)
+//   tick: every committed call (per-swipe)
+//   beat(hard): milestone beat; `hard` plays a bigger two-note figure
+//   wild: wildcard treat (ascending arpeggio)
+//   summary: session end (rising four-note chord)
 
 // Minimal structural type for the prefixed AudioContext on older WebKit.
 interface WebAudioWindow {
@@ -60,7 +60,7 @@ const ensureContext = (): AudioContext | null => {
 			audioContext = new Ctor();
 		} catch {
 			// Construction can throw if the document hasn't had a user
-			// gesture yet, or on UA shims. Non-essential feedback — bail.
+			// gesture yet, or on UA shims. Non-essential feedback: bail.
 			return null;
 		}
 	}
@@ -71,7 +71,7 @@ const ensureContext = (): AudioContext | null => {
 /**
  * Resolve the shared AudioContext, lazily creating it on first use and
  * resuming it if the browser has parked it in the `suspended` state
- * (autoplay policy). Returns `null` — and the caller no-ops — when sound
+ * (autoplay policy). Returns `null`, and the caller no-ops, when sound
  * is disabled in preferences or Web Audio is unavailable.
  */
 const audio = (): AudioContext | null => {
@@ -106,7 +106,7 @@ interface ToneSpec {
 	type: OscillatorKind;
 	/** Peak gain (0–1). The envelope ramps up to this then decays. */
 	vol: number;
-	/** Start offset in seconds from "now" — sequences notes within a cue. */
+	/** Start offset in seconds from "now": sequences notes within a cue. */
 	when?: number;
 }
 
@@ -143,12 +143,12 @@ const tone = ({ freq, dur, type, vol, when = 0 }: ToneSpec): void => {
 		oscillator.stop(start + dur + 0.03);
 	} catch {
 		// AudioContext can throw on hostile UA shims or after the context
-		// has been closed. The feedback is non-essential — swallow.
+		// has been closed. The feedback is non-essential: swallow.
 	}
 };
 
 /**
- * Per-swipe cue — fired on every committed call. A brief, dry triangle
+ * Per-swipe cue: fired on every committed call. A brief, dry triangle
  * tick that sits under the swipe without drawing attention.
  */
 export const flowTick = (): void => {
@@ -172,7 +172,7 @@ export const flowBeat = (hard = false): void => {
 };
 
 /**
- * Wildcard-treat cue — a quick ascending three-note arpeggio (square →
+ * Wildcard-treat cue: a quick ascending three-note arpeggio (square →
  * square → triangle) that reads as a playful "bonus".
  */
 export const flowWild = (): void => {
@@ -182,7 +182,7 @@ export const flowWild = (): void => {
 };
 
 /**
- * Session-summary cue — a rising four-note sine chord (C5·E5·G5·C6)
+ * Session-summary cue: a rising four-note sine chord (C5·E5·G5·C6)
  * staggered 110 ms apart, played when a Flow session completes.
  */
 export const flowSummary = (): void => {
@@ -193,7 +193,7 @@ export const flowSummary = (): void => {
 
 /**
  * Resume the shared AudioContext if it exists and is suspended. Called
- * when sound is re-enabled — re-enabling happens from a tap (a gesture),
+ * when sound is re-enabled: re-enabling happens from a tap (a gesture),
  * so resuming here lets the very next cue play without waiting for
  * another interaction. No-op when no context has been created yet.
  */
@@ -205,8 +205,8 @@ export const resumeFlowSound = (): void => {
 
 // Gesture-unlock events tried in order of likelihood across UAs. Captured
 // (capture: true) so we observe the gesture even when a child stops
-// propagation, and `once`-free so iOS Chrome — which can need a couple of
-// gestures before the context actually leaves `suspended` — gets retried.
+// propagation, and `once`-free so iOS Chrome, which can need a couple of
+// gestures before the context actually leaves `suspended`, gets retried.
 const UNLOCK_EVENTS = ['pointerdown', 'touchend', 'touchstart', 'mousedown', 'keydown'] as const;
 
 /**
@@ -217,7 +217,7 @@ const UNLOCK_EVENTS = ['pointerdown', 'touchend', 'touchstart', 'mousedown', 'ke
  * starts the audio hardware route when the AudioContext is resumed AND a
  * buffer is played from inside a real user gesture. Most Flow cues fire
  * from deferred timers (character beats, the session summary), which are
- * not gestures — so resuming lazily at play-time unlocks lenient Safari
+ * not gestures, so resuming lazily at play-time unlocks lenient Safari
  * but not strict iOS Chrome. Priming once on the first gesture makes
  * every later deferred cue audible.
  *
@@ -231,7 +231,7 @@ export const unlockFlowSound = (): (() => void) => {
 	}
 
 	const tryUnlock = (): void => {
-		// Always create + resume + play a silent buffer inside the gesture —
+		// Always create + resume + play a silent buffer inside the gesture:
 		// this is what actually unlocks the hardware route on iOS WebKit. Runs
 		// even when muted so a later un-mute works without a fresh gesture.
 		const context = ensureContext();
@@ -250,9 +250,9 @@ export const unlockFlowSound = (): (() => void) => {
 			const source = context.createBufferSource();
 			source.buffer = context.createBuffer(1, 1, context.sampleRate); // one sample of silence
 			source.connect(context.destination);
-			source.start(); // immediate — avoids past-time scheduling quirks
+			source.start(); // immediate: avoids past-time scheduling quirks
 		} catch {
-			// Best-effort priming — swallow on hostile UA shims.
+			// Best-effort priming: swallow on hostile UA shims.
 		}
 
 		// Once the context is actually running we're done. If it's still
@@ -266,7 +266,7 @@ export const unlockFlowSound = (): (() => void) => {
 	// These fire on high-frequency input events and the handler never calls
 	// `preventDefault`, so mark them passive to keep scrolling/tapping
 	// jank-free. `capture` must match between add and remove for the
-	// listener to actually detach — share one options object for both.
+	// listener to actually detach: share one options object for both.
 	const listenerOptions: AddEventListenerOptions = { capture: true, passive: true };
 
 	const teardown = (): void => {

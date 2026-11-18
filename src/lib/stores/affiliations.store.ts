@@ -7,7 +7,7 @@ import { writable } from 'svelte/store';
  * country? }`).
  *
  * Single source of truth shared by every surface that renders the
- * caller's own school / country — the Profile dashboard, the Arena
+ * caller's own school / country: the Profile dashboard, the Arena
  * overview strip, the Worlds leaderboard, and the battles inbox. Mirrors
  * the stale-while-revalidate contract of
  * [`leagues.store`](./leagues.store.ts) / [`friends.store`](./friends.store.ts):

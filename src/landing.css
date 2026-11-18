@@ -1,6 +1,6 @@
 /* VICI Landing styles.
  *
- * This file is intentionally NOT scoped — the landing components
+ * This file is intentionally NOT scoped; the landing components
  * below reference the `.lp-*` / `.flow-*` / `.dnav-*` / `.lp-pill*`
  * class names directly so the markup stays one-to-one with the
  * stylesheet. Token names are bridged at the top of this file:
@@ -493,7 +493,7 @@
 	padding-top: 4px;
 }
 
-/* Edge-to-edge MarketArtwork — `bleed` mode: negative side margins
+/* Edge-to-edge MarketArtwork, `bleed` mode: negative side margins
    cancel the body's 20px padding so the artwork extends to the card
    edges. */
 .flow-body .flow-art-bleed {
@@ -502,7 +502,7 @@
 	/* Prefer 130px but flex-shrink toward a 96px floor when the card is
 	   short, so the head/probs/foot stay fully visible inside the deck
 	   on small phones. At desktop deck height there is spare room, so the
-	   art keeps its full 130px — a shorter band that leaves the
+	   art keeps its full 130px: a shorter band that leaves the
 	   probability split, action row and foot more room to breathe. */
 	flex: 0 1 130px;
 	min-height: 96px;
@@ -1069,7 +1069,7 @@
 [data-theme='peach'] .lp-pill {
 	background: rgba(250, 224, 204, 0.82);
 }
-/* Seamless at the very top: the pill carries no slab over the hero — it only
+/* Seamless at the very top: the pill carries no slab over the hero; it only
    frosts in once the page is scrolled (the base .lp-pill frost + the
    .is-scrolled darken below), fading via the .lp-pill background/border/shadow
    transitions (backdrop blur snaps, intentionally, to avoid iOS flicker).
@@ -1108,14 +1108,14 @@
    ----------------------------------------------------------------------------
    A live `backdrop-filter` that stays pinned in the viewport while the page
    scrolls behind it must re-blur the moving backdrop every frame. Blink
-   (Android/desktop Chrome) composites that smoothly; iOS WebKit — which every
-   iOS browser including Chrome is built on — re-rasterizes the blur per frame
+   (Android/desktop Chrome) composites that smoothly; iOS WebKit, which every
+   iOS browser including Chrome is built on: re-rasterizes the blur per frame
    and it reads as a flicker. Layer promotion (translateZ/will-change) can't fix
    it: the sampled backdrop genuinely changes each frame, so there's nothing
    stable to cache. The robust fix is to not run a live blur on iOS at all.
    `data-ios` is stamped on <html> pre-paint in app.html. We keep the frosted
    blur everywhere it composites cleanly and fall back to a near-opaque surface
-   on iOS — the scrolled/open states are already ~0.92–0.97 alpha, so dropping
+   on iOS: the scrolled/open states are already ~0.92–0.97 alpha, so dropping
    the blur and going nearly solid is a barely-perceptible change. */
 html[data-ios] .lp-nav .lp-pill {
 	-webkit-backdrop-filter: none;
@@ -1131,7 +1131,7 @@ html[data-ios][data-theme='peach'] .lp-nav.is-scrolled .lp-pill {
 	background: rgba(250, 224, 204, 0.98);
 }
 /* `.lp-nav` ties these to the same specificity as the `.is-scrolled` rule
-   above so the open surface wins by source order — an opened menu reads the
+   above so the open surface wins by source order; an opened menu reads the
    same whether or not the page is scrolled. */
 html[data-ios] .lp-nav .lp-pill.open {
 	background: rgba(20, 18, 15, 0.99);
@@ -1192,7 +1192,7 @@ html[data-ios][data-theme='peach'] .lp-nav .lp-pill.open {
 .lp-lang-wrap {
 	position: relative;
 }
-/* "Use automatic" reset below the desktop lang popover — a hairline footer
+/* "Use automatic" reset below the desktop lang popover; a hairline footer
    below the picker, only rendered when an explicit choice is active. (The
    mobile picker is a `LocaleSheet`, which renders its own reset footer.) */
 .lp-auto-reset {
@@ -1568,7 +1568,7 @@ html[data-ios][data-theme='peach'] .lp-nav .lp-pill.open {
 	z-index: 50;
 	background: transparent;
 	border-bottom: 1px solid transparent;
-	/* Do NOT transition backdrop-filter — iOS Safari repaints the blur layer on
+	/* Do NOT transition backdrop-filter: iOS Safari repaints the blur layer on
 	   each frame of the transition, which reads as a flicker/tremble. The blur
 	   snaps; background/border/shadow fade. */
 	transition:
@@ -1580,7 +1580,7 @@ html[data-ios][data-theme='peach'] .lp-nav .lp-pill.open {
    links and CTA read against a contrasting surface instead of floating over
    live hero content. Backdrop blur snaps (it's excluded from the transition
    above); background/border/shadow fade. Per-theme alphas sit a touch below
-   the mobile `.lp-pill` scrolled surface — this band is full-width and also
+   the mobile `.lp-pill` scrolled surface; this band is full-width and also
    carries blur, so a lighter surface still reads clearly. */
 .dnav.is-scrolled {
 	background: rgba(20, 18, 15, 0.85);
@@ -1596,7 +1596,7 @@ html[data-ios][data-theme='peach'] .lp-nav .lp-pill.open {
 	background: rgba(250, 224, 204, 0.88);
 }
 /* iOS WebKit re-rasterizes a live backdrop blur every scrolled frame (reads as
-   flicker — see the `.lp-pill` note below), so drop the blur and go near-opaque
+   flicker: see the `.lp-pill` note below), so drop the blur and go near-opaque
    on iOS instead. Covers iPad landscape, which reaches the ≥1024px desktop nav. */
 html[data-ios] .dnav.is-scrolled {
 	-webkit-backdrop-filter: none;
@@ -1743,7 +1743,7 @@ html[data-ios][data-theme='peach'] .dnav.is-scrolled {
 	position: relative;
 }
 .dnav-lang-pop {
-	/* Desktop lang popover — anchored under the globe and hosting the shared
+	/* Desktop lang popover: anchored under the globe and hosting the shared
 	   two-axis `LocalePicker`. */
 	position: absolute;
 	top: calc(100% + 8px);
@@ -1846,7 +1846,7 @@ html[data-ios][data-theme='peach'] .dnav.is-scrolled {
 }
 /* Scoped under `.lp-root` so this compact-pill override outranks the
    base `.lp-root .btn` rule (same two-class specificity, but this is
-   defined later) — otherwise the base's larger padding / 12px radius
+   defined later); otherwise the base's larger padding / 12px radius
    wins and the desktop CTA renders as a big rounded rectangle instead
    of the intended pill. */
 .lp-root .dnav-cta {
@@ -1874,7 +1874,7 @@ html[data-ios][data-theme='peach'] .dnav.is-scrolled {
 }
 
 /* =============================================================
-   Landing — conversion-first surface.
+   Landing: conversion-first surface.
 
    Self-contained classes under `.lpc` (landing-conversion) so they
    never collide with the shared landing primitives above. `.lpc` is
@@ -1927,7 +1927,7 @@ html[data-ios][data-theme='peach'] .dnav.is-scrolled {
    *document* scroll; it can't animate pinned `position: sticky` elements in step
    with that WebView resize, so the sticky nav pill judders as you scroll. Android
    and desktop resize smoothly, so they're unaffected. The authenticated app
-   shell already sidesteps this by never scrolling the document — it locks the
+   shell already sidesteps this by never scrolling the document; it locks the
    body and scrolls an inner viewport (`html[data-app] body { overflow: hidden }`
    + `.screen-scroll`). We give the landing the same treatment on iOS only: `.lpc`
    becomes the scroll viewport, so the document never scrolls, the address bar
@@ -2180,7 +2180,7 @@ html[data-ios] .lpc {
 	border-top: 1px solid var(--border-strong);
 }
 
-/* Interactive swipe card — reuses .flow-card / .flow-face markup. */
+/* Interactive swipe card: reuses .flow-card / .flow-face markup. */
 .lpc-deck {
 	position: relative;
 	justify-self: center;
@@ -2228,7 +2228,7 @@ html[data-ios] .lpc {
 	opacity: 0.7;
 }
 
-/* Payoff state (after first swipe) — maximal celebration. */
+/* Payoff state (after first swipe): maximal celebration. */
 .lpc-payoff {
 	position: absolute;
 	inset: 0;
@@ -3138,7 +3138,7 @@ html[data-ios] .lpc {
 		grid-template-columns: 1fr;
 		/* A touch more breathing room between the headline copy block and the
 		   stacked stage/character zone (the swipe-guide pill) on narrow
-		   viewports — the single-column row gap is the headline↔pill spacing. */
+		   viewports: the single-column row gap is the headline↔pill spacing. */
 		gap: 24px;
 		grid-template-areas: 'copy' 'stage' 'tail';
 		align-items: stretch;

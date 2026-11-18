@@ -3,7 +3,7 @@
 // without tallying the reaction pages.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { query, tx } from '../db/client';
+import { query, tx, type TxQuery } from '../db/client';
 import { UUID_RE } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { fanOutResolvedResults } from './resolved-results';
@@ -22,9 +22,24 @@ export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 export const isActivityType = (value: string): value is ActivityType =>
 	(ACTIVITY_TYPES as readonly string[]).includes(value);
 
+/** Upper bound on an activity title; the longest the app writes is a
+ * `Market created: ` prefix on a series title of at most 128 characters. */
+export const ACTIVITY_TITLE_MAX_LENGTH = 500;
+
+/** Upper bound on activity details. The longest the app writes is a series
+ * description, at most 1024 characters on chain; doubled because the request
+ * schema counts UTF-16 code units and one character can take two. */
+export const ACTIVITY_DETAILS_MAX_LENGTH = 2048;
+
+/** Upper bound on the market id an activity or a reaction carries. Registry
+ * series ids are 64-character SHA-256 hex; the cap leaves headroom without
+ * letting a caller store an arbitrary string. */
+export const ACTIVITY_MARKET_ID_MAX_LENGTH = 128;
+
 /** Upper bound on the denormalized activityTitle a reaction may carry, so a
- * liker cannot bloat the row the inbox card reads. */
-export const ACTIVITY_REACTION_TITLE_MAX_LENGTH = 500;
+ * liker cannot bloat the row the inbox card reads. It copies the activity
+ * title, so it shares that bound. */
+export const ACTIVITY_REACTION_TITLE_MAX_LENGTH = ACTIVITY_TITLE_MAX_LENGTH;
 
 export class ActivityValidationError extends Error {}
 
@@ -124,7 +139,8 @@ export const parseActivityKey = (
  *
  * A settlement activity additionally fans out resolved-result rows from the
  * clearing settlement plan, best-effort and detached so a plan-read hiccup
- * never disrupts the resolver's write.
+ * never disrupts the resolver's write. Only a settling role may post one; the
+ * route enforces that before calling here.
  */
 export const createActivity = async ({
 	userId,
@@ -170,10 +186,7 @@ export const createActivity = async ({
 	if (activity.type === 'settlement' && nonNullish(activity.marketId)) {
 		// Detached on purpose: the fan-out reads the on-chain settlement plan
 		// and must never delay or fail the activity write itself.
-		fanOutResolvedResults({
-			marketId: activity.marketId,
-			fallbackTitle: activity.title
-		}).catch((err) => {
+		fanOutResolvedResults({ marketId: activity.marketId }).catch((err) => {
 			logger.error(`resolved-results fan-out failed for ${activity.marketId}:`, err);
 		});
 	}
@@ -343,6 +356,27 @@ export const unlikeActivity = async ({
 	});
 };
 
+/** Removes every like `likerId` gave and moves each liked activity's counter
+ * down (floored at 0), as an unlike would, inside the caller's transaction. */
+export const deleteReactionsBy = async ({
+	likerId,
+	q
+}: {
+	likerId: string;
+	q: TxQuery;
+}): Promise<void> => {
+	await q(
+		`with removed as (
+		   delete from activity_reactions where liker = $1 returning activity_key
+		 )
+		 update activity_reaction_counts c
+		 set count = greatest(0, c.count - r.removed), updated_at_ms = $2
+		 from (select activity_key, count(*)::int as removed from removed group by activity_key) r
+		 where c.activity_key = r.activity_key`,
+		[likerId, Date.now()]
+	);
+};
+
 /** The most-recent reactions across all users, bounded. */
 export const listReactions = async ({ limit }: { limit: number }): Promise<ActivityReaction[]> => {
 	if (limit <= 0) {
@@ -356,35 +390,6 @@ export const listReactions = async ({ limit }: { limit: number }): Promise<Activ
 	);
 
 	return rows.map(shapeReaction);
-};
-
-export interface ActivityReactionCount {
-	activityKey: string;
-	count: number;
-	updatedAtMs: number;
-}
-
-/** Rollup counters for the given activity keys. */
-export const getReactionCounts = async ({
-	activityKeys
-}: {
-	activityKeys: string[];
-}): Promise<ActivityReactionCount[]> => {
-	if (activityKeys.length === 0) {
-		return [];
-	}
-
-	const rows = await query<{ activity_key: string; count: number; updated_at_ms: string }>(
-		`select activity_key, count, updated_at_ms::text
-		 from activity_reaction_counts where activity_key = any($1)`,
-		[activityKeys]
-	);
-
-	return rows.map((row) => ({
-		activityKey: row.activity_key,
-		count: row.count,
-		updatedAtMs: Number(row.updated_at_ms)
-	}));
 };
 
 /**

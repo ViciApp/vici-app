@@ -20,23 +20,23 @@ read so its first paint is fast and then verified.
 ## Context
 
 The displayed probability is `yesProb = midPrice ?? 0.5`, and the 0.5
-sentinel is seeded in several places — `Market.yesProbability` is a
+sentinel is seeded in several places: `Market.yesProbability` is a
 **required** `number`, so "unknown" cannot be expressed and defaults to
 0.5:
 
-- `src/lib/types/market.ts:66-71` — `yesProbability: number` /
+- `src/lib/types/market.ts:66-71`: `yesProbability: number` /
   `noProbability: number` required; `bestBid?`/`bestAsk?` already optional.
-- `src/lib/utils/market.utils.ts` — `mapMarketData` defaults
+- `src/lib/utils/market.utils.ts`: `mapMarketData` defaults
   `yesProbability = 0` / `noProbability = 0`; `calculateMarketStats`
   returns `midPrice: calculateProbability({ bids, asks })`, and
   `calculateProbability` returns **`0.5` for an empty book** (the sentinel
   source).
-- `src/lib/services/market.services.ts` — seeds `yesProbability: 0.5` in
+- `src/lib/services/market.services.ts`: seeds `yesProbability: 0.5` in
   the lite paths (`fetchMarkets` lite ~281, `fetchOpenBinaryMarketsLite`
   ~446) and `midPrice ?? 0.5` in the enrich/fetch paths (~320, ~494, ~734).
   `loadMarketsProgressive` already seeds from resolved outcome → in-memory
   prior → persisted cache (`readCachedYesProbabilities`) → else lite 0.5.
-- `src/lib/utils/market-price-cache.utils.ts` — public, 1-day TTL,
+- `src/lib/utils/market-price-cache.utils.ts`: public, 1-day TTL,
   keyed by market id, only liquidity-backed prices are written
   (`cacheMarketPrices`). This is the fast-navigation seed.
 
@@ -46,7 +46,7 @@ wraps `@dfinity/utils` `queryAndUpdate` (query first, certified update
 second, stale query dropped). `loadMarket` in `market.services.ts`
 already uses it, but the detail route
 `src/routes/(app)/markets/[id]/+page.svelte` currently calls the
-one-shot `getMarket` instead — so its first paint waits for the
+one-shot `getMarket` instead, so its first paint waits for the
 certified call.
 
 Skeletons already exist:
@@ -66,19 +66,19 @@ Probability consumers that must tolerate "unknown" (from the audit):
   context string), `market.utils.ts` `getExecutionPrice`
   (`bestAsk ?? yesProbability`).
 - `FlowMode.svelte` consensus-side detection (`yesProbability ?? 0.5`).
-- Resolved markets pin `yesProbability` to 1/0 — unchanged.
+- Resolved markets pin `yesProbability` to 1/0: unchanged.
 
 ## Scope
 
-1. **Model — make "unknown" representable** (`src/lib/types/market.ts`):
+1. **Model: make "unknown" representable** (`src/lib/types/market.ts`):
    `yesProbability?: number`, `noProbability?: number` (optional;
-   `undefined` ⇒ not known). Add `priceLoaded?: boolean` — `true` once an
+   `undefined` ⇒ not known). Add `priceLoaded?: boolean`: `true` once an
    order-book read has completed for this market (regardless of
    liquidity), to distinguish _loading_ (skeleton) from _loaded but no
    liquidity_ (dash).
 
 2. **Kill the 0.5 sentinel**:
-   - `calculateProbability` returns `number | undefined` — `undefined`
+   - `calculateProbability` returns `number | undefined`: `undefined`
      when both `bids` and `asks` are empty (keep the one-sided and
      two-sided branches). `calculateMarketStats.midPrice` becomes
      `number | undefined`.
@@ -108,7 +108,7 @@ Probability consumers that must tolerate "unknown" (from the audit):
      odds **skeleton** if `!priceLoaded`, else a neutral **dash / "no
      liquidity"** indicator. New shared inline component
      `MarketOddsSkeleton.svelte` (or a variant flag on the existing
-     skeleton — pick per `reusability.md`).
+     skeleton: pick per `reusability.md`).
    - Guard all math consumers so `undefined` short-circuits to the
      skeleton/placeholder or a cached value instead of producing `NaN`/`0`
      (payout preview, portfolio value, execution price, sorting key).
@@ -129,19 +129,19 @@ Probability consumers that must tolerate "unknown" (from the audit):
 ### Out of scope
 
 - A full certified (`queryAndUpdate`) pass over the **entire markets
-  list** — see Decisions (perf). The list stays uncertified-fast;
+  list**: see Decisions (perf). The list stays uncertified-fast;
   certification is for the detail/trade surface.
 - Changing the maker, the order-book schema, or `calculateCategoricalMidPrice`.
 - Reworking the list's whole-page loading placeholders beyond per-card odds.
 
 ## Linked issues
 
-Searched open issues on `ViciApp/vici-app` — no existing issue
+Searched open issues on `ViciApp/vici-app`: no existing issue
 tracks the 50% placeholder. No `Closes`/`Part of`.
 
 ## Analytics
 
-No new analytics. This is a display-correctness and loading-state fix —
+No new analytics. This is a display-correctness and loading-state fix:
 it introduces no new user action or surface to measure, and the existing
 prediction/trade events already cover behaviour on these screens.
 Instrumenting skeleton render would be noise, not signal.

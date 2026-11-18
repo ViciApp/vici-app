@@ -8,12 +8,13 @@ import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import { getMyReferralCode } from '#lib/services/referral.services.ts';
 import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
 import {
+	BATTLE_AMOUNT_MAX,
+	BATTLE_AMOUNT_MIN,
 	BATTLE_RESPOND_BY_MS,
 	BATTLE_SCOPE_DEFAULT,
 	BATTLE_TRASH_TALK_MAX_LENGTH,
-	BATTLE_WAGER_MAX,
-	BATTLE_WAGER_MIN,
 	isBattleScope,
+	readBattleDoc,
 	type BattleDoc,
 	type BattleScope,
 	type BattleWinner
@@ -29,8 +30,11 @@ import {
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
+	type JoinLeagueRefusalReason,
 	type LeagueDoc
 } from '#lib/types/league.ts';
+import { appOrigin } from '#lib/utils/nav.utils.ts';
+import { hyphenateSlug } from '#lib/utils/slug.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	acceptDuel as acceptDuelWeb2,
@@ -89,12 +93,21 @@ export interface LeagueWithRole {
 
 // ─── Reads ───────────────────────────────────────────────────────────────
 
+/** Fresh invite codes `createLeague` tries before giving up; a clash is one in ~2 billion. */
+const CREATE_LEAGUE_INVITE_ATTEMPTS = 3;
+
+/** The error a refused join throws, by the satellite's refusal reason. */
+const JOIN_LEAGUE_ERRORS: Record<JoinLeagueRefusalReason, string> = {
+	not_found: 'No league found for that invite code.',
+	already_member: 'Already a member of this league.'
+};
+
 /** Project the satellite's camelCase wire league to the FE `LeagueDoc`. */
 const projectLeagueWire = (league: {
 	id: string;
 	name: string;
 	description?: string;
-	inviteCode: string;
+	inviteCode?: string;
 	owner: string;
 	createdAtMs: number;
 	accentColor?: string;
@@ -163,7 +176,7 @@ export const settleFounderAwards = async (): Promise<number> => {
 };
 
 /**
- * List the leagues the caller can challenge to a battle — the opponent
+ * List the leagues the caller can challenge to a battle; the opponent
  * pool for the create-battle picker. Publicly listed (Open) leagues plus
  * the caller's own memberships, minus leagues the caller owns. Sorted
  * alphabetically by name per the satellite query.
@@ -192,7 +205,7 @@ export interface FriendRecommendedLeague {
 
 /**
  * List Open and Invite-only leagues the caller's confirmed friends are in
- * but the caller is not — the "Friends are in" recommendations row at the
+ * but the caller is not: the "Friends are in" recommendations row at the
  * foot of the Leagues list. Private leagues are never surfaced. Sorted by
  * friend-overlap count descending per the satellite query.
  */
@@ -211,8 +224,8 @@ export const listFriendRecommendedLeagues = async (): Promise<FriendRecommendedL
 };
 
 /**
- * List the full member roster of a league, projected to the
- * camelCase `LeagueMemberDoc` the FE uses everywhere. Powers the
+ * List the full member roster of a league as the `LeagueMemberDoc` the
+ * FE uses everywhere (the wire row already has that shape). Powers the
  * transfer-ownership picker (in the league detail surface and the
  * delete-account flow) where the caller needs the other members to
  * hand a league off to.
@@ -228,12 +241,7 @@ export const listLeagueMembers = async ({
 
 	const { items } = await functions.listLeagueMembers({ leagueId });
 
-	return items.map(({ leagueId, member, joinedAtMs, role }) => ({
-		leagueId,
-		member,
-		joinedAtMs,
-		role
-	}));
+	return items;
 };
 
 /**
@@ -277,7 +285,7 @@ export const getLeagueById = async ({ id }: { id: string }): Promise<LeagueDoc |
 };
 
 /**
- * Hydrate `leagueDirectoryStore` for any uncached ids — call it from any
+ * Hydrate `leagueDirectoryStore` for any uncached ids: call it from any
  * surface that names a counterpart league. Mirrors
  * `loadProfilesByPrincipals`: per-id failures are swallowed (UI falls
  * back to a shortened id) and fetches run in bounded batches so a large
@@ -403,11 +411,7 @@ export const deriveLeagueId = ({
 	name: string;
 	suffix: number | string;
 }): string => {
-	const slug = name
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '')
-		.slice(0, 24);
+	const slug = hyphenateSlug(name.toLowerCase()).slice(0, 24);
 
 	return `${slug || 'league'}-${suffix}`;
 };
@@ -459,7 +463,7 @@ export const createLeague = async ({
 	emblem?: string;
 	/** Three-way visibility the owner picked in the create sheet.
 	 *  Defaults to {@link LeaguePrivacy.OPEN} (the create surface's
-	 *  default — new leagues are publicly listed and battle-eligible);
+	 *  default: new leagues are publicly listed and battle-eligible);
 	 *  persisted on the league doc and surfaced as the detail header's
 	 *  privacy chip. */
 	privacy?: LeaguePrivacy;
@@ -491,65 +495,50 @@ export const createLeague = async ({
 		});
 	}
 
-	const identity = await safeGetIdentityOnce();
-	const ownerPrincipal = identity.getPrincipal().toText();
-	const createdAtMs = Date.now();
-	const leagueId = deriveLeagueId({ name, suffix: createdAtMs });
-	const resolvedInviteCode = inviteCode ?? generateInviteCode();
+	const leagueId = deriveLeagueId({ name, suffix: Date.now() });
 
-	if (!LEAGUE_INVITE_CODE_REGEX.test(resolvedInviteCode)) {
-		// `generateInviteCode` is built to satisfy the regex; this
-		// branch is here so a future change to either side trips the
-		// FE error path instead of failing on the satellite assert.
-		throw new Error('Generated invite code is malformed.');
+	// The satellite keeps the code off the public league doc and refuses one
+	// another league holds; a fresh code is then tried, so the code the sheet
+	// showed is kept unless it was taken.
+	for (
+		let attempt = 0, code = inviteCode ?? generateInviteCode();
+		attempt < CREATE_LEAGUE_INVITE_ATTEMPTS;
+		attempt++, code = generateInviteCode()
+	) {
+		if (!LEAGUE_INVITE_CODE_REGEX.test(code)) {
+			// `generateInviteCode` is built to satisfy the regex; this
+			// branch is here so a future change to either side trips the
+			// FE error path instead of failing on the satellite.
+			throw new Error('Generated invite code is malformed.');
+		}
+
+		const { league } = await functions.createLeague({
+			id: leagueId,
+			name,
+			description,
+			accentColor,
+			emblem,
+			privacy,
+			inviteCode: code
+		});
+
+		if (nonNullish(league)) {
+			return projectLeagueWire(league);
+		}
 	}
 
-	const league: LeagueDoc = {
-		id: leagueId,
-		name,
-		description,
-		inviteCode: resolvedInviteCode,
-		owner: ownerPrincipal,
-		createdAtMs,
-		accentColor,
-		emblem,
-		privacy
-	};
-
-	await setDoc<LeagueDoc>({
-		collection: Collection.LEAGUES,
-		doc: {
-			key: leagueId,
-			data: league
-		}
-	});
-
-	const ownerMembership: LeagueMemberDoc = {
-		leagueId,
-		member: ownerPrincipal,
-		joinedAtMs: createdAtMs,
-		role: 'owner'
-	};
-
-	await setDoc<LeagueMemberDoc>({
-		collection: Collection.LEAGUE_MEMBERS,
-		doc: {
-			key: leagueMemberKey({ leagueId, memberPrincipal: ownerPrincipal }),
-			data: ownerMembership
-		}
-	});
-
-	return league;
+	throw new Error('No free invite code for the new league.');
 };
 
 /**
  * Edit an owner-mutable league field. Only the current owner can call
  * this; the satellite assert hard-rejects anyone else. On the edit path
- * `id`, `createdAtMs`, `inviteCode`, and `emblem` stay frozen — `name`,
+ * `id`, `createdAtMs`, `inviteCode`, and `emblem` stay frozen: `name`,
  * `privacy`, and `imageUrl` are the mutable fields.
  *
- * Pass `name` to rename (trimmed + re-validated against the same 3–40
- * char window the create flow enforces; an invalid name throws before
+ * Pass `name` to rename (trimmed + re-validated against the same
+ * `LEAGUE_NAME_MIN_LENGTH`–`LEAGUE_NAME_MAX_LENGTH` window the create
+ * flow enforces; an invalid name throws before
  * any write). Pass `privacy` to change the league's visibility (any of
  * the three variants; the assert range-checks it). Pass `imageUrl` to
  * set or change the cover image, or `''` to clear it (the field is
@@ -558,8 +547,8 @@ export const createLeague = async ({
  * untouched.
  *
  * Re-reads the existing doc so we round-trip the server's `version`
- * token — Juno's optimistic-concurrency guard rejects an update that
- * omits it — and so unchanged fields are carried over verbatim. Returns
+ * token: Juno's optimistic-concurrency guard rejects an update that
+ * omits it, and so unchanged fields are carried over verbatim. Returns
  * the updated `LeagueDoc` so the caller can reflect the change
  * optimistically.
  */
@@ -658,7 +647,7 @@ export const updateLeague = async ({
 	return next;
 };
 
-// Cache for the caller's own referral code — the same value for a given identity,
+// Cache for the caller's own referral code; the same value for a given identity,
 // so resolve it once and reuse across every league-share build. Keyed to the
 // signed-in principal so an in-session account switch (sign-out → sign-in without
 // a reload) never reuses the previous user's code. Only a positive result is
@@ -700,7 +689,7 @@ const resolveMyReferralCode = async (): Promise<string | undefined> => {
 /**
  * Builds the canonical league-invite URL (`{origin}/league/{code}`), appending
  * the sharer's referral code as `?ref={code}` so the invite also implies a friend
- * invite (auto-friendship on join, plus the new-user bonus for fresh sign-ups —
+ * invite (auto-friendship on join, plus the new-user bonus for fresh sign-ups,
  * the landing route + onboarding drain redeem the `?ref=` exactly like a plain
  * friend invite). The param is appended only when a real referral code resolves;
  * with none available the plain link is returned (a handle would fail
@@ -712,7 +701,7 @@ export const buildLeagueShareUrl = async ({
 }: {
 	inviteCode: string;
 }): Promise<{ url: string; withReferral: boolean }> => {
-	const base = `${window.location.origin}/league/${inviteCode}`;
+	const base = `${appOrigin()}/league/${inviteCode}`;
 	const referralCode = await resolveMyReferralCode();
 
 	if (nonNullish(referralCode) && REFERRAL_CODE_REGEX.test(referralCode)) {
@@ -723,13 +712,11 @@ export const buildLeagueShareUrl = async ({
 };
 
 /**
- * Join a league via its 6-char invite code. Looks the league up,
- * then writes a `LeagueMemberDoc` for the caller. Returns the
- * resolved league so the caller can route into it.
+ * Join a league via its 6-char invite code, the only way into a league.
+ * Returns the league so the caller can route into it.
  *
- * Throws if the code is malformed, unknown, or the caller is
- * already a member (the satellite assert rejects the second-write
- * branch).
+ * Throws if the code is malformed, unknown, or the caller is already a
+ * member.
  */
 export const joinLeagueByInvite = async ({
 	inviteCode
@@ -740,16 +727,14 @@ export const joinLeagueByInvite = async ({
 		throw new Error('Invite code is malformed.');
 	}
 
-	const league = await lookupLeagueByInvite({ inviteCode });
-
-	if (!league) {
-		throw new Error('No league found for that invite code.');
-	}
-
-	// The API join is idempotent (re-joining returns the existing row), so the
-	// already-a-member pre-check below is web3-only: it exists to pre-empt a
-	// confusing satellite assert error, which this transport cannot produce.
+	// The API join is idempotent (re-joining returns the existing row).
 	if (isWeb2Backend()) {
+		const league = await lookupLeagueByInvite({ inviteCode });
+
+		if (!league) {
+			throw new Error(JOIN_LEAGUE_ERRORS.not_found);
+		}
+
 		await joinLeagueByInviteWeb2({ inviteCode });
 
 		track({ name: 'league_joined', leagueId: league.id, source: 'invite' });
@@ -757,45 +742,21 @@ export const joinLeagueByInvite = async ({
 		return league;
 	}
 
-	const identity = await safeGetIdentityOnce();
-	const memberPrincipal = identity.getPrincipal().toText();
-	const joinedAtMs = Date.now();
-	const key = leagueMemberKey({ leagueId: league.id, memberPrincipal });
+	// The satellite checks the code and writes the membership itself: a
+	// member row is never written by the client.
+	const { league, reason } = await functions.joinLeagueByInvite({ inviteCode });
 
-	// If the caller is already a member, the assert would reject the
-	// write with "identity fields immutable" on a stale joinedAtMs.
-	// Pre-empt with a getDoc to surface a clearer error.
-	const existing = await getDoc<LeagueMemberDoc>({
-		collection: Collection.LEAGUE_MEMBERS,
-		key
-	});
-
-	if (existing) {
-		throw new Error('Already a member of this league.');
+	if (isNullish(league)) {
+		throw new Error(JOIN_LEAGUE_ERRORS[reason ?? 'not_found']);
 	}
-
-	const membership: LeagueMemberDoc = {
-		leagueId: league.id,
-		member: memberPrincipal,
-		joinedAtMs,
-		role: 'member'
-	};
-
-	await setDoc<LeagueMemberDoc>({
-		collection: Collection.LEAGUE_MEMBERS,
-		doc: {
-			key,
-			data: membership
-		}
-	});
 
 	track({ name: 'league_joined', leagueId: league.id, source: 'invite' });
 
-	return league;
+	return projectLeagueWire(league);
 };
 
 /**
- * Leave a league — deletes the caller's membership row. The
+ * Leave a league: deletes the caller's membership row. The
  * satellite assert rejects this for the owner principal, so
  * ownership transfer is a precondition. Callers should disable the
  * "Leave" CTA on owner rows.
@@ -825,7 +786,7 @@ export const leaveLeague = async ({ leagueId }: { leagueId: string }): Promise<v
 	});
 
 	if (!existing) {
-		// Idempotent — no row to delete is success. Avoids racing
+		// Idempotent: no row to delete is success. Avoids racing
 		// against an admin kick.
 		return;
 	}
@@ -870,7 +831,7 @@ export const transferLeagueOwnership = ({
 		: functions.transferLeagueOwnership({ leagueId, newOwnerPrincipal });
 
 /**
- * Set a member's role inside a league — the owner-driven promote
+ * Set a member's role inside a league; the owner-driven promote
  * (`member → admin`) / demote (`admin → member`) control. Re-reads the
  * existing membership row to round-trip the server's `version` token and
  * to carry the immutable identity fields (`leagueId`, `member`,
@@ -880,7 +841,7 @@ export const transferLeagueOwnership = ({
  * Owner-gated server-side: the `league_members` assert rejects a
  * role-change write from any caller that isn't the league owner, so the
  * owner-only UI guard is a convenience, not the authority. `'owner'` is
- * never a target here — promotion only ever toggles `member ↔ admin`; the
+ * never a target here: promotion only ever toggles `member ↔ admin`; the
  * owner role is reserved for the league's owner principal.
  */
 export const setMemberRole = async ({
@@ -935,7 +896,7 @@ const projectBattleWire = (b: {
 	respondByMs?: number;
 	respondedAtMs?: number;
 	scope?: string;
-	wager?: number;
+	amount?: number;
 	trashTalk?: string;
 	scoreA?: number;
 	scoreB?: number;
@@ -957,7 +918,7 @@ const projectBattleWire = (b: {
 	// Re-narrow the loose wire string back to the typed union; drop
 	// anything outside the closed scope set (legacy / unknown).
 	scope: nonNullish(b.scope) && isBattleScope(b.scope) ? b.scope : undefined,
-	wager: b.wager,
+	amount: b.amount,
 	trashTalk: b.trashTalk,
 	scoreA: b.scoreA,
 	scoreB: b.scoreB,
@@ -968,9 +929,8 @@ const projectBattleWire = (b: {
 });
 
 /**
- * List every battle involving the given league — both sides scanned.
- * Projects the satellite's snake_case wire schema to camelCase
- * `BattleDoc` for the FE.
+ * List every battle involving the given league: both sides scanned.
+ * Projects the satellite's wire rows to the FE `BattleDoc`.
  */
 export const listLeagueBattles = async ({
 	leagueId
@@ -1003,7 +963,7 @@ export const listMyBattles = async (): Promise<BattleDoc[]> => {
 
 /**
  * Count of resolved battles the caller's side won, tallied
- * server-side — duels by principal match on the winning side, league
+ * server-side: duels by principal match on the winning side, league
  * bouts by ownership of the winning league. Backs the profile's
  * `boutsWon` counter in the stats sync without paging the full battle
  * list.
@@ -1015,7 +975,7 @@ export const getMyBattleStats = async (): Promise<{ boutsWon: number }> =>
  * Propose a new battle (kind='league'). Caller must own the `sideA`
  * league; the satellite assert hard-rejects otherwise. The opponent
  * (sideB) league doesn't need to exist on the satellite for the
- * proposal to land — accept goes through a separate assert pass
+ * proposal to land: accept goes through a separate assert pass
  * under the opponent owner's caller identity.
  *
  * The competition window starts when the opponent **accepts**, so the
@@ -1030,14 +990,14 @@ export const proposeBattle = async ({
 	sideB,
 	durationMs,
 	scope,
-	wager,
+	amount,
 	trashTalk
 }: {
 	sideA: string;
 	sideB: string;
 	durationMs: number;
 	scope?: BattleScope;
-	wager?: number;
+	amount?: number;
 	trashTalk?: string;
 }): Promise<BattleDoc> => {
 	if (!Number.isFinite(durationMs) || durationMs <= 0) {
@@ -1049,10 +1009,10 @@ export const proposeBattle = async ({
 	}
 
 	if (
-		nonNullish(wager) &&
-		(!Number.isFinite(wager) || wager < BATTLE_WAGER_MIN || wager > BATTLE_WAGER_MAX)
+		nonNullish(amount) &&
+		(!Number.isFinite(amount) || amount < BATTLE_AMOUNT_MIN || amount > BATTLE_AMOUNT_MAX)
 	) {
-		throw new Error(`Wager must be within [${BATTLE_WAGER_MIN}, ${BATTLE_WAGER_MAX}].`);
+		throw new Error(`Amount must be within [${BATTLE_AMOUNT_MIN}, ${BATTLE_AMOUNT_MAX}].`);
 	}
 
 	// Trim, then drop an empty trash-talk so we never persist a blank
@@ -1078,7 +1038,7 @@ export const proposeBattle = async ({
 			kickoffMs: now,
 			settleMs: now + durationMs,
 			...(nonNullish(scope) && scope !== 'all' ? { scope } : {}),
-			...(nonNullish(wager) && wager > BATTLE_WAGER_MIN ? { wager } : {}),
+			...(nonNullish(amount) && amount > BATTLE_AMOUNT_MIN ? { amount } : {}),
 			...(nonNullish(trimmedTrashTalk) && trimmedTrashTalk.length > 0
 				? { trashTalk: trimmedTrashTalk }
 				: {})
@@ -1097,7 +1057,7 @@ export const proposeBattle = async ({
 		sideB,
 		proposer: proposerPrincipal,
 		state: 'proposed',
-		// Provisional window — reset to the accept moment on accept. Its
+		// Provisional window: reset to the accept moment on accept. Its
 		// length is the chosen duration the accept preserves.
 		kickoffMs: now,
 		settleMs: now + durationMs,
@@ -1105,8 +1065,8 @@ export const proposeBattle = async ({
 		// Persist scope only when narrowed (omit the 'all' default so legacy
 		// reads and the default render path stay identical).
 		...(nonNullish(scope) && scope !== 'all' ? { scope } : {}),
-		// Persist wager only when staked (omit a 0 wager).
-		...(nonNullish(wager) && wager > BATTLE_WAGER_MIN ? { wager } : {}),
+		// Persist the amount only when set (omit a 0 amount).
+		...(nonNullish(amount) && amount > BATTLE_AMOUNT_MIN ? { amount } : {}),
 		// Persist trash-talk only when non-empty after trimming.
 		...(nonNullish(trimmedTrashTalk) && trimmedTrashTalk.length > 0
 			? { trashTalk: trimmedTrashTalk }
@@ -1141,7 +1101,7 @@ const readLeagueStatsBucket = async ({
 };
 
 /**
- * Battle state transitions — thin write helpers. The satellite assert
+ * Battle state transitions: thin write helpers. The satellite assert
  * (BE-6) enforces the forward-only state machine + per-transition
  * authorisation; the FE just packages the doc + signs the call. Each
  * reads the existing doc first to round-trip the server's `version`
@@ -1176,7 +1136,7 @@ export const acceptBattle = async ({ battle }: { battle: BattleDoc }): Promise<B
 		throw new Error('Battle no longer exists.');
 	}
 
-	const current = existing.data;
+	const current = readBattleDoc(existing.data);
 
 	if (current.kind !== 'league') {
 		const acceptedDuel: BattleDoc = { ...current, state: 'accepted' };
@@ -1230,11 +1190,13 @@ export const declineBattle = async ({ battle }: { battle: BattleDoc }): Promise<
 		throw new Error('Battle no longer exists.');
 	}
 
-	if (existing.data.state !== 'proposed') {
+	const current = readBattleDoc(existing.data);
+
+	if (current.state !== 'proposed') {
 		throw new Error('Only proposed battles can be declined.');
 	}
 
-	const next: BattleDoc = { ...existing.data, state: 'declined', respondedAtMs: Date.now() };
+	const next: BattleDoc = { ...current, state: 'declined', respondedAtMs: Date.now() };
 
 	await setDoc<BattleDoc>({
 		collection: Collection.BATTLES,
@@ -1248,7 +1210,7 @@ export const declineBattle = async ({ battle }: { battle: BattleDoc }): Promise<
  * Lazily expire a `proposed` battle whose respond-by deadline has passed
  * (`proposed → expired`). Idempotent: a battle that is no longer
  * `proposed`, or not yet past its deadline, is returned unchanged with no
- * write. Mirrors the lazy auto-resolve path — Juno has no scheduler, so a
+ * write. Mirrors the lazy auto-resolve path: Juno has no scheduler, so a
  * stale proposal is swept the first time a side owner reads it. Legacy
  * rows without `respondByMs` fall back to `kickoffMs`.
  */
@@ -1279,7 +1241,7 @@ export const maybeExpireBattle = async ({ battle }: { battle: BattleDoc }): Prom
 		return battle;
 	}
 
-	const current = existing.data;
+	const current = readBattleDoc(existing.data);
 
 	if (current.state !== 'proposed') {
 		return current;
@@ -1323,7 +1285,7 @@ export const kickoffBattle = async ({ battle }: { battle: BattleDoc }): Promise<
 		throw new Error('Battle no longer exists.');
 	}
 
-	const current = existing.data;
+	const current = readBattleDoc(existing.data);
 	const scope: BattleScope = current.scope ?? BATTLE_SCOPE_DEFAULT;
 
 	const next: BattleDoc =
@@ -1383,7 +1345,7 @@ export const retractBattle = async ({ battle }: { battle: BattleDoc }): Promise<
  * Resolve a settled league battle (`in_flight → resolved`). Delegates to the
  * satellite `resolveBattle` endpoint, which derives each side's accuracy from
  * the clearing canister's settlement history over the battle window (scoped to
- * the battle's market category) and writes the resolved doc as a controller —
+ * the battle's market category) and writes the resolved doc as a controller;
  * a client cannot forge a result. Idempotent server-side: an already-resolved
  * battle is returned unchanged. A legacy row that never got a kickoff baseline
  * resolves fine, since resolution no longer reads baselines.
@@ -1404,7 +1366,7 @@ export interface BattleLiveScore {
 	scoreA: number;
 	/** Side B accuracy (0–100) over the window so far. */
 	scoreB: number;
-	/** Side A window call count so far — the accuracy tie-break. */
+	/** Side A window call count so far; the accuracy tie-break. */
 	callsA: number;
 	/** Side B window call count so far. */
 	callsB: number;
@@ -1413,13 +1375,13 @@ export interface BattleLiveScore {
 }
 
 /**
- * Project the **current** standings of an in-flight league battle —
+ * Project the **current** standings of an in-flight league battle:
  * "who's winning" while the window is still open. Delegates to the satellite
  * `readBattleLiveScore` endpoint, which runs the identical clearing-settlement
  * accuracy arithmetic as {@link resolveBattle} over `[kickoff, now)`, strictly
  * read-only.
  *
- * Returns `null` for anything that can't be scored live — a duel, a
+ * Returns `null` for anything that can't be scored live; a duel, a
  * non-`in_flight` battle, or a caller who is not a member of either side.
  */
 export const readBattleLiveScore = async ({

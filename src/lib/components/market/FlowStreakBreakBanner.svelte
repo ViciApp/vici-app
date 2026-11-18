@@ -15,7 +15,7 @@
 
 <!-- Streak-break choreography: single low thud (haptic fires in
      handleAction), banner names the stage that ended, fresh start
-     at SPARK. Only shown once the forgiveness window is exhausted —
+     at SPARK. Only shown once the forgiveness window is exhausted:
      two or more fully-missed days. -->
 <div
 	class="streak-break"
@@ -40,7 +40,7 @@
 </div>
 
 <style lang="postcss">
-	/* Streak-break banner — shows once when the previous-day gap broke
+	/* Streak-break banner: shows once when the previous-day gap broke
 	   the streak. Mute palette (parchment-mute, no laurel celebration);
 	   spec is explicit that the break is honest, not consoling. */
 	.streak-break {

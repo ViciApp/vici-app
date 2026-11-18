@@ -7,6 +7,7 @@ import { query } from '../db/client';
 import { constantTimeEqual, generateOtp, peppered } from '../lib/crypto';
 import { sendOtpEmail } from '../lib/email';
 import { logger } from '../lib/logger';
+import { MINUTE_IN_MS } from '../lib/time';
 import { normalizeEmail, resolveIdentity } from './identity';
 
 export const OTP_TTL_MINUTES = 10;
@@ -26,7 +27,7 @@ interface OtpRow {
 export const createOtp = async (email: string): Promise<string> => {
 	const e = normalizeEmail(email);
 	const code = generateOtp();
-	const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+	const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * MINUTE_IN_MS);
 
 	// Opportunistic cleanup of expired codes for this address.
 	await query(`delete from otp_codes where lower(email) = $1 and expires_at <= now()`, [e]);

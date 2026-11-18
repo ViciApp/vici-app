@@ -29,7 +29,7 @@ Terminology: always **"prediction"**, never "bet".
 
 - **Wallet / dash "VXP"** is the ICRC ledger token balance. Holdings =
   available (in the wallet) + backed (reserved as clearing collateral
-  for open predictions). Stakes are not subtracted from holdings:
+  for open predictions). Committed amounts are not subtracted from holdings:
   they move from available to backed. On the web2 stack the ledger token
   sits on the account's custodial principal: the wallet reads that live
   balance, and the same auto-sweep moves it into clearing, where it stays
@@ -50,7 +50,7 @@ summary; `economy.md` is the governing policy.
 
 Earn-only, by design: there are **no VXP sinks**. Nothing charges VXP:
 league creation is free (founding _awards_ VXP), and the only
-outflow is prediction stakes, which are clearing collateral, not a
+outflow is the amount committed to predictions, which is clearing collateral, not a
 fee.
 
 Earn surfaces: onboarding grant, referrals (referee + referrer),
@@ -67,7 +67,7 @@ All amounts, caps, and gates live in three canonical constants files:
 never restate the numbers anywhere else (docs, specs, comments):
 
 - [`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts):
-  master parameter file (stake ladder, streaks, calibration,
+  master parameter file (call-size ladder, streaks, calibration,
   comeback, podium, league founder, …)
 - [`referral.constants.ts`](../../src/lib/constants/referral.constants.ts):
   referral bonuses, tier curve, caps, signup window
@@ -113,7 +113,10 @@ outcome (win / loss), the side they held, their signed net VXP, and the
 resolution time, keyed `${owner}#${marketId}`. The rows are written
 server-side from the clearing settlement plan at resolution time
 (controllers-write, mirroring `activity_reaction_counts`), so a user
-cannot forge a win for themselves or a friend. The collection is
+cannot forge a win for themselves or a friend. Only a role that can
+settle (or a controller) may post the settlement activity that triggers
+the write, on both stacks, and posting it again keeps every row's first
+resolution time. The collection is
 public-read and consumed friend-scoped (a single owner-prefix scan over
 a caller's friend set, never one call per friend) and is the data source
 for the friend results digest. There is **no source for a friend's
@@ -172,11 +175,11 @@ re-climbing a broken streak re-notifies. The streak card respects your
 streak-reminder preference. See
 [`specs/2026-06-23-feat-streak-level-inbox-notifications.md`](./spec-driven-development/specs/2026-06-23-feat-streak-level-inbox-notifications.md).
 
-### Market odds: skeleton while the book loads
+### Market probability: skeleton while the book loads
 
-A market's YES/NO odds are the live order-book mid. Until that book has
-been read the odds are **unknown, not 50%**: the card shows a loading
-skeleton (a repeat visit seeds the last-known odds from a local cache
+A market's YES/NO probability is the live order-book mid. Until that book has
+been read the probability is **unknown, not 50%**: the card shows a loading
+skeleton (a repeat visit seeds the last-known probability from a local cache
 for an instant paint, then upgrades in place). A market whose book is
 read but empty shows a neutral dash, never a fabricated coin-flip;
 resolved markets show 100% / 0%. The detail page first-paints from a
@@ -293,13 +296,13 @@ Decision record:
 
 Tapping the holdings card on `/dash` opens a sheet that answers a single
 question: every VXP the user holds is either **Available** ("Ready to
-spend on calls") or **In play** ("At stake on N open calls"). It leads
+spend on calls") or **In play** ("Committed to N open calls"). It leads
 with a "Your VXP" hero equal to total holdings, then a two-segment split
 bar whose widths are proportional to the available / in-play magnitudes
 (Available = accent, In play = the muted faint token; a zero segment is
 omitted, the whole bar hidden when both are zero), then two colour-keyed
 bucket rows that sum back to the hero. The in-play sub-label pluralises
-on the live open-call count ("At stake on 1 open call" / "… N open
+on the live open-call count ("Committed to 1 open call" / "… N open
 calls" / "No open calls"). Below the buckets sit the transaction-history
 link and an invite CTA; the CTA opens a native share sheet over the
 viewer's canonical `/i/{code}` referral link (clipboard-copy fallback
@@ -313,15 +316,15 @@ with the full split one tap away. Decision record:
 The holdings sheet on `/dash` links to `/dash/transactions`: a
 paginated, filterable feed of every event that changed what the user
 owns: bonuses (labelled from the `vxp:<type>:<key>` ledger memo),
-prediction stakes (bound to fills), wins/losses/break-evens (realized
+prediction fills (amount committed), wins/losses/break-evens (realized
 cashflow), and external transfers. The header shows the dummy-safe
 triple that reconciles by construction, **total = available + in
 play**, and the last column is the running **total** balance after
 each event, anchored on the live total-holdings figure so the top row
 always matches the Dash hero. Placing a prediction is wealth-neutral
 (VXP moves into play, total is unchanged), so it carries no signed
-amount (`—`); the committed stake shows as "… in play" in the
-subtitle. Wins credit the profit, losses debit the stake, break-evens
+amount (`–`); the committed amount shows as "… in play" in the
+subtitle. Wins credit the profit, losses debit the committed amount, break-evens
 net zero. Because total never moves on margin shifting in or out of
 play, the column reconciles to a clean zero genesis no matter how much
 is currently reserved; anchoring on spendable instead drifted the
@@ -398,12 +401,20 @@ ranking surfaces. Both default **on** (legacy / unset reads as on).
   compress with no gap. They keep their own rank: their `You` row and
   the Arena "Global ranking" card (`ownGlobalStanding`) still resolve,
   and their top-decile achievement (a separate satellite points-rank
-  path) is unaffected. Enforced FE-side in `globalStandingsRows`,
-  **failing closed**: a non-self row appears only once its profile is
-  loaded and not opted out, so an opted-out predictor never flashes onto
-  the board before their preference is known. The leaderboard hydrates
-  every raw-slice principal (not just visible rows), so opted-in rows
-  fill in as profiles land rather than starving. The clearing canister
+  path) is unaffected. Enforced FE-side by one predicate,
+  `isShownOnGlobalLeaderboard` (`visibility.utils`), applied to the
+  global leaderboard (`globalStandingsRows`) and to the market detail's
+  "Top predictors here" candidates (`visibleLeaderboard`), **failing
+  closed**: a non-self row appears only once its profile is loaded and
+  not opted out, so an opted-out predictor never flashes onto a list
+  before their preference is known. The preference is always read from
+  the hydrated profile cache (`profilesStore`), never from a leaderboard
+  row: the satellite's leaderboard wire carries no sharing preferences.
+  Both surfaces hydrate every raw principal (not just visible rows), so
+  opted-in rows fill in as profiles land rather than starving; the
+  market detail waits for that hydration before it probes, and
+  re-probes whenever the candidate set changes (sign-in, sign-out, an
+  opt-out). The clearing canister
   still publishes raw P&L + principals, so this is a display opt-out,
   not a data-hiding guarantee (canister-level hiding is a tracked
   fast-follow).
@@ -419,6 +430,40 @@ Each toggle emits `privacy_sharing_toggled` (`source: leaderboard |
 worlds`, `label: on | off`). Decision record:
 [`specs/2026-06-28-feat-sharing-opt-out-enforcement.md`](./spec-driven-development/specs/2026-06-28-feat-sharing-opt-out-enforcement.md).
 
+### Privacy: what survives an account's deletion
+
+Deleting an account (after the 30-day recovery window, or at once on a
+too-late recovery) removes the profile, the private email, the sign-in
+identities and sessions, the VXP award history and onboarding ladder,
+calibration attempts, the stats and monthly stats, resolved results, the
+likes it gave (each liked activity's count goes down), school-email
+submissions, referral code, affiliations, relations and league
+memberships; owned leagues are disbanded or handed to a member. Like the
+global leaderboard, the monthly awards board lists no soft-deleted,
+hibernated or deleted account. What stays, by design:
+
+- **One anonymous marker per one-time VXP award the account was paid**
+  (onboarding grant, referee bonus, milestones, achievements, founder
+  awards and the others in
+  [`economy.md`](./economy.md#caps-and-gates-the-anti-farming-spine)):
+  a one-way digest of the sign-in identity (on the web2 API each provider
+  subject and verified address, keyed with a server secret; on the
+  satellite the principal) plus the award type and key. No name, email,
+  user id or principal is stored. Signing up again with the same
+  identity is a fresh account in every other way, but it cannot collect
+  those awards a second time, and the league-founder and referrer
+  lifetime counts carry over.
+- **Referral history the referrer's lifetime count needs**: on the
+  satellite a referral record that has started paying (keyed by the
+  referee principal); on the web2 API the rows naming the deleted account
+  as referrer, and a referrer's award for a deleted referee.
+- **Shared audit rows** the account took part in (activities, battles,
+  analytics), orphaned and immutable.
+- **The anonymous exit signal**: the reason and optional note picked at
+  deletion, under a random key, dated only by the UTC day the account
+  left, with no reference to the account. Only satellite controllers and
+  the API's database read it.
+
 ### Worlds Universities: standings reflect the current opted-in roster
 
 A school's / country's Worlds standing is its **current members'** record,
@@ -430,15 +475,25 @@ month. So the instant a member leaves (allowed after the 90-day affiliation
 lock) or turns off the **Worlds** sharing toggle
 (`preferences.sharing.worldsOptIn`), their contribution drops out of the
 next read: a member can no longer pump a school and keep crediting it after
-leaving.
+leaving. A member holds **one** school and **one** country at a time: a
+second one of a kind is refused until they leave the first (so the lock
+also bounds switching), and every standing, roster, count and the podium
+credit a member's earliest slot of a kind if older data holds two.
 
 A **closed** month is different: it is **frozen at close**. The first time
-anyone claims that month's podium, the ranking over the then-current
-opted-in roster is captured as an immutable snapshot, and the podium payout
-and the champion cup read from it thereafter. A later leave does not rewrite
+anyone claims that month's podium, the ranking is computed from **settled
+history**, each opted-in member's settled calls and wins over the month as
+recorded by the clearing engine (the same source league battles are scored
+from), counting only members whose slot was joined before the month closed,
+and captured as an immutable snapshot; the podium payout and the champion
+cup read from it thereafter. The live month column is a view of the
+members' own synced monthly stats and never decides a payout. A later leave does not rewrite
 a month that has already ended, so awards and cups stay stable and can't
-drift between two people claiming the same month. A month confers a cup only
-once it has been frozen (claimed). Decision record:
+drift between two people claiming the same month. The podium award goes
+to a member at month-end whatever their join date, but only for a slot
+joined before the month closed: joining or switching to a winner after the
+fact earns nothing. A month confers a cup only once it has been frozen
+(claimed). Decision record:
 [`specs/2026-06-28-impr-worlds-standings-current-members.md`](./spec-driven-development/specs/2026-06-28-impr-worlds-standings-current-members.md).
 
 ### Battles: accuracy face-offs that resolve themselves
@@ -495,6 +550,12 @@ privacy after a battle exists never retracts or alters it: a battle's
 identity freezes at proposal and it runs to resolution; tightening
 privacy just removes the league from future challenge search.
 
+**The invite code is the only way into a league, Open or Private.** No
+read returns a league's code except to its own members (`listMyLeagues`),
+who share it: the satellite keeps codes in the controllers-only
+`league_invites` collection, never on the public league doc, and adds a
+member only through `joinLeagueByInvite` once the code checks out.
+
 **The score is each league's prediction accuracy over the window, and
 nobody types it.** Each side's score is its **current members'**
 settled-call win rate inside the battle window, read from the clearing
@@ -521,7 +582,7 @@ it is internally consistent, so no client can post a fabricated result.
 **Known limitations (by design):** membership is read at resolve time, so
 a member who joined or left mid-window is scored by their current
 membership rather than their membership when each call settled; and the
-optional VXP **wager** is a displayed stake only, not yet moved between
+optional VXP **amount** is displayed only, not yet moved between
 leagues on resolution. Decision records:
 [`specs/2026-06-15-feat-battle-auto-resolution.md`](./spec-driven-development/specs/2026-06-15-feat-battle-auto-resolution.md),
 [`specs/2026-06-26-impr-battle-resolution-from-settled-history.md`](./spec-driven-development/specs/2026-06-26-impr-battle-resolution-from-settled-history.md).
@@ -533,10 +594,12 @@ Push-to-15 overtime) is counted on the **satellite**, not the client. A
 committed swipe calls `recordFlowSwipe`, sending only the client's local
 day key (`YYYY-MM-DD`); the server reads the caller's own profile, rolls
 over by that key, and writes the capped increment **itself**: the client
-never sends a count, so it can't reset or inflate the total. A
-monotonic-per-day assert on the `profiles` collection rejects any direct
-client write that lowers the day's count or pushes it past the cap. The
-result: the "come back tomorrow" takeover holds across reloads, cleared
+never sends a count, so it can't reset or inflate the total. The count
+is server-owned outright: on the satellite `recordFlowSwipe` writes it
+signing as a controller, and the `profiles` assert rejects any client write
+that changes the stored count or day; on the web2 API a profile write keeps
+the stored count and day, and only `POST /profiles/flow-swipe` moves them.
+The result: the "come back tomorrow" takeover holds across reloads, cleared
 storage, sign-outs, and device switches, losing the localStorage mirror
 (now only an offline hint that can never raise the count above the server
 value) no longer hands a fresh allotment. **Known limitation (by
@@ -556,9 +619,11 @@ VXP) pays once each ever; reaching the daily hard cap ("overtime") pays 25
 VXP once per local day. Both mint through the existing `vxp_awards`
 pending→paid path: the milestone from a `profiles` hook off the lifetime
 call count, the overtime inline in `recordFlowSwipe` (its counter write
-fires no hook). Counts are client-trusted, the same model as the streak
-and Worlds-podium awards, so the overtime mint carries a rolling-window cap
-to bound farming. Earlier these grants were display-only by design (the
+fires no hook). The lifetime call count is client-trusted, the same model
+as the streak and Worlds-podium awards; the daily count behind the overtime
+is the satellite's own (only recorded swipes move it), and the day key is
+client-set, so the overtime mint carries a rolling-window cap to bound
+farming. Earlier these grants were display-only by design (the
 "deflation-safe economy pass" deliberately withheld the credit); this is the
 deferred real-credit path. Decision record:
 [`specs/2026-06-20-feat-flow-milestone-overtime-vxp-credit.md`](./spec-driven-development/specs/2026-06-20-feat-flow-milestone-overtime-vxp-credit.md).
@@ -584,8 +649,8 @@ sign-up is unchanged.
 
 ### Onboarding: one screen, claim a handle and sign up
 
-The default new-user flow is a single screen (`OnboardingV3`, gated by
-`ONBOARDING_V3_ENABLED`, default on): the user claims a handle (live
+The new-user flow is a single screen (`Onboarding`, in
+`src/lib/components/onboarding/`): the user claims a handle (live
 availability check with a Roman-pool suggestion as the empty-field
 placeholder) and signs up with any enabled provider on one surface,
 anchored by the "1,500 VXP starter pack" reward chip. Team selection is
@@ -593,9 +658,8 @@ deferred to the post-signup Profile, so the onboarding handoff always
 carries a `null` team/side; the first prediction now happens free in the
 app. The screen also links to `/signin` ("Already a member?") and offers a
 "Skip · preview first, sign up later" escape into the signed-out Flow
-preview. The earlier multi-beat flow (team → first call → handle → auth)
-is kept in the tree behind the off path until the one-screen flow is
-verified in production; flipping the flag off restores it intact.
+preview. This is the only onboarding flow: there is no flag and no
+earlier variant to fall back to.
 
 The screen reuses, rather than re-implements, the handle machinery (live
 availability probe, session-taken cache, claim-time re-check), the
@@ -613,7 +677,7 @@ there is no hard block at the second pick or ever. Guest picks are a
 throwaway, in-session preview: a guest pick never reaches the engine
 (`placeOrder` and the identity call are bypassed entirely), so free guest
 play can't move market prices. Each pick is recorded only as a client-side
-preview entry (`marketId` / `side` / `ts`, no stake) in `localStorage`,
+preview entry (`marketId` / `side` / `ts`, no amount) in `localStorage`,
 purely to power the conversion nudges.
 
 Conversion is driven by loss-aversion, not a gate: a soft sheet on the
@@ -630,12 +694,12 @@ the registration milestone grant, not a literal.
 
 On sign-up from the funnel the guest becomes a member through the **normal
 new-member path**: the existing `onProfileSetForVxpOnboarding` grant fires
-(no new mint, no retro-stake, no new economic action), the in-session
+(no new mint, no retroactive call, no new economic action), the in-session
 preview picks are **discarded**, the portfolio starts empty, and the
 guest session and preview `localStorage` are cleared. The sign-up CTAs
 reuse the real provider stack (redirect-safe) labelled with the claimed
 guest handle, and the pre-auth handoff carries only the handle/identity,
-never picks or stakes. A "1,500 VXP added" toast confirms the grant.
+never picks or commits VXP. A "1,500 VXP added" toast confirms the grant.
 Because guest picks are client-only, a cleared browser simply loses the
 preview, which is harmless: nothing was ever a position. Analytics reuse
 existing names: a guest pick emits `position_taken` with
@@ -756,7 +820,7 @@ time** (see [`frontend/seo.md`](./frontend/seo.md)). Search intent lands on
 (`/m/{slug}` resolves there), category browsing → the in-app `/app` board.
 On top of one crawlable page per market, the deploy emits schema.org
 **JSON-LD** (site-wide `Organization` + `WebSite`, plus a per-market
-`WebPage` + `BreadcrumbList`) and a **live-odds sentence** baked into each
+`WebPage` + `BreadcrumbList`) and a **live-probability sentence** baked into each
 market's meta description ("Community odds: Yes 41%", a deploy-time
 snapshot of the order book). The phrase "prediction market" appears **only**
 in this crawler-facing metadata (titles, descriptions, structured data),

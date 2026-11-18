@@ -1,8 +1,8 @@
 /**
  * Onboarding milestones, in award order:
- * - `m1` — registration (profile created)
- * - `m2` — first trade
- * - `m3` — fifth trade
+ * - `m1`: registration (profile created)
+ * - `m2`: first trade
+ * - `m3`: fifth trade
  *
  * Splits live in `vxp-onboarding.constants.ts`.
  */

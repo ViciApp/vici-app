@@ -68,7 +68,7 @@
 		margin-bottom: 0.625rem;
 	}
 
-	/* Bare inline glyph, tinted to the dim foreground tier — matches the
+	/* Bare inline glyph, tinted to the dim foreground tier: matches the
 	   settings-row icon treatment (no tinted tile). */
 	.set-segmented-icon {
 		display: flex;

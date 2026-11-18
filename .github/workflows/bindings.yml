@@ -15,9 +15,11 @@ on:
 
 permissions: {}
 
+# A newer PR push supersedes the running regeneration; a run on main is never
+# cancelled, so the drift of a merged commit is not dropped mid-flight.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   bindings:
@@ -38,7 +40,8 @@ jobs:
 
       # No prettier/eslint cache here: this job checks out the PR branch, and a
       # cache it saves could be restored on main (CodeQL cache poisoning). The
-      # price is an uncached format pass in did.sh.
+      # price is an uncached format pass in did.sh. Prepare's setup-node still
+      # saves the npm cache in its post step.
       - name: Regenerate Candid bindings
         run: ./scripts/did.sh
 

@@ -3,17 +3,17 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
-	 * Deployed-vs-depleted recovery beat — shown when the user's free VXP
+	 * Deployed-vs-depleted recovery beat: shown when the user's free VXP
 	 * balance has fallen to the recovery floor. It reads net worth still
 	 * locked in open calls to tell two very different states apart:
 	 *
 	 * - **Fully deployed** (locked VXP at or above the deploy floor): the stack is
-	 *   in play, not lost — a positive beat. The VXP is parked in calls that
+	 *   in play, not lost: a positive beat. The VXP is parked in calls that
 	 *   haven't settled and pays out on their own dates. CTAs point at the
 	 *   open calls, with Calibration offered as a "practice while you wait".
 	 * - **Genuine depletion** (below the floor): realised losses have eroded
-	 *   the stack. The way back is the risk-free Calibration practice path —
-	 *   losses are shielded while the balance recovers — so the primary CTA
+	 *   the stack. The way back is the risk-free Calibration practice path:
+	 *   losses are shielded while the balance recovers, so the primary CTA
 	 *   opens Calibration.
 	 *
 	 * Both `_vxp` numbers are whole VXP. The component is presentational; the

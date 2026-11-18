@@ -2,11 +2,11 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
-	import { DAY_IN_MS, EM_DASH } from '#lib/constants/app.constants.ts';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 	import {
 		claimTournamentPrize,
-		currentMonthAnchor,
 		getCurrentTournament,
 		resolveTournamentRound,
 		triggerTournamentDraw
@@ -22,10 +22,11 @@
 	} from '#lib/types/tournament.ts';
 	import { formatIsoDateUtc, formatProbability } from '#lib/utils/format.utils.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 
 	/**
-	 * Tournament detail — the `TournamentBattleDetail` surface.
+	 * Tournament detail: the `TournamentBattleDetail` surface.
 	 *
 	 * Fires `triggerTournamentDraw` for the current month on mount as
 	 * a fire-and-forget (idempotent via the satellite's doc-key
@@ -58,13 +59,13 @@
 	$effect(() => {
 		const handle = setInterval(() => {
 			nowMs = Date.now();
-		}, 60_000);
+		}, MINUTE_IN_MS);
 
 		return () => clearInterval(handle);
 	});
 
 	/**
-	 * The current "in-flight" round — the lowest-index round whose
+	 * The current "in-flight" round: the lowest-index round whose
 	 * `endMs` is in the future and at least one match still unresolved.
 	 * Used to tag the first match in that round as `LIVE`.
 	 */
@@ -124,10 +125,10 @@
 		`tournament.round.${round.replace('r1', 'round1')}` as MessageKey;
 
 	const fmtAccuracy = (value: number | null): string =>
-		isNullish(value) ? EM_DASH : formatProbability(value);
+		isNullish(value) ? EMPTY_VALUE : formatProbability(value);
 
 	/**
-	 * Rank glyph for a prize-tier place. Brand: no emoji medals —
+	 * Rank glyph for a prize-tier place. Brand: no emoji medals;
 	 * tabular numeral on a laurel-toned tile carries the same rank
 	 * signal without the pictograph. See
 	 * `docs/ai/frontend/brand.md §2.3`.
@@ -140,7 +141,7 @@
 			tournament = t_;
 			matches = m_;
 		} catch {
-			// Defensive — the page renders the empty state on read failure.
+			// Defensive: the page renders the empty state on read failure.
 			tournament = null;
 			matches = [];
 		} finally {
@@ -151,7 +152,7 @@
 	const tryDraw = async () => {
 		try {
 			const result = await triggerTournamentDraw({
-				monthAnchor: currentMonthAnchor()
+				monthAnchor: monthAnchorFromMs(Date.now())
 			});
 
 			if (!result.ok && result.reason === 'insufficient_leagues') {
@@ -159,7 +160,7 @@
 				availableLeagues = result.availableLeagues ?? 0;
 			}
 
-			// On success or `already_drawn` — read the now-current tournament.
+			// On success or `already_drawn`, read the now-current tournament.
 			await refresh();
 		} catch {
 			await refresh();
@@ -172,7 +173,7 @@
 	 * (the assert's `winnerLeagueId` write-once rule rejects re-runs
 	 * cleanly), so this is safe to fire on every page mount.
 	 *
-	 * Returns whether any round actually settled during this call —
+	 * Returns whether any round actually settled during this call:
 	 * used by the caller to decide if a refresh is needed.
 	 */
 	const tryResolveRounds = async (): Promise<boolean> => {
@@ -220,7 +221,7 @@
 					stop = true;
 				}
 			} else if (roundMatches.length === 0 || roundMatches[0].endMs > nowMs) {
-				// No matches yet or the next round hasn't closed — nothing
+				// No matches yet or the next round hasn't closed: nothing
 				// past this point can resolve either.
 				stop = !hasOpen || roundMatches[0].endMs > nowMs;
 			}
@@ -231,7 +232,7 @@
 
 	/**
 	 * Fire the prize-claim endpoint for the current tournament if it
-	 * has concluded. Idempotent — a second call returns
+	 * has concluded. Idempotent: a second call returns
 	 * `awardsAlreadyClaimed > 0` and we show no banner. The first
 	 * successful claim populates the `prizeClaim` banner with the
 	 * VXP credited.
@@ -251,7 +252,7 @@
 				};
 			}
 		} catch {
-			// Silent — the claim is a nice-to-have; failure shouldn't
+			// Silent: the claim is a nice-to-have; failure shouldn't
 			// disrupt the bracket render.
 		}
 	};
@@ -468,7 +469,7 @@
 		padding: 0 1.25rem 6rem;
 	}
 
-	/* Hero — top-down purple fade:
+	/* Hero: top-down purple fade:
 	   `linear-gradient(180deg, rgba(180,156,255,0.10), transparent 70%)`
 	   over `var(--bg-surface)`. */
 	.tournament-hero {
@@ -618,7 +619,7 @@
 		font-weight: 700;
 	}
 
-	/* Live indicator on the first match of the current round —
+	/* Live indicator on the first match of the current round:
 	   purple `#b49cff` is the tournament accent. */
 	.tournament-match-live {
 		color: #b49cff;
@@ -635,7 +636,7 @@
 		background: color-mix(in srgb, #b49cff 6%, var(--bg-surface));
 	}
 
-	/* Hero head — when the bracket is in flight, the current-round
+	/* Hero head: when the bracket is in flight, the current-round
 	   chip + days-left countdown surface here above the headline. */
 	.tournament-hero-head {
 		display: flex;
@@ -699,7 +700,7 @@
 		background: color-mix(in srgb, var(--prize-tier) 6%, var(--bg-surface));
 	}
 
-	/* Rank numeral — tabular mono on a tinted disc. The disc tint
+	/* Rank numeral: tabular mono on a tinted disc. The disc tint
 	   reads from `--prize-tier`, the per-tier accent set on the
 	   parent `.is-{gold,silver,bronze}` rule, so gold / silver /
 	   bronze each get a distinct disc colour. */

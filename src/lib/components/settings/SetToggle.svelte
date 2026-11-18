@@ -64,7 +64,7 @@
 		background: var(--bg-surface);
 	}
 
-	/* Bare inline glyph, tinted to the dim foreground tier — matches the
+	/* Bare inline glyph, tinted to the dim foreground tier: matches the
 	   settings-row icon treatment (no tinted tile). */
 	.set-toggle-icon {
 		display: flex;

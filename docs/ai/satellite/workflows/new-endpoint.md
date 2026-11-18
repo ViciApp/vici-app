@@ -70,6 +70,13 @@ datastore SDK gives you.
    - `src/declarations/satellite/{satellite.api.ts,satellite.did.d.ts,satellite.factory.did.js}`
      (FE-side bindings).
 
+   The API vendors two of those bindings. After `npm run quality`, copy
+   them over, or `backend/tests/shared-drift/declarations.test.ts` fails:
+
+   ```bash
+   cp src/declarations/satellite/{satellite.did.d.ts,satellite.factory.did.js} backend/src/declarations/satellite/
+   ```
+
    **Commit all regenerated files together with your source change.**
    This rule also fires when you only edit a shared schema file under
    `#lib/schema/*.ts` that the satellite imports (e.g. adding a field to

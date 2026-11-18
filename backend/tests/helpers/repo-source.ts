@@ -10,6 +10,7 @@
 // runtime dynamic import the typechecker does not follow; everything else is
 // pinned by reading the source text and extracting the declared literals.
 
+import { isNullish } from '@dfinity/utils';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -160,21 +161,54 @@ export const extractIntConst = ({
 	return Number(match[1]);
 };
 
-/** The value of `<constName> = a * b * ...;` (integer factors only). */
-export const extractProductConst = ({
+/** The decimal literal of `<constName> = 0.3;` (an integer matches too). */
+export const extractDecimalConst = ({
 	source,
 	constName
 }: {
 	source: string;
 	constName: string;
 }): number => {
-	const match = source.match(new RegExp(`${constName}\\s*=\\s*(\\d+(?:\\s*\\*\\s*\\d+)*)\\s*;`));
+	const match = source.match(new RegExp(`${constName}\\s*=\\s*(\\d+(?:\\.\\d+)?)\\s*;`));
+
+	if (!match) {
+		throw new Error(`no decimal literal for: ${constName}`);
+	}
+
+	return Number(match[1]);
+};
+
+/** The value of `<constName> = a * b * ...;`. A factor is an integer or a
+ * named unit (`DAY_IN_MS`) the caller resolves through `units`, since the
+ * app module that defines the unit cannot be imported from here. */
+export const extractProductConst = ({
+	source,
+	constName,
+	units = {}
+}: {
+	source: string;
+	constName: string;
+	units?: Record<string, number>;
+}): number => {
+	const factor = '(?:\\d+|[A-Z][A-Z0-9_]*)';
+	const match = source.match(
+		new RegExp(`${constName}\\s*=\\s*(${factor}(?:\\s*\\*\\s*${factor})*)\\s*;`)
+	);
 
 	if (!match || !match[1]) {
 		throw new Error(`no integer product for: ${constName}`);
 	}
 
-	return match[1].split('*').reduce((acc, factor) => acc * Number(factor.trim()), 1);
+	return match[1].split('*').reduce((acc, raw) => {
+		const name = raw.trim();
+		const value = /^\d+$/.test(name) ? Number(name) : units[name];
+
+		if (isNullish(value)) {
+			throw new Error(`unknown unit ${name} in: ${constName}`);
+		}
+
+		return acc * value;
+	}, 1);
 };
 
 /** The single-quoted string literal of `<constName> = '...'`. */
@@ -192,4 +226,60 @@ export const extractStringConst = ({
 	}
 
 	return match[1];
+};
+
+/** The regular-expression literal of `<constName> = /.../flags`. */
+export const extractRegexLiteral = ({
+	source,
+	constName
+}: {
+	source: string;
+	constName: string;
+}): RegExp => {
+	const match = source.match(
+		new RegExp(`${constName}\\s*=\\s*\\/((?:\\\\.|[^/\\\\\\n])+)\\/([a-z]*)`)
+	);
+
+	if (!match || !match[1]) {
+		throw new Error(`no regex literal for: ${constName}`);
+	}
+
+	return new RegExp(match[1], match[2]);
+};
+
+/** The value of a single-quoted TS string literal's body (`\\`, `\'`,
+ * `\uXXXX` and friends resolved), as the compiler would read it. */
+const unescapeStringLiteral = (body: string): string =>
+	body.replace(/\\(u[0-9a-fA-F]{4}|.)/g, (_, escape: string) => {
+		if (escape.length === 5 && escape.startsWith('u')) {
+			return String.fromCharCode(parseInt(escape.slice(1), 16));
+		}
+
+		return { n: '\n', r: '\r', t: '\t' }[escape] ?? escape;
+	});
+
+/** The first `new RegExp('pattern', 'flags')` with string-literal arguments
+ * after `marker`, built the way the app builds it. */
+export const extractRegExpConstructor = ({
+	source,
+	marker
+}: {
+	source: string;
+	marker: string;
+}): RegExp => {
+	const markerIdx = source.indexOf(marker);
+
+	if (markerIdx < 0) {
+		throw new Error(`marker not found in source: ${marker}`);
+	}
+
+	const match = source
+		.slice(markerIdx)
+		.match(/new RegExp\(\s*'((?:\\.|[^'\\])*)'\s*(?:,\s*'([a-z]*)'\s*)?\)/);
+
+	if (!match || isNullish(match[1])) {
+		throw new Error(`no new RegExp('...') after marker: ${marker}`);
+	}
+
+	return new RegExp(unescapeStringLiteral(match[1]), match[2]);
 };

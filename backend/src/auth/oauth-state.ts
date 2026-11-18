@@ -47,7 +47,7 @@ export const encodeOauthState = ({ state, returnTo }: OauthStatePayload): string
 	signState(Buffer.from(JSON.stringify({ state, returnTo })).toString('base64url'));
 
 /** Verify a state cookie and recover its payload; null on any tamper or
- * shape mismatch. `returnTo` is re-clamped on the way out — the signature
+ * shape mismatch. `returnTo` is re-clamped on the way out; the signature
  * already pins it, but the clamp is cheap defense in depth. */
 export const decodeOauthState = (cookieValue: string | null): OauthStatePayload | null => {
 	if (isNullish(cookieValue)) {

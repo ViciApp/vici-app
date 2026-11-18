@@ -3,11 +3,13 @@
 	import type { Doc } from '@junobuild/core';
 	import { UserMinus, UserPlus } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { fade, fly } from 'svelte/transition';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import BaseButton from '#lib/components/ui/BaseButton.svelte';
 	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { globalStandingsRows, type StandingsRow } from '#lib/derived/standings.derived.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
@@ -48,21 +50,21 @@
 	 * The board ranks by **confidence-adjusted accuracy**. The canister returns
 	 * the slice ordered by net P&L; `globalStandingsRows` re-ranks it and splits
 	 * it into two partitions (see `standings.constants`):
-	 *  - **ranked** — predictors who cleared the qualify gate (settled calls ≥
+	 *  - **ranked**: predictors who cleared the qualify gate (settled calls ≥
 	 *    the effective threshold), ordered by a Bayesian-shrinkage score so a
 	 *    thin record can't top a proven one. Each carries a 1-based `displayRank`
 	 *    (we render this, never `entry.rank`, the canister's P&L rank).
-	 *  - **provisional** — predictors below the gate: unranked, shown in a
+	 *  - **provisional**: predictors below the gate, unranked, shown in a
 	 *    separate section with `{done}/{min} to qualify` progress.
 	 *
 	 * Layout is a single column:
 	 *  - chip-style window tabs at the top
 	 *  - 3-tile podium row (top-3, #1 gets the gold halo + tinted bg)
 	 *  - flat list of remaining ranked rows (rank, avatar, handle + calls ·
-	 *    streak, accuracy on the right — coloured `--yes` once accuracy ≥ 78%)
+	 *    streak, accuracy on the right, coloured `--yes` once accuracy ≥ 78%)
 	 *  - the Provisional section (only when non-empty)
 	 *
-	 * Every row and podium tile shows its **call count** — the trust signal that
+	 * Every row and podium tile shows its **call count**: the trust signal that
 	 * makes the shrinkage legible. Accuracy and settled count are authoritative
 	 * from the clearing canister; handle / avatar / streak are overlaid from the
 	 * shared profile cache (the viewer's own row from their live profile). The
@@ -90,7 +92,20 @@
 	const partitionStore = $derived(globalStandingsRows(activeWindow));
 	const partition = $derived($partitionStore);
 
-	const loading = $derived(isNullish(partition));
+	// Windows whose last load attempt rejected. Without it a failed read would
+	// leave `partition` unset and the spinner up for good; instead the window
+	// shows an error with a retry until a load succeeds.
+	const failedWindows = new SvelteSet<StandingsWindow>();
+
+	// Windows with a load still pending. The hydrate effect re-runs on every tab
+	// switch, so without this a switch away and back before the read settles
+	// would start a second paged read for the same window, and whichever
+	// settled last would overwrite the shared cache. Kept apart from
+	// `failedWindows` so a retry stays explicit.
+	const inFlightWindows = new SvelteSet<StandingsWindow>();
+
+	const loadFailed = $derived(isNullish(partition) && failedWindows.has(activeWindow));
+	const loading = $derived(isNullish(partition) && !loadFailed);
 	const rankedRows = $derived(partition?.ranked ?? []);
 	const provisionalRows = $derived(partition?.provisional ?? []);
 
@@ -102,16 +117,25 @@
 	const selfRow = $derived([...rankedRows, ...provisionalRows].find((row) => row.isSelf));
 
 	// Hydrate each window on first view. The store caches per-window, so a
-	// repeat visit short-circuits the fetch and re-renders the cached slice.
+	// repeat visit short-circuits the fetch and re-renders the cached slice. A
+	// failed window waits for the retry instead of refetching on every run.
 	$effect(() => {
 		const window = activeWindow;
 
-		if (isNullish(partition)) {
-			void loadGlobalStandings({ window }).catch((err: unknown) => {
-				console.error(err);
-			});
+		if (isNullish(partition) && !failedWindows.has(window) && !inFlightWindows.has(window)) {
+			inFlightWindows.add(window);
+			void loadGlobalStandings({ window })
+				.catch((err: unknown) => {
+					console.error(err);
+					failedWindows.add(window);
+				})
+				.finally(() => inFlightWindows.delete(window));
 		}
 	});
+
+	const retryLoad = () => {
+		failedWindows.delete(activeWindow);
+	};
 
 	// Fire `leaderboard_viewed` once per window load / tab switch (not on every
 	// profile trickle that re-derives the partition). `ok` = the viewer cleared
@@ -134,9 +158,9 @@
 		});
 	});
 
-	// Hydrate the shared profile cache for the rows this surface paints —
+	// Hydrate the shared profile cache for the rows this surface paints:
 	// handle / avatar / streak overlay onto the standing reactively as profiles
-	// land. `loadGlobalStandings` no longer hydrates (the dash shares its cached
+	// land. `loadGlobalStandings` does not hydrate (the dash shares its cached
 	// slice but only needs the viewer's own rank), so the Leaderboard owns this.
 	// `loadProfilesByPrincipals` dedupes against the cache, so the re-run this
 	// triggers once profiles arrive is a no-op.
@@ -146,7 +170,7 @@
 	// a not-yet-hydrated (or opted-out) row is absent from the partition.
 	// Hydrating only the visible rows would never fetch the missing profiles, so
 	// an opted-in row could never resolve into view. The viewer's own row is
-	// excluded — `globalStandingsRows` overlays it from the live
+	// excluded: `globalStandingsRows` overlays it from the live
 	// `userStore.profile`, so hydrating it would only add a redundant
 	// `getProfile` on every visit / window switch.
 	$effect(() => {
@@ -193,7 +217,7 @@
 	let mutatingOwner = $state<string | undefined>(undefined);
 
 	const openSheet = (row: StandingsRow) => {
-		// The viewer's own row is informational — there's nothing to add.
+		// The viewer's own row is informational: there's nothing to add.
 		if (row.isSelf) {
 			return;
 		}
@@ -247,7 +271,7 @@
 		} catch (err: unknown) {
 			console.error(err);
 
-			// `{detail}` only exists in the send key — unfriend/cancel copies
+			// `{detail}` only exists in the send key; unfriend/cancel copies
 			// ignore the param. It keeps an unexpected failure screenshotable.
 			const detail = err instanceof Error ? err.message.trim().slice(0, 140) : '';
 
@@ -268,7 +292,7 @@
 
 <!-- The ↑/↓ rank-delta pill was dropped here: it was derived from the canister's
      prior *P&L* rank, which is meaningless now that the board is ordered by
-     accuracy — it would point the wrong way and mislead. The `rankDelta` field
+     accuracy: it would point the wrong way and mislead. The `rankDelta` field
      stays on the model for other (P&L-ranked) surfaces. -->
 
 <div class="leaderboard-page">
@@ -280,7 +304,7 @@
 		title={t({ locale: $localeStore, key: 'leaderboard.title' })}
 	/>
 
-	<!-- Window chips — `This week / This month / All time`. -->
+	<!-- Window chips: `This week / This month / All time`. -->
 	<div class="leaderboard-scopes" role="tablist">
 		{#each windows as window (window.id)}
 			<button
@@ -301,6 +325,15 @@
 			<div class="leaderboard-spinner"></div>
 			<p class="allcaps">{t({ locale: $localeStore, key: 'leaderboard.loading' })}</p>
 		</div>
+	{:else if loadFailed}
+		<div class="leaderboard-empty" role="alert">
+			<p class="leaderboard-empty-sub">
+				{t({ locale: $localeStore, key: 'common.error.generic' })}
+			</p>
+			<Button onclick={retryLoad} size="sm" variant="outline">
+				{t({ locale: $localeStore, key: 'arena.boundary.retry' })}
+			</Button>
+		</div>
 	{:else if rankedRows.length === 0 && provisionalRows.length === 0}
 		<div class="leaderboard-empty">
 			<p class="allcaps">{t({ locale: $localeStore, key: 'leaderboard.empty' })}</p>
@@ -311,7 +344,7 @@
 	{:else}
 		<!-- The ranked podium + list render only when at least one predictor has
 		     qualified. With everyone still below the gate (e.g. a high Tweak
-		     threshold) the board is all-Provisional — skip straight to that
+		     threshold) the board is all-Provisional: skip straight to that
 		     section rather than painting an empty podium. -->
 		{#if rankedRows.length > 0}
 			<!-- 3-tile podium row. #1 gets the gold halo + tinted bg; #2 / #3 stay
@@ -419,7 +452,7 @@
 			</ul>
 		{/if}
 
-		<!-- Provisional — predictors who've predicted but are below the qualify
+		<!-- Provisional: predictors who've predicted but are below the qualify
 		     gate. Unranked, shown with progress so newcomers see a path, not a
 		     phantom #1. Only rendered when at least one predictor is provisional. -->
 		{#if provisionalRows.length > 0}
@@ -492,7 +525,7 @@
 	{/if}
 </div>
 
-<!-- Mini-profile bottom sheet — opens on row / podium tap. Shows the tapped
+<!-- Mini-profile bottom sheet: opens on row / podium tap. Shows the tapped
      predictor's window accuracy, settled count and streak with an add- or
      remove-friend action that routes through the shared relation services. -->
 <BottomSheet isOpen={nonNullish(openRow)} onClose={closeSheet}>
@@ -588,7 +621,7 @@
 		padding: 0 1.25rem 6rem;
 	}
 
-	/* Window chip strip — `This week / This month / All time`. */
+	/* Window chip strip: `This week / This month / All time`. */
 	.leaderboard-scopes {
 		display: flex;
 		gap: 0.375rem;
@@ -634,7 +667,7 @@
 		background: color-mix(in srgb, var(--color-primary) 12%, var(--bg-surface));
 	}
 
-	/* Podium — three tiles in a row. Tile 0 is #1 (the gold one). */
+	/* Podium: three tiles in a row. Tile 0 is #1 (the gold one). */
 	.leaderboard-podium {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
@@ -726,7 +759,7 @@
 		color: var(--color-primary);
 	}
 
-	/* Call count — the trust signal under each podium tile's accuracy. */
+	/* Call count: the trust signal under each podium tile's accuracy. */
 	.leaderboard-podium-calls {
 		margin-top: 0.1rem;
 		font-size: var(--t-10);
@@ -735,7 +768,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Rest rows — simple flat row card. */
+	/* Rest rows: simple flat row card. */
 	.leaderboard-rows {
 		display: flex;
 		flex-direction: column;
@@ -874,7 +907,7 @@
 		font-weight: 600;
 	}
 
-	/* Provisional rows read a touch quieter than ranked ones — they're a path,
+	/* Provisional rows read a touch quieter than ranked ones: they're a path,
 	   not a standing. */
 	.leaderboard-row-provisional:not(.is-you) {
 		opacity: 0.86;

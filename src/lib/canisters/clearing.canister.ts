@@ -45,38 +45,6 @@ export class ClearingCanister extends Canister<ClearingService> {
 		throw new Error(`Failed to deposit collateral: ${JSON.stringify(result.Err, jsonReplacer)}`);
 	};
 
-	withdrawCollateral = async ({
-		params,
-		...queryParams
-	}: {
-		params: ClearingDid.WithdrawCollateralParams;
-	} & QueryParams): Promise<void> => {
-		const { withdraw_collateral } = this.caller(queryParams);
-		const result = await withdraw_collateral(params);
-
-		if ('Ok' in result) {
-			return;
-		}
-
-		throw new Error(`Failed to withdraw collateral: ${JSON.stringify(result.Err, jsonReplacer)}`);
-	};
-
-	submitMatchedTrade = async ({
-		params,
-		...queryParams
-	}: {
-		params: ClearingDid.SubmitMatchedTradeParams;
-	} & QueryParams): Promise<boolean> => {
-		const { submit_matched_trade } = this.caller(queryParams);
-		const result = await submit_matched_trade(params);
-
-		if ('Ok' in result) {
-			return result.Ok;
-		}
-
-		throw new Error(`Failed to submit matched trade: ${JSON.stringify(result.Err, jsonReplacer)}`);
-	};
-
 	getAccountState = async ({
 		params,
 		...queryParams
@@ -114,18 +82,6 @@ export class ClearingCanister extends Canister<ClearingService> {
 		return await list_collateral_assets();
 	};
 
-	getPosition = async ({
-		params,
-		...queryParams
-	}: {
-		params: ClearingDid.GetPositionParams;
-	} & QueryParams): Promise<ClearingDid.Position | undefined> => {
-		const { get_position } = this.caller(queryParams);
-		const result = await get_position(params);
-
-		return fromNullable(result);
-	};
-
 	getPositions = async (queryParams: QueryParams): Promise<ClearingDid.Position[]> => {
 		const { get_positions } = this.caller(queryParams);
 
@@ -136,7 +92,7 @@ export class ClearingCanister extends Canister<ClearingService> {
 	 * Aggregate long/short lean of a supplied set of principals on one series.
 	 *
 	 * Privacy-preserving by construction: the query returns per-outcome counts
-	 * only (`long` / `short` / `total`) — never individual identities, sides,
+	 * only (`long` / `short` / `total`): never individual identities, sides,
 	 * quantities, or P&L. The principal set is caller-supplied; the clearing
 	 * layer ascribes no meaning to it (here it is the viewer's followed set).
 	 */
@@ -206,8 +162,8 @@ export class ClearingCanister extends Canister<ClearingService> {
 	/**
 	 * Returns clearing's public settlement view for one series, or `undefined`
 	 * when no settlement plan exists (i.e. the series is unresolved). The view
-	 * exists from the moment a plan opens — the same instant
-	 * {@link listSettledSeries} starts reporting the id — and carries the
+	 * exists from the moment a plan opens (the same instant
+	 * {@link listSettledSeries} starts reporting the id) and carries the
 	 * authoritative `SettlementInput` (settlement price or outcome id).
 	 */
 	getSettlementStatus = async ({
@@ -363,7 +319,7 @@ export class ClearingCanister extends Canister<ClearingService> {
 	 * directly instead of draining and re-bucketing the raw per-trade tape.
 	 *
 	 * Market-wide (every participant's fills, not just the caller's), so the
-	 * derived series reflects the true market movement for all viewers —
+	 * derived series reflects the true market movement for all viewers,
 	 * including signed-out visitors reading under the anonymous identity.
 	 * `interval` picks the resolution (hourly for short windows, daily for
 	 * long) and the optional `startTimeNs` / `endTimeNs` bounds (ns) request
@@ -423,7 +379,7 @@ export class ClearingCanister extends Canister<ClearingService> {
 	};
 
 	/**
-	 * Market-wide traded volume for a set of series in one call — the notional
+	 * Market-wide traded volume for a set of series in one call; the notional
 	 * that changed hands (Σ qty·price) in USD base units, plus each series'
 	 * executed-trade count. Lets the list/cards label a page of markets without
 	 * a per-card read; unknown or untraded ids come back zeroed.
@@ -439,47 +395,11 @@ export class ClearingCanister extends Canister<ClearingService> {
 		return await list_series_traded_volumes({ series_ids: seriesIds });
 	};
 
-	mintCompleteSet = async ({
-		seriesId,
-		qty,
-		...queryParams
-	}: {
-		seriesId: string;
-		qty: bigint;
-	} & QueryParams): Promise<boolean> => {
-		const { mint_complete_set } = this.caller(queryParams);
-		const result = await mint_complete_set(seriesId, qty);
-
-		if ('Ok' in result) {
-			return result.Ok;
-		}
-
-		throw new Error(`Failed to mint complete set: ${JSON.stringify(result.Err, jsonReplacer)}`);
-	};
-
-	redeemCompleteSet = async ({
-		seriesId,
-		qty,
-		...queryParams
-	}: {
-		seriesId: string;
-		qty: bigint;
-	} & QueryParams): Promise<boolean> => {
-		const { redeem_complete_set } = this.caller(queryParams);
-		const result = await redeem_complete_set(seriesId, qty);
-
-		if ('Ok' in result) {
-			return result.Ok;
-		}
-
-		throw new Error(`Failed to redeem complete set: ${JSON.stringify(result.Err, jsonReplacer)}`);
-	};
-
 	/**
 	 * Per-window ranked standings (week / month / all-time) by net realized
 	 * P&L, draining the clearing canister's exclusive `start_after` cursor.
 	 *
-	 * The query is an aggregate — each entry carries the principal's rank, the
+	 * The query is an aggregate: each entry carries the principal's rank, the
 	 * prior-window rank (for ↑/↓ deltas), net realized P&L, and settled / win
 	 * counts (`win_count / settled_count` is the window accuracy). When
 	 * `members` is supplied the ranking is computed within that league set in
@@ -532,21 +452,5 @@ export class ClearingCanister extends Canister<ClearingService> {
 		}
 
 		return { items, total };
-	};
-
-	registerIcrcAsset = async ({
-		params,
-		...queryParams
-	}: {
-		params: ClearingDid.RegisterIcrcAssetParams;
-	} & QueryParams): Promise<void> => {
-		const { register_icrc_asset } = this.caller(queryParams);
-		const result = await register_icrc_asset(params);
-
-		if ('Ok' in result) {
-			return;
-		}
-
-		throw new Error(`Failed to register ICRC asset: ${JSON.stringify(result.Err, jsonReplacer)}`);
 	};
 }

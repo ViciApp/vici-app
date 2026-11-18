@@ -5,7 +5,7 @@ import { TestId } from '../../src/lib/constants/test-ids.constants';
  * The Arena referral link (`FriendsTab`). Rendered only once the invite code
  * resolves, which makes it both the thing to pin (see
  * {@link PINNED_SNAPSHOT_TEXT}) and the signal that the tab's profile-derived
- * content has hydrated — see {@link HomePage.arenaInviteLink}.
+ * content has hydrated; see {@link HomePage.arenaInviteLink}.
  */
 const ARENA_INVITE_LINK_SELECTOR = '.invite-copyurl';
 
@@ -21,7 +21,7 @@ const MENAGERIE_REVEAL_FLYING_SELECTOR = '.mr-root.mr-flying';
 
 /** How long the DOM must stay unmutated to count as settled. */
 const DOM_QUIET_MS = 500;
-/** Upper bound on the quiet wait — see {@link HomePage.waitForRenderSettled}. */
+/** Upper bound on the quiet wait; see {@link HomePage.waitForRenderSettled}. */
 const DOM_QUIET_TIMEOUT_MS = 10_000;
 
 /**
@@ -33,17 +33,21 @@ const DOM_QUIET_TIMEOUT_MS = 10_000;
  * Each entry was confirmed by diffing the baselines two consecutive CI runs of
  * the same commit produced:
  *
- * - `.profile-hero-handle` — the signed-in principal's handle. Every run signs
+ * - `.profile-hero-handle`: the signed-in principal's handle. Every run signs
  *   in as a fresh dev principal, and the handle is either its shortened
  *   principal default or a handle an earlier spec claimed for it, so it reads
  *   e.g. `@e2ems32iwxz` then `@e2ems33k1re`.
- * - `.invite-copyurl` — the referral link. Its code is minted per profile by
+ * - `.invite-copyurl`: the referral link. Its code is minted per profile by
  *   the satellite hook, so a fresh principal always gets a new one
  *   (`/i/JH3T2JAF` then `/i/5PBJ6STF`).
- * - `.portfolio-hero-stat dd.num` — the Portfolio hero stat figures (unrealized
+ * - `.app-desktop-nav-handle span`: the same handle in the desktop nav's user
+ *   menu. The menu is masked, but a mask is a rectangle the size of the
+ *   element, so a handle of a different width shifts the mask and every nav
+ *   link left of it.
+ * - `.portfolio-hero-stat dd.num`: the Portfolio hero stat figures (unrealized
  *   PnL, accuracy, rank). Accuracy is the observed offender: it reads `0.0%`
  *   until the profile hydrates and `100.0%` after, because `displayAccuracyPct`
- *   shows an optimistic 100% for a user with no settled predictions — so it
+ *   shows an optimistic 100% for a user with no settled predictions, so it
  *   flips on a hydration race. Its siblings are pinned with it because they
  *   derive from the same per-run trading state and would drift the same way
  *   once the seeded state stops being empty.
@@ -54,6 +58,7 @@ const DOM_QUIET_TIMEOUT_MS = 10_000;
  */
 const PINNED_SNAPSHOT_TEXT: { selector: string; text: string }[] = [
 	{ selector: '.profile-hero-handle', text: '@xxxxxxxxxxx' },
+	{ selector: '.app-desktop-nav-handle span', text: '@xxxxxxxxxxx' },
 	{ selector: ARENA_INVITE_LINK_SELECTOR, text: 'xxxxxxxxxxxxxxxxx/i/XXXXXXXX' },
 	{ selector: '.portfolio-hero-stat dd.num', text: '000' }
 ];
@@ -62,7 +67,7 @@ const PINNED_SNAPSHOT_TEXT: { selector: string; text: string }[] = [
  * Page object for the Vici signed-in surfaces and the auth / onboarding
  * flow that reaches them.
  *
- * The (app) layout gates every route on a resolved session — anonymous
+ * The (app) layout gates every route on a resolved session: anonymous
  * visits to `/app`, `/portfolio`, etc. redirect to `/signin`. Sign-in
  * itself routes a brand-new principal through the `/signup` one-screen
  * onboarding before the app shell, so the helpers below drive that flow
@@ -77,7 +82,6 @@ export class HomePage {
 	readonly marketFeed: Locator;
 	readonly marketCard: Locator;
 	readonly marketCardSkeleton: Locator;
-	readonly marketTimeRemaining: Locator;
 	readonly signInDevButton: Locator;
 	/**
 	 * The signed-in account control. The desktop top-nav profile handle and
@@ -92,7 +96,7 @@ export class HomePage {
 	/**
 	 * The Arena referral link. Present only after the invite code resolves, so
 	 * awaiting it is how an Arena snapshot avoids capturing the tab
-	 * mid-hydration — the state where the whole invite copyfield (and the
+	 * mid-hydration, the state where the whole invite copyfield (and the
 	 * friends-rank row beneath it) is still missing, which is what made the
 	 * Arena baseline rewrite itself on consecutive runs.
 	 */
@@ -110,7 +114,6 @@ export class HomePage {
 		this.marketFeed = page.getByTestId(TestId.MarketFeed);
 		this.marketCard = page.getByTestId(TestId.MarketCard);
 		this.marketCardSkeleton = page.getByTestId(TestId.MarketCardSkeleton);
-		this.marketTimeRemaining = page.getByTestId(TestId.MarketTimeRemaining);
 		this.signInDevButton = page.getByTestId(TestId.SignInDev);
 		this.userMenu = page.locator(`[data-tid="${TestId.UserMenu}"]:visible`);
 		this.signOutButton = page.getByTestId(TestId.SignOutButton);
@@ -141,8 +144,8 @@ export class HomePage {
 	 * 1. No placeholder is left in the DOM. This is the load-bearing one: a page
 	 *    waiting on a response is perfectly quiet, so condition 2 alone happily
 	 *    photographs a half-loaded screen. Placeholder class names are
-	 *    per-component and abbreviate inconsistently — `portfolio-skeleton` and
-	 *    `detail-skeleton-block`, but `ar-skel-block` on the Arena hero — so the
+	 *    per-component and abbreviate inconsistently: `portfolio-skeleton` and
+	 *    `detail-skeleton-block`, but `ar-skel-block` on the Arena hero, so the
 	 *    match is on `skel`, the longest shared prefix. Matching only `skeleton`
 	 *    silently skipped the Arena hero and left it drifting.
 	 * 2. No DOM mutation for {@link DOM_QUIET_MS}, which catches blocks that
@@ -152,7 +155,7 @@ export class HomePage {
 	 * The quiet wait is bounded and its timeout swallowed: a surface with a
 	 * permanent ticker (a countdown, a poll) would never go quiet, and hanging
 	 * the spec is worse than the drift this reduces. The placeholder check is a
-	 * real assertion — one still present after the wait means the page genuinely
+	 * real assertion: one still present after the wait means the page genuinely
 	 * never finished loading, which should fail loudly.
 	 */
 	async waitForRenderSettled(): Promise<void> {
@@ -212,23 +215,18 @@ export class HomePage {
 	 *   of every text run) are stable. Without this, snapshots taken before
 	 *   `document.fonts.ready` use the system fallback font and any later
 	 *   run-with-fonts produces a multi-pixel diff on every character.
-	 * - Replaces every `MarketTimeRemaining` chip with a fixed-width placeholder.
-	 *   `getTimeRemaining()` is wall-clock-relative (`"7d 14h"`, `"0d 23h"`,
-	 *   `"15m remaining"`, …); the strings have different rendered widths,
-	 *   and Playwright's `mask` option overlays a magenta rectangle the size
-	 *   of the element's bounding box, so even masked the rectangle width
-	 *   drifts run-to-run and the diff fires. Owning the text content is the
-	 *   only way to make it byte-stable.
 	 * - Replaces every `PrincipalDisplay` (the shortened principal text
 	 *   rendered by `CopyableAddress`) with a fixed-width placeholder.
 	 *   Juno's dev mock identity is deterministic WITHIN a CI run but the
 	 *   PocketIC emulator container mints a different principal on every
 	 *   fresh boot, so the rendered shortened form (e.g. `aapr-r…dnh-4qe`
 	 *   vs `xqzm-i…inh-4qe`) drifts run-to-run wherever a `CopyableAddress`
-	 *   appears outside the (already-masked) `userMenu` — most notably on
-	 *   the profile page body. Same byte-stability rationale as the time
-	 *   chip: pinning the text is the only fix that doesn't trade one
-	 *   variable-width drift for another.
+	 *   appears outside the (already-masked) `userMenu`, most notably on
+	 *   the profile page body. The strings have different rendered widths,
+	 *   and Playwright's `mask` option overlays a magenta rectangle the size
+	 *   of the element's bounding box, so even masked the rectangle width
+	 *   drifts run-to-run and the diff fires. Owning the text content is the
+	 *   only way to make it byte-stable.
 	 * - Replaces the remaining per-run identities and figures listed in
 	 *   {@link PINNED_SNAPSHOT_TEXT}, each of which was observed rewriting its
 	 *   baseline on consecutive CI runs of the same commit.
@@ -246,11 +244,7 @@ export class HomePage {
 		});
 
 		await this.page.evaluate(
-			({ timeRemainingSel, principalSel, pinned }) => {
-				for (const el of document.querySelectorAll<HTMLElement>(timeRemainingSel)) {
-					el.textContent = '-- remaining';
-				}
-
+			({ principalSel, pinned }) => {
 				for (const el of document.querySelectorAll<HTMLElement>(principalSel)) {
 					el.textContent = 'xxxxxxx…xxxxxxx';
 				}
@@ -262,7 +256,6 @@ export class HomePage {
 				}
 			},
 			{
-				timeRemainingSel: `[data-tid="${TestId.MarketTimeRemaining}"]`,
 				principalSel: `[data-tid="${TestId.PrincipalDisplay}"]`,
 				pinned: PINNED_SNAPSHOT_TEXT
 			}
@@ -306,7 +299,7 @@ export class HomePage {
 	 * Bring the `/signup` one-screen onboarding to the point where auth can
 	 * start. The empty handle field auto-claims its pool suggestion, so the
 	 * provider stack ungates (the dev button becomes enabled) without any
-	 * interaction — leaving the flow ready for the dev sign-in click. The
+	 * interaction, leaving the flow ready for the dev sign-in click. The
 	 * "Skip" affordance is deliberately untouched: it starts guest mode, not
 	 * the auth path.
 	 */
@@ -317,7 +310,7 @@ export class HomePage {
 	}
 
 	/**
-	 * Wait until the signed-in app shell has settled — the account control
+	 * Wait until the signed-in app shell has settled: the account control
 	 * is visible and the initial data fetches have gone idle. Useful as the
 	 * first await after a sign-in so subsequent assertions see a stable
 	 * shell rather than racing hydration.
@@ -329,7 +322,7 @@ export class HomePage {
 		// the signed-in shell mounted. `networkidle` is bounded and its
 		// timeout swallowed because the landing surface (`/flow`) runs
 		// background polling (order books) that can keep the network from ever
-		// going fully idle — without the bound this would hang the full
+		// going fully idle; without the bound this would hang the full
 		// `actionTimeout` on every sign-in.
 		try {
 			await this.page.waitForLoadState('networkidle', { timeout: 5_000 });
@@ -344,14 +337,14 @@ export class HomePage {
 	 * High-level helper: opens `/signup`, brings the one-screen onboarding to
 	 * the auth step, signs in via the dev mock identity, and lands on a fully-
 	 * interactive signed-in shell (`/flow`). A fresh dev principal has no
-	 * profile, so this new-user path is the canonical way into the app — a
+	 * profile, so this new-user path is the canonical way into the app; a
 	 * bare sign-in on `/signin` would itself bounce here.
 	 *
 	 * Wrapped in one auto-retry with a page reload between attempts. The
 	 * sign-in pipeline rides on `/api/v3|v4/canister/*` calls through the
 	 * Vite dev-server proxy, which has been observed to enter a sticky
 	 * `socket hang up` / `ECONNRESET` state mid-suite. Top-level Playwright
-	 * retries don't help — they share the same dev-server process and the
+	 * retries don't help: they share the same dev-server process and the
 	 * connection pool stays poisoned. A `page.reload()` re-runs app init
 	 * against the proxy and is often enough to shake it loose.
 	 *
@@ -389,7 +382,7 @@ export class HomePage {
 						`First attempt: ${(firstError as Error).message}. ` +
 						`Second attempt (after page reload): ${(secondError as Error).message}. ` +
 						`This typically indicates the Vite-↔-PocketIC proxy has entered a ` +
-						`sticky error state — see docs/ai/frontend/testing.md.`,
+						`sticky error state; see docs/ai/frontend/testing.md.`,
 					{ cause: secondError }
 				);
 			}
@@ -403,13 +396,13 @@ export class HomePage {
 	 *
 	 * The dev mock identity resolves to ONE principal for the whole CI run,
 	 * and every prior `signInAsDevUser` auto-claims the handle field's pool
-	 * suggestion and completes onboarding for it — so by the time a spec needs
+	 * suggestion and completes onboarding for it, so by the time a spec needs
 	 * a brand-new user, that principal is already a fully-onboarded returning
 	 * user. Delete its profile so the next sign-in bootstraps fresh, restoring
 	 * the genuine new-user path.
 	 *
 	 * IMPORTANT: follow this with {@link signOutDev}, NOT {@link logout}. The
-	 * delete must be the last signed-in action before sign-out — a signed-in
+	 * delete must be the last signed-in action before sign-out: a signed-in
 	 * page load in between (navigating to the Settings sign-out surface) re-runs
 	 * `ensureProfile`, which finds no doc and immediately re-bootstraps one,
 	 * resurrecting exactly what this deleted. `signOutDev` signs out in place
@@ -422,7 +415,7 @@ export class HomePage {
 
 			if (!hooks) {
 				throw new Error(
-					'Dev-only e2e reset hook (window.__viciE2E) is not installed — expected isDev() on the dev server.'
+					'Dev-only e2e reset hook (window.__viciE2E) is not installed; expected isDev() on the dev server.'
 				);
 			}
 
@@ -435,7 +428,7 @@ export class HomePage {
 	 * page load is signed-out. Deliberately does NOT call Juno `signOut()`.
 	 *
 	 * Juno persists the dev mock identity in `juno-dev-identifiers`, and its
-	 * `signOut()` RE-SAVES that identity (for next-time convenience) — so clearing
+	 * `signOut()` RE-SAVES that identity (for next-time convenience), so clearing
 	 * and then signing out just puts the identity back, and the following
 	 * `/signin` reload auto-restores the session and bounces to `/flow`, racing
 	 * the caller's `goto('/signup')`. Skipping `signOut()` avoids that re-persist
@@ -455,7 +448,7 @@ export class HomePage {
 
 			if (!hooks) {
 				throw new Error(
-					'Dev-only e2e reset hook (window.__viciE2E) is not installed — expected isDev() on the dev server.'
+					'Dev-only e2e reset hook (window.__viciE2E) is not installed; expected isDev() on the dev server.'
 				);
 			}
 
@@ -464,7 +457,7 @@ export class HomePage {
 	}
 
 	/**
-	 * Sign out via the Settings page — the only sign-out surface in the
+	 * Sign out via the Settings page, the only sign-out surface in the
 	 * current app (the old account dropdown is gone). The reveal button
 	 * arms an in-page confirm; the destructive confirm calls `signOut()`,
 	 * after which the (app) gate routes back to `/signin`.

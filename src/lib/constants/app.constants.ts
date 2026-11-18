@@ -1,4 +1,5 @@
 import type { RegistryDid } from '#declarations';
+import { DAY_IN_MS, WEEK_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { isDev } from '#lib/env/app.env.ts';
 import { toNullable, type Nullable } from '@dfinity/utils';
 
@@ -19,30 +20,15 @@ export const VICI_ORACLE_V1 = 'VICI_ORACLE_V1';
 
 /**
  * Maximum length of a series' resolution clause (`Resolution.clause`). Mirrors
- * the `icdc-core` registry bound — a clause beyond this is rejected with
+ * the `icdc-core` registry bound; a clause beyond this is rejected with
  * `ResolutionClauseTooLong`. Used to validate the admin form and to cap the
  * clause sent in `add_series` / `fork_series`.
  */
 export const RESOLUTION_CLAUSE_MAX_LENGTH = 1024;
 
-/** Em-dash placeholder for an absent / not-yet-served value in the UI. */
-export const EM_DASH = '—';
-
-export const SECOND_IN_NANOSECONDS = 1_000_000_000n;
-export const MILLISECOND_IN_NANOSECONDS = 1_000_000n;
-
-/** One minute in milliseconds. */
-export const MINUTE_IN_MS = 60_000;
-/** One hour in milliseconds. */
-export const HOUR_IN_MS = 60 * MINUTE_IN_MS;
-/** One day in milliseconds — `24 × 60 × 60 × 1000`. */
-export const DAY_IN_MS = 24 * HOUR_IN_MS;
-export const MINUTE_IN_SECONDS = 60n;
-export const HOUR_IN_SECONDS = 60n * MINUTE_IN_SECONDS;
-export const DAY_IN_SECONDS = 24n * HOUR_IN_SECONDS;
-export const DAY_IN_NANOSECONDS = DAY_IN_SECONDS * SECOND_IN_NANOSECONDS;
-export const WEEK_IN_SECONDS = 7n * DAY_IN_SECONDS;
-export const WEEK_IN_NANOSECONDS = WEEK_IN_SECONDS * SECOND_IN_NANOSECONDS;
+/** Placeholder for an absent / not-yet-served value in the UI: an en dash,
+ * which code standard rule 14 allows on its own (it bans only the em dash). */
+export const EMPTY_VALUE = '–';
 
 /**
  * Retention horizon for the `resolved_results` collection, in milliseconds.
@@ -52,11 +38,19 @@ export const WEEK_IN_NANOSECONDS = WEEK_IN_SECONDS * SECOND_IN_NANOSECONDS;
  * controllers-only cleanup prunes rows whose `resolvedAtMs` is older than this.
  * The horizon must not be shorter than the digest's active `StandingsWindow`
  * (the longest bounded window the consumer reads is `'month'`); it is sized at
- * 45 days — a calendar month plus a ~2-week grace margin — so a row stays
+ * 45 days (a calendar month plus a ~2-week grace margin) so a row stays
  * readable for the whole window even at the month boundary, and a slightly
  * delayed prune never drops a row the digest still needs.
  */
 export const RESOLVED_RESULTS_RETENTION_MS = 45 * DAY_IN_MS;
+
+/**
+ * Recovery window for a soft-deleted account. After `deleteMyAccount` sets
+ * `deletedAtMs`, the owner has this long to call `recoverMyAccount`; past it the
+ * account is eligible for the admin sweep's hard-delete, and a too-late
+ * `recoverMyAccount` hard-deletes it.
+ */
+export const ACCOUNT_RECOVERY_WINDOW_MS = 30 * DAY_IN_MS;
 
 export const II_MAX_TIME_TO_LIVE_NS = WEEK_IN_NANOSECONDS;
 
@@ -68,7 +62,7 @@ export const TRANSACTION_HISTORY_PAGE_SIZE = 10;
 /**
  * Ledger-walk bounds for the transaction-history page. The page needs the
  * user's full VXP ledger trail to label bonuses and compute running
- * balances, so it pages the ICRC index to exhaustion — these cap a
+ * balances, so it pages the ICRC index to exhaustion; these cap a
  * pathological account at `PAGE_SIZE × MAX_PAGES` transactions, after which
  * the page renders a "history starts here" footer instead of fanning out
  * unbounded query calls.
@@ -77,16 +71,8 @@ export const TRANSACTION_HISTORY_LEDGER_PAGE_SIZE = 100n;
 export const TRANSACTION_HISTORY_MAX_LEDGER_PAGES = 20;
 
 /**
- * How often the prediction interface and depth panel re-fetch the
- * order book while a market is open. 5 s is the eyeballed sweet spot
- * between "stale" and "wasteful" given typical order-book churn; bump
- * via this constant rather than the literal inline.
- */
-export const ORDER_BOOK_POLL_MS = 5_000;
-
-/**
  * Default auto-dismiss duration for global toasts (`notificationsStore`).
- * Per-call overrides still win — this is just the implicit default.
+ * Per-call overrides still win; this is just the implicit default.
  */
 export const TOAST_DEFAULT_MS = 5_000;
 

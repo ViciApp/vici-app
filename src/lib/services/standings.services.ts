@@ -19,7 +19,7 @@ import type { PrincipalText } from '@junobuild/schema';
  * membership, so the league filter is supplied by the caller as a principal
  * set (`members`). This service maps the wire aggregate onto the FE
  * {@link StandingEntry} view model (rank, prior-window rank, the ↑/↓ delta,
- * realized P&L, and a `win_count / settled_count` accuracy) — it never
+ * realized P&L, and a `win_count / settled_count` accuracy); it never
  * fabricates a figure: an empty window simply yields no entries.
  */
 
@@ -104,14 +104,14 @@ export const getStandings = async ({
 
 /**
  * Loads one window's global standings ranking and merges it into
- * {@link globalStandingsStore}. Ranking only — it deliberately does NOT
+ * {@link globalStandingsStore}. Ranking only: it deliberately does NOT
  * hydrate the profile cache.
  *
  * Profile hydration is the caller's job, because the two consumers have wildly
  * different needs from the SAME cached slice: the dashboard rank tile renders
  * only the viewer's own rank (no other handle/avatar), whereas the Leaderboard
  * renders every row. Folding a hydrate-everyone fan-out in here meant the dash
- * — hit on the first authenticated page of a session — fired one `getProfile`
+ * (hit on the first authenticated page of a session) fired one `getProfile`
  * per ranked principal (up to {@link MAX_STANDINGS_PAGES} × 500), a multi-
  * thousand request burst it threw away. The Leaderboard now hydrates only the
  * rows it actually paints (see `LeaderboardPage`).
@@ -160,40 +160,6 @@ export const getLeagueStandings = async ({
 	});
 
 	return { window, entries: items.map(toEntry), total: Number(total) };
-};
-
-/**
- * The viewer's percentile band for a ranked slice — the "Top X%" figure shown
- * on the dashboard rank tiles.
- *
- * NOTE: this band, `findOwnStanding`, and the Dash rank tile all read the
- * canister's net-P&L `rank` — they are deliberately NOT re-ranked by accuracy
- * the way the leaderboard view is (see `globalStandingsRows`). That leaves the
- * Dash rank tile on a different ranking basis than the leaderboard, a known
- * inconsistency to reconcile later — kept as a conscious choice, not an
- * oversight, until accuracy ranking moves into the clearing canister.
- *
- * Derived purely from a 1-based `rank` within a
- * `total` ranked set: `ceil(rank / total * 100)`, floored at 1 so the very top
- * of a large set still reads "Top 1%" rather than "Top 0%", and capped at 100.
- * `undefined` when the slice is empty (no `total`) or the rank is unknown, so
- * the caller can fall back rather than render a meaningless band.
- *
- * This is a band, not a rank: it never fabricates a position, it only restates
- * an authoritative `rank` / `total` pair as a coarse percentile.
- */
-export const percentileBand = ({
-	rank,
-	total
-}: {
-	rank: number;
-	total: number;
-}): number | undefined => {
-	if (total <= 0 || rank <= 0) {
-		return;
-	}
-
-	return Math.max(1, Math.min(100, Math.ceil((rank / total) * 100)));
 };
 
 /**

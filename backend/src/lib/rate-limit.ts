@@ -5,6 +5,7 @@
 
 import { isNullish } from '@dfinity/utils';
 import type { StatusContext } from './http';
+import { MINUTE_IN_MS } from './time';
 
 interface Window {
 	count: number;
@@ -16,7 +17,7 @@ let lastSweep = 0;
 
 // Drop expired windows occasionally so the map cannot grow unbounded.
 const sweep = (now: number): void => {
-	if (now - lastSweep < 60_000) {
+	if (now - lastSweep < MINUTE_IN_MS) {
 		return;
 	}
 

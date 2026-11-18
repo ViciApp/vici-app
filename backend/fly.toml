@@ -15,8 +15,8 @@ primary_region = "ams"
   release_command = "bun run src/db/migrate.ts"
 
 # Two processes: the API (HTTP) and the background worker (the poll loop in
-# src/worker.ts, a deliberate no-op until the domain jobs land). The worker has
-# no HTTP service and never crash-loops on an empty job list.
+# src/worker.ts that runs the custody, VXP, tournament and housekeeping jobs).
+# The worker has no HTTP service, and one failing job never stops the loop.
 [processes]
   api = "bun run src/index.ts"
   worker = "bun run src/worker.ts"

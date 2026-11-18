@@ -52,13 +52,13 @@ the rules are governed, and the implementation follows them.
 ## Principles
 
 1. **Earn-only: there are no VXP sinks.** Nothing charges VXP. The
-   only VXP that leaves a user is a prediction **stake**, and a stake
-   is on-chain **clearing collateral** held by the risk engine, not a
-   fee or a forfeit: it returns on settlement (won, lost, or
+   only VXP that leaves a user is the **amount** committed to a
+   prediction, and that amount is on-chain **clearing collateral** held
+   by the risk engine, not a fee or a forfeit: it returns on settlement (won, lost, or
    broken-even) as realized cashflow. League founding is free and
    _awards_ VXP. There is no burn.
 2. **The closed loop lives in the clearing engine, not in VXP
-   mint/burn.** Because stakes are collateral, the zero-sum
+   mint/burn.** Because committed amounts are collateral, the zero-sum
    player-vs-market dynamic is enforced by the engine's settlement, not
    by sinks on the VXP supply. VXP supply is therefore controlled by
    **bounding every mint** (next section), not by draining it.
@@ -85,25 +85,28 @@ the rules are governed, and the implementation follows them.
 The surfaces that mint VXP, the rule for each, and the constant that
 backs it. Amounts are **not** repeated here; follow the link.
 
-| Surface                    | Rule                                                                                                                                                                                          | Backed by                                                                                                                                                                                                        |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Prediction win**         | Pays the market odds: `stake / p_win − stake`, with a floor on `p_win` so a long shot cannot pay an unbounded multiple.                                                                       | `VXP_P_WIN_FLOOR`, `VXP_STAKE_LADDER` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                           |
-| **Onboarding grant**       | A single registration grant; no engagement-gated drip (the call-gated milestones are retained at zero).                                                                                       | `NEW_USER_VXP_TOTAL_BASE_UNITS` ([`vxp-onboarding.constants.ts`](../../src/lib/constants/vxp-onboarding.constants.ts))                                                                                           |
-| **Referral: referee**      | Flat, one-time, paid to a new user who redeems within the post-signup window and then makes a first prediction.                                                                               | `REFERRAL_VXP_BONUS_BASE_UNITS`, `REFERRAL_SIGNUP_WINDOW_MS` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                          |
-| **Referral: referrer**     | **Diminishing** by lifetime conversions, then **hard-capped to zero**. Authoritative count is the satellite's own scan, never the client.                                                     | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
-| **Daily-streak milestone** | Tiered, granted once when the streak count hits a milestone.                                                                                                                                  | `VXP_STREAK_BONUSES` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                            |
-| **Flow volume milestone**  | One-time per lifetime call-count threshold crossed. **Specified, not yet minting**; credit path deferred (#350).                                                                              | `VXP_FLOW_MILESTONES` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                           |
-| **Flow overtime**          | Repeatable, once per day on an overtime finish. **Specified, not yet minting**; credit path deferred (#350).                                                                                  | `VXP_FLOW_OVERTIME_BONUS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                       |
-| **Calibration recovery**   | Pays for a correct call on a finalized market **only while the caller's balance is below the recovery floor**; bounded by a daily and an hourly cap. The skill-based way back from depletion. | `VXP_CALIBRATION_REWARD_BASE_UNITS`, `CALIBRATION_RECOVERY_FLOOR_BASE_UNITS`, `CALIBRATION_DAILY_CAP`, `CALIBRATION_HOURLY_CAP` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts)) |
-| **Comeback restore**       | One-time top-up _to_ a target for a user returning after an absence with a depleted balance. The re-engagement nudge (distinct from calibration: triggered by absence, not skill).            | `COMEBACK_RESTORE_TARGET_BASE_UNITS`, `COMEBACK_BALANCE_FLOOR_BASE_UNITS`, `COMEBACK_AWAY_DAYS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                 |
-| **League founder**         | Awarded once per league founded, bounded by a lifetime per-account cap.                                                                                                                       | `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS`, `VXP_LEAGUE_FOUNDER_MAX_AWARDS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                         |
-| **Worlds podium**          | Tiered award for a top-three monthly finish.                                                                                                                                                  | `VXP_WORLDS_PODIUM` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                             |
+| Surface                    | Rule                                                                                                                                                                                                                | Backed by                                                                                                                                                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Prediction win**         | Pays at the market probability: `amount / p_win − amount`, with a floor on `p_win` so a long shot cannot pay an unbounded multiple.                                                                                 | `VXP_P_WIN_FLOOR`, `VXP_CALL_SIZE_LADDER` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                       |
+| **Onboarding grant**       | A single registration grant; no engagement-gated drip (the call-gated milestones are retained at zero).                                                                                                             | `NEW_USER_VXP_TOTAL_BASE_UNITS` ([`vxp-onboarding.constants.ts`](../../src/lib/constants/vxp-onboarding.constants.ts))                                                                                           |
+| **Referral: referee**      | Flat, one-time, paid to a new user who redeems within the post-signup window and then makes a first prediction.                                                                                                     | `REFERRAL_VXP_BONUS_BASE_UNITS`, `REFERRAL_SIGNUP_WINDOW_MS` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                          |
+| **Referral: referrer**     | **Diminishing** by lifetime conversions, then **hard-capped to zero**. Authoritative count is the satellite's own scan, never the client.                                                                           | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
+| **Daily-streak milestone** | Tiered, granted once when the daily streak hits a milestone, counted over server-recorded activity days (UTC days with an executed fill; a Flow swipe alone records none), never the client's `dailyStreak`.        | `VXP_STREAK_BONUSES`, `STREAK_MAX_CONTINUING_DAY_DELTA` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts), [`streak.utils.ts`](../../src/lib/utils/streak.utils.ts))               |
+| **Flow volume milestone**  | One-time per lifetime call-count threshold reached, counted as the caller's executed predictions in the engine on each trade activity, never the client's `totalTrades`.                                            | `VXP_FLOW_MILESTONES` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                           |
+| **Flow overtime**          | Repeatable, once per day on an overtime finish (daily counter hits the hard cap), minted inline by the Flow swipe write; a rolling wall-clock cap, counted before each mint, limits it (the day key is client-set). | `VXP_FLOW_OVERTIME_BONUS`, `VXP_FLOW_OVERTIME_ROLLING_CAP`, `VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                               |
+| **Calibration recovery**   | Pays for a correct call on a finalized market **only while the caller's balance is below the recovery floor**; bounded by a daily and an hourly cap. The skill-based way back from depletion.                       | `VXP_CALIBRATION_REWARD_BASE_UNITS`, `CALIBRATION_RECOVERY_FLOOR_BASE_UNITS`, `CALIBRATION_DAILY_CAP`, `CALIBRATION_HOURLY_CAP` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts)) |
+| **Comeback restore**       | One-time top-up _to_ a target for a user returning after an absence (between two server-recorded activity days) with a depleted balance. The re-engagement nudge, triggered by absence, not skill.                  | `COMEBACK_RESTORE_TARGET_BASE_UNITS`, `COMEBACK_BALANCE_FLOOR_BASE_UNITS`, `COMEBACK_AWAY_DAYS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                 |
+| **Achievement unlock**     | Catalog XP, once per achievement, only for an unlock the server evaluates from its own data, never the client's `unlockedAchievements`; three achievements mint nothing (see the caps section).                     | `ACHIEVEMENTS` ([`achievements.constants.ts`](../../src/lib/constants/achievements.constants.ts)), thresholds in [`achievements.utils.ts`](../../src/lib/utils/achievements.utils.ts)                            |
+| **League founder**         | Awarded once per league founded, bounded by a lifetime per-account cap.                                                                                                                                             | `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS`, `VXP_LEAGUE_FOUNDER_MAX_AWARDS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                         |
+| **Worlds podium**          | Tiered award for a top-three monthly finish, ranked from the members' settled history over the closed month, never a client-written counter.                                                                        | `VXP_WORLDS_PODIUM` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                             |
+| **Tournament prize**       | Tiered award for a member of a monthly tournament's podium leagues (winner, other finalist, either semifinal loser), one per member per tournament whatever the place; every match is scored from settled history.  | `TOURNAMENT_PRIZE_TIERS` ([`tournament.ts`](../../src/lib/types/tournament.ts))                                                                                                                                  |
 
 The authoritative list of award **types** is the `VxpAwardType` union
-([`vxp-award.ts`](../../src/lib/types/vxp-award.ts)) mirrored by the
-`VxpAwardTypeSchema` Zod enum
-([`vxp-award.schema.ts`](../../src/lib/schema/vxp-award.schema.ts)),
-both must carry every type (see
+([`vxp-award.ts`](../../src/lib/types/vxp-award.ts)). The API books the
+same set plus `onboarding` from `VXP_AWARD_TYPES`
+([`backend/src/vxp/awards.ts`](../../backend/src/vxp/awards.ts)); its
+tests pin that array to the union and to the `vxp_awards` check
+constraint (see
 [`satellite/economy.md`](./satellite/economy.md#invariants)).
 
 ## Caps and gates: the anti-farming spine
@@ -113,23 +116,180 @@ Every mint must be bounded so it cannot become an unbounded faucet.
 The bound that protects each surface today:
 
 - **Prediction win**: bounded by the `p_win` floor (caps the long-shot
-  multiple) and the stake ladder cap.
+  multiple) and the call-size ladder cap.
 - **Referrer reward**: diminishing curve **and** a hard lifetime cap
   to zero; the count comes from the satellite's own scan, so the client
-  cannot inflate it.
-- **Referee reward**: one-time per account, only inside the
-  post-signup redemption window.
+  cannot inflate it, and deleting referred accounts never shrinks it. On
+  the web2 API a paid conversion keeps its slot through the referrer's
+  own referral award, which outlives the referee's redemption row
+  (`countPriorReferrerRedemptions` in
+  [`backend/src/vxp/referral.ts`](../../backend/src/vxp/referral.ts)).
+  On the satellite only a controller deletes a referral row, the account
+  purge keeps one that has started paying, and its payout state only
+  moves forward (`assertSetReferral`, `isReferralPayoutRecord` in
+  [`referral.services.ts`](../../src/satellite/services/referral.services.ts)).
+- **Referee reward**: one-time per person (a deleted account's identity
+  cannot redeem again, see below), only inside the post-signup
+  redemption window.
 - **Streak / flow-volume milestones**: one-time per milestone, per
-  lifetime.
+  lifetime, counted from server-side truth only: the streak from the
+  server-recorded activity days (the UTC days of executed fills, never a
+  bare Flow swipe), the call count from the engine's executed fills.
+- **Achievements**: one-time per achievement id, minted only for an
+  unlock the server evaluates itself: `first-call`, `oracle`, `on-fire`
+  and `contrarian` from the engine's fills and settlements, `marathon`
+  from the server-derived streak, `league-founder` from the league
+  rosters, where every row is a member who joined themselves (a league
+  owner changes an existing member's role but never adds anyone, on
+  either backend). `top-decile` (days held in the leaderboard's top decile),
+  `sharpest-eye` and `bold-caller` (monthly accuracy awards) depend on
+  figures only the client computes (the top-decile day counter and the
+  monthly stats it writes), so the web2 API pays nothing for them.
+  **Owner decision pending:** give them a server-side source (a daily
+  leaderboard snapshot, server-computed monthly awards), or leave them
+  unpaid.
+- **Contrarian wins** are judged on the entry price, never on the
+  `Settled` event's price: that is the settlement price (1 for YES, 0
+  for NO), so it would make every NO win a long shot. The entry price
+  is the average cost of the side held into settlement, rebuilt from
+  the caller's `Executed` fills on that market: a buy takes YES at the
+  fill price, a sell takes NO at one minus it; a fill that adds to the
+  position folds in at its volume, one that reduces it leaves the
+  average unchanged, one that flips the side restarts it. Self-matched
+  trades (both rows of one event) are left out, since their price is
+  free to choose. A win counts when the held side is the side the
+  market paid and its entry price is at or below
+  `CONTRARIAN_PRICE_THRESHOLD`. Only binary price settlements are
+  judged: a categorical fill carries no outcome id, so the outcome held
+  cannot be priced. Code: `heldBinaryPosition` in
+  [`backend/src/vxp/predictions.ts`](../../backend/src/vxp/predictions.ts).
+- **Flow overtime**: once per day key, plus a rolling wall-clock cap
+  counted off server-stamped creation times, so forged day keys cannot
+  farm it.
 - **Calibration**: balance-gated (pays only below the recovery floor),
-  plus a daily **and** an hourly burst cap.
-- **Comeback**: balance-gated and absence-gated.
-- **League founder**: lifetime per-account cap.
+  plus a daily **and** an hourly burst cap. The balance is the user's
+  holdings: the ledger wallet plus their ViciXp clearing equity
+  (`getVxpHoldings` in
+  [`backend/src/vxp/payout.ts`](../../backend/src/vxp/payout.ts)), since
+  the playground auto-deposit sweeps the wallet into clearing within
+  seconds. The satellite cannot read a user's clearing account (every
+  account read is scoped to the calling principal), so its gate still
+  reads the wallet alone. The first side called on a
+  finalised market is the one judged: a miss is recorded, and a later
+  call on the other side is refused, so a market cannot be called both
+  ways until it pays.
+- **Comeback**: balance-gated on the same holdings as calibration, and
+  absence-gated, the absence measured
+  between server-recorded activity days (executed-fill days), so it
+  cannot be declared and a bare Flow swipe cannot end it.
+- **League founder**: lifetime per-account cap, which counts the founder
+  awards the identity was paid under deleted accounts too.
+- **Worlds podium**: ranked from **settled history**: each
+  affiliation's tally is its opted-in members' settled calls and wins
+  over the closed month (`[month start, month close)`), read from the
+  clearing canister through the helper league battles are scored with
+  (`settled-history.services.ts` on the satellite, `settledTotalsByPrincipal`
+  in [`backend/src/engine/clearing.ts`](../../backend/src/engine/clearing.ts)
+  on the API), counting only members whose slot was joined before the
+  month closed. The ranking is frozen on the month's first claim and the
+  podium pays from that frozen ranking only; a month where no affiliation
+  clears the rank floor has no podium. The monthly stats the client
+  writes (`user_monthly_stats`) feed the live month view and never a
+  payout, and the API has no route that writes them. Paid once per month
+  and place, for a member at month-end whatever their join date, but only
+  if the slot was joined before the month closed. A first join has no switch lock, so without
+  this anyone could join last month's winner after close and collect its
+  prize; a switch or a leave resets the join time, so a move after close
+  never carries tenure. The join time is server-stamped on both backends
+  (the API's `joined_at_ms`, the satellite doc's `created_at`), never a
+  caller-written field.
+- **Tournament prize**: every match is scored from **settled
+  history**: each league's members' settled calls and wins over the
+  round window, read from the clearing canister through the helper
+  league battles are scored with, counting only memberships joined
+  before the window closed. A league below the per-match floor
+  forfeits. Nothing a member writes decides a match: `league_stats`
+  (fed by each member's client-reported `totalTrades` on both backends)
+  is a display cache that no award reads. The draw runs for
+  the current UTC month only, and only while its round 1 window is still
+  open: the round windows are anchored at the month start, so a bracket
+  drawn later (or for a closed month) would conclude its closed rounds at
+  once on double forfeits and pay prizes for matches nobody played. After
+  round 1 closes, that month has no tournament. The rule lives in one
+  place per stack (`tournamentDrawRefusal` in
+  [`tournament-draw.utils.ts`](../../src/satellite/utils/tournament-draw.utils.ts)
+  and in [`backend/src/tournaments/tournaments.ts`](../../backend/src/tournaments/tournaments.ts))
+  and refuses with `invalid_input`. The prize is once per member per tournament,
+  whatever the place: a member of several podium leagues gets the
+  highest tier, and a claim for a second place is refused. Only a
+  membership that predates the draw counts: the draw seeds the bracket
+  from that roster, so joining a placed league afterwards (including
+  after the tournament concluded) earns nothing, and a member who left
+  before claiming has no membership left to count. The satellite judges
+  the join by the membership doc's stored creation time, never the
+  client-written join field.
+
+Every count-bounded cap (flow overtime, calibration, league founder) is
+**strict**, never a soft limit: the count and the award insert run in one
+transaction behind a per-user, per-award-type lock (`grantCappedAward` in
+[`backend/src/vxp/awards.ts`](../../backend/src/vxp/awards.ts)), so
+concurrent claims cannot slip past it. The lock is released before the
+ledger transfer.
+
+No profile field the client writes (`dailyStreak`, `lastActiveDay`,
+`totalTrades`, `unlockedAchievements`) drives a mint on the web2 API:
+those fields are the client's display copy, and so are the `league_stats`
+counters `totalTrades` fans out to. The profile write carries only the
+registration grant. The Flow overtime mint reads the daily goal count,
+which is not a client field at all: `dailyGoalDone` / `dailyGoalDate` are
+written only by `POST /profiles/flow-swipe` (`recordFlowSwipe` in
+[`backend/src/profiles/flow.ts`](../../backend/src/profiles/flow.ts)),
+and a profile write keeps them as stored. The satellite holds the same
+rule: `recordFlowSwipeFn` writes them signing as a controller, and
+`assertDailyGoalUnchanged` in
+[`profile.services.ts`](../../src/satellite/services/profile.services.ts)
+rejects a client `profiles` write that changes them.
 
 Every server-fired award is also keyed for **idempotency** in
 `vxp_awards` (`recipient/awardType/awardKey`), so a hook retry can
 never double-pay; see
 [`satellite/economy.md`](./satellite/economy.md#invariants).
+
+**One-time means once per person, across account deletion.** Every
+award but the repeatable `flow_overtime` (`REPEATABLE_VXP_AWARD_TYPES`)
+is one-time per key: the onboarding milestones, the referee bonus, the
+referrer reward per referee, streak and flow-volume milestones,
+achievements, comeback, calibration per market, league founder per
+league, the Worlds podium per month and place and the tournament prize
+per tournament. The hard delete removes the award records, and the same
+identity can sign up again, so the purge keeps an **anonymous marker** of
+each one-time award the account was paid (or may have been, while its
+transfer was in flight): a one-way digest of the identity plus the award
+type and key, nothing else. A grant whose marker exists is refused, and a
+lifetime cap or tier (league founder, referrer) counts the markers, so
+deleting the account resets none of them.
+
+- **Web2 API:** the identity is each sign-in identity the account held,
+  a provider subject and a verified address (a new account reached by
+  either is the same person), digested with HMAC-SHA256 under a key
+  derived from `ROOT_SECRET` (`identityDigest` in
+  [`backend/src/lib/keys.ts`](../../backend/src/lib/keys.ts)). Markers
+  live in the `vxp_award_markers` table, written by `hardDeleteAccount`
+  and read by `grantAward` / `grantCappedAward`, the referrer tier
+  count and the referral redemption
+  ([`backend/src/vxp/award-markers.ts`](../../backend/src/vxp/award-markers.ts)).
+  The referee bonus is keyed by the account's own id, so its marker key
+  is `self`.
+- **Satellite:** the identity is the principal, which signing up again
+  reuses, digested with SHA-224 (the satellite has no secret, so the
+  digest is unkeyed; it keeps the principal out of the record). Markers
+  live in the controllers-scoped `vxp_award_markers` collection, written
+  by the account purge and read by `assertSetVxpAward`, the onboarding
+  payout and the league-founder cap
+  ([`vxp-award-markers.services.ts`](../../src/satellite/services/vxp-award-markers.services.ts)).
+  The referee bonus needs no marker there: the purge keeps a referral
+  record that has started paying (see the referrer reward above), and a
+  principal holding one cannot redeem again.
 
 ## Known open farm vectors
 
@@ -138,24 +298,37 @@ Recorded deliberately so the next agent inherits them. These are
 
 1. **New-account mint (sybil).** The onboarding grant plus the referee
    bonus is the largest mint a brand-new account can collect, and it
-   needs no prior activity. The current defense is
-   **Internet-Identity-gated sign-up** (a fresh identity per account
-   has a real cost). Harden further only if abuse appears. Tracking:
+   needs no prior activity. The current defense is the cost of a fresh
+   sign-in identity per account: an Internet Identity on the satellite,
+   a verified email address (one-time code) or a Google / Apple account
+   on the web2 API. Deleting an account and signing up again with the
+   same identity does not count: its one-time award markers refuse a
+   second grant. Harden further only if abuse appears. Tracking:
    **#543**.
-2. **Payouts trust the client-written activity log.** Referral and
-   onboarding payouts trigger off the user's `activities` collection (a
-   client write), not an authoritative engine trade, so a spoofed
-   activity could in principle trigger a payout. Gating these on an
-   authoritative trade is the recommended fix. Tracking: **#543**.
+2. **Satellite payouts trust the client-written activity log.** On the
+   satellite, referral and onboarding payouts trigger off the user's
+   `activities` collection (a client write), not an authoritative engine
+   trade, so a spoofed activity could in principle trigger a payout. The
+   web2 API already gates both on the caller's executed fills in the
+   engine (`backend/src/vxp/predictions.ts`); the satellite still needs
+   the same gate. Tracking: **#543**.
 3. **Repeatable overtime mint.** The overtime bonus is gated on raw
-   daily call count, and stakes are returnable collateral (not a cost),
-   so once its credit path is wired (#350) it could be farmed with
-   throwaway calls. Recommendation: gate it on **distinct markets** and
-   a **minimum stake** before it mints. Tracking: **#350**.
+   daily call count, and committed amounts are returnable collateral
+   (not a cost), so it can be farmed with throwaway calls; the rolling
+   cap bounds how often it mints, not what the calls are worth.
+   Recommendation: gate it on **distinct markets** and a **minimum call
+   size** before it mints.
 4. **Low-cost founder mint.** Founding a league is a single free write,
    so the lifetime founder cap still permits a sizeable mint for
    near-zero effort. Recommendation: require a **membership / activity
    quality gate** before the founder award fires.
+
+5. **Satellite profile-write awards.** On the satellite, the streak,
+   flow-volume, achievement and comeback awards still fire off the
+   client's `profiles` write (`dailyStreak`, `totalTrades`,
+   `unlockedAchievements`, `lastActiveDay`). The web2 API derives them
+   from server-side truth instead (`backend/src/vxp/triggers.ts`); the
+   satellite needs the same.
 
 When you implement any of these, move it out of this list and into the
 caps section above, and update the constants, not this page, with the
@@ -166,9 +339,9 @@ new numbers.
 The non-obvious "why" behind the rules above.
 
 - **Why earn-only, not a closed sink-based economy.** A self-contained
-  model where lost stakes are forfeited and entries cost VXP only makes
-  sense when the currency is purely cosmetic. Here stakes are real
-  on-chain clearing collateral settled by the risk engine, so a
+  model where lost amounts are forfeited and entries cost VXP only makes
+  sense when the currency is purely cosmetic. Here committed amounts are
+  real on-chain clearing collateral settled by the risk engine, so a
   "forfeit" would double-count the loss the engine already realizes.
   The closed loop is enforced in clearing; VXP supply is bounded by the
   caps instead. A sink-based design was therefore rejected.
@@ -193,5 +366,5 @@ The non-obvious "why" behind the rules above.
   gameplay payouts, the first-call achievement, and the referral bonus
   reward continued play instead.
 - **Why a `p_win` floor.** Without it a near-certain-loser side would
-  pay an enormous multiple of stake, draining the economy through one
-  surface. The floor caps the long-shot payout to a bounded multiple.
+  pay an enormous multiple of the amount, draining the economy through
+  one surface. The floor caps the long-shot payout to a bounded multiple.

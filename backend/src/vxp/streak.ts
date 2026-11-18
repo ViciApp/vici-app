@@ -1,8 +1,9 @@
-// Streak-milestone awards: when a profile write moves dailyStreak across one
-// of the milestone boundaries (3 / 7 / 14 / 30), the matching VXP bonus is
-// credited once ever per milestone, keyed streak_<m>. Plus the idempotent
-// underpayment backfill for imported awards that were paid in whole-VXP
-// figures instead of base units.
+// Streak-milestone awards: once the server-derived daily streak (from the
+// recorded activity days, never the profile's client-written dailyStreak)
+// reaches one of the milestone boundaries (3 / 7 / 14 / 30), the matching VXP
+// bonus is credited once ever per milestone, keyed streak_<m>. Plus the
+// idempotent underpayment backfill for awards this backend granted below
+// their milestone's bonus.
 
 import { isNullish } from '@dfinity/utils';
 import { query } from '../db/client';
@@ -33,20 +34,19 @@ export const milestonesCrossed = ({ prev, next }: { prev: number; next: number }
 export const streakAwardKey = (milestone: number): string => `streak_${milestone}`;
 
 /**
- * Profile-write trigger: credits every milestone crossed between the stored
- * and the written dailyStreak. Idempotent per milestone via the award key;
- * a failure on one milestone does not block the others.
+ * Activity-day trigger: credits every milestone the server-derived streak has
+ * reached. Each milestone is paid once ever via its award key, so running it
+ * on every recorded day only pays what is still owed (and retries nothing that
+ * already has a row); a failure on one milestone does not block the others.
  */
 export const runStreakAwardTrigger = async ({
 	userId,
-	prevDailyStreak,
-	nextDailyStreak
+	dailyStreak
 }: {
 	userId: string;
-	prevDailyStreak: number;
-	nextDailyStreak: number;
+	dailyStreak: number;
 }): Promise<void> => {
-	for (const milestone of milestonesCrossed({ prev: prevDailyStreak, next: nextDailyStreak })) {
+	for (const milestone of milestonesCrossed({ prev: 0, next: dailyStreak })) {
 		try {
 			await grantAward({
 				userId,
@@ -88,14 +88,6 @@ interface UnderpaidRow {
 
 const MILESTONE_RE = /^streak_(\d+)$/;
 
-/**
- * Idempotent remediation for underpaid streak awards (paid rows whose amount
- * is below the milestone's correct base units, e.g. legacy rows imported
- * from a period when the bonus was booked as whole-VXP figures). Each
- * shortfall is minted once via a streak_<m>_backfill marker award, so a
- * re-run skips anything already topped up; correctly-paid rows are never
- * touched. dryRun (the default) reports without minting.
- */
 /**
  * Remediates one paid streak row. Returns the shortfall it identified
  * (counted into the running total whether or not it was minted this run),
@@ -174,6 +166,19 @@ const remediateRow = async ({
 	return shortfall;
 };
 
+/**
+ * Idempotent remediation for underpaid streak awards (paid rows whose amount
+ * is below the milestone's correct base units). Each shortfall is minted
+ * once via a streak_<m>_backfill marker award, so a re-run skips anything
+ * already topped up; correctly-paid rows are never touched. dryRun (the
+ * default) reports without minting.
+ *
+ * Only live rows are read. An imported (etl) row's amount and status are
+ * what the legacy app recorded, not something this backend's ledger checks
+ * back, and the origin rule keeps imported rows out of this backend's
+ * payouts, a top-up sized from one included. The legacy whole-VXP
+ * underpayment has its own one-time remediation on the legacy stack.
+ */
 export const backfillStreakUnderpayments = async ({
 	dryRun = true
 }: { dryRun?: boolean } = {}): Promise<StreakBackfillReport> => {
@@ -192,7 +197,8 @@ export const backfillStreakUnderpayments = async ({
 	const rows = await query<UnderpaidRow>(
 		`select user_id, award_key, amount_base_units, earned_at_ms::text
 		 from vxp_awards
-		 where award_type = 'streak' and status = 'paid' and award_key ~ '^streak_[0-9]+$'`,
+		 where award_type = 'streak' and status = 'paid' and origin = 'live'
+		   and award_key ~ '^streak_[0-9]+$'`,
 		[]
 	);
 

@@ -11,7 +11,7 @@
 	import { page } from '$app/state';
 
 	/**
-	 * Desktop chrome for the (app) shell — mirrors the LANDING page's
+	 * Desktop chrome for the (app) shell: mirrors the LANDING page's
 	 * top-nav pattern (brand wordmark on the left, primary nav in the
 	 * middle, user controls on the right) so the desktop authenticated
 	 * experience is a natural continuation of the marketing surface
@@ -57,7 +57,7 @@
 	const activeIndex = $derived(navItems.findIndex(({ path }) => isActive(path)));
 
 	/* ------------------------------------------------------------------
-	 * Sliding underline — measure the active link and slide a bar under
+	 * Sliding underline: measure the active link and slide a bar under
 	 * it (mirrors the MobileNav pillnav indicator). Recomputed via
 	 * ResizeObserver so the bar tracks viewport / font-load reflows.
 	 * ------------------------------------------------------------------ */
@@ -117,7 +117,11 @@
 			VICI
 		</a>
 
-		<nav bind:this={linksEl} class="app-desktop-nav-links" aria-label="Primary">
+		<nav
+			bind:this={linksEl}
+			class="app-desktop-nav-links"
+			aria-label={t({ locale: $localeStore, key: 'a11y.primary_nav' })}
+		>
 			{#each navItems as item, i (item.path)}
 				<a class="app-desktop-nav-link" class:is-active={i === activeIndex} href={item.path}>
 					{t({ locale: $localeStore, key: item.labelKey })}

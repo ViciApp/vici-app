@@ -5,6 +5,7 @@
 // BigInt(50) would under-pay by 10^4).
 
 import { ZERO } from '../lib/constants';
+import { DAY_IN_MS } from '../lib/time';
 
 /** VXP ledger precision: 1 VXP = 10^4 base units. */
 export const VXP_DECIMALS = 4;
@@ -42,6 +43,11 @@ export const VXP_STREAK_BONUSES: Readonly<Record<number, number>> = Object.freez
 	30: 1000
 });
 
+/** Widest gap, in days, between two server-recorded activity days that
+ * still continues the daily streak (one fully-missed day is forgiven),
+ * mirrored from the app's streak engine. */
+export const STREAK_MAX_CONTINUING_DAY_DELTA = 2;
+
 /** Flow volume milestones in whole VXP, keyed by the lifetime call-count
  * threshold crossed. Once each ever; calls 1 and 25 are deliberately not
  * milestones. */
@@ -58,7 +64,7 @@ export const VXP_FLOW_OVERTIME_BONUS = 25;
 /** Rolling wall-clock window bounding overtime mints: the day key is
  * client-supplied and only shape-checked, so real time (row creation) is the
  * anti-farming boundary, not the claimed day. */
-export const VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+export const VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS = 7 * DAY_IN_MS;
 
 /** Max overtime mints inside the rolling window: just above the natural
  * once-per-calendar-day rate so a legitimate daily player is never blocked. */
@@ -68,8 +74,9 @@ export const VXP_FLOW_OVERTIME_ROLLING_CAP = 8;
  * recovering user calls correctly. */
 export const VXP_CALIBRATION_REWARD_BASE_UNITS = parseVxp(20);
 
-/** The reward only pays while the caller's balance is below this floor: it
- * is a recovery nudge, not an income stream. */
+/** The reward only pays while the caller's holdings (wallet plus deposited,
+ * `getVxpHoldings`) are below this floor: it is a recovery nudge, not an
+ * income stream. */
 export const CALIBRATION_RECOVERY_FLOOR_BASE_UNITS = parseVxp(100);
 
 /** Rolling calibration caps, counted off the caller's award rows. */
@@ -77,8 +84,8 @@ export const CALIBRATION_DAILY_CAP = 15;
 export const CALIBRATION_HOURLY_CAP = 6;
 
 // Comeback restore: a one-time top-up for a returning user whose stack ran
-// dry (away at least COMEBACK_AWAY_DAYS, balance below the floor); the
-// balance is topped up TO the target, not BY it.
+// dry (away at least COMEBACK_AWAY_DAYS, holdings below the floor); the
+// holdings are topped up TO the target, not BY it.
 export const COMEBACK_RESTORE_TARGET_BASE_UNITS = parseVxp(250);
 export const COMEBACK_BALANCE_FLOOR_BASE_UNITS = parseVxp(100);
 export const COMEBACK_AWAY_DAYS = 7;
@@ -118,6 +125,30 @@ export const ACHIEVEMENT_XP: Readonly<Record<string, number>> = Object.freeze({
 	'sharpest-eye': 750,
 	'bold-caller': 600
 });
+
+// Achievement unlock rules the server evaluates from its own data (engine
+// fills and settlements, activity days, league rosters), mirrored from the
+// app's achievement evaluator.
+
+/** Executed predictions before accuracy counts toward an achievement. */
+export const ACHIEVEMENT_ACCURACY_GATE_CALLS = 30;
+
+/** contrarian: settled wins taken at or below this consensus price. */
+export const CONTRARIAN_PRICE_THRESHOLD = 0.3;
+export const CONTRARIAN_WIN_TARGET = 10;
+
+/** on-fire: consecutive winning settlements, most recent first. */
+export const ON_FIRE_STREAK_TARGET = 10;
+
+/** oracle: accuracy (percent of winning settlements) over a call count. */
+export const ORACLE_ACCURACY_TARGET = 80;
+export const ORACLE_TRADES_TARGET = 50;
+
+/** marathon: the daily streak this long. */
+export const MARATHON_DAILY_STREAK_TARGET = 30;
+
+/** league-founder: owning a league with at least this many members. */
+export const LEAGUE_FOUNDER_MIN_MEMBERS = 3;
 
 /** Flat referee bonus: every eligible new sign-up gets it exactly once. */
 export const REFERRAL_VXP_BONUS_BASE_UNITS = parseVxp(500);

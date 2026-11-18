@@ -1,87 +1,109 @@
-// Award-trigger composition for the two client-write surfaces the economy
-// hangs off: profile writes and trade activities. Routes call these AFTER
+// Award-trigger composition for the write surfaces the economy hangs off:
+// profile writes and trade activities. Routes call these AFTER
 // the domain write commits, mirroring the post-write hook model the awards
-// were designed around (only client writes fired hooks; internal server
-// writes never did). Every branch is idempotent and best-effort: an award
-// hiccup logs, it never fails the domain write.
+// were designed around. Only the registration grant rides the profile write:
+// every other award reads server-side truth (the engine's fills and
+// settlements, the recorded activity days, the league rosters), never a
+// client-written profile field. Every branch is idempotent and best-effort:
+// an award hiccup logs, it never fails the domain write.
 
-import { query } from '../db/client';
+import { nonNullish } from '@dfinity/utils';
+import type { ClearingDid } from '../declarations';
+import { getTradeHistory } from '../engine/clearing';
 import { logger } from '../lib/logger';
-import { runAchievementAwardTrigger } from './achievements';
+import {
+	activityVerifiedAchievements,
+	engineAchievementFacts,
+	engineVerifiedAchievements,
+	grantAchievementAwards,
+	ownsQualifyingLeague
+} from './achievements';
+import { dailyStreakOf, listActivityDays, recordActivityDays } from './activity-days';
 import { runComebackRestoreTrigger } from './comeback';
 import { runFlowMilestoneTrigger } from './flow';
 import { runOnboardingProfileTrigger, runOnboardingTradeTrigger } from './onboarding';
+import { executedFillDays, executedPredictionCount } from './predictions';
 import { runReferralTradeTrigger } from './referral';
 import { runStreakAwardTrigger } from './streak';
 
-/** The slice of the profile the award triggers read, captured before and
- * after the write. */
-export interface ProfileAwardSlice {
-	dailyStreak: number;
-	totalTrades: number;
-	unlockedAchievements: string[];
-	lastActiveDay?: string;
-}
-
-/**
- * Post-write triggers for a profile upsert: registration grant, streak
- * milestones, flow lifetime milestones, achievement unlocks and the
- * comeback restore, each off the before/after delta. A missing before means
- * a brand-new profile (deltas run against the zero slice).
- */
-export const runProfileAwardTriggers = async ({
-	userId,
-	before,
-	after
-}: {
-	userId: string;
-	before: ProfileAwardSlice | undefined;
-	after: ProfileAwardSlice;
-}): Promise<void> => {
+/** Post-write trigger for a profile upsert: the registration grant. */
+export const runProfileAwardTriggers = async ({ userId }: { userId: string }): Promise<void> => {
 	try {
 		await runOnboardingProfileTrigger({ userId });
-
-		await runStreakAwardTrigger({
-			userId,
-			prevDailyStreak: before?.dailyStreak ?? 0,
-			nextDailyStreak: after.dailyStreak
-		});
-
-		await runFlowMilestoneTrigger({
-			userId,
-			prevTotalTrades: before?.totalTrades ?? 0,
-			nextTotalTrades: after.totalTrades
-		});
-
-		await runAchievementAwardTrigger({
-			userId,
-			prevUnlocked: before?.unlockedAchievements ?? [],
-			nextUnlocked: after.unlockedAchievements
-		});
-
-		await runComebackRestoreTrigger({
-			userId,
-			prevLastActiveDay: before?.lastActiveDay,
-			nextLastActiveDay: after.lastActiveDay
-		});
 	} catch (err) {
 		logger.error(`profile award triggers failed for ${userId}:`, err);
 	}
 };
 
 /**
- * Post-write triggers for a TRADE activity: the onboarding call-count
- * milestones and the referral first-prediction settlement. The lifetime
- * trade count is the server's own tally of the user's trade activities, so
- * a replayed trigger converges instead of double-counting.
+ * The awards that hang off the recorded activity days, run after new days
+ * were recorded: the streak milestones and marathon off the derived streak,
+ * league-founder off the rosters, and the comeback when the newest recorded
+ * day is one this write added after a long enough absence.
+ */
+const runActivityDayAwards = async ({
+	userId,
+	recordedDays
+}: {
+	userId: string;
+	recordedDays: readonly string[];
+}): Promise<void> => {
+	const days = await listActivityDays({ userId });
+	const dailyStreak = dailyStreakOf(days);
+
+	await runStreakAwardTrigger({ userId, dailyStreak });
+
+	const latest = days.at(-1);
+
+	if (nonNullish(latest) && recordedDays.includes(latest)) {
+		await runComebackRestoreTrigger({ userId, previousActiveDay: days.at(-2), activeDay: latest });
+	}
+
+	await grantAchievementAwards({
+		userId,
+		achievementIds: activityVerifiedAchievements({
+			dailyStreak,
+			ownsQualifyingLeague: await ownsQualifyingLeague({ userId })
+		})
+	});
+};
+
+const runEngineHistoryAwards = async ({
+	userId,
+	events,
+	executedPredictions
+}: {
+	userId: string;
+	events: readonly ClearingDid.Event[];
+	executedPredictions: number;
+}): Promise<void> => {
+	await runFlowMilestoneTrigger({ userId, executedPredictions });
+
+	await grantAchievementAwards({
+		userId,
+		achievementIds: engineVerifiedAchievements(
+			engineAchievementFacts({ events, executedPredictions })
+		)
+	});
+
+	const recordedDays = await recordActivityDays({ userId, dayKeys: executedFillDays(events) });
+
+	await runActivityDayAwards({ userId, recordedDays });
+};
+
+/**
+ * Post-write triggers for a TRADE activity. The activity is only the nudge:
+ * every figure comes from the user's trade history in the engine, so a posted
+ * activity without a real trade unlocks nothing and a replayed trigger
+ * converges instead of double-counting. Runs the onboarding call-count
+ * milestones and the referral first-prediction settlement, the Flow lifetime
+ * milestones and the engine-verified achievements, and records the fill days
+ * that drive the streak and the comeback.
  */
 export const runTradeActivityTriggers = async ({ userId }: { userId: string }): Promise<void> => {
 	try {
-		const rows = await query<{ count: string }>(
-			`select count(*)::text as count from activities where user_id = $1 and type = 'trade'`,
-			[userId]
-		);
-		const tradeCount = Number(rows[0]?.count ?? 0);
+		const events = await getTradeHistory({ userId });
+		const tradeCount = executedPredictionCount(events);
 
 		if (tradeCount <= 0) {
 			return;
@@ -89,6 +111,7 @@ export const runTradeActivityTriggers = async ({ userId }: { userId: string }): 
 
 		await runOnboardingTradeTrigger({ userId, tradeCount });
 		await runReferralTradeTrigger({ userId });
+		await runEngineHistoryAwards({ userId, events, executedPredictions: tradeCount });
 	} catch (err) {
 		logger.error(`trade activity award triggers failed for ${userId}:`, err);
 	}

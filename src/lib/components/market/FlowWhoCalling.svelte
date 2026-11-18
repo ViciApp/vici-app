@@ -10,13 +10,13 @@
 
 	const { yesPct, followedLean }: Props = $props();
 
-	// Sharp-predictor lean — `sharpPct = min(95, yes + 10)` keeps the
+	// Sharp-predictor lean: `sharpPct = min(95, yes + 10)` keeps the
 	// top-decile band leaning 10pp further than consensus, capped at 95.
 	const sharpPct = $derived(Math.min(95, yesPct + 10));
 	const sharpDiff = $derived(sharpPct - yesPct);
 </script>
 
-<!-- Three-row "Who's calling what" split — the differentiating
+<!-- Three-row "Who's calling what" split: the differentiating
      value of VICI's reputation layer. Row 1 = all callers, Row 2
      = sharp predictors (with a +/- diff badge vs consensus), Row
      3 = predictors you follow (dot grid). -->
@@ -92,7 +92,7 @@
 </section>
 
 <style lang="postcss">
-	/* Shared block wrapper + section surface — duplicated here so the
+	/* Shared block wrapper + section surface: duplicated here so the
 	   extracted section keeps its spacing + surface under Svelte's
 	   per-component style scoping. */
 	.flow-back-block {
@@ -140,7 +140,7 @@
 		font-weight: 700;
 		color: var(--text-base);
 	}
-	/* Sharp-lean badge — always the laurel-gold pill (it reads as
+	/* Sharp-lean badge: always the laurel-gold pill (it reads as
 	   "sharps' lean", not a good/bad signal), so it doesn't flip
 	   green / red on the sign of the diff like before. */
 	.flow-split-badge {

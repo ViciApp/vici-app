@@ -96,7 +96,7 @@ jobs:
       # is not running the wasm this run built.
       - name: Verify the satellite runs the new wasm
         if: steps.satellite.outputs.upgrade == 'true'
-        run: node scripts/verify-satellite-upgrade.mjs --satellite 7scay-7yaaa-aaaal-asxqa-cai
+        run: node scripts/verify-satellite-upgrade.mjs --satellite "$(npx tsx scripts/lib/satellite-id.ts production)"
 
       # `--prune` deletes superseded content-hashed assets. Without it `#dapp`
       # grows every deploy until asset certification exceeds the IC's

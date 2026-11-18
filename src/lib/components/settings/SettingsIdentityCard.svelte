@@ -22,7 +22,7 @@
 
 	// Settings always shows the signed-in user's own identity, so a user with
 	// no settled predictions yet shows an optimistic 100% rather than a
-	// misleading 0% (display-only — see `displayAccuracyPct`).
+	// misleading 0% (display-only; see `displayAccuracyPct`).
 	const accuracyDisplay = $derived(
 		displayAccuracyPct({
 			accuracy: profile?.accuracy ?? 0,

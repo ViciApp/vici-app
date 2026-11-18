@@ -13,10 +13,6 @@ export const refreshOrders = () => {
 	emit({ message: VICI_EVENTS.REFRESH_ORDERS });
 };
 
-export const refreshGlobalActivities = () => {
-	emit({ message: VICI_EVENTS.REFRESH_GLOBAL_ACTIVITIES });
-};
-
 export const refreshAllBalances = () => {
 	emit({ message: VICI_EVENTS.REFRESH_BALANCES });
 

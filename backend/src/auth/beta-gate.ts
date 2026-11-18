@@ -48,8 +48,9 @@ interface BetaGateCaller {
  * account. */
 const hasWeb2Identity = async ({ email, identity }: BetaGateCaller): Promise<boolean> => {
 	const rows = await query<{ found: number }>(
-		`select 1 as found from auth_identities
-		 where lower(email) = $1 or (provider = $2 and subject = $3)
+		`select 1 as found from auth_identities ai
+		 join users u on u.id = ai.user_id and u.hard_deleted_at is null
+		 where lower(ai.email) = $1 or (ai.provider = $2 and ai.subject = $3)
 		 limit 1`,
 		[email, identity?.provider ?? null, identity?.subject ?? null]
 	);

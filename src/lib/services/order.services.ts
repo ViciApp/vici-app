@@ -38,8 +38,8 @@ import { getIdentityOnce } from '@junobuild/core';
 import { nanoid } from 'nanoid';
 
 /**
- * Core order-book fetch: threads identity + certified so it composes with
- * {@link loadOrderBook} / `queryAndUpdate`.
+ * Core order-book fetch: threads identity + certified so a caller can pick
+ * the query or the update pass.
  */
 const fetchOrderBook = async ({
 	identity,
@@ -72,9 +72,7 @@ const fetchOrderBook = async ({
 
 /**
  * Lists open limit orders for a market, optionally filtered to a balance domain.
- *
- * Performs a single certified update. Prefer {@link loadOrderBook} for UI flows
- * that should render fast then upgrade to a certified result.
+ * Certified by default; pass `certified: false` for the fast query pass.
  */
 export const getOrderBook = async ({
 	marketId,
@@ -91,27 +89,6 @@ export const getOrderBook = async ({
 
 	return fetchOrderBook({ identity, certified, marketId, domain });
 };
-
-/**
- * Callback-based variant of {@link getOrderBook} that fires `onLoad` up to
- * twice — once for the uncertified query, once for the certified update.
- */
-export const loadOrderBook = ({
-	marketId,
-	domain,
-	onLoad,
-	onUpdateError
-}: {
-	marketId: MarketId;
-	domain?: ClearingDid.BalanceDomain;
-	onLoad: (options: { certified: boolean; response: ClearingDid.LimitOrder[] }) => void;
-	onUpdateError?: (error: unknown) => void;
-}): Promise<void> =>
-	loadWithCertification<ClearingDid.LimitOrder[]>({
-		request: ({ certified, identity }) => fetchOrderBook({ identity, certified, marketId, domain }),
-		onLoad,
-		onUpdateError
-	});
 
 /**
  * Submits a limit order or matches a market order against the book; refreshes UI state and logs activity.
@@ -149,18 +126,18 @@ export const placeOrder = async ({
 }): Promise<void> => {
 	// Stopgap expiry gate. The deck/catalog is filtered `only_unexpired` at
 	// fetch time, but the clearing engine has no expiry check (its `TradeError`
-	// has no `Expired` variant — it only rejects settled series), so a deck
+	// has no `Expired` variant; it only rejects settled series), so a deck
 	// opened just before kickoff could submit after it. Reject at/after the
 	// market's expiry until icdc-core enforces this server-side.
 	if (BigInt(Date.now()) >= expiryDate) {
 		throw new MarketClosedError();
 	}
 
-	// Sizing rounds the stake down to whole contracts (`amountUsd / priceUsd`),
-	// so a stake smaller than one contract's price arrives here as zero —
+	// Sizing rounds the amount down to whole contracts (`amountUsd / priceUsd`),
+	// so an amount smaller than one contract's price arrives here as zero;
 	// reject it before any state changes or activity logging.
 	if (qty <= ZERO) {
-		throw new Error('Stake is too small for this price — the order quantity rounds to zero');
+		throw new Error('Call size is too small for this price: the order quantity rounds to zero');
 	}
 
 	// In web2 mode there is no local signing identity: the API signs engine
@@ -270,13 +247,13 @@ export const placeOrder = async ({
 		}
 
 		// Walk the book best-price-first, taking `min(remaining, level)` per
-		// trade, so the execution honors the caller's stake-derived `qty`
+		// trade, so the execution honors the caller's amount-derived `qty`
 		// rather than whatever size the best resting order happens to carry.
 		// The book is re-read between takes: a level shrunk by a concurrent
 		// taker would otherwise overstate the fill (the engine executes
 		// `min(take, current level)`) and stop the walk early. A book smaller
 		// than the request fills what exists. The pass cap is a defensive
-		// bound — each pass either reduces `remaining` or exits, so a healthy
+		// bound: each pass either reduces `remaining` or exits, so a healthy
 		// walk never reaches it.
 		const MAX_BOOK_PASSES = 10;
 		let remaining = qty;
@@ -319,7 +296,7 @@ export const placeOrder = async ({
 				remaining -= take;
 			}
 		} catch (e: unknown) {
-			// Nothing executed — surface the failure. After a partial fill the
+			// Nothing executed; surface the failure. After a partial fill the
 			// user holds a real position, so finish with what filled instead
 			// of reporting a failure that would read as "nothing happened".
 			if (remaining === qty) {
@@ -337,8 +314,8 @@ export const placeOrder = async ({
 
 	refreshAllBalances();
 
-	// Behavioural telemetry for the cockpit — every REAL trade goes through here
-	// (the flow deck's guest picks emit separately). `value` is the VXP at stake
+	// Behavioural telemetry for the cockpit: every REAL trade goes through here
+	// (the flow deck's guest picks emit separately). `value` is the VXP committed
 	// (contracts × price of the chosen outcome); a resting limit order reports its
 	// full placed size, a market order the actually-executed fill.
 	if (filledQty > ZERO || type === 'LIMIT') {
@@ -369,7 +346,7 @@ export const placeOrder = async ({
 			user: userText,
 			marketId,
 			// "Sold" only when the trade executed on the spot; an open limit sell is merely placed.
-			// `normalizedPrice` is the price of the chosen outcome — the raw `price` arg arrives
+			// `normalizedPrice` is the price of the chosen outcome; the raw `price` arg arrives
 			// YES-framed for binary NO and would display the complement.
 			title: `${side === 'BUY' ? 'Predicted' : type === 'MARKET' ? 'Sold' : 'Placed'} ${filledQty} on ${outcome} @ ${Math.round(normalizedPrice * 100)}%`,
 			details: marketTitle
@@ -426,18 +403,6 @@ const fetchUserOrders = async ({
 	const orders = await getOrdersApi({ identity, certified });
 
 	return filterByPlaygroundExpandedDomain({ items: orders, targetDomain: domain });
-};
-
-export const getUserOrdersForMarket = async ({
-	marketId,
-	domain
-}: {
-	marketId: MarketId;
-	domain: ClearingDid.BalanceDomain;
-}): Promise<ClearingDid.LimitOrder[]> => {
-	const orders = await getUserOrders(domain);
-
-	return orders.filter((o) => o.series_id === marketId);
 };
 
 /**
@@ -520,25 +485,3 @@ export const loadUserOrders = async ({
 		onUpdateError
 	});
 };
-
-/**
- * Callback-based variant of {@link getUserOrdersForMarket}. No-op when the user
- * is not signed in.
- */
-export const loadUserOrdersForMarket = ({
-	marketId,
-	domain,
-	onLoad,
-	onUpdateError
-}: {
-	marketId: MarketId;
-	domain: ClearingDid.BalanceDomain;
-	onLoad: (options: { certified: boolean; response: ClearingDid.LimitOrder[] }) => void;
-	onUpdateError?: (error: unknown) => void;
-}): Promise<void> =>
-	loadUserOrders({
-		domain,
-		onLoad: ({ certified, response }) =>
-			onLoad({ certified, response: response.filter((o) => o.series_id === marketId) }),
-		onUpdateError
-	});

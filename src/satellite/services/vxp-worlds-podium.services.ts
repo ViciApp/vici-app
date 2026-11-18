@@ -2,45 +2,52 @@ import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VXP_WORLDS_PODIUM } from '#lib/constants/vxp-economy.constants.ts';
 import { affiliationStatsSnapshotKey } from '#lib/types/affiliation-stats.ts';
-import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
+import {
+	AFFILIATION_KINDS,
+	type AffiliationDoc,
+	type AffiliationKind
+} from '#lib/types/affiliation.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
+import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import {
+	frozenMonthlyRanking,
 	hasFrozenMonthlySnapshotFn,
-	listAffiliationStatsForMonthFn,
-	liveMonthlyRows,
-	readAffiliationDoc
+	heldAffiliations,
+	settledMonthlyRows
 } from '#satellite/services/cohort.services.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
+import { joinedBeforeMonthClose } from '#satellite/utils/worlds-podium.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	encodeDocData,
 	getAdminAccessKeys,
 	getDocStore,
-	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
 
 /**
- * Worlds podium monthly payout — user-claim variant
- * (Proposal 2 in `docs/backend-proposals/README.md`).
+ * Worlds podium monthly payout: user-claim variant.
  *
- * The economy fires monthly podium awards (400/200/100
- * VXP for top-3 affiliations of each kind × every member). Juno
+ * The economy fires monthly podium awards (`VXP_WORLDS_PODIUM`, for
+ * top-3 affiliations of each kind × every member). Juno
  * doesn't expose a scheduled-task primitive yet, so we model the
  * payout as a **user-claim** rather than an admin fan-out:
  *
  *  1. The user calls `claimWorldsPodiumPrize({ monthAnchor })`
- *     from the FE — typically on the first visit of a new month.
- *  2. The endpoint reads the closed month's snapshot from
- *     `AFFILIATION_STATS`, finds the top-3 ranking per kind, and
- *     checks if the caller's current affiliations match.
- *  3. For each match (up to two — one university, one country),
+ *     from the FE: typically on the first visit of a new month.
+ *  2. The endpoint reads the closed month's frozen snapshot from
+ *     `AFFILIATION_STATS` (freezing it from settled history on the
+ *     month's first claim), finds the top-3 ranking per kind, and
+ *     checks if the caller's current affiliations match and were
+ *     joined before the month closed.
+ *  3. For each match (up to two: one university, one country),
  *     the endpoint creates a `VXP_AWARDS` doc keyed
  *     `${caller}/worlds_podium/${YYYY-MM}_${place}` and credits
  *     the ledger transfer (same pattern as the streak hook).
@@ -50,21 +57,23 @@ import {
  * recipient-binds-caller invariant is preserved because the user
  * is writing their own award.
  *
- * Eligibility per backend-proposals/README.md §2.3 — member at
- * month-end qualifies regardless of join date. The 90-day affiliation
- * lock means a user who joined late in the month is still locked
- * in for the next quarter, which is the engagement-incentive
- * trade-off the user signed up for.
+ * Eligibility: a member at month-end qualifies regardless of join date,
+ * as long as the slot was joined before the month closed
+ * ({@link joinedBeforeMonthClose}). The 90-day affiliation lock means a
+ * user who joined late in the month is still locked in for the next
+ * quarter, which is the engagement-incentive trade-off the user signed
+ * up for.
  *
- * Tie-break per §2.2 — accuracy → totalCalls → affiliationIdentifier asc.
- * `listAffiliationStatsForMonthFn` already sorts this way, so the
- * leaderboard and the claim agree on who's gold/silver/bronze.
+ * Ranking: each affiliation's members' settled calls and wins over the
+ * closed month, read from the clearing canister ({@link settledMonthlyRows}),
+ * never the client-written monthly stats the live board displays. Tie-break:
+ * accuracy → totalCalls → affiliationIdentifier asc, the leaderboard's rule.
  */
 
-// `VXP_WORLDS_PODIUM` holds the human-readable whole-VXP prizes
-// (400 / 200 / 100 — the same values the FE renders). VXP has 4 decimals
+// `VXP_WORLDS_PODIUM` holds the human-readable whole-VXP prizes (the
+// same values the FE renders). VXP has 4 decimals
 // and this award pays the ledger inline (see `processAward`), so the
-// amounts must be base units sized via `vxpBaseUnits` — `BigInt(400)` would
+// amounts must be base units sized via `vxpBaseUnits`: `BigInt(400)` would
 // transfer 400 base units = 0.04 VXP, a 10⁴x under-pay.
 const PODIUM_PLACES: ReadonlyArray<{
 	place: 'gold' | 'silver' | 'bronze';
@@ -74,8 +83,6 @@ const PODIUM_PLACES: ReadonlyArray<{
 	{ place: 'silver', amount: vxpBaseUnits(VXP_WORLDS_PODIUM.silver) },
 	{ place: 'bronze', amount: vxpBaseUnits(VXP_WORLDS_PODIUM.bronze) }
 ] as const;
-
-const KINDS: ReadonlyArray<AffiliationKind> = ['university', 'country'] as const;
 
 export interface ClaimWorldsPodiumPrizeResult {
 	monthAnchor: string;
@@ -87,8 +94,8 @@ export interface ClaimWorldsPodiumPrizeResult {
 /**
  * Freeze a closed month's affiliation ranking the first time its podium is
  * claimed (frozen-at-close). The live windows recompute over the current
- * roster on every read; a *closed* month is instead captured once here — the
- * ranking over the then-current opted-in roster ({@link liveMonthlyRows}) is
+ * roster on every read; a *closed* month is instead captured once here: the
+ * ranking computed from settled history ({@link settledMonthlyRows}) is
  * written as immutable snapshot docs, so the podium payout and the champion
  * cup stay stable and can't drift as members later churn.
  *
@@ -102,10 +109,10 @@ export interface ClaimWorldsPodiumPrizeResult {
  * Fails **closed**: if no controller key is available the freeze cannot run,
  * so it throws rather than letting the claim fall back to an unfrozen (live,
  * drift-prone) ranking and pay VXP against it. The whole claim aborts and the
- * caller can retry once a controller is configured — no payout on an
+ * caller can retry once a controller is configured; no payout on an
  * unfrozen month.
  */
-const freezeMonthlySnapshotsIfNeeded = ({
+const freezeMonthlySnapshotsIfNeeded = async ({
 	kind,
 	monthAnchor,
 	nowMs
@@ -113,7 +120,7 @@ const freezeMonthlySnapshotsIfNeeded = ({
 	kind: AffiliationKind;
 	monthAnchor: string;
 	nowMs: number;
-}): void => {
+}): Promise<void> => {
 	if (hasFrozenMonthlySnapshotFn({ kind, monthAnchor })) {
 		return;
 	}
@@ -122,16 +129,16 @@ const freezeMonthlySnapshotsIfNeeded = ({
 
 	if (isNullish(admin)) {
 		logError({
-			message: 'worlds_podium freeze aborted — no controller key available',
+			message: 'worlds_podium freeze aborted: no controller key available',
 			detail: { kind, monthAnchor }
 		});
 
 		throw new Error(
-			`claimWorldsPodiumPrize: cannot freeze ${kind}/${monthAnchor} — no satellite controller available.`
+			`claimWorldsPodiumPrize: cannot freeze ${kind}/${monthAnchor}; no satellite controller available.`
 		);
 	}
 
-	const { rows } = liveMonthlyRows({ kind, monthAnchor, nowMs });
+	const rows = await settledMonthlyRows({ kind, monthAnchor, nowMs });
 
 	for (const row of rows) {
 		const key = affiliationStatsSnapshotKey({
@@ -153,21 +160,20 @@ const freezeMonthlySnapshotsIfNeeded = ({
 
 /**
  * Per-user claim endpoint. Returns counts so the FE can render a
- * toast like "+400 VXP for your school's gold finish" when at
- * least one award lands.
+ * toast for the finish when at least one award lands.
  */
 export const claimWorldsPodiumPrizeFn = async ({
 	monthAnchor
 }: {
 	monthAnchor: string;
 }): Promise<ClaimWorldsPodiumPrizeResult> => {
-	if (!/^\d{4}-\d{2}$/.test(monthAnchor)) {
+	if (!MONTH_ANCHOR_RE.test(monthAnchor)) {
 		throw new Error(
 			`claimWorldsPodiumPrize: invalid monthAnchor "${monthAnchor}" (expected YYYY-MM).`
 		);
 	}
 
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 	const currentMonth = monthAnchorFromMs(nowMs);
 
 	if (monthAnchor >= currentMonth) {
@@ -184,20 +190,26 @@ export const claimWorldsPodiumPrizeFn = async ({
 	let awardsAlreadyClaimed = 0;
 	let foundAnyEligibleAffiliation = false;
 
-	for (const kind of KINDS) {
-		// Frozen-at-close: the first claim of the month captures the ranking over
-		// the current opted-in roster so the podium + cup stay stable across
-		// claimants. A no-op once the month is already frozen.
-		freezeMonthlySnapshotsIfNeeded({ kind, monthAnchor, nowMs });
+	for (const kind of AFFILIATION_KINDS) {
+		// Frozen-at-close: the first claim of the month captures the ranking from
+		// settled history so the podium + cup stay stable across claimants. A
+		// no-op once the month is already frozen.
+		await freezeMonthlySnapshotsIfNeeded({ kind, monthAnchor, nowMs });
 
-		// Read the caller's current affiliation for this kind.
-		const myAffiliation = readMyAffiliation({ callerText, callerBytes, kind });
+		const mine = readMyAffiliation({ callerText, callerBytes, kind });
 
-		if (isNullish(myAffiliation)) {
-			// No affiliation for this kind — caller is not eligible.
+		if (
+			isNullish(mine) ||
+			// Juno's own `created_at`, not caller-written `joinedAtMs` (held to ±10 min, enough to backdate a join).
+			!joinedBeforeMonthClose({ joinedAtNs: mine.createdAtNs, monthAnchor })
+		) {
+			// No affiliation for this kind, or one joined after close: not eligible.
 		} else {
-			// Top-3 for the requested (now frozen) month.
-			const top3 = listAffiliationStatsForMonthFn({ kind, monthAnchor }).slice(0, 3);
+			const { affiliation: myAffiliation } = mine;
+
+			// Top-3 of the frozen month only: an unfrozen month (nothing cleared
+			// the rank floor) has no podium, never a fallback to the live board.
+			const top3 = frozenMonthlyRanking({ kind, monthAnchor }).slice(0, 3);
 			const placeIndex = top3.findIndex(
 				(s) => s.affiliationIdentifier === myAffiliation.affiliationIdentifier
 			);
@@ -229,10 +241,8 @@ export const claimWorldsPodiumPrizeFn = async ({
 						place,
 						amount,
 						awardKey,
-						docKey,
 						caller,
 						callerText,
-						callerBytes,
 						monthAnchor,
 						nowMs
 					});
@@ -261,10 +271,8 @@ const processAward = async ({
 	place,
 	amount,
 	awardKey,
-	docKey,
 	caller,
 	callerText,
-	callerBytes,
 	monthAnchor,
 	nowMs
 }: {
@@ -272,10 +280,8 @@ const processAward = async ({
 	place: 'gold' | 'silver' | 'bronze';
 	amount: bigint;
 	awardKey: string;
-	docKey: string;
 	caller: Principal;
 	callerText: string;
-	callerBytes: Uint8Array;
 	monthAnchor: string;
 	nowMs: number;
 }): Promise<number> => {
@@ -291,14 +297,7 @@ const processAward = async ({
 		earnedAtMs: nowMs
 	};
 
-	setDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes,
-		doc: {
-			data: encodeDocData(pendingDoc)
-		}
-	});
+	persistAward({ recipient: callerText, awardType: 'worlds_podium', awardKey, doc: pendingDoc });
 
 	const ledger = new IcrcLedgerCanister({
 		canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
@@ -308,14 +307,6 @@ const processAward = async ({
 		toOwner: caller,
 		amount,
 		memo: `vxp:worlds_podium:${awardKey}`
-	});
-
-	// Re-read the doc to pick up the version stamp from the
-	// `pending` write above.
-	const pendingExisting = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes
 	});
 
 	if (transferResult.ok) {
@@ -329,18 +320,14 @@ const processAward = async ({
 				monthAnchor
 			}
 		});
-		setDocStore({
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			caller: callerBytes,
-			doc: {
-				data: encodeDocData<VxpAwardDoc>({
-					...pendingDoc,
-					status: 'paid',
-					paidAtMs: nowMs,
-					blockIndex: transferResult.blockIndex.toString()
-				}),
-				version: pendingExisting?.version
+		updateAward({
+			recipient: callerText,
+			awardType: 'worlds_podium',
+			awardKey,
+			patch: {
+				status: 'paid',
+				paidAtMs: nowMs,
+				blockIndex: transferResult.blockIndex.toString()
 			}
 		});
 	} else {
@@ -354,18 +341,11 @@ const processAward = async ({
 				error: transferResult.error
 			}
 		});
-		setDocStore({
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			caller: callerBytes,
-			doc: {
-				data: encodeDocData<VxpAwardDoc>({
-					...pendingDoc,
-					status: 'failed',
-					errorMessage: transferResult.error
-				}),
-				version: pendingExisting?.version
-			}
+		updateAward({
+			recipient: callerText,
+			awardType: 'worlds_podium',
+			awardKey,
+			patch: { status: 'failed', errorMessage: transferResult.error }
 		});
 	}
 
@@ -380,32 +360,6 @@ const readMyAffiliation = ({
 	callerText: string;
 	callerBytes: Uint8Array;
 	kind: AffiliationKind;
-}): AffiliationDoc | undefined => {
-	// The affiliation doc key is `${memberPrincipal}/${kind}/${affiliationIdentifier}`
-	// — we don't know `affiliationIdentifier` yet, so we scan and filter. Two
-	// max possibilities per user (one per kind), so the bound is tight.
-	// Skipping the scan entirely is hard without a reverse-index doc.
-	const prefix = `${callerText}/${kind}/`;
-
-	// `listDocsStore` doesn't support prefix params in the current
-	// SDK; we filter manually.
-	const { items } = listDocsStore({
-		collection: Collection.AFFILIATIONS,
-		caller: callerBytes,
-		params: {}
-	});
-
-	for (const [docKey, item] of items) {
-		if (docKey.startsWith(prefix)) {
-			try {
-				const doc = readAffiliationDoc(item.data);
-
-				if (nonNullish(doc) && doc.kind === kind && doc.member === callerText) {
-					return doc;
-				}
-			} catch {
-				// skip malformed
-			}
-		}
-	}
-};
+}): { affiliation: AffiliationDoc; createdAtNs: bigint } | undefined =>
+	// The same row `settledMonthlyRows` ranks the member under.
+	heldAffiliations({ caller: callerBytes, member: callerText, kind })[0];

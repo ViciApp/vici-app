@@ -11,22 +11,33 @@ import {
 	REFERRAL_VXP_BONUS_BASE_UNITS,
 	referrerRewardBaseUnits
 } from '#lib/constants/referral.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import type { ReferralCodeDoc, ReferralDoc, ReferralListItem } from '#lib/types/referral.ts';
 import type { Relation } from '#lib/types/relation.ts';
 import type { Activity } from '#lib/types/social.ts';
-import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
+import type { VxpMilestonePayoutStatus, VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
 import { fnv1a64 } from '#lib/utils/hash.utils.ts';
+import { countTradeActivities } from '#satellite/services/activity.services.ts';
+import {
+	assertControllerCaller,
+	assertOwnerOrController,
+	controllerCaller
+} from '#satellite/services/authz.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext, OnSetDocContext } from '@junobuild/functions';
+import type {
+	AssertDeleteDocContext,
+	AssertSetDocContext,
+	OnSetDocContext
+} from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import {
-	countDocsStore,
 	decodeDocData,
 	encodeDocData,
 	getDocStore,
@@ -96,7 +107,7 @@ const findOwnedCode = ({
 
 /**
  * Idempotent: returns the caller's existing code if one is already on record, otherwise
- * generates+writes a fresh code and returns it. Safe to call on every profile create / update —
+ * generates+writes a fresh code and returns it. Safe to call on every profile create / update:
  * subsequent calls short-circuit after the scan.
  */
 export const assignReferralCodeIfMissing = ({
@@ -156,7 +167,7 @@ export const assignReferralCodeIfMissing = ({
 };
 
 /**
- * Profile-hook entry point — runs alongside the VXP onboarding hook. Only fires on the
+ * Profile-hook entry point: runs alongside the VXP onboarding hook. Only fires on the
  * `profiles/{caller}` write (the user creating their own profile); any other key is ignored.
  */
 export const onProfileSetForReferralCode = (ctx: OnSetDocContext): void => {
@@ -179,7 +190,7 @@ export const onProfileSetForReferralCode = (ctx: OnSetDocContext): void => {
 		assignReferralCodeIfMissing({ caller, ownerText: callerText });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
-		// Best effort — never fail the profile write because of a referral-code issue.
+		// Best effort: never fail the profile write because of a referral-code issue.
 		logError({
 			message: 'referral_code_assign_failed',
 			detail: { user: callerText, error: msg }
@@ -229,7 +240,7 @@ export const lookupReferralCodeFn = ({
 };
 
 /**
- * Lists every redemption where the caller is the referrer — used by the FE to show "Friends you
+ * Lists every redemption where the caller is the referrer: used by the FE to show "Friends you
  * referred" plus a counter of how many are over the cap. Sorted newest-first by `redeemedAtMs`.
  *
  * The doc key (the referee principal) is folded into each row as `referee`, since the FE needs
@@ -255,7 +266,7 @@ export const listMyReferralsFn = (): ReferralListItem[] => {
 				referrals.push({ ...doc, referee: key });
 			}
 		} catch {
-			// Skip malformed rows — they should never have passed the assertion in the first place.
+			// Skip malformed rows: they should never have passed the assertion in the first place.
 		}
 	}
 
@@ -264,14 +275,50 @@ export const listMyReferralsFn = (): ReferralListItem[] => {
 
 // ─── Update handler (redeem) ─────────────────────────────────────────────
 
-// The referee bonus is flat and uncapped — every eligible new user gets `REFERRAL_VXP_BONUS_BASE_UNITS` once.
+/** The `controllerCaller` purpose for every write of a referral record. */
+const REFERRAL_WRITE_PURPOSE = 'referral record';
+
+/**
+ * The bonus redemption rule, shared by {@link redeemReferralCodeFn} and the
+ * create path of {@link assertSetReferral}: the referee has a profile and
+ * redeems within {@link REFERRAL_SIGNUP_WINDOW_MS} of creating it, the window
+ * measured from the profile doc's Juno-stamped `created_at`. Existing users
+ * land in {@link claimReferralFriendshipFn} instead (friendship only, no VXP).
+ */
+const assertWithinRedemptionWindow = ({
+	referee,
+	caller
+}: {
+	referee: string;
+	caller: Uint8Array;
+}): void => {
+	const profileDoc = getDocStore({
+		collection: Collection.PROFILES,
+		key: referee,
+		caller
+	});
+
+	if (isNullish(profileDoc)) {
+		throw new Error('Create your profile before redeeming a referral code.');
+	}
+
+	const profileCreatedAtMs = nonNullish(profileDoc.created_at)
+		? Number(profileDoc.created_at / MILLISECOND_IN_NANOSECONDS)
+		: 0;
+
+	if (timeMs() - profileCreatedAtMs > REFERRAL_SIGNUP_WINDOW_MS) {
+		throw new Error(REFERRAL_EXISTING_USER_REASON);
+	}
+};
+
+// The referee bonus is flat and uncapped: every eligible new user gets `REFERRAL_VXP_BONUS_BASE_UNITS` once.
 const initialRefereeOwedPayout = (): VxpMilestoneState => ({
 	status: 'owed',
 	amountBaseUnits: REFERRAL_VXP_BONUS_BASE_UNITS.toString()
 });
 
 // The referrer payout amount is decided in the hook (`armReferrerPayoutIfFirstFire`) from the
-// diminishing curve, so the redeem-time placeholder carries no amount yet — it starts at `none`/`0`
+// diminishing curve, so the redeem-time placeholder carries no amount yet; it starts at `none`/`0`
 // and is overwritten with the tier reward once armed.
 const initialReferrerUnpaidPayout = (): VxpMilestoneState => ({
 	status: 'none',
@@ -283,7 +330,7 @@ const initialReferrerUnpaidPayout = (): VxpMilestoneState => ({
  * referral flow to auto-friend referrer and referee on redemption (and by
  * {@link claimReferralFriendshipFn} for the existing-user friendship-only path).
  *
- * No-op if a friendship already exists in any state — never downgrades an existing relation.
+ * No-op if a friendship already exists in any state, never downgrades an existing relation.
  */
 const writeConfirmedFriendship = ({
 	caller,
@@ -303,7 +350,7 @@ const writeConfirmedFriendship = ({
 	});
 
 	if (nonNullish(existing)) {
-		// Already friends / pending / blocked — never overwrite. The whole point of the
+		// Already friends / pending / blocked, never overwrite. The whole point of the
 		// referral-friendship is to bootstrap a new connection; if one already exists, leave it.
 		return;
 	}
@@ -317,7 +364,7 @@ const writeConfirmedFriendship = ({
 	setDocStore({
 		collection: Collection.RELATIONS,
 		key: relationId,
-		caller,
+		caller: controllerCaller('referral friendship'),
 		doc: {
 			data: encodeDocData(relation)
 		}
@@ -344,27 +391,8 @@ export const redeemReferralCodeFn = ({ code }: { code: string }): void => {
 		throw new Error('You have already redeemed a referral code.');
 	}
 
-	const profileDoc = getDocStore({
-		collection: Collection.PROFILES,
-		key: callerText,
-		caller: callerBytes
-	});
-
-	if (isNullish(profileDoc)) {
-		throw new Error('Create your profile before redeeming a referral code.');
-	}
-
-	// Signup-window gate — only fresh sign-ups earn the VXP bonus. Existing users who use a
-	// referral link land in {@link claimReferralFriendshipFn} instead (friendship only, no VXP).
-	// `created_at` is the Juno-managed nanosecond timestamp on the profile doc.
-	const nowMs = Number(time() / 1_000_000n);
-	const profileCreatedAtMs = nonNullish(profileDoc.created_at)
-		? Number(profileDoc.created_at / 1_000_000n)
-		: 0;
-
-	if (nowMs - profileCreatedAtMs > REFERRAL_SIGNUP_WINDOW_MS) {
-		throw new Error(REFERRAL_EXISTING_USER_REASON);
-	}
+	// Signup-window gate: only fresh sign-ups earn the VXP bonus.
+	assertWithinRedemptionWindow({ referee: callerText, caller: callerBytes });
 
 	const codeDoc = getDocStore({
 		collection: Collection.REFERRAL_CODES,
@@ -386,7 +414,7 @@ export const redeemReferralCodeFn = ({ code }: { code: string }): void => {
 		version: 1,
 		referrer,
 		code: normalized,
-		redeemedAtMs: Number(time() / 1_000_000n),
+		redeemedAtMs: timeMs(),
 		// `withinReferrerCap` and `referrerPayout` are decided in the hook so the cap counter
 		// reads the freshest state. The referee bonus is owed unconditionally.
 		withinReferrerCap: false,
@@ -397,13 +425,13 @@ export const redeemReferralCodeFn = ({ code }: { code: string }): void => {
 	setDocStore({
 		collection: Collection.REFERRALS,
 		key: callerText,
-		caller: callerBytes,
+		caller: controllerCaller(REFERRAL_WRITE_PURPOSE),
 		doc: {
 			data: encodeDocData<ReferralDoc>(doc)
 		}
 	});
 
-	// Bilateral auto-confirmed friendship — both parties already consented (one shared an invite
+	// Bilateral auto-confirmed friendship: both parties already consented (one shared an invite
 	// link, the other clicked it). No request/accept dance needed.
 	writeConfirmedFriendship({
 		caller: callerBytes,
@@ -416,7 +444,7 @@ export const redeemReferralCodeFn = ({ code }: { code: string }): void => {
 		detail: { referee: callerText, referrer, code: normalized }
 	});
 
-	// No payout here — the bonus is deferred to the referred user's FIRST prediction. Redeeming only
+	// No payout here: the bonus is deferred to the referred user's FIRST prediction. Redeeming only
 	// records the `owed` row + the friendship; `onTradeActivityForReferral` drives the actual transfer
 	// once the referee makes a trade (and `settleReferral` exists as a retry path). Paying at redeem
 	// time would reward sign-ups that never engage.
@@ -503,6 +531,85 @@ export const assertSetReferralCode = ({
 	}
 };
 
+/**
+ * A side of a referral payout that has been paid stays paid: the payout pays
+ * every `owed` side, so reopening a paid one would pay it again.
+ */
+const assertPaidSideKept = ({
+	current,
+	proposed
+}: {
+	current: VxpMilestoneState;
+	proposed: VxpMilestoneState;
+}): void => {
+	if (current.status !== 'paid') {
+		return;
+	}
+
+	if (
+		proposed.status !== 'paid' ||
+		proposed.amountBaseUnits !== current.amountBaseUnits ||
+		proposed.blockIndex !== current.blockIndex
+	) {
+		throw new Error('A paid referral payout side cannot change.');
+	}
+};
+
+/**
+ * Order of a payout side's states. `owed` and `processing` share a stage because a failed transfer
+ * hands a side back from `processing` to `owed` for the retry. An unknown status ranks below
+ * everything, so a tampered value never counts as progress.
+ */
+const payoutStage = (status: VxpMilestonePayoutStatus): number => {
+	switch (status) {
+		case 'none':
+			return 0;
+		case 'owed':
+		case 'processing':
+			return 1;
+		case 'paid':
+			return 2;
+		default:
+			return -1;
+	}
+};
+
+/**
+ * The referrer tier and lifetime cap count every row whose referrer side left `none`
+ * ({@link countReferrerCredits}), and a paid side is what stops a second transfer. A write that
+ * moved either side back could re-arm a paid bonus or drop a credited row out of the referrer's
+ * count.
+ */
+const payoutMovesBack = ({
+	current,
+	proposed
+}: {
+	current: VxpMilestoneState;
+	proposed: VxpMilestoneState;
+}): boolean => payoutStage(proposed.status) < payoutStage(current.status);
+
+/**
+ * Whether a referral row has started paying: the referee bonus has left its redeem-time `owed`, or
+ * the referrer side has left `none`. Such a row is a permanent record: deleting it would free a
+ * slot in the referrer's lifetime count and let the referee redeem a second bonus.
+ */
+export const isReferralPayoutRecord = ({ refereePayout, referrerPayout }: ReferralDoc): boolean =>
+	refereePayout.status !== 'owed' || referrerPayout.status !== 'none';
+
+/**
+ * Pre-write guard for `referrals`. The record holds both payout sides, which
+ * {@link settleReferralPayout} pays while they are `owed`, so it is server-owned:
+ * only a satellite controller writes it. {@link redeemReferralCodeFn} creates it
+ * and the settle path moves the payout state, both signing as a controller.
+ *
+ * Creation still follows the redemption rules, so a controller write cannot
+ * skip them either: the key is the referee, never the referrer; the code is
+ * real and owned by the referrer; the referee redeems inside the signup window
+ * ({@link assertWithinRedemptionWindow}); and both payout sides start unarmed
+ * (the referee bonus `owed` at the flat amount, the referrer side `none`).
+ * Updates keep the core fields, only move a payout side forward and never
+ * reopen a paid side.
+ */
 export const assertSetReferral = ({
 	caller,
 	data: {
@@ -515,52 +622,65 @@ export const assertSetReferral = ({
 		return;
 	}
 
-	const callerText = Principal.fromUint8Array(caller).toText();
+	assertControllerCaller({ caller, collection });
+
 	const proposedDoc = decodeDocData<ReferralDoc>(proposed.data);
 
-	// Updates are allowed only when the writer is the satellite itself replaying its own hook
-	// (i.e. the caller is the referee whose redemption is being processed). The shape of allowed
-	// updates is constrained: only payout state may evolve; referrer / code / redeemedAtMs are
-	// immutable.
-	if (nonNullish(current)) {
-		if (key !== callerText) {
-			throw new Error('Only the referee may update their referral record.');
-		}
-
-		const currentDoc = decodeDocData<ReferralDoc>(current.data);
-
-		if (
-			currentDoc.referrer !== proposedDoc.referrer ||
-			currentDoc.code !== proposedDoc.code ||
-			currentDoc.redeemedAtMs !== proposedDoc.redeemedAtMs
-		) {
-			throw new Error('Referral record core fields are immutable.');
-		}
+	if (isNullish(current)) {
+		assertNewReferral({ caller, referee: key, doc: proposedDoc });
 
 		return;
 	}
 
-	if (key !== callerText) {
-		throw new Error('Referral key must match the caller (referee) principal.');
+	const currentDoc = decodeDocData<ReferralDoc>(current.data);
+
+	if (
+		currentDoc.referrer !== proposedDoc.referrer ||
+		currentDoc.code !== proposedDoc.code ||
+		currentDoc.redeemedAtMs !== proposedDoc.redeemedAtMs
+	) {
+		throw new Error('Referral record core fields are immutable.');
 	}
 
-	if (proposedDoc.referrer === callerText) {
+	assertPaidSideKept({ current: currentDoc.refereePayout, proposed: proposedDoc.refereePayout });
+	assertPaidSideKept({ current: currentDoc.referrerPayout, proposed: proposedDoc.referrerPayout });
+
+	if (
+		payoutMovesBack({ current: currentDoc.refereePayout, proposed: proposedDoc.refereePayout }) ||
+		payoutMovesBack({ current: currentDoc.referrerPayout, proposed: proposedDoc.referrerPayout })
+	) {
+		throw new Error('Referral payout state only moves forward.');
+	}
+};
+
+/** The create path of {@link assertSetReferral}: the redemption rules. */
+const assertNewReferral = ({
+	caller,
+	referee,
+	doc
+}: {
+	caller: Uint8Array;
+	referee: string;
+	doc: ReferralDoc;
+}): void => {
+	if (doc.referrer === referee) {
 		throw new Error('Self-referrals are not allowed.');
 	}
 
 	try {
-		Principal.fromText(proposedDoc.referrer);
+		Principal.fromText(referee);
+		Principal.fromText(doc.referrer);
 	} catch {
-		throw new Error('Invalid referrer principal.');
+		throw new Error('Invalid referee or referrer principal.');
 	}
 
-	if (!REFERRAL_CODE_REGEX.test(proposedDoc.code)) {
+	if (!REFERRAL_CODE_REGEX.test(doc.code)) {
 		throw new Error('Invalid referral code format.');
 	}
 
 	const codeDoc = getDocStore({
 		collection: Collection.REFERRAL_CODES,
-		key: proposedDoc.code,
+		key: doc.code,
 		caller
 	});
 
@@ -570,9 +690,65 @@ export const assertSetReferral = ({
 
 	const { owner } = decodeDocData<ReferralCodeDoc>(codeDoc.data);
 
-	if (owner !== proposedDoc.referrer) {
+	if (owner !== doc.referrer) {
 		throw new Error('Referrer does not match the referral code owner.');
 	}
+
+	assertWithinRedemptionWindow({ referee, caller });
+
+	const { refereePayout, referrerPayout } = doc;
+	const expectedReferee = initialRefereeOwedPayout();
+	const expectedReferrer = initialReferrerUnpaidPayout();
+
+	if (
+		doc.withinReferrerCap ||
+		refereePayout.status !== expectedReferee.status ||
+		refereePayout.amountBaseUnits !== expectedReferee.amountBaseUnits ||
+		referrerPayout.status !== expectedReferrer.status ||
+		referrerPayout.amountBaseUnits !== expectedReferrer.amountBaseUnits
+	) {
+		throw new Error(
+			'A referral record must start with the referee bonus owed and the referrer side unarmed.'
+		);
+	}
+};
+
+/**
+ * A referral code is bound to its owner (write-once, `owner === caller`), so
+ * only that owner or the satellite may drop it.
+ */
+export const assertDeleteReferralCode = ({
+	caller,
+	data: {
+		collection,
+		data: { current }
+	}
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.REFERRAL_CODES || isNullish(current)) {
+		return;
+	}
+
+	const { owner } = decodeDocData<ReferralCodeDoc>(current.data);
+
+	assertOwnerOrController({ caller, owner, collection });
+};
+
+/**
+ * A referral record is the proof its bonuses were paid: deleted, its referee
+ * could redeem again and be paid again. Only the satellite deletes one (the
+ * account purge), and the purge keeps a row that has started paying
+ * ({@link isReferralPayoutRecord}), which holds its slot in the referrer's
+ * lifetime count.
+ */
+export const assertDeleteReferral = ({
+	caller,
+	data: { collection }
+}: AssertDeleteDocContext): void => {
+	if (collection !== Collection.REFERRALS) {
+		return;
+	}
+
+	assertControllerCaller({ caller, collection });
 };
 
 // ─── Payout hook ─────────────────────────────────────────────────────────
@@ -581,11 +757,11 @@ export const assertSetReferral = ({
  * Counts how many redemptions already credited the given referrer. This lifetime tally is the
  * authoritative prior-paid count that feeds {@link referrerRewardBaseUnits} (the diminishing reward
  * curve, whose final bracket encodes the {@link REFERRAL_MAX_PAID} hard cap). Every doc whose
- * `referrerPayout` is not `none` counts — anything in flight (`owed` / `processing` / `paid`)
+ * `referrerPayout` is not `none` counts: anything in flight (`owed` / `processing` / `paid`)
  * consumes a slot so racing redemptions can't slip past the cap by being mid-transfer.
  *
- * Counts only redemptions that happened *before* the row being processed — `redeemedAtMs <
- * referenceMs`, tie-broken by key so equal timestamps are deterministic — and excludes the row
+ * Counts only redemptions that happened *before* the row being processed, `redeemedAtMs <
+ * referenceMs`, tie-broken by key so equal timestamps are deterministic, and excludes the row
  * itself (`excludeKey`). The "prior only" ordering makes a given row's prior-paid count (and thus
  * its diminishing-curve reward) **stable regardless of when settlement runs**: a later redemption
  * can never retroactively inflate an earlier row's count and shrink its reward on a delayed retry.
@@ -615,7 +791,7 @@ const countReferrerCredits = ({
 		try {
 			const doc = decodeDocData<ReferralDoc>(item.data);
 
-			// Prior redemptions only — earlier in time, or same instant with a lower key. Keeps
+			// Prior redemptions only: earlier in time, or same instant with a lower key. Keeps
 			// each row's tier derivation stable across retries (see the doc comment above).
 			const isPrior =
 				doc.redeemedAtMs < referenceMs || (doc.redeemedAtMs === referenceMs && key < excludeKey);
@@ -634,18 +810,16 @@ const countReferrerCredits = ({
 const ZERO_COUNT = 0;
 
 const persistReferral = ({
-	caller,
 	refereeKey,
 	doc,
 	version
 }: {
-	caller: Uint8Array;
 	refereeKey: string;
 	doc: ReferralDoc;
 	version?: bigint;
 }): void => {
 	setDocStore({
-		caller,
+		caller: controllerCaller(REFERRAL_WRITE_PURPOSE),
 		collection: Collection.REFERRALS,
 		key: refereeKey,
 		doc: {
@@ -658,9 +832,9 @@ const persistReferral = ({
 const PERSIST_MAX_RETRIES = 3;
 
 /**
- * Guarded parse of a doc-stored base-unit string into a non-negative `bigint`. The referrals
- * collection is user-writable, so a tampered `amountBaseUnits` could be a non-numeric string (which
- * would throw on `BigInt(...)` and take down the hook) or a negative value. Anything that does not
+ * Guarded parse of a doc-stored base-unit string into a non-negative `bigint`. A row written while
+ * the referrals collection still took client writes may carry a tampered `amountBaseUnits`: a
+ * non-numeric string (which would throw on `BigInt(...)` and take down the hook) or a negative value. Anything that does not
  * parse to a non-negative integer is treated as `ZERO` so the caller can safely clamp it against the
  * server-recomputed expected amount.
  */
@@ -675,9 +849,9 @@ const parseStoredAmount = (raw: string): bigint => {
 };
 
 /**
- * Guarded decode of a referral row. The `referrals` collection is user-writable, so a
- * tampered/malformed row could make `decodeDocData` throw. Returning `undefined` (logged) instead
- * of trapping keeps the payout path — including the auth-free `settleReferral` endpoint — robust.
+ * Guarded decode of a referral row. A row written while the collection still took client writes
+ * may be malformed and make `decodeDocData` throw. Returning `undefined` (logged) instead
+ * of trapping keeps the payout path, including the auth-free `settleReferral` endpoint, robust.
  */
 const decodeReferralRow = (data: Parameters<typeof decodeDocData>[0]): ReferralDoc | undefined => {
 	try {
@@ -729,11 +903,11 @@ const driveSidePayout = async ({
 		return;
 	}
 
-	// SECURITY: the transferred amount is server-authoritative — it is `expectedAmount`, recomputed
+	// SECURITY: the transferred amount is server-authoritative; it is `expectedAmount`, recomputed
 	// by the caller from canonical sources (the flat constant for the referee; the diminishing curve
 	// keyed on the authoritative prior-paid count for the referrer). The `amountBaseUnits` field on
-	// the doc lives in a *user-writable* collection, so it is never trusted as the source of truth at
-	// transfer time. We still read it (guarded — a malformed string must not throw the hook) purely to
+	// the doc is never trusted as the source of truth at transfer time: a row from before the
+	// collection became server-owned may have been written by its client. We still read it (guarded: a malformed string must not throw the hook) purely to
 	// clamp: the actual transfer can never exceed `expectedAmount`, even if a tampered doc claims a
 	// larger figure. A clamp this way (rather than just ignoring the stored value) also means a doc
 	// armed below the expected amount only ever pays the smaller, recorded number.
@@ -742,7 +916,6 @@ const driveSidePayout = async ({
 
 	try {
 		persistReferral({
-			caller,
 			refereeKey,
 			doc: {
 				...snapshotDoc,
@@ -829,7 +1002,6 @@ const driveSidePayout = async ({
 
 		try {
 			persistReferral({
-				caller,
 				refereeKey,
 				doc: { ...latestDoc, [sideKey]: updated },
 				version: latest.version
@@ -896,8 +1068,8 @@ const armReferrerPayoutIfFirstFire = ({
 	});
 
 	// Authoritative, server-computed reward for this redemption: the diminishing curve keyed on the
-	// referrer's prior paid count. A zero reward encodes the lifetime hard cap (`> REFERRAL_MAX_PAID`)
-	// — past that point the tier table yields ZERO, so being within the cap and a positive reward
+	// referrer's prior paid count. A zero reward encodes the lifetime hard cap (`> REFERRAL_MAX_PAID`):
+	// past that point the tier table yields ZERO, so being within the cap and a positive reward
 	// coincide. The diminishing curve + this lifetime cap self-limit, so there is no separate
 	// monthly cap.
 	const rewardBaseUnits = referrerRewardBaseUnits(lifetimeCount);
@@ -916,7 +1088,6 @@ const armReferrerPayoutIfFirstFire = ({
 
 		try {
 			persistReferral({
-				caller,
 				refereeKey,
 				doc: { ...snapshotDoc, withinReferrerCap: false },
 				version: snapshot.version
@@ -934,7 +1105,6 @@ const armReferrerPayoutIfFirstFire = ({
 
 	try {
 		persistReferral({
-			caller,
 			refereeKey,
 			doc: {
 				...snapshotDoc,
@@ -957,21 +1127,14 @@ const armReferrerPayoutIfFirstFire = ({
 
 /**
  * Whether the referee has made at least one prediction. The referral bonus is gated on the referred
- * user's first prediction (a `trade` activity), so redeeming a code alone never pays — it only
- * records the `owed` row. Counts only the caller's own **trade** activity rows: `logActivity` keys
- * them `${user}#${timestamp}#${type}`, so a key ending in `#trade` is a prediction. Non-trade
- * activities (settlement / comment / follow / vote) must NOT satisfy the gate. Guarded: a count
- * failure reads as "not yet" rather than throwing the payout path.
+ * user's first prediction (a `trade` activity), so redeeming a code alone never pays; it only
+ * records the `owed` row. Counts only the caller's own predictions ({@link countTradeActivities}):
+ * a settlement, comment, follow or vote must NOT satisfy the gate. Guarded: a count failure reads
+ * as "not yet" rather than throwing the payout path.
  */
 const refereeHasTraded = (caller: Uint8Array): boolean => {
 	try {
-		return (
-			countDocsStore({
-				collection: Collection.ACTIVITIES,
-				caller,
-				params: { owner: caller, matcher: { key: `#${ActivityType.TRADE}$` } }
-			}) > ZERO
-		);
+		return countTradeActivities(caller) > ZERO;
 	} catch {
 		return false;
 	}
@@ -980,21 +1143,22 @@ const refereeHasTraded = (caller: Uint8Array): boolean => {
 /**
  * Drives both referral payouts to completion for a single referee row: arms the referrer reward
  * (first run only, within caps), then transfers the flat referee bonus and the curve-keyed referrer
- * reward. Reads and writes the row AS `caller`, which MUST be the referee principal so
- * `assertSetReferral`'s "only the referee may update their record" guard passes.
+ * reward. Reads as `caller`, which MUST be the referee principal: {@link refereeHasTraded} counts
+ * the activities it owns. Every write is signed as a controller, the only writer
+ * {@link assertSetReferral} accepts.
  *
- * Pays nothing until the referee has made their first prediction — both bonuses settle together on
+ * Pays nothing until the referee has made their first prediction: both bonuses settle together on
  * that first trade (driven by {@link onTradeActivityForReferral}); a code redemption alone never
  * pays.
  *
  * Idempotent and retry-safe: every step short-circuits once its side is `paid` / `processing`, so
- * re-running only advances what is still `owed`. Never throws on a transfer failure — the failing
+ * re-running only advances what is still `owed`. Never throws on a transfer failure: the failing
  * side is recorded back as `owed` with `lastError` for a later retry.
  *
- * Invoked from {@link onTradeActivityForReferral} (the `activities` post-write hook — its trigger
+ * Invoked from {@link onTradeActivityForReferral} (the `activities` post-write hook; its trigger
  * doc is client-written, so its `onSetDoc` genuinely fires) and from the `settleReferral` endpoint
  * (manual retry/backfill). NOT invoked from `redeemReferralCodeFn`, and NOT from a hook on the
- * referrals row itself — that row is written via serverless `setDocStore`, which never fires
+ * referrals row itself: that row is written via serverless `setDocStore`, which never fires
  * `onSetDoc` (see `api/db.rs` calling `invoke_on_set_doc` vs `db/store.rs` which does not).
  */
 const settleReferralPayout = async ({
@@ -1033,7 +1197,7 @@ const settleReferralPayout = async ({
 	}
 
 	// Gate on the referee's first prediction: neither side pays until the referred user has actually
-	// made a trade. Leaving the row `owed` here is the normal path right after redeem — the bonus is
+	// made a trade. Leaving the row `owed` here is the normal path right after redeem: the bonus is
 	// driven later by `onTradeActivityForReferral` (or the `settleReferral` retry endpoint).
 	if (!refereeHasTraded(caller)) {
 		return;
@@ -1046,7 +1210,7 @@ const settleReferralPayout = async ({
 	});
 
 	// SECURITY: both expected amounts are recomputed server-side here and passed to the transfer
-	// path — never read from the (user-writable) referral doc. The referee bonus is the flat
+	// path, never read from the referral doc. The referee bonus is the flat
 	// constant; the referrer reward is re-derived from the diminishing curve keyed on the *same*
 	// authoritative prior-paid count that the arming step (`armReferrerPayoutIfFirstFire`) used.
 	await driveSidePayout({
@@ -1060,8 +1224,8 @@ const settleReferralPayout = async ({
 	});
 
 	// Re-read after the referee transfer: the referrer side is only worth a (full-collection) scan +
-	// transfer when it is actually `owed`. On retries where it is already paid / processing — or was
-	// skipped over the cap (`none`) — bail before the scan. This bounds the cost of the auth-free
+	// transfer when it is actually `owed`. On retries where it is already paid / processing, or was
+	// skipped over the cap (`none`), bail before the scan. This bounds the cost of the auth-free
 	// `settleReferral` endpoint to a cheap re-read once a row's referrer side is settled.
 	const latest = getDocStore({ collection: Collection.REFERRALS, key: refereeKey, caller });
 	const latestDoc = nonNullish(latest) ? decodeReferralRow(latest.data) : undefined;
@@ -1089,15 +1253,14 @@ const settleReferralPayout = async ({
 };
 
 /**
- * Post-write hook for the referrals collection. NOTE: in practice this never fires — the referral
- * row is created by the `redeemReferralCode` serverless endpoint via `setDocStore`, and Juno only
- * invokes `onSetDoc` for client `set_doc` writes. It stays wired (delegating to the same idempotent
- * {@link settleReferralPayout} the endpoint uses) purely as a safety net, in case a referral row is
- * ever written through the public datastore API.
+ * Post-write hook for the referrals collection. Juno runs it for every `set_doc` through the public
+ * datastore API (never for the serverless `setDocStore` writes of the redeem and settle paths), and
+ * {@link assertSetReferral} lets only a satellite controller make such a write, so it runs when a
+ * controller writes a row by hand (Juno Console). It delegates to the same idempotent
+ * {@link settleReferralPayout}, reading as the referee the row is keyed by.
  */
 export const onReferralSetForVxpPayout = async (ctx: OnSetDocContext): Promise<void> => {
 	const {
-		caller,
 		data: { collection, key }
 	} = ctx;
 
@@ -1106,7 +1269,10 @@ export const onReferralSetForVxpPayout = async (ctx: OnSetDocContext): Promise<v
 	}
 
 	try {
-		await settleReferralPayout({ caller, refereeKey: key });
+		await settleReferralPayout({
+			caller: Principal.fromText(key).toUint8Array(),
+			refereeKey: key
+		});
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 		logError({
@@ -1118,7 +1284,7 @@ export const onReferralSetForVxpPayout = async (ctx: OnSetDocContext): Promise<v
 };
 
 /**
- * Settles — or retries — the VXP payout for a single referral row, keyed by the referee principal.
+ * Settles, or retries, the VXP payout for a single referral row, keyed by the referee principal.
  * Drives the same idempotent {@link settleReferralPayout} the `activities` hook uses, so it is safe
  * to call repeatedly: it only ever advances an `owed` side to `paid`, paying the server-computed
  * amount to the row's own referee / referrer (and only once the referee has actually traded). Used
@@ -1127,8 +1293,8 @@ export const onReferralSetForVxpPayout = async (ctx: OnSetDocContext): Promise<v
  *
  * Auth: intentionally NOT gated on `msgCaller`. Recipients and amounts come entirely from the
  * already-validated row plus server constants, and the per-side `processing` lock + version checks
- * block double-pay — so an arbitrary caller can at most complete a legitimate, one-time payout. The
- * row is read/written AS the referee so `assertSetReferral` accepts the update.
+ * block double-pay, so an arbitrary caller can at most complete a legitimate, one-time payout. The
+ * row is read as the referee and written as a controller (see {@link settleReferralPayout}).
  */
 export const settleReferralFn = async ({ referee }: { referee: string }): Promise<void> => {
 	let refereeBytes: Uint8Array;
@@ -1144,12 +1310,12 @@ export const settleReferralFn = async ({ referee }: { referee: string }): Promis
 
 /**
  * Activity-collection hook: settles a referred user's bonus on their FIRST prediction. The referral
- * row is created (`owed`) at redeem time but never paid then — both sides settle here, the first
+ * row is created (`owed`) at redeem time but never paid then: both sides settle here, the first
  * time the referee makes a trade. `activities` rows are written by the **client** (`set_doc`), so
- * this `onSetDoc` hook genuinely fires — unlike a hook on the serverless-written referrals row.
+ * this `onSetDoc` hook genuinely fires, unlike a hook on the serverless-written referrals row.
  *
  * Idempotent (each side pays once) and best-effort: a settle hiccup must NOT break the onboarding
- * payout composed in the same `ACTIVITIES` dispatch, so we log and swallow — the next prediction
+ * payout composed in the same `ACTIVITIES` dispatch, so we log and swallow; the next prediction
  * retries, and {@link settleReferralFn} is the manual retry path.
  */
 export const onTradeActivityForReferral = async (ctx: OnSetDocContext): Promise<void> => {
@@ -1170,7 +1336,7 @@ export const onTradeActivityForReferral = async (ctx: OnSetDocContext): Promise<
 	try {
 		activity = decodeDocData<Activity>(after.data);
 	} catch {
-		// A malformed activity doc must not abort the hook — skip referral settlement for this event.
+		// A malformed activity doc must not abort the hook: skip referral settlement for this event.
 		return;
 	}
 

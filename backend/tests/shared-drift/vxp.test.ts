@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { ZERO } from '../../src/lib/constants';
+import { DAY_IN_MS } from '../../src/lib/time';
+import { REPEATABLE_VXP_AWARD_TYPES } from '../../src/vxp/award-markers';
+import { VXP_AWARD_TYPES } from '../../src/vxp/awards';
 import {
+	ACHIEVEMENT_ACCURACY_GATE_CALLS,
 	ACHIEVEMENT_XP,
 	CALIBRATION_DAILY_CAP,
 	CALIBRATION_HOURLY_CAP,
@@ -8,13 +12,21 @@ import {
 	COMEBACK_AWAY_DAYS,
 	COMEBACK_BALANCE_FLOOR_BASE_UNITS,
 	COMEBACK_RESTORE_TARGET_BASE_UNITS,
+	CONTRARIAN_PRICE_THRESHOLD,
+	CONTRARIAN_WIN_TARGET,
+	LEAGUE_FOUNDER_MIN_MEMBERS,
+	MARATHON_DAILY_STREAK_TARGET,
+	ON_FIRE_STREAK_TARGET,
 	ONBOARDING_M2_TRADE_COUNT,
 	ONBOARDING_M3_TRADE_COUNT,
 	ONBOARDING_MILESTONE_AMOUNTS,
+	ORACLE_ACCURACY_TARGET,
+	ORACLE_TRADES_TARGET,
 	parseVxp,
 	REFERRAL_MAX_PAID,
 	REFERRAL_VXP_BONUS_BASE_UNITS,
 	referrerRewardBaseUnits,
+	STREAK_MAX_CONTINUING_DAY_DELTA,
 	TOURNAMENT_PRIZE_TIERS,
 	VXP_CALIBRATION_REWARD_BASE_UNITS,
 	VXP_DECIMALS,
@@ -29,13 +41,13 @@ import {
 } from '../../src/vxp/constants';
 import {
 	extractBlock,
+	extractDecimalConst,
 	extractIntConst,
 	extractNumericRecord,
 	extractProductConst,
 	extractUnionLiterals,
 	extractVxpBaseUnitsWhole,
 	importRepoModule,
-	quotedStrings,
 	readRepoSource
 } from '../helpers/repo-source';
 
@@ -52,27 +64,23 @@ describe('shared drift: VXP award types', () => {
 		typeName: 'VxpAwardType'
 	});
 
-	test('the app TS union and its Zod mirror agree', () => {
-		const appEnum = quotedStrings(
-			extractBlock({
-				source: readRepoSource('src/lib/schema/vxp-award.schema.ts'),
-				marker: 'export const VxpAwardTypeSchema'
-			})
-		);
-
-		expect(appEnum).toEqual(appUnion);
-	});
-
-	test('backend VxpAwardType is the app union plus the onboarding starter', () => {
-		const backendUnion = extractUnionLiterals({
-			source: readRepoSource('backend/src/vxp/awards.ts'),
-			typeName: 'VxpAwardType'
-		});
-
+	test('backend award types are the app union plus the onboarding starter', () => {
 		// The backend books the onboarding starter through the same awards
 		// table, while the satellite tracked it in a dedicated collection, so
 		// 'onboarding' is the single deliberate backend-only member.
-		expect(backendUnion).toEqual(['onboarding', ...appUnion]);
+		const backend: string[] = [...VXP_AWARD_TYPES];
+
+		expect(backend).toEqual(['onboarding', ...appUnion]);
+	});
+
+	test('both stacks agree which award types are repeatable (no one-time marker)', async () => {
+		const app = await importRepoModule<{ REPEATABLE_VXP_AWARD_TYPES: readonly string[] }>(
+			'src/lib/types/vxp-award.ts'
+		);
+
+		const backend: string[] = [...REPEATABLE_VXP_AWARD_TYPES];
+
+		expect(backend).toEqual([...app.REPEATABLE_VXP_AWARD_TYPES]);
 	});
 });
 
@@ -106,7 +114,11 @@ describe('shared drift: VXP amounts', () => {
 			extractIntConst({ source: economy, constName: 'VXP_FLOW_OVERTIME_BONUS' })
 		);
 		expect(VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS).toBe(
-			extractProductConst({ source: economy, constName: 'VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS' })
+			extractProductConst({
+				source: economy,
+				constName: 'VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS',
+				units: { DAY_IN_MS }
+			})
 		);
 		expect(VXP_FLOW_OVERTIME_ROLLING_CAP).toBe(
 			extractIntConst({ source: economy, constName: 'VXP_FLOW_OVERTIME_ROLLING_CAP' })
@@ -214,6 +226,45 @@ describe('shared drift: VXP amounts', () => {
 
 		expect(anchors.length).toBeGreaterThan(0);
 		expect({ ...ACHIEVEMENT_XP }).toEqual(app);
+	});
+});
+
+describe('shared drift: server-evaluated award rules', () => {
+	const achievements = readRepoSource('src/lib/utils/achievements.utils.ts');
+
+	test('the streak forgiveness window matches the app streak engine', () => {
+		expect(STREAK_MAX_CONTINUING_DAY_DELTA).toBe(
+			extractIntConst({
+				source: readRepoSource('src/lib/utils/streak.utils.ts'),
+				constName: 'STREAK_MAX_CONTINUING_DAY_DELTA'
+			})
+		);
+	});
+
+	test('achievement unlock thresholds match the app evaluator', () => {
+		expect(ACHIEVEMENT_ACCURACY_GATE_CALLS).toBe(
+			extractIntConst({
+				source: readRepoSource('src/lib/constants/flow-rewards.constants.ts'),
+				constName: 'ACCURACY_GATE_CALLS'
+			})
+		);
+
+		const thresholds: Record<string, number> = {
+			CONTRARIAN_PRICE_THRESHOLD,
+			CONTRARIAN_WIN_TARGET,
+			ON_FIRE_STREAK_TARGET,
+			ORACLE_ACCURACY_TARGET,
+			ORACLE_TRADES_TARGET,
+			MARATHON_DAILY_STREAK_TARGET,
+			LEAGUE_FOUNDER_MIN_MEMBERS
+		};
+
+		for (const [constName, backend] of Object.entries(thresholds)) {
+			expect({ constName, value: backend }).toEqual({
+				constName,
+				value: extractDecimalConst({ source: achievements, constName })
+			});
+		}
 	});
 });
 

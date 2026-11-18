@@ -35,13 +35,8 @@ translate the file and delete its row, or move the row to § Exempt.
 
 - `src/lib/components/authn/Authn.svelte`
 - `src/lib/components/authn/LoginRequired.svelte`
-- `src/lib/components/authn/SignIn.svelte`
 - `src/lib/components/authn/SignInModal.svelte`
 - `src/lib/components/dev/TweaksPanel.svelte`
-- `src/lib/components/market/BinaryProbabilities.svelte`
-- `src/lib/components/market/CategoricalProbabilities.svelte`
-- `src/lib/components/market/MarketCardSkeleton.svelte`
-- `src/lib/components/portfolio/PositionArtThumb.svelte`
 - `src/lib/components/profile/Avatar.svelte`
 - `src/lib/components/wallet/PlaygroundVxpAutoDeposit.svelte`
 
@@ -74,9 +69,6 @@ to import `i18n.utils`.
 - `src/lib/components/icons/IconIC.svelte`
 - `src/lib/components/icons/IconPasskey.svelte`
 - `src/lib/components/icons/IconRobot.svelte`
-- `src/lib/components/icons/IconSignalNo.svelte`
-- `src/lib/components/icons/IconSignalYes.svelte`
-- `src/lib/components/layout/Background.svelte`
 - `src/lib/components/layout/Logo.svelte`
 
 **Loaders**: no UI of their own; everything is delegated to children
@@ -89,7 +81,6 @@ or stores:
 - `src/lib/components/loaders/LoaderBalances.svelte`
 - `src/lib/components/loaders/LoaderCollaterals.svelte`
 - `src/lib/components/loaders/LoaderFollowing.svelte`
-- `src/lib/components/loaders/LoaderGlobalActivities.svelte`
 - `src/lib/components/loaders/LoaderLeaderboard.svelte`
 - `src/lib/components/loaders/LoaderMarkets.svelte`
 - `src/lib/components/loaders/LoaderMarketTags.svelte`
@@ -101,7 +92,6 @@ or stores:
 **UI primitives**: generic shells; consumers supply copy via props /
 snippets:
 
-- `src/lib/components/ui/Backdrop.svelte`
 - `src/lib/components/ui/Badge.svelte`
 - `src/lib/components/ui/BaseButton.svelte`
 - `src/lib/components/ui/Button.svelte`
@@ -113,7 +103,6 @@ snippets:
 - `src/lib/components/ui/InfiniteScroll.svelte`
 - `src/lib/components/ui/LoadingSpinner.svelte`
 - `src/lib/components/ui/Notifications.svelte` (renders toasts from `notification.store`)
-- `src/lib/components/ui/PopOver.svelte`
 - `src/lib/components/ui/PrincipalText.svelte` (formatted principal: code-shaped, not translated)
 - `src/lib/components/ui/Tabs.svelte` (consumers pass localized `label`s)
 

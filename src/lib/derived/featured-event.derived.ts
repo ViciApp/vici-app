@@ -1,5 +1,5 @@
-import { DAY_IN_MS, HOUR_IN_MS } from '#lib/constants/app.constants.ts';
 import { CURRENT_FEATURED_EVENT } from '#lib/constants/featured-event.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { minuteTick_ms } from '#lib/derived/time.derived.ts';
 import type { FeaturedEvent, FeaturedEventStatus } from '#lib/types/featured-event.ts';
 import { derived, readable, type Readable } from 'svelte/store';
@@ -11,7 +11,7 @@ import { derived, readable, type Readable } from 'svelte/store';
 export const featuredEvent: Readable<FeaturedEvent> = readable(CURRENT_FEATURED_EVENT);
 
 /**
- * Lifecycle status of the featured event — drives whether onboarding
+ * Lifecycle status of the featured event: drives whether onboarding
  * surfaces the hero, whether Flow filters to event markets, and whether
  * the Worlds event-battle is visible.
  */
@@ -32,7 +32,7 @@ export const featuredEventActive: Readable<boolean> = derived(
 
 /**
  * Whole days remaining until kickoff, clamped at 0. `null` once the event
- * has started — UI should switch to "live" copy in that branch.
+ * has started: UI should switch to "live" copy in that branch.
  */
 export const daysToKickoff: Readable<number | null> = derived(
 	[featuredEvent, minuteTick_ms],
@@ -48,29 +48,10 @@ export const daysToKickoff: Readable<number | null> = derived(
 );
 
 /**
- * Remainder hours (0–23) until kickoff, after the whole days already
- * counted by {@link daysToKickoff}. Lets the landing render a
- * "{d}d {h}h" countdown off the same `kickoffAt_ms` source the rest of
- * the app uses. `null` once the event has started.
- */
-export const hoursToKickoff: Readable<number | null> = derived(
-	[featuredEvent, minuteTick_ms],
-	([event, t]) => {
-		if (t >= event.kickoffAt_ms) {
-			return null;
-		}
-
-		const delta_ms = event.kickoffAt_ms - t;
-
-		return Math.floor((delta_ms % DAY_IN_MS) / HOUR_IN_MS);
-	}
-);
-
-/**
  * Whole days remaining until the event's final (`finalAt_ms`), clamped
  * at 0. Used by surfaces that frame the active event as a battle with a
  * "{N}d left" timer (e.g. the Worlds hero card / scope toggle). `null`
- * once the event has wrapped — UI should switch to archival copy.
+ * once the event has wrapped: UI should switch to archival copy.
  */
 export const daysToFinal: Readable<number | null> = derived(
 	[featuredEvent, minuteTick_ms],

@@ -51,7 +51,7 @@ The rules every repository shares live in **one place only**: [Officina `standar
 6. **No design-source references.** Never cite temporary or external design material (folder or file names, section numbers) in the repo. There is one design, never a "new" or "old" one; cite [`design.md`](./docs/ai/frontend/design.md) instead (§ 7 for Flow Mode), describing behaviour and intent.
 7. **ESLint hard policy.** `0n` is `ZERO` from `#lib/constants/app.constants`; `return undefined;` is bare `return;`; null checks use `isNullish` / `nonNullish` from `@dfinity/utils`; imports under `src/**` use the subpath imports (`#lib`, `#declarations`, `#satellite`, `#root`) in `package.json`, never relative paths across folders. When `local-rules/no-bare-svelte-text` fires, route the string through `t(...)`.
 8. **Spec-driven development is opt-in, so ask.** For a feature, an improvement or a non-trivial bugfix, mention the [spec workflow](./docs/ai/spec-driven-development/workflow.md) and ask whether to use it; skip it for small changes. When implementing a spec, read [`PRODUCT.md`](./docs/ai/PRODUCT.md) first and update it in the same PR. `Implemented` specs are history, never current behaviour. A satellite spec must cover performance, memory and scalability.
-9. **Regenerated files ship with the change.** Touched `src/satellite/**` (or a `#lib/schema/*` it imports)? Run `npm run juno:functions:build` and commit the output. Ran `npm run did`? Commit both declaration trees with the wiring change.
+9. **Regenerated files ship with the change.** Touched `src/satellite/**` (or a `#lib/schema/*` it imports)? Run `npm run juno:functions:build` and `npm run quality`, copy `src/declarations/satellite/{satellite.did.d.ts,satellite.factory.did.js}` into `backend/src/declarations/satellite/` (the backend's shared-drift suite pins them byte-for-byte), and commit the output. Ran `npm run did`? Commit both declaration trees with the wiring change.
 10. **VXP economy rules are the exception to the truth hierarchy:** [`economy.md`](./docs/ai/economy.md) drives the code, not the other way round.
 
 ## 5. You are about to... read first
@@ -79,7 +79,8 @@ The rules every repository shares live in **one place only**: [Officina `standar
 | Regenerate Candid bindings after an icdc-core release | [`engine/README.md`](./docs/ai/engine/README.md#regenerating)                                                                                 |
 | Understand how Vici talks to icdc-core                | [`docs/engine-integration.md`](./docs/engine-integration.md)                                                                                  |
 | Reset, repair or operate the Vici engine              | [`.agents/workflows/`](./.agents/workflows/) (`icdc-engine-reset.md`, `icdc-engine-operations.md`)                                            |
-| Deploy                                                | [`.agents/workflows/deployment.md`](./.agents/workflows/deployment.md)                                                                        |
+| Deploy locally on the Juno emulator                   | [`.agents/workflows/deployment.md`](./.agents/workflows/deployment.md)                                                                        |
+| Ship a release to production                          | [`pr-and-ci.md` § 5](./docs/ai/pr-and-ci.md#5-ci-jobs-you-must-keep-green) (`deploy.yml`, `publish.yml`, `web2-deploy.yml`)                   |
 
 ## 6. Governance
 

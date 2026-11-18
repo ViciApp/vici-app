@@ -3,7 +3,7 @@ import { del } from '#lib/utils/storage.utils.ts';
 /**
  * One-time "seen" flags for the onboarding / coaching overlays (`FlowCoach`
  * per surface + the Battles intro card). Identity-scoped, so they're cleared
- * on a principal change — see `reconcileIdentityScopedStorage`.
+ * on a principal change: see `reconcileIdentityScopedStorage`.
  */
 export const COACH_ONBOARDING_SEEN_KEY = 'vici.coach-onboarding-seen';
 export const COACH_FLOW_SEEN_KEY = 'vici.coach-flow-seen';

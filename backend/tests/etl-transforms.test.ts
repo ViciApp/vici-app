@@ -78,7 +78,8 @@ describe('etl collection registry', () => {
 			'events',
 			'event_rollups',
 			'chats',
-			'comments'
+			'comments',
+			'vxp_award_markers'
 		]) {
 			const importer = importerFor(collection);
 
@@ -219,6 +220,49 @@ describe.if(dbAvailable)('profiles import', () => {
 		);
 
 		expect(rows[0]?.nickname_key).toBe('');
+	});
+});
+
+describe.if(dbAvailable)('calibration attempts import', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('keeps the first side on record per user and market', async () => {
+		const principal = uniquePrincipal();
+		const first = doc({ key: `${principal}/series-1`, data: { chosenSide: 'NO', calledAtMs: 1 } });
+		const flipped = doc({
+			key: `${principal}/series-1`,
+			data: { chosenSide: 'YES', calledAtMs: 2 }
+		});
+
+		const stats = await importDocs({ collection: 'calibration_attempts', docs: [first] });
+
+		expect(stats.imported).toBe(1);
+
+		await importDocs({ collection: 'calibration_attempts', docs: [flipped] });
+
+		const rows = await query<{ chosen_side: string }>(
+			`select chosen_side from calibration_attempts where user_id = $1 and series_id = 'series-1'`,
+			[await userIdForPrincipal(principal)]
+		);
+
+		expect(rows).toEqual([{ chosen_side: 'NO' }]);
+	});
+
+	test('skips a doc with no side or no market', async () => {
+		const principal = uniquePrincipal();
+
+		const stats = await importDocs({
+			collection: 'calibration_attempts',
+			docs: [
+				doc({ key: `${principal}/series-1`, data: { chosenSide: 'MAYBE' } }),
+				doc({ key: principal, data: { chosenSide: 'YES' } })
+			]
+		});
+
+		expect(stats.imported).toBe(0);
+		expect(stats.skipped).toBe(2);
 	});
 });
 
@@ -523,6 +567,36 @@ describe.if(dbAvailable)('leagues import', () => {
 		await ensureMigrated();
 	});
 
+	test('takes the invite code of a league whose doc no longer carries it from league_invites', async () => {
+		const leagueId = `etl-invite-${crypto.randomUUID().slice(0, 8)}`;
+		const code = crypto
+			.randomUUID()
+			.replace(/[^0-9A-Z]/gi, 'B')
+			.slice(0, 6)
+			.toUpperCase();
+
+		await importDocs({
+			collection: 'leagues',
+			docs: [
+				doc({
+					key: leagueId,
+					data: { id: leagueId, name: 'Coded League', owner: uniquePrincipal(), createdAtMs: 1 }
+				})
+			]
+		});
+		await importDocs({
+			collection: 'league_invites',
+			docs: [doc({ key: leagueId, data: { leagueId, inviteCode: code } })]
+		});
+
+		const leagues = await query<{ invite_code: string }>(
+			`select invite_code from leagues where id = $1`,
+			[leagueId]
+		);
+
+		expect(leagues[0]?.invite_code).toBe(code);
+	});
+
 	test('imports leagues with legacy privacy fallback and duel side mapping', async () => {
 		const owner = uniquePrincipal();
 		const challenger = uniquePrincipal();
@@ -608,6 +682,8 @@ describe.if(dbAvailable)('leagues import', () => {
 						state: 'resolved',
 						kickoffMs: 1712000000000,
 						settleMs: 1712600000000,
+						// Proposed before the rename: the amount sits under the old name.
+						wager: 150,
 						scoreA: 60,
 						scoreB: 40,
 						callsA: 10,
@@ -620,14 +696,17 @@ describe.if(dbAvailable)('leagues import', () => {
 		});
 
 		const challengerId = await userIdForPrincipal(challenger);
-		const battles = await query<{ side_a: string; side_b: string; winner: string }>(
-			`select side_a, side_b, winner from battles where id = $1`,
-			[battleId]
-		);
+		const battles = await query<{
+			side_a: string;
+			side_b: string;
+			winner: string;
+			amount: number | null;
+		}>(`select side_a, side_b, winner, amount from battles where id = $1`, [battleId]);
 
 		expect(battles[0]?.side_a).toBe(ownerId ?? '');
 		expect(battles[0]?.side_b).toBe(challengerId ?? '');
 		expect(battles[0]?.winner).toBe('A');
+		expect(battles[0]?.amount).toBe(150);
 	});
 });
 

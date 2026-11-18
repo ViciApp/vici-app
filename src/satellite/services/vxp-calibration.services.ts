@@ -1,5 +1,5 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
-import { DAY_IN_MS, HOUR_IN_MS, ZERO } from '#lib/constants/app.constants.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
 import {
 	CLEARING_CANISTER_ID,
 	REGISTRY_CANISTER_ID,
@@ -8,21 +8,34 @@ import {
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
 import {
+	DAY_IN_MS,
+	HOUR_IN_MS,
+	MILLISECOND_IN_NANOSECONDS
+} from '#lib/constants/time.constants.ts';
+import {
 	CALIBRATION_DAILY_CAP,
 	CALIBRATION_HOURLY_CAP,
 	CALIBRATION_RECOVERY_FLOOR_BASE_UNITS,
 	VXP_CALIBRATION_REWARD_BASE_UNITS
 } from '#lib/constants/vxp-economy.constants.ts';
+import {
+	calibrationAttemptKey,
+	type CalibrationAttemptDoc,
+	type CalibrationSide
+} from '#lib/types/calibration.ts';
 import type { CallSide } from '#lib/types/market.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import type { VxpOnboardingDoc } from '#lib/types/vxp-onboarding.ts';
+import { controllerCaller } from '#satellite/services/authz.services.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { call, msgCaller, time } from '@junobuild/functions/ic-cdk';
+import { call, msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
 	encodeDocData,
@@ -32,42 +45,50 @@ import {
 } from '@junobuild/functions/sdk';
 
 /**
- * Calibration reward — a fixed VXP bonus paid the first time a
+ * Calibration reward: a fixed VXP bonus paid the first time a
  * *recovering* user correctly calls a finalised Vici binary market.
  *
  * The product intent: a user who has spent their balance down stays
  * engaged by reading markets right. The reward is small, fixed, and
  * only fires while the caller's available balance is below the recovery
- * floor — so it nudges depleted users back into the loop without paying
+ * floor, so it nudges depleted users back into the loop without paying
  * out to anyone with a healthy balance.
  *
  * Because this mints real on-chain VXP, every gate is enforced
  * server-side and the winning side is re-derived from the clearing
- * settlement — the FE-supplied `chosenSide` is only compared, never
+ * settlement: the FE-supplied `chosenSide` is only compared, never
  * trusted to define correctness. The caller can therefore never forge a
- * win. A wrong guess returns `{ correct: false }`, writes no award doc,
- * and applies no penalty.
+ * win. The first side called on a market is the one judged
+ * ({@link judgeCalibrationCall}): a wrong guess returns `{ correct: false }`,
+ * pays nothing and applies no penalty, but is recorded, so a later call on
+ * the other side is refused (`already_called`).
  *
  * Idempotency and rate limiting both come off the `vxp_awards`
- * collection (no new collection): the per-market award doc key
+ * collection: the per-market award doc key
  * `{caller}/calibration/{seriesId}` makes a second claim on the same
  * market a collision, and the caller's `calibration` docs are counted by
- * key prefix to enforce the rolling hourly / daily caps.
+ * key prefix to enforce the rolling hourly / daily caps. The side on record
+ * lives apart, in `calibration_attempts`, since a miss has no award doc.
  */
 
 const CALIBRATION_AWARD_TYPE = 'calibration';
 
-type CalibrationReason =
-	| 'anonymous'
-	| 'not_engaged_yet'
-	| 'balance_above_floor'
-	| 'not_vici_market'
-	| 'not_binary'
-	| 'not_finalised'
-	| 'outcome_undetermined'
-	| 'rate_limited_hourly'
-	| 'rate_limited_daily'
-	| 'transfer_failed';
+/** Every reason a claim pays nothing; also the endpoint's result enum. */
+export const CALIBRATION_REASONS = [
+	'anonymous',
+	'not_engaged_yet',
+	'balance_above_floor',
+	'not_vici_market',
+	'not_binary',
+	'not_finalised',
+	'outcome_undetermined',
+	'already_called',
+	'rate_limited_hourly',
+	'rate_limited_daily',
+	'transfer_failed'
+] as const;
+
+type CalibrationReason = (typeof CALIBRATION_REASONS)[number];
 
 /**
  * Structured result the FE switches on. `correct` is the calibration
@@ -90,7 +111,9 @@ export interface CalibrationRewardResult {
  * Engagement gate: the caller has at least one paid VXP-onboarding
  * milestone (m1 / m2 / m3). Cheap proxy for "this user has actually
  * used the app", so a fresh signup can't farm rewards. Mirrors the
- * onboarding read used by the other award paths.
+ * onboarding read used by the other award paths. Only the satellite
+ * writes the ladder doc (`assertVxpOnboardingWrite`), so a caller cannot
+ * mark a milestone paid to pass this gate.
  */
 const hasEngaged = ({ caller, userKey }: { caller: Uint8Array; userKey: string }): boolean => {
 	const onboardingDoc = getDocStore({
@@ -184,6 +207,74 @@ const deriveWinningSide = async (
 	return { side: view.settlement.Price.decimal.value > ZERO ? 'YES' : 'NO' };
 };
 
+/** How a call on a finalised market is judged; see {@link judgeCalibrationCall}. */
+export type CalibrationVerdict = 'correct' | 'miss' | 'already_called';
+
+/**
+ * Records the caller's first judged call on a market (as a controller, the
+ * `calibration_attempts` collection being controllers-scoped) and returns the
+ * side on record. Read and write run in one message with no await between
+ * them, so two claims cannot both record a side.
+ */
+const recordCalibrationCall = ({
+	recipient,
+	seriesId,
+	chosenSide
+}: {
+	recipient: string;
+	seriesId: string;
+	chosenSide: CalibrationSide;
+}): CalibrationSide => {
+	const writer = controllerCaller('calibration attempt');
+	const key = calibrationAttemptKey({ recipient, seriesId });
+
+	const existing = getDocStore({
+		collection: Collection.CALIBRATION_ATTEMPTS,
+		key,
+		caller: writer
+	});
+
+	if (nonNullish(existing)) {
+		return decodeDocData<CalibrationAttemptDoc>(existing.data).chosenSide;
+	}
+
+	setDocStore({
+		collection: Collection.CALIBRATION_ATTEMPTS,
+		key,
+		caller: writer,
+		doc: { data: encodeDocData<CalibrationAttemptDoc>({ chosenSide, calledAtMs: timeMs() }) }
+	});
+
+	return chosenSide;
+};
+
+/**
+ * The first side called on a finalised market is the one judged. The call is
+ * recorded before the sides are compared, so the outcome is only ever revealed
+ * for the side on record: a call on the other side is `already_called`, and
+ * the side on record is judged `correct` or a `miss` every time it comes back
+ * (a correct call that hit a rate limit is retried later).
+ */
+export const judgeCalibrationCall = ({
+	recipient,
+	seriesId,
+	chosenSide,
+	winningSide
+}: {
+	recipient: string;
+	seriesId: string;
+	chosenSide: CalibrationSide;
+	winningSide: CalibrationSide;
+}): CalibrationVerdict => {
+	const calledSide = recordCalibrationCall({ recipient, seriesId, chosenSide });
+
+	if (calledSide !== chosenSide) {
+		return 'already_called';
+	}
+
+	return chosenSide === winningSide ? 'correct' : 'miss';
+};
+
 /**
  * Rate-limit gate. Counts the caller's `calibration` award docs whose
  * Juno-managed `created_at` falls within the rolling 1h / 24h windows.
@@ -207,8 +298,8 @@ const checkRateLimits = ({
 	// anchor it to the start to restrict the store-level scan to just this
 	// caller's calibration docs instead of listing the whole collection.
 	const prefix = vxpAwardKey({ recipient, awardType: CALIBRATION_AWARD_TYPE, awardKey: '' });
-	const hourCutoffNs = BigInt(nowMs - HOUR_IN_MS) * 1_000_000n;
-	const dayCutoffNs = BigInt(nowMs - DAY_IN_MS) * 1_000_000n;
+	const hourCutoffNs = BigInt(nowMs - HOUR_IN_MS) * MILLISECOND_IN_NANOSECONDS;
+	const dayCutoffNs = BigInt(nowMs - DAY_IN_MS) * MILLISECOND_IN_NANOSECONDS;
 
 	const { items } = listDocsStore({
 		collection: Collection.VXP_AWARDS,
@@ -285,7 +376,7 @@ export const claimCalibrationRewardFn = async ({
 		awardKey: seriesId
 	});
 
-	// 6 (early). Per-market dedupe — any prior award doc for this market
+	// 6 (early). Per-market dedupe: any prior award doc for this market
 	// short-circuits before any cross-canister work. Already-claimed
 	// markets report `correct: true` (the reward only exists when the
 	// call was right) without re-paying.
@@ -304,7 +395,7 @@ export const claimCalibrationRewardFn = async ({
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: 'not_engaged_yet' };
 	}
 
-	// 3. Balance floor — the core bound: pay only while recovering.
+	// 3. Balance floor, the core bound: pay only while recovering.
 	const ledger = new IcrcLedgerCanister({
 		canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
 	});
@@ -316,32 +407,41 @@ export const claimCalibrationRewardFn = async ({
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: 'balance_above_floor' };
 	}
 
-	// 4. Vici-market gate — engine eng_0 + Binary payoff.
+	// 4. Vici-market gate: engine eng_0 + Binary payoff.
 	const marketReason = await checkMarketShape(seriesId);
 
 	if (nonNullish(marketReason)) {
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: marketReason };
 	}
 
-	// 5. Resolution gate — Finalised + derive the winning side.
+	// 5. Resolution gate: Finalised + derive the winning side.
 	const resolution = await deriveWinningSide(seriesId);
 
 	if ('reason' in resolution) {
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: resolution.reason };
 	}
 
-	const correct = chosenSide === resolution.side;
+	const verdict = judgeCalibrationCall({
+		recipient,
+		seriesId,
+		chosenSide,
+		winningSide: resolution.side
+	});
 
-	// 8 (wrong path). A wrong call mints nothing, writes no doc, applies
-	// no penalty. Returned before the rate-limit check so a wrong guess
+	if (verdict === 'already_called') {
+		return { correct: false, paidNow: false, alreadyClaimed: false, reason: 'already_called' };
+	}
+
+	// 8 (wrong path). A wrong call mints nothing and applies no penalty; it
+	// is on record now. Returned before the rate-limit check so a wrong guess
 	// doesn't consume the user's hourly / daily budget.
-	if (!correct) {
+	if (verdict === 'miss') {
 		return { correct: false, paidNow: false, alreadyClaimed: false };
 	}
 
-	const nowMs = Number(time() / 1_000_000n);
+	const nowMs = timeMs();
 
-	// 7. Rate limits — rolling 1h / 24h windows off `created_at`.
+	// 7. Rate limits: rolling 1h / 24h windows off `created_at`.
 	const rateReason = checkRateLimits({ caller, recipient, nowMs });
 
 	if (nonNullish(rateReason)) {
@@ -360,14 +460,14 @@ export const claimCalibrationRewardFn = async ({
 	};
 
 	try {
-		setDocStore({
-			caller,
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			doc: { data: encodeDocData(pending) }
+		persistAward({
+			recipient,
+			awardType: CALIBRATION_AWARD_TYPE,
+			awardKey: seriesId,
+			doc: pending
 		});
 	} catch (e: unknown) {
-		// A concurrent invocation already wrote the pending doc — treat as
+		// A concurrent invocation already wrote the pending doc: treat as
 		// already-claimed rather than double-paying.
 		const msg = e instanceof Error ? e.message : String(e);
 
@@ -386,12 +486,6 @@ export const claimCalibrationRewardFn = async ({
 		memo: `vxp:calibration:${seriesId}`
 	});
 
-	const latest = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller
-	});
-
 	if (result.ok) {
 		logInfo({
 			message: 'calibration_paid',
@@ -403,22 +497,12 @@ export const claimCalibrationRewardFn = async ({
 			}
 		});
 
-		if (nonNullish(latest)) {
-			const latestDoc = decodeDocData<VxpAwardDoc>(latest.data);
-			const paid: VxpAwardDoc = {
-				...latestDoc,
-				status: 'paid',
-				paidAtMs: nowMs,
-				blockIndex: result.blockIndex.toString()
-			};
-
-			setDocStore({
-				caller,
-				collection: Collection.VXP_AWARDS,
-				key: docKey,
-				doc: { data: encodeDocData(paid), version: latest.version }
-			});
-		}
+		updateAward({
+			recipient,
+			awardType: CALIBRATION_AWARD_TYPE,
+			awardKey: seriesId,
+			patch: { status: 'paid', paidAtMs: nowMs, blockIndex: result.blockIndex.toString() }
+		});
 
 		const newBalance = await ledger.icrc1BalanceOf({
 			account: { owner: callerPrincipal }
@@ -444,21 +528,12 @@ export const claimCalibrationRewardFn = async ({
 		}
 	});
 
-	if (nonNullish(latest)) {
-		const latestDoc = decodeDocData<VxpAwardDoc>(latest.data);
-		const failed: VxpAwardDoc = {
-			...latestDoc,
-			status: 'failed',
-			errorMessage: result.error
-		};
-
-		setDocStore({
-			caller,
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			doc: { data: encodeDocData(failed), version: latest.version }
-		});
-	}
+	updateAward({
+		recipient,
+		awardType: CALIBRATION_AWARD_TYPE,
+		awardKey: seriesId,
+		patch: { status: 'failed', errorMessage: result.error }
+	});
 
 	return {
 		correct: true,

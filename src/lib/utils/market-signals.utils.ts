@@ -1,5 +1,6 @@
 import type { ClearingDid } from '#declarations';
 import { ZERO } from '#lib/constants/app.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import type {
 	CategoryAccuracySignal,
 	PriorCallSignal,
@@ -31,7 +32,7 @@ const eventCategory = ({
 };
 
 const formatWhen = (timestampNs: bigint): string => {
-	const date = new Date(Number(timestampNs / 1_000_000n));
+	const date = new Date(Number(timestampNs / MILLISECOND_IN_NANOSECONDS));
 
 	if (Number.isNaN(date.getTime())) {
 		return '';
@@ -108,7 +109,7 @@ export const derivePriorCallSignals = (
 };
 
 /**
- * The set of market ids the viewer has an executed call on — the
+ * The set of market ids the viewer has an executed call on: the
  * deck-exclusion input for Flow (`prepareFlow`). Deliberately lighter than
  * {@link derivePriorCallSignals}: it skips the per-market latest-event
  * resolution, date formatting, and consensus conversion that only the
@@ -134,8 +135,8 @@ export const deriveCalledMarketIds = (events: ClearingDid.Event[]): Set<MarketId
 /**
  * Trade-history-derived signals (category accuracy + prior calls). The
  * friends-lean signal is sourced separately from the clearing canister's
- * privacy-preserving `aggregate_lean` query — see
- * `#lib/services/followed-lean.services.ts` — and merged in by the caller, so
+ * privacy-preserving `aggregate_lean` query, see
+ * `#lib/services/followed-lean.services.ts`, and merged in by the caller, so
  * it is not produced here.
  */
 export const deriveUserMarketSignals = ({

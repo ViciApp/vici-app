@@ -1,8 +1,8 @@
 <script lang="ts">
 	/**
-	 * Transaction history — every event that changed what the user owns,
+	 * Transaction history: every event that changed what the user owns,
 	 * newest first: bonuses (labelled from the ledger award memo),
-	 * prediction stakes, settlements, and external transfers. The last
+	 * prediction fills, settlements, and external transfers. The last
 	 * column carries the running total balance after each event, anchored on
 	 * the live total-holdings figure so the top row always matches the Dash
 	 * hero and old rows never drift negative. The headline triple reconciles
@@ -27,12 +27,13 @@
 	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import Pagination from '#lib/components/ui/Pagination.svelte';
 	import {
-		MILLISECOND_IN_NANOSECONDS,
+		EMPTY_VALUE,
 		TRANSACTION_HISTORY_PAGE_SIZE,
 		USD_DECIMALS,
 		ZERO
 	} from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { openCallCount } from '#lib/derived/open-call-count.derived.ts';
 	import { tradeHistory, tradeHistoryNotInitialized } from '#lib/derived/trade-history.derived.ts';
 	import {
@@ -206,13 +207,13 @@
 
 		const when = formatNanosecondsToDate({ nanoseconds: row.timestampNs });
 
-		// A fill moves the stake into play without changing total — surface the
-		// committed margin here so the muted "—" amount reads as "still yours".
-		if (row.kind === 'prediction' && nonNullish(row.stake) && row.stake > ZERO) {
+		// A fill moves the amount into play without changing total; surface the
+		// committed margin here so the muted "–" amount reads as "still yours".
+		if (row.kind === 'prediction' && nonNullish(row.inPlay) && row.inPlay > ZERO) {
 			return `${when} · ${t({
 				locale: $localeStore,
 				key: 'transactions.in_play',
-				params: { amount: formatVxpBalance({ value: row.stake, decimals: USD_DECIMALS }) }
+				params: { amount: formatVxpBalance({ value: row.inPlay, decimals: USD_DECIMALS }) }
 			})}`;
 		}
 
@@ -221,9 +222,9 @@
 
 	const deltaDisplay = (row: TransactionHistoryRow): string => {
 		// Placing a prediction is wealth-neutral (VXP moves into play, total is
-		// unchanged), so it carries no signed amount — the meta shows the stake.
+		// unchanged), so it carries no signed amount; the meta shows the amount in play.
 		if (row.kind === 'prediction') {
-			return '—';
+			return EMPTY_VALUE;
 		}
 
 		const value = decimalFixedValueToNumber({ value: row.delta, decimals: USD_DECIMALS });
@@ -322,7 +323,7 @@
 						<span class="txh-meta">{rowMeta(row)}</span>
 					</span>
 					<span class="txh-amt num is-{deltaTone(row)}">
-						{row.kind === 'joined' ? '—' : deltaDisplay(row)}
+						{row.kind === 'joined' ? EMPTY_VALUE : deltaDisplay(row)}
 					</span>
 					<span class="txh-bal num"
 						>{formatVxpBalance({ value: row.balance, decimals: USD_DECIMALS })}</span

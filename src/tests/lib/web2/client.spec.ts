@@ -1,7 +1,9 @@
 import {
 	cancelEngineOrder,
 	getEngineAccountState,
+	getUserRankAndCount,
 	listEngineSettlementStatuses,
+	requestWalletWithdrawal,
 	Web2ApiError
 } from '#lib/web2/client.ts';
 import assert from 'node:assert/strict';
@@ -228,5 +230,71 @@ describe('Web2ApiError', () => {
 		const { code } = await refusal({ status: 502, body: '<html>bad gateway</html>' });
 
 		assert.equal(code, 'unknown_error');
+	});
+});
+
+describe('requestWalletWithdrawal', () => {
+	const originalFetch = globalThis.fetch;
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
+	it('sends the idempotency key with the withdrawal', async () => {
+		let sent: unknown;
+
+		globalThis.fetch = (...[, init]: Parameters<typeof fetch>): Promise<Response> => {
+			sent = JSON.parse(String(init?.body));
+
+			return Promise.resolve(new Response(JSON.stringify({ withdrawal: {} }), { status: 201 }));
+		};
+
+		await requestWalletWithdrawal({
+			assetId: 'a1',
+			amount: BigInt(250),
+			destination: 'aaaaa-aa',
+			selfCustody: true,
+			idempotencyKey: 'k1'
+		});
+
+		assert.deepEqual(sent, {
+			assetId: 'a1',
+			amount: '250',
+			destination: 'aaaaa-aa',
+			selfCustody: true,
+			idempotencyKey: 'k1'
+		});
+	});
+});
+
+describe('getUserRankAndCount', () => {
+	const originalFetch = globalThis.fetch;
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
+	const stubRank = ({ body, urls }: { body: Record<string, unknown>; urls: string[] }): void => {
+		globalThis.fetch = (...[url]: Parameters<typeof fetch>): Promise<Response> => {
+			urls.push(String(url));
+
+			return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+		};
+	};
+
+	it("reads the account's rank and the ranked population", async () => {
+		const urls: string[] = [];
+
+		stubRank({ body: { rank: 3, count: 40 }, urls });
+
+		assert.deepEqual(await getUserRankAndCount({ userId: 'user-1' }), { rank: 3, count: 40 });
+		assert.equal(urls.length, 1);
+		assert.ok(urls[0].endsWith('/api/v1/leaderboard/rank/user-1'));
+	});
+
+	it('leaves the rank absent for an unranked account', async () => {
+		stubRank({ body: { rank: null, count: 40 }, urls: [] });
+
+		assert.deepEqual(await getUserRankAndCount({ userId: 'user-2' }), { count: 40 });
 	});
 });

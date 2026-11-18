@@ -1,6 +1,7 @@
 <script lang="ts">
+	import type { CallSide } from '#lib/types/market.ts';
 	/**
-	 * A single call row in the Calls zone — a status dot, the market question,
+	 * A single call row in the Calls zone; a status dot, the market question,
 	 * an optional side chip + context line, and an end value (live timer or
 	 * settled VXP delta). Renders a `<button>` when an `onClick` is supplied;
 	 * otherwise a static `<div>` so a resolved call with no live market doesn't
@@ -12,7 +13,7 @@
 		/** Market question / title. */
 		question: string;
 		/** Optional YES/NO side chip. */
-		side?: 'YES' | 'NO';
+		side?: CallSide;
 		/** Context line (category, time-ago, crowd %, …). */
 		context: string;
 		/** End-of-row text (timer for open, signed VXP for resolved). */

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import MarketOddsSkeleton from '#lib/components/market/MarketOddsSkeleton.svelte';
+	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
 	import ProbBar from '#lib/components/ui/ProbBar.svelte';
 	import { ZERO } from '#lib/constants/app.constants.ts';
@@ -60,7 +60,7 @@
 		isNullish(market.yesProbability) ? 0 : Math.round(market.yesProbability * 100)
 	);
 	// Cold-start: a market with no real volume yet reads "New" instead of
-	// "0 VXP" — framing the empty market as an opportunity, never a synthetic
+	// "0 VXP": framing the empty market as an opportunity, never a synthetic
 	// crowd. Uses our real volume field only.
 	const freshVolume = $derived(market.totalVolume === ZERO);
 	const vol = $derived(
@@ -119,7 +119,7 @@
 			<span style:color="var(--yes)" style:font-weight="600" class="num yes t-h4">{yes}%</span>
 		{:else}
 			<span style:font-weight="600" class="num t-h4"
-				><MarketOddsSkeleton variant={market.priceLoaded ? 'empty' : 'loading'} /></span
+				><MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} /></span
 			>
 		{/if}
 		<span style="gap: 4px;" class="row">

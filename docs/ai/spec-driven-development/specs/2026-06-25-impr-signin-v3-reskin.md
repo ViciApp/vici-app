@@ -18,7 +18,7 @@ the screen reads `Welcome **back.**` (sans + serif-italic accent,
 mirroring the V3 italic-accent headline), brand pinned top, hero + auth
 clustered top-down with the secondary "create account" + legal anchored
 below; the only providers are a **dark** Google pill and a **light**
-email pill, where email goes straight to a device passkey (WebAuthn) —
+email pill, where email goes straight to a device passkey (WebAuthn):
 no magic link, no Apple.
 
 ## Context
@@ -26,17 +26,17 @@ no magic link, no Apple.
 The app is Svelte 5 runes. The relevant divergences are concrete and
 already mapped to real files.
 
-**Intended design** — the target look and behaviour:
+**Intended design**, the target look and behaviour:
 
 - Re-skin to share the V3 visual system: brand pinned top, hero
   optically composed at the top, "create account" + legal anchored to
   the bottom of the frame, hairline divider between task and footer.
-- `Welcome **back.**` hero — sans phrase + one serif-italic accent
+- `Welcome **back.**` hero: sans phrase + one serif-italic accent
   word, mirroring the V3 italic-accent headline.
 - Social-proof predictors/calls line removed.
 - Email path → device passkey (WebAuthn), `autocomplete="email
 webauthn"`, **no** magic-link "sent" state.
-- Providers: **Google + email only** — Apple dropped (no one signs up
+- Providers: **Google + email only**; Apple dropped (no one signs up
   with Apple in V3, so offering it to returning users was misleading).
 - **Dark** Google pill + **light** email pill.
 - Light/peach contrast: a concrete dark ink pill for Google, and
@@ -44,19 +44,19 @@ webauthn"`, **no** magic-link "sent" state.
   theme switch doesn't animate the pill through a cream mid-state
   (the theme-switch flash).
 
-**App (current) state** — what actually renders today:
+**App (current) state**, what actually renders today:
 
-- `src/routes/signin/+page.svelte` — the `/signin` route; renders
+- `src/routes/signin/+page.svelte`: the `/signin` route; renders
   `SignInScreen mode="signin"`, bounces an already-authenticated user
   to `AppPath.Flow`.
-- `src/lib/components/authn/SignInScreen.svelte` — the screen shell:
+- `src/lib/components/authn/SignInScreen.svelte`, the screen shell:
   wordmark, eyebrow, title (`titleParts.before` + a hardcoded
   serif-italic accent span + `after`), subcopy, **the social-proof
   block** (`.signin-proof`, reading `signin.proof.predictors_*` /
   `signin.proof.calls_*`), the provider stack, and the footer + legal.
   It is **already** the shared shell for both `signin` and `signup`
   modes via the `mode` prop.
-- `src/lib/components/authn/SignInProviderStack.svelte` — the auth
+- `src/lib/components/authn/SignInProviderStack.svelte`: the auth
   authority. It **already** implements the passkey-first email path
   (`onEmailSubmit` → `signUp`/`signIn({ webauthn })`, **no magic
   link**, progressive disclosure, `signin.email.fineprint` =
@@ -66,18 +66,18 @@ webauthn"`, **no** magic-link "sent" state.
   production-/dev-gated. The shared `startSignIn` wrapper drives
   per-provider loading + the `is-faded` dim-others state.
 - CSS in `src/app.css`:
-  - `.signin-wrap` / `.signin-card` / `.signin-head` — the current
+  - `.signin-wrap` / `.signin-card` / `.signin-head`, the current
     layout: head is a top block with `margin-bottom: 28px`, not a
     centered-hero + bottom-anchored-footer composition.
-  - `.signin-provider-btn` base — its `transition` shorthand
+  - `.signin-provider-btn` base, its `transition` shorthand
     **includes `background 200ms`**: this is the theme-switch-flash
     vector.
-  - `.signin-provider-btn.is-onboarding.ob-dark` — solid ink pill
+  - `.signin-provider-btn.is-onboarding.ob-dark`: solid ink pill
     (Apple today; the target Google pill).
-  - `.signin-provider-btn.is-onboarding.ob-cream` — cream pill (Google
+  - `.signin-provider-btn.is-onboarding.ob-cream`: cream pill (Google
     today; to be retired from the sign-in path).
-  - `.signin-proof` — the social-proof line styling.
-  - `.signin-foot` / `.signin-legal` — footer + legal.
+  - `.signin-proof`: the social-proof line styling.
+  - `.signin-foot` / `.signin-legal`: footer + legal.
 - i18n catalogs: `src/lib/constants/messages/*.ts` (12 locales,
   English authored in `en.ts`). The real sign-in keys live under
   `signin.*` (e.g. `signin.title.signin` = "Sign in to {brand}",
@@ -86,23 +86,23 @@ webauthn"`, **no** magic-link "sent" state.
   `.fineprint` / `.placeholder`, `signin.proof.*`, `signin.footer.*`,
   `signin.legal.*`, `signin.provider.apple` / `signin.loading.apple`).
   Note: this app has **no** `signin.send_link` / `signin.sent_*` /
-  `signin.sending` keys — the email path is already magic-link-free, so
+  `signin.sending` keys; the email path is already magic-link-free, so
   no "sent" state copy exists or is needed.
 
 **Reuse first** (per `docs/ai/frontend/reusability.md`): keep
-`SignInProviderStack` as the single auth authority — both `/signin` and
+`SignInProviderStack` as the single auth authority; both `/signin` and
 the "sign in to continue" modals (`SignInModal`) depend on it, and the
 sign-up onboarding renders it in `signup` mode. Do **not** fork a
 sign-in-only stack. Keep `SignInScreen` as the shared shell driven by
 `mode`. Reuse the existing `.serif-italic` + `.acc` accent pattern in
 `src/app.css` (already used by `.signin-title`) for the "back." accent.
-The `ob-dark` / `ob-faint` pill classes already exist
-— the Google pill moves from `ob-cream` to `ob-dark`.
+The `ob-dark` / `ob-faint` pill classes already exist;
+the Google pill moves from `ob-cream` to `ob-dark`.
 
 ## Scope
 
 A re-skin of the **shared** sign-in shell + a provider-stack trim and a
-CSS contrast/flash fix. No new auth mechanics — the passkey-first email
+CSS contrast/flash fix. No new auth mechanics: the passkey-first email
 path already ships; this aligns the visual system and removes the
 provider/copy/social-proof drift.
 
@@ -111,7 +111,7 @@ provider/copy/social-proof drift.
    stack offers exactly Google + email (II/passkey/dev stay
    production-/dev-gated as today). The Apple `onApple` handler and
    `apple-signin.services` import may remain dormant behind the flag
-   (cheap to re-enable) — see Pending decisions.
+   (cheap to re-enable); see Pending decisions.
 2. **Dark Google pill.** Change the Google button's pill class from
    `ob-cream` to `ob-dark` so it reads as the primary dark pill and the
    email pill (`ob-faint`) reads as the lighter secondary.
@@ -132,7 +132,7 @@ provider/copy/social-proof drift.
    brand → hero → auth clustered top-down as one unit, secondary
    "create account" + legal anchored to the bottom of the frame, with
    the existing hairline divider reading as the task/footer separator.
-   The composition is a `flex-start` cluster + bottom footer — full
+   The composition is a `flex-start` cluster + bottom footer; full
    vertical centering is deliberately avoided because it strands the
    brand. Pure CSS + minor markup grouping in `SignInScreen.svelte`;
    the provider stack markup is untouched.
@@ -145,11 +145,11 @@ provider/copy/social-proof drift.
 7. **Dead i18n keys.** The keys that become unused on the sign-in path:
    `signin.proof.predictors_count` / `signin.proof.predictors_label` /
    `signin.proof.calls_count` / `signin.proof.calls_label` (social
-   proof, removed) and — once Apple is flag-off — `signin.provider.apple`
+   proof, removed) and, once Apple is flag-off, `signin.provider.apple`
    / `signin.loading.apple`. The i18n lint flags **missing** keys, not
    unused ones, so leaving them is lint-safe; this spec **removes** the
    four `signin.proof.*` keys from all 12 catalogs (they have no other
-   caller — confirm in Open questions) and **keeps** the Apple keys
+   caller; confirm in Open questions) and **keeps** the Apple keys
    (the handler stays behind the flag). See Pending decisions.
 
 ### Out of scope
@@ -163,7 +163,7 @@ provider/copy/social-proof drift.
   screens is deferred. This spec ships the cohesive dark pill now;
   brand-compliant provider buttons are a separate pre-launch task.
 - **Removing the Apple code path.** Deleting `onApple` /
-  `apple-signin.services` / the Apple icon + keys is deferred — the
+  `apple-signin.services` / the Apple icon + keys is deferred: the
   flag-off is reversible and low-risk; a hard removal is a separate
   cleanup if product confirms Apple is permanently gone.
 - **Internet Identity / passkey / dev rows.** Their existing
@@ -177,26 +177,26 @@ provider/copy/social-proof drift.
 
 Searched the repository's open issues
 (`repo:ViciApp/vici-app`) for sign-in / signin / auth / passkey
-/ Google — **0 open issues**. No related issue; this is a sign-in
+/ Google: **0 open issues**. No related issue; this is a sign-in
 re-skin improvement with no tracking issue to close.
 
 ## Analytics
 
-Instrument the sign-in funnel — this surface emits **no** analytics
+Instrument the sign-in funnel: this surface emits **no** analytics
 today, so provider choice and sign-in success are invisible to product.
 The taxonomy already reserves the names; they are simply not fired yet:
 
-- **`signed_in`** — fire from the provider stack's `startSignIn`
+- **`signed_in`**: fire from the provider stack's `startSignIn`
   success path (and `onApple`'s success path, though Apple is now
   flag-off) for `mode === 'signin'`. Props: `source = 'signin_screen'`
   (bounded; vs the modal which would pass `'signin_modal'`); `label` =
   the provider id (bounded vocabulary: `google | email | passkey | ii |
-dev` — note `email` resolves to a passkey ceremony but is a distinct
+dev`; note `email` resolves to a passkey ceremony but is a distinct
   user-facing choice worth distinguishing).
-- **`provider_linked`** — already named in the taxonomy "(Google /
+- **`provider_linked`**: already named in the taxonomy "(Google /
   Apple / Passkey / II)". Optional companion for the same success
   point; `label` = provider id. Recommend deferring unless product
-  wants link-vs-authenticate split — `signed_in` with a `label` already
+  wants link-vs-authenticate split: `signed_in` with a `label` already
   carries provider choice. See Pending decisions.
 - **`signed_up`** is the sign-up-mode counterpart; this spec touches
   the shared stack, so wiring `signed_in` for `signin` mode naturally
@@ -205,24 +205,24 @@ dev` — note `email` resolves to a passkey ceremony but is a distinct
   funnel, which is out of scope, but the firing point is the same
   `startSignIn` success).
 
-No new event **names** are needed — `signed_in` / `provider_linked` /
+No new event **names** are needed: `signed_in` / `provider_linked` /
 `signed_up` are already in **both** halves of the dual-source pair
 (`src/lib/types/analytics-event.ts` union and
 `src/lib/schema/analytics-event.schema.ts` Zod mirror, both verified
 present). Only `props` are added, drawn from the existing bounded
 `label` / `source` dimensions (`AnalyticsEventProps` in
-`analytics-event.ts`) — no schema regen, no new Candid variant.
+`analytics-event.ts`): no schema regen, no new Candid variant.
 Capture via `track` in `src/lib/services/analytics.services.ts`.
 Behavioural only: `label`/`source` are bounded vocabularies, the email
 address is **never** a prop (no PII).
 
-## Design artifacts (frontend — optional)
+## Design artifacts (frontend, optional)
 
 Not authored in this draft. If the layout re-skin needs reviewer
 sign-off before the build, attach an HTML mock under
 `./2026-06-25-impr-signin-v3-reskin/` with a `data-theme` switcher
 rendering dark + light + peach (the contrast fix is theme-specific) and
-a "copy instructions" button — required by the workflow for any
+a "copy instructions" button, required by the workflow for any
 theme-varying mock. The dark-Google-pill + flash-fix is the variant
 most worth showing across themes.
 
@@ -271,7 +271,7 @@ most worth showing across themes.
       `signin.proof.*` keys are removed from all 12 catalogs.
 - [ ] The email path opens to an inline email input
       (`autocomplete="email webauthn"`) and submitting runs a WebAuthn
-      passkey ceremony — there is **no** magic-link "sent" state at any
+      passkey ceremony; there is **no** magic-link "sent" state at any
       point.
 - [ ] Composition is brand-top → hero+auth cluster → "create account" +
       legal anchored at the bottom, with the hairline divider reading as
@@ -289,7 +289,7 @@ most worth showing across themes.
 ## Open questions
 
 - Are the four `signin.proof.*` keys referenced **anywhere** other than
-  `SignInScreen.svelte`? (Grep before deleting — they appear sign-in
+  `SignInScreen.svelte`? (Grep before deleting; they appear sign-in
   only, but confirm no onboarding/landing reuse exists in any catalog
   consumer.)
 - Does `titleParts` correctly render a **trailing** accent when the
@@ -301,13 +301,13 @@ most worth showing across themes.
 - Confirm `track` is safe to call from `SignInProviderStack` before the
   principal is established for a fresh sign-in (the taxonomy notes
   identity is "absent before sign-in; stitched from `sessionId` on
-  auth") — i.e. firing `signed_in` at the `onSuccess` boundary attaches
+  auth"), i.e. firing `signed_in` at the `onSuccess` boundary attaches
   the correct (now-authenticated) principal, not an anonymous one.
 
 ## Pending decisions
 
 - **Analytics breadth.** Ship `signed_in` (recommended). Decide whether
-  to also fire `provider_linked` (link-vs-authenticate split — likely
+  to also fire `provider_linked` (link-vs-authenticate split, likely
   redundant with `signed_in`'s `label`) and whether to wire the
   `signed_up` counterpart here (its firing point is the same shared
   `startSignIn` success, but it belongs to the out-of-scope sign-up
@@ -321,7 +321,7 @@ most worth showing across themes.
 
 Recorded from the planning handoff (the calls already made):
 
-- **Re-skin the live `/signin` outright — no flag gate** (owner
+- **Re-skin the live `/signin` outright: no flag gate** (owner
   decision, 2026-06-25). `SignInScreen` is already the only sign-in
   shell for both the page and the modal, so the V3 look applies
   everywhere; there is no second path to gate and forking one would
@@ -331,17 +331,17 @@ Recorded from the planning handoff (the calls already made):
   `apple-signin.services` / the Apple icon + keys in place (reversible).
   Hard removal is a separate later cleanup only if Apple is confirmed
   permanently gone.
-- **Keep the app's `signin.*` i18n namespace** — new/changed copy
+- **Keep the app's `signin.*` i18n namespace**: new/changed copy
   lands under the existing `signin.*` keys; no alternate key scheme is
   introduced.
-- **No emoji** — the app uses lucide icons (`Mail`, `ChevronRight`);
+- **No emoji**: the app uses lucide icons (`Mail`, `ChevronRight`);
   no inline SVGs or glyphs are added beyond the existing `IconGoogle`
   component.
-- **Independent of the other sign-in/onboarding specs** — this
+- **Independent of the other sign-in/onboarding specs**: this
   re-skin can ship first; it touches only the shared sign-in shell, the
   provider stack flags/classes, the sign-in CSS block, and `signin.*`
   copy, with no dependency on a sign-up/onboarding spec.
-- **`SignInProviderStack` stays the single auth authority** — the
+- **`SignInProviderStack` stays the single auth authority**: the
   re-skin changes flags, one pill class, and adds analytics; it does
   **not** fork a sign-in-only stack. The passkey-first, magic-link-free
   email path it already implements is the target behaviour, not a new

@@ -198,9 +198,9 @@ the service layer and let the service own caching.
   worked example: a `0.5` default read as a real coin-flip and showed
   un-loaded markets as 50%. It is now optional, paired with a
   `priceLoaded` boolean that separates _loading_ (skeleton) from
-  _loaded-but-empty_ (dash); the odds placeholder is
-  `#lib/components/market/MarketOddsSkeleton.svelte`. See
-  [`PRODUCT.md`](../PRODUCT.md) → "Market odds".
+  _loaded-but-empty_ (dash); the probability placeholder is
+  `#lib/components/market/MarketProbabilitySkeleton.svelte`. See
+  [`PRODUCT.md`](../PRODUCT.md) → "Market probability".
 
 ## Service / data flow
 
@@ -230,15 +230,40 @@ Example shape (compressed from
 [`#lib/services/market.services.ts`](../../../src/lib/services/market.services.ts)):
 
 ```ts
-import { registryApi } from '#lib/api/registry.api.ts';
+import type { RegistryDid } from '#declarations';
+import { addSeries } from '#lib/api/registry.api.ts';
 import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
+import { UserRole } from '#lib/enums/user.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
-import type { CreateMarketRequest } from '#lib/types/market.ts';
+import { getProfile } from '#lib/services/profile.services.ts';
+import { toNullable } from '@dfinity/utils';
 
-export const createMarket = async (req: CreateMarketRequest): Promise<MarketId> => {
+export const createMarket = async ({
+	title,
+	resolution,
+	balanceDomain,
+	tradingAccess = [{ Open: null }]
+}: {
+	title: string;
+	resolution: string;
+	balanceDomain: RegistryDid.BalanceDomain;
+	tradingAccess?: RegistryDid.TradingAccess[];
+}): Promise<string> => {
 	const identity = await safeGetIdentityOnce();
-	const engineId = req.userIsCreator ? VICI_ENGINE_ID : null;
-	return registryApi.addSeries({ identity, engineId, ...req });
+
+	const { role } = (await getProfile(identity.getPrincipal().toText())).data;
+	const isEngineCreator = role === UserRole.ADMIN || role === UserRole.CREATOR;
+
+	const params: RegistryDid.AddSeriesParams = {
+		// ...the other series fields
+		title,
+		resolution: { clause: resolution.trim() },
+		balance_domain: balanceDomain,
+		trading_access: tradingAccess,
+		engine_id: isEngineCreator ? toNullable(VICI_ENGINE_ID) : toNullable()
+	};
+
+	return await addSeries({ identity, params });
 };
 ```
 
@@ -252,14 +277,14 @@ a new market / oracle path, **read that doc first**. The single place that
 pins `VICI_ENGINE_ID` is
 [`src/lib/constants/icdc.constants.ts`](../../../src/lib/constants/icdc.constants.ts).
 
-### Call size is a FE fixed-stake skin over the CLOB
+### Call size is a FE fixed-amount skin over the CLOB
 
 The engine is a **share-based CLOB**: an order is `(price, qty)` where `qty`
 is a number of outcome shares (each pays `1` on win) and the locked margin is
-`qty × price`. The UI never exposes shares; it presents a **fixed-stake**
+`qty × price`. The UI never exposes shares; it presents a **fixed-amount**
 ("call size") convention: the slider value is the VXP you spend, you lose
-exactly that if wrong, and a win pays `stake / price`. The two are the same
-trade, spending `stake` to buy `stake / price` shares, so this is a
+exactly that if wrong, and a win pays `amount / price`. The two are the same
+trade, spending `amount` to buy `amount / price` shares, so this is a
 **pure FE presentation layer; the ICDC `(price, qty)` convention is
 untouched.** The conversion is the one line in
 [`executeOutcomeTrade`](../../../src/lib/utils/trade.utils.ts):
@@ -272,8 +297,8 @@ ask for YES, `1 − best bid` for NO, consensus mid only when that side of the
 book is empty). Always size previews off this helper, never off the consensus
 mid (`yesProbability`): the mid ignores the spread and over-promises the
 payout on a thin / one-sided book. Net payout itself is computed by
-[`vxpNetWin`](../../../src/lib/utils/vxp-economy.utils.ts) (`stake / price −
-stake`, with a `VXP_P_WIN_FLOOR` cap on long-shot display). The flow card does
+[`vxpNetWin`](../../../src/lib/utils/vxp-economy.utils.ts) (`amount / price −
+amount`, with a `VXP_P_WIN_FLOOR` cap on long-shot display). The flow card does
 **not** load full book depth (a known N+1 perf footgun), so the preview models
 spread-level slippage from top-of-book, not multi-level depth walking.
 
@@ -347,13 +372,19 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   account unless it is cleared on the auth transition. The single chokepoint
   is
   [`reconcileIdentityScopedStorage`](../../../src/lib/services/identity-storage.services.ts),
-  called from
-  [`Authn.svelte`](../../../src/lib/components/authn/Authn.svelte) on every
-  `onAuthStateChange`. It compares the new principal against a persisted
-  owner (`vici.storage-owner.v1`) and wipes the identity-scoped caches
-  **only when the owner actually changes**, never on a same-user reload,
-  so the offline-resilient daily-goal mirror survives a refresh. When you
-  add a new user-scoped persisted key, register its reset there (and prefer
+  run by
+  [`resetIdentityScopedState`](../../../src/lib/services/identity-reset.services.ts),
+  the one reset
+  [`Authn.svelte`](../../../src/lib/components/authn/Authn.svelte) runs on
+  every auth transition in both backend modes (each `onAuthStateChange`
+  on-chain, each web2 session hydrate and clear), together with the
+  in-memory user-scoped caches. A new user-scoped store registers its reset
+  there, never in `Authn` beside it. It compares the new principal against
+  a persisted owner (`vici.storage-owner.v1`) and wipes the identity-scoped
+  caches **only when the owner actually changes**, never on a same-user
+  reload, so the offline-resilient daily-goal mirror survives a refresh.
+  When you add a new user-scoped persisted key, register its reset in
+  `reconcileIdentityScopedStorage` (and prefer
   routing genuinely cross-device state through `profile.preferences`
   instead; that store already resets on sign-out). Device-level keys
   (theme, locale, last-open tab) intentionally stay put.
@@ -443,8 +474,11 @@ spread-level slippage from top-of-book, not multi-level depth walking.
 - Wrap expensive work in `$derived.by` (cached) or in a `derived(...)`
   Svelte store, not in the render path.
 - `{#each items as item (item.id)}` with a stable key.
-- Lazy-load heavy modules with dynamic `import()` inside an `$effect` /
-  event handler when they aren't needed on first paint.
+- Load modules statically. Dynamic `import()` is not a per-component
+  lazy-load tool: scattered deferred imports through stores and components
+  are rejected. The one structural split is the per-locale catalog loader in
+  [`i18n.utils.ts`](../../../src/lib/utils/i18n.utils.ts); see
+  [Forbidden imports / patterns](./structure.md#forbidden-imports--patterns).
 
 ## Anti-patterns (do not do these)
 

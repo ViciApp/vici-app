@@ -5,16 +5,22 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
+import { UUID_RE } from '../lib/constants';
 import { badRequest } from '../lib/http';
+import { enforceLimit } from '../lib/rate-limit';
+import { HOUR_IN_MS } from '../lib/time';
 import {
 	adminDeleteSchool,
 	adminUpsertSchool,
 	listAllSchools,
 	listPublicSchools,
 	SchoolVerificationError,
+	SUBMISSION_NOT_FOUND,
 	submitSchool,
 	verifySchoolCode
 } from '../school/verification';
+
+const SCHOOL_VERIFY_LIMIT_PER_HOUR = 30;
 
 export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 	.post(
@@ -58,6 +64,26 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 
 			if (isNullish(user)) {
 				return unauthenticated(set);
+			}
+
+			// Keyed by account, not IP: students on one campus network share an
+			// address, and the guessing being bounded is per account.
+			const limited = enforceLimit({
+				set,
+				name: 'school_verify',
+				ip: user.id,
+				limit: SCHOOL_VERIFY_LIMIT_PER_HOUR,
+				windowMs: HOUR_IN_MS
+			});
+
+			if (limited) {
+				return limited;
+			}
+
+			// Submissions are keyed by uuid: any other id names no submission, and
+			// would fail the uuid bind in the lookup as a 500.
+			if (!UUID_RE.test(body.submissionId)) {
+				return SUBMISSION_NOT_FOUND;
 			}
 
 			return await verifySchoolCode({

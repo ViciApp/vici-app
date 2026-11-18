@@ -62,6 +62,11 @@ const diffRoles = ({
 const shouldBeOracleSettler = (role: GrantableRole | undefined): boolean =>
 	mappedRoles(role).some((r) => engineRoleKey(r) === 'OracleAdmin');
 
+/** Whether a stored role may settle markets, and so record the settlement
+ * activity that follows an on-chain settle. */
+export const isSettlingRole = (role: string): boolean =>
+	isGrantableRole(role) && shouldBeOracleSettler(role);
+
 const errToString = (err: RegistryDid.EngineError | RegistryDid.OracleError): string =>
 	Object.keys(err)[0] ?? 'unknown';
 

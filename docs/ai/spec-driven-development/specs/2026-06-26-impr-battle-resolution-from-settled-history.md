@@ -9,8 +9,8 @@ Shipped across #1003 (proposer handle + settling state) and #1056
 (settled-history resolution + live standings). The "Findings (gates the
 build)" and "Pending decisions" sections below **predate the build** and
 were resolved by **option A**: icdc-core now exposes
-`aggregate_settlement_accuracy` — per-member settled accuracy over an
-arbitrary `[from, to]` window with a `series_ids` filter — which the
+`aggregate_settlement_accuracy`, per-member settled accuracy over an
+arbitrary `[from, to]` window with a `series_ids` filter, which the
 resolution engine reads directly. Everything below is the frozen
 decision record; for current behaviour see `PRODUCT.md` §"Battles".
 
@@ -21,7 +21,7 @@ a tag-scoped battle's category) over the battle window, via a
 controller-only satellite endpoint that writes the resolved doc as a
 controller; the `battles` assert accepts an `in_flight → resolved` league
 write only from a controller. The `league_stats` kickoff **baselines are
-no longer read** for resolution or live standings — a baseline-less legacy
+no longer read** for resolution or live standings; a baseline-less legacy
 battle resolves like any other, and the **FE** restart/self-heal trigger
 (`restartLegacyBattle` + the auto-restart effect) is removed. To bound the
 change, the baseline machinery is otherwise **left in place but
@@ -49,27 +49,27 @@ proposer renders as a handle, not a raw principal.
 
 - Reconciled against `main` at **v1.8.0** (#998). `resolveBattle` still
   requires baselines (the bug is unfixed); the V1.8 arena work
-  (`resolved_results` collection #988 — a friend digest of resolved
+  (`resolved_results` collection #988: a friend digest of resolved
   _market_ results off an `activities` hook; opponent-notification #986)
   is unrelated to battle resolution and changes nothing here.
 - Resolution + live-score + state transitions:
-  `src/lib/services/leagues.services.ts` — `resolveBattle` (1138),
+  `src/lib/services/leagues.services.ts`, `resolveBattle` (1138),
   `readBattleLiveScore` (1232), `acceptBattle` (947), `kickoffBattle`
   (1069), `readLeagueStatsBucket` (915).
 - Satellite assert (state machine + per-transition auth + trustless
-  re-derivation): `src/satellite/services/battle.services.ts` —
+  re-derivation): `src/satellite/services/battle.services.ts`,
   `in_flight->resolved` branch (541), `proposed->in_flight` baseline
   requirement (466).
 - League stats fan-out hook (the source of the current attribution
   rule): `src/satellite/services/league-stats.services.ts:170`
-  (`onProfileSetForLeagueStats`) — credits a member's whole
+  (`onProfileSetForLeagueStats`), credits a member's whole
   since-last-sync `deltaTrades`/`deltaWins` to **current** memberships at
   sync time, forward-only, no per-call timestamp.
-- Battle doc shape + helpers: `src/lib/types/battle.ts` — `BattleDoc`
+- Battle doc shape + helpers: `src/lib/types/battle.ts`, `BattleDoc`
   (103), `battleAccuracyPct` (187), `deriveBattleWinner` (197),
   `BattleWinner` (42).
-- Clearing history (caller-scoped — own events only):
-  `src/lib/services/trade.services.ts` — `getUserTradeHistory` (119);
+- Clearing history (caller-scoped, own events only):
+  `src/lib/services/trade.services.ts`, `getUserTradeHistory` (119);
   settled/win predicates `src/lib/utils/resolved-position.utils.ts`
   (`isSettledEvent` 13, `isWinningSettledEvent` 23).
 - Market-wide fill tape (arbitrary-principal, paginated):
@@ -78,7 +78,7 @@ proposer renders as a handle, not a raw principal.
 - Membership records (carry `joinedAtMs`):
   `src/lib/types/league-member.ts:18`; collection
   `LEAGUE_MEMBERS`.
-- Battle detail UI: `src/lib/components/pages/BattleDetailPage.svelte` —
+- Battle detail UI: `src/lib/components/pages/BattleDetailPage.svelte`,
   `dayOf`/`totalDays` clamp (196), `isFinalizing` (214), proposer render
   (553), auto-resolve effect (414).
 - Profile-handle resolution to reuse:
@@ -97,7 +97,7 @@ proposer renders as a handle, not a raw principal.
    for each side, each member's settled calls whose settle timestamp is
    in `[kickoffMs, settleMs)` and where the caller was a member of that
    league at the call's settle time. **Unit discipline:** clearing events
-   carry `timestampNs` (nanoseconds — `event.timestamp` mapped in
+   carry `timestampNs` (nanoseconds, `event.timestamp` mapped in
    `settledEventToResolvedPosition`) while `kickoffMs` / `settleMs` /
    `joinedAtMs` are milliseconds; convert to one unit before comparing
    (e.g. `callMs = Number(timestampNs / 1_000_000n)`, then
@@ -115,17 +115,17 @@ proposer renders as a handle, not a raw principal.
    the `league_stats` re-derivation, and no longer requires
    `baselineA/baselineB` to be present. `baselineA/baselineB` become
    vestigial (kept for back-compat reads; no longer written or required).
-4. **Overdue UI** — `BattleDetailPage` shows a settling/overdue state for
+4. **Overdue UI**: `BattleDetailPage` shows a settling/overdue state for
    a past-`settleMs` `in_flight` battle instead of clamping to "DAY N OF
    N"; the day counter only renders while genuinely within the window.
-5. **Proposer handle** — render `proposer` (and, where shown, side
+5. **Proposer handle**: render `proposer` (and, where shown, side
    principals) via `getDisplayName` + `profilesStore`, hydrated through
    `loadProfilesByPrincipals`, falling back to the shortened principal.
-6. **One-off repair** — resolve the known stuck battle
+6. **One-off repair**: resolve the known stuck battle
    (`giovanniiiiii-1779997787499--vs--av-league-1780035473396-mq39hvbc`,
    settled 2026-06-15) through the new path. A sweep of other
    pre-baseline `in_flight` battles is out of scope (see below).
-7. **PRODUCT.md** — in the same PR, rewrite §"Battles" (339-410) so every
+7. **PRODUCT.md**: in the same PR, rewrite §"Battles" (339-410) so every
    decision below is reflected in the living product doc, not only in this
    spec:
    - **Scoring model** (392-401): replace the `league_stats` baseline →
@@ -136,10 +136,10 @@ proposer renders as a handle, not a raw principal.
    - **Trustlessness** (401-407): correct the "assert independently
      re-derives … rejects any fabricated result" claim to the
      controller-trusted model, stating the trade-off plainly.
-   - **Membership attribution**: add the member-at-call-time rule (new —
+   - **Membership attribution**: add the member-at-call-time rule (new;
      the doc is currently silent on it because the counter hid it).
    - **Known limitations** (407-410): delete the "snapshot delta measures
-     kickoff → resolution rather than the exact window" approximation — it
+     kickoff → resolution rather than the exact window" approximation; it
      no longer applies; the window is now exact.
    - **Overdue/settling state**: note a past-window battle shows settling,
      not a live day counter.
@@ -149,7 +149,7 @@ record. Per the truth hierarchy they must agree at merge.
 
 ### Out of scope
 
-- Duels (principal-vs-principal) — keep the existing manual-score path.
+- Duels (principal-vs-principal): keep the existing manual-score path.
 - Migrating/removing the `league_stats` counter or its fan-out hook
   (still drives league rank + leaderboards). Only battle _resolution_
   stops reading it.
@@ -173,7 +173,7 @@ Reuse the existing `battle_resolved` event emitted on resolution
 (`trackResolved` in `BattleDetailPage.svelte`). Add a bounded prop
 `resolveBasis: 'history' | 'legacy_void'` to distinguish a real
 window-true resolution from a fallback (a side with zero readable
-settled calls). No new event _name_ — but a new prop _key_ is itself a
+settled calls). No new event _name_, but a new prop _key_ is itself a
 taxonomy change: it must land in **both** the TS `AnalyticsEventProps`
 (`src/lib/types/analytics-event.ts:227`) and the runtime Zod mirror
 `AnalyticsEventPropsSchema` (`src/lib/schema/analytics-event.schema.ts:103`,
@@ -182,14 +182,14 @@ flattened onto `TrackEventInputSchema`. Omitting the schema half makes
 runtime validation reject every event carrying the field. No PII;
 principals are not logged as event props.
 
-## Technical requirements (satellite / backend — mandatory)
+## Technical requirements (satellite / backend, mandatory)
 
 - **Performance.** Resolution is no longer O(1) (one counter read per
   side). It drains the market-wide fill tape for every in-scope series
   and nets per-principal positions client-side. Bound it: page via
   `next_cursor` (`TRADE_HISTORY_PAGE_SIZE`), fold-and-discard like
   `getSeriesTradeVolume`. Resolution fires lazily (battle open), not on a
-  poll — acceptable for an interactive action, but it must show progress
+  poll, acceptable for an interactive action, but it must show progress
   and never block the page.
 - **Instruction budget.** The satellite side stays cheap: the assert only
   authorizes a controller write (no fan-out, no re-derivation). All heavy
@@ -197,14 +197,14 @@ principals are not logged as event props.
 - **Memory & storage.** No new collection. `BattleDoc` gains no required
   field; `baselineA/baselineB` become optional/vestigial.
 - **Scalability.** Cost scales with in-scope markets × fills, not users.
-  At 100× markets the per-resolution drain grows — **open question**
+  At 100× markets the per-resolution drain grows: **open question**
   whether a market-wide drain is acceptable, or whether icdc-core exposes
   a narrower per-principal settled-events query (see Open questions). If
   not, document the ceiling and consider scoping by the battle's markets.
 - **Upgrade & compatibility.** Satellite assert change →
   `npm run juno:functions:build`, commit regenerated `.did` /
   declarations. Behaviour change to resolution + dropping the trustless
-  re-derivation is a documented guarantee change — title gets `!` +
+  re-derivation is a documented guarantee change; title gets `!` +
   `BREAKING CHANGE:` block. Requires a **manual satellite wasm upgrade**
   (auto-upgrade is off); the repair runs after the upgrade.
 - **Security.** Resolution moves from trustless (assert re-derives and
@@ -231,7 +231,7 @@ principals are not logged as event props.
    `toMs=now`; remove the baseline-nullish early return.
 4. Satellite `in_flight->resolved`: add the controller-authorized,
    baseline-free branch; keep the legacy trustless branch only if a
-   battle still carries baselines (back-compat) — otherwise require
+   battle still carries baselines (back-compat); otherwise require
    controller. Regenerate bindings.
 5. `BattleDetailPage`: gate the "DAY N OF N" render on
    `now < settleMs`; show a settling/overdue label otherwise. Wire
@@ -269,7 +269,7 @@ principals are not logged as event props.
 
 - **"A call" definition.** Confirm a "settled call" for accuracy =
   one settled position per series per principal (matching how
-  `calculateAndSyncStats` counts `isSettledEvent`), not per fill — so
+  `calculateAndSyncStats` counts `isSettledEvent`), not per fill, so
   multiple fills on one market count once. (Moot under leaderboard
   option B below, which counts settlements server-side.)
 
@@ -278,15 +278,15 @@ principals are not logged as event props.
 The per-principal settled-call source was investigated against the
 clearing canister's full query surface (`src/declarations/clearing/clearing.did`):
 
-- `get_trade_history () -> vec Event query` — **caller-scoped**, own
+- `get_trade_history () -> vec Event query`: **caller-scoped**, own
   events only, no principal argument.
-- `list_leaderboard (ListLeaderboardParams) -> LeaderboardPage query` —
+- `list_leaderboard (ListLeaderboardParams) -> LeaderboardPage query`:
   returns per-principal `win_count` / `settled_count` (i.e. exactly the
   battle accuracy) with a `members: opt vec principal` filter (a league
-  set, capped 10k) — **but only over fixed calendar windows**
+  set, capped 10k), **but only over fixed calendar windows**
   `LeaderboardWindow = { Week | Month | AllTime }`, not a rolling
   `[kickoffMs, settleMs)` span.
-- `list_series_trade_history` — market-wide **fills** per series, not
+- `list_series_trade_history`: market-wide **fills** per series, not
   per-principal settlements.
 
 **There is no query for an arbitrary principal's settled calls over an
@@ -298,18 +298,18 @@ battle window" is not implementable on current APIs for the
 
 The findings reopen the resolution-basis decision. Owner must pick:
 
-- **A — Add an icdc-core query.** Extend the clearing canister with a
+- **A: Add an icdc-core query.** Extend the clearing canister with a
   per-member settled query over an arbitrary `[from, to]` window
   (timestamps already exist on settlement events). Cross-repo backend
   change (separate `icdc-core` PR, its own `AGENTS.md`), then wire here.
   Implements the spec as written, trustless on the engine side.
-- **B — Calendar-align battle windows + `list_leaderboard`.** Make
+- **B: Calendar-align battle windows + `list_leaderboard`.** Make
   battles run over an ISO week / calendar month so
   `list_leaderboard(members, window)` resolves them exactly, live, and
-  trustlessly server-side — strictly better than baseline-delta, no
+  trustlessly server-side, strictly better than baseline-delta, no
   satellite trust regression. Product redesign of battle durations /
   "accept starts the clock".
-- **C — Keep baseline-delta for new battles; void legacy.** Smallest:
+- **C: Keep baseline-delta for new battles; void legacy.** Smallest:
   current battles keep today's counter-delta; baseline-less legacy rows
   resolve to a no-contest draw. The sync-timing correctness gap (#2)
   stays. No engine change.

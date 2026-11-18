@@ -1,23 +1,27 @@
-// Worlds standings: the write-once monthly freeze (frozen rows never drift
-// as the roster later churns), the frozen-vs-provisional month read, the
-// champion history derived from frozen months, and the opt-out gate on the
-// recomputed windows.
+// Worlds standings: the write-once monthly freeze from settled history
+// (frozen rows never drift as the roster later churns), the
+// frozen-vs-provisional month read, the champion history derived from
+// frozen months, and the opt-out gate on the recomputed windows.
 
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { isNullish } from '@dfinity/utils';
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
+import { DAY_IN_MS, monthAnchorFromMs, monthStartMs } from '../src/lib/time';
 import {
+	freezeClosedMonth,
 	freezeMonthlySnapshots,
+	frozenMonthlyRanking,
 	getAffiliationStats,
 	listAffiliationChampionships,
 	listAffiliationStats,
 	listAffiliationStatsForMonth,
-	MIN_CALLS_FOR_RANK,
-	monthAnchorFromMs
+	MIN_CALLS_FOR_RANK
 } from '../src/worlds/affiliation-stats';
-import { setAffiliation } from '../src/worlds/affiliations';
+import { setAffiliation, type AffiliationKind } from '../src/worlds/affiliations';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { uniqueNickname } from './helpers/profiles';
+import { stubSettledHistory, type SettledHistoryStub } from './helpers/settlements';
 import { dbAvailable } from './helpers/setup';
 
 const uniqueSlug = (): string => `w-${randomBytes(6).toString('hex')}`;
@@ -53,7 +57,19 @@ const clearTestMonths = async (): Promise<void> => {
 	await query(`delete from user_monthly_stats where month_anchor >= $1`, [FIRST_TEST_MONTH_ANCHOR]);
 };
 
-/** A member of `slug` with a profile and a month row for the anchor. */
+let settled: SettledHistoryStub | undefined;
+
+beforeEach(() => {
+	settled = stubSettledHistory();
+});
+
+afterEach(() => {
+	settled?.restore();
+	settled = undefined;
+});
+
+/** A member of `slug` with a profile, a month row for the anchor and the
+ * same calls settled inside that month. */
 const seedMember = async ({
 	slug,
 	monthAnchor,
@@ -61,7 +77,8 @@ const seedMember = async ({
 	monthWins,
 	totalTrades = 0,
 	winRate = 0,
-	worldsOptIn
+	worldsOptIn,
+	kind = 'university'
 }: {
 	slug: string;
 	monthAnchor: string;
@@ -69,10 +86,11 @@ const seedMember = async ({
 	monthWins: number;
 	totalTrades?: number;
 	winRate?: number;
-	worldsOptIn?: boolean;
+	worldsOptIn?: unknown;
+	kind?: AffiliationKind;
 }): Promise<string> => {
 	const userId = await createTestUser();
-	const preferences = worldsOptIn === false ? { sharing: { worldsOptIn: false } } : {};
+	const preferences = isNullish(worldsOptIn) ? {} : { sharing: { worldsOptIn } };
 
 	await query(
 		`insert into profiles (user_id, nickname, nickname_key, total_trades, win_rate, preferences)
@@ -84,7 +102,13 @@ const seedMember = async ({
 		 values ($1, $2, $3, $4, $5)`,
 		[userId, monthAnchor, monthCalls, monthWins, Date.now()]
 	);
-	await setAffiliation({ userId, kind: 'university', affiliationIdentifier: slug });
+	settled?.settle({
+		userId,
+		atMs: monthStartMs(monthAnchor) + DAY_IN_MS,
+		calls: monthCalls,
+		wins: monthWins
+	});
+	await setAffiliation({ userId, kind, affiliationIdentifier: slug });
 
 	return userId;
 };
@@ -252,5 +276,108 @@ describe.if(dbAvailable)('recomputed windows and championships', () => {
 		});
 
 		expect(none.some((c) => c.monthAnchor === monthAnchor)).toBe(false);
+	});
+});
+
+describe.if(dbAvailable)('a stored opt-out that is not a boolean', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+		await clearTestMonths();
+	});
+
+	// The rows are written straight to the table, the way a row from before
+	// preferences were shaped on write would sit there, and reset afterwards
+	// so concurrent suites never read them.
+	const resetPreferences = async (userIds: string[]): Promise<void> => {
+		await query(`update profiles set preferences = '{}' where user_id = any($1::uuid[])`, [
+			userIds
+		]);
+	};
+
+	test('counts the member as opted in, like the profile read, and fails no query', async () => {
+		const { monthAnchor, nowMs } = uniqueClosedMonth();
+		const slug = uniqueSlug();
+		const seeded = [
+			await seedMember({
+				slug,
+				monthAnchor,
+				monthCalls: MIN_CALLS_FOR_RANK,
+				monthWins: 40,
+				totalTrades: MIN_CALLS_FOR_RANK,
+				winRate: 80,
+				worldsOptIn: 'x'
+			}),
+			await seedMember({
+				slug,
+				monthAnchor,
+				monthCalls: 10,
+				monthWins: 5,
+				totalTrades: 10,
+				winRate: 50,
+				worldsOptIn: 2
+			})
+		];
+
+		try {
+			const stats = await getAffiliationStats({ kind: 'university', affiliationIdentifier: slug });
+
+			expect(stats?.totalCalls).toBe(MIN_CALLS_FOR_RANK + 10);
+
+			const board = await listAffiliationStats({ kind: 'university' });
+
+			expect(board.some((r) => r.affiliationIdentifier === slug)).toBe(true);
+
+			const live = await listAffiliationStatsForMonth({ kind: 'university', monthAnchor, nowMs });
+
+			expect(live.find((r) => r.affiliationIdentifier === slug)?.monthTotalCalls).toBe(
+				MIN_CALLS_FOR_RANK + 10
+			);
+
+			await freezeMonthlySnapshots({ kind: 'university', monthAnchor, nowMs });
+
+			const frozen = await frozenMonthlyRanking({ kind: 'university', monthAnchor });
+
+			expect(frozen.find((r) => r.affiliationIdentifier === slug)?.monthWins).toBe(45);
+		} finally {
+			await resetPreferences(seeded);
+		}
+	});
+});
+
+describe.if(dbAvailable)('closed-month freeze job', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+		await clearTestMonths();
+	});
+
+	test('a kind that cannot be read does not keep the other kind from freezing', async () => {
+		const { monthAnchor, nowMs } = uniqueClosedMonth();
+		const university = uniqueSlug();
+		const country = uniqueSlug();
+		const unreadable = await seedMember({
+			slug: university,
+			monthAnchor,
+			monthCalls: MIN_CALLS_FOR_RANK,
+			monthWins: 30
+		});
+
+		await seedMember({
+			slug: country,
+			monthAnchor,
+			monthCalls: MIN_CALLS_FOR_RANK,
+			monthWins: 30,
+			kind: 'country'
+		});
+		settled?.failReadsFor(unreadable);
+
+		const result = await freezeClosedMonth(nowMs);
+
+		expect(result.monthAnchor).toBe(monthAnchor);
+		expect(result.failedKinds).toEqual(['university']);
+
+		const countryRanking = await frozenMonthlyRanking({ kind: 'country', monthAnchor });
+
+		expect(countryRanking.some((r) => r.affiliationIdentifier === country)).toBe(true);
+		expect(await frozenMonthlyRanking({ kind: 'university', monthAnchor })).toHaveLength(0);
 	});
 });

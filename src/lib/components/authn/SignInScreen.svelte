@@ -17,7 +17,7 @@
 		// `signup` for new accounts.
 		mode?: 'signin' | 'signup';
 		// Callback for after a successful auth handshake. Defaults to
-		// navigating to `AppPath.Flow` — the canonical first surface for
+		// navigating to `AppPath.Flow`; the canonical first surface for
 		// every authenticated session; routes calling this from a layout
 		// can pass a different post-auth target.
 		onSuccess?: () => void;
@@ -47,7 +47,7 @@
 	);
 
 	// The signin hero ("Welcome back.") already carries the welcome beat in its
-	// accent word, so the eyebrow would only echo it — drop it on the signin
+	// accent word, so the eyebrow would only echo it: drop it on the signin
 	// path. Signup/onboarded keep their distinct eyebrows.
 	const eyebrowKey = $derived<MessageKey | null>(
 		onboardingComplete ? 'signin.eyebrow.onboarded' : isSignUp ? 'signin.eyebrow.signup' : null

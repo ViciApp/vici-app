@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { EM_DASH } from '#lib/constants/app.constants.ts';
+	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { featuredEvent } from '#lib/derived/featured-event.derived.ts';
 	import { syncMyStats } from '#lib/services/profile.services.ts';
@@ -13,14 +13,14 @@
 	/**
 	 * Recap "trophy" card shown at the top of the Markets list in the
 	 * `open` phase of the World-Cup arc (the Cup has resolved). It mirrors
-	 * the user's World-Cup performance — accuracy + call count, read from
-	 * the same `wc` category bucket the Dash rank tile uses — and converts
+	 * the user's World-Cup performance: accuracy + call count, read from
+	 * the same `wc` category bucket the Dash rank tile uses, and converts
 	 * the wound-down event into broader play via an "Explore all markets"
 	 * CTA.
 	 *
 	 * Real data only: accuracy and call count come from the persisted
 	 * `user_stats` snapshot. When there are no World-Cup calls (or the
-	 * snapshot hasn't loaded) the figures render as `EM_DASH` — we never
+	 * snapshot hasn't loaded) the figures render as `EMPTY_VALUE`; we never
 	 * fabricate a number.
 	 */
 	interface Props {
@@ -78,7 +78,7 @@
 		};
 	});
 
-	// The `wc` bucket is the event's own accuracy slice — the same source
+	// The `wc` bucket is the event's own accuracy slice, the same source
 	// the Dash rank tile reads. `undefined` until there's at least one call.
 	const wcBucket = $derived(userStats?.categoryStats?.wc);
 	const calls = $derived(wcBucket?.calls ?? 0);
@@ -100,7 +100,7 @@
 	<div class="recap-stats">
 		<div class="recap-stat">
 			<span class="recap-stat-v num acc t-h4">
-				{#if nonNullish(accuracyPct)}{accuracyPct}%{:else}{EM_DASH}{/if}
+				{#if nonNullish(accuracyPct)}{accuracyPct}%{:else}{EMPTY_VALUE}{/if}
 			</span>
 			<span class="recap-stat-l mute eyebrow-xs">
 				{t({ locale: $localeStore, key: 'markets.wc_recap.accuracy' })}
@@ -108,7 +108,7 @@
 		</div>
 		<div class="recap-stat">
 			<span class="recap-stat-v num t-h4">
-				{#if calls > 0}{calls.toLocaleString()}{:else}{EM_DASH}{/if}
+				{#if calls > 0}{calls.toLocaleString()}{:else}{EMPTY_VALUE}{/if}
 			</span>
 			<span class="recap-stat-l mute eyebrow-xs">
 				{t({ locale: $localeStore, key: 'markets.wc_recap.calls' })}

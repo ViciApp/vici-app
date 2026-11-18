@@ -6,7 +6,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { tx, type TxQuery } from '../db/client';
 import { ZERO } from '../lib/constants';
-import { nowNs } from '../lib/time';
+import { DAY_IN_MS, nowNs } from '../lib/time';
 import {
 	ANALYTICS_PROP_KEYS,
 	isAnalyticsEventName,
@@ -15,10 +15,15 @@ import {
 	type AnalyticsEventProps
 } from './taxonomy';
 
-const MS_PER_DAY = 86_400_000;
-
 /** Defensive cap so one call cannot write an unbounded number of rows. */
 export const MAX_EVENTS_PER_BATCH = 100;
+
+// Length caps on an ingest event's free strings. The ingest is anonymous, so
+// these bound what one request can make the log store; real values sit far
+// below them (a UUID session id, an app route, short ids and labels).
+export const MAX_SESSION_ID_LENGTH = 128;
+export const MAX_PATH_LENGTH = 2048;
+export const MAX_PROP_STRING_LENGTH = 256;
 
 /** Thrown on a malformed ingest batch; the route maps it to a 400. */
 export class AnalyticsValidationError extends Error {}
@@ -63,8 +68,20 @@ const parseTrackEvent = (value: unknown, position: number): TrackEventInput => {
 		throw new AnalyticsValidationError(`events[${position}].sessionId must be a string.`);
 	}
 
+	if (sessionId.length > MAX_SESSION_ID_LENGTH) {
+		throw new AnalyticsValidationError(
+			`events[${position}].sessionId exceeds ${MAX_SESSION_ID_LENGTH} characters.`
+		);
+	}
+
 	if (nonNullish(path) && typeof path !== 'string') {
 		throw new AnalyticsValidationError(`events[${position}].path must be a string.`);
+	}
+
+	if (nonNullish(path) && path.length > MAX_PATH_LENGTH) {
+		throw new AnalyticsValidationError(
+			`events[${position}].path exceeds ${MAX_PATH_LENGTH} characters.`
+		);
 	}
 
 	if (nonNullish(occurredAtMs) && typeof occurredAtMs !== 'number') {
@@ -90,6 +107,12 @@ const parseTrackEvent = (value: unknown, position: number): TrackEventInput => {
 
 		if (!isValidPropValue(key, propValue)) {
 			throw new AnalyticsValidationError(`events[${position}].${key} has the wrong type.`);
+		}
+
+		if (typeof propValue === 'string' && propValue.length > MAX_PROP_STRING_LENGTH) {
+			throw new AnalyticsValidationError(
+				`events[${position}].${key} exceeds ${MAX_PROP_STRING_LENGTH} characters.`
+			);
 		}
 
 		dimensions[key] = propValue;
@@ -137,7 +160,7 @@ const bumpRollup = async ({
 	tsMs: number;
 	names: AnalyticsEventName[];
 }): Promise<void> => {
-	const epochDay = Math.floor(tsMs / MS_PER_DAY);
+	const epochDay = Math.floor(tsMs / DAY_IN_MS);
 	const counts = new Map<string, number>();
 
 	for (const name of names) {

@@ -52,17 +52,20 @@ Targets icdc-core's **staging** deployment (dfx network `staging`, registry
 `5p3j2-miaaa-…`). The canister IDs are wired in [`dfx.json`](../../dfx.json) `remote.id`. The
 `dfx` identity running this workflow must be a controller of the staging registry.
 
-1. Reinstall the registry:
+1. Reinstall the registry **from the icdc-core repo**. Here the registry is `remote` on
+   `staging` and `ic`, so `dfx deploy` in this repo never installs it there; icdc-core's own
+   `dfx.json` deploys it:
 
 ```bash
-dfx deploy --network staging --mode reinstall registry
+# in icdc-core
+dfx deploy registry --network staging --mode reinstall
 ```
 
 2. Register the Vici engine, explicitly pointing at the **production satellite principal**
    (the satellite that Juno Console deploys to):
 
 ```bash
-VICI_JUNO_SATELLITE_PRINCIPAL=7scay-7yaaa-aaaal-asxqa-cai \
+VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
   npm run init:icdc-engine -- --staging
 ```
 
@@ -76,14 +79,19 @@ npm run init:registry -- --staging
 
 ```bash
 npm run juno:functions:build
+juno functions upgrade -m production
 ```
 
-Then upgrade the satellite via the Juno Console (no CLI equivalent today).
+`juno functions upgrade` needs an identity that administers the satellite (`juno login`, or
+an Administrator access key in `JUNO_TOKEN`, which is how `deploy.yml` runs the same step on
+every release). The Juno Console works too.
 
-5. Smoke-test:
+5. Smoke-test, against the satellite principal the engine was registered with in step 2 (the
+   script defaults to the local dev id, and its admin check fails for any other):
 
 ```bash
-npm run test:engine-sync -- --staging
+VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
+  npm run test:engine-sync -- --staging
 ```
 
 ## Production
@@ -96,16 +104,23 @@ npm run test:engine-sync -- --staging
 Identical to the Staging steps, but with `--network ic` / `--production` (the
 `--production` flag is an alias for `--ic`; see
 [`scripts/lib/utils.sh`](../../scripts/lib/utils.sh)). The `dfx` identity must be a
-controller of the production registry.
+controller of the production registry. The reinstall again runs from the icdc-core repo:
 
 ```bash
-dfx deploy --network ic --mode reinstall registry
+# in icdc-core
+dfx deploy registry --network ic --mode reinstall
+```
 
-VICI_JUNO_SATELLITE_PRINCIPAL=7scay-7yaaa-aaaal-asxqa-cai \
+Then, in this repo:
+
+```bash
+VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
   npm run init:icdc-engine -- --production
 npm run init:registry -- --production
-npm run juno:functions:build   # then upgrade the satellite via the Juno Console
-npm run test:engine-sync -- --production
+npm run juno:functions:build
+juno functions upgrade -m production
+VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
+  npm run test:engine-sync -- --production
 ```
 
 ## Post-reset sanity check
