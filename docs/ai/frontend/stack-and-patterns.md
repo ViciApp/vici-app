@@ -372,13 +372,19 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   account unless it is cleared on the auth transition. The single chokepoint
   is
   [`reconcileIdentityScopedStorage`](../../../src/lib/services/identity-storage.services.ts),
-  called from
-  [`Authn.svelte`](../../../src/lib/components/authn/Authn.svelte) on every
-  `onAuthStateChange`. It compares the new principal against a persisted
-  owner (`vici.storage-owner.v1`) and wipes the identity-scoped caches
-  **only when the owner actually changes**, never on a same-user reload,
-  so the offline-resilient daily-goal mirror survives a refresh. When you
-  add a new user-scoped persisted key, register its reset there (and prefer
+  run by
+  [`resetIdentityScopedState`](../../../src/lib/services/identity-reset.services.ts),
+  the one reset
+  [`Authn.svelte`](../../../src/lib/components/authn/Authn.svelte) runs on
+  every auth transition in both backend modes (each `onAuthStateChange`
+  on-chain, each web2 session hydrate and clear), together with the
+  in-memory user-scoped caches. A new user-scoped store registers its reset
+  there, never in `Authn` beside it. It compares the new principal against
+  a persisted owner (`vici.storage-owner.v1`) and wipes the identity-scoped
+  caches **only when the owner actually changes**, never on a same-user
+  reload, so the offline-resilient daily-goal mirror survives a refresh.
+  When you add a new user-scoped persisted key, register its reset in
+  `reconcileIdentityScopedStorage` (and prefer
   routing genuinely cross-device state through `profile.preferences`
   instead; that store already resets on sign-out). Device-level keys
   (theme, locale, last-open tab) intentionally stay put.

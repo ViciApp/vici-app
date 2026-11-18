@@ -107,7 +107,7 @@ const payFlowAward = async ({
 	};
 
 	try {
-		persistAward({ caller, recipient, awardType, awardKey, doc: pending });
+		persistAward({ recipient, awardType, awardKey, doc: pending });
 	} catch (e: unknown) {
 		// Most likely a concurrent write already created the pending doc;
 		// surface and stop: the other path will issue (or has issued) the
@@ -134,7 +134,6 @@ const payFlowAward = async ({
 		});
 
 		updateAward({
-			caller,
 			recipient,
 			awardType,
 			awardKey,
@@ -150,7 +149,6 @@ const payFlowAward = async ({
 	});
 
 	updateAward({
-		caller,
 		recipient,
 		awardType,
 		awardKey,

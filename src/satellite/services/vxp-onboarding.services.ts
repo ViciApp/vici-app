@@ -13,6 +13,7 @@ import type {
 	VxpNewUserMilestoneKey,
 	VxpOnboardingDoc
 } from '#lib/types/vxp-onboarding.ts';
+import { countTradeActivities } from '#satellite/services/activity.services.ts';
 import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
 import { hasAwardMarker } from '#satellite/services/vxp-award-markers.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
@@ -25,13 +26,7 @@ import type {
 	OnSetDocContext
 } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import {
-	countDocsStore,
-	decodeDocData,
-	encodeDocData,
-	getDocStore,
-	setDocStore
-} from '@junobuild/functions/sdk';
+import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
 
 const MILESTONE_KEYS: VxpNewUserMilestoneKey[] = ['m1', 'm2', 'm3'];
 
@@ -108,22 +103,9 @@ const persistOnboarding = ({
 	});
 };
 
-/**
- * Count `activities` rows owned by `caller` whose key ends with `#trade` (see `logActivity`).
- */
-const countUserTradeActivities = (caller: Uint8Array): bigint =>
-	countDocsStore({
-		collection: Collection.ACTIVITIES,
-		caller,
-		params: {
-			owner: caller,
-			order: { field: 'keys', desc: false }
-		}
-	});
-
 const countUserTradeActivitiesSafe = (caller: Uint8Array): bigint => {
 	try {
-		return countUserTradeActivities(caller);
+		return countTradeActivities(caller);
 	} catch {
 		return ZERO;
 	}

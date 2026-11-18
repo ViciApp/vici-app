@@ -1,6 +1,14 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { assertDeleteVxpAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	installSatelliteHost,
+	setContext,
+	type SatelliteHost
+} from '#root/src/tests/mocks/satellite-host.mock.ts';
+import {
+	assertDeleteVxpAward,
+	assertSetVxpAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext } from '@junobuild/functions';
 import type { AccessKeys } from '@junobuild/functions/sdk';
@@ -96,5 +104,115 @@ describe('vxp-awards.services', () => {
 				)
 			);
 		});
+	});
+});
+
+describe('assertSetVxpAward', () => {
+	let host: SatelliteHost;
+
+	const pending: VxpAwardDoc = {
+		recipient: recipient.toText(),
+		awardType: 'streak',
+		awardKey: 'streak_7',
+		amountBaseUnits: '500000',
+		status: 'pending',
+		earnedAtMs: 1_700_000_000_000
+	};
+	const key = vxpAwardKey(pending);
+
+	const write = ({
+		caller,
+		proposed,
+		current
+	}: {
+		caller: Principal;
+		proposed: VxpAwardDoc;
+		current?: VxpAwardDoc;
+	}) =>
+		assertSetVxpAward(
+			setContext({
+				caller,
+				collection: Collection.VXP_AWARDS,
+				key: vxpAwardKey(proposed),
+				proposed,
+				current,
+				currentOwner: controller
+			})
+		);
+
+	beforeEach(() => {
+		host = installSatelliteHost();
+	});
+
+	afterEach(() => host.restore());
+
+	it('rejects the recipient creating an award doc for themselves', () => {
+		assert.throws(
+			() => write({ caller: recipient, proposed: { ...pending, amountBaseUnits: '999999999' } }),
+			/only the satellite writes/
+		);
+	});
+
+	it('rejects the recipient marking their pending award paid', () => {
+		assert.throws(
+			() =>
+				write({
+					caller: recipient,
+					current: pending,
+					proposed: { ...pending, status: 'paid', paidAtMs: 1, blockIndex: '123456' }
+				}),
+			/only the satellite writes/
+		);
+	});
+
+	it('rejects the recipient failing their own in-flight award', () => {
+		assert.throws(
+			() =>
+				write({
+					caller: recipient,
+					current: pending,
+					proposed: { ...pending, status: 'failed', errorMessage: 'nope' }
+				}),
+			/only the satellite writes/
+		);
+	});
+
+	it('lets a satellite controller create a pending award and settle it', () => {
+		assert.doesNotThrow(() => write({ caller: controller, proposed: pending }));
+		assert.doesNotThrow(() =>
+			write({
+				caller: controller,
+				current: pending,
+				proposed: { ...pending, status: 'paid', paidAtMs: 1, blockIndex: '1' }
+			})
+		);
+	});
+
+	it('still holds a controller to the key shape and the lifecycle', () => {
+		assert.throws(
+			() =>
+				assertSetVxpAward(
+					setContext({
+						caller: controller,
+						collection: Collection.VXP_AWARDS,
+						key: `${key}x`,
+						proposed: pending
+					})
+				),
+			/key mismatch/
+		);
+		assert.throws(
+			() => write({ caller: controller, proposed: { ...pending, status: 'paid' } }),
+			/start with status="pending"/
+		);
+		assert.throws(
+			() =>
+				write({
+					caller: controller,
+					current: { ...pending, status: 'paid', paidAtMs: 1, blockIndex: '1' },
+					proposed: { ...pending, status: 'failed', errorMessage: 'x' }
+				}),
+			/terminal/
+		);
 	});
 });
