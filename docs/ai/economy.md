@@ -240,7 +240,11 @@ No profile field the client writes (`dailyStreak`, `lastActiveDay`,
 `totalTrades`, `unlockedAchievements`) drives a mint on the web2 API:
 those fields are the client's display copy, and so are the `league_stats`
 counters `totalTrades` fans out to. The profile write carries only the
-registration grant.
+registration grant. The Flow overtime mint reads the daily goal count,
+which is not a client field at all: `dailyGoalDone` / `dailyGoalDate` are
+written only by `POST /profiles/flow-swipe` (`recordFlowSwipe` in
+[`backend/src/profiles/flow.ts`](../../backend/src/profiles/flow.ts)),
+and a profile write keeps them as stored.
 
 Every server-fired award is also keyed for **idempotency** in
 `vxp_awards` (`recipient/awardType/awardKey`), so a hook retry can

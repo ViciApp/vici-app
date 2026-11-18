@@ -151,7 +151,6 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 
 		try {
 			persistAward({
-				caller,
 				recipient: callerText,
 				awardType: AWARD_TYPE,
 				awardKey: COMEBACK_AWARD_KEY,
@@ -188,7 +187,6 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 			});
 
 			updateAward({
-				caller,
 				recipient: callerText,
 				awardType: AWARD_TYPE,
 				awardKey: COMEBACK_AWARD_KEY,
@@ -208,7 +206,6 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 		});
 
 		updateAward({
-			caller,
 			recipient: callerText,
 			awardType: AWARD_TYPE,
 			awardKey: COMEBACK_AWARD_KEY,

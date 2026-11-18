@@ -655,6 +655,17 @@ when one is missing), and each assert lets through only:
   relation's participants end an active friendship and its sender withdraws
   a pending request, an admin grants or removes a role.
 
+Two more rules hold on a user-owned doc:
+
+- **An identity field in the payload must equal the key.** Reads report the
+  doc and look up its role by that field, so `assertProfileOwnerField`
+  refuses a profile whose `owner` is not its key, and the reads take the
+  identity from the key anyway (`decodeStoredProfile`).
+- **A field only the satellite decides is unchanged by any other caller.**
+  The owner may write the doc but must carry the stored value of such a
+  field (`assertSchoolStatusUnchanged` for a profile's `schoolStatus`); the
+  endpoint that decides it signs as `controllerCaller(...)`.
+
 A collection whose docs the satellite computes has no owner path at all: the
 assert accepts only a controller (`assertControllerWrite`) and the endpoint
 or hook that computes the doc signs its write with `controllerCaller(...)`.
@@ -662,9 +673,31 @@ That covers `relations` (every set goes through the friend-request
 endpoints), `market_metadata` and `market_translations` (the upsert
 endpoints check creator-or-admin, then write as a controller),
 `league_stats` (fanned out by the profile and user-stats hooks),
-`vxp_onboarding` (the onboarding payout ladder), and the dormant `chats`
+`vxp_onboarding` (the onboarding payout ladder), `vxp_awards` (every award
+path, through `persistAward` / `updateAward`), and the dormant `chats`
 and `comments`. A delete with no app flow behind it is
 controller-only too (`exit_signals`, `user_stats`).
+
+**A secret that gates a write never sits on a public doc.** A league's
+invite code is the only way into it, so it lives in the controllers-only
+`league_invites` collection
+([`league-invite.services.ts`](../../../src/satellite/services/league-invite.services.ts)),
+not on the `read: 'public'` league doc, and only the league's own members
+read it back (`listMyLeagues`). The write it gates goes through an
+endpoint that checks it: `assertSetLeagueMember` admits a new member row
+only from a controller (beyond the founder's own row), and
+`joinLeagueByInvite` writes it as one once the code matches.
+
+**Storage collections too.** A `write: 'public'` Storage collection lets any
+caller upload over or delete any asset, so it has an `assertUploadAsset` and
+an `assertDeleteAsset` entry in `index.ts` and a `maxSize` in
+`juno.config.ts` (the spec checks all three). `league_images`
+([`league-image.services.ts`](../../../src/satellite/services/league-image.services.ts))
+admits only the owner of the league its path names
+(`leagueImageFullPath` in `#lib/types/league.ts` builds the path, and
+`leagueIdFromImageFullPath` reads it back) or a controller, and only
+`LEAGUE_IMAGE_CONTENT_TYPE`: an HTML or SVG asset would be served from the
+app's own origin.
 
 **Every serverless write passes the same asserts.** `setDocStore` and
 `deleteDocStore` run them with the `caller` they are given, so a satellite

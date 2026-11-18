@@ -12,16 +12,19 @@ import type { LeagueDoc } from '#lib/types/league.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { ReferralCodeDoc, ReferralDoc } from '#lib/types/referral.ts';
 import type { Relation } from '#lib/types/relation.ts';
+import { releaseReactionCount } from '#satellite/services/activity-reaction-count.services.ts';
 import {
 	captureServerEvents,
 	type ServerEventInput
 } from '#satellite/services/analytics.services.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
+import { deleteLeagueInvite } from '#satellite/services/league-invite.services.ts';
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
 import { isReferralPayoutRecord } from '#satellite/services/referral.services.ts';
 import { recordAccountAwardMarkers } from '#satellite/services/vxp-award-markers.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
@@ -433,6 +436,67 @@ const deletePrefixedDocs = ({
 };
 
 /**
+ * Drop every doc whose key matches `keyPattern`, listed by the datastore's key
+ * matcher so the scan never decodes other accounts' rows. Returns the deleted
+ * keys.
+ */
+const deleteMatchingDocs = ({
+	collection,
+	keyPattern,
+	listAs,
+	writer
+}: {
+	collection: Collection;
+	keyPattern: string;
+	listAs: Uint8Array;
+	writer: Uint8Array;
+}): string[] => {
+	const { items } = listDocsStore({
+		collection,
+		caller: listAs,
+		params: { matcher: { key: keyPattern } }
+	});
+
+	for (const [docKey, item] of items) {
+		deleteDocStore({ collection, key: docKey, caller: writer, doc: { version: item.version } });
+	}
+
+	return items.map(([docKey]) => docKey);
+};
+
+/**
+ * Drop the caller's resolved results (`resolved_results` is keyed
+ * `${principal}#${marketId}`).
+ */
+const deleteOwnResolvedResults = ({ callerText, callerBytes, writer }: CascadeStep): number =>
+	deleteMatchingDocs({
+		collection: Collection.RESOLVED_RESULTS,
+		keyPattern: `^${escapeRegex(callerText)}#`,
+		listAs: callerBytes,
+		writer
+	}).length;
+
+/**
+ * Drop the likes the caller gave (`activity_reactions` is keyed by the liked
+ * activity's key plus `#${liker}`) and move each liked activity's counter down,
+ * as an unlike would. Likes on the caller's own activities stay with them.
+ */
+const deleteOwnReactions = ({ callerText, callerBytes, writer }: CascadeStep): number => {
+	const deleted = deleteMatchingDocs({
+		collection: Collection.ACTIVITY_REACTIONS,
+		keyPattern: `#${escapeRegex(callerText)}$`,
+		listAs: callerBytes,
+		writer
+	});
+
+	for (const reactionKey of deleted) {
+		releaseReactionCount(reactionKey);
+	}
+
+	return deleted.length;
+};
+
+/**
  * Drop the caller's profile (`profiles` is keyed by principal text,
  * one doc per user). The doc may not exist if the user never
  * completed onboarding: silently no-op in that case.
@@ -741,7 +805,7 @@ const resolveOwnedLeague = ({
 	});
 
 	if (isNullish(survivor)) {
-		// No other members: drop the orphaned league.
+		// No other members: drop the orphaned league and its invite code.
 		deleteDocStore({
 			collection: Collection.LEAGUES,
 			key: leagueKey,
@@ -750,6 +814,8 @@ const resolveOwnedLeague = ({
 				version: leagueItem.version
 			}
 		});
+
+		deleteLeagueInvite({ leagueId: league.id });
 
 		return 1;
 	}
@@ -788,8 +854,9 @@ const resolveOwnedLeague = ({
  * identity-keyed to the principal: profile, VXP awards / onboarding (an
  * anonymous marker of each paid one-time award stays, see
  * {@link recordAccountAwardMarkers}),
- * calibration attempts, referral code + redemption record, affiliations,
- * relations, league memberships. Owned leagues are then either deleted (no other members
+ * calibration attempts, user stats and monthly stats, resolved results, the
+ * likes it gave, school-email submissions, referral code + redemption record,
+ * affiliations, relations, league memberships. Owned leagues are then either deleted (no other members
  * left) or transferred to a surviving member: see
  * {@link disbandOrTransferOwnedLeagues}; self-joiners during the recovery
  * window are never orphaned. Shared audit rows (activities, battles,
@@ -833,6 +900,16 @@ export const hardDeleteAccountFn = ({
 		...step,
 		callerBytes: step.writer,
 		collection: Collection.CALIBRATION_ATTEMPTS
+	});
+	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.USER_STATS });
+	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.USER_MONTHLY_STATS });
+	docsDeleted += deleteOwnResolvedResults(step);
+	docsDeleted += deleteOwnReactions(step);
+	// Controllers-scoped, and holds the school email.
+	docsDeleted += deletePrefixedDocs({
+		...step,
+		callerBytes: step.writer,
+		collection: Collection.SCHOOL_SUBMISSIONS
 	});
 	docsDeleted += deleteOwnReferralCode(step);
 	docsDeleted += deleteOwnReferralRedemption(step);
