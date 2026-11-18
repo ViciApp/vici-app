@@ -144,6 +144,10 @@
 	let volumeMarketId = $state<MarketId | undefined>(undefined);
 
 	let loading = $state(true);
+	// The last foreground load got nothing back (query and certified update
+	// both failed): the error state replaces the skeleton until a later load,
+	// the 30s poll included, delivers the market.
+	let loadFailed = $state(false);
 
 	let selectedSide = $state<CallSide | undefined>();
 
@@ -156,6 +160,7 @@
 	const fetchMarket = async ({ id, silent = false }: { id: MarketId; silent?: boolean }) => {
 		if (!silent) {
 			loading = true;
+			loadFailed = false;
 			// Re-arm the MY CALL loading pulse for the new market until its
 			// position read lands (the silent poll keeps the prior value).
 			positionsLoaded = false;
@@ -184,14 +189,29 @@
 		// skeleton), then with the certified update which upgrades the view in
 		// place. We clear `loading` and fetch the viewer signals on the FIRST
 		// arrival only, so a foreground load paints from the query and the
-		// later certified result silently refreshes.
+		// later certified result silently refreshes. A silent poll that lands
+		// after a failed foreground load is that market's first paint.
+		let failedCalls = 0;
+
+		const onCallFailed = () => {
+			failedCalls++;
+
+			if (!silent && failedCalls === 2 && $pageMarketId === id) {
+				loading = false;
+				loadFailed = true;
+			}
+		};
+
 		const [, positionsRes] = await Promise.all([
 			loadMarket({
 				marketId: id,
 				onLoad: ({ response }) => {
 					market = response;
 
-					if (!silent) {
+					const firstPaint = !silent || loadFailed;
+					loadFailed = false;
+
+					if (firstPaint) {
 						loading = false;
 
 						// Signals only change with the viewer's own activity, not
@@ -205,8 +225,10 @@
 						}
 					}
 				},
+				onQueryError: onCallFailed,
 				onUpdateError: (error) => {
 					console.error('market detail: certified update failed', error);
+					onCallFailed();
 				}
 			}),
 			// Fail open: a positions-read error must not reject the whole load or
@@ -768,8 +790,24 @@
 </svelte:head>
 
 <div class="market-detail-screen" class:market-detail-screen--readonly={!showTradeCta}>
+	{#snippet backToMarkets()}
+		<a
+			class="bg-primary text-primary-foreground hover:bg-primary/90 mt-8 rounded-xl px-8 py-3 font-bold transition-all"
+			href={resolveAppPath(AppPath.Home)}
+		>
+			{t({ locale: $localeStore, key: 'market.detail.not_found.cta' })}
+		</a>
+	{/snippet}
+
 	{#if loading}
 		<MarketDetailSkeleton />
+	{:else if loadFailed}
+		<div class="flex flex-col items-center justify-center py-24 text-center" role="alert">
+			<p class="text-muted-foreground">
+				{t({ locale: $localeStore, key: 'common.error.generic' })}
+			</p>
+			{@render backToMarkets()}
+		</div>
 	{:else if market}
 		{@const m = market}
 		{#snippet detailRight()}
@@ -1011,12 +1049,7 @@
 			<p class="text-muted-foreground mt-4">
 				{t({ locale: $localeStore, key: 'market.detail.not_found.sub' })}
 			</p>
-			<a
-				class="bg-primary text-primary-foreground hover:bg-primary/90 mt-8 rounded-xl px-8 py-3 font-bold transition-all"
-				href={resolveAppPath(AppPath.Home)}
-			>
-				{t({ locale: $localeStore, key: 'market.detail.not_found.cta' })}
-			</a>
+			{@render backToMarkets()}
 		</div>
 	{/if}
 </div>
