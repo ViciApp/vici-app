@@ -39,6 +39,7 @@ export const docBytes = (doc: object): Uint8Array<ArrayBuffer> =>
 interface StoredDoc {
 	owner: Uint8Array;
 	data: Uint8Array;
+	description?: string;
 	created_at: bigint;
 	updated_at: bigint;
 	version: bigint;
@@ -269,14 +270,22 @@ export const installSatelliteHost = ({
 		return created;
 	};
 
-	/** The docs `listDocsStore` and `countDocsStore` answer: the key matcher and the owner filter. */
+	/** The docs `listDocsStore` and `countDocsStore` answer: the key and description matchers and the owner filter. */
 	const listed = ({ name, params }: { name: string; params: ListParams }): [string, Doc][] => {
 		const matcher = params.matcher?.key;
 		const keyMatches = nonNullish(matcher) ? new RegExp(matcher) : undefined;
+		const descriptionMatcher = params.matcher?.description;
+		const descriptionMatches = nonNullish(descriptionMatcher)
+			? new RegExp(descriptionMatcher)
+			: undefined;
 		const owner = nonNullish(params.owner) ? Principal.fromUint8Array(params.owner) : undefined;
 
 		return [...collection(name)]
 			.filter(([key]) => isNullish(keyMatches) || keyMatches.test(key))
+			.filter(
+				([, { description }]) =>
+					isNullish(descriptionMatches) || descriptionMatches.test(description ?? '')
+			)
 			.filter(
 				([, stored]) =>
 					isNullish(owner) || Principal.fromUint8Array(stored.owner).compareTo(owner) === 'eq'
@@ -362,6 +371,7 @@ export const installSatelliteHost = ({
 			const after: StoredDoc = {
 				owner: before?.owner ?? setter,
 				data: value.data,
+				description: value.description,
 				created_at: before?.created_at ?? nowNs,
 				updated_at: nowNs,
 				version: (before?.version ?? BigInt(0)) + BigInt(1)

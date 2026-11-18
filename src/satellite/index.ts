@@ -1,4 +1,5 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
 import {
 	AnalyticsSummarySchema,
 	AnalyticsUserStatsSchema,
@@ -45,7 +46,11 @@ import {
 	ResolvedResultSchema
 } from '#lib/schema/resolved-result.schema.ts';
 import { AFFILIATION_KINDS } from '#lib/types/affiliation.ts';
-import { LEAGUE_IMAGES_COLLECTION } from '#lib/types/league.ts';
+import {
+	CREATE_LEAGUE_REFUSAL_REASONS,
+	JOIN_LEAGUE_REFUSAL_REASONS,
+	LEAGUE_IMAGES_COLLECTION
+} from '#lib/types/league.ts';
 import { TOURNAMENT_DRAW_REFUSAL_REASONS } from '#lib/types/tournament.ts';
 import {
 	deleteMyAccountFn,
@@ -130,6 +135,9 @@ import {
 import {
 	assertDeleteLeague,
 	assertSetLeague,
+	createLeagueFn,
+	joinLeagueByInviteFn,
+	migrateLeagueInviteCodesFn,
 	transferLeagueOwnershipFn
 } from '#satellite/services/league.services.ts';
 import {
@@ -260,6 +268,7 @@ import {
 	toWireLeagueMember,
 	toWireLeagueWithRole,
 	toWireMarketTranslation,
+	toWireMemberLeague,
 	toWireMonthlyLeaderboardEntry,
 	toWireProfile,
 	toWireReferral,
@@ -733,10 +742,58 @@ export const listLeagueMembers = defineQuery({
 	})
 });
 
-// Join-by-code resolver. The FE join modal posts the 6-char code,
-// the satellite scans `leagues` for a match, and the FE then
-// derives the leagueId and writes the `league_members` row through
-// the standard set-doc path (which goes through `assertSetLeagueMember`).
+// Founds a league: the public doc and the owner's row as the caller, the
+// invite code in the controllers-only `league_invites`, and the founder
+// reward inline. The only way to give a league an invite code.
+export const createLeague = defineUpdate({
+	args: j.strictObject({
+		id: j.string(),
+		name: j.string(),
+		description: j.string().optional(),
+		accentColor: j.string().optional(),
+		emblem: j.string().optional(),
+		privacy: j.enum(LeaguePrivacy).optional(),
+		inviteCode: j.string()
+	}),
+	result: j.strictObject({
+		league: j.optional(LeagueWireSchema),
+		reason: j.optional(j.enum(CREATE_LEAGUE_REFUSAL_REASONS))
+	}),
+	handler: async (args) => {
+		const { league, reason } = await createLeagueFn(args);
+
+		return { league: isNullish(league) ? undefined : toWireMemberLeague(league), reason };
+	}
+});
+
+// The only way into a league, Open or Private: checks the invite code,
+// then writes the caller's `league_members` row as a controller (the
+// assert admits no self-written join).
+export const joinLeagueByInvite = defineUpdate({
+	args: j.strictObject({
+		inviteCode: j.string()
+	}),
+	result: j.strictObject({
+		league: j.optional(LeagueWireSchema),
+		reason: j.optional(j.enum(JOIN_LEAGUE_REFUSAL_REASONS))
+	}),
+	handler: (args) => {
+		const { league, reason } = joinLeagueByInviteFn(args);
+
+		return { league: isNullish(league) ? undefined : toWireMemberLeague(league), reason };
+	}
+});
+
+// Admin-only, idempotent: moves the invite code off every league doc
+// written before codes moved to `league_invites`.
+export const migrateLeagueInviteCodes = defineUpdate({
+	result: j.strictObject({
+		migrated: j.number()
+	}),
+	handler: () => migrateLeagueInviteCodesFn()
+});
+
+// Join-by-code preview: the league an invite code opens, without the code.
 export const lookupLeagueByInvite = defineQuery({
 	args: j.strictObject({
 		inviteCode: j.string()

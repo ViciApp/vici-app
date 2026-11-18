@@ -20,6 +20,10 @@ import {
 	monthAnchorStartMs,
 	monthEndMs
 } from '#lib/utils/month-anchor.utils.ts';
+import {
+	leagueIdForInviteCode,
+	leagueInviteCode
+} from '#satellite/services/league-invite.services.ts';
 import { settledTotalsByPrincipal } from '#satellite/services/settled-history.services.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { joinedBeforeMonthClose } from '#satellite/utils/worlds-podium.utils.ts';
@@ -167,7 +171,8 @@ export const listMyLeaguesFn = (): LeagueWithRole[] => {
 			try {
 				const league = decodeDocData<LeagueDoc>(leagueDoc.data);
 				hydrated.push({
-					league,
+					// A member shares the league, so they read its invite code.
+					league: { ...league, inviteCode: leagueInviteCode(league) },
 					role: m.role,
 					joinedAtMs: m.joinedAtMs,
 					memberCount: memberCounts.get(m.leagueId) ?? 1
@@ -407,44 +412,37 @@ export const getMyBattleStatsFn = (): MyBattleStats => {
 };
 
 /**
- * Look up a league by its 6-char invite code: the read backing
- * the join-by-code FE flow. Scans the LEAGUES collection (small:
- * one row per league, bounded by user creation rate) and returns
- * the first match.
+ * Look up a league by its 6-char invite code: the read backing the
+ * join-by-code preview. Resolves the code through `league_invites` (see
+ * `league-invite.services.ts`) and returns the league without the code.
  *
  * Returns `undefined` when no league carries the code. Callers
  * should treat that as "invalid code" UX, not an error.
- *
- * Invite codes are write-once (per `assertSetLeague`), so the
- * `leagueId → inviteCode` mapping is stable for the lifetime of
- * the league. A future optimisation could maintain a reverse-index
- * collection if league count grows past the cost of a scan; until
- * then this is the canonical join-by-code resolver.
  */
 export const lookupLeagueByInviteFn = ({
 	inviteCode
 }: {
 	inviteCode: string;
 }): LeagueDoc | undefined => {
-	const caller = msgCaller();
+	const leagueId = leagueIdForInviteCode(inviteCode);
 
-	const { items } = listDocsStore({
+	if (isNullish(leagueId)) {
+		return;
+	}
+
+	const leagueDoc = getDocStore({
 		collection: Collection.LEAGUES,
-		caller: caller.toUint8Array(),
-		params: {}
+		key: leagueId,
+		caller: msgCaller().toUint8Array()
 	});
 
-	for (const [, item] of items) {
-		try {
-			const league = decodeDocData<LeagueDoc>(item.data);
-
-			if (league.inviteCode === inviteCode) {
-				return league;
-			}
-		} catch {
-			// skip malformed
-		}
+	if (isNullish(leagueDoc)) {
+		return;
 	}
+
+	const { inviteCode: _legacyCode, ...league } = decodeDocData<LeagueDoc>(leagueDoc.data);
+
+	return league;
 };
 
 /**

@@ -667,6 +667,16 @@ path, through `persistAward` / `updateAward`), and the dormant `chats`
 and `comments`. A delete with no app flow behind it is
 controller-only too (`exit_signals`, `user_stats`).
 
+**A secret that gates a write never sits on a public doc.** A league's
+invite code is the only way into it, so it lives in the controllers-only
+`league_invites` collection
+([`league-invite.services.ts`](../../../src/satellite/services/league-invite.services.ts)),
+not on the `read: 'public'` league doc, and only the league's own members
+read it back (`listMyLeagues`). The write it gates goes through an
+endpoint that checks it: `assertSetLeagueMember` admits a new member row
+only from a controller (beyond the founder's own row), and
+`joinLeagueByInvite` writes it as one once the code matches.
+
 **Storage collections too.** A `write: 'public'` Storage collection lets any
 caller upload over or delete any asset, so it has an `assertUploadAsset` and
 an `assertDeleteAsset` entry in `index.ts` and a `maxSize` in

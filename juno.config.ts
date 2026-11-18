@@ -32,6 +32,7 @@ enum JunoDatastoreCollection {
 	REFERRALS = 'referrals',
 	LEAGUES = 'leagues',
 	LEAGUE_MEMBERS = 'league_members',
+	LEAGUE_INVITES = 'league_invites',
 	BATTLES = 'battles',
 	AFFILIATIONS = 'affiliations',
 	AFFILIATION_STATS = 'affiliation_stats',
@@ -284,6 +285,16 @@ export default defineConfig(({ mode }) => ({
 					memory: 'stable',
 					read: 'public',
 					write: 'public'
+				},
+				// Each league's invite code, the one way into a league.
+				// Controllers-only so no client can read it: the satellite's
+				// `createLeague`, `joinLeagueByInvite` and `listMyLeagues` are
+				// the only readers and writers.
+				{
+					collection: JunoDatastoreCollection.LEAGUE_INVITES,
+					memory: 'stable',
+					read: 'controllers',
+					write: 'controllers'
 				},
 				{
 					collection: JunoDatastoreCollection.BATTLES,

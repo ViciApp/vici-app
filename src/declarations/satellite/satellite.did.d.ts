@@ -86,6 +86,34 @@ export interface AppClaimWorldsPodiumPrizeResult {
 	awards_created: number;
 	awards_already_claimed: number;
 }
+export interface AppCreateLeagueArgs {
+	id: string;
+	accent_color: [] | [string];
+	name: string;
+	invite_code: string;
+	description: [] | [string];
+	emblem: [] | [string];
+	privacy: [] | [{ open: null } | { private: null }];
+}
+export interface AppCreateLeagueResult {
+	league:
+		| []
+		| [
+				{
+					id: string;
+					accent_color: [] | [string];
+					image_url: [] | [string];
+					owner: string;
+					name: string;
+					invite_code: [] | [string];
+					description: [] | [string];
+					emblem: [] | [string];
+					created_at_ms: number;
+					privacy: { open: null } | { private: null };
+				}
+		  ];
+	reason: [] | [{ invite_code_taken: null }];
+}
 export interface AppDeleteAnalyticsEventsArgs {
 	keys: Array<string>;
 }
@@ -628,6 +656,28 @@ export interface AppHibernateMyAccountResult {
 	ok: boolean;
 	reason: [] | [{ deleted: null } | { no_profile: null }];
 }
+export interface AppJoinLeagueByInviteArgs {
+	invite_code: string;
+}
+export interface AppJoinLeagueByInviteResult {
+	league:
+		| []
+		| [
+				{
+					id: string;
+					accent_color: [] | [string];
+					image_url: [] | [string];
+					owner: string;
+					name: string;
+					invite_code: [] | [string];
+					description: [] | [string];
+					emblem: [] | [string];
+					created_at_ms: number;
+					privacy: { open: null } | { private: null };
+				}
+		  ];
+	reason: [] | [{ already_member: null } | { not_found: null }];
+}
 export interface AppListAffiliationChampionshipsArgs {
 	kind: { country: null } | { university: null };
 	affiliation_identifier: string;
@@ -662,7 +712,7 @@ export interface AppListChallengeableLeaguesResult {
 		image_url: [] | [string];
 		owner: string;
 		name: string;
-		invite_code: string;
+		invite_code: [] | [string];
 		description: [] | [string];
 		emblem: [] | [string];
 		created_at_ms: number;
@@ -699,7 +749,7 @@ export interface AppListFriendRecommendedLeaguesResult {
 			image_url: [] | [string];
 			owner: string;
 			name: string;
-			invite_code: string;
+			invite_code: [] | [string];
 			description: [] | [string];
 			emblem: [] | [string];
 			created_at_ms: number;
@@ -909,7 +959,7 @@ export interface AppListMyLeaguesResult {
 			image_url: [] | [string];
 			owner: string;
 			name: string;
-			invite_code: string;
+			invite_code: [] | [string];
 			description: [] | [string];
 			emblem: [] | [string];
 			created_at_ms: number;
@@ -986,7 +1036,7 @@ export interface AppLookupLeagueByInviteResult {
 					image_url: [] | [string];
 					owner: string;
 					name: string;
-					invite_code: string;
+					invite_code: [] | [string];
 					description: [] | [string];
 					emblem: [] | [string];
 					created_at_ms: number;
@@ -999,6 +1049,9 @@ export interface AppLookupReferralCodeArgs {
 }
 export interface AppLookupReferralCodeResult {
 	owner: [] | [string];
+}
+export interface AppMigrateLeagueInviteCodesResult {
+	migrated: number;
 }
 export interface AppPruneResolvedResultsResult {
 	pruned: number;
@@ -1393,6 +1446,7 @@ export interface _SERVICE {
 		[AppClaimWorldsPodiumPrizeArgs],
 		AppClaimWorldsPodiumPrizeResult
 	>;
+	app_create_league: ActorMethod<[AppCreateLeagueArgs], AppCreateLeagueResult>;
 	app_delete_analytics_events: ActorMethod<
 		[AppDeleteAnalyticsEventsArgs],
 		AppDeleteAnalyticsEventsResult
@@ -1434,6 +1488,7 @@ export interface _SERVICE {
 		AppGetUserRankAndCountResult
 	>;
 	app_hibernate_my_account: ActorMethod<[], AppHibernateMyAccountResult>;
+	app_join_league_by_invite: ActorMethod<[AppJoinLeagueByInviteArgs], AppJoinLeagueByInviteResult>;
 	app_list_affiliation_championships: ActorMethod<
 		[AppListAffiliationChampionshipsArgs],
 		AppListAffiliationChampionshipsResult
@@ -1479,6 +1534,7 @@ export interface _SERVICE {
 		AppLookupLeagueByInviteResult
 	>;
 	app_lookup_referral_code: ActorMethod<[AppLookupReferralCodeArgs], AppLookupReferralCodeResult>;
+	app_migrate_league_invite_codes: ActorMethod<[], AppMigrateLeagueInviteCodesResult>;
 	app_prune_resolved_results: ActorMethod<[], AppPruneResolvedResultsResult>;
 	app_read_battle_live_score: ActorMethod<
 		[AppReadBattleLiveScoreArgs],

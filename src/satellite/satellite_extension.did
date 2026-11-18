@@ -69,13 +69,13 @@ type AppListAffiliationStatsArgs = record { kind : variant { university; country
 
 type AppListAffiliationStatsResult = record { items : vec record { affiliation_identifier : text; kind : variant { university; country }; total_calls : float64; wins : float64; month_anchor : text; month_total_calls : float64; month_wins : float64; updated_at_ms : float64 } };
 
-type AppListChallengeableLeaguesResult = record { items : vec record { id : text; name : text; description : opt text; invite_code : text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text } };
+type AppListChallengeableLeaguesResult = record { items : vec record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text } };
 
 type AppListFollowersResult = record { items : vec record { category : variant { FRIEND; follow; GROUP }; state : variant { PENDING; ACTIVE; REJECTED; BLOCKED }; participants : vec text; viewer_principal : opt text; viewer_role : opt variant { controller; admin; solver; creator }; is_friend : opt bool } };
 
 type AppListFollowingResult = record { items : vec record { category : variant { FRIEND; follow; GROUP }; state : variant { PENDING; ACTIVE; REJECTED; BLOCKED }; participants : vec text; viewer_principal : opt text; viewer_role : opt variant { controller; admin; solver; creator }; is_friend : opt bool } };
 
-type AppListFriendRecommendedLeaguesResult = record { items : vec record { league : record { id : text; name : text; description : opt text; invite_code : text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; member_count : float64; friend_members : vec text } };
+type AppListFriendRecommendedLeaguesResult = record { items : vec record { league : record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; member_count : float64; friend_members : vec text } };
 
 type AppListFriendRequestsResult = record { items : vec record { category : variant { FRIEND; follow; GROUP }; state : variant { PENDING; ACTIVE; REJECTED; BLOCKED }; participants : vec text; viewer_principal : opt text; viewer_role : opt variant { controller; admin; solver; creator }; is_friend : opt bool } };
 
@@ -109,7 +109,7 @@ type AppListMyBattlesResult = record { items : vec record { id : text; kind : va
 
 type AppListMyBlockingLeaguesResult = record { league_ids : vec text };
 
-type AppListMyLeaguesResult = record { items : vec record { league : record { id : text; name : text; description : opt text; invite_code : text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; role : variant { owner; admin; member }; joined_at_ms : float64; member_count : float64 } };
+type AppListMyLeaguesResult = record { items : vec record { league : record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; role : variant { owner; admin; member }; joined_at_ms : float64; member_count : float64 } };
 
 type AppListMyReferralsResult = record { items : vec record { referee : text; referrer : text; code : text; redeemed_at_ms : float64; within_referrer_cap : bool; referee_payout : record { status : variant { none; owed; processing; paid }; amount_base_units : text; block_index : opt text; last_error : opt text }; referrer_payout : record { status : variant { none; owed; processing; paid }; amount_base_units : text; block_index : opt text; last_error : opt text } } };
 
@@ -125,7 +125,7 @@ type AppListWorldsRosterResult = record { items : vec record { member : text; ki
 
 type AppLookupLeagueByInviteArgs = record { invite_code : text };
 
-type AppLookupLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text } };
+type AppLookupLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text } };
 
 type AppLookupReferralCodeArgs = record { code : text };
 
@@ -153,6 +153,10 @@ type AppClaimWorldsPodiumPrizeArgs = record { month_anchor : text };
 
 type AppClaimWorldsPodiumPrizeResult = record { month_anchor : text; awards_created : float64; awards_already_claimed : float64; not_eligible : bool };
 
+type AppCreateLeagueArgs = record { id : text; name : text; description : opt text; accent_color : opt text; emblem : opt text; privacy : opt variant { private; open }; invite_code : text };
+
+type AppCreateLeagueResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; reason : opt variant { invite_code_taken } };
+
 type AppDeleteAnalyticsEventsArgs = record { keys : vec text };
 
 type AppDeleteAnalyticsEventsResult = record { deleted : float64 };
@@ -164,6 +168,12 @@ type AppDeleteMyAccountResult = record { ok : bool; reason : opt variant { owns_
 type AppFollowUserArgs = record { target : text };
 
 type AppHibernateMyAccountResult = record { ok : bool; reason : opt variant { no_profile; deleted } };
+
+type AppJoinLeagueByInviteArgs = record { invite_code : text };
+
+type AppJoinLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; reason : opt variant { not_found; already_member } };
+
+type AppMigrateLeagueInviteCodesResult = record { migrated : float64 };
 
 type AppPruneResolvedResultsResult = record { pruned : float64 };
 
@@ -283,10 +293,13 @@ service : {
 	app_claim_referral_friendship : (AppClaimReferralFriendshipArgs) -> ();
 	app_claim_tournament_prize : (AppClaimTournamentPrizeArgs) -> (AppClaimTournamentPrizeResult);
 	app_claim_worlds_podium_prize : (AppClaimWorldsPodiumPrizeArgs) -> (AppClaimWorldsPodiumPrizeResult);
+	app_create_league : (AppCreateLeagueArgs) -> (AppCreateLeagueResult);
 	app_delete_analytics_events : (AppDeleteAnalyticsEventsArgs) -> (AppDeleteAnalyticsEventsResult);
 	app_delete_my_account : (AppDeleteMyAccountArgs) -> (AppDeleteMyAccountResult);
 	app_follow_user : (AppFollowUserArgs) -> ();
 	app_hibernate_my_account : () -> (AppHibernateMyAccountResult);
+	app_join_league_by_invite : (AppJoinLeagueByInviteArgs) -> (AppJoinLeagueByInviteResult);
+	app_migrate_league_invite_codes : () -> (AppMigrateLeagueInviteCodesResult);
 	app_prune_resolved_results : () -> (AppPruneResolvedResultsResult);
 	app_read_battle_live_score : (AppReadBattleLiveScoreArgs) -> (AppReadBattleLiveScoreResult);
 	app_rebuild_market_tag_index : () -> (AppRebuildMarketTagIndexResult);

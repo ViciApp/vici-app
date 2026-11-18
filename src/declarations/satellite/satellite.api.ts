@@ -867,7 +867,7 @@ const AppListChallengeableLeaguesResultSchema = j.strictObject({
 			id: j.string(),
 			name: j.string(),
 			description: j.optional(j.string()),
-			inviteCode: j.string(),
+			inviteCode: j.optional(j.string()),
 			owner: j.string(),
 			createdAtMs: j.number(),
 			accentColor: j.optional(j.string()),
@@ -942,7 +942,7 @@ const AppListFriendRecommendedLeaguesResultSchema = j.strictObject({
 				id: j.string(),
 				name: j.string(),
 				description: j.optional(j.string()),
-				inviteCode: j.string(),
+				inviteCode: j.optional(j.string()),
 				owner: j.string(),
 				createdAtMs: j.number(),
 				accentColor: j.optional(j.string()),
@@ -1322,7 +1322,7 @@ const AppListMyLeaguesResultSchema = j.strictObject({
 				id: j.string(),
 				name: j.string(),
 				description: j.optional(j.string()),
-				inviteCode: j.string(),
+				inviteCode: j.optional(j.string()),
 				owner: j.string(),
 				createdAtMs: j.number(),
 				accentColor: j.optional(j.string()),
@@ -1474,7 +1474,7 @@ const AppLookupLeagueByInviteResultSchema = j.strictObject({
 			id: j.string(),
 			name: j.string(),
 			description: j.optional(j.string()),
-			inviteCode: j.string(),
+			inviteCode: j.optional(j.string()),
 			owner: j.string(),
 			createdAtMs: j.number(),
 			accentColor: j.optional(j.string()),
@@ -1723,6 +1723,49 @@ const claimWorldsPodiumPrize = async (
 	return AppClaimWorldsPodiumPrizeResultSchema.parse(result);
 };
 
+const AppCreateLeagueArgsSchema = j.strictObject({
+	id: j.string(),
+	name: j.string(),
+	description: j.optional(j.string()),
+	accentColor: j.optional(j.string()),
+	emblem: j.optional(j.string()),
+	privacy: j.optional(j.enum(['private', 'open'])),
+	inviteCode: j.string()
+});
+const AppCreateLeagueResultSchema = j.strictObject({
+	league: j.optional(
+		j.strictObject({
+			id: j.string(),
+			name: j.string(),
+			description: j.optional(j.string()),
+			inviteCode: j.optional(j.string()),
+			owner: j.string(),
+			createdAtMs: j.number(),
+			accentColor: j.optional(j.string()),
+			emblem: j.optional(j.string()),
+			privacy: j.enum(['private', 'open']),
+			imageUrl: j.optional(j.string())
+		})
+	),
+	reason: j.optional(j.enum(['invite_code_taken']))
+});
+
+const createLeague = async (
+	args: j.infer<typeof AppCreateLeagueArgsSchema>
+): Promise<j.infer<typeof AppCreateLeagueResultSchema>> => {
+	const parsedArgs = AppCreateLeagueArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppCreateLeagueArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_create_league']>[0];
+
+	const { app_create_league } = await getSatelliteExtendedActor<SatelliteActor>({ idlFactory });
+	const idlResult = await app_create_league(idlArgs);
+
+	const result = schemaFromIdl({ schema: AppCreateLeagueResultSchema, value: idlResult });
+	return AppCreateLeagueResultSchema.parse(result);
+};
+
 const AppDeleteAnalyticsEventsArgsSchema = j.strictObject({ keys: j.array(j.string()) });
 const AppDeleteAnalyticsEventsResultSchema = j.strictObject({ deleted: j.number() });
 
@@ -1809,6 +1852,60 @@ const hibernateMyAccount = async (): Promise<j.infer<typeof AppHibernateMyAccoun
 
 	const result = schemaFromIdl({ schema: AppHibernateMyAccountResultSchema, value: idlResult });
 	return AppHibernateMyAccountResultSchema.parse(result);
+};
+
+const AppJoinLeagueByInviteArgsSchema = j.strictObject({ inviteCode: j.string() });
+const AppJoinLeagueByInviteResultSchema = j.strictObject({
+	league: j.optional(
+		j.strictObject({
+			id: j.string(),
+			name: j.string(),
+			description: j.optional(j.string()),
+			inviteCode: j.optional(j.string()),
+			owner: j.string(),
+			createdAtMs: j.number(),
+			accentColor: j.optional(j.string()),
+			emblem: j.optional(j.string()),
+			privacy: j.enum(['private', 'open']),
+			imageUrl: j.optional(j.string())
+		})
+	),
+	reason: j.optional(j.enum(['not_found', 'already_member']))
+});
+
+const joinLeagueByInvite = async (
+	args: j.infer<typeof AppJoinLeagueByInviteArgsSchema>
+): Promise<j.infer<typeof AppJoinLeagueByInviteResultSchema>> => {
+	const parsedArgs = AppJoinLeagueByInviteArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppJoinLeagueByInviteArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_join_league_by_invite']>[0];
+
+	const { app_join_league_by_invite } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_join_league_by_invite(idlArgs);
+
+	const result = schemaFromIdl({ schema: AppJoinLeagueByInviteResultSchema, value: idlResult });
+	return AppJoinLeagueByInviteResultSchema.parse(result);
+};
+
+const AppMigrateLeagueInviteCodesResultSchema = j.strictObject({ migrated: j.number() });
+
+const migrateLeagueInviteCodes = async (): Promise<
+	j.infer<typeof AppMigrateLeagueInviteCodesResultSchema>
+> => {
+	const { app_migrate_league_invite_codes } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_migrate_league_invite_codes();
+
+	const result = schemaFromIdl({
+		schema: AppMigrateLeagueInviteCodesResultSchema,
+		value: idlResult
+	});
+	return AppMigrateLeagueInviteCodesResultSchema.parse(result);
 };
 
 const AppPruneResolvedResultsResultSchema = j.strictObject({ pruned: j.number() });
@@ -2505,10 +2602,13 @@ export const functions = {
 	claimReferralFriendship,
 	claimTournamentPrize,
 	claimWorldsPodiumPrize,
+	createLeague,
 	deleteAnalyticsEvents,
 	deleteMyAccount,
 	followUser,
 	hibernateMyAccount,
+	joinLeagueByInvite,
+	migrateLeagueInviteCodes,
 	pruneResolvedResults,
 	readBattleLiveScore,
 	rebuildMarketTagIndex,

@@ -17,6 +17,7 @@ import {
 	type ServerEventInput
 } from '#satellite/services/analytics.services.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
+import { deleteLeagueInvite } from '#satellite/services/league-invite.services.ts';
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
 import { isReferralPayoutRecord } from '#satellite/services/referral.services.ts';
@@ -741,7 +742,7 @@ const resolveOwnedLeague = ({
 	});
 
 	if (isNullish(survivor)) {
-		// No other members: drop the orphaned league.
+		// No other members: drop the orphaned league and its invite code.
 		deleteDocStore({
 			collection: Collection.LEAGUES,
 			key: leagueKey,
@@ -750,6 +751,8 @@ const resolveOwnedLeague = ({
 				version: leagueItem.version
 			}
 		});
+
+		deleteLeagueInvite({ leagueId: league.id });
 
 		return 1;
 	}

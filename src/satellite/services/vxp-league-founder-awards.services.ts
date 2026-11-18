@@ -196,6 +196,28 @@ const payFounderReward = async ({
 };
 
 /**
+ * Pays the founder reward of one league to its owner `recipient`, once and
+ * within the per-account cap. `createLeague` calls it inline, since hooks
+ * never fire for its serverless writes; the hook below covers a league a
+ * client writes itself.
+ */
+export const payLeagueFounderReward = async ({
+	caller,
+	recipient,
+	leagueId
+}: {
+	caller: Uint8Array;
+	recipient: string;
+	leagueId: string;
+}): Promise<FounderPayoutOutcome> =>
+	await payFounderReward({
+		ledger: new IcrcLedgerCanister({ canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID) }),
+		caller,
+		recipient,
+		leagueId
+	});
+
+/**
  * Leagues post-write hook: wired into the `leagues` dispatch in
  * `satellite/index.ts`. Pays the founder reward once, on creation.
  */
@@ -230,16 +252,7 @@ export const onLeagueSetForFounderVxpPayout = async (ctx: OnSetDocContext): Prom
 			return;
 		}
 
-		const ledger = new IcrcLedgerCanister({
-			canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
-		});
-
-		await payFounderReward({
-			ledger,
-			caller,
-			recipient: callerText,
-			leagueId: league.id
-		});
+		await payLeagueFounderReward({ caller, recipient: callerText, leagueId: league.id });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 		// `key` is the league id for this collection: the user is the

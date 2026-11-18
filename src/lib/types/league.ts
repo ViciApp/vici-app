@@ -20,8 +20,15 @@ export interface LeagueDoc {
 	name: string;
 	/** Optional short editorial blurb shown on the league detail page. */
 	description?: string;
-	/** 6-char `[A-Z0-9]` invite code; the join-by-code flow looks the league up by this. */
-	inviteCode: string;
+	/**
+	 * 6-char `[A-Z0-9]` invite code, the only way into the league. Never
+	 * stored on the public `leagues` doc: it lives in the controllers-only
+	 * `league_invites` collection ({@link LeagueInviteDoc}), and only the
+	 * league's own members receive it (`listMyLeagues`). A doc written before
+	 * that move still carries it here until `migrateLeagueInviteCodes` takes
+	 * it off.
+	 */
+	inviteCode?: string;
 	/** Owning principal (text form). Immutable after creation. */
 	owner: string;
 	/** Creation timestamp in ms since epoch. Immutable. */
@@ -163,6 +170,26 @@ export const leagueEmblem = (league: Pick<LeagueDoc, 'emblem' | 'name'>): string
  * write.
  */
 export const LEAGUE_INVITE_CODE_REGEX = /^[A-Z0-9]{6}$/;
+
+/**
+ * A league's invite code in the controllers-only `league_invites`
+ * collection, keyed by the league id. The code is also the Juno doc's
+ * description, which a join matches on to find the league.
+ */
+export interface LeagueInviteDoc {
+	leagueId: string;
+	inviteCode: string;
+}
+
+/** Why `createLeague` refused: another league already holds the invite code. */
+export const CREATE_LEAGUE_REFUSAL_REASONS = ['invite_code_taken'] as const;
+
+export type CreateLeagueRefusalReason = (typeof CREATE_LEAGUE_REFUSAL_REASONS)[number];
+
+/** Why `joinLeagueByInvite` refused: no league holds the code, or the caller is already in it. */
+export const JOIN_LEAGUE_REFUSAL_REASONS = ['not_found', 'already_member'] as const;
+
+export type JoinLeagueRefusalReason = (typeof JOIN_LEAGUE_REFUSAL_REASONS)[number];
 
 /**
  * Sample invite code shown as a format affordance; the join sheet's

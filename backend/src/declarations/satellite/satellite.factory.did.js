@@ -83,6 +83,32 @@ export const idlFactory = ({ IDL }) => {
 		awards_created: IDL.Float64,
 		awards_already_claimed: IDL.Float64
 	});
+	const AppCreateLeagueArgs = IDL.Record({
+		id: IDL.Text,
+		accent_color: IDL.Opt(IDL.Text),
+		name: IDL.Text,
+		invite_code: IDL.Text,
+		description: IDL.Opt(IDL.Text),
+		emblem: IDL.Opt(IDL.Text),
+		privacy: IDL.Opt(IDL.Variant({ open: IDL.Null, private: IDL.Null }))
+	});
+	const AppCreateLeagueResult = IDL.Record({
+		league: IDL.Opt(
+			IDL.Record({
+				id: IDL.Text,
+				accent_color: IDL.Opt(IDL.Text),
+				image_url: IDL.Opt(IDL.Text),
+				owner: IDL.Text,
+				name: IDL.Text,
+				invite_code: IDL.Opt(IDL.Text),
+				description: IDL.Opt(IDL.Text),
+				emblem: IDL.Opt(IDL.Text),
+				created_at_ms: IDL.Float64,
+				privacy: IDL.Variant({ open: IDL.Null, private: IDL.Null })
+			})
+		),
+		reason: IDL.Opt(IDL.Variant({ invite_code_taken: IDL.Null }))
+	});
 	const AppDeleteAnalyticsEventsArgs = IDL.Record({
 		keys: IDL.Vec(IDL.Text)
 	});
@@ -651,6 +677,24 @@ export const idlFactory = ({ IDL }) => {
 		ok: IDL.Bool,
 		reason: IDL.Opt(IDL.Variant({ deleted: IDL.Null, no_profile: IDL.Null }))
 	});
+	const AppJoinLeagueByInviteArgs = IDL.Record({ invite_code: IDL.Text });
+	const AppJoinLeagueByInviteResult = IDL.Record({
+		league: IDL.Opt(
+			IDL.Record({
+				id: IDL.Text,
+				accent_color: IDL.Opt(IDL.Text),
+				image_url: IDL.Opt(IDL.Text),
+				owner: IDL.Text,
+				name: IDL.Text,
+				invite_code: IDL.Opt(IDL.Text),
+				description: IDL.Opt(IDL.Text),
+				emblem: IDL.Opt(IDL.Text),
+				created_at_ms: IDL.Float64,
+				privacy: IDL.Variant({ open: IDL.Null, private: IDL.Null })
+			})
+		),
+		reason: IDL.Opt(IDL.Variant({ already_member: IDL.Null, not_found: IDL.Null }))
+	});
 	const AppListAffiliationChampionshipsArgs = IDL.Record({
 		kind: IDL.Variant({ country: IDL.Null, university: IDL.Null }),
 		affiliation_identifier: IDL.Text
@@ -690,7 +734,7 @@ export const idlFactory = ({ IDL }) => {
 				image_url: IDL.Opt(IDL.Text),
 				owner: IDL.Text,
 				name: IDL.Text,
-				invite_code: IDL.Text,
+				invite_code: IDL.Opt(IDL.Text),
 				description: IDL.Opt(IDL.Text),
 				emblem: IDL.Opt(IDL.Text),
 				created_at_ms: IDL.Float64,
@@ -763,7 +807,7 @@ export const idlFactory = ({ IDL }) => {
 					image_url: IDL.Opt(IDL.Text),
 					owner: IDL.Text,
 					name: IDL.Text,
-					invite_code: IDL.Text,
+					invite_code: IDL.Opt(IDL.Text),
 					description: IDL.Opt(IDL.Text),
 					emblem: IDL.Opt(IDL.Text),
 					created_at_ms: IDL.Float64,
@@ -1041,7 +1085,7 @@ export const idlFactory = ({ IDL }) => {
 					image_url: IDL.Opt(IDL.Text),
 					owner: IDL.Text,
 					name: IDL.Text,
-					invite_code: IDL.Text,
+					invite_code: IDL.Opt(IDL.Text),
 					description: IDL.Opt(IDL.Text),
 					emblem: IDL.Opt(IDL.Text),
 					created_at_ms: IDL.Float64,
@@ -1148,7 +1192,7 @@ export const idlFactory = ({ IDL }) => {
 				image_url: IDL.Opt(IDL.Text),
 				owner: IDL.Text,
 				name: IDL.Text,
-				invite_code: IDL.Text,
+				invite_code: IDL.Opt(IDL.Text),
 				description: IDL.Opt(IDL.Text),
 				emblem: IDL.Opt(IDL.Text),
 				created_at_ms: IDL.Float64,
@@ -1159,6 +1203,9 @@ export const idlFactory = ({ IDL }) => {
 	const AppLookupReferralCodeArgs = IDL.Record({ code: IDL.Text });
 	const AppLookupReferralCodeResult = IDL.Record({
 		owner: IDL.Opt(IDL.Text)
+	});
+	const AppMigrateLeagueInviteCodesResult = IDL.Record({
+		migrated: IDL.Float64
 	});
 	const AppPruneResolvedResultsResult = IDL.Record({ pruned: IDL.Float64 });
 	const AppReadBattleLiveScoreArgs = IDL.Record({ battle_id: IDL.Text });
@@ -1561,6 +1608,7 @@ export const idlFactory = ({ IDL }) => {
 			[AppClaimWorldsPodiumPrizeResult],
 			[]
 		),
+		app_create_league: IDL.Func([AppCreateLeagueArgs], [AppCreateLeagueResult], []),
 		app_delete_analytics_events: IDL.Func(
 			[AppDeleteAnalyticsEventsArgs],
 			[AppDeleteAnalyticsEventsResult],
@@ -1621,6 +1669,11 @@ export const idlFactory = ({ IDL }) => {
 			['query']
 		),
 		app_hibernate_my_account: IDL.Func([], [AppHibernateMyAccountResult], []),
+		app_join_league_by_invite: IDL.Func(
+			[AppJoinLeagueByInviteArgs],
+			[AppJoinLeagueByInviteResult],
+			[]
+		),
 		app_list_affiliation_championships: IDL.Func(
 			[AppListAffiliationChampionshipsArgs],
 			[AppListAffiliationChampionshipsResult],
@@ -1693,6 +1746,7 @@ export const idlFactory = ({ IDL }) => {
 			[AppLookupReferralCodeResult],
 			['query']
 		),
+		app_migrate_league_invite_codes: IDL.Func([], [AppMigrateLeagueInviteCodesResult], []),
 		app_prune_resolved_results: IDL.Func([], [AppPruneResolvedResultsResult], []),
 		app_read_battle_live_score: IDL.Func(
 			[AppReadBattleLiveScoreArgs],

@@ -537,6 +537,12 @@ privacy after a battle exists never retracts or alters it: a battle's
 identity freezes at proposal and it runs to resolution; tightening
 privacy just removes the league from future challenge search.
 
+**The invite code is the only way into a league, Open or Private.** No
+read returns a league's code except to its own members (`listMyLeagues`),
+who share it: the satellite keeps codes in the controllers-only
+`league_invites` collection, never on the public league doc, and adds a
+member only through `joinLeagueByInvite` once the code checks out.
+
 **The score is each league's prediction accuracy over the window, and
 nobody types it.** Each side's score is its **current members'**
 settled-call win rate inside the battle window, read from the clearing

@@ -34,6 +34,9 @@
 //   - events / event_rollups are skipped: the behavioural history was already
 //     drained to the warehouse through the analytics export contract.
 //   - chats / comments are skipped: dormant surfaces with no target tables.
+//   - leagues written after invite codes left the public league doc carry
+//     no code: the league row gets a random stand-in, and the
+//     league_invites import (after leagues) sets the real one.
 //   - vxp_award_markers is skipped: each is a digest of a purged principal,
 //     and no account on this stack can be derived from one (the API writes
 //     its own markers, keyed by sign-in identity, in vxp_award_markers).
@@ -41,6 +44,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { createHash } from 'node:crypto';
 import { tx, type TxQuery } from '../../src/db/client';
+import { randomInviteCode } from '../../src/leagues/leagues';
 import { UUID_RE, ZERO } from '../../src/lib/constants';
 import { MONTH_ANCHOR_RE } from '../../src/lib/time';
 import { nicknameUniqueKey } from '../../src/profiles/nickname';
@@ -871,7 +875,7 @@ const importLeagues: ImporterRun = perDoc(async (doc, { q, mapper, nowMs, stats 
 	const d = rec(doc.data);
 	const id = str(d.id, doc.key);
 	const name = str(d.name);
-	const inviteCode = str(d.inviteCode);
+	const inviteCode = optStr(d.inviteCode) ?? randomInviteCode();
 
 	if (name.length < 3 || name.length > 40 || !LEAGUE_INVITE_CODE_RE.test(inviteCode)) {
 		stats.warnings.push(`leagues: invalid identity fields on ${doc.key}; skipped`);
@@ -936,6 +940,22 @@ const importLeagueMembers: ImporterRun = perDoc(async (doc, { q, mapper, stats }
 		   role = excluded.role`,
 		[leagueId, await mapper.userIdFor(memberPrincipal), num(d.joinedAtMs), role]
 	);
+
+	return true;
+});
+
+const importLeagueInvites: ImporterRun = perDoc(async (doc, { q, stats }) => {
+	const d = rec(doc.data);
+	const leagueId = str(d.leagueId, doc.key);
+	const inviteCode = str(d.inviteCode);
+
+	if (!LEAGUE_INVITE_CODE_RE.test(inviteCode) || !(await leagueExists(q, leagueId))) {
+		stats.warnings.push(`league_invites: missing league or bad code on ${doc.key}; skipped`);
+
+		return false;
+	}
+
+	await q(`update leagues set invite_code = $2 where id = $1`, [leagueId, inviteCode]);
 
 	return true;
 });
@@ -1571,6 +1591,11 @@ export const IMPORTERS: CollectionImporter[] = [
 		mode: 'import',
 		run: importLeagueMembers,
 		pgCount: (q) => countSql(q, `select count(*)::text as count from league_members`)
+	},
+	{
+		collection: 'league_invites',
+		mode: 'import',
+		run: importLeagueInvites
 	},
 	{
 		collection: 'league_stats',
