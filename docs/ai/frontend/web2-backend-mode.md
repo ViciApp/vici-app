@@ -98,6 +98,16 @@ per-domain sections:
 - **League standings slice** (`getLeagueStandings`): empty in web2 mode
   until a member-filtered bridge read with the identity mapping exists;
   web2 standings entries also keep the on-chain principal as `owner`.
+- **Market social signals** (the friends-lean row in
+  `followed-lean.services.ts` and "Top predictors here" in
+  `top-predictors.services.ts`): both read clearing's `aggregate_lean` for
+  the principals of other people, and web2 accounts' custodial principals
+  are derived only inside the API, which has no route for this read. A
+  route would have to answer "which side does account X hold" for accounts
+  the caller names, keyed through that private mapping, so none was added.
+  In web2 mode `getFollowedLean` returns an empty map (the Flow card and the
+  market detail already treat that as "no followed lean") and the market
+  page hides the Top predictors section (`areMarketTopPredictorsAvailable`).
 - **Landing proof figure** (`landing-proof.services.ts`): an anonymous
   public satellite count; works identically from a web2 build.
 - **On-chain sign-in plumbing** (`apple-signin.services.ts` and the Juno

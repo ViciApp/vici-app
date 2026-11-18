@@ -3,6 +3,7 @@ import { aggregateLean as aggregateLeanApi } from '#lib/api/clearing.api.ts';
 import { getIdentityOrAnonymous } from '#lib/services/identity.services.ts';
 import type { TopPredictorSignal } from '#lib/types/market-signals.ts';
 import type { MarketId } from '#lib/types/market.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { PrincipalText } from '@junobuild/schema';
@@ -45,6 +46,15 @@ const toTopPredictor = ({
 };
 
 /**
+ * Whether "Top predictors here" can be resolved on this backend. Each probe
+ * reads clearing's `aggregate_lean` for one candidate's principal; in web2
+ * mode the leaderboard is keyed by account ids, whose custodial principals
+ * only the API derives, and the API has no route for this read. The market
+ * page hides the section rather than show a permanently empty one.
+ */
+export const areMarketTopPredictorsAvailable = (): boolean => !isWeb2Backend();
+
+/**
  * The leaderboard-ranked predictors who actually hold a position on one
  * market, each with the side they took; the data behind the market detail's
  * "Top predictors here" section.
@@ -66,7 +76,7 @@ export const getMarketTopPredictors = async ({
 	marketId: MarketId;
 	candidates: PrincipalText[];
 }): Promise<TopPredictorSignal[]> => {
-	if (candidates.length === 0) {
+	if (candidates.length === 0 || !areMarketTopPredictorsAvailable()) {
 		return [];
 	}
 

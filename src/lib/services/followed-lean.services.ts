@@ -5,6 +5,7 @@ import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import type { FollowedLeanSignal } from '#lib/types/market-signals.ts';
 import type { MarketId } from '#lib/types/market.ts';
 import { parseMarketId } from '#lib/validation/market.validation.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { Principal } from '@icp-sdk/core/principal';
@@ -53,6 +54,10 @@ const toFollowedLean = ({
  *
  * Fails open: any per-market query error drops that market from the map
  * rather than rejecting, so a card never blocks on this signal.
+ *
+ * Empty in web2 mode: the followed set holds account ids, whose custodial
+ * principals only the API derives, and the API has no route for this read.
+ * Every consumer already treats an empty map as "no followed lean".
  */
 export const getFollowedLean = async ({
 	following,
@@ -61,7 +66,7 @@ export const getFollowedLean = async ({
 	following: PrincipalText[];
 	seriesIds: MarketId[];
 }): Promise<Partial<Record<MarketId, FollowedLeanSignal>>> => {
-	if (following.length === 0 || seriesIds.length === 0) {
+	if (following.length === 0 || seriesIds.length === 0 || isWeb2Backend()) {
 		return {};
 	}
 
