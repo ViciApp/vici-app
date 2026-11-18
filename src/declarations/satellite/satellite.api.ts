@@ -1587,39 +1587,6 @@ const acceptFriendRequest = async (
 	await app_accept_friend_request(idlArgs);
 };
 
-const AppBackfillStreakUnderpaymentsArgsSchema = j.strictObject({
-	dryRun: j.optional(j.boolean())
-});
-const AppBackfillStreakUnderpaymentsResultSchema = j.strictObject({
-	scanned: j.number(),
-	underpaid: j.number(),
-	alreadyBackfilled: j.number(),
-	minted: j.number(),
-	failed: j.number(),
-	totalShortfallBaseUnits: j.string()
-});
-
-const backfillStreakUnderpayments = async (
-	args: j.infer<typeof AppBackfillStreakUnderpaymentsArgsSchema>
-): Promise<j.infer<typeof AppBackfillStreakUnderpaymentsResultSchema>> => {
-	const parsedArgs = AppBackfillStreakUnderpaymentsArgsSchema.parse(args);
-	const idlArgs = schemaToIdl({
-		schema: AppBackfillStreakUnderpaymentsArgsSchema,
-		value: parsedArgs
-	}) as Parameters<SatelliteActor['app_backfill_streak_underpayments']>[0];
-
-	const { app_backfill_streak_underpayments } = await getSatelliteExtendedActor<SatelliteActor>({
-		idlFactory
-	});
-	const idlResult = await app_backfill_streak_underpayments(idlArgs);
-
-	const result = schemaFromIdl({
-		schema: AppBackfillStreakUnderpaymentsResultSchema,
-		value: idlResult
-	});
-	return AppBackfillStreakUnderpaymentsResultSchema.parse(result);
-};
-
 const AppCancelFriendRequestArgsSchema = j.strictObject({ relationId: j.string() });
 
 const cancelFriendRequest = async (
@@ -2533,7 +2500,6 @@ export const functions = {
 	lookupReferralCode,
 	searchProfiles,
 	acceptFriendRequest,
-	backfillStreakUnderpayments,
 	cancelFriendRequest,
 	claimCalibrationReward,
 	claimReferralFriendship,

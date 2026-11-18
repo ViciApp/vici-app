@@ -16,6 +16,7 @@ import {
 	readAffiliationDoc,
 	settledMonthlyRows
 } from '#satellite/services/cohort.services.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -241,10 +242,8 @@ export const claimWorldsPodiumPrizeFn = async ({
 						place,
 						amount,
 						awardKey,
-						docKey,
 						caller,
 						callerText,
-						callerBytes,
 						monthAnchor,
 						nowMs
 					});
@@ -273,10 +272,8 @@ const processAward = async ({
 	place,
 	amount,
 	awardKey,
-	docKey,
 	caller,
 	callerText,
-	callerBytes,
 	monthAnchor,
 	nowMs
 }: {
@@ -284,10 +281,8 @@ const processAward = async ({
 	place: 'gold' | 'silver' | 'bronze';
 	amount: bigint;
 	awardKey: string;
-	docKey: string;
 	caller: Principal;
 	callerText: string;
-	callerBytes: Uint8Array;
 	monthAnchor: string;
 	nowMs: number;
 }): Promise<number> => {
@@ -303,14 +298,7 @@ const processAward = async ({
 		earnedAtMs: nowMs
 	};
 
-	setDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes,
-		doc: {
-			data: encodeDocData(pendingDoc)
-		}
-	});
+	persistAward({ recipient: callerText, awardType: 'worlds_podium', awardKey, doc: pendingDoc });
 
 	const ledger = new IcrcLedgerCanister({
 		canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
@@ -320,14 +308,6 @@ const processAward = async ({
 		toOwner: caller,
 		amount,
 		memo: `vxp:worlds_podium:${awardKey}`
-	});
-
-	// Re-read the doc to pick up the version stamp from the
-	// `pending` write above.
-	const pendingExisting = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes
 	});
 
 	if (transferResult.ok) {
@@ -341,18 +321,14 @@ const processAward = async ({
 				monthAnchor
 			}
 		});
-		setDocStore({
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			caller: callerBytes,
-			doc: {
-				data: encodeDocData<VxpAwardDoc>({
-					...pendingDoc,
-					status: 'paid',
-					paidAtMs: nowMs,
-					blockIndex: transferResult.blockIndex.toString()
-				}),
-				version: pendingExisting?.version
+		updateAward({
+			recipient: callerText,
+			awardType: 'worlds_podium',
+			awardKey,
+			patch: {
+				status: 'paid',
+				paidAtMs: nowMs,
+				blockIndex: transferResult.blockIndex.toString()
 			}
 		});
 	} else {
@@ -366,18 +342,11 @@ const processAward = async ({
 				error: transferResult.error
 			}
 		});
-		setDocStore({
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			caller: callerBytes,
-			doc: {
-				data: encodeDocData<VxpAwardDoc>({
-					...pendingDoc,
-					status: 'failed',
-					errorMessage: transferResult.error
-				}),
-				version: pendingExisting?.version
-			}
+		updateAward({
+			recipient: callerText,
+			awardType: 'worlds_podium',
+			awardKey,
+			patch: { status: 'failed', errorMessage: transferResult.error }
 		});
 	}
 

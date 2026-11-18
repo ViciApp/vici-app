@@ -8,17 +8,6 @@
 
 export const idlFactory = ({ IDL }) => {
 	const AppAcceptFriendRequestArgs = IDL.Record({ relation_id: IDL.Text });
-	const AppBackfillStreakUnderpaymentsArgs = IDL.Record({
-		dry_run: IDL.Opt(IDL.Bool)
-	});
-	const AppBackfillStreakUnderpaymentsResult = IDL.Record({
-		total_shortfall_base_units: IDL.Text,
-		already_backfilled: IDL.Float64,
-		minted: IDL.Float64,
-		scanned: IDL.Float64,
-		underpaid: IDL.Float64,
-		failed: IDL.Float64
-	});
 	const AppCancelFriendRequestArgs = IDL.Record({ relation_id: IDL.Text });
 	const AppCheckFriendshipArgs = IDL.Record({
 		user_a: IDL.Text,
@@ -1549,11 +1538,6 @@ export const idlFactory = ({ IDL }) => {
 
 	return IDL.Service({
 		app_accept_friend_request: IDL.Func([AppAcceptFriendRequestArgs], [], []),
-		app_backfill_streak_underpayments: IDL.Func(
-			[AppBackfillStreakUnderpaymentsArgs],
-			[AppBackfillStreakUnderpaymentsResult],
-			[]
-		),
 		app_cancel_friend_request: IDL.Func([AppCancelFriendRequestArgs], [], []),
 		app_check_friendship: IDL.Func([AppCheckFriendshipArgs], [AppCheckFriendshipResult], ['query']),
 		app_check_nickname_availability: IDL.Func(

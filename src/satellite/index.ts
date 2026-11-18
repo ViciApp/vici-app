@@ -231,7 +231,6 @@ import {
 	onTradeActivityForVxpOnboarding
 } from '#satellite/services/vxp-onboarding.services.ts';
 import { onProfileSetForStreakAward } from '#satellite/services/vxp-streak-awards.services.ts';
-import { backfillStreakUnderpaymentsFn } from '#satellite/services/vxp-streak-backfill.services.ts';
 import { claimWorldsPodiumPrizeFn } from '#satellite/services/vxp-worlds-podium.services.ts';
 import {
 	AffiliationChampionshipWireSchema,
@@ -1152,23 +1151,6 @@ export const sweepExpiredDeletions = defineUpdate({
 // concurrent-like version race (the hooks are best-effort) and backfills
 // counts for likes that predate the rollup. Admin-gated; `recomputed` is
 // the number of counter docs written.
-// One-time streak-underpayment backfill. Admin-gated,
-// dryRun-default, idempotent. Remove in a follow-up PR after the prod run.
-export const backfillStreakUnderpayments = defineUpdate({
-	// `dryRun` is optional and defaults to `true` in the handler: omitting it
-	// is the safe report-only path; pass `false` to mint.
-	args: j.strictObject({ dryRun: j.optional(j.boolean()) }),
-	result: j.strictObject({
-		scanned: j.number(),
-		underpaid: j.number(),
-		alreadyBackfilled: j.number(),
-		minted: j.number(),
-		failed: j.number(),
-		totalShortfallBaseUnits: j.string()
-	}),
-	handler: async ({ dryRun }) => await backfillStreakUnderpaymentsFn({ dryRun })
-});
-
 export const recomputeActivityReactionCounts = defineUpdate({
 	result: j.strictObject({
 		recomputed: j.number()

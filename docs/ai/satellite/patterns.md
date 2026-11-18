@@ -662,7 +662,8 @@ That covers `relations` (every set goes through the friend-request
 endpoints), `market_metadata` and `market_translations` (the upsert
 endpoints check creator-or-admin, then write as a controller),
 `league_stats` (fanned out by the profile and user-stats hooks),
-`vxp_onboarding` (the onboarding payout ladder), and the dormant `chats`
+`vxp_onboarding` (the onboarding payout ladder), `vxp_awards` (every award
+path, through `persistAward` / `updateAward`), and the dormant `chats`
 and `comments`. A delete with no app flow behind it is
 controller-only too (`exit_signals`, `user_stats`).
 

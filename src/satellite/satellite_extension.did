@@ -137,10 +137,6 @@ type AppSearchProfilesResult = record { items : vec record { owner : text; nickn
 
 type AppAcceptFriendRequestArgs = record { relation_id : text };
 
-type AppBackfillStreakUnderpaymentsArgs = record { dry_run : opt bool };
-
-type AppBackfillStreakUnderpaymentsResult = record { scanned : float64; underpaid : float64; already_backfilled : float64; minted : float64; failed : float64; total_shortfall_base_units : text };
-
 type AppCancelFriendRequestArgs = record { relation_id : text };
 
 type AppClaimCalibrationRewardArgs = record { series_id : text; chosen_side : variant { YES; NO } };
@@ -282,7 +278,6 @@ service : {
 	app_lookup_referral_code : (AppLookupReferralCodeArgs) -> (AppLookupReferralCodeResult) query;
 	app_search_profiles : (AppSearchProfilesArgs) -> (AppSearchProfilesResult) query;
 	app_accept_friend_request : (AppAcceptFriendRequestArgs) -> ();
-	app_backfill_streak_underpayments : (AppBackfillStreakUnderpaymentsArgs) -> (AppBackfillStreakUnderpaymentsResult);
 	app_cancel_friend_request : (AppCancelFriendRequestArgs) -> ();
 	app_claim_calibration_reward : (AppClaimCalibrationRewardArgs) -> (AppClaimCalibrationRewardResult);
 	app_claim_referral_friendship : (AppClaimReferralFriendshipArgs) -> ();

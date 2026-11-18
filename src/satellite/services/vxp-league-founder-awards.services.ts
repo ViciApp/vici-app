@@ -125,7 +125,7 @@ const payFounderReward = async ({
 	};
 
 	try {
-		persistAward({ caller, recipient, awardType: AWARD_TYPE, awardKey: leagueId, doc: pending });
+		persistAward({ recipient, awardType: AWARD_TYPE, awardKey: leagueId, doc: pending });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 
@@ -159,7 +159,6 @@ const payFounderReward = async ({
 		});
 
 		updateAward({
-			caller,
 			recipient,
 			awardType: AWARD_TYPE,
 			awardKey: leagueId,
@@ -184,7 +183,6 @@ const payFounderReward = async ({
 	});
 
 	updateAward({
-		caller,
 		recipient,
 		awardType: AWARD_TYPE,
 		awardKey: leagueId,
@@ -225,9 +223,9 @@ export const onLeagueSetForFounderVxpPayout = async (ctx: OnSetDocContext): Prom
 		const league = decodeDocData<LeagueDoc>(after.data);
 		const callerText = Principal.fromUint8Array(caller).toText();
 
-		// Pay the owner, and only when the founder is the writing caller:
-		// the `vxp_awards` assert binds recipient to caller, and a league is
-		// created by its owner (`createLeague` sets `owner` to the signer).
+		// Pay the owner, and only when the founder is the writing caller: a
+		// league is created by its owner (`assertSetLeague` binds `owner` to
+		// the signer on creation).
 		if (league.owner !== callerText) {
 			return;
 		}

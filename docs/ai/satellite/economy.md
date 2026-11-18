@@ -94,7 +94,11 @@ one pattern. Each of these has bitten a PR before:
   tokens.
 - **Payout state is server-owned.** A doc whose status the payout trusts
   (`owed` pays, `paid` below the expected amount tops up) must be one no
-  client can rewrite or delete, or the owner is paid again. The
+  client can rewrite or delete, or the owner is paid again. `vxp_awards`
+  is set by a satellite controller only (`assertSetVxpAward`): every award
+  path writes through `persistAward` / `updateAward`, which sign as
+  `controllerCaller(...)`, so no client can create an award, mark one
+  `paid` with an invented block or fail its own in-flight payout. The
   `vxp_onboarding` ladder is set and deleted by a satellite controller
   only (`assertVxpOnboardingWrite`), and the onboarding hooks write it as
   `controllerCaller(...)`; the calibration engagement gate reads the same

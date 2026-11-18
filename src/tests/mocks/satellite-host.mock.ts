@@ -27,8 +27,8 @@ import type { AccessKeys } from '@junobuild/functions/sdk';
  * defines those globals over a map of docs and a table of canister method
  * handlers. An assert spec builds its context with {@link setContext} /
  * {@link deleteContext}; a service spec drives the real service end to end.
- * Asserts and hooks do not run on a host write: seed only docs the real
- * asserts would accept.
+ * Hooks never run on a host write, and asserts only when the spec installs
+ * them: seed only docs the real asserts would accept.
  */
 
 export const controller = Principal.fromUint8Array(new Uint8Array([1, 1, 1]));
@@ -228,17 +228,27 @@ const encodeText = (text: string): Uint8Array<ArrayBuffer> => new TextEncoder().
 
 const toDoc = (stored: StoredDoc): Doc => ({ ...stored });
 
+/** The satellite's own set / delete asserts, run on host writes as Juno runs them. */
+export interface HostAsserts {
+	set?: (context: AssertSetDocContext) => void;
+	remove?: (context: AssertDeleteDocContext) => void;
+}
+
 /**
  * Defines the host globals the SDK calls. `docs` (with their `createdAtNs`)
  * seed the datastore that `getDocStore` / `listDocsStore` read and
- * `setDocStore` writes, versioned as Juno does.
+ * `setDocStore` writes, versioned as Juno does. With `asserts`, every
+ * `setDocStore` / `deleteDocStore` first runs them with the caller it was
+ * given, as Juno does for a serverless write.
  */
 export const installSatelliteHost = ({
 	docs = {},
-	createdAtNs = {}
+	createdAtNs = {},
+	asserts = {}
 }: {
 	docs?: HostDocs;
 	createdAtNs?: HostCreatedAtNs;
+	asserts?: HostAsserts;
 } = {}): SatelliteHost => {
 	const collections = new Map<string, Map<string, StoredDoc>>();
 	const methods = new Map<string, CanisterMethod>();
@@ -287,6 +297,8 @@ export const installSatelliteHost = ({
 		__ic_cdk_caller: (): Uint8Array => caller.toUint8Array(),
 		__ic_cdk_id: (): Uint8Array => controller.toUint8Array(),
 		__ic_cdk_time: (): bigint => nowNs,
+		// The satellite's console polyfill prints through this; specs stay quiet.
+		__ic_cdk_print: (): void => undefined,
 		__juno_satellite_get_admin_access_keys: (): AccessKeys => [
 			[controller.toUint8Array(), { metadata: [], created_at: 1n, updated_at: 1n, scope: 'admin' }]
 		],
@@ -329,6 +341,18 @@ export const installSatelliteHost = ({
 		) => {
 			const before = collection(name).get(key);
 
+			asserts.set?.({
+				caller: setter,
+				data: {
+					collection: name,
+					key,
+					data: {
+						current: isNullish(before) ? undefined : toDoc(before),
+						proposed: { data: value.data, version: value.version }
+					}
+				}
+			});
+
 			if (nonNullish(before) && value.version !== before.version) {
 				throw new Error(
 					`${name}/${key}: version ${value.version} does not match ${before.version}.`
@@ -353,12 +377,23 @@ export const installSatelliteHost = ({
 		},
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_delete_doc_store: (
-			_caller: Uint8Array,
+			remover: Uint8Array,
 			name: string,
 			key: string,
 			value: DelDoc
 		): Doc | undefined => {
 			const before = collection(name).get(key);
+
+			if (nonNullish(before)) {
+				asserts.remove?.({
+					caller: remover,
+					data: {
+						collection: name,
+						key,
+						data: { current: toDoc(before), proposed: { version: value.version } }
+					}
+				});
+			}
 
 			if (nonNullish(before) && value.version !== before.version) {
 				throw new Error(

@@ -12,17 +12,6 @@ import type { IDL } from '@icp-sdk/core/candid';
 export interface AppAcceptFriendRequestArgs {
 	relation_id: string;
 }
-export interface AppBackfillStreakUnderpaymentsArgs {
-	dry_run: [] | [boolean];
-}
-export interface AppBackfillStreakUnderpaymentsResult {
-	total_shortfall_base_units: string;
-	already_backfilled: number;
-	minted: number;
-	scanned: number;
-	underpaid: number;
-	failed: number;
-}
 export interface AppCancelFriendRequestArgs {
 	relation_id: string;
 }
@@ -1385,10 +1374,6 @@ export interface AppVerifySchoolCodeResult {
 }
 export interface _SERVICE {
 	app_accept_friend_request: ActorMethod<[AppAcceptFriendRequestArgs], undefined>;
-	app_backfill_streak_underpayments: ActorMethod<
-		[AppBackfillStreakUnderpaymentsArgs],
-		AppBackfillStreakUnderpaymentsResult
-	>;
 	app_cancel_friend_request: ActorMethod<[AppCancelFriendRequestArgs], undefined>;
 	app_check_friendship: ActorMethod<[AppCheckFriendshipArgs], AppCheckFriendshipResult>;
 	app_check_nickname_availability: ActorMethod<

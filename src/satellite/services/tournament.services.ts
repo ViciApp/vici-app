@@ -23,6 +23,7 @@ import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
 import { leagueMemberPrincipals } from '#satellite/services/league-member.services.ts';
 import { settledTotals } from '#satellite/services/settled-history.services.ts';
+import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -1197,12 +1198,6 @@ export const claimTournamentPrizeFn = async ({
 		return { ok: false, reason: 'not_member_of_top_league' };
 	}
 
-	const docKey = vxpAwardKey({
-		recipient: callerText,
-		awardType: 'tournament_prize',
-		awardKey
-	});
-
 	const nowMs = timeMs();
 	// `tier.vxp` is the human-readable whole-VXP prize (5000 / 2500 / 1000),
 	// the same value the FE renders. The award doc / ledger work in base
@@ -1219,14 +1214,7 @@ export const claimTournamentPrizeFn = async ({
 		earnedAtMs: nowMs
 	};
 
-	setDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes,
-		doc: {
-			data: encodeDocData(pendingDoc)
-		}
-	});
+	persistAward({ recipient: callerText, awardType: 'tournament_prize', awardKey, doc: pendingDoc });
 
 	// Pay the prize inline: same pending → paid/failed ledger pattern as
 	// claimWorldsPodiumPrize, so the award reflects a real transfer rather
@@ -1241,26 +1229,15 @@ export const claimTournamentPrizeFn = async ({
 		memo: `vxp:tournament_prize:${awardKey}`
 	});
 
-	// Re-read to pick up the version stamp from the pending write.
-	const pendingExisting = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes
-	});
-
 	if (transferResult.ok) {
-		setDocStore({
-			collection: Collection.VXP_AWARDS,
-			key: docKey,
-			caller: callerBytes,
-			doc: {
-				data: encodeDocData<VxpAwardDoc>({
-					...pendingDoc,
-					status: 'paid',
-					paidAtMs: nowMs,
-					blockIndex: transferResult.blockIndex.toString()
-				}),
-				version: pendingExisting?.version
+		updateAward({
+			recipient: callerText,
+			awardType: 'tournament_prize',
+			awardKey,
+			patch: {
+				status: 'paid',
+				paidAtMs: nowMs,
+				blockIndex: transferResult.blockIndex.toString()
 			}
 		});
 
@@ -1277,18 +1254,11 @@ export const claimTournamentPrizeFn = async ({
 		};
 	}
 
-	setDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller: callerBytes,
-		doc: {
-			data: encodeDocData<VxpAwardDoc>({
-				...pendingDoc,
-				status: 'failed',
-				errorMessage: transferResult.error
-			}),
-			version: pendingExisting?.version
-		}
+	updateAward({
+		recipient: callerText,
+		awardType: 'tournament_prize',
+		awardKey,
+		patch: { status: 'failed', errorMessage: transferResult.error }
 	});
 
 	logError({
