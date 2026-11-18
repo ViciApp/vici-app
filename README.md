@@ -5,7 +5,7 @@ Vici Social Markets is a modern prediction platform built on the **Internet Comp
 ## 🚀 Key Features
 
 - **Binary Outcome Markets**: Trade on YES/NO outcomes across various categories.
-- **Social Integration**: Market-specific discussions, user profiles, following system, and activity feeds.
+- **Social Integration**: User profiles, friends, leagues, and activity feeds.
 - **Flow Mode**: A swipe-based rapid trading interface designed for mobile-first engagement.
 - **On-Chain Settlement**: Fully functional trading and settlement using the `clearing` and `registry` canisters.
 - **Wallet & Portfolio**: Integrated collateral management for ICP and ckUSDC with real-time position tracking.
@@ -32,6 +32,7 @@ operational runbooks.
 - **Frontend**: [SvelteKit](https://kit.svelte.dev/) with **Svelte 5 (Runes)**.
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) with a premium glassmorphic design system.
 - **Backend/Storage**: [Juno](https://juno.build/) and Rust-based canisters on the Internet Computer.
+- **Web2 API**: [Bun](https://bun.sh/) + [Elysia](https://elysiajs.com/) + Postgres in [`backend/`](./backend/README.md), serving the web2 build (`VITE_BACKEND=web2`) at vici.app.
 - **Blockchain**: [Internet Computer (IC)](https://internetcomputer.org/).
 - **Authentication**: [Internet Identity](https://identity.ic0.app/).
 

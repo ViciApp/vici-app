@@ -257,10 +257,9 @@ export interface TournamentMatchDoc {
 
 ## Proposal 4: Account deletion / exit-signals endpoint
 
-> **Why:** `docs/local-storage.md` lists `vici.exit-signals` as
-> "Server: actual account-deletion feedback should hit a real
-> endpoint". Settings → Delete account currently has no backend
-> wired.
+> **Why:** the account-deletion feedback (`vici.exit-signals`) was
+> kept only in the browser and should hit a real endpoint.
+> Settings → Delete account had no backend wired.
 
 Smallest of the four.
 
