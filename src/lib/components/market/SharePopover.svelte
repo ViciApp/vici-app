@@ -379,6 +379,10 @@
 				if (e instanceof DOMException && e.name === 'AbortError') {
 					return;
 				}
+
+				// Not a cancel: the copy below still gets the link out, and
+				// reports the failure itself if it cannot.
+				console.error('SharePopover: link share failed', e);
 			}
 		}
 
@@ -395,10 +399,14 @@
 		haptic('light-tap');
 		const copied = await writeToClipboard(url);
 
-		if (copied) {
-			onCopied?.();
-			onClose?.();
+		if (!copied) {
+			notifyShareFailed();
+
+			return;
 		}
+
+		onCopied?.();
+		onClose?.();
 	};
 
 	const stop = (event: Event) => {
