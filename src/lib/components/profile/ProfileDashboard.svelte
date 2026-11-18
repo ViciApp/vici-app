@@ -36,7 +36,7 @@
 	import { countryDisplayName } from '#lib/utils/affiliation-name.utils.ts';
 	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
-	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { appOrigin, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import {
 		avatarBackdropPlanes,
 		deterministicParts,
@@ -191,7 +191,7 @@
 	// same as the Arena Friends hero's `/i/{code}` link.
 	const inviteUrl = $derived(
 		nonNullish(inviteCode) && typeof window !== 'undefined'
-			? `${window.location.origin}/join/${inviteCode}`
+			? `${appOrigin()}/join/${inviteCode}`
 			: undefined
 	);
 
