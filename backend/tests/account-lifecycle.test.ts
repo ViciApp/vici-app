@@ -24,7 +24,9 @@ import { query } from '../src/db/client';
 import { app } from '../src/index';
 import { createLeague } from '../src/leagues/leagues';
 import { joinLeagueByInvite } from '../src/leagues/members';
+import { DAY_IN_MS } from '../src/lib/time';
 import { upsertMyProfile } from '../src/profiles/profile-write';
+import { createActivity, likeActivity } from '../src/social/activities';
 import { createTestUser, ensureMigrated, uniqueEmail } from './helpers/auth';
 import { createTestProfile, uniqueNickname } from './helpers/profiles';
 import { readRepoFile } from './helpers/repo-source';
@@ -216,8 +218,9 @@ describe.if(dbAvailable)('account lifecycle', () => {
 		test('marks the profile, writes one anonymous exit signal, and never re-counts a re-delete', async () => {
 			const { userId } = await createTestProfile();
 			const before = await exitSignalCount();
+			const note = `a short note ${crypto.randomUUID()}`;
 
-			const first = await deleteMyAccount({ userId, reason: 'privacy', note: 'a short note' });
+			const first = await deleteMyAccount({ userId, reason: 'privacy', note });
 
 			expect(first).toEqual({ ok: true, softDeleted: true });
 
@@ -234,10 +237,36 @@ describe.if(dbAvailable)('account lifecycle', () => {
 			expect(await exitSignalCount()).toBe(before + 1);
 
 			const signals = await query<{ reason: string; note: string }>(
-				`select reason, note from exit_signals order by created_at desc limit 1`
+				`select reason, note from exit_signals where note = $1`,
+				[note]
 			);
 
-			expect(signals[0]).toEqual({ reason: 'privacy', note: 'a short note' });
+			expect(signals).toEqual([{ reason: 'privacy', note }]);
+		});
+
+		test('the exit signal keeps only the UTC day, so it cannot be joined to the deletion', async () => {
+			const { userId } = await createTestProfile();
+			const note = `left ${crypto.randomUUID()}`;
+
+			await deleteMyAccount({ userId, reason: 'other', note });
+
+			const marker = await deletedAtMs(userId);
+			const signals = await query<{ created_at_ms: string; created_at_epoch_ms: string }>(
+				`select created_at_ms::text,
+				        (extract(epoch from created_at) * 1000)::bigint::text as created_at_epoch_ms
+				 from exit_signals where note = $1`,
+				[note]
+			);
+
+			if (isNullish(marker)) {
+				throw new Error('profile not marked deleted');
+			}
+
+			const dayStartMs = marker - (marker % DAY_IN_MS);
+
+			expect(signals).toEqual([
+				{ created_at_ms: `${dayStartMs}`, created_at_epoch_ms: `${dayStartMs}` }
+			]);
 		});
 
 		test('a caller with no profile soft-deletes nothing but still succeeds', async () => {
@@ -312,6 +341,66 @@ describe.if(dbAvailable)('account lifecycle', () => {
 
 			// The identity anchor survives the cascade.
 			expect(await countRows('users', 'id', userId)).toBe(1);
+		});
+
+		test('removes the stats, results, school submissions and likes the account left', async () => {
+			const { userId } = await createTestProfile();
+			const { userId: author } = await createTestProfile();
+			const nowMs = Date.now();
+			const liked = await createActivity({
+				userId: author,
+				type: 'trade',
+				title: 'liked',
+				timestamp: nowMs
+			});
+			const own = await createActivity({ userId, type: 'trade', title: 'own', timestamp: nowMs });
+
+			await likeActivity({
+				likerId: userId,
+				activityKey: liked.key,
+				timestamp: nowMs,
+				activityTitle: ''
+			});
+			await likeActivity({
+				likerId: author,
+				activityKey: own.key,
+				timestamp: nowMs,
+				activityTitle: ''
+			});
+			await query(`insert into user_stats (user_id) values ($1)`, [userId]);
+			await query(`insert into user_monthly_stats (user_id, month_anchor) values ($1, '2026-10')`, [
+				userId
+			]);
+			await query(
+				`insert into resolved_results (user_id, market_id, outcome, net_vxp, resolved_at_ms)
+				 values ($1, 'm-1', 'win', 1, $2)`,
+				[userId, nowMs]
+			);
+			await query(
+				`insert into school_submissions
+				   (user_id, email, school_id, school_name, code_hash, salt, expires_at_ms, created_at_ms)
+				 values ($1, 'a@school.invalid', 's-1', 'School', 'h', 's', $2, $2)`,
+				[userId, nowMs]
+			);
+
+			await hardDeleteAccount(userId);
+
+			expect(await countRows('user_stats', 'user_id', userId)).toBe(0);
+			expect(await countRows('user_monthly_stats', 'user_id', userId)).toBe(0);
+			expect(await countRows('resolved_results', 'user_id', userId)).toBe(0);
+			expect(await countRows('school_submissions', 'user_id', userId)).toBe(0);
+			expect(await countRows('activity_reactions', 'liker', userId)).toBe(0);
+			expect(await countRows('activity_reactions', 'liker', author)).toBe(1);
+
+			const counts = await query<{ activity_key: string; count: number }>(
+				`select activity_key, count from activity_reaction_counts where activity_key = any($1)`,
+				[[liked.key, own.key]]
+			);
+
+			expect(Object.fromEntries(counts.map((row) => [row.activity_key, row.count]))).toEqual({
+				[liked.key]: 0,
+				[own.key]: 1
+			});
 		});
 
 		test('an owned league that gained members transfers to a deterministic survivor instead of dying', async () => {
