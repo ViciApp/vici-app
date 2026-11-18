@@ -577,7 +577,9 @@ day key (`YYYY-MM-DD`); the server reads the caller's own profile, rolls
 over by that key, and writes the capped increment **itself**: the client
 never sends a count, so it can't reset or inflate the total. A
 monotonic-per-day assert on the `profiles` collection rejects any direct
-client write that lowers the day's count or pushes it past the cap. The
+client write that lowers the day's count or pushes it past the cap. On the
+web2 API the count is server-owned outright: a profile write keeps the
+stored count and day, and only `POST /profiles/flow-swipe` moves them. The
 result: the "come back tomorrow" takeover holds across reloads, cleared
 storage, sign-outs, and device switches, losing the localStorage mirror
 (now only an offline hint that can never raise the count above the server
