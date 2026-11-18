@@ -1,11 +1,21 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+import type { ExitSignalDoc } from '#lib/types/exit-signal.ts';
+import junoConfig from '#root/juno.config.ts';
 import {
 	controller,
+	hostNowMs,
 	installSatelliteHost,
+	setContext,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
-import { hardDeleteAccountFn } from '#satellite/services/account.services.ts';
+import { deleteMyAccountFn, hardDeleteAccountFn } from '#satellite/services/account.services.ts';
+import { assertSetExitSignal } from '#satellite/services/exit-signal.services.ts';
+import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
+import type { Doc } from '@junobuild/functions';
+import { time } from '@junobuild/functions/ic-cdk';
+import { decodeDocData, listDocsStore } from '@junobuild/functions/sdk';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
@@ -98,6 +108,64 @@ describe('account.services', () => {
 				})?.count,
 				1
 			);
+		});
+	});
+
+	describe('deleteMyAccountFn', () => {
+		const exitSignals = (): Doc[] =>
+			listDocsStore({
+				collection: Collection.EXIT_SIGNALS,
+				caller: controller,
+				params: {}
+			}).items.map(([, doc]) => doc);
+
+		it('writes an exit signal nothing public ties to the account', () => {
+			host.setNowMs(hostNowMs + 12_345);
+			host.setCaller(purged);
+
+			assert.deepEqual(deleteMyAccountFn({ reason: 'privacy', note: 'too many emails' }), {
+				ok: true,
+				softDeleted: true
+			});
+
+			const deletedAtMs = host.readDoc<{ deletedAtMs: number }>({
+				collection: Collection.PROFILES,
+				key: purgedText
+			})?.deletedAtMs;
+			const [signal] = exitSignals();
+			const [signalKey] = host.keys(Collection.EXIT_SIGNALS);
+
+			assert.ok(nonNullish(signal) && nonNullish(signalKey) && nonNullish(deletedAtMs));
+
+			const { createdAtMs } = decodeDocData<ExitSignalDoc>(signal.data);
+
+			assert.equal(createdAtMs % DAY_IN_MS, 0);
+			assert.equal(createdAtMs, deletedAtMs - (deletedAtMs % DAY_IN_MS));
+			assert.equal(Principal.fromUint8Array(signal.owner).toText(), controller.toText());
+			assert.doesNotMatch(signalKey, new RegExp(time().toString(36)));
+		});
+
+		it('refuses an exit signal written by anyone but a controller', () => {
+			const write = (caller: Principal) =>
+				setContext({
+					caller,
+					collection: Collection.EXIT_SIGNALS,
+					key: 'k',
+					proposed: { reason: 'privacy', note: '', createdAtMs: DAY_IN_MS }
+				});
+
+			assert.throws(() => assertSetExitSignal(write(purged)), /only the satellite writes/);
+			assert.doesNotThrow(() => assertSetExitSignal(write(controller)));
+		});
+
+		it('keeps exit signals readable by controllers only', () => {
+			for (const mode of ['production', 'development']) {
+				const rule = junoConfig({ mode }).satellite.collections?.datastore?.find(
+					({ collection }) => collection === Collection.EXIT_SIGNALS
+				);
+
+				assert.equal(rule?.read, 'controllers');
+			}
 		});
 	});
 });

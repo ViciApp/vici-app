@@ -674,9 +674,11 @@ endpoints), `market_metadata` and `market_translations` (the upsert
 endpoints check creator-or-admin, then write as a controller),
 `league_stats` (fanned out by the profile and user-stats hooks),
 `vxp_onboarding` (the onboarding payout ladder), `vxp_awards` (every award
-path, through `persistAward` / `updateAward`), and the dormant `chats`
-and `comments`. A delete with no app flow behind it is
-controller-only too (`exit_signals`, `user_stats`).
+path, through `persistAward` / `updateAward`), `exit_signals` (the
+account deletion writes the churn row as a controller, so the doc's Juno
+owner is never the departing principal), and the dormant `chats` and
+`comments`. A delete with no app flow behind it is controller-only too
+(`exit_signals`, `user_stats`).
 
 **A secret that gates a write never sits on a public doc.** A league's
 invite code is the only way into it, so it lives in the controllers-only

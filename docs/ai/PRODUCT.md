@@ -455,7 +455,11 @@ hibernated or deleted account. What stays, by design:
   referee principal); on the web2 API the rows naming the deleted account
   as referrer, and a referrer's award for a deleted referee.
 - **Shared audit rows** the account took part in (activities, battles,
-  analytics), orphaned and immutable, and the anonymous exit signal.
+  analytics), orphaned and immutable.
+- **The anonymous exit signal**: the reason and optional note picked at
+  deletion, under a random key, dated only by the UTC day the account
+  left, with no reference to the account. Only satellite controllers and
+  the API's database read it.
 
 ### Worlds Universities: standings reflect the current opted-in roster
 

@@ -333,14 +333,16 @@ export const deleteMyAccount = async ({
 	});
 
 	// The exit signal is anonymous by design: no user reference in the row,
-	// so it outlives the account while staying unlinkable. Appended once per
-	// departure only, so a re-delete cannot over-count churn.
+	// a random id, and only the UTC day as its time (both columns), so it
+	// outlives the account while no timestamp joins it to the soft-delete
+	// mark. Appended once per departure only, so a re-delete cannot
+	// over-count churn.
 	if (!alreadyDeleted) {
-		await query(`insert into exit_signals (reason, note, created_at_ms) values ($1, $2, $3)`, [
-			validated.reason,
-			validated.note,
-			nowMs
-		]);
+		await query(
+			`insert into exit_signals (reason, note, created_at_ms, created_at)
+			 values ($1, $2, $3::bigint, to_timestamp($3::bigint / 1000.0))`,
+			[validated.reason, validated.note, nowMs - (nowMs % DAY_IN_MS)]
+		);
 
 		await captureDeleteEvents([
 			{ name: 'delete_succeeded', userId },

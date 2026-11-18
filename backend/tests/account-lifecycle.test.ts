@@ -24,6 +24,7 @@ import { query } from '../src/db/client';
 import { app } from '../src/index';
 import { createLeague } from '../src/leagues/leagues';
 import { joinLeagueByInvite } from '../src/leagues/members';
+import { DAY_IN_MS } from '../src/lib/time';
 import { upsertMyProfile } from '../src/profiles/profile-write';
 import { createActivity, likeActivity } from '../src/social/activities';
 import { createTestUser, ensureMigrated, uniqueEmail } from './helpers/auth';
@@ -217,8 +218,9 @@ describe.if(dbAvailable)('account lifecycle', () => {
 		test('marks the profile, writes one anonymous exit signal, and never re-counts a re-delete', async () => {
 			const { userId } = await createTestProfile();
 			const before = await exitSignalCount();
+			const note = `a short note ${crypto.randomUUID()}`;
 
-			const first = await deleteMyAccount({ userId, reason: 'privacy', note: 'a short note' });
+			const first = await deleteMyAccount({ userId, reason: 'privacy', note });
 
 			expect(first).toEqual({ ok: true, softDeleted: true });
 
@@ -235,10 +237,36 @@ describe.if(dbAvailable)('account lifecycle', () => {
 			expect(await exitSignalCount()).toBe(before + 1);
 
 			const signals = await query<{ reason: string; note: string }>(
-				`select reason, note from exit_signals order by created_at desc limit 1`
+				`select reason, note from exit_signals where note = $1`,
+				[note]
 			);
 
-			expect(signals[0]).toEqual({ reason: 'privacy', note: 'a short note' });
+			expect(signals).toEqual([{ reason: 'privacy', note }]);
+		});
+
+		test('the exit signal keeps only the UTC day, so it cannot be joined to the deletion', async () => {
+			const { userId } = await createTestProfile();
+			const note = `left ${crypto.randomUUID()}`;
+
+			await deleteMyAccount({ userId, reason: 'other', note });
+
+			const marker = await deletedAtMs(userId);
+			const signals = await query<{ created_at_ms: string; created_at_epoch_ms: string }>(
+				`select created_at_ms::text,
+				        (extract(epoch from created_at) * 1000)::bigint::text as created_at_epoch_ms
+				 from exit_signals where note = $1`,
+				[note]
+			);
+
+			if (isNullish(marker)) {
+				throw new Error('profile not marked deleted');
+			}
+
+			const dayStartMs = marker - (marker % DAY_IN_MS);
+
+			expect(signals).toEqual([
+				{ created_at_ms: `${dayStartMs}`, created_at_epoch_ms: `${dayStartMs}` }
+			]);
 		});
 
 		test('a caller with no profile soft-deletes nothing but still succeeds', async () => {
