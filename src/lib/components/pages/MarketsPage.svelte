@@ -23,8 +23,8 @@
 	import { preferencesStore } from '#lib/stores/preferences.store.ts';
 	import type { Market } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { filterRevealedMarkets } from '#lib/utils/market-reveal.utils.ts';
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
-	import { filterScheduledWcMarkets } from '#lib/utils/wc-schedule.utils.ts';
 
 	/**
 	 * Markets screen: a section-based board with a category browse nav. The
@@ -115,7 +115,7 @@
 	// explicit Saved watchlist is intentionally left ungated. Re-derives on the
 	// minute tick so a market appears the moment its release lands.
 	const visibleMarkets = $derived(
-		filterScheduledWcMarkets({ markets: $markets, tagsByMarket, now: $minuteTick_ms })
+		filterRevealedMarkets({ markets: $markets, now: $minuteTick_ms })
 	);
 
 	// Volume-sort helper: the same trending signal the carousel uses, applied

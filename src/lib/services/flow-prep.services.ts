@@ -9,8 +9,8 @@ import { getUserTradeHistory } from '#lib/services/trade.services.ts';
 import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 import type { UserMarketSignals } from '#lib/types/market-signals.ts';
 import type { Market, MarketId } from '#lib/types/market.ts';
+import { filterRevealedMarkets } from '#lib/utils/market-reveal.utils.ts';
 import { deriveCalledMarketIds } from '#lib/utils/market-signals.utils.ts';
-import { filterScheduledWcMarkets } from '#lib/utils/wc-schedule.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**
@@ -115,11 +115,7 @@ export const prepareFlow = async ({
 		// (`start_ns`) is withheld until that instant; markets with no start are
 		// live. Applied to the whole queue up front so withheld markets can't
 		// leak back in through the featured-scope fallback below.
-		const visibleQueue = filterScheduledWcMarkets({
-			markets: queue,
-			tagsByMarket,
-			now: Date.now()
-		});
+		const visibleQueue = filterRevealedMarkets({ markets: queue, now: Date.now() });
 
 		// When a featured event is active, narrow to markets carrying
 		// the event's category tag so the swipe deck tracks the live
