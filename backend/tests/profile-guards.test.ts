@@ -4,17 +4,20 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { beforeAll, describe, expect, test } from 'bun:test';
+import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
+import { app } from '../src/index';
 import { DAILY_HARD_CAP } from '../src/profiles/flow';
 import { MAX_NICKNAME_LENGTH, nicknameUniqueKey } from '../src/profiles/nickname';
 import {
 	getProfileRow,
 	getProfileView,
+	ProfileValidationError,
 	searchProfiles,
 	shapeOwnProfile,
 	shapeProfile
 } from '../src/profiles/profile';
-import { upsertMyProfile } from '../src/profiles/profile-write';
+import { MAX_PROFILE_COUNTER, upsertMyProfile } from '../src/profiles/profile-write';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { createTestProfile, uniqueNickname } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
@@ -87,6 +90,53 @@ describe.if(dbAvailable)('daily-goal monotonicity', () => {
 				})
 			).rejects.toThrow('non-negative integer');
 		}
+	});
+});
+
+describe.if(dbAvailable)('integer counters', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('a fraction, a negative or a value past the ceiling is a validation error', async () => {
+		const { userId, profile } = await createTestProfile();
+		const cases: Record<string, unknown>[] = [
+			{ totalTrades: 1.5 },
+			{ streak: -1 },
+			{ level: 3_000_000_000 },
+			{ comebacks: MAX_PROFILE_COUNTER + 1 },
+			{ topDecileStreak: '7' }
+		];
+
+		for (const fields of cases) {
+			expect(
+				upsertMyProfile({ userId, body: { nickname: profile.nickname, ...fields } })
+			).rejects.toBeInstanceOf(ProfileValidationError);
+		}
+
+		const accepted = await upsertMyProfile({
+			userId,
+			body: { nickname: profile.nickname, totalTrades: MAX_PROFILE_COUNTER, level: 4 }
+		});
+
+		expect(accepted.totalTrades).toBe(MAX_PROFILE_COUNTER);
+		expect(accepted.level).toBe(4);
+	});
+
+	test('the profile route answers an out-of-range counter with a 400', async () => {
+		const { userId, profile } = await createTestProfile();
+		const response = await app.handle(
+			new Request('http://localhost/api/v1/profiles/me', {
+				method: 'PUT',
+				headers: {
+					cookie: `vici_session=${await createSession(userId)}`,
+					'content-type': 'application/json'
+				},
+				body: JSON.stringify({ nickname: profile.nickname, totalTrades: 2_147_483_648 })
+			})
+		);
+
+		expect(response.status).toBe(400);
 	});
 });
 

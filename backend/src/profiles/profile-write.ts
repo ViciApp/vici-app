@@ -26,6 +26,12 @@ import {
 	type ProfileVisibility
 } from './profile';
 
+/** Ceiling of every client-written integer counter on the profile (the trade
+ * count, the streaks, the level, the achievement tallies): far above any real
+ * activity, and far below the `int` columns that hold them and the league
+ * sums they feed. */
+export const MAX_PROFILE_COUNTER = 1_000_000;
+
 /** Client-writable profile doc (everything but the identity and the role). */
 export interface ProfileInput {
 	nickname: string;
@@ -72,6 +78,28 @@ const finiteNumber = (value: unknown, field: string, fallback: number): number =
 
 	if (typeof value !== 'number' || !Number.isFinite(value)) {
 		throw new ProfileValidationError(`${field} must be a finite number.`);
+	}
+
+	return value;
+};
+
+/** A client-written count stored in an `int` column: an integer within
+ * [0, MAX_PROFILE_COUNTER], so a fraction or an out-of-range value is a 400
+ * and never a database fault. */
+const counter = (value: unknown, field: string, fallback: number): number => {
+	if (isNullish(value)) {
+		return fallback;
+	}
+
+	if (
+		typeof value !== 'number' ||
+		!Number.isInteger(value) ||
+		value < 0 ||
+		value > MAX_PROFILE_COUNTER
+	) {
+		throw new ProfileValidationError(
+			`${field} must be an integer between 0 and ${MAX_PROFILE_COUNTER}.`
+		);
 	}
 
 	return value;
@@ -133,29 +161,29 @@ export const parseProfileInput = (body: Record<string, unknown>): ProfileInput =
 		email: stringField(body.email, 'email', ''),
 		pnl: finiteNumber(body.pnl, 'pnl', 0),
 		visibility: visibility as ProfileVisibility,
-		totalTrades: finiteNumber(body.totalTrades, 'totalTrades', 0),
+		totalTrades: counter(body.totalTrades, 'totalTrades', 0),
 		winRate: finiteNumber(body.winRate, 'winRate', 0),
-		dailyStreak: finiteNumber(body.dailyStreak, 'dailyStreak', 0),
-		longestStreak: finiteNumber(body.longestStreak, 'longestStreak', 0),
+		dailyStreak: counter(body.dailyStreak, 'dailyStreak', 0),
+		longestStreak: counter(body.longestStreak, 'longestStreak', 0),
 		dailyGoalDone: finiteNumber(body.dailyGoalDone, 'dailyGoalDone', 0),
 		dailyGoalDate: optionalString(body.dailyGoalDate, 'dailyGoalDate'),
-		streak: finiteNumber(body.streak, 'streak', 0),
+		streak: counter(body.streak, 'streak', 0),
 		accuracy: finiteNumber(body.accuracy, 'accuracy', 0),
 		points: finiteNumber(body.points, 'points', 0),
-		level: finiteNumber(body.level, 'level', 1),
+		level: counter(body.level, 'level', 1),
 		archetype: stringField(body.archetype, 'archetype', ''),
 		interests: stringArray(body.interests, 'interests'),
 		lastActiveDay: optionalString(body.lastActiveDay, 'lastActiveDay'),
 		unlockedAchievements: stringArray(body.unlockedAchievements, 'unlockedAchievements'),
-		contrarianWins: finiteNumber(body.contrarianWins, 'contrarianWins', 0),
+		contrarianWins: counter(body.contrarianWins, 'contrarianWins', 0),
 		bestUpsetConsensus: optionalFiniteNumber(body.bestUpsetConsensus, 'bestUpsetConsensus'),
-		onFireStreak: finiteNumber(body.onFireStreak, 'onFireStreak', 0),
-		comebacks: finiteNumber(body.comebacks, 'comebacks', 0),
-		winningCategories: finiteNumber(body.winningCategories, 'winningCategories', 0),
-		leaguesJoined: finiteNumber(body.leaguesJoined, 'leaguesJoined', 0),
-		boutsWon: finiteNumber(body.boutsWon, 'boutsWon', 0),
-		leaguesFounded: finiteNumber(body.leaguesFounded, 'leaguesFounded', 0),
-		topDecileStreak: finiteNumber(body.topDecileStreak, 'topDecileStreak', 0),
+		onFireStreak: counter(body.onFireStreak, 'onFireStreak', 0),
+		comebacks: counter(body.comebacks, 'comebacks', 0),
+		winningCategories: counter(body.winningCategories, 'winningCategories', 0),
+		leaguesJoined: counter(body.leaguesJoined, 'leaguesJoined', 0),
+		boutsWon: counter(body.boutsWon, 'boutsWon', 0),
+		leaguesFounded: counter(body.leaguesFounded, 'leaguesFounded', 0),
+		topDecileStreak: counter(body.topDecileStreak, 'topDecileStreak', 0),
 		lastTopDecileDay: optionalString(body.lastTopDecileDay, 'lastTopDecileDay'),
 		sharpestEyeBestTier: optionalString(body.sharpestEyeBestTier, 'sharpestEyeBestTier'),
 		schoolStatus: optionalString(body.schoolStatus, 'schoolStatus'),
@@ -328,6 +356,19 @@ const assertDailyGoalMonotonic = ({
 };
 
 /**
+ * The trade count only ever grows: a lower figure (a client reading a shorter
+ * history) keeps the stored one, so the league fan-out sees only new highs
+ * and a drop followed by a rise back counts once.
+ */
+const storedTradeCount = ({
+	proposed,
+	current
+}: {
+	proposed: ProfileInput;
+	current: ProfileRow | undefined;
+}): number => Math.max(proposed.totalTrades, current?.total_trades ?? 0);
+
+/**
  * Full-doc upsert of the caller's own profile, guarded by the nickname and
  * daily-goal invariants. Runs in one transaction with the stored row locked,
  * so concurrent writes serialize and the guards always compare against the
@@ -351,6 +392,8 @@ export const upsertMyProfile = async ({
 
 		await assertValidNickname({ userId, proposed, current, nowMs, q });
 		assertDailyGoalMonotonic({ proposed, current });
+
+		const totalTrades = storedTradeCount({ proposed, current });
 
 		try {
 			await q(
@@ -414,7 +457,7 @@ export const upsertMyProfile = async ({
 					proposed.email,
 					proposed.pnl,
 					proposed.visibility,
-					proposed.totalTrades,
+					totalTrades,
 					proposed.winRate,
 					proposed.dailyStreak,
 					proposed.longestStreak,
@@ -475,7 +518,7 @@ export const upsertMyProfile = async ({
 			before: nonNullish(current)
 				? { totalTrades: current.total_trades, winRate: current.win_rate }
 				: undefined,
-			after: { totalTrades: proposed.totalTrades, winRate: proposed.winRate },
+			after: { totalTrades, winRate: proposed.winRate },
 			afterHibernated: nonNullish(row.hibernated_at_ms),
 			nowMs
 		});
