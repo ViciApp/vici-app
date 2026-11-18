@@ -513,8 +513,8 @@ The [`.github/workflows/e2e.yml`](../../../.github/workflows/e2e.yml)
 workflow runs unconditionally on pushes to `main`, nightly, and on
 `workflow_dispatch`. On a **pull request** and in a **`merge_group`**
 the `check-e2e-changes` paths-filter job skips the suite unless the
-change touches `e2e/**`, `playwright.config.ts`, the workflow,
-`dfx.json`, `juno.config.ts`, or `scripts/**`; `e2e-tests-pass` still
+change touches a path in its `e2e` filter (the list lives in the
+workflow, with the reason for each entry); `e2e-tests-pass` still
 reports green when skipped. The `run-e2e-snapshots` label forces it on,
 on a PR only. Concurrency is grouped on the ref so pushing a new commit
 to a PR cancels the in-flight run.

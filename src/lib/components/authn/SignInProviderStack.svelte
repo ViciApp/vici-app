@@ -21,7 +21,7 @@
 	} from '#lib/services/apple-signin.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { appOrigin, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 
 	interface Props {
@@ -208,7 +208,7 @@
 								clientId: isDev()
 									? '794351932143-em7c7j4rko2ok5fhk4crhv6f44ifmpqv.apps.googleusercontent.com'
 									: '215111139647-7hat1jefroe7tkgu5kds4s8sv4dgf3fu.apps.googleusercontent.com',
-								redirectUrl: `${window.location.origin}/auth/callback/google`
+								redirectUrl: `${appOrigin()}/auth/callback/google`
 							}
 						}
 					}

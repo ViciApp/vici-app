@@ -26,7 +26,7 @@ npm run deploy
 npm run init:icdc
 ```
 
-This runs clearing init → `init:icdc-engine` (registers the Vici engine with the satellite + human admins) → `init:registry` (seeds the oracle and demo markets tagged with `engine_id`).
+This runs `init:clearing` → `init:icdc-engine` (registers the Vici engine with the satellite + human admins) → `init:registry` (seeds the oracle and demo markets tagged with `engine_id`) → `init:icdc-dev-bootstrap` (grants `DEV_CREATOR_PRINCIPAL`, when set, `Creator` + `OracleAdmin` on the engine; a no-op otherwise).
 
 5. (Optional) smoke-test the engine wiring:
    // turbo
