@@ -25,6 +25,7 @@ import {
 	leagueInviteCode
 } from '#satellite/services/league-invite.services.ts';
 import { settledTotalsByPrincipal } from '#satellite/services/settled-history.services.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { joinedBeforeMonthClose } from '#satellite/utils/worlds-podium.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -714,34 +715,11 @@ export const listMyAffiliationsFn = (): {
 	country?: AffiliationDoc;
 } => {
 	const caller = msgCaller();
-	const callerText = caller.toText();
+	const held = heldAffiliations({ caller: caller.toUint8Array(), member: caller.toText() });
+	const ofKind = (kind: AffiliationKind): AffiliationDoc | undefined =>
+		held.find(({ affiliation }) => affiliation.kind === kind)?.affiliation;
 
-	const { items } = listDocsStore({
-		collection: Collection.AFFILIATIONS,
-		caller: caller.toUint8Array(),
-		params: {}
-	});
-
-	let university: AffiliationDoc | undefined;
-	let country: AffiliationDoc | undefined;
-
-	for (const [, item] of items) {
-		try {
-			const aff = readAffiliationDoc(item.data);
-
-			if (nonNullish(aff) && aff.member === callerText) {
-				if (aff.kind === 'university') {
-					university = aff;
-				} else if (aff.kind === 'country') {
-					country = aff;
-				}
-			}
-		} catch {
-			// skip malformed
-		}
-	}
-
-	return { university, country };
+	return { university: ofKind('university'), country: ofKind('country') };
 };
 
 /**
@@ -798,6 +776,68 @@ export const readAffiliationDoc = (data: Uint8Array): AffiliationDoc | undefined
 	};
 };
 
+/** A member's affiliation of one kind, with the doc's server-stamped `created_at`. */
+export interface HeldAffiliation {
+	affiliation: AffiliationDoc;
+	createdAtNs: bigint;
+}
+
+/**
+ * Each member's affiliation of each kind: the one row every reader counts.
+ * A member holds at most one per kind (`assertSetAffiliation`), but rows
+ * written before that rule can hold two; the earliest stored one (Juno
+ * `created_at`, then key) is the one the 90-day lock bound, so it wins
+ * everywhere. Pass `member` to scan only that member's rows, `kind` to keep
+ * one kind.
+ */
+export const heldAffiliations = ({
+	caller,
+	member,
+	kind
+}: {
+	caller: Uint8Array;
+	member?: string;
+	kind?: AffiliationKind;
+}): HeldAffiliation[] => {
+	const { items } = listDocsStore({
+		collection: Collection.AFFILIATIONS,
+		caller,
+		params: isNullish(member) ? {} : { matcher: { key: `^${escapeRegex(member)}/` } }
+	});
+
+	const held = new Map<string, HeldAffiliation & { key: string }>();
+
+	for (const [key, item] of items) {
+		let affiliation: AffiliationDoc | undefined;
+
+		try {
+			affiliation = readAffiliationDoc(item.data);
+		} catch {
+			// skip malformed
+			affiliation = undefined;
+		}
+
+		if (
+			nonNullish(affiliation) &&
+			(isNullish(member) || affiliation.member === member) &&
+			(isNullish(kind) || affiliation.kind === kind)
+		) {
+			const slot = `${affiliation.member}/${affiliation.kind}`;
+			const kept = held.get(slot);
+			const earlier =
+				isNullish(kept) ||
+				item.created_at < kept.createdAtNs ||
+				(item.created_at === kept.createdAtNs && key < kept.key);
+
+			if (earlier) {
+				held.set(slot, { affiliation, createdAtNs: item.created_at, key });
+			}
+		}
+	}
+
+	return [...held.values()].map(({ affiliation, createdAtNs }) => ({ affiliation, createdAtNs }));
+};
+
 /**
  * Roster scan for a Worlds slot: every user affiliated with a given
  * university or country. Drives the Worlds leaderboard / cohort
@@ -815,31 +855,9 @@ export const listWorldsRosterFn = ({
 	kind: AffiliationKind;
 	affiliationIdentifier: string;
 }): AffiliationDoc[] => {
-	const caller = msgCaller();
-
-	const { items } = listDocsStore({
-		collection: Collection.AFFILIATIONS,
-		caller: caller.toUint8Array(),
-		params: {}
-	});
-
-	const roster: AffiliationDoc[] = [];
-
-	for (const [, item] of items) {
-		try {
-			const aff = readAffiliationDoc(item.data);
-
-			if (
-				nonNullish(aff) &&
-				aff.kind === kind &&
-				aff.affiliationIdentifier === affiliationIdentifier
-			) {
-				roster.push(aff);
-			}
-		} catch {
-			// skip malformed
-		}
-	}
+	const roster = heldAffiliations({ caller: msgCaller().toUint8Array(), kind })
+		.map(({ affiliation }) => affiliation)
+		.filter((aff) => aff.affiliationIdentifier === affiliationIdentifier);
 
 	return roster.sort((a, b) => a.joinedAtMs - b.joinedAtMs);
 };
@@ -868,26 +886,13 @@ export const listWorldsMemberCountsFn = ({
 }: {
 	kind: AffiliationKind;
 }): AffiliationMemberCount[] => {
-	const caller = msgCaller();
-
-	const { items } = listDocsStore({
-		collection: Collection.AFFILIATIONS,
-		caller: caller.toUint8Array(),
-		params: {}
-	});
-
 	const counts = new Map<string, number>();
 
-	for (const [, item] of items) {
-		try {
-			const aff = readAffiliationDoc(item.data);
-
-			if (nonNullish(aff) && aff.kind === kind) {
-				counts.set(aff.affiliationIdentifier, (counts.get(aff.affiliationIdentifier) ?? 0) + 1);
-			}
-		} catch {
-			// skip malformed
-		}
+	for (const { affiliation } of heldAffiliations({ caller: msgCaller().toUint8Array(), kind })) {
+		counts.set(
+			affiliation.affiliationIdentifier,
+			(counts.get(affiliation.affiliationIdentifier) ?? 0) + 1
+		);
 	}
 
 	return [...counts.entries()]
@@ -1082,30 +1087,10 @@ const aggregateMembersLifetime = ({
 }): Map<string, { totalCalls: number; wins: number }> => {
 	const caller = msgCaller().toUint8Array();
 
-	const { items } = listDocsStore({
-		collection: Collection.AFFILIATIONS,
-		caller,
-		params: {}
-	});
-
 	const lifetime = new Map<string, { totalCalls: number; wins: number }>();
 
-	for (const [, item] of items) {
-		let aff: AffiliationDoc | undefined;
-
-		try {
-			aff = readAffiliationDoc(item.data);
-		} catch {
-			// skip malformed
-			aff = undefined;
-		}
-
-		const matches =
-			nonNullish(aff) &&
-			aff.kind === kind &&
-			(isNullish(affiliationIdentifier) || aff.affiliationIdentifier === affiliationIdentifier);
-
-		if (matches && nonNullish(aff)) {
+	for (const { affiliation: aff } of heldAffiliations({ caller, kind })) {
+		if (isNullish(affiliationIdentifier) || aff.affiliationIdentifier === affiliationIdentifier) {
 			const profileDoc = getDocStore({
 				collection: Collection.PROFILES,
 				key: aff.member,
@@ -1199,30 +1184,10 @@ const aggregateMembersForMonth = ({
 		}
 	}
 
-	const { items } = listDocsStore({
-		collection: Collection.AFFILIATIONS,
-		caller,
-		params: {}
-	});
-
 	const monthly = new Map<string, { monthTotalCalls: number; monthWins: number }>();
 
-	for (const [, item] of items) {
-		let aff: AffiliationDoc | undefined;
-
-		try {
-			aff = readAffiliationDoc(item.data);
-		} catch {
-			// skip malformed
-			aff = undefined;
-		}
-
-		const matches =
-			nonNullish(aff) &&
-			aff.kind === kind &&
-			(isNullish(affiliationIdentifier) || aff.affiliationIdentifier === affiliationIdentifier);
-
-		if (matches && nonNullish(aff)) {
+	for (const { affiliation: aff } of heldAffiliations({ caller, kind })) {
+		if (isNullish(affiliationIdentifier) || aff.affiliationIdentifier === affiliationIdentifier) {
 			const owned = byOwner.get(aff.member);
 
 			// Only members with activity in the month can contribute; skip the
@@ -1493,28 +1458,11 @@ export const settledMonthlyRows = async ({
 }): Promise<AffiliationStatsDoc[]> => {
 	const caller = msgCaller().toUint8Array();
 
-	const { items } = listDocsStore({
-		collection: Collection.AFFILIATIONS,
-		caller,
-		params: {}
-	});
-
 	const affiliationOf = new Map<string, string>();
 
-	for (const [, item] of items) {
-		let aff: AffiliationDoc | undefined;
-
-		try {
-			aff = readAffiliationDoc(item.data);
-		} catch {
-			// skip malformed
-			aff = undefined;
-		}
-
+	for (const { affiliation: aff, createdAtNs } of heldAffiliations({ caller, kind })) {
 		if (
-			nonNullish(aff) &&
-			aff.kind === kind &&
-			joinedBeforeMonthClose({ joinedAtNs: item.created_at, monthAnchor }) &&
+			joinedBeforeMonthClose({ joinedAtNs: createdAtNs, monthAnchor }) &&
 			!isMemberWorldsOptedOut({ member: aff.member, caller })
 		) {
 			affiliationOf.set(aff.member, aff.affiliationIdentifier);

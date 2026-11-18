@@ -81,6 +81,13 @@ one pattern. Each of these has bitten a PR before:
   podium pays only a slot whose `created_at` precedes the month's close
   (`joinedBeforeMonthClose` in
   [`worlds-podium.utils.ts`](../../../src/satellite/utils/worlds-podium.utils.ts)).
+- **One affiliation per kind, read one way.** `assertSetAffiliation`
+  refuses a new `affiliations` row while the member holds one of that kind,
+  and every reader (standings, roster, member counts, the monthly ranking
+  and the podium's own slot) goes through `heldAffiliations` in
+  [`cohort.services.ts`](../../../src/satellite/services/cohort.services.ts),
+  which keeps a member's earliest-stored row of a kind, so the podium pays
+  the slot it ranked.
 - **A calibration call is judged once.** `judgeCalibrationCall`
   ([`vxp-calibration.services.ts`](../../../src/satellite/services/vxp-calibration.services.ts))
   records the first side called on a market in the controllers-scoped

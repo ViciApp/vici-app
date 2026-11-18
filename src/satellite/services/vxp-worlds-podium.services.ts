@@ -13,7 +13,7 @@ import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import {
 	frozenMonthlyRanking,
 	hasFrozenMonthlySnapshotFn,
-	readAffiliationDoc,
+	heldAffiliations,
 	settledMonthlyRows
 } from '#satellite/services/cohort.services.ts';
 import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
@@ -29,7 +29,6 @@ import {
 	encodeDocData,
 	getAdminAccessKeys,
 	getDocStore,
-	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
 
@@ -361,32 +360,6 @@ const readMyAffiliation = ({
 	callerText: string;
 	callerBytes: Uint8Array;
 	kind: AffiliationKind;
-}): { affiliation: AffiliationDoc; createdAtNs: bigint } | undefined => {
-	// The affiliation doc key is `${memberPrincipal}/${kind}/${affiliationIdentifier}`:
-	// we don't know `affiliationIdentifier` yet, so we scan and filter. Two
-	// max possibilities per user (one per kind), so the bound is tight.
-	// Skipping the scan entirely is hard without a reverse-index doc.
-	const prefix = `${callerText}/${kind}/`;
-
-	// `listDocsStore` doesn't support prefix params in the current
-	// SDK; we filter manually.
-	const { items } = listDocsStore({
-		collection: Collection.AFFILIATIONS,
-		caller: callerBytes,
-		params: {}
-	});
-
-	for (const [docKey, item] of items) {
-		if (docKey.startsWith(prefix)) {
-			try {
-				const doc = readAffiliationDoc(item.data);
-
-				if (nonNullish(doc) && doc.kind === kind && doc.member === callerText) {
-					return { affiliation: doc, createdAtNs: item.created_at };
-				}
-			} catch {
-				// skip malformed
-			}
-		}
-	}
-};
+}): { affiliation: AffiliationDoc; createdAtNs: bigint } | undefined =>
+	// The same row `settledMonthlyRows` ranks the member under.
+	heldAffiliations({ caller: callerBytes, member: callerText, kind })[0];

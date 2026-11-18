@@ -465,7 +465,10 @@ month. So the instant a member leaves (allowed after the 90-day affiliation
 lock) or turns off the **Worlds** sharing toggle
 (`preferences.sharing.worldsOptIn`), their contribution drops out of the
 next read: a member can no longer pump a school and keep crediting it after
-leaving.
+leaving. A member holds **one** school and **one** country at a time: a
+second one of a kind is refused until they leave the first (so the lock
+also bounds switching), and every standing, roster, count and the podium
+credit a member's earliest slot of a kind if older data holds two.
 
 A **closed** month is different: it is **frozen at close**. The first time
 anyone claims that month's podium, the ranking is computed from **settled

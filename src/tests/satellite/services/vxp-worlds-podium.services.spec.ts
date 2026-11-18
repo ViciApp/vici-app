@@ -166,4 +166,19 @@ describe('claimWorldsPodiumPrizeFn', () => {
 		assert.equal(result.notEligible, true);
 		assert.ok(!host.calls().includes('icrc1_transfer'));
 	});
+
+	it('ranks and pays a member holding two slots of a kind for the one taken first', async () => {
+		join({ principal: member, affiliationIdentifier: 'first-u', joinedAtMs: monthStartMs });
+		join({ principal: member, affiliationIdentifier: 'second-u', joinedAtMs: monthStartMs + 1 });
+		settlements.push({ principal: member, atMs: monthStartMs + DAY_IN_MS, calls: 60, wins: 50 });
+
+		const result = await claimAs(member);
+
+		assert.equal(result.awardsCreated, 1);
+		assert.equal(
+			host.readDoc<VxpAwardDoc>({ collection: Collection.VXP_AWARDS, key: goldKey(member) })
+				?.status,
+			'paid'
+		);
+	});
 });
