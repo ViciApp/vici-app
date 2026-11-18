@@ -9,6 +9,7 @@ import {
 } from '#lib/types/affiliation.ts';
 import { captureServerEvents } from '#satellite/services/analytics.services.ts';
 import { isControllerText } from '#satellite/services/authz.services.ts';
+import { heldAffiliations } from '#satellite/services/cohort.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -41,6 +42,10 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  *     `affiliationIdentifier`, `joinedAtMs`, `lockedUntilMs` are write-once.
  *     A row that exists is the affiliation; switching requires
  *     delete (gated by the lock) then re-create.
+ *  7. **One per kind.** A new row is refused while the member holds a
+ *     row of the same kind, so a switch must first leave (which the
+ *     lock gates) and a member never counts for two schools or
+ *     countries in the standings and the podium.
  */
 export const assertSetAffiliation = ({
 	caller,
@@ -107,8 +112,14 @@ export const assertSetAffiliation = ({
 		throw new Error('affiliations joinedAtMs must be within ±10 minutes of the satellite clock.');
 	}
 
-	// Creation path: done.
+	// Creation path: 7. one affiliation per kind.
 	if (isNullish(current)) {
+		if (heldAffiliations({ caller, member: callerText, kind: proposedDoc.kind }).length > 0) {
+			throw new Error(
+				`affiliations: a member holds one ${proposedDoc.kind} at a time; leave it to switch.`
+			);
+		}
+
 		return;
 	}
 

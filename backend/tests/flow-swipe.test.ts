@@ -1,5 +1,5 @@
 // Server-authoritative Flow daily counter: capped increments, day rollover,
-// day-key validation, and the interplay with the monotonic profile guard.
+// day-key validation, and profile writes that can never move the count.
 
 import { beforeAll, describe, expect, test } from 'bun:test';
 import {
@@ -89,18 +89,40 @@ describe.if(dbAvailable)('recordFlowSwipe', () => {
 			await recordFlowSwipe({ userId, dayKey });
 		}
 
-		// A cleared client re-saving a lower same-day total is rejected, so the
-		// authoritative count stands and the cap cannot be re-opened.
-		expect(
-			upsertMyProfile({
-				userId,
-				body: { nickname: profile.nickname, dailyGoalDone: 2, dailyGoalDate: dayKey }
-			})
-		).rejects.toThrow('cannot decrease within the same day');
+		// A cleared client re-saving a lower same-day total keeps the recorded
+		// count, so the cap cannot be re-opened.
+		const saved = await upsertMyProfile({
+			userId,
+			body: { nickname: profile.nickname, dailyGoalDone: 2, dailyGoalDate: dayKey }
+		});
+
+		expect(saved.dailyGoalDone).toBe(4);
 
 		const after = await recordFlowSwipe({ userId, dayKey });
 
 		expect(after.dailyGoalDone).toBe(5);
+	});
+
+	test('a profile write cannot seed the count: the cap is reached only by swipes', async () => {
+		const { userId, profile } = await createTestProfile();
+		const dayKey = '2026-08-19';
+
+		const saved = await upsertMyProfile({
+			userId,
+			body: {
+				nickname: profile.nickname,
+				dailyGoalDone: DAILY_HARD_CAP - 1,
+				dailyGoalDate: dayKey
+			}
+		});
+
+		expect(saved.dailyGoalDone).toBe(0);
+		expect(saved.dailyGoalDate).toBeUndefined();
+
+		const first = await recordFlowSwipe({ userId, dayKey });
+
+		expect(first.dailyGoalDone).toBe(1);
+		expect(first.capReached).toBe(false);
 	});
 
 	test('concurrent swipes never lose or double-count an increment', async () => {

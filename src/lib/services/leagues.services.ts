@@ -30,6 +30,7 @@ import {
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
+	type JoinLeagueRefusalReason,
 	type LeagueDoc
 } from '#lib/types/league.ts';
 import { appOrigin } from '#lib/utils/nav.utils.ts';
@@ -92,12 +93,21 @@ export interface LeagueWithRole {
 
 // ─── Reads ───────────────────────────────────────────────────────────────
 
+/** Fresh invite codes `createLeague` tries before giving up; a clash is one in ~2 billion. */
+const CREATE_LEAGUE_INVITE_ATTEMPTS = 3;
+
+/** The error a refused join throws, by the satellite's refusal reason. */
+const JOIN_LEAGUE_ERRORS: Record<JoinLeagueRefusalReason, string> = {
+	not_found: 'No league found for that invite code.',
+	already_member: 'Already a member of this league.'
+};
+
 /** Project the satellite's camelCase wire league to the FE `LeagueDoc`. */
 const projectLeagueWire = (league: {
 	id: string;
 	name: string;
 	description?: string;
-	inviteCode: string;
+	inviteCode?: string;
 	owner: string;
 	createdAtMs: number;
 	accentColor?: string;
@@ -485,55 +495,39 @@ export const createLeague = async ({
 		});
 	}
 
-	const identity = await safeGetIdentityOnce();
-	const ownerPrincipal = identity.getPrincipal().toText();
-	const createdAtMs = Date.now();
-	const leagueId = deriveLeagueId({ name, suffix: createdAtMs });
-	const resolvedInviteCode = inviteCode ?? generateInviteCode();
+	const leagueId = deriveLeagueId({ name, suffix: Date.now() });
 
-	if (!LEAGUE_INVITE_CODE_REGEX.test(resolvedInviteCode)) {
-		// `generateInviteCode` is built to satisfy the regex; this
-		// branch is here so a future change to either side trips the
-		// FE error path instead of failing on the satellite assert.
-		throw new Error('Generated invite code is malformed.');
+	// The satellite keeps the code off the public league doc and refuses one
+	// another league holds; a fresh code is then tried, so the code the sheet
+	// showed is kept unless it was taken.
+	for (
+		let attempt = 0, code = inviteCode ?? generateInviteCode();
+		attempt < CREATE_LEAGUE_INVITE_ATTEMPTS;
+		attempt++, code = generateInviteCode()
+	) {
+		if (!LEAGUE_INVITE_CODE_REGEX.test(code)) {
+			// `generateInviteCode` is built to satisfy the regex; this
+			// branch is here so a future change to either side trips the
+			// FE error path instead of failing on the satellite.
+			throw new Error('Generated invite code is malformed.');
+		}
+
+		const { league } = await functions.createLeague({
+			id: leagueId,
+			name,
+			description,
+			accentColor,
+			emblem,
+			privacy,
+			inviteCode: code
+		});
+
+		if (nonNullish(league)) {
+			return projectLeagueWire(league);
+		}
 	}
 
-	const league: LeagueDoc = {
-		id: leagueId,
-		name,
-		description,
-		inviteCode: resolvedInviteCode,
-		owner: ownerPrincipal,
-		createdAtMs,
-		accentColor,
-		emblem,
-		privacy
-	};
-
-	await setDoc<LeagueDoc>({
-		collection: Collection.LEAGUES,
-		doc: {
-			key: leagueId,
-			data: league
-		}
-	});
-
-	const ownerMembership: LeagueMemberDoc = {
-		leagueId,
-		member: ownerPrincipal,
-		joinedAtMs: createdAtMs,
-		role: 'owner'
-	};
-
-	await setDoc<LeagueMemberDoc>({
-		collection: Collection.LEAGUE_MEMBERS,
-		doc: {
-			key: leagueMemberKey({ leagueId, memberPrincipal: ownerPrincipal }),
-			data: ownerMembership
-		}
-	});
-
-	return league;
+	throw new Error('No free invite code for the new league.');
 };
 
 /**
@@ -718,13 +712,11 @@ export const buildLeagueShareUrl = async ({
 };
 
 /**
- * Join a league via its 6-char invite code. Looks the league up,
- * then writes a `LeagueMemberDoc` for the caller. Returns the
- * resolved league so the caller can route into it.
+ * Join a league via its 6-char invite code, the only way into a league.
+ * Returns the league so the caller can route into it.
  *
- * Throws if the code is malformed, unknown, or the caller is
- * already a member (the satellite assert rejects the second-write
- * branch).
+ * Throws if the code is malformed, unknown, or the caller is already a
+ * member.
  */
 export const joinLeagueByInvite = async ({
 	inviteCode
@@ -735,16 +727,14 @@ export const joinLeagueByInvite = async ({
 		throw new Error('Invite code is malformed.');
 	}
 
-	const league = await lookupLeagueByInvite({ inviteCode });
-
-	if (!league) {
-		throw new Error('No league found for that invite code.');
-	}
-
-	// The API join is idempotent (re-joining returns the existing row), so the
-	// already-a-member pre-check below is web3-only: it exists to pre-empt a
-	// confusing satellite assert error, which this transport cannot produce.
+	// The API join is idempotent (re-joining returns the existing row).
 	if (isWeb2Backend()) {
+		const league = await lookupLeagueByInvite({ inviteCode });
+
+		if (!league) {
+			throw new Error(JOIN_LEAGUE_ERRORS.not_found);
+		}
+
 		await joinLeagueByInviteWeb2({ inviteCode });
 
 		track({ name: 'league_joined', leagueId: league.id, source: 'invite' });
@@ -752,41 +742,17 @@ export const joinLeagueByInvite = async ({
 		return league;
 	}
 
-	const identity = await safeGetIdentityOnce();
-	const memberPrincipal = identity.getPrincipal().toText();
-	const joinedAtMs = Date.now();
-	const key = leagueMemberKey({ leagueId: league.id, memberPrincipal });
+	// The satellite checks the code and writes the membership itself: a
+	// member row is never written by the client.
+	const { league, reason } = await functions.joinLeagueByInvite({ inviteCode });
 
-	// If the caller is already a member, the assert would reject the
-	// write with "identity fields immutable" on a stale joinedAtMs.
-	// Pre-empt with a getDoc to surface a clearer error.
-	const existing = await getDoc<LeagueMemberDoc>({
-		collection: Collection.LEAGUE_MEMBERS,
-		key
-	});
-
-	if (existing) {
-		throw new Error('Already a member of this league.');
+	if (isNullish(league)) {
+		throw new Error(JOIN_LEAGUE_ERRORS[reason ?? 'not_found']);
 	}
-
-	const membership: LeagueMemberDoc = {
-		leagueId: league.id,
-		member: memberPrincipal,
-		joinedAtMs,
-		role: 'member'
-	};
-
-	await setDoc<LeagueMemberDoc>({
-		collection: Collection.LEAGUE_MEMBERS,
-		doc: {
-			key,
-			data: membership
-		}
-	});
 
 	track({ name: 'league_joined', leagueId: league.id, source: 'invite' });
 
-	return league;
+	return projectLeagueWire(league);
 };
 
 /**

@@ -9,6 +9,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
+import { PG_INT_MAX } from '../lib/constants';
 import { MACRO_IDS, type MacroId } from '../markets/taxonomy';
 
 export interface CategoryBucket {
@@ -91,7 +92,9 @@ export const winsFromProfileCounters = ({
 }): number => Math.round((totalTrades * winRate) / 100);
 
 /** Apply an aggregate `(deltaTrades, deltaWins)` increment to every league
- * the user belongs to. Runs on the caller-provided transaction. */
+ * the user belongs to. Runs on the caller-provided transaction. The sums
+ * saturate at the `int` ceiling: a display counter that is full must never
+ * fail the member's profile save that carries the increment. */
 const incrementAggregate = async ({
 	q,
 	userId,
@@ -110,16 +113,18 @@ const incrementAggregate = async ({
 		 select m.league_id, $2::int, $3::int, $4::bigint
 		 from league_members m where m.member_user_id = $1
 		 on conflict (league_id) do update set
-		   total_calls = league_stats.total_calls + excluded.total_calls,
-		   wins = league_stats.wins + excluded.wins,
+		   total_calls = least(league_stats.total_calls::bigint + excluded.total_calls, $5)::int,
+		   wins = least(league_stats.wins::bigint + excluded.wins, $5)::int,
 		   updated_at_ms = excluded.updated_at_ms`,
-		[userId, deltaTrades, deltaWins, nowMs]
+		[userId, deltaTrades, deltaWins, nowMs, PG_INT_MAX]
 	);
 };
 
 /**
  * Aggregate fanout for a profile write: when `totalTrades` advanced, the
  * trade/win delta is attributed to every league the user is a member of.
+ * The stored count never decreases (`upsertMyProfile`), so only a new high
+ * is ever attributed.
  * First writes carry no attributable delta; hibernated accounts never move
  * shared stats; identical before/after is a no-op.
  */
