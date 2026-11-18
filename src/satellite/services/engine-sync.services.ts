@@ -4,13 +4,14 @@ import { REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
 import { UserRole } from '#lib/enums/user.ts';
+import { isControllerText } from '#satellite/services/authz.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnDeleteDocContext, OnSetDocContext } from '@junobuild/functions';
 import { call } from '@junobuild/functions/ic-cdk';
-import { decodeDocData } from '@junobuild/functions/sdk';
+import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
 
 type EngineRoleVariant = RegistryDid.EngineRole;
 
@@ -82,6 +83,23 @@ const errToString = (err: RegistryDid.EngineError | RegistryDid.OracleError): st
  */
 const shouldBeOracleSettler = (role: UserRole | undefined): boolean =>
 	nonNullish(role) && ROLE_TO_ENGINE_ROLES[role].some((r) => engineRoleKey(r) === 'OracleAdmin');
+
+/**
+ * Whether `caller` may settle markets, and so record the settlement activity that follows an
+ * on-chain settle: a satellite controller, or a principal whose role makes it an oracle settler.
+ */
+export const maySettle = (caller: Principal): boolean => {
+	if (isControllerText(caller.toText())) {
+		return true;
+	}
+
+	const roleDoc = getDocStore({ collection: Collection.ROLES, key: caller.toText(), caller });
+
+	return (
+		nonNullish(roleDoc) &&
+		shouldBeOracleSettler(decodeDocData<{ role: UserRole }>(roleDoc.data).role)
+	);
+};
 
 const manageOraclePrincipal = async ({
 	principal,

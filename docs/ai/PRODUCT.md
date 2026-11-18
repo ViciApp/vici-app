@@ -113,7 +113,10 @@ outcome (win / loss), the side they held, their signed net VXP, and the
 resolution time, keyed `${owner}#${marketId}`. The rows are written
 server-side from the clearing settlement plan at resolution time
 (controllers-write, mirroring `activity_reaction_counts`), so a user
-cannot forge a win for themselves or a friend. The collection is
+cannot forge a win for themselves or a friend. Only a role that can
+settle (or a controller) may post the settlement activity that triggers
+the write, on both stacks, and posting it again keeps every row's first
+resolution time. The collection is
 public-read and consumed friend-scoped (a single owner-prefix scan over
 a caller's friend set, never one call per friend) and is the data source
 for the friend results digest. There is **no source for a friend's
