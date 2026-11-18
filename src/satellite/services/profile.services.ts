@@ -11,12 +11,17 @@ import type { UserRole } from '#lib/enums/user.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { DAY_KEY_RE } from '#lib/utils/streak.utils.ts';
 import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
-import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
+import {
+	assertOwnerOrController,
+	controllerCaller,
+	isControllerText
+} from '#satellite/services/authz.services.ts';
 import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
 import { mintFlowOvertime } from '#satellite/services/vxp-flow-awards.services.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
+import { Principal } from '@icp-sdk/core/principal';
+import type { AssertDeleteDocContext, AssertSetDocContext, Doc } from '@junobuild/functions';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
@@ -226,13 +231,13 @@ export interface RecordFlowSwipeResult {
  *    `dailyGoalDone` (capped at {@link DAILY_HARD_CAP});
  *  - otherwise starts the day fresh at 1 under `dayKey`.
  *
- * The result is written back via a version-locked `setDocStore` (PROFILES
- * is user-owned, so the write is authorised by the REAL caller, never an
- * admin key). With the monotonic-per-day assert as the backstop, a cleared
- * or stale client can no longer roll the count backward within a day, so
- * the cap survives reloads, cleared storage, sign-outs, and device
- * switches. A caller with no profile yet (not onboarded) is a no-op that
- * reports a 1-of-cap day so the FE can still gate the session.
+ * The result is written back via a version-locked `setDocStore` signed as
+ * a satellite controller: this is the only writer of `dailyGoalDone` /
+ * `dailyGoalDate`, and {@link assertDailyGoalUnchanged} refuses any other
+ * caller that changes them, so the overtime award at the cap is reached only
+ * through recorded swipes. Juno keeps the stored doc's owner on an update,
+ * so the profile stays the user's. The cap survives reloads, cleared
+ * storage, sign-outs, and device switches.
  */
 export const recordFlowSwipeFn = async ({
 	dayKey
@@ -275,7 +280,7 @@ export const recordFlowSwipeFn = async ({
 	setDocStore({
 		collection: Collection.PROFILES,
 		key: callerText,
-		caller: callerBytes,
+		caller: controllerCaller('flow daily goal'),
 		doc: {
 			data: encodeDocData<UserProfile>(next),
 			version: profileDoc.version
@@ -336,6 +341,36 @@ export const isPubliclyHidden = (
 	profile: Pick<UserProfile, 'deletedAtMs' | 'hibernatedAtMs'>
 ): boolean => isSoftDeleted(profile) || isHibernated(profile);
 
+/**
+ * A stored profile as every read reports it: identified by its doc key, the
+ * principal the owner check binds it to, never by the embedded `owner` a
+ * legacy write could have pointed at someone else.
+ */
+export const decodeStoredProfile = ([key, doc]: [string, Pick<Doc, 'data'>]): UserProfile => ({
+	...decodeDocData<UserProfile>(doc.data),
+	owner: key
+});
+
+/** {@link withProfileDefaults} with the role the profile's principal holds. */
+export const withProfileRole = ({
+	profile,
+	caller
+}: {
+	profile: UserProfile;
+	caller: Principal;
+}): UserProfile => {
+	const roleDoc = getDocStore({
+		collection: Collection.ROLES,
+		key: profile.owner,
+		caller
+	});
+
+	return withProfileDefaults({
+		...profile,
+		role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
+	});
+};
+
 export const getProfile = (principal: PrincipalText): UserProfile | undefined => {
 	const caller = msgCaller();
 
@@ -349,7 +384,7 @@ export const getProfile = (principal: PrincipalText): UserProfile | undefined =>
 		return;
 	}
 
-	const profile = decodeDocData<UserProfile>(profileDoc.data);
+	const profile = decodeStoredProfile([principal, profileDoc]);
 
 	// Public lookup: a soft-deleted OR hibernated account is invisible to
 	// OTHER callers, but the owner can always read their own (possibly
@@ -360,16 +395,7 @@ export const getProfile = (principal: PrincipalText): UserProfile | undefined =>
 		return;
 	}
 
-	const roleDoc = getDocStore({
-		collection: Collection.ROLES,
-		key: profile.owner,
-		caller
-	});
-
-	return withProfileDefaults({
-		...profile,
-		role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
-	});
+	return withProfileRole({ profile, caller });
 };
 
 export const searchProfiles = (query: string): UserProfile[] => {
@@ -385,23 +411,12 @@ export const searchProfiles = (query: string): UserProfile[] => {
 
 	return (
 		items
-			.map(([_, item]) => decodeDocData<UserProfile>(item.data))
+			.map(decodeStoredProfile)
 			// Public search: soft-deleted OR hibernated accounts are
 			// invisible (Delete account v2). Drop them before the role
 			// lookup + hydrate.
 			.filter((profile) => !isPubliclyHidden(profile))
-			.map((profile) => {
-				const roleDoc = getDocStore({
-					collection: Collection.ROLES,
-					key: profile.owner,
-					caller
-				});
-
-				return withProfileDefaults({
-					...profile,
-					role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
-				});
-			})
+			.map((profile) => withProfileRole({ profile, caller }))
 			.filter((p) => {
 				const matches = [p.nickname, p.owner].some((val) => val.toLowerCase().includes(lowerQuery));
 
@@ -624,34 +639,23 @@ export const assertValidNickname = ({
 };
 
 /**
- * Backstop for the server-authoritative Flow daily cap: any direct client
- * `set_doc` to PROFILES must not roll the daily counter backward within a
- * day, nor push it past {@link DAILY_HARD_CAP}.
+ * The Flow daily goal (`dailyGoalDone` / `dailyGoalDate`) is written only by
+ * {@link recordFlowSwipeFn}, signing as a controller: it reaches the hard cap
+ * that mints the overtime award, so a client write must carry the stored
+ * values unchanged (no count and no day on a new profile). Otherwise a client
+ * could set the count one short of the cap, or move the day to restart it,
+ * and reach the award with a single swipe.
  *
- * `recordFlowSwipe` is the normal write path (it computes the count
- * server-side); this assert ensures a stale or cleared client, which
- * re-fetches the profile, sees a lower count, and `set_doc`s the whole
- * doc back, can't overwrite the authoritative total downward and re-open
- * a fresh allotment (the reported honest-reset leak).
- *
- * Rules, comparing the proposed doc against the CURRENT stored doc:
- *
- *  - First write (no stored doc) → allowed, but still capped at the hard
- *    cap so a forged first profile can't seed an over-cap count.
- *  - `dailyGoalDate` advances (a genuine new day) → reset to any value
- *    within `0..cap` is allowed.
- *  - `dailyGoalDate` unchanged → the proposed `dailyGoalDone` may not be
- *    LOWER than the stored one, and may not exceed the hard cap.
- *
- * Manipulating `dailyGoalDate` to a different (valid) day to force a reset
- * is an adversarial bypass, out of scope for the honest-reset fix.
+ * The satellite's own write is still bounded to a whole count within
+ * `0..`{@link DAILY_HARD_CAP}.
  */
-export const assertDailyGoalMonotonic = ({
+export const assertDailyGoalUnchanged = ({
+	caller,
 	data: {
 		collection,
 		data: { proposed, current }
 	}
-}: AssertSetDocContext) => {
+}: AssertSetDocContext): void => {
 	if (collection !== Collection.PROFILES) {
 		return;
 	}
@@ -659,28 +663,28 @@ export const assertDailyGoalMonotonic = ({
 	const proposedProfile = decodeDocData<UserProfile>(proposed.data);
 	const proposedDone = proposedProfile.dailyGoalDone ?? 0;
 
-	// Reject non-integer / negative / non-finite counts outright: the cap
-	// invariant assumes a whole-number tally in [0, cap], and a NaN or
-	// fractional value would slip past the bounds checks below.
-	if (!Number.isInteger(proposedDone) || proposedDone < 0) {
-		throw new Error('dailyGoalDone must be a non-negative integer.');
-	}
+	if (isControllerText(Principal.fromUint8Array(caller).toText())) {
+		// A NaN or fractional count would slip past the cap comparison.
+		if (!Number.isInteger(proposedDone) || proposedDone < 0) {
+			throw new Error('dailyGoalDone must be a non-negative integer.');
+		}
 
-	if (proposedDone > DAILY_HARD_CAP) {
-		throw new Error(`dailyGoalDone cannot exceed the daily hard cap of ${DAILY_HARD_CAP}.`);
+		if (proposedDone > DAILY_HARD_CAP) {
+			throw new Error(`dailyGoalDone cannot exceed the daily hard cap of ${DAILY_HARD_CAP}.`);
+		}
+
+		return;
 	}
 
 	const currentProfile = nonNullish(current) ? decodeDocData<UserProfile>(current.data) : undefined;
 
-	// First write, or a genuine new-day reset: nothing to roll back against.
-	if (isNullish(currentProfile) || currentProfile.dailyGoalDate !== proposedProfile.dailyGoalDate) {
-		return;
-	}
-
-	// Same day → the count is monotonic non-decreasing. A stale client that
-	// re-saves a lower total is rejected so the server's progress stands.
-	if (proposedDone < (currentProfile.dailyGoalDone ?? 0)) {
-		throw new Error('dailyGoalDone cannot decrease within the same day.');
+	// A legacy doc that predates the counter reads as 0, the value
+	// `withProfileDefaults` hands the client back.
+	if (
+		proposedDone !== (currentProfile?.dailyGoalDone ?? 0) ||
+		proposedProfile.dailyGoalDate !== currentProfile?.dailyGoalDate
+	) {
+		throw new Error('profiles: the Flow daily goal is set by the satellite.');
 	}
 };
 
@@ -701,14 +705,68 @@ export const assertProfileOwner = ({
 };
 
 /**
+ * The embedded `owner` is the identity every profile read reports and looks
+ * the role up by, so it must name the principal the doc is keyed by:
+ * otherwise a user could key a profile by their own principal and claim
+ * someone else's identity (and role) inside it.
+ */
+export const assertProfileOwnerField = ({
+	data: {
+		collection,
+		key,
+		data: { proposed }
+	}
+}: AssertSetDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	if (decodeDocData<UserProfile>(proposed.data).owner !== key) {
+		throw new Error('profiles: owner must be the doc key.');
+	}
+};
+
+/**
+ * `schoolStatus` records a verification only the satellite performs
+ * (`verifySchoolCode`, signing as a controller), so a client write must carry
+ * the stored value unchanged: absent on a new profile.
+ */
+export const assertSchoolStatusUnchanged = ({
+	caller,
+	data: {
+		collection,
+		data: { proposed, current }
+	}
+}: AssertSetDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	if (isControllerText(Principal.fromUint8Array(caller).toText())) {
+		return;
+	}
+
+	const proposedStatus = decodeDocData<UserProfile>(proposed.data).schoolStatus;
+	const currentStatus = nonNullish(current)
+		? decodeDocData<UserProfile>(current.data).schoolStatus
+		: undefined;
+
+	if (proposedStatus !== currentStatus) {
+		throw new Error('profiles: schoolStatus is set by the satellite.');
+	}
+};
+
+/**
  * The `profiles` pre-write veto: one dispatch-table entry composing the
  * sub-asserts, each exported on its own so it stays unit-testable. A throw
- * from any one rejects the write. The owner check and the new-profile gate run
+ * from any one rejects the write. The owner checks and the new-profile gate run
  * first so a refused write skips the nickname check's full collection scan.
  */
 export const assertProfile = (context: AssertSetDocContext): void => {
 	assertProfileOwner(context);
+	assertProfileOwnerField(context);
+	assertSchoolStatusUnchanged(context);
 	assertNewProfileAllowed(context);
 	assertValidNickname(context);
-	assertDailyGoalMonotonic(context);
+	assertDailyGoalUnchanged(context);
 };

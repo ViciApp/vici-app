@@ -1,6 +1,8 @@
-// Server-authoritative Flow daily counter. The client never sends a count:
-// it sends only its local-day key, which the server uses solely as the
-// rollover boundary. The server owns the increment and the hard cap.
+// Server-authoritative Flow daily counter, the only writer of
+// `daily_goal_done` / `daily_goal_date` (a profile write keeps them as
+// stored). The client never sends a count: it sends only its local-day key,
+// which the server uses solely as the rollover boundary. The server owns the
+// increment and the hard cap.
 
 import { isNullish } from '@dfinity/utils';
 import { tx } from '../db/client';
@@ -68,9 +70,8 @@ export const isWellFormedDayKey = (key: string): boolean => {
  * the new key. A caller with no profile fails fast rather than fabricating
  * an authoritative-shaped count.
  *
- * The overtime VXP mint that fires at the cap on the satellite belongs to
- * the VXP economy phase; the counter semantics here are complete without
- * it.
+ * The route mints the overtime award once this count reaches the cap
+ * (`mintFlowOvertime`), so only swipes recorded here can open it.
  */
 export const recordFlowSwipe = async ({
 	userId,

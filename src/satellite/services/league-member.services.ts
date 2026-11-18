@@ -23,17 +23,18 @@ import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/
  *     fields is the most common path to a duplicate membership
  *     slipping through; this assertion makes it impossible.
  *
- *  2. **Authorisation model.** Only the member creates their own
- *     membership row (`member === caller`): that covers the
- *     join-by-code flow, and a self-join is always a plain `member`
- *     (only the owner's own row, written at league creation, starts
- *     as `owner`). A league owner may rewrite an existing row for
- *     another principal (admin promotion / demotion) but never create
- *     one: the roster gates the league-founder achievement and the
- *     tournament seeding, so nobody is added without joining. A
- *     satellite controller may rewrite a row too (the account purge
- *     hands an owned league to a surviving member); the shape and role
- *     rules still hold for it. Leave / kick is {@link assertDeleteLeagueMember}.
+ *  2. **Authorisation model.** The invite code is the only way into a
+ *     league, so a new row comes from one of two writers: the league
+ *     owner writing their own `owner` row when the league is created,
+ *     or a satellite controller adding a plain `member` for
+ *     `joinLeagueByInvite`, which checks the code first. Nobody else
+ *     creates one, the member included: the roster gates the
+ *     league-founder achievement and the tournament seeding. A league
+ *     owner may rewrite an existing row for another principal (admin
+ *     promotion / demotion), and a satellite controller may rewrite one
+ *     too (the account purge hands an owned league to a surviving
+ *     member); the shape and role rules still hold for both. Leave /
+ *     kick is {@link assertDeleteLeagueMember}.
  *
  *  3. **Identity fields are immutable.** `leagueId`, `member`, and
  *     `joinedAtMs` are write-once. Only `role` can change after the
@@ -122,17 +123,19 @@ export const assertSetLeagueMember = ({
 		throw new Error('league_members role="owner" is reserved for the league owner principal.');
 	}
 
-	// Creation path: only the member joining creates a row, and a self-join
-	// can't grant itself a role. Only the owner's own row starts above
-	// `member`, and the reserved-owner check above already ties that one to
-	// the league owner.
+	// Creation path: the owner's own row at league creation (the
+	// reserved-owner check above already ties an `owner` row to the league
+	// owner), or a plain member added by the satellite once
+	// `joinLeagueByInvite` has checked the invite code.
 	if (isNullish(current)) {
-		if (!callerIsSelf) {
-			throw new Error('league_members rows are created only by the member joining.');
+		const isFounderRow = callerIsSelf && league.owner === callerText;
+
+		if (!isFounderRow && !callerIsController) {
+			throw new Error('league_members: join a league through joinLeagueByInvite.');
 		}
 
-		if (!callerIsOwner && proposedDoc.role !== 'member') {
-			throw new Error('league_members self-join must use role="member".');
+		if (!isFounderRow && proposedDoc.role !== 'member') {
+			throw new Error('league_members: a joining member gets role="member".');
 		}
 
 		return;
