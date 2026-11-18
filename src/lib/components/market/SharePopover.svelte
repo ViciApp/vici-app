@@ -11,6 +11,7 @@
 	import IconX from '#lib/components/icons/IconX.svelte';
 	import { referrerRewardVxp } from '#lib/constants/referral.constants.ts';
 	import { getMyReferralCode, listMyReferrals } from '#lib/services/referral.services.ts';
+	import { notifyShareFailed } from '#lib/services/share.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import type { CallSide, Market } from '#lib/types/market.ts';
@@ -357,14 +358,13 @@
 			}
 		} catch (e: unknown) {
 			// User-cancelled share sheets reject with AbortError: silent.
-			if (e instanceof DOMException && e.name === 'AbortError') {
-				busy = false;
-
-				return;
+			if (!(e instanceof DOMException && e.name === 'AbortError')) {
+				console.error('SharePopover: card share failed', e);
+				notifyShareFailed();
 			}
+		} finally {
+			busy = false;
 		}
-
-		busy = false;
 	};
 
 	// Link-only fallback when no canvas / file share is available.
