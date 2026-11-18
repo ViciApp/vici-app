@@ -22,7 +22,7 @@ Skip it for small changes (typo, one-liner): implement directly.
   [truth hierarchy](../governance.md#truth-hierarchy).
 - **Ground specs in real code.** Reference actual file paths,
   component names, collection names, enum members. "the market list
-  component" is a wish; `src/lib/components/markets/...` is
+  component" is a wish; `src/lib/components/market/...` is
   actionable. Scan the codebase before finalizing a spec.
 - **Every spec carries a status** (see [lifecycle](#spec-lifecycle)).
   An `Implemented` spec is a historical record, **not** current truth;
