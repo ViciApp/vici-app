@@ -655,6 +655,17 @@ when one is missing), and each assert lets through only:
   relation's participants end an active friendship and its sender withdraws
   a pending request, an admin grants or removes a role.
 
+Two more rules hold on a user-owned doc:
+
+- **An identity field in the payload must equal the key.** Reads report the
+  doc and look up its role by that field, so `assertProfileOwnerField`
+  refuses a profile whose `owner` is not its key, and the reads take the
+  identity from the key anyway (`decodeStoredProfile`).
+- **A field only the satellite decides is unchanged by any other caller.**
+  The owner may write the doc but must carry the stored value of such a
+  field (`assertSchoolStatusUnchanged` for a profile's `schoolStatus`); the
+  endpoint that decides it signs as `controllerCaller(...)`.
+
 A collection whose docs the satellite computes has no owner path at all: the
 assert accepts only a controller (`assertControllerWrite`) and the endpoint
 or hook that computes the doc signs its write with `controllerCaller(...)`.

@@ -33,8 +33,9 @@ import {
  * sums they feed. */
 export const MAX_PROFILE_COUNTER = 1_000_000;
 
-/** Client-writable profile doc: everything but the identity, the role and the
- * server-owned Flow daily goal, which a client write keeps as stored. */
+/** Client-writable profile doc: everything but the identity, the role, the
+ * server-owned Flow daily goal and the server-set `schoolStatus` (only school
+ * verification writes it); a client write keeps those as stored. */
 export interface ProfileInput {
 	nickname: string;
 	avatar: string;
@@ -65,7 +66,6 @@ export interface ProfileInput {
 	topDecileStreak: number;
 	lastTopDecileDay?: string;
 	sharpestEyeBestTier?: string;
-	schoolStatus?: string;
 	earnedMenagerie?: string[];
 	handleLastChangeMs?: number;
 	preferences: ProfilePreferences;
@@ -184,7 +184,6 @@ export const parseProfileInput = (body: Record<string, unknown>): ProfileInput =
 		topDecileStreak: counter(body.topDecileStreak, 'topDecileStreak', 0),
 		lastTopDecileDay: optionalString(body.lastTopDecileDay, 'lastTopDecileDay'),
 		sharpestEyeBestTier: optionalString(body.sharpestEyeBestTier, 'sharpestEyeBestTier'),
-		schoolStatus: optionalString(body.schoolStatus, 'schoolStatus'),
 		earnedMenagerie: isNullish(body.earnedMenagerie)
 			? undefined
 			: stringArray(body.earnedMenagerie, 'earnedMenagerie'),
@@ -366,12 +365,12 @@ export const upsertMyProfile = async ({
 				   level, archetype, interests, last_active_day, unlocked_achievements,
 				   contrarian_wins, best_upset_consensus, on_fire_streak, comebacks,
 				   winning_categories, leagues_joined, bouts_won, leagues_founded, top_decile_streak,
-				   last_top_decile_day, sharpest_eye_best_tier, school_status, earned_menagerie,
+				   last_top_decile_day, sharpest_eye_best_tier, earned_menagerie,
 				   handle_last_change_ms, preferences, updated_at
 				 ) values (
 				   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
 				   $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34,
-				   $35, now()
+				   now()
 				 )
 				 on conflict (user_id) do update set
 				   nickname = excluded.nickname,
@@ -404,7 +403,6 @@ export const upsertMyProfile = async ({
 				   top_decile_streak = excluded.top_decile_streak,
 				   last_top_decile_day = excluded.last_top_decile_day,
 				   sharpest_eye_best_tier = excluded.sharpest_eye_best_tier,
-				   school_status = excluded.school_status,
 				   earned_menagerie = excluded.earned_menagerie,
 				   handle_last_change_ms = excluded.handle_last_change_ms,
 				   preferences = excluded.preferences,
@@ -441,7 +439,6 @@ export const upsertMyProfile = async ({
 					proposed.topDecileStreak,
 					proposed.lastTopDecileDay ?? null,
 					proposed.sharpestEyeBestTier ?? null,
-					proposed.schoolStatus ?? null,
 					nonNullish(proposed.earnedMenagerie) ? JSON.stringify(proposed.earnedMenagerie) : null,
 					proposed.handleLastChangeMs ?? null,
 					JSON.stringify(proposed.preferences)

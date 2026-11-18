@@ -341,3 +341,32 @@ describe.if(dbAvailable)('preferences on write', () => {
 		expect(stored?.preferences).not.toHaveProperty('unknownKey');
 	});
 });
+
+describe.if(dbAvailable)('server-set school status', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('a client write cannot set schoolStatus on a new profile', async () => {
+		const { profile } = await createTestProfile({ schoolStatus: 'verified' });
+
+		expect(profile.schoolStatus).toBeUndefined();
+	});
+
+	test('a client write keeps the stored schoolStatus', async () => {
+		const { userId, profile } = await createTestProfile();
+
+		await query(`update profiles set school_status = 'verified' where user_id = $1`, [userId]);
+
+		const cleared = await upsertMyProfile({ userId, body: { nickname: profile.nickname } });
+
+		expect(cleared.schoolStatus).toBe('verified');
+
+		const forged = await upsertMyProfile({
+			userId,
+			body: { nickname: profile.nickname, schoolStatus: 'pending' }
+		});
+
+		expect(forged.schoolStatus).toBe('verified');
+	});
+});

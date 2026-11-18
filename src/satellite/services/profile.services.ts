@@ -11,12 +11,13 @@ import type { UserRole } from '#lib/enums/user.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { DAY_KEY_RE } from '#lib/utils/streak.utils.ts';
 import { visibilityFromProfile } from '#lib/utils/visibility.utils.ts';
-import { assertOwnerOrController } from '#satellite/services/authz.services.ts';
+import { assertOwnerOrController, isControllerText } from '#satellite/services/authz.services.ts';
 import { assertNewProfileAllowed } from '#satellite/services/new-profile-gate.services.ts';
 import { mintFlowOvertime } from '#satellite/services/vxp-flow-awards.services.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
+import { Principal } from '@icp-sdk/core/principal';
+import type { AssertDeleteDocContext, AssertSetDocContext, Doc } from '@junobuild/functions';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
 	decodeDocData,
@@ -336,6 +337,36 @@ export const isPubliclyHidden = (
 	profile: Pick<UserProfile, 'deletedAtMs' | 'hibernatedAtMs'>
 ): boolean => isSoftDeleted(profile) || isHibernated(profile);
 
+/**
+ * A stored profile as every read reports it: identified by its doc key, the
+ * principal the owner check binds it to, never by the embedded `owner` a
+ * legacy write could have pointed at someone else.
+ */
+export const decodeStoredProfile = ([key, doc]: [string, Pick<Doc, 'data'>]): UserProfile => ({
+	...decodeDocData<UserProfile>(doc.data),
+	owner: key
+});
+
+/** {@link withProfileDefaults} with the role the profile's principal holds. */
+export const withProfileRole = ({
+	profile,
+	caller
+}: {
+	profile: UserProfile;
+	caller: Principal;
+}): UserProfile => {
+	const roleDoc = getDocStore({
+		collection: Collection.ROLES,
+		key: profile.owner,
+		caller
+	});
+
+	return withProfileDefaults({
+		...profile,
+		role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
+	});
+};
+
 export const getProfile = (principal: PrincipalText): UserProfile | undefined => {
 	const caller = msgCaller();
 
@@ -349,7 +380,7 @@ export const getProfile = (principal: PrincipalText): UserProfile | undefined =>
 		return;
 	}
 
-	const profile = decodeDocData<UserProfile>(profileDoc.data);
+	const profile = decodeStoredProfile([principal, profileDoc]);
 
 	// Public lookup: a soft-deleted OR hibernated account is invisible to
 	// OTHER callers, but the owner can always read their own (possibly
@@ -360,16 +391,7 @@ export const getProfile = (principal: PrincipalText): UserProfile | undefined =>
 		return;
 	}
 
-	const roleDoc = getDocStore({
-		collection: Collection.ROLES,
-		key: profile.owner,
-		caller
-	});
-
-	return withProfileDefaults({
-		...profile,
-		role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
-	});
+	return withProfileRole({ profile, caller });
 };
 
 export const searchProfiles = (query: string): UserProfile[] => {
@@ -385,23 +407,12 @@ export const searchProfiles = (query: string): UserProfile[] => {
 
 	return (
 		items
-			.map(([_, item]) => decodeDocData<UserProfile>(item.data))
+			.map(decodeStoredProfile)
 			// Public search: soft-deleted OR hibernated accounts are
 			// invisible (Delete account v2). Drop them before the role
 			// lookup + hydrate.
 			.filter((profile) => !isPubliclyHidden(profile))
-			.map((profile) => {
-				const roleDoc = getDocStore({
-					collection: Collection.ROLES,
-					key: profile.owner,
-					caller
-				});
-
-				return withProfileDefaults({
-					...profile,
-					role: roleDoc ? decodeDocData<{ role: UserRole }>(roleDoc.data).role : undefined
-				});
-			})
+			.map((profile) => withProfileRole({ profile, caller }))
 			.filter((p) => {
 				const matches = [p.nickname, p.owner].some((val) => val.toLowerCase().includes(lowerQuery));
 
@@ -701,13 +712,67 @@ export const assertProfileOwner = ({
 };
 
 /**
+ * The embedded `owner` is the identity every profile read reports and looks
+ * the role up by, so it must name the principal the doc is keyed by:
+ * otherwise a user could key a profile by their own principal and claim
+ * someone else's identity (and role) inside it.
+ */
+export const assertProfileOwnerField = ({
+	data: {
+		collection,
+		key,
+		data: { proposed }
+	}
+}: AssertSetDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	if (decodeDocData<UserProfile>(proposed.data).owner !== key) {
+		throw new Error('profiles: owner must be the doc key.');
+	}
+};
+
+/**
+ * `schoolStatus` records a verification only the satellite performs
+ * (`verifySchoolCode`, signing as a controller), so a client write must carry
+ * the stored value unchanged: absent on a new profile.
+ */
+export const assertSchoolStatusUnchanged = ({
+	caller,
+	data: {
+		collection,
+		data: { proposed, current }
+	}
+}: AssertSetDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	if (isControllerText(Principal.fromUint8Array(caller).toText())) {
+		return;
+	}
+
+	const proposedStatus = decodeDocData<UserProfile>(proposed.data).schoolStatus;
+	const currentStatus = nonNullish(current)
+		? decodeDocData<UserProfile>(current.data).schoolStatus
+		: undefined;
+
+	if (proposedStatus !== currentStatus) {
+		throw new Error('profiles: schoolStatus is set by the satellite.');
+	}
+};
+
+/**
  * The `profiles` pre-write veto: one dispatch-table entry composing the
  * sub-asserts, each exported on its own so it stays unit-testable. A throw
- * from any one rejects the write. The owner check and the new-profile gate run
+ * from any one rejects the write. The owner checks and the new-profile gate run
  * first so a refused write skips the nickname check's full collection scan.
  */
 export const assertProfile = (context: AssertSetDocContext): void => {
 	assertProfileOwner(context);
+	assertProfileOwnerField(context);
+	assertSchoolStatusUnchanged(context);
 	assertNewProfileAllowed(context);
 	assertValidNickname(context);
 	assertDailyGoalMonotonic(context);
