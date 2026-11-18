@@ -108,6 +108,79 @@ describe('async.utils', () => {
 			assert.equal(onLoad.mock.callCount(), 2);
 		});
 
+		it('passes a failed run to onError and keeps polling', async () => {
+			const failure = new Error('boom');
+			const onLoad = mock.fn(() => Promise.reject(failure));
+			const onError = mock.fn((_err: unknown) => undefined);
+
+			stop = startPolling({
+				onLoad,
+				onError,
+				onShouldUseSlowInterval: () => Promise.resolve(false),
+				fastIntervalMs: FAST_INTERVAL_MS,
+				slowIntervalMs: SLOW_INTERVAL_MS,
+				runImmediately: true
+			});
+			await flush();
+
+			assert.equal(onError.mock.callCount(), 1);
+			assert.equal(onError.mock.calls[0].arguments[0], failure);
+
+			mock.timers.tick(FAST_INTERVAL_MS);
+			await flush();
+
+			assert.equal(onLoad.mock.callCount(), 2);
+		});
+
+		it('falls back to the slow interval when the interval probe fails', async () => {
+			const onLoad = mock.fn(() => Promise.resolve());
+
+			stop = startPolling({
+				onLoad,
+				onShouldUseSlowInterval: () => Promise.reject(new Error('probe failed')),
+				fastIntervalMs: FAST_INTERVAL_MS,
+				slowIntervalMs: SLOW_INTERVAL_MS,
+				runImmediately: true
+			});
+			await flush();
+
+			mock.timers.tick(FAST_INTERVAL_MS);
+			await flush();
+
+			assert.equal(onLoad.mock.callCount(), 1);
+
+			mock.timers.tick(SLOW_INTERVAL_MS - FAST_INTERVAL_MS);
+			await flush();
+
+			assert.equal(onLoad.mock.callCount(), 2);
+		});
+
+		it('schedules nothing when stopped while the interval probe is pending', async () => {
+			const onLoad = mock.fn(() => Promise.resolve());
+			let answerProbe: ((slow: boolean) => void) | undefined;
+
+			stop = startPolling({
+				onLoad,
+				onShouldUseSlowInterval: () =>
+					new Promise<boolean>((resolve) => {
+						answerProbe = resolve;
+					}),
+				fastIntervalMs: FAST_INTERVAL_MS,
+				slowIntervalMs: SLOW_INTERVAL_MS,
+				runImmediately: true
+			});
+			await flush();
+
+			stop();
+			answerProbe?.(false);
+			await flush();
+
+			mock.timers.tick(SLOW_INTERVAL_MS);
+			await flush();
+
+			assert.equal(onLoad.mock.callCount(), 1);
+		});
+
 		it('stops scheduling once stopped', async () => {
 			const onLoad = mock.fn(() => Promise.resolve());
 

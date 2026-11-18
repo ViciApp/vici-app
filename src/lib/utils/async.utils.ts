@@ -47,18 +47,23 @@ export const sleep = (durationMs: number): Promise<void> =>
 /**
  * Run `onLoad` on a self-rescheduling timer: `fastIntervalMs` between runs
  * until `onShouldUseSlowInterval` answers true, `slowIntervalMs` after that.
- * Runs never overlap. A failed run is logged and the next one is scheduled
- * anyway: one transient error must not stop a loader for the rest of the
- * session. Returns the stop function, which cancels any scheduled run.
+ * Runs never overlap. A failed run goes to `onError` (logged when none is
+ * given) and the next one is scheduled anyway: one transient error must not
+ * stop a loader for the rest of the session. A failed interval probe falls
+ * back to the slow interval, so a probe that keeps failing cannot speed the
+ * loop up. Returns the stop function, which cancels any scheduled run.
  */
 export const startPolling = ({
 	onLoad,
+	onError = (err: unknown) =>
+		console.error('Polled load failed; retrying on the next interval', err),
 	onShouldUseSlowInterval,
 	fastIntervalMs,
 	slowIntervalMs,
 	runImmediately
 }: {
 	onLoad: () => Promise<void>;
+	onError?: (err: unknown) => void;
 	onShouldUseSlowInterval: () => Promise<boolean>;
 	fastIntervalMs: number;
 	slowIntervalMs: number;
@@ -78,7 +83,8 @@ export const startPolling = ({
 			return;
 		}
 
-		const delayMs = (await onShouldUseSlowInterval()) ? slowIntervalMs : fastIntervalMs;
+		const useSlow = await onShouldUseSlowInterval().catch(() => true);
+		const delayMs = useSlow ? slowIntervalMs : fastIntervalMs;
 
 		if (stopped) {
 			return;
@@ -98,7 +104,7 @@ export const startPolling = ({
 		try {
 			await onLoad();
 		} catch (err: unknown) {
-			console.error('Polled load failed; retrying on the next interval', err);
+			onError(err);
 		} finally {
 			running = false;
 		}
