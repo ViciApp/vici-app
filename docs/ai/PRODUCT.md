@@ -432,9 +432,12 @@ worlds`, `label: on | off`). Decision record:
 Deleting an account (after the 30-day recovery window, or at once on a
 too-late recovery) removes the profile, the private email, the sign-in
 identities and sessions, the VXP award history and onboarding ladder,
-calibration attempts, referral code, affiliations, relations and league
-memberships; owned leagues are disbanded or handed to a member. What
-stays, by design:
+calibration attempts, the stats and monthly stats, resolved results, the
+likes it gave (each liked activity's count goes down), school-email
+submissions, referral code, affiliations, relations and league
+memberships; owned leagues are disbanded or handed to a member. Like the
+global leaderboard, the monthly awards board lists no soft-deleted,
+hibernated or deleted account. What stays, by design:
 
 - **One anonymous marker per one-time VXP award the account was paid**
   (onboarding grant, referee bonus, milestones, achievements, founder

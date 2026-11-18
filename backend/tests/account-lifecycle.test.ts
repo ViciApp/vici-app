@@ -25,6 +25,7 @@ import { app } from '../src/index';
 import { createLeague } from '../src/leagues/leagues';
 import { joinLeagueByInvite } from '../src/leagues/members';
 import { upsertMyProfile } from '../src/profiles/profile-write';
+import { createActivity, likeActivity } from '../src/social/activities';
 import { createTestUser, ensureMigrated, uniqueEmail } from './helpers/auth';
 import { createTestProfile, uniqueNickname } from './helpers/profiles';
 import { readRepoFile } from './helpers/repo-source';
@@ -312,6 +313,66 @@ describe.if(dbAvailable)('account lifecycle', () => {
 
 			// The identity anchor survives the cascade.
 			expect(await countRows('users', 'id', userId)).toBe(1);
+		});
+
+		test('removes the stats, results, school submissions and likes the account left', async () => {
+			const { userId } = await createTestProfile();
+			const { userId: author } = await createTestProfile();
+			const nowMs = Date.now();
+			const liked = await createActivity({
+				userId: author,
+				type: 'trade',
+				title: 'liked',
+				timestamp: nowMs
+			});
+			const own = await createActivity({ userId, type: 'trade', title: 'own', timestamp: nowMs });
+
+			await likeActivity({
+				likerId: userId,
+				activityKey: liked.key,
+				timestamp: nowMs,
+				activityTitle: ''
+			});
+			await likeActivity({
+				likerId: author,
+				activityKey: own.key,
+				timestamp: nowMs,
+				activityTitle: ''
+			});
+			await query(`insert into user_stats (user_id) values ($1)`, [userId]);
+			await query(`insert into user_monthly_stats (user_id, month_anchor) values ($1, '2026-10')`, [
+				userId
+			]);
+			await query(
+				`insert into resolved_results (user_id, market_id, outcome, net_vxp, resolved_at_ms)
+				 values ($1, 'm-1', 'win', 1, $2)`,
+				[userId, nowMs]
+			);
+			await query(
+				`insert into school_submissions
+				   (user_id, email, school_id, school_name, code_hash, salt, expires_at_ms, created_at_ms)
+				 values ($1, 'a@school.invalid', 's-1', 'School', 'h', 's', $2, $2)`,
+				[userId, nowMs]
+			);
+
+			await hardDeleteAccount(userId);
+
+			expect(await countRows('user_stats', 'user_id', userId)).toBe(0);
+			expect(await countRows('user_monthly_stats', 'user_id', userId)).toBe(0);
+			expect(await countRows('resolved_results', 'user_id', userId)).toBe(0);
+			expect(await countRows('school_submissions', 'user_id', userId)).toBe(0);
+			expect(await countRows('activity_reactions', 'liker', userId)).toBe(0);
+			expect(await countRows('activity_reactions', 'liker', author)).toBe(1);
+
+			const counts = await query<{ activity_key: string; count: number }>(
+				`select activity_key, count from activity_reaction_counts where activity_key = any($1)`,
+				[[liked.key, own.key]]
+			);
+
+			expect(Object.fromEntries(counts.map((row) => [row.activity_key, row.count]))).toEqual({
+				[liked.key]: 0,
+				[own.key]: 1
+			});
 		});
 
 		test('an owned league that gained members transfers to a deterministic survivor instead of dying', async () => {

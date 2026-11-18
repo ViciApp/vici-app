@@ -268,6 +268,11 @@ export const isPubliclyHidden = (
 	row: Pick<ProfileRow, 'deleted_at_ms' | 'hibernated_at_ms'>
 ): boolean => nonNullish(row.deleted_at_ms) || nonNullish(row.hibernated_at_ms);
 
+/** {@link isPubliclyHidden} negated as SQL, over a `profiles` row aliased `p`:
+ * the filter of every public profile read. */
+export const PUBLICLY_VISIBLE_PROFILE_SQL =
+	'p.deleted_at_ms is null and p.hibernated_at_ms is null';
+
 /** The owner's own profile: the public shape plus the private email. Only
  * the /me surface and an owner-scoped read may ever serialize this; every
  * public read (leaderboard, search, by-id for others) uses shapeProfile,
@@ -361,7 +366,7 @@ export const searchProfiles = async (queryStr: string): Promise<Profile[]> => {
 		`select ${PROFILE_COLUMNS}
 		 from profiles p
 		 join users u on u.id = p.user_id
-		 where p.deleted_at_ms is null and p.hibernated_at_ms is null
+		 where ${PUBLICLY_VISIBLE_PROFILE_SQL}
 		   and (
 		     lower(p.nickname) like $1 escape '\\'
 		     or p.user_id::text like $1 escape '\\'
