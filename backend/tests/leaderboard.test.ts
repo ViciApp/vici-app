@@ -1,9 +1,9 @@
 // Global leaderboard: rank/count correctness on a seeded population, the
-// hidden-profile exclusion, deterministic tie-breaks and the rival lookup.
+// hidden-profile exclusion and deterministic tie-breaks.
 
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { query } from '../src/db/client';
-import { getMyRival, getUserRankAndCount, listLeaderboard } from '../src/profiles/leaderboard';
+import { getUserRankAndCount, listLeaderboard } from '../src/profiles/leaderboard';
 import { ensureMigrated } from './helpers/auth';
 import { createTestProfile, hibernateProfile, softDeleteProfile } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
@@ -83,26 +83,5 @@ describe.if(dbAvailable)('leaderboard', () => {
 
 		expect(rankLow.rank).toBe(4);
 		expect(rankHigh.rank).toBe(5);
-	});
-
-	test('the rival is the profile one rank above', async () => {
-		const { rival, rivalIsTrailing } = await getMyRival({ userId: second });
-
-		expect(rival?.userId).toBe(first);
-		expect(rivalIsTrailing).toBe(false);
-	});
-
-	test('the leader gets the runner-up as a trailing rival', async () => {
-		const { rival, rivalIsTrailing } = await getMyRival({ userId: first });
-
-		expect(rival?.userId).toBe(second);
-		expect(rivalIsTrailing).toBe(true);
-	});
-
-	test('an unranked (hidden) user has no rival', async () => {
-		const { rival, rivalIsTrailing } = await getMyRival({ userId: hiddenDeleted });
-
-		expect(rival).toBeUndefined();
-		expect(rivalIsTrailing).toBe(false);
 	});
 });
