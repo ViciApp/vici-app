@@ -655,13 +655,6 @@ export const updateLeague = async ({
 let cachedReferral: { owner: PrincipalText; code: string } | undefined;
 
 const resolveMyReferralCode = async (): Promise<string | undefined> => {
-	// Referral codes are an unswapped satellite domain; until they ride the
-	// HTTP API the web2 share link stays plain (no `?ref=`) instead of probing
-	// the satellite from a session that holds no on-chain identity.
-	if (isWeb2Backend()) {
-		return;
-	}
-
 	const owner = get(authPrincipal);
 
 	if (isNullish(owner)) {

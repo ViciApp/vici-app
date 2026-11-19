@@ -549,8 +549,9 @@ shapes are identity-free (league ids and aggregates) and pass through.
   client never reads `league_stats` (tournament matches are scored from
   settled history server-side, never from it either); `loadLeaguesByIds` hydrates the
   league directory from the caller's own list reads because no public
-  by-id league read exists yet; the share URL stays plain (no `?ref=`)
-  until referrals swap.
+  by-id league read exists yet; the share URL carries the sharer's
+  `?ref=` code through the dual-mode `getMyReferralCode`, as on the
+  default backend.
 - League cover images: `storage.services.ts` `uploadLeagueImage` posts
   the (still client-downscaled) bytes as multipart to
   `/leagues/:id/image`, which stores them and stamps the serving URL on
