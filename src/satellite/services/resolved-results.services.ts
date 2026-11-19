@@ -306,9 +306,17 @@ export const listFriendResolvedResultsFn = ({
 };
 
 /**
- * Controllers-only retention cleanup. Prunes every `resolved_results` row whose `resolvedAtMs` is
- * older than {@link RESOLVED_RESULTS_RETENTION_MS}: Juno has no scheduler, so this is admin/cron
- * triggered (mirrors `sweepExpiredDeletions`). Returns the number of rows pruned.
+ * How many rows one `pruneResolvedResults` call deletes. Each delete is a serverless write costing
+ * billions of instructions, so a call stays a few writes under the update limit and the cleanup
+ * goes in rounds (see the bulk-rewrite budget note in docs/ai/satellite/patterns.md).
+ */
+const PRUNE_RESOLVED_RESULTS_BATCH = 5;
+
+/**
+ * Controllers-only retention cleanup. Prunes `resolved_results` rows whose `resolvedAtMs` is older
+ * than {@link RESOLVED_RESULTS_RETENTION_MS}, at most {@link PRUNE_RESOLVED_RESULTS_BATCH} per
+ * call: Juno has no scheduler, so this is admin/cron triggered (mirrors `sweepExpiredDeletions`).
+ * Returns the number of rows pruned; call it again until that is 0.
  */
 export const pruneResolvedResultsFn = (): { pruned: number } => {
 	const caller = msgCaller();
@@ -329,6 +337,10 @@ export const pruneResolvedResultsFn = (): { pruned: number } => {
 	let pruned = 0;
 
 	for (const [key, item] of items) {
+		if (pruned >= PRUNE_RESOLVED_RESULTS_BATCH) {
+			break;
+		}
+
 		let row: ResolvedResult | undefined;
 
 		try {

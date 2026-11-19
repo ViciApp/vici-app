@@ -1254,9 +1254,10 @@ export const listFriendResolvedResults = defineQuery({
 });
 
 // Retention cleanup for `resolved_results`: prunes rows older than the
-// configured horizon. Admin-gated; Juno has no scheduler so this is triggered
-// externally (admin/cron), mirroring `sweepExpiredDeletions`. `pruned` is the
-// number of rows removed.
+// configured horizon, a bounded batch per call. Admin-gated; Juno has no
+// scheduler so this is triggered externally (admin/cron), mirroring
+// `sweepExpiredDeletions`. `pruned` is the number of rows removed; call again
+// until it is 0.
 export const pruneResolvedResults = defineUpdate({
 	result: j.strictObject({
 		pruned: j.number()

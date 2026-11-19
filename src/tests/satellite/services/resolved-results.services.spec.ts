@@ -1,6 +1,8 @@
 import type { ClearingDid } from '#declarations';
+import { RESOLVED_RESULTS_RETENTION_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
+import { UserRole } from '#lib/enums/user.ts';
 import type { ResolvedResult } from '#lib/types/social.ts';
 import {
 	controller,
@@ -10,7 +12,10 @@ import {
 	storedDoc,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
-import { onActivitySetForResolvedResults } from '#satellite/services/resolved-results.services.ts';
+import {
+	onActivitySetForResolvedResults,
+	pruneResolvedResultsFn
+} from '#satellite/services/resolved-results.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
@@ -112,6 +117,50 @@ describe('resolved-results.services', () => {
 
 			assert.equal(row()?.resolvedAtMs, hostNowMs);
 			assert.equal(rowVersion(), versionBefore);
+		});
+	});
+
+	describe('pruneResolvedResultsFn', () => {
+		const staleAtMs = hostNowMs - RESOLVED_RESULTS_RETENTION_MS - 1;
+
+		const putRow = ({ marketId, resolvedAtMs }: { marketId: string; resolvedAtMs: number }) =>
+			host.putDoc({
+				collection: Collection.RESOLVED_RESULTS,
+				key: `${participant.toText()}#${marketId}`,
+				data: { owner: participant.toText(), marketId, resolvedAtMs },
+				owner: controller
+			});
+
+		beforeEach(() => {
+			host.putDoc({
+				collection: Collection.ROLES,
+				key: controller.toText(),
+				data: { role: UserRole.ADMIN },
+				owner: controller
+			});
+
+			for (let index = 0; index < 7; index++) {
+				putRow({ marketId: `stale-${index}`, resolvedAtMs: staleAtMs });
+			}
+
+			putRow({ marketId: 'fresh-0', resolvedAtMs: hostNowMs });
+			putRow({ marketId: 'fresh-1', resolvedAtMs: hostNowMs });
+		});
+
+		it('prunes stale rows a bounded batch per call until none is left', () => {
+			assert.deepEqual(pruneResolvedResultsFn(), { pruned: 5 });
+			assert.deepEqual(pruneResolvedResultsFn(), { pruned: 2 });
+			assert.deepEqual(pruneResolvedResultsFn(), { pruned: 0 });
+			assert.deepEqual(host.keys(Collection.RESOLVED_RESULTS).sort(), [
+				`${participant.toText()}#fresh-0`,
+				`${participant.toText()}#fresh-1`
+			]);
+		});
+
+		it('refuses a caller who is not an admin', () => {
+			host.setCaller(participant);
+
+			assert.throws(() => pruneResolvedResultsFn(), /Only an admin/);
 		});
 	});
 });
