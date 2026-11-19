@@ -127,14 +127,20 @@ description.
   [satellite structure](./satellite/structure.md)).
 - Run `npm run format`, `npm run lint`, `npm run check`, `npm run quality`,
   `npm run dev`, `npm run build`, `npm run did`,
-  `npm run juno:functions:build`, `npm run init:icdc` (and its sub-scripts),
-  `npm run test:engine-sync`, `npm run deploy`; in `backend/`, `bun run typecheck`,
+  `npm run juno:functions:build`; in `backend/`, `bun run typecheck`,
   `bun test`, `bun run migrate` against the local docker-compose database.
+- Run `npm run init:icdc` (and its sub-scripts), `npm run test:engine-sync` and
+  `npm run deploy` against the local replica only: never with `--staging`,
+  `--ic` or `--production`. The scripts that reinstall canisters, mint or set
+  fixed prices refuse any other network (the callers of `require_local_network`
+  in [`scripts/lib/utils.sh`](../../scripts/lib/utils.sh)).
 - Update these `docs/ai/**` pages when the meta-update rule fires.
 
 ### Forbidden without explicit prompt
 
 - Add a new dependency or upgrade one (`package.json`).
+- Run any script against `staging` or `ic` (`--staging`, `--ic`,
+  `--production`).
 - Add a new top-level folder under `src/` or `src/lib/` /
   `src/satellite/`.
 - Edit any path in the [Boundaries](#boundaries) table.
