@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { getDoc } from '@junobuild/core';
 	import {
 		Bell,
 		ChevronLeft,
@@ -36,11 +35,9 @@
 	import AppearancePicker from '#lib/components/ui/AppearancePicker.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import LocaleSheet from '#lib/components/ui/LocaleSheet.svelte';
-	import { Collection } from '#lib/constants/collections.constants.ts';
 	import { LOCALE_REGISTRY } from '#lib/constants/locale.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
-	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
 	import { flushEvents, track } from '#lib/services/analytics.services.ts';
 	import {
@@ -50,7 +47,7 @@
 	// The dual-mode sign-out: the Juno delegation drop on the default
 	// backend, the cookie-session revoke in web2 mode.
 	import { signOut } from '#lib/services/identity.services.ts';
-	import { persistPreferences } from '#lib/services/profile.services.ts';
+	import { getMyJoinedAtMs, persistPreferences } from '#lib/services/profile.services.ts';
 	import { canInstall } from '#lib/stores/a2hs.store.ts';
 	import { localeStore, setLocale } from '#lib/stores/locale.store.ts';
 	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
@@ -59,7 +56,6 @@
 	import { setAuthBusy, userStore } from '#lib/stores/user.store.ts';
 	import type { ButtonStatus } from '#lib/types/components.ts';
 	import type { SettingsVisibility } from '#lib/types/preferences.ts';
-	import type { UserProfile } from '#lib/types/profile.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { resolveSignInMethod } from '#lib/utils/signin-method.utils.ts';
@@ -129,31 +125,22 @@
 		}, 1800);
 	};
 
-	// Joined date: sourced from the Juno profile doc's `created_at` (ns).
-	// Mirrors the `ProfilePage` loader so the identity row's "Joined …"
-	// line stays in sync with the dashboard's joined chip.
-	let joinedAtNs = $state<bigint | undefined>(undefined);
+	let joinedAtMs = $state<number | undefined>(undefined);
 
 	const loadJoinedAt = async (principal: string) => {
 		try {
-			const doc = await getDoc<UserProfile>({
-				collection: Collection.PROFILES,
-				key: principal
-			});
-
-			joinedAtNs = doc?.created_at;
+			joinedAtMs = await getMyJoinedAtMs(principal);
 		} catch {
-			joinedAtNs = undefined;
+			joinedAtMs = undefined;
 		}
 	};
 
 	const joinedLabel = $derived.by(() => {
-		if (isNullish(joinedAtNs)) {
+		if (isNullish(joinedAtMs)) {
 			return null;
 		}
 
-		const ms = Number(joinedAtNs / MILLISECOND_IN_NANOSECONDS);
-		const date = new Date(ms);
+		const date = new Date(joinedAtMs);
 
 		try {
 			const formatter = new Intl.DateTimeFormat($localeStore, {

@@ -274,6 +274,9 @@ the on-chain call untouched on the default side:
   `upsertProfile`. The composed writers (`patchProfile`, `persistDailyStreak`,
   `applyOnboardingPicks`, `persistPreferences`, `recordActivity`) ride the
   swap for free: they route through `getProfile` + `upsertProfile`.
+  `getMyJoinedAtMs` (the Settings "Joined" line) reads the session
+  account's `createdAt` in web2 mode, the profile doc's `created_at` on
+  the default backend.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
 - `leaderboard.services.ts`: `getLeaderboard`.
 - `menagerie.services.ts`: the viewer's rank + ranked-population size in
