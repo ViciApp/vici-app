@@ -2249,6 +2249,7 @@ export const frMessages = {
 	'transactions.kind.won': 'Gagnée',
 	'transactions.title': 'Transactions',
 	'transactions.truncated': 'Historique antérieur non affiché',
+	'transactions.unavailable': "L'historique des transactions n'est pas disponible pour le moment",
 	'ui.loading': 'Chargement',
 	'ui.pagination.next': 'Suivant',
 	'ui.pagination.previous': 'Précédent',

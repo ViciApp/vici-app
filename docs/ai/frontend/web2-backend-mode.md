@@ -94,7 +94,10 @@ per-domain sections:
   as do the roles / admin services.
 - **Direct ICRC ledger / index reads and user-held transfers**: web2 mode
   surfaces custodial balances and routes sends through withdrawals; the
-  paged ledger history returns empty there.
+  paged ledger history returns empty there, and `loadVxpLedgerHistory`
+  returns `undefined`, so the transaction history page
+  (`/dash/transactions`) shows its unavailable state rather than running
+  balances that miss every bonus and transfer.
 - **League standings slice** (`getLeagueStandings`): empty in web2 mode
   until a member-filtered bridge read with the identity mapping exists;
   web2 standings entries also keep the on-chain principal as `owner`.

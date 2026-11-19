@@ -2229,6 +2229,7 @@ export const enMessages = {
 	'transactions.kind.won': 'Won',
 	'transactions.title': 'Transactions',
 	'transactions.truncated': 'Older history not shown',
+	'transactions.unavailable': "Transaction history isn't available right now",
 	'ui.loading': 'Loading',
 	'ui.pagination.next': 'Next',
 	'ui.pagination.previous': 'Previous',
