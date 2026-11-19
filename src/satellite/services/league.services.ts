@@ -8,6 +8,7 @@ import {
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
+	leaguePrivacy,
 	type CreateLeagueRefusalReason,
 	type JoinLeagueRefusalReason,
 	type LeagueDoc
@@ -742,11 +743,18 @@ export const migrateLeagueInviteCodesFn = (): { migrated: number } => {
 		const { inviteCode, ...league } = decodeDocData<LeagueDoc>(data);
 
 		if (nonNullish(inviteCode) && recordLeagueInvite({ leagueId: league.id, inviteCode })) {
+			// A doc from the retired invite-only tier still stores `privacy: 'invite'`,
+			// which the league assert rejects; the rewrite stores the tier it already
+			// reads as, so the doc can pass.
+			const migratedLeague: LeagueDoc = isNullish(league.privacy)
+				? league
+				: { ...league, privacy: leaguePrivacy(league) };
+
 			setDocStore({
 				caller: writer,
 				collection: Collection.LEAGUES,
 				key,
-				doc: { data: encodeDocData<LeagueDoc>(league), version }
+				doc: { data: encodeDocData<LeagueDoc>(migratedLeague), version }
 			});
 
 			migrated += 1;

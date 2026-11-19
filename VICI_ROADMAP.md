@@ -1,7 +1,3 @@
-Here is a clean, structured **Markdown version** of your roadmap, formatted for readability and ready to drop into a repo (README / docs).
-
----
-
 # 🚀 VICI Platform Development Roadmap
 
 **Beta Launch Objective:** End of April

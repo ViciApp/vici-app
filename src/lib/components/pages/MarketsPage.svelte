@@ -23,8 +23,8 @@
 	import { preferencesStore } from '#lib/stores/preferences.store.ts';
 	import type { Market } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { filterRevealedMarkets } from '#lib/utils/market-reveal.utils.ts';
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
-	import { filterScheduledWcMarkets } from '#lib/utils/wc-schedule.utils.ts';
 
 	/**
 	 * Markets screen: a section-based board with a category browse nav. The
@@ -62,17 +62,16 @@
 	);
 
 	// Loading covers both feeds the board depends on: the markets list and the
-	// tag metadata. Tags are required in *every* phase now, not just World-Cup
-	// focus: the discovery feeds (available + trending) run through the WC
-	// release schedule, which identifies WC markets by tag: an empty tag map
-	// would make every market look non-WC and let unreleased WC markets leak in.
-	// Without the guard the board also flashes the "no markets" empty state over
-	// loaded markets while tags fetch. Tags load globally in the (app) shell and
-	// resolve to `{}` even on failure, so this never stalls.
+	// tag metadata the category browse and the row labels read. The release
+	// gate needs only each market's `startDate`, so tags never decide whether a
+	// market is revealed. Without the guard the board flashes the "no markets"
+	// empty state over loaded markets while tags fetch. Tags load globally in
+	// the (app) shell and resolve to `{}` even on failure, so this never stalls.
 	const loading = $derived($marketsNotInitialized || $marketTagsNotInitialized);
 
 	const savedSet = $derived(new Set($preferencesStore.savedMarketIds));
-	// Saved = the viewer's watchlist, kept even if an entry isn't World Cup.
+	// Saved = the viewer's watchlist, shown in full: the release gate below
+	// leaves it out, so a saved market stays listed before its start.
 	const savedMarkets = $derived($markets.filter((m) => savedSet.has(m.id)));
 
 	const tagsByMarket = $derived($marketTags);
@@ -115,7 +114,7 @@
 	// explicit Saved watchlist is intentionally left ungated. Re-derives on the
 	// minute tick so a market appears the moment its release lands.
 	const visibleMarkets = $derived(
-		filterScheduledWcMarkets({ markets: $markets, tagsByMarket, now: $minuteTick_ms })
+		filterRevealedMarkets({ markets: $markets, now: $minuteTick_ms })
 	);
 
 	// Volume-sort helper: the same trending signal the carousel uses, applied

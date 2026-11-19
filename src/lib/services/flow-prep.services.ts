@@ -9,8 +9,8 @@ import { getUserTradeHistory } from '#lib/services/trade.services.ts';
 import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 import type { UserMarketSignals } from '#lib/types/market-signals.ts';
 import type { Market, MarketId } from '#lib/types/market.ts';
+import { filterRevealedMarkets } from '#lib/utils/market-reveal.utils.ts';
 import { deriveCalledMarketIds } from '#lib/utils/market-signals.utils.ts';
-import { filterScheduledWcMarkets } from '#lib/utils/wc-schedule.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**
@@ -115,11 +115,7 @@ export const prepareFlow = async ({
 		// (`start_ns`) is withheld until that instant; markets with no start are
 		// live. Applied to the whole queue up front so withheld markets can't
 		// leak back in through the featured-scope fallback below.
-		const visibleQueue = filterScheduledWcMarkets({
-			markets: queue,
-			tagsByMarket,
-			now: Date.now()
-		});
+		const visibleQueue = filterRevealedMarkets({ markets: queue, now: Date.now() });
 
 		// When a featured event is active, narrow to markets carrying
 		// the event's category tag so the swipe deck tracks the live
@@ -151,13 +147,13 @@ export const prepareFlow = async ({
 		const filtered = afterExclude.length > 0 ? afterExclude : afterPrior;
 
 		// Surface a shared-link market as the first card, ahead of the ranked
-		// deck. Sourced from `visibleQueue` (post WC-schedule gating, pre
+		// deck. Sourced from `visibleQueue` (after the release gate, before the
 		// featured-event scope) so a shared market outside the live tentpole
-		// still pins, while a withheld WC market can't be leaked into Flow
-		// through a shared link. Prepended *before* the slice so a low-ranked
-		// market isn't trimmed off the end. The prior-call filter still wins
-		// (guarded explicitly here too), so an already-predicted shared link
-		// falls through to the normal deck.
+		// still pins, while any market still before its `startDate` can't be
+		// leaked into Flow through a shared link. Prepended *before* the slice
+		// so a low-ranked market isn't trimmed off the end. The prior-call
+		// filter still wins (guarded explicitly here too), so an
+		// already-predicted shared link falls through to the normal deck.
 		const pinnedMarket = nonNullish(pinnedMarketId)
 			? visibleQueue.find((m) => m.id === pinnedMarketId)
 			: undefined;
