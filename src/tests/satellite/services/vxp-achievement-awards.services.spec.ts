@@ -11,7 +11,7 @@ import { assertDeleteDoc, assertSetDoc } from '#satellite/index.ts';
 import { onProfileSetForAchievementAward } from '#satellite/services/vxp-achievement-awards.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
-import { IcrcLedgerIdl } from '@junobuild/functions/canisters/ledger/icrc';
+import { IcrcLedgerIdl, type IcrcLedgerDid } from '@junobuild/functions/canisters/ledger/icrc';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
@@ -66,6 +66,7 @@ const readAward = ({
 describe('onProfileSetForAchievementAward', () => {
 	let host: SatelliteHost;
 	let transferResult: object;
+	let sent: IcrcLedgerDid.TransferArg[];
 
 	const transfers = (): number =>
 		host.calls().filter((method) => method === 'icrc1_transfer').length;
@@ -76,11 +77,16 @@ describe('onProfileSetForAchievementAward', () => {
 			asserts: { set: assertSetDoc.assert, remove: assertDeleteDoc.assert }
 		});
 		transferResult = { Ok: BigInt(7) };
+		sent = [];
 		host.onCall({
 			method: 'icrc1_transfer',
 			argTypes: [IcrcLedgerIdl.TransferArg],
 			result: IcrcLedgerIdl.TransferResult,
-			handler: () => transferResult
+			handler: ([arg]) => {
+				sent.push(arg as IcrcLedgerDid.TransferArg);
+
+				return transferResult;
+			}
 		});
 	});
 
@@ -95,6 +101,12 @@ describe('onProfileSetForAchievementAward', () => {
 		assert.equal(award?.status, 'paid');
 		assert.equal(award?.blockIndex, '7');
 		assert.equal(award?.amountBaseUnits, vxpBaseUnits(first.xp).toString());
+
+		const [transfer] = sent;
+
+		assert.equal(transfer?.amount, vxpBaseUnits(first.xp));
+		assert.equal(transfer?.to.owner.toText(), user.toText());
+		assert.deepEqual(transfer?.memo, [new TextEncoder().encode(`vxp:achievement:${first.id}`)]);
 	});
 
 	it('pays only the achievements added by this write', async () => {
