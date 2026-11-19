@@ -390,7 +390,10 @@ is the reference shape:
   `owner` field (profile writes don't enforce `owner === key`), and
   runs `Principal.fromText` + the cascade **outside** the malformed-row
   try/catch so a purge failure is logged + counted as an under-purge
-  instead of being silently swallowed as a skipped bad row.
+  instead of being silently swallowed as a skipped bad row. One call
+  purges a single account (a purge deletes every doc the account owns,
+  see the bulk-rewrite budget note below); the operator calls it again
+  until `swept` is 0.
 - **Hard-delete must not orphan others: transfer, don't just delete.**
   The cascade's owned-league step deletes a league only when no other
   member remains; if members self-joined during the recovery window it

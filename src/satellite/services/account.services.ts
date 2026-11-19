@@ -158,16 +158,16 @@ export type RecoverMyAccountResult =
 	{ ok: true; recovered: boolean } | { ok: false; reason: 'expired' };
 
 /**
- * Result of {@link sweepExpiredDeletionsFn}: count of accounts purged.
+ * Result of {@link sweepExpiredDeletionsFn}: count of accounts purged by
+ * this call.
  *
- * Purge failures are NOT folded into this count (a failed purge does
- * NOT increment `swept`); they're logged via `logError` with the
- * stable `sweep_expired_deletions_purge_failed` tag plus a
- * `sweep_expired_deletions_under_purged` summary, so the external
- * trigger can detect an under-purge from the Console. We deliberately
- * do not surface a `failed` count on the wire: that would widen the
- * `sweepExpiredDeletions` Candid result and force a binding regen for
- * a value operators already get from the logs.
+ * A failed purge does NOT increment `swept`; it is logged via `logError`
+ * with the stable `sweep_expired_deletions_purge_failed` tag, so the
+ * external trigger reads a `swept: 0` with that log line as a stuck
+ * account rather than a finished sweep. We deliberately do not surface a
+ * `failed` count on the wire: that would widen the `sweepExpiredDeletions`
+ * Candid result and force a binding regen for a value operators already
+ * get from the logs.
  */
 export interface SweepExpiredDeletionsResult {
 	swept: number;
@@ -1331,11 +1331,21 @@ export const resumeMyAccountFn = (): ResumeMyAccountResult => {
 };
 
 /**
- * Admin sweep that hard-deletes every soft-deleted account whose
- * recovery window has elapsed (Delete account v2). Scans `PROFILES`
- * for docs with `deletedAtMs` older than {@link
- * ACCOUNT_RECOVERY_WINDOW_MS} and runs {@link hardDeleteAccountFn} for
- * each. Returns `{ swept }`: the number of accounts purged.
+ * How many expired accounts one `sweepExpiredDeletions` call purges. A
+ * purge runs a dozen collection scans and deletes every doc the account
+ * owns, each delete a serverless write costing billions of instructions,
+ * so a call purges a single account and the sweep goes in rounds (see the
+ * bulk-rewrite budget note in docs/ai/satellite/patterns.md).
+ */
+const SWEEP_EXPIRED_DELETIONS_BATCH = 1;
+
+/**
+ * Admin sweep that hard-deletes soft-deleted accounts whose recovery
+ * window has elapsed (Delete account v2), at most {@link
+ * SWEEP_EXPIRED_DELETIONS_BATCH} per call. Scans `PROFILES` for docs with
+ * `deletedAtMs` older than {@link ACCOUNT_RECOVERY_WINDOW_MS} and runs
+ * {@link hardDeleteAccountFn} for the first ones. Returns `{ swept }`: the
+ * number of accounts purged; call it again until that is 0.
  *
  * **Admin-only**: refuses non-admins via the shared `isAdmin` check.
  *
@@ -1343,16 +1353,15 @@ export const resumeMyAccountFn = (): ResumeMyAccountResult => {
  * podium payout is modelled as a user-claim: see
  * `vxp-worlds-podium.services.ts`), so this is triggered externally:
  * an operator/cron calls it. Idempotent: already-purged accounts no
- * longer carry a profile doc, so a re-run only sweeps newly-expired
- * accounts.
+ * longer carry a profile doc, so a re-run only sweeps the accounts still
+ * expired.
  *
- * Returns `{ swept }`. A malformed/undecodable profile row is skipped
- * silently (the decode is the only step in the narrow try/catch). The
- * purge itself runs OUTSIDE that catch so a `Principal.fromText` /
- * cascade failure can't be mistaken for a malformed row: each failure
- * is logged via `logError` (and a summary line when any fail) so the
- * external trigger can detect an under-purge instead of seeing a
- * falsely-clean `swept`. A failed purge does NOT increment `swept`.
+ * A malformed/undecodable profile row is skipped silently (the decode is
+ * the only step in the narrow try/catch). The purge itself runs OUTSIDE
+ * that catch so a `Principal.fromText` / cascade failure can't be
+ * mistaken for a malformed row: it is logged via `logError` and does NOT
+ * increment `swept`, so the external trigger sees the under-purge
+ * instead of a falsely-clean result.
  */
 export const sweepExpiredDeletionsFn = (): SweepExpiredDeletionsResult => {
 	const caller = msgCaller();
@@ -1370,27 +1379,12 @@ export const sweepExpiredDeletionsFn = (): SweepExpiredDeletionsResult => {
 		params: {}
 	});
 
-	let swept = 0;
-	let failed = 0;
+	const expiredKeys = items
+		.filter(([, item]) => isExpiredDeletion({ item, nowMs }))
+		.slice(0, SWEEP_EXPIRED_DELETIONS_BATCH)
+		.map(([docKey]) => docKey);
 
-	for (const [docKey, item] of items) {
-		const outcome = isExpiredDeletion({ item, nowMs }) ? purgeSweptAccount({ docKey }) : undefined;
-
-		if (outcome === 'swept') {
-			swept += 1;
-		} else if (outcome === 'failed') {
-			failed += 1;
-		}
-	}
-
-	if (failed > 0) {
-		// Summary so the external trigger can detect an under-purge at a
-		// glance without scanning every per-row failure line.
-		logError({
-			message: 'sweep_expired_deletions_under_purged',
-			detail: { swept, failed }
-		});
-	}
+	const swept = expiredKeys.filter((docKey) => purgeSweptAccount({ docKey }) === 'swept').length;
 
 	return { swept };
 };

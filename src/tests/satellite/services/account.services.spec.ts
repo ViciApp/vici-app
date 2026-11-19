@@ -1,5 +1,7 @@
+import { ACCOUNT_RECOVERY_WINDOW_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+import { UserRole } from '#lib/enums/user.ts';
 import type { ExitSignalDoc } from '#lib/types/exit-signal.ts';
 import junoConfig from '#root/juno.config.ts';
 import {
@@ -9,7 +11,11 @@ import {
 	setContext,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
-import { deleteMyAccountFn, hardDeleteAccountFn } from '#satellite/services/account.services.ts';
+import {
+	deleteMyAccountFn,
+	hardDeleteAccountFn,
+	sweepExpiredDeletionsFn
+} from '#satellite/services/account.services.ts';
 import { assertSetExitSignal } from '#satellite/services/exit-signal.services.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
@@ -166,6 +172,54 @@ describe('account.services', () => {
 
 				assert.equal(rule?.read, 'controllers');
 			}
+		});
+	});
+
+	describe('sweepExpiredDeletionsFn', () => {
+		const third = Principal.fromUint8Array(new Uint8Array([4, 4, 4])).toText();
+		const expiredAtMs = hostNowMs - ACCOUNT_RECOVERY_WINDOW_MS - DAY_IN_MS;
+
+		beforeEach(() => {
+			host.putDoc({
+				collection: Collection.ROLES,
+				key: controller.toText(),
+				data: { role: UserRole.ADMIN },
+				owner: controller
+			});
+
+			for (const text of [purgedText, otherText]) {
+				host.putDoc({
+					collection: Collection.PROFILES,
+					key: text,
+					data: { owner: text, nickname: 'n', deletedAtMs: expiredAtMs },
+					owner: controller
+				});
+			}
+
+			host.putDoc({
+				collection: Collection.PROFILES,
+				key: third,
+				data: { owner: third, nickname: 'n', deletedAtMs: hostNowMs - DAY_IN_MS },
+				owner: controller
+			});
+		});
+
+		it('purges one expired account per call until none is left', () => {
+			assert.deepEqual(sweepExpiredDeletionsFn(), { swept: 1 });
+			assert.equal(host.keys(Collection.PROFILES).length, 2);
+
+			assert.deepEqual(sweepExpiredDeletionsFn(), { swept: 1 });
+			assert.deepEqual(host.keys(Collection.PROFILES), [third]);
+
+			assert.deepEqual(sweepExpiredDeletionsFn(), { swept: 0 });
+			assert.deepEqual(host.keys(Collection.PROFILES), [third]);
+			assert.deepEqual(host.keys(Collection.USER_STATS), []);
+		});
+
+		it('refuses a caller who is not an admin', () => {
+			host.setCaller(other);
+
+			assert.throws(() => sweepExpiredDeletionsFn(), /not an admin/);
 		});
 	});
 });

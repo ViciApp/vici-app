@@ -1193,9 +1193,10 @@ export const resumeMyAccount = defineUpdate({
 	handler: resumeMyAccountFn
 });
 
-// Admin sweep (Delete account v2). Hard-deletes every soft-deleted
-// account whose recovery window has elapsed. Admin-guarded; Juno has no
-// scheduler so this is triggered externally (admin/cron).
+// Admin sweep (Delete account v2). Hard-deletes soft-deleted accounts
+// whose recovery window has elapsed, one per call to stay inside the
+// update instruction limit: call again until `swept` is 0. Admin-guarded;
+// Juno has no scheduler so this is triggered externally (admin/cron).
 export const sweepExpiredDeletions = defineUpdate({
 	result: j.strictObject({
 		swept: j.number()
