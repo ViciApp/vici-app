@@ -1,5 +1,7 @@
 # Backend follow-up proposals
 
+> **Historical.** All four proposals below shipped: the `AFFILIATION_STATS`, `TOURNAMENTS`, `TOURNAMENT_MATCHES` and `EXIT_SIGNALS` collections and the Worlds podium job exist in the satellite. The open questions here are not current; the code, [`docs/ai/PRODUCT.md`](../ai/PRODUCT.md) and [`docs/ai/satellite/README.md`](../ai/satellite/README.md) describe today's behaviour.
+
 The frontend port of the design prototype is feature-complete. Four
 backend follow-ups remain: each is a new satellite collection (or
 endpoint) that the existing FE surfaces are designed to consume.
