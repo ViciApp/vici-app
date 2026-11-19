@@ -265,15 +265,15 @@ const settledReadStore = writable<Set<bigint>>(loadSettledReadSet());
 
 /**
  * Maps a resolved-position record to its inbox card. Body copy picks the
- * won/lost/neutral variant from the realized PnL sign, and the absolute
- * amount is formatted in clearing-USD units so it can flow into the
- * already-existing "X.YZ USD" presentation downstream surfaces use.
+ * won/lost/neutral variant from the realized PnL sign, and the amount is the
+ * whole-VXP magnitude from `formatWholeVxpMagnitude` (grouped, `<1` for a
+ * sub-1 win), so a settlement reads the same here as on Dash and in Flow.
  */
 const settledInboxStore: Readable<InboxNotification[]> = derived(
 	[resolvedPositions, displayMarkets, marketsNotInitialized, settledReadStore, localeStore],
 	([$resolved, $displayMarkets, $marketsNotInitialized, $read, $locale]) => {
-		// The card body bakes the market title into its copy ("You won $X on
-		// {market}"), so there is no room for a title skeleton: until the
+		// The card body bakes the market title into its copy ("You won {amount}
+		// on {market}"), so there is no room for a title skeleton: until the
 		// catalog loads we'd render "Unknown Market" inline. Hold the settled
 		// cards back instead; they surface the moment titles resolve. Read state
 		// lives in `settledReadStore`, so this display-only gate can't lose an
