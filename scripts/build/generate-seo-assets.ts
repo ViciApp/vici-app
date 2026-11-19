@@ -51,9 +51,16 @@
  * canister must never fail a deploy, so they degrade to "no probability clause" and
  * "treat as unresolved" respectively, never a throw.
  */
-import type { _SERVICE as ClearingService } from '#declarations/clearing/clearing.d.ts';
+import type {
+	_SERVICE as ClearingService,
+	SettledSeriesPage
+} from '#declarations/clearing/clearing.d.ts';
 import { idlFactory as clearingIdlFactory } from '#declarations/clearing/clearing.idl.js';
-import type { _SERVICE as RegistryService, Series } from '#declarations/registry/registry.d.ts';
+import type {
+	_SERVICE as RegistryService,
+	Series,
+	SeriesPage
+} from '#declarations/registry/registry.d.ts';
 import { idlFactory as registryIdlFactory } from '#declarations/registry/registry.idl.js';
 import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
@@ -212,7 +219,7 @@ const listAllSeries = async (registry: ActorSubclass<RegistryService>): Promise<
 	let cursor: string | undefined = undefined;
 
 	for (;;) {
-		const page = await registry.list_series({
+		const page: SeriesPage = await registry.list_series({
 			cursor: toNullable(cursor),
 			limit: toNullable(PAGE_SIZE)
 		});
@@ -269,7 +276,7 @@ const listSettledSeriesIds = async (
 
 	try {
 		for (;;) {
-			const page = await clearing.list_settled_series({
+			const page: SettledSeriesPage = await clearing.list_settled_series({
 				start_after: toNullable(startAfter),
 				limit: toNullable(PAGE_SIZE),
 				balance_domain: toNullable()
