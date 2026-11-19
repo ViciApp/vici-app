@@ -337,7 +337,8 @@ apply them at the fetch boundary.
 ### Service-layer branches
 
 - `market.services.ts`: the series catalog (`listSeries`, both the full
-  and the unexpired read), per-series `getSeries`, the settlement status
+  read, exported as `listSeriesCatalog` for the `/m/[id]` share-link
+  alias, and the unexpired read), per-series `getSeries`, the settlement status
   on the detail fetch, and the traded-volumes batch. On the detail fetch the
   on-chain order book fails open in web2 mode (an empty book, priced as
   unknown) so an unreachable IC read never blanks the page; the Flow deck's
