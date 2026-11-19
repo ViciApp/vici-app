@@ -39,8 +39,8 @@ dfx canister call clearing update_domain_policy "(record {
 CLEARING_DOMAINS_SETTLEMENT="vec { variant { Settlement } }"
 CLEARING_DOMAINS_VICIXP="vec { variant { ViciXp } }"
 
-ICP_LEDGER="ryjl3-tyaaa-aaaaa-aaaba-cai"
-VXP_LEDGER="${VXP_LEDGER:-s7ux4-yyaaa-aaaam-qidha-cai}"
+ICP_LEDGER="$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/ledger-id.ts icp)"
+VXP_LEDGER="${VXP_LEDGER:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/ledger-id.ts vxp)}"
 ICP_ASSET_ID="${ICP_ASSET_ID:-icp}"
 VXP_ASSET_ID="${VXP_ASSET_ID:-vxp}"
 
@@ -76,7 +76,7 @@ dfx canister call clearing update_asset_price "(record {
     price = record { decimal = record { value = 10000 : nat; decimals = $USD_DECIMALS : nat8 }; oracle_id = null; timestamp = null };
 })" --network "$NETWORK"
 
-VUSD_LEDGER=$(dfx canister id ledger --network "$NETWORK" 2>/dev/null || echo "5uhob-dyaaa-aaaaj-qqwwa-cai")
+VUSD_LEDGER=$(dfx canister id ledger --network "$NETWORK")
 echo "Guaranteeing Clearing canister as controller of vUSD Ledger..."
 CLEARING_CANISTER=$(dfx canister id clearing --network "$NETWORK")
 CURRENT_CONTROLLERS=$(dfx canister status "$VUSD_LEDGER" --network "$NETWORK" 2>&1 | grep "Controllers:" | cut -d: -f2 || echo "")
