@@ -1,4 +1,4 @@
-import { EMPTY_VALUE, USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+import { EMPTY_VALUE, USD_DECIMALS } from '#lib/constants/app.constants.ts';
 import {
 	INBOX_DISMISSED_STORAGE_KEY,
 	INBOX_PROGRESS_STORAGE_KEY,
@@ -40,6 +40,7 @@ import {
 	shortLeagueId
 } from '#lib/utils/format.utils.ts';
 import { t } from '#lib/utils/i18n.utils.ts';
+import { formatWholeVxpMagnitude } from '#lib/utils/playground-display.utils.ts';
 import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
 import { get, set as setStorage } from '#lib/utils/storage.utils.ts';
 import {
@@ -298,11 +299,10 @@ const settledInboxStore: Readable<InboxNotification[]> = derived(
 						? 'inbox.resolve.body.lost'
 						: 'inbox.resolve.body.neutral';
 
-			// Body shows the absolute amount; the sign is conveyed by the
+			// Body shows the magnitude only; the sign is conveyed by the
 			// won / lost copy itself.
-			const absPnl = entry.realizedPnlUsd < ZERO ? -entry.realizedPnlUsd : entry.realizedPnlUsd;
-			const amount = decimalFixedValueToNumber({ value: absPnl, decimals: USD_DECIMALS }).toFixed(
-				2
+			const amount = formatWholeVxpMagnitude(
+				decimalFixedValueToNumber({ value: entry.realizedPnlUsd, decimals: USD_DECIMALS })
 			);
 
 			const marketTitle = market?.title ?? t({ locale: $locale, key: 'portfolio.unknown_market' });
