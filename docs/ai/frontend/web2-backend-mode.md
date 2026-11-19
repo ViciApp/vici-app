@@ -467,7 +467,9 @@ the exact candid shapes.
   authoritative for the other chains. The read is deliberately uncached:
   the sweep sizes its deposit from it every 10s and re-reads right after
   one. An asset whose read fails is logged and left out of the response,
-  never reported as zero.
+  never reported as zero; `LoaderBalances` then keeps that token's last
+  known balance (`mergeReadBalances`), as it does for a ledger read that
+  fails on the default backend.
 - `getReceiveAddress` (the Receive tab): `/wallet/deposit-address/ic`,
   the custodial IC principal the API derives for the user. Funds sent to
   it show up on the next balance read.

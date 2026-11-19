@@ -5,6 +5,7 @@
 	import { getLedgerBalances } from '#lib/services/wallet.services.ts';
 	import { balancesStore } from '#lib/stores/balances.store.ts';
 	import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
+	import { mergeReadBalances } from '#lib/utils/balances.utils.ts';
 
 	let prevDomain: ClearingDid.BalanceDomain | undefined = undefined;
 
@@ -18,7 +19,7 @@
 		const balances = await getLedgerBalances();
 
 		if ($balanceDomain === domainToken) {
-			balancesStore.set(balances);
+			balancesStore.update((previous) => mergeReadBalances({ previous, read: balances }));
 		}
 	};
 

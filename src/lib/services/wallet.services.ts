@@ -39,6 +39,8 @@ import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 
 /**
  * On-ledger balances for each supported token id (empty if not signed in).
+ * A token whose ledger could not be read is absent, never zero: callers keep
+ * their last known value for it (see `mergeReadBalances`).
  */
 export const getLedgerBalances = async (): Promise<Record<string, bigint>> => {
 	// web2: the API reads the ledgers for the session user's custodial
@@ -80,31 +82,31 @@ export const getLedgerBalances = async (): Promise<Record<string, bigint>> => {
 
 	const principal = identity.getPrincipal();
 
-	try {
-		const account = getIcrcAccount(principal);
+	const account = getIcrcAccount(principal);
 
-		const balancePromises = SUPPORTED_TOKENS.map((token) =>
+	// Settled one by one: a single unreachable ledger must not hide the
+	// balances the other ledgers did return.
+	const balanceResults = await Promise.allSettled(
+		SUPPORTED_TOKENS.map((token) =>
 			getLedgerBalance({
 				identity,
 				ledgerCanisterId: token.ledgerCanisterId,
 				account
 			})
-		);
+		)
+	);
 
-		const balanceResults = await Promise.all(balancePromises);
+	return SUPPORTED_TOKENS.reduce<Record<TokenId, bigint>>((acc, token, index) => {
+		const result = balanceResults[index];
 
-		const balances: Record<TokenId, bigint> = {};
+		if (result.status === 'rejected') {
+			console.error(`Failed to get the ${token.symbol} ledger balance`, result.reason);
 
-		SUPPORTED_TOKENS.forEach((token, index) => {
-			balances[token.id] = balanceResults[index];
-		});
+			return acc;
+		}
 
-		return balances;
-	} catch (e: unknown) {
-		console.error('Failed to get ledger balances', e);
-
-		return {};
-	}
+		return { ...acc, [token.id]: result.value };
+	}, {});
 };
 
 /**
