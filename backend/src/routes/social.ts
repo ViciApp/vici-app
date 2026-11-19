@@ -27,9 +27,7 @@ import {
 import {
 	acceptFriendRequest,
 	cancelFriendRequest,
-	checkFriendship,
 	followUser,
-	listFollowers,
 	listFollowing,
 	listFriendRequests,
 	listFriends,
@@ -37,7 +35,6 @@ import {
 	rejectFriendRequest,
 	RelationError,
 	sendFriendRequest,
-	unfollowUser,
 	unfriendUser
 } from '../social/relations';
 import { listFriendResolvedResults, pruneResolvedResults } from '../social/resolved-results';
@@ -84,15 +81,6 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 
 		return { items: await listFriends(user.id) };
 	})
-	.get('/followers', async ({ request, set }) => {
-		const user = await requireUser(request);
-
-		if (isNullish(user)) {
-			return unauthenticated(set);
-		}
-
-		return { items: await listFollowers(user.id) };
-	})
 	.get('/following', async ({ request, set }) => {
 		const user = await requireUser(request);
 
@@ -102,19 +90,6 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 
 		return { items: await listFollowing(user.id) };
 	})
-	.get(
-		'/friendship',
-		async ({ request, set, query: params }) => {
-			const user = await requireUser(request);
-
-			if (isNullish(user)) {
-				return unauthenticated(set);
-			}
-
-			return { isFriend: await checkFriendship({ userA: params.userA, userB: params.userB }) };
-		},
-		{ query: t.Object({ userA: t.String(), userB: t.String() }) }
-	)
 	.get('/friend-requests', async ({ request, set }) => {
 		const user = await requireUser(request);
 
@@ -253,25 +228,6 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 		},
 		{ body: t.Object({ target: t.String({ format: 'uuid' }) }) }
 	)
-	.delete('/follow/:userId', async ({ request, set, params }) => {
-		const user = await requireUser(request);
-
-		if (isNullish(user)) {
-			return unauthenticated(set);
-		}
-
-		try {
-			await unfollowUser({ senderId: user.id, targetId: params.userId });
-
-			return { ok: true };
-		} catch (err) {
-			if (err instanceof RelationError) {
-				return badRequest(set, err.message);
-			}
-
-			throw err;
-		}
-	})
 	// Activities
 	.get('/activities', async ({ query: params, set }) => {
 		const { type } = params;

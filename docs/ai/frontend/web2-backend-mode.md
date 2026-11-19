@@ -281,7 +281,7 @@ the on-chain call untouched on the default side:
   from `GET /api/v1/leaderboard/rank/:userId`.
 - `relation.services.ts`: `sendFriendRequest` (with a web2 `@handle` / account-id
   resolver), `accept` / `reject` / `cancel`, `unfriend`, `follow`.
-- `relation-queries.services.ts`: friends, followers, following, friend
+- `relation-queries.services.ts`: friends, following, friend
   requests (sent + received), friend-scoped resolved results.
 
 ### App-shell hydration
