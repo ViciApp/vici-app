@@ -135,4 +135,89 @@ describe('league invites', () => {
 		assert.equal(join({ principal: admin, code: inviteCode }).league?.id, leagueId);
 		assert.equal(migrate(admin).migrated, 0);
 	});
+
+	it('migrates a legacy league stored under the retired invite-only tier', () => {
+		host.putDoc({
+			collection: Collection.LEAGUES,
+			key: leagueId,
+			data: {
+				id: leagueId,
+				name: 'Legacy',
+				inviteCode,
+				privacy: 'invite',
+				owner: owner.toText(),
+				createdAtMs: 1
+			},
+			owner
+		});
+		host.putDoc({
+			collection: Collection.ROLES,
+			key: admin.toText(),
+			data: { role: UserRole.ADMIN },
+			owner: admin
+		});
+
+		assert.equal(migrate(admin).migrated, 1);
+		assert.equal(storedCode(), undefined);
+		assert.equal(
+			host.readDoc<LeagueDoc>({ collection: Collection.LEAGUES, key: leagueId })?.privacy,
+			LeaguePrivacy.PRIVATE
+		);
+		assert.equal(join({ principal: joiner, code: inviteCode }).league?.id, leagueId);
+	});
+
+	it('migrates in rounds, listing the leagues once per round', () => {
+		const legacyIds = Array.from({ length: 3 }, (_, index) => `legacy-${index}-1700000000000`);
+
+		for (const [index, id] of legacyIds.entries()) {
+			host.putDoc({
+				collection: Collection.LEAGUES,
+				key: id,
+				data: {
+					id,
+					name: 'Legacy',
+					inviteCode: `CODE0${index}`,
+					owner: owner.toText(),
+					createdAtMs: 1
+				},
+				owner
+			});
+		}
+
+		host.putDoc({
+			collection: Collection.ROLES,
+			key: admin.toText(),
+			data: { role: UserRole.ADMIN },
+			owner: admin
+		});
+
+		const globals = globalThis as unknown as Record<string, (...args: unknown[]) => unknown>;
+		const listDocs = globals.__juno_satellite_datastore_list_docs_store;
+		let leagueLists = 0;
+
+		globals.__juno_satellite_datastore_list_docs_store = (...args: unknown[]) => {
+			if (args[1] === Collection.LEAGUES) {
+				leagueLists += 1;
+			}
+
+			return listDocs?.(...args);
+		};
+
+		for (const round of legacyIds.keys()) {
+			assert.equal(migrate(admin).migrated, 1);
+			assert.equal(leagueLists, round + 1);
+		}
+
+		assert.equal(migrate(admin).migrated, 0);
+		assert.deepEqual(
+			legacyIds.map(
+				(id) => host.readDoc<LeagueDoc>({ collection: Collection.LEAGUES, key: id })?.inviteCode
+			),
+			legacyIds.map(() => undefined)
+		);
+		assert.equal(
+			join({ principal: joiner, code: 'CODE02' }).league?.id,
+			legacyIds[legacyIds.length - 1]
+		);
+	});
 });

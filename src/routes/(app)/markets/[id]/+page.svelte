@@ -42,7 +42,10 @@
 	import { loadMarket } from '#lib/services/market.services.ts';
 	import { getPositionsForMarket } from '#lib/services/position.services.ts';
 	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
-	import { getMarketTopPredictors } from '#lib/services/top-predictors.services.ts';
+	import {
+		areMarketTopPredictorsAvailable,
+		getMarketTopPredictors
+	} from '#lib/services/top-predictors.services.ts';
 	import { getSeriesTradeVolume, loadMarketPriceCandles } from '#lib/services/trade.services.ts';
 	import { showCompanion } from '#lib/stores/companion.store.ts';
 	import { startGuestSession } from '#lib/stores/guest.store.ts';
@@ -371,10 +374,16 @@
 	let hydratedLeaderboardKey = $state<string | undefined>();
 	let hydratingLeaderboardKey: string | undefined;
 
+	const topPredictorsAvailable = areMarketTopPredictorsAvailable();
+
 	$effect(() => {
 		const key = leaderboardOwnersKey;
 
-		if (key === hydratedLeaderboardKey || key === hydratingLeaderboardKey) {
+		if (
+			!topPredictorsAvailable ||
+			key === hydratedLeaderboardKey ||
+			key === hydratingLeaderboardKey
+		) {
 			return;
 		}
 
@@ -978,10 +987,11 @@
 
 		<MarketDetailResolutionCard {market} resolution={displayResolution} />
 
-		{#if !isColdStart}
+		{#if !isColdStart && topPredictorsAvailable}
 			<!-- Hidden while the cold-start banner is up: a market with no
 			     volume has no predictors, so an empty section under the
-			     banner would only echo it. -->
+			     banner would only echo it. Hidden on a backend that cannot
+			     resolve it (see `areMarketTopPredictorsAvailable`). -->
 
 			<MarketDetailTopPredictors {followedLean} {topPredictors} />
 		{/if}

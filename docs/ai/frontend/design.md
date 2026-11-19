@@ -839,20 +839,3 @@ thresholds pass.
 - For spacing, sizing, radii, and most typography use Tailwind v4
   utilities. Only add a token to `src/app.css` when a real consumer
   needs a value Tailwind can't express.
-
----
-
-## Recent alignment commits
-
-Track substantive design alignment commits here (not every typography
-tweak). Drop entries that no longer reflect the current product.
-
-| Commit                                            | Summary                                                                                                                                                                                                                          |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `style(ui): align primitives and app chrome`      | Retunes Card, Button, Badge, Tabs, SectionHeader, StatCard, Header, and MobileNav around the app shared card / chip / pill / translucent chrome language.                                                                        |
-| `style(auth): align public onboarding surfaces`   | Aligns `/signin`, `/signup`, and `/welcome` around the compact sign-in shell, visual Apple/email placeholders, four-step onboarding, starter pack, product mockup, and landing rhythm.                                           |
-| `style(market): align flow and question detail`   | Aligns Flow cards, Flow back face, market detail header, forecast/action modules, stats, and info panels around the question-detail anatomy while preserving swipe timing, trade execution, order-book polling, and sizing math. |
-| `style(social): align retention surfaces`         | Reframes Arena, Profile, and Portfolio as a connected retention loop: Arena tabs and top-entry cards, performance-identity profile, recent activity blocks.                                                                      |
-| `style(app): polish supporting surfaces`          | Polishes market discovery, wallet, settings, notifications, empty/loading states, and supporting widgets with the shared card/chrome language.                                                                                   |
-| `fix(ui): tighten mobile theme and screen chrome` | Theme-coherent peach/light controls, compact theme picker, scoped sign-in provider styling, mobile-first hide of the desktop header/footer/challenge FAB on mobile pages, reduced onboarding coach background.                   |
-| `feat(ui): add per-screen mobile appbars`         | New `MobileAppBar` primitive plus per-screen mobile appbars on Markets, Market Detail, Profile, Portfolio, Arena.                                                                                                                |

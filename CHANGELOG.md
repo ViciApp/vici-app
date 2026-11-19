@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.8.63](https://github.com/ViciApp/vici-app/compare/v1.8.62...v1.8.63) (2026-11-19)
+
+
+### Documentation
+
+* **learning:** copy-value changes must also cover the partial `soon` catalogs ([#1498](https://github.com/ViciApp/vici-app/issues/1498)) ([ec5a32c](https://github.com/ViciApp/vici-app/commit/ec5a32c7e2260bd36f5c7d34cf72f632541aab57))
+
+## [1.8.62](https://github.com/ViciApp/vici-app/compare/v1.8.61...v1.8.62) (2026-11-19)
+
+
+### Bug Fixes
+
+* **frontend:** keep unresolved owners off the global standings ([#1599](https://github.com/ViciApp/vici-app/issues/1599)) ([1110cb1](https://github.com/ViciApp/vici-app/commit/1110cb151374d3cb7449b7f13994c46ace56e901))
+* **market:** hide the market social signals the web2 API cannot serve ([#1597](https://github.com/ViciApp/vici-app/issues/1597)) ([90fa57b](https://github.com/ViciApp/vici-app/commit/90fa57bdc1e34f97a71f3c6ec46129ddbeea4ed8))
+
+
+### Documentation
+
+* **frontend:** correct frontend docs that contradict the code ([#1598](https://github.com/ViciApp/vici-app/issues/1598)) ([1aa45e5](https://github.com/ViciApp/vici-app/commit/1aa45e59d0cbd556b9b8fcdfd2218f756ea8fad3))
+* **readme:** make the root docs match the code ([#1596](https://github.com/ViciApp/vici-app/issues/1596)) ([9cc83f9](https://github.com/ViciApp/vici-app/commit/9cc83f9cedb04e5137cc10128f7ce326afa7d21c))
+* **scripts:** give send.tokens.sh the network flags utils.sh parses ([#1588](https://github.com/ViciApp/vici-app/issues/1588)) ([d8993ad](https://github.com/ViciApp/vici-app/commit/d8993ade841705373540e3574de90fca8dd6a784))
+
+
+### Code Refactoring
+
+* **market:** name the release gate after what it filters ([#1593](https://github.com/ViciApp/vici-app/issues/1593)) ([8985dfd](https://github.com/ViciApp/vici-app/commit/8985dfdf0832634f190725fc68c28443639deefd))
+
 ## [1.8.61](https://github.com/ViciApp/vici-app/compare/v1.8.60...v1.8.61) (2026-11-18)
 
 

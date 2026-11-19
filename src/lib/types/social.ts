@@ -35,8 +35,8 @@ export const ACTIVITY_REACTION_TITLE_MAX_LENGTH = 500;
 /**
  * Per-activity like-count rollup doc (collection `activity_reaction_counts`), keyed by the activity
  * doc key (`${author}#${timestamp}#${type}` = a reaction's `activityKey`). Maintained server-side by
- * the reaction hooks; read by the feed to render the like count in O(1) instead of tallying the
- * reaction page. `count` is floored at 0.
+ * the reaction hooks, so a like count is an O(1) read instead of a tally of the reaction page.
+ * `count` is floored at 0.
  */
 export interface ActivityReactionCount {
 	activityKey: string;

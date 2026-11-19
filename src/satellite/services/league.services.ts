@@ -8,6 +8,7 @@ import {
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
+	leaguePrivacy,
 	type CreateLeagueRefusalReason,
 	type JoinLeagueRefusalReason,
 	type LeagueDoc
@@ -21,6 +22,7 @@ import {
 import {
 	deleteLeagueInvite,
 	leagueIdForInviteCode,
+	legacyInviteHolders,
 	recordLeagueInvite
 } from '#satellite/services/league-invite.services.ts';
 import { payLeagueFounderReward } from '#satellite/services/vxp-league-founder-awards.services.ts';
@@ -723,9 +725,19 @@ export const joinLeagueByInviteFn = ({
 };
 
 /**
- * Admin-gated, idempotent: moves the invite code of every league doc
- * written before codes left the public doc into `league_invites`, then
- * takes it off the doc. Returns how many docs it rewrote.
+ * How many league docs one `migrateLeagueInviteCodes` call rewrites. Every
+ * rewrite is two serverless writes plus the league assert, and each such
+ * write costs billions of instructions, so a call rewrites a single doc and
+ * the migration goes in rounds (see the bulk-rewrite budget note in
+ * docs/ai/satellite/patterns.md).
+ */
+const LEAGUE_INVITE_MIGRATION_BATCH = 1;
+
+/**
+ * Admin-gated, idempotent: moves the invite code of league docs written
+ * before codes left the public doc into `league_invites`, then takes it off
+ * the doc, at most {@link LEAGUE_INVITE_MIGRATION_BATCH} docs per call.
+ * Returns how many docs it rewrote; call it again until that is 0.
  */
 export const migrateLeagueInviteCodesFn = (): { migrated: number } => {
 	const caller = msgCaller();
@@ -736,17 +748,32 @@ export const migrateLeagueInviteCodesFn = (): { migrated: number } => {
 
 	const writer = controllerCaller('league invite migration');
 	const { items } = listDocsStore({ caller: writer, collection: Collection.LEAGUES, params: {} });
+	const legacyHolders = legacyInviteHolders(items);
 	let migrated = 0;
 
 	for (const [key, { data, version }] of items) {
+		if (migrated >= LEAGUE_INVITE_MIGRATION_BATCH) {
+			break;
+		}
+
 		const { inviteCode, ...league } = decodeDocData<LeagueDoc>(data);
 
-		if (nonNullish(inviteCode) && recordLeagueInvite({ leagueId: league.id, inviteCode })) {
+		if (
+			nonNullish(inviteCode) &&
+			recordLeagueInvite({ leagueId: league.id, inviteCode, legacyHolders })
+		) {
+			// A doc from the retired invite-only tier still stores `privacy: 'invite'`,
+			// which the league assert rejects; the rewrite stores the tier it already
+			// reads as, so the doc can pass.
+			const migratedLeague: LeagueDoc = isNullish(league.privacy)
+				? league
+				: { ...league, privacy: leaguePrivacy(league) };
+
 			setDocStore({
 				caller: writer,
 				collection: Collection.LEAGUES,
 				key,
-				doc: { data: encodeDocData<LeagueDoc>(league), version }
+				doc: { data: encodeDocData<LeagueDoc>(migratedLeague), version }
 			});
 
 			migrated += 1;
