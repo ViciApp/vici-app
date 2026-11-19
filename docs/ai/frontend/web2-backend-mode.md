@@ -280,7 +280,8 @@ the on-chain call untouched on the default side:
   `loadMyMenagerieSignals` (Goat and the profile's "Top X%" line), read
   from `GET /api/v1/leaderboard/rank/:userId`.
 - `relation.services.ts`: `sendFriendRequest` (with a web2 `@handle` / account-id
-  resolver), `accept` / `reject` / `cancel`, `unfriend`, `follow`.
+  resolver), `accept` / `reject` / `cancel`, `unfriend` (the friendship
+  only; see the registry group admins gap below), `follow`.
 - `relation-queries.services.ts`: friends, followers, following, friend
   requests (sent + received), friend-scoped resolved results.
 
@@ -380,6 +381,15 @@ apply them at the fetch boundary.
   settlement (`resolution.services.ts` `settleMarket`) are user-signed
   registry / clearing writes with no HTTP route yet; curator / admin
   surfaces stay on the on-chain identity.
+- Registry group admins on unfriend: on the default backend
+  `unfriendUser` also removes each user from the admins of the other's
+  icdc-core registry groups (`group.services.ts`
+  `syncGroupAdminsAfterUnfriend`, user-signed registry writes). These are
+  the registry's market groups, not leagues, so the web2 leagues API has
+  nothing to call; with no on-chain identity to sign and no HTTP route for
+  registry groups, the web2 unfriend removes only the friendship, and a
+  former friend stays a registry group admin until that is removed
+  on-chain.
 - Leaderboard identity caveat: web2 standings entries keep the engine
   principal (a web2 account's custodial principal) as `owner`, clearing's
   native key; no API route maps it back to an account, so no profile

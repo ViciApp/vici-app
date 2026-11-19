@@ -194,9 +194,10 @@ export const unfriendUser = async (params: {
 	target: PrincipalText;
 }): Promise<void> => {
 	if (isWeb2Backend()) {
-		// The group-admin rebalance is part of the leagues domain, still on the
-		// on-chain backend; it is wired into the web2 unfriend when that domain
-		// swaps. The API delete is the whole friendship removal in this mode.
+		// The group-admin rebalance edits icdc-core registry groups (market
+		// groups, not leagues) with user-signed registry calls; this mode has no
+		// on-chain identity and the API no registry-group route, so the API
+		// delete is the whole friendship removal here.
 		await unfriendUserWeb2(params.target);
 
 		return;
