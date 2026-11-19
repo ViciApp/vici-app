@@ -18,7 +18,7 @@ import {
 import { getCollateralAssets } from '#lib/services/collateral.services.ts';
 import { getIdentity, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import type { TokenId } from '#lib/types/token.ts';
-import type { Transaction, WalletBalance } from '#lib/types/wallet.ts';
+import type { LedgerBalancesRead, Transaction, WalletBalance } from '#lib/types/wallet.ts';
 import { findSupportedTokenForClearingAssetId } from '#lib/utils/asset-ref.utils.ts';
 import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
 import {
@@ -38,19 +38,22 @@ import { getWeb2User } from '#lib/web2/session.ts';
 import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 
 /**
- * On-ledger balances for each supported token id (empty if not signed in).
- * A token whose ledger could not be read is absent, never zero: callers keep
- * their last known value for it (see `mergeReadBalances`).
+ * On-ledger balances for each supported token id, with the account they
+ * belong to (no owner and no balances if not signed in). A token whose ledger
+ * could not be read is absent, never zero: callers keep their last known
+ * value for it (see `mergeReadBalances`).
  */
-export const getLedgerBalances = async (): Promise<Record<string, bigint>> => {
+export const getLedgerBalances = async (): Promise<LedgerBalancesRead> => {
 	// web2: the API reads the ledgers for the session user's custodial
 	// principal, keyed back to the app's token ids by symbol (the custody asset
 	// catalog mirrors the supported IC tokens). Direct ledger reads need an
 	// identity, which never exists in this mode. A token the API could not read
 	// is absent, not zero.
 	if (isWeb2Backend()) {
-		if (isNullish(getWeb2User())) {
-			return {};
+		const user = getWeb2User();
+
+		if (isNullish(user)) {
+			return { balances: {} };
 		}
 
 		try {
@@ -62,22 +65,25 @@ export const getLedgerBalances = async (): Promise<Record<string, bigint>> => {
 					.map(({ symbol, balance }) => [symbol, balance] as const)
 			);
 
-			return SUPPORTED_TOKENS.reduce<Record<TokenId, bigint>>((acc, token) => {
-				const balance = bySymbol.get(token.symbol);
+			return {
+				owner: user.id,
+				balances: SUPPORTED_TOKENS.reduce<Record<TokenId, bigint>>((acc, token) => {
+					const balance = bySymbol.get(token.symbol);
 
-				return nonNullish(balance) ? { ...acc, [token.id]: balance } : acc;
-			}, {});
+					return nonNullish(balance) ? { ...acc, [token.id]: balance } : acc;
+				}, {})
+			};
 		} catch (e: unknown) {
 			console.error('Failed to get ledger balances', e);
 
-			return {};
+			return { owner: user.id, balances: {} };
 		}
 	}
 
 	const identity = await getIdentity();
 
 	if (isNullish(identity)) {
-		return {};
+		return { balances: {} };
 	}
 
 	const principal = identity.getPrincipal();
@@ -96,17 +102,20 @@ export const getLedgerBalances = async (): Promise<Record<string, bigint>> => {
 		)
 	);
 
-	return SUPPORTED_TOKENS.reduce<Record<TokenId, bigint>>((acc, token, index) => {
-		const result = balanceResults[index];
+	return {
+		owner: principal.toText(),
+		balances: SUPPORTED_TOKENS.reduce<Record<TokenId, bigint>>((acc, token, index) => {
+			const result = balanceResults[index];
 
-		if (result.status === 'rejected') {
-			console.error(`Failed to get the ${token.symbol} ledger balance`, result.reason);
+			if (result.status === 'rejected') {
+				console.error(`Failed to get the ${token.symbol} ledger balance`, result.reason);
 
-			return acc;
-		}
+				return acc;
+			}
 
-		return { ...acc, [token.id]: result.value };
-	}, {});
+			return { ...acc, [token.id]: result.value };
+		}, {})
+	};
 };
 
 /**
@@ -149,7 +158,7 @@ export const getCollateralBalances = async (
  * Combined ledger balances and per-token clearing collateral for the given domain.
  */
 export const getBalances = async (domain: ClearingDid.BalanceDomain): Promise<WalletBalance> => {
-	const [balances, accountState, collateralInfos] = await Promise.all([
+	const [{ balances }, accountState, collateralInfos] = await Promise.all([
 		getLedgerBalances(),
 		getCollateralBalances(domain),
 		getCollateralAssets()

@@ -1,24 +1,32 @@
-import type { TokenId } from '#lib/types/token.ts';
+import type { LedgerBalancesRead } from '#lib/types/wallet.ts';
 import { isNullish } from '@dfinity/utils';
 
-type Balances = Record<TokenId, bigint>;
-
 /**
- * Lays a fresh ledger read over the last known balances. A token missing
- * from `read` could not be read, so it keeps its previous value instead of
- * turning into a zero. With nothing known and nothing read the result stays
- * unknown (`undefined`): an empty map would render as zero everywhere.
+ * Lays a fresh ledger read over the last known balances of the same account.
+ * A token missing from `read` could not be read, so it keeps its previous
+ * value instead of turning into a zero. Previous balances of another account
+ * are never carried over, and with nobody signed in nothing is known. With
+ * nothing known and nothing read the result stays unknown (`undefined`): an
+ * empty map would render as zero everywhere.
  */
 export const mergeReadBalances = ({
 	previous,
 	read
 }: {
-	previous: Balances | undefined;
-	read: Balances;
-}): Balances | undefined => {
-	if (isNullish(previous) && Reflect.ownKeys(read).length === 0) {
+	previous: LedgerBalancesRead | undefined;
+	read: LedgerBalancesRead;
+}): LedgerBalancesRead | undefined => {
+	const { owner, balances } = read;
+
+	if (isNullish(owner)) {
 		return;
 	}
 
-	return { ...previous, ...read };
+	const known = previous?.owner === owner ? previous.balances : undefined;
+
+	if (isNullish(known) && Reflect.ownKeys(balances).length === 0) {
+		return;
+	}
+
+	return { owner, balances: { ...known, ...balances } };
 };
