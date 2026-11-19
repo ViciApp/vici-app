@@ -135,4 +135,34 @@ describe('league invites', () => {
 		assert.equal(join({ principal: admin, code: inviteCode }).league?.id, leagueId);
 		assert.equal(migrate(admin).migrated, 0);
 	});
+
+	it('migrates a legacy league stored under the retired invite-only tier', () => {
+		host.putDoc({
+			collection: Collection.LEAGUES,
+			key: leagueId,
+			data: {
+				id: leagueId,
+				name: 'Legacy',
+				inviteCode,
+				privacy: 'invite',
+				owner: owner.toText(),
+				createdAtMs: 1
+			},
+			owner
+		});
+		host.putDoc({
+			collection: Collection.ROLES,
+			key: admin.toText(),
+			data: { role: UserRole.ADMIN },
+			owner: admin
+		});
+
+		assert.equal(migrate(admin).migrated, 1);
+		assert.equal(storedCode(), undefined);
+		assert.equal(
+			host.readDoc<LeagueDoc>({ collection: Collection.LEAGUES, key: leagueId })?.privacy,
+			LeaguePrivacy.PRIVATE
+		);
+		assert.equal(join({ principal: joiner, code: inviteCode }).league?.id, leagueId);
+	});
 });
