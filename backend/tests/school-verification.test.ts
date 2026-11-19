@@ -9,11 +9,14 @@ import { upsertAppSetting } from '../src/admin/settings';
 import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
 import { app } from '../src/index';
+import { setEmailTransport, type EmailMessage } from '../src/lib/email';
 import { resetRateLimits } from '../src/lib/rate-limit';
+import { MINUTE_IN_MS } from '../src/lib/time';
 import {
 	escapeHtml,
 	hashSchoolCode,
 	SCHOOL_CODE_MAX_ATTEMPTS,
+	SCHOOL_CODE_TTL_MS,
 	SCHOOL_VERIFICATION_SETTING_KEY,
 	SCHOOL_VERIFY_DAILY_CAP,
 	submitSchool,
@@ -127,6 +130,34 @@ describe.if(dbAvailable)('school verification', () => {
 			expect(submission?.status).toBe('awaiting');
 			expect(submission?.code_hash).toMatch(/^[0-9a-f]{64}$/);
 			expect(Number(submission?.expires_at_ms)).toBeGreaterThan(Date.now());
+		});
+
+		test('the code email states the lifetime the code is issued with', async () => {
+			const userId = await createTestUser();
+			const sent: EmailMessage[] = [];
+			const restore = setEmailTransport((message) => {
+				sent.push(message);
+
+				return Promise.resolve();
+			});
+
+			try {
+				await submitSchool({
+					userId,
+					name: 'MIT',
+					country: null,
+					email: `${uniqueLocal()}@mit.edu`
+				});
+			} finally {
+				restore();
+			}
+
+			const expiry = `expires in ${SCHOOL_CODE_TTL_MS / MINUTE_IN_MS} minutes.`;
+			const [message] = sent;
+
+			expect(sent).toHaveLength(1);
+			expect(message?.text).toContain(expiry);
+			expect(message?.html).toContain(expiry);
 		});
 
 		test('a consumer mailbox is rejected; an unknown domain becomes a new school keyed by the normalized name', async () => {

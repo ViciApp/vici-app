@@ -10,7 +10,7 @@ import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { readAppSetting } from '../admin/settings';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
 import { query, tx, type TxQuery } from '../db/client';
-import { sendEmail } from '../lib/email';
+import { codeExpiryNotice, sendEmail } from '../lib/email';
 import { logger } from '../lib/logger';
 import { MINUTE_IN_MS } from '../lib/time';
 import { spMatchEmail, spNormalize } from './matching';
@@ -206,11 +206,11 @@ const sendCodeEmail = async ({
 	await sendEmail({
 		to: email,
 		subject: `Your VICI verification code for ${safeSubjectName}`,
-		text: `Your VICI school verification code is ${code}. It expires in 30 minutes. If you didn't request it, ignore this email.`,
+		text: `Your VICI school verification code is ${code}. ${codeExpiryNotice(SCHOOL_CODE_TTL_MS)}`,
 		html:
 			`<p>Your VICI verification code for <strong>${safeHtmlName}</strong> is:</p>` +
 			`<p style="font-size:24px;font-weight:700;letter-spacing:4px">${code}</p>` +
-			`<p style="color:#888">It expires in 30 minutes. If you didn't request it, ignore this email.</p>`
+			`<p style="color:#888">${codeExpiryNotice(SCHOOL_CODE_TTL_MS)}</p>`
 	});
 };
 
