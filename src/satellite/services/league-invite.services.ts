@@ -55,40 +55,81 @@ const legacyInviteCode = (data: Uint8Array): LeagueInviteDoc | undefined => {
 	}
 };
 
-/** The league that `inviteCode` opens, or `undefined` when none does. */
-export const leagueIdForInviteCode = (inviteCode: string): string | undefined => {
+/** The league whose `league_invites` doc stores `inviteCode`. */
+const storedInviteHolder = (inviteCode: string): string | undefined => {
+	const {
+		items: [stored]
+	} = listDocsStore({
+		caller: controllerCaller(PURPOSE),
+		collection: Collection.LEAGUE_INVITES,
+		params: { matcher: { description: `^${inviteCode}$` } }
+	});
+
+	return isNullish(stored) ? undefined : decodeDocData<LeagueInviteDoc>(stored[1].data).leagueId;
+};
+
+/**
+ * Every code still on a league doc, mapped to the first of `leagues` that
+ * carries it. Built once per scan: decoding a doc costs the satellite real
+ * instructions, so a caller that checks many codes passes this map instead
+ * of decoding every league for each one.
+ */
+export const legacyInviteHolders = (
+	leagues: ReadonlyArray<readonly [string, { data: Uint8Array }]>
+): Map<string, string> => {
+	const holders = new Map<string, string>();
+
+	for (const [, { data }] of leagues) {
+		const legacy = legacyInviteCode(data);
+
+		if (nonNullish(legacy) && !holders.has(legacy.inviteCode)) {
+			holders.set(legacy.inviteCode, legacy.leagueId);
+		}
+	}
+
+	return holders;
+};
+
+const listedLegacyInviteHolders = (): Map<string, string> =>
+	legacyInviteHolders(
+		listDocsStore({ caller: controllerCaller(PURPOSE), collection: Collection.LEAGUES, params: {} })
+			.items
+	);
+
+const inviteHolder = ({
+	inviteCode,
+	legacyHolders
+}: {
+	inviteCode: string;
+	legacyHolders?: ReadonlyMap<string, string>;
+}): string | undefined => {
 	// The regex guard also keeps the code safe to embed in the matcher.
 	if (!LEAGUE_INVITE_CODE_REGEX.test(inviteCode)) {
 		return;
 	}
 
-	const caller = controllerCaller(PURPOSE);
-	const {
-		items: [stored]
-	} = listDocsStore({
-		caller,
-		collection: Collection.LEAGUE_INVITES,
-		params: { matcher: { description: `^${inviteCode}$` } }
-	});
-
-	if (nonNullish(stored)) {
-		return decodeDocData<LeagueInviteDoc>(stored[1].data).leagueId;
-	}
-
-	const { items: leagues } = listDocsStore({ caller, collection: Collection.LEAGUES, params: {} });
-
-	return leagues
-		.map(([, { data }]) => legacyInviteCode(data))
-		.find((legacy) => legacy?.inviteCode === inviteCode)?.leagueId;
+	return (
+		storedInviteHolder(inviteCode) ?? (legacyHolders ?? listedLegacyInviteHolders()).get(inviteCode)
+	);
 };
+
+/** The league that `inviteCode` opens, or `undefined` when none does. */
+export const leagueIdForInviteCode = (inviteCode: string): string | undefined =>
+	inviteHolder({ inviteCode });
 
 /**
  * Store `inviteCode` as the code of `leagueId`. Returns `false`, writing
  * nothing, when another league already holds the code: codes are unique,
- * since a join resolves a code to exactly one league.
+ * since a join resolves a code to exactly one league. A caller checking
+ * many codes passes `legacyHolders` ({@link legacyInviteHolders} of the
+ * current leagues) so the leagues are not listed and decoded again.
  */
-export const recordLeagueInvite = ({ leagueId, inviteCode }: LeagueInviteDoc): boolean => {
-	const holder = leagueIdForInviteCode(inviteCode);
+export const recordLeagueInvite = ({
+	leagueId,
+	inviteCode,
+	legacyHolders
+}: LeagueInviteDoc & { legacyHolders?: ReadonlyMap<string, string> }): boolean => {
+	const holder = inviteHolder({ inviteCode, legacyHolders });
 
 	if (nonNullish(holder) && holder !== leagueId) {
 		return false;
