@@ -1,18 +1,16 @@
-// Worlds surface: affiliation slots (with the 90-day lock), rosters and
-// member counts, the recomputed standings windows, the frozen monthly
-// rankings with champion history, and the podium prize claim.
+// Worlds surface: affiliation slots (with the 90-day lock), member counts,
+// the recomputed standings windows, the champion history of the frozen
+// monthly rankings, and the podium prize claim.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { badRequest } from '../lib/http';
-import { MONTH_ANCHOR_RE } from '../lib/time';
 import {
 	AffiliationStatsError,
 	getAffiliationStats,
 	listAffiliationChampionships,
-	listAffiliationStats,
-	listAffiliationStatsForMonth
+	listAffiliationStats
 } from '../worlds/affiliation-stats';
 import {
 	AFFILIATION_KINDS,
@@ -20,7 +18,6 @@ import {
 	isAffiliationKind,
 	listMyAffiliations,
 	listWorldsMemberCounts,
-	listWorldsRoster,
 	removeAffiliation,
 	setAffiliation
 } from '../worlds/affiliations';
@@ -96,24 +93,6 @@ export const worldsRoutes = new Elysia({ prefix: '/api/v1/worlds' })
 		}
 	})
 	.get(
-		'/roster',
-		async ({ request, set, query: params }) => {
-			const user = await requireUser(request);
-
-			if (isNullish(user)) {
-				return unauthenticated(set);
-			}
-
-			return {
-				items: await listWorldsRoster({
-					kind: params.kind,
-					affiliationIdentifier: params.affiliationIdentifier
-				})
-			};
-		},
-		{ query: t.Object({ kind: KIND_SCHEMA, affiliationIdentifier: t.String() }) }
-	)
-	.get(
 		'/member-counts',
 		async ({ request, set, query: params }) => {
 			const user = await requireUser(request);
@@ -163,28 +142,6 @@ export const worldsRoutes = new Elysia({ prefix: '/api/v1/worlds' })
 			};
 		},
 		{ query: t.Object({ kind: KIND_SCHEMA, limit: t.Optional(t.String()) }) }
-	)
-	.get(
-		'/leaderboard/month',
-		async ({ request, set, query: params }) => {
-			const user = await requireUser(request);
-
-			if (isNullish(user)) {
-				return unauthenticated(set);
-			}
-
-			if (!MONTH_ANCHOR_RE.test(params.monthAnchor)) {
-				return badRequest(set, 'invalid_month_anchor');
-			}
-
-			return {
-				items: await listAffiliationStatsForMonth({
-					kind: params.kind,
-					monthAnchor: params.monthAnchor
-				})
-			};
-		},
-		{ query: t.Object({ kind: KIND_SCHEMA, monthAnchor: t.String() }) }
 	)
 	.get(
 		'/championships',
