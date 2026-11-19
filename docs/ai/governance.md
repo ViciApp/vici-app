@@ -77,6 +77,12 @@ Before opening / merging, self-review against:
 These paths are **protected**. Agents may read them, but must not modify
 them without an explicit ask in the user prompt.
 
+This table is the source of the protected paths. Officina's red lane
+(`lanes.red.paths` in [`.github/officina.yml`](../../.github/officina.yml))
+repeats each row as a glob, because Officina reads its lanes from that file,
+and adds its own red-only paths after them ([lanes](./officina.md#lanes)). A
+row added or removed here changes that list in the same PR.
+
 | Path                                                                   | Reason                                                                            | Owner            |
 | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------- |
 | `.github/workflows/**`                                                 | CI integrity. Only `ci(...)` PRs touch these.                                     | repo maintainers |

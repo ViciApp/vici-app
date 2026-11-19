@@ -64,14 +64,15 @@ lanes:
     approvals:
       spec_review: [{ role: owner }]
     paths:
-      # Protected paths, see docs/ai/governance.md#boundaries
+      # 1. The protected paths. docs/ai/governance.md#boundaries is their source: every row of that
+      # table has its glob here, so a row added or removed there changes this block in the same PR.
+      # Two of its rows have no glob because they never reach a diff: build output (gitignored) and
+      # ../icdc-core (another repo). `.github/**` and `src/satellite/**` are wider here than the
+      # table's rows on purpose: in red, agents do not build CI or satellite code at all.
       - '.github/**'
       - 'package.json'
       - 'package-lock.json'
       - 'dfx.json'
-      # Not in the tree today (canister_ids.json untracked, static/workers/** gitignored and copied
-      # by postinstall); listed so a change that adds either still lands here.
-      - 'canister_ids.json'
       - 'static/workers/**'
       - 'juno.config.ts'
       - 'juno.collections.json'
@@ -81,6 +82,16 @@ lanes:
       - '.prettierrc'
       - 'tsconfig*.json'
       - 'local-rules/**'
+      - 'eslint-local-rules.cjs'
+      - '.prettierignore'
+      - '.npmrc'
+      - '.node-version'
+      - 'release-please-config.json'
+      - '.release-please-manifest.json'
+      - 'fly*.toml'
+      - 'Dockerfile*'
+      - 'nginx.web.conf'
+      - 'eslint-suppressions.json'
       - 'scripts/build/**'
       - 'scripts/lib/**'
       - 'scripts/init/**'
@@ -88,36 +99,6 @@ lanes:
       # (deploy.sh, send.tokens.sh, restart.*.sh, *-markets.sh, did.sh, satellite-upgrade-needed.mjs)
       - 'scripts/*'
       - 'scripts/test/**'
-      # Toolchain, lint, release and hosting policy
-      - '.npmrc'
-      - '.node-version'
-      - '.prettierignore'
-      - 'eslint-local-rules.cjs'
-      - 'release-please-config.json'
-      - '.release-please-manifest.json'
-      - 'nginx.web.conf'
-      - 'static/google*.html'
-      # Agent instructions
-      - '.agents/**'
-      - '.claude/**'
-      # Deploy configuration, including the root web build (fly.web.toml, Dockerfile.web)
-      - 'fly*.toml'
-      - 'Dockerfile*'
-      # Money, identity and legal copy
-      - 'src/lib/constants/vxp-economy.constants.ts'
-      - 'src/lib/constants/vxp-onboarding.constants.ts'
-      - 'src/lib/constants/flow-rewards.constants.ts'
-      - 'src/lib/constants/legal-docs.constants.ts'
-      # Canister, ledger and engine ids, satellite controllers and role permissions
-      - 'src/lib/constants/canisters.constants.ts'
-      - 'src/lib/constants/tokens/tokens.ic.constants.ts'
-      - 'src/lib/constants/icdc.constants.ts'
-      - 'src/lib/constants/controllers.constants.ts'
-      - 'src/lib/constants/authz.constants.ts'
-      - 'src/lib/components/authn/**'
-      - 'src/lib/services/identity*.ts'
-      - 'src/lib/schema/auth-identity.schema.ts'
-      # Web2 backend: auth, custody, chains, VXP, engine, schema and deploy
       - 'backend/package.json'
       - 'backend/bun.lock'
       - 'backend/Dockerfile'
@@ -125,10 +106,15 @@ lanes:
       - 'backend/docker-compose.yml'
       - 'backend/bunfig.toml'
       - 'backend/tsconfig.json'
-      - 'backend/src/env.ts'
       - 'backend/src/auth/**'
-      - 'backend/src/admin/**'
       - 'backend/src/account/**'
+      - 'backend/src/admin/**'
+      - 'backend/src/custody/**'
+      - 'backend/src/chains/**'
+      - 'backend/src/vxp/**'
+      - 'backend/src/engine/**'
+      - 'backend/src/db/**'
+      - 'backend/src/env.ts'
       # Entry points that issue sessions, move value or expose admin surfaces
       - 'backend/src/routes/auth.ts'
       - 'backend/src/routes/account.ts'
@@ -149,15 +135,33 @@ lanes:
       - 'backend/src/lib/rate-limit.ts'
       - 'backend/src/lib/email.ts'
       - 'backend/src/lib/ic-agent.ts'
-      - 'backend/src/custody/**'
-      - 'backend/src/chains/**'
-      - 'backend/src/vxp/**'
-      - 'backend/src/engine/**'
-      - 'backend/src/db/**'
       - 'backend/src/declarations/**'
       # Legacy data migration and the test-only server with its fake engine and seed
       - 'backend/scripts/etl/**'
       - 'backend/e2e/**'
+      # 2. Red only (docs/ai/officina.md#lanes): editable by other agents on an ordinary ask, but
+      # never built by an Officina agent.
+      # Not in the tree today (canister_ids.json untracked); listed so a change that adds it still
+      # lands here.
+      - 'canister_ids.json'
+      - 'static/google*.html'
+      # Agent instructions
+      - '.agents/**'
+      - '.claude/**'
+      # Money, identity and legal copy
+      - 'src/lib/constants/vxp-economy.constants.ts'
+      - 'src/lib/constants/vxp-onboarding.constants.ts'
+      - 'src/lib/constants/flow-rewards.constants.ts'
+      - 'src/lib/constants/legal-docs.constants.ts'
+      # Canister, ledger and engine ids, satellite controllers and role permissions
+      - 'src/lib/constants/canisters.constants.ts'
+      - 'src/lib/constants/tokens/tokens.ic.constants.ts'
+      - 'src/lib/constants/icdc.constants.ts'
+      - 'src/lib/constants/controllers.constants.ts'
+      - 'src/lib/constants/authz.constants.ts'
+      - 'src/lib/components/authn/**'
+      - 'src/lib/services/identity*.ts'
+      - 'src/lib/schema/auth-identity.schema.ts'
 
   standard:
     paths: ['**']
