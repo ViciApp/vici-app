@@ -1050,9 +1050,6 @@ export interface AppLookupReferralCodeArgs {
 export interface AppLookupReferralCodeResult {
 	owner: [] | [string];
 }
-export interface AppMigrateLeagueInviteCodesResult {
-	migrated: number;
-}
 export interface AppPruneResolvedResultsResult {
 	pruned: number;
 }
@@ -1534,7 +1531,6 @@ export interface _SERVICE {
 		AppLookupLeagueByInviteResult
 	>;
 	app_lookup_referral_code: ActorMethod<[AppLookupReferralCodeArgs], AppLookupReferralCodeResult>;
-	app_migrate_league_invite_codes: ActorMethod<[], AppMigrateLeagueInviteCodesResult>;
 	app_prune_resolved_results: ActorMethod<[], AppPruneResolvedResultsResult>;
 	app_read_battle_live_score: ActorMethod<
 		[AppReadBattleLiveScoreArgs],
