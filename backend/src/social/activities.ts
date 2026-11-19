@@ -392,6 +392,32 @@ export const listReactions = async ({ limit }: { limit: number }): Promise<Activ
 	return rows.map(shapeReaction);
 };
 
+/** The most-recent likes on `authorId`'s own activities, bounded: the
+ * like-received inbox, read through the activity owner instead of a scan of
+ * the global window, so an older like is not lost behind newer ones elsewhere. */
+export const listReceivedReactions = async ({
+	authorId,
+	limit
+}: {
+	authorId: string;
+	limit: number;
+}): Promise<ActivityReaction[]> => {
+	if (limit <= 0) {
+		return [];
+	}
+
+	const rows = await query<ReactionRow>(
+		`select r.activity_key, r.liker, r.timestamp_ms::text, r.activity_title, r.market_id
+		 from activity_reactions r
+		 join activities a on a.key = r.activity_key
+		 where a.user_id = $1
+		 order by r.created_at desc limit $2`,
+		[authorId, limit]
+	);
+
+	return rows.map(shapeReaction);
+};
+
 /**
  * Admin corrective: re-derive every activity's exact like count from the
  * reaction rows and overwrite the counters, healing any drift and zeroing

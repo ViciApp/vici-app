@@ -4,7 +4,9 @@
 
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { randomUUID } from 'node:crypto';
+import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
+import { app } from '../src/index';
 import {
 	boundedLimit,
 	DEFAULT_ACTIVITY_LIMIT,
@@ -18,6 +20,7 @@ import {
 	likeActivity,
 	listActivities,
 	listReactions,
+	listReceivedReactions,
 	recomputeActivityReactionCounts,
 	unlikeActivity
 } from '../src/social/activities';
@@ -225,6 +228,103 @@ describe.if(dbAvailable)('reaction rollup', () => {
 		expect(recomputed).toBeGreaterThanOrEqual(2);
 		expect(await countOf(activityKey)).toBe(1);
 		expect(await countOf(orphanKey)).toBe(0);
+	});
+});
+
+describe.if(dbAvailable)('received reactions', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	const activityOf = async (userId: string): Promise<string> => {
+		const { key } = await createActivity({
+			userId,
+			type: 'trade',
+			title: 'Placed a prediction',
+			timestamp: Date.now()
+		});
+
+		return key;
+	};
+
+	const like = async ({
+		likerId,
+		activityKey
+	}: {
+		likerId: string;
+		activityKey: string;
+	}): Promise<void> =>
+		await likeActivity({ likerId, activityKey, timestamp: Date.now(), activityTitle: 't' });
+
+	test('lists the likes on the author own activities, past newer likes elsewhere', async () => {
+		const author = await createTestUser();
+		const ownKey = await activityOf(author);
+		const fan = await createTestUser();
+
+		await like({ likerId: fan, activityKey: ownKey });
+
+		const otherKey = await activityOf(await createTestUser());
+
+		for (const likerId of await Promise.all([createTestUser(), createTestUser()])) {
+			await like({ likerId, activityKey: otherKey });
+		}
+
+		const window = await listReactions({ limit: 2 });
+
+		expect(window.some((r) => r.activityKey === ownKey)).toBe(false);
+
+		const received = await listReceivedReactions({ authorId: author, limit: 2 });
+
+		expect(received.map(({ activityKey, liker }) => ({ activityKey, liker }))).toEqual([
+			{ activityKey: ownKey, liker: fan }
+		]);
+	});
+
+	test('returns newest first and honours the limit', async () => {
+		const author = await createTestUser();
+		const first = await activityOf(author);
+		const second = await activityOf(author);
+		const fan = await createTestUser();
+
+		await like({ likerId: fan, activityKey: first });
+		await like({ likerId: fan, activityKey: second });
+
+		const received = await listReceivedReactions({ authorId: author, limit: 1 });
+
+		expect(received.map(({ activityKey }) => activityKey)).toEqual([second]);
+		expect(await listReceivedReactions({ authorId: author, limit: 0 })).toEqual([]);
+	});
+
+	test('the route answers the signed-in author only', async () => {
+		const author = await createTestUser();
+		const ownKey = await activityOf(author);
+		const fan = await createTestUser();
+
+		await like({ likerId: fan, activityKey: ownKey });
+
+		const anonymous = await app.handle(
+			new Request('http://localhost/api/v1/social/activity-reactions/received')
+		);
+
+		expect(anonymous.status).toBe(401);
+
+		const signedIn = await app.handle(
+			new Request('http://localhost/api/v1/social/activity-reactions/received?limit=10', {
+				headers: { cookie: `vici_session=${await createSession(author)}` }
+			})
+		);
+		const { items } = (await signedIn.json()) as { items: { activityKey: string }[] };
+
+		expect(signedIn.status).toBe(200);
+		expect(items.map(({ activityKey }) => activityKey)).toEqual([ownKey]);
+
+		const asFan = await app.handle(
+			new Request('http://localhost/api/v1/social/activity-reactions/received', {
+				headers: { cookie: `vici_session=${await createSession(fan)}` }
+			})
+		);
+
+		expect(((await asFan.json()) as { items: unknown[] }).items).toEqual([]);
 	});
 });
 

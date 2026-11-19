@@ -2022,15 +2022,15 @@ export const listActivities = async ({
 	return items.map(mapActivity);
 };
 
-/** The most-recent reactions across all users (public read), newest first.
+/** The most-recent likes on the session user's own activities, newest first.
  * The route caps `limit` at 1000. */
-export const listActivityReactions = async ({
+export const listReceivedActivityReactions = async ({
 	limit
 }: {
 	limit: number;
 }): Promise<ActivityReaction[]> => {
 	const { items } = await request<{ items: ActivityReaction[] }>({
-		path: `/api/v1/social/activity-reactions?${encodeQuery({ limit: limit.toString() })}`,
+		path: `/api/v1/social/activity-reactions/received?${encodeQuery({ limit: limit.toString() })}`,
 		method: 'GET'
 	});
 
