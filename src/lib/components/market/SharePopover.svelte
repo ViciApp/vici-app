@@ -9,7 +9,10 @@
 	import IconTikTok from '#lib/components/icons/IconTikTok.svelte';
 	import IconWhatsApp from '#lib/components/icons/IconWhatsApp.svelte';
 	import IconX from '#lib/components/icons/IconX.svelte';
-	import { referrerRewardVxp } from '#lib/constants/referral.constants.ts';
+	import {
+		REFERRAL_VXP_BONUS_BASE_UNITS,
+		referrerRewardVxp
+	} from '#lib/constants/referral.constants.ts';
 	import { getMyReferralCode, listMyReferrals } from '#lib/services/referral.services.ts';
 	import { notifyShareFailed } from '#lib/services/share.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -21,6 +24,7 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
 	import { appOrigin } from '#lib/utils/nav.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 	import { renderPredictionCard, type ShareCardResult } from '#lib/utils/share-card.utils.ts';
 	import { browser } from '$app/env';
 
@@ -539,7 +543,13 @@
 			</span>
 		{:else}
 			<span>
-				<b>{t({ locale: $localeStore, key: 'flow.share.referral_capped_amount' })}</b>
+				<b
+					>{t({
+						locale: $localeStore,
+						key: 'flow.share.referral_capped_amount',
+						params: { amount: formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }) }
+					})}</b
+				>
 				{t({ locale: $localeStore, key: 'flow.share.referral_capped_tail' })}
 			</span>
 		{/if}

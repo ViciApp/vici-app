@@ -15,11 +15,11 @@
 	import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
 	import {
 		cumulativeReferrerRewardBaseUnits,
-		REFERRAL_MAX_PAID
+		REFERRAL_MAX_PAID,
+		REFERRAL_VXP_BONUS_BASE_UNITS
 	} from '#lib/constants/referral.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
-	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import { ownGlobalStanding } from '#lib/derived/standings.derived.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
 	import { track } from '#lib/services/analytics.services.ts';
@@ -114,9 +114,6 @@
 
 	let { focusRequestKey }: Props = $props();
 
-	const VXP_DECIMALS = VXP_TOKEN.decimals;
-	const REFERRAL_BONUS_VXP = 500n * 10n ** BigInt(VXP_DECIMALS);
-
 	const userPrincipal = $derived($authPrincipal ?? '');
 	const myProfile = $derived($userStore.profile);
 
@@ -201,7 +198,7 @@
 	const inviteUrlDisplay = $derived(
 		nonNullish(inviteUrl) ? inviteUrl.replace(/^https?:\/\//, '') : undefined
 	);
-	const bonusLabel = $derived(formatVxpBalance({ value: REFERRAL_BONUS_VXP }));
+	const bonusLabel = $derived(formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }));
 
 	// Social-proof line above the invite buttons:
 	// `{N} friends joined · +{cumulative} VXP earned`. Derived from the viewer's actual
