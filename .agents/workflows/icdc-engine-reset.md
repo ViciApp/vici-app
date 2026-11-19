@@ -53,11 +53,11 @@ Targets icdc-core's **staging** deployment (dfx network `staging`, registry
 `dfx` identity running this workflow must be a controller of the staging registry.
 
 1. Reinstall the registry **from the icdc-core repo**. Here the registry is `remote` on
-   `staging` and `ic`, and this repo's reinstall and seeding scripts refuse any network but
-   `local` (the callers of `require_local_network` in
+   `staging` and `ic`, and this repo's scripts that reinstall canisters, mint or set fixed
+   prices refuse any network but `local` (the callers of `require_local_network` in
    [`scripts/lib/utils.sh`](../../scripts/lib/utils.sh)); icdc-core's own `dfx.json` deploys
-   it. Only `init:icdc-engine`, `init:registry` and `test:engine-sync` below run against
-   `staging` or `ic`:
+   it. `init:icdc-engine`, `init:registry` (with `deploy-markets.sh`) and `test:engine-sync`
+   below are meant to run against `staging` or `ic`:
 
 ```bash
 # in icdc-core

@@ -130,10 +130,14 @@ description.
   `npm run juno:functions:build`; in `backend/`, `bun run typecheck`,
   `bun test`, `bun run migrate` against the local docker-compose database.
 - Run `npm run init:icdc` (and its sub-scripts), `npm run test:engine-sync` and
-  `npm run deploy` against the local replica only: never with `--staging`,
-  `--ic` or `--production`. The scripts that reinstall canisters, mint or set
-  fixed prices refuse any other network (the callers of `require_local_network`
-  in [`scripts/lib/utils.sh`](../../scripts/lib/utils.sh)).
+  `npm run deploy` against the local replica. The scripts that reinstall
+  canisters, mint or set fixed prices refuse any other network (the callers of
+  `require_local_network` in
+  [`scripts/lib/utils.sh`](../../scripts/lib/utils.sh)). `init:icdc-engine`,
+  `init:registry` and `test:engine-sync` also run with `--staging` or
+  `--production` in the
+  [reset workflow](../../.agents/workflows/icdc-engine-reset.md), which needs
+  an explicit ask (below).
 - Update these `docs/ai/**` pages when the meta-update rule fires.
 
 ### Forbidden without explicit prompt
