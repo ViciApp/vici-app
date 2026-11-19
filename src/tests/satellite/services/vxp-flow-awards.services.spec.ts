@@ -1,12 +1,15 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import {
 	VXP_FLOW_MILESTONES,
 	VXP_FLOW_OVERTIME_BONUS,
-	VXP_FLOW_OVERTIME_ROLLING_CAP
+	VXP_FLOW_OVERTIME_ROLLING_CAP,
+	VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS
 } from '#lib/constants/vxp-economy.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import {
+	controller,
 	docBytes,
 	installSatelliteHost,
 	type SatelliteHost
@@ -166,6 +169,32 @@ describe('vxp-flow-awards.services', () => {
 		const overtimeAward = (dayKey: string): VxpAwardDoc | undefined =>
 			readAward({ awardType: 'flow_overtime', awardKey: dayKey });
 
+		/** A paid overtime award for `dayKey`, stored at `createdAtMs`. */
+		const putPaidOvertime = ({ dayKey, createdAtMs }: { dayKey: string; createdAtMs: number }) =>
+			host.putDoc({
+				collection: Collection.VXP_AWARDS,
+				key: vxpAwardKey({
+					recipient: user.toText(),
+					awardType: 'flow_overtime',
+					awardKey: dayKey
+				}),
+				data: {
+					recipient: user.toText(),
+					awardType: 'flow_overtime',
+					awardKey: dayKey,
+					amountBaseUnits: vxpBaseUnits(VXP_FLOW_OVERTIME_BONUS).toString(),
+					status: 'paid',
+					earnedAtMs: createdAtMs,
+					paidAtMs: createdAtMs,
+					blockIndex: '1'
+				},
+				owner: controller,
+				createdAtMs
+			});
+
+		// The service reads the window from the wall clock, so the datastore stamps the same clock.
+		beforeEach(() => host.setNowMs(Date.now()));
+
 		it('pays the overtime bonus once per day', async () => {
 			await mint('2026-11-01');
 			await mint('2026-11-01');
@@ -185,6 +214,38 @@ describe('vxp-flow-awards.services', () => {
 			await mint('2026-11-01');
 
 			assert.equal(transfers(), VXP_FLOW_OVERTIME_ROLLING_CAP);
+			assert.equal(overtimeAward('2026-11-01'), undefined);
+		});
+
+		it('counts only the overtime awards inside the rolling window', async () => {
+			const outsideMs = Date.now() - VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS - DAY_IN_MS;
+
+			for (let day = 1; day <= VXP_FLOW_OVERTIME_ROLLING_CAP; day++) {
+				putPaidOvertime({
+					dayKey: `2026-09-${day.toString().padStart(2, '0')}`,
+					createdAtMs: outsideMs
+				});
+			}
+
+			await mint('2026-11-01');
+
+			assert.equal(transfers(), 1);
+			assert.equal(overtimeAward('2026-11-01')?.status, 'paid');
+		});
+
+		it('refuses once the cap is reached by awards still inside the window', async () => {
+			const insideMs = Date.now() - VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS + DAY_IN_MS;
+
+			for (let day = 1; day <= VXP_FLOW_OVERTIME_ROLLING_CAP; day++) {
+				putPaidOvertime({
+					dayKey: `2026-09-${day.toString().padStart(2, '0')}`,
+					createdAtMs: insideMs
+				});
+			}
+
+			await mint('2026-11-01');
+
+			assert.equal(transfers(), 0);
 			assert.equal(overtimeAward('2026-11-01'), undefined);
 		});
 
