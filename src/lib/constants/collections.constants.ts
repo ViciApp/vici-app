@@ -161,7 +161,7 @@ export const Collection = {
 	 * Per-match docs of every tournament. Keyed `${tournamentId}/${round}/${index}` so the
 	 * bracket reads as a single prefix scan. Holds the two competing league ids, per-league
 	 * accuracy (filled in by the round-resolution job), and the winning league. Written by
-	 * `triggerTournamentDraw` (round 1 matches) and `resolveTournamentRound`.
+	 * `triggerTournamentDraw` (every match, a few per call) and `resolveTournamentRound`.
 	 */
 	TOURNAMENT_MATCHES: collections.TOURNAMENT_MATCHES,
 	/**

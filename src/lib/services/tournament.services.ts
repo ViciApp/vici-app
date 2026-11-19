@@ -1,9 +1,10 @@
 import { functions } from '#declarations/satellite/satellite.api.ts';
-import type {
-	TournamentDoc,
-	TournamentMatchDoc,
-	TournamentRound,
-	TriggerTournamentDrawRefusalReason
+import {
+	TOURNAMENT_BRACKET_SIZE,
+	type TournamentDoc,
+	type TournamentMatchDoc,
+	type TournamentRound,
+	type TriggerTournamentDrawRefusalReason
 } from '#lib/types/tournament.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
@@ -91,20 +92,34 @@ export interface TriggerTournamentDrawResult {
 }
 
 /**
- * Fire the draw for `monthAnchor`. Idempotent: a second call for
- * the same month returns `already_drawn` cleanly. Safe to
- * fire-and-forget on every Tournament-page mount.
+ * Fire the draw for `monthAnchor` and return the first answer: whether this
+ * call drew the month, or why not. Idempotent: once the bracket is complete
+ * a call returns `already_drawn` cleanly. Safe to fire-and-forget on every
+ * Tournament-page mount.
  */
-export const triggerTournamentDraw = ({
+export const triggerTournamentDraw = async ({
 	monthAnchor
 }: {
 	monthAnchor: string;
-}): Promise<TriggerTournamentDrawResult> =>
+}): Promise<TriggerTournamentDrawResult> => {
 	// The web2 API also runs the draw from its worker; the lazy page-mount
 	// trigger stays for parity and collides idempotently with it.
-	isWeb2Backend()
-		? triggerTournamentDrawWeb2({ monthAnchor })
-		: functions.triggerTournamentDraw({ monthAnchor });
+	if (isWeb2Backend()) {
+		return await triggerTournamentDrawWeb2({ monthAnchor });
+	}
+
+	// The satellite writes the bracket a few docs per call, and every `ok`
+	// answer wrote at least one of its TOURNAMENT_BRACKET_SIZE docs, so call
+	// again until it reports the bracket complete.
+	const first = await functions.triggerTournamentDraw({ monthAnchor });
+	let result = first;
+
+	for (let calls = 1; result.ok && calls < TOURNAMENT_BRACKET_SIZE; calls++) {
+		result = await functions.triggerTournamentDraw({ monthAnchor });
+	}
+
+	return first;
+};
 
 export interface ResolveTournamentRoundResult {
 	ok: boolean;
