@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.63](https://github.com/ViciApp/vici-app/compare/v1.8.62...v1.8.63) (2026-11-19)
+
+
+### Documentation
+
+* **learning:** copy-value changes must also cover the partial `soon` catalogs ([#1498](https://github.com/ViciApp/vici-app/issues/1498)) ([ec5a32c](https://github.com/ViciApp/vici-app/commit/ec5a32c7e2260bd36f5c7d34cf72f632541aab57))
+
 ## [1.8.62](https://github.com/ViciApp/vici-app/compare/v1.8.61...v1.8.62) (2026-11-19)
 
 
