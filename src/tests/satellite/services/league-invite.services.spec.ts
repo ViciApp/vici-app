@@ -167,7 +167,7 @@ describe('league invites', () => {
 	});
 
 	it('migrates in rounds, listing the leagues once per round', () => {
-		const legacyIds = Array.from({ length: 7 }, (_, index) => `legacy-${index}-1700000000000`);
+		const legacyIds = Array.from({ length: 3 }, (_, index) => `legacy-${index}-1700000000000`);
 
 		for (const [index, id] of legacyIds.entries()) {
 			host.putDoc({
@@ -203,9 +203,11 @@ describe('league invites', () => {
 			return listDocs?.(...args);
 		};
 
-		assert.equal(migrate(admin).migrated, 5);
-		assert.equal(leagueLists, 1);
-		assert.equal(migrate(admin).migrated, 2);
+		for (const round of legacyIds.keys()) {
+			assert.equal(migrate(admin).migrated, 1);
+			assert.equal(leagueLists, round + 1);
+		}
+
 		assert.equal(migrate(admin).migrated, 0);
 		assert.deepEqual(
 			legacyIds.map(
@@ -214,7 +216,7 @@ describe('league invites', () => {
 			legacyIds.map(() => undefined)
 		);
 		assert.equal(
-			join({ principal: joiner, code: 'CODE06' }).league?.id,
+			join({ principal: joiner, code: 'CODE02' }).league?.id,
 			legacyIds[legacyIds.length - 1]
 		);
 	});

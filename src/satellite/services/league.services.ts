@@ -726,10 +726,12 @@ export const joinLeagueByInviteFn = ({
 
 /**
  * How many league docs one `migrateLeagueInviteCodes` call rewrites. Every
- * rewrite is two writes plus the league assert, all inside one message's
- * instruction budget, so the migration goes in rounds instead of all at once.
+ * rewrite is two serverless writes plus the league assert, and each such
+ * write costs billions of instructions, so a call rewrites a single doc and
+ * the migration goes in rounds (see the bulk-rewrite budget note in
+ * docs/ai/satellite/patterns.md).
  */
-const LEAGUE_INVITE_MIGRATION_BATCH = 5;
+const LEAGUE_INVITE_MIGRATION_BATCH = 1;
 
 /**
  * Admin-gated, idempotent: moves the invite code of league docs written
