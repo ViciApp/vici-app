@@ -412,12 +412,39 @@
 	const stop = (event: Event) => {
 		event.stopPropagation();
 	};
+
+	// Keys stay inside the popover so the deck's arrow shortcuts never fire
+	// underneath it; Escape is the one key it answers itself.
+	const onKeydown = (event: KeyboardEvent) => {
+		event.stopPropagation();
+
+		if (event.key === 'Escape') {
+			onClose?.();
+		}
+	};
+
+	const titleId = $props.id();
+
+	let dialog = $state<HTMLDivElement | undefined>();
+
+	// Focus moves into the dialog on open so Escape and Tab start from it.
+	$effect(() => {
+		dialog?.focus();
+	});
 </script>
 
 <!-- eslint-disable-next-line svelte/valid-compile -- the click is intentional;
      bubble-stop keeps an outer dismiss-on-click handler from firing. -->
-<div class="share-pop" onclick={stop} onkeydown={stop} role="dialog" tabindex="-1">
-	<span class="share-pop-eyebrow">
+<div
+	bind:this={dialog}
+	class="share-pop"
+	aria-labelledby={titleId}
+	onclick={stop}
+	onkeydown={onKeydown}
+	role="dialog"
+	tabindex="-1"
+>
+	<span id={titleId} class="share-pop-eyebrow">
 		{t({ locale: $localeStore, key: 'flow.share.eyebrow' })}
 	</span>
 
