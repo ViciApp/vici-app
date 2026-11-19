@@ -1207,8 +1207,9 @@ export const sweepExpiredDeletions = defineUpdate({
 // activity's exact like count from `activity_reactions` and overwrites the
 // `activity_reaction_counts` rollup docs. Heals any drift from a
 // concurrent-like version race (the hooks are best-effort) and backfills
-// counts for likes that predate the rollup. Admin-gated; `recomputed` is
-// the number of counter docs written.
+// counts for likes that predate the rollup. Admin-gated; rewrites a bounded
+// batch per call: `recomputed` is the number of counter docs written, call
+// again until it is 0.
 export const recomputeActivityReactionCounts = defineUpdate({
 	result: j.strictObject({
 		recomputed: j.number()

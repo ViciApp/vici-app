@@ -130,12 +130,22 @@ export const onActivityReactionDelete = (ctx: OnDeleteDocContext): void => {
 };
 
 /**
+ * How many counter docs one `recomputeActivityReactionCounts` call rewrites. Each rewrite is a
+ * serverless write costing billions of instructions, so a call stays a few writes under the update
+ * limit and the repair goes in rounds (see the bulk-rewrite budget note in
+ * docs/ai/satellite/patterns.md).
+ */
+const RECOMPUTE_REACTION_COUNTS_BATCH = 5;
+
+/**
  * Admin-only corrective: re-derive every activity's exact like count from `activity_reactions` and
- * overwrite the counter docs. Heals any drift from a concurrent-like version race and backfills
- * counts for likes that predate the rollup hooks. Admin-gated (mirrors `sweepExpiredDeletions`).
+ * overwrite the off-target counter docs, at most {@link RECOMPUTE_REACTION_COUNTS_BATCH} per call.
+ * Heals any drift from a concurrent-like version race and backfills counts for likes that predate
+ * the rollup hooks. Admin-gated (mirrors `sweepExpiredDeletions`). Exact counters are skipped, so a
+ * re-run moves on to the rest: returns how many counters it rewrote; call it again until that is 0.
  *
- * Single pass over both collections: fine at current volume; a very large reaction set would want
- * pagination (noted as the scale caveat in the spec).
+ * Each call still reads both collections in full: fine at current volume; a very large reaction
+ * set would want pagination (noted as the scale caveat in the spec).
  */
 export const recomputeActivityReactionCountsFn = (): { recomputed: number } => {
 	const caller = msgCaller();
@@ -183,6 +193,10 @@ export const recomputeActivityReactionCountsFn = (): { recomputed: number } => {
 	let recomputed = 0;
 
 	for (const activityKey of keys) {
+		if (recomputed >= RECOMPUTE_REACTION_COUNTS_BATCH) {
+			break;
+		}
+
 		const existing = getDocStore({
 			collection: Collection.ACTIVITY_REACTION_COUNTS,
 			key: activityKey,
