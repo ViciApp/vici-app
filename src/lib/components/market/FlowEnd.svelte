@@ -1,9 +1,12 @@
 <script lang="ts">
+	import { nonNullish } from '@dfinity/utils';
 	import { ChevronRight, Smartphone } from '@lucide/svelte/icons';
+	import { onMount } from 'svelte';
 	import FlameChar from '#lib/components/characters/FlameChar.svelte';
 	import OracleChar from '#lib/components/characters/OracleChar.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import CountUp from '#lib/components/ui/CountUp.svelte';
+	import { getMyReferralCode } from '#lib/services/referral.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
@@ -134,14 +137,16 @@
 	// blocked. `copiedMessageKey` is the per-action confirmation copy.
 	const shareOrCopy = async ({
 		text,
+		url,
 		copiedMessageKey
 	}: {
 		text: string;
+		url: string;
 		copiedMessageKey: MessageKey;
 	}) => {
 		if (navigator.share) {
 			try {
-				await navigator.share({ title: 'VICI', text, url: appOrigin() });
+				await navigator.share({ title: 'VICI', text, url });
 
 				return;
 			} catch (e: unknown) {
@@ -156,7 +161,7 @@
 			}
 		}
 
-		const copied = await writeToClipboard(`${text} ${appOrigin()}`);
+		const copied = await writeToClipboard(`${text} ${url}`);
 
 		notificationsStore.add({
 			title: t({ locale: $localeStore, key: 'flow.end.copy_toast_title' }),
@@ -177,12 +182,32 @@
 				key: pending === 1 ? 'flow.end.share_text_one' : 'flow.end.share_text',
 				params: { count: pending }
 			}),
+			url: appOrigin(),
 			copiedMessageKey: 'flow.end.share_copied'
 		});
+
+	// The sharer's referral code, resolved on mount so the invite link is
+	// ready inside the tap: `navigator.share()` must run in the user gesture,
+	// and an `await` first makes iOS Safari drop it. Until (or unless) the
+	// code resolves, the invite falls back to the bare app origin.
+	let inviteCode = $state<string | undefined>();
+
+	onMount(async () => {
+		try {
+			inviteCode = await getMyReferralCode();
+		} catch {
+			inviteCode = undefined;
+		}
+	});
+
+	const inviteUrl = $derived(
+		nonNullish(inviteCode) ? `${appOrigin()}/i/${inviteCode}` : appOrigin()
+	);
 
 	const inviteFriend = () =>
 		shareOrCopy({
 			text: t({ locale: $localeStore, key: 'flow.invite.share_text' }),
+			url: inviteUrl,
 			copiedMessageKey: 'flow.end.invite_copied'
 		});
 </script>
