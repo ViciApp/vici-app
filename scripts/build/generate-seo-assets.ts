@@ -30,8 +30,8 @@
  *
  * Visibility mirrors the live feed: only markets attributed to the Vici
  * engine, and only once their on-chain `start_ns` has passed (mirrors
- * `#lib/utils/wc-schedule.utils`'s reveal gate, generalized beyond World Cup
- * markets: a staggered drop with a future start stays hidden here too). A
+ * `#lib/utils/market-reveal.utils`'s reveal gate: a staggered drop with a
+ * future start stays hidden here too). A
  * market with no `start_ns` is live from registration and always visible.
  * An unrevealed market must never leak here: its question would be public
  * before its release.
@@ -59,10 +59,10 @@ import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canis
 import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
 import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import type { Outcome } from '#lib/types/market.ts';
+import { isMarketRevealed } from '#lib/utils/market-reveal.utils.ts';
 import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
 import { calculateMarketStats } from '#lib/utils/market.utils.ts';
 import { settlementInputOutcome } from '#lib/utils/payoff.utils.ts';
-import { isMarketRevealed } from '#lib/utils/wc-schedule.utils.ts';
 import { fromNullable, isNullish, nonNullish, toNullable } from '@dfinity/utils';
 import { Actor, HttpAgent, type ActorSubclass } from '@icp-sdk/core/agent';
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';

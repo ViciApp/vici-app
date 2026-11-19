@@ -30,22 +30,13 @@ export const isMarketRevealed = ({
 }): boolean => isNullish(startDate) || BigInt(Math.trunc(now)) >= startDate;
 
 /**
- * Drops any market whose release start hasn't arrived yet (see module doc:
- * applies to every market, not just World-Cup ones). Safe over any
- * mixed-category list. `tagsByMarket` is retained for call-site compatibility
- * only; tags no longer change gating behaviour.
+ * Keeps only the markets revealed right now ({@link isMarketRevealed}), in
+ * their original order. Safe over any mixed-category list.
  */
-export const filterScheduledWcMarkets = ({
+export const filterRevealedMarkets = ({
 	markets,
-	tagsByMarket,
 	now
 }: {
 	markets: Market[];
-	tagsByMarket: Record<string, string[]>;
 	now: number;
-}): Market[] => {
-	// Retained for call-site compatibility; tags no longer affect gating.
-	void tagsByMarket;
-
-	return markets.filter((market) => isMarketRevealed({ startDate: market.startDate, now }));
-};
+}): Market[] => markets.filter((market) => isMarketRevealed({ startDate: market.startDate, now }));

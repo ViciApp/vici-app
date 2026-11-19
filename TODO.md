@@ -73,6 +73,6 @@ Current state of the **Vici Social Markets** application.
 
 - [ ] **Canister Error Handling**: More granular error messaging for clearing canister rejections.
 - [ ] **Testing**: Implement E2E browser tests for the trade/settlement flow.
-- [ ] **Documentation**: Maintain `README.md`, `TODO.md`, and `CLAUDE.md` as the primary sources of truth.
+- [ ] **Documentation**: Keep `docs/ai/` in step with the code; the code wins on a conflict (truth hierarchy in [`docs/ai/governance.md`](./docs/ai/governance.md#truth-hierarchy)).
 - [ ] **Correct Asset For Series**: The asset is linked to the series. Use `assetToToken` to determine which token to use.
 - [ ] **Use `Token` Type**: Do not hardcode the decimals or the symbol. Use the `Token` type to determine how to display the asset.

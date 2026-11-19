@@ -51,7 +51,7 @@ export interface Market {
 	 * registration (on-chain `start_ns: None`). When set and still in the future,
 	 * the market is scheduled: discoverable on-chain but not yet tradeable. The
 	 * feed gate withholds ANY scheduled market until this instant, whatever its
-	 * tags (see `wc-schedule.utils`).
+	 * tags (see `market-reveal.utils`).
 	 */
 	startDate?: bigint; // timestamp in ms
 	createdAt: bigint; // timestamp in ms

@@ -46,7 +46,7 @@ deploy); unresolvable params land on the markets board.
   pattern; rename/restructure them only together with the patterns in the
   script (it fails loudly when they drift, see the comment in `app.html`).
 - **The reveal gate is shared, not replicated.** Visibility calls the same
-  `isMarketRevealed` from `#lib/utils/wc-schedule.utils.ts` that gates the FE
+  `isMarketRevealed` from `#lib/utils/market-reveal.utils.ts` that gates the FE
   feed: a series with a future on-chain `start_ns` stays hidden from the
   emitted pages and sitemap, whatever its tags. No Juno access and no
   committed deck files needed; decks are operational/ephemeral inputs to
