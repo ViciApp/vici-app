@@ -659,15 +659,9 @@ export const frMessages = {
 	'admin.roles.search.title': 'Trouver un utilisateur',
 	'admin.roles.search.use': 'Utiliser',
 	'auth.callback.google.completing': 'Finalisation de la connexion...',
-	'authn.admin.sub':
-		'Connectez-vous avec un compte admin pour gérer les marchés et résoudre les prédictions.',
-	'authn.admin.title': 'Accès admin',
 	'authn.checking.aria': 'Vérification de la connexion',
 	'authn.passkey.create_button': 'Créer une passkey',
 	'authn.passkey.signin_button': 'Se connecter avec une passkey',
-	'authn.required.cta': 'Se connecter pour continuer',
-	'authn.required.description': 'Veuillez vous connecter pour accéder à cette page.',
-	'authn.required.title': 'Authentification requise',
 	'authn.signin_with.ii': 'Se connecter avec Internet Identity',
 	'authz.access_denied.description':
 		'Vous n’avez pas les permissions requises pour accéder à cette zone.',

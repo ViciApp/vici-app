@@ -80,10 +80,7 @@
 	};
 </script>
 
-<Protected
-	description={t({ locale: $localeStore, key: 'authn.admin.sub' })}
-	title={t({ locale: $localeStore, key: 'authn.admin.title' })}
->
+<Protected>
 	<PermissionGuard permission={Permission.VIEW_ADMIN_PANEL}>
 		<div class="mx-auto max-w-3xl space-y-8 px-4 py-8">
 			<header class="space-y-2">
