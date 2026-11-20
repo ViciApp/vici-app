@@ -138,3 +138,10 @@ export const handleCooldownDaysLeft = ({
 	// the lockout. The full window is the hard ceiling; never report negative.
 	return Math.min(HANDLE_COOLDOWN_DAYS, HANDLE_COOLDOWN_DAYS - daysSince);
 };
+
+/**
+ * Ceiling of a profile's lifetime `points` (display XP): far above any real
+ * total and well inside the range where numbers stay exact. Both backends
+ * refuse a profile write past it; the API's copy is pinned by a drift test.
+ */
+export const MAX_PROFILE_POINTS = 1_000_000_000;
