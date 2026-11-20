@@ -16,6 +16,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 - `requireUser(request)` (`src/auth/guard.ts`) returns the `AuthedUser` or `null`; on `null` return `unauthenticated(set)` (401). Admin endpoints check `requireUser` first and then `requireAdmin` (same file) with `forbidden(set)` (403), so the 401/403 split stays honest: `src/routes/vxp.ts` (`/admin/treasury`).
 - Sessions are cookies; never read a user id from the body or the query.
+- Every write (any method but `GET`, `HEAD`, `OPTIONS`) passes the guard `src/index.ts` runs on each request (`refuseUnsafeRequest`, `src/lib/same-origin.ts`): it must come from an origin of the CORS allowlist (a request without an `Origin` passes unless its fetch metadata says another site made it), and a JSON route takes a JSON body only, since the session cookie is `SameSite=Lax` and a sibling subdomain's form would otherwise post a body the route parses. A route that takes another body (a form, a multipart upload) gets an entry in `NON_JSON_ROUTES` (same file); one another site posts by design (`POST /auth/apple/callback`) is marked `crossSite` and carries its own check.
 
 ## Errors
 
