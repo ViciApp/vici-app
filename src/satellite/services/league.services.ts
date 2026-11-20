@@ -598,18 +598,20 @@ export const deleteLeagueFn = ({
 
 	const ownerKey = leagueMemberKey({ leagueId, memberPrincipal: callerText });
 	const memberRows = leagueMemberRows({ leagueId, caller: callerBytes });
-
-	for (const [key, { version }] of memberRows
-		.filter(([key]) => key !== ownerKey)
-		.slice(0, LEAGUE_DISBAND_BATCH - deleted)) {
+	const deleteMemberRow = ([key, { version }]: (typeof memberRows)[number]) =>
 		deleteDocStore({
 			collection: Collection.LEAGUE_MEMBERS,
 			key,
 			caller: writer,
 			doc: { version }
 		});
-		deleted += 1;
-	}
+
+	const batch = memberRows
+		.filter(([key]) => key !== ownerKey)
+		.slice(0, LEAGUE_DISBAND_BATCH - deleted);
+
+	batch.forEach(deleteMemberRow);
+	deleted += batch.length;
 
 	if (deleted > 0) {
 		return { ok: true, pending: true };
@@ -619,12 +621,7 @@ export const deleteLeagueFn = ({
 	const ownerRow = memberRows.find(([key]) => key === ownerKey);
 
 	if (nonNullish(ownerRow)) {
-		deleteDocStore({
-			collection: Collection.LEAGUE_MEMBERS,
-			key: ownerKey,
-			caller: writer,
-			doc: { version: ownerRow[1].version }
-		});
+		deleteMemberRow(ownerRow);
 	}
 
 	return { ok: true };
