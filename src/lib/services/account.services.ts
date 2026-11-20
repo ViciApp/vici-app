@@ -6,7 +6,8 @@ import {
 	hibernateMyAccount as hibernateMyAccountWeb2,
 	listBlockingLeagues as listBlockingLeaguesWeb2,
 	recoverMyAccount as recoverMyAccountWeb2,
-	resumeMyAccount as resumeMyAccountWeb2
+	resumeMyAccount as resumeMyAccountWeb2,
+	type Web2DeleteAccountResult
 } from '#lib/web2/client.ts';
 
 /**
@@ -41,7 +42,8 @@ export interface LeagueResolution {
 
 export interface DeleteMyAccountResult {
 	ok: boolean;
-	reason?: 'owns_non_empty_league' | 'league_resolution_failed' | 'invalid_input';
+	/** The satellite sends a subset of the API's reasons. */
+	reason?: Web2DeleteAccountResult['reason'];
 	blockingLeagueIds?: string[];
 	/** The league whose resolution failed (`reason === 'league_resolution_failed'`). */
 	failedLeagueId?: string;

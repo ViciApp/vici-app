@@ -1,9 +1,9 @@
-// Monthly tournament: deterministic seeding (member count desc, league id as
-// the tie-break; the same roster always draws the same bracket), the
-// idempotent draw, round resolution from the members' settled history with
-// the forfeit floor and write-once winner propagation, and the prize claim in
-// record-only mode: the tiers, eligibility from memberships that predate the
-// draw, and one prize per user per tournament.
+// Monthly tournament: deterministic seeding (members with a settled call in
+// the calendar month before the draw, desc, league id as the tie-break; the
+// same roster and history always draw the same bracket), the idempotent draw,
+// round resolution from the members' settled history with the forfeit floor
+// and write-once winner propagation, and the prize tiers of a full bracket in
+// record-only mode (claim eligibility lives in tournament-prize.test.ts).
 
 import { isNullish } from '@dfinity/utils';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
@@ -21,9 +21,8 @@ import {
 	triggerTournamentDraw,
 	type TournamentRound
 } from '../src/tournaments/tournaments';
-import { grantAward, setVxpTreasuryDisabled } from '../src/vxp/awards';
-import { grantTournamentPrize } from '../src/vxp/prizes';
-import { createTestUser, ensureMigrated } from './helpers/auth';
+import { setVxpTreasuryDisabled } from '../src/vxp/awards';
+import { ensureMigrated } from './helpers/auth';
 import { stubSettledHistory, type SettledHistoryStub } from './helpers/settlements';
 import { dbAvailable } from './helpers/setup';
 
@@ -31,7 +30,8 @@ const uniqueLeagueId = (): string => `tlg-${randomBytes(6).toString('hex')}`;
 
 // Month anchors reserved per suite so concurrent files never share one:
 // worlds-podium 2000 to 2099, monthly-stats 2100 to 2899, tournaments 2900 to
-// 2999, affiliation-stats 3000 and up, tournament-scoring 4000 and up.
+// 2999, affiliation-stats 3000 and up (on its own tables), tournament-prize
+// 3900 to 3999, tournament-scoring 4000 and up.
 const FIRST_TEST_YEAR = 2900;
 const FIRST_TEST_ANCHOR = `${FIRST_TEST_YEAR}-`;
 const PAST_LAST_TEST_ANCHOR = `${FIRST_TEST_YEAR + 100}-`;
@@ -103,6 +103,9 @@ describe.if(dbAvailable)('tournament', () => {
 
 	const ownerIds: string[] = [];
 
+	// Every member of each seeded league, its owner first.
+	const memberIds: string[][] = [];
+
 	// Settled history the clearing stub answers from; each league's owner
 	// settles its calls.
 	let settled: SettledHistoryStub | undefined;
@@ -135,6 +138,42 @@ describe.if(dbAvailable)('tournament', () => {
 		}
 	};
 
+	/** One settled call in the calendar month before `monthStartMs` for the
+	 * first `activeCount(i)` members of seeded league i (its owner first), the
+	 * history the draw seeds from. */
+	const settleSeedingMonth = ({
+		monthStartMs,
+		activeCount
+	}: {
+		monthStartMs: number;
+		activeCount: (seed: number) => number;
+	}): void => {
+		for (let i = 0; i < memberIds.length; i += 1) {
+			for (const userId of (memberIds[i] ?? []).slice(0, activeCount(i))) {
+				settled?.settle({ userId, atMs: monthStartMs - DAY_IN_MS, calls: 1, wins: 0 });
+			}
+		}
+	};
+
+	/** The draw of a month whose seeding history ranks the leagues in
+	 * `leagueIds` order: seed i has 16 - i active members. */
+	const drawInSeedOrder = async ({
+		monthAnchor,
+		startMs,
+		nowMs
+	}: {
+		monthAnchor: string;
+		startMs: number;
+		nowMs: number;
+	}): ReturnType<typeof triggerTournamentDraw> => {
+		settleSeedingMonth({
+			monthStartMs: startMs,
+			activeCount: (seed) => TOURNAMENT_BRACKET_SIZE - seed
+		});
+
+		return await triggerTournamentDraw({ monthAnchor, nowMs });
+	};
+
 	beforeAll(async () => {
 		await ensureMigrated();
 
@@ -154,6 +193,14 @@ describe.if(dbAvailable)('tournament', () => {
 
 			leagueIds.push(leagueId);
 			ownerIds.push(ownerId);
+
+			const members = await query<{ member_user_id: string }>(
+				`select member_user_id from league_members where league_id = $1
+				 order by (member_user_id = $2) desc, member_user_id`,
+				[leagueId, ownerId]
+			);
+
+			memberIds.push(members.map(({ member_user_id }) => member_user_id));
 		}
 
 		settled = stubSettledHistory();
@@ -172,7 +219,7 @@ describe.if(dbAvailable)('tournament', () => {
 
 		expect(early.reason).toBe('month_not_started');
 
-		const drawn = await triggerTournamentDraw({ monthAnchor, nowMs });
+		const drawn = await drawInSeedOrder({ monthAnchor, startMs, nowMs });
 
 		expect(drawn.ok).toBe(true);
 
@@ -185,14 +232,19 @@ describe.if(dbAvailable)('tournament', () => {
 			[monthAnchor]
 		);
 
-		// Member-count ranking: exactly the 16 seeded leagues, biggest first.
+		// Active-member ranking: exactly the 16 seeded leagues, most active first.
 		expect(rows[0]?.seeded_league_ids).toEqual(leagueIds);
 
-		// A second draw over the same roster (different month) produces the
-		// identical seeding: the bracket is a pure function of the data.
+		// A second draw over the same roster and history (different month)
+		// produces the identical seeding: the bracket is a pure function of
+		// the data.
 		const second = uniqueMonth();
 
-		await triggerTournamentDraw({ monthAnchor: second.monthAnchor, nowMs: second.startMs + 1000 });
+		await drawInSeedOrder({
+			monthAnchor: second.monthAnchor,
+			startMs: second.startMs,
+			nowMs: second.startMs + 1000
+		});
 
 		const secondRows = await query<{ seeded_league_ids: string[] }>(
 			`select seeded_league_ids from tournaments where id = $1`,
@@ -200,6 +252,31 @@ describe.if(dbAvailable)('tournament', () => {
 		);
 
 		expect(secondRows[0]?.seeded_league_ids).toEqual(leagueIds);
+	});
+
+	test('seeds by members with a settled call in the month before the draw, not by member count', async () => {
+		const { monthAnchor, startMs } = uniqueMonth();
+		const nowMs = startMs + 1000;
+
+		// Seed i has i + 1 active members: the reverse of its member count.
+		settleSeedingMonth({ monthStartMs: startMs, activeCount: (seed) => seed + 1 });
+
+		// History outside the calendar month before the draw lifts nobody:
+		// every member of the biggest league settles in the draw's own month
+		// and two months back.
+		for (const userId of memberIds[0] ?? []) {
+			settled?.settle({ userId, atMs: startMs, calls: 1, wins: 0 });
+			settled?.settle({ userId, atMs: startMs - 40 * DAY_IN_MS, calls: 1, wins: 0 });
+		}
+
+		expect((await triggerTournamentDraw({ monthAnchor, nowMs })).ok).toBe(true);
+
+		const rows = await query<{ seeded_league_ids: string[] }>(
+			`select seeded_league_ids from tournaments where id = $1`,
+			[monthAnchor]
+		);
+
+		expect(rows[0]?.seeded_league_ids).toEqual([...leagueIds].reverse());
 	});
 
 	test('only the current UTC month is drawn, while its round 1 is open: a late, closed or future month is refused', async () => {
@@ -240,7 +317,7 @@ describe.if(dbAvailable)('tournament', () => {
 		expect(await query(`select id from tournaments where id = $1`, [monthAnchor])).toEqual([]);
 
 		// It still draws on the last instant of round 1.
-		const lastChance = await triggerTournamentDraw({ monthAnchor, nowMs: roundOne.endMs - 1 });
+		const lastChance = await drawInSeedOrder({ monthAnchor, startMs, nowMs: roundOne.endMs - 1 });
 
 		expect(lastChance.ok).toBe(true);
 
@@ -263,6 +340,11 @@ describe.if(dbAvailable)('tournament', () => {
 
 		// Both callers pass the pre-check before either commits; the insert's
 		// conflict clause must hand exactly one of them the draw.
+		settleSeedingMonth({
+			monthStartMs: startMs,
+			activeCount: (seed) => TOURNAMENT_BRACKET_SIZE - seed
+		});
+
 		const [a, b] = await Promise.all([
 			triggerTournamentDraw({ monthAnchor, nowMs }),
 			triggerTournamentDraw({ monthAnchor, nowMs })
@@ -294,7 +376,7 @@ describe.if(dbAvailable)('tournament', () => {
 	test('round 1 pairs seed 1 with seed 16 and stores no start counters; later rounds are TBD', async () => {
 		const { monthAnchor, startMs } = uniqueMonth();
 
-		await triggerTournamentDraw({ monthAnchor, nowMs: startMs + 1000 });
+		await drawInSeedOrder({ monthAnchor, startMs, nowMs: startMs + 1000 });
 
 		const matches = await query<{
 			round: string;
@@ -326,7 +408,7 @@ describe.if(dbAvailable)('tournament', () => {
 	test('resolution applies the forfeit floor, propagates write-once, concludes, and pays the prize tiers', async () => {
 		const { monthAnchor, startMs } = uniqueMonth();
 
-		await triggerTournamentDraw({ monthAnchor, nowMs: startMs + 1000 });
+		await drawInSeedOrder({ monthAnchor, startMs, nowMs: startMs + 1000 });
 
 		// Mid-window refusals.
 		const early = await resolveTournamentRound({
@@ -411,15 +493,9 @@ describe.if(dbAvailable)('tournament', () => {
 
 		// Prize claims: gold for a member of the winner, silver for the other
 		// finalist (seed 5), bronze for a semifinal loser (seed 3); an
-		// outsider gets nothing; a re-claim collides.
-		const memberOf = async (index: number): Promise<string> => {
-			const rows = await query<{ member_user_id: string }>(
-				`select member_user_id from league_members where league_id = $1 limit 1`,
-				[leagueIds[index] ?? '']
-			);
-
-			return rows[0]?.member_user_id ?? '';
-		};
+		// outsider gets nothing; a re-claim collides. Each claimant is the
+		// league's owner, whose calls settled in every round window.
+		const memberOf = (index: number): Promise<string> => Promise.resolve(ownerIds[index] ?? '');
 
 		const gold = await claimTournamentPrize({
 			tournamentId: monthAnchor,
@@ -461,257 +537,5 @@ describe.if(dbAvailable)('tournament', () => {
 
 		expect(none.ok).toBe(false);
 		expect(none.reason).toBe('not_member_of_top_league');
-	});
-
-	/** Draws a fresh month and resolves every round, one qualifying window
-	 * each, the same way the full-bracket test does. Reads the placed leagues
-	 * back from the bracket: the memberships later tests add move member
-	 * counts, so the seeding of a later draw is not pinned to leagueIds. */
-	const concludeTournament = async (): Promise<{
-		monthAnchor: string;
-		drawnAtMs: number;
-		afterAllRoundsMs: number;
-		placeOneLeague: string;
-		placeTwoLeague: string;
-	}> => {
-		const { monthAnchor, startMs } = uniqueMonth();
-		const drawnAtMs = startMs + 1000;
-		const afterAllRoundsMs =
-			startMs + TOURNAMENT_ROUNDS.length * TOURNAMENT_ROUND_DURATION_MS + 1000;
-
-		await triggerTournamentDraw({ monthAnchor, nowMs: drawnAtMs });
-
-		for (const round of TOURNAMENT_ROUNDS) {
-			settleRoundForAll({ monthStartMs: startMs, round, forfeitBottomSeed: false });
-			await resolveTournamentRound({ tournamentId: monthAnchor, round, nowMs: afterAllRoundsMs });
-		}
-
-		const finalRows = await query<{
-			from_league_id: string;
-			to_league_id: string;
-			winner_league_id: string;
-		}>(
-			`select from_league_id, to_league_id, winner_league_id from tournament_matches
-			 where tournament_id = $1 and round = 'final'`,
-			[monthAnchor]
-		);
-		const [final] = finalRows;
-
-		if (isNullish(final)) {
-			throw new Error(`tournament ${monthAnchor} has no final`);
-		}
-
-		return {
-			monthAnchor,
-			drawnAtMs,
-			afterAllRoundsMs,
-			placeOneLeague: final.winner_league_id,
-			placeTwoLeague:
-				final.winner_league_id === final.from_league_id ? final.to_league_id : final.from_league_id
-		};
-	};
-
-	const addMember = async ({
-		leagueId,
-		userId,
-		joinedAtMs
-	}: {
-		leagueId: string;
-		userId: string;
-		joinedAtMs: number;
-	}): Promise<void> => {
-		await query(
-			`insert into league_members (league_id, member_user_id, joined_at_ms, role)
-			 values ($1, $2, $3, 'member')`,
-			[leagueId, userId, joinedAtMs]
-		);
-	};
-
-	const prizeKeysOf = async ({
-		userId,
-		tournamentId
-	}: {
-		userId: string;
-		tournamentId: string;
-	}): Promise<string[]> => {
-		const rows = await query<{ award_key: string }>(
-			`select award_key from vxp_awards
-			 where user_id = $1 and award_type = 'tournament_prize' and award_key like $2
-			 order by award_key`,
-			[userId, `${tournamentId}_place_%`]
-		);
-
-		return rows.map(({ award_key }) => award_key);
-	};
-
-	test('only memberships that predate the draw earn a prize', async () => {
-		const { monthAnchor, drawnAtMs, afterAllRoundsMs, placeOneLeague, placeTwoLeague } =
-			await concludeTournament();
-
-		// Joined the winner after the tournament concluded.
-		const lateJoiner = await createTestUser();
-
-		await addMember({ leagueId: placeOneLeague, userId: lateJoiner, joinedAtMs: afterAllRoundsMs });
-
-		const late = await claimTournamentPrize({ tournamentId: monthAnchor, userId: lateJoiner });
-
-		expect(late.ok).toBe(false);
-		expect(late.reason).toBe('not_member_of_top_league');
-		expect(await prizeKeysOf({ userId: lateJoiner, tournamentId: monthAnchor })).toEqual([]);
-
-		// Joined one millisecond after the draw, while the bracket was running.
-		const midJoiner = await createTestUser();
-
-		await addMember({ leagueId: placeOneLeague, userId: midJoiner, joinedAtMs: drawnAtMs + 1 });
-
-		expect(
-			(await claimTournamentPrize({ tournamentId: monthAnchor, userId: midJoiner })).reason
-		).toBe('not_member_of_top_league');
-
-		// A runner-up member from before the draw takes silver, then joins the
-		// winner and claims again: the late membership adds nothing.
-		const runnerUp = await createTestUser();
-
-		await addMember({ leagueId: placeTwoLeague, userId: runnerUp, joinedAtMs: drawnAtMs - 1 });
-
-		const silver = await claimTournamentPrize({ tournamentId: monthAnchor, userId: runnerUp });
-
-		expect(silver.totalVxpCredited).toBe(2500);
-
-		await addMember({ leagueId: placeOneLeague, userId: runnerUp, joinedAtMs: afterAllRoundsMs });
-
-		const again = await claimTournamentPrize({ tournamentId: monthAnchor, userId: runnerUp });
-
-		expect(again).toEqual({
-			ok: true,
-			awardsCreated: 0,
-			awardsAlreadyClaimed: 1,
-			totalVxpCredited: 0
-		});
-		expect(await prizeKeysOf({ userId: runnerUp, tournamentId: monthAnchor })).toEqual([
-			`${monthAnchor}_place_2`
-		]);
-
-		// A winner member from before the draw still takes gold, once.
-		const honest = await createTestUser();
-
-		await addMember({ leagueId: placeOneLeague, userId: honest, joinedAtMs: drawnAtMs - 1 });
-
-		expect(
-			(await claimTournamentPrize({ tournamentId: monthAnchor, userId: honest })).totalVxpCredited
-		).toBe(5000);
-		expect(
-			(await claimTournamentPrize({ tournamentId: monthAnchor, userId: honest }))
-				.awardsAlreadyClaimed
-		).toBe(1);
-	});
-
-	test('a member of both finalists gets one prize, the best place, however often they claim', async () => {
-		const { monthAnchor, drawnAtMs, placeOneLeague, placeTwoLeague } = await concludeTournament();
-
-		const both = await createTestUser();
-
-		await addMember({ leagueId: placeOneLeague, userId: both, joinedAtMs: drawnAtMs - 1 });
-		await addMember({ leagueId: placeTwoLeague, userId: both, joinedAtMs: drawnAtMs - 1 });
-
-		const first = await claimTournamentPrize({ tournamentId: monthAnchor, userId: both });
-
-		expect(first.totalVxpCredited).toBe(5000);
-
-		const second = await claimTournamentPrize({ tournamentId: monthAnchor, userId: both });
-
-		expect(second.awardsCreated).toBe(0);
-		expect(await prizeKeysOf({ userId: both, tournamentId: monthAnchor })).toEqual([
-			`${monthAnchor}_place_1`
-		]);
-
-		// Two concurrent first claims: exactly one award between them.
-		const racer = await createTestUser();
-
-		await addMember({ leagueId: placeOneLeague, userId: racer, joinedAtMs: drawnAtMs - 1 });
-		await addMember({ leagueId: placeTwoLeague, userId: racer, joinedAtMs: drawnAtMs - 1 });
-
-		const racing = await Promise.all([
-			claimTournamentPrize({ tournamentId: monthAnchor, userId: racer }),
-			claimTournamentPrize({ tournamentId: monthAnchor, userId: racer })
-		]);
-
-		expect(racing.map((r) => r.awardsCreated ?? 0).reduce((a, b) => a + b, 0)).toBe(1);
-		expect(await prizeKeysOf({ userId: racer, tournamentId: monthAnchor })).toEqual([
-			`${monthAnchor}_place_1`
-		]);
-	});
-
-	test('a prize already held for another place blocks the claim', async () => {
-		const { monthAnchor, drawnAtMs, placeOneLeague, placeTwoLeague } = await concludeTournament();
-
-		// Holds silver (granted while only the runner-up counted for them) and
-		// is also a pre-draw member of the winner: gold must not stack on top.
-		const holder = await createTestUser();
-
-		await addMember({ leagueId: placeOneLeague, userId: holder, joinedAtMs: drawnAtMs - 1 });
-		await addMember({ leagueId: placeTwoLeague, userId: holder, joinedAtMs: drawnAtMs - 1 });
-
-		expect(
-			(await grantTournamentPrize({ userId: holder, tournamentId: monthAnchor, place: 2 })).outcome
-		).toBe('recorded');
-
-		const claim = await claimTournamentPrize({ tournamentId: monthAnchor, userId: holder });
-
-		expect(claim.awardsCreated).toBe(0);
-		expect(claim.awardsAlreadyClaimed).toBe(1);
-		expect(await prizeKeysOf({ userId: holder, tournamentId: monthAnchor })).toEqual([
-			`${monthAnchor}_place_2`
-		]);
-
-		// A prize imported from the legacy app counts the same way.
-		const imported = await createTestUser();
-
-		await addMember({ leagueId: placeOneLeague, userId: imported, joinedAtMs: drawnAtMs - 1 });
-		await query(
-			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status,
-			   earned_at_ms, origin)
-			 values ($1, 'tournament_prize', $2, 1, 'paid', $3, 'etl')`,
-			[imported, `${monthAnchor}_place_3`, Date.now()]
-		);
-
-		expect(
-			(await claimTournamentPrize({ tournamentId: monthAnchor, userId: imported })).awardsCreated
-		).toBe(0);
-		expect(await prizeKeysOf({ userId: imported, tournamentId: monthAnchor })).toEqual([
-			`${monthAnchor}_place_3`
-		]);
-	});
-
-	test('concurrent grants for different places of one tournament pay once', async () => {
-		const { monthAnchor } = uniqueMonth();
-		const userId = await createTestUser();
-
-		const outcomes = await Promise.all(
-			([1, 2, 3] as const).map((place) =>
-				grantTournamentPrize({ userId, tournamentId: monthAnchor, place })
-			)
-		);
-
-		expect(outcomes.filter(({ outcome }) => outcome === 'recorded').length).toBe(1);
-		expect(outcomes.filter(({ outcome }) => outcome === 'already').length).toBe(2);
-		expect((await prizeKeysOf({ userId, tournamentId: monthAnchor })).length).toBe(1);
-
-		// The index holds even for a grant that skips the read: the ledger
-		// core turns the collision into 'already' instead of raising.
-		const [held] = await prizeKeysOf({ userId, tournamentId: monthAnchor });
-		const otherPlace = held === `${monthAnchor}_place_1` ? 2 : 1;
-
-		expect(
-			(
-				await grantAward({
-					userId,
-					awardType: 'tournament_prize',
-					awardKey: `${monthAnchor}_place_${otherPlace}`,
-					amountBaseUnits: BigInt(1)
-				})
-			).outcome
-		).toBe('already');
-		expect((await prizeKeysOf({ userId, tournamentId: monthAnchor })).length).toBe(1);
 	});
 });

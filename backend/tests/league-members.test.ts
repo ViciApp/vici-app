@@ -5,11 +5,15 @@
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { createSession } from '../src/auth/sessions';
+import { query } from '../src/db/client';
 import { app } from '../src/index';
 import {
 	createLeague,
 	deleteLeague,
 	getLeague,
+	LEAGUE_INVITE_CODE_LENGTH,
+	LEAGUE_INVITE_CODE_REGEX,
+	LEAGUE_LEGACY_INVITE_CODE_LENGTH,
 	listLeagueMembers,
 	listMyLeagues,
 	lookupLeagueByInvite,
@@ -26,6 +30,14 @@ import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 
 const uniqueLeagueId = (): string => `lg-${randomBytes(6).toString('hex')}`;
+
+/** A fresh `[0-9A-F]` code of `length`, a shape the invite-code check accepts. */
+const uniqueCode = (length: number): string =>
+	randomBytes(length).toString('hex').slice(0, length).toUpperCase();
+
+/** Gives `leagueId` the invite `code`, as a league founded with it holds it. */
+const setInviteCode = async ({ leagueId, code }: { leagueId: string; code: string }) =>
+	await query(`update leagues set invite_code = $2 where id = $1`, [leagueId, code]);
 
 const seedLeague = async (
 	overrides: { privacy?: 'open' | 'private' } = {}
@@ -49,7 +61,8 @@ describe.if(dbAvailable)('league creation', () => {
 	test('creates the league with an owner membership row and a valid invite code', async () => {
 		const { ownerId, leagueId, inviteCode } = await seedLeague();
 
-		expect(inviteCode).toMatch(/^[A-Z0-9]{6}$/);
+		expect(inviteCode).toHaveLength(LEAGUE_INVITE_CODE_LENGTH);
+		expect(LEAGUE_INVITE_CODE_REGEX.test(inviteCode)).toBe(true);
 
 		const member = await getLeagueMember({ leagueId, memberUserId: ownerId });
 
@@ -77,6 +90,18 @@ describe.if(dbAvailable)('league creation', () => {
 
 		expect((await lookupLeagueByInvite(inviteCode))?.id).toBe(leagueId);
 		expect(await lookupLeagueByInvite('ZZZZZ0')).toBeUndefined();
+	});
+
+	test('keeps the shorter code of an older league joinable', async () => {
+		const { leagueId } = await seedLeague();
+		const code = uniqueCode(LEAGUE_LEGACY_INVITE_CODE_LENGTH);
+
+		await setInviteCode({ leagueId, code });
+
+		expect((await lookupLeagueByInvite(code))?.id).toBe(leagueId);
+		expect(
+			(await joinLeagueByInvite({ inviteCode: code, userId: await createTestUser() })).leagueId
+		).toBe(leagueId);
 	});
 });
 
@@ -307,5 +332,27 @@ describe.if(dbAvailable)('invite-code guesses', () => {
 
 		expect((await lookupAs(otherToken)).status).toBe(200);
 		expect((await joinAs(otherToken)).status).toBe(400);
+	});
+
+	test('joins through the route with a code of either length', async () => {
+		for (const length of [LEAGUE_INVITE_CODE_LENGTH, LEAGUE_LEGACY_INVITE_CODE_LENGTH]) {
+			const { leagueId } = await seedLeague();
+			const code = uniqueCode(length);
+
+			await setInviteCode({ leagueId, code });
+
+			const response = await app.handle(
+				new Request('http://localhost/api/v1/leagues/join', {
+					method: 'POST',
+					headers: {
+						'content-type': 'application/json',
+						cookie: `vici_session=${await createSession(await createTestUser())}`
+					},
+					body: JSON.stringify({ inviteCode: code })
+				})
+			);
+
+			expect(response.status).toBe(200);
+		}
 	});
 });

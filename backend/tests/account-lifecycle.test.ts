@@ -5,7 +5,8 @@
 // hibernation, and the retention sweep.
 
 import { isNullish } from '@dfinity/utils';
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { fakeEngineActorProvider } from '../e2e/fake-engine';
 import {
 	ACCOUNT_RECOVERY_WINDOW_MS,
 	deleteMyAccount,
@@ -21,6 +22,7 @@ import { resolveIdentity } from '../src/auth/identity';
 import { createOtp, verifyOtp } from '../src/auth/otp';
 import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
+import { setEngineActorProvider } from '../src/engine/actors';
 import { app } from '../src/index';
 import { createLeague } from '../src/leagues/leagues';
 import { joinLeagueByInvite } from '../src/leagues/members';
@@ -99,8 +101,16 @@ const exitSignalCount = async (): Promise<number> => {
 };
 
 describe.if(dbAvailable)('account lifecycle', () => {
+	let restoreEngine: () => void = () => undefined;
+
 	beforeAll(async () => {
 		await ensureMigrated();
+		// Every delete and purge reads the custodial principal's ic balances.
+		restoreEngine = setEngineActorProvider(fakeEngineActorProvider);
+	});
+
+	afterAll(() => {
+		restoreEngine();
 	});
 
 	describe('input validation', () => {

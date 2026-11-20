@@ -13,7 +13,8 @@ import { query, tx, type TxQuery } from '../db/client';
 import { codeExpiryNotice, sendEmail } from '../lib/email';
 import { logger } from '../lib/logger';
 import { MINUTE_IN_MS } from '../lib/time';
-import { spMatchEmail, spNormalize } from './matching';
+import { SCHOOL_DIRECTORY } from './directory';
+import { isDomainOf, spMatchEmail, spNormalize } from './matching';
 
 /** Time-to-live of a verification code (~30 minutes). */
 export const SCHOOL_CODE_TTL_MS = 30 * MINUTE_IN_MS;
@@ -29,6 +30,14 @@ export const SCHOOL_VERIFY_DAILY_CAP = 5;
 
 /** A school goes public once this many members have email-verified. */
 export const SCHOOL_VERIFIED_PUBLIC_THRESHOLD = 3;
+
+/** Longest school name a submission may carry: the name's slug becomes the
+ * school id an affiliation is committed with, which the Worlds route caps at
+ * the same length. */
+export const MAX_SCHOOL_NAME_LENGTH = 128;
+
+/** A submission's country is an ISO-3166 alpha-2 code. */
+export const COUNTRY_CODE_LENGTH = 2;
 
 /** The app_settings key gating the whole feature server-side: verification
  * stays OFF until an admin writes `{ "enabled": true }` here. */
@@ -118,11 +127,14 @@ interface ResolvedSchool {
 	isNew: boolean;
 }
 
+const SCHOOL_TAKEN_MESSAGE = 'This school is already listed under another email domain.';
+
 /**
  * Server-authoritative domain gate: a directory match wins outright, a
  * consumer mailbox (or unparseable address) is rejected, and an unknown
  * plausible school domain becomes a brand-new school keyed by its
- * normalized name.
+ * normalized name, unless that name is a directory school's id: the
+ * directory school is reached by its own domains only.
  */
 const resolveSchool = ({
 	email,
@@ -161,6 +173,10 @@ const resolveSchool = ({
 		throw new SchoolVerificationError('Enter the name of your university.');
 	}
 
+	if (SCHOOL_DIRECTORY.some(({ id }) => id === slug)) {
+		throw new SchoolVerificationError(SCHOOL_TAKEN_MESSAGE);
+	}
+
 	return {
 		schoolId: slug,
 		name: name.trim(),
@@ -168,6 +184,33 @@ const resolveSchool = ({
 		domains: [matched.domain],
 		isNew: true
 	};
+};
+
+/**
+ * Whether a brand-new school may take this id: free in the registry, or held
+ * by a row whose domains cover the address. The row's domains are the
+ * registry's (seeded by an admin or by the first verified member), never the
+ * typed name, so a second school with the same name cannot join it.
+ */
+const registryAdmits = async ({
+	q,
+	schoolId,
+	domains
+}: {
+	q: TxQuery;
+	schoolId: string;
+	domains: string[];
+}): Promise<boolean> => {
+	const rows = await q<{ domains: string[] }>(
+		`select domains from schools where school_id = $1 for update`,
+		[schoolId]
+	);
+	const [row] = rows;
+
+	return (
+		isNullish(row) ||
+		domains.every((domain) => row.domains.some((known) => isDomainOf({ domain, known })))
+	);
 };
 
 const recentSendCounts = async ({
@@ -247,6 +290,10 @@ export const submitSchool = async ({
 	const lowerEmail = email.toLowerCase().trim();
 	const resolved = resolveSchool({ email: lowerEmail, name, country });
 
+	if (resolved.isNew && !(await registryAdmits({ q: query, ...resolved }))) {
+		throw new SchoolVerificationError(SCHOOL_TAKEN_MESSAGE);
+	}
+
 	const { byUser, byEmail } = await recentSendCounts({ userId, email: lowerEmail });
 
 	if (byUser >= SCHOOL_VERIFY_DAILY_CAP || byEmail >= SCHOOL_VERIFY_DAILY_CAP) {
@@ -302,53 +349,70 @@ export const submitSchool = async ({
 
 /**
  * Recompute a school's verified-member count from the verified submissions
- * (distinct members) and persist the registry row, flipping it public at
- * the threshold. Recomputing from source keeps it idempotent and
- * concurrency-safe: re-running, or two members verifying at once, cannot
- * double-count.
+ * (distinct members) and persist it on the registry row, flipping the row
+ * public when this count crosses the threshold. Recomputing from source
+ * keeps it idempotent and concurrency-safe: re-running, or two members
+ * verifying at once, cannot double-count. A member's verification never
+ * rewrites the row's name, country, domains or a status an admin set: the
+ * flip fires only on the crossing, so a school held back past the threshold
+ * stays held back.
  */
-const upsertSchoolRegistry = async ({
+const recountSchoolRegistry = async ({
 	q,
-	resolved
+	schoolId
 }: {
 	q: TxQuery;
-	resolved: Pick<SchoolRecord, 'schoolId' | 'name' | 'country' | 'domains'>;
+	schoolId: string;
 }): Promise<SchoolStatus> => {
 	const counts = await q<{ count: string }>(
 		`select count(distinct user_id)::text as count
 		 from school_submissions
 		 where school_id = $1 and status = 'verified'`,
-		[resolved.schoolId]
+		[schoolId]
 	);
 	const verifiedMemberCount = Number(counts[0]?.count ?? 0);
-	const status: SchoolStatus =
-		verifiedMemberCount >= SCHOOL_VERIFIED_PUBLIC_THRESHOLD ? 'public' : 'pending';
+	const nowMs = Date.now();
+
+	const rows = await q<{ status: SchoolStatus }>(
+		`update schools set
+		   verified_member_count = $2,
+		   status = case
+		     when verified_member_count < $3 and $2 >= $3 then 'public'
+		     else status
+		   end,
+		   updated_at_ms = $4
+		 where school_id = $1
+		 returning status`,
+		[schoolId, verifiedMemberCount, SCHOOL_VERIFIED_PUBLIC_THRESHOLD, nowMs]
+	);
+	const [row] = rows;
+
+	if (isNullish(row)) {
+		throw new Error(`school registry row ${schoolId} missing after its claim`);
+	}
+
+	return row.status;
+};
+
+/** Creates the registry row from the submission when the school has none
+ * yet, and keeps an existing row as it is. */
+const claimSchoolRegistry = async ({
+	q,
+	resolved
+}: {
+	q: TxQuery;
+	resolved: Pick<SchoolRecord, 'schoolId' | 'name' | 'country' | 'domains'>;
+}): Promise<void> => {
 	const nowMs = Date.now();
 
 	await q(
 		`insert into schools
 		   (school_id, name, country, domains, verified_member_count, status,
 		    created_at_ms, updated_at_ms)
-		 values ($1, $2, $3, $4, $5, $6, $7, $7)
-		 on conflict (school_id) do update set
-		   name = excluded.name,
-		   country = excluded.country,
-		   domains = excluded.domains,
-		   verified_member_count = excluded.verified_member_count,
-		   status = excluded.status,
-		   updated_at_ms = excluded.updated_at_ms`,
-		[
-			resolved.schoolId,
-			resolved.name,
-			resolved.country,
-			resolved.domains,
-			verifiedMemberCount,
-			status,
-			nowMs
-		]
+		 values ($1, $2, $3, $4, 0, 'pending', $5, $5)
+		 on conflict (school_id) do nothing`,
+		[resolved.schoolId, resolved.name, resolved.country, resolved.domains, nowMs]
 	);
-
-	return status;
 };
 
 export interface VerifySchoolCodeResult {
@@ -387,12 +451,13 @@ export const verifySchoolCode = async ({
 		school_name: string;
 		country: string | null;
 		domains: string[];
+		is_new: boolean;
 		expires_at_ms: string;
 		status: SchoolSubmissionStatus;
 	}
 
 	const rows = await query<SubmissionRow>(
-		`select id, user_id, school_id, school_name, country, domains,
+		`select id, user_id, school_id, school_name, country, domains, is_new,
 		        expires_at_ms::text, status
 		 from school_submissions where id = $1`,
 		[submissionId]
@@ -447,21 +512,28 @@ export const verifySchoolCode = async ({
 		return { ok: false, message: 'invalid-code' };
 	}
 
-	const status = await tx(async (q) => {
+	const resolved = {
+		schoolId: submission.school_id,
+		name: submission.school_name,
+		country: submission.country,
+		domains: submission.domains
+	};
+
+	const status = await tx(async (q): Promise<SchoolStatus | undefined> => {
+		await claimSchoolRegistry({ q, resolved });
+
+		// Checked again here: another school of the same name may have been
+		// verified into the registry since this code was sent.
+		if (submission.is_new && !(await registryAdmits({ q, ...resolved }))) {
+			return;
+		}
+
 		await q(
 			`update school_submissions set status = 'verified', verified_at_ms = $2 where id = $1`,
 			[submission.id, now]
 		);
 
-		const registryStatus = await upsertSchoolRegistry({
-			q,
-			resolved: {
-				schoolId: submission.school_id,
-				name: submission.school_name,
-				country: submission.country,
-				domains: submission.domains
-			}
-		});
+		const registryStatus = await recountSchoolRegistry({ q, schoolId: resolved.schoolId });
 
 		// Server-set so the verification claim is authoritative rather than
 		// client-asserted. No-op when the profile is missing.
@@ -469,6 +541,10 @@ export const verifySchoolCode = async ({
 
 		return registryStatus;
 	});
+
+	if (isNullish(status)) {
+		return { ok: false, message: 'school-taken' };
+	}
 
 	logger.info(`school verified: user ${userId}, school ${submission.school_id}, status ${status}`);
 

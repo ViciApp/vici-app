@@ -375,6 +375,9 @@
 				const failed = ownedLeagues.find((l) => l.id === result.failedLeagueId);
 				errorKey = 'settings.delete.error_handoff';
 				errorParams = { league: failed?.name ?? result.failedLeagueId ?? '' };
+			} else if (result.reason === 'holds_custody_funds') {
+				errorKey = 'settings.delete.error_withdraw_first';
+				errorParams = undefined;
 			} else {
 				errorKey = 'settings.delete.error';
 				errorParams = undefined;

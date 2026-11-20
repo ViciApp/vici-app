@@ -13,8 +13,10 @@ import { setEmailTransport, type EmailMessage } from '../src/lib/email';
 import { resetRateLimits } from '../src/lib/rate-limit';
 import { MINUTE_IN_MS } from '../src/lib/time';
 import {
+	adminUpsertSchool,
 	escapeHtml,
 	hashSchoolCode,
+	MAX_SCHOOL_NAME_LENGTH,
 	SCHOOL_CODE_MAX_ATTEMPTS,
 	SCHOOL_CODE_TTL_MS,
 	SCHOOL_VERIFICATION_SETTING_KEY,
@@ -355,6 +357,201 @@ describe.if(dbAvailable)('school verification', () => {
 			);
 
 			expect(schools[0]).toEqual({ verified_member_count: 3, status: 'public' });
+		});
+	});
+
+	describe('registry ownership', () => {
+		const runSlug = (): string =>
+			`own${crypto
+				.randomUUID()
+				.slice(0, 8)
+				.replace(/[^a-z0-9]/g, '')}`;
+
+		const verifyNew = async ({
+			userId,
+			name,
+			domain
+		}: {
+			userId: string;
+			name: string;
+			domain: string;
+		}): Promise<{ submissionId: string; code: string }> => {
+			const { submissionId } = await submitSchool({
+				userId,
+				name,
+				country: 'FR',
+				email: `${uniqueLocal()}@${domain}`
+			});
+
+			return { submissionId, code: recoverCode(await readSubmission(submissionId)) };
+		};
+
+		const readSchool = async (schoolId: string) => {
+			const rows = await query<{
+				name: string;
+				country: string | null;
+				domains: string[];
+				verified_member_count: number;
+				status: string;
+			}>(
+				`select name, country, domains, verified_member_count, status
+				 from schools where school_id = $1`,
+				[schoolId]
+			);
+
+			return rows[0];
+		};
+
+		test('a typed name that normalizes to a directory id is refused', async () => {
+			const userId = await createTestUser();
+
+			expect(
+				submitSchool({
+					userId,
+					name: 'The MIT',
+					country: 'US',
+					email: `${uniqueLocal()}@${runSlug()}.example`
+				})
+			).rejects.toThrow('This school is already listed under another email domain.');
+		});
+
+		test('a registry id answers only to its own domains', async () => {
+			const schoolId = runSlug();
+
+			await adminUpsertSchool({
+				schoolId,
+				name: 'Seeded',
+				country: 'FR',
+				domains: [`${schoolId}.example`]
+			});
+
+			expect(
+				submitSchool({
+					userId: await createTestUser(),
+					name: schoolId,
+					country: 'FR',
+					email: `${uniqueLocal()}@other-${schoolId}.example`
+				})
+			).rejects.toThrow('This school is already listed under another email domain.');
+		});
+
+		test('a verification keeps the name, domains and admin status of the registry row', async () => {
+			const schoolId = runSlug();
+			const domain = `${schoolId}.example`;
+
+			await adminUpsertSchool({
+				schoolId,
+				name: 'Seeded Name',
+				country: 'BE',
+				domains: [domain, `alt-${domain}`],
+				status: 'public'
+			});
+
+			const { userId } = await createTestProfile();
+			const { submissionId, code } = await verifyNew({
+				userId,
+				name: `${schoolId} University`,
+				domain: `mail.${domain}`
+			});
+
+			expect(await verifySchoolCode({ userId, submissionId, code })).toEqual({
+				ok: true,
+				schoolId,
+				status: 'public'
+			});
+			expect(await readSchool(schoolId)).toEqual({
+				name: 'Seeded Name',
+				country: 'BE',
+				domains: [domain, `alt-${domain}`],
+				verified_member_count: 1,
+				status: 'public'
+			});
+		});
+
+		test('a school the admin held back stays pending as members keep verifying', async () => {
+			const schoolId = runSlug();
+			const domain = `${schoolId}.example`;
+
+			for (let i = 0; i < 3; i++) {
+				const { userId } = await createTestProfile();
+				const { submissionId, code } = await verifyNew({ userId, name: schoolId, domain });
+
+				await verifySchoolCode({ userId, submissionId, code });
+			}
+
+			expect((await readSchool(schoolId))?.status).toBe('public');
+
+			await adminUpsertSchool({
+				schoolId,
+				name: schoolId,
+				country: 'FR',
+				domains: [domain],
+				status: 'pending'
+			});
+
+			const { userId } = await createTestProfile();
+			const { submissionId, code } = await verifyNew({ userId, name: schoolId, domain });
+
+			expect(await verifySchoolCode({ userId, submissionId, code })).toEqual({
+				ok: true,
+				schoolId,
+				status: 'pending'
+			});
+			expect(await readSchool(schoolId)).toMatchObject({
+				verified_member_count: 4,
+				status: 'pending'
+			});
+		});
+
+		test('of two pending claims on one name, the second domain cannot verify into the first school', async () => {
+			const schoolId = runSlug();
+			const first = await createTestProfile();
+			const second = await createTestProfile();
+			const firstClaim = await verifyNew({
+				userId: first.userId,
+				name: schoolId,
+				domain: `${schoolId}.example`
+			});
+			const secondClaim = await verifyNew({
+				userId: second.userId,
+				name: schoolId,
+				domain: `elsewhere-${schoolId}.example`
+			});
+
+			expect((await verifySchoolCode({ userId: first.userId, ...firstClaim })).ok).toBeTrue();
+			expect(await verifySchoolCode({ userId: second.userId, ...secondClaim })).toEqual({
+				ok: false,
+				message: 'school-taken'
+			});
+			expect(await readSchool(schoolId)).toMatchObject({
+				domains: [`${schoolId}.example`],
+				verified_member_count: 1
+			});
+
+			const profiles = await query<{ school_status: string | null }>(
+				`select school_status from profiles where user_id = $1`,
+				[second.userId]
+			);
+
+			expect(profiles[0]?.school_status).toBeNull();
+		});
+
+		test('the submit route refuses a name past the cap and a country that is not a two-letter code', async () => {
+			const token = await createSession(await createTestUser());
+			const submitAs = (body: Record<string, unknown>) =>
+				app.handle(
+					new Request('http://localhost/api/v1/school/submit', {
+						method: 'POST',
+						headers: { 'content-type': 'application/json', cookie: `vici_session=${token}` },
+						body: JSON.stringify({ email: `${uniqueLocal()}@mit.edu`, ...body })
+					})
+				);
+
+			expect((await submitAs({ name: 'x'.repeat(MAX_SCHOOL_NAME_LENGTH + 1) })).status).toBe(400);
+			expect((await submitAs({ name: 'MIT', country: 'United States of America' })).status).toBe(
+				400
+			);
+			expect((await submitAs({ name: 'MIT', country: 'US' })).status).toBe(200);
 		});
 	});
 
