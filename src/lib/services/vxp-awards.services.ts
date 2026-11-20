@@ -10,7 +10,9 @@ import { claimCalibrationReward as claimCalibrationRewardWeb2 } from '#lib/web2/
  * doesn't need a client call; the referral cap runs inside
  * `onReferralSetForVxpPayout` and also doesn't need one. The surface the
  * FE has to actively call is the **calibration reward**, since it depends
- * on the user's own balance state and the market they just resolved.
+ * on the user's own balance state and the market they just resolved, plus
+ * the settle path for failed achievement and Flow milestone payouts
+ * ({@link settleProfileAwards}).
  */
 
 /**
@@ -96,4 +98,26 @@ export const claimCalibrationReward = async ({
 		reason: result.reason,
 		errorMessage: result.errorMessage
 	};
+};
+
+/**
+ * Send the caller's failed achievement and Flow milestone payouts again,
+ * a few per call, when the profile opens: their triggers rarely come back
+ * for the same award, so this is their settle path. Returns how many were
+ * paid now. The web2 API reopens a failed award on its next grant and has
+ * no such route, so it answers 0 there. Best-effort: a transport error
+ * resolves to 0 so it can never break the page load it rides along with.
+ */
+export const settleProfileAwards = async (): Promise<number> => {
+	if (isWeb2Backend()) {
+		return 0;
+	}
+
+	try {
+		const { settled } = await functions.settleProfileAwards();
+
+		return settled;
+	} catch {
+		return 0;
+	}
 };

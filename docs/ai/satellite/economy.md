@@ -54,7 +54,9 @@ one pattern. Each of these has bitten a PR before:
   failed payout are the settle and claim endpoints
   (`settleFounderAwards`, `claimCalibrationReward`,
   `claimWorldsPodiumPrize`, `claimTournamentPrize`), each
-  `recordFlowSwipe` at the day's cap, and the profile hooks when their
+  `recordFlowSwipe` at the day's cap, `settleProfileAwards` (the Profile
+  page calls it on open) for achievement and Flow milestone payouts,
+  whose triggers rarely come again, and the profile hooks when their
   trigger fires again for that key (a streak or call count crossing the
   milestone again, the achievement id newly in the list, another return
   past the comeback gate). There is no hook replay (see
