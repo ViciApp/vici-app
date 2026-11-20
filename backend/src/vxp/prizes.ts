@@ -39,7 +39,8 @@ export const grantWorldsPodiumPrize = ({
 /**
  * One tournament prize per user per tournament, whatever the place: keyed
  * <tournamentId>_place_<n>, and refused when the user already holds a prize
- * for that tournament under any place. The read covers prizes imported from
+ * for that tournament under any place that did not fail (a failed one is
+ * reopened by the grant and sent again). The read covers prizes imported from
  * the legacy app; between two live grants the tournament-scoped unique index
  * (migration 0018) settles the race, so two concurrent grants for different
  * places cannot both land.
@@ -59,6 +60,7 @@ export const grantTournamentPrize = async ({
 		`select 1 as one from vxp_awards
 		 where user_id = $1 and award_type = 'tournament_prize'
 		   and split_part(award_key, '_place_', 1) = $2
+		   and status <> 'failed'
 		 limit 1`,
 		[userId, tournamentId]
 	);

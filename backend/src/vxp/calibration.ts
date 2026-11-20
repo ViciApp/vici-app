@@ -142,14 +142,10 @@ const CALIBRATION_CAPS = [
 	{ max: CALIBRATION_DAILY_CAP, windowMs: DAY_IN_MS, reason: 'rate_limited_daily' }
 ] as const satisfies readonly AwardCap<CalibrationReason>[];
 
-/**
- * Session-gated claim. Never throws on expected ineligibility (the client
- * renders the reason); idempotency and rate limiting both come off the
- * caller's own calibration awards, so a second claim on the same market is
- * a clean already-claimed. A call that contradicts the side already on
- * record for the market is not judged again (already_called).
- */
-export const claimCalibrationReward = async ({
+/** Why a first claim on a market earns nothing (engagement, holdings floor,
+ * market shape, resolution, the side on record, a wrong call), or undefined
+ * when the call was right and the reward may be granted. */
+const refuseCalibrationCall = async ({
 	userId,
 	seriesId,
 	chosenSide
@@ -157,16 +153,7 @@ export const claimCalibrationReward = async ({
 	userId: string;
 	seriesId: string;
 	chosenSide: CallSide;
-}): Promise<CalibrationRewardResult> => {
-	// Per-market dedupe, before any cross-canister work. Already-claimed
-	// markets report correct (the reward only exists when the call was right)
-	// without re-paying.
-	const existing = await getAward({ userId, awardType: 'calibration', awardKey: seriesId });
-
-	if (nonNullish(existing)) {
-		return { correct: true, paidNow: false, alreadyClaimed: true };
-	}
-
+}): Promise<CalibrationRewardResult | undefined> => {
 	if (!(await hasEngaged(userId))) {
 		return { correct: false, paidNow: false, alreadyClaimed: false, reason: 'not_engaged_yet' };
 	}
@@ -203,6 +190,42 @@ export const claimCalibrationReward = async ({
 	// daily budget.
 	if (chosenSide !== resolution.side) {
 		return { correct: false, paidNow: false, alreadyClaimed: false };
+	}
+};
+
+/**
+ * Session-gated claim. Never throws on expected ineligibility (the client
+ * renders the reason); idempotency and rate limiting both come off the
+ * caller's own calibration awards, so a second claim on the same market is
+ * a clean already-claimed. A call that contradicts the side already on
+ * record for the market is not judged again (already_called). A reward whose
+ * transfer failed was judged right and passed every gate when it was
+ * earned, so a claim sends it again (the grant reopens it) without them.
+ */
+export const claimCalibrationReward = async ({
+	userId,
+	seriesId,
+	chosenSide
+}: {
+	userId: string;
+	seriesId: string;
+	chosenSide: CallSide;
+}): Promise<CalibrationRewardResult> => {
+	// Per-market dedupe, before any cross-canister work. Already-claimed
+	// markets report correct (the reward only exists when the call was right)
+	// without re-paying.
+	const existing = await getAward({ userId, awardType: 'calibration', awardKey: seriesId });
+
+	if (nonNullish(existing) && existing.status !== 'failed') {
+		return { correct: true, paidNow: false, alreadyClaimed: true };
+	}
+
+	const refused = nonNullish(existing)
+		? undefined
+		: await refuseCalibrationCall({ userId, seriesId, chosenSide });
+
+	if (nonNullish(refused)) {
+		return refused;
 	}
 
 	const amount = VXP_CALIBRATION_REWARD_BASE_UNITS;
