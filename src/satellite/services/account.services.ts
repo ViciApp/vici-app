@@ -580,12 +580,13 @@ const deleteOwnRelations = ({ callerText, callerBytes, writer }: CascadeStep): n
 /**
  * Drop the caller's referral code (`referral_codes` is reverse-
  * indexed: key is the code, value is the owner). One row max per
- * user; iterate to find theirs.
+ * user; iterate to find theirs, listed as `writer` because the
+ * collection is controllers-only.
  */
-const deleteOwnReferralCode = ({ callerText, callerBytes, writer }: CascadeStep): number => {
+const deleteOwnReferralCode = ({ callerText, writer }: CascadeStep): number => {
 	const { items } = listDocsStore({
 		collection: Collection.REFERRAL_CODES,
-		caller: callerBytes,
+		caller: writer,
 		params: {}
 	});
 

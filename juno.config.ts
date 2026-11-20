@@ -262,11 +262,16 @@ export default defineConfig(({ mode }) => ({
 					read: 'controllers',
 					write: 'controllers'
 				},
+				// Each user's referral code, keyed by the code. Controllers-only:
+				// the satellite assigns a code when a profile is created and
+				// resolves one through `lookupReferralCode`, `getMyReferralCode`,
+				// the redeem and the friendship claim, so no client lists the
+				// codes or reads who owns them.
 				{
 					collection: JunoDatastoreCollection.REFERRAL_CODES,
 					memory: 'stable',
-					read: 'public',
-					write: 'public'
+					read: 'controllers',
+					write: 'controllers'
 				},
 				{
 					collection: JunoDatastoreCollection.REFERRALS,

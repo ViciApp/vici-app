@@ -7,10 +7,13 @@ import {
 } from '#lib/constants/referral.constants.ts';
 import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import type { ReferralDoc } from '#lib/types/referral.ts';
+import type { Relation } from '#lib/types/relation.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
+import junoConfig from '#root/juno.config.ts';
 import {
 	controller,
 	deleteContext,
+	docBytes,
 	hostNowMs,
 	installSatelliteHost,
 	setContext,
@@ -19,12 +22,18 @@ import {
 import { assertDeleteDoc, assertSetDoc } from '#satellite/index.ts';
 import {
 	assertDeleteReferral,
-	assertDeleteReferralCode,
 	assertSetReferral,
+	assertSetReferralCode,
+	claimReferralFriendshipFn,
+	getMyReferralCodeFn,
 	isReferralPayoutRecord,
+	lookupReferralCodeFn,
+	onProfileSetForReferralCode,
+	redeemReferralCodeFn,
 	settleReferralFn
 } from '#satellite/services/referral.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
+import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerIdl } from '@junobuild/functions/canisters/ledger/icrc';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
@@ -210,26 +219,143 @@ describe('referral.services', () => {
 		});
 	});
 
-	describe('assertDeleteReferralCode', () => {
-		const remove = (caller: Principal) =>
-			deleteContext({
-				caller,
-				collection: Collection.REFERRAL_CODES,
-				key: code,
-				current: { owner: referrer.toText() },
-				currentOwner: referrer
-			});
+	describe('claimReferralFriendshipFn', () => {
+		const relationKey = [referrer.toText(), referee.toText()].sort().join('#');
 
-		it("rejects deleting another user's referral code", () => {
-			assert.throws(
-				() => assertDeleteReferralCode(remove(stranger)),
-				/only the owner or the satellite/
+		const friendship = () =>
+			host.readDoc<Relation>({ collection: Collection.RELATIONS, key: relationKey });
+
+		it('befriends a signed-in user with a profile and the code owner', () => {
+			host.setCaller(referee);
+
+			claimReferralFriendshipFn({ code });
+
+			assert.deepEqual(friendship()?.participants, [referrer.toText(), referee.toText()]);
+		});
+
+		it('refuses an anonymous caller', () => {
+			host.setCaller(Principal.anonymous());
+
+			assert.throws(() => claimReferralFriendshipFn({ code }), /Sign in/);
+			assert.deepEqual(host.keys(Collection.RELATIONS), []);
+		});
+
+		it('refuses a caller without a profile', () => {
+			host.setCaller(stranger);
+
+			assert.throws(() => claimReferralFriendshipFn({ code }), /Create your profile/);
+			assert.deepEqual(host.keys(Collection.RELATIONS), []);
+		});
+
+		it('refuses the code owner', () => {
+			host.putDoc({
+				collection: Collection.PROFILES,
+				key: referrer.toText(),
+				data: { owner: referrer.toText() },
+				owner: referrer
+			});
+			host.setCaller(referrer);
+
+			assert.throws(() => claimReferralFriendshipFn({ code }), /your own referral link/);
+		});
+	});
+
+	describe('referral codes', () => {
+		const profileCreated = (owner: Principal): OnSetDocContext => ({
+			caller: owner.toUint8Array(),
+			data: {
+				collection: Collection.PROFILES,
+				key: owner.toText(),
+				data: {
+					after: {
+						owner: owner.toUint8Array(),
+						data: docBytes({ owner: owner.toText() }),
+						created_at: 1n,
+						updated_at: 1n,
+						version: 1n
+					}
+				}
+			}
+		});
+
+		it('keeps referral codes readable and writable by controllers only', () => {
+			for (const mode of ['production', 'development']) {
+				const rule = junoConfig({ mode }).satellite.collections?.datastore?.find(
+					({ collection }) => collection === Collection.REFERRAL_CODES
+				);
+
+				assert.equal(rule?.read, 'controllers');
+				assert.equal(rule?.write, 'controllers');
+			}
+		});
+
+		it('resolves a code for a signed-out visitor', () => {
+			host.setCaller(Principal.anonymous());
+
+			assert.deepEqual(lookupReferralCodeFn({ code: code.toLowerCase() }), {
+				owner: referrer.toText()
+			});
+		});
+
+		it("answers the caller's own code", () => {
+			host.setCaller(referrer);
+
+			assert.deepEqual(getMyReferralCodeFn(), { code });
+		});
+
+		it('assigns a new profile its code once', () => {
+			onProfileSetForReferralCode(profileCreated(stranger));
+			onProfileSetForReferralCode(profileCreated(stranger));
+
+			const assigned = host
+				.keys(Collection.REFERRAL_CODES)
+				.filter(
+					(key) =>
+						host.readDoc<{ owner: string }>({ collection: Collection.REFERRAL_CODES, key })
+							?.owner === stranger.toText()
+				);
+
+			assert.equal(assigned.length, 1);
+		});
+
+		it('redeems a code for a new account', () => {
+			host.setCaller(referee);
+
+			redeemReferralCodeFn({ code });
+
+			assert.equal(
+				host.readDoc<ReferralDoc>({ collection: Collection.REFERRALS, key: referee.toText() })
+					?.referrer,
+				referrer.toText()
 			);
 		});
 
-		it('lets the owner and a satellite controller delete it', () => {
-			assert.doesNotThrow(() => assertDeleteReferralCode(remove(referrer)));
-			assert.doesNotThrow(() => assertDeleteReferralCode(remove(controller)));
+		it('refuses a code written by anyone but the satellite', () => {
+			const write = (caller: Principal) =>
+				setContext({
+					caller,
+					collection: Collection.REFERRAL_CODES,
+					key: 'WXYZ2345',
+					proposed: { owner: stranger.toText() }
+				});
+
+			assert.throws(() => assertSetReferralCode(write(stranger)), /only the satellite writes/);
+			assert.doesNotThrow(() => assertSetReferralCode(write(controller)));
+		});
+
+		it('refuses a second code for the same owner', () => {
+			assert.throws(
+				() =>
+					assertSetReferralCode(
+						setContext({
+							caller: controller,
+							collection: Collection.REFERRAL_CODES,
+							key: 'WXYZ2345',
+							proposed: { owner: referrer.toText() }
+						})
+					),
+				/already has a referral code/
+			);
 		});
 	});
 

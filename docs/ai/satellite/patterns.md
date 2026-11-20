@@ -644,7 +644,7 @@ when one is missing), and each assert lets through only:
 
 - **the doc's owner**, read from the key or the payload the set assert binds
   to the caller: a profile's key, an activity's or a reaction's key segment,
-  a referral code's `owner`, a league's `owner`, a month row's key prefix.
+  a league's `owner`, a month row's key prefix.
   `assertOwnerOrController` in
   [`authz.services.ts`](../../../src/satellite/services/authz.services.ts)
   is the shared check;
@@ -688,7 +688,13 @@ not on the `read: 'public'` league doc, and only the league's own members
 read it back (`listMyLeagues`). The write it gates goes through an
 endpoint that checks it: `assertSetLeagueMember` admits a new member row
 only from a controller (beyond the founder's own row), and
-`joinLeagueByInvite` writes it as one once the code matches.
+`joinLeagueByInvite` writes it as one once the code matches. Referral codes
+follow the same rule: the controllers-only `referral_codes` collection is
+read and written only by
+[`referral.services.ts`](../../../src/satellite/services/referral.services.ts),
+signing as a controller, which assigns a code when a profile is created and
+resolves one for `lookupReferralCode`, `getMyReferralCode`, the redeem and
+the friendship claim, so no client lists the codes or who owns them.
 
 **Storage collections too.** A `write: 'public'` Storage collection lets any
 caller upload over or delete any asset, so it has an `assertUploadAsset` and

@@ -95,6 +95,24 @@ describe('account.services', () => {
 			);
 		});
 
+		it("removes the account's referral code, and only that", () => {
+			for (const [code, owner] of [
+				['PURGED22', purgedText],
+				['OTHER234', otherText]
+			]) {
+				host.putDoc({
+					collection: Collection.REFERRAL_CODES,
+					key: code,
+					data: { owner },
+					owner: controller
+				});
+			}
+
+			hardDeleteAccountFn({ callerText: purgedText, callerBytes: purged.toUint8Array() });
+
+			assert.deepEqual(host.keys(Collection.REFERRAL_CODES), ['OTHER234']);
+		});
+
 		it('changes nothing when run twice', () => {
 			const args = { callerText: purgedText, callerBytes: purged.toUint8Array() };
 

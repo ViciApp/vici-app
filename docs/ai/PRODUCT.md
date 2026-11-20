@@ -277,6 +277,10 @@ service.
 - **Invites.** Inviting by link rewards both sides via the referral
   bonuses in
   [`referral.constants.ts`](../../src/lib/constants/referral.constants.ts).
+  A referral code is private to the satellite: the app resolves one code
+  at a time (the invite landing, the redeem, the friendship claim) and
+  reads the user's own code, but no one can list the codes or who owns
+  them.
 - **A league invite implies a friend invite.** Sharing a league invite
   link also carries the sharer's referral code (`?ref=`), so joining the
   league auto-friends the person whose link was used: a brand-new

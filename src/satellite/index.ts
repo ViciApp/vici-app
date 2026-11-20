@@ -165,7 +165,6 @@ import {
 } from '#satellite/services/profile.services.ts';
 import {
 	assertDeleteReferral,
-	assertDeleteReferralCode,
 	assertSetReferral,
 	assertSetReferralCode,
 	claimReferralFriendshipFn,
@@ -1523,7 +1522,7 @@ export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({
 			[Collection.MARKET_TRANSLATIONS]: assertControllerWrite,
 			[Collection.ACTIVITIES]: assertDeleteActivity,
 			[Collection.ACTIVITY_REACTIONS]: assertDeleteActivityReaction,
-			[Collection.REFERRAL_CODES]: assertDeleteReferralCode,
+			[Collection.REFERRAL_CODES]: assertControllerWrite,
 			[Collection.REFERRALS]: assertDeleteReferral,
 			[Collection.LEAGUES]: assertDeleteLeague,
 			[Collection.LEAGUE_MEMBERS]: assertDeleteLeagueMember,

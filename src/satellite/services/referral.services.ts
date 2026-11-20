@@ -20,11 +20,7 @@ import type { Activity } from '#lib/types/social.ts';
 import type { VxpMilestonePayoutStatus, VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
 import { fnv1a64 } from '#lib/utils/hash.utils.ts';
 import { countTradeActivities } from '#satellite/services/activity.services.ts';
-import {
-	assertControllerCaller,
-	assertOwnerOrController,
-	controllerCaller
-} from '#satellite/services/authz.services.ts';
+import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -79,18 +75,18 @@ const generateReferralCode = ({
 	salt: number;
 }): string => encodeBase32(fnv1a64(`${ownerText}|${time().toString()}|${salt}`));
 
-// ─── Code assignment (idempotent, called from the profile hook) ──────────
+// ─── Code store ──────────────────────────────────────────────────────────
 
-const findOwnedCode = ({
-	caller,
-	ownerText
-}: {
-	caller: Uint8Array;
-	ownerText: PrincipalText;
-}): string | undefined => {
+/**
+ * `referral_codes` is controllers-only, so no client lists the codes or reads
+ * who owns one: every read and write of it here signs as a controller.
+ */
+const codesCaller = (): Uint8Array => controllerCaller('referral codes');
+
+const findOwnedCode = (ownerText: PrincipalText): string | undefined => {
 	const { items } = listDocsStore({
 		collection: Collection.REFERRAL_CODES,
-		caller,
+		caller: codesCaller(),
 		params: {}
 	});
 
@@ -105,19 +101,34 @@ const findOwnedCode = ({
 	return match?.[0];
 };
 
+/** The owner of a well-formed `code`, or `undefined` when no one holds it. */
+const referralCodeOwner = (code: string): PrincipalText | undefined => {
+	const doc = getDocStore({
+		collection: Collection.REFERRAL_CODES,
+		key: code,
+		caller: codesCaller()
+	});
+
+	if (isNullish(doc)) {
+		return;
+	}
+
+	try {
+		return decodeDocData<ReferralCodeDoc>(doc.data).owner;
+	} catch {
+		// A malformed code doc names no owner.
+	}
+};
+
+// ─── Code assignment (idempotent, called from the profile hook) ──────────
+
 /**
  * Idempotent: returns the caller's existing code if one is already on record, otherwise
  * generates+writes a fresh code and returns it. Safe to call on every profile create / update:
  * subsequent calls short-circuit after the scan.
  */
-export const assignReferralCodeIfMissing = ({
-	caller,
-	ownerText
-}: {
-	caller: Uint8Array;
-	ownerText: PrincipalText;
-}): string | undefined => {
-	const existing = findOwnedCode({ caller, ownerText });
+export const assignReferralCodeIfMissing = (ownerText: PrincipalText): string | undefined => {
+	const existing = findOwnedCode(ownerText);
 
 	if (nonNullish(existing)) {
 		return existing;
@@ -126,18 +137,12 @@ export const assignReferralCodeIfMissing = ({
 	for (let salt = 0; salt < CODE_GENERATION_MAX_RETRIES; salt++) {
 		const code = generateReferralCode({ ownerText, salt });
 
-		const conflict = getDocStore({
-			collection: Collection.REFERRAL_CODES,
-			key: code,
-			caller
-		});
-
-		if (isNullish(conflict)) {
+		if (isNullish(referralCodeOwner(code))) {
 			try {
 				setDocStore({
 					collection: Collection.REFERRAL_CODES,
 					key: code,
-					caller,
+					caller: codesCaller(),
 					doc: {
 						data: encodeDocData<ReferralCodeDoc>({ owner: ownerText })
 					}
@@ -187,7 +192,7 @@ export const onProfileSetForReferralCode = (ctx: OnSetDocContext): void => {
 	}
 
 	try {
-		assignReferralCodeIfMissing({ caller, ownerText: callerText });
+		assignReferralCodeIfMissing(callerText);
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 		// Best effort: never fail the profile write because of a referral-code issue.
@@ -200,43 +205,20 @@ export const onProfileSetForReferralCode = (ctx: OnSetDocContext): void => {
 
 // ─── Query handlers ──────────────────────────────────────────────────────
 
-export const getMyReferralCodeFn = (): { code: string | undefined } => {
-	const caller = msgCaller();
-	const code = findOwnedCode({
-		caller: caller.toUint8Array(),
-		ownerText: caller.toText()
-	});
-
-	return { code };
-};
+export const getMyReferralCodeFn = (): { code: string | undefined } => ({
+	code: findOwnedCode(msgCaller().toText())
+});
 
 export const lookupReferralCodeFn = ({
 	code
 }: {
 	code: string;
 }): { owner: PrincipalText | undefined } => {
-	const caller = msgCaller();
 	const normalized = code.trim().toUpperCase();
 
-	if (!REFERRAL_CODE_REGEX.test(normalized)) {
-		return { owner: undefined };
-	}
-
-	const doc = getDocStore({
-		collection: Collection.REFERRAL_CODES,
-		key: normalized,
-		caller: caller.toUint8Array()
-	});
-
-	if (isNullish(doc)) {
-		return { owner: undefined };
-	}
-
-	try {
-		return { owner: decodeDocData<ReferralCodeDoc>(doc.data).owner };
-	} catch {
-		return { owner: undefined };
-	}
+	return {
+		owner: REFERRAL_CODE_REGEX.test(normalized) ? referralCodeOwner(normalized) : undefined
+	};
 };
 
 /**
@@ -394,17 +376,11 @@ export const redeemReferralCodeFn = ({ code }: { code: string }): void => {
 	// Signup-window gate: only fresh sign-ups earn the VXP bonus.
 	assertWithinRedemptionWindow({ referee: callerText, caller: callerBytes });
 
-	const codeDoc = getDocStore({
-		collection: Collection.REFERRAL_CODES,
-		key: normalized,
-		caller: callerBytes
-	});
+	const referrer = referralCodeOwner(normalized);
 
-	if (isNullish(codeDoc)) {
+	if (isNullish(referrer)) {
 		throw new Error('Unknown referral code.');
 	}
-
-	const { owner: referrer } = decodeDocData<ReferralCodeDoc>(codeDoc.data);
 
 	if (referrer === callerText) {
 		throw new Error('You cannot redeem your own referral code.');
@@ -454,6 +430,8 @@ export const redeemReferralCodeFn = ({ code }: { code: string }): void => {
  * Friendship-only path for users who use a referral link but aren't eligible for the VXP bonus
  * (account older than {@link REFERRAL_SIGNUP_WINDOW_MS}, or already redeemed). Looks up the code,
  * refuses self-referral, and writes a bilateral confirmed friendship between caller and referrer.
+ * The caller is a signed-in account with a profile: the friendship joins two real users, never the
+ * anonymous principal or an account that does not exist yet.
  *
  * Idempotent: returns silently if a relation already exists in any state.
  */
@@ -463,21 +441,29 @@ export const claimReferralFriendshipFn = ({ code }: { code: string }): void => {
 	const callerText = caller.toText();
 	const normalized = code.trim().toUpperCase();
 
+	if (caller.isAnonymous()) {
+		throw new Error('Sign in to use a referral link.');
+	}
+
 	if (!REFERRAL_CODE_REGEX.test(normalized)) {
 		throw new Error('Invalid referral code format.');
 	}
 
-	const codeDoc = getDocStore({
-		collection: Collection.REFERRAL_CODES,
-		key: normalized,
+	const profileDoc = getDocStore({
+		collection: Collection.PROFILES,
+		key: callerText,
 		caller: callerBytes
 	});
 
-	if (isNullish(codeDoc)) {
-		throw new Error('Unknown referral code.');
+	if (isNullish(profileDoc)) {
+		throw new Error('Create your profile before using a referral link.');
 	}
 
-	const { owner: referrer } = decodeDocData<ReferralCodeDoc>(codeDoc.data);
+	const referrer = referralCodeOwner(normalized);
+
+	if (isNullish(referrer)) {
+		throw new Error('Unknown referral code.');
+	}
 
 	if (referrer === callerText) {
 		throw new Error('You cannot use your own referral link.');
@@ -497,6 +483,11 @@ export const claimReferralFriendshipFn = ({ code }: { code: string }): void => {
 
 // ─── Assertions (write-time guards) ──────────────────────────────────────
 
+/**
+ * Pre-write guard for `referral_codes`. Only the satellite writes a code
+ * ({@link assignReferralCodeIfMissing}, signing as a controller), and a code
+ * stays as written: well-formed, owned by a real principal, one per owner.
+ */
 export const assertSetReferralCode = ({
 	caller,
 	data: {
@@ -509,6 +500,8 @@ export const assertSetReferralCode = ({
 		return;
 	}
 
+	assertControllerCaller({ caller, collection });
+
 	if (nonNullish(current)) {
 		throw new Error('Referral codes are write-once.');
 	}
@@ -517,17 +510,18 @@ export const assertSetReferralCode = ({
 		throw new Error('Invalid referral code format.');
 	}
 
-	const callerText = Principal.fromUint8Array(caller).toText();
 	const { owner } = decodeDocData<ReferralCodeDoc>(proposed.data);
 
-	if (owner !== callerText) {
-		throw new Error('Referral code owner must match the caller.');
+	try {
+		Principal.fromText(owner);
+	} catch {
+		throw new Error('Invalid referral code owner.');
 	}
 
-	const existing = findOwnedCode({ caller, ownerText: callerText });
+	const existing = findOwnedCode(owner);
 
 	if (nonNullish(existing) && existing !== key) {
-		throw new Error('You already have a referral code.');
+		throw new Error('This account already has a referral code.');
 	}
 };
 
@@ -678,17 +672,11 @@ const assertNewReferral = ({
 		throw new Error('Invalid referral code format.');
 	}
 
-	const codeDoc = getDocStore({
-		collection: Collection.REFERRAL_CODES,
-		key: doc.code,
-		caller
-	});
+	const owner = referralCodeOwner(doc.code);
 
-	if (isNullish(codeDoc)) {
+	if (isNullish(owner)) {
 		throw new Error('Unknown referral code.');
 	}
-
-	const { owner } = decodeDocData<ReferralCodeDoc>(codeDoc.data);
 
 	if (owner !== doc.referrer) {
 		throw new Error('Referrer does not match the referral code owner.');
@@ -711,26 +699,6 @@ const assertNewReferral = ({
 			'A referral record must start with the referee bonus owed and the referrer side unarmed.'
 		);
 	}
-};
-
-/**
- * A referral code is bound to its owner (write-once, `owner === caller`), so
- * only that owner or the satellite may drop it.
- */
-export const assertDeleteReferralCode = ({
-	caller,
-	data: {
-		collection,
-		data: { current }
-	}
-}: AssertDeleteDocContext): void => {
-	if (collection !== Collection.REFERRAL_CODES || isNullish(current)) {
-		return;
-	}
-
-	const { owner } = decodeDocData<ReferralCodeDoc>(current.data);
-
-	assertOwnerOrController({ caller, owner, collection });
 };
 
 /**
