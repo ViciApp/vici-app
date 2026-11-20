@@ -388,6 +388,12 @@ spread-level slippage from top-of-book, not multi-level depth walking.
   routing genuinely cross-device state through `profile.preferences`
   instead; that store already resets on sign-out). Device-level keys
   (theme, locale, last-open tab) intentionally stay put.
+- **A load that lands after an account switch must not count as the next
+  account's.** Resetting a store is not enough when a fetch started for the
+  previous account is still in flight. The clearing figures carry the
+  `owner` they were loaded for (`CollateralStoreData.owner`), and
+  [`vxp-holdings.utils`](../../../src/lib/utils/vxp-holdings.utils.ts) reads
+  them, and keys the persisted holdings snapshot, only for that owner.
 
 ## Tailwind v4 + design tokens
 

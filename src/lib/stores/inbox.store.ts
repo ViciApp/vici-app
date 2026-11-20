@@ -925,8 +925,8 @@ export const clearInboxToast = (): void => {
  *
  * - `resolvedPositionsNotInitialized` starts `true`, flips `false` once the
  *   clearing-canister trade history fetch completes (even if empty).
- * - `friendsRelationsLoadedStore` starts `false`, flips `true` once the
- *   first `refreshFriendRelations()` call completes.
+ * - `friendsRelationsLoadedStore` starts `false`, flips `true` once a
+ *   `refreshFriendRelations()` call loads all three relation lists.
  * - `receivedReactionsStore` starts `undefined`, becomes an array once the
  *   first received-reactions load completes (even if empty), so a cold-start
  *   backlog of likes on the viewer's calls is absorbed into the baseline
