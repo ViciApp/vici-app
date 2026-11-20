@@ -1970,6 +1970,8 @@ export const deMessages = {
 	'settings.delete.deleting': 'Wird gelöscht…',
 	'settings.delete.error': 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
 	'settings.delete.error_handoff': '{league} konnte nicht übergeben werden. Versuche es erneut.',
+	'settings.delete.error_withdraw_first':
+		'Dein Konto hält noch Guthaben: in deiner Wallet, als Sicherheit oder Handelsgewinn oder in einer laufenden Auszahlung. Zahle alles aus und warte, bis sie abgeschlossen ist, dann lösche dein Konto.',
 	'settings.delete.forever': 'Endgültig löschen',
 	'settings.delete.gone_body': 'Dein Konto wird gelöscht.',
 	'settings.delete.gone_eyebrow': 'Lebewohl',

@@ -1946,6 +1946,8 @@ export const ptMessages = {
 	'settings.delete.deleting': 'A eliminar…',
 	'settings.delete.error': 'Algo correu mal. Tenta novamente.',
 	'settings.delete.error_handoff': 'Não foi possível passar {league}. Tenta novamente.',
+	'settings.delete.error_withdraw_first':
+		'A tua conta ainda tem fundos: na carteira, como colateral ou ganhos de trading, ou num levantamento em curso. Levanta tudo e espera que termine; depois elimina a tua conta.',
 	'settings.delete.forever': 'Eliminar para sempre',
 	'settings.delete.gone_body': 'A tua conta está a ser eliminada.',
 	'settings.delete.gone_eyebrow': 'Adeus',

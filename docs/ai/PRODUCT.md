@@ -478,7 +478,12 @@ identities and sessions, the VXP award history and onboarding ladder,
 calibration attempts, the stats and monthly stats, resolved results, the
 likes it gave (each liked activity's count goes down), school-email
 submissions, referral code, affiliations, relations and league
-memberships; owned leagues are disbanded or handed to a member. Like the
+memberships; owned leagues are disbanded or handed to a member. On the
+web2 API an account that still holds funds (in its wallet, as real-money
+collateral or trading gains, or in a withdrawal in progress) cannot be deleted: the app
+asks the user to withdraw first. An account that receives funds during the
+recovery window is not purged while it holds them, and signing back in
+after the window restores it so the funds can be withdrawn. Like the
 global leaderboard, the monthly awards board lists no soft-deleted,
 hibernated or deleted account. What stays, by design:
 

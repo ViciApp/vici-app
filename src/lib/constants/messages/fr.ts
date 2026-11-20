@@ -1955,6 +1955,8 @@ export const frMessages = {
 	'settings.delete.deleting': 'Suppression…',
 	'settings.delete.error': 'Une erreur est survenue. Veuillez réessayer.',
 	'settings.delete.error_handoff': 'Impossible de céder {league}. Réessayez.',
+	'settings.delete.error_withdraw_first':
+		'Votre compte détient encore des fonds : dans votre portefeuille, en garantie ou en gains de trading, ou dans un retrait en cours. Retirez tout et attendez qu’il soit terminé, puis supprimez votre compte.',
 	'settings.delete.forever': 'Supprimer définitivement',
 	'settings.delete.gone_body': 'Votre compte est en cours de suppression.',
 	'settings.delete.gone_eyebrow': 'Adieu',

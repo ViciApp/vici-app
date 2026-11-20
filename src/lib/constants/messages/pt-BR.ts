@@ -1652,6 +1652,8 @@ export const ptBRMessages = {
 	'settings.delete.deleting': 'Excluindo…',
 	'settings.delete.error': 'Algo deu errado. Tente novamente.',
 	'settings.delete.error_handoff': 'Não foi possível repassar {league}. Tente novamente.',
+	'settings.delete.error_withdraw_first':
+		'Sua conta ainda tem saldo: na carteira, como colateral ou ganhos de trading, ou em um saque em andamento. Saque tudo e espere ele terminar; depois exclua sua conta.',
 	'settings.delete.forever': 'Excluir para sempre',
 	'settings.delete.gone_body': 'Sua conta está sendo excluída.',
 	'settings.delete.gone_eyebrow': 'Adeus',

@@ -1949,7 +1949,10 @@ export const listBlockingLeagues = async (): Promise<string[]> => {
 
 export interface Web2DeleteAccountResult {
 	ok: boolean;
-	reason?: 'owns_non_empty_league' | 'league_resolution_failed' | 'invalid_input';
+	/** `holds_custody_funds`: the wallet still holds funds or a withdrawal is
+	 * in flight; the user withdraws first. Only the API sends it. */
+	reason?:
+		'holds_custody_funds' | 'owns_non_empty_league' | 'league_resolution_failed' | 'invalid_input';
 	blockingLeagueIds?: string[];
 	failedLeagueId?: string;
 	resolutionReason?: string;
@@ -1976,7 +1979,8 @@ export const deleteMyAccount = async ({
 	});
 
 /** Clear a soft-delete inside the recovery window; a lapsed window
- * hard-deletes in place and returns `{ ok: false, reason: 'expired' }`. */
+ * hard-deletes in place and returns `{ ok: false, reason: 'expired' }`, unless
+ * the account still holds funds, which recovers it instead. */
 export const recoverMyAccount = async (): Promise<
 	{ ok: true; recovered: boolean } | { ok: false; reason: 'expired' }
 > => await request({ path: '/api/v1/account/recover', method: 'POST' });

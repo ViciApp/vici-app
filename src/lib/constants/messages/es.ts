@@ -1955,6 +1955,8 @@ export const esMessages = {
 	'settings.delete.deleting': 'Eliminando…',
 	'settings.delete.error': 'Algo salió mal. Inténtalo de nuevo.',
 	'settings.delete.error_handoff': 'No se pudo ceder {league}. Inténtalo de nuevo.',
+	'settings.delete.error_withdraw_first':
+		'Tu cuenta aún tiene fondos: en tu cartera, como colateral o ganancias de trading, o en un retiro en curso. Retira todo y espera a que se complete; después elimina tu cuenta.',
 	'settings.delete.forever': 'Eliminar para siempre',
 	'settings.delete.gone_body': 'Tu cuenta se está eliminando.',
 	'settings.delete.gone_eyebrow': 'Adiós',

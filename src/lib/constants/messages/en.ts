@@ -1943,6 +1943,8 @@ export const enMessages = {
 	'settings.delete.deleting': 'Deleting…',
 	'settings.delete.error': 'Something went wrong. Please try again.',
 	'settings.delete.error_handoff': "Couldn't hand off {league}. Try again.",
+	'settings.delete.error_withdraw_first':
+		'Your account still holds funds: in your wallet, as collateral or trading gains, or in a withdrawal in progress. Withdraw everything and wait for it to complete, then delete your account.',
 	'settings.delete.forever': 'Delete forever',
 	'settings.delete.gone_body': 'Your account is being deleted.',
 	'settings.delete.gone_eyebrow': 'Farewell',

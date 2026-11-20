@@ -1848,6 +1848,8 @@ export const zhHansMessages = {
 	'settings.delete.deleting': '删除中…',
 	'settings.delete.error': '出了点问题，请重试。',
 	'settings.delete.error_handoff': '无法移交 {league}。请重试。',
+	'settings.delete.error_withdraw_first':
+		'你的账户中仍有资金：在钱包中、作为抵押或交易收益，或在进行中的提现中。请先全部提现并等待完成，然后再删除账户。',
 	'settings.delete.forever': '永久删除',
 	'settings.delete.gone_body': '你的账户正在被删除。',
 	'settings.delete.gone_eyebrow': '再会',
