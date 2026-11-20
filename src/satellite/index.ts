@@ -1292,7 +1292,7 @@ export const triggerTournamentDraw = defineUpdate({
 		reason: j.optional(j.enum(TOURNAMENT_DRAW_REFUSAL_REASONS)),
 		availableLeagues: j.optional(j.number())
 	}),
-	handler: triggerTournamentDrawFn
+	handler: async (args) => await triggerTournamentDrawFn(args)
 });
 
 // League ownership transfer: used by the league-detail "transfer

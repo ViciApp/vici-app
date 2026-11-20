@@ -99,7 +99,7 @@ backs it. Amounts are **not** repeated here; follow the link.
 | **Achievement unlock**     | Catalog XP, once per achievement, only for an unlock the server evaluates from its own data, never the client's `unlockedAchievements`; three achievements mint nothing (see the caps section).                     | `ACHIEVEMENTS` ([`achievements.constants.ts`](../../src/lib/constants/achievements.constants.ts)), thresholds in [`achievements.utils.ts`](../../src/lib/utils/achievements.utils.ts)                            |
 | **League founder**         | Awarded once per league founded, bounded by a lifetime per-account cap.                                                                                                                                             | `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS`, `VXP_LEAGUE_FOUNDER_MAX_AWARDS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                         |
 | **Worlds podium**          | Tiered award for a top-three monthly finish, ranked from the members' settled history over the closed month, never a client-written counter.                                                                        | `VXP_WORLDS_PODIUM` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                             |
-| **Tournament prize**       | Tiered award for a member of a monthly tournament's podium leagues (winner, other finalist, either semifinal loser), one per member per tournament whatever the place; every match is scored from settled history.  | `TOURNAMENT_PRIZE_TIERS` ([`tournament.ts`](../../src/lib/types/tournament.ts))                                                                                                                                  |
+| **Tournament prize**       | Tiered, one per member per tournament, to a podium league member (winner, finalist, semifinal loser) who joined before the draw and settled a call in its window; every match is scored from settled history.       | `TOURNAMENT_PRIZE_TIERS` ([`tournament.ts`](../../src/lib/types/tournament.ts))                                                                                                                                  |
 
 The authoritative list of award **types** is the `VxpAwardType` union
 ([`vxp-award.ts`](../../src/lib/types/vxp-award.ts)). The API books the
@@ -216,8 +216,14 @@ The bound that protects each surface today:
   history**: each league's members' settled calls and wins over the
   round window, read from the clearing canister through the helper
   league battles are scored with, counting only memberships joined
-  before the window closed. A league below the per-match floor
-  forfeits. Nothing a member writes decides a match: `league_stats`
+  before the draw (the roster the bracket was seeded from), so a
+  recruit who joins mid-tournament cannot lift a match. A league below
+  the per-match floor forfeits. The draw seeds the bracket by how many
+  members each league has who settled at least one call in the calendar
+  month before the draw, through the same helper, never by raw member
+  count, so accounts that never play do not lift a league's seed. A
+  user in several leagues counts in each, for the seeding and for every
+  match. Nothing a member writes decides a match: `league_stats`
   (fed by each member's client-reported `totalTrades` on both backends)
   is a display cache that no award reads. The draw runs for
   the current UTC month only, and only while its round 1 window is still
@@ -234,7 +240,10 @@ The bound that protects each surface today:
   membership that predates the draw counts: the draw seeds the bracket
   from that roster, so joining a placed league afterwards (including
   after the tournament concluded) earns nothing, and a member who left
-  before claiming has no membership left to count. The satellite judges
+  before claiming has no membership left to count. The member must also
+  have settled at least one call inside the tournament window (all four
+  rounds), so a podium league's idle members collect nothing. Prizes
+  paid before this rule are left as they are. The satellite judges
   the join by the membership doc's stored creation time, never the
   client-written join field.
 

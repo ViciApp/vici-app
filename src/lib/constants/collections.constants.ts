@@ -159,7 +159,7 @@ export const Collection = {
 	EXIT_SIGNALS: collections.EXIT_SIGNALS,
 	/**
 	 * Monthly single-elimination tournament metadata. One doc per month, keyed by month anchor
-	 * (`YYYY-MM`). Holds the seeded league ids (top-16 by member count), bracket size, lifecycle
+	 * (`YYYY-MM`). Holds the seeded league ids (top-16 by active members), bracket size, lifecycle
 	 * state. Written by `triggerTournamentDraw` (idempotent: doc key collision rejects a second
 	 * draw for the same month).
 	 */
