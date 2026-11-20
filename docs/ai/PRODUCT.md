@@ -585,6 +585,8 @@ league's page link there too; each row opens the battle detail page. That
 page shows **provisional standings** while a battle is `in_flight`: each
 side's members' settled-call win rate so far over `[kickoff, now)`, read
 from clearing settlement history, with the current leader highlighted,
+counting only members who joined before kickoff (the resolved score
+counts the same roster, so joining mid-battle never carries a side),
 computed read-only on the same data resolution uses, so it never alters
 the battle or triggers an early resolve. It's labelled provisional and
 keeps moving as each side predicts, until the window closes and the
