@@ -1316,7 +1316,7 @@ export const esMessages = {
 	'leagues.role.admin': 'Admin',
 	'leagues.role.member': 'Miembro',
 	'leagues.role.owner': 'Propietario',
-	'leagues.share_text': 'Únete a mi liga y predigamos juntos el Mundial.',
+	'leagues.share_text': 'Únete a mi liga en VICI y haz tus predicciones con nosotros.',
 	'leagues.title': 'Ligas',
 	'leagues.transfer.cta': 'Transferir propiedad',
 	'leagues.transfer.empty':

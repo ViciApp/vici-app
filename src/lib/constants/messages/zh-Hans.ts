@@ -1235,7 +1235,7 @@ export const zhHansMessages = {
 	'leagues.role.admin': '管理员',
 	'leagues.role.member': '成员',
 	'leagues.role.owner': '盟主',
-	'leagues.share_text': '加入我的联盟，一起预测世界杯吧。',
+	'leagues.share_text': '加入我在 VICI 上的联盟，和我们一起做预测吧。',
 	'leagues.title': '联盟',
 	'leagues.transfer.cta': '转让盟主',
 	'leagues.transfer.empty': '还没有其他成员。先邀请一位,再把盟主交出去。',

@@ -1313,7 +1313,7 @@ export const itMessages = {
 	'leagues.role.admin': 'Admin',
 	'leagues.role.member': 'Membro',
 	'leagues.role.owner': 'Proprietario',
-	'leagues.share_text': 'Unisciti alla mia lega e prevediamo i Mondiali insieme.',
+	'leagues.share_text': 'Unisciti alla mia lega su VICI e fai le tue previsioni con noi.',
 	'leagues.title': 'Leghe',
 	'leagues.transfer.cta': 'Trasferisci proprietà',
 	'leagues.transfer.empty':

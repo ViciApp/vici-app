@@ -1319,7 +1319,7 @@ export const frMessages = {
 	'leagues.role.admin': 'Admin',
 	'leagues.role.member': 'Membre',
 	'leagues.role.owner': 'Propriétaire',
-	'leagues.share_text': 'Rejoins ma ligue et pronostiquons la Coupe du monde ensemble.',
+	'leagues.share_text': 'Rejoins ma ligue sur VICI et fais tes pronostics avec nous.',
 	'leagues.title': 'Ligues',
 	'leagues.transfer.cta': 'Transférer la propriété',
 	'leagues.transfer.empty':

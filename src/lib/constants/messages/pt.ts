@@ -1312,7 +1312,7 @@ export const ptMessages = {
 	'leagues.role.admin': 'Admin',
 	'leagues.role.member': 'Membro',
 	'leagues.role.owner': 'Dono',
-	'leagues.share_text': 'Junta-te à minha liga e vamos prever o Campeonato do Mundo juntos.',
+	'leagues.share_text': 'Junta-te à minha liga na VICI e faz as tuas previsões connosco.',
 	'leagues.title': 'Ligas',
 	'leagues.transfer.cta': 'Transferir propriedade',
 	'leagues.transfer.empty':

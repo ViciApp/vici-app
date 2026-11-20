@@ -1189,7 +1189,7 @@ export const ptBRMessages = {
 	'leagues.role.admin': 'Admin',
 	'leagues.role.member': 'Membro',
 	'leagues.role.owner': 'Dono',
-	'leagues.share_text': 'Junte-se à minha liga e vamos prever a Copa do Mundo juntos.',
+	'leagues.share_text': 'Entre na minha liga na VICI e faça suas previsões com a gente.',
 	'leagues.title': 'Ligas',
 	'leagues.transfer.cta': 'Transferir propriedade',
 	'leagues.transfer.empty':
