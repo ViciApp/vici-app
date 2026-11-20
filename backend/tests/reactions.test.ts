@@ -236,12 +236,19 @@ describe.if(dbAvailable)('received reactions', () => {
 		await ensureMigrated();
 	});
 
+	// The activity key is `${userId}#${timestamp}#${type}`: two activities of
+	// one author created in the same millisecond would share it, so each gets
+	// its own timestamp.
+	let lastTimestamp = Date.now();
+
 	const activityOf = async (userId: string): Promise<string> => {
+		lastTimestamp += 1;
+
 		const { key } = await createActivity({
 			userId,
 			type: 'trade',
 			title: 'Placed a prediction',
-			timestamp: Date.now()
+			timestamp: lastTimestamp
 		});
 
 		return key;
