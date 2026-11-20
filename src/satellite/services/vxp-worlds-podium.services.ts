@@ -16,7 +16,9 @@ import {
 	heldAffiliations,
 	settledMonthlyRows
 } from '#satellite/services/cohort.services.ts';
+import { hasAwardMarker } from '#satellite/services/vxp-award-markers.services.ts';
 import {
+	holdsAwardPayout,
 	persistAward,
 	reclaimAward,
 	updateAward,
@@ -25,7 +27,12 @@ import {
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
-import { joinedBeforeMonthClose } from '#satellite/utils/worlds-podium.utils.ts';
+import {
+	claimedWorldsPodiumAwardKeys,
+	joinedBeforeMonthClose,
+	worldsPodiumAwardKey,
+	type WorldsPodiumPlace
+} from '#satellite/utils/worlds-podium.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
@@ -49,7 +56,7 @@ import { encodeDocData, getAdminAccessKeys, setDocStore } from '@junobuild/funct
  *     joined before the month closed.
  *  3. For each match (up to two: one university, one country),
  *     the endpoint creates a `VXP_AWARDS` doc keyed
- *     `${caller}/worlds_podium/${YYYY-MM}_${place}` and credits
+ *     `${caller}/worlds_podium/${YYYY-MM}_${kind}_${place}` and credits
  *     the ledger transfer (same pattern as the streak hook).
  *
  * Idempotency: the doc key collision rejects a second claim. A
@@ -77,7 +84,7 @@ import { encodeDocData, getAdminAccessKeys, setDocStore } from '@junobuild/funct
 // amounts must be base units sized via `vxpBaseUnits`: `BigInt(400)` would
 // transfer 400 base units = 0.04 VXP, a 10⁴x under-pay.
 const PODIUM_PLACES: ReadonlyArray<{
-	place: 'gold' | 'silver' | 'bronze';
+	place: WorldsPodiumPlace;
 	amount: bigint;
 }> = [
 	{ place: 'gold', amount: vxpBaseUnits(VXP_WORLDS_PODIUM.gold) },
@@ -221,8 +228,8 @@ export const claimWorldsPodiumPrizeFn = async ({
 				foundAnyEligibleAffiliation = true;
 				const { place, amount } = PODIUM_PLACES[placeIndex];
 
-				const awardKey = `${monthAnchor}_${place}`;
-				const slot = reclaimAward({ recipient: callerText, awardType: 'worlds_podium', awardKey });
+				const awardKey = worldsPodiumAwardKey({ monthAnchor, kind, place });
+				const slot = podiumAwardSlot({ callerText, monthAnchor, kind, place });
 
 				if (slot.kind === 'held') {
 					awardsAlreadyClaimed += 1;
@@ -248,6 +255,40 @@ export const claimWorldsPodiumPrizeFn = async ({
 		awardsAlreadyClaimed,
 		notEligible: !foundAnyEligibleAffiliation && awardsAlreadyClaimed === 0
 	};
+};
+
+/**
+ * What the caller holds of one podium finish before its payout. Held when any
+ * key that counts as a claim of it ({@link claimedWorldsPodiumAwardKeys}) holds
+ * a payout, or a marker of a deleted account's payout; otherwise the slot of
+ * its own key, where a `failed` payout is claimed for a retry.
+ */
+const podiumAwardSlot = ({
+	callerText,
+	monthAnchor,
+	kind,
+	place
+}: {
+	callerText: string;
+	monthAnchor: string;
+	kind: AffiliationKind;
+	place: WorldsPodiumPlace;
+}): AwardSlot => {
+	const awardKey = worldsPodiumAwardKey({ monthAnchor, kind, place });
+	const claimedElsewhere = claimedWorldsPodiumAwardKeys({ monthAnchor, kind, place }).some(
+		(heldKey) =>
+			hasAwardMarker({
+				principalText: callerText,
+				awardType: 'worlds_podium',
+				awardKey: heldKey
+			}) ||
+			(heldKey !== awardKey &&
+				holdsAwardPayout({ recipient: callerText, awardType: 'worlds_podium', awardKey: heldKey }))
+	);
+
+	return claimedElsewhere
+		? { kind: 'held' }
+		: reclaimAward({ recipient: callerText, awardType: 'worlds_podium', awardKey });
 };
 
 /**
@@ -304,7 +345,7 @@ const processAward = async ({
 	nowMs
 }: {
 	kind: AffiliationKind;
-	place: 'gold' | 'silver' | 'bronze';
+	place: WorldsPodiumPlace;
 	amount: bigint;
 	awardKey: string;
 	caller: Principal;

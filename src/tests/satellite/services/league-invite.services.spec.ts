@@ -24,7 +24,7 @@ const joiner = Principal.fromUint8Array(new Uint8Array([3, 3, 3]));
 const admin = Principal.fromUint8Array(new Uint8Array([4, 4, 4]));
 
 const leagueId = 'the-league-1700000000000';
-const inviteCode = 'ABC123';
+const inviteCode = 'ABCDE12345';
 
 describe('league invites', () => {
 	let host: SatelliteHost;
@@ -85,7 +85,7 @@ describe('league invites', () => {
 		assert.equal(membership(owner)?.role, 'owner');
 
 		host.setCaller(joiner);
-		assert.equal(lookupLeagueByInviteFn({ inviteCode })?.inviteCode, undefined);
+		assert.equal(lookupLeagueByInviteFn({ inviteCode }).league?.inviteCode, undefined);
 
 		host.setCaller(owner);
 		assert.equal(listMyLeaguesFn()[0]?.league.inviteCode, inviteCode);

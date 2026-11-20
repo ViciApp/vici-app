@@ -1,48 +1,14 @@
-import {
-	LEADERBOARD_PRIOR_MEAN,
-	LEADERBOARD_PRIOR_WEIGHT
-} from '#lib/constants/standings.constants.ts';
 import { profilesStore } from '#lib/stores/profiles.store.ts';
 import { globalStandingsStore } from '#lib/stores/standings.store.ts';
 import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { StandingEntry, StandingsWindow } from '#lib/types/standings.ts';
+import { compareRankScore } from '#lib/utils/leaderboard-score.utils.ts';
 import { isShownOnGlobalLeaderboard } from '#lib/utils/visibility.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 import { derived, type Readable } from 'svelte/store';
-
-/**
- * Bayesian-shrinkage leaderboard score for one entry.
- *
- * A predictor's win rate is blended with a population prior, weighted by how
- * much evidence they have: `(PRIOR_MEAN·PRIOR_WEIGHT + wins) / (PRIOR_WEIGHT +
- * settled)`. A thin record decays toward the prior mean, so a 10/11 (≈0.91)
- * record scores below a 45/50 (0.90) record once shrunk, being right
- * *repeatedly* is the score, not a short lucky streak.
- *
- * Uses the raw `winCount / settledCount` ratio (reconstructed as `wins =
- * accuracy_fraction · settled`, here `winCount` directly), NOT the rounded
- * integer `accuracy`, so the blend doesn't compress at the rounding. Returns
- * the prior mean for a zero-settled entry (no evidence at all).
- */
-export const rankScore = ({
-	winCount,
-	settledCount
-}: Pick<StandingEntry, 'winCount' | 'settledCount'>): number => {
-	// No evidence → the prior mean, explicitly. Guards the documented contract
-	// against an inconsistent upstream (a `winCount` with a zero `settledCount`
-	// would otherwise lift the score above the prior, even past 1).
-	if (settledCount <= 0) {
-		return LEADERBOARD_PRIOR_MEAN;
-	}
-
-	return (
-		(LEADERBOARD_PRIOR_MEAN * LEADERBOARD_PRIOR_WEIGHT + winCount) /
-		(LEADERBOARD_PRIOR_WEIGHT + settledCount)
-	);
-};
 
 /**
  * Shrinkage-first ordering for the *ranked* (qualified) leaderboard slice.
@@ -53,21 +19,16 @@ export const rankScore = ({
  * "Top X%" rank tile, `findOwnStanding`) deliberately keep the canister's P&L
  * rank: see `standings.services`.
  *
- * Order: shrinkage score desc → settledCount desc (more proof breaks a score
- * tie) → realizedPnl desc → stable (equal entries fall through to the input
+ * Order: `compareRankScore` (shrinkage score desc → settledCount desc) →
+ * realizedPnl desc → stable (equal entries fall through to the input
  * order, the canister's tiebreak, so the sort is deterministic).
  */
 // eslint-disable-next-line local-rules/prefer-object-params -- compare functions read best with positional params
 const byRankScore = (a: StandingEntry, b: StandingEntry): number => {
-	const scoreA = rankScore(a);
-	const scoreB = rankScore(b);
+	const byScore = compareRankScore(a, b);
 
-	if (scoreA !== scoreB) {
-		return scoreB - scoreA;
-	}
-
-	if (b.settledCount !== a.settledCount) {
-		return b.settledCount - a.settledCount;
+	if (byScore !== 0) {
+		return byScore;
 	}
 
 	// `realizedPnl` is a signed bigint: compare directly, never via Number.

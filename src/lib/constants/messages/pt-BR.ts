@@ -1182,7 +1182,8 @@ export const ptBRMessages = {
 	'leagues.join.cta': 'Insira um código válido',
 	'leagues.join.error_already_member': 'Você já está nessa liga.',
 	'leagues.join.error_not_found': 'Nenhuma liga com esse código. Confira.',
-	'leagues.join.label_code': 'Código de convite (6 caracteres)',
+	'leagues.join.error_rate_limited': 'Muitos códigos sem liga. Tente de novo em uma hora.',
+	'leagues.join.label_code': 'Código de convite',
 	'leagues.join.sub': 'Cole o código de convite. Os códigos são como {code}.',
 	'leagues.join.submitting': 'Entrando…',
 	'leagues.join.title': 'Entrar com código',
@@ -1651,6 +1652,8 @@ export const ptBRMessages = {
 	'settings.delete.deleting': 'Excluindo…',
 	'settings.delete.error': 'Algo deu errado. Tente novamente.',
 	'settings.delete.error_handoff': 'Não foi possível repassar {league}. Tente novamente.',
+	'settings.delete.error_withdraw_first':
+		'Sua conta ainda tem saldo: na carteira, como colateral ou ganhos de trading, ou em um saque em andamento. Saque tudo e espere ele terminar; depois exclua sua conta.',
 	'settings.delete.forever': 'Excluir para sempre',
 	'settings.delete.gone_body': 'Sua conta está sendo excluída.',
 	'settings.delete.gone_eyebrow': 'Adeus',

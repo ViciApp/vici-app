@@ -38,9 +38,13 @@ one pattern. Each of these has bitten a PR before:
   tournament prize is keyed on the tournament alone, and
   `decideTournamentPrize`
   ([`tournament-prize.utils.ts`](../../../src/satellite/utils/tournament-prize.utils.ts))
-  also treats a doc under any per-place key (`<tournamentId>_place_<n>`)
+  also treats a payout under any per-place key (`<tournamentId>_place_<n>`)
   of an earlier claim as claimed; `assertSetVxpAward` refuses a new
-  prize under a per-place key.
+  prize under a per-place key. The Worlds podium, keyed by month, kind
+  and place, likewise counts a payout under the key without the kind
+  (`claimedWorldsPodiumAwardKeys`). An old key blocks while it holds a
+  payout (`holdsAwardPayout`: `paid` or `pending`); a `failed` one moved
+  nothing and blocks nothing.
 - **Lifecycle is `pending → paid | failed`, and `failed → pending` for
   a retry.** Paid docs are immutable (`assertSetVxpAward`). A payout is
   marked `failed` only when the ledger answers the transfer with an
@@ -85,11 +89,13 @@ one pattern. Each of these has bitten a PR before:
   `REPEATABLE_VXP_AWARD_TYPES` on both stacks.
 - **Referral rows keep their payout history.** `referrals` is
   `write: 'public'` and holds both payout sides, and the referrer's
-  lifetime count is a scan of it. `assertSetReferral` lets a side's
-  state only move forward (`processing` back to `owed` is the one
-  retry step), and the account purge keeps a row that has started
-  paying (`isReferralPayoutRecord`), so deleting referred accounts never
-  frees a slot in the referrer's count.
+  tier is a scan of it: every earlier redemption counts, whatever its
+  payout state (`countPriorRedemptions`), so the order of the referees'
+  first predictions never moves a reward up a tier. `assertSetReferral`
+  lets a side's state only move forward (`processing` back to `owed` is
+  the one retry step), and the account purge keeps a row that has
+  started paying (`isReferralPayoutRecord`), so deleting a referred
+  account that was paid never frees its slot in the referrer's count.
 - **Eligibility times are server-stamped.** A gate on when something
   happened (a join, an activity day) reads a time the satellite wrote:
   the doc's Juno `created_at` or `timeMs()`, never a caller-written `*Ms`

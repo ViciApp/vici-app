@@ -676,7 +676,7 @@ export interface AppJoinLeagueByInviteResult {
 					privacy: { open: null } | { private: null };
 				}
 		  ];
-	reason: [] | [{ already_member: null } | { not_found: null }];
+	reason: [] | [{ already_member: null } | { rate_limited: null } | { not_found: null }];
 }
 export interface AppListAffiliationChampionshipsArgs {
 	kind: { country: null } | { university: null };
@@ -1043,6 +1043,7 @@ export interface AppLookupLeagueByInviteResult {
 					privacy: { open: null } | { private: null };
 				}
 		  ];
+	reason: [] | [{ rate_limited: null }];
 }
 export interface AppLookupReferralCodeArgs {
 	code: string;
@@ -1094,6 +1095,10 @@ export interface AppRecoverMyAccountResult {
 }
 export interface AppRedeemReferralCodeArgs {
 	code: string;
+}
+export interface AppRefreshLeaderboardRankingResult {
+	refreshed: boolean;
+	ranked: number;
 }
 export interface AppRejectFriendRequestArgs {
 	relation_id: string;
@@ -1548,6 +1553,7 @@ export interface _SERVICE {
 	app_record_flow_swipe: ActorMethod<[AppRecordFlowSwipeArgs], AppRecordFlowSwipeResult>;
 	app_recover_my_account: ActorMethod<[], AppRecoverMyAccountResult>;
 	app_redeem_referral_code: ActorMethod<[AppRedeemReferralCodeArgs], undefined>;
+	app_refresh_leaderboard_ranking: ActorMethod<[], AppRefreshLeaderboardRankingResult>;
 	app_reject_friend_request: ActorMethod<[AppRejectFriendRequestArgs], undefined>;
 	app_resolve_battle: ActorMethod<[AppResolveBattleArgs], AppResolveBattleResult>;
 	app_resolve_tournament_round: ActorMethod<

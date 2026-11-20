@@ -232,6 +232,34 @@ export type AnalyticsEventName =
 	| 'perf_metric';
 
 /**
+ * Events the server records itself, from its own state: a payout or award it made, an account or
+ * affiliation change it applied, a verification step it ran. A client batch carrying one is not
+ * stored, so these counts read only what the server did.
+ */
+export const SERVER_ANALYTICS_EVENT_NAMES = [
+	'payout_settled',
+	'vxp_awarded',
+	'streak_milestone',
+	'affiliation_set',
+	'affiliation_removed',
+	'school_verify_email_submitted',
+	'school_verify_code_submitted',
+	'delete_confirmed',
+	'delete_succeeded',
+	'exit_signal'
+] as const satisfies readonly AnalyticsEventName[];
+
+export type ServerAnalyticsEventName = (typeof SERVER_ANALYTICS_EVENT_NAMES)[number];
+
+/** The events a client may send through `trackEvents`. */
+export type ClientAnalyticsEventName = Exclude<AnalyticsEventName, ServerAnalyticsEventName>;
+
+const SERVER_ANALYTICS_EVENT_NAME_SET: ReadonlySet<string> = new Set(SERVER_ANALYTICS_EVENT_NAMES);
+
+export const isServerAnalyticsEventName = (name: string): name is ServerAnalyticsEventName =>
+	SERVER_ANALYTICS_EVENT_NAME_SET.has(name);
+
+/**
  * Bounded dimensional vocabulary for an event's context. Intentionally a
  * **fixed set of optional, primitive fields** rather than a free-form bag:
  * it keeps the schema simple, the warehouse queryable, and, critically,
