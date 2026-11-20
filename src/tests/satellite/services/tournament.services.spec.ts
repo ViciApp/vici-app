@@ -362,6 +362,48 @@ describe('resolveTournamentRoundFn', () => {
 		assert.equal(r1Match()?.winnerLeagueId, leagueA);
 	});
 
+	it('resolves a round a bounded batch of matches per call', async () => {
+		for (let index = 1; index < 5; index += 1) {
+			host.putDoc({
+				collection: Collection.TOURNAMENT_MATCHES,
+				key: tournamentMatchKey({ tournamentId, round: 'r1', index }),
+				data: {
+					...finalMatch,
+					tournamentId,
+					round: 'r1',
+					index,
+					fromLeagueId: `league-${index}-from`,
+					toLeagueId: `league-${index}-to`,
+					startMs: r1.startMs,
+					endMs: r1.endMs
+				},
+				owner: controller,
+				createdAtMs: octoberStartMs
+			});
+		}
+
+		const resolvedPerCall: number[] = [];
+		let result = await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
+
+		while (result.ok && (result.matchesResolved ?? 0) > 0) {
+			resolvedPerCall.push(result.matchesResolved ?? 0);
+			result = await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
+		}
+
+		const winners = host
+			.keys(Collection.TOURNAMENT_MATCHES)
+			.map((key) =>
+				host.readDoc<TournamentMatchDoc>({ collection: Collection.TOURNAMENT_MATCHES, key })
+			)
+			.filter((match) => match?.round === 'r1')
+			.map((match) => match?.winnerLeagueId);
+
+		assert.deepEqual(resolvedPerCall, [2, 2, 1]);
+		assert.deepEqual(result, { ok: true, matchesResolved: 0, tournamentConcluded: false });
+		assert.equal(winners.length, 5);
+		assert.ok(winners.every((winner) => typeof winner === 'string'));
+	});
+
 	it('fills both slots of a quarter-final fed by two first-round matches', async () => {
 		const leagueC = 'league-c';
 		const leagueD = 'league-d';

@@ -118,6 +118,22 @@ export interface ResolveTournamentRoundResult {
 	tournamentConcluded?: boolean;
 }
 
+const resolveTournamentRoundOnSatellite = async (
+	args: Parameters<typeof functions.resolveTournamentRound>[0]
+): Promise<ResolveTournamentRoundResult> => {
+	let result: ResolveTournamentRoundResult = await functions.resolveTournamentRound(args);
+	let matchesResolved = result.matchesResolved ?? 0;
+	let tournamentConcluded = result.tournamentConcluded === true;
+
+	while (result.ok && (result.matchesResolved ?? 0) > 0) {
+		result = await functions.resolveTournamentRound(args);
+		matchesResolved += result.matchesResolved ?? 0;
+		tournamentConcluded ||= result.tournamentConcluded === true;
+	}
+
+	return { ...result, matchesResolved, tournamentConcluded };
+};
+
 /**
  * Resolve every match in a closed round. Idempotent via the match
  * doc's `winnerLeagueId` write-once invariant: already-resolved
@@ -125,7 +141,10 @@ export interface ResolveTournamentRoundResult {
  * this call + whether the tournament has concluded.
  *
  * The FE fires this on every Tournament-page mount for each round
- * whose `endMs <= now`, walking forward through the bracket.
+ * whose `endMs <= now`, walking forward through the bracket. The
+ * satellite resolves a bounded batch of matches per call, so the
+ * request is sent again until it resolves nothing more, and the
+ * result sums the calls.
  */
 export const resolveTournamentRound = ({
 	tournamentId,
@@ -138,7 +157,7 @@ export const resolveTournamentRound = ({
 	// parity and skips already-settled matches server-side.
 	isWeb2Backend()
 		? resolveTournamentRoundWeb2({ tournamentId, round })
-		: functions.resolveTournamentRound({ tournamentId, round });
+		: resolveTournamentRoundOnSatellite({ tournamentId, round });
 
 export interface ClaimTournamentPrizeResult {
 	ok: boolean;

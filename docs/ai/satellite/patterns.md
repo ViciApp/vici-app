@@ -730,6 +730,10 @@ prize.
 - **Prefer the assert over `write: 'controllers'`.** The rule lives in
   code and ships with the satellite build; a `juno.config.ts` rule change
   needs `juno config apply` on every satellite.
+- **Write a few docs per call.** Round resolution resolves at most
+  `TOURNAMENT_RESOLVE_BATCH` matches per call (each writes its own doc
+  and the next round's slot), within the bulk-write budget above; the
+  FE calls it again until `matchesResolved` is 0.
 
 ## Logging
 
