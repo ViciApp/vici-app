@@ -1,4 +1,4 @@
-import { startPolling } from '#lib/utils/async.utils.ts';
+import { createLoadEpoch, startPolling } from '#lib/utils/async.utils.ts';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 
@@ -193,6 +193,43 @@ describe('async.utils', () => {
 			await flush();
 
 			assert.equal(onLoad.mock.callCount(), 1);
+		});
+	});
+
+	describe('createLoadEpoch', () => {
+		it('keeps a load current while nothing invalidated it', () => {
+			const epoch = createLoadEpoch();
+			const isCurrent = epoch.start();
+
+			assert.equal(isCurrent(), true);
+		});
+
+		it('drops a load started before an invalidation', () => {
+			const epoch = createLoadEpoch();
+			const isCurrent = epoch.start();
+
+			epoch.invalidate();
+
+			assert.equal(isCurrent(), false);
+		});
+
+		it('keeps a load started after the invalidation current', () => {
+			const epoch = createLoadEpoch();
+
+			epoch.invalidate();
+			const isCurrent = epoch.start();
+
+			assert.equal(isCurrent(), true);
+		});
+
+		it('keeps separate epochs apart', () => {
+			const first = createLoadEpoch();
+			const second = createLoadEpoch();
+			const isCurrent = first.start();
+
+			second.invalidate();
+
+			assert.equal(isCurrent(), true);
 		});
 	});
 });

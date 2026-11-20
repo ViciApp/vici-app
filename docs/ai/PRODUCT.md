@@ -35,8 +35,11 @@ Terminology: always **"prediction"**, never "bet".
   balance, and the same auto-sweep moves it into clearing, where it stays
   available until a prediction backs it.
 - **Profile / leaderboard "VXP"** is the lifetime points score that
-  drives level and rank. It only ever grows and is **not** the token
-  balance.
+  drives level. It only ever grows and is **not** the token balance.
+  The client writes it, so it is display copy: on the web2 API no rank
+  reads it (see
+  [Global leaderboard](#global-leaderboard-qualify-gate--confidence-adjusted-ranking));
+  the satellite still ranks its points leaderboard by it.
 
 VXP has 4 decimals: compare and transfer in base units
 (`vxpBaseUnits`), display in whole VXP.
@@ -117,9 +120,11 @@ cannot forge a win for themselves or a friend. Only a role that can
 settle (or a controller) may post the settlement activity that triggers
 the write, on both stacks, and posting it again keeps every row's first
 resolution time. The collection is
-public-read and consumed friend-scoped (a single owner-prefix scan over
+controllers-read: on the satellite a client reads it only through `listFriendResolvedResults`, which answers the caller's own rows and those of their active friends whose account is neither deleted nor hibernated, any other requested principal reading as having no results (a single owner-prefix scan over
 a caller's friend set, never one call per friend) and is the data source
-for the friend results digest. There is **no source for a friend's
+for the friend results digest. The web2 API answers only the rows of the
+caller's active friends whose account is neither deleted nor hibernated;
+any other requested id reads as having no results. There is **no source for a friend's
 per-call outcome otherwise**: clearing trade-history is caller-scoped, and
 the single settlement activity row is the resolver's market-level result,
 not a per-participant one. Rows past the retention horizon
@@ -277,6 +282,10 @@ service.
 - **Invites.** Inviting by link rewards both sides via the referral
   bonuses in
   [`referral.constants.ts`](../../src/lib/constants/referral.constants.ts).
+  A referral code is private to the satellite: the app resolves one code
+  at a time (the invite landing, the redeem, the friendship claim) and
+  reads the user's own code, but no one can list the codes or who owns
+  them.
 - **A league invite implies a friend invite.** Sharing a league invite
   link also carries the sharer's referral code (`?ref=`), so joining the
   league auto-friends the person whose link was used: a brand-new
@@ -391,6 +400,20 @@ showed the satellite points rank, which could read a phantom #1). Decision
 record:
 [`specs/2026-06-25-impr-leaderboard-integrity.md`](./spec-driven-development/specs/2026-06-25-impr-leaderboard-integrity.md).
 
+The server-side ranking behind the market's "Top predictors here"
+candidates (`GET /api/v1/leaderboard`), the viewer's rank and ranked
+population (`/leaderboard/rank/:userId`: the profile's "Top X%" line and
+the Goat trophy) use the same two guards on the web2 API: every visible
+profile with at least the qualify minimum of settled calls, ordered by
+the same shrinkage score over its all-time settled history read from the
+clearing canister (more settled calls, then the account id, break a
+tie). A profile below the gate is unranked there too, so the "Top X%"
+line is the viewer's place among
+ranked predictors. The client-written `points` never decides a rank.
+The ranking is read at most once per public read window
+(`rankedUserIds` in
+[`backend/src/profiles/leaderboard.ts`](../../backend/src/profiles/leaderboard.ts)).
+
 ### Privacy: leaderboard & Worlds sharing opt-outs
 
 Two Settings → Privacy toggles let a user remove themselves from public
@@ -400,8 +423,8 @@ ranking surfaces. Both default **on** (legacy / unset reads as on).
   ranked and provisional lists **other people** see; ranks below them
   compress with no gap. They keep their own rank: their `You` row and
   the Arena "Global ranking" card (`ownGlobalStanding`) still resolve,
-  and their top-decile achievement (a separate satellite points-rank
-  path) is unaffected. Enforced FE-side by one predicate,
+  and their top-decile achievement (the satellite's stored ranking,
+  next section) is unaffected. Enforced FE-side by one predicate,
   `isShownOnGlobalLeaderboard` (`visibility.utils`), applied to the
   global leaderboard (`globalStandingsRows`) and to the market detail's
   "Top predictors here" candidates (`visibleLeaderboard`), **failing
@@ -430,6 +453,23 @@ Each toggle emits `privacy_sharing_toggled` (`source: leaderboard |
 worlds`, `label: on | off`). Decision record:
 [`specs/2026-06-28-feat-sharing-opt-out-enforcement.md`](./spec-driven-development/specs/2026-06-28-feat-sharing-opt-out-enforcement.md).
 
+### Satellite: stored global ranking
+
+On the satellite, the market's "Top predictors here" candidates
+(`listLeaderboard`), the viewer's rank and ranked population
+(`getUserRankAndCount`: the profile's "Top X%" line, the Goat trophy and
+the top-decile streak) and the rival (`getMyRival`) read one stored
+ranking, never the client-written `points`: every visible profile with at
+least the qualify minimum of settled calls, ordered by the board's
+shrinkage score over its all-time settled history (`compareRankScore` in
+[`leaderboard-score.utils.ts`](../../src/lib/utils/leaderboard-score.utils.ts)),
+then by principal. A query cannot call the clearing canister, so
+`refreshLeaderboardRanking` computes it in an update and stores it in the
+controllers-only `leaderboard_ranking` collection. The app asks for a
+refresh, fire-and-forget, on every leaderboard and rank load; a ranking
+younger than its TTL is served as is, so a new settlement moves a rank
+within minutes, not at once. Before the first refresh nobody is ranked.
+
 ### Privacy: what survives an account's deletion
 
 Deleting an account (after the 30-day recovery window, or at once on a
@@ -438,7 +478,12 @@ identities and sessions, the VXP award history and onboarding ladder,
 calibration attempts, the stats and monthly stats, resolved results, the
 likes it gave (each liked activity's count goes down), school-email
 submissions, referral code, affiliations, relations and league
-memberships; owned leagues are disbanded or handed to a member. Like the
+memberships; owned leagues are disbanded or handed to a member. On the
+web2 API an account that still holds funds (in its wallet, as real-money
+collateral or trading gains, or in a withdrawal in progress) cannot be deleted: the app
+asks the user to withdraw first. An account that receives funds during the
+recovery window is not purged while it holds them, and signing back in
+after the window restores it so the funds can be withdrawn. Like the
 global leaderboard, the monthly awards board lists no soft-deleted,
 hibernated or deleted account. What stays, by design:
 
@@ -496,6 +541,19 @@ fact earns nothing. A month confers a cup only once it has been frozen
 (claimed). Decision record:
 [`specs/2026-06-28-impr-worlds-standings-current-members.md`](./spec-driven-development/specs/2026-06-28-impr-worlds-standings-current-members.md).
 
+**A member's school verification never rewrites the school registry.** A
+school email on a directory domain verifies that directory school; on an
+unknown domain it adds the school the member typed, keyed by the
+normalized name. That name may not be a directory school's id, and an id
+the registry already holds answers only to an address on one of that
+row's domains, checked when the code is sent and again when it is
+verified. A verification creates a missing registry row and otherwise
+only recounts its verified members: the row's name, country, domains
+and status stay as they are, and it turns public only when the count
+first crosses `SCHOOL_VERIFIED_PUBLIC_THRESHOLD`, so a school an admin
+held back stays held back. A typed name is capped at
+`SCHOOL_NAME_MAX_LENGTH` and the country is a two-letter code.
+
 ### Battles: accuracy face-offs that resolve themselves
 
 A **battle** is a time-bound accuracy face-off between two leagues. A
@@ -534,6 +592,8 @@ league's page link there too; each row opens the battle detail page. That
 page shows **provisional standings** while a battle is `in_flight`: each
 side's members' settled-call win rate so far over `[kickoff, now)`, read
 from clearing settlement history, with the current leader highlighted,
+counting only members who joined before kickoff (the resolved score
+counts the same roster, so joining mid-battle never carries a side),
 computed read-only on the same data resolution uses, so it never alters
 the battle or triggers an early resolve. It's labelled provisional and
 keeps moving as each side predicts, until the window closes and the
@@ -554,7 +614,14 @@ privacy just removes the league from future challenge search.
 read returns a league's code except to its own members (`listMyLeagues`),
 who share it: the satellite keeps codes in the controllers-only
 `league_invites` collection, never on the public league doc, and adds a
-member only through `joinLeagueByInvite` once the code checks out.
+member only through `joinLeagueByInvite` once the code checks out. A new
+league gets a ten-character code on both stacks; a league founded with
+the older six-character code keeps it and stays joinable. Looking a code up and
+joining with one need a signed-in account, and on the satellite an
+account that has tried `LEAGUE_INVITE_MISSES_PER_HOUR` codes within the
+hour that opened no league is refused every code, a right one included,
+until its oldest miss is an hour old (the web2 API bounds the same calls
+with its own per-account rate limit).
 
 **The score is each league's prediction accuracy over the window, and
 nobody types it.** Each side's score is its **current members'**

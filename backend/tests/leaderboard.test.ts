@@ -1,87 +1,128 @@
-// Global leaderboard: rank/count correctness on a seeded population, the
-// hidden-profile exclusion and deterministic tie-breaks.
+// Global leaderboard: ranked from each profile's all-time settled history
+// (qualify gate, then the confidence-adjusted score the visible board uses),
+// never the client-written points; rank/count correctness on a seeded
+// population, the hidden-profile exclusion and deterministic tie-breaks.
 
-import { beforeAll, describe, expect, test } from 'bun:test';
-import { query } from '../src/db/client';
-import { getUserRankAndCount, listLeaderboard } from '../src/profiles/leaderboard';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { clearCache } from '../src/engine/cache';
+import {
+	getUserRankAndCount,
+	LEADERBOARD_QUALIFY_MIN,
+	listLeaderboard
+} from '../src/profiles/leaderboard';
 import { ensureMigrated } from './helpers/auth';
 import { createTestProfile, hibernateProfile, softDeleteProfile } from './helpers/profiles';
+import { stubSettledHistory, type SettledHistoryStub } from './helpers/settlements';
 import { dbAvailable } from './helpers/setup';
 
-// Far above anything other suites seed, so this population owns the top of
-// the shared ranking.
-const BASE_POINTS = 9_000_000_000_000;
+// Well past anything a client could reach on the points it writes, so a
+// ranking that read points would put this profile first.
+const HUGE_POINTS = 900_000_000;
 
 describe.if(dbAvailable)('leaderboard', () => {
+	let settled: SettledHistoryStub | undefined;
 	let first: string;
 	let second: string;
 	let third: string;
+	let pointsOnly: string;
+	let belowGate: string;
 	let hiddenDeleted: string;
 	let hiddenHibernated: string;
+
+	/** A profile with `calls` settled calls, `wins` of them won, and the given points. */
+	const rankedProfile = async ({
+		calls,
+		wins,
+		points = 0
+	}: {
+		calls: number;
+		wins: number;
+		points?: number;
+	}): Promise<string> => {
+		const { userId } = await createTestProfile({ points });
+
+		settled?.settle({ userId, atMs: Date.UTC(2026, 0, 1), calls, wins });
+
+		return userId;
+	};
 
 	beforeAll(async () => {
 		await ensureMigrated();
 
-		// A persistent local database can carry this suite's population from a
-		// previous run; demote any lingering top rows so the absolute ranks
-		// asserted below stay deterministic.
-		await query(`update profiles set points = 0 where points >= $1`, [BASE_POINTS]);
+		// Only this suite's profiles have settled history in the stub, so they
+		// are the whole ranked population whatever other suites seed.
+		settled = stubSettledHistory();
 
-		({ userId: first } = await createTestProfile({ points: BASE_POINTS + 300 }));
-		({ userId: second } = await createTestProfile({ points: BASE_POINTS + 200 }));
-		({ userId: third } = await createTestProfile({ points: BASE_POINTS + 100 }));
+		first = await rankedProfile({ calls: 200, wins: 190 });
+		second = await rankedProfile({ calls: 50, wins: 45 });
+		// 10/11 is a higher raw rate than 45/50 but a thinner record: the
+		// confidence-adjusted score ranks it below.
+		third = await rankedProfile({ calls: 11, wins: 10, points: HUGE_POINTS });
 
-		({ userId: hiddenDeleted } = await createTestProfile({ points: BASE_POINTS + 250 }));
+		pointsOnly = (await createTestProfile({ points: HUGE_POINTS })).userId;
+		belowGate = await rankedProfile({
+			calls: LEADERBOARD_QUALIFY_MIN - 1,
+			wins: LEADERBOARD_QUALIFY_MIN - 1,
+			points: HUGE_POINTS
+		});
+
+		hiddenDeleted = await rankedProfile({ calls: 100, wins: 99 });
 		await softDeleteProfile(hiddenDeleted);
 
-		({ userId: hiddenHibernated } = await createTestProfile({ points: BASE_POINTS + 150 }));
+		hiddenHibernated = await rankedProfile({ calls: 100, wins: 98 });
 		await hibernateProfile(hiddenHibernated);
 	});
 
-	test('orders by points descending and excludes hidden profiles', async () => {
-		const items = await listLeaderboard();
-		const ids = items.map((item) => item.userId);
+	beforeEach(() => {
+		clearCache();
+	});
 
-		expect(ids.slice(0, 3)).toEqual([first, second, third]);
-		expect(ids).not.toContain(hiddenDeleted);
-		expect(ids).not.toContain(hiddenHibernated);
+	afterAll(() => {
+		settled?.restore();
+		clearCache();
+	});
+
+	test('orders by settled history, ignores points and excludes hidden profiles', async () => {
+		const ids = (await listLeaderboard()).map((item) => item.userId);
+
+		expect(ids).toEqual([first, second, third]);
 	});
 
 	test('rank and count agree with the visible ordering', async () => {
-		const rankFirst = await getUserRankAndCount({ userId: first });
-		const rankSecond = await getUserRankAndCount({ userId: second });
-		const rankThird = await getUserRankAndCount({ userId: third });
-
-		expect(rankFirst.rank).toBe(1);
-		expect(rankSecond.rank).toBe(2);
-		expect(rankThird.rank).toBe(3);
-
-		// One population count across the same ordering.
-		expect(rankFirst.count).toBe(rankSecond.count);
-		expect(rankFirst.count).toBeGreaterThanOrEqual(3);
+		expect(await getUserRankAndCount({ userId: first })).toEqual({ rank: 1, count: 3 });
+		expect(await getUserRankAndCount({ userId: second })).toEqual({ rank: 2, count: 3 });
+		expect(await getUserRankAndCount({ userId: third })).toEqual({ rank: 3, count: 3 });
 	});
 
-	test('a hidden profile is unranked but still counted out', async () => {
-		const { rank, count } = await getUserRankAndCount({ userId: hiddenDeleted });
+	test('points alone, or settled calls below the qualify gate, leave a profile unranked', async () => {
+		expect(await getUserRankAndCount({ userId: pointsOnly })).toEqual({
+			rank: undefined,
+			count: 3
+		});
+		expect(await getUserRankAndCount({ userId: belowGate })).toEqual({
+			rank: undefined,
+			count: 3
+		});
+	});
 
-		expect(rank).toBeUndefined();
-		expect(count).toBeGreaterThanOrEqual(3);
-
-		// Hidden rows do not shift the ranks below them.
+	test('a hidden profile is unranked and does not shift the ranks below it', async () => {
+		expect((await getUserRankAndCount({ userId: hiddenDeleted })).rank).toBeUndefined();
+		expect((await getUserRankAndCount({ userId: hiddenHibernated })).rank).toBeUndefined();
 		expect((await getUserRankAndCount({ userId: second })).rank).toBe(2);
 	});
 
-	test('ties break by user id ascending, stable across reads', async () => {
-		const { userId: tieA } = await createTestProfile({ points: BASE_POINTS + 50 });
-		const { userId: tieB } = await createTestProfile({ points: BASE_POINTS + 50 });
-		const sorted = [tieA, tieB].sort();
-		const low = sorted[0] ?? tieA;
-		const high = sorted[1] ?? tieB;
+	test('equal scores break by settled calls, then by user id ascending', async () => {
+		// Against a weight-20 prior at 0.5, 30 wins in 40 calls and 10 in 10
+		// both score exactly 2/3.
+		const moreCalls = await rankedProfile({ calls: 40, wins: 30 });
+		const fewerCalls = await rankedProfile({ calls: 10, wins: 10 });
+		const twinA = await rankedProfile({ calls: 12, wins: 6 });
+		const twinB = await rankedProfile({ calls: 12, wins: 6 });
+		const [low, high] = [twinA, twinB].sort();
 
-		const rankLow = await getUserRankAndCount({ userId: low });
-		const rankHigh = await getUserRankAndCount({ userId: high });
+		const ids = (await listLeaderboard()).map((item) => item.userId);
 
-		expect(rankLow.rank).toBe(4);
-		expect(rankHigh.rank).toBe(5);
+		expect(ids.indexOf(moreCalls) + 1).toBe(ids.indexOf(fewerCalls));
+		expect(ids.slice(-2)).toEqual([low ?? twinA, high ?? twinB]);
 	});
 });

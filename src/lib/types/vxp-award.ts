@@ -74,7 +74,9 @@ export interface VxpAwardDoc {
 	 *  - `streak`: one of `'streak_3' | 'streak_7' | 'streak_14' | 'streak_30'`.
 	 *  - `calibration`: the resolved market's `seriesId` (one per market).
 	 *  - `referral`: the referee principal text.
-	 *  - `worlds_podium`: `'<YYYY-MM>_gold' | '<YYYY-MM>_silver' | '<YYYY-MM>_bronze'`.
+	 *  - `worlds_podium`: `'<YYYY-MM>_<kind>_<place>'`, one per month, affiliation kind
+	 *                     and place (`gold` / `silver` / `bronze`); older awards carry
+	 *                     `'<YYYY-MM>_<place>'`.
 	 *  - `flow_milestone`: the crossed threshold as text: `'10' | '100' | '500' | '1000'`.
 	 *  - `flow_overtime`: the Flow daily-counter day key
 	 *                     `'<YYYY-MM-DD>'` (the client local day `recordFlowSwipe` uses).

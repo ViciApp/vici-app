@@ -1,7 +1,8 @@
 // Friend-readable resolved-results digest: one row per (user, market)
 // resolved call, written from the clearing settlement plan at resolution
-// time (never from a client, so a user cannot forge a result), read
-// friend-scoped, and pruned past the retention horizon.
+// time (never from a client, so a user cannot forge a result), read only by
+// the user's active friends while the account is visible, and pruned past the
+// retention horizon.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query } from '../db/client';
@@ -10,6 +11,7 @@ import { getSeries } from '../engine/registry';
 import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { DAY_IN_MS } from '../lib/time';
+import { PUBLICLY_VISIBLE_PROFILE_SQL } from '../profiles/profile';
 
 /** How long a resolved-result row stays readable before the pruning job
  * removes it. */
@@ -73,13 +75,17 @@ export const upsertResolvedResult = async (result: ResolvedResult): Promise<void
 };
 
 /**
- * Friend-scoped bulk read for the results digest: the given friends' rows
- * over the active retention window in one bounded query, most recent first
- * with the primary key as tiebreak so the order is deterministic.
+ * Friend-scoped bulk read for the results digest: the rows of the requested
+ * ids that are the viewer's active friends with a visible (not deleted, not
+ * hibernated) profile, over the active retention window in one bounded
+ * query, most recent first with the primary key as tiebreak so the order is
+ * deterministic. Any other requested id reads as having no results.
  */
 export const listFriendResolvedResults = async ({
+	viewerId,
 	friendIds
 }: {
+	viewerId: string;
 	friendIds: string[];
 }): Promise<ResolvedResult[]> => {
 	if (friendIds.length === 0) {
@@ -89,11 +95,20 @@ export const listFriendResolvedResults = async ({
 	const cutoffMs = Date.now() - RESOLVED_RESULTS_RETENTION_MS;
 
 	const rows = await query<ResolvedResultRow>(
-		`select user_id, market_id, title, side, outcome, net_vxp::text, resolved_at_ms::text
-		 from resolved_results
-		 where user_id = any($1) and resolved_at_ms >= $2
-		 order by resolved_at_ms desc, user_id asc, market_id asc`,
-		[friendIds, cutoffMs]
+		`select r.user_id, r.market_id, r.title, r.side, r.outcome, r.net_vxp::text,
+		        r.resolved_at_ms::text
+		 from resolved_results r
+		 join profiles p on p.user_id = r.user_id
+		 where r.user_id = any($1) and r.resolved_at_ms >= $2
+		   and ${PUBLICLY_VISIBLE_PROFILE_SQL}
+		   and exists (
+		     select 1 from relations rel
+		     where rel.category = 'FRIEND' and rel.state = 'ACTIVE'
+		       and ((rel.participant_one = $3 and rel.participant_two = r.user_id)
+		         or (rel.participant_two = $3 and rel.participant_one = r.user_id))
+		   )
+		 order by r.resolved_at_ms desc, r.user_id asc, r.market_id asc`,
+		[friendIds, cutoffMs, viewerId]
 	);
 
 	return rows.map(shapeResolvedResult);

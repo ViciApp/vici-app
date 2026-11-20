@@ -7,7 +7,7 @@ import {
 	submitMarketOrder
 } from '#lib/api/clearing.api.ts';
 import { MarketClosedError } from '#lib/canisters/clearing.errors.ts';
-import { PRICE_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
+import { PRICE_DECIMALS, USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import { logActivity } from '#lib/services/activity.services.ts';
 import { track } from '#lib/services/analytics.services.ts';
@@ -21,6 +21,8 @@ import { loadWithCertification } from '#lib/services/query-update.services.ts';
 import type { MarketId, Outcome } from '#lib/types/market.ts';
 import type { OrderSide, OrderType } from '#lib/types/order.ts';
 import { filterByPlaygroundExpandedDomain } from '#lib/utils/balance-domain.utils.ts';
+import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
+import { walkMarketOrder } from '#lib/utils/market-order.utils.ts';
 import { parseLimitOrderPriceValue } from '#lib/utils/parse.utils.ts';
 import { refreshAllBalances, refreshOrders, refreshPositions } from '#lib/utils/refresh.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
@@ -112,6 +114,7 @@ export const placeOrder = async ({
 	type,
 	price,
 	qty,
+	maxSpendUsd,
 	outcome,
 	expiryDate
 }: {
@@ -121,6 +124,8 @@ export const placeOrder = async ({
 	type: OrderType;
 	price: number;
 	qty: bigint;
+	/** The call size in clearing USD base units: a market order never spends more. */
+	maxSpendUsd: bigint;
 	outcome: Outcome;
 	expiryDate: bigint;
 }): Promise<void> => {
@@ -160,6 +165,9 @@ export const placeOrder = async ({
 	// the actually executed size for a market order (the book may be smaller
 	// than the request).
 	let filledQty = qty;
+	// The VXP committed: a resting limit order's full placed size at its price,
+	// a market order's real cost across the levels it filled.
+	let committedValue = Number(qty) * normalizedPrice;
 
 	if (type === 'LIMIT') {
 		const orderId = `ORD_${nanoid(8)}`;
@@ -240,73 +248,39 @@ export const placeOrder = async ({
 				});
 		};
 
-		let matchingOrders = await fetchMatchingOrders();
-
-		if (matchingOrders.length === 0) {
-			throw new Error('No matching liquidity found for market order');
-		}
-
-		// Walk the book best-price-first, taking `min(remaining, level)` per
-		// trade, so the execution honors the caller's amount-derived `qty`
-		// rather than whatever size the best resting order happens to carry.
-		// The book is re-read between takes: a level shrunk by a concurrent
-		// taker would otherwise overstate the fill (the engine executes
-		// `min(take, current level)`) and stop the walk early. A book smaller
-		// than the request fills what exists. The pass cap is a defensive
-		// bound: each pass either reduces `remaining` or exits, so a healthy
-		// walk never reaches it.
-		const MAX_BOOK_PASSES = 10;
-		let remaining = qty;
-
-		try {
-			for (let pass = 0; pass < MAX_BOOK_PASSES && remaining > ZERO; pass++) {
-				if (pass > 0) {
-					matchingOrders = await fetchMatchingOrders();
-				}
-
-				const [best] = matchingOrders;
-
-				if (isNullish(best)) {
-					break;
-				}
-
-				const take = remaining < best.qty ? remaining : best.qty;
-
+		const fill = await walkMarketOrder({
+			qty,
+			maxSpendUsd,
+			takerSide: normalizedSide,
+			readBook: fetchMatchingOrders,
+			takeLevel: async ({ level, qty: take }) => {
 				if (isNullish(identity)) {
 					try {
 						await submitEngineMarketOrderWeb2({
 							tradeId: `TRD_${nanoid(8)}`,
-							matchingOrderId: best.order_id,
+							matchingOrderId: level.order_id,
 							qty: take
 						});
 					} catch (err: unknown) {
 						rethrowWeb2Unauthenticated(err);
 					}
-				} else {
-					await submitMarketOrder({
-						identity,
-						params: {
-							trade_id: `TRD_${nanoid(8)}`,
-							matching_order_id: best.order_id,
-							qty: toNullable(take)
-						}
-					});
+
+					return;
 				}
 
-				remaining -= take;
+				await submitMarketOrder({
+					identity,
+					params: {
+						trade_id: `TRD_${nanoid(8)}`,
+						matching_order_id: level.order_id,
+						qty: toNullable(take)
+					}
+				});
 			}
-		} catch (e: unknown) {
-			// Nothing executed; surface the failure. After a partial fill the
-			// user holds a real position, so finish with what filled instead
-			// of reporting a failure that would read as "nothing happened".
-			if (remaining === qty) {
-				throw e;
-			}
+		});
 
-			console.warn('Market order partially filled before an error; keeping the filled amount', e);
-		}
-
-		filledQty = qty - remaining;
+		({ filledQty } = fill);
+		committedValue = decimalFixedValueToNumber({ value: fill.spentUsd, decimals: USD_DECIMALS });
 	}
 
 	refreshPositions();
@@ -315,9 +289,9 @@ export const placeOrder = async ({
 	refreshAllBalances();
 
 	// Behavioural telemetry for the cockpit: every REAL trade goes through here
-	// (the flow deck's guest picks emit separately). `value` is the VXP committed
-	// (contracts × price of the chosen outcome); a resting limit order reports its
-	// full placed size, a market order the actually-executed fill.
+	// (the flow deck's guest picks emit separately). `value` is the VXP committed;
+	// a resting limit order reports its full placed size, a market order the
+	// actually-executed fill.
 	if (filledQty > ZERO || type === 'LIMIT') {
 		track({
 			name:
@@ -325,7 +299,7 @@ export const placeOrder = async ({
 			marketId,
 			label: outcome,
 			count: Number(filledQty),
-			value: Number(filledQty) * normalizedPrice
+			value: committedValue
 		});
 	}
 
