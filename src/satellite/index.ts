@@ -49,7 +49,8 @@ import { AFFILIATION_KINDS } from '#lib/types/affiliation.ts';
 import {
 	CREATE_LEAGUE_REFUSAL_REASONS,
 	JOIN_LEAGUE_REFUSAL_REASONS,
-	LEAGUE_IMAGES_COLLECTION
+	LEAGUE_IMAGES_COLLECTION,
+	LOOKUP_LEAGUE_REFUSAL_REASONS
 } from '#lib/types/league.ts';
 import { TOURNAMENT_DRAW_REFUSAL_REASONS } from '#lib/types/tournament.ts';
 import {
@@ -117,7 +118,8 @@ import { assertSetExitSignal } from '#satellite/services/exit-signal.services.ts
 import {
 	getMyRivalFn,
 	getUserRankAndCountFn,
-	listLeaderboard as listLeaderboardFn
+	listLeaderboard as listLeaderboardFn,
+	refreshLeaderboardRankingFn
 } from '#satellite/services/leaderboard.services.ts';
 import {
 	assertDeleteLeagueImage,
@@ -165,7 +167,6 @@ import {
 } from '#satellite/services/profile.services.ts';
 import {
 	assertDeleteReferral,
-	assertDeleteReferralCode,
 	assertSetReferral,
 	assertSetReferralCode,
 	claimReferralFriendshipFn,
@@ -297,6 +298,18 @@ import {
 } from '@junobuild/functions';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
+// Recompute the stored global ranking from settled history unless it is
+// still fresh. The leaderboard, rank and rival queries read that ranking:
+// a query cannot call the clearing canister. Anyone can call; the app asks
+// fire-and-forget on every leaderboard load.
+export const refreshLeaderboardRanking = defineUpdate({
+	result: j.strictObject({
+		refreshed: j.boolean(),
+		ranked: j.number()
+	}),
+	handler: async () => await refreshLeaderboardRankingFn()
+});
+
 export const listLeaderboard = defineQuery({
 	// camelCase wire schema: with CLI ≥ 0.15.6 the codegen applies
 	// `#[json_data(nested)]` to `Vec<NestedStruct>` too, so array items
@@ -311,12 +324,10 @@ export const listLeaderboard = defineQuery({
 });
 
 // Single-pass query that returns both the 1-based rank of `principalStr`
-// and the total count of non-hidden (ranked) profiles. Replaces the
-// former `countProfiles` + `getUserRank` pair, which each ran a full
-// `rankedProfiles()` scan+sort and were always called together in
-// `calculateAndSyncStats`, doubling the work.
+// and the count of ranked profiles, read from the stored ranking.
 //
-// `rank` is omitted when the principal is unranked (no profile / hidden).
+// `rank` is omitted when the principal is unranked (no profile, hidden or
+// below the qualify gate).
 // `principal` is reserved by the schema layer; exposed as `principalStr`.
 export const getUserRankAndCount = defineQuery({
 	args: j.strictObject({
@@ -632,7 +643,8 @@ export const claimReferralFriendship = defineUpdate({
  * stamps the timestamp + derives the pseudonymous principal, writes the
  * append-only `events` docs, and bumps the day's rollup inline. Anyone
  * (incl. anonymous, pre-auth) may call: events are validated against the
- * taxonomy and carry no PII.
+ * taxonomy and carry no PII, the batch and every string are bounded, and an
+ * event the server records itself is not taken from a client.
  */
 export const trackEvents = defineUpdate({
 	args: TrackEventsArgsSchema,
@@ -795,17 +807,20 @@ export const migrateLeagueInviteCodes = defineUpdate({
 });
 
 // Join-by-code preview: the league an invite code opens, without the code.
-export const lookupLeagueByInvite = defineQuery({
+// An update so a code that opens no league counts toward the caller's
+// hourly cap on misses, which the join shares.
+export const lookupLeagueByInvite = defineUpdate({
 	args: j.strictObject({
 		inviteCode: j.string()
 	}),
 	result: j.strictObject({
-		league: j.optional(LeagueWireSchema)
+		league: j.optional(LeagueWireSchema),
+		reason: j.optional(j.enum(LOOKUP_LEAGUE_REFUSAL_REASONS))
 	}),
 	handler: ({ inviteCode }) => {
-		const league = lookupLeagueByInviteFn({ inviteCode });
+		const { league, reason } = lookupLeagueByInviteFn({ inviteCode });
 
-		return { league: league ? toWireLeague(league) : undefined };
+		return { league: isNullish(league) ? undefined : toWireLeague(league), reason };
 	}
 });
 
@@ -1245,11 +1260,11 @@ export const getMarketTags = defineQuery({
 	handler: () => getMarketTagsFn()
 });
 
-// Friend-scoped bulk read for the resolved-results digest (the consumer that
-// renders these rows ships separately). Returns the supplied friend set's
-// resolved-result rows over the active retention window in ONE bounded
-// owner-prefix scan, never one call per friend. Public read; the FE scopes the
-// `friends` set to the caller's confirmed friends.
+// Friend-scoped bulk read for the resolved-results digest. Of the supplied
+// principals it returns the caller's own rows and their active, visible
+// friends' over the active retention window in ONE bounded owner-prefix scan,
+// never one call per friend; anyone else reads as having no results. The
+// collection is controllers-only, so this is the one client read of it.
 export const listFriendResolvedResults = defineQuery({
 	args: ListFriendResolvedResultsArgsSchema,
 	result: j.strictObject({
@@ -1284,7 +1299,7 @@ export const triggerTournamentDraw = defineUpdate({
 		reason: j.optional(j.enum(TOURNAMENT_DRAW_REFUSAL_REASONS)),
 		availableLeagues: j.optional(j.number())
 	}),
-	handler: triggerTournamentDrawFn
+	handler: async (args) => await triggerTournamentDrawFn(args)
 });
 
 // League ownership transfer: used by the league-detail "transfer
@@ -1530,7 +1545,7 @@ export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({
 			[Collection.MARKET_TRANSLATIONS]: assertControllerWrite,
 			[Collection.ACTIVITIES]: assertDeleteActivity,
 			[Collection.ACTIVITY_REACTIONS]: assertDeleteActivityReaction,
-			[Collection.REFERRAL_CODES]: assertDeleteReferralCode,
+			[Collection.REFERRAL_CODES]: assertControllerWrite,
 			[Collection.REFERRALS]: assertDeleteReferral,
 			[Collection.LEAGUES]: assertDeleteLeague,
 			[Collection.LEAGUE_MEMBERS]: assertDeleteLeagueMember,

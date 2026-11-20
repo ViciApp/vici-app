@@ -694,7 +694,13 @@ export const idlFactory = ({ IDL }) => {
 				privacy: IDL.Variant({ open: IDL.Null, private: IDL.Null })
 			})
 		),
-		reason: IDL.Opt(IDL.Variant({ already_member: IDL.Null, not_found: IDL.Null }))
+		reason: IDL.Opt(
+			IDL.Variant({
+				already_member: IDL.Null,
+				rate_limited: IDL.Null,
+				not_found: IDL.Null
+			})
+		)
 	});
 	const AppListAffiliationChampionshipsArgs = IDL.Record({
 		kind: IDL.Variant({ country: IDL.Null, university: IDL.Null }),
@@ -1199,7 +1205,8 @@ export const idlFactory = ({ IDL }) => {
 				created_at_ms: IDL.Float64,
 				privacy: IDL.Variant({ open: IDL.Null, private: IDL.Null })
 			})
-		)
+		),
+		reason: IDL.Opt(IDL.Variant({ rate_limited: IDL.Null }))
 	});
 	const AppLookupReferralCodeArgs = IDL.Record({ code: IDL.Text });
 	const AppLookupReferralCodeResult = IDL.Record({
@@ -1244,6 +1251,10 @@ export const idlFactory = ({ IDL }) => {
 		reason: IDL.Opt(IDL.Variant({ expired: IDL.Null }))
 	});
 	const AppRedeemReferralCodeArgs = IDL.Record({ code: IDL.Text });
+	const AppRefreshLeaderboardRankingResult = IDL.Record({
+		refreshed: IDL.Bool,
+		ranked: IDL.Float64
+	});
 	const AppRejectFriendRequestArgs = IDL.Record({ relation_id: IDL.Text });
 	const AppResolveBattleArgs = IDL.Record({ battle_id: IDL.Text });
 	const AppResolveBattleResult = IDL.Record({
@@ -1740,7 +1751,7 @@ export const idlFactory = ({ IDL }) => {
 		app_lookup_league_by_invite: IDL.Func(
 			[AppLookupLeagueByInviteArgs],
 			[AppLookupLeagueByInviteResult],
-			['query']
+			[]
 		),
 		app_lookup_referral_code: IDL.Func(
 			[AppLookupReferralCodeArgs],
@@ -1763,6 +1774,7 @@ export const idlFactory = ({ IDL }) => {
 		app_record_flow_swipe: IDL.Func([AppRecordFlowSwipeArgs], [AppRecordFlowSwipeResult], []),
 		app_recover_my_account: IDL.Func([], [AppRecoverMyAccountResult], []),
 		app_redeem_referral_code: IDL.Func([AppRedeemReferralCodeArgs], [], []),
+		app_refresh_leaderboard_ranking: IDL.Func([], [AppRefreshLeaderboardRankingResult], []),
 		app_reject_friend_request: IDL.Func([AppRejectFriendRequestArgs], [], []),
 		app_resolve_battle: IDL.Func([AppResolveBattleArgs], [AppResolveBattleResult], []),
 		app_resolve_tournament_round: IDL.Func(

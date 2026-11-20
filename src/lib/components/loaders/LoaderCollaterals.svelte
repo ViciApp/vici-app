@@ -6,6 +6,7 @@
 	import { SUPPORTED_TOKENS } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { loadAccountState, loadCollateralAssets } from '#lib/services/collateral.services.ts';
+	import { getSignedInOwner } from '#lib/services/identity.services.ts';
 	import { collateralsStore } from '#lib/stores/collaterals.store.ts';
 	import type { TokenId } from '#lib/types/token.ts';
 	import { findSupportedTokenForClearingAssetId } from '#lib/utils/asset-ref.utils.ts';
@@ -18,6 +19,12 @@
 
 		if (resetStore) {
 			collateralsStore.set(undefined);
+		}
+
+		const owner = await getSignedInOwner();
+
+		if (isNullish(owner)) {
+			return;
 		}
 
 		// Local "latest" cache for both streams: loadAccountState and
@@ -68,6 +75,7 @@
 			}
 
 			collateralsStore.set({
+				owner,
 				balances: collateral,
 				accountState,
 				assetsConfig

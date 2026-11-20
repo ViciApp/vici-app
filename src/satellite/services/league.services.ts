@@ -5,6 +5,7 @@ import {
 	LEAGUE_DESCRIPTION_MAX_LENGTH,
 	LEAGUE_EMBLEMS,
 	LEAGUE_IMAGES_COLLECTION,
+	LEAGUE_INVITE_CODE_LENGTH,
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
@@ -19,6 +20,7 @@ import {
 	isAdmin,
 	isControllerText
 } from '#satellite/services/authz.services.ts';
+import { resolveInviteCode } from '#satellite/services/league-invite-cap.services.ts';
 import {
 	deleteLeagueInvite,
 	leagueIdForInviteCode,
@@ -227,17 +229,22 @@ export const assertSetLeague = ({
 	const currentDoc = decodeDocData<LeagueDoc>(current.data);
 
 	// 2 (edit path). The current owner is the only principal that
-	// can edit. The transfer-of-ownership endpoint impersonates the
-	// outgoing owner (msgCaller) for the swap, then impersonates the
-	// new owner for the membership-role updates. The satellite itself
-	// (a controller) may edit too: the account purge hands an owned league
-	// to a surviving member.
+	// can edit. The satellite itself (a controller) may edit too: the
+	// ownership transfer and the account purge hand an owned league to a
+	// member.
 	if (currentDoc.owner !== callerText && !isControllerText(callerText)) {
 		throw new Error('leagues edits must be made by the current owner.');
 	}
 
-	// 3. Identity fields are immutable on edits: `owner` is now
-	// editable, the rest stay frozen. The emblem is chosen once at creation
+	// The owner changes only through the satellite, which checks the new
+	// owner is a member first (`transferLeagueOwnership`, the account
+	// purge): a direct write could hand the league to any principal.
+	if (proposedDoc.owner !== currentDoc.owner && !isControllerText(callerText)) {
+		throw new Error('leagues owner changes only through transferLeagueOwnership.');
+	}
+
+	// 3. Identity fields are immutable on edits: `owner` changes only
+	// through the satellite (above), the rest stay frozen. The emblem is chosen once at creation
 	// and frozen alongside the identity fields so the league's logo glyph
 	// can't silently shift under existing members.
 	//
@@ -301,8 +308,8 @@ export const assertDeleteLeague = ({
  * The flow runs three writes in order:
  *
  *  1. Flip `LEAGUES[leagueId].owner` from the outgoing owner (the
- *     caller) to the new owner. Done as the *outgoing* owner so the
- *     assert's "edits made by current owner" rule accepts the swap.
+ *     caller) to the new owner. Done as a satellite controller, the
+ *     only writer `assertSetLeague` lets change the owner.
  *  2. Promote `LEAGUE_MEMBERS[${leagueId}/${newOwner}]` to
  *     `role='owner'`. Done as the *new* owner: by this point
  *     `league.owner === newOwner`, so the assert's "callerIsOwner"
@@ -416,11 +423,13 @@ export const transferLeagueOwnershipFn = ({
 		caller: callerBytes
 	});
 
-	// Step 1: flip league.owner. Caller is the outgoing owner.
+	// Step 1: flip league.owner. Signed as the satellite, the only writer
+	// `assertSetLeague` lets change the owner, now that the caller is
+	// checked to own the league and the new owner to be a member.
 	setDocStore({
 		collection: Collection.LEAGUES,
 		key: leagueId,
-		caller: callerBytes,
+		caller: controllerCaller('league ownership transfer'),
 		doc: {
 			data: encodeDocData<LeagueDoc>({
 				...league,
@@ -653,8 +662,15 @@ export const createLeagueFn = async ({
 		throw new Error('Sign in to create a league.');
 	}
 
-	if (!LEAGUE_INVITE_CODE_REGEX.test(inviteCode)) {
-		throw new Error(`leagues inviteCode must match ${LEAGUE_INVITE_CODE_REGEX}.`);
+	// A league founded before codes grew keeps its shorter code, but a new
+	// one always gets the full length.
+	if (
+		inviteCode.length !== LEAGUE_INVITE_CODE_LENGTH ||
+		!LEAGUE_INVITE_CODE_REGEX.test(inviteCode)
+	) {
+		throw new Error(
+			`leagues inviteCode must be ${LEAGUE_INVITE_CODE_LENGTH} characters matching ${LEAGUE_INVITE_CODE_REGEX}.`
+		);
 	}
 
 	if (nonNullish(leagueIdForInviteCode(inviteCode))) {
@@ -728,7 +744,9 @@ export interface JoinLeagueByInviteResult {
  * Joins the caller to the league `inviteCode` opens: the only way into a
  * league, Open or Private. `assertSetLeagueMember` admits a new member row
  * only from a satellite controller, so this endpoint, having checked the
- * code, writes the row as one.
+ * code, writes the row as one. A code that opens no league counts toward
+ * the caller's hourly cap on misses, which the lookup preview shares
+ * (`resolveInviteCode`).
  */
 export const joinLeagueByInviteFn = ({
 	inviteCode
@@ -741,7 +759,13 @@ export const joinLeagueByInviteFn = ({
 		throw new Error('Sign in to join a league.');
 	}
 
-	const leagueId = leagueIdForInviteCode(inviteCode);
+	const callerText = caller.toText();
+	const { leagueId, reason } = resolveInviteCode({ callerText, inviteCode });
+
+	if (nonNullish(reason)) {
+		return { reason };
+	}
+
 	const callerBytes = caller.toUint8Array();
 	const leagueDoc = isNullish(leagueId)
 		? undefined
@@ -752,7 +776,6 @@ export const joinLeagueByInviteFn = ({
 	}
 
 	const league = decodeDocData<LeagueDoc>(leagueDoc.data);
-	const callerText = caller.toText();
 	const key = leagueMemberKey({ leagueId: league.id, memberPrincipal: callerText });
 
 	if (

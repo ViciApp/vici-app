@@ -12,8 +12,10 @@ import { HOUR_IN_MS } from '../lib/time';
 import {
 	adminDeleteSchool,
 	adminUpsertSchool,
+	COUNTRY_CODE_LENGTH,
 	listAllSchools,
 	listPublicSchools,
+	MAX_SCHOOL_NAME_LENGTH,
 	SchoolVerificationError,
 	SUBMISSION_NOT_FOUND,
 	submitSchool,
@@ -50,8 +52,10 @@ export const schoolRoutes = new Elysia({ prefix: '/api/v1/school' })
 		},
 		{
 			body: t.Object({
-				name: t.String(),
-				country: t.Optional(t.Nullable(t.String())),
+				name: t.String({ maxLength: MAX_SCHOOL_NAME_LENGTH }),
+				country: t.Optional(
+					t.Nullable(t.String({ minLength: COUNTRY_CODE_LENGTH, maxLength: COUNTRY_CODE_LENGTH }))
+				),
 				email: t.String(),
 				locale: t.Optional(t.String())
 			})

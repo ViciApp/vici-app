@@ -1,3 +1,9 @@
+import {
+	ANALYTICS_MAX_EVENTS_PER_BATCH,
+	ANALYTICS_MAX_PATH_LENGTH,
+	ANALYTICS_MAX_PROP_STRING_LENGTH,
+	ANALYTICS_MAX_SESSION_ID_LENGTH
+} from '#lib/constants/analytics.constants.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
 /**
@@ -98,9 +104,12 @@ export const AnalyticsEventNameSchema = j.enum([
 	'perf_metric'
 ]);
 
+const PropStringSchema = j.string().max(ANALYTICS_MAX_PROP_STRING_LENGTH);
+
 /**
  * Args for the `trackEvents` update endpoint: a batch of client events.
  * The server derives identity + timestamp, so the input carries neither.
+ * Anonymous visitors call it too, so the batch and every string are bounded.
  *
  * The `AnalyticsEventProps` dimensions are **flattened** onto the input
  * rather than nested: the Sputnik codegen rejects a nested optional object
@@ -109,28 +118,28 @@ export const AnalyticsEventNameSchema = j.enum([
  */
 export const TrackEventInputSchema = j.strictObject({
 	name: AnalyticsEventNameSchema,
-	sessionId: j.string(),
-	path: j.optional(j.string()),
-	marketId: j.optional(j.string()),
-	seriesId: j.optional(j.string()),
-	leagueId: j.optional(j.string()),
-	battleId: j.optional(j.string()),
-	source: j.optional(j.string()),
+	sessionId: j.string().max(ANALYTICS_MAX_SESSION_ID_LENGTH),
+	path: j.optional(j.string().max(ANALYTICS_MAX_PATH_LENGTH)),
+	marketId: j.optional(PropStringSchema),
+	seriesId: j.optional(PropStringSchema),
+	leagueId: j.optional(PropStringSchema),
+	battleId: j.optional(PropStringSchema),
+	source: j.optional(PropStringSchema),
 	// `label`, not `variant`: `variant` is a Candid reserved keyword and
 	// breaks the Sputnik API codegen ("Error generating API").
-	label: j.optional(j.string()),
+	label: j.optional(PropStringSchema),
 	step: j.optional(j.number()),
 	value: j.optional(j.number()),
 	count: j.optional(j.number()),
 	durationMs: j.optional(j.number()),
 	ok: j.optional(j.boolean()),
-	country: j.optional(j.string()),
-	locale: j.optional(j.string()),
+	country: j.optional(PropStringSchema),
+	locale: j.optional(PropStringSchema),
 	occurredAtMs: j.optional(j.number())
 });
 
 export const TrackEventsArgsSchema = j.strictObject({
-	events: j.array(TrackEventInputSchema)
+	events: j.array(TrackEventInputSchema).max(ANALYTICS_MAX_EVENTS_PER_BATCH)
 });
 
 export const TrackEventsResultSchema = j.strictObject({

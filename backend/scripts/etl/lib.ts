@@ -49,6 +49,7 @@ export const SATELLITE_COLLECTIONS = [
 	'leagues',
 	'league_members',
 	'league_invites',
+	'league_invite_attempts',
 	'battles',
 	'affiliations',
 	'affiliation_stats',
@@ -62,7 +63,8 @@ export const SATELLITE_COLLECTIONS = [
 	'schools',
 	'app_config',
 	'events',
-	'event_rollups'
+	'event_rollups',
+	'leaderboard_ranking'
 ] as const;
 
 export type SatelliteCollection = (typeof SATELLITE_COLLECTIONS)[number];

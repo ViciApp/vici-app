@@ -1,4 +1,5 @@
 import { functions } from '#declarations/satellite/satellite.api.ts';
+import { requestLeaderboardRefresh } from '#lib/services/leaderboard.services.ts';
 import { listMyReferrals } from '#lib/services/referral.services.ts';
 import { loadGlobalStandings } from '#lib/services/standings.services.ts';
 import {
@@ -74,6 +75,8 @@ export const loadMyMenagerieSignals = async (): Promise<void> => {
 					if (isNullish(owner)) {
 						return;
 					}
+
+					requestLeaderboardRefresh();
 
 					const { rank, count } = isWeb2Backend()
 						? await getUserRankAndCountWeb2({ userId: owner })

@@ -123,10 +123,6 @@ type AppListWorldsRosterArgs = record { kind : variant { university; country }; 
 
 type AppListWorldsRosterResult = record { items : vec record { member : text; kind : variant { university; country }; affiliation_identifier : text; joined_at_ms : float64; locked_until_ms : float64 } };
 
-type AppLookupLeagueByInviteArgs = record { invite_code : text };
-
-type AppLookupLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text } };
-
 type AppLookupReferralCodeArgs = record { code : text };
 
 type AppLookupReferralCodeResult = record { owner : opt text };
@@ -171,7 +167,11 @@ type AppHibernateMyAccountResult = record { ok : bool; reason : opt variant { no
 
 type AppJoinLeagueByInviteArgs = record { invite_code : text };
 
-type AppJoinLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; reason : opt variant { not_found; already_member } };
+type AppJoinLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; reason : opt variant { not_found; already_member; rate_limited } };
+
+type AppLookupLeagueByInviteArgs = record { invite_code : text };
+
+type AppLookupLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; reason : opt variant { rate_limited } };
 
 type AppMigrateLeagueInviteCodesResult = record { migrated : float64 };
 
@@ -192,6 +192,8 @@ type AppRecordFlowSwipeResult = record { daily_goal_done : float64; daily_goal_d
 type AppRecoverMyAccountResult = record { ok : bool; recovered : opt bool; reason : opt variant { expired } };
 
 type AppRedeemReferralCodeArgs = record { code : text };
+
+type AppRefreshLeaderboardRankingResult = record { refreshed : bool; ranked : float64 };
 
 type AppRejectFriendRequestArgs = record { relation_id : text };
 
@@ -284,7 +286,6 @@ service : {
 	app_list_sent_friend_requests : () -> (AppListSentFriendRequestsResult) query;
 	app_list_worlds_member_counts : (AppListWorldsMemberCountsArgs) -> (AppListWorldsMemberCountsResult) query;
 	app_list_worlds_roster : (AppListWorldsRosterArgs) -> (AppListWorldsRosterResult) query;
-	app_lookup_league_by_invite : (AppLookupLeagueByInviteArgs) -> (AppLookupLeagueByInviteResult) query;
 	app_lookup_referral_code : (AppLookupReferralCodeArgs) -> (AppLookupReferralCodeResult) query;
 	app_search_profiles : (AppSearchProfilesArgs) -> (AppSearchProfilesResult) query;
 	app_accept_friend_request : (AppAcceptFriendRequestArgs) -> ();
@@ -299,6 +300,7 @@ service : {
 	app_follow_user : (AppFollowUserArgs) -> ();
 	app_hibernate_my_account : () -> (AppHibernateMyAccountResult);
 	app_join_league_by_invite : (AppJoinLeagueByInviteArgs) -> (AppJoinLeagueByInviteResult);
+	app_lookup_league_by_invite : (AppLookupLeagueByInviteArgs) -> (AppLookupLeagueByInviteResult);
 	app_migrate_league_invite_codes : () -> (AppMigrateLeagueInviteCodesResult);
 	app_prune_resolved_results : () -> (AppPruneResolvedResultsResult);
 	app_read_battle_live_score : (AppReadBattleLiveScoreArgs) -> (AppReadBattleLiveScoreResult);
@@ -307,6 +309,7 @@ service : {
 	app_record_flow_swipe : (AppRecordFlowSwipeArgs) -> (AppRecordFlowSwipeResult);
 	app_recover_my_account : () -> (AppRecoverMyAccountResult);
 	app_redeem_referral_code : (AppRedeemReferralCodeArgs) -> ();
+	app_refresh_leaderboard_ranking : () -> (AppRefreshLeaderboardRankingResult);
 	app_reject_friend_request : (AppRejectFriendRequestArgs) -> ();
 	app_resolve_battle : (AppResolveBattleArgs) -> (AppResolveBattleResult);
 	app_resolve_tournament_round : (AppResolveTournamentRoundArgs) -> (AppResolveTournamentRoundResult);

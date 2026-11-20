@@ -20,7 +20,7 @@
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 	import type { Web2Me } from '#lib/web2/client.ts';
-	import { loadWeb2Session, web2SessionStore } from '#lib/web2/session.ts';
+	import { loadWeb2Session, watchWeb2Session, web2SessionStore } from '#lib/web2/session.ts';
 	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -307,6 +307,8 @@
 			// flag, which the (app) auth gate reads as signed out, bouncing every
 			// cold load of an app route to /signin. `loadWeb2Session` never
 			// rejects: any failure resolves to signed-out.
+			const stopWatchingSession = watchWeb2Session();
+
 			void loadWeb2Session().then((user) => {
 				if (nonNullish(user)) {
 					return;
@@ -324,7 +326,7 @@
 				});
 			});
 
-			return;
+			return stopWatchingSession;
 		}
 
 		const unsubscribe = onAuthStateChange(updateUserStore);

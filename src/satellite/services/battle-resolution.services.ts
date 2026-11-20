@@ -31,8 +31,9 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  * and {@link assertSetBattle} accepts an `in_flight → resolved` league write
  * only from a controller. A client cannot forge a result.
  *
- * Membership is read at resolve time (the league's *current* members), which is
- * also the liveness model: Juno has no scheduler, so a settled battle resolves
+ * A side is the league's members whose membership doc was stored before
+ * kickoff (its own `created_at`), so nobody joins mid-battle to carry a window
+ * they were not part of. Juno has no scheduler, so a settled battle resolves
  * the first time any member of either side opens it and the FE calls this.
  */
 
@@ -84,13 +85,21 @@ const computeScoreline = async ({
 
 	const [a, b] = await Promise.all([
 		settledTotals({
-			members: leagueMemberPrincipals({ leagueId: battle.sideA, caller }),
+			members: leagueMemberPrincipals({
+				leagueId: battle.sideA,
+				caller,
+				joinedBeforeMs: battle.kickoffMs
+			}),
 			fromMs: battle.kickoffMs,
 			toMs,
 			seriesIds
 		}),
 		settledTotals({
-			members: leagueMemberPrincipals({ leagueId: battle.sideB, caller }),
+			members: leagueMemberPrincipals({
+				leagueId: battle.sideB,
+				caller,
+				joinedBeforeMs: battle.kickoffMs
+			}),
 			fromMs: battle.kickoffMs,
 			toMs,
 			seriesIds
