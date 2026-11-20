@@ -17,9 +17,10 @@
  *   verifySchoolCode({ submissionId, code }) -> { ok, schoolId?, status?, message? }
  *     · authorizes the caller against the submission's `${member}/` key
  *     · enforces TTL + attempt cap, compares the digest
- *     · on success: attaches the school (server bumps the verified-member
- *       count + flips the school public at 3) and marks the owner's
- *       profile `schoolStatus: 'verified'`
+ *     · on success: attaches the school (server creates a missing registry
+ *       row, recounts its verified members and flips it public when the
+ *       count crosses 3) and marks the owner's profile
+ *       `schoolStatus: 'verified'`
  *
  * The plaintext code never touches canister state; it lives only in the
  * email and the outbound outcall body. The stored digest is FNV (no
@@ -31,6 +32,8 @@ import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	SCHOOL_CODE_MAX_ATTEMPTS,
 	SCHOOL_CODE_TTL_MS,
+	SCHOOL_COUNTRY_CODE_LENGTH,
+	SCHOOL_NAME_MAX_LENGTH,
 	SCHOOL_VERIFY_DAILY_CAP
 } from '#lib/constants/school-picker.constants.ts';
 import { DAY_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
@@ -43,9 +46,6 @@ import {
 } from '#lib/types/school-submission.ts';
 import {
 	APP_CONFIG_SCHOOL_RELAY_KEY,
-	SCHOOL_VERIFIED_PUBLIC_THRESHOLD,
-	schoolKey,
-	type SchoolDoc,
 	type SchoolRelayConfig,
 	type SchoolStatus
 } from '#lib/types/school.ts';
@@ -55,8 +55,12 @@ import {
 	type ServerEventInput
 } from '#satellite/services/analytics.services.ts';
 import { controllerCaller } from '#satellite/services/authz.services.ts';
+import {
+	claimSchoolRegistry,
+	recountSchoolRegistry,
+	registryAdmits
+} from '#satellite/services/school-registry.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
-import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
@@ -131,12 +135,16 @@ interface ResolvedSchool {
 	isNew: boolean;
 }
 
+const SCHOOL_TAKEN_MESSAGE = 'This school is already listed under another email domain.';
+
 /**
  * Server-side re-run of the picker's domain gate. The directory is the
  * same {@link WORLDS_UNIVERSITIES} the FE uses, so a `match` here is the
  * authoritative "this email belongs to a known school" verdict and an
- * `unknown-domain` is a brand-new school keyed by its normalized name.
- * A consumer mailbox (or an unparseable address) is rejected outright.
+ * `unknown-domain` is a brand-new school keyed by its normalized name,
+ * unless that name is a directory school's id: the directory school is
+ * reached by its own domains only. A consumer mailbox (or an unparseable
+ * address) is rejected outright.
  */
 const resolveSchool = ({
 	email,
@@ -147,6 +155,14 @@ const resolveSchool = ({
 	name: string;
 	country: string | null;
 }): ResolvedSchool => {
+	if (name.length > SCHOOL_NAME_MAX_LENGTH) {
+		throw new Error(`School name is limited to ${SCHOOL_NAME_MAX_LENGTH} characters.`);
+	}
+
+	if (nonNullish(country) && country.length !== SCHOOL_COUNTRY_CODE_LENGTH) {
+		throw new Error('School country must be a two-letter country code.');
+	}
+
 	const matched = spMatchEmail({ email, directory: WORLDS_UNIVERSITIES });
 
 	if (isNullish(matched)) {
@@ -176,6 +192,10 @@ const resolveSchool = ({
 		throw new Error('Enter the name of your university.');
 	}
 
+	if (WORLDS_UNIVERSITIES.some(({ id }) => id === slug)) {
+		throw new Error(SCHOOL_TAKEN_MESSAGE);
+	}
+
 	return {
 		schoolId: slug,
 		name: name.trim(),
@@ -183,6 +203,28 @@ const resolveSchool = ({
 		domains: [matched.domain],
 		isNew: true
 	};
+};
+
+/**
+ * {@link resolveSchool}, refusing a brand-new school whose id the registry
+ * holds for other domains ({@link registryAdmits}).
+ */
+const resolveAdmittedSchool = ({
+	caller,
+	...submission
+}: {
+	caller: Uint8Array;
+	email: string;
+	name: string;
+	country: string | null;
+}): ResolvedSchool => {
+	const resolved = resolveSchool(submission);
+
+	if (resolved.isNew && !registryAdmits({ caller, ...resolved })) {
+		throw new Error(SCHOOL_TAKEN_MESSAGE);
+	}
+
+	return resolved;
 };
 
 /**
@@ -395,7 +437,7 @@ export const submitSchoolFn = async ({
 	const relay = readRelayConfig(admin);
 
 	// 1. Server-authoritative domain gate.
-	const resolved = resolveSchool({ email: lowerEmail, name, country });
+	const resolved = resolveAdmittedSchool({ caller: admin, email: lowerEmail, name, country });
 
 	// 2. Rate limit (per principal + per email, rolling 24h): refuse early,
 	// before spending a management-canister call.
@@ -468,81 +510,6 @@ export const submitSchoolFn = async ({
 	});
 
 	return { submissionId };
-};
-
-/**
- * Recompute a school's verified-member count from the verified
- * submissions for its id (distinct members) and persist the `schools`
- * row, flipping it public at the threshold. Recomputing from source (vs
- * incrementing) keeps it idempotent + concurrency-safe: re-running, or
- * two members verifying at once, can't double-count or undercount. The
- * scan is bounded server-side to this school's rows via the `key` matcher
- * (`/${schoolId}/` is the middle key segment; the JS check re-confirms
- * `schoolId` exactly so an over-broad regex match can't miscount).
- */
-const upsertSchoolRegistry = ({
-	caller,
-	resolved
-}: {
-	caller: Uint8Array;
-	resolved: Pick<SchoolDoc, 'schoolId' | 'name' | 'country' | 'domains'>;
-}): SchoolStatus => {
-	const { items } = listDocsStore({
-		collection: Collection.SCHOOL_SUBMISSIONS,
-		caller,
-		params: { matcher: { key: `/${escapeRegex(resolved.schoolId)}/` } }
-	});
-
-	const verifiedMembers = new Set<string>();
-
-	for (const [, item] of items) {
-		try {
-			const doc = decodeDocData<SchoolSubmissionDoc>(item.data);
-
-			if (doc.status === 'verified' && doc.schoolId === resolved.schoolId) {
-				verifiedMembers.add(doc.member);
-			}
-		} catch {
-			// Skip malformed rows.
-		}
-	}
-
-	const verifiedMemberCount = verifiedMembers.size;
-	const status: SchoolStatus =
-		verifiedMemberCount >= SCHOOL_VERIFIED_PUBLIC_THRESHOLD ? 'public' : 'pending';
-
-	const key = schoolKey(resolved.schoolId);
-	const existing = getDocStore({
-		collection: Collection.SCHOOLS,
-		key,
-		caller
-	});
-
-	const existingDoc = nonNullish(existing) ? decodeDocData<SchoolDoc>(existing.data) : undefined;
-	const now = timeMs();
-
-	const doc: SchoolDoc = {
-		schoolId: resolved.schoolId,
-		name: resolved.name,
-		country: resolved.country,
-		domains: resolved.domains,
-		verifiedMemberCount,
-		status,
-		createdAtMs: existingDoc?.createdAtMs ?? now,
-		updatedAtMs: now
-	};
-
-	setDocStore({
-		collection: Collection.SCHOOLS,
-		key,
-		caller,
-		doc: {
-			version: existing?.version,
-			data: encodeDocData<SchoolDoc>(doc)
-		}
-	});
-
-	return status;
 };
 
 /**
@@ -652,19 +619,26 @@ export const verifySchoolCodeFn = ({
 		return { ok: false, message: 'invalid-code' };
 	}
 
-	// Success. Mark verified, attach the school + bump the public count,
+	// Success. Claim the registry row, mark verified, recount the school,
 	// flip the profile flag.
+	const resolved = {
+		schoolId: submission.schoolId,
+		name: submission.schoolName,
+		country: submission.country,
+		domains: submission.domains
+	};
+
+	claimSchoolRegistry({ caller: admin, resolved });
+
+	// Checked again here: another school of the same name may have been
+	// verified into the registry since this code was sent.
+	if (submission.isNew && !registryAdmits({ caller: admin, ...resolved })) {
+		return { ok: false, message: 'school-taken' };
+	}
+
 	persist({ ...submission, status: 'verified', verifiedAtMs: now });
 
-	const status = upsertSchoolRegistry({
-		caller: admin,
-		resolved: {
-			schoolId: submission.schoolId,
-			name: submission.schoolName,
-			country: submission.country,
-			domains: submission.domains
-		}
-	});
+	const status = recountSchoolRegistry({ caller: admin, schoolId: submission.schoolId });
 
 	// Signed as a controller: the `profiles` set-assert refuses a
 	// `schoolStatus` change from anyone else. The doc keeps its stored owner.

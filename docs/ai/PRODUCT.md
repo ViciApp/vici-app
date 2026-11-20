@@ -534,6 +534,19 @@ fact earns nothing. A month confers a cup only once it has been frozen
 (claimed). Decision record:
 [`specs/2026-06-28-impr-worlds-standings-current-members.md`](./spec-driven-development/specs/2026-06-28-impr-worlds-standings-current-members.md).
 
+**A member's school verification never rewrites the school registry.** A
+school email on a directory domain verifies that directory school; on an
+unknown domain it adds the school the member typed, keyed by the
+normalized name. That name may not be a directory school's id, and an id
+the registry already holds answers only to an address on one of that
+row's domains, checked when the code is sent and again when it is
+verified. A verification creates a missing registry row and otherwise
+only recounts its verified members: the row's name, country, domains
+and status stay as they are, and it turns public only when the count
+first crosses `SCHOOL_VERIFIED_PUBLIC_THRESHOLD`, so a school an admin
+held back stays held back. A typed name is capped at
+`SCHOOL_NAME_MAX_LENGTH` and the country is a two-letter code.
+
 ### Battles: accuracy face-offs that resolve themselves
 
 A **battle** is a time-bound accuracy face-off between two leagues. A
