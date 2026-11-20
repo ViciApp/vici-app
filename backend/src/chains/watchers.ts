@@ -18,6 +18,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { ensureInternalAccount } from '../custody/accounts';
 import { isVxp, listEnabledAssets, type Asset } from '../custody/assets';
 import { postLedgerEvent } from '../custody/ledger';
+import { IN_FLIGHT_WITHDRAWAL_STATES } from '../custody/withdrawals';
 import { query, tx } from '../db/client';
 import { ZERO } from '../lib/constants';
 import type { Chain } from '../lib/keys';
@@ -168,8 +169,8 @@ const creditBalanceDeposit = async ({
 			 from withdrawals w
 			 join custody_accounts a on a.user_id = w.user_id
 			 where a.id = $1 and w.asset_id = $2
-				 and w.state in ('requested', 'processing', 'submitted')`,
-			[account.id, event.asset.id]
+				 and w.state = any($3::text[])`,
+			[account.id, event.asset.id, IN_FLIGHT_WITHDRAWAL_STATES]
 		);
 
 		const internal = BigInt(internalRows[0]?.balance ?? '0');

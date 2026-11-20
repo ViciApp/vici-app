@@ -12,6 +12,7 @@ import {
 	nativeToClearingMarginUnits
 } from '#lib/utils/playground-display.utils.ts';
 import { get as getStorage, set as setStorage } from '#lib/utils/storage.utils.ts';
+import { holdingsSnapshotOwner, ownedCollaterals } from '#lib/utils/vxp-holdings.utils.ts';
 import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { derived, type Readable } from 'svelte/store';
@@ -102,6 +103,8 @@ const holdingsState: Readable<HoldingsState> = derived(
 		$authPrincipal,
 		$balanceDomain
 	]): HoldingsState => {
+		const collaterals = ownedCollaterals({ collaterals: $collateralsStore, owner: $authPrincipal });
+
 		// Un-deposited wallet VXP: spendable too, since it is swept into
 		// clearing when the user places a call.
 		let walletMargin = ZERO;
@@ -117,15 +120,15 @@ const holdingsState: Readable<HoldingsState> = derived(
 			}
 		}
 
-		const account = $collateralsStore?.accountState;
-		const bothLoaded = nonNullish($collateralsStore) && nonNullish($balancesStore);
+		const account = collaterals?.accountState;
+		const bothLoaded = nonNullish(collaterals) && nonNullish($balancesStore);
 
 		// Clearing state not loaded yet. Before falling back to "wallet only"
 		// (which pulses a placeholder over Holdings/In play for the whole first
 		// fetch), show the signed-in user's last persisted snapshot:
 		// stale-while-revalidate. Without it, every app open hides the figures
 		// until the certified update lands.
-		if (isNullish($collateralsStore) || isNullish(account)) {
+		if (isNullish(collaterals) || isNullish(account)) {
 			const snapshot = nonNullish($authPrincipal)
 				? readHoldingsSnapshot({ principal: $authPrincipal, domain: $balanceDomain })
 				: undefined;
@@ -144,11 +147,11 @@ const holdingsState: Readable<HoldingsState> = derived(
 		let clearingFallback = ZERO;
 
 		for (const token of $walletUiTokens) {
-			const balance = $collateralsStore.balances[token.id] ?? ZERO;
+			const balance = collaterals.balances[token.id] ?? ZERO;
 
 			if (balance > ZERO) {
 				const decimals = icrcLedgerDecimalsFromCollateralConfig({
-					assetsConfig: $collateralsStore.assetsConfig ?? {},
+					assetsConfig: collaterals.assetsConfig ?? {},
 					ledgerCanisterId: token.ledgerCanisterId,
 					fallbackDecimals: token.decimals
 				});
@@ -206,21 +209,28 @@ export const vxpHoldingsTotal: Readable<bigint> = derived(
 );
 
 // Write-through for the stale-while-revalidate snapshot consumed above: once
-// both clearing state and ledger balances are loaded, persist the computed
-// holdings per principal + domain. Module-level app-lifetime subscription, the
-// same pattern as `preferencesStore`'s userStore mirror. The store-loaded guard
-// also keeps a snapshot-fallback value from being written back to storage.
+// both clearing state and ledger balances are loaded for the signed-in owner,
+// persist the computed holdings under the owner they were loaded for, per
+// domain. Module-level app-lifetime subscription, the same pattern as
+// `preferencesStore`'s userStore mirror. The store-loaded guard also keeps a
+// snapshot-fallback value from being written back to storage.
 if (browser) {
 	derived(
 		[holdings, collateralsStore, balancesStore, authPrincipal, balanceDomain],
 		(values) => values
 	).subscribe(([$holdings, $collateralsStore, $balancesStore, $authPrincipal, $balanceDomain]) => {
-		if (isNullish($collateralsStore) || isNullish($balancesStore) || isNullish($authPrincipal)) {
+		const owner = holdingsSnapshotOwner({
+			collaterals: $collateralsStore,
+			balances: $balancesStore,
+			owner: $authPrincipal
+		});
+
+		if (isNullish(owner)) {
 			return;
 		}
 
 		setStorage<HoldingsSnapshot>({
-			key: holdingsSnapshotKey({ principal: $authPrincipal, domain: $balanceDomain }),
+			key: holdingsSnapshotKey({ principal: owner, domain: $balanceDomain }),
 			value: {
 				spendable: $holdings.spendable.toString(),
 				backed: $holdings.backed.toString()

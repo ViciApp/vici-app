@@ -1,6 +1,6 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
-import type { AffiliationDoc } from '#lib/types/affiliation.ts';
+import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
 import type { UserMonthlyStatsDoc } from '#lib/types/user-monthly-stats.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import {
@@ -25,11 +25,17 @@ const monthStartMs = Date.UTC(2026, 9, 1);
 const monthCloseMs = Date.UTC(2026, 10, 1);
 const claimMs = Date.UTC(2026, 10, 15);
 
-const goldKey = (recipient: Principal): string =>
+const goldKey = ({
+	recipient,
+	kind = 'university'
+}: {
+	recipient: Principal;
+	kind?: AffiliationKind;
+}): string =>
 	vxpAwardKey({
 		recipient: recipient.toText(),
 		awardType: 'worlds_podium',
-		awardKey: `${monthAnchor}_gold`
+		awardKey: `${monthAnchor}_${kind}_gold`
 	});
 
 describe('claimWorldsPodiumPrizeFn', () => {
@@ -39,15 +45,17 @@ describe('claimWorldsPodiumPrizeFn', () => {
 	const join = ({
 		principal,
 		affiliationIdentifier,
-		joinedAtMs
+		joinedAtMs,
+		kind = 'university'
 	}: {
 		principal: Principal;
 		affiliationIdentifier: string;
 		joinedAtMs: number;
+		kind?: AffiliationKind;
 	}): void => {
 		const doc: AffiliationDoc = {
 			member: principal.toText(),
-			kind: 'university',
+			kind,
 			affiliationIdentifier,
 			joinedAtMs,
 			lockedUntilMs: joinedAtMs + 90 * DAY_IN_MS
@@ -55,7 +63,7 @@ describe('claimWorldsPodiumPrizeFn', () => {
 
 		host.putDoc({
 			collection: Collection.AFFILIATIONS,
-			key: `${principal.toText()}/university/${affiliationIdentifier}`,
+			key: `${principal.toText()}/${kind}/${affiliationIdentifier}`,
 			data: doc,
 			owner: principal,
 			createdAtMs: joinedAtMs
@@ -133,13 +141,15 @@ describe('claimWorldsPodiumPrizeFn', () => {
 
 		assert.equal(rivalResult.awardsCreated, 1);
 		assert.equal(
-			host.readDoc({ collection: Collection.VXP_AWARDS, key: goldKey(rival) }),
+			host.readDoc({ collection: Collection.VXP_AWARDS, key: goldKey({ recipient: rival }) }),
 			undefined
 		);
 		assert.equal(result.awardsCreated, 1);
 		assert.equal(
-			host.readDoc<VxpAwardDoc>({ collection: Collection.VXP_AWARDS, key: goldKey(member) })
-				?.status,
+			host.readDoc<VxpAwardDoc>({
+				collection: Collection.VXP_AWARDS,
+				key: goldKey({ recipient: member })
+			})?.status,
 			'paid'
 		);
 	});
@@ -176,9 +186,77 @@ describe('claimWorldsPodiumPrizeFn', () => {
 
 		assert.equal(result.awardsCreated, 1);
 		assert.equal(
-			host.readDoc<VxpAwardDoc>({ collection: Collection.VXP_AWARDS, key: goldKey(member) })
-				?.status,
+			host.readDoc<VxpAwardDoc>({
+				collection: Collection.VXP_AWARDS,
+				key: goldKey({ recipient: member })
+			})?.status,
 			'paid'
 		);
+	});
+
+	it('pays a university and a country finish of the same month once each', async () => {
+		join({ principal: member, affiliationIdentifier: 'twice-u', joinedAtMs: monthStartMs });
+		join({
+			principal: member,
+			affiliationIdentifier: 'twice-c',
+			joinedAtMs: monthStartMs,
+			kind: 'country'
+		});
+		settlements.push({ principal: member, atMs: monthStartMs + DAY_IN_MS, calls: 60, wins: 50 });
+
+		const first = await claimAs(member);
+		const again = await claimAs(member);
+
+		assert.equal(first.awardsCreated, 2);
+		assert.equal(again.awardsCreated, 0);
+		assert.equal(again.awardsAlreadyClaimed, 2);
+		assert.equal(host.calls().filter((method) => method === 'icrc1_transfer').length, 2);
+
+		for (const kind of ['university', 'country'] as const) {
+			assert.equal(
+				host.readDoc<VxpAwardDoc>({
+					collection: Collection.VXP_AWARDS,
+					key: goldKey({ recipient: member, kind })
+				})?.status,
+				'paid'
+			);
+		}
+	});
+
+	it('pays a place no more for a month already paid under the key without the kind', async () => {
+		const unkindedAwardKey = `${monthAnchor}_gold`;
+		const paid: VxpAwardDoc = {
+			recipient: member.toText(),
+			awardType: 'worlds_podium',
+			awardKey: unkindedAwardKey,
+			amountBaseUnits: '4000000',
+			status: 'paid',
+			earnedAtMs: monthCloseMs
+		};
+
+		host.putDoc({
+			collection: Collection.VXP_AWARDS,
+			key: vxpAwardKey({
+				recipient: member.toText(),
+				awardType: 'worlds_podium',
+				awardKey: unkindedAwardKey
+			}),
+			data: paid,
+			owner: member
+		});
+		join({ principal: member, affiliationIdentifier: 'paid-u', joinedAtMs: monthStartMs });
+		join({
+			principal: member,
+			affiliationIdentifier: 'paid-c',
+			joinedAtMs: monthStartMs,
+			kind: 'country'
+		});
+		settlements.push({ principal: member, atMs: monthStartMs + DAY_IN_MS, calls: 60, wins: 50 });
+
+		const result = await claimAs(member);
+
+		assert.equal(result.awardsCreated, 0);
+		assert.equal(result.awardsAlreadyClaimed, 2);
+		assert.ok(!host.calls().includes('icrc1_transfer'));
 	});
 });

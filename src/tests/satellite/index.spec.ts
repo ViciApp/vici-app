@@ -224,6 +224,7 @@ describe('satellite index', () => {
 
 		const serverDeleted = [
 			...serverWritten,
+			Collection.REFERRAL_CODES,
 			Collection.LEAGUE_STATS,
 			Collection.EXIT_SIGNALS,
 			Collection.USER_STATS

@@ -1,7 +1,9 @@
 // League-battle scoring from real settled clearing history. Each side's
 // score is its members' settled-call accuracy over the battle window, read
 // straight from the clearing canister's settlement events, never from a
-// client-written counter. Members are mapped to their on-chain principals:
+// client-written counter. A side is the members who joined (server-stamped)
+// before kickoff, so nobody joins mid-battle to carry a window they were not
+// part of. Members are mapped to their on-chain principals:
 // the derived custodial identity plus any linked legacy principals, so
 // history from before an account was matched still counts.
 
@@ -53,13 +55,19 @@ const computeScoreline = async ({
 
 	const [a, b] = await Promise.all([
 		settledTotals({
-			members: await leagueMemberPrincipals({ leagueId: battle.sideA }),
+			members: await leagueMemberPrincipals({
+				leagueId: battle.sideA,
+				joinedBeforeMs: battle.kickoffMs
+			}),
 			fromMs: battle.kickoffMs,
 			toMs,
 			seriesIds
 		}),
 		settledTotals({
-			members: await leagueMemberPrincipals({ leagueId: battle.sideB }),
+			members: await leagueMemberPrincipals({
+				leagueId: battle.sideB,
+				joinedBeforeMs: battle.kickoffMs
+			}),
 			fromMs: battle.kickoffMs,
 			toMs,
 			seriesIds

@@ -40,11 +40,14 @@
 //   - vxp_award_markers is skipped: each is a digest of a purged principal,
 //     and no account on this stack can be derived from one (the API writes
 //     its own markers, keyed by sign-in identity, in vxp_award_markers).
+//   - league_invite_attempts is skipped: each holds an account's missed
+//     invite codes of the last hour, and the API caps invite lookups with
+//     its own per-account rate limit.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { createHash } from 'node:crypto';
 import { tx, type TxQuery } from '../../src/db/client';
-import { randomInviteCode } from '../../src/leagues/leagues';
+import { LEAGUE_INVITE_CODE_REGEX, randomInviteCode } from '../../src/leagues/leagues';
 import { UUID_RE, ZERO } from '../../src/lib/constants';
 import { MONTH_ANCHOR_RE } from '../../src/lib/time';
 import { nicknameUniqueKey } from '../../src/profiles/nickname';
@@ -859,8 +862,6 @@ const importReferrals: ImporterRun = perDoc(async (doc, { q, mapper, nowMs, stat
 // ---------------------------------------------------------------------------
 // leagues + members + stats
 
-const LEAGUE_INVITE_CODE_RE = /^[A-Z0-9]{6}$/;
-
 const leaguePrivacyOf = (d: Record<string, unknown>): 'open' | 'private' => {
 	const privacy = optStr(d.privacy);
 
@@ -877,7 +878,7 @@ const importLeagues: ImporterRun = perDoc(async (doc, { q, mapper, nowMs, stats 
 	const name = str(d.name);
 	const inviteCode = optStr(d.inviteCode) ?? randomInviteCode();
 
-	if (name.length < 3 || name.length > 40 || !LEAGUE_INVITE_CODE_RE.test(inviteCode)) {
+	if (name.length < 3 || name.length > 40 || !LEAGUE_INVITE_CODE_REGEX.test(inviteCode)) {
 		stats.warnings.push(`leagues: invalid identity fields on ${doc.key}; skipped`);
 
 		return false;
@@ -949,7 +950,7 @@ const importLeagueInvites: ImporterRun = perDoc(async (doc, { q, stats }) => {
 	const leagueId = str(d.leagueId, doc.key);
 	const inviteCode = str(d.inviteCode);
 
-	if (!LEAGUE_INVITE_CODE_RE.test(inviteCode) || !(await leagueExists(q, leagueId))) {
+	if (!LEAGUE_INVITE_CODE_REGEX.test(inviteCode) || !(await leagueExists(q, leagueId))) {
 		stats.warnings.push(`league_invites: missing league or bad code on ${doc.key}; skipped`);
 
 		return false;
@@ -1715,6 +1716,16 @@ export const IMPORTERS: CollectionImporter[] = [
 		collection: 'vxp_award_markers',
 		mode: 'skip',
 		skipReason: 'digests of purged principals; no account on this stack derives from one'
+	},
+	{
+		collection: 'league_invite_attempts',
+		mode: 'skip',
+		skipReason: 'an hour of missed invite codes; the API has its own per-account rate limit'
+	},
+	{
+		collection: 'leaderboard_ranking',
+		mode: 'skip',
+		skipReason: 'a cache of the satellite ranking; the API ranks from settled history on request'
 	}
 ];
 

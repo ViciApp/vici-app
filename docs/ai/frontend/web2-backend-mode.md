@@ -126,6 +126,20 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   `loadWeb2Session()` probes `/me` (a 401 is the signed-out steady state,
   not an error), `adoptWeb2Session(user)` seeds it from a login response,
   and `clearWeb2Session()` revokes server-side then drops local state.
+- **Session follows the cookie: `watchWeb2Session()`.** Tabs share the
+  cookie, so a sign-in or sign-out in one tab changes the account of every
+  tab. `Authn` starts the watcher with the probe. A request the API refuses
+  as `unauthenticated` (the `client.ts` session-lost handler; any other 401,
+  such as a wrong sign-in code, is not one) signs the tab out, and the
+  hydration effect resets the app. The account is re-read from `/me` when
+  another tab changes it (a `BroadcastChannel`) and when the tab is shown
+  again; a different account is adopted and the app rehydrates for it.
+- **Writes in an account's name confirm the cookie first.** A profile PUT is
+  a full-doc write onto the cookie's account, so `upsertProfile` and
+  `saveMyEmail` run `assertWeb2SessionOwner(owner)` (a `/me` read) before it:
+  when the cookie belongs to another account the store moves to it and the
+  write is refused with `Web2SessionChangedError`. The API's nickname guard
+  would refuse most such writes too; the client does not rely on it.
 - **Session bootstrap: `Authn.svelte`.** `onMount` branches: web2 runs
   `loadWeb2Session()` in place of Juno's `onAuthStateChange`. The on-chain
   path is left byte-for-byte as it was. A signed-out probe releases
@@ -273,15 +287,19 @@ the on-chain call untouched on the default side:
   `checkNicknameAvailability`, `recordFlowSwipe`,
   `upsertProfile`. The composed writers (`patchProfile`, `persistDailyStreak`,
   `applyOnboardingPicks`, `persistPreferences`, `recordActivity`) ride the
-  swap for free: they route through `getProfile` + `upsertProfile`.
+  swap through `patchProfile` + `upsertProfile`; in web2 `patchProfile`
+  builds the patch on the session's own row (`getMyProfile`), never on the
+  public `getProfile` read.
   `getMyJoinedAtMs` (the Settings "Joined" line) reads the session
   account's `createdAt` in web2 mode, the profile doc's `created_at` on
   the default backend.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
-- `leaderboard.services.ts`: `getLeaderboard`.
+- `leaderboard.services.ts`: `getLeaderboard`. The API ranks it from
+  settled history, never `points` (see the global leaderboard section of
+  [`PRODUCT.md`](../PRODUCT.md#global-leaderboard-qualify-gate--confidence-adjusted-ranking)).
 - `menagerie.services.ts`: the viewer's rank + ranked-population size in
   `loadMyMenagerieSignals` (Goat and the profile's "Top X%" line), read
-  from `GET /api/v1/leaderboard/rank/:userId`.
+  from `GET /api/v1/leaderboard/rank/:userId`, over the same ranking.
 - `relation.services.ts`: `sendFriendRequest` (with a web2 `@handle` / account-id
   resolver), `accept` / `reject` / `cancel`, `unfriend`, `follow`.
 - `relation-queries.services.ts`: friends, followers, following, friend
