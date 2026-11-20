@@ -415,7 +415,10 @@ is the reference shape:
 - **Keep the marker monotonic + the side effects once-only.**
   Re-deleting keeps the EARLIEST `deletedAtMs` so the recovery clock
   can't be reset. Recovery clears the field; both are version-locked
-  overwrites. `softDeleteProfile` returns an `alreadyDeleted` flag so
+  overwrites, signed as a controller: `assertAccountStateUnchanged`
+  holds every other write to the stored `deletedAtMs` and
+  `hibernatedAtMs`, so the owner cannot clear a soft delete past the
+  window and skip the purge. `softDeleteProfile` returns an `alreadyDeleted` flag so
   one-time side effects (the anonymous `EXIT_SIGNALS` churn row) are
   skipped on a re-delete; re-deleting must be idempotent, not
   cumulative.

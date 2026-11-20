@@ -9,7 +9,14 @@ import {
 	setContext,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
-import { deleteMyAccountFn, hardDeleteAccountFn } from '#satellite/services/account.services.ts';
+import { assertDeleteDoc, assertSetDoc } from '#satellite/index.ts';
+import {
+	deleteMyAccountFn,
+	hardDeleteAccountFn,
+	hibernateMyAccountFn,
+	recoverMyAccountFn,
+	resumeMyAccountFn
+} from '#satellite/services/account.services.ts';
 import { assertSetExitSignal } from '#satellite/services/exit-signal.services.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
@@ -184,6 +191,45 @@ describe('account.services', () => {
 
 				assert.equal(rule?.read, 'controllers');
 			}
+		});
+	});
+
+	describe('account state through the real asserts', () => {
+		const stored = () =>
+			host.readDoc<{ deletedAtMs?: number; hibernatedAtMs?: number }>({
+				collection: Collection.PROFILES,
+				key: purgedText
+			});
+
+		beforeEach(() => {
+			host.restore();
+			// The real asserts run on every serverless write, as on the satellite.
+			host = installSatelliteHost({
+				asserts: { set: assertSetDoc.assert, remove: assertDeleteDoc.assert }
+			});
+			host.putDoc({
+				collection: Collection.PROFILES,
+				key: purgedText,
+				data: { owner: purgedText, nickname: 'n' },
+				owner: purged
+			});
+			host.setCaller(purged);
+		});
+
+		it('soft-deletes and recovers the account', () => {
+			assert.equal(deleteMyAccountFn({ reason: 'privacy', note: '' }).ok, true);
+			assert.equal(stored()?.deletedAtMs, hostNowMs);
+
+			assert.deepEqual(recoverMyAccountFn(), { ok: true, recovered: true });
+			assert.equal(stored()?.deletedAtMs, undefined);
+		});
+
+		it('pauses and resumes the account', () => {
+			assert.deepEqual(hibernateMyAccountFn(), { ok: true });
+			assert.equal(stored()?.hibernatedAtMs, hostNowMs);
+
+			assert.deepEqual(resumeMyAccountFn(), { ok: true, resumed: true });
+			assert.equal(stored()?.hibernatedAtMs, undefined);
 		});
 	});
 });

@@ -795,6 +795,40 @@ export const assertSchoolStatusUnchanged = ({
 };
 
 /**
+ * `deletedAtMs` and `hibernatedAtMs` are the account's state: the satellite
+ * sets and clears them (`deleteMyAccount`, `recoverMyAccount`,
+ * `hibernateMyAccount`, `resumeMyAccount`, signing as a controller), and the
+ * recovery window and the purge read `deletedAtMs`. A client write must carry
+ * both unchanged, absent on a new profile; otherwise the owner could clear a
+ * soft delete past the window and skip the purge `recoverMyAccount` runs.
+ */
+export const assertAccountStateUnchanged = ({
+	caller,
+	data: {
+		collection,
+		data: { proposed, current }
+	}
+}: AssertSetDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	if (isControllerText(Principal.fromUint8Array(caller).toText())) {
+		return;
+	}
+
+	const proposedProfile = decodeDocData<UserProfile>(proposed.data);
+	const currentProfile = nonNullish(current) ? decodeDocData<UserProfile>(current.data) : undefined;
+
+	if (
+		proposedProfile.deletedAtMs !== currentProfile?.deletedAtMs ||
+		proposedProfile.hibernatedAtMs !== currentProfile?.hibernatedAtMs
+	) {
+		throw new Error('profiles: deletedAtMs and hibernatedAtMs are set by the satellite.');
+	}
+};
+
+/**
  * The `profiles` pre-write veto: one dispatch-table entry composing the
  * sub-asserts, each exported on its own so it stays unit-testable. A throw
  * from any one rejects the write. The owner checks and the new-profile gate run
@@ -804,6 +838,7 @@ export const assertProfile = (context: AssertSetDocContext): void => {
 	assertProfileOwner(context);
 	assertProfileOwnerField(context);
 	assertSchoolStatusUnchanged(context);
+	assertAccountStateUnchanged(context);
 	assertNewProfileAllowed(context);
 	assertValidNickname(context);
 	assertDailyGoalUnchanged(context);

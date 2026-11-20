@@ -54,7 +54,7 @@ describe('profile.services', () => {
 				key: owner.toText(),
 				current: profile,
 				currentOwner: owner,
-				proposed: { ...profile, deletedAtMs: 1 }
+				proposed: { ...profile, level: 2 }
 			});
 
 		it("rejects a write to another user's profile", () => {
@@ -297,6 +297,73 @@ describe('profile.services', () => {
 						})
 					),
 				/cannot exceed the daily hard cap/
+			);
+		});
+	});
+
+	describe('assertProfile on the account state', () => {
+		const deleted = { ...profile, deletedAtMs: 1 };
+		const paused = { ...profile, hibernatedAtMs: 1 };
+
+		const write = ({
+			caller = owner,
+			current,
+			proposed
+		}: {
+			caller?: Principal;
+			current: object;
+			proposed: object;
+		}) =>
+			setContext({
+				caller,
+				collection: Collection.PROFILES,
+				key: owner.toText(),
+				current,
+				currentOwner: owner,
+				proposed
+			});
+
+		it('rejects the owner clearing a soft delete or a pause', () => {
+			assert.throws(
+				() => assertProfile(write({ current: deleted, proposed: profile })),
+				/set by the satellite/
+			);
+			assert.throws(
+				() => assertProfile(write({ current: paused, proposed: profile })),
+				/set by the satellite/
+			);
+		});
+
+		it('rejects the owner setting or moving one', () => {
+			assert.throws(
+				() => assertProfile(write({ current: profile, proposed: deleted })),
+				/set by the satellite/
+			);
+			assert.throws(
+				() => assertProfile(write({ current: deleted, proposed: { ...profile, deletedAtMs: 2 } })),
+				/set by the satellite/
+			);
+			assert.throws(
+				() => assertProfile(write({ current: profile, proposed: paused })),
+				/set by the satellite/
+			);
+		});
+
+		it('lets the owner keep the stored state', () => {
+			assert.doesNotThrow(() =>
+				assertProfile(write({ current: deleted, proposed: { ...deleted, level: 2 } }))
+			);
+			assert.doesNotThrow(() =>
+				assertProfile(write({ current: paused, proposed: { ...paused, level: 2 } }))
+			);
+		});
+
+		it('lets a satellite controller change it', () => {
+			assert.doesNotThrow(() =>
+				assertProfile(write({ caller: controller, current: deleted, proposed: profile }))
+			);
+			assert.doesNotThrow(() =>
+				assertProfile(write({ caller: controller, current: profile, proposed: paused }))
 			);
 		});
 	});

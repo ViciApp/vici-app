@@ -220,10 +220,11 @@ type MutateOwnProfileResult =
 
 /**
  * Shared read-modify-write envelope for the caller's own `PROFILES` doc.
- * Reads the doc via `getDocStore` (PROFILES is keyed by principal text,
- * one doc per user, and is user-owned, so the write is authorised by the
- * REAL caller, never an admin key), null-guards a missing doc, decodes it,
- * then runs `transform`:
+ * Reads the doc via `getDocStore` as the real caller (PROFILES is keyed by
+ * principal text, one doc per user), null-guards a missing doc, decodes it,
+ * then runs `transform`. The write signs as a controller: the account state
+ * these transforms move (`deletedAtMs`, `hibernatedAtMs`) is one only the
+ * satellite may change (`assertAccountStateUnchanged`).
  *
  *  - `transform` returns a `UserProfile` → persist it with a version-locked
  *    `setDocStore` (the current `version` is threaded back so a concurrent
@@ -265,7 +266,7 @@ const mutateOwnProfile = ({
 	setDocStore({
 		collection: Collection.PROFILES,
 		key: callerText,
-		caller: callerBytes,
+		caller: controllerCaller('account state'),
 		doc: {
 			data: encodeDocData<UserProfile>(next),
 			version: profileDoc.version
