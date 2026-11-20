@@ -1,12 +1,14 @@
 // Worlds podium claim: the month is ranked from the members' settled
 // history, never the monthly stats a client writes; a member at month-end
 // collects its finish whatever their join date, but a join, or a switch,
-// after the month closed earns nothing, and an eligible member is paid once.
+// after the month closed earns nothing, and an eligible member is paid once
+// per finish: a university and a country podium in one month are two.
 
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
 import { DAY_IN_MS } from '../src/lib/time';
+import { grantAward } from '../src/vxp/awards';
 import { parseVxp, VXP_WORLDS_PODIUM } from '../src/vxp/constants';
 import { AFFILIATION_LOCK_MS, setAffiliation } from '../src/worlds/affiliations';
 import { claimWorldsPodiumPrize } from '../src/worlds/podium';
@@ -172,7 +174,7 @@ describe.if(dbAvailable)('worlds podium tenure', () => {
 			await readAwardRow({
 				userId: latecomer,
 				awardType: 'worlds_podium',
-				awardKey: `${monthAnchor}_gold`
+				awardKey: `${monthAnchor}_university_gold`
 			})
 		).toBeUndefined();
 	});
@@ -275,14 +277,14 @@ describe.if(dbAvailable)('worlds podium tenure', () => {
 			await readAwardRow({
 				userId: honest,
 				awardType: 'worlds_podium',
-				awardKey: `${monthAnchor}_gold`
+				awardKey: `${monthAnchor}_university_gold`
 			})
 		).toBeDefined();
 		expect(
 			await readAwardRow({
 				userId: inflated,
 				awardType: 'worlds_podium',
-				awardKey: `${monthAnchor}_silver`
+				awardKey: `${monthAnchor}_university_silver`
 			})
 		).toBeDefined();
 	});
@@ -334,5 +336,75 @@ describe.if(dbAvailable)('worlds podium tenure', () => {
 
 		expect(result.notEligible).toBe(true);
 		expect(stub.transfers).toHaveLength(0);
+	});
+
+	test('a university and a country finish in the same month each pay their place', async () => {
+		stub = stubVxpLedger();
+		const { monthAnchor, monthStartMs, claimMs } = uniqueClosedMonth();
+		const member = await seedTopMember({
+			slug: uniqueSlug(),
+			monthStartMs,
+			joinedAtMs: monthStartMs - DAY_IN_MS
+		});
+
+		await setAffiliation({
+			userId: member,
+			kind: 'country',
+			affiliationIdentifier: uniqueSlug(),
+			nowMs: monthStartMs - DAY_IN_MS
+		});
+
+		const first = await claimWorldsPodiumPrize({ userId: member, monthAnchor, nowMs: claimMs });
+
+		expect(first).toEqual({
+			monthAnchor,
+			awardsCreated: 2,
+			awardsAlreadyClaimed: 0,
+			notEligible: false
+		});
+		expect(stub.transfers.map(({ amount }) => amount)).toEqual([
+			parseVxp(VXP_WORLDS_PODIUM.gold),
+			parseVxp(VXP_WORLDS_PODIUM.gold)
+		]);
+
+		const again = await claimWorldsPodiumPrize({ userId: member, monthAnchor, nowMs: claimMs });
+
+		expect(again.awardsCreated).toBe(0);
+		expect(again.awardsAlreadyClaimed).toBe(2);
+		expect(stub.transfers).toHaveLength(2);
+	});
+
+	test('a month paid under the key without the kind pays that place no more', async () => {
+		stub = stubVxpLedger();
+		const { monthAnchor, monthStartMs, claimMs } = uniqueClosedMonth();
+		const member = await seedTopMember({
+			slug: uniqueSlug(),
+			monthStartMs,
+			joinedAtMs: monthStartMs - DAY_IN_MS
+		});
+
+		await setAffiliation({
+			userId: member,
+			kind: 'country',
+			affiliationIdentifier: uniqueSlug(),
+			nowMs: monthStartMs - DAY_IN_MS
+		});
+		await grantAward({
+			userId: member,
+			awardType: 'worlds_podium',
+			awardKey: `${monthAnchor}_gold`,
+			amountBaseUnits: parseVxp(VXP_WORLDS_PODIUM.gold),
+			memo: `vxp:worlds_podium:${monthAnchor}_gold`
+		});
+
+		const result = await claimWorldsPodiumPrize({ userId: member, monthAnchor, nowMs: claimMs });
+
+		expect(result).toEqual({
+			monthAnchor,
+			awardsCreated: 0,
+			awardsAlreadyClaimed: 2,
+			notEligible: false
+		});
+		expect(stub.transfers).toHaveLength(1);
 	});
 });

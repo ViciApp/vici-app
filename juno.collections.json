@@ -21,6 +21,7 @@
 	"LEAGUES": "leagues",
 	"LEAGUE_MEMBERS": "league_members",
 	"LEAGUE_INVITES": "league_invites",
+	"LEAGUE_INVITE_ATTEMPTS": "league_invite_attempts",
 	"BATTLES": "battles",
 	"AFFILIATIONS": "affiliations",
 	"AFFILIATION_STATS": "affiliation_stats",
@@ -34,5 +35,6 @@
 	"SCHOOLS": "schools",
 	"APP_CONFIG": "app_config",
 	"EVENTS": "events",
-	"EVENT_ROLLUPS": "event_rollups"
+	"EVENT_ROLLUPS": "event_rollups",
+	"LEADERBOARD_RANKING": "leaderboard_ranking"
 }
