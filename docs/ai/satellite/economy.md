@@ -41,9 +41,23 @@ one pattern. Each of these has bitten a PR before:
   also treats a doc under any per-place key (`<tournamentId>_place_<n>`)
   of an earlier claim as claimed; `assertSetVxpAward` refuses a new
   prize under a per-place key.
-- **Lifecycle is `pending → paid | failed`, then frozen.** Paid docs
-  are immutable (`assertSetVxpAward`). A `failed` payout is re-driven
-  through a settle/retry endpoint; there is no hook replay (see
+- **Lifecycle is `pending → paid | failed`, and `failed → pending` for
+  a retry.** Paid docs are immutable (`assertSetVxpAward`). A payout is
+  marked `failed` only when the ledger answers the transfer with an
+  `Err`, so nothing moved and sending it again cannot pay twice. The next
+  run of its path for the same key reads the doc with `reclaimAward`,
+  moves it back to `pending` at the version it read (of two racing
+  retries only one write lands), and sends it again at its recorded
+  amount with the same memo, without the earn-time gates (caps, rate
+  limits, balance floors) it already passed. A `pending` doc is never
+  sent again: its transfer may have landed. The runs that re-drive a
+  failed payout are the settle and claim endpoints
+  (`settleFounderAwards`, `claimCalibrationReward`,
+  `claimWorldsPodiumPrize`, `claimTournamentPrize`), each
+  `recordFlowSwipe` at the day's cap, and the profile hooks when their
+  trigger fires again for that key (a streak or call count crossing the
+  milestone again, the achievement id newly in the list, another return
+  past the comeback gate). There is no hook replay (see
   [hooks fire only for client writes](./patterns.md#hooks-fire-only-for-client-writes-never-for-serverless-setdocstore)),
   so endpoint-triggered payouts run **inline** in the endpoint.
 - **Award docs are never deleted by a client.** The collection is
@@ -138,7 +152,8 @@ one pattern. Each of these has bitten a PR before:
 3. **Service:** new
    `src/satellite/services/vxp-<surface>-awards.services.ts`
    mirroring an existing one (the streak service is the smallest
-   template). Build the doc key with `vxpAwardKey()`, write the
+   template). Read the key with `reclaimAward()` first (`held` stops,
+   `retry` pays the recorded amount, `free` runs the gates), write the
    `pending` doc and its `paid` / `failed` outcome with `persistAward` /
    `updateAward` from
    [`vxp-awards.services.ts`](../../../src/satellite/services/vxp-awards.services.ts),

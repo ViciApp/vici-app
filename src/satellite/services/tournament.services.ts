@@ -23,7 +23,11 @@ import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
 import { leagueMemberPrincipals } from '#satellite/services/league-member.services.ts';
 import { settledTotals } from '#satellite/services/settled-history.services.ts';
-import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	persistAward,
+	reclaimAward,
+	updateAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -1121,7 +1125,9 @@ export interface ClaimTournamentPrizeResult {
  * (`decideTournamentPrize`). One prize per caller per tournament: the
  * award is keyed on the tournament alone, and a doc under any per-place
  * key of an earlier claim counts as claimed too, so a second claim (for
- * the same place or another) returns `awardsAlreadyClaimed: 1`.
+ * the same place or another) returns `awardsAlreadyClaimed: 1`. A payout
+ * that `failed` counts as unclaimed: the next claim sends it again at its
+ * recorded amount (`reclaimAward`).
  */
 export const claimTournamentPrizeFn = async ({
 	tournamentId
@@ -1162,18 +1168,7 @@ export const claimTournamentPrizeFn = async ({
 		// field is written by whoever wrote the doc, so it cannot be the
 		// cutoff.
 		drawnAtNs: tournamentDoc.created_at,
-		isHeld: (heldAwardKey) =>
-			nonNullish(
-				getDocStore({
-					collection: Collection.VXP_AWARDS,
-					key: vxpAwardKey({
-						recipient: callerText,
-						awardType: 'tournament_prize',
-						awardKey: heldAwardKey
-					}),
-					caller: callerBytes
-				})
-			)
+		isHeld: (heldAwardKey) => holdsPrizePayout({ callerText, callerBytes, awardKey: heldAwardKey })
 	});
 
 	if (decision.outcome === 'not_placed') {
@@ -1181,12 +1176,7 @@ export const claimTournamentPrizeFn = async ({
 	}
 
 	if (decision.outcome === 'already_claimed') {
-		return {
-			ok: true,
-			awardsCreated: 0,
-			awardsAlreadyClaimed: 1,
-			totalVxpCredited: 0
-		};
+		return prizeAlreadyClaimed();
 	}
 
 	const { place: myPlace, awardKey } = decision;
@@ -1198,23 +1188,38 @@ export const claimTournamentPrizeFn = async ({
 		return { ok: false, reason: 'not_member_of_top_league' };
 	}
 
+	const slot = reclaimAward({ recipient: callerText, awardType: 'tournament_prize', awardKey });
+
+	if (slot.kind === 'held') {
+		return prizeAlreadyClaimed();
+	}
+
 	const nowMs = timeMs();
 	// `tier.vxp` is the human-readable whole-VXP prize (5000 / 2500 / 1000),
 	// the same value the FE renders. The award doc / ledger work in base
 	// units (VXP has 4 decimals), so size it via `vxpBaseUnits` like every
 	// other award constant: writing the raw whole number here would
 	// under-pay by 10⁴ (5000 base units = 0.5 VXP).
-	const amountBaseUnits = vxpBaseUnits(tier.vxp);
-	const pendingDoc: VxpAwardDoc = {
-		recipient: callerText,
-		awardType: 'tournament_prize',
-		awardKey,
-		amountBaseUnits: amountBaseUnits.toString(),
-		status: 'pending',
-		earnedAtMs: nowMs
-	};
+	const amountBaseUnits =
+		slot.kind === 'retry' ? BigInt(slot.doc.amountBaseUnits) : vxpBaseUnits(tier.vxp);
 
-	persistAward({ recipient: callerText, awardType: 'tournament_prize', awardKey, doc: pendingDoc });
+	if (slot.kind === 'free') {
+		const pendingDoc: VxpAwardDoc = {
+			recipient: callerText,
+			awardType: 'tournament_prize',
+			awardKey,
+			amountBaseUnits: amountBaseUnits.toString(),
+			status: 'pending',
+			earnedAtMs: nowMs
+		};
+
+		persistAward({
+			recipient: callerText,
+			awardType: 'tournament_prize',
+			awardKey,
+			doc: pendingDoc
+		});
+	}
 
 	// Pay the prize inline: same pending → paid/failed ledger pattern as
 	// claimWorldsPodiumPrize, so the award reflects a real transfer rather
@@ -1250,7 +1255,7 @@ export const claimTournamentPrizeFn = async ({
 			ok: true,
 			awardsCreated: 1,
 			awardsAlreadyClaimed: 0,
-			totalVxpCredited: tier.vxp
+			totalVxpCredited: Number(amountBaseUnits / vxpBaseUnits(1))
 		};
 	}
 
@@ -1267,13 +1272,44 @@ export const claimTournamentPrizeFn = async ({
 	});
 
 	// Transfer failed: report nothing credited (the doc is left `failed`
-	// for diagnostics) so the FE never shows a credit that didn't land.
+	// for the next claim to send again) so the FE never shows a credit that
+	// didn't land.
 	return {
 		ok: true,
 		awardsCreated: 0,
 		awardsAlreadyClaimed: 0,
 		totalVxpCredited: 0
 	};
+};
+
+const prizeAlreadyClaimed = (): ClaimTournamentPrizeResult => ({
+	ok: true,
+	awardsCreated: 0,
+	awardsAlreadyClaimed: 1,
+	totalVxpCredited: 0
+});
+
+/**
+ * Whether the caller holds a prize payout under `awardKey` that must not be
+ * sent again: `paid`, or `pending` (its transfer may have landed). A `failed`
+ * one is not held: it is sent again.
+ */
+const holdsPrizePayout = ({
+	callerText,
+	callerBytes,
+	awardKey
+}: {
+	callerText: string;
+	callerBytes: Uint8Array;
+	awardKey: string;
+}): boolean => {
+	const doc = getDocStore({
+		collection: Collection.VXP_AWARDS,
+		key: vxpAwardKey({ recipient: callerText, awardType: 'tournament_prize', awardKey }),
+		caller: callerBytes
+	});
+
+	return nonNullish(doc) && decodeDocData<VxpAwardDoc>(doc.data).status !== 'failed';
 };
 
 /** Every match doc of the tournament, in no particular order. */

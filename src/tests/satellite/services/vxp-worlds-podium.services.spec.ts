@@ -12,7 +12,7 @@ import {
 import { assertDeleteDoc, assertSetDoc } from '#satellite/index.ts';
 import { claimWorldsPodiumPrizeFn } from '#satellite/services/vxp-worlds-podium.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
-import { IcrcLedgerIdl } from '@junobuild/functions/canisters/ledger/icrc';
+import { IcrcLedgerIdl, type IcrcLedgerDid } from '@junobuild/functions/canisters/ledger/icrc';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
@@ -180,5 +180,38 @@ describe('claimWorldsPodiumPrizeFn', () => {
 				?.status,
 			'paid'
 		);
+	});
+
+	it('sends a failed prize again on the next claim, and a paid one never', async () => {
+		let answer: IcrcLedgerDid.TransferResult = {
+			Err: { InsufficientFunds: { balance: BigInt(0) } }
+		};
+
+		host.onCall({
+			method: 'icrc1_transfer',
+			argTypes: [IcrcLedgerIdl.TransferArg],
+			result: IcrcLedgerIdl.TransferResult,
+			handler: () => answer
+		});
+		join({ principal: member, affiliationIdentifier: 'retry-u', joinedAtMs: monthStartMs });
+		settlements.push({ principal: member, atMs: monthStartMs + DAY_IN_MS, calls: 60, wins: 50 });
+
+		await claimAs(member);
+
+		const gold = () =>
+			host.readDoc<VxpAwardDoc>({ collection: Collection.VXP_AWARDS, key: goldKey(member) });
+
+		assert.equal(gold()?.status, 'failed');
+
+		answer = { Ok: BigInt(8) };
+
+		const retried = await claimAs(member);
+		const again = await claimAs(member);
+
+		assert.equal(retried.awardsCreated, 1);
+		assert.equal(gold()?.status, 'paid');
+		assert.equal(gold()?.blockIndex, '8');
+		assert.equal(again.awardsAlreadyClaimed, 1);
+		assert.equal(host.calls().filter((method) => method === 'icrc1_transfer').length, 2);
 	});
 });
