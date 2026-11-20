@@ -605,7 +605,12 @@ collection keys themselves, plus the clearing leaderboard). The pattern:
   satellite (a 100-doc read-only query fits the 5B query budget, but
   ~10 writes exceed the 40B update limit), so any admin endpoint that
   rewrites docs in bulk MUST be keyset-paged with a page size tunable
-  down to a single doc.
+  down to a single doc. A user-triggered write of many docs follows the
+  same budget: the Worlds podium freeze records the month's ranking once
+  in a freeze doc (`AffiliationFreezeDoc`), writes it out a few snapshot
+  docs per claim, and marks it complete last; readers and the payout
+  treat the month as unfrozen until then, and the FE claims again while
+  the answer says `freezePending`.
 - **Add the collection to the hard-delete cascade**
   (`hardDeleteAccountFn`): a private doc must not outlive its account.
 

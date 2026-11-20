@@ -1,6 +1,12 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
-import { MIN_CALLS_FOR_RANK, type AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
+import {
+	affiliationFreezeKey,
+	affiliationStatsSnapshotKey,
+	MIN_CALLS_FOR_RANK,
+	type AffiliationFreezeDoc,
+	type AffiliationStatsDoc
+} from '#lib/types/affiliation-stats.ts';
 import {
 	isAffiliationKind,
 	type AffiliationDoc,
@@ -993,7 +999,12 @@ export const listAffiliationChampionshipsFn = ({
 
 	const championships: AffiliationChampionship[] = [];
 
-	for (const [monthAnchor, bucket] of byMonth.entries()) {
+	// A month whose freeze is still being written out confers no cup yet.
+	const frozenMonths = [...byMonth.entries()].filter(
+		([monthAnchor]) => !freezeInProgress({ kind, monthAnchor })
+	);
+
+	for (const [monthAnchor, bucket] of frozenMonths) {
 		// Same tie-break as the podium / leaderboard: accuracy desc →
 		// monthTotalCalls desc → affiliationIdentifier asc.
 		bucket.sort(monthlyRankComparator);
@@ -1360,11 +1371,61 @@ const rankEligibleMonthlyRows = ({
 };
 
 /**
+ * A month's podium freeze for a kind ({@link AffiliationFreezeDoc}) with the
+ * version to update it at, or nothing before the month's first claim.
+ */
+export const monthlyFreeze = ({
+	kind,
+	monthAnchor
+}: {
+	kind: AffiliationKind;
+	monthAnchor: string;
+}): { freeze: AffiliationFreezeDoc; version: bigint | undefined } | undefined => {
+	const doc = getDocStore({
+		collection: Collection.AFFILIATION_STATS,
+		key: affiliationFreezeKey({ kind, monthAnchor }),
+		caller: msgCaller().toUint8Array()
+	});
+
+	return isNullish(doc)
+		? undefined
+		: { freeze: decodeDocData<AffiliationFreezeDoc>(doc.data), version: doc.version };
+};
+
+/** Whether a month's freeze is under way: started, and not complete yet. */
+const freezeInProgress = ({
+	kind,
+	monthAnchor
+}: {
+	kind: AffiliationKind;
+	monthAnchor: string;
+}): boolean => monthlyFreeze({ kind, monthAnchor })?.freeze.complete === false;
+
+/** The rows of a freeze not yet written out as snapshot docs, in its ranked order. */
+export const unfrozenRows = (freeze: AffiliationFreezeDoc): AffiliationStatsDoc[] => {
+	const caller = msgCaller().toUint8Array();
+
+	return freeze.rows.filter(({ affiliationIdentifier }) =>
+		isNullish(
+			getDocStore({
+				collection: Collection.AFFILIATION_STATS,
+				key: affiliationStatsSnapshotKey({
+					kind: freeze.kind,
+					affiliationIdentifier,
+					monthAnchor: freeze.monthAnchor
+				}),
+				caller
+			})
+		)
+	);
+};
+
+/**
  * The frozen ranking of a closed month: the immutable snapshot docs
  * (`${kind}/${affiliationIdentifier}/${monthAnchor}`) the podium freeze in
  * `vxp-worlds-podium.services` writes from settled history the first time the
  * month's podium is claimed, ranked by the leaderboard's rule. Empty until the
- * month is frozen; the podium pays from this and nothing else.
+ * month's freeze is complete; the podium pays from this and nothing else.
  */
 export const frozenMonthlyRanking = ({
 	kind,
@@ -1373,6 +1434,10 @@ export const frozenMonthlyRanking = ({
 	kind: AffiliationKind;
 	monthAnchor: string;
 }): AffiliationStatsDoc[] => {
+	if (freezeInProgress({ kind, monthAnchor })) {
+		return [];
+	}
+
 	const caller = msgCaller();
 	const { items } = listDocsStore({
 		collection: Collection.AFFILIATION_STATS,

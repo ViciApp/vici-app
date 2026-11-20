@@ -1702,7 +1702,8 @@ const AppClaimWorldsPodiumPrizeResultSchema = j.strictObject({
 	monthAnchor: j.string(),
 	awardsCreated: j.number(),
 	awardsAlreadyClaimed: j.number(),
-	notEligible: j.boolean()
+	notEligible: j.boolean(),
+	freezePending: j.optional(j.boolean())
 });
 
 const claimWorldsPodiumPrize = async (

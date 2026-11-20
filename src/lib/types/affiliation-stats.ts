@@ -90,6 +90,33 @@ export const affiliationStatsSnapshotKey = ({
 }): string => `${kind}/${affiliationIdentifier}/${monthAnchor}`;
 
 /**
+ * A closed month's podium freeze for one kind: the ranked rows computed once
+ * from settled history (`rows`), then written out as snapshot docs a few per
+ * call, and `complete` once every one is. Until then readers treat the month
+ * as not frozen, so a half-written ranking is never shown or paid from.
+ * Keyed by {@link affiliationFreezeKey}.
+ */
+export interface AffiliationFreezeDoc {
+	kind: AffiliationKind;
+	monthAnchor: string;
+	rows: AffiliationStatsDoc[];
+	complete: boolean;
+}
+
+/**
+ * Key of a month's {@link AffiliationFreezeDoc}: `${kind}/${monthAnchor}`.
+ * Two segments, so the snapshot readers (three segments) never take it for
+ * a snapshot.
+ */
+export const affiliationFreezeKey = ({
+	kind,
+	monthAnchor
+}: {
+	kind: AffiliationKind;
+	monthAnchor: string;
+}): string => `${kind}/${monthAnchor}`;
+
+/**
  * Minimum resolved-call count before an affiliation appears on the
  * ranked leaderboard. Below this, accuracy is too noisy to be
  * meaningful (a single-member school at 1/1 = 100% would otherwise
