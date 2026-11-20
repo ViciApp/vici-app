@@ -1,5 +1,6 @@
 import type { ClearingDid } from '#declarations';
 import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+import junoConfig from '#root/juno.config.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { IDL } from '@icp-sdk/core/candid';
@@ -29,7 +30,11 @@ import type { AccessKeys } from '@junobuild/functions/sdk';
  * handlers. An assert spec builds its context with {@link setContext} /
  * {@link deleteContext}; a service spec drives the real service end to end.
  * Hooks never run on a host write, and asserts only when the spec installs
- * them: seed only docs the real asserts would accept.
+ * them: seed only docs the real asserts would accept. Each collection's
+ * `controllers` rule in `juno.config.ts` holds as Juno applies it to the
+ * caller a service passes: anyone else reads nothing of a `read:
+ * 'controllers'` collection and is refused a write to a `write:
+ * 'controllers'` one.
  */
 
 export const controller = Principal.fromUint8Array(new Uint8Array([1, 1, 1]));
@@ -257,6 +262,28 @@ const timestampMatches = ({
 	return timestamp >= from && timestamp <= to;
 };
 
+const controllersRuled = (rule: 'read' | 'write'): ReadonlySet<string> =>
+	new Set(
+		(junoConfig({ mode: 'production' }).satellite.collections?.datastore ?? [])
+			.filter((collection) => collection[rule] === 'controllers')
+			.map(({ collection }) => collection)
+	);
+
+const controllersRead = controllersRuled('read');
+const controllersWrite = controllersRuled('write');
+
+const isController = (caller: Uint8Array): boolean =>
+	Principal.fromUint8Array(caller).compareTo(controller) === 'eq';
+
+const readable = ({ caller, name }: { caller: Uint8Array; name: string }): boolean =>
+	!controllersRead.has(name) || isController(caller);
+
+const assertWritable = ({ caller, name }: { caller: Uint8Array; name: string }): void => {
+	if (controllersWrite.has(name) && !isController(caller)) {
+		throw new Error(`${name}: caller not allowed to write.`);
+	}
+};
+
 const toDoc = (stored: StoredDoc): Doc => ({ ...stored });
 
 /** The satellite's own set / delete asserts, run on host writes as Juno runs them. */
@@ -352,31 +379,32 @@ export const installSatelliteHost = ({
 		__juno_satellite_datastore_raw_data_from_text: (text: string): Uint8Array => encodeText(text),
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_get_doc_store: (
-			_caller: Uint8Array,
+			reader: Uint8Array,
 			name: string,
 			key: string
 		): Doc | undefined => {
-			const stored = collection(name).get(key);
+			const stored = readable({ caller: reader, name }) ? collection(name).get(key) : undefined;
 
 			return isNullish(stored) ? undefined : toDoc(stored);
 		},
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_list_docs_store: (
-			_caller: Uint8Array,
+			reader: Uint8Array,
 			name: string,
 			params: ListParams
 		): ListResults<Doc> => {
-			const items = listed({ name, params });
+			const items = readable({ caller: reader, name }) ? listed({ name, params }) : [];
 			const length = BigInt(items.length);
 
 			return { items, items_length: length, matches_length: length };
 		},
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_count_docs_store: (
-			_caller: Uint8Array,
+			reader: Uint8Array,
 			name: string,
 			params: ListParams
-		): bigint => BigInt(listed({ name, params }).length),
+		): bigint =>
+			readable({ caller: reader, name }) ? BigInt(listed({ name, params }).length) : BigInt(0),
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_set_doc_store: (
 			setter: Uint8Array,
@@ -384,6 +412,8 @@ export const installSatelliteHost = ({
 			key: string,
 			value: SetDoc
 		) => {
+			assertWritable({ caller: setter, name });
+
 			const before = collection(name).get(key);
 
 			asserts.set?.({
@@ -428,6 +458,8 @@ export const installSatelliteHost = ({
 			key: string,
 			value: DelDoc
 		): Doc | undefined => {
+			assertWritable({ caller: remover, name });
+
 			const before = collection(name).get(key);
 
 			if (nonNullish(before)) {

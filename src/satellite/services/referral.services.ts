@@ -20,11 +20,7 @@ import type { Activity } from '#lib/types/social.ts';
 import type { VxpMilestonePayoutStatus, VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
 import { fnv1a64 } from '#lib/utils/hash.utils.ts';
 import { countTradeActivities } from '#satellite/services/activity.services.ts';
-import {
-	assertControllerCaller,
-	assertOwnerOrController,
-	controllerCaller
-} from '#satellite/services/authz.services.ts';
+import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -79,18 +75,18 @@ const generateReferralCode = ({
 	salt: number;
 }): string => encodeBase32(fnv1a64(`${ownerText}|${time().toString()}|${salt}`));
 
-// ─── Code assignment (idempotent, called from the profile hook) ──────────
+// ─── Code store ──────────────────────────────────────────────────────────
 
-const findOwnedCode = ({
-	caller,
-	ownerText
-}: {
-	caller: Uint8Array;
-	ownerText: PrincipalText;
-}): string | undefined => {
+/**
+ * `referral_codes` is controllers-only, so no client lists the codes or reads
+ * who owns one: every read and write of it here signs as a controller.
+ */
+const codesCaller = (): Uint8Array => controllerCaller('referral codes');
+
+const findOwnedCode = (ownerText: PrincipalText): string | undefined => {
 	const { items } = listDocsStore({
 		collection: Collection.REFERRAL_CODES,
-		caller,
+		caller: codesCaller(),
 		params: {}
 	});
 
@@ -105,19 +101,34 @@ const findOwnedCode = ({
 	return match?.[0];
 };
 
+/** The owner of a well-formed `code`, or `undefined` when no one holds it. */
+const referralCodeOwner = (code: string): PrincipalText | undefined => {
+	const doc = getDocStore({
+		collection: Collection.REFERRAL_CODES,
+		key: code,
+		caller: codesCaller()
+	});
+
+	if (isNullish(doc)) {
+		return;
+	}
+
+	try {
+		return decodeDocData<ReferralCodeDoc>(doc.data).owner;
+	} catch {
+		// A malformed code doc names no owner.
+	}
+};
+
+// ─── Code assignment (idempotent, called from the profile hook) ──────────
+
 /**
  * Idempotent: returns the caller's existing code if one is already on record, otherwise
  * generates+writes a fresh code and returns it. Safe to call on every profile create / update:
  * subsequent calls short-circuit after the scan.
  */
-export const assignReferralCodeIfMissing = ({
-	caller,
-	ownerText
-}: {
-	caller: Uint8Array;
-	ownerText: PrincipalText;
-}): string | undefined => {
-	const existing = findOwnedCode({ caller, ownerText });
+export const assignReferralCodeIfMissing = (ownerText: PrincipalText): string | undefined => {
+	const existing = findOwnedCode(ownerText);
 
 	if (nonNullish(existing)) {
 		return existing;
@@ -126,18 +137,12 @@ export const assignReferralCodeIfMissing = ({
 	for (let salt = 0; salt < CODE_GENERATION_MAX_RETRIES; salt++) {
 		const code = generateReferralCode({ ownerText, salt });
 
-		const conflict = getDocStore({
-			collection: Collection.REFERRAL_CODES,
-			key: code,
-			caller
-		});
-
-		if (isNullish(conflict)) {
+		if (isNullish(referralCodeOwner(code))) {
 			try {
 				setDocStore({
 					collection: Collection.REFERRAL_CODES,
 					key: code,
-					caller,
+					caller: codesCaller(),
 					doc: {
 						data: encodeDocData<ReferralCodeDoc>({ owner: ownerText })
 					}
@@ -187,7 +192,7 @@ export const onProfileSetForReferralCode = (ctx: OnSetDocContext): void => {
 	}
 
 	try {
-		assignReferralCodeIfMissing({ caller, ownerText: callerText });
+		assignReferralCodeIfMissing(callerText);
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 		// Best effort: never fail the profile write because of a referral-code issue.
@@ -200,43 +205,20 @@ export const onProfileSetForReferralCode = (ctx: OnSetDocContext): void => {
 
 // ─── Query handlers ──────────────────────────────────────────────────────
 
-export const getMyReferralCodeFn = (): { code: string | undefined } => {
-	const caller = msgCaller();
-	const code = findOwnedCode({
-		caller: caller.toUint8Array(),
-		ownerText: caller.toText()
-	});
-
-	return { code };
-};
+export const getMyReferralCodeFn = (): { code: string | undefined } => ({
+	code: findOwnedCode(msgCaller().toText())
+});
 
 export const lookupReferralCodeFn = ({
 	code
 }: {
 	code: string;
 }): { owner: PrincipalText | undefined } => {
-	const caller = msgCaller();
 	const normalized = code.trim().toUpperCase();
 
-	if (!REFERRAL_CODE_REGEX.test(normalized)) {
-		return { owner: undefined };
-	}
-
-	const doc = getDocStore({
-		collection: Collection.REFERRAL_CODES,
-		key: normalized,
-		caller: caller.toUint8Array()
-	});
-
-	if (isNullish(doc)) {
-		return { owner: undefined };
-	}
-
-	try {
-		return { owner: decodeDocData<ReferralCodeDoc>(doc.data).owner };
-	} catch {
-		return { owner: undefined };
-	}
+	return {
+		owner: REFERRAL_CODE_REGEX.test(normalized) ? referralCodeOwner(normalized) : undefined
+	};
 };
 
 /**
@@ -394,17 +376,11 @@ export const redeemReferralCodeFn = ({ code }: { code: string }): void => {
 	// Signup-window gate: only fresh sign-ups earn the VXP bonus.
 	assertWithinRedemptionWindow({ referee: callerText, caller: callerBytes });
 
-	const codeDoc = getDocStore({
-		collection: Collection.REFERRAL_CODES,
-		key: normalized,
-		caller: callerBytes
-	});
+	const referrer = referralCodeOwner(normalized);
 
-	if (isNullish(codeDoc)) {
+	if (isNullish(referrer)) {
 		throw new Error('Unknown referral code.');
 	}
-
-	const { owner: referrer } = decodeDocData<ReferralCodeDoc>(codeDoc.data);
 
 	if (referrer === callerText) {
 		throw new Error('You cannot redeem your own referral code.');
@@ -454,6 +430,8 @@ export const redeemReferralCodeFn = ({ code }: { code: string }): void => {
  * Friendship-only path for users who use a referral link but aren't eligible for the VXP bonus
  * (account older than {@link REFERRAL_SIGNUP_WINDOW_MS}, or already redeemed). Looks up the code,
  * refuses self-referral, and writes a bilateral confirmed friendship between caller and referrer.
+ * The caller is a signed-in account with a profile: the friendship joins two real users, never the
+ * anonymous principal or an account that does not exist yet.
  *
  * Idempotent: returns silently if a relation already exists in any state.
  */
@@ -463,21 +441,29 @@ export const claimReferralFriendshipFn = ({ code }: { code: string }): void => {
 	const callerText = caller.toText();
 	const normalized = code.trim().toUpperCase();
 
+	if (caller.isAnonymous()) {
+		throw new Error('Sign in to use a referral link.');
+	}
+
 	if (!REFERRAL_CODE_REGEX.test(normalized)) {
 		throw new Error('Invalid referral code format.');
 	}
 
-	const codeDoc = getDocStore({
-		collection: Collection.REFERRAL_CODES,
-		key: normalized,
+	const profileDoc = getDocStore({
+		collection: Collection.PROFILES,
+		key: callerText,
 		caller: callerBytes
 	});
 
-	if (isNullish(codeDoc)) {
-		throw new Error('Unknown referral code.');
+	if (isNullish(profileDoc)) {
+		throw new Error('Create your profile before using a referral link.');
 	}
 
-	const { owner: referrer } = decodeDocData<ReferralCodeDoc>(codeDoc.data);
+	const referrer = referralCodeOwner(normalized);
+
+	if (isNullish(referrer)) {
+		throw new Error('Unknown referral code.');
+	}
 
 	if (referrer === callerText) {
 		throw new Error('You cannot use your own referral link.');
@@ -497,6 +483,11 @@ export const claimReferralFriendshipFn = ({ code }: { code: string }): void => {
 
 // ─── Assertions (write-time guards) ──────────────────────────────────────
 
+/**
+ * Pre-write guard for `referral_codes`. Only the satellite writes a code
+ * ({@link assignReferralCodeIfMissing}, signing as a controller), and a code
+ * stays as written: well-formed, owned by a real principal, one per owner.
+ */
 export const assertSetReferralCode = ({
 	caller,
 	data: {
@@ -509,6 +500,8 @@ export const assertSetReferralCode = ({
 		return;
 	}
 
+	assertControllerCaller({ caller, collection });
+
 	if (nonNullish(current)) {
 		throw new Error('Referral codes are write-once.');
 	}
@@ -517,17 +510,18 @@ export const assertSetReferralCode = ({
 		throw new Error('Invalid referral code format.');
 	}
 
-	const callerText = Principal.fromUint8Array(caller).toText();
 	const { owner } = decodeDocData<ReferralCodeDoc>(proposed.data);
 
-	if (owner !== callerText) {
-		throw new Error('Referral code owner must match the caller.');
+	try {
+		Principal.fromText(owner);
+	} catch {
+		throw new Error('Invalid referral code owner.');
 	}
 
-	const existing = findOwnedCode({ caller, ownerText: callerText });
+	const existing = findOwnedCode(owner);
 
 	if (nonNullish(existing) && existing !== key) {
-		throw new Error('You already have a referral code.');
+		throw new Error('This account already has a referral code.');
 	}
 };
 
@@ -575,10 +569,10 @@ const payoutStage = (status: VxpMilestonePayoutStatus): number => {
 };
 
 /**
- * The referrer tier and lifetime cap count every row whose referrer side left `none`
- * ({@link countReferrerCredits}), and a paid side is what stops a second transfer. A write that
- * moved either side back could re-arm a paid bonus or drop a credited row out of the referrer's
- * count.
+ * A paid side is what stops a second transfer, and an armed referrer side is what keeps the row
+ * through the account purge ({@link isReferralPayoutRecord}), so its place in the referrer's
+ * redemption order ({@link countPriorRedemptions}) holds. A write that moved either side back could
+ * re-arm a paid bonus or let the purge drop a credited row.
  */
 const payoutMovesBack = ({
 	current,
@@ -678,17 +672,11 @@ const assertNewReferral = ({
 		throw new Error('Invalid referral code format.');
 	}
 
-	const codeDoc = getDocStore({
-		collection: Collection.REFERRAL_CODES,
-		key: doc.code,
-		caller
-	});
+	const owner = referralCodeOwner(doc.code);
 
-	if (isNullish(codeDoc)) {
+	if (isNullish(owner)) {
 		throw new Error('Unknown referral code.');
 	}
-
-	const { owner } = decodeDocData<ReferralCodeDoc>(codeDoc.data);
 
 	if (owner !== doc.referrer) {
 		throw new Error('Referrer does not match the referral code owner.');
@@ -714,26 +702,6 @@ const assertNewReferral = ({
 };
 
 /**
- * A referral code is bound to its owner (write-once, `owner === caller`), so
- * only that owner or the satellite may drop it.
- */
-export const assertDeleteReferralCode = ({
-	caller,
-	data: {
-		collection,
-		data: { current }
-	}
-}: AssertDeleteDocContext): void => {
-	if (collection !== Collection.REFERRAL_CODES || isNullish(current)) {
-		return;
-	}
-
-	const { owner } = decodeDocData<ReferralCodeDoc>(current.data);
-
-	assertOwnerOrController({ caller, owner, collection });
-};
-
-/**
  * A referral record is the proof its bonuses were paid: deleted, its referee
  * could redeem again and be paid again. Only the satellite deletes one (the
  * account purge), and the purge keeps a row that has started paying
@@ -754,19 +722,19 @@ export const assertDeleteReferral = ({
 // ─── Payout hook ─────────────────────────────────────────────────────────
 
 /**
- * Counts how many redemptions already credited the given referrer. This lifetime tally is the
- * authoritative prior-paid count that feeds {@link referrerRewardBaseUnits} (the diminishing reward
- * curve, whose final bracket encodes the {@link REFERRAL_MAX_PAID} hard cap). Every doc whose
- * `referrerPayout` is not `none` counts: anything in flight (`owed` / `processing` / `paid`)
- * consumes a slot so racing redemptions can't slip past the cap by being mid-transfer.
+ * Counts the referrer's redemptions made before the row being processed: the row's place in the
+ * referrer's redemption order, which feeds {@link referrerRewardBaseUnits} (the diminishing reward
+ * curve, whose final bracket encodes the {@link REFERRAL_MAX_PAID} hard cap). Every earlier row
+ * counts whatever its payout state, so the tier does not depend on which referee makes a first
+ * prediction first: a row armed while earlier ones still wait on their referee's first trade gets
+ * the same tier it would have got in order. A row the account purge removed (one that never
+ * started paying, {@link isReferralPayoutRecord}) no longer holds a place.
  *
- * Counts only redemptions that happened *before* the row being processed, `redeemedAtMs <
- * referenceMs`, tie-broken by key so equal timestamps are deterministic, and excludes the row
- * itself (`excludeKey`). The "prior only" ordering makes a given row's prior-paid count (and thus
- * its diminishing-curve reward) **stable regardless of when settlement runs**: a later redemption
- * can never retroactively inflate an earlier row's count and shrink its reward on a delayed retry.
+ * Prior means `redeemedAtMs < referenceMs`, tie-broken by key so equal timestamps are deterministic,
+ * and the row itself is excluded (`excludeKey`). A redemption made later never joins the count, so
+ * a row's tier is stable across retries.
  */
-const countReferrerCredits = ({
+const countPriorRedemptions = ({
 	caller,
 	referrer,
 	excludeKey,
@@ -791,12 +759,10 @@ const countReferrerCredits = ({
 		try {
 			const doc = decodeDocData<ReferralDoc>(item.data);
 
-			// Prior redemptions only: earlier in time, or same instant with a lower key. Keeps
-			// each row's tier derivation stable across retries (see the doc comment above).
 			const isPrior =
 				doc.redeemedAtMs < referenceMs || (doc.redeemedAtMs === referenceMs && key < excludeKey);
 
-			if (doc.referrer === referrer && doc.referrerPayout.status !== 'none' && isPrior) {
+			if (doc.referrer === referrer && isPrior) {
 				return acc + 1;
 			}
 		} catch {
@@ -905,7 +871,7 @@ const driveSidePayout = async ({
 
 	// SECURITY: the transferred amount is server-authoritative; it is `expectedAmount`, recomputed
 	// by the caller from canonical sources (the flat constant for the referee; the diminishing curve
-	// keyed on the authoritative prior-paid count for the referrer). The `amountBaseUnits` field on
+	// keyed on the row's place in the referrer's redemption order). The `amountBaseUnits` field on
 	// the doc is never trusted as the source of truth at transfer time: a row from before the
 	// collection became server-owned may have been written by its client. We still read it (guarded: a malformed string must not throw the hook) purely to
 	// clamp: the actual transfer can never exceed `expectedAmount`, even if a tampered doc claims a
@@ -1060,7 +1026,7 @@ const armReferrerPayoutIfFirstFire = ({
 		return;
 	}
 
-	const lifetimeCount = countReferrerCredits({
+	const priorRedemptions = countPriorRedemptions({
 		caller,
 		referrer: snapshotDoc.referrer,
 		excludeKey: refereeKey,
@@ -1068,11 +1034,11 @@ const armReferrerPayoutIfFirstFire = ({
 	});
 
 	// Authoritative, server-computed reward for this redemption: the diminishing curve keyed on the
-	// referrer's prior paid count. A zero reward encodes the lifetime hard cap (`> REFERRAL_MAX_PAID`):
+	// referrer's earlier redemptions. A zero reward encodes the lifetime hard cap (`> REFERRAL_MAX_PAID`):
 	// past that point the tier table yields ZERO, so being within the cap and a positive reward
 	// coincide. The diminishing curve + this lifetime cap self-limit, so there is no separate
 	// monthly cap.
-	const rewardBaseUnits = referrerRewardBaseUnits(lifetimeCount);
+	const rewardBaseUnits = referrerRewardBaseUnits(priorRedemptions);
 	const withinCap = rewardBaseUnits > ZERO;
 
 	if (!withinCap) {
@@ -1081,7 +1047,7 @@ const armReferrerPayoutIfFirstFire = ({
 			detail: {
 				referrer: snapshotDoc.referrer,
 				referee: refereeKey,
-				lifetime_count: lifetimeCount,
+				lifetime_count: priorRedemptions,
 				lifetime_cap: REFERRAL_MAX_PAID
 			}
 		});
@@ -1212,7 +1178,9 @@ const settleReferralPayout = async ({
 	// SECURITY: both expected amounts are recomputed server-side here and passed to the transfer
 	// path, never read from the referral doc. The referee bonus is the flat
 	// constant; the referrer reward is re-derived from the diminishing curve keyed on the *same*
-	// authoritative prior-paid count that the arming step (`armReferrerPayoutIfFirstFire`) used.
+	// redemption order the arming step (`armReferrerPayoutIfFirstFire`) used. That count can only
+	// shrink (a purged row that never paid leaves it), and the transfer pays the smaller of this and
+	// the armed amount, so a row never pays more than it was armed with.
 	await driveSidePayout({
 		ledger,
 		caller,
@@ -1234,7 +1202,7 @@ const settleReferralPayout = async ({
 		return;
 	}
 
-	const referrerPriorPaidCount = countReferrerCredits({
+	const referrerPriorRedemptions = countPriorRedemptions({
 		caller,
 		referrer: latestDoc.referrer,
 		excludeKey: refereeKey,
@@ -1248,7 +1216,7 @@ const settleReferralPayout = async ({
 		side: 'referrer',
 		recipient: latestDoc.referrer,
 		memoLabel: 'referrer',
-		expectedAmount: referrerRewardBaseUnits(referrerPriorPaidCount)
+		expectedAmount: referrerRewardBaseUnits(referrerPriorRedemptions)
 	});
 };
 

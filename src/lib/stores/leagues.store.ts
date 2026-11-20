@@ -9,6 +9,7 @@ import {
 import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
 import type { BattleDoc } from '#lib/types/battle.ts';
 import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
+import { createLoadEpoch } from '#lib/utils/async.utils.ts';
 import { writable } from 'svelte/store';
 
 /**
@@ -63,7 +64,10 @@ export const leaguesLoadedStore = writable<boolean>(false);
  */
 export const leaguesErrorStore = writable<boolean>(false);
 
-const runRefresh = async (): Promise<void> => {
+// Invalidated by every `clearLeagues()` (i.e. each auth transition).
+const epoch = createLoadEpoch();
+
+const runRefresh = async ({ isCurrent }: { isCurrent: () => boolean }): Promise<void> => {
 	// Recommendations refresh in parallel with the caller's own leagues;
 	// a flaky recommendation fetch falls back to an empty row rather than
 	// tanking the whole list.
@@ -95,6 +99,10 @@ const runRefresh = async (): Promise<void> => {
 			}
 		})
 	);
+
+	if (!isCurrent()) {
+		return;
+	}
 
 	const membersMap = new Map<string, LeagueMemberDoc[]>();
 	const battlesMap = new Map<string, BattleDoc[]>();
@@ -142,10 +150,15 @@ let inFlight: Promise<void> | undefined;
 let queued = false;
 
 const schedule = (): Promise<void> => {
-	const current = runRefresh()
+	const isCurrent = epoch.start();
+
+	const current = runRefresh({ isCurrent })
 		.catch((err) => {
 			console.error('leagues.store: refresh failed', err);
-			leaguesErrorStore.set(true);
+
+			if (isCurrent()) {
+				leaguesErrorStore.set(true);
+			}
 		})
 		.finally(() => {
 			inFlight = undefined;
@@ -187,6 +200,7 @@ export const refreshMyLeagues = async (): Promise<void> => {
 };
 
 export const clearLeagues = (): void => {
+	epoch.invalidate();
 	myLeaguesStore.set([]);
 	leagueMembersStore.set(new Map());
 	leagueBattlesStore.set(new Map());

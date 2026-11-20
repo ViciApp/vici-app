@@ -107,6 +107,7 @@ export const executeOutcomeTrade = async ({
 		type,
 		price: isBinary && action === 'NO' ? 1 - finalPrice : finalPrice,
 		qty,
+		maxSpendUsd: amountUsd,
 		outcome: action,
 		expiryDate: market.expiryDate
 	});

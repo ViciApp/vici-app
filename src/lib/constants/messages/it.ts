@@ -1306,7 +1306,8 @@ export const itMessages = {
 	'leagues.join.cta': 'Inserisci un codice valido',
 	'leagues.join.error_already_member': 'Sei già in questa lega.',
 	'leagues.join.error_not_found': 'Nessuna lega con questo codice. Ricontrollalo.',
-	'leagues.join.label_code': 'Codice invito (6 caratteri)',
+	'leagues.join.error_rate_limited': "Troppi codici senza lega. Riprova tra un'ora.",
+	'leagues.join.label_code': 'Codice invito',
 	'leagues.join.sub': "Incolla il codice d'invito. I codici sono tipo {code}.",
 	'leagues.join.submitting': 'Entro…',
 	'leagues.join.title': 'Entra con un codice',
@@ -1946,6 +1947,8 @@ export const itMessages = {
 	'settings.delete.deleting': 'Eliminazione…',
 	'settings.delete.error': 'Qualcosa è andato storto. Riprova.',
 	'settings.delete.error_handoff': 'Impossibile cedere {league}. Riprova.',
+	'settings.delete.error_withdraw_first':
+		'Il tuo account contiene ancora fondi: nel portafoglio, come collaterale o guadagni di trading, o in un prelievo in corso. Preleva tutto e attendi che si concluda, poi elimina il tuo account.',
 	'settings.delete.forever': 'Elimina per sempre',
 	'settings.delete.gone_body': 'Il tuo account è in fase di eliminazione.',
 	'settings.delete.gone_eyebrow': 'Addio',

@@ -141,6 +141,10 @@ export type SchoolEmailMatch =
 	| { kind: 'unknown-domain'; domain: string }
 	| { kind: 'match'; option: WorldsAffiliationOption; domain: string };
 
+/** Whether `domain` is `known` itself or one of its subdomains. */
+export const isDomainOf = ({ domain, known }: { domain: string; known: string }): boolean =>
+	domain === known || domain.endsWith(`.${known}`);
+
 /**
  * Classify a school email against the directory. Returns `null` when
  * the string isn't a parseable `local@host` email at all.
@@ -167,7 +171,7 @@ export const spMatchEmail = ({
 	// the personal-mailbox blocklist below.
 	for (const option of directory) {
 		for (const known of option.domains ?? []) {
-			if (domain === known || domain.endsWith(`.${known}`)) {
+			if (isDomainOf({ domain, known })) {
 				return { kind: 'match', option, domain };
 			}
 		}

@@ -14,13 +14,17 @@
  * Rules:
  *
  *  - Entry criterion: the top `TOURNAMENT_BRACKET_SIZE` leagues by
- *    member count. The aggregator scans LEAGUE_MEMBERS, counts rows
- *    per leagueId, sorts desc, takes the first `TOURNAMENT_BRACKET_SIZE`.
+ *    members who settled at least one call in the calendar month
+ *    before the draw (an account that never plays does not lift a
+ *    league). The draw scans LEAGUE_MEMBERS, counts those members per
+ *    leagueId, sorts desc (leagueId asc on a tie), takes the first
+ *    `TOURNAMENT_BRACKET_SIZE`.
  *  - Round windows: one `TOURNAMENT_ROUND_DURATION_DAYS` window per
  *    round (Round 1 → Final).
  *  - A match is scored from each league's members' settled history
  *    over the round window (the clearing engine's record, the source
- *    league battles are scored from). A league needs
+ *    league battles are scored from), counting only members who
+ *    joined by the draw. A league needs
  *    `TOURNAMENT_MIN_CALLS_PER_MATCH` settled calls in the window to
  *    qualify; a league that falls short forfeits the match.
  *  - Forfeit ⇒ opponent advances. If both forfeit, the
@@ -109,9 +113,9 @@ export interface TournamentDoc {
 	/** Lifecycle state. `in_flight` until the final match resolves; then `concluded`. */
 	state: TournamentState;
 	/**
-	 * League ids in seed order: index 0 is the top seed (most
-	 * members), index 15 is the bottom seed. Read via a single
-	 * `listLeagueMembers` scan + `sort by count desc`.
+	 * League ids in seed order: index 0 is the top seed (most members
+	 * with a settled call in the month before the draw), index 15 is the
+	 * bottom seed.
 	 */
 	seededLeagueIds: string[];
 	/** Creation timestamp (ms). Immutable. */

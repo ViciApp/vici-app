@@ -5,22 +5,39 @@ import { listLeaderboard as listLeaderboardWeb2 } from '#lib/web2/client.ts';
 import { fromWireProfile } from '#satellite/utils/wire-format.utils.ts';
 
 /**
- * Fetches the top profiles ranked by points (XP) from the satellite-side
- * `listLeaderboard` query. Routing through the satellite (instead of a
- * direct `listDocs` against the profiles collection) keeps the cap
- * (`LEADERBOARD_LIMIT`) and the ranking authoritative server-side.
+ * Asks the satellite to recompute its stored global ranking, a no-op while
+ * the stored one is fresh. Fire-and-forget: the reads it feeds
+ * (`listLeaderboard`, `getUserRankAndCount`) answer from the ranking already
+ * stored, and a later load picks up the new one. The API ranks on request,
+ * so web2 mode has nothing to ask.
+ */
+export const requestLeaderboardRefresh = (): void => {
+	if (isWeb2Backend()) {
+		return;
+	}
+
+	functions.refreshLeaderboardRanking().catch((err: unknown) => {
+		console.error('requestLeaderboardRefresh: the ranking refresh failed', err);
+	});
+};
+
+/**
+ * Fetches the top profiles of the server's global ranking (settled history,
+ * never the client-written points) from the satellite-side `listLeaderboard`
+ * query. Routing through the satellite (instead of a direct `listDocs`
+ * against the profiles collection) keeps the cap (`LEADERBOARD_LIMIT`) and
+ * the ranking authoritative server-side.
  *
  * Nicknames are returned as-is for every row the caller is allowed to
  * see; the broader "who can see whom" gate is owned by the upcoming
  * user-visibility rework.
- *
- * Points are probability-weighted and enhanced by streaks; the actual
- * sort happens satellite-side too so client and server agree on rank.
  */
 export const getLeaderboard = async (): Promise<UserProfile[]> => {
 	if (isWeb2Backend()) {
 		return listLeaderboardWeb2();
 	}
+
+	requestLeaderboardRefresh();
 
 	const { items } = await functions.listLeaderboard();
 
