@@ -250,6 +250,11 @@ describe('triggerTournamentDrawFn', () => {
 		host = installSatelliteHost({ asserts: { set: assertSetDoc.assert } });
 		host.setCaller(user);
 		host.setNowMs(monthStartMs + DAY_IN_MS);
+		// The one member of every league settled a call in the month before the draw.
+		answerSettlementAccuracy({
+			host,
+			settlements: [{ principal: user, atMs: monthStartMs - DAY_IN_MS, calls: 1, wins: 0 }]
+		});
 
 		for (const leagueId of leagueIds) {
 			host.putDoc({
@@ -269,13 +274,13 @@ describe('triggerTournamentDrawFn', () => {
 
 	afterEach(() => host.restore());
 
-	it('writes the bracket a few docs per call until it reports it drawn', () => {
+	it('writes the bracket a few docs per call until it reports it drawn', async () => {
 		const writesPerCall: number[] = [];
-		let result = triggerTournamentDrawFn({ monthAnchor });
+		let result = await triggerTournamentDrawFn({ monthAnchor });
 
 		while (result.ok) {
 			writesPerCall.push(bracketDocs() - writesPerCall.reduce((sum, n) => sum + n, 0));
-			result = triggerTournamentDrawFn({ monthAnchor });
+			result = await triggerTournamentDrawFn({ monthAnchor });
 		}
 
 		assert.deepEqual(result, { ok: false, reason: 'already_drawn', tournamentId: monthAnchor });
@@ -291,12 +296,13 @@ describe('triggerTournamentDrawFn', () => {
 		);
 	});
 
-	it('refuses a bracket with fewer leagues than its size, writing nothing', () => {
+	it('refuses a bracket with fewer leagues than its size, writing nothing', async () => {
 		host.restore();
 		host = installSatelliteHost();
 		host.setNowMs(monthStartMs + DAY_IN_MS);
+		answerSettlementAccuracy({ host, settlements: [] });
 
-		assert.deepEqual(triggerTournamentDrawFn({ monthAnchor }), {
+		assert.deepEqual(await triggerTournamentDrawFn({ monthAnchor }), {
 			ok: false,
 			reason: 'insufficient_leagues',
 			availableLeagues: 0
@@ -429,6 +435,17 @@ describe('resolveTournamentRoundFn', () => {
 
 		assert.equal(r1Match()?.winnerLeagueId, leagueA);
 		assert.equal(r1Match()?.toAcc, null);
+	});
+
+	it('does not let a member who joined after the draw lift the score, even inside the window', async () => {
+		settlements.push({ principal: memberA, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 30 });
+		settlements.push({ principal: latecomer, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 60 });
+		// The tournament doc was stored at the month start: the draw.
+		joinLeague({ leagueId: leagueB, member: latecomer, joinedAtMs: octoberStartMs + 1 });
+
+		await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
+
+		assert.equal(r1Match()?.winnerLeagueId, leagueA);
 	});
 
 	it('does not let a member who joined after the window lift the score', async () => {

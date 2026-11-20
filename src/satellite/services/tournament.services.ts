@@ -1,5 +1,6 @@
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
 import {
@@ -22,7 +23,10 @@ import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.util
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
 import { leagueMemberPrincipals } from '#satellite/services/league-member.services.ts';
-import { settledTotals } from '#satellite/services/settled-history.services.ts';
+import {
+	settledTotals,
+	settledTotalsByPrincipal
+} from '#satellite/services/settled-history.services.ts';
 import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -31,6 +35,7 @@ import { tournamentDrawRefusal } from '#satellite/utils/tournament-draw.utils.ts
 import {
 	decideTournamentPrize,
 	tournamentPodium,
+	type TournamentPrizeDecision,
 	type TournamentPrizeMembership
 } from '#satellite/utils/tournament-prize.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -55,20 +60,24 @@ import {
  *    fields, forward-only state machine `in_flight → concluded`.
  *  - `triggerTournamentDrawFn`: anyone can call, for the current UTC
  *    month only and only while its round 1 window is open;
- *    idempotent via doc-key collision on the month anchor. Scans LEAGUE_MEMBERS, counts members per league, and
- *    seeds the top-16 into Round 1, writing the bracket a few docs per call.
+ *    idempotent via doc-key collision on the month anchor. Scans
+ *    LEAGUE_MEMBERS, counts per league the members who settled at least
+ *    one call in the calendar month before the draw, and seeds the
+ *    top-16 into Round 1, writing the bracket a few docs per call.
  *  - `getCurrentTournamentFn`: returns the latest tournament + its
  *    matches for the FE bracket.
  *  - `resolveTournamentRoundFn`: anyone can call once a round has
  *    closed; scores each side from its members' settled history over
  *    the round window, read from the clearing canister (the source
  *    league battles are scored from, never the member-writable
- *    `league_stats`), applies the 50-call forfeit rule, writes the
+ *    `league_stats`), counting only members stored by the draw,
+ *    applies the 50-call forfeit rule, writes the
  *    winner + propagates them into the next round's slot. Idempotent
  *    via the match doc's `winnerLeagueId` write-once invariant.
  *  - `claimTournamentPrizeFn`: per-user claim once the tournament
  *    concludes; credits a single VXP_AWARDS doc per the caller's
- *    highest-tier placement.
+ *    highest-tier placement, for a member who settled at least one call
+ *    inside the tournament window.
  *
  * Forfeit rule: a league with fewer than 50 calls in the window
  * forfeits. If both sides forfeit, the lower-leagueId advances:
@@ -301,39 +310,68 @@ export const assertDeleteTournamentDoc = ({
 	assertControllerCaller({ caller, collection });
 };
 
-/**
- * Count active members per league by scanning LEAGUE_MEMBERS. Returns
- * a `[leagueId, memberCount]` array sorted by count desc; ties
- * broken by leagueId asc so the seeding is deterministic.
- *
- * Heavy scan, but the satellite has no compound index, and a
- * draw runs at most once per month, so the cost is acceptable.
- */
-const countMembersPerLeague = (callerBytes: Uint8Array): Array<[string, number]> => {
+/** Every league's member principals, by scanning LEAGUE_MEMBERS. */
+const membersPerLeague = (callerBytes: Uint8Array): Map<string, string[]> => {
 	const { items } = listDocsStore({
 		collection: Collection.LEAGUE_MEMBERS,
 		caller: callerBytes,
 		params: {}
 	});
 
-	const counts = new Map<string, number>();
+	const members = new Map<string, string[]>();
 
 	for (const [, item] of items) {
 		try {
 			const member = decodeDocData<LeagueMemberDoc>(item.data);
-			counts.set(member.leagueId, (counts.get(member.leagueId) ?? 0) + 1);
+			const leagueMembers = members.get(member.leagueId) ?? [];
+
+			leagueMembers.push(member.member);
+			members.set(member.leagueId, leagueMembers);
 		} catch {
 			// skip malformed
 		}
 	}
 
-	return Array.from(counts.entries()).sort(([aId, aCount], [bId, bCount]) => {
-		if (aCount !== bCount) {
-			return bCount - aCount;
-		}
+	return members;
+};
 
-		return aId < bId ? -1 : aId > bId ? 1 : 0;
+/**
+ * Rank leagues for the draw by how many of their members settled at least
+ * one call in the calendar month before `startMs`, read from the clearing
+ * canister, so accounts that never play cannot lift a league's seed. A
+ * member of several leagues counts in each. Returns a `[leagueId,
+ * activeCount]` array sorted by count desc; ties broken by leagueId asc so
+ * the seeding is deterministic.
+ *
+ * Heavy scan, but the satellite has no compound index, and a
+ * draw runs at most once per month, so the cost is acceptable.
+ */
+const rankLeaguesForDraw = async ({
+	callerBytes,
+	startMs
+}: {
+	callerBytes: Uint8Array;
+	startMs: number;
+}): Promise<Array<[string, number]>> => {
+	const members = membersPerLeague(callerBytes);
+	const settled = await settledTotalsByPrincipal({
+		members: [...new Set([...members.values()].flat())].map((text) => Principal.fromText(text)),
+		fromMs: monthStartMs(startMs - 1),
+		toMs: startMs
 	});
+
+	return Array.from(members.entries())
+		.map(([leagueId, principals]): [string, number] => [
+			leagueId,
+			principals.filter((text) => (settled.get(text)?.calls ?? 0) > 0).length
+		])
+		.sort(([aId, aCount], [bId, bCount]) => {
+			if (aCount !== bCount) {
+				return bCount - aCount;
+			}
+
+			return aId < bId ? -1 : aId > bId ? 1 : 0;
+		});
 };
 
 /**
@@ -463,11 +501,11 @@ const writeMissingMatches = ({
  * the data set is too small to seed a full bracket. The FE surfaces
  * this as a "waiting on more leagues" hint.
  */
-export const triggerTournamentDrawFn = ({
+export const triggerTournamentDrawFn = async ({
 	monthAnchor
 }: {
 	monthAnchor: string;
-}): TriggerTournamentDrawResult => {
+}): Promise<TriggerTournamentDrawResult> => {
 	const nowMs = timeMs();
 	const refusal = tournamentDrawRefusal({ monthAnchor, nowMs });
 
@@ -478,11 +516,14 @@ export const triggerTournamentDrawFn = ({
 	const caller = msgCaller();
 	const callerBytes = caller.toUint8Array();
 
-	const existing = getDocStore({
-		collection: Collection.TOURNAMENTS,
-		key: monthAnchor,
-		caller: callerBytes
-	});
+	const readTournament = () =>
+		getDocStore({
+			collection: Collection.TOURNAMENTS,
+			key: monthAnchor,
+			caller: callerBytes
+		});
+
+	const existing = readTournament();
 
 	if (nonNullish(existing)) {
 		const written = writeMissingMatches({
@@ -498,7 +539,14 @@ export const triggerTournamentDrawFn = ({
 
 	const startMs = monthStartMs(nowMs);
 
-	const ranking = countMembersPerLeague(callerBytes);
+	const ranking = await rankLeaguesForDraw({ callerBytes, startMs });
+
+	// Another draw may have committed during the clearing read; nothing below
+	// awaits, so this check and the writes run as one step. Its bracket is
+	// finished by the next calls.
+	if (nonNullish(readTournament())) {
+		return { ok: false, reason: 'already_drawn', tournamentId: monthAnchor };
+	}
 
 	if (ranking.length < TOURNAMENT_BRACKET_SIZE) {
 		return {
@@ -512,7 +560,7 @@ export const triggerTournamentDrawFn = ({
 
 	// Defensive: belt-and-braces verify the league docs still exist for
 	// each seeded id. A league that drained between the member scan and
-	// here would still be eligible by member-count, but we skip it.
+	// here would still be ranked by the scan, but we skip it.
 	const verifiedSeeded: string[] = [];
 
 	for (const id of seededLeagueIds) {
@@ -660,11 +708,20 @@ export interface ResolveTournamentRoundResult {
 }
 
 /**
+ * The instant memberships must be stored before to count: every membership
+ * stored at or before the draw (the tournament doc's own `created_at`), the
+ * roster the draw seeded from. Match scores and prizes count that roster
+ * only.
+ */
+const drawRosterCutoffMs = (drawnAtNs: bigint): number =>
+	Number(drawnAtNs / MILLISECOND_IN_NANOSECONDS) + 1;
+
+/**
  * A league's accuracy in one round window, from its members' settled
  * history over `[startMs, endMs)` read from the clearing canister: the
  * source league battles are scored from, never the member-writable
- * `league_stats` counters. Only memberships stored before the window
- * closed count, so a member who joins afterwards cannot lift the score.
+ * `league_stats` counters. Only memberships stored by the draw count, so
+ * a member who joins mid-tournament cannot lift the score.
  *
  * Returns:
  *  - `{ qualifies: false }` when fewer than
@@ -677,16 +734,22 @@ const leagueWindowAccuracy = async ({
 	leagueId,
 	startMs,
 	endMs,
+	drawnAtNs,
 	caller
 }: {
 	leagueId: string | null;
 	startMs: number;
 	endMs: number;
+	drawnAtNs: bigint;
 	caller: Uint8Array;
 }): Promise<{ qualifies: boolean; accuracy: number; calls: number }> => {
 	const members = isNullish(leagueId)
 		? []
-		: leagueMemberPrincipals({ leagueId, caller, joinedBeforeMs: endMs });
+		: leagueMemberPrincipals({
+				leagueId,
+				caller,
+				joinedBeforeMs: drawRosterCutoffMs(drawnAtNs)
+			});
 	const { calls, wins } = await settledTotals({ members, fromMs: startMs, toMs: endMs });
 
 	if (calls < TOURNAMENT_MIN_CALLS_PER_MATCH) {
@@ -955,15 +1018,13 @@ export const resolveTournamentRoundFn = async ({
 	const round_ = round as TournamentRound;
 	const callerBytes = msgCaller().toUint8Array();
 
-	const tournamentExists = nonNullish(
-		getDocStore({
-			collection: Collection.TOURNAMENTS,
-			key: tournamentId,
-			caller: callerBytes
-		})
-	);
+	const tournamentDoc = getDocStore({
+		collection: Collection.TOURNAMENTS,
+		key: tournamentId,
+		caller: callerBytes
+	});
 
-	if (!tournamentExists) {
+	if (isNullish(tournamentDoc)) {
 		return { ok: false, reason: 'tournament_not_found' };
 	}
 
@@ -984,12 +1045,14 @@ export const resolveTournamentRoundFn = async ({
 						leagueId: doc.fromLeagueId,
 						startMs: doc.startMs,
 						endMs: doc.endMs,
+						drawnAtNs: tournamentDoc.created_at,
 						caller: callerBytes
 					}),
 					leagueWindowAccuracy({
 						leagueId: doc.toLeagueId,
 						startMs: doc.startMs,
 						endMs: doc.endMs,
+						drawnAtNs: tournamentDoc.created_at,
 						caller: callerBytes
 					})
 				]);
@@ -1140,9 +1203,12 @@ export interface ClaimTournamentPrizeResult {
  *          losers split the bronze tier evenly under the single
  *          bronze placement).
  *
- * Only memberships stored at or before the draw count, and a member of
- * several podium leagues is offered the highest tier
- * (`decideTournamentPrize`). One prize per caller per tournament: the
+ * Only memberships stored at or before the draw count, and only for a
+ * caller who settled at least one call inside the tournament window: a
+ * podium league's idle members earn nothing (refused as not a member of a
+ * placed league). A member of several podium leagues is offered the
+ * highest tier (`decideTournamentPrize`). One prize per caller per
+ * tournament: the
  * award is keyed on the tournament alone, and a doc under any per-place
  * key of an earlier claim counts as claimed too, so a second claim (for
  * the same place or another) returns `awardsAlreadyClaimed: 1`.
@@ -1178,27 +1244,46 @@ export const claimTournamentPrizeFn = async ({
 		return { ok: false, reason: 'tournament_not_concluded' };
 	}
 
-	const decision = decideTournamentPrize({
-		tournamentId,
-		podium,
-		memberships: readCallerMemberships({ callerText, callerBytes }),
-		// The doc's own `created_at` is the draw time: the `createdAtMs`
-		// field is written by whoever wrote the doc, so it cannot be the
-		// cutoff.
-		drawnAtNs: tournamentDoc.created_at,
-		isHeld: (heldAwardKey) =>
-			nonNullish(
-				getDocStore({
-					collection: Collection.VXP_AWARDS,
-					key: vxpAwardKey({
-						recipient: callerText,
-						awardType: 'tournament_prize',
-						awardKey: heldAwardKey
-					}),
-					caller: callerBytes
-				})
-			)
-	});
+	const decide = (): TournamentPrizeDecision =>
+		decideTournamentPrize({
+			tournamentId,
+			podium,
+			memberships: readCallerMemberships({ callerText, callerBytes }),
+			// The doc's own `created_at` is the draw time: the `createdAtMs`
+			// field is written by whoever wrote the doc, so it cannot be the
+			// cutoff.
+			drawnAtNs: tournamentDoc.created_at,
+			isHeld: (heldAwardKey) =>
+				nonNullish(
+					getDocStore({
+						collection: Collection.VXP_AWARDS,
+						key: vxpAwardKey({
+							recipient: callerText,
+							awardType: 'tournament_prize',
+							awardKey: heldAwardKey
+						}),
+						caller: callerBytes
+					})
+				)
+		});
+
+	const firstDecision = decide();
+
+	// Settled history is read only for a claim that would pay: every
+	// Tournament page mount claims.
+	if (
+		firstDecision.outcome === 'grant' &&
+		!(await settledInTournament({
+			caller,
+			tournament: decodeDocData<TournamentDoc>(tournamentDoc.data)
+		}))
+	) {
+		return { ok: false, reason: 'not_member_of_top_league' };
+	}
+
+	// Decided again after the clearing read: a concurrent claim may have
+	// written the award meanwhile.
+	const decision = firstDecision.outcome === 'grant' ? decide() : firstDecision;
 
 	if (decision.outcome === 'not_placed') {
 		return { ok: false, reason: 'not_member_of_top_league' };
@@ -1298,6 +1383,23 @@ export const claimTournamentPrizeFn = async ({
 		awardsAlreadyClaimed: 0,
 		totalVxpCredited: 0
 	};
+};
+
+/** Whether the caller settled at least one call inside the tournament window. */
+const settledInTournament = async ({
+	caller,
+	tournament
+}: {
+	caller: Principal;
+	tournament: TournamentDoc;
+}): Promise<boolean> => {
+	const { calls } = await settledTotals({
+		members: [caller],
+		fromMs: tournament.monthStartMs,
+		toMs: tournament.monthEndMs
+	});
+
+	return calls > 0;
 };
 
 /** Every match doc of the tournament, in no particular order. */
