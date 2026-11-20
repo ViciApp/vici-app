@@ -1,5 +1,6 @@
 import { listMyAffiliations } from '#lib/services/worlds.services.ts';
 import type { AffiliationDoc } from '#lib/types/affiliation.ts';
+import { createLoadEpoch } from '#lib/utils/async.utils.ts';
 import { writable } from 'svelte/store';
 
 /**
@@ -34,8 +35,17 @@ export const myAffiliationsStore = writable<MyAffiliations>({});
  */
 export const affiliationsLoadedStore = writable<boolean>(false);
 
+// Invalidated by every `clearAffiliations()` (i.e. each auth transition).
+const epoch = createLoadEpoch();
+
 const runRefresh = async (): Promise<void> => {
+	const isCurrent = epoch.start();
+
 	const { university, country } = await listMyAffiliations();
+
+	if (!isCurrent()) {
+		return;
+	}
 
 	myAffiliationsStore.set({ university, country });
 	affiliationsLoadedStore.set(true);
@@ -93,6 +103,7 @@ export const refreshMyAffiliations = async (): Promise<void> => {
 };
 
 export const clearAffiliations = (): void => {
+	epoch.invalidate();
 	myAffiliationsStore.set({});
 	affiliationsLoadedStore.set(false);
 };

@@ -246,6 +246,32 @@ export const persistAward = ({
  */
 export type AwardSlot = { kind: 'free' } | { kind: 'held' } | { kind: 'retry'; doc: VxpAwardDoc };
 
+/** A payout that must not be sent again: `paid`, or `pending`, whose transfer may have landed. */
+const isHeldPayout = ({ status }: VxpAwardDoc): boolean => status !== 'failed';
+
+/**
+ * Whether `recipient` holds a payout under an award key that must not be sent
+ * again ({@link AwardSlot} `held`), read without claiming it: for the earlier
+ * keys a claim of the same award counts as held under.
+ */
+export const holdsAwardPayout = ({
+	recipient,
+	awardType,
+	awardKey
+}: {
+	recipient: string;
+	awardType: VxpAwardType;
+	awardKey: string;
+}): boolean => {
+	const existing = getDocStore({
+		collection: Collection.VXP_AWARDS,
+		key: vxpAwardKey({ recipient, awardType, awardKey }),
+		caller: awardWriter()
+	});
+
+	return nonNullish(existing) && isHeldPayout(decodeDocData<VxpAwardDoc>(existing.data));
+};
+
 /**
  * Reads an award key before a payout and claims a `failed` one for a retry.
  * A payout is marked `failed` only on a ledger rejection, so nothing moved and
@@ -274,7 +300,7 @@ export const reclaimAward = ({
 
 	const { errorMessage: _failure, ...existingDoc } = decodeDocData<VxpAwardDoc>(existing.data);
 
-	if (existingDoc.status !== 'failed') {
+	if (isHeldPayout(existingDoc)) {
 		return { kind: 'held' };
 	}
 

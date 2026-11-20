@@ -8,7 +8,14 @@ import {
 	setContext,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
-import { assertDeleteRelation, assertSetRelation } from '#satellite/services/relation.services.ts';
+import {
+	acceptFriendRequest,
+	assertDeleteRelation,
+	assertSetRelation,
+	followUser,
+	rejectFriendRequest,
+	sendFriendRequest
+} from '#satellite/services/relation.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
@@ -102,6 +109,84 @@ describe('relation.services', () => {
 			assert.doesNotThrow(() =>
 				assertDeleteRelation(remove({ caller: controller, state: RelationState.BLOCKED }))
 			);
+		});
+	});
+
+	describe('relation endpoints', () => {
+		const followId = `follow#${sender.toText()}#${recipient.toText()}`;
+
+		const follow: Relation = {
+			category: RelationCategory.FOLLOW,
+			state: RelationState.ACTIVE,
+			participants: [sender.toText(), recipient.toText()]
+		};
+
+		const seed = ({ key, data }: { key: string; data: Relation }) =>
+			host.putDoc({ collection: Collection.RELATIONS, key, data, owner: controller });
+
+		const stored = (key: string) =>
+			host.readDoc<Relation>({ collection: Collection.RELATIONS, key });
+
+		it('lets the recipient accept a pending friend request', () => {
+			seed({ key: relationId, data: relation(RelationState.PENDING) });
+			host.setCaller(recipient);
+
+			acceptFriendRequest({ relationId });
+
+			assert.equal(stored(relationId)?.state, RelationState.ACTIVE);
+		});
+
+		it('lets the recipient reject a pending friend request', () => {
+			seed({ key: relationId, data: relation(RelationState.PENDING) });
+			host.setCaller(recipient);
+
+			rejectFriendRequest({ relationId });
+
+			assert.equal(stored(relationId)?.state, RelationState.REJECTED);
+		});
+
+		it('refuses to reject or accept a follow', () => {
+			seed({ key: followId, data: follow });
+			host.setCaller(recipient);
+
+			assert.throws(() => rejectFriendRequest({ relationId: followId }), /pending friend request/);
+			assert.throws(() => acceptFriendRequest({ relationId: followId }), /pending friend request/);
+			assert.deepEqual(stored(followId), follow);
+		});
+
+		it('refuses to turn an active friendship into a rejection', () => {
+			seed({ key: relationId, data: relation(RelationState.ACTIVE) });
+			host.setCaller(recipient);
+
+			assert.throws(() => rejectFriendRequest({ relationId }), /pending friend request/);
+			assert.equal(stored(relationId)?.state, RelationState.ACTIVE);
+		});
+
+		it('refuses to accept a rejected request', () => {
+			seed({ key: relationId, data: relation(RelationState.REJECTED) });
+			host.setCaller(recipient);
+
+			assert.throws(() => acceptFriendRequest({ relationId }), /pending friend request/);
+			assert.equal(stored(relationId)?.state, RelationState.REJECTED);
+		});
+
+		it('refuses a friend request or a follow to oneself or the anonymous principal', () => {
+			host.setCaller(sender);
+
+			for (const target of [sender.toText(), Principal.anonymous().toText()]) {
+				assert.throws(() => sendFriendRequest({ target }), /another account/);
+				assert.throws(() => followUser({ target }), /another account/);
+			}
+
+			assert.deepEqual(host.keys(Collection.RELATIONS), []);
+		});
+
+		it('refuses an anonymous caller', () => {
+			host.setCaller(Principal.anonymous());
+
+			assert.throws(() => sendFriendRequest({ target: recipient.toText() }), /Sign in/);
+			assert.throws(() => followUser({ target: recipient.toText() }), /Sign in/);
+			assert.deepEqual(host.keys(Collection.RELATIONS), []);
 		});
 	});
 });

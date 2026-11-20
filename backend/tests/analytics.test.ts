@@ -1,5 +1,5 @@
-// Analytics: batch ingest (cap, length caps, server stamps, pseudonymous user
-// link), the public ingest route's limits, transactional rollup math, the server-side capture bridge, the keyset
+// Analytics: batch ingest (cap, length caps, server-only names dropped, server
+// stamps, pseudonymous user link), the public ingest route's limits, transactional rollup math, the server-side capture bridge, the keyset
 // export with its idempotent drain, and the admin summary reads.
 
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
@@ -90,12 +90,34 @@ describe.if(dbAvailable)('analytics ingest', () => {
 		expect(rows[0]?.user_id).toBeNull();
 	});
 
-	test('caps a batch at 100 events and reports the accepted count', async () => {
+	test('caps a batch at 20 events and reports the accepted count', async () => {
 		const sessionId = uniqueSession();
-		const events = Array.from({ length: 120 }, () => ({ name: 'perf_metric', sessionId }));
+		const events = Array.from({ length: 30 }, () => ({ name: 'perf_metric', sessionId }));
 
-		expect(await trackEvents({ events })).toEqual({ accepted: 100 });
-		expect(await rowsForSession(sessionId)).toHaveLength(100);
+		expect(await trackEvents({ events })).toEqual({ accepted: 20 });
+		expect(await rowsForSession(sessionId)).toHaveLength(20);
+	});
+
+	test('drops the events only the server records and keeps the rest of the batch', async () => {
+		const sessionId = uniqueSession();
+		const awarded = await rollupCount('vxp_awarded');
+		const deleted = await rollupCount('delete_succeeded');
+
+		expect(
+			await trackEvents({
+				events: [
+					{ name: 'vxp_awarded', sessionId, value: 1_000_000 },
+					{ name: 'market_viewed', sessionId, marketId: 'srs_1' },
+					{ name: 'delete_succeeded', sessionId }
+				]
+			})
+		).toEqual({ accepted: 1 });
+
+		const rows = await rowsForSession(sessionId);
+
+		expect(rows.map(({ name }) => name)).toEqual(['market_viewed']);
+		expect(await rollupCount('vxp_awarded')).toBe(awarded);
+		expect(await rollupCount('delete_succeeded')).toBe(deleted);
 	});
 
 	test('rejects unknown names and malformed dimensions, writing nothing', async () => {
@@ -385,14 +407,29 @@ describe.if(dbAvailable)('analytics ingest route', () => {
 		expect(await rowsForSession(sessionId)).toHaveLength(2);
 	});
 
-	test('a batch over 100 events is a 400 and writes nothing', async () => {
+	test('a batch over 20 events is a 400 and writes nothing', async () => {
 		const sessionId = uniqueSession();
 		const res = await postEvents({
 			ip: '203.0.113.11',
-			events: Array.from({ length: 101 }, () => ({ name: 'perf_metric', sessionId }))
+			events: Array.from({ length: 21 }, () => ({ name: 'perf_metric', sessionId }))
 		});
 
 		expect(res.status).toBe(400);
+		expect(await rowsForSession(sessionId)).toHaveLength(0);
+	});
+
+	test('a batch of server-only events is accepted as empty and writes nothing', async () => {
+		const sessionId = uniqueSession();
+		const res = await postEvents({
+			ip: '203.0.113.15',
+			events: [
+				{ name: 'payout_settled', sessionId, value: 500 },
+				{ name: 'school_verify_code_submitted', sessionId, ok: true }
+			]
+		});
+
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ accepted: 0 });
 		expect(await rowsForSession(sessionId)).toHaveLength(0);
 	});
 

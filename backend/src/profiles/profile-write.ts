@@ -33,6 +33,13 @@ import {
  * sums they feed. */
 export const MAX_PROFILE_COUNTER = 1_000_000;
 
+/** Ceiling of the client-written lifetime points score, the sort key of the
+ * points ranking (leaderboard, rank, rival): far above any real total, and
+ * small enough that the ordering stays exact. Pinned to the app's
+ * `MAX_PROFILE_POINTS` (`src/lib/constants/profile.constants.ts`), which the
+ * satellite's profile assert enforces. */
+export const MAX_PROFILE_POINTS = 1_000_000_000;
+
 /** Client-writable profile doc: everything but the identity, the role, the
  * server-owned Flow daily goal and the server-set `schoolStatus` (only school
  * verification writes it); a client write keeps those as stored. */
@@ -83,26 +90,44 @@ const finiteNumber = (value: unknown, field: string, fallback: number): number =
 	return value;
 };
 
-/** A client-written count stored in an `int` column: an integer within
- * [0, MAX_PROFILE_COUNTER], so a fraction or an out-of-range value is a 400
- * and never a database fault. */
-const counter = (value: unknown, field: string, fallback: number): number => {
+const boundedInteger = ({
+	value,
+	field,
+	fallback,
+	max
+}: {
+	value: unknown;
+	field: string;
+	fallback: number;
+	max: number;
+}): number => {
 	if (isNullish(value)) {
 		return fallback;
 	}
 
-	if (
-		typeof value !== 'number' ||
-		!Number.isInteger(value) ||
-		value < 0 ||
-		value > MAX_PROFILE_COUNTER
-	) {
-		throw new ProfileValidationError(
-			`${field} must be an integer between 0 and ${MAX_PROFILE_COUNTER}.`
-		);
+	if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > max) {
+		throw new ProfileValidationError(`${field} must be an integer between 0 and ${max}.`);
 	}
 
 	return value;
+};
+
+/** A client-written count stored in an `int` column: an integer within
+ * [0, MAX_PROFILE_COUNTER], so a fraction or an out-of-range value is a 400
+ * and never a database fault. */
+const counter = (value: unknown, field: string, fallback: number): number =>
+	boundedInteger({ value, field, fallback, max: MAX_PROFILE_COUNTER });
+
+/** A client-written share of settled calls, in percent like the client
+ * computes it. */
+const percentage = (value: unknown, field: string): number => {
+	const share = finiteNumber(value, field, 0);
+
+	if (share < 0 || share > 100) {
+		throw new ProfileValidationError(`${field} must be between 0 and 100.`);
+	}
+
+	return share;
 };
 
 const optionalFiniteNumber = (value: unknown, field: string): number | undefined => {
@@ -162,12 +187,17 @@ export const parseProfileInput = (body: Record<string, unknown>): ProfileInput =
 		pnl: finiteNumber(body.pnl, 'pnl', 0),
 		visibility: visibility as ProfileVisibility,
 		totalTrades: counter(body.totalTrades, 'totalTrades', 0),
-		winRate: finiteNumber(body.winRate, 'winRate', 0),
+		winRate: percentage(body.winRate, 'winRate'),
 		dailyStreak: counter(body.dailyStreak, 'dailyStreak', 0),
 		longestStreak: counter(body.longestStreak, 'longestStreak', 0),
 		streak: counter(body.streak, 'streak', 0),
-		accuracy: finiteNumber(body.accuracy, 'accuracy', 0),
-		points: finiteNumber(body.points, 'points', 0),
+		accuracy: percentage(body.accuracy, 'accuracy'),
+		points: boundedInteger({
+			value: body.points,
+			field: 'points',
+			fallback: 0,
+			max: MAX_PROFILE_POINTS
+		}),
 		level: counter(body.level, 'level', 1),
 		archetype: stringField(body.archetype, 'archetype', ''),
 		interests: stringArray(body.interests, 'interests'),

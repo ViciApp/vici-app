@@ -31,6 +31,10 @@ export const spNormalize = (value: string | undefined): string =>
 const SP_CONSUMER_DOMAINS =
 	/^(gmail|googlemail|yahoo|hotmail|outlook|live|icloud|me|aol|protonmail|proton|gmx|web|t-online|qq|163|126|mail\.(ru|com)|sina|naver|hanmail|daum|rambler|rediffmail)(\.|$)/i;
 
+/** Whether `domain` is `known` itself or one of its subdomains. */
+export const isDomainOf = ({ domain, known }: { domain: string; known: string }): boolean =>
+	domain === known || domain.endsWith(`.${known}`);
+
 export type SchoolEmailMatch =
 	| { kind: 'consumer' }
 	| { kind: 'unknown-domain'; domain: string }
@@ -60,7 +64,7 @@ export const spMatchEmail = (email: string): SchoolEmailMatch | null => {
 	// under `polimi.it`). Only unclaimed domains hit the blocklist.
 	for (const option of SCHOOL_DIRECTORY) {
 		for (const known of option.domains) {
-			if (domain === known || domain.endsWith(`.${known}`)) {
+			if (isDomainOf({ domain, known })) {
 				return { kind: 'match', option, domain };
 			}
 		}
