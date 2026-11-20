@@ -236,7 +236,7 @@ export const ptMessages = {
 	'flow.share.twitter': 'X',
 	'flow.share.text_pre': '"{title}": {yes}% SIM na VICI. E tu?',
 	'flow.share.text_pre_no_pct': '"{title}" na VICI. E tu?',
-	'flow.share.text_post': 'Acabei de fazer esta previsão sobre o Campeonato do Mundo, o que achas?',
+	'flow.share.text_post': 'Acabei de fazer esta previsão na VICI, o que achas?',
 	'flow.share.telegram': 'Telegram',
 	'flow.share.eyebrow': 'PARTILHAR PREVISÃO',
 	'flow.share.instagram': 'Instagram',

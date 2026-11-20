@@ -240,7 +240,7 @@ export const deMessages = {
 	'flow.share.twitter': 'X',
 	'flow.share.text_pre': '"{title}": {yes}% JA auf VICI. Wie tippst du?',
 	'flow.share.text_pre_no_pct': '"{title}" auf VICI. Wie tippst du?',
-	'flow.share.text_post': 'Ich habe gerade diese Vorhersage zur WM gemacht, was meinst du?',
+	'flow.share.text_post': 'Ich habe gerade diese Vorhersage auf VICI abgegeben, was meinst du?',
 	'flow.share.telegram': 'Telegram',
 	'flow.share.eyebrow': 'PROGNOSE TEILEN',
 	'flow.share.instagram': 'Instagram',

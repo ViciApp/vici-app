@@ -214,7 +214,7 @@ export const ptBRMessages = {
 	'flow.share.twitter': 'X',
 	'flow.share.text_pre': '"{title}": {yes}% SIM na VICI. E você?',
 	'flow.share.text_pre_no_pct': '"{title}" na VICI. E você?',
-	'flow.share.text_post': 'Acabei de fazer esta previsão sobre a Copa do Mundo, o que você acha?',
+	'flow.share.text_post': 'Acabei de fazer esta previsão na VICI, o que você acha?',
 	'flow.share.telegram': 'Telegram',
 	'flow.share.eyebrow': 'COMPARTILHAR PREVISÃO',
 	'flow.share.instagram': 'Instagram',
