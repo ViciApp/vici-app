@@ -1,5 +1,6 @@
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**
@@ -18,14 +19,15 @@ export const REFERRAL_VXP_BONUS_BASE_UNITS = vxpBaseUnits(REFERRAL_VXP_BONUS_VAL
  * Hard lifetime cap on the number of redemptions for which a single referrer is paid. Redemptions
  * beyond this cap are still recorded on the referrals collection (`withinReferrerCap = false`) so
  * we can monitor usage of widely-shared codes, but no transfer fires. Kept in lockstep with the
- * final bracket of {@link REFERRAL_REWARD_TIERS}: the curve yields `0` past this many prior paid
+ * final bracket of {@link REFERRAL_REWARD_TIERS}: the curve yields `0` past this many prior
  * redemptions.
  */
 export const REFERRAL_MAX_PAID = 1000;
 
 /**
- * Diminishing referrer-reward curve, keyed by the referrer's count of **prior** paid redemptions
- * (lifetime). Each tier covers an inclusive redemption-index range and pays a fixed VXP amount; the
+ * Diminishing referrer-reward curve, keyed by the referrer's count of **prior** redemptions
+ * (lifetime): a redemption's place in the referrer's redemption order, whatever order the referees
+ * make their first prediction in. Each tier covers an inclusive redemption-index range and pays a fixed VXP amount; the
  * reward shrinks as a code is reused, then drops to zero past {@link REFERRAL_MAX_PAID}.
  *
  * Redemption index (1-based, per referrer):
@@ -53,16 +55,16 @@ const REFERRAL_REWARD_TIER_BASE_UNITS: ReadonlyArray<{ throughIndex: number; val
 	}));
 
 /**
- * Pure tier lookup: given how many paid redemptions a referrer has *already* banked (lifetime),
- * returns the VXP base-unit reward for the *next* redemption. Returns `ZERO` once the referrer has
+ * Pure tier lookup: given how many of the referrer's redemptions came before this one (lifetime),
+ * returns its VXP base-unit reward. Returns `ZERO` once the referrer has
  * reached {@link REFERRAL_MAX_PAID}, encoding the hard cap as part of the curve so callers need
  * only check for a zero reward.
  *
- * Authoritative on the server only: the referrer's prior-paid count must come from the satellite's
+ * Authoritative on the server only: the referrer's prior count must come from the satellite's
  * own scan of the referrals collection, never from the client.
  */
-export const referrerRewardBaseUnits = (priorPaidCount: number): bigint => {
-	const redemptionIndex = priorPaidCount + 1;
+export const referrerRewardBaseUnits = (priorRedemptions: number): bigint => {
+	const redemptionIndex = priorRedemptions + 1;
 
 	for (const { throughIndex, value } of REFERRAL_REWARD_TIER_BASE_UNITS) {
 		if (redemptionIndex <= throughIndex) {
@@ -74,43 +76,38 @@ export const referrerRewardBaseUnits = (priorPaidCount: number): bigint => {
 };
 
 /**
- * Cumulative referrer earnings for `creditedCount` credited redemptions, in VXP base units. The
- * i-th credited redemption (1-based) pays `referrerRewardBaseUnits(i - 1)`, so the total honours
- * the diminishing tier curve and its hard cap rather than assuming a flat per-friend reward.
- *
- * `creditedCount` follows the satellite's `countReferrerCredits` rule: rows whose
- * `referrerPayout.status` has left `none` (owed / processing / paid; anything in flight still
- * consumes a slot). Derivable client-side from `listMyReferrals`; cosmetic only: the satellite
- * remains authoritative on payout.
- */
-export const cumulativeReferrerRewardBaseUnits = (creditedCount: number): bigint => {
-	// Rewards are zero past the hard cap, so clamping (and flooring at 0) only bounds the loop;
-	// it cannot change the sum.
-	const cappedCount = Math.min(Math.max(creditedCount, 0), REFERRAL_MAX_PAID);
-
-	let total = ZERO;
-
-	for (let priorPaidCount = 0; priorPaidCount < cappedCount; priorPaidCount++) {
-		total += referrerRewardBaseUnits(priorPaidCount);
-	}
-
-	return total;
-};
-
-/**
- * Display-side twin of {@link referrerRewardBaseUnits}: given how many paid redemptions a referrer
- * has *already* banked (lifetime), returns the *next* redemption's reward as a whole-VXP number for
- * copy. Reads the same {@link REFERRAL_REWARD_TIERS} table so the headline figure can never drift
- * from the on-chain payout. Returns `0` once the referrer has reached {@link REFERRAL_MAX_PAID}.
- *
- * The referrer's prior-paid count is the count of the caller's own redemption rows whose
- * `referrerPayout.status` has left `none` (owed / processing / paid), the same rule the satellite's
- * authoritative tally (`countReferrerCredits`) applies before feeding `referrerRewardBaseUnits`.
- * Derivable client-side from `listMyReferrals`, no privileged query needed. The figure is cosmetic;
+ * What a referrer has been credited across their redemption rows, in VXP base units: the amount
+ * each armed referrer side carries (`owed` / `processing` / `paid`). The satellite arms a side with
+ * the tier of its place in the redemption order and never pays more, so the sum honours the
+ * diminishing curve and its hard cap. Derivable client-side from `listMyReferrals`; cosmetic only:
  * the satellite remains authoritative on payout.
  */
-export const referrerRewardVxp = (priorPaidCount: number): number => {
-	const redemptionIndex = priorPaidCount + 1;
+export const referrerCreditedBaseUnits = (payouts: readonly VxpMilestoneState[]): bigint =>
+	payouts.reduce((total, { status, amountBaseUnits }) => {
+		if (status === 'none') {
+			return total;
+		}
+
+		try {
+			return total + BigInt(amountBaseUnits);
+		} catch {
+			return total;
+		}
+	}, ZERO);
+
+/**
+ * Display-side twin of {@link referrerRewardBaseUnits}: given how many redemptions a referrer
+ * already has (lifetime), returns the *next* redemption's reward as a whole-VXP number for copy.
+ * Reads the same {@link REFERRAL_REWARD_TIERS} table so the headline figure can never drift from
+ * the on-chain payout. Returns `0` once the referrer has reached {@link REFERRAL_MAX_PAID}.
+ *
+ * The count is every one of the caller's own redemption rows, whatever its payout state, the same
+ * redemption order the satellite feeds `referrerRewardBaseUnits`. Derivable client-side from
+ * `listMyReferrals`, no privileged query needed. The figure is cosmetic; the satellite remains
+ * authoritative on payout.
+ */
+export const referrerRewardVxp = (priorRedemptions: number): number => {
+	const redemptionIndex = priorRedemptions + 1;
 
 	for (const { throughIndex, value } of REFERRAL_REWARD_TIERS) {
 		if (redemptionIndex <= throughIndex) {

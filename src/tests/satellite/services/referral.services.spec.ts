@@ -1,26 +1,40 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
 	REFERRAL_EXISTING_USER_REASON,
+	REFERRAL_MAX_PAID,
 	REFERRAL_SIGNUP_WINDOW_MS,
 	REFERRAL_VXP_BONUS_BASE_UNITS
 } from '#lib/constants/referral.constants.ts';
 import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import type { ReferralDoc } from '#lib/types/referral.ts';
+import type { Relation } from '#lib/types/relation.ts';
+import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
+import junoConfig from '#root/juno.config.ts';
 import {
 	controller,
 	deleteContext,
+	docBytes,
 	hostNowMs,
 	installSatelliteHost,
 	setContext,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
+import { assertDeleteDoc, assertSetDoc } from '#satellite/index.ts';
 import {
 	assertDeleteReferral,
-	assertDeleteReferralCode,
 	assertSetReferral,
-	isReferralPayoutRecord
+	assertSetReferralCode,
+	claimReferralFriendshipFn,
+	getMyReferralCodeFn,
+	isReferralPayoutRecord,
+	lookupReferralCodeFn,
+	onProfileSetForReferralCode,
+	redeemReferralCodeFn,
+	settleReferralFn
 } from '#satellite/services/referral.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
+import type { OnSetDocContext } from '@junobuild/functions';
+import { IcrcLedgerIdl } from '@junobuild/functions/canisters/ledger/icrc';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
@@ -205,26 +219,143 @@ describe('referral.services', () => {
 		});
 	});
 
-	describe('assertDeleteReferralCode', () => {
-		const remove = (caller: Principal) =>
-			deleteContext({
-				caller,
-				collection: Collection.REFERRAL_CODES,
-				key: code,
-				current: { owner: referrer.toText() },
-				currentOwner: referrer
-			});
+	describe('claimReferralFriendshipFn', () => {
+		const relationKey = [referrer.toText(), referee.toText()].sort().join('#');
 
-		it("rejects deleting another user's referral code", () => {
-			assert.throws(
-				() => assertDeleteReferralCode(remove(stranger)),
-				/only the owner or the satellite/
+		const friendship = () =>
+			host.readDoc<Relation>({ collection: Collection.RELATIONS, key: relationKey });
+
+		it('befriends a signed-in user with a profile and the code owner', () => {
+			host.setCaller(referee);
+
+			claimReferralFriendshipFn({ code });
+
+			assert.deepEqual(friendship()?.participants, [referrer.toText(), referee.toText()]);
+		});
+
+		it('refuses an anonymous caller', () => {
+			host.setCaller(Principal.anonymous());
+
+			assert.throws(() => claimReferralFriendshipFn({ code }), /Sign in/);
+			assert.deepEqual(host.keys(Collection.RELATIONS), []);
+		});
+
+		it('refuses a caller without a profile', () => {
+			host.setCaller(stranger);
+
+			assert.throws(() => claimReferralFriendshipFn({ code }), /Create your profile/);
+			assert.deepEqual(host.keys(Collection.RELATIONS), []);
+		});
+
+		it('refuses the code owner', () => {
+			host.putDoc({
+				collection: Collection.PROFILES,
+				key: referrer.toText(),
+				data: { owner: referrer.toText() },
+				owner: referrer
+			});
+			host.setCaller(referrer);
+
+			assert.throws(() => claimReferralFriendshipFn({ code }), /your own referral link/);
+		});
+	});
+
+	describe('referral codes', () => {
+		const profileCreated = (owner: Principal): OnSetDocContext => ({
+			caller: owner.toUint8Array(),
+			data: {
+				collection: Collection.PROFILES,
+				key: owner.toText(),
+				data: {
+					after: {
+						owner: owner.toUint8Array(),
+						data: docBytes({ owner: owner.toText() }),
+						created_at: 1n,
+						updated_at: 1n,
+						version: 1n
+					}
+				}
+			}
+		});
+
+		it('keeps referral codes readable and writable by controllers only', () => {
+			for (const mode of ['production', 'development']) {
+				const rule = junoConfig({ mode }).satellite.collections?.datastore?.find(
+					({ collection }) => collection === Collection.REFERRAL_CODES
+				);
+
+				assert.equal(rule?.read, 'controllers');
+				assert.equal(rule?.write, 'controllers');
+			}
+		});
+
+		it('resolves a code for a signed-out visitor', () => {
+			host.setCaller(Principal.anonymous());
+
+			assert.deepEqual(lookupReferralCodeFn({ code: code.toLowerCase() }), {
+				owner: referrer.toText()
+			});
+		});
+
+		it("answers the caller's own code", () => {
+			host.setCaller(referrer);
+
+			assert.deepEqual(getMyReferralCodeFn(), { code });
+		});
+
+		it('assigns a new profile its code once', () => {
+			onProfileSetForReferralCode(profileCreated(stranger));
+			onProfileSetForReferralCode(profileCreated(stranger));
+
+			const assigned = host
+				.keys(Collection.REFERRAL_CODES)
+				.filter(
+					(key) =>
+						host.readDoc<{ owner: string }>({ collection: Collection.REFERRAL_CODES, key })
+							?.owner === stranger.toText()
+				);
+
+			assert.equal(assigned.length, 1);
+		});
+
+		it('redeems a code for a new account', () => {
+			host.setCaller(referee);
+
+			redeemReferralCodeFn({ code });
+
+			assert.equal(
+				host.readDoc<ReferralDoc>({ collection: Collection.REFERRALS, key: referee.toText() })
+					?.referrer,
+				referrer.toText()
 			);
 		});
 
-		it('lets the owner and a satellite controller delete it', () => {
-			assert.doesNotThrow(() => assertDeleteReferralCode(remove(referrer)));
-			assert.doesNotThrow(() => assertDeleteReferralCode(remove(controller)));
+		it('refuses a code written by anyone but the satellite', () => {
+			const write = (caller: Principal) =>
+				setContext({
+					caller,
+					collection: Collection.REFERRAL_CODES,
+					key: 'WXYZ2345',
+					proposed: { owner: stranger.toText() }
+				});
+
+			assert.throws(() => assertSetReferralCode(write(stranger)), /only the satellite writes/);
+			assert.doesNotThrow(() => assertSetReferralCode(write(controller)));
+		});
+
+		it('refuses a second code for the same owner', () => {
+			assert.throws(
+				() =>
+					assertSetReferralCode(
+						setContext({
+							caller: controller,
+							collection: Collection.REFERRAL_CODES,
+							key: 'WXYZ2345',
+							proposed: { owner: referrer.toText() }
+						})
+					),
+				/already has a referral code/
+			);
 		});
 	});
 
@@ -258,5 +389,143 @@ describe('referral.services', () => {
 		it('lets the purge drop a row that has not started paying', () => {
 			assert.equal(isReferralPayoutRecord(redeemed), false);
 		});
+	});
+});
+
+describe('settleReferralFn', () => {
+	let host: SatelliteHost;
+	let transfers: { to: string; amount: bigint }[];
+
+	const refereeAt = (index: number): Principal =>
+		Principal.fromUint8Array(new Uint8Array([9, index >> 8, index & 0xff]));
+
+	/** `count` redemptions of the referrer's code, one millisecond apart, none of them traded yet. */
+	const seedRedemptions = (count: number): Principal[] =>
+		Array.from({ length: count }, (_, index) => {
+			const principal = refereeAt(index);
+
+			host.putDoc({
+				collection: Collection.REFERRALS,
+				key: principal.toText(),
+				data: { ...redeemed, redeemedAtMs: hostNowMs - count + index },
+				owner: controller
+			});
+
+			return principal;
+		});
+
+	const trade = (principal: Principal) =>
+		host.putDoc({
+			collection: Collection.ACTIVITIES,
+			key: `${principal.toText()}#1#trade`,
+			data: { user: principal.toText() },
+			owner: principal
+		});
+
+	const referrerTransfers = () => transfers.filter(({ to }) => to === referrer.toText());
+
+	const row = (principal: Principal) =>
+		host.readDoc<ReferralDoc>({ collection: Collection.REFERRALS, key: principal.toText() });
+
+	beforeEach(() => {
+		transfers = [];
+		// The real asserts run on every serverless write, as on the satellite.
+		host = installSatelliteHost({
+			asserts: { set: assertSetDoc.assert, remove: assertDeleteDoc.assert }
+		});
+		host.onCall({
+			method: 'icrc1_transfer',
+			argTypes: [IcrcLedgerIdl.TransferArg],
+			result: IcrcLedgerIdl.TransferResult,
+			handler: ([arg]) => {
+				const { to, amount } = arg as { to: { owner: Principal }; amount: bigint };
+				transfers.push({ to: to.owner.toText(), amount });
+
+				return { Ok: BigInt(transfers.length) };
+			}
+		});
+	});
+
+	afterEach(() => host.restore());
+
+	it('pays nothing before the referee has traded', async () => {
+		const [first] = seedRedemptions(1);
+
+		await settleReferralFn({ referee: first.toText() });
+
+		assert.deepEqual(transfers, []);
+	});
+
+	it('pays the referrer the tier of the redemption order, whoever trades first', async () => {
+		const latest = seedRedemptions(6).at(-1) ?? referee;
+
+		trade(latest);
+		await settleReferralFn({ referee: latest.toText() });
+
+		assert.deepEqual(referrerTransfers(), [{ to: referrer.toText(), amount: vxpBaseUnits(250) }]);
+		assert.equal(row(latest)?.referrerPayout.status, 'paid');
+		assert.equal(row(latest)?.referrerPayout.amountBaseUnits, vxpBaseUnits(250).toString());
+	});
+
+	it('keeps the earlier redemption on its own tier when it trades later', async () => {
+		const referees = seedRedemptions(6);
+
+		for (const principal of [referees[5], referees[0]]) {
+			trade(principal);
+			await settleReferralFn({ referee: principal.toText() });
+		}
+
+		assert.deepEqual(
+			referrerTransfers().map(({ amount }) => amount),
+			[vxpBaseUnits(250), vxpBaseUnits(500)]
+		);
+	});
+
+	it('pays the referrer nothing past the lifetime cap, in any trading order', async () => {
+		const referees = seedRedemptions(REFERRAL_MAX_PAID + 1);
+		const pastCap = referees[REFERRAL_MAX_PAID];
+
+		trade(pastCap);
+		await settleReferralFn({ referee: pastCap.toText() });
+
+		assert.deepEqual(referrerTransfers(), []);
+		assert.deepEqual(transfers, [{ to: pastCap.toText(), amount: REFERRAL_VXP_BONUS_BASE_UNITS }]);
+		assert.equal(row(pastCap)?.referrerPayout.status, 'none');
+		assert.equal(row(pastCap)?.withinReferrerCap, false);
+	});
+
+	it('never pays the referrer more than the amount the row was armed with', async () => {
+		const [principal] = seedRedemptions(1);
+		const armedLow = vxpBaseUnits(50).toString();
+
+		host.putDoc({
+			collection: Collection.REFERRALS,
+			key: principal.toText(),
+			data: {
+				...row(principal),
+				withinReferrerCap: true,
+				referrerPayout: { status: 'owed', amountBaseUnits: armedLow }
+			},
+			owner: controller
+		});
+		trade(principal);
+		await settleReferralFn({ referee: principal.toText() });
+
+		assert.deepEqual(referrerTransfers(), [{ to: referrer.toText(), amount: vxpBaseUnits(50) }]);
+	});
+
+	it('pays each side once when settled again', async () => {
+		const [principal] = seedRedemptions(1);
+
+		trade(principal);
+		await settleReferralFn({ referee: principal.toText() });
+		await settleReferralFn({ referee: principal.toText() });
+
+		assert.deepEqual(transfers, [
+			{ to: principal.toText(), amount: REFERRAL_VXP_BONUS_BASE_UNITS },
+			{ to: referrer.toText(), amount: vxpBaseUnits(500) }
+		]);
+		assert.equal(row(principal)?.refereePayout.status, 'paid');
+		assert.equal(row(principal)?.referrerPayout.status, 'paid');
 	});
 });

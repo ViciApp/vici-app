@@ -8,14 +8,22 @@
 // stats and monthly stats, resolved results, the likes it gave, school-email
 // submissions, referral code and redemption, affiliations, relations, league
 // memberships, and owned leagues (deleted when empty, transferred to a
-// surviving member otherwise).
+// surviving member otherwise). An account that still holds custody funds is
+// never deleted nor purged (nobody could withdraw them afterwards), and a
+// late recovery brings it back.
 
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
 import { deleteSignInIdentities } from '../auth/identity';
 import { revokeAllForUser } from '../auth/sessions';
+import { getAdapter } from '../chains/registry';
+import { isWithdrawable, listEnabledAssets } from '../custody/assets';
+import { listUserBookBalances } from '../custody/ledger';
+import { hasWithdrawalInFlight } from '../custody/withdrawals';
 import { query, tx, type TxQuery } from '../db/client';
+import { getAccountState } from '../engine/clearing';
 import { deleteLeague, transferLeagueOwnership } from '../leagues/leagues';
+import { ZERO } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { DAY_IN_MS } from '../lib/time';
 import { deleteReactionsBy } from '../social/activities';
@@ -42,7 +50,7 @@ export type ExitSignalReason = (typeof EXIT_SIGNAL_REASONS)[number];
 export const EXIT_SIGNAL_NOTE_MAX_LENGTH = 240;
 
 export type DeleteMyAccountRefusalReason =
-	'owns_non_empty_league' | 'league_resolution_failed' | 'invalid_input';
+	'holds_custody_funds' | 'owns_non_empty_league' | 'league_resolution_failed' | 'invalid_input';
 
 /** One owner-league resolution applied as part of deletion: hand the league
  * to another member, or disband it entirely. */
@@ -104,6 +112,63 @@ const validateInput = ({
 	}
 
 	return { reason: reason as ExitSignalReason, note };
+};
+
+/**
+ * Whether clearing holds real value for the user in its Settlement domain:
+ * collateral deposited there or a positive cash balance (realised gains not
+ * yet taken out), read the way the VXP holdings are. VXP lives in ViciXp and
+ * Playground holds testnet assets, so neither counts. A read that fails
+ * counts as holding: an unread balance must never let the account go.
+ */
+const holdsClearingFunds = async (userId: string): Promise<boolean> => {
+	try {
+		const { state } = await getAccountState({
+			userId,
+			params: { domain: toNullable({ Settlement: null }), refresh: toNullable(false) }
+		});
+
+		return (
+			state.balances.some(
+				([domain, assets]) => 'Settlement' in domain && assets.some(([, amount]) => amount > ZERO)
+			) || state.cash_balances_usd.some(([domain, cash]) => 'Settlement' in domain && cash > ZERO)
+		);
+	} catch (err: unknown) {
+		logger.error(`clearing funds read failed for ${userId}, counted as held:`, err);
+
+		return true;
+	}
+};
+
+/**
+ * Whether the account still holds money in custody: a book balance on a chain
+ * the books track, a balance on an ic ledger at its custodial principal (read
+ * there, as the wallet does, since the books cannot see ic funds come and go),
+ * real value in clearing, or a withdrawal still in flight. VXP is left out: it
+ * never leaves the platform. The principal is read whether or not the wallet
+ * was ever opened, since anyone who knows it can send to it. A ledger read
+ * that fails throws, so a balance that cannot be read never passes as empty.
+ */
+const holdsCustodyFunds = async (userId: string): Promise<boolean> => {
+	const [inFlight, bookBalances] = await Promise.all([
+		hasWithdrawalInFlight(userId),
+		listUserBookBalances(userId)
+	]);
+
+	if (inFlight || bookBalances.some(({ balance }) => BigInt(balance) > ZERO)) {
+		return true;
+	}
+
+	const adapter = getAdapter('ic');
+	const address = adapter.deriveAddress(userId);
+	const icAssets = (await listEnabledAssets()).filter(
+		(asset) => asset.chain === 'ic' && isWithdrawable(asset)
+	);
+	const icBalances = await Promise.all(
+		icAssets.map((asset) => adapter.getBalance({ address, asset }))
+	);
+
+	return icBalances.some((balance) => balance > ZERO) || (await holdsClearingFunds(userId));
 };
 
 /**
@@ -251,15 +316,36 @@ const applyLeagueResolution = async ({
 };
 
 /**
- * Soft-delete with league resolution, in the original's four steps:
+ * Hard-deletes an account whose recovery window elapsed, unless it still
+ * holds custody funds (a deposit that landed after the delete): purged, it
+ * would leave them with nobody able to withdraw them, so it stays
+ * soft-deleted, where a late recovery still brings it back, and is reported
+ * for an operator. Returns whether it was purged.
+ */
+const purgeExpiredAccount = async (userId: string): Promise<boolean> => {
+	if (await holdsCustodyFunds(userId)) {
+		logger.warn(`expired account ${userId} still holds custody funds: left soft-deleted`);
+
+		return false;
+	}
+
+	await hardDeleteAccount(userId);
+
+	return true;
+};
+
+/**
+ * Soft-delete with league resolution, in five steps:
  *
- *  1. Apply the caller's league resolutions (immediately: a real transfer /
+ *  1. Refuse while the account holds custody funds, before anything else
+ *     changes: the caller withdraws first.
+ *  2. Apply the caller's league resolutions (immediately: a real transfer /
  *     disband; a failure aborts the whole delete, already-applied
  *     resolutions stand).
- *  2. Refuse if any owned league still has another member.
- *  3. Mark the profile deleted (earliest mark wins, so re-deleting can
+ *  3. Refuse if any owned league still has another member.
+ *  4. Mark the profile deleted (earliest mark wins, so re-deleting can
  *     never reset the recovery clock).
- *  4. Append the anonymous exit signal, once per departure (skipped on a
+ *  5. Append the anonymous exit signal, once per departure (skipped on a
  *     re-delete inside the recovery window).
  *
  * Recovery restores identity-keyed rows only, never the league-ownership
@@ -286,6 +372,10 @@ export const deleteMyAccount = async ({
 	// client only calls after its type-to-confirm gate passed), including a
 	// re-confirm after a refusal bounce.
 	await captureDeleteEvents([{ name: 'delete_confirmed', userId }]);
+
+	if (await holdsCustodyFunds(userId)) {
+		return { ok: false, reason: 'holds_custody_funds' };
+	}
 
 	for (const resolution of leagueResolutions ?? []) {
 		const failure = await applyLeagueResolution({ userId, resolution });
@@ -357,6 +447,8 @@ export const deleteMyAccount = async ({
  * Recover the caller's own soft-deleted account: a no-op when not deleted,
  * a marker clear inside the window, and a hard delete + refusal past it (a
  * late recovery attempt is the natural trigger to finally purge the data).
+ * Past the window an account that still holds custody funds is recovered
+ * instead, so its owner can withdraw them.
  */
 export const recoverMyAccount = async (userId: string): Promise<RecoverMyAccountResult> => {
 	const rows = await query<{ deleted_at_ms: string | null }>(
@@ -369,7 +461,9 @@ export const recoverMyAccount = async (userId: string): Promise<RecoverMyAccount
 		return { ok: true, recovered: false };
 	}
 
-	if (Date.now() - Number(marker) >= ACCOUNT_RECOVERY_WINDOW_MS) {
+	const expired = Date.now() - Number(marker) >= ACCOUNT_RECOVERY_WINDOW_MS;
+
+	if (expired && !(await holdsCustodyFunds(userId))) {
 		await hardDeleteAccount(userId);
 
 		return { ok: false, reason: 'expired' };
@@ -427,7 +521,8 @@ export const resumeMyAccount = async (userId: string): Promise<ResumeMyAccountRe
  * Runs from the worker on a cadence and from the admin endpoint on demand.
  * Idempotent: purged accounts no longer carry a profile row, so a re-run
  * only sweeps newly-expired accounts. A failed purge is logged and does NOT
- * count as swept, so the caller can detect an under-purge.
+ * count as swept, so the caller can detect an under-purge; nor does an
+ * account left in place because it still holds custody funds.
  */
 export const sweepExpiredDeletions = async (): Promise<SweepExpiredDeletionsResult> => {
 	const cutoffMs = Date.now() - ACCOUNT_RECOVERY_WINDOW_MS;
@@ -441,8 +536,9 @@ export const sweepExpiredDeletions = async (): Promise<SweepExpiredDeletionsResu
 
 	for (const { user_id } of rows) {
 		try {
-			await hardDeleteAccount(user_id);
-			swept += 1;
+			if (await purgeExpiredAccount(user_id)) {
+				swept += 1;
+			}
 		} catch (err) {
 			failed += 1;
 			logger.error(`deletion sweep purge failed for ${user_id}:`, err);
