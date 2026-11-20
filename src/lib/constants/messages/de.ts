@@ -950,7 +950,7 @@ export const deMessages = {
 	'flow.funds.eyebrow': 'ALLES IM SPIEL',
 	'flow.funds.title': 'Alles im Spiel.',
 	'flow.invite.share_text':
-		'Bist du bereit für die WM? Ich habe gerade hier meine Vorhersagen abgegeben.',
+		'Ich habe gerade meine Vorhersagen auf VICI abgegeben. Probier es auch aus.',
 	'flow.invite.toast_copy_failed': 'Kopieren fehlgeschlagen',
 	'flow.notification.insufficient_message':
 		'Dein Guthaben steckt bereits in offenen Vorhersagen; es wird frei, sobald Märkte aufgelöst werden.',

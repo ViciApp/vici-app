@@ -877,7 +877,7 @@ export const zhHansMessages = {
 		'你的 VXP 已经全部投入到未结的预测中。随着这些市场结算，余额会逐步释放。在仪表盘查看你的未结预测。',
 	'flow.funds.eyebrow': '全部投入',
 	'flow.funds.title': '已全部投入。',
-	'flow.invite.share_text': '准备好迎接世界杯了吗？我刚刚在这里做出了我的预测。',
+	'flow.invite.share_text': '我刚刚在 VICI 上做出了我的预测。你也来试试吧。',
 	'flow.invite.toast_copy_failed': '复制失败',
 	'flow.notification.insufficient_message':
 		'你的余额已全部投入未结算的预测，待市场结算后才会释放。',

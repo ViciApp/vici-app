@@ -923,7 +923,7 @@ export const enMessages = {
 		'Your VXP is already in play on open predictions. It frees up as those markets resolve. Check your open calls on the Dashboard.',
 	'flow.funds.eyebrow': "THAT'S ALL IN",
 	'flow.funds.title': 'Fully deployed.',
-	'flow.invite.share_text': 'Are you ready for the World Cup? I just made my predictions here.',
+	'flow.invite.share_text': 'I just made my predictions on VICI. Try it too.',
 	'flow.invite.toast_copy_failed': 'Copy failed',
 	'flow.notification.insufficient_message':
 		'Your balance is already in play on open predictions; it frees up as markets resolve.',

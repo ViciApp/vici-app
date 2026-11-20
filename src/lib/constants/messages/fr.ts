@@ -944,7 +944,7 @@ export const frMessages = {
 		'Vos VXP sont déjà engagés dans des prédictions ouvertes. Ils se libèrent à mesure que ces marchés se résolvent. Consultez vos appels ouverts sur le Dashboard.',
 	'flow.funds.eyebrow': 'TOUT ENGAGÉ',
 	'flow.funds.title': 'Tout est en jeu.',
-	'flow.invite.share_text': 'Prêt pour la Coupe du monde ? Je viens de faire mes pronostics ici.',
+	'flow.invite.share_text': 'Je viens de faire mes pronostics sur VICI. Essaie, toi aussi.',
 	'flow.invite.toast_copy_failed': 'Échec de la copie',
 	'flow.notification.insufficient_message':
 		'Votre solde est déjà en jeu sur des prédictions ouvertes ; il se libère à mesure que les marchés se résolvent.',
