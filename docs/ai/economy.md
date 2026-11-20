@@ -202,8 +202,10 @@ The bound that protects each surface today:
   podium pays from that frozen ranking only; a month where no affiliation
   clears the rank floor has no podium. The monthly stats the client
   writes (`user_monthly_stats`) feed the live month view and never a
-  payout, and the API has no route that writes them. Paid once per month
-  and place, for a member at month-end whatever their join date, but only
+  payout, and the API has no route that writes them. Paid once per month,
+  kind and place (a university and a country finish in the same month are
+  two awards; a month already paid under the older key without the kind
+  keeps its one award per place), for a member at month-end whatever their join date, but only
   if the slot was joined before the month closed. A first join has no switch lock, so without
   this anyone could join last month's winner after close and collect its
   prize; a switch or a leave resets the join time, so a move after close
@@ -267,7 +269,7 @@ award but the repeatable `flow_overtime` (`REPEATABLE_VXP_AWARD_TYPES`)
 is one-time per key: the onboarding milestones, the referee bonus, the
 referrer reward per referee, streak and flow-volume milestones,
 achievements, comeback, calibration per market, league founder per
-league, the Worlds podium per month and place and the tournament prize
+league, the Worlds podium per month, kind and place and the tournament prize
 per tournament. The hard delete removes the award records, and the same
 identity can sign up again, so the purge keeps an **anonymous marker** of
 each one-time award the account was paid (or may have been, while its

@@ -3,7 +3,7 @@
 // history, eligibility is the caller's current affiliation appearing in the
 // frozen top-3 and joined before the month closed, and the payment itself
 // goes through the economy's idempotent award grant (keyed
-// <YYYY-MM>_<place>, so a second claim collides cleanly).
+// <YYYY-MM>_<kind>_<place>, so a second claim collides cleanly).
 
 import { nonNullish } from '@dfinity/utils';
 import { MONTH_ANCHOR_RE, monthAnchorFromMs, monthEndMs } from '../lib/time';
@@ -83,7 +83,7 @@ export const claimWorldsPodiumPrize = async ({
 			if (placeIndex !== -1 && nonNullish(place)) {
 				foundAnyEligibleAffiliation = true;
 
-				const outcome = await grantWorldsPodiumPrize({ userId, monthAnchor, place });
+				const outcome = await grantWorldsPodiumPrize({ userId, monthAnchor, kind, place });
 
 				if (outcome.outcome === 'already') {
 					awardsAlreadyClaimed += 1;
