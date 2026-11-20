@@ -2043,6 +2043,26 @@ const redeemReferralCode = async (
 	await app_redeem_referral_code(idlArgs);
 };
 
+const AppRefreshLeaderboardRankingResultSchema = j.strictObject({
+	refreshed: j.boolean(),
+	ranked: j.number()
+});
+
+const refreshLeaderboardRanking = async (): Promise<
+	j.infer<typeof AppRefreshLeaderboardRankingResultSchema>
+> => {
+	const { app_refresh_leaderboard_ranking } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_refresh_leaderboard_ranking();
+
+	const result = schemaFromIdl({
+		schema: AppRefreshLeaderboardRankingResultSchema,
+		value: idlResult
+	});
+	return AppRefreshLeaderboardRankingResultSchema.parse(result);
+};
+
 const AppRejectFriendRequestArgsSchema = j.strictObject({ relationId: j.string() });
 
 const rejectFriendRequest = async (
@@ -2617,6 +2637,7 @@ export const functions = {
 	recordFlowSwipe,
 	recoverMyAccount,
 	redeemReferralCode,
+	refreshLeaderboardRanking,
 	rejectFriendRequest,
 	resolveBattle,
 	resolveTournamentRound,

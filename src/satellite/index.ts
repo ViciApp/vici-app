@@ -118,7 +118,8 @@ import { assertSetExitSignal } from '#satellite/services/exit-signal.services.ts
 import {
 	getMyRivalFn,
 	getUserRankAndCountFn,
-	listLeaderboard as listLeaderboardFn
+	listLeaderboard as listLeaderboardFn,
+	refreshLeaderboardRankingFn
 } from '#satellite/services/leaderboard.services.ts';
 import {
 	assertDeleteLeagueImage,
@@ -297,6 +298,18 @@ import {
 } from '@junobuild/functions';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
+// Recompute the stored global ranking from settled history unless it is
+// still fresh. The leaderboard, rank and rival queries read that ranking:
+// a query cannot call the clearing canister. Anyone can call; the app asks
+// fire-and-forget on every leaderboard load.
+export const refreshLeaderboardRanking = defineUpdate({
+	result: j.strictObject({
+		refreshed: j.boolean(),
+		ranked: j.number()
+	}),
+	handler: async () => await refreshLeaderboardRankingFn()
+});
+
 export const listLeaderboard = defineQuery({
 	// camelCase wire schema: with CLI ≥ 0.15.6 the codegen applies
 	// `#[json_data(nested)]` to `Vec<NestedStruct>` too, so array items
@@ -311,12 +324,10 @@ export const listLeaderboard = defineQuery({
 });
 
 // Single-pass query that returns both the 1-based rank of `principalStr`
-// and the total count of non-hidden (ranked) profiles. Replaces the
-// former `countProfiles` + `getUserRank` pair, which each ran a full
-// `rankedProfiles()` scan+sort and were always called together in
-// `calculateAndSyncStats`, doubling the work.
+// and the count of ranked profiles, read from the stored ranking.
 //
-// `rank` is omitted when the principal is unranked (no profile / hidden).
+// `rank` is omitted when the principal is unranked (no profile, hidden or
+// below the qualify gate).
 // `principal` is reserved by the schema layer; exposed as `principalStr`.
 export const getUserRankAndCount = defineQuery({
 	args: j.strictObject({

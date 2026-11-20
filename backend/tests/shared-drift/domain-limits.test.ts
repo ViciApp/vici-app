@@ -38,6 +38,7 @@ import {
 	MIN_NICKNAME_LENGTH,
 	NICKNAME_PATTERN
 } from '../../src/profiles/nickname';
+import { MAX_PROFILE_POINTS } from '../../src/profiles/profile-write';
 import {
 	BOLD_CALLER_MEDIAN_THRESHOLD,
 	MONTHLY_MIN_CALLS,
@@ -138,9 +139,9 @@ describe('shared drift: account lifecycle', () => {
 });
 
 describe('shared drift: profiles', () => {
-	test('nickname bounds and handle cooldown', () => {
+	test('nickname bounds, handle cooldown and points ceiling', () => {
 		expectPairs({
-			pairs: { MIN_NICKNAME_LENGTH, MAX_NICKNAME_LENGTH, HANDLE_COOLDOWN_DAYS },
+			pairs: { MIN_NICKNAME_LENGTH, MAX_NICKNAME_LENGTH, HANDLE_COOLDOWN_DAYS, MAX_PROFILE_POINTS },
 			read: (constName) => extractIntConst({ source: appSource.profile, constName })
 		});
 	});

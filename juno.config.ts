@@ -47,7 +47,8 @@ enum JunoDatastoreCollection {
 	SCHOOLS = 'schools',
 	APP_CONFIG = 'app_config',
 	EVENTS = 'events',
-	EVENT_ROLLUPS = 'event_rollups'
+	EVENT_ROLLUPS = 'event_rollups',
+	LEADERBOARD_RANKING = 'leaderboard_ranking'
 }
 
 /**
@@ -424,6 +425,15 @@ export default defineConfig(({ mode }) => ({
 				// reads these so the cockpit never scans the raw event log.
 				{
 					collection: JunoDatastoreCollection.EVENT_ROLLUPS,
+					memory: 'stable',
+					read: 'controllers',
+					write: 'controllers'
+				},
+				// The global ranking computed from settled history by
+				// `refreshLeaderboardRanking`. Controllers-only: the satellite
+				// writes it and its leaderboard, rank and rival queries read it.
+				{
+					collection: JunoDatastoreCollection.LEADERBOARD_RANKING,
 					memory: 'stable',
 					read: 'controllers',
 					write: 'controllers'

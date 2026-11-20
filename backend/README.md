@@ -228,6 +228,7 @@ Mapping notes (the transforms in `scripts/etl/transforms.ts` are the authority):
 - `school_submissions` is skipped by design: rows are ephemeral verification codes (salted digests with a short TTL); the durable outcome already lands via `schools` and `profiles.school_status`.
 - `events` / `event_rollups` are skipped: the behavioural history was already drained to the warehouse through the analytics export contract, and rollups rebuild from fresh ingest.
 - `chats` / `comments` are skipped: dormant surfaces with no target tables.
+- `leaderboard_ranking` is skipped: a cache of the satellite's global ranking; this backend ranks from settled history on request.
 
 Runbook (bulk run, repeatable):
 

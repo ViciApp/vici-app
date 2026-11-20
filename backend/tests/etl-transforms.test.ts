@@ -80,7 +80,8 @@ describe('etl collection registry', () => {
 			'chats',
 			'comments',
 			'vxp_award_markers',
-			'league_invite_attempts'
+			'league_invite_attempts',
+			'leaderboard_ranking'
 		]) {
 			const importer = importerFor(collection);
 

@@ -275,10 +275,12 @@ the on-chain call untouched on the default side:
   `applyOnboardingPicks`, `persistPreferences`, `recordActivity`) ride the
   swap for free: they route through `getProfile` + `upsertProfile`.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
-- `leaderboard.services.ts`: `getLeaderboard`.
+- `leaderboard.services.ts`: `getLeaderboard`. The API ranks it from
+  settled history, never `points` (see the global leaderboard section of
+  [`PRODUCT.md`](../PRODUCT.md#global-leaderboard-qualify-gate--confidence-adjusted-ranking)).
 - `menagerie.services.ts`: the viewer's rank + ranked-population size in
   `loadMyMenagerieSignals` (Goat and the profile's "Top X%" line), read
-  from `GET /api/v1/leaderboard/rank/:userId`.
+  from `GET /api/v1/leaderboard/rank/:userId`, over the same ranking.
 - `relation.services.ts`: `sendFriendRequest` (with a web2 `@handle` / account-id
   resolver), `accept` / `reject` / `cancel`, `unfriend`, `follow`.
 - `relation-queries.services.ts`: friends, followers, following, friend

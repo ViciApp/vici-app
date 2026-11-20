@@ -1096,6 +1096,10 @@ export interface AppRecoverMyAccountResult {
 export interface AppRedeemReferralCodeArgs {
 	code: string;
 }
+export interface AppRefreshLeaderboardRankingResult {
+	refreshed: boolean;
+	ranked: number;
+}
 export interface AppRejectFriendRequestArgs {
 	relation_id: string;
 }
@@ -1546,6 +1550,7 @@ export interface _SERVICE {
 	app_record_flow_swipe: ActorMethod<[AppRecordFlowSwipeArgs], AppRecordFlowSwipeResult>;
 	app_recover_my_account: ActorMethod<[], AppRecoverMyAccountResult>;
 	app_redeem_referral_code: ActorMethod<[AppRedeemReferralCodeArgs], undefined>;
+	app_refresh_leaderboard_ranking: ActorMethod<[], AppRefreshLeaderboardRankingResult>;
 	app_reject_friend_request: ActorMethod<[AppRejectFriendRequestArgs], undefined>;
 	app_resolve_battle: ActorMethod<[AppResolveBattleArgs], AppResolveBattleResult>;
 	app_resolve_tournament_round: ActorMethod<

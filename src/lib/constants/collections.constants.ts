@@ -232,7 +232,14 @@ export const Collection = {
 	 * `trackEvents` as events land so the cockpit reads cheap aggregates via `getAnalyticsSummary`
 	 * instead of scanning the raw {@link Collection.EVENTS} log. Controllers-scoped.
 	 */
-	EVENT_ROLLUPS: collections.EVENT_ROLLUPS
+	EVENT_ROLLUPS: collections.EVENT_ROLLUPS,
+	/**
+	 * The global leaderboard ranking: one doc (`LEADERBOARD_RANKING_KEY`) holding the principals
+	 * ranked from their settled history, best first, written by `refreshLeaderboardRanking` and read
+	 * by `listLeaderboard`, `getUserRankAndCount` and `getMyRival`. A query cannot call the clearing
+	 * canister, so the ranking is computed in an update and stored. Controllers-scoped.
+	 */
+	LEADERBOARD_RANKING: collections.LEADERBOARD_RANKING
 } as const;
 
 export type Collection = (typeof Collection)[keyof typeof Collection];

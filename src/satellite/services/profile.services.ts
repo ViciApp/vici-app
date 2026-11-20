@@ -2,6 +2,7 @@ import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAILY_HARD_CAP } from '#lib/constants/flow-rewards.constants.ts';
 import {
 	handleCooldownDaysLeft,
+	MAX_PROFILE_POINTS,
 	MIN_NICKNAME_LENGTH,
 	NICKNAME_PATTERN,
 	nicknameUniqueKey
@@ -689,6 +690,43 @@ export const assertDailyGoalUnchanged = ({
 };
 
 /**
+ * A profile's `points` (lifetime XP) rank the satellite leaderboard, the rank
+ * query and the rival pick, so a write that changes them must carry a whole
+ * number in [0, MAX_PROFILE_POINTS]: the app sums whole points per call plus
+ * achievement XP. A string, a fraction, a negative or a huge value would sort
+ * above every real profile. A write that keeps the stored value passes, so an
+ * older profile never blocks an unrelated edit.
+ */
+export const assertProfilePoints = ({
+	data: {
+		collection,
+		data: { proposed, current }
+	}
+}: AssertSetDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	const { points } = decodeDocData<UserProfile>(proposed.data);
+
+	if (isNullish(points)) {
+		return;
+	}
+
+	const storedPoints = nonNullish(current)
+		? decodeDocData<UserProfile>(current.data).points
+		: undefined;
+
+	if (points === storedPoints) {
+		return;
+	}
+
+	if (!Number.isSafeInteger(points) || points < 0 || points > MAX_PROFILE_POINTS) {
+		throw new Error(`profiles: points must be a whole number from 0 to ${MAX_PROFILE_POINTS}.`);
+	}
+};
+
+/**
  * A profile is keyed by its owner's principal, and only that owner (or the
  * satellite, signing as a controller) may write or delete it: soft-delete
  * markers, nickname and counters all live on this doc.
@@ -769,4 +807,5 @@ export const assertProfile = (context: AssertSetDocContext): void => {
 	assertNewProfileAllowed(context);
 	assertValidNickname(context);
 	assertDailyGoalUnchanged(context);
+	assertProfilePoints(context);
 };

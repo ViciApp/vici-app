@@ -1721,6 +1721,11 @@ export const IMPORTERS: CollectionImporter[] = [
 		collection: 'league_invite_attempts',
 		mode: 'skip',
 		skipReason: 'an hour of missed invite codes; the API has its own per-account rate limit'
+	},
+	{
+		collection: 'leaderboard_ranking',
+		mode: 'skip',
+		skipReason: 'a cache of the satellite ranking; the API ranks from settled history on request'
 	}
 ];
 

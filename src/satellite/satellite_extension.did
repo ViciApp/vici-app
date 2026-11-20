@@ -193,6 +193,8 @@ type AppRecoverMyAccountResult = record { ok : bool; recovered : opt bool; reaso
 
 type AppRedeemReferralCodeArgs = record { code : text };
 
+type AppRefreshLeaderboardRankingResult = record { refreshed : bool; ranked : float64 };
+
 type AppRejectFriendRequestArgs = record { relation_id : text };
 
 type AppResolveBattleArgs = record { battle_id : text };
@@ -307,6 +309,7 @@ service : {
 	app_record_flow_swipe : (AppRecordFlowSwipeArgs) -> (AppRecordFlowSwipeResult);
 	app_recover_my_account : () -> (AppRecoverMyAccountResult);
 	app_redeem_referral_code : (AppRedeemReferralCodeArgs) -> ();
+	app_refresh_leaderboard_ranking : () -> (AppRefreshLeaderboardRankingResult);
 	app_reject_friend_request : (AppRejectFriendRequestArgs) -> ();
 	app_resolve_battle : (AppResolveBattleArgs) -> (AppResolveBattleResult);
 	app_resolve_tournament_round : (AppResolveTournamentRoundArgs) -> (AppResolveTournamentRoundResult);

@@ -1250,6 +1250,10 @@ export const idlFactory = ({ IDL }) => {
 		reason: IDL.Opt(IDL.Variant({ expired: IDL.Null }))
 	});
 	const AppRedeemReferralCodeArgs = IDL.Record({ code: IDL.Text });
+	const AppRefreshLeaderboardRankingResult = IDL.Record({
+		refreshed: IDL.Bool,
+		ranked: IDL.Float64
+	});
 	const AppRejectFriendRequestArgs = IDL.Record({ relation_id: IDL.Text });
 	const AppResolveBattleArgs = IDL.Record({ battle_id: IDL.Text });
 	const AppResolveBattleResult = IDL.Record({
@@ -1769,6 +1773,7 @@ export const idlFactory = ({ IDL }) => {
 		app_record_flow_swipe: IDL.Func([AppRecordFlowSwipeArgs], [AppRecordFlowSwipeResult], []),
 		app_recover_my_account: IDL.Func([], [AppRecoverMyAccountResult], []),
 		app_redeem_referral_code: IDL.Func([AppRedeemReferralCodeArgs], [], []),
+		app_refresh_leaderboard_ranking: IDL.Func([], [AppRefreshLeaderboardRankingResult], []),
 		app_reject_friend_request: IDL.Func([AppRejectFriendRequestArgs], [], []),
 		app_resolve_battle: IDL.Func([AppResolveBattleArgs], [AppResolveBattleResult], []),
 		app_resolve_tournament_round: IDL.Func(

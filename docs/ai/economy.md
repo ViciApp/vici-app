@@ -72,7 +72,7 @@ the rules are governed, and the implementation follows them.
    paying.
 4. **Two numbers share the name "VXP."** The ledger **token** balance
    (holdings = available + backed collateral) and the lifetime
-   **points** score (drives level/rank, only grows) are different
+   **points** score (drives level, only grows) are different
    numbers; see [`PRODUCT.md`](./PRODUCT.md#vxp-two-different-numbers-share-the-name).
    This page governs the **token** economy.
 5. **Every award is a real ICRC transfer**, recorded in `vxp_awards`

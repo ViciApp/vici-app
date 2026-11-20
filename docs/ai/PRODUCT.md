@@ -35,8 +35,11 @@ Terminology: always **"prediction"**, never "bet".
   balance, and the same auto-sweep moves it into clearing, where it stays
   available until a prediction backs it.
 - **Profile / leaderboard "VXP"** is the lifetime points score that
-  drives level and rank. It only ever grows and is **not** the token
-  balance.
+  drives level. It only ever grows and is **not** the token balance.
+  The client writes it, so it is display copy: on the web2 API no rank
+  reads it (see
+  [Global leaderboard](#global-leaderboard-qualify-gate--confidence-adjusted-ranking));
+  the satellite still ranks its points leaderboard by it.
 
 VXP has 4 decimals: compare and transfer in base units
 (`vxpBaseUnits`), display in whole VXP.
@@ -395,6 +398,20 @@ showed the satellite points rank, which could read a phantom #1). Decision
 record:
 [`specs/2026-06-25-impr-leaderboard-integrity.md`](./spec-driven-development/specs/2026-06-25-impr-leaderboard-integrity.md).
 
+The server-side ranking behind the market's "Top predictors here"
+candidates (`GET /api/v1/leaderboard`), the viewer's rank and ranked
+population (`/leaderboard/rank/:userId`: the profile's "Top X%" line and
+the Goat trophy) and the rival (`/leaderboard/rival`) uses the same two
+guards on the web2 API: every visible profile with at least the qualify
+minimum of settled calls, ordered by the same shrinkage score over its
+all-time settled history read from the clearing canister (more settled
+calls, then the account id, break a tie). A profile below the gate is
+unranked there too, so the "Top X%" line is the viewer's place among
+ranked predictors. The client-written `points` never decides a rank.
+The ranking is read at most once per public read window
+(`rankedUserIds` in
+[`backend/src/profiles/leaderboard.ts`](../../backend/src/profiles/leaderboard.ts)).
+
 ### Privacy: leaderboard & Worlds sharing opt-outs
 
 Two Settings → Privacy toggles let a user remove themselves from public
@@ -404,8 +421,8 @@ ranking surfaces. Both default **on** (legacy / unset reads as on).
   ranked and provisional lists **other people** see; ranks below them
   compress with no gap. They keep their own rank: their `You` row and
   the Arena "Global ranking" card (`ownGlobalStanding`) still resolve,
-  and their top-decile achievement (a separate satellite points-rank
-  path) is unaffected. Enforced FE-side by one predicate,
+  and their top-decile achievement (the satellite's stored ranking,
+  next section) is unaffected. Enforced FE-side by one predicate,
   `isShownOnGlobalLeaderboard` (`visibility.utils`), applied to the
   global leaderboard (`globalStandingsRows`) and to the market detail's
   "Top predictors here" candidates (`visibleLeaderboard`), **failing
@@ -433,6 +450,23 @@ ranking surfaces. Both default **on** (legacy / unset reads as on).
 Each toggle emits `privacy_sharing_toggled` (`source: leaderboard |
 worlds`, `label: on | off`). Decision record:
 [`specs/2026-06-28-feat-sharing-opt-out-enforcement.md`](./spec-driven-development/specs/2026-06-28-feat-sharing-opt-out-enforcement.md).
+
+### Satellite: stored global ranking
+
+On the satellite, the market's "Top predictors here" candidates
+(`listLeaderboard`), the viewer's rank and ranked population
+(`getUserRankAndCount`: the profile's "Top X%" line, the Goat trophy and
+the top-decile streak) and the rival (`getMyRival`) read one stored
+ranking, never the client-written `points`: every visible profile with at
+least the qualify minimum of settled calls, ordered by the board's
+shrinkage score over its all-time settled history (`compareRankScore` in
+[`leaderboard-score.utils.ts`](../../src/lib/utils/leaderboard-score.utils.ts)),
+then by principal. A query cannot call the clearing canister, so
+`refreshLeaderboardRanking` computes it in an update and stores it in the
+controllers-only `leaderboard_ranking` collection. The app asks for a
+refresh, fire-and-forget, on every leaderboard and rank load; a ranking
+younger than its TTL is served as is, so a new settlement moves a rank
+within minutes, not at once. Before the first refresh nobody is ranked.
 
 ### Privacy: what survives an account's deletion
 

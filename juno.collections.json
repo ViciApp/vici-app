@@ -35,5 +35,6 @@
 	"SCHOOLS": "schools",
 	"APP_CONFIG": "app_config",
 	"EVENTS": "events",
-	"EVENT_ROLLUPS": "event_rollups"
+	"EVENT_ROLLUPS": "event_rollups",
+	"LEADERBOARD_RANKING": "leaderboard_ranking"
 }
