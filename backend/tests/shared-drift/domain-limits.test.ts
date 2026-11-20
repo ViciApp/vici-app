@@ -23,7 +23,10 @@ import { LEAGUE_IMAGE_JPEG_QUALITY, LEAGUE_IMAGE_SIZE_PX } from '../../src/leagu
 import {
 	LEAGUE_DESCRIPTION_MAX_LENGTH,
 	LEAGUE_EMBLEMS,
+	LEAGUE_INVITE_CODE_ALPHABET,
+	LEAGUE_INVITE_CODE_LENGTH,
 	LEAGUE_INVITE_CODE_REGEX,
+	LEAGUE_LEGACY_INVITE_CODE_LENGTH,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH
 } from '../../src/leagues/leagues';
@@ -35,6 +38,7 @@ import {
 	MIN_NICKNAME_LENGTH,
 	NICKNAME_PATTERN
 } from '../../src/profiles/nickname';
+import { MAX_PROFILE_POINTS } from '../../src/profiles/profile-write';
 import { MONTHLY_MIN_CALLS, USER_STATS_RECENT_LIMIT } from '../../src/profiles/stats';
 import {
 	SCHOOL_CODE_MAX_ATTEMPTS,
@@ -131,9 +135,9 @@ describe('shared drift: account lifecycle', () => {
 });
 
 describe('shared drift: profiles', () => {
-	test('nickname bounds and handle cooldown', () => {
+	test('nickname bounds, handle cooldown and points ceiling', () => {
 		expectPairs({
-			pairs: { MIN_NICKNAME_LENGTH, MAX_NICKNAME_LENGTH, HANDLE_COOLDOWN_DAYS },
+			pairs: { MIN_NICKNAME_LENGTH, MAX_NICKNAME_LENGTH, HANDLE_COOLDOWN_DAYS, MAX_PROFILE_POINTS },
 			read: (constName) => extractIntConst({ source: appSource.profile, constName })
 		});
 	});
@@ -184,6 +188,15 @@ describe('shared drift: leagues and battles', () => {
 
 		expect(LEAGUE_INVITE_CODE_REGEX.source).toBe(inviteCode.source);
 		expect(LEAGUE_INVITE_CODE_REGEX.flags).toBe(inviteCode.flags);
+
+		expectPairs({
+			pairs: { LEAGUE_INVITE_CODE_LENGTH, LEAGUE_LEGACY_INVITE_CODE_LENGTH },
+			read: (constName) => extractIntConst({ source: appSource.league, constName })
+		});
+
+		expect(LEAGUE_INVITE_CODE_ALPHABET).toBe(
+			extractStringConst({ source: appSource.league, constName: 'LEAGUE_INVITE_CODE_ALPHABET' })
+		);
 
 		const emblems: string[] = [...LEAGUE_EMBLEMS];
 

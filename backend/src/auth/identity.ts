@@ -219,13 +219,14 @@ export const settlementPrincipalsByUser = async (
 	return principals;
 };
 
-/** A stored principal text as a principal, or null when it does not parse:
- * such a text names no account that ever settled. */
-const parsePrincipal = (text: string): Principal | null => {
+/** A stored principal text as a principal, or nothing when it does not parse:
+ * nothing can settle under it, and one unreadable row must not fail a read
+ * that spans every account (the tournament draw, the global leaderboard). */
+export const parsedPrincipal = (text: string): Principal | undefined => {
 	try {
 		return Principal.fromText(text);
 	} catch {
-		return null;
+		// Left out of the read.
 	}
 };
 
@@ -251,7 +252,7 @@ export const settledTotalsByUser = async ({
 
 	for (const [userId, principals] of await settlementPrincipalsByUser(userIds)) {
 		for (const text of principals) {
-			const principal = parsePrincipal(text);
+			const principal = parsedPrincipal(text);
 
 			if (isNullish(principal)) {
 				unparsed += 1;

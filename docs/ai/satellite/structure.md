@@ -14,7 +14,7 @@ src/satellite/
 │   ├── leaderboard.services.ts     Server-side leaderboard reads
 │   ├── market-metadata.services.ts Creator/admin market context updates
 │   ├── profile.services.ts         Profile validation + lookups
-│   ├── referral.services.ts        Referral code assignment, redemption + VXP payout
+│   ├── referral.services.ts        Referral codes (controllers-only store), redemption + VXP payout
 │   ├── relation.services.ts        Friend / follow primitives
 │   ├── roles.services.ts           Role doc validation
 │   ├── vxp-onboarding.services.ts  VXP onboarding hooks

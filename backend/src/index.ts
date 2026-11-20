@@ -9,6 +9,7 @@ import { applyAssetAllowlist } from './custody/assets';
 import { isDbUnavailable, query } from './db/client';
 import { env } from './env';
 import { logger } from './lib/logger';
+import { refuseUnsafeRequest, type NonJsonRoute } from './lib/same-origin';
 import { accountRoutes } from './routes/account';
 import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
@@ -84,6 +85,24 @@ const allowedOrigins = (() => {
 	return [...origins];
 })();
 
+/** The routes that take a body other than JSON: Apple posts its sign-in
+ * callback cross-site as a form (the signed state cookie is that route's own
+ * check), and the league cover upload is a multipart post from the app. */
+const NON_JSON_ROUTES: readonly NonJsonRoute[] = [
+	{
+		method: 'POST',
+		path: /^\/api\/v1\/auth\/apple\/callback$/,
+		mediaType: 'application/x-www-form-urlencoded',
+		crossSite: true
+	},
+	{
+		method: 'POST',
+		path: /^\/api\/v1\/leagues\/[^/]+\/image$/,
+		mediaType: 'multipart/form-data',
+		crossSite: false
+	}
+];
+
 /** Request body ceiling, enforced by Bun before any route parses the body.
  * Bun's own default (128 MB) lets an anonymous route buffer far more than any
  * client sends; the largest legitimate body is a league cover upload
@@ -152,6 +171,22 @@ export const app = new Elysia({ serve: { maxRequestBodySize: MAX_REQUEST_BODY_BY
 	})
 	// Credentialed CORS scoped to the SPA origins so the session cookie rides along.
 	.use(cors({ origin: allowedOrigins, credentials: true }))
+	// After the CORS hook, so the app reads its own refusal.
+	.onRequest(({ request, set }) => {
+		const refusal = refuseUnsafeRequest({
+			request,
+			allowedOrigins,
+			nonJsonRoutes: NON_JSON_ROUTES
+		});
+
+		if (isNullish(refusal)) {
+			return;
+		}
+
+		set.status = refusal === 'origin_not_allowed' ? 403 : 415;
+
+		return { error: refusal };
+	})
 	.use(authRoutes)
 	.use(claimRoutes)
 	.use(walletRoutes)

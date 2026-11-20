@@ -103,6 +103,29 @@ export const isAnalyticsEventName = (value: string): value is AnalyticsEventName
 	NAME_SET.has(value);
 
 /**
+ * Events the server records itself, from its own state: a payout or award it
+ * made, an account or affiliation change it applied, a verification step it
+ * ran. The ingest drops one a client sends, so these counts read only what
+ * the server did.
+ */
+export const SERVER_ANALYTICS_EVENT_NAMES = [
+	'payout_settled',
+	'vxp_awarded',
+	'streak_milestone',
+	'affiliation_set',
+	'affiliation_removed',
+	'school_verify_email_submitted',
+	'school_verify_code_submitted',
+	'delete_confirmed',
+	'delete_succeeded',
+	'exit_signal'
+] as const satisfies readonly AnalyticsEventName[];
+
+const SERVER_NAME_SET: ReadonlySet<string> = new Set(SERVER_ANALYTICS_EVENT_NAMES);
+
+export const isServerAnalyticsEventName = (value: string): boolean => SERVER_NAME_SET.has(value);
+
+/**
  * Bounded dimensional vocabulary for an event's context. Intentionally a
  * fixed set of optional primitive fields rather than a free-form bag: it
  * keeps the warehouse queryable and makes "no PII" structural.
