@@ -1,4 +1,9 @@
 import { describe, expect, test } from 'bun:test';
+import {
+	MAX_PATH_LENGTH,
+	MAX_PROP_STRING_LENGTH,
+	MAX_SESSION_ID_LENGTH
+} from '../../src/analytics/events';
 import { ANALYTICS_EVENT_NAMES, ANALYTICS_PROP_KEYS } from '../../src/analytics/taxonomy';
 import {
 	extractBlock,
@@ -46,5 +51,19 @@ describe('shared drift: analytics taxonomy', () => {
 		const backend: string[] = [...ANALYTICS_PROP_KEYS];
 
 		expect(backend).toEqual([...app.ANALYTICS_PROP_KEYS]);
+	});
+
+	test('backend ingest string caps match the satellite capture', async () => {
+		const app = await importRepoModule<{
+			ANALYTICS_MAX_SESSION_ID_LENGTH: number;
+			ANALYTICS_MAX_PATH_LENGTH: number;
+			ANALYTICS_MAX_PROP_STRING_LENGTH: number;
+		}>('src/lib/constants/analytics.constants.ts');
+
+		expect([MAX_SESSION_ID_LENGTH, MAX_PATH_LENGTH, MAX_PROP_STRING_LENGTH]).toEqual([
+			app.ANALYTICS_MAX_SESSION_ID_LENGTH,
+			app.ANALYTICS_MAX_PATH_LENGTH,
+			app.ANALYTICS_MAX_PROP_STRING_LENGTH
+		]);
 	});
 });

@@ -631,7 +631,8 @@ export const claimReferralFriendship = defineUpdate({
  * stamps the timestamp + derives the pseudonymous principal, writes the
  * append-only `events` docs, and bumps the day's rollup inline. Anyone
  * (incl. anonymous, pre-auth) may call: events are validated against the
- * taxonomy and carry no PII.
+ * taxonomy and carry no PII, the batch and every string are bounded, and an
+ * event the server records itself is not taken from a client.
  */
 export const trackEvents = defineUpdate({
 	args: TrackEventsArgsSchema,

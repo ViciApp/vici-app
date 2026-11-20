@@ -58,6 +58,13 @@ Rules:
   `src/satellite/index.ts`.)
 - **`PrincipalTextSchema`** comes from `@junobuild/schema`. Use it for
   every principal-typed arg; don't hand-write a regex.
+- **An endpoint that stores what an anonymous caller sends bounds it**
+  in its schema: `.max()` on the array and on every string, from named
+  constants in the domain's constants file. Its handler also refuses
+  what only the server may write. `trackEvents` takes at most
+  `ANALYTICS_MAX_EVENTS_PER_BATCH` events with capped strings
+  ([`analytics.constants.ts`](../../../src/lib/constants/analytics.constants.ts)),
+  and `trackEventsFn` drops an event in `SERVER_ANALYTICS_EVENT_NAMES`.
 - **Keep handlers thin.** The function passed to `handler:` should
   immediately delegate to `services/<area>.services.ts`. The schema
   declaration + the dispatch table are the only logic that belongs in
