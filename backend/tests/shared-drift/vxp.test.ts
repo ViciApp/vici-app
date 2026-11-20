@@ -276,9 +276,11 @@ describe('shared drift: onboarding milestones', () => {
 			source: onboarding,
 			constName: 'NEW_USER_VXP_TOTAL_BASE_UNITS'
 		});
+
 		// The whole starter lands at milestone 1, so the app writes it as the
 		// total itself rather than a second literal.
 		expect(onboarding).toMatch(/const MILESTONE_1_VXP = NEW_USER_VXP_TOTAL_BASE_UNITS;/);
+
 		const m1 = total;
 		const m2 = extractVxpBaseUnitsWhole({ source: onboarding, constName: 'MILESTONE_2_VXP' });
 
