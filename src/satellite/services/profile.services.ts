@@ -2,6 +2,7 @@ import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAILY_HARD_CAP } from '#lib/constants/flow-rewards.constants.ts';
 import {
 	handleCooldownDaysLeft,
+	MAX_PROFILE_POINTS,
 	MIN_NICKNAME_LENGTH,
 	NICKNAME_PATTERN,
 	nicknameUniqueKey
@@ -689,6 +690,43 @@ export const assertDailyGoalUnchanged = ({
 };
 
 /**
+ * A profile's `points` (lifetime XP) rank the satellite leaderboard, the rank
+ * query and the rival pick, so a write that changes them must carry a whole
+ * number in [0, MAX_PROFILE_POINTS]: the app sums whole points per call plus
+ * achievement XP. A string, a fraction, a negative or a huge value would sort
+ * above every real profile. A write that keeps the stored value passes, so an
+ * older profile never blocks an unrelated edit.
+ */
+export const assertProfilePoints = ({
+	data: {
+		collection,
+		data: { proposed, current }
+	}
+}: AssertSetDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	const { points } = decodeDocData<UserProfile>(proposed.data);
+
+	if (isNullish(points)) {
+		return;
+	}
+
+	const storedPoints = nonNullish(current)
+		? decodeDocData<UserProfile>(current.data).points
+		: undefined;
+
+	if (points === storedPoints) {
+		return;
+	}
+
+	if (!Number.isSafeInteger(points) || points < 0 || points > MAX_PROFILE_POINTS) {
+		throw new Error(`profiles: points must be a whole number from 0 to ${MAX_PROFILE_POINTS}.`);
+	}
+};
+
+/**
  * A profile is keyed by its owner's principal, and only that owner (or the
  * satellite, signing as a controller) may write or delete it: soft-delete
  * markers, nickname and counters all live on this doc.
@@ -757,6 +795,40 @@ export const assertSchoolStatusUnchanged = ({
 };
 
 /**
+ * `deletedAtMs` and `hibernatedAtMs` are the account's state: the satellite
+ * sets and clears them (`deleteMyAccount`, `recoverMyAccount`,
+ * `hibernateMyAccount`, `resumeMyAccount`, signing as a controller), and the
+ * recovery window and the purge read `deletedAtMs`. A client write must carry
+ * both unchanged, absent on a new profile; otherwise the owner could clear a
+ * soft delete past the window and skip the purge `recoverMyAccount` runs.
+ */
+export const assertAccountStateUnchanged = ({
+	caller,
+	data: {
+		collection,
+		data: { proposed, current }
+	}
+}: AssertSetDocContext): void => {
+	if (collection !== Collection.PROFILES) {
+		return;
+	}
+
+	if (isControllerText(Principal.fromUint8Array(caller).toText())) {
+		return;
+	}
+
+	const proposedProfile = decodeDocData<UserProfile>(proposed.data);
+	const currentProfile = nonNullish(current) ? decodeDocData<UserProfile>(current.data) : undefined;
+
+	if (
+		proposedProfile.deletedAtMs !== currentProfile?.deletedAtMs ||
+		proposedProfile.hibernatedAtMs !== currentProfile?.hibernatedAtMs
+	) {
+		throw new Error('profiles: deletedAtMs and hibernatedAtMs are set by the satellite.');
+	}
+};
+
+/**
  * The `profiles` pre-write veto: one dispatch-table entry composing the
  * sub-asserts, each exported on its own so it stays unit-testable. A throw
  * from any one rejects the write. The owner checks and the new-profile gate run
@@ -766,7 +838,9 @@ export const assertProfile = (context: AssertSetDocContext): void => {
 	assertProfileOwner(context);
 	assertProfileOwnerField(context);
 	assertSchoolStatusUnchanged(context);
+	assertAccountStateUnchanged(context);
 	assertNewProfileAllowed(context);
 	assertValidNickname(context);
 	assertDailyGoalUnchanged(context);
+	assertProfilePoints(context);
 };

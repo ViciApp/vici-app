@@ -1,160 +1,236 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { LEADERBOARD_QUALIFY_MIN } from '#lib/constants/standings.constants.ts';
+import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
+import {
+	LEADERBOARD_RANKING_KEY,
+	type LeaderboardRankingDoc
+} from '#lib/types/leaderboard-ranking.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
+import { compareRankScore, type SettledRecord } from '#lib/utils/leaderboard-score.utils.ts';
+import { controllerCaller } from '#satellite/services/authz.services.ts';
 import {
 	decodeStoredProfile,
 	isPubliclyHidden,
 	withProfileRole
 } from '#satellite/services/profile.services.ts';
-import { isNullish } from '@dfinity/utils';
+import { settledTotalsByPrincipal } from '#satellite/services/settled-history.services.ts';
+import { timeMs } from '#satellite/utils/time.utils.ts';
+import { isNullish, nonNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
-import { listDocsStore } from '@junobuild/functions/sdk';
+import {
+	decodeDocData,
+	encodeDocData,
+	getDocStore,
+	listDocsStore,
+	setDocStore
+} from '@junobuild/functions/sdk';
 import type { PrincipalText } from '@junobuild/schema';
 
 const LEADERBOARD_LIMIT = 50;
 
-/**
- * Every non-hidden profile, sorted by `points` (XP) descending: the
- * SAME filter + sort key the public {@link listLeaderboard} uses, just
- * without the top-{@link LEADERBOARD_LIMIT} slice. The single source of
- * truth for the global ranking so {@link getUserRankAndCountFn} agrees
- * byte-for-byte with the visible leaderboard.
- *
- * Ties on `points` are broken by `owner` ascending so a principal's rank
- * is stable across reads (without it, two equal-points rows could swap
- * order between calls and flip a user in/out of the top decile).
- */
-const rankedProfiles = (): UserProfile[] => {
-	const caller = msgCaller();
+/** How long a stored ranking serves before a refresh recomputes it: every
+ * leaderboard load asks for a refresh, and a recompute reads every profile's
+ * settled history from the clearing canister. */
+export const LEADERBOARD_RANKING_TTL_MS = 5 * MINUTE_IN_MS;
 
+const rankingPurpose = 'leaderboard ranking';
+
+/** The stored ranking with its version, or nothing before the first refresh. */
+const readRanking = (): { doc: LeaderboardRankingDoc; version?: bigint } | undefined => {
+	const stored = getDocStore({
+		collection: Collection.LEADERBOARD_RANKING,
+		key: LEADERBOARD_RANKING_KEY,
+		caller: controllerCaller(rankingPurpose)
+	});
+
+	return isNullish(stored)
+		? undefined
+		: { doc: decodeDocData<LeaderboardRankingDoc>(stored.data), version: stored.version };
+};
+
+const isFresh = ({ computedAtMs }: LeaderboardRankingDoc): boolean =>
+	timeMs() - computedAtMs < LEADERBOARD_RANKING_TTL_MS;
+
+/** The ranked principals, best first; empty before the first refresh. */
+const rankedOwners = (): PrincipalText[] => readRanking()?.doc.owners ?? [];
+
+/**
+ * Every non-hidden profile with at least {@link LEADERBOARD_QUALIFY_MIN}
+ * settled calls, ordered by `compareRankScore` over its all-time settled
+ * history (the clearing canister's record), then by principal so a rank is
+ * stable. The client-written `points` play no part.
+ */
+const computeRankedOwners = async (): Promise<PrincipalText[]> => {
 	const { items } = listDocsStore({
 		collection: Collection.PROFILES,
-		caller,
+		caller: msgCaller(),
 		params: {}
 	});
 
-	return items
+	const owners = items
 		.map(decodeStoredProfile)
 		.filter((profile) => !isPubliclyHidden(profile))
-		.sort((a, b) => {
-			const delta = (b.points ?? 0) - (a.points ?? 0);
+		.map(({ owner }) => owner);
 
-			if (delta !== 0) {
-				return delta;
+	const settled = await settledTotalsByPrincipal({
+		members: owners.map((owner) => Principal.fromText(owner)),
+		fromMs: 0,
+		toMs: timeMs()
+	});
+
+	return owners
+		.map((owner): SettledRecord & { owner: PrincipalText } => ({
+			owner,
+			settledCount: settled.get(owner)?.calls ?? 0,
+			winCount: settled.get(owner)?.wins ?? 0
+		}))
+		.filter(({ settledCount }) => settledCount >= LEADERBOARD_QUALIFY_MIN)
+		.sort((a, b) => {
+			const byScore = compareRankScore(a, b);
+
+			if (byScore !== 0) {
+				return byScore;
 			}
 
 			return a.owner < b.owner ? -1 : a.owner > b.owner ? 1 : 0;
-		});
+		})
+		.map(({ owner }) => owner);
 };
 
 /**
- * Returns the top {@link LEADERBOARD_LIMIT} profiles ranked by points (XP),
- * matching what the frontend Leaderboard surface displays.
- *
- * Nicknames/handles are returned for every profile the caller can see:
- * the broader "who can see whom" gate (visibility rework) is owned by a
- * future change and is out of scope here.
- *
- * The shape mirrors {@link UserProfile} (no extra wrapping) so the
- * frontend can render it through the same components used everywhere
- * else.
+ * Recompute the stored ranking unless the stored one is younger than
+ * {@link LEADERBOARD_RANKING_TTL_MS}. Anyone can call: the app asks on every
+ * leaderboard load, and the TTL keeps the clearing reads to one per window.
+ * Written as a controller into the controllers-only collection.
  */
-export const listLeaderboard = (): UserProfile[] => {
-	const caller = msgCaller();
+export const refreshLeaderboardRankingFn = async (): Promise<{
+	refreshed: boolean;
+	ranked: number;
+}> => {
+	const stored = readRanking();
 
-	const { items } = listDocsStore({
-		collection: Collection.PROFILES,
-		caller,
-		params: {}
+	if (nonNullish(stored) && isFresh(stored.doc)) {
+		return { refreshed: false, ranked: stored.doc.owners.length };
+	}
+
+	const owners = await computeRankedOwners();
+
+	// Another refresh may have landed during the clearing read; nothing below
+	// awaits, so this check and the write run as one step.
+	const latest = readRanking();
+
+	if (nonNullish(latest) && isFresh(latest.doc)) {
+		return { refreshed: false, ranked: latest.doc.owners.length };
+	}
+
+	setDocStore({
+		collection: Collection.LEADERBOARD_RANKING,
+		key: LEADERBOARD_RANKING_KEY,
+		caller: controllerCaller(rankingPurpose),
+		doc: {
+			data: encodeDocData<LeaderboardRankingDoc>({ owners, computedAtMs: timeMs() }),
+			version: latest?.version
+		}
 	});
 
-	return (
-		items
-			.map(decodeStoredProfile)
-			// Soft-deleted OR hibernated accounts (Delete account v2) drop
-			// off the public leaderboard before the role lookup + hydrate.
-			.filter((profile) => !isPubliclyHidden(profile))
-			.map((profile) => withProfileRole({ profile, caller }))
-			.sort((a, b) => {
-				const delta = (b.points ?? 0) - (a.points ?? 0);
+	return { refreshed: true, ranked: owners.length };
+};
 
-				if (delta !== 0) {
-					return delta;
-				}
+/** A ranked principal's profile as every profile query emits it, or nothing
+ * when it is gone or has been hidden since the ranking was stored. */
+const rankedProfile = (owner: PrincipalText): UserProfile | undefined => {
+	const caller = msgCaller();
+	const doc = getDocStore({ collection: Collection.PROFILES, key: owner, caller });
 
-				return a.owner < b.owner ? -1 : a.owner > b.owner ? 1 : 0;
-			})
-			.slice(0, LEADERBOARD_LIMIT)
-	);
+	if (isNullish(doc)) {
+		return;
+	}
+
+	const profile = decodeStoredProfile([owner, doc]);
+
+	return isPubliclyHidden(profile) ? undefined : withProfileRole({ profile, caller });
 };
 
 /**
- * The caller's rival, resolved from the FULL {@link rankedProfiles}
- * ordering (not the top-{@link LEADERBOARD_LIMIT} slice {@link
- * listLeaderboard} returns), so it works for every ranked user, not
- * just those in the visible top N.
+ * The top {@link LEADERBOARD_LIMIT} profiles of the stored ranking, matching
+ * the order the rank and rival queries read.
  *
- * - Usual case: the profile one rank ABOVE the caller, the next
- *   competitor to overtake.
+ * The shape mirrors {@link UserProfile} (no extra wrapping) so the frontend
+ * can render it through the same components used everywhere else.
+ */
+export const listLeaderboard = (): UserProfile[] => {
+	const profiles: UserProfile[] = [];
+
+	for (const owner of rankedOwners()) {
+		if (profiles.length === LEADERBOARD_LIMIT) {
+			break;
+		}
+
+		const profile = rankedProfile(owner);
+
+		if (nonNullish(profile)) {
+			profiles.push(profile);
+		}
+	}
+
+	return profiles;
+};
+
+/**
+ * The caller's rival, resolved from the FULL stored ranking (not the
+ * top-{@link LEADERBOARD_LIMIT} slice {@link listLeaderboard} returns), so it
+ * works for every ranked user.
+ *
+ * - Usual case: the profile one rank ABOVE the caller, the next competitor
+ *   to overtake.
  * - Leader (rank 1): nobody is above, so surface the runner-up one rank
- *   BELOW, the rival chasing them, with `rivalIsTrailing: true` so the
- *   FE frames the gap as a lead rather than a deficit.
+ *   BELOW, with `rivalIsTrailing: true` so the FE frames the gap as a lead
+ *   rather than a deficit.
  *
- * `rival` is `undefined` (→ FE locked tease) only when the caller is
- * genuinely unranked (no profile / hidden) or is the lone ranked profile
- * (rank 1 with no runner-up).
- *
- * The returned row is role-hydrated and run through
- * {@link withProfileDefaults}, matching the shape every other profile
- * query emits.
+ * `rival` is `undefined` (→ FE locked tease) when the caller is unranked or
+ * is the lone ranked profile.
  */
 export const getMyRivalFn = (): {
 	rival: UserProfile | undefined;
 	rivalIsTrailing: boolean;
 } => {
-	const caller = msgCaller();
-	const callerText = caller.toText();
-
-	const profiles = rankedProfiles();
-	const myIndex = profiles.findIndex((profile) => profile.owner === callerText);
+	const owners = rankedOwners();
+	const myIndex = owners.indexOf(msgCaller().toText());
 
 	if (myIndex === -1) {
-		// Unranked (no profile / hidden): no rival.
 		return { rival: undefined, rivalIsTrailing: false };
 	}
 
-	// Rank 1 has nobody above: fall back to the runner-up one rank below
-	// (the chaser). Every other rank takes the competitor one rank above.
 	const rivalIsTrailing = myIndex === 0;
-	const rival = profiles[rivalIsTrailing ? 1 : myIndex - 1];
+	const rivalOwner = owners[rivalIsTrailing ? 1 : myIndex - 1];
+	const rival = isNullish(rivalOwner) ? undefined : rankedProfile(rivalOwner);
 
 	if (isNullish(rival)) {
-		// Rank 1 with no runner-up (lone ranked profile); no rival.
 		return { rival: undefined, rivalIsTrailing: false };
 	}
 
-	return { rival: withProfileRole({ profile: rival, caller }), rivalIsTrailing };
+	return { rival, rivalIsTrailing };
 };
 
 /**
- * Single-pass helper that runs {@link rankedProfiles} once and returns
- * both the 1-based rank of `principal` and the total count of ranked
- * (non-hidden) profiles. The count is the denominator for the `top-decile`
- * achievement: a user is in the top 10% when their rank is ≤ `count / 10`.
- * One pass serves both, since each scan+sort runs on every
- * `calculateAndSyncStats` invocation.
+ * The 1-based rank of `principal` in the stored ranking and the count of
+ * ranked profiles. The count is the denominator for the `top-decile`
+ * achievement and the profile's "Top X%" line.
  *
- * `rank` is `undefined` when the principal has no profile or is hidden.
+ * `rank` is `undefined` when the principal is not ranked: no profile,
+ * hidden, or fewer than {@link LEADERBOARD_QUALIFY_MIN} settled calls.
  */
 export const getUserRankAndCountFn = ({
 	principal
 }: {
 	principal: PrincipalText;
 }): { rank: number | undefined; count: number } => {
-	const profiles = rankedProfiles();
-	const index = profiles.findIndex((profile) => profile.owner === principal);
+	const owners = rankedOwners();
+	const index = owners.indexOf(principal);
 
 	return {
 		rank: index === -1 ? undefined : index + 1,
-		count: profiles.length
+		count: owners.length
 	};
 };
