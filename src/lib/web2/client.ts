@@ -136,6 +136,36 @@ const apiError = async (response: Response): Promise<Web2ApiError> => {
 	return new Web2ApiError({ status, code: 'unknown_error' });
 };
 
+let onSessionLost: (() => void) | undefined;
+
+/**
+ * Register what runs when a request is refused because the cookie carries no
+ * live session (expired, revoked, or signed out from another tab): the API's
+ * `unauthenticated` refusal, not any other 401 (a wrong sign-in code is one
+ * too). Returns the function that removes it.
+ */
+export const setWeb2SessionLostHandler = (handler: () => void): (() => void) => {
+	onSessionLost = handler;
+
+	return () => {
+		if (onSessionLost === handler) {
+			onSessionLost = undefined;
+		}
+	};
+};
+
+/** The error a non-2xx response throws; tells the session handler when the
+ * refusal says the session is gone. */
+const refusal = async (response: Response): Promise<Web2ApiError> => {
+	const error = await apiError(response);
+
+	if (error.status === 401 && error.code === 'unauthenticated') {
+		onSessionLost?.();
+	}
+
+	return error;
+};
+
 const request = async <T>({
 	path,
 	method,
@@ -157,7 +187,7 @@ const request = async <T>({
 	});
 
 	if (!response.ok) {
-		throw await apiError(response);
+		throw await refusal(response);
 	}
 
 	return (await response.json()) as T;
@@ -1373,7 +1403,7 @@ export const uploadLeagueImage = async ({
 	);
 
 	if (!response.ok) {
-		throw await apiError(response);
+		throw await refusal(response);
 	}
 
 	const { league } = (await response.json()) as { league: Web2LeagueWire };
