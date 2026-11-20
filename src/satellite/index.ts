@@ -49,7 +49,8 @@ import { AFFILIATION_KINDS } from '#lib/types/affiliation.ts';
 import {
 	CREATE_LEAGUE_REFUSAL_REASONS,
 	JOIN_LEAGUE_REFUSAL_REASONS,
-	LEAGUE_IMAGES_COLLECTION
+	LEAGUE_IMAGES_COLLECTION,
+	LOOKUP_LEAGUE_REFUSAL_REASONS
 } from '#lib/types/league.ts';
 import { TOURNAMENT_DRAW_REFUSAL_REASONS } from '#lib/types/tournament.ts';
 import {
@@ -795,17 +796,20 @@ export const migrateLeagueInviteCodes = defineUpdate({
 });
 
 // Join-by-code preview: the league an invite code opens, without the code.
-export const lookupLeagueByInvite = defineQuery({
+// An update so a code that opens no league counts toward the caller's
+// hourly cap on misses, which the join shares.
+export const lookupLeagueByInvite = defineUpdate({
 	args: j.strictObject({
 		inviteCode: j.string()
 	}),
 	result: j.strictObject({
-		league: j.optional(LeagueWireSchema)
+		league: j.optional(LeagueWireSchema),
+		reason: j.optional(j.enum(LOOKUP_LEAGUE_REFUSAL_REASONS))
 	}),
 	handler: ({ inviteCode }) => {
-		const league = lookupLeagueByInviteFn({ inviteCode });
+		const { league, reason } = lookupLeagueByInviteFn({ inviteCode });
 
-		return { league: league ? toWireLeague(league) : undefined };
+		return { league: isNullish(league) ? undefined : toWireLeague(league), reason };
 	}
 });
 

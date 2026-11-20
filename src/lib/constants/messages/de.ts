@@ -1322,7 +1322,9 @@ export const deMessages = {
 	'leagues.join.cta': 'Gültigen Code eingeben',
 	'leagues.join.error_already_member': 'Du bist schon in dieser Liga.',
 	'leagues.join.error_not_found': 'Keine Liga mit diesem Code. Prüf ihn nochmal.',
-	'leagues.join.label_code': 'Einladungscode (6 Zeichen)',
+	'leagues.join.error_rate_limited':
+		'Zu viele Codes ohne passende Liga. Versuch es in einer Stunde nochmal.',
+	'leagues.join.label_code': 'Einladungscode',
 	'leagues.join.sub': 'Füge den Einladungscode ein. Codes sehen so aus wie {code}.',
 	'leagues.join.submitting': 'Trete bei…',
 	'leagues.join.title': 'Mit Code beitreten',

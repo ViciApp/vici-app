@@ -49,6 +49,7 @@ export const SATELLITE_COLLECTIONS = [
 	'leagues',
 	'league_members',
 	'league_invites',
+	'league_invite_attempts',
 	'battles',
 	'affiliations',
 	'affiliation_stats',

@@ -703,6 +703,14 @@ signing as a controller, which assigns a code when a profile is created and
 resolves one for `lookupReferralCode`, `getMyReferralCode`, the redeem and
 the friendship claim, so no client lists the codes or who owns them.
 
+**Guessing such a secret is bounded per account.** `lookupLeagueByInvite`
+(an update for this reason) and `joinLeagueByInvite` resolve a league
+invite code through `resolveInviteCode`
+([`league-invite-cap.services.ts`](../../../src/satellite/services/league-invite-cap.services.ts)),
+which records each code that opened no league in the controllers-only
+`league_invite_attempts` collection and refuses an account past its hourly
+cap of misses, a right code included.
+
 **Storage collections too.** A `write: 'public'` Storage collection lets any
 caller upload over or delete any asset, so it has an `assertUploadAsset` and
 an `assertDeleteAsset` entry in `index.ts` and a `maxSize` in

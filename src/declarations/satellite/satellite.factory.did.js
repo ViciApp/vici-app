@@ -693,7 +693,13 @@ export const idlFactory = ({ IDL }) => {
 				privacy: IDL.Variant({ open: IDL.Null, private: IDL.Null })
 			})
 		),
-		reason: IDL.Opt(IDL.Variant({ already_member: IDL.Null, not_found: IDL.Null }))
+		reason: IDL.Opt(
+			IDL.Variant({
+				already_member: IDL.Null,
+				rate_limited: IDL.Null,
+				not_found: IDL.Null
+			})
+		)
 	});
 	const AppListAffiliationChampionshipsArgs = IDL.Record({
 		kind: IDL.Variant({ country: IDL.Null, university: IDL.Null }),
@@ -1198,7 +1204,8 @@ export const idlFactory = ({ IDL }) => {
 				created_at_ms: IDL.Float64,
 				privacy: IDL.Variant({ open: IDL.Null, private: IDL.Null })
 			})
-		)
+		),
+		reason: IDL.Opt(IDL.Variant({ rate_limited: IDL.Null }))
 	});
 	const AppLookupReferralCodeArgs = IDL.Record({ code: IDL.Text });
 	const AppLookupReferralCodeResult = IDL.Record({
@@ -1739,7 +1746,7 @@ export const idlFactory = ({ IDL }) => {
 		app_lookup_league_by_invite: IDL.Func(
 			[AppLookupLeagueByInviteArgs],
 			[AppLookupLeagueByInviteResult],
-			['query']
+			[]
 		),
 		app_lookup_referral_code: IDL.Func(
 			[AppLookupReferralCodeArgs],

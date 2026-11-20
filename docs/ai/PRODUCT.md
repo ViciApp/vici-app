@@ -558,7 +558,14 @@ privacy just removes the league from future challenge search.
 read returns a league's code except to its own members (`listMyLeagues`),
 who share it: the satellite keeps codes in the controllers-only
 `league_invites` collection, never on the public league doc, and adds a
-member only through `joinLeagueByInvite` once the code checks out.
+member only through `joinLeagueByInvite` once the code checks out. A new
+league gets a ten-character code on both stacks; a league founded with
+the older six-character code keeps it and stays joinable. Looking a code up and
+joining with one need a signed-in account, and on the satellite an
+account that has tried `LEAGUE_INVITE_MISSES_PER_HOUR` codes within the
+hour that opened no league is refused every code, a right one included,
+until its oldest miss is an hour old (the web2 API bounds the same calls
+with its own per-account rate limit).
 
 **The score is each league's prediction accuracy over the window, and
 nobody types it.** Each side's score is its **current members'**

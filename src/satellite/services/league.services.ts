@@ -5,6 +5,7 @@ import {
 	LEAGUE_DESCRIPTION_MAX_LENGTH,
 	LEAGUE_EMBLEMS,
 	LEAGUE_IMAGES_COLLECTION,
+	LEAGUE_INVITE_CODE_LENGTH,
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
@@ -19,6 +20,7 @@ import {
 	isAdmin,
 	isControllerText
 } from '#satellite/services/authz.services.ts';
+import { resolveInviteCode } from '#satellite/services/league-invite-cap.services.ts';
 import {
 	deleteLeagueInvite,
 	leagueIdForInviteCode,
@@ -607,8 +609,15 @@ export const createLeagueFn = async ({
 		throw new Error('Sign in to create a league.');
 	}
 
-	if (!LEAGUE_INVITE_CODE_REGEX.test(inviteCode)) {
-		throw new Error(`leagues inviteCode must match ${LEAGUE_INVITE_CODE_REGEX}.`);
+	// A league founded before codes grew keeps its shorter code, but a new
+	// one always gets the full length.
+	if (
+		inviteCode.length !== LEAGUE_INVITE_CODE_LENGTH ||
+		!LEAGUE_INVITE_CODE_REGEX.test(inviteCode)
+	) {
+		throw new Error(
+			`leagues inviteCode must be ${LEAGUE_INVITE_CODE_LENGTH} characters matching ${LEAGUE_INVITE_CODE_REGEX}.`
+		);
 	}
 
 	if (nonNullish(leagueIdForInviteCode(inviteCode))) {
@@ -674,7 +683,9 @@ export interface JoinLeagueByInviteResult {
  * Joins the caller to the league `inviteCode` opens: the only way into a
  * league, Open or Private. `assertSetLeagueMember` admits a new member row
  * only from a satellite controller, so this endpoint, having checked the
- * code, writes the row as one.
+ * code, writes the row as one. A code that opens no league counts toward
+ * the caller's hourly cap on misses, which the lookup preview shares
+ * (`resolveInviteCode`).
  */
 export const joinLeagueByInviteFn = ({
 	inviteCode
@@ -687,7 +698,13 @@ export const joinLeagueByInviteFn = ({
 		throw new Error('Sign in to join a league.');
 	}
 
-	const leagueId = leagueIdForInviteCode(inviteCode);
+	const callerText = caller.toText();
+	const { leagueId, reason } = resolveInviteCode({ callerText, inviteCode });
+
+	if (nonNullish(reason)) {
+		return { reason };
+	}
+
 	const callerBytes = caller.toUint8Array();
 	const leagueDoc = isNullish(leagueId)
 		? undefined
@@ -698,7 +715,6 @@ export const joinLeagueByInviteFn = ({
 	}
 
 	const league = decodeDocData<LeagueDoc>(leagueDoc.data);
-	const callerText = caller.toText();
 	const key = leagueMemberKey({ leagueId: league.id, memberPrincipal: callerText });
 
 	if (

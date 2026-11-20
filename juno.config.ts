@@ -33,6 +33,7 @@ enum JunoDatastoreCollection {
 	LEAGUES = 'leagues',
 	LEAGUE_MEMBERS = 'league_members',
 	LEAGUE_INVITES = 'league_invites',
+	LEAGUE_INVITE_ATTEMPTS = 'league_invite_attempts',
 	BATTLES = 'battles',
 	AFFILIATIONS = 'affiliations',
 	AFFILIATION_STATS = 'affiliation_stats',
@@ -297,6 +298,17 @@ export default defineConfig(({ mode }) => ({
 				// the only readers and writers.
 				{
 					collection: JunoDatastoreCollection.LEAGUE_INVITES,
+					memory: 'stable',
+					read: 'controllers',
+					write: 'controllers'
+				},
+				// The invite codes each account looked up or joined with in the
+				// last hour that opened no league, one doc per account keyed by
+				// the principal. Controllers-only: `lookupLeagueByInvite` and
+				// `joinLeagueByInvite` read it to refuse an account past its
+				// hourly cap and write each miss; the account purge drops it.
+				{
+					collection: JunoDatastoreCollection.LEAGUE_INVITE_ATTEMPTS,
 					memory: 'stable',
 					read: 'controllers',
 					write: 'controllers'

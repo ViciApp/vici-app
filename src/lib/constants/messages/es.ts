@@ -1309,7 +1309,9 @@ export const esMessages = {
 	'leagues.join.cta': 'Introduce un código válido',
 	'leagues.join.error_already_member': 'Ya estás en esta liga.',
 	'leagues.join.error_not_found': 'No hay liga con ese código. Revísalo.',
-	'leagues.join.label_code': 'Código de invitación (6 caracteres)',
+	'leagues.join.error_rate_limited':
+		'Demasiados códigos sin liga. Vuelve a intentarlo en una hora.',
+	'leagues.join.label_code': 'Código de invitación',
 	'leagues.join.sub': 'Pega el código de invitación. Los códigos son del tipo {code}.',
 	'leagues.join.submitting': 'Uniéndose…',
 	'leagues.join.title': 'Unirse con código',

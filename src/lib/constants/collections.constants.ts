@@ -100,7 +100,7 @@ export const Collection = {
 	REFERRALS: collections.REFERRALS,
 	/**
 	 * Social cohorts: user-created leagues. One doc per league, keyed by league id. Holds
-	 * name, 6-char alphanumeric invite code (for the join-by-code flow), owner principal, and
+	 * name, alphanumeric invite code (for the join-by-code flow), owner principal, and
 	 * marketing metadata. Members and battles live in follow-up collections so a league's metadata
 	 * stays cheap to read without joining the membership table.
 	 */
@@ -121,6 +121,13 @@ export const Collection = {
 	 * through `listMyLeagues`.
 	 */
 	LEAGUE_INVITES: collections.LEAGUE_INVITES,
+	/**
+	 * The invite codes an account looked up or joined with in the last hour that opened no league,
+	 * one doc per account keyed by its principal. Controllers-only: `lookupLeagueByInvite` and
+	 * `joinLeagueByInvite` refuse an account that has missed the hourly cap, so codes cannot be
+	 * guessed one after another.
+	 */
+	LEAGUE_INVITE_ATTEMPTS: collections.LEAGUE_INVITE_ATTEMPTS,
 	/**
 	 * Battles: time-bound competitions. Two kinds: 'league' (leagueA vs leagueB) and
 	 * 'duel' (proposer principal vs challenger principal). Doc key is the battle id. State machine

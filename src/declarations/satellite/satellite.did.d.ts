@@ -676,7 +676,7 @@ export interface AppJoinLeagueByInviteResult {
 					privacy: { open: null } | { private: null };
 				}
 		  ];
-	reason: [] | [{ already_member: null } | { not_found: null }];
+	reason: [] | [{ already_member: null } | { rate_limited: null } | { not_found: null }];
 }
 export interface AppListAffiliationChampionshipsArgs {
 	kind: { country: null } | { university: null };
@@ -1043,6 +1043,7 @@ export interface AppLookupLeagueByInviteResult {
 					privacy: { open: null } | { private: null };
 				}
 		  ];
+	reason: [] | [{ rate_limited: null }];
 }
 export interface AppLookupReferralCodeArgs {
 	code: string;

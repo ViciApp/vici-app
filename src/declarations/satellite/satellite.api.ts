@@ -1467,42 +1467,6 @@ const listWorldsRoster = async (
 	return AppListWorldsRosterResultSchema.parse(result);
 };
 
-const AppLookupLeagueByInviteArgsSchema = j.strictObject({ inviteCode: j.string() });
-const AppLookupLeagueByInviteResultSchema = j.strictObject({
-	league: j.optional(
-		j.strictObject({
-			id: j.string(),
-			name: j.string(),
-			description: j.optional(j.string()),
-			inviteCode: j.optional(j.string()),
-			owner: j.string(),
-			createdAtMs: j.number(),
-			accentColor: j.optional(j.string()),
-			emblem: j.optional(j.string()),
-			privacy: j.enum(['private', 'open']),
-			imageUrl: j.optional(j.string())
-		})
-	)
-});
-
-const lookupLeagueByInvite = async (
-	args: j.infer<typeof AppLookupLeagueByInviteArgsSchema>
-): Promise<j.infer<typeof AppLookupLeagueByInviteResultSchema>> => {
-	const parsedArgs = AppLookupLeagueByInviteArgsSchema.parse(args);
-	const idlArgs = schemaToIdl({
-		schema: AppLookupLeagueByInviteArgsSchema,
-		value: parsedArgs
-	}) as Parameters<SatelliteActor['app_lookup_league_by_invite']>[0];
-
-	const { app_lookup_league_by_invite } = await getSatelliteExtendedActor<SatelliteActor>({
-		idlFactory
-	});
-	const idlResult = await app_lookup_league_by_invite(idlArgs);
-
-	const result = schemaFromIdl({ schema: AppLookupLeagueByInviteResultSchema, value: idlResult });
-	return AppLookupLeagueByInviteResultSchema.parse(result);
-};
-
 const AppLookupReferralCodeArgsSchema = j.strictObject({ code: j.string() });
 const AppLookupReferralCodeResultSchema = j.strictObject({ owner: j.optional(j.string()) });
 
@@ -1870,7 +1834,7 @@ const AppJoinLeagueByInviteResultSchema = j.strictObject({
 			imageUrl: j.optional(j.string())
 		})
 	),
-	reason: j.optional(j.enum(['not_found', 'already_member']))
+	reason: j.optional(j.enum(['not_found', 'already_member', 'rate_limited']))
 });
 
 const joinLeagueByInvite = async (
@@ -1889,6 +1853,43 @@ const joinLeagueByInvite = async (
 
 	const result = schemaFromIdl({ schema: AppJoinLeagueByInviteResultSchema, value: idlResult });
 	return AppJoinLeagueByInviteResultSchema.parse(result);
+};
+
+const AppLookupLeagueByInviteArgsSchema = j.strictObject({ inviteCode: j.string() });
+const AppLookupLeagueByInviteResultSchema = j.strictObject({
+	league: j.optional(
+		j.strictObject({
+			id: j.string(),
+			name: j.string(),
+			description: j.optional(j.string()),
+			inviteCode: j.optional(j.string()),
+			owner: j.string(),
+			createdAtMs: j.number(),
+			accentColor: j.optional(j.string()),
+			emblem: j.optional(j.string()),
+			privacy: j.enum(['private', 'open']),
+			imageUrl: j.optional(j.string())
+		})
+	),
+	reason: j.optional(j.enum(['rate_limited']))
+});
+
+const lookupLeagueByInvite = async (
+	args: j.infer<typeof AppLookupLeagueByInviteArgsSchema>
+): Promise<j.infer<typeof AppLookupLeagueByInviteResultSchema>> => {
+	const parsedArgs = AppLookupLeagueByInviteArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppLookupLeagueByInviteArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_lookup_league_by_invite']>[0];
+
+	const { app_lookup_league_by_invite } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_lookup_league_by_invite(idlArgs);
+
+	const result = schemaFromIdl({ schema: AppLookupLeagueByInviteResultSchema, value: idlResult });
+	return AppLookupLeagueByInviteResultSchema.parse(result);
 };
 
 const AppMigrateLeagueInviteCodesResultSchema = j.strictObject({ migrated: j.number() });
@@ -2593,7 +2594,6 @@ export const functions = {
 	listSentFriendRequests,
 	listWorldsMemberCounts,
 	listWorldsRoster,
-	lookupLeagueByInvite,
 	lookupReferralCode,
 	searchProfiles,
 	acceptFriendRequest,
@@ -2608,6 +2608,7 @@ export const functions = {
 	followUser,
 	hibernateMyAccount,
 	joinLeagueByInvite,
+	lookupLeagueByInvite,
 	migrateLeagueInviteCodes,
 	pruneResolvedResults,
 	readBattleLiveScore,

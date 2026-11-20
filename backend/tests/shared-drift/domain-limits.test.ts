@@ -23,7 +23,10 @@ import { LEAGUE_IMAGE_JPEG_QUALITY, LEAGUE_IMAGE_SIZE_PX } from '../../src/leagu
 import {
 	LEAGUE_DESCRIPTION_MAX_LENGTH,
 	LEAGUE_EMBLEMS,
+	LEAGUE_INVITE_CODE_ALPHABET,
+	LEAGUE_INVITE_CODE_LENGTH,
 	LEAGUE_INVITE_CODE_REGEX,
+	LEAGUE_LEGACY_INVITE_CODE_LENGTH,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH
 } from '../../src/leagues/leagues';
@@ -188,6 +191,15 @@ describe('shared drift: leagues and battles', () => {
 
 		expect(LEAGUE_INVITE_CODE_REGEX.source).toBe(inviteCode.source);
 		expect(LEAGUE_INVITE_CODE_REGEX.flags).toBe(inviteCode.flags);
+
+		expectPairs({
+			pairs: { LEAGUE_INVITE_CODE_LENGTH, LEAGUE_LEGACY_INVITE_CODE_LENGTH },
+			read: (constName) => extractIntConst({ source: appSource.league, constName })
+		});
+
+		expect(LEAGUE_INVITE_CODE_ALPHABET).toBe(
+			extractStringConst({ source: appSource.league, constName: 'LEAGUE_INVITE_CODE_ALPHABET' })
+		);
 
 		const emblems: string[] = [...LEAGUE_EMBLEMS];
 

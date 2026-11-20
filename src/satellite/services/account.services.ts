@@ -859,7 +859,7 @@ const resolveOwnedLeague = ({
  * {@link recordAccountAwardMarkers}),
  * calibration attempts, user stats and monthly stats, resolved results, the
  * likes it gave, school-email submissions, referral code + redemption record,
- * affiliations, relations, league memberships. Owned leagues are then either deleted (no other members
+ * missed league invite codes, affiliations, relations, league memberships. Owned leagues are then either deleted (no other members
  * left) or transferred to a surviving member: see
  * {@link disbandOrTransferOwnedLeagues}; self-joiners during the recovery
  * window are never orphaned. Shared audit rows (activities, battles,
@@ -916,6 +916,12 @@ export const hardDeleteAccountFn = ({
 	});
 	docsDeleted += deleteOwnReferralCode(step);
 	docsDeleted += deleteOwnReferralRedemption(step);
+	// Controllers-scoped: listed as the controller too.
+	docsDeleted += deletePrefixedDocs({
+		...step,
+		callerBytes: step.writer,
+		collection: Collection.LEAGUE_INVITE_ATTEMPTS
+	});
 	docsDeleted += deleteOwnAffiliations({ ...step, collection: Collection.AFFILIATIONS });
 	docsDeleted += deleteOwnRelations(step);
 	docsDeleted += deleteOwnLeagueMemberships(step);

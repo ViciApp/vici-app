@@ -79,7 +79,8 @@ describe('etl collection registry', () => {
 			'event_rollups',
 			'chats',
 			'comments',
-			'vxp_award_markers'
+			'vxp_award_markers',
+			'league_invite_attempts'
 		]) {
 			const importer = importerFor(collection);
 
@@ -595,6 +596,47 @@ describe.if(dbAvailable)('leagues import', () => {
 		);
 
 		expect(leagues[0]?.invite_code).toBe(code);
+	});
+
+	test('imports a league and an invite code of the longer length', async () => {
+		const leagueId = `etl-long-${crypto.randomUUID().slice(0, 8)}`;
+		const codedId = `etl-long-${crypto.randomUUID().slice(0, 8)}`;
+		const longCode = (): string => crypto.randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase();
+		const [inviteCode, storedCode] = [longCode(), longCode()];
+
+		await importDocs({
+			collection: 'leagues',
+			docs: [
+				doc({
+					key: leagueId,
+					data: {
+						id: leagueId,
+						name: 'Long Code',
+						inviteCode,
+						owner: uniquePrincipal(),
+						createdAtMs: 1
+					}
+				}),
+				doc({
+					key: codedId,
+					data: { id: codedId, name: 'Stored Code', owner: uniquePrincipal(), createdAtMs: 1 }
+				})
+			]
+		});
+		await importDocs({
+			collection: 'league_invites',
+			docs: [doc({ key: codedId, data: { leagueId: codedId, inviteCode: storedCode } })]
+		});
+
+		const codes = await query<{ id: string; invite_code: string }>(
+			`select id, invite_code from leagues where id = any($1) order by id`,
+			[[leagueId, codedId]]
+		);
+
+		expect(Object.fromEntries(codes.map(({ id, invite_code }) => [id, invite_code]))).toEqual({
+			[leagueId]: inviteCode,
+			[codedId]: storedCode
+		});
 	});
 
 	test('imports leagues with legacy privacy fallback and duel side mapping', async () => {
