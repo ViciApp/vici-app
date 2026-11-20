@@ -302,6 +302,15 @@ amount`, with a `VXP_P_WIN_FLOOR` cap on long-shot display). The flow card does
 **not** load full book depth (a known N+1 perf footgun), so the preview models
 spread-level slippage from top-of-book, not multi-level depth walking.
 
+A market order fills by walking the book best level first
+([`walkMarketOrder`](../../../src/lib/utils/market-order.utils.ts), called by
+`placeOrder`). The walk spends **at most the call size**: each level gives no
+more than the rest of the sized `qty`, the level's size, and what the rest of
+the amount buys at that level's price, so on a thin book the call fills fewer
+shares at worse levels instead of costing more than the slider value. The
+analytics `value` of a market order is that real cost, not `qty` at the
+top-of-book price.
+
 ## Identity & auth
 
 - Principal source of truth:
