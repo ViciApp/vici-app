@@ -238,11 +238,28 @@ export const assertDeleteLeagueMember = ({
 };
 
 /**
+ * Every membership row of a league, the owner row included. The
+ * `league_members` key is `${leagueId}/${principal}`, so the scan is anchored
+ * to that prefix with a key matcher: the datastore skips (and never decodes)
+ * rows for other leagues, keeping this O(this-league's-members) rather than
+ * O(all-members).
+ */
+export const leagueMemberRows = ({
+	leagueId,
+	caller
+}: {
+	leagueId: string;
+	caller: Uint8Array;
+}): ReturnType<typeof listDocsStore>['items'] =>
+	listDocsStore({
+		collection: Collection.LEAGUE_MEMBERS,
+		caller,
+		params: { matcher: { key: `^${escapeRegex(`${leagueId}/`)}` } }
+	}).items;
+
+/**
  * Current member principals of a league: the members whose settled history a
- * league's score is read from. The `league_members` key is
- * `${leagueId}/${principal}`, so the scan is anchored to that prefix with a
- * key matcher: the datastore skips (and never decodes) rows for other
- * leagues, keeping this O(this-league's-members) rather than O(all-members).
+ * league's score is read from, scanned with {@link leagueMemberRows}.
  *
  * `joinedBeforeMs` keeps only memberships stored before that instant (the
  * doc's own `created_at`, never the client-written `joinedAtMs`), so a
@@ -262,15 +279,9 @@ export const leagueMemberPrincipals = ({
 		? undefined
 		: BigInt(joinedBeforeMs) * MILLISECOND_IN_NANOSECONDS;
 
-	const { items } = listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller,
-		params: { matcher: { key: `^${escapeRegex(prefix)}` } }
-	});
-
 	const principals: Principal[] = [];
 
-	for (const [key, item] of items) {
+	for (const [key, item] of leagueMemberRows({ leagueId, caller })) {
 		const inWindow = isNullish(joinedBeforeNs) || item.created_at < joinedBeforeNs;
 
 		if (key.startsWith(prefix) && inWindow) {

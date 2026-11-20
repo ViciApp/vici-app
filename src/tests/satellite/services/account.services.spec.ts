@@ -145,6 +145,61 @@ describe('account.services', () => {
 			assert.doesNotMatch(signalKey, new RegExp(time().toString(36)));
 		});
 
+		it('disbands a league over several calls and counts the confirmation once', () => {
+			const leagueId = 'owned-league';
+			const joinedBy = [
+				purged,
+				...Array.from({ length: 6 }, (_, i) => Principal.fromUint8Array(new Uint8Array([7, 7, i])))
+			];
+
+			host.putDoc({
+				collection: Collection.LEAGUES,
+				key: leagueId,
+				data: { id: leagueId, name: 'Owned', owner: purgedText, createdAtMs: 1 },
+				owner: purged
+			});
+
+			for (const principal of joinedBy) {
+				host.putDoc({
+					collection: Collection.LEAGUE_MEMBERS,
+					key: `${leagueId}/${principal.toText()}`,
+					data: {
+						leagueId,
+						member: principal.toText(),
+						role: principal === purged ? 'owner' : 'member',
+						joinedAtMs: 1
+					},
+					owner: principal
+				});
+			}
+
+			host.setCaller(purged);
+
+			const request = {
+				reason: 'privacy',
+				note: '',
+				leagueResolutions: [{ leagueId, action: 'delete' as const }]
+			};
+			const answers = [];
+			let answer = deleteMyAccountFn(request);
+
+			while (answer.reason === 'league_disband_pending') {
+				answers.push(answer);
+				answer = deleteMyAccountFn(request);
+			}
+
+			const confirmations = host
+				.keys(Collection.EVENTS)
+				.map((key) => host.readDoc<{ name: string }>({ collection: Collection.EVENTS, key }))
+				.filter((event) => event?.name === 'delete_confirmed');
+
+			assert.equal(answers.length, 2);
+			assert.deepEqual(answer, { ok: true, softDeleted: true });
+			assert.deepEqual(host.keys(Collection.LEAGUES), []);
+			assert.deepEqual(host.keys(Collection.LEAGUE_MEMBERS), []);
+			assert.equal(confirmations.length, 1);
+		});
+
 		it('refuses an exit signal written by anyone but a controller', () => {
 			const write = (caller: Principal) =>
 				setContext({

@@ -1,4 +1,5 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
 import {
 	controller,
@@ -7,7 +8,12 @@ import {
 	setContext,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
-import { assertDeleteLeague, assertSetLeague } from '#satellite/services/league.services.ts';
+import {
+	assertDeleteLeague,
+	assertSetLeague,
+	createLeagueFn,
+	deleteLeagueFn
+} from '#satellite/services/league.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
@@ -130,5 +136,108 @@ describe('league.services', () => {
 				/immutable/
 			);
 		});
+	});
+});
+
+describe('deleteLeagueFn', () => {
+	let host: SatelliteHost;
+
+	const others = Array.from({ length: 7 }, (_, i) =>
+		Principal.fromUint8Array(new Uint8Array([9, 9, i]))
+	);
+
+	const join = ({ principal, role }: { principal: Principal; role: LeagueMemberDoc['role'] }) => {
+		const doc: LeagueMemberDoc = {
+			leagueId: league.id,
+			member: principal.toText(),
+			role,
+			joinedAtMs: 1
+		};
+
+		host.putDoc({
+			collection: Collection.LEAGUE_MEMBERS,
+			key: `${league.id}/${principal.toText()}`,
+			data: doc,
+			owner: principal
+		});
+	};
+
+	const disbandAs = (caller: Principal) =>
+		deleteLeagueFn({
+			leagueId: league.id,
+			callerText: caller.toText(),
+			callerBytes: caller.toUint8Array()
+		});
+
+	const memberRows = () => host.keys(Collection.LEAGUE_MEMBERS);
+
+	beforeEach(() => {
+		host = installSatelliteHost();
+
+		const { inviteCode: _code, ...doc } = league;
+
+		host.putDoc({ collection: Collection.LEAGUES, key: league.id, data: doc, owner });
+		host.putDoc({
+			collection: Collection.LEAGUE_INVITES,
+			key: league.id,
+			data: { leagueId: league.id, inviteCode: 'ABC123' },
+			owner: controller
+		});
+		join({ principal: owner, role: 'owner' });
+
+		for (const principal of others) {
+			join({ principal, role: 'member' });
+		}
+	});
+
+	afterEach(() => host.restore());
+
+	it('disbands a league a bounded batch per call, the league doc first and the owner row last', () => {
+		assert.deepEqual(disbandAs(owner), { ok: true, pending: true });
+		assert.deepEqual(host.keys(Collection.LEAGUES), []);
+		assert.deepEqual(host.keys(Collection.LEAGUE_INVITES), []);
+		assert.equal(memberRows().length, 5);
+		assert.ok(memberRows().includes(`${league.id}/${owner.toText()}`));
+
+		assert.deepEqual(disbandAs(owner), { ok: true, pending: true });
+		assert.deepEqual(memberRows(), [`${league.id}/${owner.toText()}`]);
+
+		assert.deepEqual(disbandAs(owner), { ok: true });
+		assert.deepEqual(memberRows(), []);
+
+		assert.deepEqual(disbandAs(owner), { ok: true });
+	});
+
+	it('refuses a caller who does not own the league, and deletes nothing', () => {
+		assert.deepEqual(disbandAs(stranger), { ok: false, reason: 'not_owner' });
+		assert.equal(memberRows().length, 8);
+		assert.deepEqual(host.keys(Collection.LEAGUES), [league.id]);
+	});
+
+	it('leaves a disband under way to the owner', () => {
+		disbandAs(owner);
+
+		const left = memberRows();
+
+		assert.deepEqual(
+			deleteLeagueFn({
+				leagueId: league.id,
+				callerText: member.toText(),
+				callerBytes: member.toUint8Array()
+			}),
+			{ ok: true }
+		);
+		assert.deepEqual(disbandAs(others[6]), { ok: true });
+		assert.deepEqual(memberRows(), left);
+	});
+
+	it('refuses to found a league again under an id whose rows are still being deleted', async () => {
+		disbandAs(owner);
+		host.setCaller(stranger);
+
+		await assert.rejects(
+			createLeagueFn({ id: league.id, name: 'Taken Over', inviteCode: 'XYZ789' }),
+			/still in use/
+		);
 	});
 });

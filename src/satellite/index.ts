@@ -1123,6 +1123,8 @@ export const listMyBlockingLeagues = defineQuery({
 //    `failedLeagueId` + `resolutionReason` carry the underlying cause.
 //    The whole delete aborts (resolutions that committed before the
 //    failure stand).
+//  - `league_disband_pending`: a disband deletes a bounded batch of docs
+//    per call and has more left; the FE sends the same request again.
 export const deleteMyAccount = defineUpdate({
 	args: j.strictObject({
 		reason: j.string(),
@@ -1140,7 +1142,12 @@ export const deleteMyAccount = defineUpdate({
 	result: j.strictObject({
 		ok: j.boolean(),
 		reason: j.optional(
-			j.enum(['owns_non_empty_league', 'league_resolution_failed', 'invalid_input'])
+			j.enum([
+				'owns_non_empty_league',
+				'league_resolution_failed',
+				'league_disband_pending',
+				'invalid_input'
+			])
 		),
 		blockingLeagueIds: j.optional(j.array(j.string())),
 		failedLeagueId: j.optional(j.string()),

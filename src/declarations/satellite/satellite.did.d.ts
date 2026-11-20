@@ -142,6 +142,7 @@ export interface AppDeleteMyAccountResult {
 	reason:
 		| []
 		| [
+				| { league_disband_pending: null }
 				| { league_resolution_failed: null }
 				| { owns_non_empty_league: null }
 				| { invalid_input: null }

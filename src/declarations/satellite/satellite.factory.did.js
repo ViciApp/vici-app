@@ -139,6 +139,7 @@ export const idlFactory = ({ IDL }) => {
 		soft_deleted: IDL.Opt(IDL.Bool),
 		reason: IDL.Opt(
 			IDL.Variant({
+				league_disband_pending: IDL.Null,
 				league_resolution_failed: IDL.Null,
 				owns_non_empty_league: IDL.Null,
 				invalid_input: IDL.Null

@@ -19,7 +19,11 @@ import {
 } from '#satellite/services/analytics.services.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
 import { deleteLeagueInvite } from '#satellite/services/league-invite.services.ts';
-import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
+import {
+	deleteLeagueFn,
+	leagueDisbandInProgress,
+	transferLeagueOwnershipFn
+} from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
 import { isReferralPayoutRecord } from '#satellite/services/referral.services.ts';
 import { recordAccountAwardMarkers } from '#satellite/services/vxp-award-markers.services.ts';
@@ -64,7 +68,10 @@ type ListedDocEntry = ReturnType<typeof listDocsStore>['items'][number];
  *     'league_resolution_failed'` (plus `failedLeagueId` +
  *     `resolutionReason`) and NOTHING further runs, but resolutions
  *     applied before the failure have already committed (see the
- *     recovery caveat below).
+ *     recovery caveat below). A disband deletes a bounded batch of docs
+ *     per call: while one has more left, the call stops there with
+ *     `reason: 'league_disband_pending'` and the FE sends the same
+ *     request again until it gets past step 1.
  *
  *  2. **Owner-leagues guard.** If, after resolution, the caller still
  *     owns any league that has another member, the deletion is refused
@@ -110,7 +117,7 @@ type ListedDocEntry = ReturnType<typeof listDocsStore>['items'][number];
  */
 
 export type DeleteMyAccountRefusalReason =
-	'owns_non_empty_league' | 'league_resolution_failed' | 'invalid_input';
+	'owns_non_empty_league' | 'league_resolution_failed' | 'league_disband_pending' | 'invalid_input';
 
 /**
  * One owner-league resolution the caller applies as part of deletion.
@@ -959,7 +966,8 @@ const callerOwnsLeague = ({
 /**
  * Apply one league resolution (transfer / delete) on behalf of the
  * caller. Returns `null` on success (or when the league isn't owned by
- * the caller: a clean skip), or a populated failure object to abort
+ * the caller: a clean skip), `pendingLeagueId` when a disband has more
+ * docs left for the next call, or a populated failure object to abort
  * the surrounding delete.
  *
  * `transfer` reuses {@link transferLeagueOwnershipFn} (which reads
@@ -975,8 +983,17 @@ const applyLeagueResolution = ({
 	resolution: LeagueResolution;
 	callerText: string;
 	callerBytes: Uint8Array;
-}): { failedLeagueId: string; resolutionReason: string } | null => {
+}): { failedLeagueId: string; resolutionReason: string } | { pendingLeagueId: string } | null => {
 	const { leagueId, action, transferTo } = resolution;
+
+	if (action === 'delete') {
+		// `deleteLeagueFn` checks ownership itself, the owner row standing
+		// in for the league doc once a disband has deleted it; a league the
+		// caller doesn't own (`not_owner`) is left untouched, as below.
+		const result = deleteLeagueFn({ leagueId, callerText, callerBytes });
+
+		return result.pending === true ? { pendingLeagueId: leagueId } : null;
+	}
 
 	// Only act on leagues the caller actually owns. A non-owned league
 	// is left untouched; the blocking guard downstream still protects
@@ -985,27 +1002,34 @@ const applyLeagueResolution = ({
 		return null;
 	}
 
-	if (action === 'transfer') {
-		if (isNullish(transferTo)) {
-			return { failedLeagueId: leagueId, resolutionReason: 'invalid_input' };
-		}
-
-		// `transferLeagueOwnershipFn` reads `msgCaller()` internally; the
-		// account-delete handler runs as the same caller (the owner), so
-		// the transfer is authorised without threading the caller through.
-		const result = transferLeagueOwnershipFn({ leagueId, newOwnerPrincipal: transferTo });
-
-		return result.ok
-			? null
-			: { failedLeagueId: leagueId, resolutionReason: result.reason ?? 'unknown' };
+	if (isNullish(transferTo)) {
+		return { failedLeagueId: leagueId, resolutionReason: 'invalid_input' };
 	}
 
-	const result = deleteLeagueFn({ leagueId, callerText, callerBytes });
+	// `transferLeagueOwnershipFn` reads `msgCaller()` internally; the
+	// account-delete handler runs as the same caller (the owner), so
+	// the transfer is authorised without threading the caller through.
+	const result = transferLeagueOwnershipFn({ leagueId, newOwnerPrincipal: transferTo });
 
 	return result.ok
 		? null
 		: { failedLeagueId: leagueId, resolutionReason: result.reason ?? 'unknown' };
 };
+
+/** Whether a `delete` resolution names a league whose disband this caller has under way. */
+const resumesLeagueDisband = ({
+	leagueResolutions,
+	callerText,
+	callerBytes
+}: {
+	leagueResolutions: LeagueResolution[] | undefined;
+	callerText: string;
+	callerBytes: Uint8Array;
+}): boolean =>
+	(leagueResolutions ?? []).some(
+		({ leagueId, action }) =>
+			action === 'delete' && leagueDisbandInProgress({ leagueId, callerText, callerBytes })
+	);
 
 export const deleteMyAccountFn = ({
 	reason,
@@ -1034,23 +1058,29 @@ export const deleteMyAccountFn = ({
 	// type-to-confirm gate passed (the FE only calls after the handle
 	// matched), so this call IS the `delete_confirmed` moment, including
 	// a re-confirm after a refusal bounce, which is a genuine new attempt.
-	captureDeleteEvents([{ name: 'delete_confirmed', principal: callerText }]);
+	// A call that resumes a disband an earlier call of this delete started
+	// is the same attempt, so it is not counted again.
+	if (!resumesLeagueDisband({ leagueResolutions, callerText, callerBytes })) {
+		captureDeleteEvents([{ name: 'delete_confirmed', principal: callerText }]);
+	}
 
 	// Step 1: league resolution. Apply each transfer / delete the
 	// caller chose, BEFORE the blocking guard. A failed resolution
 	// aborts the whole delete (resolutions are applied immediately, so
 	// any that already committed stand: see the recovery caveat in the
-	// JSDoc above).
+	// JSDoc above); a disband with docs left stops this call there.
 	for (const resolution of leagueResolutions ?? []) {
-		const failure = applyLeagueResolution({ resolution, callerText, callerBytes });
+		const outcome = applyLeagueResolution({ resolution, callerText, callerBytes });
 
-		if (nonNullish(failure)) {
-			return {
-				ok: false,
-				reason: 'league_resolution_failed',
-				failedLeagueId: failure.failedLeagueId,
-				resolutionReason: failure.resolutionReason
-			};
+		if (nonNullish(outcome)) {
+			return 'pendingLeagueId' in outcome
+				? { ok: false, reason: 'league_disband_pending' }
+				: {
+						ok: false,
+						reason: 'league_resolution_failed',
+						failedLeagueId: outcome.failedLeagueId,
+						resolutionReason: outcome.resolutionReason
+					};
 		}
 	}
 
