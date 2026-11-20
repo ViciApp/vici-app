@@ -120,9 +120,11 @@ cannot forge a win for themselves or a friend. Only a role that can
 settle (or a controller) may post the settlement activity that triggers
 the write, on both stacks, and posting it again keeps every row's first
 resolution time. The collection is
-public-read and consumed friend-scoped (a single owner-prefix scan over
+controllers-read: on the satellite a client reads it only through `listFriendResolvedResults`, which answers the caller's own rows and those of their active friends whose account is neither deleted nor hibernated, any other requested principal reading as having no results (a single owner-prefix scan over
 a caller's friend set, never one call per friend) and is the data source
-for the friend results digest. There is **no source for a friend's
+for the friend results digest. The web2 API answers only the rows of the
+caller's active friends whose account is neither deleted nor hibernated;
+any other requested id reads as having no results. There is **no source for a friend's
 per-call outcome otherwise**: clearing trade-history is caller-scoped, and
 the single settlement activity row is the resolver's market-level result,
 not a per-participant one. Rows past the retention horizon

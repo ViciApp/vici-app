@@ -469,13 +469,14 @@ const deleteMatchingDocs = ({
 
 /**
  * Drop the caller's resolved results (`resolved_results` is keyed
- * `${principal}#${marketId}`).
+ * `${principal}#${marketId}`), listed as `writer`: the collection is
+ * controllers-only.
  */
-const deleteOwnResolvedResults = ({ callerText, callerBytes, writer }: CascadeStep): number =>
+const deleteOwnResolvedResults = ({ callerText, writer }: CascadeStep): number =>
 	deleteMatchingDocs({
 		collection: Collection.RESOLVED_RESULTS,
 		keyPattern: `^${escapeRegex(callerText)}#`,
-		listAs: callerBytes,
+		listAs: writer,
 		writer
 	}).length;
 

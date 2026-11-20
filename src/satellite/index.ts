@@ -1253,11 +1253,11 @@ export const getMarketTags = defineQuery({
 	handler: () => getMarketTagsFn()
 });
 
-// Friend-scoped bulk read for the resolved-results digest (the consumer that
-// renders these rows ships separately). Returns the supplied friend set's
-// resolved-result rows over the active retention window in ONE bounded
-// owner-prefix scan, never one call per friend. Public read; the FE scopes the
-// `friends` set to the caller's confirmed friends.
+// Friend-scoped bulk read for the resolved-results digest. Of the supplied
+// principals it returns the caller's own rows and their active, visible
+// friends' over the active retention window in ONE bounded owner-prefix scan,
+// never one call per friend; anyone else reads as having no results. The
+// collection is controllers-only, so this is the one client read of it.
 export const listFriendResolvedResults = defineQuery({
 	args: ListFriendResolvedResultsArgsSchema,
 	result: j.strictObject({

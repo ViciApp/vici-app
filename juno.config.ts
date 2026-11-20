@@ -220,15 +220,17 @@ export default defineConfig(({ mode }) => ({
 					write: 'controllers'
 				},
 				// Per-participant resolved-result rows for the friend-readable
-				// results feed. Public read (the friend-scoped digest reads
-				// them); controllers write so only the satellite resolution hook
-				// (writing as admin, derived from the clearing settlement plan)
-				// can record a result; a client can't forge a win. Rows past the
-				// retention horizon are pruned by the controllers-only cleanup.
+				// results feed. Controllers read: a client reads them only through
+				// `listFriendResolvedResults`, which answers the caller's own rows
+				// and their active, visible friends'. Controllers write so only the
+				// satellite resolution hook (writing as admin, derived from the
+				// clearing settlement plan) can record a result; a client can't
+				// forge a win. Rows past the retention horizon are pruned by the
+				// controllers-only cleanup.
 				{
 					collection: JunoDatastoreCollection.RESOLVED_RESULTS,
 					memory: 'stable',
-					read: 'public',
+					read: 'controllers',
 					write: 'controllers'
 				},
 				{
