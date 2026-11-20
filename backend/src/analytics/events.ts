@@ -10,13 +10,15 @@ import { DAY_IN_MS, nowNs } from '../lib/time';
 import {
 	ANALYTICS_PROP_KEYS,
 	isAnalyticsEventName,
+	isServerAnalyticsEventName,
 	isValidPropValue,
 	type AnalyticsEventName,
 	type AnalyticsEventProps
 } from './taxonomy';
 
-/** Defensive cap so one call cannot write an unbounded number of rows. */
-export const MAX_EVENTS_PER_BATCH = 100;
+/** Most events one call stores: the app flushes its buffer once it holds this
+ * many, so a real batch never exceeds it. */
+export const MAX_EVENTS_PER_BATCH = 20;
 
 // Length caps on an ingest event's free strings. The ingest is anonymous, so
 // these bound what one request can make the log store; real values sit far
@@ -183,8 +185,9 @@ const bumpRollup = async ({
  * Client ingest: the app batches behavioural events and flushes them here.
  * The server stamps the authoritative timestamp; identity is the pseudonymous
  * link to the session user (null for anonymous visitors). At most
- * MAX_EVENTS_PER_BATCH rows are written per call; the overflow is dropped and
- * the accepted count reported back.
+ * MAX_EVENTS_PER_BATCH rows are written per call; the overflow is dropped, as
+ * is any event in SERVER_ANALYTICS_EVENT_NAMES, and the accepted count
+ * reported back.
  */
 export const trackEvents = async ({
 	events,
@@ -193,11 +196,14 @@ export const trackEvents = async ({
 	events: unknown[];
 	userId?: string;
 }): Promise<{ accepted: number }> => {
-	if (events.length === 0) {
+	const batch = events
+		.slice(0, MAX_EVENTS_PER_BATCH)
+		.map(parseTrackEvent)
+		.filter(({ name }) => !isServerAnalyticsEventName(name));
+
+	if (batch.length === 0) {
 		return { accepted: 0 };
 	}
-
-	const batch = events.slice(0, MAX_EVENTS_PER_BATCH).map(parseTrackEvent);
 
 	const tsMs = Date.now();
 	const stamp = nextStampNs();

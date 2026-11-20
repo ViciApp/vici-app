@@ -1,11 +1,14 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAILY_HARD_CAP } from '#lib/constants/flow-rewards.constants.ts';
+import { MAX_PROFILE_POINTS } from '#lib/constants/profile.constants.ts';
 import { UserRole } from '#lib/enums/user.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import {
+	answerSettlementAccuracy,
 	controller,
 	deleteContext,
+	hostNowMs,
 	installSatelliteHost,
 	setContext,
 	type SatelliteHost
@@ -13,7 +16,8 @@ import {
 import { assertSetDoc } from '#satellite/index.ts';
 import {
 	getUserRankAndCountFn,
-	listLeaderboard
+	listLeaderboard,
+	refreshLeaderboardRankingFn
 } from '#satellite/services/leaderboard.services.ts';
 import { APP_CONFIG_NEW_PROFILE_GATE_KEY } from '#satellite/services/new-profile-gate.services.ts';
 import {
@@ -50,7 +54,7 @@ describe('profile.services', () => {
 				key: owner.toText(),
 				current: profile,
 				currentOwner: owner,
-				proposed: { ...profile, deletedAtMs: 1 }
+				proposed: { ...profile, level: 2 }
 			});
 
 		it("rejects a write to another user's profile", () => {
@@ -137,6 +141,39 @@ describe('profile.services', () => {
 			assert.doesNotThrow(() =>
 				assertProfile(write({ caller: controller, current: profile, schoolStatus: 'verified' }))
 			);
+		});
+	});
+
+	describe('assertProfile on points', () => {
+		const write = ({ current, points }: { current: object; points: unknown }) =>
+			setContext({
+				caller: owner,
+				collection: Collection.PROFILES,
+				key: owner.toText(),
+				current,
+				currentOwner: owner,
+				proposed: { ...profile, points }
+			});
+
+		it('rejects points that are not a whole number up to the ceiling', () => {
+			for (const points of [-5, 12.5, '900', 1e300, MAX_PROFILE_POINTS + 1]) {
+				assert.throws(
+					() => assertProfile(write({ current: profile, points })),
+					/points must be a whole number from 0 to/
+				);
+			}
+		});
+
+		it('lets the owner write whole points up to the ceiling', () => {
+			for (const points of [0, 1_250, MAX_PROFILE_POINTS]) {
+				assert.doesNotThrow(() => assertProfile(write({ current: profile, points })));
+			}
+		});
+
+		it('lets a write keep a stored value it does not change', () => {
+			const stored = { ...profile, points: 12.5 };
+
+			assert.doesNotThrow(() => assertProfile(write({ current: stored, points: 12.5 })));
 		});
 	});
 
@@ -264,6 +301,73 @@ describe('profile.services', () => {
 		});
 	});
 
+	describe('assertProfile on the account state', () => {
+		const deleted = { ...profile, deletedAtMs: 1 };
+		const paused = { ...profile, hibernatedAtMs: 1 };
+
+		const write = ({
+			caller = owner,
+			current,
+			proposed
+		}: {
+			caller?: Principal;
+			current: object;
+			proposed: object;
+		}) =>
+			setContext({
+				caller,
+				collection: Collection.PROFILES,
+				key: owner.toText(),
+				current,
+				currentOwner: owner,
+				proposed
+			});
+
+		it('rejects the owner clearing a soft delete or a pause', () => {
+			assert.throws(
+				() => assertProfile(write({ current: deleted, proposed: profile })),
+				/set by the satellite/
+			);
+			assert.throws(
+				() => assertProfile(write({ current: paused, proposed: profile })),
+				/set by the satellite/
+			);
+		});
+
+		it('rejects the owner setting or moving one', () => {
+			assert.throws(
+				() => assertProfile(write({ current: profile, proposed: deleted })),
+				/set by the satellite/
+			);
+			assert.throws(
+				() => assertProfile(write({ current: deleted, proposed: { ...profile, deletedAtMs: 2 } })),
+				/set by the satellite/
+			);
+			assert.throws(
+				() => assertProfile(write({ current: profile, proposed: paused })),
+				/set by the satellite/
+			);
+		});
+
+		it('lets the owner keep the stored state', () => {
+			assert.doesNotThrow(() =>
+				assertProfile(write({ current: deleted, proposed: { ...deleted, level: 2 } }))
+			);
+			assert.doesNotThrow(() =>
+				assertProfile(write({ current: paused, proposed: { ...paused, level: 2 } }))
+			);
+		});
+
+		it('lets a satellite controller change it', () => {
+			assert.doesNotThrow(() =>
+				assertProfile(write({ caller: controller, current: deleted, proposed: profile }))
+			);
+			assert.doesNotThrow(() =>
+				assertProfile(write({ caller: controller, current: profile, proposed: paused }))
+			);
+		});
+	});
+
 	describe('assertProfileOwner', () => {
 		const remove = (caller: Principal) =>
 			deleteContext({
@@ -308,7 +412,13 @@ describe('profile.services', () => {
 			assert.equal(read?.role, undefined);
 		});
 
-		it("ranks and lists under the doc key, without the other principal's role", () => {
+		it("ranks and lists under the doc key, without the other principal's role", async () => {
+			answerSettlementAccuracy({
+				host,
+				settlements: [{ principal: owner, atMs: hostNowMs - 1, calls: 20, wins: 15 }]
+			});
+			await refreshLeaderboardRankingFn();
+
 			const [top] = listLeaderboard();
 
 			assert.equal(top?.owner, owner.toText());

@@ -16,6 +16,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 - `requireUser(request)` (`src/auth/guard.ts`) returns the `AuthedUser` or `null`; on `null` return `unauthenticated(set)` (401). Admin endpoints check `requireUser` first and then `requireAdmin` (same file) with `forbidden(set)` (403), so the 401/403 split stays honest: `src/routes/vxp.ts` (`/admin/treasury`).
 - Sessions are cookies; never read a user id from the body or the query.
+- Every write (any method but `GET`, `HEAD`, `OPTIONS`) passes the guard `src/index.ts` runs on each request (`refuseUnsafeRequest`, `src/lib/same-origin.ts`): it must come from an origin of the CORS allowlist (a request without an `Origin` passes unless its fetch metadata says another site made it), and a JSON route takes a JSON body only, since the session cookie is `SameSite=Lax` and a sibling subdomain's form would otherwise post a body the route parses. A route that takes another body (a form, a multipart upload) gets an entry in `NON_JSON_ROUTES` (same file); one another site posts by design (`POST /auth/apple/callback`) is marked `crossSite` and carries its own check.
 
 ## Errors
 
@@ -53,5 +54,5 @@ The patterns the API really uses, each with one example to copy. All paths are u
 ## Rate limiting
 
 - `enforceLimit({ set, name, ip, limit, windowMs })` (`src/lib/rate-limit.ts`) with `clientIp(request)` from `src/lib/http.ts`, on every unauthenticated endpoint that sends email, issues a session, writes rows or can be enumerated. A signed-in endpoint that checks a guessable code, or fans out costly work on every call, keys it by the account instead (`ip: user.id`, `src/routes/school.ts` `/verify`, the trade activity in `src/routes/social.ts`), so a shared campus network does not pool users. In-memory, per instance.
-- An endpoint that writes what an anonymous caller sends also bounds its size: `maxItems` on the body array and a length cap on every free string, both as named constants in the domain (`MAX_EVENTS_PER_BATCH`, `MAX_PATH_LENGTH` in `src/analytics/events.ts`). Under that, `MAX_REQUEST_BODY_BYTES` (`src/index.ts`) caps every request body in the server.
+- An endpoint that writes what an anonymous caller sends also bounds its size: `maxItems` on the body array and a length cap on every free string, both as named constants in the domain (`MAX_EVENTS_PER_BATCH`, `MAX_PATH_LENGTH` in `src/analytics/events.ts`), and drops what only the server may write (`SERVER_ANALYTICS_EVENT_NAMES` in `src/analytics/taxonomy.ts`). Under that, `MAX_REQUEST_BODY_BYTES` (`src/index.ts`) caps every request body in the server.
 - Each limit is a named constant at the top of its route module, with its window in the name (`OTP_VERIFY_LIMIT_PER_TEN_MINUTES` in `src/routes/auth.ts`, `INGEST_LIMIT_PER_MINUTE` in `src/routes/events.ts`), and the window is a duration from `src/lib/time.ts`; never an inline number in the `enforceLimit` call.
