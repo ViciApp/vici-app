@@ -1,25 +1,24 @@
 // Worlds standings. Two windows per affiliation, both recomputed on read
 // over the CURRENT opted-in roster: the lifetime window from each member's
 // profile totals (a joining member brings their full record; a leaver takes
-// it away) and the monthly window from user_monthly_stats. Both are views.
-// A CLOSED month is different: its ranking is computed from settled history
-// (each member's settled calls over the month, read from the clearing
-// canister, never a client-written counter) and frozen once as immutable
+// it away) and the monthly window from settled history (each member's
+// settled calls over the month so far, read from the clearing canister,
+// never a client-written counter, and reused for a few minutes across
+// reads). Both are views. A CLOSED month is different: its ranking is
+// computed once from the same settled history and frozen as immutable
 // snapshot rows (write-once by primary key plus the all-or-nothing month
 // gate), so podium awards and champion cups can never drift as the roster
 // later churns.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { Principal } from '@icp-sdk/core/principal';
-import { settlementPrincipalsByUser } from '../auth/identity';
+import { settledTotalsByUser } from '../auth/identity';
 import { query, tx } from '../db/client';
-import { settledTotalsByPrincipal } from '../engine/clearing';
+import { cached, SETTLED_STANDINGS_TTL_MS } from '../engine/cache';
 import { logger } from '../lib/logger';
 import {
 	MONTH_ANCHOR_RE,
 	monthAnchorFromMs,
-	monthEndMs,
-	monthStartMs,
+	monthWindowSoFar,
 	previousMonthAnchor
 } from '../lib/time';
 import { AFFILIATION_KINDS, type AffiliationKind } from './affiliations';
@@ -123,46 +122,87 @@ const aggregateMembersLifetime = async ({
 	);
 };
 
+type MonthTallies = Map<string, { monthTotalCalls: number; monthWins: number }>;
+
 /**
- * Display per-month tally per affiliation of a kind over the current
- * opted-in roster, folded from each member's user_monthly_stats row for the
- * month. Those rows are not server-derived, so this never ranks a payout:
- * the podium reads {@link settledMonthlyRows}.
+ * Each affiliation's settled calls and wins over the month so far (see
+ * {@link monthWindowSoFar}), read from the clearing canister through the
+ * helper league battles are scored with. A member counts when opted in to
+ * Worlds sharing and holding a slot joined before the window ends, so a join
+ * after close can neither collect the prize nor lift the ranking.
  */
-const aggregateMembersForMonth = async ({
+const settledMonthTallies = async ({
 	kind,
 	monthAnchor,
-	affiliationIdentifier
+	nowMs
 }: {
 	kind: AffiliationKind;
 	monthAnchor: string;
-	affiliationIdentifier?: string;
-}): Promise<Map<string, { monthTotalCalls: number; monthWins: number }>> => {
-	const rows = await query<{
-		affiliation_identifier: string;
-		month_total_calls: string;
-		month_wins: string;
-	}>(
-		`select a.affiliation_identifier,
-		        sum(ms.month_calls)::text as month_total_calls,
-		        sum(ms.month_wins)::text as month_wins
+	nowMs: number;
+}): Promise<MonthTallies> => {
+	const tallies: MonthTallies = new Map();
+	const window = monthWindowSoFar({ monthAnchor, nowMs });
+
+	if (isNullish(window)) {
+		return tallies;
+	}
+
+	const members = await query<{ member_user_id: string; affiliation_identifier: string }>(
+		`select a.member_user_id, a.affiliation_identifier
 		 from affiliations a
-		 join user_monthly_stats ms
-		   on ms.user_id = a.member_user_id and ms.month_anchor = $2
 		 left join profiles p on p.user_id = a.member_user_id
 		 where a.kind = $1
-		   and ($3::text is null or a.affiliation_identifier = $3)
-		   and ${WORLDS_OPTED_IN}
-		 group by a.affiliation_identifier`,
-		[kind, monthAnchor, affiliationIdentifier ?? null]
+		   and a.joined_at_ms < $2
+		   and ${WORLDS_OPTED_IN}`,
+		[kind, window.toMs]
 	);
+	const settled = await settledTotalsByUser({
+		userIds: members.map((m) => m.member_user_id),
+		fromMs: window.fromMs,
+		toMs: window.toMs
+	});
 
-	return new Map(
-		rows.map((row) => [
-			row.affiliation_identifier,
-			{ monthTotalCalls: Number(row.month_total_calls), monthWins: Number(row.month_wins) }
-		])
-	);
+	for (const { member_user_id, affiliation_identifier } of members) {
+		const totals = settled.get(member_user_id);
+
+		if (nonNullish(totals)) {
+			const bucket = tallies.get(affiliation_identifier) ?? { monthTotalCalls: 0, monthWins: 0 };
+
+			bucket.monthTotalCalls += totals.calls;
+			bucket.monthWins += totals.wins;
+			tallies.set(affiliation_identifier, bucket);
+		}
+	}
+
+	return tallies;
+};
+
+/**
+ * {@link settledMonthTallies} for display, shared by every read of the same
+ * kind and month for {@link SETTLED_STANDINGS_TTL_MS}. The open and the
+ * closed month are cached apart, so a tally read just before the close is
+ * never served as the closed month's. The freeze never reads through this.
+ */
+const displayMonthTallies = async ({
+	kind,
+	monthAnchor,
+	nowMs
+}: {
+	kind: AffiliationKind;
+	monthAnchor: string;
+	nowMs: number;
+}): Promise<MonthTallies> => {
+	const window = monthWindowSoFar({ monthAnchor, nowMs });
+
+	if (isNullish(window)) {
+		return new Map();
+	}
+
+	return await cached({
+		key: `worlds-month:${kind}:${monthAnchor}:${window.closed ? 'closed' : 'open'}`,
+		ttlMs: SETTLED_STANDINGS_TTL_MS,
+		load: async () => await settledMonthTallies({ kind, monthAnchor, nowMs })
+	});
 };
 
 /**
@@ -183,9 +223,9 @@ export const getAffiliationStats = async ({
 	const lifetime = (await aggregateMembersLifetime({ kind, affiliationIdentifier })).get(
 		affiliationIdentifier
 	);
-	const month = (
-		await aggregateMembersForMonth({ kind, monthAnchor: anchor, affiliationIdentifier })
-	).get(affiliationIdentifier);
+	const month = (await displayMonthTallies({ kind, monthAnchor: anchor, nowMs })).get(
+		affiliationIdentifier
+	);
 
 	if (isNullish(lifetime) && isNullish(month)) {
 		return;
@@ -219,7 +259,7 @@ export const listAffiliationStats = async ({
 }): Promise<AffiliationStats[]> => {
 	const anchor = monthAnchorFromMs(nowMs);
 	const lifetime = await aggregateMembersLifetime({ kind });
-	const monthly = await aggregateMembersForMonth({ kind, monthAnchor: anchor });
+	const monthly = await displayMonthTallies({ kind, monthAnchor: anchor, nowMs });
 
 	const stats: AffiliationStats[] = [];
 
@@ -261,7 +301,7 @@ const rankEligibleMonthlyRows = ({
 	kind: AffiliationKind;
 	monthAnchor: string;
 	nowMs: number;
-	monthly: Map<string, { monthTotalCalls: number; monthWins: number }>;
+	monthly: MonthTallies;
 }): AffiliationStats[] => {
 	const rows: AffiliationStats[] = [];
 
@@ -285,12 +325,8 @@ const rankEligibleMonthlyRows = ({
 
 /**
  * The rank-eligible rows of a closed month computed from settled history:
- * what the freeze captures and the podium pays from. Each affiliation's
- * tally is its members' settled calls and wins over [month start, month
- * close), read from the clearing canister through the helper league battles
- * are scored with. A member counts when opted in to Worlds sharing and
- * holding a slot joined before the month closed, so a join after close can
- * neither collect the prize nor lift the ranking.
+ * what the freeze captures and the podium pays from, over [month start,
+ * month close). Read straight from clearing, never from the display cache.
  */
 export const settledMonthlyRows = async ({
 	kind,
@@ -300,47 +336,13 @@ export const settledMonthlyRows = async ({
 	kind: AffiliationKind;
 	monthAnchor: string;
 	nowMs: number;
-}): Promise<AffiliationStats[]> => {
-	const closeMs = monthEndMs(monthAnchor);
-	const members = await query<{ member_user_id: string; affiliation_identifier: string }>(
-		`select a.member_user_id, a.affiliation_identifier
-		 from affiliations a
-		 left join profiles p on p.user_id = a.member_user_id
-		 where a.kind = $1
-		   and a.joined_at_ms < $2
-		   and ${WORLDS_OPTED_IN}`,
-		[kind, closeMs]
-	);
-	const byUser = await settlementPrincipalsByUser(members.map((m) => m.member_user_id));
-	const affiliationOfPrincipal = new Map<string, string>();
-
-	for (const { member_user_id, affiliation_identifier } of members) {
-		for (const principal of byUser.get(member_user_id) ?? []) {
-			affiliationOfPrincipal.set(principal, affiliation_identifier);
-		}
-	}
-
-	const settled = await settledTotalsByPrincipal({
-		members: [...affiliationOfPrincipal.keys()].map((text) => Principal.fromText(text)),
-		fromMs: monthStartMs(monthAnchor),
-		toMs: closeMs
+}): Promise<AffiliationStats[]> =>
+	rankEligibleMonthlyRows({
+		kind,
+		monthAnchor,
+		nowMs,
+		monthly: await settledMonthTallies({ kind, monthAnchor, nowMs })
 	});
-	const monthly = new Map<string, { monthTotalCalls: number; monthWins: number }>();
-
-	for (const [principal, { calls, wins }] of settled) {
-		const affiliationIdentifier = affiliationOfPrincipal.get(principal);
-
-		if (nonNullish(affiliationIdentifier)) {
-			const bucket = monthly.get(affiliationIdentifier) ?? { monthTotalCalls: 0, monthWins: 0 };
-
-			bucket.monthTotalCalls += calls;
-			bucket.monthWins += wins;
-			monthly.set(affiliationIdentifier, bucket);
-		}
-	}
-
-	return rankEligibleMonthlyRows({ kind, monthAnchor, nowMs, monthly });
-};
 
 interface AffiliationStatsRow {
 	kind: AffiliationKind;
@@ -464,8 +466,8 @@ export const frozenMonthlyRanking = async ({
 
 /**
  * Ranked rows for a specific month, for display: the frozen ranking once the
- * month is frozen, else a provisional live recompute over the current
- * opted-in roster from user_monthly_stats. Sort matches the leaderboard.
+ * month is frozen, else the provisional settled tallies so far over the
+ * current opted-in roster. Sort matches the leaderboard.
  */
 export const listAffiliationStatsForMonth = async ({
 	kind,
@@ -486,7 +488,7 @@ export const listAffiliationStatsForMonth = async ({
 		kind,
 		monthAnchor,
 		nowMs,
-		monthly: await aggregateMembersForMonth({ kind, monthAnchor })
+		monthly: await displayMonthTallies({ kind, monthAnchor, nowMs })
 	});
 
 	return live.sort(monthlyComparator);

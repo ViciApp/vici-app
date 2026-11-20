@@ -78,6 +78,26 @@ export const monthEndMs = (monthAnchor: string): number => {
 	return Date.UTC(Number(year), Number(month), 1);
 };
 
+/** The part of a month that has elapsed by `nowMs`: [month start, month
+ * close) once the month is over, [month start, nowMs) while it is open,
+ * undefined before it starts. */
+export const monthWindowSoFar = ({
+	monthAnchor,
+	nowMs
+}: {
+	monthAnchor: string;
+	nowMs: number;
+}): { fromMs: number; toMs: number; closed: boolean } | undefined => {
+	const fromMs = monthStartMs(monthAnchor);
+	const closeMs = monthEndMs(monthAnchor);
+
+	if (nowMs <= fromMs) {
+		return;
+	}
+
+	return { fromMs, toMs: Math.min(closeMs, nowMs), closed: nowMs >= closeMs };
+};
+
 /** The previous month's anchor relative to `nowMs`. */
 export const previousMonthAnchor = (nowMs: number): string => {
 	const d = new Date(nowMs);

@@ -3,6 +3,7 @@
 // keeps the canister query volume flat without a cache dependency.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { MINUTE_IN_MS } from '../lib/time';
 
 interface Entry {
 	value: unknown;
@@ -30,6 +31,11 @@ const MAX_ENTRIES = 500;
 /** One freshness window for every public market-wide read, clearing and
  * registry alike. */
 export const PUBLIC_READ_TTL_MS = 15_000;
+
+/** Freshness window of the standings scored from settled history (the
+ * Worlds month, the monthly podium): each load is one clearing read over a
+ * whole roster, and a view that trails the chain by a few minutes is fine. */
+export const SETTLED_STANDINGS_TTL_MS = 5 * MINUTE_IN_MS;
 
 export const cached = async <T>({
 	key,

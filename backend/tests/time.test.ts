@@ -4,6 +4,7 @@ import {
 	monthAnchorFromMs,
 	monthEndMs,
 	monthStartMs,
+	monthWindowSoFar,
 	msToNs,
 	nowNs,
 	nsToMs,
@@ -76,6 +77,35 @@ describe('monthEndMs', () => {
 		expect(monthEndMs('2026-12')).toBe(Date.UTC(2027, 0, 1));
 		expect(monthEndMs('2026-11')).toBe(monthStartMs('2026-12'));
 		expect(monthAnchorFromMs(monthEndMs('2026-11') - 1)).toBe('2026-11');
+	});
+});
+
+describe('monthWindowSoFar', () => {
+	test('runs from the month start to now while open, to the close once over', () => {
+		const midMonth = Date.UTC(2026, 10, 13);
+
+		expect(monthWindowSoFar({ monthAnchor: '2026-11', nowMs: midMonth })).toEqual({
+			fromMs: monthStartMs('2026-11'),
+			toMs: midMonth,
+			closed: false
+		});
+		expect(monthWindowSoFar({ monthAnchor: '2026-10', nowMs: midMonth })).toEqual({
+			fromMs: monthStartMs('2026-10'),
+			toMs: monthEndMs('2026-10'),
+			closed: true
+		});
+		expect(monthWindowSoFar({ monthAnchor: '2026-11', nowMs: monthEndMs('2026-11') })?.closed).toBe(
+			true
+		);
+	});
+
+	test('is undefined until the month has started', () => {
+		expect(monthWindowSoFar({ monthAnchor: '2026-12', nowMs: Date.UTC(2026, 10, 13) })).toBe(
+			undefined
+		);
+		expect(
+			monthWindowSoFar({ monthAnchor: '2026-12', nowMs: monthStartMs('2026-12') })
+		).toBeUndefined();
 	});
 });
 

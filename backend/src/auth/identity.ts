@@ -10,8 +10,11 @@
 // on-chain history follows the user to this stack without a manual claim.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
 import { query, tx, type TxQuery } from '../db/client';
+import { settledTotalsByPrincipal, type SettledTotals } from '../engine/clearing';
 import { userIcPrincipalText } from '../lib/keys';
+import { logger } from '../lib/logger';
 import { adoptOnFirstLogin, lockLoginEmails } from './adoption';
 
 export type Provider = 'google' | 'apple' | 'email';
@@ -214,4 +217,67 @@ export const settlementPrincipalsByUser = async (
 	}
 
 	return principals;
+};
+
+/** A stored principal text as a principal, or null when it does not parse:
+ * such a text names no account that ever settled. */
+const parsePrincipal = (text: string): Principal | null => {
+	try {
+		return Principal.fromText(text);
+	} catch {
+		return null;
+	}
+};
+
+/**
+ * Each user's settled-position totals over [fromMs, toMs), summed across
+ * every principal {@link settlementPrincipalsByUser} gives them. A user with
+ * nothing settled in the window is absent. A linked principal that does not
+ * parse is left out (and logged), so one bad row never fails the standings
+ * of a whole roster.
+ */
+export const settledTotalsByUser = async ({
+	userIds,
+	fromMs,
+	toMs
+}: {
+	userIds: readonly string[];
+	fromMs: number;
+	toMs: number;
+}): Promise<Map<string, SettledTotals>> => {
+	const userOfPrincipal = new Map<string, string>();
+	const members: Principal[] = [];
+	let unparsed = 0;
+
+	for (const [userId, principals] of await settlementPrincipalsByUser(userIds)) {
+		for (const text of principals) {
+			const principal = parsePrincipal(text);
+
+			if (isNullish(principal)) {
+				unparsed += 1;
+			} else {
+				userOfPrincipal.set(principal.toText(), userId);
+				members.push(principal);
+			}
+		}
+	}
+
+	if (unparsed > 0) {
+		logger.warn(`settled totals: skipped ${unparsed} linked principal(s) that do not parse`);
+	}
+
+	const settled = await settledTotalsByPrincipal({ members, fromMs, toMs });
+	const totals = new Map<string, SettledTotals>();
+
+	for (const [principal, { calls, wins }] of settled) {
+		const userId = userOfPrincipal.get(principal);
+
+		if (nonNullish(userId)) {
+			const previous = totals.get(userId) ?? { calls: 0, wins: 0 };
+
+			totals.set(userId, { calls: previous.calls + calls, wins: previous.wins + wins });
+		}
+	}
+
+	return totals;
 };
