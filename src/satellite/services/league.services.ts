@@ -228,17 +228,22 @@ export const assertSetLeague = ({
 	const currentDoc = decodeDocData<LeagueDoc>(current.data);
 
 	// 2 (edit path). The current owner is the only principal that
-	// can edit. The transfer-of-ownership endpoint impersonates the
-	// outgoing owner (msgCaller) for the swap, then impersonates the
-	// new owner for the membership-role updates. The satellite itself
-	// (a controller) may edit too: the account purge hands an owned league
-	// to a surviving member.
+	// can edit. The satellite itself (a controller) may edit too: the
+	// ownership transfer and the account purge hand an owned league to a
+	// member.
 	if (currentDoc.owner !== callerText && !isControllerText(callerText)) {
 		throw new Error('leagues edits must be made by the current owner.');
 	}
 
-	// 3. Identity fields are immutable on edits: `owner` is now
-	// editable, the rest stay frozen. The emblem is chosen once at creation
+	// The owner changes only through the satellite, which checks the new
+	// owner is a member first (`transferLeagueOwnership`, the account
+	// purge): a direct write could hand the league to any principal.
+	if (proposedDoc.owner !== currentDoc.owner && !isControllerText(callerText)) {
+		throw new Error('leagues owner changes only through transferLeagueOwnership.');
+	}
+
+	// 3. Identity fields are immutable on edits: `owner` changes only
+	// through the satellite (above), the rest stay frozen. The emblem is chosen once at creation
 	// and frozen alongside the identity fields so the league's logo glyph
 	// can't silently shift under existing members.
 	//
@@ -302,8 +307,8 @@ export const assertDeleteLeague = ({
  * The flow runs three writes in order:
  *
  *  1. Flip `LEAGUES[leagueId].owner` from the outgoing owner (the
- *     caller) to the new owner. Done as the *outgoing* owner so the
- *     assert's "edits made by current owner" rule accepts the swap.
+ *     caller) to the new owner. Done as a satellite controller, the
+ *     only writer `assertSetLeague` lets change the owner.
  *  2. Promote `LEAGUE_MEMBERS[${leagueId}/${newOwner}]` to
  *     `role='owner'`. Done as the *new* owner: by this point
  *     `league.owner === newOwner`, so the assert's "callerIsOwner"
@@ -417,11 +422,13 @@ export const transferLeagueOwnershipFn = ({
 		caller: callerBytes
 	});
 
-	// Step 1: flip league.owner. Caller is the outgoing owner.
+	// Step 1: flip league.owner. Signed as the satellite, the only writer
+	// `assertSetLeague` lets change the owner, now that the caller is
+	// checked to own the league and the new owner to be a member.
 	setDocStore({
 		collection: Collection.LEAGUES,
 		key: leagueId,
-		caller: callerBytes,
+		caller: controllerCaller('league ownership transfer'),
 		doc: {
 			data: encodeDocData<LeagueDoc>({
 				...league,

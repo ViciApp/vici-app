@@ -671,7 +671,10 @@ Two more rules hold on a user-owned doc:
 - **A field only the satellite decides is unchanged by any other caller.**
   The owner may write the doc but must carry the stored value of such a
   field (`assertSchoolStatusUnchanged` for a profile's `schoolStatus`); the
-  endpoint that decides it signs as `controllerCaller(...)`.
+  endpoint that decides it signs as `controllerCaller(...)`. A league's
+  `owner` is one: `assertSetLeague` takes a new owner only from a
+  controller, and `transferLeagueOwnership` writes it as one once the new
+  owner is checked to be a member.
 
 A collection whose docs the satellite computes has no owner path at all: the
 assert accepts only a controller (`assertControllerWrite`) and the endpoint
