@@ -231,6 +231,34 @@ const recentSendCounts = ({
 	return { byPrincipal, byEmail };
 };
 
+/**
+ * Refuses a send once the caller or the address has had
+ * {@link SCHOOL_VERIFY_DAILY_CAP} codes in the rolling 24h. The count is the
+ * submission rows, so the check only holds when the row of the send it lets
+ * through is written before the next await: concurrent calls interleave at
+ * every await, and each would otherwise count the same rows.
+ */
+const assertSendSlotFree = ({
+	caller,
+	memberText,
+	email
+}: {
+	caller: Uint8Array;
+	memberText: string;
+	email: string;
+}): void => {
+	const { byPrincipal, byEmail } = recentSendCounts({
+		caller,
+		memberText,
+		email,
+		sinceNs: time() - DAY_IN_NANOSECONDS
+	});
+
+	if (byPrincipal >= SCHOOL_VERIFY_DAILY_CAP || byEmail >= SCHOOL_VERIFY_DAILY_CAP) {
+		throw new Error('Too many codes requested today. Try again tomorrow.');
+	}
+};
+
 const toHex = (bytes: number[]): string =>
 	bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 
@@ -369,20 +397,17 @@ export const submitSchoolFn = async ({
 	// 1. Server-authoritative domain gate.
 	const resolved = resolveSchool({ email: lowerEmail, name, country });
 
-	// 2. Rate limit (per principal + per email, rolling 24h).
-	const { byPrincipal, byEmail } = recentSendCounts({
-		caller: admin,
-		memberText,
-		email: lowerEmail,
-		sinceNs: time() - DAY_IN_NANOSECONDS
-	});
-
-	if (byPrincipal >= SCHOOL_VERIFY_DAILY_CAP || byEmail >= SCHOOL_VERIFY_DAILY_CAP) {
-		throw new Error('Too many codes requested today. Try again tomorrow.');
-	}
+	// 2. Rate limit (per principal + per email, rolling 24h): refuse early,
+	// before spending a management-canister call.
+	assertSendSlotFree({ caller: admin, memberText, email: lowerEmail });
 
 	// 3. Unpredictable code + per-submission salt + per-send nonce.
 	const { code, salt, nonce } = await generateCode();
+
+	// Other calls ran during that await: check again, and write the row it
+	// lets through in this same step so the next call counts it.
+	assertSendSlotFree({ caller: admin, memberText, email: lowerEmail });
+
 	const createdAtMs = timeMs();
 	const submissionId = schoolSubmissionKey({
 		member: memberText,

@@ -573,6 +573,13 @@ state). The pattern, as built for school-email verification
   (`call({ canisterId: Principal.fromText('aaaaa-aa'), method:
 'raw_rand', … })`); do **not** reuse the `time()`-seeded FNV trick in
   `referral.services.ts`, which is for uniqueness only.
+- **A limit counted from stored rows is checked next to the write.**
+  Every `await` (the `raw_rand` call, the outcall) lets other calls run,
+  so a cap that counts rows holds only when the row it lets through is
+  written in the same synchronous step as the check, with no `await`
+  between them. `submitSchoolFn` refuses early, then checks again after
+  `raw_rand` and writes the submission before sending
+  (`assertSendSlotFree`).
 - **Server-owned collections are `controllers`-scoped.** Submissions /
   config the satellite alone reads + writes (via `*DocStore`) use
   `read/write: 'controllers'` in `juno.config.ts` so no client can read a
