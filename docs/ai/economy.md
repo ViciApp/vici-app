@@ -90,7 +90,7 @@ backs it. Amounts are **not** repeated here; follow the link.
 | **Prediction win**         | Pays at the market probability: `amount / p_win − amount`, with a floor on `p_win` so a long shot cannot pay an unbounded multiple.                                                                                 | `VXP_P_WIN_FLOOR`, `VXP_CALL_SIZE_LADDER` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                       |
 | **Onboarding grant**       | A single registration grant; no engagement-gated drip (the call-gated milestones are retained at zero).                                                                                                             | `NEW_USER_VXP_TOTAL_BASE_UNITS` ([`vxp-onboarding.constants.ts`](../../src/lib/constants/vxp-onboarding.constants.ts))                                                                                           |
 | **Referral: referee**      | Flat, one-time, paid to a new user who redeems within the post-signup window and then makes a first prediction.                                                                                                     | `REFERRAL_VXP_BONUS_BASE_UNITS`, `REFERRAL_SIGNUP_WINDOW_MS` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                          |
-| **Referral: referrer**     | **Diminishing** by lifetime conversions, then **hard-capped to zero**. Authoritative count is the satellite's own scan, never the client.                                                                           | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
+| **Referral: referrer**     | **Diminishing** by the redemption's place in the referrer's lifetime redemption order, not by first-prediction order, then **hard-capped to zero**. Authoritative count is the server's own scan, never the client. | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
 | **Daily-streak milestone** | Tiered, granted once when the daily streak hits a milestone, counted over server-recorded activity days (UTC days with an executed fill; a Flow swipe alone records none), never the client's `dailyStreak`.        | `VXP_STREAK_BONUSES`, `STREAK_MAX_CONTINUING_DAY_DELTA` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts), [`streak.utils.ts`](../../src/lib/utils/streak.utils.ts))               |
 | **Flow volume milestone**  | One-time per lifetime call-count threshold reached, counted as the caller's executed predictions in the engine on each trade activity, never the client's `totalTrades`.                                            | `VXP_FLOW_MILESTONES` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                           |
 | **Flow overtime**          | Repeatable, once per day on an overtime finish (daily counter hits the hard cap), minted inline by the Flow swipe write; a rolling wall-clock cap, counted before each mint, limits it (the day key is client-set). | `VXP_FLOW_OVERTIME_BONUS`, `VXP_FLOW_OVERTIME_ROLLING_CAP`, `VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                               |
@@ -119,7 +119,14 @@ The bound that protects each surface today:
   multiple) and the call-size ladder cap.
 - **Referrer reward**: diminishing curve **and** a hard lifetime cap
   to zero; the count comes from the satellite's own scan, so the client
-  cannot inflate it, and deleting referred accounts never shrinks it. On
+  cannot inflate it. It counts every earlier redemption of the
+  referrer's code, whatever its payout state, so the order in which the
+  referees make their first prediction cannot keep a reward on a higher
+  tier or past the cap (`countPriorRedemptions` in
+  [`referral.services.ts`](../../src/satellite/services/referral.services.ts)).
+  Deleting a referred account that has started paying never shrinks it;
+  one that never did leaves the order, and a row already armed never pays
+  more than the amount it was armed with. On
   the web2 API a paid conversion keeps its slot through the referrer's
   own referral award, which outlives the referee's redemption row
   (`countPriorReferrerRedemptions` in

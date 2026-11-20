@@ -575,10 +575,10 @@ const payoutStage = (status: VxpMilestonePayoutStatus): number => {
 };
 
 /**
- * The referrer tier and lifetime cap count every row whose referrer side left `none`
- * ({@link countReferrerCredits}), and a paid side is what stops a second transfer. A write that
- * moved either side back could re-arm a paid bonus or drop a credited row out of the referrer's
- * count.
+ * A paid side is what stops a second transfer, and an armed referrer side is what keeps the row
+ * through the account purge ({@link isReferralPayoutRecord}), so its place in the referrer's
+ * redemption order ({@link countPriorRedemptions}) holds. A write that moved either side back could
+ * re-arm a paid bonus or let the purge drop a credited row.
  */
 const payoutMovesBack = ({
 	current,
@@ -754,19 +754,19 @@ export const assertDeleteReferral = ({
 // ─── Payout hook ─────────────────────────────────────────────────────────
 
 /**
- * Counts how many redemptions already credited the given referrer. This lifetime tally is the
- * authoritative prior-paid count that feeds {@link referrerRewardBaseUnits} (the diminishing reward
- * curve, whose final bracket encodes the {@link REFERRAL_MAX_PAID} hard cap). Every doc whose
- * `referrerPayout` is not `none` counts: anything in flight (`owed` / `processing` / `paid`)
- * consumes a slot so racing redemptions can't slip past the cap by being mid-transfer.
+ * Counts the referrer's redemptions made before the row being processed: the row's place in the
+ * referrer's redemption order, which feeds {@link referrerRewardBaseUnits} (the diminishing reward
+ * curve, whose final bracket encodes the {@link REFERRAL_MAX_PAID} hard cap). Every earlier row
+ * counts whatever its payout state, so the tier does not depend on which referee makes a first
+ * prediction first: a row armed while earlier ones still wait on their referee's first trade gets
+ * the same tier it would have got in order. A row the account purge removed (one that never
+ * started paying, {@link isReferralPayoutRecord}) no longer holds a place.
  *
- * Counts only redemptions that happened *before* the row being processed, `redeemedAtMs <
- * referenceMs`, tie-broken by key so equal timestamps are deterministic, and excludes the row
- * itself (`excludeKey`). The "prior only" ordering makes a given row's prior-paid count (and thus
- * its diminishing-curve reward) **stable regardless of when settlement runs**: a later redemption
- * can never retroactively inflate an earlier row's count and shrink its reward on a delayed retry.
+ * Prior means `redeemedAtMs < referenceMs`, tie-broken by key so equal timestamps are deterministic,
+ * and the row itself is excluded (`excludeKey`). A redemption made later never joins the count, so
+ * a row's tier is stable across retries.
  */
-const countReferrerCredits = ({
+const countPriorRedemptions = ({
 	caller,
 	referrer,
 	excludeKey,
@@ -791,12 +791,10 @@ const countReferrerCredits = ({
 		try {
 			const doc = decodeDocData<ReferralDoc>(item.data);
 
-			// Prior redemptions only: earlier in time, or same instant with a lower key. Keeps
-			// each row's tier derivation stable across retries (see the doc comment above).
 			const isPrior =
 				doc.redeemedAtMs < referenceMs || (doc.redeemedAtMs === referenceMs && key < excludeKey);
 
-			if (doc.referrer === referrer && doc.referrerPayout.status !== 'none' && isPrior) {
+			if (doc.referrer === referrer && isPrior) {
 				return acc + 1;
 			}
 		} catch {
@@ -905,7 +903,7 @@ const driveSidePayout = async ({
 
 	// SECURITY: the transferred amount is server-authoritative; it is `expectedAmount`, recomputed
 	// by the caller from canonical sources (the flat constant for the referee; the diminishing curve
-	// keyed on the authoritative prior-paid count for the referrer). The `amountBaseUnits` field on
+	// keyed on the row's place in the referrer's redemption order). The `amountBaseUnits` field on
 	// the doc is never trusted as the source of truth at transfer time: a row from before the
 	// collection became server-owned may have been written by its client. We still read it (guarded: a malformed string must not throw the hook) purely to
 	// clamp: the actual transfer can never exceed `expectedAmount`, even if a tampered doc claims a
@@ -1060,7 +1058,7 @@ const armReferrerPayoutIfFirstFire = ({
 		return;
 	}
 
-	const lifetimeCount = countReferrerCredits({
+	const priorRedemptions = countPriorRedemptions({
 		caller,
 		referrer: snapshotDoc.referrer,
 		excludeKey: refereeKey,
@@ -1068,11 +1066,11 @@ const armReferrerPayoutIfFirstFire = ({
 	});
 
 	// Authoritative, server-computed reward for this redemption: the diminishing curve keyed on the
-	// referrer's prior paid count. A zero reward encodes the lifetime hard cap (`> REFERRAL_MAX_PAID`):
+	// referrer's earlier redemptions. A zero reward encodes the lifetime hard cap (`> REFERRAL_MAX_PAID`):
 	// past that point the tier table yields ZERO, so being within the cap and a positive reward
 	// coincide. The diminishing curve + this lifetime cap self-limit, so there is no separate
 	// monthly cap.
-	const rewardBaseUnits = referrerRewardBaseUnits(lifetimeCount);
+	const rewardBaseUnits = referrerRewardBaseUnits(priorRedemptions);
 	const withinCap = rewardBaseUnits > ZERO;
 
 	if (!withinCap) {
@@ -1081,7 +1079,7 @@ const armReferrerPayoutIfFirstFire = ({
 			detail: {
 				referrer: snapshotDoc.referrer,
 				referee: refereeKey,
-				lifetime_count: lifetimeCount,
+				lifetime_count: priorRedemptions,
 				lifetime_cap: REFERRAL_MAX_PAID
 			}
 		});
@@ -1212,7 +1210,9 @@ const settleReferralPayout = async ({
 	// SECURITY: both expected amounts are recomputed server-side here and passed to the transfer
 	// path, never read from the referral doc. The referee bonus is the flat
 	// constant; the referrer reward is re-derived from the diminishing curve keyed on the *same*
-	// authoritative prior-paid count that the arming step (`armReferrerPayoutIfFirstFire`) used.
+	// redemption order the arming step (`armReferrerPayoutIfFirstFire`) used. That count can only
+	// shrink (a purged row that never paid leaves it), and the transfer pays the smaller of this and
+	// the armed amount, so a row never pays more than it was armed with.
 	await driveSidePayout({
 		ledger,
 		caller,
@@ -1234,7 +1234,7 @@ const settleReferralPayout = async ({
 		return;
 	}
 
-	const referrerPriorPaidCount = countReferrerCredits({
+	const referrerPriorRedemptions = countPriorRedemptions({
 		caller,
 		referrer: latestDoc.referrer,
 		excludeKey: refereeKey,
@@ -1248,7 +1248,7 @@ const settleReferralPayout = async ({
 		side: 'referrer',
 		recipient: latestDoc.referrer,
 		memoLabel: 'referrer',
-		expectedAmount: referrerRewardBaseUnits(referrerPriorPaidCount)
+		expectedAmount: referrerRewardBaseUnits(referrerPriorRedemptions)
 	});
 };
 
