@@ -220,10 +220,11 @@ type MutateOwnProfileResult =
 
 /**
  * Shared read-modify-write envelope for the caller's own `PROFILES` doc.
- * Reads the doc via `getDocStore` (PROFILES is keyed by principal text,
- * one doc per user, and is user-owned, so the write is authorised by the
- * REAL caller, never an admin key), null-guards a missing doc, decodes it,
- * then runs `transform`:
+ * Reads the doc via `getDocStore` as the real caller (PROFILES is keyed by
+ * principal text, one doc per user), null-guards a missing doc, decodes it,
+ * then runs `transform`. The write signs as a controller: the account state
+ * these transforms move (`deletedAtMs`, `hibernatedAtMs`) is one only the
+ * satellite may change (`assertAccountStateUnchanged`).
  *
  *  - `transform` returns a `UserProfile` → persist it with a version-locked
  *    `setDocStore` (the current `version` is threaded back so a concurrent
@@ -265,7 +266,7 @@ const mutateOwnProfile = ({
 	setDocStore({
 		collection: Collection.PROFILES,
 		key: callerText,
-		caller: callerBytes,
+		caller: controllerCaller('account state'),
 		doc: {
 			data: encodeDocData<UserProfile>(next),
 			version: profileDoc.version
@@ -468,13 +469,14 @@ const deleteMatchingDocs = ({
 
 /**
  * Drop the caller's resolved results (`resolved_results` is keyed
- * `${principal}#${marketId}`).
+ * `${principal}#${marketId}`), listed as `writer`: the collection is
+ * controllers-only.
  */
-const deleteOwnResolvedResults = ({ callerText, callerBytes, writer }: CascadeStep): number =>
+const deleteOwnResolvedResults = ({ callerText, writer }: CascadeStep): number =>
 	deleteMatchingDocs({
 		collection: Collection.RESOLVED_RESULTS,
 		keyPattern: `^${escapeRegex(callerText)}#`,
-		listAs: callerBytes,
+		listAs: writer,
 		writer
 	}).length;
 
@@ -580,12 +582,13 @@ const deleteOwnRelations = ({ callerText, callerBytes, writer }: CascadeStep): n
 /**
  * Drop the caller's referral code (`referral_codes` is reverse-
  * indexed: key is the code, value is the owner). One row max per
- * user; iterate to find theirs.
+ * user; iterate to find theirs, listed as `writer` because the
+ * collection is controllers-only.
  */
-const deleteOwnReferralCode = ({ callerText, callerBytes, writer }: CascadeStep): number => {
+const deleteOwnReferralCode = ({ callerText, writer }: CascadeStep): number => {
 	const { items } = listDocsStore({
 		collection: Collection.REFERRAL_CODES,
-		caller: callerBytes,
+		caller: writer,
 		params: {}
 	});
 
@@ -858,7 +861,7 @@ const resolveOwnedLeague = ({
  * {@link recordAccountAwardMarkers}),
  * calibration attempts, user stats and monthly stats, resolved results, the
  * likes it gave, school-email submissions, referral code + redemption record,
- * affiliations, relations, league memberships. Owned leagues are then either deleted (no other members
+ * missed league invite codes, affiliations, relations, league memberships. Owned leagues are then either deleted (no other members
  * left) or transferred to a surviving member: see
  * {@link disbandOrTransferOwnedLeagues}; self-joiners during the recovery
  * window are never orphaned. Shared audit rows (activities, battles,
@@ -915,6 +918,12 @@ export const hardDeleteAccountFn = ({
 	});
 	docsDeleted += deleteOwnReferralCode(step);
 	docsDeleted += deleteOwnReferralRedemption(step);
+	// Controllers-scoped: listed as the controller too.
+	docsDeleted += deletePrefixedDocs({
+		...step,
+		callerBytes: step.writer,
+		collection: Collection.LEAGUE_INVITE_ATTEMPTS
+	});
 	docsDeleted += deleteOwnAffiliations({ ...step, collection: Collection.AFFILIATIONS });
 	docsDeleted += deleteOwnRelations(step);
 	docsDeleted += deleteOwnLeagueMemberships(step);

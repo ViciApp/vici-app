@@ -1323,7 +1323,9 @@ export const deMessages = {
 	'leagues.join.cta': 'Gültigen Code eingeben',
 	'leagues.join.error_already_member': 'Du bist schon in dieser Liga.',
 	'leagues.join.error_not_found': 'Keine Liga mit diesem Code. Prüf ihn nochmal.',
-	'leagues.join.label_code': 'Einladungscode (6 Zeichen)',
+	'leagues.join.error_rate_limited':
+		'Zu viele Codes ohne passende Liga. Versuch es in einer Stunde nochmal.',
+	'leagues.join.label_code': 'Einladungscode',
 	'leagues.join.sub': 'Füge den Einladungscode ein. Codes sehen so aus wie {code}.',
 	'leagues.join.submitting': 'Trete bei…',
 	'leagues.join.title': 'Mit Code beitreten',
@@ -1969,6 +1971,8 @@ export const deMessages = {
 	'settings.delete.deleting': 'Wird gelöscht…',
 	'settings.delete.error': 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
 	'settings.delete.error_handoff': '{league} konnte nicht übergeben werden. Versuche es erneut.',
+	'settings.delete.error_withdraw_first':
+		'Dein Konto hält noch Guthaben: in deiner Wallet, als Sicherheit oder Handelsgewinn oder in einer laufenden Auszahlung. Zahle alles aus und warte, bis sie abgeschlossen ist, dann lösche dein Konto.',
 	'settings.delete.forever': 'Endgültig löschen',
 	'settings.delete.gone_body': 'Dein Konto wird gelöscht.',
 	'settings.delete.gone_eyebrow': 'Lebewohl',

@@ -144,7 +144,7 @@ export const extractVxpBaseUnitsWhole = ({
 	return Number(match[1]);
 };
 
-/** The integer literal of `<constName> = N`. */
+/** The integer literal of `<constName> = N` (digit separators allowed). */
 export const extractIntConst = ({
 	source,
 	constName
@@ -152,13 +152,13 @@ export const extractIntConst = ({
 	source: string;
 	constName: string;
 }): number => {
-	const match = source.match(new RegExp(`${constName}\\s*=\\s*(\\d+)`));
+	const match = source.match(new RegExp(`${constName}\\s*=\\s*(\\d[\\d_]*)`));
 
 	if (!match) {
 		throw new Error(`no integer literal for: ${constName}`);
 	}
 
-	return Number(match[1]);
+	return Number(match[1]?.replaceAll('_', ''));
 };
 
 /** The decimal literal of `<constName> = 0.3;` (an integer matches too). */

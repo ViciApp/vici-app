@@ -24,8 +24,8 @@
 	/**
 	 * League-invite landing page: the single canonical URL the "Invite"
 	 * buttons copy (`{origin}/league/{code}`). Mirrors the `/i/[code]`
-	 * referral landing. The `[code]` slug is a 6-char `[A-Z0-9]` invite
-	 * code enforced by `LEAGUE_INVITE_CODE_REGEX`. Branches on auth state:
+	 * referral landing. The `[code]` slug is an `[A-Z0-9]` invite code
+	 * enforced by `LEAGUE_INVITE_CODE_REGEX`. Branches on auth state:
 	 *
 	 *   1. **Invalid code shape**: toast + bail to the leagues list.
 	 *   2. **Signed-out (or a brand-new account still mid-onboarding)**:

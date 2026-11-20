@@ -1228,7 +1228,8 @@ export const zhHansMessages = {
 	'leagues.join.cta': '请输入有效的邀请码',
 	'leagues.join.error_already_member': '你已经在这个联盟里。',
 	'leagues.join.error_not_found': '没有这个邀请码对应的联盟,再核对一下。',
-	'leagues.join.label_code': '邀请码(6 位)',
+	'leagues.join.error_rate_limited': '太多邀请码没有对应的联盟,请一小时后再试。',
+	'leagues.join.label_code': '邀请码',
 	'leagues.join.sub': '粘贴邀请码。邀请码的格式类似 {code}。',
 	'leagues.join.submitting': '加入中…',
 	'leagues.join.title': '用邀请码加入',
@@ -1847,6 +1848,8 @@ export const zhHansMessages = {
 	'settings.delete.deleting': '删除中…',
 	'settings.delete.error': '出了点问题，请重试。',
 	'settings.delete.error_handoff': '无法移交 {league}。请重试。',
+	'settings.delete.error_withdraw_first':
+		'你的账户中仍有资金：在钱包中、作为抵押或交易收益，或在进行中的提现中。请先全部提现并等待完成，然后再删除账户。',
 	'settings.delete.forever': '永久删除',
 	'settings.delete.gone_body': '你的账户正在被删除。',
 	'settings.delete.gone_eyebrow': '再会',

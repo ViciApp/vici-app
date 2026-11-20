@@ -2,12 +2,18 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Check, ChevronRight, X } from '@lucide/svelte/icons';
 	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
-	import { joinLeagueByInvite, lookupLeagueByInvite } from '#lib/services/leagues.services.ts';
+	import {
+		JOIN_LEAGUE_ERRORS,
+		joinLeagueByInvite,
+		lookupLeagueByInvite
+	} from '#lib/services/leagues.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		LEAGUE_ACCENT_FALLBACK,
 		LEAGUE_INVITE_CODE_EXAMPLE,
+		LEAGUE_INVITE_CODE_LENGTH,
 		LEAGUE_INVITE_CODE_REGEX,
+		LEAGUE_LEGACY_INVITE_CODE_LENGTH,
 		leagueEmblem,
 		type LeagueDoc
 	} from '#lib/types/league.ts';
@@ -21,11 +27,17 @@
 
 	const { isOpen, onClose, onJoined }: Props = $props();
 
+	// A code typed toward the new length passes through an older league's
+	// shorter length, so the preview waits for typing to pause: otherwise
+	// each such prefix would be looked up, miss, and count toward the
+	// hourly cap on missed codes.
+	const PREVIEW_DELAY_MS = 400;
+
 	// The helper sentence carries a `{code}` slot so spacing and trailing
 	// punctuation stay locale-correct (zh-Hans ends on 。, not "."); we split
 	// the localized copy on that slot and drop the accent-tinted sample
-	// token (our real 6-char invite shape) into the gap. Mirrors the field
-	// placeholder, which renders the same shared sample.
+	// token (the shape of a new league's code) into the gap. Mirrors the
+	// field placeholder, which renders the same shared sample.
 	const subParts = $derived(t({ locale: $localeStore, key: 'leagues.join.sub' }).split('{code}'));
 
 	let code = $state('');
@@ -45,9 +57,9 @@
 	const canSubmit = $derived(!submitting && nonNullish(matched));
 	const matchedAccent = $derived(matched?.accentColor ?? LEAGUE_ACCENT_FALLBACK);
 
-	// Resolve the league as the user finishes typing a valid code. Each
-	// keystroke that yields a complete code kicks off a lookup; stale
-	// results are discarded by comparing against the live `normalisedCode`.
+	// Resolve the league as the user finishes typing a valid code. Once
+	// typing pauses on a complete code a lookup runs; stale results are
+	// discarded by comparing against the live `normalisedCode`.
 	$effect(() => {
 		const current = normalisedCode;
 
@@ -61,7 +73,7 @@
 		resolving = true;
 		let cancelled = false;
 
-		void (async () => {
+		const preview = setTimeout(async () => {
 			try {
 				const found = await lookupLeagueByInvite({ inviteCode: current });
 
@@ -70,19 +82,24 @@
 				}
 
 				matched = found;
-			} catch {
+			} catch (err) {
 				if (!cancelled) {
 					matched = undefined;
+
+					if (err instanceof Error && err.message === JOIN_LEAGUE_ERRORS.rate_limited) {
+						submitError = 'leagues.join.error_rate_limited';
+					}
 				}
 			} finally {
 				if (!cancelled) {
 					resolving = false;
 				}
 			}
-		})();
+		}, PREVIEW_DELAY_MS);
 
 		return () => {
 			cancelled = true;
+			clearTimeout(preview);
 		};
 	});
 
@@ -154,6 +171,8 @@
 				submitError = 'leagues.join.error_not_found';
 			} else if (message === 'Already a member of this league.') {
 				submitError = 'leagues.join.error_already_member';
+			} else if (message === JOIN_LEAGUE_ERRORS.rate_limited) {
+				submitError = 'leagues.join.error_rate_limited';
 			} else {
 				console.error('JoinLeagueModal: joinLeagueByInvite failed', err);
 				submitError = 'common.error.generic';
@@ -203,8 +222,8 @@
 				aria-invalid={codeIsValid && !resolving && isNullish(matched)}
 				autocapitalize="characters"
 				autocomplete="off"
-				maxlength="6"
-				minlength="6"
+				maxlength={LEAGUE_INVITE_CODE_LENGTH}
+				minlength={LEAGUE_LEGACY_INVITE_CODE_LENGTH}
 				placeholder={LEAGUE_INVITE_CODE_EXAMPLE}
 				required
 				spellcheck="false"

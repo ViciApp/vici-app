@@ -96,13 +96,13 @@
 	// always shareable.
 	let referralCode = $state<string | undefined>(undefined);
 
-	// The sharer's lifetime count of *paid* referrals (rows still within the
-	// hard cap). The referrer reward diminishes with each one, so the footer
-	// headline shows the reward for the *next* friend, not a flat figure.
+	// The sharer's lifetime count of redemptions. The referrer reward
+	// diminishes with each one, so the footer headline shows the reward for
+	// the *next* friend, not a flat figure.
 	// Authoritative payout stays server-side; this is cosmetic and starts at
 	// the top tier until the list resolves.
-	let priorPaidCount = $state(0);
-	const nextRewardVxp = $derived(referrerRewardVxp(priorPaidCount));
+	let priorRedemptions = $state(0);
+	const nextRewardVxp = $derived(referrerRewardVxp(priorRedemptions));
 
 	const refToken = $derived(referralCode ?? handle);
 	// Slugged from the on-chain (EN) title, never `displayTitle`: the SEO
@@ -208,13 +208,9 @@
 				const items = await listMyReferrals();
 
 				if (alive) {
-					// Mirror the satellite's authoritative credited-referrals tally (the
-					// count that feeds the tier curve): rows whose `referrerPayout.status`
-					// has left `none` (owed / processing / paid). Anything still `none`,
-					// including over-cap monitoring rows, does not count.
-					priorPaidCount = items.filter(
-						({ referrerPayout }) => referrerPayout.status !== 'none'
-					).length;
+					// The satellite's tier counts every earlier redemption, whatever
+					// its payout state, so the next friend's place is the row count.
+					priorRedemptions = items.length;
 				}
 			} catch {
 				// Keep the optimistic top-tier figure on failure; the footer is a
