@@ -1,16 +1,22 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import type { ActivityReactionCount } from '#lib/types/social.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
+import {
+	type KeysetWalk,
+	type KeysetWalkArgs,
+	walkKeysetPage
+} from '#satellite/services/keyset-walk.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { OnDeleteDocContext, OnSetDocContext } from '@junobuild/functions';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
 import {
+	countDocsStore,
 	decodeDocData,
 	encodeDocData,
 	getDocStore,
-	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
 
@@ -130,14 +136,46 @@ export const onActivityReactionDelete = (ctx: OnDeleteDocContext): void => {
 };
 
 /**
- * Admin-only corrective: re-derive every activity's exact like count from `activity_reactions` and
- * overwrite the counter docs. Heals any drift from a concurrent-like version race and backfills
- * counts for likes that predate the rollup hooks. Admin-gated (mirrors `sweepExpiredDeletions`).
- *
- * Single pass over both collections: fine at current volume; a very large reaction set would want
- * pagination (noted as the scale caveat in the spec).
+ * How many counter docs one `recomputeActivityReactionCounts` call rewrites. Each rewrite is a
+ * serverless write costing billions of instructions, so a call stays a few writes under the update
+ * limit and the repair goes in rounds (see the bulk-rewrite budget note in
+ * docs/ai/satellite/patterns.md).
  */
-export const recomputeActivityReactionCountsFn = (): { recomputed: number } => {
+const RECOMPUTE_REACTION_COUNTS_BATCH = 5;
+
+/** The exact like count of an activity: its reaction docs, keyed `${activityKey}#${liker}`. */
+const countReactions = ({ activityKey, admin }: { activityKey: string; admin: Uint8Array }) =>
+	Number(
+		countDocsStore({
+			collection: Collection.ACTIVITY_REACTIONS,
+			caller: admin,
+			params: { matcher: { key: `^${escapeRegex(activityKey)}#[^#]+$` } }
+		})
+	);
+
+/**
+ * The repair walks two collections in turn, so its cursor names the phase: `counts:` + a counter
+ * key while it reconciles the existing counters, then `reactions:` + a reaction key while it creates
+ * the counters missing for liked activities. The operator only passes it back.
+ */
+const COUNTS_PHASE = 'counts:';
+const REACTIONS_PHASE = 'reactions:';
+
+/**
+ * Admin-only corrective: re-derive activities' exact like counts from `activity_reactions` and
+ * overwrite the off-target counter docs, at most {@link RECOMPUTE_REACTION_COUNTS_BATCH} per call.
+ * Heals any drift from a concurrent-like version race and backfills counts for likes that predate
+ * the rollup hooks. Admin-gated (mirrors `sweepExpiredDeletions`).
+ *
+ * One call reads one keyset page ({@link walkKeysetPage}, at most `limit` docs) of one phase: first
+ * the counter docs, each checked against its exact count (a counter whose activity has no like left
+ * goes to 0), then the reaction docs, creating the counter of any liked activity that has none.
+ * Returns how many counters it wrote and where it left off; the operator passes `nextAfterKey` back
+ * as `afterKey` until `done`.
+ */
+export const recomputeActivityReactionCountsFn = ({ afterKey, limit }: KeysetWalkArgs = {}): {
+	recomputed: number;
+} & KeysetWalk => {
 	const caller = msgCaller();
 
 	if (!isAdmin({ caller })) {
@@ -145,80 +183,109 @@ export const recomputeActivityReactionCountsFn = (): { recomputed: number } => {
 	}
 
 	const admin = adminCaller();
-
-	// Tally exact like counts per activity from the reaction docs.
-	const { items: reactionItems } = listDocsStore({
-		collection: Collection.ACTIVITY_REACTIONS,
-		caller: admin,
-		params: {}
-	});
-
-	const tally = new Map<string, number>();
-
-	for (const [reactionKey] of reactionItems) {
-		// Derive the activity key from the doc KEY, not the payload, so a malformed reaction body
-		// doesn't drop a like from the exact recount (the key shape is assert-enforced on write).
-		const activityKey = activityKeyFromReactionKey(reactionKey);
-
-		if (nonNullish(activityKey)) {
-			tally.set(activityKey, (tally.get(activityKey) ?? 0) + 1);
-		}
-	}
-
-	// Reconcile every counter doc to its exact tally, including existing docs whose activity now has
-	// zero likes (set to 0 so a drifted-up count is corrected down).
-	const { items: countItems } = listDocsStore({
-		collection: Collection.ACTIVITY_REACTION_COUNTS,
-		caller: admin,
-		params: {}
-	});
-
-	const keys = new Set<string>(tally.keys());
-
-	for (const [countKey] of countItems) {
-		keys.add(countKey);
-	}
-
 	const now = timeMs();
 	let recomputed = 0;
 
-	for (const activityKey of keys) {
-		const existing = getDocStore({
+	const writeCount = ({
+		activityKey,
+		count,
+		version
+	}: {
+		activityKey: string;
+		count: number;
+		version: bigint | undefined;
+	}) => {
+		const next: ActivityReactionCount = { activityKey, count, updatedAtMs: now };
+
+		setDocStore({
 			collection: Collection.ACTIVITY_REACTION_COUNTS,
 			key: activityKey,
-			caller: admin
+			caller: admin,
+			doc: { data: encodeDocData(next), version }
 		});
 
-		const target = tally.get(activityKey) ?? 0;
+		recomputed += 1;
+	};
 
-		let current: number | undefined;
+	if (afterKey?.startsWith(REACTIONS_PHASE) === true) {
+		const walk = walkKeysetPage({
+			collection: Collection.ACTIVITY_REACTIONS,
+			caller: admin,
+			afterKey: afterKey.slice(REACTIONS_PHASE.length),
+			limit,
+			visit: ([reactionKey]) => {
+				// The activity key comes from the doc KEY, not the payload, so a malformed reaction body
+				// doesn't drop a like from the exact recount (the key shape is assert-enforced on write).
+				const activityKey = activityKeyFromReactionKey(reactionKey);
 
-		if (nonNullish(existing)) {
+				if (
+					isNullish(activityKey) ||
+					nonNullish(
+						getDocStore({
+							collection: Collection.ACTIVITY_REACTION_COUNTS,
+							key: activityKey,
+							caller: admin
+						})
+					)
+				) {
+					return 'kept';
+				}
+
+				if (recomputed >= RECOMPUTE_REACTION_COUNTS_BATCH) {
+					return 'stop';
+				}
+
+				writeCount({
+					activityKey,
+					count: countReactions({ activityKey, admin }),
+					version: undefined
+				});
+
+				return 'kept';
+			}
+		});
+
+		return {
+			recomputed,
+			nextAfterKey: walk.done ? undefined : `${REACTIONS_PHASE}${walk.nextAfterKey ?? ''}`,
+			done: walk.done
+		};
+	}
+
+	const walk = walkKeysetPage({
+		collection: Collection.ACTIVITY_REACTION_COUNTS,
+		caller: admin,
+		afterKey:
+			afterKey?.startsWith(COUNTS_PHASE) === true ? afterKey.slice(COUNTS_PHASE.length) : '',
+		limit,
+		visit: ([activityKey, item]) => {
+			const target = countReactions({ activityKey, admin });
+			let current: number | undefined;
+
 			try {
-				current = decodeDocData<ActivityReactionCount>(existing.data).count;
+				current = decodeDocData<ActivityReactionCount>(item.data).count;
 			} catch {
 				// Malformed counter doc: don't let it abort the repair; treat as needing a rewrite.
 				current = undefined;
 			}
+
+			if (current === target) {
+				return 'kept';
+			}
+
+			if (recomputed >= RECOMPUTE_REACTION_COUNTS_BATCH) {
+				return 'stop';
+			}
+
+			writeCount({ activityKey, count: target, version: item.version });
+
+			return 'kept';
 		}
+	});
 
-		// Only write docs that are off-target: skip the ones already exact.
-		if (current !== target) {
-			const next: ActivityReactionCount = { activityKey, count: target, updatedAtMs: now };
-
-			setDocStore({
-				collection: Collection.ACTIVITY_REACTION_COUNTS,
-				key: activityKey,
-				caller: admin,
-				doc: {
-					data: encodeDocData(next),
-					version: existing?.version
-				}
-			});
-
-			recomputed += 1;
-		}
-	}
-
-	return { recomputed };
+	return {
+		recomputed,
+		nextAfterKey: walk.done ? REACTIONS_PHASE : `${COUNTS_PHASE}${walk.nextAfterKey ?? ''}`,
+		done: false
+	};
 };

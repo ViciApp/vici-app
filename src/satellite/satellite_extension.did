@@ -183,7 +183,9 @@ type AppReadBattleLiveScoreResult = record { score : opt record { score_a : floa
 
 type AppRebuildMarketTagIndexResult = record { buckets : float64; series : float64 };
 
-type AppRecomputeActivityReactionCountsResult = record { recomputed : float64 };
+type AppRecomputeActivityReactionCountsArgs = record { after_key : opt text; limit : opt float64 };
+
+type AppRecomputeActivityReactionCountsResult = record { recomputed : float64; next_after_key : opt text; done : bool };
 
 type AppRecordFlowSwipeArgs = record { day_key : text };
 
@@ -306,7 +308,7 @@ service : {
 	app_prune_resolved_results : (AppPruneResolvedResultsArgs) -> (AppPruneResolvedResultsResult);
 	app_read_battle_live_score : (AppReadBattleLiveScoreArgs) -> (AppReadBattleLiveScoreResult);
 	app_rebuild_market_tag_index : () -> (AppRebuildMarketTagIndexResult);
-	app_recompute_activity_reaction_counts : () -> (AppRecomputeActivityReactionCountsResult);
+	app_recompute_activity_reaction_counts : (AppRecomputeActivityReactionCountsArgs) -> (AppRecomputeActivityReactionCountsResult);
 	app_record_flow_swipe : (AppRecordFlowSwipeArgs) -> (AppRecordFlowSwipeResult);
 	app_recover_my_account : () -> (AppRecoverMyAccountResult);
 	app_redeem_referral_code : (AppRedeemReferralCodeArgs) -> ();

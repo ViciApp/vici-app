@@ -1242,8 +1242,14 @@ export const idlFactory = ({ IDL }) => {
 		series: IDL.Float64,
 		buckets: IDL.Float64
 	});
+	const AppRecomputeActivityReactionCountsArgs = IDL.Record({
+		limit: IDL.Opt(IDL.Float64),
+		after_key: IDL.Opt(IDL.Text)
+	});
 	const AppRecomputeActivityReactionCountsResult = IDL.Record({
-		recomputed: IDL.Float64
+		done: IDL.Bool,
+		recomputed: IDL.Float64,
+		next_after_key: IDL.Opt(IDL.Text)
 	});
 	const AppRecordFlowSwipeArgs = IDL.Record({ day_key: IDL.Text });
 	const AppRecordFlowSwipeResult = IDL.Record({
@@ -1785,7 +1791,7 @@ export const idlFactory = ({ IDL }) => {
 		),
 		app_rebuild_market_tag_index: IDL.Func([], [AppRebuildMarketTagIndexResult], []),
 		app_recompute_activity_reaction_counts: IDL.Func(
-			[],
+			[AppRecomputeActivityReactionCountsArgs],
 			[AppRecomputeActivityReactionCountsResult],
 			[]
 		),

@@ -1082,8 +1082,14 @@ export interface AppRebuildMarketTagIndexResult {
 	series: number;
 	buckets: number;
 }
+export interface AppRecomputeActivityReactionCountsArgs {
+	limit: [] | [number];
+	after_key: [] | [string];
+}
 export interface AppRecomputeActivityReactionCountsResult {
+	done: boolean;
 	recomputed: number;
+	next_after_key: [] | [string];
 }
 export interface AppRecordFlowSwipeArgs {
 	day_key: string;
@@ -1560,7 +1566,10 @@ export interface _SERVICE {
 		AppReadBattleLiveScoreResult
 	>;
 	app_rebuild_market_tag_index: ActorMethod<[], AppRebuildMarketTagIndexResult>;
-	app_recompute_activity_reaction_counts: ActorMethod<[], AppRecomputeActivityReactionCountsResult>;
+	app_recompute_activity_reaction_counts: ActorMethod<
+		[AppRecomputeActivityReactionCountsArgs],
+		AppRecomputeActivityReactionCountsResult
+	>;
 	app_record_flow_swipe: ActorMethod<[AppRecordFlowSwipeArgs], AppRecordFlowSwipeResult>;
 	app_recover_my_account: ActorMethod<[], AppRecoverMyAccountResult>;
 	app_redeem_referral_code: ActorMethod<[AppRedeemReferralCodeArgs], undefined>;
