@@ -28,7 +28,9 @@ import { countDocsStore, decodeDocData, getDocStore } from '@junobuild/functions
  * client `set_doc`), so `createLeagueFn` pays inline through
  * {@link payLeagueFounderReward}. The `leagues` hook below pays on the
  * creation write of a league a client writes itself, and
- * `settleFounderAwardsFn` retries a payment that failed.
+ * `settleFounderAwardsFn` pays an owned league that has no award doc yet.
+ * A payout that failed keeps its `failed` award doc, so no later pass
+ * sends it again.
  *
  * Idempotency is structural: the award doc key is
  * `${recipient}/league_founder/${leagueId}`: a second payment for the
