@@ -7,22 +7,22 @@ import { query } from '../src/db/client';
 import {
 	acceptFriendRequest,
 	cancelFriendRequest,
-	checkFriendship,
 	followUser,
 	FRIEND_REQUEST_REJECTED_COOLDOWN_MS,
 	friendRelationKey,
-	listFollowers,
 	listFollowing,
 	listFriendRequests,
 	listFriends,
 	listSentFriendRequests,
 	rejectFriendRequest,
 	sendFriendRequest,
-	unfollowUser,
 	unfriendUser
 } from '../src/social/relations';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
+
+const areFriends = async (userA: string, userB: string): Promise<boolean> =>
+	(await listFriends(userA)).some(({ key }) => key === friendRelationKey(userA, userB));
 
 describe.if(dbAvailable)('friendship state machine', () => {
 	beforeAll(async () => {
@@ -43,7 +43,7 @@ describe.if(dbAvailable)('friendship state machine', () => {
 
 		expect(incoming.some((r) => r.key === key)).toBe(true);
 		expect(sent.some((r) => r.key === key)).toBe(true);
-		expect(await checkFriendship({ userA: alice, userB: bob })).toBe(false);
+		expect(await areFriends(alice, bob)).toBe(false);
 	});
 
 	test('a duplicate send reports already_pending', async () => {
@@ -66,7 +66,7 @@ describe.if(dbAvailable)('friendship state machine', () => {
 		expect(await sendFriendRequest({ senderId: bob, targetId: alice })).toEqual({
 			status: 'auto_accepted'
 		});
-		expect(await checkFriendship({ userA: alice, userB: bob })).toBe(true);
+		expect(await areFriends(alice, bob)).toBe(true);
 	});
 
 	test('accept activates the friendship; only the recipient may accept', async () => {
@@ -82,7 +82,7 @@ describe.if(dbAvailable)('friendship state machine', () => {
 
 		await acceptFriendRequest({ relationId: key, callerId: bob });
 
-		expect(await checkFriendship({ userA: alice, userB: bob })).toBe(true);
+		expect(await areFriends(alice, bob)).toBe(true);
 		expect((await listFriends(alice)).some((r) => r.key === key)).toBe(true);
 		expect((await listFriends(bob)).some((r) => r.key === key)).toBe(true);
 
@@ -194,7 +194,7 @@ describe.if(dbAvailable)('friendship state machine', () => {
 		await acceptFriendRequest({ relationId: key, callerId: bob });
 		await unfriendUser({ callerId: bob, targetId: alice });
 
-		expect(await checkFriendship({ userA: alice, userB: bob })).toBe(false);
+		expect(await areFriends(alice, bob)).toBe(false);
 	});
 });
 
@@ -203,7 +203,7 @@ describe.if(dbAvailable)('follow edges', () => {
 		await ensureMigrated();
 	});
 
-	test('follow is directed and idempotent; unfollow removes the edge', async () => {
+	test('follow is directed and idempotent', async () => {
 		const alice = await createTestUser();
 		const bob = await createTestUser();
 
@@ -211,27 +211,10 @@ describe.if(dbAvailable)('follow edges', () => {
 		await followUser({ senderId: alice, targetId: bob });
 
 		const following = await listFollowing(alice);
-		const followers = await listFollowers(bob);
 
 		expect(following.filter((r) => r.participants[1] === bob)).toHaveLength(1);
-		expect(followers.filter((r) => r.participants[0] === alice)).toHaveLength(1);
 
 		// The reverse direction is a separate edge.
 		expect((await listFollowing(bob)).some((r) => r.participants[1] === alice)).toBe(false);
-
-		await unfollowUser({ senderId: alice, targetId: bob });
-
-		expect((await listFollowing(alice)).some((r) => r.participants[1] === bob)).toBe(false);
-	});
-
-	test('only the follower can remove their edge', async () => {
-		const alice = await createTestUser();
-		const bob = await createTestUser();
-
-		await followUser({ senderId: alice, targetId: bob });
-
-		expect(unfollowUser({ senderId: bob, targetId: alice })).rejects.toThrow(
-			'Relation does not exist'
-		);
 	});
 });

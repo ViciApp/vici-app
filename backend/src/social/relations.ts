@@ -71,9 +71,6 @@ export const listFriends = (userId: string): Promise<Relation[]> =>
 		[userId]
 	);
 
-export const listFollowers = (userId: string): Promise<Relation[]> =>
-	listRelations(`category = 'follow' and state = 'ACTIVE' and participant_two = $1`, [userId]);
-
 export const listFollowing = (userId: string): Promise<Relation[]> =>
 	listRelations(`category = 'follow' and state = 'ACTIVE' and participant_one = $1`, [userId]);
 
@@ -84,24 +81,6 @@ export const listFriendRequests = (userId: string): Promise<Relation[]> =>
 /** Pending friend requests where the caller is the sender. */
 export const listSentFriendRequests = (userId: string): Promise<Relation[]> =>
 	listRelations(`category = 'FRIEND' and state = 'PENDING' and participant_one = $1`, [userId]);
-
-export const checkFriendship = async ({
-	userA,
-	userB
-}: {
-	userA: string;
-	userB: string;
-}): Promise<boolean> => {
-	const rows = await query<{ ok: boolean }>(
-		`select exists (
-		   select 1 from relations
-		   where key = $1 and category = 'FRIEND' and state = 'ACTIVE'
-		 ) as ok`,
-		[friendRelationKey(userA, userB)]
-	);
-
-	return rows[0]?.ok === true;
-};
 
 /**
  * Friend-request send with the full outcome contract:
@@ -345,22 +324,4 @@ export const followUser = async ({
 		 on conflict (key) do update set state = 'ACTIVE', updated_at = now()`,
 		[followRelationKey({ sender: senderId, target: targetId }), senderId, targetId]
 	);
-};
-
-/** Removes the caller's own follow edge. */
-export const unfollowUser = async ({
-	senderId,
-	targetId
-}: {
-	senderId: string;
-	targetId: string;
-}): Promise<void> => {
-	const rows = await query<{ key: string }>(
-		`delete from relations where key = $1 and participant_one = $2 returning key`,
-		[followRelationKey({ sender: senderId, target: targetId }), senderId]
-	);
-
-	if (isNullish(rows[0])) {
-		throw new RelationError('Relation does not exist');
-	}
 };
