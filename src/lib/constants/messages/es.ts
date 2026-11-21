@@ -937,7 +937,7 @@ export const esMessages = {
 		'Tus VXP ya están en juego en predicciones abiertas. Se liberan a medida que esos mercados se resuelven: revisa tus llamadas abiertas en el Dashboard.',
 	'flow.funds.eyebrow': 'TODO EN JUEGO',
 	'flow.funds.title': 'Todo desplegado.',
-	'flow.invite.share_text': '¿Estás listo para el Mundial? Acabo de hacer mis predicciones aquí.',
+	'flow.invite.share_text': 'Acabo de hacer mis predicciones en VICI. Pruébalo tú también.',
 	'flow.invite.toast_copy_failed': 'Fallo al copiar',
 	'flow.notification.insufficient_message':
 		'Tu saldo ya está en juego en predicciones abiertas: se libera cuando los mercados se resuelven.',

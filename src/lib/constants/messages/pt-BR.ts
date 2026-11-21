@@ -835,8 +835,7 @@ export const ptBRMessages = {
 	'flow.end.stat_streak_value': 'Dia {n}',
 	'flow.exit_aria': 'Sair do Flow',
 	'flow.fresh_start': 'Começo limpo.',
-	'flow.invite.share_text':
-		'Você está pronto para a Copa do Mundo? Acabei de fazer minhas previsões aqui.',
+	'flow.invite.share_text': 'Acabei de fazer minhas previsões na VICI. Experimente você também.',
 	'flow.invite.toast_copy_failed': 'Falha ao copiar',
 	'flow.notification.insufficient_message':
 		'Seu saldo já está em jogo em previsões abertas; ele é liberado conforme os mercados são resolvidos.',

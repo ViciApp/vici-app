@@ -935,7 +935,7 @@ export const itMessages = {
 		'I tuoi VXP sono già impegnati in previsioni aperte. Si liberano man mano che quei mercati si risolvono: controlla le tue chiamate aperte nella Dashboard.',
 	'flow.funds.eyebrow': 'TUTTO IMPEGNATO',
 	'flow.funds.title': 'Tutto in gioco.',
-	'flow.invite.share_text': 'Sei pronto per i Mondiali? Ho appena fatto le mie previsioni qui.',
+	'flow.invite.share_text': 'Ho appena fatto le mie previsioni su VICI. Provalo anche tu.',
 	'flow.invite.toast_copy_failed': 'Copia fallita',
 	'flow.notification.insufficient_message':
 		'Il tuo saldo è già in gioco su previsioni aperte: si libera man mano che i mercati si risolvono.',
