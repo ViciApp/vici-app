@@ -51,31 +51,69 @@ describe('recomputeActivityReactionCountsFn', () => {
 
 	afterEach(() => host.restore());
 
-	it('rewrites the off-target counters a bounded batch per call until all are exact', () => {
-		assert.deepEqual(recomputeActivityReactionCountsFn(), { recomputed: 5 });
-		assert.deepEqual(recomputeActivityReactionCountsFn(), { recomputed: 2 });
-		assert.deepEqual(recomputeActivityReactionCountsFn(), { recomputed: 0 });
+	const recomputeUntilDone = (limit?: number) => {
+		const calls = [recomputeActivityReactionCountsFn({ limit })];
+		let [last] = calls;
+
+		while (!last.done) {
+			assert.ok(calls.length < 30, 'the repair ends');
+
+			last = recomputeActivityReactionCountsFn({ afterKey: last.nextAfterKey, limit });
+			calls.push(last);
+		}
+
+		return calls;
+	};
+
+	it('backfills the missing counters a bounded batch per call, resuming after the cursor', () => {
+		const calls = recomputeUntilDone();
+
+		assert.ok(calls.every(({ recomputed }) => recomputed <= 5));
+		assert.equal(
+			calls.reduce((sum, { recomputed }) => sum + recomputed, 0),
+			7
+		);
 		assert.deepEqual(
 			activityKeys.map((activityKey) => count(activityKey)),
 			activityKeys.map(() => 1)
 		);
+		assert.ok(
+			recomputeUntilDone().every(({ recomputed }) => recomputed === 0),
+			'a second repair finds every counter exact'
+		);
 	});
 
-	it('corrects a counter that drifted above its likes', () => {
+	it('corrects counters that drifted above and below their likes', () => {
 		const [activityKey] = activityKeys;
+		const unliked = `${actor.toText()}#1600000000000#${ActivityType.TRADE}`;
 
-		host.putDoc({
-			collection: Collection.ACTIVITY_REACTION_COUNTS,
-			key: activityKey,
-			data: { activityKey, count: 4, updatedAtMs: 1 },
-			owner: controller
-		});
-
-		while (recomputeActivityReactionCountsFn().recomputed > 0) {
-			// Each round repairs a bounded batch; the loop ends once every counter is exact.
+		for (const [key, drifted] of [
+			[activityKey, 4],
+			[unliked, 2]
+		] as const) {
+			host.putDoc({
+				collection: Collection.ACTIVITY_REACTION_COUNTS,
+				key,
+				data: { activityKey: key, count: drifted, updatedAtMs: 1 },
+				owner: controller
+			});
 		}
 
+		recomputeUntilDone();
+
 		assert.equal(count(activityKey), 1);
+		assert.equal(count(unliked), 0);
+	});
+
+	it('reads one page of `limit` docs per call', () => {
+		const calls = recomputeUntilDone(1);
+
+		assert.ok(calls.every(({ recomputed }) => recomputed <= 1));
+		assert.ok(calls.length > activityKeys.length);
+		assert.deepEqual(
+			activityKeys.map((activityKey) => count(activityKey)),
+			activityKeys.map(() => 1)
+		);
 	});
 
 	it('refuses a caller who is not an admin', () => {

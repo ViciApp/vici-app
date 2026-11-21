@@ -1971,14 +1971,28 @@ const rebuildMarketTagIndex = async (): Promise<
 	return AppRebuildMarketTagIndexResultSchema.parse(result);
 };
 
-const AppRecomputeActivityReactionCountsResultSchema = j.strictObject({ recomputed: j.number() });
+const AppRecomputeActivityReactionCountsArgsSchema = j.strictObject({
+	afterKey: j.optional(j.string()),
+	limit: j.optional(j.number())
+});
+const AppRecomputeActivityReactionCountsResultSchema = j.strictObject({
+	recomputed: j.number(),
+	nextAfterKey: j.optional(j.string()),
+	done: j.boolean()
+});
 
-const recomputeActivityReactionCounts = async (): Promise<
-	j.infer<typeof AppRecomputeActivityReactionCountsResultSchema>
-> => {
+const recomputeActivityReactionCounts = async (
+	args: j.infer<typeof AppRecomputeActivityReactionCountsArgsSchema>
+): Promise<j.infer<typeof AppRecomputeActivityReactionCountsResultSchema>> => {
+	const parsedArgs = AppRecomputeActivityReactionCountsArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppRecomputeActivityReactionCountsArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_recompute_activity_reaction_counts']>[0];
+
 	const { app_recompute_activity_reaction_counts } =
 		await getSatelliteExtendedActor<SatelliteActor>({ idlFactory });
-	const idlResult = await app_recompute_activity_reaction_counts();
+	const idlResult = await app_recompute_activity_reaction_counts(idlArgs);
 
 	const result = schemaFromIdl({
 		schema: AppRecomputeActivityReactionCountsResultSchema,

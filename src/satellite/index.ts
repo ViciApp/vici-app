@@ -1228,18 +1228,21 @@ export const sweepExpiredDeletions = defineUpdate({
 	handler: (args) => sweepExpiredDeletionsFn(args)
 });
 
-// Admin-only corrective for the friend-feed like counts: re-derives every
-// activity's exact like count from `activity_reactions` and overwrites the
+// Admin-only corrective for the friend-feed like counts: re-derives
+// activities' exact like counts from `activity_reactions` and overwrites the
 // `activity_reaction_counts` rollup docs. Heals any drift from a
 // concurrent-like version race (the hooks are best-effort) and backfills
-// counts for likes that predate the rollup. Admin-gated; rewrites a bounded
-// batch per call: `recomputed` is the number of counter docs written, call
-// again until it is 0.
+// counts for likes that predate the rollup. Admin-gated; one keyset page and
+// a bounded batch of writes per call, over the counters and then the
+// reactions: `recomputed` is the number of counter docs written; pass the
+// returned `nextAfterKey` back as `afterKey` until `done`.
 export const recomputeActivityReactionCounts = defineUpdate({
+	args: KeysetWalkArgsSchema,
 	result: j.strictObject({
-		recomputed: j.number()
+		recomputed: j.number(),
+		...KeysetWalkResultSchema.shape
 	}),
-	handler: () => recomputeActivityReactionCountsFn()
+	handler: (args) => recomputeActivityReactionCountsFn(args)
 });
 
 // Admin-only: re-derive the `market_tag_index` buckets from a single scan of
