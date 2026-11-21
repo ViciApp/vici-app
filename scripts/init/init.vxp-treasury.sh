@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Fund the Juno Satellite with VXP on the local (or staging) replica so serverless
+# Fund the Juno Satellite with VXP on the local replica so serverless
 # distribution hooks (icrc1_transfer from the satellite) can pay users.
 #
 # Prerequisites:
@@ -17,6 +17,7 @@
 #
 # shellcheck source=scripts/lib/utils.sh
 source "$(dirname "$0")/../lib/utils.sh" "$@"
+require_local_network
 
 set -euo pipefail
 
