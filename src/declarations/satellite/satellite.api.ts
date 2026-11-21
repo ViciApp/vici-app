@@ -1909,15 +1909,29 @@ const migrateLeagueInviteCodes = async (): Promise<
 	return AppMigrateLeagueInviteCodesResultSchema.parse(result);
 };
 
-const AppPruneResolvedResultsResultSchema = j.strictObject({ pruned: j.number() });
+const AppPruneResolvedResultsArgsSchema = j.strictObject({
+	afterKey: j.optional(j.string()),
+	limit: j.optional(j.number())
+});
+const AppPruneResolvedResultsResultSchema = j.strictObject({
+	pruned: j.number(),
+	nextAfterKey: j.optional(j.string()),
+	done: j.boolean()
+});
 
-const pruneResolvedResults = async (): Promise<
-	j.infer<typeof AppPruneResolvedResultsResultSchema>
-> => {
+const pruneResolvedResults = async (
+	args: j.infer<typeof AppPruneResolvedResultsArgsSchema>
+): Promise<j.infer<typeof AppPruneResolvedResultsResultSchema>> => {
+	const parsedArgs = AppPruneResolvedResultsArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppPruneResolvedResultsArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_prune_resolved_results']>[0];
+
 	const { app_prune_resolved_results } = await getSatelliteExtendedActor<SatelliteActor>({
 		idlFactory
 	});
-	const idlResult = await app_prune_resolved_results();
+	const idlResult = await app_prune_resolved_results(idlArgs);
 
 	const result = schemaFromIdl({ schema: AppPruneResolvedResultsResultSchema, value: idlResult });
 	return AppPruneResolvedResultsResultSchema.parse(result);

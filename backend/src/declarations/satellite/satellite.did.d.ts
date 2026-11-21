@@ -1054,7 +1054,13 @@ export interface AppLookupReferralCodeResult {
 export interface AppMigrateLeagueInviteCodesResult {
 	migrated: number;
 }
+export interface AppPruneResolvedResultsArgs {
+	limit: [] | [number];
+	after_key: [] | [string];
+}
 export interface AppPruneResolvedResultsResult {
+	done: boolean;
+	next_after_key: [] | [string];
 	pruned: number;
 }
 export interface AppReadBattleLiveScoreArgs {
@@ -1547,7 +1553,10 @@ export interface _SERVICE {
 	>;
 	app_lookup_referral_code: ActorMethod<[AppLookupReferralCodeArgs], AppLookupReferralCodeResult>;
 	app_migrate_league_invite_codes: ActorMethod<[], AppMigrateLeagueInviteCodesResult>;
-	app_prune_resolved_results: ActorMethod<[], AppPruneResolvedResultsResult>;
+	app_prune_resolved_results: ActorMethod<
+		[AppPruneResolvedResultsArgs],
+		AppPruneResolvedResultsResult
+	>;
 	app_read_battle_live_score: ActorMethod<
 		[AppReadBattleLiveScoreArgs],
 		AppReadBattleLiveScoreResult

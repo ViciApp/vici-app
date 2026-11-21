@@ -157,14 +157,39 @@ describe('resolved-results.services', () => {
 			putRow({ marketId: 'fresh-1', resolvedAtMs: hostNowMs });
 		});
 
-		it('prunes stale rows a bounded batch per call until none is left', () => {
-			assert.deepEqual(pruneResolvedResultsFn(), { pruned: 5 });
-			assert.deepEqual(pruneResolvedResultsFn(), { pruned: 2 });
-			assert.deepEqual(pruneResolvedResultsFn(), { pruned: 0 });
-			assert.deepEqual(host.keys(Collection.RESOLVED_RESULTS).sort(), [
-				`${participant.toText()}#fresh-0`,
-				`${participant.toText()}#fresh-1`
-			]);
+		const freshKeys = [`${participant.toText()}#fresh-0`, `${participant.toText()}#fresh-1`];
+
+		it('prunes at most a batch per call, resuming after the cursor until done', () => {
+			const calls = [pruneResolvedResultsFn()];
+			let [last] = calls;
+
+			while (!last.done) {
+				assert.ok(calls.length < 10, 'the walk ends');
+
+				last = pruneResolvedResultsFn({ afterKey: last.nextAfterKey });
+				calls.push(last);
+			}
+
+			assert.deepEqual(
+				calls.map(({ pruned }) => pruned),
+				[5, 2]
+			);
+			assert.deepEqual(host.keys(Collection.RESOLVED_RESULTS).sort(), freshKeys);
+			assert.deepEqual(pruneResolvedResultsFn(), {
+				pruned: 0,
+				nextAfterKey: freshKeys[1],
+				done: true
+			});
+		});
+
+		it('reads one page of `limit` rows per call', () => {
+			// The fresh rows sort first, so a two-row page holds nothing to prune.
+			assert.deepEqual(pruneResolvedResultsFn({ limit: 2 }), {
+				pruned: 0,
+				nextAfterKey: freshKeys[1],
+				done: false
+			});
+			assert.equal(host.keys(Collection.RESOLVED_RESULTS).length, 9);
 		});
 
 		it('refuses a caller who is not an admin', () => {

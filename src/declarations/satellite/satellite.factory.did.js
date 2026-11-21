@@ -1214,7 +1214,15 @@ export const idlFactory = ({ IDL }) => {
 	const AppMigrateLeagueInviteCodesResult = IDL.Record({
 		migrated: IDL.Float64
 	});
-	const AppPruneResolvedResultsResult = IDL.Record({ pruned: IDL.Float64 });
+	const AppPruneResolvedResultsArgs = IDL.Record({
+		limit: IDL.Opt(IDL.Float64),
+		after_key: IDL.Opt(IDL.Text)
+	});
+	const AppPruneResolvedResultsResult = IDL.Record({
+		done: IDL.Bool,
+		next_after_key: IDL.Opt(IDL.Text),
+		pruned: IDL.Float64
+	});
 	const AppReadBattleLiveScoreArgs = IDL.Record({ battle_id: IDL.Text });
 	const AppReadBattleLiveScoreResult = IDL.Record({
 		score: IDL.Opt(
@@ -1767,7 +1775,11 @@ export const idlFactory = ({ IDL }) => {
 			['query']
 		),
 		app_migrate_league_invite_codes: IDL.Func([], [AppMigrateLeagueInviteCodesResult], []),
-		app_prune_resolved_results: IDL.Func([], [AppPruneResolvedResultsResult], []),
+		app_prune_resolved_results: IDL.Func(
+			[AppPruneResolvedResultsArgs],
+			[AppPruneResolvedResultsResult],
+			[]
+		),
 		app_read_battle_live_score: IDL.Func(
 			[AppReadBattleLiveScoreArgs],
 			[AppReadBattleLiveScoreResult],

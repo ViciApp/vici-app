@@ -175,7 +175,9 @@ type AppLookupLeagueByInviteResult = record { league : opt record { id : text; n
 
 type AppMigrateLeagueInviteCodesResult = record { migrated : float64 };
 
-type AppPruneResolvedResultsResult = record { pruned : float64 };
+type AppPruneResolvedResultsArgs = record { after_key : opt text; limit : opt float64 };
+
+type AppPruneResolvedResultsResult = record { pruned : float64; next_after_key : opt text; done : bool };
 
 type AppReadBattleLiveScoreArgs = record { battle_id : text };
 
@@ -304,7 +306,7 @@ service : {
 	app_join_league_by_invite : (AppJoinLeagueByInviteArgs) -> (AppJoinLeagueByInviteResult);
 	app_lookup_league_by_invite : (AppLookupLeagueByInviteArgs) -> (AppLookupLeagueByInviteResult);
 	app_migrate_league_invite_codes : () -> (AppMigrateLeagueInviteCodesResult);
-	app_prune_resolved_results : () -> (AppPruneResolvedResultsResult);
+	app_prune_resolved_results : (AppPruneResolvedResultsArgs) -> (AppPruneResolvedResultsResult);
 	app_read_battle_live_score : (AppReadBattleLiveScoreArgs) -> (AppReadBattleLiveScoreResult);
 	app_rebuild_market_tag_index : () -> (AppRebuildMarketTagIndexResult);
 	app_recompute_activity_reaction_counts : () -> (AppRecomputeActivityReactionCountsResult);

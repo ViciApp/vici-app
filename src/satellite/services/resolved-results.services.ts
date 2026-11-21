@@ -8,6 +8,11 @@ import type { UserProfile } from '#lib/types/profile.ts';
 import type { Relation } from '#lib/types/relation.ts';
 import type { Activity, ResolvedResult } from '#lib/types/social.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
+import {
+	type KeysetWalk,
+	type KeysetWalkArgs,
+	walkKeysetPage
+} from '#satellite/services/keyset-walk.services.ts';
 import { isPubliclyHidden } from '#satellite/services/profile.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -358,11 +363,15 @@ const PRUNE_RESOLVED_RESULTS_BATCH = 5;
 
 /**
  * Controllers-only retention cleanup. Prunes `resolved_results` rows whose `resolvedAtMs` is older
- * than {@link RESOLVED_RESULTS_RETENTION_MS}, at most {@link PRUNE_RESOLVED_RESULTS_BATCH} per
- * call: Juno has no scheduler, so this is admin/cron triggered (mirrors `sweepExpiredDeletions`).
- * Returns the number of rows pruned; call it again until that is 0.
+ * than {@link RESOLVED_RESULTS_RETENTION_MS}: one call reads one keyset page after `afterKey` (at
+ * most `limit` rows, see {@link walkKeysetPage}) and deletes at most
+ * {@link PRUNE_RESOLVED_RESULTS_BATCH} of them. Juno has no scheduler, so this is admin/cron
+ * triggered (mirrors `sweepExpiredDeletions`). Returns the rows pruned and where the walk left off;
+ * the operator passes `nextAfterKey` back as `afterKey` until `done`.
  */
-export const pruneResolvedResultsFn = (): { pruned: number } => {
+export const pruneResolvedResultsFn = ({ afterKey, limit }: KeysetWalkArgs = {}): {
+	pruned: number;
+} & KeysetWalk => {
 	const caller = msgCaller();
 
 	if (!isAdmin({ caller })) {
@@ -371,30 +380,31 @@ export const pruneResolvedResultsFn = (): { pruned: number } => {
 
 	const admin = adminCaller();
 	const cutoffMs = timeMs() - RESOLVED_RESULTS_RETENTION_MS;
-
-	const { items } = listDocsStore({
-		collection: Collection.RESOLVED_RESULTS,
-		caller: admin,
-		params: {}
-	});
-
 	let pruned = 0;
 
-	for (const [key, item] of items) {
-		if (pruned >= PRUNE_RESOLVED_RESULTS_BATCH) {
-			break;
-		}
+	const walk = walkKeysetPage({
+		collection: Collection.RESOLVED_RESULTS,
+		caller: admin,
+		afterKey,
+		limit,
+		visit: ([key, item]) => {
+			let row: ResolvedResult | undefined;
 
-		let row: ResolvedResult | undefined;
+			try {
+				row = decodeDocData<ResolvedResult>(item.data);
+			} catch {
+				row = undefined;
+			}
 
-		try {
-			row = decodeDocData<ResolvedResult>(item.data);
-		} catch {
-			row = undefined;
-		}
+			// Prune stale rows and any undecodable row (it can never serve a read).
+			if (nonNullish(row) && row.resolvedAtMs >= cutoffMs) {
+				return 'kept';
+			}
 
-		// Prune stale rows and any undecodable row (it can never serve a read).
-		if (isNullish(row) || row.resolvedAtMs < cutoffMs) {
+			if (pruned >= PRUNE_RESOLVED_RESULTS_BATCH) {
+				return 'stop';
+			}
+
 			deleteDocStore({
 				collection: Collection.RESOLVED_RESULTS,
 				key,
@@ -402,8 +412,10 @@ export const pruneResolvedResultsFn = (): { pruned: number } => {
 				doc: { version: item.version }
 			});
 			pruned += 1;
-		}
-	}
 
-	return { pruned };
+			return 'removed';
+		}
+	});
+
+	return { pruned, ...walk };
 };
