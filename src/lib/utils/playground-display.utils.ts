@@ -20,6 +20,10 @@ import { nonNullish } from '@dfinity/utils';
  * when formatting a value already scaled to a different unit (e.g. clearing
  * margin units). No symbol: callers add `VXP` / `PLAYGROUND_DISPLAY_SYMBOL`
  * themselves so the same helper works for both display contexts.
+ *
+ * Rounds toward zero, never to nearest: 49.6 spendable VXP must read `49`,
+ * because the call gates compare base units and refuse a 50 VXP call that a
+ * `50` on screen would promise.
  */
 export const formatVxpBalance = ({
 	value,
@@ -27,12 +31,15 @@ export const formatVxpBalance = ({
 }: {
 	value: bigint;
 	decimals?: number;
-}): string =>
-	formatToken({
-		value,
+}): string => {
+	const hiddenDigitsUnit = 10n ** BigInt(Math.max(decimals - VXP_BALANCE_DISPLAY_DECIMALS, 0));
+
+	return formatToken({
+		value: value - (value % hiddenDigitsUnit),
 		unitName: decimals,
 		displayDecimals: VXP_BALANCE_DISPLAY_DECIMALS
 	});
+};
 
 /**
  * Format a single VXP win / PnL magnitude for the whole-number "points" UI.

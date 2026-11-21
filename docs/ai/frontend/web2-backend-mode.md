@@ -94,7 +94,10 @@ per-domain sections:
   as do the roles / admin services.
 - **Direct ICRC ledger / index reads and user-held transfers**: web2 mode
   surfaces custodial balances and routes sends through withdrawals; the
-  paged ledger history returns empty there.
+  paged ledger history returns empty there, and `loadVxpLedgerHistory`
+  returns `undefined`, so the transaction history page
+  (`/dash/transactions`) shows its unavailable state rather than running
+  balances that miss every bonus and transfer.
 - **League standings slice** (`getLeagueStandings`): empty in web2 mode
   until a member-filtered bridge read with the identity mapping exists;
   web2 standings entries also keep the on-chain principal as `owner`.
@@ -290,6 +293,9 @@ the on-chain call untouched on the default side:
   swap through `patchProfile` + `upsertProfile`; in web2 `patchProfile`
   builds the patch on the session's own row (`getMyProfile`), never on the
   public `getProfile` read.
+  `getMyJoinedAtMs` (the Settings "Joined" line) reads the session
+  account's `createdAt` in web2 mode, the profile doc's `created_at` on
+  the default backend.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
 - `leaderboard.services.ts`: `getLeaderboard`. The API ranks it from
   settled history, never `points` (see the global leaderboard section of
@@ -355,7 +361,8 @@ apply them at the fetch boundary.
 ### Service-layer branches
 
 - `market.services.ts`: the series catalog (`listSeries`, both the full
-  and the unexpired read), per-series `getSeries`, the settlement status
+  read, exported as `listSeriesCatalog` for the `/m/[id]` share-link
+  alias, and the unexpired read), per-series `getSeries`, the settlement status
   on the detail fetch, and the traded-volumes batch. On the detail fetch the
   on-chain order book fails open in web2 mode (an empty book, priced as
   unknown) so an unreachable IC read never blanks the page; the Flow deck's
@@ -485,7 +492,9 @@ the exact candid shapes.
   authoritative for the other chains. The read is deliberately uncached:
   the sweep sizes its deposit from it every 10s and re-reads right after
   one. An asset whose read fails is logged and left out of the response,
-  never reported as zero.
+  never reported as zero; `LoaderBalances` then keeps that token's last
+  known balance for the same user (`mergeReadBalances`), as it does for a
+  ledger read that fails on the default backend.
 - `getReceiveAddress` (the Receive tab): `/wallet/deposit-address/ic`,
   the custodial IC principal the API derives for the user. Funds sent to
   it show up on the next balance read.
@@ -567,8 +576,9 @@ shapes are identity-free (league ids and aggregates) and pass through.
   client never reads `league_stats` (tournament matches are scored from
   settled history server-side, never from it either); `loadLeaguesByIds` hydrates the
   league directory from the caller's own list reads because no public
-  by-id league read exists yet; the share URL stays plain (no `?ref=`)
-  until referrals swap.
+  by-id league read exists yet; the share URL carries the sharer's
+  `?ref=` code through the dual-mode `getMyReferralCode`, as on the
+  default backend.
 - League cover images: `storage.services.ts` `uploadLeagueImage` posts
   the (still client-downscaled) bytes as multipart to
   `/leagues/:id/image`, which stores them and stamps the serving URL on

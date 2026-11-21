@@ -235,6 +235,21 @@ export const createMarket = async ({
 };
 
 /**
+ * The full series catalog (every payoff type, expired included). It is a
+ * public engine read: web2 routes it through the HTTP bridge (which runs the
+ * same anonymous registry query server-side); the default path is the
+ * on-chain call.
+ */
+export const listSeriesCatalog = ({
+	identity,
+	certified
+}: {
+	identity: Identity;
+	certified: boolean;
+}): Promise<RegistryDid.Series[]> =>
+	isWeb2Backend() ? listEngineSeriesWeb2() : listSeries({ identity, certified });
+
+/**
  * Core market-loading logic: series + enrichment + resolution merge.
  *
  * Accepts an explicit `identity` and `certified` flag so the caller can run this
@@ -263,10 +278,7 @@ const fetchMarkets = async ({
 	includeOrderBook?: boolean;
 }): Promise<Market[]> => {
 	const [allSeries, settledIds, settlementActivities] = await Promise.all([
-		// The catalog is a public engine read: web2 routes it through the HTTP
-		// bridge (which runs the same anonymous registry query server-side);
-		// the default path is the untouched on-chain call.
-		isWeb2Backend() ? listEngineSeriesWeb2() : listSeries({ identity, certified }),
+		listSeriesCatalog({ identity, certified }),
 		getSettledSeriesIds({ identity, certified }),
 		getSettlementActivities({ certified })
 	]);
