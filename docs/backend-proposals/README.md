@@ -1,6 +1,6 @@
 # Backend follow-up proposals
 
-> **Historical.** All four proposals below shipped: the `AFFILIATION_STATS`, `TOURNAMENTS`, `TOURNAMENT_MATCHES` and `EXIT_SIGNALS` collections and the Worlds podium job exist in the satellite. The open questions here are not current; the code, [`docs/ai/PRODUCT.md`](../ai/PRODUCT.md) and [`docs/ai/satellite/README.md`](../ai/satellite/README.md) describe today's behaviour.
+> **Historical.** All four proposals below shipped, not all in the shape proposed: the `AFFILIATION_STATS`, `TOURNAMENTS`, `TOURNAMENT_MATCHES` and `EXIT_SIGNALS` collections exist in the satellite, but none of the scheduled jobs described below does, because Juno has no scheduler. The Worlds podium payout is the per-user `claimWorldsPodiumPrize` endpoint instead of the monthly fan-out of Proposal 2, and the tournament draw, round resolution and prize are caller-triggered endpoints (see [Shipped (Proposal 3)](#shipped-proposal-3)). The open questions here are not current; the code, [`docs/ai/PRODUCT.md`](../ai/PRODUCT.md) and [`docs/ai/satellite/README.md`](../ai/satellite/README.md) describe today's behaviour.
 
 The frontend port of the design prototype is feature-complete. Four
 backend follow-ups remain: each is a new satellite collection (or
