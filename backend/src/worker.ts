@@ -8,7 +8,9 @@
 // and logged per job, it never stalls the others).
 //
 // `everyNthTick` throttles a job to every Nth pass of the env-driven poll
-// interval (WORKER_POLL_INTERVAL_MS), for sweeps that are cheap to skip.
+// interval (WORKER_POLL_INTERVAL_MS), for sweeps that are cheap to skip. A
+// throttled job still runs on the first pass after boot, so a deploy or a
+// restart never postpones it by a whole period.
 
 import { nonNullish } from '@dfinity/utils';
 import { sweepExpiredDeletions } from './account/lifecycle';
@@ -143,6 +145,10 @@ export const jobs: WorkerJob[] = [
 	}
 ];
 
+/** The jobs pass number `tickIndex` runs, counting the first pass after boot as 0. */
+export const dueJobs = (tickIndex: number): WorkerJob[] =>
+	jobs.filter((job) => tickIndex % (job.everyNthTick ?? 1) === 0);
+
 let stopping = false;
 let allowlistApplied = false;
 let tickCount = 0;
@@ -155,9 +161,9 @@ export const tick = async (): Promise<void> => {
 		allowlistApplied = true;
 	}
 
-	tickCount += 1;
+	const due = dueJobs(tickCount);
 
-	const due = jobs.filter((job) => tickCount % (job.everyNthTick ?? 1) === 0);
+	tickCount += 1;
 
 	for (const job of due) {
 		try {

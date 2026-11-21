@@ -216,8 +216,13 @@
 				});
 
 				return;
-			} catch (_: unknown) {
-				// Cancelled or unsupported: fall through to clipboard.
+			} catch (e: unknown) {
+				// A dismissed share sheet is the user's choice: no copy, no toast.
+				if (e instanceof DOMException && e.name === 'AbortError') {
+					return;
+				}
+
+				// Unsupported or blocked: fall through to clipboard.
 			}
 		}
 

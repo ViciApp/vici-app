@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 source "$(dirname "$0")/../lib/utils.sh" "$@"
+require_local_network
 
 echo "Starting clearing initialization on $NETWORK..."
 

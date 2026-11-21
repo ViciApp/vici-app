@@ -1,6 +1,9 @@
 <script lang="ts">
+	import { nonNullish } from '@dfinity/utils';
+	import { onMount } from 'svelte';
 	import OracleChar from '#lib/components/characters/OracleChar.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
+	import { getMyReferralCode } from '#lib/services/referral.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
@@ -18,12 +21,28 @@
 
 	const reduce = $derived(prefersReducedMotion());
 
+	// Resolved on mount so the link is ready inside the tap (`navigator.share()`
+	// must run in the user gesture); the bare origin stands in until it lands.
+	let inviteCode = $state<string | undefined>();
+
+	onMount(async () => {
+		try {
+			inviteCode = await getMyReferralCode();
+		} catch {
+			inviteCode = undefined;
+		}
+	});
+
+	const inviteUrl = $derived(
+		nonNullish(inviteCode) ? `${appOrigin()}/i/${inviteCode}` : appOrigin()
+	);
+
 	const inviteFriend = async () => {
 		const text = t({ locale: $localeStore, key: 'flow.invite.share_text' });
 
 		if (navigator.share) {
 			try {
-				await navigator.share({ title: 'VICI', text, url: appOrigin() });
+				await navigator.share({ title: 'VICI', text, url: inviteUrl });
 
 				return;
 			} catch (e: unknown) {
@@ -33,7 +52,7 @@
 			}
 		}
 
-		await writeToClipboard(`${text} ${appOrigin()}`);
+		await writeToClipboard(`${text} ${inviteUrl}`);
 	};
 </script>
 
