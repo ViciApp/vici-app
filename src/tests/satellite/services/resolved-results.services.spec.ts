@@ -1,7 +1,9 @@
 import type { ClearingDid } from '#declarations';
+import { RESOLVED_RESULTS_RETENTION_MS } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { ActivityType } from '#lib/enums/social.ts';
+import { UserRole } from '#lib/enums/user.ts';
 import type { ResolvedResult } from '#lib/types/social.ts';
 import junoConfig from '#root/juno.config.ts';
 import {
@@ -14,7 +16,8 @@ import {
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
 import {
 	listFriendResolvedResultsFn,
-	onActivitySetForResolvedResults
+	onActivitySetForResolvedResults,
+	pruneResolvedResultsFn
 } from '#satellite/services/resolved-results.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { Principal } from '@icp-sdk/core/principal';
@@ -124,6 +127,75 @@ describe('resolved-results.services', () => {
 
 			assert.equal(row()?.resolvedAtMs, hostNowMs);
 			assert.equal(rowVersion(), versionBefore);
+		});
+	});
+
+	describe('pruneResolvedResultsFn', () => {
+		const staleAtMs = hostNowMs - RESOLVED_RESULTS_RETENTION_MS - 1;
+
+		const putRow = ({ marketId, resolvedAtMs }: { marketId: string; resolvedAtMs: number }) =>
+			host.putDoc({
+				collection: Collection.RESOLVED_RESULTS,
+				key: `${participant.toText()}#${marketId}`,
+				data: { owner: participant.toText(), marketId, resolvedAtMs },
+				owner: controller
+			});
+
+		beforeEach(() => {
+			host.putDoc({
+				collection: Collection.ROLES,
+				key: controller.toText(),
+				data: { role: UserRole.ADMIN },
+				owner: controller
+			});
+
+			for (let index = 0; index < 7; index++) {
+				putRow({ marketId: `stale-${index}`, resolvedAtMs: staleAtMs });
+			}
+
+			putRow({ marketId: 'fresh-0', resolvedAtMs: hostNowMs });
+			putRow({ marketId: 'fresh-1', resolvedAtMs: hostNowMs });
+		});
+
+		const freshKeys = [`${participant.toText()}#fresh-0`, `${participant.toText()}#fresh-1`];
+
+		it('prunes at most a batch per call, resuming after the cursor until done', () => {
+			const calls = [pruneResolvedResultsFn()];
+			let [last] = calls;
+
+			while (!last.done) {
+				assert.ok(calls.length < 10, 'the walk ends');
+
+				last = pruneResolvedResultsFn({ afterKey: last.nextAfterKey });
+				calls.push(last);
+			}
+
+			assert.deepEqual(
+				calls.map(({ pruned }) => pruned),
+				[5, 2]
+			);
+			assert.deepEqual(host.keys(Collection.RESOLVED_RESULTS).sort(), freshKeys);
+			assert.deepEqual(pruneResolvedResultsFn(), {
+				pruned: 0,
+				nextAfterKey: freshKeys[1],
+				done: true
+			});
+		});
+
+		it('reads one page of `limit` rows per call', () => {
+			// The fresh rows sort first, so a two-row page holds nothing to prune.
+			assert.deepEqual(pruneResolvedResultsFn({ limit: 2 }), {
+				pruned: 0,
+				nextAfterKey: freshKeys[1],
+				done: false
+			});
+			assert.equal(host.keys(Collection.RESOLVED_RESULTS).length, 9);
+		});
+
+		it('refuses a caller who is not an admin', () => {
+			host.setCaller(participant);
+
+			assert.throws(() => pruneResolvedResultsFn(), /Only an admin/);
 		});
 	});
 

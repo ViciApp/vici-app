@@ -1269,14 +1269,18 @@ export const listFriendResolvedResults = defineQuery({
 });
 
 // Retention cleanup for `resolved_results`: prunes rows older than the
-// configured horizon. Admin-gated; Juno has no scheduler so this is triggered
-// externally (admin/cron), mirroring `sweepExpiredDeletions`. `pruned` is the
-// number of rows removed.
+// configured horizon, walking the collection one keyset page and a bounded
+// batch of deletes per call: pass the returned `nextAfterKey` back as
+// `afterKey` until `done`. Admin-gated; Juno has no scheduler so this is
+// triggered externally (admin/cron), mirroring `sweepExpiredDeletions`.
+// `pruned` is the number of rows this call removed.
 export const pruneResolvedResults = defineUpdate({
+	args: KeysetWalkArgsSchema,
 	result: j.strictObject({
-		pruned: j.number()
+		pruned: j.number(),
+		...KeysetWalkResultSchema.shape
 	}),
-	handler: () => pruneResolvedResultsFn()
+	handler: (args) => pruneResolvedResultsFn(args)
 });
 
 // Monthly tournament draw: fire-and-forget on every Tournament-page

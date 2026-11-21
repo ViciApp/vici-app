@@ -1211,7 +1211,15 @@ export const idlFactory = ({ IDL }) => {
 	const AppLookupReferralCodeResult = IDL.Record({
 		owner: IDL.Opt(IDL.Text)
 	});
-	const AppPruneResolvedResultsResult = IDL.Record({ pruned: IDL.Float64 });
+	const AppPruneResolvedResultsArgs = IDL.Record({
+		limit: IDL.Opt(IDL.Float64),
+		after_key: IDL.Opt(IDL.Text)
+	});
+	const AppPruneResolvedResultsResult = IDL.Record({
+		done: IDL.Bool,
+		next_after_key: IDL.Opt(IDL.Text),
+		pruned: IDL.Float64
+	});
 	const AppReadBattleLiveScoreArgs = IDL.Record({ battle_id: IDL.Text });
 	const AppReadBattleLiveScoreResult = IDL.Record({
 		score: IDL.Opt(
@@ -1763,7 +1771,11 @@ export const idlFactory = ({ IDL }) => {
 			[AppLookupReferralCodeResult],
 			['query']
 		),
-		app_prune_resolved_results: IDL.Func([], [AppPruneResolvedResultsResult], []),
+		app_prune_resolved_results: IDL.Func(
+			[AppPruneResolvedResultsArgs],
+			[AppPruneResolvedResultsResult],
+			[]
+		),
 		app_read_battle_live_score: IDL.Func(
 			[AppReadBattleLiveScoreArgs],
 			[AppReadBattleLiveScoreResult],
