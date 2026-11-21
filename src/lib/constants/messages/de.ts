@@ -1332,7 +1332,7 @@ export const deMessages = {
 	'leagues.role.admin': 'Admin',
 	'leagues.role.member': 'Mitglied',
 	'leagues.role.owner': 'Inhaber',
-	'leagues.share_text': 'Tritt meiner Liga bei und lass uns gemeinsam die WM tippen.',
+	'leagues.share_text': 'Tritt meiner Liga auf VICI bei und gib deine Vorhersagen mit uns ab.',
 	'leagues.title': 'Ligen',
 	'leagues.transfer.cta': 'Inhaberschaft übertragen',
 	'leagues.transfer.empty':
