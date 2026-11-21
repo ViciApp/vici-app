@@ -281,6 +281,20 @@ describe.if(dbAvailable)('monthly leaderboard', () => {
 		expect(sharpestEye.map((entry) => [entry.userId, entry.monthCalls])).toEqual([[user, 40]]);
 	});
 
+	test('a month older than the previous one reads empty without calling clearing', async () => {
+		const monthAnchor = await uniqueMonthAnchor();
+
+		await seedMonth({ monthAnchor, monthCalls: 40, monthWins: 40 });
+
+		const { sharpestEye } = await getMonthlyLeaderboard({
+			monthAnchor,
+			nowMs: monthEndMs(monthAnchor) + 40 * DAY_IN_MS
+		});
+
+		expect(sharpestEye).toEqual([]);
+		expect(settled?.reads()).toBe(0);
+	});
+
 	test('bold-caller is never awarded: settled history carries no consensus at call', async () => {
 		const monthAnchor = await uniqueMonthAnchor();
 

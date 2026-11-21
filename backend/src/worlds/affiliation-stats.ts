@@ -19,7 +19,8 @@ import {
 	MONTH_ANCHOR_RE,
 	monthAnchorFromMs,
 	monthWindowSoFar,
-	previousMonthAnchor
+	previousMonthAnchor,
+	recentMonthWindowSoFar
 } from '../lib/time';
 import { AFFILIATION_KINDS, type AffiliationKind } from './affiliations';
 
@@ -179,7 +180,8 @@ const settledMonthTallies = async ({
 
 /**
  * {@link settledMonthTallies} for display, shared by every read of the same
- * kind and month for {@link SETTLED_STANDINGS_TTL_MS}. The open and the
+ * kind and month for {@link SETTLED_STANDINGS_TTL_MS}, and only for the months
+ * {@link recentMonthWindowSoFar} scores. The open and the
  * closed month are cached apart, so a tally read just before the close is
  * never served as the closed month's. The freeze never reads through this.
  */
@@ -192,7 +194,7 @@ const displayMonthTallies = async ({
 	monthAnchor: string;
 	nowMs: number;
 }): Promise<MonthTallies> => {
-	const window = monthWindowSoFar({ monthAnchor, nowMs });
+	const window = recentMonthWindowSoFar({ monthAnchor, nowMs });
 
 	if (isNullish(window)) {
 		return new Map();

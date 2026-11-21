@@ -9,7 +9,8 @@ import {
 	nowNs,
 	nsToMs,
 	optionalMs,
-	previousMonthAnchor
+	previousMonthAnchor,
+	recentMonthWindowSoFar
 } from '../src/lib/time';
 
 describe('msToNs', () => {
@@ -114,5 +115,24 @@ describe('previousMonthAnchor', () => {
 		expect(previousMonthAnchor(Date.UTC(2026, 10, 13))).toBe('2026-10');
 		expect(previousMonthAnchor(Date.UTC(2026, 0, 1))).toBe('2025-12');
 		expect(previousMonthAnchor(Date.UTC(2026, 2, 31, 23, 59, 59, 999))).toBe('2026-02');
+	});
+});
+
+describe('recentMonthWindowSoFar', () => {
+	const midMonth = Date.UTC(2026, 10, 13);
+
+	test('is the elapsed window of the current and the previous month', () => {
+		expect(recentMonthWindowSoFar({ monthAnchor: '2026-11', nowMs: midMonth })).toEqual(
+			monthWindowSoFar({ monthAnchor: '2026-11', nowMs: midMonth })
+		);
+		expect(recentMonthWindowSoFar({ monthAnchor: '2026-10', nowMs: midMonth })).toEqual(
+			monthWindowSoFar({ monthAnchor: '2026-10', nowMs: midMonth })
+		);
+	});
+
+	test('is undefined for any older, later or malformed anchor', () => {
+		for (const monthAnchor of ['2026-09', '2025-11', '2026-12', '2026-1', 'x']) {
+			expect(recentMonthWindowSoFar({ monthAnchor, nowMs: midMonth })).toBeUndefined();
+		}
 	});
 });

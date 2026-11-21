@@ -152,8 +152,8 @@ The bound that protects each surface today:
   `sharpest-eye` and `bold-caller` (monthly accuracy awards) are not paid
   by the web2 API. The top-decile day counter and bold-caller's consensus
   at each call are figures only the client computes; the API scores the
-  sharpest-eye podium from settled history
-  (`GET /api/v1/leaderboard/monthly/:monthAnchor`) but no award reads it.
+  sharpest-eye podium from settled history for the current and the previous
+  month (`GET /api/v1/leaderboard/monthly/:monthAnchor`) but no award reads it.
   **Owner decision pending:** give them a server-side source (a daily
   leaderboard snapshot, server-computed monthly awards), or leave them
   unpaid.

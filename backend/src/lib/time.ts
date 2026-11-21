@@ -98,6 +98,22 @@ export const monthWindowSoFar = ({
 	return { fromMs, toMs: Math.min(closeMs, nowMs), closed: nowMs >= closeMs };
 };
 
+/** {@link monthWindowSoFar} for the only months the live standings are
+ * scored for: the month of `nowMs` and the one before, whose podium is still
+ * being claimed. Any other anchor (older, later or malformed) is undefined,
+ * so a read for an arbitrary month costs no clearing scan; older months are
+ * served from their frozen rows. */
+export const recentMonthWindowSoFar = ({
+	monthAnchor,
+	nowMs
+}: {
+	monthAnchor: string;
+	nowMs: number;
+}): { fromMs: number; toMs: number; closed: boolean } | undefined =>
+	monthAnchor === monthAnchorFromMs(nowMs) || monthAnchor === previousMonthAnchor(nowMs)
+		? monthWindowSoFar({ monthAnchor, nowMs })
+		: undefined;
+
 /** The previous month's anchor relative to `nowMs`. */
 export const previousMonthAnchor = (nowMs: number): string => {
 	const d = new Date(nowMs);

@@ -9,7 +9,7 @@ import { settledTotalsByUser } from '../auth/identity';
 import { query, tx } from '../db/client';
 import { cached, SETTLED_STANDINGS_TTL_MS } from '../engine/cache';
 import { fanoutCategoryDeltasToLeagueStats } from '../leagues/stats';
-import { MONTH_ANCHOR_RE, monthWindowSoFar } from '../lib/time';
+import { recentMonthWindowSoFar } from '../lib/time';
 import { ProfileValidationError, PUBLICLY_VISIBLE_PROFILE_SQL } from './profile';
 
 // user_stats
@@ -247,7 +247,9 @@ const sharpestEyePodium = async ({
 
 /**
  * The monthly awards for `monthAnchor`, over the month so far, shared by
- * every read of the same month for {@link SETTLED_STANDINGS_TTL_MS}.
+ * every read of the same month for {@link SETTLED_STANDINGS_TTL_MS}. Only the
+ * current and the previous month are scored ({@link recentMonthWindowSoFar});
+ * any other month reads empty.
  * `boldCaller` stays in the shape but is always empty: it is judged on the
  * consensus price at each call, which settled history does not carry.
  */
@@ -258,9 +260,7 @@ export const getMonthlyLeaderboard = async ({
 	monthAnchor: string;
 	nowMs?: number;
 }): Promise<{ sharpestEye: MonthlyLeaderboardEntry[]; boldCaller: [] }> => {
-	const window = MONTH_ANCHOR_RE.test(monthAnchor)
-		? monthWindowSoFar({ monthAnchor, nowMs })
-		: undefined;
+	const window = recentMonthWindowSoFar({ monthAnchor, nowMs });
 
 	if (isNullish(window)) {
 		return { sharpestEye: [], boldCaller: [] };

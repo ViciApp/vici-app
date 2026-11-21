@@ -9,7 +9,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:te
 import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
 import { clearCache } from '../src/engine/cache';
-import { DAY_IN_MS, monthAnchorFromMs, monthStartMs } from '../src/lib/time';
+import { DAY_IN_MS, monthAnchorFromMs, monthEndMs, monthStartMs } from '../src/lib/time';
 import {
 	freezeClosedMonth,
 	freezeMonthlySnapshots,
@@ -338,6 +338,22 @@ describe.if(dbAvailable)('the open month', () => {
 		await listAffiliationStatsForMonth({ kind: 'university', monthAnchor, nowMs });
 
 		expect(settled?.reads()).toBe(1);
+	});
+
+	test('an unfrozen month older than the previous one reads empty without calling clearing', async () => {
+		const { monthAnchor } = uniqueOpenMonth();
+		const slug = uniqueSlug();
+
+		await seedMember({ slug, monthAnchor, monthCalls: MIN_CALLS_FOR_RANK, monthWins: 40 });
+
+		expect(
+			await listAffiliationStatsForMonth({
+				kind: 'university',
+				monthAnchor,
+				nowMs: monthEndMs(monthAnchor) + 40 * DAY_IN_MS
+			})
+		).toEqual([]);
+		expect(settled?.reads()).toBe(0);
 	});
 
 	test('a month that has not started yet reads empty without calling clearing', async () => {
