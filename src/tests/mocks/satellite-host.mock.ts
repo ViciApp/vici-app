@@ -320,6 +320,47 @@ export const installSatelliteHost = ({
 			.map(([key, stored]) => [key, toDoc(stored)]);
 	};
 
+	/**
+	 * Juno's page of the listed docs: key order (its datastore is a B-tree on the key), the docs
+	 * after `start_after`, at most `limit` of them. A `start_after` naming no listed key answers an
+	 * empty page with no `items_page`, as Juno does.
+	 */
+	const paginated = ({
+		matches,
+		params
+	}: {
+		matches: [string, Doc][];
+		params: ListParams;
+	}): ListResults<Doc> => {
+		const matchesLength = BigInt(matches.length);
+		const { paginate } = params;
+
+		if (isNullish(paginate)) {
+			return { items: matches, items_length: matchesLength, matches_length: matchesLength };
+		}
+
+		const ordered = [...matches].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+		const startAfter = paginate.start_after;
+		const afterIndex = isNullish(startAfter)
+			? -1
+			: ordered.findIndex(([key]) => key === startAfter);
+
+		if (nonNullish(startAfter) && afterIndex < 0) {
+			return { items: [], items_length: BigInt(0), matches_length: matchesLength };
+		}
+
+		const start = afterIndex + 1;
+		const limit = isNullish(paginate.limit) ? undefined : Number(paginate.limit);
+		const items = ordered.slice(start, isNullish(limit) ? undefined : start + limit);
+
+		return {
+			items,
+			items_length: BigInt(items.length),
+			items_page: isNullish(limit) || limit === 0 ? undefined : BigInt(Math.floor(start / limit)),
+			matches_length: matchesLength
+		};
+	};
+
 	for (const [name, seeded] of Object.entries(docs)) {
 		for (const [key, data] of Object.entries(seeded)) {
 			collection(name).set(
@@ -358,10 +399,9 @@ export const installSatelliteHost = ({
 			name: string,
 			params: ListParams
 		): ListResults<Doc> => {
-			const items = readable({ caller: reader, name }) ? listed({ name, params }) : [];
-			const length = BigInt(items.length);
+			const matches = readable({ caller: reader, name }) ? listed({ name, params }) : [];
 
-			return { items, items_length: length, matches_length: length };
+			return paginated({ matches, params });
 		},
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_count_docs_store: (

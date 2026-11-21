@@ -116,6 +116,10 @@ import {
 } from '#satellite/services/engine-sync.services.ts';
 import { assertSetExitSignal } from '#satellite/services/exit-signal.services.ts';
 import {
+	KeysetWalkArgsSchema,
+	KeysetWalkResultSchema
+} from '#satellite/services/keyset-walk.services.ts';
+import {
 	getMyRivalFn,
 	getUserRankAndCountFn,
 	listLeaderboard as listLeaderboardFn,
@@ -1209,14 +1213,20 @@ export const resumeMyAccount = defineUpdate({
 });
 
 // Admin sweep (Delete account v2). Hard-deletes soft-deleted accounts
-// whose recovery window has elapsed, one per call to stay inside the
-// update instruction limit: call again until `swept` is 0. Admin-guarded;
-// Juno has no scheduler so this is triggered externally (admin/cron).
+// whose recovery window has elapsed, walking `profiles` one keyset page
+// and at most one purge per call to stay inside the update instruction
+// limit: pass the returned `nextAfterKey` back as `afterKey` until `done`.
+// `failed` counts purges that failed (logged); the walk moves past them.
+// Admin-guarded; Juno has no scheduler so this is triggered externally
+// (admin/cron).
 export const sweepExpiredDeletions = defineUpdate({
+	args: KeysetWalkArgsSchema,
 	result: j.strictObject({
-		swept: j.number()
+		swept: j.number(),
+		failed: j.number(),
+		...KeysetWalkResultSchema.shape
 	}),
-	handler: sweepExpiredDeletionsFn
+	handler: (args) => sweepExpiredDeletionsFn(args)
 });
 
 // Admin-only corrective for the friend-feed like counts: re-derives every

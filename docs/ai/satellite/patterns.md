@@ -398,9 +398,11 @@ is the reference shape:
   runs `Principal.fromText` + the cascade **outside** the malformed-row
   try/catch so a purge failure is logged + counted as an under-purge
   instead of being silently swallowed as a skipped bad row. One call
-  purges a single account (a purge deletes every doc the account owns,
-  see the bulk-rewrite budget note below); the operator calls it again
-  until `swept` is 0.
+  reads one keyset page of `profiles` and purges a single account (a
+  purge deletes every doc the account owns, see the bulk-rewrite budget
+  note below); a failed purge is counted in `failed` and the walk moves
+  past it. The operator passes `nextAfterKey` back as `afterKey` until
+  `done`.
 - **Hard-delete must not orphan others: transfer, don't just delete.**
   The cascade's owned-league step deletes a league only when no other
   member remains; if members self-joined during the recovery window it
@@ -625,7 +627,12 @@ collection keys themselves, plus the clearing leaderboard). The pattern:
   satellite (a 100-doc read-only query fits the 5B query budget, but
   ~10 writes exceed the 40B update limit), so any admin endpoint that
   rewrites docs in bulk MUST be keyset-paged with a page size tunable
-  down to a single doc.
+  down to a single doc. Page it through `walkKeysetPage`
+  (`keyset-walk.services.ts`): the endpoint takes `KeysetWalkArgsSchema`
+  (`afterKey`, `limit`), spreads `KeysetWalkResultSchema` (`nextAfterKey`,
+  `done`) into its result, and its visitor reports each doc `kept`,
+  `removed` or `stop` (write budget spent), so the cursor never names a
+  deleted key.
 - **Add the collection to the hard-delete cascade**
   (`hardDeleteAccountFn`): a private doc must not outlive its account.
 

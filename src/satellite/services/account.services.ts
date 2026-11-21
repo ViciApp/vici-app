@@ -18,6 +18,11 @@ import {
 	type ServerEventInput
 } from '#satellite/services/analytics.services.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
+import {
+	type KeysetWalk,
+	type KeysetWalkArgs,
+	walkKeysetPage
+} from '#satellite/services/keyset-walk.services.ts';
 import { deleteLeagueInvite } from '#satellite/services/league-invite.services.ts';
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
@@ -158,19 +163,16 @@ export type RecoverMyAccountResult =
 	{ ok: true; recovered: boolean } | { ok: false; reason: 'expired' };
 
 /**
- * Result of {@link sweepExpiredDeletionsFn}: count of accounts purged by
- * this call.
- *
- * A failed purge does NOT increment `swept`; it is logged via `logError`
- * with the stable `sweep_expired_deletions_purge_failed` tag, so the
- * external trigger reads a `swept: 0` with that log line as a stuck
- * account rather than a finished sweep. We deliberately do not surface a
- * `failed` count on the wire: that would widen the `sweepExpiredDeletions`
- * Candid result and force a binding regen for a value operators already
- * get from the logs.
+ * Result of {@link sweepExpiredDeletionsFn}: how many accounts this call
+ * purged (`swept`) and how many purges failed (`failed`, each logged with
+ * the stable `sweep_expired_deletions_purge_failed` tag), plus where the
+ * walk over `PROFILES` left off. A failed account keeps its profile and
+ * the walk moves past it, so it cannot hold up the others; the next walk
+ * from the first doc tries it again.
  */
-export interface SweepExpiredDeletionsResult {
+export interface SweepExpiredDeletionsResult extends KeysetWalk {
 	swept: number;
+	failed: number;
 }
 
 /**
@@ -1340,62 +1342,80 @@ export const resumeMyAccountFn = (): ResumeMyAccountResult => {
 };
 
 /**
- * How many expired accounts one `sweepExpiredDeletions` call purges. A
- * purge runs a dozen collection scans and deletes every doc the account
- * owns, each delete a serverless write costing billions of instructions,
- * so a call purges a single account and the sweep goes in rounds (see the
+ * How many purges one `sweepExpiredDeletions` call attempts. A purge runs
+ * a dozen collection scans and deletes every doc the account owns, each
+ * delete a serverless write costing billions of instructions, so a call
+ * purges a single account and the sweep goes in rounds (see the
  * bulk-rewrite budget note in docs/ai/satellite/patterns.md).
  */
 const SWEEP_EXPIRED_DELETIONS_BATCH = 1;
 
 /**
  * Admin sweep that hard-deletes soft-deleted accounts whose recovery
- * window has elapsed (Delete account v2), at most {@link
- * SWEEP_EXPIRED_DELETIONS_BATCH} per call. Scans `PROFILES` for docs with
- * `deletedAtMs` older than {@link ACCOUNT_RECOVERY_WINDOW_MS} and runs
- * {@link hardDeleteAccountFn} for the first ones. Returns `{ swept }`: the
- * number of accounts purged; call it again until that is 0.
+ * window has elapsed (Delete account v2). One call reads one keyset page
+ * of `PROFILES` after `afterKey` (at most `limit` docs, see
+ * {@link walkKeysetPage}) and runs {@link hardDeleteAccountFn} for at most
+ * {@link SWEEP_EXPIRED_DELETIONS_BATCH} profile with `deletedAtMs` older
+ * than {@link ACCOUNT_RECOVERY_WINDOW_MS}. The operator passes the
+ * returned `nextAfterKey` to the next call until `done`.
  *
  * **Admin-only**: refuses non-admins via the shared `isAdmin` check.
  *
- * Juno exposes no scheduler primitive (the same reason the worlds
+ * Juno has no on-chain scheduler for this satellite (the Worlds monthly
  * podium payout is modelled as a user-claim: see
  * `vxp-worlds-podium.services.ts`), so this is triggered externally:
  * an operator/cron calls it. Idempotent: already-purged accounts no
- * longer carry a profile doc, so a re-run only sweeps the accounts still
- * expired.
+ * longer carry a profile doc, so a new walk only sweeps the accounts
+ * still expired.
  *
  * A malformed/undecodable profile row is skipped silently (the decode is
  * the only step in the narrow try/catch). The purge itself runs OUTSIDE
  * that catch so a `Principal.fromText` / cascade failure can't be
- * mistaken for a malformed row: it is logged via `logError` and does NOT
- * increment `swept`, so the external trigger sees the under-purge
- * instead of a falsely-clean result.
+ * mistaken for a malformed row: it is logged via `logError` and counted
+ * in `failed`, never in `swept`.
  */
-export const sweepExpiredDeletionsFn = (): SweepExpiredDeletionsResult => {
+export const sweepExpiredDeletionsFn = ({
+	afterKey,
+	limit
+}: KeysetWalkArgs = {}): SweepExpiredDeletionsResult => {
 	const caller = msgCaller();
 
 	if (!isAdmin({ caller })) {
 		throw new Error('sweepExpiredDeletions: caller is not an admin.');
 	}
 
-	const callerBytes = caller.toUint8Array();
 	const nowMs = timeMs();
 
-	const { items } = listDocsStore({
+	let swept = 0;
+	let failed = 0;
+
+	const walk = walkKeysetPage({
 		collection: Collection.PROFILES,
-		caller: callerBytes,
-		params: {}
+		caller: caller.toUint8Array(),
+		afterKey,
+		limit,
+		visit: ([docKey, item]) => {
+			if (!isExpiredDeletion({ item, nowMs })) {
+				return 'kept';
+			}
+
+			if (swept + failed >= SWEEP_EXPIRED_DELETIONS_BATCH) {
+				return 'stop';
+			}
+
+			if (purgeSweptAccount({ docKey }) === 'swept') {
+				swept += 1;
+
+				return 'removed';
+			}
+
+			failed += 1;
+
+			return 'kept';
+		}
 	});
 
-	const expiredKeys = items
-		.filter(([, item]) => isExpiredDeletion({ item, nowMs }))
-		.slice(0, SWEEP_EXPIRED_DELETIONS_BATCH)
-		.map(([docKey]) => docKey);
-
-	const swept = expiredKeys.filter((docKey) => purgeSweptAccount({ docKey }) === 'swept').length;
-
-	return { swept };
+	return { swept, failed, ...walk };
 };
 
 /**

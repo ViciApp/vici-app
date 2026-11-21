@@ -219,7 +219,9 @@ type AppSubmitSchoolArgs = record { name : text; country : opt text; school_id :
 
 type AppSubmitSchoolResult = record { submission_id : text };
 
-type AppSweepExpiredDeletionsResult = record { swept : float64 };
+type AppSweepExpiredDeletionsArgs = record { after_key : opt text; limit : opt float64 };
+
+type AppSweepExpiredDeletionsResult = record { swept : float64; failed : float64; next_after_key : opt text; done : bool };
 
 type AppTrackEventsArgs = record { events : vec record { name : variant { session_started; signed_up; signed_in; signed_out; provider_linked; onboarding_started; onboarding_step; handle_checked; onboarding_completed; flow_session_started; flow_swipe; flow_card_expanded; flow_completed; flow_abandoned; sound_toggled; market_viewed; market_searched; market_shared; watchlist_added; watchlist_removed; orderbook_viewed; market_translation_toggled; market_category_filter; position_taken; position_closed; prediction_created; order_placed; order_cancelled; resolution_proposed; resolution_confirmed; resolution_disputed; payout_settled; referral_sent; referral_link_copied; referral_redeemed; referral_converted; vxp_awarded; streak_milestone; faucet_claimed; transactions_viewed; transactions_filtered; friend_request_sent; friend_feed_reaction; friend_digest_opened; league_created; league_joined; league_invite_sent; battle_proposed; battle_accepted; battle_declined; battle_expired; battle_resolved; battle_viewed; comment_posted; chat_sent; leaderboard_viewed; affiliation_set; affiliation_removed; privacy_sharing_toggled; school_picker_opened; school_picked; school_verify_email_submitted; school_verify_code_submitted; delete_flow_opened; delete_confirmed; delete_succeeded; exit_signal; notification_opened; pwa_install_prompted; pwa_install_accepted; pwa_install_dismissed; app_error; perf_metric }; session_id : text; path : opt text; market_id : opt text; series_id : opt text; league_id : opt text; battle_id : opt text; source : opt text; label : opt text; step : opt float64; value : opt float64; count : opt float64; duration_ms : opt float64; ok : opt bool; country : opt text; locale : opt text; occurred_at_ms : opt float64 } };
 
@@ -318,7 +320,7 @@ service : {
 	app_settle_founder_awards : () -> (AppSettleFounderAwardsResult);
 	app_settle_referral : (AppSettleReferralArgs) -> ();
 	app_submit_school : (AppSubmitSchoolArgs) -> (AppSubmitSchoolResult);
-	app_sweep_expired_deletions : () -> (AppSweepExpiredDeletionsResult);
+	app_sweep_expired_deletions : (AppSweepExpiredDeletionsArgs) -> (AppSweepExpiredDeletionsResult);
 	app_track_events : (AppTrackEventsArgs) -> (AppTrackEventsResult);
 	app_transfer_league_ownership : (AppTransferLeagueOwnershipArgs) -> (AppTransferLeagueOwnershipResult);
 	app_trigger_tournament_draw : (AppTriggerTournamentDrawArgs) -> (AppTriggerTournamentDrawResult);
