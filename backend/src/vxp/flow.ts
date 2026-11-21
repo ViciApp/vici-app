@@ -78,10 +78,11 @@ export const mintFlowOvertime = async ({
 	dayKey: string;
 }): Promise<FlowOvertimeOutcome> => {
 	try {
-		// Idempotent per day: skip before the rolling-window count.
+		// Idempotent per day: skip before the rolling-window count. A failed
+		// mint goes on to the grant, which reopens it ahead of the cap.
 		const existing = await getAward({ userId, awardType: 'flow_overtime', awardKey: dayKey });
 
-		if (nonNullish(existing)) {
+		if (nonNullish(existing) && existing.status !== 'failed') {
 			return 'already';
 		}
 

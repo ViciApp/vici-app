@@ -359,6 +359,25 @@ describe.if(dbAvailable)('tournament prize', () => {
 		]);
 	});
 
+	test('a failed prize imported from the legacy app still blocks the tournament', async () => {
+		const { monthAnchor } = uniqueMonth();
+		const userId = await createTestUser();
+
+		await query(
+			`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status,
+			   earned_at_ms, origin)
+			 values ($1, 'tournament_prize', $2, 1, 'failed', $3, 'etl')`,
+			[userId, `${monthAnchor}_place_1`, Date.now()]
+		);
+
+		expect(
+			(await grantTournamentPrize({ userId, tournamentId: monthAnchor, place: 2 })).outcome
+		).toBe('already');
+		expect(await prizeKeysOf({ userId, tournamentId: monthAnchor })).toEqual([
+			`${monthAnchor}_place_1`
+		]);
+	});
+
 	test('concurrent grants for different places of one tournament pay once', async () => {
 		const { monthAnchor } = uniqueMonth();
 		const userId = await createTestUser();

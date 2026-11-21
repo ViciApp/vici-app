@@ -164,6 +164,24 @@ describe.if(dbAvailable)('calibration and founder awards', () => {
 			expect(again.paidNow).toBe(false);
 		});
 
+		test('a failed reward sent again reports the amount it was earned at', async () => {
+			stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(10)) });
+			mockEngine({ priceValue: BigInt(1) });
+			const userId = await createTestUser();
+
+			await query(
+				`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
+				 values ($1, 'calibration', 's4f', $2, 'failed', 1)`,
+				[userId, parseVxp(7).toString()]
+			);
+
+			const result = await claimCalibrationReward({ userId, seriesId: 's4f', chosenSide: 'YES' });
+
+			expect(result.paidNow).toBe(true);
+			expect(result.rewardBaseUnits).toBe(parseVxp(7).toString());
+			expect(stub.transfers.map(({ amount }) => amount)).toEqual([parseVxp(7)]);
+		});
+
 		test('a wrong call pays nothing, writes no award and consumes no budget', async () => {
 			stub = stubVxpLedger({ balance: () => Promise.resolve(parseVxp(10)) });
 			mockEngine({ priceValue: BigInt(0) });

@@ -47,12 +47,26 @@ export const runComebackRestoreTrigger = async ({
 			return;
 		}
 
-		// One-time per account: skip before any ledger work.
+		// One-time per account: skip before any ledger work. A failed restore
+		// is sent again at its recorded amount (the grant reopens it), past the
+		// holdings floor it cleared when it was earned.
 		const existing = await getAward({
 			userId,
 			awardType: 'comeback',
 			awardKey: COMEBACK_AWARD_KEY
 		});
+
+		if (existing?.status === 'failed') {
+			await grantAward({
+				userId,
+				awardType: 'comeback',
+				awardKey: COMEBACK_AWARD_KEY,
+				amountBaseUnits: BigInt(existing.amountBaseUnits),
+				memo: `vxp:comeback:${COMEBACK_AWARD_KEY}`
+			});
+
+			return;
+		}
 
 		if (nonNullish(existing)) {
 			return;
