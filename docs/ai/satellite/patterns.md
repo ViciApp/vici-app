@@ -631,14 +631,15 @@ collection keys themselves, plus the clearing leaderboard). The pattern:
   satellite (a 100-doc read-only query fits the 5B query budget, but
   ~10 writes exceed the 40B update limit), so any admin endpoint that
   rewrites docs in bulk MUST be keyset-paged with a page size tunable
-  down to a single doc. Page it through `walkKeysetPage`
-  (`keyset-walk.services.ts`): the endpoint takes `KeysetWalkArgsSchema`
-  (`afterKey`, `limit`), spreads `KeysetWalkResultSchema` (`nextAfterKey`,
-  `done`) into its result, and its visitor reports each doc `kept`,
-  `removed` or `stop` (write budget spent), so the cursor never names a
-  deleted key.
+  down to a single doc.
 - **Add the collection to the hard-delete cascade**
   (`hardDeleteAccountFn`): a private doc must not outlive its account.
+- **Page a bulk walk through `walkKeysetPage`**
+  (`keyset-walk.services.ts`), the keyset paging the budget note above
+  asks for: the endpoint takes `KeysetWalkArgsSchema` (`afterKey`,
+  `limit`), spreads `KeysetWalkResultSchema` (`nextAfterKey`, `done`)
+  into its result, and its visitor reports each doc `kept`, `removed` or
+  `stop` (write budget spent), so the cursor never names a deleted key.
 
 ## Build-wide write gates with an `app_config` kill switch
 
