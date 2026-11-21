@@ -1,12 +1,15 @@
-// Dashboard stat caches: per-user aggregate stats (per-category accuracy +
-// recent settlements) and per-user per-month counters driving the monthly
-// album awards. Both are written by the client's stats sync, scoped to the
-// caller's own row by construction, and structurally validated here.
+// Dashboard stats: the per-user aggregate stats cache (per-category accuracy
+// + recent settlements), written by the client's stats sync, scoped to the
+// caller's own row by construction and structurally validated here; and the
+// monthly sharpest-eye podium, scored on read from settled history (the
+// clearing canister), never from a client-written counter.
 
 import { isNullish } from '@dfinity/utils';
+import { settledTotalsByUser } from '../auth/identity';
 import { query, tx } from '../db/client';
+import { cached, SETTLED_STANDINGS_TTL_MS } from '../engine/cache';
 import { fanoutCategoryDeltasToLeagueStats } from '../leagues/stats';
-import { MONTH_ANCHOR_RE } from '../lib/time';
+import { recentMonthWindowSoFar } from '../lib/time';
 import { ProfileValidationError, PUBLICLY_VISIBLE_PROFILE_SQL } from './profile';
 
 // user_stats
@@ -177,54 +180,11 @@ export const getUserStats = async ({
 	return isNullish(row) ? undefined : shapeUserStats(row);
 };
 
-// user_monthly_stats
+// monthly awards
 
 /** Minimum resolved calls in a month before a user is eligible for the
  * sharpest-eye podium; below this, monthly accuracy is too noisy. */
 export const MONTHLY_MIN_CALLS = 30;
-
-/** Median consensus-at-call cutoff for the bold-caller award. */
-export const BOLD_CALLER_MEDIAN_THRESHOLD = 0.4;
-
-/** Exact median of a numeric array; 0 for an empty array. */
-export const median = (values: readonly number[]): number => {
-	if (values.length === 0) {
-		return 0;
-	}
-
-	const sorted = [...values].sort((a, b) => a - b);
-	const mid = Math.floor(sorted.length / 2);
-	const upper = sorted[mid] ?? 0;
-
-	return sorted.length % 2 === 0 ? ((sorted[mid - 1] ?? 0) + upper) / 2 : upper;
-};
-
-export interface UserMonthlyStats {
-	userId: string;
-	monthAnchor: string;
-	monthCalls: number;
-	monthWins: number;
-	monthConsensus: number[];
-	updatedAtMs: number;
-}
-
-interface UserMonthlyStatsRow {
-	user_id: string;
-	month_anchor: string;
-	month_calls: number;
-	month_wins: number;
-	month_consensus: number[];
-	updated_at_ms: string;
-}
-
-const shapeMonthlyStats = (row: UserMonthlyStatsRow): UserMonthlyStats => ({
-	userId: row.user_id,
-	monthAnchor: row.month_anchor,
-	monthCalls: row.month_calls,
-	monthWins: row.month_wins,
-	monthConsensus: row.month_consensus,
-	updatedAtMs: Number(row.updated_at_ms)
-});
 
 /** One sharpest-eye podium entry: placement 1 (gold) / 2 (silver) /
  * 3 (bronze), accuracy as a 0..100 percentage. */
@@ -236,57 +196,36 @@ export interface MonthlyLeaderboardEntry {
 	placement: number;
 }
 
-/** One bold-caller entry: the month's best accuracy among users whose
- * median consensus-at-call is below the threshold; ties yield more than
- * one entry. */
-export interface BoldCallerEntry {
-	userId: string;
-	monthCalls: number;
-	monthWins: number;
-	accuracy: number;
-	medianConsensus: number;
-}
-
 const accuracyOf = (doc: { monthWins: number; monthCalls: number }): number =>
 	doc.monthCalls > 0 ? (doc.monthWins / doc.monthCalls) * 100 : 0;
 
 /**
- * Aggregate every monthly-stats row for `monthAnchor` and derive the two
- * monthly awards:
- *
- * - sharpest-eye: top-3 by accuracy among users with at least
- *   {@link MONTHLY_MIN_CALLS} resolved calls, ties broken by calls
- *   descending then user id ascending so the placement is deterministic.
- * - bold-caller: the best accuracy among eligible users whose median
- *   consensus-at-call is strictly below
- *   {@link BOLD_CALLER_MEDIAN_THRESHOLD}, returning every user tied at
- *   that best accuracy.
+ * The sharpest-eye podium over a month so far: top-3 by settled accuracy
+ * among public accounts with at least {@link MONTHLY_MIN_CALLS} settled
+ * calls, ties broken by calls descending then user id ascending so the
+ * placement is deterministic.
  */
-export const getMonthlyLeaderboard = async ({
-	monthAnchor
+const sharpestEyePodium = async ({
+	fromMs,
+	toMs
 }: {
-	monthAnchor: string;
-}): Promise<{ sharpestEye: MonthlyLeaderboardEntry[]; boldCaller: BoldCallerEntry[] }> => {
-	// Fast guard: reject a malformed anchor without scanning the table.
-	if (!MONTH_ANCHOR_RE.test(monthAnchor)) {
-		return { sharpestEye: [], boldCaller: [] };
-	}
-
+	fromMs: number;
+	toMs: number;
+}): Promise<MonthlyLeaderboardEntry[]> => {
 	// A public board: only accounts the global leaderboard shows, so no
 	// soft-deleted, hibernated or purged account is listed.
-	const rows = await query<UserMonthlyStatsRow>(
-		`select s.user_id, s.month_anchor, s.month_calls, s.month_wins, s.month_consensus,
-		        s.updated_at_ms::text
-		 from user_monthly_stats s
-		 join profiles p on p.user_id = s.user_id
-		 where s.month_anchor = $1 and ${PUBLICLY_VISIBLE_PROFILE_SQL}`,
-		[monthAnchor]
+	const users = await query<{ user_id: string }>(
+		`select p.user_id from profiles p where ${PUBLICLY_VISIBLE_PROFILE_SQL}`
 	);
+	const settled = await settledTotalsByUser({
+		userIds: users.map((row) => row.user_id),
+		fromMs,
+		toMs
+	});
 
-	const docs = rows.map(shapeMonthlyStats);
-	const eligible = docs.filter((doc) => doc.monthCalls >= MONTHLY_MIN_CALLS);
-
-	const sharpestEye: MonthlyLeaderboardEntry[] = [...eligible]
+	return [...settled]
+		.map(([userId, { calls, wins }]) => ({ userId, monthCalls: calls, monthWins: wins }))
+		.filter((doc) => doc.monthCalls >= MONTHLY_MIN_CALLS)
 		.sort((a, b) => {
 			const accDelta = accuracyOf(b) - accuracyOf(a);
 
@@ -303,33 +242,35 @@ export const getMonthlyLeaderboard = async ({
 			return a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0;
 		})
 		.slice(0, 3)
-		.map((doc, index) => ({
-			userId: doc.userId,
-			monthCalls: doc.monthCalls,
-			monthWins: doc.monthWins,
-			accuracy: accuracyOf(doc),
-			placement: index + 1
-		}));
+		.map((doc, index) => ({ ...doc, accuracy: accuracyOf(doc), placement: index + 1 }));
+};
 
-	const bold = eligible
-		.map((doc) => ({ doc, medianConsensus: median(doc.monthConsensus) }))
-		.filter(({ medianConsensus }) => medianConsensus < BOLD_CALLER_MEDIAN_THRESHOLD);
+/**
+ * The monthly awards for `monthAnchor`, over the month so far, shared by
+ * every read of the same month for {@link SETTLED_STANDINGS_TTL_MS}. Only the
+ * current and the previous month are scored ({@link recentMonthWindowSoFar});
+ * any other month reads empty.
+ * `boldCaller` stays in the shape but is always empty: it is judged on the
+ * consensus price at each call, which settled history does not carry.
+ */
+export const getMonthlyLeaderboard = async ({
+	monthAnchor,
+	nowMs = Date.now()
+}: {
+	monthAnchor: string;
+	nowMs?: number;
+}): Promise<{ sharpestEye: MonthlyLeaderboardEntry[]; boldCaller: [] }> => {
+	const window = recentMonthWindowSoFar({ monthAnchor, nowMs });
 
-	const bestBoldAccuracy = bold.reduce((best, { doc }) => Math.max(best, accuracyOf(doc)), -1);
+	if (isNullish(window)) {
+		return { sharpestEye: [], boldCaller: [] };
+	}
 
-	const boldCaller: BoldCallerEntry[] =
-		bestBoldAccuracy < 0
-			? []
-			: bold
-					.filter(({ doc }) => accuracyOf(doc) === bestBoldAccuracy)
-					.sort((a, b) => (a.doc.userId < b.doc.userId ? -1 : a.doc.userId > b.doc.userId ? 1 : 0))
-					.map(({ doc, medianConsensus }) => ({
-						userId: doc.userId,
-						monthCalls: doc.monthCalls,
-						monthWins: doc.monthWins,
-						accuracy: accuracyOf(doc),
-						medianConsensus
-					}));
+	const sharpestEye = await cached({
+		key: `monthly-podium:${monthAnchor}:${window.closed ? 'closed' : 'open'}`,
+		ttlMs: SETTLED_STANDINGS_TTL_MS,
+		load: async () => await sharpestEyePodium(window)
+	});
 
-	return { sharpestEye, boldCaller };
+	return { sharpestEye, boldCaller: [] };
 };

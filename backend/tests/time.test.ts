@@ -4,11 +4,13 @@ import {
 	monthAnchorFromMs,
 	monthEndMs,
 	monthStartMs,
+	monthWindowSoFar,
 	msToNs,
 	nowNs,
 	nsToMs,
 	optionalMs,
-	previousMonthAnchor
+	previousMonthAnchor,
+	recentMonthWindowSoFar
 } from '../src/lib/time';
 
 describe('msToNs', () => {
@@ -79,10 +81,58 @@ describe('monthEndMs', () => {
 	});
 });
 
+describe('monthWindowSoFar', () => {
+	test('runs from the month start to now while open, to the close once over', () => {
+		const midMonth = Date.UTC(2026, 10, 13);
+
+		expect(monthWindowSoFar({ monthAnchor: '2026-11', nowMs: midMonth })).toEqual({
+			fromMs: monthStartMs('2026-11'),
+			toMs: midMonth,
+			closed: false
+		});
+		expect(monthWindowSoFar({ monthAnchor: '2026-10', nowMs: midMonth })).toEqual({
+			fromMs: monthStartMs('2026-10'),
+			toMs: monthEndMs('2026-10'),
+			closed: true
+		});
+		expect(monthWindowSoFar({ monthAnchor: '2026-11', nowMs: monthEndMs('2026-11') })?.closed).toBe(
+			true
+		);
+	});
+
+	test('is undefined until the month has started', () => {
+		expect(monthWindowSoFar({ monthAnchor: '2026-12', nowMs: Date.UTC(2026, 10, 13) })).toBe(
+			undefined
+		);
+		expect(
+			monthWindowSoFar({ monthAnchor: '2026-12', nowMs: monthStartMs('2026-12') })
+		).toBeUndefined();
+	});
+});
+
 describe('previousMonthAnchor', () => {
 	test('is the UTC month before the one holding the timestamp', () => {
 		expect(previousMonthAnchor(Date.UTC(2026, 10, 13))).toBe('2026-10');
 		expect(previousMonthAnchor(Date.UTC(2026, 0, 1))).toBe('2025-12');
 		expect(previousMonthAnchor(Date.UTC(2026, 2, 31, 23, 59, 59, 999))).toBe('2026-02');
+	});
+});
+
+describe('recentMonthWindowSoFar', () => {
+	const midMonth = Date.UTC(2026, 10, 13);
+
+	test('is the elapsed window of the current and the previous month', () => {
+		expect(recentMonthWindowSoFar({ monthAnchor: '2026-11', nowMs: midMonth })).toEqual(
+			monthWindowSoFar({ monthAnchor: '2026-11', nowMs: midMonth })
+		);
+		expect(recentMonthWindowSoFar({ monthAnchor: '2026-10', nowMs: midMonth })).toEqual(
+			monthWindowSoFar({ monthAnchor: '2026-10', nowMs: midMonth })
+		);
+	});
+
+	test('is undefined for any older, later or malformed anchor', () => {
+		for (const monthAnchor of ['2026-09', '2025-11', '2026-12', '2026-1', 'x']) {
+			expect(recentMonthWindowSoFar({ monthAnchor, nowMs: midMonth })).toBeUndefined();
+		}
 	});
 });

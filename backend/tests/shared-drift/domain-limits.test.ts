@@ -39,11 +39,7 @@ import {
 	NICKNAME_PATTERN
 } from '../../src/profiles/nickname';
 import { MAX_PROFILE_POINTS } from '../../src/profiles/profile-write';
-import {
-	BOLD_CALLER_MEDIAN_THRESHOLD,
-	MONTHLY_MIN_CALLS,
-	USER_STATS_RECENT_LIMIT
-} from '../../src/profiles/stats';
+import { MONTHLY_MIN_CALLS, USER_STATS_RECENT_LIMIT } from '../../src/profiles/stats';
 import {
 	SCHOOL_CODE_MAX_ATTEMPTS,
 	SCHOOL_CODE_TTL_MS,
@@ -172,7 +168,7 @@ describe('shared drift: profiles', () => {
 		);
 
 		expectPairs({
-			pairs: { MONTHLY_MIN_CALLS, BOLD_CALLER_MEDIAN_THRESHOLD },
+			pairs: { MONTHLY_MIN_CALLS },
 			read: (constName) => extractDecimalConst({ source: appSource.monthlyStats, constName })
 		});
 	});

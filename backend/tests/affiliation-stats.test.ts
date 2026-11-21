@@ -1,11 +1,13 @@
 // Worlds standings: the write-once monthly freeze from settled history
-// (frozen rows never drift as the roster later churns), the champion history
-// derived from frozen months, and the opt-out gate on the recomputed windows.
+// (frozen rows never drift as the roster later churns), the open month's
+// live window from settled history so far, the champion history derived from
+// frozen months, and the opt-out gate on the recomputed windows.
 
 import { isNullish } from '@dfinity/utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
+import { clearCache } from '../src/engine/cache';
 import { DAY_IN_MS, monthAnchorFromMs, monthStartMs } from '../src/lib/time';
 import {
 	freezeClosedMonth,
@@ -48,16 +50,25 @@ const uniqueClosedMonth = (): { monthAnchor: string; nowMs: number } => {
 	return { monthAnchor, nowMs };
 };
 
-/** Frozen months and member month rows from previous runs on the same
- * database would otherwise already own the anchors this run draws. */
+/** An open month: `nowMs` pinned mid-month, in a far-future year drawn from
+ * the same sequence so no other test reads the same anchor. */
+const uniqueOpenMonth = (): { monthAnchor: string; nowMs: number } => {
+	const { monthAnchor } = uniqueClosedMonth();
+
+	return { monthAnchor, nowMs: monthStartMs(monthAnchor) + 14 * DAY_IN_MS };
+};
+
+/** Frozen months from previous runs on the same database would otherwise
+ * already own the anchors this run draws. */
 const clearTestMonths = async (): Promise<void> => {
 	await query(`delete from affiliation_stats where month_anchor >= $1`, [FIRST_TEST_MONTH_ANCHOR]);
-	await query(`delete from user_monthly_stats where month_anchor >= $1`, [FIRST_TEST_MONTH_ANCHOR]);
 };
 
 let settled: SettledHistoryStub | undefined;
 
 beforeEach(() => {
+	// Month tallies are cached across reads; each test scores its own stub.
+	clearCache();
 	settled = stubSettledHistory();
 });
 
@@ -66,8 +77,7 @@ afterEach(() => {
 	settled = undefined;
 });
 
-/** A member of `slug` with a profile, a month row for the anchor and the
- * same calls settled inside that month. */
+/** A member of `slug` with a profile and calls settled inside the month. */
 const seedMember = async ({
 	slug,
 	monthAnchor,
@@ -94,11 +104,6 @@ const seedMember = async ({
 		`insert into profiles (user_id, nickname, nickname_key, total_trades, win_rate, preferences)
 		 values ($1, $2, $2, $3, $4, $5)`,
 		[userId, uniqueNickname(), totalTrades, winRate, JSON.stringify(preferences)]
-	);
-	await query(
-		`insert into user_monthly_stats (user_id, month_anchor, month_calls, month_wins, updated_at_ms)
-		 values ($1, $2, $3, $4, $5)`,
-		[userId, monthAnchor, monthCalls, monthWins, Date.now()]
 	);
 	settled?.settle({
 		userId,
@@ -277,6 +282,56 @@ describe.if(dbAvailable)('recomputed windows and championships', () => {
 	});
 });
 
+describe.if(dbAvailable)('the open month', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+		await clearTestMonths();
+	});
+
+	test('counts the opted-in members settled calls so far, from settled history', async () => {
+		const { monthAnchor, nowMs } = uniqueOpenMonth();
+		const slug = uniqueSlug();
+		const member = await seedMember({
+			slug,
+			monthAnchor,
+			monthCalls: MIN_CALLS_FOR_RANK,
+			monthWins: 40,
+			totalTrades: MIN_CALLS_FOR_RANK,
+			winRate: 80
+		});
+
+		await seedMember({ slug, monthAnchor, monthCalls: 30, monthWins: 30, worldsOptIn: false });
+		// Settled after the read's clock: not part of the month so far.
+		settled?.settle({ userId: member, atMs: nowMs + DAY_IN_MS, calls: 7, wins: 7 });
+
+		const stats = await getAffiliationStats({
+			kind: 'university',
+			affiliationIdentifier: slug,
+			nowMs
+		});
+
+		expect(stats?.monthAnchor).toBe(monthAnchor);
+		expect(stats?.monthTotalCalls).toBe(MIN_CALLS_FOR_RANK);
+		expect(stats?.monthWins).toBe(40);
+
+		const board = await listAffiliationStats({ kind: 'university', nowMs });
+
+		expect(board.find((r) => r.affiliationIdentifier === slug)?.monthWins).toBe(40);
+	});
+
+	test('reads of the same open month share one clearing read', async () => {
+		const { monthAnchor, nowMs } = uniqueOpenMonth();
+		const slug = uniqueSlug();
+
+		await seedMember({ slug, monthAnchor, monthCalls: 12, monthWins: 6 });
+
+		await getAffiliationStats({ kind: 'university', affiliationIdentifier: slug, nowMs });
+		await listAffiliationStats({ kind: 'university', nowMs });
+
+		expect(settled?.reads()).toBe(1);
+	});
+});
+
 describe.if(dbAvailable)('a stored opt-out that is not a boolean', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
@@ -328,7 +383,8 @@ describe.if(dbAvailable)('a stored opt-out that is not a boolean', () => {
 			const live = await getAffiliationStats({
 				kind: 'university',
 				affiliationIdentifier: slug,
-				nowMs: monthStartMs(monthAnchor)
+				// The seeded calls settle a day into the month: read while it is open.
+				nowMs: monthStartMs(monthAnchor) + 14 * DAY_IN_MS
 			});
 
 			expect(live?.monthTotalCalls).toBe(MIN_CALLS_FOR_RANK + 10);
