@@ -484,6 +484,19 @@ owner-leagues guard:
   (`hardDeleteAccountFn`) does for every row it removes. Distinct from the cascade's
   `disbandOrTransferOwnedLeagues`, which only drops leagues that are
   _already_ empty and hands the others to a remaining member.
+- **The disband runs in bounded calls.** `deleteLeagueFn` deletes at
+  most `LEAGUE_DISBAND_BATCH` docs per call (the bulk-write budget
+  above): the league doc and its invite first, so every reader drops
+  the league at once and nobody joins it, then the other members' rows,
+  then the owner's own row alone, which authorises the calls in between
+  (`leagueDisbandInProgress`). `deleteMyAccount` answers
+  `league_disband_pending` while a disband has more left and the FE
+  sends the same request again. Each call first finishes every disband
+  the caller has under way (`leagueDisbandsInProgress`, read from the
+  caller's own membership rows), whether or not the request still names
+  the league, so the account is never soft-deleted with its rows left;
+  a call that resumes a disband does not count `delete_confirmed` again. `createLeague` refuses an id whose
+  rows are still being deleted.
 - **Applied immediately ⇒ not reversed by recovery.** Resolutions are real
   transfers / disbands at delete time, not deferred to hard-delete. A user
   who recovers within the window gets the account back but NOT the
@@ -631,7 +644,12 @@ collection keys themselves, plus the clearing leaderboard). The pattern:
   satellite (a 100-doc read-only query fits the 5B query budget, but
   ~10 writes exceed the 40B update limit), so any admin endpoint that
   rewrites docs in bulk MUST be keyset-paged with a page size tunable
-  down to a single doc.
+  down to a single doc. A user-triggered write of many docs follows the
+  same budget: the Worlds podium freeze records the month's ranking once
+  in a freeze doc (`AffiliationFreezeDoc`), writes it out a few snapshot
+  docs per claim, and marks it complete last; readers and the payout
+  treat the month as unfrozen until then, and the FE claims again while
+  the answer says `freezePending`.
 - **Add the collection to the hard-delete cascade**
   (`hardDeleteAccountFn`): a private doc must not outlive its account.
 - **Page a bulk walk through `walkKeysetPage`**
@@ -779,6 +797,13 @@ prize.
 - **Prefer the assert over `write: 'controllers'`.** The rule lives in
   code and ships with the satellite build; a `juno.config.ts` rule change
   needs `juno config apply` on every satellite.
+- **Write a few docs per call.** Round resolution resolves at most
+  `TOURNAMENT_RESOLVE_BATCH` matches per call (each writes its own doc
+  and the next round's slot), within the bulk-write budget above; the
+  FE calls it again until `matchesResolved` is 0. Every call after the
+  last must stay harmless, a concurrent caller's included: a tournament
+  already concluded answers `tournamentConcluded` without writing its
+  terminal doc again.
 
 ## Logging
 

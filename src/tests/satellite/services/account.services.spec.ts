@@ -173,6 +173,86 @@ describe('account.services', () => {
 			assert.doesNotMatch(signalKey, new RegExp(time().toString(36)));
 		});
 
+		const ownedLeagueId = 'owned-league';
+
+		const seedOwnedLeague = () => {
+			const joinedBy = [
+				purged,
+				...Array.from({ length: 6 }, (_, i) => Principal.fromUint8Array(new Uint8Array([7, 7, i])))
+			];
+
+			host.putDoc({
+				collection: Collection.LEAGUES,
+				key: ownedLeagueId,
+				data: { id: ownedLeagueId, name: 'Owned', owner: purgedText, createdAtMs: 1 },
+				owner: purged
+			});
+
+			for (const principal of joinedBy) {
+				host.putDoc({
+					collection: Collection.LEAGUE_MEMBERS,
+					key: `${ownedLeagueId}/${principal.toText()}`,
+					data: {
+						leagueId: ownedLeagueId,
+						member: principal.toText(),
+						role: principal === purged ? 'owner' : 'member',
+						joinedAtMs: 1
+					},
+					owner: principal
+				});
+			}
+
+			host.setCaller(purged);
+		};
+
+		const disbandRequest = {
+			reason: 'privacy',
+			note: '',
+			leagueResolutions: [{ leagueId: ownedLeagueId, action: 'delete' as const }]
+		};
+
+		it('disbands a league over several calls and counts the confirmation once', () => {
+			seedOwnedLeague();
+
+			const answers = [];
+			let answer = deleteMyAccountFn(disbandRequest);
+
+			while (answer.reason === 'league_disband_pending') {
+				answers.push(answer);
+				answer = deleteMyAccountFn(disbandRequest);
+			}
+
+			const confirmations = host
+				.keys(Collection.EVENTS)
+				.map((key) => host.readDoc<{ name: string }>({ collection: Collection.EVENTS, key }))
+				.filter((event) => event?.name === 'delete_confirmed');
+
+			assert.equal(answers.length, 2);
+			assert.deepEqual(answer, { ok: true, softDeleted: true });
+			assert.deepEqual(host.keys(Collection.LEAGUES), []);
+			assert.deepEqual(host.keys(Collection.LEAGUE_MEMBERS), []);
+			assert.equal(confirmations.length, 1);
+		});
+
+		it('finishes a disband an earlier call started when the retry no longer names the league', () => {
+			seedOwnedLeague();
+
+			assert.equal(deleteMyAccountFn(disbandRequest).reason, 'league_disband_pending');
+
+			const retry = { reason: 'privacy', note: '' };
+			let answer = deleteMyAccountFn(retry);
+
+			for (let calls = 1; answer.reason === 'league_disband_pending'; calls += 1) {
+				assert.ok(calls < 10, 'the disband ends');
+
+				answer = deleteMyAccountFn(retry);
+			}
+
+			assert.deepEqual(answer, { ok: true, softDeleted: true });
+			assert.deepEqual(host.keys(Collection.LEAGUES), []);
+			assert.deepEqual(host.keys(Collection.LEAGUE_MEMBERS), []);
+		});
+
 		it('refuses an exit signal written by anyone but a controller', () => {
 			const write = (caller: Principal) =>
 				setContext({

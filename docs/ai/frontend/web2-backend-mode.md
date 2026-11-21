@@ -561,6 +561,11 @@ standings, championships, the podium claim) and the monthly tournament
 (draw, round resolution, prize claim). All rides `/api/v1/leagues`,
 `/api/v1/battles`, `/api/v1/worlds` and `/api/v1/tournaments`.
 
+The Worlds current-month column does not wait on the login stats sync,
+which web2 mode does not run: the API scores it from each member's settled
+history so far this month
+([`backend/src/worlds/affiliation-stats.ts`](../../../backend/src/worlds/affiliation-stats.ts)).
+
 ### The identity rename, continued
 
 Same pattern as profiles: the wire keys people by account id where the

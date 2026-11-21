@@ -78,6 +78,42 @@ export const monthEndMs = (monthAnchor: string): number => {
 	return Date.UTC(Number(year), Number(month), 1);
 };
 
+/** The part of a month that has elapsed by `nowMs`: [month start, month
+ * close) once the month is over, [month start, nowMs) while it is open,
+ * undefined before it starts. */
+export const monthWindowSoFar = ({
+	monthAnchor,
+	nowMs
+}: {
+	monthAnchor: string;
+	nowMs: number;
+}): { fromMs: number; toMs: number; closed: boolean } | undefined => {
+	const fromMs = monthStartMs(monthAnchor);
+	const closeMs = monthEndMs(monthAnchor);
+
+	if (nowMs <= fromMs) {
+		return;
+	}
+
+	return { fromMs, toMs: Math.min(closeMs, nowMs), closed: nowMs >= closeMs };
+};
+
+/** {@link monthWindowSoFar} for the only months the live standings are
+ * scored for: the month of `nowMs` and the one before, whose podium is still
+ * being claimed. Any other anchor (older, later or malformed) is undefined,
+ * so a read for an arbitrary month costs no clearing scan; older months are
+ * served from their frozen rows. */
+export const recentMonthWindowSoFar = ({
+	monthAnchor,
+	nowMs
+}: {
+	monthAnchor: string;
+	nowMs: number;
+}): { fromMs: number; toMs: number; closed: boolean } | undefined =>
+	monthAnchor === monthAnchorFromMs(nowMs) || monthAnchor === previousMonthAnchor(nowMs)
+		? monthWindowSoFar({ monthAnchor, nowMs })
+		: undefined;
+
 /** The previous month's anchor relative to `nowMs`. */
 export const previousMonthAnchor = (nowMs: number): string => {
 	const d = new Date(nowMs);

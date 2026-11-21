@@ -902,7 +902,12 @@ const roundRefusal = ({
 	}
 };
 
-/** Flip the tournament to `concluded` once the final has a winner; whether it did. */
+/**
+ * Flip the tournament to `concluded` once the final has a winner; whether it
+ * is concluded. A tournament already concluded (by an earlier call or another
+ * caller) answers `true` without a write: the doc is terminal, and writing it
+ * again would trap in `assertSetTournament`.
+ */
 const concludeTournament = ({
 	tournamentId,
 	matchesByRound,
@@ -927,15 +932,18 @@ const concludeTournament = ({
 		return false;
 	}
 
+	const tournament = decodeDocData<TournamentDoc>(tournamentDoc.data);
+
+	if (tournament.state === 'concluded') {
+		return true;
+	}
+
 	setDocStore({
 		collection: Collection.TOURNAMENTS,
 		key: tournamentId,
 		caller: writer,
 		doc: {
-			data: encodeDocData<TournamentDoc>({
-				...decodeDocData<TournamentDoc>(tournamentDoc.data),
-				state: 'concluded'
-			}),
+			data: encodeDocData<TournamentDoc>({ ...tournament, state: 'concluded' }),
 			version: tournamentDoc.version
 		}
 	});
@@ -1000,11 +1008,20 @@ const resolveMatchInPlace = ({
 };
 
 /**
- * Resolve every match in a closed round. Anyone can call; idempotent
- * via the `winnerLeagueId` write-once invariant: a second call for
- * the same round either re-resolves any matches that haven't been
- * settled yet (no-op for already-settled ones) or returns the same
- * `matchesResolved` count.
+ * How many matches one {@link resolveTournamentRoundFn} call resolves.
+ * Each resolved match writes its own doc and the next round's slot, and
+ * each serverless write costs billions of instructions, so the eight
+ * round 1 matches are resolved over several calls (see the bulk-rewrite
+ * budget note in docs/ai/satellite/patterns.md).
+ */
+const TOURNAMENT_RESOLVE_BATCH = 2;
+
+/**
+ * Resolve the matches of a closed round, at most
+ * {@link TOURNAMENT_RESOLVE_BATCH} per call: call it again until
+ * `matchesResolved` is 0. Anyone can call; idempotent via the
+ * `winnerLeagueId` write-once invariant: already-settled matches are
+ * skipped, so a call after the last one resolves nothing.
  *
  * Refuses if `round.endMs > now` (round hasn't closed) or if any
  * earlier round has unresolved matches (the bracket must advance
@@ -1044,10 +1061,12 @@ export const resolveTournamentRoundFn = async ({
 		return { ok: false, reason: refusal };
 	}
 
-	// Already-settled matches are skipped (idempotent re-run).
+	// Already-settled matches are skipped (idempotent re-run); the rest are
+	// resolved a bounded batch per call, in bracket order.
 	const scores = await Promise.all(
 		scored[round_]
 			.filter((entry) => isNullish(entry.doc.winnerLeagueId))
+			.slice(0, TOURNAMENT_RESOLVE_BATCH)
 			.map(async ({ doc }) => {
 				const [fromEval, toEval] = await Promise.all([
 					leagueWindowAccuracy({

@@ -24,6 +24,10 @@ import {
 	leagueIdForInviteCode,
 	recordLeagueInvite
 } from '#satellite/services/league-invite.services.ts';
+import {
+	leagueDisbandInProgress,
+	leagueMemberRows
+} from '#satellite/services/league-member.services.ts';
 import { payLeagueFounderReward } from '#satellite/services/vxp-league-founder-awards.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -36,7 +40,6 @@ import {
 	deleteDocStore,
 	encodeDocData,
 	getDocStore,
-	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
 
@@ -469,23 +472,34 @@ export const transferLeagueOwnershipFn = ({
 };
 
 /**
+ * How many docs one {@link deleteLeagueFn} call deletes. Each serverless
+ * delete costs billions of instructions, so a call stays a few writes under
+ * the update limit and a large league is disbanded over several calls (see
+ * the bulk-rewrite budget note in docs/ai/satellite/patterns.md).
+ */
+const LEAGUE_DISBAND_BATCH = 5;
+
+/**
  * Owner-authorised league disband: full delete of a league and all
- * its membership rows.
+ * its membership rows, at most {@link LEAGUE_DISBAND_BATCH} docs per call.
+ * `pending` means this call deleted something and more is left: call it
+ * again with the same arguments until it answers without `pending`.
  *
  * Refusal reasons:
  *  - `not_owner`: caller is not the current owner of the league.
  *
- * A missing league doc is NOT a refusal: it's a clean no-op success
- * (`{ ok: true }`). The disband is idempotent: if the league is already
- * gone (e.g. deleted by a concurrent caller between an ownership
- * precheck and this call), the desired end state already holds.
+ * The first call deletes the league doc and its invite code, so from then on
+ * the league is gone for every reader (they resolve the doc, and skip a
+ * membership row whose league doc is missing) and nobody can join it while
+ * its rows are deleted. Later calls delete the other members' rows a batch
+ * at a time, then the caller's own `owner` row alone, last: until then that
+ * row authorises the disband ({@link leagueDisbandInProgress}).
  *
  * Once the caller is confirmed as the owner, the deletes are signed as a
  * satellite controller: serverless `deleteDocStore` runs
  * `assertDeleteLeagueMember` too, and that assert lets only a controller
  * drop the `owner` member row (anyone else gets "transfer ownership
- * first"). Order is membership rows first, then the league doc, mirroring
- * the cascade's memberships → owned-empty-leagues sequencing.
+ * first").
  *
  * This is a deliberate, complete disband: distinct from the account-
  * delete cascade's `disbandOrTransferOwnedLeagues`, which only drops
@@ -494,10 +508,14 @@ export const transferLeagueOwnershipFn = ({
  * is explicitly choosing to remove a league that may still have other
  * members, evicting everyone.
  *
- * Idempotent: a missing league doc or missing membership rows are
- * clean no-ops. The version-locked deletes detect a concurrent mutation
- * (a member joining/leaving mid-disband) by trapping: the caller can
- * retry and the prefix scan re-reads the current rows.
+ * Idempotent: a missing league doc with no disband in progress is a clean
+ * no-op success (`{ ok: true }`), so a call after the last one, or for a
+ * league already gone, changes nothing. Rows are matched on the key prefix
+ * alone, NOT the decoded payload: membership keys are namespaced by
+ * `${leagueId}/`, so a row whose payload fails to decode is deleted too
+ * instead of being left behind. The version-locked deletes detect a
+ * concurrent mutation by trapping: the caller can retry and the next call
+ * re-reads the current rows.
  */
 export const deleteLeagueFn = ({
 	leagueId,
@@ -507,66 +525,63 @@ export const deleteLeagueFn = ({
 	leagueId: string;
 	callerText: string;
 	callerBytes: Uint8Array;
-}): { ok: boolean; reason?: 'not_owner' } => {
+}): { ok: boolean; reason?: 'not_owner'; pending?: boolean } => {
 	const leagueDoc = getDocStore({
 		collection: Collection.LEAGUES,
 		key: leagueId,
 		caller: callerBytes
 	});
 
-	// Idempotent: nothing to disband if the league is already gone.
-	if (isNullish(leagueDoc)) {
-		return { ok: true };
-	}
-
-	const league = decodeDocData<LeagueDoc>(leagueDoc.data);
-
-	if (league.owner !== callerText) {
+	if (nonNullish(leagueDoc) && decodeDocData<LeagueDoc>(leagueDoc.data).owner !== callerText) {
 		return { ok: false, reason: 'not_owner' };
 	}
 
-	const writer = controllerCaller('league disband');
-
-	// Delete every membership row for this league (prefix scan on
-	// `${leagueId}/`), the owner row included.
-	//
-	// Match on the key prefix alone, NOT the decoded payload: membership
-	// keys are already namespaced by `${leagueId}/`, so the prefix is
-	// authoritative. Deleting a row whose payload fails to decode (or whose
-	// `leagueId` field disagrees) would otherwise leave an orphan row behind
-	// after the league doc is gone.
-	const { items: memberItems } = listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller: callerBytes,
-		params: {}
-	});
-
-	const prefix = `${leagueId}/`;
-
-	for (const [docKey, item] of memberItems) {
-		if (docKey.startsWith(prefix)) {
-			deleteDocStore({
-				collection: Collection.LEAGUE_MEMBERS,
-				key: docKey,
-				caller: writer,
-				doc: {
-					version: item.version
-				}
-			});
-		}
+	if (isNullish(leagueDoc) && !leagueDisbandInProgress({ leagueId, callerText, callerBytes })) {
+		return { ok: true };
 	}
 
-	// Drop the league doc itself, and its invite code.
-	deleteDocStore({
-		collection: Collection.LEAGUES,
-		key: leagueId,
-		caller: writer,
-		doc: {
-			version: leagueDoc.version
-		}
-	});
+	const writer = controllerCaller('league disband');
+	let deleted = 0;
 
-	deleteLeagueInvite({ leagueId });
+	if (nonNullish(leagueDoc)) {
+		deleteDocStore({
+			collection: Collection.LEAGUES,
+			key: leagueId,
+			caller: writer,
+			doc: { version: leagueDoc.version }
+		});
+
+		deleteLeagueInvite({ leagueId });
+		deleted += 2;
+	}
+
+	const ownerKey = leagueMemberKey({ leagueId, memberPrincipal: callerText });
+	const memberRows = leagueMemberRows({ leagueId, caller: callerBytes });
+	const deleteMemberRow = ([key, { version }]: (typeof memberRows)[number]) =>
+		deleteDocStore({
+			collection: Collection.LEAGUE_MEMBERS,
+			key,
+			caller: writer,
+			doc: { version }
+		});
+
+	const batch = memberRows
+		.filter(([key]) => key !== ownerKey)
+		.slice(0, LEAGUE_DISBAND_BATCH - deleted);
+
+	batch.forEach(deleteMemberRow);
+	deleted += batch.length;
+
+	if (deleted > 0) {
+		return { ok: true, pending: true };
+	}
+
+	// Nothing else is left: the owner row goes last, alone in its call.
+	const ownerRow = memberRows.find(([key]) => key === ownerKey);
+
+	if (nonNullish(ownerRow)) {
+		deleteMemberRow(ownerRow);
+	}
 
 	return { ok: true };
 };
@@ -620,6 +635,14 @@ export const createLeagueFn = async ({
 
 	const callerText = caller.toText();
 	const callerBytes = caller.toUint8Array();
+
+	// A disband deletes the league doc before its membership rows, so an id
+	// whose rows are still being deleted must not be founded again: the new
+	// league would take over the old members.
+	if (leagueMemberRows({ leagueId: fields.id, caller: callerBytes }).length > 0) {
+		throw new Error(`League id ${fields.id} is still in use.`);
+	}
+
 	const createdAtMs = timeMs();
 	const league: LeagueDoc = { ...fields, owner: callerText, createdAtMs };
 

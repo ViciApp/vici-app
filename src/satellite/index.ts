@@ -1097,7 +1097,9 @@ export const claimCalibrationReward = defineUpdate({
 // passes `monthAnchor` (YYYY-MM) for a closed month; if their
 // current affiliation finished top-3 in that month's snapshot,
 // VXP_AWARDS docs are created (gold/silver/bronze) and a ledger
-// transfer is fired. Idempotent via the award doc key.
+// transfer is fired. Idempotent via the award doc key. The first claims
+// of a month freeze its ranking a bounded batch of docs per call and pay
+// nothing (`freezePending`); the FE claims again until that clears.
 export const claimWorldsPodiumPrize = defineUpdate({
 	args: j.strictObject({
 		monthAnchor: j.string()
@@ -1106,7 +1108,8 @@ export const claimWorldsPodiumPrize = defineUpdate({
 		monthAnchor: j.string(),
 		awardsCreated: j.number(),
 		awardsAlreadyClaimed: j.number(),
-		notEligible: j.boolean()
+		notEligible: j.boolean(),
+		freezePending: j.optional(j.boolean())
 	}),
 	handler: claimWorldsPodiumPrizeFn
 });
@@ -1145,6 +1148,8 @@ export const listMyBlockingLeagues = defineQuery({
 //    `failedLeagueId` + `resolutionReason` carry the underlying cause.
 //    The whole delete aborts (resolutions that committed before the
 //    failure stand).
+//  - `league_disband_pending`: a disband deletes a bounded batch of docs
+//    per call and has more left; the FE sends the same request again.
 export const deleteMyAccount = defineUpdate({
 	args: j.strictObject({
 		reason: j.string(),
@@ -1162,7 +1167,12 @@ export const deleteMyAccount = defineUpdate({
 	result: j.strictObject({
 		ok: j.boolean(),
 		reason: j.optional(
-			j.enum(['owns_non_empty_league', 'league_resolution_failed', 'invalid_input'])
+			j.enum([
+				'owns_non_empty_league',
+				'league_resolution_failed',
+				'league_disband_pending',
+				'invalid_input'
+			])
 		),
 		blockingLeagueIds: j.optional(j.array(j.string())),
 		failedLeagueId: j.optional(j.string()),
@@ -1283,14 +1293,18 @@ export const listFriendResolvedResults = defineQuery({
 });
 
 // Retention cleanup for `resolved_results`: prunes rows older than the
-// configured horizon. Admin-gated; Juno has no scheduler so this is triggered
-// externally (admin/cron), mirroring `sweepExpiredDeletions`. `pruned` is the
-// number of rows removed.
+// configured horizon, walking the collection one keyset page and a bounded
+// batch of deletes per call: pass the returned `nextAfterKey` back as
+// `afterKey` until `done`. Admin-gated; Juno has no scheduler so this is
+// triggered externally (admin/cron), mirroring `sweepExpiredDeletions`.
+// `pruned` is the number of rows this call removed.
 export const pruneResolvedResults = defineUpdate({
+	args: KeysetWalkArgsSchema,
 	result: j.strictObject({
-		pruned: j.number()
+		pruned: j.number(),
+		...KeysetWalkResultSchema.shape
 	}),
-	handler: () => pruneResolvedResultsFn()
+	handler: (args) => pruneResolvedResultsFn(args)
 });
 
 // Monthly tournament draw: fire-and-forget on every Tournament-page

@@ -339,6 +339,20 @@ export const listAffiliationChampionships = async ({
 	return items;
 };
 
+const claimWorldsPodiumPrizeOnSatellite = async ({
+	monthAnchor
+}: {
+	monthAnchor: string;
+}): Promise<Awaited<ReturnType<typeof functions.claimWorldsPodiumPrize>>> => {
+	let result: Awaited<ReturnType<typeof functions.claimWorldsPodiumPrize>>;
+
+	do {
+		result = await functions.claimWorldsPodiumPrize({ monthAnchor });
+	} while (result.freezePending === true);
+
+	return result;
+};
+
 /**
  * Fire the Worlds podium claim for a closed month. The backend has
  * no scheduler, so the user calls this themselves (typically when
@@ -349,6 +363,10 @@ export const listAffiliationChampionships = async ({
  * Idempotent: a second call for the same month either reports
  * `awardsAlreadyClaimed > 0` or `notEligible === true`. Safe to
  * fire-and-forget on every Worlds load.
+ *
+ * The satellite freezes a closed month's ranking a bounded batch of
+ * docs per call and pays nothing until it is frozen (`freezePending`),
+ * so the claim is sent again until that clears.
  *
  * Throws when `monthAnchor` is not a closed month (e.g. the
  * current calendar month): callers should always pass a YYYY-MM
@@ -369,4 +387,4 @@ export const claimWorldsPodiumPrize = ({
 	// itself, and both paths share the idempotent month gate.
 	isWeb2Backend()
 		? claimWorldsPodiumPrizeWeb2({ monthAnchor })
-		: functions.claimWorldsPodiumPrize({ monthAnchor });
+		: claimWorldsPodiumPrizeOnSatellite({ monthAnchor });

@@ -88,11 +88,21 @@ describe('claimWorldsPodiumPrizeFn', () => {
 		});
 	};
 
+	// Claims again while the month is still being frozen, as the FE does.
 	const claimAs = async (principal: Principal) => {
 		host.setCaller(principal);
 
-		return await claimWorldsPodiumPrizeFn({ monthAnchor });
+		let result = await claimWorldsPodiumPrizeFn({ monthAnchor });
+
+		while (result.freezePending === true) {
+			result = await claimWorldsPodiumPrizeFn({ monthAnchor });
+		}
+
+		return result;
 	};
+
+	const snapshotKeys = (): string[] =>
+		host.keys(Collection.AFFILIATION_STATS).filter((key) => key.split('/').length === 3);
 
 	beforeEach(() => {
 		settlements = [];
@@ -126,7 +136,41 @@ describe('claimWorldsPodiumPrizeFn', () => {
 		assert.equal(result.awardsCreated, 0);
 		assert.ok(!host.calls().includes('icrc1_transfer'));
 		assert.deepEqual(host.keys(Collection.VXP_AWARDS), []);
-		assert.deepEqual(host.keys(Collection.AFFILIATION_STATS), []);
+		assert.deepEqual(snapshotKeys(), []);
+	});
+
+	it('freezes a large ranking a bounded batch per claim and pays once it is complete', async () => {
+		for (let i = 0; i < 10; i += 1) {
+			const principal = Principal.fromUint8Array(new Uint8Array([8, 8, i]));
+
+			join({ principal, affiliationIdentifier: `uni-${i}`, joinedAtMs: monthStartMs });
+			settlements.push({ principal, atMs: monthStartMs + DAY_IN_MS, calls: 60, wins: 59 - i });
+		}
+
+		const top = Principal.fromUint8Array(new Uint8Array([8, 8, 0]));
+
+		host.setCaller(top);
+
+		const snapshotsPerCall: number[] = [];
+		let result = await claimWorldsPodiumPrizeFn({ monthAnchor });
+
+		while (result.freezePending === true) {
+			assert.deepEqual(host.keys(Collection.VXP_AWARDS), []);
+			snapshotsPerCall.push(snapshotKeys().length);
+			result = await claimWorldsPodiumPrizeFn({ monthAnchor });
+		}
+
+		// The ranking is recorded first, then written out four snapshots a call
+		// beside the freeze doc's own writes; the empty country month takes one.
+		assert.deepEqual(snapshotsPerCall, [0, 4, 8, 10, 10]);
+		assert.equal(result.awardsCreated, 1);
+		assert.equal(
+			host.readDoc<VxpAwardDoc>({
+				collection: Collection.VXP_AWARDS,
+				key: goldKey({ recipient: top })
+			})?.status,
+			'paid'
+		);
 	});
 
 	it('ranks the podium from settled history, whatever the monthly stats say', async () => {

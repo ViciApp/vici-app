@@ -81,6 +81,7 @@ export const idlFactory = ({ IDL }) => {
 		month_anchor: IDL.Text,
 		not_eligible: IDL.Bool,
 		awards_created: IDL.Float64,
+		freeze_pending: IDL.Opt(IDL.Bool),
 		awards_already_claimed: IDL.Float64
 	});
 	const AppCreateLeagueArgs = IDL.Record({
@@ -139,6 +140,7 @@ export const idlFactory = ({ IDL }) => {
 		soft_deleted: IDL.Opt(IDL.Bool),
 		reason: IDL.Opt(
 			IDL.Variant({
+				league_disband_pending: IDL.Null,
 				league_resolution_failed: IDL.Null,
 				owns_non_empty_league: IDL.Null,
 				invalid_input: IDL.Null
@@ -1211,7 +1213,15 @@ export const idlFactory = ({ IDL }) => {
 	const AppLookupReferralCodeResult = IDL.Record({
 		owner: IDL.Opt(IDL.Text)
 	});
-	const AppPruneResolvedResultsResult = IDL.Record({ pruned: IDL.Float64 });
+	const AppPruneResolvedResultsArgs = IDL.Record({
+		limit: IDL.Opt(IDL.Float64),
+		after_key: IDL.Opt(IDL.Text)
+	});
+	const AppPruneResolvedResultsResult = IDL.Record({
+		done: IDL.Bool,
+		next_after_key: IDL.Opt(IDL.Text),
+		pruned: IDL.Float64
+	});
 	const AppReadBattleLiveScoreArgs = IDL.Record({ battle_id: IDL.Text });
 	const AppReadBattleLiveScoreResult = IDL.Record({
 		score: IDL.Opt(
@@ -1764,7 +1774,11 @@ export const idlFactory = ({ IDL }) => {
 			[AppLookupReferralCodeResult],
 			['query']
 		),
-		app_prune_resolved_results: IDL.Func([], [AppPruneResolvedResultsResult], []),
+		app_prune_resolved_results: IDL.Func(
+			[AppPruneResolvedResultsArgs],
+			[AppPruneResolvedResultsResult],
+			[]
+		),
 		app_read_battle_live_score: IDL.Func(
 			[AppReadBattleLiveScoreArgs],
 			[AppReadBattleLiveScoreResult],

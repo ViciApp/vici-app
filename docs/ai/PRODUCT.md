@@ -521,7 +521,8 @@ not a running tally that outlives them. The live windows, the all-time
 board and the current-month column, are recomputed on read over the
 affiliation's present roster: the all-time accuracy sums each member's
 lifetime, the month sums each member's `USER_MONTHLY_STATS` for the current
-month. So the instant a member leaves (allowed after the 90-day affiliation
+month on the satellite, and each member's settled calls so far this month on
+the web2 API (refreshed every few minutes). So the instant a member leaves (allowed after the 90-day affiliation
 lock) or turns off the **Worlds** sharing toggle
 (`preferences.sharing.worldsOptIn`), their contribution drops out of the
 next read: a member can no longer pump a school and keep crediting it after
@@ -536,14 +537,17 @@ history**, each opted-in member's settled calls and wins over the month as
 recorded by the clearing engine (the same source league battles are scored
 from), counting only members whose slot was joined before the month closed,
 and captured as an immutable snapshot; the podium payout and the champion
-cup read from it thereafter. The live month column is a view of the
-members' own synced monthly stats and never decides a payout. A later leave does not rewrite
+cup read from it thereafter. The live month column is a view (the members'
+own synced monthly stats on the satellite, their settled history so far on
+the web2 API) and never decides a payout. A later leave does not rewrite
 a month that has already ended, so awards and cups stay stable and can't
 drift between two people claiming the same month. The podium award goes
 to a member at month-end whatever their join date, but only for a slot
 joined before the month closed: joining or switching to a winner after the
 fact earns nothing. A month confers a cup only once it has been frozen
-(claimed). Decision record:
+(claimed). The snapshot is written out over the first few claims of the
+month, a bounded batch per call, and nothing is paid or shown as frozen
+until it is complete; the app claims again until then. Decision record:
 [`specs/2026-06-28-impr-worlds-standings-current-members.md`](./spec-driven-development/specs/2026-06-28-impr-worlds-standings-current-members.md).
 
 **A member's school verification never rewrites the school registry.** A

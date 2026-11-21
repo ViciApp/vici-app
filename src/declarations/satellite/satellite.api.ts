@@ -1666,7 +1666,8 @@ const AppClaimWorldsPodiumPrizeResultSchema = j.strictObject({
 	monthAnchor: j.string(),
 	awardsCreated: j.number(),
 	awardsAlreadyClaimed: j.number(),
-	notEligible: j.boolean()
+	notEligible: j.boolean(),
+	freezePending: j.optional(j.boolean())
 });
 
 const claimWorldsPodiumPrize = async (
@@ -1767,7 +1768,12 @@ const AppDeleteMyAccountArgsSchema = j.strictObject({
 const AppDeleteMyAccountResultSchema = j.strictObject({
 	ok: j.boolean(),
 	reason: j.optional(
-		j.enum(['owns_non_empty_league', 'league_resolution_failed', 'invalid_input'])
+		j.enum([
+			'owns_non_empty_league',
+			'league_resolution_failed',
+			'league_disband_pending',
+			'invalid_input'
+		])
 	),
 	blockingLeagueIds: j.optional(j.array(j.string())),
 	failedLeagueId: j.optional(j.string()),
@@ -1892,15 +1898,29 @@ const lookupLeagueByInvite = async (
 	return AppLookupLeagueByInviteResultSchema.parse(result);
 };
 
-const AppPruneResolvedResultsResultSchema = j.strictObject({ pruned: j.number() });
+const AppPruneResolvedResultsArgsSchema = j.strictObject({
+	afterKey: j.optional(j.string()),
+	limit: j.optional(j.number())
+});
+const AppPruneResolvedResultsResultSchema = j.strictObject({
+	pruned: j.number(),
+	nextAfterKey: j.optional(j.string()),
+	done: j.boolean()
+});
 
-const pruneResolvedResults = async (): Promise<
-	j.infer<typeof AppPruneResolvedResultsResultSchema>
-> => {
+const pruneResolvedResults = async (
+	args: j.infer<typeof AppPruneResolvedResultsArgsSchema>
+): Promise<j.infer<typeof AppPruneResolvedResultsResultSchema>> => {
+	const parsedArgs = AppPruneResolvedResultsArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppPruneResolvedResultsArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_prune_resolved_results']>[0];
+
 	const { app_prune_resolved_results } = await getSatelliteExtendedActor<SatelliteActor>({
 		idlFactory
 	});
-	const idlResult = await app_prune_resolved_results();
+	const idlResult = await app_prune_resolved_results(idlArgs);
 
 	const result = schemaFromIdl({ schema: AppPruneResolvedResultsResultSchema, value: idlResult });
 	return AppPruneResolvedResultsResultSchema.parse(result);

@@ -149,9 +149,11 @@ The bound that protects each surface today:
   rosters, where every row is a member who joined themselves (a league
   owner changes an existing member's role but never adds anyone, on
   either backend). `top-decile` (days held in the leaderboard's top decile),
-  `sharpest-eye` and `bold-caller` (monthly accuracy awards) depend on
-  figures only the client computes (the top-decile day counter and the
-  monthly stats it writes), so the web2 API pays nothing for them.
+  `sharpest-eye` and `bold-caller` (monthly accuracy awards) are not paid
+  by the web2 API. The top-decile day counter and bold-caller's consensus
+  at each call are figures only the client computes; the API scores the
+  sharpest-eye podium from settled history for the current and the previous
+  month (`GET /api/v1/leaderboard/monthly/:monthAnchor`) but no award reads it.
   **Owner decision pending:** give them a server-side source (a daily
   leaderboard snapshot, server-computed monthly awards), or leave them
   unpaid.
@@ -200,12 +202,13 @@ The bound that protects each surface today:
   on the API), counting only members whose slot was joined before the
   month closed. The ranking is frozen on the month's first claim and the
   podium pays from that frozen ranking only; a month where no affiliation
-  clears the rank floor has no podium. The monthly stats the client
-  writes (`user_monthly_stats`) feed the live month view and never a
-  payout, and the API has no route that writes them. Paid once per month,
-  kind and place (a university and a country finish in the same month are
-  two awards; a month already paid under the older key without the kind
-  keeps its one award per place), for a member at month-end whatever their join date, but only
+  clears the rank floor has no podium. The live month view reads the
+  monthly stats the client writes (`user_monthly_stats`) on the satellite
+  and the members' settled history so far on the API; neither decides a
+  payout, and the API has no route that writes monthly stats. Paid once
+  per month, kind and place (a university and a country finish in the
+  same month are two awards; a month already paid under the older key
+  without the kind keeps its one award per place), for a member at month-end whatever their join date, but only
   if the slot was joined before the month closed. A first join has no switch lock, so without
   this anyone could join last month's winner after close and collect its
   prize; a switch or a leave resets the join time, so a move after close

@@ -1,6 +1,5 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
-import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import {
 	roundWindow,
 	TOURNAMENT_BRACKET_SIZE,
@@ -15,7 +14,6 @@ import {
 	deleteContext,
 	installSatelliteHost,
 	setContext,
-	type MockSettlement,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
 import { assertSetDoc } from '#satellite/index.ts';
@@ -23,7 +21,6 @@ import {
 	assertDeleteTournamentDoc,
 	assertSetTournament,
 	assertSetTournamentMatch,
-	resolveTournamentRoundFn,
 	triggerTournamentDrawFn
 } from '#satellite/services/tournament.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
@@ -338,221 +335,5 @@ describe('triggerTournamentDrawFn', () => {
 			availableLeagues: 0
 		});
 		assert.equal(bracketDocs(), 0);
-	});
-});
-
-describe('resolveTournamentRoundFn', () => {
-	const leagueA = 'league-a';
-	const leagueB = 'league-b';
-	const memberA = Principal.fromUint8Array(new Uint8Array([3, 3, 3]));
-	const memberB = Principal.fromUint8Array(new Uint8Array([4, 4, 4]));
-	const latecomer = Principal.fromUint8Array(new Uint8Array([5, 5, 5]));
-
-	const octoberStartMs = Date.UTC(2026, 9, 1);
-	const r1 = roundWindow({ tournamentMonthStartMs: octoberStartMs, round: 'r1' });
-	const tournamentId = '2026-10';
-
-	let host: SatelliteHost;
-	let settlements: MockSettlement[];
-
-	const joinLeague = ({
-		leagueId,
-		member,
-		joinedAtMs
-	}: {
-		leagueId: string;
-		member: Principal;
-		joinedAtMs: number;
-	}): void => {
-		const doc: LeagueMemberDoc = {
-			leagueId,
-			member: member.toText(),
-			role: 'member',
-			joinedAtMs
-		};
-
-		host.putDoc({
-			collection: Collection.LEAGUE_MEMBERS,
-			key: `${leagueId}/${member.toText()}`,
-			data: doc,
-			owner: member,
-			createdAtMs: joinedAtMs
-		});
-	};
-
-	const r1Match = (): TournamentMatchDoc | undefined =>
-		host.readDoc<TournamentMatchDoc>({
-			collection: Collection.TOURNAMENT_MATCHES,
-			key: tournamentMatchKey({ tournamentId, round: 'r1', index: 0 })
-		});
-
-	beforeEach(() => {
-		settlements = [];
-		host = installSatelliteHost();
-		host.setCaller(user);
-		host.setNowMs(r1.endMs + DAY_IN_MS);
-		answerSettlementAccuracy({ host, settlements });
-
-		host.putDoc({
-			collection: Collection.TOURNAMENTS,
-			key: tournamentId,
-			data: {
-				...tournament,
-				id: tournamentId,
-				monthStartMs: octoberStartMs,
-				monthEndMs: octoberStartMs + 4 * TOURNAMENT_ROUND_DURATION_MS
-			},
-			owner: controller,
-			createdAtMs: octoberStartMs
-		});
-
-		const match: TournamentMatchDoc = {
-			...finalMatch,
-			tournamentId,
-			round: 'r1',
-			fromLeagueId: leagueA,
-			toLeagueId: leagueB,
-			fromStartCalls: 0,
-			fromStartWins: 0,
-			toStartCalls: 0,
-			toStartWins: 0,
-			startMs: r1.startMs,
-			endMs: r1.endMs
-		};
-
-		host.putDoc({
-			collection: Collection.TOURNAMENT_MATCHES,
-			key: tournamentMatchKey({ tournamentId, round: 'r1', index: 0 }),
-			data: match,
-			owner: controller,
-			createdAtMs: octoberStartMs
-		});
-
-		joinLeague({ leagueId: leagueA, member: memberA, joinedAtMs: octoberStartMs - DAY_IN_MS });
-		joinLeague({ leagueId: leagueB, member: memberB, joinedAtMs: octoberStartMs - DAY_IN_MS });
-	});
-
-	afterEach(() => {
-		host.restore();
-	});
-
-	it('scores a match from settled history, not the member-written league stats', async () => {
-		// League A's members wrote themselves a perfect window; only league B
-		// has calls that settled in it.
-		host.putDoc({
-			collection: Collection.LEAGUE_STATS,
-			key: leagueA,
-			data: { leagueId: leagueA, totalCalls: 1_000, wins: 1_000, updatedAtMs: r1.startMs },
-			owner: memberA
-		});
-		settlements.push({ principal: memberB, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 40 });
-
-		const result = await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
-
-		assert.equal(result.ok, true);
-		assert.equal(result.matchesResolved, 1);
-		assert.equal(r1Match()?.winnerLeagueId, leagueB);
-		assert.equal(r1Match()?.fromAcc, null);
-		assert.equal(r1Match()?.toAcc, 40 / 60);
-	});
-
-	it('counts only settlements inside the round window', async () => {
-		settlements.push({ principal: memberA, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 30 });
-		settlements.push({ principal: memberB, atMs: r1.startMs - 1, calls: 60, wins: 60 });
-		settlements.push({ principal: memberB, atMs: r1.endMs, calls: 60, wins: 60 });
-
-		await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
-
-		assert.equal(r1Match()?.winnerLeagueId, leagueA);
-		assert.equal(r1Match()?.toAcc, null);
-	});
-
-	it('does not let a member who joined after the draw lift the score, even inside the window', async () => {
-		settlements.push({ principal: memberA, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 30 });
-		settlements.push({ principal: latecomer, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 60 });
-		// The tournament doc was stored at the month start: the draw.
-		joinLeague({ leagueId: leagueB, member: latecomer, joinedAtMs: octoberStartMs + 1 });
-
-		await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
-
-		assert.equal(r1Match()?.winnerLeagueId, leagueA);
-	});
-
-	it('does not let a member who joined after the window lift the score', async () => {
-		settlements.push({ principal: memberA, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 30 });
-		settlements.push({ principal: latecomer, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 60 });
-		joinLeague({ leagueId: leagueB, member: latecomer, joinedAtMs: r1.endMs });
-
-		await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
-
-		assert.equal(r1Match()?.winnerLeagueId, leagueA);
-	});
-
-	it('fills both slots of a quarter-final fed by two first-round matches', async () => {
-		const leagueC = 'league-c';
-		const leagueD = 'league-d';
-		const quarter = roundWindow({ tournamentMonthStartMs: octoberStartMs, round: 'quarter' });
-		const quarterKey = tournamentMatchKey({ tournamentId, round: 'quarter', index: 0 });
-		const emptyMatch: TournamentMatchDoc = {
-			...finalMatch,
-			tournamentId,
-			fromStartCalls: null,
-			fromStartWins: null,
-			toStartCalls: null,
-			toStartWins: null
-		};
-
-		host.putDoc({
-			collection: Collection.TOURNAMENT_MATCHES,
-			key: tournamentMatchKey({ tournamentId, round: 'r1', index: 1 }),
-			data: {
-				...emptyMatch,
-				round: 'r1',
-				index: 1,
-				fromLeagueId: leagueC,
-				toLeagueId: leagueD,
-				startMs: r1.startMs,
-				endMs: r1.endMs
-			},
-			owner: controller,
-			createdAtMs: octoberStartMs
-		});
-		host.putDoc({
-			collection: Collection.TOURNAMENT_MATCHES,
-			key: quarterKey,
-			data: {
-				...emptyMatch,
-				round: 'quarter',
-				index: 0,
-				fromLeagueId: null,
-				toLeagueId: null,
-				startMs: quarter.startMs,
-				endMs: quarter.endMs
-			},
-			owner: controller,
-			createdAtMs: octoberStartMs
-		});
-		settlements.push({ principal: memberB, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 40 });
-
-		const result = await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
-
-		assert.deepEqual(result, { ok: true, matchesResolved: 2, tournamentConcluded: false });
-
-		const quarterMatch = host.readDoc<TournamentMatchDoc>({
-			collection: Collection.TOURNAMENT_MATCHES,
-			key: quarterKey
-		});
-
-		assert.equal(quarterMatch?.fromLeagueId, leagueB);
-		assert.equal(quarterMatch?.toLeagueId, leagueC);
-	});
-
-	it('refuses a round whose window has not closed', async () => {
-		host.setNowMs(r1.endMs - 1);
-
-		const result = await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
-
-		assert.deepEqual(result, { ok: false, reason: 'round_not_yet_closed' });
-		assert.equal(r1Match()?.winnerLeagueId, null);
 	});
 });

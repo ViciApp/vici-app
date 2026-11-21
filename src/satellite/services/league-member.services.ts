@@ -8,7 +8,7 @@ import {
 import type { LeagueDoc } from '#lib/types/league.ts';
 import { isControllerText } from '#satellite/services/authz.services.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
-import { isNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
@@ -238,11 +238,28 @@ export const assertDeleteLeagueMember = ({
 };
 
 /**
+ * Every membership row of a league, the owner row included. The
+ * `league_members` key is `${leagueId}/${principal}`, so the scan is anchored
+ * to that prefix with a key matcher: the datastore skips (and never decodes)
+ * rows for other leagues, keeping this O(this-league's-members) rather than
+ * O(all-members).
+ */
+export const leagueMemberRows = ({
+	leagueId,
+	caller
+}: {
+	leagueId: string;
+	caller: Uint8Array;
+}): ReturnType<typeof listDocsStore>['items'] =>
+	listDocsStore({
+		collection: Collection.LEAGUE_MEMBERS,
+		caller,
+		params: { matcher: { key: `^${escapeRegex(`${leagueId}/`)}` } }
+	}).items;
+
+/**
  * Current member principals of a league: the members whose settled history a
- * league's score is read from. The `league_members` key is
- * `${leagueId}/${principal}`, so the scan is anchored to that prefix with a
- * key matcher: the datastore skips (and never decodes) rows for other
- * leagues, keeping this O(this-league's-members) rather than O(all-members).
+ * league's score is read from, scanned with {@link leagueMemberRows}.
  *
  * `joinedBeforeMs` keeps only memberships stored before that instant (the
  * doc's own `created_at`, never the client-written `joinedAtMs`), so a
@@ -262,15 +279,9 @@ export const leagueMemberPrincipals = ({
 		? undefined
 		: BigInt(joinedBeforeMs) * MILLISECOND_IN_NANOSECONDS;
 
-	const { items } = listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller,
-		params: { matcher: { key: `^${escapeRegex(prefix)}` } }
-	});
-
 	const principals: Principal[] = [];
 
-	for (const [key, item] of items) {
+	for (const [key, item] of leagueMemberRows({ leagueId, caller })) {
 		const inWindow = isNullish(joinedBeforeNs) || item.created_at < joinedBeforeNs;
 
 		if (key.startsWith(prefix) && inWindow) {
@@ -287,4 +298,59 @@ export const leagueMemberPrincipals = ({
 	}
 
 	return principals;
+};
+
+/**
+ * Whether `callerText` is part way through disbanding `leagueId`: the league
+ * doc is gone (the first disband call deletes it) while the caller's own
+ * `owner` membership row is not (the last call deletes it). That row is what
+ * authorises the rest of the disband once the doc is gone.
+ */
+export const leagueDisbandInProgress = ({
+	leagueId,
+	callerText,
+	callerBytes
+}: {
+	leagueId: string;
+	callerText: string;
+	callerBytes: Uint8Array;
+}): boolean => {
+	if (
+		nonNullish(getDocStore({ collection: Collection.LEAGUES, key: leagueId, caller: callerBytes }))
+	) {
+		return false;
+	}
+
+	const ownerRow = getDocStore({
+		collection: Collection.LEAGUE_MEMBERS,
+		key: leagueMemberKey({ leagueId, memberPrincipal: callerText }),
+		caller: callerBytes
+	});
+
+	return nonNullish(ownerRow) && decodeDocData<LeagueMemberDoc>(ownerRow.data).role === 'owner';
+};
+
+/**
+ * Every league `callerText` is part way through disbanding
+ * ({@link leagueDisbandInProgress}), found from the caller's own membership
+ * rows (keys end in `/${callerText}`), not from what a request names: once
+ * the first disband call has deleted the league doc, no reader lists that
+ * league any more, so a later request cannot be relied on to name it.
+ */
+export const leagueDisbandsInProgress = ({
+	callerText,
+	callerBytes
+}: {
+	callerText: string;
+	callerBytes: Uint8Array;
+}): string[] => {
+	const suffix = `/${callerText}`;
+
+	return listDocsStore({
+		collection: Collection.LEAGUE_MEMBERS,
+		caller: callerBytes,
+		params: { matcher: { key: `${escapeRegex(suffix)}$` } }
+	})
+		.items.map(([key]) => key.slice(0, -suffix.length))
+		.filter((leagueId) => leagueDisbandInProgress({ leagueId, callerText, callerBytes }));
 };

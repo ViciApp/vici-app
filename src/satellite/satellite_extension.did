@@ -147,7 +147,7 @@ type AppClaimTournamentPrizeResult = record { ok : bool; reason : opt variant { 
 
 type AppClaimWorldsPodiumPrizeArgs = record { month_anchor : text };
 
-type AppClaimWorldsPodiumPrizeResult = record { month_anchor : text; awards_created : float64; awards_already_claimed : float64; not_eligible : bool };
+type AppClaimWorldsPodiumPrizeResult = record { month_anchor : text; awards_created : float64; awards_already_claimed : float64; not_eligible : bool; freeze_pending : opt bool };
 
 type AppCreateLeagueArgs = record { id : text; name : text; description : opt text; accent_color : opt text; emblem : opt text; privacy : opt variant { private; open }; invite_code : text };
 
@@ -159,7 +159,7 @@ type AppDeleteAnalyticsEventsResult = record { deleted : float64 };
 
 type AppDeleteMyAccountArgs = record { reason : text; note : text; league_resolutions : opt vec record { league_id : text; action : variant { transfer; delete }; transfer_to : opt text } };
 
-type AppDeleteMyAccountResult = record { ok : bool; reason : opt variant { owns_non_empty_league; league_resolution_failed; invalid_input }; blocking_league_ids : opt vec text; failed_league_id : opt text; resolution_reason : opt text; soft_deleted : opt bool };
+type AppDeleteMyAccountResult = record { ok : bool; reason : opt variant { owns_non_empty_league; league_resolution_failed; league_disband_pending; invalid_input }; blocking_league_ids : opt vec text; failed_league_id : opt text; resolution_reason : opt text; soft_deleted : opt bool };
 
 type AppFollowUserArgs = record { target : text };
 
@@ -173,7 +173,9 @@ type AppLookupLeagueByInviteArgs = record { invite_code : text };
 
 type AppLookupLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; reason : opt variant { rate_limited } };
 
-type AppPruneResolvedResultsResult = record { pruned : float64 };
+type AppPruneResolvedResultsArgs = record { after_key : opt text; limit : opt float64 };
+
+type AppPruneResolvedResultsResult = record { pruned : float64; next_after_key : opt text; done : bool };
 
 type AppReadBattleLiveScoreArgs = record { battle_id : text };
 
@@ -303,7 +305,7 @@ service : {
 	app_hibernate_my_account : () -> (AppHibernateMyAccountResult);
 	app_join_league_by_invite : (AppJoinLeagueByInviteArgs) -> (AppJoinLeagueByInviteResult);
 	app_lookup_league_by_invite : (AppLookupLeagueByInviteArgs) -> (AppLookupLeagueByInviteResult);
-	app_prune_resolved_results : () -> (AppPruneResolvedResultsResult);
+	app_prune_resolved_results : (AppPruneResolvedResultsArgs) -> (AppPruneResolvedResultsResult);
 	app_read_battle_live_score : (AppReadBattleLiveScoreArgs) -> (AppReadBattleLiveScoreResult);
 	app_rebuild_market_tag_index : () -> (AppRebuildMarketTagIndexResult);
 	app_recompute_activity_reaction_counts : () -> (AppRecomputeActivityReactionCountsResult);
