@@ -2023,8 +2023,6 @@ export const esMessages = {
 	'settings.identity.joined': 'Se unió en {date}',
 	'settings.identity.meta': 'Nv {level} · {accuracy}% precisión · {calls} predicciones',
 	'settings.language': 'Idioma',
-	'settings.language.no_match': 'Sin resultados',
-	'settings.language.search': 'Buscar idioma',
 	'settings.legal': 'Legal',
 	'settings.legal.aviso': 'Aviso de Privacidad (México)',
 	'settings.legal.aviso_br': 'Aviso de Privacidade (Brasil)',
@@ -2099,7 +2097,6 @@ export const esMessages = {
 	'signin.provider.dev': 'Acceso para Dev',
 	'signin.provider.email': 'Continuar con email',
 	'signin.provider.google': 'Continuar con Google',
-	'signin.provider.placeholder_title': 'Aún no activo',
 	'signin.sub.onboarded':
 		'Adjuntaremos tu nombre de usuario y tus selecciones de Flow después de iniciar sesión.',
 	'signin.sub.signin': 'Retoma donde lo dejaste.',

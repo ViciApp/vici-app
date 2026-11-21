@@ -2014,8 +2014,6 @@ export const ptMessages = {
 	'settings.identity.joined': 'Entraste em {date}',
 	'settings.identity.meta': 'Nv {level} · {accuracy}% precisão · {calls} previsões',
 	'settings.language': 'Idioma',
-	'settings.language.no_match': 'Nenhum resultado',
-	'settings.language.search': 'Procurar idioma',
 	'settings.legal': 'Jurídico',
 	'settings.legal.aviso': 'Aviso de Privacidad (México)',
 	'settings.legal.aviso_br': 'Aviso de Privacidade (Brasil)',
@@ -2091,7 +2089,6 @@ export const ptMessages = {
 	'signin.provider.dev': 'Entrar para Dev',
 	'signin.provider.email': 'Continuar com e-mail',
 	'signin.provider.google': 'Continuar com Google',
-	'signin.provider.placeholder_title': 'Ainda não ativo',
 	'signin.sub.onboarded':
 		'Vamos anexar o teu utilizador e as tuas escolhas do Flow após o início de sessão.',
 	'signin.sub.signin': 'Continua de onde paraste.',
