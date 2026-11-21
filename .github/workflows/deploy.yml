@@ -19,6 +19,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     steps:
       - name: Verify JUNO_TOKEN is set
@@ -34,8 +35,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # Full history + tags: the satellite-change check below diffs
-          # against the previous `v*` release tag.
+          # Full history: the satellite-change check below diffs against
+          # the commit of the last successful deploy.
           fetch-depth: 0
 
       - name: Prepare
@@ -45,21 +46,25 @@ jobs:
       # and the same canister serves the frontend, so users get the HTTP
       # gateway's "canister is stopped" page for the whole window. Skip the
       # upgrade when nothing feeding the satellite wasm changed since the
-      # previous release: the script walks the real import graph of
+      # last deploy that succeeded: the script walks the real import graph of
       # `src/satellite/index.ts` (incl. shared `$lib/**` schemas/types), so a
       # frontend-only release ships through the zero-downtime
-      # `hosting deploy` alone. Any doubt (no previous tag, script failure,
+      # `hosting deploy` alone. The base is that run's commit, not the
+      # previous tag: a release whose upgrade failed or was cancelled left
+      # the old wasm running, and the next release must still upgrade it.
+      # Any doubt (no successful run, commit not in history, script failure,
       # unresolved import) fails safe to upgrading.
       - name: Check whether the satellite wasm changed
         id: satellite
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            base="$(git describe --tags --match 'v*' --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)"
-          else
-            base="$(git describe --tags --match 'v*' --abbrev=0 HEAD 2>/dev/null || true)"
-          fi
+          base="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow deploy.yml --status success --limit 1 --json headSha --jq '.[0].headSha // empty' 2>/dev/null || true)"
           if [ -z "${base}" ]; then
-            echo "No previous v* tag found: defaulting to upgrade."
+            echo "No successful deploy found: defaulting to upgrade."
+            upgrade=true
+          elif ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "Last deployed commit ${base} is not in this history: defaulting to upgrade."
             upgrade=true
           elif ! upgrade="$(node scripts/satellite-upgrade-needed.mjs --base "${base}")"; then
             echo "satellite-upgrade-needed.mjs failed: defaulting to upgrade."
