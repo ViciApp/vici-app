@@ -165,7 +165,10 @@ describe('claimWorldsPodiumPrizeFn', () => {
 		assert.deepEqual(snapshotsPerCall, [0, 4, 8, 10, 10]);
 		assert.equal(result.awardsCreated, 1);
 		assert.equal(
-			host.readDoc<VxpAwardDoc>({ collection: Collection.VXP_AWARDS, key: goldKey(top) })?.status,
+			host.readDoc<VxpAwardDoc>({
+				collection: Collection.VXP_AWARDS,
+				key: goldKey({ recipient: top })
+			})?.status,
 			'paid'
 		);
 	});
