@@ -33,14 +33,17 @@ dfx canister call clearing update_domain_policy "(record {
 
 # 2. Register collateral (ICRC): allowed_balance_domains enforced on deposit/withdraw.
 #    ICP → Settlement only. VXP → ViciXp only (in-app Playground experience).
-#    Override VXP ledger: VXP_LEDGER=principal-text (must match app VITE_VXP_LEDGER_CANISTER_ID).
+#    VXP ledger: the app's own (VITE_VXP_LEDGER_CANISTER_ID included); VXP_LEDGER=principal-text overrides it.
 #    asset_id strings must match on register_icrc_asset and update_asset_price (opaque; lowercase defaults below).
 
 CLEARING_DOMAINS_SETTLEMENT="vec { variant { Settlement } }"
 CLEARING_DOMAINS_VICIXP="vec { variant { ViciXp } }"
 
+# The local app runs on `vite dev` (development mode); staging and ic serve `npm run build` (production).
+[ "$NETWORK" = "local" ] && VITE_MODE="development" || VITE_MODE="production"
+
 ICP_LEDGER="$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/ledger-id.ts icp)"
-VXP_LEDGER="${VXP_LEDGER:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/ledger-id.ts vxp)}"
+VXP_LEDGER="${VXP_LEDGER:-$(cd "$PROJECT_ROOT" && npx tsx scripts/lib/ledger-id.ts vxp "$VITE_MODE")}"
 ICP_ASSET_ID="${ICP_ASSET_ID:-icp}"
 VXP_ASSET_ID="${VXP_ASSET_ID:-vxp}"
 

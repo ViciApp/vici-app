@@ -20,8 +20,16 @@ export const TESTICP_LEDGER_CANISTER_ID = 'xafvr-biaaa-aaaai-aql5q-cai';
 
 export const TICRC1_LEDGER_CANISTER_ID = '3jkp5-oyaaa-aaaaj-azwqa-cai';
 
-const viteEnvString = (key: string): string | undefined => {
-	const value: unknown = viteEnv()?.[key];
+type EnvSource = Partial<Record<string, unknown>> | undefined;
+
+const viteEnvString = ({
+	key,
+	env = viteEnv()
+}: {
+	key: string;
+	env?: EnvSource;
+}): string | undefined => {
+	const value: unknown = env?.[key];
 
 	return typeof value === 'string' ? value : undefined;
 };
@@ -37,11 +45,17 @@ export const VXP_LEDGER_CANISTER_ID_DEFAULT = 's7ux4-yyaaa-aaaam-qidha-cai';
 
 export const VXP_INDEX_CANISTER_ID_DEFAULT = 'swx4a-oqaaa-aaaam-qidgq-cai';
 
-export const VXP_LEDGER_CANISTER_ID =
-	viteEnvString('VITE_VXP_LEDGER_CANISTER_ID') ?? VXP_LEDGER_CANISTER_ID_DEFAULT;
+/**
+ * The VXP ledger a build with `env` talks to. Scripts run outside Vite, where
+ * `import.meta.env` does not exist, so they pass the env Vite would load.
+ */
+export const vxpLedgerCanisterIdFor = (env: EnvSource = viteEnv()): string =>
+	viteEnvString({ key: 'VITE_VXP_LEDGER_CANISTER_ID', env }) ?? VXP_LEDGER_CANISTER_ID_DEFAULT;
+
+export const VXP_LEDGER_CANISTER_ID = vxpLedgerCanisterIdFor();
 
 export const VXP_INDEX_CANISTER_ID =
-	viteEnvString('VITE_VXP_INDEX_CANISTER_ID') ?? VXP_INDEX_CANISTER_ID_DEFAULT;
+	viteEnvString({ key: 'VITE_VXP_INDEX_CANISTER_ID' }) ?? VXP_INDEX_CANISTER_ID_DEFAULT;
 
 export const VICI_LEDGER_CANISTER_ID =
-	viteEnvString('VITE_VICI_LEDGER_CANISTER_ID') ?? 'zpaik-yaaaa-aaaam-qiczq-cai';
+	viteEnvString({ key: 'VITE_VICI_LEDGER_CANISTER_ID' }) ?? 'zpaik-yaaaa-aaaam-qiczq-cai';
