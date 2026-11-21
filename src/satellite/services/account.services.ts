@@ -21,7 +21,7 @@ import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts
 import { deleteLeagueInvite } from '#satellite/services/league-invite.services.ts';
 import {
 	deleteLeagueFn,
-	leagueDisbandInProgress,
+	leagueDisbandsInProgress,
 	transferLeagueOwnershipFn
 } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
@@ -71,7 +71,8 @@ type ListedDocEntry = ReturnType<typeof listDocsStore>['items'][number];
  *     recovery caveat below). A disband deletes a bounded batch of docs
  *     per call: while one has more left, the call stops there with
  *     `reason: 'league_disband_pending'` and the FE sends the same
- *     request again until it gets past step 1.
+ *     request again until it gets past step 1. Every disband the caller
+ *     has under way is finished first, named in the request or not.
  *
  *  2. **Owner-leagues guard.** If, after resolution, the caller still
  *     owns any league that has another member, the deletion is refused
@@ -1025,21 +1026,6 @@ const applyLeagueResolution = ({
 		: { failedLeagueId: leagueId, resolutionReason: result.reason ?? 'unknown' };
 };
 
-/** Whether a `delete` resolution names a league whose disband this caller has under way. */
-const resumesLeagueDisband = ({
-	leagueResolutions,
-	callerText,
-	callerBytes
-}: {
-	leagueResolutions: LeagueResolution[] | undefined;
-	callerText: string;
-	callerBytes: Uint8Array;
-}): boolean =>
-	(leagueResolutions ?? []).some(
-		({ leagueId, action }) =>
-			action === 'delete' && leagueDisbandInProgress({ leagueId, callerText, callerBytes })
-	);
-
 export const deleteMyAccountFn = ({
 	reason,
 	note,
@@ -1069,16 +1055,26 @@ export const deleteMyAccountFn = ({
 	// a re-confirm after a refusal bounce, which is a genuine new attempt.
 	// A call that resumes a disband an earlier call of this delete started
 	// is the same attempt, so it is not counted again.
-	if (!resumesLeagueDisband({ leagueResolutions, callerText, callerBytes })) {
+	const disbandsInProgress = leagueDisbandsInProgress({ callerText, callerBytes });
+
+	if (disbandsInProgress.length === 0) {
 		captureDeleteEvents([{ name: 'delete_confirmed', principal: callerText }]);
 	}
 
-	// Step 1: league resolution. Apply each transfer / delete the
-	// caller chose, BEFORE the blocking guard. A failed resolution
-	// aborts the whole delete (resolutions are applied immediately, so
-	// any that already committed stand: see the recovery caveat in the
-	// JSDoc above); a disband with docs left stops this call there.
-	for (const resolution of leagueResolutions ?? []) {
+	// Step 1: league resolution. First finish every disband an earlier
+	// call started, whatever this request names (the league doc is gone, so
+	// a retry may not name it, and soft-deleting with its rows left would
+	// orphan them), then apply each transfer / delete the caller chose,
+	// BEFORE the blocking guard. A failed resolution aborts the whole delete
+	// (resolutions are applied immediately, so any that already committed
+	// stand: see the recovery caveat in the JSDoc above); a disband with
+	// docs left stops this call there.
+	const resolutions: LeagueResolution[] = [
+		...disbandsInProgress.map((leagueId): LeagueResolution => ({ leagueId, action: 'delete' })),
+		...(leagueResolutions ?? []).filter(({ leagueId }) => !disbandsInProgress.includes(leagueId))
+	];
+
+	for (const resolution of resolutions) {
 		const outcome = applyLeagueResolution({ resolution, callerText, callerBytes });
 
 		if (nonNullish(outcome)) {

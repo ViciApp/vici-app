@@ -482,8 +482,11 @@ owner-leagues guard:
   then the owner's own row alone, which authorises the calls in between
   (`leagueDisbandInProgress`). `deleteMyAccount` answers
   `league_disband_pending` while a disband has more left and the FE
-  sends the same request again; a call that resumes a disband does not
-  count `delete_confirmed` again. `createLeague` refuses an id whose
+  sends the same request again. Each call first finishes every disband
+  the caller has under way (`leagueDisbandsInProgress`, read from the
+  caller's own membership rows), whether or not the request still names
+  the league, so the account is never soft-deleted with its rows left;
+  a call that resumes a disband does not count `delete_confirmed` again. `createLeague` refuses an id whose
   rows are still being deleted.
 - **Applied immediately ⇒ not reversed by recovery.** Resolutions are real
   transfers / disbands at delete time, not deferred to hard-delete. A user

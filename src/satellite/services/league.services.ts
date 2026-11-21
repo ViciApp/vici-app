@@ -30,6 +30,7 @@ import {
 import { leagueMemberRows } from '#satellite/services/league-member.services.ts';
 import { payLeagueFounderReward } from '#satellite/services/vxp-league-founder-awards.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
@@ -518,6 +519,31 @@ export const leagueDisbandInProgress = ({
 	});
 
 	return nonNullish(ownerRow) && decodeDocData<LeagueMemberDoc>(ownerRow.data).role === 'owner';
+};
+
+/**
+ * Every league `callerText` is part way through disbanding
+ * ({@link leagueDisbandInProgress}), found from the caller's own membership
+ * rows (keys end in `/${callerText}`), not from what a request names: once
+ * the first disband call has deleted the league doc, no reader lists that
+ * league any more, so a later request cannot be relied on to name it.
+ */
+export const leagueDisbandsInProgress = ({
+	callerText,
+	callerBytes
+}: {
+	callerText: string;
+	callerBytes: Uint8Array;
+}): string[] => {
+	const suffix = `/${callerText}`;
+
+	return listDocsStore({
+		collection: Collection.LEAGUE_MEMBERS,
+		caller: callerBytes,
+		params: { matcher: { key: `${escapeRegex(suffix)}$` } }
+	})
+		.items.map(([key]) => key.slice(0, -suffix.length))
+		.filter((leagueId) => leagueDisbandInProgress({ leagueId, callerText, callerBytes }));
 };
 
 /**
