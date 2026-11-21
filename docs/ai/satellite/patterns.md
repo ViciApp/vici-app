@@ -204,6 +204,10 @@ Consequences:
   hook on the referrals row only runs for a `set_doc` through the public API,
   which `assertSetReferral` allows to a controller alone (a hand-written row in
   the Console).
+- The payout analytics (`vxp_awarded`, `streak_milestone`) follow the
+  same rule: every `vxp_awards` doc is a serverless write, so
+  `updateAward` emits them inline (`captureVxpAwardEvents`) on the
+  `pending → paid` write rather than from a hook on the collection.
 - Make the inline work **idempotent + retry-safe** (lock → act →
   finalize, short-circuit on already-done), and expose a settle/retry
   endpoint so a failed transfer can be re-driven; there is no hook replay
