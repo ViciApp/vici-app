@@ -28,9 +28,9 @@
 	/**
 	 * Tournament detail: the `TournamentBattleDetail` surface.
 	 *
-	 * Fires `triggerTournamentDraw` for the current month on mount as
-	 * a fire-and-forget (idempotent via the satellite's doc-key
-	 * collision), then reads `getCurrentTournament` to render the
+	 * Fires `triggerTournamentDraw` for the current month on mount
+	 * (idempotent: once the bracket is complete it answers
+	 * `already_drawn`), then reads `getCurrentTournament` to render the
 	 * bracket. The draw refuses with `insufficient_leagues` when
 	 * fewer than 16 leagues exist; the FE renders that as a "waiting
 	 * on more leagues" hint instead of an error.

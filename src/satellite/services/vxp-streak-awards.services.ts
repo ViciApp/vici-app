@@ -1,16 +1,20 @@
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VXP_STREAK_BONUSES } from '#lib/constants/vxp-economy.constants.ts';
-import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import type { VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
-import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	persistAward,
+	reclaimAward,
+	updateAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
+import { decodeDocData } from '@junobuild/functions/sdk';
 
 /**
  * Streak-milestone hook. Runs after every `profiles` write; when the
@@ -21,7 +25,9 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
  * Idempotency is structural: the award doc key is
  * `${recipient}/streak/streak_${milestone}`: the second hook firing
  * at the same milestone collides with the first and the assert blocks
- * the duplicate write. No timestamp-based dedupe needed.
+ * the duplicate write. No timestamp-based dedupe needed. A `failed`
+ * payout is sent again the next time the streak crosses that milestone
+ * (`reclaimAward`).
  *
  * Composes alongside `onProfileSetForVxpOnboarding` and
  * `onProfileSetForReferralCode` in the profile dispatch table.
@@ -58,61 +64,71 @@ const milestonesCrossed = ({ prev, next }: { prev: number; next: number }): numb
 
 const streakAwardKey = (milestone: number): string => `streak_${milestone}`;
 
-const payStreakMilestone = async ({
-	ledger,
-	caller,
+/**
+ * Files the pending award doc of a first payout. Returns false when the
+ * write is refused: most likely a concurrent hook firing already wrote the
+ * pending doc, and that firing will (or has already) issue the transfer.
+ */
+const persistStreakAward = ({
 	recipient,
-	milestone
+	milestone,
+	awardKey,
+	amount
 }: {
-	ledger: IcrcLedgerCanister;
-	caller: Uint8Array;
 	recipient: string;
 	milestone: number;
-}): Promise<void> => {
-	// `VXP_STREAK_BONUSES` is whole VXP and the ledger works in base units, so
-	// size via `vxpBaseUnits`: a raw `BigInt(50)` would transfer 50 base units
-	// (0.0050 VXP), under-paying by `10 ** VXP_TOKEN.decimals` (mirrors the
-	// Worlds-podium award's `vxpBaseUnits` sizing).
-	const amount = vxpBaseUnits(VXP_STREAK_BONUSES[milestone]);
-	const awardKey = streakAwardKey(milestone);
-	const earnedAtMs = Date.now();
-
-	// Idempotency: if the award doc already exists, skip; the assert
-	// rejects duplicate creations anyway, but checking up front avoids
-	// the wasted ledger call.
-	const existingKey = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey });
-	const existing = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: existingKey,
-		caller
-	});
-
-	if (nonNullish(existing)) {
-		return;
-	}
-
+	awardKey: string;
+	amount: bigint;
+}): boolean => {
 	const pending: VxpAwardDoc = {
 		recipient,
 		awardType: AWARD_TYPE,
 		awardKey,
 		amountBaseUnits: amount.toString(),
 		status: 'pending',
-		earnedAtMs
+		earnedAtMs: Date.now()
 	};
 
 	try {
 		persistAward({ recipient, awardType: AWARD_TYPE, awardKey, doc: pending });
-	} catch (e: unknown) {
-		const msg = e instanceof Error ? e.message : String(e);
 
-		// Most likely cause: a concurrent hook firing already wrote the
-		// pending doc. Either way, surface and stop: the other hook will
-		// (or has already) issued the transfer.
+		return true;
+	} catch (e: unknown) {
 		logInfo({
 			message: 'streak_award_pending_blocked',
-			detail: { user: recipient, milestone, error: msg }
+			detail: { user: recipient, milestone, error: e instanceof Error ? e.message : String(e) }
 		});
 
+		return false;
+	}
+};
+
+const payStreakMilestone = async ({
+	ledger,
+	recipient,
+	milestone
+}: {
+	ledger: IcrcLedgerCanister;
+	recipient: string;
+	milestone: number;
+}): Promise<void> => {
+	const awardKey = streakAwardKey(milestone);
+	const slot = reclaimAward({ recipient, awardType: AWARD_TYPE, awardKey });
+
+	if (slot.kind === 'held') {
+		return;
+	}
+
+	// `VXP_STREAK_BONUSES` is whole VXP and the ledger works in base units, so
+	// size via `vxpBaseUnits`: a raw `BigInt(50)` would transfer 50 base units
+	// (0.0050 VXP), under-paying by `10 ** VXP_TOKEN.decimals` (mirrors the
+	// Worlds-podium award's `vxpBaseUnits` sizing).
+	const amount =
+		slot.kind === 'retry'
+			? BigInt(slot.doc.amountBaseUnits)
+			: vxpBaseUnits(VXP_STREAK_BONUSES[milestone]);
+
+	if (slot.kind === 'free' && !persistStreakAward({ recipient, milestone, awardKey, amount })) {
 		return;
 	}
 
@@ -214,7 +230,6 @@ export const onProfileSetForStreakAward = async (ctx: OnSetDocContext): Promise<
 		for (const milestone of crossed) {
 			await payStreakMilestone({
 				ledger,
-				caller,
 				recipient: callerText,
 				milestone
 			});

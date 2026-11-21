@@ -7,11 +7,27 @@ import {
 	isControllerText
 } from '#satellite/services/authz.services.ts';
 import { hasAwardMarker } from '#satellite/services/vxp-award-markers.services.ts';
+import { logInfo } from '#satellite/utils/logger.utils.ts';
 import { isTournamentPrizeAwardKey } from '#satellite/utils/tournament-prize.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext, AssertSetDocContext } from '@junobuild/functions';
 import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
+
+/**
+ * A `failed` payout was refused by the ledger, so nothing moved: its one valid
+ * write is the retry claim back to `pending` ({@link reclaimAward}), carrying
+ * no payout metadata.
+ */
+const assertRetryClaim = (proposedDoc: VxpAwardDoc): void => {
+	if (
+		proposedDoc.status !== 'pending' ||
+		nonNullish(proposedDoc.paidAtMs) ||
+		nonNullish(proposedDoc.blockIndex)
+	) {
+		throw new Error('vxp_awards status may only transition failed → pending (a retry).');
+	}
+};
 
 /**
  * Pre-write guard for `vxp_awards`. The collection holds server-fired
@@ -37,8 +53,9 @@ import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobui
  *     touches them throws.
  *
  *  4. **Forward-only status.** Status transitions are
- *     `pending → paid | failed` only. `paid → anything` is rejected so a
- *     buggy retry can't quietly demote a successful payout.
+ *     `pending → paid | failed`, and `failed → pending` for a retry
+ *     ({@link reclaimAward}). `paid → anything` is rejected so a buggy
+ *     retry can't quietly demote a successful payout.
  *
  *  5. **Identity fields are immutable.** `awardType`, `awardKey`,
  *     `amountBaseUnits`, `earnedAtMs`, `recipient` are write-once.
@@ -128,11 +145,15 @@ export const assertSetVxpAward = ({
 		);
 	}
 
-	// Forward-only status: `paid` and `failed` are terminal.
-	if (currentDoc.status === 'paid' || currentDoc.status === 'failed') {
-		throw new Error(
-			`vxp_awards doc is terminal (${currentDoc.status}); no further writes allowed.`
-		);
+	// `paid` is terminal: a successful payout is never demoted.
+	if (currentDoc.status === 'paid') {
+		throw new Error('vxp_awards doc is terminal (paid); no further writes allowed.');
+	}
+
+	if (currentDoc.status === 'failed') {
+		assertRetryClaim(proposedDoc);
+
+		return;
 	}
 
 	// From `pending`, only `paid` or `failed` are valid.
@@ -215,6 +236,95 @@ export const persistAward = ({
 		key: vxpAwardKey({ recipient, awardType, awardKey }),
 		doc: { data: encodeDocData(doc) }
 	});
+};
+
+/**
+ * What an award key holds before a payout. `free`: no doc yet, so the caller
+ * runs its own gates and creates one with {@link persistAward}. `held`: a
+ * payout that must not be sent again (`paid`, or `pending`, whose transfer may
+ * have landed). `retry`: a `failed` payout this call moved back to `pending`;
+ * pay `doc.amountBaseUnits`, the amount recorded when it was earned.
+ */
+export type AwardSlot = { kind: 'free' } | { kind: 'held' } | { kind: 'retry'; doc: VxpAwardDoc };
+
+/** A payout that must not be sent again: `paid`, or `pending`, whose transfer may have landed. */
+const isHeldPayout = ({ status }: VxpAwardDoc): boolean => status !== 'failed';
+
+/**
+ * Whether `recipient` holds a payout under an award key that must not be sent
+ * again ({@link AwardSlot} `held`), read without claiming it: for the earlier
+ * keys a claim of the same award counts as held under.
+ */
+export const holdsAwardPayout = ({
+	recipient,
+	awardType,
+	awardKey
+}: {
+	recipient: string;
+	awardType: VxpAwardType;
+	awardKey: string;
+}): boolean => {
+	const existing = getDocStore({
+		collection: Collection.VXP_AWARDS,
+		key: vxpAwardKey({ recipient, awardType, awardKey }),
+		caller: awardWriter()
+	});
+
+	return nonNullish(existing) && isHeldPayout(decodeDocData<VxpAwardDoc>(existing.data));
+};
+
+/**
+ * Reads an award key before a payout and claims a `failed` one for a retry.
+ * A payout is marked `failed` only on a ledger rejection, so nothing moved and
+ * sending it again cannot pay twice. The claim writes `pending` at the version
+ * just read, so of two retries racing on one doc only one write lands and only
+ * that caller pays; the other sees `held`. The earn-time gates (caps, rate
+ * limits, balance floors) already passed when the doc was first written, so a
+ * retry does not run them again.
+ */
+export const reclaimAward = ({
+	recipient,
+	awardType,
+	awardKey
+}: {
+	recipient: string;
+	awardType: VxpAwardType;
+	awardKey: string;
+}): AwardSlot => {
+	const caller = awardWriter();
+	const key = vxpAwardKey({ recipient, awardType, awardKey });
+	const existing = getDocStore({ collection: Collection.VXP_AWARDS, key, caller });
+
+	if (isNullish(existing)) {
+		return { kind: 'free' };
+	}
+
+	const { errorMessage: _failure, ...existingDoc } = decodeDocData<VxpAwardDoc>(existing.data);
+
+	if (isHeldPayout(existingDoc)) {
+		return { kind: 'held' };
+	}
+
+	const doc: VxpAwardDoc = { ...existingDoc, status: 'pending' };
+
+	try {
+		setDocStore({
+			caller,
+			collection: Collection.VXP_AWARDS,
+			key,
+			doc: { data: encodeDocData(doc), version: existing.version }
+		});
+	} catch (e: unknown) {
+		// A concurrent retry moved the doc first: that caller pays it.
+		logInfo({
+			message: 'vxp_award_retry_blocked',
+			detail: { key, error: e instanceof Error ? e.message : String(e) }
+		});
+
+		return { kind: 'held' };
+	}
+
+	return { kind: 'retry', doc };
 };
 
 /**

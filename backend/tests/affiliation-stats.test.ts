@@ -383,7 +383,8 @@ describe.if(dbAvailable)('a stored opt-out that is not a boolean', () => {
 			const live = await getAffiliationStats({
 				kind: 'university',
 				affiliationIdentifier: slug,
-				nowMs: monthStartMs(monthAnchor)
+				// The seeded calls settle a day into the month: read while it is open.
+				nowMs: monthStartMs(monthAnchor) + 14 * DAY_IN_MS
 			});
 
 			expect(live?.monthTotalCalls).toBe(MIN_CALLS_FOR_RANK + 10);

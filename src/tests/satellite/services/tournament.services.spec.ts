@@ -18,11 +18,13 @@ import {
 	type MockSettlement,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
+import { assertSetDoc } from '#satellite/index.ts';
 import {
 	assertDeleteTournamentDoc,
 	assertSetTournament,
 	assertSetTournamentMatch,
-	resolveTournamentRoundFn
+	resolveTournamentRoundFn,
+	triggerTournamentDrawFn
 } from '#satellite/services/tournament.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
@@ -223,6 +225,119 @@ describe('tournament.services', () => {
 				)
 			);
 		});
+	});
+});
+
+describe('triggerTournamentDrawFn', () => {
+	const leagueIds = Array.from(
+		{ length: TOURNAMENT_BRACKET_SIZE },
+		(_, i) => `league-${i.toString().padStart(2, '0')}`
+	);
+
+	let host: SatelliteHost;
+
+	const bracketDocs = (): number =>
+		host.keys(Collection.TOURNAMENTS).length + host.keys(Collection.TOURNAMENT_MATCHES).length;
+
+	const match = ({ round, index }: Pick<TournamentMatchDoc, 'round' | 'index'>) =>
+		host.readDoc<TournamentMatchDoc>({
+			collection: Collection.TOURNAMENT_MATCHES,
+			key: tournamentMatchKey({ tournamentId: monthAnchor, round, index })
+		});
+
+	beforeEach(() => {
+		// The real asserts run on every serverless write, as on the satellite.
+		host = installSatelliteHost({ asserts: { set: assertSetDoc.assert } });
+		host.setCaller(user);
+		host.setNowMs(monthStartMs + DAY_IN_MS);
+		// The one member of every league settled a call in the month before the draw.
+		answerSettlementAccuracy({
+			host,
+			settlements: [{ principal: user, atMs: monthStartMs - DAY_IN_MS, calls: 1, wins: 0 }]
+		});
+
+		for (const leagueId of leagueIds) {
+			host.putDoc({
+				collection: Collection.LEAGUES,
+				key: leagueId,
+				data: { id: leagueId, name: leagueId, owner: user.toText(), createdAtMs: 1 },
+				owner: user
+			});
+			host.putDoc({
+				collection: Collection.LEAGUE_MEMBERS,
+				key: `${leagueId}/${user.toText()}`,
+				data: { leagueId, member: user.toText(), role: 'owner', joinedAtMs: 1 },
+				owner: user
+			});
+		}
+	});
+
+	afterEach(() => host.restore());
+
+	it('writes the bracket a few docs per call until it reports it drawn', async () => {
+		const writesPerCall: number[] = [];
+		let result = await triggerTournamentDrawFn({ monthAnchor });
+
+		while (result.ok) {
+			writesPerCall.push(bracketDocs() - writesPerCall.reduce((sum, n) => sum + n, 0));
+			result = await triggerTournamentDrawFn({ monthAnchor });
+		}
+
+		assert.deepEqual(result, { ok: false, reason: 'already_drawn', tournamentId: monthAnchor });
+		assert.deepEqual(writesPerCall, [4, 4, 4, 4]);
+		assert.equal(bracketDocs(), TOURNAMENT_BRACKET_SIZE);
+		assert.equal(match({ round: 'r1', index: 0 })?.fromLeagueId, 'league-00');
+		assert.equal(match({ round: 'r1', index: 0 })?.toLeagueId, 'league-15');
+		assert.equal(match({ round: 'final', index: 0 })?.fromLeagueId, null);
+		assert.deepEqual(
+			host.readDoc<TournamentDoc>({ collection: Collection.TOURNAMENTS, key: monthAnchor })
+				?.seededLeagueIds,
+			leagueIds
+		);
+	});
+
+	it('finishes a bracket begun before Round 1 closed once the window has closed', async () => {
+		const roundOne = roundWindow({ tournamentMonthStartMs: monthStartMs, round: 'r1' });
+
+		host.setNowMs(roundOne.endMs - 1);
+		assert.deepEqual(await triggerTournamentDrawFn({ monthAnchor }), {
+			ok: true,
+			tournamentId: monthAnchor
+		});
+
+		host.setNowMs(roundOne.endMs);
+		let result = await triggerTournamentDrawFn({ monthAnchor });
+
+		while (result.ok) {
+			result = await triggerTournamentDrawFn({ monthAnchor });
+		}
+
+		assert.deepEqual(result, { ok: false, reason: 'already_drawn', tournamentId: monthAnchor });
+		assert.equal(bracketDocs(), TOURNAMENT_BRACKET_SIZE);
+	});
+
+	it('refuses a new draw once Round 1 closed, writing nothing', async () => {
+		host.setNowMs(roundWindow({ tournamentMonthStartMs: monthStartMs, round: 'r1' }).endMs);
+
+		assert.deepEqual(await triggerTournamentDrawFn({ monthAnchor }), {
+			ok: false,
+			reason: 'invalid_input'
+		});
+		assert.equal(bracketDocs(), 0);
+	});
+
+	it('refuses a bracket with fewer leagues than its size, writing nothing', async () => {
+		host.restore();
+		host = installSatelliteHost();
+		host.setNowMs(monthStartMs + DAY_IN_MS);
+		answerSettlementAccuracy({ host, settlements: [] });
+
+		assert.deepEqual(await triggerTournamentDrawFn({ monthAnchor }), {
+			ok: false,
+			reason: 'insufficient_leagues',
+			availableLeagues: 0
+		});
+		assert.equal(bracketDocs(), 0);
 	});
 });
 
