@@ -67,9 +67,18 @@ export const sendEmail = async (message: EmailMessage): Promise<void> => {
 };
 
 /** The closing line of a one-time-code email, built from the lifetime the
- * server enforces so the copy cannot drift from it. */
-export const codeExpiryNotice = (ttlMs: number): string =>
-	`It expires in ${Math.round(ttlMs / MINUTE_IN_MS)} minutes. If you didn't request it, ignore this email.`;
+ * server enforces so the copy cannot drift from it. A lifetime that is not a
+ * whole number of minutes is refused rather than rounded, since a rounded
+ * figure would promise the user a different lifetime than the one enforced. */
+export const codeExpiryNotice = (ttlMs: number): string => {
+	const minutes = ttlMs / MINUTE_IN_MS;
+
+	if (!Number.isInteger(minutes) || minutes <= 0) {
+		throw new Error(`Code lifetime must be a positive whole number of minutes, got ${ttlMs} ms`);
+	}
+
+	return `It expires in ${minutes} minutes. If you didn't request it, ignore this email.`;
+};
 
 export const sendOtpEmail = async (email: string, code: string, ttlMs: number): Promise<void> => {
 	const expiry = codeExpiryNotice(ttlMs);

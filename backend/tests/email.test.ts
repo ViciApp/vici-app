@@ -12,4 +12,10 @@ describe('codeExpiryNotice', () => {
 		);
 		expect(codeExpiryNotice(10 * MINUTE_IN_MS)).toStartWith('It expires in 10 minutes.');
 	});
+
+	test('refuses a lifetime that is not a whole number of minutes', () => {
+		expect(() => codeExpiryNotice(30.5 * MINUTE_IN_MS)).toThrow();
+		expect(() => codeExpiryNotice(90_000)).toThrow();
+		expect(() => codeExpiryNotice(0)).toThrow();
+	});
 });
