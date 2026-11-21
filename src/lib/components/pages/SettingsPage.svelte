@@ -52,7 +52,7 @@
 	import { localeStore, setLocale } from '#lib/stores/locale.store.ts';
 	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
 	import { preferencesStore } from '#lib/stores/preferences.store.ts';
-	import { theme } from '#lib/stores/theme.store.ts';
+	import { THEME_SWATCHES, theme } from '#lib/stores/theme.store.ts';
 	import { setAuthBusy, userStore } from '#lib/stores/user.store.ts';
 	import type { ButtonStatus } from '#lib/types/components.ts';
 	import type { SettingsVisibility } from '#lib/types/preferences.ts';
@@ -208,7 +208,11 @@
 
 	const settingsVisibility = $derived($preferencesStore.sharing.profileVisibility);
 
-	const themeLabel = $derived($theme.charAt(0).toUpperCase() + $theme.slice(1));
+	const themeLabelKey = $derived(THEME_SWATCHES.find(({ id }) => id === $theme)?.labelKey);
+
+	const themeLabel = $derived(
+		nonNullish(themeLabelKey) ? t({ locale: $localeStore, key: themeLabelKey }) : ''
+	);
 
 	// About line: `VICI · v{version} · Build {sha}`. Both values are
 	// injected at build time via vite `define` (see `vite.config.ts`),
