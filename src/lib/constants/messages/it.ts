@@ -2241,6 +2241,7 @@ export const itMessages = {
 	'transactions.kind.won': 'Vinta',
 	'transactions.title': 'Transazioni',
 	'transactions.truncated': 'Cronologia precedente non mostrata',
+	'transactions.unavailable': 'La cronologia delle transazioni non è disponibile al momento',
 	'ui.loading': 'Caricamento',
 	'ui.pagination.next': 'Successivo',
 	'ui.pagination.previous': 'Precedente',

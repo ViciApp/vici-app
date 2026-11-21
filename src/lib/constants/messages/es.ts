@@ -2250,6 +2250,7 @@ export const esMessages = {
 	'transactions.kind.won': 'Ganada',
 	'transactions.title': 'Transacciones',
 	'transactions.truncated': 'Historial anterior no mostrado',
+	'transactions.unavailable': 'El historial de transacciones no está disponible ahora mismo',
 	'ui.loading': 'Cargando',
 	'ui.pagination.next': 'Siguiente',
 	'ui.pagination.previous': 'Anterior',

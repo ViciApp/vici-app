@@ -2242,6 +2242,7 @@ export const ptMessages = {
 	'transactions.kind.won': 'Ganha',
 	'transactions.title': 'Transações',
 	'transactions.truncated': 'Histórico anterior não exibido',
+	'transactions.unavailable': 'O histórico de transações não está disponível agora',
 	'ui.loading': 'A carregar',
 	'ui.pagination.next': 'Próximo',
 	'ui.pagination.previous': 'Anterior',

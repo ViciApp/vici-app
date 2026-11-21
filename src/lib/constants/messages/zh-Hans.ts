@@ -2125,6 +2125,7 @@ export const zhHansMessages = {
 	'transactions.kind.won': '命中',
 	'transactions.title': '交易记录',
 	'transactions.truncated': '更早的记录未显示',
+	'transactions.unavailable': '交易记录暂时无法显示',
 	'ui.loading': '加载中',
 	'ui.pagination.next': '下一页',
 	'ui.pagination.previous': '上一页',

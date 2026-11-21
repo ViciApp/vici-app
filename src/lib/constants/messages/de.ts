@@ -2267,6 +2267,7 @@ export const deMessages = {
 	'transactions.kind.won': 'Gewonnen',
 	'transactions.title': 'Transaktionen',
 	'transactions.truncated': 'Ältere Historie nicht angezeigt',
+	'transactions.unavailable': 'Der Transaktionsverlauf ist gerade nicht verfügbar',
 	'ui.loading': 'Wird geladen',
 	'ui.pagination.next': 'Weiter',
 	'ui.pagination.previous': 'Zurück',
