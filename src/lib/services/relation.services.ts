@@ -186,8 +186,9 @@ export const cancelFriendRequest = async ({
 };
 
 /**
- * Removes a friend relation and rebalances group admins so groups don't end up
- * pointing at a no-longer-friend pair.
+ * Removes a friend relation. On the Juno backend it also rebalances group
+ * admins so groups don't end up pointing at a no-longer-friend pair; the web2
+ * backend only removes the friendship (see the branch below).
  */
 export const unfriendUser = async (params: {
 	sender: PrincipalText;
