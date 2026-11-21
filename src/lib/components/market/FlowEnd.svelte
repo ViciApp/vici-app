@@ -73,9 +73,10 @@
 				: 'flow.end.eyebrow_day'
 	);
 
-	// Headline pool: one line picked once on mount (frozen for the surface's
-	// lifetime). Overtime / comeback get their own framing; an on-fire day
-	// reads hotter than a quiet one.
+	// Headline pool: the random pick is drawn once on mount (stable for the
+	// surface's lifetime), while the pool follows the props. Overtime /
+	// comeback get their own framing; an on-fire day reads hotter than a
+	// quiet one.
 	const HEAD_POOLS = {
 		overtime: ['flow.end.head_overtime_1', 'flow.end.head_overtime_2', 'flow.end.head_overtime_3'],
 		comeback: ['flow.end.head_comeback_1', 'flow.end.head_comeback_2', 'flow.end.head_comeback_3'],
@@ -83,7 +84,9 @@
 		day: ['flow.end.head_day_1', 'flow.end.head_day_2', 'flow.end.head_day_3']
 	} as const satisfies Record<string, readonly MessageKey[]>;
 
-	const headKey: MessageKey = (() => {
+	const headSeed = Math.random();
+
+	const headKey = $derived.by((): MessageKey => {
 		const pool = overtime
 			? HEAD_POOLS.overtime
 			: comeback
@@ -92,8 +95,8 @@
 					? HEAD_POOLS.fire
 					: HEAD_POOLS.day;
 
-		return pool[Math.floor(Math.random() * pool.length)];
-	})();
+		return pool[Math.floor(headSeed * pool.length)];
+	});
 
 	const bodyKey = $derived<MessageKey>(
 		overtime ? 'flow.end.body_overtime' : comeback ? 'flow.end.body_comeback' : 'flow.end.body_day'
