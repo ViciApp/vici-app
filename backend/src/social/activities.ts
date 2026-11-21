@@ -394,7 +394,10 @@ export const listReactions = async ({ limit }: { limit: number }): Promise<Activ
 
 /** The most-recent likes on `authorId`'s own activities, bounded: the
  * like-received inbox, read through the activity owner instead of a scan of
- * the global window, so an older like is not lost behind newer ones elsewhere. */
+ * the global window, so an older like is not lost behind newer ones elsewhere.
+ * The key-prefix match is what reaches `activity_reactions_owner_created_idx`
+ * (an activity key starts with its owner's id); the join to `activities`
+ * still decides ownership. */
 export const listReceivedReactions = async ({
 	authorId,
 	limit
@@ -410,7 +413,7 @@ export const listReceivedReactions = async ({
 		`select r.activity_key, r.liker, r.timestamp_ms::text, r.activity_title, r.market_id
 		 from activity_reactions r
 		 join activities a on a.key = r.activity_key
-		 where a.user_id = $1
+		 where split_part(r.activity_key, '#', 1) = $1::text and a.user_id = $1::uuid
 		 order by r.created_at desc limit $2`,
 		[authorId, limit]
 	);
