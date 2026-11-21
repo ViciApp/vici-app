@@ -695,10 +695,9 @@ fills, at the next trade activity or referral settle call.
   key-suffix matcher).
 - `activity-reaction.services.ts`: like / unlike (the route keeps the
   count rollup transactionally; unlike is idempotent). The received-reactions
-  read (the like-received inbox) has no author-scoped HTTP route yet, so
-  the web2 branch filters the recent global window by the activity-key
-  author prefix, with the same bounded under-reporting as the on-chain
-  window scans.
+  read (the like-received inbox) is `GET /social/activity-reactions/received`,
+  scoped server-side to the session account's own activities, so a like
+  stays listed however busy the global feed is.
 - Own email (`profile.services.ts` `getMyEmail` / `saveMyEmail`): in web2
   the address lives on the caller's own profile row (never surfaced on a
   public profile object; `mapProfile` drops it), read via
