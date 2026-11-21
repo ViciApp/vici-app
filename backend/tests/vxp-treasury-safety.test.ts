@@ -17,9 +17,9 @@ import { query } from '../src/db/client';
 import { app } from '../src/index';
 import { treasuryIcPrincipalText, userIcPrincipalText } from '../src/lib/keys';
 import {
+	getAward,
 	getTreasuryBacklog,
 	grantAward,
-	listUserAwards,
 	MAX_TRANSFER_ATTEMPTS,
 	PROCESSING_STALE_MS,
 	reconcileUnpaidAwards,
@@ -826,7 +826,9 @@ describe.if(dbAvailable)('treasury safety', () => {
 			expect((await getTreasuryBacklog()).needsLedgerCheckCount).toBeGreaterThanOrEqual(1);
 
 			// Clients see it as still in flight.
-			expect((await listUserAwards({ userId }))[0]?.status).toBe('processing');
+			expect(
+				(await getAward({ userId, awardType: 'achievement', awardKey: 'history-unknown' }))?.status
+			).toBe('processing');
 		});
 
 		test('a replay answered TooOld is quarantined, never failed', async () => {
