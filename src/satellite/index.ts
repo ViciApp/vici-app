@@ -142,7 +142,6 @@ import {
 	assertSetLeague,
 	createLeagueFn,
 	joinLeagueByInviteFn,
-	migrateLeagueInviteCodesFn,
 	transferLeagueOwnershipFn
 } from '#satellite/services/league.services.ts';
 import {
@@ -798,15 +797,6 @@ export const joinLeagueByInvite = defineUpdate({
 
 		return { league: isNullish(league) ? undefined : toWireMemberLeague(league), reason };
 	}
-});
-
-// Admin-only, idempotent: moves the invite code off every league doc
-// written before codes moved to `league_invites`.
-export const migrateLeagueInviteCodes = defineUpdate({
-	result: j.strictObject({
-		migrated: j.number()
-	}),
-	handler: () => migrateLeagueInviteCodesFn()
 });
 
 // Join-by-code preview: the league an invite code opens, without the code.
