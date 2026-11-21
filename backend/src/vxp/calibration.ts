@@ -228,7 +228,10 @@ export const claimCalibrationReward = async ({
 		return refused;
 	}
 
-	const amount = VXP_CALIBRATION_REWARD_BASE_UNITS;
+	// A retry pays the amount the row was earned at, so it reports that one.
+	const amount = nonNullish(existing)
+		? BigInt(existing.amountBaseUnits)
+		: VXP_CALIBRATION_REWARD_BASE_UNITS;
 	const outcome = await grantCappedAward({
 		userId,
 		awardType: 'calibration',
