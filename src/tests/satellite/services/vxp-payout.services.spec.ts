@@ -18,6 +18,7 @@ const recipient = user.toText();
 describe('settleProfileAwardsFn', () => {
 	let host: SatelliteHost;
 	let memos: string[];
+	let rejectedMemos: Set<string>;
 
 	const earn = ({
 		awardType,
@@ -60,6 +61,7 @@ describe('settleProfileAwardsFn', () => {
 
 	beforeEach(() => {
 		memos = [];
+		rejectedMemos = new Set();
 		// The real asserts run on every serverless write, as on the satellite.
 		host = installSatelliteHost({
 			asserts: { set: assertSetDoc.assert, remove: assertDeleteDoc.assert }
@@ -71,9 +73,12 @@ describe('settleProfileAwardsFn', () => {
 			result: IcrcLedgerIdl.TransferResult,
 			handler: (args) => {
 				const [{ memo }] = args as [IcrcLedgerDid.TransferArg];
-				memos.push(new TextDecoder().decode(Uint8Array.from(memo[0] ?? [])));
+				const text = new TextDecoder().decode(Uint8Array.from(memo[0] ?? []));
+				memos.push(text);
 
-				return { Ok: BigInt(5) };
+				return rejectedMemos.has(text)
+					? { Err: { InsufficientFunds: { balance: BigInt(0) } } }
+					: { Ok: BigInt(5) };
 			}
 		});
 	});
@@ -97,6 +102,24 @@ describe('settleProfileAwardsFn', () => {
 			'vxp:achievement:sharp',
 			'vxp:flow_milestone:10'
 		]);
+	});
+
+	it('tries the least recently tried payouts first, so two that keep failing hold no others back', async () => {
+		host.setNowMs(1_000);
+		earn({ awardType: 'achievement', awardKey: 'oracle', failed: true });
+		earn({ awardType: 'achievement', awardKey: 'sharp', failed: true });
+		earn({ awardType: 'flow_milestone', awardKey: '10', failed: true });
+		rejectedMemos = new Set(['vxp:achievement:oracle', 'vxp:achievement:sharp']);
+
+		host.setNowMs(2_000);
+		assert.equal(await settleProfileAwardsFn(), 0);
+		assert.deepEqual(memos, ['vxp:achievement:oracle', 'vxp:achievement:sharp']);
+
+		host.setNowMs(3_000);
+		assert.equal(await settleProfileAwardsFn(), 1);
+		assert.equal(memos[2], 'vxp:flow_milestone:10');
+		assert.equal(status({ awardType: 'flow_milestone', awardKey: '10' }), 'paid');
+		assert.equal(status({ awardType: 'achievement', awardKey: 'oracle' }), 'failed');
 	});
 
 	it('never sends a pending payout or another type again, and pays no anonymous caller', async () => {

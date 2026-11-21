@@ -72,14 +72,20 @@ const PROFILE_SETTLED_AWARD_TYPES: readonly VxpAwardType[] = ['achievement', 'fl
  */
 const PROFILE_AWARD_RETRY_BATCH = 2;
 
-/** The award keys of `recipient`'s `failed` payouts of `awardType`. */
-const failedAwardKeys = ({
+interface FailedAward {
+	awardType: VxpAwardType;
+	awardKey: string;
+	updatedAtNs: bigint;
+}
+
+/** `recipient`'s `failed` payouts of `awardType`, with when each was last written. */
+const failedAwards = ({
 	recipient,
 	awardType
 }: {
 	recipient: string;
 	awardType: VxpAwardType;
-}): string[] => {
+}): FailedAward[] => {
 	const prefix = vxpAwardKey({ recipient, awardType, awardKey: '' });
 	const { items } = listDocsStore({
 		collection: Collection.VXP_AWARDS,
@@ -88,9 +94,12 @@ const failedAwardKeys = ({
 	});
 
 	return items
-		.map(([, { data }]) => decodeDocData<VxpAwardDoc>(data))
-		.filter(({ status }) => status === 'failed')
-		.map(({ awardKey }) => awardKey);
+		.map(([, { data, updated_at }]) => ({
+			doc: decodeDocData<VxpAwardDoc>(data),
+			updatedAtNs: updated_at
+		}))
+		.filter(({ doc }) => doc.status === 'failed')
+		.map(({ doc, updatedAtNs }) => ({ awardType, awardKey: doc.awardKey, updatedAtNs }));
 };
 
 /**
@@ -156,8 +165,8 @@ const retryFailedAward = async ({
 /**
  * Settle path for the caller's failed achievement and Flow milestone
  * payouts, called when the profile opens: sends at most
- * {@link PROFILE_AWARD_RETRY_BATCH} of them again and returns how many were
- * paid now. A `pending` payout is never sent again (its transfer may have
+ * {@link PROFILE_AWARD_RETRY_BATCH} of them again, least recently tried
+ * first, and returns how many were paid now. A `pending` payout is never sent again (its transfer may have
  * landed), and a `paid` one is left alone, so calling it on every open
  * is safe.
  */
@@ -169,9 +178,13 @@ export const settleProfileAwardsFn = async (): Promise<number> => {
 	}
 
 	const recipient = caller.toText();
+	// Least recently tried first: a retry that fails again rewrites its doc,
+	// so it moves behind the others and cannot hold the batch on every open.
 	const failed = PROFILE_SETTLED_AWARD_TYPES.flatMap((awardType) =>
-		failedAwardKeys({ recipient, awardType }).map((awardKey) => ({ awardType, awardKey }))
-	).slice(0, PROFILE_AWARD_RETRY_BATCH);
+		failedAwards({ recipient, awardType })
+	)
+		.sort((a, b) => (a.updatedAtNs < b.updatedAtNs ? -1 : a.updatedAtNs > b.updatedAtNs ? 1 : 0))
+		.slice(0, PROFILE_AWARD_RETRY_BATCH);
 
 	if (failed.length === 0) {
 		return 0;
