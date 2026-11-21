@@ -66,9 +66,10 @@ lanes:
     paths:
       # 1. The protected paths. docs/ai/governance.md#boundaries is their source: every row of that
       # table has its glob here, so a row added or removed there changes this block in the same PR.
-      # Two of its rows have no glob because they never reach a diff: build output (gitignored) and
-      # ../icdc-core (another repo). `.github/**` and `src/satellite/**` are wider here than the
-      # table's rows on purpose: in red, agents do not build CI or satellite code at all.
+      # Two of its rows have no glob because they never reach a diff: build output (gitignored, and
+      # no build here writes `out/`) and ../icdc-core (another repo). `.github/**` and
+      # `src/satellite/**` are wider here than the table's rows on purpose: in red, agents do not
+      # build CI or satellite code at all.
       - '.github/**'
       - 'package.json'
       - 'package-lock.json'
