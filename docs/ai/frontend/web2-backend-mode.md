@@ -293,6 +293,9 @@ the on-chain call untouched on the default side:
   swap through `patchProfile` + `upsertProfile`; in web2 `patchProfile`
   builds the patch on the session's own row (`getMyProfile`), never on the
   public `getProfile` read.
+  `getMyJoinedAtMs` (the Settings "Joined" line) reads the session
+  account's `createdAt` in web2 mode, the profile doc's `created_at` on
+  the default backend.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
 - `leaderboard.services.ts`: `getLeaderboard`. The API ranks it from
   settled history, never `points` (see the global leaderboard section of
