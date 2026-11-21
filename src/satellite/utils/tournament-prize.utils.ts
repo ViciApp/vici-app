@@ -110,9 +110,9 @@ export type TournamentPrizeDecision =
  * which `vxp_awards` award key. One prize per caller per tournament,
  * whatever the place: the key is the tournament id alone, so a claim for
  * another place collides with the first, and a doc under any earlier
- * per-place key blocks a new claim. Any status blocks: a `failed` doc
- * stays for diagnostics and is never re-claimed. `isHeld` says whether
- * the caller already holds an award doc under an award key.
+ * per-place key blocks a new claim. `isHeld` says whether the caller
+ * holds a payout under an award key that must not be sent again (`paid`
+ * or `pending`); a `failed` one is not held, so the claim sends it again.
  */
 export const decideTournamentPrize = ({
 	tournamentId,
