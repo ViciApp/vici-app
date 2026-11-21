@@ -33,8 +33,8 @@ The Vici **frontend** pins the production registry/clearing IDs in
 [`src/lib/constants/canisters.constants.ts`](../src/lib/constants/canisters.constants.ts), so
 the running app talks to icdc-core **production** regardless of which network you deploy or
 seed against. The Vici app's own Juno satellite (`ids.production` in
-[`juno.config.ts`](../juno.config.ts)) is production too: `deploy.yml` deploys it on every `v*`
-tag (a functions upgrade when the satellite wasm changed, then hosting).
+[`juno.config.ts`](../juno.config.ts)) is production too: on every `v*` tag `deploy.yml`
+upgrades its functions when the satellite wasm has changed, then deploys hosting.
 
 ## Why an Engine?
 
