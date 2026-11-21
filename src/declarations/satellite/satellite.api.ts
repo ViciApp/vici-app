@@ -2229,6 +2229,20 @@ const settleFounderAwards = async (): Promise<
 	return AppSettleFounderAwardsResultSchema.parse(result);
 };
 
+const AppSettleProfileAwardsResultSchema = j.strictObject({ settled: j.number() });
+
+const settleProfileAwards = async (): Promise<
+	j.infer<typeof AppSettleProfileAwardsResultSchema>
+> => {
+	const { app_settle_profile_awards } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_settle_profile_awards();
+
+	const result = schemaFromIdl({ schema: AppSettleProfileAwardsResultSchema, value: idlResult });
+	return AppSettleProfileAwardsResultSchema.parse(result);
+};
+
 const AppSettleReferralArgsSchema = j.strictObject({ referee: j.string() });
 
 const settleReferral = async (args: j.infer<typeof AppSettleReferralArgsSchema>): Promise<void> => {
@@ -2675,6 +2689,7 @@ export const functions = {
 	resumeMyAccount,
 	sendFriendRequest,
 	settleFounderAwards,
+	settleProfileAwards,
 	settleReferral,
 	submitSchool,
 	sweepExpiredDeletions,

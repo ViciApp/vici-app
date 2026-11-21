@@ -215,6 +215,8 @@ type AppSendFriendRequestResult = record { status : variant { sent; auto_accepte
 
 type AppSettleFounderAwardsResult = record { settled : float64 };
 
+type AppSettleProfileAwardsResult = record { settled : float64 };
+
 type AppSettleReferralArgs = record { referee : text };
 
 type AppSubmitSchoolArgs = record { name : text; country : opt text; school_id : opt text; email : text; locale : text };
@@ -319,6 +321,7 @@ service : {
 	app_resume_my_account : () -> (AppResumeMyAccountResult);
 	app_send_friend_request : (AppSendFriendRequestArgs) -> (AppSendFriendRequestResult);
 	app_settle_founder_awards : () -> (AppSettleFounderAwardsResult);
+	app_settle_profile_awards : () -> (AppSettleProfileAwardsResult);
 	app_settle_referral : (AppSettleReferralArgs) -> ();
 	app_submit_school : (AppSubmitSchoolArgs) -> (AppSubmitSchoolResult);
 	app_sweep_expired_deletions : (AppSweepExpiredDeletionsArgs) -> (AppSweepExpiredDeletionsResult);

@@ -241,6 +241,7 @@ import {
 	onProfileSetForVxpOnboarding,
 	onTradeActivityForVxpOnboarding
 } from '#satellite/services/vxp-onboarding.services.ts';
+import { settleProfileAwardsFn } from '#satellite/services/vxp-payout.services.ts';
 import { onProfileSetForStreakAward } from '#satellite/services/vxp-streak-awards.services.ts';
 import { claimWorldsPodiumPrizeFn } from '#satellite/services/vxp-worlds-podium.services.ts';
 import {
@@ -743,6 +744,19 @@ export const settleFounderAwards = defineUpdate({
 		settled: j.number()
 	}),
 	handler: async () => await settleFounderAwardsFn()
+});
+
+/**
+ * Settle path for the caller's failed achievement and Flow milestone
+ * payouts, whose triggers rarely come again for the same award: sends a
+ * few of them again per call. Safe to call on every Profile-page open;
+ * returns how many were paid this call.
+ */
+export const settleProfileAwards = defineUpdate({
+	result: j.strictObject({
+		settled: j.number()
+	}),
+	handler: async () => ({ settled: await settleProfileAwardsFn() })
 });
 
 export const listLeagueMembers = defineQuery({

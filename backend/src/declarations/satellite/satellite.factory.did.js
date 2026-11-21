@@ -1378,6 +1378,7 @@ export const idlFactory = ({ IDL }) => {
 		retry_at_ms: IDL.Opt(IDL.Float64)
 	});
 	const AppSettleFounderAwardsResult = IDL.Record({ settled: IDL.Float64 });
+	const AppSettleProfileAwardsResult = IDL.Record({ settled: IDL.Float64 });
 	const AppSettleReferralArgs = IDL.Record({ referee: IDL.Text });
 	const AppSubmitSchoolArgs = IDL.Record({
 		country: IDL.Opt(IDL.Text),
@@ -1810,6 +1811,7 @@ export const idlFactory = ({ IDL }) => {
 		app_search_profiles: IDL.Func([AppSearchProfilesArgs], [AppSearchProfilesResult], ['query']),
 		app_send_friend_request: IDL.Func([AppSendFriendRequestArgs], [AppSendFriendRequestResult], []),
 		app_settle_founder_awards: IDL.Func([], [AppSettleFounderAwardsResult], []),
+		app_settle_profile_awards: IDL.Func([], [AppSettleProfileAwardsResult], []),
 		app_settle_referral: IDL.Func([AppSettleReferralArgs], [], []),
 		app_submit_school: IDL.Func([AppSubmitSchoolArgs], [AppSubmitSchoolResult], []),
 		app_sweep_expired_deletions: IDL.Func(
