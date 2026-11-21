@@ -1374,7 +1374,16 @@ export const idlFactory = ({ IDL }) => {
 		email: IDL.Text
 	});
 	const AppSubmitSchoolResult = IDL.Record({ submission_id: IDL.Text });
-	const AppSweepExpiredDeletionsResult = IDL.Record({ swept: IDL.Float64 });
+	const AppSweepExpiredDeletionsArgs = IDL.Record({
+		limit: IDL.Opt(IDL.Float64),
+		after_key: IDL.Opt(IDL.Text)
+	});
+	const AppSweepExpiredDeletionsResult = IDL.Record({
+		done: IDL.Bool,
+		swept: IDL.Float64,
+		next_after_key: IDL.Opt(IDL.Text),
+		failed: IDL.Float64
+	});
 	const AppTrackEventsArgs = IDL.Record({
 		events: IDL.Vec(
 			IDL.Record({
@@ -1787,7 +1796,11 @@ export const idlFactory = ({ IDL }) => {
 		app_settle_founder_awards: IDL.Func([], [AppSettleFounderAwardsResult], []),
 		app_settle_referral: IDL.Func([AppSettleReferralArgs], [], []),
 		app_submit_school: IDL.Func([AppSubmitSchoolArgs], [AppSubmitSchoolResult], []),
-		app_sweep_expired_deletions: IDL.Func([], [AppSweepExpiredDeletionsResult], []),
+		app_sweep_expired_deletions: IDL.Func(
+			[AppSweepExpiredDeletionsArgs],
+			[AppSweepExpiredDeletionsResult],
+			[]
+		),
 		app_track_events: IDL.Func([AppTrackEventsArgs], [AppTrackEventsResult], []),
 		app_transfer_league_ownership: IDL.Func(
 			[AppTransferLeagueOwnershipArgs],

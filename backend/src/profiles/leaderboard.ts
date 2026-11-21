@@ -3,10 +3,9 @@
 // read from the clearing canister like every accuracy-judged surface, never
 // the client-written `points` (the profile's display copy). The parameters
 // are the app's visible board's, so the same order backs the visible top
-// slice, the rank/count pair and the rival lookup, and they agree
-// row-for-row.
+// slice and the rank/count pair, and they agree row-for-row.
 
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { nonNullish } from '@dfinity/utils';
 import { parsedPrincipal, settlementPrincipalsByUser } from '../auth/identity';
 import { query } from '../db/client';
 import { cached, PUBLIC_READ_TTL_MS } from '../engine/cache';
@@ -124,40 +123,4 @@ export const getUserRankAndCount = async ({
 	const index = ranked.indexOf(userId);
 
 	return { rank: index === -1 ? undefined : index + 1, count: ranked.length };
-};
-
-/**
- * The caller's rival, resolved from the FULL ranking (not the visible top
- * slice), so it works for every ranked user:
- *
- * - Usual case: the profile one rank ABOVE the caller, the next competitor
- *   to overtake.
- * - Leader (rank 1): nobody is above, so surface the runner-up one rank
- *   BELOW with `rivalIsTrailing: true` so the client frames the gap as a
- *   lead rather than a deficit.
- *
- * `rival` is `undefined` only when the caller is unranked or is the lone
- * ranked profile.
- */
-export const getMyRival = async ({
-	userId
-}: {
-	userId: string;
-}): Promise<{ rival: Profile | undefined; rivalIsTrailing: boolean }> => {
-	const ranked = await rankedUserIds();
-	const index = ranked.indexOf(userId);
-
-	if (index === -1) {
-		return { rival: undefined, rivalIsTrailing: false };
-	}
-
-	const rivalIsTrailing = index === 0;
-	const rivalId = ranked[rivalIsTrailing ? 1 : index - 1];
-	const [rival] = isNullish(rivalId) ? [] : await profilesOf([rivalId]);
-
-	if (isNullish(rival)) {
-		return { rival: undefined, rivalIsTrailing: false };
-	}
-
-	return { rival, rivalIsTrailing };
 };

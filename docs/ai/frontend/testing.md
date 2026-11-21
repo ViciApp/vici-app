@@ -585,7 +585,7 @@ testing layer's scope.
 3. Extend the relevant page object (`e2e/pages/*.page.ts`); never
    reach into selectors from the spec directly.
 4. Write the spec under `e2e/<flow>.spec.ts`. For flows that need a
-   signed-in user, drive `HomePage.openSignInModal()` followed by
-   `HomePage.signInDevButton.click()` (or wrap that in a page-object
-   helper if it gets repetitive).
+   signed-in user, call `HomePage.signInAsDevUser()`: it walks `/signup`
+   to the auth step, clicks `HomePage.signInDevButton` and waits for the
+   signed-in shell.
 5. Run `npm run e2e` locally before pushing.

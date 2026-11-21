@@ -625,28 +625,6 @@ export const getAward = async ({
 	return nonNullish(rows[0]) ? shapeAward(rows[0]) : undefined;
 };
 
-export const listUserAwards = async ({
-	userId,
-	awardType
-}: {
-	userId: string;
-	awardType?: VxpAwardType;
-}): Promise<VxpAward[]> => {
-	const rows = nonNullish(awardType)
-		? await query<VxpAwardRow>(
-				`select ${AWARD_COLUMNS} from vxp_awards
-				 where user_id = $1 and award_type = $2 order by created_at desc`,
-				[userId, awardType]
-			)
-		: await query<VxpAwardRow>(
-				`select ${AWARD_COLUMNS} from vxp_awards
-				 where user_id = $1 order by created_at desc`,
-				[userId]
-			);
-
-	return rows.map(shapeAward);
-};
-
 export interface ReconcileReport {
 	scanned: number;
 	paid: number;

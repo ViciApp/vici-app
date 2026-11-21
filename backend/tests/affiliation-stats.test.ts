@@ -1,15 +1,14 @@
 // Worlds standings: the write-once monthly freeze from settled history
-// (frozen rows never drift as the roster later churns), the
-// frozen-vs-provisional month read, the open month's live window from
-// settled history so far, the champion history derived from frozen months,
-// and the opt-out gate on the recomputed windows.
+// (frozen rows never drift as the roster later churns), the open month's
+// live window from settled history so far, the champion history derived from
+// frozen months, and the opt-out gate on the recomputed windows.
 
 import { isNullish } from '@dfinity/utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
 import { clearCache } from '../src/engine/cache';
-import { DAY_IN_MS, monthAnchorFromMs, monthEndMs, monthStartMs } from '../src/lib/time';
+import { DAY_IN_MS, monthAnchorFromMs, monthStartMs } from '../src/lib/time';
 import {
 	freezeClosedMonth,
 	freezeMonthlySnapshots,
@@ -17,7 +16,6 @@ import {
 	getAffiliationStats,
 	listAffiliationChampionships,
 	listAffiliationStats,
-	listAffiliationStatsForMonth,
 	MIN_CALLS_FOR_RANK
 } from '../src/worlds/affiliation-stats';
 import { setAffiliation, type AffiliationKind } from '../src/worlds/affiliations';
@@ -146,7 +144,7 @@ describe.if(dbAvailable)('monthly freeze', () => {
 		expect(second.alreadyFrozen).toBe(true);
 		expect(second.frozen).toBe(0);
 
-		const ranked = await listAffiliationStatsForMonth({ kind: 'university', monthAnchor, nowMs });
+		const ranked = await frozenMonthlyRanking({ kind: 'university', monthAnchor });
 		const a = ranked.find((r) => r.affiliationIdentifier === slugA);
 		const b = ranked.find((r) => r.affiliationIdentifier === slugB);
 
@@ -319,12 +317,6 @@ describe.if(dbAvailable)('the open month', () => {
 		const board = await listAffiliationStats({ kind: 'university', nowMs });
 
 		expect(board.find((r) => r.affiliationIdentifier === slug)?.monthWins).toBe(40);
-
-		const month = await listAffiliationStatsForMonth({ kind: 'university', monthAnchor, nowMs });
-
-		expect(month.find((r) => r.affiliationIdentifier === slug)?.monthTotalCalls).toBe(
-			MIN_CALLS_FOR_RANK
-		);
 	});
 
 	test('reads of the same open month share one clearing read', async () => {
@@ -335,41 +327,8 @@ describe.if(dbAvailable)('the open month', () => {
 
 		await getAffiliationStats({ kind: 'university', affiliationIdentifier: slug, nowMs });
 		await listAffiliationStats({ kind: 'university', nowMs });
-		await listAffiliationStatsForMonth({ kind: 'university', monthAnchor, nowMs });
 
 		expect(settled?.reads()).toBe(1);
-	});
-
-	test('an unfrozen month older than the previous one reads empty without calling clearing', async () => {
-		const { monthAnchor } = uniqueOpenMonth();
-		const slug = uniqueSlug();
-
-		await seedMember({ slug, monthAnchor, monthCalls: MIN_CALLS_FOR_RANK, monthWins: 40 });
-
-		expect(
-			await listAffiliationStatsForMonth({
-				kind: 'university',
-				monthAnchor,
-				nowMs: monthEndMs(monthAnchor) + 40 * DAY_IN_MS
-			})
-		).toEqual([]);
-		expect(settled?.reads()).toBe(0);
-	});
-
-	test('a month that has not started yet reads empty without calling clearing', async () => {
-		const { monthAnchor } = uniqueOpenMonth();
-		const slug = uniqueSlug();
-
-		await seedMember({ slug, monthAnchor, monthCalls: MIN_CALLS_FOR_RANK, monthWins: 40 });
-
-		expect(
-			await listAffiliationStatsForMonth({
-				kind: 'university',
-				monthAnchor,
-				nowMs: monthStartMs(monthAnchor) - DAY_IN_MS
-			})
-		).toEqual([]);
-		expect(settled?.reads()).toBe(0);
 	});
 });
 
@@ -421,11 +380,13 @@ describe.if(dbAvailable)('a stored opt-out that is not a boolean', () => {
 
 			expect(board.some((r) => r.affiliationIdentifier === slug)).toBe(true);
 
-			const live = await listAffiliationStatsForMonth({ kind: 'university', monthAnchor, nowMs });
+			const live = await getAffiliationStats({
+				kind: 'university',
+				affiliationIdentifier: slug,
+				nowMs: monthStartMs(monthAnchor)
+			});
 
-			expect(live.find((r) => r.affiliationIdentifier === slug)?.monthTotalCalls).toBe(
-				MIN_CALLS_FOR_RANK + 10
-			);
+			expect(live?.monthTotalCalls).toBe(MIN_CALLS_FOR_RANK + 10);
 
 			await freezeMonthlySnapshots({ kind: 'university', monthAnchor, nowMs });
 

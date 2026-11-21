@@ -466,36 +466,6 @@ export const frozenMonthlyRanking = async ({
 	return rows.map(shapeSnapshot).sort(monthlyComparator);
 };
 
-/**
- * Ranked rows for a specific month, for display: the frozen ranking once the
- * month is frozen, else the provisional settled tallies so far over the
- * current opted-in roster. Sort matches the leaderboard.
- */
-export const listAffiliationStatsForMonth = async ({
-	kind,
-	monthAnchor,
-	nowMs = Date.now()
-}: {
-	kind: AffiliationKind;
-	monthAnchor: string;
-	nowMs?: number;
-}): Promise<AffiliationStats[]> => {
-	const frozen = await frozenMonthlyRanking({ kind, monthAnchor });
-
-	if (frozen.length > 0) {
-		return frozen;
-	}
-
-	const live = rankEligibleMonthlyRows({
-		kind,
-		monthAnchor,
-		nowMs,
-		monthly: await displayMonthTallies({ kind, monthAnchor, nowMs })
-	});
-
-	return live.sort(monthlyComparator);
-};
-
 export interface AffiliationChampionship {
 	monthAnchor: string;
 	accuracy: number;

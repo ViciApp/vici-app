@@ -1,6 +1,6 @@
 // The global leaderboard's qualify gate and confidence-adjusted score: the API
-// ranks rank lookups and rivals with the same parameters the app's visible
-// board re-ranks with, so the two orders agree.
+// ranks rank lookups with the same parameters the app's visible board
+// re-ranks with, so the two orders agree.
 
 import { describe, expect, test } from 'bun:test';
 import {

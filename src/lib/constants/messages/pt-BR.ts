@@ -617,15 +617,9 @@ export const ptBRMessages = {
 	'admin.roles.search.title': 'Encontrar usuário',
 	'admin.roles.search.use': 'Usar',
 	'auth.callback.google.completing': 'Concluindo login...',
-	'authn.admin.sub':
-		'Entre com uma conta de administrador para gerenciar mercados e resolver previsões.',
-	'authn.admin.title': 'Acesso de admin',
 	'authn.checking.aria': 'Verificando status de login',
 	'authn.passkey.create_button': 'Criar Passkey',
 	'authn.passkey.signin_button': 'Entrar com Passkey',
-	'authn.required.cta': 'Entrar para continuar',
-	'authn.required.description': 'Faça login para acessar esta página.',
-	'authn.required.title': 'Autenticação obrigatória',
 	'authn.signin_with.ii': 'Entrar com Internet Identity',
 	'authz.access_denied.description':
 		'Você não tem as permissões necessárias para acessar esta área.',

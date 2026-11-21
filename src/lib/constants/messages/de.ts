@@ -661,15 +661,9 @@ export const deMessages = {
 	'admin.roles.search.title': 'Nutzer finden',
 	'admin.roles.search.use': 'Verwenden',
 	'auth.callback.google.completing': 'Anmeldung wird abgeschlossen...',
-	'authn.admin.sub':
-		'Melde dich mit einem Admin-Konto an, um Märkte zu verwalten und Vorhersagen aufzulösen.',
-	'authn.admin.title': 'Admin-Zugang',
 	'authn.checking.aria': 'Anmeldestatus wird geprüft',
 	'authn.passkey.create_button': 'Passkey erstellen',
 	'authn.passkey.signin_button': 'Mit Passkey anmelden',
-	'authn.required.cta': 'Zum Fortfahren anmelden',
-	'authn.required.description': 'Bitte melde dich an, um auf diese Seite zuzugreifen.',
-	'authn.required.title': 'Authentifizierung erforderlich',
 	'authn.signin_with.ii': 'Mit Internet Identity anmelden',
 	'authz.access_denied.description':
 		'Du hast nicht die erforderlichen Berechtigungen, um auf diesen Bereich zuzugreifen.',

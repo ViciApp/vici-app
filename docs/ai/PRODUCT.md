@@ -407,12 +407,12 @@ record:
 The server-side ranking behind the market's "Top predictors here"
 candidates (`GET /api/v1/leaderboard`), the viewer's rank and ranked
 population (`/leaderboard/rank/:userId`: the profile's "Top X%" line and
-the Goat trophy) and the rival (`/leaderboard/rival`) uses the same two
-guards on the web2 API: every visible profile with at least the qualify
-minimum of settled calls, ordered by the same shrinkage score over its
-all-time settled history read from the clearing canister (more settled
-calls, then the account id, break a tie). A profile below the gate is
-unranked there too, so the "Top X%" line is the viewer's place among
+the Goat trophy) use the same two guards on the web2 API: every visible
+profile with at least the qualify minimum of settled calls, ordered by
+the same shrinkage score over its all-time settled history read from the
+clearing canister (more settled calls, then the account id, break a
+tie). A profile below the gate is unranked there too, so the "Top X%"
+line is the viewer's place among
 ranked predictors. The client-written `points` never decides a rank.
 The ranking is read at most once per public read window
 (`rankedUserIds` in
