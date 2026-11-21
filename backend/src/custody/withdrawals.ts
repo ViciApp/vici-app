@@ -50,6 +50,12 @@ export const WITHDRAWAL_TRANSITIONS: Record<WithdrawalState, readonly Withdrawal
 	rejected: []
 };
 
+/** Every state a withdrawal can still leave: its hold may yet be refunded or
+ * its transfer may yet land. */
+export const IN_FLIGHT_WITHDRAWAL_STATES = (
+	Object.keys(WITHDRAWAL_TRANSITIONS) as WithdrawalState[]
+).filter((state) => WITHDRAWAL_TRANSITIONS[state].length > 0);
+
 export const canTransition = ({
 	from,
 	to
@@ -406,6 +412,15 @@ const refundWithdrawal = async ({
 		},
 		q
 	);
+};
+
+export const hasWithdrawalInFlight = async (userId: string): Promise<boolean> => {
+	const rows = await query<{ id: string }>(
+		`select id from withdrawals where user_id = $1 and state = any($2::text[]) limit 1`,
+		[userId, IN_FLIGHT_WITHDRAWAL_STATES]
+	);
+
+	return nonNullish(rows[0]);
 };
 
 export const listUserWithdrawals = (userId: string): Promise<Withdrawal[]> =>

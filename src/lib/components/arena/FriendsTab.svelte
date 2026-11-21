@@ -12,14 +12,14 @@
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import BaseButton from '#lib/components/ui/BaseButton.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
-	import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
+	import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 	import {
-		cumulativeReferrerRewardBaseUnits,
-		REFERRAL_MAX_PAID
+		REFERRAL_MAX_PAID,
+		REFERRAL_VXP_BONUS_BASE_UNITS,
+		referrerCreditedBaseUnits
 	} from '#lib/constants/referral.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
-	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import { ownGlobalStanding } from '#lib/derived/standings.derived.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
 	import { track } from '#lib/services/analytics.services.ts';
@@ -114,9 +114,6 @@
 
 	let { focusRequestKey }: Props = $props();
 
-	const VXP_DECIMALS = VXP_TOKEN.decimals;
-	const REFERRAL_BONUS_VXP = 500n * 10n ** BigInt(VXP_DECIMALS);
-
 	const userPrincipal = $derived($authPrincipal ?? '');
 	const myProfile = $derived($userStore.profile);
 
@@ -201,7 +198,7 @@
 	const inviteUrlDisplay = $derived(
 		nonNullish(inviteUrl) ? inviteUrl.replace(/^https?:\/\//, '') : undefined
 	);
-	const bonusLabel = $derived(formatVxpBalance({ value: REFERRAL_BONUS_VXP }));
+	const bonusLabel = $derived(formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }));
 
 	// Social-proof line above the invite buttons:
 	// `{N} friends joined · +{cumulative} VXP earned`. Derived from the viewer's actual
@@ -211,29 +208,19 @@
 	// regardless of payout. The "joined" headline is a factual count, so it must not shrink to
 	// the paid subset once a cap is hit.
 	//
-	// `referralCreditedCount` is the CREDITED subset, derived the same way the satellite's
-	// `countReferrerCredits` tally does it: a row counts as credited when its `referrerPayout.status`
-	// is anything other than `none` (`owed | processing | paid`: anything in flight still
-	// consumes a slot). This is the authoritative rule the server uses to feed the diminishing
-	// reward curve and enforce both caps, so the hero stays in lockstep with it rather than
-	// re-reading the stored `withinReferrerCap` flag.
-	//
-	// The earned total honours the diminishing tier table (and its hard cap) rather than
-	// assuming a flat 500 VXP per friend: see `cumulativeReferrerRewardBaseUnits`.
+	// The earned total is what the satellite armed on each credited row: a referrer side that left
+	// `none` carries the tier of its place in the redemption order (see
+	// `referrerCreditedBaseUnits`), so it honours the diminishing curve and its hard cap.
 	const joinedCount = $derived(myReferrals.length);
-	const referralCreditedCount = $derived(
-		myReferrals.filter(({ referrerPayout }) => referrerPayout.status !== 'none').length
-	);
 	const referralVxpEarnedBaseUnits = $derived(
-		cumulativeReferrerRewardBaseUnits(referralCreditedCount)
+		referrerCreditedBaseUnits(myReferrals.map(({ referrerPayout }) => referrerPayout))
 	);
 	const referralVxpEarnedLabel = $derived(formatVxpBalance({ value: referralVxpEarnedBaseUnits }));
 
 	// Rewarded-invites-left line mirrors the satellite's single cap: the lifetime hard cap
-	// (`REFERRAL_MAX_PAID`). A row counts as credited once its `referrerPayout.status` is anything
-	// other than `none` (anything in flight still consumes a slot), matching `countReferrerCredits`.
-	// The diminishing curve + this lifetime cap self-limit, so there is no separate monthly cap.
-	const referralsRemaining = $derived(Math.max(0, REFERRAL_MAX_PAID - referralCreditedCount));
+	// (`REFERRAL_MAX_PAID`) counts every redemption, in redemption order, whether or not that
+	// friend has made a first prediction yet.
+	const referralsRemaining = $derived(Math.max(0, REFERRAL_MAX_PAID - joinedCount));
 	let copied = $state(false);
 	let copyResetTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -938,7 +925,7 @@
 									: 'arena.friends.invite.proof_many'
 						})}
 					</span>
-					{#if referralCreditedCount > 0}
+					{#if referralVxpEarnedBaseUnits > ZERO}
 						<span class="invite-proof-dot" aria-hidden="true">·</span>
 						<span class="invite-proof-earned">
 							<b>+{referralVxpEarnedLabel}</b>

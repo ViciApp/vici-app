@@ -5,9 +5,10 @@ Generated 2026-05-23. Source of truth: components under
 `#lib/utils/i18n.utils.ts`.
 
 This file is a triage worksheet, not gospel. Verify each row when you
-touch it. When a row is paid down, delete it. When the file is empty,
-promote `local-rules/no-bare-svelte-text` from `warn` to `error` in
-[`eslint.config.js`](../../../eslint.config.js).
+touch it. When a row is paid down, delete it. Once a file imports
+`i18n.utils`, `local-rules/no-bare-svelte-text` checks it: the rule is a
+`warn` in [`eslint.config.js`](../../../eslint.config.js), and `npm run lint`
+runs ESLint with `--max-warnings 0`, so a hit already fails CI.
 
 > Higher-level contract: [`i18n.md`](./i18n.md).
 
@@ -48,8 +49,6 @@ of their own, but check `<svelte:head>` and meta):
 - `src/routes/(app)/profile/+page.svelte`
 - `src/routes/(app)/settings/+page.svelte`
 - `src/routes/(app)/wallet/+page.svelte`
-- `src/routes/signin/+page.svelte`
-- `src/routes/signup/+page.svelte`
 - `src/routes/welcome/+page.svelte`
 
 ## Exempt: no user-visible text
@@ -69,7 +68,6 @@ to import `i18n.utils`.
 - `src/lib/components/icons/IconIC.svelte`
 - `src/lib/components/icons/IconPasskey.svelte`
 - `src/lib/components/icons/IconRobot.svelte`
-- `src/lib/components/layout/Logo.svelte`
 
 **Loaders**: no UI of their own; everything is delegated to children
 or stores:

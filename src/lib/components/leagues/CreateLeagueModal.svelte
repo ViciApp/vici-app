@@ -58,7 +58,7 @@
 	let color = $state<string>(DEFAULT_COLOR.value);
 	let submitting = $state(false);
 	let submitError: string | null = $state(null);
-	// The 6-char invite code the owner shares to bring members in. Our
+	// The invite code the owner shares to bring members in. Our
 	// codes are client-generated (see `createLeague`), so we mint one up
 	// front and surface it on this sheet as a format affordance, then
 	// hand the same value to `createLeague` so the code the owner sees is
@@ -300,7 +300,7 @@
 			</div>
 		</fieldset>
 
-		<!-- Invite-code affordance: surfaces the league's real 6-char code
+		<!-- Invite-code affordance: surfaces the league's real code
 		     so the owner can share it the moment they create. Read-only;
 		     the value is minted client-side and handed to `createLeague`. -->
 		<div class="league-invite-code">
