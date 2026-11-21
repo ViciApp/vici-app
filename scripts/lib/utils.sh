@@ -55,6 +55,17 @@ check_network() {
 	exit 1
 }
 
+# For scripts that reinstall canisters, mint tokens or set fixed prices. On
+# `staging` and `ic` those canisters hold real state (the VXP and VICI entries in
+# dfx.json carry no `remote` block and their `specified_id` is the mainnet id), so
+# such a script stops before its first dfx call anywhere but the local replica.
+require_local_network() {
+	if [[ "$NETWORK" != "local" ]]; then
+		echo "Error: $(basename "$0") runs on the local network only, not on '$NETWORK'." >&2
+		exit 1
+	fi
+}
+
 while [[ $# -gt 0 ]]; do
 	case $1 in
 		local | staging | ic)

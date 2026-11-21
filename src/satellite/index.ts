@@ -84,7 +84,6 @@ import {
 	getAnalyticsProfileCreatedFn,
 	getAnalyticsSummaryFn,
 	getAnalyticsUserStatsFn,
-	onVxpAwardSetForAnalytics,
 	trackEventsFn
 } from '#satellite/services/analytics.services.ts';
 import { getAuthIdentitiesFn } from '#satellite/services/auth-identity-export.services.ts';
@@ -116,6 +115,10 @@ import {
 } from '#satellite/services/engine-sync.services.ts';
 import { assertSetExitSignal } from '#satellite/services/exit-signal.services.ts';
 import {
+	KeysetWalkArgsSchema,
+	KeysetWalkResultSchema
+} from '#satellite/services/keyset-walk.services.ts';
+import {
 	getMyRivalFn,
 	getUserRankAndCountFn,
 	listLeaderboard as listLeaderboardFn,
@@ -139,7 +142,6 @@ import {
 	assertSetLeague,
 	createLeagueFn,
 	joinLeagueByInviteFn,
-	migrateLeagueInviteCodesFn,
 	transferLeagueOwnershipFn
 } from '#satellite/services/league.services.ts';
 import {
@@ -666,7 +668,7 @@ export const getAnalyticsSummary = defineQuery({
 /**
  * Admin-gated raw-event export for the cockpit warehouse: the next page of
  * `events` after the given keyset cursor, flattened. Same admin gate as
- * `getAnalyticsSummary`: restricted to the cockpit's reader principal.
+ * `getAnalyticsSummary`: `isAdmin`, so any principal holding the ADMIN role.
  */
 export const getAnalyticsEvents = defineQuery({
 	args: GetAnalyticsEventsArgsSchema,
@@ -676,8 +678,8 @@ export const getAnalyticsEvents = defineQuery({
 
 /**
  * Admin-gated all-time registered-account count for the cockpit's
- * "Registered" tile. Same admin gate as `getAnalyticsSummary`: restricted
- * to the cockpit's reader principal. No args: the count is global.
+ * "Registered" tile. Same admin gate as `getAnalyticsSummary`: `isAdmin`,
+ * so any principal holding the ADMIN role. No args: the count is global.
  */
 export const getAnalyticsUserStats = defineQuery({
 	result: AnalyticsUserStatsSchema,
@@ -809,15 +811,6 @@ export const joinLeagueByInvite = defineUpdate({
 
 		return { league: isNullish(league) ? undefined : toWireMemberLeague(league), reason };
 	}
-});
-
-// Admin-only, idempotent: moves the invite code off every league doc
-// written before codes moved to `league_invites`.
-export const migrateLeagueInviteCodes = defineUpdate({
-	result: j.strictObject({
-		migrated: j.number()
-	}),
-	handler: () => migrateLeagueInviteCodesFn()
 });
 
 // Join-by-code preview: the league an invite code opens, without the code.
@@ -1222,14 +1215,21 @@ export const resumeMyAccount = defineUpdate({
 	handler: resumeMyAccountFn
 });
 
-// Admin sweep (Delete account v2). Hard-deletes every soft-deleted
-// account whose recovery window has elapsed. Admin-guarded; Juno has no
-// scheduler so this is triggered externally (admin/cron).
+// Admin sweep (Delete account v2). Hard-deletes soft-deleted accounts
+// whose recovery window has elapsed, walking `profiles` one keyset page
+// and at most one purge per call to stay inside the update instruction
+// limit: pass the returned `nextAfterKey` back as `afterKey` until `done`.
+// `failed` counts purges that failed (logged); the walk moves past them.
+// Admin-guarded; Juno has no scheduler so this is triggered externally
+// (admin/cron).
 export const sweepExpiredDeletions = defineUpdate({
+	args: KeysetWalkArgsSchema,
 	result: j.strictObject({
-		swept: j.number()
+		swept: j.number(),
+		failed: j.number(),
+		...KeysetWalkResultSchema.shape
 	}),
-	handler: sweepExpiredDeletionsFn
+	handler: (args) => sweepExpiredDeletionsFn(args)
 });
 
 // Admin-only corrective for the friend-feed like counts: re-derives every
@@ -1594,7 +1594,6 @@ const setDocCollections = [
 	Collection.REFERRALS,
 	Collection.LEAGUES,
 	Collection.USER_STATS,
-	Collection.VXP_AWARDS,
 	Collection.AFFILIATIONS
 ] as const;
 
@@ -1638,9 +1637,6 @@ export const onSetDoc = defineHook<OnSetDoc>({
 			[Collection.REFERRALS]: onReferralSetForVxpPayout,
 			[Collection.LEAGUES]: onLeagueSetForFounderVxpPayout,
 			[Collection.USER_STATS]: onUserStatsSetForLeagueStats,
-			// Server-side capture: every VXP payout (any award service) emits
-			// `vxp_awarded` (+ `streak_milestone`) on its pending→paid transition.
-			[Collection.VXP_AWARDS]: onVxpAwardSetForAnalytics,
 			// Server-side capture: a Worlds join (client `setDoc`) emits
 			// `affiliation_set` on row creation.
 			[Collection.AFFILIATIONS]: onAffiliationSetForAnalytics

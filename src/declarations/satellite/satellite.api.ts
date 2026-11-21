@@ -1892,23 +1892,6 @@ const lookupLeagueByInvite = async (
 	return AppLookupLeagueByInviteResultSchema.parse(result);
 };
 
-const AppMigrateLeagueInviteCodesResultSchema = j.strictObject({ migrated: j.number() });
-
-const migrateLeagueInviteCodes = async (): Promise<
-	j.infer<typeof AppMigrateLeagueInviteCodesResultSchema>
-> => {
-	const { app_migrate_league_invite_codes } = await getSatelliteExtendedActor<SatelliteActor>({
-		idlFactory
-	});
-	const idlResult = await app_migrate_league_invite_codes();
-
-	const result = schemaFromIdl({
-		schema: AppMigrateLeagueInviteCodesResultSchema,
-		value: idlResult
-	});
-	return AppMigrateLeagueInviteCodesResultSchema.parse(result);
-};
-
 const AppPruneResolvedResultsResultSchema = j.strictObject({ pruned: j.number() });
 
 const pruneResolvedResults = async (): Promise<
@@ -2264,15 +2247,30 @@ const submitSchool = async (
 	return AppSubmitSchoolResultSchema.parse(result);
 };
 
-const AppSweepExpiredDeletionsResultSchema = j.strictObject({ swept: j.number() });
+const AppSweepExpiredDeletionsArgsSchema = j.strictObject({
+	afterKey: j.optional(j.string()),
+	limit: j.optional(j.number())
+});
+const AppSweepExpiredDeletionsResultSchema = j.strictObject({
+	swept: j.number(),
+	failed: j.number(),
+	nextAfterKey: j.optional(j.string()),
+	done: j.boolean()
+});
 
-const sweepExpiredDeletions = async (): Promise<
-	j.infer<typeof AppSweepExpiredDeletionsResultSchema>
-> => {
+const sweepExpiredDeletions = async (
+	args: j.infer<typeof AppSweepExpiredDeletionsArgsSchema>
+): Promise<j.infer<typeof AppSweepExpiredDeletionsResultSchema>> => {
+	const parsedArgs = AppSweepExpiredDeletionsArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppSweepExpiredDeletionsArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_sweep_expired_deletions']>[0];
+
 	const { app_sweep_expired_deletions } = await getSatelliteExtendedActor<SatelliteActor>({
 		idlFactory
 	});
-	const idlResult = await app_sweep_expired_deletions();
+	const idlResult = await app_sweep_expired_deletions(idlArgs);
 
 	const result = schemaFromIdl({ schema: AppSweepExpiredDeletionsResultSchema, value: idlResult });
 	return AppSweepExpiredDeletionsResultSchema.parse(result);
@@ -2643,7 +2641,6 @@ export const functions = {
 	hibernateMyAccount,
 	joinLeagueByInvite,
 	lookupLeagueByInvite,
-	migrateLeagueInviteCodes,
 	pruneResolvedResults,
 	readBattleLiveScore,
 	rebuildMarketTagIndex,

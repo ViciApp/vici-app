@@ -3,11 +3,13 @@ import {
 	createOtp,
 	OTP_MAX_ATTEMPTS,
 	OTP_MAX_LIVE_CODES,
+	OTP_TTL_MINUTES,
 	requestOtp,
 	verifyOtp
 } from '../src/auth/otp';
 import { query } from '../src/db/client';
 import { app } from '../src/index';
+import { setEmailTransport, type EmailMessage } from '../src/lib/email';
 import { resetRateLimits } from '../src/lib/rate-limit';
 import { ensureMigrated, uniqueEmail } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
@@ -19,6 +21,28 @@ describe.if(dbAvailable)('email OTP', () => {
 
 	beforeEach(() => {
 		resetRateLimits();
+	});
+
+	test('the code email states the lifetime the code is issued with', async () => {
+		const email = uniqueEmail();
+		const sent: EmailMessage[] = [];
+		const restore = setEmailTransport((message) => {
+			sent.push(message);
+
+			return Promise.resolve();
+		});
+
+		try {
+			await requestOtp(email);
+		} finally {
+			restore();
+		}
+
+		const [message] = sent;
+
+		expect(sent).toHaveLength(1);
+		expect(message?.text).toContain(`expires in ${OTP_TTL_MINUTES} minutes.`);
+		expect(message?.html).toContain(`expires in ${OTP_TTL_MINUTES} minutes.`);
 	});
 
 	test('happy path: verify provisions a user and an email identity', async () => {

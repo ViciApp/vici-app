@@ -23,19 +23,22 @@ import { msgCaller } from '@junobuild/functions/ic-cdk';
 import { countDocsStore, decodeDocData } from '@junobuild/functions/sdk';
 
 /**
- * League-founder hook. Runs after every `leagues` write; on the
- * *creation* write (no `before` doc) it credits the founder the
+ * League-founder reward: credits the founder the
  * `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS` the create-league CTA promises
  * and persists the payout in `vxp_awards`.
  *
- * This hook genuinely fires because `leagues` rows are written by the
- * **client** (`createLeague` calls `setDoc`), and Juno only invokes
- * `onSetDoc` for client `set_doc` writes, not for serverless
- * `setDocStore` (the trap that silently dropped the referral payout).
+ * Leagues are founded through the `createLeague` endpoint, whose
+ * `setDocStore` writes never fire `onSetDoc` (Juno invokes it only for a
+ * client `set_doc`), so `createLeagueFn` pays inline through
+ * {@link payLeagueFounderReward}. The `leagues` hook below pays on the
+ * creation write of a league a client writes itself, and
+ * `settleFounderAwardsFn` pays an owned league that has no award doc yet.
+ * A payout that failed keeps its `failed` award doc, so no later pass
+ * sends it again.
  *
  * Idempotency is structural: the award doc key is
- * `${recipient}/league_founder/${leagueId}`: a second hook firing for
- * the same league collides with the first and the assert blocks the
+ * `${recipient}/league_founder/${leagueId}`: a second payment for the
+ * same league collides with the first and the assert blocks the
  * duplicate write. No timestamp-based dedupe needed.
  *
  * Founding a league is free, so an uncapped per-league payout would be

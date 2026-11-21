@@ -345,7 +345,11 @@ beginning), a synthetic "Joined Vici" genesis row closes the feed (no
 amount, zero balance), marking the account's zero-VXP origin. The
 ledger walk is capped (`TRANSACTION_HISTORY_MAX_LEDGER_PAGES`); when
 hit, the genesis row is suppressed and a quiet "older history not
-shown" footer appears instead. Decision record:
+shown" footer appears instead. When the ledger cannot be read at all
+(the first index page fails, or the web2 build, which has no ledger
+feed), the page shows "transaction history isn't available" instead of
+a feed whose balances would be missing every bonus and transfer.
+Decision record:
 [`specs/2026-06-12-feat-transaction-history.md`](./spec-driven-development/specs/2026-06-12-feat-transaction-history.md).
 
 ### League rank: one accuracy-first ranking everywhere
@@ -404,12 +408,12 @@ record:
 The server-side ranking behind the market's "Top predictors here"
 candidates (`GET /api/v1/leaderboard`), the viewer's rank and ranked
 population (`/leaderboard/rank/:userId`: the profile's "Top X%" line and
-the Goat trophy) and the rival (`/leaderboard/rival`) uses the same two
-guards on the web2 API: every visible profile with at least the qualify
-minimum of settled calls, ordered by the same shrinkage score over its
-all-time settled history read from the clearing canister (more settled
-calls, then the account id, break a tie). A profile below the gate is
-unranked there too, so the "Top X%" line is the viewer's place among
+the Goat trophy) use the same two guards on the web2 API: every visible
+profile with at least the qualify minimum of settled calls, ordered by
+the same shrinkage score over its all-time settled history read from the
+clearing canister (more settled calls, then the account id, break a
+tie). A profile below the gate is unranked there too, so the "Top X%"
+line is the viewer's place among
 ranked predictors. The client-written `points` never decides a rank.
 The ranking is read at most once per public read window
 (`rankedUserIds` in

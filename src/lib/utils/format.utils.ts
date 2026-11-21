@@ -45,15 +45,23 @@ export const safeBigInt = ({ value, min }: { value: number; min?: bigint }): big
 	return nonNullish(min) && result < min ? min : result;
 };
 
+// Callers pass the output of `Decimal.toFixed` / `Number.toFixed`, whose decimal
+// separator is always '.', and the app renders every other decimal that way. Grouping
+// in the browser's locale would pair '.' groups with that '.' ("1.234.567.50" in a
+// German browser), so the default is the locale whose separators match it.
+const DEFAULT_GROUPING_LOCALE = 'en-US';
+
 /**
- * Adds locale-aware thousands separators to the integer part of a string
- * already in `[-]?\d+(\.\d+)?` form (the output of `Decimal.toFixed`). The
- * fractional part, including its precision, is preserved verbatim so we
- * don't reintroduce rounding on numbers that have already been quantised.
+ * Adds thousands separators to the integer part of a string already in
+ * `[-]?\d+(\.\d+)?` form (the output of `Decimal.toFixed`). The fractional
+ * digits, including their precision, are preserved verbatim so we don't
+ * reintroduce rounding on numbers that have already been quantised; the
+ * decimal separator is the one of `locale`, so the pair always reads as one
+ * number.
  */
 export const groupIntegerPart = ({
 	formatted,
-	locale
+	locale = DEFAULT_GROUPING_LOCALE
 }: {
 	formatted: string;
 	locale?: string;
@@ -61,8 +69,11 @@ export const groupIntegerPart = ({
 	const negative = formatted.startsWith('-');
 	const body = negative ? formatted.slice(1) : formatted;
 	const [intPart, fracPart] = body.split('.');
-	const groupedInt = new Intl.NumberFormat(locale, { useGrouping: true }).format(BigInt(intPart));
-	const grouped = isNullish(fracPart) ? groupedInt : `${groupedInt}.${fracPart}`;
+	const numberFormat = new Intl.NumberFormat(locale, { useGrouping: true });
+	const groupedInt = numberFormat.format(BigInt(intPart));
+	const decimalSeparator =
+		numberFormat.formatToParts(0.5).find(({ type }) => type === 'decimal')?.value ?? '.';
+	const grouped = isNullish(fracPart) ? groupedInt : `${groupedInt}${decimalSeparator}${fracPart}`;
 
 	return negative ? `-${grouped}` : grouped;
 };

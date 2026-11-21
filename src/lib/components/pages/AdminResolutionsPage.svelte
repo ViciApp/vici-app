@@ -1,20 +1,30 @@
 <script lang="ts">
+	import { isNullish } from '@dfinity/utils';
 	import AdminResolutionHistory from '#lib/components/admin/AdminResolutionHistory.svelte';
 	import AdminResolutionList from '#lib/components/admin/AdminResolutionList.svelte';
 	import AdminSubPageHeader from '#lib/components/admin/AdminSubPageHeader.svelte';
 	import { markets, marketsNotInitialized } from '#lib/derived/markets.derived.ts';
-	import { resolveMarket } from '#lib/services/authn.services.ts';
+	import { settleMarket } from '#lib/services/resolution.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import type { MarketId, Outcome } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { binaryPayoff } from '#lib/utils/payoff.utils.ts';
+	import { refreshMarkets } from '#lib/utils/refresh.utils.ts';
 
 	const unresolvedMarkets = $derived($markets.filter((m) => m.status !== 'Resolved'));
 	const resolvedMarkets = $derived($markets.filter((m) => m.status === 'Resolved'));
 
 	const handleResolve = async ({ marketId, outcome }: { marketId: MarketId; outcome: Outcome }) => {
 		try {
-			await resolveMarket({ marketId, outcome });
+			const settlementPrice = binaryPayoff(outcome);
+
+			if (isNullish(settlementPrice)) {
+				throw new Error('Market cancellation not implemented yet');
+			}
+
+			await settleMarket({ seriesId: marketId, settlementPrice });
+			refreshMarkets();
 			notificationsStore.add({
 				title: t({ locale: $localeStore, key: 'admin.markets.resolved.title' }),
 				message: t({

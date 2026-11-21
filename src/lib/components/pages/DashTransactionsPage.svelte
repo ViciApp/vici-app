@@ -91,16 +91,19 @@
 			$vxpHoldingsNotInitialized
 	);
 
+	// Without the ledger the walk back from the live total has no bonuses or
+	// transfers to subtract, so every running balance would be wrong: the page
+	// shows the failure state instead of assembling rows.
 	const rows = $derived.by((): TransactionHistoryRow[] | undefined => {
-		if (loading) {
+		if (loading || isNullish(ledger)) {
 			return;
 		}
 
 		return assembleTransactionHistory({
 			events: $tradeHistory,
-			ledgerEntries: ledger?.entries ?? [],
+			ledgerEntries: ledger.entries,
 			totalAnchor: $vxpHoldingsTotal,
-			includeGenesis: nonNullish(ledger) && !ledger.truncated
+			includeGenesis: !ledger.truncated
 		});
 	});
 
@@ -260,22 +263,24 @@
 		/>
 	</div>
 
-	<div
-		class="txh-filters"
-		aria-label={t({ locale: $localeStore, key: 'transactions.filters' })}
-		role="group"
-	>
-		{#each FILTERS as filterOption (filterOption)}
-			<button
-				class="txh-chip"
-				class:is-active={filter === filterOption}
-				onclick={() => applyFilter(filterOption)}
-				type="button"
-			>
-				{t({ locale: $localeStore, key: `transactions.filter.${filterOption}` as const })}
-			</button>
-		{/each}
-	</div>
+	{#if !ledgerFailed}
+		<div
+			class="txh-filters"
+			aria-label={t({ locale: $localeStore, key: 'transactions.filters' })}
+			role="group"
+		>
+			{#each FILTERS as filterOption (filterOption)}
+				<button
+					class="txh-chip"
+					class:is-active={filter === filterOption}
+					onclick={() => applyFilter(filterOption)}
+					type="button"
+				>
+					{t({ locale: $localeStore, key: `transactions.filter.${filterOption}` as const })}
+				</button>
+			{/each}
+		</div>
+	{/if}
 
 	{#if loading}
 		<div class="txh-skeleton" aria-hidden="true">
@@ -283,6 +288,8 @@
 				<div class="txh-skeleton-row animate-pulse"></div>
 			{/each}
 		</div>
+	{:else if ledgerFailed}
+		<EmptyState message={t({ locale: $localeStore, key: 'transactions.unavailable' })} />
 	{:else if filteredRows.length === 0}
 		<EmptyState message={t({ locale: $localeStore, key: 'transactions.empty' })} />
 	{:else}

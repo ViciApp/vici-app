@@ -14,7 +14,8 @@
  * path list, this script walks the REAL import graph from
  * `src/satellite/index.ts` (resolving the subpath imports declared in
  * `package.json` `imports`) and intersects that closure with the files
- * changed since the previous release tag.
+ * changed since the commit of the last successful deploy (the wasm the
+ * satellite runs).
  *
  * Usage: node scripts/satellite-upgrade-needed.mjs --base <git-ref>
  *
