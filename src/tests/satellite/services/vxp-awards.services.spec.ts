@@ -1,4 +1,5 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import type { AnalyticsEventDoc } from '#lib/types/analytics-event.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import {
 	installSatelliteHost,
@@ -7,8 +8,11 @@ import {
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
 import {
 	assertDeleteVxpAward,
-	assertSetVxpAward
+	assertSetVxpAward,
+	persistAward,
+	updateAward
 } from '#satellite/services/vxp-awards.services.ts';
+import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext } from '@junobuild/functions';
 import type { AccessKeys } from '@junobuild/functions/sdk';
@@ -214,5 +218,63 @@ describe('assertSetVxpAward', () => {
 				}),
 			/terminal/
 		);
+	});
+});
+
+describe('updateAward', () => {
+	let host: SatelliteHost;
+
+	const pending: VxpAwardDoc = {
+		recipient: recipient.toText(),
+		awardType: 'streak',
+		awardKey: 'streak_7',
+		amountBaseUnits: '500000',
+		status: 'pending',
+		earnedAtMs: 1_700_000_000_000
+	};
+	const { recipient: recipientText, awardType, awardKey } = pending;
+
+	const events = (): AnalyticsEventDoc[] =>
+		host
+			.keys(Collection.EVENTS)
+			.map((key) => host.readDoc<AnalyticsEventDoc>({ collection: Collection.EVENTS, key }))
+			.filter(nonNullish);
+
+	const pay = () =>
+		updateAward({
+			recipient: recipientText,
+			awardType,
+			awardKey,
+			patch: { status: 'paid', paidAtMs: 1_700_000_001_000, blockIndex: '42' }
+		});
+
+	beforeEach(() => {
+		host = installSatelliteHost({ asserts: { set: assertSetVxpAward } });
+		persistAward({ recipient: recipientText, awardType, awardKey, doc: pending });
+	});
+
+	afterEach(() => host.restore());
+
+	it('captures the payout and the streak milestone when the award is paid', () => {
+		pay();
+
+		assert.deepEqual(
+			events().map(({ name, principal, props }) => ({ name, principal, props })),
+			[
+				{ name: 'vxp_awarded', principal: recipientText, props: { value: 50, label: 'streak' } },
+				{ name: 'streak_milestone', principal: recipientText, props: { step: 7 } }
+			]
+		);
+	});
+
+	it('captures nothing when the payout fails', () => {
+		updateAward({
+			recipient: recipientText,
+			awardType,
+			awardKey,
+			patch: { status: 'failed', errorMessage: 'ledger down' }
+		});
+
+		assert.deepEqual(events(), []);
 	});
 });

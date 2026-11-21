@@ -12,7 +12,8 @@ import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
  */
 export const NEW_USER_VXP_TOTAL_BASE_UNITS = vxpBaseUnits(1500);
 
-const MILESTONE_1_VXP = vxpBaseUnits(1500);
+// The whole starter lands at registration, so milestone 1 is the total.
+const MILESTONE_1_VXP = NEW_USER_VXP_TOTAL_BASE_UNITS;
 const MILESTONE_2_VXP = vxpBaseUnits(0);
 
 export const newUserVxpAmountMilestone1BaseUnits = (): bigint => MILESTONE_1_VXP;

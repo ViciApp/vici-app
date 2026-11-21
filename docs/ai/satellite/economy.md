@@ -69,11 +69,13 @@ one pattern. Each of these has bitten a PR before:
   `REPEATABLE_VXP_AWARD_TYPES` on both stacks.
 - **Referral rows keep their payout history.** `referrals` is
   `write: 'public'` and holds both payout sides, and the referrer's
-  lifetime count is a scan of it. `assertSetReferral` lets a side's
-  state only move forward (`processing` back to `owed` is the one
-  retry step), and the account purge keeps a row that has started
-  paying (`isReferralPayoutRecord`), so deleting referred accounts never
-  frees a slot in the referrer's count.
+  tier is a scan of it: every earlier redemption counts, whatever its
+  payout state (`countPriorRedemptions`), so the order of the referees'
+  first predictions never moves a reward up a tier. `assertSetReferral`
+  lets a side's state only move forward (`processing` back to `owed` is
+  the one retry step), and the account purge keeps a row that has
+  started paying (`isReferralPayoutRecord`), so deleting a referred
+  account that was paid never frees its slot in the referrer's count.
 - **Eligibility times are server-stamped.** A gate on when something
   happened (a join, an activity day) reads a time the satellite wrote:
   the doc's Juno `created_at` or `timeMs()`, never a caller-written `*Ms`

@@ -1,5 +1,6 @@
 import { listMyReferrals } from '#lib/services/referral.services.ts';
 import type { ReferralListItem } from '#lib/types/referral.ts';
+import { createLoadEpoch } from '#lib/utils/async.utils.ts';
 import { writable } from 'svelte/store';
 
 /**
@@ -25,19 +26,15 @@ export const myReferralsLoadedStore = writable<boolean>(false);
 
 let inFlight: Promise<void> | undefined;
 
-// Bumped by every `clearMyReferrals()` (i.e. each auth transition). A refresh
-// captures the epoch when it starts and only commits its result if the epoch
-// is unchanged on resolution, so a fetch that was in flight across a
-// sign-out/sign-in can't repopulate the cache (or flip `loaded`) for the wrong
-// principal.
-let epoch = 0;
+// Invalidated by every `clearMyReferrals()` (i.e. each auth transition).
+const epoch = createLoadEpoch();
 
 const runRefresh = async (): Promise<void> => {
-	const startedAt = epoch;
+	const isCurrent = epoch.start();
 
 	const items = await listMyReferrals();
 
-	if (epoch !== startedAt) {
+	if (!isCurrent()) {
 		return;
 	}
 
@@ -77,7 +74,7 @@ export const refreshMyReferrals = async (): Promise<void> => {
 export const clearMyReferrals = (): void => {
 	// Invalidate any in-flight refresh so its result is dropped instead of
 	// repopulating the cleared cache for the previous principal.
-	epoch += 1;
+	epoch.invalidate();
 	myReferralsStore.set([]);
 	myReferralsLoadedStore.set(false);
 };

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 source "$(dirname "$0")/lib/utils.sh" "$@"
+require_local_network
 
 # Some canisters depend on others, so we need to create them all before deploying
 dfx canister create --all --network "$NETWORK"

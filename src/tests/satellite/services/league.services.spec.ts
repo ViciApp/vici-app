@@ -1,4 +1,5 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { leagueMemberKey, type LeagueMemberDoc } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
 import {
 	controller,
@@ -7,7 +8,12 @@ import {
 	setContext,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
-import { assertDeleteLeague, assertSetLeague } from '#satellite/services/league.services.ts';
+import { assertDeleteDoc, assertSetDoc } from '#satellite/index.ts';
+import {
+	assertDeleteLeague,
+	assertSetLeague,
+	transferLeagueOwnershipFn
+} from '#satellite/services/league.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
@@ -111,6 +117,10 @@ describe('league.services', () => {
 			assert.throws(() => assertSetLeague(handOver(stranger)), /current owner/);
 		});
 
+		it('rejects the owner handing the league over with a direct write', () => {
+			assert.throws(() => assertSetLeague(handOver(owner)), /transferLeagueOwnership/);
+		});
+
 		it('lets a satellite controller hand the league over', () => {
 			assert.doesNotThrow(() => assertSetLeague(handOver(controller)));
 		});
@@ -128,6 +138,69 @@ describe('league.services', () => {
 						})
 					),
 				/immutable/
+			);
+		});
+	});
+
+	describe('transferLeagueOwnershipFn', () => {
+		const { inviteCode: _legacyCode, ...current } = league;
+
+		const memberRow = ({
+			principal,
+			role
+		}: {
+			principal: Principal;
+			role: LeagueMemberDoc['role'];
+		}) =>
+			host.putDoc({
+				collection: Collection.LEAGUE_MEMBERS,
+				key: leagueMemberKey({ leagueId: league.id, memberPrincipal: principal.toText() }),
+				data: { leagueId: league.id, member: principal.toText(), joinedAtMs: 1, role },
+				owner: principal
+			});
+
+		const role = (principal: Principal) =>
+			host.readDoc<LeagueMemberDoc>({
+				collection: Collection.LEAGUE_MEMBERS,
+				key: leagueMemberKey({ leagueId: league.id, memberPrincipal: principal.toText() })
+			})?.role;
+
+		beforeEach(() => {
+			host.restore();
+			// The real asserts run on every serverless write, as on the satellite.
+			host = installSatelliteHost({
+				asserts: { set: assertSetDoc.assert, remove: assertDeleteDoc.assert }
+			});
+			host.putDoc({ collection: Collection.LEAGUES, key: league.id, data: current, owner });
+			memberRow({ principal: owner, role: 'owner' });
+			memberRow({ principal: member, role: 'member' });
+		});
+
+		it('hands the league to a member and swaps the member roles', () => {
+			host.setCaller(owner);
+
+			assert.deepEqual(
+				transferLeagueOwnershipFn({ leagueId: league.id, newOwnerPrincipal: member.toText() }),
+				{ ok: true }
+			);
+			assert.equal(
+				host.readDoc<LeagueDoc>({ collection: Collection.LEAGUES, key: league.id })?.owner,
+				member.toText()
+			);
+			assert.equal(role(member), 'owner');
+			assert.equal(role(owner), 'admin');
+		});
+
+		it('refuses a new owner who is not a member', () => {
+			host.setCaller(owner);
+
+			assert.deepEqual(
+				transferLeagueOwnershipFn({ leagueId: league.id, newOwnerPrincipal: stranger.toText() }),
+				{ ok: false, reason: 'new_owner_not_member' }
+			);
+			assert.equal(
+				host.readDoc<LeagueDoc>({ collection: Collection.LEAGUES, key: league.id })?.owner,
+				owner.toText()
 			);
 		});
 	});
