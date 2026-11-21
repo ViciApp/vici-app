@@ -215,8 +215,61 @@ export const listSentFriendRequests = (): Relation[] => {
 		);
 };
 
+/**
+ * A friend request or a follow joins two real accounts: a signed-in caller and
+ * another principal, never the caller itself or the anonymous principal.
+ */
+const assertRelationParties = ({
+	caller,
+	target
+}: {
+	caller: Principal;
+	target: PrincipalText;
+}): void => {
+	if (caller.isAnonymous()) {
+		throw new Error('Sign in to add a friend or follow someone.');
+	}
+
+	if (target === caller.toText() || target === Principal.anonymous().toText()) {
+		throw new Error('A friend request or a follow needs another account.');
+	}
+};
+
+/**
+ * The relation a recipient answers: it must be a friend request still
+ * pending. Accepting or rejecting anything else would turn a follow into a
+ * rejection no participant can remove, or an active friendship into one.
+ */
+const readPendingFriendRequest = ({
+	caller,
+	relationId
+}: {
+	caller: Principal;
+	relationId: string;
+}): { relation: Relation; version?: bigint } => {
+	const doc = getDocStore({
+		collection: Collection.RELATIONS,
+		key: relationId,
+		caller
+	});
+
+	if (isNullish(doc)) {
+		throw new Error('Relation does not exist');
+	}
+
+	const relation = decodeDocData<Relation>(doc.data);
+
+	if (relation.category !== RelationCategory.FRIEND || relation.state !== RelationState.PENDING) {
+		throw new Error('Only a pending friend request can be accepted or rejected.');
+	}
+
+	return { relation, version: doc.version };
+};
+
 export const sendFriendRequest = ({ target }: { target: PrincipalText }): FriendRequestOutcome => {
 	const caller = msgCaller();
+
+	assertRelationParties({ caller, target });
 
 	const sender = caller.toText();
 
@@ -319,17 +372,7 @@ export const acceptFriendRequest = ({ relationId }: { relationId: string }): voi
 
 	const callerText = caller.toText();
 
-	const doc = getDocStore({
-		collection: Collection.RELATIONS,
-		key: relationId,
-		caller
-	});
-
-	if (isNullish(doc)) {
-		throw new Error('Relation does not exist');
-	}
-
-	const relation = decodeDocData<Relation>(doc.data);
+	const { relation, version } = readPendingFriendRequest({ caller, relationId });
 
 	if (relation.participants[1] !== callerText) {
 		throw new Error('Only the recipient can accept a friend request.');
@@ -339,7 +382,7 @@ export const acceptFriendRequest = ({ relationId }: { relationId: string }): voi
 		collection: Collection.RELATIONS,
 		key: relationId,
 		doc: {
-			version: doc.version,
+			version,
 			data: encodeDocData({
 				...relation,
 				state: RelationState.ACTIVE
@@ -407,17 +450,7 @@ export const rejectFriendRequest = ({ relationId }: { relationId: string }): voi
 
 	const callerText = caller.toText();
 
-	const doc = getDocStore({
-		collection: Collection.RELATIONS,
-		key: relationId,
-		caller
-	});
-
-	if (isNullish(doc)) {
-		throw new Error('Relation does not exist');
-	}
-
-	const relation = decodeDocData<Relation>(doc.data);
+	const { relation, version } = readPendingFriendRequest({ caller, relationId });
 
 	if (relation.participants[1] !== callerText) {
 		throw new Error('Only the recipient can reject a friend request.');
@@ -427,7 +460,7 @@ export const rejectFriendRequest = ({ relationId }: { relationId: string }): voi
 		collection: Collection.RELATIONS,
 		key: relationId,
 		doc: {
-			version: doc.version,
+			version,
 			data: encodeDocData({
 				...relation,
 				state: RelationState.REJECTED
@@ -439,6 +472,8 @@ export const rejectFriendRequest = ({ relationId }: { relationId: string }): voi
 
 export const followUser = ({ target }: { target: PrincipalText }): void => {
 	const caller = msgCaller();
+
+	assertRelationParties({ caller, target });
 
 	const sender = caller.toText();
 

@@ -694,7 +694,13 @@ export const idlFactory = ({ IDL }) => {
 				privacy: IDL.Variant({ open: IDL.Null, private: IDL.Null })
 			})
 		),
-		reason: IDL.Opt(IDL.Variant({ already_member: IDL.Null, not_found: IDL.Null }))
+		reason: IDL.Opt(
+			IDL.Variant({
+				already_member: IDL.Null,
+				rate_limited: IDL.Null,
+				not_found: IDL.Null
+			})
+		)
 	});
 	const AppListAffiliationChampionshipsArgs = IDL.Record({
 		kind: IDL.Variant({ country: IDL.Null, university: IDL.Null }),
@@ -1199,14 +1205,12 @@ export const idlFactory = ({ IDL }) => {
 				created_at_ms: IDL.Float64,
 				privacy: IDL.Variant({ open: IDL.Null, private: IDL.Null })
 			})
-		)
+		),
+		reason: IDL.Opt(IDL.Variant({ rate_limited: IDL.Null }))
 	});
 	const AppLookupReferralCodeArgs = IDL.Record({ code: IDL.Text });
 	const AppLookupReferralCodeResult = IDL.Record({
 		owner: IDL.Opt(IDL.Text)
-	});
-	const AppMigrateLeagueInviteCodesResult = IDL.Record({
-		migrated: IDL.Float64
 	});
 	const AppPruneResolvedResultsResult = IDL.Record({ pruned: IDL.Float64 });
 	const AppReadBattleLiveScoreArgs = IDL.Record({ battle_id: IDL.Text });
@@ -1244,6 +1248,10 @@ export const idlFactory = ({ IDL }) => {
 		reason: IDL.Opt(IDL.Variant({ expired: IDL.Null }))
 	});
 	const AppRedeemReferralCodeArgs = IDL.Record({ code: IDL.Text });
+	const AppRefreshLeaderboardRankingResult = IDL.Record({
+		refreshed: IDL.Bool,
+		ranked: IDL.Float64
+	});
 	const AppRejectFriendRequestArgs = IDL.Record({ relation_id: IDL.Text });
 	const AppResolveBattleArgs = IDL.Record({ battle_id: IDL.Text });
 	const AppResolveBattleResult = IDL.Record({
@@ -1364,7 +1372,16 @@ export const idlFactory = ({ IDL }) => {
 		email: IDL.Text
 	});
 	const AppSubmitSchoolResult = IDL.Record({ submission_id: IDL.Text });
-	const AppSweepExpiredDeletionsResult = IDL.Record({ swept: IDL.Float64 });
+	const AppSweepExpiredDeletionsArgs = IDL.Record({
+		limit: IDL.Opt(IDL.Float64),
+		after_key: IDL.Opt(IDL.Text)
+	});
+	const AppSweepExpiredDeletionsResult = IDL.Record({
+		done: IDL.Bool,
+		swept: IDL.Float64,
+		next_after_key: IDL.Opt(IDL.Text),
+		failed: IDL.Float64
+	});
 	const AppTrackEventsArgs = IDL.Record({
 		events: IDL.Vec(
 			IDL.Record({
@@ -1740,14 +1757,13 @@ export const idlFactory = ({ IDL }) => {
 		app_lookup_league_by_invite: IDL.Func(
 			[AppLookupLeagueByInviteArgs],
 			[AppLookupLeagueByInviteResult],
-			['query']
+			[]
 		),
 		app_lookup_referral_code: IDL.Func(
 			[AppLookupReferralCodeArgs],
 			[AppLookupReferralCodeResult],
 			['query']
 		),
-		app_migrate_league_invite_codes: IDL.Func([], [AppMigrateLeagueInviteCodesResult], []),
 		app_prune_resolved_results: IDL.Func([], [AppPruneResolvedResultsResult], []),
 		app_read_battle_live_score: IDL.Func(
 			[AppReadBattleLiveScoreArgs],
@@ -1763,6 +1779,7 @@ export const idlFactory = ({ IDL }) => {
 		app_record_flow_swipe: IDL.Func([AppRecordFlowSwipeArgs], [AppRecordFlowSwipeResult], []),
 		app_recover_my_account: IDL.Func([], [AppRecoverMyAccountResult], []),
 		app_redeem_referral_code: IDL.Func([AppRedeemReferralCodeArgs], [], []),
+		app_refresh_leaderboard_ranking: IDL.Func([], [AppRefreshLeaderboardRankingResult], []),
 		app_reject_friend_request: IDL.Func([AppRejectFriendRequestArgs], [], []),
 		app_resolve_battle: IDL.Func([AppResolveBattleArgs], [AppResolveBattleResult], []),
 		app_resolve_tournament_round: IDL.Func(
@@ -1776,7 +1793,11 @@ export const idlFactory = ({ IDL }) => {
 		app_settle_founder_awards: IDL.Func([], [AppSettleFounderAwardsResult], []),
 		app_settle_referral: IDL.Func([AppSettleReferralArgs], [], []),
 		app_submit_school: IDL.Func([AppSubmitSchoolArgs], [AppSubmitSchoolResult], []),
-		app_sweep_expired_deletions: IDL.Func([], [AppSweepExpiredDeletionsResult], []),
+		app_sweep_expired_deletions: IDL.Func(
+			[AppSweepExpiredDeletionsArgs],
+			[AppSweepExpiredDeletionsResult],
+			[]
+		),
 		app_track_events: IDL.Func([AppTrackEventsArgs], [AppTrackEventsResult], []),
 		app_transfer_league_ownership: IDL.Func(
 			[AppTransferLeagueOwnershipArgs],

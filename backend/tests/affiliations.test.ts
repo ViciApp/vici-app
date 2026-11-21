@@ -1,6 +1,5 @@
 // Worlds affiliations: the server-computed 90-day lock on leave and switch,
-// idempotent re-join, the two-slot model, and the roster / member-count
-// reads.
+// idempotent re-join, the two-slot model, and the member-count read.
 
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
@@ -11,7 +10,6 @@ import {
 	getMyAffiliation,
 	listMyAffiliations,
 	listWorldsMemberCounts,
-	listWorldsRoster,
 	removeAffiliation,
 	setAffiliation
 } from '../src/worlds/affiliations';
@@ -118,13 +116,6 @@ describe.if(dbAvailable)('affiliation lock', () => {
 		);
 
 		expect(rows.map((r) => r.affiliation_identifier)).toEqual([second]);
-
-		const oldRoster = await listWorldsRoster({
-			kind: 'university',
-			affiliationIdentifier: first
-		});
-
-		expect(oldRoster.some((a) => a.memberUserId === userId)).toBe(false);
 	});
 
 	test('re-joining the identical slot is an idempotent no-op that keeps the original lock', async () => {
@@ -163,28 +154,24 @@ describe.if(dbAvailable)('affiliation lock', () => {
 	});
 });
 
-describe.if(dbAvailable)('worlds roster and member counts', () => {
+describe.if(dbAvailable)('worlds member counts', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
 	});
 
-	test('roster reads earliest joiner first; counts tally the slot', async () => {
+	test('counts tally the slot', async () => {
 		const slug = uniqueSlug();
-		const early = await createTestUser();
-		const late = await createTestUser();
-		const nowMs = Date.now();
 
 		await setAffiliation({
-			userId: late,
+			userId: await createTestUser(),
 			kind: 'university',
-			affiliationIdentifier: slug,
-			nowMs: nowMs + 1000
+			affiliationIdentifier: slug
 		});
-		await setAffiliation({ userId: early, kind: 'university', affiliationIdentifier: slug, nowMs });
-
-		const roster = await listWorldsRoster({ kind: 'university', affiliationIdentifier: slug });
-
-		expect(roster.map((a) => a.memberUserId)).toEqual([early, late]);
+		await setAffiliation({
+			userId: await createTestUser(),
+			kind: 'university',
+			affiliationIdentifier: slug
+		});
 
 		const counts = await listWorldsMemberCounts('university');
 		const entry = counts.find((c) => c.affiliationIdentifier === slug);

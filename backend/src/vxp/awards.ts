@@ -10,7 +10,9 @@
 // on-chain app, and every row that predates provenance tracking, are never
 // paid here. A row whose transfer may have landed without being confirmed is
 // quarantined (needs_ledger_check) and only leaves that state on the word of
-// the ledger history, never by blindly sending again.
+// the ledger history, never by blindly sending again. A failed row moved
+// nothing (the ledger refused it, or its history proved it never landed), so
+// the next grant of the same award reopens it and sends it again.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
@@ -272,7 +274,8 @@ interface SettleResult {
  *   ambiguous error (the transfer may have executed): quarantined as
  *   needs_ledger_check, never failed, because only the ledger history can
  *   tell whether the award was paid;
- * - a ledger rejection of a first attempt: nothing moved, terminal failed. */
+ * - a ledger rejection of a first attempt: nothing moved, failed until the
+ *   next grant of the same award reopens it (reopenFailedAward). */
 const settlePendingAward = async ({
 	id,
 	userId,
@@ -462,6 +465,32 @@ const insertPendingAward = async (
 	return inserted[0]?.id;
 };
 
+/** Moves the user's failed row of this award back to pending, with its
+ * transfer stamp cleared so the next send carries a fresh one (the old one
+ * may be past the ledger's dedup window). A failed row moved nothing, so
+ * sending it again cannot pay twice; the update is conditional on the
+ * status, so of two grants racing on one row only one reopens it. Returns
+ * the row and the amount recorded when it was earned, which is what the
+ * retry pays; undefined when there is no failed row. */
+const reopenFailedAward = async (
+	{ userId, awardType, awardKey }: GrantAwardParams,
+	q: TxQuery = query
+): Promise<{ id: string; amountBaseUnits: bigint } | undefined> => {
+	const [row] = await q<{ id: string; amount_base_units: string }>(
+		`update vxp_awards
+		 set status = 'pending', processing_at = null, transfer_created_at_ns = null,
+		     error_message = null
+		 where user_id = $1 and award_type = $2 and award_key = $3
+		   and origin = 'live' and status = 'failed'
+		 returning id, amount_base_units::text`,
+		[userId, awardType, awardKey]
+	);
+
+	return nonNullish(row)
+		? { id: row.id, amountBaseUnits: BigInt(row.amount_base_units) }
+		: undefined;
+};
+
 /** Drives a freshly inserted row to its outcome: recorded in record-only
  * mode, otherwise the treasury transfer and the paid/failed transition. */
 const settleInsertedAward = async ({
@@ -510,7 +539,9 @@ const settleInsertedAward = async ({
  * award already exists), then either leave it recorded (record-only mode) or
  * drive the treasury transfer and the paid/failed transition. Non-positive
  * amounts are skipped entirely; nothing is owed. A one-time award the user's
- * identity was paid under a deleted account answers 'already' too.
+ * identity was paid under a deleted account answers 'already' too. An award
+ * that exists as failed is reopened and sent again at its recorded amount
+ * (reopenFailedAward); any other existing one answers 'already'.
  */
 export const grantAward = async (grant: GrantAwardParams): Promise<GrantAwardOutcome> => {
 	if (grant.amountBaseUnits <= ZERO) {
@@ -523,11 +554,20 @@ export const grantAward = async (grant: GrantAwardParams): Promise<GrantAwardOut
 
 	const id = await insertPendingAward(grant);
 
-	if (isNullish(id)) {
+	if (nonNullish(id)) {
+		return await settleInsertedAward({ id, grant });
+	}
+
+	const reopened = await reopenFailedAward(grant);
+
+	if (isNullish(reopened)) {
 		return { outcome: 'already' };
 	}
 
-	return await settleInsertedAward({ id, grant });
+	return await settleInsertedAward({
+		id: reopened.id,
+		grant: { ...grant, amountBaseUnits: reopened.amountBaseUnits }
+	});
 };
 
 /** A ceiling on how many awards of one type a user may hold: over their
@@ -538,6 +578,12 @@ export interface AwardCap<Reason extends string> {
 	windowMs?: number;
 	reason: Reason;
 }
+
+/** What the capped grant's transaction holds: a row to settle (inserted,
+ * or reopened at its recorded amount), nothing (already held), or the cap
+ * that refused it. */
+type CapClaim<Reason extends string> =
+	{ id?: string; amountBaseUnits?: bigint } | { capped: Reason };
 
 export type CappedGrantOutcome<Reason extends string> =
 	GrantAwardOutcome | { outcome: 'capped'; reason: Reason };
@@ -550,7 +596,9 @@ export type CappedGrantOutcome<Reason extends string> =
  * the transfer, so a slow ledger never holds up the next grant. Every row
  * counts whatever its status: anything in flight consumes a slot. A lifetime
  * cap also counts the awards the user's identities were paid under deleted
- * accounts (their markers), so deleting an account never resets it.
+ * accounts (their markers), so deleting an account never resets it. A failed
+ * award is reopened before the caps are counted: its row already holds a
+ * slot, so the retry needs none.
  */
 export const grantCappedAward = async <Reason extends string>({
 	caps,
@@ -562,13 +610,19 @@ export const grantCappedAward = async <Reason extends string>({
 		return { outcome: 'skipped_zero' };
 	}
 
-	const claim = await tx(async (q): Promise<{ id?: string } | { capped: Reason }> => {
+	const claim = await tx(async (q): Promise<CapClaim<Reason>> => {
 		await q(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [
 			`vxp-award-cap:${grant.userId}:${grant.awardType}`
 		]);
 
 		if (await hasAwardMarker(grant, q)) {
 			return {};
+		}
+
+		const reopened = await reopenFailedAward(grant, q);
+
+		if (nonNullish(reopened)) {
+			return reopened;
 		}
 
 		const nowMs = Date.now();
@@ -604,7 +658,10 @@ export const grantCappedAward = async <Reason extends string>({
 		return { outcome: 'already' };
 	}
 
-	return await settleInsertedAward({ id: claim.id, grant });
+	return await settleInsertedAward({
+		id: claim.id,
+		grant: { ...grant, amountBaseUnits: claim.amountBaseUnits ?? grant.amountBaseUnits }
+	});
 };
 
 export const getAward = async ({
@@ -623,28 +680,6 @@ export const getAward = async ({
 	);
 
 	return nonNullish(rows[0]) ? shapeAward(rows[0]) : undefined;
-};
-
-export const listUserAwards = async ({
-	userId,
-	awardType
-}: {
-	userId: string;
-	awardType?: VxpAwardType;
-}): Promise<VxpAward[]> => {
-	const rows = nonNullish(awardType)
-		? await query<VxpAwardRow>(
-				`select ${AWARD_COLUMNS} from vxp_awards
-				 where user_id = $1 and award_type = $2 order by created_at desc`,
-				[userId, awardType]
-			)
-		: await query<VxpAwardRow>(
-				`select ${AWARD_COLUMNS} from vxp_awards
-				 where user_id = $1 order by created_at desc`,
-				[userId]
-			);
-
-	return rows.map(shapeAward);
 };
 
 export interface ReconcileReport {

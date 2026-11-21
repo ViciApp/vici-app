@@ -38,6 +38,21 @@ The rules of the deposit watcher and the withdrawal path in `backend/src/chains/
   are never read, so in the batch they would stay least recently checked and,
   once they fill it, starve every enabled chain. They wait untouched until
   their chain is enabled again.
+- **An account that holds custody funds is never deleted or purged.**
+  `deleteMyAccount` (`backend/src/account/lifecycle.ts`) answers
+  `{ ok: false, reason: 'holds_custody_funds' }` while the account has a
+  book balance, a balance of a withdrawable asset on an ic ledger at its
+  custodial principal (read live, as the wallet does, whether or not the
+  wallet was ever opened), collateral or a positive cash balance in
+  clearing's Settlement domain (VXP lives in ViciXp and Playground holds
+  testnet assets, so neither counts), or a withdrawal in one of
+  `IN_FLIGHT_WITHDRAWAL_STATES`; it checks before any league resolution
+  applies, and the app asks the user to withdraw first. Funds can still
+  land during the recovery window, so the deletion sweep leaves such an
+  account soft-deleted and logs a warning instead of purging it, and a
+  recovery past the window restores it so its owner can withdraw. A read
+  that fails never passes as empty: a failed ledger read refuses, and a
+  failed clearing read counts as funds held.
 - **The deposit watcher never books VXP, and withdrawals never accept it:
   two separate guards.** The watcher skips VXP (`isVxp` in `backend/src/custody/assets.ts`)
   because its balance is read live from the ledger. `requestWithdrawal`

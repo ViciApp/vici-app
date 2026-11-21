@@ -72,7 +72,7 @@ the rules are governed, and the implementation follows them.
    paying.
 4. **Two numbers share the name "VXP."** The ledger **token** balance
    (holdings = available + backed collateral) and the lifetime
-   **points** score (drives level/rank, only grows) are different
+   **points** score (drives level, only grows) are different
    numbers; see [`PRODUCT.md`](./PRODUCT.md#vxp-two-different-numbers-share-the-name).
    This page governs the **token** economy.
 5. **Every award is a real ICRC transfer**, recorded in `vxp_awards`
@@ -90,7 +90,7 @@ backs it. Amounts are **not** repeated here; follow the link.
 | **Prediction win**         | Pays at the market probability: `amount / p_win − amount`, with a floor on `p_win` so a long shot cannot pay an unbounded multiple.                                                                                 | `VXP_P_WIN_FLOOR`, `VXP_CALL_SIZE_LADDER` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                       |
 | **Onboarding grant**       | A single registration grant; no engagement-gated drip (the call-gated milestones are retained at zero).                                                                                                             | `NEW_USER_VXP_TOTAL_BASE_UNITS` ([`vxp-onboarding.constants.ts`](../../src/lib/constants/vxp-onboarding.constants.ts))                                                                                           |
 | **Referral: referee**      | Flat, one-time, paid to a new user who redeems within the post-signup window and then makes a first prediction.                                                                                                     | `REFERRAL_VXP_BONUS_BASE_UNITS`, `REFERRAL_SIGNUP_WINDOW_MS` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                          |
-| **Referral: referrer**     | **Diminishing** by lifetime conversions, then **hard-capped to zero**. Authoritative count is the satellite's own scan, never the client.                                                                           | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
+| **Referral: referrer**     | **Diminishing** by the redemption's place in the referrer's lifetime redemption order, not by first-prediction order, then **hard-capped to zero**. Authoritative count is the server's own scan, never the client. | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
 | **Daily-streak milestone** | Tiered, granted once when the daily streak hits a milestone, counted over server-recorded activity days (UTC days with an executed fill; a Flow swipe alone records none), never the client's `dailyStreak`.        | `VXP_STREAK_BONUSES`, `STREAK_MAX_CONTINUING_DAY_DELTA` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts), [`streak.utils.ts`](../../src/lib/utils/streak.utils.ts))               |
 | **Flow volume milestone**  | One-time per lifetime call-count threshold reached, counted as the caller's executed predictions in the engine on each trade activity, never the client's `totalTrades`.                                            | `VXP_FLOW_MILESTONES` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                           |
 | **Flow overtime**          | Repeatable, once per day on an overtime finish (daily counter hits the hard cap), minted inline by the Flow swipe write; a rolling wall-clock cap, counted before each mint, limits it (the day key is client-set). | `VXP_FLOW_OVERTIME_BONUS`, `VXP_FLOW_OVERTIME_ROLLING_CAP`, `VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                               |
@@ -99,7 +99,7 @@ backs it. Amounts are **not** repeated here; follow the link.
 | **Achievement unlock**     | Catalog XP, once per achievement, only for an unlock the server evaluates from its own data, never the client's `unlockedAchievements`; three achievements mint nothing (see the caps section).                     | `ACHIEVEMENTS` ([`achievements.constants.ts`](../../src/lib/constants/achievements.constants.ts)), thresholds in [`achievements.utils.ts`](../../src/lib/utils/achievements.utils.ts)                            |
 | **League founder**         | Awarded once per league founded, bounded by a lifetime per-account cap.                                                                                                                                             | `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS`, `VXP_LEAGUE_FOUNDER_MAX_AWARDS` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                         |
 | **Worlds podium**          | Tiered award for a top-three monthly finish, ranked from the members' settled history over the closed month, never a client-written counter.                                                                        | `VXP_WORLDS_PODIUM` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                                             |
-| **Tournament prize**       | Tiered award for a member of a monthly tournament's podium leagues (winner, other finalist, either semifinal loser), one per member per tournament whatever the place; every match is scored from settled history.  | `TOURNAMENT_PRIZE_TIERS` ([`tournament.ts`](../../src/lib/types/tournament.ts))                                                                                                                                  |
+| **Tournament prize**       | Tiered, one per member per tournament, to a podium league member (winner, finalist, semifinal loser) who joined before the draw and settled a call in its window; every match is scored from settled history.       | `TOURNAMENT_PRIZE_TIERS` ([`tournament.ts`](../../src/lib/types/tournament.ts))                                                                                                                                  |
 
 The authoritative list of award **types** is the `VxpAwardType` union
 ([`vxp-award.ts`](../../src/lib/types/vxp-award.ts)). The API books the
@@ -119,7 +119,14 @@ The bound that protects each surface today:
   multiple) and the call-size ladder cap.
 - **Referrer reward**: diminishing curve **and** a hard lifetime cap
   to zero; the count comes from the satellite's own scan, so the client
-  cannot inflate it, and deleting referred accounts never shrinks it. On
+  cannot inflate it. It counts every earlier redemption of the
+  referrer's code, whatever its payout state, so the order in which the
+  referees make their first prediction cannot keep a reward on a higher
+  tier or past the cap (`countPriorRedemptions` in
+  [`referral.services.ts`](../../src/satellite/services/referral.services.ts)).
+  Deleting a referred account that has started paying never shrinks it;
+  one that never did leaves the order, and a row already armed never pays
+  more than the amount it was armed with. On
   the web2 API a paid conversion keeps its slot through the referrer's
   own referral award, which outlives the referee's redemption row
   (`countPriorReferrerRedemptions` in
@@ -195,8 +202,10 @@ The bound that protects each surface today:
   podium pays from that frozen ranking only; a month where no affiliation
   clears the rank floor has no podium. The monthly stats the client
   writes (`user_monthly_stats`) feed the live month view and never a
-  payout, and the API has no route that writes them. Paid once per month
-  and place, for a member at month-end whatever their join date, but only
+  payout, and the API has no route that writes them. Paid once per month,
+  kind and place (a university and a country finish in the same month are
+  two awards; a month already paid under the older key without the kind
+  keeps its one award per place), for a member at month-end whatever their join date, but only
   if the slot was joined before the month closed. A first join has no switch lock, so without
   this anyone could join last month's winner after close and collect its
   prize; a switch or a leave resets the join time, so a move after close
@@ -207,8 +216,14 @@ The bound that protects each surface today:
   history**: each league's members' settled calls and wins over the
   round window, read from the clearing canister through the helper
   league battles are scored with, counting only memberships joined
-  before the window closed. A league below the per-match floor
-  forfeits. Nothing a member writes decides a match: `league_stats`
+  before the draw (the roster the bracket was seeded from), so a
+  recruit who joins mid-tournament cannot lift a match. A league below
+  the per-match floor forfeits. The draw seeds the bracket by how many
+  members each league has who settled at least one call in the calendar
+  month before the draw, through the same helper, never by raw member
+  count, so accounts that never play do not lift a league's seed. A
+  user in several leagues counts in each, for the seeding and for every
+  match. Nothing a member writes decides a match: `league_stats`
   (fed by each member's client-reported `totalTrades` on both backends)
   is a display cache that no award reads. The draw runs for
   the current UTC month only, and only while its round 1 window is still
@@ -225,7 +240,10 @@ The bound that protects each surface today:
   membership that predates the draw counts: the draw seeds the bracket
   from that roster, so joining a placed league afterwards (including
   after the tournament concluded) earns nothing, and a member who left
-  before claiming has no membership left to count. The satellite judges
+  before claiming has no membership left to count. The member must also
+  have settled at least one call inside the tournament window (all four
+  rounds), so a podium league's idle members collect nothing. Prizes
+  paid before this rule are left as they are. The satellite judges
   the join by the membership doc's stored creation time, never the
   client-written join field.
 
@@ -260,7 +278,7 @@ award but the repeatable `flow_overtime` (`REPEATABLE_VXP_AWARD_TYPES`)
 is one-time per key: the onboarding milestones, the referee bonus, the
 referrer reward per referee, streak and flow-volume milestones,
 achievements, comeback, calibration per market, league founder per
-league, the Worlds podium per month and place and the tournament prize
+league, the Worlds podium per month, kind and place and the tournament prize
 per tournament. The hard delete removes the award records, and the same
 identity can sign up again, so the purge keeps an **anonymous marker** of
 each one-time award the account was paid (or may have been, while its

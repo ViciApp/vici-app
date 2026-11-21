@@ -677,7 +677,7 @@ export interface AppJoinLeagueByInviteResult {
 					privacy: { open: null } | { private: null };
 				}
 		  ];
-	reason: [] | [{ already_member: null } | { not_found: null }];
+	reason: [] | [{ already_member: null } | { rate_limited: null } | { not_found: null }];
 }
 export interface AppListAffiliationChampionshipsArgs {
 	kind: { country: null } | { university: null };
@@ -1044,15 +1044,13 @@ export interface AppLookupLeagueByInviteResult {
 					privacy: { open: null } | { private: null };
 				}
 		  ];
+	reason: [] | [{ rate_limited: null }];
 }
 export interface AppLookupReferralCodeArgs {
 	code: string;
 }
 export interface AppLookupReferralCodeResult {
 	owner: [] | [string];
-}
-export interface AppMigrateLeagueInviteCodesResult {
-	migrated: number;
 }
 export interface AppPruneResolvedResultsResult {
 	pruned: number;
@@ -1095,6 +1093,10 @@ export interface AppRecoverMyAccountResult {
 }
 export interface AppRedeemReferralCodeArgs {
 	code: string;
+}
+export interface AppRefreshLeaderboardRankingResult {
+	refreshed: boolean;
+	ranked: number;
 }
 export interface AppRejectFriendRequestArgs {
 	relation_id: string;
@@ -1208,8 +1210,15 @@ export interface AppSubmitSchoolArgs {
 export interface AppSubmitSchoolResult {
 	submission_id: string;
 }
+export interface AppSweepExpiredDeletionsArgs {
+	limit: [] | [number];
+	after_key: [] | [string];
+}
 export interface AppSweepExpiredDeletionsResult {
+	done: boolean;
 	swept: number;
+	next_after_key: [] | [string];
+	failed: number;
 }
 export interface AppTrackEventsArgs {
 	events: Array<{
@@ -1535,7 +1544,6 @@ export interface _SERVICE {
 		AppLookupLeagueByInviteResult
 	>;
 	app_lookup_referral_code: ActorMethod<[AppLookupReferralCodeArgs], AppLookupReferralCodeResult>;
-	app_migrate_league_invite_codes: ActorMethod<[], AppMigrateLeagueInviteCodesResult>;
 	app_prune_resolved_results: ActorMethod<[], AppPruneResolvedResultsResult>;
 	app_read_battle_live_score: ActorMethod<
 		[AppReadBattleLiveScoreArgs],
@@ -1546,6 +1554,7 @@ export interface _SERVICE {
 	app_record_flow_swipe: ActorMethod<[AppRecordFlowSwipeArgs], AppRecordFlowSwipeResult>;
 	app_recover_my_account: ActorMethod<[], AppRecoverMyAccountResult>;
 	app_redeem_referral_code: ActorMethod<[AppRedeemReferralCodeArgs], undefined>;
+	app_refresh_leaderboard_ranking: ActorMethod<[], AppRefreshLeaderboardRankingResult>;
 	app_reject_friend_request: ActorMethod<[AppRejectFriendRequestArgs], undefined>;
 	app_resolve_battle: ActorMethod<[AppResolveBattleArgs], AppResolveBattleResult>;
 	app_resolve_tournament_round: ActorMethod<
@@ -1558,7 +1567,10 @@ export interface _SERVICE {
 	app_settle_founder_awards: ActorMethod<[], AppSettleFounderAwardsResult>;
 	app_settle_referral: ActorMethod<[AppSettleReferralArgs], undefined>;
 	app_submit_school: ActorMethod<[AppSubmitSchoolArgs], AppSubmitSchoolResult>;
-	app_sweep_expired_deletions: ActorMethod<[], AppSweepExpiredDeletionsResult>;
+	app_sweep_expired_deletions: ActorMethod<
+		[AppSweepExpiredDeletionsArgs],
+		AppSweepExpiredDeletionsResult
+	>;
 	app_track_events: ActorMethod<[AppTrackEventsArgs], AppTrackEventsResult>;
 	app_transfer_league_ownership: ActorMethod<
 		[AppTransferLeagueOwnershipArgs],

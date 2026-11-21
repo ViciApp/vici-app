@@ -191,7 +191,11 @@
 			{:else}
 				<Gift aria-hidden="true" size={15} strokeWidth={1.8} />
 			{/if}
-			{t({ locale: $localeStore, key: 'dash.build.sheet_invite_cta' })}
+			{t({
+				locale: $localeStore,
+				key: 'dash.build.sheet_invite_cta',
+				params: { amount: formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }) }
+			})}
 		</button>
 	</div>
 </BottomSheet>

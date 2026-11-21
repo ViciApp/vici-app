@@ -6,6 +6,7 @@ import {
 } from '#lib/services/relation-queries.services.ts';
 import { userStore } from '#lib/stores/user.store.ts';
 import type { Relation } from '#lib/types/relation.ts';
+import { createLoadEpoch } from '#lib/utils/async.utils.ts';
 import type { Doc } from '@junobuild/core';
 import { get, writable } from 'svelte/store';
 
@@ -23,10 +24,11 @@ export const friendRequestsStore = writable<Doc<Relation>[]>([]);
 export const sentFriendRequestsStore = writable<Doc<Relation>[]>([]);
 
 /**
- * Flips to `true` the first time `refreshFriendRelations` completes for the
- * current principal, and stays `true` until `clearFriendRelations` runs (i.e.
- * the principal changes). Lets consumers show a spinner only on the cold
- * load and switch to stale-while-revalidate on every subsequent visit.
+ * Flips to `true` the first time `refreshFriendRelations` loads all three
+ * lists for the current principal, and stays `true` until
+ * `clearFriendRelations` runs (i.e. the principal changes). Lets consumers
+ * show a spinner only on the cold load and switch to stale-while-revalidate
+ * on every subsequent visit.
  */
 export const friendsRelationsLoadedStore = writable<boolean>(false);
 
@@ -69,17 +71,52 @@ const collectCounterparts = ({
 let inFlight: Promise<void> | undefined;
 let queued = false;
 
+// Invalidated by every `clearFriendRelations()` (i.e. each auth transition).
+const epoch = createLoadEpoch();
+
 const runRefresh = async (): Promise<void> => {
-	const [friends, requests, sent] = await Promise.all([
-		getFriends().catch(() => []),
-		getFriendRequests().catch(() => []),
-		getSentFriendRequests().catch(() => [])
+	const isCurrent = epoch.start();
+
+	const [friendsResult, requestsResult, sentResult] = await Promise.allSettled([
+		getFriends(),
+		getFriendRequests(),
+		getSentFriendRequests()
 	]);
 
-	friendsListStore.set(friends);
-	friendRequestsStore.set(requests);
-	sentFriendRequestsStore.set(sent);
-	friendsRelationsLoadedStore.set(true);
+	if (!isCurrent()) {
+		return;
+	}
+
+	// A failed list keeps its cached value: replacing it with an empty one
+	// would show a signed-in user's friends or requests as gone.
+	if (friendsResult.status === 'fulfilled') {
+		friendsListStore.set(friendsResult.value);
+	}
+
+	if (requestsResult.status === 'fulfilled') {
+		friendRequestsStore.set(requestsResult.value);
+	}
+
+	if (sentResult.status === 'fulfilled') {
+		sentFriendRequestsStore.set(sentResult.value);
+	}
+
+	const failures = [friendsResult, requestsResult, sentResult].filter(
+		(result): result is PromiseRejectedResult => result.status === 'rejected'
+	);
+
+	if (failures.length > 0) {
+		console.error(
+			'friends.store: refresh failed',
+			failures.map(({ reason }) => reason)
+		);
+	} else {
+		friendsRelationsLoadedStore.set(true);
+	}
+
+	const friends = get(friendsListStore);
+	const requests = get(friendRequestsStore);
+	const sent = get(sentFriendRequestsStore);
 
 	// Hydrate the shared `profilesStore` for every counterpart of the
 	// viewer. Fire-and-forget so the refresh promise resolves as soon as the
@@ -138,6 +175,7 @@ export const refreshFriendRelations = async (): Promise<void> => {
 };
 
 export const clearFriendRelations = (): void => {
+	epoch.invalidate();
 	friendsListStore.set([]);
 	friendRequestsStore.set([]);
 	sentFriendRequestsStore.set([]);

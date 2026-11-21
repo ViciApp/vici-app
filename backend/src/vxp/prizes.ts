@@ -6,17 +6,20 @@
 
 import { nonNullish } from '@dfinity/utils';
 import { query } from '../db/client';
+import type { AffiliationKind } from '../worlds/affiliations';
+import { hasAwardMarker } from './award-markers';
 import { grantAward, type GrantAwardOutcome } from './awards';
 import { parseVxp, TOURNAMENT_PRIZE_TIERS, VXP_WORLDS_PODIUM } from './constants';
 
 export type PodiumPlace = 'gold' | 'silver' | 'bronze';
 
 /**
- * One Worlds podium award: keyed <YYYY-MM>_<place> so a member claims each
- * closed month's finish at most once, exactly the satellite's award-key
- * scheme.
+ * Whether the month's place was already paid under the key that predates the
+ * kind (<YYYY-MM>_<place>), when one claim paid a single award for a place
+ * whichever kind finished there. That award stands for both kinds of its month
+ * and place, so a month paid under it never pays the place again.
  */
-export const grantWorldsPodiumPrize = ({
+const heldUnkindedPodiumAward = async ({
 	userId,
 	monthAnchor,
 	place
@@ -24,10 +27,43 @@ export const grantWorldsPodiumPrize = ({
 	userId: string;
 	monthAnchor: string;
 	place: PodiumPlace;
-}): Promise<GrantAwardOutcome> => {
+}): Promise<boolean> => {
 	const awardKey = `${monthAnchor}_${place}`;
+	const rows = await query<{ one: number }>(
+		`select 1 as one from vxp_awards
+		 where user_id = $1 and award_type = 'worlds_podium' and award_key = $2
+		 limit 1`,
+		[userId, awardKey]
+	);
 
-	return grantAward({
+	return (
+		nonNullish(rows[0]) || (await hasAwardMarker({ userId, awardType: 'worlds_podium', awardKey }))
+	);
+};
+
+/**
+ * One Worlds podium award per finish: keyed <YYYY-MM>_<kind>_<place>, so a
+ * member claims each closed month's university finish and country finish
+ * at most once each, exactly the satellite's award-key scheme.
+ */
+export const grantWorldsPodiumPrize = async ({
+	userId,
+	monthAnchor,
+	kind,
+	place
+}: {
+	userId: string;
+	monthAnchor: string;
+	kind: AffiliationKind;
+	place: PodiumPlace;
+}): Promise<GrantAwardOutcome> => {
+	if (await heldUnkindedPodiumAward({ userId, monthAnchor, place })) {
+		return { outcome: 'already' };
+	}
+
+	const awardKey = `${monthAnchor}_${kind}_${place}`;
+
+	return await grantAward({
 		userId,
 		awardType: 'worlds_podium',
 		awardKey,
@@ -39,10 +75,12 @@ export const grantWorldsPodiumPrize = ({
 /**
  * One tournament prize per user per tournament, whatever the place: keyed
  * <tournamentId>_place_<n>, and refused when the user already holds a prize
- * for that tournament under any place. The read covers prizes imported from
- * the legacy app; between two live grants the tournament-scoped unique index
- * (migration 0018) settles the race, so two concurrent grants for different
- * places cannot both land.
+ * for that tournament under any place, except a live one that failed (the
+ * grant reopens it and sends it again). The read covers prizes imported from
+ * the legacy app, failed ones included, since the grant never reopens those;
+ * between two live grants the tournament-scoped unique index (migration 0018)
+ * settles the race, so two concurrent grants for different places cannot
+ * both land.
  */
 export const grantTournamentPrize = async ({
 	userId,
@@ -59,6 +97,7 @@ export const grantTournamentPrize = async ({
 		`select 1 as one from vxp_awards
 		 where user_id = $1 and award_type = 'tournament_prize'
 		   and split_part(award_key, '_place_', 1) = $2
+		   and not (origin = 'live' and status = 'failed')
 		 limit 1`,
 		[userId, tournamentId]
 	);

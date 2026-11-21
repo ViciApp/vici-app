@@ -1467,42 +1467,6 @@ const listWorldsRoster = async (
 	return AppListWorldsRosterResultSchema.parse(result);
 };
 
-const AppLookupLeagueByInviteArgsSchema = j.strictObject({ inviteCode: j.string() });
-const AppLookupLeagueByInviteResultSchema = j.strictObject({
-	league: j.optional(
-		j.strictObject({
-			id: j.string(),
-			name: j.string(),
-			description: j.optional(j.string()),
-			inviteCode: j.optional(j.string()),
-			owner: j.string(),
-			createdAtMs: j.number(),
-			accentColor: j.optional(j.string()),
-			emblem: j.optional(j.string()),
-			privacy: j.enum(['private', 'open']),
-			imageUrl: j.optional(j.string())
-		})
-	)
-});
-
-const lookupLeagueByInvite = async (
-	args: j.infer<typeof AppLookupLeagueByInviteArgsSchema>
-): Promise<j.infer<typeof AppLookupLeagueByInviteResultSchema>> => {
-	const parsedArgs = AppLookupLeagueByInviteArgsSchema.parse(args);
-	const idlArgs = schemaToIdl({
-		schema: AppLookupLeagueByInviteArgsSchema,
-		value: parsedArgs
-	}) as Parameters<SatelliteActor['app_lookup_league_by_invite']>[0];
-
-	const { app_lookup_league_by_invite } = await getSatelliteExtendedActor<SatelliteActor>({
-		idlFactory
-	});
-	const idlResult = await app_lookup_league_by_invite(idlArgs);
-
-	const result = schemaFromIdl({ schema: AppLookupLeagueByInviteResultSchema, value: idlResult });
-	return AppLookupLeagueByInviteResultSchema.parse(result);
-};
-
 const AppLookupReferralCodeArgsSchema = j.strictObject({ code: j.string() });
 const AppLookupReferralCodeResultSchema = j.strictObject({ owner: j.optional(j.string()) });
 
@@ -1871,7 +1835,7 @@ const AppJoinLeagueByInviteResultSchema = j.strictObject({
 			imageUrl: j.optional(j.string())
 		})
 	),
-	reason: j.optional(j.enum(['not_found', 'already_member']))
+	reason: j.optional(j.enum(['not_found', 'already_member', 'rate_limited']))
 });
 
 const joinLeagueByInvite = async (
@@ -1892,21 +1856,41 @@ const joinLeagueByInvite = async (
 	return AppJoinLeagueByInviteResultSchema.parse(result);
 };
 
-const AppMigrateLeagueInviteCodesResultSchema = j.strictObject({ migrated: j.number() });
+const AppLookupLeagueByInviteArgsSchema = j.strictObject({ inviteCode: j.string() });
+const AppLookupLeagueByInviteResultSchema = j.strictObject({
+	league: j.optional(
+		j.strictObject({
+			id: j.string(),
+			name: j.string(),
+			description: j.optional(j.string()),
+			inviteCode: j.optional(j.string()),
+			owner: j.string(),
+			createdAtMs: j.number(),
+			accentColor: j.optional(j.string()),
+			emblem: j.optional(j.string()),
+			privacy: j.enum(['private', 'open']),
+			imageUrl: j.optional(j.string())
+		})
+	),
+	reason: j.optional(j.enum(['rate_limited']))
+});
 
-const migrateLeagueInviteCodes = async (): Promise<
-	j.infer<typeof AppMigrateLeagueInviteCodesResultSchema>
-> => {
-	const { app_migrate_league_invite_codes } = await getSatelliteExtendedActor<SatelliteActor>({
+const lookupLeagueByInvite = async (
+	args: j.infer<typeof AppLookupLeagueByInviteArgsSchema>
+): Promise<j.infer<typeof AppLookupLeagueByInviteResultSchema>> => {
+	const parsedArgs = AppLookupLeagueByInviteArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppLookupLeagueByInviteArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_lookup_league_by_invite']>[0];
+
+	const { app_lookup_league_by_invite } = await getSatelliteExtendedActor<SatelliteActor>({
 		idlFactory
 	});
-	const idlResult = await app_migrate_league_invite_codes();
+	const idlResult = await app_lookup_league_by_invite(idlArgs);
 
-	const result = schemaFromIdl({
-		schema: AppMigrateLeagueInviteCodesResultSchema,
-		value: idlResult
-	});
-	return AppMigrateLeagueInviteCodesResultSchema.parse(result);
+	const result = schemaFromIdl({ schema: AppLookupLeagueByInviteResultSchema, value: idlResult });
+	return AppLookupLeagueByInviteResultSchema.parse(result);
 };
 
 const AppPruneResolvedResultsResultSchema = j.strictObject({ pruned: j.number() });
@@ -2041,6 +2025,26 @@ const redeemReferralCode = async (
 		idlFactory
 	});
 	await app_redeem_referral_code(idlArgs);
+};
+
+const AppRefreshLeaderboardRankingResultSchema = j.strictObject({
+	refreshed: j.boolean(),
+	ranked: j.number()
+});
+
+const refreshLeaderboardRanking = async (): Promise<
+	j.infer<typeof AppRefreshLeaderboardRankingResultSchema>
+> => {
+	const { app_refresh_leaderboard_ranking } = await getSatelliteExtendedActor<SatelliteActor>({
+		idlFactory
+	});
+	const idlResult = await app_refresh_leaderboard_ranking();
+
+	const result = schemaFromIdl({
+		schema: AppRefreshLeaderboardRankingResultSchema,
+		value: idlResult
+	});
+	return AppRefreshLeaderboardRankingResultSchema.parse(result);
 };
 
 const AppRejectFriendRequestArgsSchema = j.strictObject({ relationId: j.string() });
@@ -2230,15 +2234,30 @@ const submitSchool = async (
 	return AppSubmitSchoolResultSchema.parse(result);
 };
 
-const AppSweepExpiredDeletionsResultSchema = j.strictObject({ swept: j.number() });
+const AppSweepExpiredDeletionsArgsSchema = j.strictObject({
+	afterKey: j.optional(j.string()),
+	limit: j.optional(j.number())
+});
+const AppSweepExpiredDeletionsResultSchema = j.strictObject({
+	swept: j.number(),
+	failed: j.number(),
+	nextAfterKey: j.optional(j.string()),
+	done: j.boolean()
+});
 
-const sweepExpiredDeletions = async (): Promise<
-	j.infer<typeof AppSweepExpiredDeletionsResultSchema>
-> => {
+const sweepExpiredDeletions = async (
+	args: j.infer<typeof AppSweepExpiredDeletionsArgsSchema>
+): Promise<j.infer<typeof AppSweepExpiredDeletionsResultSchema>> => {
+	const parsedArgs = AppSweepExpiredDeletionsArgsSchema.parse(args);
+	const idlArgs = schemaToIdl({
+		schema: AppSweepExpiredDeletionsArgsSchema,
+		value: parsedArgs
+	}) as Parameters<SatelliteActor['app_sweep_expired_deletions']>[0];
+
 	const { app_sweep_expired_deletions } = await getSatelliteExtendedActor<SatelliteActor>({
 		idlFactory
 	});
-	const idlResult = await app_sweep_expired_deletions();
+	const idlResult = await app_sweep_expired_deletions(idlArgs);
 
 	const result = schemaFromIdl({ schema: AppSweepExpiredDeletionsResultSchema, value: idlResult });
 	return AppSweepExpiredDeletionsResultSchema.parse(result);
@@ -2594,7 +2613,6 @@ export const functions = {
 	listSentFriendRequests,
 	listWorldsMemberCounts,
 	listWorldsRoster,
-	lookupLeagueByInvite,
 	lookupReferralCode,
 	searchProfiles,
 	acceptFriendRequest,
@@ -2609,7 +2627,7 @@ export const functions = {
 	followUser,
 	hibernateMyAccount,
 	joinLeagueByInvite,
-	migrateLeagueInviteCodes,
+	lookupLeagueByInvite,
 	pruneResolvedResults,
 	readBattleLiveScore,
 	rebuildMarketTagIndex,
@@ -2617,6 +2635,7 @@ export const functions = {
 	recordFlowSwipe,
 	recoverMyAccount,
 	redeemReferralCode,
+	refreshLeaderboardRanking,
 	rejectFriendRequest,
 	resolveBattle,
 	resolveTournamentRound,

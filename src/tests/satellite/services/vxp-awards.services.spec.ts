@@ -1,4 +1,5 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
+import type { AnalyticsEventDoc } from '#lib/types/analytics-event.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import {
 	installSatelliteHost,
@@ -7,8 +8,12 @@ import {
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
 import {
 	assertDeleteVxpAward,
-	assertSetVxpAward
+	assertSetVxpAward,
+	persistAward,
+	reclaimAward,
+	updateAward
 } from '#satellite/services/vxp-awards.services.ts';
+import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertDeleteDocContext } from '@junobuild/functions';
 import type { AccessKeys } from '@junobuild/functions/sdk';
@@ -107,6 +112,77 @@ describe('vxp-awards.services', () => {
 	});
 });
 
+describe('reclaimAward', () => {
+	let host: SatelliteHost;
+
+	const pending: VxpAwardDoc = {
+		recipient: recipient.toText(),
+		awardType: 'streak',
+		awardKey: 'streak_7',
+		amountBaseUnits: '500000',
+		status: 'pending',
+		earnedAtMs: 1_700_000_000_000
+	};
+	const { recipient: recipientText, awardType, awardKey } = pending;
+	const key = vxpAwardKey(pending);
+
+	const stored = (): VxpAwardDoc | undefined =>
+		host.readDoc<VxpAwardDoc>({ collection: Collection.VXP_AWARDS, key });
+
+	const settle = (patch: Partial<VxpAwardDoc> & Pick<VxpAwardDoc, 'status'>) =>
+		updateAward({ recipient: recipientText, awardType, awardKey, patch });
+
+	beforeEach(() => {
+		host = installSatelliteHost({ asserts: { set: assertSetVxpAward } });
+	});
+
+	afterEach(() => host.restore());
+
+	it('leaves a key with no award free for a first payout', () => {
+		assert.deepEqual(reclaimAward({ recipient: recipientText, awardType, awardKey }), {
+			kind: 'free'
+		});
+	});
+
+	it('holds a pending award, whose transfer may have landed', () => {
+		persistAward({ recipient: recipientText, awardType, awardKey, doc: pending });
+
+		assert.deepEqual(reclaimAward({ recipient: recipientText, awardType, awardKey }), {
+			kind: 'held'
+		});
+		assert.deepEqual(stored(), pending);
+	});
+
+	it('holds a paid award', () => {
+		persistAward({ recipient: recipientText, awardType, awardKey, doc: pending });
+		settle({ status: 'paid', paidAtMs: 1_700_000_001_000, blockIndex: '42' });
+
+		assert.deepEqual(reclaimAward({ recipient: recipientText, awardType, awardKey }), {
+			kind: 'held'
+		});
+		assert.equal(stored()?.status, 'paid');
+	});
+
+	it('moves a failed award back to pending at its recorded amount', () => {
+		persistAward({ recipient: recipientText, awardType, awardKey, doc: pending });
+		settle({ status: 'failed', errorMessage: 'InsufficientFunds(balance=0)' });
+
+		assert.deepEqual(reclaimAward({ recipient: recipientText, awardType, awardKey }), {
+			kind: 'retry',
+			doc: pending
+		});
+		assert.deepEqual(stored(), pending);
+	});
+
+	it('lets only one of two retries claim a failed award', () => {
+		persistAward({ recipient: recipientText, awardType, awardKey, doc: pending });
+		settle({ status: 'failed', errorMessage: 'InsufficientFunds(balance=0)' });
+
+		assert.equal(reclaimAward({ recipient: recipientText, awardType, awardKey }).kind, 'retry');
+		assert.equal(reclaimAward({ recipient: recipientText, awardType, awardKey }).kind, 'held');
+	});
+});
+
 describe('assertSetVxpAward', () => {
 	let host: SatelliteHost;
 
@@ -188,6 +264,26 @@ describe('assertSetVxpAward', () => {
 		);
 	});
 
+	it('lets a satellite controller move a failed award back to pending, and nowhere else', () => {
+		const failed: VxpAwardDoc = { ...pending, status: 'failed', errorMessage: 'x' };
+
+		assert.doesNotThrow(() => write({ caller: controller, current: failed, proposed: pending }));
+		assert.throws(
+			() =>
+				write({
+					caller: controller,
+					current: failed,
+					proposed: { ...pending, status: 'paid', paidAtMs: 1, blockIndex: '1' }
+				}),
+			/failed → pending/
+		);
+		assert.throws(
+			() =>
+				write({ caller: controller, current: failed, proposed: { ...pending, blockIndex: '1' } }),
+			/failed → pending/
+		);
+	});
+
 	it('still holds a controller to the key shape and the lifecycle', () => {
 		assert.throws(
 			() =>
@@ -214,5 +310,63 @@ describe('assertSetVxpAward', () => {
 				}),
 			/terminal/
 		);
+	});
+});
+
+describe('updateAward', () => {
+	let host: SatelliteHost;
+
+	const pending: VxpAwardDoc = {
+		recipient: recipient.toText(),
+		awardType: 'streak',
+		awardKey: 'streak_7',
+		amountBaseUnits: '500000',
+		status: 'pending',
+		earnedAtMs: 1_700_000_000_000
+	};
+	const { recipient: recipientText, awardType, awardKey } = pending;
+
+	const events = (): AnalyticsEventDoc[] =>
+		host
+			.keys(Collection.EVENTS)
+			.map((key) => host.readDoc<AnalyticsEventDoc>({ collection: Collection.EVENTS, key }))
+			.filter(nonNullish);
+
+	const pay = () =>
+		updateAward({
+			recipient: recipientText,
+			awardType,
+			awardKey,
+			patch: { status: 'paid', paidAtMs: 1_700_000_001_000, blockIndex: '42' }
+		});
+
+	beforeEach(() => {
+		host = installSatelliteHost({ asserts: { set: assertSetVxpAward } });
+		persistAward({ recipient: recipientText, awardType, awardKey, doc: pending });
+	});
+
+	afterEach(() => host.restore());
+
+	it('captures the payout and the streak milestone when the award is paid', () => {
+		pay();
+
+		assert.deepEqual(
+			events().map(({ name, principal, props }) => ({ name, principal, props })),
+			[
+				{ name: 'vxp_awarded', principal: recipientText, props: { value: 50, label: 'streak' } },
+				{ name: 'streak_milestone', principal: recipientText, props: { step: 7 } }
+			]
+		);
+	});
+
+	it('captures nothing when the payout fails', () => {
+		updateAward({
+			recipient: recipientText,
+			awardType,
+			awardKey,
+			patch: { status: 'failed', errorMessage: 'ledger down' }
+		});
+
+		assert.deepEqual(events(), []);
 	});
 });

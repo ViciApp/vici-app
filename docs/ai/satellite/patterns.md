@@ -58,6 +58,13 @@ Rules:
   `src/satellite/index.ts`.)
 - **`PrincipalTextSchema`** comes from `@junobuild/schema`. Use it for
   every principal-typed arg; don't hand-write a regex.
+- **An endpoint that stores what an anonymous caller sends bounds it**
+  in its schema: `.max()` on the array and on every string, from named
+  constants in the domain's constants file. Its handler also refuses
+  what only the server may write. `trackEvents` takes at most
+  `ANALYTICS_MAX_EVENTS_PER_BATCH` events with capped strings
+  ([`analytics.constants.ts`](../../../src/lib/constants/analytics.constants.ts)),
+  and `trackEventsFn` drops an event in `SERVER_ANALYTICS_EVENT_NAMES`.
 - **Keep handlers thin.** The function passed to `handler:` should
   immediately delegate to `services/<area>.services.ts`. The schema
   declaration + the dispatch table are the only logic that belongs in
@@ -197,6 +204,10 @@ Consequences:
   hook on the referrals row only runs for a `set_doc` through the public API,
   which `assertSetReferral` allows to a controller alone (a hand-written row in
   the Console).
+- The payout analytics (`vxp_awarded`, `streak_milestone`) follow the
+  same rule: every `vxp_awards` doc is a serverless write, so
+  `updateAward` emits them inline (`captureVxpAwardEvents`) on the
+  `pending → paid` write rather than from a hook on the collection.
 - Make the inline work **idempotent + retry-safe** (lock → act →
   finalize, short-circuit on already-done), and expose a settle/retry
   endpoint so a failed transfer can be re-driven; there is no hook replay
@@ -390,7 +401,12 @@ is the reference shape:
   `owner` field (profile writes don't enforce `owner === key`), and
   runs `Principal.fromText` + the cascade **outside** the malformed-row
   try/catch so a purge failure is logged + counted as an under-purge
-  instead of being silently swallowed as a skipped bad row.
+  instead of being silently swallowed as a skipped bad row. One call
+  reads one keyset page of `profiles` and purges a single account (a
+  purge deletes every doc the account owns, see the bulk-rewrite budget
+  note below); a failed purge is counted in `failed` and the walk moves
+  past it. The operator passes `nextAfterKey` back as `afterKey` until
+  `done`.
 - **Hard-delete must not orphan others: transfer, don't just delete.**
   The cascade's owned-league step deletes a league only when no other
   member remains; if members self-joined during the recovery window it
@@ -408,7 +424,10 @@ is the reference shape:
 - **Keep the marker monotonic + the side effects once-only.**
   Re-deleting keeps the EARLIEST `deletedAtMs` so the recovery clock
   can't be reset. Recovery clears the field; both are version-locked
-  overwrites. `softDeleteProfile` returns an `alreadyDeleted` flag so
+  overwrites, signed as a controller: `assertAccountStateUnchanged`
+  holds every other write to the stored `deletedAtMs` and
+  `hibernatedAtMs`, so the owner cannot clear a soft delete past the
+  window and skip the purge. `softDeleteProfile` returns an `alreadyDeleted` flag so
   one-time side effects (the anonymous `EXIT_SIGNALS` churn row) are
   skipped on a re-delete; re-deleting must be idempotent, not
   cumulative.
@@ -566,6 +585,13 @@ state). The pattern, as built for school-email verification
   (`call({ canisterId: Principal.fromText('aaaaa-aa'), method:
 'raw_rand', … })`); do **not** reuse the `time()`-seeded FNV trick in
   `referral.services.ts`, which is for uniqueness only.
+- **A limit counted from stored rows is checked next to the write.**
+  Every `await` (the `raw_rand` call, the outcall) lets other calls run,
+  so a cap that counts rows holds only when the row it lets through is
+  written in the same synchronous step as the check, with no `await`
+  between them. `submitSchoolFn` refuses early, then checks again after
+  `raw_rand` and writes the submission before sending
+  (`assertSendSlotFree`).
 - **Server-owned collections are `controllers`-scoped.** Submissions /
   config the satellite alone reads + writes (via `*DocStore`) use
   `read/write: 'controllers'` in `juno.config.ts` so no client can read a
@@ -613,6 +639,12 @@ collection keys themselves, plus the clearing leaderboard). The pattern:
   the answer says `freezePending`.
 - **Add the collection to the hard-delete cascade**
   (`hardDeleteAccountFn`): a private doc must not outlive its account.
+- **Page a bulk walk through `walkKeysetPage`**
+  (`keyset-walk.services.ts`), the keyset paging the budget note above
+  asks for: the endpoint takes `KeysetWalkArgsSchema` (`afterKey`,
+  `limit`), spreads `KeysetWalkResultSchema` (`nextAfterKey`, `done`)
+  into its result, and its visitor reports each doc `kept`, `removed` or
+  `stop` (write budget spent), so the cursor never names a deleted key.
 
 ## Build-wide write gates with an `app_config` kill switch
 
@@ -649,7 +681,7 @@ when one is missing), and each assert lets through only:
 
 - **the doc's owner**, read from the key or the payload the set assert binds
   to the caller: a profile's key, an activity's or a reaction's key segment,
-  a referral code's `owner`, a league's `owner`, a month row's key prefix.
+  a league's `owner`, a month row's key prefix.
   `assertOwnerOrController` in
   [`authz.services.ts`](../../../src/satellite/services/authz.services.ts)
   is the shared check;
@@ -669,7 +701,10 @@ Two more rules hold on a user-owned doc:
 - **A field only the satellite decides is unchanged by any other caller.**
   The owner may write the doc but must carry the stored value of such a
   field (`assertSchoolStatusUnchanged` for a profile's `schoolStatus`); the
-  endpoint that decides it signs as `controllerCaller(...)`.
+  endpoint that decides it signs as `controllerCaller(...)`. A league's
+  `owner` is one: `assertSetLeague` takes a new owner only from a
+  controller, and `transferLeagueOwnership` writes it as one once the new
+  owner is checked to be a member.
 
 A collection whose docs the satellite computes has no owner path at all: the
 assert accepts only a controller (`assertControllerWrite`) and the endpoint
@@ -693,7 +728,21 @@ not on the `read: 'public'` league doc, and only the league's own members
 read it back (`listMyLeagues`). The write it gates goes through an
 endpoint that checks it: `assertSetLeagueMember` admits a new member row
 only from a controller (beyond the founder's own row), and
-`joinLeagueByInvite` writes it as one once the code matches.
+`joinLeagueByInvite` writes it as one once the code matches. Referral codes
+follow the same rule: the controllers-only `referral_codes` collection is
+read and written only by
+[`referral.services.ts`](../../../src/satellite/services/referral.services.ts),
+signing as a controller, which assigns a code when a profile is created and
+resolves one for `lookupReferralCode`, `getMyReferralCode`, the redeem and
+the friendship claim, so no client lists the codes or who owns them.
+
+**Guessing such a secret is bounded per account.** `lookupLeagueByInvite`
+(an update for this reason) and `joinLeagueByInvite` resolve a league
+invite code through `resolveInviteCode`
+([`league-invite-cap.services.ts`](../../../src/satellite/services/league-invite-cap.services.ts)),
+which records each code that opened no league in the controllers-only
+`league_invite_attempts` collection and refuses an account past its hourly
+cap of misses, a right code included.
 
 **Storage collections too.** A `write: 'public'` Storage collection lets any
 caller upload over or delete any asset, so it has an `assertUploadAsset` and

@@ -119,3 +119,31 @@ export const startPolling = ({
 		clearScheduled();
 	};
 };
+
+export interface LoadEpoch {
+	/** Marks a load as started; the returned check stays true until the next `invalidate`. */
+	start: () => () => boolean;
+	/** Drops every load started before this call. */
+	invalidate: () => void;
+}
+
+/**
+ * Epoch guard for a user-scoped cache: a refresh captures the epoch when it
+ * starts and commits only while the check it got is still true; the cache's
+ * clear bumps the epoch. A fetch in flight across a sign-out / sign-in then
+ * cannot repopulate the cache (or flip its `loaded` flag) for the next account.
+ */
+export const createLoadEpoch = (): LoadEpoch => {
+	let epoch = 0;
+
+	return {
+		start: () => {
+			const startedAt = epoch;
+
+			return () => epoch === startedAt;
+		},
+		invalidate: () => {
+			epoch += 1;
+		}
+	};
+};

@@ -30,7 +30,10 @@ runs:
         default_author: github_actions
         message: ${{ inputs.message }}
 
+    # always(): a failed commit or push must not leave the app token in .git/config for the
+    # rest of the job.
     - name: Unset local git remote config
+      if: always()
       run: |
         git config --unset-all url."https://github-actions:${GITHUB_TOKEN}@github.com/".insteadOf || true
         git config --unset-all url."https://github.com/".insteadOf || true

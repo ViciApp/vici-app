@@ -9,7 +9,7 @@ import {
 	sanitizeNickname
 } from '#lib/constants/profile.constants.ts';
 import { defaultPreferences } from '#lib/constants/settings.constants.ts';
-import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
 import { notifyAchievementsUnlocked } from '#lib/services/achievements.services.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
@@ -52,6 +52,7 @@ import {
 	searchProfiles as searchProfilesWeb2,
 	upsertMyProfile as upsertMyProfileWeb2
 } from '#lib/web2/client.ts';
+import { assertWeb2SessionOwner, getWeb2User } from '#lib/web2/session.ts';
 import { fromWireProfile } from '#satellite/utils/wire-format.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
@@ -308,7 +309,12 @@ const patchProfile = ({
 	patch: ProfilePatch | ((current: UserProfile) => ProfilePatch);
 }): Promise<UserProfile> => {
 	const run = profilePatchQueue.then(async () => {
-		const profileDoc = await getProfile(principal);
+		// web2 builds the patch on the caller's own row (the session's, every
+		// stored field), never on the public read of `principal`: the PUT below
+		// writes the whole doc onto the session's account.
+		const profileDoc = isWeb2Backend()
+			? { key: principal, data: (await getMyProfileWeb2()) ?? emptyProfile(principal) }
+			: await getProfile(principal);
 		const resolved = typeof patch === 'function' ? patch(profileDoc.data) : patch;
 		const data: UserProfile = {
 			...profileDoc.data,
@@ -424,6 +430,10 @@ export const upsertProfile = async (
 	// auth identity in this mode, not the profile doc, so it is intentionally
 	// not sent here.
 	if (isWeb2Backend()) {
+		// The session cookie, not `owner`, picks the row: refuse a snapshot of
+		// one account while the cookie belongs to another (a sign-in in
+		// another tab), rather than write it over that account's profile.
+		await assertWeb2SessionOwner(profileDoc.key);
 		await upsertMyProfileWeb2(profileDoc.data);
 
 		return;
@@ -665,6 +675,29 @@ export const getMyEmail = async (principal: PrincipalText): Promise<string> => {
 };
 
 /**
+ * When the signed-in user joined, in milliseconds, for the Settings
+ * "Joined" line. web2 reads the session account's creation time; the
+ * default backend reads the profile doc's `created_at` (nanoseconds).
+ * `undefined` when neither is known.
+ */
+export const getMyJoinedAtMs = async (principal: PrincipalText): Promise<number | undefined> => {
+	if (isWeb2Backend()) {
+		const joinedAtMs = Date.parse(getWeb2User()?.createdAt ?? '');
+
+		return Number.isNaN(joinedAtMs) ? undefined : joinedAtMs;
+	}
+
+	const doc = await getDoc<UserProfile>({
+		collection: Collection.PROFILES,
+		key: principal
+	});
+
+	const createdAtNs = doc?.created_at;
+
+	return isNullish(createdAtNs) ? undefined : Number(createdAtNs / MILLISECOND_IN_NANOSECONDS);
+};
+
+/**
  * Persists the signed-in user's email onto their owner-private
  * `profile_private` doc (version-safe upsert). The satellite assert
  * binds both the doc key and the embedded `owner` to the caller, so
@@ -684,6 +717,8 @@ export const saveMyEmail = async ({
 	// would falsely flip a fresh account to "existed" for the onboarding
 	// drain, so skip instead.
 	if (isWeb2Backend()) {
+		await assertWeb2SessionOwner(principal);
+
 		const profile = await getMyProfileWeb2();
 
 		if (isNullish(profile)) {

@@ -326,9 +326,6 @@
 	"src/lib/services/order.services.ts": {
 		"complexity": {
 			"count": 1
-		},
-		"max-depth": {
-			"count": 1
 		}
 	},
 	"src/lib/services/profile.services.ts": {
@@ -503,11 +500,6 @@
 		}
 	},
 	"src/satellite/services/vxp-awards.services.ts": {
-		"complexity": {
-			"count": 1
-		}
-	},
-	"src/satellite/services/vxp-comeback-awards.services.ts": {
 		"complexity": {
 			"count": 1
 		}
