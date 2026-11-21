@@ -1892,23 +1892,6 @@ const lookupLeagueByInvite = async (
 	return AppLookupLeagueByInviteResultSchema.parse(result);
 };
 
-const AppMigrateLeagueInviteCodesResultSchema = j.strictObject({ migrated: j.number() });
-
-const migrateLeagueInviteCodes = async (): Promise<
-	j.infer<typeof AppMigrateLeagueInviteCodesResultSchema>
-> => {
-	const { app_migrate_league_invite_codes } = await getSatelliteExtendedActor<SatelliteActor>({
-		idlFactory
-	});
-	const idlResult = await app_migrate_league_invite_codes();
-
-	const result = schemaFromIdl({
-		schema: AppMigrateLeagueInviteCodesResultSchema,
-		value: idlResult
-	});
-	return AppMigrateLeagueInviteCodesResultSchema.parse(result);
-};
-
 const AppPruneResolvedResultsArgsSchema = j.strictObject({
 	afterKey: j.optional(j.string()),
 	limit: j.optional(j.number())
@@ -2658,7 +2641,6 @@ export const functions = {
 	hibernateMyAccount,
 	joinLeagueByInvite,
 	lookupLeagueByInvite,
-	migrateLeagueInviteCodes,
 	pruneResolvedResults,
 	readBattleLiveScore,
 	rebuildMarketTagIndex,

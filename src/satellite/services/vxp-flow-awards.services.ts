@@ -9,14 +9,18 @@ import {
 } from '#lib/constants/vxp-economy.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
-import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	persistAward,
+	reclaimAward,
+	updateAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/sdk';
+import { decodeDocData, listDocsStore } from '@junobuild/functions/sdk';
 
 /**
  * Flow VXP award hooks: the real-credit path for the two Flow earn
@@ -63,63 +67,24 @@ const milestonesCrossed = ({ prev, next }: { prev: number; next: number }): numb
 	return FLOW_MILESTONES.filter((m) => prev < m && m <= next);
 };
 
-/**
- * Files a pending award doc, issues the ledger transfer, and records the
- * paid / failed outcome: the shared body behind both flow award types.
- * Idempotent: an existing doc for the key short-circuits before any
- * ledger call. `logTag` carries the award-specific log scope + detail.
- */
-const payFlowAward = async ({
+/** Sends a claimed flow award and records its paid / failed outcome. */
+const transferFlowAward = async ({
 	ledger,
-	caller,
 	recipient,
 	awardType,
 	awardKey,
-	wholeVxp,
+	amount,
 	logScope,
 	logDetail
 }: {
 	ledger: IcrcLedgerCanister;
-	caller: Uint8Array;
 	recipient: string;
 	awardType: VxpAwardType;
 	awardKey: string;
-	wholeVxp: number;
+	amount: bigint;
 	logScope: string;
 	logDetail: Record<string, unknown>;
 }): Promise<void> => {
-	const key = vxpAwardKey({ recipient, awardType, awardKey });
-	const existing = getDocStore({ collection: Collection.VXP_AWARDS, key, caller });
-
-	if (nonNullish(existing)) {
-		return;
-	}
-
-	const amount = vxpBaseUnits(wholeVxp);
-
-	const pending: VxpAwardDoc = {
-		recipient,
-		awardType,
-		awardKey,
-		amountBaseUnits: amount.toString(),
-		status: 'pending',
-		earnedAtMs: Date.now()
-	};
-
-	try {
-		persistAward({ recipient, awardType, awardKey, doc: pending });
-	} catch (e: unknown) {
-		// Most likely a concurrent write already created the pending doc;
-		// surface and stop: the other path will issue (or has issued) the
-		// transfer.
-		logInfo({
-			message: `${logScope}_pending_blocked`,
-			detail: { ...logDetail, error: e instanceof Error ? e.message : String(e) }
-		});
-
-		return;
-	}
-
 	const result = await transferWithBadFeeRetry({
 		ledger,
 		toOwner: Principal.fromText(recipient),
@@ -154,6 +119,85 @@ const payFlowAward = async ({
 		awardKey,
 		patch: { status: 'failed', errorMessage: result.error }
 	});
+};
+
+/**
+ * Files a pending award doc, issues the ledger transfer, and records the
+ * paid / failed outcome: the shared body behind both flow award types.
+ * Idempotent: a `pending` or `paid` doc for the key short-circuits before
+ * any ledger call, and a `failed` one is sent again (`reclaimAward`).
+ * `mayEarn` gates a first payout only: a retry was already allowed when it
+ * was earned. `logTag` carries the award-specific log scope + detail.
+ */
+const payFlowAward = async ({
+	ledger,
+	recipient,
+	awardType,
+	awardKey,
+	wholeVxp,
+	mayEarn = () => true,
+	logScope,
+	logDetail
+}: {
+	ledger: IcrcLedgerCanister;
+	recipient: string;
+	awardType: VxpAwardType;
+	awardKey: string;
+	wholeVxp: number;
+	mayEarn?: () => boolean;
+	logScope: string;
+	logDetail: Record<string, unknown>;
+}): Promise<void> => {
+	const slot = reclaimAward({ recipient, awardType, awardKey });
+
+	if (slot.kind === 'held') {
+		return;
+	}
+
+	if (slot.kind === 'retry') {
+		await transferFlowAward({
+			ledger,
+			recipient,
+			awardType,
+			awardKey,
+			amount: BigInt(slot.doc.amountBaseUnits),
+			logScope,
+			logDetail
+		});
+
+		return;
+	}
+
+	if (!mayEarn()) {
+		return;
+	}
+
+	const amount = vxpBaseUnits(wholeVxp);
+
+	const pending: VxpAwardDoc = {
+		recipient,
+		awardType,
+		awardKey,
+		amountBaseUnits: amount.toString(),
+		status: 'pending',
+		earnedAtMs: Date.now()
+	};
+
+	try {
+		persistAward({ recipient, awardType, awardKey, doc: pending });
+	} catch (e: unknown) {
+		// Most likely a concurrent write already created the pending doc;
+		// surface and stop: the other path will issue (or has issued) the
+		// transfer.
+		logInfo({
+			message: `${logScope}_pending_blocked`,
+			detail: { ...logDetail, error: e instanceof Error ? e.message : String(e) }
+		});
+
+		return;
+	}
+
+	await transferFlowAward({ ledger, recipient, awardType, awardKey, amount, logScope, logDetail });
 };
 
 const ledgerActor = (): IcrcLedgerCanister =>
@@ -202,7 +246,6 @@ export const onProfileSetForFlowMilestone = async (ctx: OnSetDocContext): Promis
 		for (const milestone of crossed) {
 			await payFlowAward({
 				ledger,
-				caller,
 				recipient: callerText,
 				awardType: 'flow_milestone',
 				awardKey: milestone.toString(),
@@ -273,32 +316,29 @@ export const mintFlowOvertime = async ({
 	dayKey: string;
 }): Promise<void> => {
 	try {
-		const key = vxpAwardKey({ recipient, awardType: 'flow_overtime', awardKey: dayKey });
-
-		// Idempotent per day: skip before the rolling-window scan.
-		if (nonNullish(getDocStore({ collection: Collection.VXP_AWARDS, key, caller }))) {
-			return;
-		}
-
-		if (
-			overtimeAwardsInWindow({ caller, recipient, nowMs: Date.now() }) >=
-			VXP_FLOW_OVERTIME_ROLLING_CAP
-		) {
-			logInfo({
-				message: 'flow_overtime_award_rate_limited',
-				detail: { user: recipient, day: dayKey, cap: VXP_FLOW_OVERTIME_ROLLING_CAP }
-			});
-
-			return;
-		}
-
+		// Idempotent per day: the award key is the day, checked before the
+		// rolling-window scan.
 		await payFlowAward({
 			ledger: ledgerActor(),
-			caller,
 			recipient,
 			awardType: 'flow_overtime',
 			awardKey: dayKey,
 			wholeVxp: VXP_FLOW_OVERTIME_BONUS,
+			mayEarn: () => {
+				if (
+					overtimeAwardsInWindow({ caller, recipient, nowMs: Date.now() }) <
+					VXP_FLOW_OVERTIME_ROLLING_CAP
+				) {
+					return true;
+				}
+
+				logInfo({
+					message: 'flow_overtime_award_rate_limited',
+					detail: { user: recipient, day: dayKey, cap: VXP_FLOW_OVERTIME_ROLLING_CAP }
+				});
+
+				return false;
+			},
 			logScope: 'flow_overtime_award',
 			logDetail: { user: recipient, day: dayKey }
 		});

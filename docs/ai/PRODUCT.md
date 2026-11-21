@@ -64,7 +64,8 @@ prizes.
 Every award is a **real ICRC ledger transfer**, recorded in the
 `vxp_awards` collection with lifecycle `pending → paid | failed`, not
 a cosmetic counter (the lifetime `points` score above is the separate
-number).
+number). A payout the ledger refused (`failed`) is sent again the next
+time its claim, settle or trigger runs for the same award.
 
 All amounts, caps, and gates live in three canonical constants files:
 never restate the numbers anywhere else (docs, specs, comments):

@@ -142,7 +142,6 @@ import {
 	assertSetLeague,
 	createLeagueFn,
 	joinLeagueByInviteFn,
-	migrateLeagueInviteCodesFn,
 	transferLeagueOwnershipFn
 } from '#satellite/services/league.services.ts';
 import {
@@ -668,7 +667,7 @@ export const getAnalyticsSummary = defineQuery({
 /**
  * Admin-gated raw-event export for the cockpit warehouse: the next page of
  * `events` after the given keyset cursor, flattened. Same admin gate as
- * `getAnalyticsSummary`: restricted to the cockpit's reader principal.
+ * `getAnalyticsSummary`: `isAdmin`, so any principal holding the ADMIN role.
  */
 export const getAnalyticsEvents = defineQuery({
 	args: GetAnalyticsEventsArgsSchema,
@@ -678,8 +677,8 @@ export const getAnalyticsEvents = defineQuery({
 
 /**
  * Admin-gated all-time registered-account count for the cockpit's
- * "Registered" tile. Same admin gate as `getAnalyticsSummary`: restricted
- * to the cockpit's reader principal. No args: the count is global.
+ * "Registered" tile. Same admin gate as `getAnalyticsSummary`: `isAdmin`,
+ * so any principal holding the ADMIN role. No args: the count is global.
  */
 export const getAnalyticsUserStats = defineQuery({
 	result: AnalyticsUserStatsSchema,
@@ -798,15 +797,6 @@ export const joinLeagueByInvite = defineUpdate({
 
 		return { league: isNullish(league) ? undefined : toWireMemberLeague(league), reason };
 	}
-});
-
-// Admin-only, idempotent: moves the invite code off every league doc
-// written before codes moved to `league_invites`.
-export const migrateLeagueInviteCodes = defineUpdate({
-	result: j.strictObject({
-		migrated: j.number()
-	}),
-	handler: () => migrateLeagueInviteCodesFn()
 });
 
 // Join-by-code preview: the league an invite code opens, without the code.

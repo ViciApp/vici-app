@@ -7,7 +7,7 @@ import {
 	type AffiliationDoc,
 	type AffiliationKind
 } from '#lib/types/affiliation.ts';
-import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import type { VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import {
@@ -17,7 +17,13 @@ import {
 	settledMonthlyRows
 } from '#satellite/services/cohort.services.ts';
 import { hasAwardMarker } from '#satellite/services/vxp-award-markers.services.ts';
-import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	holdsAwardPayout,
+	persistAward,
+	reclaimAward,
+	updateAward,
+	type AwardSlot
+} from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -27,16 +33,11 @@ import {
 	worldsPodiumAwardKey,
 	type WorldsPodiumPlace
 } from '#satellite/utils/worlds-podium.utils.ts';
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { isNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
-import {
-	encodeDocData,
-	getAdminAccessKeys,
-	getDocStore,
-	setDocStore
-} from '@junobuild/functions/sdk';
+import { encodeDocData, getAdminAccessKeys, setDocStore } from '@junobuild/functions/sdk';
 
 /**
  * Worlds podium monthly payout: user-claim variant.
@@ -59,7 +60,8 @@ import {
  *     the ledger transfer (same pattern as the streak hook).
  *
  * Idempotency: the doc key collision rejects a second claim. A
- * user who tries again hits `already_claimed` cleanly. The assert's
+ * user who tries again hits `already_claimed` cleanly, unless the
+ * payout `failed`: then the claim sends it again (`reclaimAward`). The assert's
  * recipient-binds-caller invariant is preserved because the user
  * is writing their own award.
  *
@@ -227,33 +229,15 @@ export const claimWorldsPodiumPrizeFn = async ({
 				const { place, amount } = PODIUM_PLACES[placeIndex];
 
 				const awardKey = worldsPodiumAwardKey({ monthAnchor, kind, place });
-				const claimed = claimedWorldsPodiumAwardKeys({ monthAnchor, kind, place }).some(
-					(heldKey) =>
-						nonNullish(
-							getDocStore({
-								collection: Collection.VXP_AWARDS,
-								key: vxpAwardKey({
-									recipient: callerText,
-									awardType: 'worlds_podium',
-									awardKey: heldKey
-								}),
-								caller: callerBytes
-							})
-						) ||
-						hasAwardMarker({
-							principalText: callerText,
-							awardType: 'worlds_podium',
-							awardKey: heldKey
-						})
-				);
+				const slot = podiumAwardSlot({ callerText, monthAnchor, kind, place });
 
-				if (claimed) {
+				if (slot.kind === 'held') {
 					awardsAlreadyClaimed += 1;
 				} else {
 					awardsCreated += await processAward({
 						kind,
 						place,
-						amount,
+						amount: armPodiumAward({ slot, callerText, awardKey, amount, nowMs }),
 						awardKey,
 						caller,
 						callerText,
@@ -274,7 +258,77 @@ export const claimWorldsPodiumPrizeFn = async ({
 };
 
 /**
- * Write the pending award, fire the ledger transfer, transition to
+ * What the caller holds of one podium finish before its payout. Held when any
+ * key that counts as a claim of it ({@link claimedWorldsPodiumAwardKeys}) holds
+ * a payout, or a marker of a deleted account's payout; otherwise the slot of
+ * its own key, where a `failed` payout is claimed for a retry.
+ */
+const podiumAwardSlot = ({
+	callerText,
+	monthAnchor,
+	kind,
+	place
+}: {
+	callerText: string;
+	monthAnchor: string;
+	kind: AffiliationKind;
+	place: WorldsPodiumPlace;
+}): AwardSlot => {
+	const awardKey = worldsPodiumAwardKey({ monthAnchor, kind, place });
+	const claimedElsewhere = claimedWorldsPodiumAwardKeys({ monthAnchor, kind, place }).some(
+		(heldKey) =>
+			hasAwardMarker({
+				principalText: callerText,
+				awardType: 'worlds_podium',
+				awardKey: heldKey
+			}) ||
+			(heldKey !== awardKey &&
+				holdsAwardPayout({ recipient: callerText, awardType: 'worlds_podium', awardKey: heldKey }))
+	);
+
+	return claimedElsewhere
+		? { kind: 'held' }
+		: reclaimAward({ recipient: callerText, awardType: 'worlds_podium', awardKey });
+};
+
+/**
+ * The amount to send for a claim that holds no payout yet: a `failed` one
+ * `reclaimAward` moved back to `pending` pays its recorded amount; a first
+ * one is written in `pending` state here at the place's amount.
+ */
+const armPodiumAward = ({
+	slot,
+	callerText,
+	awardKey,
+	amount,
+	nowMs
+}: {
+	slot: Exclude<AwardSlot, { kind: 'held' }>;
+	callerText: string;
+	awardKey: string;
+	amount: bigint;
+	nowMs: number;
+}): bigint => {
+	if (slot.kind === 'retry') {
+		return BigInt(slot.doc.amountBaseUnits);
+	}
+
+	const pendingDoc: VxpAwardDoc = {
+		recipient: callerText,
+		awardType: 'worlds_podium',
+		awardKey,
+		amountBaseUnits: amount.toString(),
+		status: 'pending',
+		earnedAtMs: nowMs
+	};
+
+	persistAward({ recipient: callerText, awardType: 'worlds_podium', awardKey, doc: pendingDoc });
+
+	return amount;
+};
+
+/**
+ * Fire the ledger transfer of a pending award, transition to
  * paid/failed. Returns 1 to bump the `awardsCreated` counter.
  *
  * Split out so the main claim loop stays free of `continue` and the
@@ -299,19 +353,8 @@ const processAward = async ({
 	monthAnchor: string;
 	nowMs: number;
 }): Promise<number> => {
-	// Create the award in `pending` state, then attempt the ledger
-	// transfer. On success, transition to `paid`. On failure,
-	// transition to `failed`. Mirrors the streak-award flow.
-	const pendingDoc: VxpAwardDoc = {
-		recipient: callerText,
-		awardType: 'worlds_podium',
-		awardKey,
-		amountBaseUnits: amount.toString(),
-		status: 'pending',
-		earnedAtMs: nowMs
-	};
-
-	persistAward({ recipient: callerText, awardType: 'worlds_podium', awardKey, doc: pendingDoc });
+	// Attempt the ledger transfer. On success, transition to `paid`. On
+	// failure, transition to `failed`. Mirrors the streak-award flow.
 
 	const ledger = new IcrcLedgerCanister({
 		canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)

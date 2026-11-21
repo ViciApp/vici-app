@@ -1211,9 +1211,6 @@ export const idlFactory = ({ IDL }) => {
 	const AppLookupReferralCodeResult = IDL.Record({
 		owner: IDL.Opt(IDL.Text)
 	});
-	const AppMigrateLeagueInviteCodesResult = IDL.Record({
-		migrated: IDL.Float64
-	});
 	const AppPruneResolvedResultsArgs = IDL.Record({
 		limit: IDL.Opt(IDL.Float64),
 		after_key: IDL.Opt(IDL.Text)
@@ -1774,7 +1771,6 @@ export const idlFactory = ({ IDL }) => {
 			[AppLookupReferralCodeResult],
 			['query']
 		),
-		app_migrate_league_invite_codes: IDL.Func([], [AppMigrateLeagueInviteCodesResult], []),
 		app_prune_resolved_results: IDL.Func(
 			[AppPruneResolvedResultsArgs],
 			[AppPruneResolvedResultsResult],

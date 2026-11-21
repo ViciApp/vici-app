@@ -173,8 +173,6 @@ type AppLookupLeagueByInviteArgs = record { invite_code : text };
 
 type AppLookupLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; reason : opt variant { rate_limited } };
 
-type AppMigrateLeagueInviteCodesResult = record { migrated : float64 };
-
 type AppPruneResolvedResultsArgs = record { after_key : opt text; limit : opt float64 };
 
 type AppPruneResolvedResultsResult = record { pruned : float64; next_after_key : opt text; done : bool };
@@ -305,7 +303,6 @@ service : {
 	app_hibernate_my_account : () -> (AppHibernateMyAccountResult);
 	app_join_league_by_invite : (AppJoinLeagueByInviteArgs) -> (AppJoinLeagueByInviteResult);
 	app_lookup_league_by_invite : (AppLookupLeagueByInviteArgs) -> (AppLookupLeagueByInviteResult);
-	app_migrate_league_invite_codes : () -> (AppMigrateLeagueInviteCodesResult);
 	app_prune_resolved_results : (AppPruneResolvedResultsArgs) -> (AppPruneResolvedResultsResult);
 	app_read_battle_live_score : (AppReadBattleLiveScoreArgs) -> (AppReadBattleLiveScoreResult);
 	app_rebuild_market_tag_index : () -> (AppRebuildMarketTagIndexResult);
