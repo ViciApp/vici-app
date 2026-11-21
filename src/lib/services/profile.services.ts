@@ -9,7 +9,7 @@ import {
 	sanitizeNickname
 } from '#lib/constants/profile.constants.ts';
 import { defaultPreferences } from '#lib/constants/settings.constants.ts';
-import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
+import { MILLISECOND_IN_NANOSECONDS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
 import { notifyAchievementsUnlocked } from '#lib/services/achievements.services.ts';
 import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
@@ -52,7 +52,7 @@ import {
 	searchProfiles as searchProfilesWeb2,
 	upsertMyProfile as upsertMyProfileWeb2
 } from '#lib/web2/client.ts';
-import { assertWeb2SessionOwner } from '#lib/web2/session.ts';
+import { assertWeb2SessionOwner, getWeb2User } from '#lib/web2/session.ts';
 import { fromWireProfile } from '#satellite/utils/wire-format.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
@@ -672,6 +672,29 @@ export const getMyEmail = async (principal: PrincipalText): Promise<string> => {
 	});
 
 	return doc?.data.email.trim() ?? '';
+};
+
+/**
+ * When the signed-in user joined, in milliseconds, for the Settings
+ * "Joined" line. web2 reads the session account's creation time; the
+ * default backend reads the profile doc's `created_at` (nanoseconds).
+ * `undefined` when neither is known.
+ */
+export const getMyJoinedAtMs = async (principal: PrincipalText): Promise<number | undefined> => {
+	if (isWeb2Backend()) {
+		const joinedAtMs = Date.parse(getWeb2User()?.createdAt ?? '');
+
+		return Number.isNaN(joinedAtMs) ? undefined : joinedAtMs;
+	}
+
+	const doc = await getDoc<UserProfile>({
+		collection: Collection.PROFILES,
+		key: principal
+	});
+
+	const createdAtNs = doc?.created_at;
+
+	return isNullish(createdAtNs) ? undefined : Number(createdAtNs / MILLISECOND_IN_NANOSECONDS);
 };
 
 /**

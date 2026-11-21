@@ -46,7 +46,6 @@ import { logError } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { OnSetDocContext } from '@junobuild/functions';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import {
 	countDocsStore,
@@ -626,31 +625,25 @@ export const captureServerEvents = ({ events }: { events: ServerEventInput[] }):
 };
 
 /**
- * `vxp_awards` post-write analytics: emit `vxp_awarded` (value = whole-VXP
- * amount, label = award type) exactly once per award: on the `pending → paid`
- * transition, when the ledger transfer actually completed. Streak awards also
- * emit `streak_milestone` (`step` = the crossed day count from the award key,
- * e.g. `streak_7` → 7). Best-effort: analytics must never break a payout.
+ * Payout analytics for one `vxp_awards` write: emit `vxp_awarded` (value =
+ * whole-VXP amount, label = award type) exactly once per award, on the
+ * `pending → paid` transition, when the ledger transfer actually completed.
+ * Streak awards also emit `streak_milestone` (`step` = the crossed day count
+ * from the award key, e.g. `streak_7` → 7). Called inline by the award write,
+ * since award docs are serverless writes and no `onSetDoc` hook sees them.
+ * Best-effort: analytics must never break a payout.
  */
-export const onVxpAwardSetForAnalytics = (ctx: OnSetDocContext): void => {
+export const captureVxpAwardEvents = ({
+	before,
+	after: award
+}: {
+	before: VxpAwardDoc;
+	after: VxpAwardDoc;
+}): void => {
 	try {
-		const {
-			data: {
-				collection,
-				data: { before, after }
-			}
-		} = ctx;
-
-		if (collection !== Collection.VXP_AWARDS) {
-			return;
-		}
-
-		const award = decodeDocData<VxpAwardDoc>(after.data);
-		const prior = nonNullish(before) ? decodeDocData<VxpAwardDoc>(before.data) : undefined;
-
 		// Only the transition INTO `paid` mints: a pending write, a failed write,
 		// or a re-set of an already-paid doc must not double-count.
-		if (award.status !== 'paid' || prior?.status === 'paid') {
+		if (award.status !== 'paid' || before.status === 'paid') {
 			return;
 		}
 

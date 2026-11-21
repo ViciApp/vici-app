@@ -1,6 +1,6 @@
-// Stat caches: the user stats write guard, the absence of any route that
-// lets a caller write a monthly stats row, and the monthly sharpest-eye
-// podium scored from settled history.
+// Stat caches: the user stats write guard and its route input, the absence
+// of any route that lets a caller write a monthly stats row, and the monthly
+// sharpest-eye podium scored from settled history.
 
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomInt } from 'node:crypto';
@@ -115,6 +115,34 @@ describe.if(dbAvailable)('user stats guard', () => {
 				computedAtMs: Date.now()
 			})
 		).rejects.toThrow('exceeds limit 10');
+	});
+
+	test('the stats route refuses a computedAtMs the bigint column cannot hold as a 400', async () => {
+		const userId = await createTestUser();
+		const cookie = `vici_session=${await createSession(userId)}`;
+
+		const putStats = (computedAtMs: number): Promise<Response> =>
+			app.handle(
+				new Request('http://localhost/api/v1/profiles/me/stats', {
+					method: 'PUT',
+					headers: { cookie, 'content-type': 'application/json' },
+					body: JSON.stringify({ categoryStats: {}, recentSettlements: [], computedAtMs })
+				})
+			);
+
+		for (const computedAtMs of [Date.now() + 0.5, 1e300, -1]) {
+			expect((await putStats(computedAtMs)).status).toBe(400);
+		}
+
+		expect(await query(`select 1 from user_stats where user_id = $1`, [userId])).toHaveLength(0);
+
+		const computedAtMs = Date.now();
+		const response = await putStats(computedAtMs);
+
+		expect(response.status).toBe(200);
+		expect(
+			((await response.json()) as { stats: { computedAtMs: number } }).stats.computedAtMs
+		).toBe(computedAtMs);
 	});
 });
 

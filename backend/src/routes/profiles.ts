@@ -190,7 +190,7 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 						contrarian: t.Boolean()
 					})
 				),
-				computedAtMs: t.Number()
+				computedAtMs: t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER })
 			})
 		}
 	)

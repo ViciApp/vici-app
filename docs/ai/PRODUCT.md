@@ -344,7 +344,11 @@ beginning), a synthetic "Joined Vici" genesis row closes the feed (no
 amount, zero balance), marking the account's zero-VXP origin. The
 ledger walk is capped (`TRANSACTION_HISTORY_MAX_LEDGER_PAGES`); when
 hit, the genesis row is suppressed and a quiet "older history not
-shown" footer appears instead. Decision record:
+shown" footer appears instead. When the ledger cannot be read at all
+(the first index page fails, or the web2 build, which has no ledger
+feed), the page shows "transaction history isn't available" instead of
+a feed whose balances would be missing every bonus and transfer.
+Decision record:
 [`specs/2026-06-12-feat-transaction-history.md`](./spec-driven-development/specs/2026-06-12-feat-transaction-history.md).
 
 ### League rank: one accuracy-first ranking everywhere

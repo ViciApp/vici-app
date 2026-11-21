@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Share } from '@lucide/svelte/icons';
+	import { clickOutside } from '#lib/actions/click-outside.ts';
 	import SharePopover from '#lib/components/market/SharePopover.svelte';
 	import SavedMarketToggle from '#lib/components/saved-markets/SavedMarketToggle.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -31,8 +32,22 @@
 	// on successful clipboard copy.
 	let shareOpen = $state(false);
 
+	let shareButton = $state<HTMLButtonElement | undefined>();
+
 	const toggleShare = () => {
 		shareOpen = !shareOpen;
+	};
+
+	// The popover closes itself on Escape or once a share completes: focus
+	// returns to the toggle that opened it.
+	const closeShare = () => {
+		shareOpen = false;
+		shareButton?.focus();
+	};
+
+	// A click elsewhere only dismisses: focus stays where the user put it.
+	const dismissShare = () => {
+		shareOpen = false;
 	};
 
 	// Called on a successful copy (no arg) or a saved-card fallback (the
@@ -51,25 +66,32 @@
 	<span class="allcaps flow-back-cat">{catLabel}</span>
 	<div class="flow-back-actions" data-no-card-gesture="true">
 		<SavedMarketToggle marketId={market.id} size="sm" variant="flow-ghost" />
-		<button
-			class="flow-back-share"
-			class:is-active={shareOpen}
-			aria-label={t({ locale: $localeStore, key: 'market.detail.share.label' })}
-			onclick={toggleShare}
-			type="button"
-		>
-			<Share aria-hidden="true" size={16} strokeWidth={1.8} />
-		</button>
-		{#if shareOpen}
-			<SharePopover
-				{category}
-				{displayTitle}
-				{market}
-				onClose={() => (shareOpen = false)}
-				{onCopied}
-				priorCall={priorCall ? { side: priorCall.side } : null}
-			/>
-		{/if}
+		<!-- The toggle sits inside the outside-click boundary so tapping it
+		     while open closes once instead of closing and reopening. -->
+		<div class="flow-back-share-anchor" use:clickOutside={dismissShare}>
+			<button
+				bind:this={shareButton}
+				class="flow-back-share"
+				class:is-active={shareOpen}
+				aria-expanded={shareOpen}
+				aria-haspopup="dialog"
+				aria-label={t({ locale: $localeStore, key: 'market.detail.share.label' })}
+				onclick={toggleShare}
+				type="button"
+			>
+				<Share aria-hidden="true" size={16} strokeWidth={1.8} />
+			</button>
+			{#if shareOpen}
+				<SharePopover
+					{category}
+					{displayTitle}
+					{market}
+					onClose={closeShare}
+					{onCopied}
+					priorCall={priorCall ? { side: priorCall.side } : null}
+				/>
+			{/if}
+		</div>
 	</div>
 </header>
 
@@ -127,6 +149,12 @@
 			border-color var(--d-hover) var(--ease-vici),
 			color var(--d-hover) var(--ease-vici);
 	}
+	/* No box of its own: the popover keeps `.flow-back-actions` as its
+	   positioning anchor and the button keeps its place in the row. */
+	.flow-back-share-anchor {
+		display: contents;
+	}
+
 	.flow-back-share:hover,
 	.flow-back-share.is-active {
 		background: color-mix(in srgb, var(--text-base) 6%, transparent);

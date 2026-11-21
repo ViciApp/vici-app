@@ -11,6 +11,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { settlementPrincipalsByUser } from '../auth/identity';
 import { query, tx, type TxQuery } from '../db/client';
+import { UUID_RE } from '../lib/constants';
 import {
 	LeagueError,
 	getLeague,
@@ -33,6 +34,12 @@ export const getLeagueMember = async (
 	},
 	q: TxQuery = query
 ): Promise<LeagueMember | undefined> => {
+	// Accounts are keyed by uuid, so any other id names no member; checked
+	// here because the uuid bind would otherwise fail the query as a 500.
+	if (!UUID_RE.test(memberUserId)) {
+		return;
+	}
+
 	const rows = await q<LeagueMemberRow>(
 		`select league_id, member_user_id, joined_at_ms::text, role from league_members
 		 where league_id = $1 and member_user_id = $2`,
@@ -147,12 +154,7 @@ const writeLeagueMember = async ({
 			);
 		}
 
-		const existing = await q<LeagueMemberRow>(
-			`select league_id, member_user_id, joined_at_ms::text, role from league_members
-			 where league_id = $1 and member_user_id = $2`,
-			[leagueId, memberUserId]
-		);
-		const [current] = existing;
+		const current = await getLeagueMember({ leagueId, memberUserId }, q);
 
 		if (isNullish(current)) {
 			if (!viaInvite) {
@@ -214,12 +216,7 @@ export const removeLeagueMember = async ({
 	memberUserId: string;
 }): Promise<{ ok: boolean }> =>
 	await tx(async (q) => {
-		const existing = await q<LeagueMemberRow>(
-			`select league_id, member_user_id, joined_at_ms::text, role from league_members
-			 where league_id = $1 and member_user_id = $2`,
-			[leagueId, memberUserId]
-		);
-		const [current] = existing;
+		const current = await getLeagueMember({ leagueId, memberUserId }, q);
 
 		if (isNullish(current)) {
 			return { ok: true };
