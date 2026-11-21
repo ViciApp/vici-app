@@ -1,7 +1,6 @@
 // Worlds standings: the write-once monthly freeze from settled history
-// (frozen rows never drift as the roster later churns), the
-// frozen-vs-provisional month read, the champion history derived from
-// frozen months, and the opt-out gate on the recomputed windows.
+// (frozen rows never drift as the roster later churns), the champion history
+// derived from frozen months, and the opt-out gate on the recomputed windows.
 
 import { isNullish } from '@dfinity/utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
@@ -15,7 +14,6 @@ import {
 	getAffiliationStats,
 	listAffiliationChampionships,
 	listAffiliationStats,
-	listAffiliationStatsForMonth,
 	MIN_CALLS_FOR_RANK
 } from '../src/worlds/affiliation-stats';
 import { setAffiliation, type AffiliationKind } from '../src/worlds/affiliations';
@@ -141,7 +139,7 @@ describe.if(dbAvailable)('monthly freeze', () => {
 		expect(second.alreadyFrozen).toBe(true);
 		expect(second.frozen).toBe(0);
 
-		const ranked = await listAffiliationStatsForMonth({ kind: 'university', monthAnchor, nowMs });
+		const ranked = await frozenMonthlyRanking({ kind: 'university', monthAnchor });
 		const a = ranked.find((r) => r.affiliationIdentifier === slugA);
 		const b = ranked.find((r) => r.affiliationIdentifier === slugB);
 
@@ -327,11 +325,13 @@ describe.if(dbAvailable)('a stored opt-out that is not a boolean', () => {
 
 			expect(board.some((r) => r.affiliationIdentifier === slug)).toBe(true);
 
-			const live = await listAffiliationStatsForMonth({ kind: 'university', monthAnchor, nowMs });
+			const live = await getAffiliationStats({
+				kind: 'university',
+				affiliationIdentifier: slug,
+				nowMs: monthStartMs(monthAnchor)
+			});
 
-			expect(live.find((r) => r.affiliationIdentifier === slug)?.monthTotalCalls).toBe(
-				MIN_CALLS_FOR_RANK + 10
-			);
+			expect(live?.monthTotalCalls).toBe(MIN_CALLS_FOR_RANK + 10);
 
 			await freezeMonthlySnapshots({ kind: 'university', monthAnchor, nowMs });
 
