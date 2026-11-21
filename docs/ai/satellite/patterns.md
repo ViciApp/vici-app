@@ -204,6 +204,10 @@ Consequences:
   hook on the referrals row only runs for a `set_doc` through the public API,
   which `assertSetReferral` allows to a controller alone (a hand-written row in
   the Console).
+- The payout analytics (`vxp_awarded`, `streak_milestone`) follow the
+  same rule: every `vxp_awards` doc is a serverless write, so
+  `updateAward` emits them inline (`captureVxpAwardEvents`) on the
+  `pending → paid` write rather than from a hook on the collection.
 - Make the inline work **idempotent + retry-safe** (lock → act →
   finalize, short-circuit on already-done), and expose a settle/retry
   endpoint so a failed transfer can be re-driven; there is no hook replay
@@ -397,7 +401,12 @@ is the reference shape:
   `owner` field (profile writes don't enforce `owner === key`), and
   runs `Principal.fromText` + the cascade **outside** the malformed-row
   try/catch so a purge failure is logged + counted as an under-purge
-  instead of being silently swallowed as a skipped bad row.
+  instead of being silently swallowed as a skipped bad row. One call
+  reads one keyset page of `profiles` and purges a single account (a
+  purge deletes every doc the account owns, see the bulk-rewrite budget
+  note below); a failed purge is counted in `failed` and the walk moves
+  past it. The operator passes `nextAfterKey` back as `afterKey` until
+  `done`.
 - **Hard-delete must not orphan others: transfer, don't just delete.**
   The cascade's owned-league step deletes a league only when no other
   member remains; if members self-joined during the recovery window it
@@ -625,6 +634,12 @@ collection keys themselves, plus the clearing leaderboard). The pattern:
   down to a single doc.
 - **Add the collection to the hard-delete cascade**
   (`hardDeleteAccountFn`): a private doc must not outlive its account.
+- **Page a bulk walk through `walkKeysetPage`**
+  (`keyset-walk.services.ts`), the keyset paging the budget note above
+  asks for: the endpoint takes `KeysetWalkArgsSchema` (`afterKey`,
+  `limit`), spreads `KeysetWalkResultSchema` (`nextAfterKey`, `done`)
+  into its result, and its visitor reports each doc `kept`, `removed` or
+  `stop` (write budget spent), so the cursor never names a deleted key.
 
 ## Build-wide write gates with an `app_config` kill switch
 

@@ -84,7 +84,6 @@ import {
 	getAnalyticsProfileCreatedFn,
 	getAnalyticsSummaryFn,
 	getAnalyticsUserStatsFn,
-	onVxpAwardSetForAnalytics,
 	trackEventsFn
 } from '#satellite/services/analytics.services.ts';
 import { getAuthIdentitiesFn } from '#satellite/services/auth-identity-export.services.ts';
@@ -115,6 +114,10 @@ import {
 	syncRoleToEngineOnSet
 } from '#satellite/services/engine-sync.services.ts';
 import { assertSetExitSignal } from '#satellite/services/exit-signal.services.ts';
+import {
+	KeysetWalkArgsSchema,
+	KeysetWalkResultSchema
+} from '#satellite/services/keyset-walk.services.ts';
 import {
 	getMyRivalFn,
 	getUserRankAndCountFn,
@@ -1208,14 +1211,21 @@ export const resumeMyAccount = defineUpdate({
 	handler: resumeMyAccountFn
 });
 
-// Admin sweep (Delete account v2). Hard-deletes every soft-deleted
-// account whose recovery window has elapsed. Admin-guarded; Juno has no
-// scheduler so this is triggered externally (admin/cron).
+// Admin sweep (Delete account v2). Hard-deletes soft-deleted accounts
+// whose recovery window has elapsed, walking `profiles` one keyset page
+// and at most one purge per call to stay inside the update instruction
+// limit: pass the returned `nextAfterKey` back as `afterKey` until `done`.
+// `failed` counts purges that failed (logged); the walk moves past them.
+// Admin-guarded; Juno has no scheduler so this is triggered externally
+// (admin/cron).
 export const sweepExpiredDeletions = defineUpdate({
+	args: KeysetWalkArgsSchema,
 	result: j.strictObject({
-		swept: j.number()
+		swept: j.number(),
+		failed: j.number(),
+		...KeysetWalkResultSchema.shape
 	}),
-	handler: sweepExpiredDeletionsFn
+	handler: (args) => sweepExpiredDeletionsFn(args)
 });
 
 // Admin-only corrective for the friend-feed like counts: re-derives every
@@ -1581,7 +1591,6 @@ const setDocCollections = [
 	Collection.REFERRALS,
 	Collection.LEAGUES,
 	Collection.USER_STATS,
-	Collection.VXP_AWARDS,
 	Collection.AFFILIATIONS
 ] as const;
 
@@ -1625,9 +1634,6 @@ export const onSetDoc = defineHook<OnSetDoc>({
 			[Collection.REFERRALS]: onReferralSetForVxpPayout,
 			[Collection.LEAGUES]: onLeagueSetForFounderVxpPayout,
 			[Collection.USER_STATS]: onUserStatsSetForLeagueStats,
-			// Server-side capture: every VXP payout (any award service) emits
-			// `vxp_awarded` (+ `streak_milestone`) on its pending→paid transition.
-			[Collection.VXP_AWARDS]: onVxpAwardSetForAnalytics,
 			// Server-side capture: a Worlds join (client `setDoc`) emits
 			// `affiliation_set` on row creation.
 			[Collection.AFFILIATIONS]: onAffiliationSetForAnalytics

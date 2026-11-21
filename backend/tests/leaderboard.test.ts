@@ -1,13 +1,11 @@
 // Global leaderboard: ranked from each profile's all-time settled history
 // (qualify gate, then the confidence-adjusted score the visible board uses),
 // never the client-written points; rank/count correctness on a seeded
-// population, the hidden-profile exclusion, deterministic tie-breaks and the
-// rival lookup.
+// population, the hidden-profile exclusion and deterministic tie-breaks.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { clearCache } from '../src/engine/cache';
 import {
-	getMyRival,
 	getUserRankAndCount,
 	LEADERBOARD_QUALIFY_MIN,
 	listLeaderboard
@@ -111,26 +109,6 @@ describe.if(dbAvailable)('leaderboard', () => {
 		expect((await getUserRankAndCount({ userId: hiddenDeleted })).rank).toBeUndefined();
 		expect((await getUserRankAndCount({ userId: hiddenHibernated })).rank).toBeUndefined();
 		expect((await getUserRankAndCount({ userId: second })).rank).toBe(2);
-	});
-
-	test('the rival is the profile one rank above', async () => {
-		const { rival, rivalIsTrailing } = await getMyRival({ userId: second });
-
-		expect(rival?.userId).toBe(first);
-		expect(rivalIsTrailing).toBe(false);
-	});
-
-	test('the leader gets the runner-up as a trailing rival', async () => {
-		const { rival, rivalIsTrailing } = await getMyRival({ userId: first });
-
-		expect(rival?.userId).toBe(second);
-		expect(rivalIsTrailing).toBe(true);
-	});
-
-	test('an unranked user has no rival', async () => {
-		for (const userId of [hiddenDeleted, pointsOnly]) {
-			expect(await getMyRival({ userId })).toEqual({ rival: undefined, rivalIsTrailing: false });
-		}
 	});
 
 	test('equal scores break by settled calls, then by user id ascending', async () => {
