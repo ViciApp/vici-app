@@ -545,7 +545,9 @@ drift between two people claiming the same month. The podium award goes
 to a member at month-end whatever their join date, but only for a slot
 joined before the month closed: joining or switching to a winner after the
 fact earns nothing. A month confers a cup only once it has been frozen
-(claimed). Decision record:
+(claimed). The snapshot is written out over the first few claims of the
+month, a bounded batch per call, and nothing is paid or shown as frozen
+until it is complete; the app claims again until then. Decision record:
 [`specs/2026-06-28-impr-worlds-standings-current-members.md`](./spec-driven-development/specs/2026-06-28-impr-worlds-standings-current-members.md).
 
 **A member's school verification never rewrites the school registry.** A

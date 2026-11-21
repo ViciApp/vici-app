@@ -1,7 +1,11 @@
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { VXP_WORLDS_PODIUM } from '#lib/constants/vxp-economy.constants.ts';
-import { affiliationStatsSnapshotKey } from '#lib/types/affiliation-stats.ts';
+import {
+	affiliationFreezeKey,
+	affiliationStatsSnapshotKey,
+	type AffiliationFreezeDoc
+} from '#lib/types/affiliation-stats.ts';
 import {
 	AFFILIATION_KINDS,
 	type AffiliationDoc,
@@ -14,7 +18,9 @@ import {
 	frozenMonthlyRanking,
 	hasFrozenMonthlySnapshotFn,
 	heldAffiliations,
-	settledMonthlyRows
+	monthlyFreeze,
+	settledMonthlyRows,
+	unfrozenRows
 } from '#satellite/services/cohort.services.ts';
 import { hasAwardMarker } from '#satellite/services/vxp-award-markers.services.ts';
 import {
@@ -97,22 +103,39 @@ export interface ClaimWorldsPodiumPrizeResult {
 	awardsCreated: number;
 	awardsAlreadyClaimed: number;
 	notEligible: boolean;
+	/** This call wrote toward freezing the month and paid nothing: claim again. */
+	freezePending?: boolean;
 }
 
 /**
+ * How many docs one podium claim writes toward a month's freeze. Each
+ * serverless write costs billions of instructions, so a large ranking is
+ * frozen over several calls (see the bulk-rewrite budget note in
+ * docs/ai/satellite/patterns.md).
+ */
+const WORLDS_FREEZE_BATCH = 5;
+
+/**
  * Freeze a closed month's affiliation ranking the first time its podium is
- * claimed (frozen-at-close). The live windows recompute over the current
- * roster on every read; a *closed* month is instead captured once here: the
- * ranking computed from settled history ({@link settledMonthlyRows}) is
- * written as immutable snapshot docs, so the podium payout and the champion
- * cup stay stable and can't drift as members later churn.
+ * claimed (frozen-at-close), a bounded batch of docs per call. The live
+ * windows recompute over the current roster on every read; a *closed* month
+ * is instead captured once here: the first call computes the ranking from
+ * settled history ({@link settledMonthlyRows}) and records it in the month's
+ * freeze doc ({@link AffiliationFreezeDoc}), the next calls write its rows
+ * out as immutable snapshot docs, at most {@link WORLDS_FREEZE_BATCH} per
+ * call, and the call that writes the last of them marks the freeze
+ * complete. The ranking is computed once, so it cannot drift between calls;
+ * the podium payout and the champion cup read the snapshots only once the
+ * freeze is complete, and stay stable as members later churn.
  *
- * All-or-nothing gate: {@link hasFrozenMonthlySnapshotFn} short-circuits once
- * the month has any snapshot, so only the first claim writes the set and later
- * claims leave it untouched. Written as a controller (the collection is
- * controllers-write) with values from the server's own recompute, so a client
- * cannot forge a frozen ranking. Only affiliations clearing `MIN_CALLS_FOR_RANK`
- * are captured (the only rows that can rank / appear).
+ * Returns whether this call wrote anything: a claim pays only on a call
+ * that wrote nothing toward a freeze, so its own writes stay bounded too. A
+ * month frozen before freeze docs existed (snapshots, no freeze doc) was
+ * written all at once and counts as complete. Written as a controller (the
+ * collection is controllers-write) with values from the server's own
+ * recompute, so a client cannot forge a frozen ranking. Only affiliations
+ * clearing `MIN_CALLS_FOR_RANK` are captured (the only rows that can rank /
+ * appear).
  *
  * Fails **closed**: if no controller key is available the freeze cannot run,
  * so it throws rather than letting the claim fall back to an unfrozen (live,
@@ -120,7 +143,7 @@ export interface ClaimWorldsPodiumPrizeResult {
  * caller can retry once a controller is configured; no payout on an
  * unfrozen month.
  */
-const freezeMonthlySnapshotsIfNeeded = async ({
+const advanceMonthlyFreeze = async ({
 	kind,
 	monthAnchor,
 	nowMs
@@ -128,9 +151,14 @@ const freezeMonthlySnapshotsIfNeeded = async ({
 	kind: AffiliationKind;
 	monthAnchor: string;
 	nowMs: number;
-}): Promise<void> => {
-	if (hasFrozenMonthlySnapshotFn({ kind, monthAnchor })) {
-		return;
+}): Promise<boolean> => {
+	const { freeze, version } = monthlyFreeze({ kind, monthAnchor }) ?? {};
+
+	if (
+		freeze?.complete === true ||
+		(isNullish(freeze) && hasFrozenMonthlySnapshotFn({ kind, monthAnchor }))
+	) {
+		return false;
 	}
 
 	const admin = getAdminAccessKeys()[0]?.[0];
@@ -146,24 +174,45 @@ const freezeMonthlySnapshotsIfNeeded = async ({
 		);
 	}
 
-	const rows = await settledMonthlyRows({ kind, monthAnchor, nowMs });
-
-	for (const row of rows) {
-		const key = affiliationStatsSnapshotKey({
-			kind,
-			affiliationIdentifier: row.affiliationIdentifier,
-			monthAnchor
-		});
-
+	const writeFreeze = ({ doc, version }: { doc: AffiliationFreezeDoc; version?: bigint }) =>
 		setDocStore({
 			collection: Collection.AFFILIATION_STATS,
-			key,
+			key: affiliationFreezeKey({ kind, monthAnchor }),
+			caller: admin,
+			doc: { data: encodeDocData(doc), version }
+		});
+
+	if (isNullish(freeze)) {
+		const rows = await settledMonthlyRows({ kind, monthAnchor, nowMs });
+
+		writeFreeze({ doc: { kind, monthAnchor, rows, complete: rows.length === 0 } });
+
+		return true;
+	}
+
+	const unwritten = unfrozenRows(freeze);
+	const batch = unwritten.slice(0, WORLDS_FREEZE_BATCH - 1);
+
+	for (const row of batch) {
+		setDocStore({
+			collection: Collection.AFFILIATION_STATS,
+			key: affiliationStatsSnapshotKey({
+				kind,
+				affiliationIdentifier: row.affiliationIdentifier,
+				monthAnchor
+			}),
 			caller: admin,
 			doc: {
 				data: encodeDocData(row)
 			}
 		});
 	}
+
+	if (batch.length === unwritten.length) {
+		writeFreeze({ doc: { ...freeze, complete: true }, version });
+	}
+
+	return true;
 };
 
 /**
@@ -194,16 +243,26 @@ export const claimWorldsPodiumPrizeFn = async ({
 	const callerText = caller.toText();
 	const callerBytes = caller.toUint8Array();
 
+	// Frozen-at-close: the first claims of the month capture the ranking from
+	// settled history so the podium + cup stay stable across claimants, and
+	// nothing is paid until both kinds are frozen.
+	for (const kind of AFFILIATION_KINDS) {
+		if (await advanceMonthlyFreeze({ kind, monthAnchor, nowMs })) {
+			return {
+				monthAnchor,
+				awardsCreated: 0,
+				awardsAlreadyClaimed: 0,
+				notEligible: false,
+				freezePending: true
+			};
+		}
+	}
+
 	let awardsCreated = 0;
 	let awardsAlreadyClaimed = 0;
 	let foundAnyEligibleAffiliation = false;
 
 	for (const kind of AFFILIATION_KINDS) {
-		// Frozen-at-close: the first claim of the month captures the ranking from
-		// settled history so the podium + cup stay stable across claimants. A
-		// no-op once the month is already frozen.
-		await freezeMonthlySnapshotsIfNeeded({ kind, monthAnchor, nowMs });
-
 		const mine = readMyAffiliation({ callerText, callerBytes, kind });
 
 		if (

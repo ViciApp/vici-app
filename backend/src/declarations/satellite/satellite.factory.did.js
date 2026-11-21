@@ -81,6 +81,7 @@ export const idlFactory = ({ IDL }) => {
 		month_anchor: IDL.Text,
 		not_eligible: IDL.Bool,
 		awards_created: IDL.Float64,
+		freeze_pending: IDL.Opt(IDL.Bool),
 		awards_already_claimed: IDL.Float64
 	});
 	const AppCreateLeagueArgs = IDL.Record({

@@ -1,11 +1,13 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import {
+	affiliationFreezeKey,
 	affiliationStatsSnapshotKey,
+	type AffiliationFreezeDoc,
 	type AffiliationStatsDoc
 } from '#lib/types/affiliation-stats.ts';
 import { MONTH_ANCHOR_RE } from '#lib/utils/month-anchor.utils.ts';
-import { nonNullish } from '@dfinity/utils';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import { isNullish, nonNullish } from '@dfinity/utils';
+import type { AssertSetDocContext, Doc, SetDoc } from '@junobuild/functions';
 import { decodeDocData } from '@junobuild/functions/sdk';
 
 /**
@@ -32,8 +34,49 @@ import { decodeDocData } from '@junobuild/functions/sdk';
  *  5. **Counter sanity.** Both windows' counters are finite, non-negative
  *     integers, and `wins ≤ totalCalls` / `monthWins ≤ monthTotalCalls`: a
  *     corrupted snapshot would otherwise break the ranking math it feeds.
+ *
+ * The month's freeze doc (two-segment key, {@link assertSetAffiliationFreeze})
+ * sits beside its snapshots and has its own rules.
  */
 const isNonNegativeInteger = (value: number): boolean => Number.isInteger(value) && value >= 0;
+
+/**
+ * Pre-write guard for a month's {@link AffiliationFreezeDoc}: keyed on its own
+ * `(kind, monthAnchor)`, and once written it only moves from in progress to
+ * `complete`, its ranked rows unchanged, so the frozen ranking cannot be
+ * swapped half way through being written out.
+ */
+const assertSetAffiliationFreeze = ({
+	key,
+	current,
+	proposed
+}: {
+	key: string;
+	current: Doc | undefined;
+	proposed: SetDoc;
+}): void => {
+	const proposedDoc = decodeDocData<AffiliationFreezeDoc>(proposed.data);
+
+	if (!MONTH_ANCHOR_RE.test(proposedDoc.monthAnchor) || key !== affiliationFreezeKey(proposedDoc)) {
+		throw new Error(`affiliation_stats freeze ${key} must be keyed on its own kind and month.`);
+	}
+
+	if (isNullish(current)) {
+		return;
+	}
+
+	const currentDoc = decodeDocData<AffiliationFreezeDoc>(current.data);
+
+	if (
+		currentDoc.complete ||
+		!proposedDoc.complete ||
+		JSON.stringify(currentDoc.rows) !== JSON.stringify(proposedDoc.rows)
+	) {
+		throw new Error(
+			`affiliation_stats freeze ${key} only moves to complete, with its rows unchanged.`
+		);
+	}
+};
 
 export const assertSetAffiliationStats = ({
 	data: {
@@ -43,6 +86,12 @@ export const assertSetAffiliationStats = ({
 	}
 }: AssertSetDocContext): void => {
 	if (collection !== Collection.AFFILIATION_STATS) {
+		return;
+	}
+
+	if (key.split('/').length === 2) {
+		assertSetAffiliationFreeze({ key, current, proposed });
+
 		return;
 	}
 

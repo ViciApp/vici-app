@@ -84,6 +84,7 @@ export interface AppClaimWorldsPodiumPrizeResult {
 	month_anchor: string;
 	not_eligible: boolean;
 	awards_created: number;
+	freeze_pending: [] | [boolean];
 	awards_already_claimed: number;
 }
 export interface AppCreateLeagueArgs {

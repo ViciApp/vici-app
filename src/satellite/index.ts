@@ -1083,7 +1083,9 @@ export const claimCalibrationReward = defineUpdate({
 // passes `monthAnchor` (YYYY-MM) for a closed month; if their
 // current affiliation finished top-3 in that month's snapshot,
 // VXP_AWARDS docs are created (gold/silver/bronze) and a ledger
-// transfer is fired. Idempotent via the award doc key.
+// transfer is fired. Idempotent via the award doc key. The first claims
+// of a month freeze its ranking a bounded batch of docs per call and pay
+// nothing (`freezePending`); the FE claims again until that clears.
 export const claimWorldsPodiumPrize = defineUpdate({
 	args: j.strictObject({
 		monthAnchor: j.string()
@@ -1092,7 +1094,8 @@ export const claimWorldsPodiumPrize = defineUpdate({
 		monthAnchor: j.string(),
 		awardsCreated: j.number(),
 		awardsAlreadyClaimed: j.number(),
-		notEligible: j.boolean()
+		notEligible: j.boolean(),
+		freezePending: j.optional(j.boolean())
 	}),
 	handler: claimWorldsPodiumPrizeFn
 });
