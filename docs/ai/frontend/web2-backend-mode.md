@@ -306,7 +306,7 @@ the on-chain call untouched on the default side:
 - `relation.services.ts`: `sendFriendRequest` (with a web2 `@handle` / account-id
   resolver), `accept` / `reject` / `cancel`, `unfriend` (the friendship
   only; see the registry group admins gap below), `follow`.
-- `relation-queries.services.ts`: friends, followers, following, friend
+- `relation-queries.services.ts`: friends, following, friend
   requests (sent + received), friend-scoped resolved results.
 
 ### App-shell hydration
