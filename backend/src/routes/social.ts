@@ -427,7 +427,7 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 				.map((id) => id.trim())
 				.filter((id) => UUID_RE.test(id));
 
-			return { items: await listFriendResolvedResults({ friendIds }) };
+			return { items: await listFriendResolvedResults({ viewerId: user.id, friendIds }) };
 		},
 		{ query: t.Object({ friends: t.String() }) }
 	)

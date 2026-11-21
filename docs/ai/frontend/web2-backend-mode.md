@@ -94,7 +94,10 @@ per-domain sections:
   as do the roles / admin services.
 - **Direct ICRC ledger / index reads and user-held transfers**: web2 mode
   surfaces custodial balances and routes sends through withdrawals; the
-  paged ledger history returns empty there.
+  paged ledger history returns empty there, and `loadVxpLedgerHistory`
+  returns `undefined`, so the transaction history page
+  (`/dash/transactions`) shows its unavailable state rather than running
+  balances that miss every bonus and transfer.
 - **League standings slice** (`getLeagueStandings`): empty in web2 mode
   until a member-filtered bridge read with the identity mapping exists;
   web2 standings entries also keep the on-chain principal as `owner`.
@@ -126,6 +129,20 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   `loadWeb2Session()` probes `/me` (a 401 is the signed-out steady state,
   not an error), `adoptWeb2Session(user)` seeds it from a login response,
   and `clearWeb2Session()` revokes server-side then drops local state.
+- **Session follows the cookie: `watchWeb2Session()`.** Tabs share the
+  cookie, so a sign-in or sign-out in one tab changes the account of every
+  tab. `Authn` starts the watcher with the probe. A request the API refuses
+  as `unauthenticated` (the `client.ts` session-lost handler; any other 401,
+  such as a wrong sign-in code, is not one) signs the tab out, and the
+  hydration effect resets the app. The account is re-read from `/me` when
+  another tab changes it (a `BroadcastChannel`) and when the tab is shown
+  again; a different account is adopted and the app rehydrates for it.
+- **Writes in an account's name confirm the cookie first.** A profile PUT is
+  a full-doc write onto the cookie's account, so `upsertProfile` and
+  `saveMyEmail` run `assertWeb2SessionOwner(owner)` (a `/me` read) before it:
+  when the cookie belongs to another account the store moves to it and the
+  write is refused with `Web2SessionChangedError`. The API's nickname guard
+  would refuse most such writes too; the client does not rely on it.
 - **Session bootstrap: `Authn.svelte`.** `onMount` branches: web2 runs
   `loadWeb2Session()` in place of Juno's `onAuthStateChange`. The on-chain
   path is left byte-for-byte as it was. A signed-out probe releases
@@ -273,14 +290,22 @@ the on-chain call untouched on the default side:
   `checkNicknameAvailability`, `recordFlowSwipe`,
   `upsertProfile`. The composed writers (`patchProfile`, `persistDailyStreak`,
   `applyOnboardingPicks`, `persistPreferences`, `recordActivity`) ride the
-  swap for free: they route through `getProfile` + `upsertProfile`.
+  swap through `patchProfile` + `upsertProfile`; in web2 `patchProfile`
+  builds the patch on the session's own row (`getMyProfile`), never on the
+  public `getProfile` read.
+  `getMyJoinedAtMs` (the Settings "Joined" line) reads the session
+  account's `createdAt` in web2 mode, the profile doc's `created_at` on
+  the default backend.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
-- `leaderboard.services.ts`: `getLeaderboard`.
+- `leaderboard.services.ts`: `getLeaderboard`. The API ranks it from
+  settled history, never `points` (see the global leaderboard section of
+  [`PRODUCT.md`](../PRODUCT.md#global-leaderboard-qualify-gate--confidence-adjusted-ranking)).
 - `menagerie.services.ts`: the viewer's rank + ranked-population size in
   `loadMyMenagerieSignals` (Goat and the profile's "Top X%" line), read
-  from `GET /api/v1/leaderboard/rank/:userId`.
+  from `GET /api/v1/leaderboard/rank/:userId`, over the same ranking.
 - `relation.services.ts`: `sendFriendRequest` (with a web2 `@handle` / account-id
-  resolver), `accept` / `reject` / `cancel`, `unfriend`, `follow`.
+  resolver), `accept` / `reject` / `cancel`, `unfriend` (the friendship
+  only; see the registry group admins gap below), `follow`.
 - `relation-queries.services.ts`: friends, following, friend
   requests (sent + received), friend-scoped resolved results.
 
@@ -337,7 +362,8 @@ apply them at the fetch boundary.
 ### Service-layer branches
 
 - `market.services.ts`: the series catalog (`listSeries`, both the full
-  and the unexpired read), per-series `getSeries`, the settlement status
+  read, exported as `listSeriesCatalog` for the `/m/[id]` share-link
+  alias, and the unexpired read), per-series `getSeries`, the settlement status
   on the detail fetch, and the traded-volumes batch. On the detail fetch the
   on-chain order book fails open in web2 mode (an empty book, priced as
   unknown) so an unreachable IC read never blanks the page; the Flow deck's
@@ -380,6 +406,15 @@ apply them at the fetch boundary.
   settlement (`resolution.services.ts` `settleMarket`) are user-signed
   registry / clearing writes with no HTTP route yet; curator / admin
   surfaces stay on the on-chain identity.
+- Registry group admins on unfriend: on the default backend
+  `unfriendUser` also removes each user from the admins of the other's
+  icdc-core registry groups (`group.services.ts`
+  `syncGroupAdminsAfterUnfriend`, user-signed registry writes). These are
+  the registry's market groups, not leagues, so the web2 leagues API has
+  nothing to call; with no on-chain identity to sign and no HTTP route for
+  registry groups, the web2 unfriend removes only the friendship, and a
+  former friend stays a registry group admin until that is removed
+  on-chain.
 - Leaderboard identity caveat: web2 standings entries keep the engine
   principal (a web2 account's custodial principal) as `owner`, clearing's
   native key; no API route maps it back to an account, so no profile
@@ -467,7 +502,9 @@ the exact candid shapes.
   authoritative for the other chains. The read is deliberately uncached:
   the sweep sizes its deposit from it every 10s and re-reads right after
   one. An asset whose read fails is logged and left out of the response,
-  never reported as zero.
+  never reported as zero; `LoaderBalances` then keeps that token's last
+  known balance for the same user (`mergeReadBalances`), as it does for a
+  ledger read that fails on the default backend.
 - `getReceiveAddress` (the Receive tab): `/wallet/deposit-address/ic`,
   the custodial IC principal the API derives for the user. Funds sent to
   it show up on the next balance read.
@@ -549,8 +586,9 @@ shapes are identity-free (league ids and aggregates) and pass through.
   client never reads `league_stats` (tournament matches are scored from
   settled history server-side, never from it either); `loadLeaguesByIds` hydrates the
   league directory from the caller's own list reads because no public
-  by-id league read exists yet; the share URL stays plain (no `?ref=`)
-  until referrals swap.
+  by-id league read exists yet; the share URL carries the sharer's
+  `?ref=` code through the dual-mode `getMyReferralCode`, as on the
+  default backend.
 - League cover images: `storage.services.ts` `uploadLeagueImage` posts
   the (still client-downscaled) bytes as multipart to
   `/leagues/:id/image`, which stores them and stamps the serving URL on

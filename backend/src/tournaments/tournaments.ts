@@ -1,14 +1,17 @@
 // Monthly tournament: a 16-league single-elimination bracket drawn once per
-// month (the YYYY-MM primary key makes a re-draw collide), seeded by member
-// count with the league id as the deterministic tie-break, resolved round by
-// round from each league's members' settled history over the round window
-// (7-day windows, 50-call forfeit floor; read from the clearing canister like
-// league battles, never from the member-writable league_stats), and paid out
-// through the economy's idempotent prize grants.
+// month (the YYYY-MM primary key makes a re-draw collide), seeded by how many
+// members settled a call in the calendar month before the draw, with the
+// league id as the deterministic tie-break, resolved round by round from the
+// settled history of each league's members who joined by the draw over the
+// round window (7-day windows, 50-call forfeit floor; read from the clearing
+// canister like league battles, never from the member-writable league_stats),
+// and paid out through the economy's idempotent prize grants.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
+import { parsedPrincipal, settlementPrincipalsByUser } from '../auth/identity';
 import { query, tx, type TxQuery } from '../db/client';
-import { settledTotals } from '../engine/clearing';
+import { settledTotals, settledTotalsByPrincipal } from '../engine/clearing';
 import { leagueMemberPrincipals } from '../leagues/members';
 import { logger } from '../lib/logger';
 import { DAY_IN_MS, MONTH_ANCHOR_RE, monthAnchorFromMs, monthStartMs } from '../lib/time';
@@ -209,9 +212,35 @@ export const tournamentDrawRefusal = ({
 };
 
 /**
- * Run the monthly draw. Deterministic seeding: leagues ranked by member
- * count desc with the league id as the tie-break, top 16 taken; the same
- * roster always draws the same bracket. Idempotent by the tournament
+ * The league members who settled at least one call in the calendar month
+ * before `monthAnchor`: the members the draw seeds from, so an account that
+ * never plays cannot lift a league's seed. A user in several leagues counts in
+ * each.
+ */
+const seedingActiveMembers = async (monthAnchor: string): Promise<string[]> => {
+	const rows = await query<{ member_user_id: string }>(
+		`select distinct m.member_user_id from league_members m join leagues l on l.id = m.league_id`
+	);
+	const principalsByUser = await settlementPrincipalsByUser(
+		rows.map(({ member_user_id }) => member_user_id)
+	);
+	const toMs = monthStartMs(monthAnchor);
+	const settled = await settledTotalsByPrincipal({
+		members: [...principalsByUser.values()].flat().map(parsedPrincipal).filter(nonNullish),
+		fromMs: monthStartMs(monthAnchorFromMs(toMs - 1)),
+		toMs
+	});
+
+	return [...principalsByUser]
+		.filter(([, principals]) => principals.some((text) => (settled.get(text)?.calls ?? 0) > 0))
+		.map(([userId]) => userId);
+};
+
+/**
+ * Run the monthly draw. Deterministic seeding: leagues ranked by their
+ * members who settled a call in the calendar month before the draw, desc,
+ * with the league id as the tie-break, top 16 taken; the same roster and
+ * history always draw the same bracket. Idempotent by the tournament
  * primary-key collision on the month anchor. Only a month
  * {@link tournamentDrawRefusal} accepts is drawn.
  */
@@ -230,6 +259,19 @@ export const triggerTournamentDraw = async ({
 
 	const startMs = monthStartMs(monthAnchor);
 
+	// The worker ticks through all of round 1: a drawn month answers before
+	// the roster-wide clearing read.
+	const drawn = await query<{ id: string }>(`select id from tournaments where id = $1`, [
+		monthAnchor
+	]);
+
+	if (nonNullish(drawn[0])) {
+		return { ok: false, reason: 'already_drawn', tournamentId: monthAnchor };
+	}
+
+	// Read before the transaction so no lock is held across the clearing call.
+	const activeMembers = await seedingActiveMembers(monthAnchor);
+
 	return await tx(async (q) => {
 		const existing = await q<{ id: string }>(`select id from tournaments where id = $1`, [
 			monthAnchor
@@ -239,15 +281,15 @@ export const triggerTournamentDraw = async ({
 			return { ok: false, reason: 'already_drawn', tournamentId: monthAnchor };
 		}
 
-		// Member-count ranking with the id tie-break; the join guarantees each
+		// Active-member ranking with the id tie-break; the join guarantees each
 		// seeded id is an existing league.
 		const ranking = await q<{ league_id: string }>(
 			`select m.league_id
 			 from league_members m
 			 join leagues l on l.id = m.league_id
 			 group by m.league_id
-			 order by count(*) desc, m.league_id asc`,
-			[]
+			 order by count(*) filter (where m.member_user_id = any($1::uuid[])) desc, m.league_id asc`,
+			[activeMembers]
 		);
 
 		if (ranking.length < TOURNAMENT_BRACKET_SIZE) {
@@ -360,22 +402,29 @@ interface WindowScore {
 	accuracy: number;
 }
 
+/** The instant memberships must be joined before to count: the draw seeds the
+ * bracket from the roster it reads, every membership stamped at or before it.
+ * Match scores and prizes count that roster only. */
+const drawRosterCutoffMs = (drawnAtMs: number): number => drawnAtMs + 1;
+
 /** A league's accuracy in a round window, from its members' settled history
  * over [startMs, endMs): the source league battles are scored from, never the
- * member-writable league_stats. Only memberships joined before the window
- * closed count. Below the per-match floor the league forfeits. */
+ * member-writable league_stats. Only memberships joined by the draw count.
+ * Below the per-match floor the league forfeits. */
 const leagueWindowAccuracy = async ({
 	leagueId,
 	startMs,
-	endMs
+	endMs,
+	drawnAtMs
 }: {
 	leagueId: string | null;
 	startMs: number;
 	endMs: number;
+	drawnAtMs: number;
 }): Promise<WindowScore> => {
 	const members = isNullish(leagueId)
 		? []
-		: await leagueMemberPrincipals({ leagueId, joinedBeforeMs: endMs });
+		: await leagueMemberPrincipals({ leagueId, joinedBeforeMs: drawRosterCutoffMs(drawnAtMs) });
 	const { calls, wins } = await settledTotals({ members, fromMs: startMs, toMs: endMs });
 
 	if (calls < TOURNAMENT_MIN_CALLS_PER_MATCH) {
@@ -484,19 +533,25 @@ const propagateWinnerToNextRound = async ({
 
 /** Both sides' window scores for a match, read before the resolving
  * transaction so no row lock is held across the clearing reads. */
-const scoreMatch = async (
-	match: TournamentMatch
-): Promise<{ index: number; fromEval: WindowScore; toEval: WindowScore }> => {
+const scoreMatch = async ({
+	match,
+	drawnAtMs
+}: {
+	match: TournamentMatch;
+	drawnAtMs: number;
+}): Promise<{ index: number; fromEval: WindowScore; toEval: WindowScore }> => {
 	const [fromEval, toEval] = await Promise.all([
 		leagueWindowAccuracy({
 			leagueId: match.fromLeagueId,
 			startMs: match.startMs,
-			endMs: match.endMs
+			endMs: match.endMs,
+			drawnAtMs
 		}),
 		leagueWindowAccuracy({
 			leagueId: match.toLeagueId,
 			startMs: match.startMs,
-			endMs: match.endMs
+			endMs: match.endMs,
+			drawnAtMs
 		})
 	]);
 
@@ -612,13 +667,17 @@ export const resolveTournamentRound = async ({
 	}
 
 	const round_ = round as TournamentRound;
-	const known = await query<{ id: string }>(`select id from tournaments where id = $1`, [
-		tournamentId
-	]);
+	const known = await query<{ created_at_ms: string }>(
+		`select created_at_ms::text from tournaments where id = $1`,
+		[tournamentId]
+	);
+	const [knownRow] = known;
 
-	if (isNullish(known[0])) {
+	if (isNullish(knownRow)) {
 		return { ok: false, reason: 'tournament_not_found' };
 	}
+
+	const drawnAtMs = Number(knownRow.created_at_ms);
 
 	const scoredMatches = await listMatches(tournamentId);
 	const refusal = roundRefusal({ matches: scoredMatches, round: round_, nowMs });
@@ -628,7 +687,9 @@ export const resolveTournamentRound = async ({
 	}
 
 	const scores = await Promise.all(
-		scoredMatches.filter((m) => m.round === round_ && isNullish(m.winnerLeagueId)).map(scoreMatch)
+		scoredMatches
+			.filter((m) => m.round === round_ && isNullish(m.winnerLeagueId))
+			.map((match) => scoreMatch({ match, drawnAtMs }))
 	);
 
 	return await tx(async (q) => {
@@ -690,13 +751,34 @@ export interface ClaimTournamentPrizeResult {
 	totalVxpCredited?: number;
 }
 
+/** Whether a user settled at least one call inside the tournament window,
+ * under any principal they settle with. */
+const settledInTournament = async ({
+	userId,
+	tournament
+}: {
+	userId: string;
+	tournament: Tournament;
+}): Promise<boolean> => {
+	const principals = (await settlementPrincipalsByUser([userId])).get(userId) ?? [];
+	const { calls } = await settledTotals({
+		members: principals.map((text) => Principal.fromText(text)),
+		fromMs: tournament.monthStartMs,
+		toMs: tournament.monthEndMs
+	});
+
+	return calls > 0;
+};
+
 /**
  * Per-user prize claim on a concluded tournament. Place 1: member of the
  * final winner; place 2: member of the other finalist; place 3: member of
- * either semifinal loser. Only memberships that predate the draw count. A
- * member of several eligible leagues is offered the highest tier, and the
- * grant pays at most one prize per user per tournament, so a re-claim (for
- * the same place or another) is a no-op.
+ * either semifinal loser. Only memberships that predate the draw count, and
+ * only for a member who settled at least one call inside the tournament
+ * window: a podium league's idle members earn nothing (refused as not a
+ * member of a placed league). A member of several eligible leagues is offered
+ * the highest tier, and the grant pays at most one prize per user per
+ * tournament, so a re-claim (for the same place or another) is a no-op.
  */
 export const claimTournamentPrize = async ({
 	tournamentId,
@@ -736,15 +818,15 @@ export const claimTournamentPrize = async ({
 			? finalMatch.toLeagueId
 			: finalMatch.fromLeagueId;
 
-	// The draw is the kickoff: it seeds the bracket from the member counts of
-	// that moment, so its roster is the one that played. month_start_ms is only
-	// the calendar anchor of the round windows and can precede a late draw.
-	// Joining a placed league afterwards (or being added by its owner) earns
+	// The draw is the kickoff: it seeds the bracket from the roster of that
+	// moment, and every match is scored on that roster, so it is the one that
+	// played. month_start_ms is only the calendar anchor of the round windows
+	// and can precede a late draw. Joining a placed league afterwards earns
 	// nothing.
 	const membershipRows = await query<{ league_id: string }>(
 		`select league_id from league_members
-		 where member_user_id = $1 and joined_at_ms <= $2`,
-		[userId, tournamentRow.created_at_ms]
+		 where member_user_id = $1 and joined_at_ms < $2`,
+		[userId, drawRosterCutoffMs(Number(tournamentRow.created_at_ms))]
 	);
 	const myLeagueIds = new Set(membershipRows.map(({ league_id }) => league_id));
 
@@ -758,7 +840,10 @@ export const claimTournamentPrize = async ({
 		myPlace = 3;
 	}
 
-	if (isNullish(myPlace)) {
+	if (
+		isNullish(myPlace) ||
+		!(await settledInTournament({ userId, tournament: shapeTournament(tournamentRow) }))
+	) {
 		return { ok: false, reason: 'not_member_of_top_league' };
 	}
 

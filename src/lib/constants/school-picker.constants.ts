@@ -47,3 +47,12 @@ export const SCHOOL_CODE_MAX_ATTEMPTS = 5;
  * against being used as a spam relay.
  */
 export const SCHOOL_VERIFY_DAILY_CAP = 5;
+
+/**
+ * Longest school name a verification may carry: the name becomes the
+ * submission's and a new school's registry name, and its slug the school id.
+ */
+export const SCHOOL_NAME_MAX_LENGTH = 128;
+
+/** A verification's country is an ISO-3166 alpha-2 code. */
+export const SCHOOL_COUNTRY_CODE_LENGTH = 2;

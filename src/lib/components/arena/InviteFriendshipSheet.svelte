@@ -4,11 +4,13 @@
 	import { onMount } from 'svelte';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
+	import { REFERRAL_VXP_BONUS_BASE_UNITS } from '#lib/constants/referral.constants.ts';
 	import { getProfile } from '#lib/services/profile.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { UserProfile } from '#lib/types/profile.ts';
 	import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	/**
 	 * Friendship-only explainer rendered by `/i/[code]` when an existing user (account older
@@ -91,7 +93,13 @@
 	</p>
 
 	<ul class="invite-sheet-bullets">
-		<li>{t({ locale: $localeStore, key: 'invite.sheet.bullet_no_bonus' })}</li>
+		<li>
+			{t({
+				locale: $localeStore,
+				key: 'invite.sheet.bullet_no_bonus',
+				params: { amount: formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }) }
+			})}
+		</li>
 		<li>{t({ locale: $localeStore, key: 'invite.sheet.bullet_friendship' })}</li>
 	</ul>
 

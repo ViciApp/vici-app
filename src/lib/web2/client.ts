@@ -136,6 +136,36 @@ const apiError = async (response: Response): Promise<Web2ApiError> => {
 	return new Web2ApiError({ status, code: 'unknown_error' });
 };
 
+let onSessionLost: (() => void) | undefined;
+
+/**
+ * Register what runs when a request is refused because the cookie carries no
+ * live session (expired, revoked, or signed out from another tab): the API's
+ * `unauthenticated` refusal, not any other 401 (a wrong sign-in code is one
+ * too). Returns the function that removes it.
+ */
+export const setWeb2SessionLostHandler = (handler: () => void): (() => void) => {
+	onSessionLost = handler;
+
+	return () => {
+		if (onSessionLost === handler) {
+			onSessionLost = undefined;
+		}
+	};
+};
+
+/** The error a non-2xx response throws; tells the session handler when the
+ * refusal says the session is gone. */
+const refusal = async (response: Response): Promise<Web2ApiError> => {
+	const error = await apiError(response);
+
+	if (error.status === 401 && error.code === 'unauthenticated') {
+		onSessionLost?.();
+	}
+
+	return error;
+};
+
 const request = async <T>({
 	path,
 	method,
@@ -157,7 +187,7 @@ const request = async <T>({
 	});
 
 	if (!response.ok) {
-		throw await apiError(response);
+		throw await refusal(response);
 	}
 
 	return (await response.json()) as T;
@@ -1373,7 +1403,7 @@ export const uploadLeagueImage = async ({
 	);
 
 	if (!response.ok) {
-		throw await apiError(response);
+		throw await refusal(response);
 	}
 
 	const { league } = (await response.json()) as { league: Web2LeagueWire };
@@ -1919,7 +1949,10 @@ export const listBlockingLeagues = async (): Promise<string[]> => {
 
 export interface Web2DeleteAccountResult {
 	ok: boolean;
-	reason?: 'owns_non_empty_league' | 'league_resolution_failed' | 'invalid_input';
+	/** `holds_custody_funds`: the wallet still holds funds or a withdrawal is
+	 * in flight; the user withdraws first. Only the API sends it. */
+	reason?:
+		'holds_custody_funds' | 'owns_non_empty_league' | 'league_resolution_failed' | 'invalid_input';
 	blockingLeagueIds?: string[];
 	failedLeagueId?: string;
 	resolutionReason?: string;
@@ -1946,7 +1979,8 @@ export const deleteMyAccount = async ({
 	});
 
 /** Clear a soft-delete inside the recovery window; a lapsed window
- * hard-deletes in place and returns `{ ok: false, reason: 'expired' }`. */
+ * hard-deletes in place and returns `{ ok: false, reason: 'expired' }`, unless
+ * the account still holds funds, which recovers it instead. */
 export const recoverMyAccount = async (): Promise<
 	{ ok: true; recovered: boolean } | { ok: false; reason: 'expired' }
 > => await request({ path: '/api/v1/account/recover', method: 'POST' });

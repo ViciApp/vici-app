@@ -1,7 +1,7 @@
 // Tournament match scoring: each side is scored from its members' settled
 // history over the round window, read from the clearing canister, never from
 // the member-writable league_stats; a settlement outside the window and a
-// member who joined after it do not count.
+// member who joined after the draw do not count.
 
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
@@ -20,7 +20,7 @@ import { dbAvailable } from './helpers/setup';
 
 // Past every range other suites draw from (worlds-podium 2000 to 2099,
 // monthly-stats 2100 to 2899, tournaments 2900 to 2999, affiliation-stats
-// 3000 and up on its own tables).
+// 3000 and up on its own tables, tournament-prize 3900 to 3999).
 const FIRST_TEST_YEAR = 4000;
 const FIRST_TEST_ANCHOR = `${FIRST_TEST_YEAR}-`;
 
@@ -179,6 +179,32 @@ describe.if(dbAvailable)('tournament match scoring', () => {
 		settled?.settle({ userId: boosted.ownerId, atMs: r1.startMs - 1, calls: 60, wins: 60 });
 		settled?.settle({ userId: boosted.ownerId, atMs: r1.endMs, calls: 60, wins: 60 });
 		settled?.settle({ userId: latecomer, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 60 });
+
+		await resolveTournamentRound({ tournamentId: monthAnchor, round: 'r1', nowMs: r1.endMs });
+
+		expect(await readMatch(monthAnchor)).toEqual({
+			winner_league_id: weak.leagueId,
+			from_acc: 0.1,
+			to_acc: null
+		});
+	});
+
+	test('a member who joined after the draw does not count, even inside the window', async () => {
+		const { monthAnchor, startMs } = uniqueMonth();
+		const r1 = roundWindow({ tournamentMonthStartMs: startMs, round: 'r1' });
+		const weak = await seedLeague();
+		const boosted = await seedLeague();
+		const recruit = await createTestUser();
+
+		// seedRoundOne stamps the draw at the month start.
+		await seedRoundOne({ monthAnchor, startMs, from: weak.leagueId, to: boosted.leagueId });
+		await query(
+			`insert into league_members (league_id, member_user_id, joined_at_ms, role)
+			 values ($1, $2, $3, 'member')`,
+			[boosted.leagueId, recruit, startMs + 1]
+		);
+		settled?.settle({ userId: weak.ownerId, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 6 });
+		settled?.settle({ userId: recruit, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 60 });
 
 		await resolveTournamentRound({ tournamentId: monthAnchor, round: 'r1', nowMs: r1.endMs });
 

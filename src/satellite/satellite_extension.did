@@ -123,10 +123,6 @@ type AppListWorldsRosterArgs = record { kind : variant { university; country }; 
 
 type AppListWorldsRosterResult = record { items : vec record { member : text; kind : variant { university; country }; affiliation_identifier : text; joined_at_ms : float64; locked_until_ms : float64 } };
 
-type AppLookupLeagueByInviteArgs = record { invite_code : text };
-
-type AppLookupLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text } };
-
 type AppLookupReferralCodeArgs = record { code : text };
 
 type AppLookupReferralCodeResult = record { owner : opt text };
@@ -171,7 +167,11 @@ type AppHibernateMyAccountResult = record { ok : bool; reason : opt variant { no
 
 type AppJoinLeagueByInviteArgs = record { invite_code : text };
 
-type AppJoinLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; reason : opt variant { not_found; already_member } };
+type AppJoinLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; reason : opt variant { not_found; already_member; rate_limited } };
+
+type AppLookupLeagueByInviteArgs = record { invite_code : text };
+
+type AppLookupLeagueByInviteResult = record { league : opt record { id : text; name : text; description : opt text; invite_code : opt text; owner : text; created_at_ms : float64; accent_color : opt text; emblem : opt text; privacy : variant { private; open }; image_url : opt text }; reason : opt variant { rate_limited } };
 
 type AppMigrateLeagueInviteCodesResult = record { migrated : float64 };
 
@@ -192,6 +192,8 @@ type AppRecordFlowSwipeResult = record { daily_goal_done : float64; daily_goal_d
 type AppRecoverMyAccountResult = record { ok : bool; recovered : opt bool; reason : opt variant { expired } };
 
 type AppRedeemReferralCodeArgs = record { code : text };
+
+type AppRefreshLeaderboardRankingResult = record { refreshed : bool; ranked : float64 };
 
 type AppRejectFriendRequestArgs = record { relation_id : text };
 
@@ -217,7 +219,9 @@ type AppSubmitSchoolArgs = record { name : text; country : opt text; school_id :
 
 type AppSubmitSchoolResult = record { submission_id : text };
 
-type AppSweepExpiredDeletionsResult = record { swept : float64 };
+type AppSweepExpiredDeletionsArgs = record { after_key : opt text; limit : opt float64 };
+
+type AppSweepExpiredDeletionsResult = record { swept : float64; failed : float64; next_after_key : opt text; done : bool };
 
 type AppTrackEventsArgs = record { events : vec record { name : variant { session_started; signed_up; signed_in; signed_out; provider_linked; onboarding_started; onboarding_step; handle_checked; onboarding_completed; flow_session_started; flow_swipe; flow_card_expanded; flow_completed; flow_abandoned; sound_toggled; market_viewed; market_searched; market_shared; watchlist_added; watchlist_removed; orderbook_viewed; market_translation_toggled; market_category_filter; position_taken; position_closed; prediction_created; order_placed; order_cancelled; resolution_proposed; resolution_confirmed; resolution_disputed; payout_settled; referral_sent; referral_link_copied; referral_redeemed; referral_converted; vxp_awarded; streak_milestone; faucet_claimed; transactions_viewed; transactions_filtered; friend_request_sent; friend_feed_reaction; friend_digest_opened; league_created; league_joined; league_invite_sent; battle_proposed; battle_accepted; battle_declined; battle_expired; battle_resolved; battle_viewed; comment_posted; chat_sent; leaderboard_viewed; affiliation_set; affiliation_removed; privacy_sharing_toggled; school_picker_opened; school_picked; school_verify_email_submitted; school_verify_code_submitted; delete_flow_opened; delete_confirmed; delete_succeeded; exit_signal; notification_opened; pwa_install_prompted; pwa_install_accepted; pwa_install_dismissed; app_error; perf_metric }; session_id : text; path : opt text; market_id : opt text; series_id : opt text; league_id : opt text; battle_id : opt text; source : opt text; label : opt text; step : opt float64; value : opt float64; count : opt float64; duration_ms : opt float64; ok : opt bool; country : opt text; locale : opt text; occurred_at_ms : opt float64 } };
 
@@ -284,7 +288,6 @@ service : {
 	app_list_sent_friend_requests : () -> (AppListSentFriendRequestsResult) query;
 	app_list_worlds_member_counts : (AppListWorldsMemberCountsArgs) -> (AppListWorldsMemberCountsResult) query;
 	app_list_worlds_roster : (AppListWorldsRosterArgs) -> (AppListWorldsRosterResult) query;
-	app_lookup_league_by_invite : (AppLookupLeagueByInviteArgs) -> (AppLookupLeagueByInviteResult) query;
 	app_lookup_referral_code : (AppLookupReferralCodeArgs) -> (AppLookupReferralCodeResult) query;
 	app_search_profiles : (AppSearchProfilesArgs) -> (AppSearchProfilesResult) query;
 	app_accept_friend_request : (AppAcceptFriendRequestArgs) -> ();
@@ -299,6 +302,7 @@ service : {
 	app_follow_user : (AppFollowUserArgs) -> ();
 	app_hibernate_my_account : () -> (AppHibernateMyAccountResult);
 	app_join_league_by_invite : (AppJoinLeagueByInviteArgs) -> (AppJoinLeagueByInviteResult);
+	app_lookup_league_by_invite : (AppLookupLeagueByInviteArgs) -> (AppLookupLeagueByInviteResult);
 	app_migrate_league_invite_codes : () -> (AppMigrateLeagueInviteCodesResult);
 	app_prune_resolved_results : () -> (AppPruneResolvedResultsResult);
 	app_read_battle_live_score : (AppReadBattleLiveScoreArgs) -> (AppReadBattleLiveScoreResult);
@@ -307,6 +311,7 @@ service : {
 	app_record_flow_swipe : (AppRecordFlowSwipeArgs) -> (AppRecordFlowSwipeResult);
 	app_recover_my_account : () -> (AppRecoverMyAccountResult);
 	app_redeem_referral_code : (AppRedeemReferralCodeArgs) -> ();
+	app_refresh_leaderboard_ranking : () -> (AppRefreshLeaderboardRankingResult);
 	app_reject_friend_request : (AppRejectFriendRequestArgs) -> ();
 	app_resolve_battle : (AppResolveBattleArgs) -> (AppResolveBattleResult);
 	app_resolve_tournament_round : (AppResolveTournamentRoundArgs) -> (AppResolveTournamentRoundResult);
@@ -315,7 +320,7 @@ service : {
 	app_settle_founder_awards : () -> (AppSettleFounderAwardsResult);
 	app_settle_referral : (AppSettleReferralArgs) -> ();
 	app_submit_school : (AppSubmitSchoolArgs) -> (AppSubmitSchoolResult);
-	app_sweep_expired_deletions : () -> (AppSweepExpiredDeletionsResult);
+	app_sweep_expired_deletions : (AppSweepExpiredDeletionsArgs) -> (AppSweepExpiredDeletionsResult);
 	app_track_events : (AppTrackEventsArgs) -> (AppTrackEventsResult);
 	app_transfer_league_ownership : (AppTransferLeagueOwnershipArgs) -> (AppTransferLeagueOwnershipResult);
 	app_trigger_tournament_draw : (AppTriggerTournamentDrawArgs) -> (AppTriggerTournamentDrawResult);

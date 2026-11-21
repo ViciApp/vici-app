@@ -77,6 +77,12 @@ Before opening / merging, self-review against:
 These paths are **protected**. Agents may read them, but must not modify
 them without an explicit ask in the user prompt.
 
+This table is the source of the protected paths. Officina's red lane
+(`lanes.red.paths` in [`.github/officina.yml`](../../.github/officina.yml))
+repeats each row as a glob, because Officina reads its lanes from that file,
+and adds its own red-only paths after them ([lanes](./officina.md#lanes)). A
+row added or removed here changes that list in the same PR.
+
 | Path                                                                   | Reason                                                                            | Owner            |
 | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------- |
 | `.github/workflows/**`                                                 | CI integrity. Only `ci(...)` PRs touch these.                                     | repo maintainers |
@@ -127,14 +133,24 @@ description.
   [satellite structure](./satellite/structure.md)).
 - Run `npm run format`, `npm run lint`, `npm run check`, `npm run quality`,
   `npm run dev`, `npm run build`, `npm run did`,
-  `npm run juno:functions:build`, `npm run init:icdc` (and its sub-scripts),
-  `npm run test:engine-sync`, `npm run deploy`; in `backend/`, `bun run typecheck`,
+  `npm run juno:functions:build`; in `backend/`, `bun run typecheck`,
   `bun test`, `bun run migrate` against the local docker-compose database.
+- Run `npm run init:icdc` (and its sub-scripts), `npm run test:engine-sync` and
+  `npm run deploy` against the local replica. The scripts that reinstall
+  canisters, mint or set fixed prices refuse any other network (the callers of
+  `require_local_network` in
+  [`scripts/lib/utils.sh`](../../scripts/lib/utils.sh)). `init:icdc-engine`,
+  `init:registry` and `test:engine-sync` also run with `--staging` or
+  `--production` in the
+  [reset workflow](../../.agents/workflows/icdc-engine-reset.md), which needs
+  an explicit ask (below).
 - Update these `docs/ai/**` pages when the meta-update rule fires.
 
 ### Forbidden without explicit prompt
 
 - Add a new dependency or upgrade one (`package.json`).
+- Run any script against `staging` or `ic` (`--staging`, `--ic`,
+  `--production`).
 - Add a new top-level folder under `src/` or `src/lib/` /
   `src/satellite/`.
 - Edit any path in the [Boundaries](#boundaries) table.

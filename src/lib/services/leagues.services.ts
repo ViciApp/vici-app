@@ -27,6 +27,8 @@ import {
 import { leagueStatsBucket, leagueStatsKey, type LeagueStatsDoc } from '#lib/types/league-stats.ts';
 import {
 	LEAGUE_DESCRIPTION_MAX_LENGTH,
+	LEAGUE_INVITE_CODE_ALPHABET,
+	LEAGUE_INVITE_CODE_LENGTH,
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
@@ -93,13 +95,14 @@ export interface LeagueWithRole {
 
 // ─── Reads ───────────────────────────────────────────────────────────────
 
-/** Fresh invite codes `createLeague` tries before giving up; a clash is one in ~2 billion. */
+/** Fresh invite codes `createLeague` tries before giving up; a clash is one in ~3.6 quadrillion. */
 const CREATE_LEAGUE_INVITE_ATTEMPTS = 3;
 
-/** The error a refused join throws, by the satellite's refusal reason. */
-const JOIN_LEAGUE_ERRORS: Record<JoinLeagueRefusalReason, string> = {
+/** The error a refused join or lookup throws, by the satellite's refusal reason. */
+export const JOIN_LEAGUE_ERRORS: Record<JoinLeagueRefusalReason, string> = {
 	not_found: 'No league found for that invite code.',
-	already_member: 'Already a member of this league.'
+	already_member: 'Already a member of this league.',
+	rate_limited: 'Too many invite codes missed this hour.'
 };
 
 /** Project the satellite's camelCase wire league to the FE `LeagueDoc`. */
@@ -245,9 +248,10 @@ export const listLeagueMembers = async ({
 };
 
 /**
- * Resolve a 6-char invite code to its league, or `undefined` if no
- * league carries that code. Callers should treat the undefined
- * branch as "invalid code" UX, not an error.
+ * Resolve an invite code to its league, or `undefined` if no league
+ * carries that code. Callers should treat the undefined branch as
+ * "invalid code" UX, not an error. Throws once the caller has missed too
+ * many codes this hour (the satellite's cap; the API answers 429).
  */
 export const lookupLeagueByInvite = async ({
 	inviteCode
@@ -258,7 +262,11 @@ export const lookupLeagueByInvite = async ({
 		return await lookupLeagueByInviteWeb2(inviteCode);
 	}
 
-	const { league } = await functions.lookupLeagueByInvite({ inviteCode });
+	const { league, reason } = await functions.lookupLeagueByInvite({ inviteCode });
+
+	if (nonNullish(reason)) {
+		throw new Error(JOIN_LEAGUE_ERRORS[reason]);
+	}
 
 	if (!league) {
 		return;
@@ -417,19 +425,19 @@ export const deriveLeagueId = ({
 };
 
 /**
- * Generate a fresh 6-char `[A-Z0-9]` invite code via the platform
- * crypto. Matches `LEAGUE_INVITE_CODE_REGEX` from `#lib/types/league.ts`
- * so the satellite assert accepts it on first write.
+ * Generate a fresh {@link LEAGUE_INVITE_CODE_LENGTH}-char invite code via
+ * the platform crypto. Matches `LEAGUE_INVITE_CODE_REGEX` from
+ * `#lib/types/league.ts` at the length `createLeague` requires of a new
+ * league, so the satellite accepts it on first write.
  */
 export const generateInviteCode = (): string => {
-	const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-	const buf = new Uint8Array(6);
+	const buf = new Uint8Array(LEAGUE_INVITE_CODE_LENGTH);
 	crypto.getRandomValues(buf);
 
 	let code = '';
 
 	for (const byte of buf) {
-		code += alphabet[byte % alphabet.length];
+		code += LEAGUE_INVITE_CODE_ALPHABET[byte % LEAGUE_INVITE_CODE_ALPHABET.length];
 	}
 
 	return code;
@@ -467,7 +475,7 @@ export const createLeague = async ({
 	 *  persisted on the league doc and surfaced as the detail header's
 	 *  privacy chip. */
 	privacy?: LeaguePrivacy;
-	/** Pre-generated 6-char invite code. The create sheet surfaces the
+	/** Pre-generated invite code. The create sheet surfaces the
 	 *  code to the owner before submit (so they can share it), so it
 	 *  passes the same value here to keep the displayed and persisted
 	 *  codes identical. Omitted callers get a fresh code generated here.
@@ -655,13 +663,6 @@ export const updateLeague = async ({
 let cachedReferral: { owner: PrincipalText; code: string } | undefined;
 
 const resolveMyReferralCode = async (): Promise<string | undefined> => {
-	// Referral codes are an unswapped satellite domain; until they ride the
-	// HTTP API the web2 share link stays plain (no `?ref=`) instead of probing
-	// the satellite from a session that holds no on-chain identity.
-	if (isWeb2Backend()) {
-		return;
-	}
-
 	const owner = get(authPrincipal);
 
 	if (isNullish(owner)) {
@@ -712,7 +713,7 @@ export const buildLeagueShareUrl = async ({
 };
 
 /**
- * Join a league via its 6-char invite code, the only way into a league.
+ * Join a league via its invite code, the only way into a league.
  * Returns the league so the caller can route into it.
  *
  * Throws if the code is malformed, unknown, or the caller is already a
