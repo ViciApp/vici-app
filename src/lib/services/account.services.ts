@@ -42,8 +42,9 @@ export interface LeagueResolution {
 
 export interface DeleteMyAccountResult {
 	ok: boolean;
-	/** The satellite sends a subset of the API's reasons. */
-	reason?: Web2DeleteAccountResult['reason'];
+	/** The satellite sends a subset of the API's reasons, plus
+	 * `league_disband_pending`, which {@link deleteMyAccount} consumes. */
+	reason?: Web2DeleteAccountResult['reason'] | 'league_disband_pending';
 	blockingLeagueIds?: string[];
 	/** The league whose resolution failed (`reason === 'league_resolution_failed'`). */
 	failedLeagueId?: string;
@@ -71,6 +72,18 @@ export const listMyBlockingLeagues = async (): Promise<string[]> => {
 	return leagueIds;
 };
 
+const deleteMyAccountOnSatellite = async (
+	args: Parameters<typeof functions.deleteMyAccount>[0]
+): Promise<DeleteMyAccountResult> => {
+	let result: DeleteMyAccountResult;
+
+	do {
+		result = await functions.deleteMyAccount(args);
+	} while (result.reason === 'league_disband_pending');
+
+	return result;
+};
+
 /**
  * Fire the account-deletion endpoint. On success the caller should
  * `signOut()` immediately: the satellite has already dropped the
@@ -80,6 +93,11 @@ export const listMyBlockingLeagues = async (): Promise<string[]> => {
  * On `ok: false` with `reason: 'owns_non_empty_league'`, the
  * `blockingLeagueIds` field tells the UI which leagues to surface
  * in the transfer-first prompt.
+ *
+ * The satellite disbands a league a bounded batch of docs per call and
+ * answers `league_disband_pending` while one has more left, so the same
+ * request is sent again until it gets another answer; the caller never
+ * sees that reason.
  */
 export const deleteMyAccount = ({
 	reason,
@@ -96,11 +114,7 @@ export const deleteMyAccount = ({
 	// `signOut` in `identity.services.ts` afterwards.
 	isWeb2Backend()
 		? deleteMyAccountWeb2({ reason, note, leagueResolutions })
-		: functions.deleteMyAccount({
-				reason,
-				note,
-				leagueResolutions
-			});
+		: deleteMyAccountOnSatellite({ reason, note, leagueResolutions });
 
 export interface HibernateMyAccountResult {
 	ok: boolean;

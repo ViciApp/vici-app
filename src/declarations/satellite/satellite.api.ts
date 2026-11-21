@@ -1767,7 +1767,12 @@ const AppDeleteMyAccountArgsSchema = j.strictObject({
 const AppDeleteMyAccountResultSchema = j.strictObject({
 	ok: j.boolean(),
 	reason: j.optional(
-		j.enum(['owns_non_empty_league', 'league_resolution_failed', 'invalid_input'])
+		j.enum([
+			'owns_non_empty_league',
+			'league_resolution_failed',
+			'league_disband_pending',
+			'invalid_input'
+		])
 	),
 	blockingLeagueIds: j.optional(j.array(j.string())),
 	failedLeagueId: j.optional(j.string()),

@@ -159,7 +159,7 @@ type AppDeleteAnalyticsEventsResult = record { deleted : float64 };
 
 type AppDeleteMyAccountArgs = record { reason : text; note : text; league_resolutions : opt vec record { league_id : text; action : variant { transfer; delete }; transfer_to : opt text } };
 
-type AppDeleteMyAccountResult = record { ok : bool; reason : opt variant { owns_non_empty_league; league_resolution_failed; invalid_input }; blocking_league_ids : opt vec text; failed_league_id : opt text; resolution_reason : opt text; soft_deleted : opt bool };
+type AppDeleteMyAccountResult = record { ok : bool; reason : opt variant { owns_non_empty_league; league_resolution_failed; league_disband_pending; invalid_input }; blocking_league_ids : opt vec text; failed_league_id : opt text; resolution_reason : opt text; soft_deleted : opt bool };
 
 type AppFollowUserArgs = record { target : text };
 

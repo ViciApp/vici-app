@@ -484,6 +484,19 @@ owner-leagues guard:
   (`hardDeleteAccountFn`) does for every row it removes. Distinct from the cascade's
   `disbandOrTransferOwnedLeagues`, which only drops leagues that are
   _already_ empty and hands the others to a remaining member.
+- **The disband runs in bounded calls.** `deleteLeagueFn` deletes at
+  most `LEAGUE_DISBAND_BATCH` docs per call (the bulk-write budget
+  above): the league doc and its invite first, so every reader drops
+  the league at once and nobody joins it, then the other members' rows,
+  then the owner's own row alone, which authorises the calls in between
+  (`leagueDisbandInProgress`). `deleteMyAccount` answers
+  `league_disband_pending` while a disband has more left and the FE
+  sends the same request again. Each call first finishes every disband
+  the caller has under way (`leagueDisbandsInProgress`, read from the
+  caller's own membership rows), whether or not the request still names
+  the league, so the account is never soft-deleted with its rows left;
+  a call that resumes a disband does not count `delete_confirmed` again. `createLeague` refuses an id whose
+  rows are still being deleted.
 - **Applied immediately ⇒ not reversed by recovery.** Resolutions are real
   transfers / disbands at delete time, not deferred to hard-delete. A user
   who recovers within the window gets the account back but NOT the
