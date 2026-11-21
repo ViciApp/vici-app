@@ -1,8 +1,8 @@
 import { ROLE_PERMISSIONS } from '#lib/constants/authz.constants.ts';
-import { SATELLITE_CONTROLLERS } from '#lib/constants/controllers.constants.ts';
 import type { Permission } from '#lib/enums/permission.ts';
 import { UserRole } from '#lib/enums/user.ts';
 import { userStore } from '#lib/stores/user.store.ts';
+import { userRoleOf } from '#lib/utils/authz.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@junobuild/schema';
 import { derived, type Readable } from 'svelte/store';
@@ -25,14 +25,10 @@ export const authPrincipal: Readable<PrincipalText | undefined> = derived(
 	({ user }) => user?.owner
 );
 
-const userIsController: Readable<boolean> = derived(
-	[authPrincipal],
-	([$authPrincipal]) => nonNullish($authPrincipal) && SATELLITE_CONTROLLERS.includes($authPrincipal)
-);
-
 export const userRole: Readable<UserRole | undefined> = derived(
-	[userIsController, userStore],
-	([$userIsController, { profile }]) => ($userIsController ? UserRole.CONTROLLER : profile?.role)
+	[authPrincipal, userStore],
+	([$authPrincipal, { profile }]) =>
+		userRoleOf({ principal: $authPrincipal, profileRole: profile?.role })
 );
 
 export const userPermissions: Readable<Permission[]> = derived(userRole, ($role) =>
@@ -40,8 +36,8 @@ export const userPermissions: Readable<Permission[]> = derived(userRole, ($role)
 );
 
 export const userIsAdmin: Readable<boolean> = derived(
-	[userIsController, userRole],
-	([$userIsController, $userRole]) => $userIsController || $userRole === UserRole.ADMIN
+	userRole,
+	($userRole) => $userRole === UserRole.CONTROLLER || $userRole === UserRole.ADMIN
 );
 
 export const userIsAdminOrSolver: Readable<boolean> = derived(

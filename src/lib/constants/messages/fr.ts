@@ -659,15 +659,9 @@ export const frMessages = {
 	'admin.roles.search.title': 'Trouver un utilisateur',
 	'admin.roles.search.use': 'Utiliser',
 	'auth.callback.google.completing': 'Finalisation de la connexion...',
-	'authn.admin.sub':
-		'Connectez-vous avec un compte admin pour gérer les marchés et résoudre les prédictions.',
-	'authn.admin.title': 'Accès admin',
 	'authn.checking.aria': 'Vérification de la connexion',
 	'authn.passkey.create_button': 'Créer une passkey',
 	'authn.passkey.signin_button': 'Se connecter avec une passkey',
-	'authn.required.cta': 'Se connecter pour continuer',
-	'authn.required.description': 'Veuillez vous connecter pour accéder à cette page.',
-	'authn.required.title': 'Authentification requise',
 	'authn.signin_with.ii': 'Se connecter avec Internet Identity',
 	'authz.access_denied.description':
 		'Vous n’avez pas les permissions requises pour accéder à cette zone.',
@@ -944,7 +938,7 @@ export const frMessages = {
 		'Vos VXP sont déjà engagés dans des prédictions ouvertes. Ils se libèrent à mesure que ces marchés se résolvent. Consultez vos appels ouverts sur le Dashboard.',
 	'flow.funds.eyebrow': 'TOUT ENGAGÉ',
 	'flow.funds.title': 'Tout est en jeu.',
-	'flow.invite.share_text': 'Prêt pour la Coupe du monde ? Je viens de faire mes pronostics ici.',
+	'flow.invite.share_text': 'Je viens de faire mes pronostics sur VICI. Essaie, toi aussi.',
 	'flow.invite.toast_copy_failed': 'Échec de la copie',
 	'flow.notification.insufficient_message':
 		'Votre solde est déjà en jeu sur des prédictions ouvertes ; il se libère à mesure que les marchés se résolvent.',

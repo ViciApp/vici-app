@@ -1,9 +1,10 @@
 import { functions } from '#declarations/satellite/satellite.api.ts';
-import type {
-	TournamentDoc,
-	TournamentMatchDoc,
-	TournamentRound,
-	TriggerTournamentDrawRefusalReason
+import {
+	TOURNAMENT_BRACKET_SIZE,
+	type TournamentDoc,
+	type TournamentMatchDoc,
+	type TournamentRound,
+	type TriggerTournamentDrawRefusalReason
 } from '#lib/types/tournament.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
@@ -91,11 +92,46 @@ export interface TriggerTournamentDrawResult {
 }
 
 /**
- * Fire the draw for `monthAnchor`. Idempotent: a second call for
- * the same month returns `already_drawn` cleanly. Safe to
- * fire-and-forget on every Tournament-page mount.
+ * Run a satellite draw to the end of its bracket and return the first answer:
+ * whether this call drew the month, or why not. The satellite writes the
+ * bracket a few docs per call, and every `ok` answer wrote at least one of its
+ * TOURNAMENT_BRACKET_SIZE docs, so `draw` is called again until it answers
+ * `already_drawn`. Any other end leaves the bracket half-written, so it throws
+ * rather than report the first `ok`; the next call picks up where it stopped.
  */
-export const triggerTournamentDraw = ({
+export const completeTournamentDraw = async ({
+	draw
+}: {
+	draw: () => Promise<TriggerTournamentDrawResult>;
+}): Promise<TriggerTournamentDrawResult> => {
+	const first = await draw();
+
+	if (!first.ok) {
+		return first;
+	}
+
+	let result = first;
+
+	for (let calls = 1; result.ok && calls < TOURNAMENT_BRACKET_SIZE; calls++) {
+		result = await draw();
+	}
+
+	if (result.reason !== 'already_drawn') {
+		throw new Error(
+			`Tournament draw stopped before the bracket was complete: ${result.reason ?? 'still writing'}`
+		);
+	}
+
+	return first;
+};
+
+/**
+ * Fire the draw for `monthAnchor` and return the first answer: whether this
+ * call drew the month, or why not. Idempotent: once the bracket is complete
+ * a call returns `already_drawn` cleanly. Safe to fire-and-forget on every
+ * Tournament-page mount.
+ */
+export const triggerTournamentDraw = async ({
 	monthAnchor
 }: {
 	monthAnchor: string;
@@ -103,8 +139,10 @@ export const triggerTournamentDraw = ({
 	// The web2 API also runs the draw from its worker; the lazy page-mount
 	// trigger stays for parity and collides idempotently with it.
 	isWeb2Backend()
-		? triggerTournamentDrawWeb2({ monthAnchor })
-		: functions.triggerTournamentDraw({ monthAnchor });
+		? await triggerTournamentDrawWeb2({ monthAnchor })
+		: await completeTournamentDraw({
+				draw: () => functions.triggerTournamentDraw({ monthAnchor })
+			});
 
 export interface ResolveTournamentRoundResult {
 	ok: boolean;

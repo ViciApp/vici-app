@@ -89,22 +89,6 @@ describe('league.services', () => {
 			);
 		});
 
-		it('lets only a satellite controller drop a legacy invite code from the doc', () => {
-			const { inviteCode: _legacyCode, ...withoutCode } = league;
-			const dropCode = (caller: Principal) =>
-				setContext({
-					caller,
-					collection: Collection.LEAGUES,
-					key: league.id,
-					current: league,
-					currentOwner: owner,
-					proposed: withoutCode
-				});
-
-			assert.throws(() => assertSetLeague(dropCode(owner)), /immutable/);
-			assert.doesNotThrow(() => assertSetLeague(dropCode(controller)));
-		});
-
 		const handOver = (caller: Principal) =>
 			setContext({
 				caller,

@@ -504,11 +504,6 @@
 			"count": 1
 		}
 	},
-	"src/satellite/services/vxp-comeback-awards.services.ts": {
-		"complexity": {
-			"count": 1
-		}
-	},
 	"src/satellite/services/vxp-onboarding.services.ts": {
 		"max-lines": {
 			"count": 1

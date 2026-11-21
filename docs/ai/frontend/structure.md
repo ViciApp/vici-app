@@ -104,7 +104,7 @@ so agents must.
 
 | Suffix               | Meaning                                                    | Example                                        |
 | -------------------- | ---------------------------------------------------------- | ---------------------------------------------- |
-| `*.svelte`           | Component (PascalCase filename)                            | `FlowCard.svelte`, `SignInModal.svelte`        |
+| `*.svelte`           | Component (PascalCase filename)                            | `FlowCard.svelte`, `SignInActions.svelte`      |
 | `*.svelte.ts`        | Module that uses Svelte 5 runes outside a component        | _(rare today; introduce as needed)_            |
 | `*.services.ts`      | Side-effectful module (calls APIs, mutates stores, toasts) | `market.services.ts`, `collateral.services.ts` |
 | `*.api.ts`           | Wrapper around a canister actor / generated declaration    | `clearing.api.ts`, `registry.api.ts`           |

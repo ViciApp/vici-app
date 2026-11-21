@@ -1,16 +1,20 @@
 import { ACHIEVEMENTS } from '#lib/constants/achievements.constants.ts';
 import { VXP_LEDGER_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
-import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import type { VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
-import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	persistAward,
+	reclaimAward,
+	updateAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
+import { decodeDocData } from '@junobuild/functions/sdk';
 
 /**
  * Achievement-unlock hook. Runs after every `profiles` write; when an id appears in
@@ -25,7 +29,8 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
  * array, each achievement pays at most once per account.
  *
  * Only the delta (newly added ids on this write) is paid: achievements already unlocked before
- * this write are never retroactively minted.
+ * this write are never retroactively minted. A `failed` payout is sent again when its id is newly
+ * unlocked on a later write (`reclaimAward`).
  */
 
 const AWARD_TYPE = 'achievement' as const;
@@ -54,14 +59,53 @@ const newlyUnlocked = ({ prev, next }: { prev: string[]; next: string[] }): stri
 	return next.filter((id) => !known.has(id));
 };
 
+/**
+ * Files the pending award doc of a first payout. Returns false when the write is refused: most
+ * likely a concurrent hook firing already wrote the pending doc, and that firing will (or has
+ * already) issue the transfer.
+ */
+const persistAchievementAward = ({
+	recipient,
+	achievementId,
+	amount
+}: {
+	recipient: string;
+	achievementId: string;
+	amount: bigint;
+}): boolean => {
+	const pending: VxpAwardDoc = {
+		recipient,
+		awardType: AWARD_TYPE,
+		awardKey: achievementId,
+		amountBaseUnits: amount.toString(),
+		status: 'pending',
+		earnedAtMs: Date.now()
+	};
+
+	try {
+		persistAward({ recipient, awardType: AWARD_TYPE, awardKey: achievementId, doc: pending });
+
+		return true;
+	} catch (e: unknown) {
+		logInfo({
+			message: 'achievement_award_pending_blocked',
+			detail: {
+				user: recipient,
+				achievement: achievementId,
+				error: e instanceof Error ? e.message : String(e)
+			}
+		});
+
+		return false;
+	}
+};
+
 const payAchievement = async ({
 	ledger,
-	caller,
 	recipient,
 	achievementId
 }: {
 	ledger: IcrcLedgerCanister;
-	caller: Uint8Array;
 	recipient: string;
 	achievementId: string;
 }): Promise<void> => {
@@ -72,44 +116,16 @@ const payAchievement = async ({
 		return;
 	}
 
-	const amount = vxpBaseUnits(xp);
 	const awardKey = achievementId;
-	const earnedAtMs = Date.now();
+	const slot = reclaimAward({ recipient, awardType: AWARD_TYPE, awardKey });
 
-	// Idempotency: if the award doc already exists, skip; the assert rejects duplicate creations
-	// anyway, but checking up front avoids the wasted ledger call.
-	const existingKey = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey });
-	const existing = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: existingKey,
-		caller
-	});
-
-	if (nonNullish(existing)) {
+	if (slot.kind === 'held') {
 		return;
 	}
 
-	const pending: VxpAwardDoc = {
-		recipient,
-		awardType: AWARD_TYPE,
-		awardKey,
-		amountBaseUnits: amount.toString(),
-		status: 'pending',
-		earnedAtMs
-	};
+	const amount = slot.kind === 'retry' ? BigInt(slot.doc.amountBaseUnits) : vxpBaseUnits(xp);
 
-	try {
-		persistAward({ recipient, awardType: AWARD_TYPE, awardKey, doc: pending });
-	} catch (e: unknown) {
-		const msg = e instanceof Error ? e.message : String(e);
-
-		// Most likely a concurrent hook firing already wrote the pending doc. Surface and stop: the
-		// other firing will (or has already) issued the transfer.
-		logInfo({
-			message: 'achievement_award_pending_blocked',
-			detail: { user: recipient, achievement: achievementId, error: msg }
-		});
-
+	if (slot.kind === 'free' && !persistAchievementAward({ recipient, achievementId, amount })) {
 		return;
 	}
 
@@ -211,7 +227,7 @@ export const onProfileSetForAchievementAward = async (ctx: OnSetDocContext): Pro
 		});
 
 		for (const achievementId of unlocked) {
-			await payAchievement({ ledger, caller, recipient: callerText, achievementId });
+			await payAchievement({ ledger, recipient: callerText, achievementId });
 		}
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);

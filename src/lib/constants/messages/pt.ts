@@ -656,15 +656,9 @@ export const ptMessages = {
 	'admin.roles.search.title': 'Encontrar utilizador',
 	'admin.roles.search.use': 'Usar',
 	'auth.callback.google.completing': 'A concluir o início de sessão...',
-	'authn.admin.sub':
-		'Entra com uma conta de administrador para gerir mercados e resolver previsões.',
-	'authn.admin.title': 'Acesso de admin',
 	'authn.checking.aria': 'A verificar o estado do início de sessão',
 	'authn.passkey.create_button': 'Criar Passkey',
 	'authn.passkey.signin_button': 'Entrar com Passkey',
-	'authn.required.cta': 'Entrar para continuar',
-	'authn.required.description': 'Inicia sessão para aceder a esta página.',
-	'authn.required.title': 'Autenticação obrigatória',
 	'authn.signin_with.ii': 'Entrar com Internet Identity',
 	'authz.access_denied.description': 'Não tens as permissões necessárias para aceder a esta área.',
 	'authz.access_denied.refresh': 'Atualizar sessão',
@@ -941,8 +935,7 @@ export const ptMessages = {
 		'Os teus VXP já estão em jogo em previsões abertas. Vão libertando-se à medida que esses mercados se resolvem. Vê as tuas chamadas abertas no Dashboard.',
 	'flow.funds.eyebrow': 'TUDO EM JOGO',
 	'flow.funds.title': 'Tudo aplicado.',
-	'flow.invite.share_text':
-		'Estás pronto para a Copa do Mundo? Acabei de fazer as minhas previsões aqui.',
+	'flow.invite.share_text': 'Acabei de fazer as minhas previsões na VICI. Experimenta também.',
 	'flow.invite.toast_copy_failed': 'Falha ao copiar',
 	'flow.notification.insufficient_message':
 		'O teu saldo já está em jogo em previsões abertas; fica livre à medida que os mercados são resolvidos.',

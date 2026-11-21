@@ -8,6 +8,7 @@ import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { query } from '../src/db/client';
 import {
 	grantAward,
+	grantCappedAward,
 	PROCESSING_STALE_MS,
 	reconcileUnpaidAwards,
 	setVxpTreasuryDisabled,
@@ -141,7 +142,7 @@ describe.if(dbAvailable)('vxp awards', () => {
 			expect(stub.transfers[1]?.fee).toBe(BigInt(10));
 		});
 
-		test('a non-BadFee rejection is terminal: failed with the error recorded', async () => {
+		test('a non-BadFee rejection fails with the error recorded', async () => {
 			stub = stubVxpLedger({
 				transferImpl: () =>
 					Promise.reject(
@@ -167,6 +168,90 @@ describe.if(dbAvailable)('vxp awards', () => {
 
 			expect(row?.status).toBe('failed');
 			expect(row?.error_message).toContain('TooOld');
+		});
+	});
+
+	describe('retrying a failed award', () => {
+		const rejectThenAccept = (): LedgerStub =>
+			stubVxpLedger({
+				transferImpl: (_call, index) =>
+					index === 0
+						? Promise.reject(new IcrcTransferError({ msg: 'too old', errorType: { TooOld: null } }))
+						: Promise.resolve(BigInt(77))
+			});
+
+		test('the next grant sends a failed award again, at its recorded amount and memo', async () => {
+			stub = rejectThenAccept();
+			const userId = await createTestUser();
+			const grant = {
+				userId,
+				awardType: 'achievement' as const,
+				awardKey: 'retry_me',
+				memo: 'vxp:achievement:retry_me'
+			};
+
+			const first = await grantAward({ ...grant, amountBaseUnits: parseVxp(500) });
+			// A later trigger sizing the award differently still pays what was earned.
+			const retried = await grantAward({ ...grant, amountBaseUnits: parseVxp(1) });
+			const again = await grantAward({ ...grant, amountBaseUnits: parseVxp(500) });
+
+			expect(first.outcome).toBe('failed');
+			expect(retried).toEqual({ outcome: 'paid', blockIndex: '77' });
+			expect(again.outcome).toBe('already');
+			expect(stub.transfers).toHaveLength(2);
+			expect(stub.transfers.map(({ memo }) => memo)).toEqual([
+				'vxp:achievement:retry_me',
+				'vxp:achievement:retry_me'
+			]);
+			expect(stub.transfers[1]?.amount).toBe(parseVxp(500));
+
+			const row = await readAwardRow({ userId, awardType: 'achievement', awardKey: 'retry_me' });
+
+			expect(row?.status).toBe('paid');
+			expect(row?.error_message).toBeNull();
+		});
+
+		test('a capped grant retries a failed award past a cap its own row fills', async () => {
+			stub = rejectThenAccept();
+			const userId = await createTestUser();
+			const grant = {
+				userId,
+				awardType: 'league_founder' as const,
+				awardKey: 'retry-league',
+				amountBaseUnits: parseVxp(100),
+				caps: [{ max: 1, reason: 'capped' }] as const
+			};
+
+			const first = await grantCappedAward(grant);
+			const retried = await grantCappedAward(grant);
+
+			expect(first.outcome).toBe('failed');
+			expect(retried).toEqual({ outcome: 'paid', blockIndex: '77' });
+			expect(stub.transfers).toHaveLength(2);
+		});
+
+		test('an award whose transfer outcome is unknown is never sent again', async () => {
+			stub = stubVxpLedger();
+			const userId = await createTestUser();
+
+			await query(
+				`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
+				 values ($1, 'achievement', 'in_doubt', $2, 'needs_ledger_check', 1)`,
+				[userId, parseVxp(500).toString()]
+			);
+
+			const outcome = await grantAward({
+				userId,
+				awardType: 'achievement',
+				awardKey: 'in_doubt',
+				amountBaseUnits: parseVxp(500)
+			});
+
+			expect(outcome.outcome).toBe('already');
+			expect(stub.transfers).toHaveLength(0);
+			expect(
+				(await readAwardRow({ userId, awardType: 'achievement', awardKey: 'in_doubt' }))?.status
+			).toBe('needs_ledger_check');
 		});
 	});
 

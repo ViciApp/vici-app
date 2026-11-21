@@ -7,15 +7,19 @@ import {
 	COMEBACK_BALANCE_FLOOR_BASE_UNITS,
 	COMEBACK_RESTORE_TARGET_BASE_UNITS
 } from '#lib/constants/vxp-economy.constants.ts';
-import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
-import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import type { VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import {
+	persistAward,
+	reclaimAward,
+	updateAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
-import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
+import { decodeDocData } from '@junobuild/functions/sdk';
 
 /**
  * Comeback-restore hook. Runs after every `profiles` write; when a user returns after an absence of
@@ -30,6 +34,8 @@ import { decodeDocData, getDocStore } from '@junobuild/functions/sdk';
  * Idempotency is structural and one-time per account: the award doc key is
  * `${recipient}/comeback/restore` (a single fixed `awardKey`), so it can be granted at most once:
  * the anti-farming bound that stops a deplete→wait→return loop from milking the restore repeatedly.
+ * A `failed` restore is sent again, at its recorded amount, on the next return that clears the
+ * absence gate (`reclaimAward`).
  *
  * Mirrors the streak / achievement award mechanism (`vxp_awards`, `pending`→`paid`/`failed`).
  */
@@ -62,6 +68,123 @@ const daysBetween = ({
 	}
 
 	return Math.floor((toMs - fromMs) / DAY_IN_MS);
+};
+
+/**
+ * Gates and files a first restore: only a genuinely depleted stack, topped up by the shortfall to
+ * the target. Returns the amount to send, or `undefined` when the stack is not depleted or the
+ * pending doc write is refused (a concurrent profile write already armed the restore, and that
+ * firing pays it).
+ */
+const armFirstRestore = async ({
+	ledger,
+	recipient
+}: {
+	ledger: IcrcLedgerCanister;
+	recipient: string;
+}): Promise<bigint | undefined> => {
+	const balance = await ledger.icrc1BalanceOf({
+		account: { owner: Principal.fromText(recipient) }
+	});
+
+	if (balance >= COMEBACK_BALANCE_FLOOR_BASE_UNITS) {
+		return;
+	}
+
+	const amount = COMEBACK_RESTORE_TARGET_BASE_UNITS - balance;
+
+	if (amount <= ZERO) {
+		return;
+	}
+
+	const pending: VxpAwardDoc = {
+		recipient,
+		awardType: AWARD_TYPE,
+		awardKey: COMEBACK_AWARD_KEY,
+		amountBaseUnits: amount.toString(),
+		status: 'pending',
+		earnedAtMs: Date.now()
+	};
+
+	try {
+		persistAward({
+			recipient,
+			awardType: AWARD_TYPE,
+			awardKey: COMEBACK_AWARD_KEY,
+			doc: pending
+		});
+	} catch (e: unknown) {
+		const msg = e instanceof Error ? e.message : String(e);
+
+		logInfo({
+			message: 'comeback_award_pending_blocked',
+			detail: { user: recipient, error: msg }
+		});
+
+		return;
+	}
+
+	return amount;
+};
+
+/** Sends a claimed restore and records its paid / failed outcome. */
+const transferRestore = async ({
+	ledger,
+	recipient,
+	amount,
+	gap
+}: {
+	ledger: IcrcLedgerCanister;
+	recipient: string;
+	amount: bigint;
+	gap: number;
+}): Promise<void> => {
+	const result = await transferWithBadFeeRetry({
+		ledger,
+		toOwner: Principal.fromText(recipient),
+		amount,
+		memo: `vxp:comeback:${COMEBACK_AWARD_KEY}`
+	});
+
+	if (result.ok) {
+		logInfo({
+			message: 'comeback_award_paid',
+			detail: {
+				user: recipient,
+				amount: amount.toString(),
+				gap_days: gap,
+				block_index: result.blockIndex.toString()
+			}
+		});
+
+		updateAward({
+			recipient,
+			awardType: AWARD_TYPE,
+			awardKey: COMEBACK_AWARD_KEY,
+			patch: {
+				status: 'paid',
+				paidAtMs: Date.now(),
+				blockIndex: result.blockIndex.toString()
+			}
+		});
+
+		return;
+	}
+
+	logError({
+		message: 'comeback_award_failed',
+		detail: { user: recipient, amount: amount.toString(), error: result.error }
+	});
+
+	updateAward({
+		recipient,
+		awardType: AWARD_TYPE,
+		awardKey: COMEBACK_AWARD_KEY,
+		patch: {
+			status: 'failed',
+			errorMessage: result.error
+		}
+	});
 };
 
 /**
@@ -106,18 +229,14 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 			return;
 		}
 
-		// One-time per account: if the restore award already exists, skip before any ledger work.
-		const existing = getDocStore({
-			collection: Collection.VXP_AWARDS,
-			key: vxpAwardKey({
-				recipient: callerText,
-				awardType: AWARD_TYPE,
-				awardKey: COMEBACK_AWARD_KEY
-			}),
-			caller
+		// One-time per account: a held restore award stops here before any ledger work.
+		const slot = reclaimAward({
+			recipient: callerText,
+			awardType: AWARD_TYPE,
+			awardKey: COMEBACK_AWARD_KEY
 		});
 
-		if (nonNullish(existing)) {
+		if (slot.kind === 'held') {
 			return;
 		}
 
@@ -125,95 +244,16 @@ export const onProfileSetForComebackRestore = async (ctx: OnSetDocContext): Prom
 			canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
 		});
 
-		const balance = await ledger.icrc1BalanceOf({
-			account: { owner: Principal.fromText(callerText) }
-		});
+		const amount =
+			slot.kind === 'retry'
+				? BigInt(slot.doc.amountBaseUnits)
+				: await armFirstRestore({ ledger, recipient: callerText });
 
-		// Only restore a genuinely depleted stack, and only top up the shortfall to the target.
-		if (balance >= COMEBACK_BALANCE_FLOOR_BASE_UNITS) {
+		if (isNullish(amount)) {
 			return;
 		}
 
-		const amount = COMEBACK_RESTORE_TARGET_BASE_UNITS - balance;
-
-		if (amount <= ZERO) {
-			return;
-		}
-
-		const pending: VxpAwardDoc = {
-			recipient: callerText,
-			awardType: AWARD_TYPE,
-			awardKey: COMEBACK_AWARD_KEY,
-			amountBaseUnits: amount.toString(),
-			status: 'pending',
-			earnedAtMs: Date.now()
-		};
-
-		try {
-			persistAward({
-				recipient: callerText,
-				awardType: AWARD_TYPE,
-				awardKey: COMEBACK_AWARD_KEY,
-				doc: pending
-			});
-		} catch (e: unknown) {
-			const msg = e instanceof Error ? e.message : String(e);
-
-			// A concurrent profile write already armed the restore: stop; the other firing pays it.
-			logInfo({
-				message: 'comeback_award_pending_blocked',
-				detail: { user: callerText, error: msg }
-			});
-
-			return;
-		}
-
-		const result = await transferWithBadFeeRetry({
-			ledger,
-			toOwner: Principal.fromText(callerText),
-			amount,
-			memo: `vxp:comeback:${COMEBACK_AWARD_KEY}`
-		});
-
-		if (result.ok) {
-			logInfo({
-				message: 'comeback_award_paid',
-				detail: {
-					user: callerText,
-					amount: amount.toString(),
-					gap_days: gap,
-					block_index: result.blockIndex.toString()
-				}
-			});
-
-			updateAward({
-				recipient: callerText,
-				awardType: AWARD_TYPE,
-				awardKey: COMEBACK_AWARD_KEY,
-				patch: {
-					status: 'paid',
-					paidAtMs: Date.now(),
-					blockIndex: result.blockIndex.toString()
-				}
-			});
-
-			return;
-		}
-
-		logError({
-			message: 'comeback_award_failed',
-			detail: { user: callerText, amount: amount.toString(), error: result.error }
-		});
-
-		updateAward({
-			recipient: callerText,
-			awardType: AWARD_TYPE,
-			awardKey: COMEBACK_AWARD_KEY,
-			patch: {
-				status: 'failed',
-				errorMessage: result.error
-			}
-		});
+		await transferRestore({ ledger, recipient: callerText, amount, gap });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 		const user = key.length > 0 ? key : Principal.fromUint8Array(caller).toText();

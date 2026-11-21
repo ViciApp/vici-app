@@ -24,9 +24,8 @@ export interface LeagueDoc {
 	 * Invite code ({@link LEAGUE_INVITE_CODE_REGEX}), the only way into the league. Never
 	 * stored on the public `leagues` doc: it lives in the controllers-only
 	 * `league_invites` collection ({@link LeagueInviteDoc}), and only the
-	 * league's own members receive it (`listMyLeagues`). A doc written before
-	 * that move still carries it here until `migrateLeagueInviteCodes` takes
-	 * it off.
+	 * league's own members receive it (`listMyLeagues`), which sets it on the
+	 * league they read.
 	 */
 	inviteCode?: string;
 	/** Owning principal (text form). Immutable after creation. */

@@ -8,7 +8,11 @@ import type { LeagueDoc } from '#lib/types/league.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { listMyLeaguesFn } from '#satellite/services/cohort.services.ts';
 import { countAwardMarkers } from '#satellite/services/vxp-award-markers.services.ts';
-import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	persistAward,
+	reclaimAward,
+	updateAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { nonNullish } from '@dfinity/utils';
@@ -16,22 +20,25 @@ import { Principal } from '@icp-sdk/core/principal';
 import type { OnSetDocContext } from '@junobuild/functions';
 import { IcrcLedgerCanister } from '@junobuild/functions/canisters/ledger/icrc';
 import { msgCaller } from '@junobuild/functions/ic-cdk';
-import { countDocsStore, decodeDocData, getDocStore } from '@junobuild/functions/sdk';
+import { countDocsStore, decodeDocData } from '@junobuild/functions/sdk';
 
 /**
- * League-founder hook. Runs after every `leagues` write; on the
- * *creation* write (no `before` doc) it credits the founder the
+ * League-founder reward: credits the founder the
  * `VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS` the create-league CTA promises
  * and persists the payout in `vxp_awards`.
  *
- * This hook genuinely fires because `leagues` rows are written by the
- * **client** (`createLeague` calls `setDoc`), and Juno only invokes
- * `onSetDoc` for client `set_doc` writes, not for serverless
- * `setDocStore` (the trap that silently dropped the referral payout).
+ * Leagues are founded through the `createLeague` endpoint, whose
+ * `setDocStore` writes never fire `onSetDoc` (Juno invokes it only for a
+ * client `set_doc`), so `createLeagueFn` pays inline through
+ * {@link payLeagueFounderReward}. The `leagues` hook below pays on the
+ * creation write of a league a client writes itself, and
+ * `settleFounderAwardsFn` pays an owned league that has no award doc yet.
+ * A payout that failed keeps its `failed` award doc, so no later pass
+ * sends it again.
  *
  * Idempotency is structural: the award doc key is
- * `${recipient}/league_founder/${leagueId}`: a second hook firing for
- * the same league collides with the first and the assert blocks the
+ * `${recipient}/league_founder/${leagueId}`: a second payment for the
+ * same league collides with the first and the assert blocks the
  * duplicate write. No timestamp-based dedupe needed.
  *
  * Founding a league is free, so an uncapped per-league payout would be
@@ -77,34 +84,21 @@ const founderAwardCount = ({
  */
 type FounderPayoutOutcome = 'paid' | 'already' | 'capped' | 'blocked' | 'failed';
 
-const payFounderReward = async ({
-	ledger,
+/**
+ * Files the pending award doc of a league's first founder reward, within the
+ * per-account cap. A refused write is most likely a concurrent hook firing
+ * that already wrote the pending doc: that firing will (or has already)
+ * issue the transfer.
+ */
+const armFirstFounderReward = ({
 	caller,
 	recipient,
 	leagueId
 }: {
-	ledger: IcrcLedgerCanister;
 	caller: Uint8Array;
 	recipient: string;
 	leagueId: string;
-}): Promise<FounderPayoutOutcome> => {
-	const amount = VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS;
-	const earnedAtMs = Date.now();
-
-	// Idempotency: if this league's award doc already exists, skip; the
-	// assert rejects duplicate creations anyway, but checking up front
-	// avoids the wasted ledger call on a hook re-fire or a self-heal pass.
-	const key = vxpAwardKey({ recipient, awardType: AWARD_TYPE, awardKey: leagueId });
-	const existing = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key,
-		caller
-	});
-
-	if (nonNullish(existing)) {
-		return 'already';
-	}
-
+}): 'armed' | 'capped' | 'blocked' => {
 	// Per-account cap: founding a league is free, so bound the total mint.
 	if (founderAwardCount({ caller, recipient }) >= VXP_LEAGUE_FOUNDER_MAX_AWARDS) {
 		logInfo({
@@ -119,9 +113,9 @@ const payFounderReward = async ({
 		recipient,
 		awardType: AWARD_TYPE,
 		awardKey: leagueId,
-		amountBaseUnits: amount.toString(),
+		amountBaseUnits: VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS.toString(),
 		status: 'pending',
-		earnedAtMs
+		earnedAtMs: Date.now()
 	};
 
 	try {
@@ -129,9 +123,6 @@ const payFounderReward = async ({
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : String(e);
 
-		// Most likely cause: a concurrent hook firing already wrote the
-		// pending doc. Either way, surface and stop: the other firing will
-		// (or has already) issued the transfer.
 		logInfo({
 			message: 'league_founder_award_pending_blocked',
 			detail: { user: recipient, league: leagueId, error: msg }
@@ -139,6 +130,40 @@ const payFounderReward = async ({
 
 		return 'blocked';
 	}
+
+	return 'armed';
+};
+
+const payFounderReward = async ({
+	ledger,
+	caller,
+	recipient,
+	leagueId
+}: {
+	ledger: IcrcLedgerCanister;
+	caller: Uint8Array;
+	recipient: string;
+	leagueId: string;
+}): Promise<FounderPayoutOutcome> => {
+	// Idempotency: a held award doc for this league stops a hook re-fire or a
+	// self-heal pass before any ledger call. A `failed` one is sent again,
+	// outside the cap: its doc already counts toward it.
+	const slot = reclaimAward({ recipient, awardType: AWARD_TYPE, awardKey: leagueId });
+
+	if (slot.kind === 'held') {
+		return 'already';
+	}
+
+	if (slot.kind === 'free') {
+		const armed = armFirstFounderReward({ caller, recipient, leagueId });
+
+		if (armed !== 'armed') {
+			return armed;
+		}
+	}
+
+	const amount =
+		slot.kind === 'retry' ? BigInt(slot.doc.amountBaseUnits) : VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS;
 
 	const result = await transferWithBadFeeRetry({
 		ledger,
@@ -282,14 +307,15 @@ export interface SettleFounderAwardsResult {
  * fires on the creation write, so leagues founded before that hook
  * shipped were never paid. This endpoint lets a founder back-claim those:
  * it walks the caller's owned leagues and pays any that still lack a
- * `league_founder` award doc, up to the same per-account cap.
+ * `league_founder` award doc, up to the same per-account cap, and sends
+ * again any whose payout `failed`.
  *
  * Idempotent and safe to call on every Leagues-page mount; it shares the
  * `${recipient}/league_founder/${leagueId}` dedupe key with the hook, so a
- * league already paid (by the hook or a prior pass) is skipped, never
- * double-paid. Recipients and amounts come entirely from the caller's own
- * leagues plus server constants, so it is gated only on a non-anonymous
- * caller.
+ * league already paid or in flight (by the hook or a prior pass) is
+ * skipped, never double-paid. Recipients and amounts come entirely from
+ * the caller's own leagues plus server constants, so it is gated only on
+ * a non-anonymous caller.
  */
 export const settleFounderAwardsFn = async (): Promise<SettleFounderAwardsResult> => {
 	const callerPrincipal = msgCaller();

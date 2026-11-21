@@ -1,52 +1,20 @@
-// VXP economy surface: the caller's own award history, the calibration
-// claim, the manual referral settle (self-heal / operator retry), the admin
-// reconciliation + streak-backfill operations the worker also runs, and the
-// admin treasury status the minter reserve setup is driven from.
+// VXP economy surface: the calibration claim, the manual referral settle
+// (self-heal / operator retry), the admin reconciliation + streak-backfill
+// operations the worker also runs, and the admin treasury status the minter
+// reserve setup is driven from.
 
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
 import { treasuryIcPrincipalText } from '../lib/keys';
 import { logger } from '../lib/logger';
-import {
-	getTreasuryBacklog,
-	isVxpAwardType,
-	isVxpTreasuryDisabled,
-	listUserAwards,
-	reconcileUnpaidAwards
-} from '../vxp/awards';
+import { getTreasuryBacklog, isVxpTreasuryDisabled, reconcileUnpaidAwards } from '../vxp/awards';
 import { claimCalibrationReward } from '../vxp/calibration';
 import { getTreasuryVxpBalance } from '../vxp/payout';
 import { settleReferralPayout } from '../vxp/referral';
 import { backfillStreakUnderpayments } from '../vxp/streak';
 
 export const vxpRoutes = new Elysia({ prefix: '/api/v1/vxp' })
-	.get(
-		'/awards',
-		async ({ request, set, query: params }) => {
-			const user = await requireUser(request);
-
-			if (isNullish(user)) {
-				return unauthenticated(set);
-			}
-
-			const { type } = params;
-
-			if (nonNullish(type) && !isVxpAwardType(type)) {
-				set.status = 400;
-
-				return { error: 'unknown_award_type' };
-			}
-
-			return {
-				items: await listUserAwards({
-					userId: user.id,
-					awardType: nonNullish(type) && isVxpAwardType(type) ? type : undefined
-				})
-			};
-		},
-		{ query: t.Object({ type: t.Optional(t.String()) }) }
-	)
 	.post(
 		'/calibration/claim',
 		async ({ request, set, body }) => {

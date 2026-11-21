@@ -333,7 +333,9 @@ const applyDiff = async ({
  * doc. Idempotent: if the engine already has/lacks the role, the corresponding call short-
  * circuits without error.
  *
- * The doc key must be a principal text; this is enforced by `assertSetRole` upstream.
+ * The doc key should be a principal text, but `assertSetRole` only checks the caller and the
+ * role value, not the key: a key that does not parse is logged (`engine_sync_invalid_key`) and
+ * skipped here.
  */
 export const syncRoleToEngineOnSet = async (ctx: OnSetDocContext): Promise<void> => {
 	const {

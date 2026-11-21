@@ -1,6 +1,7 @@
 import type { ClearingDid } from '#declarations';
 import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import junoConfig from '#root/juno.config.ts';
+import { paginated } from '#root/src/tests/mocks/satellite-host-paginate.mock.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { IDL } from '@icp-sdk/core/candid';
@@ -393,10 +394,9 @@ export const installSatelliteHost = ({
 			name: string,
 			params: ListParams
 		): ListResults<Doc> => {
-			const items = readable({ caller: reader, name }) ? listed({ name, params }) : [];
-			const length = BigInt(items.length);
+			const matches = readable({ caller: reader, name }) ? listed({ name, params }) : [];
 
-			return { items, items_length: length, matches_length: length };
+			return paginated({ matches, params });
 		},
 		// eslint-disable-next-line local-rules/prefer-object-params -- the SDK calls this host function positionally
 		__juno_satellite_datastore_count_docs_store: (
