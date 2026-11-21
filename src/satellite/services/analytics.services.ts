@@ -5,6 +5,8 @@
  *
  *   trackEvents({ events }) -> { accepted }
  *     · the FE batches behavioural events and flushes them here
+ *     · keeps at most one client batch, each event within the input
+ *       bounds and none of the events the server records itself
  *     · the server stamps the authoritative timestamp and derives the
  *       pseudonymous `principal` from the caller (anonymous before sign-in)
  *     · writes one append-only doc per event to `events`
@@ -22,12 +24,15 @@
  * satellite.
  */
 
+import { ANALYTICS_MAX_EVENTS_PER_BATCH } from '#lib/constants/analytics.constants.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { TrackEventInputSchema } from '#lib/schema/analytics-event.schema.ts';
 import {
 	ANALYTICS_PROP_KEYS,
+	isServerAnalyticsEventName,
 	type AnalyticsEventDoc,
 	type AnalyticsEventName,
 	type AnalyticsEventProps,
@@ -41,7 +46,6 @@ import { logError } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import type { OnSetDocContext } from '@junobuild/functions';
 import { msgCaller, time } from '@junobuild/functions/ic-cdk';
 import {
 	countDocsStore,
@@ -52,9 +56,6 @@ import {
 	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
-
-/** Defensive cap so one call can't write an unbounded number of docs. */
-const MAX_EVENTS_PER_BATCH = 100;
 
 /**
  * Re-nest the flat wire dimensions back into a `props` object, dropping
@@ -149,12 +150,19 @@ const bumpRollup = ({
 	}
 };
 
+/**
+ * An event a client may have the satellite store: within the input bounds, and not one of the
+ * events the server records itself ({@link isServerAnalyticsEventName}).
+ */
+const isStorableClientEvent = (event: TrackEventInput): boolean =>
+	TrackEventInputSchema.safeParse(event).success && !isServerAnalyticsEventName(event.name);
+
 export const trackEventsFn = ({ events }: { events: TrackEventInput[] }): { accepted: number } => {
-	if (events.length === 0) {
+	const batch = events.slice(0, ANALYTICS_MAX_EVENTS_PER_BATCH).filter(isStorableClientEvent);
+
+	if (batch.length === 0) {
 		return { accepted: 0 };
 	}
-
-	const batch = events.slice(0, MAX_EVENTS_PER_BATCH);
 
 	const caller = msgCaller();
 	const principalText = caller.toText();
@@ -617,31 +625,25 @@ export const captureServerEvents = ({ events }: { events: ServerEventInput[] }):
 };
 
 /**
- * `vxp_awards` post-write analytics: emit `vxp_awarded` (value = whole-VXP
- * amount, label = award type) exactly once per award: on the `pending → paid`
- * transition, when the ledger transfer actually completed. Streak awards also
- * emit `streak_milestone` (`step` = the crossed day count from the award key,
- * e.g. `streak_7` → 7). Best-effort: analytics must never break a payout.
+ * Payout analytics for one `vxp_awards` write: emit `vxp_awarded` (value =
+ * whole-VXP amount, label = award type) exactly once per award, on the
+ * `pending → paid` transition, when the ledger transfer actually completed.
+ * Streak awards also emit `streak_milestone` (`step` = the crossed day count
+ * from the award key, e.g. `streak_7` → 7). Called inline by the award write,
+ * since award docs are serverless writes and no `onSetDoc` hook sees them.
+ * Best-effort: analytics must never break a payout.
  */
-export const onVxpAwardSetForAnalytics = (ctx: OnSetDocContext): void => {
+export const captureVxpAwardEvents = ({
+	before,
+	after: award
+}: {
+	before: VxpAwardDoc;
+	after: VxpAwardDoc;
+}): void => {
 	try {
-		const {
-			data: {
-				collection,
-				data: { before, after }
-			}
-		} = ctx;
-
-		if (collection !== Collection.VXP_AWARDS) {
-			return;
-		}
-
-		const award = decodeDocData<VxpAwardDoc>(after.data);
-		const prior = nonNullish(before) ? decodeDocData<VxpAwardDoc>(before.data) : undefined;
-
 		// Only the transition INTO `paid` mints: a pending write, a failed write,
 		// or a re-set of an already-paid doc must not double-count.
-		if (award.status !== 'paid' || prior?.status === 'paid') {
+		if (award.status !== 'paid' || before.status === 'paid') {
 			return;
 		}
 

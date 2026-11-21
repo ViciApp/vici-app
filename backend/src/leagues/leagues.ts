@@ -1,4 +1,4 @@
-// Leagues: user-created social cohorts joined by a 6-char invite code. The
+// Leagues: user-created social cohorts joined by an invite code. The
 // identity rules the satellite assert enforced (name/description bounds,
 // write-once invite code and emblem, owner-only edits, privacy vocabulary)
 // live here as pre-write validation; ownership transfer and disband are
@@ -16,7 +16,19 @@ export type LeagueMemberRole = 'owner' | 'admin' | 'member';
 export const LEAGUE_NAME_MIN_LENGTH = 3;
 export const LEAGUE_NAME_MAX_LENGTH = 40;
 export const LEAGUE_DESCRIPTION_MAX_LENGTH = 240;
-export const LEAGUE_INVITE_CODE_REGEX = /^[A-Z0-9]{6}$/;
+/** The characters an invite code is drawn from. */
+export const LEAGUE_INVITE_CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+/** The length of the invite code a new league gets. */
+export const LEAGUE_INVITE_CODE_LENGTH = 10;
+
+/** The length of the invite codes leagues were founded with before {@link LEAGUE_INVITE_CODE_LENGTH}. */
+export const LEAGUE_LEGACY_INVITE_CODE_LENGTH = 6;
+
+// A new league's code, or the shorter one of a league founded before codes
+// grew, which stays joinable. The app and the satellite accept the same
+// shape, and the leagues table checks it.
+export const LEAGUE_INVITE_CODE_REGEX = /^(?:[A-Z0-9]{10}|[A-Z0-9]{6})$/;
 
 /** Emblem glyphs the owner picks from; frozen after creation. */
 export const LEAGUE_EMBLEMS = ['⚔', '☼', '✦', '✧', '◎', '⌬', '⊿', '☆'] as const;
@@ -91,12 +103,10 @@ export const shapeMember = (row: LeagueMemberRow): LeagueMember => ({
 	role: row.role
 });
 
-const INVITE_CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-
 /** A fresh invite code: also the stand-in the satellite import gives a league until its code lands. */
 export const randomInviteCode = (): string =>
-	Array.from({ length: 6 }, () =>
-		INVITE_CODE_ALPHABET.charAt(randomInt(INVITE_CODE_ALPHABET.length))
+	Array.from({ length: LEAGUE_INVITE_CODE_LENGTH }, () =>
+		LEAGUE_INVITE_CODE_ALPHABET.charAt(randomInt(LEAGUE_INVITE_CODE_ALPHABET.length))
 	).join('');
 
 const assertLeagueShape = ({

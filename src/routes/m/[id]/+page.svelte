@@ -2,9 +2,9 @@
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
 	import { AnonymousIdentity } from '@icp-sdk/core/agent';
 	import { onMount } from 'svelte';
-	import { listSeries } from '#lib/api/registry.api.ts';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { listSeriesCatalog } from '#lib/services/market.services.ts';
 	import { setPinnedFlowMarket } from '#lib/utils/flow-pin.utils.ts';
 	import { parseMarketShareParam } from '#lib/utils/market-slug.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
@@ -47,7 +47,10 @@
 		}
 
 		try {
-			const series = await listSeries({ identity: new AnonymousIdentity() });
+			const series = await listSeriesCatalog({
+				identity: new AnonymousIdentity(),
+				certified: true
+			});
 
 			// Exactly one match or nothing: a colliding suffix must degrade to
 			// the markets board, never redirect to whichever market sorts

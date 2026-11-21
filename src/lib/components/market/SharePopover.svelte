@@ -9,7 +9,10 @@
 	import IconTikTok from '#lib/components/icons/IconTikTok.svelte';
 	import IconWhatsApp from '#lib/components/icons/IconWhatsApp.svelte';
 	import IconX from '#lib/components/icons/IconX.svelte';
-	import { referrerRewardVxp } from '#lib/constants/referral.constants.ts';
+	import {
+		REFERRAL_VXP_BONUS_BASE_UNITS,
+		referrerRewardVxp
+	} from '#lib/constants/referral.constants.ts';
 	import { getMyReferralCode, listMyReferrals } from '#lib/services/referral.services.ts';
 	import { notifyShareFailed } from '#lib/services/share.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -21,6 +24,7 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
 	import { appOrigin } from '#lib/utils/nav.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 	import { renderPredictionCard, type ShareCardResult } from '#lib/utils/share-card.utils.ts';
 	import { browser } from '$app/env';
 
@@ -92,13 +96,13 @@
 	// always shareable.
 	let referralCode = $state<string | undefined>(undefined);
 
-	// The sharer's lifetime count of *paid* referrals (rows still within the
-	// hard cap). The referrer reward diminishes with each one, so the footer
-	// headline shows the reward for the *next* friend, not a flat figure.
+	// The sharer's lifetime count of redemptions. The referrer reward
+	// diminishes with each one, so the footer headline shows the reward for
+	// the *next* friend, not a flat figure.
 	// Authoritative payout stays server-side; this is cosmetic and starts at
 	// the top tier until the list resolves.
-	let priorPaidCount = $state(0);
-	const nextRewardVxp = $derived(referrerRewardVxp(priorPaidCount));
+	let priorRedemptions = $state(0);
+	const nextRewardVxp = $derived(referrerRewardVxp(priorRedemptions));
 
 	const refToken = $derived(referralCode ?? handle);
 	// Slugged from the on-chain (EN) title, never `displayTitle`: the SEO
@@ -204,13 +208,9 @@
 				const items = await listMyReferrals();
 
 				if (alive) {
-					// Mirror the satellite's authoritative credited-referrals tally (the
-					// count that feeds the tier curve): rows whose `referrerPayout.status`
-					// has left `none` (owed / processing / paid). Anything still `none`,
-					// including over-cap monitoring rows, does not count.
-					priorPaidCount = items.filter(
-						({ referrerPayout }) => referrerPayout.status !== 'none'
-					).length;
+					// The satellite's tier counts every earlier redemption, whatever
+					// its payout state, so the next friend's place is the row count.
+					priorRedemptions = items.length;
 				}
 			} catch {
 				// Keep the optimistic top-tier figure on failure; the footer is a
@@ -412,12 +412,39 @@
 	const stop = (event: Event) => {
 		event.stopPropagation();
 	};
+
+	// Keys stay inside the popover so the deck's arrow shortcuts never fire
+	// underneath it; Escape is the one key it answers itself.
+	const onKeydown = (event: KeyboardEvent) => {
+		event.stopPropagation();
+
+		if (event.key === 'Escape') {
+			onClose?.();
+		}
+	};
+
+	const titleId = $props.id();
+
+	let dialog = $state<HTMLDivElement | undefined>();
+
+	// Focus moves into the dialog on open so Escape and Tab start from it.
+	$effect(() => {
+		dialog?.focus();
+	});
 </script>
 
 <!-- eslint-disable-next-line svelte/valid-compile -- the click is intentional;
      bubble-stop keeps an outer dismiss-on-click handler from firing. -->
-<div class="share-pop" onclick={stop} onkeydown={stop} role="dialog" tabindex="-1">
-	<span class="share-pop-eyebrow">
+<div
+	bind:this={dialog}
+	class="share-pop"
+	aria-labelledby={titleId}
+	onclick={stop}
+	onkeydown={onKeydown}
+	role="dialog"
+	tabindex="-1"
+>
+	<span id={titleId} class="share-pop-eyebrow">
 		{t({ locale: $localeStore, key: 'flow.share.eyebrow' })}
 	</span>
 
@@ -539,7 +566,13 @@
 			</span>
 		{:else}
 			<span>
-				<b>{t({ locale: $localeStore, key: 'flow.share.referral_capped_amount' })}</b>
+				<b
+					>{t({
+						locale: $localeStore,
+						key: 'flow.share.referral_capped_amount',
+						params: { amount: formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }) }
+					})}</b
+				>
 				{t({ locale: $localeStore, key: 'flow.share.referral_capped_tail' })}
 			</span>
 		{/if}

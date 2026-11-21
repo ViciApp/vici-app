@@ -4,8 +4,8 @@ import { nonNullish } from '@dfinity/utils';
 /**
  * Social cohorts: leagues.
  *
- * A league is a user-created cohort with a 6-char alphanumeric invite
- * code that the owner shares to bring members in. Members and battles
+ * A league is a user-created cohort with an alphanumeric invite code
+ * that the owner shares to bring members in. Members and battles
  * live in follow-up collections (`league_members`, `battles`) so the
  * league metadata stays cheap to list without joining membership.
  *
@@ -21,7 +21,7 @@ export interface LeagueDoc {
 	/** Optional short editorial blurb shown on the league detail page. */
 	description?: string;
 	/**
-	 * 6-char `[A-Z0-9]` invite code, the only way into the league. Never
+	 * Invite code ({@link LEAGUE_INVITE_CODE_REGEX}), the only way into the league. Never
 	 * stored on the public `leagues` doc: it lives in the controllers-only
 	 * `league_invites` collection ({@link LeagueInviteDoc}), and only the
 	 * league's own members receive it (`listMyLeagues`). A doc written before
@@ -164,12 +164,23 @@ export const leagueEmblem = (league: Pick<LeagueDoc, 'emblem' | 'name'>): string
 		: LEAGUE_EMBLEM_DEFAULT;
 };
 
+/** The characters an invite code is drawn from. */
+export const LEAGUE_INVITE_CODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+/** The length of the invite code a new league gets. */
+export const LEAGUE_INVITE_CODE_LENGTH = 10;
+
+/** The length of the invite codes leagues were founded with before {@link LEAGUE_INVITE_CODE_LENGTH}. */
+export const LEAGUE_LEGACY_INVITE_CODE_LENGTH = 6;
+
 /**
- * Invite-code shape. Six uppercase alphanumeric characters: the join
- * flow expects exactly this pattern, so the assert enforces it on every
- * write.
+ * Invite-code shape: {@link LEAGUE_INVITE_CODE_ALPHABET} characters, either
+ * {@link LEAGUE_INVITE_CODE_LENGTH} long (every new league) or
+ * {@link LEAGUE_LEGACY_INVITE_CODE_LENGTH} (a league founded before codes
+ * grew, still joinable). The join flow expects exactly this pattern, so the
+ * satellite enforces it on every write and lookup.
  */
-export const LEAGUE_INVITE_CODE_REGEX = /^[A-Z0-9]{6}$/;
+export const LEAGUE_INVITE_CODE_REGEX = /^(?:[A-Z0-9]{10}|[A-Z0-9]{6})$/;
 
 /**
  * A league's invite code in the controllers-only `league_invites`
@@ -181,24 +192,51 @@ export interface LeagueInviteDoc {
 	inviteCode: string;
 }
 
+/**
+ * An account's missed invite codes in the controllers-only
+ * `league_invite_attempts` collection, keyed by its principal: when each
+ * lookup or join whose code opened no league happened, only those inside
+ * the last hour.
+ */
+export interface LeagueInviteAttemptsDoc {
+	missedAtMs: number[];
+}
+
 /** Why `createLeague` refused: another league already holds the invite code. */
 export const CREATE_LEAGUE_REFUSAL_REASONS = ['invite_code_taken'] as const;
 
 export type CreateLeagueRefusalReason = (typeof CREATE_LEAGUE_REFUSAL_REASONS)[number];
 
-/** Why `joinLeagueByInvite` refused: no league holds the code, or the caller is already in it. */
-export const JOIN_LEAGUE_REFUSAL_REASONS = ['not_found', 'already_member'] as const;
+/**
+ * Why `lookupLeagueByInvite` refused: the caller has missed too many codes
+ * within the hour, so no code is resolved for them until the oldest miss ages
+ * out.
+ */
+export const LOOKUP_LEAGUE_REFUSAL_REASONS = ['rate_limited'] as const;
+
+export type LookupLeagueRefusalReason = (typeof LOOKUP_LEAGUE_REFUSAL_REASONS)[number];
+
+/**
+ * Why `joinLeagueByInvite` refused: no league holds the code, the caller is
+ * already in it, or the caller has missed too many codes within the hour.
+ */
+export const JOIN_LEAGUE_REFUSAL_REASONS = [
+	'not_found',
+	'already_member',
+	...LOOKUP_LEAGUE_REFUSAL_REASONS
+] as const;
 
 export type JoinLeagueRefusalReason = (typeof JOIN_LEAGUE_REFUSAL_REASONS)[number];
 
 /**
  * Sample invite code shown as a format affordance; the join sheet's
  * helper line and the field placeholder both render this so the
- * expected shape (6 uppercase alphanumerics) reads at a glance. Kept as
- * a single constant so the two spots can never drift apart, and shaped
- * to satisfy {@link LEAGUE_INVITE_CODE_REGEX}.
+ * expected shape ({@link LEAGUE_INVITE_CODE_LENGTH} uppercase
+ * alphanumerics) reads at a glance. Kept as a single constant so the two
+ * spots can never drift apart, and shaped to satisfy
+ * {@link LEAGUE_INVITE_CODE_REGEX}.
  */
-export const LEAGUE_INVITE_CODE_EXAMPLE = 'ABC123';
+export const LEAGUE_INVITE_CODE_EXAMPLE = 'ABCDE12345';
 
 /**
  * Display-name length window: 3 chars keeps single-letter junk out,
