@@ -9,6 +9,7 @@
 	import LeagueCtaCard from '#lib/components/leagues/LeagueCtaCard.svelte';
 	import LeagueListCard from '#lib/components/leagues/LeagueListCard.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS } from '#lib/constants/vxp-economy.constants.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
 	import { settleFounderAwards, type LeagueWithRole } from '#lib/services/leagues.services.ts';
 	import { findOwnStanding, getLeagueStandings } from '#lib/services/standings.services.ts';
@@ -28,6 +29,7 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { leagueRankOf, rankLeagueMembers } from '#lib/utils/league-rank.utils.ts';
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 	import { refreshAllBalances } from '#lib/utils/refresh.utils.ts';
 	import { goto } from '$app/navigation';
 
@@ -430,7 +432,11 @@
 			<div class="leagues-cta-grid">
 				<LeagueCtaCard
 					onclick={openCreate}
-					sub={t({ locale: $localeStore, key: 'leagues.card.create_founder' })}
+					sub={t({
+						locale: $localeStore,
+						key: 'leagues.card.create_founder',
+						params: { amount: formatVxpBalance({ value: VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS }) }
+					})}
 					title={t({ locale: $localeStore, key: 'leagues.card.create_title' })}
 					variant="create"
 				/>
