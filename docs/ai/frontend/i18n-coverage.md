@@ -36,7 +36,6 @@ translate the file and delete its row, or move the row to § Exempt.
 
 - `src/lib/components/authn/Authn.svelte`
 - `src/lib/components/authn/LoginRequired.svelte`
-- `src/lib/components/authn/SignInModal.svelte`
 - `src/lib/components/dev/TweaksPanel.svelte`
 - `src/lib/components/profile/Avatar.svelte`
 - `src/lib/components/wallet/PlaygroundVxpAutoDeposit.svelte`

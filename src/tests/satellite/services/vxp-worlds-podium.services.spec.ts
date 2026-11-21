@@ -12,7 +12,7 @@ import {
 import { assertDeleteDoc, assertSetDoc } from '#satellite/index.ts';
 import { claimWorldsPodiumPrizeFn } from '#satellite/services/vxp-worlds-podium.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
-import { IcrcLedgerIdl } from '@junobuild/functions/canisters/ledger/icrc';
+import { IcrcLedgerIdl, type IcrcLedgerDid } from '@junobuild/functions/canisters/ledger/icrc';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
@@ -194,6 +194,42 @@ describe('claimWorldsPodiumPrizeFn', () => {
 		);
 	});
 
+	it('sends a failed prize again on the next claim, and a paid one never', async () => {
+		let answer: IcrcLedgerDid.TransferResult = {
+			Err: { InsufficientFunds: { balance: BigInt(0) } }
+		};
+
+		host.onCall({
+			method: 'icrc1_transfer',
+			argTypes: [IcrcLedgerIdl.TransferArg],
+			result: IcrcLedgerIdl.TransferResult,
+			handler: () => answer
+		});
+		join({ principal: member, affiliationIdentifier: 'retry-u', joinedAtMs: monthStartMs });
+		settlements.push({ principal: member, atMs: monthStartMs + DAY_IN_MS, calls: 60, wins: 50 });
+
+		await claimAs(member);
+
+		const gold = () =>
+			host.readDoc<VxpAwardDoc>({
+				collection: Collection.VXP_AWARDS,
+				key: goldKey({ recipient: member })
+			});
+
+		assert.equal(gold()?.status, 'failed');
+
+		answer = { Ok: BigInt(8) };
+
+		const retried = await claimAs(member);
+		const again = await claimAs(member);
+
+		assert.equal(retried.awardsCreated, 1);
+		assert.equal(gold()?.status, 'paid');
+		assert.equal(gold()?.blockIndex, '8');
+		assert.equal(again.awardsAlreadyClaimed, 1);
+		assert.equal(host.calls().filter((method) => method === 'icrc1_transfer').length, 2);
+	});
+
 	it('pays a university and a country finish of the same month once each', async () => {
 		join({ principal: member, affiliationIdentifier: 'twice-u', joinedAtMs: monthStartMs });
 		join({
@@ -258,5 +294,41 @@ describe('claimWorldsPodiumPrizeFn', () => {
 		assert.equal(result.awardsCreated, 0);
 		assert.equal(result.awardsAlreadyClaimed, 2);
 		assert.ok(!host.calls().includes('icrc1_transfer'));
+	});
+
+	it('pays a place whose payout under the key without the kind failed', async () => {
+		const unkindedAwardKey = `${monthAnchor}_gold`;
+		const failed: VxpAwardDoc = {
+			recipient: member.toText(),
+			awardType: 'worlds_podium',
+			awardKey: unkindedAwardKey,
+			amountBaseUnits: '4000000',
+			status: 'failed',
+			earnedAtMs: monthCloseMs
+		};
+
+		host.putDoc({
+			collection: Collection.VXP_AWARDS,
+			key: vxpAwardKey({
+				recipient: member.toText(),
+				awardType: 'worlds_podium',
+				awardKey: unkindedAwardKey
+			}),
+			data: failed,
+			owner: member
+		});
+		join({ principal: member, affiliationIdentifier: 'unpaid-u', joinedAtMs: monthStartMs });
+		settlements.push({ principal: member, atMs: monthStartMs + DAY_IN_MS, calls: 60, wins: 50 });
+
+		const result = await claimAs(member);
+
+		assert.equal(result.awardsCreated, 1);
+		assert.equal(
+			host.readDoc<VxpAwardDoc>({
+				collection: Collection.VXP_AWARDS,
+				key: goldKey({ recipient: member })
+			})?.status,
+			'paid'
+		);
 	});
 });

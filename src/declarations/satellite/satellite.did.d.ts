@@ -1051,9 +1051,6 @@ export interface AppLookupReferralCodeArgs {
 export interface AppLookupReferralCodeResult {
 	owner: [] | [string];
 }
-export interface AppMigrateLeagueInviteCodesResult {
-	migrated: number;
-}
 export interface AppPruneResolvedResultsResult {
 	pruned: number;
 }
@@ -1212,8 +1209,15 @@ export interface AppSubmitSchoolArgs {
 export interface AppSubmitSchoolResult {
 	submission_id: string;
 }
+export interface AppSweepExpiredDeletionsArgs {
+	limit: [] | [number];
+	after_key: [] | [string];
+}
 export interface AppSweepExpiredDeletionsResult {
+	done: boolean;
 	swept: number;
+	next_after_key: [] | [string];
+	failed: number;
 }
 export interface AppTrackEventsArgs {
 	events: Array<{
@@ -1539,7 +1543,6 @@ export interface _SERVICE {
 		AppLookupLeagueByInviteResult
 	>;
 	app_lookup_referral_code: ActorMethod<[AppLookupReferralCodeArgs], AppLookupReferralCodeResult>;
-	app_migrate_league_invite_codes: ActorMethod<[], AppMigrateLeagueInviteCodesResult>;
 	app_prune_resolved_results: ActorMethod<[], AppPruneResolvedResultsResult>;
 	app_read_battle_live_score: ActorMethod<
 		[AppReadBattleLiveScoreArgs],
@@ -1563,7 +1566,10 @@ export interface _SERVICE {
 	app_settle_founder_awards: ActorMethod<[], AppSettleFounderAwardsResult>;
 	app_settle_referral: ActorMethod<[AppSettleReferralArgs], undefined>;
 	app_submit_school: ActorMethod<[AppSubmitSchoolArgs], AppSubmitSchoolResult>;
-	app_sweep_expired_deletions: ActorMethod<[], AppSweepExpiredDeletionsResult>;
+	app_sweep_expired_deletions: ActorMethod<
+		[AppSweepExpiredDeletionsArgs],
+		AppSweepExpiredDeletionsResult
+	>;
 	app_track_events: ActorMethod<[AppTrackEventsArgs], AppTrackEventsResult>;
 	app_transfer_league_ownership: ActorMethod<
 		[AppTransferLeagueOwnershipArgs],

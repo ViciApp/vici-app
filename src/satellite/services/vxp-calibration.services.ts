@@ -27,7 +27,11 @@ import type { CallSide } from '#lib/types/market.ts';
 import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import type { VxpOnboardingDoc } from '#lib/types/vxp-onboarding.ts';
 import { controllerCaller } from '#satellite/services/authz.services.ts';
-import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	persistAward,
+	reclaimAward,
+	updateAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
@@ -348,6 +352,86 @@ const checkRateLimits = ({
 	}
 };
 
+/** Sends a claimed calibration reward and records its paid / failed outcome. */
+const payCalibrationReward = async ({
+	ledger,
+	callerPrincipal,
+	seriesId,
+	amount,
+	nowMs
+}: {
+	ledger: IcrcLedgerCanister;
+	callerPrincipal: Principal;
+	seriesId: string;
+	amount: bigint;
+	nowMs: number;
+}): Promise<CalibrationRewardResult> => {
+	const recipient = callerPrincipal.toText();
+	const result = await transferWithBadFeeRetry({
+		ledger,
+		toOwner: callerPrincipal,
+		amount,
+		memo: `vxp:calibration:${seriesId}`
+	});
+
+	if (result.ok) {
+		logInfo({
+			message: 'calibration_paid',
+			detail: {
+				user: recipient,
+				series_id: seriesId,
+				amount: amount.toString(),
+				block_index: result.blockIndex.toString()
+			}
+		});
+
+		updateAward({
+			recipient,
+			awardType: CALIBRATION_AWARD_TYPE,
+			awardKey: seriesId,
+			patch: { status: 'paid', paidAtMs: nowMs, blockIndex: result.blockIndex.toString() }
+		});
+
+		const newBalance = await ledger.icrc1BalanceOf({
+			account: { owner: callerPrincipal }
+		});
+
+		return {
+			correct: true,
+			paidNow: true,
+			alreadyClaimed: false,
+			rewardBaseUnits: amount.toString(),
+			newBalanceBaseUnits: newBalance.toString(),
+			blockIndex: result.blockIndex.toString()
+		};
+	}
+
+	logError({
+		message: 'calibration_failed',
+		detail: {
+			user: recipient,
+			series_id: seriesId,
+			amount: amount.toString(),
+			error: result.error
+		}
+	});
+
+	updateAward({
+		recipient,
+		awardType: CALIBRATION_AWARD_TYPE,
+		awardKey: seriesId,
+		patch: { status: 'failed', errorMessage: result.error }
+	});
+
+	return {
+		correct: true,
+		paidNow: false,
+		alreadyClaimed: false,
+		reason: 'transfer_failed',
+		errorMessage: result.error
+	};
+};
+
 /**
  * Caller-invoked endpoint. Returns the structured result above; never
  * throws on expected ineligibility (the FE renders the reason). Throws
@@ -370,24 +454,31 @@ export const claimCalibrationRewardFn = async ({
 
 	const caller = callerPrincipal.toUint8Array();
 	const recipient = callerPrincipal.toText();
-	const docKey = vxpAwardKey({
-		recipient,
-		awardType: CALIBRATION_AWARD_TYPE,
-		awardKey: seriesId
-	});
 
-	// 6 (early). Per-market dedupe: any prior award doc for this market
+	// 6 (early). Per-market dedupe: a held award doc for this market
 	// short-circuits before any cross-canister work. Already-claimed
 	// markets report `correct: true` (the reward only exists when the
-	// call was right) without re-paying.
-	const existing = getDocStore({
-		collection: Collection.VXP_AWARDS,
-		key: docKey,
-		caller
+	// call was right) without re-paying. A `failed` one was judged
+	// correct and passed every gate when it was earned, so it is sent
+	// again at its recorded amount.
+	const slot = reclaimAward({ recipient, awardType: CALIBRATION_AWARD_TYPE, awardKey: seriesId });
+
+	if (slot.kind === 'held') {
+		return { correct: true, paidNow: false, alreadyClaimed: true };
+	}
+
+	const ledger = new IcrcLedgerCanister({
+		canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
 	});
 
-	if (nonNullish(existing)) {
-		return { correct: true, paidNow: false, alreadyClaimed: true };
+	if (slot.kind === 'retry') {
+		return await payCalibrationReward({
+			ledger,
+			callerPrincipal,
+			seriesId,
+			amount: BigInt(slot.doc.amountBaseUnits),
+			nowMs: timeMs()
+		});
 	}
 
 	// 2. Engagement gate.
@@ -396,9 +487,6 @@ export const claimCalibrationRewardFn = async ({
 	}
 
 	// 3. Balance floor, the core bound: pay only while recovering.
-	const ledger = new IcrcLedgerCanister({
-		canisterId: Principal.fromText(VXP_LEDGER_CANISTER_ID)
-	});
 	const balance = await ledger.icrc1BalanceOf({
 		account: { owner: callerPrincipal }
 	});
@@ -479,67 +567,5 @@ export const claimCalibrationRewardFn = async ({
 		return { correct: true, paidNow: false, alreadyClaimed: true };
 	}
 
-	const result = await transferWithBadFeeRetry({
-		ledger,
-		toOwner: callerPrincipal,
-		amount,
-		memo: `vxp:calibration:${seriesId}`
-	});
-
-	if (result.ok) {
-		logInfo({
-			message: 'calibration_paid',
-			detail: {
-				user: recipient,
-				series_id: seriesId,
-				amount: amount.toString(),
-				block_index: result.blockIndex.toString()
-			}
-		});
-
-		updateAward({
-			recipient,
-			awardType: CALIBRATION_AWARD_TYPE,
-			awardKey: seriesId,
-			patch: { status: 'paid', paidAtMs: nowMs, blockIndex: result.blockIndex.toString() }
-		});
-
-		const newBalance = await ledger.icrc1BalanceOf({
-			account: { owner: callerPrincipal }
-		});
-
-		return {
-			correct: true,
-			paidNow: true,
-			alreadyClaimed: false,
-			rewardBaseUnits: amount.toString(),
-			newBalanceBaseUnits: newBalance.toString(),
-			blockIndex: result.blockIndex.toString()
-		};
-	}
-
-	logError({
-		message: 'calibration_failed',
-		detail: {
-			user: recipient,
-			series_id: seriesId,
-			amount: amount.toString(),
-			error: result.error
-		}
-	});
-
-	updateAward({
-		recipient,
-		awardType: CALIBRATION_AWARD_TYPE,
-		awardKey: seriesId,
-		patch: { status: 'failed', errorMessage: result.error }
-	});
-
-	return {
-		correct: true,
-		paidNow: false,
-		alreadyClaimed: false,
-		reason: 'transfer_failed',
-		errorMessage: result.error
-	};
+	return await payCalibrationReward({ ledger, callerPrincipal, seriesId, amount, nowMs });
 };

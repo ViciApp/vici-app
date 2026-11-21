@@ -18,7 +18,7 @@ import {
 	type TournamentRound,
 	type TriggerTournamentDrawRefusalReason
 } from '#lib/types/tournament.ts';
-import { vxpAwardKey, type VxpAwardDoc } from '#lib/types/vxp-award.ts';
+import type { VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
@@ -27,7 +27,12 @@ import {
 	settledTotals,
 	settledTotalsByPrincipal
 } from '#satellite/services/settled-history.services.ts';
-import { persistAward, updateAward } from '#satellite/services/vxp-awards.services.ts';
+import {
+	holdsAwardPayout,
+	persistAward,
+	reclaimAward,
+	updateAward
+} from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -63,7 +68,7 @@ import {
  *    idempotent via doc-key collision on the month anchor. Scans
  *    LEAGUE_MEMBERS, counts per league the members who settled at least
  *    one call in the calendar month before the draw, and seeds the
- *    top-16 into Round 1.
+ *    top-16 into Round 1, writing the bracket a few docs per call.
  *  - `getCurrentTournamentFn`: returns the latest tournament + its
  *    matches for the FE bracket.
  *  - `resolveTournamentRoundFn`: anyone can call once a round has
@@ -403,12 +408,103 @@ export interface TriggerTournamentDrawResult {
 }
 
 /**
- * Run the monthly draw for `monthAnchor`. Anyone can call (the
- * doc-key collision makes the draw idempotent: a second call for
- * the same month returns `already_drawn` cleanly), so the FE can
- * fire-and-forget on every Tournament-page mount. Only the current
+ * How many bracket docs one `triggerTournamentDraw` call writes. The bracket
+ * is the tournament doc plus every match of every round
+ * (`TOURNAMENT_BRACKET_SIZE` docs), and each is a serverless write costing
+ * billions of instructions, so a call writes a few and the draw goes in
+ * rounds (see the bulk-rewrite budget note in docs/ai/satellite/patterns.md).
+ */
+const TOURNAMENT_DRAW_BATCH = 4;
+
+/**
+ * Every match doc of the bracket `tournament` seeds, in write order: the
+ * round 1 pairs from its seeding, then the TBD slots of the later rounds so
+ * the bracket UI can render the skeleton; the previous round's resolution
+ * promotes each winner into its slot.
+ */
+const bracketMatches = (
+	tournament: TournamentDoc
+): Array<{ key: string; doc: TournamentMatchDoc }> => {
+	const r1Pairs = seedFirstRoundPairs(tournament.seededLeagueIds);
+
+	return TOURNAMENT_ROUNDS.flatMap((round) => {
+		const window_ = roundWindow({ tournamentMonthStartMs: tournament.monthStartMs, round });
+
+		return Array.from({ length: matchCountForRound(round) }, (_, index) => {
+			const pair = round === 'r1' ? r1Pairs[index] : undefined;
+
+			const doc: TournamentMatchDoc = {
+				tournamentId: tournament.id,
+				round,
+				index,
+				fromLeagueId: pair?.fromLeagueId ?? null,
+				toLeagueId: pair?.toLeagueId ?? null,
+				fromStartCalls: null,
+				fromStartWins: null,
+				toStartCalls: null,
+				toStartWins: null,
+				fromAcc: null,
+				toAcc: null,
+				winnerLeagueId: null,
+				startMs: window_.startMs,
+				endMs: window_.endMs
+			};
+
+			return { key: tournamentMatchKey({ tournamentId: tournament.id, round, index }), doc };
+		});
+	});
+};
+
+/**
+ * Write the first `limit` match docs of `tournament`'s bracket that are not
+ * stored yet. Returns how many it wrote.
+ */
+const writeMissingMatches = ({
+	tournament,
+	limit,
+	callerBytes
+}: {
+	tournament: TournamentDoc;
+	limit: number;
+	callerBytes: Uint8Array;
+}): number => {
+	const missing = bracketMatches(tournament)
+		.filter(({ key }) =>
+			isNullish(
+				getDocStore({ collection: Collection.TOURNAMENT_MATCHES, key, caller: callerBytes })
+			)
+		)
+		.slice(0, limit);
+	const writer = controllerCaller(writerPurpose);
+
+	for (const { key, doc } of missing) {
+		setDocStore({
+			collection: Collection.TOURNAMENT_MATCHES,
+			key,
+			caller: writer,
+			doc: {
+				data: encodeDocData(doc)
+			}
+		});
+	}
+
+	return missing.length;
+};
+
+/**
+ * Run the monthly draw for `monthAnchor`, at most
+ * {@link TOURNAMENT_DRAW_BATCH} bracket docs per call. Anyone can call:
+ * the first call seeds the bracket and writes the tournament doc (the key
+ * collision on the month anchor keeps the seeding to one), each later call
+ * writes the next missing matches and answers `ok`, and once the bracket is
+ * complete a call returns `already_drawn` cleanly. The FE calls it on every
+ * Tournament-page mount until it stops answering `ok`. Only the current
  * UTC month is drawn, and only while its round 1 window is open; any
- * other draw is refused before any read (`tournamentDrawRefusal`).
+ * other new draw is refused (`tournamentDrawRefusal`). A month that already
+ * has a tournament doc answers from it whatever the time, and a bracket
+ * seeded inside that window is still finished after it closes: its rounds
+ * are timed from the tournament doc, not from when each match is written,
+ * and a half-written bracket could never be resolved.
  *
  * Refuses if fewer than `TOURNAMENT_BRACKET_SIZE` leagues exist:
  * the data set is too small to seed a full bracket. The FE surfaces
@@ -420,27 +516,34 @@ export const triggerTournamentDrawFn = async ({
 	monthAnchor: string;
 }): Promise<TriggerTournamentDrawResult> => {
 	const nowMs = timeMs();
+	const caller = msgCaller();
+	const callerBytes = caller.toUint8Array();
+
+	const readTournament = () =>
+		getDocStore({
+			collection: Collection.TOURNAMENTS,
+			key: monthAnchor,
+			caller: callerBytes
+		});
+
+	const existing = readTournament();
+
+	if (nonNullish(existing)) {
+		const written = writeMissingMatches({
+			tournament: decodeDocData<TournamentDoc>(existing.data),
+			limit: TOURNAMENT_DRAW_BATCH,
+			callerBytes
+		});
+
+		return written > 0
+			? { ok: true, tournamentId: monthAnchor }
+			: { ok: false, reason: 'already_drawn', tournamentId: monthAnchor };
+	}
+
 	const refusal = tournamentDrawRefusal({ monthAnchor, nowMs });
 
 	if (nonNullish(refusal)) {
 		return { ok: false, reason: refusal };
-	}
-
-	const caller = msgCaller();
-	const callerBytes = caller.toUint8Array();
-
-	const isDrawn = (): boolean =>
-		nonNullish(
-			getDocStore({
-				collection: Collection.TOURNAMENTS,
-				key: monthAnchor,
-				caller: callerBytes
-			})
-		);
-
-	// Idempotency: collide on doc key for the same month.
-	if (isDrawn()) {
-		return { ok: false, reason: 'already_drawn', tournamentId: monthAnchor };
 	}
 
 	const startMs = monthStartMs(nowMs);
@@ -448,8 +551,9 @@ export const triggerTournamentDrawFn = async ({
 	const ranking = await rankLeaguesForDraw({ callerBytes, startMs });
 
 	// Another draw may have committed during the clearing read; nothing below
-	// awaits, so this check and the writes run as one step.
-	if (isDrawn()) {
+	// awaits, so this check and the writes run as one step. Its bracket is
+	// finished by the next calls.
+	if (nonNullish(readTournament())) {
 		return { ok: false, reason: 'already_drawn', tournamentId: monthAnchor };
 	}
 
@@ -493,8 +597,6 @@ export const triggerTournamentDrawFn = async ({
 		};
 	}
 
-	const writer = controllerCaller(writerPurpose);
-
 	// Write the tournament doc first so the asserts on the match docs
 	// have something to reference.
 	const tournamentDoc: TournamentDoc = {
@@ -510,81 +612,13 @@ export const triggerTournamentDrawFn = async ({
 	setDocStore({
 		collection: Collection.TOURNAMENTS,
 		key: monthAnchor,
-		caller: writer,
+		caller: controllerCaller(writerPurpose),
 		doc: {
 			data: encodeDocData(tournamentDoc)
 		}
 	});
 
-	// Write the 8 Round-1 matches with the seeded pairs.
-	const r1Pairs = seedFirstRoundPairs(verifiedSeeded);
-	const r1Window = roundWindow({ tournamentMonthStartMs: startMs, round: 'r1' });
-
-	for (let index = 0; index < r1Pairs.length; index += 1) {
-		const pair = r1Pairs[index];
-
-		const matchDoc: TournamentMatchDoc = {
-			tournamentId: monthAnchor,
-			round: 'r1',
-			index,
-			fromLeagueId: pair.fromLeagueId,
-			toLeagueId: pair.toLeagueId,
-			fromStartCalls: null,
-			fromStartWins: null,
-			toStartCalls: null,
-			toStartWins: null,
-			fromAcc: null,
-			toAcc: null,
-			winnerLeagueId: null,
-			startMs: r1Window.startMs,
-			endMs: r1Window.endMs
-		};
-
-		setDocStore({
-			collection: Collection.TOURNAMENT_MATCHES,
-			key: tournamentMatchKey({ tournamentId: monthAnchor, round: 'r1', index }),
-			caller: writer,
-			doc: {
-				data: encodeDocData(matchDoc)
-			}
-		});
-	}
-
-	// Write the TBD-slot matches for quarter / semifinal / final so
-	// the bracket UI can render the skeleton immediately; the previous
-	// round's resolution promotes each winner into its slot.
-	for (const round of ['quarter', 'semifinal', 'final'] as const) {
-		const window_ = roundWindow({ tournamentMonthStartMs: startMs, round });
-		const count = matchCountForRound(round);
-
-		for (let index = 0; index < count; index += 1) {
-			const matchDoc: TournamentMatchDoc = {
-				tournamentId: monthAnchor,
-				round,
-				index,
-				fromLeagueId: null,
-				toLeagueId: null,
-				fromStartCalls: null,
-				fromStartWins: null,
-				toStartCalls: null,
-				toStartWins: null,
-				fromAcc: null,
-				toAcc: null,
-				winnerLeagueId: null,
-				startMs: window_.startMs,
-				endMs: window_.endMs
-			};
-
-			setDocStore({
-				collection: Collection.TOURNAMENT_MATCHES,
-				key: tournamentMatchKey({ tournamentId: monthAnchor, round, index }),
-				caller: writer,
-				doc: {
-					data: encodeDocData(matchDoc)
-				}
-			});
-		}
-	}
+	writeMissingMatches({ tournament: tournamentDoc, limit: TOURNAMENT_DRAW_BATCH - 1, callerBytes });
 
 	return { ok: true, tournamentId: monthAnchor };
 };
@@ -1205,7 +1239,9 @@ export interface ClaimTournamentPrizeResult {
  * tournament: the
  * award is keyed on the tournament alone, and a doc under any per-place
  * key of an earlier claim counts as claimed too, so a second claim (for
- * the same place or another) returns `awardsAlreadyClaimed: 1`.
+ * the same place or another) returns `awardsAlreadyClaimed: 1`. A payout
+ * that `failed` counts as unclaimed: the next claim sends it again at its
+ * recorded amount (`reclaimAward`).
  */
 export const claimTournamentPrizeFn = async ({
 	tournamentId
@@ -1248,17 +1284,11 @@ export const claimTournamentPrizeFn = async ({
 			// cutoff.
 			drawnAtNs: tournamentDoc.created_at,
 			isHeld: (heldAwardKey) =>
-				nonNullish(
-					getDocStore({
-						collection: Collection.VXP_AWARDS,
-						key: vxpAwardKey({
-							recipient: callerText,
-							awardType: 'tournament_prize',
-							awardKey: heldAwardKey
-						}),
-						caller: callerBytes
-					})
-				)
+				holdsAwardPayout({
+					recipient: callerText,
+					awardType: 'tournament_prize',
+					awardKey: heldAwardKey
+				})
 		});
 
 	const firstDecision = decide();
@@ -1284,12 +1314,7 @@ export const claimTournamentPrizeFn = async ({
 	}
 
 	if (decision.outcome === 'already_claimed') {
-		return {
-			ok: true,
-			awardsCreated: 0,
-			awardsAlreadyClaimed: 1,
-			totalVxpCredited: 0
-		};
+		return prizeAlreadyClaimed();
 	}
 
 	const { place: myPlace, awardKey } = decision;
@@ -1301,23 +1326,38 @@ export const claimTournamentPrizeFn = async ({
 		return { ok: false, reason: 'not_member_of_top_league' };
 	}
 
+	const slot = reclaimAward({ recipient: callerText, awardType: 'tournament_prize', awardKey });
+
+	if (slot.kind === 'held') {
+		return prizeAlreadyClaimed();
+	}
+
 	const nowMs = timeMs();
 	// `tier.vxp` is the human-readable whole-VXP prize (5000 / 2500 / 1000),
 	// the same value the FE renders. The award doc / ledger work in base
 	// units (VXP has 4 decimals), so size it via `vxpBaseUnits` like every
 	// other award constant: writing the raw whole number here would
 	// under-pay by 10⁴ (5000 base units = 0.5 VXP).
-	const amountBaseUnits = vxpBaseUnits(tier.vxp);
-	const pendingDoc: VxpAwardDoc = {
-		recipient: callerText,
-		awardType: 'tournament_prize',
-		awardKey,
-		amountBaseUnits: amountBaseUnits.toString(),
-		status: 'pending',
-		earnedAtMs: nowMs
-	};
+	const amountBaseUnits =
+		slot.kind === 'retry' ? BigInt(slot.doc.amountBaseUnits) : vxpBaseUnits(tier.vxp);
 
-	persistAward({ recipient: callerText, awardType: 'tournament_prize', awardKey, doc: pendingDoc });
+	if (slot.kind === 'free') {
+		const pendingDoc: VxpAwardDoc = {
+			recipient: callerText,
+			awardType: 'tournament_prize',
+			awardKey,
+			amountBaseUnits: amountBaseUnits.toString(),
+			status: 'pending',
+			earnedAtMs: nowMs
+		};
+
+		persistAward({
+			recipient: callerText,
+			awardType: 'tournament_prize',
+			awardKey,
+			doc: pendingDoc
+		});
+	}
 
 	// Pay the prize inline: same pending → paid/failed ledger pattern as
 	// claimWorldsPodiumPrize, so the award reflects a real transfer rather
@@ -1353,7 +1393,7 @@ export const claimTournamentPrizeFn = async ({
 			ok: true,
 			awardsCreated: 1,
 			awardsAlreadyClaimed: 0,
-			totalVxpCredited: tier.vxp
+			totalVxpCredited: Number(amountBaseUnits / vxpBaseUnits(1))
 		};
 	}
 
@@ -1370,7 +1410,8 @@ export const claimTournamentPrizeFn = async ({
 	});
 
 	// Transfer failed: report nothing credited (the doc is left `failed`
-	// for diagnostics) so the FE never shows a credit that didn't land.
+	// for the next claim to send again) so the FE never shows a credit that
+	// didn't land.
 	return {
 		ok: true,
 		awardsCreated: 0,
@@ -1378,6 +1419,13 @@ export const claimTournamentPrizeFn = async ({
 		totalVxpCredited: 0
 	};
 };
+
+const prizeAlreadyClaimed = (): ClaimTournamentPrizeResult => ({
+	ok: true,
+	awardsCreated: 0,
+	awardsAlreadyClaimed: 1,
+	totalVxpCredited: 0
+});
 
 /** Whether the caller settled at least one call inside the tournament window. */
 const settledInTournament = async ({

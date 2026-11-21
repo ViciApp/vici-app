@@ -617,15 +617,9 @@ export const ptBRMessages = {
 	'admin.roles.search.title': 'Encontrar usuário',
 	'admin.roles.search.use': 'Usar',
 	'auth.callback.google.completing': 'Concluindo login...',
-	'authn.admin.sub':
-		'Entre com uma conta de administrador para gerenciar mercados e resolver previsões.',
-	'authn.admin.title': 'Acesso de admin',
 	'authn.checking.aria': 'Verificando status de login',
 	'authn.passkey.create_button': 'Criar Passkey',
 	'authn.passkey.signin_button': 'Entrar com Passkey',
-	'authn.required.cta': 'Entrar para continuar',
-	'authn.required.description': 'Faça login para acessar esta página.',
-	'authn.required.title': 'Autenticação obrigatória',
 	'authn.signin_with.ii': 'Entrar com Internet Identity',
 	'authz.access_denied.description':
 		'Você não tem as permissões necessárias para acessar esta área.',
@@ -841,8 +835,7 @@ export const ptBRMessages = {
 	'flow.end.stat_streak_value': 'Dia {n}',
 	'flow.exit_aria': 'Sair do Flow',
 	'flow.fresh_start': 'Começo limpo.',
-	'flow.invite.share_text':
-		'Você está pronto para a Copa do Mundo? Acabei de fazer minhas previsões aqui.',
+	'flow.invite.share_text': 'Acabei de fazer minhas previsões na VICI. Experimente você também.',
 	'flow.invite.toast_copy_failed': 'Falha ao copiar',
 	'flow.notification.insufficient_message':
 		'Seu saldo já está em jogo em previsões abertas; ele é liberado conforme os mercados são resolvidos.',

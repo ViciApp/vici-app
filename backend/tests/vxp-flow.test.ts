@@ -125,5 +125,29 @@ describe.if(dbAvailable)('flow awards', () => {
 
 			expect(await mintFlowOvertime({ userId, dayKey: '2026-08-04' })).toBe('minted');
 		});
+
+		test('a failed day is minted again by the next swipe at the cap, past a full window', async () => {
+			stub = stubVxpLedger();
+			const userId = await createTestUser();
+
+			for (let i = 0; i < VXP_FLOW_OVERTIME_ROLLING_CAP - 1; i++) {
+				await query(
+					`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
+					 values ($1, 'flow_overtime', $2, $3, 'paid', $4)`,
+					[userId, `2026-04-${String(i + 1).padStart(2, '0')}`, parseVxp(25).toString(), Date.now()]
+				);
+			}
+
+			await query(
+				`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, error_message)
+				 values ($1, 'flow_overtime', '2026-08-05', $2, 'failed', $3, 'TooOld')`,
+				[userId, parseVxp(25).toString(), Date.now()]
+			);
+
+			expect(await mintFlowOvertime({ userId, dayKey: '2026-08-05' })).toBe('minted');
+			expect(await mintFlowOvertime({ userId, dayKey: '2026-08-05' })).toBe('already');
+			expect(stub.transfers).toHaveLength(1);
+			expect(stub.transfers[0]?.memo).toBe('vxp:flow_overtime:2026-08-05');
+		});
 	});
 });

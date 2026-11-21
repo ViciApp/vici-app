@@ -643,14 +643,9 @@ export const enMessages = {
 	'admin.roles.search.title': 'Find User',
 	'admin.roles.search.use': 'Use',
 	'auth.callback.google.completing': 'Completing sign-in...',
-	'authn.admin.sub': 'Sign in with an admin account to manage markets and resolve predictions.',
-	'authn.admin.title': 'Admin Access',
 	'authn.checking.aria': 'Checking sign-in status',
 	'authn.passkey.create_button': 'Create Passkey',
 	'authn.passkey.signin_button': 'Sign in with Passkey',
-	'authn.required.cta': 'Sign in to Continue',
-	'authn.required.description': 'Please sign in to access this page.',
-	'authn.required.title': 'Authentication Required',
 	'authn.signin_with.ii': 'Sign in with Internet Identity',
 	'authz.access_denied.description':
 		'You do not have the required permissions to access this area.',
@@ -923,7 +918,7 @@ export const enMessages = {
 		'Your VXP is already in play on open predictions. It frees up as those markets resolve. Check your open calls on the Dashboard.',
 	'flow.funds.eyebrow': "THAT'S ALL IN",
 	'flow.funds.title': 'Fully deployed.',
-	'flow.invite.share_text': 'Are you ready for the World Cup? I just made my predictions here.',
+	'flow.invite.share_text': 'I just made my predictions on VICI. Try it too.',
 	'flow.invite.toast_copy_failed': 'Copy failed',
 	'flow.notification.insufficient_message':
 		'Your balance is already in play on open predictions; it frees up as markets resolve.',

@@ -9,7 +9,6 @@ import {
 	LEAGUE_INVITE_CODE_REGEX,
 	LEAGUE_NAME_MAX_LENGTH,
 	LEAGUE_NAME_MIN_LENGTH,
-	leaguePrivacy,
 	type CreateLeagueRefusalReason,
 	type JoinLeagueRefusalReason,
 	type LeagueDoc
@@ -17,14 +16,12 @@ import {
 import {
 	assertOwnerOrController,
 	controllerCaller,
-	isAdmin,
 	isControllerText
 } from '#satellite/services/authz.services.ts';
 import { resolveInviteCode } from '#satellite/services/league-invite-cap.services.ts';
 import {
 	deleteLeagueInvite,
 	leagueIdForInviteCode,
-	legacyInviteHolders,
 	recordLeagueInvite
 } from '#satellite/services/league-invite.services.ts';
 import { payLeagueFounderReward } from '#satellite/services/vxp-league-founder-awards.services.ts';
@@ -118,10 +115,9 @@ const assertValidLeagueImageUrl = (imageUrl: string | undefined): void => {
  *     the assert can't cheaply scan `league_members`).
  *
  *  3. **Identity fields are immutable.** `id`, `createdAtMs` and
- *     `emblem` are write-once. A new doc never carries `inviteCode`: the
+ *     `emblem` are write-once. A doc never carries `inviteCode`: the
  *     code lives in the controllers-only `league_invites` collection
- *     (see `league-invite.services.ts`); a doc written before that keeps
- *     its code until the satellite takes it off. `owner`,
+ *     (see `league-invite.services.ts`). `owner`,
  *     `privacy`, and `imageUrl` are the editable exceptions: ownership
  *     transfers (see §2), and the owner can change the league's
  *     visibility and cover image after creation.
@@ -253,19 +249,10 @@ export const assertSetLeague = ({
 	// direction) and set/change/clear its cover image after creation (see
 	// §4 below), so neither is frozen here. The proposed privacy value is
 	// still range-checked against the known variants up top.
-	//
-	// A doc written before invite codes moved to `league_invites` still
-	// carries its code; only the satellite takes it off
-	// (`migrateLeagueInviteCodes`, after copying it there).
-	const dropsLegacyCode =
-		nonNullish(currentDoc.inviteCode) &&
-		isNullish(proposedDoc.inviteCode) &&
-		isControllerText(callerText);
-
 	if (
 		currentDoc.id !== proposedDoc.id ||
 		currentDoc.createdAtMs !== proposedDoc.createdAtMs ||
-		(currentDoc.inviteCode !== proposedDoc.inviteCode && !dropsLegacyCode) ||
+		currentDoc.inviteCode !== proposedDoc.inviteCode ||
 		(currentDoc.emblem ?? '') !== (proposedDoc.emblem ?? '')
 	) {
 		throw new Error('leagues identity fields are immutable (id, createdAtMs, inviteCode, emblem).');
@@ -745,63 +732,4 @@ export const joinLeagueByInviteFn = ({
 	});
 
 	return { league };
-};
-
-/**
- * How many league docs one `migrateLeagueInviteCodes` call rewrites. Every
- * rewrite is two serverless writes plus the league assert, and each such
- * write costs billions of instructions, so a call rewrites a single doc and
- * the migration goes in rounds (see the bulk-rewrite budget note in
- * docs/ai/satellite/patterns.md).
- */
-const LEAGUE_INVITE_MIGRATION_BATCH = 1;
-
-/**
- * Admin-gated, idempotent: moves the invite code of league docs written
- * before codes left the public doc into `league_invites`, then takes it off
- * the doc, at most {@link LEAGUE_INVITE_MIGRATION_BATCH} docs per call.
- * Returns how many docs it rewrote; call it again until that is 0.
- */
-export const migrateLeagueInviteCodesFn = (): { migrated: number } => {
-	const caller = msgCaller();
-
-	if (!isAdmin({ caller })) {
-		throw new Error('Only an admin can migrate league invite codes.');
-	}
-
-	const writer = controllerCaller('league invite migration');
-	const { items } = listDocsStore({ caller: writer, collection: Collection.LEAGUES, params: {} });
-	const legacyHolders = legacyInviteHolders(items);
-	let migrated = 0;
-
-	for (const [key, { data, version }] of items) {
-		if (migrated >= LEAGUE_INVITE_MIGRATION_BATCH) {
-			break;
-		}
-
-		const { inviteCode, ...league } = decodeDocData<LeagueDoc>(data);
-
-		if (
-			nonNullish(inviteCode) &&
-			recordLeagueInvite({ leagueId: league.id, inviteCode, legacyHolders })
-		) {
-			// A doc from the retired invite-only tier still stores `privacy: 'invite'`,
-			// which the league assert rejects; the rewrite stores the tier it already
-			// reads as, so the doc can pass.
-			const migratedLeague: LeagueDoc = isNullish(league.privacy)
-				? league
-				: { ...league, privacy: leaguePrivacy(league) };
-
-			setDocStore({
-				caller: writer,
-				collection: Collection.LEAGUES,
-				key,
-				doc: { data: encodeDocData<LeagueDoc>(migratedLeague), version }
-			});
-
-			migrated += 1;
-		}
-	}
-
-	return { migrated };
 };
