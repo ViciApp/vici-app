@@ -228,7 +228,7 @@ export const enMessages = {
 	'flow.share.twitter': 'X',
 	'flow.share.text_pre': '"{title}": {yes}% YES on VICI. What’s your call?',
 	'flow.share.text_pre_no_pct': '"{title}" on VICI. What’s your call?',
-	'flow.share.text_post': 'I just made this prediction about the World Cup, what do you think?',
+	'flow.share.text_post': 'I just made this prediction on VICI, what do you think?',
 	'flow.share.telegram': 'Telegram',
 	'flow.share.eyebrow': 'SHARE PREDICTION',
 	'flow.share.instagram': 'Instagram',

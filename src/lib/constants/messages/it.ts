@@ -235,7 +235,7 @@ export const itMessages = {
 	'flow.share.twitter': 'X',
 	'flow.share.text_pre': '"{title}": {yes}% SÌ su VICI. Tu cosa dici?',
 	'flow.share.text_pre_no_pct': '"{title}" su VICI. Tu cosa dici?',
-	'flow.share.text_post': 'Ho appena fatto questa previsione sui Mondiali, tu che ne pensi?',
+	'flow.share.text_post': 'Ho appena fatto questa previsione su VICI, tu che ne pensi?',
 	'flow.share.telegram': 'Telegram',
 	'flow.share.eyebrow': 'CONDIVIDI PREVISIONE',
 	'flow.share.instagram': 'Instagram',

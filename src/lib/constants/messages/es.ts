@@ -236,7 +236,7 @@ export const esMessages = {
 	'flow.share.twitter': 'X',
 	'flow.share.text_pre': '"{title}": {yes}% SÍ en VICI. ¿Tu predicción?',
 	'flow.share.text_pre_no_pct': '"{title}" en VICI. ¿Tu predicción?',
-	'flow.share.text_post': 'Acabo de hacer esta predicción sobre el Mundial, ¿qué opinas?',
+	'flow.share.text_post': 'Acabo de hacer esta predicción en VICI, ¿qué opinas?',
 	'flow.share.telegram': 'Telegram',
 	'flow.share.eyebrow': 'COMPARTIR PREDICCIÓN',
 	'flow.share.instagram': 'Instagram',

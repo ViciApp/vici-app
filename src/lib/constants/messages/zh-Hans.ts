@@ -222,7 +222,7 @@ export const zhHansMessages = {
 	'flow.share.twitter': 'X',
 	'flow.share.text_pre': '"{title}"：VICI 上 {yes}% 选 是。你怎么选?',
 	'flow.share.text_pre_no_pct': '"{title}" 在 VICI 上。你怎么选?',
-	'flow.share.text_post': '我刚刚对世界杯做出了这个预测，你怎么看？',
+	'flow.share.text_post': '我刚刚在 VICI 上做出了这个预测，你怎么看？',
 	'flow.share.telegram': 'Telegram',
 	'flow.share.eyebrow': '分享预测',
 	'flow.share.instagram': 'Instagram',

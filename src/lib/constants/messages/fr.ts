@@ -233,7 +233,7 @@ export const frMessages = {
 	'flow.share.twitter': 'X',
 	'flow.share.text_pre': '« {title} » : {yes}% OUI sur VICI. Ton verdict ?',
 	'flow.share.text_pre_no_pct': '« {title} » sur VICI. Ton verdict ?',
-	'flow.share.text_post': 'Je viens de faire ce pronostic sur la Coupe du monde, qu’en penses-tu ?',
+	'flow.share.text_post': 'Je viens de faire ce pronostic sur VICI, qu’en penses-tu ?',
 	'flow.share.telegram': 'Telegram',
 	'flow.share.eyebrow': 'PARTAGER LA PRÉDICTION',
 	'flow.share.instagram': 'Instagram',
