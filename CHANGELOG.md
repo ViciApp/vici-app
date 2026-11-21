@@ -1,5 +1,96 @@
 # Changelog
 
+## [1.8.64](https://github.com/ViciApp/vici-app/compare/v1.8.63...v1.8.64) (2026-11-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **satellite:** the admin-only `migrateLeagueInviteCodes` update method (`app_migrate_league_invite_codes`) is removed from the satellite interface. Nothing in this repo calls it; an operator script that still does must drop the call, since no league doc is left to migrate.
+
+### Bug Fixes
+
+* **backend:** answer a non-uuid league member id as no member instead of a 500 ([#1614](https://github.com/ViciApp/vici-app/issues/1614)) ([259aff9](https://github.com/ViciApp/vici-app/commit/259aff93e149cd75494a83b373e07dc153e0ccdb))
+* **backend:** refuse a non-integer computedAtMs on the profile stats write as a 400 ([#1618](https://github.com/ViciApp/vici-app/issues/1618)) ([f2af956](https://github.com/ViciApp/vici-app/commit/f2af956e160c20d716aaf22c6ba9aac78a224ccd))
+* **backend:** run the hourly worker jobs on the first tick after boot ([#1610](https://github.com/ViciApp/vici-app/issues/1610)) ([d183d05](https://github.com/ViciApp/vici-app/commit/d183d055a5fb1226f4cf0f53a24af1a417bdfa3a))
+* **backend:** score the current month's standings from settled history ([#1656](https://github.com/ViciApp/vici-app/issues/1656)) ([725db7e](https://github.com/ViciApp/vici-app/commit/725db7e10862c216d437eceac993df004781d7a6))
+* **backend:** send a failed VXP award again on its next grant ([#1660](https://github.com/ViciApp/vici-app/issues/1660)) ([8f038a6](https://github.com/ViciApp/vici-app/commit/8f038a6c292ac909fb599d50f0d33b053d67f6fe))
+* **backend:** state the code emails' lifetime from the TTL the server enforces ([#1626](https://github.com/ViciApp/vici-app/issues/1626)) ([7985c06](https://github.com/ViciApp/vici-app/commit/7985c06e748ba8b646c5d137910dd2840088ef6f))
+* **flow:** make the invite-a-friend share text generic ([#1655](https://github.com/ViciApp/vici-app/issues/1655)) ([a9f275a](https://github.com/ViciApp/vici-app/commit/a9f275a42f4dc36e05bd66064430689de5b9b452))
+* **frontend:** carry the referral code on web2 league invite links ([#1638](https://github.com/ViciApp/vici-app/issues/1638)) ([749c109](https://github.com/ViciApp/vici-app/commit/749c1092ab917b351c21725fa794143e9de7c035))
+* **frontend:** group thousands to match the decimal separator ([#1604](https://github.com/ViciApp/vici-app/issues/1604)) ([2c58681](https://github.com/ViciApp/vici-app/commit/2c586818fdc8371e7533ca4627c89e6ffc2d35a7))
+* **frontend:** keep a cancelled profile invite share from copying the link ([#1617](https://github.com/ViciApp/vici-app/issues/1617)) ([a081fd5](https://github.com/ViciApp/vici-app/commit/a081fd56d23575a0ab76bfd212bd3ea912b39c2a))
+* **frontend:** keep the flow end headline reactive to its props ([#1625](https://github.com/ViciApp/vici-app/issues/1625)) ([82361c8](https://github.com/ViciApp/vici-app/commit/82361c82033be5d21f9c0a9f866cbed5443a270a))
+* **frontend:** localize the settings theme label ([#1611](https://github.com/ViciApp/vici-app/issues/1611)) ([f2a6a1b](https://github.com/ViciApp/vici-app/commit/f2a6a1b9c932cc163e628b836efef8a10748a1b1))
+* **frontend:** make the flow share popover a named, dismissable dialog ([#1616](https://github.com/ViciApp/vici-app/issues/1616)) ([9dbc576](https://github.com/ViciApp/vici-app/commit/9dbc5768db6e4240ecdcbcc76d2fce99b180df9c))
+* **frontend:** read the settings joined date through the profile service in both backends ([#1607](https://github.com/ViciApp/vici-app/issues/1607)) ([f450858](https://github.com/ViciApp/vici-app/commit/f450858bfc22df0dccc2e04afc33f62956d7e50c))
+* **frontend:** round displayed VXP balances down ([#1615](https://github.com/ViciApp/vici-app/issues/1615)) ([78edf08](https://github.com/ViciApp/vici-app/commit/78edf0809e7a674cd2e7c26e335117816d007cbb))
+* **frontend:** share the referral invite link from the flow invite buttons ([#1619](https://github.com/ViciApp/vici-app/issues/1619)) ([21f72f9](https://github.com/ViciApp/vici-app/commit/21f72f9a7f2f3dcf01f6f8d4fb9f95ae802208e5))
+* **frontend:** show inbox settlement amounts as whole VXP ([#1613](https://github.com/ViciApp/vici-app/issues/1613)) ([4169906](https://github.com/ViciApp/vici-app/commit/41699068cb41d9896d8016bf75c59a4f7cfa56d4))
+* **frontend:** show the transaction history as unavailable without the VXP ledger ([#1606](https://github.com/ViciApp/vici-app/issues/1606)) ([63d6365](https://github.com/ViciApp/vici-app/commit/63d636524833bcba1e983ec40ce4ec6b3a519c7f))
+* **leagues:** make the league invite share text generic ([#1658](https://github.com/ViciApp/vici-app/issues/1658)) ([17f34d6](https://github.com/ViciApp/vici-app/commit/17f34d6d64a0766c9d8560b7989fb8bad59115cb))
+* **market:** make the market share text generic ([#1659](https://github.com/ViciApp/vici-app/issues/1659)) ([1edba09](https://github.com/ViciApp/vici-app/commit/1edba09f8116190cede73889065d022c957afe32))
+* **market:** resolve share-link aliases through the market service catalog read ([#1628](https://github.com/ViciApp/vici-app/issues/1628)) ([d27f611](https://github.com/ViciApp/vici-app/commit/d27f6113fd32d3c6475bd3fb8dbf5cc66dae7578))
+* **satellite:** disband a league a bounded batch of docs per call ([#1661](https://github.com/ViciApp/vici-app/issues/1661)) ([7f12e10](https://github.com/ViciApp/vici-app/commit/7f12e103148254663a387706a840f98b816f34c3))
+* **satellite:** freeze a Worlds month a bounded batch of docs per claim ([#1662](https://github.com/ViciApp/vici-app/issues/1662)) ([f94e75f](https://github.com/ViciApp/vici-app/commit/f94e75ffb7565e8497d74dc73cd5aaad3b12a1cd))
+* **satellite:** prune resolved results a bounded batch per call ([#1641](https://github.com/ViciApp/vici-app/issues/1641)) ([9fbd667](https://github.com/ViciApp/vici-app/commit/9fbd6677fdcbe5dd6283d22eb2e9ab2e897e5c01))
+* **satellite:** recompute reaction counts a bounded batch per call ([#1644](https://github.com/ViciApp/vici-app/issues/1644)) ([8ac8bb4](https://github.com/ViciApp/vici-app/commit/8ac8bb405a4c4468fa8066a2c5eb8a27f66b9373))
+* **satellite:** record VXP payout analytics when the award is paid ([#1627](https://github.com/ViciApp/vici-app/issues/1627)) ([b10331a](https://github.com/ViciApp/vici-app/commit/b10331a533b50b5164345b6edf17013f1302f6c3))
+* **satellite:** resolve a tournament round a bounded batch of matches per call ([#1663](https://github.com/ViciApp/vici-app/issues/1663)) ([067e9cd](https://github.com/ViciApp/vici-app/commit/067e9cd3aa8cf2f5063f16da3516f3cd864b017d))
+* **satellite:** retire the legacy league invite code path ([#1652](https://github.com/ViciApp/vici-app/issues/1652)) ([7f77343](https://github.com/ViciApp/vici-app/commit/7f77343785d83e0bfe4d62d1f7fd6f95b2763376))
+* **satellite:** retry failed achievement and Flow milestone awards when the profile opens ([#1664](https://github.com/ViciApp/vici-app/issues/1664)) ([60bec2b](https://github.com/ViciApp/vici-app/commit/60bec2b9fd76c90e7a861f314618a1f6809782b9))
+* **satellite:** send a failed VXP award again on its next claim ([#1657](https://github.com/ViciApp/vici-app/issues/1657)) ([9c86777](https://github.com/ViciApp/vici-app/commit/9c86777575e3f2363b7d07fd28028f6242faa67d))
+* **satellite:** sweep one expired account per call ([#1636](https://github.com/ViciApp/vici-app/issues/1636)) ([a21879d](https://github.com/ViciApp/vici-app/commit/a21879d35aaa3bac82f4a1fa0de33669d5392db0))
+* **satellite:** write the tournament bracket a few docs per draw call ([#1653](https://github.com/ViciApp/vici-app/issues/1653)) ([37625f6](https://github.com/ViciApp/vici-app/commit/37625f65893b058261210c5de3b4b6502b7c6b66))
+* **scripts:** clearing init reads ledger ids from their owners ([#1645](https://github.com/ViciApp/vici-app/issues/1645)) ([0fa4ac3](https://github.com/ViciApp/vici-app/commit/0fa4ac346b46fa13cfd614245383d70518993248))
+* **scripts:** local-only canister scripts refuse staging and ic ([#1605](https://github.com/ViciApp/vici-app/issues/1605)) ([ed8ef3e](https://github.com/ViciApp/vici-app/commit/ed8ef3e77ff3a07311fa7d35dbfa80618d7926cd))
+* **wallet:** drop wallet history pages from before a reload ([#1629](https://github.com/ViciApp/vici-app/issues/1629)) ([8dbbe56](https://github.com/ViciApp/vici-app/commit/8dbbe5627fd75e02a4c3115afa91c5afa70dab6f))
+* **wallet:** keep the last known balances when a ledger read fails ([#1609](https://github.com/ViciApp/vici-app/issues/1609)) ([bd3cb09](https://github.com/ViciApp/vici-app/commit/bd3cb09e6b8213f01d81f16bbb0b518544dbb111))
+
+
+### Documentation
+
+* **ai:** make governance the source of the protected paths ([#1630](https://github.com/ViciApp/vici-app/issues/1630)) ([2c3234b](https://github.com/ViciApp/vici-app/commit/2c3234b4831f0bfa553ae934e76d197de25ebabf))
+* **engine:** the app satellite is production, not staging ([#1635](https://github.com/ViciApp/vici-app/issues/1635)) ([04a44c8](https://github.com/ViciApp/vici-app/commit/04a44c84550c6d29ad0e4d8ec5a42a2cccf45541))
+* **frontend:** record the web2 unfriend registry group admin gap ([#1643](https://github.com/ViciApp/vici-app/issues/1643)) ([205c214](https://github.com/ViciApp/vici-app/commit/205c214739742d6317fb48cc30db7d8b9ef1e2bf))
+* **i18n:** bring the coverage worksheet up to date with the lint rule ([#1639](https://github.com/ViciApp/vici-app/issues/1639)) ([44dbb6d](https://github.com/ViciApp/vici-app/commit/44dbb6d28df87960c603e1a12fc6b3246b0f06b7))
+* **readme:** mark three superseded docs as historical ([#1633](https://github.com/ViciApp/vici-app/issues/1633)) ([990142b](https://github.com/ViciApp/vici-app/commit/990142b9750eb27030456c61d851f1b0710157e7))
+* **repo:** remove the stale root planning docs ([#1654](https://github.com/ViciApp/vici-app/issues/1654)) ([4a72dbc](https://github.com/ViciApp/vici-app/commit/4a72dbc78fc55e8fe395aaa95a525bcde848d4e8))
+* **satellite:** make three stale comments match the code ([#1651](https://github.com/ViciApp/vici-app/issues/1651)) ([0a0a11c](https://github.com/ViciApp/vici-app/commit/0a0a11c411e27994666a5b3a2f2ea957def7dc04))
+* **satellite:** say the founder settle pass sends a failed award again ([#1667](https://github.com/ViciApp/vici-app/issues/1667)) ([1547a69](https://github.com/ViciApp/vici-app/commit/1547a69a6f4759734bac55ef536143b7f14ccecc))
+
+
+### Code Refactoring
+
+* **backend:** remove the unused followers, friendship and unfollow routes ([#1646](https://github.com/ViciApp/vici-app/issues/1646)) ([bc332c0](https://github.com/ViciApp/vici-app/commit/bc332c08fb01f7bc485583713f69eee9ae277622))
+* **backend:** remove the unused leaderboard rival route ([#1642](https://github.com/ViciApp/vici-app/issues/1642)) ([2575299](https://github.com/ViciApp/vici-app/commit/25752998fa085204cb27100f255861b1cb24f863))
+* **backend:** remove the unused VXP award history route ([#1648](https://github.com/ViciApp/vici-app/issues/1648)) ([3fe5856](https://github.com/ViciApp/vici-app/commit/3fe585605240ea4545611e4029dba1c92edb0fd8))
+* **backend:** remove the unused Worlds roster and month ranking routes ([#1647](https://github.com/ViciApp/vici-app/issues/1647)) ([1e38942](https://github.com/ViciApp/vici-app/commit/1e3894297244dde359f8506926e6272266ca7411))
+* **frontend:** drop the unreachable signed-out branch of Protected ([#1632](https://github.com/ViciApp/vici-app/issues/1632)) ([fb10a10](https://github.com/ViciApp/vici-app/commit/fb10a104ea3dd8fa93b4d33bc7a4172fb30c0426))
+* **frontend:** read economy amounts in copy from their constants ([#1637](https://github.com/ViciApp/vici-app/issues/1637)) ([3ab7444](https://github.com/ViciApp/vici-app/commit/3ab74446db66e02383d1e8d1b6b6e64ec5258ecd))
+* **frontend:** render portfolio category chips through categoryLabel ([#1634](https://github.com/ViciApp/vici-app/issues/1634)) ([6517c6c](https://github.com/ViciApp/vici-app/commit/6517c6cd5d665522dafc386ce4d20ddbac0017b1))
+* **i18n:** remove three catalog keys nothing reads ([#1640](https://github.com/ViciApp/vici-app/issues/1640)) ([9887dd6](https://github.com/ViciApp/vici-app/commit/9887dd6376a308c9b89f32fdae36bfec08308bd3))
+* **market:** resolve admin markets through settleMarket ([#1631](https://github.com/ViciApp/vici-app/issues/1631)) ([00f9ce2](https://github.com/ViciApp/vici-app/commit/00f9ce220aa06dea12ee27bbe493cd4389f0df0b))
+
+
+### Tests
+
+* **satellite:** cover the achievement award ([#1622](https://github.com/ViciApp/vici-app/issues/1622)) ([9ffdfeb](https://github.com/ViciApp/vici-app/commit/9ffdfeb1e66dde066161bdab0ff363fcb24b0df3))
+* **satellite:** cover the comeback restore award ([#1623](https://github.com/ViciApp/vici-app/issues/1623)) ([799b7ea](https://github.com/ViciApp/vici-app/commit/799b7ea40378205522a6a7992b1799b8d48868b3))
+* **satellite:** cover the Flow milestone and overtime awards ([#1621](https://github.com/ViciApp/vici-app/issues/1621)) ([744c49d](https://github.com/ViciApp/vici-app/commit/744c49df224d1b61d572fe3b5c0096674d90d096))
+* **satellite:** cover the league founder award ([#1620](https://github.com/ViciApp/vici-app/issues/1620)) ([1532b95](https://github.com/ViciApp/vici-app/commit/1532b9594f8a8969be96b4d865cad8fbad5aaeb9))
+
+
+### Build System
+
+* **check:** type-check the TypeScript outside src ([#1624](https://github.com/ViciApp/vici-app/issues/1624)) ([ab4e53a](https://github.com/ViciApp/vici-app/commit/ab4e53a5ea75ee45fe650f991629295541d07086))
+
+
+### Continuous Integration
+
+* **actions:** always unset the token remote after add-and-commit ([#1649](https://github.com/ViciApp/vici-app/issues/1649)) ([51810ea](https://github.com/ViciApp/vici-app/commit/51810ea4951bd5f7feb678b97b7c226029bd759c))
+* **deploy:** decide the satellite upgrade from the last successful deploy ([#1608](https://github.com/ViciApp/vici-app/issues/1608)) ([37ec6b6](https://github.com/ViciApp/vici-app/commit/37ec6b6a1e0a3d151ab28a4ece3f8bc4c85d9c75))
+* **deploy:** describe what the juno-action hosting pin really runs ([#1612](https://github.com/ViciApp/vici-app/issues/1612)) ([a96415c](https://github.com/ViciApp/vici-app/commit/a96415cb6219c1faf5e19128aefc785ce17485f2))
+
 ## [1.8.63](https://github.com/ViciApp/vici-app/compare/v1.8.62...v1.8.63) (2026-11-19)
 
 
