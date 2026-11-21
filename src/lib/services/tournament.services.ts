@@ -92,6 +92,40 @@ export interface TriggerTournamentDrawResult {
 }
 
 /**
+ * Run a satellite draw to the end of its bracket and return the first answer:
+ * whether this call drew the month, or why not. The satellite writes the
+ * bracket a few docs per call, and every `ok` answer wrote at least one of its
+ * TOURNAMENT_BRACKET_SIZE docs, so `draw` is called again until it answers
+ * `already_drawn`. Any other end leaves the bracket half-written, so it throws
+ * rather than report the first `ok`; the next call picks up where it stopped.
+ */
+export const completeTournamentDraw = async ({
+	draw
+}: {
+	draw: () => Promise<TriggerTournamentDrawResult>;
+}): Promise<TriggerTournamentDrawResult> => {
+	const first = await draw();
+
+	if (!first.ok) {
+		return first;
+	}
+
+	let result = first;
+
+	for (let calls = 1; result.ok && calls < TOURNAMENT_BRACKET_SIZE; calls++) {
+		result = await draw();
+	}
+
+	if (result.reason !== 'already_drawn') {
+		throw new Error(
+			`Tournament draw stopped before the bracket was complete: ${result.reason ?? 'still writing'}`
+		);
+	}
+
+	return first;
+};
+
+/**
  * Fire the draw for `monthAnchor` and return the first answer: whether this
  * call drew the month, or why not. Idempotent: once the bracket is complete
  * a call returns `already_drawn` cleanly. Safe to fire-and-forget on every
@@ -101,25 +135,14 @@ export const triggerTournamentDraw = async ({
 	monthAnchor
 }: {
 	monthAnchor: string;
-}): Promise<TriggerTournamentDrawResult> => {
+}): Promise<TriggerTournamentDrawResult> =>
 	// The web2 API also runs the draw from its worker; the lazy page-mount
 	// trigger stays for parity and collides idempotently with it.
-	if (isWeb2Backend()) {
-		return await triggerTournamentDrawWeb2({ monthAnchor });
-	}
-
-	// The satellite writes the bracket a few docs per call, and every `ok`
-	// answer wrote at least one of its TOURNAMENT_BRACKET_SIZE docs, so call
-	// again until it reports the bracket complete.
-	const first = await functions.triggerTournamentDraw({ monthAnchor });
-	let result = first;
-
-	for (let calls = 1; result.ok && calls < TOURNAMENT_BRACKET_SIZE; calls++) {
-		result = await functions.triggerTournamentDraw({ monthAnchor });
-	}
-
-	return first;
-};
+	isWeb2Backend()
+		? await triggerTournamentDrawWeb2({ monthAnchor })
+		: await completeTournamentDraw({
+				draw: () => functions.triggerTournamentDraw({ monthAnchor })
+			});
 
 export interface ResolveTournamentRoundResult {
 	ok: boolean;

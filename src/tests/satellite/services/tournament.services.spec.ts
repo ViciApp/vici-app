@@ -296,6 +296,36 @@ describe('triggerTournamentDrawFn', () => {
 		);
 	});
 
+	it('finishes a bracket begun before Round 1 closed once the window has closed', async () => {
+		const roundOne = roundWindow({ tournamentMonthStartMs: monthStartMs, round: 'r1' });
+
+		host.setNowMs(roundOne.endMs - 1);
+		assert.deepEqual(await triggerTournamentDrawFn({ monthAnchor }), {
+			ok: true,
+			tournamentId: monthAnchor
+		});
+
+		host.setNowMs(roundOne.endMs);
+		let result = await triggerTournamentDrawFn({ monthAnchor });
+
+		while (result.ok) {
+			result = await triggerTournamentDrawFn({ monthAnchor });
+		}
+
+		assert.deepEqual(result, { ok: false, reason: 'already_drawn', tournamentId: monthAnchor });
+		assert.equal(bracketDocs(), TOURNAMENT_BRACKET_SIZE);
+	});
+
+	it('refuses a new draw once Round 1 closed, writing nothing', async () => {
+		host.setNowMs(roundWindow({ tournamentMonthStartMs: monthStartMs, round: 'r1' }).endMs);
+
+		assert.deepEqual(await triggerTournamentDrawFn({ monthAnchor }), {
+			ok: false,
+			reason: 'invalid_input'
+		});
+		assert.equal(bracketDocs(), 0);
+	});
+
 	it('refuses a bracket with fewer leagues than its size, writing nothing', async () => {
 		host.restore();
 		host = installSatelliteHost();

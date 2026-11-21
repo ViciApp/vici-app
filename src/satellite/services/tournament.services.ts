@@ -495,7 +495,11 @@ const writeMissingMatches = ({
  * complete a call returns `already_drawn` cleanly. The FE calls it on every
  * Tournament-page mount until it stops answering `ok`. Only the current
  * UTC month is drawn, and only while its round 1 window is open; any
- * other draw is refused before any read (`tournamentDrawRefusal`).
+ * other new draw is refused (`tournamentDrawRefusal`). A month that already
+ * has a tournament doc answers from it whatever the time, and a bracket
+ * seeded inside that window is still finished after it closes: its rounds
+ * are timed from the tournament doc, not from when each match is written,
+ * and a half-written bracket could never be resolved.
  *
  * Refuses if fewer than `TOURNAMENT_BRACKET_SIZE` leagues exist:
  * the data set is too small to seed a full bracket. The FE surfaces
@@ -507,12 +511,6 @@ export const triggerTournamentDrawFn = async ({
 	monthAnchor: string;
 }): Promise<TriggerTournamentDrawResult> => {
 	const nowMs = timeMs();
-	const refusal = tournamentDrawRefusal({ monthAnchor, nowMs });
-
-	if (nonNullish(refusal)) {
-		return { ok: false, reason: refusal };
-	}
-
 	const caller = msgCaller();
 	const callerBytes = caller.toUint8Array();
 
@@ -535,6 +533,12 @@ export const triggerTournamentDrawFn = async ({
 		return written > 0
 			? { ok: true, tournamentId: monthAnchor }
 			: { ok: false, reason: 'already_drawn', tournamentId: monthAnchor };
+	}
+
+	const refusal = tournamentDrawRefusal({ monthAnchor, nowMs });
+
+	if (nonNullish(refusal)) {
+		return { ok: false, reason: refusal };
 	}
 
 	const startMs = monthStartMs(nowMs);
