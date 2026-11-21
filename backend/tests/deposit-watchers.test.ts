@@ -634,22 +634,22 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 		test('reconciliation runs in the same worker tick as a hung scan', async () => {
 			const watcherJob = jobs.find(({ name }) => name === 'deposit-watchers');
 			const reconcileJob = jobs.find(({ name }) => name === 'vxp-award-reconciliation');
-			const recoveryJob = jobs.find(({ name }) => name === 'withdrawal-recovery');
 
-			if (isNullish(watcherJob) || isNullish(reconcileJob) || isNullish(recoveryJob)) {
+			if (isNullish(watcherJob) || isNullish(reconcileJob)) {
 				throw new Error('worker registry lost a job');
 			}
 
 			await seedAccounts({ count: 50, chain: 'ic' });
 			useLedger(() => new Promise<bigint>(() => undefined));
 
-			const realWatcher = watcherJob.run;
-			const realReconcile = reconcileJob.run;
-			const realRecovery = recoveryJob.run;
+			const realRuns = jobs.map((job) => [job, job.run] as const);
 			let reconciled = 0;
 
-			// Stale withdrawals left by other suites would be sent to the real ledger.
-			recoveryJob.run = () => Promise.resolve();
+			// The other jobs would act on rows other suites left (stale withdrawals
+			// sent to the real ledger, and on the first pass the hourly sweeps too).
+			for (const job of jobs) {
+				job.run = () => Promise.resolve();
+			}
 
 			watcherJob.run = () =>
 				tickDepositWatchers({
@@ -668,9 +668,9 @@ describe.if(dbAvailable)('deposit watcher tick', () => {
 
 				expect(reconciled).toBe(1);
 			} finally {
-				watcherJob.run = realWatcher;
-				reconcileJob.run = realReconcile;
-				recoveryJob.run = realRecovery;
+				for (const [job, run] of realRuns) {
+					job.run = run;
+				}
 			}
 		});
 	});

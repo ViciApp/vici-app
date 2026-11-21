@@ -15,7 +15,8 @@ import type {
 	Doc,
 	ListParams,
 	ListResults,
-	SetDoc
+	SetDoc,
+	TimestampMatcher
 } from '@junobuild/functions';
 import type { AccessKeys } from '@junobuild/functions/sdk';
 
@@ -232,6 +233,35 @@ export interface SatelliteHost {
 
 const encodeText = (text: string): Uint8Array<ArrayBuffer> => new TextEncoder().encode(text);
 
+/** A `created_at` / `updated_at` list matcher, with the datastore's bounds (`between` inclusive). */
+const timestampMatches = ({
+	timestamp,
+	matcher
+}: {
+	timestamp: bigint;
+	matcher?: TimestampMatcher;
+}): boolean => {
+	if (isNullish(matcher)) {
+		return true;
+	}
+
+	if ('equal' in matcher) {
+		return timestamp === matcher.equal;
+	}
+
+	if ('greater_than' in matcher) {
+		return timestamp > matcher.greater_than;
+	}
+
+	if ('less_than' in matcher) {
+		return timestamp < matcher.less_than;
+	}
+
+	const [from, to] = matcher.between;
+
+	return timestamp >= from && timestamp <= to;
+};
+
 const controllersRuled = (rule: 'read' | 'write'): ReadonlySet<string> =>
 	new Set(
 		(junoConfig({ mode: 'production' }).satellite.collections?.datastore ?? [])
@@ -297,7 +327,7 @@ export const installSatelliteHost = ({
 		return created;
 	};
 
-	/** The docs `listDocsStore` and `countDocsStore` answer: the key and description matchers and the owner filter. */
+	/** The docs `listDocsStore` and `countDocsStore` answer: the key, description and timestamp matchers and the owner filter. */
 	const listed = ({ name, params }: { name: string; params: ListParams }): [string, Doc][] => {
 		const matcher = params.matcher?.key;
 		const keyMatches = nonNullish(matcher) ? new RegExp(matcher) : undefined;
@@ -312,6 +342,11 @@ export const installSatelliteHost = ({
 			.filter(
 				([, { description }]) =>
 					isNullish(descriptionMatches) || descriptionMatches.test(description ?? '')
+			)
+			.filter(
+				([, { created_at, updated_at }]) =>
+					timestampMatches({ timestamp: created_at, matcher: params.matcher?.created_at }) &&
+					timestampMatches({ timestamp: updated_at, matcher: params.matcher?.updated_at })
 			)
 			.filter(
 				([, stored]) =>

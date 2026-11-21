@@ -13,6 +13,7 @@ import {
 	type TransactionHistoryLedgerEntry
 } from '#lib/utils/transaction-history.utils.ts';
 import { mapIcrcTransaction, mapTransactionIcrcToSelf } from '#lib/utils/transactions.utils.ts';
+import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
 import type { IcrcIndexDid } from '@icp-sdk/canisters/ledger/icrc';
 import type { Identity } from '@icp-sdk/core/agent';
@@ -52,12 +53,18 @@ const extractTxMeta = (transaction: IcrcIndexDid.Transaction): LedgerTxMeta => {
 /**
  * Walk the VXP ICRC index to exhaustion (newest → oldest), capped at
  * `TRANSACTION_HISTORY_MAX_LEDGER_PAGES` pages so a pathological account
- * stays bounded. Returns `undefined` when not signed in or when the very
- * first page fails: partial pages collected before a mid-walk failure are
- * still returned (flagged `truncated`) so the history degrades instead of
- * blanking.
+ * stays bounded. Returns `undefined` when not signed in, when the very
+ * first page fails, or in web2 mode: partial pages collected before a
+ * mid-walk failure are still returned (flagged `truncated`) so the history
+ * degrades instead of blanking.
  */
 export const loadVxpLedgerHistory = async (): Promise<VxpLedgerHistory | undefined> => {
+	// The index keys history by principal and the API exposes no custodial
+	// transfer feed, so web2 has no ledger history to walk.
+	if (isWeb2Backend()) {
+		return;
+	}
+
 	const identity = await getIdentity();
 
 	if (isNullish(identity)) {

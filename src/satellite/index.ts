@@ -84,7 +84,6 @@ import {
 	getAnalyticsProfileCreatedFn,
 	getAnalyticsSummaryFn,
 	getAnalyticsUserStatsFn,
-	onVxpAwardSetForAnalytics,
 	trackEventsFn
 } from '#satellite/services/analytics.services.ts';
 import { getAuthIdentitiesFn } from '#satellite/services/auth-identity-export.services.ts';
@@ -1591,7 +1590,6 @@ const setDocCollections = [
 	Collection.REFERRALS,
 	Collection.LEAGUES,
 	Collection.USER_STATS,
-	Collection.VXP_AWARDS,
 	Collection.AFFILIATIONS
 ] as const;
 
@@ -1635,9 +1633,6 @@ export const onSetDoc = defineHook<OnSetDoc>({
 			[Collection.REFERRALS]: onReferralSetForVxpPayout,
 			[Collection.LEAGUES]: onLeagueSetForFounderVxpPayout,
 			[Collection.USER_STATS]: onUserStatsSetForLeagueStats,
-			// Server-side capture: every VXP payout (any award service) emits
-			// `vxp_awarded` (+ `streak_milestone`) on its pending→paid transition.
-			[Collection.VXP_AWARDS]: onVxpAwardSetForAnalytics,
 			// Server-side capture: a Worlds join (client `setDoc`) emits
 			// `affiliation_set` on row creation.
 			[Collection.AFFILIATIONS]: onAffiliationSetForAnalytics
