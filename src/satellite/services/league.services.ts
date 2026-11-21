@@ -40,7 +40,6 @@ import {
 	deleteDocStore,
 	encodeDocData,
 	getDocStore,
-	listDocsStore,
 	setDocStore
 } from '@junobuild/functions/sdk';
 
