@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isNullish } from '@dfinity/utils';
 	import { X } from '@lucide/svelte/icons';
 	import { tradeErrorMessage } from '#lib/canisters/clearing.errors.ts';
 	import SignInActions from '#lib/components/authn/SignInActions.svelte';
@@ -7,7 +8,7 @@
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { VXP_CALL_SIZE_LADDER } from '#lib/constants/vxp-economy.constants.ts';
 	import { playgroundVxpUnitMode } from '#lib/derived/playground.derived.ts';
-	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { authPrincipal, userSignedIn } from '#lib/derived/user.derived.ts';
 	import { vxpSpendable } from '#lib/derived/vxp-holdings.derived.ts';
 	import { getBalances } from '#lib/services/wallet.services.ts';
 	import { collateralsStore } from '#lib/stores/collaterals.store.ts';
@@ -98,7 +99,9 @@
 	);
 
 	const fetchBalance = async () => {
-		if (!$userSignedIn) {
+		const owner = $authPrincipal;
+
+		if (isNullish(owner)) {
 			return;
 		}
 
@@ -106,6 +109,7 @@
 			const { collateral, accountState } = await getBalances(market.balanceDomain);
 
 			collateralsStore.update((state) => ({
+				owner,
 				balances: collateral,
 				accountState,
 				assetsConfig: state?.assetsConfig ?? {}

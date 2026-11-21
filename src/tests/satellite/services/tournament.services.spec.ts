@@ -353,6 +353,17 @@ describe('resolveTournamentRoundFn', () => {
 		assert.equal(r1Match()?.toAcc, null);
 	});
 
+	it('does not let a member who joined after the draw lift the score, even inside the window', async () => {
+		settlements.push({ principal: memberA, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 30 });
+		settlements.push({ principal: latecomer, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 60 });
+		// The tournament doc was stored at the month start: the draw.
+		joinLeague({ leagueId: leagueB, member: latecomer, joinedAtMs: octoberStartMs + 1 });
+
+		await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
+
+		assert.equal(r1Match()?.winnerLeagueId, leagueA);
+	});
+
 	it('does not let a member who joined after the window lift the score', async () => {
 		settlements.push({ principal: memberA, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 30 });
 		settlements.push({ principal: latecomer, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 60 });

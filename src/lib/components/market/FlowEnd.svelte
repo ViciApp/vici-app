@@ -1,9 +1,12 @@
 <script lang="ts">
+	import { nonNullish } from '@dfinity/utils';
 	import { ChevronRight, Smartphone } from '@lucide/svelte/icons';
+	import { onMount } from 'svelte';
 	import FlameChar from '#lib/components/characters/FlameChar.svelte';
 	import OracleChar from '#lib/components/characters/OracleChar.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import CountUp from '#lib/components/ui/CountUp.svelte';
+	import { getMyReferralCode } from '#lib/services/referral.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
@@ -70,9 +73,10 @@
 				: 'flow.end.eyebrow_day'
 	);
 
-	// Headline pool: one line picked once on mount (frozen for the surface's
-	// lifetime). Overtime / comeback get their own framing; an on-fire day
-	// reads hotter than a quiet one.
+	// Headline pool: the random pick is drawn once on mount (stable for the
+	// surface's lifetime), while the pool follows the props. Overtime /
+	// comeback get their own framing; an on-fire day reads hotter than a
+	// quiet one.
 	const HEAD_POOLS = {
 		overtime: ['flow.end.head_overtime_1', 'flow.end.head_overtime_2', 'flow.end.head_overtime_3'],
 		comeback: ['flow.end.head_comeback_1', 'flow.end.head_comeback_2', 'flow.end.head_comeback_3'],
@@ -80,7 +84,9 @@
 		day: ['flow.end.head_day_1', 'flow.end.head_day_2', 'flow.end.head_day_3']
 	} as const satisfies Record<string, readonly MessageKey[]>;
 
-	const headKey: MessageKey = (() => {
+	const headSeed = Math.random();
+
+	const headKey = $derived.by((): MessageKey => {
 		const pool = overtime
 			? HEAD_POOLS.overtime
 			: comeback
@@ -89,8 +95,8 @@
 					? HEAD_POOLS.fire
 					: HEAD_POOLS.day;
 
-		return pool[Math.floor(Math.random() * pool.length)];
-	})();
+		return pool[Math.floor(headSeed * pool.length)];
+	});
 
 	const bodyKey = $derived<MessageKey>(
 		overtime ? 'flow.end.body_overtime' : comeback ? 'flow.end.body_comeback' : 'flow.end.body_day'
@@ -134,14 +140,16 @@
 	// blocked. `copiedMessageKey` is the per-action confirmation copy.
 	const shareOrCopy = async ({
 		text,
+		url,
 		copiedMessageKey
 	}: {
 		text: string;
+		url: string;
 		copiedMessageKey: MessageKey;
 	}) => {
 		if (navigator.share) {
 			try {
-				await navigator.share({ title: 'VICI', text, url: appOrigin() });
+				await navigator.share({ title: 'VICI', text, url });
 
 				return;
 			} catch (e: unknown) {
@@ -156,7 +164,7 @@
 			}
 		}
 
-		const copied = await writeToClipboard(`${text} ${appOrigin()}`);
+		const copied = await writeToClipboard(`${text} ${url}`);
 
 		notificationsStore.add({
 			title: t({ locale: $localeStore, key: 'flow.end.copy_toast_title' }),
@@ -177,12 +185,32 @@
 				key: pending === 1 ? 'flow.end.share_text_one' : 'flow.end.share_text',
 				params: { count: pending }
 			}),
+			url: appOrigin(),
 			copiedMessageKey: 'flow.end.share_copied'
 		});
+
+	// The sharer's referral code, resolved on mount so the invite link is
+	// ready inside the tap: `navigator.share()` must run in the user gesture,
+	// and an `await` first makes iOS Safari drop it. Until (or unless) the
+	// code resolves, the invite falls back to the bare app origin.
+	let inviteCode = $state<string | undefined>();
+
+	onMount(async () => {
+		try {
+			inviteCode = await getMyReferralCode();
+		} catch {
+			inviteCode = undefined;
+		}
+	});
+
+	const inviteUrl = $derived(
+		nonNullish(inviteCode) ? `${appOrigin()}/i/${inviteCode}` : appOrigin()
+	);
 
 	const inviteFriend = () =>
 		shareOrCopy({
 			text: t({ locale: $localeStore, key: 'flow.invite.share_text' }),
+			url: inviteUrl,
 			copiedMessageKey: 'flow.end.invite_copied'
 		});
 </script>

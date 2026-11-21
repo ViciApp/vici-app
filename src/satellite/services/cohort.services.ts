@@ -11,7 +11,8 @@ import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import {
 	isLeaguePubliclyListed,
 	isLeagueRecommendableToFriends,
-	type LeagueDoc
+	type LeagueDoc,
+	type LookupLeagueRefusalReason
 } from '#lib/types/league.ts';
 import type { Relation } from '#lib/types/relation.ts';
 import type { UserMonthlyStatsDoc } from '#lib/types/user-monthly-stats.ts';
@@ -20,10 +21,8 @@ import {
 	monthAnchorStartMs,
 	monthEndMs
 } from '#lib/utils/month-anchor.utils.ts';
-import {
-	leagueIdForInviteCode,
-	leagueInviteCode
-} from '#satellite/services/league-invite.services.ts';
+import { resolveInviteCode } from '#satellite/services/league-invite-cap.services.ts';
+import { leagueInviteCode } from '#satellite/services/league-invite.services.ts';
 import { settledTotalsByPrincipal } from '#satellite/services/settled-history.services.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -412,38 +411,57 @@ export const getMyBattleStatsFn = (): MyBattleStats => {
 	return { boutsWon };
 };
 
+export interface LookupLeagueByInviteResult {
+	/** The league the code opens, without the code. */
+	league?: LeagueDoc;
+	reason?: LookupLeagueRefusalReason;
+}
+
 /**
- * Look up a league by its 6-char invite code: the read backing the
- * join-by-code preview. Resolves the code through `league_invites` (see
+ * Look up a league by its invite code: the read backing the join-by-code
+ * preview. Resolves the code through `league_invites` (see
  * `league-invite.services.ts`) and returns the league without the code.
+ * Signed-in callers only, each held to the hourly cap on missed codes
+ * (`resolveInviteCode`), so it is an update: a query could not record a
+ * miss.
  *
- * Returns `undefined` when no league carries the code. Callers
+ * Returns no league when no league carries the code. Callers
  * should treat that as "invalid code" UX, not an error.
  */
 export const lookupLeagueByInviteFn = ({
 	inviteCode
 }: {
 	inviteCode: string;
-}): LeagueDoc | undefined => {
-	const leagueId = leagueIdForInviteCode(inviteCode);
+}): LookupLeagueByInviteResult => {
+	const caller = msgCaller();
+
+	if (caller.isAnonymous()) {
+		throw new Error('Sign in to look up a league invite.');
+	}
+
+	const { leagueId, reason } = resolveInviteCode({ callerText: caller.toText(), inviteCode });
+
+	if (nonNullish(reason)) {
+		return { reason };
+	}
 
 	if (isNullish(leagueId)) {
-		return;
+		return {};
 	}
 
 	const leagueDoc = getDocStore({
 		collection: Collection.LEAGUES,
 		key: leagueId,
-		caller: msgCaller().toUint8Array()
+		caller: caller.toUint8Array()
 	});
 
 	if (isNullish(leagueDoc)) {
-		return;
+		return {};
 	}
 
 	const { inviteCode: _legacyCode, ...league } = decodeDocData<LeagueDoc>(leagueDoc.data);
 
-	return league;
+	return { league };
 };
 
 /**

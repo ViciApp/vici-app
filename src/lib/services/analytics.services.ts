@@ -1,8 +1,9 @@
 import { functions } from '#declarations/satellite/satellite.api.ts';
+import { ANALYTICS_MAX_EVENTS_PER_BATCH } from '#lib/constants/analytics.constants.ts';
 import { theme } from '#lib/stores/theme.store.ts';
 import type {
-	AnalyticsEventName,
 	AnalyticsEventProps,
+	ClientAnalyticsEventName,
 	TrackEventInput
 } from '#lib/types/analytics-event.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
@@ -28,7 +29,6 @@ import { get } from 'svelte/store';
  */
 
 const FLUSH_INTERVAL_MS = 5_000;
-const MAX_BUFFER = 20;
 const SESSION_STORAGE_KEY = 'vici.analytics.session';
 const SESSION_STARTED_KEY = 'vici.analytics.session.started';
 
@@ -105,7 +105,7 @@ export const flushEvents = async (): Promise<void> => {
  * SSR, never throws, never blocks. The event is `{ name, ...dimensions }`,
  * e.g. `track({ name: 'flow_swipe', source: 'flow', marketId })`.
  */
-export const track = (event: { name: AnalyticsEventName } & AnalyticsEventProps): void => {
+export const track = (event: { name: ClientAnalyticsEventName } & AnalyticsEventProps): void => {
 	if (!browser) {
 		return;
 	}
@@ -134,7 +134,7 @@ export const track = (event: { name: AnalyticsEventName } & AnalyticsEventProps)
 		...props
 	});
 
-	if (buffer.length >= MAX_BUFFER) {
+	if (buffer.length >= ANALYTICS_MAX_EVENTS_PER_BATCH) {
 		void flushEvents();
 	} else {
 		scheduleFlush();

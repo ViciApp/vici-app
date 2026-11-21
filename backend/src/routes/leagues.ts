@@ -10,6 +10,8 @@ import { deleteLeagueImage, locateLeagueImage, uploadLeagueImage } from '../leag
 import {
 	createLeague,
 	deleteLeague,
+	LEAGUE_INVITE_CODE_LENGTH,
+	LEAGUE_LEGACY_INVITE_CODE_LENGTH,
 	LeagueError,
 	listChallengeableLeagues,
 	listFriendRecommendedLeagues,
@@ -29,7 +31,7 @@ import { settleFounderAwards } from '../vxp/founder';
 
 const PRIVACY_SCHEMA = t.Union([t.Literal('open'), t.Literal('private')]);
 
-// An invite code is six guessable characters, so the lookup and the join
+// An invite code is a short, guessable string, so the lookup and the join
 // share one budget, keyed by account rather than IP: students on one campus
 // network share an address, and the guessing being bounded is per account.
 const LEAGUE_INVITE_LIMIT_PER_HOUR = 30;
@@ -236,7 +238,14 @@ export const leaguesRoutes = new Elysia({ prefix: '/api/v1/leagues' })
 				throw err;
 			}
 		},
-		{ body: t.Object({ inviteCode: t.String({ minLength: 6, maxLength: 6 }) }) }
+		{
+			body: t.Object({
+				inviteCode: t.String({
+					minLength: LEAGUE_LEGACY_INVITE_CODE_LENGTH,
+					maxLength: LEAGUE_INVITE_CODE_LENGTH
+				})
+			})
+		}
 	)
 	.put(
 		'/:leagueId/members/:memberUserId',

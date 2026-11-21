@@ -2,9 +2,13 @@ import type { ClearingDid, RegistryDid } from '#declarations';
 import { RESOLVED_RESULTS_RETENTION_MS, ZERO } from '#lib/constants/app.constants.ts';
 import { CLEARING_CANISTER_ID, REGISTRY_CANISTER_ID } from '#lib/constants/canisters.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { ActivityType } from '#lib/enums/social.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
+import type { Relation } from '#lib/types/relation.ts';
 import type { Activity, ResolvedResult } from '#lib/types/social.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
+import { isPubliclyHidden } from '#satellite/services/profile.services.ts';
 import { candidMethod } from '#satellite/utils/candid.utils.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
@@ -252,18 +256,61 @@ export const onActivitySetForResolvedResults = async (ctx: OnSetDocContext): Pro
 };
 
 /**
- * Friend-scoped bulk read for the results digest. Given a set of friend principals, returns their
- * resolved-result rows over the active retention window in ONE bounded `listDocsStore` filtered to
- * the friend owner-prefixes, never one call per friend. Keys are `${owner}#${marketId}`, so a row
- * belongs to a friend when its key prefix (before the first `#`) is in the set; the key matcher
- * anchors the scan to those prefixes server-side.
+ * Whether `owner` is an active friend of `callerText` whose profile is publicly visible (neither
+ * soft-deleted nor hibernated). Relations and profiles are public reads, so the caller reads them.
+ */
+const isVisibleFriend = ({
+	caller,
+	callerText,
+	owner
+}: {
+	caller: Uint8Array;
+	callerText: string;
+	owner: string;
+}): boolean => {
+	const relation = getDocStore({
+		collection: Collection.RELATIONS,
+		key: [callerText, owner].sort().join('#'),
+		caller
+	});
+
+	if (isNullish(relation)) {
+		return false;
+	}
+
+	const { category, state } = decodeDocData<Relation>(relation.data);
+
+	if (category !== RelationCategory.FRIEND || state !== RelationState.ACTIVE) {
+		return false;
+	}
+
+	const profile = getDocStore({ collection: Collection.PROFILES, key: owner, caller });
+
+	return nonNullish(profile) && !isPubliclyHidden(decodeDocData<UserProfile>(profile.data));
+};
+
+/**
+ * Friend-scoped bulk read for the results digest. Of the requested principals it answers the
+ * caller's own rows and those of the caller's active friends with a visible profile; any other
+ * requested principal reads as having no results. `resolved_results` is controllers-only, so this
+ * is the one read of it a client has. The rows come from ONE bounded `listDocsStore` over the
+ * active retention window filtered to the readable owner-prefixes, never one call per friend.
+ * Keys are `${owner}#${marketId}`, so a row belongs to an owner when its key prefix (before the
+ * first `#`) is in the set; the key matcher anchors the scan to those prefixes server-side.
  */
 export const listFriendResolvedResultsFn = ({
 	friends
 }: {
 	friends: string[];
 }): ResolvedResult[] => {
-	const friendSet = new Set(friends);
+	const caller = msgCaller();
+	const callerText = caller.toText();
+	const callerBytes = caller.toUint8Array();
+	const friendSet = new Set(
+		[...new Set(friends)].filter(
+			(owner) => owner === callerText || isVisibleFriend({ caller: callerBytes, callerText, owner })
+		)
+	);
 
 	if (friendSet.size === 0) {
 		return [];
@@ -276,12 +323,9 @@ export const listFriendResolvedResultsFn = ({
 	// authoritative filter; the matcher just keeps the read off unrelated rows.
 	const keyMatcher = `^(${[...friendSet].map((owner) => `${escapeRegex(owner)}#`).join('|')})`;
 
-	// Read as the actual caller (not as a controller) so the `resolved_results`
-	// datastore `read` rule stays the source of truth. The collection is public
-	// read, so the caller can read friends' rows over the owner-prefix scan.
 	const { items } = listDocsStore({
 		collection: Collection.RESOLVED_RESULTS,
-		caller: msgCaller(),
+		caller: controllerCaller('resolved-results read'),
 		params: { matcher: { key: keyMatcher } }
 	});
 

@@ -54,4 +54,17 @@ test.describe('dash', () => {
 			await expect(app.appMain.getByText(title)).toBeVisible();
 		}
 	});
+
+	// web2 has no VXP ledger feed, so the history cannot rebuild running
+	// balances: the page must say so rather than list rows with wrong ones.
+	test('shows the transaction history as unavailable', async ({ page, backend }) => {
+		const app = new Web2AppPage(page);
+
+		await app.signUp({ email: uniqueEmail('txh'), handle: uniqueHandle(), backend });
+
+		await page.goto('/dash/transactions');
+
+		await expect(app.appMain.getByText(enMessages['transactions.unavailable'])).toBeVisible();
+		await expect(app.appMain.getByText(enMessages['transactions.empty'])).toHaveCount(0);
+	});
 });

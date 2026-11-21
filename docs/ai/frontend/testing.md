@@ -24,7 +24,11 @@
   only modules with no Svelte / SvelteKit / env dependencies, and keep the
   mirror-`src/` layout below (`eslint.config.js` lifts
   `vitest/no-import-node-test` for `src/tests/**` only). CI runs it in the
-  `test` job.
+  `test` job. One exception: a `*.svelte.ts` class whose only Svelte
+  dependency is the `$state` rune can be tested by defining a plain
+  `$state` stand-in on `globalThis` before importing it dynamically (see
+  `src/tests/lib/stores/wallet-history-pager.spec.ts`); it covers the
+  logic, not reactivity.
 - **E2E (Playwright) runs in CI, twice.** `e2e-web2.yml` builds the web2
   bundle and runs it against the real API on every PR and push to `main`
   (`npm run e2e:web2`, see
