@@ -5,12 +5,13 @@ import {
 	settleSeries as settleSeriesApi
 } from '#lib/api/clearing.api.ts';
 import { PRICE_DECIMALS, VICI_ORACLE_V1, ZERO } from '#lib/constants/app.constants.ts';
+import { Permission } from '#lib/enums/permission.ts';
 import { ActivityType } from '#lib/enums/social.ts';
-import { UserRole } from '#lib/enums/user.ts';
 import { logActivity } from '#lib/services/activity.services.ts';
 import { getIdentityOrAnonymous, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import { getProfile } from '#lib/services/profile.services.ts';
 import type { Outcome } from '#lib/types/market.ts';
+import { roleHasPermission, userRoleOf } from '#lib/utils/authz.utils.ts';
 import {
 	binaryPayoffLabel,
 	settlementInputOutcome,
@@ -193,7 +194,7 @@ export const loadSettlementOutcomes = async ({
 };
 
 /**
- * Admin/resolver-only: settles a series on clearing by outcome id or numeric price and logs activity.
+ * Settles a series on clearing by outcome id or numeric price and logs activity.
  *
  * **`settlementPrice` contract:** must be a bigint already scaled to
  * {@link PRICE_DECIMALS}. E.g. $1.00 ⇒ `100n`, $0.00 ⇒ `0n`. Callers that
@@ -223,10 +224,19 @@ export const settleMarket = async ({
 }): Promise<void> => {
 	const identity = await safeGetIdentityOnce();
 
-	const profileDoc = await getProfile(identity.getPrincipal().toText());
+	const principal = identity.getPrincipal().toText();
 
-	if (profileDoc.data.role !== UserRole.ADMIN && profileDoc.data.role !== UserRole.SOLVER) {
-		throw new Error('Unauthorized: only admins or solvers can settle markets');
+	const {
+		data: { role: profileRole }
+	} = await getProfile(principal);
+
+	if (
+		!roleHasPermission({
+			role: userRoleOf({ principal, profileRole }),
+			permission: Permission.RESOLVE_MARKET
+		})
+	) {
+		throw new Error('Unauthorized: only controllers, admins or solvers can settle markets');
 	}
 
 	const priceValue = settlementPrice ?? ZERO;
@@ -256,7 +266,7 @@ export const settleMarket = async ({
 
 	await logActivity({
 		type: ActivityType.SETTLEMENT,
-		user: identity.getPrincipal().toText(),
+		user: principal,
 		marketId: seriesId,
 		title: `Market Resolved: ${outcome ?? 'settled'}`,
 		details: JSON.stringify({

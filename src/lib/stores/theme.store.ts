@@ -9,9 +9,9 @@ export const THEMES: readonly Theme[] = ['dark', 'light', 'peach'] as const;
 
 /**
  * Theme-label i18n keys consumed by `AppearancePicker` (settings tile +
- * dropdown dots) and the `WelcomeNav` theme control. Centralised so the
- * pickers share the same labelling without each carrying its own literal
- * map.
+ * dropdown dots), the Settings appearance row and the `WelcomeNav` theme
+ * control. Centralised so every surface shares the same labelling without
+ * each carrying its own literal map.
  */
 export type ThemeLabelKey = 'ui.theme.dark' | 'ui.theme.light' | 'ui.theme.peach';
 

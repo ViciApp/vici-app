@@ -21,6 +21,7 @@
 	import type { Market, MarketId } from '#lib/types/market.ts';
 	import { formatPrice, formatQuantity } from '#lib/utils/format.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 
 	interface Props {
@@ -58,10 +59,12 @@
 		return tagColor(micro ?? '');
 	};
 
-	const categoryLabel = (marketId: MarketId): string | null => {
+	const rowCategoryLabel = (marketId: MarketId): string | null => {
 		const micro = primaryMicro($marketTags[marketId] ?? []);
 
-		return nonNullish(micro) ? micro.toUpperCase() : null;
+		return nonNullish(micro)
+			? categoryLabel({ category: micro, variant: 'short', locale: $localeStore })
+			: null;
 	};
 
 	const handleCancel = async ({
@@ -111,7 +114,7 @@
 			{@const marketId = order.series_id as MarketId}
 			{@const isBuy = isBuyOrder(order)}
 			{@const sideKey = isBuy ? 'yes' : 'no'}
-			{@const catLabel = categoryLabel(marketId)}
+			{@const catLabel = rowCategoryLabel(marketId)}
 			{@const catAccent = categoryAccent(marketId)}
 
 			<li>

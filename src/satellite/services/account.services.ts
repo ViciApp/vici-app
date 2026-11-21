@@ -18,6 +18,11 @@ import {
 	type ServerEventInput
 } from '#satellite/services/analytics.services.ts';
 import { controllerCaller, isAdmin } from '#satellite/services/authz.services.ts';
+import {
+	type KeysetWalk,
+	type KeysetWalkArgs,
+	walkKeysetPage
+} from '#satellite/services/keyset-walk.services.ts';
 import { deleteLeagueInvite } from '#satellite/services/league-invite.services.ts';
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
@@ -158,19 +163,16 @@ export type RecoverMyAccountResult =
 	{ ok: true; recovered: boolean } | { ok: false; reason: 'expired' };
 
 /**
- * Result of {@link sweepExpiredDeletionsFn}: count of accounts purged.
- *
- * Purge failures are NOT folded into this count (a failed purge does
- * NOT increment `swept`); they're logged via `logError` with the
- * stable `sweep_expired_deletions_purge_failed` tag plus a
- * `sweep_expired_deletions_under_purged` summary, so the external
- * trigger can detect an under-purge from the Console. We deliberately
- * do not surface a `failed` count on the wire: that would widen the
- * `sweepExpiredDeletions` Candid result and force a binding regen for
- * a value operators already get from the logs.
+ * Result of {@link sweepExpiredDeletionsFn}: how many accounts this call
+ * purged (`swept`) and how many purges failed (`failed`, each logged with
+ * the stable `sweep_expired_deletions_purge_failed` tag), plus where the
+ * walk over `PROFILES` left off. A failed account keeps its profile and
+ * the walk moves past it, so it cannot hold up the others; the next walk
+ * from the first doc tries it again.
  */
-export interface SweepExpiredDeletionsResult {
+export interface SweepExpiredDeletionsResult extends KeysetWalk {
 	swept: number;
+	failed: number;
 }
 
 /**
@@ -220,10 +222,11 @@ type MutateOwnProfileResult =
 
 /**
  * Shared read-modify-write envelope for the caller's own `PROFILES` doc.
- * Reads the doc via `getDocStore` (PROFILES is keyed by principal text,
- * one doc per user, and is user-owned, so the write is authorised by the
- * REAL caller, never an admin key), null-guards a missing doc, decodes it,
- * then runs `transform`:
+ * Reads the doc via `getDocStore` as the real caller (PROFILES is keyed by
+ * principal text, one doc per user), null-guards a missing doc, decodes it,
+ * then runs `transform`. The write signs as a controller: the account state
+ * these transforms move (`deletedAtMs`, `hibernatedAtMs`) is one only the
+ * satellite may change (`assertAccountStateUnchanged`).
  *
  *  - `transform` returns a `UserProfile` → persist it with a version-locked
  *    `setDocStore` (the current `version` is threaded back so a concurrent
@@ -265,7 +268,7 @@ const mutateOwnProfile = ({
 	setDocStore({
 		collection: Collection.PROFILES,
 		key: callerText,
-		caller: callerBytes,
+		caller: controllerCaller('account state'),
 		doc: {
 			data: encodeDocData<UserProfile>(next),
 			version: profileDoc.version
@@ -468,13 +471,14 @@ const deleteMatchingDocs = ({
 
 /**
  * Drop the caller's resolved results (`resolved_results` is keyed
- * `${principal}#${marketId}`).
+ * `${principal}#${marketId}`), listed as `writer`: the collection is
+ * controllers-only.
  */
-const deleteOwnResolvedResults = ({ callerText, callerBytes, writer }: CascadeStep): number =>
+const deleteOwnResolvedResults = ({ callerText, writer }: CascadeStep): number =>
 	deleteMatchingDocs({
 		collection: Collection.RESOLVED_RESULTS,
 		keyPattern: `^${escapeRegex(callerText)}#`,
-		listAs: callerBytes,
+		listAs: writer,
 		writer
 	}).length;
 
@@ -580,12 +584,13 @@ const deleteOwnRelations = ({ callerText, callerBytes, writer }: CascadeStep): n
 /**
  * Drop the caller's referral code (`referral_codes` is reverse-
  * indexed: key is the code, value is the owner). One row max per
- * user; iterate to find theirs.
+ * user; iterate to find theirs, listed as `writer` because the
+ * collection is controllers-only.
  */
-const deleteOwnReferralCode = ({ callerText, callerBytes, writer }: CascadeStep): number => {
+const deleteOwnReferralCode = ({ callerText, writer }: CascadeStep): number => {
 	const { items } = listDocsStore({
 		collection: Collection.REFERRAL_CODES,
-		caller: callerBytes,
+		caller: writer,
 		params: {}
 	});
 
@@ -858,7 +863,7 @@ const resolveOwnedLeague = ({
  * {@link recordAccountAwardMarkers}),
  * calibration attempts, user stats and monthly stats, resolved results, the
  * likes it gave, school-email submissions, referral code + redemption record,
- * affiliations, relations, league memberships. Owned leagues are then either deleted (no other members
+ * missed league invite codes, affiliations, relations, league memberships. Owned leagues are then either deleted (no other members
  * left) or transferred to a surviving member: see
  * {@link disbandOrTransferOwnedLeagues}; self-joiners during the recovery
  * window are never orphaned. Shared audit rows (activities, battles,
@@ -915,6 +920,12 @@ export const hardDeleteAccountFn = ({
 	});
 	docsDeleted += deleteOwnReferralCode(step);
 	docsDeleted += deleteOwnReferralRedemption(step);
+	// Controllers-scoped: listed as the controller too.
+	docsDeleted += deletePrefixedDocs({
+		...step,
+		callerBytes: step.writer,
+		collection: Collection.LEAGUE_INVITE_ATTEMPTS
+	});
 	docsDeleted += deleteOwnAffiliations({ ...step, collection: Collection.AFFILIATIONS });
 	docsDeleted += deleteOwnRelations(step);
 	docsDeleted += deleteOwnLeagueMemberships(step);
@@ -1331,68 +1342,80 @@ export const resumeMyAccountFn = (): ResumeMyAccountResult => {
 };
 
 /**
- * Admin sweep that hard-deletes every soft-deleted account whose
- * recovery window has elapsed (Delete account v2). Scans `PROFILES`
- * for docs with `deletedAtMs` older than {@link
- * ACCOUNT_RECOVERY_WINDOW_MS} and runs {@link hardDeleteAccountFn} for
- * each. Returns `{ swept }`: the number of accounts purged.
+ * How many purges one `sweepExpiredDeletions` call attempts. A purge runs
+ * a dozen collection scans and deletes every doc the account owns, each
+ * delete a serverless write costing billions of instructions, so a call
+ * purges a single account and the sweep goes in rounds (see the
+ * bulk-rewrite budget note in docs/ai/satellite/patterns.md).
+ */
+const SWEEP_EXPIRED_DELETIONS_BATCH = 1;
+
+/**
+ * Admin sweep that hard-deletes soft-deleted accounts whose recovery
+ * window has elapsed (Delete account v2). One call reads one keyset page
+ * of `PROFILES` after `afterKey` (at most `limit` docs, see
+ * {@link walkKeysetPage}) and runs {@link hardDeleteAccountFn} for at most
+ * {@link SWEEP_EXPIRED_DELETIONS_BATCH} profile with `deletedAtMs` older
+ * than {@link ACCOUNT_RECOVERY_WINDOW_MS}. The operator passes the
+ * returned `nextAfterKey` to the next call until `done`.
  *
  * **Admin-only**: refuses non-admins via the shared `isAdmin` check.
  *
- * Juno exposes no scheduler primitive (the same reason the worlds
+ * Juno has no on-chain scheduler for this satellite (the Worlds monthly
  * podium payout is modelled as a user-claim: see
  * `vxp-worlds-podium.services.ts`), so this is triggered externally:
  * an operator/cron calls it. Idempotent: already-purged accounts no
- * longer carry a profile doc, so a re-run only sweeps newly-expired
- * accounts.
+ * longer carry a profile doc, so a new walk only sweeps the accounts
+ * still expired.
  *
- * Returns `{ swept }`. A malformed/undecodable profile row is skipped
- * silently (the decode is the only step in the narrow try/catch). The
- * purge itself runs OUTSIDE that catch so a `Principal.fromText` /
- * cascade failure can't be mistaken for a malformed row: each failure
- * is logged via `logError` (and a summary line when any fail) so the
- * external trigger can detect an under-purge instead of seeing a
- * falsely-clean `swept`. A failed purge does NOT increment `swept`.
+ * A malformed/undecodable profile row is skipped silently (the decode is
+ * the only step in the narrow try/catch). The purge itself runs OUTSIDE
+ * that catch so a `Principal.fromText` / cascade failure can't be
+ * mistaken for a malformed row: it is logged via `logError` and counted
+ * in `failed`, never in `swept`.
  */
-export const sweepExpiredDeletionsFn = (): SweepExpiredDeletionsResult => {
+export const sweepExpiredDeletionsFn = ({
+	afterKey,
+	limit
+}: KeysetWalkArgs = {}): SweepExpiredDeletionsResult => {
 	const caller = msgCaller();
 
 	if (!isAdmin({ caller })) {
 		throw new Error('sweepExpiredDeletions: caller is not an admin.');
 	}
 
-	const callerBytes = caller.toUint8Array();
 	const nowMs = timeMs();
-
-	const { items } = listDocsStore({
-		collection: Collection.PROFILES,
-		caller: callerBytes,
-		params: {}
-	});
 
 	let swept = 0;
 	let failed = 0;
 
-	for (const [docKey, item] of items) {
-		const outcome = isExpiredDeletion({ item, nowMs }) ? purgeSweptAccount({ docKey }) : undefined;
+	const walk = walkKeysetPage({
+		collection: Collection.PROFILES,
+		caller: caller.toUint8Array(),
+		afterKey,
+		limit,
+		visit: ([docKey, item]) => {
+			if (!isExpiredDeletion({ item, nowMs })) {
+				return 'kept';
+			}
 
-		if (outcome === 'swept') {
-			swept += 1;
-		} else if (outcome === 'failed') {
+			if (swept + failed >= SWEEP_EXPIRED_DELETIONS_BATCH) {
+				return 'stop';
+			}
+
+			if (purgeSweptAccount({ docKey }) === 'swept') {
+				swept += 1;
+
+				return 'removed';
+			}
+
 			failed += 1;
+
+			return 'kept';
 		}
-	}
+	});
 
-	if (failed > 0) {
-		// Summary so the external trigger can detect an under-purge at a
-		// glance without scanning every per-row failure line.
-		logError({
-			message: 'sweep_expired_deletions_under_purged',
-			detail: { swept, failed }
-		});
-	}
-
-	return { swept };
+	return { swept, failed, ...walk };
 };
 
 /**

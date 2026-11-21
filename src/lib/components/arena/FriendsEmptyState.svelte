@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { Plus, Share2 } from '@lucide/svelte/icons';
+	import { REFERRAL_VXP_BONUS_BASE_UNITS } from '#lib/constants/referral.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	interface Props {
 		/** Open the add-friend search sheet. */
@@ -21,7 +23,11 @@
 		{t({ locale: $localeStore, key: 'arena.friends.empty.quote' })}
 	</p>
 	<p class="friends-empty-sub">
-		{t({ locale: $localeStore, key: 'arena.friends.empty.sub' })}
+		{t({
+			locale: $localeStore,
+			key: 'arena.friends.empty.sub',
+			params: { amount: formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }) }
+		})}
 	</p>
 	<div class="friends-empty-actions">
 		<button class="friends-empty-primary" onclick={onAdd} type="button">

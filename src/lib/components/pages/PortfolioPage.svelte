@@ -32,6 +32,7 @@
 	import { displayAccuracyPct } from '#lib/utils/accuracy.utils.ts';
 	import { decimalFixedValueToNumber, relativeAgoBucketFromMs } from '#lib/utils/format.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import {
 		formatPositionPnLWithOptionalUnit,
@@ -191,10 +192,12 @@
 		return market?.outcomes?.find((o) => o.id === pos.outcomeId)?.title ?? pos.outcomeId;
 	};
 
-	const categoryLabel = (marketId: string): string | null => {
+	const rowCategoryLabel = (marketId: string): string | null => {
 		const micro = primaryMicro($marketTags[marketId] ?? []);
 
-		return nonNullish(micro) ? micro.toUpperCase() : null;
+		return nonNullish(micro)
+			? categoryLabel({ category: micro, variant: 'short', locale: $localeStore })
+			: null;
 	};
 
 	/**
@@ -374,7 +377,7 @@
 						{@const current = positionSideProb(pos)}
 						{@const move = positionMoveDisplay(pos)}
 						{@const probabilityVariant = market?.priceLoaded === true ? 'empty' : 'loading'}
-						{@const catLabel = categoryLabel(pos.marketId)}
+						{@const catLabel = rowCategoryLabel(pos.marketId)}
 						{@const catAccent = categoryAccent(pos.marketId)}
 
 						<li>

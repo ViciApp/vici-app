@@ -6,6 +6,7 @@
 import { nonNullish } from '@dfinity/utils';
 import { env } from '../env';
 import { logger } from './logger';
+import { MINUTE_IN_MS } from './time';
 
 export interface EmailMessage {
 	to: string;
@@ -19,8 +20,9 @@ export type EmailTransport = (message: EmailMessage) => Promise<void>;
 let transportOverride: EmailTransport | undefined;
 
 /** Test seam: deliver every message through `transport` instead of Resend or
- * the console; returns a restore function. Only the end-to-end server
- * (backend/e2e/) installs one, to read sign-in codes back. */
+ * the console; returns a restore function. The end-to-end server
+ * (backend/e2e/) installs one to read sign-in codes back, and tests to read
+ * the copy a flow sends. */
 export const setEmailTransport = (transport: EmailTransport): (() => void) => {
 	const previous = transportOverride;
 
@@ -64,14 +66,30 @@ export const sendEmail = async (message: EmailMessage): Promise<void> => {
 	}
 };
 
-export const sendOtpEmail = async (email: string, code: string): Promise<void> => {
+/** The closing line of a one-time-code email, built from the lifetime the
+ * server enforces so the copy cannot drift from it. A lifetime that is not a
+ * whole number of minutes is refused rather than rounded, since a rounded
+ * figure would promise the user a different lifetime than the one enforced. */
+export const codeExpiryNotice = (ttlMs: number): string => {
+	const minutes = ttlMs / MINUTE_IN_MS;
+
+	if (!Number.isInteger(minutes) || minutes <= 0) {
+		throw new Error(`Code lifetime must be a positive whole number of minutes, got ${ttlMs} ms`);
+	}
+
+	return `It expires in ${minutes} minutes. If you didn't request it, ignore this email.`;
+};
+
+export const sendOtpEmail = async (email: string, code: string, ttlMs: number): Promise<void> => {
+	const expiry = codeExpiryNotice(ttlMs);
+
 	await sendEmail({
 		to: email,
 		subject: 'Your VICI sign-in code',
-		text: `Your VICI sign-in code is ${code}. It expires in 10 minutes. If you didn't request it, ignore this email.`,
+		text: `Your VICI sign-in code is ${code}. ${expiry}`,
 		html:
 			`<p>Your VICI sign-in code is:</p>` +
 			`<p style="font-size:24px;font-weight:700;letter-spacing:4px">${code}</p>` +
-			`<p style="color:#888">It expires in 10 minutes. If you didn't request it, ignore this email.</p>`
+			`<p style="color:#888">${expiry}</p>`
 	});
 };

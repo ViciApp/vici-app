@@ -10,6 +10,7 @@
 // on-chain history follows the user to this stack without a manual claim.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
 import { query, tx, type TxQuery } from '../db/client';
 import { userIcPrincipalText } from '../lib/keys';
 import { adoptOnFirstLogin, lockLoginEmails } from './adoption';
@@ -214,4 +215,15 @@ export const settlementPrincipalsByUser = async (
 	}
 
 	return principals;
+};
+
+/** A stored principal text as a principal, or nothing when it does not parse:
+ * nothing can settle under it, and one unreadable row must not fail a read
+ * that spans every account (the tournament draw, the global leaderboard). */
+export const parsedPrincipal = (text: string): Principal | undefined => {
+	try {
+		return Principal.fromText(text);
+	} catch {
+		// Left out of the read.
+	}
 };

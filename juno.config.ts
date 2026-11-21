@@ -33,6 +33,7 @@ enum JunoDatastoreCollection {
 	LEAGUES = 'leagues',
 	LEAGUE_MEMBERS = 'league_members',
 	LEAGUE_INVITES = 'league_invites',
+	LEAGUE_INVITE_ATTEMPTS = 'league_invite_attempts',
 	BATTLES = 'battles',
 	AFFILIATIONS = 'affiliations',
 	AFFILIATION_STATS = 'affiliation_stats',
@@ -46,7 +47,8 @@ enum JunoDatastoreCollection {
 	SCHOOLS = 'schools',
 	APP_CONFIG = 'app_config',
 	EVENTS = 'events',
-	EVENT_ROLLUPS = 'event_rollups'
+	EVENT_ROLLUPS = 'event_rollups',
+	LEADERBOARD_RANKING = 'leaderboard_ranking'
 }
 
 /**
@@ -218,15 +220,17 @@ export default defineConfig(({ mode }) => ({
 					write: 'controllers'
 				},
 				// Per-participant resolved-result rows for the friend-readable
-				// results feed. Public read (the friend-scoped digest reads
-				// them); controllers write so only the satellite resolution hook
-				// (writing as admin, derived from the clearing settlement plan)
-				// can record a result; a client can't forge a win. Rows past the
-				// retention horizon are pruned by the controllers-only cleanup.
+				// results feed. Controllers read: a client reads them only through
+				// `listFriendResolvedResults`, which answers the caller's own rows
+				// and their active, visible friends'. Controllers write so only the
+				// satellite resolution hook (writing as admin, derived from the
+				// clearing settlement plan) can record a result; a client can't
+				// forge a win. Rows past the retention horizon are pruned by the
+				// controllers-only cleanup.
 				{
 					collection: JunoDatastoreCollection.RESOLVED_RESULTS,
 					memory: 'stable',
-					read: 'public',
+					read: 'controllers',
 					write: 'controllers'
 				},
 				{
@@ -262,11 +266,16 @@ export default defineConfig(({ mode }) => ({
 					read: 'controllers',
 					write: 'controllers'
 				},
+				// Each user's referral code, keyed by the code. Controllers-only:
+				// the satellite assigns a code when a profile is created and
+				// resolves one through `lookupReferralCode`, `getMyReferralCode`,
+				// the redeem and the friendship claim, so no client lists the
+				// codes or reads who owns them.
 				{
 					collection: JunoDatastoreCollection.REFERRAL_CODES,
 					memory: 'stable',
-					read: 'public',
-					write: 'public'
+					read: 'controllers',
+					write: 'controllers'
 				},
 				{
 					collection: JunoDatastoreCollection.REFERRALS,
@@ -292,6 +301,17 @@ export default defineConfig(({ mode }) => ({
 				// the only readers and writers.
 				{
 					collection: JunoDatastoreCollection.LEAGUE_INVITES,
+					memory: 'stable',
+					read: 'controllers',
+					write: 'controllers'
+				},
+				// The invite codes each account looked up or joined with in the
+				// last hour that opened no league, one doc per account keyed by
+				// the principal. Controllers-only: `lookupLeagueByInvite` and
+				// `joinLeagueByInvite` read it to refuse an account past its
+				// hourly cap and write each miss; the account purge drops it.
+				{
+					collection: JunoDatastoreCollection.LEAGUE_INVITE_ATTEMPTS,
 					memory: 'stable',
 					read: 'controllers',
 					write: 'controllers'
@@ -407,6 +427,15 @@ export default defineConfig(({ mode }) => ({
 				// reads these so the cockpit never scans the raw event log.
 				{
 					collection: JunoDatastoreCollection.EVENT_ROLLUPS,
+					memory: 'stable',
+					read: 'controllers',
+					write: 'controllers'
+				},
+				// The global ranking computed from settled history by
+				// `refreshLeaderboardRanking`. Controllers-only: the satellite
+				// writes it and its leaderboard, rank and rival queries read it.
+				{
+					collection: JunoDatastoreCollection.LEADERBOARD_RANKING,
 					memory: 'stable',
 					read: 'controllers',
 					write: 'controllers'

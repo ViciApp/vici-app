@@ -490,7 +490,11 @@
 						</span>
 						<div>
 							<div class="ob-summary-q">
-								{t({ locale: $localeStore, key: 'onboarding.reward_title' })}
+								{t({
+									locale: $localeStore,
+									key: 'onboarding.reward_title',
+									params: { amount: starterVxp }
+								})}
 							</div>
 							<div class="ob-summary-meta">
 								{t({

@@ -2,7 +2,7 @@ import { Collection } from '#lib/constants/collections.constants.ts';
 import { track } from '#lib/services/analytics.services.ts';
 import type { ActivityReaction } from '#lib/types/social.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
-import { listActivityReactions as listActivityReactionsWeb2 } from '#lib/web2/client.ts';
+import { listReceivedActivityReactions as listReceivedActivityReactionsWeb2 } from '#lib/web2/client.ts';
 import { listDocs } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';
 
@@ -26,12 +26,6 @@ const trackReactionReadFailure = ({
 	console.error(`Failed to load ${collection} (${operation})`, err);
 	track({ name: 'app_error', source: collection, label: operation });
 };
-
-/**
- * Size of the recent global reaction window the HTTP transport scans for the viewer's received
- * likes (it has no author-scoped read yet); likes older than this window under-report.
- */
-export const ACTIVITY_REACTIONS_READ_LIMIT = 1000;
 
 /**
  * Cap on the received-reactions scan: likes on the viewer's OWN calls (the like-received inbox
@@ -60,16 +54,10 @@ export const getReceivedActivityReactions = async ({
 	}
 
 	try {
-		// No author-scoped reactions read exists on the HTTP API yet, so filter
-		// the recent global window by the activity-key author prefix (`author`
-		// is the account id there and ids never contain `#`). Same bounded
-		// under-reporting as the on-chain window scans on this surface.
+		// The API scopes the read to the session account, which is `author`
+		// in this mode.
 		if (isWeb2Backend()) {
-			const window = await listActivityReactionsWeb2({ limit: ACTIVITY_REACTIONS_READ_LIMIT });
-
-			return window
-				.filter(({ activityKey }) => activityKey.startsWith(`${author}#`))
-				.slice(0, limit);
+			return await listReceivedActivityReactionsWeb2({ limit });
 		}
 
 		const { items } = await listDocs<ActivityReaction>({

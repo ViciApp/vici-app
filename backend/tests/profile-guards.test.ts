@@ -1,6 +1,7 @@
 // Profile write guards: the server-owned daily goal (the Flow cap backstop),
-// the integer counters, the handle-change cooldown with its ~now stamp
-// requirement, and the grandfather clause for legacy nicknames.
+// the integer counters, the bounds of the ranked stats, the handle-change
+// cooldown with its ~now stamp requirement, and the grandfather clause for
+// legacy nicknames.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { beforeAll, describe, expect, test } from 'bun:test';
@@ -17,7 +18,11 @@ import {
 	shapeOwnProfile,
 	shapeProfile
 } from '../src/profiles/profile';
-import { MAX_PROFILE_COUNTER, upsertMyProfile } from '../src/profiles/profile-write';
+import {
+	MAX_PROFILE_COUNTER,
+	MAX_PROFILE_POINTS,
+	upsertMyProfile
+} from '../src/profiles/profile-write';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { createTestProfile, uniqueNickname } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
@@ -110,6 +115,69 @@ describe.if(dbAvailable)('integer counters', () => {
 		);
 
 		expect(response.status).toBe(400);
+	});
+});
+
+describe.if(dbAvailable)('ranked stats', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('points past the ceiling, a fraction or a negative is a validation error', async () => {
+		const { userId, profile } = await createTestProfile();
+		const cases: Record<string, unknown>[] = [
+			{ points: Number.MAX_VALUE },
+			{ points: MAX_PROFILE_POINTS + 1 },
+			{ points: 10.5 },
+			{ points: -1 },
+			{ winRate: 101 },
+			{ winRate: -0.1 },
+			{ accuracy: 1e9 },
+			{ accuracy: -5 }
+		];
+
+		for (const fields of cases) {
+			expect(
+				upsertMyProfile({ userId, body: { nickname: profile.nickname, ...fields } })
+			).rejects.toBeInstanceOf(ProfileValidationError);
+		}
+
+		const accepted = await upsertMyProfile({
+			userId,
+			body: {
+				nickname: profile.nickname,
+				points: MAX_PROFILE_POINTS,
+				winRate: 100,
+				accuracy: 62.5
+			}
+		});
+
+		expect(accepted.points).toBe(MAX_PROFILE_POINTS);
+		expect(accepted.winRate).toBe(100);
+		expect(accepted.accuracy).toBe(62.5);
+	});
+
+	test('a rejected points figure never reaches the leaderboard order', async () => {
+		const { userId, profile } = await createTestProfile();
+		const response = await app.handle(
+			new Request('http://localhost/api/v1/profiles/me', {
+				method: 'PUT',
+				headers: {
+					cookie: `vici_session=${await createSession(userId)}`,
+					'content-type': 'application/json'
+				},
+				body: JSON.stringify({ nickname: profile.nickname, points: 1e300 })
+			})
+		);
+
+		expect(response.status).toBe(400);
+
+		const [row] = await query<{ points: number }>(
+			`select points from profiles where user_id = $1`,
+			[userId]
+		);
+
+		expect(row?.points).toBe(0);
 	});
 });
 

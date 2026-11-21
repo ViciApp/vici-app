@@ -1,5 +1,7 @@
 # Prototype Parity Audit
 
+> **Historical.** A one-off audit from 2026-05-26 that drove the design remodel merged in #138; its statuses are not maintained. The design itself is described in [`docs/ai/frontend/design.md`](./ai/frontend/design.md).
+
 Source of truth: the design, described in [`docs/ai/frontend/design.md`](./ai/frontend/design.md).
 
 This is the consolidated divergence list from a four-agent deep audit

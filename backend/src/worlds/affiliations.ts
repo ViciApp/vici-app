@@ -205,24 +205,6 @@ export const getMyAffiliation = async ({
 	return nonNullish(rows[0]) ? shapeAffiliation(rows[0]) : undefined;
 };
 
-/** Roster of a Worlds slot, earliest joiner first. */
-export const listWorldsRoster = async ({
-	kind,
-	affiliationIdentifier
-}: {
-	kind: AffiliationKind;
-	affiliationIdentifier: string;
-}): Promise<Affiliation[]> => {
-	const rows = await query<AffiliationRow>(
-		`select ${AFFILIATION_COLUMNS} from affiliations
-		 where kind = $1 and affiliation_identifier = $2
-		 order by joined_at_ms asc`,
-		[kind, affiliationIdentifier]
-	);
-
-	return rows.map(shapeAffiliation);
-};
-
 export interface AffiliationMemberCount {
 	affiliationIdentifier: string;
 	kind: AffiliationKind;

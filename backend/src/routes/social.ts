@@ -21,6 +21,7 @@ import {
 	likeActivity,
 	listActivities,
 	listReactions,
+	listReceivedReactions,
 	recomputeActivityReactionCounts,
 	unlikeActivity
 } from '../social/activities';
@@ -382,6 +383,24 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 			})
 		})
 	}))
+	.get('/activity-reactions/received', async ({ request, set, query: params }) => {
+		const user = await requireUser(request);
+
+		if (isNullish(user)) {
+			return unauthenticated(set);
+		}
+
+		return {
+			items: await listReceivedReactions({
+				authorId: user.id,
+				limit: boundedLimit({
+					raw: params.limit,
+					fallback: DEFAULT_REACTIONS_LIMIT,
+					max: MAX_REACTIONS_LIMIT
+				})
+			})
+		};
+	})
 	.post(
 		'/activity-reactions',
 		async ({ request, set, body }) => {
@@ -471,7 +490,7 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 				.map((id) => id.trim())
 				.filter((id) => UUID_RE.test(id));
 
-			return { items: await listFriendResolvedResults({ friendIds }) };
+			return { items: await listFriendResolvedResults({ viewerId: user.id, friendIds }) };
 		},
 		{ query: t.Object({ friends: t.String() }) }
 	)

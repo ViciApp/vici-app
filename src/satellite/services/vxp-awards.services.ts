@@ -1,5 +1,6 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { vxpAwardKey, type VxpAwardDoc, type VxpAwardType } from '#lib/types/vxp-award.ts';
+import { captureVxpAwardEvents } from '#satellite/services/analytics.services.ts';
 import {
 	assertControllerCaller,
 	controllerCaller,
@@ -241,14 +242,17 @@ export const updateAward = ({
 	}
 
 	const existingDoc = decodeDocData<VxpAwardDoc>(existing.data);
+	const updatedDoc: VxpAwardDoc = { ...existingDoc, ...patch };
 
 	setDocStore({
 		caller,
 		collection: Collection.VXP_AWARDS,
 		key,
 		doc: {
-			data: encodeDocData<VxpAwardDoc>({ ...existingDoc, ...patch }),
+			data: encodeDocData<VxpAwardDoc>(updatedDoc),
 			version: existing.version
 		}
 	});
+
+	captureVxpAwardEvents({ before: existingDoc, after: updatedDoc });
 };
