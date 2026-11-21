@@ -1,4 +1,4 @@
-// Email one-time-code flow. Single-use, 10-minute TTL, 5-attempt lockout,
+// Email one-time-code flow. Single-use, short-lived, attempt-capped,
 // hashed at rest. The request route always responds identically whether or
 // not the address is known, so the endpoint cannot be used as an oracle.
 
@@ -11,6 +11,7 @@ import { MINUTE_IN_MS } from '../lib/time';
 import { normalizeEmail, resolveIdentity } from './identity';
 
 export const OTP_TTL_MINUTES = 10;
+const OTP_TTL_MS = OTP_TTL_MINUTES * MINUTE_IN_MS;
 export const OTP_MAX_ATTEMPTS = 5;
 /** Live codes one address may hold at once. Each code gets its own attempts,
  * so without a cap a fresh request would buy a fresh set of guesses. */
@@ -27,7 +28,7 @@ interface OtpRow {
 export const createOtp = async (email: string): Promise<string> => {
 	const e = normalizeEmail(email);
 	const code = generateOtp();
-	const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * MINUTE_IN_MS);
+	const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
 	// Opportunistic cleanup of expired codes for this address.
 	await query(`delete from otp_codes where lower(email) = $1 and expires_at <= now()`, [e]);
@@ -60,7 +61,7 @@ export const requestOtp = async (email: string): Promise<void> => {
 	const code = await createOtp(e);
 
 	try {
-		await sendOtpEmail(e, code);
+		await sendOtpEmail(e, code, OTP_TTL_MS);
 	} catch (err) {
 		logger.error(`[otp] delivery failed for ${e}:`, err);
 	}
