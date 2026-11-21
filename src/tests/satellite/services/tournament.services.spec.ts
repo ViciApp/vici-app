@@ -26,6 +26,7 @@ import {
 } from '#satellite/services/tournament.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext } from '@junobuild/functions';
+import { getDocStore } from '@junobuild/functions/sdk';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
@@ -402,6 +403,59 @@ describe('resolveTournamentRoundFn', () => {
 		assert.deepEqual(result, { ok: true, matchesResolved: 0, tournamentConcluded: false });
 		assert.equal(winners.length, 5);
 		assert.ok(winners.every((winner) => typeof winner === 'string'));
+	});
+
+	it('answers concluded without writing again once the tournament has concluded', async () => {
+		const final = roundWindow({ tournamentMonthStartMs: octoberStartMs, round: 'final' });
+		const tournamentVersion = () =>
+			getDocStore({
+				collection: Collection.TOURNAMENTS,
+				key: tournamentId,
+				caller: controller.toUint8Array()
+			})?.version;
+
+		host.putDoc({
+			collection: Collection.TOURNAMENT_MATCHES,
+			key: tournamentMatchKey({ tournamentId, round: 'final', index: 0 }),
+			data: {
+				...finalMatch,
+				tournamentId,
+				fromLeagueId: leagueA,
+				toLeagueId: leagueB,
+				startMs: final.startMs,
+				endMs: final.endMs
+			},
+			owner: controller,
+			createdAtMs: octoberStartMs
+		});
+		host.setNowMs(final.endMs + DAY_IN_MS);
+
+		await resolveTournamentRoundFn({ tournamentId, round: 'r1' });
+
+		assert.deepEqual(await resolveTournamentRoundFn({ tournamentId, round: 'final' }), {
+			ok: true,
+			matchesResolved: 1,
+			tournamentConcluded: false
+		});
+		assert.deepEqual(await resolveTournamentRoundFn({ tournamentId, round: 'final' }), {
+			ok: true,
+			matchesResolved: 0,
+			tournamentConcluded: true
+		});
+
+		const concludedVersion = tournamentVersion();
+
+		assert.deepEqual(await resolveTournamentRoundFn({ tournamentId, round: 'final' }), {
+			ok: true,
+			matchesResolved: 0,
+			tournamentConcluded: true
+		});
+		assert.equal(tournamentVersion(), concludedVersion);
+		assert.equal(
+			host.readDoc<{ state: string }>({ collection: Collection.TOURNAMENTS, key: tournamentId })
+				?.state,
+			'concluded'
+		);
 	});
 
 	it('fills both slots of a quarter-final fed by two first-round matches', async () => {

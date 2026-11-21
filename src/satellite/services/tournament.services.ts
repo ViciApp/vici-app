@@ -806,7 +806,12 @@ const roundRefusal = ({
 	}
 };
 
-/** Flip the tournament to `concluded` once the final has a winner; whether it did. */
+/**
+ * Flip the tournament to `concluded` once the final has a winner; whether it
+ * is concluded. A tournament already concluded (by an earlier call or another
+ * caller) answers `true` without a write: the doc is terminal, and writing it
+ * again would trap in `assertSetTournament`.
+ */
 const concludeTournament = ({
 	tournamentId,
 	matchesByRound,
@@ -831,15 +836,18 @@ const concludeTournament = ({
 		return false;
 	}
 
+	const tournament = decodeDocData<TournamentDoc>(tournamentDoc.data);
+
+	if (tournament.state === 'concluded') {
+		return true;
+	}
+
 	setDocStore({
 		collection: Collection.TOURNAMENTS,
 		key: tournamentId,
 		caller: writer,
 		doc: {
-			data: encodeDocData<TournamentDoc>({
-				...decodeDocData<TournamentDoc>(tournamentDoc.data),
-				state: 'concluded'
-			}),
+			data: encodeDocData<TournamentDoc>({ ...tournament, state: 'concluded' }),
 			version: tournamentDoc.version
 		}
 	});
