@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.65](https://github.com/ViciApp/vici-app/compare/v1.8.64...v1.8.65) (2026-11-22)
+
+
+### Miscellaneous Chores
+
+* **dfx:** pin dfx 0.29.2 ([#1668](https://github.com/ViciApp/vici-app/issues/1668)) ([7ba8061](https://github.com/ViciApp/vici-app/commit/7ba8061031d837fbeb732805d8d2b52696911b22))
+
 ## [1.8.64](https://github.com/ViciApp/vici-app/compare/v1.8.63...v1.8.64) (2026-11-21)
 
 
