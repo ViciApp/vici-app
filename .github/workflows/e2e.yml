@@ -124,19 +124,21 @@ jobs:
         run: npm i -g "@junobuild/cli@$(cat .github/juno-cli-version)"
 
       - name: Install dfx
-        # Match the version pinned in dfx.json. dfx.json's `local` network
-        # already points at 127.0.0.1:5987, which is exactly the port the
-        # Juno emulator's PocketIC listens on, so `dfx deploy --network local`
-        # works against the running emulator without extra plumbing.
+        # The version is the one dfx.json pins, read from there so it is set in
+        # one place. dfx.json's `local` network already points at
+        # 127.0.0.1:5987, which is exactly the port the Juno emulator's PocketIC
+        # listens on, so `dfx deploy --network local` works against the running
+        # emulator without extra plumbing.
         #
         # `pipefail` is needed so a failed `curl` doesn't get masked by a
         # successful `sh` exit; otherwise the step "succeeds" with no dfx
         # installed and the next step fails with a confusing PATH error.
         env:
-          DFX_VERSION: '0.26.1'
           DFXVM_INIT_YES: 'true'
         run: |
           set -euo pipefail
+          DFX_VERSION="$(jq -r .dfx dfx.json)"
+          export DFX_VERSION
           curl -fsSL https://internetcomputer.org/install.sh | sh
           echo "$HOME/.local/share/dfx/bin" >> "$GITHUB_PATH"
 
