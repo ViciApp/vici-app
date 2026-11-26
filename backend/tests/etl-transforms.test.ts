@@ -531,16 +531,6 @@ describe.if(dbAvailable)('social graph import', () => {
 			]
 		});
 
-		await importDocs({
-			collection: 'activity_reaction_counts',
-			docs: [
-				doc({
-					key: `${sender}#${timestamp}#trade`,
-					data: { activityKey: `${sender}#${timestamp}#trade`, count: 1, updatedAtMs: timestamp }
-				})
-			]
-		});
-
 		const mappedKey = `${senderId}#${timestamp}#trade`;
 		const activities = await query<{ key: string }>(`select key from activities where key = $1`, [
 			mappedKey
@@ -554,13 +544,6 @@ describe.if(dbAvailable)('social graph import', () => {
 		);
 
 		expect(reactions[0]?.liker).toBe(targetId);
-
-		const counts = await query<{ count: number }>(
-			`select count from activity_reaction_counts where activity_key = $1`,
-			[mappedKey]
-		);
-
-		expect(counts[0]?.count).toBe(1);
 	});
 });
 

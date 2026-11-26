@@ -1,6 +1,5 @@
-// Activity feed reactions: the transactional like/unlike rollup, its
-// consistency under concurrent-ish writes, and the admin recompute that
-// heals drift.
+// Activity feed reactions: one like per (activity, liker), unlike, their
+// consistency under concurrent-ish writes, and the received-likes inbox.
 
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { randomUUID } from 'node:crypto';
@@ -21,19 +20,18 @@ import {
 	listActivities,
 	listReactions,
 	listReceivedReactions,
-	recomputeActivityReactionCounts,
 	unlikeActivity
 } from '../src/social/activities';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 
-const countOf = async (activityKey: string): Promise<number | undefined> => {
+const likesOf = async (activityKey: string): Promise<number> => {
 	const rows = await query<{ count: number }>(
-		`select count from activity_reaction_counts where activity_key = $1`,
+		`select count(*)::int as count from activity_reactions where activity_key = $1`,
 		[activityKey]
 	);
 
-	return rows[0]?.count;
+	return rows[0]?.count ?? 0;
 };
 
 describe.if(dbAvailable)('activities', () => {
@@ -84,7 +82,7 @@ describe.if(dbAvailable)('activities', () => {
 	});
 });
 
-describe.if(dbAvailable)('reaction rollup', () => {
+describe.if(dbAvailable)('likes', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
 	});
@@ -101,35 +99,34 @@ describe.if(dbAvailable)('reaction rollup', () => {
 		return activity.key;
 	};
 
-	test('like increments once; a re-like does not double-count', async () => {
+	test('a re-like keeps one like', async () => {
 		const activityKey = await seedActivity();
 		const liker = await createTestUser();
 
 		await likeActivity({ likerId: liker, activityKey, timestamp: Date.now(), activityTitle: 't' });
 
-		expect(await countOf(activityKey)).toBe(1);
+		expect(await likesOf(activityKey)).toBe(1);
 
 		await likeActivity({ likerId: liker, activityKey, timestamp: Date.now(), activityTitle: 't' });
 
-		expect(await countOf(activityKey)).toBe(1);
+		expect(await likesOf(activityKey)).toBe(1);
 	});
 
-	test('unlike decrements to zero and never below', async () => {
+	test('unlike removes the like; a second unlike is a no-op', async () => {
 		const activityKey = await seedActivity();
 		const liker = await createTestUser();
 
 		await likeActivity({ likerId: liker, activityKey, timestamp: Date.now(), activityTitle: 't' });
 		await unlikeActivity({ likerId: liker, activityKey });
 
-		expect(await countOf(activityKey)).toBe(0);
+		expect(await likesOf(activityKey)).toBe(0);
 
-		// Unliking again is a no-op, not a negative count.
 		await unlikeActivity({ likerId: liker, activityKey });
 
-		expect(await countOf(activityKey)).toBe(0);
+		expect(await likesOf(activityKey)).toBe(0);
 	});
 
-	test('concurrent-ish likes from distinct users land an exact count', async () => {
+	test('concurrent-ish likes from distinct users land one like each', async () => {
 		const activityKey = await seedActivity();
 		const likers = await Promise.all(Array.from({ length: 8 }, () => createTestUser()));
 
@@ -139,11 +136,11 @@ describe.if(dbAvailable)('reaction rollup', () => {
 			)
 		);
 
-		expect(await countOf(activityKey)).toBe(8);
+		expect(await likesOf(activityKey)).toBe(8);
 
 		await Promise.all(likers.map((likerId) => unlikeActivity({ likerId, activityKey })));
 
-		expect(await countOf(activityKey)).toBe(0);
+		expect(await likesOf(activityKey)).toBe(0);
 	});
 
 	test('rejects a malformed activity key and an oversized title', async () => {
@@ -168,7 +165,7 @@ describe.if(dbAvailable)('reaction rollup', () => {
 		).rejects.toThrow('at most 500');
 	});
 
-	test('rejects a reaction to a nonexistent activity and writes no rollup', async () => {
+	test('rejects a reaction to a nonexistent activity and writes no row', async () => {
 		const liker = await createTestUser();
 		// Structurally valid key, but no activities row behind it.
 		const phantomKey = `${randomUUID()}#${Date.now()}#trade`;
@@ -182,7 +179,7 @@ describe.if(dbAvailable)('reaction rollup', () => {
 			})
 		).rejects.toThrow(ActivityNotFoundError);
 
-		expect(await countOf(phantomKey)).toBeUndefined();
+		expect(await likesOf(phantomKey)).toBe(0);
 	});
 
 	test('reactions list surfaces the denormalized fields', async () => {
@@ -202,32 +199,6 @@ describe.if(dbAvailable)('reaction rollup', () => {
 
 		expect(mine?.activityTitle).toBe('Denormalized title');
 		expect(mine?.marketId).toBe('srs_9');
-	});
-
-	test('recompute heals a drifted counter and zeroes an orphaned one', async () => {
-		const activityKey = await seedActivity();
-		const liker = await createTestUser();
-
-		await likeActivity({ likerId: liker, activityKey, timestamp: Date.now(), activityTitle: 't' });
-
-		// Drift the counter away from the reaction rows.
-		await query(`update activity_reaction_counts set count = 5 where activity_key = $1`, [
-			activityKey
-		]);
-
-		// Orphan counter: no reaction rows behind it.
-		const orphanKey = await seedActivity();
-
-		await query(
-			`insert into activity_reaction_counts (activity_key, count, updated_at_ms) values ($1, 3, $2)`,
-			[orphanKey, Date.now()]
-		);
-
-		const { recomputed } = await recomputeActivityReactionCounts();
-
-		expect(recomputed).toBeGreaterThanOrEqual(2);
-		expect(await countOf(activityKey)).toBe(1);
-		expect(await countOf(orphanKey)).toBe(0);
 	});
 });
 
