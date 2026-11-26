@@ -32,9 +32,14 @@ if [[ ${#args[@]} -ge 2 ]]; then
     CKUSDC_AMOUNT=$(echo "${args[1]} * 1000000" | bc)
 fi
 
+# Plain assignments, so a failed lookup stops the script under `set -e`
+# instead of printing an empty summary and transferring anyway.
+LEDGER_ID=$(dfx canister id ckusdc_ledger --network "$NETWORK")
+SENDER=$(dfx identity whoami)
+
 echo "Transfer on $NETWORK:"
-echo "  ledger: ckusdc_ledger ($(dfx canister id ckusdc_ledger --network "$NETWORK"))"
-echo "  from:   dfx identity $(dfx identity whoami)"
+echo "  ledger: ckusdc_ledger ($LEDGER_ID)"
+echo "  from:   dfx identity $SENDER"
 echo "  to:     $PRINCIPAL"
 echo "  amount: $CKUSDC_AMOUNT base units (1 ckUSDC = 1000000)"
 
