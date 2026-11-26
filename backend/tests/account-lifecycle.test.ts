@@ -30,6 +30,7 @@ import { DAY_IN_MS } from '../src/lib/time';
 import { upsertMyProfile } from '../src/profiles/profile-write';
 import { createActivity, likeActivity } from '../src/social/activities';
 import { createTestUser, ensureMigrated, uniqueEmail } from './helpers/auth';
+import { openTransaction, waitForLockWait } from './helpers/locks';
 import { createTestProfile, uniqueNickname } from './helpers/profiles';
 import { readRepoFile } from './helpers/repo-source';
 import { dbAvailable } from './helpers/setup';
@@ -440,6 +441,49 @@ describe.if(dbAvailable)('account lifecycle', () => {
 
 			expect(owners[0]?.owner_user_id).toBe(joiner);
 			expect(roles[0]?.role).toBe('owner');
+		});
+
+		test('a league write holding the league row does not deadlock with the purge', async () => {
+			const { userId: owner } = await createTestProfile();
+			const { userId: joiner } = await createTestProfile();
+			const league = await createLeague({
+				id: uniqueLeagueId(),
+				name: 'Lock Order League',
+				ownerUserId: owner
+			});
+
+			await deleteMyAccount({ userId: owner, reason: 'other', note: '' });
+			await joinLeagueByInvite({ inviteCode: league.inviteCode, userId: joiner });
+
+			// A league write: the league row first, then a member row of the
+			// account being purged, the order `lockLeague` callers take them in.
+			const write = await openTransaction();
+
+			try {
+				await write.q(`select id from leagues where id = $1 for update`, [league.id]);
+
+				const purge = Promise.allSettled([hardDeleteAccount(owner)]);
+
+				await waitForLockWait(write);
+				await write.q(
+					`update league_members set role = 'owner' where league_id = $1 and member_user_id = $2`,
+					[league.id, owner]
+				);
+				await write.commit();
+
+				const [purged] = await purge;
+
+				expect(purged.status).toBe('fulfilled');
+			} finally {
+				await write.rollback();
+			}
+
+			const owners = await query<{ owner_user_id: string }>(
+				`select owner_user_id from leagues where id = $1`,
+				[league.id]
+			);
+
+			expect(owners[0]?.owner_user_id).toBe(joiner);
 		});
 	});
 

@@ -306,15 +306,21 @@ describe.if(dbAvailable)('owner checks under a concurrent transfer', () => {
 	}) => {
 		const other = await openTransaction();
 
-		await other.q(`update leagues set owner_user_id = $2 where id = $1`, [leagueId, to]);
-		await other.q(
-			`update league_members set role = 'owner' where league_id = $1 and member_user_id = $2`,
-			[leagueId, to]
-		);
-		await other.q(
-			`update league_members set role = 'admin' where league_id = $1 and member_user_id = $2`,
-			[leagueId, from]
-		);
+		try {
+			await other.q(`update leagues set owner_user_id = $2 where id = $1`, [leagueId, to]);
+			await other.q(
+				`update league_members set role = 'owner' where league_id = $1 and member_user_id = $2`,
+				[leagueId, to]
+			);
+			await other.q(
+				`update league_members set role = 'admin' where league_id = $1 and member_user_id = $2`,
+				[leagueId, from]
+			);
+		} catch (err) {
+			await other.rollback();
+
+			throw err;
+		}
 
 		return other;
 	};
@@ -325,17 +331,21 @@ describe.if(dbAvailable)('owner checks under a concurrent transfer', () => {
 		transfer,
 		write
 	}: {
-		transfer: { commit: () => Promise<void> };
+		transfer: Awaited<ReturnType<typeof openTransaction>>;
 		write: () => Promise<T>;
 	}): Promise<PromiseSettledResult<T>> => {
-		const racing = Promise.allSettled([write()]);
+		try {
+			const racing = Promise.allSettled([write()]);
 
-		await waitForLockWait();
-		await transfer.commit();
+			await waitForLockWait(transfer);
+			await transfer.commit();
 
-		const [settled] = await racing;
+			const [settled] = await racing;
 
-		return settled;
+			return settled;
+		} finally {
+			await transfer.rollback();
+		}
 	};
 
 	/** A league whose owner is moving it to `heir`, with `bystander` a member. */

@@ -192,6 +192,24 @@ export const findBlockingLeagueIds = async (userId: string): Promise<string[]> =
 };
 
 /**
+ * Lock every league whose rows the delete is about to change (the ones the
+ * user owns or is a member of), before any membership row: league writes
+ * take the league row first (`lockLeague`), and taking them in the same
+ * order here keeps a concurrent league write from deadlocking with the
+ * delete. Ordered by id so two account deletes also agree.
+ */
+const lockLeaguesOf = async ({ userId, q }: { userId: string; q: TxQuery }) => {
+	await q(
+		`select id from leagues
+		 where owner_user_id = $1
+		    or id in (select league_id from league_members where member_user_id = $1)
+		 order by id
+		 for update`,
+		[userId]
+	);
+};
+
+/**
  * Resolve every league the user still owns at hard-delete time: delete it
  * when no other member remains, otherwise transfer ownership to a
  * deterministic survivor (the first remaining member row) so self-joiners
@@ -264,6 +282,7 @@ export const hardDeleteAccount = async (userId: string): Promise<void> => {
 		await q(`delete from referrals where referee_user_id = $1`, [userId]);
 		await q(`delete from affiliations where member_user_id = $1`, [userId]);
 		await q(`delete from relations where participant_one = $1 or participant_two = $1`, [userId]);
+		await lockLeaguesOf({ userId, q });
 		await q(`delete from league_members where member_user_id = $1`, [userId]);
 		await disbandOrTransferOwnedLeagues({ userId, q });
 		await q(`update users set hard_deleted_at = coalesce(hard_deleted_at, now()) where id = $1`, [
