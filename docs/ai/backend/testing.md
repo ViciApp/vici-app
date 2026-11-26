@@ -20,6 +20,7 @@ Paths are under `backend/`.
 | `vxp.ts`         | `stubVxpLedger`, `readAwardRow`, `accountStateWithEquity` (a clearing account-state answer for the holdings gates)                              |
 | `settlements.ts` | `stubSettledHistory`: a clearing stub answering `aggregate_settlement_accuracy` from recorded settlements, honouring the members and the window |
 | `custody.ts`     | `userChainBalance` (a user's internal balance on an asset's chain, inside the caller's transaction)                                             |
+| `locks.ts`       | `openTransaction` (a transaction on its own connection, open until `commit`) and `waitForLockWait`, for race tests on two connections           |
 | `repo-source.ts` | `readRepoFile`, `readRepoSource`, `importRepoModule`, `extract*` literal extractors for the shared-drift suite                                  |
 
 ## Rules learnt the hard way
