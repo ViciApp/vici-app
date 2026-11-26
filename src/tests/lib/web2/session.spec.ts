@@ -2,9 +2,10 @@ import { getMyProfile, verifyOtp, Web2ApiError, type Web2Me } from '#lib/web2/cl
 import {
 	adoptWeb2Session,
 	assertWeb2SessionOwner,
+	captureWeb2Session,
 	clearWeb2Session,
 	getWeb2User,
-	isWeb2SessionOwner,
+	loadWeb2Session,
 	watchWeb2Session,
 	Web2SessionChangedError
 } from '#lib/web2/session.ts';
@@ -45,6 +46,20 @@ const stubApi = ({
 					: json({ status: 200, body: { user: me } })
 				: json(refuse)
 		);
+};
+
+/** Holds every `/me` read until the spec answers it, in the order it picks. */
+const stubDeferredMe = (): { answer: (args: { index: number; me: Web2Me }) => void } => {
+	const pending: ((response: Response) => void)[] = [];
+
+	globalThis.fetch = (): Promise<Response> =>
+		new Promise((resolve) => {
+			pending.push(resolve);
+		});
+
+	return {
+		answer: ({ index, me }) => pending[index]?.(json({ status: 200, body: { user: me } }))
+	};
 };
 
 const settle = async (): Promise<void> => {
@@ -93,24 +108,82 @@ describe('web2 session', () => {
 		});
 	});
 
-	describe('isWeb2SessionOwner', () => {
-		it('holds while the session stays on the account', () => {
-			assert.equal(isWeb2SessionOwner(ACCOUNT_A.id), true);
+	describe('captureWeb2Session', () => {
+		it('holds while the session stays on the account', async () => {
+			const isSameSession = captureWeb2Session();
+			stubApi({ me: ACCOUNT_A });
+
+			await loadWeb2Session();
+
+			assert.equal(isSameSession(), true);
 		});
 
-		it('drops once the session moves to another account', () => {
+		it('breaks once the session moves to another account', () => {
+			const isSameSession = captureWeb2Session();
+
 			adoptWeb2Session(ACCOUNT_B);
 
-			assert.equal(isWeb2SessionOwner(ACCOUNT_A.id), false);
-			assert.equal(isWeb2SessionOwner(ACCOUNT_B.id), true);
+			assert.equal(isSameSession(), false);
 		});
 
-		it('drops once the session signs out', async () => {
+		it('stays broken when the session comes back to the same account', () => {
+			const isSameSession = captureWeb2Session();
+
+			adoptWeb2Session(ACCOUNT_B);
+			adoptWeb2Session(ACCOUNT_A);
+
+			assert.equal(isSameSession(), false);
+		});
+
+		it('breaks once the session signs out', async () => {
+			const isSameSession = captureWeb2Session();
 			stubApi({ refuse: { status: 200, body: { ok: true } } });
 
 			await clearWeb2Session();
 
-			assert.equal(isWeb2SessionOwner(ACCOUNT_A.id), false);
+			assert.equal(isSameSession(), false);
+		});
+	});
+
+	describe('session reads answering out of order', () => {
+		it('keeps the newer probe when an older one answers last', async () => {
+			const api = stubDeferredMe();
+
+			const older = loadWeb2Session();
+			const newer = loadWeb2Session();
+
+			api.answer({ index: 1, me: ACCOUNT_B });
+			api.answer({ index: 0, me: ACCOUNT_A });
+
+			assert.equal((await older)?.id, ACCOUNT_B.id);
+			assert.equal((await newer)?.id, ACCOUNT_B.id);
+			assert.equal(getWeb2User()?.id, ACCOUNT_B.id);
+		});
+
+		it('drops a probe that answers after a sign-in landed', async () => {
+			const api = stubDeferredMe();
+
+			const probe = loadWeb2Session();
+
+			adoptWeb2Session(ACCOUNT_B);
+			api.answer({ index: 0, me: ACCOUNT_A });
+
+			assert.equal((await probe)?.id, ACCOUNT_B.id);
+			assert.equal(getWeb2User()?.id, ACCOUNT_B.id);
+		});
+
+		it('refuses a write without moving back to an account a newer probe left', async () => {
+			const api = stubDeferredMe();
+
+			const check = assertWeb2SessionOwner(ACCOUNT_B.id);
+			const probe = loadWeb2Session();
+
+			api.answer({ index: 1, me: ACCOUNT_B });
+			await probe;
+			api.answer({ index: 0, me: ACCOUNT_A });
+
+			await assert.rejects(check, Web2SessionChangedError);
+			assert.equal(getWeb2User()?.id, ACCOUNT_B.id);
 		});
 	});
 
@@ -153,6 +226,21 @@ describe('web2 session', () => {
 			await settle();
 
 			assert.equal(getWeb2User()?.id, ACCOUNT_B.id);
+		});
+
+		it('signs the tab out when another tab signs out', async () => {
+			stopWatching = watchWeb2Session();
+			const isSameSession = captureWeb2Session();
+			stubApi({});
+
+			const otherTab = new BroadcastChannel('vici.web2-session');
+			otherTab.postMessage('changed');
+			otherTab.close();
+
+			await settle();
+
+			assert.equal(getWeb2User(), undefined);
+			assert.equal(isSameSession(), false);
 		});
 	});
 });

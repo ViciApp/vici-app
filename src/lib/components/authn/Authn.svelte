@@ -21,7 +21,7 @@
 	import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 	import type { Web2Me } from '#lib/web2/client.ts';
 	import {
-		isWeb2SessionOwner,
+		captureWeb2Session,
 		loadWeb2Session,
 		watchWeb2Session,
 		web2SessionStore
@@ -264,13 +264,15 @@
 
 		resetIdentityScopedState({ ownerKey: me.id });
 
+		const isSameSession = captureWeb2Session();
+
 		try {
 			const user: User = { key: me.id, owner: me.id, data: {} };
 			const email = me.identities.find((identity) => (identity.email ?? '') !== '')?.email ?? '';
 			const { profile, existed } = await loadWeb2ProfileShell(me.id);
 
 			// The newer hydration (or the sign-out) owns the store now.
-			if (!isWeb2SessionOwner(me.id)) {
+			if (!isSameSession()) {
 				return false;
 			}
 
@@ -282,7 +284,7 @@
 		} catch (e: unknown) {
 			console.error('web2 app-shell hydration failed', e);
 
-			if (!isWeb2SessionOwner(me.id)) {
+			if (!isSameSession()) {
 				return false;
 			}
 

@@ -35,8 +35,32 @@ let channel: BroadcastChannel | undefined;
 
 const SESSION_CHANNEL = 'vici.web2-session';
 
+// Bumped each time the store moves to another account, signs in or signs
+// out, so work started in one session can tell it no longer runs in the
+// current one, even when the session has since come back to the same account.
+let generation = 0;
+
+// Bumped by every write and every `/me` read that starts. Reads answer in any
+// order, so only the newest one may settle the store, and only while no write
+// landed after it started: an older answer would bring back an account the
+// cookie no longer holds.
+let turn = 0;
+
+/** Start a `/me` read; the returned check holds while its answer is the newest. */
+const startRead = (): (() => boolean) => {
+	const readTurn = ++turn;
+
+	return () => readTurn === turn;
+};
+
 const setUser = (user: Web2Me | undefined): void => {
 	const changed = get(store).user?.id !== user?.id;
+
+	turn++;
+
+	if (changed) {
+		generation++;
+	}
 
 	store.set({ user, authBusy: false });
 
@@ -56,30 +80,61 @@ export class Web2SessionChangedError extends Error {
 	}
 }
 
+/** The account the store settles on once no probe holds it busy. */
+const settledUser = (): Promise<Web2Me | undefined> =>
+	new Promise((resolve) => {
+		let settled = false;
+
+		// The first call runs inside `subscribe`, before it returns the real
+		// teardown, so an already settled store is dropped right after it.
+		let unsubscribe = (): void => {};
+
+		unsubscribe = store.subscribe(({ user, authBusy }) => {
+			if (authBusy || settled) {
+				return;
+			}
+
+			settled = true;
+			resolve(user);
+			unsubscribe();
+		});
+
+		if (settled) {
+			unsubscribe();
+		}
+	});
+
 /**
  * Probe the cookie session and mirror it into the store. A 401 is the
  * signed-out steady state, not an error; any other failure also resolves to
- * signed-out so the app never hangs on `authBusy`. Returns the user (or
- * `undefined` when signed out) for callers that branch on the outcome.
+ * signed-out so the app never hangs on `authBusy`. Returns the account the
+ * store settles on (`undefined` when signed out), a newer read's when one
+ * overtook this probe, for callers that branch on the outcome.
  */
 export const loadWeb2Session = async (): Promise<Web2Me | undefined> => {
 	store.update((state) => ({ ...state, authBusy: true }));
 
+	const isNewest = startRead();
+
 	try {
 		const user = await getMe();
 
-		setUser(user);
-
-		return user;
+		if (isNewest()) {
+			setUser(user);
+		}
 	} catch (err: unknown) {
 		if (!(err instanceof Web2ApiError) || err.status !== 401) {
 			console.error('web2 session probe failed', err);
 		}
 
-		// Signed out (or an unreachable API): reflect it in the store and fall
-		// through to an implicit `undefined`.
-		setUser(undefined);
+		// Signed out (or an unreachable API): reflect it in the store.
+		if (isNewest()) {
+			setUser(undefined);
+		}
 	}
+
+	// A newer read or write that overtook this probe settles the store instead.
+	return settledUser();
 };
 
 /**
@@ -91,12 +146,16 @@ export const loadWeb2Session = async (): Promise<Web2Me | undefined> => {
 export const getWeb2User = (): Web2Me | undefined => get(store).user;
 
 /**
- * Whether the session store is still on `owner`. Work started for an account
- * checks it when it resolves: the session can move to another account (or
- * sign out) while a read is in flight, and a late result for the old account
- * must not land in the app shell of the new one.
+ * Capture the current session; the returned check holds until the session
+ * moves to another account or signs out, and stays broken if it later comes
+ * back to the same account. Work started for a session checks it when it
+ * resolves, so a late result never lands in the app shell of a later session.
  */
-export const isWeb2SessionOwner = (owner: string): boolean => getWeb2User()?.id === owner;
+export const captureWeb2Session = (): (() => boolean) => {
+	const capturedGeneration = generation;
+
+	return () => capturedGeneration === generation;
+};
 
 /**
  * Adopt a session from a login response. The OTP verify route returns the
@@ -113,32 +172,46 @@ export const adoptWeb2Session = (user: Web2Me): void => setUser(user);
  * and the write is refused with {@link Web2SessionChangedError}.
  */
 export const assertWeb2SessionOwner = async (owner: string): Promise<void> => {
+	// Checks the turn without taking one: this read only guards a write, so it
+	// never cancels a session probe already in flight.
+	const checkedTurn = turn;
 	const me = await getMe();
 
 	if (me.id === owner) {
 		return;
 	}
 
-	setUser(me);
+	if (checkedTurn === turn) {
+		setUser(me);
+	}
 
 	throw new Web2SessionChangedError();
 };
 
 /**
- * Re-read the cookie's account without the cold-probe busy state, and move
- * the store to it when it changed. A gone session is handled by the refusal
- * handler `watchWeb2Session` registers.
+ * Re-read the cookie's account without the cold-probe busy state, and settle
+ * the store on it: another account, or signed out when the cookie is gone.
+ * Any other failure keeps the current account, unless this read overtook a
+ * cold probe, which then resolves to signed-out the way the probe would.
  */
 const syncWeb2Session = async (): Promise<void> => {
+	const isNewest = startRead();
+
 	try {
 		const me = await getMe();
 
-		if (get(store).user?.id !== me.id) {
+		if (isNewest()) {
 			setUser(me);
 		}
 	} catch (err: unknown) {
-		if (!(err instanceof Web2ApiError) || err.status !== 401) {
+		const signedOut = err instanceof Web2ApiError && err.status === 401;
+
+		if (!signedOut) {
 			console.error('web2 session sync failed', err);
+		}
+
+		if (isNewest() && (signedOut || get(store).authBusy)) {
+			setUser(undefined);
 		}
 	}
 };

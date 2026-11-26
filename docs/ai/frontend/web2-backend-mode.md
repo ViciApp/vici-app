@@ -136,7 +136,11 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   such as a wrong sign-in code, is not one) signs the tab out, and the
   hydration effect resets the app. The account is re-read from `/me` when
   another tab changes it (a `BroadcastChannel`) and when the tab is shown
-  again; a different account is adopted and the app rehydrates for it.
+  again; a different account is adopted and the app rehydrates for it, and
+  a `/me` 401 there signs the tab out. `/me` reads answer in any order, so
+  only the newest one settles the store, and only while no write landed
+  after it started: a late answer never brings back an account the cookie
+  left.
 - **Writes in an account's name confirm the cookie first.** A profile PUT is
   a full-doc write onto the cookie's account, so `upsertProfile` and
   `saveMyEmail` run `assertWeb2SessionOwner(owner)` (a `/me` read) before it:
@@ -318,10 +322,12 @@ a minimal `User` (`key` / `owner` = account id), reads the profile via
 `loadWeb2ProfileShell` (the default shell with `profileExisted: false` for a
 brand-new account, so the onboarding drain runs identically), and sets
 `userStore`. Sign-out and the signed-out steady state clear it, so the shell
-never hangs on `authBusy`. A hydration writes only while
-`isWeb2SessionOwner(me.id)` still holds when its profile read resolves: a
-slow read for an account the session has since left (another tab signed in,
-or a sign-out) is dropped instead of overwriting the newer shell. This lives in `Authn.svelte` because it is the
+never hangs on `authBusy`. A hydration captures the session
+(`captureWeb2Session`) before its profile read and writes only if the
+session has not changed by the time the read resolves: a slow read from a
+session since left (another tab signed in, a sign-out, even a switch away
+and back to the same account) is dropped instead of overwriting the newer
+shell. This lives in `Authn.svelte` because it is the
 sanctioned identity-layer exception; no other component gains a branch.
 
 ### Still on-chain in this domain
