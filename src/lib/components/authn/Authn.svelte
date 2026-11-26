@@ -20,7 +20,12 @@
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 	import type { Web2Me } from '#lib/web2/client.ts';
-	import { loadWeb2Session, watchWeb2Session, web2SessionStore } from '#lib/web2/session.ts';
+	import {
+		captureWeb2Session,
+		loadWeb2Session,
+		watchWeb2Session,
+		web2SessionStore
+	} from '#lib/web2/session.ts';
 	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -259,10 +264,17 @@
 
 		resetIdentityScopedState({ ownerKey: me.id });
 
+		const isSameSession = captureWeb2Session();
+
 		try {
 			const user: User = { key: me.id, owner: me.id, data: {} };
 			const email = me.identities.find((identity) => (identity.email ?? '') !== '')?.email ?? '';
 			const { profile, existed } = await loadWeb2ProfileShell(me.id);
+
+			// The newer hydration (or the sign-out) owns the store now.
+			if (!isSameSession()) {
+				return false;
+			}
 
 			setSignedInFlag(true);
 
@@ -271,6 +283,10 @@
 			return true;
 		} catch (e: unknown) {
 			console.error('web2 app-shell hydration failed', e);
+
+			if (!isSameSession()) {
+				return false;
+			}
 
 			userStore.update((data) => ({ ...data, authBusy: false }));
 
