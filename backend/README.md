@@ -70,6 +70,7 @@ Validated fail-fast in `src/env.ts`. In production the required vars abort boot 
 | `S3_BUCKET`               | no              | empty (local disk)                           | Bucket for league images; falls back to `BUCKET_NAME`                                                                                |
 | `S3_ACCESS_KEY_ID`        | no              | empty (local disk)                           | Bucket access key id; falls back to `AWS_ACCESS_KEY_ID`                                                                              |
 | `S3_SECRET_ACCESS_KEY`    | no              | empty (local disk)                           | Bucket secret key; falls back to `AWS_SECRET_ACCESS_KEY`                                                                             |
+| `TURNSTILE_SECRET_KEY`    | no              | empty (bot check skipped)                    | Cloudflare Turnstile secret of the anonymous bot check; unset, production refuses every check (dev skips it)                         |
 
 ETL-only vars (read by `scripts/etl/*`, never by the server):
 
@@ -90,6 +91,10 @@ Endpoints under `/api/v1`:
 - `GET /auth/google` + `GET /auth/google/callback`: Google OAuth code flow with an HMAC-signed state cookie.
 - `GET /auth/apple` + `POST /auth/apple/callback`: Sign in with Apple (ES256 client secret from the .p8 key, `form_post` callback, SameSite=None state cookie).
 - `POST /auth/logout`, `GET /me`.
+
+### Anonymous handle probe
+
+A signed-out visitor checks a handle before sign-up in two steps. `POST /profiles/nickname-check-proof` takes a Cloudflare Turnstile token (`{ turnstileToken }`, rendered with the `handle_check` action), verifies it against Cloudflare's siteverify with `TURNSTILE_SECRET_KEY` and answers `{ proof, ttlMs }`: an HMAC under `SESSION_SECRET` over the scope, the expiry and the caller's IP, valid ten minutes, stored nowhere. `GET /profiles/public-nickname-availability?nickname=&proof=` then answers exactly what the signed-in probe answers (`{ available }` or `{ available: false, reason }`, never who holds a handle) while the proof is live and from the same IP; anything else is `403 { "error": "human_proof_required" }`, and the client solves again. A refused token is `403 turnstile_failed`; Cloudflare out of reach is `503 turnstile_unavailable`. Both routes are limited per IP. Without a secret the check is skipped outside production only.
 
 ### Beta access gate
 
@@ -194,6 +199,7 @@ While both stacks coexist, some contracts are deliberately duplicated between th
 | `src/vxp/constants.ts`                       | `src/lib/utils/achievements.utils.ts`, `src/lib/utils/streak.utils.ts`, `src/lib/constants/flow-rewards.constants.ts`                                                                                                                                                                                                                                        | achievement thresholds and streak window (static extraction)                    |
 | `src/account/`                               | `src/lib/constants/app.constants.ts`, `src/lib/types/exit-signal.ts`, `src/lib/constants/referral.constants.ts`                                                                                                                                                                                                                                              | recovery window, exit-signal reasons and note cap, referral code format         |
 | `src/profiles/`                              | `src/lib/constants/profile.constants.ts`, `src/lib/constants/flow-rewards.constants.ts`, `src/lib/types/user-stats.ts`, `src/lib/types/user-monthly-stats.ts`                                                                                                                                                                                                | nickname bounds and charset, handle cooldown, Flow hard cap, stats limits       |
+| `src/profiles/nickname.ts`                   | `src/lib/constants/turnstile.constants.ts`                                                                                                                                                                                                                                                                                                                   | Turnstile action of the anonymous handle probe                                  |
 | `src/leagues/` + `src/tournaments/`          | `src/lib/types/league.ts`, `src/lib/types/battle.ts`, `src/lib/types/tournament.ts`                                                                                                                                                                                                                                                                          | league and battle bounds, cover encoding, tournament bracket and windows        |
 | `src/worlds/` + `src/school/`                | `src/lib/types/affiliation.ts`, `src/lib/types/affiliation-stats.ts`, `src/lib/utils/month-anchor.utils.ts`, `src/lib/types/school.ts`, `src/lib/constants/school-picker.constants.ts`                                                                                                                                                                       | switch lock, ranking bar, month anchor, school code limits                      |
 | `src/social/`                                | `src/lib/constants/relation.constants.ts`, `src/lib/constants/app.constants.ts`                                                                                                                                                                                                                                                                              | friend-request cooldown, resolved-results retention                             |
@@ -273,7 +279,7 @@ Both apps exist. Recreating one from scratch:
 
 ```bash
 cd backend && fly launch --no-deploy            # creates vici-app-backend
-fly secrets set DATABASE_URL=... SESSION_SECRET=... ROOT_SECRET=... RESEND_API_KEY=...
+fly secrets set DATABASE_URL=... SESSION_SECRET=... ROOT_SECRET=... RESEND_API_KEY=... TURNSTILE_SECRET_KEY=...
 cd .. && fly launch --no-deploy --config fly.web.toml   # creates vici-app-web
 ```
 

@@ -448,16 +448,53 @@ export const upsertMyProfile = async (data: Record<string, unknown>): Promise<Us
 	return mapProfile(profile);
 };
 
+export type Web2NicknameAvailability =
+	| { available: true }
+	| { available: false; reason: 'required' | 'too_short' | 'too_long' | 'invalid' | 'taken' };
+
 /** Server-side nickname validity + uniqueness probe. The caller's own current
  * nickname never counts as a conflict (the session identifies the caller). */
 export const checkNicknameAvailability = async (
 	nickname: string
-): Promise<
-	| { available: true }
-	| { available: false; reason: 'required' | 'too_short' | 'too_long' | 'invalid' | 'taken' }
-> =>
+): Promise<Web2NicknameAvailability> =>
 	await request({
 		path: `/api/v1/profiles/nickname-availability?${encodeQuery({ nickname })}`,
+		method: 'GET'
+	});
+
+/** A proof that this client passed the bot check, valid for `ttlMs` from
+ * issue and only from the IP that asked for it. */
+export interface Web2NicknameCheckProof {
+	proof: string;
+	ttlMs: number;
+}
+
+/** Trade a single-use Turnstile token for a reusable proof. A refused token
+ * throws {@link Web2ApiError} `turnstile_failed` (403); Cloudflare out of
+ * reach or a server without its secret in production, 503. */
+export const issueNicknameCheckProof = async ({
+	turnstileToken
+}: {
+	turnstileToken: string;
+}): Promise<Web2NicknameCheckProof> =>
+	await request({
+		path: '/api/v1/profiles/nickname-check-proof',
+		method: 'POST',
+		body: { turnstileToken }
+	});
+
+/** The signed-out twin of {@link checkNicknameAvailability}, same answer. A
+ * missing, expired or foreign proof throws {@link Web2ApiError}
+ * `human_proof_required` (403). */
+export const checkNicknameAvailabilityPublic = async ({
+	nickname,
+	proof
+}: {
+	nickname: string;
+	proof: string;
+}): Promise<Web2NicknameAvailability> =>
+	await request({
+		path: `/api/v1/profiles/public-nickname-availability?${encodeQuery({ nickname, proof })}`,
 		method: 'GET'
 	});
 
