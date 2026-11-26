@@ -310,7 +310,10 @@ describe.if(dbAvailable)('tournament', () => {
 			[monthAnchor]
 		);
 
-		expect(rows[0]?.seeded_league_ids).toEqual([leagueIds[0], ...leagueIds.slice(1).reverse()]);
+		expect(rows[0]?.seeded_league_ids).toEqual([
+			...leagueIds.slice(0, 1),
+			...leagueIds.slice(1).reverse()
+		]);
 	});
 
 	test('only the current UTC month is drawn, while its round 1 is open: a late, closed or future month is refused', async () => {
