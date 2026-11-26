@@ -149,6 +149,20 @@ export const getLeague = async (
 };
 
 /**
+ * `getLeague` under a row lock held until the caller's transaction ends:
+ * every write that checks the owner reads it here, so a concurrent ownership
+ * transfer either lands before the check or waits for the write.
+ */
+export const lockLeague = async (leagueId: string, q: TxQuery): Promise<League | undefined> => {
+	const rows = await q<LeagueRow>(
+		`select ${LEAGUE_COLUMNS} from leagues where id = $1 for update`,
+		[leagueId]
+	);
+
+	return nonNullish(rows[0]) ? shapeLeague(rows[0]) : undefined;
+};
+
+/**
  * Create a league: the creator becomes owner and gets the role='owner'
  * membership row in the same transaction. The invite code is minted
  * server-side; a rare collision with an existing league re-rolls.
@@ -251,7 +265,7 @@ export const updateLeague = async ({
 	privacy?: LeaguePrivacy;
 }): Promise<League> =>
 	await tx(async (q) => {
-		const league = await getLeague(leagueId, q);
+		const league = await lockLeague(leagueId, q);
 
 		if (isNullish(league)) {
 			throw new LeagueError('league_not_found');
@@ -315,7 +329,7 @@ export const transferLeagueOwnership = async ({
 	}
 
 	return await tx(async (q) => {
-		const league = await getLeague(leagueId, q);
+		const league = await lockLeague(leagueId, q);
 
 		if (isNullish(league)) {
 			return { ok: false, reason: 'league_not_found' };
@@ -365,7 +379,7 @@ export const deleteLeague = async ({
 	callerId: string;
 }): Promise<{ ok: boolean; reason?: 'not_owner' }> =>
 	await tx(async (q) => {
-		const league = await getLeague(leagueId, q);
+		const league = await lockLeague(leagueId, q);
 
 		if (isNullish(league)) {
 			return { ok: true };

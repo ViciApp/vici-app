@@ -17,7 +17,8 @@ import {
 	listLeagueMembers,
 	listMyLeagues,
 	lookupLeagueByInvite,
-	transferLeagueOwnership
+	transferLeagueOwnership,
+	updateLeague
 } from '../src/leagues/leagues';
 import {
 	getLeagueMember,
@@ -27,6 +28,7 @@ import {
 } from '../src/leagues/members';
 import { resetRateLimits } from '../src/lib/rate-limit';
 import { createTestUser, ensureMigrated } from './helpers/auth';
+import { openTransaction, waitForLockWait } from './helpers/locks';
 import { dbAvailable } from './helpers/setup';
 
 const uniqueLeagueId = (): string => `lg-${randomBytes(6).toString('hex')}`;
@@ -283,6 +285,133 @@ describe.if(dbAvailable)('ownership transfer', () => {
 
 		// Idempotent: disbanding an already-gone league is a clean success.
 		expect((await deleteLeague({ leagueId, callerId: ownerId })).ok).toBe(true);
+	});
+});
+
+describe.if(dbAvailable)('owner checks under a concurrent transfer', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	/** The writes a transfer from `from` to `to` makes, left uncommitted on a
+	 * second connection so the write under test runs into them. */
+	const transferInFlight = async ({
+		leagueId,
+		from,
+		to
+	}: {
+		leagueId: string;
+		from: string;
+		to: string;
+	}) => {
+		const other = await openTransaction();
+
+		await other.q(`update leagues set owner_user_id = $2 where id = $1`, [leagueId, to]);
+		await other.q(
+			`update league_members set role = 'owner' where league_id = $1 and member_user_id = $2`,
+			[leagueId, to]
+		);
+		await other.q(
+			`update league_members set role = 'admin' where league_id = $1 and member_user_id = $2`,
+			[leagueId, from]
+		);
+
+		return other;
+	};
+
+	/** Starts `write` while the transfer is open, then commits the transfer
+	 * once the write waits on it. */
+	const raceTransfer = async <T>({
+		transfer,
+		write
+	}: {
+		transfer: { commit: () => Promise<void> };
+		write: () => Promise<T>;
+	}): Promise<PromiseSettledResult<T>> => {
+		const racing = Promise.allSettled([write()]);
+
+		await waitForLockWait();
+		await transfer.commit();
+
+		const [settled] = await racing;
+
+		return settled;
+	};
+
+	/** A league whose owner is moving it to `heir`, with `bystander` a member. */
+	const seedTransfer = async () => {
+		const { ownerId, leagueId, inviteCode } = await seedLeague();
+		const heir = await createTestUser();
+		const bystander = await createTestUser();
+
+		await joinLeagueByInvite({ inviteCode, userId: heir });
+		await joinLeagueByInvite({ inviteCode, userId: bystander });
+
+		return {
+			ownerId,
+			leagueId,
+			heir,
+			bystander,
+			transfer: await transferInFlight({ leagueId, from: ownerId, to: heir })
+		};
+	};
+
+	test('a second transfer by the outgoing owner is refused', async () => {
+		const { ownerId, leagueId, heir, bystander, transfer } = await seedTransfer();
+		const settled = await raceTransfer({
+			transfer,
+			write: () =>
+				transferLeagueOwnership({ leagueId, callerId: ownerId, newOwnerUserId: bystander })
+		});
+
+		expect(settled.status === 'fulfilled' && settled.value.reason).toBe('not_owner');
+		expect((await getLeague(leagueId))?.ownerUserId).toBe(heir);
+		expect((await getLeagueMember({ leagueId, memberUserId: bystander }))?.role).toBe('member');
+	});
+
+	test('the outgoing owner can no longer demote the new owner', async () => {
+		const { ownerId, leagueId, heir, transfer } = await seedTransfer();
+		const settled = await raceTransfer({
+			transfer,
+			write: () =>
+				upsertLeagueMember({ leagueId, callerId: ownerId, memberUserId: heir, role: 'member' })
+		});
+
+		expect(settled.status).toBe('rejected');
+		expect((await getLeagueMember({ leagueId, memberUserId: heir }))?.role).toBe('owner');
+	});
+
+	test('the outgoing owner can no longer kick the new owner', async () => {
+		const { ownerId, leagueId, heir, transfer } = await seedTransfer();
+		const settled = await raceTransfer({
+			transfer,
+			write: () => removeLeagueMember({ leagueId, callerId: ownerId, memberUserId: heir })
+		});
+
+		expect(settled.status).toBe('rejected');
+		expect((await getLeagueMember({ leagueId, memberUserId: heir }))?.role).toBe('owner');
+	});
+
+	test('the outgoing owner can no longer edit the league', async () => {
+		const { ownerId, leagueId, transfer } = await seedTransfer();
+		const settled = await raceTransfer({
+			transfer,
+			write: () => updateLeague({ leagueId, callerId: ownerId, name: 'Renamed League' })
+		});
+
+		expect(settled.status).toBe('rejected');
+		expect((await getLeague(leagueId))?.name).toBe('Test League');
+	});
+
+	test('the outgoing owner can no longer disband the league', async () => {
+		const { ownerId, leagueId, transfer } = await seedTransfer();
+		const settled = await raceTransfer({
+			transfer,
+			write: () => deleteLeague({ leagueId, callerId: ownerId })
+		});
+
+		expect(settled.status === 'fulfilled' && settled.value.reason).toBe('not_owner');
+		expect(await getLeague(leagueId)).toBeDefined();
 	});
 });
 

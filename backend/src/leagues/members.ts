@@ -15,6 +15,7 @@ import { UUID_RE } from '../lib/constants';
 import {
 	LeagueError,
 	getLeague,
+	lockLeague,
 	lookupLeagueByInvite,
 	shapeMember,
 	type LeagueMember,
@@ -133,7 +134,7 @@ const writeLeagueMember = async ({
 	}
 
 	return await tx(async (q) => {
-		const league = await getLeague(leagueId, q);
+		const league = await lockLeague(leagueId, q);
 
 		if (isNullish(league)) {
 			throw new LeagueError(`league_members references unknown league "${leagueId}".`);
@@ -216,6 +217,10 @@ export const removeLeagueMember = async ({
 	memberUserId: string;
 }): Promise<{ ok: boolean }> =>
 	await tx(async (q) => {
+		// Taken before the reads below, so a transfer cannot move the owner
+		// between the guards and the delete.
+		await lockLeague(leagueId, q);
+
 		const current = await getLeagueMember({ leagueId, memberUserId }, q);
 
 		if (isNullish(current)) {
