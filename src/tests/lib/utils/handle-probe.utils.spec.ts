@@ -1,4 +1,8 @@
-import { handleProbeFailure, handleProbeRoute } from '#lib/utils/handle-probe.utils.ts';
+import {
+	handleProbeFailure,
+	handleProbeRoute,
+	latchesPublicProbe
+} from '#lib/utils/handle-probe.utils.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -38,5 +42,28 @@ describe('handleProbeFailure', () => {
 
 	it('reads a failure without a code as unverified', () => {
 		assert.equal(handleProbeFailure(undefined), 'unverified');
+	});
+});
+
+describe('latchesPublicProbe', () => {
+	it('latches when the API cannot run the bot check', () => {
+		assert.equal(latchesPublicProbe('turnstile_unconfigured'), true);
+	});
+
+	// Each of these can clear on a later probe, so the probe must keep trying.
+	it('leaves transient and per-request refusals unlatched', () => {
+		for (const code of [
+			'turnstile_unavailable',
+			'turnstile_failed',
+			'human_proof_required',
+			'rate_limited',
+			undefined
+		]) {
+			assert.equal(latchesPublicProbe(code), false);
+		}
+	});
+
+	it('still reads a latched refusal as unverified', () => {
+		assert.equal(handleProbeFailure('turnstile_unconfigured'), 'unverified');
 	});
 });

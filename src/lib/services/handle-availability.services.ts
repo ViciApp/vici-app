@@ -8,6 +8,7 @@ import { acquireTurnstileToken } from '#lib/services/turnstile.services.ts';
 import {
 	handleProbeFailure,
 	handleProbeRoute,
+	latchesPublicProbe,
 	type HandleProbeFailure
 } from '#lib/utils/handle-probe.utils.ts';
 import { createHumanProofCache } from '#lib/utils/human-proof-cache.utils.ts';
@@ -38,6 +39,13 @@ const proofs = createHumanProofCache({
 	marginMs: HUMAN_PROOF_RENEW_MARGIN_MS
 });
 
+// The API's refusal once it has said it cannot run the bot check at all. A
+// server without its secret stays that way until it is redeployed, so every
+// later probe in this page answers with it rather than solving Turnstile and
+// asking for a proof again, which would also spend the visitor's proof quota
+// and turn the hint into a rate limit.
+let unconfiguredRefusal: Web2ApiError | undefined;
+
 const isProofRefused = (err: unknown): boolean =>
 	err instanceof Web2ApiError && err.code === 'human_proof_required';
 
@@ -53,7 +61,9 @@ const isProofRefused = (err: unknown): boolean =>
  *
  * Throws on a network failure, a refused bot check or a rate limit
  * ({@link Web2ApiError} `rate_limited`); the caller treats any throw as
- * "could not verify", like the signed-in probe.
+ * "could not verify", like the signed-in probe. After the API answers
+ * `turnstile_unconfigured`, every later call in the page throws that refusal
+ * again without contacting Cloudflare or the API.
  */
 export const checkHandleAvailabilityPublic = async ({
 	handle,
@@ -73,21 +83,37 @@ export const checkHandleAvailabilityPublic = async ({
 		return await checkNicknameAvailability({ nickname: handle });
 	}
 
+	if (nonNullish(unconfiguredRefusal)) {
+		throw unconfiguredRefusal;
+	}
+
 	challengeHost = host;
 
 	const probe = async () =>
 		await checkNicknameAvailabilityPublicWeb2({ nickname: handle, proof: await proofs.get() });
 
+	const probeRenewingProof = async () => {
+		try {
+			return await probe();
+		} catch (err: unknown) {
+			if (!isProofRefused(err)) {
+				throw err;
+			}
+
+			proofs.invalidate();
+
+			return await probe();
+		}
+	};
+
 	try {
-		return await probe();
+		return await probeRenewingProof();
 	} catch (err: unknown) {
-		if (!isProofRefused(err)) {
-			throw err;
+		if (err instanceof Web2ApiError && latchesPublicProbe(err.code)) {
+			unconfiguredRefusal = err;
 		}
 
-		proofs.invalidate();
-
-		return await probe();
+		throw err;
 	}
 };
 

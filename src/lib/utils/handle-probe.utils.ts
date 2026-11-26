@@ -26,3 +26,10 @@ export type HandleProbeFailure = 'rate_limited' | 'unverified';
  * network error, a bot check that never resolved) is `unverified`. */
 export const handleProbeFailure = (code: string | undefined): HandleProbeFailure =>
 	code === 'rate_limited' ? 'rate_limited' : 'unverified';
+
+/** Whether a public probe failure means the API cannot run the bot check at
+ * all (no secret in production), so no later probe in the page can succeed
+ * and none should be sent. Cloudflare out of reach (`turnstile_unavailable`)
+ * is transient and does not latch. */
+export const latchesPublicProbe = (code: string | undefined): boolean =>
+	code === 'turnstile_unconfigured';
