@@ -274,6 +274,49 @@ describe.if(dbAvailable)('category fanout', () => {
 		});
 	});
 
+	test("a member's two first saves at once fan out once and keep the higher figure", async () => {
+		const {
+			leagueId,
+			userIds: [seeder, member]
+		} = await seedLeagueWithMembers(2);
+
+		if (isNullish(seeder) || isNullish(member)) {
+			throw new Error('members missing');
+		}
+
+		await upsertMyProfile({ userId: seeder, body: { nickname: uniqueNickname() } });
+		await upsertMyProfile({ userId: member, body: { nickname: uniqueNickname() } });
+		await writeCategoryStats({ userId: seeder, categoryStats: { sports: { calls: 1, wins: 0 } } });
+
+		// The member has no user_stats row yet; both saves are held on the
+		// league row until both are waiting, so they start from the same state.
+		const holder = await openTransaction();
+
+		await holder.q(`select 1 from league_stats where league_id = $1 for update`, [leagueId]);
+
+		const saves = Promise.all([
+			writeCategoryStats({ userId: member, categoryStats: { sports: { calls: 5, wins: 3 } } }),
+			writeCategoryStats({ userId: member, categoryStats: { sports: { calls: 4, wins: 2 } } })
+		]);
+
+		try {
+			await waitForLockWaiters(2);
+		} finally {
+			await holder.commit();
+		}
+
+		await saves;
+
+		expect(leagueStatsBucket({ stats: await getLeagueStats(leagueId), scope: 'sports' })).toEqual({
+			calls: 6,
+			wins: 3
+		});
+		expect((await getUserStats({ userId: member }))?.categoryStats.sports).toEqual({
+			calls: 5,
+			wins: 3
+		});
+	});
+
 	test('a drop and a rise back count once: only a new high moves the league bucket', async () => {
 		const { leagueId, userId } = await seedLeagueWithMember();
 

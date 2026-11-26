@@ -94,7 +94,8 @@ export const winsFromProfileCounters = ({
 /** Apply an aggregate `(deltaTrades, deltaWins)` increment to every league
  * the user belongs to. Runs on the caller-provided transaction. The sums
  * saturate at the `int` ceiling: a display counter that is full must never
- * fail the member's profile save that carries the increment. */
+ * fail the member's profile save that carries the increment. Rows are locked
+ * in league id order, the order the category fanout takes them too. */
 const incrementAggregate = async ({
 	q,
 	userId,
@@ -112,6 +113,7 @@ const incrementAggregate = async ({
 		`insert into league_stats (league_id, total_calls, wins, updated_at_ms)
 		 select m.league_id, $2::int, $3::int, $4::bigint
 		 from league_members m where m.member_user_id = $1
+		 order by m.league_id
 		 on conflict (league_id) do update set
 		   total_calls = least(league_stats.total_calls::bigint + excluded.total_calls, $5)::int,
 		   wins = least(league_stats.wins::bigint + excluded.wins, $5)::int,
@@ -194,8 +196,8 @@ const categoryDeltas = ({
  * counters stay owned by the profile fanout; this touches only `categories`.
  * The sum happens inside the upsert, on the row it has locked, so two members
  * saving at once both land; each bucket saturates at the `int` ceiling like
- * the aggregate. Rows are locked in league id order, so two writers sharing
- * several leagues cannot deadlock on each other.
+ * the aggregate. Rows are locked in league id order, like the aggregate
+ * fanout, so two writers sharing several leagues cannot deadlock.
  */
 export const fanoutCategoryDeltasToLeagueStats = async ({
 	q,

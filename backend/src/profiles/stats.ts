@@ -157,6 +157,14 @@ export const upsertUserStats = async ({
 	validateUserStats({ categoryStats, recentSettlements });
 
 	return await tx(async (q) => {
+		// `for update` locks nothing while the user has no row yet, so two first
+		// saves would both diff against nothing and fan the whole doc out twice.
+		// An empty row (the table defaults) gives the lock something to hold: the
+		// second first save waits here, then reads what the first one stored.
+		await q(`insert into user_stats (user_id) values ($1) on conflict (user_id) do nothing`, [
+			userId
+		]);
+
 		const beforeRows = await q<{ category_stats: Record<string, CategoryStatsBucket> }>(
 			`select category_stats from user_stats where user_id = $1 for update`,
 			[userId]
