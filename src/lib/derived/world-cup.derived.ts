@@ -41,10 +41,9 @@ export const worldCupMode: Readable<boolean> = derived(
 );
 
 /**
- * Re-export of the product's archive gate for World-Cup content. `true`
- * while the featured event is `upcoming` / `live` / `wrap-up`; `false`
- * once it has archived. Surfaced here so World-Cup consumers have a
- * single import for the whole foundation.
+ * The product's archive gate under its World-Cup name, read by the gates
+ * below. `true` while the featured event is `upcoming` / `live` /
+ * `wrap-up`; `false` once it has archived.
  */
 const worldCupNotArchived: Readable<boolean> = featuredEventActive;
 
