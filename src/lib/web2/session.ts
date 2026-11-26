@@ -91,6 +91,14 @@ export const loadWeb2Session = async (): Promise<Web2Me | undefined> => {
 export const getWeb2User = (): Web2Me | undefined => get(store).user;
 
 /**
+ * Whether the session store is still on `owner`. Work started for an account
+ * checks it when it resolves: the session can move to another account (or
+ * sign out) while a read is in flight, and a late result for the old account
+ * must not land in the app shell of the new one.
+ */
+export const isWeb2SessionOwner = (owner: string): boolean => getWeb2User()?.id === owner;
+
+/**
  * Adopt a session from a login response. The OTP verify route returns the
  * `/me` body alongside the freshly set cookie, so the store can be seeded
  * without a second probe.

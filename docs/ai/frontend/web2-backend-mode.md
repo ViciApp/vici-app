@@ -318,7 +318,10 @@ a minimal `User` (`key` / `owner` = account id), reads the profile via
 `loadWeb2ProfileShell` (the default shell with `profileExisted: false` for a
 brand-new account, so the onboarding drain runs identically), and sets
 `userStore`. Sign-out and the signed-out steady state clear it, so the shell
-never hangs on `authBusy`. This lives in `Authn.svelte` because it is the
+never hangs on `authBusy`. A hydration writes only while
+`isWeb2SessionOwner(me.id)` still holds when its profile read resolves: a
+slow read for an account the session has since left (another tab signed in,
+or a sign-out) is dropped instead of overwriting the newer shell. This lives in `Authn.svelte` because it is the
 sanctioned identity-layer exception; no other component gains a branch.
 
 ### Still on-chain in this domain

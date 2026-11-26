@@ -2,7 +2,9 @@ import { getMyProfile, verifyOtp, Web2ApiError, type Web2Me } from '#lib/web2/cl
 import {
 	adoptWeb2Session,
 	assertWeb2SessionOwner,
+	clearWeb2Session,
 	getWeb2User,
+	isWeb2SessionOwner,
 	watchWeb2Session,
 	Web2SessionChangedError
 } from '#lib/web2/session.ts';
@@ -88,6 +90,27 @@ describe('web2 session', () => {
 			await assert.rejects(assertWeb2SessionOwner(ACCOUNT_A.id), Web2SessionChangedError);
 
 			assert.equal(getWeb2User()?.id, ACCOUNT_B.id);
+		});
+	});
+
+	describe('isWeb2SessionOwner', () => {
+		it('holds while the session stays on the account', () => {
+			assert.equal(isWeb2SessionOwner(ACCOUNT_A.id), true);
+		});
+
+		it('drops once the session moves to another account', () => {
+			adoptWeb2Session(ACCOUNT_B);
+
+			assert.equal(isWeb2SessionOwner(ACCOUNT_A.id), false);
+			assert.equal(isWeb2SessionOwner(ACCOUNT_B.id), true);
+		});
+
+		it('drops once the session signs out', async () => {
+			stubApi({ refuse: { status: 200, body: { ok: true } } });
+
+			await clearWeb2Session();
+
+			assert.equal(isWeb2SessionOwner(ACCOUNT_A.id), false);
 		});
 	});
 
