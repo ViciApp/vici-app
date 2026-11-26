@@ -3,9 +3,10 @@
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { displayMarkets } from '#lib/stores/market-translations.store.ts';
-	import type { Transaction, TransactionType } from '#lib/types/wallet.ts';
+	import type { Transaction } from '#lib/types/wallet.ts';
 	import { formatNanosecondsToDate, formatToken } from '#lib/utils/format.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { isSettlementLoss } from '#lib/utils/transactions.utils.ts';
 
 	interface Props {
 		transactions: Transaction[];
@@ -18,8 +19,12 @@
 	 * credits, `neutral` is informational (orders/approvals) and stays
 	 * uncoloured so it doesn't visually compete with realized moves.
 	 */
-	const directionFor = (type: TransactionType): 'in' | 'out' | 'neutral' => {
-		switch (type) {
+	const directionFor = (tx: Transaction): 'in' | 'out' | 'neutral' => {
+		if (isSettlementLoss(tx)) {
+			return 'out';
+		}
+
+		switch (tx.type) {
 			case 'Receive':
 			case 'Mint':
 			case 'CollateralWithdraw':
@@ -75,8 +80,9 @@
 				</tr>
 			</thead>
 			<tbody class="divide-border/50 divide-y">
-				{#each transactions as { id, timestamp, type, token, amount, marketId, counterparty, source } (`${id}-${token.symbol}`)}
-					{@const direction = directionFor(type)}
+				{#each transactions as tx (`${tx.id}-${tx.token.symbol}`)}
+					{@const { timestamp, type, token, amount, marketId, counterparty, source } = tx}
+					{@const direction = directionFor(tx)}
 
 					<tr class="hover:bg-foreground/5 transition-colors">
 						<td class="text-muted-foreground px-4 py-3">
