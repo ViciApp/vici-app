@@ -3,8 +3,12 @@
 
 version: 2
 updates:
+  # `/` covers only `.github/workflows`; the composite actions under
+  # `.github/actions/` pin their own actions and are scanned only when listed.
   - package-ecosystem: 'github-actions'
-    directory: '/'
+    directories:
+      - '/'
+      - '/.github/actions/*'
     schedule:
       interval: monthly
     commit-message:
