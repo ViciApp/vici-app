@@ -619,8 +619,8 @@ is the canonical sign-in / sign-up visual:
   Identity's OpenID flow) and Internet Identity are built but flagged
   off. The web2 build renders
   [`SignInProviderStackWeb2.svelte`](../../../src/lib/components/authn/SignInProviderStackWeb2.svelte)
-  instead: email one-time code and Google, with Apple shown as coming
-  soon.
+  instead: email one-time code and Google, with Apple and Passkey shown
+  as disabled coming-soon buttons.
 - Footer switcher between sign-in and sign-up modes.
 - Legal fineprint at the bottom of the page (terms, privacy,
   play-money preview disclaimer).
