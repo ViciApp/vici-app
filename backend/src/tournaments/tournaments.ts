@@ -9,9 +9,9 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
-import { parsedPrincipal, settlementPrincipalsByUser } from '../auth/identity';
+import { settledTotalsByUser, settlementPrincipalsByUser } from '../auth/identity';
 import { query, tx, type TxQuery } from '../db/client';
-import { settledTotals, settledTotalsByPrincipal } from '../engine/clearing';
+import { settledTotals } from '../engine/clearing';
 import { leagueMemberPrincipals } from '../leagues/members';
 import { logger } from '../lib/logger';
 import { DAY_IN_MS, MONTH_ANCHOR_RE, monthAnchorFromMs, monthStartMs } from '../lib/time';
@@ -221,19 +221,14 @@ const seedingActiveMembers = async (monthAnchor: string): Promise<string[]> => {
 	const rows = await query<{ member_user_id: string }>(
 		`select distinct m.member_user_id from league_members m join leagues l on l.id = m.league_id`
 	);
-	const principalsByUser = await settlementPrincipalsByUser(
-		rows.map(({ member_user_id }) => member_user_id)
-	);
 	const toMs = monthStartMs(monthAnchor);
-	const settled = await settledTotalsByPrincipal({
-		members: [...principalsByUser.values()].flat().map(parsedPrincipal).filter(nonNullish),
+	const settled = await settledTotalsByUser({
+		userIds: rows.map(({ member_user_id }) => member_user_id),
 		fromMs: monthStartMs(monthAnchorFromMs(toMs - 1)),
 		toMs
 	});
 
-	return [...principalsByUser]
-		.filter(([, principals]) => principals.some((text) => (settled.get(text)?.calls ?? 0) > 0))
-		.map(([userId]) => userId);
+	return [...settled].filter(([, { calls }]) => calls > 0).map(([userId]) => userId);
 };
 
 /**

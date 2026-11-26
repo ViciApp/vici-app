@@ -222,7 +222,7 @@ export const settlementPrincipalsByUser = async (
 /** A stored principal text as a principal, or nothing when it does not parse:
  * nothing can settle under it, and one unreadable row must not fail a read
  * that spans every account (the tournament draw, the global leaderboard). */
-export const parsedPrincipal = (text: string): Principal | undefined => {
+const parsedPrincipal = (text: string): Principal | undefined => {
 	try {
 		return Principal.fromText(text);
 	} catch {
