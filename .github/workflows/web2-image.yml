@@ -89,14 +89,17 @@ jobs:
           # not-yet-ready container resets rather than refuses: retry any error.
           curl --silent --show-error --fail --retry 15 --retry-all-errors --retry-delay 1 --output /dev/null "$base/"
 
-          expect_200() {
+          expect_status() {
             local status
             status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$base$1")
-            if [[ "$status" != "200" ]]; then
-              echo "::error::GET $1 returned $status, expected 200"
+            if [[ "$status" != "$2" ]]; then
+              echo "::error::GET $1 returned $status, expected $2"
               exit 1
             fi
-            echo "GET $1 -> 200"
+            echo "GET $1 -> $2"
+          }
+          expect_200() {
+            expect_status "$1" 200
           }
 
           expect_200 /
@@ -127,11 +130,14 @@ jobs:
             echo "::error::No JS file under /_app/immutable in the image"
             exit 1
           fi
+          # A miss under /_app/immutable/ must 404, not fall back to the shell.
+          expect_status /_app/immutable/missing.js 404
           for path in / /flow /index.html "/$immutable_asset" /_app/immutable/missing.js; do
             expect_security_headers "$path"
           done
           expect_header / Cache-Control 'no-cache, no-store, must-revalidate'
           expect_header /flow Cache-Control 'no-cache, no-store, must-revalidate'
+          expect_header /index.html Cache-Control 'no-cache, no-store, must-revalidate'
           expect_header "/$immutable_asset" Cache-Control 'public, max-age=31536000, immutable'
 
           # Globbed so a rotated Search Console token needs no workflow edit.
