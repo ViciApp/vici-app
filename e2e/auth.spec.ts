@@ -29,7 +29,7 @@ test.describe('authentication (dev sign-in)', () => {
 
 		await expect(home.marketFeed).toBeVisible();
 
-		await page.waitForLoadState('networkidle');
+		await home.waitForMarketsLoaded();
 
 		await home.stabilizeForSnapshot();
 

@@ -421,6 +421,13 @@ await expect(page).toHaveScreenshot('homepage-logged-in.png', {
 If you add a new wall-clock-relative element, extend
 `stabilizeForSnapshot` there rather than reaching for another `mask`.
 
+Before stabilizing, wait for the page's content, never on a bare
+`networkidle`: a signed-in page's background polls can keep the network
+from ever going idle, and the wait then hangs until the test timeout.
+`home.waitForMarketsLoaded()` covers the markets board and
+`home.waitForRenderSettled()` any other page. A `networkidle` wait that
+stays is bounded and its timeout swallowed, as in `navigation.spec.ts`.
+
 `stabilizeForSnapshot` also dismisses any Menagerie trophy reveal on
 screen, but that one-shot pass is only a guard: it cannot catch a reveal
 that mounts after it. The dev principal is the only profile on the
