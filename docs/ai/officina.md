@@ -31,8 +31,8 @@ on this repo that approval only satisfies the ruleset when it comes from a code 
    decision stops the work with a question rather than a guess.
 3. **Approval.** A person approves the spec, in every lane. Who that is depends on the lane (below).
 4. **Build.** An agent implements the approved spec on `officina/task-<number>`, runs the `verify`
-   commands from the config (`npm run quality`, `npm run check`, `npm test` and the backend
-   typecheck), and pushes. Officina then reads the real diff from GitHub and opens the pull request.
+   commands from the config (`npm run quality`, `npm run check`, `npm test`, the backend
+   typecheck and the backend `bun test`), and pushes. Officina then reads the real diff from GitHub and opens the pull request.
 5. **Review.** Two agents review independently: one checks the diff against the spec, one checks
    correctness and conventions. Neither wrote the code. Copilot reviews the pull request too.
 6. **Check and merge.** A checklist says what to look at. A person checks the result, unless the
