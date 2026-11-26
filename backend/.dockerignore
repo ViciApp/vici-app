@@ -18,3 +18,7 @@ node_modules/
 # deployed machine.
 tests/
 scripts/
+
+# ETL snapshots (`etl:export -- ./etl-export`, `./etl-export-delta`) hold
+# legacy user data and live next to scripts/ in a checkout.
+etl-export*/
