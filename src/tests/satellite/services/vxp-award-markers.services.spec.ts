@@ -92,11 +92,13 @@ describe('a deleted account cannot collect its one-time awards again', () => {
 			owner: Principal.fromText(doc.recipient)
 		});
 
-	const purge = (principal: Principal) =>
-		hardDeleteAccountFn({
-			callerText: principal.toText(),
-			callerBytes: principal.toUint8Array()
-		});
+	const purge = (principal: Principal) => {
+		const args = { callerText: principal.toText(), callerBytes: principal.toUint8Array() };
+
+		while (hardDeleteAccountFn(args).pending) {
+			// The purge writes a bounded batch per call: call again until done.
+		}
+	};
 
 	const createAward = (doc: VxpAwardDoc) =>
 		assertSetVxpAward(

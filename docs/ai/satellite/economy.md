@@ -79,7 +79,7 @@ one pattern. Each of these has bitten a PR before:
   the account was paid (every type but `REPEATABLE_VXP_AWARD_TYPES`, in
   `vxp_awards` as `paid` or `pending`, and each onboarding milestone
   `paid` or `processing`) into the controllers-scoped `vxp_award_markers`
-  collection (`recordAccountAwardMarkers` in
+  collection (`missingAccountAwardMarkers` in
   [`vxp-award-markers.services.ts`](../../../src/satellite/services/vxp-award-markers.services.ts)).
   A marker key is a SHA-224 digest of the principal plus the award type
   and key, with no data. `assertSetVxpAward` refuses a new award doc

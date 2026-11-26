@@ -1185,12 +1185,15 @@ export const deleteMyAccount = defineUpdate({
 // Account recovery (Delete account v2). Clears the caller's own
 // `deletedAtMs` when still inside the recovery window; a no-op for an
 // account that isn't soft-deleted; hard-deletes + refuses with
-// `reason: 'expired'` when the window has elapsed.
+// `reason: 'expired'` when the window has elapsed. The purge writes a
+// bounded batch per call: `pending` means more is left and the FE calls
+// again until it is false.
 export const recoverMyAccount = defineUpdate({
 	result: j.strictObject({
 		ok: j.boolean(),
 		recovered: j.optional(j.boolean()),
-		reason: j.optional(j.enum(['expired']))
+		reason: j.optional(j.enum(['expired'])),
+		pending: j.optional(j.boolean())
 	}),
 	handler: recoverMyAccountFn
 });
@@ -1227,8 +1230,9 @@ export const resumeMyAccount = defineUpdate({
 
 // Admin sweep (Delete account v2). Hard-deletes soft-deleted accounts
 // whose recovery window has elapsed, walking `profiles` one keyset page
-// and at most one purge per call to stay inside the update instruction
-// limit: pass the returned `nextAfterKey` back as `afterKey` until `done`.
+// and one bounded purge batch of a single account per call to stay inside
+// the update instruction limit (an account with more left keeps the cursor
+// before it): pass the returned `nextAfterKey` back as `afterKey` until `done`.
 // `failed` counts purges that failed (logged); the walk moves past them.
 // Admin-guarded; Juno has no scheduler so this is triggered externally
 // (admin/cron).

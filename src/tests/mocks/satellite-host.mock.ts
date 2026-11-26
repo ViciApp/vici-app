@@ -205,6 +205,13 @@ interface CanisterMethod {
 	handler: (args: unknown[]) => unknown;
 }
 
+/** One `setDocStore` / `deleteDocStore` the host applied. */
+export interface HostWrite {
+	op: 'set' | 'delete';
+	collection: string;
+	key: string;
+}
+
 /** The installed host. */
 export interface SatelliteHost {
 	/** The principal `msgCaller()` returns ({@link controller} until set). */
@@ -228,6 +235,8 @@ export interface SatelliteHost {
 	onCall: ({ method, argTypes, result, handler }: CanisterMethod & { method: string }) => void;
 	/** Every canister method called, in order. */
 	calls: () => string[];
+	/** Every serverless write that went through, in order. */
+	writes: () => HostWrite[];
 	/** Remove every global the host defined. */
 	restore: () => void;
 }
@@ -312,6 +321,7 @@ export const installSatelliteHost = ({
 	const collections = new Map<string, Map<string, StoredDoc>>();
 	const methods = new Map<string, CanisterMethod>();
 	const called: string[] = [];
+	const written: HostWrite[] = [];
 	let caller = controller;
 	let nowNs = BigInt(hostNowMs) * MILLISECOND_IN_NANOSECONDS;
 
@@ -444,6 +454,7 @@ export const installSatelliteHost = ({
 			};
 
 			collection(name).set(key, after);
+			written.push({ op: 'set', collection: name, key });
 
 			return {
 				key,
@@ -480,6 +491,7 @@ export const installSatelliteHost = ({
 			}
 
 			collection(name).delete(key);
+			written.push({ op: 'delete', collection: name, key });
 
 			return isNullish(before) ? undefined : toDoc(before);
 		},
@@ -539,6 +551,7 @@ export const installSatelliteHost = ({
 			methods.set(method, { argTypes, result, handler });
 		},
 		calls: () => [...called],
+		writes: () => [...written],
 		restore: () => {
 			for (const name of Object.keys(globals)) {
 				Reflect.deleteProperty(globalThis, name);

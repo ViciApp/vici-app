@@ -1102,6 +1102,7 @@ export interface AppRecordFlowSwipeResult {
 export interface AppRecoverMyAccountResult {
 	ok: boolean;
 	recovered: [] | [boolean];
+	pending: [] | [boolean];
 	reason: [] | [{ expired: null }];
 }
 export interface AppRedeemReferralCodeArgs {

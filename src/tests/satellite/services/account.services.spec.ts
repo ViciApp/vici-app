@@ -84,9 +84,17 @@ describe('account.services', () => {
 
 	afterEach(() => host.restore());
 
+	const purgeArgs = { callerText: purgedText, callerBytes: purged.toUint8Array() };
+
+	const purgeUntilDone = () => {
+		while (hardDeleteAccountFn(purgeArgs).pending) {
+			// The purge writes a bounded batch per call: call again until done.
+		}
+	};
+
 	describe('hardDeleteAccountFn', () => {
 		it("removes the account's stats, results, school submissions and reactions, and only those", () => {
-			hardDeleteAccountFn({ callerText: purgedText, callerBytes: purged.toUint8Array() });
+			purgeUntilDone();
 
 			assert.deepEqual(host.keys(Collection.USER_STATS), [otherText]);
 			assert.deepEqual(host.keys(Collection.USER_MONTHLY_STATS), [`${otherText}/2026-10`]);
@@ -118,17 +126,18 @@ describe('account.services', () => {
 				});
 			}
 
-			hardDeleteAccountFn({ callerText: purgedText, callerBytes: purged.toUint8Array() });
+			purgeUntilDone();
 
 			assert.deepEqual(host.keys(Collection.REFERRAL_CODES), ['OTHER234']);
 		});
 
-		it('changes nothing when run twice', () => {
-			const args = { callerText: purgedText, callerBytes: purged.toUint8Array() };
+		it('changes nothing when run again once done', () => {
+			purgeUntilDone();
 
-			hardDeleteAccountFn(args);
+			const before = host.writes().length;
 
-			assert.equal(hardDeleteAccountFn(args), 0);
+			assert.deepEqual(hardDeleteAccountFn(purgeArgs), { deleted: 0, pending: false });
+			assert.equal(host.writes().length, before);
 			assert.equal(
 				host.readDoc<{ count: number }>({
 					collection: Collection.ACTIVITY_REACTION_COUNTS,
@@ -324,6 +333,8 @@ describe('account.services', () => {
 			const calls = sweepUntilDone();
 
 			assert.ok(calls.every(({ swept }) => swept <= 1));
+			// The purged account's likes take it past one batch: a call carried it on.
+			assert.ok(calls.some(({ swept, failed, done }) => swept + failed === 0 && !done));
 			assert.equal(
 				calls.reduce((sum, { swept }) => sum + swept, 0),
 				2
@@ -340,12 +351,13 @@ describe('account.services', () => {
 		});
 
 		it('reads one page of `limit` profiles per call', () => {
-			const [firstKey] = host.keys(Collection.PROFILES).sort();
+			const [, laterExpiredKey] = [purgedText, otherText].sort();
 
 			const first = sweepExpiredDeletionsFn({ limit: 1 });
 
 			assert.equal(first.done, false);
-			assert.equal(host.keys(Collection.PROFILES).length, firstKey === third ? 3 : 2);
+			assert.ok(nonNullish(laterExpiredKey));
+			assert.ok(host.keys(Collection.USER_STATS).includes(laterExpiredKey));
 		});
 
 		it('reports a failed purge apart from completion and walks past it', () => {
@@ -377,7 +389,15 @@ describe('account.services', () => {
 		});
 
 		it('starts from the first profile again when the cursor was removed', () => {
-			assert.equal(sweepExpiredDeletionsFn({ afterKey: 'aaaaa-gone' }).swept, 1);
+			let answer = sweepExpiredDeletionsFn({ afterKey: 'aaaaa-gone' });
+
+			for (let calls = 1; answer.swept === 0; calls += 1) {
+				assert.ok(calls < 10, 'the purge ends');
+
+				answer = sweepExpiredDeletionsFn({ afterKey: 'aaaaa-gone' });
+			}
+
+			assert.equal(answer.swept, 1);
 		});
 
 		it('refuses a caller who is not an admin', () => {

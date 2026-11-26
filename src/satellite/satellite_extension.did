@@ -191,7 +191,7 @@ type AppRecordFlowSwipeArgs = record { day_key : text };
 
 type AppRecordFlowSwipeResult = record { daily_goal_done : float64; daily_goal_date : text; cap_reached : bool };
 
-type AppRecoverMyAccountResult = record { ok : bool; recovered : opt bool; reason : opt variant { expired } };
+type AppRecoverMyAccountResult = record { ok : bool; recovered : opt bool; reason : opt variant { expired }; pending : opt bool };
 
 type AppRedeemReferralCodeArgs = record { code : text };
 

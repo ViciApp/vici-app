@@ -176,7 +176,11 @@ describe('league invite attempts', () => {
 			missUpToTheCap(joiner);
 			missUpToTheCap(other);
 
-			hardDeleteAccountFn({ callerText: joiner.toText(), callerBytes: joiner.toUint8Array() });
+			const args = { callerText: joiner.toText(), callerBytes: joiner.toUint8Array() };
+
+			while (hardDeleteAccountFn(args).pending) {
+				// The purge writes a bounded batch per call: call again until done.
+			}
 
 			assert.deepEqual(host.keys(Collection.LEAGUE_INVITE_ATTEMPTS), [other.toText()]);
 		});
