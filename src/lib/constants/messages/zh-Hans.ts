@@ -1629,6 +1629,7 @@ export const zhHansMessages = {
 	'onboarding.avail.too_long': '太长：最多 16 个字符',
 	'onboarding.avail.reserved': '已保留，请换一个',
 	'onboarding.avail.check_failed': '无法验证，请尝试认领',
+	'onboarding.avail.rate_limited': '检查过于频繁，请尝试认领',
 	'onboarding.reward_title': '{amount} VXP 新手礼包',
 	'onboarding.reward_sub': '预测 {event}',
 	'onboarding.lock_ready': '正在锁定 @{handle}',

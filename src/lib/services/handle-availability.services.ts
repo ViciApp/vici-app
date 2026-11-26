@@ -2,8 +2,14 @@ import {
 	HUMAN_PROOF_RENEW_MARGIN_MS,
 	TURNSTILE_ACTION_HANDLE_CHECK
 } from '#lib/constants/turnstile.constants.ts';
+import { isSignedIn } from '#lib/services/identity.services.ts';
 import { checkNicknameAvailability } from '#lib/services/profile.services.ts';
 import { acquireTurnstileToken } from '#lib/services/turnstile.services.ts';
+import {
+	handleProbeFailure,
+	handleProbeRoute,
+	type HandleProbeFailure
+} from '#lib/utils/handle-probe.utils.ts';
 import { createHumanProofCache } from '#lib/utils/human-proof-cache.utils.ts';
 import { nicknameFormatIssue, type NicknameFormatIssue } from '#lib/utils/nickname.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
@@ -84,3 +90,34 @@ export const checkHandleAvailabilityPublic = async ({
 		return await probe();
 	}
 };
+
+/**
+ * The live probe of a handle picker that serves both signed-in users and
+ * visitors before sign-up. A signed-in user (and every caller on the default
+ * backend) gets {@link checkNicknameAvailability}; a signed-out visitor in
+ * web2 mode gets {@link checkHandleAvailabilityPublic}, whose proof is cached
+ * across calls. Neither answer is the final word: whoever claims the handle
+ * re-checks it with the session probe once signed in.
+ *
+ * Throws like the probe it routes to; read the error with
+ * {@link handleProbeFailureOf}.
+ */
+export const checkHandleAvailability = async ({
+	handle
+}: {
+	handle: string;
+}): Promise<{ available: boolean }> => {
+	const web2Backend = isWeb2Backend();
+	const route = handleProbeRoute({
+		web2Backend,
+		signedIn: web2Backend && (await isSignedIn())
+	});
+
+	return route === 'public'
+		? await checkHandleAvailabilityPublic({ handle })
+		: await checkNicknameAvailability({ nickname: handle });
+};
+
+/** What a throw from {@link checkHandleAvailability} means to the picker. */
+export const handleProbeFailureOf = (err: unknown): HandleProbeFailure =>
+	handleProbeFailure(err instanceof Web2ApiError ? err.code : undefined);

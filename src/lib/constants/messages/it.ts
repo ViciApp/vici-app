@@ -1715,6 +1715,7 @@ export const itMessages = {
 	'onboarding.avail.too_long': 'Troppo lungo: massimo 16 caratteri',
 	'onboarding.avail.reserved': 'Riservato: scegline un altro',
 	'onboarding.avail.check_failed': 'Impossibile verificare: prova a confermare',
+	'onboarding.avail.rate_limited': 'Troppe verifiche: prova a confermare',
 	'onboarding.reward_title': 'Pacchetto iniziale da {amount} VXP',
 	'onboarding.reward_sub': 'Pronostica {event}',
 	'onboarding.lock_ready': 'Blocco @{handle}',
