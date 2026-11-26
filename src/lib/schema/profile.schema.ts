@@ -67,8 +67,8 @@ export const UserProfileSchema = j.strictObject({
 	archetype: j.string().default(''),
 	interests: j.array(j.string()).default([]),
 	lastActiveDay: j.string().optional(),
-	// Soft-delete marker (Delete account v2). PRESENCE = the account is
-	// soft-deleted (the wall-clock ms at which `deleteMyAccount` ran);
+	// Soft-delete marker. PRESENCE = the account is soft-deleted (the
+	// wall-clock ms at which `deleteMyAccount` ran);
 	// ABSENCE = an active account. Intentionally `optional()` with NO
 	// default: a default would force every legacy/active row to look
 	// soft-deleted, and absence is the meaningful "still active" state.
@@ -76,9 +76,9 @@ export const UserProfileSchema = j.strictObject({
 	// it; past the window the admin sweep hard-deletes the account. Mirror
 	// any change here in `src/satellite/api-schemas.ts`.
 	deletedAtMs: j.number().optional(),
-	// Hibernation marker (Delete account v2, the reversible sibling of
-	// soft-delete). PRESENCE = the account is hibernated (the wall-clock ms
-	// at which `hibernateMyAccount` ran); ABSENCE = an active account. Like
+	// Hibernation marker (the reversible sibling of soft-delete).
+	// PRESENCE = the account is hibernated (the wall-clock ms at which
+	// `hibernateMyAccount` ran); ABSENCE = an active account. Like
 	// `deletedAtMs` it's intentionally `optional()` with NO default:
 	// absence is the meaningful "active" state. Hibernation is fully
 	// reversible (no data is ever removed): stats freeze (the account is
