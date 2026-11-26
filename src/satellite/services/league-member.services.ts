@@ -38,7 +38,8 @@ import { decodeDocData, getDocStore, listDocsStore } from '@junobuild/functions/
  *
  *  3. **Identity fields are immutable.** `leagueId`, `member`, and
  *     `joinedAtMs` are write-once. Only `role` can change after the
- *     initial join, and only by the league owner.
+ *     initial join, and only by the league owner; the owner's own row
+ *     keeps `owner` (the ownership transfer is the only way it moves).
  *
  *  4. **Role validation.** Must be one of `owner | admin | member`.
  *     `owner` rows are written at league creation (one per league);
@@ -123,6 +124,12 @@ export const assertSetLeagueMember = ({
 		throw new Error('league_members role="owner" is reserved for the league owner principal.');
 	}
 
+	// The owner row is what keeps the owner in their own roster: only the
+	// satellite's ownership transfer moves the role, with the league doc.
+	if (proposedDoc.member === league.owner && proposedDoc.role !== 'owner' && !callerIsController) {
+		throw new Error('league_members owner row keeps role="owner" (transfer ownership first).');
+	}
+
 	// Creation path: the owner's own row at league creation (the
 	// reserved-owner check above already ties an `owner` row to the league
 	// owner), or a plain member added by the satellite once
@@ -165,7 +172,8 @@ export const assertSetLeagueMember = ({
  *
  *  1. **Owner cannot be removed.** A league always has an owner: even
  *     transferring ownership is a *role change* on the rows, not a
- *     delete-then-recreate. Deleting the owner row would orphan the
+ *     delete-then-recreate. Deleting the owner row (the row of the
+ *     league doc's `owner`, whatever role it carries) would orphan the
  *     league.
  *
  *  2. **Self-leave OR owner-kick.** Either the member themselves
@@ -207,11 +215,6 @@ export const assertDeleteLeagueMember = ({
 
 	const currentDoc = decodeDocData<LeagueMemberDoc>(current.data);
 
-	// 1. Owner cannot be removed.
-	if (currentDoc.role === 'owner') {
-		throw new Error('league_members owner row cannot be deleted (transfer ownership first).');
-	}
-
 	const leagueDoc = getDocStore({
 		collection: Collection.LEAGUES,
 		key: currentDoc.leagueId,
@@ -225,6 +228,13 @@ export const assertDeleteLeagueMember = ({
 	}
 
 	const league = decodeDocData<LeagueDoc>(leagueDoc.data);
+
+	// 1. Owner cannot be removed: keyed on the league doc, not on the row's
+	// role, so a row left with another role still cannot be dropped.
+	if (currentDoc.member === league.owner) {
+		throw new Error('league_members owner row cannot be deleted (transfer ownership first).');
+	}
+
 	const callerText = Principal.fromUint8Array(caller).toText();
 	const callerIsSelf = currentDoc.member === callerText;
 	const callerIsOwner = league.owner === callerText;
