@@ -3,8 +3,9 @@
 
 version: 2
 updates:
-  # `/` covers only `.github/workflows`; the composite actions under
-  # `.github/actions/` pin their own actions and are scanned only when listed.
+  # `/` covers `.github/workflows` and a root `action.yml` only; the composite
+  # actions under `.github/actions/` pin their own actions and are scanned only
+  # when listed.
   - package-ecosystem: 'github-actions'
     directories:
       - '/'
