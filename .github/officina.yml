@@ -137,6 +137,8 @@ lanes:
       - 'backend/src/routes/tournaments.ts'
       - 'backend/src/routes/worlds.ts'
       - 'backend/src/routes/referrals.ts'
+      - 'backend/src/profiles/flow.ts'
+      - 'backend/src/leagues/leagues.ts'
       # Session, key and abuse-protection primitives
       - 'backend/src/lib/cookie.ts'
       - 'backend/src/lib/crypto.ts'

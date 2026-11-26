@@ -112,6 +112,7 @@ row added or removed here changes that list in the same PR.
 | `backend/src/{tournaments,worlds}/**`                                  | Tournament and Worlds podium prizes: who is paid, and how much.                   | repo maintainers |
 | `backend/src/routes/{tournaments,worlds}.ts`                           | The prize claims of those two domains.                                            | repo maintainers |
 | `backend/src/routes/{profiles,leagues,referrals}.ts`                   | Routes that fire VXP awards, settle founder awards or redeem referrals.           | repo maintainers |
+| `backend/src/profiles/flow.ts`, `backend/src/leagues/leagues.ts`       | The Flow daily cap and league member count that gate overtime and founder VXP.    | repo maintainers |
 | `backend/src/lib/{cookie,crypto,keys,rate-limit,email,ic-agent}.ts`    | Session, key, abuse-protection, email and IC identity primitives.                 | repo maintainers |
 | `backend/src/lib/same-origin.ts`                                       | The CSRF guard every write passes.                                                | repo maintainers |
 | `backend/src/declarations/**`                                          | **Generated** Candid bindings for the backend. Regenerate, never hand-edit.       | repo maintainers |
