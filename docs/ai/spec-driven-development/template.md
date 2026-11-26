@@ -32,7 +32,7 @@ Status: Draft
 
 <!-- Required analysis for every spec: the default is to instrument (see workflow.md § Required content for every spec).
 - Propose the events + dimensional props; reuse names from src/lib/types/analytics-event.ts where one fits.
-- A new event name goes in the TS union (src/lib/types/analytics-event.ts), the Zod mirror (src/lib/schema/analytics-event.schema.ts) AND the API's ANALYTICS_EVENT_NAMES (backend/src/analytics/taxonomy.ts), with the satellite declarations regenerated; capture via track() in src/lib/services/analytics.services.ts.
+- A new event name goes in the TS union (src/lib/types/analytics-event.ts), the Zod mirror (src/lib/schema/analytics-event.schema.ts) AND the API's ANALYTICS_EVENT_NAMES (backend/src/analytics/taxonomy.ts), with the satellite declarations regenerated and src/declarations/satellite/{satellite.did.d.ts,satellite.factory.did.js} copied into backend/src/declarations/satellite/ (AGENTS.md rule 9); capture via track() in src/lib/services/analytics.services.ts.
 - Behavioural data only: bounded prop vocabularies, no free-form text, no PII.
 - If no analytics are warranted, keep this section and state why. -->
 
