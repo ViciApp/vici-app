@@ -109,7 +109,11 @@ row added or removed here changes that list in the same PR.
 | `backend/src/env.ts`                                                   | Validated environment and secrets.                                                | repo maintainers |
 | `backend/src/routes/{auth,account,admin,claim,engine,vxp,wallet}.ts`   | Routes that issue sessions, move value or expose admin surfaces.                  | repo maintainers |
 | `backend/src/routes/{events,markets,school,social}.ts`                 | Public routes that also serve `requireAdmin` endpoints.                           | repo maintainers |
+| `backend/src/{tournaments,worlds}/**`                                  | Tournament and Worlds podium prizes: who is paid, and how much.                   | repo maintainers |
+| `backend/src/routes/{tournaments,worlds}.ts`                           | The prize claims of those two domains.                                            | repo maintainers |
+| `backend/src/routes/{profiles,leagues,referrals}.ts`                   | Routes that fire VXP awards, settle founder awards or redeem referrals.           | repo maintainers |
 | `backend/src/lib/{cookie,crypto,keys,rate-limit,email,ic-agent}.ts`    | Session, key, abuse-protection, email and IC identity primitives.                 | repo maintainers |
+| `backend/src/lib/same-origin.ts`                                       | The CSRF guard every write passes.                                                | repo maintainers |
 | `backend/src/declarations/**`                                          | **Generated** Candid bindings for the backend. Regenerate, never hand-edit.       | repo maintainers |
 | `backend/scripts/etl/**`, `backend/e2e/**`                             | Legacy data migration; test-only server with fake engine and seed.                | repo maintainers |
 | `static/workers/**`                                                    | Synced from `@junobuild/core` by `npm run postinstall`. Don't hand-edit.          | -                |
