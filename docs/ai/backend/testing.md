@@ -19,6 +19,7 @@ Paths are under `backend/`.
 | `adoption.ts`    | `seedImportedAccount`, `linkOf`, `claimPendingOf`, `userCount`                                                                                  |
 | `vxp.ts`         | `stubVxpLedger`, `readAwardRow`, `accountStateWithEquity` (a clearing account-state answer for the holdings gates)                              |
 | `settlements.ts` | `stubSettledHistory`: a clearing stub answering `aggregate_settlement_accuracy` from recorded settlements, honouring the members and the window |
+| `challenges.ts`  | `installChallengeEngine` (fake engine and VXP ledger), `fill`, `newSeries`, `player`, `call`, `create`, `readBody`, `relationOf`                |
 | `custody.ts`     | `userChainBalance` (a user's internal balance on an asset's chain, inside the caller's transaction)                                             |
 | `repo-source.ts` | `readRepoFile`, `readRepoSource`, `importRepoModule`, `extract*` literal extractors for the shared-drift suite                                  |
 
