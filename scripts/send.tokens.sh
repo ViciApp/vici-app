@@ -27,8 +27,22 @@ if [[ ${#args[@]} -ge 1 ]]; then
     PRINCIPAL=${args[0]}
 fi
 
+# The principal goes into a Candid literal, so anything but the textual
+# principal form would change the call rather than fail it.
+if [[ ! "$PRINCIPAL" =~ ^([a-z2-7]{5}-)*[a-z2-7]{1,5}$ ]]; then
+    echo "Error: '$PRINCIPAL' is not a textual principal." >&2
+    exit 1
+fi
+
 if [[ ${#args[@]} -ge 2 ]]; then
-    CKUSDC_AMOUNT=$(echo "${args[1]} * 1000000" | bc)
+    if [[ ! "${args[1]}" =~ ^[0-9]+(\.[0-9]{1,6})?$ ]]; then
+        echo "Error: amount '${args[1]}' must be ckUSDC with at most 6 decimals." >&2
+        exit 1
+    fi
+
+    # `/ 1` at scale 0 drops the fraction bc keeps from the operand
+    # (30.5 * 1000000 is 30500000.0), which a Candid nat rejects.
+    CKUSDC_AMOUNT=$(echo "${args[1]} * 1000000 / 1" | bc)
 fi
 
 echo "Sending $CKUSDC_AMOUNT to $PRINCIPAL on $NETWORK..."
