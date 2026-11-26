@@ -1,4 +1,5 @@
 import { CLAIM_HANDOFF_ENABLED, CLAIM_PORTAL_URL } from '#lib/constants/claim.constants.ts';
+import { openDeferredTab } from '#lib/services/deferred-tab.services.ts';
 import { getIdentity } from '#lib/services/identity.services.ts';
 import {
 	bytesToBase64Url,
@@ -14,7 +15,7 @@ import {
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { postClaim, Web2ApiError } from '#lib/web2/client.ts';
 import { loadWeb2Session } from '#lib/web2/session.ts';
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { isNullish } from '@dfinity/utils';
 import { DelegationIdentity } from '@icp-sdk/core/identity';
 
 /**
@@ -52,6 +53,32 @@ export const shouldShowMoveNotice = ({ dismissed }: { dismissed: boolean }): boo
 export const isClaimPortalEnabled = (): boolean => isWeb2Backend();
 
 /**
+ * The claim portal URL carrying a freshly signed handoff blob in its
+ * fragment, or undefined when no signable delegation identity is available.
+ */
+const signClaimPortalHref = async (): Promise<string | undefined> => {
+	const identity = await getIdentity();
+
+	if (isNullish(identity) || !(identity instanceof DelegationIdentity)) {
+		return;
+	}
+
+	const principal = identity.getPrincipal().toText();
+	const issuedAtMs = Date.now();
+	const signature = await identity.sign(claimMessageBytes({ principal, issuedAtMs }));
+	const blob = encodeClaimBlob({
+		v: 1,
+		aud: CLAIM_AUDIENCE,
+		principal,
+		issuedAtMs,
+		chain: identity.getDelegation().toJSON(),
+		sig: bytesToBase64Url(new Uint8Array(signature))
+	});
+
+	return `${CLAIM_PORTAL_URL}#${blob}`;
+};
+
+/**
  * Sign the claim payload with the current session identity and open the
  * claim portal in a new tab. False when no signable delegation identity is
  * available (signed out, or a session shape without a delegation chain).
@@ -63,56 +90,7 @@ export const startClaimHandoff = async (): Promise<boolean> => {
 		return false;
 	}
 
-	// Open the tab synchronously, inside the click's call stack: signing the
-	// handoff takes two awaits, and Safari blocks a popup opened after the
-	// gesture has unwound. The blank tab is navigated once the blob is ready,
-	// and closed if signing cannot proceed.
-	const portalWindow = window.open('', '_blank', 'noopener,noreferrer');
-
-	try {
-		const identity = await getIdentity();
-
-		if (isNullish(identity) || !(identity instanceof DelegationIdentity)) {
-			portalWindow?.close();
-
-			return false;
-		}
-
-		const principal = identity.getPrincipal().toText();
-		const issuedAtMs = Date.now();
-		const signature = await identity.sign(claimMessageBytes({ principal, issuedAtMs }));
-		const blob = encodeClaimBlob({
-			v: 1,
-			aud: CLAIM_AUDIENCE,
-			principal,
-			issuedAtMs,
-			chain: identity.getDelegation().toJSON(),
-			sig: bytesToBase64Url(new Uint8Array(signature))
-		});
-
-		const href = `${CLAIM_PORTAL_URL}#${blob}`;
-
-		if (nonNullish(portalWindow)) {
-			portalWindow.location.href = href;
-
-			return true;
-		}
-
-		// The pre-open was blocked (or unavailable): fall back to an anchor
-		// click, which some browsers still honour for the original gesture.
-		const anchor = document.createElement('a');
-
-		anchor.href = href;
-		anchor.target = '_blank';
-		anchor.rel = 'noopener noreferrer';
-		anchor.click();
-
-		return true;
-	} catch (err: unknown) {
-		portalWindow?.close();
-
-		throw err;
-	}
+	return await openDeferredTab({ resolveHref: signClaimPortalHref });
 };
 
 export type ClaimSubmitOutcome =
