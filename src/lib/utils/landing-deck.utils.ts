@@ -1,6 +1,6 @@
 import {
 	LANDING_DECK_FLIP_3D_MAX_WIDTH,
-	LANDING_DECK_LEAD_PARAM
+	LANDING_DECK_QUESTION_PARAM
 } from '#lib/constants/landing.constants.ts';
 import { VXP_DEFAULT_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 import type {
@@ -10,6 +10,7 @@ import type {
 	LandingDeckSide
 } from '#lib/types/landing.ts';
 import type { Market } from '#lib/types/market.ts';
+import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
 import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
 import { projectMomentum, rubberBand, type Velocity2d } from '#lib/utils/spring.utils.ts';
 import { vxpNetWin } from '#lib/utils/vxp-economy.utils.ts';
@@ -361,14 +362,21 @@ export const landingDeckSeries = ({
 	];
 };
 
-/** Link that opens the landing on one question. */
+/**
+ * Link that opens the landing on one question. `title` is the registry
+ * (original) title, never a translation: the slug must be the one every
+ * other surface derives for the same market.
+ */
 export const landingDeckShareUrl = ({
 	origin,
+	title,
 	seriesId
 }: {
 	origin: string;
+	title: string;
 	seriesId: string;
-}): string => `${origin}/?${LANDING_DECK_LEAD_PARAM}=${encodeURIComponent(seriesId)}`;
+}): string =>
+	`${origin}/?${LANDING_DECK_QUESTION_PARAM}=${encodeURIComponent(marketShareParam({ title, seriesId }))}`;
 
 export const whatsAppShareHref = ({ text, url }: { text: string; url: string }): string =>
 	`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`;

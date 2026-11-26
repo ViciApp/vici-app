@@ -24,6 +24,7 @@ import {
 	toLandingDeckCard,
 	whatsAppShareHref
 } from '#lib/utils/landing-deck.utils.ts';
+import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -468,20 +469,30 @@ describe('landing-deck.utils', () => {
 	});
 
 	describe('share links', () => {
-		it('opens the landing on the series, with the id escaped', () => {
+		it('opens the landing on the market, in the public market route encoding', () => {
+			const seriesId = '007c6578aa11bb22';
+			const title = 'Will Brazil beat Norway?';
+
 			assert.equal(
-				landingDeckShareUrl({ origin: 'https://vici.app', seriesId: 'series-1' }),
-				'https://vici.app/?c=series-1'
+				landingDeckShareUrl({ origin: 'https://vici.app', title, seriesId }),
+				'https://vici.app/?m=will-brazil-beat-norway~007c6578'
 			);
 			assert.equal(
-				landingDeckShareUrl({ origin: 'https://vici.app', seriesId: 'a b&c' }),
-				'https://vici.app/?c=a%20b%26c'
+				landingDeckShareUrl({ origin: 'https://vici.app', title, seriesId }),
+				`https://vici.app/?m=${marketShareParam({ title, seriesId })}`
+			);
+		});
+
+		it('falls back to the escaped id when the title yields no slug', () => {
+			assert.equal(
+				landingDeckShareUrl({ origin: 'https://vici.app', title: '？', seriesId: 'a b&c' }),
+				'https://vici.app/?m=a%20b%26c'
 			);
 		});
 
 		it('carries the text and the link to each target', () => {
 			const text = 'Will it? The crowd says 54%.';
-			const url = 'https://vici.app/?c=series-1';
+			const url = 'https://vici.app/?m=will-it~007c6578';
 
 			assert.equal(
 				whatsAppShareHref({ text, url }),

@@ -36,7 +36,13 @@
 	let copy = $state<'copied' | 'failed'>();
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
-	const url = $derived(landingDeckShareUrl({ origin: appOrigin(), seriesId: card.entry.seriesId }));
+	const url = $derived(
+		landingDeckShareUrl({
+			origin: appOrigin(),
+			title: card.market.title,
+			seriesId: card.entry.seriesId
+		})
+	);
 	const text = $derived(
 		t({
 			locale: $localeStore,
