@@ -95,7 +95,6 @@ snippets:
 - `src/lib/components/ui/Card.svelte`
 - `src/lib/components/ui/Companion.svelte`
 - `src/lib/components/ui/CompanionOverlay.svelte`
-- `src/lib/components/ui/CopyableAddress.svelte`
 - `src/lib/components/ui/EmptyState.svelte` (`message` prop)
 - `src/lib/components/ui/InfiniteScroll.svelte`
 - `src/lib/components/ui/LoadingSpinner.svelte`
