@@ -119,6 +119,24 @@ describe('league-member.services', () => {
 				)
 			);
 		});
+
+		it('rejects the owner demoting their own row', () => {
+			for (const role of ['admin', 'member'] as const) {
+				assert.throws(
+					() =>
+						assertSetLeagueMember(
+							setContext({
+								caller: owner,
+								collection: Collection.LEAGUE_MEMBERS,
+								key: leagueMemberKey({ leagueId: league.id, memberPrincipal: owner.toText() }),
+								current: membership({ member: owner, role: 'owner' }),
+								proposed: membership({ member: owner, role })
+							})
+						),
+					/keeps role="owner"/
+				);
+			}
+		});
 	});
 
 	describe('assertDeleteLeagueMember', () => {
@@ -133,6 +151,36 @@ describe('league-member.services', () => {
 
 		it('rejects a member removing the owner row', () => {
 			assert.throws(() => assertDeleteLeagueMember(removeOwnerRow(owner)), /owner row/);
+		});
+
+		it("rejects removing the owner's row whatever role it carries", () => {
+			assert.throws(
+				() =>
+					assertDeleteLeagueMember(
+						deleteContext({
+							caller: owner,
+							collection: Collection.LEAGUE_MEMBERS,
+							key: leagueMemberKey({ leagueId: league.id, memberPrincipal: owner.toText() }),
+							current: membership({ member: owner, role: 'member' }),
+							currentOwner: owner
+						})
+					),
+				/owner row/
+			);
+		});
+
+		it('lets the owner remove a stray owner role on another member', () => {
+			assert.doesNotThrow(() =>
+				assertDeleteLeagueMember(
+					deleteContext({
+						caller: owner,
+						collection: Collection.LEAGUE_MEMBERS,
+						key: leagueMemberKey({ leagueId: league.id, memberPrincipal: joiner.toText() }),
+						current: membership({ member: joiner, role: 'owner' }),
+						currentOwner: joiner
+					})
+				)
+			);
 		});
 
 		it('lets a satellite controller remove the owner row when it disbands the league', () => {

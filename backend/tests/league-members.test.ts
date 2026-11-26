@@ -260,6 +260,51 @@ describe.if(dbAvailable)('membership key discipline', () => {
 	});
 });
 
+describe.if(dbAvailable)('owner row', () => {
+	beforeAll(async () => {
+		await ensureMigrated();
+	});
+
+	test('the owner cannot demote their own row, so they cannot then leave', async () => {
+		const { ownerId, leagueId } = await seedLeague();
+
+		for (const role of ['admin', 'member'] as const) {
+			expect(
+				upsertLeagueMember({ leagueId, callerId: ownerId, memberUserId: ownerId, role })
+			).rejects.toThrow('keeps role="owner"');
+		}
+
+		expect((await getLeagueMember({ leagueId, memberUserId: ownerId }))?.role).toBe('owner');
+		expect(
+			removeLeagueMember({ leagueId, callerId: ownerId, memberUserId: ownerId })
+		).rejects.toThrow('owner row cannot be deleted');
+	});
+
+	test("removal is keyed on the league's owner, not on the row's role", async () => {
+		const { ownerId, leagueId, inviteCode } = await seedLeague();
+		const member = await createTestUser();
+
+		await joinLeagueByInvite({ inviteCode, userId: member });
+		// Rows an older write left behind: a demoted owner and a stray owner role.
+		await query(
+			`update league_members set role = 'member' where league_id = $1 and member_user_id = $2`,
+			[leagueId, ownerId]
+		);
+		await query(
+			`update league_members set role = 'owner' where league_id = $1 and member_user_id = $2`,
+			[leagueId, member]
+		);
+
+		expect(
+			removeLeagueMember({ leagueId, callerId: ownerId, memberUserId: ownerId })
+		).rejects.toThrow('owner row cannot be deleted');
+
+		await removeLeagueMember({ leagueId, callerId: ownerId, memberUserId: member });
+
+		expect((await listLeagueMembers(leagueId)).map((m) => m.memberUserId)).toEqual([ownerId]);
+	});
+});
+
 describe.if(dbAvailable)('ownership transfer', () => {
 	beforeAll(async () => {
 		await ensureMigrated();

@@ -159,6 +159,14 @@ export const upsertLeagueMember = async ({
 			);
 		}
 
+		// The owner row is what keeps the owner in their own roster; only a
+		// transfer moves the role, together with the owner column.
+		if (role !== 'owner' && memberUserId === league.ownerUserId) {
+			throw new LeagueError(
+				'league_members owner row keeps role="owner" (transfer ownership first).'
+			);
+		}
+
 		const current = await getLeagueMember({ leagueId, memberUserId }, q);
 
 		if (isNullish(current)) {
@@ -211,16 +219,16 @@ export const removeLeagueMember = async ({
 			return { ok: true };
 		}
 
-		if (current.role === 'owner') {
-			throw new LeagueError(
-				'league_members owner row cannot be deleted (transfer ownership first).'
-			);
-		}
-
 		const league = await getLeague(leagueId, q);
 
 		// Orphaned membership (league already gone): let anyone clean it up.
 		if (nonNullish(league)) {
+			if (memberUserId === league.ownerUserId) {
+				throw new LeagueError(
+					'league_members owner row cannot be deleted (transfer ownership first).'
+				);
+			}
+
 			const callerIsSelf = memberUserId === callerId;
 			const callerIsOwner = league.ownerUserId === callerId;
 
