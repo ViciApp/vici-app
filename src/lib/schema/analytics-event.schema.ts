@@ -56,6 +56,10 @@ export const AnalyticsEventNameSchema = j.enum([
 	'referral_link_copied',
 	'referral_redeemed',
 	'referral_converted',
+	// Challenge links
+	'challenge_created',
+	'challenge_answered',
+	'challenge_opened',
 	// VXP & economy
 	'vxp_awarded',
 	'streak_milestone',

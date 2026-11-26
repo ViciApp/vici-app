@@ -28,11 +28,14 @@ export const executedFillDays = (events: readonly ClearingDid.Event[]): string[]
 export const countExecutedPredictions = async ({ userId }: { userId: string }): Promise<number> =>
 	executedPredictionCount(await getTradeHistory({ userId }));
 
-/** The binary side a history holds on a series and the price paid per
- * contract of that side. */
+/** The binary side a history holds on a series, the price paid per
+ * contract of that side, and the engine time (ns) of the fill that opened
+ * the held run: the first fill on this side since the position was last flat
+ * or flipped. */
 export interface HeldBinaryPosition {
 	side: CallSide;
 	entryPrice: number;
+	openedAtNs: bigint;
 }
 
 const fillSide = ({ qty }: ClearingDid.Event): CallSide => (qty > ZERO ? 'YES' : 'NO');
@@ -52,7 +55,8 @@ const fillSidePrice = (fill: ClearingDid.Event): number => {
  * NO at one minus it. The entry price is the average cost of the contracts
  * still held: a fill that adds to the position folds in at its volume, one
  * that reduces it leaves the average as it is, and one that flips the side
- * starts it again at its own price. `undefined` when the fills net to flat.
+ * starts it again at its own price. Adding to the position keeps the time it
+ * was opened; a flip opens it again. `undefined` when the fills net to flat.
  */
 export const heldBinaryPosition = ({
 	events,
@@ -87,9 +91,14 @@ export const heldBinaryPosition = ({
 			const heldQty = held?.qty ?? 0;
 			const heldCost = (held?.entryPrice ?? 0) * heldQty;
 
-			held = { side, qty: heldQty + qty, entryPrice: (heldCost + price * qty) / (heldQty + qty) };
+			held = {
+				side,
+				qty: heldQty + qty,
+				entryPrice: (heldCost + price * qty) / (heldQty + qty),
+				openedAtNs: held?.openedAtNs ?? fill.timestamp
+			};
 		} else if (qty > held.qty) {
-			held = { side, qty: qty - held.qty, entryPrice: price };
+			held = { side, qty: qty - held.qty, entryPrice: price, openedAtNs: fill.timestamp };
 		} else if (qty === held.qty) {
 			held = undefined;
 		} else {
@@ -101,5 +110,5 @@ export const heldBinaryPosition = ({
 		return;
 	}
 
-	return { side: held.side, entryPrice: held.entryPrice };
+	return { side: held.side, entryPrice: held.entryPrice, openedAtNs: held.openedAtNs };
 };
