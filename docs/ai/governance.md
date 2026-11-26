@@ -139,7 +139,10 @@ description.
   `npm run deploy` against the local replica. The scripts that reinstall
   canisters, mint or set fixed prices refuse any other network (the callers of
   `require_local_network` in
-  [`scripts/lib/utils.sh`](../../scripts/lib/utils.sh)). `init:icdc-engine`,
+  [`scripts/lib/utils.sh`](../../scripts/lib/utils.sh)).
+  [`send.tokens.sh`](../../scripts/send.tokens.sh) sends real ckUSDC on
+  `staging` and `ic`, so off the local replica it also needs
+  `CONFIRM_REAL_TRANSFER=<network>`. `init:icdc-engine`,
   `init:registry` and `test:engine-sync` also run with `--staging` or
   `--production` in the
   [reset workflow](../../.agents/workflows/icdc-engine-reset.md), which needs
