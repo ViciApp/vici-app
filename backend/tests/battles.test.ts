@@ -461,52 +461,29 @@ describe.if(dbAvailable)('restart and retract', () => {
 	});
 });
 
-// Migration 0021 keeps `wager` next to `amount` while machines of an earlier
-// release can still serve: the oldest write and read only `wager`.
-describe.if(dbAvailable)('battle amount alongside the old wager column', () => {
+// Migration 0026 ends the rename of 0021: `amount` is the only column left.
+describe.if(dbAvailable)('battle amount after the old wager column is dropped', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
 	});
 
-	const insertLegacyRow = async (wager: number): Promise<string> => {
-		const id = uniqueId('bt');
-		const proposer = await createTestUser();
-
-		await query(
-			`insert into battles (id, kind, side_a, side_b, proposer_user_id, state, kickoff_ms,
-			   settle_ms, wager)
-			 values ($1, 'duel', $2, $3, $4, 'proposed', 1, 2, $5)`,
-			[id, proposer, await createTestUser(), proposer, wager]
+	const schemaShape = (): Promise<unknown[]> =>
+		query(
+			`select
+			   (select count(*) from pg_constraint
+			     where conrelid = 'battles'::regclass and conname = 'battles_amount_check')::int
+			     as checks,
+			   (select count(*) from pg_trigger
+			     where tgrelid = 'battles'::regclass and tgname = 'battles_amount_from_wager')::int
+			     as triggers,
+			   (select count(*) from pg_proc where proname = 'battles_amount_from_wager')::int
+			     as functions,
+			   (select count(*) from information_schema.columns
+			     where table_name = 'battles' and column_name in ('amount', 'wager'))::int
+			     as columns`
 		);
 
-		return id;
-	};
-
-	const columns = async (id: string): Promise<{ amount: number | null; wager: number | null }> => {
-		const [row] = await query<{ amount: number | null; wager: number | null }>(
-			`select amount, wager from battles where id = $1`,
-			[id]
-		);
-
-		return { amount: row?.amount ?? null, wager: row?.wager ?? null };
-	};
-
-	test('an insert that sets only wager gets amount filled', async () => {
-		const id = await insertLegacyRow(120);
-
-		expect(await columns(id)).toEqual({ amount: 120, wager: 120 });
-		expect((await getBattle(id))?.amount).toBe(120);
-	});
-
-	test('an update that changes only wager carries it into amount', async () => {
-		const id = await insertLegacyRow(120);
-
-		await query(`update battles set wager = 80 where id = $1`, [id]);
-
-		expect(await columns(id)).toEqual({ amount: 80, wager: 80 });
-	});
-
-	test('a new proposal leaves wager empty, so dropping it loses nothing', async () => {
+	test('running the migration again changes nothing', async () => {
 		const a = await seedLeague();
 		const b = await seedLeague();
 		const nowMs = Date.now();
@@ -520,32 +497,14 @@ describe.if(dbAvailable)('battle amount alongside the old wager column', () => {
 			settleMs: nowMs + 2 * DAY_MS,
 			amount: 250
 		});
-
-		expect(await columns(battle.id)).toEqual({ amount: 250, wager: null });
-	});
-
-	test('running the migration again changes nothing', async () => {
-		const id = await insertLegacyRow(60);
-		const schemaShape = (): Promise<unknown[]> =>
-			query(
-				`select
-				   (select count(*) from pg_constraint
-				     where conrelid = 'battles'::regclass and conname = 'battles_amount_check')::int
-				     as checks,
-				   (select count(*) from pg_trigger
-				     where tgrelid = 'battles'::regclass and tgname = 'battles_amount_from_wager')::int
-				     as triggers,
-				   (select count(*) from information_schema.columns
-				     where table_name = 'battles' and column_name in ('amount', 'wager'))::int
-				     as columns`
-			);
-		const before = { shape: await schemaShape(), row: await columns(id) };
+		const before = await schemaShape();
 
 		await query(
-			readFileSync(join(import.meta.dir, '../src/db/migrations/0021_battle_amount.sql'), 'utf8')
+			readFileSync(join(import.meta.dir, '../src/db/migrations/0026_drop_battle_wager.sql'), 'utf8')
 		);
 
-		expect({ shape: await schemaShape(), row: await columns(id) }).toEqual(before);
-		expect(before.shape).toEqual([{ checks: 1, triggers: 1, columns: 2 }]);
+		expect(await schemaShape()).toEqual(before);
+		expect(before).toEqual([{ checks: 1, triggers: 0, functions: 0, columns: 1 }]);
+		expect((await getBattle(battle.id))?.amount).toBe(250);
 	});
 });
