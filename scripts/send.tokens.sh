@@ -27,9 +27,11 @@ if [[ ${#args[@]} -ge 1 ]]; then
     PRINCIPAL=${args[0]}
 fi
 
-# The principal goes into a Candid literal, so anything but the textual
-# principal form would change the call rather than fail it.
-if [[ ! "$PRINCIPAL" =~ ^([a-z2-7]{5}-)*[a-z2-7]{1,5}$ ]]; then
+# The principal goes into a Candid literal, so anything outside the textual
+# principal shape would change the call rather than fail it. The 4-byte checksum
+# alone encodes to 7 characters, so a full group of five always comes first;
+# the last group can be 1 to 5 long. dfx rejects a wrong checksum or length.
+if [[ ! "$PRINCIPAL" =~ ^([a-z2-7]{5}-)+[a-z2-7]{1,5}$ ]]; then
     echo "Error: '$PRINCIPAL' is not a textual principal." >&2
     exit 1
 fi
