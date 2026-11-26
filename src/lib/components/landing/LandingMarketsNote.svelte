@@ -2,20 +2,31 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 
-	/** The note at the end of the Markets list: the one claim action, and the play-money line. */
+	/**
+	 * The claim note: at the end of the list (with the play-money line), and
+	 * above the board once the visitor has made a call (`called`).
+	 */
 	interface Props {
 		onclaim?: () => void;
+		called?: boolean;
 	}
 
-	const { onclaim = () => {} }: Props = $props();
+	const { onclaim = () => {}, called = false }: Props = $props();
 </script>
 
-<div class="lmn">
-	<p>{t({ locale: $localeStore, key: 'landing.markets.note.body' })}</p>
+<div class="lmn" class:is-called={called} role={called ? 'status' : undefined}>
+	<p>
+		{t({
+			locale: $localeStore,
+			key: called ? 'landing.markets.note.called' : 'landing.markets.note.body'
+		})}
+	</p>
 	<button onclick={onclaim} type="button">
 		{t({ locale: $localeStore, key: 'landing.markets.note.cta' })}
 	</button>
-	<small>{t({ locale: $localeStore, key: 'signin.legal.line1' })}</small>
+	{#if !called}
+		<small>{t({ locale: $localeStore, key: 'signin.legal.line1' })}</small>
+	{/if}
 </div>
 
 <style lang="postcss">
@@ -35,6 +46,10 @@
 		font: 500 15px/1.4 var(--font-display);
 		-webkit-backdrop-filter: blur(24px) saturate(170%);
 		backdrop-filter: blur(24px) saturate(170%);
+	}
+
+	.lmn.is-called {
+		margin: 4px 2px 10px;
 	}
 
 	p {

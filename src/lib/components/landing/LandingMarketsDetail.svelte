@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import LandingMarketsCallBar from '#lib/components/landing/LandingMarketsCallBar.svelte';
+	import LandingMarketsShare from '#lib/components/landing/LandingMarketsShare.svelte';
 	import LandingPriceChart from '#lib/components/landing/LandingPriceChart.svelte';
 	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
-	import type { LandingCallSide } from '#lib/types/landing-call.ts';
+	import type { LandingMarketsView } from '#lib/types/landing-markets.ts';
 	import type { Market } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import {
@@ -16,39 +17,36 @@
 	/**
 	 * Market detail, in the order a visitor decides: the question and its
 	 * price, the price history to drag through, today's move, how and when it
-	 * settles, then Yes / No with the call size, fixed under the scrolling
-	 * body. Hosted by `LandingMarkets` as a side panel on wide screens and a
-	 * bottom sheet on phones.
+	 * settles, then Yes / No with the call size. In the table's side panel the
+	 * call bar is fixed under the scrolling body; opened in a front-page row
+	 * (`inRow`) the row already names the question and price, so the detail
+	 * starts at the chart and the call bar sticks to the bottom of the list.
 	 */
 	interface Props {
 		market: Market;
-		title: string;
-		resolution: string;
-		/** Today's move in points; omitted while unknown. */
-		move?: number;
+		view: LandingMarketsView;
 		nowMs: number;
 		size: number;
-		titleId: string;
 		onsizechange: (size: number) => void;
-		oncall: (side: LandingCallSide) => void;
-		/** Shown as the close button of the phone sheet. */
-		onclose?: () => void;
+		inRow?: boolean;
+		titleId?: string;
+		/** A share or copy of the market's link completed (header only, not inside a row). */
+		onshare?: (seriesId: string) => void;
 	}
 
 	const {
 		market,
-		title,
-		resolution,
-		move,
+		view,
 		nowMs,
 		size,
-		titleId,
 		onsizechange,
-		oncall,
-		onclose
+		inRow = false,
+		titleId,
+		onshare
 	}: Props = $props();
 
 	const percents = $derived(sidePercents(market.yesProbability));
+	const move = $derived(view.moveOf(market));
 	const moveCopy = $derived(nonNullish(move) ? dailyMoveCopy(move) : undefined);
 	const settlesWhen = $derived(
 		formatSettleCountdown({ expiryMs: Number(market.expiryDate), nowMs, locale: $localeStore })
@@ -62,33 +60,25 @@
 	);
 </script>
 
-{#if nonNullish(onclose)}
-	<button
-		class="lmd-close"
-		aria-label={t({ locale: $localeStore, key: 'a11y.close' })}
-		onclick={onclose}
-		type="button"
-	>
-		<span aria-hidden="true">×</span>
-	</button>
-{/if}
-
-<div class="lmd-scroll">
-	<div class="lmd-head" class:has-close={nonNullish(onclose)}>
-		<h3 id={titleId}>{title}</h3>
-		<p class="lmd-sub">
-			{#if nonNullish(percents)}
-				<b>{percents.yes}%</b>
-			{:else}
-				<b><MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} /></b>
-			{/if}
-			{t({
-				locale: $localeStore,
-				key: 'landing.markets.detail.sub',
-				params: { when: settlesWhen }
-			})}
-		</p>
-	</div>
+<div class="lmd-scroll" class:is-row={inRow}>
+	{#if !inRow}
+		<div class="lmd-head">
+			<LandingMarketsShare {market} {onshare} title={view.titleOf(market)} />
+			<h3 id={titleId}>{view.titleOf(market)}</h3>
+			<p class="lmd-sub">
+				{#if nonNullish(percents)}
+					<b>{percents.yes}%</b>
+				{:else}
+					<b><MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} /></b>
+				{/if}
+				{t({
+					locale: $localeStore,
+					key: 'landing.markets.detail.sub',
+					params: { when: settlesWhen }
+				})}
+			</p>
+		</div>
+	{/if}
 
 	<LandingPriceChart
 		livePercent={percents?.yes}
@@ -112,13 +102,19 @@
 
 	<details class="lmd-more">
 		<summary>{t({ locale: $localeStore, key: 'landing.markets.detail.full_rule' })}</summary>
-		<p>{resolution}</p>
+		<p>{view.resolutionOf(market)}</p>
 	</details>
 
 	<p class="lmd-legal">{t({ locale: $localeStore, key: 'signin.legal.line1' })}</p>
 </div>
 
-<LandingMarketsCallBar {market} {oncall} {onsizechange} {size} />
+<LandingMarketsCallBar
+	{market}
+	oncall={(side) => view.oncall({ market, side })}
+	{onsizechange}
+	{size}
+	sticky={inRow}
+/>
 
 <style lang="postcss">
 	.lmd-scroll {
@@ -134,13 +130,25 @@
 		scrollbar-width: none;
 	}
 
+	/* Inside a row the list scrolls, not the detail. */
+	.lmd-scroll.is-row {
+		max-width: 680px;
+		padding: 6px 18px 14px;
+		overflow: visible;
+	}
+
 	.lmd-scroll::-webkit-scrollbar {
 		display: none;
 	}
 
 	.lmd-head {
+		position: relative;
 		display: grid;
 		gap: 8px;
+	}
+
+	.lmd-head h3 {
+		padding-right: 56px;
 	}
 
 	h3 {
@@ -149,10 +157,6 @@
 		letter-spacing: -0.03em;
 		color: var(--parchment);
 		text-wrap: balance;
-	}
-
-	.lmd-head.has-close h3 {
-		padding-right: 44px;
 	}
 
 	.lmd-sub {
@@ -224,27 +228,5 @@
 		margin: 0;
 		font: 500 13px/1.4 var(--font-display);
 		color: color-mix(in srgb, var(--parchment) 64%, transparent);
-	}
-
-	.lmd-close {
-		position: absolute;
-		top: 8px;
-		right: 10px;
-		z-index: 1;
-		display: grid;
-		place-items: center;
-		width: 44px;
-		height: 44px;
-		border: 0;
-		border-radius: 50%;
-		background: none;
-		color: inherit;
-		font: 400 26px/1 var(--font-display);
-		cursor: pointer;
-	}
-
-	.lmd-close:focus-visible {
-		outline: 2px solid var(--parchment);
-		outline-offset: -4px;
 	}
 </style>

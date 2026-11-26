@@ -2636,5 +2636,27 @@ export const deMessages = {
 	'landing.markets.side.yes': 'Ja',
 	'landing.markets.size.label': 'Call-Größe',
 	'landing.markets.size.value': '{amount} VXP',
-	'landing.markets.yes_at': 'Ja bei {pct}%'
+	'landing.markets.yes_at': 'Ja bei {pct}%',
+	'landing.markets.called.at': 'Du hast {side} bei {pct}% vorhergesagt',
+	'landing.markets.called.earn': 'Liegst du richtig, bekommst du {amount} VXP.',
+	'landing.markets.called.with': 'Du hast {side} mit {amount} VXP vorhergesagt.',
+	'landing.markets.cancel': 'Abbrechen',
+	'landing.markets.waitlist': 'Vorhersagen öffnen sich mit der Warteliste.',
+	'landing.markets.confirm': 'Bestätigen',
+	'landing.markets.group.beyond': 'Entschieden {year} oder später',
+	'landing.markets.group.early_next': 'Entschieden Anfang {year}',
+	'landing.markets.group.later_next': 'Entschieden später in {year}',
+	'landing.markets.group.this_year': 'Entschieden vor dem Jahreswechsel',
+	'landing.markets.layout.front': 'Titelseite',
+	'landing.markets.layout.label': 'Ansicht',
+	'landing.markets.layout.table': 'Tabelle',
+	'landing.markets.move_short.down': '−{points} heute',
+	'landing.markets.move_short.up': '+{points} heute',
+	'landing.markets.moving_now': 'In Bewegung',
+	'landing.markets.note.called':
+		'Das ist die Vorschau. Sichere dir deinen @handle, um weiter vorherzusagen, wenn VICI startet.',
+	'landing.markets.pending':
+		'{side} bei {pct}% mit {amount} VXP. Liegst du richtig, bekommst du {earns} VXP',
+	'landing.markets.share.label': 'Diese Frage teilen',
+	'landing.markets.share.text': '{question} Die Community sagt {pct}%. Was sagst du?'
 } as const;

@@ -11,19 +11,21 @@
 	import { vxpNetWin } from '#lib/utils/vxp-economy.utils.ts';
 
 	/**
-	 * The Markets detail's call bar, fixed under the scrolling body: the
-	 * call-size slider and Yes / No, each labelled with what a right call
-	 * earns at the chosen size. Earnings use the order-book execution price,
-	 * the same preview the app's call flow shows.
+	 * The Markets detail's call bar: the call-size slider and Yes / No, each
+	 * labelled with what a right call earns at the chosen size. Earnings use
+	 * the order-book execution price, the same preview the app's call flow
+	 * shows. Fixed under the side panel's body; `sticky` inside a front-page
+	 * row, so the call stays under the thumb while the row is in view.
 	 */
 	interface Props {
 		market: Market;
 		size: number;
 		onsizechange: (size: number) => void;
 		oncall: (side: LandingCallSide) => void;
+		sticky?: boolean;
 	}
 
-	const { market, size, onsizechange, oncall }: Props = $props();
+	const { market, size, onsizechange, oncall, sticky = false }: Props = $props();
 
 	const percents = $derived(sidePercents(market.yesProbability));
 
@@ -39,7 +41,7 @@
 		});
 </script>
 
-<div class="lmc">
+<div class="lmc" class:is-sticky={sticky}>
 	<LandingMarketsSizeControl onchange={onsizechange} value={size} />
 	<button
 		class="lmc-side is-yes"
@@ -69,6 +71,23 @@
 		gap: 10px;
 		padding: 14px 22px calc(18px + var(--docked-footer-inset));
 		box-shadow: inset 0 1px 0 color-mix(in srgb, var(--parchment) 10%, transparent);
+	}
+
+	.lmc.is-sticky {
+		position: sticky;
+		bottom: calc(8px + var(--docked-footer-inset));
+		z-index: 2;
+		margin: 0 10px 10px;
+		padding: 10px;
+		border-radius: 20px;
+		background: var(--ink-elevated);
+		box-shadow:
+			inset 0 0 0 1px color-mix(in srgb, var(--parchment) 10%, transparent),
+			0 18px 40px -22px color-mix(in srgb, var(--ink-deep) 80%, transparent);
+	}
+
+	.lmc.is-sticky .lmc-side {
+		height: 56px;
 	}
 
 	.lmc-side {

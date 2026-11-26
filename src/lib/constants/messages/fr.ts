@@ -2618,5 +2618,28 @@ export const frMessages = {
 	'landing.markets.side.yes': 'Oui',
 	'landing.markets.size.label': 'Taille de la call',
 	'landing.markets.size.value': '{amount} VXP',
-	'landing.markets.yes_at': 'Oui à {pct} %'
+	'landing.markets.yes_at': 'Oui à {pct} %',
+	'landing.markets.called.at': 'Vous avez prédit {side} à {pct} %',
+	'landing.markets.called.earn': 'Si vous avez raison, vous gagnez {amount} VXP.',
+	'landing.markets.called.with': 'Vous avez prédit {side} avec {amount} VXP.',
+	'landing.markets.cancel': 'Annuler',
+	'landing.markets.waitlist': 'Les prédictions s’ouvrent avec la liste d’attente.',
+	'landing.markets.confirm': 'Confirmer',
+	'landing.markets.group.beyond': 'Tranché en {year} ou après',
+	'landing.markets.group.early_next': 'Tranché début {year}',
+	'landing.markets.group.later_next': 'Tranché plus tard en {year}',
+	'landing.markets.group.this_year': 'Tranché avant la nouvelle année',
+	'landing.markets.layout.front': 'À la une',
+	'landing.markets.layout.label': 'Affichage',
+	'landing.markets.layout.table': 'Tableau',
+	'landing.markets.move_short.down': '−{points} aujourd’hui',
+	'landing.markets.move_short.up': '+{points} aujourd’hui',
+	'landing.markets.moving_now': 'En mouvement',
+	'landing.markets.note.called':
+		'C’est l’aperçu. Réservez votre @handle pour continuer à prédire à l’ouverture de VICI.',
+	'landing.markets.pending':
+		'{side} à {pct} % avec {amount} VXP. Si vous avez raison, vous gagnez {earns} VXP',
+	'landing.markets.share.label': 'Partager cette question',
+	'landing.markets.share.text':
+		'{question} La communauté dit {pct} %. Et vous, quelle est votre prédiction ?'
 } as const;

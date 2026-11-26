@@ -49,7 +49,7 @@
 		flex: 1 1 auto;
 		gap: 2px;
 		min-width: 0;
-		margin: 0 0 14px -12px;
+		margin: 0 0 0 -12px;
 		overflow-x: auto;
 		scrollbar-width: none;
 		touch-action: pan-x pan-y;

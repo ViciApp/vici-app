@@ -2571,5 +2571,27 @@ export const enMessages = {
 	'landing.markets.side.yes': 'Yes',
 	'landing.markets.size.label': 'Call size',
 	'landing.markets.size.value': '{amount} VXP',
-	'landing.markets.yes_at': 'Yes at {pct}%'
+	'landing.markets.yes_at': 'Yes at {pct}%',
+	'landing.markets.called.at': 'You called {side} at {pct}%',
+	'landing.markets.called.earn': "If you're right, you earn {amount} VXP.",
+	'landing.markets.called.with': 'You called {side} with {amount} VXP.',
+	'landing.markets.cancel': 'Cancel',
+	'landing.markets.waitlist': 'Calls open with the waitlist.',
+	'landing.markets.confirm': 'Confirm',
+	'landing.markets.group.beyond': 'Settles in {year} or later',
+	'landing.markets.group.early_next': 'Settles early {year}',
+	'landing.markets.group.later_next': 'Settles later in {year}',
+	'landing.markets.group.this_year': 'Settles before the new year',
+	'landing.markets.layout.front': 'Front page',
+	'landing.markets.layout.label': 'Layout',
+	'landing.markets.layout.table': 'Table',
+	'landing.markets.move_short.down': '−{points} today',
+	'landing.markets.move_short.up': '+{points} today',
+	'landing.markets.moving_now': 'Moving now',
+	'landing.markets.note.called':
+		"That's the preview. Claim your @handle to keep calling when VICI opens.",
+	'landing.markets.pending':
+		"{side} at {pct}% with {amount} VXP. If you're right, you earn {earns} VXP",
+	'landing.markets.share.label': 'Share this question',
+	'landing.markets.share.text': "{question} The crowd says {pct}%. What's your call?"
 } as const;

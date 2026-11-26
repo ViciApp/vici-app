@@ -55,5 +55,26 @@ export const jaMessages = {
 	'landing.markets.side.yes': 'はい',
 	'landing.markets.size.label': '予測額',
 	'landing.markets.size.value': '{amount} VXP',
-	'landing.markets.yes_at': 'はい {pct}%'
+	'landing.markets.yes_at': 'はい {pct}%',
+	'landing.markets.called.at': '「{side}」を {pct}% で予測済み',
+	'landing.markets.called.earn': '当たれば {amount} VXP 獲得。',
+	'landing.markets.called.with': '「{side}」を {amount} VXP で予測しました。',
+	'landing.markets.cancel': 'キャンセル',
+	'landing.markets.waitlist': '予測はウェイトリストから順に開放されます。',
+	'landing.markets.confirm': '確定',
+	'landing.markets.group.beyond': '{year} 年以降に決着',
+	'landing.markets.group.early_next': '{year} 年初めに決着',
+	'landing.markets.group.later_next': '{year} 年後半に決着',
+	'landing.markets.group.this_year': '年内に決着',
+	'landing.markets.layout.front': 'トップ',
+	'landing.markets.layout.label': 'レイアウト',
+	'landing.markets.layout.table': 'テーブル',
+	'landing.markets.move_short.down': '今日 −{points}',
+	'landing.markets.move_short.up': '今日 +{points}',
+	'landing.markets.moving_now': '動いているマーケット',
+	'landing.markets.note.called':
+		'これはプレビューです。@handle を確保して、VICI のオープン後も予測を続けよう。',
+	'landing.markets.pending': '「{side}」{pct}%、{amount} VXP。当たれば {earns} VXP 獲得',
+	'landing.markets.share.label': 'この質問をシェア',
+	'landing.markets.share.text': '{question} みんなの予想は {pct}%。あなたはどう予測する？'
 } as const;

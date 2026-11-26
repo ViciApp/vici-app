@@ -2616,5 +2616,26 @@ export const esMessages = {
 	'landing.markets.side.yes': 'Sí',
 	'landing.markets.size.label': 'Tamaño de la call',
 	'landing.markets.size.value': '{amount} VXP',
-	'landing.markets.yes_at': 'Sí al {pct}%'
+	'landing.markets.yes_at': 'Sí al {pct}%',
+	'landing.markets.called.at': 'Predijiste {side} al {pct}%',
+	'landing.markets.called.earn': 'Si aciertas, ganas {amount} VXP.',
+	'landing.markets.called.with': 'Predijiste {side} con {amount} VXP.',
+	'landing.markets.cancel': 'Cancelar',
+	'landing.markets.waitlist': 'Las predicciones se abren con la lista de espera.',
+	'landing.markets.confirm': 'Confirmar',
+	'landing.markets.group.beyond': 'Se resuelve en {year} o después',
+	'landing.markets.group.early_next': 'Se resuelve a principios de {year}',
+	'landing.markets.group.later_next': 'Se resuelve más adelante en {year}',
+	'landing.markets.group.this_year': 'Se resuelve antes de fin de año',
+	'landing.markets.layout.front': 'Portada',
+	'landing.markets.layout.label': 'Vista',
+	'landing.markets.layout.table': 'Tabla',
+	'landing.markets.move_short.down': '−{points} hoy',
+	'landing.markets.move_short.up': '+{points} hoy',
+	'landing.markets.moving_now': 'En movimiento',
+	'landing.markets.note.called':
+		'Esto es la vista previa. Reserva tu @handle para seguir prediciendo cuando VICI abra.',
+	'landing.markets.pending': '{side} al {pct}% con {amount} VXP. Si aciertas, ganas {earns} VXP',
+	'landing.markets.share.label': 'Compartir esta pregunta',
+	'landing.markets.share.text': '{question} La comunidad dice {pct}%. ¿Cuál es tu predicción?'
 } as const;
