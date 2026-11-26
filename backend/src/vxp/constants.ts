@@ -153,8 +153,8 @@ export const LEAGUE_FOUNDER_MIN_MEMBERS = 3;
 /** Flat referee bonus: every eligible new sign-up gets it exactly once. */
 export const REFERRAL_VXP_BONUS_BASE_UNITS = parseVxp(500);
 
-/** Hard lifetime cap on a referrer's paid redemptions: the curve below pays
- * nothing past this many prior redemptions. */
+/** Hard lifetime cap on a referrer's rewards: past this many prior
+ * redemptions, whatever their payout state, the curve below pays nothing. */
 export const REFERRAL_MAX_PAID = 1000;
 
 /**

@@ -93,9 +93,10 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-# NETWORK starts at `local` whatever the environment holds, and every branch of
-# the loop above sets a supported name, so this only guards a future branch that
-# sets it without checking.
+# NETWORK starts at `local` whatever the environment holds, and the loop above
+# only ever assigns a supported name (positional arguments leave it alone), so
+# this re-checks the value it settled on, the default included, against a future
+# assignment that skips the check.
 check_network "$NETWORK"
 
 export NETWORK
