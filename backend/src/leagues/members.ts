@@ -72,8 +72,9 @@ export const leagueMemberPrincipals = async ({
 	return [...byUser.values()].flat().map((text) => Principal.fromText(text));
 };
 
-/** Join by invite code: the self-join path. Idempotent on re-join (the
- * existing row is returned unchanged, identity fields preserved). */
+/** Join by invite code: the self-join path, and the only way a new row is
+ * created. Idempotent on re-join (the existing row is returned unchanged,
+ * role and joinedAtMs included), also when two joins of one user race. */
 export const joinLeagueByInvite = async ({
 	inviteCode,
 	userId,
@@ -89,14 +90,26 @@ export const joinLeagueByInvite = async ({
 		throw new LeagueError('invalid_invite_code');
 	}
 
-	return await writeLeagueMember({
-		leagueId: league.id,
-		callerId: userId,
-		memberUserId: userId,
-		role: 'member',
-		nowMs,
-		viaInvite: true
-	});
+	const [inserted] = await query<LeagueMemberRow>(
+		`insert into league_members (league_id, member_user_id, joined_at_ms, role)
+		 values ($1, $2, $3, 'member')
+		 on conflict (league_id, member_user_id) do nothing
+		 returning league_id, member_user_id, joined_at_ms::text, role`,
+		[league.id, userId, nowMs]
+	);
+
+	if (nonNullish(inserted)) {
+		return shapeMember(inserted);
+	}
+
+	const existing = await getLeagueMember({ leagueId: league.id, memberUserId: userId });
+
+	// Only a leave landing between the conflict and the read gets here.
+	if (isNullish(existing)) {
+		throw new LeagueError('league_members: the membership was removed while joining.');
+	}
+
+	return existing;
 };
 
 interface LeagueMemberWrite {
@@ -104,7 +117,6 @@ interface LeagueMemberWrite {
 	callerId: string;
 	memberUserId: string;
 	role: LeagueMemberRole;
-	nowMs?: number;
 }
 
 /**
@@ -113,19 +125,12 @@ interface LeagueMemberWrite {
  * reserved for the league's owner; role changes are owner-only; joinedAtMs is
  * write-once. A user who is not a member yet joins by invite code.
  */
-export const upsertLeagueMember = async (write: LeagueMemberWrite): Promise<LeagueMember> =>
-	await writeLeagueMember({ ...write, viaInvite: false });
-
-/** `viaInvite` is set only by the invite-code path, which has already proved
- * the caller holds the code: it is the only way a new row is created. */
-const writeLeagueMember = async ({
+export const upsertLeagueMember = async ({
 	leagueId,
 	callerId,
 	memberUserId,
-	role,
-	nowMs = Date.now(),
-	viaInvite
-}: LeagueMemberWrite & { viaInvite: boolean }): Promise<LeagueMember> => {
+	role
+}: LeagueMemberWrite): Promise<LeagueMember> => {
 	if (!LEAGUE_MEMBER_ROLES.includes(role)) {
 		throw new LeagueError(
 			`league_members role must be one of ${LEAGUE_MEMBER_ROLES.join(' | ')} (got "${role}").`
@@ -157,25 +162,9 @@ const writeLeagueMember = async ({
 		const current = await getLeagueMember({ leagueId, memberUserId }, q);
 
 		if (isNullish(current)) {
-			if (!viaInvite) {
-				throw new LeagueError(
-					'league_members: not a member (a new member joins with the invite code).'
-				);
-			}
-
-			const rows = await q<LeagueMemberRow>(
-				`insert into league_members (league_id, member_user_id, joined_at_ms, role)
-				 values ($1, $2, $3, $4)
-				 returning league_id, member_user_id, joined_at_ms::text, role`,
-				[leagueId, memberUserId, nowMs, role]
+			throw new LeagueError(
+				'league_members: not a member (a new member joins with the invite code).'
 			);
-			const [row] = rows;
-
-			if (isNullish(row)) {
-				throw new LeagueError('league_members insert returned no row.');
-			}
-
-			return shapeMember(row);
 		}
 
 		// Identity fields (league, member, joinedAtMs) are write-once; the only
