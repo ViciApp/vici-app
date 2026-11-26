@@ -107,6 +107,14 @@ describe.if(dbAvailable)('likes', () => {
 
 		expect(await likesOf(activityKey)).toBe(1);
 
+		// The legacy rollup table stays until a migration drops it; nothing
+		// may write it again.
+		const legacy = await query(`select 1 from activity_reaction_counts where activity_key = $1`, [
+			activityKey
+		]);
+
+		expect(legacy).toHaveLength(0);
+
 		await likeActivity({ likerId: liker, activityKey, timestamp: Date.now(), activityTitle: 't' });
 
 		expect(await likesOf(activityKey)).toBe(1);

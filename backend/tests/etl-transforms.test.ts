@@ -75,6 +75,7 @@ describe('etl collection registry', () => {
 	test('skipped collections declare a reason and import nothing', async () => {
 		for (const collection of [
 			'school_submissions',
+			'activity_reaction_counts',
 			'events',
 			'event_rollups',
 			'chats',
