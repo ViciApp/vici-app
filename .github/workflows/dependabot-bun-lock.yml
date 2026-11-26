@@ -91,11 +91,11 @@ jobs:
             "$BUN_IMAGE" \
             bun install --lockfile-only
 
-      # The commit is built on the head commit's tree with only bun.lock
-      # replaced, so nothing else from the PR is written back. The ref update
-      # is not forced: if the branch moved since this run started, it fails
-      # instead of dropping the new commits, and the run that push triggered
-      # repairs the new head.
+      # `createCommitOnBranch` replaces only bun.lock on top of the head commit
+      # and is a compare-and-swap on `expectedHeadOid`: if the branch moved
+      # since this run started (a new push, or a reset to an ancestor), the
+      # mutation is refused instead of writing over that state, and the run
+      # the move triggered repairs the new head.
       - name: Commit the regenerated lockfile onto the pull request branch
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -105,18 +105,22 @@ jobs:
             echo 'backend/bun.lock already matches backend/package.json.'
             exit 0
           fi
-          repo="repos/${GITHUB_REPOSITORY}"
           base64 -w0 backend/bun.lock > "${RUNNER_TEMP}/bun.lock.b64"
-          blob="$(jq -n --rawfile content "${RUNNER_TEMP}/bun.lock.b64" \
-            '{content: $content, encoding: "base64"}' \
-            | gh api "${repo}/git/blobs" --input - --jq .sha)"
-          head_tree="$(gh api "${repo}/git/commits/${HEAD_SHA}" --jq .tree.sha)"
-          tree="$(jq -n --arg base "$head_tree" --arg blob "$blob" \
-            '{base_tree: $base, tree: [{path: "backend/bun.lock", mode: "100644", type: "blob", sha: $blob}]}' \
-            | gh api "${repo}/git/trees" --input - --jq .sha)"
-          commit="$(jq -n --arg tree "$tree" --arg parent "$HEAD_SHA" \
-            '{message: "chore(backend-deps): regenerate bun.lock for the dependency bump", tree: $tree, parents: [$parent]}' \
-            | gh api "${repo}/git/commits" --input - --jq .sha)"
-          gh api --method PATCH "${repo}/git/refs/heads/${HEAD_REF}" \
-            -f sha="$commit" -F force=false > /dev/null
+          commit="$(jq -n \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg branch "$HEAD_REF" \
+            --arg head "$HEAD_SHA" \
+            --rawfile contents "${RUNNER_TEMP}/bun.lock.b64" \
+            '{
+              query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+              variables: {
+                input: {
+                  branch: { repositoryNameWithOwner: $repo, branchName: $branch },
+                  expectedHeadOid: $head,
+                  message: { headline: "chore(backend-deps): regenerate bun.lock for the dependency bump" },
+                  fileChanges: { additions: [{ path: "backend/bun.lock", contents: $contents }] }
+                }
+              }
+            }' \
+            | gh api graphql --input - --jq .data.createCommitOnBranch.commit.oid)"
           echo "Committed ${commit} onto ${HEAD_REF}."
