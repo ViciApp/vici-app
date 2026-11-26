@@ -143,18 +143,25 @@ describe.if(dbAvailable)('membership key discipline', () => {
 		const userId = await createTestUser();
 		const other = await openTransaction();
 
-		await other.q(
-			`insert into league_members (league_id, member_user_id, joined_at_ms, role)
-			 values ($1, $2, 1000, 'member')`,
-			[leagueId, userId]
-		);
+		try {
+			await other.q(
+				`insert into league_members (league_id, member_user_id, joined_at_ms, role)
+				 values ($1, $2, 1000, 'member')`,
+				[leagueId, userId]
+			);
 
-		const racing = joinLeagueByInvite({ inviteCode, userId, nowMs: 2000 });
+			const racing = Promise.allSettled([joinLeagueByInvite({ inviteCode, userId, nowMs: 2000 })]);
 
-		await waitForLockWait();
-		await other.commit();
+			await waitForLockWait(other);
+			await other.commit();
 
-		expect((await racing).joinedAtMs).toBe(1000);
+			const [joined] = await racing;
+
+			expect(joined.status === 'fulfilled' && joined.value.joinedAtMs).toBe(1000);
+		} finally {
+			await other.rollback();
+		}
+
 		expect((await listLeagueMembers(leagueId)).length).toBe(2);
 	});
 
