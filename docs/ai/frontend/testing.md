@@ -425,8 +425,9 @@ Before stabilizing, wait for the page's content, never on a bare
 `networkidle`: a signed-in page's background polls can keep the network
 from ever going idle, and the wait then hangs until the test timeout.
 `home.waitForMarketsLoaded()` covers the markets board and
-`home.waitForRenderSettled()` any other page. A `networkidle` wait that
-stays is bounded and its timeout swallowed, as in `navigation.spec.ts`.
+`home.waitForRenderSettled()` any other page. If a spec still needs a
+`networkidle` wait, give it a finite `timeout` and swallow only the
+`TimeoutError` it throws, as `navigation.spec.ts` does.
 
 `stabilizeForSnapshot` also dismisses any Menagerie trophy reveal on
 screen, but that one-shot pass is only a guard: it cannot catch a reveal
