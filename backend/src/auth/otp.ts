@@ -17,6 +17,39 @@ export const OTP_MAX_ATTEMPTS = 5;
  * so without a cap a fresh request would buy a fresh set of guesses. */
 export const OTP_MAX_LIVE_CODES = 3;
 
+/** The Turnstile action the app renders its sign-in code widget with
+ * (mirrored, see backend/README.md "Mirrored constants"). A token minted for
+ * another surface, such as the handle probe, cannot buy an email. */
+export const OTP_REQUEST_TURNSTILE_ACTION = 'email_code';
+
+// Gmail ignores dots in the local part and answers on both domains, so
+// `a.b@googlemail.com` and `ab@gmail.com` are one inbox.
+const GMAIL_DOMAIN = 'gmail.com';
+const GMAIL_DOMAINS = new Set([GMAIL_DOMAIN, 'googlemail.com']);
+
+/**
+ * The inbox an address delivers to, as a rate-limit key: lowercased, without a
+ * `+tag`, and for Gmail without dots. Without it a per-address limit is dodged
+ * by `victim+1@`, `victim+2@` and so on, every one landing in the same inbox.
+ * It keys only the limit; codes stay issued to, and verified for, the address
+ * as typed.
+ */
+export const otpMailboxKey = (email: string): string => {
+	const e = normalizeEmail(email);
+	const at = e.lastIndexOf('@');
+	const local = e.slice(0, at);
+	const domain = e.slice(at + 1);
+	const [untagged = ''] = local.split('+');
+
+	if (at <= 0 || untagged === '') {
+		return e;
+	}
+
+	return GMAIL_DOMAINS.has(domain)
+		? `${untagged.replaceAll('.', '')}@${GMAIL_DOMAIN}`
+		: `${untagged}@${domain}`;
+};
+
 interface OtpRow {
 	id: string;
 	code_hash: string;

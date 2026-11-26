@@ -12,6 +12,7 @@ import {
 	REFERRAL_SIGNUP_WINDOW_MS
 } from '../../src/account/referrals';
 import { VICI_ORACLE_V1 } from '../../src/admin/engine-sync';
+import { OTP_REQUEST_TURNSTILE_ACTION } from '../../src/auth/otp';
 import { VICI_ENGINE_ID } from '../../src/engine/registry';
 import {
 	BATTLE_AMOUNT_MAX,
@@ -132,6 +133,17 @@ describe('shared drift: account lifecycle', () => {
 		);
 		expect(EXIT_SIGNAL_NOTE_MAX_LENGTH).toBe(
 			extractIntConst({ source: appSource.exitSignal, constName: 'EXIT_SIGNAL_NOTE_MAX_LENGTH' })
+		);
+	});
+});
+
+describe('shared drift: auth', () => {
+	test('the Turnstile action of the email sign-in code request', () => {
+		expect(OTP_REQUEST_TURNSTILE_ACTION).toBe(
+			extractStringConst({
+				source: appSource.turnstile,
+				constName: 'TURNSTILE_ACTION_EMAIL_CODE'
+			})
 		);
 	});
 });

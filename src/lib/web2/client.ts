@@ -237,15 +237,22 @@ export const getMe = async (): Promise<Web2Me> => {
 };
 
 /**
- * Ask the API to email a one-time code to `email`. Resolves on a queued
- * send; a 4xx (unknown/invalid address, rate limit) surfaces as
- * {@link Web2ApiError} so the caller can message the user.
+ * Ask the API to email a one-time code to `email`, with a Turnstile token
+ * solved for the email-code action. Resolves on a queued send; a refusal
+ * (invalid address, refused or uncheckable token, rate limit, beta gate)
+ * surfaces as {@link Web2ApiError} so the caller can message the user.
  */
-export const requestOtp = async ({ email }: { email: string }): Promise<void> => {
+export const requestOtp = async ({
+	email,
+	turnstileToken
+}: {
+	email: string;
+	turnstileToken: string;
+}): Promise<void> => {
 	await request<{ ok: boolean }>({
 		path: '/api/v1/auth/otp/request',
 		method: 'POST',
-		body: { email }
+		body: { email, turnstileToken }
 	});
 };
 

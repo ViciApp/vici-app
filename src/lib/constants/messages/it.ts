@@ -2074,8 +2074,12 @@ export const itMessages = {
 	'signin.loading.passkey': 'Apertura del Passkey…',
 	'signin.otp.aria': 'Codice di verifica',
 	'signin.otp.back': 'Usa un altro indirizzo email',
+	'signin.otp.bot_check_failed': 'Controllo di sicurezza non superato. Riprova.',
+	'signin.otp.bot_check_unavailable':
+		'Controllo di sicurezza non disponibile. Riprova tra un minuto.',
 	'signin.otp.error': 'Il codice non ha funzionato. Riprova.',
 	'signin.otp.placeholder': 'Codice di verifica',
+	'signin.otp.rate_limited': 'Troppe richieste di codice. Riprova più tardi.',
 	'signin.otp.sent': 'Inserisci il codice inviato a {email}.',
 	'signin.otp.verify_cta': 'Verifica',
 	'signin.provider.apple': 'Continua con Apple',

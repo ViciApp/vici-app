@@ -7,11 +7,15 @@ import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { UUID_RE } from '../lib/constants';
-import { badRequest, clientIp, serviceUnavailable } from '../lib/http';
+import { badRequest, clientIp } from '../lib/http';
 import { issueHumanProof, verifyHumanProof } from '../lib/human-proof';
 import { enforceLimit } from '../lib/rate-limit';
 import { HOUR_IN_MS, MINUTE_IN_MS, TEN_MINUTES_IN_MS } from '../lib/time';
-import { MAX_TURNSTILE_TOKEN_LENGTH, verifyTurnstileToken } from '../lib/turnstile';
+import {
+	MAX_TURNSTILE_TOKEN_LENGTH,
+	turnstileRefusal,
+	verifyTurnstileToken
+} from '../lib/turnstile';
 import { InvalidDayKeyError, NoProfileError, recordFlowSwipe } from '../profiles/flow';
 import {
 	checkNicknameAvailability,
@@ -125,14 +129,10 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 				action: NICKNAME_CHECK_TURNSTILE_ACTION
 			});
 
-			if (verdict === 'failed') {
-				set.status = 403;
+			const refused = turnstileRefusal({ set, verdict });
 
-				return { error: 'turnstile_failed' };
-			}
-
-			if (verdict === 'unavailable' || verdict === 'unconfigured') {
-				return serviceUnavailable(set, `turnstile_${verdict}`);
+			if (refused) {
+				return refused;
 			}
 
 			const { proof } = issueHumanProof({
