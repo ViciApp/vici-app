@@ -416,18 +416,19 @@ Static brand assets that aren't components live in `static/branding/`:
 
 ### Schemas: `#lib/schema/`
 
-| Schema                      | Purpose                                                                                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `market.schema`             | Market shape across the satellite boundary.                                                                                                      |
-| `profile.schema`            | Profile shape (also used by the satellite).                                                                                                      |
-| `relation.schema`           | Friend / follow relation shape.                                                                                                                  |
-| `token.schema`              | Token catalog shape.                                                                                                                             |
-| `analytics-event.schema`    | Runtime Zod mirror of the `AnalyticsEventName` union and the analytics endpoint args / results. Keep it in step with `types/analytics-event.ts`. |
-| `auth-identity.schema`      | Admin export of auth identities (`GetAuthIdentitiesArgsSchema`, `AuthIdentityExportRowSchema`, result page).                                     |
-| `market-metadata.schema`    | Market metadata, why-now, events, tag index, and the metadata endpoint args.                                                                     |
-| `market-translation.schema` | Market translations and their endpoint args; locale ids stay `j.string()` because candid enums reject hyphens (`zh-Hans`).                       |
-| `referral.schema`           | Referral endpoint args (redeem, lookup, claim friendship, settle).                                                                               |
-| `resolved-result.schema`    | `ResolvedResultSchema`: one friend-readable `resolved_results` row, shared by the satellite endpoint and the FE.                                 |
+| Schema                      | Purpose                                                                                                                                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `market.schema`             | Market shape across the satellite boundary.                                                                                                                                              |
+| `profile.schema`            | Profile shape (also used by the satellite).                                                                                                                                              |
+| `relation.schema`           | Friend / follow relation shape.                                                                                                                                                          |
+| `token.schema`              | Token catalog shape.                                                                                                                                                                     |
+| `analytics-event.schema`    | Runtime Zod mirror of the `AnalyticsEventName` union and the analytics endpoint args / results. Keep it in step with `types/analytics-event.ts`.                                         |
+| `auth-identity.schema`      | Admin export of auth identities (`GetAuthIdentitiesArgsSchema`, `AuthIdentityExportRowSchema`, result page).                                                                             |
+| `market-metadata.schema`    | Market metadata, why-now, events, tag index, and the metadata endpoint args.                                                                                                             |
+| `market-translation.schema` | Market translations and their endpoint args; locale ids stay `j.string()` because candid enums reject hyphens (`zh-Hans`).                                                               |
+| `referral.schema`           | Referral endpoint args (redeem, lookup, claim friendship, settle).                                                                                                                       |
+| `resolved-result.schema`    | `ResolvedResultSchema`: one friend-readable `resolved_results` row, shared by the satellite endpoint and the FE.                                                                         |
+| `web2-api.schema`           | HTTP API response bodies `web2/client.ts` parses before a caller reads them: `/me`, the claim, order submits, the custodial wallet. Withdrawal states pinned by the backend drift suite. |
 
 When in doubt, look at the satellite's `src/satellite/index.ts` to see
 which schemas are reused there: those are the ones whose shape is _shared

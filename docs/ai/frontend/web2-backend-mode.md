@@ -55,7 +55,11 @@ is the reference. The rules it demonstrates:
    at the top of the module. Never `await import()` inside the branch.
 3. **Add a typed wrapper in `client.ts` per endpoint**, typed to the wire
    contract of the HTTP API route. If the wire shape differs from the
-   satellite shape, map it inside the wrapper, not in the service.
+   satellite shape, map it inside the wrapper, not in the service. A money
+   or identity endpoint parses its body with a schema from
+   `#lib/schema/web2-api.schema.ts` through `parsedRequest`: a body that
+   does not match throws `Web2ApiError` `invalid_response` with the 2xx
+   status, so a caller reads the outcome as unknown, never as success.
 4. **Default path is byte-for-byte today's behavior.** The `web3` branch
    must remain the exact pre-seam code; a diff with `VITE_BACKEND` unset
    must change nothing observable.
