@@ -103,6 +103,37 @@ jobs:
           # No file exists at /flow: a 200 proves the nginx SPA fallback works.
           expect_200 /flow
 
+          # nginx drops inherited add_header in any location that sets its
+          # own, so check one path per location block, plus a 404.
+          expect_header() {
+            local path=$1 name=$2 value=$3 headers
+            headers=$(curl --silent --output /dev/null --dump-header - "$base$path" | tr -d '\r')
+            if ! grep --quiet --ignore-case --line-regexp --fixed-strings "$name: $value" <<<"$headers"; then
+              echo "::error::GET $path lacks '$name: $value'. Got:"
+              echo "$headers"
+              exit 1
+            fi
+          }
+          expect_security_headers() {
+            expect_header "$1" Strict-Transport-Security 'max-age=63072000; includeSubDomains'
+            expect_header "$1" X-Content-Type-Options nosniff
+            expect_header "$1" Referrer-Policy same-origin
+            expect_header "$1" X-Frame-Options DENY
+            expect_header "$1" Content-Security-Policy "frame-ancestors 'none'"
+            echo "GET $1 -> security headers present"
+          }
+          immutable_asset=$(docker exec web sh -c 'cd /usr/share/nginx/html && find _app/immutable -type f -name "*.js" | head -n 1')
+          if [[ -z "$immutable_asset" ]]; then
+            echo "::error::No JS file under /_app/immutable in the image"
+            exit 1
+          fi
+          for path in / /flow /index.html "/$immutable_asset" /_app/immutable/missing.js; do
+            expect_security_headers "$path"
+          done
+          expect_header / Cache-Control 'no-cache, no-store, must-revalidate'
+          expect_header /flow Cache-Control 'no-cache, no-store, must-revalidate'
+          expect_header "/$immutable_asset" Cache-Control 'public, max-age=31536000, immutable'
+
           # Globbed so a rotated Search Console token needs no workflow edit.
           shopt -s nullglob
           verification_files=(static/google*.html)
