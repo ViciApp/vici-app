@@ -43,7 +43,10 @@ export type AnalyticsEventName =
 	// ── Flow (the swipe deck: hero feature, "the swipe is the funnel") ─
 	/** A Flow swipe session began. */
 	| 'flow_session_started'
-	/** A single card swipe (cockpit's `flow_swipe`). */
+	/**
+	 * A single card swipe (cockpit's `flow_swipe`). A YES / NO on the ViciXP
+	 * domain carries `value`, the call size in whole VXP; a skip carries none.
+	 */
 	| 'flow_swipe'
 	/** A Flow card was expanded for detail. */
 	| 'flow_card_expanded'
@@ -81,16 +84,26 @@ export type AnalyticsEventName =
 	 */
 	| 'market_category_filter'
 	// ── Trading ───────────────────────────────────────────────────────
-	/** A position was taken (cockpit's `position_taken`). */
+	/**
+	 * A position was taken (cockpit's `position_taken`). `source` carries the
+	 * surface (`flow | market_detail | landing`, or `guest_flow` for a guest
+	 * pick), `value` the VXP committed and `count` the contracts filled.
+	 */
 	| 'position_taken'
 	/** A position was closed. */
 	| 'position_closed'
 	/** A new market/prediction was created (cockpit's `prediction_created`). */
 	| 'prediction_created'
-	/** A limit order was placed. */
+	/** A limit order was placed; `source`, `value` and `count` as on `position_taken`. */
 	| 'order_placed'
 	/** A resting order was cancelled. */
 	| 'order_cancelled'
+	/**
+	 * A call-size slider settled on a size (a drag released or a key step,
+	 * never a render or a restore). `source` carries the surface
+	 * (`flow | market_detail | landing`), `value` the size in whole VXP.
+	 */
+	| 'call_size_set'
 	// ── Resolution & payout ───────────────────────────────────────────
 	/** A resolution was proposed (cockpit's `resolution_proposed`). */
 	| 'resolution_proposed'

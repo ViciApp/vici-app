@@ -10,6 +10,8 @@ export const frMessages = {
 	'trade.error.generic': "Ta prédiction n'a pas pu être placée. Réessaie dans un instant.",
 	'trade.error.insufficient_margin':
 		'Solde disponible insuffisant : cette prédiction nécessite {required}, mais tu as {available}. Il se libère à mesure que tes prédictions en cours se règlent.',
+	'trade.error.invalid_call_size':
+		"Cette taille de call n'est pas disponible. Choisis une taille sur le curseur et réessaie.",
 	'trade.error.market_closed': 'Ce marché vient de fermer : les prédictions ne sont plus ouvertes.',
 	'trade.error.not_authorized_to_trade': "Tu n'as pas accès à ce marché.",
 	'trade.error.not_order_creator': 'Tu ne peux annuler que tes propres ordres.',
@@ -740,6 +742,7 @@ export const frMessages = {
 	'card.back.who_calling': 'Qui pronostique quoi',
 	'card.call_size': 'TAILLE DE LA CALL',
 	'card.call_size_cap': 'TAILLE DE LA CALL · MAX',
+	'card.call_size_value': '{amount} VXP',
 	'card.days_left_aria': '{days} jours restants',
 	'card.favorite': 'FAVORI',
 	'card.followed_friend_plural': 'amis',

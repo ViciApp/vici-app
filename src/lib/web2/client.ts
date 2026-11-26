@@ -927,7 +927,8 @@ export const submitEngineLimitOrder = async ({
 	side,
 	qty,
 	priceValue,
-	priceDecimals
+	priceDecimals,
+	callSize
 }: {
 	orderId: string;
 	seriesId: string;
@@ -937,6 +938,8 @@ export const submitEngineLimitOrder = async ({
 	/** Fixed-point price mantissa, matching the engine's DecimalValue encoding. */
 	priceValue: bigint;
 	priceDecimals: number;
+	/** ViciXp call size in whole VXP; the API refuses an order whose notional disagrees with it. */
+	callSize?: number;
 }): Promise<boolean> => {
 	const { filled } = await request<{ filled: boolean }>({
 		path: '/api/v1/engine/orders/limit',
@@ -948,7 +951,8 @@ export const submitEngineLimitOrder = async ({
 			side,
 			qty: qty.toString(),
 			priceValue: priceValue.toString(),
-			priceDecimals
+			priceDecimals,
+			...(isNullish(callSize) ? {} : { callSize })
 		}
 	});
 
@@ -958,20 +962,28 @@ export const submitEngineLimitOrder = async ({
 /** Execute against one resting order (`qty` caps the take at that level). */
 export const submitEngineMarketOrder = async ({
 	tradeId,
+	seriesId,
 	matchingOrderId,
-	qty
+	qty,
+	callSize
 }: {
 	tradeId: string;
+	/** The series of the resting order, whose book the API prices the take from. */
+	seriesId: string;
 	matchingOrderId: string;
 	qty?: bigint;
+	/** ViciXp call size in whole VXP; the API refuses a take that costs more. */
+	callSize?: number;
 }): Promise<boolean> => {
 	const { filled } = await request<{ filled: boolean }>({
 		path: '/api/v1/engine/orders/market',
 		method: 'POST',
 		body: {
 			tradeId,
+			seriesId,
 			matchingOrderId,
-			...(isNullish(qty) ? {} : { qty: qty.toString() })
+			...(isNullish(qty) ? {} : { qty: qty.toString() }),
+			...(isNullish(callSize) ? {} : { callSize })
 		}
 	});
 

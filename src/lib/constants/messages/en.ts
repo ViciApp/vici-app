@@ -9,6 +9,8 @@ export const enMessages = {
 	'trade.error.generic': "Your prediction couldn't be placed. Try again shortly.",
 	'trade.error.insufficient_margin':
 		'Not enough available balance: this prediction needs {required}, but you have {available}. It frees up as your open predictions resolve.',
+	'trade.error.invalid_call_size':
+		"That call size isn't available. Pick a size on the slider and try again.",
 	'trade.error.market_closed': 'This market just closed; predictions are no longer open.',
 	'trade.error.not_authorized_to_trade': "You don't have access to this market.",
 	'trade.error.not_order_creator': 'You can only cancel your own orders.',
@@ -722,6 +724,7 @@ export const enMessages = {
 	'card.back.who_calling': "Who's calling what",
 	'card.call_size': 'CALL SIZE',
 	'card.call_size_cap': 'CALL SIZE · CAP',
+	'card.call_size_value': '{amount} VXP',
 	'card.days_left_aria': '{days} days left',
 	'card.favorite': 'FAVORITE',
 	'card.followed_friend_plural': 'friends',

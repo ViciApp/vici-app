@@ -15,6 +15,8 @@ export const ptBRMessages = {
 	'trade.error.generic': 'Não foi possível registrar sua previsão. Tente de novo em instantes.',
 	'trade.error.insufficient_margin':
 		'Saldo disponível insuficiente: esta previsão precisa de {required}, mas você tem {available}. Ele é liberado conforme suas previsões em aberto são resolvidas.',
+	'trade.error.invalid_call_size':
+		'Esse tamanho de call não está disponível. Escolha um tamanho no controle e tente de novo.',
 	'trade.error.market_closed':
 		'Este mercado acabou de fechar: as previsões não estão mais abertas.',
 	'trade.error.not_authorized_to_trade': 'Você não tem acesso a este mercado.',
@@ -697,6 +699,7 @@ export const ptBRMessages = {
 	'card.back.who_calling': 'Quem está prevendo o quê',
 	'card.call_size': 'TAMANHO DA CALL',
 	'card.call_size_cap': 'TAMANHO DA CALL · LIMITE',
+	'card.call_size_value': '{amount} VXP',
 	'card.days_left_aria': '{days} dias restantes',
 	'card.favorite': 'FAVORITO',
 	'card.followed_friend_plural': 'amigos',

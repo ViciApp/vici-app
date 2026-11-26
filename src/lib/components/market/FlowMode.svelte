@@ -24,7 +24,7 @@
 	import { ZERO } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
-	import { isVxpCallSize, VXP_MIN_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
+	import { VXP_MIN_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { featuredEvent, featuredEventActive } from '#lib/derived/featured-event.derived.ts';
 	import { guestMode } from '#lib/derived/guest.derived.ts';
@@ -102,8 +102,8 @@
 		stageForStreak,
 		type FlameStage
 	} from '#lib/utils/streak.utils.ts';
-	import { assertViciXpHumanPremium } from '#lib/utils/trade.utils.ts';
 	import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
+	import { assertViciXpHumanPremium, clampVxpCallSize } from '#lib/utils/vxp-economy.utils.ts';
 	import { goto } from '$app/navigation';
 
 	// Daily goal: a per-user count of predictions committed today,
@@ -402,8 +402,8 @@
 			});
 	};
 
-	// Clearing-margin base units of the cheapest possible call; the smallest
-	// VXP ladder rung. A user whose spendable margin can't cover even this can
+	// Clearing-margin base units of the cheapest possible call, the minimum
+	// VXP call size. A user whose spendable margin can't cover even this can
 	// afford NO further prediction this session, so the per-card funds gate
 	// would block every YES / NO from here on (see `handleAction`). Computed
 	// once: the floor is fixed, only the spendable side moves.
@@ -420,7 +420,7 @@
 	// part-way through: surface a takeover with explicit exits.
 	// Scoped to the VXP domain: `collateralsStore` presence is the signed-in /
 	// loaded check (see the funds gate), the playground domains (USD / ICP) use
-	// fractional sub-rung amounts the VXP floor doesn't model. Held off while
+	// fractional amounts the VXP floor doesn't model. Held off while
 	// `completed` (a run that met its goal earns FlowEnd, not this) and while a
 	// gating beat plays (`flowPaused`) so it never flashes between cards.
 	const outOfFunds = $derived(
@@ -515,12 +515,10 @@
 
 			if (isViciXp($balanceDomain)) {
 				// Restore the user's last Flow call size from their profile,
-				// but reject it (and fall back to `VXP_MIN_CALL_SIZE`) if it
-				// isn't a current ladder rung: the ladder may have been
-				// reshuffled since the value was persisted.
-				const candidate = Number(fromProfile);
-
-				tradeAmount = isVxpCallSize(candidate) ? String(candidate) : String(VXP_MIN_CALL_SIZE);
+				// clamped into the current range: a size stored under wider
+				// bounds restores at the nearest valid size, and the stored
+				// `'0'` (no size saved) opens at the default.
+				tradeAmount = String(clampVxpCallSize({ value: Number(fromProfile) }));
 			} else if (nonNullish(fromProfile) && Number(fromProfile) > 0) {
 				// The stored default `'0'` means no call size was ever saved.
 				tradeAmount = fromProfile;
@@ -669,8 +667,16 @@
 			return;
 		}
 
-		// Product analytics: the swipe is the core Layer Zero funnel step.
-		track({ name: 'flow_swipe', source: 'flow', marketId: currentMarket.id, label: action });
+		// Product analytics: the swipe is the core Layer Zero funnel step. A YES /
+		// NO on the ViciXP domain carries the call size, so the sizes players
+		// pick are measurable; a skip sizes nothing.
+		track({
+			name: 'flow_swipe',
+			source: 'flow',
+			marketId: currentMarket.id,
+			label: action,
+			...(action !== 'SKIP' && isViciXp($balanceDomain) ? { value: Number(tradeAmount) } : {})
+		});
 
 		// Funds gate: a YES / NO commits real collateral, and the engine
 		// rejects a call the spendable margin can't cover. Catch that here,
@@ -820,7 +826,8 @@
 				await flowTradeService.executeTrade({
 					market: currentMarket,
 					action,
-					amount: tradeAmount
+					amount: tradeAmount,
+					source: 'flow'
 				});
 			} catch (e: unknown) {
 				// The call never reached the book: pull its amount back out of
@@ -1156,9 +1163,9 @@
 		goto(resolveAppPath(AppPath.Dash));
 	};
 
-	// The back-face peg-rail owns call-size selection on the VXP balance
-	// domain. The playground domains (USD / ICP) use fractional amounts
-	// that the peg-rail doesn't cover, so we keep a small bottom-bar
+	// The back-face call-size slider owns call-size selection on the VXP
+	// balance domain. The playground domains (USD / ICP) use fractional
+	// amounts that the slider doesn't cover, so we keep a small bottom-bar
 	// stepper for those: see `playgroundOnly` gate around `FlowBottomBar`
 	// in the template.
 	const playgroundOnly = $derived(!isViciXp($balanceDomain));
@@ -1182,8 +1189,8 @@
 	// back-face slider: distinct from the block-on-swipe funds gate, which
 	// only fires once the user throws the card. Resolved to a single state so
 	// the slider renders one line. Scoped to a signed-in, loaded, VXP-domain
-	// run with a card on screen (the playground domains use sub-rung amounts the
-	// VXP floor doesn't model; `collateralsStore` presence is the signed-in /
+	// run with a card on screen (the playground domains use fractional amounts
+	// the VXP floor doesn't model; `collateralsStore` presence is the signed-in /
 	// loaded check, mirroring the funds gate).
 	const callSizeWarning = $derived.by<'none' | 'unaffordable' | 'wont-finish'>(() => {
 		if (isNullish($collateralsStore) || !isViciXp($balanceDomain) || isNullish(currentCard)) {
@@ -1508,7 +1515,7 @@
 
 		{#if playgroundOnly}
 			<!-- Playground (USD / ICP) amount stepper. VXP uses the
-			     back-face peg-rail and renders no bottom bar. -->
+			     back-face call-size slider and renders no bottom bar. -->
 			<FlowBottomBar
 				min={0.1}
 				onAction={handleAction}
