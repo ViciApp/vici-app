@@ -27,6 +27,7 @@ import {
 } from '../src/leagues/members';
 import { resetRateLimits } from '../src/lib/rate-limit';
 import { createTestUser, ensureMigrated } from './helpers/auth';
+import { openTransaction, waitForLockWait } from './helpers/locks';
 import { dbAvailable } from './helpers/setup';
 
 const uniqueLeagueId = (): string => `lg-${randomBytes(6).toString('hex')}`;
@@ -122,6 +123,38 @@ describe.if(dbAvailable)('membership key discipline', () => {
 		const rejoined = await joinLeagueByInvite({ inviteCode, userId, nowMs: 2000 });
 
 		expect(rejoined.joinedAtMs).toBe(1000);
+		expect((await listLeagueMembers(leagueId)).length).toBe(2);
+	});
+
+	test('a repeat join returns the row unchanged, for an admin and for the owner', async () => {
+		const { ownerId, leagueId, inviteCode } = await seedLeague();
+		const admin = await createTestUser();
+
+		await joinLeagueByInvite({ inviteCode, userId: admin });
+		await upsertLeagueMember({ leagueId, callerId: ownerId, memberUserId: admin, role: 'admin' });
+
+		expect((await joinLeagueByInvite({ inviteCode, userId: admin })).role).toBe('admin');
+		expect((await joinLeagueByInvite({ inviteCode, userId: ownerId })).role).toBe('owner');
+		expect((await getLeagueMember({ leagueId, memberUserId: ownerId }))?.role).toBe('owner');
+	});
+
+	test('a join racing another join of the same user returns the row that won', async () => {
+		const { leagueId, inviteCode } = await seedLeague();
+		const userId = await createTestUser();
+		const other = await openTransaction();
+
+		await other.q(
+			`insert into league_members (league_id, member_user_id, joined_at_ms, role)
+			 values ($1, $2, 1000, 'member')`,
+			[leagueId, userId]
+		);
+
+		const racing = joinLeagueByInvite({ inviteCode, userId, nowMs: 2000 });
+
+		await waitForLockWait();
+		await other.commit();
+
+		expect((await racing).joinedAtMs).toBe(1000);
 		expect((await listLeagueMembers(leagueId)).length).toBe(2);
 	});
 
