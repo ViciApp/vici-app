@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: Draft
+Status: In progress (#TBD)
 
 ## Goal
 
@@ -122,9 +122,10 @@ carries `source`, `marketId`, `label` (side) and no amount. Guest picks track `p
    returns `VXP_DEFAULT_CALL_SIZE`. Otherwise it rounds to the nearest multiple of the step and
    clamps into `[VXP_MIN_CALL_SIZE, VXP_MAX_CALL_SIZE]`, so a stored 300 or 500 restores as the
    maximum.
-3. **Client guard** (`trade.utils.ts`): `assertViciXpHumanPremium` keeps its contract (throws on a
-   value outside the set) with the new predicate; its message names the bounds and the step from
-   the constants.
+3. **Client guard**: `assertViciXpHumanPremium` keeps its contract (throws on a value outside the
+   set) with the new predicate; its message names the bounds and the step from the constants. It
+   moves from `trade.utils.ts` to `vxp-economy.utils.ts` (see
+   [Implementation notes](#implementation-notes)).
 4. **Flow** (`FlowMode.svelte`): the restore uses `clampVxpCallSize` and falls back to
    `VXP_DEFAULT_CALL_SIZE` (not the minimum, which now differs from the default).
    `MIN_CALL_MARGIN_USD` and the `wont-finish` warning keep pricing at `VXP_MIN_CALL_SIZE`, which
@@ -250,9 +251,11 @@ restated in code.
   writes it for VXP today, so an assert would guard an unused path.
 - Scalability: unaffected at 10× / 100× users, since nothing is added on-canister beyond one event
   name.
-- Upgrade and compatibility: `juno:functions:build` reruns for the analytics enum; the `.did`
-  output should be byte identical (event names are validated by the Zod enum, not typed in
-  Candid), to confirm at build. No `juno.config.ts` rule change, not breaking.
+- Upgrade and compatibility: `juno:functions:build` reruns for the analytics enum. The build
+  showed the event name **is** typed in Candid (a variant), so `satellite_extension.did` and the
+  satellite declarations gain one `call_size_set` case in the track arguments and the two
+  analytics read results. Additive: older clients still send valid arguments, and only the cockpit
+  reads the results, which ships in the same build. No `juno.config.ts` rule change, not breaking.
 - Security: no collection rule or caller permission touched.
 
 **Web2 API (decision 1, option A).** The API rejects what it can see.
@@ -270,7 +273,12 @@ VXP_MAX_CALL_SIZE]`; when a limit order's notional (`qty` × the share cost: the
   `backend/src/engine/cache.ts`, so one canister query per series per TTL, usually zero) plus
   constant-time bigint arithmetic. Pricing a market leg needs the level price, so a market leg also
   reads `list_orders` for the series (a query, cacheable for the same TTL; the market body gains
-  `seriesId` for it), because the clearing Candid has no get-order-by-id. Order routes are
+  `seriesId` for it), because the clearing Candid has no get-order-by-id. A resting order's price
+  never changes, so the cached book prices any order it holds; an order placed since is read
+  fresh, and one still missing is looked up across every series, so a leg naming the wrong series
+  is checked against the order it really takes. The ViciXp check reads the resting order's own
+  series, never the client's `seriesId`. An order no book holds reaches the engine, which answers
+  `order_not_found` as today. Order routes are
   user-paced (a Flow sitting is capped by the daily hard cap), so the added load is a few cached
   reads per call.
 - Memory and storage: no migration, no table. Three mirrored integer constants.
@@ -342,8 +350,9 @@ enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate 
 
 ## Test plan
 
-- **Unit (`npm test`)**, new `src/tests/lib/utils/vxp-economy.utils.spec.ts` and
-  `src/tests/lib/utils/trade.utils.spec.ts` (neither helper has a spec today):
+- **Unit (`npm test`)**, new `src/tests/lib/utils/vxp-economy.utils.spec.ts` (which also holds the
+  guard's cases, see [Implementation notes](#implementation-notes)) and
+  `src/tests/lib/constants/vxp-economy.constants.spec.ts`:
   `isVxpCallSize` accepts min, default, max and every multiple of the step between; rejects
   min − step, max + step, a value between two steps (min + 1), non-integers, `NaN`, `Infinity`,
   negatives, 300, 500. `clampVxpCallSize`: `'0'` and non-finite give the default; 300 and 500 give
@@ -427,6 +436,38 @@ enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate 
    a signed-out pick survives sign-up and is placed afterwards, the guest pick record
    (`recordGuestPick`, today side only) must store the size and the placement path must validate it.
    The landing Markets brief owns the answer.
+
+## Implementation notes
+
+Divergences found against the code while building, fixed in this PR:
+
+- **The guard moved to `vxp-economy.utils.ts`.** `trade.utils.ts` imports the order service,
+  which the node test runner cannot load (it pulls in SvelteKit's `$app` modules), so a
+  `trade.utils.spec.ts` could not run. `assertViciXpHumanPremium` is a pure economy check, so it
+  now lives next to `clampVxpCallSize` and is tested there; `trade.utils.ts` and Flow import it.
+- **A binary NO limit order was priced in the wrong frame.** `executeOutcomeTrade` passes the
+  YES-framed price (`1 − NO price`) and `placeOrder` turned it back into the NO price before
+  sending it as the price of a YES sell, so a NO call on a market with no bid rested as a YES ask
+  at the NO price and blocked more than the call size in margin. The engine now receives the
+  YES-framed price. Without this, the API rule on a limit order's notional would refuse every such
+  NO call.
+- **A limit order is sized on the price the engine receives.** Sizing divided the call size by
+  the execution price at clearing USD precision, while the order went out rounded to
+  `PRICE_DECIMALS`, so the notional could land above the call size or a whole share short of it,
+  which the API rule refuses. A limit order is now sized on that exact price (`shareCostUsd` in
+  `market-order.utils.ts`, the general form of `levelShareCostUsd`). Market orders are unchanged:
+  `maxSpendUsd` already caps every level they take.
+- **One shared control:** `CallSizeSlider` (`src/lib/components/market/`) carries the label (cap
+  label at the maximum), the value with its unit and the range, and fires `call_size_set`. The
+  market detail sheet shows the size in that control's readout instead of its own larger figure.
+- **Landing Markets.** The landing Markets control on its own branch steps an index over the
+  ladder through two helpers it adds to `vxp-economy.utils.ts` (`callSizeStops`,
+  `callSizeStopIndex`). Whichever PR merges second mounts `CallSizeSlider` there with
+  `source: 'landing'`, previews with `vxpNetWin` and drops those helpers; this PR does not touch
+  landing files.
+- **`flow_swipe.value`** is sent on every YES / NO on the ViciXP domain, as the Analytics table
+  says, which includes a guest's swipe (at the size the guest's slider shows).
+- **Linked issues** were still not searchable from this session (no GitHub access).
 
 ## Decisions
 

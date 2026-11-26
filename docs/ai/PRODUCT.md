@@ -71,7 +71,7 @@ All amounts, caps, and gates live in three canonical constants files:
 never restate the numbers anywhere else (docs, specs, comments):
 
 - [`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts):
-  master parameter file (call-size ladder, streaks, calibration,
+  master parameter file (call-size range, streaks, calibration,
   comeback, podium, league founder, …)
 - [`referral.constants.ts`](../../src/lib/constants/referral.constants.ts):
   referral bonuses, tier curve, caps, signup window
@@ -923,3 +923,25 @@ can define categories long before markets grow into them. Category accents
 come from the macro; per-user "category" accuracy stats and battle scopes are
 keyed by macro. Decision record:
 [`specs/2026-07-22-feat-market-taxonomy.md`](./spec-driven-development/specs/2026-07-22-feat-market-taxonomy.md).
+
+### Call sizing: one slider, a range in steps, the net win everywhere
+
+On the ViciXP domain a call is sized with **one slider** on every surface that
+sizes one (the Flow card back, the market detail sheet): any multiple of `VXP_CALL_SIZE_STEP` from `VXP_MIN_CALL_SIZE` to
+`VXP_MAX_CALL_SIZE` (values in
+[`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts)),
+with no preset buttons. Arrow keys move one step and Home / End jump to the
+bounds; at the maximum the control turns to its cap state. Flow opens at the
+stored size, the market detail sheet at `VXP_DEFAULT_CALL_SIZE`; a size stored
+under the earlier, wider sizes is clamped into the range when it is read (a
+size above the maximum opens at the maximum; nothing is migrated). Every payout
+preview, the Flow card front included, is the **net win** from `vxpNetWin` at
+the execution price, floored by `VXP_P_WIN_FLOOR` and shown as `<1` below one
+VXP; the market detail sheet's "If right" figure is that net win, not the gross
+return. Open positions at any earlier size stay as they are. The client refuses
+a size outside the set on both builds; the web2 API also refuses one, and an
+order whose notional disagrees with its declared size, with
+`invalid_call_size`. On the web3 build nothing on-chain bounds the size yet
+(see [`economy.md`](./economy.md#caps-and-gates-the-anti-farming-spine)).
+Decision record:
+[`specs/2026-11-26-impr-vxp-call-size-range.md`](./spec-driven-development/specs/2026-11-26-impr-vxp-call-size-range.md).

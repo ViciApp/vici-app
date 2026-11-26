@@ -87,7 +87,7 @@ backs it. Amounts are **not** repeated here; follow the link.
 
 | Surface                    | Rule                                                                                                                                                                                                                | Backed by                                                                                                                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Prediction win**         | Pays at the market probability: `amount / p_win − amount`, with a floor on `p_win` so a long shot cannot pay an unbounded multiple.                                                                                 | `VXP_P_WIN_FLOOR`, `VXP_CALL_SIZE_LADDER` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                                                                       |
+| **Prediction win**         | Pays at the market probability: `amount / p_win − amount`, with a floor on `p_win` so a long shot cannot pay an unbounded multiple.                                                                                 | `VXP_P_WIN_FLOOR`, `VXP_MIN_CALL_SIZE`, `VXP_MAX_CALL_SIZE`, `VXP_CALL_SIZE_STEP` ([`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts))                                               |
 | **Onboarding grant**       | A single registration grant; no engagement-gated drip (the call-gated milestones are retained at zero).                                                                                                             | `NEW_USER_VXP_TOTAL_BASE_UNITS` ([`vxp-onboarding.constants.ts`](../../src/lib/constants/vxp-onboarding.constants.ts))                                                                                           |
 | **Referral: referee**      | Flat, one-time, paid to a new user who redeems within the post-signup window and then makes a first prediction.                                                                                                     | `REFERRAL_VXP_BONUS_BASE_UNITS`, `REFERRAL_SIGNUP_WINDOW_MS` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                          |
 | **Referral: referrer**     | **Diminishing** by the redemption's place in the referrer's lifetime redemption order, not by first-prediction order, then **hard-capped to zero**. Authoritative count is the server's own scan, never the client. | `referrerRewardBaseUnits`, `REFERRAL_MAX_PAID` ([`referral.constants.ts`](../../src/lib/constants/referral.constants.ts))                                                                                        |
@@ -116,7 +116,23 @@ Every mint must be bounded so it cannot become an unbounded faucet.
 The bound that protects each surface today:
 
 - **Prediction win**: bounded by the `p_win` floor (caps the long-shot
-  multiple) and the call-size ladder cap.
+  multiple) and the call-size range (a multiple of `VXP_CALL_SIZE_STEP`
+  from `VXP_MIN_CALL_SIZE` to `VXP_MAX_CALL_SIZE`). Where each bound is
+  enforced, and where it is not:
+  - **Call size.** The client guard (`assertViciXpHumanPremium` in
+    [`vxp-economy.utils.ts`](../../src/lib/utils/vxp-economy.utils.ts))
+    refuses a size outside the set on both builds. The web2 API's order
+    routes refuse, on a ViciXp series, a declared size outside the set and
+    an order whose notional disagrees with it (`invalid_call_size`,
+    [`backend/src/vxp/call-size.ts`](../../backend/src/vxp/call-size.ts));
+    an order that declares no size is held to the maximum. No satellite
+    path sees an order and the engine has no size rule, so on the web3
+    build only the client enforces it: a modified client can send any size
+    straight to the clearing canister.
+  - **`p_win` floor.** A preview only, on both builds (`vxpNetWin`):
+    settlement pays the raw `amount · (1/price − 1)` cashflow with no floor.
+  - The fix for both is an engine rule in icdc-core, written up in the
+    [call-size spec's follow-up](./spec-driven-development/specs/2026-11-26-impr-vxp-call-size-range.md#icdc-core-follow-up).
 - **Referrer reward**: diminishing curve **and** a hard lifetime cap
   to zero; the count comes from the satellite's own scan, so the client
   cannot inflate it. It counts every earlier redemption of the
@@ -333,12 +349,20 @@ Recorded deliberately so the next agent inherits them. These are
    web2 API already gates both on the caller's executed fills in the
    engine (`backend/src/vxp/predictions.ts`); the satellite still needs
    the same gate. Tracking: **#543**.
-3. **Repeatable overtime mint.** The overtime bonus is gated on raw
-   daily call count, and committed amounts are returnable collateral
+3. **Count-gated mints on cheap calls.** The overtime bonus is gated on
+   raw daily call count, and committed amounts are returnable collateral
    (not a cost), so it can be farmed with throwaway calls; the rolling
-   cap bounds how often it mints, not what the calls are worth.
-   Recommendation: gate it on **distinct markets** and a **minimum call
-   size** before it mints.
+   cap bounds how often it mints, not what the calls are worth. The same
+   holds for every mint that counts fills rather than weighing them: Flow
+   volume milestones, streak days, the fill-counted achievements
+   (`first-call`, `oracle`, `on-fire`, `contrarian`), and the battle,
+   tournament and Worlds podium tallies of settled calls and wins. The
+   call-size minimum sets the collateral each counted call locks, so the
+   lower it sits the cheaper every one of these is to reach.
+   Recommendation: a **minimum qualifying call size** below which a fill
+   counts toward none of them, on both stacks (its own spec, a follow-up
+   of the call-size range), and gate overtime on **distinct markets**
+   before it mints.
 4. **Low-cost founder mint.** Founding a league is a single free write,
    so the lifetime founder cap still permits a sizeable mint for
    near-zero effort. Recommendation: require a **membership / activity
@@ -389,3 +413,11 @@ The non-obvious "why" behind the rules above.
 - **Why a `p_win` floor.** Without it a near-certain-loser side would
   pay an enormous multiple of the amount, draining the economy through
   one surface. The floor caps the long-shot payout to a bounded multiple.
+- **Why a call-size range with a step, not a ladder or any amount.** A
+  range lets a player size a call to their conviction, down to small
+  calls that keep a low balance playing. The step keeps a slider on a
+  swipe card precise to drag, each stop a distinct size; any whole amount
+  was rejected as imprecise there. The maximum, with the `p_win` floor,
+  bounds what one call can win, and sizes above it were dropped for
+  everyone rather than kept for a few: the same bound on every surface is
+  what the web2 API can check.
