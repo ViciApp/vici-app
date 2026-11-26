@@ -73,11 +73,10 @@ test.describe('homepage (signed in)', () => {
 
 		await expect(home.marketFeed).toBeVisible();
 
-		// Wait for the network to go idle so the snapshot captures the
-		// fully-loaded board deterministically. The available list can be
-		// empty depending on the World-Cup release schedule, so we assert
-		// the board container rather than a card count.
-		await page.waitForLoadState('networkidle');
+		// The available list can be empty depending on the World-Cup release
+		// schedule, so the wait is on the placeholders going away rather than
+		// on a card count.
+		await home.waitForMarketsLoaded();
 
 		await home.stabilizeForSnapshot();
 

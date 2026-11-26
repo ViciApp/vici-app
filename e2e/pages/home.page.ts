@@ -203,6 +203,22 @@ export class HomePage {
 		await this.page.goto('/app');
 	}
 
+	/**
+	 * Wait until the markets board has loaded: its placeholders are gone, then
+	 * the rest of the page has settled ({@link waitForRenderSettled}). The
+	 * board's placeholders carry a test id rather than a `skel` class, so the
+	 * generic placeholder check would not see them.
+	 *
+	 * `networkidle` is no substitute on this signed-in page: a background poll
+	 * can keep the network from ever going idle, and an unbounded wait then
+	 * hangs until the test timeout.
+	 */
+	async waitForMarketsLoaded(): Promise<void> {
+		await expect(this.marketCardSkeleton).toHaveCount(0);
+
+		await this.waitForRenderSettled();
+	}
+
 	async gotoSignIn(): Promise<void> {
 		await this.page.goto('/signin');
 	}
