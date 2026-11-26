@@ -23,6 +23,11 @@
 		priority = false,
 		preload = false
 	}: Props = $props();
+
+	// The artwork is drawn square and letterboxes in any other shape. A
+	// centred square as large as the card's longer side covers the card the
+	// way a still does, cropping the overflow instead of leaving bands.
+	const side = $derived(Math.max(viewport.width, viewport.height));
 </script>
 
 <!-- The picture behind a card: its footage where the deck has some, the
@@ -30,7 +35,7 @@
 {#if hasDeckFilm(entry)}
 	<LandingDeckMedia {clip} {entry} {playing} {preload} {priority} {viewport} />
 {:else}
-	<div class="art" aria-hidden="true">
+	<div style:width="{side}px" class="art" aria-hidden="true">
 		<MarketArtwork
 			bleed
 			category={resolveFlowArtCategory({ tags: [], seed: entry.seriesId })}
@@ -43,7 +48,10 @@
 <style lang="postcss">
 	.art {
 		position: absolute;
-		inset: 0;
+		top: 50%;
+		left: 50%;
+		aspect-ratio: 1;
 		pointer-events: none;
+		transform: translate(-50%, -50%);
 	}
 </style>

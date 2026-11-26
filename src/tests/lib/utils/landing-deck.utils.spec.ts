@@ -18,13 +18,9 @@ import {
 	hasDeckFilm,
 	isDeckFlip3d,
 	landingDeckSeries,
-	landingDeckShareUrl,
 	resolveDeckRelease,
-	telegramShareHref,
-	toLandingDeckCard,
-	whatsAppShareHref
+	toLandingDeckCard
 } from '#lib/utils/landing-deck.utils.ts';
-import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -465,43 +461,6 @@ describe('landing-deck.utils', () => {
 			landingDeckSeries({ curated, leadSeriesId: 'c' });
 
 			assert.equal(curated[0].seriesId, 'a');
-		});
-	});
-
-	describe('share links', () => {
-		it('opens the landing on the market, in the public market route encoding', () => {
-			const seriesId = '007c6578aa11bb22';
-			const title = 'Will Brazil beat Norway?';
-
-			assert.equal(
-				landingDeckShareUrl({ origin: 'https://vici.app', title, seriesId }),
-				'https://vici.app/?m=will-brazil-beat-norway~007c6578'
-			);
-			assert.equal(
-				landingDeckShareUrl({ origin: 'https://vici.app', title, seriesId }),
-				`https://vici.app/?m=${marketShareParam({ title, seriesId })}`
-			);
-		});
-
-		it('falls back to the escaped id when the title yields no slug', () => {
-			assert.equal(
-				landingDeckShareUrl({ origin: 'https://vici.app', title: '？', seriesId: 'a b&c' }),
-				'https://vici.app/?m=a%20b%26c'
-			);
-		});
-
-		it('carries the text and the link to each target', () => {
-			const text = 'Will it? The crowd says 54%.';
-			const url = 'https://vici.app/?m=will-it~007c6578';
-
-			assert.equal(
-				whatsAppShareHref({ text, url }),
-				`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`
-			);
-			assert.equal(
-				telegramShareHref({ text, url }),
-				`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
-			);
 		});
 	});
 });

@@ -83,15 +83,6 @@ export const LANDING_DECK_SERIES: readonly LandingDeckSeries[] = [
 	}
 ];
 
-/**
- * Query parameter of a shared question's link: `/?m=<slug~id8>` opens the
- * landing on that market, in the same encoding as the public `/m/{param}`
- * route (`marketShareParam`). The deck writes it into the links it shares;
- * the page resolves it to a series id and passes that as the deck's
- * `leadSeriesId`.
- */
-export const LANDING_DECK_QUESTION_PARAM = 'm';
-
 /** Calls after which the deck hands over to the page (`ondone`) and offers the claim. */
 export const LANDING_DECK_CALLS_TO_DONE = 3;
 

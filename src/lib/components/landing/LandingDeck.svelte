@@ -75,8 +75,6 @@
 		 * market's own artwork. Leading with a series skips the introduction.
 		 */
 		leadSeriesId?: string;
-		/** The visitor shared a question (system sheet completed, target opened or link copied). */
-		onshare?: (seriesId: string) => void;
 	}
 
 	const {
@@ -88,8 +86,7 @@
 		onclaim,
 		onengage = () => {},
 		onempty = () => {},
-		leadSeriesId,
-		onshare
+		leadSeriesId
 	}: Props = $props();
 
 	interface DeckItem {
@@ -565,7 +562,6 @@
 					onpress={takeover}
 					onprogress={setUnderProgress}
 					{onrelease}
-					{onshare}
 					place={item.place}
 					playing={active && !clipResting}
 					posed={posed && item.place === 'top'}
