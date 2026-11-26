@@ -2,7 +2,11 @@ import {
 	LANDING_CLAIM_CODE_LENGTH,
 	LANDING_CLAIM_HANDLE_STORAGE_KEY
 } from '#lib/constants/landing-claim.constants.ts';
-import { MAX_NICKNAME_LENGTH, MIN_NICKNAME_LENGTH } from '#lib/constants/profile.constants.ts';
+import {
+	MAX_HANDLE_LENGTH,
+	MIN_HANDLE_LENGTH,
+	sanitizeNickname
+} from '#lib/constants/profile.constants.ts';
 import type {
 	LandingClaimCheck,
 	LandingClaimNotice,
@@ -10,7 +14,7 @@ import type {
 	LandingClaimStep
 } from '#lib/types/landing-claim.ts';
 import type { MessageKey } from '#lib/utils/i18n.utils.ts';
-import { nicknameFormatIssue } from '#lib/utils/nickname.utils.ts';
+import { nicknameFormatIssue, type NicknameFormatIssue } from '#lib/utils/nickname.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 export type LandingClaimTone = 'quiet' | 'yes' | 'no';
@@ -39,9 +43,39 @@ export const isLikelyEmail = (email: string): boolean => /^\S+@\S+\.\S+$/.test(e
 export const cleanClaimCode = (raw: string): string =>
 	raw.replace(/\D/g, '').slice(0, LANDING_CLAIM_CODE_LENGTH);
 
+/**
+ * The typed handle as the field keeps it: the shared charset rule strips what
+ * it refuses, and the length is capped at the handle editor's maximum, so a
+ * handle reserved here is also one the handle editor accepts.
+ */
+export const cleanClaimHandle = (raw: string): string =>
+	sanitizeNickname(raw).slice(0, MAX_HANDLE_LENGTH);
+
+/**
+ * The first rule `handle` breaks before the network is asked: the handle
+ * editor's length bounds, then the shared charset / reserved check.
+ */
+export const claimHandleIssue = (handle: string): NicknameFormatIssue | undefined => {
+	const { length } = handle.trim();
+
+	if (length === 0) {
+		return 'required';
+	}
+
+	if (length < MIN_HANDLE_LENGTH) {
+		return 'too_short';
+	}
+
+	if (length > MAX_HANDLE_LENGTH) {
+		return 'too_long';
+	}
+
+	return nicknameFormatIssue(handle);
+};
+
 /** The probe state a typed handle starts in before the network answers. */
 export const localClaimCheck = (handle: string): LandingClaimCheck => {
-	const issue = nicknameFormatIssue(handle);
+	const issue = claimHandleIssue(handle);
 
 	if (isNullish(issue)) {
 		return { kind: 'checking' };
@@ -72,13 +106,13 @@ const handleLine = ({
 			if (check.issue === 'too_short') {
 				return {
 					key: 'landing.claim.too_short',
-					params: { min: MIN_NICKNAME_LENGTH },
+					params: { min: MIN_HANDLE_LENGTH },
 					tone: 'quiet'
 				};
 			}
 
 			if (check.issue === 'too_long') {
-				return { key: 'landing.claim.too_long', params: { max: MAX_NICKNAME_LENGTH }, tone: 'no' };
+				return { key: 'landing.claim.too_long', params: { max: MAX_HANDLE_LENGTH }, tone: 'no' };
 			}
 
 			if (check.issue === 'invalid') {

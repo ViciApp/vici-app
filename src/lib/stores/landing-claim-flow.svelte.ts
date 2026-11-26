@@ -2,7 +2,6 @@ import {
 	LANDING_CLAIM_CHECK_DEBOUNCE_MS,
 	LANDING_CLAIM_CODE_LENGTH
 } from '#lib/constants/landing-claim.constants.ts';
-import { sanitizeNickname } from '#lib/constants/profile.constants.ts';
 import { checkHandleAvailabilityPublic } from '#lib/services/handle-availability.services.ts';
 import type {
 	LandingClaimCheck,
@@ -12,6 +11,7 @@ import type {
 } from '#lib/types/landing-claim.ts';
 import {
 	cleanClaimCode,
+	cleanClaimHandle,
 	isLikelyEmail,
 	landingClaimRefusalOf,
 	localClaimCheck
@@ -48,9 +48,9 @@ export class LandingClaimFlow {
 		this.#submit = submit;
 	}
 
-	/** Sets the typed handle with the characters the rule refuses removed, and probes it. */
+	/** Sets the typed handle, cleaned and capped by the handle rule, and probes it. */
 	inputHandle(raw: string): string {
-		this.handle = sanitizeNickname(raw);
+		this.handle = cleanClaimHandle(raw);
 		this.typed = true;
 		this.notice = { kind: 'none' };
 		this.#scheduleProbe();
