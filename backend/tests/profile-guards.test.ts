@@ -232,6 +232,20 @@ describe.if(dbAvailable)('handle-change cooldown', () => {
 		expect(profile.nickname).toBe(renamed);
 	});
 
+	test('a fractional stamp is a validation error, on a first write and on a change', async () => {
+		const { userId } = await createTestProfile();
+		const firstWriter = await createTestUser();
+
+		for (const writer of [firstWriter, userId]) {
+			await expect(
+				upsertMyProfile({
+					userId: writer,
+					body: { nickname: uniqueNickname(), handleLastChangeMs: Date.now() + 0.5 }
+				})
+			).rejects.toBeInstanceOf(ProfileValidationError);
+		}
+	});
+
 	test('the stamp is immutable while the handle is unchanged', async () => {
 		const { userId, profile } = await createTestProfile();
 

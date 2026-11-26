@@ -4,7 +4,7 @@
 // on a crossing request and the rejected-sender cooldown.
 
 import { isNullish } from '@dfinity/utils';
-import { query, tx } from '../db/client';
+import { query, refuseMissingReference, tx } from '../db/client';
 import { DAY_IN_MS } from '../lib/time';
 
 export type RelationCategory = 'FRIEND' | 'follow' | 'GROUP';
@@ -30,6 +30,10 @@ export type FriendRequestOutcome =
 	| { status: 'rejected_cooldown'; retryAtMs: number };
 
 export class RelationError extends Error {}
+
+/** The caller is signed in, so the participant foreign key a relation write
+ * can miss is the client-named target: a client error, not a fault. */
+const refuseUnknownTarget = refuseMissingReference(() => new RelationError('unknown_user'));
 
 interface RelationRow {
 	key: string;
@@ -131,7 +135,7 @@ export const sendFriendRequest = async ({
 				   participant_two = excluded.participant_two,
 				   updated_at = now()`,
 				[key, senderId, targetId]
-			);
+			).catch(refuseUnknownTarget);
 		};
 
 		if (isNullish(existing)) {
@@ -323,5 +327,5 @@ export const followUser = async ({
 		 values ($1, 'follow', 'ACTIVE', $2, $3, now())
 		 on conflict (key) do update set state = 'ACTIVE', updated_at = now()`,
 		[followRelationKey({ sender: senderId, target: targetId }), senderId, targetId]
-	);
+	).catch(refuseUnknownTarget);
 };

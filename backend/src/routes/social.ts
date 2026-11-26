@@ -14,6 +14,7 @@ import {
 	ACTIVITY_DETAILS_MAX_LENGTH,
 	ACTIVITY_MARKET_ID_MAX_LENGTH,
 	ACTIVITY_TITLE_MAX_LENGTH,
+	ActivityExistsError,
 	ActivityNotFoundError,
 	ActivityValidationError,
 	createActivity,
@@ -304,13 +305,7 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 					return badRequest(set, err.message);
 				}
 
-				// A replayed key (same user, timestamp, type) collides on the
-				// primary key; answer it as a conflict rather than a fault.
-				if (
-					typeof err === 'object' &&
-					nonNullish(err) &&
-					(err as { code?: string }).code === '23505'
-				) {
+				if (err instanceof ActivityExistsError) {
 					set.status = 409;
 
 					return { error: 'activity_exists' };

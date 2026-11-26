@@ -61,6 +61,31 @@ export const isDbUnavailable = (error: unknown): boolean => {
 	);
 };
 
+/** SQLSTATEs of the constraints a client's input can break, which the API
+ * answers as a client error rather than a fault. */
+const UNIQUE_VIOLATION = '23505';
+const FOREIGN_KEY_VIOLATION = '23503';
+
+const hasSqlState = ({ error, code }: { error: unknown; code: string }): boolean =>
+	error instanceof Error && (error as { code?: unknown }).code === code;
+
+/** Whether a write collided on a unique key or primary key. */
+export const isUniqueViolation = (error: unknown): boolean =>
+	hasSqlState({ error, code: UNIQUE_VIOLATION });
+
+/** Whether a write named a row that does not exist through a foreign key. */
+const isForeignKeyViolation = (error: unknown): boolean =>
+	hasSqlState({ error, code: FOREIGN_KEY_VIOLATION });
+
+/** A `.catch` handler for a write whose only foreign key a client can miss
+ * is one it named: that violation becomes the domain's typed error, so the
+ * route answers it instead of the global 500; anything else is rethrown. */
+export const refuseMissingReference =
+	(toError: () => Error) =>
+	(error: unknown): never => {
+		throw isForeignKeyViolation(error) ? toError() : error;
+	};
+
 /** A parameterized query helper bound to the pool. */
 export const query = async <T>(text: string, params: unknown[] = []): Promise<T[]> => {
 	const res = await pool.query(text, params);

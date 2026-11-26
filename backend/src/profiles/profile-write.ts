@@ -5,7 +5,7 @@
 // flow-swipe counter in `flow.ts` writes it.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { tx, type TxQuery } from '../db/client';
+import { isUniqueViolation, tx, type TxQuery } from '../db/client';
 import { fanoutProfileDeltaToLeagueStats } from '../leagues/stats';
 import {
 	checkNicknameAvailability,
@@ -138,6 +138,16 @@ const optionalFiniteNumber = (value: unknown, field: string): number | undefined
 	return finiteNumber(value, field, 0);
 };
 
+/** A client-written epoch stamp stored in a `bigint` column: a whole
+ * millisecond count, so a fraction is a 400 and never a database fault. */
+const optionalEpochMs = (value: unknown, field: string): number | undefined => {
+	if (isNullish(value)) {
+		return;
+	}
+
+	return boundedInteger({ value, field, fallback: 0, max: Number.MAX_SAFE_INTEGER });
+};
+
 const stringField = (value: unknown, field: string, fallback: string): string => {
 	if (isNullish(value)) {
 		return fallback;
@@ -217,7 +227,7 @@ export const parseProfileInput = (body: Record<string, unknown>): ProfileInput =
 		earnedMenagerie: isNullish(body.earnedMenagerie)
 			? undefined
 			: stringArray(body.earnedMenagerie, 'earnedMenagerie'),
-		handleLastChangeMs: optionalFiniteNumber(body.handleLastChangeMs, 'handleLastChangeMs'),
+		handleLastChangeMs: optionalEpochMs(body.handleLastChangeMs, 'handleLastChangeMs'),
 		// Shaped by the read schema before it is stored, so SQL that reads a
 		// preference leaf only ever meets the types that schema guarantees.
 		preferences: sanitizePreferences({
@@ -478,11 +488,7 @@ export const upsertMyProfile = async ({
 			// The unique nickname index is the backstop for two concurrent
 			// first-claims of the same fold; surface it as the same typed error
 			// the pre-check produces.
-			if (
-				typeof err === 'object' &&
-				nonNullish(err) &&
-				(err as { code?: string }).code === '23505'
-			) {
+			if (isUniqueViolation(err)) {
 				throw new ProfileValidationError(`The nickname "${proposed.nickname}" is already taken.`);
 			}
 
