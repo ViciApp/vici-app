@@ -25,9 +25,9 @@ govern Flow Mode (§7). Tick rows off as PRs land.
 
 The companion guidance lives in:
 
-- [`brand.md`](./brand.md): palette, typography triad, voice & tone,
-  iconography, character cast, copy patterns. The brand book lives
-  there; this file is the surface roster.
+- [`brand.md`](./brand.md): palette, typography triad, landing display
+  faces, voice & tone, iconography, character cast, copy patterns. The
+  brand book lives there; this file is the surface roster.
 - [`reusability.md`](./reusability.md): extend existing components before
   adding new ones.
 - [`stack-and-patterns.md`](./stack-and-patterns.md): Tailwind v4 token
@@ -51,6 +51,7 @@ easing curve are present. Outstanding items:
 | `--ticker-h: 32px`                                                                     | ✅ Done     | Declared in `:root`; nothing reads it today. The `/welcome` ticker is the `.lpc-ticker` marquee in [`WelcomeProof.svelte`](../../../src/lib/components/landing/WelcomeProof.svelte), which does not use it. |
 | Peach theme tokens                                                                     | ✅ Done     | `[data-theme='peach']` defines the warm blush canvas, warm dark foreground, and deeper laurel accent swap.                                                                                                  |
 | Named oversize type (`--t-88`, `--t-128`)                                              | ✅ Done     | Available for hand-tuned editorial moments via `var(--t-88)` etc.                                                                                                                                           |
+| `--font-headline`, `--font-poster`                                                     | ✅ Done     | Landing display faces in `@theme`: Bricolage Grotesque (headings) and Anton (uppercase poster line). Not preloaded. See [`brand.md` § 5.2](./brand.md#52-landing-display-faces).                            |
 | Z-index scale (`--z-overlay`, `--z-modal`, `--z-dropdown`, `--z-toast`, `--z-tooltip`) | ❓ Implicit | Audit existing modals / popovers; if z-index is inlined per-component, extract to `@theme` once during a primitive pass.                                                                                    |
 
 Three large-radius / edge-spacing surfaces sit just off the standard
