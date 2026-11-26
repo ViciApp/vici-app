@@ -1331,6 +1331,7 @@ export const itMessages = {
 		'Con una previsione da {size} VXP, un Sì giusto rende {yes} VXP e un No giusto rende {no} VXP.',
 	'landing.deck.back.rule': 'Regola',
 	'landing.deck.back.settles': '{category} · si risolve il {date}',
+	'landing.deck.back.settles_plain': 'Si risolve il {date}',
 	'landing.deck.call_no_aria': 'Prevedi No',
 	'landing.deck.call_yes_aria': 'Prevedi Sì',
 	'landing.deck.called_no':
@@ -1351,6 +1352,10 @@ export const itMessages = {
 	'landing.deck.progress': 'Previsione {current} di {total}',
 	'landing.deck.progress_done': '{count} previsioni fatte',
 	'landing.deck.region_aria': 'Carte delle previsioni',
+	'landing.deck.share.aria': 'Condividi questa domanda',
+	'landing.deck.share.copied': 'Link copiato',
+	'landing.deck.share.copy_link': 'Copia link',
+	'landing.deck.share.text': '{question} Il pubblico dice {percent}%. Tu cosa prevedi?',
 	'landing.deck.show_rule': 'Mostra la regola',
 	'landing.deck.yes': 'Sì',
 	'market.probability.loading': 'Caricamento probabilità',

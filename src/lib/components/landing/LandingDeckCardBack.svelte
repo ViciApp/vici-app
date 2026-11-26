@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { nonNullish } from '@dfinity/utils';
+	import { isNullish, nonNullish } from '@dfinity/utils';
 	import type { Snippet } from 'svelte';
 	import { VXP_DEFAULT_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -35,25 +35,33 @@
 		onflip = () => {}
 	}: Props = $props();
 
-	const settles = $derived(formatLongDate({ date: card.market.expiryDate, locale: $localeStore }));
+	const settlesLabel = $derived.by(() => {
+		const date = formatLongDate({ date: card.market.expiryDate, locale: $localeStore });
+
+		if (isNullish(card.entry.category)) {
+			return t({ locale: $localeStore, key: 'landing.deck.back.settles_plain', params: { date } });
+		}
+
+		return t({
+			locale: $localeStore,
+			key: 'landing.deck.back.settles',
+			params: {
+				category: categoryLabel({
+					category: card.entry.category,
+					variant: 'full',
+					locale: $localeStore
+				}),
+				date
+			}
+		});
+	});
 </script>
 
 <div class="back" aria-hidden={!shown} inert={!shown}>
 	<div class="in">
 		<div class="lead">
 			<span class="cat">
-				{t({
-					locale: $localeStore,
-					key: 'landing.deck.back.settles',
-					params: {
-						category: categoryLabel({
-							category: card.entry.category,
-							variant: 'full',
-							locale: $localeStore
-						}),
-						date: settles
-					}
-				})}
+				{settlesLabel}
 			</span>
 			<p class="question">{title}</p>
 			<p class="price">

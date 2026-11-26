@@ -38,7 +38,9 @@
 	}: Props = $props();
 
 	const category = $derived(
-		categoryLabel({ category: card.entry.category, variant: 'full', locale: $localeStore })
+		nonNullish(card.entry.category)
+			? categoryLabel({ category: card.entry.category, variant: 'full', locale: $localeStore })
+			: undefined
 	);
 	const sparkline = $derived(
 		nonNullish(card.history) ? deckSparkline([...card.history, card.yesPercent]) : undefined
@@ -48,7 +50,7 @@
 <div class="body" aria-hidden={covered} inert={covered}>
 	<div>
 		<span class="cat">
-			{category}
+			{category ?? ''}
 			{#if nonNullish(moveLabel)}
 				<em class={trend}>
 					{#if nonNullish(sparkline)}
@@ -164,6 +166,11 @@
 		opacity: 0.75;
 		vertical-align: middle;
 		white-space: nowrap;
+	}
+
+	/* No category above a series the deck has no editorial entry for. */
+	.cat em:first-child {
+		margin-left: 0;
 	}
 
 	.cat em.up {

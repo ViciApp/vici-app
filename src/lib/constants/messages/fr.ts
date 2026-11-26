@@ -1335,6 +1335,7 @@ export const frMessages = {
 		'Pour un pronostic de {size} VXP, un Oui juste rapporte {yes} VXP et un Non juste rapporte {no} VXP.',
 	'landing.deck.back.rule': 'Règle',
 	'landing.deck.back.settles': '{category} · résolution le {date}',
+	'landing.deck.back.settles_plain': 'Résolution le {date}',
 	'landing.deck.call_no_aria': 'Pronostiquer Non',
 	'landing.deck.call_yes_aria': 'Pronostiquer Oui',
 	'landing.deck.called_no':
@@ -1355,6 +1356,10 @@ export const frMessages = {
 	'landing.deck.progress': 'Pronostic {current} sur {total}',
 	'landing.deck.progress_done': '{count} pronostics faits',
 	'landing.deck.region_aria': 'Cartes de pronostic',
+	'landing.deck.share.aria': 'Partager cette question',
+	'landing.deck.share.copied': 'Lien copié',
+	'landing.deck.share.copy_link': 'Copier le lien',
+	'landing.deck.share.text': '{question} La foule dit {percent} %. Quel est ton pronostic ?',
 	'landing.deck.show_rule': 'Voir la règle',
 	'landing.deck.yes': 'Oui',
 	'market.probability.loading': 'Chargement des probabilités',

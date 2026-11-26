@@ -15,9 +15,14 @@ import {
 	deckTodayMove,
 	deckUnderFrame,
 	focusY,
+	hasDeckFilm,
 	isDeckFlip3d,
+	landingDeckSeries,
+	landingDeckShareUrl,
 	resolveDeckRelease,
-	toLandingDeckCard
+	telegramShareHref,
+	toLandingDeckCard,
+	whatsAppShareHref
 } from '#lib/utils/landing-deck.utils.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -416,6 +421,76 @@ describe('landing-deck.utils', () => {
 			assert.ok(card);
 			assert.equal(deckSidePercent({ card, side: 'yes' }), 54);
 			assert.equal(deckSidePercent({ card, side: 'no' }), 46);
+		});
+	});
+
+	describe('landingDeckSeries', () => {
+		const curated: LandingDeckSeries[] = [
+			{ seriesId: 'a', media: 'gta', category: 'gaming' },
+			{ seriesId: 'b', media: 'btc', category: 'economy' },
+			{ seriesId: 'c', media: 'barca', category: 'sports' }
+		];
+		const ids = (leadSeriesId?: string): string[] =>
+			landingDeckSeries({ curated, leadSeriesId }).map(({ seriesId }) => seriesId);
+
+		it('is the curated order without a lead', () => {
+			assert.deepEqual(ids(), ['a', 'b', 'c']);
+			assert.deepEqual(ids('  '), ['a', 'b', 'c']);
+		});
+
+		it('moves a curated lead to the front, keeping its footage, with no duplicate', () => {
+			const series = landingDeckSeries({ curated, leadSeriesId: 'c' });
+
+			assert.deepEqual(
+				series.map(({ seriesId }) => seriesId),
+				['c', 'a', 'b']
+			);
+			assert.equal(series[0].media, 'barca');
+		});
+
+		it('leads with a series outside the curated set, as a bare entry', () => {
+			const series = landingDeckSeries({ curated, leadSeriesId: 'other' });
+
+			assert.deepEqual(series[0], { seriesId: 'other' });
+			assert.deepEqual(
+				series.map(({ seriesId }) => seriesId),
+				['other', 'a', 'b', 'c']
+			);
+			assert.equal(hasDeckFilm(series[0]), false);
+			assert.equal(hasDeckFilm(series[1]), true);
+		});
+
+		it('does not mutate the curated list', () => {
+			landingDeckSeries({ curated, leadSeriesId: 'c' });
+
+			assert.equal(curated[0].seriesId, 'a');
+		});
+	});
+
+	describe('share links', () => {
+		it('opens the landing on the series, with the id escaped', () => {
+			assert.equal(
+				landingDeckShareUrl({ origin: 'https://vici.app', seriesId: 'series-1' }),
+				'https://vici.app/?c=series-1'
+			);
+			assert.equal(
+				landingDeckShareUrl({ origin: 'https://vici.app', seriesId: 'a b&c' }),
+				'https://vici.app/?c=a%20b%26c'
+			);
+		});
+
+		it('carries the text and the link to each target', () => {
+			const text = 'Will it? The crowd says 54%.';
+			const url = 'https://vici.app/?c=series-1';
+
+			assert.equal(
+				whatsAppShareHref({ text, url }),
+				`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`
+			);
+			assert.equal(
+				telegramShareHref({ text, url }),
+				`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
+			);
 		});
 	});
 });

@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { untrack, type ComponentProps, type Snippet } from 'svelte';
+	import LandingDeckArt from '#lib/components/landing/LandingDeckArt.svelte';
 	import LandingDeckCardBack from '#lib/components/landing/LandingDeckCardBack.svelte';
 	import LandingDeckCardFront from '#lib/components/landing/LandingDeckCardFront.svelte';
 	import LandingDeckHand from '#lib/components/landing/LandingDeckHand.svelte';
-	import LandingDeckMedia from '#lib/components/landing/LandingDeckMedia.svelte';
+	import LandingDeckShare from '#lib/components/landing/LandingDeckShare.svelte';
 	import LandingDeckStamps from '#lib/components/landing/LandingDeckStamps.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { marketDisplay } from '#lib/stores/market-translations.store.ts';
@@ -45,6 +46,7 @@
 		onrelease?: (release: DeckPointerRelease) => void;
 		/** How far the card is toward a stamp, 0 to 1, on every frame it is the top card. */
 		onprogress?: (progress: number) => void;
+		onshare?: (seriesId: string) => void;
 	}
 
 	const {
@@ -62,7 +64,8 @@
 		backChart,
 		onpress = () => {},
 		onrelease = () => {},
-		onprogress = () => {}
+		onprogress = () => {},
+		onshare = () => {}
 	}: Props = $props();
 
 	const PROMOTE_MS = 280;
@@ -253,7 +256,7 @@
 	{onpointerup}
 	role="presentation"
 >
-	<LandingDeckMedia
+	<LandingDeckArt
 		clip={clip && place !== 'under'}
 		entry={card.entry}
 		playing={playing && place === 'top'}
@@ -282,6 +285,14 @@
 		shown={face.back && place === 'top'}
 		title={display.title}
 		trend={moveTrend}
+	/>
+
+	<LandingDeckShare
+		{card}
+		hidden={face.back || place !== 'top'}
+		onopen={onpress}
+		{onshare}
+		title={display.title}
 	/>
 
 	<LandingDeckStamps {hit} noEarns={card.noEarns} yesEarns={card.yesEarns} />

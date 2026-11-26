@@ -1307,6 +1307,7 @@ export const enMessages = {
 		'On a {size} VXP call, a right Yes earns {yes} VXP and a right No earns {no} VXP.',
 	'landing.deck.back.rule': 'Rule',
 	'landing.deck.back.settles': '{category} · settles {date}',
+	'landing.deck.back.settles_plain': 'Settles {date}',
 	'landing.deck.call_no_aria': 'Call no',
 	'landing.deck.call_yes_aria': 'Call yes',
 	'landing.deck.called_no':
@@ -1327,6 +1328,10 @@ export const enMessages = {
 	'landing.deck.progress': 'Call {current} of {total}',
 	'landing.deck.progress_done': '{count} calls made',
 	'landing.deck.region_aria': 'Prediction cards',
+	'landing.deck.share.aria': 'Share this question',
+	'landing.deck.share.copied': 'Link copied',
+	'landing.deck.share.copy_link': 'Copy link',
+	'landing.deck.share.text': '{question} The crowd says {percent}%. What’s your call?',
 	'landing.deck.show_rule': 'Show the rule',
 	'landing.deck.yes': 'Yes',
 	'market.probability.loading': 'Loading probability',

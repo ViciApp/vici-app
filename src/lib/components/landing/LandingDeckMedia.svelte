@@ -6,11 +6,11 @@
 		LANDING_DECK_DEFAULT_WIDE_FOCUS,
 		LANDING_DECK_MEDIA
 	} from '#lib/constants/landing.constants.ts';
-	import type { LandingDeckSeries } from '#lib/types/landing.ts';
+	import type { LandingDeckFilm } from '#lib/types/landing.ts';
 	import { deckSeamStops, focusY, type DeckViewport } from '#lib/utils/landing-deck.utils.ts';
 
 	interface Props {
-		entry: LandingDeckSeries;
+		entry: LandingDeckFilm;
 		viewport: DeckViewport;
 		/** Mount the clip over the still. Off for cards not on top, so their clip is not fetched early. */
 		clip?: boolean;

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount, untrack, type ComponentProps, type Snippet } from 'svelte';
+	import LandingDeckArt from '#lib/components/landing/LandingDeckArt.svelte';
 	import LandingDeckBar from '#lib/components/landing/LandingDeckBar.svelte';
 	import LandingDeckCard from '#lib/components/landing/LandingDeckCard.svelte';
 	import LandingDeckLines from '#lib/components/landing/LandingDeckLines.svelte';
-	import LandingDeckMedia from '#lib/components/landing/LandingDeckMedia.svelte';
 	import {
 		LANDING_DECK_ATTRACT_DROP_PX,
 		LANDING_DECK_ATTRACT_RESUME_MS,
@@ -38,6 +38,7 @@
 		deckAttractAmplitude,
 		deckSidePercent,
 		deckUnderFrame,
+		landingDeckSeries,
 		type DeckViewport
 	} from '#lib/utils/landing-deck.utils.ts';
 	import { formatWholeVxpMagnitude } from '#lib/utils/playground-display.utils.ts';
@@ -68,6 +69,14 @@
 		onengage?: () => void;
 		/** Every series was read and none can be shown. */
 		onempty?: () => void;
+		/**
+		 * A series to open on, ahead of the curated ones (which follow, none
+		 * twice). It need not be one of them: without footage it shows the
+		 * market's own artwork. Leading with a series skips the introduction.
+		 */
+		leadSeriesId?: string;
+		/** The visitor shared a question (system sheet completed, target opened or link copied). */
+		onshare?: (seriesId: string) => void;
 	}
 
 	const {
@@ -78,7 +87,9 @@
 		ondone,
 		onclaim,
 		onengage = () => {},
-		onempty = () => {}
+		onempty = () => {},
+		leadSeriesId,
+		onshare
 	}: Props = $props();
 
 	interface DeckItem {
@@ -100,7 +111,11 @@
 		height: window.innerHeight
 	});
 
-	const feed = new LandingDeckFeed(LANDING_DECK_SERIES);
+	// Read when the deck starts: the page decides the lead before mounting it.
+	const series = $derived(landingDeckSeries({ curated: LANDING_DECK_SERIES, leadSeriesId }));
+	const feed = $derived(new LandingDeckFeed(series));
+	// A visitor who followed a link to one question came for that question.
+	const introduce = $derived(attract && isNullish(leadSeriesId));
 
 	let stage = $state<HTMLDivElement>();
 	let items = $state.raw<DeckItem[]>([]);
@@ -277,14 +292,14 @@
 		items = [makeItem(true)];
 		promote();
 
-		if (attract && !reducedMotion) {
+		if (introduce && !reducedMotion) {
 			demo = true;
 			later({ run: rock, ms: LANDING_DECK_ATTRACT_START_MS });
 
 			return;
 		}
 
-		if (attract) {
+		if (introduce) {
 			posed = true;
 			hand = 'still';
 			hint = true;
@@ -491,7 +506,7 @@
 		clipAllowed = !reducedMotion && !constrained;
 
 		setUnderProgress(0);
-		void hydrateMarketTranslations(LANDING_DECK_SERIES.map(({ seriesId }) => seriesId));
+		void hydrateMarketTranslations(series.map(({ seriesId }) => seriesId));
 
 		const stopFeed = feed.start();
 
@@ -515,8 +530,6 @@
 
 		untrack(start);
 	});
-
-	const [firstEntry] = LANDING_DECK_SERIES;
 </script>
 
 <svelte:window {onkeydown} bind:innerWidth bind:innerHeight />
@@ -536,7 +549,7 @@
 		{#if !started && (!feed.ready || feed.cards.length > 0)}
 			<!-- The film is up before the first price is: the first card's
 			     still stands in until its series has loaded. -->
-			<LandingDeckMedia entry={firstEntry} preload priority {viewport} />
+			<LandingDeckArt entry={series[0]} preload priority {viewport} />
 		{/if}
 		{#each items as item (item.key)}
 			{@const card = feed.card(item.seriesId)}
@@ -552,6 +565,7 @@
 					onpress={takeover}
 					onprogress={setUnderProgress}
 					{onrelease}
+					{onshare}
 					place={item.place}
 					playing={active && !clipResting}
 					posed={posed && item.place === 'top'}

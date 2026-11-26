@@ -1,11 +1,19 @@
-import { LANDING_DECK_FLIP_3D_MAX_WIDTH } from '#lib/constants/landing.constants.ts';
+import {
+	LANDING_DECK_FLIP_3D_MAX_WIDTH,
+	LANDING_DECK_LEAD_PARAM
+} from '#lib/constants/landing.constants.ts';
 import { VXP_DEFAULT_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
-import type { LandingDeckCard, LandingDeckSeries, LandingDeckSide } from '#lib/types/landing.ts';
+import type {
+	LandingDeckCard,
+	LandingDeckFilm,
+	LandingDeckSeries,
+	LandingDeckSide
+} from '#lib/types/landing.ts';
 import type { Market } from '#lib/types/market.ts';
 import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
 import { projectMomentum, rubberBand, type Velocity2d } from '#lib/utils/spring.utils.ts';
 import { vxpNetWin } from '#lib/utils/vxp-economy.utils.ts';
-import { isNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**
  * Geometry and decisions of the landing deck's swipe: how far a card must
@@ -328,3 +336,45 @@ export const deckSidePercent = ({
 	card: LandingDeckCard;
 	side: LandingDeckSide;
 }): number => (side === 'yes' ? card.yesPercent : 100 - card.yesPercent);
+
+/**
+ * The deck's series in order: the series the page leads with first (its
+ * curated entry when it is one of them, a bare entry otherwise), then the
+ * curated ones, none twice.
+ */
+export const landingDeckSeries = ({
+	curated,
+	leadSeriesId
+}: {
+	curated: readonly LandingDeckSeries[];
+	leadSeriesId?: string;
+}): LandingDeckSeries[] => {
+	const lead = leadSeriesId?.trim() ?? '';
+
+	if (lead === '') {
+		return [...curated];
+	}
+
+	return [
+		curated.find(({ seriesId }) => seriesId === lead) ?? { seriesId: lead },
+		...curated.filter(({ seriesId }) => seriesId !== lead)
+	];
+};
+
+/** Link that opens the landing on one question. */
+export const landingDeckShareUrl = ({
+	origin,
+	seriesId
+}: {
+	origin: string;
+	seriesId: string;
+}): string => `${origin}/?${LANDING_DECK_LEAD_PARAM}=${encodeURIComponent(seriesId)}`;
+
+export const whatsAppShareHref = ({ text, url }: { text: string; url: string }): string =>
+	`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`;
+
+export const telegramShareHref = ({ text, url }: { text: string; url: string }): string =>
+	`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+
+export const hasDeckFilm = (entry: LandingDeckSeries): entry is LandingDeckFilm =>
+	nonNullish(entry.media);

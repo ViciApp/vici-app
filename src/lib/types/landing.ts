@@ -24,12 +24,16 @@ export interface LandingDeckMedia {
 	wide: LandingDeckMediaCut;
 }
 
-/** One curated card of the landing deck. */
+/**
+ * One card of the landing deck. The curated cards carry footage and a
+ * category; a series the page leads with that is not one of them carries
+ * neither, and shows the market's own artwork instead.
+ */
 export interface LandingDeckSeries {
 	seriesId: string;
-	media: LandingDeckMediaKey;
+	media?: LandingDeckMediaKey;
 	/** Editorial category shown above the question. */
-	category: MacroId | MicroId;
+	category?: MacroId | MicroId;
 	/** `object-position` of the wide cut; the tall cut is always centred. */
 	wideFocus?: string;
 	/**
@@ -39,6 +43,9 @@ export interface LandingDeckSeries {
 	 */
 	seam?: number;
 }
+
+/** A deck entry that has footage. */
+export type LandingDeckFilm = LandingDeckSeries & { media: LandingDeckMediaKey };
 
 /** A deck card whose series loaded with a live price: everything the card renders. */
 export interface LandingDeckCard {

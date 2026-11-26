@@ -83,6 +83,13 @@ export const LANDING_DECK_SERIES: readonly LandingDeckSeries[] = [
 	}
 ];
 
+/**
+ * Query parameter of a shared question's link: `/?c=<seriesId>` opens the
+ * landing on that series. The deck writes it into the links it shares; the
+ * page reads it and passes the series as the deck's `leadSeriesId`.
+ */
+export const LANDING_DECK_LEAD_PARAM = 'c';
+
 /** Calls after which the deck hands over to the page (`ondone`) and offers the claim. */
 export const LANDING_DECK_CALLS_TO_DONE = 3;
 
