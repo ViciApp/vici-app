@@ -153,12 +153,14 @@ export const LEAGUE_FOUNDER_MIN_MEMBERS = 3;
 /** Flat referee bonus: every eligible new sign-up gets it exactly once. */
 export const REFERRAL_VXP_BONUS_BASE_UNITS = parseVxp(500);
 
-/** Hard lifetime cap on the number of paid redemptions per referrer. */
+/** Hard lifetime cap on a referrer's paid redemptions: the curve below pays
+ * nothing past this many prior redemptions. */
 export const REFERRAL_MAX_PAID = 1000;
 
 /**
- * Diminishing referrer-reward curve, keyed by the referrer's count of PRIOR
- * paid redemptions. Each tier covers an inclusive 1-based redemption-index
+ * Diminishing referrer-reward curve, keyed by how many of the referrer's
+ * redemptions came before this one (lifetime, whatever their payout state;
+ * see `countPriorReferrerRedemptions`). Each tier covers an inclusive 1-based redemption-index
  * range; the reward shrinks as a code is reused and drops to zero past
  * REFERRAL_MAX_PAID, encoding the hard cap as part of the curve.
  */
@@ -169,10 +171,11 @@ const REFERRAL_REWARD_TIERS: ReadonlyArray<{ throughIndex: number; amount: bigin
 	{ throughIndex: REFERRAL_MAX_PAID, amount: parseVxp(50) }
 ];
 
-/** The next redemption's referrer reward given the prior paid count; ZERO
- * once the hard cap is reached. Authoritative on the server only. */
-export const referrerRewardBaseUnits = (priorPaidCount: number): bigint => {
-	const redemptionIndex = priorPaidCount + 1;
+/** The next redemption's referrer reward given the referrer's prior
+ * redemption count; ZERO once the hard cap is reached. Authoritative on the
+ * server only. */
+export const referrerRewardBaseUnits = (priorRedemptions: number): bigint => {
+	const redemptionIndex = priorRedemptions + 1;
 
 	for (const { throughIndex, amount } of REFERRAL_REWARD_TIERS) {
 		if (redemptionIndex <= throughIndex) {

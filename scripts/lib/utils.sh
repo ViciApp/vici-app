@@ -93,8 +93,9 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-# Final validation: catches the case where `NETWORK` was set in the environment
-# (bypassing the loop) but to an invalid value.
+# NETWORK starts at `local` whatever the environment holds, and every branch of
+# the loop above sets a supported name, so this only guards a future branch that
+# sets it without checking.
 check_network "$NETWORK"
 
 export NETWORK
