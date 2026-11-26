@@ -1,4 +1,4 @@
-# Spec: Free VXP call size from 10 to 200
+# Spec: VXP call size from 10 to 200 in steps of 10
 
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
@@ -8,11 +8,13 @@ Status: Draft
 ## Goal
 
 On the ViciXP balance domain, a prediction's call size is no longer a pick from a fixed ladder: it is
-any whole amount from 10 to 200 VXP, defaulting to 50, on every surface that sizes a call (the Flow
-card back, the market detail confirmation sheet, the landing Markets detail control). The 300 and 500
-sizes disappear for everyone; a stored preference that holds one of them restores as 200. Positions
-already open at any size stay as they are: nothing on the engine side is touched or migrated. The
-payout floor on `p_win` (`VXP_P_WIN_FLOOR`) is unchanged.
+any multiple of 10 from 10 to 200 VXP (20 positions), defaulting to 50, chosen with one slider on
+every surface that sizes a call (the Flow card back, the market detail confirmation sheet, the
+landing Markets detail control). The 300 and 500 sizes disappear for everyone; a stored preference
+that holds one of them restores as 200. Every surface previews the same net win, floored by the
+unchanged `p_win` floor (`VXP_P_WIN_FLOOR`). The web2 API refuses sizes outside the set it can see.
+Positions already open at any size stay as they are: nothing on the engine side is touched or
+migrated.
 
 The values above are the owner's decision for the constants in
 [`vxp-economy.constants.ts`](../../../../src/lib/constants/vxp-economy.constants.ts). After this
@@ -73,8 +75,8 @@ fractional amounts (Flow's `FlowBottomBar` stepper), so it is not a VXP-only fie
 
 So today both the ladder and the `p_win` floor are **client-side only**, on both stacks. That
 diverges from [`economy.md`](../../economy.md), which lists the call-size cap and the floor as the
-bounds on the "Prediction win" surface. [Pending decision 1](#pending-decisions) settles how far
-this spec closes that gap.
+bounds on the "Prediction win" surface. This spec closes the part of that gap the
+web2 API can see (decision 1); the rest goes to the [icdc-core follow-up](#icdc-core-follow-up).
 
 ### Sizing arithmetic that depends on the minimum
 
@@ -110,59 +112,88 @@ carries `source`, `marketId`, `label` (side) and no amount. Guest picks track `p
 ## Scope
 
 1. **Constants** (`vxp-economy.constants.ts`): replace `VXP_CALL_SIZE_LADDER` with
-   `VXP_MIN_CALL_SIZE`, `VXP_MAX_CALL_SIZE`, `VXP_DEFAULT_CALL_SIZE` (whole VXP), plus the step and
-   presets constants that [pending decisions](#pending-decisions) 2 to 4 settle. `VxpCallSize`
-   becomes a branded `number` so `isVxpCallSize` still narrows. `isVxpCallSize(n)` is
-   `Number.isInteger(n) && n >= VXP_MIN_CALL_SIZE && n <= VXP_MAX_CALL_SIZE`.
+   `VXP_MIN_CALL_SIZE`, `VXP_MAX_CALL_SIZE`, `VXP_CALL_SIZE_STEP` and `VXP_DEFAULT_CALL_SIZE`, all in
+   whole VXP. `VxpCallSize` becomes a branded `number` so `isVxpCallSize` still narrows.
+   `isVxpCallSize(n)` is true when `n` is an integer, a multiple of `VXP_CALL_SIZE_STEP`, and inside
+   `[VXP_MIN_CALL_SIZE, VXP_MAX_CALL_SIZE]`. A module-level check (or a unit test) pins that the
+   minimum, the maximum and the default are themselves multiples of the step.
 2. **Normalization util** (`vxp-economy.utils.ts`): `snapToCallSizeLadder` becomes
-   `clampVxpCallSize({ value })`: non-finite or not positive (including the `'0'` "no stored size")
-   returns `VXP_DEFAULT_CALL_SIZE`; otherwise round to the nearest integer and clamp into
-   `[VXP_MIN_CALL_SIZE, VXP_MAX_CALL_SIZE]`. A stored 300 or 500 therefore restores as the maximum.
+   `clampVxpCallSize({ value })`. Non-finite or not positive (including the `'0'` "no stored size")
+   returns `VXP_DEFAULT_CALL_SIZE`. Otherwise it rounds to the nearest multiple of the step and
+   clamps into `[VXP_MIN_CALL_SIZE, VXP_MAX_CALL_SIZE]`, so a stored 300 or 500 restores as the
+   maximum.
 3. **Client guard** (`trade.utils.ts`): `assertViciXpHumanPremium` keeps its contract (throws on a
-   non-member) with the new predicate; its message names the bounds from the constants.
+   value outside the set) with the new predicate; its message names the bounds and the step from
+   the constants.
 4. **Flow** (`FlowMode.svelte`): the restore uses `clampVxpCallSize` and falls back to
    `VXP_DEFAULT_CALL_SIZE` (not the minimum, which now differs from the default).
    `MIN_CALL_MARGIN_USD` and the `wont-finish` warning keep pricing at `VXP_MIN_CALL_SIZE`, which
-   now means the true floor: a user with spendable VXP between the two minimums keeps
-   calling instead of hitting the out-of-funds takeover.
-5. **Flow call-size control** (`FlowCallSize.svelte`, `FlowCallSizeSlider.svelte`): value-based
-   range input (`min`/`max`/`step` from the constants, `value` = the size itself, not an index),
-   `aria-valuetext` with the unit, `atCap` at `VXP_MAX_CALL_SIZE`. Presets per pending decision 2.
-6. **Flow card front** (`FlowCard.svelte`): `callSize` shows the actual size (drop the
-   `Math.max(VXP_DEFAULT_CALL_SIZE, …)`), and the front-face preview uses `VXP_P_WIN_FLOOR` instead
-   of the hardcoded floor; the full unification is pending decision 6.
-7. **Market detail** (`TradeModal.svelte`): the same control as Flow (pending decision 2), starting
-   at `VXP_DEFAULT_CALL_SIZE` instead of the smallest size; doc comment rewritten for the range.
-8. **Landing Markets control:** reads the three constants and previews with `vxpNetWin`; if the
-   landing PR merges first it already reads them, and this PR only verifies it.
-9. **Server-side bounds** per pending decision 1 (recommended option below).
-10. **Docs, same PR** (meta-update rule and `AGENTS.md` § 4 rule 10): `economy.md` (Prediction win
-    row backed by the new constants; the caps section states the range and, honestly, where it is
-    enforced; known farm vector 3 updated for the lower minimum; a rationale bullet for the range
-    under "Design constraints"); `PRODUCT.md` (the constants bullet under VXP economy says "call-size
-    range"; a Behaviour index entry for call sizing on every surface, linking this spec);
-    `docs/ai/frontend/design.md` § 7.5 ("call-size ladder" becomes the range control);
-    `docs/ai/frontend/reusability.md` rows for `vxp-economy.constants` and `vxp-economy.utils`;
-    `backend/README.md` "Mirrored constants" row if the API mirrors the bounds.
-11. **i18n:** no existing value names a size. New keys only if the control needs them (a preset
-    group label, a call-size `aria-valuetext` such as `card.call_size_value: '{amount} VXP'`, and the
-    API refusal message under pending decision 1), added to every catalog under
-    `src/lib/constants/messages/`. `card.call_size_cap` keeps its meaning at the new maximum.
-12. **Analytics** per [Analytics](#analytics) and pending decision 7.
+   now means the true floor: a user with spendable VXP between the two minimums keeps calling
+   instead of hitting the out-of-funds takeover.
+5. **One call-size slider everywhere.** Flow (`FlowCallSize.svelte`, `FlowCallSizeSlider.svelte`),
+   the market detail sheet (`TradeModal.svelte`) and the landing Markets control use the same
+   control: a single value-based `<input type="range">` with `min` / `max` / `step` from the
+   constants and `value` = the size itself (not an index). No preset or peg buttons: Flow's peg
+   radio row (`flow-call-size-pegs`) and the index slider in `TradeModal` go. The control shows the
+   size with its unit, sets `aria-valuetext` (`card.call_size_value`), works with the native range
+   keys (arrows move one step, Home / End jump to the bounds) and flags `atCap` at
+   `VXP_MAX_CALL_SIZE` (`card.call_size_cap` label). Flow keeps its `data-no-card-gesture` guard so
+   a drag on the slider never swipes the card. Whether the three surfaces share one component or
+   one set of constants plus styling is the implementer's call, per
+   `docs/ai/frontend/reusability.md` (a shared component gets a row there).
+6. **One payout preview everywhere: the net win through `vxpNetWin`**, floored by
+   `VXP_P_WIN_FLOOR`, at the execution price (`resolveOutcomeExecutionPrice`), sub-1 shown as `<1`
+   by `formatWholeVxpMagnitude`. The Flow card front (`FlowCard.svelte` `winYes` / `winNo`) drops
+   its inline formula, hardcoded floor, consensus price and `+1` clamp. The market detail sheet's
+   "If right" figure changes from the gross return to the net win. The landing Markets "earns N VXP"
+   copy uses the same function.
+7. **Flow card front** (`FlowCard.svelte`): `callSize` shows the actual size (drop the
+   `Math.max(VXP_DEFAULT_CALL_SIZE, …)`).
+8. **Market detail** (`TradeModal.svelte`): starts at `VXP_DEFAULT_CALL_SIZE` instead of the
+   smallest size; doc comment rewritten for the range.
+9. **Landing Markets control:** reads the constants, uses the slider of item 5 and previews with
+   `vxpNetWin`. If the landing PR merges first it already reads them, and this PR only verifies it.
+10. **Server-side bounds on the web2 API** (decision 1): see
+    [Technical requirements](#technical-requirements-satellite--backend-mandatory) and
+    [icdc-core follow-up](#icdc-core-follow-up).
+11. **Analytics, all in this PR** (decision 7): see [Analytics](#analytics).
+12. **Docs, same PR** (meta-update rule and `AGENTS.md` § 4 rule 10):
+    - `economy.md`: the Prediction win row is backed by the call-size constants (no longer
+      `VXP_CALL_SIZE_LADDER`). The caps section states plainly where the call-size bounds and the
+      `p_win` floor are enforced and where they are not: the client guard on both builds and the
+      web2 API's order routes enforce the call size; no satellite path and no engine rule does, so
+      on the web3 build only the client enforces it; the floor is a preview only on both builds and
+      settlement pays the raw cashflow; the icdc-core follow-up is the fix. Known farm vector 3 is
+      extended: the lower minimum makes every count-gated mint (overtime, Flow milestones, streak
+      days, fill-counted achievements, battle and tournament / podium tallies) cheaper in locked
+      collateral, with the minimum qualifying call size spec as the recommendation. A bullet under
+      "Design constraints" gives the range's rationale.
+    - `PRODUCT.md`: the constants bullet under VXP economy says "call-size range"; a Behaviour index
+      entry describes call sizing on every surface (one slider, the step, the default, the net-win
+      preview, the stored-preference clamp), linking this spec.
+    - `docs/ai/frontend/design.md` § 7.5: "call-size ladder" becomes the call-size slider.
+    - `docs/ai/frontend/reusability.md`: rows for `vxp-economy.constants`, `vxp-economy.utils`, and
+      the shared slider component if one is extracted.
+    - `backend/README.md` "Mirrored constants": the API's `src/vxp/constants.ts` row names the
+      call-size bounds and step.
+13. **i18n**, in every catalog under `src/lib/constants/messages/`: `card.call_size_value`
+    (`'{amount} VXP'`, the slider's `aria-valuetext`) and `trade.error.invalid_call_size` (the API
+    refusal). No existing value names a size; `card.call_size_cap` keeps its meaning at the new
+    maximum.
 
 ### Out of scope
 
-- **The engine.** icdc-core gains no size rule in this PR; if pending decision 1 picks the engine
-  option it is a separate icdc-core PR first, then the wiring here (`pr-and-ci.md` § 9).
+- **The engine.** icdc-core gains no rule in this PR; see [icdc-core follow-up](#icdc-core-follow-up).
 - **Open positions.** No migration: positions are engine state, sized in contracts, and stay valid.
+- **Stored preferences.** No backfill or migration of stored profiles on either backend; a stored
+  300 or 500 is clamped to the maximum when it is read (decision 4).
 - **The playground domains** (USD / ICP): keep `FlowBottomBar`'s fractional stepper and their
   `defaultAmount.flow` values untouched.
 - **Battle amount** (`BATTLE_AMOUNT_MIN` / `BATTLE_AMOUNT_MAX`): a displayed figure that sizes no
   call. Aligning its maximum to the call-size maximum is a separate product call.
 - **`Welcome*` landing components** and `LANDING_HERO_CALL_SIZE`: removed by a later PR.
-- **A qualifying call size for count-gated mints**: proposed under pending decision 5; if adopted it
-  is its own spec, since it changes several award paths on both stacks.
-- **Engine-side `p_win` floor enforcement**: recorded under open question 2, not changed here.
+- **A minimum qualifying call size for awards**: a separate spec (see
+  [Follow-ups](#follow-ups)); this PR adds no gate.
 
 ## Linked issues
 
@@ -173,22 +204,27 @@ tracks the related farm vectors under #543; this spec does not close it.
 
 ## Analytics
 
-Instrument: the change exists to let players pick finer sizes, and without the chosen size in the
-data nobody can see whether they do. Reuse first:
+Instrument: the change exists to let players pick other sizes, and without the chosen size in the
+data nobody can see whether they do. All of it ships in this PR (decision 7):
 
-| Event (existing unless marked)   | Change                                                                                                                                                                                                                                                             |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `flow_swipe`                     | On a YES / NO swipe on the ViciXP domain, add `value` = the call size in whole VXP. Skips carry no `value`.                                                                                                                                                        |
-| `position_taken`, `order_placed` | Add `source` (`flow` / `market_detail`), threaded from the caller through `executeOutcomeTrade` into `placeOrder`. `value` keeps meaning "VXP committed" (after contract rounding), so `value / call size` exposes the rounding shortfall at small sizes.          |
-| `call_size_set` (**new**)        | Fired once per settled change of the control (range `change`, not `input`; a preset tap), never on render. Props: `source` (`flow` / `market_detail` / `landing_markets`), `value` (the size, whole VXP, bounded by the constants), `label` (`slider` / `preset`). |
+| Event (existing unless marked)   | Change                                                                                                                                                                                                                                                                |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `flow_swipe`                     | On a YES / NO swipe on the ViciXP domain, add `value` = the call size in whole VXP. Skips carry no `value`.                                                                                                                                                           |
+| `position_taken`, `order_placed` | Add `source` (`flow` / `market_detail` / `landing`), threaded from the caller through `executeOutcomeTrade` into `placeOrder`. `value` keeps meaning "VXP committed" (after contract rounding), so `value / call size` exposes the rounding shortfall at small sizes. |
+| `call_size_set` (**new**)        | Fired once per settled change of the slider (the range `change` event, not `input`), never on render or on restore. Props: `source` (`flow` / `market_detail` / `landing`), `value` (the size in whole VXP, inside the constants' range).                             |
 
-A new name lands in `src/lib/types/analytics-event.ts`, `src/lib/schema/analytics-event.schema.ts`
-and the API mirror `ANALYTICS_EVENT_NAMES` in `backend/src/analytics/taxonomy.ts`
-(`backend/tests/shared-drift/analytics.test.ts` pins them); capture goes through `track` in
+The guest branch's `position_taken` keeps `source: 'guest_flow'` and carries no amount.
+
+The new name lands in **both** halves of the dual-source pair, `src/lib/types/analytics-event.ts`
+(TS union) and `src/lib/schema/analytics-event.schema.ts` (Zod enum), and in the API mirror
+`ANALYTICS_EVENT_NAMES` in `backend/src/analytics/taxonomy.ts`
+(`backend/tests/shared-drift/analytics.test.ts` pins all three). Capture goes through `track` in
 `src/lib/services/analytics.services.ts`. The schema is bundled into the satellite
-(`src/satellite/services/analytics.services.ts` imports `TrackEventInputSchema`), so a new name also
-means `npm run juno:functions:build` and the declaration copy of `AGENTS.md` § 4 rule 9. All props
-are bounded numbers or closed vocabularies; no PII.
+(`src/satellite/services/analytics.services.ts` imports `TrackEventInputSchema`), so the satellite
+is regenerated: `npm run juno:functions:build`, `npm run quality`, the copy of
+`src/declarations/satellite/{satellite.did.d.ts,satellite.factory.did.js}` into
+`backend/src/declarations/satellite/`, and the output committed (`AGENTS.md` § 4 rule 9). `source`
+values are a closed vocabulary and `value` a bounded number; no PII.
 
 No event for the preference clamp: it fires at most once per legacy account and open question 1
 answers the same question with one query.
@@ -200,206 +236,221 @@ Values: every bound named here is a constant in
 `backend/src/vxp/constants.ts`, pinned by `backend/tests/shared-drift/vxp.test.ts`); no number is
 restated in code.
 
-**Satellite (recommended option: no satellite code change).**
+**Satellite.**
 
 - Performance: no new hook, assert or endpoint; zero instruction-budget change. The satellite never
-  sees an order, so it has nothing to validate a call against.
+  sees an order, so it has nothing to validate a call against. The analytics write path validates
+  one more enum member, which costs nothing measurable.
 - Memory and storage: no new collection or doc shape. `profiles.preferences.defaultAmount.flow` stays
-  a string; legacy 300 / 500 values stay stored and are clamped on read in the client.
+  a string; legacy 300 / 500 values stay stored and are clamped on read in the client. `events` docs
+  gain no field (`value` and `source` already exist in the props vocabulary), so doc size and growth
+  per event are unchanged; `call_size_set` adds at most one event per settled slider change.
 - Why no assert on the preference: the field also holds the playground domains' fractional amounts,
-  so an integer-in-range assert on `profiles` would reject legitimate playground writes; and no code
-  writes it for VXP today, so an assert would guard an unused path. A profile-level migration
-  (rewrite every `profiles` doc) would cost a full keyset walk of the collection
-  (`keyset-walk.services.ts`) for at most a handful of legacy rows (open question 1).
-- Scalability: unaffected at 10× / 100× users, since nothing is added on-canister.
-- Upgrade and compatibility: no `.did` change, no `juno.config.ts` rule change, not breaking. Only if
-  the new analytics name ships does `juno:functions:build` rerun; its `.did` output should be byte
-  identical (event names are validated by the Zod enum, not typed in Candid), to confirm at build.
+  so a step-and-range assert on `profiles` would reject legitimate playground writes; and no code
+  writes it for VXP today, so an assert would guard an unused path.
+- Scalability: unaffected at 10× / 100× users, since nothing is added on-canister beyond one event
+  name.
+- Upgrade and compatibility: `juno:functions:build` reruns for the analytics enum; the `.did`
+  output should be byte identical (event names are validated by the Zod enum, not typed in
+  Candid), to confirm at build. No `juno.config.ts` rule change, not breaking.
 - Security: no collection rule or caller permission touched.
 
-**Web2 API (recommended option A of pending decision 1).**
+**Web2 API (decision 1, option A).** The API rejects what it can see.
 
-- Performance: per limit order, one `registry.getSeries` read (already behind the shared TTL cache in
-  `backend/src/engine/cache.ts`, so one canister query per series per TTL, usually zero) to learn the
-  series' balance domain, plus constant-time bigint arithmetic. Per market-order leg, one capped
-  per-leg check needs the level price: `list_orders` for the series (a query, cacheable for the
-  same TTL) because the clearing Candid has no get-order-by-id. Order routes are user-paced (a
-  Flow sitting is capped by the daily hard cap), so the added load is a few cached reads per call.
-- Memory and storage: no migration, no table. Two mirrored integer constants.
+- Contract: `POST /engine/orders/limit` and `POST /engine/orders/market` gain an optional
+  `callSize` body field (integer, whole VXP). For a ViciXp series (balance domain read with
+  `registry.getSeries`) the API refuses with `invalid_call_size` (400) when `callSize` is not an
+  integer, not a multiple of `VXP_CALL_SIZE_STEP`, or outside `[VXP_MIN_CALL_SIZE,
+VXP_MAX_CALL_SIZE]`; when a limit order's notional (`qty` × the share cost: the price on a buy,
+  its complement on a sell) exceeds `callSize` or falls short of it by a full share or more; and
+  when a market leg's notional exceeds `callSize`. Without `callSize`, the limit notional and each
+  market leg are checked against `VXP_MAX_CALL_SIZE` only; once the web app sends the field it
+  becomes required for ViciXp series (see Rollout). Non-ViciXp series are untouched.
+- Performance: per order, one `registry.getSeries` read (behind the shared TTL cache in
+  `backend/src/engine/cache.ts`, so one canister query per series per TTL, usually zero) plus
+  constant-time bigint arithmetic. Pricing a market leg needs the level price, so a market leg also
+  reads `list_orders` for the series (a query, cacheable for the same TTL; the market body gains
+  `seriesId` for it), because the clearing Candid has no get-order-by-id. Order routes are
+  user-paced (a Flow sitting is capped by the daily hard cap), so the added load is a few cached
+  reads per call.
+- Memory and storage: no migration, no table. Three mirrored integer constants.
 - Scalability: the reads are cached per series, not per user, so 100× users on the same markets add
   no canister reads; no N+1 (one book read per leg at most, and a call has few legs).
-- Upgrade and compatibility: the request bodies gain an optional `callSize` field (whole VXP); a
-  client without it is still accepted (limit notional and each market leg checked against
-  `VXP_MAX_CALL_SIZE` only) until the web app ships the field, then it becomes required for ViciXp
-  series. A new refusal code
-  (`invalid_call_size`, status 400) joins the app's `ORDER_REJECTION_KEYS`
-  (`src/lib/canisters/clearing.errors.ts`); `backend/tests/shared-drift/order-rejections.test.ts`
-  compares that list against the engine-variant table `ORDER_REJECTIONS` only, so the API needs a
-  named list of its own refusal codes that the drift test includes.
+- Compatibility: `invalid_call_size` joins the app's `ORDER_REJECTION_KEYS`
+  (`src/lib/canisters/clearing.errors.ts`). `backend/tests/shared-drift/order-rejections.test.ts`
+  compares that list against the engine-variant table `ORDER_REJECTIONS` only, so the API gains a
+  named list of its own refusal codes that the drift test includes. The typed wrappers
+  `submitEngineLimitOrder` / `submitEngineMarketOrder` in `src/lib/web2/client.ts` send `callSize`
+  (and `seriesId` on the market leg).
 - Security: value-moving routes (`docs/ai/governance.md` boundaries): the change only refuses, never
   widens; call it out in the PR body.
 
+## icdc-core follow-up
+
+GitHub is not reachable from this session, so the implementer files this issue on the icdc-core
+repository and links it here and in the PR body. Proposed text:
+
+> **Per-engine order size and payout floor for `eng_0`.** Vici's call size and `p_win` payout floor
+> are enforced only by Vici's clients and, on the web2 build, by its API. A client talking to the
+> clearing canister directly can open an order of any size, and settlement pays the raw
+> `amount · (1/price − 1)` cashflow down to the smallest price `PRICE_DECIMALS` allows. Request: an
+> engine-level rule, configurable per engine, that (1) refuses an opening order whose notional is
+> outside a configured `[min, max]` or not a multiple of a configured step, with a new
+> `TradeError` variant carrying the bounds, and (2) applies a configured floor on the price an
+> opening order pays, or on the settlement multiple, so a long shot cannot pay more than the
+> floored multiple. Vici's values live in its `vxp-economy.constants.ts`
+> (`VXP_MIN_CALL_SIZE`, `VXP_MAX_CALL_SIZE`, `VXP_CALL_SIZE_STEP`, `VXP_P_WIN_FLOOR`).
+
+Once it ships: bump `ICDC_CORE_VERSION`, `npm run did`, map the new variant in
+`backend/src/engine/order-rejections.ts` and `src/lib/canisters/clearing.errors.ts`, and update the
+enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate Vici PR.
+
+## Follow-ups
+
+- **icdc-core issue** above.
+- **Spec: minimum qualifying call size** (decision 5). A separate spec decides a minimum call size
+  below which a fill does not count toward awards, streak days, Flow milestones, Flow overtime,
+  achievements and the battle / tournament / podium tallies, on both stacks. It starts from the
+  extended farm vector 3 in `economy.md`.
+
 ## Implementation outline
 
-1. `vxp-economy.constants.ts`: new constants (min, max, default, step, presets per decisions 2 to 4),
-   branded `VxpCallSize`, range predicate `isVxpCallSize`; remove `VXP_CALL_SIZE_LADDER` and rewrite
-   the doc comments (why a range, why the default sits where it does).
+1. `vxp-economy.constants.ts`: min, max, step and default constants, branded `VxpCallSize`,
+   step-and-range predicate `isVxpCallSize`; remove `VXP_CALL_SIZE_LADDER` and rewrite the doc
+   comments (why a range with a step, why the default sits where it does).
 2. `vxp-economy.utils.ts`: `clampVxpCallSize`; delete `snapToCallSizeLadder`.
-3. `trade.utils.ts`: guard message from the constants; doc comment updated.
-4. `FlowCallSize.svelte` + `FlowCallSizeSlider.svelte`: value-based range, presets (decision 2),
-   fill percentage `(size - min) / (max - min)`, keyboard support (native range arrows plus
-   preset buttons), `aria-valuetext`.
-5. `FlowMode.svelte`: restore through `clampVxpCallSize`, fallback to the default; update the
-   comments of `MIN_CALL_MARGIN_USD` and the restore branch.
-6. `FlowCard.svelte`: honest `callSize`; floor from `VXP_P_WIN_FLOOR`; preview per decision 6.
-7. `TradeModal.svelte`: shared control, default start, preview per decision 6.
-8. Landing Markets control: verify it reads the constants and `vxpNetWin` (or wire it, if this PR
-   lands second).
-9. Server-side bounds per decision 1. For option A: mirror the min and max in
-   `backend/src/vxp/constants.ts` + `backend/tests/shared-drift/vxp.test.ts`
-   (`extractIntConst`); validate in `backend/src/routes/engine.ts` for ViciXp series: integer
-   `callSize` in range, limit notional `qty × share cost` at most `callSize` and within one share of
-   it, each market leg's notional at most `callSize`; refusal code wired on both sides plus the drift
-   test; route tests in `backend/tests/engine.test.ts`.
-10. Analytics per the table above (decision 7).
+3. `trade.utils.ts`: guard message from the constants; doc comment updated; `TradeParams` gains a
+   `source` for analytics, passed to `placeOrder`.
+4. Call-size slider (item 5 of Scope): value-based range, fill percentage
+   `(size - min) / (max - min)`, `aria-valuetext`, `call_size_set` on `change`. Remove the peg row
+   from `FlowCallSizeSlider.svelte` and the index slider from `TradeModal.svelte`.
+5. `FlowMode.svelte`: restore through `clampVxpCallSize`, fallback to the default; `flow_swipe`
+   carries `value`; update the comments of `MIN_CALL_MARGIN_USD` and the restore branch.
+6. `FlowCard.svelte`: honest `callSize`; front preview through `vxpNetWin`.
+7. `TradeModal.svelte`: shared slider, default start, net-win preview through `vxpNetWin`.
+8. Landing Markets control: verify it uses the slider, the constants and `vxpNetWin` (or wire it, if
+   this PR lands second), and passes `source: 'landing'`.
+9. API (Technical requirements): mirror min, max and step in `backend/src/vxp/constants.ts` +
+   `backend/tests/shared-drift/vxp.test.ts` (`extractIntConst`); validate in
+   `backend/src/routes/engine.ts`; refusal code on both sides plus the drift test; `callSize` in
+   `src/lib/web2/client.ts`; route tests in `backend/tests/engine.test.ts`.
+10. Analytics: union, Zod enum, API taxonomy, `track` calls, satellite regeneration and declaration
+    copy.
 11. i18n keys in every catalog; `npm run check:i18n`.
-12. Docs listed in Scope item 10; flip this spec to `In progress (#PR)` once the pending decisions are
-    recorded under Decisions, and to `Implemented (#PR)` in the final commit.
+12. Docs listed in Scope item 12; flip this spec to `In progress (#PR)` when the PR opens and to
+    `Implemented (#PR)` in the final commit.
 
 ## Test plan
 
 - **Unit (`npm test`)**, new `src/tests/lib/utils/vxp-economy.utils.spec.ts` and
   `src/tests/lib/utils/trade.utils.spec.ts` (neither helper has a spec today):
-  `isVxpCallSize` accepts min, default, max and every integer between; rejects min - 1, max + 1,
-  non-integers, `NaN`, `Infinity`, negatives, 300, 500. `clampVxpCallSize`: `'0'` and non-finite
-  give the default; 300 and 500 give the max; 3 gives the min; 12.6 gives 13; the default round
-  trips. `assertViciXpHumanPremium` throws outside the range and for `'12.5'`, passes inside.
-  `vxpNetWin` at min and max sizes with a price under the floor.
-- **API (`cd backend && bun run typecheck && bun test`, real Postgres)**: limit order on a ViciXp
-  series refused below min, above max, non-integer, and when `qty × share cost` disagrees with the
-  declared size; accepted at min, default and max; a non-ViciXp series unaffected; a market leg above
-  max refused. Shared-drift: bounds mirror and refusal code list.
-- **Component / manual**: Flow on the ViciXP domain at 360x640 and 1440x900: the control starts at
-  the stored size (or the default), reaches min and max by drag, keyboard and presets, `atCap` label
-  at max, warnings at the new floor, front footer shows a below-default size honestly. Market detail
-  sheet starts at the default. Under every `[data-theme]` and with reduced motion.
-- **Migration**: a profile (satellite and web2) holding `defaultAmount.flow = '500'` opens Flow at
-  the max; `'0'` at the default; `'75'` at 75 (today it falls to the smallest rung).
-- **Gates**: `npm run quality`, `npm run check`, `npm run check:dashes`, `npm test`, backend suite.
+  `isVxpCallSize` accepts min, default, max and every multiple of the step between; rejects
+  min − step, max + step, a value between two steps (min + 1), non-integers, `NaN`, `Infinity`,
+  negatives, 300, 500. `clampVxpCallSize`: `'0'` and non-finite give the default; 300 and 500 give
+  the max; a value below the minimum gives the min; a value between two steps rounds to the nearest
+  step; the default round trips. `assertViciXpHumanPremium` throws outside the set and for a
+  fractional string, passes inside. `vxpNetWin` at min and max sizes with a price under the floor.
+  The constants test pins min, max and default as multiples of the step.
+- **API (`cd backend && bun run typecheck && bun test`, real Postgres)**: on a ViciXp series a limit
+  order is refused below min, above max, off the step, non-integer, and when the notional disagrees
+  with the declared size; accepted at min, default and max; a market leg above `callSize` refused;
+  a non-ViciXp series unaffected. Shared-drift: bounds mirror, refusal code list, analytics taxonomy.
+- **Component / manual**: Flow on the ViciXP domain at 360x640 and 1440x900: the slider starts at
+  the stored size (or the default), reaches min and max by drag and keyboard in steps, `atCap` label
+  at max, warnings at the new floor, the card front shows a below-default size honestly and the
+  same net win as the back. The market detail sheet starts at the default and shows the net win. A
+  drag on Flow's slider never swipes the card. Under every `[data-theme]` and with reduced motion.
+- **Stored preference**: a profile (satellite and web2) holding `defaultAmount.flow = '500'` opens
+  Flow at the max; `'0'` at the default.
+- **Analytics**: one `call_size_set` per slider release, none on open; `flow_swipe.value` on YES /
+  NO only; `position_taken.source` per surface.
+- **Gates**: `npm run quality`, `npm run check`, `npm run check:dashes`, `npm test`,
+  `npm run juno:functions:build`, backend suite.
 
 ## Rollout and risks
 
-- **Order of deploys.** Web app first (client guard and controls), then the API's required
-  `callSize`: an API that requires the field before the web app sends it would refuse every web2
-  call. Option A keeps the field optional for one release for that reason.
+- **Order of deploys.** Web app first (client guard, slider, `callSize` sent), then the API
+  requiring `callSize` for ViciXp series: an API that requires the field before the web app sends
+  it would refuse every web2 call. The field stays optional for one release for that reason.
 - **Rounding shortfall at the minimum.** The "if wrong" row shows the call size, while the commit can
-  be up to one contract price lower; already true today at a smaller ratio. Acceptable; `value` on
-  `position_taken` makes it measurable.
+  be up to one contract price lower; already true today at a smaller ratio. Acceptable;
+  `position_taken.value` makes it measurable.
 - **Cheaper count farming.** The lower minimum cuts the collateral a farmer must lock to rack up
-  counted calls. The rolling overtime cap and one-time milestone keys still bound the mints; pending
-  decision 5 decides whether to add a qualifying size.
-- **Web3 stays client-enforced** unless the engine option is taken: a modified client can still send
-  any size to the clearing canister, as it can today.
-- **Mixed clients.** A cached older web app still offers the 300 and 500 sizes until reload; under
-  option A the web2 API refuses them once `callSize` is required, and the client shows the refusal
-  message. On web3 they would still place.
+  counted calls. The rolling overtime cap and one-time milestone keys still bound the mints; the
+  qualifying-size spec is the follow-up.
+- **Web3 stays client-enforced** until the icdc-core follow-up ships: a modified client can still
+  send any size to the clearing canister, as it can today. `economy.md` says so.
+- **Mixed clients.** A cached older web app still offers the 300 and 500 sizes until reload; the
+  web2 API refuses them (above the maximum even without `callSize`) and the client shows the
+  refusal message. On web3 they would still place.
+- **Market detail number changes.** The "If right" figure drops from the gross return to the net
+  win; the PR body says so for reviewers.
 
 ## Acceptance criteria
 
 - [ ] `VXP_CALL_SIZE_LADDER` and `snapToCallSizeLadder` no longer exist; no code outside
       `vxp-economy.constants.ts` and its pinned API mirror states a call-size number.
-- [ ] Every whole amount between `VXP_MIN_CALL_SIZE` and `VXP_MAX_CALL_SIZE` can be placed from Flow
-      and from the market detail sheet on the ViciXP domain; nothing outside the range can.
+- [ ] Every multiple of `VXP_CALL_SIZE_STEP` from `VXP_MIN_CALL_SIZE` to `VXP_MAX_CALL_SIZE` can be
+      placed from Flow, the market detail sheet and the landing Markets control on the ViciXP
+      domain; nothing else can, through the client guard.
+- [ ] Flow, market detail and the landing use one slider, with no preset or peg buttons.
 - [ ] Flow and the market detail sheet open at `VXP_DEFAULT_CALL_SIZE` when no size is stored; a
       stored size above the maximum opens at the maximum.
+- [ ] Every payout preview is the net win from `vxpNetWin`; the market detail sheet no longer shows
+      the gross return.
 - [ ] The Flow card front shows the actual call size, including sizes below the default.
 - [ ] The out-of-funds takeover and the `wont-finish` warning price at the new minimum.
-- [ ] The landing Markets control reads its bounds and default from the constants and previews with
-      `vxpNetWin`.
-- [ ] Server-side bounds as decided under pending decision 1, with tests on the API side.
-- [ ] Analytics as decided under pending decision 7; any new event name in the union, the Zod enum
-      and the API taxonomy, drift suite green.
-- [ ] `economy.md`, `PRODUCT.md`, `design.md` § 7.5 and `reusability.md` updated in the same PR.
+- [ ] The web2 API refuses, on ViciXp series, a `callSize` that is non-integer, off the step or
+      outside the range, and an order whose notional does not match it, with `invalid_call_size`.
+- [ ] `flow_swipe.value`, `position_taken.source` and `call_size_set` ship; `call_size_set` is in the
+      union, the Zod enum and the API taxonomy; the satellite is regenerated; drift suite green.
+- [ ] `economy.md` states where the call-size bounds and the floor are enforced and where they are
+      not, and extends farm vector 3; `PRODUCT.md`, `design.md` § 7.5 and `reusability.md` are
+      updated in the same PR.
+- [ ] The icdc-core follow-up issue is filed and linked, or its text is in the PR body if GitHub is
+      still unreachable.
 - [ ] Every new key in every catalog; `npm run quality`, `npm run check`, `npm test`,
       `npm run check:dashes` and the backend suite pass.
 
 ## Open questions
 
 1. **How many stored profiles hold a VXP `defaultAmount.flow` other than `'0'`, and how many above
-   the new maximum?** No current code writes the field. One `SELECT` over
+   the maximum?** No current code writes the field. One `SELECT` over
    `profiles.preferences->'defaultAmount'->>'flow'` on the web2 database and one controller scan of
-   the satellite `profiles` collection answer it. A zero count confirms the read-time clamp is enough;
-   a real population makes pending decision 4's backfill option worth weighing.
+   the satellite `profiles` collection answer it. The decision is a clamp on read with no backfill
+   either way; the count sizes the effect for the PR body.
 2. **Does icdc-core bound an order's size or price for engine `eng_0` anywhere, or plan to?** The
    Candid `TradeError` has no such variant and the client comment says settlement applies no payout
-   floor, so `economy.md`'s "bounded by the floor and the cap" holds only for clients that run this
-   repo's guard. The icdc-core owner can confirm; the answer decides whether option C of pending
-   decision 1 is a new engine feature or a configuration.
+   floor. The icdc-core owner can confirm; the answer shapes the follow-up issue (a new engine
+   feature or a configuration).
 3. **Does the landing Markets control carry the chosen size through sign-up into a real order?** If
    a signed-out pick survives sign-up and is placed afterwards, the guest pick record
    (`recordGuestPick`, today side only) must store the size and the placement path must validate it.
    The landing Markets brief owns the answer.
 
-## Pending decisions
-
-1. **How far server-side enforcement goes.** Facts: the satellite has no order path, so it cannot
-   reject a call on either build; the web2 API sees limit orders (notional computable) and market
-   orders one book level at a time (aggregate unknown); the engine has no size rule. Options:
-   - **A. API checks what it can see** (as detailed under Technical requirements): declared integer
-     `callSize` in range, limit notional consistent with it, each market leg capped at it. Web3 stays
-     client-enforced. Moderate change, web2 only.
-   - **B. API owns the book walk**: a `POST /engine/calls` endpoint takes the series, the outcome
-     and `callSize`, walks the book server-side and enforces the range exactly; `walkMarketOrder`
-     moves behind it for web2. Exact, but duplicates the walk in the backend and is a larger PR.
-   - **C. Engine rule in icdc-core**: per-engine order notional bounds on `eng_0`, enforced for both
-     builds. The only real bound for web3; cross-repo, lands first.
-   - **D. Client-only**, as today, and say so in `economy.md`.
-
-   Recommendation: **A in this PR, C as a follow-up icdc-core issue**, and `economy.md` states the
-   enforcement honestly in the meantime. A per-call bound limits a single order, not exposure (a
-   player can repeat calls), so exact enforcement (B) buys little over A for its cost.
-
-2. **Flow and market detail control: slider only, or slider plus quick presets?** Facts: the landing
-   control is a slider over the full range; Flow today pairs its slider with tappable pegs on a
-   card that is also a swipe surface, where small drags are imprecise. Recommendation: **one shared
-   control for Flow and market detail: the range slider plus a row of presets inside the range**
-   (keeps the peg affordance the card back is designed around, gives one-tap round sizes), while
-   the landing keeps slider only as designed. All three read the same constants.
-
-3. **Slider step.** Options: 1 (literally "any whole amount"; arrow keys move by one; drag lands on
-   any integer), 5, or 10 (twenty stops, coarser drag, matches the landing control as designed).
-   Validation accepts any integer either way. Recommendation: **one shared `VXP_CALL_SIZE_STEP`
-   of 1** used by all three controls, with presets covering round sizes; take 10 instead if the
-   landing control must stay on twenty stops.
-
-4. **Preset values and the legacy preference.** Presets (if decision 2 adopts them): recommendation
-   **min, 25, default, 100, max** (five targets, like today's peg count, all inside the range).
-   Legacy preference: **clamp on read only** (`clampVxpCallSize` in the Flow restore), no backfill of
-   stored rows on either backend, unless open question 1 finds a real population.
-
-5. **Anti-farming for count-gated mints** (required by `economy.md`'s reconciliation protocol).
-   Facts: overtime, Flow milestones, streak days, fill-counted achievements, battle tie-breaks and
-   tournament / podium tallies count calls regardless of size; the lower minimum makes each count
-   cheaper in locked collateral. Options: add a qualifying size (say, the default) below which a
-   fill counts for no award; or keep counting every call and rely on the existing one-time keys and
-   the rolling overtime cap. Recommendation: **no gate in this PR**; extend known farm vector 3 in
-   `economy.md` (already proposing a minimum call size for overtime) to cover the other count-gated
-   surfaces, and decide the gate in its own spec.
-
-6. **One payout preview everywhere.** Facts: Flow's back face shows the net win via `vxpNetWin`
-   (execution price, `VXP_P_WIN_FLOOR`, sub-1 shown as `<1`); the Flow front recomputes it with a
-   hardcoded floor, the consensus price and a `+1` minimum; the market detail sheet shows the gross
-   return with no floor. At the new minimum the `+1` clamp over-promises more often. Recommendation:
-   **route every preview through `vxpNetWin` and show the net win**, which changes the number the
-   market detail sheet shows today (gross to net).
-
-7. **Analytics in this PR or in the dedicated analytics PR.** The landing work defers its events to
-   one analytics PR. Recommendation: **ship the `flow_swipe.value` and `position_taken.source`
-   enrichments here** (they touch only props) and **the new `call_size_set` event with the analytics
-   PR**, so the taxonomy and satellite regeneration happen once.
-
 ## Decisions
 
-- **Range, default and floor** (owner): whole amounts from 10 to 200 VXP, default 50, on every
-  surface that sizes a call; the 300 and 500 sizes go for everyone; `VXP_P_WIN_FLOOR` stays; open
-  positions stay valid. Stored sizes above the maximum restore as the maximum.
+- **Range, step, default and floor** (owner): multiples of 10 from 10 to 200 VXP (20 positions),
+  default 50, on every surface that sizes a call; the 300 and 500 sizes go for everyone;
+  `VXP_P_WIN_FLOOR` stays; open positions stay valid. The values live in constants (min, max, step,
+  default).
+- **1. Enforcement** (owner): option A in this PR. The web2 API rejects what it can see: a call
+  size off the step, outside the range or not an integer, and orders whose notional does not match
+  it. The satellite has no order path, so it adds no check. A size rule plus payout floor in
+  icdc-core (option C) is a follow-up, written above for the implementer to file. `economy.md`
+  states plainly where the limit is enforced and where it is not. Rejected: B (the API owning the
+  book walk, exact but a large duplicate of `walkMarketOrder`) and D (client-only).
+- **2. One control everywhere** (owner): a slider only, in Flow, market detail and the landing; no
+  preset buttons. It replaces Flow's ladder slider with its peg row and the market detail index
+  slider.
+- **3. Step** (owner): `VXP_CALL_SIZE_STEP` of 10, so 20 positions; the API validates the step too.
+  Rejected: a step of 1 (literally any whole amount, imprecise to drag on a swipe card).
+- **4. Stored preferences** (owner): a stored 300 or 500 is clamped to the maximum when read; no
+  backfill or migration of stored profiles.
+- **5. Anti-farming** (owner): no gate in this PR. Farm vector 3 in `economy.md` is extended, and a
+  separate spec for a minimum qualifying call size is an explicit follow-up.
+- **6. Payout preview** (owner): the net win through `vxpNetWin`, with the floor, on every surface;
+  market detail changes from gross to net.
+- **7. Analytics** (owner): all in this PR: `value` on `flow_swipe`, `source` on `position_taken`
+  (`flow` / `market_detail` / `landing`), and the new `call_size_set` event, with the dual-source
+  pair and the satellite regeneration.
