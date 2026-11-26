@@ -260,4 +260,41 @@ describe('claimTournamentPrizeFn', () => {
 		});
 		assert.ok(host.calls().includes('icrc1_transfer'));
 	});
+
+	it('pays nothing to a member who joined the winner after the draw', async () => {
+		settlements.push({ principal: member, atMs: tournamentEndMs - 1, calls: 1, wins: 0 });
+		host.putDoc({
+			collection: Collection.LEAGUE_MEMBERS,
+			key: `${winner}/${member.toText()}`,
+			data: { leagueId: winner, member: member.toText(), role: 'member', joinedAtMs: 1 },
+			owner: member,
+			createdAtMs: drawnAtMs + 1
+		});
+
+		const result = await claimTournamentPrizeFn({ tournamentId });
+
+		assert.deepEqual(result, { ok: false, reason: 'not_member_of_top_league' });
+		assert.deepEqual(host.calls(), []);
+		assert.deepEqual(host.keys(Collection.VXP_AWARDS), []);
+	});
+
+	it('pays nothing to an active pre-draw member of a league that did not place', async () => {
+		const outsider = Principal.fromUint8Array(new Uint8Array([6, 6, 7]));
+
+		settlements.push({ principal: outsider, atMs: tournamentEndMs - 1, calls: 1, wins: 0 });
+		host.putDoc({
+			collection: Collection.LEAGUE_MEMBERS,
+			key: `league-5/${outsider.toText()}`,
+			data: { leagueId: 'league-5', member: outsider.toText(), role: 'member', joinedAtMs: 1 },
+			owner: outsider,
+			createdAtMs: drawnAtMs - 1
+		});
+		host.setCaller(outsider);
+
+		const result = await claimTournamentPrizeFn({ tournamentId });
+
+		assert.deepEqual(result, { ok: false, reason: 'not_member_of_top_league' });
+		assert.deepEqual(host.calls(), []);
+		assert.deepEqual(host.keys(Collection.VXP_AWARDS), []);
+	});
 });
