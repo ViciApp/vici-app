@@ -159,13 +159,15 @@ export const mapTradeError = (err: ClearingDid.TradeError): TradeErrorMessage =>
 /**
  * The HTTP API's order refusals, by the stable `code` of its error envelope.
  * Web2 mode never sees a `TradeError`: the API signs for the user and reduces
- * the variant to one of these. `backend/src/engine/order-rejections.ts` owns
- * the codes; the shared-drift suite pins the two lists together.
+ * the variant to one of these, or refuses an order itself (`invalid_call_size`).
+ * `backend/src/engine/order-rejections.ts` owns the codes; the shared-drift
+ * suite pins the two lists together.
  */
 const ORDER_REJECTION_KEYS: Record<string, MessageKey> = {
 	arbitrage_limit_exceeded: 'trade.error.arbitrage_limit_exceeded',
 	// Only reached without the amounts: `trade.error.insufficient_margin` cannot render bare.
 	insufficient_balance: 'trade.error.generic',
+	invalid_call_size: 'trade.error.invalid_call_size',
 	invalid_order: 'trade.error.common.invalid_input',
 	market_closed: 'trade.error.market_closed',
 	market_not_found: 'trade.error.series_not_found',

@@ -1,10 +1,10 @@
 // Engine client behavior with the actor mocked at the provider boundary:
 // per-user signing identities, the reader identity behind every public read,
 // result unwrapping (including the missing-account mapping), cursor
-// draining, the public-read cache (TTL, in-flight dedupe, Finalised retention)
-// and the bulk settlement route.
+// draining, the public-read cache (TTL, in-flight dedupe, Finalised retention),
+// the bulk settlement route and the ViciXp call-size bounds on the order routes.
 
-import { toNullable } from '@dfinity/utils';
+import { isNullish, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { afterEach, beforeAll, describe, expect, setSystemTime, test } from 'bun:test';
 import { createSession } from '../src/auth/sessions';
@@ -591,11 +591,22 @@ describe.if(dbAvailable)('order routes', () => {
 			})
 		);
 
+	// A series of no ViciXp book and an empty book: the call-size check lets
+	// every order through, so the engine's answer is what each test reads.
+	const ENGINE_READS = {
+		clearing: { list_orders: () => Promise.resolve([]) },
+		registry: { get_series: () => Promise.resolve(toNullable()) }
+	};
+
 	const refuseWith = (err: Record<string, unknown>): void => {
 		mockProvider({
-			clearing: Object.fromEntries(
-				ROUTES.map(({ method }) => [method, () => Promise.resolve({ Err: err })])
-			)
+			clearing: {
+				...ENGINE_READS.clearing,
+				...Object.fromEntries(
+					ROUTES.map(({ method }) => [method, () => Promise.resolve({ Err: err })])
+				)
+			},
+			registry: ENGINE_READS.registry
 		});
 	};
 
@@ -648,9 +659,13 @@ describe.if(dbAvailable)('order routes', () => {
 
 	test('an unreachable engine stays a 500', async () => {
 		mockProvider({
-			clearing: Object.fromEntries(
-				ROUTES.map(({ method }) => [method, () => Promise.reject(new Error(ENGINE_TEXT))])
-			)
+			clearing: {
+				...ENGINE_READS.clearing,
+				...Object.fromEntries(
+					ROUTES.map(({ method }) => [method, () => Promise.reject(new Error(ENGINE_TEXT))])
+				)
+			},
+			registry: ENGINE_READS.registry
 		});
 
 		for (const route of ROUTES) {
@@ -664,10 +679,12 @@ describe.if(dbAvailable)('order routes', () => {
 	test('an accepted order still answers 200', async () => {
 		mockProvider({
 			clearing: {
+				...ENGINE_READS.clearing,
 				submit_limit_order: () => Promise.resolve({ Ok: true }),
 				submit_market_order: () => Promise.resolve({ Ok: false }),
 				cancel_limit_order: () => Promise.resolve({ Ok: true })
-			}
+			},
+			registry: ENGINE_READS.registry
 		});
 
 		const [limit, market, cancel] = await Promise.all(ROUTES.map(post));
@@ -676,6 +693,231 @@ describe.if(dbAvailable)('order routes', () => {
 		expect(await limit?.json()).toEqual({ filled: true });
 		expect(await market?.json()).toEqual({ filled: false });
 		expect(await cancel?.json()).toEqual({ cancelled: true });
+	});
+});
+
+describe.if(dbAvailable)('order routes: ViciXp call size', () => {
+	const VXP_SERIES = 'vxp_series';
+	const OTHER_SERIES = 'playground_series';
+
+	// A resting YES ask at 0.40 and a resting YES bid at 0.60 on the ViciXp
+	// book: taking the ask buys at 0.40 a share, selling into the bid costs 0.40.
+	const ASK = {
+		order_id: 'ASK_1',
+		series_id: VXP_SERIES,
+		side: { Sell: null },
+		qty: BigInt(1_000),
+		price: { decimal: { value: BigInt(40), decimals: 2 } }
+	};
+	const BID = {
+		order_id: 'BID_1',
+		series_id: VXP_SERIES,
+		side: { Buy: null },
+		qty: BigInt(1_000),
+		price: { decimal: { value: BigInt(60), decimals: 2 } }
+	};
+
+	let cookie: string;
+	let engineCalls: string[];
+
+	beforeAll(async () => {
+		await ensureMigrated();
+
+		cookie = `vici_session=${await createSession(await createTestUser())}`;
+	});
+
+	const mockBooks = (): void => {
+		engineCalls = [];
+
+		mockProvider({
+			clearing: {
+				// The named series' book holds no order of another series, so a
+				// leg naming the wrong series is found only across every series.
+				list_orders: ({ series_id }: { series_id: [] | [string] }) =>
+					Promise.resolve(series_id.length === 0 || series_id[0] === VXP_SERIES ? [ASK, BID] : []),
+				submit_limit_order: () => {
+					engineCalls.push('limit');
+
+					return Promise.resolve({ Ok: false });
+				},
+				submit_market_order: () => {
+					engineCalls.push('market');
+
+					return Promise.resolve({ Ok: true });
+				}
+			},
+			registry: {
+				get_series: (id: string) =>
+					Promise.resolve(
+						toNullable({
+							balance_domain: id === VXP_SERIES ? { ViciXp: null } : { Playground: null }
+						})
+					)
+			}
+		});
+	};
+
+	const post = async ({
+		path,
+		body
+	}: {
+		path: 'limit' | 'market';
+		body: Record<string, unknown>;
+	}): Promise<{ status: number; body: unknown }> => {
+		const res = await app.handle(
+			new Request(`http://localhost/api/v1/engine/orders/${path}`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', cookie },
+				body: JSON.stringify(body)
+			})
+		);
+
+		return { status: res.status, body: await res.json() };
+	};
+
+	const limit = (fields: {
+		qty: number;
+		priceValue: number;
+		side?: 'buy' | 'sell';
+		callSize?: number;
+		seriesId?: string;
+	}): Promise<{ status: number; body: unknown }> =>
+		post({
+			path: 'limit',
+			body: {
+				orderId: 'ORD_CALL_SIZE',
+				seriesId: fields.seriesId ?? VXP_SERIES,
+				side: fields.side ?? 'buy',
+				qty: String(fields.qty),
+				priceValue: String(fields.priceValue),
+				priceDecimals: 2,
+				...(isNullish(fields.callSize) ? {} : { callSize: fields.callSize })
+			}
+		});
+
+	const market = (fields: {
+		matchingOrderId: string;
+		qty?: number;
+		callSize?: number;
+		seriesId?: string;
+	}): Promise<{ status: number; body: unknown }> =>
+		post({
+			path: 'market',
+			body: {
+				tradeId: 'TRD_CALL_SIZE',
+				matchingOrderId: fields.matchingOrderId,
+				...(isNullish(fields.seriesId) ? {} : { seriesId: fields.seriesId }),
+				...(isNullish(fields.qty) ? {} : { qty: String(fields.qty) }),
+				...(isNullish(fields.callSize) ? {} : { callSize: fields.callSize })
+			}
+		});
+
+	const REFUSED = { status: 400, body: { error: 'invalid_call_size' } };
+	const PLACED = { status: 200, body: { filled: false } };
+	const TAKEN = { status: 200, body: { filled: true } };
+
+	test('a limit order sized on the minimum, the default or the maximum is placed', async () => {
+		mockBooks();
+
+		// 10 VXP at 0.97 buys 10 shares (9.70 committed, under one share short).
+		expect(await limit({ callSize: 10, qty: 10, priceValue: 97 })).toEqual(PLACED);
+		expect(await limit({ callSize: 50, qty: 100, priceValue: 50 })).toEqual(PLACED);
+		expect(await limit({ callSize: 200, qty: 400, priceValue: 50 })).toEqual(PLACED);
+		expect(engineCalls).toEqual(['limit', 'limit', 'limit']);
+	});
+
+	test('a NO call rests as a YES sell costing the complement of its price', async () => {
+		mockBooks();
+
+		// 70 VXP of NO at 0.70 is a YES sell at 0.30: 100 shares at 0.70 each.
+		expect(await limit({ side: 'sell', callSize: 70, qty: 100, priceValue: 30 })).toEqual(PLACED);
+		// Sized as if the sell cost its own price, it would commit over twice the call.
+		expect(await limit({ side: 'sell', callSize: 30, qty: 100, priceValue: 30 })).toEqual(REFUSED);
+	});
+
+	test('a call size off the step, outside the range or fractional is refused', async () => {
+		mockBooks();
+
+		for (const callSize of [0, 5, 55, 210, 300, 500, 50.5, -50]) {
+			expect({ callSize, ...(await limit({ callSize, qty: 100, priceValue: 50 })) }).toEqual({
+				callSize,
+				...REFUSED
+			});
+		}
+
+		expect(engineCalls).toEqual([]);
+	});
+
+	test('a limit order whose notional disagrees with its call size is refused', async () => {
+		mockBooks();
+
+		// Above the call size by one share.
+		expect(await limit({ callSize: 50, qty: 101, priceValue: 50 })).toEqual(REFUSED);
+		// A full share short of it.
+		expect(await limit({ callSize: 50, qty: 99, priceValue: 50 })).toEqual(REFUSED);
+		expect(engineCalls).toEqual([]);
+	});
+
+	test('without a call size a limit order is held to the maximum', async () => {
+		mockBooks();
+
+		expect(await limit({ qty: 400, priceValue: 50 })).toEqual(PLACED);
+		expect(await limit({ qty: 401, priceValue: 50 })).toEqual(REFUSED);
+	});
+
+	test('a market leg costing more than its call size is refused', async () => {
+		mockBooks();
+
+		// 125 shares of the 0.40 ask cost exactly 50.
+		expect(
+			await market({ matchingOrderId: 'ASK_1', seriesId: VXP_SERIES, qty: 125, callSize: 50 })
+		).toEqual(TAKEN);
+		expect(
+			await market({ matchingOrderId: 'ASK_1', seriesId: VXP_SERIES, qty: 126, callSize: 50 })
+		).toEqual(REFUSED);
+		// Selling into the 0.60 bid costs 0.40 a share too.
+		expect(
+			await market({ matchingOrderId: 'BID_1', seriesId: VXP_SERIES, qty: 126, callSize: 50 })
+		).toEqual(REFUSED);
+		expect(
+			await market({ matchingOrderId: 'ASK_1', seriesId: VXP_SERIES, qty: 125, callSize: 55 })
+		).toEqual(REFUSED);
+		expect(engineCalls).toEqual(['market']);
+	});
+
+	test('without a call size a market leg is held to the maximum, the whole order when no qty is sent', async () => {
+		mockBooks();
+
+		expect(await market({ matchingOrderId: 'ASK_1', qty: 500 })).toEqual(TAKEN);
+		expect(await market({ matchingOrderId: 'ASK_1', qty: 501 })).toEqual(REFUSED);
+		// The whole 1,000-share order at 0.40 is 400 VXP.
+		expect(await market({ matchingOrderId: 'ASK_1' })).toEqual(REFUSED);
+	});
+
+	test('a market leg naming another series is checked against the book it takes from', async () => {
+		mockBooks();
+
+		expect(
+			await market({ matchingOrderId: 'ASK_1', seriesId: OTHER_SERIES, qty: 126, callSize: 50 })
+		).toEqual(REFUSED);
+	});
+
+	test('a leg on an order no book holds reaches the engine, which answers it', async () => {
+		mockBooks();
+
+		expect(
+			await market({ matchingOrderId: 'GONE', seriesId: VXP_SERIES, qty: 1, callSize: 50 })
+		).toEqual(TAKEN);
+		expect(engineCalls).toEqual(['market']);
+	});
+
+	test('a series outside ViciXp is untouched', async () => {
+		mockBooks();
+
+		expect(
+			await limit({ seriesId: OTHER_SERIES, callSize: 5, qty: 10_000, priceValue: 50 })
+		).toEqual(PLACED);
+		expect(engineCalls).toEqual(['limit']);
 	});
 });
 
