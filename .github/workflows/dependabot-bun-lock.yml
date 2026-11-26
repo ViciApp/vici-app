@@ -10,10 +10,12 @@ name: Dependabot Bun Lockfile
 #
 # `pull_request_target` is deliberate: a workflow triggered by Dependabot
 # through `pull_request` gets a read-only token and no secrets, so it cannot
-# push the fix back. The workflow definition is read from the base branch, and
-# the only command run against the PR's contents is
-# `bun install --lockfile-only`, which resolves the registry without installing
-# packages or running any lifecycle script.
+# push the fix back. That makes the job privileged, so it never checks out the
+# PR: the workflow definition and the Bun pin come from the base branch, the
+# PR's backend/package.json and backend/bun.lock are fetched as data and only
+# ever read by `bun install --lockfile-only` (which resolves the registry
+# without installing packages or running any lifecycle script), and the result
+# is committed through the API rather than by git in a PR-controlled tree.
 
 on:
   pull_request_target:
@@ -35,18 +37,21 @@ jobs:
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/backend-bun-image.yml
-    with:
-      ref: ${{ github.event.pull_request.head.sha }}
     permissions:
       contents: read
 
   regenerate:
     needs: ['bun-image']
     runs-on: ubuntu-24.04
-    # Nothing uses GITHUB_TOKEN here; checkout and push both run on the
-    # short-lived app installation token minted below, which is what gets
-    # Backend Checks to re-run on the fixed head.
+    # Nothing uses GITHUB_TOKEN here; every API call runs on the short-lived
+    # app installation token minted below, which is what gets Backend Checks
+    # to re-run on the fixed head.
     permissions: {}
+    defaults:
+      run:
+        shell: bash
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
     steps:
       - name: Mint app token
         id: app-token
@@ -54,48 +59,64 @@ jobs:
         with:
           client-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
           private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: write
 
-      - name: Checkout the pull request head
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: false
+      # No checkout: the workspace holds only these two files, at their
+      # repository paths, so the PR's code is never on disk for a step to run.
+      - name: Fetch the manifest and lockfile from the pull request head
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          mkdir -p backend
+          for file in backend/package.json backend/bun.lock; do
+            gh api -H 'Accept: application/vnd.github.raw+json' \
+              "repos/${GITHUB_REPOSITORY}/contents/${file}?ref=${HEAD_SHA}" \
+              > "$file"
+          done
+          cp backend/bun.lock "${RUNNER_TEMP}/bun.lock.before"
 
       # Resolved inside the same pinned image Backend Checks runs, so the
       # lockfile written here is byte-identical to the one that job then
-      # verifies with `--frozen-lockfile`. The image is not used as the job
-      # `container:` because it ships without git, which the steps below need.
+      # verifies with `--frozen-lockfile`. bun needs nothing else from backend/
+      # to resolve (bunfig.toml only configures tests). The image is not the
+      # job `container:` because it ships without the gh CLI the other steps
+      # need.
       - name: Regenerate bun.lock
         env:
           BUN_IMAGE: ${{ needs.bun-image.outputs.image }}
         run: |
           docker run --rm \
-            --volume "$GITHUB_WORKSPACE:/workspace" \
-            --workdir /workspace/backend \
+            --volume "${GITHUB_WORKSPACE}/backend:/workspace" \
+            --workdir /workspace \
             "$BUN_IMAGE" \
             bun install --lockfile-only
 
-      - name: Check for changes
-        id: check_changes
-        run: |
-          if [[ -n "$(git status --porcelain backend/bun.lock)" ]]; then
-            echo "changes_detected=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changes_detected=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Committed with plain git rather than .github/actions/add-and-commit:
-      # under `pull_request_target` the checked-out tree is PR-controlled, so
-      # this step must not execute action code read back out of it.
-      - name: Commit and push the regenerated lockfile
-        if: steps.check_changes.outputs.changes_detected == 'true'
+      # The commit is built on the head commit's tree with only bun.lock
+      # replaced, so nothing else from the PR is written back. The ref update
+      # is not forced: if the branch moved since this run started, it fails
+      # instead of dropping the new commits, and the run that push triggered
+      # repairs the new head.
+      - name: Commit the regenerated lockfile onto the pull request branch
         env:
-          GH_APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          git config user.name 'vici-release-bot[bot]'
-          git config user.email 'vici-release-bot[bot]@users.noreply.github.com'
-          git add backend/bun.lock
-          git commit -m 'chore(backend-deps): regenerate bun.lock for the dependency bump'
-          git push "https://x-access-token:${GH_APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${HEAD_REF}"
+          if cmp -s "${RUNNER_TEMP}/bun.lock.before" backend/bun.lock; then
+            echo 'backend/bun.lock already matches backend/package.json.'
+            exit 0
+          fi
+          repo="repos/${GITHUB_REPOSITORY}"
+          base64 -w0 backend/bun.lock > "${RUNNER_TEMP}/bun.lock.b64"
+          blob="$(jq -n --rawfile content "${RUNNER_TEMP}/bun.lock.b64" \
+            '{content: $content, encoding: "base64"}' \
+            | gh api "${repo}/git/blobs" --input - --jq .sha)"
+          head_tree="$(gh api "${repo}/git/commits/${HEAD_SHA}" --jq .tree.sha)"
+          tree="$(jq -n --arg base "$head_tree" --arg blob "$blob" \
+            '{base_tree: $base, tree: [{path: "backend/bun.lock", mode: "100644", type: "blob", sha: $blob}]}' \
+            | gh api "${repo}/git/trees" --input - --jq .sha)"
+          commit="$(jq -n --arg tree "$tree" --arg parent "$HEAD_SHA" \
+            '{message: "chore(backend-deps): regenerate bun.lock for the dependency bump", tree: $tree, parents: [$parent]}' \
+            | gh api "${repo}/git/commits" --input - --jq .sha)"
+          gh api --method PATCH "${repo}/git/refs/heads/${HEAD_REF}" \
+            -f sha="$commit" -F force=false > /dev/null
+          echo "Committed ${commit} onto ${HEAD_REF}."
