@@ -161,11 +161,41 @@ export const fanoutProfileDeltaToLeagueStats = async ({
 	await incrementAggregate({ q, userId, deltaTrades, deltaWins, nowMs });
 };
 
+/** Per-macro rise from `before` to `after`, with wins clamped to calls: a
+ * re-aggregation can shift bucket composition so the raw win delta exceeds
+ * the call delta, which would break the wins-cannot-exceed-calls invariant
+ * on the league row. Macros that did not rise are left out. */
+const categoryDeltas = ({
+	before,
+	after
+}: {
+	before: Partial<Record<string, CategoryBucket>> | undefined;
+	after: Partial<Record<string, CategoryBucket>>;
+}): Partial<Record<MacroId, CategoryBucket>> => {
+	const deltas: Partial<Record<MacroId, CategoryBucket>> = {};
+
+	for (const tag of MACRO_IDS) {
+		const afterBucket = after[tag];
+		const beforeBucket = before?.[tag];
+		const calls = Math.max(0, (afterBucket?.calls ?? 0) - (beforeBucket?.calls ?? 0));
+		const wins = Math.min(calls, Math.max(0, (afterBucket?.wins ?? 0) - (beforeBucket?.wins ?? 0)));
+
+		if (calls > 0 || wins > 0) {
+			deltas[tag] = { calls, wins };
+		}
+	}
+
+	return deltas;
+};
+
 /**
  * Category fanout for a user_stats write: per-macro deltas of the user's
- * `categoryStats`, clamped so wins never exceed calls, folded into each of
- * the user's league rows. The aggregate counters stay owned by the profile
- * fanout; this touches only `categories`.
+ * `categoryStats`, folded into each of the user's league rows. The aggregate
+ * counters stay owned by the profile fanout; this touches only `categories`.
+ * The sum happens inside the upsert, on the row it has locked, so two members
+ * saving at once both land; each bucket saturates at the `int` ceiling like
+ * the aggregate. Rows are locked in league id order, so two writers sharing
+ * several leagues cannot deadlock on each other.
  */
 export const fanoutCategoryDeltasToLeagueStats = async ({
 	q,
@@ -186,58 +216,28 @@ export const fanoutCategoryDeltasToLeagueStats = async ({
 		return;
 	}
 
-	const deltas: Partial<Record<MacroId, CategoryBucket>> = {};
-	let hasDelta = false;
+	const deltas = categoryDeltas({ before, after });
 
-	for (const tag of MACRO_IDS) {
-		const afterBucket = after[tag];
-
-		if (nonNullish(afterBucket)) {
-			const beforeBucket = before?.[tag];
-			const deltaCalls = Math.max(0, afterBucket.calls - (beforeBucket?.calls ?? 0));
-			// Clamp wins to calls: a re-aggregation can shift bucket composition so
-			// the raw win delta exceeds the call delta, which would break the
-			// wins-cannot-exceed-calls invariant on the league row.
-			const deltaWins = Math.min(
-				deltaCalls,
-				Math.max(0, afterBucket.wins - (beforeBucket?.wins ?? 0))
-			);
-
-			if (deltaCalls > 0 || deltaWins > 0) {
-				deltas[tag] = { calls: deltaCalls, wins: deltaWins };
-				hasDelta = true;
-			}
-		}
-	}
-
-	if (!hasDelta) {
+	if (Object.keys(deltas).length === 0) {
 		return;
 	}
 
-	const memberships = await q<{ league_id: string }>(
-		`select league_id from league_members where member_user_id = $1`,
-		[userId]
+	await q(
+		`insert into league_stats (league_id, total_calls, wins, categories, updated_at_ms)
+		 select m.league_id, 0, 0, $2::jsonb, $3::bigint
+		 from league_members m where m.member_user_id = $1
+		 order by m.league_id
+		 on conflict (league_id) do update set
+		   categories = league_stats.categories || (
+		     select jsonb_object_agg(d.key, jsonb_build_object(
+		       'calls', least(coalesce((league_stats.categories -> d.key ->> 'calls')::numeric, 0)
+		         + (d.value ->> 'calls')::numeric, $4),
+		       'wins', least(coalesce((league_stats.categories -> d.key ->> 'wins')::numeric, 0)
+		         + (d.value ->> 'wins')::numeric, $4)
+		     ))
+		     from jsonb_each(excluded.categories) d
+		   ),
+		   updated_at_ms = excluded.updated_at_ms`,
+		[userId, JSON.stringify(deltas), nowMs, PG_INT_MAX]
 	);
-
-	for (const { league_id } of memberships) {
-		const current = await getLeagueStats(league_id, q);
-		const categories: Partial<Record<string, CategoryBucket>> = { ...current?.categories };
-
-		for (const [tag, delta] of Object.entries(deltas)) {
-			if (nonNullish(delta)) {
-				const bucket = categories[tag] ?? { calls: 0, wins: 0 };
-
-				categories[tag] = { calls: bucket.calls + delta.calls, wins: bucket.wins + delta.wins };
-			}
-		}
-
-		await q(
-			`insert into league_stats (league_id, total_calls, wins, categories, updated_at_ms)
-			 values ($1, 0, 0, $2, $3)
-			 on conflict (league_id) do update set
-			   categories = excluded.categories,
-			   updated_at_ms = excluded.updated_at_ms`,
-			[league_id, JSON.stringify(categories), nowMs]
-		);
-	}
 };
