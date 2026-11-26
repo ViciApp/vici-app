@@ -144,28 +144,6 @@ export const uploadLeagueImage = async ({
 	});
 };
 
-/**
- * Drop whatever cover is stored under a league id. Best-effort: a failure is
- * logged and the caller goes on, since the league row, not the bucket, says
- * whether a league has a cover. No access check: callers own theirs.
- */
-export const removeLeagueCover = async (leagueId: string): Promise<void> => {
-	// No cover is ever stored under an id that is not a safe key.
-	if (!SAFE_ID_PATTERN.test(leagueId)) {
-		return;
-	}
-
-	try {
-		if (nonNullish(s3)) {
-			await s3.delete(storageKey(leagueId));
-		} else if (existsSync(diskPath(leagueId))) {
-			unlinkSync(diskPath(leagueId));
-		}
-	} catch (err) {
-		logger.error(`league image delete failed for ${leagueId}:`, err);
-	}
-};
-
 /** Clear a league's cover (owner-only): the field falls back to the emblem.
  * Storage deletion is best-effort; the row is the source of truth. */
 export const deleteLeagueImage = async ({
@@ -187,7 +165,15 @@ export const deleteLeagueImage = async ({
 		throw new LeagueError('leagues cover image edits require the owner.');
 	}
 
-	await removeLeagueCover(leagueId);
+	try {
+		if (nonNullish(s3)) {
+			await s3.delete(storageKey(leagueId));
+		} else if (existsSync(diskPath(leagueId))) {
+			unlinkSync(diskPath(leagueId));
+		}
+	} catch (err) {
+		logger.error(`league image delete failed for ${leagueId} (row still cleared):`, err);
+	}
 
 	return await tx(async (q) => {
 		const rows = await q<Parameters<typeof shapeLeague>[0]>(
@@ -210,9 +196,17 @@ export type LeagueImageLocation =
 	{ kind: 'redirect'; url: string } | { kind: 'file'; path: string } | { kind: 'missing' };
 
 /** Where a GET for the cover goes: a short-lived presigned S3 URL, the local
- * file (dev), or 404. */
-export const locateLeagueImage = (leagueId: string): LeagueImageLocation => {
+ * file (dev), or 404. Only a live league whose row carries a cover has one:
+ * storage keys are league ids, which come back after a disband, so an object
+ * a gone league left behind (or one a failed delete kept) is never served. */
+export const locateLeagueImage = async (leagueId: string): Promise<LeagueImageLocation> => {
 	if (!SAFE_ID_PATTERN.test(leagueId)) {
+		return { kind: 'missing' };
+	}
+
+	const league = await getLeague(leagueId);
+
+	if (isNullish(league?.imageUrl)) {
 		return { kind: 'missing' };
 	}
 

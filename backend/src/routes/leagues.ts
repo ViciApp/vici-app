@@ -6,12 +6,7 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
-import {
-	deleteLeagueImage,
-	locateLeagueImage,
-	removeLeagueCover,
-	uploadLeagueImage
-} from '../leagues/images';
+import { deleteLeagueImage, locateLeagueImage, uploadLeagueImage } from '../leagues/images';
 import {
 	createLeague,
 	deleteLeague,
@@ -110,10 +105,6 @@ export const leaguesRoutes = new Elysia({ prefix: '/api/v1/leagues' })
 					emblem: body.emblem,
 					privacy: body.privacy
 				});
-
-				// A league disbanded under this id may have left its cover in
-				// storage, and the cover GET serves by id: a new league starts bare.
-				await removeLeagueCover(league.id);
 
 				set.status = 201;
 
@@ -380,8 +371,8 @@ export const leaguesRoutes = new Elysia({ prefix: '/api/v1/leagues' })
 	})
 	// Public read: renders in <img> tags, so no session gate. Serves a 302 to
 	// a short-lived presigned URL (S3) or streams the local file (dev).
-	.get('/:leagueId/image', ({ params, set }) => {
-		const location = locateLeagueImage(params.leagueId);
+	.get('/:leagueId/image', async ({ params, set }) => {
+		const location = await locateLeagueImage(params.leagueId);
 
 		if (location.kind === 'redirect') {
 			set.status = 302;

@@ -1,9 +1,10 @@
-// League ids are client-minted, so a disbanded league's id can come back: a
-// new league under it starts with no cover, and an id that battles or a
-// tournament bracket still name stays taken.
+// League ids are client-minted, so a disbanded league's id can come back: the
+// cover a gone league left in storage is never served under it, and an id
+// that battles or a tournament bracket still name stays taken.
 
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import sharp from 'sharp';
 import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
@@ -54,7 +55,7 @@ describe.if(dbAvailable)('league id reuse after a disband', () => {
 		await ensureMigrated();
 	});
 
-	test('a new league under a disbanded id does not serve the old cover', async () => {
+	test('a cover left in storage by a gone league is not served, not even to a new league under its id', async () => {
 		const ownerId = await createTestUser();
 		const league = await createLeague({
 			id: uniqueLeagueId(),
@@ -63,14 +64,42 @@ describe.if(dbAvailable)('league id reuse after a disband', () => {
 		});
 
 		await uploadLeagueImage({ leagueId: league.id, callerId: ownerId, bytes: await samplePng() });
+
+		const stored = await locateLeagueImage(league.id);
+
+		if (stored.kind !== 'file') {
+			throw new Error('cover not stored');
+		}
+
 		await deleteLeague({ leagueId: league.id, callerId: ownerId });
 
-		expect(locateLeagueImage(league.id).kind).toBe('file');
+		expect(existsSync(stored.path)).toBe(true);
+		expect((await locateLeagueImage(league.id)).kind).toBe('missing');
 
 		const res = await postLeague({ ownerId: await createTestUser(), id: league.id });
 
 		expect(res.status).toBe(201);
-		expect(locateLeagueImage(league.id).kind).toBe('missing');
+		expect((await locateLeagueImage(league.id)).kind).toBe('missing');
+		expect(
+			(await app.handle(new Request(`http://localhost/api/v1/leagues/${league.id}/image`))).status
+		).toBe(404);
+	});
+
+	test('a cover the league row no longer carries is not served', async () => {
+		const ownerId = await createTestUser();
+		const league = await createLeague({
+			id: uniqueLeagueId(),
+			name: 'Cleared',
+			ownerUserId: ownerId
+		});
+
+		await uploadLeagueImage({ leagueId: league.id, callerId: ownerId, bytes: await samplePng() });
+
+		// What a cover delete whose storage call failed leaves behind: the row
+		// is cleared, the object is still there.
+		await query(`update leagues set image_url = null where id = $1`, [league.id]);
+
+		expect((await locateLeagueImage(league.id)).kind).toBe('missing');
 	});
 
 	test('an id a battle still names stays taken', async () => {
