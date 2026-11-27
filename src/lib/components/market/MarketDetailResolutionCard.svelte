@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { Market } from '#lib/types/market.ts';
-	import { formatDate } from '#lib/utils/format.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatSettleDate } from '#lib/utils/market-settle.utils.ts';
 
 	interface Props {
 		market: Market;
@@ -19,13 +19,15 @@
 	// Trim before testing emptiness so a whitespace-only clause falls back to
 	// the templated sentence, matching FlowResolutionBlock.
 	const resolutionClause = $derived((resolution ?? market.resolution)?.trim() ?? '');
-	const closesLabel = $derived(formatDate(market.expiryDate));
+	const settleDate = $derived(
+		formatSettleDate({ expiryMs: Number(market.expiryDate), locale: $localeStore })
+	);
 </script>
 
 <!-- Resolution rules inline card. The body either renders the market's
      own resolution clause (the binding settlement criterion authored by
      the market creator) or falls back to a templated sentence referencing
-     the close date. A footer carries the resolution source and the
+     the settle date. A footer carries the resolution source and the
      settles date so the block answers "how / where / when" at a glance,
      mirroring the Flow back-card resolution structure. This card sits
      directly below the stats grid. -->
@@ -40,7 +42,7 @@
 			{t({
 				locale: $localeStore,
 				key: 'market.detail.resolution.fallback',
-				params: { closesAt: closesLabel }
+				params: { closesAt: settleDate }
 			})}
 		{/if}
 	</p>
@@ -50,8 +52,8 @@
 			<dd>{t({ locale: $localeStore, key: 'market.detail.resolution.source_value' })}</dd>
 		</div>
 		<div class="market-resolution-foot-row">
-			<dt>{t({ locale: $localeStore, key: 'market.detail.resolution.settles_label' })}</dt>
-			<dd>{closesLabel}</dd>
+			<dt>{t({ locale: $localeStore, key: 'market.settles.label' })}</dt>
+			<dd>{settleDate}</dd>
 		</div>
 	</dl>
 </div>

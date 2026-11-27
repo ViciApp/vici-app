@@ -1,6 +1,6 @@
 import { loadMarket } from '#lib/services/market.services.ts';
 import { loadMarketPriceCandles } from '#lib/services/trade.services.ts';
-import type { LandingDeckSeries } from '#lib/types/landing.ts';
+import type { LandingDeckCard, LandingDeckSeries } from '#lib/types/landing.ts';
 import type { Market } from '#lib/types/market.ts';
 import { settleAll } from '#lib/utils/async.utils.ts';
 import { parseMarketId } from '#lib/validation/market.validation.ts';
@@ -26,8 +26,8 @@ export const loadLandingDeckSeries = async ({
 }: {
 	entry: LandingDeckSeries;
 	onMarket: (market: Market | undefined) => void;
-	/** YES prices over the last 24 hours, whole percent, oldest first. */
-	onHistory: (history: number[]) => void;
+	/** YES prices over the last 24 hours, whole percent, oldest first, with their x-fractions. */
+	onHistory: (history: NonNullable<LandingDeckCard['history']>) => void;
 }): Promise<void> => {
 	// An id the parser refuses throws before any read starts: `settleAll`
 	// settles that like a failed read, so the caller still learns it is over.
@@ -41,7 +41,7 @@ export const loadLandingDeckSeries = async ({
 			await loadMarketPriceCandles({
 				seriesId,
 				period: '1d',
-				onLoad: ({ response }) => onHistory(response.yes)
+				onLoad: ({ response: { yes, xs } }) => onHistory({ yes, xs })
 			})
 	]);
 };

@@ -1,4 +1,3 @@
-import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**
@@ -156,35 +155,3 @@ export const nearestPointIndex = ({ xs, x }: { xs: number[]; x: number }): numbe
 /** Points gained (positive) or lost across the drawn window. */
 export const priceChartChange = (values: number[]): number =>
 	values.length < 2 ? 0 : values[values.length - 1] - values[0];
-
-/**
- * Today's move in points: the live price against the last traded price at
- * least a day old. When every trade in the window is younger than a day the
- * first one stands in. `undefined` when the window holds no trade at all, so
- * the UI says nothing rather than a made-up "flat".
- */
-export const dailyPriceMove = ({
-	yes,
-	xs,
-	windowStartMs,
-	windowEndMs,
-	livePercent
-}: {
-	yes: number[];
-	xs: number[];
-	windowStartMs: number;
-	windowEndMs: number;
-	livePercent?: number;
-}): number | undefined => {
-	if (yes.length === 0) {
-		return;
-	}
-
-	const spanMs = Math.max(windowEndMs - windowStartMs, 1);
-	const cutoff = (windowEndMs - DAY_IN_MS - windowStartMs) / spanMs;
-	const dayOld = xs.reduce((found, x, index) => (x <= cutoff ? index : found), 0);
-	const reference = yes[dayOld];
-	const current = livePercent ?? yes[yes.length - 1];
-
-	return current - reference;
-};

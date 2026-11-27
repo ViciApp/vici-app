@@ -6,22 +6,22 @@
 	import LandingDeckCardFront from '#lib/components/landing/LandingDeckCardFront.svelte';
 	import LandingDeckHand from '#lib/components/landing/LandingDeckHand.svelte';
 	import LandingDeckStamps from '#lib/components/landing/LandingDeckStamps.svelte';
+	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { marketDisplay } from '#lib/stores/market-translations.store.ts';
 	import type { LandingDeckCard } from '#lib/types/landing.ts';
-	import { t } from '#lib/utils/i18n.utils.ts';
 	import type {
 		DeckCardFace,
 		DeckPointerRelease,
 		LandingDeckCardMotion
 	} from '#lib/utils/landing-deck-motion.utils.ts';
-	import {
-		deckMove24h,
-		type DeckArm,
-		type DeckCardFrame,
-		type DeckTrend,
-		type DeckViewport
+	import type {
+		DeckArm,
+		DeckCardFrame,
+		DeckTrend,
+		DeckViewport
 	} from '#lib/utils/landing-deck.utils.ts';
+	import { formatPriceMove24h, priceMove24h } from '#lib/utils/market-price-move.utils.ts';
 
 	interface Props {
 		card: LandingDeckCard;
@@ -79,25 +79,18 @@
 
 	const display = $derived($marketDisplay(card.market));
 
-	const move = $derived(deckMove24h({ history: card.history, yesPercent: card.yesPercent }));
+	// The deck reads the `1d` history, so its whole window is the last 24 hours.
+	const move = $derived(
+		nonNullish(card.history)
+			? priceMove24h({ ...card.history, windowMs: DAY_IN_MS, currentPercent: card.yesPercent })
+			: undefined
+	);
 	const moveTrend = $derived<DeckTrend>(
 		isNullish(move) || move === 0 ? 'flat' : move > 0 ? 'up' : 'down'
 	);
-	const moveLabel = $derived.by(() => {
-		if (isNullish(move)) {
-			return;
-		}
-
-		if (move === 0) {
-			return t({ locale: $localeStore, key: 'landing.deck.move_flat' });
-		}
-
-		return t({
-			locale: $localeStore,
-			key: move > 0 ? 'landing.deck.move_up' : 'landing.deck.move_down',
-			params: { points: Math.abs(move) }
-		});
-	});
+	const moveLabel = $derived(
+		nonNullish(move) ? formatPriceMove24h({ move, locale: $localeStore }) : undefined
+	);
 
 	const hit = $derived(face.exit === 'yes' || face.exit === 'no' ? face.exit : arm);
 

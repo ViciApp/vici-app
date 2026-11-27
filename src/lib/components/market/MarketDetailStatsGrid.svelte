@@ -4,8 +4,9 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { Market } from '#lib/types/market.ts';
 	import type { Position, ResolvedPosition } from '#lib/types/position.ts';
-	import { formatLongDate, formatToken } from '#lib/utils/format.utils.ts';
+	import { formatToken } from '#lib/utils/format.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatSettleDate } from '#lib/utils/market-settle.utils.ts';
 	import { marketBookLiquidity } from '#lib/utils/market.utils.ts';
 	import { inferResolvedOutcomeId } from '#lib/utils/resolved-position.utils.ts';
 
@@ -110,8 +111,8 @@
 			loading: false
 		},
 		{
-			labelKey: 'market.detail.stats.closes' as const,
-			value: formatLongDate({ date: expiryDate, locale: $localeStore }),
+			labelKey: 'market.settles.label' as const,
+			value: formatSettleDate({ expiryMs: Number(expiryDate), locale: $localeStore }),
 			suffix: '',
 			mute: false,
 			loading: false

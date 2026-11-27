@@ -9,7 +9,6 @@ import {
 	deckCardFrame,
 	deckCommitThreshold,
 	deckDragX,
-	deckMove24h,
 	deckPassThreshold,
 	deckSeamStops,
 	deckSidePercent,
@@ -340,30 +339,17 @@ describe('landing-deck.utils', () => {
 		});
 	});
 
-	describe('deckMove24h', () => {
-		it('is the price now against the first traded price in the window', () => {
-			assert.equal(deckMove24h({ history: [51, 53, 52], yesPercent: 54 }), 3);
-			assert.equal(deckMove24h({ history: [60], yesPercent: 54 }), -6);
-			assert.equal(deckMove24h({ history: [54, 60], yesPercent: 54 }), 0);
-		});
-
-		it('states nothing when nothing traded in the window', () => {
-			assert.equal(deckMove24h({ history: [], yesPercent: 54 }), undefined);
-			assert.equal(deckMove24h({ history: undefined, yesPercent: 54 }), undefined);
-		});
-	});
-
 	describe('toLandingDeckCard', () => {
 		it('builds the card from a priced open market', () => {
 			const card = toLandingDeckCard({
 				entry: ENTRY,
 				market: market({}),
-				history: [50, 52],
+				history: { yes: [50, 52], xs: [0, 0.5] },
 				now: NOW_MS
 			});
 
 			assert.equal(card?.yesPercent, 54);
-			assert.deepEqual(card?.history, [50, 52]);
+			assert.deepEqual(card?.history, { yes: [50, 52], xs: [0, 0.5] });
 			assert.ok(
 				Math.abs((card?.yesEarns ?? 0) - (VXP_DEFAULT_CALL_SIZE / 0.54 - VXP_DEFAULT_CALL_SIZE)) <
 					1e-9

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import { DAY_IN_MS, HOUR_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
+	import { DAY_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { Market } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatSettleDate, formatSettlesIn } from '#lib/utils/market-settle.utils.ts';
 
 	interface Props {
 		market: Market;
@@ -27,58 +28,15 @@
 		return () => clearInterval(id);
 	});
 
-	// Long-form settlement date: "July 19, 2026", locale-aware via
-	// `toLocaleDateString({ month: 'long', day: 'numeric', year:
-	// 'numeric' })`. Replaces the default short `MM/DD/YYYY` format
-	// so the meta row reads as editorial copy rather than a stamp.
-	const longSettleDate = $derived(
-		new Date(Number(market.expiryDate)).toLocaleDateString($localeStore, {
-			month: 'long',
-			day: 'numeric',
-			year: 'numeric'
-		})
+	// Recomputes on each minute tick: "Settles in 12 days" / "in 5 hours".
+	const settlesIn = $derived(
+		formatSettlesIn({ expiryMs: Number(market.expiryDate), nowMs: nowTick, locale: $localeStore })
 	);
-
-	// Computed *live* countdown: recomputes on each minute tick, in the
-	// short "Nd left" / "Nh left" / "Nm left" form the compact meta row
-	// has room for.
-	const liveCountdown = $derived.by(() => {
-		nowTick; // touch so the derived re-runs on tick
-		const ms = Number(market.expiryDate) - Date.now();
-
-		if (!Number.isFinite(ms) || ms <= 0) {
-			return t({ locale: $localeStore, key: 'card.back.countdown_closing' });
-		}
-
-		const days = Math.floor(ms / DAY_IN_MS);
-		const hours = Math.floor((ms % DAY_IN_MS) / HOUR_IN_MS);
-		const mins = Math.floor((ms % HOUR_IN_MS) / MINUTE_IN_MS);
-
-		if (days >= 1) {
-			return t({
-				locale: $localeStore,
-				key: 'card.back.countdown_days_left',
-				params: { count: days }
-			});
-		}
-
-		if (hours >= 1) {
-			return t({
-				locale: $localeStore,
-				key: 'card.back.countdown_hours_left',
-				params: { count: hours }
-			});
-		}
-
-		return t({
-			locale: $localeStore,
-			key: 'card.back.countdown_minutes_left',
-			params: { count: mins }
-		});
-	});
+	const settleDate = $derived(
+		formatSettleDate({ expiryMs: Number(market.expiryDate), locale: $localeStore })
+	);
 	const countdownUrgent = $derived.by(() => {
-		nowTick;
-		const ms = Number(market.expiryDate) - Date.now();
+		const ms = Number(market.expiryDate) - nowTick;
 
 		return ms > 0 && ms <= DAY_IN_MS;
 	});
@@ -96,20 +54,14 @@
 
 <h3 class="flow-back-title">{title}</h3>
 <div class="flow-back-meta num">
-	<span>
-		{t({
-			locale: $localeStore,
-			key: 'card.back.settles_date',
-			params: { date: longSettleDate }
-		})}
-	</span>
-	<span class="flow-meta-dot" aria-hidden="true">·</span>
 	<span class="flow-back-countdown" class:is-urgent={countdownUrgent}>
-		{liveCountdown}
+		{settlesIn}
 	</span>
 	{#if countdownUrgent}
 		<span class="flow-back-countdown-pulse" aria-hidden="true"></span>
 	{/if}
+	<span class="flow-meta-dot" aria-hidden="true">·</span>
+	<span>{settleDate}</span>
 	{#if hasOutcomeData}
 		<span class="flow-meta-dot" aria-hidden="true">·</span>
 		<span>

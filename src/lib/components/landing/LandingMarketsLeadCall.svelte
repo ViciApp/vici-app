@@ -59,7 +59,7 @@
 		>
 			{nonNullish(percents)
 				? t({ locale: $localeStore, key: 'landing.markets.yes_at', params: { pct: percents.yes } })
-				: t({ locale: $localeStore, key: 'landing.markets.side.yes' })}
+				: t({ locale: $localeStore, key: 'outcome.yes' })}
 		</button>
 		<button
 			class="is-no"
@@ -69,7 +69,7 @@
 		>
 			{nonNullish(percents)
 				? t({ locale: $localeStore, key: 'landing.markets.no_at', params: { pct: percents.no } })
-				: t({ locale: $localeStore, key: 'landing.markets.side.no' })}
+				: t({ locale: $localeStore, key: 'outcome.no' })}
 		</button>
 	</div>
 	{#if nonNullish(percents)}

@@ -21,7 +21,7 @@ import { fromStore } from 'svelte/store';
 export class LandingDeckFeed {
 	readonly #series: readonly LandingDeckSeries[];
 	readonly #markets = new SvelteMap<string, Market>();
-	readonly #histories = new SvelteMap<string, number[]>();
+	readonly #histories = new SvelteMap<string, NonNullable<LandingDeckCard['history']>>();
 	readonly #answered = new SvelteSet<string>();
 	// A scheduled series joins the deck within a minute of its start.
 	readonly #now = fromStore(minuteTick_ms);

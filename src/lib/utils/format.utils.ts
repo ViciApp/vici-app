@@ -374,9 +374,9 @@ export const formatDate = (date: bigint | number): string =>
 	new Date(Number(date)).toLocaleDateString();
 
 /**
- * Long date: e.g. `June 11, 2026`. Used on surfaces where the closes
- * date sits inline with prose and reads as a sentence (Market detail
- * CLOSES stat) rather than as a compact data row.
+ * Long date: e.g. `June 11, 2026`. Used on surfaces where a date sits
+ * inline with prose and reads as a sentence rather than as a compact data
+ * row. When a market settles goes through `market-settle.utils` instead.
  *
  * Locale-aware: pass the active `$localeStore` so the month + ordering
  * follow the user's language instead of hard-coding English.

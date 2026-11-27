@@ -230,6 +230,19 @@ submit time and rejects it if the market has closed, with a distinct
 "market closed" message on both the Flow swipe and the trade modal. This
 is a stopgap ahead of an engine-side expiry gate in icdc-core.
 
+### Market wording: Yes / No / Pass, 24h and Settles
+
+The app and the signed-out landing say the same thing in the same words,
+in every live language. The two sides and the swipe up are **Yes**, **No**
+and **Pass**, in sentence case (never "YES" or "SKIP"), on Flow, the gesture
+coach, the market detail and the trade sheet. A price move is the move over
+the last **24h** ("+4 in 24h"), never "today". When a market settles reads
+**Settles**, never "Closes" or "12d": "Settles in 12 days" (hours under a
+day, months past two months, "Settling now" once the expiry has passed
+and the outcome is not in yet) or "Settles on 31 Dec 2026", always with the
+year, in the reader's date format. Design rules: [`design.md` §
+4.1](./frontend/design.md#41-shared-wording).
+
 ### Market metadata: translated everywhere, with a global preference and a per-item toggle
 
 When a market has a creator/admin-authored translation for the reader's
@@ -897,11 +910,11 @@ provider and whether a team was persisted. Decision record:
 
 The first time an early user meets the prediction card on the Flow deck, a
 non-blocking gesture map overlays the live card: a centered cross showing
-YES (right) / NO (left) / SKIP (up) / tap (detail), with YES-NO weighted as
+Yes (right) / No (left) / Pass (up) / tap (detail), with Yes and No weighted as
 the primary actions. It does not hijack the card: the card underneath stays
 fully readable and swipeable, and only the "Got it" opt-out captures pointer
 events. The coach teaches by doing: it dismisses on the user's first real
-call (a committed YES or NO) with a brief confirmation, or immediately via
+call (a committed Yes or No) with a brief confirmation, or immediately via
 the "Got it" opt-out. It is shown at most once per device
 (`vici.coach-flow-seen`), identity-scoped like the other onboarding flags so
 a new account on the device re-sees it. This is layer 1 of the first-run

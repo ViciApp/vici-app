@@ -40,11 +40,11 @@
 		}
 
 		if (settlementPrice === '1.0') {
-			return t({ locale: $localeStore, key: 'market.resolution.settle_yes' });
+			return t({ locale: $localeStore, key: 'outcome.yes' });
 		}
 
 		if (settlementPrice === '0.0') {
-			return t({ locale: $localeStore, key: 'market.resolution.settle_no' });
+			return t({ locale: $localeStore, key: 'outcome.no' });
 		}
 
 		return '';
@@ -101,9 +101,9 @@
 	<div class="space-y-6">
 		{#if isUrgent}
 			<div class="flex items-center gap-2">
-				<Badge variant="danger"
-					>{t({ locale: $localeStore, key: 'market.resolution.urgent_badge' })}</Badge
-				>
+				<Badge variant="danger">
+					{t({ locale: $localeStore, key: 'market.resolution.urgent_badge' })}
+				</Badge>
 			</div>
 		{/if}
 
@@ -145,7 +145,7 @@
 						size="sm"
 						variant={settlementPrice === '1.0' ? 'primary' : 'outline'}
 					>
-						{t({ locale: $localeStore, key: 'market.resolution.settle_yes' })}
+						{t({ locale: $localeStore, key: 'outcome.yes' })}
 					</Button>
 					<Button
 						class="flex-1"
@@ -153,7 +153,7 @@
 						size="sm"
 						variant={settlementPrice === '0.0' ? 'primary' : 'outline'}
 					>
-						{t({ locale: $localeStore, key: 'market.resolution.settle_no' })}
+						{t({ locale: $localeStore, key: 'outcome.no' })}
 					</Button>
 				</div>
 			{/if}

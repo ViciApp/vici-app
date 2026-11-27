@@ -18,7 +18,7 @@
      `--deck-pass`, which the card writes every frame. Decorative: the call
      itself is announced by the deck's status line. -->
 <div class="stamp yes" class:hit={hit === 'yes'} aria-hidden="true">
-	{t({ locale: $localeStore, key: 'landing.deck.yes' })}
+	{t({ locale: $localeStore, key: 'outcome.yes' })}
 	<small>
 		{t({
 			locale: $localeStore,
@@ -28,7 +28,7 @@
 	</small>
 </div>
 <div class="stamp no" class:hit={hit === 'no'} aria-hidden="true">
-	{t({ locale: $localeStore, key: 'landing.deck.no' })}
+	{t({ locale: $localeStore, key: 'outcome.no' })}
 	<small>
 		{t({
 			locale: $localeStore,
@@ -38,7 +38,7 @@
 	</small>
 </div>
 <div class="stamp pass" aria-hidden="true">
-	{t({ locale: $localeStore, key: 'landing.deck.pass' })}
+	{t({ locale: $localeStore, key: 'flow.action.pass' })}
 </div>
 
 <style lang="postcss">

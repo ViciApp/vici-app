@@ -5,9 +5,10 @@
 	import type { Market } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { sidePercents, sparklinePolyline } from '#lib/utils/landing-markets.utils.ts';
+	import { formatPriceMove24h } from '#lib/utils/market-price-move.utils.ts';
 
 	/**
-	 * "Moving now": the markets with the biggest real move today, each with
+	 * "Moving now": the markets with the biggest real move in 24 hours, each with
 	 * its price, the move and last week's line. A tile makes its market the
 	 * lead. The host passes only markets that moved.
 	 */
@@ -22,15 +23,6 @@
 
 	const SPARK_WIDTH = 72;
 	const SPARK_HEIGHT = 22;
-
-	const moveText = (move: number): string =>
-		move > 0
-			? t({ locale: $localeStore, key: 'landing.markets.move_short.up', params: { points: move } })
-			: t({
-					locale: $localeStore,
-					key: 'landing.markets.move_short.down',
-					params: { points: -move }
-				});
 </script>
 
 <h2 id={headingId} class="lmv-heading">
@@ -52,7 +44,7 @@
 			<span class="lmv-row">
 				<span class="lmv-px">
 					<b>{nonNullish(percents) ? `${percents.yes}%` : ''}</b>
-					<i class={move > 0 ? 'up' : 'dn'}>{moveText(move)}</i>
+					<i class={move > 0 ? 'up' : 'dn'}>{formatPriceMove24h({ move, locale: $localeStore })}</i>
 				</span>
 				{#if nonNullish(history)}
 					<svg class="lmv-spark" aria-hidden="true" viewBox="0 0 {SPARK_WIDTH} {SPARK_HEIGHT}">

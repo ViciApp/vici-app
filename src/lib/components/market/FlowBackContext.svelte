@@ -63,7 +63,7 @@
 		</span>
 		<span class="flow-back-prior-line num">
 			<span class={priorCall.side === 'YES' ? 'text-yes' : 'text-no'}>
-				{priorCall.side}
+				{t({ locale: $localeStore, key: priorCall.side === 'YES' ? 'outcome.yes' : 'outcome.no' })}
 			</span>
 			{#if nonNullish(priorDrift)}
 				<span class="flow-back-prior-dim">

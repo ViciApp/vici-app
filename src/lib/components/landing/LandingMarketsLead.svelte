@@ -8,15 +8,13 @@
 	import type { LandingMarketsView } from '#lib/types/landing-markets.ts';
 	import type { Market } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import {
-		dailyMoveCopy,
-		formatSettleCountdown,
-		sidePercents
-	} from '#lib/utils/landing-markets.utils.ts';
+	import { sidePercents } from '#lib/utils/landing-markets.utils.ts';
+	import { formatPriceMove24h } from '#lib/utils/market-price-move.utils.ts';
+	import { formatSettlesIn } from '#lib/utils/market-settle.utils.ts';
 
 	/**
 	 * The "Trending" market at the top of Markets: its art, the question, the
-	 * price in large type with today's move, a small chart of the week on the
+	 * price in large type with its 24h move, a small chart of the week on the
 	 * front page, and the lead's call. In the table it is compact and opens
 	 * the side panel (`onselect`).
 	 */
@@ -46,10 +44,9 @@
 	const category = $derived(view.categoryOf(market));
 	const percents = $derived(sidePercents(market.yesProbability));
 	const move = $derived(view.moveOf(market));
-	const moveCopy = $derived(nonNullish(move) ? dailyMoveCopy(move) : undefined);
 	const history = $derived(view.historyOf(market));
-	const settlesWhen = $derived(
-		formatSettleCountdown({ expiryMs: Number(market.expiryDate), nowMs, locale: $localeStore })
+	const settlesIn = $derived(
+		formatSettlesIn({ expiryMs: Number(market.expiryDate), nowMs, locale: $localeStore })
 	);
 </script>
 
@@ -76,13 +73,9 @@
 				? t({
 						locale: $localeStore,
 						key: 'landing.markets.lead.meta',
-						params: { category, when: settlesWhen }
+						params: { category, settles: settlesIn }
 					})
-				: t({
-						locale: $localeStore,
-						key: 'landing.markets.settles',
-						params: { when: settlesWhen }
-					})}
+				: settlesIn}
 		</span>
 		<h3>{title}</h3>
 		<div class="lml-big">
@@ -91,12 +84,12 @@
 			{:else}
 				<b><MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} /></b>
 			{/if}
-			<span>{t({ locale: $localeStore, key: 'landing.markets.side.yes' })}</span>
+			<span>{t({ locale: $localeStore, key: 'outcome.yes' })}</span>
 		</div>
 		<p class="lml-say">
 			<b>{t({ locale: $localeStore, key: 'landing.markets.lead.chance' })}</b>
-			{#if nonNullish(moveCopy)}
-				{t({ locale: $localeStore, key: moveCopy.key, params: { points: moveCopy.points } })}
+			{#if nonNullish(move)}
+				{formatPriceMove24h({ move, locale: $localeStore })}
 			{/if}
 		</p>
 		{#if !compact && nonNullish(history)}

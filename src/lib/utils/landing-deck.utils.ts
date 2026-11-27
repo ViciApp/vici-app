@@ -282,26 +282,6 @@ export const deckSparkline = (history: readonly number[]): DeckSparkline | undef
 };
 
 /**
- * The YES price's move over the last 24 hours in whole points: now against
- * the first traded price in that rolling window (the `1d` history period,
- * not the calendar day). `undefined` when nothing traded in it, so the card
- * states no move instead of an invented "flat".
- */
-export const deckMove24h = ({
-	history,
-	yesPercent
-}: {
-	history: readonly number[] | undefined;
-	yesPercent: number;
-}): number | undefined => {
-	if (isNullish(history) || history.length === 0) {
-		return;
-	}
-
-	return yesPercent - Math.round(history[0]);
-};
-
-/**
  * The card for a loaded series, or `undefined` when it cannot be shown
  * honestly: no market, not a Yes/No market, not open, not released yet
  * (the same start gate as every other feed surface), or no crowd price yet.
@@ -314,7 +294,7 @@ export const toLandingDeckCard = ({
 }: {
 	entry: LandingDeckSeries;
 	market: Market | undefined;
-	history?: number[];
+	history?: LandingDeckCard['history'];
 	/** Client clock (ms) the release start is read against. */
 	now: number;
 }): LandingDeckCard | undefined => {

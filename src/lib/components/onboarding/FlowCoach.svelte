@@ -133,8 +133,10 @@
 						stroke-linejoin="round"
 						stroke-width="2.6"
 						viewBox="0 0 24 24"
-						width="17"><path d="m5 12 5 5L20 7"></path></svg
+						width="17"
 					>
+						<path d="m5 12 5 5L20 7"></path>
+					</svg>
 				</span>
 				<span class="fc-confirm-text">{tr('flow.coach.confirm')}</span>
 			</div>
@@ -145,14 +147,14 @@
 				<div class="fc-cross">
 					<div class="fc-arm fc-arm-skip fc-secondary">
 						<span class="fc-glyph" aria-hidden="true">↑</span>
-						<span class="fc-label">{tr('flow.coach.skip')}</span>
-						<span class="fc-sub">{tr('flow.coach.skip_sub')}</span>
+						<span class="fc-label">{tr('flow.action.pass')}</span>
+						<span class="fc-sub">{tr('flow.coach.pass_sub')}</span>
 					</div>
 
 					<div class="fc-row">
 						<div class="fc-arm fc-arm-no fc-primary">
 							<span class="fc-glyph" aria-hidden="true">←</span>
-							<span class="fc-label">{tr('flow.coach.no')}</span>
+							<span class="fc-label">{tr('outcome.no')}</span>
 							<span class="fc-sub">{tr('flow.coach.no_sub')}</span>
 						</div>
 
@@ -179,7 +181,7 @@
 
 						<div class="fc-arm fc-arm-yes fc-primary">
 							<span class="fc-glyph" aria-hidden="true">→</span>
-							<span class="fc-label">{tr('flow.coach.yes')}</span>
+							<span class="fc-label">{tr('outcome.yes')}</span>
 							<span class="fc-sub">{tr('flow.coach.yes_sub')}</span>
 						</div>
 					</div>
@@ -287,8 +289,7 @@
 		font-family: var(--font-mono);
 		font-size: 15px;
 		font-weight: 700;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
+		letter-spacing: 0.02em;
 	}
 
 	.fc-sub {
@@ -297,8 +298,8 @@
 		color: var(--text-muted);
 	}
 
-	/* YES / NO are the committing actions: full token color carries the
-	   visual weight; SKIP / TAP stay neutral and de-emphasized. */
+	/* Yes / No are the committing actions: full token color carries the
+	   visual weight; Pass / Tap stay neutral and de-emphasized. */
 	.fc-arm-yes .fc-glyph,
 	.fc-arm-yes .fc-label {
 		color: var(--yes);

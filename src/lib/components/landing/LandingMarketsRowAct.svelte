@@ -85,7 +85,7 @@
 				onclick={() => view.onside({ market, side: 'yes' })}
 				type="button"
 			>
-				{t({ locale: $localeStore, key: 'landing.markets.side.yes' })}
+				{t({ locale: $localeStore, key: 'outcome.yes' })}
 			</button>
 			<button
 				class="is-no"
@@ -94,7 +94,7 @@
 				onclick={() => view.onside({ market, side: 'no' })}
 				type="button"
 			>
-				{t({ locale: $localeStore, key: 'landing.markets.side.no' })}
+				{t({ locale: $localeStore, key: 'outcome.no' })}
 			</button>
 		{/if}
 	</span>

@@ -112,8 +112,6 @@
 	.prob-hero-eyebrow {
 		font-size: var(--t-11);
 		font-weight: 700;
-		letter-spacing: var(--tracking-allcaps);
-		text-transform: uppercase;
 	}
 
 	.prob-hero-yes .prob-hero-eyebrow {

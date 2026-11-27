@@ -50,7 +50,7 @@
 		loading: boolean;
 		/** Number of live (unresolved) calls: Day 1 stack sub-stat. */
 		pendingCount: number;
-		/** When the first call settles (year-stripped), for the calibrating copy. */
+		/** When the first call settles ("Settles in 3 days"), for the calibrating copy. */
 		firstCallTimer: string;
 		/** Starter markets (Day 0): real open markets to make a first call on. */
 		starterRows: ZeroMarketRow[];
@@ -138,8 +138,10 @@
 			</div>
 			<div class="db-v num" class:db-ph={loading}>
 				{loading ? t({ locale: $localeStore, key: 'dash.rank.placeholder' }) : holdingsDisplay}<span
-					class="db-vu">VXP</span
+					class="db-vu"
 				>
+					VXP
+				</span>
 			</div>
 		</div>
 		<div class="db-wright">
@@ -169,9 +171,9 @@
 	{#if day1}
 		<div class="db-calls">
 			<div class="db-calls-head">
-				<span class="db-sec-label"
-					>{t({ locale: $localeStore, key: 'dash.build.zero_in_flight' })}</span
-				>
+				<span class="db-sec-label">
+					{t({ locale: $localeStore, key: 'dash.build.zero_in_flight' })}
+				</span>
 			</div>
 			{#if openCalls.length === 0}
 				<div class="db-empty">
@@ -203,9 +205,9 @@
 		</div>
 		<div class="db-calls">
 			<div class="db-calls-head">
-				<span class="db-sec-label"
-					>{t({ locale: $localeStore, key: 'dash.build.zero_add_another' })}</span
-				>
+				<span class="db-sec-label">
+					{t({ locale: $localeStore, key: 'dash.build.zero_add_another' })}
+				</span>
 			</div>
 			{#each moreRows as row (row.marketId)}
 				<DashCallRow
@@ -223,9 +225,9 @@
 	{:else}
 		<div class="db-calls">
 			<div class="db-calls-head">
-				<span class="db-sec-label"
-					>{t({ locale: $localeStore, key: 'dash.build.zero_start_with' })}</span
-				>
+				<span class="db-sec-label">
+					{t({ locale: $localeStore, key: 'dash.build.zero_start_with' })}
+				</span>
 			</div>
 			{#each starterRows as row (row.marketId)}
 				<DashCallRow

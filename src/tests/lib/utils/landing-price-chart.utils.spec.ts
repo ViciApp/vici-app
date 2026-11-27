@@ -1,7 +1,5 @@
-import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import {
 	buildPriceChartSeries,
-	dailyPriceMove,
 	isEvenOddsTick,
 	nearestPointIndex,
 	priceChartChange,
@@ -117,38 +115,6 @@ describe('landing-price-chart.utils', () => {
 		it('measures the change across the window', () => {
 			assert.equal(priceChartChange([40, 47, 44]), 4);
 			assert.equal(priceChartChange([40]), 0);
-		});
-	});
-
-	describe('dailyPriceMove', () => {
-		const windowEndMs = 8 * DAY_IN_MS;
-		const windowStartMs = DAY_IN_MS;
-
-		it('compares the live price with the last trade at least a day old', () => {
-			assert.equal(
-				dailyPriceMove({
-					yes: [30, 40, 55],
-					xs: [0.1, 0.5, 0.95],
-					windowStartMs,
-					windowEndMs,
-					livePercent: 52
-				}),
-				12
-			);
-		});
-
-		it('falls back to the first trade when every trade is younger than a day', () => {
-			assert.equal(
-				dailyPriceMove({ yes: [48, 50], xs: [0.9, 0.99], windowStartMs, windowEndMs }),
-				2
-			);
-		});
-
-		it('says nothing when the window holds no trade', () => {
-			assert.equal(
-				dailyPriceMove({ yes: [], xs: [], windowStartMs, windowEndMs, livePercent: 50 }),
-				undefined
-			);
 		});
 	});
 });

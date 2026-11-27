@@ -38,19 +38,19 @@
 	<CallSizeSlider onValueChange={onSelectCallSize} source="flow" value={currentCallSize} />
 	<div class="flow-call-size-payout">
 		<div class="flow-call-size-payout-row">
-			<span class="flow-call-size-payout-lbl allcaps">
+			<span class="flow-call-size-payout-lbl">
 				{t({ locale: $localeStore, key: 'card.if_yes_at', params: { pct: yesPct } })}
 			</span>
 			<span class="num text-yes">+{formatWholeVxpMagnitude(yesNetWin)} VXP</span>
 		</div>
 		<div class="flow-call-size-payout-row">
-			<span class="flow-call-size-payout-lbl allcaps">
+			<span class="flow-call-size-payout-lbl">
 				{t({ locale: $localeStore, key: 'card.if_no_at', params: { pct: noPct } })}
 			</span>
 			<span class="num text-yes">+{formatWholeVxpMagnitude(noNetWin)} VXP</span>
 		</div>
 		<div class="flow-call-size-payout-row">
-			<span class="flow-call-size-payout-lbl allcaps">
+			<span class="flow-call-size-payout-lbl">
 				{t({ locale: $localeStore, key: 'card.if_wrong' })}
 			</span>
 			<span class="num text-no">−{currentCallSize} VXP</span>
@@ -125,7 +125,7 @@
 		color: var(--text-muted);
 		font-family: var(--font-mono);
 		font-size: var(--t-10);
-		letter-spacing: 0.1em;
+		letter-spacing: 0.02em;
 	}
 
 	/* Proactive size warning: reuses the cap's red tint so a problematic

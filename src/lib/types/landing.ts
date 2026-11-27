@@ -1,5 +1,6 @@
 import type { MacroId, MicroId } from '#lib/constants/market-taxonomy.constants.ts';
 import type { Market } from '#lib/types/market.ts';
+import type { MarketPriceSeries } from '#lib/utils/market-price-history.utils.ts';
 
 /** The side a landing visitor calls: lower-case, as the landing callbacks carry it. */
 export type LandingDeckSide = 'yes' | 'no';
@@ -57,10 +58,10 @@ export interface LandingDeckCard {
 	yesEarns: number;
 	noEarns: number;
 	/**
-	 * YES prices over the last 24 hours (whole percent, oldest first); absent
-	 * until the history loads.
+	 * YES prices over the last 24 hours (whole percent, oldest first, placed
+	 * on that window by `xs`); absent until the history loads.
 	 */
-	history?: number[];
+	history?: Pick<MarketPriceSeries, 'yes' | 'xs'>;
 }
 
 /** A call made on the landing deck, handed to the page that mounts it. */
