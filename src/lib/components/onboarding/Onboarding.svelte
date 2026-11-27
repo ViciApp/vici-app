@@ -8,7 +8,7 @@
 		MAX_NICKNAME_LENGTH,
 		MIN_NICKNAME_LENGTH,
 		NICKNAME_PATTERN,
-		RESERVED_HANDLES,
+		isReservedHandle,
 		sanitizeNickname
 	} from '#lib/constants/profile.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
@@ -159,7 +159,7 @@
 			selectedName.length >= MIN_NICKNAME_LENGTH &&
 			selectedName.length <= MAX_NICKNAME_LENGTH &&
 			NICKNAME_PATTERN.test(selectedName) &&
-			!RESERVED_HANDLES.has(selectedName.toLowerCase())
+			!isReservedHandle(selectedName)
 	);
 
 	// Debounced live probe. A monotonic token cancels the in-flight check on
@@ -263,7 +263,7 @@
 			return { ok: false, tone: 'error', reasonKey: 'onboarding.avail.invalid' };
 		}
 
-		if (RESERVED_HANDLES.has(name.toLowerCase())) {
+		if (isReservedHandle(name)) {
 			return { ok: false, tone: 'error', reasonKey: 'onboarding.avail.reserved' };
 		}
 

@@ -79,10 +79,10 @@ export const HANDLE_COOLDOWN_DAYS = 30;
 
 /**
  * Handles only VICI may use, so nobody can pass for the company, its
- * products or its staff: never assignable to a user even if the backend
- * availability check would otherwise pass. Exact match on the folded handle;
- * no prefix rule, because "vici..." also starts ordinary words. Names already
- * held by real accounts are left out: reserving them would lock their owners.
+ * products or its staff. Entries are folded keys; test a typed handle with
+ * {@link isReservedHandle}. Exact match, no prefix rule, because "vici..."
+ * also starts ordinary words. Names already held by real accounts are left
+ * out: reserving them would lock their owners.
  */
 export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
 	// Brand and company
@@ -181,6 +181,16 @@ export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
 	'updates',
 	'www'
 ]);
+
+const NOT_HANDLE_KEY_CHARS = new RegExp('[^a-z0-9]', 'g');
+
+/**
+ * Whether a typed handle is one of {@link RESERVED_HANDLES} once case,
+ * accents and separators are folded away, so `VÍCI` and `vi.ci` count as
+ * `vici`.
+ */
+export const isReservedHandle = (raw: string): boolean =>
+	RESERVED_HANDLES.has(nicknameUniqueKey(raw).replace(NOT_HANDLE_KEY_CHARS, ''));
 
 /**
  * {@link sanitizeNickname} for the HandleEditor: same idea (NFC, strip
