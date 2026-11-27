@@ -38,7 +38,7 @@ export const levelShareCostUsd = ({
 	return ceilDiv({ value: outcomeValue * USD_ONE, divisor: scale });
 };
 
-export interface MarketOrderFill {
+interface MarketOrderFill {
 	filledQty: bigint;
 	/** What the fill cost the caller, in clearing USD base units. */
 	spentUsd: bigint;

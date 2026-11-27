@@ -13,7 +13,7 @@ before adding any `isWeb2Backend()` branch.
 Two files under `src/lib/web2/`:
 
 - [`backend-mode.ts`](../../../src/lib/web2/backend-mode.ts):
-  `isWeb2Backend()` / `backendMode()` read `VITE_BACKEND`, and
+  `isWeb2Backend()` reads `VITE_BACKEND`, and
   `web2ApiBaseUrl()` reads `VITE_WEB2_API_URL`. Defaults: `web3` mode,
   empty base URL (same-origin relative paths).
 - [`client.ts`](../../../src/lib/web2/client.ts): thin typed fetch client.

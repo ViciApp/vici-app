@@ -117,7 +117,7 @@ const toRow = ({
  * `displayRank`) and those below it (`provisional`, ordered by progress toward
  * the gate, `displayRank` left `undefined`).
  */
-export interface PartitionedStandings {
+interface PartitionedStandings {
 	ranked: StandingsRow[];
 	provisional: StandingsRow[];
 }
@@ -204,7 +204,7 @@ export const globalStandingsRows = (
  * loaded, or when the viewer isn't in the fetched slice at all; the same
  * top-N limitation {@link globalStandingsRows} carries.
  */
-export interface OwnStanding {
+interface OwnStanding {
 	displayRank: number | undefined;
 	provisional: boolean;
 }
