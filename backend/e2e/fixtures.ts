@@ -88,7 +88,7 @@ export const E2E_SETTLED_SERIES: E2eSeries = {
  * The landing deck's curated markets (`LANDING_DECK_SERIES` in the app), live
  * here so a spec that opens the landing reads real series instead of three
  * engine 404s. Hex ids, unlike the series above, so a `/m/{slug~id8}` share
- * link resolves to them. A unit spec (`e2e-fixtures.spec.ts`) fails when the
+ * link resolves to them. `e2e-web2/landing-deck-fixtures.spec.ts` fails when the
  * deck changes and these do not.
  */
 export const E2E_LANDING_DECK_SERIES: E2eSeries[] = [

@@ -8,7 +8,7 @@
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import MaintenanceOverlay from '#lib/components/ui/MaintenanceOverlay.svelte';
 	import Notifications from '#lib/components/ui/Notifications.svelte';
-	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { userSignedOutResolved } from '#lib/derived/user.derived.ts';
 	import { initAnalytics } from '#lib/services/analytics.services.ts';
 	import {
 		initMaintenanceWatch,
@@ -123,9 +123,11 @@
 	// goes into the same pending-onboarding slot `/i/{code}` uses, which the
 	// sign-up drain redeems (first referrer wins). Incoming visitors only: a
 	// signed-in session opening a share link was never referred, and a stash
-	// would make the drain mis-fire a friendship claim for them.
+	// would make the drain mis-fire a friendship claim for them. So it waits
+	// for the auth handshake to settle as signed out: while a returning
+	// session is still resolving, nobody is signed in yet either.
 	$effect(() => {
-		if (!browser || $userSignedIn) {
+		if (!browser || !$userSignedOutResolved) {
 			return;
 		}
 
