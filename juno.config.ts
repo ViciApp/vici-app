@@ -1,4 +1,9 @@
-import { defineConfig, type DatastoreCollection, type StorageCollection } from '@junobuild/config';
+import {
+	defineConfig,
+	type AuthenticationConfig,
+	type DatastoreCollection,
+	type StorageCollection
+} from '@junobuild/config';
 
 /**
  * Datastore collection names for `satellite.collections` below.
@@ -98,24 +103,53 @@ const EMULATOR_SATELLITE_ID = 'jx5yt-yyaaa-aaaal-abzbq-cai';
  * change through `set_rule` alone, without a functions upgrade, and stay
  * reversible: applying again without the flag restores today's rules.
  *
- * The same variable builds the frontend's moved screen (`isLegacyShutDown`
- * in `new-app-redirect.services.ts`), so one switch covers both. A hosting
+ * The same apply also locks sign-in ({@link legacySignInLock}), and the same
+ * variable builds the frontend's moved screen (`isLegacyShutDown` in
+ * `new-app-redirect.services.ts`), so one switch covers all three. A hosting
  * redirect is not used: the satellite serves an existing asset before any
  * redirect, puts the configured location in `Location` verbatim (no path),
  * and certifies a redirect only at its literal source path, so a `**`
  * redirect would not cover the app's routes.
+ *
+ * Read when the config is evaluated, not when the module loads, so a test can
+ * evaluate both states.
  */
-const isLegacyShutdown = process.env.VITE_LEGACY_SHUTDOWN === 'true';
+const isLegacyShutdown = (): boolean => process.env.VITE_LEGACY_SHUTDOWN === 'true';
 
 const legacyWriteFreeze = <T extends DatastoreCollection | StorageCollection>(rules: T[]): T[] =>
-	isLegacyShutdown ? rules.map((rule) => ({ ...rule, write: 'controllers' })) : rules;
+	isLegacyShutdown() ? rules.map((rule) => ({ ...rule, write: 'controllers' })) : rules;
+
+const SATELLITE_IDS = {
+	development: isEmulator ? EMULATOR_SATELLITE_ID : 'auamu-4x777-77775-aaaaa-cai',
+	production: '7scay-7yaaa-aaaal-asxqa-cai'
+};
+
+/**
+ * Nobody signs in on the legacy app after the shutdown, existing accounts
+ * included, and the satellite enforces it, so a tab still running the old
+ * bundle or a direct call cannot open a session either:
+ *
+ * - `allowedCallers` makes the satellite refuse every Datastore and Storage
+ *   call from a caller not listed, reads included. Juno reads an empty list as
+ *   "everyone", so the list holds only the satellite ids, principals no user
+ *   identity can have. Juno-js sign-in reads or creates the caller's `#user`
+ *   doc, so it fails for everyone; controllers and admin access keys are exempt
+ *   (the ETL and the Console keep working), and hosting is served by
+ *   `http_request`, which this rule does not gate, so the moved screen loads.
+ * - Google is left out, so the satellite stops minting OpenID delegations,
+ *   whose `allowedTargets: null` would otherwise let a new session call other
+ *   canisters. Internet Identity delegations come from II, not from here: the
+ *   allowlist is what refuses them.
+ *
+ * Applying again without the flag restores Google and drops the allowlist.
+ */
+const legacySignInLock = (): AuthenticationConfig => ({
+	rules: { allowedCallers: Object.values(SATELLITE_IDS) }
+});
 
 export default defineConfig(({ mode }) => ({
 	satellite: {
-		ids: {
-			development: isEmulator ? EMULATOR_SATELLITE_ID : 'auamu-4x777-77775-aaaaa-cai',
-			production: '7scay-7yaaa-aaaal-asxqa-cai'
-		},
+		ids: SATELLITE_IDS,
 		hosting: {
 			source: 'build',
 			// `seo:assets` rewrites the built shell into per-market crawler pages
@@ -124,15 +158,17 @@ export default defineConfig(({ mode }) => ({
 			// `build/`, so skipping it would wipe the deployed SEO surface.
 			predeploy: ['npm run build', 'npm run seo:assets']
 		},
-		authentication: {
-			google: {
-				clientId:
-					mode === 'production'
-						? '215111139647-7hat1jefroe7tkgu5kds4s8sv4dgf3fu.apps.googleusercontent.com'
-						: '794351932143-em7c7j4rko2ok5fhk4crhv6f44ifmpqv.apps.googleusercontent.com',
-				delegation
-			}
-		},
+		authentication: isLegacyShutdown()
+			? legacySignInLock()
+			: {
+					google: {
+						clientId:
+							mode === 'production'
+								? '215111139647-7hat1jefroe7tkgu5kds4s8sv4dgf3fu.apps.googleusercontent.com'
+								: '794351932143-em7c7j4rko2ok5fhk4crhv6f44ifmpqv.apps.googleusercontent.com',
+						delegation
+					}
+				},
 		collections: {
 			// `write: 'public'` lets any caller create, update or delete any doc:
 			// Juno does no owner check. Each such collection has a set and a
