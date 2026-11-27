@@ -25,8 +25,15 @@ describe('sanitizeHandleInput', () => {
 		assert.equal(sanitizeHandleInput(' an na '), 'anna');
 	});
 
-	it('drops accents and other scripts rather than folding them', () => {
-		assert.equal(sanitizeHandleInput('José'), 'jos');
+	it('folds accented Latin letters to their base letter', () => {
+		assert.equal(sanitizeHandleInput('José'), 'jose');
+		assert.equal(sanitizeHandleInput('Müller'), 'muller');
+		assert.equal(sanitizeHandleInput('ñ'), 'n');
+		assert.equal(sanitizeHandleInput('Peña_Çelik'), 'penacelik');
+		assert.equal(sanitizeHandleInput('JOSÉ'), 'jose');
+	});
+
+	it('still strips other scripts and symbols', () => {
 		assert.equal(sanitizeHandleInput('東京tokyo'), 'tokyo');
 		assert.equal(sanitizeHandleInput('🙂'), '');
 	});

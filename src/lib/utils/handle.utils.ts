@@ -1,4 +1,5 @@
 import {
+	COMBINING_DIACRITICAL_MARKS,
 	HANDLE_DISALLOWED_CHARS,
 	HANDLE_PATTERN,
 	MAX_HANDLE_LENGTH,
@@ -8,13 +9,20 @@ import {
 import type { NicknameFormatIssue } from '#lib/utils/nickname.utils.ts';
 
 /**
- * The typed handle as the field keeps it: lowercased, every character
- * {@link HANDLE_PATTERN} refuses stripped, capped at
+ * The typed handle as the field keeps it: accented Latin letters folded to
+ * their base letter (NFD, combining marks removed: "José" reads "jose",
+ * "Müller" "muller"), lowercased, every character {@link HANDLE_PATTERN}
+ * still refuses stripped (other scripts, separators, symbols), capped at
  * {@link MAX_HANDLE_LENGTH}. A pasted "@Antonio.Ventilii" reads
  * "antonioventilii".
  */
 export const sanitizeHandleInput = (raw: string): string =>
-	raw.toLowerCase().replace(HANDLE_DISALLOWED_CHARS, '').slice(0, MAX_HANDLE_LENGTH);
+	raw
+		.normalize('NFD')
+		.replace(COMBINING_DIACRITICAL_MARKS, '')
+		.toLowerCase()
+		.replace(HANDLE_DISALLOWED_CHARS, '')
+		.slice(0, MAX_HANDLE_LENGTH);
 
 /**
  * The first rule `handle` breaks under {@link HANDLE_PATTERN}, or `undefined`
