@@ -19,7 +19,6 @@
 		type HandleFormatIssue
 	} from '#lib/utils/handle.utils.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
-	import { nicknameFormatIssue, type NicknameFormatIssue } from '#lib/utils/nickname.utils.ts';
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	/**
