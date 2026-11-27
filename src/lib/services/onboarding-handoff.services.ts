@@ -70,7 +70,7 @@ const MAX_DRAIN_ATTEMPTS = 3;
 
 /** Bounded vocabulary of sign-in providers, for the completion analytics. */
 const ONBOARDING_PROVIDERS = ['apple', 'google', 'email', 'ii', 'passkey', 'dev'] as const;
-export type OnboardingProvider = (typeof ONBOARDING_PROVIDERS)[number];
+type OnboardingProvider = (typeof ONBOARDING_PROVIDERS)[number];
 
 const isOnboardingProvider = (value: unknown): value is OnboardingProvider =>
 	typeof value === 'string' && (ONBOARDING_PROVIDERS as readonly string[]).includes(value);
@@ -98,7 +98,7 @@ const isTerminalReferralReason = (reason: string): boolean =>
  * notification toast; the best-effort referral / league side-flows surface their own toasts
  * from inside the service.
  */
-export type DrainOutcome =
+type DrainOutcome =
 	| { kind: 'noop' }
 	| { kind: 'account_exists'; nickname: string }
 	| { kind: 'applied' }

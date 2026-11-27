@@ -68,7 +68,7 @@ import { get } from 'svelte/store';
  * on-chain and web2 read paths and the web2 app-shell hydration so a
  * never-written account renders identically on both backends.
  */
-export const emptyProfile = (owner: PrincipalText): UserProfile => ({
+const emptyProfile = (owner: PrincipalText): UserProfile => ({
 	owner,
 	nickname: shortenWithMiddleEllipsis({ text: owner, splitLength: 5 }),
 	avatar: '',
@@ -667,7 +667,7 @@ export const checkNicknameAvailability = async ({
  * never call it for a counterpart. Returns the empty string when no doc
  * (or no address) is stored.
  */
-export const getMyEmail = async (principal: PrincipalText): Promise<string> => {
+const getMyEmail = async (principal: PrincipalText): Promise<string> => {
 	// web2 keys the read on the session, not the passed principal, and the
 	// address lives on the caller's own profile row rather than a private doc
 	// (the row's email never rides a public profile object client-side).
@@ -797,7 +797,7 @@ const hydrateMyEmail = async ({
  * doc (possibly just backfilled from the IdP), hydrated here so the
  * user store never has to read it from the public profile.
  */
-export interface EnsureProfileResult {
+interface EnsureProfileResult {
 	profile: UserProfile;
 	existed: boolean;
 	email: string;
@@ -808,7 +808,7 @@ export interface EnsureProfileResult {
  * sends new accounts to the new app (`areNewSignupsMoved`): nothing was
  * written, and the caller is expected to sign the session back out.
  */
-export interface EnsureProfileMovedResult {
+interface EnsureProfileMovedResult {
 	newAccountMoved: true;
 }
 

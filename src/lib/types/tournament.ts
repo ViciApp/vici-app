@@ -70,7 +70,7 @@ export const TOURNAMENT_BRACKET_SIZE = 16;
  * Round duration: one 7-day window ("DAY 3 OF 7") for every round, so
  * the four rounds (28 days) fit inside any calendar month.
  */
-export const TOURNAMENT_ROUND_DURATION_DAYS = 7;
+const TOURNAMENT_ROUND_DURATION_DAYS = 7;
 export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * DAY_IN_MS;
 
 /**
