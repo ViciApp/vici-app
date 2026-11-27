@@ -1,8 +1,8 @@
+import { MAX_HANDLE_LENGTH, MIN_HANDLE_LENGTH } from '#lib/constants/handle.constants.ts';
 import {
 	LANDING_CLAIM_CODE_LENGTH,
 	LANDING_CLAIM_HANDLE_STORAGE_KEY
 } from '#lib/constants/landing-claim.constants.ts';
-import { MAX_HANDLE_LENGTH, MIN_HANDLE_LENGTH } from '#lib/constants/profile.constants.ts';
 import type {
 	LandingClaimCheck,
 	LandingClaimNotice,

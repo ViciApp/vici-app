@@ -11,9 +11,12 @@ import {
 	checkNicknameAvailability,
 	HANDLE_LAST_CHANGE_TOLERANCE_MS,
 	handleCooldownDaysLeft,
-	MAX_NICKNAME_LENGTH,
-	MIN_NICKNAME_LENGTH,
-	nicknameUniqueKey
+	handleUniqueKey,
+	lockHandleKey,
+	MAX_HANDLE_LENGTH,
+	MIN_HANDLE_LENGTH,
+	nicknameUniqueKey,
+	type NicknameRefusal
 } from './nickname';
 import {
 	getProfileRow,
@@ -227,18 +230,30 @@ export const parseProfileInput = (body: Record<string, unknown>): ProfileInput =
 	};
 };
 
+const NICKNAME_REFUSAL_MESSAGES: Record<Exclude<NicknameRefusal, 'taken'>, string> = {
+	required: 'Nickname is required.',
+	too_short: `The handle must be at least ${MIN_HANDLE_LENGTH} characters.`,
+	too_long: `The handle must be at most ${MAX_HANDLE_LENGTH} characters.`,
+	invalid: 'The handle can hold lowercase letters and numbers only.',
+	reserved: 'That handle is reserved.'
+};
+
 /**
- * Nickname + handle-cooldown write guard, run against the CURRENT stored
- * row inside the upsert transaction. Two concerns:
+ * Handle + handle-cooldown write guard, run against the CURRENT stored row
+ * inside the upsert transaction. Resolves to the nickname the write stores
+ * (the canonical one), which the upsert binds in place of the proposed text.
  *
- * 1. Nickname validity + uniqueness via {@link checkNicknameAvailability},
- *    with a grandfather clause: an unchanged legacy nickname that fails the
- *    charset or max-length guard does not block edits to unrelated fields;
- *    it is rejected only when this write actually sets the bad handle.
- * 2. Handle-change cooldown: when the normalized nickname CHANGES versus the
- *    stored row, reject the write while the stored stamp is inside the
- *    window, and otherwise require the proposed stamp to be ~now. When the
- *    nickname is UNCHANGED, the stamp must not move.
+ * 1. A write that keeps the stored handle character for character is not
+ *    checked: an untouched handle outside the rule keeps saving, since every
+ *    stats sync upserts the full profile. Any other handle must pass
+ *    {@link checkNicknameAvailability} (the rule, the reserved keys, no
+ *    lookalike of another account's handle), after the write takes the lock
+ *    on its key so a concurrent writer of the same key waits for this one.
+ * 2. Handle-change cooldown, compared on the handle key: tidying one's own
+ *    handle to the rule (`José` to `jose`, `a.b` to `ab`) keeps the key, so it
+ *    is no change. On a change, reject while the stored stamp is inside the
+ *    window, otherwise require the proposed stamp to be ~now; with no change
+ *    the stamp must not move.
  */
 const assertValidNickname = async ({
 	userId,
@@ -252,45 +267,22 @@ const assertValidNickname = async ({
 	current: ProfileRow | undefined;
 	nowMs: number;
 	q: TxQuery;
-}): Promise<void> => {
+}): Promise<string> => {
 	const { nickname } = proposed;
 
-	const normalize = (value: string | null | undefined): string => nicknameUniqueKey(value ?? '');
+	const untouched = nonNullish(current) && nickname === current.nickname;
 
-	const settingNewHandle =
-		isNullish(current) || normalize(proposed.nickname) !== normalize(current.nickname);
+	if (!untouched) {
+		await lockHandleKey({ key: handleUniqueKey(nickname), q });
 
-	const result = await checkNicknameAvailability({ nickname, excludeUserId: userId, q });
+		const result = await checkNicknameAvailability({ nickname, excludeUserId: userId, q });
 
-	if (!result.available) {
-		if (result.reason === 'required') {
-			throw new ProfileValidationError('Nickname is required.');
-		}
-
-		if (result.reason === 'too_short') {
+		if (!result.available) {
 			throw new ProfileValidationError(
-				`Nickname must be at least ${MIN_NICKNAME_LENGTH} characters.`
+				result.reason === 'taken'
+					? `The nickname "${nickname}" is already taken.`
+					: NICKNAME_REFUSAL_MESSAGES[result.reason]
 			);
-		}
-
-		// Grandfather an unchanged legacy nickname on the length ceiling and
-		// charset rules; reject only when this write actually sets the bad
-		// handle, so a stored handle that predates these rules does not block
-		// edits to unrelated fields.
-		if (result.reason === 'too_long') {
-			if (settingNewHandle) {
-				throw new ProfileValidationError(
-					`Nickname must be at most ${MAX_NICKNAME_LENGTH} characters.`
-				);
-			}
-		} else if (result.reason === 'invalid') {
-			if (settingNewHandle) {
-				throw new ProfileValidationError(
-					`The handle "${nickname}" contains invalid characters: use lowercase letters, numbers and . _ - only (no spaces).`
-				);
-			}
-		} else {
-			throw new ProfileValidationError(`The nickname "${nickname}" is already taken.`);
 		}
 	}
 
@@ -308,15 +300,17 @@ const assertValidNickname = async ({
 			);
 		}
 
-		return;
+		return nickname;
 	}
 
 	const currentLastChangeMs = nonNullish(current.handle_last_change_ms)
 		? Number(current.handle_last_change_ms)
 		: undefined;
 
+	const settingNewHandle = handleUniqueKey(nickname) !== handleUniqueKey(current.nickname ?? '');
+
 	if (!settingNewHandle) {
-		// Nickname unchanged: the cooldown stamp is immutable. Treat absent on
+		// Same handle key: the cooldown stamp is immutable. Treat absent on
 		// both sides as equal.
 		if ((proposedLastChangeMs ?? null) !== (currentLastChangeMs ?? null)) {
 			throw new ProfileValidationError(
@@ -324,10 +318,10 @@ const assertValidNickname = async ({
 			);
 		}
 
-		return;
+		return nickname;
 	}
 
-	// Nickname changed: enforce the cooldown against the STORED timestamp.
+	// Handle changed: enforce the cooldown against the STORED timestamp.
 	const daysLeft = handleCooldownDaysLeft({ lastChangeMs: currentLastChangeMs, nowMs });
 
 	if (daysLeft > 0) {
@@ -346,6 +340,8 @@ const assertValidNickname = async ({
 			'handleLastChangeMs must be set to the current time on a handle change.'
 		);
 	}
+
+	return nickname;
 };
 
 /**
@@ -383,14 +379,14 @@ export const upsertMyProfile = async ({
 
 		const current = await getProfileRow({ userId, q });
 
-		await assertValidNickname({ userId, proposed, current, nowMs, q });
+		const nickname = await assertValidNickname({ userId, proposed, current, nowMs, q });
 
 		const totalTrades = storedTradeCount({ proposed, current });
 
 		try {
 			await q(
 				`insert into profiles (
-				   user_id, nickname, nickname_key, avatar, avatar_parts, email, pnl, visibility,
+				   user_id, nickname, nickname_key, handle_key, avatar, avatar_parts, email, pnl, visibility,
 				   total_trades, win_rate, daily_streak, longest_streak, streak, accuracy, points,
 				   level, archetype, interests, last_active_day, unlocked_achievements,
 				   contrarian_wins, best_upset_consensus, on_fire_streak, comebacks,
@@ -400,11 +396,12 @@ export const upsertMyProfile = async ({
 				 ) values (
 				   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
 				   $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34,
-				   now()
+				   $35, now()
 				 )
 				 on conflict (user_id) do update set
 				   nickname = excluded.nickname,
 				   nickname_key = excluded.nickname_key,
+				   handle_key = excluded.handle_key,
 				   avatar = excluded.avatar,
 				   avatar_parts = excluded.avatar_parts,
 				   email = excluded.email,
@@ -439,8 +436,9 @@ export const upsertMyProfile = async ({
 				   updated_at = now()`,
 				[
 					userId,
-					proposed.nickname,
-					nicknameUniqueKey(proposed.nickname),
+					nickname,
+					nicknameUniqueKey(nickname),
+					handleUniqueKey(nickname),
 					proposed.avatar,
 					proposed.avatarParts,
 					proposed.email,
@@ -483,7 +481,7 @@ export const upsertMyProfile = async ({
 				nonNullish(err) &&
 				(err as { code?: string }).code === '23505'
 			) {
-				throw new ProfileValidationError(`The nickname "${proposed.nickname}" is already taken.`);
+				throw new ProfileValidationError(`The nickname "${nickname}" is already taken.`);
 			}
 
 			throw err;

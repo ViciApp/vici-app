@@ -1796,9 +1796,9 @@ export const deMessages = {
 	'onboarding.avail.checking': 'Verfügbarkeit wird geprüft…',
 	'onboarding.avail.available': 'Verfügbar ·',
 	'onboarding.avail.taken': 'Vergeben, probiere eine Variante',
-	'onboarding.avail.invalid': 'Nur Buchstaben, Zahlen, . _ -',
-	'onboarding.avail.too_short': 'Zu kurz: mindestens 2 Zeichen',
-	'onboarding.avail.too_long': 'Zu lang: höchstens 16 Zeichen',
+	'onboarding.avail.invalid': 'Nur Kleinbuchstaben und Zahlen',
+	'onboarding.avail.too_short': 'Zu kurz: mindestens {min} Zeichen',
+	'onboarding.avail.too_long': 'Zu lang: höchstens {max} Zeichen',
 	'onboarding.avail.reserved': 'Reserviert, wähle einen anderen',
 	'onboarding.avail.check_failed': 'Prüfung fehlgeschlagen, versuche zu sichern',
 	'onboarding.avail.rate_limited': 'Zu viele Prüfungen, versuche zu sichern',
@@ -1979,10 +1979,10 @@ export const deMessages = {
 	'profile.handle.error_check_failed':
 		'Verfügbarkeit konnte nicht geprüft werden. Versuch es erneut.',
 	'profile.handle.error_reserved': 'Dieses Handle ist reserviert',
-	'profile.handle.error_short': 'Mindestens 3 Zeichen',
+	'profile.handle.error_short': 'Mindestens {min} Zeichen',
 	'profile.handle.error_taken': 'Dieses Handle ist bereits vergeben',
 	'profile.handle.error_unchanged': 'Das ist bereits dein Handle',
-	'profile.handle.hint': 'Buchstaben, Zahlen und Unterstriche.',
+	'profile.handle.hint': 'Kleinbuchstaben und Zahlen.',
 	'profile.handle.locked':
 		'Du hast dein Handle kürzlich geändert. Du kannst es in {days} Tagen wieder ändern.',
 	'profile.handle.locked_one':

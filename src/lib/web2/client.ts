@@ -53,6 +53,7 @@ import type {
 	TriggerTournamentDrawRefusalReason
 } from '#lib/types/tournament.ts';
 import type { UserStatsDoc } from '#lib/types/user-stats.ts';
+import type { HandleRefusal } from '#lib/utils/handle.utils.ts';
 import { web2ApiBaseUrl } from '#lib/web2/backend-mode.ts';
 import {
 	balanceDomainToWire,
@@ -486,8 +487,7 @@ export const upsertMyProfile = async (data: Record<string, unknown>): Promise<Us
 };
 
 export type Web2NicknameAvailability =
-	| { available: true }
-	| { available: false; reason: 'required' | 'too_short' | 'too_long' | 'invalid' | 'taken' };
+	{ available: true } | { available: false; reason: HandleRefusal };
 
 /** Server-side nickname validity + uniqueness probe. The caller's own current
  * nickname never counts as a conflict (the session identifies the caller). */
@@ -534,6 +534,28 @@ export const checkNicknameAvailabilityPublic = async ({
 		path: `/api/v1/profiles/public-nickname-availability?${encodeQuery({ nickname, proof })}`,
 		method: 'GET'
 	});
+
+/**
+ * The public profile a typed `@handle` names: the one holding exactly that
+ * handle, otherwise the one whose handle is the same once case, accents and
+ * separators are ignored. `undefined` when none is visible to the caller.
+ */
+export const getProfileByHandle = async (handle: string): Promise<UserProfile | undefined> => {
+	try {
+		const { profile } = await request<{ profile: Web2ProfileWire }>({
+			path: `/api/v1/profiles/by-handle?${encodeQuery({ handle })}`,
+			method: 'GET'
+		});
+
+		return mapProfile(profile);
+	} catch (err: unknown) {
+		if (err instanceof Web2ApiError && err.status === 404) {
+			return;
+		}
+
+		throw err;
+	}
+};
 
 /** Case-insensitive search over nickname, id, and linked legacy principal. */
 export const searchProfiles = async (queryStr: string): Promise<UserProfile[]> => {

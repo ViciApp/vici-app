@@ -35,10 +35,17 @@ import { DAY_IN_MS, HOUR_IN_MS, MINUTE_IN_MS, MONTH_ANCHOR_RE } from '../../src/
 import { DAILY_HARD_CAP } from '../../src/profiles/flow';
 import {
 	HANDLE_COOLDOWN_DAYS,
+	HANDLE_LETTER_FOLDS,
+	HANDLE_PATTERN,
+	handleUniqueKey,
+	MAX_HANDLE_LENGTH,
 	MAX_NICKNAME_LENGTH,
+	MIN_HANDLE_LENGTH,
 	MIN_NICKNAME_LENGTH,
 	NICKNAME_CHECK_TURNSTILE_ACTION,
-	NICKNAME_PATTERN
+	NICKNAME_PATTERN,
+	NICKNAME_REFUSALS,
+	RESERVED_HANDLE_KEYS
 } from '../../src/profiles/nickname';
 import { MAX_PROFILE_POINTS } from '../../src/profiles/profile-write';
 import { MONTHLY_MIN_CALLS, USER_STATS_RECENT_LIMIT } from '../../src/profiles/stats';
@@ -71,6 +78,7 @@ import {
 	extractRegexLiteral,
 	extractRegExpConstructor,
 	extractStringConst,
+	extractUnionLiterals,
 	importRepoModule,
 	quotedStrings,
 	readRepoSource
@@ -98,6 +106,7 @@ const appSource = {
 	monthAnchor: readRepoSource('src/lib/utils/month-anchor.utils.ts'),
 	monthlyStats: readRepoSource('src/lib/types/user-monthly-stats.ts'),
 	profile: readRepoSource('src/lib/constants/profile.constants.ts'),
+	handleUtils: readRepoSource('src/lib/utils/handle.utils.ts'),
 	referral: readRepoSource('src/lib/constants/referral.constants.ts'),
 	relation: readRepoSource('src/lib/constants/relation.constants.ts'),
 	school: readRepoSource('src/lib/types/school.ts'),
@@ -174,6 +183,52 @@ describe('shared drift: profiles', () => {
 			source: app.source,
 			flags: app.flags
 		});
+	});
+
+	test('the handle rule, its letter table and the reserved keys', async () => {
+		const app = await importRepoModule<{
+			MIN_HANDLE_LENGTH: number;
+			MAX_HANDLE_LENGTH: number;
+			HANDLE_PATTERN: RegExp;
+			HANDLE_LETTER_FOLDS: ReadonlyArray<readonly [string, string]>;
+			RESERVED_HANDLES: ReadonlySet<string>;
+			handleUniqueKey: (raw: string) => string;
+		}>('src/lib/constants/handle.constants.ts');
+
+		expect({ MIN_HANDLE_LENGTH, MAX_HANDLE_LENGTH }).toEqual({
+			MIN_HANDLE_LENGTH: app.MIN_HANDLE_LENGTH,
+			MAX_HANDLE_LENGTH: app.MAX_HANDLE_LENGTH
+		});
+		expect({ source: HANDLE_PATTERN.source, flags: HANDLE_PATTERN.flags }).toEqual({
+			source: app.HANDLE_PATTERN.source,
+			flags: app.HANDLE_PATTERN.flags
+		});
+		expect(HANDLE_LETTER_FOLDS).toEqual(app.HANDLE_LETTER_FOLDS);
+		expect([...RESERVED_HANDLE_KEYS].sort()).toEqual([...app.RESERVED_HANDLES].sort());
+
+		for (const raw of [
+			'Antonio.Ventilii',
+			'José_María-99',
+			'STRAẞE',
+			'Strøm',
+			'Þór',
+			'İstanbul',
+			'東京tokyo',
+			'Ｆｕｌｌ'
+		]) {
+			expect(handleUniqueKey(raw)).toBe(app.handleUniqueKey(raw));
+		}
+	});
+
+	test('the refusal reasons of a handle', () => {
+		const formatIssues = extractUnionLiterals({
+			source: appSource.handleUtils,
+			typeName: 'HandleFormatIssue'
+		});
+
+		const refusals: string[] = [...NICKNAME_REFUSALS];
+
+		expect(refusals.sort()).toEqual([...formatIssues, 'taken'].sort());
 	});
 
 	test('the Turnstile action of the anonymous handle probe', () => {
