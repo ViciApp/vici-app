@@ -7,8 +7,7 @@ import type { CallSide } from '#lib/types/market.ts';
  * sections that render the curated marketing cards.
  */
 
-export type LandingMarketCategory =
-	'wc' | 'macro' | 'crypto' | 'politics' | 'tech' | 'sports' | 'culture';
+type LandingMarketCategory = 'wc' | 'macro' | 'crypto' | 'politics' | 'tech' | 'sports' | 'culture';
 
 /**
  * Category → label map used by the landing cards.
@@ -123,7 +122,7 @@ export const landingStatusUniversities = (locale: string): readonly string[] =>
 
 /* ── Landing proof ticker (live calls) ─────────────────────────────── */
 
-export interface LandingProofChip {
+interface LandingProofChip {
 	readonly who: string;
 	readonly side: CallSide;
 	readonly q: string;

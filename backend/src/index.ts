@@ -14,6 +14,7 @@ import { accountRoutes } from './routes/account';
 import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
 import { battlesRoutes } from './routes/battles';
+import { challengesRoutes } from './routes/challenges';
 import { claimRoutes } from './routes/claim';
 import { engineRoutes } from './routes/engine';
 import { eventsRoutes } from './routes/events';
@@ -203,6 +204,7 @@ export const app = new Elysia({ serve: { maxRequestBodySize: MAX_REQUEST_BODY_BY
 	.use(tournamentsRoutes)
 	.use(accountRoutes)
 	.use(referralsRoutes)
+	.use(challengesRoutes)
 	.use(schoolRoutes)
 	.use(adminRoutes)
 	// Liveness + DB connectivity. Bounded probe; three consecutive failures exit

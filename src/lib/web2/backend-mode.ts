@@ -12,10 +12,9 @@
 
 import { viteEnv } from '#lib/env/app.env.ts';
 
-export type BackendMode = 'web2' | 'web3';
+type BackendMode = 'web2' | 'web3';
 
-export const backendMode = (): BackendMode =>
-	viteEnv()?.VITE_BACKEND === 'web2' ? 'web2' : 'web3';
+const backendMode = (): BackendMode => (viteEnv()?.VITE_BACKEND === 'web2' ? 'web2' : 'web3');
 
 export const isWeb2Backend = (): boolean => backendMode() === 'web2';
 

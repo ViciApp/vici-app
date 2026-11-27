@@ -56,6 +56,10 @@ export const AnalyticsEventNameSchema = j.enum([
 	'referral_link_copied',
 	'referral_redeemed',
 	'referral_converted',
+	// Challenge links
+	'challenge_created',
+	'challenge_answered',
+	'challenge_opened',
 	// VXP & economy
 	'vxp_awarded',
 	'streak_milestone',
@@ -245,7 +249,7 @@ export const GetAnalyticsProfileCreatedArgsSchema = j.strictObject({
 /** One profile-created row: the doc key (principal text) + envelope
  * `created_at` in nanoseconds (as text: nat64 exceeds JS safe-int). No profile
  * body field leaves the satellite. */
-export const ProfileCreatedExportRowSchema = j.strictObject({
+const ProfileCreatedExportRowSchema = j.strictObject({
 	key: j.string(),
 	createdAtNs: j.string()
 });

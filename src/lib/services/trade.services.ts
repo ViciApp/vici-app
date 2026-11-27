@@ -148,8 +148,10 @@ export const loadUserTradeHistory = async ({
  * same window. {@link deriveMarketPriceSeries} maps each bucket's close into
  * the 0–100 series and onto the time axis. The series is empty until the
  * first trade lands in the window (true cold-start), which the sparkline
- * reads as a flat line. Fails open: any error leaves the caller on its
- * cold-start / seed fallback.
+ * reads as a flat line. `windowStartNs` is the axis start the `xs` are
+ * placed against: the requested lower bound, or for `all` the earliest
+ * returned candle, so a caller labelling dates reads the same axis. Fails
+ * open: any error leaves the caller on its cold-start / seed fallback.
  */
 export const loadMarketPriceCandles = async ({
 	seriesId,
@@ -159,7 +161,11 @@ export const loadMarketPriceCandles = async ({
 }: {
 	seriesId: string;
 	period: PriceHistoryPeriod;
-	onLoad: (options: { certified: boolean; response: MarketPriceSeries }) => void;
+	onLoad: (options: {
+		certified: boolean;
+		response: MarketPriceSeries;
+		windowStartNs: bigint;
+	}) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> => {
 	const { interval, startTimeNs, endTimeNs } = priceHistoryQueryWindow(period);
@@ -179,7 +185,8 @@ export const loadMarketPriceCandles = async ({
 					candles: response,
 					windowStartNs,
 					windowEndNs: endTimeNs
-				})
+				}),
+				windowStartNs
 			});
 		} catch (err: unknown) {
 			onUpdateError?.(err);
@@ -209,7 +216,8 @@ export const loadMarketPriceCandles = async ({
 					candles: response,
 					windowStartNs,
 					windowEndNs: endTimeNs
-				})
+				}),
+				windowStartNs
 			});
 		},
 		onUpdateError
