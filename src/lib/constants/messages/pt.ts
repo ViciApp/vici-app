@@ -818,8 +818,6 @@ export const ptMessages = {
 	'claim.moved.footer.prompt_signup': 'Já tens uma conta aqui?',
 	'claim.moved.sub_new_account':
 		'Este início de sessão não tem uma conta VICI neste site. As novas contas são criadas em {domain}.',
-	'claim.moved.sub_shutdown':
-		'Este site está fechado. A tua conta, as tuas previsões e os teus VXP estão em {domain}: inicia sessão lá para continuares a jogar.',
 	'claim.moved.sub_signup':
 		'As novas contas são criadas em {domain}. Regista-te lá para começares a fazer previsões.',
 	'claim.moved.title': 'O VICI mudou-se para {domain}',
@@ -848,6 +846,10 @@ export const ptMessages = {
 	'claim.page.verifying': 'A associar a tua conta…',
 	'claim.settings.label': 'Muda para o novo VICI',
 	'claim.settings.sub': 'Leva esta conta para a nova app',
+	'claim.shutdown.eyebrow': 'Este site fechou',
+	'claim.shutdown.sub':
+		'Este site fechou de vez. {domain} é um VICI totalmente novo: regista-te lá para começares a fazer previsões.',
+	'claim.shutdown.title': 'Descobre o novo VICI em {domain}',
 	'common.error.generic': 'Algo correu mal. Tenta novamente.',
 	'companion.oracle.called_it': 'Acertaste em cheio.',
 	'cta.primary': 'Começa a prever',

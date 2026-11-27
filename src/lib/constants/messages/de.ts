@@ -826,8 +826,6 @@ export const deMessages = {
 	'claim.moved.footer.prompt_signup': 'Hast du hier schon ein Konto?',
 	'claim.moved.sub_new_account':
 		'Zu dieser Anmeldung gibt es auf dieser Seite kein VICI-Konto. Neue Konten werden auf {domain} erstellt.',
-	'claim.moved.sub_shutdown':
-		'Diese Seite ist geschlossen. Dein Konto, deine Vorhersagen und deine VXP sind auf {domain}: Melde dich dort an, um weiterzuspielen.',
 	'claim.moved.sub_signup':
 		'Neue Konten werden auf {domain} erstellt. Registriere dich dort, um mit deinen Vorhersagen zu starten.',
 	'claim.moved.title': 'VICI ist umgezogen: {domain}',
@@ -857,6 +855,10 @@ export const deMessages = {
 	'claim.page.verifying': 'Konto wird verknüpft…',
 	'claim.settings.label': 'Zum neuen VICI wechseln',
 	'claim.settings.sub': 'Nimm dieses Konto mit in die neue App',
+	'claim.shutdown.eyebrow': 'Diese Seite ist geschlossen',
+	'claim.shutdown.sub':
+		'Diese Seite ist endgültig geschlossen. {domain} ist ein ganz neues VICI: Registriere dich dort, um mit Vorhersagen zu starten.',
+	'claim.shutdown.title': 'Entdecke das neue VICI auf {domain}',
 	'common.error.generic': 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
 	'companion.oracle.called_it': 'Genau richtig.',
 	'cta.primary': 'Jetzt vorhersagen',
