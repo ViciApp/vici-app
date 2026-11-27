@@ -372,7 +372,7 @@
 	}
 
 	.battles-eyebrow {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: 0.16em;
 		color: var(--text-muted);
@@ -429,7 +429,7 @@
 		align-items: center;
 		gap: 0.25rem;
 		padding: 0.15rem 0.4rem;
-		font-family: var(--font-mono, var(--font-sans));
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 700;
 		letter-spacing: 0.1em;
@@ -481,7 +481,7 @@
 	.bout-scope-toggle button {
 		appearance: none;
 		padding: 0.3rem 0.55rem;
-		font-family: var(--font-mono, var(--font-sans));
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: 0.03em;
 		white-space: nowrap;
@@ -507,7 +507,7 @@
 
 	.battles-card-meta {
 		margin: 0 0 0.6rem;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		color: var(--text-muted);
 		letter-spacing: var(--tracking-wide);
@@ -661,7 +661,7 @@
 	.battles-see-all {
 		display: block;
 		margin-top: 0.55rem;
-		font-family: var(--font-mono, var(--font-sans));
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 700;
 		letter-spacing: 0.1em;

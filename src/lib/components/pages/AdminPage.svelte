@@ -122,7 +122,7 @@
 
 					<div class="flex w-full items-center justify-between">
 						<span
-							class="bg-foreground/5 text-foreground/80 rounded-full px-3 py-1 font-mono text-xs font-semibold tabular-nums"
+							class="bg-foreground/5 text-foreground/80 rounded-full px-3 py-1 font-data text-xs font-semibold tabular-nums"
 						>
 							{t({
 								locale: $localeStore,

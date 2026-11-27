@@ -374,7 +374,7 @@
 		background: transparent;
 		color: var(--fg-faint, var(--text-muted));
 		cursor: pointer;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 9px;
 		font-weight: 500;
 		letter-spacing: 0.1em;

@@ -1012,7 +1012,7 @@
 
 	.lb-sheet-sub {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -1038,7 +1038,7 @@
 
 	.lb-sheet-lbl {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.6rem;
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);

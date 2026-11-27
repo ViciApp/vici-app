@@ -463,7 +463,7 @@
 	}
 
 	.mr-eyebrow {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 11px;
 		letter-spacing: 0.22em;
 		font-weight: 600;
@@ -482,7 +482,7 @@
 		align-items: center;
 		gap: 9px;
 		margin-top: 8px;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 11px;
 		letter-spacing: 0.14em;
 		text-transform: uppercase;

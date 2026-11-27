@@ -198,15 +198,15 @@
 				</button>
 			</div>
 			<p>
-				{subParts[0]}<code class="league-code-example num">{LEAGUE_INVITE_CODE_EXAMPLE}</code
+				{subParts[0]}<code class="league-code-example code">{LEAGUE_INVITE_CODE_EXAMPLE}</code
 				>{subParts[1] ?? ''}
 			</p>
 		</header>
 
 		{#if pasteHint}
 			<button class="league-paste-hint" onclick={usePasteHint} type="button">
-				<span class="num acc">{pasteHint}</span>
-				<span class="num mute allcaps">
+				<span class="code acc">{pasteHint}</span>
+				<span class="mute allcaps">
 					{t({ locale: $localeStore, key: 'leagues.join.paste_hint' })}
 				</span>
 			</button>
@@ -338,10 +338,9 @@
 		line-height: 1.5;
 	}
 
-	/* Inline sample code: mono, accent-tinted, so the expected format
-	   stands out from the surrounding helper sentence. */
+	/* Inline sample code: accent-tinted, so the expected format stands
+	   out from the surrounding helper sentence. */
 	.league-code-example {
-		font-family: var(--font-mono);
 		font-weight: 700;
 		letter-spacing: 0.06em;
 		color: var(--color-accent);
@@ -364,14 +363,13 @@
 		cursor: pointer;
 	}
 
-	.league-paste-hint .num {
-		font-family: var(--font-mono);
+	.league-paste-hint .code {
 		font-size: var(--t-13);
 		font-weight: 700;
 		letter-spacing: 0.1em;
 	}
 
-	.league-paste-hint .num.mute {
+	.league-paste-hint .mute {
 		font-weight: 500;
 		font-size: var(--t-10);
 		letter-spacing: 0.04em;

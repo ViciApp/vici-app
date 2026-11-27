@@ -700,7 +700,7 @@
 		background: color-mix(in srgb, var(--prize-tier) 6%, var(--bg-surface));
 	}
 
-	/* Rank numeral: tabular mono on a tinted disc. The disc tint
+	/* Rank numeral: tabular figures on a tinted disc. The disc tint
 	   reads from `--prize-tier`, the per-tier accent set on the
 	   parent `.is-{gold,silver,bronze}` rule, so gold / silver /
 	   bronze each get a distinct disc colour. */
@@ -714,9 +714,8 @@
 		border-radius: var(--r-pill);
 		background: color-mix(in srgb, var(--prize-tier, var(--text-base)) 18%, transparent);
 		color: color-mix(in srgb, var(--prize-tier, var(--text-base)) 85%, var(--text-base));
-		font-family: var(--font-mono);
-		font-feature-settings: 'tnum', 'zero';
-		font-variant-numeric: tabular-nums slashed-zero;
+		font-family: var(--font-data);
+		font-variant-numeric: tabular-nums;
 		font-size: var(--t-14);
 		font-weight: 600;
 		line-height: 1;

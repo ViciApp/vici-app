@@ -322,7 +322,7 @@
 	}
 
 	.confirm-eyebrow {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 600;
 		letter-spacing: var(--tracking-allcaps);
@@ -331,7 +331,7 @@
 	}
 
 	.confirm-balance {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: var(--tracking-allcaps);
 		text-transform: uppercase;
@@ -350,7 +350,7 @@
 	}
 
 	.confirm-amount-value {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 2.25rem;
 		font-weight: 600;
 		letter-spacing: -0.02em;
@@ -377,7 +377,7 @@
 	}
 
 	.confirm-payout-value {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-weight: 600;
 		color: var(--accent);
 	}

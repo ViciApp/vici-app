@@ -97,7 +97,7 @@
 	.profile-oracle-eyebrow {
 		margin: 0;
 		color: var(--color-primary);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);

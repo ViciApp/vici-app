@@ -123,7 +123,7 @@
 	}
 	.flow-call-size-payout-lbl {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: 0.1em;
 	}

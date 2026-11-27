@@ -125,7 +125,7 @@
 				<h3 class="text-foreground text-xl font-bold">
 					{t({ locale: $localeStore, key: 'admin.markets.bulk.creating' })}
 				</h3>
-				<span class="text-muted-foreground font-mono text-sm font-medium tabular-nums">
+				<span class="text-muted-foreground font-data text-sm font-medium tabular-nums">
 					{t({
 						locale: $localeStore,
 						key: 'admin.markets.bulk.progress',
@@ -148,7 +148,7 @@
 					<span class="text-yes text-xs font-bold uppercase">
 						{t({ locale: $localeStore, key: 'admin.markets.bulk.success_label' })}
 					</span>
-					<span class="text-foreground font-mono text-xl font-bold">{bulkSuccess}</span>
+					<span class="text-foreground font-data text-xl font-bold">{bulkSuccess}</span>
 				</div>
 				<div
 					class="bg-no-wash flex grow flex-col items-center justify-center rounded-lg p-3 text-center"
@@ -156,7 +156,7 @@
 					<span class="text-no text-xs font-bold uppercase">
 						{t({ locale: $localeStore, key: 'admin.markets.bulk.failed_label' })}
 					</span>
-					<span class="text-foreground font-mono text-xl font-bold">{bulkFailed}</span>
+					<span class="text-foreground font-data text-xl font-bold">{bulkFailed}</span>
 				</div>
 			</div>
 

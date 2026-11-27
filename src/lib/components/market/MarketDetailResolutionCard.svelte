@@ -82,7 +82,7 @@
 		line-height: 1.55;
 	}
 
-	/* Source / settles footer: two label·value rows in the mono ramp
+	/* Source / settles footer: two label·value rows in the data-face ramp
 	   so they read as the market's machine-grade facts beneath the
 	   prose criterion. */
 	.market-resolution-foot {

@@ -642,7 +642,7 @@
 		align-items: center;
 		gap: 4px;
 		padding: 3px 7px;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.08em;
@@ -673,7 +673,7 @@
 		align-items: center;
 		gap: 4px;
 		padding: 3px 7px;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.08em;
@@ -784,7 +784,7 @@
 	}
 
 	.portfolio-history-result {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 9.5px;
 		font-weight: 700;
 		letter-spacing: 0.08em;

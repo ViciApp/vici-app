@@ -185,7 +185,7 @@ export const renderPredictionCard = async ({
 	setLetterSpacing(ctx, '8px');
 	ctx.fillText('VICI', PAD, 188);
 	setLetterSpacing(ctx, '4px');
-	ctx.font = '700 27px "JetBrains Mono", monospace';
+	ctx.font = '700 27px "Hanken Grotesk", system-ui, sans-serif';
 	const cat = String(market.category || 'MARKET').toUpperCase();
 	const cw = ctx.measureText(cat).width;
 	ctx.fillStyle = accent;
@@ -216,7 +216,7 @@ export const renderPredictionCard = async ({
 		const side = String(priorCall.side).toUpperCase();
 		const col = side === 'YES' ? CARD_YES : CARD_NO;
 		ctx.fillStyle = CARD_MUTE;
-		ctx.font = '700 30px "JetBrains Mono", monospace';
+		ctx.font = '700 30px "Hanken Grotesk", system-ui, sans-serif';
 		setLetterSpacing(ctx, '6px');
 		ctx.fillText('MY CALL', PAD, blockY);
 		setLetterSpacing(ctx, '0px');
@@ -225,7 +225,7 @@ export const renderPredictionCard = async ({
 		ctx.fillText(side, PAD - 4, blockY + 168);
 	} else {
 		ctx.fillStyle = CARD_MUTE;
-		ctx.font = '700 30px "JetBrains Mono", monospace';
+		ctx.font = '700 30px "Hanken Grotesk", system-ui, sans-serif';
 		setLetterSpacing(ctx, '6px');
 		ctx.fillText('CONSENSUS', PAD, blockY);
 		setLetterSpacing(ctx, '0px');
@@ -250,7 +250,7 @@ export const renderPredictionCard = async ({
 	roundRectPath(ctx, PAD, barY, Math.max(barH, (barW * yes) / 100), barH, 9);
 	ctx.fill();
 	ctx.fillStyle = CARD_MUTE;
-	ctx.font = '600 26px "JetBrains Mono", monospace';
+	ctx.font = '600 26px "Hanken Grotesk", system-ui, sans-serif';
 	ctx.fillText(`${yes}% YES`, PAD, barY + 64);
 	const noLabel = `${100 - yes}% NO`;
 	ctx.fillText(noLabel, W - PAD - ctx.measureText(noLabel).width, barY + 64);
@@ -266,7 +266,7 @@ export const renderPredictionCard = async ({
 
 	if (acc) {
 		ctx.fillStyle = CARD_MUTE;
-		ctx.font = '500 30px "JetBrains Mono", monospace';
+		ctx.font = '500 30px "Hanken Grotesk", system-ui, sans-serif';
 		ctx.fillText(acc, PAD, H - 206);
 	}
 
@@ -277,7 +277,7 @@ export const renderPredictionCard = async ({
 	ctx.lineTo(W - PAD, H - 168);
 	ctx.stroke();
 	ctx.fillStyle = CARD_MUTE;
-	ctx.font = '700 26px "JetBrains Mono", monospace';
+	ctx.font = '700 26px "Hanken Grotesk", system-ui, sans-serif';
 	setLetterSpacing(ctx, '5px');
 	ctx.fillText('VENI · VIDI · VICI', PAD, H - 110);
 	setLetterSpacing(ctx, '0px');

@@ -111,7 +111,7 @@
 		margin-top: 0.35rem;
 	}
 	.flow-res-source {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-11);
 		letter-spacing: var(--tracking-wide);
 		color: var(--text-muted);

@@ -164,7 +164,7 @@
 		width: 3.5rem;
 		background: transparent;
 		text-align: right;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 15px;
 		font-weight: 900;
 		color: var(--text-base);

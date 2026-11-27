@@ -4,7 +4,7 @@
 	 * Dash screen: a glanceable, three-zone surface over the user's real
 	 * performance, stack, and calls:
 	 *
-	 *   1 · Performance: the accuracy hero (big mono number), a swipeable
+	 *   1 · Performance: the accuracy hero (big tabular number), a swipeable
 	 *       accuracy trend (7 / 30 / 90-day windows), the session delta + streak,
 	 *       and a global ⇄ friends benchmark toggle.
 	 *   2 · Stack: the holdings card; tapping opens a breakdown sheet

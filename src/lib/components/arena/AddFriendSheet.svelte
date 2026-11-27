@@ -111,7 +111,7 @@
 
 	.friends-add-prefix {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-14);
 		font-weight: 800;
 	}
@@ -129,7 +129,7 @@
 	.friends-add-footnote {
 		margin: 0.55rem 0 0.85rem;
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);

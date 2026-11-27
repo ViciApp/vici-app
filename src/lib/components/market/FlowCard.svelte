@@ -1062,10 +1062,10 @@
 	.flow-whynow strong {
 		font-weight: 700;
 	}
-	/* Prior-call eyebrow: a stronger, monospaced signal than the
+	/* Prior-call eyebrow: a stronger data-face signal than the
 	   curated why-now cue, tinted with the called side's color. */
 	.flow-whynow-prior {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--text-micro);
 		font-weight: 600;
 		letter-spacing: 0.08em;
@@ -1325,7 +1325,7 @@
 		display: inline-flex;
 		align-items: baseline;
 		gap: 3px;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 13px;
 		letter-spacing: -0.005em;
 		color: var(--color-accent);

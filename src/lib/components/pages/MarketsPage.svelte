@@ -53,7 +53,7 @@
 	const wcFocus = $derived(phase === 'wc-focus' || phase === 'bridge');
 	const isOpen = $derived(phase === 'open');
 
-	// Header context eyebrow: the featured event, surfaced as a mono-uppercase
+	// Header context eyebrow: the featured event, surfaced as a data-face uppercase
 	// eyebrow line (matching the Dash accuracy / Arena standing eyebrow) while
 	// the board is laser-focused on it. Omitted once no event is in focus
 	// (`open` / `off`).
@@ -200,7 +200,7 @@
 </script>
 
 <div class="screen-scroll" data-tid={TestId.MarketFeed}>
-	<!-- Header context eyebrow: the featured event as a mono-uppercase eyebrow
+	<!-- Header context eyebrow: the featured event as a data-face uppercase eyebrow
 	     line, matching the Dash / Arena eyebrow treatment, omitted entirely
 	     once no event is in focus. -->
 	{#if eventEyebrow}
@@ -322,12 +322,12 @@
 		padding: 10px var(--spacing-edge);
 	}
 
-	/* Mono-uppercase eyebrow matching the Dash accuracy / Arena standing
+	/* Data-face uppercase eyebrow matching the Dash accuracy / Arena standing
 	   eyebrow treatment, so the World Cup context reads as a section eyebrow
 	   rather than a pill chip. */
 	.markets-eyebrow {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: 0.16em;
 		text-transform: uppercase;

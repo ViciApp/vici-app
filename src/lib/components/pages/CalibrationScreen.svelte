@@ -510,7 +510,7 @@
 		padding: 8px 12px;
 		border-radius: var(--r-12, 10px);
 		text-align: center;
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-data);
 		font-size: 11px;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;

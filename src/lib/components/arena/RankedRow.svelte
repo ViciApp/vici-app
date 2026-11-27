@@ -133,7 +133,7 @@
 	.ranked-num {
 		min-width: 26px;
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-12);
 		font-weight: 800;
 		letter-spacing: var(--tracking-wide);

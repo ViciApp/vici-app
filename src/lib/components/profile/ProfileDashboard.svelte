@@ -905,7 +905,7 @@
 		-webkit-backdrop-filter: blur(8px);
 		backdrop-filter: blur(8px);
 		color: #f2ecdc;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: var(--tracking-allcaps);
 		text-transform: uppercase;
@@ -1021,7 +1021,7 @@
 
 	.profile-hero-credibility {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -1039,7 +1039,7 @@
 		border-radius: var(--r-pill);
 		background: var(--accent-glow, color-mix(in srgb, var(--color-primary) 12%, transparent));
 		color: var(--color-primary);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-12);
 		font-weight: 600;
 		letter-spacing: 0.08em;
@@ -1110,7 +1110,7 @@
 
 	.profile-affiliations-eyebrow {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -1119,7 +1119,7 @@
 
 	.profile-affiliations-count {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: 0.1em;
 	}
@@ -1186,7 +1186,7 @@
 		   stay distinct on the tile rather than matching it. */
 		background: color-mix(in srgb, var(--text-base) 8%, transparent);
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-12);
 		font-weight: 700;
 	}
@@ -1210,7 +1210,7 @@
 
 	.affil-slot-label {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.6rem;
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -1311,7 +1311,7 @@
 		border: 0;
 		background: transparent;
 		color: var(--color-primary);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.65rem;
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -1363,7 +1363,7 @@
 	.profile-menagerie-concept {
 		margin-top: 0.1875rem;
 		color: var(--color-primary);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: 0.06em;
 	}
@@ -1406,7 +1406,7 @@
 		border-radius: var(--r-pill);
 		background: var(--bg-popover);
 		color: var(--text-base);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: var(--tracking-allcaps);
 		text-transform: uppercase;

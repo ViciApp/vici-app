@@ -55,7 +55,7 @@
 	}
 
 	/* Small accent-glow icon tile: `--laurel`-tinted square holding the
-	   plus glyph (create) or a mono "CODE" label (join). */
+	   plus glyph (create) or a data-face "CODE" label (join). */
 	.leagues-cta-ic {
 		display: inline-flex;
 		align-items: center;
@@ -69,7 +69,7 @@
 	}
 
 	.leagues-cta-ic.mono {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 9.5px;
 		font-weight: 700;
 		letter-spacing: 0.02em;

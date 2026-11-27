@@ -112,7 +112,7 @@
 		gap: 10px;
 		padding: 11px 0;
 		border-bottom: 1px solid var(--border-base);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 	}
 
 	.db-bucket-dot {

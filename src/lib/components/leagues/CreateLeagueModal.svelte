@@ -304,7 +304,7 @@
 		     so the owner can share it the moment they create. Read-only;
 		     the value is minted client-side and handed to `createLeague`. -->
 		<div class="league-invite-code">
-			<span class="num league-invite-code-value">{inviteCode}</span>
+			<span class="code league-invite-code-value">{inviteCode}</span>
 			<span class="num mute allcaps league-invite-code-label">
 				{t({ locale: $localeStore, key: 'leagues.create.invite_code' })}
 			</span>
@@ -616,7 +616,6 @@
 	}
 
 	.league-invite-code-value {
-		font-family: var(--font-mono);
 		font-size: var(--t-14);
 		font-weight: 700;
 		letter-spacing: 0.12em;

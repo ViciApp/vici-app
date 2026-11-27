@@ -90,7 +90,7 @@
 
 			<!-- Compact page indicator below sm -->
 			<span
-				class="text-muted-foreground px-2 font-mono text-[11px] font-bold tracking-wider tabular-nums sm:hidden"
+				class="text-muted-foreground px-2 font-data text-[11px] font-bold tracking-wider tabular-nums sm:hidden"
 			>
 				{t({
 					locale: $localeStore,
@@ -104,7 +104,7 @@
 				{#each pageSlots as slot, idx (idx)}
 					{#if slot === 'ellipsis'}
 						<li
-							class="text-muted-foreground px-1.5 font-mono text-[11px] font-bold tabular-nums select-none"
+							class="text-muted-foreground px-1.5 font-data text-[11px] font-bold tabular-nums select-none"
 							aria-hidden="true"
 						>
 							…
@@ -113,7 +113,7 @@
 						<li>
 							<BaseButton
 								class={[
-									'inline-flex h-7 min-w-7 items-center justify-center rounded-md px-2 font-mono text-[11px] font-bold tabular-nums transition-colors',
+									'inline-flex h-7 min-w-7 items-center justify-center rounded-md px-2 font-data text-[11px] font-bold tabular-nums transition-colors',
 									slot === safePage
 										? 'bg-primary text-primary-foreground'
 										: 'text-foreground hover:bg-foreground/5'

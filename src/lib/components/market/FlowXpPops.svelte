@@ -50,7 +50,7 @@
 		gap: 0.4rem;
 		padding: 10px 16px;
 		border-radius: var(--r-pill);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 22px;
 		font-weight: 900;
 		letter-spacing: var(--tracking-tight);

@@ -1196,7 +1196,7 @@
 
 	.affil-picker-divider {
 		padding: 0.6rem 0.5rem 0.35rem;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 600;
 		letter-spacing: var(--tracking-allcaps);
@@ -1242,7 +1242,7 @@
 		flex-shrink: 0;
 		border-radius: var(--r-8);
 		background: var(--bg-surface);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.85rem;
 		font-weight: 700;
 		overflow: hidden;

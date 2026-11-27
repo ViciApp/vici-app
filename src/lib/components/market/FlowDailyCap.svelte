@@ -151,7 +151,7 @@
 		border: 0;
 		padding: 4px 2px;
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.6875rem;
 		letter-spacing: 0.04em;
 		cursor: pointer;

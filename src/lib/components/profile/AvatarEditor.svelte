@@ -455,7 +455,7 @@
 	}
 
 	.avatar-editor-sub {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: var(--tracking-snug);
 		color: var(--text-muted);
@@ -553,7 +553,7 @@
 
 	.avatar-editor-group-label {
 		margin: 2px 0 10px;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: var(--tracking-allcaps);
 		text-transform: uppercase;

@@ -101,7 +101,7 @@
 		flex-shrink: 0;
 		border-radius: var(--r-8);
 		background: var(--bg-surface);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.85rem;
 		font-weight: 700;
 		overflow: hidden;

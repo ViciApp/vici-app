@@ -483,7 +483,7 @@
 		align-items: center;
 		gap: 0.3rem;
 		padding: 0.18rem 0.45rem;
-		font-family: var(--font-mono, var(--font-sans));
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 700;
 		letter-spacing: var(--tracking-allcaps);
@@ -700,7 +700,7 @@
 		width: 100%;
 		padding: 0.85rem 1rem;
 		font: inherit;
-		font-family: var(--font-mono, var(--font-sans));
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 700;
 		letter-spacing: 0.14em;

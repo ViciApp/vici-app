@@ -16,7 +16,7 @@
 </script>
 
 <span class="inline-flex items-center gap-1.5">
-	<span class="font-mono text-inherit">{displayPrincipal}</span>
+	<span class="code text-inherit">{displayPrincipal}</span>
 	{#if isSelf}
 		<YouBadge />
 	{/if}

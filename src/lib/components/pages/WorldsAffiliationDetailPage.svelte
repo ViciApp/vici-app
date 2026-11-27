@@ -785,7 +785,7 @@
 		align-self: center;
 		padding: 0.5rem 1rem;
 		font: inherit;
-		font-family: var(--font-mono, var(--font-sans));
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 700;
 		letter-spacing: 0.14em;
