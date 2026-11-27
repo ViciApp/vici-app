@@ -66,6 +66,36 @@ describe('loadEnv', () => {
 		expect(env.apiBaseUrl).toBe('http://localhost:9000');
 	});
 
+	test('TEAM_SIGNIN_EMAILS: unset is off outside production and closed in production', () => {
+		expect(loadEnv({}).teamSignin).toEqual({ enforced: false, emails: [], domains: [] });
+
+		const prod = loadEnv({
+			NODE_ENV: 'production',
+			DATABASE_URL: 'postgres://prod-host/vici',
+			SESSION_SECRET: 's3cret',
+			ROOT_SECRET: 'r00t',
+			RESEND_API_KEY: 're_test'
+		});
+
+		expect(prod.teamSignin).toEqual({ enforced: true, emails: [], domains: [] });
+	});
+
+	test('TEAM_SIGNIN_EMAILS: addresses and @domain entries, normalized', () => {
+		const env = loadEnv({ TEAM_SIGNIN_EMAILS: ' Anto@Vici.app , ,@Team.Example ' });
+
+		expect(env.teamSignin).toEqual({
+			enforced: true,
+			emails: ['anto@vici.app'],
+			domains: ['team.example']
+		});
+	});
+
+	test('TEAM_SIGNIN_EMAILS: a malformed entry fails the boot', () => {
+		for (const raw of ['anto', 'a@b@c', 'anto@', '@']) {
+			expect(() => loadEnv({ TEAM_SIGNIN_EMAILS: raw })).toThrow('TEAM_SIGNIN_EMAILS');
+		}
+	});
+
 	test('an empty string counts as unset, not as a value', () => {
 		expect(() =>
 			loadEnv({ NODE_ENV: 'production', DATABASE_URL: '', SESSION_SECRET: 's3cret' })

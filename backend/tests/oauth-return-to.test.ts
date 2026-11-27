@@ -129,7 +129,7 @@ describe('google returnTo end to end', () => {
 			);
 
 			expect(res.status).toBe(302);
-			expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/?e=state`);
+			expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/team?e=state`);
 		}
 	});
 
@@ -143,7 +143,7 @@ describe('google returnTo end to end', () => {
 		);
 
 		expect(res.status).toBe(302);
-		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/?e=state`);
+		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/team?e=state`);
 	});
 
 	describe.if(dbAvailable)('callback landing', () => {

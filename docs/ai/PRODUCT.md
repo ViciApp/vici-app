@@ -763,6 +763,11 @@ screens, footer everywhere). In Markets the curated markets keep their
 film stills. Design contract:
 [`design.md` § 6](./frontend/design.md#6-landing-page).
 
+### Sign-in: team only while vici.app is closed
+
+vici.app is a new product and nobody from the public signs in yet. The API admits only the addresses on the team allowlist (the `TEAM_SIGNIN_EMAILS` server secret: exact addresses or whole `@domain`s): any other address gets the same neutral refusal as any closed sign-in (`beta_closed`), before a code is mailed or an account exists, with the email code, Google and Apple alike, and an existing session of an account with no team email reads as signed out. A team member signs in and uses the app and the admin as before. In production the gate cannot be left open by accident: without the secret nobody signs in. Decision record:
+[`specs/2026-11-27-feat-team-only-signin-api.md`](./spec-driven-development/specs/2026-11-27-feat-team-only-signin-api.md).
+
 ### Legacy app: new accounts move to vici.app
 
 The legacy build (vici.market) no longer creates accounts. Every sign-up

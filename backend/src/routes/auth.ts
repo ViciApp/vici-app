@@ -8,6 +8,7 @@ import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import * as apple from '../auth/apple';
 import {
+	BETA_CLOSED_ERROR,
 	LEGACY_ACCOUNT_PENDING_ERROR,
 	betaGateVerdict,
 	type BetaGateVerdict
@@ -19,6 +20,7 @@ import { loadMe } from '../auth/me';
 import { decodeOauthState, encodeOauthState, sanitizeReturnTo } from '../auth/oauth-state';
 import { OTP_REQUEST_TURNSTILE_ACTION, otpMailboxKey, requestOtp, verifyOtp } from '../auth/otp';
 import { revokeToken, rotateSession } from '../auth/sessions';
+import { TEAM_SIGNIN_PATH, isTeamEmail } from '../auth/team-gate';
 import { env } from '../env';
 import {
 	APPLE_STATE_COOKIE,
@@ -83,7 +85,14 @@ const gateRefused = ({
 /** Landing marker for a gated OAuth refusal: a redirect cannot carry the
  * JSON error body, so the sign-in screen reads the reason from `?e=`. */
 const gateRefusedPath = (verdict: Exclude<BetaGateVerdict, 'allowed'>): string =>
-	verdict === LEGACY_ACCOUNT_PENDING_ERROR ? '/signin?e=legacy' : '/signin?e=beta';
+	`${TEAM_SIGNIN_PATH}?e=${verdict === LEGACY_ACCOUNT_PENDING_ERROR ? 'legacy' : 'beta'}`;
+
+/** The gate verdict at a point that has just learned the caller's email. The
+ * team allowlist runs first and refuses with the beta gate's own neutral
+ * `beta_closed`, so an address outside the team reads like any other gated
+ * refusal and never learns whether a legacy account holds it. */
+const signInVerdict = (caller: Parameters<typeof betaGateVerdict>[0]): Promise<BetaGateVerdict> =>
+	isTeamEmail(caller.email) ? betaGateVerdict(caller) : Promise.resolve(BETA_CLOSED_ERROR);
 
 /** Login response: rotate the session (revoking whatever cookie rode in) and
  * answer with the fresh session cookie. */
@@ -189,7 +198,7 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 
 			// Checked before any code is issued: a refused address never
 			// receives an email.
-			const verdict = await betaGateVerdict({ email });
+			const verdict = await signInVerdict({ email });
 
 			if (verdict !== 'allowed') {
 				return gateRefused({ set, verdict });
@@ -240,7 +249,7 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 
 			// Re-checked here (not only at request time) so a code issued before
 			// the gate flipped on cannot still mint a session.
-			const verdict = await betaGateVerdict({ email: body.email });
+			const verdict = await signInVerdict({ email: body.email });
 
 			if (verdict !== 'allowed') {
 				return gateRefused({ set, verdict });
@@ -308,18 +317,18 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 			isNullish(statePayload) ||
 			!constantTimeEqual(statePayload.state, state)
 		) {
-			return redirectToApp({ path: '/?e=state', clearStateCookie });
+			return redirectToApp({ path: `${TEAM_SIGNIN_PATH}?e=state`, clearStateCookie });
 		}
 
 		const profile = await google.exchangeCode(code);
 
 		if (isNullish(profile) || !profile.emailVerified) {
-			return redirectToApp({ path: '/?e=google', clearStateCookie });
+			return redirectToApp({ path: `${TEAM_SIGNIN_PATH}?e=google`, clearStateCookie });
 		}
 
 		// The redirect flow's counterpart of the 403 gate body: the browser is
 		// mid-navigation, so the refusal rides the landing path.
-		const verdict = await betaGateVerdict({
+		const verdict = await signInVerdict({
 			email: profile.email,
 			identity: { provider: 'google', subject: profile.sub }
 		});
@@ -387,20 +396,20 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 			// `error` field with no code; that is not a CSRF problem, so report it
 			// as an Apple-side failure rather than ?e=state.
 			if (!isNullish(body.error) && body.error !== '') {
-				return redirectToApp({ path: '/?e=apple', clearStateCookie });
+				return redirectToApp({ path: `${TEAM_SIGNIN_PATH}?e=apple`, clearStateCookie });
 			}
 
 			if (code === '' || !stateMatches(cookieValue, state)) {
-				return redirectToApp({ path: '/?e=state', clearStateCookie });
+				return redirectToApp({ path: `${TEAM_SIGNIN_PATH}?e=state`, clearStateCookie });
 			}
 
 			const profile = await apple.exchangeCode(code);
 
 			if (isNullish(profile) || !profile.emailVerified) {
-				return redirectToApp({ path: '/?e=apple', clearStateCookie });
+				return redirectToApp({ path: `${TEAM_SIGNIN_PATH}?e=apple`, clearStateCookie });
 			}
 
-			const verdict = await betaGateVerdict({
+			const verdict = await signInVerdict({
 				email: profile.email,
 				identity: { provider: 'apple', subject: profile.sub }
 			});

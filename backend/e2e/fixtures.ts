@@ -12,6 +12,13 @@ export const E2E_EMAIL_DOMAIN = 'vici-e2e.test';
  * the admin settings API (beta gate) from the specs. */
 export const E2E_ADMIN_EMAIL = `admin@${E2E_EMAIL_DOMAIN}`;
 
+/** The team allowlist the E2E API boots with (TEAM_SIGNIN_EMAILS): the whole
+ * fixture domain, so every per-run address signs in as a team member. */
+export const E2E_TEAM_SIGNIN_EMAILS = `@${E2E_EMAIL_DOMAIN}`;
+
+/** A domain outside the team allowlist, for the refusal specs. */
+export const E2E_OUTSIDER_EMAIL_DOMAIN = 'outsider.vici-e2e.test';
+
 export interface E2eLegacyAccount {
 	principal: string;
 	email: string;
