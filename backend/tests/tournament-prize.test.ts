@@ -272,6 +272,43 @@ describe.if(dbAvailable)('tournament prize', () => {
 		).toBe(5000);
 	});
 
+	test('an active pre-draw member of a league that did not place gets nothing', async () => {
+		const { monthAnchor, startMs, drawnAtMs } = await concludeTournament();
+		const outsiderLeague = await seedLeague();
+		const outsider = await createTestUser();
+
+		settleInTournament({ userId: outsider, startMs });
+		await addMember({ leagueId: outsiderLeague, userId: outsider, joinedAtMs: drawnAtMs - 1 });
+
+		expect(await claimTournamentPrize({ tournamentId: monthAnchor, userId: outsider })).toEqual({
+			ok: false,
+			reason: 'not_member_of_top_league'
+		});
+		expect(await prizeKeysOf({ userId: outsider, tournamentId: monthAnchor })).toEqual([]);
+	});
+
+	test('a tournament still running or never drawn pays nobody', async () => {
+		const { monthAnchor, startMs, drawnAtMs, placeOneLeague } = await concludeTournament();
+		const member = await createTestUser();
+
+		settleInTournament({ userId: member, startMs });
+		await addMember({ leagueId: placeOneLeague, userId: member, joinedAtMs: drawnAtMs - 1 });
+		await query(`update tournaments set state = 'in_flight' where id = $1`, [monthAnchor]);
+
+		expect(await claimTournamentPrize({ tournamentId: monthAnchor, userId: member })).toEqual({
+			ok: false,
+			reason: 'tournament_not_concluded'
+		});
+		expect(await prizeKeysOf({ userId: member, tournamentId: monthAnchor })).toEqual([]);
+
+		const { monthAnchor: neverDrawn } = uniqueMonth();
+
+		expect(await claimTournamentPrize({ tournamentId: neverDrawn, userId: member })).toEqual({
+			ok: false,
+			reason: 'tournament_not_found'
+		});
+	});
+
 	test('a member of both finalists gets one prize, the best place, however often they claim', async () => {
 		const { monthAnchor, startMs, drawnAtMs, placeOneLeague, placeTwoLeague } =
 			await concludeTournament();
