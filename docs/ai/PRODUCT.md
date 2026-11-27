@@ -298,12 +298,31 @@ service.
   plain link with no `?ref=` (sharer has no code yet) just joins the
   league. No opt-out: the friendship is implicit. Decision record:
   [`specs/2026-06-14-feat-league-invite-implies-friendship.md`](./spec-driven-development/specs/2026-06-14-feat-league-invite-implies-friendship.md).
+- **A challenge link befriends on an answer, never on an open.** On the
+  web2 API a sign-up through a challenge link is a referral redemption
+  (friendship included), and a friend who answers it with their own call
+  is befriended; reading a link writes nothing (see
+  [Challenge links](#challenge-links-a-verified-link-for-one-of-your-calls)).
 - **Errors.** Known outcomes surface as the specific messages above;
   an unexpected failure shows friendly copy carrying a short technical
   detail so a user screenshot is enough to diagnose.
 
 Decision record:
 [`specs/2026-06-12-fix-friend-request-errors-and-reject-policy.md`](./spec-driven-development/specs/2026-06-12-fix-friend-request-errors-and-reject-policy.md).
+
+### Challenge links: a verified link for one of your calls
+
+On the web2 API (vici.app) a signed-in user can issue a challenge link for any market on which they hold a binary position: a short random id behind `/api/v1/challenges`. No screen issues or opens one yet; the share sheet, the link preview and the receiving page build on this API. What a link says comes from the engine, never from a request:
+
+- **One link per user and market**, showing the challenger's position there now: side, average entry price and when the held position was opened. Every trade refreshes it: a flipped side shows as the new side and is marked as changed, a fully closed position shows no position, and whether the market is still open for predictions (not past expiry, not settled) is read live. Asking again for the same market returns the same link.
+- **Consent per link.** The challenger chooses whether the link shows their handle and avatar with the call. With consent it shows them even when the profile is private or calls are not public; without it the link shows no identity. The owner can change that at any time, or turn the link off: it then reads as not found, and asking again issues a new link.
+- **The public read** carries the market, the position, whether the side changed, the consented identity and whether the market is open. Never the account id, an email, a balance or a call size. An unknown or turned-off link, one past retention, and one whose owner is deleted (inside the recovery window) or hibernated all read the same "not found"; a recovered account's links work again.
+- **Inviter credit.** A challenge link is a referral channel: a new sign-up redeeming it credits the challenger exactly as an invite link does (the same bonuses in [`referral.constants.ts`](../../src/lib/constants/referral.constants.ts), paid on the referee's first prediction, under the same curve and cap) and makes them friends. A person is credited to one inviter ever, whichever link or code came first. An account past the signup window or already referred is credited to nobody and befriended by nobody; redeeming one's own link is refused.
+- **Answers.** A friend answers a link by making their own call on its market. The server checks the call in the engine (the client sends no side and no price), records one answer per person and link, and makes the two friends. Opening or reading a link never befriends anyone. The challenger can list the answers to their links, the source of an inbox card that is not shown yet.
+- **Limits and retention.** The public read is limited per network address and every write per account; no challenge step asks for a Turnstile check (the sign-up a link leads to is where that sits). A link and its answers are deleted 90 days after its market closed or it was turned off.
+- **Analytics.** The server records `challenge_created` and `challenge_answered`.
+
+Decision record: [`specs/2026-11-26-feat-challenge-links-api.md`](./spec-driven-development/specs/2026-11-26-feat-challenge-links-api.md).
 
 ### Holdings sheet (Dash): Your VXP, two buckets
 
@@ -485,7 +504,8 @@ too-late recovery) removes the profile, the private email, the sign-in
 identities and sessions, the VXP award history and onboarding ladder,
 calibration attempts, the stats and monthly stats, resolved results, the
 likes it gave (each liked activity's count goes down), school-email
-submissions, referral code, affiliations, relations and league
+submissions, referral code, challenge links (with their answers) and the
+answers it gave to other people's links, affiliations, relations and league
 memberships; owned leagues are disbanded or handed to a member. On the
 web2 API an account that still holds funds (in its wallet, as real-money
 collateral or trading gains, or in a withdrawal in progress) cannot be deleted: the app
@@ -509,7 +529,9 @@ hibernated or deleted account. What stays, by design:
 - **Referral history the referrer's lifetime count needs**: on the
   satellite a referral record that has started paying (keyed by the
   referee principal); on the web2 API the rows naming the deleted account
-  as referrer, and a referrer's award for a deleted referee.
+  as referrer (with the id of the challenge link a redemption came
+  through, if any, as plain text), and a referrer's award for a deleted
+  referee.
 - **Shared audit rows** the account took part in (activities, battles,
   analytics), orphaned and immutable.
 - **The anonymous exit signal**: the reason and optional note picked at
