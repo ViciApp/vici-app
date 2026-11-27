@@ -5,6 +5,28 @@ starting point. Read it once per session.
 
 > Higher up the chain: [`AGENTS.md`](../../../AGENTS.md) → [`docs/ai/`](../README.md).
 
+## The satellite takes fixes only
+
+Juno was deprecated by its maintainer in November 2026: the Console and
+juno.build stay online until about December 2027, but the CLI, the
+`@junobuild/*` packages, the GitHub Action and the Docker images get no more
+bug fixes or security patches. The satellite canister itself is ours and keeps
+running on the IC without them.
+
+So the satellite, and every path of the frontend that only the default
+(`web3`) build uses, is frozen:
+
+- **Allowed:** fixes for bugs that hurt vici.market users or their funds,
+  security fixes, and the work the cutover to vici.app needs (exports, the
+  claim flow, switching things off).
+- **Not allowed:** new features, new collections, new endpoints, refactors and
+  dependency upgrades of `@junobuild/*` that no fix needs. New product work
+  goes to the API in [`backend/`](../../../backend/README.md) and the web2 mode
+  of the frontend ([`web2-backend-mode.md`](../frontend/web2-backend-mode.md)).
+
+A PR that touches `src/satellite/` says in `# Motivation` which allowed case
+it is.
+
 ## What the satellite is (and isn't)
 
 The Juno satellite is a Rust canister, deployed and managed by Juno, that
