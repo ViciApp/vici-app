@@ -3,11 +3,10 @@ import type { WcHelpers } from '#lib/utils/flow-art/wc/helpers.ts';
 
 // === RECIPES (curated compositions) =====================
 // Each key is a WC market id → a fully deterministic scene
-// (backdrop + figure + optional prop), ported 1:1 from the
-// prototype's hand-authored table so every tentpole / prop /
-// advancement market renders its own composition rather than the
-// generic fallback. The figure's `emotion` drives its expression.
-// (The prototype's caption pill is a no-op there and is omitted.)
+// (backdrop + figure + optional prop), hand-authored so every
+// tentpole / prop / advancement market renders its own composition
+// rather than the generic fallback. The figure's `emotion` drives its
+// expression.
 // Helpers arrive via the `h` bundle so each scene closes over the
 // per-render palette + uid.
 //
@@ -260,7 +259,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		}) +
 		h.goldenBoot({ cx: 214, cy: 58, scale: 0.9 }),
 
-	// ─── BETA V1.4 MARQUEE (hand-authored for the 50-card expansion) ───
+	// ─── MARQUEE (host openers and knockout tentpoles) ────────
 	// Host opener: Mexican tricolor, jubilant home figure, ball at feet.
 	'wc-host-mex-opener': (h) =>
 		h.bgFlagVert({ c1: '#006847', c2: '#F2ECDC', c3: '#CE1126' }) +
@@ -428,7 +427,7 @@ export const WC_RECIPES: Partial<Record<string, (h: WcHelpers) => string>> = {
 		}) +
 		h.trophyIcon({ cx: 208, cy: 52, scale: 1.0 }),
 
-	// ─── BETA V1.4 EXPANSION II (50 new pre-tournament + prop cards) ───
+	// ─── PRE-TOURNAMENT AND PROPS ────────────────────────────
 	'wc-ball-viral': (h) =>
 		h.bgFlagVert({ c1: '#046A38', c2: '#046A38', c3: '#DA291C' }) +
 		h.wcFace({

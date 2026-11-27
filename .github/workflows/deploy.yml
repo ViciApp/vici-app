@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -47,7 +47,7 @@ jobs:
       # gateway's "canister is stopped" page for the whole window. Skip the
       # upgrade when nothing feeding the satellite wasm changed since the
       # last deploy that succeeded: the script walks the real import graph of
-      # `src/satellite/index.ts` (incl. shared `$lib/**` schemas/types), so a
+      # `src/satellite/index.ts` (incl. shared `#lib/**` schemas/types), so a
       # frontend-only release ships through the zero-downtime
       # `hosting deploy` alone. The base is that run's commit, not the
       # previous tag: a release whose upgrade failed or was cancelled left

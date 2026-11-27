@@ -108,7 +108,7 @@ export interface TournamentDoc {
 	monthStartMs: number;
 	/** UTC ms timestamp of `monthStartMs + 4 × 7 days`. */
 	monthEndMs: number;
-	/** Number of leagues seeded. Always {@link TOURNAMENT_BRACKET_SIZE} in v1. */
+	/** Number of leagues seeded. Always {@link TOURNAMENT_BRACKET_SIZE}. */
 	bracketSize: number;
 	/** Lifecycle state. `in_flight` until the final match resolves; then `concluded`. */
 	state: TournamentState;
