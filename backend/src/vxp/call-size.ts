@@ -89,23 +89,26 @@ export const limitOrderCallSizeRefused = async ({
 
 /**
  * The resting order a market leg takes from. The cached book of the named
- * series prices any order it holds; one placed since needs a fresh read. An
- * order still missing is looked up across every series, so a leg naming the
- * wrong series is checked against the book it really takes from. Nothing
- * found means the order no longer exists, which the engine answers itself.
+ * series holds any order placed before it was read; one placed since needs a
+ * fresh read, and `fresh` skips the cache altogether. An order still missing
+ * is looked up across every series, so a leg naming the wrong series is
+ * checked against the book it really takes from. Nothing found means the
+ * order no longer exists, which the engine answers itself.
  */
 const findRestingOrder = async ({
 	seriesId,
-	orderId
+	orderId,
+	fresh = false
 }: {
 	seriesId?: string;
 	orderId: string;
+	fresh?: boolean;
 }): Promise<ClearingDid.LimitOrder | undefined> => {
 	const byId = (orders: ClearingDid.LimitOrder[]): ClearingDid.LimitOrder | undefined =>
 		orders.find(({ order_id }) => order_id === orderId);
 
 	const found =
-		byId(await clearing.listSeriesOrders({ seriesId })) ??
+		(fresh ? undefined : byId(await clearing.listSeriesOrders({ seriesId }))) ??
 		byId(await clearing.listSeriesOrders({ seriesId, fresh: true }));
 
 	if (nonNullish(found) || isNullish(seriesId)) {
@@ -113,6 +116,26 @@ const findRestingOrder = async ({
 	}
 
 	return byId(await clearing.listSeriesOrders({ fresh: true }));
+};
+
+const takeExceeds = ({
+	level,
+	qty,
+	callSize
+}: {
+	level: ClearingDid.LimitOrder;
+	qty?: bigint;
+	callSize?: number;
+}): boolean => {
+	const take = isNullish(qty) || qty > level.qty ? level.qty : qty;
+	// Taking from a resting sell buys the outcome; taking from a resting buy sells it.
+	const { notional, scale } = notionalOf({
+		qty: take,
+		price: level.price.decimal,
+		buys: 'Sell' in level.side
+	});
+
+	return notional > BigInt(callSize ?? VXP_MAX_CALL_SIZE) * scale;
 };
 
 /**
@@ -142,13 +165,18 @@ export const marketLegCallSizeRefused = async ({
 		return true;
 	}
 
-	const take = isNullish(qty) || qty > level.qty ? level.qty : qty;
-	// Taking from a resting sell buys the outcome; taking from a resting buy sells it.
-	const { notional, scale } = notionalOf({
-		qty: take,
-		price: level.price.decimal,
-		buys: 'Sell' in level.side
+	if (!takeExceeds({ level, qty, callSize })) {
+		return false;
+	}
+
+	// A resting order only shrinks as it fills, so a cached quantity can
+	// overstate the take but never understate it: a pass on the cache stands,
+	// a refusal stands only on the order's current quantity.
+	const current = await findRestingOrder({
+		seriesId: level.series_id,
+		orderId: matchingOrderId,
+		fresh: true
 	});
 
-	return notional > BigInt(callSize ?? VXP_MAX_CALL_SIZE) * scale;
+	return nonNullish(current) && takeExceeds({ level: current, qty, callSize });
 };

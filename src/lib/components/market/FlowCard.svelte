@@ -19,6 +19,7 @@
 	} from '#lib/types/market-signals.ts';
 	import type { MarketTranslation } from '#lib/types/market-translation.ts';
 	import type { FlowAction, Market } from '#lib/types/market.ts';
+	import { isViciXp } from '#lib/utils/balance-domain.utils.ts';
 	import { resolveFlowArtCategory, type FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
 	import {
 		consensusPercent,
@@ -29,7 +30,10 @@
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { marketDisplayText } from '#lib/utils/market-translation.utils.ts';
 	import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
-	import { formatWholeVxpMagnitude } from '#lib/utils/playground-display.utils.ts';
+	import {
+		flowTradeDenominationLabel,
+		formatWholeVxpMagnitude
+	} from '#lib/utils/playground-display.utils.ts';
 	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 	import { vxpNetWin } from '#lib/utils/vxp-economy.utils.ts';
 
@@ -213,6 +217,8 @@
 	// the two faces never disagree. Only computed when the probability is
 	// known; otherwise the preview is suppressed.
 	const amountNum = $derived(Math.max(0, Number(tradeAmount) || 0));
+	// The card also renders on the Settlement path, whose amounts are not VXP.
+	const unitLabel = $derived(flowTradeDenominationLabel(isViciXp(market.balanceDomain)));
 	const netWinFor = (action: 'YES' | 'NO'): string | undefined => {
 		if (isNullish(market.yesProbability)) {
 			return;
@@ -754,7 +760,7 @@
 									<span class="flow-probs-arrow text-no" aria-hidden="true">←</span>
 									<span class="flow-probs-payout num">
 										+{winNo}
-										<span class="flow-probs-payout-unit">VXP</span>
+										<span class="flow-probs-payout-unit">{unitLabel}</span>
 									</span>
 									<span class="flow-probs-role allcaps">
 										{yesIsFav
@@ -770,7 +776,7 @@
 									</span>
 									<span class="flow-probs-payout num">
 										+{winYes}
-										<span class="flow-probs-payout-unit">VXP</span>
+										<span class="flow-probs-payout-unit">{unitLabel}</span>
 									</span>
 									<span class="flow-probs-arrow text-yes" aria-hidden="true">→</span>
 								</div>
@@ -782,8 +788,8 @@
 						{/if}
 					</div>
 
-					<!-- Foot: SIZE · VXP chip + tap/swipe hint. -->
-					<FlowCardFooter callSize={amountNum} {guided} />
+					<!-- Foot: SIZE · unit chip + tap/swipe hint. -->
+					<FlowCardFooter callSize={amountNum} {guided} {unitLabel} />
 				</div>
 
 				<!-- Swipe stamps: large centered YES / NO and a compact

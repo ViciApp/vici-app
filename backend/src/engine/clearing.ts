@@ -354,7 +354,8 @@ const loadSeriesOrders = async (
 
 /** The resting orders of one series' book, or of every series when none is
  * named. A resting order's price never changes, so the cached book prices any
- * order it holds; `fresh` reads past the cache for one placed since. */
+ * order it holds, but its quantity shrinks as it fills; `fresh` reads past the
+ * cache for one placed since or for its current quantity. */
 export const listSeriesOrders = async ({
 	seriesId,
 	fresh = false

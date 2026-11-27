@@ -7,7 +7,13 @@
 	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
-	import { VXP_DEFAULT_CALL_SIZE, type VxpCallSize } from '#lib/constants/vxp-economy.constants.ts';
+	import {
+		VXP_CALL_SIZE_STEP,
+		VXP_DEFAULT_CALL_SIZE,
+		VXP_MAX_CALL_SIZE,
+		VXP_MIN_CALL_SIZE,
+		type VxpCallSize
+	} from '#lib/constants/vxp-economy.constants.ts';
 	import { playgroundVxpUnitMode } from '#lib/derived/playground.derived.ts';
 	import { authPrincipal, userSignedIn } from '#lib/derived/user.derived.ts';
 	import { vxpSpendable } from '#lib/derived/vxp-holdings.derived.ts';
@@ -16,6 +22,7 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import type { CallSide, Market } from '#lib/types/market.ts';
+	import { isViciXp } from '#lib/utils/balance-domain.utils.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 	import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
@@ -42,7 +49,9 @@
 	 * and step are the economy constants, so every selectable value is a size
 	 * `executeOutcomeTrade` accepts on ViciXp markets. It opens at the default
 	 * size, and the "If right" figure is the net win the call would add, the
-	 * same preview Flow shows.
+	 * same preview Flow shows. A market on another balance domain trades in
+	 * its own token, which the VXP slider and net win do not model: it keeps a
+	 * plain amount range in that token and the gross payout.
 	 * No limit-order / target-price path lives here; the only submission
 	 * is a market order; the clearing layer still picks `MARKET` vs
 	 * `LIMIT` execution from live depth under the hood.
@@ -67,6 +76,7 @@
 		t({ locale: $localeStore, key, params });
 
 	let size = $state<VxpCallSize>(VXP_DEFAULT_CALL_SIZE);
+	let tokenAmount = $state<number>(VXP_DEFAULT_CALL_SIZE);
 
 	let loading = $state(false);
 	let error = $state('');
@@ -81,9 +91,20 @@
 		resolveOutcomeExecutionPrice({ market, action: selectedOutcome })
 	);
 
-	const netWin = $derived(
-		formatWholeVxpMagnitude(vxpNetWin({ amount: size, pWin: sideExecutionPrice }))
-	);
+	const viciXp = $derived(isViciXp(market.balanceDomain));
+	const amount = $derived(viciXp ? size : tokenAmount);
+
+	const payout = $derived.by(() => {
+		if (viciXp) {
+			return formatWholeVxpMagnitude(vxpNetWin({ amount: size, pWin: sideExecutionPrice }));
+		}
+
+		if (!Number.isFinite(sideExecutionPrice) || sideExecutionPrice <= 0) {
+			return tokenAmount;
+		}
+
+		return Math.round(tokenAmount / sideExecutionPrice);
+	});
 
 	// Available collateral for this market's balance domain; the shared
 	// "spendable margin" derivation, so the figure matches the wallet, the
@@ -127,7 +148,7 @@
 			await executeOutcomeTrade({
 				market,
 				action: selectedOutcome,
-				amount: String(size),
+				amount: String(amount),
 				orderType: 'MARKET',
 				source: 'market_detail'
 			});
@@ -184,20 +205,37 @@
 				</span>
 			</div>
 
-			<div class="confirm-size">
-				<CallSizeSlider
-					onValueChange={(next) => (size = next)}
-					source="market_detail"
-					value={size}
+			{#if viciXp}
+				<div class="confirm-size">
+					<CallSizeSlider
+						onValueChange={(next) => (size = next)}
+						source="market_detail"
+						value={size}
+					/>
+				</div>
+			{:else}
+				<div class="confirm-amount">
+					<span class="confirm-amount-value num">{tokenAmount}</span>
+					<span class="confirm-eyebrow">{market.token.symbol}</span>
+				</div>
+
+				<input
+					class="confirm-range"
+					aria-label={tr({ key: 'prediction.how_much' })}
+					max={VXP_MAX_CALL_SIZE}
+					min={VXP_MIN_CALL_SIZE}
+					step={VXP_CALL_SIZE_STEP}
+					type="range"
+					bind:value={tokenAmount}
 				/>
-			</div>
+			{/if}
 
 			<div class="confirm-payout">
 				<span class="confirm-payout-label">{tr({ key: 'prediction.if_right' })}</span>
 				<span class="confirm-payout-value num">
 					{tr({
 						key: 'prediction.payout',
-						params: { amount: netWin, symbol: market.token.symbol }
+						params: { amount: payout, symbol: market.token.symbol }
 					})}
 				</span>
 			</div>
@@ -302,6 +340,28 @@
 
 	.confirm-size {
 		margin-top: 0.75rem;
+	}
+
+	.confirm-amount {
+		display: flex;
+		align-items: baseline;
+		gap: 0.5rem;
+		margin-top: 0.75rem;
+	}
+
+	.confirm-amount-value {
+		font-family: var(--font-mono);
+		font-size: 2.25rem;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		color: var(--text-base);
+	}
+
+	.confirm-range {
+		width: 100%;
+		margin-top: 0.75rem;
+		accent-color: var(--accent);
+		cursor: pointer;
 	}
 
 	.confirm-payout {

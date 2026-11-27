@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: In progress (#TBD)
+Status: In progress (#1731)
 
 ## Goal
 
@@ -149,9 +149,12 @@ carries `source`, `marketId`, `label` (side) and no amount. Guest picks track `p
    "If right" figure changes from the gross return to the net win. The landing Markets "earns N VXP"
    copy uses the same function.
 7. **Flow card front** (`FlowCard.svelte`): `callSize` shows the actual size (drop the
-   `Math.max(VXP_DEFAULT_CALL_SIZE, …)`).
+   `Math.max(VXP_DEFAULT_CALL_SIZE, …)`), labelled VXP on ViciXp and with the playground unit on
+   the Settlement path, which renders the same card.
 8. **Market detail** (`TradeModal.svelte`): starts at `VXP_DEFAULT_CALL_SIZE` instead of the
-   smallest size; doc comment rewritten for the range.
+   smallest size; doc comment rewritten for the range. The slider and the net-win preview are for
+   ViciXp markets only: a market on another balance domain keeps a plain amount range in its own
+   token and the gross payout.
 9. **Landing Markets control:** reads the constants, uses the slider of item 5 and previews with
    `vxpNetWin`. If the landing PR merges first it already reads them, and this PR only verifies it.
 10. **Server-side bounds on the web2 API** (decision 1): see
@@ -275,7 +278,8 @@ VXP_MAX_CALL_SIZE]`; when a limit order's notional (`qty` × the share cost: the
   reads `list_orders` for the series (a query, cacheable for the same TTL; the market body gains
   `seriesId` for it), because the clearing Candid has no get-order-by-id. A resting order's price
   never changes, so the cached book prices any order it holds; an order placed since is read
-  fresh, and one still missing is looked up across every series, so a leg naming the wrong series
+  fresh. Its quantity only shrinks as it fills, so a pass on the cached quantity stands and a
+  refusal is confirmed on a fresh read of the order before it is answered. One still missing is looked up across every series, so a leg naming the wrong series
   is checked against the order it really takes. The ViciXp check reads the resting order's own
   series, never the client's `seriesId`. An order no book holds reaches the engine, which answers
   `order_not_found` as today. Order routes are

@@ -894,6 +894,39 @@ describe.if(dbAvailable)('order routes: ViciXp call size', () => {
 		expect(await market({ matchingOrderId: 'ASK_1' })).toEqual(REFUSED);
 	});
 
+	test('a market leg refused on the cached book is taken once fills have shrunk the order', async () => {
+		engineCalls = [];
+		let restingQty = BigInt(1_000);
+
+		mockProvider({
+			clearing: {
+				list_orders: () => Promise.resolve([{ ...ASK, qty: restingQty }]),
+				submit_market_order: () => {
+					engineCalls.push('market');
+
+					return Promise.resolve({ Ok: true });
+				}
+			},
+			registry: {
+				get_series: () => Promise.resolve(toNullable({ balance_domain: { ViciXp: null } }))
+			}
+		});
+
+		// 200 shares of the 0.40 ask cost 80, over a 50 VXP call.
+		expect(
+			await market({ matchingOrderId: 'ASK_1', seriesId: VXP_SERIES, qty: 200, callSize: 50 })
+		).toEqual(REFUSED);
+
+		// Fills leave 100 shares: the engine would take those for 40, though the
+		// cached book still shows 1,000.
+		restingQty = BigInt(100);
+
+		expect(
+			await market({ matchingOrderId: 'ASK_1', seriesId: VXP_SERIES, qty: 200, callSize: 50 })
+		).toEqual(TAKEN);
+		expect(engineCalls).toEqual(['market']);
+	});
+
 	test('a market leg naming another series is checked against the book it takes from', async () => {
 		mockBooks();
 
