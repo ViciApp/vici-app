@@ -21,12 +21,4 @@ dfx deploy vxp_ledger --network "$NETWORK" --upgrade-unchanged --mode reinstall 
 echo "Deploying vxp_index (reinstall)..."
 dfx deploy vxp_index --network "$NETWORK" --upgrade-unchanged --mode reinstall --yes
 
-echo "Initializing VXP treasury for satellite..."
-
-if [ -f "$SCRIPT_DIR/init/init.vxp-treasury.sh" ]; then
-	bash "$SCRIPT_DIR/init/init.vxp-treasury.sh" "$@"
-else
-	echo "Warning: $SCRIPT_DIR/init/init.vxp-treasury.sh not found."
-fi
-
-echo "VXP restart and initialization complete!"
+echo "VXP restart complete!"

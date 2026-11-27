@@ -19,11 +19,6 @@ docs:
     - frontend/stack-and-patterns.md
     - frontend/reusability.md
     - frontend/testing.md
-    - satellite/README.md
-    - satellite/structure.md
-    - satellite/patterns.md
-    - satellite/reusability.md
-    - satellite/testing.md
     - backend/README.md
     - backend/structure.md
     - backend/patterns.md
@@ -39,15 +34,14 @@ pull_request:
   # pull requests; this asks for it with the requester's own GitHub account instead.
   copilot_review: true
 
-# What a merge into main deploys: nothing. Releases run from `v*` tags (deploy.yml, publish.yml),
-# cut when a person merges the release-please PR; web2-deploy.yml is started by hand.
+# What a merge into main deploys: nothing. A person merges the release-please PR to cut a `v*` tag,
+# then starts web2-deploy.yml from it by hand.
 release:
   on_merge: nothing
 
 setup: ['npm ci', 'npm run prepare', 'bun install --cwd backend --frozen-lockfile']
 # The CI gates an agent sandbox can run. The sandbox has no Postgres, so its backend `bun test`
-# skips the DB-backed suites; CI runs them. Left to CI: `satellite-schema` (needs a global Juno CLI,
-# and any drift it finds lands in src/satellite/**, a red path the builder may not touch).
+# skips the DB-backed suites; CI runs them.
 verify:
   [
     'npm run quality',
@@ -67,17 +61,13 @@ lanes:
       # 1. The protected paths. docs/ai/governance.md#boundaries is their source: every row of that
       # table has its glob here, so a row added or removed there changes this block in the same PR.
       # Two of its rows have no glob because they never reach a diff: build output (gitignored, and
-      # no build here writes `out/`) and ../icdc-core (another repo). `.github/**` and
-      # `src/satellite/**` are wider here than the table's rows on purpose: in red, agents do not
-      # build CI or satellite code at all.
+      # no build here writes `out/`) and ../icdc-core (another repo). `.github/**` is wider here
+      # than the table's row on purpose: in red, agents do not build CI at all.
       - '.github/**'
       - 'package.json'
       - 'package-lock.json'
       - 'dfx.json'
-      - 'static/workers/**'
       - 'juno.config.ts'
-      - 'juno.collections.json'
-      - 'src/satellite/**'
       - 'src/declarations/**'
       - 'eslint.config.js'
       - '.prettierrc'
@@ -97,7 +87,7 @@ lanes:
       - 'scripts/lib/**'
       - 'scripts/init/**'
       # Root scripts deploy canisters, move tokens, run as the dfx identity or gate CI and releases
-      # (deploy.sh, send.tokens.sh, restart.*.sh, *-markets.sh, did.sh, satellite-upgrade-needed.mjs)
+      # (deploy.sh, send.tokens.sh, restart.*.sh, deploy-markets.sh, did.sh)
       - 'scripts/*'
       - 'scripts/test/**'
       - 'backend/package.json'
@@ -120,7 +110,6 @@ lanes:
       - 'backend/src/routes/auth.ts'
       - 'backend/src/routes/account.ts'
       - 'backend/src/routes/admin.ts'
-      - 'backend/src/routes/claim.ts'
       - 'backend/src/routes/engine.ts'
       - 'backend/src/routes/vxp.ts'
       - 'backend/src/routes/wallet.ts'
@@ -173,7 +162,6 @@ lanes:
       - 'src/lib/constants/authz.constants.ts'
       - 'src/lib/components/authn/**'
       - 'src/lib/services/identity*.ts'
-      - 'src/lib/schema/auth-identity.schema.ts'
 
   standard:
     paths: ['**']

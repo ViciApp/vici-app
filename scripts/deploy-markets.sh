@@ -23,10 +23,9 @@
 #
 # NOT consumed by this script (kept for parity with the FE create flow, but
 # `add_series` has no field for them):
-#   - `categories`: market TAGS live off-chain in the Juno `MARKET_METADATA`
-#     collection (written via the satellite, see market-tags.services.ts), not
-#     on the registry series. A deck deployed here registers UNTAGGED; tag it
-#     separately (admin UI, or a future metadata seeder).
+#   - `categories`: market TAGS live off-chain in the API's market metadata
+#     (`PUT /api/v1/markets/:seriesId/metadata`), not on the registry series.
+#     A deck deployed here registers UNTAGGED; tag it through the API.
 #   - `inviteOnly`: trading_access is fixed to `Open` here.
 #   - `balanceDomain`: fixed to `ViciXp` here.
 #   - `consensus` and any other unknown keys are ignored.

@@ -5,11 +5,7 @@ name: Release Please
 # On every push to `main`, release-please maintains a standing "release PR"
 # that bumps the version and regenerates CHANGELOG.md from the commits since
 # the last release. Merging that PR cuts a `vX.Y.Z` tag + GitHub Release,
-# which is exactly the event `deploy.yml` and `publish.yml` already trigger
-# on (`push: tags: v*`). So merging the release PR is the deliberate ship.
-#
-# It bumps BOTH `package.json#version` and `package.json#juno.functions.version`
-# in lockstep (see release-please-config.json `extra-files`).
+# the ref `web2-deploy.yml` is dispatched from to ship it.
 #
 # BUMP POLICY: `versioning: always-bump-patch` (release-please-config.json): so
 # EVERY release is a patch by default, regardless of commit type. `feat:` does
@@ -19,7 +15,7 @@ name: Release Please
 # and the next release PR targets that exact version. Conventional Commit types
 # still drive the CHANGELOG sections; they just no longer drive the bump.
 #
-# TOKEN: for the cut tag to trigger deploy.yml/publish.yml, release-please
+# TOKEN: for the cut tag to trigger the tag runs of checks.yml, release-please
 # must create it with a token OTHER than the default GITHUB_TOKEN. Tags
 # (and PRs) created with GITHUB_TOKEN do not trigger further workflow runs.
 # The vici-release-bot GitHub App (owned by the ViciApp org) mints a
@@ -59,6 +55,6 @@ jobs:
           manifest-file: .release-please-manifest.json
           # Pinned to main, not github.ref_name: workflow_dispatch can run from
           # any branch, and a dynamic target would let a dispatch on a non-main
-          # branch cut a v* tag there, which deploy.yml/publish.yml trigger on
-          # (push: tags: v*). Releases only ever come off main.
+          # branch cut a v* tag there, the ref web2-deploy.yml ships from.
+          # Releases only ever come off main.
           target-branch: main
