@@ -1,4 +1,5 @@
 import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
 import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
@@ -55,5 +56,33 @@ export const stashLeagueInviteForSignup = ({
 		localStorage.setItem(PENDING_ONBOARDING_STORAGE_KEY, JSON.stringify(parsed));
 	} catch {
 		// Swallowed by design: see the doc comment.
+	}
+};
+
+/**
+ * The referral code an earlier `?ref=` capture stashed for sign-up, when the
+ * stash holds a well-formed one. Best-effort like the stash itself: blocked
+ * storage or garbage reads as none.
+ */
+export const readPendingReferralCode = (): string | undefined => {
+	if (!browser) {
+		return;
+	}
+
+	try {
+		const raw = localStorage.getItem(PENDING_ONBOARDING_STORAGE_KEY);
+		const parsed: unknown = isNullish(raw) ? undefined : JSON.parse(raw);
+
+		if (typeof parsed !== 'object' || isNullish(parsed) || !('referralCode' in parsed)) {
+			return;
+		}
+
+		const { referralCode } = parsed;
+
+		return typeof referralCode === 'string' && REFERRAL_CODE_REGEX.test(referralCode)
+			? referralCode
+			: undefined;
+	} catch {
+		// Swallowed by design: a join never depends on the stash.
 	}
 };

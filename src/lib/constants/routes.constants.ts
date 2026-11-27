@@ -45,5 +45,7 @@ export enum PublicPath {
 	 * marketing page, redirect to it.
 	 */
 	Landing = '/',
-	Info = '/info'
+	Info = '/info',
+	/** The emailed "remove me" link of the waitlist: deletes a reservation without signing in. */
+	WaitlistRemove = '/waitlist/remove'
 }

@@ -17,6 +17,18 @@ export const jaMessages = {
 	'landing.claim.confirm_failed': 'コードを確認できませんでした。もう一度どうぞ。',
 	'landing.claim.confirming': 'コードを確認中…',
 	'landing.claim.consent': 'メールはウェイトリストの順番を確保するために使います。',
+	'landing.claim.bot_check_failed':
+		'人間であることを確認できませんでした。もう一度お試しください。',
+	'landing.claim.email_not_accepted':
+		'使い捨てのメールアドレスは使えません。普段使うアドレスを入力してください。',
+	'landing.claim.handle_refused': '@{handle} は使えません。別の名前をどうぞ。',
+	'waitlist.remove.body':
+		'ウェイトリストの予約を削除します。メールアドレス、ハンドル、それに紐づくすべてのデータが消え、ハンドルはすぐに解放されます。',
+	'waitlist.remove.cta': 'ウェイトリストから外れる',
+	'waitlist.remove.done': '完了しました。予約とそのデータは削除されました。',
+	'waitlist.remove.failed': '削除できませんでした。もう一度お試しください。',
+	'waitlist.remove.missing': 'このリンクは不完全です。メールからもう一度開いてください。',
+	'waitlist.remove.title': 'ウェイトリストから外れる',
 	'landing.claim.cta.claim': '確保する',
 	'landing.claim.dialog': 'ハンドルを確保',
 	'landing.claim.done': 'ハンドルを確保しました。ウェイトリストに登録済みです。',

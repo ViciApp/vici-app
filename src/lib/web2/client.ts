@@ -1,5 +1,6 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
 import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import type { WaitlistSource, WaitlistState } from '#lib/constants/waitlist.constants.ts';
 import type { LeaguePrivacy } from '#lib/enums/league.ts';
 import type { ProfileVisibility } from '#lib/enums/profile.ts';
 import type { UserRole } from '#lib/enums/user.ts';
@@ -328,6 +329,74 @@ export const googleSignInUrl = ({ returnTo }: { returnTo?: string } = {}): strin
 	}
 
 	return `${url}?returnTo=${encodeURIComponent(returnTo)}`;
+};
+
+/**
+ * Ask the waitlist to email a code that holds `handle` for `email` while it
+ * lives (`codeTtlMs`). The answer is the same whether or not the address
+ * already has an account; a refusal (`email_invalid`, `email_not_accepted`,
+ * `handle_invalid`, `handle_taken`, `turnstile_*`, `rate_limited`) throws
+ * {@link Web2ApiError}.
+ */
+export const requestWaitlistCode = async (body: {
+	handle: string;
+	email: string;
+	turnstileToken: string;
+	privacyVersion: string;
+	source: WaitlistSource;
+	locale: AppLocale;
+	referralCode?: string;
+	challengeId?: string;
+}): Promise<{ codeTtlMs: number }> => {
+	const { codeTtlMs } = await request<{ ok: true; codeTtlMs: number }>({
+		path: '/api/v1/waitlist/code',
+		method: 'POST',
+		body
+	});
+
+	return { codeTtlMs };
+};
+
+/**
+ * Confirm the emailed waitlist code: answers the handle now held and the
+ * private token that later reads the reservation back. Mints no session.
+ * A wrong code throws {@link Web2ApiError} `invalid_code` (401), a lapsed one
+ * `expired_code` (410), a handle lost meanwhile `handle_taken` (409).
+ */
+export const confirmWaitlistCode = async (body: {
+	email: string;
+	code: string;
+}): Promise<{ handle: string; statusToken: string }> =>
+	await request<{ handle: string; statusToken: string }>({
+		path: '/api/v1/waitlist/confirm',
+		method: 'POST',
+		body
+	});
+
+/** The reservation a status token names; a removed or lapsed one throws
+ * {@link Web2ApiError} `not_found` (404). The token rides the body, never a URL. */
+export const readWaitlistStatus = async ({
+	statusToken
+}: {
+	statusToken: string;
+}): Promise<{ handle: string; state: WaitlistState }> =>
+	await request<{ handle: string; state: WaitlistState }>({
+		path: '/api/v1/waitlist/status',
+		method: 'POST',
+		body: { statusToken }
+	});
+
+/** Delete the reservation the emailed remove link names. Answers the same
+ * whether or not one was there. */
+export const removeWaitlistReservation = async (body: {
+	id: string;
+	token: string;
+}): Promise<void> => {
+	await request<{ removed: true }>({
+		path: '/api/v1/waitlist/remove',
+		method: 'POST',
+		body
+	});
 };
 
 export const postEvents = async ({

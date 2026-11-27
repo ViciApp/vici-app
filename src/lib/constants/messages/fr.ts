@@ -359,6 +359,17 @@ export const frMessages = {
 	'landing.claim.confirm_failed': 'Impossible de vérifier le code. Réessaie.',
 	'landing.claim.confirming': 'Vérification de ton code…',
 	'landing.claim.consent': "Ton email garde ta place sur la liste d'attente.",
+	'landing.claim.bot_check_failed': 'Impossible de vérifier que tu es humain. Réessaie.',
+	'landing.claim.email_not_accepted':
+		'Les adresses email temporaires ne sont pas acceptées. Utilise une adresse que tu gardes.',
+	'landing.claim.handle_refused': '@{handle} ne peut pas être réservé. Essaie un autre.',
+	'waitlist.remove.body':
+		"Cela supprime ta réservation sur la liste d'attente : ton email, ton handle et tout ce qui est conservé avec eux. Le handle est libéré aussitôt.",
+	'waitlist.remove.cta': "Me retirer de la liste d'attente",
+	'waitlist.remove.done': "C'est fait. Ta réservation et ses données sont supprimées.",
+	'waitlist.remove.failed': 'Impossible de la supprimer. Réessaie.',
+	'waitlist.remove.missing': 'Ce lien est incomplet. Rouvre-le depuis ton email.',
+	'waitlist.remove.title': "Quitter la liste d'attente",
 	'landing.claim.cta.claim': 'Réserver',
 	'landing.claim.dialog': 'Réserve ton handle',
 	'landing.claim.done': "Handle réservé. Tu es sur la liste d'attente.",

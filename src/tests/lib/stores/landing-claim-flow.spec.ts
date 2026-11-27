@@ -1,3 +1,4 @@
+import type { WaitlistSource } from '#lib/constants/waitlist.constants.ts';
 import type { PublicHandleAvailability } from '#lib/services/handle-availability.services.ts';
 import type { LandingClaimFlow as LandingClaimFlowType } from '#lib/stores/landing-claim-flow.svelte.ts';
 import type { LandingClaimError, LandingClaimSubmit } from '#lib/types/landing-claim.ts';
@@ -8,6 +9,9 @@ interface Deferred<T> {
 	promise: Promise<T>;
 	resolve: (value: T) => void;
 }
+
+const CODE_TTL_MS = 600_000;
+const SENT = { ok: true, codeTtlMs: CODE_TTL_MS } as const;
 
 const deferred = <T>(): Deferred<T> => {
 	let resolve: (value: T) => void = () => {};
@@ -39,7 +43,8 @@ const setup = () => {
 	const codeRequests: {
 		handle: string;
 		email: string;
-		answer: Deferred<{ ok: true } | LandingClaimError>;
+		source: WaitlistSource;
+		answer: Deferred<{ ok: true; codeTtlMs: number } | LandingClaimError>;
 	}[] = [];
 	const confirms: {
 		email: string;
@@ -48,9 +53,9 @@ const setup = () => {
 	}[] = [];
 
 	const submit: LandingClaimSubmit = {
-		requestCode: ({ handle, email }) => {
-			const answer = deferred<{ ok: true } | LandingClaimError>();
-			codeRequests.push({ handle, email, answer });
+		requestCode: ({ handle, email, source }) => {
+			const answer = deferred<{ ok: true; codeTtlMs: number } | LandingClaimError>();
+			codeRequests.push({ handle, email, source, answer });
 
 			return answer.promise;
 		},
@@ -59,7 +64,9 @@ const setup = () => {
 			confirms.push({ email, code, answer });
 
 			return answer.promise;
-		}
+		},
+		cachedHandle: () => undefined,
+		restore: () => Promise.resolve(undefined)
 	};
 
 	const flow = new LandingClaimFlow({
@@ -69,7 +76,8 @@ const setup = () => {
 			checks.push({ handle, answer });
 
 			return answer.promise;
-		}
+		},
+		source: () => 'markets'
 	});
 	flows.push(flow);
 
@@ -98,7 +106,7 @@ const toCodeStep = async ({
 	ctx.flow.inputEmail(email);
 
 	const pressed = ctx.flow.next();
-	ctx.codeRequests[ctx.codeRequests.length - 1].answer.resolve({ ok: true });
+	ctx.codeRequests[ctx.codeRequests.length - 1].answer.resolve(SENT);
 
 	assert.deepEqual(await pressed, { kind: 'advanced' });
 	assert.equal(ctx.flow.step, 'code');
@@ -186,9 +194,11 @@ describe('LandingClaimFlow', () => {
 
 			await toCodeStep({ ctx, email: '  a@b.co ' });
 
+			const [request] = ctx.codeRequests;
+
 			assert.deepEqual(
-				{ handle: ctx.codeRequests[0].handle, email: ctx.codeRequests[0].email },
-				{ handle: 'alice', email: 'a@b.co' }
+				{ handle: request.handle, email: request.email, source: request.source },
+				{ handle: 'alice', email: 'a@b.co', source: 'markets' }
 			);
 		});
 
@@ -199,7 +209,7 @@ describe('LandingClaimFlow', () => {
 			ctx.flow.inputEmail('a@b.co');
 			const pressed = ctx.flow.next();
 			ctx.flow.inputEmail('c@d.co');
-			ctx.codeRequests[0].answer.resolve({ ok: true });
+			ctx.codeRequests[0].answer.resolve(SENT);
 
 			assert.deepEqual(await pressed, { kind: 'ignored' });
 			assert.equal(ctx.flow.step, 'email');
@@ -214,7 +224,7 @@ describe('LandingClaimFlow', () => {
 			const pressed = ctx.flow.next();
 			ctx.flow.cancel();
 			ctx.flow.reopen();
-			ctx.codeRequests[0].answer.resolve({ ok: true });
+			ctx.codeRequests[0].answer.resolve(SENT);
 
 			assert.deepEqual(await pressed, { kind: 'ignored' });
 			assert.equal(ctx.flow.step, 'handle');
@@ -246,6 +256,33 @@ describe('LandingClaimFlow', () => {
 			assert.equal(ctx.flow.step, 'handle');
 			assert.deepEqual(ctx.flow.check, { kind: 'taken' });
 			assert.equal(ctx.flow.email, 'a@b.co');
+		});
+
+		it('sends the visitor back to the handle when the waitlist refuses it', async () => {
+			const ctx = setup();
+
+			await toEmailStep(ctx);
+			ctx.flow.inputEmail('a@b.co');
+			const pressed = ctx.flow.next();
+			ctx.codeRequests[0].answer.resolve({ error: 'handle_invalid' });
+
+			assert.deepEqual(await pressed, { kind: 'refused' });
+			assert.equal(ctx.flow.step, 'handle');
+			assert.deepEqual(ctx.flow.notice, { kind: 'refused', refusal: 'handle_invalid' });
+		});
+
+		it('reads its own pending hold as free, without a probe', async () => {
+			const ctx = setup();
+
+			await toCodeStep({ ctx });
+			ctx.flow.reopen();
+			const probes = ctx.checks.length;
+			ctx.flow.inputHandle('alic');
+			ctx.flow.inputHandle('alice');
+
+			assert.deepEqual(ctx.flow.check, { kind: 'free' });
+			assert.deepEqual(await ctx.flow.next(), { kind: 'advanced' });
+			assert.equal(ctx.checks.length, probes);
 		});
 	});
 

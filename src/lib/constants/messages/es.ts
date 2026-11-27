@@ -362,6 +362,17 @@ export const esMessages = {
 	'landing.claim.confirm_failed': 'No se pudo comprobar el código. Inténtalo de nuevo.',
 	'landing.claim.confirming': 'Comprobando tu código…',
 	'landing.claim.consent': 'Tu email guarda tu sitio en la lista de espera.',
+	'landing.claim.bot_check_failed':
+		'No pudimos comprobar que eres una persona. Inténtalo de nuevo.',
+	'landing.claim.email_not_accepted': 'No se aceptan emails temporales. Usa uno que conserves.',
+	'landing.claim.handle_refused': '@{handle} no se puede reservar. Prueba otro.',
+	'waitlist.remove.body':
+		'Esto borra tu reserva en la lista de espera: tu email, tu handle y todo lo guardado con ellos. El handle queda libre al momento.',
+	'waitlist.remove.cta': 'Sácame de la lista de espera',
+	'waitlist.remove.done': 'Hecho. Tu reserva y sus datos se han borrado.',
+	'waitlist.remove.failed': 'No se pudo borrar. Inténtalo de nuevo.',
+	'waitlist.remove.missing': 'Este enlace está incompleto. Ábrelo de nuevo desde tu email.',
+	'waitlist.remove.title': 'Salir de la lista de espera',
 	'landing.claim.cta.claim': 'Reservar',
 	'landing.claim.dialog': 'Reserva tu handle',
 	'landing.claim.done': 'Handle reservado. Estás en la lista de espera.',
