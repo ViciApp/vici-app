@@ -192,6 +192,16 @@ resolved markets show 100% / 0%. The detail page first-paints from a
 fast query, then upgrades to the certified read. See
 [`specs/2026-06-14-fix-market-odds-skeletons.md`](./spec-driven-development/specs/2026-06-14-fix-market-odds-skeletons.md).
 
+### Flow cards and market charts: real numbers only
+
+A Flow card and the market chart never show an invented number. The
+"+N today" line counts the trades really made on the market over about
+the last day (whole hours, never more than really happened) and stays hidden until that count has loaded (or when it is
+zero); a friends split shows only when both counts are known; the "this
+week" move shows only when the market has price history; and a market
+with no trades draws a flat line at its live price instead of a made-up
+curve. See [`design.md` § 7.11](./frontend/design.md#711-card-numbers-real-or-hidden).
+
 ### Market pricing: maker-liquidity disclosure
 
 The market detail page states, in plain language, where the line comes
