@@ -67,6 +67,7 @@ Row states, computed by one pure function from the pending calls, the live marke
 - **Between sheet and fill.** The "now" price is a quote. If the market closes or the book empties between rendering and execution, that row reports the existing typed failure (`MarketClosedError`, a zero fill) inline and the others proceed. A partial fill is reported as what it filled.
 - **Result.** The sheet ends on a summary: each call with its real entry price ("Yes at 44%"), each failure with its reason, and the VXP committed. Pending calls are then cleared, whatever the outcome of each row.
 - **"Not now"** closes the sheet and keeps the pending calls for one more session: the sheet is offered once more on the next session, then the calls are discarded. Nothing is ever placed without the confirm tap.
+- **Deferral marker.** The pending-calls record carries `deferredSessionId: string | null` next to the calls. "Not now" sets it to the current session id (`sessionId` of the analytics session, which is per browser session). On the next sign-in or app open: if it is null, the sheet opens normally; if it equals the current session id, the sheet stays closed (the user already deferred in this session); if it is a different session id, the sheet opens one last time, and a second "Not now" (or closing it) clears the pending calls instead of deferring again. A confirm, the summary, or the 7-day expiry clear the whole record, marker included.
 
 ### 4. When the starter VXP is not there yet
 
