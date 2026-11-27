@@ -461,14 +461,18 @@ export default defineConfig(({ mode }) => ({
 	},
 	emulator: {
 		runner: {
-			type: 'docker'
+			type: 'docker',
+			// Juno is deprecated and its images get no more fixes, so the
+			// emulator stays on the last release we tested against, by digest:
+			// a final push to `latest` cannot change CI under us.
+			image:
+				'junobuild/satellite:0.6.13@sha256:8dce05a2b276f8de8607747a3e72e3fb8d140fa1bf8a31c09d8c896c4b3d4f68'
 		},
-		// `satellite` profile boots the minimal single-satellite emulator
-		// (`junobuild/satellite:latest`). The `skylab` profile boots the
-		// full Juno suite (`junobuild/skylab:latest`) with the dev Console,
-		// but `juno functions build` exits silently with code 1 against it
-		// (see commit 693c6a6 for the same revert we did earlier). Stick to
-		// `satellite` until juno-cli fixes the skylab build path.
+		// `satellite` profile boots the minimal single-satellite emulator.
+		// The `skylab` profile boots the full Juno suite with the dev
+		// Console, but `juno functions build` exits silently with code 1
+		// against it (see commit 693c6a6 for the same revert we did earlier),
+		// and juno-cli will not fix that any more.
 		satellite: {}
 	}
 }));

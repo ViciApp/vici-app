@@ -9,13 +9,13 @@ import { j, PrincipalTextSchema } from '@junobuild/schema';
  * [src/lib/constants/locale.constants.ts](src/lib/constants/locale.constants.ts)
  * at write time.
  */
-export const AppLocaleSchema = j.string();
+const AppLocaleSchema = j.string();
 
 /**
  * Per-outcome translation entry. `id` is the on-chain outcome id and `title`
  * is the translated outcome title.
  */
-export const OutcomeTranslationSchema = j.strictObject({
+const OutcomeTranslationSchema = j.strictObject({
 	id: j.string(),
 	title: j.string()
 });

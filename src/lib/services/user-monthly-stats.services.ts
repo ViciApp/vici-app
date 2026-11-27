@@ -52,7 +52,7 @@ interface MonthBucket {
  * side at: the same value the `contrarian` achievement reads as the
  * consensus-at-call. Pure: no IO.
  */
-export const bucketMonthlyStats = (history: ClearingDid.Event[]): Record<string, MonthBucket> => {
+const bucketMonthlyStats = (history: ClearingDid.Event[]): Record<string, MonthBucket> => {
 	const settled = history
 		.filter(isSettledEvent)
 		// Newest first so, once a month's consensus array hits the cap, the
@@ -171,7 +171,7 @@ export const syncMyMonthlyStats = async ({
  * placed at (or `undefined` if not top-3); `wonBoldCaller` is whether the
  * caller won (or tied for) that month's bold-caller award.
  */
-export interface MonthlyAwardStanding {
+interface MonthlyAwardStanding {
 	sharpestEyeTier?: 'gold' | 'silver' | 'bronze';
 	wonBoldCaller: boolean;
 }

@@ -6,7 +6,7 @@ import {
 } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 
-export interface LoadWithCertificationParams<R> {
+interface LoadWithCertificationParams<R> {
 	request: (options: { certified: boolean; identity: Identity }) => Promise<R>;
 	onLoad: (options: { certified: boolean; response: R }) => void;
 	onUpdateError?: (error: unknown) => void;
