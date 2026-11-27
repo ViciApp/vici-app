@@ -7,11 +7,14 @@ starting point. Read it once per session.
 
 ## The satellite takes fixes only
 
-Juno was deprecated by its maintainer in November 2026: the Console and
-juno.build stay online until about December 2027, but the CLI, the
-`@junobuild/*` packages, the GitHub Action and the Docker images get no more
-bug fixes or security patches. The satellite canister itself is ours and keeps
-running on the IC without them.
+Juno is deprecated and no longer maintained, as its
+[README](https://github.com/junobuild/juno#readme) and the Console banner say
+since 2026-11-27. The maintainer's announcement to Juno users that day adds
+that the Console and juno.build stay online for one more year (until about
+December 2027) without fixes, and that the CLI, the `@junobuild/*` packages,
+the GitHub Action and the Docker images get no more bug fixes or security
+patches. The satellite canister itself is ours and keeps running on the IC
+without them.
 
 So the satellite, and every path of the frontend that only the default
 (`web3`) build uses, is frozen:
