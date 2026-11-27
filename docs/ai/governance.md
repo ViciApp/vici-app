@@ -116,7 +116,7 @@ row added or removed here changes that list in the same PR.
 | `backend/src/lib/{cookie,crypto,keys,rate-limit,email,ic-agent}.ts`    | Session, key, abuse-protection, email and IC identity primitives.                 | repo maintainers |
 | `backend/src/lib/same-origin.ts`                                       | The CSRF guard every write passes.                                                | repo maintainers |
 | `backend/src/declarations/**`                                          | **Generated** Candid bindings for the backend. Regenerate, never hand-edit.       | repo maintainers |
-| `backend/scripts/etl/**`, `backend/e2e/**`                             | Legacy data migration; test-only server with fake engine and seed.                | repo maintainers |
+| `backend/e2e/**`                                                       | Test-only server with fake engine and seed.                                       | repo maintainers |
 | `static/workers/**`                                                    | Synced from `@junobuild/core` by `npm run postinstall`. Don't hand-edit.          | -                |
 | `node_modules/`, `target/`, `.svelte-kit/`, `build/`, `out/`, `.dfx/`  | Build output. Never commit.                                                       | -                |
 | `../icdc-core/**`                                                      | External repo. Open it as a separate workspace; obey its `AGENTS.md`.             | icdc-core team   |

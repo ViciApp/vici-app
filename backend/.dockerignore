@@ -14,11 +14,6 @@ node_modules/
 # Local secrets: production reads its env from Fly secrets, never a file.
 .env*
 
-# The test suite and the ETL, run from a checkout (see README.md), never on a
-# deployed machine.
+# The test suite runs from a checkout (see README.md), never on a deployed
+# machine.
 tests/
-scripts/
-
-# ETL snapshots (`etl:export -- ./etl-export`, `./etl-export-delta`) hold
-# legacy user data and live next to scripts/ in a checkout.
-etl-export*/

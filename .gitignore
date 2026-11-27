@@ -39,9 +39,9 @@ target
 # Backend local-disk upload fallback (dev/test artifacts)
 /backend/uploads/
 
-# ETL snapshots of the legacy collections (backend/README.md runbook) hold user data
+# Snapshots left by the retired legacy data import hold user data
 /backend/etl-export*/
 
-# Cutover sheets and reports (backend/README.md "Cutover") hold user emails
+# Sheets and reports left by the retired account handover hold user emails
 /backend/*.csv
 /backend/cutover-*.jsonl

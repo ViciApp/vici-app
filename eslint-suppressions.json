@@ -1,22 +1,4 @@
 {
-	"backend/scripts/etl/export-collections.ts": {
-		"max-depth": {
-			"count": 1
-		}
-	},
-	"backend/scripts/etl/transforms.ts": {
-		"complexity": {
-			"count": 1
-		},
-		"max-lines": {
-			"count": 1
-		}
-	},
-	"backend/scripts/etl/verify-parity.ts": {
-		"max-depth": {
-			"count": 2
-		}
-	},
 	"backend/src/auth/claim.ts": {
 		"complexity": {
 			"count": 2
@@ -104,11 +86,6 @@
 		}
 	},
 	"backend/tests/engine.test.ts": {
-		"max-lines": {
-			"count": 1
-		}
-	},
-	"backend/tests/etl-transforms.test.ts": {
 		"max-lines": {
 			"count": 1
 		}
