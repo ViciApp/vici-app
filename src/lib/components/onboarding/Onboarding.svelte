@@ -10,7 +10,10 @@
 	import { newUserVxpAmountMilestone1BaseUnits } from '#lib/constants/vxp-onboarding.constants.ts';
 	import { featuredEvent } from '#lib/derived/featured-event.derived.ts';
 	import { track } from '#lib/services/analytics.services.ts';
-	import { checkHandleAvailabilityPublic } from '#lib/services/handle-availability.services.ts';
+	import {
+		checkHandleAvailability,
+		handleProbeFailureOf
+	} from '#lib/services/handle-availability.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { OnboardingPicks } from '#lib/types/onboarding.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
@@ -119,7 +122,7 @@
 	// `handle_checked` event.
 	const usingSuggestion = $derived(cleaned.length === 0);
 
-	type LiveAvailability = 'idle' | 'checking' | 'available' | 'taken' | 'failed';
+	type LiveAvailability = 'idle' | 'checking' | 'available' | 'taken' | 'failed' | 'rate_limited';
 	let liveAvailability = $state<LiveAvailability>('idle');
 	let checkToken = 0;
 	let checkTimer: ReturnType<typeof setTimeout> | undefined;
@@ -155,9 +158,10 @@
 
 	// Debounced live probe. A monotonic token cancels the in-flight check on
 	// each keystroke so stale results drop. Offline-tolerant: a failure
-	// surfaces as `failed` but never blocks the claim; the claim-time
-	// re-check and the satellite assertion are the authority. Fires
-	// `handle_checked` once a typed-handle probe completes.
+	// surfaces as `failed` (or `rate_limited` when throttled) but never
+	// blocks the claim; the claim-time re-check and the satellite assertion
+	// are the authority. Fires `handle_checked` once a typed-handle probe
+	// completes.
 	$effect(() => {
 		const candidate = selectedName;
 		const probe = formatValid;
@@ -187,7 +191,7 @@
 		checkTimer = setTimeout(() => {
 			void (async () => {
 				try {
-					const res = await checkHandleAvailabilityPublic({ handle: candidate });
+					const res = await checkHandleAvailability({ handle: candidate });
 
 					if (token !== checkToken) {
 						return;
@@ -211,7 +215,8 @@
 					}
 
 					console.warn(`Live availability check failed for "${candidate}":`, err);
-					liveAvailability = 'failed';
+					liveAvailability =
+						handleProbeFailureOf(err) === 'rate_limited' ? 'rate_limited' : 'failed';
 				}
 			})();
 		}, CHECK_DEBOUNCE_MS);
@@ -274,6 +279,12 @@
 			return { ok: true, tone: 'neutral', reasonKey: 'onboarding.avail.check_failed' };
 		}
 
+		// Throttled: the same non-blocking state, worded so the user stops
+		// retyping to get an answer.
+		if (liveAvailability === 'rate_limited') {
+			return { ok: true, tone: 'neutral', reasonKey: 'onboarding.avail.rate_limited' };
+		}
+
 		return { ok: true, tone: 'ok' };
 	});
 
@@ -291,7 +302,7 @@
 		isClaiming = true;
 
 		try {
-			const res = await checkHandleAvailabilityPublic({ handle: selectedName });
+			const res = await checkHandleAvailability({ handle: selectedName });
 
 			if (!res.available) {
 				sessionTaken.add(selectedName);

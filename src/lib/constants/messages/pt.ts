@@ -14,6 +14,8 @@ export const ptMessages = {
 	'trade.error.generic': 'Não foi possível colocar a tua previsão. Tenta novamente daqui a pouco.',
 	'trade.error.insufficient_margin':
 		'Saldo disponível insuficiente: esta previsão precisa de {required}, mas tens {available}. Fica livre à medida que as tuas previsões em aberto são resolvidas.',
+	'trade.error.invalid_call_size':
+		'Esse tamanho de call não está disponível. Escolhe um tamanho no controlo e tenta novamente.',
 	'trade.error.market_closed': 'Este mercado acabou de fechar: as previsões já não estão abertas.',
 	'trade.error.not_authorized_to_trade': 'Não tens acesso a este mercado.',
 	'trade.error.not_order_creator': 'Só podes cancelar as tuas próprias ordens.',
@@ -768,6 +770,7 @@ export const ptMessages = {
 	'card.back.who_calling': 'Quem está a prever o quê',
 	'card.call_size': 'TAMANHO DA CALL',
 	'card.call_size_cap': 'TAMANHO DA CALL · LIMITE',
+	'card.call_size_value': '{amount} VXP',
 	'card.days_left_aria': '{days} dias restantes',
 	'card.favorite': 'FAVORITO',
 	'card.followed_friend_plural': 'amigos',
@@ -1769,6 +1772,7 @@ export const ptMessages = {
 	'onboarding.avail.too_long': 'Longo demais: máximo 16 caracteres',
 	'onboarding.avail.reserved': 'Reservado: escolha outro',
 	'onboarding.avail.check_failed': 'Não foi possível verificar: tente reivindicar',
+	'onboarding.avail.rate_limited': 'Demasiadas verificações: tente reivindicar',
 	'onboarding.reward_title': 'Pacote inicial de {amount} VXP',
 	'onboarding.reward_sub': 'Faça palpites em {event}',
 	'onboarding.lock_ready': 'Reservando @{handle}',

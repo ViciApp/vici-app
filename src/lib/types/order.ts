@@ -5,6 +5,12 @@ export type OrderType = 'LIMIT' | 'MARKET';
 
 export type OrderSide = 'BUY' | 'SELL';
 
+/**
+ * The surface a call was sized and placed from: the analytics `source` of
+ * `position_taken`, `order_placed` and `call_size_set`. A closed vocabulary.
+ */
+export type CallSource = 'flow' | 'market_detail' | 'landing';
+
 export interface Order {
 	id: string;
 	marketId: MarketId;

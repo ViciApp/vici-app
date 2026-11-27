@@ -5,19 +5,13 @@ import { leagueStatsKey, type LeagueStatsDoc } from '#lib/types/league-stats.ts'
 import type { UserProfile } from '#lib/types/profile.ts';
 import type { CategoryStatsBucket, UserStatsDoc } from '#lib/types/user-stats.ts';
 import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
+import { memberLeagueRows } from '#satellite/services/league-member.services.ts';
 import { isHibernated } from '#satellite/services/profile.services.ts';
-import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import type { AssertSetDocContext, OnSetDocContext } from '@junobuild/functions';
-import {
-	decodeDocData,
-	encodeDocData,
-	getDocStore,
-	listDocsStore,
-	setDocStore
-} from '@junobuild/functions/sdk';
+import { decodeDocData, encodeDocData, getDocStore, setDocStore } from '@junobuild/functions/sdk';
 
 const LEAGUE_STATS_WRITE_PURPOSE = 'league_stats fan-out';
 
@@ -215,17 +209,7 @@ export const onProfileSetForLeagueStats = (ctx: OnSetDocContext): void => {
 	const callerText = Principal.fromUint8Array(caller).toText();
 	const nowMs = timeMs();
 
-	// Scan the caller's memberships only. Key shape
-	// `${leagueId}/${memberPrincipal}`, so a key matcher anchored to the
-	// caller suffix bounds the read to their rows instead of scanning every
-	// membership in the collection.
-	const { items } = listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller,
-		params: { matcher: { key: `/${escapeRegex(callerText)}$` } }
-	});
-
-	for (const [, item] of items) {
+	for (const [, item] of memberLeagueRows({ memberPrincipal: callerText, caller })) {
 		let memberDoc: LeagueMemberDoc | undefined;
 
 		try {
@@ -387,17 +371,7 @@ export const onUserStatsSetForLeagueStats = (ctx: OnSetDocContext): void => {
 
 	const nowMs = timeMs();
 
-	// Scan the caller's memberships only. Key shape
-	// `${leagueId}/${memberPrincipal}`, so a key matcher anchored to the
-	// caller suffix bounds the read to their rows instead of scanning every
-	// membership in the collection.
-	const { items } = listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller,
-		params: { matcher: { key: `/${escapeRegex(callerText)}$` } }
-	});
-
-	for (const [, item] of items) {
+	for (const [, item] of memberLeagueRows({ memberPrincipal: callerText, caller })) {
 		let memberDoc: LeagueMemberDoc | undefined;
 
 		try {

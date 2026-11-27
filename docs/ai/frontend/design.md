@@ -25,9 +25,9 @@ govern Flow Mode (§7). Tick rows off as PRs land.
 
 The companion guidance lives in:
 
-- [`brand.md`](./brand.md): palette, typography triad, voice & tone,
-  iconography, character cast, copy patterns. The brand book lives
-  there; this file is the surface roster.
+- [`brand.md`](./brand.md): palette, typography triad, landing display
+  face, voice & tone, iconography, character cast, copy patterns. The
+  brand book lives there; this file is the surface roster.
 - [`reusability.md`](./reusability.md): extend existing components before
   adding new ones.
 - [`stack-and-patterns.md`](./stack-and-patterns.md): Tailwind v4 token
@@ -52,6 +52,7 @@ easing curve are present. Outstanding items:
 | Peach theme tokens                                                                                                                   | ✅ Done     | `[data-theme='peach']` defines the warm blush canvas, warm dark foreground, and deeper laurel accent swap.                                                                                                  |
 | Film surface (`--film-bg`, `--film-back`, `--film-fg`, `--film-accent`, `--film-yes`, `--film-no`, `--film-cta`, `--film-cta-hover`) | ✅ Done     | Theme-stable tones for full-bleed footage cards (the landing deck). Footage is dark under every theme, so these do not follow the semantic aliases a light canvas flips.                                    |
 | Named oversize type (`--t-88`, `--t-128`)                                                                                            | ✅ Done     | Available for hand-tuned editorial moments via `var(--t-88)` etc.                                                                                                                                           |
+| `--font-headline`                                                                                                                    | ✅ Done     | Landing display face in `@theme`: Bricolage Grotesque (headings). Not preloaded. See [`brand.md` § 5.2](./brand.md#52-landing-display-face).                                                                |
 | Z-index scale (`--z-overlay`, `--z-modal`, `--z-dropdown`, `--z-toast`, `--z-tooltip`)                                               | ❓ Implicit | Audit existing modals / popovers; if z-index is inlined per-component, extract to `@theme` once during a primitive pass.                                                                                    |
 
 Three large-radius / edge-spacing surfaces sit just off the standard
@@ -420,12 +421,15 @@ not noisy). The FlowEnd celebration deliberately never surfaces
 accuracy (a swipe places a call, it doesn't win one; see §7.3); the
 gate applies to Profile + leaderboard previews on their next pass.
 
-The **call-size ladder** is available to every predictor: the Flow-card back
-shows the per-call size slider
-([`FlowCallSize.svelte`](../../../src/lib/components/market/FlowCallSize.svelte))
+The **call-size slider** is available to every predictor: the Flow-card back
+shows it ([`FlowCallSize.svelte`](../../../src/lib/components/market/FlowCallSize.svelte))
 whenever call-size controls are wired on the ViciXP domain, starting from the
-`VXP_DEFAULT_CALL_SIZE` rung. There is no lifetime-call gate; sizing is
-offered from the first call.
+stored size or `VXP_DEFAULT_CALL_SIZE`. It is the shared
+[`CallSizeSlider`](../../../src/lib/components/market/CallSizeSlider.svelte),
+the same control the market detail sheet uses: one range over the call-size
+constants in steps of `VXP_CALL_SIZE_STEP`, no preset or peg buttons, and a cap
+state (label, value, fill and handle in `--no`) at `VXP_MAX_CALL_SIZE`. There
+is no lifetime-call gate; sizing is offered from the first call.
 
 ### 7.6 Negative-state choreography
 

@@ -8,7 +8,6 @@
 	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
 	import SeededAvatarStack from '#lib/components/ui/SeededAvatarStack.svelte';
 	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
-	import { VXP_DEFAULT_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 	import { lookupWcMarketSubtitle } from '#lib/constants/wc-market-subtitles.constants.ts';
 	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -20,6 +19,7 @@
 	} from '#lib/types/market-signals.ts';
 	import type { MarketTranslation } from '#lib/types/market-translation.ts';
 	import type { FlowAction, Market } from '#lib/types/market.ts';
+	import { isViciXp } from '#lib/utils/balance-domain.utils.ts';
 	import { resolveFlowArtCategory, type FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
 	import {
 		consensusPercent,
@@ -29,7 +29,13 @@
 	import { haptic } from '#lib/utils/haptics.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { marketDisplayText } from '#lib/utils/market-translation.utils.ts';
+	import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
+	import {
+		flowTradeDenominationLabel,
+		formatWholeVxpMagnitude
+	} from '#lib/utils/playground-display.utils.ts';
 	import { tagColor } from '#lib/utils/tag-color.utils.ts';
+	import { vxpNetWin } from '#lib/utils/vxp-economy.utils.ts';
 
 	interface Props {
 		market: Market;
@@ -76,8 +82,8 @@
 		// same candles as `points`. Absent until FlowMode resolves them: the
 		// "+N today" line then stays hidden rather than showing a guess.
 		tradesToday?: number;
-		// Call-size ladder change callback. Wired through to FlowCardBack so a
-		// tap on a rung writes back to FlowMode's bound call size.
+		// Call-size change callback. Wired through to FlowCardBack so a move
+		// of the slider writes back to FlowMode's bound call size.
 		onCallSizeChange?: (next: string) => void;
 		// Guided mode: the onboarding first-call surface reuses this exact
 		// card so the in-product deck and the tutorial are pixel-identical.
@@ -211,29 +217,24 @@
 	const yesIsFav = $derived(nonNullish(crowdPct) && crowdPct >= 50);
 	const noPct = $derived(nonNullish(crowdPct) ? 100 - crowdPct : undefined);
 
-	// Payout preview: amount/(probability) − amount, clamped at p=0.05
-	// to keep long-shots from rendering pathological numbers. Only computed
-	// when the probability is known; otherwise the preview is suppressed.
+	// Payout preview: the same net win the card back shows (`vxpNetWin`, floored
+	// by `VXP_P_WIN_FLOOR`, at the execution price the order is placed at), so
+	// the two faces never disagree. Only computed when the probability is
+	// known; otherwise the preview is suppressed.
 	const amountNum = $derived(Math.max(0, Number(tradeAmount) || 0));
-	const winYes = $derived.by<number | undefined>(() => {
+	// The card also renders on the Settlement path, whose amounts are not VXP.
+	const unitLabel = $derived(flowTradeDenominationLabel(isViciXp(market.balanceDomain)));
+	const netWinFor = (action: 'YES' | 'NO'): string | undefined => {
 		if (isNullish(market.yesProbability)) {
 			return;
 		}
 
-		return Math.max(1, Math.round(amountNum / Math.max(0.05, market.yesProbability)) - amountNum);
-	});
-	const winNo = $derived.by<number | undefined>(() => {
-		if (isNullish(market.yesProbability)) {
-			return;
-		}
-
-		return Math.max(
-			1,
-			Math.round(amountNum / Math.max(0.05, 1 - market.yesProbability)) - amountNum
+		return formatWholeVxpMagnitude(
+			vxpNetWin({ amount: amountNum, pWin: resolveOutcomeExecutionPrice({ market, action }) })
 		);
-	});
-
-	const callSize = $derived(Math.max(VXP_DEFAULT_CALL_SIZE, amountNum));
+	};
+	const winYes = $derived(netWinFor('YES'));
+	const winNo = $derived(netWinFor('NO'));
 
 	// Live countdown: days until expiry, displayed as a chip in the
 	// meta row. Computed off `expiryDate` (ms). Urgency tiers:
@@ -539,7 +540,7 @@
 		// `preventDefault` on touchend is the canonical way to suppress
 		// the synthetic mouse chain that would otherwise fire after a
 		// gesture we just claimed. But blanket-preventing it ALSO kills
-		// legitimate clicks on interactive children (back-face pegs,
+		// legitimate clicks on interactive children (back-face controls,
 		// share button, etc.): onPointerDown skips them, dragging stays
 		// false, and the synthetic click would have been the only signal
 		// they ever received. Gate the preventDefault on `dragging`: we
@@ -761,7 +762,7 @@
 									<span class="flow-probs-arrow text-no" aria-hidden="true">←</span>
 									<span class="flow-probs-payout num">
 										+{winNo}
-										<span class="flow-probs-payout-unit">VXP</span>
+										<span class="flow-probs-payout-unit">{unitLabel}</span>
 									</span>
 									<span class="flow-probs-role allcaps">
 										{yesIsFav
@@ -777,7 +778,7 @@
 									</span>
 									<span class="flow-probs-payout num">
 										+{winYes}
-										<span class="flow-probs-payout-unit">VXP</span>
+										<span class="flow-probs-payout-unit">{unitLabel}</span>
 									</span>
 									<span class="flow-probs-arrow text-yes" aria-hidden="true">→</span>
 								</div>
@@ -789,8 +790,8 @@
 						{/if}
 					</div>
 
-					<!-- Foot: SIZE · VXP chip + tap/swipe hint. -->
-					<FlowCardFooter {callSize} {guided} />
+					<!-- Foot: SIZE · unit chip + tap/swipe hint. -->
+					<FlowCardFooter callSize={amountNum} {guided} {unitLabel} />
 				</div>
 
 				<!-- Swipe stamps: large centered YES / NO and a compact

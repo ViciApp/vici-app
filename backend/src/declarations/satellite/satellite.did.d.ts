@@ -240,6 +240,7 @@ export interface AppGetAnalyticsEventsResult {
 			| { referral_sent: null }
 			| { resolution_proposed: null }
 			| { app_error: null }
+			| { call_size_set: null }
 			| { resolution_confirmed: null }
 			| { flow_session_started: null }
 			| { school_picker_opened: null }
@@ -345,6 +346,7 @@ export interface AppGetAnalyticsSummaryResult {
 			| { referral_sent: null }
 			| { resolution_proposed: null }
 			| { app_error: null }
+			| { call_size_set: null }
 			| { resolution_confirmed: null }
 			| { flow_session_started: null }
 			| { school_picker_opened: null }
@@ -1304,6 +1306,7 @@ export interface AppTrackEventsArgs {
 			| { referral_sent: null }
 			| { resolution_proposed: null }
 			| { app_error: null }
+			| { call_size_set: null }
 			| { resolution_confirmed: null }
 			| { flow_session_started: null }
 			| { school_picker_opened: null }

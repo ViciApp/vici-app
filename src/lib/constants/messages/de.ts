@@ -14,6 +14,8 @@ export const deMessages = {
 		'Deine Vorhersage konnte nicht platziert werden. Versuche es gleich noch einmal.',
 	'trade.error.insufficient_margin':
 		'Nicht genug verfügbares Guthaben: diese Vorhersage benötigt {required}, du hast aber {available}. Es wird frei, sobald deine offenen Vorhersagen aufgelöst werden.',
+	'trade.error.invalid_call_size':
+		'Diese Call-Größe ist nicht verfügbar. Wähle eine Größe am Regler und versuch es nochmal.',
 	'trade.error.market_closed':
 		'Dieser Markt wurde gerade geschlossen: Vorhersagen sind nicht mehr möglich.',
 	'trade.error.not_authorized_to_trade': 'Du hast keinen Zugriff auf diesen Markt.',
@@ -776,6 +778,7 @@ export const deMessages = {
 	'card.back.who_calling': 'Wer ruft was',
 	'card.call_size': 'CALL-GRÖSSE',
 	'card.call_size_cap': 'CALL-GRÖSSE · MAX',
+	'card.call_size_value': '{amount} VXP',
 	'card.days_left_aria': 'Noch {days} Tage',
 	'card.favorite': 'FAVORIT',
 	'card.followed_friend_plural': 'Freunde',
@@ -1798,6 +1801,7 @@ export const deMessages = {
 	'onboarding.avail.too_long': 'Zu lang: höchstens 16 Zeichen',
 	'onboarding.avail.reserved': 'Reserviert, wähle einen anderen',
 	'onboarding.avail.check_failed': 'Prüfung fehlgeschlagen, versuche zu sichern',
+	'onboarding.avail.rate_limited': 'Zu viele Prüfungen, versuche zu sichern',
 	'onboarding.reward_title': '{amount}-VXP-Starterpaket',
 	'onboarding.reward_sub': 'Sag {event} voraus',
 	'onboarding.lock_ready': '@{handle} wird gesichert',

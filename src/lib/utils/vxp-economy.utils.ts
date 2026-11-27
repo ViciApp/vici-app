@@ -1,6 +1,9 @@
 import {
-	VXP_CALL_SIZE_LADDER,
+	isVxpCallSize,
+	VXP_CALL_SIZE_STEP,
 	VXP_DEFAULT_CALL_SIZE,
+	VXP_MAX_CALL_SIZE,
+	VXP_MIN_CALL_SIZE,
 	VXP_P_WIN_FLOOR,
 	type VxpCallSize
 } from '#lib/constants/vxp-economy.constants.ts';
@@ -18,7 +21,7 @@ import {
  *
  * Returns the *true* net, which can be **below 1** for a heavy favourite:
  * the server settles the raw `amount·(1/price − 1)` cashflow (minus a small
- * fee) with **no** payout floor, so a 0.99 side on a 50 VXP call really nets
+ * fee) with **no** payout floor, so a 0.99 side on a default-size call really nets
  * ~0.5 VXP. We deliberately do **not** round or floor here: that would
  * over-promise a "+1" the settlement never credits. The
  * caller decides display granularity via `formatWholeVxpMagnitude`, which
@@ -42,38 +45,58 @@ export const vxpNetWin = ({
 };
 
 /**
- * Snap an arbitrary numeric call size to the nearest valid ladder rung. Used
- * defensively when consuming server / persisted call-size values that may
- * have been written before a ladder change.
+ * Normalize any number to a valid call size: the nearest multiple of
+ * `VXP_CALL_SIZE_STEP`, clamped into `[VXP_MIN_CALL_SIZE, VXP_MAX_CALL_SIZE]`.
+ * A value that is not finite or not positive (the stored `'0'` that means "no
+ * size saved") reads as the default. Used on every persisted or bound size, so
+ * a preference stored under wider bounds restores inside the current ones.
  */
-export const snapToCallSizeLadder = ({ value }: { value: number }): VxpCallSize => {
-	if (!Number.isFinite(value)) {
+export const clampVxpCallSize = ({ value }: { value: number }): VxpCallSize => {
+	if (!Number.isFinite(value) || value <= 0) {
 		return VXP_DEFAULT_CALL_SIZE;
 	}
 
-	const [first] = VXP_CALL_SIZE_LADDER;
-	let best: VxpCallSize = first;
-	let bestDist = Math.abs(value - best);
+	const stepped = Math.round(value / VXP_CALL_SIZE_STEP) * VXP_CALL_SIZE_STEP;
 
-	for (const rung of VXP_CALL_SIZE_LADDER) {
-		const dist = Math.abs(value - rung);
-
-		if (dist < bestDist) {
-			best = rung;
-			bestDist = dist;
-		}
-	}
-
-	return best;
+	return Math.min(VXP_MAX_CALL_SIZE, Math.max(VXP_MIN_CALL_SIZE, stepped)) as VxpCallSize;
 };
 
 /**
- * The call sizes a slider steps through, smallest first. Read from
- * `VXP_CALL_SIZE_LADDER`, so retuning the ladder (more rungs, or an evenly
- * spaced range) retunes every slider built on it with no UI change.
+ * @throws Error when the premium isn't a valid ViciXp call size: a whole
+ * multiple of `VXP_CALL_SIZE_STEP` inside `[VXP_MIN_CALL_SIZE, VXP_MAX_CALL_SIZE]`.
+ *
+ * No max-payout floor is enforced: a winning call always nets a positive
+ * amount (the settlement cashflow is `amount·(1/price − 1)`, above zero for
+ * any price < 1), so gating on gross payout (`amount / price`) added nothing;
+ * it only made any side priced above 0.5 unplaceable at small call sizes,
+ * which left users on the smallest sizes with no placeable side on a 50/50
+ * market. Heavy favourites net a real sub-1 amount; the UI shows that
+ * honestly as "<1" rather than over-promising a "+1" (see `vxpNetWin`).
  */
-export const callSizeStops = (): readonly number[] => VXP_CALL_SIZE_LADDER;
+export const assertViciXpHumanPremium = ({ amountStr }: { amountStr: string }): void => {
+	const premiumHuman = Number(String(amountStr).trim());
+
+	if (!isVxpCallSize(premiumHuman)) {
+		throw new Error(
+			`VXP premium must be a multiple of ${VXP_CALL_SIZE_STEP} from ${VXP_MIN_CALL_SIZE} to ${VXP_MAX_CALL_SIZE}`
+		);
+	}
+};
+
+const CALL_SIZE_STOPS: readonly VxpCallSize[] = Object.freeze(
+	Array.from(
+		{ length: (VXP_MAX_CALL_SIZE - VXP_MIN_CALL_SIZE) / VXP_CALL_SIZE_STEP + 1 },
+		(_, i) => (VXP_MIN_CALL_SIZE + i * VXP_CALL_SIZE_STEP) as VxpCallSize
+	)
+);
+
+/**
+ * The call sizes a slider steps through, smallest first: every valid size of
+ * the range, so retuning the bounds or the step retunes every slider built on
+ * it with no UI change.
+ */
+export const callSizeStops = (): readonly VxpCallSize[] => CALL_SIZE_STOPS;
 
 /** Slider position (index into {@link callSizeStops}) of the stop nearest to a call size. */
 export const callSizeStopIndex = ({ value }: { value: number }): number =>
-	callSizeStops().indexOf(snapToCallSizeLadder({ value }));
+	callSizeStops().indexOf(clampVxpCallSize({ value }));

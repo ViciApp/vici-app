@@ -4,12 +4,14 @@
 
 	interface Props {
 		callSize: number;
+		/** The unit the size is in: VXP on ViciXp, the playground unit otherwise. */
+		unitLabel: string;
 		// Guided (onboarding first-call) mode; the depth hint becomes a
 		// commit prompt since the card can't flip there.
 		guided?: boolean;
 	}
 
-	let { callSize, guided = false }: Props = $props();
+	let { callSize, unitLabel, guided = false }: Props = $props();
 
 	const hintKey = $derived(guided ? 'card.swipe_to_call' : 'card.tap_depth');
 </script>
@@ -20,7 +22,7 @@
 			{t({ locale: $localeStore, key: 'card.size_label' })}
 		</span>
 		<span class="flow-foot-size-num">{callSize}</span>
-		<span class="flow-foot-size-unit">VXP</span>
+		<span class="flow-foot-size-unit">{unitLabel}</span>
 	</span>
 	<span class="flow-foot-hint allcaps">
 		{t({ locale: $localeStore, key: hintKey })}

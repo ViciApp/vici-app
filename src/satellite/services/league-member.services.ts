@@ -258,6 +258,24 @@ export const leagueMemberRows = ({
 	}).items;
 
 /**
+ * Every membership row of one member, across leagues. Anchored to the
+ * `/${principal}` key suffix for the same reason as {@link leagueMemberRows}:
+ * O(this member's leagues) rather than O(all memberships).
+ */
+export const memberLeagueRows = ({
+	memberPrincipal,
+	caller
+}: {
+	memberPrincipal: string;
+	caller: Uint8Array;
+}): ReturnType<typeof listDocsStore>['items'] =>
+	listDocsStore({
+		collection: Collection.LEAGUE_MEMBERS,
+		caller,
+		params: { matcher: { key: `${escapeRegex(`/${memberPrincipal}`)}$` } }
+	}).items;
+
+/**
  * Current member principals of a league: the members whose settled history a
  * league's score is read from, scanned with {@link leagueMemberRows}.
  *
@@ -346,11 +364,7 @@ export const leagueDisbandsInProgress = ({
 }): string[] => {
 	const suffix = `/${callerText}`;
 
-	return listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller: callerBytes,
-		params: { matcher: { key: `${escapeRegex(suffix)}$` } }
-	})
-		.items.map(([key]) => key.slice(0, -suffix.length))
+	return memberLeagueRows({ memberPrincipal: callerText, caller: callerBytes })
+		.map(([key]) => key.slice(0, -suffix.length))
 		.filter((leagueId) => leagueDisbandInProgress({ leagueId, callerText, callerBytes }));
 };

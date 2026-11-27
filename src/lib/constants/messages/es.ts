@@ -11,6 +11,8 @@ export const esMessages = {
 	'trade.error.generic': 'No se pudo colocar tu predicción. Inténtalo de nuevo en un momento.',
 	'trade.error.insufficient_margin':
 		'No tienes saldo disponible suficiente: esta predicción necesita {required}, pero tienes {available}. Se libera a medida que se resuelven tus predicciones abiertas.',
+	'trade.error.invalid_call_size':
+		'Ese tamaño de call no está disponible. Elige un tamaño en el control y vuelve a intentarlo.',
 	'trade.error.market_closed':
 		'Este mercado acaba de cerrarse; las predicciones ya no están abiertas.',
 	'trade.error.not_authorized_to_trade': 'No tienes acceso a este mercado.',
@@ -769,6 +771,7 @@ export const esMessages = {
 	'card.back.who_calling': 'Quién predice qué',
 	'card.call_size': 'TAMAÑO DE LA CALL',
 	'card.call_size_cap': 'TAMAÑO DE LA CALL · TOPE',
+	'card.call_size_value': '{amount} VXP',
 	'card.days_left_aria': '{days} días restantes',
 	'card.favorite': 'FAVORITO',
 	'card.followed_friend_plural': 'amigos',
@@ -1779,6 +1782,7 @@ export const esMessages = {
 	'onboarding.avail.too_long': 'Muy largo: máximo 16 caracteres',
 	'onboarding.avail.reserved': 'Reservado, elige otro',
 	'onboarding.avail.check_failed': 'No se pudo verificar, intenta reclamar',
+	'onboarding.avail.rate_limited': 'Demasiadas verificaciones, intenta reclamar',
 	'onboarding.reward_title': 'Pack inicial de {amount} VXP',
 	'onboarding.reward_sub': 'Predice {event}',
 	'onboarding.lock_ready': 'Reservando @{handle}',

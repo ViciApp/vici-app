@@ -396,8 +396,13 @@ top-of-book price.
   When you add a new user-scoped persisted key, register its reset in
   `reconcileIdentityScopedStorage` (and prefer
   routing genuinely cross-device state through `profile.preferences`
-  instead; that store already resets on sign-out). Device-level keys
-  (theme, locale, last-open tab) intentionally stay put.
+  instead; that store already resets on sign-out). A store that loads such
+  a key into memory at import must also re-read it on an owner change: a
+  web2 account switch keeps the tab alive, so deleting the key alone leaves
+  the old copy in memory to be written back under the next owner (the
+  inbox does this in `reloadPersistedInboxState`, called from
+  `initInboxProgress`). Device-level keys (theme, locale, last-open tab)
+  intentionally stay put.
 - **A load that lands after an account switch must not count as the next
   account's.** Resetting a store is not enough when a fetch started for the
   previous account is still in flight. The clearing figures carry the

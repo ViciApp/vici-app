@@ -15,40 +15,45 @@ import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 
 /**
- * Per-call size ladder, smallest → largest. The shape is curated, not
- * arithmetic: the non-uniform jump from 300 to 500 (rather than a smooth
- * rung) is intentional.
- *
- * Frozen so call sites can rely on the literal indexing without worrying
- * about runtime mutation.
+ * Call-size range, in whole VXP: a call is any multiple of
+ * `VXP_CALL_SIZE_STEP` from `VXP_MIN_CALL_SIZE` to `VXP_MAX_CALL_SIZE`,
+ * both bounds included. A range with a step, rather than any whole amount,
+ * keeps the slider on a swipe card precise to drag: each stop is a distinct,
+ * readable size. Every surface that sizes a call reads these, and the web2 API
+ * mirrors them to refuse an order outside the set.
  */
-export const VXP_CALL_SIZE_LADDER = [50, 100, 200, 300, 500] as const;
+export const VXP_MIN_CALL_SIZE = 10;
 
-export type VxpCallSize = (typeof VXP_CALL_SIZE_LADDER)[number];
+export const VXP_MAX_CALL_SIZE = 200;
+
+export const VXP_CALL_SIZE_STEP = 10;
 
 /**
- * Smallest rung on the ladder. Surfaced as a named export so callers
- * don't have to reach into `VXP_CALL_SIZE_LADDER[0]` and pick up a tuple
- * literal type at every call site.
+ * A whole-VXP call size inside the range and on the step. Branded so only the
+ * {@link isVxpCallSize} guard (or the clamp in `vxp-economy.utils.ts`) yields
+ * one, and a raw number cannot reach a call that expects a valid size.
  */
-export const [VXP_MIN_CALL_SIZE] = VXP_CALL_SIZE_LADDER;
+export type VxpCallSize = number & { readonly __brand: 'VxpCallSize' };
 
 /**
- * Membership-style validator for a candidate call size: the single
- * source of truth for "is this premium a valid ladder rung". Used by
- * the trade-utility premium guard and by deck-restore paths that
- * sanity-check a previously-persisted call size before re-binding it to
- * the UI. Doubles as a TS type-narrowing predicate so downstream
+ * Membership check for a candidate call size: the single source of truth for
+ * "is this premium a valid call size". Used by the trade-utility premium
+ * guard and by restore paths that sanity-check a persisted size before
+ * binding it to the UI. Doubles as a type-narrowing predicate so downstream
  * code can rely on `VxpCallSize` once past the guard.
  */
 export const isVxpCallSize = (n: number): n is VxpCallSize =>
-	Number.isInteger(n) && (VXP_CALL_SIZE_LADDER as readonly number[]).includes(n);
+	Number.isInteger(n) &&
+	n % VXP_CALL_SIZE_STEP === 0 &&
+	n >= VXP_MIN_CALL_SIZE &&
+	n <= VXP_MAX_CALL_SIZE;
 
 /**
- * Default call size for new and low-activity users. Renders as the only
- * surfaced option for first-call users: no decision paralysis.
+ * Default call size, where every sizing surface opens when no size is stored.
+ * It sits above the minimum so a first call commits a meaningful amount, and
+ * leaves the rest of the range to players who choose to size up.
  */
-export const VXP_DEFAULT_CALL_SIZE: VxpCallSize = 50;
+export const VXP_DEFAULT_CALL_SIZE = 50 as VxpCallSize;
 
 /**
  * Cap on the consensus probability the payout formula sees. Without a
