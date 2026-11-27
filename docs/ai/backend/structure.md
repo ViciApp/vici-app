@@ -1,4 +1,4 @@
-# Web2 API structure
+# API structure
 
 The folder list is in [`backend/README.md` "Layout"](../../../backend/README.md#layout) and `ls backend/src`. This page holds what the listing cannot say: where new code goes and which way imports point.
 

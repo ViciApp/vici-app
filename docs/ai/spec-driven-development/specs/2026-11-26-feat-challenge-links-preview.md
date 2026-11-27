@@ -89,7 +89,7 @@ None, deliberately. Preview fetches are made by crawlers, not people, and counti
 - **API** (`backend/tests/challenge-head.test.ts`): the title for each row of the table; consent off never prints the handle; a hostile market title is escaped; not found answers 404 with an empty body; the image URL is absolute and on the configured app origin.
 - **Web image smoke check:** a container built from `Dockerfile.web` against a stub upstream: the fragment is present on `/c/<id>`; the generic stub is present when the upstream times out or answers 404; `/` and a market path are byte-identical to the build output's head.
 - **Manual, on staging:** WhatsApp, Telegram and iMessage previews of a live link, a revoked link and a link with consent off.
-- Playwright cannot cover this (the `e2e-web2` suite does not run nginx).
+- Playwright cannot cover this (the `e2e` suite does not run nginx).
 
 **Rollout.** Deploy the API route first, then the web image. Until A3 is live nobody holds a link, so the order only matters for the smoke check. Rollback: the previous web image; `/c/<id>` then previews as the generic card.
 
@@ -113,7 +113,7 @@ None, deliberately. Preview fetches are made by crawlers, not people, and counti
 
 1. **nginx SSI behaviour in the web image.** Confirm in a container built from `Dockerfile.web`: (a) SSI in a regex location that serves `index.html` through `try_files` processes the directives; (b) the include accepts the id from a location capture or a `set` variable; (c) the stub block is emitted on an upstream timeout and on a 404; (d) the SSI comments in `src/app.html` survive `npm run build` unchanged; (e) the head patterns in `scripts/build/generate-seo-assets.ts` still match with the markers around them. If (a) to (c) fail, switch to the crawler-only proxy under "Decisions". If (d) or (e) fails, emit a dedicated shell copy for `/c/` when the image is built instead of marking `app.html`.
 2. **How nginx reaches the API.** Over Fly's private network (is the API listening there?) or through `https://api.vici.app`. Over the public route every include carries the web machine's address, so the API cannot limit per visitor and nginx's own limits are the only ones.
-3. **Which file is the generic share card, and on which domain.** `src/app.html` today points its `og:image` and canonical at `https://vici.market/branding/og-image.png`. Confirm the image the landing ships for vici.app and whether the generic head on the web2 build should name vici.app; this spec's fragment always names vici.app.
+3. **Which file is the generic share card, and on which domain.** `src/app.html` today points its `og:image` and canonical at `https://vici.market/branding/og-image.png`. Confirm the image the landing ships for vici.app and whether the generic head on vici.app should name vici.app; this spec's fragment always names vici.app.
 4. **Is vici.app proxied by Cloudflare?** If so its cache and bot rules must neither cache `/c/*` HTML across ids nor challenge preview crawlers.
 5. **Open issues.** Run the issue search that was not possible at authoring time.
 

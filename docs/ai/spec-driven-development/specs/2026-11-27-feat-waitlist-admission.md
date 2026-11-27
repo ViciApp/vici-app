@@ -13,13 +13,13 @@ An admin opens a Waitlist page in the app's admin, sees who is on the list, and 
 
 ## Context
 
-- **The gate.** `betaGateVerdict` in `backend/src/auth/beta-gate.ts` reads the `beta_gate` app setting (`{ enabled, emails, allowNewUsers }`) at every point a sign-in learns the caller's email: `POST /auth/otp/request`, `POST /auth/otp/verify`, the Google and Apple callbacks (`backend/src/routes/auth.ts`). Off, everyone passes. On, allowlisted addresses pass; with `allowNewUsers` an existing account passes, a legacy address gets `legacy_account_pending`, anyone else passes. Without `allowNewUsers` nobody outside the allowlist passes, **including people who already have an account**. Refusals are `403 { error: 'beta_closed' }` or a redirect to `/signin?e=beta`, identical for every address. Documented in `backend/README.md` ("Beta access gate"), tested in `backend/tests/beta-gate.test.ts` and `e2e-web2/beta-gate.spec.ts`.
+- **The gate.** `betaGateVerdict` in `backend/src/auth/beta-gate.ts` reads the `beta_gate` app setting (`{ enabled, emails, allowNewUsers }`) at every point a sign-in learns the caller's email: `POST /auth/otp/request`, `POST /auth/otp/verify`, the Google and Apple callbacks (`backend/src/routes/auth.ts`). Off, everyone passes. On, allowlisted addresses pass; with `allowNewUsers` an existing account passes, a legacy address gets `legacy_account_pending`, anyone else passes. Without `allowNewUsers` nobody outside the allowlist passes, **including people who already have an account**. Refusals are `403 { error: 'beta_closed' }` or a redirect to `/signin?e=beta`, identical for every address. Documented in `backend/README.md` ("Beta access gate"), tested in `backend/tests/beta-gate.test.ts` and `e2e/beta-gate.spec.ts`.
 - **The setting has no screen.** It is written through the generic settings routes (`PUT /api/v1/admin/settings/beta_gate`, `backend/src/routes/admin.ts`, `backend/src/admin/settings.ts`), which accept any JSON; a malformed allowlist closes the gate for everyone.
-- **The admin in the app.** `src/routes/(app)/admin/` holds the hub (`AdminPage.svelte`) and its sub-pages (`access`, `markets`, `resolutions`, `vxp`, `haptics`), each a thin route over a component in `src/lib/components/pages/`, guarded by `Protected` and `PermissionGuard` with `Permission.VIEW_ADMIN_PANEL`, built from `src/lib/components/admin/`. **The access page is not wired to the API:** `src/lib/services/roles.services.ts` has no web2 branch, so its role list and oracle manager talk to the satellite even in the web2 build. The waitlist therefore gets a sibling page that talks only to the API, rather than a section on a page whose other sections do not work there (open question 1).
+- **The admin in the app.** `src/routes/(app)/admin/` holds the hub (`AdminPage.svelte`) and its sub-pages (`access`, `markets`, `resolutions`, `vxp`, `haptics`), each a thin route over a component in `src/lib/components/pages/`, guarded by `Protected` and `PermissionGuard` with `Permission.VIEW_ADMIN_PANEL`, built from `src/lib/components/admin/`. **The access page is not wired to the API:** `src/lib/services/roles.services.ts` has no API branch, so its role list and oracle manager talk to the satellite even on vici.app. The waitlist therefore gets a sibling page that talks only to the API, rather than a section on a page whose other sections do not work there (open question 1).
 - **From W1.** `waitlist_reservations` (`email`, `email_key`, `handle`, `locale`, `confirmed_at`, `source`, attribution, `hold_ended_at`, `account_user_id`), `emailMailboxKey`, the localised email module (`backend/src/waitlist/emails.ts`, `email-copy/`), the remove link, the admin delete route, the status read.
 - **Admin guards.** `requireUser` then `requireAdmin` (`backend/src/auth/guard.ts`).
 - **Worker.** `jobs` in `backend/src/worker.ts`.
-- **Sign-in refusal copy.** `signin.beta_closed` in every catalog under `src/lib/constants/messages/`; `docs/ai/frontend/web2-backend-mode.md` describes how `/signin` renders it.
+- **Sign-in refusal copy.** `signin.beta_closed` in every catalog under `src/lib/constants/messages/`; `docs/ai/frontend/api-client.md` describes how `/signin` renders it.
 
 ## Scope
 
@@ -80,12 +80,12 @@ Unconfirmed rows are never listed: an address nobody has proven is shown to no o
 
 ### 7. Admin screen
 
-`src/routes/(app)/admin/waitlist/+page.svelte` over `src/lib/components/pages/AdminWaitlistPage.svelte`, guarded like its siblings, linked from the hub (`AdminPage.svelte`), web2 build only:
+`src/routes/(app)/admin/waitlist/+page.svelte` over `src/lib/components/pages/AdminWaitlistPage.svelte`, guarded like its siblings, linked from the hub (`AdminPage.svelte`):
 
 - **Gate** (`src/lib/components/admin/AdminBetaGate.svelte`): the two switches, the allowlist editor, a plain statement of who can sign in right now, a warning when the stored value is malformed, the confirmation dialog of section 6.
 - **Waitlist** (`AdminWaitlist.svelte`): the three counts; a searchable, paged list in list order (position, email, handle, language, joined date, state), rows selectable; "Admit selected" and "Admit next" with a number field, each behind a confirmation that states how many emails will be sent; "Remove" per row, behind a confirmation that says the handle is released and the data deleted. A line warns when the gate's state makes admission pointless.
 
-Service `src/lib/services/waitlist-admin.services.ts`, wrappers in `src/lib/web2/client.ts`, i18n keys `admin.waitlist.*` and `admin.gate.*` in every catalog. Reuse the admin pieces that exist before adding any (`docs/ai/frontend/reusability.md`).
+Service `src/lib/services/waitlist-admin.services.ts`, wrappers in `src/lib/api-client/client.ts`, i18n keys `admin.waitlist.*` and `admin.gate.*` in every catalog. Reuse the admin pieces that exist before adding any (`docs/ai/frontend/reusability.md`).
 
 ### 8. What a refused person reads
 
@@ -133,7 +133,7 @@ One event per call or per job run, never per person, and no `userId` of the admi
 5. Admin routes; two worker jobs with their one-line idempotency comments.
 6. W1's status read answers `admitted` for an admitted row without an account.
 7. App: client wrappers, `waitlist-admin.services.ts`, the page, the two components, the hub link, the i18n keys, the changed `signin.beta_closed` with its link.
-8. **Docs in the same PR:** `PRODUCT.md` (a "Waitlist: admission" entry and what a refused sign-in says), `backend/README.md`, `docs/ai/frontend/web2-backend-mode.md`, `docs/ai/frontend/testing.md` if the E2E fixtures change.
+8. **Docs in the same PR:** `PRODUCT.md` (a "Waitlist: admission" entry and what a refused sign-in says), `backend/README.md`, `docs/ai/frontend/api-client.md`, `docs/ai/frontend/testing.md` if the E2E fixtures change.
 
 **Tests**
 
@@ -142,7 +142,7 @@ One event per call or per job run, never per person, and no `userId` of the admi
 - Gate editor: a malformed body is refused and nothing is stored; opening without `confirmOpen` answers `confirmation_required`, with it succeeds; closing and allowlist edits need none; a stale `expectedUpdatedAt` answers `gate_changed`; the stored value is read correctly by `betaGateVerdict`.
 - Email job: one run sends each pending email once, in the row's language, and stamps it; a second sends nothing; a failing transport leaves the row to be retried; the copy names the handle and the hold's end date.
 - Claim window: a row past 30 days without an account is deleted and its handle reservable again; a row with an account is never deleted; the reminder goes once.
-- E2E (`e2e-web2/waitlist-admission.spec.ts`): an admin admits a waiting person from the page; that person's sign-in, refused before with the waitlist line, now succeeds; opening the gate needs the typed confirmation.
+- E2E (`e2e/waitlist-admission.spec.ts`): an admin admits a waiting person from the page; that person's sign-in, refused before with the waitlist line, now succeeds; opening the gate needs the typed confirmation.
 
 **Rollout.** Ship with the gate already on and strict. Admit a small first batch and watch delivery before larger ones. Rollback: the previous image; admitted rows remain but the gate stops honouring them, so admitted people are refused until the code returns, including those who already created an account. That is why the first batches should be small.
 
@@ -166,11 +166,11 @@ One event per call or per job run, never per person, and no `userId` of the admi
 - [ ] Two admins editing the gate at once cannot silently overwrite each other.
 - [ ] A refused sign-in shows "VICI opens in waves. Claim your handle to join the waitlist." with a link to the landing, the same for every address.
 - [ ] Every gate behaviour that existed before is unchanged for mailboxes without an admitted reservation.
-- [ ] `PRODUCT.md` and `backend/README.md` describe the shipped behaviour; `bun run typecheck && bun test`, `npm run quality`, `npm run check`, `npm test` and `npm run e2e:web2` pass.
+- [ ] `PRODUCT.md` and `backend/README.md` describe the shipped behaviour; `bun run typecheck && bun test`, `npm run quality`, `npm run check`, `npm test` and `npm run e2e` pass.
 
 ## Open questions
 
-1. **Does the admin shell work on the web2 build?** `PermissionGuard` reads the profile's role, which the API serves, so the hub and a new page should render for an API admin; the access page's own sections call the satellite. Confirm by signing in as an admin on a web2 build before building on it. If the guard itself is satellite-bound, wiring it is a prerequisite PR.
+1. **Does the admin shell work on vici.app?** `PermissionGuard` reads the profile's role, which the API serves, so the hub and a new page should render for an API admin; the access page's own sections call the satellite. Confirm by signing in as an admin on vici.app before building on it. If the guard itself is satellite-bound, wiring it is a prerequisite PR.
 2. **The gate's production state and who is on the allowlist today.**
 3. **Worker tick length and the email provider's rate**, to size `WAITLIST_ADMISSION_EMAILS_PER_TICK`.
 4. **Counsel**: the admission email and the reminder under the consent given at the waitlist.

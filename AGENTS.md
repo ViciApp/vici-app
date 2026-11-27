@@ -9,14 +9,14 @@ Vici is a prediction-market app. Three areas, each with its own area README:
 | Area                        | Code                                  | Read once per session                                        |
 | --------------------------- | ------------------------------------- | ------------------------------------------------------------ |
 | SvelteKit frontend          | `src/lib/`, `src/routes/`, `src/*.ts` | [`docs/ai/frontend/README.md`](./docs/ai/frontend/README.md) |
-| Web2 API (Bun + Postgres)   | `backend/`                            | [`docs/ai/backend/README.md`](./docs/ai/backend/README.md)   |
+| HTTP API (Bun + Postgres)   | `backend/`                            | [`docs/ai/backend/README.md`](./docs/ai/backend/README.md)   |
 | On-chain engine (icdc-core) | separate repo, `../icdc-core/`        | [`docs/ai/engine/README.md`](./docs/ai/engine/README.md)     |
 
 What `ls` and `package.json` cannot tell you:
 
 - **Generated, never hand-edited:** `src/declarations/**` and the vendored `backend/src/declarations/**` (`npm run did`; the hand-written wiring `src/declarations/{index,_factory,_types}.ts` is the exception, and `backend/src/declarations/satellite/**` is the frozen copy of the retired satellite's bindings that only the ETL reads).
 - **The Rust risk engine is in [`../icdc-core/`](https://github.com/AntonioVentilii/icdc-core)**, with its own `AGENTS.md`. Never modify it from here.
-- **The app has one backend: the HTTP API in `backend/`** (vici.app). The browser holds no signing identity; the only direct canister read left in the frontend is the public order book. The legacy Juno satellite (vici.market) is retired: `juno.config.ts` only carries its redirect and write freeze, and `backend/scripts/etl/**` reads its frozen data. See [`web2-backend-mode.md`](./docs/ai/frontend/web2-backend-mode.md) for the client seam.
+- **The app has one backend: the HTTP API in `backend/`** (vici.app). The browser holds no signing identity; the only direct canister read left in the frontend is the public order book. The legacy Juno satellite (vici.market) is retired: `juno.config.ts` only carries its redirect and write freeze, and `backend/scripts/etl/**` reads its frozen data. See [`api-client.md`](./docs/ai/frontend/api-client.md) for the client seam.
 
 The full protected-paths table is in [`governance.md`](./docs/ai/governance.md#boundaries).
 
@@ -30,7 +30,7 @@ The full protected-paths table is in [`governance.md`](./docs/ai/governance.md#b
 | Pure-logic specs             | `npm test`                                    |
 | Candid bindings              | `npm run did`                                 |
 | API type check + tests       | `cd backend && bun run typecheck && bun test` |
-| E2E                          | `npm run e2e:web2`                            |
+| E2E                          | `npm run e2e`                                 |
 
 The full gate matrix is [`pr-and-ci.md` § 4](./docs/ai/pr-and-ci.md#4-local-quality-gates).
 
@@ -66,7 +66,7 @@ The rules every repository shares live in **one place only**: [Officina `standar
 | Add or change user-visible copy                       | [`frontend/i18n.md`](./docs/ai/frontend/i18n.md), [`frontend/brand.md`](./docs/ai/frontend/brand.md)                                          |
 | Align a screen, token or asset with the design        | [`frontend/design.md`](./docs/ai/frontend/design.md)                                                                                          |
 | Touch SEO, sitemap or meta tags                       | [`frontend/seo.md`](./docs/ai/frontend/seo.md)                                                                                                |
-| Add an API call to a frontend service                 | [`frontend/web2-backend-mode.md`](./docs/ai/frontend/web2-backend-mode.md)                                                                    |
+| Add an API call to a frontend service                 | [`frontend/api-client.md`](./docs/ai/frontend/api-client.md)                                                                                  |
 | Add or change frontend / E2E tests                    | [`frontend/testing.md`](./docs/ai/frontend/testing.md)                                                                                        |
 | Touch VXP awards or economy parameters                | [`economy.md`](./docs/ai/economy.md)                                                                                                          |
 | Add an API route, migration or worker job             | [`backend/patterns.md`](./docs/ai/backend/patterns.md), [`backend/workflows/`](./docs/ai/backend/workflows/)                                  |
@@ -74,7 +74,7 @@ The rules every repository shares live in **one place only**: [Officina `standar
 | Regenerate Candid bindings after an icdc-core release | [`engine/README.md`](./docs/ai/engine/README.md#regenerating)                                                                                 |
 | Understand how Vici talks to icdc-core                | [`docs/engine-integration.md`](./docs/engine-integration.md)                                                                                  |
 | Reset, repair or operate the Vici engine              | [`.agents/workflows/`](./.agents/workflows/) (`icdc-engine-reset.md`, `icdc-engine-operations.md`)                                            |
-| Ship a release to production                          | [`pr-and-ci.md` § 5](./docs/ai/pr-and-ci.md#5-ci-jobs-you-must-keep-green) (`web2-deploy.yml`)                                                |
+| Ship a release to production                          | [`pr-and-ci.md` § 5](./docs/ai/pr-and-ci.md#5-ci-jobs-you-must-keep-green) (`deploy.yml`)                                                     |
 | Cut vici.market over to vici.app (legacy shutdown)    | [`.agents/workflows/cutover.md`](./.agents/workflows/cutover.md)                                                                              |
 
 ## 6. Governance

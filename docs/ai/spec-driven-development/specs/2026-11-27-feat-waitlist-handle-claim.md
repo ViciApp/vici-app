@@ -106,15 +106,15 @@ Instrument.
 1. `backend/src/waitlist/claim.ts`: `findMyReservation({ q, userId })`, `endReservationHold({ q, id, userId })`, `releaseMyReservedHandle({ userId })`, `applyReservationInvite({ userId, reservation })`, `readMyReservation({ userId })`.
 2. `backend/src/profiles/nickname.ts` and `profile-write.ts`: the exemption and the claim of section 1; the invite applied after the transaction commits on a profile creation.
 3. Routes: `GET /waitlist/mine`, `POST /waitlist/mine/release`; `joined` on the status read; the sweep in the prune job; `signUp` on `/auth/providers`.
-4. App: `getMyWaitlistReservation` and `releaseMyReservedHandle` in `src/lib/web2/client.ts` and `waitlist.services.ts`; the bootstrap seed in `profile.services.ts`; the pre-filled, editable field in `Onboarding.svelte`; the drain's rule in `onboarding-handoff.services.ts` and its notice in `src/routes/(app)/+layout.svelte`; the invite pages and the `?ref=` capture reading `signUp`; `?claim=1` opening the capsule on the landing; i18n keys in every catalog (`onboarding.waitlist.*`).
-5. **Docs in the same PR:** `PRODUCT.md` ("Onboarding: one screen" and "Onboarding: picks persist across every sign-in provider": the reserved handle is pre-filled and what releasing it means; "Friendship rules": credit through the waitlist and where invite links lead while sign-up is closed; "Legacy app: new accounts move to vici.app": the sentence saying the new app's sign-up is unchanged), `docs/ai/frontend/web2-backend-mode.md`, `backend/README.md`.
+4. App: `getMyWaitlistReservation` and `releaseMyReservedHandle` in `src/lib/api-client/client.ts` and `waitlist.services.ts`; the bootstrap seed in `profile.services.ts`; the pre-filled, editable field in `Onboarding.svelte`; the drain's rule in `onboarding-handoff.services.ts` and its notice in `src/routes/(app)/+layout.svelte`; the invite pages and the `?ref=` capture reading `signUp`; `?claim=1` opening the capsule on the landing; i18n keys in every catalog (`onboarding.waitlist.*`).
+5. **Docs in the same PR:** `PRODUCT.md` ("Onboarding: one screen" and "Onboarding: picks persist across every sign-in provider": the reserved handle is pre-filled and what releasing it means; "Friendship rules": credit through the waitlist and where invite links lead while sign-up is closed; "Legacy app: new accounts move to vici.app": the sentence saying the new app's sign-up is unchanged), `docs/ai/frontend/api-client.md`, `backend/README.md`.
 
 **Tests**
 
 - `backend/tests/waitlist-claim.test.ts`: the owner's probe says available, another account's says taken; a profile write with the reserved handle ends the hold once and stamps the account; the same through a Google identity and through an alias of the mailbox; an account with another mailbox cannot take it; a write with another handle leaves the reservation holding; release frees the handle for a third account, refuses without a profile, and is idempotent; the starter grant fires once; a referral invite is redeemed and the friendship written, a terminal refusal is swallowed, a fault leaves it for the next write; `/waitlist/mine` (401, none, waiting, admitted, joined); the sweep; `/auth/providers` answers `waitlist` only in strict gate mode.
 - `backend/tests/profile-guards.test.ts`: every existing case unchanged for accounts without a reservation.
 - App: the bootstrap seeds the reserved handle; the drain keeps it over a stash that did not come from the pre-filled screen; the onboarding field is pre-filled and editable; the invite pages route by `signUp`.
-- E2E (`e2e-web2/waitlist-claim.spec.ts`): join on the landing, admit, sign in from a clean browser with the email code and land in the app as the reserved handle; the same with Google; on the onboarding screen change the pre-filled handle, confirm, and see the reserved one become available to a second account; an invite link opened while sign-up is closed lands on the capsule and credits the inviter at account creation.
+- E2E (`e2e/waitlist-claim.spec.ts`): join on the landing, admit, sign in from a clean browser with the email code and land in the app as the reserved handle; the same with Google; on the onboarding screen change the pre-filled handle, confirm, and see the reserved one become available to a second account; an invite link opened while sign-up is closed lands on the capsule and credits the inviter at account creation.
 
 **Rollout.** With W2, before the first admission. Rollback: the previous image; accounts created meanwhile keep their handles, and reservations not yet claimed go back to being unavailable to everyone, their owners included, until the code returns.
 
@@ -136,11 +136,11 @@ Instrument.
 - [ ] An invite or challenge link remembered on the reservation credits the inviter once, at account creation, when that inviter has an account.
 - [ ] While sign-up is closed, `/i/<code>`, `/join/<code>` and `?ref=` open the landing with the capsule ready and the invite ends up on the reservation; while it is open they behave as before.
 - [ ] Accounts without a reservation behave exactly as before.
-- [ ] `PRODUCT.md` describes the shipped behaviour; `bun run typecheck && bun test`, `npm run quality`, `npm run check`, `npm test` and `npm run e2e:web2` pass.
+- [ ] `PRODUCT.md` describes the shipped behaviour; `bun run typecheck && bun test`, `npm run quality`, `npm run check`, `npm test` and `npm run e2e` pass.
 
 ## Open questions
 
-1. **What does a first sign-in from `/signin` do today on the web2 build for an address with no account and no stash:** which write creates the profile, with which handle, and is onboarding marked complete? Section 2 assumes the bootstrap is that write.
+1. **What does a first sign-in from `/signin` do today on vici.app for an address with no account and no stash:** which write creates the profile, with which handle, and is onboarding marked complete? Section 2 assumes the bootstrap is that write.
 2. **Can the drain tell a handle typed on the pre-filled screen from an older stash?** If not, the stash needs a marker written by the screen.
 3. **Is `referral_redeemed` emitted by the app only**, and does the referee's bonus notice depend on the app-side redeem? If so the server-side credit needs its own notice.
 4. **A1's redeem as a domain function**: the name and contract to call from `applyReservationInvite`, and whether it accepts a call without a browser session.

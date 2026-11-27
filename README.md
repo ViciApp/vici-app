@@ -67,7 +67,7 @@ canonical entry point:
 
 ## 📦 Project Structure
 
-- `src/lib/web2/`: The typed HTTP API client.
+- `src/lib/api-client/`: The typed HTTP API client.
 - `src/lib/api/`: The public canister reads the app still makes (order book, ledger fee).
 - `src/lib/components/`: Modular Svelte components (Market, Wallet, Social, etc.).
 - `src/lib/services/`: Business logic and orchestration between UI and APIs.

@@ -1,11 +1,11 @@
 ---
-description: hard cutover from the legacy satellite app (vici.market) to the web2 app (vici.app)
+description: hard cutover from the legacy satellite app (vici.market) to the app at vici.app
 ---
 
-The one-time switch from the legacy Juno app at vici.market to the web2 app at vici.app. The legacy satellite stops taking user writes, its last data moves into Postgres, accounts without an email get one by hand, clearing accounts move to their custodial principals, and vici.app opens to everyone. Run the steps in order: each one assumes the previous one passed its check.
+The one-time switch from the legacy Juno app at vici.market to the app at vici.app. The legacy satellite stops taking user writes, its last data moves into Postgres, accounts without an email get one by hand, clearing accounts move to their custodial principals, and vici.app opens to everyone. Run the steps in order: each one assumes the previous one passed its check.
 
 > [!CAUTION]
-> Every step from 2 on acts on production: the satellite, the clearing canister, the web2 Postgres. Nothing here runs from CI except the hosting deploy of step 4.
+> Every step from 2 on acts on production: the satellite, the clearing canister, the API's Postgres. Nothing here runs from CI except the hosting deploy of step 4.
 
 ## What applies the shutdown
 

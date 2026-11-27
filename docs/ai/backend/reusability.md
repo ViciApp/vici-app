@@ -1,4 +1,4 @@
-# Web2 API reusability catalog
+# API reusability catalog
 
 Search here before writing a helper in `backend/`. Adding a shared one? Add its row in the same PR ([meta-update rule](../governance.md#meta-update-rule)). Paths are under `backend/src/`.
 

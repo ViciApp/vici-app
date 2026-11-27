@@ -141,7 +141,7 @@ No handle, email or price is sent.
 
 - `backend/tests/waitlist-taps.test.ts`: a tap needs a valid token, a listed open binary series and a size in bounds; the price stored is the server's whatever the body carries; one per series, the eleventh drops the oldest; closed markets are pruned; removal deletes calls and links; a link needs a stored call, is one per (reservation, series), follows a replaced call and reads "side changed"; the public read shows the reservation's handle and nothing from the query string; at account creation the link gains its owner and appears in "my challenges"; a real trade flips it to `position`; redeem on an ownerless link answers `challenger_pending`; the deferred credit is applied once when the inviter's account appears (if pending decision 1 is yes; otherwise an ownerless link credits nobody).
 - `backend/tests/challenges.test.ts`: every existing case unchanged.
-- E2E (`e2e-web2/waitlist-challenge.spec.ts`): tap, join, "Challenge a friend", open the link in a second browser and read the line; edit the URL's query and see no change; the friend joins and the inviter's reservation shows one invite.
+- E2E (`e2e/waitlist-challenge.spec.ts`): tap, join, "Challenge a friend", open the link in a second browser and read the line; edit the URL's query and see no change; the friend joins and the inviter's reservation shows one invite.
 
 **Rollout.** After W1 and A1, before the done state shows the action. Rollback: the previous image; stored calls and links stay and are ignored.
 
@@ -164,7 +164,7 @@ No handle, email or price is sent.
 - [ ] A converted call turns its link into an ordinary position link with the same id.
 - [ ] Links issued by accounts behave exactly as before.
 - [ ] The three challenge links drafts are updated as section 5 lists before their status moves on.
-- [ ] `PRODUCT.md` describes the shipped behaviour; `bun run typecheck && bun test`, `npm run quality`, `npm run check`, `npm test` and `npm run e2e:web2` pass.
+- [ ] `PRODUCT.md` describes the shipped behaviour; `bun run typecheck && bun test`, `npm run quality`, `npm run check`, `npm test` and `npm run e2e` pass.
 
 ## Open questions
 

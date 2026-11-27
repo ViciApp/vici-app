@@ -30,13 +30,13 @@ Terminology: always **"prediction"**, never "bet".
 - **Wallet / dash "VXP"** is the ICRC ledger token balance. Holdings =
   available (in the wallet) + backed (reserved as clearing collateral
   for open predictions). Committed amounts are not subtracted from holdings:
-  they move from available to backed. On the web2 stack the ledger token
+  they move from available to backed. The ledger token
   sits on the account's custodial principal: the wallet reads that live
   balance, and the same auto-sweep moves it into clearing, where it stays
   available until a prediction backs it.
 - **Profile / leaderboard "VXP"** is the lifetime points score that
   drives level. It only ever grows and is **not** the token balance.
-  The client writes it, so it is display copy: on the web2 API no rank
+  The client writes it, so it is display copy: on the API no rank
   reads it (see
   [Global leaderboard](#global-leaderboard-qualify-gate--confidence-adjusted-ranking));
   the satellite still ranks its points leaderboard by it.
@@ -123,7 +123,7 @@ the write, on both stacks, and posting it again keeps every row's first
 resolution time. The collection is
 controllers-read: on the satellite a client reads it only through `listFriendResolvedResults`, which answers the caller's own rows and those of their active friends whose account is neither deleted nor hibernated, any other requested principal reading as having no results (a single owner-prefix scan over
 a caller's friend set, never one call per friend) and is the data source
-for the friend results digest. The web2 API answers only the rows of the
+for the friend results digest. The API answers only the rows of the
 caller's active friends whose account is neither deleted nor hibernated;
 any other requested id reads as having no results. There is **no source for a friend's
 per-call outcome otherwise**: clearing trade-history is caller-scoped, and
@@ -313,7 +313,7 @@ service.
   league. No opt-out: the friendship is implicit. Decision record:
   [`specs/2026-06-14-feat-league-invite-implies-friendship.md`](./spec-driven-development/specs/2026-06-14-feat-league-invite-implies-friendship.md).
 - **A challenge link befriends on an answer, never on an open.** On the
-  web2 API a sign-up through a challenge link is a referral redemption
+  API a sign-up through a challenge link is a referral redemption
   (friendship included), and a friend who answers it with their own call
   is befriended; reading a link writes nothing (see
   [Challenge links](#challenge-links-a-verified-link-for-one-of-your-calls)).
@@ -326,7 +326,7 @@ Decision record:
 
 ### Challenge links: a verified link for one of your calls
 
-On the web2 API (vici.app) a signed-in user can issue a challenge link for any market on which they hold a binary position: a short random id behind `/api/v1/challenges`. No screen issues or opens one yet; the share sheet, the link preview and the receiving page build on this API. What a link says comes from the engine, never from a request:
+On vici.app a signed-in user can issue a challenge link for any market on which they hold a binary position: a short random id behind `/api/v1/challenges`. No screen issues or opens one yet; the share sheet, the link preview and the receiving page build on this API. What a link says comes from the engine, never from a request:
 
 - **One link per user and market**, showing the challenger's position there now: side, average entry price and when the held position was opened. Every trade refreshes it: a flipped side shows as the new side and is marked as changed, a fully closed position shows no position, and whether the market is still open for predictions (not past expiry, not settled) is read live. Asking again for the same market returns the same link.
 - **Consent per link.** The challenger chooses whether the link shows their handle and avatar with the call. With consent it shows them even when the profile is private or calls are not public; without it the link shows no identity. The owner can change that at any time, or turn the link off: it then reads as not found, and asking again issues a new link.
@@ -382,7 +382,7 @@ amount, zero balance), marking the account's zero-VXP origin. The
 ledger walk is capped (`TRANSACTION_HISTORY_MAX_LEDGER_PAGES`); when
 hit, the genesis row is suppressed and a quiet "older history not
 shown" footer appears instead. When the ledger cannot be read at all
-(the first index page fails, or the web2 build, which has no ledger
+(the first index page fails, or the API, which has no ledger
 feed), the page shows "transaction history isn't available" instead of
 a feed whose balances would be missing every bonus and transfer.
 Decision record:
@@ -501,7 +501,7 @@ likes it gave (each liked activity's count goes down), school-email
 submissions, referral code, challenge links (with their answers) and the
 answers it gave to other people's links, affiliations, relations and league
 memberships; owned leagues are disbanded or handed to a member. On the
-web2 API an account that still holds funds (in its wallet, as real-money
+API an account that still holds funds (in its wallet, as real-money
 collateral or trading gains, or in a withdrawal in progress) cannot be deleted: the app
 asks the user to withdraw first. An account that receives funds during the
 recovery window is not purged while it holds them, and signing back in
@@ -513,7 +513,7 @@ hibernated or deleted account. What stays, by design:
   (onboarding grant, referee bonus, milestones, achievements, founder
   awards and the others in
   [`economy.md`](./economy.md#caps-and-gates-the-anti-farming-spine)):
-  a one-way digest of the sign-in identity (on the web2 API each provider
+  a one-way digest of the sign-in identity (on the API each provider
   subject and verified address, keyed with a server secret; on the
   satellite the principal) plus the award type and key. No name, email,
   user id or principal is stored. Signing up again with the same
@@ -522,7 +522,7 @@ hibernated or deleted account. What stays, by design:
   lifetime counts carry over.
 - **Referral history the referrer's lifetime count needs**: on the
   satellite a referral record that has started paying (keyed by the
-  referee principal); on the web2 API the rows naming the deleted account
+  referee principal); on the API the rows naming the deleted account
   as referrer (with the id of the challenge link a redemption came
   through, if any, as plain text), and a referrer's award for a deleted
   referee.
@@ -541,7 +541,7 @@ board and the current-month column, are recomputed on read over the
 affiliation's present roster: the all-time accuracy sums each member's
 lifetime, the month sums each member's `USER_MONTHLY_STATS` for the current
 month on the satellite, and each member's settled calls so far this month on
-the web2 API (refreshed every few minutes). So the instant a member leaves (allowed after the 90-day affiliation
+the API (refreshed every few minutes). So the instant a member leaves (allowed after the 90-day affiliation
 lock) or turns off the **Worlds** sharing toggle
 (`preferences.sharing.worldsOptIn`), their contribution drops out of the
 next read: a member can no longer pump a school and keep crediting it after
@@ -558,7 +558,7 @@ from), counting only members whose slot was joined before the month closed,
 and captured as an immutable snapshot; the podium payout and the champion
 cup read from it thereafter. The live month column is a view (the members'
 own synced monthly stats on the satellite, their settled history so far on
-the web2 API) and never decides a payout. A later leave does not rewrite
+the API) and never decides a payout. A later leave does not rewrite
 a month that has already ended, so awards and cups stay stable and can't
 drift between two people claiming the same month. The podium award goes
 to a member at month-end whatever their join date, but only for a slot
@@ -648,7 +648,7 @@ the older six-character code keeps it and stays joinable. Looking a code up and
 joining with one need a signed-in account, and on the satellite an
 account that has tried `LEAGUE_INVITE_MISSES_PER_HOUR` codes within the
 hour that opened no league is refused every code, a right one included,
-until its oldest miss is an hour old (the web2 API bounds the same calls
+until its oldest miss is an hour old (the API bounds the same calls
 with its own per-account rate limit).
 
 **The score is each league's prediction accuracy over the window, and
@@ -692,7 +692,7 @@ over by that key, and writes the capped increment **itself**: the client
 never sends a count, so it can't reset or inflate the total. The count
 is server-owned outright: on the satellite `recordFlowSwipe` writes it
 signing as a controller, and the `profiles` assert rejects any client write
-that changes the stored count or day; on the web2 API a profile write keeps
+that changes the stored count or day; on the API a profile write keeps
 the stored count and day, and only `POST /profiles/flow-swipe` moves them.
 The result: the "come back tomorrow" takeover holds across reloads, cleared
 storage, sign-outs, and device switches, losing the localStorage mirror

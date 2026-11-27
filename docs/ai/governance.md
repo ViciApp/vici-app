@@ -54,7 +54,7 @@ Execute the plan with **targeted edits**. Strictly follow:
   [`frontend/stack-and-patterns.md`](./frontend/stack-and-patterns.md) for the
   SvelteKit app.
 - [`backend/structure.md`](./backend/structure.md) and
-  [`backend/patterns.md`](./backend/patterns.md) for the web2 API in `backend/`.
+  [`backend/patterns.md`](./backend/patterns.md) for the HTTP API in `backend/`.
 
 Run the local quality gates from [`pr-and-ci.md`](./pr-and-ci.md) before
 declaring done.
@@ -93,12 +93,12 @@ row added or removed here changes that list in the same PR.
 | `local-rules/**`, `eslint-local-rules.cjs`, `.prettierignore`         | Custom lint rules and format scope, the same policy as `eslint.config.js`.     | repo maintainers |
 | `.node-version`, `.npmrc`                                             | Toolchain pins: the Node CI and the web image build on, npm install policy.    | repo maintainers |
 | `release-please-config.json`, `.release-please-manifest.json`         | Release versioning policy.                                                     | repo maintainers |
-| `fly.web.toml`, `Dockerfile.web`, `nginx.web.conf`                    | Web2 SPA image, its nginx config and deploy.                                   | repo maintainers |
+| `fly.web.toml`, `Dockerfile.web`, `nginx.web.conf`                    | SPA image, its nginx config and deploy.                                        | repo maintainers |
 | `eslint-suppressions.json`                                            | Generated lint baseline. Only ever shrinks, via `--prune-suppressions`.        | repo maintainers |
 | `scripts/build/**`, `scripts/lib/**`, `scripts/init/**`               | Reproducible-build + bootstrap pipeline. Touch only when prompted.             | repo maintainers |
 | `scripts/*`, `scripts/test/**`                                        | Deploy canisters, move tokens, act as the dfx identity, gate CI or releases.   | repo maintainers |
 | `backend/package.json`, `backend/bun.lock`                            | Backend dependencies. Same approval as the root ones.                          | repo maintainers |
-| `backend/Dockerfile`, `backend/fly*.toml`                             | Web2 API image and deploy.                                                     | repo maintainers |
+| `backend/Dockerfile`, `backend/fly*.toml`                             | API image and deploy.                                                          | repo maintainers |
 | `backend/docker-compose.yml`, `backend/bunfig.toml`                   | Local Postgres stack and the test preload.                                     | repo maintainers |
 | `backend/tsconfig.json`                                               | Backend TS policy (the root `tsconfig*.json` glob does not cover it).          | repo maintainers |
 | `backend/src/{auth,account,admin,custody,chains,vxp,engine,db}/**`    | Sessions, accounts, roles, custody, chains, VXP, engine and schema.            | repo maintainers |
@@ -190,7 +190,7 @@ How:
    | A shared API helper (`backend/src/lib/**` and the like) | `backend/reusability.md`                                    |
    | A Svelte / TS / Tailwind idiom                          | `frontend/stack-and-patterns.md`                            |
    | An API route / error / SQL / engine pattern             | `backend/patterns.md`; a custody rule: `backend/custody.md` |
-   | An API call in a frontend service                       | `frontend/web2-backend-mode.md`                             |
+   | An API call in a frontend service                       | `frontend/api-client.md`                                    |
    | A test pattern                                          | `frontend/testing.md` or `backend/testing.md`               |
    | User-visible copy rules, locales                        | `frontend/i18n.md`                                          |
    | Design tokens, brand voice                              | `frontend/design.md`, `frontend/brand.md`                   |

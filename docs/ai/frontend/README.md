@@ -56,7 +56,7 @@ Non-obvious points the codebase will not tell you:
   at deploy time, not at runtime; see [`seo.md`](./seo.md) before touching
   `src/app.html` head tags, `robots.txt`, or the hosting `predeploy` chain.
 - The one backend is the repo's HTTP API (`backend/`); the browser holds no
-  signing identity. Read [`web2-backend-mode.md`](./web2-backend-mode.md)
+  signing identity. Read [`api-client.md`](./api-client.md)
   before adding an API call.
 
 ## What "good" looks like in this repo

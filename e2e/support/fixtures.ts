@@ -8,7 +8,7 @@ import { E2E_API_URL, E2E_APP_URL } from './urls';
  * Every test runs sealed off from the network: only the SPA's own assets and
  * the local API are reachable. Everything else is aborted, which covers the
  * reads the app still makes on-chain (the order books; see
- * docs/ai/frontend/web2-backend-mode.md) and anything third-party. The app must degrade on those, and the specs assert it does.
+ * docs/ai/frontend/api-client.md) and anything third-party. The app must degrade on those, and the specs assert it does.
  *
  * Every test is also watched for the failure classes this suite exists to
  * catch, and fails at teardown if any occurred, whatever the spec asserted:

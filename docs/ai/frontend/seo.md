@@ -25,16 +25,16 @@ layer is generated **at deploy time** instead:
     The plain-id routes (`/markets/{id}`, `/m/{id}`) deliberately get no
     copies; see the file-count constraint below.
 
-## The web2 shell head
+## The shell head
 
 `src/app.html` carries the head of the on-chain deployment: canonical,
 `og:url`, `og:image` and the structured data all name vici.market, and the
 per-market generator above rewrites that same head by pattern. The source
-therefore stays as it is, and the web2 image (vici.app) gets its own head
+therefore stays as it is, and the web image (vici.app) gets its own head
 in a build step instead:
 
-- [`scripts/build/generate-web2-head.ts`](../../../scripts/build/generate-web2-head.ts)
-  (`npm run seo:web2-head`) runs in [`Dockerfile.web`](../../../Dockerfile.web)
+- [`scripts/build/generate-shell-head.ts`](../../../scripts/build/generate-shell-head.ts)
+  (`npm run seo:shell-head`) runs in [`Dockerfile.web`](../../../Dockerfile.web)
   right after `npm run build` and rewrites `build/index.html` in place:
   title and description (the English `seo.landing.*` catalog entries),
   canonical and `og:url` (`https://vici.app/`), the link-preview headline and
@@ -46,7 +46,7 @@ in a build step instead:
   [`shell-head.utils.ts`](../../../src/lib/utils/shell-head.utils.ts): every
   tag must match exactly once, or it throws and the image build fails. The
   tags it names are the same contract the per-market generator relies on.
-- The web2 image serves one shell for every address, so this head is the
+- The web image serves one shell for every address, so this head is the
   landing page's everywhere: a link to any vici.app page previews as the
   landing card. `static/robots.txt` still names the vici.market sitemap;
   vici.app has no sitemap of its own yet.

@@ -100,7 +100,7 @@ The order matters: `a.b` typed by a friend must reach the account that was `a.b`
 
 ### 7. Telling people
 
-- **In the app.** `GET /api/v1/profiles/handle-rename` answers the caller's live row (`previousHandle`, `handle`, `reason`, `freeChangeAvailable`) or `204`; `POST /api/v1/profiles/handle-rename/seen` stamps `notice_seen_at`. A separate route, not a profile field: the profile schema (`src/lib/schema/profile.schema.ts`) is shared with the satellite, and a new field there would force a satellite rebuild for a web2-only notice. `HandleRenameNotice.svelte` (`src/lib/components/profile/`, a `BottomSheet`, web2 builds only) opens once after sign-in: "Your handle is now @antonioventilii. It was @antonio.ventilii. Handles are lowercase letters and numbers now.", with `Keep it` and `Change it` (opens `HandleEditor`, which reads `freeChangeAvailable` to stay enabled inside the cooldown window). Copy under `profile.handle.renamed.*` in every catalog.
+- **In the app.** `GET /api/v1/profiles/handle-rename` answers the caller's live row (`previousHandle`, `handle`, `reason`, `freeChangeAvailable`) or `204`; `POST /api/v1/profiles/handle-rename/seen` stamps `notice_seen_at`. A separate route, not a profile field: the profile schema (`src/lib/schema/profile.schema.ts`) is shared with the satellite, and a new field there would force a satellite rebuild for a notice only the API serves. `HandleRenameNotice.svelte` (`src/lib/components/profile/`, a `BottomSheet`) opens once after sign-in: "Your handle is now @antonioventilii. It was @antonio.ventilii. Handles are lowercase letters and numbers now.", with `Keep it` and `Change it` (opens `HandleEditor`, which reads `freeChangeAvailable` to stay enabled inside the cooldown window). Copy under `profile.handle.renamed.*` in every catalog.
 - **By email** (pending decision 9): `sendHandleRenamedEmail` in `backend/src/lib/email.ts`, previous and assigned handle, the reason in one sentence, a link to the app.
 - **Legacy accounts not yet moved** see the notice at their first sign-in on vici.app; R3 covers what vici.market says before that.
 
@@ -157,7 +157,7 @@ No handle text, previous or assigned, is ever sent.
 2. `backend/src/profiles/handle-rename.ts`: `compliantHandleFor`, `planHandleRenames`, `planHash`, `applyHandleRenames`, `revertHandleRenames`; the advisory lock shared with `upsertMyProfile`.
 3. `backend/scripts/handles/rename-existing.ts` and the `handles:rename` script entry; a runbook section in `backend/README.md`.
 4. Write guard changes in `profile-write.ts`; routes in `backend/src/routes/profiles.ts`; admin search.
-5. App: client wrappers in `src/lib/web2/client.ts`, `resolveTargetUserId`, `AddFriendSheet.svelte`, `HandleRenameNotice.svelte`, `HandleEditor.svelte` (free change), i18n catalogs, analytics names.
+5. App: client wrappers in `src/lib/api-client/client.ts`, `resolveTargetUserId`, `AddFriendSheet.svelte`, `HandleRenameNotice.svelte`, `HandleEditor.svelte` (free change), i18n catalogs, analytics names.
 6. `sendHandleRenamedEmail`.
 7. Docs in the same PR: `PRODUCT.md` ("Handles: one rule" gains the rename, the notice, the free change; "Friends: adding" gains previous handles; "Privacy: what survives an account's deletion" notes the row is deleted with the account), `docs/ai/backend/reusability.md`, `docs/ai/frontend/reusability.md`.
 
@@ -167,7 +167,7 @@ No handle text, previous or assigned, is ever sent.
 - `backend/tests/handle-rename-apply.test.ts` (real Postgres, collision-free fixtures): dry run writes nothing; apply with a stale hash aborts; apply renames, keeps `handle_last_change_ms`, fills `handle_renames`; second apply is a no-op; revert restores and skips an account that changed since.
 - `backend/tests/profile-guards.test.ts`: a full-document write carrying the previous handle saves, the row still holds the assigned handle and its keys afterwards, and the response returns the assigned handle; the free change passes inside the window once and only once.
 - `backend/tests/profiles-by-handle.test.ts`: the three resolution steps and their order, hidden accounts stay hidden.
-- App: component spec for the notice; E2E (`e2e-web2`): a seeded renamed account signs in, reads the notice, changes handle inside the cooldown window; a friend adds them by the previous handle.
+- App: component spec for the notice; E2E (`e2e`): a seeded renamed account signs in, reads the notice, changes handle inside the cooldown window; a friend adds them by the previous handle.
 
 ## Rollout
 
