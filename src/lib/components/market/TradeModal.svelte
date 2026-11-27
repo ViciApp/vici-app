@@ -3,10 +3,17 @@
 	import { X } from '@lucide/svelte/icons';
 	import { tradeErrorMessage } from '#lib/canisters/clearing.errors.ts';
 	import SignInActions from '#lib/components/authn/SignInActions.svelte';
+	import CallSizeSlider from '#lib/components/market/CallSizeSlider.svelte';
 	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
-	import { VXP_CALL_SIZE_LADDER } from '#lib/constants/vxp-economy.constants.ts';
+	import {
+		VXP_CALL_SIZE_STEP,
+		VXP_DEFAULT_CALL_SIZE,
+		VXP_MAX_CALL_SIZE,
+		VXP_MIN_CALL_SIZE,
+		type VxpCallSize
+	} from '#lib/constants/vxp-economy.constants.ts';
 	import { playgroundVxpUnitMode } from '#lib/derived/playground.derived.ts';
 	import { authPrincipal, userSignedIn } from '#lib/derived/user.derived.ts';
 	import { vxpSpendable } from '#lib/derived/vxp-holdings.derived.ts';
@@ -15,11 +22,16 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import type { CallSide, Market } from '#lib/types/market.ts';
+	import { isViciXp } from '#lib/utils/balance-domain.utils.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 	import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
-	import { formatAvailableMarginForUi } from '#lib/utils/playground-display.utils.ts';
+	import {
+		formatAvailableMarginForUi,
+		formatWholeVxpMagnitude
+	} from '#lib/utils/playground-display.utils.ts';
 	import { executeOutcomeTrade } from '#lib/utils/trade.utils.ts';
+	import { vxpNetWin } from '#lib/utils/vxp-economy.utils.ts';
 	import { browser } from '$app/env';
 
 	/**
@@ -33,10 +45,13 @@
 	 * phone widths and a centred modal on wider viewports; one set of
 	 * content, switched purely in CSS so there is no forked markup.
 	 *
-	 * Sizing is a slider that steps through the fixed call-size ladder
-	 * (`VXP_CALL_SIZE_LADDER`) rather than a free continuous range, because
-	 * `executeOutcomeTrade` rejects any premium that isn't a ladder rung
-	 * on ViciXp markets, so every selectable value must be a valid rung.
+	 * Sizing is the shared call-size slider (`CallSizeSlider`), whose range
+	 * and step are the economy constants, so every selectable value is a size
+	 * `executeOutcomeTrade` accepts on ViciXp markets. It opens at the default
+	 * size, and the "If right" figure is the net win the call would add, the
+	 * same preview Flow shows. A market on another balance domain trades in
+	 * its own token, which the VXP slider and net win do not model: it keeps a
+	 * plain amount range in that token and the gross payout.
 	 * No limit-order / target-price path lives here; the only submission
 	 * is a market order; the clearing layer still picks `MARKET` vs
 	 * `LIMIT` execution from live depth under the hood.
@@ -60,13 +75,8 @@
 	const tr = ({ key, params }: { key: MessageKey; params?: Record<string, string | number> }) =>
 		t({ locale: $localeStore, key, params });
 
-	// Call-size slider: an index-based control over the fixed call-size
-	// ladder, so every stop is a valid rung the backend will accept (a
-	// free continuous range would let the user pick amounts ViciXp markets
-	// reject). Defaults to the smallest rung; `size` is the selected rung
-	// amount, derived from the slider index.
-	let sizeIndex = $state(0);
-	const size = $derived(VXP_CALL_SIZE_LADDER[sizeIndex]);
+	let size = $state<VxpCallSize>(VXP_DEFAULT_CALL_SIZE);
+	let tokenAmount = $state<number>(VXP_DEFAULT_CALL_SIZE);
 
 	let loading = $state(false);
 	let error = $state('');
@@ -81,12 +91,19 @@
 		resolveOutcomeExecutionPrice({ market, action: selectedOutcome })
 	);
 
+	const viciXp = $derived(isViciXp(market.balanceDomain));
+	const amount = $derived(viciXp ? size : tokenAmount);
+
 	const payout = $derived.by(() => {
-		if (!Number.isFinite(sideExecutionPrice) || sideExecutionPrice <= 0) {
-			return size;
+		if (viciXp) {
+			return formatWholeVxpMagnitude(vxpNetWin({ amount: size, pWin: sideExecutionPrice }));
 		}
 
-		return Math.round(size / sideExecutionPrice);
+		if (!Number.isFinite(sideExecutionPrice) || sideExecutionPrice <= 0) {
+			return tokenAmount;
+		}
+
+		return Math.round(tokenAmount / sideExecutionPrice);
 	});
 
 	// Available collateral for this market's balance domain; the shared
@@ -131,8 +148,9 @@
 			await executeOutcomeTrade({
 				market,
 				action: selectedOutcome,
-				amount: String(size),
-				orderType: 'MARKET'
+				amount: String(amount),
+				orderType: 'MARKET',
+				source: 'market_detail'
 			});
 
 			notificationsStore.add({
@@ -187,20 +205,30 @@
 				</span>
 			</div>
 
-			<div class="confirm-amount">
-				<span class="confirm-amount-value num">{size}</span>
-				<span class="confirm-eyebrow">{market.token.symbol}</span>
-			</div>
+			{#if viciXp}
+				<div class="confirm-size">
+					<CallSizeSlider
+						onValueChange={(next) => (size = next)}
+						source="market_detail"
+						value={size}
+					/>
+				</div>
+			{:else}
+				<div class="confirm-amount">
+					<span class="confirm-amount-value num">{tokenAmount}</span>
+					<span class="confirm-eyebrow">{market.token.symbol}</span>
+				</div>
 
-			<input
-				class="confirm-range"
-				aria-label={tr({ key: 'prediction.how_much' })}
-				max={VXP_CALL_SIZE_LADDER.length - 1}
-				min={0}
-				step={1}
-				type="range"
-				bind:value={sizeIndex}
-			/>
+				<input
+					class="confirm-range"
+					aria-label={tr({ key: 'prediction.how_much' })}
+					max={VXP_MAX_CALL_SIZE}
+					min={VXP_MIN_CALL_SIZE}
+					step={VXP_CALL_SIZE_STEP}
+					type="range"
+					bind:value={tokenAmount}
+				/>
+			{/if}
 
 			<div class="confirm-payout">
 				<span class="confirm-payout-label">{tr({ key: 'prediction.if_right' })}</span>
@@ -308,6 +336,10 @@
 		letter-spacing: var(--tracking-allcaps);
 		text-transform: uppercase;
 		color: var(--text-muted);
+	}
+
+	.confirm-size {
+		margin-top: 0.75rem;
 	}
 
 	.confirm-amount {

@@ -29,6 +29,7 @@ import {
 	STREAK_MAX_CONTINUING_DAY_DELTA,
 	TOURNAMENT_PRIZE_TIERS,
 	VXP_CALIBRATION_REWARD_BASE_UNITS,
+	VXP_CALL_SIZE_STEP,
 	VXP_DECIMALS,
 	VXP_FLOW_MILESTONES,
 	VXP_FLOW_OVERTIME_BONUS,
@@ -36,6 +37,8 @@ import {
 	VXP_FLOW_OVERTIME_ROLLING_WINDOW_MS,
 	VXP_LEAGUE_FOUNDER_MAX_AWARDS,
 	VXP_LEAGUE_FOUNDER_REWARD_BASE_UNITS,
+	VXP_MAX_CALL_SIZE,
+	VXP_MIN_CALL_SIZE,
 	VXP_STREAK_BONUSES,
 	VXP_WORLDS_PODIUM
 } from '../../src/vxp/constants';
@@ -96,6 +99,23 @@ describe('shared drift: VXP decimals', () => {
 		const match = block.match(/decimals:\s*(\d+)/);
 
 		expect(VXP_DECIMALS).toBe(Number(match?.[1]));
+	});
+});
+
+describe('shared drift: VXP call-size range', () => {
+	test('the order routes bound a call with the app range and step', () => {
+		const mirrored: [string, number][] = [
+			['VXP_MIN_CALL_SIZE', VXP_MIN_CALL_SIZE],
+			['VXP_MAX_CALL_SIZE', VXP_MAX_CALL_SIZE],
+			['VXP_CALL_SIZE_STEP', VXP_CALL_SIZE_STEP]
+		];
+
+		for (const [constName, value] of mirrored) {
+			expect({ constName, value }).toEqual({
+				constName,
+				value: extractIntConst({ source: economy, constName })
+			});
+		}
 	});
 });
 
