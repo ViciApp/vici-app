@@ -42,7 +42,7 @@ An admin opens a Waitlist page in the app's admin, sees who is on the list, and 
 
 ### 3. The admission email and the reminder
 
-- Sent by a worker job (`waitlist-admission-emails`, every tick): rows with `admitted_at` set and `admission_email_sent_at` null, a bounded batch per tick (`WAITLIST_ADMISSION_EMAILS_PER_TICK`), each stamped by `update ... set admission_email_sent_at = now() where id = $1 and admission_email_sent_at is null returning` before the send, so a second run or a second machine never sends twice. A failed send clears the stamp for a later tick and is logged.
+- Sent by a worker job (`waitlist-admission-emails`, every tick): rows with `admitted_at` set and `admission_email_sent_at` null, a bounded batch per tick (`WAITLIST_ADMISSION_EMAILS_PER_TICK`), each sent through W1's `deliverOnce` (W1 section 4, "Delivery of the emails a worker job sends") with the key `admission:<id>:<admitted_at>`: a lease claims the row, the key is the provider's idempotency key, and `admission_email_sent_at` is stamped after the send. A second run or a second machine never sends twice, a crash at any point leaves the email to a later tick, and a failed send is logged and retried.
 - **Admission:** the handle, that the account can now be created, a link to the app's sign-in, the address to use, the date the hold ends, the remove link. **Reminder:** the same, shorter, seven days before the end.
 - Both in the reservation's `locale`, with copy in every live locale, through W1's email module.
 - The link signs nobody in: the person proves the address again with a code or a provider.
@@ -50,7 +50,7 @@ An admin opens a Waitlist page in the app's admin, sees who is on the list, and 
 ### 4. Thirty days to create the account
 
 - `WAITLIST_CLAIM_WINDOW_DAYS` (30) after `admitted_at`, a reservation whose account does not exist lapses: the row is deleted, the handle is free, the gate no longer admits the mailbox. The person can join again.
-- One reminder `WAITLIST_CLAIM_REMINDER_DAYS_BEFORE` (7) days before, stamped like the admission email.
+- One reminder `WAITLIST_CLAIM_REMINDER_DAYS_BEFORE` (7) days before, delivered like the admission email (key `claim-reminder:<id>:<admitted_at>`).
 - One hourly job, `waitlist-claim-window`; the delete is a dated `where`, harmless to repeat.
 - While a reservation is admitted, W6's twelve-month clock does not apply to it: the 30 days decide.
 
@@ -175,7 +175,6 @@ One event per call or per job run, never per person, and no `userId` of the admi
 3. **Worker tick length and the email provider's rate**, to size `WAITLIST_ADMISSION_EMAILS_PER_TICK`.
 4. **Counsel**: the admission email and the reminder under the consent given at the waitlist.
 5. **Does the E2E server expose sent emails beyond sign-in codes** (`GET /__e2e/otp/:email`)?
-6. **Should the generic settings route keep accepting `beta_gate`**, now that a validated route exists, or refuse that key?
 
 ## Decisions
 
@@ -193,6 +192,7 @@ Author's choices (a reviewer may overrule):
 - **A sibling page, `/admin/waitlist`**, not a section of the access page: that page's roles and oracles are not wired to the API, and a page that works only in part is worse than one that works.
 - **The gate reads the reservation, not the settings array.** A list that grows to thousands does not belong in one JSON value rewritten whole on each change.
 - **The confirmation is enforced by the server**, not only by the dialog, so no client can open sign-up by accident.
+- **The generic settings route refuses writes to `beta_gate`** (`400 { error: 'use_gate_editor' }`, section 6); reads through it keep working. A second write path that skips the validation, `confirmOpen` and `expectedUpdatedAt` would undo all three.
 - **The admitted row stays after the claim.** In strict mode it is what lets the person back in.
 - **Emails go through a stamped worker job, not the admit request.** A request that sends 500 emails would time out halfway and nobody could tell who was told.
 - **No per-address refusal copy.** Saying "you are on the list" at the gate would tell anyone whether an address joined.

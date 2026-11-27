@@ -64,7 +64,7 @@ It runs at profile creation, so it is always inside the referral window. A termi
 - `GET /api/v1/auth/providers` gains `signUp: 'open' | 'waitlist'`, `'waitlist'` exactly when the beta gate is enabled without `allowNewUsers`. It says nothing about any address.
 - When it is `'waitlist'`, `/i/<code>`, `/join/<code>` and a signed-out `?ref=` capture keep stashing the invite exactly as today, then send the visitor to the landing with the capsule open (`/?claim=1`), not to sign-up. The capsule's code request reads the stash and puts the invite on the reservation.
 - When it is `'open'`, nothing changes.
-- `/league/<code>` is left as it is: a league invite is not carried through the waitlist, and its page says the league can be joined once the account exists.
+- `/league/<code>` is left as it is (pending decision 1): a league invite is not carried through the waitlist, and its page says the league can be joined once the account exists.
 
 ### Out of scope
 
@@ -145,7 +145,12 @@ Instrument.
 3. **Is `referral_redeemed` emitted by the app only**, and does the referee's bonus notice depend on the app-side redeem? If so the server-side credit needs its own notice.
 4. **A1's redeem as a domain function**: the name and contract to call from `applyReservationInvite`, and whether it accepts a call without a browser session.
 5. **Does the landing accept a parameter that opens the capsule**, or does the landing page PR need to add `?claim=1`?
-6. **Should `/league/<code>` also lead to the waitlist while sign-up is closed?** It was not part of the decision.
+
+## Pending decisions
+
+1. **Whether `/league/<code>` also leads to the waitlist while sign-up is closed.** The owner decision covers `/i/<code>` and `?ref=` only; the facts are known (section 2 of this spec and the Context list the entry points).
+   - Recommended: leave it as it is (the scope above). A league invite only makes sense with an account, and carrying a league code on a reservation adds a column and a join step at account creation for a flow few people reach while the gate is closed.
+   - Alternative: send it to the landing with the capsule ready and keep the league code on the reservation, joined at account creation like the referral credit. One more promise to keep across the wait.
 
 ## Decisions
 

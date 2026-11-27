@@ -41,7 +41,7 @@ An inviter cannot count themselves: their own mailbox has one reservation.
 
 - **Arrival number**: a person's place among waiting reservations ordered by `confirmed_at`, then `id`.
 - **Rank** = arrival number minus `WAITLIST_INVITE_PLACES` × min(counted friends, `WAITLIST_INVITE_MAX_COUNTED`). The list is ordered by rank ascending, ties broken by arrival.
-- Proposed values: 10 places per friend, at most 10 friends counted, so at most 100 places gained (open question 1).
+- The two values are pending decision 1 (recommended: 10 places per friend, at most 10 friends counted, so at most 100 places gained).
 - `waitlistOrder` becomes this order, computed in one query with a window function over waiting rows and a grouped count of friends. The admin list and "admit next N" pick it up together.
 - A rank is never stored: it changes whenever anyone joins, is admitted or is removed.
 
@@ -53,10 +53,10 @@ An inviter cannot count themselves: their own mailbox has one reservation.
 
 ### 5. Telling the inviter
 
-- One hourly job, `waitlist-invite-digest`: for each inviter with at least one friend whose `invite_notified_at` is null, and whose own `last_invite_notice_at` is null or more than a day old, and who has not turned the notices off: send one email, then stamp the friends and the inviter in one transaction. The stamp is taken before the send and cleared on failure, as W2's admission email does.
+- One hourly job, `waitlist-invite-digest`: for each inviter with at least one friend whose `invite_notified_at` is null, and whose own `last_invite_notice_at` is null or more than a day old, and who has not turned the notices off: send one email through W1's `deliverOnce` with the key `invite-digest:<inviter id>:<last_invite_notice_at or 0>`. The digest covers the friends confirmed before the delivery row's `created_at`, so a retry reports the same friends; after the send, the same transaction stamps exactly those friends' `invite_notified_at` and the inviter's `last_invite_notice_at`. A crash before the send leaves the friends unstamped for a later run, and a crash after it re-sends under the same key, which the provider drops.
 - **At most one email per inviter per day**, whatever the number of friends: the email states how many joined since the last one and that they moved up the list. It names no friend and states no position.
 - In the inviter's `locale`, copy in every live locale, with the remove link. For a reservation that already has an account, that link turns these notices off (W1).
-- **Inviters who have an account** (the owner of a referral code or of a position challenge link that a friend's reservation names): the same digest, to the account's sign-in address, once the three facts of open question 2 are settled; until then the job covers waitlisters only and the account holder learns of the friend when the credit is applied (W3).
+- **Inviters who have an account** (the owner of a referral code or of a position challenge link that a friend's reservation names): the same digest, to the account's sign-in address, once the three facts of open question 1 are settled; until then the job covers waitlisters only and the account holder learns of the friend when the credit is applied (W3).
 
 ### Out of scope
 
@@ -105,7 +105,7 @@ No `userId`, no email, no handle.
 
 **Risks**
 
-- **The numbers are guesses.** Ten places means a lot on a list of 500 and nothing on a list of 50,000 (open question 1).
+- **The numbers are guesses.** Ten places means a lot on a list of 500 and nothing on a list of 50,000 (pending decision 1).
 - **People who do not invite are overtaken**, by at most the cap per inviter ahead of them; nobody is told their position, so nobody sees it move back.
 - **Farming with real inboxes** stays possible up to the cap; the admin list is the only detection.
 - **A daily email to someone who invited many** is still one email a day until they turn it off.
@@ -122,10 +122,16 @@ No `userId`, no email, no handle.
 
 ## Open questions
 
-1. **The two numbers** (places per friend, friends counted). They depend on how long the list is expected to be and how fast it is admitted. A percentage of the list was considered and set aside because its value changes as the list grows.
-2. **Emailing inviters who already have an account**: may the app email an account holder about invites (it sends them no notification email today), where is their language kept on the server, and how do they turn it off?
-3. **Should a friend brought by an account holder's link count for anyone on the list?** This spec says no: the inviter is not on it.
-4. **Counsel**: the digest is sent under the waitlist consent; confirm.
+1. **Emailing inviters who already have an account**: may the app email an account holder about invites (it sends them no notification email today), where is their language kept on the server, and how do they turn it off?
+2. **Should a friend brought by an account holder's link count for anyone on the list?** This spec says no: the inviter is not on it.
+3. **Counsel**: the digest is sent under the waitlist consent; confirm.
+
+## Pending decisions
+
+1. **Places per friend and friends counted** (`WAITLIST_INVITE_PLACES`, `WAITLIST_INVITE_MAX_COUNTED`). Rank, the order of "admit next N" and how much farming can buy all follow from them; they must be set before this part is implemented.
+   - Recommended: 10 places per friend, at most 10 friends counted (at most 100 places). Visible on a list of a few thousand, small enough that a farmed cluster cannot jump the whole list.
+   - Alternative A: 25 places, at most 4 friends. The same ceiling, weighted to the first few invites, which most people stop at.
+   - Alternative B: a share of the list (for example 1% per friend). Set aside by the author: its value changes as the list grows, so the rule cannot be told in one sentence.
 
 ## Decisions
 

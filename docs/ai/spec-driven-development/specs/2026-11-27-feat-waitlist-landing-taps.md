@@ -62,7 +62,7 @@ Spec B keeps its sheet and its rule: nothing is placed without an explicit confi
 A1's redeem writes a referral row naming the challenger as referrer, and referrals can only be redeemed within `REFERRAL_SIGNUP_WINDOW_MS` of the friend's profile creation. A waitlister's link has no account behind it until its owner is admitted and signs up, which may be after the friend.
 
 - If the link has a `challenger_user_id` when the friend's profile is created: W3 applies the credit as for any challenge link.
-- If it does not: the friend's reservation keeps `invited_challenge_id`, and the credit is applied when the inviter's account is created, by the same function, with the window measured from the later of the two profile creations. This is the one change to the referral rule this part asks for (open question 1).
+- If it does not: the friend's reservation keeps `invited_challenge_id`, and the credit is applied when the inviter's account is created, by the same function, with the window measured from the later of the two profile creations. This is the one change to the referral rule this part asks for, and it is pending decision 1: until it is decided, this deferred branch is not built and an ownerless link credits nobody.
 
 ### 5. Edits required to the challenge links drafts
 
@@ -133,13 +133,13 @@ No handle, email or price is sent.
 1. Migration: `waitlist_taps`; the `challenge_links` changes.
 2. `backend/src/waitlist/taps.ts`: `recordWaitlistTap`, `listTaps`, `clearMyTaps`, `pruneClosedTaps`, `createTapChallenge`, `attachLinksToAccount`.
 3. `backend/src/social/challenges.ts`: the view for a row without a user, `kind`, the trigger's flip, `challenger_pending`.
-4. Routes: `POST /waitlist/taps`, `POST /waitlist/challenge`, `DELETE /waitlist/mine/taps`; calls on the status and `mine` reads; the prune in `waitlist-prune`; `attachLinksToAccount` called from W3's end of hold; the deferred credit of section 4.
+4. Routes: `POST /waitlist/taps`, `POST /waitlist/challenge`, `DELETE /waitlist/mine/taps`; calls on the status and `mine` reads; the prune in `waitlist-prune`; `attachLinksToAccount` called from W3's end of hold; the deferred credit of section 4, if pending decision 1 is yes.
 5. App: client wrappers; `waitlist.services.ts` (`recordCall`, `challengeLatestCall`, the flush after `confirm`, restore); the capsule's done-state action wired to it.
 6. **Docs in the same PR:** `PRODUCT.md` ("Waitlist": calls kept, the link from a call; "Guest mode": landing calls of a waitlister are the stated exception to "preview picks never become positions", and only through B's confirmation), `docs/ai/economy.md` if section 4 changes the referral window, `backend/README.md`.
 
 **Tests**
 
-- `backend/tests/waitlist-taps.test.ts`: a tap needs a valid token, a listed open binary series and a size in bounds; the price stored is the server's whatever the body carries; one per series, the eleventh drops the oldest; closed markets are pruned; removal deletes calls and links; a link needs a stored call, is one per (reservation, series), follows a replaced call and reads "side changed"; the public read shows the reservation's handle and nothing from the query string; at account creation the link gains its owner and appears in "my challenges"; a real trade flips it to `position`; redeem on an ownerless link answers `challenger_pending`; the deferred credit is applied once when the inviter's account appears.
+- `backend/tests/waitlist-taps.test.ts`: a tap needs a valid token, a listed open binary series and a size in bounds; the price stored is the server's whatever the body carries; one per series, the eleventh drops the oldest; closed markets are pruned; removal deletes calls and links; a link needs a stored call, is one per (reservation, series), follows a replaced call and reads "side changed"; the public read shows the reservation's handle and nothing from the query string; at account creation the link gains its owner and appears in "my challenges"; a real trade flips it to `position`; redeem on an ownerless link answers `challenger_pending`; the deferred credit is applied once when the inviter's account appears (if pending decision 1 is yes; otherwise an ownerless link credits nobody).
 - `backend/tests/challenges.test.ts`: every existing case unchanged.
 - E2E (`e2e-web2/waitlist-challenge.spec.ts`): tap, join, "Challenge a friend", open the link in a second browser and read the line; edit the URL's query and see no change; the friend joins and the inviter's reservation shows one invite.
 
@@ -168,12 +168,18 @@ No handle, email or price is sent.
 
 ## Open questions
 
-1. **May the referral window be measured from the later of the two account creations** when the invite was recorded on a reservation? Without it, a waitlister admitted after their friend earns nothing from that invite.
-2. **Which server function gives the side-framed executable price of a series**, and is the cached read fresh enough to show publicly?
-3. **Do the deck and Markets PRs already buffer taps**, in which module and shape?
-4. **The call-size bounds on the API side** once the call-size spec lands.
-5. **What does the done state show when the visitor has made no call?** The designed action needs one. This spec assumes the action then leads to the deck; the copy for that is not designed.
-6. **Is A1 merged before this part starts?** It decides where the `challenge_links` changes land.
+1. **Which server function gives the side-framed executable price of a series**, and is the cached read fresh enough to show publicly?
+2. **Do the deck and Markets PRs already buffer taps**, in which module and shape?
+3. **The call-size bounds on the API side** once the call-size spec lands.
+4. **What does the done state show when the visitor has made no call?** The designed action needs one. This spec assumes the action then leads to the deck; the copy for that is not designed.
+5. **Is A1 merged before this part starts?** It decides where the `challenge_links` changes land.
+
+## Pending decisions
+
+1. **When the inviter has no account yet, is the credit applied when their account appears?** The facts are known: `REFERRAL_SIGNUP_WINDOW_MS` counts from the friend's profile creation, and a waitlister's account can only appear after admission, which may come after the friend's.
+   - Recommended: yes, with the window measured from the later of the two profile creations, applied once by the same function when the inviter's account is created (section 4). It keeps the owner decision that a sign-up through the link counts as challenge credit for every waitlister, not only for those admitted first.
+   - Alternative A: no change to the referral rule. Credit only when the inviter already has an account; a waitlister admitted after the friend earns nothing from that invite, and the acceptance criteria say so.
+   - Alternative B: a separate, smaller reward for deferred invites, outside the referral rule. Keeps the referral window untouched at the cost of a second reward to explain.
 
 ## Decisions
 
