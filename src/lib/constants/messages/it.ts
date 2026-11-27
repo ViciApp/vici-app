@@ -818,6 +818,8 @@ export const itMessages = {
 	'claim.moved.footer.prompt_signup': 'Hai già un account qui?',
 	'claim.moved.sub_new_account':
 		'Questo accesso non ha un account VICI su questo sito. I nuovi account si creano su {domain}.',
+	'claim.moved.sub_shutdown':
+		'Questo sito è chiuso. Il tuo account, le tue previsioni e i tuoi VXP sono su {domain}: accedi lì per continuare a giocare.',
 	'claim.moved.sub_signup':
 		'I nuovi account si creano su {domain}. Registrati lì per iniziare a fare previsioni.',
 	'claim.moved.title': 'VICI si è trasferito su {domain}',

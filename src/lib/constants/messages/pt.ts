@@ -818,6 +818,8 @@ export const ptMessages = {
 	'claim.moved.footer.prompt_signup': 'Já tens uma conta aqui?',
 	'claim.moved.sub_new_account':
 		'Este início de sessão não tem uma conta VICI neste site. As novas contas são criadas em {domain}.',
+	'claim.moved.sub_shutdown':
+		'Este site está fechado. A tua conta, as tuas previsões e os teus VXP estão em {domain}: inicia sessão lá para continuares a jogar.',
 	'claim.moved.sub_signup':
 		'As novas contas são criadas em {domain}. Regista-te lá para começares a fazer previsões.',
 	'claim.moved.title': 'O VICI mudou-se para {domain}',
