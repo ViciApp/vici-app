@@ -2,9 +2,9 @@ import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { UserRole } from '#lib/enums/user.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
-export const RelationCategorySchema = j.enum(RelationCategory);
+const RelationCategorySchema = j.enum(RelationCategory);
 
-export const RelationStateSchema = j.enum(RelationState);
+const RelationStateSchema = j.enum(RelationState);
 
 export const RelationSchema = j.strictObject({
 	category: RelationCategorySchema,

@@ -24,18 +24,18 @@ const CARD_MUTE = '#8A8278';
 const CARD_YES = '#4FD3A1';
 const CARD_NO = '#FF6B6B';
 
-export interface ShareCardMarket {
+interface ShareCardMarket {
 	id: string;
 	question: string;
 	yesPercent: number;
 	category: FlowArtCategory;
 }
 
-export interface ShareCardPriorCall {
+interface ShareCardPriorCall {
 	side: CallSide;
 }
 
-export interface ShareCardIdentity {
+interface ShareCardIdentity {
 	handle: string;
 	/** Accuracy as a 0–1 fraction; omit to hide the accuracy line. */
 	accuracy?: number;
