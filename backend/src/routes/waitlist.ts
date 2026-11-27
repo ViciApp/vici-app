@@ -5,7 +5,7 @@
 
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
-import { REFERRAL_CODE_LENGTH } from '../account/referrals';
+import { normalizeReferralCode } from '../account/referrals';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
 import { UUID_RE } from '../lib/constants';
 import { badRequest, clientIp, type StatusContext } from '../lib/http';
@@ -18,9 +18,10 @@ import {
 } from '../lib/turnstile';
 import { REGISTERED_LOCALE_IDS } from '../markets/locales';
 import { MAX_HANDLE_LENGTH } from '../profiles/nickname';
-import { CHALLENGE_ID_LENGTH } from '../social/challenges';
+import { normalizeChallengeId } from '../social/challenges';
 import { emailMailboxKey, isDisposableEmail } from '../waitlist/mailbox';
 import {
+	MAX_INVITE_FIELD_LENGTH,
 	MAX_PRIVACY_VERSION_LENGTH,
 	MAX_WAITLIST_CODE_LENGTH,
 	MAX_WAITLIST_TOKEN_LENGTH,
@@ -168,8 +169,14 @@ export const waitlistRoutes = new Elysia({ prefix: '/api/v1/waitlist' })
 					privacyVersion: body.privacyVersion,
 					source: body.source,
 					locale: body.locale,
-					referralCode: body.referralCode,
-					challengeId: body.challengeId
+					// A link a visitor arrived through is credit, never a reason to
+					// refuse: a malformed one is dropped.
+					referralCode: isNullish(body.referralCode)
+						? undefined
+						: normalizeReferralCode(body.referralCode),
+					challengeId: isNullish(body.challengeId)
+						? undefined
+						: normalizeChallengeId(body.challengeId)
 				});
 
 				if (outcome !== 'code_sent') {
@@ -197,8 +204,8 @@ export const waitlistRoutes = new Elysia({ prefix: '/api/v1/waitlist' })
 				privacyVersion: t.String({ minLength: 1, maxLength: MAX_PRIVACY_VERSION_LENGTH }),
 				source: literals(WAITLIST_SOURCES),
 				locale: literals(REGISTERED_LOCALE_IDS),
-				referralCode: t.Optional(t.String({ maxLength: REFERRAL_CODE_LENGTH })),
-				challengeId: t.Optional(t.String({ maxLength: CHALLENGE_ID_LENGTH }))
+				referralCode: t.Optional(t.String({ maxLength: MAX_INVITE_FIELD_LENGTH })),
+				challengeId: t.Optional(t.String({ maxLength: MAX_INVITE_FIELD_LENGTH }))
 			})
 		}
 	)

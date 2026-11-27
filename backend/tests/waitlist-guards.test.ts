@@ -131,10 +131,10 @@ describe.if(dbAvailable)('handle waitlist: guards and upkeep', () => {
 		expect(sent()).toHaveLength(0);
 	});
 
-	test('the stored invite: the latest link wins, a plain request keeps it', async () => {
+	test('the stored invite: the latest link wins, a plain or malformed one keeps it', async () => {
 		const email = uniqueEmail();
 
-		await requestCode({ handle: uniqueHandle(), email, extra: { referralCode: 'ABCD2345' } });
+		await requestCode({ handle: uniqueHandle(), email, extra: { referralCode: 'abcd2345' } });
 
 		expect((await reservationOf(email))?.invited_referral_code).toBe('ABCD2345');
 
@@ -152,6 +152,15 @@ describe.if(dbAvailable)('handle waitlist: guards and upkeep', () => {
 
 		expect(row?.invited_referral_code).toBeNull();
 		expect(row?.invited_challenge_id).toBe('ABCDEFGH23456789');
+
+		const malformed = await requestCode({
+			handle: uniqueHandle(),
+			email,
+			extra: { referralCode: 'not a code', challengeId: 'x'.repeat(40) }
+		});
+
+		expect(malformed.status).toBe(200);
+		expect((await reservationOf(email))?.invited_challenge_id).toBe('ABCDEFGH23456789');
 	});
 
 	test('the status token reads the reservation back, and nothing once it is gone', async () => {
