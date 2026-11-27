@@ -282,7 +282,8 @@ VXP_MAX_CALL_SIZE]`; when a limit order's notional (`qty` × the share cost: the
   refusal is confirmed on a fresh read of the order before it is answered. One still missing is looked up across every series, so a leg naming the wrong series
   is checked against the order it really takes. The ViciXp check reads the resting order's own
   series, never the client's `seriesId`. An order no book holds reaches the engine, which answers
-  `order_not_found` as today. Order routes are
+  `order_not_found` as today, unless the named series is ViciXp and the declared size is off the
+  set, which is refused like any other. Order routes are
   user-paced (a Flow sitting is capped by the daily hard cap), so the added load is a few cached
   reads per call.
 - Memory and storage: no migration, no table. Three mirrored integer constants.

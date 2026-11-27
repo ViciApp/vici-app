@@ -944,6 +944,18 @@ describe.if(dbAvailable)('order routes: ViciXp call size', () => {
 		expect(engineCalls).toEqual(['market']);
 	});
 
+	test('a leg on an order no book holds is refused for a call size off the set on a ViciXp series', async () => {
+		mockBooks();
+
+		expect(
+			await market({ matchingOrderId: 'GONE', seriesId: VXP_SERIES, qty: 1, callSize: 55 })
+		).toEqual(REFUSED);
+		expect(
+			await market({ matchingOrderId: 'GONE', seriesId: OTHER_SERIES, qty: 1, callSize: 55 })
+		).toEqual(TAKEN);
+		expect(engineCalls).toEqual(['market']);
+	});
+
 	test('a series outside ViciXp is untouched', async () => {
 		mockBooks();
 

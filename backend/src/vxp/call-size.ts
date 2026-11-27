@@ -156,13 +156,20 @@ export const marketLegCallSizeRefused = async ({
 	callSize?: number;
 }): Promise<boolean> => {
 	const level = await findRestingOrder({ seriesId, orderId: matchingOrderId });
+	// The resting order's own series when one is found, else the named one, so
+	// a declared size off the set is refused even on an order no book holds.
+	const takenSeriesId = level?.series_id ?? seriesId;
 
-	if (isNullish(level) || !(await isViciXpSeries(level.series_id))) {
+	if (isNullish(takenSeriesId) || !(await isViciXpSeries(takenSeriesId))) {
 		return false;
 	}
 
 	if (nonNullish(callSize) && !isVxpCallSize(callSize)) {
 		return true;
+	}
+
+	if (isNullish(level)) {
+		return false;
 	}
 
 	if (!takeExceeds({ level, qty, callSize })) {
