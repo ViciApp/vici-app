@@ -80,3 +80,12 @@ export const parseMarketShareParam = (param: string): string | undefined => {
 
 	return SLUG_ID_SUFFIX_PATTERN.test(suffix) ? suffix : undefined;
 };
+
+// A bare series id, as `marketShareParam` hands out for a title with no
+// slug: lowercase hex, never shorter than the slugged suffix, so a short
+// fragment cannot prefix-match an arbitrary market.
+const BARE_SERIES_ID_PATTERN = new RegExp(`^[0-9a-f]{${SLUG_ID_SUFFIX_LENGTH},}$`);
+
+/** The series id a bare-id share param carries, or `undefined` when the param is not one. */
+export const parseBareMarketShareParam = (param: string): string | undefined =>
+	BARE_SERIES_ID_PATTERN.test(param) ? param : undefined;

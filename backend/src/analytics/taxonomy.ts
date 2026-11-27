@@ -47,6 +47,10 @@ export const ANALYTICS_EVENT_NAMES = [
 	'referral_link_copied',
 	'referral_redeemed',
 	'referral_converted',
+	// Challenge links
+	'challenge_created',
+	'challenge_answered',
+	'challenge_opened',
 	// VXP & economy
 	'vxp_awarded',
 	'streak_milestone',
@@ -104,14 +108,16 @@ export const isAnalyticsEventName = (value: string): value is AnalyticsEventName
 
 /**
  * Events the server records itself, from its own state: a payout or award it
- * made, an account or affiliation change it applied, a verification step it
- * ran. The ingest drops one a client sends, so these counts read only what
+ * made, a challenge link it issued or an answer it verified, an account or
+ * affiliation change it applied, a verification step it ran. The ingest drops one a client sends, so these counts read only what
  * the server did.
  */
 export const SERVER_ANALYTICS_EVENT_NAMES = [
 	'payout_settled',
 	'vxp_awarded',
 	'streak_milestone',
+	'challenge_created',
+	'challenge_answered',
 	'affiliation_set',
 	'affiliation_removed',
 	'school_verify_email_submitted',
