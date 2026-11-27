@@ -38,3 +38,6 @@ target
 
 # Backend local-disk upload fallback (dev/test artifacts)
 /backend/uploads/
+
+# ETL snapshots of the legacy collections (backend/README.md runbook) hold user data
+/backend/etl-export*/

@@ -13,13 +13,12 @@
 		 * Real price-history series (0–100 YES percentages, oldest first)
 		 * loaded from the clearing canister's OHLC candles for {@link period}.
 		 * Empty until the first trade lands in the window (true cold-start).
-		 * Optional so call sites that haven't fetched history fall back to the
-		 * seed-based shape.
+		 * Optional: until history loads the line is flat at the live price.
 		 */
 		points?: number[];
 		/**
 		 * Parallel x-fractions (0–1) placing each {@link points} entry on the
-		 * time axis. Present alongside real history; absent for the seed shape.
+		 * time axis. Present alongside real history.
 		 */
 		pointXs?: number[];
 		/** The active chart period chip. Owned by the page, which fetches the
@@ -46,8 +45,8 @@
 	];
 
 	// Event markers are authored against a relative "this week" day index, so
-	// they only line up on the 7d window: feed them through for the seed
-	// fallback (no real `points`) and for real history on the 7d period (the
+	// they only line up on the 7d window: feed them through while history
+	// loads (no real `points`) and for real history on the 7d period (the
 	// sparkline anchors them on its time axis there). Other periods and the
 	// true cold-start (real but empty) suppress them.
 	const showEvents = $derived(isNullish(points) || (period === '7d' && points.length > 0));

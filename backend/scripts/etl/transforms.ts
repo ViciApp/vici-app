@@ -34,6 +34,8 @@
 //   - events / event_rollups are skipped: the behavioural history was already
 //     drained to the warehouse through the analytics export contract.
 //   - chats / comments are skipped: dormant surfaces with no target tables.
+//   - activity_reaction_counts is skipped: a like count derives from the
+//     imported activity_reactions rows, and the API keeps no rollup of it.
 //   - leagues written after invite codes left the public league doc carry
 //     no code: the league row gets a random stand-in, and the
 //     league_invites import (after leagues) sets the real one.
@@ -474,7 +476,7 @@ const importRelations: ImporterRun = perDoc(async (doc, { q, mapper, nowMs, stat
 });
 
 // ---------------------------------------------------------------------------
-// activities + reactions + counts
+// activities + reactions
 
 const ACTIVITY_TYPES = new Set(['trade', 'settlement', 'comment', 'follow', 'upvote', 'downvote']);
 
@@ -562,28 +564,6 @@ const importActivityReactions: ImporterRun = perDoc(async (doc, { q, mapper, now
 			optStr(d.marketId),
 			isoFromMs(msFromNs(doc.createdAtNs) ?? nowMs)
 		]
-	);
-
-	return true;
-});
-
-const importActivityReactionCounts: ImporterRun = perDoc(async (doc, { q, mapper, stats }) => {
-	const d = rec(doc.data);
-	const activityKey = await mapActivityDocKey({ legacyKey: str(d.activityKey, doc.key), mapper });
-
-	if (isNullish(activityKey)) {
-		stats.warnings.push(`activity_reaction_counts: unsupported key on ${doc.key}; skipped`);
-
-		return false;
-	}
-
-	await q(
-		`insert into activity_reaction_counts (activity_key, count, updated_at_ms)
-		 values ($1, $2, $3)
-		 on conflict (activity_key) do update set
-		   count = excluded.count,
-		   updated_at_ms = excluded.updated_at_ms`,
-		[activityKey, Math.max(0, num(d.count)), num(d.updatedAtMs)]
 	);
 
 	return true;
@@ -1532,9 +1512,9 @@ export const IMPORTERS: CollectionImporter[] = [
 	},
 	{
 		collection: 'activity_reaction_counts',
-		mode: 'import',
-		run: importActivityReactionCounts,
-		pgCount: (q) => countSql(q, `select count(*)::text as count from activity_reaction_counts`)
+		mode: 'skip',
+		skipReason:
+			'derived from activity_reactions, which are imported; the API keeps no like-count rollup'
 	},
 	{
 		collection: 'resolved_results',

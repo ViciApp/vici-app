@@ -22,14 +22,14 @@ export const ICP_TOKEN: Token = {
 	isDevEnabled: true
 };
 
-export const TESTICP_TOKEN: Token = {
+const TESTICP_TOKEN: Token = {
 	id: parseTokenId('TESTICP'),
 	symbol: 'TESTICP',
 	decimals: 8,
 	ledgerCanisterId: TESTICP_LEDGER_CANISTER_ID
 };
 
-export const TICRC1_TOKEN: Token = {
+const TICRC1_TOKEN: Token = {
 	id: parseTokenId('TICRC1'),
 	symbol: 'TICRC1',
 	decimals: 8,
@@ -44,7 +44,7 @@ export const VXP_TOKEN: Token = {
 	isDevEnabled: true
 };
 
-export const VICI_TOKEN: Token = {
+const VICI_TOKEN: Token = {
 	id: parseTokenId('VICI'),
 	symbol: 'VICI',
 	decimals: 8,
@@ -60,7 +60,7 @@ export const CKUSDC_TOKEN: Token = {
 	isDevEnabled: true
 };
 
-export const CKBTC_TOKEN: Token = {
+const CKBTC_TOKEN: Token = {
 	id: parseTokenId('ckBTC'),
 	symbol: 'ckBTC',
 	decimals: 8,
@@ -68,7 +68,7 @@ export const CKBTC_TOKEN: Token = {
 	disabled: true
 };
 
-export const CKETH_TOKEN: Token = {
+const CKETH_TOKEN: Token = {
 	id: parseTokenId('ckETH'),
 	symbol: 'ckETH',
 	decimals: 18,
@@ -76,7 +76,7 @@ export const CKETH_TOKEN: Token = {
 	disabled: true
 };
 
-export const CHAT_TOKEN: Token = {
+const CHAT_TOKEN: Token = {
 	id: parseTokenId('CHAT'),
 	symbol: 'CHAT',
 	decimals: 8,
@@ -84,7 +84,7 @@ export const CHAT_TOKEN: Token = {
 	disabled: true
 };
 
-export const GHOST_TOKEN: Token = {
+const GHOST_TOKEN: Token = {
 	id: parseTokenId('GHOST'),
 	symbol: 'GHOST',
 	decimals: 8,

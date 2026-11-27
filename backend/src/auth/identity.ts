@@ -231,11 +231,39 @@ export const parsedPrincipal = (text: string): Principal | undefined => {
 };
 
 /**
+ * {@link settlementPrincipalsByUser} as principals. A linked principal that
+ * does not parse is left out and counted in one warning tagged `read`, so one
+ * bad row never fails a score read over many members (a tournament match, a
+ * battle side, a prize claim).
+ */
+export const parsedSettlementPrincipalsByUser = async ({
+	userIds,
+	read
+}: {
+	userIds: readonly string[];
+	read: string;
+}): Promise<Map<string, Principal[]>> => {
+	const parsed = new Map<string, Principal[]>();
+	let unparsed = 0;
+
+	for (const [userId, texts] of await settlementPrincipalsByUser(userIds)) {
+		const principals = texts.map(parsedPrincipal).filter(nonNullish);
+
+		unparsed += texts.length - principals.length;
+		parsed.set(userId, principals);
+	}
+
+	if (unparsed > 0) {
+		logger.warn(`${read}: skipped ${unparsed} linked principal(s) that do not parse`);
+	}
+
+	return parsed;
+};
+
+/**
  * Each user's settled-position totals over [fromMs, toMs), summed across
- * every principal {@link settlementPrincipalsByUser} gives them. A user with
- * nothing settled in the window is absent. A linked principal that does not
- * parse is left out (and logged), so one bad row never fails the standings
- * of a whole roster.
+ * every principal {@link parsedSettlementPrincipalsByUser} gives them. A user
+ * with nothing settled in the window is absent.
  */
 export const settledTotalsByUser = async ({
 	userIds,
@@ -248,23 +276,15 @@ export const settledTotalsByUser = async ({
 }): Promise<Map<string, SettledTotals>> => {
 	const userOfPrincipal = new Map<string, string>();
 	const members: Principal[] = [];
-	let unparsed = 0;
 
-	for (const [userId, principals] of await settlementPrincipalsByUser(userIds)) {
-		for (const text of principals) {
-			const principal = parsedPrincipal(text);
-
-			if (isNullish(principal)) {
-				unparsed += 1;
-			} else {
-				userOfPrincipal.set(principal.toText(), userId);
-				members.push(principal);
-			}
+	for (const [userId, principals] of await parsedSettlementPrincipalsByUser({
+		userIds,
+		read: 'settled totals'
+	})) {
+		for (const principal of principals) {
+			userOfPrincipal.set(principal.toText(), userId);
+			members.push(principal);
 		}
-	}
-
-	if (unparsed > 0) {
-		logger.warn(`settled totals: skipped ${unparsed} linked principal(s) that do not parse`);
 	}
 
 	const settled = await settledTotalsByPrincipal({ members, fromMs, toMs });

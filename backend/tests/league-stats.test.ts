@@ -13,8 +13,9 @@ import { getLeagueStats, leagueStatsBucket } from '../src/leagues/stats';
 import { PG_INT_MAX } from '../src/lib/constants';
 import { ProfileValidationError } from '../src/profiles/profile';
 import { MAX_PROFILE_COUNTER, upsertMyProfile } from '../src/profiles/profile-write';
-import { upsertUserStats } from '../src/profiles/stats';
+import { getUserStats, upsertUserStats } from '../src/profiles/stats';
 import { createTestUser, ensureMigrated } from './helpers/auth';
+import { openTransaction } from './helpers/locks';
 import { hibernateProfile, uniqueNickname } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
 
@@ -39,6 +40,37 @@ const seedLeagueWithMembers = async (
 	}
 
 	return { leagueId: league.id, userIds };
+};
+
+const writeCategoryStats = async ({
+	userId,
+	categoryStats
+}: {
+	userId: string;
+	categoryStats: Record<string, { calls: number; wins: number }>;
+}): Promise<void> => {
+	await upsertUserStats({ userId, categoryStats, recentSettlements: [], computedAtMs: Date.now() });
+};
+
+/** Resolves once `count` backends of the test database wait on a lock, so
+ * every writer of a race has read what it reads before the lock is let go. */
+const waitForLockWaiters = async (count: number): Promise<void> => {
+	const deadline = Date.now() + 5_000;
+
+	while (Date.now() < deadline) {
+		const [row] = await query<{ waiting: number }>(
+			`select count(*)::int as waiting from pg_stat_activity
+			 where datname = current_database() and wait_event_type = 'Lock'`
+		);
+
+		if ((row?.waiting ?? 0) >= count) {
+			return;
+		}
+
+		await Bun.sleep(10);
+	}
+
+	throw new Error(`fewer than ${count} backends started waiting on a lock`);
 };
 
 const seedLeagueWithMember = async (): Promise<{ leagueId: string; userId: string }> => {
@@ -199,5 +231,147 @@ describe.if(dbAvailable)('category fanout', () => {
 
 		// The aggregate counters stay owned by the profile fanout.
 		expect(stats?.totalCalls).toBe(0);
+	});
+
+	test('two members saving at once both land on the shared league bucket', async () => {
+		const {
+			leagueId,
+			userIds: [first, second]
+		} = await seedLeagueWithMembers(2);
+
+		if (isNullish(first) || isNullish(second)) {
+			throw new Error('members missing');
+		}
+
+		for (const userId of [first, second]) {
+			await upsertMyProfile({ userId, body: { nickname: uniqueNickname() } });
+			await writeCategoryStats({ userId, categoryStats: { sports: { calls: 1, wins: 0 } } });
+		}
+
+		// Both saves run into the league row a transaction on another
+		// connection holds, and it lets go only once both are waiting, so
+		// they meet the same stored bucket.
+		const holder = await openTransaction();
+
+		await holder.q(`select 1 from league_stats where league_id = $1 for update`, [leagueId]);
+
+		const saves = Promise.all([
+			writeCategoryStats({ userId: first, categoryStats: { sports: { calls: 3, wins: 1 } } }),
+			writeCategoryStats({ userId: second, categoryStats: { sports: { calls: 4, wins: 2 } } })
+		]);
+
+		try {
+			await waitForLockWaiters(2);
+		} finally {
+			await holder.commit();
+		}
+
+		await saves;
+
+		expect(leagueStatsBucket({ stats: await getLeagueStats(leagueId), scope: 'sports' })).toEqual({
+			calls: 7,
+			wins: 3
+		});
+	});
+
+	test("a member's two first saves at once fan out once and keep the higher figure", async () => {
+		const {
+			leagueId,
+			userIds: [seeder, member]
+		} = await seedLeagueWithMembers(2);
+
+		if (isNullish(seeder) || isNullish(member)) {
+			throw new Error('members missing');
+		}
+
+		await upsertMyProfile({ userId: seeder, body: { nickname: uniqueNickname() } });
+		await upsertMyProfile({ userId: member, body: { nickname: uniqueNickname() } });
+		await writeCategoryStats({ userId: seeder, categoryStats: { sports: { calls: 1, wins: 0 } } });
+
+		// The member has no user_stats row yet; both saves are held on the
+		// league row until both are waiting, so they start from the same state.
+		const holder = await openTransaction();
+
+		await holder.q(`select 1 from league_stats where league_id = $1 for update`, [leagueId]);
+
+		const saves = Promise.all([
+			writeCategoryStats({ userId: member, categoryStats: { sports: { calls: 5, wins: 3 } } }),
+			writeCategoryStats({ userId: member, categoryStats: { sports: { calls: 4, wins: 2 } } })
+		]);
+
+		try {
+			await waitForLockWaiters(2);
+		} finally {
+			await holder.commit();
+		}
+
+		await saves;
+
+		expect(leagueStatsBucket({ stats: await getLeagueStats(leagueId), scope: 'sports' })).toEqual({
+			calls: 6,
+			wins: 3
+		});
+		expect((await getUserStats({ userId: member }))?.categoryStats.sports).toEqual({
+			calls: 5,
+			wins: 3
+		});
+	});
+
+	test('a drop and a rise back count once: only a new high moves the league bucket', async () => {
+		const { leagueId, userId } = await seedLeagueWithMember();
+
+		await upsertMyProfile({ userId, body: { nickname: uniqueNickname() } });
+
+		for (const calls of [0, 50, 0, 50, 0, 60]) {
+			await writeCategoryStats({ userId, categoryStats: { sports: { calls, wins: calls } } });
+		}
+
+		expect(leagueStatsBucket({ stats: await getLeagueStats(leagueId), scope: 'sports' })).toEqual({
+			calls: 60,
+			wins: 60
+		});
+		expect((await getUserStats({ userId }))?.categoryStats.sports).toEqual({
+			calls: 60,
+			wins: 60
+		});
+	});
+
+	test('a counter past the ceiling is refused and keys outside the macro taxonomy are not kept', async () => {
+		const { leagueId, userId } = await seedLeagueWithMember();
+
+		await upsertMyProfile({ userId, body: { nickname: uniqueNickname() } });
+
+		expect(
+			writeCategoryStats({
+				userId,
+				categoryStats: { sports: { calls: MAX_PROFILE_COUNTER + 1, wins: 0 } }
+			})
+		).rejects.toBeInstanceOf(ProfileValidationError);
+
+		await writeCategoryStats({
+			userId,
+			categoryStats: { sports: { calls: 2, wins: 1 }, 'not-a-macro': { calls: 9, wins: 9 } }
+		});
+
+		expect(Object.keys((await getUserStats({ userId }))?.categoryStats ?? {})).toEqual(['sports']);
+		expect((await getLeagueStats(leagueId))?.categories['not-a-macro']).toBeUndefined();
+	});
+
+	test('a league bucket already at the int ceiling saturates instead of failing a member save', async () => {
+		const { leagueId, userId } = await seedLeagueWithMember();
+
+		await upsertMyProfile({ userId, body: { nickname: uniqueNickname() } });
+		await writeCategoryStats({ userId, categoryStats: { sports: { calls: 1, wins: 1 } } });
+		await query(`update league_stats set categories = $2 where league_id = $1`, [
+			leagueId,
+			JSON.stringify({ sports: { calls: PG_INT_MAX - 5, wins: PG_INT_MAX - 5 } })
+		]);
+
+		await writeCategoryStats({ userId, categoryStats: { sports: { calls: 100, wins: 100 } } });
+
+		expect(leagueStatsBucket({ stats: await getLeagueStats(leagueId), scope: 'sports' })).toEqual({
+			calls: PG_INT_MAX,
+			wins: PG_INT_MAX
+		});
 	});
 });

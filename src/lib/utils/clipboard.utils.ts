@@ -1,4 +1,6 @@
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import { notificationsStore } from '#lib/stores/notification.store.ts';
+import { t } from '#lib/utils/i18n.utils.ts';
 
 /**
  * Pure clipboard write: wraps `navigator.clipboard.writeText` so we
@@ -24,16 +26,22 @@ export const writeToClipboard = async (value: string): Promise<boolean> => {
  */
 export const copyToClipboard = async ({
 	value,
-	text
+	text,
+	locale
 }: {
 	value: string;
 	text: string;
+	locale: AppLocale;
 }): Promise<void> => {
 	const ok = await writeToClipboard(value);
 
 	notificationsStore.add({
-		title: ok ? 'Copied' : 'Copy failed',
-		message: ok ? `${text} copied to clipboard.` : `Could not copy ${text} to clipboard.`,
+		title: t({ locale, key: ok ? 'ui.clipboard.copied_title' : 'ui.clipboard.failed_title' }),
+		message: t({
+			locale,
+			key: ok ? 'ui.clipboard.copied_message' : 'ui.clipboard.failed_message',
+			params: { label: text }
+		}),
 		type: ok ? 'success' : 'error',
 		duration: 2000
 	});
