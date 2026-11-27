@@ -7,6 +7,8 @@ import {
 } from '#lib/constants/vxp-economy.constants.ts';
 import {
 	assertViciXpHumanPremium,
+	callSizeStopIndex,
+	callSizeStops,
 	clampVxpCallSize,
 	vxpNetWin
 } from '#lib/utils/vxp-economy.utils.ts';
@@ -91,5 +93,42 @@ describe('assertViciXpHumanPremium', () => {
 		]) {
 			assert.throws(() => assertViciXpHumanPremium({ amountStr }), Error, amountStr);
 		}
+	});
+});
+
+describe('vxp-economy.utils call-size stops', () => {
+	it('reads every valid size of the range as a stop, smallest first', () => {
+		const stops = callSizeStops();
+
+		assert.equal(stops[0], VXP_MIN_CALL_SIZE);
+		assert.equal(stops[stops.length - 1], VXP_MAX_CALL_SIZE);
+		stops.slice(1).forEach((value, index) => {
+			assert.equal(value - stops[index], VXP_CALL_SIZE_STEP);
+		});
+	});
+
+	it('places every stop at its own index', () => {
+		callSizeStops().forEach((value, index) => {
+			assert.equal(callSizeStopIndex({ value }), index);
+		});
+	});
+
+	it('places the default call size on a stop', () => {
+		assert.equal(
+			callSizeStops()[callSizeStopIndex({ value: VXP_DEFAULT_CALL_SIZE })],
+			VXP_DEFAULT_CALL_SIZE
+		);
+	});
+
+	it('snaps an off-range value to the nearest stop', () => {
+		const stops = callSizeStops();
+		const last = stops.length - 1;
+
+		assert.equal(callSizeStopIndex({ value: stops[last] * 10 }), last);
+		assert.equal(callSizeStopIndex({ value: 1 }), 0);
+		assert.equal(
+			callSizeStopIndex({ value: Number.NaN }),
+			callSizeStopIndex({ value: VXP_DEFAULT_CALL_SIZE })
+		);
 	});
 });

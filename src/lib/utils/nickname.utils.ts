@@ -2,8 +2,7 @@ import {
 	MAX_NICKNAME_LENGTH,
 	MIN_NICKNAME_LENGTH,
 	NICKNAME_PATTERN,
-	RESERVED_HANDLES,
-	nicknameUniqueKey
+	isReservedHandle
 } from '#lib/constants/profile.constants.ts';
 
 /** Why a nickname cannot be claimed whatever the server says: the format rules
@@ -36,5 +35,5 @@ export const nicknameFormatIssue = (nickname: string): NicknameFormatIssue | und
 		return 'invalid';
 	}
 
-	return RESERVED_HANDLES.has(nicknameUniqueKey(nickname)) ? 'reserved' : undefined;
+	return isReservedHandle(nickname) ? 'reserved' : undefined;
 };

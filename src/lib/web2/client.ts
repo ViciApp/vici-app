@@ -31,6 +31,13 @@ import {
 	type BattleDoc,
 	type BattleWinner
 } from '#lib/types/battle.ts';
+import type {
+	ChallengeAnswer,
+	ChallengeAnswerItem,
+	ChallengeRedeemOutcome,
+	ChallengeView,
+	OwnChallenge
+} from '#lib/types/challenge.ts';
 import type { ExitSignalReason } from '#lib/types/exit-signal.ts';
 import type { LeagueMemberDoc, LeagueMemberRole } from '#lib/types/league-member.ts';
 import type { LeagueDoc } from '#lib/types/league.ts';
@@ -1935,6 +1942,103 @@ export const claimReferralFriendship = async (code: string): Promise<void> => {
 export const listMyReferrals = async (): Promise<Web2ReferralWire[]> => {
 	const { items } = await request<{ items: Web2ReferralWire[] }>({
 		path: '/api/v1/referrals/mine',
+		method: 'GET'
+	});
+
+	return items;
+};
+
+// ─── Challenge links ─────────────────────────────────────────────────────
+
+const challengePath = (id: string): string => `/api/v1/challenges/${encodeURIComponent(id)}`;
+
+/** Issues the session user's link for a market, or returns their active one (same id), refreshed
+ * with the position the engine holds now and the consent flag sent. Refusals (`no_position`,
+ * `market_closed`, `unknown_series`, `unsupported_series`) surface as {@link Web2ApiError}. */
+export const createChallenge = async ({
+	seriesId,
+	showIdentity
+}: {
+	seriesId: string;
+	showIdentity: boolean;
+}): Promise<OwnChallenge> => {
+	const { challenge } = await request<{ challenge: OwnChallenge }>({
+		path: '/api/v1/challenges/',
+		method: 'POST',
+		body: { seriesId, showIdentity }
+	});
+
+	return challenge;
+};
+
+/** The public read of a link (no session needed). An unknown, revoked or hidden link answers
+ * 404 `challenge_not_found`. */
+export const getChallenge = async (id: string): Promise<ChallengeView> => {
+	const { challenge } = await request<{ challenge: ChallengeView }>({
+		path: challengePath(id),
+		method: 'GET'
+	});
+
+	return challenge;
+};
+
+/** The owner turns the identity on the link's public read on or off. */
+export const setChallengeConsent = async ({
+	id,
+	showIdentity
+}: {
+	id: string;
+	showIdentity: boolean;
+}): Promise<OwnChallenge> => {
+	const { challenge } = await request<{ challenge: OwnChallenge }>({
+		path: challengePath(id),
+		method: 'PATCH',
+		body: { showIdentity }
+	});
+
+	return challenge;
+};
+
+/** The owner turns the link off: it reads as not found from then on. */
+export const revokeChallenge = async (id: string): Promise<void> => {
+	await request<{ ok: boolean }>({ path: challengePath(id), method: 'DELETE' });
+};
+
+/** Credits the link's challenger as the session user's referrer. */
+export const redeemChallenge = async (id: string): Promise<ChallengeRedeemOutcome> => {
+	const { outcome } = await request<{ outcome: ChallengeRedeemOutcome }>({
+		path: `${challengePath(id)}/redeem`,
+		method: 'POST'
+	});
+
+	return outcome;
+};
+
+/** Records the session user's own call on the link's market as an answer. The API reads the
+ * position from the engine; nothing about it is sent. */
+export const answerChallenge = async (id: string): Promise<ChallengeAnswer> => {
+	const { answer } = await request<{ answer: ChallengeAnswer }>({
+		path: `${challengePath(id)}/answer`,
+		method: 'POST'
+	});
+
+	return answer;
+};
+
+/** The session user's active links, newest first, with their answer counts. */
+export const listMyChallenges = async (): Promise<OwnChallenge[]> => {
+	const { items } = await request<{ items: OwnChallenge[] }>({
+		path: '/api/v1/challenges/mine',
+		method: 'GET'
+	});
+
+	return items;
+};
+
+/** Answers to the session user's links, newest first. */
+export const listChallengeAnswers = async (): Promise<ChallengeAnswerItem[]> => {
+	const { items } = await request<{ items: ChallengeAnswerItem[] }>({
+		path: '/api/v1/challenges/answers',
 		method: 'GET'
 	});
 

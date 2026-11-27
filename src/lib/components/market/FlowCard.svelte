@@ -73,11 +73,15 @@
 		followedLean?: FollowedLeanSignal;
 		// Real, market-wide price history (0–100 YES series, oldest first)
 		// for the back-face sparkline. Absent until FlowMode resolves it for
-		// the focused card: the back face falls back to its seed shape.
+		// the focused card: the back face then draws a flat line at the live price.
 		points?: number[];
 		// Parallel x-fractions (0–1) placing each `points` entry on the time
-		// axis. Present alongside real history; absent for the seed shape.
+		// axis. Present alongside real history.
 		pointXs?: number[];
+		// Executed trades on this market in the last 24 hours, read off the
+		// same candles as `points`. Absent until FlowMode resolves them: the
+		// "+N today" line then stays hidden rather than showing a guess.
+		tradesToday?: number;
 		// Call-size change callback. Wired through to FlowCardBack so a move
 		// of the slider writes back to FlowMode's bound call size.
 		onCallSizeChange?: (next: string) => void;
@@ -126,6 +130,7 @@
 		followedLean,
 		points,
 		pointXs,
+		tradesToday,
 		onCallSizeChange,
 		guided = false,
 		translation,
@@ -272,11 +277,13 @@
 
 	// Friends-followed-lean line: when the user is following predictors
 	// who've called this market, surface the YES/NO split. Falls back to
-	// the predictors-count + momentum delta line.
+	// the predictors-count + trades-today line.
 	const followedYes = $derived(followedLean?.yes);
-	const followedTotal = $derived(followedLean?.total ?? 10);
+	const followedTotal = $derived(followedLean?.total);
 	const followedNo = $derived(
-		nonNullish(followedYes) ? Math.max(0, followedTotal - followedYes) : undefined
+		nonNullish(followedYes) && nonNullish(followedTotal)
+			? Math.max(0, followedTotal - followedYes)
+			: undefined
 	);
 	const followedLeanText = $derived.by(() => {
 		if (isNullish(followedYes) || isNullish(followedNo)) {
@@ -301,20 +308,7 @@
 		market.outcomes?.reduce((acc, o) => acc + (o.totalPredictions ?? 0), 0) ?? 0
 	);
 
-	// Per-market momentum delta: deterministic per market.id, drives
-	// the "+N today" fallback line shown when the user has no
-	// followed-friends data on this market. Range ~10..99 keeps the
-	// number plausible without requiring a live aggregator.
-	const momentumDelta = $derived.by(() => {
-		const id = String(market.id);
-		let hash = 0;
-
-		for (let i = 0; i < id.length; i += 1) {
-			hash = (hash * 31 + id.charCodeAt(i)) | 0;
-		}
-
-		return (Math.abs(hash) % 90) + 10;
-	});
+	const showTradesToday = $derived(nonNullish(tradesToday) && tradesToday > 0);
 
 	const showPriorOnFront = $derived(Boolean(priorCall));
 	const whyNowText = $derived(formatWhyNowChip(metadata?.whyNow));
@@ -694,11 +688,13 @@
 				     stack always renders (4 seeded decorative circles);
 				     the trailing text swaps between
 				       (a) `N friends YES · M NO`: followedLean
-				       (b) `K predicting · +D today`: predictors-count fallback
+				       (b) `K predicting · +D today`: predictors-count fallback,
+				           the `+D today` part only once the real trade count
+				           has loaded
 				       (c) empty: neither available -->
 					<div class="flow-social num">
 						<SeededAvatarStack borderColor="var(--bg-popover)" size={18} />
-						{#if nonNullish(followedYes) && followedYes > 0}
+						{#if nonNullish(followedTotal) && followedTotal > 0 && followedLeanText.length > 0}
 							<span class="flow-followed-lean">{followedLeanText}</span>
 						{:else if predictorsCount > 0}
 							<span>
@@ -707,14 +703,16 @@
 									key: 'card.predicting_count',
 									params: { count: predictorsCount.toLocaleString() }
 								})}
-								<span class="flow-momentum-sep" aria-hidden="true">·</span>
-								<span class="flow-momentum-delta text-yes">
-									{t({
-										locale: $localeStore,
-										key: 'card.momentum_delta',
-										params: { count: momentumDelta }
-									})}
-								</span>
+								{#if showTradesToday}
+									<span class="flow-momentum-sep" aria-hidden="true">·</span>
+									<span class="flow-momentum-delta text-yes">
+										{t({
+											locale: $localeStore,
+											key: 'card.momentum_delta',
+											params: { count: (tradesToday ?? 0).toLocaleString() }
+										})}
+									</span>
+								{/if}
 							</span>
 						{/if}
 					</div>
@@ -744,14 +742,18 @@
 							<div class="flow-probs-row">
 								<div class="flow-probs-side flow-probs-side-no">
 									<span class="flow-probs-pct num">{noPct}%</span>
-									<span class="flow-probs-label text-no">NO</span>
+									<span class="flow-probs-label text-no"
+										>{t({ locale: $localeStore, key: 'outcome.no' })}</span
+									>
 								</div>
 								<div class="flow-probs-track" aria-hidden="true">
 									<div style:width="{noPct}%" class="flow-probs-fill-no"></div>
 									<div style:width="{crowdPct}%" class="flow-probs-fill-yes"></div>
 								</div>
 								<div class="flow-probs-side flow-probs-side-yes">
-									<span class="flow-probs-label text-yes">YES</span>
+									<span class="flow-probs-label text-yes"
+										>{t({ locale: $localeStore, key: 'outcome.yes' })}</span
+									>
 									<span class="flow-probs-pct num">{crowdPct}%</span>
 								</div>
 							</div>

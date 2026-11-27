@@ -31,32 +31,3 @@ export const formatWhyNowChip = (whyNow: MarketWhyNow | undefined): string | und
 
 	return whyNow.text.trim();
 };
-
-export const sparklinePoints = ({
-	yesPercent,
-	seed,
-	eventCount = 7
-}: {
-	yesPercent: number;
-	seed: string;
-	eventCount?: number;
-}): number[] => {
-	let h = 0;
-
-	for (let i = 0; i < seed.length; i++) {
-		h = (h * 31 + seed.charCodeAt(i)) | 0;
-	}
-
-	const points: number[] = [];
-	const base = Math.max(5, Math.min(95, yesPercent));
-
-	for (let i = 0; i < eventCount; i++) {
-		h = (h * 1_664_525 + 1_013_904_223) | 0;
-		const jitter = ((h >>> 0) % 17) - 8;
-		points.push(Math.max(4, Math.min(96, base + jitter - (eventCount - 1 - i) * 2)));
-	}
-
-	points[points.length - 1] = base;
-
-	return points;
-};

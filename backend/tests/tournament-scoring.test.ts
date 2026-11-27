@@ -1,7 +1,8 @@
 // Tournament match scoring: each side is scored from its members' settled
 // history over the round window, read from the clearing canister, never from
 // the member-writable league_stats; a settlement outside the window and a
-// member who joined after the draw do not count.
+// member who joined after the draw do not count, and a linked principal that
+// does not parse never stops a round.
 
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
@@ -14,7 +15,7 @@ import {
 	TOURNAMENT_ROUND_DURATION_MS,
 	TOURNAMENT_ROUNDS
 } from '../src/tournaments/tournaments';
-import { createTestUser, ensureMigrated } from './helpers/auth';
+import { createTestUser, ensureMigrated, linkUnparseablePrincipal } from './helpers/auth';
 import { stubSettledHistory, type SettledHistoryStub } from './helpers/settlements';
 import { dbAvailable } from './helpers/setup';
 
@@ -213,5 +214,26 @@ describe.if(dbAvailable)('tournament match scoring', () => {
 			from_acc: 0.1,
 			to_acc: null
 		});
+	});
+
+	test('a member with a linked principal that does not parse is scored on the rest', async () => {
+		const { monthAnchor, startMs } = uniqueMonth();
+		const r1 = roundWindow({ tournamentMonthStartMs: startMs, round: 'r1' });
+		const linked = await seedLeague();
+		const plain = await seedLeague();
+
+		await seedRoundOne({ monthAnchor, startMs, from: plain.leagueId, to: linked.leagueId });
+		await linkUnparseablePrincipal(linked.ownerId);
+		settled?.settle({ userId: plain.ownerId, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 6 });
+		settled?.settle({ userId: linked.ownerId, atMs: r1.startMs + DAY_IN_MS, calls: 60, wins: 30 });
+
+		const result = await resolveTournamentRound({
+			tournamentId: monthAnchor,
+			round: 'r1',
+			nowMs: r1.endMs
+		});
+
+		expect(result.matchesResolved).toBe(1);
+		expect((await readMatch(monthAnchor))?.winner_league_id).toBe(linked.leagueId);
 	});
 });

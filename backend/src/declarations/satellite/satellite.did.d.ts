@@ -249,10 +249,12 @@ export interface AppGetAnalyticsEventsResult {
 			| { position_closed: null }
 			| { handle_checked: null }
 			| { battle_resolved: null }
+			| { challenge_created: null }
 			| { market_searched: null }
 			| { sound_toggled: null }
 			| { league_created: null }
 			| { onboarding_step: null }
+			| { challenge_answered: null }
 			| { market_viewed: null }
 			| { battle_expired: null }
 			| { delete_flow_opened: null }
@@ -263,6 +265,7 @@ export interface AppGetAnalyticsEventsResult {
 			| { faucet_claimed: null }
 			| { pwa_install_accepted: null }
 			| { chat_sent: null }
+			| { challenge_opened: null }
 			| { orderbook_viewed: null }
 			| { signed_out: null };
 		path: [] | [string];
@@ -352,10 +355,12 @@ export interface AppGetAnalyticsSummaryResult {
 			| { position_closed: null }
 			| { handle_checked: null }
 			| { battle_resolved: null }
+			| { challenge_created: null }
 			| { market_searched: null }
 			| { sound_toggled: null }
 			| { league_created: null }
 			| { onboarding_step: null }
+			| { challenge_answered: null }
 			| { market_viewed: null }
 			| { battle_expired: null }
 			| { delete_flow_opened: null }
@@ -366,6 +371,7 @@ export interface AppGetAnalyticsSummaryResult {
 			| { faucet_claimed: null }
 			| { pwa_install_accepted: null }
 			| { chat_sent: null }
+			| { challenge_opened: null }
 			| { orderbook_viewed: null }
 			| { signed_out: null };
 		count: number;
@@ -1309,10 +1315,12 @@ export interface AppTrackEventsArgs {
 			| { position_closed: null }
 			| { handle_checked: null }
 			| { battle_resolved: null }
+			| { challenge_created: null }
 			| { market_searched: null }
 			| { sound_toggled: null }
 			| { league_created: null }
 			| { onboarding_step: null }
+			| { challenge_answered: null }
 			| { market_viewed: null }
 			| { battle_expired: null }
 			| { delete_flow_opened: null }
@@ -1323,6 +1331,7 @@ export interface AppTrackEventsArgs {
 			| { faucet_claimed: null }
 			| { pwa_install_accepted: null }
 			| { chat_sent: null }
+			| { challenge_opened: null }
 			| { orderbook_viewed: null }
 			| { signed_out: null };
 		path: [] | [string];

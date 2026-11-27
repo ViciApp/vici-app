@@ -122,6 +122,22 @@ export type AnalyticsEventName =
 	| 'referral_redeemed'
 	/** A referee converted: completed onboarding (cockpit's `referral_converted`). */
 	| 'referral_converted'
+	// ── Challenge links ───────────────────────────────────────────────
+	/**
+	 * The server issued a challenge link, or returned the caller's active one
+	 * for that market (`label`: `new | existing`); `ok` is the consent to show
+	 * the challenger's identity. Server-recorded.
+	 */
+	| 'challenge_created'
+	/**
+	 * The server verified a friend's own call on a challenged market in the
+	 * engine (`label`: `same_side | opposite_side` against the challenger's
+	 * side; `source`: `referred` when the answerer signed up through that link,
+	 * else `existing`). Server-recorded.
+	 */
+	| 'challenge_answered'
+	/** A challenge link was opened on the receiving page. */
+	| 'challenge_opened'
 	// ── VXP & economy ─────────────────────────────────────────────────
 	/** A server VXP award was credited. */
 	| 'vxp_awarded'
@@ -245,14 +261,17 @@ export type AnalyticsEventName =
 	| 'perf_metric';
 
 /**
- * Events the server records itself, from its own state: a payout or award it made, an account or
- * affiliation change it applied, a verification step it ran. A client batch carrying one is not
+ * Events the server records itself, from its own state: a payout or award it made, a challenge link
+ * it issued or an answer it verified, an account or affiliation change it applied, a verification
+ * step it ran. A client batch carrying one is not
  * stored, so these counts read only what the server did.
  */
 export const SERVER_ANALYTICS_EVENT_NAMES = [
 	'payout_settled',
 	'vxp_awarded',
 	'streak_milestone',
+	'challenge_created',
+	'challenge_answered',
 	'affiliation_set',
 	'affiliation_removed',
 	'school_verify_email_submitted',

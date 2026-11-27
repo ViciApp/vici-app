@@ -82,3 +82,21 @@ export const assertViciXpHumanPremium = ({ amountStr }: { amountStr: string }): 
 		);
 	}
 };
+
+const CALL_SIZE_STOPS: readonly VxpCallSize[] = Object.freeze(
+	Array.from(
+		{ length: (VXP_MAX_CALL_SIZE - VXP_MIN_CALL_SIZE) / VXP_CALL_SIZE_STEP + 1 },
+		(_, i) => (VXP_MIN_CALL_SIZE + i * VXP_CALL_SIZE_STEP) as VxpCallSize
+	)
+);
+
+/**
+ * The call sizes a slider steps through, smallest first: every valid size of
+ * the range, so retuning the bounds or the step retunes every slider built on
+ * it with no UI change.
+ */
+export const callSizeStops = (): readonly VxpCallSize[] => CALL_SIZE_STOPS;
+
+/** Slider position (index into {@link callSizeStops}) of the stop nearest to a call size. */
+export const callSizeStopIndex = ({ value }: { value: number }): number =>
+	callSizeStops().indexOf(clampVxpCallSize({ value }));
