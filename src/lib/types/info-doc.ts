@@ -33,7 +33,7 @@ import type { MessageKey } from '#lib/utils/i18n.utils.ts';
  * lazily-loaded image is still in flight.
  */
 
-export type InfoDocBlock =
+type InfoDocBlock =
 	| ({ kind: 'lede' } & ({ key: MessageKey } | { text: string }))
 	| ({ kind: 'h' } & ({ key: MessageKey } | { text: string }))
 	| ({ kind: 'p' } & (

@@ -14,7 +14,7 @@ import type { JsonnableDelegationChain } from '@icp-sdk/core/identity';
 
 export const CLAIM_AUDIENCE = 'vici-web2-claim';
 
-export interface ClaimMessageInput {
+interface ClaimMessageInput {
 	principal: string;
 	issuedAtMs: number;
 }

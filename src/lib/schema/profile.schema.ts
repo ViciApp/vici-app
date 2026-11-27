@@ -3,9 +3,9 @@ import { ProfileVisibility } from '#lib/enums/profile.ts';
 import { UserRole } from '#lib/enums/user.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
-export const UserRoleSchema = j.enum(UserRole);
+const UserRoleSchema = j.enum(UserRole);
 
-export const ProfileVisibilitySchema = j.enum(ProfileVisibility);
+const ProfileVisibilitySchema = j.enum(ProfileVisibility);
 
 export const NicknameSchema = j.string();
 
