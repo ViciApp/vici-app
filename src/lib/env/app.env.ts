@@ -18,12 +18,12 @@ export const turnstileSiteKey = (): string | undefined => {
 };
 
 /**
- * Origin of the HTTP API (`VITE_WEB2_API_URL`), without a trailing slash.
+ * Origin of the HTTP API (`VITE_API_URL`), without a trailing slash.
  * Empty when unset, which makes client paths same-origin relative (the
  * reverse-proxy deployment shape).
  */
-export const web2ApiBaseUrl = (): string => {
-	const raw: unknown = viteEnv()?.VITE_WEB2_API_URL;
+export const apiBaseUrl = (): string => {
+	const raw: unknown = viteEnv()?.VITE_API_URL;
 
 	return typeof raw === 'string' ? raw.replace(/\/+$/, '') : '';
 };

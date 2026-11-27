@@ -113,7 +113,7 @@ Instrument. `challenge_opened` is already in the taxonomy once A1 is merged; thi
 **Tests**
 
 - **Pure logic** (`src/tests/`): `challengeLineKey` for every row of the table; the last-touch merge of the pending payload in both directions; context expiry; `m` resolution (a `slug~id8` match, a bare full id from an unsluggable title, a collision, unknown).
-- **E2E** (`e2e-web2/challenge-landing.spec.ts`, fake engine, links created through the API): the lead card and line for a live link; adding a handle, a side or a price as query parameters changes nothing; a link whose owner flipped side shows "now says"; a closed position shows the neutral line; consent off shows "A friend"; a revoked link shows the standard landing; the attract demo does not start; sign-up through the link makes the challenger the referrer, and an invite link opened afterwards replaces it; a call on the market after sign-up records an answer; a signed-in visitor lands on the market detail with the banner, and the challenger opening their own link, with consent on or off, gets no banner; `/?m=` puts that market first with no line and no attribution.
+- **E2E** (`e2e/challenge-landing.spec.ts`, fake engine, links created through the API): the lead card and line for a live link; adding a handle, a side or a price as query parameters changes nothing; a link whose owner flipped side shows "now says"; a closed position shows the neutral line; consent off shows "A friend"; a revoked link shows the standard landing; the attract demo does not start; sign-up through the link makes the challenger the referrer, and an invite link opened afterwards replaces it; a call on the market after sign-up records an answer; a signed-in visitor lands on the market detail with the banner, and the challenger opening their own link, with consent on or off, gets no banner; `/?m=` puts that market first with no line and no attribution.
 
 **Rollout.** Web build only, with the landing go-live. Before it, `/c/<id>` falls through to the SPA fallback. Rollback: the previous web image.
 
@@ -135,7 +135,7 @@ Instrument. `challenge_opened` is already in the taxonomy once A1 is merged; thi
 - [ ] A signed-in visitor gets the market detail with the banner; the challenger gets it without.
 - [ ] `/?m=<slug~id8>`, and `/?m=<series id>` for a title with no slug, open the landing with that market first, no line, no attribution.
 - [ ] The web3 build redirects `/c/<id>` to vici.app.
-- [ ] Every string is in every catalog; `npm run quality`, `npm run check`, `npm test` and `npm run e2e:web2` pass.
+- [ ] Every string is in every catalog; `npm run quality`, `npm run check`, `npm test` and `npm run e2e` pass.
 
 ## Open questions
 

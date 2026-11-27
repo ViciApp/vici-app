@@ -1,5 +1,5 @@
+import { getUserStats as getUserStatsApi } from '#lib/api-client/client.ts';
 import type { UserStatsDoc } from '#lib/types/user-stats.ts';
-import { getUserStats as getUserStatsWeb2 } from '#lib/web2/client.ts';
 
 /**
  * FE service for the per-user dashboard cache: category win/loss buckets and
@@ -17,4 +17,4 @@ import { getUserStats as getUserStatsWeb2 } from '#lib/web2/client.ts';
  * snapshot exists yet: the FE renders a "pull-to-refresh" hint in
  * that branch.
  */
-export const loadMyUserStats = (): Promise<UserStatsDoc | undefined> => getUserStatsWeb2();
+export const loadMyUserStats = (): Promise<UserStatsDoc | undefined> => getUserStatsApi();

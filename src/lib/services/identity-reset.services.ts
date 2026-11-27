@@ -13,8 +13,7 @@ import { clearMyReferrals } from '#lib/stores/referrals.store.ts';
 import { tradeHistoryStore } from '#lib/stores/trade-history.store.ts';
 
 /**
- * The one reset every auth transition runs, in both backend modes (the
- * on-chain auth state change and the web2 session hydrate / clear in
+ * The one reset every auth transition runs (the session hydrate / clear in
  * `Authn`), so one account's data never shows in the next account's UI.
  *
  * Drops the previous account's user-scoped caches; the next `<Loaders />`
@@ -25,8 +24,8 @@ import { tradeHistoryStore } from '#lib/stores/trade-history.store.ts';
  * `localStorage` caches are local-authoritative and only reset when the
  * owner actually changes: see `reconcileIdentityScopedStorage`.
  *
- * `ownerKey` is the signed-in owner (the principal on-chain, the account id
- * on web2), `undefined` when signed out.
+ * `ownerKey` is the signed-in owner (the session account id), `undefined`
+ * when signed out.
  */
 export const resetIdentityScopedState = ({ ownerKey }: { ownerKey: string | undefined }): void => {
 	clearFriendRelations();

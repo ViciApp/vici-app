@@ -118,7 +118,7 @@ No `userId`, no email, no handle.
 - [ ] The admin list shows rank, arrival number and invite counts, and "admit next N" admits in rank order.
 - [ ] The public page shows no position.
 - [ ] An inviter receives at most one email a day about friends who joined, in their language, naming none of them, and can turn it off from the email.
-- [ ] `PRODUCT.md` describes the shipped behaviour; `bun run typecheck && bun test`, `npm run quality`, `npm run check`, `npm test` and `npm run e2e:web2` pass.
+- [ ] `PRODUCT.md` describes the shipped behaviour; `bun run typecheck && bun test`, `npm run quality`, `npm run check`, `npm test` and `npm run e2e` pass.
 
 ## Open questions
 

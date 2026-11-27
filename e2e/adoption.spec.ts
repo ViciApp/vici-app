@@ -1,5 +1,5 @@
 import { E2E_LEGACY_ADOPT } from '../backend/e2e/fixtures';
-import { Web2AppPage } from './pages/web2-app.page';
+import { AppPage } from './pages/app.page';
 import { apiUrl, expect, test, type MeBody } from './support/fixtures';
 
 /**
@@ -14,7 +14,7 @@ test.describe('legacy account adoption', () => {
 		page,
 		backend
 	}) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 
 		await app.signIn({ email: E2E_LEGACY_ADOPT.email, backend });
 

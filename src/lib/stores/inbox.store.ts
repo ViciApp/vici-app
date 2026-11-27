@@ -616,7 +616,7 @@ const inboxProgressStore = writable<InboxProgress>(loadInboxProgress());
 
 /**
  * Re-reads every persisted inbox set from localStorage. The stores load once
- * at import, but a web2 account switch moves the tab to another owner without
+ * at import, but a session account switch moves the tab to another owner without
  * a reload; without this, the next mark-read / dismiss would write the
  * previous owner's set back under the new one after
  * `reconcileIdentityScopedStorage` cleared it.

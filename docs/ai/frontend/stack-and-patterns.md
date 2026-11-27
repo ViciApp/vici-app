@@ -208,7 +208,7 @@ the service layer and let the service own caching.
 ```
 Component (.svelte)
   ↳ #lib/services/*.services.ts          orchestration, state mutations, error handling
-       ↳ #lib/web2/client.ts             typed wrappers around the HTTP API routes
+       ↳ #lib/api-client/client.ts       typed wrappers around the HTTP API routes
        ↳ #lib/api/*.api.ts               the public canister reads left (order book, ledger fee)
 ```
 
@@ -216,8 +216,8 @@ Component (.svelte)
   through the matching service module.
 - A `*.services.ts` function should:
   - Accept a typed input.
-  - Gate "signed in" on the session store (`getWeb2User()` from
-    `#lib/web2/session.ts`, or `isSignedIn` / `getSignedInOwner` from
+  - Gate "signed in" on the session store (`getSessionUser()` from
+    `#lib/api-client/session.ts`, or `isSignedIn` / `getSignedInOwner` from
     [`#lib/services/identity.services.ts`](../../../src/lib/services/identity.services.ts));
     a public canister read takes `anonymousIdentity()` from the same module.
   - Surface errors via the project's notification / toast pattern (`#lib/stores/notification.store.ts`).
@@ -230,7 +230,7 @@ Example shape (from
 ```ts
 import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
 import { withTimeout } from '#lib/utils/async.utils.ts';
-import { setAffiliation as setAffiliationWeb2 } from '#lib/web2/client.ts';
+import { setAffiliation as setAffiliationApi } from '#lib/api-client/client.ts';
 
 export const joinAffiliation = ({
 	kind,
@@ -240,7 +240,7 @@ export const joinAffiliation = ({
 	affiliationIdentifier: string;
 }): Promise<AffiliationDoc> =>
 	withTimeout({
-		operation: setAffiliationWeb2({ kind, affiliationIdentifier }),
+		operation: setAffiliationApi({ kind, affiliationIdentifier }),
 		timeoutMs: AFFILIATION_WRITE_TIMEOUT_MS,
 		label: 'joinAffiliation'
 	});
@@ -292,9 +292,9 @@ top-of-book price.
 
 ## Identity & auth
 
-- The session is an HttpOnly cookie; `#lib/web2/session.ts` mirrors it and
+- The session is an HttpOnly cookie; `#lib/api-client/session.ts` mirrors it and
   `Authn.svelte` hydrates `userStore` from it. The browser holds no signing
-  identity: see "Auth" in [`web2-backend-mode.md`](./web2-backend-mode.md).
+  identity: see "Auth" in [`api-client.md`](./api-client.md).
 - Sign-in is the email one-time code and the API-driven Google redirect
   (`SignInProviderStack.svelte`); Apple and Passkey render as "coming soon".
 - **Identity-scoped browser storage must be dropped on a principal change.**
@@ -308,8 +308,7 @@ top-of-book price.
   [`resetIdentityScopedState`](../../../src/lib/services/identity-reset.services.ts),
   the one reset
   [`Authn.svelte`](../../../src/lib/components/authn/Authn.svelte) runs on
-  every auth transition in both backend modes (each `onAuthStateChange`
-  on-chain, each web2 session hydrate and clear), together with the
+  every auth transition (each session hydrate and clear), together with the
   in-memory user-scoped caches. A new user-scoped store registers its reset
   there, never in `Authn` beside it. It compares the new principal against
   a persisted owner (`vici.storage-owner.v1`) and wipes the identity-scoped
@@ -320,7 +319,7 @@ top-of-book price.
   routing genuinely cross-device state through `profile.preferences`
   instead; that store already resets on sign-out). A store that loads such
   a key into memory at import must also re-read it on an owner change: a
-  web2 account switch keeps the tab alive, so deleting the key alone leaves
+  session account switch keeps the tab alive, so deleting the key alone leaves
   the old copy in memory to be written back under the next owner (the
   inbox does this in `reloadPersistedInboxState`, called from
   `initInboxProgress`). Device-level keys (theme, locale, last-open tab)

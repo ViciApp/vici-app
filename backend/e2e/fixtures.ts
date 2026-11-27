@@ -1,6 +1,6 @@
-// Deterministic fixture data for the web2 end-to-end suite, shared by the
+// Deterministic fixture data for the end-to-end suite, shared by the
 // backend side (fake engine + seed) and the Playwright specs under
-// e2e-web2/. Kept import-free so the Playwright runner can load it without
+// e2e/. Kept import-free so the Playwright runner can load it without
 // the backend's dependency tree.
 //
 // Every address uses the reserved `.test` TLD, so nothing here can ever
@@ -28,7 +28,7 @@ export const E2E_LEGACY_ADOPT: E2eLegacyAccount = {
 
 /** Imported the same way but only ever used against the `allowNewUsers`
  * gate, which must hold it back with `legacy_account_pending`. A separate
- * account from the adoption one: once an address holds a web2 identity the
+ * account from the adoption one: once an address holds a sign-in identity the
  * gate admits it, so sharing one would make the specs order-dependent. */
 export const E2E_LEGACY_PENDING: E2eLegacyAccount = {
 	principal: 'uduew-qycai-baeaq-caiba-eaqca-ibaea-qcaib-aeaqc-aibae-aqcai-bae',

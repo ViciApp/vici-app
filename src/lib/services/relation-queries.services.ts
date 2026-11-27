@@ -1,13 +1,13 @@
+import {
+	listFollowing as listFollowingApi,
+	listFriendRequests as listFriendRequestsApi,
+	listFriendResolvedResults as listFriendResolvedResultsApi,
+	listFriends as listFriendsApi,
+	listSentFriendRequests as listSentFriendRequestsApi
+} from '#lib/api-client/client.ts';
 import type { KeyedDoc } from '#lib/types/keyed-doc.ts';
 import type { Relation } from '#lib/types/relation.ts';
 import type { ResolvedResult } from '#lib/types/social.ts';
-import {
-	listFollowing as listFollowingWeb2,
-	listFriendRequests as listFriendRequestsWeb2,
-	listFriendResolvedResults as listFriendResolvedResultsWeb2,
-	listFriends as listFriendsWeb2,
-	listSentFriendRequests as listSentFriendRequestsWeb2
-} from '#lib/web2/client.ts';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /** Wrap a relation as the `Doc` shape the friend-request stores read, keyed by
@@ -26,13 +26,13 @@ const asRelationDoc = (relation: Relation): KeyedDoc<Relation> => ({
  * any runtime `import()`. These are thin API passthroughs.
  */
 
-export const getFriends = (): Promise<Relation[]> => listFriendsWeb2();
+export const getFriends = (): Promise<Relation[]> => listFriendsApi();
 
 export const getFriendRequests = async (): Promise<KeyedDoc<Relation>[]> =>
-	(await listFriendRequestsWeb2()).map(asRelationDoc);
+	(await listFriendRequestsApi()).map(asRelationDoc);
 
 export const getSentFriendRequests = async (): Promise<KeyedDoc<Relation>[]> =>
-	(await listSentFriendRequestsWeb2()).map(asRelationDoc);
+	(await listSentFriendRequestsApi()).map(asRelationDoc);
 
 /**
  * Friend-scoped resolved-result rows backing the Arena results digest's standout
@@ -50,8 +50,8 @@ export const getFriendResolvedResults = async ({
 		return [];
 	}
 
-	return await listFriendResolvedResultsWeb2(friends);
+	return await listFriendResolvedResultsApi(friends);
 };
 
 export const getFollowing = async (): Promise<PrincipalText[]> =>
-	(await listFollowingWeb2()).map((r) => r.participants[1]);
+	(await listFollowingApi()).map((r) => r.participants[1]);

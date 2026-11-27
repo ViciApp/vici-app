@@ -9,7 +9,7 @@
 > `tsconfig.spec.json`) are the forward-looking contract until then.
 >
 > **End-to-end (Playwright) tests are configured**: see
-> [E2E against the web2 backend](#e2e-against-the-web2-backend).
+> [E2E against the API](#e2e-against-the-api).
 
 ## Today
 
@@ -28,10 +28,10 @@
   `$state` stand-in on `globalThis` before importing it dynamically (see
   `src/tests/lib/stores/wallet-history-pager.spec.ts`); it covers the
   logic, not reactivity.
-- **E2E (Playwright) runs in CI.** `e2e-web2.yml` builds the production
+- **E2E (Playwright) runs in CI.** `e2e.yml` builds the production
   bundle and runs it against the real API on every PR and push to `main`
-  (`npm run e2e:web2`, see
-  [E2E against the web2 backend](#e2e-against-the-web2-backend)).
+  (`npm run e2e`, see
+  [E2E against the API](#e2e-against-the-api)).
 - **Bug fixes still benefit from a manual repro.** Document repro steps in
   the PR body's `# Tests` section so a reviewer can verify.
 
@@ -134,17 +134,17 @@ agent should do silently. If a PR genuinely needs it:
 Until then, this page documents the target shape so the first Vitest spec
 doesn't have to invent it from scratch.
 
-## E2E against the web2 backend
+## E2E against the API
 
 The end-to-end suite: the production bundle driven against the real HTTP API in [`backend/`](../../../backend/README.md)
 on a throwaway Postgres. Specs live under
-[`e2e-web2/`](../../../e2e-web2/), config in
-[`playwright.web2.config.ts`](../../../playwright.web2.config.ts).
+[`e2e/`](../../../e2e/), config in
+[`playwright.config.ts`](../../../playwright.config.ts).
 
 ### Stack
 
 - **Frontend:** `vite build` + `vite preview` on `:4173` (the shipped bundle,
-  not the dev server), built with `VITE_WEB2_API_URL=http://localhost:8787`.
+  not the dev server), built with `VITE_API_URL=http://localhost:8787`.
   Both servers use `localhost` because the session cookie is host-only.
 - **API:** `backend/e2e/server.ts` on `:8787`, the production app
   (`src/index.ts`) with its external dependencies swapped through the
@@ -168,9 +168,9 @@ on a throwaway Postgres. Specs live under
   on-chain (the order books) and anything third-party. No
   request ever reaches mainnet, and the app is asserted to degrade on those
   reads.
-- **Stack health:** an auto fixture (`e2e-web2/support/fixtures.ts`) fails
+- **Stack health:** an auto fixture (`e2e/support/fixtures.ts`) fails
   any test that saw an uncaught page error, an API 5xx, an engine read
-  answering 4xx/5xx, or a `Web2 API error (5xx)` logged by the app,
+  answering 4xx/5xx, or an `API error (5xx)` logged by the app,
   whatever the spec itself asserted.
 
 The test-only hooks and why they cannot run in production are in
@@ -179,8 +179,8 @@ The test-only hooks and why they cannot run in production are in
 ### Layout
 
 ```text
-e2e-web2/
-├── pages/web2-app.page.ts  # sign-in / sign-up / sign-out, shell locators
+e2e/
+├── pages/app.page.ts       # sign-in / sign-up / sign-out, shell locators
 ├── support/fixtures.ts     # network seal, stack health, backend + admin helpers
 ├── support/urls.ts         # the two local origins
 ├── adoption.spec.ts        # legacy email adopts the imported account
@@ -197,7 +197,7 @@ e2e-web2/
 - **Fresh identities per test** (`uniqueEmail`, `uniqueHandle`): runs share
   one database, locally re-runs included. Seeded accounts are written so a
   re-run converges (an adopted account stays adopted).
-- **Wait on the onboarding handoff** (`Web2AppPage.signUp` does) before a
+- **Wait on the onboarding handoff** (`AppPage.signUp` does) before a
   full page load after sign-up: the claimed handle is written by an async
   drain, and reloading mid-write re-hydrates a profile-less account.
 - **Leave the beta gate open.** Use the `admin` fixture to set it; its
@@ -209,8 +209,8 @@ e2e-web2/
 
 ```bash
 cd backend && docker compose up -d && cd ..   # Postgres on localhost:5432
-npm run e2e:web2                              # installs Chromium, builds, boots both servers, runs
-npm run e2e:web2:report                       # HTML report after a CI-style run
+npm run e2e                                   # installs Chromium, builds, boots both servers, runs
+npm run e2e:report                            # HTML report after a CI-style run
 ```
 
 `E2E_DATABASE_URL` overrides the database. It must be a loopback host: the
@@ -222,13 +222,13 @@ changing backend code or rebuild-relevant frontend code.
 
 ### CI
 
-[`.github/workflows/e2e-web2.yml`](../../../.github/workflows/e2e-web2.yml)
+[`.github/workflows/e2e.yml`](../../../.github/workflows/e2e.yml)
 runs on every pull request, every push to `main`, the merge queue and manual
 dispatch, with no path filter: the suite spans the frontend, the backend and
 their contract. Concurrency cancels a superseded PR run. It starts a
 `postgres:16` service, installs npm (cached by `prepare`), Bun (install cache)
 and Chromium (browser cache keyed on the Playwright version), then runs
-`npm run e2e:web2:ci` (the same suite without the browser install, which CI
+`npm run e2e:ci` (the same suite without the browser install, which CI
 does in its own cached step). One retry on CI; the report ships as
-`playwright-report-web2`, raw results as `test-results-web2` on failure. It
+`playwright-report`, raw results as `test-results` on failure. It
 needs no secrets.

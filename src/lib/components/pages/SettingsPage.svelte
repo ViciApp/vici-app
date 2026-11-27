@@ -39,8 +39,6 @@
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
 	import { flushEvents, track } from '#lib/services/analytics.services.ts';
-	// The dual-mode sign-out: the Juno delegation drop on the default
-	// backend, the cookie-session revoke in web2 mode.
 	import { signOut } from '#lib/services/identity.services.ts';
 	import { getMyJoinedAtMs, persistPreferences } from '#lib/services/profile.services.ts';
 	import { canInstall } from '#lib/stores/a2hs.store.ts';

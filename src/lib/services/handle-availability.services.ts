@@ -1,4 +1,9 @@
 import {
+	ApiError,
+	checkNicknameAvailabilityPublic as checkNicknameAvailabilityPublicApi,
+	issueNicknameCheckProof
+} from '#lib/api-client/client.ts';
+import {
 	HUMAN_PROOF_RENEW_MARGIN_MS,
 	TURNSTILE_ACTION_HANDLE_CHECK
 } from '#lib/constants/turnstile.constants.ts';
@@ -13,11 +18,6 @@ import {
 } from '#lib/utils/handle-probe.utils.ts';
 import { handleFormatIssue, type HandleRefusal } from '#lib/utils/handle.utils.ts';
 import { createHumanProofCache } from '#lib/utils/human-proof-cache.utils.ts';
-import {
-	checkNicknameAvailabilityPublic as checkNicknameAvailabilityPublicWeb2,
-	issueNicknameCheckProof,
-	Web2ApiError
-} from '#lib/web2/client.ts';
 import { nonNullish } from '@dfinity/utils';
 
 export type PublicHandleAvailability =
@@ -43,10 +43,10 @@ const proofs = createHumanProofCache({
 // later probe in this page answers with it rather than solving Turnstile and
 // asking for a proof again, which would also spend the visitor's proof quota
 // and turn the hint into a rate limit.
-let unconfiguredRefusal: Web2ApiError | undefined;
+let unconfiguredRefusal: ApiError | undefined;
 
 const isProofRefused = (err: unknown): boolean =>
-	err instanceof Web2ApiError && err.code === 'human_proof_required';
+	err instanceof ApiError && err.code === 'human_proof_required';
 
 /**
  * Whether a signed-out visitor can claim `handle`, for the sign-up surfaces
@@ -59,7 +59,7 @@ const isProofRefused = (err: unknown): boolean =>
  * page when Cloudflare asks the visitor to interact.
  *
  * Throws on a network failure, a refused bot check or a rate limit
- * ({@link Web2ApiError} `rate_limited`); the caller treats any throw as
+ * ({@link ApiError} `rate_limited`); the caller treats any throw as
  * "could not verify", like the signed-in probe. After the API answers
  * `turnstile_unconfigured`, every later call in the page throws that refusal
  * again without contacting Cloudflare or the API.
@@ -84,7 +84,7 @@ export const checkHandleAvailabilityPublic = async ({
 	challengeHost = host;
 
 	const probe = async () =>
-		await checkNicknameAvailabilityPublicWeb2({ nickname: handle, proof: await proofs.get() });
+		await checkNicknameAvailabilityPublicApi({ nickname: handle, proof: await proofs.get() });
 
 	const probeRenewingProof = async () => {
 		try {
@@ -103,7 +103,7 @@ export const checkHandleAvailabilityPublic = async ({
 	try {
 		return await probeRenewingProof();
 	} catch (err: unknown) {
-		if (err instanceof Web2ApiError && latchesPublicProbe(err.code)) {
+		if (err instanceof ApiError && latchesPublicProbe(err.code)) {
 			unconfiguredRefusal = err;
 		}
 
@@ -136,4 +136,4 @@ export const checkHandleAvailability = async ({
 
 /** What a throw from {@link checkHandleAvailability} means to the picker. */
 export const handleProbeFailureOf = (err: unknown): HandleProbeFailure =>
-	handleProbeFailure(err instanceof Web2ApiError ? err.code : undefined);
+	handleProbeFailure(err instanceof ApiError ? err.code : undefined);

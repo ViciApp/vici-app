@@ -1,4 +1,4 @@
-# Web2 API testing
+# API testing
 
 Paths are under `backend/`.
 
@@ -41,4 +41,4 @@ bun test                     # whole suite
 bun test tests/withdrawals   # one file or prefix
 ```
 
-The API test-only E2E server (`e2e/`, fake engine, in-memory email) drives the Playwright suite in `e2e-web2/`: see [`frontend/testing.md`](../frontend/testing.md#e2e-against-the-web2-backend).
+The API test-only E2E server (`e2e/`, fake engine, in-memory email) drives the Playwright suite in `e2e/`: see [`frontend/testing.md`](../frontend/testing.md#e2e-against-the-api).

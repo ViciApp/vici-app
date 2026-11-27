@@ -1,6 +1,6 @@
 import { E2E_LIVE_SERIES } from '../backend/e2e/fixtures';
 import { enMessages } from '../src/lib/constants/messages/en';
-import { Web2AppPage, uniqueEmail, uniqueHandle } from './pages/web2-app.page';
+import { AppPage, uniqueEmail, uniqueHandle } from './pages/app.page';
 import { apiUrl, expect, test } from './support/fixtures';
 
 interface AccountBody {
@@ -25,7 +25,7 @@ test.describe('dash', () => {
 		page,
 		backend
 	}) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 
 		await app.signUp({ email: uniqueEmail('dash'), handle: uniqueHandle(), backend });
 
@@ -55,10 +55,10 @@ test.describe('dash', () => {
 		}
 	});
 
-	// web2 has no VXP ledger feed, so the history cannot rebuild running
+	// The API has no VXP ledger feed, so the history cannot rebuild running
 	// balances: the page must say so rather than list rows with wrong ones.
 	test('shows the transaction history as unavailable', async ({ page, backend }) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 
 		await app.signUp({ email: uniqueEmail('txh'), handle: uniqueHandle(), backend });
 

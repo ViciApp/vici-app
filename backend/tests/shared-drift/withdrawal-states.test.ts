@@ -10,8 +10,8 @@ describe('shared drift: withdrawal states', () => {
 	test('the app withdrawal states match the backend state machine', () => {
 		const app = quotedStrings(
 			extractBlock({
-				source: readRepoSource('src/lib/schema/web2-api.schema.ts'),
-				marker: 'const WEB2_WITHDRAWAL_STATES'
+				source: readRepoSource('src/lib/schema/api.schema.ts'),
+				marker: 'const WITHDRAWAL_STATES'
 			})
 		);
 

@@ -1,4 +1,4 @@
-// Public profile lookup by account id. Accounts are keyed by uuid; the web2
+// Public profile lookup by account id. Accounts are keyed by uuid; the
 // app can still hold an on-chain principal where an id is expected (the
 // anonymous placeholder identity, a legacy owner), and such a lookup must read
 // as absent instead of failing the uuid bind as a 500.

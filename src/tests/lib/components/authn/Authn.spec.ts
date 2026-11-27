@@ -28,7 +28,7 @@ const functionBody = (name: string): string => {
 };
 
 describe('Authn identity reset', () => {
-	for (const transition of ['hydrateWeb2AppShell', 'clearWeb2AppShell']) {
+	for (const transition of ['hydrateAppShell', 'clearAppShell']) {
 		it(`${transition} runs the identity reset`, () => {
 			assert.ok(functionBody(transition).includes(RESET_CALL));
 		});

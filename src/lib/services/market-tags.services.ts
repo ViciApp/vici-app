@@ -1,6 +1,6 @@
+import { listMarketMetadata } from '#lib/api-client/client.ts';
 import { normalizeStoredTags } from '#lib/constants/market-taxonomy.constants.ts';
 import type { MarketMetadata } from '#lib/types/market-metadata.ts';
-import { listMarketMetadata } from '#lib/web2/client.ts';
 
 /**
  * Projects every `MarketMetadata` doc down to `{ seriesId → tags }` so the

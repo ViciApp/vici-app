@@ -1,6 +1,6 @@
 // The economy's prediction count: the caller's executed fills as the engine
 // records them. Trade activities are client posts, so they only signal that a
-// count may have moved; the number itself comes from the engine, where a web2
+// count may have moved; the number itself comes from the engine, where an
 // account's custodial principal can only trade through the API's session-gated
 // order routes.
 

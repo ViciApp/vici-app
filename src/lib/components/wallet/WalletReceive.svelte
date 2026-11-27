@@ -6,9 +6,8 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 
-	// The service resolves the deposit target per backend: the signed-in
-	// principal on-chain, the custodial IC principal in web2 mode. Both are IC
-	// principals, so the copy below stays accurate.
+	// The service resolves the deposit target: the account's custodial IC
+	// principal, so the copy below stays accurate.
 	let principalText = $state<string | undefined>();
 
 	onMount(async () => {

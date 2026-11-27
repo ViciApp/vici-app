@@ -381,7 +381,7 @@
 			"count": 1
 		}
 	},
-	"src/lib/web2/client.ts": {
+	"src/lib/api-client/client.ts": {
 		"max-lines": {
 			"count": 1
 		}

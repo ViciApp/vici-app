@@ -1,6 +1,6 @@
 # Migration plan: Juno → Supabase (keep icdc-core)
 
-> **Historical, superseded.** This proposal was not carried out: the web2 app runs on the Bun + Postgres API in `backend/` instead, and the repo holds no Supabase code. For the current design read [`docs/ai/backend/README.md`](./ai/backend/README.md) and [`web2-backend-mode.md`](./ai/frontend/web2-backend-mode.md). Kept as a record of the analysis; it does not describe the code.
+> **Historical, superseded.** This proposal was not carried out: the app runs on the Bun + Postgres API in `backend/` instead, and the repo holds no Supabase code. For the current design read [`docs/ai/backend/README.md`](./ai/backend/README.md) and [`api-client.md`](./ai/frontend/api-client.md). Kept as a record of the analysis; it does not describe the code.
 
 Status: **analysis / proposal**. Staging-only app today; icdc-core is production.
 

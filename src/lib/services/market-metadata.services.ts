@@ -1,11 +1,11 @@
-import type { MarketMetadata, MarketMetadataInput } from '#lib/types/market-metadata.ts';
 import {
-	getMarketMetadata as getMarketMetadataWeb2,
-	upsertMarketMetadata as upsertMarketMetadataWeb2
-} from '#lib/web2/client.ts';
+	getMarketMetadata as getMarketMetadataApi,
+	upsertMarketMetadata as upsertMarketMetadataApi
+} from '#lib/api-client/client.ts';
+import type { MarketMetadata, MarketMetadataInput } from '#lib/types/market-metadata.ts';
 
 export const getMarketMetadata = async (seriesId: string): Promise<MarketMetadata | undefined> =>
-	await getMarketMetadataWeb2(seriesId);
+	await getMarketMetadataApi(seriesId);
 
 /**
  * The API enforces the curator gate (admin or series creator) and returns the
@@ -17,4 +17,4 @@ export const upsertMarketMetadata = async ({
 }: {
 	seriesId: string;
 	data: MarketMetadataInput;
-}): Promise<MarketMetadata> => await upsertMarketMetadataWeb2({ seriesId, data });
+}): Promise<MarketMetadata> => await upsertMarketMetadataApi({ seriesId, data });

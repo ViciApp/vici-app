@@ -42,11 +42,11 @@ interface BetaGateCaller {
 	identity?: { provider: Provider; subject: string };
 }
 
-/** Whether this caller already holds a web2 sign-in identity. Same matching
+/** Whether this caller already holds a sign-in identity. Same matching
  * as resolveIdentity (subject first, then case-insensitive email), so the
  * gate never refuses someone resolveIdentity would log into an existing
  * account. */
-const hasWeb2Identity = async ({ email, identity }: BetaGateCaller): Promise<boolean> => {
+const hasSignInIdentity = async ({ email, identity }: BetaGateCaller): Promise<boolean> => {
 	const rows = await query<{ found: number }>(
 		`select 1 as found from auth_identities ai
 		 join users u on u.id = ai.user_id and u.hard_deleted_at is null
@@ -80,7 +80,7 @@ const hasLegacyAccount = async (email: string): Promise<boolean> => {
  * closed rather than silently open). `allowNewUsers` only opens the gate
  * when it is exactly `true`; any other value keeps the strict allowlist.
  *
- * With `allowNewUsers`, in order: allowlisted passes; an existing web2
+ * With `allowNewUsers`, in order: allowlisted passes; an existing sign-in
  * identity passes (already onboarded people are never locked out); a legacy
  * account is held back with `legacy_account_pending`; anyone else is new
  * and passes.
@@ -111,7 +111,7 @@ export const betaGateVerdict = async (caller: BetaGateCaller): Promise<BetaGateV
 
 	const normalizedCaller: BetaGateCaller = { ...caller, email };
 
-	if (await hasWeb2Identity(normalizedCaller)) {
+	if (await hasSignInIdentity(normalizedCaller)) {
 		return 'allowed';
 	}
 

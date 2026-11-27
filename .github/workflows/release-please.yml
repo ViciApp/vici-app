@@ -5,7 +5,7 @@ name: Release Please
 # On every push to `main`, release-please maintains a standing "release PR"
 # that bumps the version and regenerates CHANGELOG.md from the commits since
 # the last release. Merging that PR cuts a `vX.Y.Z` tag + GitHub Release,
-# the ref `web2-deploy.yml` is dispatched from to ship it.
+# the ref `fly-deploy.yml` is dispatched from to ship it.
 #
 # BUMP POLICY: `versioning: always-bump-patch` (release-please-config.json): so
 # EVERY release is a patch by default, regardless of commit type. `feat:` does
@@ -55,6 +55,6 @@ jobs:
           manifest-file: .release-please-manifest.json
           # Pinned to main, not github.ref_name: workflow_dispatch can run from
           # any branch, and a dynamic target would let a dispatch on a non-main
-          # branch cut a v* tag there, the ref web2-deploy.yml ships from.
+          # branch cut a v* tag there, the ref fly-deploy.yml ships from.
           # Releases only ever come off main.
           target-branch: main

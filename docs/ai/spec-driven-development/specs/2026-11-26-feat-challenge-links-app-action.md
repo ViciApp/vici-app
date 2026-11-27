@@ -76,7 +76,7 @@ No handle and no challenge id is sent.
 **Tests**
 
 - **Pure logic** (`src/tests/`): `challengeLineKey` for every state (side as created, side changed, no position, market closed, each with and without consent); the inbox card derivation (current side, no position, ordering, dismissal).
-- **E2E** (`e2e-web2/challenge-share.spec.ts`, fake engine seeded with a position): the action is absent without a position and present with one; the sheet's preview matches the server's values; turning consent off changes the preview and the public read of the link; copy yields a `/c/<id>` URL; reopening returns the same URL; "Turn off this link" makes the public read answer not found; after a second account answers through the API, the first account's inbox shows the card and it opens the market.
+- **E2E** (`e2e/challenge-share.spec.ts`, fake engine seeded with a position): the action is absent without a position and present with one; the sheet's preview matches the server's values; turning consent off changes the preview and the public read of the link; copy yields a `/c/<id>` URL; reopening returns the same URL; "Turn off this link" makes the public read answer not found; after a second account answers through the API, the first account's inbox shows the card and it opens the market.
 - A11y: the toggle is a labelled switch, the sheet traps focus and closes on Escape, the channel buttons are real links and buttons.
 
 **Rollout.** Web build only. The action stays hidden until the landing go-live switch is on (see the open question), because the links it produces lead to the landing.
@@ -96,7 +96,7 @@ No handle and no challenge id is sent.
 - [ ] Sharing sends `https://vici.app/c/<id>`; sharing again for the same market sends the same URL.
 - [ ] The owner can change consent later and can turn the link off.
 - [ ] When a friend makes a call on the challenged market, one inbox card appears and opens that market.
-- [ ] Every string is in every catalog; `npm run quality`, `npm run check`, `npm test` and `npm run e2e:web2` pass.
+- [ ] Every string is in every catalog; `npm run quality`, `npm run check`, `npm test` and `npm run e2e` pass.
 
 ## Open questions
 

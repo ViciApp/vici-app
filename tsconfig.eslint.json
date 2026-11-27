@@ -5,11 +5,11 @@
 		"non-ambient.d.ts",
 		"./scripts/",
 		"./src/",
-		"./e2e-web2/",
+		"./e2e/",
 		"./eslint.config.js",
 		"./eslint-local-rules.cjs",
 		"./juno.config.ts",
-		"./playwright.web2.config.ts",
+		"./playwright.config.ts",
 		"./vite.config.ts"
 	],
 	"exclude": ["./node_modules/**"]

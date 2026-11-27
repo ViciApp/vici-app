@@ -1,16 +1,16 @@
+import {
+	createActivity as createActivityApi,
+	listActivities as listActivitiesApi
+} from '#lib/api-client/client.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import type { Activity } from '#lib/types/social.ts';
-import {
-	createActivity as createActivityWeb2,
-	listActivities as listActivitiesWeb2
-} from '#lib/web2/client.ts';
 
 export const logActivity = async (activity: Omit<Activity, 'timestamp'>): Promise<void> => {
 	// The HTTP route stamps the author from the session (the passed `user` is
 	// that same account id) and runs the trade-activity award triggers
 	// (onboarding call-count milestones, referral settlement) after the write,
 	// so no extra client call is needed for those awards.
-	await createActivityWeb2({
+	await createActivityApi({
 		type: activity.type,
 		targetUser: activity.targetUser,
 		marketId: activity.marketId,
@@ -35,5 +35,5 @@ export const getSettlementActivities = async ({ limit = 200 }: { limit?: number 
 		return [];
 	}
 
-	return await listActivitiesWeb2({ limit, type: ActivityType.SETTLEMENT });
+	return await listActivitiesApi({ limit, type: ActivityType.SETTLEMENT });
 };

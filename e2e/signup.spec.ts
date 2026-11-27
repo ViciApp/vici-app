@@ -1,4 +1,4 @@
-import { Web2AppPage, uniqueEmail, uniqueHandle } from './pages/web2-app.page';
+import { AppPage, uniqueEmail, uniqueHandle } from './pages/app.page';
 import { apiUrl, expect, test, type MeBody } from './support/fixtures';
 
 /**
@@ -12,7 +12,7 @@ test.describe('email sign-up', () => {
 		page,
 		backend
 	}) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 		const email = uniqueEmail('signup');
 		const handle = uniqueHandle();
 
@@ -36,7 +36,7 @@ test.describe('email sign-up', () => {
 		page,
 		backend
 	}) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 		const handle = uniqueHandle();
 		const typed = `${handle.slice(0, 3).toUpperCase()}.${handle.slice(3)}`;
 

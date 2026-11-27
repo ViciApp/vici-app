@@ -1,6 +1,6 @@
+import { listReceivedActivityReactions as listReceivedActivityReactionsApi } from '#lib/api-client/client.ts';
 import { track } from '#lib/services/analytics.services.ts';
 import type { ActivityReaction } from '#lib/types/social.ts';
-import { listReceivedActivityReactions as listReceivedActivityReactionsWeb2 } from '#lib/web2/client.ts';
 
 /**
  * Record a failed reaction read as an observable `app_error` event rather than
@@ -45,7 +45,7 @@ export const getReceivedActivityReactions = async ({
 	}
 
 	try {
-		return await listReceivedActivityReactionsWeb2({ limit });
+		return await listReceivedActivityReactionsApi({ limit });
 	} catch (err: unknown) {
 		trackReactionReadFailure({
 			collection: 'activity_reactions',

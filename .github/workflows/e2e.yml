@@ -1,4 +1,4 @@
-name: E2E (web2)
+name: E2E
 
 # The production build end to end against the real API in
 # backend/ on a throwaway Postgres. Runs on every pull request and every push
@@ -24,8 +24,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  e2e-web2:
-    name: web2 E2E
+  e2e:
+    name: E2E
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -94,31 +94,31 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      # playwright.web2.config.ts boots both servers: the API (migrate, seed,
-      # then the E2E entrypoint) and the web2 production bundle under
+      # playwright.config.ts boots both servers: the API (migrate, seed,
+      # then the E2E entrypoint) and the production bundle under
       # `vite preview`.
-      - name: Run web2 E2E
-        run: npm run e2e:web2:ci
+      - name: Run E2E
+        run: npm run e2e:ci
 
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report-web2
-          path: playwright-report-web2/
+          name: playwright-report
+          path: playwright-report/
           retention-days: 7
 
       - name: Upload Playwright results
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: test-results-web2
-          path: test-results-web2/
+          name: test-results
+          path: test-results/
           retention-days: 7
 
-  e2e-web2-pass:
+  e2e-pass:
     if: always()
-    needs: ['e2e-web2']
+    needs: ['e2e']
     runs-on: ubuntu-24.04
     permissions:
       contents: read

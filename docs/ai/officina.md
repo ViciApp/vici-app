@@ -51,9 +51,9 @@ current head is ignored, because it was about code that is no longer there.
 
 ## What a merge ships
 
-Nothing. Merging into `main` deploys nothing (`release.on_merge: nothing` in the config): releases
-run from `v*` tags (`deploy.yml`, `publish.yml`), which are cut when a person merges the
-release-please pull request, and `web2-deploy.yml` is started by hand from a release tag. Officina
+Nothing. Merging into `main` deploys nothing (`release.on_merge: nothing` in the config): a
+release is a `v*` tag, cut when a person merges the release-please pull request, and
+`fly-deploy.yml` is started by hand from that tag. Officina
 never touches the release pull request.
 
 ## Lanes
@@ -64,7 +64,7 @@ always wins, and a lane never loosens on its own.
 | Lane         | What it covers                                                                                   | Agents build? | Who approves                                                                      |
 | ------------ | ------------------------------------------------------------------------------------------------ | ------------- | --------------------------------------------------------------------------------- |
 | **green**    | user-facing copy (`src/lib/constants/messages/**`)                                               | yes           | spec: the requester, plus a product approver once that role exists; result: below |
-| **standard** | everything else, mostly frontend and web2 backend work                                           | yes           | the owner; product too for user-visible changes                                   |
+| **standard** | everything else, mostly frontend and API work                                                    | yes           | the owner; product too for user-visible changes                                   |
 | **red**      | generated bindings, canister wiring, CI, dependencies, scripts, money, identity, deploy and more | **no**        | the owner, and a person implements it                                             |
 
 Red paths are the protected paths from

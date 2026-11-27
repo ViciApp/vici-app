@@ -1,7 +1,7 @@
 import type { ClearingDid } from '#declarations';
+import { listEngineLeaderboard as listEngineLeaderboardApi } from '#lib/api-client/client.ts';
 import { setGlobalStandings } from '#lib/stores/standings.store.ts';
 import type { StandingEntry, StandingsResult, StandingsWindow } from '#lib/types/standings.ts';
-import { listEngineLeaderboard as listEngineLeaderboardWeb2 } from '#lib/web2/client.ts';
 import { fromNullable, isNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 
@@ -72,7 +72,7 @@ export const getStandings = async ({
 	// the account id: the bridge maps no principal back to an account, so no
 	// profile resolves for these rows and the leaderboard opt-out hides them
 	// (fail closed). The bridge drains the ranking with its own page bound.
-	const { items, total } = await listEngineLeaderboardWeb2({
+	const { items, total } = await listEngineLeaderboardApi({
 		window: toWindow(window),
 		limit: STANDINGS_PAGE_LIMIT
 	});

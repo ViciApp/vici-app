@@ -1,9 +1,9 @@
+import type { ApiWalletAsset } from '#lib/api-client/client.ts';
 import type { Token } from '#lib/types/token.ts';
-import type { Web2WalletAsset } from '#lib/web2/client.ts';
 import { nonNullish } from '@dfinity/utils';
 
 /**
- * The custody asset a web2 send withdraws for `token`, or `undefined` when the
+ * The custody asset a send withdraws for `token`, or `undefined` when the
  * catalog cannot send it. The catalog mirrors the supported IC tokens, so the
  * match is by symbol on the IC chain; an asset whose chain is off or that the
  * API refuses to withdraw (VXP stays in custody) is not sendable.
@@ -12,9 +12,9 @@ export const findSendableAsset = ({
 	assets,
 	token
 }: {
-	assets: Web2WalletAsset[];
+	assets: ApiWalletAsset[];
 	token: Pick<Token, 'symbol'>;
-}): Web2WalletAsset | undefined =>
+}): ApiWalletAsset | undefined =>
 	assets.find(
 		({ chain, symbol, chainEnabled, withdrawable }) =>
 			chain === 'ic' && symbol === token.symbol && chainEnabled && withdrawable
@@ -29,7 +29,7 @@ export const filterSendableTokens = ({
 	assets
 }: {
 	tokens: Token[];
-	assets: Web2WalletAsset[];
+	assets: ApiWalletAsset[];
 }): Token[] => tokens.filter((token) => nonNullish(findSendableAsset({ assets, token })));
 
 /** What one send asks for: the token (by ledger), the amount and the

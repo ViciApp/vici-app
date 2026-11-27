@@ -2,6 +2,7 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { History } from '@lucide/svelte/icons';
 	import { onMount, type Snippet } from 'svelte';
+	import type { ApiWalletAsset } from '#lib/api-client/client.ts';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import Card from '#lib/components/ui/Card.svelte';
 	import Tabs from '#lib/components/ui/Tabs.svelte';
@@ -51,7 +52,6 @@
 		type SendIntent
 	} from '#lib/utils/send.utils.ts';
 	import { mergeWalletFeed, weeklyVxpDeltaBaseUnits } from '#lib/utils/transactions.utils.ts';
-	import type { Web2WalletAsset } from '#lib/web2/client.ts';
 	import { goto } from '$app/navigation';
 
 	/**
@@ -179,7 +179,7 @@
 	});
 
 	// An empty catalog offers no token, so "still loading" needs its own flag.
-	let sendAssets = $state<Web2WalletAsset[]>([]);
+	let sendAssets = $state<ApiWalletAsset[]>([]);
 	let sendAssetsLoaded = $state(false);
 
 	const loadSendAssets = async () => {

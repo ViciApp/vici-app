@@ -19,7 +19,7 @@ import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
  * `VXP_CALL_SIZE_STEP` from `VXP_MIN_CALL_SIZE` to `VXP_MAX_CALL_SIZE`,
  * both bounds included. A range with a step, rather than any whole amount,
  * keeps the slider on a swipe card precise to drag: each stop is a distinct,
- * readable size. Every surface that sizes a call reads these, and the web2 API
+ * readable size. Every surface that sizes a call reads these, and the API
  * mirrors them to refuse an order outside the set.
  */
 export const VXP_MIN_CALL_SIZE = 10;
@@ -132,10 +132,9 @@ export const VXP_CALIBRATION_REWARD_BASE_UNITS = vxpBaseUnits(20);
  * The reward only pays while the caller's available balance is *below*
  * this floor: it is the core bound that keeps calibration a recovery
  * mechanic for depleted users rather than a steady income stream for
- * everyone. The web2 API compares it against the caller's holdings (ledger
+ * everyone. The API compares it against the caller's holdings (ledger
  * wallet plus ViciXp clearing equity, since the playground auto-deposit keeps
- * the wallet near zero); the satellite, which cannot read a user's clearing
- * account, compares the ledger wallet. Base units, so it is sized via
+ * the wallet near zero). Base units, so it is sized via
  * `vxpBaseUnits`. Tunable.
  */
 export const CALIBRATION_RECOVERY_FLOOR_BASE_UNITS = vxpBaseUnits(100);
@@ -163,15 +162,15 @@ export const COMEBACK_RESTORE_TARGET_BASE_UNITS = vxpBaseUnits(250);
 
 /**
  * Balance floor (100 VXP) below which a returning user qualifies for the comeback restore, in
- * **base units**. Measured like {@link CALIBRATION_RECOVERY_FLOOR_BASE_UNITS}: holdings on the web2
- * API, the ledger wallet on the satellite. Tunable.
+ * **base units**. Measured like {@link CALIBRATION_RECOVERY_FLOOR_BASE_UNITS}: the caller's holdings on the
+ * API. Tunable.
  */
 export const COMEBACK_BALANCE_FLOOR_BASE_UNITS = vxpBaseUnits(100);
 
 /**
  * Minimum absence (in days) before a returning user qualifies for the comeback restore. Measured
- * as the gap between the previous and the newly recorded active day: `lastActiveDay` on the
- * satellite, the recorded activity days on the web2 API. Tunable.
+ * as the gap between the previous and the newly recorded active day: the recorded activity
+ * days on the API. Tunable.
  */
 export const COMEBACK_AWAY_DAYS = 7;
 

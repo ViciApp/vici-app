@@ -7,7 +7,7 @@
 		"dev": "vite dev --force",
 		"build": "tsc --noEmit && vite build",
 		"seo:assets": "tsx scripts/build/generate-seo-assets.ts",
-		"seo:web2-head": "tsx scripts/build/generate-web2-head.ts",
+		"seo:shell-head": "tsx scripts/build/generate-shell-head.ts",
 		"prepare": "svelte-kit sync",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.tools.json",
@@ -29,9 +29,9 @@
 		"restart:icdc": "./scripts/restart.icdc.sh",
 		"restart:vxp": "./scripts/restart.vxp.sh",
 		"playwright:install": "playwright install --with-deps",
-		"e2e:web2": "playwright install chromium && npm run e2e:web2:ci",
-		"e2e:web2:ci": "playwright test --config playwright.web2.config.ts",
-		"e2e:web2:report": "playwright show-report playwright-report-web2"
+		"e2e": "playwright install chromium && npm run e2e:ci",
+		"e2e:ci": "playwright test",
+		"e2e:report": "playwright show-report"
 	},
 	"devDependencies": {
 		"@dfinity/eslint-config-oisy-wallet": "^0.5.1",

@@ -1,23 +1,50 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
+import {
+	balanceDomainToWire,
+	intervalToWire,
+	leaderboardWindowToWire,
+	mapAccountStateResponse,
+	mapCollateralAssetInfo,
+	mapEvent,
+	mapLeaderboardEntry,
+	mapLimitOrder,
+	mapPosition,
+	mapPriceCandle,
+	mapSeries,
+	mapSeriesTradePage,
+	mapSeriesTradedVolume,
+	mapSettlementStatus,
+	type ApiAccountStateResponseWire,
+	type ApiCollateralAssetInfoWire,
+	type ApiEventWire,
+	type ApiLeaderboardEntryWire,
+	type ApiLimitOrderWire,
+	type ApiPositionWire,
+	type ApiPriceCandleWire,
+	type ApiSeriesTradePageWire,
+	type ApiSeriesTradedVolumeWire,
+	type ApiSeriesWire,
+	type ApiSettlementStatusWire
+} from '#lib/api-client/engine-wire.ts';
 import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import type { LeaguePrivacy } from '#lib/enums/league.ts';
 import type { ProfileVisibility } from '#lib/enums/profile.ts';
 import type { UserRole } from '#lib/enums/user.ts';
-import { web2ApiBaseUrl } from '#lib/env/app.env.ts';
+import { apiBaseUrl } from '#lib/env/app.env.ts';
 import {
-	Web2BaseUnitsSchema,
-	Web2MeResponseSchema,
-	Web2OrderCancelledResponseSchema,
-	Web2OrderFilledResponseSchema,
-	Web2WalletAssetsResponseSchema,
-	Web2WalletBalancesResponseSchema,
-	Web2WalletDepositAddressResponseSchema,
-	Web2WalletWithdrawalResponseSchema,
-	type Web2MeSchema,
-	type Web2WalletAssetSchema,
-	type Web2WalletBalanceSchema,
-	type Web2WalletWithdrawalSchema
-} from '#lib/schema/web2-api.schema.ts';
+	ApiBaseUnitsSchema,
+	ApiMeResponseSchema,
+	ApiOrderCancelledResponseSchema,
+	ApiOrderFilledResponseSchema,
+	ApiWalletAssetsResponseSchema,
+	ApiWalletBalancesResponseSchema,
+	ApiWalletDepositAddressResponseSchema,
+	ApiWalletWithdrawalResponseSchema,
+	type ApiMeSchema,
+	type ApiWalletAssetSchema,
+	type ApiWalletBalanceSchema,
+	type ApiWalletWithdrawalSchema
+} from '#lib/schema/api.schema.ts';
 import type {
 	AffiliationChampionship,
 	AffiliationMemberCount,
@@ -54,33 +81,6 @@ import type {
 } from '#lib/types/tournament.ts';
 import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 import type { HandleRefusal } from '#lib/utils/handle.utils.ts';
-import {
-	balanceDomainToWire,
-	intervalToWire,
-	leaderboardWindowToWire,
-	mapAccountStateResponse,
-	mapCollateralAssetInfo,
-	mapEvent,
-	mapLeaderboardEntry,
-	mapLimitOrder,
-	mapPosition,
-	mapPriceCandle,
-	mapSeries,
-	mapSeriesTradePage,
-	mapSeriesTradedVolume,
-	mapSettlementStatus,
-	type Web2AccountStateResponseWire,
-	type Web2CollateralAssetInfoWire,
-	type Web2EventWire,
-	type Web2LeaderboardEntryWire,
-	type Web2LimitOrderWire,
-	type Web2PositionWire,
-	type Web2PriceCandleWire,
-	type Web2SeriesTradePageWire,
-	type Web2SeriesTradedVolumeWire,
-	type Web2SeriesWire,
-	type Web2SettlementStatusWire
-} from '#lib/web2/engine-wire.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type * as z from 'zod';
 
@@ -89,20 +89,20 @@ import type * as z from 'zod';
  *
  * Sessions ride an HttpOnly cookie, so every request opts in to
  * credentials; the client itself holds no auth state. Error responses use
- * a stable `{ error: string }` envelope, surfaced as {@link Web2ApiError}
+ * a stable `{ error: string }` envelope, surfaced as {@link ApiError}
  * so callers can branch on `status` / `code` without parsing bodies.
  *
  * Add a typed wrapper here per endpoint a dual-mode service needs; keep
  * the wrappers thin (shape mapping only, no orchestration).
  */
 
-export class Web2ApiError extends Error {
+export class ApiError extends Error {
 	readonly status: number;
 	/** Stable machine-readable code from the `{ error }` envelope. */
 	readonly code: string;
 	/** What an `insufficient_balance` order refusal adds to the envelope: the
 	 * engine's USD base units, as decimal strings. */
-	readonly amounts?: Web2ApiErrorAmounts;
+	readonly amounts?: ApiErrorAmounts;
 
 	constructor({
 		status,
@@ -111,9 +111,9 @@ export class Web2ApiError extends Error {
 	}: {
 		status: number;
 		code: string;
-		amounts?: Web2ApiErrorAmounts;
+		amounts?: ApiErrorAmounts;
 	}) {
-		super(`Web2 API error (${status}): ${code}`);
+		super(`API error (${status}): ${code}`);
 
 		this.status = status;
 		this.code = code;
@@ -121,15 +121,15 @@ export class Web2ApiError extends Error {
 	}
 }
 
-export interface Web2ApiErrorAmounts {
+export interface ApiErrorAmounts {
 	available: string;
 	required: string;
 }
 
 const isWireAmount = (value: unknown): value is string =>
-	Web2BaseUnitsSchema.safeParse(value).success;
+	ApiBaseUnitsSchema.safeParse(value).success;
 
-const apiError = async (response: Response): Promise<Web2ApiError> => {
+const apiError = async (response: Response): Promise<ApiError> => {
 	const { status } = response;
 
 	try {
@@ -141,11 +141,9 @@ const apiError = async (response: Response): Promise<Web2ApiError> => {
 			'error' in payload &&
 			typeof payload.error === 'string'
 		) {
-			const { available, required } = payload as Partial<
-				Record<keyof Web2ApiErrorAmounts, unknown>
-			>;
+			const { available, required } = payload as Partial<Record<keyof ApiErrorAmounts, unknown>>;
 
-			return new Web2ApiError({
+			return new ApiError({
 				status,
 				code: payload.error,
 				amounts:
@@ -156,7 +154,7 @@ const apiError = async (response: Response): Promise<Web2ApiError> => {
 		// Non-JSON error body (proxy error page, empty 502); the generic code below applies.
 	}
 
-	return new Web2ApiError({ status, code: 'unknown_error' });
+	return new ApiError({ status, code: 'unknown_error' });
 };
 
 let onSessionLost: (() => void) | undefined;
@@ -167,7 +165,7 @@ let onSessionLost: (() => void) | undefined;
  * `unauthenticated` refusal, not any other 401 (a wrong sign-in code is one
  * too). Returns the function that removes it.
  */
-export const setWeb2SessionLostHandler = (handler: () => void): (() => void) => {
+export const setSessionLostHandler = (handler: () => void): (() => void) => {
 	onSessionLost = handler;
 
 	return () => {
@@ -179,7 +177,7 @@ export const setWeb2SessionLostHandler = (handler: () => void): (() => void) => 
 
 /** The error a non-2xx response throws; tells the session handler when the
  * refusal says the session is gone. */
-const refusal = async (response: Response): Promise<Web2ApiError> => {
+const refusal = async (response: Response): Promise<ApiError> => {
 	const error = await apiError(response);
 
 	if (error.status === 401 && error.code === 'unauthenticated') {
@@ -196,7 +194,7 @@ interface RequestArgs {
 }
 
 const send = async ({ path, method, body }: RequestArgs): Promise<Response> => {
-	const response = await fetch(`${web2ApiBaseUrl()}${path}`, {
+	const response = await fetch(`${apiBaseUrl()}${path}`, {
 		method,
 		credentials: 'include',
 		...(isNullish(body)
@@ -220,7 +218,7 @@ const request = async <T>(args: RequestArgs): Promise<T> => (await (await send(a
 
 /**
  * A request whose 2xx body is checked against `schema` before any caller reads
- * it. A body that does not match throws a {@link Web2ApiError} with the
+ * it. A body that does not match throws a {@link ApiError} with the
  * response's own 2xx status and the `invalid_response` code: the API may already
  * have acted on the request, so a caller treats the outcome as unknown, never as
  * success.
@@ -233,24 +231,24 @@ const parsedRequest = async <S extends z.ZodType>({
 	const parsed = schema.safeParse(await response.json().catch(() => undefined));
 
 	if (!parsed.success) {
-		throw new Web2ApiError({ status: response.status, code: 'invalid_response' });
+		throw new ApiError({ status: response.status, code: 'invalid_response' });
 	}
 
 	return parsed.data;
 };
 
-export type Web2ProviderStatus = 'available' | 'coming_soon';
+export type ApiProviderStatus = 'available' | 'coming_soon';
 
-export interface Web2Providers {
-	email: Web2ProviderStatus;
-	google: Web2ProviderStatus;
-	apple: Web2ProviderStatus;
+export interface ApiProviders {
+	email: ApiProviderStatus;
+	google: ApiProviderStatus;
+	apple: ApiProviderStatus;
 }
 
-export type Web2Me = z.output<typeof Web2MeSchema>;
+export type ApiMe = z.output<typeof ApiMeSchema>;
 
-export const getProviders = async (): Promise<Web2Providers> => {
-	const { providers } = await request<{ providers: Web2Providers }>({
+export const getProviders = async (): Promise<ApiProviders> => {
+	const { providers } = await request<{ providers: ApiProviders }>({
 		path: '/api/v1/auth/providers',
 		method: 'GET'
 	});
@@ -258,11 +256,11 @@ export const getProviders = async (): Promise<Web2Providers> => {
 	return providers;
 };
 
-export const getMe = async (): Promise<Web2Me> => {
+export const getMe = async (): Promise<ApiMe> => {
 	const { user } = await parsedRequest({
 		path: '/api/v1/me',
 		method: 'GET',
-		schema: Web2MeResponseSchema
+		schema: ApiMeResponseSchema
 	});
 
 	return user;
@@ -272,7 +270,7 @@ export const getMe = async (): Promise<Web2Me> => {
  * Ask the API to email a one-time code to `email`, with a Turnstile token
  * solved for the email-code action. Resolves on a queued send; a refusal
  * (invalid address, refused or uncheckable token, rate limit, beta gate)
- * surfaces as {@link Web2ApiError} so the caller can message the user.
+ * surfaces as {@link ApiError} so the caller can message the user.
  */
 export const requestOtp = async ({
 	email,
@@ -292,7 +290,7 @@ export const requestOtp = async ({
  * Exchange an emailed code for a session. The API sets the HttpOnly session
  * cookie on the response and echoes the `/me` body, so the returned user can
  * seed the session store without a second round-trip. A wrong or expired
- * code throws {@link Web2ApiError} (`status` 401), a locked address 429.
+ * code throws {@link ApiError} (`status` 401), a locked address 429.
  */
 export const verifyOtp = async ({
 	email,
@@ -300,12 +298,12 @@ export const verifyOtp = async ({
 }: {
 	email: string;
 	code: string;
-}): Promise<Web2Me> => {
+}): Promise<ApiMe> => {
 	const { user } = await parsedRequest({
 		path: '/api/v1/auth/otp/verify',
 		method: 'POST',
 		body: { email, code },
-		schema: Web2MeResponseSchema
+		schema: ApiMeResponseSchema
 	});
 
 	return user;
@@ -320,7 +318,7 @@ export const verifyOtp = async ({
  * state and clamps anything else to `/` to rule out open redirects.
  */
 export const googleSignInUrl = ({ returnTo }: { returnTo?: string } = {}): string => {
-	const url = `${web2ApiBaseUrl()}/api/v1/auth/google`;
+	const url = `${apiBaseUrl()}/api/v1/auth/google`;
 
 	if (isNullish(returnTo) || returnTo === '') {
 		return url;
@@ -362,14 +360,14 @@ const encodeQuery = (params: Record<string, string>): string =>
  * so it never rides a public profile object (leaderboard / search) on the
  * client, mirroring the on-chain split that keeps the address off the public
  * doc. */
-type Web2ProfileWire = Omit<UserProfile, 'owner' | 'visibility' | 'role'> & {
+type ApiProfileWire = Omit<UserProfile, 'owner' | 'visibility' | 'role'> & {
 	userId: string;
 	visibility: string;
 	role?: string;
 	email?: string;
 };
 
-const mapProfile = (wire: Web2ProfileWire): UserProfile => {
+const mapProfile = (wire: ApiProfileWire): UserProfile => {
 	const { userId, visibility, role, email: _email, ...rest } = wire;
 
 	return {
@@ -382,27 +380,27 @@ const mapProfile = (wire: Web2ProfileWire): UserProfile => {
 
 /** Wire relation: `{ key, category, state, participants }`. The app `Relation`
  * drops the key (callers rebuild it from the participants when they need it). */
-interface Web2RelationWire {
+interface ApiRelationWire {
 	key: string;
 	category: Relation['category'];
 	state: Relation['state'];
 	participants: [string, string];
 }
 
-const mapRelation = (wire: Web2RelationWire): Relation => ({
+const mapRelation = (wire: ApiRelationWire): Relation => ({
 	category: wire.category,
 	state: wire.state,
 	participants: wire.participants
 });
 
-interface Web2UserStatsWire {
+interface ApiUserStatsWire {
 	userId: string;
 	categoryStats: UserStatsDoc['categoryStats'];
 	recentSettlements: UserStatsDoc['recentSettlements'];
 	computedAtMs: number;
 }
 
-interface Web2ResolvedResultWire {
+interface ApiResolvedResultWire {
 	userId: string;
 	marketId: string;
 	title: string;
@@ -414,7 +412,7 @@ interface Web2ResolvedResultWire {
 
 /** The caller's own profile, or `undefined` before the first profile write. */
 export const getMyProfile = async (): Promise<UserProfile | undefined> => {
-	const { profile } = await request<{ profile: Web2ProfileWire | null }>({
+	const { profile } = await request<{ profile: ApiProfileWire | null }>({
 		path: '/api/v1/profiles/me',
 		method: 'GET'
 	});
@@ -427,7 +425,7 @@ export const getMyProfile = async (): Promise<UserProfile | undefined> => {
  * because {@link mapProfile} deliberately drops `email` from every profile
  * object the app handles. */
 export const getMyProfileEmail = async (): Promise<string> => {
-	const { profile } = await request<{ profile: Web2ProfileWire | null }>({
+	const { profile } = await request<{ profile: ApiProfileWire | null }>({
 		path: '/api/v1/profiles/me',
 		method: 'GET'
 	});
@@ -437,7 +435,7 @@ export const getMyProfileEmail = async (): Promise<string> => {
 
 /** A public profile by id, or `undefined` when absent / hidden to the caller. */
 export const getProfileById = async (userId: string): Promise<UserProfile | undefined> => {
-	const { profile } = await request<{ profile: Web2ProfileWire | null }>({
+	const { profile } = await request<{ profile: ApiProfileWire | null }>({
 		path: `/api/v1/profiles/${encodeURIComponent(userId)}`,
 		method: 'GET'
 	});
@@ -447,7 +445,7 @@ export const getProfileById = async (userId: string): Promise<UserProfile | unde
 
 /** Full-doc write of the caller's own profile; returns the stored result. */
 export const upsertMyProfile = async (data: Record<string, unknown>): Promise<UserProfile> => {
-	const { profile } = await request<{ profile: Web2ProfileWire }>({
+	const { profile } = await request<{ profile: ApiProfileWire }>({
 		path: '/api/v1/profiles/me',
 		method: 'PUT',
 		body: data
@@ -456,14 +454,14 @@ export const upsertMyProfile = async (data: Record<string, unknown>): Promise<Us
 	return mapProfile(profile);
 };
 
-export type Web2NicknameAvailability =
+export type ApiNicknameAvailability =
 	{ available: true } | { available: false; reason: HandleRefusal };
 
 /** Server-side nickname validity + uniqueness probe. The caller's own current
  * nickname never counts as a conflict (the session identifies the caller). */
 export const checkNicknameAvailability = async (
 	nickname: string
-): Promise<Web2NicknameAvailability> =>
+): Promise<ApiNicknameAvailability> =>
 	await request({
 		path: `/api/v1/profiles/nickname-availability?${encodeQuery({ nickname })}`,
 		method: 'GET'
@@ -471,19 +469,19 @@ export const checkNicknameAvailability = async (
 
 /** A proof that this client passed the bot check, valid for `ttlMs` from
  * issue and only from the IP that asked for it. */
-export interface Web2NicknameCheckProof {
+export interface ApiNicknameCheckProof {
 	proof: string;
 	ttlMs: number;
 }
 
 /** Trade a single-use Turnstile token for a reusable proof. A refused token
- * throws {@link Web2ApiError} `turnstile_failed` (403); Cloudflare out of
+ * throws {@link ApiError} `turnstile_failed` (403); Cloudflare out of
  * reach or a server without its secret in production, 503. */
 export const issueNicknameCheckProof = async ({
 	turnstileToken
 }: {
 	turnstileToken: string;
-}): Promise<Web2NicknameCheckProof> =>
+}): Promise<ApiNicknameCheckProof> =>
 	await request({
 		path: '/api/v1/profiles/nickname-check-proof',
 		method: 'POST',
@@ -491,7 +489,7 @@ export const issueNicknameCheckProof = async ({
 	});
 
 /** The signed-out twin of {@link checkNicknameAvailability}, same answer. A
- * missing, expired or foreign proof throws {@link Web2ApiError}
+ * missing, expired or foreign proof throws {@link ApiError}
  * `human_proof_required` (403). */
 export const checkNicknameAvailabilityPublic = async ({
 	nickname,
@@ -499,7 +497,7 @@ export const checkNicknameAvailabilityPublic = async ({
 }: {
 	nickname: string;
 	proof: string;
-}): Promise<Web2NicknameAvailability> =>
+}): Promise<ApiNicknameAvailability> =>
 	await request({
 		path: `/api/v1/profiles/public-nickname-availability?${encodeQuery({ nickname, proof })}`,
 		method: 'GET'
@@ -512,14 +510,14 @@ export const checkNicknameAvailabilityPublic = async ({
  */
 export const getProfileByHandle = async (handle: string): Promise<UserProfile | undefined> => {
 	try {
-		const { profile } = await request<{ profile: Web2ProfileWire }>({
+		const { profile } = await request<{ profile: ApiProfileWire }>({
 			path: `/api/v1/profiles/by-handle?${encodeQuery({ handle })}`,
 			method: 'GET'
 		});
 
 		return mapProfile(profile);
 	} catch (err: unknown) {
-		if (err instanceof Web2ApiError && err.status === 404) {
+		if (err instanceof ApiError && err.status === 404) {
 			return;
 		}
 
@@ -530,7 +528,7 @@ export const getProfileByHandle = async (handle: string): Promise<UserProfile | 
 /** Case-insensitive search over nickname, id, and linked legacy principal. */
 
 export const searchProfiles = async (queryStr: string): Promise<UserProfile[]> => {
-	const { items } = await request<{ items: Web2ProfileWire[] }>({
+	const { items } = await request<{ items: ApiProfileWire[] }>({
 		path: `/api/v1/profiles/search?${encodeQuery({ q: queryStr })}`,
 		method: 'GET'
 	});
@@ -540,7 +538,7 @@ export const searchProfiles = async (queryStr: string): Promise<UserProfile[]> =
 
 /** The caller's dashboard stat cache, or `undefined` before the first sync. */
 export const getUserStats = async (): Promise<UserStatsDoc | undefined> => {
-	const { stats } = await request<{ stats: Web2UserStatsWire | null }>({
+	const { stats } = await request<{ stats: ApiUserStatsWire | null }>({
 		path: '/api/v1/profiles/me/stats',
 		method: 'GET'
 	});
@@ -569,7 +567,7 @@ export const recordFlowSwipe = async ({
 
 /** Top profiles by points, ranked server-side. */
 export const listLeaderboard = async (): Promise<UserProfile[]> => {
-	const { items } = await request<{ items: Web2ProfileWire[] }>({
+	const { items } = await request<{ items: ApiProfileWire[] }>({
 		path: '/api/v1/leaderboard/',
 		method: 'GET'
 	});
@@ -594,7 +592,7 @@ export const getUserRankAndCount = async ({
 };
 
 const listRelations = async (path: string): Promise<Relation[]> => {
-	const { items } = await request<{ items: Web2RelationWire[] }>({ path, method: 'GET' });
+	const { items } = await request<{ items: ApiRelationWire[] }>({ path, method: 'GET' });
 
 	return items.map(mapRelation);
 };
@@ -654,7 +652,7 @@ export const listFriendResolvedResults = async (friends: string[]): Promise<Reso
 		return [];
 	}
 
-	const { items } = await request<{ items: Web2ResolvedResultWire[] }>({
+	const { items } = await request<{ items: ApiResolvedResultWire[] }>({
 		path: `/api/v1/social/resolved-results?${encodeQuery({ friends: friends.join(',') })}`,
 		method: 'GET'
 	});
@@ -785,7 +783,7 @@ export const upsertMarketTranslation = async ({
 export const listEngineSeries = async ({
 	tradeableNow = false
 }: { tradeableNow?: boolean } = {}): Promise<RegistryDid.Series[]> => {
-	const { series } = await request<{ series: Web2SeriesWire[] }>({
+	const { series } = await request<{ series: ApiSeriesWire[] }>({
 		path: `/api/v1/engine/series${tradeableNow ? '?tradeable_now=true' : ''}`,
 		method: 'GET'
 	});
@@ -798,7 +796,7 @@ export const getEngineSeries = async (
 	seriesId: string
 ): Promise<RegistryDid.Series | undefined> => {
 	try {
-		const { series } = await request<{ series: Web2SeriesWire }>({
+		const { series } = await request<{ series: ApiSeriesWire }>({
 			path: `/api/v1/engine/series/${encodeURIComponent(seriesId)}`,
 			method: 'GET'
 		});
@@ -807,7 +805,7 @@ export const getEngineSeries = async (
 	} catch (err: unknown) {
 		// The route encodes "unknown series" as a 404; the app expects the same
 		// `undefined` the candid optional decodes to.
-		if (err instanceof Web2ApiError && err.status === 404) {
+		if (err instanceof ApiError && err.status === 404) {
 			return;
 		}
 
@@ -819,7 +817,7 @@ export const getEngineSeries = async (
 export const getEngineSettlementStatus = async (
 	seriesId: string
 ): Promise<ClearingDid.SettlementStatusView | undefined> => {
-	const { settlement } = await request<{ settlement: Web2SettlementStatusWire | null }>({
+	const { settlement } = await request<{ settlement: ApiSettlementStatusWire | null }>({
 		path: `/api/v1/engine/series/${encodeURIComponent(seriesId)}/settlement`,
 		method: 'GET'
 	});
@@ -841,7 +839,7 @@ export const listEngineSettlementStatuses = async (
 
 	for (let start = 0; start < seriesIds.length; start += ENGINE_SETTLEMENTS_CHUNK_SIZE) {
 		try {
-			const { settlements } = await request<{ settlements: Web2SettlementStatusWire[] }>({
+			const { settlements } = await request<{ settlements: ApiSettlementStatusWire[] }>({
 				path: '/api/v1/engine/series/settlements',
 				method: 'POST',
 				body: { seriesIds: seriesIds.slice(start, start + ENGINE_SETTLEMENTS_CHUNK_SIZE) }
@@ -868,7 +866,7 @@ export const getEnginePriceHistory = async ({
 	startTimeNs?: bigint;
 	endTimeNs?: bigint;
 }): Promise<ClearingDid.SeriesPriceCandle[]> => {
-	const { candles } = await request<{ candles: Web2PriceCandleWire[] }>({
+	const { candles } = await request<{ candles: ApiPriceCandleWire[] }>({
 		path: `/api/v1/engine/series/${encodeURIComponent(seriesId)}/price-history?${encodeQuery({
 			interval: intervalToWire(interval),
 			...(isNullish(startTimeNs) ? {} : { start_ns: startTimeNs.toString() }),
@@ -890,7 +888,7 @@ export const listEngineSeriesTrades = async ({
 	startAfter?: bigint;
 	limit?: bigint;
 }): Promise<ClearingDid.SeriesTradeHistoryPage> => {
-	const { page } = await request<{ page: Web2SeriesTradePageWire }>({
+	const { page } = await request<{ page: ApiSeriesTradePageWire }>({
 		path: `/api/v1/engine/series/${encodeURIComponent(seriesId)}/trades?${encodeQuery({
 			...(isNullish(startAfter) ? {} : { start_after: startAfter.toString() }),
 			...(isNullish(limit) ? {} : { limit: limit.toString() })
@@ -912,7 +910,7 @@ export const listEngineSeriesVolumes = async (
 	const results: ClearingDid.SeriesTradedVolume[] = [];
 
 	for (let start = 0; start < seriesIds.length; start += ENGINE_VOLUMES_CHUNK_SIZE) {
-		const { volumes } = await request<{ volumes: Web2SeriesTradedVolumeWire[] }>({
+		const { volumes } = await request<{ volumes: ApiSeriesTradedVolumeWire[] }>({
 			path: '/api/v1/engine/series/volumes',
 			method: 'POST',
 			body: { seriesIds: seriesIds.slice(start, start + ENGINE_VOLUMES_CHUNK_SIZE) }
@@ -935,7 +933,7 @@ export const listEngineSettledSeries = async (): Promise<string[]> => {
 };
 
 export const listEngineCollateralAssets = async (): Promise<ClearingDid.CollateralAssetInfo[]> => {
-	const { assets } = await request<{ assets: Web2CollateralAssetInfoWire[] }>({
+	const { assets } = await request<{ assets: ApiCollateralAssetInfoWire[] }>({
 		path: '/api/v1/engine/collateral-assets',
 		method: 'GET'
 	});
@@ -959,7 +957,7 @@ export const listEngineCollateralAssets = async (): Promise<ClearingDid.Collater
 export const getEngineAccountState = async (
 	domain: ClearingDid.BalanceDomain
 ): Promise<ClearingDid.AccountStateResponse> => {
-	const { account } = await request<{ account: Web2AccountStateResponseWire }>({
+	const { account } = await request<{ account: ApiAccountStateResponseWire }>({
 		path: `/api/v1/engine/account?domain=${balanceDomainToWire(domain)}`,
 		method: 'GET'
 	});
@@ -969,7 +967,7 @@ export const getEngineAccountState = async (
 
 /** The session user's open positions across all series and domains. */
 export const listEnginePositions = async (): Promise<ClearingDid.Position[]> => {
-	const { positions } = await request<{ positions: Web2PositionWire[] }>({
+	const { positions } = await request<{ positions: ApiPositionWire[] }>({
 		path: '/api/v1/engine/positions',
 		method: 'GET'
 	});
@@ -979,7 +977,7 @@ export const listEnginePositions = async (): Promise<ClearingDid.Position[]> => 
 
 /** The session user's open limit orders across all series and domains. */
 export const listEngineOrders = async (): Promise<ClearingDid.LimitOrder[]> => {
-	const { orders } = await request<{ orders: Web2LimitOrderWire[] }>({
+	const { orders } = await request<{ orders: ApiLimitOrderWire[] }>({
 		path: '/api/v1/engine/orders',
 		method: 'GET'
 	});
@@ -989,7 +987,7 @@ export const listEngineOrders = async (): Promise<ClearingDid.LimitOrder[]> => {
 
 /** The session user's own trade / settlement event history. */
 export const listEngineTradeHistory = async (): Promise<ClearingDid.Event[]> => {
-	const { events } = await request<{ events: Web2EventWire[] }>({
+	const { events } = await request<{ events: ApiEventWire[] }>({
 		path: '/api/v1/engine/trade-history',
 		method: 'GET'
 	});
@@ -1022,7 +1020,7 @@ export const submitEngineLimitOrder = async ({
 	const { filled } = await parsedRequest({
 		path: '/api/v1/engine/orders/limit',
 		method: 'POST',
-		schema: Web2OrderFilledResponseSchema,
+		schema: ApiOrderFilledResponseSchema,
 		body: {
 			orderId,
 			seriesId,
@@ -1057,7 +1055,7 @@ export const submitEngineMarketOrder = async ({
 	const { filled } = await parsedRequest({
 		path: '/api/v1/engine/orders/market',
 		method: 'POST',
-		schema: Web2OrderFilledResponseSchema,
+		schema: ApiOrderFilledResponseSchema,
 		body: {
 			tradeId,
 			seriesId,
@@ -1075,7 +1073,7 @@ export const cancelEngineOrder = async ({ orderId }: { orderId: string }): Promi
 		path: '/api/v1/engine/orders/cancel',
 		method: 'POST',
 		body: { orderId },
-		schema: Web2OrderCancelledResponseSchema
+		schema: ApiOrderCancelledResponseSchema
 	});
 
 	return cancelled;
@@ -1105,18 +1103,18 @@ export const depositEngineCollateral = async ({
 // ledger; `assetId` here is the custody asset id from `/wallet/assets`, a
 // separate namespace from the engine's collateral `asset_id`.
 
-export type Web2WalletAsset = z.output<typeof Web2WalletAssetSchema>;
+export type ApiWalletAsset = z.output<typeof ApiWalletAssetSchema>;
 
-export type Web2WalletBalance = z.output<typeof Web2WalletBalanceSchema>;
+export type ApiWalletBalance = z.output<typeof ApiWalletBalanceSchema>;
 
-export type Web2WalletWithdrawal = z.output<typeof Web2WalletWithdrawalSchema>;
+export type ApiWalletWithdrawal = z.output<typeof ApiWalletWithdrawalSchema>;
 
 /** The withdrawable asset catalog (public read). */
-export const listWalletAssets = async (): Promise<Web2WalletAsset[]> => {
+export const listWalletAssets = async (): Promise<ApiWalletAsset[]> => {
 	const { assets } = await parsedRequest({
 		path: '/api/v1/wallet/assets',
 		method: 'GET',
-		schema: Web2WalletAssetsResponseSchema
+		schema: ApiWalletAssetsResponseSchema
 	});
 
 	return assets;
@@ -1125,23 +1123,23 @@ export const listWalletAssets = async (): Promise<Web2WalletAsset[]> => {
 /** The session user's custodial accounts and per-asset balances. */
 export const getWalletBalances = async (): Promise<{
 	accounts: { chain: string; address: string }[];
-	balances: Web2WalletBalance[];
+	balances: ApiWalletBalance[];
 }> =>
 	await parsedRequest({
 		path: '/api/v1/wallet/balances',
 		method: 'GET',
-		schema: Web2WalletBalancesResponseSchema
+		schema: ApiWalletBalancesResponseSchema
 	});
 
 /** The session user's deposit address on one chain (`ic` = the custodial
- * principal). A disabled chain surfaces as a 503 {@link Web2ApiError}. */
+ * principal). A disabled chain surfaces as a 503 {@link ApiError}. */
 export const getWalletDepositAddress = async (
 	chain: string
 ): Promise<{ chain: string; address: string }> =>
 	await parsedRequest({
 		path: `/api/v1/wallet/deposit-address/${encodeURIComponent(chain)}`,
 		method: 'GET',
-		schema: Web2WalletDepositAddressResponseSchema
+		schema: ApiWalletDepositAddressResponseSchema
 	});
 
 /**
@@ -1165,7 +1163,7 @@ export const requestWalletWithdrawal = async ({
 	destination: string;
 	selfCustody?: boolean;
 	idempotencyKey: string;
-}): Promise<Web2WalletWithdrawal> => {
+}): Promise<ApiWalletWithdrawal> => {
 	const { withdrawal } = await parsedRequest({
 		path: '/api/v1/wallet/withdrawals',
 		method: 'POST',
@@ -1176,7 +1174,7 @@ export const requestWalletWithdrawal = async ({
 			...(isNullish(selfCustody) ? {} : { selfCustody }),
 			idempotencyKey
 		},
-		schema: Web2WalletWithdrawalResponseSchema
+		schema: ApiWalletWithdrawalResponseSchema
 	});
 
 	return withdrawal;
@@ -1191,7 +1189,7 @@ export const listEngineLeaderboard = async ({
 	window: ClearingDid.LeaderboardWindow;
 	limit?: bigint;
 }): Promise<{ items: ClearingDid.LeaderboardEntry[]; total: bigint }> => {
-	const { items, total } = await request<{ items: Web2LeaderboardEntryWire[]; total: string }>({
+	const { items, total } = await request<{ items: ApiLeaderboardEntryWire[]; total: string }>({
 		path: `/api/v1/engine/leaderboard?${encodeQuery({
 			window: leaderboardWindowToWire(window),
 			...(isNullish(limit) ? {} : { limit: limit.toString() })
@@ -1214,31 +1212,31 @@ export const listEngineLeaderboard = async ({
 // the app unions, keeping the return shapes byte-identical to the
 // satellite services.
 
-type Web2LeagueWire = Omit<LeagueDoc, 'owner' | 'privacy'> & {
+type ApiLeagueWire = Omit<LeagueDoc, 'owner' | 'privacy'> & {
 	ownerUserId: string;
 	privacy: string;
 };
 
-const mapLeague = (wire: Web2LeagueWire): LeagueDoc => {
+const mapLeague = (wire: ApiLeagueWire): LeagueDoc => {
 	const { ownerUserId, privacy, ...rest } = wire;
 
 	return { ...rest, owner: ownerUserId, privacy: privacy as LeaguePrivacy };
 };
 
-type Web2LeagueMemberWire = Omit<LeagueMemberDoc, 'member'> & { memberUserId: string };
+type ApiLeagueMemberWire = Omit<LeagueMemberDoc, 'member'> & { memberUserId: string };
 
-const mapLeagueMember = (wire: Web2LeagueMemberWire): LeagueMemberDoc => {
+const mapLeagueMember = (wire: ApiLeagueMemberWire): LeagueMemberDoc => {
 	const { memberUserId, ...rest } = wire;
 
 	return { ...rest, member: memberUserId };
 };
 
-type Web2BattleWire = Omit<BattleDoc, 'proposer' | 'scope'> & {
+type ApiBattleWire = Omit<BattleDoc, 'proposer' | 'scope'> & {
 	proposerUserId: string;
 	scope?: string;
 };
 
-const mapBattle = (wire: Web2BattleWire): BattleDoc => {
+const mapBattle = (wire: ApiBattleWire): BattleDoc => {
 	const { proposerUserId, scope, ...rest } = wire;
 
 	return readBattleDoc({
@@ -1256,7 +1254,7 @@ export const listMyLeagues = async (): Promise<
 > => {
 	const { items } = await request<{
 		items: {
-			league: Web2LeagueWire;
+			league: ApiLeagueWire;
 			role: LeagueMemberRole;
 			joinedAtMs: number;
 			memberCount: number;
@@ -1268,7 +1266,7 @@ export const listMyLeagues = async (): Promise<
 
 /** The opponent pool for the create-battle picker. */
 export const listChallengeableLeagues = async (): Promise<LeagueDoc[]> => {
-	const { items } = await request<{ items: Web2LeagueWire[] }>({
+	const { items } = await request<{ items: ApiLeagueWire[] }>({
 		path: '/api/v1/leagues/challengeable',
 		method: 'GET'
 	});
@@ -1281,7 +1279,7 @@ export const listFriendRecommendedLeagues = async (): Promise<
 	{ league: LeagueDoc; memberCount: number; friendMembers: string[] }[]
 > => {
 	const { items } = await request<{
-		items: { league: Web2LeagueWire; memberCount: number; friendMemberUserIds: string[] }[];
+		items: { league: ApiLeagueWire; memberCount: number; friendMemberUserIds: string[] }[];
 	}>({ path: '/api/v1/leagues/friend-recommended', method: 'GET' });
 
 	return items.map(({ league, memberCount, friendMemberUserIds }) => ({
@@ -1293,7 +1291,7 @@ export const listFriendRecommendedLeagues = async (): Promise<
 
 /** Resolve an invite code to its league; `undefined` = invalid code (UX). */
 export const lookupLeagueByInvite = async (inviteCode: string): Promise<LeagueDoc | undefined> => {
-	const { league } = await request<{ league?: Web2LeagueWire | null }>({
+	const { league } = await request<{ league?: ApiLeagueWire | null }>({
 		path: `/api/v1/leagues/invite/${encodeURIComponent(inviteCode)}`,
 		method: 'GET'
 	});
@@ -1321,7 +1319,7 @@ export const createLeague = async ({
 	emblem?: string;
 	privacy?: LeaguePrivacy;
 }): Promise<LeagueDoc> => {
-	const { league } = await request<{ league: Web2LeagueWire }>({
+	const { league } = await request<{ league: ApiLeagueWire }>({
 		path: '/api/v1/leagues/',
 		method: 'POST',
 		body: {
@@ -1348,7 +1346,7 @@ export const updateLeague = async ({
 	name?: string;
 	privacy?: LeaguePrivacy;
 }): Promise<LeagueDoc> => {
-	const { league } = await request<{ league: Web2LeagueWire }>({
+	const { league } = await request<{ league: ApiLeagueWire }>({
 		path: `/api/v1/leagues/${encodeURIComponent(leagueId)}`,
 		method: 'PATCH',
 		body: {
@@ -1360,7 +1358,7 @@ export const updateLeague = async ({
 	return mapLeague(league);
 };
 
-export interface Web2TransferLeagueOwnershipResult {
+export interface ApiTransferLeagueOwnershipResult {
 	ok: boolean;
 	reason?: 'not_owner' | 'league_not_found' | 'new_owner_not_member' | 'new_owner_is_caller';
 }
@@ -1371,7 +1369,7 @@ export const transferLeagueOwnership = async ({
 }: {
 	leagueId: string;
 	newOwnerUserId: string;
-}): Promise<Web2TransferLeagueOwnershipResult> =>
+}): Promise<ApiTransferLeagueOwnershipResult> =>
 	await request({
 		path: `/api/v1/leagues/${encodeURIComponent(leagueId)}/transfer-ownership`,
 		method: 'POST',
@@ -1380,7 +1378,7 @@ export const transferLeagueOwnership = async ({
 
 /** Full roster of a league, earliest joiner first. */
 export const listLeagueMembers = async (leagueId: string): Promise<LeagueMemberDoc[]> => {
-	const { items } = await request<{ items: Web2LeagueMemberWire[] }>({
+	const { items } = await request<{ items: ApiLeagueMemberWire[] }>({
 		path: `/api/v1/leagues/${encodeURIComponent(leagueId)}/members`,
 		method: 'GET'
 	});
@@ -1395,7 +1393,7 @@ export const joinLeagueByInvite = async ({
 }: {
 	inviteCode: string;
 }): Promise<LeagueMemberDoc> => {
-	const { member } = await request<{ member: Web2LeagueMemberWire }>({
+	const { member } = await request<{ member: ApiLeagueMemberWire }>({
 		path: '/api/v1/leagues/join',
 		method: 'POST',
 		body: { inviteCode }
@@ -1414,7 +1412,7 @@ export const setLeagueMemberRole = async ({
 	memberUserId: string;
 	role: LeagueMemberRole;
 }): Promise<LeagueMemberDoc> => {
-	const { member } = await request<{ member: Web2LeagueMemberWire }>({
+	const { member } = await request<{ member: ApiLeagueMemberWire }>({
 		path: `/api/v1/leagues/${encodeURIComponent(leagueId)}/members/${encodeURIComponent(memberUserId)}`,
 		method: 'PUT',
 		body: { role }
@@ -1461,7 +1459,7 @@ export const uploadLeagueImage = async ({
 	body.append('image', image, 'cover.jpg');
 
 	const response = await fetch(
-		`${web2ApiBaseUrl()}/api/v1/leagues/${encodeURIComponent(leagueId)}/image`,
+		`${apiBaseUrl()}/api/v1/leagues/${encodeURIComponent(leagueId)}/image`,
 		{ method: 'POST', credentials: 'include', body }
 	);
 
@@ -1469,7 +1467,7 @@ export const uploadLeagueImage = async ({
 		throw await refusal(response);
 	}
 
-	const { league } = (await response.json()) as { league: Web2LeagueWire };
+	const { league } = (await response.json()) as { league: ApiLeagueWire };
 
 	return mapLeague(league);
 };
@@ -1477,7 +1475,7 @@ export const uploadLeagueImage = async ({
 /** Owner-only cover removal: clears the row's URL and drops the stored
  * asset; the league falls back to its emblem glyph. */
 export const deleteLeagueImage = async (leagueId: string): Promise<LeagueDoc> => {
-	const { league } = await request<{ league: Web2LeagueWire }>({
+	const { league } = await request<{ league: ApiLeagueWire }>({
 		path: `/api/v1/leagues/${encodeURIComponent(leagueId)}/image`,
 		method: 'DELETE'
 	});
@@ -1488,7 +1486,7 @@ export const deleteLeagueImage = async (leagueId: string): Promise<LeagueDoc> =>
 /** Every battle involving the caller (duels by id, league bouts by owned
  * leagues), kickoff ascending. */
 export const listMyBattles = async (): Promise<BattleDoc[]> => {
-	const { items } = await request<{ items: Web2BattleWire[] }>({
+	const { items } = await request<{ items: ApiBattleWire[] }>({
 		path: '/api/v1/battles/mine',
 		method: 'GET'
 	});
@@ -1498,7 +1496,7 @@ export const listMyBattles = async (): Promise<BattleDoc[]> => {
 
 /** Battles referencing a league on either side, kickoff ascending. */
 export const listLeagueBattles = async (leagueId: string): Promise<BattleDoc[]> => {
-	const { items } = await request<{ items: Web2BattleWire[] }>({
+	const { items } = await request<{ items: ApiBattleWire[] }>({
 		path: `/api/v1/battles/league/${encodeURIComponent(leagueId)}`,
 		method: 'GET'
 	});
@@ -1513,14 +1511,14 @@ export const getMyBattleStats = async (): Promise<{ boutsWon: number }> =>
 /** One battle by id, or `undefined` when unknown. */
 export const getBattle = async (battleId: string): Promise<BattleDoc | undefined> => {
 	try {
-		const { battle } = await request<{ battle: Web2BattleWire }>({
+		const { battle } = await request<{ battle: ApiBattleWire }>({
 			path: `/api/v1/battles/${encodeURIComponent(battleId)}`,
 			method: 'GET'
 		});
 
 		return mapBattle(battle);
 	} catch (err: unknown) {
-		if (err instanceof Web2ApiError && err.status === 404) {
+		if (err instanceof ApiError && err.status === 404) {
 			return;
 		}
 
@@ -1551,7 +1549,7 @@ export const proposeBattle = async ({
 	amount?: number;
 	trashTalk?: string;
 }): Promise<BattleDoc> => {
-	const { battle } = await request<{ battle: Web2BattleWire }>({
+	const { battle } = await request<{ battle: ApiBattleWire }>({
 		path: '/api/v1/battles/',
 		method: 'POST',
 		body: {
@@ -1577,7 +1575,7 @@ const battleTransition = async ({
 	battleId: string;
 	action: 'accept' | 'accept-league' | 'decline' | 'expire' | 'kickoff' | 'resolve';
 }): Promise<BattleDoc> => {
-	const { battle } = await request<{ battle: Web2BattleWire }>({
+	const { battle } = await request<{ battle: ApiBattleWire }>({
 		path: `/api/v1/battles/${encodeURIComponent(battleId)}/${action}`,
 		method: 'POST'
 	});
@@ -1645,9 +1643,9 @@ export const readBattleLiveScore = async (
 // Stats, member counts and championships are identity-free aggregates and
 // already ride the app's camelCase shapes.
 
-type Web2AffiliationWire = Omit<AffiliationDoc, 'member'> & { memberUserId: string };
+type ApiAffiliationWire = Omit<AffiliationDoc, 'member'> & { memberUserId: string };
 
-const mapAffiliation = (wire: Web2AffiliationWire): AffiliationDoc => {
+const mapAffiliation = (wire: ApiAffiliationWire): AffiliationDoc => {
 	const { memberUserId, ...rest } = wire;
 
 	return { ...rest, member: memberUserId };
@@ -1659,8 +1657,8 @@ export const getMyAffiliations = async (): Promise<{
 	country?: AffiliationDoc;
 }> => {
 	const { university, country } = await request<{
-		university?: Web2AffiliationWire | null;
-		country?: Web2AffiliationWire | null;
+		university?: ApiAffiliationWire | null;
+		country?: ApiAffiliationWire | null;
 	}>({ path: '/api/v1/worlds/affiliations/mine', method: 'GET' });
 
 	return {
@@ -1678,7 +1676,7 @@ export const setAffiliation = async ({
 	kind: AffiliationKind;
 	affiliationIdentifier: string;
 }): Promise<AffiliationDoc> => {
-	const { affiliation } = await request<{ affiliation: Web2AffiliationWire }>({
+	const { affiliation } = await request<{ affiliation: ApiAffiliationWire }>({
 		path: '/api/v1/worlds/affiliations',
 		method: 'POST',
 		body: { kind, affiliationIdentifier }
@@ -1853,7 +1851,7 @@ export const claimTournamentPrize = async ({
 
 /** Structured calibration-claim result; `recorded_only` marks an award that
  * was recorded without a transfer (treasury parallel-run mode). */
-export interface Web2CalibrationClaim {
+export interface ApiCalibrationClaim {
 	correct: boolean;
 	paidNow: boolean;
 	alreadyClaimed: boolean;
@@ -1884,7 +1882,7 @@ export const claimCalibrationReward = async ({
 }: {
 	seriesId: string;
 	chosenSide: CallSide;
-}): Promise<Web2CalibrationClaim> =>
+}): Promise<ApiCalibrationClaim> =>
 	await request({
 		path: '/api/v1/vxp/calibration/claim',
 		method: 'POST',
@@ -1893,20 +1891,20 @@ export const claimCalibrationReward = async ({
 
 // ─── Referrals ───────────────────────────────────────────────────────────
 
-interface Web2ReferralPayoutWire {
+interface ApiReferralPayoutWire {
 	status: 'none' | 'owed' | 'paid';
 	amountBaseUnits: string;
 }
 
 /** One redemption where the caller is the referrer. The wire omits the
  * referrer id (it is always the caller); the service restores it. */
-export interface Web2ReferralWire {
+export interface ApiReferralWire {
 	referee: string;
 	code: string;
 	redeemedAtMs: number;
 	withinReferrerCap: boolean;
-	refereePayout: Web2ReferralPayoutWire;
-	referrerPayout: Web2ReferralPayoutWire;
+	refereePayout: ApiReferralPayoutWire;
+	referrerPayout: ApiReferralPayoutWire;
 }
 
 /** The caller's referral code; the API assigns one on first read. */
@@ -1931,7 +1929,7 @@ export const lookupReferralCode = async (code: string): Promise<string | undefin
 };
 
 /** One-time redemption for the session user. Refusals surface as
- * {@link Web2ApiError} whose `code` carries the stable refusal reason. */
+ * {@link ApiError} whose `code` carries the stable refusal reason. */
 export const redeemReferralCode = async (code: string): Promise<void> => {
 	await request<{ ok: boolean }>({
 		path: '/api/v1/referrals/redeem',
@@ -1950,8 +1948,8 @@ export const claimReferralFriendship = async (code: string): Promise<void> => {
 };
 
 /** Every redemption where the caller is the referrer, newest first. */
-export const listMyReferrals = async (): Promise<Web2ReferralWire[]> => {
-	const { items } = await request<{ items: Web2ReferralWire[] }>({
+export const listMyReferrals = async (): Promise<ApiReferralWire[]> => {
+	const { items } = await request<{ items: ApiReferralWire[] }>({
 		path: '/api/v1/referrals/mine',
 		method: 'GET'
 	});
@@ -1965,7 +1963,7 @@ const challengePath = (id: string): string => `/api/v1/challenges/${encodeURICom
 
 /** Issues the session user's link for a market, or returns their active one (same id), refreshed
  * with the position the engine holds now and the consent flag sent. Refusals (`no_position`,
- * `market_closed`, `unknown_series`, `unsupported_series`) surface as {@link Web2ApiError}. */
+ * `market_closed`, `unknown_series`, `unsupported_series`) surface as {@link ApiError}. */
 export const createChallenge = async ({
 	seriesId,
 	showIdentity
@@ -2061,7 +2059,7 @@ export const listChallengeAnswers = async (): Promise<ChallengeAnswerItem[]> => 
 /** Ask the API to mail a 6-digit code to `email`. The school itself is
  * re-resolved server-side from the email domain (plus name/country for a
  * new entry), so no school id rides the request. Rejections (bad domain,
- * daily cap, feature disabled) surface as {@link Web2ApiError}. */
+ * daily cap, feature disabled) surface as {@link ApiError}. */
 export const submitSchool = async ({
 	name,
 	country,
@@ -2107,7 +2105,7 @@ export const listBlockingLeagues = async (): Promise<string[]> => {
 	return leagueIds;
 };
 
-export interface Web2DeleteAccountResult {
+export interface ApiDeleteAccountResult {
 	ok: boolean;
 	/** `holds_custody_funds`: the wallet still holds funds or a withdrawal is
 	 * in flight; the user withdraws first. Only the API sends it. */
@@ -2131,7 +2129,7 @@ export const deleteMyAccount = async ({
 	reason: ExitSignalReason;
 	note: string;
 	leagueResolutions?: { leagueId: string; action: 'transfer' | 'delete'; transferTo?: string }[];
-}): Promise<Web2DeleteAccountResult> =>
+}): Promise<ApiDeleteAccountResult> =>
 	await request({
 		path: '/api/v1/account/delete',
 		method: 'POST',
@@ -2161,9 +2159,9 @@ export const resumeMyAccount = async (): Promise<{ ok: boolean; resumed: boolean
 // (`${user}#${timestamp}#${type}`); `user` / `liker` carry account ids in
 // this mode, the same `owner` string the swapped profile services key on.
 
-type Web2ActivityWire = Activity & { key: string };
+type ApiActivityWire = Activity & { key: string };
 
-const mapActivity = (wire: Web2ActivityWire): Activity => {
+const mapActivity = (wire: ApiActivityWire): Activity => {
 	const { key: _key, ...rest } = wire;
 
 	return rest;
@@ -2187,7 +2185,7 @@ export const createActivity = async ({
 	details?: string;
 	timestamp: number;
 }): Promise<Activity> => {
-	const { activity } = await request<{ activity: Web2ActivityWire }>({
+	const { activity } = await request<{ activity: ApiActivityWire }>({
 		path: '/api/v1/social/activities',
 		method: 'POST',
 		body: { type, targetUser, marketId, title, details, timestamp }
@@ -2205,7 +2203,7 @@ export const listActivities = async ({
 	limit: number;
 	type?: string;
 }): Promise<Activity[]> => {
-	const { items } = await request<{ items: Web2ActivityWire[] }>({
+	const { items } = await request<{ items: ApiActivityWire[] }>({
 		path: `/api/v1/social/activities?${encodeQuery({
 			limit: limit.toString(),
 			...(isNullish(type) ? {} : { type })

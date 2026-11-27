@@ -44,9 +44,9 @@ src/
 │   ├── actions/            Svelte `use:` actions (e.g. click-outside)
 │   ├── assets/             Bundled assets imported by code (flags/ behind COUNTRY_FLAGS)
 │   ├── env/                Runtime env types
-│   └── web2/               The HTTP API client: typed /api/v1 wrappers, the
+│   └── api-client/         The HTTP API client: typed /api/v1 wrappers, the
 │                           candid wire mappers and the cookie-session store
-│                           (see web2-backend-mode.md)
+│                           (see api-client.md)
 │
 ├── service-worker/         Navigation-fallback worker (see its header)
 ├── tests/                  Unit tests mirroring src/ (see testing.md)

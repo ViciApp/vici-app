@@ -1,14 +1,14 @@
 import { test as base, expect, type APIRequestContext } from '@playwright/test';
 import { E2E_ADMIN_EMAIL } from '../../backend/e2e/fixtures';
-import { E2E_WEB2_API_URL, E2E_WEB2_APP_URL } from './urls';
+import { E2E_API_URL, E2E_APP_URL } from './urls';
 
 /**
- * Shared fixtures for the web2 suite.
+ * Shared fixtures for the E2E suite.
  *
  * Every test runs sealed off from the network: only the SPA's own assets and
  * the local API are reachable. Everything else is aborted, which covers the
  * reads the app still makes on-chain (the order books; see
- * docs/ai/frontend/web2-backend-mode.md) and anything third-party. The app must degrade on those, and the specs assert it does.
+ * docs/ai/frontend/api-client.md) and anything third-party. The app must degrade on those, and the specs assert it does.
  *
  * Every test is also watched for the failure classes this suite exists to
  * catch, and fails at teardown if any occurred, whatever the spec asserted:
@@ -16,8 +16,8 @@ import { E2E_WEB2_API_URL, E2E_WEB2_APP_URL } from './urls';
  * 5xx surfacing through the app's HTTP client.
  */
 
-const APP_ORIGIN = new URL(E2E_WEB2_APP_URL).origin;
-const API_ORIGIN = new URL(E2E_WEB2_API_URL).origin;
+const APP_ORIGIN = new URL(E2E_APP_URL).origin;
+const API_ORIGIN = new URL(E2E_API_URL).origin;
 
 /** The IC HTTP interface paths; on the app origin they only exist behind the
  * preview server's dev proxy, which has no replica behind it. */
@@ -25,8 +25,8 @@ const IC_HTTP_INTERFACE_PREFIX = '/api/';
 
 const ENGINE_PATH_PREFIX = '/api/v1/engine/';
 
-/** The message `Web2ApiError` carries for a server-side failure. */
-const WEB2_SERVER_ERROR = /Web2 API error \(5\d\d\)/;
+/** The message `ApiError` carries for a server-side failure. */
+const API_SERVER_ERROR = /API error \(5\d\d\)/;
 
 /** Absolute URL of an API path, for `page.request` reads: they share the
  * browser context's cookie jar, so they run as the signed-in user. */
@@ -116,7 +116,7 @@ export class E2eAdmin {
 	}
 }
 
-interface Web2Fixtures {
+interface Fixtures {
 	backend: E2eBackend;
 	admin: E2eAdmin;
 	stackHealth: void;
@@ -124,9 +124,9 @@ interface Web2Fixtures {
 
 // Playwright fixes the fixture signature to `(dependencies, use)`.
 /* eslint-disable local-rules/prefer-object-params */
-export const test = base.extend<Web2Fixtures>({
+export const test = base.extend<Fixtures>({
 	backend: async ({ playwright }, use) => {
-		const request = await playwright.request.newContext({ baseURL: E2E_WEB2_API_URL });
+		const request = await playwright.request.newContext({ baseURL: E2E_API_URL });
 		const backend = new E2eBackend(request);
 
 		// Every sign-in in the suite shares the limiter's "unknown IP" key.
@@ -138,7 +138,7 @@ export const test = base.extend<Web2Fixtures>({
 	},
 
 	admin: async ({ playwright, backend }, use) => {
-		const request = await playwright.request.newContext({ baseURL: E2E_WEB2_API_URL });
+		const request = await playwright.request.newContext({ baseURL: E2E_API_URL });
 
 		await new E2eBackend(request).signIn(E2E_ADMIN_EMAIL);
 
@@ -182,14 +182,14 @@ export const test = base.extend<Web2Fixtures>({
 			});
 
 			context.on('console', (message) => {
-				if (message.type() === 'error' && WEB2_SERVER_ERROR.test(message.text())) {
+				if (message.type() === 'error' && API_SERVER_ERROR.test(message.text())) {
 					problems.push(`console: ${message.text().split('\n')[0]}`);
 				}
 			});
 
 			await use();
 
-			expect(problems, 'the web2 stack reported failures during this test').toEqual([]);
+			expect(problems, 'the stack reported failures during this test').toEqual([]);
 		},
 		{ auto: true }
 	]

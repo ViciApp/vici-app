@@ -1,5 +1,5 @@
 // End-to-end API server: the production app (src/index.ts) with its external
-// dependencies swapped for local stand-ins, for the web2 Playwright suite.
+// dependencies swapped for local stand-ins, for the Playwright suite.
 //
 //   - the engine actors and the VXP ledger are the deterministic fakes in
 //     fake-engine.ts (no canister call ever leaves the process);

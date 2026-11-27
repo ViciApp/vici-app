@@ -1,4 +1,4 @@
-# Web2 API patterns
+# API patterns
 
 The patterns the API really uses, each with one example to copy. All paths are under `backend/`. Shared helpers are listed in [`reusability.md`](./reusability.md).
 
@@ -20,7 +20,7 @@ The patterns the API really uses, each with one example to copy. All paths are u
 
 ## Errors
 
-- The wire envelope is always `{ error: string }`, with a stable snake_case code (`insufficient_balance`, `chain_unavailable`). The frontend switches on that code through `Web2ApiError.code`, so a code is a contract: renaming one is a breaking change.
+- The wire envelope is always `{ error: string }`, with a stable snake_case code (`insufficient_balance`, `chain_unavailable`). The frontend switches on that code through `ApiError.code`, so a code is a contract: renaming one is a breaking change.
 - A 400 with a code is `badRequest(set, code)` from `src/lib/http.ts`; its `StatusContext` is the one type for Elysia's `set` in a helper signature.
 - Domain failures are `class XError extends Error {}` in the domain (`src/leagues/leagues.ts` `LeagueError`); the route maps them with `instanceof` and rethrows anything else: `src/routes/wallet.ts` `refusedWithdrawal`.
 - A create whose client-chosen id is already taken answers 409 with a `<thing>_exists` code, never the 500 of the raw unique violation: `insert ... on conflict (id) do nothing returning` and a typed error when no row comes back (`src/leagues/battles.ts` `BattleExistsError`, mapped in `src/routes/battles.ts`).

@@ -1,17 +1,17 @@
 import type { ClearingDid } from '#declarations';
+import {
+	depositEngineCollateral as depositEngineCollateralApi,
+	getEngineAccountState as getEngineAccountStateApi,
+	getWalletBalances as getWalletBalancesApi,
+	listEngineCollateralAssets as listEngineCollateralAssetsApi
+} from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { transactionFee } from '#lib/api/icrc-ledger.api.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import { anonymousIdentity } from '#lib/services/identity.services.ts';
 import { refreshAllBalances } from '#lib/utils/refresh.utils.ts';
 import { resolveClearingAssetId } from '#lib/utils/tokens.utils.ts';
-import {
-	depositEngineCollateral as depositEngineCollateralWeb2,
-	getEngineAccountState as getEngineAccountStateWeb2,
-	getWalletBalances as getWalletBalancesWeb2,
-	listEngineCollateralAssets as listEngineCollateralAssetsWeb2
-} from '#lib/web2/client.ts';
-import { getWeb2User } from '#lib/web2/session.ts';
 import { isNullish } from '@dfinity/utils';
 import { nanoid } from 'nanoid';
 
@@ -39,7 +39,7 @@ export const depositCollateral = async ({
 	amount: bigint;
 	domain: ClearingDid.BalanceDomain;
 }): Promise<void> => {
-	await depositEngineCollateralWeb2({
+	await depositEngineCollateralApi({
 		depositId: makeOperationId({ prefix: 'DEPOSIT', hint: amount }),
 		assetId: resolveClearingAssetId(assetPrincipal),
 		amount
@@ -63,12 +63,12 @@ export const loadAccountState = async ({
 	onLoad: (options: { certified: boolean; response: ClearingDid.AccountStateResponse }) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> => {
-	if (isNullish(getWeb2User())) {
+	if (isNullish(getSessionUser())) {
 		return;
 	}
 
 	try {
-		onLoad({ certified: true, response: await getEngineAccountStateWeb2(domain) });
+		onLoad({ certified: true, response: await getEngineAccountStateApi(domain) });
 	} catch (err: unknown) {
 		onUpdateError?.(err);
 	}
@@ -79,7 +79,7 @@ export const loadAccountState = async ({
  * the HTTP bridge.
  */
 export const getCollateralAssets = (): Promise<ClearingDid.CollateralAssetInfo[]> =>
-	listEngineCollateralAssetsWeb2();
+	listEngineCollateralAssetsApi();
 
 /**
  * Callback-based variant of {@link getCollateralAssets}. The bridge answers
@@ -94,7 +94,7 @@ export const loadCollateralAssets = async ({
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> => {
 	try {
-		onLoad({ certified: true, response: await listEngineCollateralAssetsWeb2() });
+		onLoad({ certified: true, response: await listEngineCollateralAssetsApi() });
 	} catch (err: unknown) {
 		onUpdateError?.(err);
 	}
@@ -115,12 +115,12 @@ const SWEEP_FEE_RESERVE_MULTIPLIER = 2n;
 export const getSweepableVxpAmount = async (): Promise<bigint> => {
 	const { ledgerCanisterId } = VXP_TOKEN;
 
-	if (isNullish(getWeb2User())) {
+	if (isNullish(getSessionUser())) {
 		return ZERO;
 	}
 
 	const [{ balances }, fee] = await Promise.all([
-		getWalletBalancesWeb2(),
+		getWalletBalancesApi(),
 		transactionFee({ identity: anonymousIdentity(), ledgerCanisterId })
 	]);
 

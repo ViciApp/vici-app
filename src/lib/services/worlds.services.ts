@@ -1,17 +1,17 @@
+import {
+	claimWorldsPodiumPrize as claimWorldsPodiumPrizeApi,
+	getAffiliationStats as getAffiliationStatsApi,
+	getMyAffiliations as getMyAffiliationsApi,
+	listAffiliationChampionships as listAffiliationChampionshipsApi,
+	listAffiliationStats as listAffiliationStatsApi,
+	listWorldsMemberCounts as listWorldsMemberCountsApi,
+	removeAffiliation as removeAffiliationApi,
+	setAffiliation as setAffiliationApi
+} from '#lib/api-client/client.ts';
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import type { AffiliationChampionship, AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
 import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
 import { withTimeout } from '#lib/utils/async.utils.ts';
-import {
-	claimWorldsPodiumPrize as claimWorldsPodiumPrizeWeb2,
-	getAffiliationStats as getAffiliationStatsWeb2,
-	getMyAffiliations as getMyAffiliationsWeb2,
-	listAffiliationChampionships as listAffiliationChampionshipsWeb2,
-	listAffiliationStats as listAffiliationStatsWeb2,
-	listWorldsMemberCounts as listWorldsMemberCountsWeb2,
-	removeAffiliation as removeAffiliationWeb2,
-	setAffiliation as setAffiliationWeb2
-} from '#lib/web2/client.ts';
 
 /**
  * Hard timeout for the affiliation write path, so the picker's
@@ -37,7 +37,7 @@ const AFFILIATION_WRITE_TIMEOUT_MS = 15_000;
 export const listMyAffiliations = (): Promise<{
 	university?: AffiliationDoc;
 	country?: AffiliationDoc;
-}> => getMyAffiliationsWeb2();
+}> => getMyAffiliationsApi();
 
 /**
  * Join an affiliation. The server computes the lock window and refuses a
@@ -52,7 +52,7 @@ export const joinAffiliation = ({
 	affiliationIdentifier: string;
 }): Promise<AffiliationDoc> =>
 	withTimeout({
-		operation: setAffiliationWeb2({ kind, affiliationIdentifier }),
+		operation: setAffiliationApi({ kind, affiliationIdentifier }),
 		timeoutMs: AFFILIATION_WRITE_TIMEOUT_MS,
 		label: 'joinAffiliation'
 	});
@@ -71,7 +71,7 @@ export const leaveAffiliation = async ({
 	affiliationIdentifier: string;
 }): Promise<void> => {
 	await withTimeout({
-		operation: removeAffiliationWeb2({ kind, affiliationIdentifier }),
+		operation: removeAffiliationApi({ kind, affiliationIdentifier }),
 		timeoutMs: AFFILIATION_WRITE_TIMEOUT_MS,
 		label: 'leaveAffiliation'
 	});
@@ -148,7 +148,7 @@ export const getAffiliationStats = ({
 	kind: AffiliationKind;
 	affiliationIdentifier: string;
 }): Promise<AffiliationStatsDoc | undefined> =>
-	getAffiliationStatsWeb2({ kind, affiliationIdentifier });
+	getAffiliationStatsApi({ kind, affiliationIdentifier });
 
 /**
  * Ranked leaderboard view of every affiliation of a kind. Sorted
@@ -162,7 +162,7 @@ export const listAffiliationStats = ({
 }: {
 	kind: AffiliationKind;
 	limit?: number;
-}): Promise<AffiliationStatsDoc[]> => listAffiliationStatsWeb2({ kind, limit });
+}): Promise<AffiliationStatsDoc[]> => listAffiliationStatsApi({ kind, limit });
 
 /**
  * Real member counts for every affiliation of a kind. Returned as a
@@ -175,7 +175,7 @@ export const listWorldsMemberCounts = async ({
 }: {
 	kind: AffiliationKind;
 }): Promise<Record<string, number>> => {
-	const items = await listWorldsMemberCountsWeb2(kind);
+	const items = await listWorldsMemberCountsApi(kind);
 
 	return items.reduce<Record<string, number>>((acc, item) => {
 		acc[item.affiliationIdentifier] = item.memberCount;
@@ -197,7 +197,7 @@ export const listAffiliationChampionships = ({
 	kind: AffiliationKind;
 	affiliationIdentifier: string;
 }): Promise<AffiliationChampionship[]> =>
-	listAffiliationChampionshipsWeb2({ kind, affiliationIdentifier });
+	listAffiliationChampionshipsApi({ kind, affiliationIdentifier });
 
 /**
  * Fire the Worlds podium claim for a closed month: the API credits VXP if
@@ -223,4 +223,4 @@ export const claimWorldsPodiumPrize = ({
 	awardsCreated: number;
 	awardsAlreadyClaimed: number;
 	notEligible: boolean;
-}> => claimWorldsPodiumPrizeWeb2({ monthAnchor });
+}> => claimWorldsPodiumPrizeApi({ monthAnchor });

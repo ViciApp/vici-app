@@ -1,6 +1,6 @@
 import { E2E_LIVE_SERIES, E2E_SETTLED_SERIES } from '../backend/e2e/fixtures';
 import { enMessages } from '../src/lib/constants/messages/en';
-import { Web2AppPage, uniqueEmail, uniqueHandle } from './pages/web2-app.page';
+import { AppPage, uniqueEmail, uniqueHandle } from './pages/app.page';
 import { expect, test } from './support/fixtures';
 
 /**
@@ -11,7 +11,7 @@ import { expect, test } from './support/fixtures';
  */
 test.describe('markets', () => {
 	test.beforeEach(async ({ page, backend }) => {
-		await new Web2AppPage(page).signUp({
+		await new AppPage(page).signUp({
 			email: uniqueEmail('markets'),
 			handle: uniqueHandle(),
 			backend
@@ -19,7 +19,7 @@ test.describe('markets', () => {
 	});
 
 	test('the list shows every live market and opens its detail page', async ({ page }) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 
 		await page.goto('/app');
 
@@ -41,7 +41,7 @@ test.describe('markets', () => {
 	});
 
 	test('a settled market shows its outcome', async ({ page }) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 
 		await page.goto(`/markets/${E2E_SETTLED_SERIES.seriesId}`);
 

@@ -13,31 +13,31 @@ Read this page before adding an API call to a frontend service.
 
 ## The seam
 
-Three files under `src/lib/web2/`, plus the base URL helper:
+Three files under `src/lib/api-client/`, plus the base URL helper:
 
-- [`client.ts`](../../../src/lib/web2/client.ts): thin typed fetch client.
+- [`client.ts`](../../../src/lib/api-client/client.ts): thin typed fetch client.
   Every request sends `credentials: 'include'` (the client holds no auth
-  state) and non-2xx responses throw `Web2ApiError` carrying `status` plus
+  state) and non-2xx responses throw `ApiError` carrying `status` plus
   the stable `code` from the API's `{ error: string }` envelope (plus
   `amounts` when an `insufficient_balance` order refusal carries them). One
   typed wrapper per endpoint, shape mapping only.
-- [`engine-wire.ts`](../../../src/lib/web2/engine-wire.ts): the bridge
+- [`engine-wire.ts`](../../../src/lib/api-client/engine-wire.ts): the bridge
   returns the canisters' candid responses serialized to JSON (bigints as
   decimal strings, principals as text, optionals still `[] | [value]`). The
   per-type mappers convert each payload back into the exact `#declarations`
   types, so utils, stores and components consume candid shapes. Mappers are
   field-explicit on purpose: a blanket digits-to-bigint pass cannot tell an id
   string from a serialized bigint.
-- [`session.ts`](../../../src/lib/web2/session.ts): the cookie-session store
+- [`session.ts`](../../../src/lib/api-client/session.ts): the cookie-session store
   (see "Auth").
-- `web2ApiBaseUrl()` in [`#lib/env/app.env.ts`](../../../src/lib/env/app.env.ts)
-  reads `VITE_WEB2_API_URL`.
+- `apiBaseUrl()` in [`#lib/env/app.env.ts`](../../../src/lib/env/app.env.ts)
+  reads `VITE_API_URL`.
 
 ## Env vars
 
 | Var                       | Values              | Default | Effect                                                                                                                                                                                             |
 | ------------------------- | ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_WEB2_API_URL`       | origin URL          | empty   | Base of the HTTP API. Empty = same-origin relative (reverse-proxy shape). `fly.web.toml` bakes the production value.                                                                               |
+| `VITE_API_URL`            | origin URL          | empty   | Base of the HTTP API. Empty = same-origin relative (reverse-proxy shape). `fly.web.toml` bakes the production value.                                                                               |
 | `VITE_TURNSTILE_SITE_KEY` | Cloudflare site key | empty   | Public key of the Turnstile widget in front of the anonymous endpoints (`turnstileSiteKey()` in `#lib/env/app.env.ts`). Empty sends an empty token, which the API accepts only outside production. |
 
 ## The service pattern
@@ -49,8 +49,8 @@ Three files under `src/lib/web2/`, plus the base URL helper:
 3. **One typed wrapper per endpoint in `client.ts`**, typed to the route's
    wire contract. If the wire shape differs from the app shape, map it inside
    the wrapper, not in the service. A money or identity endpoint parses its
-   body with a schema from `#lib/schema/web2-api.schema.ts` through
-   `parsedRequest`: a body that does not match throws `Web2ApiError`
+   body with a schema from `#lib/schema/api.schema.ts` through
+   `parsedRequest`: a body that does not match throws `ApiError`
    `invalid_response` with the 2xx status, so a caller reads the outcome as
    unknown, never as success.
 4. **A single HTTP read is the final pass.** Loaders built for a
@@ -71,11 +71,11 @@ to the app enums. Duel `sideA` / `sideB` hold account ids.
 
 ## Auth
 
-- **Session state: `web2/session.ts`.** `loadWeb2Session()` probes `/me` (a
-  401 is the signed-out steady state, not an error), `adoptWeb2Session(user)`
-  seeds it from a login response, and `clearWeb2Session()` revokes
+- **Session state: `api-client/session.ts`.** `loadSession()` probes `/me` (a
+  401 is the signed-out steady state, not an error), `adoptSession(user)`
+  seeds it from a login response, and `clearSession()` revokes
   server-side then drops local state.
-- **Session follows the cookie: `watchWeb2Session()`.** Tabs share the
+- **Session follows the cookie: `watchSession()`.** Tabs share the
   cookie, so a sign-in or sign-out in one tab changes the account of every
   tab. A request the API refuses as `unauthenticated` (the `client.ts`
   session-lost handler; any other 401, such as a wrong sign-in code, is not
@@ -83,13 +83,13 @@ to the app enums. Duel `sideA` / `sideB` hold account ids.
   changes it (a `BroadcastChannel`) and when the tab is shown again.
 - **Writes in an account's name confirm the cookie first.** A profile PUT is a
   full-doc write onto the cookie's account, so `upsertProfile` and
-  `saveMyEmail` run `assertWeb2SessionOwner(owner)` (a `/me` read) before it:
+  `saveMyEmail` run `assertSessionOwner(owner)` (a `/me` read) before it:
   when the cookie belongs to another account the store moves to it and the
-  write is refused with `Web2SessionChangedError`.
+  write is refused with `SessionChangedError`.
 - **App-shell hydration: `Authn.svelte`.** `onMount` starts the watcher and
-  the probe. An `$effect` mirrors `web2SessionStore` into `userStore`: a
+  the probe. An `$effect` mirrors `sessionStore` into `userStore`: a
   resolved user builds a `User` (`key` / `owner` = account id), reads the
-  profile via `loadWeb2ProfileShell` (the default shell with
+  profile via `loadProfileShell` (the default shell with
   `profileExisted: false` for a brand-new account, so the onboarding drain
   runs), and sets `userStore`. A signed-out probe releases `authBusy`
   directly; a live one leaves it held until the hydration sets the user,
@@ -241,7 +241,7 @@ to the app enums. Duel `sideA` / `sideB` hold account ids.
 
 - Components and stores never call `client.ts`; the seam lives in services.
   The identity layer is the sanctioned exception (`Authn.svelte`,
-  `SignInProviderStack.svelte`, `web2/session.ts`).
+  `SignInProviderStack.svelte`, `api-client/session.ts`).
 - Analytics event payloads stay behavioural and pseudonymous; the server
   stamps time and identity.
 - Constants mirrored between `src/` and `backend/` (locales, market taxonomy,

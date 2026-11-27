@@ -1,22 +1,17 @@
 import type { ClearingDid } from '#declarations';
+import { ApiError, type ApiErrorAmounts } from '#lib/api-client/client.ts';
 import {
 	mapTradeError,
 	orderRejectionMessage,
 	tradeErrorMessage,
 	TradeExecutionError
 } from '#lib/canisters/clearing.errors.ts';
-import { Web2ApiError, type Web2ApiErrorAmounts } from '#lib/web2/client.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-const refusal = ({
-	code,
-	amounts
-}: {
-	code: string;
-	amounts?: Web2ApiErrorAmounts;
-}): Web2ApiError => new Web2ApiError({ status: 409, code, amounts });
+const refusal = ({ code, amounts }: { code: string; amounts?: ApiErrorAmounts }): ApiError =>
+	new ApiError({ status: 409, code, amounts });
 
 describe('tradeErrorMessage over the HTTP API', () => {
 	const KEYS = {
@@ -64,8 +59,8 @@ describe('tradeErrorMessage over the HTTP API', () => {
 	it('falls back to the generic message for an unmapped code or a fault', () => {
 		for (const error of [
 			refusal({ code: 'a_future_code' }),
-			new Web2ApiError({ status: 500, code: 'internal' }),
-			new Web2ApiError({ status: 502, code: 'unknown_error' })
+			new ApiError({ status: 500, code: 'internal' }),
+			new ApiError({ status: 502, code: 'unknown_error' })
 		]) {
 			assert.deepEqual(tradeErrorMessage(error), { key: 'trade.error.generic' });
 		}
@@ -76,9 +71,9 @@ describe('orderRejectionMessage', () => {
 	it('answers nothing for anything but a known refusal', () => {
 		for (const error of [
 			refusal({ code: 'a_future_code' }),
-			new Web2ApiError({ status: 500, code: 'internal' }),
-			new Web2ApiError({ status: 500, code: 'order_not_found' }),
-			new Web2ApiError({
+			new ApiError({ status: 500, code: 'internal' }),
+			new ApiError({ status: 500, code: 'order_not_found' }),
+			new ApiError({
 				status: 503,
 				code: 'insufficient_balance',
 				amounts: { available: '1', required: '2' }

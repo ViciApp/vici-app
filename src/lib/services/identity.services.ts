@@ -1,36 +1,36 @@
-import { clearWeb2Session, getWeb2User } from '#lib/web2/session.ts';
+import { clearSession, getSessionUser } from '#lib/api-client/session.ts';
 import { nonNullish } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 
 /**
  * "Is someone signed in" probe for loaders that only gate work on it. The
- * session is an HttpOnly cookie mirrored into `web2SessionStore`, so there is
+ * session is an HttpOnly cookie mirrored into `sessionStore`, so there is
  * never a local identity to read.
  */
-export const isSignedIn = (): Promise<boolean> => Promise.resolve(nonNullish(getWeb2User()));
+export const isSignedIn = (): Promise<boolean> => Promise.resolve(nonNullish(getSessionUser()));
 
 /**
  * Owner key of the signed-in user: the session account id (the key `owner`
  * fields and activity keys carry). `undefined` when signed out.
  */
 export const getSignedInOwner = (): Promise<string | undefined> =>
-	Promise.resolve(getWeb2User()?.id);
+	Promise.resolve(getSessionUser()?.id);
 
 /**
  * Sign-out for surfaces outside the auth shell (the settings page's sign-out
  * and the account return gate). Revokes the cookie session server-side, which
- * the app shell observes through `web2SessionStore` and folds into a cleared
+ * the app shell observes through `sessionStore` and folds into a cleared
  * `userStore`.
  */
 export const signOut = async (): Promise<void> => {
-	// clearWeb2Session clears the local session store in a finally, so the
+	// clearSession clears the local session store in a finally, so the
 	// user is signed out locally even when the server revoke call fails;
 	// throwing here would strand callers on authBusy for a session that is
 	// already gone. Log and continue instead.
 	try {
-		await clearWeb2Session();
+		await clearSession();
 	} catch (e: unknown) {
-		console.warn('web2 sign-out revoke failed (local session already cleared)', e);
+		console.warn('sign-out revoke failed (local session already cleared)', e);
 	}
 };
 

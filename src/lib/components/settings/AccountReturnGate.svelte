@@ -5,8 +5,6 @@
 	import { ACCOUNT_RECOVERY_WINDOW_MS } from '#lib/constants/app.constants.ts';
 	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { recoverMyAccount, resumeMyAccount } from '#lib/services/account.services.ts';
-	// The dual-mode sign-out: the Juno delegation drop on the default
-	// backend, the cookie-session revoke in web2 mode.
 	import { signOut } from '#lib/services/identity.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';

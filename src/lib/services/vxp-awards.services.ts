@@ -1,5 +1,5 @@
+import { claimCalibrationReward as claimCalibrationRewardApi } from '#lib/api-client/client.ts';
 import type { CallSide } from '#lib/types/market.ts';
-import { claimCalibrationReward as claimCalibrationRewardWeb2 } from '#lib/web2/client.ts';
 
 /**
  * Client wrappers around the VXP-awards routes.
@@ -76,4 +76,4 @@ export const claimCalibrationReward = async ({
 }): Promise<VxpCalibrationClaim> =>
 	// A signed-out caller gets a 401 before the claim logic runs, which covers
 	// the `anonymous` reason.
-	await claimCalibrationRewardWeb2({ seriesId, chosenSide });
+	await claimCalibrationRewardApi({ seriesId, chosenSide });

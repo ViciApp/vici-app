@@ -12,7 +12,7 @@ any multiple of 10 from 10 to 200 VXP (20 positions), defaulting to 50, chosen w
 every surface that sizes a call (the Flow card back, the market detail confirmation sheet, the
 landing Markets detail control). The 300 and 500 sizes disappear for everyone; a stored preference
 that holds one of them restores as 200. Every surface previews the same net win, floored by the
-unchanged `p_win` floor (`VXP_P_WIN_FLOOR`). The web2 API refuses sizes outside the set it can see.
+unchanged `p_win` floor (`VXP_P_WIN_FLOOR`). The API refuses sizes outside the set it can see.
 Positions already open at any size stay as they are: nothing on the engine side is touched or
 migrated.
 
@@ -47,7 +47,7 @@ Persisted call size (the only stored copy of a size):
 | Store                                   | Shape                                                                                                                                                                                                                                                                                                                                       |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `profiles` doc on the satellite         | `preferences.defaultAmount.flow` / `.manual`, strings, default `'0'` ("no stored size", `src/lib/constants/settings.constants.ts`). Schema `src/lib/schema/profile.schema.ts` (bundled into the satellite), hydration `withProfileDefaults` in `src/satellite/services/profile.services.ts` and `src/satellite/utils/wire-format.utils.ts`. |
-| `profiles.preferences` on the web2 API  | Same shape, sanitized by `sanitizePreferences` in `backend/src/profiles/profile.ts` (`asString`, fallback `'0'`).                                                                                                                                                                                                                           |
+| `profiles.preferences` on the API       | Same shape, sanitized by `sanitizePreferences` in `backend/src/profiles/profile.ts` (`asString`, fallback `'0'`).                                                                                                                                                                                                                           |
 | `vici.preferences.v1` in `localStorage` | The preferences store mirror (`src/lib/stores/preferences.store.ts`, `defaultAmount` is a store-owned leaf).                                                                                                                                                                                                                                |
 
 No code path writes `defaultAmount.flow` today: the settings page has no control for it and Flow
@@ -61,7 +61,7 @@ fractional amounts (Flow's `FlowBottomBar` stepper), so it is not a VXP-only fie
   `src/lib/api/clearing.api.ts`, called from `placeOrder` in `src/lib/services/order.services.ts`).
   No satellite hook or assert sees a call or its size. The `activities` trade row (client-written)
   carries contract quantity in its title, not the call size.
-- **Web2 API:** proxies orders in `backend/src/routes/engine.ts`. `POST /engine/orders/limit`
+- **API:** proxies orders in `backend/src/routes/engine.ts`. `POST /engine/orders/limit`
   receives `qty`, `priceValue`, `priceDecimals`, `side`, `seriesId`; `POST /engine/orders/market`
   receives one request **per book level** (`tradeId`, `matchingOrderId`, `qty`), because
   `walkMarketOrder` (`src/lib/utils/market-order.utils.ts`) walks the book client-side. No route
@@ -76,7 +76,7 @@ fractional amounts (Flow's `FlowBottomBar` stepper), so it is not a VXP-only fie
 So today both the ladder and the `p_win` floor are **client-side only**, on both stacks. That
 diverges from [`economy.md`](../../economy.md), which lists the call-size cap and the floor as the
 bounds on the "Prediction win" surface. This spec closes the part of that gap the
-web2 API can see (decision 1); the rest goes to the [icdc-core follow-up](#icdc-core-follow-up).
+API can see (decision 1); the rest goes to the [icdc-core follow-up](#icdc-core-follow-up).
 
 ### Sizing arithmetic that depends on the minimum
 
@@ -157,7 +157,7 @@ carries `source`, `marketId`, `label` (side) and no amount. Guest picks track `p
    token and the gross payout.
 9. **Landing Markets control:** reads the constants, uses the slider of item 5 and previews with
    `vxpNetWin`. If the landing PR merges first it already reads them, and this PR only verifies it.
-10. **Server-side bounds on the web2 API** (decision 1): see
+10. **Server-side bounds on the API** (decision 1): see
     [Technical requirements](#technical-requirements-satellite--backend-mandatory) and
     [icdc-core follow-up](#icdc-core-follow-up).
 11. **Analytics, all in this PR** (decision 7): see [Analytics](#analytics).
@@ -165,7 +165,7 @@ carries `source`, `marketId`, `label` (side) and no amount. Guest picks track `p
     - `economy.md`: the Prediction win row is backed by the call-size constants (no longer
       `VXP_CALL_SIZE_LADDER`). The caps section states plainly where the call-size bounds and the
       `p_win` floor are enforced and where they are not: the client guard on both builds and the
-      web2 API's order routes enforce the call size; no satellite path and no engine rule does, so
+      API's order routes enforce the call size; no satellite path and no engine rule does, so
       on the web3 build only the client enforces it; the floor is a preview only on both builds and
       settlement pays the raw cashflow; the icdc-core follow-up is the fix. Known farm vector 3 is
       extended: the lower minimum makes every count-gated mint (overtime, Flow milestones, streak
@@ -261,7 +261,7 @@ restated in code.
   reads the results, which ships in the same build. No `juno.config.ts` rule change, not breaking.
 - Security: no collection rule or caller permission touched.
 
-**Web2 API (decision 1, option A).** The API rejects what it can see.
+**API (decision 1, option A).** The API rejects what it can see.
 
 - Contract: `POST /engine/orders/limit` and `POST /engine/orders/market` gain an optional
   `callSize` body field (integer, whole VXP). For a ViciXp series (balance domain read with
@@ -293,7 +293,7 @@ VXP_MAX_CALL_SIZE]`; when a limit order's notional (`qty` × the share cost: the
   (`src/lib/canisters/clearing.errors.ts`). `backend/tests/shared-drift/order-rejections.test.ts`
   compares that list against the engine-variant table `ORDER_REJECTIONS` only, so the API gains a
   named list of its own refusal codes that the drift test includes. The typed wrappers
-  `submitEngineLimitOrder` / `submitEngineMarketOrder` in `src/lib/web2/client.ts` send `callSize`
+  `submitEngineLimitOrder` / `submitEngineMarketOrder` in `src/lib/api-client/client.ts` send `callSize`
   (and `seriesId` on the market leg).
 - Security: value-moving routes (`docs/ai/governance.md` boundaries): the change only refuses, never
   widens; call it out in the PR body.
@@ -304,7 +304,7 @@ GitHub is not reachable from this session, so the implementer files this issue o
 repository and links it here and in the PR body. Proposed text:
 
 > **Per-engine order size and payout floor for `eng_0`.** Vici's call size and `p_win` payout floor
-> are enforced only by Vici's clients and, on the web2 build, by its API. A client talking to the
+> are enforced only by Vici's clients and by its API. A client talking to the
 > clearing canister directly can open an order of any size, and settlement pays the raw
 > `amount · (1/price − 1)` cashflow down to the smallest price `PRICE_DECIMALS` allows. Request: an
 > engine-level rule, configurable per engine, that (1) refuses an opening order whose notional is
@@ -346,7 +346,7 @@ enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate 
 9. API (Technical requirements): mirror min, max and step in `backend/src/vxp/constants.ts` +
    `backend/tests/shared-drift/vxp.test.ts` (`extractIntConst`); validate in
    `backend/src/routes/engine.ts`; refusal code on both sides plus the drift test; `callSize` in
-   `src/lib/web2/client.ts`; route tests in `backend/tests/engine.test.ts`.
+   `src/lib/api-client/client.ts`; route tests in `backend/tests/engine.test.ts`.
 10. Analytics: union, Zod enum, API taxonomy, `track` calls, satellite regeneration and declaration
     copy.
 11. i18n keys in every catalog; `npm run check:i18n`.
@@ -374,7 +374,7 @@ enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate 
   at max, warnings at the new floor, the card front shows a below-default size honestly and the
   same net win as the back. The market detail sheet starts at the default and shows the net win. A
   drag on Flow's slider never swipes the card. Under every `[data-theme]` and with reduced motion.
-- **Stored preference**: a profile (satellite and web2) holding `defaultAmount.flow = '500'` opens
+- **Stored preference**: a profile (satellite and API) holding `defaultAmount.flow = '500'` opens
   Flow at the max; `'0'` at the default.
 - **Analytics**: one `call_size_set` per slider release, none on open; `flow_swipe.value` on YES /
   NO only; `position_taken.source` per surface.
@@ -385,7 +385,7 @@ enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate 
 
 - **Order of deploys.** Web app first (client guard, slider, `callSize` sent), then the API
   requiring `callSize` for ViciXp series: an API that requires the field before the web app sends
-  it would refuse every web2 call. The field stays optional for one release for that reason.
+  it would refuse every call. The field stays optional for one release for that reason.
 - **Rounding shortfall at the minimum.** The "if wrong" row shows the call size, while the commit can
   be up to one contract price lower; already true today at a smaller ratio. Acceptable;
   `position_taken.value` makes it measurable.
@@ -395,7 +395,7 @@ enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate 
 - **Web3 stays client-enforced** until the icdc-core follow-up ships: a modified client can still
   send any size to the clearing canister, as it can today. `economy.md` says so.
 - **Mixed clients.** A cached older web app still offers the 300 and 500 sizes until reload; the
-  web2 API refuses them (above the maximum even without `callSize`) and the client shows the
+  API refuses them (above the maximum even without `callSize`) and the client shows the
   refusal message. On web3 they would still place.
 - **Market detail number changes.** The "If right" figure drops from the gross return to the net
   win; the PR body says so for reviewers.
@@ -414,7 +414,7 @@ enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate 
       the gross return.
 - [ ] The Flow card front shows the actual call size, including sizes below the default.
 - [ ] The out-of-funds takeover and the `wont-finish` warning price at the new minimum.
-- [ ] The web2 API refuses, on ViciXp series, a `callSize` that is non-integer, off the step or
+- [ ] The API refuses, on ViciXp series, a `callSize` that is non-integer, off the step or
       outside the range, and an order whose notional does not match it, with `invalid_call_size`.
 - [ ] `flow_swipe.value`, `position_taken.source` and `call_size_set` ship; `call_size_set` is in the
       union, the Zod enum and the API taxonomy; the satellite is regenerated; drift suite green.
@@ -430,7 +430,7 @@ enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate 
 
 1. **How many stored profiles hold a VXP `defaultAmount.flow` other than `'0'`, and how many above
    the maximum?** No current code writes the field. One `SELECT` over
-   `profiles.preferences->'defaultAmount'->>'flow'` on the web2 database and one controller scan of
+   `profiles.preferences->'defaultAmount'->>'flow'` on the API database and one controller scan of
    the satellite `profiles` collection answer it. The decision is a clamp on read with no backfill
    either way; the count sizes the effect for the PR body.
 2. **Does icdc-core bound an order's size or price for engine `eng_0` anywhere, or plan to?** The
@@ -480,7 +480,7 @@ Divergences found against the code while building, fixed in this PR:
   default 50, on every surface that sizes a call; the 300 and 500 sizes go for everyone;
   `VXP_P_WIN_FLOOR` stays; open positions stay valid. The values live in constants (min, max, step,
   default).
-- **1. Enforcement** (owner): option A in this PR. The web2 API rejects what it can see: a call
+- **1. Enforcement** (owner): option A in this PR. The API rejects what it can see: a call
   size off the step, outside the range or not an integer, and orders whose notional does not match
   it. The satellite has no order path, so it adds no check. A size rule plus payout floor in
   icdc-core (option C) is a follow-up, written above for the implementer to file. `economy.md`

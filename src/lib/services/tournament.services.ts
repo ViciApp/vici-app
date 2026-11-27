@@ -1,16 +1,16 @@
 import {
+	claimTournamentPrize as claimTournamentPrizeApi,
+	getCurrentTournament as getCurrentTournamentApi,
+	resolveTournamentRound as resolveTournamentRoundApi,
+	triggerTournamentDraw as triggerTournamentDrawApi
+} from '#lib/api-client/client.ts';
+import {
 	TOURNAMENT_BRACKET_SIZE,
 	type TournamentDoc,
 	type TournamentMatchDoc,
 	type TournamentRound,
 	type TriggerTournamentDrawRefusalReason
 } from '#lib/types/tournament.ts';
-import {
-	claimTournamentPrize as claimTournamentPrizeWeb2,
-	getCurrentTournament as getCurrentTournamentWeb2,
-	resolveTournamentRound as resolveTournamentRoundWeb2,
-	triggerTournamentDraw as triggerTournamentDrawWeb2
-} from '#lib/web2/client.ts';
 
 /**
  * Monthly tournament FE wrappers.
@@ -32,7 +32,7 @@ export const getCurrentTournament = async (): Promise<{
 }> =>
 	// The API already emits the FE doc shapes with explicit nulls for TBD
 	// slots, so no wire projection applies.
-	await getCurrentTournamentWeb2();
+	await getCurrentTournamentApi();
 
 export interface TriggerTournamentDrawResult {
 	ok: boolean;
@@ -89,7 +89,7 @@ export const triggerTournamentDraw = async ({
 	// The API also runs the draw from its worker; the page-mount trigger
 	// covers a month the worker has not reached yet and collides
 	// idempotently with it.
-	await triggerTournamentDrawWeb2({ monthAnchor });
+	await triggerTournamentDrawApi({ monthAnchor });
 
 export interface ResolveTournamentRoundResult {
 	ok: boolean;
@@ -121,7 +121,7 @@ export const resolveTournamentRound = ({
 }): Promise<ResolveTournamentRoundResult> =>
 	// Also a worker job on the API; the mount-time trigger skips
 	// already-settled matches server-side.
-	resolveTournamentRoundWeb2({ tournamentId, round });
+	resolveTournamentRoundApi({ tournamentId, round });
 
 export interface ClaimTournamentPrizeResult {
 	ok: boolean;
@@ -147,4 +147,4 @@ export const claimTournamentPrize = ({
 	tournamentId
 }: {
 	tournamentId: string;
-}): Promise<ClaimTournamentPrizeResult> => claimTournamentPrizeWeb2({ tournamentId });
+}): Promise<ClaimTournamentPrizeResult> => claimTournamentPrizeApi({ tournamentId });

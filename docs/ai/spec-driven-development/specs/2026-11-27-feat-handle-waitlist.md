@@ -207,8 +207,8 @@ The key names the email and its cycle, so a retry reuses it and a new cycle gets
 
 ### 9. The app side
 
-- `src/lib/web2/client.ts`: `requestWaitlistCode`, `confirmWaitlistCode`, `readWaitlistStatus`, `removeWaitlistReservation`.
-- `src/lib/services/waitlist.services.ts`: the adapter the landing injects into the capsule. Web2 build only.
+- `src/lib/api-client/client.ts`: `requestWaitlistCode`, `confirmWaitlistCode`, `readWaitlistStatus`, `removeWaitlistReservation`.
+- `src/lib/services/waitlist.services.ts`: the adapter the landing injects into the capsule.
 - `src/routes/waitlist/remove/+page.svelte` and its path in `src/lib/constants/routes.constants.ts` (public).
 - The capsule skips the live probe for the handle whose pending hold this browser owns, so stepping back from the code field does not show the visitor's own handle as taken.
 - i18n keys in every catalog: the capsule's added error lines (`landing.claim.*`), the consent sentence, the removal page (`waitlist.remove.*`).
@@ -258,7 +258,7 @@ Client-side steps of the capsule belong to the landing analytics PR and reuse ex
 5. **Purge and worker**: the reservation delete in `purgeExpiredAccount`; `waitlist-prune` in `backend/src/worker.ts`.
 6. **List tooling**: `backend/scripts/update-disposable-domains.ts`, the first generated file, the scheduled workflow.
 7. **App**: section 9.
-8. **Docs in the same PR**: `PRODUCT.md` (a "Waitlist: reserve a handle" entry; "Onboarding: one screen" notes that a reserved handle reads as taken; "Privacy: what survives an account's deletion" lists the reservation among what is removed), `backend/README.md` (routes, constants, the setting, the mirrored Turnstile action, the emails), `docs/ai/backend/reusability.md`, `docs/ai/backend/patterns.md` (localised email copy), `docs/ai/frontend/reusability.md`, `docs/ai/frontend/web2-backend-mode.md`.
+8. **Docs in the same PR**: `PRODUCT.md` (a "Waitlist: reserve a handle" entry; "Onboarding: one screen" notes that a reserved handle reads as taken; "Privacy: what survives an account's deletion" lists the reservation among what is removed), `backend/README.md` (routes, constants, the setting, the mirrored Turnstile action, the emails), `docs/ai/backend/reusability.md`, `docs/ai/backend/patterns.md` (localised email copy), `docs/ai/frontend/reusability.md`, `docs/ai/frontend/api-client.md`.
 
 **Tests**
 
@@ -270,7 +270,7 @@ Client-side steps of the capsule belong to the landing analytics PR and reuse ex
 - `backend/tests/account-lifecycle.test.ts`: a purge removes the account's reservation. Worker: one prune run deletes stale rows, a second does nothing.
 - `backend/tests/shared-drift/`: the Turnstile action, the `source` vocabulary.
 - App: `src/tests/lib/services/waitlist.services.spec.ts` (wire code to adapter code, the cache cleared on `not_found`).
-- E2E (`e2e-web2/waitlist.spec.ts`): join from the landing, reload and see the handle, a second browser sees it as taken, the signed-in handle editor refuses it, the remove link frees it.
+- E2E (`e2e/waitlist.spec.ts`): join from the landing, reload and see the handle, a second browser sees it as taken, the signed-in handle editor refuses it, the remove link frees it.
 
 **Rollout.** The migration ships dark: nothing calls the routes until the landing does. Go-live needs R1 merged, `TURNSTILE_SECRET_KEY`, `VITE_TURNSTILE_SITE_KEY` and `RESEND_API_KEY` in production, the policy text published, the owner's reserved names in the list, and the beta gate in the state W2 describes. Rollback is the previous image; the tables stay, and reservations made meanwhile stop being honoured by the handle checks until the code returns.
 
@@ -299,7 +299,7 @@ Client-side steps of the capsule belong to the landing analytics PR and reuse ex
 - [ ] The row stores the consent time, the policy version and the language, and none of: IP, user agent, plaintext code.
 - [ ] An unconfirmed row is gone 24 hours after its last code request.
 - [ ] A returning visitor's cached handle is checked against the server and cleared when the reservation is gone.
-- [ ] `PRODUCT.md`, `backend/README.md` and the reusability pages describe the shipped behaviour; `bun run typecheck && bun test` in `backend/`, `npm run quality`, `npm run check`, `npm test` and `npm run e2e:web2` pass.
+- [ ] `PRODUCT.md`, `backend/README.md` and the reusability pages describe the shipped behaviour; `bun run typecheck && bun test` in `backend/`, `npm run quality`, `npm run check`, `npm test` and `npm run e2e` pass.
 
 ## Open questions
 
@@ -307,7 +307,7 @@ Client-side steps of the capsule belong to the landing analytics PR and reuse ex
 2. **R1's follow-up renames existing handles to the rule** (R2). Does its planner treat reserved handles as taken when it picks a renamed handle? It must, or a rename can land on a reserved handle.
 3. **Resend plan limits** (per second, per day, per month) against the expected arrival rate: they set `WAITLIST_CODE_GLOBAL_LIMIT_PER_HOUR`.
 4. **Does `upsertMyProfile` take any lock today that could cycle with the handle lock?**
-5. **Can a signed-out visitor open `/info/privacy` on the web2 build**, or does the route sit behind the app gate?
+5. **Can a signed-out visitor open `/info/privacy` on vici.app**, or does the route sit behind the app gate?
 6. **Counsel**: the consent sentence, the policy paragraph, the legal basis, the receipt and removal emails, and whether refusing disposable addresses or folding aliases needs a line in the policy.
 7. **The disposable list's licence and upstream location**, and whether the repository's workflows may open PRs on a schedule.
 8. **The capsule's adapter type as built**, and whether it already passes the entry point and has lines for `email_not_accepted`.

@@ -16,10 +16,8 @@
 		runImmediately = true
 	}: Props = $props();
 
-	// `isSignedIn` is backend-agnostic: the Juno identity check on the default
-	// on-chain backend, the cookie-session store in web2 mode. Gating on the
-	// identity directly would leave every loader permanently idle in web2 mode,
-	// where no local identity ever exists.
+	// `isSignedIn` reads the cookie-session store. Gating on a local identity
+	// would leave every loader permanently idle, since none ever exists.
 	const onShouldUseSlowInterval = (): Promise<boolean> => isSignedIn();
 
 	const safeOnLoad = async () => {

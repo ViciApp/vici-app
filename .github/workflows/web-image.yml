@@ -1,6 +1,6 @@
-name: Web2 Image
+name: Web Image
 
-# Builds the vici.app SPA image exactly as web2-deploy.yml ships it and
+# Builds the vici.app SPA image exactly as fly-deploy.yml ships it and
 # smoke-tests the container, so a Dockerfile.web that only breaks inside
 # Docker fails on the PR instead of on the manual deploy. Nothing is pushed.
 # Deliberately unfiltered: almost any file can reach the image through
@@ -35,7 +35,7 @@ jobs:
 
       # fly.web.toml is what `flyctl deploy` reads, so the Dockerfile and build
       # args come from it rather than from literals here that could drift. The
-      # Node version comes from .node-version, as web2-deploy.yml passes it.
+      # Node version comes from .node-version, as fly-deploy.yml passes it.
       - name: Read build config from fly.web.toml
         id: fly
         run: |
@@ -50,7 +50,7 @@ jobs:
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as out:
               out.write(f"dockerfile={build['dockerfile']}\n")
-              out.write(f"api-url={args['VITE_WEB2_API_URL']}\n")
+              out.write(f"api-url={args['VITE_API_URL']}\n")
               out.write("build-args<<BUILD_ARGS_EOF\n")
               for key, value in args.items():
                   out.write(f"{key}={value}\n")
@@ -71,8 +71,8 @@ jobs:
           tags: vici-app-web:ci
           load: true
           push: false
-          cache-from: type=gha,scope=web2-image
-          cache-to: type=gha,mode=max,scope=web2-image
+          cache-from: type=gha,scope=web-image
+          cache-to: type=gha,mode=max,scope=web-image
 
       - name: Smoke test the container
         env:
@@ -158,7 +158,7 @@ jobs:
           # An empty origin would match every file, and a production SPA must
           # call its API over TLS, so anything but a bare https origin fails.
           if [[ ! "$API_URL" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?$ ]]; then
-            echo "::error::VITE_WEB2_API_URL in fly.web.toml must be an https origin, got '$API_URL'"
+            echo "::error::VITE_API_URL in fly.web.toml must be an https origin, got '$API_URL'"
             exit 1
           fi
           if ! docker exec web grep -rlF "$API_URL" /usr/share/nginx/html/_app/immutable >/dev/null; then
@@ -167,7 +167,10 @@ jobs:
           fi
           echo "Built JS references $API_URL"
 
-  web2-image-pass:
+  web-image-pass:
+    # The `checks` ruleset requires this context by name, so it stays until
+    # the ruleset is updated to the new one.
+    name: web2-image-pass
     if: always()
     needs: ['web-image']
     runs-on: ubuntu-24.04

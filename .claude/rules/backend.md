@@ -6,7 +6,7 @@ substantive, read the canonical docs.
 
 **Read first:**
 
-- Web2 API in `backend/` (structure, patterns, catalog, tests, custody) →
+- HTTP API in `backend/` (structure, patterns, catalog, tests, custody) →
   [`docs/ai/backend/README.md`](../../docs/ai/backend/README.md)
 - On-chain engine pointer (default rule, bindings regeneration) →
   [`docs/ai/engine/README.md`](../../docs/ai/engine/README.md)

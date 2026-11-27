@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount, type Snippet } from 'svelte';
+	import type { ApiMe } from '#lib/api-client/client.ts';
+	import { loadSession, watchSession, sessionStore } from '#lib/api-client/session.ts';
 	import { SIGNED_IN_FLAG_KEY } from '#lib/constants/app.constants.ts';
 	import { resetIdentityScopedState } from '#lib/services/identity-reset.services.ts';
-	import { loadWeb2ProfileShell } from '#lib/services/profile.services.ts';
+	import { loadProfileShell } from '#lib/services/profile.services.ts';
 	import { setCachedProfile } from '#lib/stores/profiles.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import type { User } from '#lib/types/user.ts';
-	import type { Web2Me } from '#lib/web2/client.ts';
-	import { loadWeb2Session, watchWeb2Session, web2SessionStore } from '#lib/web2/session.ts';
 	import { browser } from '$app/env';
 
 	/**
@@ -52,7 +52,7 @@
 	 * created account with no stored profile hydrates the default shell with
 	 * `profileExisted: false` so the onboarding drain runs for it.
 	 */
-	const hydrateWeb2AppShell = async (me: Web2Me): Promise<boolean> => {
+	const hydrateAppShell = async (me: ApiMe): Promise<boolean> => {
 		userStore.update((data) => ({ ...data, authBusy: true }));
 
 		resetIdentityScopedState({ ownerKey: me.id });
@@ -60,7 +60,7 @@
 		try {
 			const user: User = { key: me.id, owner: me.id };
 			const email = me.identities.find((identity) => (identity.email ?? '') !== '')?.email ?? '';
-			const { profile, existed } = await loadWeb2ProfileShell(me.id);
+			const { profile, existed } = await loadProfileShell(me.id);
 
 			setSignedInFlag(true);
 
@@ -68,7 +68,7 @@
 
 			return true;
 		} catch (e: unknown) {
-			console.error('web2 app-shell hydration failed', e);
+			console.error('app-shell hydration failed', e);
 
 			userStore.update((data) => ({ ...data, authBusy: false }));
 
@@ -76,7 +76,7 @@
 		}
 	};
 
-	const clearWeb2AppShell = (): void => {
+	const clearAppShell = (): void => {
 		resetIdentityScopedState({ ownerKey: undefined });
 		setSignedInFlag(false);
 
@@ -97,11 +97,11 @@
 		// with the user (on success and on failure). Releasing it here for a live
 		// session would open a window with no user and no busy flag, which the
 		// (app) auth gate reads as signed out, bouncing every cold load of an app
-		// route to /signin. `loadWeb2Session` never rejects: any failure resolves
+		// route to /signin. `loadSession` never rejects: any failure resolves
 		// to signed-out.
-		const stopWatchingSession = watchWeb2Session();
+		const stopWatchingSession = watchSession();
 
-		void loadWeb2Session().then((user) => {
+		void loadSession().then((user) => {
 			if (nonNullish(user)) {
 				return;
 			}
@@ -125,40 +125,40 @@
 	// Google redirect that re-runs the mount probe) and sign-out, and settles the
 	// signed-out steady state so the shell never hangs on `authBusy`. Guarded by
 	// the last-hydrated id so a redundant store emission never re-fetches.
-	let web2ShellUserId: string | undefined;
-	let web2ShellSettled = false;
+	let shellUserId: string | undefined;
+	let shellSettled = false;
 
 	$effect(() => {
-		const { user, authBusy } = $web2SessionStore;
+		const { user, authBusy } = $sessionStore;
 
 		if (authBusy) {
 			return;
 		}
 
 		if (isNullish(user)) {
-			if (nonNullish(web2ShellUserId) || !web2ShellSettled) {
-				web2ShellUserId = undefined;
-				web2ShellSettled = true;
+			if (nonNullish(shellUserId) || !shellSettled) {
+				shellUserId = undefined;
+				shellSettled = true;
 
-				clearWeb2AppShell();
+				clearAppShell();
 			}
 
 			return;
 		}
 
-		if (web2ShellUserId === user.id) {
+		if (shellUserId === user.id) {
 			return;
 		}
 
-		web2ShellUserId = user.id;
-		web2ShellSettled = true;
+		shellUserId = user.id;
+		shellSettled = true;
 
 		// A failed hydration must not burn the guard: clearing it lets the next
 		// store emission for the same session retry instead of stranding the
 		// shell unhydrated until a reload.
-		void hydrateWeb2AppShell(user).then((hydrated) => {
-			if (!hydrated && web2ShellUserId === user.id) {
-				web2ShellUserId = undefined;
+		void hydrateAppShell(user).then((hydrated) => {
+			if (!hydrated && shellUserId === user.id) {
+				shellUserId = undefined;
 			}
 		});
 	});
