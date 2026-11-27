@@ -36,6 +36,9 @@ test.describe('markets', () => {
 		await expect(page).toHaveURL(new RegExp(`/markets/${first.seriesId}$`));
 		await expect(app.appMain.getByText(first.title).first()).toBeVisible();
 		await expect(app.appMain.getByText(first.description).first()).toBeVisible();
+		await expect(
+			app.appMain.getByRole('region', { name: enMessages['market.detail.chart.eyebrow'] })
+		).toBeVisible();
 
 		await app.waitForLoaded();
 	});

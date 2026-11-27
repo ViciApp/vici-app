@@ -1,26 +1,29 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import LandingPriceChartPlot from '#lib/components/landing/LandingPriceChartPlot.svelte';
+	import PriceChartPlot from '#lib/components/market/PriceChartPlot.svelte';
 	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { loadMarketPriceCandles } from '#lib/services/trade.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
+	import type { MarketEvent } from '#lib/types/market-metadata.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
-	import {
-		buildPriceChartSeries,
-		type PriceChartSeries
-	} from '#lib/utils/landing-price-chart.utils.ts';
 	import {
 		priceHistoryQueryWindow,
 		type PriceHistoryPeriod
 	} from '#lib/utils/market-price-history.utils.ts';
+	import {
+		buildPriceChartSeries,
+		priceChartEventMarkers,
+		type PriceChartMarker,
+		type PriceChartSeries
+	} from '#lib/utils/price-chart.utils.ts';
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 
 	/**
-	 * The landing price chart for one series: loads its real, market-wide
-	 * history (the anonymous / public engine read) and renders
-	 * `LandingPriceChartPlot`, with the 1W / 1M / All window buttons when
-	 * `ranges` is on. Used by the Markets detail; designed to be passed into
-	 * the deck's `backChart` slot by the page that composes both.
+	 * The price chart for one series: loads its real, market-wide history
+	 * (the anonymous / public engine read) and renders `PriceChartPlot`,
+	 * with the 1W / 1M / All window buttons when `ranges` is on. The one
+	 * chart of the app: the market detail page, the landing's Markets
+	 * detail and, through its `backChart` slot, the landing deck's card back.
 	 * A series with no trades yet draws a flat line at `livePercent`.
 	 */
 	interface Props {
@@ -32,27 +35,43 @@
 		/** Show the window buttons; off draws the past month only. */
 		ranges?: boolean;
 		variant?: 'panel' | 'card';
+		/**
+		 * The market's "this week" events. Their days only have a date on a
+		 * window that ends now, so they are drawn on 1W, and only over real
+		 * trades: never on a cold-start line.
+		 */
+		events?: MarketEvent[];
+		/** Change it to load the history again, e.g. after the viewer's own trade. */
+		refreshKey?: number;
 	}
 
-	const { seriesId, livePercent, openedAtMs, ranges = true, variant = 'panel' }: Props = $props();
+	const {
+		seriesId,
+		livePercent,
+		openedAtMs,
+		ranges = true,
+		variant = 'panel',
+		events = [],
+		refreshKey = 0
+	}: Props = $props();
 
 	type Range = Extract<PriceHistoryPeriod, '7d' | '30d' | 'all'>;
 
 	const RANGES: { range: Range; shortKey: MessageKey; labelKey: MessageKey }[] = [
 		{
 			range: '7d',
-			shortKey: 'landing.markets.chart.range_short.week',
-			labelKey: 'landing.markets.chart.range.week'
+			shortKey: 'market.chart.range_short.week',
+			labelKey: 'market.chart.range.week'
 		},
 		{
 			range: '30d',
-			shortKey: 'landing.markets.chart.range_short.month',
-			labelKey: 'landing.markets.chart.range.month'
+			shortKey: 'market.chart.range_short.month',
+			labelKey: 'market.chart.range.month'
 		},
 		{
 			range: 'all',
-			shortKey: 'market.detail.chart.period.all',
-			labelKey: 'landing.markets.chart.range.all'
+			shortKey: 'market.chart.range_short.all',
+			labelKey: 'market.chart.range.all'
 		}
 	];
 
@@ -73,6 +92,8 @@
 	const draw = !prefersReducedMotion();
 
 	$effect(() => {
+		// A refresh reloads the same window; the line stays up until it lands.
+		void refreshKey;
 		const requested = { seriesId, range };
 		const { startTimeNs, endTimeNs } = priceHistoryQueryWindow(requested.range);
 		const windowEndMs = Number(endTimeNs / MILLISECOND_IN_NANOSECONDS);
@@ -113,18 +134,32 @@
 			: undefined
 	);
 
+	const markers = $derived<PriceChartMarker[]>(
+		nonNullish(current) &&
+			current.range === '7d' &&
+			current.xs.length > 0 &&
+			nonNullish(current.windowStartMs)
+			? priceChartEventMarkers({
+					events,
+					windowStartMs: current.windowStartMs,
+					windowEndMs: current.windowEndMs
+				})
+			: []
+	);
+
 	const selectRange = (next: Range): void => {
 		range = next;
 	};
 
 	const labelKey = (value: Range): MessageKey =>
-		RANGES.find((entry) => entry.range === value)?.labelKey ?? 'landing.markets.chart.range.month';
+		RANGES.find((entry) => entry.range === value)?.labelKey ?? 'market.chart.range.month';
 </script>
 
 {#if nonNullish(series) && nonNullish(current)}
 	{#key `${current.seriesId}:${current.range}`}
-		<LandingPriceChartPlot
+		<PriceChartPlot
 			{draw}
+			{markers}
 			rangeLabel={t({ locale: $localeStore, key: labelKey(current.range) })}
 			{series}
 			{variant}
@@ -134,8 +169,8 @@
 			{#snippet controls()}
 				{#if ranges}
 					<div
-						class="lpch-ranges"
-						aria-label={t({ locale: $localeStore, key: 'landing.markets.chart.ranges' })}
+						class="pch-ranges"
+						aria-label={t({ locale: $localeStore, key: 'market.chart.ranges' })}
 						role="group"
 					>
 						{#each RANGES as entry (entry.range)}
@@ -152,30 +187,30 @@
 					</div>
 				{/if}
 			{/snippet}
-		</LandingPriceChartPlot>
+		</PriceChartPlot>
 	{/key}
 {:else}
-	<div class="lpch-skeleton" class:is-card={variant === 'card'} aria-busy="true"></div>
+	<div class="pch-skeleton" class:is-card={variant === 'card'} aria-busy="true"></div>
 {/if}
 
 <style lang="postcss">
-	.lpch-ranges {
+	.pch-ranges {
 		display: flex;
 		flex: none;
 		gap: 2px;
 		padding: 2px;
 		border-radius: 10px;
-		background: color-mix(in srgb, var(--parchment) 7%, transparent);
+		background: color-mix(in srgb, var(--text-base) 7%, transparent);
 	}
 
-	.lpch-ranges button {
+	.pch-ranges button {
 		height: 32px;
 		min-width: 40px;
 		padding: 0 10px;
 		border: 0;
 		border-radius: var(--r-8);
 		background: none;
-		color: color-mix(in srgb, var(--parchment) 64%, transparent);
+		color: color-mix(in srgb, var(--text-base) 64%, transparent);
 		font: 600 13px/1 var(--font-display);
 		cursor: pointer;
 		transition:
@@ -183,53 +218,53 @@
 			color 160ms var(--ease-vici);
 	}
 
-	.lpch-ranges button.is-on {
-		background: color-mix(in srgb, var(--parchment) 14%, transparent);
-		color: var(--parchment);
+	.pch-ranges button.is-on {
+		background: color-mix(in srgb, var(--text-base) 14%, transparent);
+		color: var(--text-base);
 	}
 
-	.lpch-ranges button:focus-visible {
-		outline: 2px solid var(--parchment);
+	.pch-ranges button:focus-visible {
+		outline: 2px solid var(--text-base);
 		outline-offset: 2px;
 	}
 
 	@media (hover: hover) and (pointer: fine) {
-		.lpch-ranges button:not(.is-on):hover {
-			color: var(--parchment);
+		.pch-ranges button:not(.is-on):hover {
+			color: var(--text-base);
 		}
 	}
 
-	.lpch-skeleton {
+	.pch-skeleton {
 		height: 232px;
 		border-radius: var(--r-12);
-		background: color-mix(in srgb, var(--parchment) 4%, transparent);
+		background: color-mix(in srgb, var(--text-base) 4%, transparent);
 	}
 
-	.lpch-skeleton.is-card {
+	.pch-skeleton.is-card {
 		height: 100%;
 		min-height: 118px;
 	}
 
 	@media (max-width: 900px) {
-		.lpch-ranges button {
+		.pch-ranges button {
 			height: 40px;
 			min-width: 44px;
 		}
 
-		.lpch-skeleton {
+		.pch-skeleton {
 			height: 214px;
 		}
 	}
 
 	@media (pointer: coarse) {
-		.lpch-ranges button {
+		.pch-ranges button {
 			height: 44px;
 			min-width: 44px;
 		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.lpch-ranges button {
+		.pch-ranges button {
 			transition: none;
 		}
 	}

@@ -53,10 +53,10 @@
 		pickTrendingMarket,
 		sidePercents
 	} from '#lib/utils/landing-markets.utils.ts';
-	import { dailyPriceMove } from '#lib/utils/landing-price-chart.utils.ts';
 	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 	import { marketDisplayText } from '#lib/utils/market-translation.utils.ts';
 	import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
+	import { dailyPriceMove } from '#lib/utils/price-chart.utils.ts';
 	import { get as getStored, set as setStored } from '#lib/utils/storage.utils.ts';
 	import { vxpNetWin } from '#lib/utils/vxp-economy.utils.ts';
 
