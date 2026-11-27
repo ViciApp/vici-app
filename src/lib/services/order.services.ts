@@ -299,8 +299,8 @@ export const placeOrder = async ({
 
 	refreshAllBalances();
 
-	// Behavioural telemetry for the cockpit: every REAL trade goes through here
-	// (the flow deck's guest picks emit separately). `value` is the VXP committed;
+	// Behavioural telemetry for the cockpit: every real trade goes through here.
+	// `value` is the VXP committed;
 	// a resting limit order reports its full placed size, a market order the
 	// actually-executed fill.
 	if (filledQty > ZERO || type === 'LIMIT') {

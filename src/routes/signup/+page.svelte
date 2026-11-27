@@ -11,7 +11,6 @@
 		applyOnboardingPicks,
 		checkNicknameAvailability
 	} from '#lib/services/profile.services.ts';
-	import { startGuestSession } from '#lib/stores/guest.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { setAuthBusy, userStore } from '#lib/stores/user.store.ts';
@@ -278,12 +277,6 @@
 		onComplete={handleComplete}
 		onPicksReady={handleCompletePreAuth}
 		onSignIn={() => void goto(resolve(PublicPath.SignIn))}
-		onSkip={(handle) => {
-			// Open the guest preview session (the handle rides through the
-			// pre-auth stash already, so conversion keeps the chosen name) and
-			// route into Flow, which the (app) layout now lets a guest reach.
-			startGuestSession(handle);
-			void goto(resolveAppPath(AppPath.Flow));
-		}}
+		onSkip={() => void goto(resolveAppPath(AppPath.Flow))}
 	/>
 {/if}

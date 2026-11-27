@@ -23,11 +23,11 @@
 	import A2hsSheet from '#lib/components/pwa/A2hsSheet.svelte';
 	import { ZERO } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import { VXP_MIN_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { featuredEvent, featuredEventActive } from '#lib/derived/featured-event.derived.ts';
-	import { guestMode } from '#lib/derived/guest.derived.ts';
 	import { playgroundFlowTradeUnitLabel } from '#lib/derived/playground.derived.ts';
 	import { minuteTick_ms } from '#lib/derived/time.derived.ts';
 	import { vxpSpendable } from '#lib/derived/vxp-holdings.derived.ts';
@@ -41,7 +41,6 @@
 	import { showCompanion } from '#lib/stores/companion.store.ts';
 	import { setFlowBeatActive } from '#lib/stores/flow-beat.store.ts';
 	import { advanceFlow, peekFlow } from '#lib/stores/flow.store.ts';
-	import { recordGuestPick } from '#lib/stores/guest.store.ts';
 	import { markResolutionsSeen, maturedResolutions } from '#lib/stores/inbox.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
@@ -785,36 +784,6 @@
 		const amountHuman = Number(tradeAmount) || 0;
 		const marginUsd = callMarginUsd(currentMarket);
 
-		// Guest preview branch: a guest pick never reaches the engine. We
-		// record it as an in-session preview pick (marketId / side only, no
-		// amount) purely to power the conversion cadence, and skip `placeOrder`
-		// / the identity call entirely. Free guest play therefore can't move
-		// market prices. The session-amount accounting and the funds gate are
-		// member-only (the guest has no balance), so they are bypassed here.
-		if ($guestMode) {
-			const guestPickNumber = recordGuestPick({ marketId: currentMarket.id, side: action });
-
-			// `position_taken` with `source: 'guest_flow'` separates guest
-			// activity from member activity without a new event; `count` is the
-			// persisted session pick number (the cadence counter), so it stays
-			// consistent across a reload rather than tracking this sitting's
-			// in-memory `callsCount`.
-			track({
-				name: 'position_taken',
-				source: 'guest_flow',
-				marketId: currentMarket.id,
-				label: action,
-				count: guestPickNumber
-			});
-
-			callsCount += 1;
-			streak += 1;
-			flowTick();
-			finishCommitAdvance();
-
-			return;
-		}
-
 		sessionCommittedUsd += marginUsd;
 
 		const executeTrade = async () => {
@@ -1354,6 +1323,7 @@
 	class="flow-shell bg-background"
 	class:is-active={!completed && (loading || markets.length > 0)}
 	class:is-paused={flowPaused}
+	data-tid={TestId.FlowMode}
 >
 	{#if !loading && markets.length === 0}
 		<!-- Fetch resolved to an empty deck: surface the empty state directly

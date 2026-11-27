@@ -18,10 +18,8 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { previousPathStore } from '#lib/stores/previous-path.store.ts';
 	import { ensureLocaleCatalogs, t } from '#lib/utils/i18n.utils.ts';
-	import {
-		referralCodeFromSearch,
-		stashSharedReferralForSignup
-	} from '#lib/utils/pending-onboarding.utils.ts';
+	import { referralCodeFromSearch } from '#lib/utils/pending-invite.utils.ts';
+	import { stashSharedReferralForSignup } from '#lib/utils/pending-onboarding.utils.ts';
 	import { browser } from '$app/env';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';

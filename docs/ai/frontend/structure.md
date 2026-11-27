@@ -73,7 +73,6 @@ top-level group:
 - `claim/`: legacy-to-new-app migration banners.
 - `dash/`: Dashboard surfaces.
 - `dev/`: dev-build-only tooling (`TweaksPanel`).
-- `guest/`: signed-out guest conversion funnel.
 - `icons/`: bespoke icons not covered by `@lucide/svelte`.
 - `layout/`: app chrome (`ScreenHeader`, `DesktopAppNav`, `MobileNav`).
 - `landing/`: the signed-out landing's pieces (`LandingNav`, `LandingDeck`, `LandingMarkets`, `LandingFooter`, …).

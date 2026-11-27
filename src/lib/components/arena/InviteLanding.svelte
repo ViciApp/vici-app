@@ -4,16 +4,17 @@
 	import InviteFriendshipSheet from '#lib/components/arena/InviteFriendshipSheet.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import { pageTitle } from '#lib/constants/brand.constants.ts';
-	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
 	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
+	import { signedOutInviteHref } from '#lib/services/new-app-redirect.services.ts';
 	import { claimReferralFriendship, lookupReferralCode } from '#lib/services/referral.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { stashReferralInviteForSignup } from '#lib/utils/pending-onboarding.utils.ts';
 	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -28,8 +29,11 @@
 	 *   1. **Invalid code shape**: bail to home with an error toast.
 	 *   2. **Signed-out (or a brand-new account still mid-onboarding)**: stash the code
 	 *      into the existing `vici:pending-onboarding` payload (merged with whatever
-	 *      Beat-1/2 picks are already there) and route to `/signup`. The (app) layout's
-	 *      pending-onboarding drain then calls `redeemReferralCode` post-signin.
+	 *      picks are already there). Signed out, the visitor goes to the landing's claim
+	 *      capsule (`/?claim=1`), which reads the stash for the claim (`/signup` where
+	 *      sign-ups have moved, see `signedOutInviteHref`); a brand-new account goes to
+	 *      `/signup`. The (app) layout's pending-onboarding drain then
+	 *      calls `redeemReferralCode` post-signin.
 	 *   3. **Signed-in & past onboarding**: the user is past the signup window
 	 *      (or in any case ineligible for the FE-driven redemption path). Look up the
 	 *      referrer principal and render the friendship-only explainer sheet. The sheet's
@@ -84,34 +88,16 @@
 		void handleInvite();
 	});
 
-	const stashCodeForSignup = () => {
-		try {
-			const raw = localStorage.getItem(PENDING_ONBOARDING_STORAGE_KEY);
-			const parsed: Record<string, unknown> =
-				nonNullish(raw) && typeof raw === 'string'
-					? ((): Record<string, unknown> => {
-							try {
-								const v = JSON.parse(raw);
-
-								return typeof v === 'object' && nonNullish(v) ? (v as Record<string, unknown>) : {};
-							} catch {
-								return {};
-							}
-						})()
-					: {};
-			parsed.referralCode = normalizedCode;
-			localStorage.setItem(PENDING_ONBOARDING_STORAGE_KEY, JSON.stringify(parsed));
-		} catch {
-			// Best-effort: signup still works without attribution if storage is unavailable.
-		}
-	};
-
 	const goHome = () => {
 		void goto(resolveAppPath(AppPath.Home), { replace: true });
 	};
 
 	const goSignup = () => {
 		void goto(resolve(PublicPath.SignUp), { replace: true });
+	};
+
+	const goClaim = () => {
+		void goto(signedOutInviteHref(), { replace: true });
 	};
 
 	const handleInvite = async () => {
@@ -128,13 +114,20 @@
 			return;
 		}
 
-		// Signed-out OR a brand-new account still mid-onboarding → stash + route
-		// to signup. Returning users fall through to the friendship sheet (see
-		// `needsOnboarding`).
+		// Signed-out → stash + the landing's claim capsule, where every
+		// signed-out visitor is led: the stash keeps the invite for the claim
+		// and for the sign-up drain. A brand-new account still mid-onboarding
+		// has an account already → stash + route to signup. Returning users
+		// fall through to the friendship sheet (see `needsOnboarding`).
 		if (!$userSignedIn || needsOnboarding) {
-			stashCodeForSignup();
+			stashReferralInviteForSignup(normalizedCode);
 			mode = 'redirecting';
-			goSignup();
+
+			if ($userSignedIn) {
+				goSignup();
+			} else {
+				goClaim();
+			}
 
 			return;
 		}

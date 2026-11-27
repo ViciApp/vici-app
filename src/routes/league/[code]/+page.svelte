@@ -3,11 +3,11 @@
 	import { untrack } from 'svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import { pageTitle } from '#lib/constants/brand.constants.ts';
-	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
 	import { track } from '#lib/services/analytics.services.ts';
 	import { joinLeagueByInvite, lookupLeagueByInvite } from '#lib/services/leagues.services.ts';
+	import { signedOutInviteHref } from '#lib/services/new-app-redirect.services.ts';
 	import { claimReferralFriendship } from '#lib/services/referral.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
@@ -15,6 +15,7 @@
 	import { LEAGUE_INVITE_CODE_REGEX } from '#lib/types/league.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { referralCodeFromSearch } from '#lib/utils/pending-invite.utils.ts';
 	import { stashLeagueInviteForSignup } from '#lib/utils/pending-onboarding.utils.ts';
 	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
@@ -30,7 +31,8 @@
 	 *   1. **Invalid code shape**: toast + bail to the leagues list.
 	 *   2. **Signed-out (or a brand-new account still mid-onboarding)**:
 	 *      stash the code into the `vici:pending-onboarding` payload and
-	 *      route to `/signup`. The (app) layout's pending-onboarding drain
+	 *      route to the landing's claim capsule (`/?claim=1`) when signed
+	 *      out, to `/signup` for the brand-new account. The (app) layout's pending-onboarding drain
 	 *      then auto-joins the league once the new account is in place.
 	 *      Returning users (a profile already existed at sign-in) skip this
 	 *      and join directly, even if their legacy profile never flipped
@@ -56,17 +58,7 @@
 	const normalizedCode = $derived(rawCode.toUpperCase().trim());
 	// The sharer's referral code, when the invite link carried one. Validated
 	// to the canonical code shape so a stray / malformed `?ref=` is ignored.
-	const referralCode = $derived.by(() => {
-		const raw = page.url.searchParams.get('ref');
-
-		if (!nonNullish(raw)) {
-			return;
-		}
-
-		const normalized = raw.toUpperCase().trim();
-
-		return REFERRAL_CODE_REGEX.test(normalized) ? normalized : undefined;
-	});
+	const referralCode = $derived(referralCodeFromSearch(page.url.search));
 	const onboardingCompleted = $derived(
 		$userStore.profile?.preferences?.onboardingCompleted === true
 	);
@@ -119,15 +111,18 @@
 			return;
 		}
 
-		// Signed-out OR a brand-new account still mid-onboarding → stash +
-		// route to signup. The (app) layout drain redeems the invite once the
-		// profile exists. Returning users join directly (see `needsOnboarding`).
+		// Signed-out → stash + the landing's claim capsule (the one signed-out
+		// funnel; the stash keeps the league for the claim and the sign-up
+		// drain). A brand-new account still mid-onboarding → stash + signup.
+		// The (app) layout drain redeems the invite once the profile exists. Returning users join directly (see `needsOnboarding`).
 		// The common signed-out case (no signed-in hint on the device) never
 		// reaches here: `+page.ts` fast-paths it before the auth handshake;
 		// this branch covers a stale hint whose session turned out expired.
 		if (!$userSignedIn || needsOnboarding) {
 			stashLeagueInviteForSignup({ inviteCode: normalizedCode, referralCode });
-			void goto(resolve(PublicPath.SignUp), { replace: true });
+			void goto($userSignedIn ? resolve(PublicPath.SignUp) : signedOutInviteHref(), {
+				replace: true
+			});
 
 			return;
 		}

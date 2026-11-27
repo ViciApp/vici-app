@@ -4,7 +4,6 @@
 	import { fade } from 'svelte/transition';
 	import ClaimBanner from '#lib/components/claim/ClaimBanner.svelte';
 	import MoveNoticeBanner from '#lib/components/claim/MoveNoticeBanner.svelte';
-	import GuestSaveHost from '#lib/components/guest/GuestSaveHost.svelte';
 	import DesktopAppNav from '#lib/components/layout/DesktopAppNav.svelte';
 	import MobileNav from '#lib/components/layout/MobileNav.svelte';
 	import Loaders from '#lib/components/loaders/Loaders.svelte';
@@ -17,7 +16,6 @@
 	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
-	import { guestMode } from '#lib/derived/guest.derived.ts';
 	import { authBusy, userSignedIn, userSignedOutResolved } from '#lib/derived/user.derived.ts';
 	import { installE2eResetHook } from '#lib/dev/e2e-reset.ts';
 	import {
@@ -101,15 +99,6 @@
 	// public route alongside the markets exemption above.
 	const isPublicInfoRoute = $derived(page.url.pathname.startsWith('/info/'));
 
-	// Guest preview surface: an active guest session (the onboarding Skip path)
-	// may reach Flow to predict freely with no account. Scoped to Flow: that is
-	// all the preview funnel needs, and it keeps a plain signed-out visitor (no
-	// guest session) bounced to /signin everywhere as before. A guest never has
-	// a real principal, so every auth-requiring path past Flow stays gated.
-	const isGuestAllowedRoute = $derived(
-		$guestMode && page.url.pathname.startsWith(resolveAppPath(AppPath.Flow))
-	);
-
 	// Auth-hydration window. After a provider resolves (notably the
 	// Internet Identity multi-account path), `goto(Flow)` can mount this
 	// shell while `onAuthStateChange` is still hydrating the profile:
@@ -143,7 +132,7 @@
 			return;
 		}
 
-		if (isPublicMarketsRoute || isPublicInfoRoute || isGuestAllowedRoute) {
+		if (isPublicMarketsRoute || isPublicInfoRoute) {
 			return;
 		}
 
@@ -382,14 +371,6 @@
 		the top of the viewport, above the content.
 	-->
 	<NotifToastHost />
-
-	<!--
-		Guest conversion funnel. For a signed-out guest previewing Flow it
-		mounts the standing "start for real" inline CTA and the soft / remind
-		save sheet, gated so they never stack on a menagerie reveal or a Flow
-		beat. Inert (renders nothing) for members and plain signed-out visitors.
-	-->
-	<GuestSaveHost />
 
 	<!--
 		Recovery-on-return gate. Self-hides when the profile is active, so

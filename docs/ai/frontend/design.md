@@ -634,9 +634,9 @@ chip, auth provider stack, escapes, legal fine print.
 - **Reward chip.** The starter-pack VXP and the event title are derived
   (`newUserVxpAmountMilestone1BaseUnits` and the `featuredEvent` store),
   never hardcoded.
-- **Auth.** `SignInProviderStack` locks the record (passkey / OAuth). A
-  guest button skips into preview and keeps the chosen handle; "Already a
-  member? Sign in" routes to sign-in.
+- **Auth.** `SignInProviderStack` locks the record (passkey / OAuth);
+  "Already a member? Sign in" routes to sign-in. A signed-in new user can
+  "Skip for now" into Flow, keeping the chosen handle.
 
 Team selection happens in the post-signup Profile, so the emitted
 handoff always carries `participantId` and `side` as `null`.

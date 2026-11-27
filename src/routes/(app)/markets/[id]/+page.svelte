@@ -24,7 +24,7 @@
 	import { MARKET_DETAIL_DIRECT_TRADE_ENABLED } from '#lib/constants/feature-flags.constants.ts';
 	import { SUPPORTED_LOCALES } from '#lib/constants/locale.constants.ts';
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
-	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { leaderboard, visibleLeaderboard } from '#lib/derived/leaderboard.derived.ts';
 	import { marketMetadata } from '#lib/derived/market-metadata.derived.ts';
 	import { marketTags } from '#lib/derived/market-tags.derived.ts';
@@ -48,7 +48,7 @@
 	} from '#lib/services/top-predictors.services.ts';
 	import { getSeriesTradeVolume, loadMarketPriceCandles } from '#lib/services/trade.services.ts';
 	import { showCompanion } from '#lib/stores/companion.store.ts';
-	import { startGuestSession } from '#lib/stores/guest.store.ts';
+	import { landingCallsStore } from '#lib/stores/landing-calls.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
 	import type {
@@ -64,14 +64,19 @@
 		MarketPriceSeries,
 		PriceHistoryPeriod
 	} from '#lib/utils/market-price-history.utils.ts';
+	import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
 	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 	import { resolveMarketTranslation } from '#lib/utils/market-translation.utils.ts';
-	import { goBack, resolveAppPath, signedOutMarketsHref } from '#lib/utils/nav.utils.ts';
+	import {
+		goBack,
+		landingHref,
+		resolveAppPath,
+		signedOutMarketsHref
+	} from '#lib/utils/nav.utils.ts';
 	import { positionResolvedResult } from '#lib/utils/position.utils.ts';
 	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 
 	let market = $state<Market | undefined>();
 
@@ -776,6 +781,12 @@
 		$userSignedIn ? resolveAppPath(AppPath.Home) : signedOutMarketsHref()
 	);
 
+	// This market's share param, for links into the landing. Built from the
+	// registry title, like every share link.
+	const shareParam = $derived(
+		nonNullish(market) ? marketShareParam({ title: market.title, seriesId: market.id }) : undefined
+	);
+
 	const handlePick = (side: CallSide) => {
 		// Only an open market accepts calls: expired/resolved short-circuit.
 		if (!isLive) {
@@ -784,11 +795,21 @@
 
 		// Public market browse: `/markets/[id]` is exempted from the
 		// (app)/+layout auth gate so signed-out visitors can preview a
-		// market. Placing a call still requires a session, so we bounce
-		// to /signin here at the point of action instead of opening the
-		// TradeModal against a missing identity.
+		// market. A signed-out call goes where every signed-out call goes:
+		// it is kept in the landing calls store (with its price, when the
+		// book has one) and the visitor lands on the claim capsule, on this
+		// market in the landing's Markets.
 		if (!$userSignedIn) {
-			void goto(resolve(PublicPath.SignIn));
+			if (probabilityKnown && nonNullish(market)) {
+				landingCallsStore.add({
+					seriesId: market.id,
+					side: side === 'YES' ? 'yes' : 'no',
+					pricePercent: side === 'YES' ? yesPercent : noPercent,
+					atMs: Date.now()
+				});
+			}
+
+			void goto(landingHref({ market: shareParam, view: 'markets', claim: true }));
 
 			return;
 		}
@@ -798,12 +819,13 @@
 
 	// Funnel the "predict" intent into Flow, where predictions are placed
 	// (direct trading from the detail page is off). A signed-out visitor,
-	// e.g. arriving from search, starts a free guest session first, the same
-	// no-account preview the onboarding Skip path uses, so they can try
-	// predicting immediately; the (app) gate exempts a guest on /flow.
+	// e.g. arriving from search, has no Flow to enter: they go to the claim
+	// capsule on the landing, with this market leading the deck.
 	const onTryFlow = () => {
 		if (!$userSignedIn) {
-			startGuestSession(null);
+			void goto(landingHref({ market: shareParam, claim: true }));
+
+			return;
 		}
 
 		void goto(resolveAppPath(AppPath.Flow));
@@ -1036,14 +1058,13 @@
 		{:else if isLive}
 			<!-- Live market, direct-trade CTA off: predictions are placed in
 			     Flow, so close the page with an action into Flow rather than a
-			     read-only dead end. A signed-out visitor enters a free guest
-			     session (see `onTryFlow`), so search traffic can try predicting
-			     with no account. -->
+			     read-only dead end. A signed-out visitor is offered the handle
+			     claim instead (see `onTryFlow`), the one signed-out funnel. -->
 			<div class="flex justify-center pt-1">
 				<Button onclick={onTryFlow} variant="primary">
 					{$userSignedIn
 						? t({ locale: $localeStore, key: 'market.detail.flow_cta.member' })
-						: t({ locale: $localeStore, key: 'market.detail.flow_cta.guest' })}
+						: t({ locale: $localeStore, key: 'landing.nav.claim' })}
 				</Button>
 			</div>
 		{:else}

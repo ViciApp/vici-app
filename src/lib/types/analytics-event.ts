@@ -86,8 +86,7 @@ export type AnalyticsEventName =
 	// ── Trading ───────────────────────────────────────────────────────
 	/**
 	 * A position was taken (cockpit's `position_taken`). `source` carries the
-	 * surface (`flow | market_detail | landing`, or `guest_flow` for a guest
-	 * pick), `value` the VXP committed and `count` the contracts filled.
+	 * surface (`flow | market_detail | landing`), `value` the VXP committed and `count` the contracts filled.
 	 */
 	| 'position_taken'
 	/** A position was closed. */

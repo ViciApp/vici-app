@@ -3,7 +3,6 @@
 	import LoginRequired from '#lib/components/authn/LoginRequired.svelte';
 	import FlowMode from '#lib/components/market/FlowMode.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
-	import { guestMode } from '#lib/derived/guest.derived.ts';
 	import { authBusy } from '#lib/derived/user.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
@@ -19,7 +18,7 @@
 	>
 		<LoadingSpinner size="md" />
 	</div>
-{:else if isNullish($userStore.user) && !$guestMode}
+{:else if isNullish($userStore.user)}
 	<LoginRequired />
 {:else}
 	<FlowMode />

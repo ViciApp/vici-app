@@ -11,7 +11,7 @@
 
 	/**
 	 * FlowCoach: first-run gesture map shown the first time any user
-	 * reaches the prediction card (the deck is open to guests too). It is
+	 * reaches the prediction card. It is
 	 * a NON-BLOCKING overlay: the card below stays fully readable and
 	 * swipeable, and only the opt-out button captures pointer events. The
 	 * coach teaches by doing: it does not hijack the card, run a timer,
@@ -19,9 +19,8 @@
 	 *
 	 * Dismissal is learn-by-doing: the coach clears itself the moment the
 	 * user places their FIRST real call, reacting to the `commitSignal`
-	 * counter. The deck only bumps that counter on a committed YES / NO,
-	 * which is reachable only when signed in, so for guests the "Got it"
-	 * opt-out is the dismissal path. On the first commit it flashes a
+	 * counter. The deck only bumps that counter on a committed YES / NO;
+	 * "Got it" is the other dismissal path. On the first commit it flashes a
 	 * short confirmation, then unmounts; "Got it" dismisses immediately,
 	 * without the flash. Either path persists the seen flag so the coach
 	 * never reappears.
@@ -133,8 +132,10 @@
 						stroke-linejoin="round"
 						stroke-width="2.6"
 						viewBox="0 0 24 24"
-						width="17"><path d="m5 12 5 5L20 7"></path></svg
+						width="17"
 					>
+						<path d="m5 12 5 5L20 7"></path>
+					</svg>
 				</span>
 				<span class="fc-confirm-text">{tr('flow.coach.confirm')}</span>
 			</div>
