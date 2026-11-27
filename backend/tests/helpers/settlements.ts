@@ -23,6 +23,8 @@ export interface SettledHistoryStub {
 	/** Record `calls` settled positions (`wins` of them net positive) for a
 	 * user's custodial principal at `atMs`. */
 	settle: (settlement: { userId: string; atMs: number; calls: number; wins: number }) => void;
+	/** Record settled positions for any principal, such as a linked legacy one. */
+	settlePrincipal: (settlement: RecordedSettlement) => void;
 	/** Make every accuracy read that asks for this user's principal fail, the
 	 * way an unreachable or trapping clearing canister answers. */
 	failReadsFor: (userId: string) => void;
@@ -85,6 +87,9 @@ export const stubSettledHistory = (): SettledHistoryStub => {
 	return {
 		settle: ({ userId, atMs, calls, wins }) => {
 			settlements.push({ principal: userIcPrincipalText(userId), atMs, calls, wins });
+		},
+		settlePrincipal: (settlement) => {
+			settlements.push(settlement);
 		},
 		failReadsFor: (userId) => {
 			failingPrincipals.add(userIcPrincipalText(userId));

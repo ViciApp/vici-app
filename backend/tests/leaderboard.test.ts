@@ -1,9 +1,13 @@
 // Global leaderboard: ranked from each profile's all-time settled history
 // (qualify gate, then the confidence-adjusted score the visible board uses),
 // never the client-written points; rank/count correctness on a seeded
-// population, the hidden-profile exclusion and deterministic tie-breaks.
+// population, the hidden-profile exclusion, deterministic tie-breaks and a
+// record summed across every principal a user settles under.
 
+import { Principal } from '@icp-sdk/core/principal';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { randomBytes } from 'node:crypto';
+import { query } from '../src/db/client';
 import { clearCache } from '../src/engine/cache';
 import {
 	getUserRankAndCount,
@@ -124,5 +128,32 @@ describe.if(dbAvailable)('leaderboard', () => {
 
 		expect(ids.indexOf(moreCalls) + 1).toBe(ids.indexOf(fewerCalls));
 		expect(ids.slice(-2)).toEqual([low ?? twinA, high ?? twinB]);
+	});
+
+	test('a record split across the custodial and a linked principal ranks on its sum', async () => {
+		// Neither half reaches the qualify gate alone; together 16 wins in 16
+		// calls score 26/36, between `second` (55/70) and the 2/3 pair above.
+		const half = 8;
+
+		expect(half).toBeLessThan(LEADERBOARD_QUALIFY_MIN);
+
+		const split = await rankedProfile({ calls: half, wins: half });
+		const legacy = Principal.fromUint8Array(randomBytes(29)).toText();
+
+		await query(
+			`insert into legacy_principals (principal, user_id, matched_via) values ($1, $2, 'claim')`,
+			[legacy, split]
+		);
+		settled?.settlePrincipal({
+			principal: legacy,
+			atMs: Date.UTC(2026, 0, 1),
+			calls: half,
+			wins: half
+		});
+
+		const ids = (await listLeaderboard()).map((item) => item.userId);
+
+		expect(ids.indexOf(split)).toBe(ids.indexOf(second) + 1);
+		expect((await getUserRankAndCount({ userId: split })).rank).toBe(ids.indexOf(split) + 1);
 	});
 });

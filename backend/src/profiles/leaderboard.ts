@@ -6,10 +6,9 @@
 // slice and the rank/count pair, and they agree row-for-row.
 
 import { nonNullish } from '@dfinity/utils';
-import { parsedPrincipal, settlementPrincipalsByUser } from '../auth/identity';
+import { settledTotalsByUser } from '../auth/identity';
 import { query } from '../db/client';
 import { cached, PUBLIC_READ_TTL_MS } from '../engine/cache';
-import { settledTotalsByPrincipal } from '../engine/clearing';
 import {
 	PROFILE_COLUMNS,
 	PUBLICLY_VISIBLE_PROFILE_SQL,
@@ -61,25 +60,18 @@ const byScore = (a: RankedUser, b: RankedUser): number => {
 
 const loadRankedUserIds = async (): Promise<string[]> => {
 	const rows = await query<{ user_id: string }>(`select p.user_id ${RANKED_FROM}`);
-	const principalsByUser = await settlementPrincipalsByUser(rows.map(({ user_id }) => user_id));
-	const settled = await settledTotalsByPrincipal({
-		members: [...principalsByUser.values()].flat().map(parsedPrincipal).filter(nonNullish),
+	const settled = await settledTotalsByUser({
+		userIds: rows.map(({ user_id }) => user_id),
 		fromMs: 0,
 		toMs: Date.now()
 	});
 
-	return [...principalsByUser]
-		.map(([userId, principals]): RankedUser => {
-			let calls = 0;
-			let wins = 0;
-
-			for (const text of principals) {
-				calls += settled.get(text)?.calls ?? 0;
-				wins += settled.get(text)?.wins ?? 0;
-			}
-
-			return { userId, calls, score: leaderboardScore({ calls, wins }) };
-		})
+	return [...settled]
+		.map(([userId, { calls, wins }]): RankedUser => ({
+			userId,
+			calls,
+			score: leaderboardScore({ calls, wins })
+		}))
 		.filter(({ calls }) => calls >= LEADERBOARD_QUALIFY_MIN)
 		.sort(byScore)
 		.map(({ userId }) => userId);

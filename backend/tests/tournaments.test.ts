@@ -6,6 +6,7 @@
 // record-only mode (claim eligibility lives in tournament-prize.test.ts).
 
 import { isNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { query } from '../src/db/client';
@@ -277,6 +278,42 @@ describe.if(dbAvailable)('tournament', () => {
 		);
 
 		expect(rows[0]?.seeded_league_ids).toEqual([...leagueIds].reverse());
+	});
+
+	test('a member active only under a linked principal counts toward the seed', async () => {
+		const { monthAnchor, startMs } = uniqueMonth();
+
+		// Seed i has i + 1 active members, so the last league would seed first;
+		// 20 more members of the first league settle only under a linked
+		// principal, which lifts it above every other league.
+		settleSeedingMonth({ monthStartMs: startMs, activeCount: (seed) => seed + 1 });
+
+		for (const userId of (memberIds[0] ?? []).slice(1, 21)) {
+			const legacy = Principal.fromUint8Array(randomBytes(29)).toText();
+
+			await query(
+				`insert into legacy_principals (principal, user_id, matched_via) values ($1, $2, 'claim')`,
+				[legacy, userId]
+			);
+			settled?.settlePrincipal({
+				principal: legacy,
+				atMs: startMs - DAY_IN_MS,
+				calls: 1,
+				wins: 0
+			});
+		}
+
+		expect((await triggerTournamentDraw({ monthAnchor, nowMs: startMs + 1000 })).ok).toBe(true);
+
+		const rows = await query<{ seeded_league_ids: string[] }>(
+			`select seeded_league_ids from tournaments where id = $1`,
+			[monthAnchor]
+		);
+
+		expect(rows[0]?.seeded_league_ids).toEqual([
+			...leagueIds.slice(0, 1),
+			...leagueIds.slice(1).reverse()
+		]);
 	});
 
 	test('only the current UTC month is drawn, while its round 1 is open: a late, closed or future month is refused', async () => {
