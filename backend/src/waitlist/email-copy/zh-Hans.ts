@@ -6,7 +6,8 @@ export const zhHans: WaitlistEmailCopy = {
 		subject: '你的 VICI 候补名单验证码',
 		intro: (handle) => `这是你在 VICI 候补名单上保留 @${handle} 的验证码：`,
 		expiry: (minutes) => `验证码 ${minutes} 分钟内有效，在此期间该用户名会为你保留。`,
-		ignore: '如果这不是你本人的请求，请忽略这封邮件：我们不会保存任何信息。'
+		ignore: (hours) =>
+			`如果这不是你本人的请求，请忽略这封邮件：没有验证码就不会保留任何用户名，这条请求会在 ${hours} 小时内删除。点击下方链接可立即删除。`
 	},
 	receipt: {
 		subject: (handle) => `@${handle} 归你了，你已加入候补名单`,

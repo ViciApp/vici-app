@@ -7,8 +7,8 @@ export const de: WaitlistEmailCopy = {
 		intro: (handle) => `Hier ist dein Code, um @${handle} auf der VICI-Warteliste zu reservieren:`,
 		expiry: (minutes) =>
 			`Er gilt ${minutes} Minuten, und so lange bleibt das Handle für dich reserviert.`,
-		ignore:
-			'Wenn du ihn nicht angefordert hast, ignoriere diese E-Mail: Es wird nichts gespeichert.'
+		ignore: (hours) =>
+			`Wenn du ihn nicht angefordert hast, ignoriere diese E-Mail: Ohne den Code wird nichts reserviert, und die Anfrage wird innerhalb von ${hours} Stunden gelöscht. Der Link unten löscht sie sofort.`
 	},
 	receipt: {
 		subject: (handle) => `@${handle} gehört dir, du stehst auf der Warteliste`,

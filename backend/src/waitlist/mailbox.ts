@@ -12,6 +12,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readAppSetting } from '../admin/settings';
 import { otpMailboxKey } from '../auth/otp';
+import { env } from '../env';
+import { logger } from '../lib/logger';
 
 /**
  * The inbox an address delivers to: lowercased, without a `+tag`, and for
@@ -105,13 +107,42 @@ export const isDomainRefused = ({
 	return candidates.some((candidate) => listed.has(candidate) || block.has(candidate));
 };
 
-/** Whether the waitlist refuses this address as a disposable mailbox. */
+/** Thrown in production while the reviewed list is empty: the waitlist
+ * refuses every code request rather than open to throwaway inboxes. */
+export class DisposableListMissingError extends Error {
+	constructor() {
+		super('disposable_list_missing');
+	}
+}
+
+/** Refuses to check against an empty list in production, so the waitlist
+ * cannot launch open to every disposable provider. */
+export const assertDisposableListLoaded = ({
+	listed,
+	isProd
+}: {
+	listed: ReadonlySet<string>;
+	isProd: boolean;
+}): void => {
+	if (listed.size === 0 && isProd) {
+		logger.error('disposable-domains.txt is empty in production: refusing every waitlist code');
+
+		throw new DisposableListMissingError();
+	}
+};
+
+/** Whether the waitlist refuses this address as a disposable mailbox.
+ * Fails closed in production while the list is empty. */
 export const isDisposableEmail = async (email: string): Promise<boolean> => {
+	const listed = listedDomains();
+
+	assertDisposableListLoaded({ listed, isProd: env.isProd });
+
 	const domain = email.slice(email.lastIndexOf('@') + 1);
 
 	if (domain === '') {
 		return false;
 	}
 
-	return isDomainRefused({ domain, listed: listedDomains(), overlay: await readDomainOverlay() });
+	return isDomainRefused({ domain, listed, overlay: await readDomainOverlay() });
 };
