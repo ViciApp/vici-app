@@ -7,12 +7,15 @@
 	import IconPasskey from '#lib/components/icons/IconPasskey.svelte';
 	import { LEGACY_APP_URL } from '#lib/constants/auth.constants.ts';
 	import { track } from '#lib/services/analytics.services.ts';
+	import {
+		requestEmailSignInCode,
+		type EmailSignInCodeRefusal
+	} from '#lib/services/email-sign-in.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import {
 		getProviders,
 		googleSignInUrl,
-		requestOtp,
 		verifyOtp,
 		Web2ApiError,
 		type Web2Providers
@@ -45,8 +48,23 @@
 	let email = $state('');
 	let code = $state('');
 	let busy = $state(false);
-	type ErrorKey = 'signin.otp.error' | 'signin.beta_closed' | 'signin.legacy_pending.body';
+	type ErrorKey =
+		| 'signin.otp.error'
+		| 'signin.otp.bot_check_failed'
+		| 'signin.otp.bot_check_unavailable'
+		| 'signin.otp.rate_limited'
+		| 'signin.beta_closed'
+		| 'signin.legacy_pending.body';
 	let errorKey = $state<ErrorKey | null>(null);
+
+	const CODE_REQUEST_ERROR_KEYS: Record<EmailSignInCodeRefusal, ErrorKey> = {
+		bot_check_failed: 'signin.otp.bot_check_failed',
+		bot_check_unavailable: 'signin.otp.bot_check_unavailable',
+		rate_limited: 'signin.otp.rate_limited',
+		beta_closed: 'signin.beta_closed',
+		legacy_account_pending: 'signin.legacy_pending.body',
+		failed: 'signin.otp.error'
+	};
 
 	// The API refuses gated sign-ins with stable codes: `beta_closed` for the
 	// private beta, `legacy_account_pending` for an address that already has an
@@ -136,13 +154,14 @@
 		errorKey = null;
 
 		try {
-			await requestOtp({ email: email.trim() });
+			const result = await requestEmailSignInCode({ email: email.trim() });
 
-			stage = 'code';
-			code = '';
-		} catch (err: unknown) {
-			console.error('otp request failed', err);
-			errorKey = errorKeyFor(err);
+			if (result.ok) {
+				stage = 'code';
+				code = '';
+			} else {
+				errorKey = CODE_REQUEST_ERROR_KEYS[result.reason];
+			}
 		} finally {
 			busy = false;
 		}

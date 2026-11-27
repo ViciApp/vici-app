@@ -95,8 +95,10 @@ to the app enums. Duel `sideA` / `sideB` hold account ids.
   directly; a live one leaves it held until the hydration sets the user,
   because `authBusy` false with no user is what the `(app)` gate reads as
   signed out. Every transition runs `resetIdentityScopedState`.
-- **Sign-in: `SignInProviderStack.svelte`.** Email one-time code
-  (`requestOtp` / `verifyOtp`), Google as a full-page redirect to
+- **Sign-in: `SignInProviderStack.svelte`.** Email one-time code (request
+  through `requestEmailSignInCode` in `email-sign-in.services.ts`, which solves
+  a Turnstile token for the `email_code` action on every request, then
+  `verifyOtp`, which needs none), Google as a full-page redirect to
   `googleSignInUrl()` (the API drives the OAuth dance and lands back on the
   app root, where `Authn` picks up the session), and Apple + Passkey shown
   disabled ("coming soon"). Beta-gate refusals arrive as the OTP error code
@@ -104,7 +106,11 @@ to the app enums. Duel `sideA` / `sideB` hold account ids.
   `signin.beta_closed`, and `legacy_account_pending` / `e=legacy` render
   `signin.legacy_pending.*` with a link to `LEGACY_APP_URL`
   (`#lib/constants/auth.constants.ts`). Gate semantics live in
-  [`backend/README.md`](../../../backend/README.md#beta-access-gate).
+  [`backend/README.md`](../../../backend/README.md#beta-access-gate). A
+  refused or unsolvable bot check renders `signin.otp.bot_check_failed`, an
+  API that cannot check it `signin.otp.bot_check_unavailable`, and either rate
+  limit (per network, per inbox) `signin.otp.rate_limited`; see
+  [Email sign-in code](../../../backend/README.md#email-sign-in-code).
 - **Sign-out and identity probes: `identity.services.ts`.** `signOut()`
   revokes the cookie session; `isSignedIn()` and `getSignedInOwner()` read
   the session store (`IdentityAwareLoader` runs every polling loader through

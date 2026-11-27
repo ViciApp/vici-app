@@ -190,7 +190,7 @@ How:
    | A shared API helper (`backend/src/lib/**` and the like) | `backend/reusability.md`                                    |
    | A Svelte / TS / Tailwind idiom                          | `frontend/stack-and-patterns.md`                            |
    | An API route / error / SQL / engine pattern             | `backend/patterns.md`; a custody rule: `backend/custody.md` |
-   | A web2 branch in a frontend service                     | `frontend/web2-backend-mode.md`                             |
+   | An API call in a frontend service                       | `frontend/web2-backend-mode.md`                             |
    | A test pattern                                          | `frontend/testing.md` or `backend/testing.md`               |
    | User-visible copy rules, locales                        | `frontend/i18n.md`                                          |
    | Design tokens, brand voice                              | `frontend/design.md`, `frontend/brand.md`                   |

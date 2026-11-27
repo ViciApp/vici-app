@@ -653,15 +653,9 @@ is the canonical sign-in / sign-up visual:
   in `--laurel`.
 - Sub copy in `--text-muted`.
 - Provider stack rendered through
-  [`SignInProviderStack.svelte`](../../../src/lib/components/authn/SignInProviderStack.svelte),
-  whose per-provider flags at the top of the file say which methods
-  show: Google, email (a passkey ceremony that keeps the address) and
-  Passkey (WebAuthn), Dev on dev builds only; Apple (through Internet
-  Identity's OpenID flow) and Internet Identity are built but flagged
-  off. The web2 build renders
-  [`SignInProviderStackWeb2.svelte`](../../../src/lib/components/authn/SignInProviderStackWeb2.svelte)
-  instead: email one-time code and Google, with Apple and Passkey shown
-  as disabled coming-soon buttons.
+  [`SignInProviderStack.svelte`](../../../src/lib/components/authn/SignInProviderStack.svelte):
+  email one-time code and Google, with Apple and Passkey shown as disabled
+  coming-soon buttons.
 - Footer switcher between sign-in and sign-up modes.
 - Legal fineprint at the bottom of the page (terms, privacy,
   play-money preview disclaimer).

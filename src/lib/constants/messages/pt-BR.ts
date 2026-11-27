@@ -1617,6 +1617,10 @@ export const ptBRMessages = {
 	'signin.legal.privacy': 'Política de Privacidade',
 	'signin.legal.terms': 'Termos',
 	'signin.loading.email': 'Configurando…',
+	'signin.otp.bot_check_failed': 'A verificação de segurança falhou. Tente novamente.',
+	'signin.otp.bot_check_unavailable':
+		'Verificação de segurança indisponível. Tente novamente em um minuto.',
+	'signin.otp.rate_limited': 'Muitas solicitações de código. Tente mais tarde.',
 	'signin.provider.apple': 'Continuar com Apple',
 	'signin.provider.google': 'Continuar com Google',
 	'signin.sub.onboarded': 'Vamos anexar seu usuário e suas escolhas do Flow após o login.',

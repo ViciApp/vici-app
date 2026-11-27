@@ -30,6 +30,7 @@ import { app } from '../src/index';
 import { APPLE_STATE_COOKIE, OAUTH_STATE_COOKIE } from '../src/lib/cookie';
 import { signState } from '../src/lib/crypto';
 import { resetRateLimits } from '../src/lib/rate-limit';
+import { setTurnstileSeam } from '../src/lib/turnstile';
 import { ensureMigrated, uniqueEmail, uniquePrincipal } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 
@@ -78,7 +79,7 @@ const otpRequest = (email: string): Promise<Response> =>
 		new Request('http://localhost/api/v1/auth/otp/request', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ email })
+			body: JSON.stringify({ email, turnstileToken: '' })
 		})
 	);
 
@@ -272,15 +273,22 @@ describe.if(dbAvailable)('beta gate policy with allowNewUsers', () => {
 });
 
 describe.if(dbAvailable)('beta gate on the OTP flow', () => {
+	let restoreTurnstile: (() => void) | undefined;
+
 	beforeAll(async () => {
 		await ensureMigrated();
 	});
 
 	beforeEach(() => {
 		resetRateLimits();
+		// The gate is under test, not the bot check in front of it.
+		restoreTurnstile = setTurnstileSeam({
+			config: { enabled: false, secretKey: '', bypass: true }
+		});
 	});
 
 	afterEach(async () => {
+		restoreTurnstile?.();
 		await clearGate();
 	});
 

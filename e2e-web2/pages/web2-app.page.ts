@@ -5,8 +5,8 @@ import { TestId } from '../../src/lib/constants/test-ids.constants';
 import type { E2eBackend } from '../support/fixtures';
 
 /**
- * Page object for the web2 build: the email one-time-code sign-in
- * (`SignInProviderStackWeb2`), the `/signup` onboarding in front of it, and
+ * Page object for the app: the email one-time-code sign-in
+ * (`SignInProviderStack`), the `/signup` onboarding in front of it, and
  * the signed-in shell. Copy is read from the English catalog so a wording
  * change updates one place.
  */
