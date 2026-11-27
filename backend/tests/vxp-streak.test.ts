@@ -2,6 +2,7 @@
 // idempotency of the profile trigger, base-unit sizing, and the idempotent
 // underpayment backfill.
 
+import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { query } from '../src/db/client';
 import { parseVxp } from '../src/vxp/constants';
@@ -57,12 +58,13 @@ describe.if(dbAvailable)('streak awards', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
 
-		// The backfill scans every user, and a failed marker is terminal, so the
-		// fixture of "a marker that failed earlier" left by an earlier run on this
-		// database would make every later report log "failed earlier". Its underpaid
-		// row goes too: without the marker it would be pending again and minted by
-		// the next real run. Scoped to that fixture's exact rows (an epoch-start
-		// earned_at no real award carries), never to other awards of the user.
+		// The backfill scans every user and sends a failed marker again, so the
+		// fixture of "a marker that failed earlier" left by an interrupted run on
+		// this database would add a transfer to every later run's count. Its
+		// underpaid row goes too: without the marker it would be pending again and
+		// minted by the next real run. Scoped to that fixture's exact rows (an
+		// epoch-start earned_at no real award carries), never to other awards of
+		// the user.
 		await query(
 			`delete from vxp_awards
 			 where award_type = 'streak'
@@ -161,8 +163,9 @@ describe.if(dbAvailable)('streak awards', () => {
 			expect(stub.transfers).toHaveLength(1);
 		});
 
-		test('a marker that failed earlier stays visible and is not minted again', async () => {
-			stub = stubVxpLedger();
+		const FAILED_MARKER_SHORTFALL = parseVxp(400) - BigInt(FAILED_MARKER_PAID_BASE_UNITS);
+
+		const seedFailedMarker = async (): Promise<string> => {
 			const userId = await createTestUser();
 
 			await query(
@@ -173,19 +176,68 @@ describe.if(dbAvailable)('streak awards', () => {
 			await query(
 				`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms)
 				 values ($1, 'streak', 'streak_14_backfill', $2, 'failed', $3)`,
-				[
-					userId,
-					(parseVxp(400) - BigInt(FAILED_MARKER_PAID_BASE_UNITS)).toString(),
-					FIXTURE_EARNED_AT_MS
-				]
+				[userId, FAILED_MARKER_SHORTFALL.toString(), FIXTURE_EARNED_AT_MS]
 			);
+
+			return userId;
+		};
+
+		test('a marker that failed earlier is sent again at its recorded amount, once', async () => {
+			stub = stubVxpLedger();
+			const userId = await seedFailedMarker();
+
+			try {
+				const dry = await backfillStreakUnderpayments({ dryRun: true });
+
+				expect(dry.failedMarkers).toBeGreaterThanOrEqual(1);
+				expect(dry.pending).toBeGreaterThanOrEqual(dry.failedMarkers);
+				expect(streakBackfillLogLine(dry)).toBeDefined();
+				expect(stub.transfers).toHaveLength(0);
+
+				const wet = await backfillStreakUnderpayments({ dryRun: false });
+
+				expect(wet.minted).toBeGreaterThanOrEqual(1);
+				expect(stub.transfers).toHaveLength(1);
+				expect(stub.transfers[0]?.amount).toBe(FAILED_MARKER_SHORTFALL);
+				expect(stub.transfers[0]?.memo).toBe('vxp:streak:streak_14_backfill');
+
+				const marker = await readAwardRow({
+					userId,
+					awardType: 'streak',
+					awardKey: 'streak_14_backfill'
+				});
+
+				expect(marker?.status).toBe('paid');
+
+				// Once paid, the row is topped up: no resend and nothing to log.
+				const again = await backfillStreakUnderpayments({ dryRun: false });
+
+				expect(again.failedMarkers).toBe(0);
+				expect(again.pending).toBe(0);
+				expect(streakBackfillLogLine(again)).toBeUndefined();
+				expect(stub.transfers).toHaveLength(1);
+			} finally {
+				await query(`delete from vxp_awards where user_id = $1`, [userId]);
+			}
+		});
+
+		test('a retry that fails again is counted as failed and logged', async () => {
+			stub = stubVxpLedger({
+				transferImpl: () =>
+					Promise.reject(new IcrcTransferError({ msg: 'too old', errorType: { TooOld: null } }))
+			});
+			const userId = await seedFailedMarker();
 
 			try {
 				const report = await backfillStreakUnderpayments({ dryRun: false });
 
 				expect(report.failedMarkers).toBeGreaterThanOrEqual(1);
+				expect(report.failed).toBeGreaterThanOrEqual(1);
 				expect(streakBackfillLogLine(report)).toBeDefined();
-				expect(stub.transfers).toHaveLength(0);
+				expect(
+					(await readAwardRow({ userId, awardType: 'streak', awardKey: 'streak_14_backfill' }))
+						?.status
+				).toBe('failed');
 			} finally {
 				await query(`delete from vxp_awards where user_id = $1`, [userId]);
 			}
@@ -265,14 +317,23 @@ describe.if(dbAvailable)('streak awards', () => {
 						pendingShortfallBaseUnits: '1110000'
 					})
 				).toBe(
-					'streak backfill: 1 pending (1 minted, 0 failed, 0 failed earlier, shortfall 1110000)'
+					'streak backfill: 1 pending (1 minted, 0 failed, 0 retried after an earlier failure, shortfall 1110000)'
 				);
 			});
 
-			test('reports markers that failed in an earlier run', () => {
+			test('reports markers that failed in an earlier run and were sent again', () => {
 				expect(
-					streakBackfillLogLine({ ...baseReport, alreadyBackfilled: 17, failedMarkers: 1 })
-				).toBe('streak backfill: 0 pending (0 minted, 0 failed, 1 failed earlier, shortfall 0)');
+					streakBackfillLogLine({
+						...baseReport,
+						alreadyBackfilled: 17,
+						pending: 1,
+						failedMarkers: 1,
+						minted: 1,
+						pendingShortfallBaseUnits: '1110000'
+					})
+				).toBe(
+					'streak backfill: 1 pending (1 minted, 0 failed, 1 retried after an earlier failure, shortfall 1110000)'
+				);
 			});
 
 			test('reports failed mints', () => {
@@ -284,7 +345,7 @@ describe.if(dbAvailable)('streak awards', () => {
 						pendingShortfallBaseUnits: '1110000'
 					})
 				).toBe(
-					'streak backfill: 1 pending (0 minted, 1 failed, 0 failed earlier, shortfall 1110000)'
+					'streak backfill: 1 pending (0 minted, 1 failed, 0 retried after an earlier failure, shortfall 1110000)'
 				);
 			});
 		});

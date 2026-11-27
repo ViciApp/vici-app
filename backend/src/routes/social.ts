@@ -1,6 +1,6 @@
 // Social surface: the friendship state machine, follows, the activity feed
-// with like reactions and rollup counts, and the friend-scoped
-// resolved-results digest with its admin maintenance endpoints.
+// with like reactions, and the friend-scoped resolved-results digest with its
+// admin maintenance endpoints.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
@@ -22,7 +22,6 @@ import {
 	listActivities,
 	listReactions,
 	listReceivedReactions,
-	recomputeActivityReactionCounts,
 	unlikeActivity
 } from '../social/activities';
 import {
@@ -414,21 +413,6 @@ export const socialRoutes = new Elysia({ prefix: '/api/v1/social' })
 		},
 		{ body: t.Object({ activityKey: t.String() }) }
 	)
-	.post('/admin/recompute-reaction-counts', async ({ request, set }) => {
-		const user = await requireUser(request);
-
-		if (isNullish(user)) {
-			return unauthenticated(set);
-		}
-
-		const admin = requireAdmin(user);
-
-		if (isNullish(admin)) {
-			return forbidden(set);
-		}
-
-		return await recomputeActivityReactionCounts();
-	})
 	// Resolved results
 	.get(
 		'/resolved-results',

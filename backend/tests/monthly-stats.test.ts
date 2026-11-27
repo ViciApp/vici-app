@@ -10,7 +10,7 @@ import { clearCache } from '../src/engine/cache';
 import { app } from '../src/index';
 import { DAY_IN_MS, monthEndMs, monthStartMs } from '../src/lib/time';
 import { getMonthlyLeaderboard, MONTHLY_MIN_CALLS, upsertUserStats } from '../src/profiles/stats';
-import { createTestUser, ensureMigrated } from './helpers/auth';
+import { createTestUser, ensureMigrated, linkUnparseablePrincipal } from './helpers/auth';
 import { createTestProfile, hibernateProfile, softDeleteProfile } from './helpers/profiles';
 import { stubSettledHistory, type SettledHistoryStub } from './helpers/settlements';
 import { dbAvailable } from './helpers/setup';
@@ -334,10 +334,7 @@ describe.if(dbAvailable)('monthly leaderboard', () => {
 		const monthAnchor = await uniqueMonthAnchor();
 		const user = await seedMonth({ monthAnchor, monthCalls: 40, monthWins: 30 });
 
-		await query(
-			`insert into legacy_principals (principal, user_id, matched_via) values ($1, $2, 'claim')`,
-			[`not-a-principal-${randomInt(0, 1_000_000_000)}`, user]
-		);
+		await linkUnparseablePrincipal(user);
 
 		const { sharpestEye } = await getMonthlyLeaderboard({
 			monthAnchor,

@@ -2,7 +2,7 @@
 
 ## What exists today
 
-- **Few satellite unit tests.** `npm test` runs the pure-logic specs under `src/tests/` (Node's runner, `tsx --test`); `src/tests/satellite/` holds the few that cover `src/satellite/`: specs of pure helpers in `src/satellite/utils/` that import nothing from `@junobuild/functions` at runtime, and of asserts whose host reads are stubbed as shown below. The one `@junobuild/functions` host stand-in is `src/tests/mocks/satellite-host.mock.ts` (below).
+- **Satellite unit tests.** `npm test` runs the pure-logic specs under `src/tests/` (Node's runner, `tsx --test`); `src/tests/satellite/` holds the ones that cover `src/satellite/`: specs of pure helpers in `src/satellite/utils/` that import nothing from `@junobuild/functions` at runtime, of asserts whose host reads are stubbed, and of services driven through the in-memory host, as shown below. The one `@junobuild/functions` host stand-in is `src/tests/mocks/satellite-host.mock.ts` (below).
 - **The satellite is covered end to end** by the Juno Playwright suite against the emulator (`npm run e2e`, see [`frontend/testing.md`](../frontend/testing.md#e2e-playwright)), and the engine wiring by `npm run test:engine-sync` (`scripts/test/test-engine-sync.sh`).
 - **The build is a check too.** `npm run juno:functions:build` must succeed and leave no drift; CI's `satellite-schema` job fails on any.
 

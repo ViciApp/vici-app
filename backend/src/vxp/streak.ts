@@ -67,11 +67,11 @@ export interface StreakBackfillReport {
 	alreadyBackfilled: number;
 	minted: number;
 	failed: number;
-	/** Underpaid rows that had no backfill marker when this run started. */
+	/** Underpaid rows not topped up when this run started: no backfill marker
+	 * yet, or one that ended `failed` in an earlier run. */
 	pending: number;
-	/** Underpaid rows whose marker ended `failed` in an earlier run. A failed
-	 * award is terminal and reconciliation never picks it up again, so these
-	 * stay unpaid until someone looks. */
+	/** The pending rows whose marker failed in an earlier run, which this run
+	 * sends again (reconciliation never picks a failed award up by itself). */
 	failedMarkers: number;
 	/** Includes rows topped up by earlier runs; see pendingShortfallBaseUnits. */
 	totalShortfallBaseUnits: string;
@@ -127,16 +127,18 @@ const remediateRow = async ({
 		[row.user_id, backfillKey]
 	);
 
-	if (existing.some(({ status }) => status === 'failed')) {
-		report.failedMarkers += 1;
+	const hasFailedMarker = existing.some(({ status }) => status === 'failed');
+
+	if (existing.length > 0 && !hasFailedMarker) {
+		report.alreadyBackfilled += 1;
 
 		return shortfall;
 	}
 
-	if (existing.length > 0) {
-		report.alreadyBackfilled += 1;
-
-		return shortfall;
+	// A failed marker moved nothing, and grantAward reopens it and sends it
+	// again at its recorded amount, so it is owed like a row with no marker.
+	if (hasFailedMarker) {
+		report.failedMarkers += 1;
 	}
 
 	report.pending += 1;
@@ -217,12 +219,12 @@ export const backfillStreakUnderpayments = async ({
  * Worker log line for a backfill run, or undefined when there is nothing to
  * act on. Rows topped up by earlier runs stay underpaid forever (the original
  * row is never rewritten), so keying the log on them would repeat the same
- * line every hour.
+ * line every hour. Minted, failed and retried rows are all pending ones.
  */
 export const streakBackfillLogLine = (report: StreakBackfillReport): string | undefined => {
-	if (report.pending === 0 && report.failed === 0 && report.failedMarkers === 0) {
+	if (report.pending === 0) {
 		return;
 	}
 
-	return `streak backfill: ${report.pending} pending (${report.minted} minted, ${report.failed} failed, ${report.failedMarkers} failed earlier, shortfall ${report.pendingShortfallBaseUnits})`;
+	return `streak backfill: ${report.pending} pending (${report.minted} minted, ${report.failed} failed, ${report.failedMarkers} retried after an earlier failure, shortfall ${report.pendingShortfallBaseUnits})`;
 };

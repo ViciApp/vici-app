@@ -8,8 +8,8 @@
 // tournament seeding.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { Principal } from '@icp-sdk/core/principal';
-import { settlementPrincipalsByUser } from '../auth/identity';
+import type { Principal } from '@icp-sdk/core/principal';
+import { parsedSettlementPrincipalsByUser } from '../auth/identity';
 import { query, tx, type TxQuery } from '../db/client';
 import { UUID_RE } from '../lib/constants';
 import {
@@ -67,9 +67,12 @@ export const leagueMemberPrincipals = async ({
 		 where league_id = $1 and ($2::bigint is null or joined_at_ms < $2)`,
 		[leagueId, joinedBeforeMs ?? null]
 	);
-	const byUser = await settlementPrincipalsByUser(rows.map((row) => row.member_user_id));
+	const byUser = await parsedSettlementPrincipalsByUser({
+		userIds: rows.map((row) => row.member_user_id),
+		read: 'league members'
+	});
 
-	return [...byUser.values()].flat().map((text) => Principal.fromText(text));
+	return [...byUser.values()].flat();
 };
 
 /** Join by invite code: the self-join path. Idempotent on re-join (the

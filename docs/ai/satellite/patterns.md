@@ -87,8 +87,10 @@ pub struct AppListFriendResolvedResultsResult {
 
 Older toolchains left `Vec` fields unmarked, which put them in snake_case
 and trapped every read with `missing field <snake_case_name>`. Building the
-satellite with an older CLI brings that back: always build with the pinned
-version (`npm i -g @junobuild/cli@0.15.6`, as `checks.yml` does).
+satellite with an older CLI brings that back: always build with the version
+pinned in [`.github/juno-cli-version`](../../../.github/juno-cli-version)
+(`npm i -g "@junobuild/cli@$(cat .github/juno-cli-version)"`, as `checks.yml`
+does).
 
 ### Wire schemas are converters, not renames
 
@@ -111,8 +113,8 @@ copies every field one to one is dead weight; drop it.
 ### The fix that doesn't work
 
 `.transform()` on a result schema is **not** a valid way to reshape it. It
-produces a `ZodEffects`, and juno's schema → Rust codegen only accepts
-`ZodObject`; it throws
+produces a pipe (`ZodPipe` in Zod 4), and juno's schema → Rust codegen only
+accepts `ZodObject`; it throws
 `"Unsupported type: unrepresentable schema (z.symbol, z.undefined, …
 are not supported)"`, the CLI's silent `catch{}` swallows it, and the
 whole `juno functions build` exits with code 1 producing **zero** files in
@@ -166,8 +168,7 @@ When a single collection needs **more than one** assert (or hook), compose
 them into one dispatch-table entry rather than widening the table value to
 an array. The `profiles` slot maps to `assertProfile`, a small composed
 function exported from `profile.services.ts` next to its sub-asserts, that
-calls `assertNewProfileAllowed`, `assertValidNickname` and
-`assertDailyGoalUnchanged` in turn (a throw from any rejects the write);
+calls each of them in turn (a throw from any rejects the write);
 `assertProfilePrivate` in `profile-private.services.ts` does the same for
 `profile_private`. A composed assert lives in the service that owns the
 collection, never in `index.ts`, which only wires the dispatch table. Each
@@ -398,7 +399,8 @@ is the reference shape:
   same code path serves both the lazy purge (on a too-late recovery)
   and the admin sweep (`sweepExpiredDeletions`, gated by `isAdmin`).
   The admin sweep keys each purge off the **doc key**, not the decoded
-  `owner` field (profile writes don't enforce `owner === key`), and
+  `owner` field (the key names the account; `assertProfileOwnerField`
+  holds `owner` to it on every write), and
   runs `Principal.fromText` + the cascade **outside** the malformed-row
   try/catch so a purge failure is logged + counted as an under-purge
   instead of being silently swallowed as a skipped bad row. One call
@@ -842,7 +844,8 @@ prize.
 - ✅ For any VXP award / economy change, follow the invariants in
   [`economy.md`](./economy.md).
 - ✅ Validate principals via `PrincipalTextSchema`.
-- ✅ Build the satellite with the pinned juno CLI (0.15.6), which keeps
+- ✅ Build the satellite with the juno CLI pinned in
+  `.github/juno-cli-version`, which keeps
   nested results camelCase, and reshape a result with a `toWire…`
   converter from
   [`src/satellite/utils/wire-format.utils.ts`](../../../src/satellite/utils/wire-format.utils.ts)
@@ -851,7 +854,7 @@ prize.
 - ❌ Use `.transform()` / `.refine()` / `.passthrough()` in any
   `defineQuery` / `defineUpdate` `args` or `result` schema; juno's
   codegen only accepts `ZodObject` and silently kills the build with no
-  output on `ZodEffects`.
+  output on anything else (a `.transform()` is a `ZodPipe` in Zod 4).
 - ❌ Import `@junobuild/core` (FE-only).
 - ❌ Touch `api-schemas.ts`, `satellite.did`, or
   `satellite_extension.did` by hand; regenerate via
@@ -859,7 +862,11 @@ prize.
   in its own style; `quality` aligns the output with this repo's
   prettier + eslint config). Commit the regenerated
   `src/satellite/{satellite,satellite_extension}.did`,
-  `src/satellite/api-schemas.ts`, **and** `src/declarations/satellite/**`.
+  `src/satellite/api-schemas.ts`, **and** `src/declarations/satellite/**`,
+  and copy `src/declarations/satellite/{satellite.did.d.ts,satellite.factory.did.js}`
+  into `backend/src/declarations/satellite/` (`npm run did` copies only the
+  engine bindings; `backend/tests/shared-drift/declarations.test.ts` pins the
+  satellite pair byte-for-byte).
   This applies whenever you change a `#lib/schema/*.ts` file imported by
   `src/satellite/index.ts` too; CI's `satellite-schema` job fails on
   any drift.

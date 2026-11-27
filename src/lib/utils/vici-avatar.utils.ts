@@ -544,7 +544,7 @@ const traitOverlay = ({ trait, style }: { trait: string; style: string }): strin
  * `<svg viewBox="0 0 100 100">`) for a parts object. Pure: the caller mounts
  * the returned string via `{@html ...}`.
  */
-export const renderAvatarContent = ({
+const renderAvatarContent = ({
 	parts,
 	options
 }: {
