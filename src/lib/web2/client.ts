@@ -34,8 +34,8 @@ import {
 import type {
 	ChallengeAnswer,
 	ChallengeAnswerItem,
+	ChallengeReadView,
 	ChallengeRedeemOutcome,
-	ChallengeView,
 	OwnChallenge
 } from '#lib/types/challenge.ts';
 import type { ExitSignalReason } from '#lib/types/exit-signal.ts';
@@ -2000,10 +2000,10 @@ export const createChallenge = async ({
 	return challenge;
 };
 
-/** The public read of a link (no session needed). An unknown, revoked or hidden link answers
+/** The public read of a link (no session needed; with one, `isOwner` says whether it is the caller's own). An unknown, revoked or hidden link answers
  * 404 `challenge_not_found`. */
-export const getChallenge = async (id: string): Promise<ChallengeView> => {
-	const { challenge } = await request<{ challenge: ChallengeView }>({
+export const getChallenge = async (id: string): Promise<ChallengeReadView> => {
+	const { challenge } = await request<{ challenge: ChallengeReadView }>({
 		path: challengePath(id),
 		method: 'GET'
 	});

@@ -264,7 +264,8 @@ describe.if(dbAvailable)('challenge links', () => {
 					position: expect.objectContaining({ side: 'YES', entryPriceBps: 3800 }),
 					sideChanged: false,
 					challenger: { handle: maya.handle, avatar: '', avatarParts: '' },
-					marketOpen: true
+					marketOpen: true,
+					isOwner: false
 				}
 			});
 		});
@@ -342,6 +343,52 @@ describe.if(dbAvailable)('challenge links', () => {
 			await hibernateProfile(maya.userId);
 
 			expect((await read(id)).status).toBe(404);
+		});
+
+		test('isOwner marks the challenger alone, with consent on or off, and is never shared', async () => {
+			const maya = await player();
+			const leo = await player();
+			const seriesId = newSeries();
+
+			fill({ userId: maya.userId, seriesId, qty: 10, priceCents: 38 });
+
+			const { id } = await create({ who: maya, seriesId });
+			const readAs = async (token?: string): Promise<Response> =>
+				await call({ method: 'GET', path: `/${id}`, token, ip: uniqueIp() });
+			const isOwnerOf = async (res: Response): Promise<unknown> =>
+				((await res.json()) as { challenge: { isOwner: unknown } }).challenge.isOwner;
+
+			const signedOut = await readAs();
+
+			expect(signedOut.status).toBe(200);
+			expect(await isOwnerOf(signedOut)).toBe(false);
+			expect(signedOut.headers.get('cache-control')).toBeNull();
+			expect(signedOut.headers.get('vary')).toContain('Cookie');
+
+			const stranger = await readAs(leo.token);
+
+			expect(await isOwnerOf(stranger)).toBe(false);
+			expect(stranger.headers.get('cache-control')).toBe('private');
+
+			const owner = await readAs(maya.token);
+
+			expect(await isOwnerOf(owner)).toBe(true);
+			expect(owner.headers.get('cache-control')).toBe('private');
+			expect(owner.headers.get('vary')).toContain('Cookie');
+
+			await call({
+				method: 'PATCH',
+				path: `/${id}`,
+				token: maya.token,
+				body: { showIdentity: false }
+			});
+
+			const hidden = await readAs(maya.token);
+			const body = ((await hidden.json()) as { challenge: Record<string, unknown> }).challenge;
+
+			expect(body.challenger).toBeNull();
+			expect(body.isOwner).toBe(true);
+			expect(await isOwnerOf(await readAs('not-a-session'))).toBe(false);
 		});
 
 		test('revoked, unknown and malformed ids answer the same', async () => {

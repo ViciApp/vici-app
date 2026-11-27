@@ -36,6 +36,15 @@ export interface ChallengeView {
 	marketOpen: boolean;
 }
 
+/**
+ * The public read as the current viewer sees it. `isOwner` is whether the signed-in viewer is the
+ * link's challenger (always `false` signed out, whatever the consent); it is the only thing the
+ * receiving page may use to tell the challenger apart.
+ */
+export interface ChallengeReadView extends ChallengeView {
+	isOwner: boolean;
+}
+
 /** The owner's read of their own link. */
 export interface OwnChallenge extends ChallengeView {
 	id: string;
