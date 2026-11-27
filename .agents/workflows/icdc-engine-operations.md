@@ -11,6 +11,9 @@ All commands assume the running `dfx` identity is either:
 - A **controller** of the registry canister, or
 - An **admin** of the Vici engine (e.g. one of the `SATELLITE_CONTROLLERS`).
 
+The kill-switch below (`update_engine_allowed_roles`) is the exception: the registry lets only
+its controllers call it, so an engine admin is refused.
+
 The examples use `--network staging` (icdc-core staging). Replace it with `--network ic` for
 **production**, the deployment the live Vici frontend talks to. See
 [engine-integration.md](../../docs/engine-integration.md), "icdc-core deployments: staging
@@ -93,7 +96,7 @@ Only controllers, the oracle manager, and Engine `OracleAdmin` holders can call 
 ## Audit role grants
 
 `list_engines` returns the full audit trail per engine, including `role_grants` with
-`(principal, role, granted_at_ns, granted_by)`:
+`(grantee, role, granted_at_ns, granted_by)`:
 
 ```bash
 dfx canister call --network staging registry list_engines --query
@@ -136,9 +139,9 @@ dfx canister call --network staging registry remove_engine_admins "(record {
 
 ## Kill-switch: disable all role grants without losing the audit log
 
-Shrink the engine's `allowed_roles` to an empty vec. Every existing grant becomes inert
-immediately (guards require both an active grant **and** that the role remains in
-`allowed_roles`), but `role_grants` is preserved for the audit trail.
+Run as a registry controller. Shrink the engine's `allowed_roles` to an empty vec. Every
+existing grant becomes inert immediately (guards require both an active grant **and** that
+the role remains in `allowed_roles`), but `role_grants` is preserved for the audit trail.
 
 ```bash
 dfx canister call --network staging registry update_engine_allowed_roles "(record {

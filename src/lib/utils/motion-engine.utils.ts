@@ -35,9 +35,9 @@ const STORAGE_KEY = 'vici.motion.state.v3';
 // Mirrors `stageForStreak` (streak.utils) but adds the NONE floor the
 // beat resolver needs for "tier did not advance". Thresholds:
 // NONE 0 · SPARK 1 · EMBER 3 · FLAME 7 · BLAZE 15 · INFERNO 30.
-export type MotionStreakTier = 'NONE' | 'SPARK' | 'EMBER' | 'FLAME' | 'BLAZE' | 'INFERNO';
+type MotionStreakTier = 'NONE' | 'SPARK' | 'EMBER' | 'FLAME' | 'BLAZE' | 'INFERNO';
 
-export const tierForStreak = (days: number): MotionStreakTier => {
+const tierForStreak = (days: number): MotionStreakTier => {
 	if (days >= 30) {
 		return 'INFERNO';
 	}
@@ -61,7 +61,7 @@ export const tierForStreak = (days: number): MotionStreakTier => {
 	return 'NONE';
 };
 
-export type MotionCharacter = 'vici' | 'oracle' | 'trickster' | 'flame';
+type MotionCharacter = 'vici' | 'oracle' | 'trickster' | 'flame';
 
 // ── Copy pools: rotating, non-repeating. Each entry is an i18n key so
 // the line resolves through `t()`; the engine only chooses WHICH key,
@@ -141,7 +141,7 @@ const POOLS: Record<PoolKey, readonly MessageKey[]> = {
 // `treatKey` in the payload only; the engine does not persist it. Callers
 // are responsible for crediting the treat to the user; a dedicated treats
 // store does not exist yet and is a follow-up concern.
-export const TREAT_KEYS: readonly MessageKey[] = [
+const TREAT_KEYS: readonly MessageKey[] = [
 	'motion.treat.rare_sticker',
 	'motion.treat.streak_shield',
 	'motion.treat.profile_flair',
@@ -287,7 +287,7 @@ export interface MotionBeatPayload {
 	bonusXp: number;
 }
 
-export interface MotionSwipeInput {
+interface MotionSwipeInput {
 	side: FlowAction;
 	isContrarian?: boolean;
 	// Calls done today INCLUDING this one (1-based), capped at target.
@@ -308,7 +308,7 @@ export interface MotionSwipeInput {
 	lifetimeCalls?: number;
 }
 
-export interface MotionSwipeResult {
+interface MotionSwipeResult {
 	bonusXp: number;
 	beat: MotionBeatPayload | null;
 }

@@ -28,7 +28,7 @@ import {
  * users today: the list groups by read-state, not by kind), kept here so the
  * config is the single inspectable description of every kind.
  */
-export interface NotificationKindConfig {
+interface NotificationKindConfig {
 	icon: LucideIcon;
 	dest: AppPath;
 	label: string;
