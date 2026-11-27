@@ -119,6 +119,21 @@ html[data-ios-bottom-bar] {
 	--laurel-glow: rgba(226, 184, 66, 0.18);
 	--terracotta: #b5462c;
 
+	/* Film surface: full-bleed footage cards (the landing deck). Footage is
+	 * dark under every theme, so these tones stay fixed instead of following
+	 * the semantic aliases a light canvas flips: `--yes` / `--no` deepen on
+	 * the peach theme and would lose their contrast over a clip. */
+	--film-bg: var(--ink-deep);
+	--film-back: var(--ink);
+	--film-fg: var(--parchment);
+	--film-accent: var(--laurel);
+	--film-yes: #4fd3a1;
+	--film-no: #ff6b6b;
+	/* The film's one call to action: a step brighter than laurel so it holds
+	 * over moving footage, and its hover. */
+	--film-cta: #f0c14b;
+	--film-cta-hover: #f6d067;
+
 	/* Brand role aliases: name the laurel ramp by its identity role so
 	 * call-sites can read `--brand` instead of the raw `--laurel`. */
 	--brand: var(--laurel);
