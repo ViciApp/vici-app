@@ -46,8 +46,9 @@
 
 <div class="affil-picker-summary">
 	<span class="affil-picker-summary-body">
-		<span class="affil-picker-summary-eyebrow num allcaps">{tr('worlds.picker.school.adding')}</span
-		>
+		<span class="affil-picker-summary-eyebrow num allcaps">
+			{tr('worlds.picker.school.adding')}
+		</span>
 		<span class="affil-picker-summary-name">{name}</span>
 		{#if email && inferredCountry}
 			<span class="affil-picker-summary-meta num">
