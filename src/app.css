@@ -2,12 +2,15 @@
 @import './landing.css';
 
 /* ─── Self-hosted fonts ────────────────────────────────────────────
- * All three families are OFL-licensed. Files live under
- * `static/fonts/` and are served at `/fonts/*`. Hanken Grotesk is a
- * variable font: a single woff2 covers all four weights via
- * `font-weight: 400 700`. Latin subset covers en / it / es / de / fr
- * / pt; CJK ranges fall back to the system stack in `--font-display`
- * / `--font-serif`, identical to the Google Fonts CDN behaviour.
+ * All five families are licensed under the SIL Open Font License 1.1.
+ * Files live under `static/fonts/` and are served at `/fonts/*`.
+ * Hanken Grotesk is a variable font: a single woff2 covers all four
+ * weights via `font-weight: 400 700`. Bricolage Grotesque is variable
+ * on weight and optical size (opsz 12..96), so browsers pick the
+ * optical cut from the rendered font-size with no extra files. Latin
+ * subset covers en / it / es / de / fr / pt; CJK ranges fall back to
+ * the system stack in each `--font-*` token, identical to the Google
+ * Fonts CDN behaviour.
  */
 
 @font-face {
@@ -48,6 +51,17 @@
 	font-weight: 800;
 	font-display: swap;
 	src: url('/fonts/jetbrainsmono-bold.woff2') format('woff2');
+}
+
+/* Bricolage Grotesque is the display face for the signed-out landing
+ * only, so it is not preloaded in `app.html`: the request starts when a
+ * landing heading first needs it, and signed-in loads never pay for it. */
+@font-face {
+	font-family: 'Bricolage Grotesque';
+	font-style: normal;
+	font-weight: 200 800;
+	font-display: swap;
+	src: url('/fonts/bricolage-grotesque-variable-latin.woff2') format('woff2');
 }
 
 /* ─── VICI Design System ─── dark-first, warm near-black canvas */
@@ -531,6 +545,9 @@ html[data-ios-bottom-bar] {
 	--font-display: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--font-serif: 'Instrument Serif', 'Source Serif 4', Georgia, serif;
 	--font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+	--font-headline:
+		'Bricolage Grotesque', 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+		sans-serif;
 
 	--radius: 0.5rem;
 

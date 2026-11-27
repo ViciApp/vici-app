@@ -1782,6 +1782,7 @@ export const esMessages = {
 	'onboarding.avail.too_long': 'Muy largo: máximo 16 caracteres',
 	'onboarding.avail.reserved': 'Reservado, elige otro',
 	'onboarding.avail.check_failed': 'No se pudo verificar, intenta reclamar',
+	'onboarding.avail.rate_limited': 'Demasiadas verificaciones, intenta reclamar',
 	'onboarding.reward_title': 'Pack inicial de {amount} VXP',
 	'onboarding.reward_sub': 'Predice {event}',
 	'onboarding.lock_ready': 'Reservando @{handle}',
