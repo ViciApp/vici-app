@@ -25,7 +25,7 @@ Each friend who joins the waitlist through a waitlister's link moves that waitli
 
 A migration adds to `waitlist_reservations`: `invited_by_reservation_id uuid references waitlist_reservations (id) on delete set null`, `invite_notified_at timestamptz`, `last_invite_notice_at timestamptz`, `invite_notices_off boolean not null default false`, and an index on `(invited_by_reservation_id)`.
 
-`invited_by_reservation_id` is written at the friend's first confirmation, from `invited_challenge_id` when that link has a `reservation_id` other than the friend's own. It is never changed afterwards: confirming again with another handle, or arriving later through another link, does not move the invite.
+`invited_by_reservation_id` is written at the friend's first confirmation, from `invited_challenge_id` when that link has a `reservation_id` other than the friend's own. Before that confirmation the stash follows W1's rule, the last link the visitor arrived through (owner decision W1.12): opening link A then link B before confirming credits B. From the first confirmation on it is never changed: confirming again with another handle, or arriving later through another link, does not move the invite. W1, W3 and this spec use the same rule: last link before the first confirmation, fixed after it.
 
 ### 2. Which friends count
 

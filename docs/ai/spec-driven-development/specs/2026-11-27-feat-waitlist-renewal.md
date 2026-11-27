@@ -81,11 +81,14 @@ No `userId`, no email, no handle.
 
 ## Open questions
 
-1. **How long before the end the email goes** (30 days proposed) and whether one email is enough.
-2. **Counsel**: the policy's retention sentence must match (twelve months, renewable).
+1. **Counsel**: the policy's retention sentence must match (twelve months, renewable).
+
+## Pending decisions
+
+1. **When the re-confirm email goes, and whether one is enough.** Recommended: one email 30 days before the end of the 12 months. Alternatives: one email 7 days before; two emails (30 days and 7 days before). To settle with the owner before implementation.
 
 ## Decisions
 
 Owner decision (27 Nov 2026): **a reservation lasts 12 months, then a re-confirm email; if there is no response, it is released.**
 
-Author's choices (a reviewer may overrule): the notice goes 30 days ahead and once; the keep link is bound to its cycle and needs a button press; admitted reservations and those with an account are outside this clock.
+Author's choices (a reviewer may overrule): the keep link is bound to its cycle and needs a button press; admitted reservations and those with an account are outside this clock.

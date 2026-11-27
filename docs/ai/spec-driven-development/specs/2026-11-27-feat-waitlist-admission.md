@@ -76,7 +76,7 @@ Unconfirmed rows are never listed: an address nobody has proven is shown to no o
 - **Validated**, unlike the generic settings route: `emails` is an array of well-formed addresses, normalised and de-duplicated, capped by `BETA_GATE_MAX_EMAILS`; booleans are booleans. The stored value is always one the gate can read, so the editor cannot close the gate by a typo.
 - **Opening needs a confirmation.** A change that lets people in who were not let in before, namely `enabled` from `true` to `false`, or `allowNewUsers` from `false` to `true` while enabled, is refused with `400 { error: 'confirmation_required' }` unless the body carries `confirmOpen: true`. The screen sets it only after the admin has typed a confirmation word in a dialog that states what will happen ("Anyone can create an account", or "Anyone without a legacy account can create an account"). Closing, and editing the allowlist, need no such step.
 - **No lost updates.** `expectedUpdatedAt` must equal the stored value's `updatedAt`, else `409 { error: 'gate_changed' }` and the screen reloads.
-- The write goes through `upsertAppSetting` with the same key and shape the gate already reads; the generic settings route keeps working.
+- The write goes through `upsertAppSetting` with the same key and shape the gate already reads. The generic settings route refuses the `beta_gate` key (`400 { error: 'use_gate_editor' }`) for writes, so the validation, `confirmOpen` and `expectedUpdatedAt` checks cannot be bypassed; reads through it keep working.
 
 ### 7. Admin screen
 
