@@ -762,6 +762,13 @@ stays available until the end of September 2027. It has no move action and
 gives way to the "move your account" banner at cutover. The new app's own
 sign-up is unchanged.
 
+At the cutover the legacy build is replaced by its shut-down form: every
+vici.market route shows "VICI has moved to vici.app" (the site is closed,
+the account, predictions and VXP are on vici.app) and sends the visitor to
+the same page there, with a link as a fallback. The satellite accepts no
+user write from then on. How and when:
+[`cutover.md`](../../.agents/workflows/cutover.md).
+
 ### Handles: one rule
 
 Every handle picked or changed on vici.app (onboarding, the handle editor,

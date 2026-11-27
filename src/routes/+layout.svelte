@@ -2,6 +2,7 @@
 	import { initSatellite } from '@junobuild/core';
 	import { onMount, type Snippet } from 'svelte';
 	import Authn from '#lib/components/authn/Authn.svelte';
+	import LegacyShutdown from '#lib/components/claim/LegacyShutdown.svelte';
 	import TweaksPanel from '#lib/components/dev/TweaksPanel.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import MaintenanceOverlay from '#lib/components/ui/MaintenanceOverlay.svelte';
@@ -11,6 +12,7 @@
 		initMaintenanceWatch,
 		reportMaintenanceCandidate
 	} from '#lib/services/maintenance.services.ts';
+	import { isLegacyShutDown } from '#lib/services/new-app-redirect.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { previousPathStore } from '#lib/stores/previous-path.store.ts';
 	import { ensureLocaleCatalogs, t } from '#lib/utils/i18n.utils.ts';
@@ -24,6 +26,13 @@
 	}
 
 	const { children }: Props = $props();
+
+	// Build-time: a load of the shut-down legacy build never boots the
+	// satellite, signs anyone in or polls. A tab still running the previous
+	// bundle cannot see this flag; the cutover moves it by stopping the
+	// satellite, which its maintenance watch answers with a reload onto this
+	// build (`.agents/workflows/cutover.md`, step 4).
+	const legacyShutDown = isLegacyShutDown();
 
 	let satelliteInitialized = $state(false);
 	// Non-`en` catalogs load on demand (see `ensureLocaleCatalogs`); holding
@@ -56,6 +65,10 @@
 	};
 
 	$effect(() => {
+		if (legacyShutDown) {
+			return;
+		}
+
 		// A boot from browser-cached assets can land mid-deploy while the
 		// satellite is stopped: route the failure into maintenance detection
 		// instead of hanging on the boot spinner.
@@ -71,7 +84,13 @@
 	// Polling loaders let satellite rejections bubble (`void tick()` in
 	// `AtomicLoader`), so the global listeners pick up the "canister is
 	// stopped" errors a deploy causes and trigger the maintenance overlay.
-	onMount(initMaintenanceWatch);
+	onMount(() => {
+		if (legacyShutDown) {
+			return;
+		}
+
+		return initMaintenanceWatch();
+	});
 
 	// RTL scripts: kept in sync with the flash-free locale boot in
 	// `app.html` so the document direction stays correct after hydrate.
@@ -101,7 +120,9 @@
 	});
 </script>
 
-{#if !satelliteInitialized || !localeCatalogsReady}
+{#if legacyShutDown && localeCatalogsReady}
+	<LegacyShutdown />
+{:else if !satelliteInitialized || !localeCatalogsReady}
 	<div
 		class="flex h-screen items-center justify-center"
 		aria-label={t({ locale: $localeStore, key: 'ui.loading' })}

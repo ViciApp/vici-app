@@ -26,11 +26,12 @@ Two files under `src/lib/web2/`:
 
 ## Env vars
 
-| Var                       | Values              | Default | Effect                                                                                                                                                                                             |
-| ------------------------- | ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_BACKEND`            | `web3` \| `web2`    | `web3`  | Selects the backend for domains that have a dual-mode path. Build-time only.                                                                                                                       |
-| `VITE_WEB2_API_URL`       | origin URL          | empty   | Base of the HTTP API. Empty = same-origin relative (reverse-proxy shape).                                                                                                                          |
-| `VITE_TURNSTILE_SITE_KEY` | Cloudflare site key | empty   | Public key of the Turnstile widget in front of the anonymous endpoints (`turnstileSiteKey()` in `#lib/env/app.env.ts`). Empty sends an empty token, which the API accepts only outside production. |
+| Var                       | Values              | Default | Effect                                                                                                                                                                                                             |
+| ------------------------- | ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VITE_BACKEND`            | `web3` \| `web2`    | `web3`  | Selects the backend for domains that have a dual-mode path. Build-time only.                                                                                                                                       |
+| `VITE_WEB2_API_URL`       | origin URL          | empty   | Base of the HTTP API. Empty = same-origin relative (reverse-proxy shape).                                                                                                                                          |
+| `VITE_TURNSTILE_SITE_KEY` | Cloudflare site key | empty   | Public key of the Turnstile widget in front of the anonymous endpoints (`turnstileSiteKey()` in `#lib/env/app.env.ts`). Empty sends an empty token, which the API accepts only outside production.                 |
+| `VITE_LEGACY_SHUTDOWN`    | `true`              | unset   | Legacy (`web3`) build only: the shut-down vici.market, every route shows the moved screen (see "The legacy build after the cutover"). Also read by `juno.config.ts` for the write freeze. Set only at the cutover. |
 
 ## Swapped domains
 
@@ -281,6 +282,25 @@ minus the dev-only e2e opt-in), drives two surfaces:
 The satellite enforces the same rule for a modified client
 (`new-profile-gate.services.ts`, see the satellite patterns page). The web2
 build never reaches either branch.
+
+## The legacy build after the cutover
+
+A legacy build made with `VITE_LEGACY_SHUTDOWN=true` is the shut-down
+vici.market: `isLegacyShutDown()` in `new-app-redirect.services.ts`
+(`!isWeb2Backend()` and the flag) makes the root layout render
+`claim/LegacyShutdown.svelte` on every route and skip everything that would
+reach the satellite (`initSatellite`, `Authn`, analytics, the maintenance
+watch). The screen sends the visitor to the same path on the new app
+(`loadNewAppPageUrl`) with `location.replace` and keeps a link for a browser
+that blocks it. The redirect lives in the page because the satellite cannot
+issue one for the app's routes, and because an installed app's service
+worker answers a redirected navigation with the cached shell. A tab still
+running the previous bundle cannot see the flag: the cutover stops the
+satellite so its maintenance watch (`maintenance.services.ts`) reloads it
+onto this build. The same
+variable write-freezes the satellite in `juno.config.ts`; `deploy.yml` reads
+it from a repository variable. When and how it is set:
+[`cutover.md`](../../../.agents/workflows/cutover.md).
 
 ## Profiles and social
 

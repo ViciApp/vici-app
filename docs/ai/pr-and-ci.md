@@ -230,6 +230,13 @@ source of truth: a run re-syncs the satellite to `juno.config.ts`, reverting any
 out-of-band Console edits. It used to be a push-triggered `config.yml` sharing
 the `juno-satellite` group; see why that was removed below.
 
+The legacy shutdown is the one exception to "the repo is the source of truth":
+after the cutover to vici.app, the production `config apply` runs with
+`VITE_LEGACY_SHUTDOWN=true` (write freeze), and `deploy.yml` builds the hosting
+with the repository variable of the same name (moved screen), so every later
+tag keeps shipping the moved screen. Unset, both behave as before. See
+[`cutover.md`](../../.agents/workflows/cutover.md).
+
 `deploy.yml` and `publish.yml` share one concurrency group (`juno-satellite`,
 `cancel-in-progress: false`) so they never run at the same time. They mutate the
 same satellite canister, and `functions upgrade` **stops** it mid-upgrade: a

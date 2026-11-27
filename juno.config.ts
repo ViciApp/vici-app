@@ -1,4 +1,4 @@
-import { defineConfig } from '@junobuild/config';
+import { defineConfig, type DatastoreCollection, type StorageCollection } from '@junobuild/config';
 
 /**
  * Datastore collection names for `satellite.collections` below.
@@ -88,6 +88,28 @@ const isEmulator = process.env.JUNO_EMULATOR === 'true';
 
 const EMULATOR_SATELLITE_ID = 'jx5yt-yyaaa-aaaal-abzbq-cai';
 
+/**
+ * Legacy shutdown for the cutover to vici.app, switched on only by
+ * `VITE_LEGACY_SHUTDOWN=true juno config apply` (see
+ * `.agents/workflows/cutover.md`), so merging a change here never alters the
+ * live satellite. It turns every collection writable by controllers only:
+ * no user write lands after the final ETL export, while the satellite's own
+ * admin writes and every read keep working, which that export needs. Rules
+ * change through `set_rule` alone, without a functions upgrade, and stay
+ * reversible: applying again without the flag restores today's rules.
+ *
+ * The same variable builds the frontend's moved screen (`isLegacyShutDown`
+ * in `new-app-redirect.services.ts`), so one switch covers both. A hosting
+ * redirect is not used: the satellite serves an existing asset before any
+ * redirect, puts the configured location in `Location` verbatim (no path),
+ * and certifies a redirect only at its literal source path, so a `**`
+ * redirect would not cover the app's routes.
+ */
+const isLegacyShutdown = process.env.VITE_LEGACY_SHUTDOWN === 'true';
+
+const legacyWriteFreeze = <T extends DatastoreCollection | StorageCollection>(rules: T[]): T[] =>
+	isLegacyShutdown ? rules.map((rule) => ({ ...rule, write: 'controllers' })) : rules;
+
 export default defineConfig(({ mode }) => ({
 	satellite: {
 		ids: {
@@ -117,7 +139,7 @@ export default defineConfig(({ mode }) => ({
 			// delete assert in `src/satellite/index.ts` that admits only the doc's
 			// owner, a satellite controller, or a named cross-user rule (see
 			// `docs/ai/satellite/patterns.md`).
-			datastore: [
+			datastore: legacyWriteFreeze([
 				{
 					collection: JunoDatastoreCollection.ROLES,
 					memory: 'stable',
@@ -440,7 +462,7 @@ export default defineConfig(({ mode }) => ({
 					read: 'controllers',
 					write: 'controllers'
 				}
-			],
+			]),
 			// Owner-uploaded league cover images. Public read so every
 			// surface can render the cover; write is public so the owning
 			// principal can upload. Juno does no owner check here either:
@@ -448,7 +470,7 @@ export default defineConfig(({ mode }) => ({
 			// `src/satellite/index.ts` admit only the owner of the league the
 			// path names (or a controller) and a JPEG, and `maxSize` caps each
 			// asset.
-			storage: [
+			storage: legacyWriteFreeze([
 				{
 					collection: JunoStorageCollection.LEAGUE_IMAGES,
 					memory: 'stable',
@@ -456,7 +478,7 @@ export default defineConfig(({ mode }) => ({
 					write: 'public',
 					maxSize: LEAGUE_IMAGE_MAX_SIZE_BYTES
 				}
-			]
+			])
 		}
 	},
 	emulator: {

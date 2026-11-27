@@ -21,7 +21,10 @@ So the satellite, and every path of the frontend that only the default
 
 - **Allowed:** fixes for bugs that hurt vici.market users or their funds,
   security fixes, and the work the cutover to vici.app needs (exports, the
-  claim flow, switching things off).
+  claim flow, switching things off). Switching off is config, not code: the
+  write freeze in [`juno.config.ts`](../../../juno.config.ts) behind
+  `VITE_LEGACY_SHUTDOWN`, applied at the cutover by
+  [`cutover.md`](../../../.agents/workflows/cutover.md).
 - **Not allowed:** new features, new collections, new endpoints, refactors and
   dependency upgrades of `@junobuild/*` that no fix needs. New product work
   goes to the API in [`backend/`](../../../backend/README.md) and the web2 mode
