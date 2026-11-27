@@ -1,5 +1,5 @@
 import type { ActivityType } from '#lib/enums/social.ts';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 export interface Activity {
 	type: ActivityType;

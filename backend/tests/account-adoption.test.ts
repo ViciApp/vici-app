@@ -5,16 +5,14 @@
 // the emptiness verdict the claim path relies on.
 
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { isAccountEmpty } from '../src/auth/adoption';
 import { resolveIdentity } from '../src/auth/identity';
 import { createOtp } from '../src/auth/otp';
 import { createSession } from '../src/auth/sessions';
-import { query, tx } from '../src/db/client';
+import { query } from '../src/db/client';
 import { app } from '../src/index';
 import { resetRateLimits } from '../src/lib/rate-limit';
 import { claimPendingOf, linkOf, seedImportedAccount, userCount } from './helpers/adoption';
 import { createTestUser, ensureMigrated, uniqueEmail, uniquePrincipal } from './helpers/auth';
-import { createTestProfile } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
 
 const profileNicknameFor = async (cookie: string): Promise<string | undefined> => {
@@ -311,56 +309,5 @@ describe.if(dbAvailable)('several provisional accounts for one person', () => {
 		);
 
 		expect(res.status).toBe(403);
-	});
-});
-
-describe.if(dbAvailable)('isAccountEmpty', () => {
-	beforeAll(async () => {
-		await ensureMigrated();
-	});
-
-	const empty = (userId: string): Promise<boolean> => tx((q) => isAccountEmpty({ q, userId }));
-
-	test('a freshly provisioned account with identities, sessions and custody rows is empty', async () => {
-		const email = uniqueEmail();
-		const userId = await resolveIdentity({ provider: 'email', subject: email, email });
-
-		await createSession(userId);
-		await query(`insert into custody_accounts (user_id, chain, address) values ($1, 'ic', $2)`, [
-			userId,
-			`addr-${userId}`
-		]);
-
-		expect(await empty(userId)).toBe(true);
-	});
-
-	test('a profile makes an account non-empty', async () => {
-		const { userId } = await createTestProfile();
-
-		expect(await empty(userId)).toBe(false);
-	});
-
-	test('a custody account with ledger history makes an account non-empty', async () => {
-		const userId = await createTestUser();
-		const accounts = await query<{ id: string }>(
-			`insert into custody_accounts (user_id, chain, address) values ($1, 'ic', $2) returning id`,
-			[userId, `addr-${userId}`]
-		);
-		const assets = await query<{ id: string }>(
-			`select id from assets where chain = 'ic' and symbol = 'VXP'`
-		);
-
-		// Two legs netting to zero keep the ledger's global invariant intact.
-		await query(
-			`insert into ledger_entries (account_id, asset_id, delta, kind, event_key, idempotency_key)
-			 values ($1, $2, 1, 'test', $3, $3 || ':0'), ($1, $2, -1, 'test', $3, $3 || ':1')`,
-			[accounts[0]?.id, assets[0]?.id, `evt-${userId}`]
-		);
-
-		expect(await empty(userId)).toBe(false);
-	});
-
-	test('a granted role makes an account non-empty', async () => {
-		expect(await empty(await createTestUser('admin'))).toBe(false);
 	});
 });

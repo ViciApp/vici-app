@@ -12,7 +12,7 @@ Unless the user prompt explicitly asks for engine work:
 - **Do not** add a Cargo workspace, `Cargo.toml`, or `dfx.json` Rust canister wiring here.
 - **Do not** edit the upstream `../icdc-core/**` from this repo. Open the icdc-core repo as its own workspace and PR there.
 
-You may **read** any of these files to understand context for a frontend, satellite or API change:
+You may **read** any of these files to understand context for a frontend or API change:
 
 - `../icdc-core/src/registry/**`: the Vici registry interface.
 - `../icdc-core/src/clearing/**`: the clearing canister interface.
@@ -27,7 +27,7 @@ architecture, role mapping, and engine-id pinning are documented at
 before you write any code that:
 
 - Calls `add_series` / `fork_series` / `manage_oracle_principals`.
-- Mirrors anything from Juno into the Vici engine on `eng_0`.
+- Mirrors app roles from the API into the Vici engine on `eng_0`.
 - Resets or reseeds the registry locally, on staging, or on production (see
   [`engine-integration.md`](../../engine-integration.md), section "icdc-core deployments: staging
   and production").
@@ -76,7 +76,7 @@ Switch context: open `../icdc-core/` as the working directory and obey
 has its own multi-layer governance (`.policies/`, `.boundaries/`,
 `.capabilities/`, `.workflows/`): respect it.
 
-When you come back to this repo to wire the frontend / satellite to the
+When you come back to this repo to wire the frontend / API to the
 new upstream method, do that work in a **separate PR here** referencing
 the icdc-core PR / commit.
 

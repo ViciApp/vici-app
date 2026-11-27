@@ -3,8 +3,7 @@ import { MAX_EVENTS_PER_BATCH } from '../../src/analytics/events';
 import { SERVER_ANALYTICS_EVENT_NAMES } from '../../src/analytics/taxonomy';
 import { importRepoModule } from '../helpers/repo-source';
 
-// The web2 ingest takes the same client batches as the satellite capture, so
-// it keeps the same bounds: the app's flush size as the batch cap, and the
+// The ingest takes the client's batches, so it keeps the client's bounds: the app's flush size as the batch cap, and the
 // events only the server records refused from a client. Both app modules hold
 // plain values with only type imports, so they are loaded directly.
 describe('shared drift: analytics ingest bounds', () => {

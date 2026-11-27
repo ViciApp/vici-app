@@ -9,7 +9,7 @@ import { Elysia, t } from 'elysia';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
 import type { StatusContext } from '../lib/http';
 import { CuratorForbiddenError, MarketValidationError } from '../markets/curator';
-import { getMarketMetadata, upsertMarketMetadata } from '../markets/metadata';
+import { getMarketMetadata, listMarketMetadata, upsertMarketMetadata } from '../markets/metadata';
 import { getMarketTags, rebuildMarketTagIndex } from '../markets/tag-index';
 import {
 	getMarketTranslation,
@@ -85,6 +85,10 @@ export const marketsRoutes = new Elysia({ prefix: '/api/v1/markets' })
 			})
 		}
 	)
+	// Bulk metadata read for the market surfaces (tags, suggested flag, Flow
+	// subtitle), public like the per-series read. Registered before the
+	// parameterized series routes for the same reason as /tags.
+	.get('/metadata', async () => ({ items: await listMarketMetadata() }))
 	// Metadata
 	.get('/:seriesId/metadata', async ({ params }) => ({
 		metadata: (await getMarketMetadata({ seriesId: params.seriesId })) ?? null

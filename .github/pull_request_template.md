@@ -13,7 +13,7 @@ Full rules: docs/ai/pr-and-ci.md §2.
 
 # Changes
 
-<!-- One bullet per logical change, outcome first. Call out: docs/ai updates (meta-update rule), protected paths touched, BREAKING CHANGE block if the satellite .did / collections changed. If you need "and also", the PR probably isn't atomic: split. -->
+<!-- One bullet per logical change, outcome first. Call out: docs/ai updates (meta-update rule), protected paths touched, BREAKING CHANGE block if an API route's wire contract changed. If you need "and also", the PR probably isn't atomic: split. -->
 
 # Tests
 

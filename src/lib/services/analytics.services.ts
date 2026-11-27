@@ -1,4 +1,3 @@
-import { functions } from '#declarations/satellite/satellite.api.ts';
 import { ANALYTICS_MAX_EVENTS_PER_BATCH } from '#lib/constants/analytics.constants.ts';
 import { theme } from '#lib/stores/theme.store.ts';
 import type {
@@ -6,7 +5,6 @@ import type {
 	ClientAnalyticsEventName,
 	TrackEventInput
 } from '#lib/types/analytics-event.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { postEvents } from '#lib/web2/client.ts';
 import { browser } from '$app/env';
 import { nonNullish } from '@dfinity/utils';
@@ -23,9 +21,9 @@ import { get } from 'svelte/store';
  *
  * Nothing identifying is sent from the client: only the event name, a
  * per-visit `sessionId`, the current route, and the bounded
- * {@link AnalyticsEventProps} dimensions. The satellite derives the
- * pseudonymous principal from the caller server-side, and the data lands in
- * our own satellite: never a third party.
+ * {@link AnalyticsEventProps} dimensions. The API derives the pseudonymous
+ * account from the session server-side, and the data lands in our own
+ * database: never a third party.
  */
 
 const FLUSH_INTERVAL_MS = 5_000;
@@ -69,7 +67,7 @@ const scheduleFlush = (): void => {
 };
 
 /**
- * Send the buffered events in one batched update call. Best-effort: on
+ * Send the buffered events in one batched request. Best-effort: on
  * failure the batch is dropped rather than retried or surfaced.
  */
 export const flushEvents = async (): Promise<void> => {
@@ -86,13 +84,7 @@ export const flushEvents = async (): Promise<void> => {
 	}
 
 	try {
-		// The batch shape is identical on both transports; only the destination
-		// switches (see #lib/web2/backend-mode). Default stays the satellite call.
-		if (isWeb2Backend()) {
-			await postEvents({ events });
-		} else {
-			await functions.trackEvents({ events });
-		}
+		await postEvents({ events });
 	} catch (err) {
 		// Analytics is best-effort and must never break the app: drop the batch.
 		// eslint-disable-next-line no-console
@@ -142,7 +134,7 @@ export const track = (event: { name: ClientAnalyticsEventName } & AnalyticsEvent
 };
 
 /**
- * Wire the session-level listeners once, after the satellite is ready.
+ * Wire the session-level listeners once, after the app boots.
  * Flushes on tab-hide (the last chance to land buffered events) and emits
  * the opening `session_started` event.
  *
@@ -151,7 +143,7 @@ export const track = (event: { name: ClientAnalyticsEventName } & AnalyticsEvent
  * the sessionId, so without the marker every reload would append another
  * `session_started` and inflate the cockpit's session counts. `label`
  * carries the active theme: the props vocabulary is a closed schema (no
- * `theme` key without a satellite regen), and `label` is free on this
+ * `theme` key without a schema change), and `label` is free on this
  * event, so the theme dimension rides here for every session.
  */
 export const initAnalytics = (): void => {

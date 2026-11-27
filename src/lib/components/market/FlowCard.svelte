@@ -12,11 +12,7 @@
 	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
-	import type {
-		CategoryAccuracySignal,
-		FollowedLeanSignal,
-		PriorCallSignal
-	} from '#lib/types/market-signals.ts';
+	import type { CategoryAccuracySignal, PriorCallSignal } from '#lib/types/market-signals.ts';
 	import type { MarketTranslation } from '#lib/types/market-translation.ts';
 	import type { FlowAction, Market } from '#lib/types/market.ts';
 	import { isViciXp } from '#lib/utils/balance-domain.utils.ts';
@@ -70,7 +66,6 @@
 		metadata?: MarketMetadata;
 		categoryAcc?: CategoryAccuracySignal;
 		priorCall?: PriorCallSignal;
-		followedLean?: FollowedLeanSignal;
 		// Real, market-wide price history (0–100 YES series, oldest first)
 		// for the back-face sparkline. Absent until FlowMode resolves it for
 		// the focused card: the back face then draws a flat line at the live price.
@@ -127,7 +122,6 @@
 		metadata,
 		categoryAcc,
 		priorCall,
-		followedLean,
 		points,
 		pointXs,
 		tradesToday,
@@ -275,35 +269,6 @@
 		}
 	});
 
-	// Friends-followed-lean line: when the user is following predictors
-	// who've called this market, surface the YES/NO split. Falls back to
-	// the predictors-count + trades-today line.
-	const followedYes = $derived(followedLean?.yes);
-	const followedTotal = $derived(followedLean?.total);
-	const followedNo = $derived(
-		nonNullish(followedYes) && nonNullish(followedTotal)
-			? Math.max(0, followedTotal - followedYes)
-			: undefined
-	);
-	const followedLeanText = $derived.by(() => {
-		if (isNullish(followedYes) || isNullish(followedNo)) {
-			return '';
-		}
-
-		const friendLabel = t({
-			locale: $localeStore,
-			key: followedYes === 1 ? 'card.followed_friend_singular' : 'card.followed_friend_plural'
-		});
-
-		return t({
-			locale: $localeStore,
-			key: 'card.followed_lean_template',
-			params: {
-				yesLabel: `${followedYes} ${friendLabel}`,
-				noLabel: String(followedNo)
-			}
-		});
-	});
 	const predictorsCount = $derived(
 		market.outcomes?.reduce((acc, o) => acc + (o.totalPredictions ?? 0), 0) ?? 0
 	);
@@ -684,19 +649,14 @@
 				</header>
 
 				<div class="flow-body">
-					<!-- Friends social proof + live momentum. The avatar
-				     stack always renders (4 seeded decorative circles);
-				     the trailing text swaps between
-				       (a) `N friends YES · M NO`: followedLean
-				       (b) `K predicting · +D today`: predictors-count fallback,
-				           the `+D today` part only once the real trade count
-				           has loaded
-				       (c) empty: neither available -->
+					<!-- Social proof + live momentum. The avatar stack always
+				     renders (4 seeded decorative circles); the trailing text
+				     is `K predicting · +D today` (the `+D today` part only once
+				     the real trade count has loaded), or empty when no one
+				     has predicted yet. -->
 					<div class="flow-social num">
 						<SeededAvatarStack borderColor="var(--bg-popover)" size={18} />
-						{#if nonNullish(followedTotal) && followedTotal > 0 && followedLeanText.length > 0}
-							<span class="flow-followed-lean">{followedLeanText}</span>
-						{:else if predictorsCount > 0}
+						{#if predictorsCount > 0}
 							<span>
 								{t({
 									locale: $localeStore,
@@ -836,7 +796,6 @@
 						{crowdSide}
 						displayResolution={display.resolution}
 						displayTitle={display.title}
-						{followedLean}
 						interactive={flipped}
 						{market}
 						{metadata}
@@ -1154,7 +1113,7 @@
 	}
 
 	/* Single-line row: a fixed-size avatar stack followed by the
-	   trailing predictor/followed-lean text. `min-width: 0` lets the
+	   trailing predictor-count text. `min-width: 0` lets the
 	   flex children shrink below their intrinsic width so a long
 	   trailing string truncates with an ellipsis (see `.flow-social
 	   > span`) instead of being chopped at the right edge by the
@@ -1176,8 +1135,7 @@
 		flex-shrink: 0;
 	}
 
-	/* Trailing text (predictors-count fallback or followed-lean
-	   line). Truncates with an ellipsis when the row runs out of
+	/* Trailing predictors-count text. Truncates with an ellipsis when the row runs out of
 	   width rather than overflowing the card body. */
 	.flow-social > span {
 		min-width: 0;
@@ -1186,9 +1144,6 @@
 		white-space: nowrap;
 	}
 
-	.flow-followed-lean {
-		font-weight: 600;
-	}
 	/* Edge-to-edge artwork frame: the FlowArtFrame's own rounded
 	   corners come off so the body of the card hosts the art with no
 	   side padding (`bleed` mode). The frame's height is fixed so the

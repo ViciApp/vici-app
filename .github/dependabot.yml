@@ -16,12 +16,6 @@ updates:
       prefix: 'chore(github-actions): '
     cooldown:
       default-days: 7
-    # juno-action publishes each release twice, plain and `-full`, and only
-    # `-full` carries the Rust toolchain. Dependabot keeps repinning the `-full`
-    # steps to the plain SHA, which turns `functions upgrade` into a silent
-    # no-op, so this action is bumped by hand.
-    ignore:
-      - dependency-name: 'junobuild/juno-action'
 
   # Dependabot runs npm through corepack, so it uses the version pinned in
   # package.json#packageManager. Without that pin it picks its own default,
@@ -52,10 +46,6 @@ updates:
       juno-kit:
         patterns:
           - '@junobuild/config'
-          - '@junobuild/vite-plugin'
-          - '@junobuild/core'
-          - '@junobuild/functions'
-          - '@junobuild/schema'
 
   # The backend is a standalone Bun project with its own bun.lock. It is not a
   # workspace of the root package.json, so the npm entry above never sees it.

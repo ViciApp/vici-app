@@ -1,6 +1,6 @@
 name: E2E (web2)
 
-# The web2 build (VITE_BACKEND=web2) end to end against the real API in
+# The production build end to end against the real API in
 # backend/ on a throwaway Postgres. Runs on every pull request and every push
 # to main, with no path filter: the suite spans the frontend, the backend and
 # their contract, so any change can break it. The API runs through its E2E

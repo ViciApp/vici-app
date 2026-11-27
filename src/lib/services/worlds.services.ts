@@ -1,16 +1,7 @@
-import { functions } from '#declarations/satellite/satellite.api.ts';
-import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
-import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import type { AffiliationChampionship, AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
-import {
-	AFFILIATION_LOCK_MS,
-	affiliationKey,
-	type AffiliationDoc,
-	type AffiliationKind
-} from '#lib/types/affiliation.ts';
+import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
 import { withTimeout } from '#lib/utils/async.utils.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	claimWorldsPodiumPrize as claimWorldsPodiumPrizeWeb2,
 	getAffiliationStats as getAffiliationStatsWeb2,
@@ -21,28 +12,21 @@ import {
 	removeAffiliation as removeAffiliationWeb2,
 	setAffiliation as setAffiliationWeb2
 } from '#lib/web2/client.ts';
-import { deleteDoc, getDoc, setDoc } from '@junobuild/core';
 
 /**
- * Hard timeout for the affiliation write path. Generous enough to cover
- * a slow IC update call (typical ~2s, occasionally longer), tight
- * enough that the picker's "joining…" spinner doesn't hang indefinitely
- * which is what Giova observed on 2026-05-27 when a country pick
- * never resolved and never rejected, leaving the row stuck and the
- * `finally { saving = null }` branch unreachable.
+ * Hard timeout for the affiliation write path, so the picker's
+ * "joining…" spinner never hangs on a request that neither resolves nor
+ * rejects (which would leave the row stuck and the
+ * `finally { saving = null }` branch unreachable).
  */
 const AFFILIATION_WRITE_TIMEOUT_MS = 15_000;
 
 /**
- * Worlds affiliations: thin FE service wrapping the satellite
- * read queries + the write / delete primitives via `@junobuild/core`.
+ * Worlds affiliations: thin FE service over the API's affiliation routes.
  * Mirrors the leagues service shape; consumers (Worlds picker page,
- * Worlds detail / leaderboard) import the camelCase domain types
- * from here.
+ * Worlds detail / leaderboard) import the camelCase domain types from here.
  *
- * The 90-day lock is enforced server-side by `assertSetAffiliation`
- * (locked computed from joinedAtMs) and `assertDeleteAffiliation`
- * (delete blocked until lock expires). The FE pre-empts the
+ * The 90-day lock is enforced server-side. The FE pre-empts the
  * lock-active branch with a `Date.now()` check so the user sees a
  * disabled-leave CTA instead of a thrown error.
  */
@@ -50,95 +34,34 @@ const AFFILIATION_WRITE_TIMEOUT_MS = 15_000;
 /**
  * Returns the caller's current `{ university?, country? }` pair.
  */
-export const listMyAffiliations = async (): Promise<{
+export const listMyAffiliations = (): Promise<{
 	university?: AffiliationDoc;
 	country?: AffiliationDoc;
-}> => {
-	if (isWeb2Backend()) {
-		return await getMyAffiliationsWeb2();
-	}
-
-	// The endpoint emits camelCase keys (see `AffiliationWireSchema`),
-	// so the wire shape already matches `AffiliationDoc` and no
-	// snake-case → camel-case projection is needed.
-	const { university, country } = await functions.listMyAffiliations();
-
-	return { university, country };
-};
+}> => getMyAffiliationsWeb2();
 
 /**
- * Join an affiliation. Server computes the lock window from
- * `joinedAtMs`; the FE writes the matching `lockedUntilMs` so the
- * assert accepts. A pre-existing row for the same `(member, kind)`
- * means the slot is locked: throws with a clear error so the UI
- * surfaces a "switch after lock" state instead of failing on the
- * satellite assert.
+ * Join an affiliation. The server computes the lock window and refuses a
+ * second row of the same kind; the picker derives that state from
+ * `listMyAffiliations` and switches through {@link switchAffiliation}.
  */
-export const joinAffiliation = async ({
+export const joinAffiliation = ({
 	kind,
 	affiliationIdentifier
 }: {
 	kind: AffiliationKind;
 	affiliationIdentifier: string;
-}): Promise<AffiliationDoc> => {
-	// The lock window is server arithmetic on this transport; the same hang
-	// guard applies (the picker's spinner must never wait forever).
-	if (isWeb2Backend()) {
-		return await withTimeout({
-			operation: setAffiliationWeb2({ kind, affiliationIdentifier }),
-			timeoutMs: AFFILIATION_WRITE_TIMEOUT_MS,
-			label: 'joinAffiliation:web2'
-		});
-	}
-
-	const identity = await safeGetIdentityOnce();
-	const memberPrincipal = identity.getPrincipal().toText();
-	const joinedAtMs = Date.now();
-	const lockedUntilMs = joinedAtMs + AFFILIATION_LOCK_MS;
-	const key = affiliationKey({ memberPrincipal, kind, affiliationIdentifier });
-
-	// Pre-empt a re-join of the same option with a getDoc. A row of the
-	// same kind under another option is refused by the satellite
-	// (`assertSetAffiliation`: one per kind); the picker derives that state
-	// from `listMyAffiliations` and switches through `switchAffiliation`.
-	const existing = await withTimeout({
-		operation: getDoc<AffiliationDoc>({
-			collection: Collection.AFFILIATIONS,
-			key
-		}),
+}): Promise<AffiliationDoc> =>
+	withTimeout({
+		operation: setAffiliationWeb2({ kind, affiliationIdentifier }),
 		timeoutMs: AFFILIATION_WRITE_TIMEOUT_MS,
-		label: 'joinAffiliation:getDoc'
+		label: 'joinAffiliation'
 	});
-
-	if (existing) {
-		throw new Error('Already affiliated with this option.');
-	}
-
-	const doc: AffiliationDoc = {
-		member: memberPrincipal,
-		kind,
-		affiliationIdentifier,
-		joinedAtMs,
-		lockedUntilMs
-	};
-
-	await withTimeout({
-		operation: setDoc<AffiliationDoc>({
-			collection: Collection.AFFILIATIONS,
-			doc: { key, data: doc }
-		}),
-		timeoutMs: AFFILIATION_WRITE_TIMEOUT_MS,
-		label: 'joinAffiliation:setDoc'
-	});
-
-	return doc;
-};
 
 /**
- * Leave an affiliation: `deleteDoc` against the row. The satellite
- * assert hard-rejects if the lock hasn't expired; the FE should
- * disable the CTA pre-emptively (read `lockedUntilMs` vs
- * `Date.now()`) so users see the gate clearly.
+ * Leave an affiliation. Idempotent server-side (a missing row is a clean
+ * success); the server rejects a leave inside the lock window, and the FE
+ * disables the CTA pre-emptively (read `lockedUntilMs` vs `Date.now()`) so
+ * users see the gate clearly.
  */
 export const leaveAffiliation = async ({
 	kind,
@@ -147,65 +70,29 @@ export const leaveAffiliation = async ({
 	kind: AffiliationKind;
 	affiliationIdentifier: string;
 }): Promise<void> => {
-	// Idempotent server-side (a missing row is a clean success), with the same
-	// lock gate the satellite delete-assert enforces.
-	if (isWeb2Backend()) {
-		await withTimeout({
-			operation: removeAffiliationWeb2({ kind, affiliationIdentifier }),
-			timeoutMs: AFFILIATION_WRITE_TIMEOUT_MS,
-			label: 'leaveAffiliation:web2'
-		});
-
-		return;
-	}
-
-	const identity = await safeGetIdentityOnce();
-	const memberPrincipal = identity.getPrincipal().toText();
-	const key = affiliationKey({ memberPrincipal, kind, affiliationIdentifier });
-
-	const existing = await withTimeout({
-		operation: getDoc<AffiliationDoc>({
-			collection: Collection.AFFILIATIONS,
-			key
-		}),
-		timeoutMs: AFFILIATION_WRITE_TIMEOUT_MS,
-		label: 'leaveAffiliation:getDoc'
-	});
-
-	if (!existing) {
-		// Idempotent: nothing to delete.
-		return;
-	}
-
 	await withTimeout({
-		operation: deleteDoc<AffiliationDoc>({
-			collection: Collection.AFFILIATIONS,
-			doc: existing
-		}),
+		operation: removeAffiliationWeb2({ kind, affiliationIdentifier }),
 		timeoutMs: AFFILIATION_WRITE_TIMEOUT_MS,
-		label: 'leaveAffiliation:deleteDoc'
+		label: 'leaveAffiliation'
 	});
 };
 
 /**
  * Switch affiliations within a kind: leave the current row, then join
- * the new one. The satellite enforces the 90-day lock on the delete
- * leg; if `currentLockedUntilMs` is still in the future the helper
- * throws synchronously so the picker can render a lock-active CTA
- * without firing a doomed round-trip.
+ * the new one. The server enforces the 90-day lock on the leave leg; if
+ * `currentLockedUntilMs` is still in the future the helper throws
+ * synchronously so the picker can render a lock-active CTA without firing
+ * a doomed round-trip.
  *
- * **Atomicity caveat.** Switching isn't a single satellite hook; the
- * delete and the join are independent round-trips. If the join leg
- * fails (timeout / transient), we make a best-effort attempt to
- * re-create the previous affiliation so the user isn't stranded with
- * an empty slot. The rollback creates a fresh row at `Date.now()`,
- * which means the lock window resets: undesirable but strictly
- * better than no affiliation. When both the join and the rollback
- * fail (network gone / satellite down), the original error is
- * re-thrown so the caller surfaces a clear "switch didn't go
- * through" hint and the next refresh sees an empty slot the user
- * can re-pick. A canonical fix would be a server-side atomic switch
- * hook; tracked separately.
+ * **Atomicity caveat.** The leave and the join are independent
+ * round-trips. If the join leg fails (timeout / transient), we make a
+ * best-effort attempt to re-create the previous affiliation so the user
+ * isn't stranded with an empty slot. The rollback creates a fresh row at
+ * `Date.now()`, which means the lock window resets: undesirable but
+ * strictly better than no affiliation. When both the join and the
+ * rollback fail, the original error is re-thrown so the caller surfaces
+ * a clear "switch didn't go through" hint and the next refresh sees an
+ * empty slot the user can re-pick.
  */
 export const switchAffiliation = async ({
 	kind,
@@ -253,25 +140,15 @@ export const switchAffiliation = async ({
  * Single-affiliation lookup. Returns `undefined` when the
  * affiliation has no stats doc yet (no member of it has had any
  * resolved trades). Callers should render as "unranked / no data".
- *
- * The wire shape is already camelCase and matches `AffiliationStatsDoc`,
- * so the doc is returned as is, like the rows of `listAffiliationStats`.
  */
-export const getAffiliationStats = async ({
+export const getAffiliationStats = ({
 	kind,
 	affiliationIdentifier
 }: {
 	kind: AffiliationKind;
 	affiliationIdentifier: string;
-}): Promise<AffiliationStatsDoc | undefined> => {
-	if (isWeb2Backend()) {
-		return await getAffiliationStatsWeb2({ kind, affiliationIdentifier });
-	}
-
-	const { stats } = await functions.getAffiliationStats({ kind, affiliationIdentifier });
-
-	return stats;
-};
+}): Promise<AffiliationStatsDoc | undefined> =>
+	getAffiliationStatsWeb2({ kind, affiliationIdentifier });
 
 /**
  * Ranked leaderboard view of every affiliation of a kind. Sorted
@@ -279,21 +156,13 @@ export const getAffiliationStats = async ({
  * Affiliations below `MIN_CALLS_FOR_RANK` are filtered out by the
  * aggregator.
  */
-export const listAffiliationStats = async ({
+export const listAffiliationStats = ({
 	kind,
 	limit
 }: {
 	kind: AffiliationKind;
 	limit?: number;
-}): Promise<AffiliationStatsDoc[]> => {
-	if (isWeb2Backend()) {
-		return await listAffiliationStatsWeb2({ kind, limit });
-	}
-
-	const { items } = await functions.listAffiliationStats({ kind, limit });
-
-	return items;
-};
+}): Promise<AffiliationStatsDoc[]> => listAffiliationStatsWeb2({ kind, limit });
 
 /**
  * Real member counts for every affiliation of a kind. Returned as a
@@ -306,9 +175,7 @@ export const listWorldsMemberCounts = async ({
 }: {
 	kind: AffiliationKind;
 }): Promise<Record<string, number>> => {
-	const items = isWeb2Backend()
-		? await listWorldsMemberCountsWeb2(kind)
-		: (await functions.listWorldsMemberCounts({ kind })).items;
+	const items = await listWorldsMemberCountsWeb2(kind);
 
 	return items.reduce<Record<string, number>>((acc, item) => {
 		acc[item.affiliationIdentifier] = item.memberCount;
@@ -323,50 +190,25 @@ export const listWorldsMemberCounts = async ({
  * has closed with a ranked leader; the FE renders a "no champions
  * yet" state in that case.
  */
-export const listAffiliationChampionships = async ({
+export const listAffiliationChampionships = ({
 	kind,
 	affiliationIdentifier
 }: {
 	kind: AffiliationKind;
 	affiliationIdentifier: string;
-}): Promise<AffiliationChampionship[]> => {
-	if (isWeb2Backend()) {
-		return await listAffiliationChampionshipsWeb2({ kind, affiliationIdentifier });
-	}
-
-	const { items } = await functions.listAffiliationChampionships({ kind, affiliationIdentifier });
-
-	return items;
-};
-
-const claimWorldsPodiumPrizeOnSatellite = async ({
-	monthAnchor
-}: {
-	monthAnchor: string;
-}): Promise<Awaited<ReturnType<typeof functions.claimWorldsPodiumPrize>>> => {
-	let result: Awaited<ReturnType<typeof functions.claimWorldsPodiumPrize>>;
-
-	do {
-		result = await functions.claimWorldsPodiumPrize({ monthAnchor });
-	} while (result.freezePending === true);
-
-	return result;
-};
+}): Promise<AffiliationChampionship[]> =>
+	listAffiliationChampionshipsWeb2({ kind, affiliationIdentifier });
 
 /**
- * Fire the Worlds podium claim for a closed month. The backend has
- * no scheduler, so the user calls this themselves (typically when
- * they first land on the Worlds surface in a new calendar
- * month), and the satellite credits VXP if their current
- * affiliation finished top-3 in the snapshot.
+ * Fire the Worlds podium claim for a closed month: the API credits VXP if
+ * the caller's current affiliation finished top-3 in the snapshot. The
+ * API's worker also freezes closed months; the claim-on-visit stays
+ * because the per-user award grant is the claim itself, and both paths
+ * share the idempotent month gate.
  *
  * Idempotent: a second call for the same month either reports
  * `awardsAlreadyClaimed > 0` or `notEligible === true`. Safe to
  * fire-and-forget on every Worlds load.
- *
- * The satellite freezes a closed month's ranking a bounded batch of
- * docs per call and pays nothing until it is frozen (`freezePending`),
- * so the claim is sent again until that clears.
  *
  * Throws when `monthAnchor` is not a closed month (e.g. the
  * current calendar month): callers should always pass a YYYY-MM
@@ -381,10 +223,4 @@ export const claimWorldsPodiumPrize = ({
 	awardsCreated: number;
 	awardsAlreadyClaimed: number;
 	notEligible: boolean;
-}> =>
-	// The web2 API also freezes closed months from its worker; the lazy
-	// claim-on-visit stays because the per-user award grant is the claim
-	// itself, and both paths share the idempotent month gate.
-	isWeb2Backend()
-		? claimWorldsPodiumPrizeWeb2({ monthAnchor })
-		: claimWorldsPodiumPrizeOnSatellite({ monthAnchor });
+}> => claimWorldsPodiumPrizeWeb2({ monthAnchor });

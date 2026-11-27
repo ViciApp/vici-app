@@ -3,20 +3,13 @@
 export type HandleProbeRoute = 'session' | 'public';
 
 /**
- * The probe for a handle typed into a picker. In web2 mode the session-gated
- * probe refuses a caller without a session, so a visitor choosing a handle
- * before sign-up takes the public one; a signed-in user keeps the session
- * probe, which does not count their own current handle as taken. The default
- * backend's probe is an anonymous query already, so it stays on one path
- * whoever is signed in.
+ * The probe for a handle typed into a picker. The session-gated probe refuses
+ * a caller without a session, so a visitor choosing a handle before sign-up
+ * takes the public one; a signed-in user keeps the session probe, which does
+ * not count their own current handle as taken.
  */
-export const handleProbeRoute = ({
-	web2Backend,
-	signedIn
-}: {
-	web2Backend: boolean;
-	signedIn: boolean;
-}): HandleProbeRoute => (web2Backend && !signedIn ? 'public' : 'session');
+export const handleProbeRoute = ({ signedIn }: { signedIn: boolean }): HandleProbeRoute =>
+	signedIn ? 'session' : 'public';
 
 /** Why a probe gave no answer, as far as the picker can tell the user:
  * throttled (asking again soon will not help), or anything else. */

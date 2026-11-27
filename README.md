@@ -21,9 +21,9 @@ The core trading logic and market registry are powered by high-performance Rust-
 ### Engine integration
 
 Vici is registered as an **Engine** on the `icdc-core` registry so it can create markets and
-manage oracles without its users being explicit controllers of the registry canister. Roles
-assigned in the Juno `roles` collection (e.g. `ADMIN`, `CREATOR`, `SOLVER`) are automatically
-synced to the Vici engine via a satellite `onSetDoc(ROLES)` / `onDeleteDoc(ROLES)` hook. See
+manage oracles without its users being explicit controllers of the registry canister. App
+roles (e.g. `ADMIN`, `CREATOR`, `SOLVER`) are mirrored to the Vici engine by the API
+(`backend/src/admin/engine-sync.ts`). See
 [docs/engine-integration.md](./docs/engine-integration.md) for architecture, setup, and
 operational runbooks.
 
@@ -31,10 +31,10 @@ operational runbooks.
 
 - **Frontend**: [SvelteKit](https://kit.svelte.dev/) with **Svelte 5 (Runes)**.
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) with a premium glassmorphic design system.
-- **Backend/Storage**: [Juno](https://juno.build/) and Rust-based canisters on the Internet Computer.
-- **Web2 API**: [Bun](https://bun.sh/) + [Elysia](https://elysiajs.com/) + Postgres in [`backend/`](./backend/README.md), serving the web2 build (`VITE_BACKEND=web2`) at vici.app.
+- **API**: [Bun](https://bun.sh/) + [Elysia](https://elysiajs.com/) + Postgres in [`backend/`](./backend/README.md), serving the app at vici.app.
+- **Engine**: Rust-based canisters on the Internet Computer.
 - **Blockchain**: [Internet Computer (IC)](https://internetcomputer.org/).
-- **Authentication**: [Internet Identity](https://identity.ic0.app/).
+- **Authentication**: email one-time codes and Google sign-in, through the API.
 
 ## 📖 Project Guidelines & AI Agent Docs
 
@@ -52,9 +52,7 @@ canonical entry point:
     gates, local quality gates.
   - [`docs/ai/frontend/`](./docs/ai/frontend/): SvelteKit + Svelte 5 +
     Tailwind v4 conventions, structure, reusability catalog, a11y, testing.
-  - [`docs/ai/satellite/`](./docs/ai/satellite/): Juno satellite (TS hooks,
-    asserts, typed query / update endpoints) conventions and workflows.
-  - [`docs/ai/backend/`](./docs/ai/backend/README.md): the web2 API in
+  - [`docs/ai/backend/`](./docs/ai/backend/README.md): the API in
     `backend/` (structure, patterns, catalog, tests, custody rules).
   - [`docs/ai/engine/`](./docs/ai/engine/README.md): pointer to
     [`../icdc-core/`](https://github.com/AntonioVentilii/icdc-core), where
@@ -69,7 +67,8 @@ canonical entry point:
 
 ## 📦 Project Structure
 
-- `src/lib/api/`: Canister and Juno collection API definitions.
+- `src/lib/web2/`: The typed HTTP API client.
+- `src/lib/api/`: The public canister reads the app still makes (order book, ledger fee).
 - `src/lib/components/`: Modular Svelte components (Market, Wallet, Social, etc.).
 - `src/lib/services/`: Business logic and orchestration between UI and APIs.
 - `src/lib/stores/`: Application state management using Svelte Runes.
@@ -82,7 +81,6 @@ canonical entry point:
 
 - [Node.js](https://nodejs.org/) (current version in `.node-version`)
 - [dfx](https://internetcomputer.org/docs/current/developer-docs/setup/install) (Internet Computer SDK)
-- [Juno CLI](https://juno.build/docs/miscellaneous/cli)
 
 ### Installation
 
@@ -98,39 +96,19 @@ canonical entry point:
    npm install
    ```
 
-### Local Deployment (Juno Emulator)
+### Local development
 
-To deploy locally, we use the Juno emulator as the primary replica.
+1. **Start the API** (see [`backend/README.md`](./backend/README.md)): Postgres via
+   `docker compose up -d` in `backend/`, then `bun run dev`.
 
-1. **Start the Juno emulator**:
-
-   ```bash
-   juno emulator start
-   ```
-
-2. **Deploy custom canisters** (in a new terminal):
-
-   ```bash
-   npm run deploy
-   ```
-
-3. **Initialize the registry + Vici engine**:
-
-   ```bash
-   npm run init:icdc
-   ```
-
-   Registers the Vici engine, seeds the oracle, and adds sample markets. Re-run after any
-   registry reinstall.
-
-4. **Start the development server**:
+2. **Start the development server**:
    ```bash
    npm run dev
    ```
 
+The API reads the mainnet engine by default. To work on the engine canisters locally, follow
+[`.agents/workflows/deployment.md`](./.agents/workflows/deployment.md).
+
 For deeper workflows (staging reset, engine operations, debugging role sync) see the
 step-by-step runbooks in [`.agents/workflows/`](./.agents/workflows/) and the architecture
 reference in [`docs/engine-integration.md`](./docs/engine-integration.md).
-
-> [!IMPORTANT]
-> Do **NOT** run `dfx start`. The Juno emulator acts as the only local replica and avoids CORS/404 errors with custom canisters.

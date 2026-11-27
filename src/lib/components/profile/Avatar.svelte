@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PrincipalText } from '@junobuild/schema';
+	import type { PrincipalText } from '@dfinity/zod-schemas';
 	import { Pencil } from '@lucide/svelte/icons';
 	import ViciAvatar from '#lib/components/ui/ViciAvatar.svelte';
 	import { myAvatarParts } from '#lib/stores/avatar.store.ts';

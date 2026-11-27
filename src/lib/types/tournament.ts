@@ -37,7 +37,7 @@
  */
 
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /**
  * Standard 16-league single-elimination has four rounds, in the
@@ -218,5 +218,5 @@ export const roundWindow = ({
 };
 
 // Re-export `PrincipalText` so consumers don't need to import from
-// `@junobuild/schema` directly.
+// `@dfinity/zod-schemas` directly.
 export type { PrincipalText };

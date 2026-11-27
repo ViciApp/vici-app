@@ -1,24 +1,19 @@
-import { functions } from '#declarations/satellite/satellite.api.ts';
 import type { CallSide } from '#lib/types/market.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { claimCalibrationReward as claimCalibrationRewardWeb2 } from '#lib/web2/client.ts';
 
 /**
- * Thin actor wrappers around the satellite VXP-awards endpoints.
+ * Client wrappers around the VXP-awards routes.
  *
- * The streak hook runs server-side off the profile-write trigger and
- * doesn't need a client call; the referral cap runs inside
- * `onReferralSetForVxpPayout` and also doesn't need one. The surface the
- * FE has to actively call is the **calibration reward**, since it depends
- * on the user's own balance state and the market they just resolved, plus
- * the settle path for failed achievement and Flow milestone payouts
- * ({@link settleProfileAwards}).
+ * Streak and referral awards are paid server-side by the writes that earn
+ * them and need no client call. The surface the FE has to actively call is
+ * the **calibration reward**, since it depends on the user's own balance
+ * state and the market they just resolved.
  */
 
 /**
  * Reason codes the server returns when a calibration reward cannot be
  * paid this invocation. Re-exported so UI can switch on them without
- * pulling the entire satellite-generated type surface.
+ * pulling the entire generated type surface.
  */
 export type VxpCalibrationReason =
 	| 'anonymous'
@@ -33,8 +28,8 @@ export type VxpCalibrationReason =
 	// The other side of this market is already on record, so this call is not
 	// judged.
 	| 'already_called'
-	// HTTP API only: the award was recorded without a transfer (treasury
-	// parallel-run mode); the reconciliation job pays it out later.
+	// The award was recorded without a transfer (treasury parallel-run mode);
+	// the reconciliation job pays it out later.
 	| 'recorded_only'
 	| 'transfer_failed';
 
@@ -78,46 +73,7 @@ export const claimCalibrationReward = async ({
 }: {
 	seriesId: string;
 	chosenSide: CallSide;
-}): Promise<VxpCalibrationClaim> => {
-	// The HTTP route runs the same gates server-side and answers the same
-	// structured result; the session covers the `anonymous` case (a signed-out
-	// caller gets a 401 before the claim logic runs).
-	if (isWeb2Backend()) {
-		return await claimCalibrationRewardWeb2({ seriesId, chosenSide });
-	}
-
-	const result = await functions.claimCalibrationReward({ seriesId, chosenSide });
-
-	return {
-		correct: result.correct,
-		paidNow: result.paidNow,
-		alreadyClaimed: result.alreadyClaimed,
-		rewardBaseUnits: result.rewardBaseUnits,
-		newBalanceBaseUnits: result.newBalanceBaseUnits,
-		blockIndex: result.blockIndex,
-		reason: result.reason,
-		errorMessage: result.errorMessage
-	};
-};
-
-/**
- * Send the caller's failed achievement and Flow milestone payouts again,
- * a few per call, when the profile opens: their triggers rarely come back
- * for the same award, so this is their settle path. Returns how many were
- * paid now. The web2 API reopens a failed award on its next grant and has
- * no such route, so it answers 0 there. Best-effort: a transport error
- * resolves to 0 so it can never break the page load it rides along with.
- */
-export const settleProfileAwards = async (): Promise<number> => {
-	if (isWeb2Backend()) {
-		return 0;
-	}
-
-	try {
-		const { settled } = await functions.settleProfileAwards();
-
-		return settled;
-	} catch {
-		return 0;
-	}
-};
+}): Promise<VxpCalibrationClaim> =>
+	// A signed-out caller gets a 401 before the claim logic runs, which covers
+	// the `anonymous` reason.
+	await claimCalibrationRewardWeb2({ seriesId, chosenSide });

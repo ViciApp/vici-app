@@ -658,15 +658,9 @@ is the canonical sign-in / sign-up visual:
   in `--laurel`.
 - Sub copy in `--text-muted`.
 - Provider stack rendered through
-  [`SignInProviderStack.svelte`](../../../src/lib/components/authn/SignInProviderStack.svelte),
-  whose per-provider flags at the top of the file say which methods
-  show: Google, email (a passkey ceremony that keeps the address) and
-  Passkey (WebAuthn), Dev on dev builds only; Apple (through Internet
-  Identity's OpenID flow) and Internet Identity are built but flagged
-  off. The web2 build renders
-  [`SignInProviderStackWeb2.svelte`](../../../src/lib/components/authn/SignInProviderStackWeb2.svelte)
-  instead: email one-time code and Google, with Apple and Passkey shown
-  as disabled coming-soon buttons.
+  [`SignInProviderStack.svelte`](../../../src/lib/components/authn/SignInProviderStack.svelte):
+  email one-time code and Google, with Apple and Passkey shown as disabled
+  coming-soon buttons.
 - Footer switcher between sign-in and sign-up modes.
 - Legal fineprint at the bottom of the page (terms, privacy,
   play-money preview disclaimer).
@@ -702,8 +696,8 @@ having it everywhere.
 
 ## 9. Market metadata
 
-The app stores VICI-side market context in the public-read
-`market_metadata` collection. This is a layer above the market engine:
+The API stores VICI-side market context in its public-read
+`market_metadata` table. This is a layer above the market engine:
 it does not change clearing, settlement, payouts, or registry state.
 It gives creators/admins a place to attach editorial and UX context used
 by Flow cards and market detail.
@@ -718,18 +712,15 @@ defines:
 | `whyNow`                  | Front-card curation chip (`closing`, `trending`, `new`, `topical`, `social` + text).                                                |
 | `events`                  | Up to two timeline annotations for compact sparklines / detail surfaces. Wire direction is `up` / `down`; UI may render +/- glyphs. |
 | `resolution`              | Human-readable resolution criteria, source, and optional settle timestamp.                                                          |
-| `updatedAt` / `updatedBy` | Audit fields set by the satellite update endpoint.                                                                                  |
+| `updatedAt` / `updatedBy` | Audit fields the API sets on every write.                                                                                           |
 
-The document key is the market/series id.
+The row key is the market/series id.
 
 ### 9.2 Authorization
 
-Writes go through the typed satellite update endpoint
-`upsertMarketMetadata`. The collection itself is configured as
-`read: public`, `write: controllers`; frontend code should never call
-`setDoc` directly for this collection.
-
-The satellite authorizes writes if:
+Writes go through `PUT /api/v1/markets/:seriesId/metadata`
+(`upsertMarketMetadata` in `market-metadata.services.ts`). The API
+authorizes a write if:
 
 - the caller has the app admin role, or
 - the caller is the market creator according to the registry canister.

@@ -1,98 +1,62 @@
 # Workflow: Add a new service / API call / store
 
-Use when you need to expose a canister or Juno operation to the UI,
-orchestrate a multi-step flow, or create cross-view shared state.
+Use when you need to expose an API route to the UI, orchestrate a
+multi-step flow, or create cross-view shared state.
 
 ## Decide which layer
 
 ```
 Component (.svelte)
-  ↳ #lib/services/*.services.ts          orchestration, identity, error handling, store mutations
-       ↳ #lib/api/*.api.ts               wrappers around generated #declarations/<canister>
-       ↳ #lib/canisters/*.canister.ts    typed canister actor factories
-       ↳ @junobuild/core                 datastore + auth (used directly inside services)
+  ↳ #lib/services/*.services.ts          orchestration, error handling, store mutations
+       ↳ #lib/web2/client.ts             typed wrappers around the HTTP API routes
+       ↳ #lib/api/*.api.ts               the public canister reads left (order book, ledger fee)
+       ↳ #lib/canisters/*.canister.ts    typed canister actor factories behind them
 ```
 
-| You need…                                           | Layer                                                                                                                                                                                                                                                     |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| To call a new method on `clearing` / `registry`     | First add it in `../icdc-core/`, regenerate bindings via `npm run did`, then add a wrapper in `#lib/api/<canister>.api.ts`.                                                                                                                               |
-| To call a new method on the satellite canister      | First add it in `src/satellite/` (see [`../../satellite/workflows/new-endpoint.md`](../../satellite/workflows/new-endpoint.md)), then call it in a service, through the `functions` export of the regenerated `#declarations/satellite/satellite.api.ts`. |
-| To read / write a Juno datastore document           | Use `setDoc` / `getDoc` / `listDocs` / `countDocs` / `deleteDoc` from `@junobuild/core` inside a service. Don't call them from a component.                                                                                                               |
-| To call the web2 API                                | Add a typed wrapper in `#lib/web2/client.ts`, the HTTP layer, and branch the owning service on `isWeb2Backend()` ([`../web2-backend-mode.md`](../web2-backend-mode.md)).                                                                                  |
-| To orchestrate calls + notifications + side effects | `#lib/services/<thing>.services.ts`.                                                                                                                                                                                                                      |
-| To share reactive state across views                | A Svelte store in `#lib/stores/`.                                                                                                                                                                                                                         |
-| To compute derived state from stores                | A `derived(...)` Svelte store in `#lib/derived/`.                                                                                                                                                                                                         |
+| You need…                                           | Layer                                                                                                                                                                                           |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| To call an API route                                | Add the route in `backend/` (see [`../../backend/workflows/`](../../backend/workflows/)), then a typed wrapper in `#lib/web2/client.ts` ([`../web2-backend-mode.md`](../web2-backend-mode.md)). |
+| A new engine read or write                          | Add it to the API's engine bridge (the API signs account calls with the custodial identity), then wrap the route in `client.ts`. The browser never signs a canister call.                       |
+| A new public canister read the API cannot serve     | Only with a reason: regenerate bindings via `npm run did`, then add a wrapper in `#lib/api/<canister>.api.ts` called with `anonymousIdentity()`.                                                |
+| To orchestrate calls + notifications + side effects | `#lib/services/<thing>.services.ts`.                                                                                                                                                            |
+| To share reactive state across views                | A Svelte store in `#lib/stores/`.                                                                                                                                                               |
+| To compute derived state from stores                | A `derived(...)` Svelte store in `#lib/derived/`.                                                                                                                                               |
 
 ## Steps
 
-1. **Backend ↔ FE contract.** If a canister method doesn't exist yet:
-   - **icdc-core method:** the icdc-core PR lands first (or is tagged
-     simultaneously). Then in this repo:
+1. **Backend ↔ FE contract.** The API route lands first (or in the PR
+   before). If it needs a new icdc-core method, the icdc-core PR lands
+   first, then `npm run did` regenerates both declaration trees.
 
-     ```bash
-     npm run did    # regenerates src/declarations/** + format + lint
-     ```
+2. **`#lib/web2/client.ts` wrapper.** One typed wrapper per route, typed to
+   the wire contract; map wire shapes (the `userId` → `owner` rename,
+   serialized candid through `engine-wire.ts`) inside the wrapper. A money or
+   identity route parses its body with a schema from
+   `#lib/schema/web2-api.schema.ts` through `parsedRequest`.
 
-     Both `src/declarations/**` and the upstream `.did` file are
-     generated; never hand-edit. Commit the regenerated declarations
-     with the FE wiring in the same PR.
-
-   - **Satellite method:** add it under `src/satellite/services/` and
-     wire it into `src/satellite/index.ts` via `defineQuery` /
-     `defineUpdate`. Run `npm run juno:functions:build`. See
-     [`../../satellite/workflows/new-endpoint.md`](../../satellite/workflows/new-endpoint.md).
-
-2. **`#lib/api/<canister>.api.ts` wrapper (canister methods).**
-   - Existing files: `clearing.api.ts`, `registry.api.ts`,
-     `icp-index.api.ts`, `icrc-index-ng.api.ts`, `icrc-ledger.api.ts`.
-   - Export named async functions returning typed values. Convert
-     Candid `opt` / `Result` shapes to idiomatic TS at the boundary.
-   - Throw / reject only for unexpected runtime errors. Expected error
-     paths should return a typed result.
-   - Take `identity` as an explicit argument; the service layer owns
-     identity resolution (see step 4).
-
-3. **`#lib/canisters/<canister>.canister.ts` actor factory** (only if
-   adding a brand-new canister wrapper).
-   - Existing files: `clearing.canister.ts`, `registry.canister.ts`.
-   - Extend `Canister` and build it with `createServices` from
-     `@dfinity/utils`, with the IDL factories and service type from the
-     `#declarations` barrel (see `clearing.canister.ts`).
-
-4. **`*.services.ts` orchestration.**
+3. **`*.services.ts` orchestration.**
    - File: `#lib/services/<thing>.services.ts`.
-   - Resolve identity at the top:
-     - `getIdentityOrAnonymous` for read paths that are also valid
-       anonymously.
-     - `safeGetIdentityOnce` for actions that require an authenticated
-       user (it triggers sign-in once if needed).
+   - Gate signed-in work on the session store (`getWeb2User()`), never on a
+     local identity.
    - Surface errors via `#lib/stores/notification.store.ts` (toast pattern)
      rather than throwing for expected user errors.
    - Mutate the matching `#lib/stores/*.store.ts` to update the UI.
-   - Validate cross-boundary data with the matching schema from
-     `#lib/schema/`.
+   - Deliver a single API read to a `{ certified, response }` loader as the
+     final `certified: true` pass.
 
-5. **Stores / derived (only if needed).**
+4. **Stores / derived (only if needed).**
    - Add a Svelte store under `#lib/stores/` when the value must be
-     observable across views. When the data is certified IC state, load
-     it through `loadWithCertification`
-     (`#lib/services/query-update.services.ts`) for the standard query →
-     update upgrade.
+     observable across views.
    - Add a `derived(...)` store in `#lib/derived/` for cross-store
      computations.
    - Don't cache server data twice; let the store own that.
 
-6. **Schemas (when crossing the satellite boundary).**
-   - Reusable schemas live in `#lib/schema/` and are re-imported by
-     `src/satellite/api-schemas.ts` so the satellite and FE share one
-     definition. Update both sides in the same PR.
-
-7. **Catalog update.** If the new service / store is reusable across
+5. **Catalog update.** If the new service / store is reusable across
    features, add a row in
    [`reusability.md`](../reusability.md). This is the
    [meta-update rule](../../governance.md#meta-update-rule).
 
-8. **Quality gates.**
+6. **Quality gates.**
 
    ```bash
    npm run format
@@ -100,13 +64,12 @@ Component (.svelte)
    npm run check
    ```
 
-9. **PR.** `feat: expose <thing>` (or `feat(<scope>): …` /
+7. **PR.** `feat: expose <thing>` (or `feat(<scope>): …` /
    `refactor(<scope>): …` / `fix(<scope>): …` as appropriate).
 
 ## Don'ts
 
-- Call `setDoc` / `getDoc` / `listDocs` / `fetch` directly from a
-  component.
+- Call `client.ts` or `fetch` directly from a component.
 - Call `#lib/api/*` or `#lib/canisters/*` directly from a component (skip
   the service layer).
 - Use the `0n` literal (eslint enforces `ZERO`).
@@ -114,5 +77,3 @@ Component (.svelte)
 - Hand-edit `src/declarations/**` or any upstream `.did` file.
 - Cache server data in a store _and_ in the service; pick one.
 - Add a new top-level folder under `src/lib/` to host the new service.
-- Hold `identity` in a long-lived variable across awaits; re-resolve at
-  the start of each call so the user can sign out / refresh between.

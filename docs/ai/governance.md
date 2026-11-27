@@ -53,8 +53,6 @@ Execute the plan with **targeted edits**. Strictly follow:
 - [`frontend/structure.md`](./frontend/structure.md) and
   [`frontend/stack-and-patterns.md`](./frontend/stack-and-patterns.md) for the
   SvelteKit app.
-- [`satellite/structure.md`](./satellite/structure.md) and
-  [`satellite/patterns.md`](./satellite/patterns.md) for the Juno satellite.
 - [`backend/structure.md`](./backend/structure.md) and
   [`backend/patterns.md`](./backend/patterns.md) for the web2 API in `backend/`.
 
@@ -68,7 +66,7 @@ Before opening / merging, self-review against:
 - [Vici-specific rules](../../AGENTS.md#4-vici-specific-rules)
 - [PR conventions](./pr-and-ci.md)
 - Reusability catalogs ([frontend](./frontend/reusability.md),
-  [satellite](./satellite/reusability.md), [API](./backend/reusability.md)):
+  [API](./backend/reusability.md)):
   flag duplication you re-introduced.
 - [a11y rules](./frontend/a11y.md).
 
@@ -83,43 +81,40 @@ repeats each row as a glob, because Officina reads its lanes from that file,
 and adds its own red-only paths after them ([lanes](./officina.md#lanes)). A
 row added or removed here changes that list in the same PR.
 
-| Path                                                                   | Reason                                                                            | Owner            |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------- |
-| `.github/workflows/**`                                                 | CI integrity. Only `ci(...)` PRs touch these.                                     | repo maintainers |
-| `.github/CODEOWNERS`, `.github/actions/**`                             | Review routing & action policy.                                                   | repo maintainers |
-| `package.json` (deps), `package-lock.json`                             | New / upgraded dependencies require explicit approval.                            | repo maintainers |
-| `dfx.json`                                                             | Canister wiring.                                                                  | repo maintainers |
-| `juno.config.ts`, `juno.collections.json`                              | Collection rules + satellite IDs. Schema drift breaks data + auth.                | repo maintainers |
-| `src/satellite/satellite.did`, `src/satellite/satellite_extension.did` | Public Candid interface of the satellite. Generated; regenerate, never hand-edit. | -                |
-| `src/satellite/api-schemas.ts`                                         | Generated schema bindings used by `defineQuery` / `defineUpdate`.                 | -                |
-| `src/declarations/**`                                                  | **Generated** by `npm run did` from upstream `.did` files.                        | -                |
-| `eslint.config.js`, `.prettierrc`, `tsconfig*.json`                    | Lint / format / TS policy.                                                        | repo maintainers |
-| `local-rules/**`, `eslint-local-rules.cjs`, `.prettierignore`          | Custom lint rules and format scope, the same policy as `eslint.config.js`.        | repo maintainers |
-| `.node-version`, `.npmrc`                                              | Toolchain pins: the Node CI and the web image build on, npm install policy.       | repo maintainers |
-| `release-please-config.json`, `.release-please-manifest.json`          | Release versioning policy.                                                        | repo maintainers |
-| `fly.web.toml`, `Dockerfile.web`, `nginx.web.conf`                     | Web2 SPA image, its nginx config and deploy.                                      | repo maintainers |
-| `eslint-suppressions.json`                                             | Generated lint baseline. Only ever shrinks, via `--prune-suppressions`.           | repo maintainers |
-| `scripts/build/**`, `scripts/lib/**`, `scripts/init/**`                | Reproducible-build + bootstrap pipeline. Touch only when prompted.                | repo maintainers |
-| `scripts/*`, `scripts/test/**`                                         | Deploy canisters, move tokens, act as the dfx identity, gate CI or releases.      | repo maintainers |
-| `backend/package.json`, `backend/bun.lock`                             | Backend dependencies. Same approval as the root ones.                             | repo maintainers |
-| `backend/Dockerfile`, `backend/fly*.toml`                              | Web2 API image and deploy.                                                        | repo maintainers |
-| `backend/docker-compose.yml`, `backend/bunfig.toml`                    | Local Postgres stack and the test preload.                                        | repo maintainers |
-| `backend/tsconfig.json`                                                | Backend TS policy (the root `tsconfig*.json` glob does not cover it).             | repo maintainers |
-| `backend/src/{auth,account,admin,custody,chains,vxp,engine,db}/**`     | Sessions, accounts, roles, custody, chains, VXP, engine and schema.               | repo maintainers |
-| `backend/src/env.ts`                                                   | Validated environment and secrets.                                                | repo maintainers |
-| `backend/src/routes/{auth,account,admin,claim,engine,vxp,wallet}.ts`   | Routes that issue sessions, move value or expose admin surfaces.                  | repo maintainers |
-| `backend/src/routes/{events,markets,school,social}.ts`                 | Public routes that also serve `requireAdmin` endpoints.                           | repo maintainers |
-| `backend/src/{tournaments,worlds}/**`                                  | Tournament and Worlds podium prizes: who is paid, and how much.                   | repo maintainers |
-| `backend/src/routes/{tournaments,worlds}.ts`                           | The prize claims of those two domains.                                            | repo maintainers |
-| `backend/src/routes/{profiles,leagues,referrals}.ts`                   | Routes that fire VXP awards, settle founder awards or redeem referrals.           | repo maintainers |
-| `backend/src/profiles/flow.ts`, `backend/src/leagues/leagues.ts`       | The Flow daily cap and league member count that gate overtime and founder VXP.    | repo maintainers |
-| `backend/src/lib/{cookie,crypto,keys,rate-limit,email,ic-agent}.ts`    | Session, key, abuse-protection, email and IC identity primitives.                 | repo maintainers |
-| `backend/src/lib/same-origin.ts`                                       | The CSRF guard every write passes.                                                | repo maintainers |
-| `backend/src/declarations/**`                                          | **Generated** Candid bindings for the backend. Regenerate, never hand-edit.       | repo maintainers |
-| `backend/scripts/etl/**`, `backend/e2e/**`                             | Legacy data migration; test-only server with fake engine and seed.                | repo maintainers |
-| `static/workers/**`                                                    | Synced from `@junobuild/core` by `npm run postinstall`. Don't hand-edit.          | -                |
-| `node_modules/`, `target/`, `.svelte-kit/`, `build/`, `out/`, `.dfx/`  | Build output. Never commit.                                                       | -                |
-| `../icdc-core/**`                                                      | External repo. Open it as a separate workspace; obey its `AGENTS.md`.             | icdc-core team   |
+| Path                                                                  | Reason                                                                         | Owner            |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------- |
+| `.github/workflows/**`                                                | CI integrity. Only `ci(...)` PRs touch these.                                  | repo maintainers |
+| `.github/CODEOWNERS`, `.github/actions/**`                            | Review routing & action policy.                                                | repo maintainers |
+| `package.json` (deps), `package-lock.json`                            | New / upgraded dependencies require explicit approval.                         | repo maintainers |
+| `dfx.json`                                                            | Canister wiring.                                                               | repo maintainers |
+| `juno.config.ts`                                                      | The retired satellite's ids, redirect and write freeze.                        | repo maintainers |
+| `src/declarations/**`                                                 | **Generated** by `npm run did` from upstream `.did` files.                     | -                |
+| `eslint.config.js`, `.prettierrc`, `tsconfig*.json`                   | Lint / format / TS policy.                                                     | repo maintainers |
+| `local-rules/**`, `eslint-local-rules.cjs`, `.prettierignore`         | Custom lint rules and format scope, the same policy as `eslint.config.js`.     | repo maintainers |
+| `.node-version`, `.npmrc`                                             | Toolchain pins: the Node CI and the web image build on, npm install policy.    | repo maintainers |
+| `release-please-config.json`, `.release-please-manifest.json`         | Release versioning policy.                                                     | repo maintainers |
+| `fly.web.toml`, `Dockerfile.web`, `nginx.web.conf`                    | Web2 SPA image, its nginx config and deploy.                                   | repo maintainers |
+| `eslint-suppressions.json`                                            | Generated lint baseline. Only ever shrinks, via `--prune-suppressions`.        | repo maintainers |
+| `scripts/build/**`, `scripts/lib/**`, `scripts/init/**`               | Reproducible-build + bootstrap pipeline. Touch only when prompted.             | repo maintainers |
+| `scripts/*`, `scripts/test/**`                                        | Deploy canisters, move tokens, act as the dfx identity, gate CI or releases.   | repo maintainers |
+| `backend/package.json`, `backend/bun.lock`                            | Backend dependencies. Same approval as the root ones.                          | repo maintainers |
+| `backend/Dockerfile`, `backend/fly*.toml`                             | Web2 API image and deploy.                                                     | repo maintainers |
+| `backend/docker-compose.yml`, `backend/bunfig.toml`                   | Local Postgres stack and the test preload.                                     | repo maintainers |
+| `backend/tsconfig.json`                                               | Backend TS policy (the root `tsconfig*.json` glob does not cover it).          | repo maintainers |
+| `backend/src/{auth,account,admin,custody,chains,vxp,engine,db}/**`    | Sessions, accounts, roles, custody, chains, VXP, engine and schema.            | repo maintainers |
+| `backend/src/env.ts`                                                  | Validated environment and secrets.                                             | repo maintainers |
+| `backend/src/routes/{auth,account,admin,engine,vxp,wallet}.ts`        | Routes that issue sessions, move value or expose admin surfaces.               | repo maintainers |
+| `backend/src/routes/{events,markets,school,social}.ts`                | Public routes that also serve `requireAdmin` endpoints.                        | repo maintainers |
+| `backend/src/{tournaments,worlds}/**`                                 | Tournament and Worlds podium prizes: who is paid, and how much.                | repo maintainers |
+| `backend/src/routes/{tournaments,worlds}.ts`                          | The prize claims of those two domains.                                         | repo maintainers |
+| `backend/src/routes/{profiles,leagues,referrals}.ts`                  | Routes that fire VXP awards, settle founder awards or redeem referrals.        | repo maintainers |
+| `backend/src/profiles/flow.ts`, `backend/src/leagues/leagues.ts`      | The Flow daily cap and league member count that gate overtime and founder VXP. | repo maintainers |
+| `backend/src/lib/{cookie,crypto,keys,rate-limit,email,ic-agent}.ts`   | Session, key, abuse-protection, email and IC identity primitives.              | repo maintainers |
+| `backend/src/lib/same-origin.ts`                                      | The CSRF guard every write passes.                                             | repo maintainers |
+| `backend/src/declarations/**`                                         | **Generated** Candid bindings for the backend. Regenerate, never hand-edit.    | repo maintainers |
+| `backend/scripts/etl/**`, `backend/e2e/**`                            | Legacy data migration; test-only server with fake engine and seed.             | repo maintainers |
+| `node_modules/`, `target/`, `.svelte-kit/`, `build/`, `out/`, `.dfx/` | Build output. Never commit.                                                    | -                |
+| `../icdc-core/**`                                                     | External repo. Open it as a separate workspace; obey its `AGENTS.md`.          | icdc-core team   |
 
 If a change must touch a protected path, call it out explicitly in the PR
 description.
@@ -128,27 +123,25 @@ description.
 
 ### Allowed without prompting
 
-- Edit any file under `src/lib/**`, `src/routes/**`, `src/satellite/services/**`,
-  `src/satellite/utils/**`, and `src/satellite/index.ts`.
+- Edit any file under `src/lib/**` and `src/routes/**`.
 - Edit `src/app.css`, `src/app.html`, `src/app.d.ts`, `src/custom-events.d.ts`.
 - Edit `backend/src/**` outside the protected paths in [Boundaries](#boundaries),
   and `backend/tests/**`.
 - Add files inside the existing folder taxonomy
   ([FE structure](./frontend/structure.md),
-  [satellite structure](./satellite/structure.md)).
+  [API structure](./backend/structure.md)).
 - Run `npm run format`, `npm run lint`, `npm run check`, `npm run quality`,
-  `npm run dev`, `npm run build`, `npm run did`,
-  `npm run juno:functions:build`; in `backend/`, `bun run typecheck`,
+  `npm run dev`, `npm run build`, `npm run did`; in `backend/`, `bun run typecheck`,
   `bun test`, `bun run migrate` against the local docker-compose database.
-- Run `npm run init:icdc` (and its sub-scripts), `npm run test:engine-sync` and
-  `npm run deploy` against the local replica. The scripts that reinstall
+- Run `npm run init:icdc` (and its sub-scripts) and `npm run deploy` against
+  the local replica. The scripts that reinstall
   canisters, mint or set fixed prices refuse any other network (the callers of
   `require_local_network` in
   [`scripts/lib/utils.sh`](../../scripts/lib/utils.sh)).
   [`send.tokens.sh`](../../scripts/send.tokens.sh) sends real ckUSDC on
   `staging` and `ic`, so off the local replica it also needs
-  `CONFIRM_REAL_TRANSFER=<network>`. `init:icdc-engine`,
-  `init:registry` and `test:engine-sync` also run with `--staging` or
+  `CONFIRM_REAL_TRANSFER=<network>`. `init:icdc-engine`
+  and `init:registry` also run with `--staging` or
   `--production` in the
   [reset workflow](../../.agents/workflows/icdc-engine-reset.md), which needs
   an explicit ask (below).
@@ -159,8 +152,7 @@ description.
 - Add a new dependency or upgrade one (`package.json`).
 - Run any script against `staging` or `ic` (`--staging`, `--ic`,
   `--production`).
-- Add a new top-level folder under `src/` or `src/lib/` /
-  `src/satellite/`.
+- Add a new top-level folder under `src/` or `src/lib/`.
 - Edit any path in the [Boundaries](#boundaries) table.
 - Disable an ESLint rule, suppress a `svelte-check` warning, or use `any` /
   `as unknown as …` to bypass a type.
@@ -174,8 +166,7 @@ description.
   most correct" does **NOT** count. See
   [`pr-and-ci.md#updating-an-existing-pr`](./pr-and-ci.md#7-updating-an-existing-pr).
 - Commit secrets, `.env*` (other than examples), or large binaries.
-- Touch `src/satellite/satellite.did` or `src/declarations/**` by hand;
-  regenerate via the appropriate scripts (`juno functions build`, `npm run did`).
+- Touch `src/declarations/**` by hand; regenerate via `npm run did`.
 - Modify the on-chain Rust canisters in `../icdc-core/` from this repo.
   If a change requires a new endpoint there, do that work in the
   `icdc-core` repo, then come back here for the binding regeneration and
@@ -192,26 +183,24 @@ How:
 
 1. Identify which page describes the area you changed:
 
-   | You changed...                                          | Update                                                                             |
-   | ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-   | Folder taxonomy                                         | `frontend/structure.md`, `satellite/structure.md` or `backend/structure.md`        |
-   | A shared component / util / service / store / type      | `frontend/reusability.md`                                                          |
-   | A shared satellite helper                               | `satellite/reusability.md`                                                         |
-   | A shared API helper (`backend/src/lib/**` and the like) | `backend/reusability.md`                                                           |
-   | A Svelte / TS / Tailwind idiom                          | `frontend/stack-and-patterns.md`                                                   |
-   | A satellite hook / assert / endpoint pattern            | `satellite/patterns.md`                                                            |
-   | An API route / error / SQL / engine pattern             | `backend/patterns.md`; a custody rule: `backend/custody.md`                        |
-   | A web2 branch in a frontend service                     | `frontend/web2-backend-mode.md`                                                    |
-   | A test pattern                                          | `frontend/testing.md`, `satellite/testing.md` or `backend/testing.md`              |
-   | User-visible copy rules, locales                        | `frontend/i18n.md`                                                                 |
-   | Design tokens, brand voice                              | `frontend/design.md`, `frontend/brand.md`                                          |
-   | VXP economy rules                                       | `economy.md` (rules drive code), `satellite/economy.md`                            |
-   | Shipped product behaviour                               | `PRODUCT.md`                                                                       |
-   | Candid bindings / icdc-core pin                         | `engine/README.md`                                                                 |
-   | A PR / CI rule or a workflow file                       | `pr-and-ci.md`                                                                     |
-   | A policy, boundary or protected path                    | this file                                                                          |
-   | A repeated multi-step task                              | a page under `frontend/workflows/`, `satellite/workflows/` or `backend/workflows/` |
-   | A rule every repository shares                          | the universal standard in Officina, never a page here                              |
+   | You changed...                                          | Update                                                      |
+   | ------------------------------------------------------- | ----------------------------------------------------------- |
+   | Folder taxonomy                                         | `frontend/structure.md` or `backend/structure.md`           |
+   | A shared component / util / service / store / type      | `frontend/reusability.md`                                   |
+   | A shared API helper (`backend/src/lib/**` and the like) | `backend/reusability.md`                                    |
+   | A Svelte / TS / Tailwind idiom                          | `frontend/stack-and-patterns.md`                            |
+   | An API route / error / SQL / engine pattern             | `backend/patterns.md`; a custody rule: `backend/custody.md` |
+   | An API call in a frontend service                       | `frontend/web2-backend-mode.md`                             |
+   | A test pattern                                          | `frontend/testing.md` or `backend/testing.md`               |
+   | User-visible copy rules, locales                        | `frontend/i18n.md`                                          |
+   | Design tokens, brand voice                              | `frontend/design.md`, `frontend/brand.md`                   |
+   | VXP economy rules                                       | `economy.md` (rules drive code)                             |
+   | Shipped product behaviour                               | `PRODUCT.md`                                                |
+   | Candid bindings / icdc-core pin                         | `engine/README.md`                                          |
+   | A PR / CI rule or a workflow file                       | `pr-and-ci.md`                                              |
+   | A policy, boundary or protected path                    | this file                                                   |
+   | A repeated multi-step task                              | a page under `frontend/workflows/` or `backend/workflows/`  |
+   | A rule every repository shares                          | the universal standard in Officina, never a page here       |
 
 2. Edit that page in the same PR with the smallest possible delta: add a
    bullet, add a row, swap a code sample.
@@ -244,15 +233,13 @@ would otherwise have to guess or learn the hard way:
 
 - **Operational gotchas.** Workarounds discoverable only through
   experience (e.g. "tests need `--no-cache` or fixtures leak between
-  runs"; "always run `npm run juno:functions:build` after touching
-  `src/satellite/index.ts`").
+  runs"; "an API test needs a real Postgres").
 - **Non-obvious tooling.** Commands or scripts that change what the
   agent runs (e.g. "regenerate bindings with `npm run did`, never edit
   `src/declarations/**` by hand").
 - **Non-standard patterns to preserve.** Local idioms that look wrong
-  but aren't (e.g. "the satellite uses a collection-dispatch table in
-  `src/satellite/index.ts` on purpose; don't refactor into per-file
-  registrations").
+  but aren't (e.g. "the client wrappers map wire shapes field by field on
+  purpose; don't replace them with a blanket digits-to-bigint pass").
 - **Boundaries.** Paths that look editable but aren't; see the
   [Boundaries table](#boundaries).
 - **Cross-repo facts.** Things the local code can't tell the agent
@@ -284,15 +271,13 @@ needs it:
    thin. [`CLAUDE.md`](../../CLAUDE.md) is a Claude-only runtime
    wrapper, equally thin.
 2. **Area READMEs**: [`docs/ai/frontend/README.md`](./frontend/README.md),
-   [`docs/ai/satellite/README.md`](./satellite/README.md),
    [`docs/ai/backend/README.md`](./backend/README.md),
    [`docs/ai/engine/README.md`](./engine/README.md): read once per
    session, scoped to the area touched.
 3. **Topic pages**: `structure.md`, `stack-and-patterns.md`,
    `patterns.md`, `i18n.md`, `a11y.md`, …, loaded selectively when
    the agent touches that concern.
-4. **Workflow pages**: `frontend/workflows/`, `satellite/workflows/`,
-   `backend/workflows/`: concrete recipes for repeated multi-step tasks.
+4. **Workflow pages**: `frontend/workflows/`, `backend/workflows/`: concrete recipes for repeated multi-step tasks.
 
 The agent should never need to load the full corpus to do one task. A
 UX-focused agent touching `#lib/components/ui/` and a backend agent

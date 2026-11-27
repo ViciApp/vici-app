@@ -1,7 +1,7 @@
 import type { ClearingDid } from '#declarations';
 import type { MarketId } from '#lib/types/market.ts';
 import type { Token, TokenId } from '#lib/types/token.ts';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /**
  * Every VXP-relevant movement a user can see.

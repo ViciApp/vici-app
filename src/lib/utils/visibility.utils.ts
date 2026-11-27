@@ -2,7 +2,7 @@ import { ProfileVisibility } from '#lib/enums/profile.ts';
 import type { SettingsVisibility } from '#lib/types/preferences.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { nonNullish } from '@dfinity/utils';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /**
  * Map the persisted {@link ProfileVisibility} enum to the three-way

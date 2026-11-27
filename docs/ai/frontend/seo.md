@@ -1,5 +1,10 @@
 # SEO / crawler surface
 
+> **Status:** the per-market generator below ran as a `predeploy` step of the
+> Juno hosting deploy, which is retired. The web image (`Dockerfile.web`) runs
+> only the landing head step, so vici.app has no per-market pages or sitemap
+> until the generator is wired into the web build.
+
 > Higher up the chain: [`README.md`](./README.md) → [`docs/ai/`](../README.md).
 
 The app is a static SPA (`adapter-static`, `ssr = false`, `index.html`
@@ -41,8 +46,6 @@ in a build step instead:
   [`shell-head.utils.ts`](../../../src/lib/utils/shell-head.utils.ts): every
   tag must match exactly once, or it throws and the image build fails. The
   tags it names are the same contract the per-market generator relies on.
-- It does nothing unless `VITE_BACKEND` is `web2`, so a bare image build and
-  every on-chain deploy keep the head `app.html` ships.
 - The web2 image serves one shell for every address, so this head is the
   landing page's everywhere: a link to any vici.app page previews as the
   landing card. `static/robots.txt` still names the vici.market sitemap;

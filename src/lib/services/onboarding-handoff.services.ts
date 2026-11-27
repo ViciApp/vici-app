@@ -10,8 +10,7 @@ import { joinLeagueByInvite } from '#lib/services/leagues.services.ts';
 import {
 	applyOnboardingPicks,
 	checkNicknameAvailability,
-	saveMyEmail,
-	wasBootstrappedThisSession
+	saveMyEmail
 } from '#lib/services/profile.services.ts';
 import { claimReferralFriendship, redeemReferralCode } from '#lib/services/referral.services.ts';
 import { notificationsStore } from '#lib/stores/notification.store.ts';
@@ -584,12 +583,9 @@ export const drainPendingOnboarding = async ({
 	// they still land in the inviter's friends list. We await the
 	// resolve below so the slot is settled correctly: re-armed for a
 	// bounded retry on a transient failure rather than silently dropped.
-	// `profileExisted` alone is racy: a second `onAuthStateChange` pass during a
-	// fresh sign-in re-reads the doc this session just bootstrapped and reports
-	// it as pre-existing, which would route a brand-new user here and drop their
-	// picks. Trust the deterministic session capture: only a principal whose
-	// doc predates this session is a genuine returning user.
-	const isReturningUser = profileExisted && !wasBootstrappedThisSession(profile.owner);
+	// The app-shell hydration reports `profileExisted` once per session, from
+	// the stored profile row the API returned.
+	const isReturningUser = profileExisted;
 
 	if (isReturningUser) {
 		// A stashed league invite is still actionable for a returning user: join is
@@ -631,10 +627,7 @@ export const drainPendingOnboarding = async ({
 		let handleCollision = false;
 
 		if (nonNullish(pending.handle)) {
-			const probe = await checkNicknameAvailability({
-				nickname: pending.handle,
-				principal: profile.owner
-			});
+			const probe = await checkNicknameAvailability({ nickname: pending.handle });
 
 			if (probe.available) {
 				setHandle = true;
@@ -643,11 +636,10 @@ export const drainPendingOnboarding = async ({
 			}
 		}
 
-		// Field-level patch (NOT a full-snapshot write): `calculateAndSyncStats` writes this same
-		// doc concurrently on the finishing login, so a stale full snapshot would lose the
-		// optimistic-version race and throw: silently dropping these picks. A handle claimed in
-		// the TOCTOU window after the probe is dropped here (the rest still persists), reported via
-		// `handleApplied`.
+		// Field-level patch (NOT a full-snapshot write): another profile writer can land
+		// on the same doc during this drain, and a stale full snapshot would revert it. A
+		// handle claimed in the TOCTOU window after the probe is dropped (the rest still
+		// persists), reported via `handleApplied`.
 		const { profile: nextProfile, handleApplied } = await applyOnboardingPicks({
 			principal: profile.owner,
 			handle: pending.handle,

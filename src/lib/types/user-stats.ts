@@ -1,4 +1,4 @@
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /**
  * Per-category accuracy bucket. The Dash renders one of these per

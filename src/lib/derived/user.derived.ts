@@ -2,9 +2,8 @@ import { ROLE_PERMISSIONS } from '#lib/constants/authz.constants.ts';
 import type { Permission } from '#lib/enums/permission.ts';
 import { UserRole } from '#lib/enums/user.ts';
 import { userStore } from '#lib/stores/user.store.ts';
-import { userRoleOf } from '#lib/utils/authz.utils.ts';
 import { nonNullish } from '@dfinity/utils';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 import { derived, type Readable } from 'svelte/store';
 
 export const userSignedIn: Readable<boolean> = derived(userStore, ({ user }) => nonNullish(user));
@@ -25,11 +24,7 @@ export const authPrincipal: Readable<PrincipalText | undefined> = derived(
 	({ user }) => user?.owner
 );
 
-const userRole: Readable<UserRole | undefined> = derived(
-	[authPrincipal, userStore],
-	([$authPrincipal, { profile }]) =>
-		userRoleOf({ principal: $authPrincipal, profileRole: profile?.role })
-);
+const userRole: Readable<UserRole | undefined> = derived(userStore, ({ profile }) => profile?.role);
 
 export const userPermissions: Readable<Permission[]> = derived(userRole, ($role) =>
 	$role ? ROLE_PERMISSIONS[$role] : []
@@ -38,9 +33,4 @@ export const userPermissions: Readable<Permission[]> = derived(userRole, ($role)
 export const userIsAdmin: Readable<boolean> = derived(
 	userRole,
 	($userRole) => $userRole === UserRole.CONTROLLER || $userRole === UserRole.ADMIN
-);
-
-export const userIsAdminOrSolver: Readable<boolean> = derived(
-	[userIsAdmin, userRole],
-	([$userIsAdmin, $userRole]) => $userIsAdmin || $userRole === UserRole.SOLVER
 );

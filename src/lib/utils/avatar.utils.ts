@@ -1,6 +1,6 @@
 import { fnv1a64Utf16Hex } from '#lib/utils/hash.utils.ts';
 import { nonNullish } from '@dfinity/utils';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 const DICEBEAR_STYLE = 'notionists';
 const DICEBEAR_VERSION = '9.x';

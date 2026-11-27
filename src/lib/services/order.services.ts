@@ -1,23 +1,11 @@
 import type { ClearingDid } from '#declarations';
-import {
-	cancelLimitOrder as cancelLimitOrderApi,
-	getOrders as getOrdersApi,
-	listOrders as listOrdersApi,
-	submitLimitOrder,
-	submitMarketOrder
-} from '#lib/api/clearing.api.ts';
+import { listOrders as listOrdersApi } from '#lib/api/clearing.api.ts';
 import { MarketClosedError } from '#lib/canisters/clearing.errors.ts';
 import { PRICE_DECIMALS, USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
 import { logActivity } from '#lib/services/activity.services.ts';
 import { track } from '#lib/services/analytics.services.ts';
-import {
-	getIdentity,
-	getIdentityOrAnonymous,
-	safeGetIdentityOnce
-} from '#lib/services/identity.services.ts';
 import { recordActivity } from '#lib/services/profile.services.ts';
-import { loadWithCertification } from '#lib/services/query-update.services.ts';
 import type { MarketId, Outcome } from '#lib/types/market.ts';
 import type { CallSource, OrderSide, OrderType } from '#lib/types/order.ts';
 import { filterByPlaygroundExpandedDomain } from '#lib/utils/balance-domain.utils.ts';
@@ -25,7 +13,6 @@ import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
 import { walkMarketOrder } from '#lib/utils/market-order.utils.ts';
 import { parseLimitOrderPriceValue } from '#lib/utils/parse.utils.ts';
 import { refreshAllBalances, refreshOrders, refreshPositions } from '#lib/utils/refresh.utils.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	cancelEngineOrder as cancelEngineOrderWeb2,
 	listEngineOrders as listEngineOrdersWeb2,
@@ -34,9 +21,8 @@ import {
 	Web2ApiError
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import { fromNullable, isNullish, nonNullish, toNullable, type Nullable } from '@dfinity/utils';
+import { fromNullable, isNullish, toNullable, type Nullable } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
-import { getIdentityOnce } from '@junobuild/core';
 import { nanoid } from 'nanoid';
 
 /**
@@ -87,18 +73,17 @@ export const getOrderBook = async ({
 	identity?: Identity;
 	certified?: boolean;
 }): Promise<ClearingDid.LimitOrder[]> => {
-	const identity = identityOverride ?? (await getIdentityOrAnonymous());
+	const identity = identityOverride ?? new AnonymousIdentity();
 
-	return fetchOrderBook({ identity, certified, marketId, domain });
+	return await fetchOrderBook({ identity, certified, marketId, domain });
 };
 
 /**
  * Submits a limit order or matches a market order against the book; refreshes UI state and logs activity.
  */
 
-/** Map a web2 session miss onto the exact error text the web3 path throws
- * from safeGetIdentityOnce, so the UI's auth-failure handling stays one
- * message regardless of backend. */
+/** Map a session miss onto one stable error text, so the UI's auth-failure
+ * handling reads a single message. */
 const rethrowWeb2Unauthenticated = (err: unknown): never => {
 	if (err instanceof Web2ApiError && err.status === 401) {
 		throw new Error('Not authenticated');
@@ -151,11 +136,8 @@ export const placeOrder = async ({
 		throw new Error('Call size is too small for this price: the order quantity rounds to zero');
 	}
 
-	// In web2 mode there is no local signing identity: the API signs engine
-	// calls with the caller's derived custodial identity (the session cookie is
-	// the auth), so reaching for the Juno identity would throw for every trade.
-	const identity = isWeb2Backend() ? undefined : await safeGetIdentityOnce();
-
+	// There is no local signing identity: the API signs engine calls with the
+	// caller's derived custodial identity (the session cookie is the auth).
 	const isBinary = outcome === 'YES' || outcome === 'NO';
 	const normalizedSide: OrderSide = isBinary
 		? outcome === 'NO'
@@ -180,61 +162,36 @@ export const placeOrder = async ({
 	if (type === 'LIMIT') {
 		const orderId = `ORD_${nanoid(8)}`;
 
-		if (isNullish(identity)) {
-			try {
-				await submitEngineLimitOrderWeb2({
-					orderId,
-					seriesId: marketId,
-					side: normalizedSide === 'BUY' ? 'buy' : 'sell',
-					outcomeId: fromNullable(outcomeId),
-					priceValue: parseLimitOrderPriceValue(price),
-					priceDecimals: PRICE_DECIMALS,
-					qty,
-					callSize
-				});
-			} catch (err: unknown) {
-				rethrowWeb2Unauthenticated(err);
-			}
-		} else {
-			await submitLimitOrder({
-				identity,
-				params: {
-					order_id: orderId,
-					series_id: marketId,
-					side: normalizedSide === 'BUY' ? { Buy: null } : { Sell: null },
-					outcome_id: outcomeId,
-					price: {
-						decimal: {
-							value: parseLimitOrderPriceValue(price),
-							decimals: PRICE_DECIMALS
-						},
-						timestamp: toNullable(),
-						oracle_id: toNullable()
-					},
-					qty
-				}
+		try {
+			await submitEngineLimitOrderWeb2({
+				orderId,
+				seriesId: marketId,
+				side: normalizedSide === 'BUY' ? 'buy' : 'sell',
+				outcomeId: fromNullable(outcomeId),
+				priceValue: parseLimitOrderPriceValue(price),
+				priceDecimals: PRICE_DECIMALS,
+				qty,
+				callSize
 			});
+		} catch (err: unknown) {
+			rethrowWeb2Unauthenticated(err);
 		}
 	} else {
 		const counterSide = normalizedSide === 'BUY' ? 'Sell' : 'Buy';
 
 		const targetOutcomeId = outcome === 'YES' || outcome === 'NO' ? undefined : outcome;
 
-		const callerText = identity?.getPrincipal().toText();
-
 		const fetchMatchingOrders = async (): Promise<ClearingDid.LimitOrder[]> => {
-			// The book itself is a public on-chain query in both modes. In web2
-			// mode the caller's engine principal lives server-side, so their own
-			// resting orders are excluded by id (from the session-gated own-orders
-			// read) instead of by creator.
+			// The book itself is a public on-chain query. The caller's engine
+			// principal lives server-side, so their own resting orders are
+			// excluded by id (from the session-gated own-orders read) instead of
+			// by creator.
 			const [orders, ownOrderIds] = await Promise.all([
 				listOrdersApi({
-					identity: identity ?? new AnonymousIdentity(),
+					identity: new AnonymousIdentity(),
 					params: { series_id: toNullable(marketId) }
 				}),
-				isNullish(identity)
-					? listEngineOrdersWeb2().then((own) => new Set(own.map((o) => o.order_id)))
-					: Promise.resolve(undefined)
+				listEngineOrdersWeb2().then((own) => new Set(own.map((o) => o.order_id)))
 			]);
 
 			return orders
@@ -243,9 +200,7 @@ export const placeOrder = async ({
 					const isCorrectOutcome = o.outcome_id[0] === targetOutcomeId;
 					// The engine rejects self-trades; the caller's own resting
 					// orders are not liquidity for this market order.
-					const isSelf = nonNullish(ownOrderIds)
-						? ownOrderIds.has(o.order_id)
-						: o.creator.toText() === callerText;
+					const isSelf = ownOrderIds.has(o.order_id);
 
 					return isCorrectSide && isCorrectOutcome && !isSelf;
 				})
@@ -263,30 +218,17 @@ export const placeOrder = async ({
 			takerSide: normalizedSide,
 			readBook: fetchMatchingOrders,
 			takeLevel: async ({ level, qty: take }) => {
-				if (isNullish(identity)) {
-					try {
-						await submitEngineMarketOrderWeb2({
-							tradeId: `TRD_${nanoid(8)}`,
-							seriesId: marketId,
-							matchingOrderId: level.order_id,
-							qty: take,
-							callSize
-						});
-					} catch (err: unknown) {
-						rethrowWeb2Unauthenticated(err);
-					}
-
-					return;
+				try {
+					await submitEngineMarketOrderWeb2({
+						tradeId: `TRD_${nanoid(8)}`,
+						seriesId: marketId,
+						matchingOrderId: level.order_id,
+						qty: take,
+						callSize
+					});
+				} catch (err: unknown) {
+					rethrowWeb2Unauthenticated(err);
 				}
-
-				await submitMarketOrder({
-					identity,
-					params: {
-						trade_id: `TRD_${nanoid(8)}`,
-						matching_order_id: level.order_id,
-						qty: toNullable(take)
-					}
-				});
 			}
 		});
 
@@ -316,12 +258,10 @@ export const placeOrder = async ({
 	}
 
 	try {
-		// In web2 mode the activity owner is the session account id (the same
-		// `owner` string the swapped profile services key on); `logActivity`
-		// routes the write to the HTTP feed, whose trade trigger fires the same
-		// onboarding-milestone / referral awards the satellite hook does. The
-		// daily-streak bump in `recordActivity` rides the swapped profile writes.
-		const userText = isNullish(identity) ? getWeb2User()?.id : identity.getPrincipal().toText();
+		// The activity owner is the session account id; the HTTP feed's trade
+		// trigger fires the onboarding-milestone and referral awards, and the
+		// daily-streak bump rides `recordActivity`'s profile write.
+		const userText = getWeb2User()?.id;
 
 		if (isNullish(userText)) {
 			return;
@@ -345,23 +285,11 @@ export const placeOrder = async ({
 };
 
 export const cancelLimitOrder = async (orderId: string): Promise<void> => {
-	if (isWeb2Backend()) {
-		// The API signs the cancel with the caller's derived custodial identity;
-		// there is no local identity to fetch in this mode.
-		try {
-			await cancelEngineOrderWeb2({ orderId });
-		} catch (err: unknown) {
-			rethrowWeb2Unauthenticated(err);
-		}
-	} else {
-		const identity = await safeGetIdentityOnce();
-
-		await cancelLimitOrderApi({
-			identity,
-			params: {
-				order_id: orderId
-			}
-		});
+	// The API signs the cancel with the caller's derived custodial identity.
+	try {
+		await cancelEngineOrderWeb2({ orderId });
+	} catch (err: unknown) {
+		rethrowWeb2Unauthenticated(err);
 	}
 
 	track({ name: 'order_cancelled' });
@@ -374,58 +302,26 @@ export const cancelLimitOrder = async (orderId: string): Promise<void> => {
 };
 
 /**
- * Fetches the signed-in user's open orders, filtered to the active balance domain.
- * Threads identity + certified for `queryAndUpdate` compatibility.
+ * All open orders for the current user in the active balance domain, read
+ * from the session-gated own-orders route. In playground mode (ViciXp),
+ * Social-domain orders are included. Returns `[]` when nobody is signed in.
  */
-const fetchUserOrders = async ({
-	identity,
-	certified,
-	domain
-}: {
-	identity: Identity;
-	certified: boolean;
-	domain: ClearingDid.BalanceDomain;
-}): Promise<ClearingDid.LimitOrder[]> => {
-	const orders = await getOrdersApi({ identity, certified });
+export const getUserOrders = async (
+	domain: ClearingDid.BalanceDomain
+): Promise<ClearingDid.LimitOrder[]> => {
+	if (isNullish(getWeb2User())) {
+		return [];
+	}
+
+	const orders = await listEngineOrdersWeb2();
 
 	return filterByPlaygroundExpandedDomain({ items: orders, targetDomain: domain });
 };
 
 /**
- * All open orders for the current user in the active balance domain.
- * In playground mode (ViciXp), Social-domain orders are included.
- *
- * Performs a single certified update. Returns `[]` when the user is not signed in.
- * Prefer {@link loadUserOrders} for UI flows that benefit from the fast-then-certified
- * render pattern.
- */
-export const getUserOrders = async (
-	domain: ClearingDid.BalanceDomain
-): Promise<ClearingDid.LimitOrder[]> => {
-	// web2 reads the session-gated own-orders route; the cookie is the auth, so
-	// the Juno identity gate below never runs in that mode.
-	if (isWeb2Backend()) {
-		if (isNullish(getWeb2User())) {
-			return [];
-		}
-
-		const orders = await listEngineOrdersWeb2();
-
-		return filterByPlaygroundExpandedDomain({ items: orders, targetDomain: domain });
-	}
-
-	const identity = await getIdentityOnce();
-
-	if (isNullish(identity)) {
-		return [];
-	}
-
-	return fetchUserOrders({ identity, certified: true, domain });
-};
-
-/**
- * Callback-based variant of {@link getUserOrders}. No-op when the user is not
- * signed in (mirrors `getUserOrders` returning `[]`).
+ * Callback-based variant of {@link getUserOrders}. No-op when nobody is
+ * signed in. The route answers once, so the single response is the final
+ * (`certified: true`) pass.
  */
 export const loadUserOrders = async ({
 	domain,
@@ -436,38 +332,18 @@ export const loadUserOrders = async ({
 	onLoad: (options: { certified: boolean; response: ClearingDid.LimitOrder[] }) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> => {
-	// web2 reads the own-orders route once: no query/update pair exists on that
-	// transport, so the single response is the final (`certified: true`) pass.
-	if (isWeb2Backend()) {
-		if (isNullish(getWeb2User())) {
-			return;
-		}
-
-		try {
-			const orders = await listEngineOrdersWeb2();
-
-			onLoad({
-				certified: true,
-				response: filterByPlaygroundExpandedDomain({ items: orders, targetDomain: domain })
-			});
-		} catch (err: unknown) {
-			onUpdateError?.(err);
-		}
-
+	if (isNullish(getWeb2User())) {
 		return;
 	}
 
-	const identity = await getIdentity();
+	try {
+		const orders = await listEngineOrdersWeb2();
 
-	if (isNullish(identity)) {
-		return;
+		onLoad({
+			certified: true,
+			response: filterByPlaygroundExpandedDomain({ items: orders, targetDomain: domain })
+		});
+	} catch (err: unknown) {
+		onUpdateError?.(err);
 	}
-
-	return loadWithCertification<ClearingDid.LimitOrder[]>({
-		identity,
-		request: ({ certified, identity: reqIdentity }) =>
-			fetchUserOrders({ identity: reqIdentity, certified, domain }),
-		onLoad,
-		onUpdateError
-	});
 };

@@ -16,22 +16,20 @@
 	 * The copy never promises saving picks: preview picks are discarded on
 	 * convert. The framing is "create your account / claim 1,500 VXP / start
 	 * predicting for real". The sign-up CTAs reuse {@link SignInProviderStack}
-	 * (`mode="signup"`) so conversion runs through the real, redirect-safe
-	 * provider machinery; the claimed guest handle labels a fresh passkey.
+	 * so conversion runs through the real, redirect-safe provider machinery.
 	 */
 	interface Props {
 		isOpen: boolean;
 		kind: 'soft' | 'remind';
 		// Session preview-pick count: social proof only, never "saved".
 		pickCount: number;
-		handle: string | null;
 		onClose: () => void;
 		// Fires when a provider resolves in-page; the host clears the guest
 		// session and toasts the grant.
 		onConverted: () => void;
 	}
 
-	const { isOpen, kind, pickCount, handle, onClose, onConverted }: Props = $props();
+	const { isOpen, kind, pickCount, onClose, onConverted }: Props = $props();
 
 	// The 1,500 VXP figure is sourced from the real registration milestone
 	// grant, not a hardcoded literal, so it stays in lock-step with the economy.
@@ -72,7 +70,7 @@
 		</div>
 
 		<div class="guest-save-providers">
-			<SignInProviderStack {handle} mode="signup" onSuccess={onConverted} />
+			<SignInProviderStack onSuccess={onConverted} />
 		</div>
 
 		<button class="guest-save-dismiss" onclick={onClose} type="button">

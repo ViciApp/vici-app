@@ -10,8 +10,7 @@
  * is the landing page: this step rewrites `build/index.html` in place, after
  * `npm run build`, in `Dockerfile.web`.
  *
- * It does nothing unless the build is a web2 one (`VITE_BACKEND=web2`), and
- * fails the image build when a tag it rewrites is missing from the shell.
+ * It fails the image build when a tag it rewrites is missing from the shell.
  */
 
 import {
@@ -36,12 +35,6 @@ const SOURCE_ORIGIN = 'https://vici.market';
 const WEB2_ORIGIN = 'https://vici.app';
 
 const main = (): void => {
-	if (process.env.VITE_BACKEND !== 'web2') {
-		console.log('[web2-head] not a web2 build, shell head left as built');
-
-		return;
-	}
-
 	if (!existsSync(join(BUILD_DIR, LANDING_SHARE_IMAGE_PATH))) {
 		throw new Error(
 			`[web2-head] link-preview image missing from build: ${LANDING_SHARE_IMAGE_PATH}`

@@ -10,7 +10,7 @@ src/worker.ts ── calls ─────────────────�
                                                                          └─> src/lib/*, src/env.ts
 ```
 
-- **`src/routes/<area>.ts`** is the only HTTP layer: one `new Elysia({ prefix: '/api/v1/<area>' })` per file (`auth.ts` and `claim.ts` mount at `/api/v1`), mounted in `src/index.ts`. It parses the request, gates it, calls domain functions and maps domain errors to status codes. No SQL here.
+- **`src/routes/<area>.ts`** is the only HTTP layer: one `new Elysia({ prefix: '/api/v1/<area>' })` per file (`auth.ts` mounts at `/api/v1`), mounted in `src/index.ts`. It parses the request, gates it, calls domain functions and maps domain errors to status codes. No SQL here.
 - **`src/<domain>/`** (`account`, `admin`, `analytics`, `auth`, `chains`, `custody`, `leagues`, `markets`, `profiles`, `school`, `social`, `tournaments`, `vxp`, `worlds`) owns the logic and the SQL of its concern. Files are kebab-case nouns (`leagues/battle-resolution.ts`); there is no `*.service.ts` / `*.repo.ts` split, so do not introduce one.
 - **`src/engine/`** wraps the icdc-core canisters (actors, typed clearing and registry calls, the TTL cache, serialization). **`src/chains/`** holds one adapter folder per chain (`ic`, `evm`, `sol`, `btc`) behind `chains/types.ts`.
 - **`src/lib/`** is cross-domain infrastructure. It may import packages (`@dfinity/utils`, `@icp-sdk/*`, `@noble/*`, `node:crypto`), `../env` and its own siblings, never a domain module. A helper that needs a domain belongs in that domain.

@@ -79,12 +79,6 @@ describe('send.utils', () => {
 		it('offers nothing when no token is withdrawable', () => {
 			assert.deepEqual(filterSendableTokens({ tokens: [token('VXP')], assets: catalog }), []);
 		});
-
-		it('keeps every token when no custody gate applies (default backend)', () => {
-			const tokens = [token('VXP'), token('ICP')];
-
-			assert.equal(filterSendableTokens({ tokens, assets: undefined }), tokens);
-		});
 	});
 
 	describe('pendingSendFor', () => {

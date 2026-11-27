@@ -7,10 +7,7 @@ primary_region = "ams"
 [build]
   dockerfile = "Dockerfile.web"
   [build.args]
-    # This image is the web2 site only; the web3 bundle keeps shipping to
-    # vici.market through the Juno deploy, which never reads this file.
     VITE_WEB2_API_URL = "https://api.vici.app"
-    VITE_BACKEND = "web2"
     # Public Cloudflare Turnstile site key for the bot check on the anonymous
     # endpoints (the backend holds the matching TURNSTILE_SECRET_KEY). The
     # widget is "vici.app" in Cloudflare, managed mode, for vici.app and

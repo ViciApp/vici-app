@@ -11,10 +11,8 @@
 	import MarketDetailShareButton from '#lib/components/market/MarketDetailShareButton.svelte';
 	import MarketDetailSkeleton from '#lib/components/market/MarketDetailSkeleton.svelte';
 	import MarketDetailStatsGrid from '#lib/components/market/MarketDetailStatsGrid.svelte';
-	import MarketDetailTopPredictors from '#lib/components/market/MarketDetailTopPredictors.svelte';
 	import MarketDetailWhyNow from '#lib/components/market/MarketDetailWhyNow.svelte';
 	import MarketMetadataForm from '#lib/components/market/MarketMetadataForm.svelte';
-	import MarketResolutionInterface from '#lib/components/market/MarketResolutionInterface.svelte';
 	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
 	import OutcomeBadge from '#lib/components/market/OutcomeBadge.svelte';
 	import TradeModal from '#lib/components/market/TradeModal.svelte';
@@ -25,37 +23,22 @@
 	import { SUPPORTED_LOCALES } from '#lib/constants/locale.constants.ts';
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
-	import { leaderboard, visibleLeaderboard } from '#lib/derived/leaderboard.derived.ts';
 	import { marketMetadata } from '#lib/derived/market-metadata.derived.ts';
 	import { marketTags } from '#lib/derived/market-tags.derived.ts';
 	import { pageMarketId } from '#lib/derived/page-market.derived.ts';
 	import { resolvedPositions } from '#lib/derived/resolved-positions.derived.ts';
-	import {
-		authPrincipal,
-		userIsAdmin,
-		userIsAdminOrSolver,
-		userSignedIn
-	} from '#lib/derived/user.derived.ts';
+	import { authPrincipal, userIsAdmin, userSignedIn } from '#lib/derived/user.derived.ts';
 	import { track } from '#lib/services/analytics.services.ts';
 	import { getUserMarketSignals } from '#lib/services/market-signals.services.ts';
 	import { listMarketTranslations } from '#lib/services/market-translation.services.ts';
 	import { loadMarket } from '#lib/services/market.services.ts';
 	import { getPositionsForMarket } from '#lib/services/position.services.ts';
-	import { loadProfilesByPrincipals } from '#lib/services/profile.services.ts';
-	import {
-		areMarketTopPredictorsAvailable,
-		getMarketTopPredictors
-	} from '#lib/services/top-predictors.services.ts';
 	import { getSeriesTradeVolume, loadMarketPriceCandles } from '#lib/services/trade.services.ts';
 	import { showCompanion } from '#lib/stores/companion.store.ts';
 	import { startGuestSession } from '#lib/stores/guest.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { marketLanguagePreference } from '#lib/stores/market-language.store.ts';
-	import type {
-		FollowedLeanSignal,
-		PriorCallSignal,
-		TopPredictorSignal
-	} from '#lib/types/market-signals.ts';
+	import type { PriorCallSignal } from '#lib/types/market-signals.ts';
 	import type { MarketTranslation } from '#lib/types/market-translation.ts';
 	import type { CallSide, Market, MarketId } from '#lib/types/market.ts';
 	import type { Position, ResolvedPosition } from '#lib/types/position.ts';
@@ -101,26 +84,12 @@
 	// below); a per-market flip stays local and doesn't change the preference.
 	let showOriginal = $state($marketLanguagePreference === 'original');
 
-	// Viewer-relative market signals (the prior call they hold here, the
-	// lean of the people they follow). Sparse by construction: absent
+	// Viewer-relative market signal (the prior call they hold here). Sparse
+	// by construction: absent
 	// when signed-out or when no signal exists for this market, so the
 	// surfaces that read them simply omit their row rather than show
 	// invented data.
-	let followedLean = $state<FollowedLeanSignal | undefined>();
 	let priorCall = $state<PriorCallSignal | undefined>();
-
-	// Leaderboard-ranked predictors holding a live position on this market,
-	// with the side they took. Public data (the same list for every visitor,
-	// bar the viewer's own row when they opted out of the global leaderboard),
-	// resolved against the cached global leaderboard once it and the market
-	// are both known. `undefined` while unresolved so the section can tell
-	// "still loading" apart from "nobody's here".
-	let topPredictors = $state<TopPredictorSignal[] | undefined>();
-	// The market and candidate set the list was last resolved for. The
-	// candidates depend on the viewer and on which profiles have loaded, so a
-	// sign-in, sign-out or opt-out change re-probes rather than keeping the
-	// list resolved for a different set.
-	let topPredictorsKey = $state<string | undefined>();
 
 	// Chart period chip selection. Drives which window of market-wide price
 	// history the chart fetches and plots (see priceHistoryByPeriod).
@@ -181,11 +150,6 @@
 			// resolves, rather than briefly plotting stale prices. The
 			// per-period fetch effect repopulates the active period.
 			priceHistoryByPeriod = {};
-
-			// Same for the top-predictors list: clearing the resolved
-			// key re-arms the fetch effect for the new market.
-			topPredictors = undefined;
-			topPredictorsKey = undefined;
 
 			// Re-arm the volume read for the new market (pulse until it drains).
 			marketVolume = undefined;
@@ -357,96 +321,6 @@
 		}
 	};
 
-	// Every leaderboard owner but the viewer, whose live profile `Authn`
-	// already mirrors into the profile cache. `visibleLeaderboard` reads the
-	// opt-out from that cache and hides a row until its profile is loaded, so
-	// these are hydrated from the raw leaderboard: hydrating only the visible
-	// rows would never fetch the hidden ones.
-	const leaderboardOwners = $derived(
-		$leaderboard.map(({ owner }) => owner).filter((owner) => owner !== $authPrincipal)
-	);
-	const leaderboardOwnersKey = $derived(leaderboardOwners.join(','));
-
-	// The owner set whose profiles have finished loading, so the probe below
-	// waits for the full candidate set instead of resolving a partial one and
-	// flashing the empty state. The plain `let` only stops a leaderboard tick
-	// from starting a second load for a set already loading.
-	let hydratedLeaderboardKey = $state<string | undefined>();
-	let hydratingLeaderboardKey: string | undefined;
-
-	const topPredictorsAvailable = areMarketTopPredictorsAvailable();
-
-	$effect(() => {
-		const key = leaderboardOwnersKey;
-
-		if (
-			!topPredictorsAvailable ||
-			key === hydratedLeaderboardKey ||
-			key === hydratingLeaderboardKey
-		) {
-			return;
-		}
-
-		hydratingLeaderboardKey = key;
-		void loadProfilesByPrincipals({ principals: leaderboardOwners }).then(() => {
-			hydratedLeaderboardKey = key;
-		});
-	});
-
-	// Resolve the top-predictors list once the market is known and the
-	// leaderboard's profiles have loaded. Like the price history this works
-	// signed-out and rides behind the first paint. Keyed on the market and the
-	// candidate owners, so the 30s poll and unrelated leaderboard ticks never
-	// re-probe, while a change in who may be listed does.
-	$effect(() => {
-		const id = market?.id;
-		const candidates = $visibleLeaderboard.map(({ owner }) => owner);
-
-		if (
-			isNullish(id) ||
-			candidates.length === 0 ||
-			hydratedLeaderboardKey !== leaderboardOwnersKey
-		) {
-			return;
-		}
-
-		const key = `${id}|${candidates.join(',')}`;
-
-		if (topPredictorsKey === key) {
-			return;
-		}
-
-		topPredictorsKey = key;
-		void fetchTopPredictors({ id, key, candidates });
-	});
-
-	// Fails open: an error leaves the list empty rather than blocking the
-	// page, and a late response for a market or candidate set the page has
-	// since moved past is dropped.
-	const fetchTopPredictors = async ({
-		id,
-		key,
-		candidates
-	}: {
-		id: MarketId;
-		key: string;
-		candidates: string[];
-	}) => {
-		try {
-			const signals = await getMarketTopPredictors({ marketId: id, candidates });
-
-			if (topPredictorsKey !== key) {
-				return;
-			}
-
-			topPredictors = signals;
-		} catch {
-			if (topPredictorsKey === key) {
-				topPredictors = [];
-			}
-		}
-	};
-
 	// Drain the market's traded-volume tape once the market (and its token
 	// precision) is known. Viewer-independent (works signed-out) and rides
 	// behind the first paint; the resolved-market guard keeps the 30s poll and
@@ -485,11 +359,10 @@
 	// Viewer-relative signals are a secondary, signed-in-only fetch
 	// (trade history + the activity of people the viewer follows). It
 	// rides on top of the market load rather than blocking the first
-	// paint, and fails open: any error just leaves the prior-call /
-	// followed-lean rows hidden.
+	// paint, and fails open: any error just leaves the prior-call row
+	// hidden.
 	const fetchSignals = async (m: Market | undefined) => {
 		if (isNullish(m) || !$userSignedIn) {
-			followedLean = undefined;
 			priorCall = undefined;
 
 			return;
@@ -497,14 +370,11 @@
 
 		try {
 			const signals = await getUserMarketSignals({
-				domain: m.balanceDomain,
-				marketIds: [m.id]
+				domain: m.balanceDomain
 			});
 
-			followedLean = signals.followedLean[m.id];
 			priorCall = signals.priorCalls[m.id];
 		} catch {
-			followedLean = undefined;
 			priorCall = undefined;
 		}
 	};
@@ -554,17 +424,11 @@
 			// The silent refresh deliberately skips `fetchSignals` and the
 			// price-history fetch (the 30s consensus poll shouldn't re-pull
 			// either every tick), but the viewer just traded, so the chart's
-			// real price history and the prior-call / followed-lean signals
-			// are now stale. Re-pull signals explicitly, and clear the
+			// real price history and the prior-call signal are now stale. Re-pull signals explicitly, and clear the
 			// price-history cache so the fetch effect re-resolves the active
 			// period (other periods refetch lazily when reselected).
 			void fetchSignals(market);
 			priceHistoryByPeriod = {};
-
-			// The viewer may themselves rank on the leaderboard, in which
-			// case their fresh call belongs in the top-predictors list;
-			// re-arm the fetch effect rather than waiting for a navigation.
-			topPredictorsKey = undefined;
 
 			// The viewer's trade adds to volume: re-arm the drain to refresh it
 			// in place (the existing value stays put, so the tile doesn't pulse).
@@ -687,12 +551,6 @@
 	const canEditMetadata = $derived(
 		nonNullish(market) && ($userIsAdmin || market.creator === $authPrincipal)
 	);
-
-	const canResolve = $derived(
-		nonNullish(market) && market.status !== 'Resolved' && $userIsAdminOrSolver
-	);
-
-	const showAdminActions = $derived(canEditMetadata || canResolve);
 
 	// Resolution choreography: see `docs/ai/frontend/design.md` §7.6.
 	// On the first time the user views a resolved market they have a
@@ -987,34 +845,12 @@
 
 		<MarketDetailResolutionCard {market} resolution={displayResolution} />
 
-		{#if !isColdStart && topPredictorsAvailable}
-			<!-- Hidden while the cold-start banner is up: a market with no
-			     volume has no predictors, so an empty section under the
-			     banner would only echo it. Hidden on a backend that cannot
-			     resolve it (see `areMarketTopPredictorsAvailable`). -->
-
-			<MarketDetailTopPredictors {followedLean} {topPredictors} />
-		{/if}
-
-		{#if showAdminActions}
+		{#if canEditMetadata}
 			<section
 				class="market-detail-admin"
 				aria-label={t({ locale: $localeStore, key: 'market.detail.admin_actions' })}
 			>
-				{#if canEditMetadata}
-					<MarketMetadataForm canEdit {market} />
-				{/if}
-
-				{#if canResolve}
-					<MarketResolutionInterface
-						{market}
-						onSettled={() => {
-							if (nonNullish(market)) {
-								fetchMarket({ id: market.id, silent: true });
-							}
-						}}
-					/>
-				{/if}
+				<MarketMetadataForm canEdit {market} />
 			</section>
 		{/if}
 

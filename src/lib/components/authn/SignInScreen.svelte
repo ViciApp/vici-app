@@ -122,7 +122,7 @@
 				<p class="signin-sub">{t({ locale: $localeStore, key: subcopyKey })}</p>
 			</div>
 
-			<SignInProviderStack {mode} {onSuccess} />
+			<SignInProviderStack {onSuccess} />
 		</div>
 
 		<div class="signin-foot">

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import type { Doc } from '@junobuild/core';
 	import { Check, ChevronRight, Link2, Plus, Share2, Zap } from '@lucide/svelte/icons';
 	import { onMount, tick } from 'svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
@@ -47,6 +46,7 @@
 	import { myReferralsStore, refreshMyReferrals } from '#lib/stores/referrals.store.ts';
 	import { globalStandingsStore } from '#lib/stores/standings.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
+	import type { KeyedDoc } from '#lib/types/keyed-doc.ts';
 	import type { UserProfile } from '#lib/types/profile.ts';
 	import type { Relation } from '#lib/types/relation.ts';
 	import type { ResolvedResult } from '#lib/types/social.ts';
@@ -473,7 +473,7 @@
 		}
 	});
 
-	const handleAccept = async (doc: Doc<Relation>) => {
+	const handleAccept = async (doc: KeyedDoc<Relation>) => {
 		processingKey = doc.key;
 
 		try {
@@ -509,7 +509,7 @@
 		}
 	};
 
-	const handleReject = async (doc: Doc<Relation>) => {
+	const handleReject = async (doc: KeyedDoc<Relation>) => {
 		processingKey = doc.key;
 
 		try {
@@ -527,7 +527,7 @@
 		}
 	};
 
-	const handleCancelSent = async (doc: Doc<Relation>) => {
+	const handleCancelSent = async (doc: KeyedDoc<Relation>) => {
 		processingKey = doc.key;
 
 		try {
@@ -1235,10 +1235,10 @@
 								</span>
 								<span class="feed-copy">
 									<span class="feed-line">
-										<b class="feed-handle"
-											>@{digest.profile?.nickname ??
-												t({ locale: $localeStore, key: 'arena.friends.unknown_nickname' })}</b
-										>
+										<b class="feed-handle">
+											@{digest.profile?.nickname ??
+												t({ locale: $localeStore, key: 'arena.friends.unknown_nickname' })}
+										</b>
 										<span class="feed-action">
 											{t({
 												locale: $localeStore,
@@ -1249,21 +1249,21 @@
 												params: { count: digest.total }
 											})}
 										</span>
-										<span class="num feed-record"
-											>· <span class="feed-record-win"
-												>{t({
+										<span class="num feed-record">
+											· <span class="feed-record-win">
+												{t({
 													locale: $localeStore,
 													key: 'arena.friends.feed.record_won',
 													params: { count: digest.won }
-												})}</span
-											>–<span class="feed-record-loss"
-												>{t({
+												})}
+											</span>–<span class="feed-record-loss">
+												{t({
 													locale: $localeStore,
 													key: 'arena.friends.feed.record_lost',
 													params: { count: digest.lost }
-												})}</span
-											></span
-										>
+												})}
+											</span>
+										</span>
 									</span>
 									<span class="feed-meta">
 										{#if nonNullish(digest.windowLabel)}

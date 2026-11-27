@@ -1,36 +1,26 @@
 // Adoption of importer-provisioned accounts. The data migration owns every
 // legacy principal's rows through a provisional claim_pending user linked
 // with matched_via = 'etl'; this module hands such an account to the real
-// person once they prove who they are:
-//
-//   - login: a first verified sign-in whose email matches the exported
-//     legacy identity adopts the provisional account itself, so no empty
-//     twin account is ever created;
-//   - claim: a signed principal handoff folds the caller's still-empty
-//     account into the provisional one (identities, sessions and links move,
-//     the empty user row goes), so the caller keeps their session and lands
-//     on the imported history.
+// person once they prove who they are: a first verified sign-in whose email
+// matches the exported legacy identity adopts the provisional account itself,
+// so no empty twin account is ever created.
 //
 // Two populated accounts are never merged: user ids are embedded in activity
 // and relation keys, and VXP was paid to each account's own derived
 // principal, so no per-table merge rule is safe. Those cases are recorded in
 // legacy_adoption_conflicts for an admin instead.
 //
-// Lock order, shared by every path here: the per-email login advisory locks
-// first (sorted), then users rows (ascending id when more than one), then the
-// legacy_principals row. A claim takes the email locks of every identity it
-// may move, so a first login for one of those addresses runs strictly before
-// or after the fold and never attaches to, or provisions next to, an account
-// the claim is rewriting.
+// Lock order: the per-email login advisory locks first (sorted), then users
+// rows (ascending id when more than one), then the legacy_principals row.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { query, tx, type TxQuery } from '../db/client';
+import { query, type TxQuery } from '../db/client';
 
-export type AdoptionMatch = 'openid_email' | 'profile_email' | 'claim';
+export type AdoptionMatch = 'openid_email' | 'profile_email';
 
 type ConflictReason = 'multiple_matches' | 'account_not_empty';
 
-/** Serialize with every other login or claim touching these addresses for
+/** Serialize with every other login touching these addresses for
  * the rest of the transaction. Sorted so two holders of overlapping sets
  * cannot deadlock. */
 export const lockLoginEmails = async ({
@@ -43,56 +33,6 @@ export const lockLoginEmails = async ({
 	for (const email of [...new Set(emails)].sort()) {
 		await q(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [`login-email:${email}`]);
 	}
-};
-
-/**
- * Whether an account holds no user-owned data yet: only its users row,
- * auth identities, sessions, legacy links, and custody accounts that never
- * saw a ledger entry, deposit or withdrawal. Anything else (a profile, a
- * feed row, an award, a league seat, a granted role...) makes it non-empty.
- * Attribution-only references (analytics events, market edit stamps) do not
- * count: they follow the account when it is folded.
- */
-export const isAccountEmpty = async ({
-	q,
-	userId
-}: {
-	q: TxQuery;
-	userId: string;
-}): Promise<boolean> => {
-	const rows = await q<{ has_data: boolean }>(
-		`select
-		   exists (select 1 from users where id = $1 and (role <> 'user' or hard_deleted_at is not null))
-		   or exists (select 1 from profiles where user_id = $1)
-		   or exists (select 1 from user_stats where user_id = $1)
-		   or exists (select 1 from user_monthly_stats where user_id = $1)
-		   or exists (select 1 from resolved_results where user_id = $1)
-		   or exists (select 1 from relations where participant_one = $1 or participant_two = $1)
-		   or exists (select 1 from activities where user_id = $1 or target_user = $1)
-		   or exists (select 1 from activity_reactions where liker = $1)
-		   or exists (select 1 from vxp_awards where user_id = $1)
-		   or exists (select 1 from referrals where referee_user_id = $1 or referrer_user_id = $1)
-		   or exists (select 1 from referral_codes where owner_user_id = $1)
-		   or exists (select 1 from leagues where owner_user_id = $1)
-		   or exists (select 1 from league_members where member_user_id = $1)
-		   or exists (
-		     select 1 from battles
-		     where proposer_user_id = $1
-		        or (kind = 'duel' and (side_a = $1::text or side_b = $1::text))
-		   )
-		   or exists (select 1 from affiliations where member_user_id = $1)
-		   or exists (select 1 from school_submissions where user_id = $1)
-		   or exists (select 1 from withdrawals where user_id = $1)
-		   or exists (
-		     select 1 from custody_accounts c
-		     where c.user_id = $1
-		       and (exists (select 1 from ledger_entries l where l.account_id = c.id)
-		            or exists (select 1 from deposits d where d.account_id = c.id))
-		   ) as has_data`,
-		[userId]
-	);
-
-	return rows[0]?.has_data === false;
 };
 
 const recordConflict = async ({
@@ -177,9 +117,9 @@ interface AdoptionCandidate {
 	via_openid: boolean;
 }
 
-/** Lock and adopt one ranked candidate; false when a concurrent claim
- * adopted it since the ranking read (the row lock waits that claim out and
- * the claim_pending re-check then skips the account). */
+/** Lock and adopt one ranked candidate; false when a concurrent adoption
+ * took it since the ranking read (the row lock waits that one out and the
+ * claim_pending re-check then skips the account). */
 const tryAdoptCandidate = async ({
 	q,
 	candidate,
@@ -270,156 +210,6 @@ export const adoptOnFirstLogin = async ({
 
 	return adopted;
 };
-
-/** Fold an empty account into a locked provisional one: every sign-in
- * identity, live session and legacy link moves over, attribution-only
- * references are re-pointed, the unused custody rows and the user row go. */
-const foldEmptyAccount = async ({
-	q,
-	fromUserId,
-	toUserId
-}: {
-	q: TxQuery;
-	fromUserId: string;
-	toUserId: string;
-}): Promise<void> => {
-	await q(
-		`update users t
-		 set display_name = coalesce(t.display_name, f.display_name),
-		     avatar_url = coalesce(t.avatar_url, f.avatar_url)
-		 from users f
-		 where t.id = $2 and f.id = $1`,
-		[fromUserId, toUserId]
-	);
-
-	// Moving the session rows (rather than minting new ones) keeps the
-	// caller's cookie valid: it now resolves to the adopted account.
-	await q(`update auth_identities set user_id = $2 where user_id = $1`, [fromUserId, toUserId]);
-	await q(`update sessions set user_id = $2 where user_id = $1`, [fromUserId, toUserId]);
-	await q(`update legacy_principals set user_id = $2 where user_id = $1`, [fromUserId, toUserId]);
-	await q(`update analytics_events set user_id = $2 where user_id = $1`, [fromUserId, toUserId]);
-	await q(`update market_metadata set updated_by = $2 where updated_by = $1`, [
-		fromUserId,
-		toUserId
-	]);
-	await q(`update market_translations set updated_by = $2 where updated_by = $1`, [
-		fromUserId,
-		toUserId
-	]);
-
-	// Emptiness guarantees these rows carry no ledger, deposit or withdrawal
-	// history (the FKs restrict otherwise). Funds sent on-chain to such an
-	// address without ever being observed stay recoverable: the key derives
-	// from the root secret and the old user id, not from this row.
-	await q(`delete from custody_accounts where user_id = $1`, [fromUserId]);
-	await q(`delete from users where id = $1`, [fromUserId]);
-};
-
-export type ClaimLinkOutcome =
-	| { kind: 'linked' | 'already_linked' | 'adopted'; userId: string }
-	| { kind: 'conflict' | 'account_not_empty' };
-
-/**
- * Link a principal proven by the claim handoff to the caller's account.
- * An unlinked principal links directly; one still held by an importer
- * provisional account is adopted when the caller's account is empty (the
- * caller becomes that account, `userId` in the outcome) and refused with
- * `account_not_empty` otherwise; one owned by any other real account is a
- * conflict.
- */
-export const claimPrincipal = ({
-	principal,
-	callerUserId
-}: {
-	principal: string;
-	callerUserId: string;
-}): Promise<ClaimLinkOutcome> =>
-	tx(async (q) => {
-		const callerEmails = await q<{ email: string }>(
-			`select distinct lower(email) as email
-			 from auth_identities
-			 where user_id = $1 and email is not null`,
-			[callerUserId]
-		);
-
-		await lockLoginEmails({ q, emails: callerEmails.map(({ email }) => email) });
-
-		const inserted = await q<{ principal: string }>(
-			`insert into legacy_principals (principal, user_id, matched_via)
-			 values ($1, $2, 'claim')
-			 on conflict (principal) do nothing
-			 returning principal`,
-			[principal, callerUserId]
-		);
-
-		if (nonNullish(inserted[0])) {
-			return { kind: 'linked', userId: callerUserId };
-		}
-
-		const owners = await q<{ user_id: string; provisional: boolean }>(
-			`select lp.user_id, (lp.matched_via = 'etl' and u.claim_pending) as provisional
-			 from legacy_principals lp
-			 join users u on u.id = lp.user_id
-			 where lp.principal = $1`,
-			[principal]
-		);
-		const [owner] = owners;
-
-		if (owner?.user_id === callerUserId) {
-			return { kind: 'already_linked', userId: callerUserId };
-		}
-
-		// Unlocked pre-check so a principal owned by a real account never
-		// takes a row lock on that account; the locked re-check below decides.
-		if (isNullish(owner) || !owner.provisional) {
-			return { kind: 'conflict' };
-		}
-
-		const ownerId = owner.user_id;
-
-		// Both users rows, ascending id: the documented lock order. Locking the
-		// caller also blocks its concurrent writes (child-row FK checks need a
-		// key-share lock), so the emptiness verdict below cannot go stale.
-		await q(`select id from users where id = any($1::uuid[]) order by id for update`, [
-			[ownerId, callerUserId]
-		]);
-
-		if (!(await lockProvisionalLink({ q, principal, userId: ownerId }))) {
-			// Not (or no longer) an importer link: either a real account owns it
-			// or a concurrent adoption just handed it to one.
-			const now = await q<{ user_id: string }>(
-				`select user_id from legacy_principals where principal = $1`,
-				[principal]
-			);
-
-			return now[0]?.user_id === callerUserId
-				? { kind: 'already_linked', userId: callerUserId }
-				: { kind: 'conflict' };
-		}
-
-		if (!(await isAccountEmpty({ q, userId: callerUserId }))) {
-			await recordConflict({
-				q,
-				principal,
-				provisionalUserId: ownerId,
-				matchedUserId: callerUserId,
-				reason: 'account_not_empty'
-			});
-
-			return { kind: 'account_not_empty' };
-		}
-
-		await foldEmptyAccount({ q, fromUserId: callerUserId, toUserId: ownerId });
-		await finalizeAdoption({
-			q,
-			provisionalUserId: ownerId,
-			principal,
-			matchedVia: 'claim',
-			displayName: null
-		});
-
-		return { kind: 'adopted', userId: ownerId };
-	});
 
 export interface AdoptionConflict {
 	principal: string;

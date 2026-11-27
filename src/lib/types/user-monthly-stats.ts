@@ -1,4 +1,4 @@
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /**
  * Per-user, per-month gameplay stats. One doc per `${owner}/${YYYY-MM}`

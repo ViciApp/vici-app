@@ -358,6 +358,7 @@ export const PROFILE_SEARCH_MAX_RESULTS = 20;
  * {@link PROFILE_SEARCH_MIN_QUERY_LENGTH} matches nothing. Results are capped,
  * so the exact handle ranks first, then handles that start with the query:
  * the add-friend lookup picks the exact handle out of this page. */
+
 export const searchProfiles = async (queryStr: string): Promise<Profile[]> => {
 	const needle = queryStr.trim().toLowerCase();
 

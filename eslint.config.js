@@ -46,13 +46,10 @@ export default ts.config(
 
 	{
 		rules: {
-			// `#lib`, `#declarations`, `#satellite` and `#root` are package.json subpath
+			// `#lib`, `#declarations` and `#root` are package.json subpath
 			// imports. The resolver maps them to a parent directory, but they are
 			// the project aliases, not `../` paths.
-			'import/no-relative-parent-imports': [
-				'error',
-				{ ignore: ['^#(lib|declarations|satellite|root)(/|$)'] }
-			]
+			'import/no-relative-parent-imports': ['error', { ignore: ['^#(lib|declarations|root)(/|$)'] }]
 		}
 	},
 

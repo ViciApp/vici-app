@@ -2,8 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { E2E_WEB2_API_URL, E2E_WEB2_APP_URL } from './e2e-web2/support/urls';
 
 /**
- * End-to-end suite for the web2 build: the production bundle built with
- * `VITE_BACKEND=web2`, served by `vite preview`, talking to the real API
+ * End-to-end suite: the production bundle, served by `vite preview`, talking to the real API
  * (`backend/`) on a disposable local Postgres. The API runs through its E2E
  * entrypoint (`backend/e2e/server.ts`), which swaps the on-chain engine and
  * the VXP ledger for deterministic fakes and keeps email in an in-memory
@@ -92,7 +91,6 @@ export default defineConfig({
 			stdout: 'ignore',
 			stderr: 'pipe',
 			env: {
-				VITE_BACKEND: 'web2',
 				VITE_WEB2_API_URL: E2E_WEB2_API_URL
 			}
 		}

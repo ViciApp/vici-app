@@ -9,8 +9,8 @@ Read alongside:
 
 - [`PRODUCT.md` §VXP economy](./PRODUCT.md#vxp-economy): what the
   product does (shipped behaviour).
-- [`satellite/economy.md`](./satellite/economy.md): how an award is
-  implemented (invariants + new-award-type checklist).
+- [`backend/README.md`](../../backend/README.md): how the API grants and
+  pays an award.
 - The three constants files, which are the **single source of truth
   for every value**:
   [`vxp-economy.constants.ts`](../../src/lib/constants/vxp-economy.constants.ts),
@@ -66,10 +66,9 @@ the rules are governed, and the implementation follows them.
    for the actual credit.** The FE computes the expected return for UI
    (the payout formula in
    [`vxp-economy.utils.ts`](../../src/lib/utils/vxp-economy.utils.ts));
-   the satellite computes and transfers the real amount. Where a reward
-   amount could be inferred client-side it is **cosmetic**: the
-   satellite recomputes it from its own authoritative state before
-   paying.
+   the API computes and transfers the real amount. Where a reward
+   amount could be inferred client-side it is **cosmetic**: the API
+   recomputes it from its own authoritative state before paying.
 4. **Two numbers share the name "VXP."** The ledger **token** balance
    (holdings = available + backed collateral) and the lifetime
    **points** score (drives level, only grows) are different
@@ -77,8 +76,7 @@ the rules are governed, and the implementation follows them.
    This page governs the **token** economy.
 5. **Every award is a real ICRC transfer**, recorded in `vxp_awards`
    with lifecycle `pending → paid | failed`, never a cosmetic
-   counter. The implementation invariants for this are in
-   [`satellite/economy.md`](./satellite/economy.md).
+   counter (`backend/src/vxp/awards.ts`).
 
 ## Earn surfaces
 
@@ -106,8 +104,7 @@ The authoritative list of award **types** is the `VxpAwardType` union
 same set plus `onboarding` from `VXP_AWARD_TYPES`
 ([`backend/src/vxp/awards.ts`](../../backend/src/vxp/awards.ts)); its
 tests pin that array to the union and to the `vxp_awards` check
-constraint (see
-[`satellite/economy.md`](./satellite/economy.md#invariants)).
+constraint.
 
 ## Caps and gates: the anti-farming spine
 
@@ -121,41 +118,29 @@ The bound that protects each surface today:
   enforced, and where it is not:
   - **Call size.** The client guard (`assertViciXpHumanPremium` in
     [`vxp-economy.utils.ts`](../../src/lib/utils/vxp-economy.utils.ts))
-    refuses a size outside the set on both builds. The web2 API's order
-    routes refuse, on a ViciXp series, a declared size outside the set and
+    refuses a size outside the set. The API's order routes refuse, on a ViciXp series, a declared size outside the set and
     an order whose notional disagrees with it (`invalid_call_size`,
     [`backend/src/vxp/call-size.ts`](../../backend/src/vxp/call-size.ts));
-    an order that declares no size is held to the maximum. No satellite
-    path sees an order and the engine has no size rule, so on the web3
-    build only the client enforces it: a modified client can send any size
-    straight to the clearing canister.
-  - **`p_win` floor.** A preview only, on both builds (`vxpNetWin`):
+    an order that declares no size is held to the maximum. The engine has
+    no size rule of its own.
+  - **`p_win` floor.** A preview only (`vxpNetWin`):
     settlement pays the raw `amount · (1/price − 1)` cashflow with no floor.
   - The fix for both is an engine rule in icdc-core, written up in the
     [call-size spec's follow-up](./spec-driven-development/specs/2026-11-26-impr-vxp-call-size-range.md#icdc-core-follow-up).
 - **Referrer reward**: diminishing curve **and** a hard lifetime cap
-  to zero; the count comes from the satellite's own scan, so the client
+  to zero; the count comes from the API's own records, so the client
   cannot inflate it. It counts every earlier redemption of the
   referrer's code, whatever its payout state, so the order in which the
   referees make their first prediction cannot keep a reward on a higher
-  tier or past the cap (`countPriorRedemptions` in
-  [`referral.services.ts`](../../src/satellite/services/referral.services.ts)).
-  Deleting a referred account that has started paying never shrinks it;
-  one that never did leaves the order, and a row already armed never pays
-  more than the amount it was armed with. On
-  the web2 API a paid conversion keeps its slot through the referrer's
-  own referral award, which outlives the referee's redemption row
-  (`countPriorReferrerRedemptions` in
+  tier or past the cap. A paid conversion keeps its slot through the
+  referrer's own referral award, which outlives the referee's redemption
+  row (`countPriorReferrerRedemptions` in
   [`backend/src/vxp/referral.ts`](../../backend/src/vxp/referral.ts)).
-  On the satellite only a controller deletes a referral row, the account
-  purge keeps one that has started paying, and its payout state only
-  moves forward (`assertSetReferral`, `isReferralPayoutRecord` in
-  [`referral.services.ts`](../../src/satellite/services/referral.services.ts)).
 - **Referee reward**: one-time per person (a deleted account's identity
   cannot redeem again, see below), only inside the post-signup
   redemption window.
 - **Referral channels share one row.** An invite link, a league invite's
-  `?ref=`, a market share `?ref=` and, on the web2 API, a challenge link
+  `?ref=`, a market share `?ref=` and a challenge link
   all write the same single `referrals` row per referee (its primary
   key), so a person is credited to one inviter ever and no channel is an
   earn surface of its own: a challenge link pays nothing beyond the two
@@ -171,10 +156,9 @@ The bound that protects each surface today:
   and `contrarian` from the engine's fills and settlements, `marathon`
   from the server-derived streak, `league-founder` from the league
   rosters, where every row is a member who joined themselves (a league
-  owner changes an existing member's role but never adds anyone, on
-  either backend). `top-decile` (days held in the leaderboard's top decile),
+  owner changes an existing member's role but never adds anyone). `top-decile` (days held in the leaderboard's top decile),
   `sharpest-eye` and `bold-caller` (monthly accuracy awards) are not paid
-  by the web2 API. The top-decile day counter and bold-caller's consensus
+  by the API. The top-decile day counter and bold-caller's consensus
   at each call are figures only the client computes; the API scores the
   sharpest-eye podium from settled history for the current and the previous
   month (`GET /api/v1/leaderboard/monthly/:monthAnchor`) but no award reads it.
@@ -205,9 +189,7 @@ The bound that protects each surface today:
   (`getVxpHoldings` in
   [`backend/src/vxp/payout.ts`](../../backend/src/vxp/payout.ts)), since
   the playground auto-deposit sweeps the wallet into clearing within
-  seconds. The satellite cannot read a user's clearing account (every
-  account read is scoped to the calling principal), so its gate still
-  reads the wallet alone. The first side called on a
+  seconds. The first side called on a
   finalised market is the one judged: a miss is recorded, and a later
   call on the other side is refused, so a market cannot be called both
   ways until it pays.
@@ -221,23 +203,19 @@ The bound that protects each surface today:
   affiliation's tally is its opted-in members' settled calls and wins
   over the closed month (`[month start, month close)`), read from the
   clearing canister through the helper league battles are scored with
-  (`settled-history.services.ts` on the satellite, `settledTotalsByPrincipal`
-  in [`backend/src/engine/clearing.ts`](../../backend/src/engine/clearing.ts)
-  on the API), counting only members whose slot was joined before the
+  (`settledTotalsByPrincipal` in
+  [`backend/src/engine/clearing.ts`](../../backend/src/engine/clearing.ts)), counting only members whose slot was joined before the
   month closed. The ranking is frozen on the month's first claim and the
   podium pays from that frozen ranking only; a month where no affiliation
   clears the rank floor has no podium. The live month view reads the
-  monthly stats the client writes (`user_monthly_stats`) on the satellite
-  and the members' settled history so far on the API; neither decides a
-  payout, and the API has no route that writes monthly stats. Paid once
+  members' settled history so far; it decides no payout. Paid once
   per month, kind and place (a university and a country finish in the
   same month are two awards; a month already paid under the older key
   without the kind keeps its one award per place), for a member at month-end whatever their join date, but only
   if the slot was joined before the month closed. A first join has no switch lock, so without
   this anyone could join last month's winner after close and collect its
   prize; a switch or a leave resets the join time, so a move after close
-  never carries tenure. The join time is server-stamped on both backends
-  (the API's `joined_at_ms`, the satellite doc's `created_at`), never a
+  never carries tenure. The join time is server-stamped (`joined_at_ms`), never a
   caller-written field.
 - **Tournament prize**: every match is scored from **settled
   history**: each league's members' settled calls and wins over the
@@ -257,10 +235,8 @@ The bound that protects each surface today:
   open: the round windows are anchored at the month start, so a bracket
   drawn later (or for a closed month) would conclude its closed rounds at
   once on double forfeits and pay prizes for matches nobody played. After
-  round 1 closes, that month has no tournament. The rule lives in one
-  place per stack (`tournamentDrawRefusal` in
-  [`tournament-draw.utils.ts`](../../src/satellite/utils/tournament-draw.utils.ts)
-  and in [`backend/src/tournaments/tournaments.ts`](../../backend/src/tournaments/tournaments.ts))
+  round 1 closes, that month has no tournament. The rule lives in
+  [`backend/src/tournaments/tournaments.ts`](../../backend/src/tournaments/tournaments.ts)
   and refuses with `invalid_input`. The prize is once per member per tournament,
   whatever the place: a member of several podium leagues gets the
   highest tier, and a claim for a second place is refused. Only a
@@ -270,9 +246,8 @@ The bound that protects each surface today:
   before claiming has no membership left to count. The member must also
   have settled at least one call inside the tournament window (all four
   rounds), so a podium league's idle members collect nothing. Prizes
-  paid before this rule are left as they are. The satellite judges
-  the join by the membership doc's stored creation time, never the
-  client-written join field.
+  paid before this rule are left as they are. The join is judged by the
+  server-stamped membership time, never a client-written field.
 
 Every count-bounded cap (flow overtime, calibration, league founder) is
 **strict**, never a soft limit: the count and the award insert run in one
@@ -282,23 +257,18 @@ concurrent claims cannot slip past it. The lock is released before the
 ledger transfer.
 
 No profile field the client writes (`dailyStreak`, `lastActiveDay`,
-`totalTrades`, `unlockedAchievements`) drives a mint on the web2 API:
+`totalTrades`, `unlockedAchievements`) drives a mint:
 those fields are the client's display copy, and so are the `league_stats`
 counters `totalTrades` fans out to. The profile write carries only the
 registration grant. The Flow overtime mint reads the daily goal count,
 which is not a client field at all: `dailyGoalDone` / `dailyGoalDate` are
 written only by `POST /profiles/flow-swipe` (`recordFlowSwipe` in
 [`backend/src/profiles/flow.ts`](../../backend/src/profiles/flow.ts)),
-and a profile write keeps them as stored. The satellite holds the same
-rule: `recordFlowSwipeFn` writes them signing as a controller, and
-`assertDailyGoalUnchanged` in
-[`profile.services.ts`](../../src/satellite/services/profile.services.ts)
-rejects a client `profiles` write that changes them.
+and a profile write keeps them as stored.
 
 Every server-fired award is also keyed for **idempotency** in
 `vxp_awards` (`recipient/awardType/awardKey`), so a hook retry can
-never double-pay; see
-[`satellite/economy.md`](./satellite/economy.md#invariants).
+never double-pay.
 
 **One-time means once per person, across account deletion.** Every
 award but the repeatable `flow_overtime` (`REPEATABLE_VXP_AWARD_TYPES`)
@@ -314,27 +284,17 @@ type and key, nothing else. A grant whose marker exists is refused, and a
 lifetime cap or tier (league founder, referrer) counts the markers, so
 deleting the account resets none of them.
 
-- **Web2 API:** the identity is each sign-in identity the account held,
-  a provider subject and a verified address (a new account reached by
-  either is the same person), digested with HMAC-SHA256 under a key
-  derived from `ROOT_SECRET` (`identityDigest` in
-  [`backend/src/lib/keys.ts`](../../backend/src/lib/keys.ts)). Markers
-  live in the `vxp_award_markers` table, written by `hardDeleteAccount`
-  and read by `grantAward` / `grantCappedAward`, the referrer tier
-  count and the referral redemption
-  ([`backend/src/vxp/award-markers.ts`](../../backend/src/vxp/award-markers.ts)).
-  The referee bonus is keyed by the account's own id, so its marker key
-  is `self`.
-- **Satellite:** the identity is the principal, which signing up again
-  reuses, digested with SHA-224 (the satellite has no secret, so the
-  digest is unkeyed; it keeps the principal out of the record). Markers
-  live in the controllers-scoped `vxp_award_markers` collection, written
-  by the account purge and read by `assertSetVxpAward`, the onboarding
-  payout and the league-founder cap
-  ([`vxp-award-markers.services.ts`](../../src/satellite/services/vxp-award-markers.services.ts)).
-  The referee bonus needs no marker there: the purge keeps a referral
-  record that has started paying (see the referrer reward above), and a
-  principal holding one cannot redeem again.
+The identity is each sign-in identity the account held,
+a provider subject and a verified address (a new account reached by
+either is the same person), digested with HMAC-SHA256 under a key
+derived from `ROOT_SECRET` (`identityDigest` in
+[`backend/src/lib/keys.ts`](../../backend/src/lib/keys.ts)). Markers
+live in the `vxp_award_markers` table, written by `hardDeleteAccount`
+and read by `grantAward` / `grantCappedAward`, the referrer tier
+count and the referral redemption
+([`backend/src/vxp/award-markers.ts`](../../backend/src/vxp/award-markers.ts)).
+The referee bonus is keyed by the account's own id, so its marker key
+is `self`.
 
 ## Known open farm vectors
 
@@ -344,20 +304,12 @@ Recorded deliberately so the next agent inherits them. These are
 1. **New-account mint (sybil).** The onboarding grant plus the referee
    bonus is the largest mint a brand-new account can collect, and it
    needs no prior activity. The current defense is the cost of a fresh
-   sign-in identity per account: an Internet Identity on the satellite,
-   a verified email address (one-time code) or a Google / Apple account
-   on the web2 API. Deleting an account and signing up again with the
+   sign-in identity per account: a verified email address (one-time
+   code) or a Google / Apple account. Deleting an account and signing up again with the
    same identity does not count: its one-time award markers refuse a
    second grant. Harden further only if abuse appears. Tracking:
    **#543**.
-2. **Satellite payouts trust the client-written activity log.** On the
-   satellite, referral and onboarding payouts trigger off the user's
-   `activities` collection (a client write), not an authoritative engine
-   trade, so a spoofed activity could in principle trigger a payout. The
-   web2 API already gates both on the caller's executed fills in the
-   engine (`backend/src/vxp/predictions.ts`); the satellite still needs
-   the same gate. Tracking: **#543**.
-3. **Count-gated mints on cheap calls.** The overtime bonus is gated on
+2. **Count-gated mints on cheap calls.** The overtime bonus is gated on
    raw daily call count, and committed amounts are returnable collateral
    (not a cost), so it can be farmed with throwaway calls; the rolling
    cap bounds how often it mints, not what the calls are worth. The same
@@ -368,20 +320,13 @@ Recorded deliberately so the next agent inherits them. These are
    call-size minimum sets the collateral each counted call locks, so the
    lower it sits the cheaper every one of these is to reach.
    Recommendation: a **minimum qualifying call size** below which a fill
-   counts toward none of them, on both stacks (its own spec, a follow-up
+   counts toward none of them (its own spec, a follow-up
    of the call-size range), and gate overtime on **distinct markets**
    before it mints.
-4. **Low-cost founder mint.** Founding a league is a single free write,
+3. **Low-cost founder mint.** Founding a league is a single free write,
    so the lifetime founder cap still permits a sizeable mint for
    near-zero effort. Recommendation: require a **membership / activity
    quality gate** before the founder award fires.
-
-5. **Satellite profile-write awards.** On the satellite, the streak,
-   flow-volume, achievement and comeback awards still fire off the
-   client's `profiles` write (`dailyStreak`, `totalTrades`,
-   `unlockedAchievements`, `lastActiveDay`). The web2 API derives them
-   from server-side truth instead (`backend/src/vxp/triggers.ts`); the
-   satellite needs the same.
 
 When you implement any of these, move it out of this list and into the
 caps section above, and update the constants, not this page, with the
@@ -428,4 +373,4 @@ The non-obvious "why" behind the rules above.
   was rejected as imprecise there. The maximum, with the `p_win` floor,
   bounds what one call can win, and sizes above it were dropped for
   everyone rather than kept for a few: the same bound on every surface is
-  what the web2 API can check.
+  what the API can check.

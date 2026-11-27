@@ -61,11 +61,11 @@ never touches the release pull request.
 The lane comes from the paths a change actually touches, computed from the diff. The stricter lane
 always wins, and a lane never loosens on its own.
 
-| Lane         | What it covers                                                                                              | Agents build? | Who approves                                                                      |
-| ------------ | ----------------------------------------------------------------------------------------------------------- | ------------- | --------------------------------------------------------------------------------- |
-| **green**    | user-facing copy (`src/lib/constants/messages/**`)                                                          | yes           | spec: the requester, plus a product approver once that role exists; result: below |
-| **standard** | everything else, mostly frontend and web2 backend work                                                      | yes           | the owner; product too for user-visible changes                                   |
-| **red**      | satellite, generated bindings, canister wiring, CI, dependencies, scripts, money, identity, deploy and more | **no**        | the owner, and a person implements it                                             |
+| Lane         | What it covers                                                                                   | Agents build? | Who approves                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------ | ------------- | --------------------------------------------------------------------------------- |
+| **green**    | user-facing copy (`src/lib/constants/messages/**`)                                               | yes           | spec: the requester, plus a product approver once that role exists; result: below |
+| **standard** | everything else, mostly frontend and web2 backend work                                           | yes           | the owner; product too for user-visible changes                                   |
+| **red**      | generated bindings, canister wiring, CI, dependencies, scripts, money, identity, deploy and more | **no**        | the owner, and a person implements it                                             |
 
 Red paths are the protected paths from
 [`governance.md`](./governance.md#boundaries), plus the money, identity and legal files, the canister
@@ -90,15 +90,14 @@ green lane names a product approver although nobody holds that domain today.
 - Merge anything, or approve their own work.
 - Push to any branch other than their task branch.
 - Change CI workflows, branch rules or dependencies.
-- Touch the satellite, generated files, canister wiring, or money, identity and legal code.
+- Touch generated files, canister wiring, or money, identity and legal code.
 - Deploy: releases stay tag-based and human-started.
 
 ## What the builder cannot run
 
 The sandbox has no running Postgres, so its backend `bun test` runs the pure suites and skips every
-DB-backed one; those run only in `backend-checks.yml`, against a real database. The
-`satellite-schema` drift check also stays in CI: its fix lands in `src/satellite/**`, a red path.
-When either fails, the task goes back to the builder or stops for the owner.
+DB-backed one; those run only in `backend-checks.yml`, against a real database.
+When they fail, the task goes back to the builder or stops for the owner.
 
 ## When the config changes
 

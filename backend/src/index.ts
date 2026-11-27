@@ -15,7 +15,6 @@ import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
 import { battlesRoutes } from './routes/battles';
 import { challengesRoutes } from './routes/challenges';
-import { claimRoutes } from './routes/claim';
 import { engineRoutes } from './routes/engine';
 import { eventsRoutes } from './routes/events';
 import { leaderboardRoutes } from './routes/leaderboard';
@@ -189,7 +188,6 @@ export const app = new Elysia({ serve: { maxRequestBodySize: MAX_REQUEST_BODY_BY
 		return { error: refusal };
 	})
 	.use(authRoutes)
-	.use(claimRoutes)
 	.use(walletRoutes)
 	.use(engineRoutes)
 	.use(profilesRoutes)

@@ -35,9 +35,6 @@
 	interface Props {
 		/** Current handle (without the leading `@`). */
 		current: string;
-		/** Owner principal: passed to the availability probe so the user is
-		 *  never told their own current handle is taken. */
-		owner: string;
 		/** Wall-clock ms of the owner's last handle change, from the profile.
 		 *  `undefined` means no prior change on record (immediately changeable). */
 		lastChangeMs?: number;
@@ -46,7 +43,7 @@
 		onSaved: (handle: string) => void;
 	}
 
-	const { current, owner, lastChangeMs, onClose, onSaved }: Props = $props();
+	const { current, lastChangeMs, onClose, onSaved }: Props = $props();
 
 	// One-time snapshot of the cooldown at open. The sheet is remounted on
 	// every open (gated behind `{#if handleEditOpen}` in the parent), so
@@ -134,10 +131,7 @@
 		checkTimer = setTimeout(() => {
 			void (async () => {
 				try {
-					const result = await checkNicknameAvailability({
-						nickname: candidate,
-						principal: owner
-					});
+					const result = await checkNicknameAvailability({ nickname: candidate });
 
 					if (token !== checkToken) {
 						return;
@@ -197,7 +191,7 @@
 		try {
 			// Final guard against a race between the debounced probe and the
 			// tap: re-check synchronously before committing.
-			const result = await checkNicknameAvailability({ nickname: clean, principal: owner });
+			const result = await checkNicknameAvailability({ nickname: clean });
 
 			if (!result.available) {
 				availability = result.reason === 'taken' ? 'taken' : 'failed';

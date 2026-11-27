@@ -1,18 +1,10 @@
 <script lang="ts">
-	import { initSatellite } from '@junobuild/core';
 	import { onMount, type Snippet } from 'svelte';
 	import Authn from '#lib/components/authn/Authn.svelte';
-	import LegacyShutdown from '#lib/components/claim/LegacyShutdown.svelte';
 	import TweaksPanel from '#lib/components/dev/TweaksPanel.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
-	import MaintenanceOverlay from '#lib/components/ui/MaintenanceOverlay.svelte';
 	import Notifications from '#lib/components/ui/Notifications.svelte';
 	import { initAnalytics } from '#lib/services/analytics.services.ts';
-	import {
-		initMaintenanceWatch,
-		reportMaintenanceCandidate
-	} from '#lib/services/maintenance.services.ts';
-	import { isLegacyShutDown } from '#lib/services/new-app-redirect.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { previousPathStore } from '#lib/stores/previous-path.store.ts';
 	import { ensureLocaleCatalogs, t } from '#lib/utils/i18n.utils.ts';
@@ -27,18 +19,10 @@
 
 	const { children }: Props = $props();
 
-	// Build-time: a load of the shut-down legacy build never boots the
-	// satellite, signs anyone in or polls. A tab still running the previous
-	// bundle cannot see this flag; the cutover moves it by stopping the
-	// satellite, which its maintenance watch answers with a reload onto this
-	// build (`.agents/workflows/cutover.md`, step 4).
-	const legacyShutDown = isLegacyShutDown();
-
-	let satelliteInitialized = $state(false);
 	// Non-`en` catalogs load on demand (see `ensureLocaleCatalogs`); holding
 	// the boot gate until the active locale's chain is in memory keeps the
 	// first paint from flashing the `en` fallback. Resolves immediately for
-	// `en`, and the fetch runs concurrently with `initSatellite` otherwise.
+	// `en`.
 	let localeCatalogsReady = $state(false);
 
 	$effect(() => {
@@ -49,48 +33,9 @@
 		});
 	});
 
-	const init = async () => {
-		await initSatellite({
-			workers: {
-				// TODO: reinstate the `auth: true` when the PR is merged and released: https://github.com/junobuild/juno-js/issues/877#issuecomment-4206881878
-				auth: '/workers/auth.worker.js'
-			}
-		});
-
-		satelliteInitialized = true;
-
-		// Start product-analytics capture once the satellite is ready (sets up
-		// the tab-hide flush + emits `session_started`). Fire-and-forget.
-		initAnalytics();
-	};
-
-	$effect(() => {
-		if (legacyShutDown) {
-			return;
-		}
-
-		// A boot from browser-cached assets can land mid-deploy while the
-		// satellite is stopped: route the failure into maintenance detection
-		// instead of hanging on the boot spinner.
-		void init().catch((err: unknown) => {
-			// Keep the failure diagnosable when it is NOT a deploy window (the
-			// app still hangs on the boot spinner in that case).
-			console.error('Satellite init failed', err);
-
-			return reportMaintenanceCandidate(err);
-		});
-	});
-
-	// Polling loaders let satellite rejections bubble (`void tick()` in
-	// `AtomicLoader`), so the global listeners pick up the "canister is
-	// stopped" errors a deploy causes and trigger the maintenance overlay.
-	onMount(() => {
-		if (legacyShutDown) {
-			return;
-		}
-
-		return initMaintenanceWatch();
-	});
+	// Product-analytics capture: the tab-hide flush and the opening
+	// `session_started` event.
+	onMount(initAnalytics);
 
 	// RTL scripts: kept in sync with the flash-free locale boot in
 	// `app.html` so the document direction stays correct after hydrate.
@@ -120,9 +65,7 @@
 	});
 </script>
 
-{#if legacyShutDown && localeCatalogsReady}
-	<LegacyShutdown />
-{:else if !satelliteInitialized || !localeCatalogsReady}
+{#if !localeCatalogsReady}
 	<div
 		class="flex h-screen items-center justify-center"
 		aria-label={t({ locale: $localeStore, key: 'ui.loading' })}
@@ -138,7 +81,5 @@
 {/if}
 
 <Notifications />
-
-<MaintenanceOverlay />
 
 <TweaksPanel />

@@ -1,18 +1,14 @@
-import type { PrincipalText } from '@junobuild/schema';
-
 /**
  * Product analytics event taxonomy: the typed contract every captured
  * event is validated against (cockpit spec DQ-1, "versioned event
- * taxonomy"). This is the source-of-truth TS half of a dual-source pair:
- * the runtime Zod mirror lives in `lib/schema/analytics-event.schema.ts`
- * and MUST be kept in sync (svelte-check only catches the union; an enum
- * mismatch fails at runtime).
+ * taxonomy"). The API keeps its own list, pinned to this union by the
+ * backend shared-drift suite.
  *
  * Design rules:
  *  - Events are **behavioural**, never personal data. Names + a bounded
  *    dimensional `props` vocabulary only: no free-form text, no PII.
- *  - Events are written to YOUR satellite (the `events` collection), not
- *    to any third party. Nothing leaves your infrastructure.
+ *  - Events are written to our own API database, not to any third
+ *    party. Nothing leaves our infrastructure.
  *  - Identity is the pseudonymous `principal`, optional (absent before
  *    sign-in; stitched from `sessionId` on auth: cockpit ENG-1).
  *
@@ -79,8 +75,8 @@ export type AnalyticsEventName =
 	 * selection: the taxonomy macro id, or `macro:micro` when the viewer
 	 * drilled into a subcategory. Closed vocab (taxonomy ids), no PII. (The
 	 * dimension rides `label` rather than dedicated `macro`/`micro` fields
-	 * because the props vocabulary is a closed schema shared with the
-	 * satellite: new dimensions need a satellite regen; `label` is free here.)
+	 * because the props vocabulary is a closed schema shared with the API:
+	 * new dimensions need an API change; `label` is free here.)
 	 */
 	| 'market_category_filter'
 	// ── Trading ───────────────────────────────────────────────────────
@@ -283,13 +279,8 @@ export const SERVER_ANALYTICS_EVENT_NAMES = [
 
 type ServerAnalyticsEventName = (typeof SERVER_ANALYTICS_EVENT_NAMES)[number];
 
-/** The events a client may send through `trackEvents`. */
+/** The events a client may send to the API's event ingest. */
 export type ClientAnalyticsEventName = Exclude<AnalyticsEventName, ServerAnalyticsEventName>;
-
-const SERVER_ANALYTICS_EVENT_NAME_SET: ReadonlySet<string> = new Set(SERVER_ANALYTICS_EVENT_NAMES);
-
-export const isServerAnalyticsEventName = (name: string): name is ServerAnalyticsEventName =>
-	SERVER_ANALYTICS_EVENT_NAME_SET.has(name);
 
 /**
  * Bounded dimensional vocabulary for an event's context. Intentionally a
@@ -313,8 +304,8 @@ export interface AnalyticsEventProps {
 	source?: string;
 	/**
 	 * A small categorical label: A/B variant, swipe direction, etc.
-	 * Named `label` (not `variant`) because `variant` is a Candid reserved
-	 * keyword that breaks the satellite API codegen.
+	 * Named `label` (not `variant`): the name the API's ingest and the
+	 * cockpit read.
 	 */
 	label?: string;
 	/** Ordinal index: e.g. onboarding step, deck position. */
@@ -338,44 +329,14 @@ export interface AnalyticsEventProps {
 }
 
 /**
- * Persisted shape stored in the `events` collection (one doc per event,
- * random doc key, append-only). Written server-side by the satellite
- * `track` endpoint after validation, so timestamps and identity are
- * authoritative.
- */
-export interface AnalyticsEventDoc {
-	/** Event name from the taxonomy. */
-	name: AnalyticsEventName;
-	/** Server-stamped capture time (ms since epoch). Authoritative. */
-	tsMs: number;
-	/**
-	 * Anonymous session id: groups events within a single visit and is the
-	 * stitch key for attaching a `principal` retroactively on sign-in.
-	 */
-	sessionId: string;
-	/**
-	 * Pseudonymous on-chain identity. Absent before sign-in. Never an
-	 * email / name: the principal is not PII. Typed `PrincipalText` (the
-	 * codebase's validated principal-string type) so it can't be mixed with
-	 * arbitrary strings.
-	 */
-	principal?: PrincipalText;
-	/** Route / screen the event fired on, for funnels. No query strings, no PII. */
-	path?: string;
-	/** Bounded behavioural context. */
-	props?: AnalyticsEventProps;
-}
-
-/**
- * Client → satellite wire shape sent to the `trackEvents` endpoint. The
- * server stamps `tsMs` and derives `principal` from the caller (never
- * trusted from the client), so neither appears here.
+ * Client wire shape sent to the API's event ingest. The server stamps the
+ * capture time and derives the account from the session (never trusted from
+ * the client), so neither appears here.
  *
  * The {@link AnalyticsEventProps} dimensions are flattened onto this input
- * (it `extends` them) rather than nested under a `props` key, because the
- * Sputnik codegen rejects a nested optional object inside an array element.
- * The satellite re-nests them into `props` for storage; the FE `track()`
- * helper flattens an ergonomic `props` object into this shape.
+ * (it `extends` them) rather than nested under a `props` key; the API
+ * re-nests them into `props` for storage, and the FE `track()` helper
+ * flattens an ergonomic `props` object into this shape.
  */
 export interface TrackEventInput extends AnalyticsEventProps {
 	/** Event name from the taxonomy. */
@@ -404,26 +365,3 @@ export const ANALYTICS_PROP_KEYS = [
 	'country',
 	'locale'
 ] as const satisfies readonly (keyof AnalyticsEventProps)[];
-
-/** One event-name → count pair within a daily rollup. */
-export interface EventCount {
-	name: AnalyticsEventName;
-	count: number;
-}
-
-/**
- * Per-day rollup doc (collection `event_rollups`, keyed by epoch-day =
- * `floor(tsMs / 86_400_000)`). Bumped inline by the `trackEvents` endpoint
- * as events land; read by `getAnalyticsSummary` so the cockpit gets cheap
- * aggregates without scanning the raw log.
- */
-export interface EventRollupDoc {
-	/** Epoch-day index: `floor(tsMs / 86_400_000)`. Also the doc key. */
-	epochDay: number;
-	/** Start-of-day in ms (`epochDay * 86_400_000`) for easy display. */
-	dayStartMs: number;
-	/** Per-event-name counts accumulated for the day. */
-	counts: EventCount[];
-	/** Last bump time (ms). */
-	updatedAtMs: number;
-}

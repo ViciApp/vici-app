@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
-	import type { PrincipalText } from '@junobuild/schema';
+	import type { PrincipalText } from '@dfinity/zod-schemas';
 	import { onMount } from 'svelte';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import Button from '#lib/components/ui/Button.svelte';

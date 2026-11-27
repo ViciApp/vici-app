@@ -1,6 +1,6 @@
 import type { FriendRequestOutcomeSchema, RelationSchema } from '#lib/schema/relation.schema.ts';
-import type { j } from '@junobuild/schema';
+import type * as z from 'zod';
 
-export type Relation = j.infer<typeof RelationSchema>;
+export type Relation = z.infer<typeof RelationSchema>;
 
-export type FriendRequestOutcome = j.infer<typeof FriendRequestOutcomeSchema>;
+export type FriendRequestOutcome = z.infer<typeof FriendRequestOutcomeSchema>;

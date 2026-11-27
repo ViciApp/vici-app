@@ -3,11 +3,10 @@
 # copy over the fresh install, whatever the working tree holds.
 
 # Installed or generated inside the image: a host copy would overwrite the
-# Linux install and the workers synced from the locked @junobuild/core.
+# Linux install.
 node_modules
 .svelte-kit
 build
-static/workers
 
 # Local secrets and tooling state; none of it is read by the build.
 .env*

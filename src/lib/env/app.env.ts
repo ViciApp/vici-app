@@ -5,10 +5,7 @@ export const viteEnv = (): ImportMetaEnv | undefined =>
 		? (import.meta as ImportMeta & { env?: ImportMetaEnv }).env
 		: undefined;
 
-const isSkylab = (): boolean => viteEnv()?.MODE === 'skylab';
-export const isNotSkylab = (): boolean => !isSkylab();
-
-export const isDev = (): boolean => viteEnv()?.DEV === true || isSkylab();
+export const isDev = (): boolean => viteEnv()?.DEV === true;
 
 export const isProd = (): boolean => viteEnv()?.PROD === true;
 
@@ -18,4 +15,15 @@ export const turnstileSiteKey = (): string | undefined => {
 	const raw: unknown = viteEnv()?.VITE_TURNSTILE_SITE_KEY;
 
 	return typeof raw === 'string' && raw !== '' ? raw : undefined;
+};
+
+/**
+ * Origin of the HTTP API (`VITE_WEB2_API_URL`), without a trailing slash.
+ * Empty when unset, which makes client paths same-origin relative (the
+ * reverse-proxy deployment shape).
+ */
+export const web2ApiBaseUrl = (): string => {
+	const raw: unknown = viteEnv()?.VITE_WEB2_API_URL;
+
+	return typeof raw === 'string' ? raw.replace(/\/+$/, '') : '';
 };

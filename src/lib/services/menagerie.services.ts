@@ -1,5 +1,3 @@
-import { functions } from '#declarations/satellite/satellite.api.ts';
-import { requestLeaderboardRefresh } from '#lib/services/leaderboard.services.ts';
 import { listMyReferrals } from '#lib/services/referral.services.ts';
 import { loadGlobalStandings } from '#lib/services/standings.services.ts';
 import {
@@ -10,16 +8,15 @@ import {
 	myReferralCountStore
 } from '#lib/stores/menagerie.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { getUserRankAndCount as getUserRankAndCountWeb2 } from '#lib/web2/client.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 import { get } from 'svelte/store';
 
 /**
  * Hydrates the live signals the Menagerie trophy layer needs beyond the
  * profile doc: the viewer's global rank + ranked-population size (Goat, via
- * the satellite's full-ranking self-rank query) and the viewer's referral
+ * the API's full-ranking self-rank query) and the viewer's referral
  * count (Parrot). The global `'all'` standings window is refreshed alongside
  * them, which warms the cache the leaderboard and the Arena ranking card read;
  * no Menagerie or profile figure depends on it.
@@ -76,11 +73,7 @@ export const loadMyMenagerieSignals = async (): Promise<void> => {
 						return;
 					}
 
-					requestLeaderboardRefresh();
-
-					const { rank, count } = isWeb2Backend()
-						? await getUserRankAndCountWeb2({ userId: owner })
-						: await functions.getUserRankAndCount({ principalStr: owner });
+					const { rank, count } = await getUserRankAndCountWeb2({ userId: owner });
 
 					if (isCurrent()) {
 						myGlobalRankStore.set({ rank, totalRanked: count });

@@ -33,12 +33,6 @@ export const Web2MeSchema = z.object({
 /** The body of `GET /me` and of the OTP verify that opens a session. */
 export const Web2MeResponseSchema = z.object({ user: Web2MeSchema });
 
-export const Web2ClaimResponseSchema = z.object({
-	principal: z.string(),
-	alreadyLinked: z.boolean(),
-	adopted: z.boolean().optional()
-});
-
 // ─── Engine order submits ────────────────────────────────────────────────
 
 export const Web2OrderFilledResponseSchema = z.object({ filled: z.boolean() });

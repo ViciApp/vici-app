@@ -35,7 +35,7 @@
 
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import type { PrincipalText } from '@junobuild/schema';
+	import type { PrincipalText } from '@dfinity/zod-schemas';
 	import { untrack } from 'svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { lookupWorldsAffiliation } from '#lib/constants/worlds-affiliations.constants.ts';

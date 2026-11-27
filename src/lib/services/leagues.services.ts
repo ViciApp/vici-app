@@ -1,30 +1,19 @@
-import { functions } from '#declarations/satellite/satellite.api.ts';
-import { Collection } from '#lib/constants/collections.constants.ts';
 import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
 import { authPrincipal } from '#lib/derived/user.derived.ts';
 import { LeaguePrivacy } from '#lib/enums/league.ts';
 import { track } from '#lib/services/analytics.services.ts';
-import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import { getMyReferralCode } from '#lib/services/referral.services.ts';
 import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
 import {
 	BATTLE_AMOUNT_MAX,
 	BATTLE_AMOUNT_MIN,
-	BATTLE_RESPOND_BY_MS,
-	BATTLE_SCOPE_DEFAULT,
 	BATTLE_TRASH_TALK_MAX_LENGTH,
 	isBattleScope,
-	readBattleDoc,
 	type BattleDoc,
 	type BattleScope,
 	type BattleWinner
 } from '#lib/types/battle.ts';
-import {
-	leagueMemberKey,
-	type LeagueMemberDoc,
-	type LeagueMemberRole
-} from '#lib/types/league-member.ts';
-import { leagueStatsBucket, leagueStatsKey, type LeagueStatsDoc } from '#lib/types/league-stats.ts';
+import type { LeagueMemberDoc, LeagueMemberRole } from '#lib/types/league-member.ts';
 import {
 	LEAGUE_DESCRIPTION_MAX_LENGTH,
 	LEAGUE_INVITE_CODE_ALPHABET,
@@ -37,7 +26,6 @@ import {
 } from '#lib/types/league.ts';
 import { appOrigin } from '#lib/utils/nav.utils.ts';
 import { hyphenateSlug } from '#lib/utils/slug.utils.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	acceptDuel as acceptDuelWeb2,
 	acceptLeagueBattle as acceptLeagueBattleWeb2,
@@ -68,20 +56,13 @@ import {
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { deleteDoc, getDoc, setDoc } from '@junobuild/core';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 import { get } from 'svelte/store';
 
 /**
- * Thin service layer wrapping the satellite's social-cohort
- * endpoints. UI screens import the camelCase domain types from
- * here so they never have to touch the generated wire schemas
- * from `juno functions build`.
- *
- * Writes go through `@junobuild/core`'s `setDoc` / `deleteDoc`;
- * reads go through the typed `functions.*` client. Both paths are
- * gated server-side by the asserts shipped in
- * through BE-5.
+ * Thin service layer over the API's league and battle routes. UI screens
+ * import the camelCase domain types from here so they never touch the wire
+ * shapes; every write is gated server-side.
  */
 
 /** League hydrated with the caller's membership role. */
@@ -95,9 +76,6 @@ export interface LeagueWithRole {
 
 // ─── Reads ───────────────────────────────────────────────────────────────
 
-/** Fresh invite codes `createLeague` tries before giving up; a clash is one in ~3.6 quadrillion. */
-const CREATE_LEAGUE_INVITE_ATTEMPTS = 3;
-
 /** The error a refused join or lookup throws, by the satellite's refusal reason. */
 export const JOIN_LEAGUE_ERRORS: Record<JoinLeagueRefusalReason, string> = {
 	not_found: 'No league found for that invite code.',
@@ -105,52 +83,11 @@ export const JOIN_LEAGUE_ERRORS: Record<JoinLeagueRefusalReason, string> = {
 	rate_limited: 'Too many invite codes missed this hour.'
 };
 
-/** Project the satellite's camelCase wire league to the FE `LeagueDoc`. */
-const projectLeagueWire = (league: {
-	id: string;
-	name: string;
-	description?: string;
-	inviteCode?: string;
-	owner: string;
-	createdAtMs: number;
-	accentColor?: string;
-	emblem?: string;
-	// The generated wire client surfaces the Candid variant as a plain
-	// string union; coerce it back to the `LeaguePrivacy` enum below (the
-	// runtime values are identical).
-	privacy: `${LeaguePrivacy}`;
-	imageUrl?: string;
-}): LeagueDoc => ({
-	id: league.id,
-	name: league.name,
-	description: league.description,
-	inviteCode: league.inviteCode,
-	owner: league.owner,
-	createdAtMs: league.createdAtMs,
-	accentColor: league.accentColor,
-	emblem: league.emblem,
-	privacy: league.privacy as LeaguePrivacy,
-	imageUrl: league.imageUrl
-});
-
 /**
  * List every league the caller is a member of, paired with their
  * role. Sorted newest-join first per the satellite query.
  */
-export const listMyLeagues = async (): Promise<LeagueWithRole[]> => {
-	if (isWeb2Backend()) {
-		return await listMyLeaguesWeb2();
-	}
-
-	const { items } = await functions.listMyLeagues();
-
-	return items.map(({ league, role, joinedAtMs, memberCount }) => ({
-		league: projectLeagueWire(league),
-		role,
-		joinedAtMs,
-		memberCount
-	}));
-};
+export const listMyLeagues = async (): Promise<LeagueWithRole[]> => await listMyLeaguesWeb2();
 
 /**
  * Retroactively back-pay the "Founder +100 VXP" reward for any league the
@@ -166,11 +103,9 @@ export const listMyLeagues = async (): Promise<LeagueWithRole[]> => {
  */
 export const settleFounderAwards = async (): Promise<number> => {
 	try {
-		// The web2 API also runs founder settlement from its worker; keeping the
-		// lazy page-mount trigger preserves parity and is idempotent server-side.
-		const { settled } = isWeb2Backend()
-			? await settleFounderAwardsWeb2()
-			: await functions.settleFounderAwards();
+		// The API also runs founder settlement from its worker; the lazy
+		// page-mount trigger stays and is idempotent server-side.
+		const { settled } = await settleFounderAwardsWeb2();
 
 		return settled;
 	} catch {
@@ -184,15 +119,8 @@ export const settleFounderAwards = async (): Promise<number> => {
  * the caller's own memberships, minus leagues the caller owns. Sorted
  * alphabetically by name per the satellite query.
  */
-export const listChallengeableLeagues = async (): Promise<LeagueDoc[]> => {
-	if (isWeb2Backend()) {
-		return await listChallengeableLeaguesWeb2();
-	}
-
-	const { items } = await functions.listChallengeableLeagues();
-
-	return items.map(projectLeagueWire);
-};
+export const listChallengeableLeagues = async (): Promise<LeagueDoc[]> =>
+	await listChallengeableLeaguesWeb2();
 
 /**
  * A non-private (Open or Invite-only) league a friend is in but the
@@ -212,19 +140,8 @@ export interface FriendRecommendedLeague {
  * foot of the Leagues list. Private leagues are never surfaced. Sorted by
  * friend-overlap count descending per the satellite query.
  */
-export const listFriendRecommendedLeagues = async (): Promise<FriendRecommendedLeague[]> => {
-	if (isWeb2Backend()) {
-		return await listFriendRecommendedLeaguesWeb2();
-	}
-
-	const { items } = await functions.listFriendRecommendedLeagues();
-
-	return items.map(({ league, memberCount, friendMembers }) => ({
-		league: projectLeagueWire(league),
-		memberCount,
-		friendMembers
-	}));
-};
+export const listFriendRecommendedLeagues = async (): Promise<FriendRecommendedLeague[]> =>
+	await listFriendRecommendedLeaguesWeb2();
 
 /**
  * List the full member roster of a league as the `LeagueMemberDoc` the
@@ -237,15 +154,7 @@ export const listLeagueMembers = async ({
 	leagueId
 }: {
 	leagueId: string;
-}): Promise<LeagueMemberDoc[]> => {
-	if (isWeb2Backend()) {
-		return await listLeagueMembersWeb2(leagueId);
-	}
-
-	const { items } = await functions.listLeagueMembers({ leagueId });
-
-	return items;
-};
+}): Promise<LeagueMemberDoc[]> => await listLeagueMembersWeb2(leagueId);
 
 /**
  * Resolve an invite code to its league, or `undefined` if no league
@@ -257,49 +166,7 @@ export const lookupLeagueByInvite = async ({
 	inviteCode
 }: {
 	inviteCode: string;
-}): Promise<LeagueDoc | undefined> => {
-	if (isWeb2Backend()) {
-		return await lookupLeagueByInviteWeb2(inviteCode);
-	}
-
-	const { league, reason } = await functions.lookupLeagueByInvite({ inviteCode });
-
-	if (nonNullish(reason)) {
-		throw new Error(JOIN_LEAGUE_ERRORS[reason]);
-	}
-
-	if (!league) {
-		return;
-	}
-
-	return projectLeagueWire(league);
-};
-
-/**
- * Read a league by id from the public `leagues` collection, or
- * `undefined` if none exists. Reads the datastore doc directly (it's
- * stored as a `LeagueDoc`, so no wire projection) rather than via a
- * typed query like `lookupLeagueByInvite`. Default-backend only: the
- * HTTP API has no public by-id league read, so the web2 branch of
- * {@link loadLeaguesByIds} resolves the directory without this helper.
- */
-const getLeagueById = async ({ id }: { id: string }): Promise<LeagueDoc | undefined> => {
-	const existing = await getDoc<LeagueDoc>({
-		collection: Collection.LEAGUES,
-		key: id
-	});
-
-	return existing?.data;
-};
-
-/**
- * Hydrate `leagueDirectoryStore` for any uncached ids: call it from any
- * surface that names a counterpart league. Mirrors
- * `loadProfilesByPrincipals`: per-id failures are swallowed (UI falls
- * back to a shortened id) and fetches run in bounded batches so a large
- * caller can't saturate the browser's connection pool.
- */
-const LEAGUE_HYDRATION_CONCURRENCY = 25;
+}): Promise<LeagueDoc | undefined> => await lookupLeagueByInviteWeb2(inviteCode);
 
 export const loadLeaguesByIds = async ({ ids }: { ids: string[] }): Promise<void> => {
 	const cached = get(leagueDirectoryStore);
@@ -315,64 +182,32 @@ export const loadLeaguesByIds = async ({ ids }: { ids: string[] }): Promise<void
 	// list reads cover the directory. An id outside both (a private opponent
 	// the caller never joined) stays unresolved and the UI falls back to the
 	// shortened id, the same as a failed per-id fetch on the default path.
-	if (isWeb2Backend()) {
-		try {
-			const [mine, challengeable] = await Promise.all([
-				listMyLeaguesWeb2(),
-				listChallengeableLeaguesWeb2()
-			]);
-			const byId = new Map<string, LeagueDoc>([
-				...mine.map(({ league }): [string, LeagueDoc] => [league.id, league]),
-				...challengeable.map((league): [string, LeagueDoc] => [league.id, league])
-			]);
+	try {
+		const [mine, challengeable] = await Promise.all([
+			listMyLeaguesWeb2(),
+			listChallengeableLeaguesWeb2()
+		]);
+		const byId = new Map<string, LeagueDoc>([
+			...mine.map(({ league }): [string, LeagueDoc] => [league.id, league]),
+			...challengeable.map((league): [string, LeagueDoc] => [league.id, league])
+		]);
 
-			leagueDirectoryStore.update((current) => {
-				const next = new Map(current);
+		leagueDirectoryStore.update((current) => {
+			const next = new Map(current);
 
-				for (const id of unique) {
-					const doc = byId.get(id);
+			for (const id of unique) {
+				const doc = byId.get(id);
 
-					if (doc) {
-						next.set(id, doc);
-					}
+				if (doc) {
+					next.set(id, doc);
 				}
-
-				return next;
-			});
-		} catch {
-			// Best-effort like the per-id path: missing entries fall back in the UI.
-		}
-
-		return;
-	}
-
-	const docs: (LeagueDoc | undefined)[] = [];
-
-	for (let start = 0; start < unique.length; start += LEAGUE_HYDRATION_CONCURRENCY) {
-		const batch = unique.slice(start, start + LEAGUE_HYDRATION_CONCURRENCY);
-
-		// Batches run sequentially to cap concurrency; within a batch the
-		// per-id fetches are parallel.
-		const settled = await Promise.all(
-			batch.map((id) => getLeagueById({ id }).catch(() => undefined))
-		);
-
-		docs.push(...settled);
-	}
-
-	leagueDirectoryStore.update((current) => {
-		const next = new Map(current);
-
-		for (let i = 0; i < unique.length; i++) {
-			const doc = docs[i];
-
-			if (doc) {
-				next.set(unique[i], doc);
 			}
-		}
 
-		return next;
-	});
+			return next;
+		});
+	} catch {
+		// Best-effort like the per-id path: missing entries fall back in the UI.
+	}
 };
 
 // ─── Writes ──────────────────────────────────────────────────────────────
@@ -450,8 +285,7 @@ export const createLeague = async ({
 	description,
 	accentColor,
 	emblem,
-	privacy = LeaguePrivacy.OPEN,
-	inviteCode
+	privacy = LeaguePrivacy.OPEN
 }: {
 	name: string;
 	description?: string;
@@ -469,12 +303,6 @@ export const createLeague = async ({
 	 *  persisted on the league doc and surfaced as the detail header's
 	 *  privacy chip. */
 	privacy?: LeaguePrivacy;
-	/** Pre-generated invite code. The create sheet surfaces the
-	 *  code to the owner before submit (so they can share it), so it
-	 *  passes the same value here to keep the displayed and persisted
-	 *  codes identical. Omitted callers get a fresh code generated here.
-	 *  Re-validated against {@link LEAGUE_INVITE_CODE_REGEX} either way. */
-	inviteCode?: string;
 }): Promise<LeagueDoc> => {
 	const validation = validateLeagueDraft({ name, description });
 
@@ -486,50 +314,14 @@ export const createLeague = async ({
 	// membership in the same transaction, so the code the create sheet
 	// pre-generated for display is superseded by the one on the returned
 	// league (the detail surface renders the stored code everywhere).
-	if (isWeb2Backend()) {
-		return await createLeagueWeb2({
-			id: deriveLeagueId({ name, suffix: Date.now() }),
-			name,
-			description,
-			accentColor,
-			emblem,
-			privacy
-		});
-	}
-
-	const leagueId = deriveLeagueId({ name, suffix: Date.now() });
-
-	// The satellite keeps the code off the public league doc and refuses one
-	// another league holds; a fresh code is then tried, so the code the sheet
-	// showed is kept unless it was taken.
-	for (
-		let attempt = 0, code = inviteCode ?? generateInviteCode();
-		attempt < CREATE_LEAGUE_INVITE_ATTEMPTS;
-		attempt++, code = generateInviteCode()
-	) {
-		if (!LEAGUE_INVITE_CODE_REGEX.test(code)) {
-			// `generateInviteCode` is built to satisfy the regex; this
-			// branch is here so a future change to either side trips the
-			// FE error path instead of failing on the satellite.
-			throw new Error('Generated invite code is malformed.');
-		}
-
-		const { league } = await functions.createLeague({
-			id: leagueId,
-			name,
-			description,
-			accentColor,
-			emblem,
-			privacy,
-			inviteCode: code
-		});
-
-		if (nonNullish(league)) {
-			return projectLeagueWire(league);
-		}
-	}
-
-	throw new Error('No free invite code for the new league.');
+	return await createLeagueWeb2({
+		id: deriveLeagueId({ name, suffix: Date.now() }),
+		name,
+		description,
+		accentColor,
+		emblem,
+		privacy
+	});
 };
 
 /**
@@ -567,86 +359,34 @@ export const updateLeague = async ({
 	/** New cover-image URL, `''` to clear, or omitted to leave as-is. */
 	imageUrl?: string;
 }): Promise<LeagueDoc> => {
-	if (isWeb2Backend()) {
-		const trimmedName = nonNullish(name) ? name.trim() : undefined;
+	const trimmedName = nonNullish(name) ? name.trim() : undefined;
 
-		if (nonNullish(trimmedName)) {
-			const validation = validateLeagueDraft({ name: trimmedName });
-
-			if (!validation.ok) {
-				throw new Error(`Invalid league name: ${validation.reason}`);
-			}
-		}
-
-		// A fresh cover URL was already persisted by the image upload route, so
-		// a non-empty `imageUrl` needs no write here; the PATCH (possibly empty)
-		// doubles as the read-back of the updated row. Clearing goes through the
-		// dedicated image endpoint because the PATCH surface carries no image
-		// field.
-		const league = await updateLeagueWeb2({
-			leagueId: id,
-			...(nonNullish(trimmedName) ? { name: trimmedName } : {}),
-			...(nonNullish(privacy) ? { privacy } : {})
-		});
-
-		// An explicit `null` clears, `undefined` leaves as-is; the typeof check
-		// tells them apart without a bare null compare.
-		const clearImage =
-			(isNullish(imageUrl) && typeof imageUrl !== 'undefined') ||
-			(nonNullish(imageUrl) && imageUrl.trim().length === 0);
-
-		return clearImage ? await deleteLeagueImageWeb2(id) : league;
-	}
-
-	const existing = await getDoc<LeagueDoc>({
-		collection: Collection.LEAGUES,
-		key: id
-	});
-
-	if (!existing) {
-		throw new Error('League no longer exists.');
-	}
-
-	const next: LeagueDoc = { ...existing.data };
-
-	if (nonNullish(name)) {
-		const trimmedName = name.trim();
-
+	if (nonNullish(trimmedName)) {
 		const validation = validateLeagueDraft({ name: trimmedName });
 
 		if (!validation.ok) {
 			throw new Error(`Invalid league name: ${validation.reason}`);
 		}
-
-		next.name = trimmedName;
 	}
 
-	if (nonNullish(privacy)) {
-		next.privacy = privacy;
-	}
-
-	if (nonNullish(imageUrl)) {
-		const trimmedImageUrl = imageUrl.trim();
-
-		if (trimmedImageUrl.length === 0) {
-			delete next.imageUrl;
-		} else {
-			// Persist the trimmed value so the stored shape matches the assert's
-			// no-surrounding-whitespace rule.
-			next.imageUrl = trimmedImageUrl;
-		}
-	}
-
-	await setDoc<LeagueDoc>({
-		collection: Collection.LEAGUES,
-		doc: {
-			key: id,
-			data: next,
-			version: existing.version
-		}
+	// A fresh cover URL was already persisted by the image upload route, so
+	// a non-empty `imageUrl` needs no write here; the PATCH (possibly empty)
+	// doubles as the read-back of the updated row. Clearing goes through the
+	// dedicated image endpoint because the PATCH surface carries no image
+	// field.
+	const league = await updateLeagueWeb2({
+		leagueId: id,
+		...(nonNullish(trimmedName) ? { name: trimmedName } : {}),
+		...(nonNullish(privacy) ? { privacy } : {})
 	});
 
-	return next;
+	// An explicit `null` clears, `undefined` leaves as-is; the typeof check
+	// tells them apart without a bare null compare.
+	const clearImage =
+		(isNullish(imageUrl) && typeof imageUrl !== 'undefined') ||
+		(nonNullish(imageUrl) && imageUrl.trim().length === 0);
+
+	return clearImage ? await deleteLeagueImageWeb2(id) : league;
 };
 
 // Cache for the caller's own referral code; the same value for a given identity,
@@ -723,31 +463,17 @@ export const joinLeagueByInvite = async ({
 	}
 
 	// The API join is idempotent (re-joining returns the existing row).
-	if (isWeb2Backend()) {
-		const league = await lookupLeagueByInvite({ inviteCode });
+	const league = await lookupLeagueByInvite({ inviteCode });
 
-		if (!league) {
-			throw new Error(JOIN_LEAGUE_ERRORS.not_found);
-		}
-
-		await joinLeagueByInviteWeb2({ inviteCode });
-
-		track({ name: 'league_joined', leagueId: league.id, source: 'invite' });
-
-		return league;
+	if (!league) {
+		throw new Error(JOIN_LEAGUE_ERRORS.not_found);
 	}
 
-	// The satellite checks the code and writes the membership itself: a
-	// member row is never written by the client.
-	const { league, reason } = await functions.joinLeagueByInvite({ inviteCode });
-
-	if (isNullish(league)) {
-		throw new Error(JOIN_LEAGUE_ERRORS[reason ?? 'not_found']);
-	}
+	await joinLeagueByInviteWeb2({ inviteCode });
 
 	track({ name: 'league_joined', leagueId: league.id, source: 'invite' });
 
-	return projectLeagueWire(league);
+	return league;
 };
 
 /**
@@ -757,39 +483,15 @@ export const joinLeagueByInvite = async ({
  * "Leave" CTA on owner rows.
  */
 export const leaveLeague = async ({ leagueId }: { leagueId: string }): Promise<void> => {
-	if (isWeb2Backend()) {
-		const me = getWeb2User();
+	const me = getWeb2User();
 
-		if (isNullish(me)) {
-			throw new Error('Not signed in.');
-		}
-
-		// Idempotent server-side: a missing row is a clean success, matching the
-		// early-return below.
-		await removeLeagueMemberWeb2({ leagueId, memberUserId: me.id });
-
-		return;
+	if (isNullish(me)) {
+		throw new Error('Not signed in.');
 	}
 
-	const identity = await safeGetIdentityOnce();
-	const memberPrincipal = identity.getPrincipal().toText();
-	const key = leagueMemberKey({ leagueId, memberPrincipal });
-
-	const existing = await getDoc<LeagueMemberDoc>({
-		collection: Collection.LEAGUE_MEMBERS,
-		key
-	});
-
-	if (!existing) {
-		// Idempotent: no row to delete is success. Avoids racing
-		// against an admin kick.
-		return;
-	}
-
-	await deleteDoc<LeagueMemberDoc>({
-		collection: Collection.LEAGUE_MEMBERS,
-		doc: existing
-	});
+	// Idempotent server-side: a missing row is a clean success, matching the
+	// early-return below.
+	await removeLeagueMemberWeb2({ leagueId, memberUserId: me.id });
 };
 
 /**
@@ -819,11 +521,9 @@ export const transferLeagueOwnership = ({
 	leagueId: string;
 	newOwnerPrincipal: string;
 }): Promise<TransferLeagueOwnershipResult> =>
-	// On the web2 backend the "principal" the roster carries is the account id,
-	// which is exactly what the transfer route keys the new owner by.
-	isWeb2Backend()
-		? transferLeagueOwnershipWeb2({ leagueId, newOwnerUserId: newOwnerPrincipal })
-		: functions.transferLeagueOwnership({ leagueId, newOwnerPrincipal });
+	// The "principal" the roster carries is the account id, which is exactly
+	// what the transfer route keys the new owner by.
+	transferLeagueOwnershipWeb2({ leagueId, newOwnerUserId: newOwnerPrincipal });
 
 /**
  * Set a member's role inside a league; the owner-driven promote
@@ -848,113 +548,24 @@ export const setMemberRole = async ({
 	memberPrincipal: string;
 	role: Extract<LeagueMemberRole, 'admin' | 'member'>;
 }): Promise<void> => {
-	if (isWeb2Backend()) {
-		await setLeagueMemberRoleWeb2({ leagueId, memberUserId: memberPrincipal, role });
-
-		return;
-	}
-
-	const key = leagueMemberKey({ leagueId, memberPrincipal });
-
-	const existing = await getDoc<LeagueMemberDoc>({
-		collection: Collection.LEAGUE_MEMBERS,
-		key
-	});
-
-	if (!existing) {
-		throw new Error('Member is no longer in this league.');
-	}
-
-	const next: LeagueMemberDoc = { ...existing.data, role };
-
-	await setDoc<LeagueMemberDoc>({
-		collection: Collection.LEAGUE_MEMBERS,
-		doc: {
-			key,
-			data: next,
-			version: existing.version
-		}
-	});
+	await setLeagueMemberRoleWeb2({ leagueId, memberUserId: memberPrincipal, role });
 };
 
 // ─── Battles ───────────────────────────────────────────────────────────────
-
-const projectBattleWire = (b: {
-	id: string;
-	kind: BattleDoc['kind'];
-	sideA: string;
-	sideB: string;
-	proposer: string;
-	state: BattleDoc['state'];
-	kickoffMs: number;
-	settleMs: number;
-	respondByMs?: number;
-	respondedAtMs?: number;
-	scope?: string;
-	amount?: number;
-	trashTalk?: string;
-	scoreA?: number;
-	scoreB?: number;
-	callsA?: number;
-	callsB?: number;
-	winner?: BattleDoc['winner'];
-	resolvedAtMs?: number;
-}): BattleDoc => ({
-	id: b.id,
-	kind: b.kind,
-	sideA: b.sideA,
-	sideB: b.sideB,
-	proposer: b.proposer,
-	state: b.state,
-	kickoffMs: b.kickoffMs,
-	settleMs: b.settleMs,
-	respondByMs: b.respondByMs,
-	respondedAtMs: b.respondedAtMs,
-	// Re-narrow the loose wire string back to the typed union; drop
-	// anything outside the closed scope set (legacy / unknown).
-	scope: nonNullish(b.scope) && isBattleScope(b.scope) ? b.scope : undefined,
-	amount: b.amount,
-	trashTalk: b.trashTalk,
-	scoreA: b.scoreA,
-	scoreB: b.scoreB,
-	callsA: b.callsA,
-	callsB: b.callsB,
-	winner: b.winner,
-	resolvedAtMs: b.resolvedAtMs
-});
 
 /**
  * List every battle involving the given league: both sides scanned.
  * Projects the satellite's wire rows to the FE `BattleDoc`.
  */
-export const listLeagueBattles = async ({
-	leagueId
-}: {
-	leagueId: string;
-}): Promise<BattleDoc[]> => {
-	if (isWeb2Backend()) {
-		return await listLeagueBattlesWeb2(leagueId);
-	}
-
-	const { items } = await functions.listLeagueBattles({ leagueId });
-
-	return items.map(projectBattleWire);
-};
+export const listLeagueBattles = async ({ leagueId }: { leagueId: string }): Promise<BattleDoc[]> =>
+	await listLeagueBattlesWeb2(leagueId);
 
 /**
  * List every battle across every league the caller belongs to. Powers
  * the `/arena/battles` cross-league inbox. Sorted server-side by
  * `kickoffMs` ascending.
  */
-export const listMyBattles = async (): Promise<BattleDoc[]> => {
-	if (isWeb2Backend()) {
-		return await listMyBattlesWeb2();
-	}
-
-	const { items } = await functions.listMyBattles();
-
-	return items.map(projectBattleWire);
-};
+export const listMyBattles = async (): Promise<BattleDoc[]> => await listMyBattlesWeb2();
 
 /**
  * Count of resolved battles the caller's side won, tallied
@@ -964,7 +575,7 @@ export const listMyBattles = async (): Promise<BattleDoc[]> => {
  * list.
  */
 export const getMyBattleStats = async (): Promise<{ boutsWon: number }> =>
-	isWeb2Backend() ? await getMyBattleStatsWeb2() : await functions.getMyBattleStats();
+	await getMyBattleStatsWeb2();
 
 /**
  * Propose a new battle (kind='league'). Caller must own the `sideA`
@@ -1022,77 +633,21 @@ export const proposeBattle = async ({
 	// caps ids at 64 chars, so the id is a uuid rather than the readable
 	// two-sided slug (which can exceed the cap). The provisional window
 	// semantics are identical: its length encodes the duration accept keeps.
-	if (isWeb2Backend()) {
-		const now = Date.now();
-
-		return await proposeBattleWeb2({
-			id: crypto.randomUUID(),
-			kind: 'league',
-			sideA,
-			sideB,
-			kickoffMs: now,
-			settleMs: now + durationMs,
-			...(nonNullish(scope) && scope !== 'all' ? { scope } : {}),
-			...(nonNullish(amount) && amount > BATTLE_AMOUNT_MIN ? { amount } : {}),
-			...(nonNullish(trimmedTrashTalk) && trimmedTrashTalk.length > 0
-				? { trashTalk: trimmedTrashTalk }
-				: {})
-		});
-	}
-
-	const identity = await safeGetIdentityOnce();
-	const proposerPrincipal = identity.getPrincipal().toText();
 	const now = Date.now();
-	const battleId = `${sideA}--vs--${sideB}-${now.toString(36)}`;
 
-	const battle: BattleDoc = {
-		id: battleId,
+	return await proposeBattleWeb2({
+		id: crypto.randomUUID(),
 		kind: 'league',
 		sideA,
 		sideB,
-		proposer: proposerPrincipal,
-		state: 'proposed',
-		// Provisional window: reset to the accept moment on accept. Its
-		// length is the chosen duration the accept preserves.
 		kickoffMs: now,
 		settleMs: now + durationMs,
-		respondByMs: now + BATTLE_RESPOND_BY_MS,
-		// Persist scope only when narrowed (omit the 'all' default so legacy
-		// reads and the default render path stay identical).
 		...(nonNullish(scope) && scope !== 'all' ? { scope } : {}),
-		// Persist the amount only when set (omit a 0 amount).
 		...(nonNullish(amount) && amount > BATTLE_AMOUNT_MIN ? { amount } : {}),
-		// Persist trash-talk only when non-empty after trimming.
 		...(nonNullish(trimmedTrashTalk) && trimmedTrashTalk.length > 0
 			? { trashTalk: trimmedTrashTalk }
 			: {})
-	};
-
-	await setDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		doc: { key: battleId, data: battle }
 	});
-
-	return battle;
-};
-
-/**
- * Read a league's `(calls, wins)` bucket for a battle scope from the
- * public `league_stats` doc. Missing doc / category → a zero bucket.
- */
-const readLeagueStatsBucket = async ({
-	leagueId,
-	scope
-}: {
-	leagueId: string;
-	scope: BattleScope;
-}): Promise<{ calls: number; wins: number }> => {
-	const doc = await getDoc<LeagueStatsDoc>({
-		collection: Collection.LEAGUE_STATS,
-		key: leagueStatsKey({ leagueId })
-	});
-
-	return leagueStatsBucket({ doc: doc?.data, scope });
 };
 
 /**
@@ -1112,94 +667,21 @@ const readLeagueStatsBucket = async ({
  * (no `league_stats` to delta) just move to `accepted` and kick off
  * separately. `respondedAtMs` records when the challenged side answered.
  */
-export const acceptBattle = async ({ battle }: { battle: BattleDoc }): Promise<BattleDoc> => {
+export const acceptBattle = async ({ battle }: { battle: BattleDoc }): Promise<BattleDoc> =>
 	// The two accept shapes are separate routes: the league accept fuses the
 	// kickoff and stamps baselines server-side, the duel accept just moves the
 	// state. Same fused-vs-plain split as the doc writes below.
-	if (isWeb2Backend()) {
-		return battle.kind === 'league'
-			? await acceptLeagueBattleWeb2(battle.id)
-			: await acceptDuelWeb2(battle.id);
-	}
-
-	const existing = await getDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		key: battle.id
-	});
-
-	if (!existing) {
-		throw new Error('Battle no longer exists.');
-	}
-
-	const current = readBattleDoc(existing.data);
-
-	if (current.kind !== 'league') {
-		const acceptedDuel: BattleDoc = { ...current, state: 'accepted' };
-
-		await setDoc<BattleDoc>({
-			collection: Collection.BATTLES,
-			doc: { key: battle.id, data: acceptedDuel, version: existing.version }
-		});
-
-		return acceptedDuel;
-	}
-
-	const scope: BattleScope = current.scope ?? BATTLE_SCOPE_DEFAULT;
-	const durationMs = current.settleMs - current.kickoffMs;
-	const kickoffMs = Date.now();
-
-	const next: BattleDoc = {
-		...current,
-		state: 'in_flight',
-		kickoffMs,
-		settleMs: kickoffMs + durationMs,
-		respondedAtMs: kickoffMs,
-		baselineA: await readLeagueStatsBucket({ leagueId: current.sideA, scope }),
-		baselineB: await readLeagueStatsBucket({ leagueId: current.sideB, scope })
-	};
-
-	await setDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		doc: { key: battle.id, data: next, version: existing.version }
-	});
-
-	return next;
-};
+	battle.kind === 'league'
+		? await acceptLeagueBattleWeb2(battle.id)
+		: await acceptDuelWeb2(battle.id);
 
 /**
  * Decline a battle proposal (`proposed → declined`). Only the challenged
  * side's owner can call this; the satellite assert hard-rejects anyone
  * else and any battle past `proposed`. `respondedAtMs` records when.
  */
-export const declineBattle = async ({ battle }: { battle: BattleDoc }): Promise<BattleDoc> => {
-	if (isWeb2Backend()) {
-		return await declineBattleWeb2(battle.id);
-	}
-
-	const existing = await getDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		key: battle.id
-	});
-
-	if (!existing) {
-		throw new Error('Battle no longer exists.');
-	}
-
-	const current = readBattleDoc(existing.data);
-
-	if (current.state !== 'proposed') {
-		throw new Error('Only proposed battles can be declined.');
-	}
-
-	const next: BattleDoc = { ...current, state: 'declined', respondedAtMs: Date.now() };
-
-	await setDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		doc: { key: battle.id, data: next, version: existing.version }
-	});
-
-	return next;
-};
+export const declineBattle = async ({ battle }: { battle: BattleDoc }): Promise<BattleDoc> =>
+	await declineBattleWeb2(battle.id);
 
 /**
  * Lazily expire a `proposed` battle whose respond-by deadline has passed
@@ -1213,49 +695,17 @@ export const maybeExpireBattle = async ({ battle }: { battle: BattleDoc }): Prom
 	// Same lazy sweep over the HTTP transport: re-read, gate on state and the
 	// respond-by deadline locally (so a fresh proposal never fires a doomed
 	// write), then let the server apply the transition.
-	if (isWeb2Backend()) {
-		const current = await getBattleWeb2(battle.id);
+	const current = await getBattleWeb2(battle.id);
 
-		if (isNullish(current)) {
-			return battle;
-		}
-
-		if (current.state !== 'proposed' || Date.now() < (current.respondByMs ?? current.kickoffMs)) {
-			return current;
-		}
-
-		return await expireBattleWeb2(battle.id);
-	}
-
-	const existing = await getDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		key: battle.id
-	});
-
-	if (!existing) {
+	if (isNullish(current)) {
 		return battle;
 	}
 
-	const current = readBattleDoc(existing.data);
-
-	if (current.state !== 'proposed') {
+	if (current.state !== 'proposed' || Date.now() < (current.respondByMs ?? current.kickoffMs)) {
 		return current;
 	}
 
-	const respondByMs = current.respondByMs ?? current.kickoffMs;
-
-	if (Date.now() < respondByMs) {
-		return current;
-	}
-
-	const next: BattleDoc = { ...current, state: 'expired' };
-
-	await setDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		doc: { key: battle.id, data: next, version: existing.version }
-	});
-
-	return next;
+	return await expireBattleWeb2(battle.id);
 };
 
 /**
@@ -1266,40 +716,8 @@ export const maybeExpireBattle = async ({ battle }: { battle: BattleDoc }): Prom
  * doc is built from the freshly-read raw doc so no field is lost to a
  * stale wire projection.
  */
-export const kickoffBattle = async ({ battle }: { battle: BattleDoc }): Promise<BattleDoc> => {
-	if (isWeb2Backend()) {
-		return await kickoffBattleWeb2(battle.id);
-	}
-
-	const existing = await getDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		key: battle.id
-	});
-
-	if (!existing) {
-		throw new Error('Battle no longer exists.');
-	}
-
-	const current = readBattleDoc(existing.data);
-	const scope: BattleScope = current.scope ?? BATTLE_SCOPE_DEFAULT;
-
-	const next: BattleDoc =
-		current.kind === 'league'
-			? {
-					...current,
-					state: 'in_flight',
-					baselineA: await readLeagueStatsBucket({ leagueId: current.sideA, scope }),
-					baselineB: await readLeagueStatsBucket({ leagueId: current.sideB, scope })
-				}
-			: { ...current, state: 'in_flight' };
-
-	await setDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		doc: { key: battle.id, data: next, version: existing.version }
-	});
-
-	return next;
-};
+export const kickoffBattle = async ({ battle }: { battle: BattleDoc }): Promise<BattleDoc> =>
+	await kickoffBattleWeb2(battle.id);
 
 /**
  * Retract a `proposed`-state battle. Only the original proposer can
@@ -1311,29 +729,7 @@ export const retractBattle = async ({ battle }: { battle: BattleDoc }): Promise<
 		throw new Error('Only proposed battles can be retracted.');
 	}
 
-	if (isWeb2Backend()) {
-		await retractBattleWeb2(battle.id);
-
-		return;
-	}
-
-	const existing = await getDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		key: battle.id
-	});
-
-	if (!existing) {
-		throw new Error('Battle no longer exists.');
-	}
-
-	await deleteDoc<BattleDoc>({
-		collection: Collection.BATTLES,
-		doc: {
-			key: battle.id,
-			data: existing.data,
-			version: existing.version
-		}
-	});
+	await retractBattleWeb2(battle.id);
 };
 
 /**
@@ -1345,15 +741,8 @@ export const retractBattle = async ({ battle }: { battle: BattleDoc }): Promise<
  * battle is returned unchanged. A legacy row that never got a kickoff baseline
  * resolves fine, since resolution no longer reads baselines.
  */
-export const resolveBattle = async ({ battle }: { battle: BattleDoc }): Promise<BattleDoc> => {
-	if (isWeb2Backend()) {
-		return await resolveBattleWeb2(battle.id);
-	}
-
-	const { battle: resolved } = await functions.resolveBattle({ battleId: battle.id });
-
-	return projectBattleWire(resolved);
-};
+export const resolveBattle = async ({ battle }: { battle: BattleDoc }): Promise<BattleDoc> =>
+	await resolveBattleWeb2(battle.id);
 
 /** Running standings for an in-flight battle, before it resolves. */
 export interface BattleLiveScore {
@@ -1388,11 +777,5 @@ export const readBattleLiveScore = async ({
 		return null;
 	}
 
-	if (isWeb2Backend()) {
-		return (await readBattleLiveScoreWeb2(battle.id)) ?? null;
-	}
-
-	const { score } = await functions.readBattleLiveScore({ battleId: battle.id });
-
-	return score ?? null;
+	return (await readBattleLiveScoreWeb2(battle.id)) ?? null;
 };

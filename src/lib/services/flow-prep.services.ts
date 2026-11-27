@@ -22,8 +22,7 @@ export const MAX_MARKETS = 20;
 
 const EMPTY_SIGNALS: UserMarketSignals = {
 	categoryAcc: {},
-	priorCalls: {},
-	followedLean: {}
+	priorCalls: {}
 };
 
 export interface PreparedFlow {
@@ -97,11 +96,8 @@ export const prepareFlow = async ({
 		: Promise.resolve([]);
 	const priorCallIdsPromise = tradeHistoryPromise.then(deriveCalledMarketIds);
 
-	// Compose the deck (featured scope → prior-call exclude → seen exclude →
-	// slice) up front so `deckIds`, which scopes the followed-lean fan-out,
-	// matches the markets actually rendered. Deriving the ids off the *full*
-	// queue would scope the lean to candidates the filters then drop, silently
-	// starving the promoted markets of their friends-lean row.
+	// Compose the deck: featured scope → prior-call exclude → seen exclude →
+	// slice.
 	const deckPromise = (async (): Promise<Market[]> => {
 		const [queue, tagMap, priorCallIds] = await Promise.all([
 			queuePromise,
@@ -170,14 +166,12 @@ export const prepareFlow = async ({
 		// the top-N: we only pay the round-trips for what we display.
 		return deck.slice(0, MAX_MARKETS);
 	})();
-	const deckIdsPromise = deckPromise.then((deck) => deck.map((m) => m.id));
 
 	const [deck, signals, tagMap, metadataBySeries] = await Promise.all([
 		deckPromise,
 		signedIn
 			? getUserMarketSignals({
 					domain,
-					marketIds: deckIdsPromise,
 					tagMappings: tagsPromise,
 					tradeHistory: tradeHistoryPromise
 				}).catch(() => EMPTY_SIGNALS)

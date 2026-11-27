@@ -1,21 +1,17 @@
 <script lang="ts">
 	import { localeStore } from '#lib/stores/locale.store.ts';
-	import type { FollowedLeanSignal } from '#lib/types/market-signals.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		yesPct: number;
-		followedLean?: FollowedLeanSignal;
 	}
 
-	const { yesPct, followedLean }: Props = $props();
+	const { yesPct }: Props = $props();
 </script>
 
-<!-- "Who's calling what" split. Row 1 = all callers (the live price),
-     row 2 = predictors you follow (dot grid), shown only when that signal
-     exists. A top-accuracy row returns once a real reputation aggregate
-     exists; until then it would only restate the price with an invented
-     offset. -->
+<!-- "Who's calling what": all callers (the live price). A top-accuracy row
+     returns once a real reputation aggregate exists; until then it would
+     only restate the price with an invented offset. -->
 <section class="flow-back-block flow-split">
 	<p class="eyebrow flow-back-label">
 		{t({ locale: $localeStore, key: 'card.back.who_calling' })}
@@ -33,36 +29,6 @@
 			<i style:width="{yesPct}%" class="flow-split-fill-yes"></i>
 		</div>
 	</div>
-
-	{#if followedLean}
-		<div class="flow-split-row">
-			<div class="flow-split-meta">
-				<span class="flow-split-label">
-					{t({ locale: $localeStore, key: 'card.back.predictors_you_follow' })}
-				</span>
-				<span class="flow-split-pct num">
-					{t({
-						locale: $localeStore,
-						key: 'card.back.followed_count',
-						params: { count: followedLean.yes, total: followedLean.total }
-					})}
-				</span>
-			</div>
-			<div
-				class="flow-followed-dots"
-				aria-label={t({
-					locale: $localeStore,
-					key: 'card.back.followed_count',
-					params: { count: followedLean.yes, total: followedLean.total }
-				})}
-				role="img"
-			>
-				{#each Array.from({ length: followedLean.total }, (_, i) => i) as i (i)}
-					<span class="flow-followed-dot" class:is-yes={i < followedLean.yes}></span>
-				{/each}
-			</div>
-		</div>
-	{/if}
 </section>
 
 <style lang="postcss">
@@ -93,9 +59,6 @@
 		flex-direction: column;
 		gap: 0.35rem;
 		padding: 0.35rem 0;
-	}
-	.flow-split-row + .flow-split-row {
-		border-top: 1px solid var(--border-base);
 	}
 	.flow-split-meta {
 		display: flex;
@@ -134,22 +97,5 @@
 		background: var(--yes);
 		opacity: 0.95;
 		transition: width 480ms var(--ease-vici);
-	}
-
-	.flow-followed-dots {
-		display: flex;
-		gap: 6px;
-	}
-	.flow-followed-dot {
-		width: 10px;
-		height: 10px;
-		border-radius: var(--r-pill);
-		background: var(--no);
-		opacity: 0.78;
-		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
-	}
-	.flow-followed-dot.is-yes {
-		background: var(--yes);
-		opacity: 1;
 	}
 </style>

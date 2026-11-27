@@ -3,9 +3,9 @@ import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import type { LeaguePrivacy } from '#lib/enums/league.ts';
 import type { ProfileVisibility } from '#lib/enums/profile.ts';
 import type { UserRole } from '#lib/enums/user.ts';
+import { web2ApiBaseUrl } from '#lib/env/app.env.ts';
 import {
 	Web2BaseUnitsSchema,
-	Web2ClaimResponseSchema,
 	Web2MeResponseSchema,
 	Web2OrderCancelledResponseSchema,
 	Web2OrderFilledResponseSchema,
@@ -54,7 +54,6 @@ import type {
 } from '#lib/types/tournament.ts';
 import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 import type { HandleRefusal } from '#lib/utils/handle.utils.ts';
-import { web2ApiBaseUrl } from '#lib/web2/backend-mode.ts';
 import {
 	balanceDomainToWire,
 	intervalToWire,
@@ -345,42 +344,13 @@ export const logout = async (): Promise<void> => {
 	await request<{ ok: boolean }>({ path: '/api/v1/auth/logout', method: 'POST' });
 };
 
-export interface Web2ClaimResult {
-	principal: string;
-	/** True when the principal was already linked to the calling account. */
-	alreadyLinked: boolean;
-	/**
-	 * True when the principal's migrated account was adopted: the caller's
-	 * empty account folded into it and the same session cookie now resolves
-	 * to a different user id, so the session must be re-read.
-	 */
-	adopted: boolean;
-}
-
-/** Submit a signed principal-handoff blob; links the proven principal to the
- * session account. Foreign links throw a 409 `principal_already_linked`; a
- * migrated principal the caller's non-empty account cannot adopt throws a 409
- * `account_not_empty`. */
-export const postClaim = async ({ blob }: { blob: string }): Promise<Web2ClaimResult> => {
-	const { principal, alreadyLinked, adopted } = await parsedRequest({
-		path: '/api/v1/claim',
-		method: 'POST',
-		body: { blob },
-		schema: Web2ClaimResponseSchema
-	});
-
-	return { principal, alreadyLinked, adopted: adopted === true };
-};
-
 // ─── Profiles + social + leaderboard ─────────────────────────────────────
 //
-// The HTTP API keys a user by an opaque `userId` (uuid) where the on-chain
-// stack keys by a principal. The app's domain shape (`UserProfile`, `Relation`,
+// The HTTP API keys a user by an opaque `userId` (uuid). The app's domain shape (`UserProfile`, `Relation`,
 // `ResolvedResult`) uses the single `owner` string for that identity, so the
 // wrappers below carry the wire→app rename (`userId` → `owner`) and re-narrow
 // the loose wire string unions back to the app enums, keeping the return shapes
-// byte-identical to the satellite services. A dual-mode service calls one of
-// these behind `isWeb2Backend()`; the default on-chain path is untouched.
+// the shapes every store and component reads.
 
 const encodeQuery = (params: Record<string, string>): string =>
 	Object.entries(params)
@@ -558,6 +528,7 @@ export const getProfileByHandle = async (handle: string): Promise<UserProfile | 
 };
 
 /** Case-insensitive search over nickname, id, and linked legacy principal. */
+
 export const searchProfiles = async (queryStr: string): Promise<UserProfile[]> => {
 	const { items } = await request<{ items: Web2ProfileWire[] }>({
 		path: `/api/v1/profiles/search?${encodeQuery({ q: queryStr })}`,
@@ -722,6 +693,17 @@ export const upsertMarketMetadata = async ({
 	});
 
 	return metadata;
+};
+
+/** Every stored metadata row (public), for the catalog-wide tag and
+ * suggested-flag projections. */
+export const listMarketMetadata = async (): Promise<MarketMetadata[]> => {
+	const { items } = await request<{ items: MarketMetadata[] }>({
+		path: '/api/v1/markets/metadata',
+		method: 'GET'
+	});
+
+	return items;
 };
 
 /** One stored translation overlay, or `undefined` when the locale has none. */

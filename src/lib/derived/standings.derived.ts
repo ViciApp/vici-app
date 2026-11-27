@@ -7,7 +7,7 @@ import type { StandingEntry, StandingsWindow } from '#lib/types/standings.ts';
 import { compareRankScore } from '#lib/utils/leaderboard-score.utils.ts';
 import { isShownOnGlobalLeaderboard } from '#lib/utils/visibility.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 import { derived, type Readable } from 'svelte/store';
 
 /**

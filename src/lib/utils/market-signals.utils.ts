@@ -132,20 +132,14 @@ export const deriveCalledMarketIds = (events: ClearingDid.Event[]): Set<MarketId
 	return ids;
 };
 
-/**
- * Trade-history-derived signals (category accuracy + prior calls). The
- * friends-lean signal is sourced separately from the clearing canister's
- * privacy-preserving `aggregate_lean` query, see
- * `#lib/services/followed-lean.services.ts`, and merged in by the caller, so
- * it is not produced here.
- */
+/** Trade-history-derived signals (category accuracy + prior calls). */
 export const deriveUserMarketSignals = ({
 	events,
 	tagMappings
 }: {
 	events: ClearingDid.Event[];
 	tagMappings: Record<string, string[]>;
-}): Omit<UserMarketSignals, 'followedLean'> => ({
+}): UserMarketSignals => ({
 	categoryAcc: deriveCategoryAccuracySignals({ events, tagMappings }),
 	priorCalls: derivePriorCallSignals(events)
 });

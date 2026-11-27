@@ -1,9 +1,5 @@
-import { transfer as transferIcrc } from '#lib/api/icrc-ledger.api.ts';
-import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
-import type { IcSendParams } from '#lib/types/ic-send.ts';
 import type { Token } from '#lib/types/token.ts';
 import { findSendableAsset, type PendingSend } from '#lib/utils/send.utils.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	listWalletAssets,
 	requestWalletWithdrawal,
@@ -11,24 +7,6 @@ import {
 	type Web2WalletAsset
 } from '#lib/web2/client.ts';
 import { isNullish } from '@dfinity/utils';
-import { decodeIcrcAccount, type IcrcLedgerDid } from '@icp-sdk/canisters/ledger/icrc';
-
-export const sendIc = async (params: IcSendParams): Promise<void> => {
-	await sendIcrc(params);
-};
-
-export const sendIcrc = ({
-	to,
-	amount,
-	identity,
-	ledgerCanisterId
-}: IcSendParams): Promise<IcrcLedgerDid.BlockIndex> =>
-	transferIcrc({
-		identity,
-		ledgerCanisterId,
-		to: decodeIcrcAccount(to),
-		amount
-	});
 
 /** Localizable send failure: the UI translates `messageKey` (with `params`)
  * instead of showing service-built English, appending `detail` when the API
@@ -56,18 +34,11 @@ export class SendTokenError extends Error {
 
 /**
  * The custody catalog that gates the Send tab, fed to `filterSendableTokens`.
- * `undefined` on the default backend, where no custody gate applies.
  */
-export const loadSendableWalletAssets = async (): Promise<Web2WalletAsset[] | undefined> => {
-	if (!isWeb2Backend()) {
-		return;
-	}
-
-	return await listWalletAssets();
-};
+export const loadSendableWalletAssets = (): Promise<Web2WalletAsset[]> => listWalletAssets();
 
 /**
- * The web2 send: a self-custody withdrawal of `amount` to `to`. The key names
+ * The wallet send: a self-custody withdrawal of `amount` to `to`. The key names
  * the send, not the call: a retry of the same send passes the same key (see
  * `pendingSendFor`), so a request whose answer was lost files nothing new.
  */
@@ -114,37 +85,16 @@ export const sendCustodialToken = async ({
 };
 
 /**
- * Backend-agnostic wallet send. On the default backend it is the user-signed
- * ICRC transfer. In web2 mode the funds are custodial, so the send becomes a
- * self-custody withdrawal request: the API executes the transfer from the
- * user's custodial account to the destination the user typed. Either way the
- * user hands over a destination and an amount and the tokens leave their
- * wallet balance.
- *
- * `idempotencyKey` only reaches the web2 withdrawal: the user-signed ICRC
- * transfer is not a request the API could file twice.
+ * The wallet send. The funds are custodial, so the send is a self-custody
+ * withdrawal request: the API executes the transfer from the user's custodial
+ * account to the destination the user typed.
  */
-export const sendToken = async ({
-	token,
-	to,
-	amount,
-	idempotencyKey
-}: {
+export const sendToken = (params: {
 	token: Token;
 	to: string;
 	amount: bigint;
 	idempotencyKey: string;
-}): Promise<void> => {
-	if (isWeb2Backend()) {
-		await sendCustodialToken({ token, to, amount, idempotencyKey });
-
-		return;
-	}
-
-	const identity = await safeGetIdentityOnce();
-
-	await sendIc({ identity, to, amount, ledgerCanisterId: token.ledgerCanisterId });
-};
+}): Promise<void> => sendCustodialToken(params);
 
 /** A proxy gave up waiting while the API may still be running the request. */
 const REQUEST_TIMEOUT_STATUS = 408;

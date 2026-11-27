@@ -7,18 +7,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 describe('handleProbeRoute', () => {
-	it('sends a signed-out web2 visitor to the public probe', () => {
-		assert.equal(handleProbeRoute({ web2Backend: true, signedIn: false }), 'public');
+	it('sends a signed-out visitor to the public probe', () => {
+		assert.equal(handleProbeRoute({ signedIn: false }), 'public');
 	});
 
 	// The session probe excludes the caller's own handle; the public one cannot.
-	it('keeps a signed-in web2 user on the session probe', () => {
-		assert.equal(handleProbeRoute({ web2Backend: true, signedIn: true }), 'session');
-	});
-
-	it('keeps the default backend on its one probe whoever is signed in', () => {
-		assert.equal(handleProbeRoute({ web2Backend: false, signedIn: false }), 'session');
-		assert.equal(handleProbeRoute({ web2Backend: false, signedIn: true }), 'session');
+	it('keeps a signed-in user on the session probe', () => {
+		assert.equal(handleProbeRoute({ signedIn: true }), 'session');
 	});
 });
 

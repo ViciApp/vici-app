@@ -142,74 +142,9 @@ jobs:
       - name: Test
         run: npm test
 
-  satellite-schema:
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Prepare
-        uses: ./.github/actions/prepare
-
-      - name: Restore Prettier Cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ./node_modules/.cache/prettier/.prettier-cache
-          key: ${{ runner.os }}-prettier-cache-quality-${{ env.CACHE_KEY_SUFFIX }}
-          restore-keys: |
-            ${{ runner.os }}-prettier-cache-quality-main-
-            ${{ runner.os }}-prettier-cache-quality-
-
-      - name: Restore ESLint Cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .eslintcache
-          key: ${{ runner.os }}-eslint-cache-quality-${{ env.CACHE_KEY_SUFFIX }}
-          restore-keys: |
-            ${{ runner.os }}-eslint-cache-quality-main-
-            ${{ runner.os }}-eslint-cache-quality-
-
-      # Install the juno CLI directly instead of using `junobuild/juno-action@full`.
-      # The docker image bundles its own toolchain: at the time of writing it
-      # ships `@icp-sdk/bindgen@0.3.0` while our `package.json` devDep is `^0.4.0`,
-      # AND it fails to enumerate the `defineQuery` / `defineUpdate` exports from
-      # `src/satellite/index.ts` (it rewrites `satellite_extension.did` as
-      # `service : {}`). Both make the drift check a permanent false positive.
-      # The npm-installed CLI runs against our own `node_modules`, picks up the
-      # right bindgen, and reproduces the local build output byte-for-byte.
-      - name: Install Juno CLI
-        # Pinned once, in .github/juno-cli-version: bump it there, never here.
-        run: npm i -g "@junobuild/cli@$(cat .github/juno-cli-version)"
-
-      - name: Regenerate satellite Candid surface
-        run: npm run juno:functions:build
-
-      - name: Quality
-        run: npm run quality
-
-      - name: Fail if satellite Candid / declarations drifted
-        run: |
-          drift_paths=(
-            src/satellite/satellite.did
-            src/satellite/satellite_extension.did
-            src/satellite/api-schemas.ts
-            src/declarations/satellite
-          )
-          if [[ -n "$(git status --porcelain -- "${drift_paths[@]}")" ]]; then
-            echo "::error::Satellite schema/.did/declarations are out of date. Run 'npm run juno:functions:build && npm run quality' locally and commit the result. Diff follows:"
-            git --no-pager diff --stat -- "${drift_paths[@]}"
-            git --no-pager diff -- "${drift_paths[@]}"
-            exit 1
-          fi
-
   checks-pass:
     if: always()
-    needs: ['format', 'lint', 'check', 'test', 'satellite-schema']
+    needs: ['format', 'lint', 'check', 'test']
     runs-on: ubuntu-24.04
     permissions:
       contents: read

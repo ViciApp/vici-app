@@ -6,11 +6,9 @@
 	import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 	import { authBusy, authPrincipal } from '#lib/derived/user.derived.ts';
 	import { getProfile } from '#lib/services/profile.services.ts';
-	import { settleProfileAwards } from '#lib/services/vxp-awards.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import { refreshAllBalances } from '#lib/utils/refresh.utils.ts';
 
 	let intervalId: ReturnType<typeof setInterval> | undefined;
 
@@ -23,12 +21,6 @@
 		};
 
 		void refreshProfile();
-
-		void settleProfileAwards().then((settled) => {
-			if (settled > 0) {
-				refreshAllBalances();
-			}
-		});
 
 		intervalId = setInterval(refreshProfile, MINUTE_IN_MS);
 

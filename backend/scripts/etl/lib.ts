@@ -21,9 +21,9 @@ import { query, type TxQuery } from '../../src/db/client';
 // Collections
 
 /**
- * Every datastore collection the legacy satellite configures, mirroring the
- * app's collection constants (a test cross-checks this list against
- * juno.collections.json so drift fails loudly). The export drains all of
+ * Every datastore collection the legacy satellite configures (a test
+ * cross-checks this list against the `juno.config.ts` datastore enum so drift
+ * fails loudly). The export drains all of
  * them; the importer maps each one explicitly (including documented skips).
  */
 export const SATELLITE_COLLECTIONS = [

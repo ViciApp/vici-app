@@ -8,21 +8,18 @@
 	import type { ActivityReaction } from '#lib/types/social.ts';
 
 	// Likes other users left on the viewer's own calls, for the like-received
-	// inbox card. The author comes from the same source the identity-aware
-	// loader gates on (`getSignedInOwner`: the Juno principal, or the session
-	// account id in web2 mode): NOT the FE `authPrincipal` store, which can lag
-	// behind a resolved session and would otherwise cache an empty result
-	// before the owner hydrates. Errors are swallowed to `[]` (the store must
+	// inbox card. The signed-in check reads the same source the identity-aware
+	// loader gates on (`getSignedInOwner`, the session account id): NOT the FE
+	// `authPrincipal` store, which can lag behind a resolved session and would
+	// otherwise cache an empty result before the owner hydrates. Errors are swallowed to `[]` (the store must
 	// always settle: the inbox toast gate keys off it becoming non-undefined,
 	// so a thrown fetch can't be allowed to wedge it).
 	const onLoad = async (): Promise<ActivityReaction[]> => {
-		const author = await getSignedInOwner();
-
-		if (isNullish(author)) {
+		if (isNullish(await getSignedInOwner())) {
 			return [];
 		}
 
-		const reactions = await getReceivedActivityReactions({ author }).catch(() => []);
+		const reactions = await getReceivedActivityReactions().catch(() => []);
 
 		// Profile hydration is best-effort: the card falls back to the liker's
 		// shortened principal, so a failure here must not drop the reactions.

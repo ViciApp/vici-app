@@ -13,7 +13,6 @@ import {
 } from '#lib/utils/handle-probe.utils.ts';
 import { handleFormatIssue, type HandleRefusal } from '#lib/utils/handle.utils.ts';
 import { createHumanProofCache } from '#lib/utils/human-proof-cache.utils.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	checkNicknameAvailabilityPublic as checkNicknameAvailabilityPublicWeb2,
 	issueNicknameCheckProof,
@@ -53,7 +52,7 @@ const isProofRefused = (err: unknown): boolean =>
  * Whether a signed-out visitor can claim `handle`, for the sign-up surfaces
  * that probe as the visitor types. Format and reserved handles are answered
  * locally with the app's rules, so only a well-formed handle reaches the
- * network. In web2 mode the first probe solves one Turnstile check and trades
+ * network. The first probe solves one Turnstile check and trades
  * it for a short-lived proof that every later probe reuses; a proof the
  * server no longer accepts (expired, or the visitor's IP changed) is renewed
  * once and the probe retried. Pass `challengeHost` to place a challenge in the
@@ -76,11 +75,6 @@ export const checkHandleAvailabilityPublic = async ({
 
 	if (nonNullish(issue)) {
 		return { available: false, reason: issue };
-	}
-
-	// The satellite's probe is an anonymous query already.
-	if (!isWeb2Backend()) {
-		return await checkNicknameAvailability({ nickname: handle });
 	}
 
 	if (nonNullish(unconfiguredRefusal)) {
@@ -119,9 +113,9 @@ export const checkHandleAvailabilityPublic = async ({
 
 /**
  * The live probe of a handle picker that serves both signed-in users and
- * visitors before sign-up. A signed-in user (and every caller on the default
- * backend) gets {@link checkNicknameAvailability}; a signed-out visitor in
- * web2 mode gets {@link checkHandleAvailabilityPublic}, whose proof is cached
+ * visitors before sign-up. A signed-in user gets
+ * {@link checkNicknameAvailability}; a signed-out visitor gets
+ * {@link checkHandleAvailabilityPublic}, whose proof is cached
  * across calls. Neither answer is the final word: whoever claims the handle
  * re-checks it with the session probe once signed in.
  *
@@ -133,11 +127,7 @@ export const checkHandleAvailability = async ({
 }: {
 	handle: string;
 }): Promise<PublicHandleAvailability> => {
-	const web2Backend = isWeb2Backend();
-	const route = handleProbeRoute({
-		web2Backend,
-		signedIn: web2Backend && (await isSignedIn())
-	});
+	const route = handleProbeRoute({ signedIn: await isSignedIn() });
 
 	return route === 'public'
 		? await checkHandleAvailabilityPublic({ handle })

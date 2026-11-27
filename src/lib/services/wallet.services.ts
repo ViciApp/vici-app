@@ -1,121 +1,56 @@
 import type { ClearingDid } from '#declarations';
-import { getAccountState } from '#lib/api/clearing.api.ts';
-import { getTransactions as getIcpTransactionsApi } from '#lib/api/icp-index.api.ts';
-import { getTransactions as getIcrcTransactionsApi } from '#lib/api/icrc-index-ng.api.ts';
-import { balance as getLedgerBalance } from '#lib/api/icrc-ledger.api.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
-import {
-	CKUSDC_INDEX_CANISTER_ID,
-	ICP_INDEX_CANISTER_ID,
-	VXP_INDEX_CANISTER_ID
-} from '#lib/constants/canisters.constants.ts';
-import {
-	CKUSDC_TOKEN,
-	ICP_TOKEN,
-	SUPPORTED_TOKENS,
-	VXP_TOKEN
-} from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { SUPPORTED_TOKENS } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import { getCollateralAssets } from '#lib/services/collateral.services.ts';
-import { getIdentity, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import type { TokenId } from '#lib/types/token.ts';
 import type { LedgerBalancesRead, Transaction, WalletBalance } from '#lib/types/wallet.ts';
 import { findSupportedTokenForClearingAssetId } from '#lib/utils/asset-ref.utils.ts';
 import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
-import {
-	getIcrcAccount,
-	mapIcpTransaction,
-	mapIcrcTransaction,
-	mapTransactionIcpToSelf,
-	mapTransactionIcrcToSelf
-} from '#lib/utils/transactions.utils.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getEngineAccountState as getEngineAccountStateWeb2,
 	getWalletBalances as getWalletBalancesWeb2,
 	getWalletDepositAddress as getWalletDepositAddressWeb2
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**
  * On-ledger balances for each supported token id, with the account they
- * belong to (no owner and no balances if not signed in). A token whose ledger
- * could not be read is absent, never zero: callers keep their last known
- * value for it (see `mergeReadBalances`).
+ * belong to (no owner and no balances if not signed in). The API reads the
+ * ledgers for the session user's custodial principal, keyed back to the app's
+ * token ids by symbol (the custody asset catalog mirrors the supported IC
+ * tokens). A token the API could not read is absent, never zero: callers keep
+ * their last known value for it (see `mergeReadBalances`).
  */
 export const getLedgerBalances = async (): Promise<LedgerBalancesRead> => {
-	// web2: the API reads the ledgers for the session user's custodial
-	// principal, keyed back to the app's token ids by symbol (the custody asset
-	// catalog mirrors the supported IC tokens). Direct ledger reads need an
-	// identity, which never exists in this mode. A token the API could not read
-	// is absent, not zero.
-	if (isWeb2Backend()) {
-		const user = getWeb2User();
+	const user = getWeb2User();
 
-		if (isNullish(user)) {
-			return { balances: {} };
-		}
-
-		try {
-			const { balances } = await getWalletBalancesWeb2();
-
-			const bySymbol = new Map(
-				balances
-					.filter(({ chain }) => chain === 'ic')
-					.map(({ symbol, balance }) => [symbol, balance] as const)
-			);
-
-			return {
-				owner: user.id,
-				balances: SUPPORTED_TOKENS.reduce<Record<TokenId, bigint>>((acc, token) => {
-					const balance = bySymbol.get(token.symbol);
-
-					return nonNullish(balance) ? { ...acc, [token.id]: balance } : acc;
-				}, {})
-			};
-		} catch (e: unknown) {
-			console.error('Failed to get ledger balances', e);
-
-			return { owner: user.id, balances: {} };
-		}
-	}
-
-	const identity = await getIdentity();
-
-	if (isNullish(identity)) {
+	if (isNullish(user)) {
 		return { balances: {} };
 	}
 
-	const principal = identity.getPrincipal();
+	try {
+		const { balances } = await getWalletBalancesWeb2();
 
-	const account = getIcrcAccount(principal);
+		const bySymbol = new Map(
+			balances
+				.filter(({ chain }) => chain === 'ic')
+				.map(({ symbol, balance }) => [symbol, balance] as const)
+		);
 
-	// Settled one by one: a single unreachable ledger must not hide the
-	// balances the other ledgers did return.
-	const balanceResults = await Promise.allSettled(
-		SUPPORTED_TOKENS.map((token) =>
-			getLedgerBalance({
-				identity,
-				ledgerCanisterId: token.ledgerCanisterId,
-				account
-			})
-		)
-	);
+		return {
+			owner: user.id,
+			balances: SUPPORTED_TOKENS.reduce<Record<TokenId, bigint>>((acc, token) => {
+				const balance = bySymbol.get(token.symbol);
 
-	return {
-		owner: principal.toText(),
-		balances: SUPPORTED_TOKENS.reduce<Record<TokenId, bigint>>((acc, token, index) => {
-			const result = balanceResults[index];
+				return nonNullish(balance) ? { ...acc, [token.id]: balance } : acc;
+			}, {})
+		};
+	} catch (e: unknown) {
+		console.error('Failed to get ledger balances', e);
 
-			if (result.status === 'rejected') {
-				console.error(`Failed to get the ${token.symbol} ledger balance`, result.reason);
-
-				return acc;
-			}
-
-			return { ...acc, [token.id]: result.value };
-		}, {})
-	};
+		return { owner: user.id, balances: {} };
+	}
 };
 
 /**
@@ -124,31 +59,12 @@ export const getLedgerBalances = async (): Promise<LedgerBalancesRead> => {
 const getCollateralBalances = async (
 	domain: ClearingDid.BalanceDomain
 ): Promise<ClearingDid.AccountStateResponse | undefined> => {
-	if (isWeb2Backend()) {
-		if (isNullish(getWeb2User())) {
-			return;
-		}
-
-		try {
-			return await getEngineAccountStateWeb2(domain);
-		} catch (e: unknown) {
-			console.error('Failed to get collateral balances', e);
-		}
-
-		return;
-	}
-
-	const identity = await getIdentity();
-
-	if (isNullish(identity)) {
+	if (isNullish(getWeb2User())) {
 		return;
 	}
 
 	try {
-		return await getAccountState({
-			identity,
-			params: { refresh: toNullable(true), domain: toNullable(domain) }
-		});
+		return await getEngineAccountStateWeb2(domain);
 	} catch (e: unknown) {
 		console.error('Failed to get collateral balances', e);
 	}
@@ -207,16 +123,10 @@ export interface WalletTransactionsDone {
 }
 
 /**
- * Fetch the next "batch" of merged wallet transactions.
- *
- * Note: we fetch one page per index canister (ICP, ckUSDC, VXP) and then merge/sort newest-first.
- * This means the *exact* number of rendered rows per batch can vary slightly.
+ * The next "batch" of merged wallet ledger transactions. Always the final,
+ * empty page (see below).
  */
-export const getTransactionsPage = async ({
-	batchSize,
-	cursors = {},
-	done
-}: {
+export const getTransactionsPage = (_params: {
 	batchSize: bigint;
 	cursors?: WalletTransactionsCursors;
 	done?: Partial<WalletTransactionsDone>;
@@ -225,167 +135,26 @@ export const getTransactionsPage = async ({
 	cursors: WalletTransactionsCursors;
 	done: WalletTransactionsDone;
 	hasMore: boolean;
-}> => {
-	// web2: the ICRC index canisters key history by principal, which the
-	// browser does not hold in this mode, and the API exposes no custodial
-	// transfer feed yet. The wallet still shows clearing activity (trades,
-	// settlements) through the swapped trade-history read; the ledger rows are
-	// simply absent until the API grows that feed.
-	if (isWeb2Backend()) {
-		return {
-			transactions: [],
-			cursors: {},
-			done: { icp: true, ckUsdc: true, vxp: true },
-			hasMore: false
-		};
-	}
-
-	const identity = await getIdentity();
-
-	if (isNullish(identity)) {
-		return {
-			transactions: [],
-			cursors: {},
-			done: {
-				icp: done?.icp ?? false,
-				ckUsdc: done?.ckUsdc ?? false,
-				vxp: done?.vxp ?? false
-			},
-			hasMore: false
-		};
-	}
-
-	const principal = identity.getPrincipal();
-
-	const resolvedDone: WalletTransactionsDone = {
-		icp: done?.icp ?? false,
-		ckUsdc: done?.ckUsdc ?? false,
-		vxp: done?.vxp ?? false
-	};
-
-	try {
-		const [icpPage, ckUsdcPage, vxpPage] = await Promise.all([
-			resolvedDone.icp
-				? Promise.resolve(undefined)
-				: getIcpTransactionsApi({
-						identity,
-						principal,
-						start: cursors.icp,
-						maxResults: batchSize,
-						indexCanisterId: ICP_INDEX_CANISTER_ID
-					}),
-			resolvedDone.ckUsdc
-				? Promise.resolve(undefined)
-				: getIcrcTransactionsApi({
-						identity,
-						principal,
-						start: cursors.ckUsdc,
-						maxResults: batchSize,
-						indexCanisterId: CKUSDC_INDEX_CANISTER_ID
-					}),
-			resolvedDone.vxp
-				? Promise.resolve(undefined)
-				: getIcrcTransactionsApi({
-						identity,
-						principal,
-						start: cursors.vxp,
-						maxResults: batchSize,
-						indexCanisterId: VXP_INDEX_CANISTER_ID
-					})
-		]);
-
-		const icpTxs = icpPage?.transactions ?? [];
-		const ckUsdcTxs = ckUsdcPage?.transactions ?? [];
-		const vxpTxs = vxpPage?.transactions ?? [];
-
-		const icpNextStart = icpTxs.length > 0 ? icpTxs[icpTxs.length - 1]?.id : cursors.icp;
-		const ckUsdcNextStart =
-			ckUsdcTxs.length > 0 ? ckUsdcTxs[ckUsdcTxs.length - 1]?.id : cursors.ckUsdc;
-		const vxpNextStart = vxpTxs.length > 0 ? vxpTxs[vxpTxs.length - 1]?.id : cursors.vxp;
-
-		const icpNextDone =
-			resolvedDone.icp ||
-			icpTxs.length === 0 ||
-			icpTxs.length < batchSize ||
-			((icpPage?.oldest_tx_id.length ?? 0) > 0 && icpNextStart === icpPage?.oldest_tx_id[0]);
-
-		const ckUsdcNextDone =
-			resolvedDone.ckUsdc ||
-			ckUsdcTxs.length === 0 ||
-			ckUsdcTxs.length < batchSize ||
-			((ckUsdcPage?.oldest_tx_id.length ?? 0) > 0 &&
-				ckUsdcNextStart === ckUsdcPage?.oldest_tx_id[0]);
-
-		const vxpNextDone =
-			resolvedDone.vxp ||
-			vxpTxs.length === 0 ||
-			vxpTxs.length < batchSize ||
-			((vxpPage?.oldest_tx_id.length ?? 0) > 0 && vxpNextStart === vxpPage?.oldest_tx_id[0]);
-
-		const icpNormalized: Transaction[] = icpTxs
-			.flatMap(mapTransactionIcpToSelf)
-			.map((transaction) => mapIcpTransaction({ transaction, token: ICP_TOKEN, identity }));
-
-		const ckUsdcNormalized: Transaction[] = ckUsdcTxs
-			.flatMap(mapTransactionIcrcToSelf)
-			.map((transaction) => mapIcrcTransaction({ transaction, token: CKUSDC_TOKEN, identity }));
-
-		const vxpNormalized: Transaction[] = vxpTxs
-			.flatMap(mapTransactionIcrcToSelf)
-			.map((transaction) => mapIcrcTransaction({ transaction, token: VXP_TOKEN, identity }));
-
-		const transactions = [...icpNormalized, ...ckUsdcNormalized, ...vxpNormalized].sort((a, b) => {
-			if (a.timestamp === b.timestamp) {
-				return 0;
-			}
-
-			return a.timestamp > b.timestamp ? -1 : 1;
-		});
-
-		const nextDone: WalletTransactionsDone = {
-			icp: icpNextDone,
-			ckUsdc: ckUsdcNextDone,
-			vxp: vxpNextDone
-		};
-
-		const nextCursors: WalletTransactionsCursors = {
-			icp: icpNextDone ? cursors.icp : icpNextStart,
-			ckUsdc: ckUsdcNextDone ? cursors.ckUsdc : ckUsdcNextStart,
-			vxp: vxpNextDone ? cursors.vxp : vxpNextStart
-		};
-
-		return {
-			transactions,
-			cursors: nextCursors,
-			done: nextDone,
-			hasMore: !(icpNextDone && ckUsdcNextDone && vxpNextDone)
-		};
-	} catch (e: unknown) {
-		console.error('Failed to get transactions', e);
-
-		return {
-			transactions: [],
-			cursors: cursors ?? {},
-			done: resolvedDone,
-			hasMore: false
-		};
-	}
-};
+}> =>
+	// The ICRC index canisters key history by principal, which the browser
+	// does not hold (the API keeps the custodial keys), and the API exposes no
+	// custodial transfer feed yet. The wallet still shows clearing activity
+	// (trades, settlements) through the trade-history read; the ledger rows
+	// are absent until the API grows that feed.
+	Promise.resolve({
+		transactions: [],
+		cursors: {},
+		done: { icp: true, ckUsdc: true, vxp: true },
+		hasMore: false
+	});
 
 /**
- * The address to receive IC tokens on: the signed-in principal on the default
- * backend, the custodial IC principal the API derives for the session user in
- * web2 mode (deposits to it are detected server-side and credited to the
- * custodial balance). Throws when signed out, mirroring the identity path.
+ * The address to receive IC tokens on: the custodial IC principal the API
+ * derives for the session user (deposits to it are detected server-side and
+ * credited to the custodial balance).
  */
 export const getReceiveAddress = async (): Promise<string> => {
-	if (isWeb2Backend()) {
-		const { address } = await getWalletDepositAddressWeb2('ic');
+	const { address } = await getWalletDepositAddressWeb2('ic');
 
-		return address;
-	}
-
-	const identity = await safeGetIdentityOnce();
-
-	return identity.getPrincipal().toText();
+	return address;
 };

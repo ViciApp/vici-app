@@ -1,11 +1,6 @@
 {
 	"name": "vici-app",
 	"version": "1.8.67",
-	"juno": {
-		"functions": {
-			"version": "1.8.67"
-		}
-	},
 	"private": true,
 	"packageManager": "npm@11.21.1",
 	"scripts": {
@@ -15,7 +10,7 @@
 		"seo:web2-head": "tsx scripts/build/generate-web2-head.ts",
 		"prepare": "svelte-kit sync",
 		"preview": "vite preview",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p src/satellite/tsconfig.json && tsc -p tsconfig.tools.json",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.tools.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"check:i18n": "node scripts/check-locale-catalogs.mjs",
 		"check:dashes": "node scripts/check-dashes.mjs",
@@ -29,22 +24,11 @@
 		"init:icdc-dev-bootstrap": "./scripts/init/init.icdc-dev-bootstrap.sh",
 		"init:registry": "./scripts/init/init.registry.sh",
 		"deploy:markets": "./scripts/deploy-markets.sh",
-		"tag:markets": "./scripts/tag-markets.sh",
-		"translate:markets": "./scripts/translate-markets.sh",
 		"init:icdc": "npm run init:clearing && npm run init:icdc-engine && npm run init:registry && npm run init:icdc-dev-bootstrap",
 		"test": "tsx --test \"src/tests/**/*.spec.ts\"",
-		"test:engine-sync": "./scripts/test/test-engine-sync.sh",
-		"init:vxp-treasury": "./scripts/init/init.vxp-treasury.sh",
-		"juno:functions:build": "juno functions build --lang ts",
-		"juno:functions:upgrade:dev": "juno functions upgrade -m development",
 		"restart:icdc": "./scripts/restart.icdc.sh",
 		"restart:vxp": "./scripts/restart.vxp.sh",
-		"postinstall:copy-auth": "node -e \"require('fs').cpSync('node_modules/@junobuild/core/dist/workers/', './static/workers', {recursive: true});\"",
-		"postinstall": "npm run postinstall:copy-auth",
 		"playwright:install": "playwright install --with-deps",
-		"e2e": "npm run playwright:install && playwright test",
-		"e2e:ci": "playwright test --update-snapshots=changed --reporter=html,list",
-		"e2e:report": "playwright show-report",
 		"e2e:web2": "playwright install chromium && npm run e2e:web2:ci",
 		"e2e:web2:ci": "playwright test --config playwright.web2.config.ts",
 		"e2e:web2:report": "playwright show-report playwright-report-web2"
@@ -53,7 +37,6 @@
 		"@dfinity/eslint-config-oisy-wallet": "^0.5.1",
 		"@icp-sdk/bindgen": "^0.4.1",
 		"@junobuild/config": "^3.0.1",
-		"@junobuild/vite-plugin": "^4.7.1",
 		"@playwright/test": "^1.62.1",
 		"@sveltejs/adapter-static": "^4.0.1",
 		"@sveltejs/kit": "^3.4.0",
@@ -84,17 +67,14 @@
 	"type": "module",
 	"dependencies": {
 		"@dfinity/utils": "^4.2.1",
+		"@dfinity/zod-schemas": "^3.2.0",
 		"@icp-sdk/canisters": "^3.5.2",
 		"@icp-sdk/core": "^5.4.0",
-		"@icp-sdk/signer": "^5.6.2",
-		"@junobuild/core": "^5.4.0",
-		"@junobuild/functions": "^0.9.0",
-		"@junobuild/schema": "^1.2.4",
 		"@lucide/svelte": "^1.77.0",
 		"decimal.js": "^10.6.0",
 		"ethers": "^6.17.0",
-		"icp-auth-openid": "npm:@icp-sdk/auth@^6.2.2",
-		"nanoid": "^6.0.2"
+		"nanoid": "^6.0.2",
+		"zod": "^4.6.7"
 	},
 	"overrides": {
 		"@dfinity/eslint-config-oisy-wallet": {
@@ -108,7 +88,6 @@
 		"#declarations": "./src/declarations/index.ts",
 		"#declarations/*": "./src/declarations/*",
 		"#lib/*": "./src/lib/*",
-		"#root/*": "./*",
-		"#satellite/*": "./src/satellite/*"
+		"#root/*": "./*"
 	}
 }

@@ -3,12 +3,6 @@
 	"compilerOptions": {
 		"noEmit": true
 	},
-	"include": [
-		"scripts/**/*.ts",
-		"e2e/**/*.ts",
-		"e2e-web2/**/*.ts",
-		"juno.config.ts",
-		"playwright.web2.config.ts"
-	],
+	"include": ["scripts/**/*.ts", "e2e-web2/**/*.ts", "juno.config.ts", "playwright.web2.config.ts"],
 	"exclude": []
 }
