@@ -1,16 +1,11 @@
 <script lang="ts">
+	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { Eye, Gift } from '@lucide/svelte/icons';
 	import { onMount, untrack } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
 	import { HANDLE_POOL } from '#lib/constants/handle-pool.constants.ts';
-	import {
-		MAX_NICKNAME_LENGTH,
-		MIN_NICKNAME_LENGTH,
-		NICKNAME_PATTERN,
-		RESERVED_HANDLES,
-		sanitizeNickname
-	} from '#lib/constants/profile.constants.ts';
+	import { MAX_NICKNAME_LENGTH, sanitizeNickname } from '#lib/constants/profile.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { newUserVxpAmountMilestone1BaseUnits } from '#lib/constants/vxp-onboarding.constants.ts';
 	import { featuredEvent } from '#lib/derived/featured-event.derived.ts';
@@ -19,6 +14,7 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { OnboardingPicks } from '#lib/types/onboarding.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
+	import { nicknameFormatIssue, type NicknameFormatIssue } from '#lib/utils/nickname.utils.ts';
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	/**
@@ -154,13 +150,8 @@
 	// Local format checks the live probe must clear before hitting the
 	// satellite. Only the typed handle is probed; the placeholder is
 	// pre-validated.
-	const formatValid = $derived(
-		!usingSuggestion &&
-			selectedName.length >= MIN_NICKNAME_LENGTH &&
-			selectedName.length <= MAX_NICKNAME_LENGTH &&
-			NICKNAME_PATTERN.test(selectedName) &&
-			!RESERVED_HANDLES.has(selectedName.toLowerCase())
-	);
+	const formatIssue = $derived(usingSuggestion ? undefined : nicknameFormatIssue(selectedName));
+	const formatValid = $derived(!usingSuggestion && isNullish(formatIssue));
 
 	// Debounced live probe. A monotonic token cancels the in-flight check on
 	// each keystroke so stale results drop. Offline-tolerant: a failure
@@ -242,6 +233,16 @@
 		reasonKey?: MessageKey;
 	}
 
+	// An empty field shows the pool suggestion instead, so `required` only
+	// reads as too short here.
+	const FORMAT_ISSUE_KEYS: Record<NicknameFormatIssue, MessageKey> = {
+		required: 'onboarding.avail.too_short',
+		too_short: 'onboarding.avail.too_short',
+		too_long: 'onboarding.avail.too_long',
+		invalid: 'onboarding.avail.invalid',
+		reserved: 'onboarding.avail.reserved'
+	};
+
 	const availability: Availability = $derived.by(() => {
 		const name = selectedName;
 
@@ -251,20 +252,8 @@
 			return { ok: true, tone: 'neutral' };
 		}
 
-		if (name.length < MIN_NICKNAME_LENGTH) {
-			return { ok: false, tone: 'error', reasonKey: 'onboarding.avail.too_short' };
-		}
-
-		if (name.length > MAX_NICKNAME_LENGTH) {
-			return { ok: false, tone: 'error', reasonKey: 'onboarding.avail.too_long' };
-		}
-
-		if (!NICKNAME_PATTERN.test(name)) {
-			return { ok: false, tone: 'error', reasonKey: 'onboarding.avail.invalid' };
-		}
-
-		if (RESERVED_HANDLES.has(name.toLowerCase())) {
-			return { ok: false, tone: 'error', reasonKey: 'onboarding.avail.reserved' };
+		if (nonNullish(formatIssue)) {
+			return { ok: false, tone: 'error', reasonKey: FORMAT_ISSUE_KEYS[formatIssue] };
 		}
 
 		if (claimError === 'taken' || sessionTaken.has(name)) {

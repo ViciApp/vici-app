@@ -47,7 +47,7 @@ export const sanitizeNickname = (raw: string): string =>
  * (client passes raw, satellite trimmed) so both agree on "the same handle".
  * Used for collisions AND handle-change detection, client + satellite.
  */
-const COMBINING_DIACRITICAL_MARKS = new RegExp('[\\u0300-\\u036f]', 'g');
+export const COMBINING_DIACRITICAL_MARKS = new RegExp('[\\u0300-\\u036f]', 'g');
 export const nicknameUniqueKey = (raw: string): string =>
 	raw.trim().normalize('NFKD').replace(COMBINING_DIACRITICAL_MARKS, '').toLowerCase();
 
@@ -61,6 +61,19 @@ export const PENDING_ONBOARDING_STORAGE_KEY = 'vici:pending-onboarding';
  */
 export const MIN_HANDLE_LENGTH = 3;
 export const MAX_HANDLE_LENGTH = 15;
+
+/**
+ * The handle rule a visitor claims a handle under on the landing: lowercase
+ * `a-z` and `0-9` only, {@link MIN_HANDLE_LENGTH} to {@link MAX_HANDLE_LENGTH}
+ * characters. No accents, no other scripts, no `.` / `_` / `-`, so two
+ * handles never differ only by a lookalike. Checked by `handleFormatIssue`
+ * (`#lib/utils/handle.utils.ts`); `HANDLE_DISALLOWED_CHARS` is its input-time
+ * inverse.
+ */
+export const HANDLE_PATTERN = new RegExp(`^[a-z0-9]{${MIN_HANDLE_LENGTH},${MAX_HANDLE_LENGTH}}$`);
+
+/** Every character {@link HANDLE_PATTERN} refuses, for stripping as the visitor types. */
+export const HANDLE_DISALLOWED_CHARS = /[^a-z0-9]/g;
 
 /**
  * A handle can be changed once every {@link HANDLE_COOLDOWN_DAYS} days.
