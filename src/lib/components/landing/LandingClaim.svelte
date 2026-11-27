@@ -285,13 +285,13 @@
 				value={flow.code}
 			/>
 		{:else}
-			<b class="lc-me"
-				>{t({
+			<b class="lc-me">
+				{t({
 					locale: $localeStore,
 					key: 'landing.nav.handle',
 					params: { handle: claimedHandle ?? '' }
-				})}</b
-			>
+				})}
+			</b>
 		{/if}
 		{#if shownStep !== 'done'}
 			<button class="lc-go" aria-busy={flow.busy} aria-disabled={flow.busy} type="submit">
