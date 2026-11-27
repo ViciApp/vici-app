@@ -1,7 +1,7 @@
 // Social feed: activities plus per-activity like reactions.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { query, tx, type TxQuery } from '../db/client';
+import { query, refuseMissingReference, tx, type TxQuery } from '../db/client';
 import { UUID_RE } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { fanOutResolvedResults } from './resolved-results';
@@ -40,6 +40,20 @@ export const ACTIVITY_MARKET_ID_MAX_LENGTH = 128;
 export const ACTIVITY_REACTION_TITLE_MAX_LENGTH = ACTIVITY_TITLE_MAX_LENGTH;
 
 export class ActivityValidationError extends Error {}
+
+/** The author is the signed-in caller, so the foreign key an activity write
+ * can miss is the client-named target user: a client error, not a fault. */
+const refuseUnknownTarget = refuseMissingReference(
+	() => new ActivityValidationError('unknown_user')
+);
+
+/** Typed failure for a replayed activity key (same user, timestamp, type),
+ * so the route can answer it as a conflict rather than a fault. */
+export class ActivityExistsError extends Error {
+	constructor() {
+		super('Activity already exists.');
+	}
+}
 
 /** Typed failure for a reaction addressed at an activity that does not
  * exist, so the route can answer it as a 404 rather than a fault. */
@@ -170,13 +184,14 @@ export const createActivity = async ({
 	const rows = await query<ActivityRow>(
 		`insert into activities (key, user_id, type, target_user, market_id, title, details, timestamp_ms)
 		 values ($1, $2, $3, $4, $5, $6, $7, $8)
+		 on conflict (key) do nothing
 		 returning key, user_id, type, target_user, market_id, title, details, timestamp_ms::text`,
 		[key, userId, type, targetUser ?? null, marketId ?? null, title, details ?? null, timestamp]
-	);
+	).catch(refuseUnknownTarget);
 	const [row] = rows;
 
 	if (isNullish(row)) {
-		throw new Error('activity insert returned no row');
+		throw new ActivityExistsError();
 	}
 
 	const activity = shapeActivity(row);

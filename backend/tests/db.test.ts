@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { isDbUnavailable, query } from '../src/db/client';
+import {
+	isDbUnavailable,
+	isUniqueViolation,
+	query,
+	refuseMissingReference
+} from '../src/db/client';
 import { runMigrations } from '../src/db/migrate';
 import { dbAvailable } from './helpers/setup';
 
@@ -20,6 +25,26 @@ describe('isDbUnavailable', () => {
 		expect(isDbUnavailable(new Error('syntax error at or near "selct"'))).toBe(false);
 		expect(isDbUnavailable('nope')).toBe(false);
 		expect(isDbUnavailable(undefined)).toBe(false);
+	});
+});
+
+describe('constraint violations', () => {
+	const withCode = (code: string): Error => Object.assign(new Error('boom'), { code });
+
+	test('a unique violation is told apart from other faults', () => {
+		expect(isUniqueViolation(withCode('23505'))).toBe(true);
+		expect(isUniqueViolation(withCode('23503'))).toBe(false);
+		expect(isUniqueViolation({ code: '23505' })).toBe(false);
+	});
+
+	test('a foreign key violation becomes the typed error; anything else is rethrown', () => {
+		class MissingError extends Error {}
+
+		const refuse = refuseMissingReference(() => new MissingError('unknown_user'));
+		const other = withCode('23505');
+
+		expect(() => refuse(withCode('23503'))).toThrow(MissingError);
+		expect(() => refuse(other)).toThrow(other);
 	});
 });
 
