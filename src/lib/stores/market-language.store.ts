@@ -14,7 +14,7 @@ import { writable } from 'svelte/store';
  * preference) rather than the satellite `preferences` schema, which would
  * require a Candid + Rust binding regen. Cross-device sync is a later change.
  */
-export type MarketLanguagePreference = 'translated' | 'original';
+type MarketLanguagePreference = 'translated' | 'original';
 
 const MARKET_LANGUAGE_KEY = 'vici.market-language.v1';
 const PREFERENCES: readonly MarketLanguagePreference[] = ['translated', 'original'] as const;
