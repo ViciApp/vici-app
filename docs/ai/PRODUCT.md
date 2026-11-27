@@ -714,13 +714,14 @@ the link names. After three calls the last card floats into **Markets**,
 every open market at its live price, also one tap away on the top bar's
 switch. A call on the landing places no order: it is kept on the device
 (the latest ten, a week at most) for the handle claim. "Claim your
-@handle" in the top bar opens the capsule (handle, email, code); a Yes /
+@handle" lives in the top bar only and opens the capsule (handle, email, code); a Yes /
 No in Markets opens it too, with a line naming the call. **The waitlist
 behind the email and code steps does not exist yet: the capsule checks
 the handle for real and then refuses to send a code**, so no handle is
 ever shown as held. When no curated market is open and priced the landing
-opens on Markets alone. The page has no sign-in entry: `/signin` is the
-address for an existing account. Design contract:
+opens on Markets alone. An existing account signs in through the "Sign in" link (top bar on wide
+screens, footer everywhere). In Markets the curated markets keep their
+film stills. Design contract:
 [`design.md` § 6](./frontend/design.md#6-landing-page).
 
 ### Legacy app: new accounts move to vici.app

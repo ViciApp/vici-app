@@ -54,29 +54,27 @@ export const LANDING_DECK_CLIP_TYPE_MP4 = 'video/mp4';
 export const LANDING_DECK_DEFAULT_WIDE_FOCUS = '50% 58%';
 
 /**
- * The three curated series of the landing deck, in deck order.
- *
- * The `seriesId` values are placeholders until the curated series exist on
- * the registry: a card whose series does not load is left out of the deck, so
- * with these values the deck renders no card at all. Replace each with the
- * real registry series id.
+ * The three curated series of the landing deck, in deck order, by their
+ * registry series id. A card whose series does not load, or is no longer an
+ * open Yes/No market, is left out of the deck: all three close by
+ * 31 December 2026, so the deck needs new series before then.
  */
 export const LANDING_DECK_SERIES: readonly LandingDeckSeries[] = [
 	{
-		seriesId: 'PLACEHOLDER_SERIES_ID_GTA_VI_40M_COPIES_BY_2026_12_31',
+		seriesId: 'fbf8a877ad82426660f382415be1adb68c502f492fc20a2d9f1144a76e754ec8',
 		media: 'gta',
 		category: 'gaming',
 		wideFocus: '50% 56%'
 	},
 	{
-		seriesId: 'PLACEHOLDER_SERIES_ID_BITCOIN_ABOVE_60K_ON_2026_12_31',
+		seriesId: 'e3f25f5843d422a460bd7ba82501747032a22318bacce84feedfaa00c18de161',
 		media: 'btc',
 		category: 'economy',
 		wideFocus: '50% 50%',
 		seam: 0.743
 	},
 	{
-		seriesId: 'PLACEHOLDER_SERIES_ID_BARCA_TOP_OF_LA_LIGA_ON_2026_12_31',
+		seriesId: 'acf88eb24cddee183bd10473a7dbb15157b072e1a8d348d9c416d7bcf31c9504',
 		media: 'barca',
 		category: 'sports',
 		wideFocus: '50% 50%'
