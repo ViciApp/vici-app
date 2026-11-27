@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: In progress (#PRNUM)
+Status: In progress (#1741)
 
 One scoped PR cannot hold this work, so it is split into three specs. Each has its own status and its own PR, and they are stacked in this order:
 
