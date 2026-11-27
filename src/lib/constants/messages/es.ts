@@ -820,7 +820,7 @@ export const esMessages = {
 	'claim.moved.sub_new_account':
 		'Este inicio de sesión no tiene una cuenta de VICI en este sitio. Las cuentas nuevas se crean en {domain}.',
 	'claim.moved.sub_shutdown':
-		'Este sitio está cerrado. Tu cuenta, tus predicciones y tus VXP están en {domain}: inicia sesión allí para seguir jugando.',
+		'Este sitio está cerrado. VICI continúa como una nueva app en {domain}.',
 	'claim.moved.sub_signup':
 		'Las cuentas nuevas se crean en {domain}. Regístrate allí para empezar a hacer predicciones.',
 	'claim.moved.title': 'VICI se ha mudado a {domain}',

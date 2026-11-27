@@ -827,7 +827,7 @@ export const deMessages = {
 	'claim.moved.sub_new_account':
 		'Zu dieser Anmeldung gibt es auf dieser Seite kein VICI-Konto. Neue Konten werden auf {domain} erstellt.',
 	'claim.moved.sub_shutdown':
-		'Diese Seite ist geschlossen. Dein Konto, deine Vorhersagen und deine VXP sind auf {domain}: Melde dich dort an, um weiterzuspielen.',
+		'Diese Seite ist geschlossen. VICI geht als neue App auf {domain} weiter.',
 	'claim.moved.sub_signup':
 		'Neue Konten werden auf {domain} erstellt. Registriere dich dort, um mit deinen Vorhersagen zu starten.',
 	'claim.moved.title': 'VICI ist umgezogen: {domain}',

@@ -33,20 +33,3 @@ export const newAppSignupUrl = ({
 
 	return `${origin}/signup`;
 };
-
-/**
- * The same page on the new app, for the legacy build once it is shut down. The
- * new app serves the same routes, so a bookmark, an installed app's start URL
- * or a shared market link keeps landing where it pointed.
- */
-export const newAppPageUrl = ({
-	origin,
-	pathname,
-	search,
-	hash
-}: {
-	origin: string;
-	pathname: string;
-	search: string;
-	hash: string;
-}): string => `${origin}${pathname}${search}${hash}`;

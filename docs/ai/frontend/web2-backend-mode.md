@@ -288,8 +288,10 @@ vici.market: `isLegacyShutDown()` in `new-app-redirect.services.ts`
 (`!isWeb2Backend()` and the flag) makes the root layout render
 `claim/LegacyShutdown.svelte` on every route and skip everything that would
 reach the satellite (`initSatellite`, `Authn`, analytics, the maintenance
-watch). The screen sends the visitor to the same path on the new app
-(`loadNewAppPageUrl`) with `location.replace` and keeps a link for a browser
+watch). The screen sends every visitor to the new app's landing
+(`newAppLandingUrl`), never to a legacy path such as `/signin`: accounts were
+not carried over and the new app has no public sign-in. It uses
+`location.replace` and keeps a link for a browser
 that blocks it. The redirect lives in the page because the satellite cannot
 issue one for the app's routes, and because an installed app's service
 worker answers a redirected navigation with the cached shell. A tab still

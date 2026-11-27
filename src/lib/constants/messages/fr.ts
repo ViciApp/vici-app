@@ -824,7 +824,7 @@ export const frMessages = {
 	'claim.moved.sub_new_account':
 		"Cette connexion n'a pas de compte VICI sur ce site. Les nouveaux comptes se créent sur {domain}.",
 	'claim.moved.sub_shutdown':
-		'Ce site est fermé. Ton compte, tes prédictions et tes VXP sont sur {domain} : connecte-toi là-bas pour continuer à jouer.',
+		'Ce site est fermé. VICI continue sous la forme d’une nouvelle app sur {domain}.',
 	'claim.moved.sub_signup':
 		'Les nouveaux comptes se créent sur {domain}. Inscris-toi là-bas pour commencer tes prédictions.',
 	'claim.moved.title': 'VICI a déménagé sur {domain}',

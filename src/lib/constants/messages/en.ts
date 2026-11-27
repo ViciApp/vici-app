@@ -804,8 +804,7 @@ export const enMessages = {
 	'claim.moved.footer.prompt_signup': 'Already have an account here?',
 	'claim.moved.sub_new_account':
 		'This sign-in has no VICI account on this site. New accounts are created on {domain}.',
-	'claim.moved.sub_shutdown':
-		'This site is closed. Your account, predictions and VXP are on {domain}: sign in there to keep playing.',
+	'claim.moved.sub_shutdown': 'This site is closed. VICI continues as a new app on {domain}.',
 	'claim.moved.sub_signup':
 		'New accounts are created on {domain}. Sign up there to start making predictions.',
 	'claim.moved.title': 'VICI has moved to {domain}',
