@@ -13,13 +13,12 @@ test.describe('sign-out', () => {
 
 		await app.signOut();
 
-		await expect(page).toHaveURL(/\/signin$/);
-		await expect(app.emailInput).toBeVisible();
+		await expect(page).toHaveURL((url) => url.pathname === '/');
 
 		expect((await page.request.get(apiUrl('/api/v1/me'))).status()).toBe(401);
 
 		await page.goto('/dash');
 
-		await expect(page).toHaveURL(/\/signin$/);
+		await expect(page).toHaveURL((url) => url.pathname === '/');
 	});
 });

@@ -7,6 +7,7 @@
 	import { worldCupActive, worldCupMode } from '#lib/derived/world-cup.derived.ts';
 	import { isDev } from '#lib/env/app.env.ts';
 	import { signOut } from '#lib/services/identity.services.ts';
+	import { signInScreenPath } from '#lib/services/new-app-redirect.services.ts';
 	import { preferencesStore } from '#lib/stores/preferences.store.ts';
 	import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
@@ -38,11 +39,11 @@
 		try {
 			await signOut();
 		} catch {
-			// Already signed out / network glitch: push to /signin
+			// Already signed out / network glitch: push to sign-in
 			// regardless so the panel doesn't get stuck.
 		}
 
-		await goto(resolve(PublicPath.SignIn), { replace: true });
+		await goto(signInScreenPath(), { replace: true });
 	};
 </script>
 

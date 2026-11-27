@@ -253,6 +253,30 @@ banners resolve through `migration-banner.utils.ts` `activeMigrationBanner()`,
 so flipping the switch swaps the notice for the claim banner and they never
 stack; both share the `claim/MigrationBanner.svelte` shell.
 
+## Sign-in on the web2 build: team only
+
+While vici.app is closed to the public, the API refuses every sign-in and
+every session outside the team, and the app has no public way in. One gate,
+`new-app-redirect.services.ts` `isTeamOnlySignIn()` (`isWeb2Backend()`),
+drives it, and two helpers name the destinations for both builds:
+
+- `signedOutHomePath()`: where a visitor without a session is sent (the
+  `(app)` auth gate, sign-out in Settings, a signed-out save heart): `/` on
+  the web2 build, `/signin` on the legacy one.
+- `signInScreenPath()`: the sign-in screen for someone already inside who
+  signs in again (switching sign-in method, a dismissed refusal, the dev
+  panel's sign-out): `PublicPath.Team` (`/team`) on the web2 build, `/signin`
+  on the legacy one.
+
+On the web2 build `/signin` and `/signup` send a signed-out visitor to `/`
+(signed in, they keep sending to Flow; `/signup` keeps the handle step of a
+new account). `/team` renders `SignInScreen` with `canSwitch={false}`, and
+`SignInProviderStackWeb2` reads the OAuth callback's `?e=` marker there
+(`beta`, `legacy`, or `state` / `google` / `apple` for a callback that did
+not complete) and strips it. The page is unlinked; see
+[`seo.md`](./seo.md#unlinked-pages). No public page links to `/signin`,
+`/signup` or `/team`.
+
 ## New accounts on the legacy build
 
 The legacy build (default backend) keeps serving existing accounts but sends

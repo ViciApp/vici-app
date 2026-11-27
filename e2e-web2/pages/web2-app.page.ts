@@ -6,8 +6,8 @@ import type { E2eBackend } from '../support/fixtures';
 
 /**
  * Page object for the web2 build: the email one-time-code sign-in
- * (`SignInProviderStackWeb2`), the `/signup` onboarding in front of it, and
- * the signed-in shell. Copy is read from the English catalog so a wording
+ * (`SignInProviderStackWeb2`) on the team's `/team`, the `/signup` handle step
+ * a new account is sent to after it, and the signed-in shell. Copy is read from the English catalog so a wording
  * change updates one place.
  */
 export class Web2AppPage {
@@ -72,18 +72,24 @@ export class Web2AppPage {
 		await this.codeSubmit.click();
 	}
 
-	/** Returning-user path: `/signin`, code, signed-in shell. */
+	/** The team's sign-in screen, the only one a visitor can reach. */
+	async openSignIn(query = ''): Promise<void> {
+		await this.page.goto(`/team${query}`);
+	}
+
+	/** Returning-user path: `/team`, code, signed-in shell. */
 	async signIn({ email, backend }: { email: string; backend: E2eBackend }): Promise<void> {
-		await this.page.goto('/signin');
+		await this.openSignIn();
 		await this.requestCode(email);
 		await this.enterCode({ email, backend });
 		await this.waitForSignedInShell();
 	}
 
 	/**
-	 * New-user path: `/signup` onboarding, claim `handle`, then the email code.
-	 * The provider stack stays disabled until the handle is claimable, so the
-	 * email field turning enabled is the availability probe's all-clear.
+	 * New-user path: the email code on `/team`, then the `/signup` handle step
+	 * the `(app)` layout sends a handle-less account to, where `handle` is
+	 * claimed. Finish stays disabled until the handle is claimable, so it
+	 * turning enabled is the availability probe's all-clear.
 	 */
 	async signUp({
 		email,
@@ -94,13 +100,16 @@ export class Web2AppPage {
 		handle: string;
 		backend: E2eBackend;
 	}): Promise<void> {
-		await this.page.goto('/signup');
-
-		await expect(this.onboarding).toBeVisible();
-
-		await this.onboardingHandleInput.fill(handle);
+		await this.openSignIn();
 		await this.requestCode(email);
 		await this.enterCode({ email, backend });
+		await this.waitForNewAccountHandleStep();
+
+		await this.onboardingHandleInput.fill(handle);
+
+		await expect(this.onboardingFinish).toBeEnabled();
+
+		await this.onboardingFinish.click();
 		await this.waitForSignedInShell();
 		await this.waitForOnboardingHandoff();
 	}
@@ -124,7 +133,7 @@ export class Web2AppPage {
 	}
 
 	/**
-	 * A brand-new account that signed in on `/signin` has no handle yet, so the
+	 * A brand-new account that signed in on `/team` has no handle yet, so the
 	 * `(app)` layout sends it on to the `/signup` handle step. The shell it
 	 * passes through on the way is only on screen until the profile loads, so
 	 * the settled, signed-in state to wait for is the handle step in its

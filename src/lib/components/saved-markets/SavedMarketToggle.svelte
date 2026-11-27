@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Eye, Heart } from '@lucide/svelte/icons';
-	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import { userSignedIn } from '#lib/derived/user.derived.ts';
+	import { signedOutHomePath } from '#lib/services/new-app-redirect.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import {
 		isMarketSaved,
@@ -10,7 +10,6 @@
 	} from '#lib/stores/preferences.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 
 	type ToggleSize = 'sm' | 'md';
 	type ToggleIcon = 'heart' | 'eye';
@@ -73,11 +72,11 @@
 		}
 
 		// `/markets` and `/markets/[id]` are public surfaces; an anonymous
-		// visitor tapping the heart should be routed to signin instead of
+		// visitor tapping the heart is sent out (see `signedOutHomePath`) instead of
 		// writing to an unattached `preferencesStore` whose value can't
 		// persist back to a profile.
 		if (!$userSignedIn) {
-			void goto(resolve(PublicPath.SignIn));
+			void goto(signedOutHomePath());
 
 			return;
 		}

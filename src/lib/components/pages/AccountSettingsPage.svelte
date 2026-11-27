@@ -6,16 +6,16 @@
 	import IconIc from '#lib/components/icons/IconIC.svelte';
 	import IconPasskey from '#lib/components/icons/IconPasskey.svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
-	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { flushEvents, track } from '#lib/services/analytics.services.ts';
 	import { signOut } from '#lib/services/identity.services.ts';
+	import { signInScreenPath } from '#lib/services/new-app-redirect.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { resolveSignInMethod } from '#lib/utils/signin-method.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 
 	/**
 	 * Account settings: current sign-in method + email address. Two
@@ -104,7 +104,7 @@
 
 		try {
 			await signOut();
-			void goto(resolve(PublicPath.SignIn));
+			void goto(signInScreenPath());
 		} catch (err: unknown) {
 			console.warn('Sign-out failed:', err);
 		} finally {

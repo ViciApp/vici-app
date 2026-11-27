@@ -758,8 +758,8 @@ No in Markets opens it too, with a line naming the call. **The waitlist
 behind the email and code steps does not exist yet: the capsule checks
 the handle for real and then refuses to send a code**, so no handle is
 ever shown as held. When no curated market is open and priced the landing
-opens on Markets alone. An existing account signs in through the "Sign in" link (top bar on wide
-screens, footer everywhere). In Markets the curated markets keep their
+opens on Markets alone. No page offers a way to sign in (see "The app: the team signs in at
+`/team`" below). In Markets the curated markets keep their
 film stills. Design contract:
 [`design.md` § 6](./frontend/design.md#6-landing-page).
 
@@ -788,6 +788,10 @@ to `/signup` instead. There is no Flow without an account: a signed-out
 visit to `/flow`, like any app surface, goes to the landing. On the legacy build, where sign-ups have
 moved to vici.app, invite and league links keep leading to `/signup`, whose
 moved screen carries the codes over.
+
+### The app: the team signs in at `/team`
+
+While vici.app is closed to the public, the app has no public way in. No page shows a "Sign in" or "Log in" link or button: not the landing's top bar or footer, not the app's desktop nav on a public market or legal page. `/signin`, `/signup` and every app surface (`/flow`, `/dash`, `/admin`, ...) send a visitor without a session to `/` (the markets board `/app` to the landing's Markets); the public pages are the landing, its Markets, market links (`/m/...`), challenge links (`/c/...`), the legal pages (`/info/...`) and the waitlist capsule. Signing out, and a signed-out tap on a market's save heart, land on `/` too. The team signs in at `/team`: the usual sign-in screen without the switch to sign-up, linked from no page, `noindex` and absent from the sitemap. It shows the reasons the API sends back from a Google or Apple sign-in (`?e=beta` the neutral refusal, `?e=legacy` the legacy-account message, `?e=state`, `?e=google`, `?e=apple` "Sign-in did not go through") and drops the marker from the address. A team member's first sign-in goes on to the `/signup` handle step as before, and a signed-in session reaches `/signin`, `/signup` or `/team` only to be sent on to Flow. The path is not the protection: the API refuses everyone outside the team. The legacy build (vici.market) keeps `/signin` and `/signup` as they were. Spec: [`specs/2026-11-27-feat-team-only-signin-app.md`](./spec-driven-development/specs/2026-11-27-feat-team-only-signin-app.md).
 
 ### Legacy app: new accounts move to vici.app
 
@@ -912,7 +916,7 @@ Decision record:
 
 ### Sign-in: one V3 visual family, Google + passkey-backed email
 
-The returning-user sign-in (`/signin` and every "sign in to continue"
+The returning-user sign-in (`/team` on vici.app, `/signin` on the legacy build, and every "sign in to continue"
 modal) shares the V3 onboarding visual system: brand pinned top, a
 `Welcome back.` hero (sans phrase + one serif-italic accent word, mirroring
 the sign-up `Claim your handle.` headline), the auth cluster directly

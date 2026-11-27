@@ -755,7 +755,6 @@ export const ptBRMessages = {
 		'Escolha uma prenda da lista ou descreva uma personalizada.',
 	'common.error.generic': 'Algo deu errado. Tente novamente.',
 	'companion.oracle.called_it': 'Acertou em cheio.',
-	'cta.primary': 'Comece a prever',
 	'dash.accuracy.eyebrow': 'Sua precisão',
 	'dash.build.bench_friends': 'À frente de {ahead} de {total} amigos',
 	'dash.build.bench_friends_none': 'Convide amigos para comparar',
@@ -1816,6 +1815,7 @@ export const ptBRMessages = {
 	'signin.loading.google': 'Abrindo Google…',
 	'signin.loading.ii': 'Abrindo Internet Identity…',
 	'signin.loading.passkey': 'Abrindo Passkey…',
+	'signin.oauth_failed': 'Não foi possível entrar. Tente de novo.',
 	'signin.otp.bot_check_failed': 'A verificação de segurança falhou. Tente novamente.',
 	'signin.otp.bot_check_unavailable':
 		'Verificação de segurança indisponível. Tente novamente em um minuto.',

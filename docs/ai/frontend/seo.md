@@ -51,6 +51,16 @@ in a build step instead:
 A link preview is read without running the app, so a page's
 `<svelte:head>` never reaches it: change the shell, not the page.
 
+## Unlinked pages
+
+`/team`, the team's sign-in while sign-in on vici.app is team-only, is meant
+to stay out of search: no page links to it, the sitemap never names it (the
+generator emits only `/` and the market pages), and the page sets
+`<meta name="robots" content="noindex, nofollow">` in its `<svelte:head>`.
+That tag only reaches a crawler that runs the app, which is enough for a page
+nothing links to; never add the path to `static/robots.txt`, which would
+publish it. A new unlinked page follows the same three rules.
+
 ## Slugged share links
 
 `#lib/utils/market-slug.utils` is the single source of the `/m/{param}`
