@@ -14,6 +14,7 @@
 
 import { nonNullish } from '@dfinity/utils';
 import { sweepExpiredDeletions } from './account/lifecycle';
+import { sweepExpiredAuthRows } from './auth/expired-sweep';
 import { tickWithdrawalConfirmations } from './chains/confirmations';
 import { tickDepositWatchers } from './chains/watchers';
 import { tickWithdrawalRecovery } from './chains/withdrawal-execution';
@@ -126,6 +127,21 @@ export const jobs: WorkerJob[] = [
 
 			if (swept > 0) {
 				logger.info(`deletion sweep purged ${swept} expired accounts`);
+			}
+		},
+		everyNthTick: HOURLY_TICKS
+	},
+	{
+		// Deletes a bounded batch of long-expired sessions and one-time codes;
+		// a deleted row is gone, so a re-run only finds rows that expired since.
+		name: 'expired-auth-sweep',
+		run: async () => {
+			const { sessions, otpCodes } = await sweepExpiredAuthRows();
+
+			if (sessions + otpCodes > 0) {
+				logger.info(
+					`expired auth sweep removed ${sessions} sessions and ${otpCodes} one-time codes`
+				);
 			}
 		},
 		everyNthTick: HOURLY_TICKS
