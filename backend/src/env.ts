@@ -69,6 +69,16 @@ export interface S3Env {
 	secretAccessKey: string;
 }
 
+export interface TurnstileEnv {
+	/** A secret is configured: tokens are verified against Cloudflare. */
+	enabled: boolean;
+	secretKey: string;
+	/** No secret outside production: the human check is skipped so local and
+	 * test runs work offline. Never true in production, where a missing secret
+	 * refuses every check instead. */
+	bypass: boolean;
+}
+
 export interface Env {
 	isProd: boolean;
 	port: number;
@@ -97,6 +107,7 @@ export interface Env {
 	sol: SolEnv;
 	btc: BtcEnv;
 	s3: S3Env;
+	turnstile: TurnstileEnv;
 }
 
 /** Build a validated env object from a raw source. Exported separately from
@@ -249,6 +260,18 @@ export const loadEnv = (source: EnvSource): Env => {
 				bucket,
 				accessKeyId,
 				secretAccessKey
+			};
+		})(),
+		// Cloudflare Turnstile, the bot check in front of the anonymous endpoints.
+		// Optional at boot so a deploy before the key exists still starts, but it
+		// fails closed: production without a secret refuses every check.
+		turnstile: (() => {
+			const secretKey = optional('TURNSTILE_SECRET_KEY', '');
+
+			return {
+				enabled: secretKey !== '',
+				secretKey,
+				bypass: secretKey === '' && !isProd
 			};
 		})(),
 		btc: (() => {

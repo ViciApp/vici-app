@@ -15,7 +15,7 @@ export const parseToken = ({
 /**
  * Encodes a decimal into fixed-base units with `fractionDigits` fractional digits (e.g. limit price book).
  */
-export const parseDecimalToFixedBigInt = ({
+const parseDecimalToFixedBigInt = ({
 	value,
 	fractionDigits
 }: {

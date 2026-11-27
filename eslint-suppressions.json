@@ -52,11 +52,6 @@
 			"count": 1
 		}
 	},
-	"backend/src/leagues/stats.ts": {
-		"complexity": {
-			"count": 1
-		}
-	},
 	"backend/src/profiles/profile-write.ts": {
 		"complexity": {
 			"count": 1
