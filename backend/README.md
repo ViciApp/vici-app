@@ -72,14 +72,6 @@ Validated fail-fast in `src/env.ts`. In production the required vars abort boot 
 | `S3_SECRET_ACCESS_KEY`    | no              | empty (local disk)                           | Bucket secret key; falls back to `AWS_SECRET_ACCESS_KEY`                                                                             |
 | `TURNSTILE_SECRET_KEY`    | no              | empty (bot check skipped)                    | Turnstile secret of the bot checks (handle probe, email sign-in code); unset, production refuses them all and email sign-in is down  |
 
-ETL-only vars (read by `scripts/etl/*`, never by the server):
-
-| Var                       | Purpose                                                                         |
-| ------------------------- | ------------------------------------------------------------------------------- |
-| `ETL_SATELLITE_PEM`       | Path to the satellite ADMIN identity key file (PKCS#8 Ed25519 or secp256k1 PEM) |
-| `ETL_SATELLITE_ID`        | Satellite canister id to drain                                                  |
-| `ETL_SATELLITE_CONTAINER` | Optional emulator URL for a local satellite; unset targets production           |
-
 ## Auth
 
 Sessions are opaque 256-bit tokens in the HttpOnly `vici_session` cookie (SameSite=Lax, Secure in prod, Domain from `COOKIE_DOMAIN`); the database stores only `HMAC-SHA256(token, SESSION_SECRET)`. Login always rotates the token; logout revokes it server-side. A hard-deleted account loses every sign-in path in the same transaction (auth identities, sessions, pending one-time codes), and neither the session guard nor identity resolution ever resolves a hard-deleted user id, so a later sign-in with the same address provisions a new account.
@@ -131,7 +123,7 @@ First verified login auto-links legacy on-chain identities: when the account has
 
 ### Provisional account adoption
 
-The ETL importer parks every legacy principal's data on a provisional `claim_pending` account linked with `matched_via = 'etl'` (see [Data migration](#data-migration-etl)). `src/auth/adoption.ts` hands those accounts to their owners:
+Provisional accounts are `claim_pending` users linked to a legacy principal with `matched_via = 'etl'`. vici.app is a new product and migrates no legacy users, so no code creates them any more. `src/auth/adoption.ts` hands those accounts to their owners:
 
 - **Login.** A first sign-in (no auth identity by subject or by email yet) whose email matches an `'etl'`-linked provisional account adopts it in place: the auth identity attaches to it, `claim_pending` clears, the link's `matched_via` becomes `openid_email` / `profile_email`, and no new users row is created. Still-unlinked principals carrying the same email link to it as well. `resolveIdentity` holds a per-email advisory lock and locks the provisional row, so concurrent first logins adopt once.
 - **Never merged.** Two populated accounts are not merged automatically: user ids are embedded in activity and relation keys, and VXP was paid to each account's own derived principal. A login email matching several provisional accounts adopts one (openid match before profile match, then the most imported activity, then principal order) and leaves the rest provisional.
@@ -225,101 +217,6 @@ App modules are imported directly only when they have no value imports (importin
 
 `src/worker.ts` (the Fly `worker` process) is a single poll loop over a registry of named jobs, interval-driven by `WORKER_POLL_INTERVAL_MS`. Each entry is a `WorkerJob { name, run, everyNthTick? }`: `run` must be idempotent (dedupe lives in the domain, e.g. the `vxp_awards` unique key or the deposits `tx_ref` key) and failures are caught and logged per job so one bad job never stalls the rest; `everyNthTick` throttles cheap-to-skip sweeps, which still run on the first tick after boot so a deploy never postpones them. A job is added as a new entry calling the domain's exported function, with a stable name for the logs. The registry in `src/worker.ts` is the list of jobs; read it there rather than here.
 
-## Data migration (ETL)
-
-`scripts/etl/` moves the legacy satellite data into Postgres. Every script is idempotent and re-runnable: writes upsert on the stable legacy identifiers, so re-running any step (including a full re-export) converges instead of duplicating. That property IS the cutover plan: an initial bulk run while the legacy stack is still live, then one final delta run during the write freeze.
-
-Scripts (also exposed as `bun run etl:*`):
-
-- `drain-auth-identities.ts`: calls the satellite's admin-gated auth-identity export and upserts into `legacy_auth_identities` (the table the login auto-match reads). Resumable: the keyset cursor persists in `etl_cursors` after every page, and clears on completion so the next run re-walks from the start.
-- `export-collections.ts [dir] [--fresh] [collection ...]`: drains every datastore collection into `<dir>/<collection>.jsonl` via the datastore list API signed with the admin identity, keyset-paged on doc keys. Resumable per collection through a `<collection>.cursor` sidecar file (`done` once complete); `--fresh` wipes and re-exports, which is how the delta pass re-pulls.
-- `import-collections.ts [dir] [collection ...]`: transforms the JSONL into the relational tables, one transaction per collection, in dependency order. Principals resolve through `legacy_principals`; an unmatched principal gets a provisional `users` row flagged `claim_pending` plus an `'etl'`-provenance link, adopted later by a matching first login or by the claim flow (see [Provisional account adoption](#provisional-account-adoption)).
-- `migrate-league-images.ts [--dry-run]`: downloads league covers still pointing at legacy storage URLs, re-encodes them through the standard `LEAGUE_IMAGE_SIZE_PX` cover path (S3 or local disk) and rewrites the rows to this API's serving URL.
-- `verify-parity.ts [dir] [--sample N] [--offline] [collection ...]`: per-collection counts (satellite vs JSONL vs Postgres, mapping-aware) plus N random spot checks probing exported docs for their target rows.
-
-Mapping notes (the transforms in `scripts/etl/transforms.ts` are the authority):
-
-- `roles` only fills `users.role` while it is still `user`; roles granted on this stack are never clobbered, and `controller` (infrastructure, not grantable) is skipped.
-- `vxp_awards` keeps the exported status verbatim and stamps every row `origin = 'etl'`, which this backend never pays; an existing row only updates while still `pending` (taking over a pending live row for the same award), so a payout recorded on either stack is never demoted or re-fired. Referral award keys are rewritten from the referee principal to the referee user id, matching the settlement path's idempotency key.
-- `vxp_onboarding` has no table of its own: each non-`none` milestone becomes a `vxp_awards` row (`onboarding`, `m1|m2|m3`) so the onboarding trigger collides instead of re-granting. `referrals` likewise synthesizes both payout-side award rows from the doc's payout states.
-- `school_submissions` is skipped by design: rows are ephemeral verification codes (salted digests with a short TTL); the durable outcome already lands via `schools` and `profiles.school_status`.
-- `events` / `event_rollups` are skipped: the behavioural history was already drained to the warehouse through the analytics export contract, and rollups rebuild from fresh ingest.
-- `chats` / `comments` are skipped: dormant surfaces with no target tables.
-- `leaderboard_ranking` is skipped: a cache of the satellite's global ranking; this backend ranks from settled history on request.
-
-Runbook (bulk run, repeatable):
-
-```bash
-cd backend
-export DATABASE_URL=...                      # target Postgres
-export ETL_SATELLITE_PEM=/path/to/admin.pem  # satellite ADMIN identity
-export ETL_SATELLITE_ID=<satellite-id>
-
-bun run migrate                              # 1. schema up to date
-bun run etl:drain-auth                       # 2. legacy_auth_identities (login auto-match)
-bun run etl:export -- ./etl-export           # 3. raw JSONL snapshot per collection
-bun run etl:import -- ./etl-export           # 4. transform into the tables
-bun run etl:images                           # 5. re-host league covers
-bun run etl:verify -- ./etl-export           # 6. parity report + spot checks
-```
-
-Cutover delta run: freeze legacy writes, then repeat steps 2-6 with a fresh export (`bun run etl:export -- ./etl-export-delta --fresh`, then import/verify against that directory). Because every import upserts and award/referral progress is never demoted, the delta pass only applies what changed since the bulk run.
-
-## Cutover
-
-`scripts/cutover/` hands the legacy accounts over once the final ETL delta has landed. Three steps, each a dry run by default and safe to re-run:
-
-- `cutover:list-unmatched [out.csv]` writes the sheet of every unadopted provisional account (`claim_pending`, not hard-deleted, still holding an `'etl'` link): `user_id`, `handle`, `display_name`, `legacy_principals`, `legacy_provider` (when the export knows it), `school` (the Worlds university slot), `known_email` (addresses the export already holds: those adopt on first login without help) and an empty `email` column. Stdout without a path.
-- `cutover:assign-emails <filled.csv> [--execute]` gives each account whose sheet row has an `email` that address, as `legacy_auth_identities.profile_email` of one of its `'etl'` principals (inserting the row when the export has none): the column adoption and the beta gate already match on (trimmed, lowercased), so the first verified sign-in with it adopts the account in place. It refuses a malformed user id or email, an account that is not an unadopted provisional one, a user id or an email on two rows, an email that already signs in to a live account (that login never reaches adoption) and an email the export holds for another principal (two accounts would compete for one login); an address the account already carries is `already_assigned`. `--execute` plans again inside one transaction under the per-email login locks of the requested addresses and of the legacy addresses the accounts already carry (so a first login with either runs before the plan, which then finds the account adopted, or after the write) and writes only the `assign` rows; refused rows exit 1.
-- `cutover:reassign [--execute] [--principal <p> ...] [--report <out.jsonl>]` moves each `legacy_principals` principal's clearing account (collateral in every domain, cash, reserved margin, positions, and the custody funds clearing holds for it) to `userIcPrincipalText(user_id)` through clearing's controller-only `admin_reassign_account`, with `reassignment_id = vici-cutover:<old principal>`. The user id survives adoption, so a still-provisional account moves too. Before anything is read from the engine it refuses an unset `ROOT_SECRET` and checks the derived targets against every stored `ic` custody address in scope (at least one must exist): one mismatch aborts, dry run included. The dry run then reads open orders under the old principal, its settled history, the VXP left in its own ledger wallet and the target's clearing state, and writes one JSONL row per principal plus a summary; `--execute` calls principal by principal, appending each answer to the report. A user with several principals gets them in order of settled history, open orders, then wallet VXP; once one of them ends in anything that may leave its account unmoved (a `replay`, or a refusal for its own state such as `OpenOrdersExist`), the account's later principals are `deferred` (a replay) to the next run, so a lower-ranked one never moves first. A target whose state cannot be read is `target_unreadable`: reported, never called, retried on the next run. `--principal` limits the run (a canary), and its scope must still include an account with a custody address.
-
-| Answer of `admin_reassign_account`                                                                     | Disposition       | Next                                                                                     |
-| ------------------------------------------------------------------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------- |
-| `Ok` (also a replay of a finished id)                                                                  | `moved`           | nothing                                                                                  |
-| `AccountNotFound`                                                                                      | `nothing_to_move` | nothing: the principal never had a clearing account                                      |
-| `InFlightPlansExist`, `ReassignmentInProgress`, `CustodyTransferFailed`, a thrown call                 | `replay`          | run the same command again: the id resumes the pending reassignment                      |
-| `TargetAccountNotEmpty`, `OpenOrdersExist`, `PendingPositionTransfersExist`, `UnsupportedCustodyAsset` | `manual`          | someone acts first (a second principal of an account that already moved is a merge case) |
-| `ReassignmentIdReused`, `SameOwner`, `AnonymousOwner`                                                  | `manual`          | the data disagree with the plan: look before anything else                               |
-| `Common` (`Unauthorized` stops the run)                                                                | `error`           | fix the key or the canister config, then replay                                          |
-
-Not moved: VXP in the old principal's own ledger wallet (it is not part of the clearing account and only its owner can sign for it; the report lists it). Clearing has no controller cancel, so a principal with resting orders stays `manual` until its owner cancels them on the legacy app. Settled history keeps counting under the legacy principal through the link (`settlementPrincipalsByUser`).
-
-Env: `DATABASE_URL`; `ROOT_SECRET` (required by `cutover:reassign`, the production value: without it the env falls back to the public dev secret); `CUTOVER_CONTROLLER_PEM` (`--execute` only: path to a clearing controller key, Ed25519 PKCS#8 or secp256k1, loaded like `ETL_SATELLITE_PEM`); `IC_HOST` and `CLEARING_CANISTER_ID` (mainnet defaults). Leave `NODE_ENV` unset, as for the ETL. Sheets (`backend/*.csv`) and reports (`backend/cutover-*.jsonl`) hold user emails and are git-ignored there; keep them off shared drives.
-
-Operator sequence, after the legacy write freeze:
-
-```bash
-cd backend
-export DATABASE_URL=...                         # production Postgres
-export ETL_SATELLITE_PEM=/path/to/admin.pem ETL_SATELLITE_ID=<satellite-id>
-
-# 1. Final ETL delta (Data migration above). etl:drain-auth must be the LAST drain.
-bun run etl:drain-auth
-bun run etl:export -- ./etl-export-delta --fresh
-bun run etl:import -- ./etl-export-delta
-bun run etl:images
-bun run etl:verify -- ./etl-export-delta
-
-# 2. The sheet; the team fills `email` for the rows without a known_email.
-bun run cutover:list-unmatched -- unmatched.csv
-
-# 3. Assign the collected emails: review the dry run, then write.
-bun run cutover:assign-emails -- filled.csv
-bun run cutover:assign-emails -- filled.csv --execute
-
-# 4. Move the clearing accounts: dry run, one canary, then everyone; repeat
-#    the last command until no row is `replay`, then work the `manual` list.
-export ROOT_SECRET=...                          # the production value
-export CUTOVER_CONTROLLER_PEM=/path/to/clearing-controller.pem
-bun run cutover:reassign
-bun run cutover:reassign -- --execute --principal <one-principal-with-state>
-bun run cutover:reassign -- --execute
-```
-
-Step 5 releases the beta gate, signed in as an admin (no code change; `readAppSetting` is uncached, so it applies at once): `PUT /api/v1/admin/settings/beta_gate` with `{ "value": { "enabled": false, "emails": [] } }`, or `DELETE /api/v1/admin/settings/beta_gate`. Until then every assigned address gets `legacy_account_pending`. Release it after step 4, so nobody gives a target account live state (which `admin_reassign_account` refuses to merge into) before its legacy account has moved.
-
-`etl:drain-auth` rewrites `profile_email` from the satellite (empty for passkey and Internet Identity logins), wiping every assigned email: a drain after step 3 means running step 3 again with the same file. Both email steps print this warning.
-
 ## End-to-end stack (test only)
 
 `e2e/` holds what the Playwright suite (`e2e/` at the repo root, see `docs/ai/frontend/testing.md`) runs the API with. None of it is reachable in production:
@@ -327,7 +224,7 @@ Step 5 releases the beta gate, signed in as an admin (no code change; `readAppSe
 - `e2e/server.ts` (`bun run e2e:server`) imports the production app from `src/index.ts` and, before listening, swaps its external dependencies through the existing test seams: `setEngineActorProvider` and `setVxpLedgerProvider` install the fakes in `e2e/fake-engine.ts`, and `setEmailTransport` (`src/lib/email.ts`) routes email into an in-memory outbox. It adds two routes that `src/index.ts` never registers: `GET /__e2e/otp/:email` (the latest sign-in code sent to an address) and `POST /__e2e/reset-rate-limits` (every local request shares the limiter's "unknown IP" key, and the seeded admin's inbox shares one window in `rate_limit_windows`, so it clears both).
 - `e2e/fake-engine.ts` answers the public reads from `e2e/fixtures.ts` (live markets, one settled market, the VXP collateral asset, empty tapes and leaderboards) and every account as the never-deposited empty one until a deposit lands. Its ledgers hold balances and allowances in memory (zero until `fundFakeAccount`), and `deposit_collateral` enforces the real rules: `icrc2_transfer_from` needs an allowance covering amount + fee, the asset's allowed domains apply, an id replays without moving funds. Any other method rejects, so an unexpected engine call surfaces as a failing request. The treasury side of the VXP ledger fake refuses transfers.
 - `bun run e2e:stack` is the one entry Playwright uses: `e2e/preflight.ts` runs the guard first, so a non-loopback database is refused before `migrate` connects to it, then migrate, seed and server.
-- `e2e/seed.ts` (`bun run e2e:seed`, after `bun run migrate`) imports the legacy fixture accounts through the real ETL importer, writes their exported legacy identities and creates the admin account. Idempotent.
+- `e2e/seed.ts` (`bun run e2e:seed`, after `bun run migrate`) writes the legacy fixture accounts (provisional, `matched_via = 'etl'`) with their legacy identities and creates the admin account. Idempotent.
 
 Production guards, independent of each other:
 
@@ -349,7 +246,7 @@ fly secrets set DATABASE_URL=... SESSION_SECRET=... ROOT_SECRET=... RESEND_API_K
 cd .. && fly launch --no-deploy --config fly.web.toml   # creates vici-app-web
 ```
 
-Deploys go through `.github/workflows/fly-deploy.yml`, dispatched by hand from a `v*` release tag only (`gh workflow run fly-deploy.yml --ref vX.Y.Z`): its first job fails the run on any other ref, because the backend deploy runs the migrations against the production database. It needs the repo secrets `FLY_API_TOKEN_WEB2_BACKEND` and `FLY_API_TOKEN_WEB2_WEB`, one `fly tokens create deploy` token per app. Break-glass only, when the workflow cannot run (GitHub Actions down): from a clean checkout of the same release tag (`git checkout vX.Y.Z`, no local changes), `flyctl deploy --remote-only --build-arg BUN_VERSION="$(cat .bun-version)"` from `backend/`, and `flyctl deploy --config fly.web.toml --remote-only --build-arg NODE_VERSION="$(cat .node-version)"` from the repo root. Never deploy a branch or a dirty tree: the backend deploy runs its migrations against production. Ignored files (`node_modules`, `.env*`, build output) survive `git checkout`, so each build context has a `.dockerignore` (`backend/` for the API, the repo root for the SPA) that keeps them, and everything the image does not run, out of the upload. The API image has no `tests/` or `scripts/`: the test suite and the ETL run from a checkout, never on a deployed machine.
+Deploys go through `.github/workflows/fly-deploy.yml`, dispatched by hand from a `v*` release tag only (`gh workflow run fly-deploy.yml --ref vX.Y.Z`): its first job fails the run on any other ref, because the backend deploy runs the migrations against the production database. It needs the repo secrets `FLY_API_TOKEN_WEB2_BACKEND` and `FLY_API_TOKEN_WEB2_WEB`, one `fly tokens create deploy` token per app. Break-glass only, when the workflow cannot run (GitHub Actions down): from a clean checkout of the same release tag (`git checkout vX.Y.Z`, no local changes), `flyctl deploy --remote-only --build-arg BUN_VERSION="$(cat .bun-version)"` from `backend/`, and `flyctl deploy --config fly.web.toml --remote-only --build-arg NODE_VERSION="$(cat .node-version)"` from the repo root. Never deploy a branch or a dirty tree: the backend deploy runs its migrations against production. Ignored files (`node_modules`, `.env*`, build output) survive `git checkout`, so each build context has a `.dockerignore` (`backend/` for the API, the repo root for the SPA) that keeps them, and everything the image does not run, out of the upload. The API image has no `tests/`: the test suite runs from a checkout, never on a deployed machine.
 
 `GET /health` answers 200 with `{ ok: true, db: 'connected' }` when the DB probe (bounded by `HEALTH_PROBE_TIMEOUT_MS`) succeeds, 503 otherwise; `HEALTH_EXIT_THRESHOLD` consecutive failures exit the process for a supervised restart with a fresh pool.
 
@@ -385,7 +282,4 @@ backend/
       migrations/   # NNNN_name.sql, lexical order, never edited after merge
   tests/            # bun test suites (real Postgres, no mocks for DB paths)
   e2e/              # test-only E2E server, fake engine, fixtures and seed (not in the image)
-  scripts/
-    etl/            # data-migration tooling: drain, export, import, image re-host, parity
-    cutover/        # account handover: unmatched sheet, email assignment, clearing reassignment
 ```
