@@ -44,6 +44,14 @@ Two files under `src/lib/web2/`:
 | Leagues + battles + worlds + tournaments        | `leagues.services.ts`, `worlds.services.ts`, `tournament.services.ts`, `storage.services.ts` (league cover), `standings.services.ts` (league slice)                                                                                       | The social competition surfaces. See "Leagues, battles, worlds and tournaments" below.                                     |
 | VXP + referrals + school + account + activities | `vxp-awards.services.ts`, `referral.services.ts`, `school-verification.services.ts`, `account.services.ts`, `activity.services.ts`, `activity-reaction.services.ts`, `profile.services.ts` (own email), `identity.services.ts` (sign-out) | The last app domain set. See "VXP, referrals, school, account lifecycle and activities" below.                             |
 
+## Web2-only domains
+
+Some domains exist only on the HTTP API and have no on-chain path. Their service exposes one availability function that components read; no component branches on the backend itself, and every call throws in a web3 build instead of reaching for a satellite endpoint that does not exist.
+
+| Domain          | Service                 | Gate                         | Why web2-only                                                                                                                                                                       |
+| --------------- | ----------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Challenge links | `challenge.services.ts` | `areChallengeLinksEnabled()` | Issuing a link reads the user's trade history through the custodial engine identity, which only the API holds, and a link funnels into a sign-up the legacy build no longer offers. |
+
 ## The swap pattern (exemplar: analytics flush)
 
 [`analytics.services.ts`](../../../src/lib/services/analytics.services.ts)
