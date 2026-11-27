@@ -2,7 +2,7 @@ import type { UserProfile } from '#lib/types/profile.ts';
 import type { User } from '@junobuild/core';
 import { writable } from 'svelte/store';
 
-export interface UserStoreData {
+interface UserStoreData {
 	user: User | undefined;
 	profile: UserProfile | undefined;
 	/**

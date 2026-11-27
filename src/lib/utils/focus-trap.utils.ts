@@ -12,6 +12,8 @@
  * trap.activate(); // remembers previously-focused element, focuses
  *                   // the first focusable child, starts Tab cycling
  * trap.deactivate(); // returns focus to the original element
+ * trap.deactivate({ restoreFocus: false }); // leaves focus where the
+ *                   // surface put it (it hands focus back itself)
  * ```
  */
 
@@ -39,7 +41,7 @@ const getFocusable = (container: HTMLElement): HTMLElement[] =>
 
 export interface FocusTrap {
 	activate(): void;
-	deactivate(): void;
+	deactivate(params?: { restoreFocus?: boolean }): void;
 }
 
 export const createFocusTrap = (container: HTMLElement): FocusTrap => {
@@ -88,9 +90,13 @@ export const createFocusTrap = (container: HTMLElement): FocusTrap => {
 		document.addEventListener('keydown', handleKeyDown);
 	};
 
-	const deactivate = () => {
+	const deactivate = ({ restoreFocus = true }: { restoreFocus?: boolean } = {}) => {
 		document.removeEventListener('keydown', handleKeyDown);
-		previouslyFocused?.focus();
+
+		if (restoreFocus) {
+			previouslyFocused?.focus();
+		}
+
 		previouslyFocused = null;
 	};
 

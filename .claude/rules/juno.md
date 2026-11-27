@@ -18,6 +18,10 @@ substantive, read the canonical docs.
 
 **Easy-to-miss rules:**
 
+- **Juno is deprecated: the satellite takes fixes only.** No new
+  features there; see
+  [the satellite README](../../docs/ai/satellite/README.md#the-satellite-takes-fixes-only).
+
 - **`@junobuild/core` is FE-only**: never import it from
   `src/satellite/`. Satellite code uses `@junobuild/functions` directly.
 - **Local replica is the Juno emulator** (`juno emulator start`):

@@ -15,7 +15,7 @@ import {
 } from '../src/tournaments/tournaments';
 import { grantAward, setVxpTreasuryDisabled } from '../src/vxp/awards';
 import { grantTournamentPrize } from '../src/vxp/prizes';
-import { createTestUser, ensureMigrated } from './helpers/auth';
+import { createTestUser, ensureMigrated, linkUnparseablePrincipal } from './helpers/auth';
 import { stubSettledHistory, type SettledHistoryStub } from './helpers/settlements';
 import { dbAvailable } from './helpers/setup';
 
@@ -269,6 +269,19 @@ describe.if(dbAvailable)('tournament prize', () => {
 
 		expect(
 			(await claimTournamentPrize({ tournamentId: monthAnchor, userId: active })).totalVxpCredited
+		).toBe(5000);
+	});
+
+	test('a linked principal that does not parse does not stop the claim', async () => {
+		const { monthAnchor, startMs, drawnAtMs, placeOneLeague } = await concludeTournament();
+		const linked = await createTestUser();
+
+		await linkUnparseablePrincipal(linked);
+		settleInTournament({ userId: linked, startMs });
+		await addMember({ leagueId: placeOneLeague, userId: linked, joinedAtMs: drawnAtMs - 1 });
+
+		expect(
+			(await claimTournamentPrize({ tournamentId: monthAnchor, userId: linked })).totalVxpCredited
 		).toBe(5000);
 	});
 

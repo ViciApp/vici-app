@@ -6,3 +6,19 @@ e2e/
 # The local-disk upload fallback (dev and test runs); production stores league
 # images in Tigris, so an image needs no copy of whatever a dev run left here.
 uploads/
+
+# Installed by the Dockerfile for Linux with --production; a host copy (other
+# platform natives, devDependencies) would overwrite it at `COPY . .`.
+node_modules/
+
+# Local secrets: production reads its env from Fly secrets, never a file.
+.env*
+
+# The test suite and the ETL, run from a checkout (see README.md), never on a
+# deployed machine.
+tests/
+scripts/
+
+# ETL snapshots (`etl:export -- ./etl-export`, `./etl-export-delta`) hold
+# legacy user data and live next to scripts/ in a checkout.
+etl-export*/

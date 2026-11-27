@@ -37,7 +37,7 @@ covers the use case.
      prop.
 
 4. **Compose, don't reinvent.** Build on `#lib/components/ui/` (`Button`,
-   `Card`, `Modal`, `Dialog`, `Tabs`, `Table`, `EmptyState`,
+   `Card`, `Modal`, `Dialog`, `BottomSheet`, `Tabs`, `EmptyState`,
    `LoadingSpinner`, …). Pull existing icons from
    `#lib/components/icons/` or `@lucide/svelte` before adding new ones.
    Use snippets (`{#snippet}` + `{@render}`) for repeating intra-component
@@ -45,7 +45,7 @@ covers the use case.
 5. **Style with the project's tokens.** Look at the closest neighbour's
    classes. Use the design tokens from
    [`src/app.css`](../../../../src/app.css) via the matching Tailwind
-   utilities (`bg-card`, `text-card-foreground`, `border-card-border`, …).
+   utilities (`bg-card`, `text-card-foreground`, `border-border`, …).
    No raw hex. See
    [`stack-and-patterns.md#tailwind-v4--design-tokens`](../stack-and-patterns.md#tailwind-v4--design-tokens).
 6. **a11y.** Real `<button>` / `<a>` elements. Labels on every input.
@@ -54,9 +54,9 @@ covers the use case.
 7. **Terminology.** Use **"prediction"**, never "bet". Time variables
    end in `_ms` or `_ns` (see
    [`structure.md#time-variables-ms--ns`](../structure.md#time-variables-_ms--_ns)).
-8. **Test ID** if the component is targeted by future tests:
-   `data-tid="<kebab-case>"`. (When a test-IDs constants file lands,
-   move it there; see [`reusability.md`](../reusability.md).)
+8. **Test ID** only when an E2E test targets the component:
+   `data-tid={TestId.X}`, with the entry added to `TestId` in
+   [`src/lib/constants/test-ids.constants.ts`](../../../../src/lib/constants/test-ids.constants.ts).
 9. **Tests** if the component lives in `#lib/components/ui/` or has
    non-trivial logic. See [`testing.md`](../testing.md) and note the
    bootstrap status.
@@ -87,10 +87,10 @@ covers the use case.
 
 	let { market, highlight = false, onSelect = () => {} }: Props = $props();
 
-	let isClosed = $derived(market.status === 'CLOSED');
+	let isClosed = $derived(market.status !== 'Open');
 </script>
 
-<Card variant={highlight ? 'highlight' : 'default'}>
+<Card variant={highlight ? 'outline' : 'default'}>
 	<header class="flex items-center justify-between">
 		<h3 class="text-card-foreground">{market.title}</h3>
 		{#if isClosed}

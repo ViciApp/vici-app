@@ -27,7 +27,7 @@
 
 import type { WcTemplateId } from '#lib/utils/flow-art/wc/resolve-template.ts';
 
-export interface WcMarketArt {
+interface WcMarketArt {
 	template: WcTemplateId;
 	/** Parsed primary team (kit-clash / crest-ladder left side, qualify nation). */
 	teamA?: string;

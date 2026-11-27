@@ -60,7 +60,7 @@ export const compareBalanceDomains = (
 	return false;
 };
 
-export const filterByBalanceDomain = <
+const filterByBalanceDomain = <
 	T extends
 		{ balanceDomain: ClearingDid.BalanceDomain } | { balance_domain: ClearingDid.BalanceDomain }
 >({

@@ -1,7 +1,9 @@
 import {
 	cancelEngineOrder,
 	getEngineAccountState,
+	getMe,
 	getUserRankAndCount,
+	getWalletBalances,
 	listEngineSettlementStatuses,
 	requestWalletWithdrawal,
 	Web2ApiError
@@ -236,6 +238,31 @@ describe('Web2ApiError', () => {
 describe('requestWalletWithdrawal', () => {
 	const originalFetch = globalThis.fetch;
 
+	const withdrawalRow: Record<string, unknown> = {
+		id: 'w1',
+		assetId: 'a1',
+		amount: '250',
+		fee: '10000',
+		destination: 'aaaaa-aa',
+		selfCustody: true,
+		state: 'submitted',
+		txRef: null,
+		failureReason: null
+	};
+
+	const answer = (withdrawal: Record<string, unknown>): void => {
+		globalThis.fetch = () =>
+			Promise.resolve(new Response(JSON.stringify({ withdrawal }), { status: 201 }));
+	};
+
+	const withdraw = (): ReturnType<typeof requestWalletWithdrawal> =>
+		requestWalletWithdrawal({
+			assetId: 'a1',
+			amount: BigInt(250),
+			destination: 'aaaaa-aa',
+			idempotencyKey: 'k1'
+		});
+
 	afterEach(() => {
 		globalThis.fetch = originalFetch;
 	});
@@ -246,7 +273,9 @@ describe('requestWalletWithdrawal', () => {
 		globalThis.fetch = (...[, init]: Parameters<typeof fetch>): Promise<Response> => {
 			sent = JSON.parse(String(init?.body));
 
-			return Promise.resolve(new Response(JSON.stringify({ withdrawal: {} }), { status: 201 }));
+			return Promise.resolve(
+				new Response(JSON.stringify({ withdrawal: withdrawalRow }), { status: 201 })
+			);
 		};
 
 		await requestWalletWithdrawal({
@@ -263,6 +292,96 @@ describe('requestWalletWithdrawal', () => {
 			destination: 'aaaaa-aa',
 			selfCustody: true,
 			idempotencyKey: 'k1'
+		});
+	});
+
+	it('returns the row the API filed', async () => {
+		answer(withdrawalRow);
+
+		assert.deepEqual(await withdraw(), withdrawalRow);
+	});
+
+	const malformed: [string, Record<string, unknown>][] = [
+		['no state', { ...withdrawalRow, state: undefined }],
+		['a state the API does not have', { ...withdrawalRow, state: 'done' }],
+		['an amount that is not base units', { ...withdrawalRow, amount: '2.5' }],
+		['an empty row', {}]
+	];
+
+	for (const [label, row] of malformed) {
+		it(`refuses a row with ${label} as an unknown outcome`, async () => {
+			answer(row);
+
+			const err: unknown = await withdraw().catch((e: unknown) => e);
+
+			assert.ok(err instanceof Web2ApiError);
+			assert.equal(err.status, 201);
+			assert.equal(err.code, 'invalid_response');
+		});
+	}
+});
+
+describe('getMe', () => {
+	const originalFetch = globalThis.fetch;
+
+	const me = {
+		id: 'user-1',
+		role: 'user',
+		displayName: null,
+		avatarUrl: null,
+		createdAt: '2026-01-01T00:00:00.000Z',
+		identities: [{ provider: 'email', email: 'a@example.com' }],
+		legacyPrincipals: []
+	};
+
+	const answer = (body: unknown): void => {
+		globalThis.fetch = () => Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+	};
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
+	it('returns the signed-in user', async () => {
+		answer({ user: me });
+
+		assert.deepEqual(await getMe(), me);
+	});
+
+	it('refuses a body without a user id', async () => {
+		answer({ user: { ...me, id: undefined } });
+
+		const err: unknown = await getMe().catch((e: unknown) => e);
+
+		assert.ok(err instanceof Web2ApiError);
+		assert.equal(err.code, 'invalid_response');
+	});
+});
+
+describe('getWalletBalances', () => {
+	const originalFetch = globalThis.fetch;
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
+	it('reads each balance as a bigint', async () => {
+		const row = { assetId: 'a1', symbol: 'ICP', chain: 'ic', decimals: 8 };
+
+		globalThis.fetch = () =>
+			Promise.resolve(
+				new Response(
+					JSON.stringify({
+						accounts: [{ chain: 'ic', address: 'aaaaa-aa' }],
+						balances: [{ ...row, balance: '123456789012345678901' }]
+					}),
+					{ status: 200 }
+				)
+			);
+
+		assert.deepEqual(await getWalletBalances(), {
+			accounts: [{ chain: 'ic', address: 'aaaaa-aa' }],
+			balances: [{ ...row, balance: BigInt('123456789012345678901') }]
 		});
 	});
 });
