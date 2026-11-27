@@ -11,14 +11,15 @@ import { expect, test } from '@playwright/test';
  * fixtures required:
  *
  * - A malformed slug is rejected by `REFERRAL_CODE_REGEX`, toasts, and routes
- *   home (`AppPath.Home` = `/app`); the (app) auth gate then bounces the
- *   anonymous visitor to `/signin`.
+ *   home (`AppPath.Home` = `/app`); the (app) auth gate then sends the
+ *   anonymous visitor to the markets they can see, the landing's Markets
+ *   view (`/?view=markets`).
  * - A well-formed code is stashed for attribution and the visitor is sent to
  *   `/signup`; the code needn't exist, since the signed-out branch stashes
  *   blindly and lets the post-signin drain validate it.
  *
  * A genuine 404 renders SvelteKit's error page and
- * reaches neither `/signin` nor `/signup`, so either assertion fails loud.
+ * reaches neither the landing nor `/signup`, so either assertion fails loud.
  */
 
 const ROUTES = ['/join', '/i'] as const;
@@ -33,14 +34,16 @@ const INVALID_CODE = 'not-a-code';
 
 test.describe('invite landing (anonymous)', () => {
 	for (const route of ROUTES) {
-		test(`${route}/{invalid-code} is rejected and bounces to /signin`, async ({ page }) => {
+		test(`${route}/{invalid-code} is rejected and lands on the landing's Markets`, async ({
+			page
+		}) => {
 			await page.goto(`${route}/${INVALID_CODE}`);
 
 			// Route exists → the landing mounts, rejects the malformed slug, and
 			// routes home; the (app) gate then redirects the anonymous visitor.
-			await page.waitForURL('**/signin');
+			await page.waitForURL('**/?view=markets');
 
-			expect(new URL(page.url()).pathname).toBe('/signin');
+			expect(new URL(page.url()).searchParams.get('view')).toBe('markets');
 		});
 
 		test(`${route}/{code} stashes the code and routes to /signup`, async ({ page }) => {
