@@ -1,50 +1,84 @@
-import { LANDING_MARKET_PARAM } from '#lib/constants/landing-markets.constants.ts';
 import {
-	marketShareParam,
-	parseBareMarketShareParam,
-	parseMarketShareParam
-} from '#lib/utils/market-slug.utils.ts';
-import { isNullish, notEmptyString } from '@dfinity/utils';
+	LANDING_MARKET_PARAM,
+	LANDING_VIEW_PARAM
+} from '#lib/constants/landing-markets.constants.ts';
+import type { LandingView } from '#lib/types/landing-claim.ts';
+import { marketShareIdPrefix } from '#lib/utils/market-slug.utils.ts';
+import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
 
 /**
- * Links that open a market on the landing page: `<origin>/?m=<slug~id8>`,
- * the same encoding as the `/m/[id]` share links (a bare id when the title
- * yields no slug).
+ * Links into the signed-out landing (`/`): `?m=<slug~id8>` names the market
+ * the deck leads with (the same param as the `/m/[id]` share link, a bare id
+ * when the title yields no slug), `?view=markets` opens the Markets view.
+ * Every other query param (`ref`, `utm_*`) rides along.
  */
 
-/** The landing link for a market. `title` is the original one, so a link never changes with the reader's language. */
-export const landingMarketShareUrl = ({
-	origin,
-	title,
-	seriesId
+/** What a landing link asks for. */
+export interface LandingLink {
+	/** The `?m=` param as written, and the id prefix it carries; absent when the link names no market. */
+	market?: { param: string; idPrefix: string };
+	/** `true` when the link named a market whose param is malformed: it opens Markets, never a dead page. */
+	marketMalformed: boolean;
+	view?: LandingView;
+}
+
+const isLandingView = (value: string | null): value is LandingView =>
+	value === 'cards' || value === 'markets';
+
+/** Reads a landing link's query string. */
+export const parseLandingLink = (search: string): LandingLink => {
+	const params = new URLSearchParams(search);
+	const param = params.get(LANDING_MARKET_PARAM);
+	const view = params.get(LANDING_VIEW_PARAM);
+	const idPrefix = notEmptyString(param) ? marketShareIdPrefix(param) : undefined;
+
+	return {
+		market: notEmptyString(param) && nonNullish(idPrefix) ? { param, idPrefix } : undefined,
+		marketMalformed: notEmptyString(param) && isNullish(idPrefix),
+		view: isLandingView(view) ? view : undefined
+	};
+};
+
+/**
+ * A query string without the landing's own params (`m`, `view`): what a
+ * landing link carries for others (`ref`, `utm_*`), as `?…` or empty.
+ */
+export const searchWithoutLandingParams = (search: string): string => {
+	const params = new URLSearchParams(search);
+
+	params.delete(LANDING_MARKET_PARAM);
+	params.delete(LANDING_VIEW_PARAM);
+
+	const rest = params.toString();
+
+	return notEmptyString(rest) ? `?${rest}` : '';
+};
+
+/**
+ * The query string of a landing link (`?…`, or empty): `market` is a share
+ * param (`slug~id8`), `view` the view to open, `search` a query string whose
+ * other params are kept (the ones built here win over any `m` or `view` it
+ * already carries). The caller puts it after the resolved landing path.
+ */
+export const landingSearch = ({
+	market,
+	view,
+	search = ''
 }: {
-	origin: string;
-	title: string;
-	seriesId: string;
-}): string =>
-	// `encodeURIComponent`, not `URLSearchParams`: the latter escapes the `~`
-	// separator, which would make a link people read and retype uglier.
-	`${origin}/?${LANDING_MARKET_PARAM}=${encodeURIComponent(marketShareParam({ title, seriesId }))}`;
+	market?: string;
+	view?: LandingView;
+	search?: string;
+} = {}): string => {
+	// `encodeURIComponent` for the market, not `URLSearchParams`: the latter
+	// escapes the `~` separator of a share param.
+	const own = [
+		...(notEmptyString(market) ? [`${LANDING_MARKET_PARAM}=${encodeURIComponent(market)}`] : []),
+		...(nonNullish(view) ? [`${LANDING_VIEW_PARAM}=${view}`] : [])
+	];
+	const rest = searchWithoutLandingParams(search).slice(1);
+	const query = [...own, ...(notEmptyString(rest) ? [rest] : [])].join('&');
 
-/**
- * The market a landing link names: the value of `?m=` and the id prefix it
- * carries (the 8-character suffix of `slug~id8`, or the whole id of the
- * bare-id form a title with no slug gets), or `undefined` when the link
- * names none or a malformed one. The caller matches the prefix against the
- * catalog.
- */
-export const parseLandingMarketParam = (
-	search: string
-): { param: string; idPrefix: string } | undefined => {
-	const param = new URLSearchParams(search).get(LANDING_MARKET_PARAM);
-
-	if (isNullish(param) || !notEmptyString(param)) {
-		return;
-	}
-
-	const idPrefix = parseMarketShareParam(param) ?? parseBareMarketShareParam(param);
-
-	return isNullish(idPrefix) ? undefined : { param, idPrefix };
+	return notEmptyString(query) ? `?${query}` : '';
 };
 
 /** A link as a person copies it by hand: without its scheme. */

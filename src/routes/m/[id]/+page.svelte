@@ -1,24 +1,31 @@
 <script lang="ts">
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
-	import { AnonymousIdentity } from '@icp-sdk/core/agent';
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
-	import { listSeriesCatalog } from '#lib/services/market.services.ts';
+	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
+	import { resolveMarketShareSeriesId } from '#lib/services/market-share.services.ts';
 	import { setPinnedFlowMarket } from '#lib/utils/flow-pin.utils.ts';
-	import { parseMarketShareParam, uniqueSeriesIdWithPrefix } from '#lib/utils/market-slug.utils.ts';
-	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { marketShareIdPrefix } from '#lib/utils/market-slug.utils.ts';
+	import { landingHref, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
-	// Short share-link alias. The share sheet hands out `/m/{slug~id8}?ref=…`
-	// (keyword-carrying yet compact: see `#lib/utils/market-slug.utils.ts`),
-	// while `/markets/{id}` is the canonical detail route. Resolve the param
-	// to a series id, then bounce, carrying the query string through so
-	// referral attribution survives the hop. A bare alias kept this thin:
-	// no auth branching here; the (app) gate on the destination owns the
-	// signed-out path.
+	// The one share link of a market (`/m/{slug~id8}?ref=…`, built by
+	// `marketShareUrl`), from every surface. Where it leads depends on who
+	// opens it, so it waits for the auth handshake:
+	//
+	//  - Signed out: the landing, with this market as the deck's lead card
+	//    (`/?m=…`). The landing resolves the param itself and opens Markets
+	//    when it names nothing, so this hop reads no catalog. The query string
+	//    rides along, so the `?ref=` capture in the root layout gets its chance.
+	//  - Signed in: resolve the param to a series id and open its detail page
+	//    (`/markets/{id}`), carrying the query string through; an unresolvable
+	//    link lands on the markets board.
 	const param = $derived(page.params.id ?? '');
+
+	let routed = false;
 
 	// Resolution order:
 	//  1. The id embedded by the deploy-time SEO page (`window.__viciSeriesId`,
@@ -26,65 +33,53 @@
 	//     consistent with the param: a client-side navigation can reach this
 	//     route with a stale embedded id from whichever prerendered page the
 	//     session entered on.
-	//  2. A param without the slug separator is a bare series id (legacy
-	//     share links).
-	//  3. A slugged param served by the SPA fallback (market newer than the
-	//     last deploy): match the short-id suffix against the catalog.
+	//  2. The id prefix the param carries, matched against the catalog
+	//     (a market newer than the last deploy, or a bare-id link).
 	const resolveSeriesId = async (): Promise<string | undefined> => {
-		const suffix = parseMarketShareParam(param);
-
+		const prefix = marketShareIdPrefix(param);
 		const { __viciSeriesId: embedded } = window as Window & { __viciSeriesId?: string };
 
-		if (
-			notEmptyString(embedded) &&
-			(embedded === param || (nonNullish(suffix) && embedded.startsWith(suffix)))
-		) {
+		if (notEmptyString(embedded) && nonNullish(prefix) && embedded.startsWith(prefix)) {
 			return embedded;
 		}
 
-		if (isNullish(suffix)) {
-			return notEmptyString(param) ? param : undefined;
-		}
-
-		try {
-			const series = await listSeriesCatalog({
-				identity: new AnonymousIdentity(),
-				certified: true
-			});
-
-			return uniqueSeriesIdWithPrefix({
-				seriesIds: series.map(({ series_id }) => series_id),
-				prefix: suffix
-			});
-		} catch {
-			// Registry unreachable: fall through to "unresolvable"; the
-			// caller lands on the markets board instead of a dead page.
-		}
+		return await resolveMarketShareSeriesId(param);
 	};
 
-	onMount(async () => {
+	const openSignedIn = async (): Promise<void> => {
 		const seriesId = await resolveSeriesId();
 		const { search } = page.url;
 
 		if (isNullish(seriesId)) {
-			// Unresolvable link (deleted market, malformed slug): land on the
-			// markets board rather than a dead detail page. The query string
-			// rides along so the referral capture in the (app) layout still
-			// gets its chance.
 			await goto(`${resolveAppPath(AppPath.Markets)}${search}`, { replace: true });
 
 			return;
 		}
 
-		// This route is only ever reached from a shared link, so park the
-		// market for the next Flow entry to surface as the first card,
-		// surviving the detail page, sign-in, and (for a new user)
-		// onboarding. Dropped downstream if the viewer already called it.
+		// Park the market for the next Flow entry to surface as the first
+		// card, surviving the detail page. Dropped downstream if the viewer
+		// already called it.
 		setPinnedFlowMarket(seriesId);
 
 		await goto(`${resolveAppPath(`${AppPath.Markets}/${seriesId}`)}${search}`, {
 			replace: true
 		});
+	};
+
+	$effect(() => {
+		if (!browser || $authBusy || untrack(() => routed)) {
+			return;
+		}
+
+		routed = true;
+
+		if ($userSignedIn) {
+			void openSignedIn();
+
+			return;
+		}
+
+		void goto(landingHref({ market: param, search: page.url.search }), { replace: true });
 	});
 </script>
 

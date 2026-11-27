@@ -17,8 +17,16 @@ export const LANDING_MOVERS_LIMIT = 4;
  */
 export const LANDING_MOVERS_CANDIDATES = 12;
 
-/** Query parameter naming the market a shared landing link opens (`/?m=<slug~id8>`). */
+/**
+ * Query parameter naming the market a landing link opens (`/?m=<slug~id8>`):
+ * the lead card of the deck. The share link itself is `/m/<slug~id8>`
+ * (`marketShareUrl`), which sends a signed-out visitor here; `/?m=` stays
+ * an alias of it.
+ */
 export const LANDING_MARKET_PARAM = 'm';
+
+/** Query parameter opening the landing on one of its views (`/?view=markets`). */
+export const LANDING_VIEW_PARAM = 'view';
 
 /** How long the share button's status label stays up: the confirmation, and the link to copy by hand. */
 export const LANDING_SHARE_COPIED_MS = 2_000;

@@ -66,7 +66,7 @@
 	} from '#lib/utils/market-price-history.utils.ts';
 	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 	import { resolveMarketTranslation } from '#lib/utils/market-translation.utils.ts';
-	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { goBack, resolveAppPath, signedOutMarketsHref } from '#lib/utils/nav.utils.ts';
 	import { positionResolvedResult } from '#lib/utils/position.utils.ts';
 	import { tagColor } from '#lib/utils/tag-color.utils.ts';
 	import { browser } from '$app/env';
@@ -770,6 +770,12 @@
 		}
 	});
 
+	// Where "back to markets" leads: the app's board for a session, the
+	// landing's Markets view (the public markets) for a signed-out visitor.
+	const marketsHref = $derived(
+		$userSignedIn ? resolveAppPath(AppPath.Home) : signedOutMarketsHref()
+	);
+
 	const handlePick = (side: CallSide) => {
 		// Only an open market accepts calls: expired/resolved short-circuit.
 		if (!isLive) {
@@ -815,7 +821,7 @@
 	{#snippet backToMarkets()}
 		<a
 			class="bg-primary text-primary-foreground hover:bg-primary/90 mt-8 rounded-xl px-8 py-3 font-bold transition-all"
-			href={resolveAppPath(AppPath.Home)}
+			href={marketsHref}
 		>
 			{t({ locale: $localeStore, key: 'market.detail.not_found.cta' })}
 		</a>
@@ -833,7 +839,7 @@
 	{:else if market}
 		{@const m = market}
 		{#snippet detailRight()}
-			<MarketDetailShareButton title={displayTitle} />
+			<MarketDetailShareButton originalTitle={m.title} seriesId={m.id} title={displayTitle} />
 			<!-- Eye / "watch this market" save control. Same shared
 			     toggle (and same watchlist backend) as the per-card
 			     heart, here wearing the eye glyph and the faint ghost
@@ -851,7 +857,7 @@
 		<ScreenHeader
 			back={{
 				label: t({ locale: $localeStore, key: 'market.detail.back_to_markets' }),
-				onBack: () => goBack(resolveAppPath(AppPath.Home))
+				onBack: () => goBack(marketsHref)
 			}}
 			right={detailRight}
 		/>

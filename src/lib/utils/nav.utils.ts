@@ -1,4 +1,6 @@
+import { PublicPath } from '#lib/constants/routes.constants.ts';
 import { previousPathStore } from '#lib/stores/previous-path.store.ts';
+import { landingSearch } from '#lib/utils/landing-share.utils.ts';
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import type { PathnameWithSearchOrHash, ResolvedPathname } from '$app/types';
@@ -44,3 +46,17 @@ export const resolveAppPath = (path: `/${PathnameWithSearchOrHash}`): ResolvedPa
 	(resolve as (pathname: PathnameWithSearchOrHash) => ResolvedPathname)(
 		path.slice(1) as PathnameWithSearchOrHash
 	);
+
+/**
+ * A link into the signed-out landing (`/`), with what it should open: see
+ * `landingSearch`.
+ */
+export const landingHref = (params: Parameters<typeof landingSearch>[0] = {}): string =>
+	`${resolve(PublicPath.Landing)}${landingSearch(params)}`;
+
+/**
+ * Where a signed-out visitor browses markets: the landing, on its Markets
+ * view. Signed-in sessions browse the app's own board (`AppPath.Home`).
+ */
+export const signedOutMarketsHref = (search?: string): string =>
+	landingHref({ view: 'markets', search });

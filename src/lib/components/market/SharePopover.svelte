@@ -22,7 +22,7 @@
 	import { type FlowArtCategory, resolveFlowArtCategory } from '#lib/utils/flow-art.utils.ts';
 	import { haptic } from '#lib/utils/haptics.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import { marketShareParam } from '#lib/utils/market-slug.utils.ts';
+	import { marketShareUrl } from '#lib/utils/market-slug.utils.ts';
 	import { appOrigin } from '#lib/utils/nav.utils.ts';
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 	import { renderPredictionCard, type ShareCardResult } from '#lib/utils/share-card.utils.ts';
@@ -109,7 +109,12 @@
 	// generator derives the same param from the registry title, and the two
 	// must agree for a shared link to land on its prerendered crawler page.
 	const url = $derived(
-		`${appOrigin()}/m/${marketShareParam({ title: market.title, seriesId: market.id })}?ref=${refToken}`
+		marketShareUrl({
+			origin: appOrigin(),
+			title: market.title,
+			seriesId: market.id,
+			ref: refToken
+		})
 	);
 
 	const text = $derived.by(() => {
@@ -566,13 +571,13 @@
 			</span>
 		{:else}
 			<span>
-				<b
-					>{t({
+				<b>
+					{t({
 						locale: $localeStore,
 						key: 'flow.share.referral_capped_amount',
 						params: { amount: formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }) }
-					})}</b
-				>
+					})}
+				</b>
 				{t({ locale: $localeStore, key: 'flow.share.referral_capped_tail' })}
 			</span>
 		{/if}

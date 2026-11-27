@@ -13,8 +13,8 @@
 		LANDING_MARKETS_ACK_DELAY_MS,
 		LANDING_SHARE_NUDGE_MS
 	} from '#lib/constants/landing-page.constants.ts';
-	import { resolveLandingLinkSeriesId } from '#lib/services/landing-link.services.ts';
 	import { landingWaitlistSubmit } from '#lib/services/landing-waitlist.services.ts';
+	import { resolveMarketShareSeriesId } from '#lib/services/market-share.services.ts';
 	import { landingCallsStore } from '#lib/stores/landing-calls.store.ts';
 	import { landingClaimStore } from '#lib/stores/landing-claim.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -22,6 +22,7 @@
 	import type { LandingView } from '#lib/types/landing-claim.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { landLandingCard, liftLandingCard } from '#lib/utils/landing-float.utils.ts';
+	import { parseLandingLink } from '#lib/utils/landing-share.utils.ts';
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 	import { has as hasStored, set as setStored } from '#lib/utils/storage.utils.ts';
 	import { page } from '$app/state';
@@ -53,11 +54,24 @@
 	let sharedTimer: ReturnType<typeof setTimeout> | undefined;
 	let ackTimer: ReturnType<typeof setTimeout> | undefined;
 
+	// A link names the card that leads (`?m=`) and can open Markets
+	// (`?view=markets`). A market link that resolves to nothing (malformed,
+	// or a market that is gone) opens Markets too: the visitor followed a
+	// link to a market, so the markets are the nearest thing to it.
+	const openLink = async (): Promise<void> => {
+		const { market, marketMalformed, view: linkView } = parseLandingLink(page.url.search);
+		const seriesId = isNullish(market) ? undefined : await resolveMarketShareSeriesId(market.param);
+
+		leadSeriesId = seriesId;
+		deckReady = true;
+
+		if (linkView === 'markets' || marketMalformed || (nonNullish(market) && isNullish(seriesId))) {
+			void openMarkets({ seriesId });
+		}
+	};
+
 	onMount(() => {
-		void resolveLandingLinkSeriesId(page.url.search).then((seriesId) => {
-			leadSeriesId = seriesId;
-			deckReady = true;
-		});
+		void openLink();
 
 		return () => {
 			clearTimeout(sharedTimer);

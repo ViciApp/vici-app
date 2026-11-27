@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isNullish, nonNullish } from '@dfinity/utils';
+	import { nonNullish } from '@dfinity/utils';
 	import { onMount, type Snippet } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import ClaimBanner from '#lib/components/claim/ClaimBanner.svelte';
@@ -15,7 +15,6 @@
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import NotifToastHost from '#lib/components/ui/NotifToastHost.svelte';
 	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
-	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { guestMode } from '#lib/derived/guest.derived.ts';
@@ -31,7 +30,7 @@
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { resolveAppPath, signedOutMarketsHref } from '#lib/utils/nav.utils.ts';
 	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -86,11 +85,11 @@
 	// Public markets surface: any visitor can open a market's detail
 	// (`/markets/[id]`) before signing up. Auth-requiring affordances on
 	// the detail page (placing a call, saving, resolving) bounce to
-	// `/signin` at the point of action. The bare `/markets` path is now a
-	// redirect alias to the canonical list (`/app`); the path stays
-	// exempt so the redirect page mounts and forwards without a transient
-	// signin bounce, then the auth-gated `/app` destination owns the
-	// signed-out path.
+	// `/signin` at the point of action. The bare `/markets` path is a
+	// redirect alias that sends each visitor to their markets (the app's
+	// board, or the landing's Markets view when signed out); it stays exempt
+	// so it can wait for the auth handshake and forward without a transient
+	// signin bounce.
 	const isPublicMarketsRoute = $derived(
 		page.url.pathname === '/markets' || page.url.pathname.startsWith('/markets/')
 	);
@@ -127,82 +126,6 @@
 
 	let applyingPendingOnboarding = $state(false);
 
-	// Share-link referral attribution. The prediction-share sheet hands out
-	// `/m/{id}?ref={code}` (aliased to `/markets/{id}?ref={code}`, which lands
-	// inside this layout). Reading the param here, the first place a freshly
-	// arriving visitor is handled, lets us credit the referral without a
-	// dedicated landing route: we stash the code into the SAME
-	// `vici:pending-onboarding` slot that `/i/{code}` uses, and the drain below
-	// redeems it post-signin (or, for a returning user, falls back to the
-	// friendship-only path). The market context is preserved: we only read the
-	// query string, never redirect.
-	//
-	// Idempotency / guard rails:
-	//   - Stash only when no `referralCode` is already pending (a user already
-	//     attributed to a referrer is never overwritten). The satellite enforces
-	//     one-redemption-per-referee and self-referral rejection.
-	//   - The share URL falls back to the sharer's handle when their referral
-	//     code hasn't loaded yet (`refToken = referralCode ?? handle`); a handle
-	//     fails `REFERRAL_CODE_REGEX`, so malformed / non-code `?ref=` values are
-	//     ignored here gracefully.
-	const captureSharedReferral = (code: string): void => {
-		try {
-			const raw = localStorage.getItem(PENDING_ONBOARDING_STORAGE_KEY);
-			const parsed: Record<string, unknown> = nonNullish(raw)
-				? ((): Record<string, unknown> => {
-						try {
-							const v: unknown = JSON.parse(raw);
-
-							return typeof v === 'object' && nonNullish(v) ? (v as Record<string, unknown>) : {};
-						} catch {
-							return {};
-						}
-					})()
-				: {};
-
-			// Never overwrite an existing attribution: first referrer wins.
-			if (typeof parsed.referralCode === 'string' && parsed.referralCode.length > 0) {
-				return;
-			}
-
-			parsed.referralCode = code;
-			localStorage.setItem(PENDING_ONBOARDING_STORAGE_KEY, JSON.stringify(parsed));
-		} catch {
-			// Best-effort: attribution is cosmetic relative to the rest of the
-			// visit and must never break navigation if storage is unavailable.
-		}
-	};
-
-	$effect(() => {
-		if (!browser) {
-			return;
-		}
-
-		// Attribution targets *incoming* visitors only. An already-signed-in
-		// session that opens a share link is an established user who was never
-		// referred; stashing the `?ref=` code here would let the post-signin
-		// drain below mis-fire `claimReferralFriendship` for them. Skip the
-		// capture for signed-in sessions, mirroring how the genuine `/i/{code}`
-		// pre-auth stash only runs while signed-out.
-		if ($userSignedIn) {
-			return;
-		}
-
-		const rawRef = page.url.searchParams.get('ref');
-
-		if (isNullish(rawRef)) {
-			return;
-		}
-
-		const normalized = rawRef.toUpperCase().trim();
-
-		if (!REFERRAL_CODE_REGEX.test(normalized)) {
-			return;
-		}
-
-		captureSharedReferral(normalized);
-	});
-
 	// Auth gate: every (app) route requires a session. We only
 	// redirect once `userSignedOutResolved` is true, i.e. after the
 	// initial auth handshake has completed. Reacting to `authBusy`
@@ -232,9 +155,20 @@
 			return;
 		}
 
-		if ($userSignedOutResolved && !$userSignedIn) {
-			void goto(resolve(PublicPath.SignIn), { replace: true });
+		if (!$userSignedOutResolved || $userSignedIn) {
+			return;
 		}
+
+		// The markets board (`/app`) has a public counterpart, the landing's
+		// Markets view: a signed-out visitor goes there, the query string
+		// riding along. Every other surface needs an account, so `/signin`.
+		if (page.url.pathname === resolveAppPath(AppPath.Home)) {
+			void goto(signedOutMarketsHref(page.url.search), { replace: true });
+
+			return;
+		}
+
+		void goto(resolve(PublicPath.SignIn), { replace: true });
 	});
 
 	// Post-signin onboarding handoff. The drain logic (parse the pre-auth

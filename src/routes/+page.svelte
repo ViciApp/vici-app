@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isNullish } from '@dfinity/utils';
 	import LandingPage from '#lib/components/pages/LandingPage.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import { SIGNED_IN_FLAG_KEY } from '#lib/constants/app.constants.ts';
@@ -6,8 +7,11 @@
 	import { userSignedIn, userSignedOutResolved } from '#lib/derived/user.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { parseLandingLink, searchWithoutLandingParams } from '#lib/utils/landing-share.utils.ts';
+	import { MARKET_SHARE_PATH } from '#lib/utils/market-slug.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	// Root landing gate.
 	//
@@ -19,6 +23,9 @@
 	//   own "500 Internal error" page mid-handshake. Routing in-SPA
 	//   keeps us on the already-loaded document, so there is nothing to
 	//   500.
+	//   A `/?m=` link (the landing's alias of the `/m/` share link) keeps its
+	//   market: it is handed to `/m/`, which opens the market and parks it for
+	//   Flow, exactly as the share link does for a signed-in session.
 	// - While the auth handshake is still unresolved, a device that carries
 	//   the `signed-in` hint (`SIGNED_IN_FLAG_KEY`, written by `Authn` on
 	//   every auth transition) is almost certainly resuming a session and
@@ -41,9 +48,22 @@
 	})();
 
 	$effect(() => {
-		if ($userSignedIn) {
-			void goto(resolveAppPath(AppPath.Flow), { replace: true });
+		if (!$userSignedIn) {
+			return;
 		}
+
+		const { market } = parseLandingLink(page.url.search);
+
+		if (isNullish(market)) {
+			void goto(resolveAppPath(AppPath.Flow), { replace: true });
+
+			return;
+		}
+
+		void goto(
+			`${resolveAppPath(`${MARKET_SHARE_PATH}/${encodeURIComponent(market.param)}`)}${searchWithoutLandingParams(page.url.search)}`,
+			{ replace: true }
+		);
 	});
 </script>
 
