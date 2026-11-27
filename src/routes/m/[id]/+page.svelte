@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
-	import { untrack } from 'svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
@@ -25,7 +24,11 @@
 	//    link lands on the markets board.
 	const param = $derived(page.params.id ?? '');
 
-	let routed = false;
+	// The link already handled, so a re-render never routes it twice. Keyed
+	// by the link rather than a flag: SvelteKit reuses this page for a
+	// client-side hop from one `/m/` link to another (or back / forward),
+	// and each new link must be routed.
+	let routedFor: string | undefined;
 
 	// Resolution order:
 	//  1. The id embedded by the deploy-time SEO page (`window.__viciSeriesId`,
@@ -67,11 +70,13 @@
 	};
 
 	$effect(() => {
-		if (!browser || $authBusy || untrack(() => routed)) {
+		const link = `${param}${page.url.search}`;
+
+		if (!browser || $authBusy || routedFor === link) {
 			return;
 		}
 
-		routed = true;
+		routedFor = link;
 
 		if ($userSignedIn) {
 			void openSignedIn();

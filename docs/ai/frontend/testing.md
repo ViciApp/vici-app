@@ -181,7 +181,7 @@ suite below is untouched and keeps covering the web3 build.
   (`E2E_LANDING_DECK_SERIES`, mirroring `LANDING_DECK_SERIES`): a page that
   opens the landing reads them, and a missing one is an engine 404 that fails
   stack health. When the deck rotates, update the fixture too;
-  `landing-deck-e2e-fixtures.spec.ts` fails until you do. They are the only
+  `e2e-web2/landing-deck-fixtures.spec.ts` fails until you do. They are the only
   hex-id series, so they are the ones a `/m/{slug~id8}` share link resolves
   to.
 - **Sign-in:** the email one-time code, as a user does it. The specs read the
@@ -210,6 +210,7 @@ e2e-web2/
 ├── adoption.spec.ts        # legacy email adopts the imported account
 ├── beta-gate.spec.ts       # allowlist refusal, allowNewUsers, legacy hold, ?e=legacy
 ├── dash.spec.ts            # empty engine account renders, no failing reads
+├── landing-deck-fixtures.spec.ts # the fake engine serves every curated landing market
 ├── landing-funnel.spec.ts  # invite, league and market-page calls open the claim capsule; no Flow without an account
 ├── landing-routing.spec.ts # signed-out markets + share links reach the landing, signed-in stay in the app
 ├── markets.spec.ts         # list + detail from the fake engine, settled outcome
