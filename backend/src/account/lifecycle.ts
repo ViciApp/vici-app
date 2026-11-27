@@ -256,6 +256,7 @@ export const hardDeleteAccount = async (userId: string): Promise<void> => {
 		await q(`delete from school_submissions where user_id = $1`, [userId]);
 		await deleteReactionsBy({ likerId: userId, q });
 		await q(`delete from referral_codes where owner_user_id = $1`, [userId]);
+		await q(`delete from waitlist_reservations where account_user_id = $1`, [userId]);
 		// The account's challenge links go (their answers cascade), and so do
 		// the answers it gave on other people's links. Referral rows naming a
 		// link keep its id as plain text and follow the rules below.

@@ -27,6 +27,7 @@ import { schoolRoutes } from './routes/school';
 import { socialRoutes } from './routes/social';
 import { tournamentsRoutes } from './routes/tournaments';
 import { vxpRoutes } from './routes/vxp';
+import { waitlistRoutes } from './routes/waitlist';
 import { walletRoutes } from './routes/wallet';
 import { worldsRoutes } from './routes/worlds';
 
@@ -206,6 +207,7 @@ export const app = new Elysia({ serve: { maxRequestBodySize: MAX_REQUEST_BODY_BY
 	.use(referralsRoutes)
 	.use(challengesRoutes)
 	.use(schoolRoutes)
+	.use(waitlistRoutes)
 	.use(adminRoutes)
 	// Liveness + DB connectivity. Bounded probe; three consecutive failures exit
 	// the process for a supervised restart with a fresh pool.
