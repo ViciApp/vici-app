@@ -43,6 +43,13 @@ jobs:
             exit 1
           fi
 
+          # The tag is written into a shell script the build sources, through
+          # sed, and into the PR title, so only a plain release tag goes in.
+          if [[ ! "$latest" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::The latest icdc-core release tag '$latest' is not vX.Y.Z."
+            exit 1
+          fi
+
           current="$(grep -oE 'ICDC_CORE_VERSION="[^"]+"' "$common" | head -1 | sed -E 's/.*"([^"]+)".*/\1/')"
           echo "Current: $current, latest: $latest"
 
