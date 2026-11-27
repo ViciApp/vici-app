@@ -13,7 +13,7 @@ before adding any `isWeb2Backend()` branch.
 Two files under `src/lib/web2/`:
 
 - [`backend-mode.ts`](../../../src/lib/web2/backend-mode.ts):
-  `isWeb2Backend()` / `backendMode()` read `VITE_BACKEND`, and
+  `isWeb2Backend()` reads `VITE_BACKEND`, and
   `web2ApiBaseUrl()` reads `VITE_WEB2_API_URL`. Defaults: `web3` mode,
   empty base URL (same-origin relative paths).
 - [`client.ts`](../../../src/lib/web2/client.ts): thin typed fetch client.
@@ -26,10 +26,11 @@ Two files under `src/lib/web2/`:
 
 ## Env vars
 
-| Var                 | Values           | Default | Effect                                                                       |
-| ------------------- | ---------------- | ------- | ---------------------------------------------------------------------------- |
-| `VITE_BACKEND`      | `web3` \| `web2` | `web3`  | Selects the backend for domains that have a dual-mode path. Build-time only. |
-| `VITE_WEB2_API_URL` | origin URL       | empty   | Base of the HTTP API. Empty = same-origin relative (reverse-proxy shape).    |
+| Var                       | Values              | Default | Effect                                                                                                                                                                                             |
+| ------------------------- | ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_BACKEND`            | `web3` \| `web2`    | `web3`  | Selects the backend for domains that have a dual-mode path. Build-time only.                                                                                                                       |
+| `VITE_WEB2_API_URL`       | origin URL          | empty   | Base of the HTTP API. Empty = same-origin relative (reverse-proxy shape).                                                                                                                          |
+| `VITE_TURNSTILE_SITE_KEY` | Cloudflare site key | empty   | Public key of the Turnstile widget in front of the anonymous endpoints (`turnstileSiteKey()` in `#lib/env/app.env.ts`). Empty sends an empty token, which the API accepts only outside production. |
 
 ## Swapped domains
 
@@ -296,6 +297,13 @@ the on-chain call untouched on the default side:
   `getMyJoinedAtMs` (the Settings "Joined" line) reads the session
   account's `createdAt` in web2 mode, the profile doc's `created_at` on
   the default backend.
+- `handle-availability.services.ts`: `checkHandleAvailabilityPublic`, the
+  signed-out handle probe. The signed-in `/nickname-availability` needs a
+  session, so a visitor before sign-up goes through
+  `/public-nickname-availability` with a Turnstile-backed proof instead
+  (one solve per window, see the "Anonymous handle probe" section of
+  [`backend/README.md`](../../../backend/README.md)); the default backend
+  keeps the satellite's anonymous query.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
 - `leaderboard.services.ts`: `getLeaderboard`. The API ranks it from
   settled history, never `points` (see the global leaderboard section of

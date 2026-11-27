@@ -5,7 +5,7 @@ import { Principal } from '@icp-sdk/core/principal';
 /**
  * Principal text in canonical form for stable string comparison.
  */
-export const normalizeIcrcLedgerId = (ledgerCanisterId: string): string =>
+const normalizeIcrcLedgerId = (ledgerCanisterId: string): string =>
 	Principal.fromText(ledgerCanisterId).toText();
 
 export const icrcLedgerIdsEqual = ({ first, second }: { first: string; second: string }): boolean =>
@@ -14,7 +14,7 @@ export const icrcLedgerIdsEqual = ({ first, second }: { first: string; second: s
 /**
  * Whether a clearing `Asset` is the given ICRC ledger.
  */
-export const clearingAssetIsIcrcLedger = ({
+const clearingAssetIsIcrcLedger = ({
 	asset,
 	ledgerCanisterId
 }: {

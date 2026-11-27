@@ -37,7 +37,7 @@ export interface PreparedFlow {
 	builtAtMs: number;
 }
 
-export interface PrepareFlowOpts {
+interface PrepareFlowOpts {
 	domain: RegistryDid.BalanceDomain;
 	featuredEventTag: string | undefined;
 	signedIn: boolean;

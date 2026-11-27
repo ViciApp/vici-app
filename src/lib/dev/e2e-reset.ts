@@ -13,7 +13,7 @@ import { get } from 'svelte/store';
  * Global handle the dev-only e2e reset hook is exposed under. Typed here (not
  * `any`) so callers and the Playwright `page.evaluate` stay checked.
  */
-export interface E2eHooks {
+interface E2eHooks {
 	/** Hard-delete the signed-in principal's profile doc. Resolves once gone. */
 	resetMyProfile: () => Promise<void>;
 	/**
