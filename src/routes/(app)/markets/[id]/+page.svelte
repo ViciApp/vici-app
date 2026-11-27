@@ -2,7 +2,6 @@
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
 	import { onDestroy, onMount } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
-	import MarketDetailChartCard from '#lib/components/market/MarketDetailChartCard.svelte';
 	import MarketDetailCtaBar from '#lib/components/market/MarketDetailCtaBar.svelte';
 	import MarketDetailLivePill from '#lib/components/market/MarketDetailLivePill.svelte';
 	import MarketDetailLockedToast from '#lib/components/market/MarketDetailLockedToast.svelte';
@@ -17,6 +16,7 @@
 	import MarketResolutionInterface from '#lib/components/market/MarketResolutionInterface.svelte';
 	import MarketTranslationToggle from '#lib/components/market/MarketTranslationToggle.svelte';
 	import OutcomeBadge from '#lib/components/market/OutcomeBadge.svelte';
+	import PriceChart from '#lib/components/market/PriceChart.svelte';
 	import TradeModal from '#lib/components/market/TradeModal.svelte';
 	import SavedMarketToggle from '#lib/components/saved-markets/SavedMarketToggle.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
@@ -46,7 +46,7 @@
 		areMarketTopPredictorsAvailable,
 		getMarketTopPredictors
 	} from '#lib/services/top-predictors.services.ts';
-	import { getSeriesTradeVolume, loadMarketPriceCandles } from '#lib/services/trade.services.ts';
+	import { getSeriesTradeVolume } from '#lib/services/trade.services.ts';
 	import { showCompanion } from '#lib/stores/companion.store.ts';
 	import { startGuestSession } from '#lib/stores/guest.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -60,10 +60,6 @@
 	import type { CallSide, Market, MarketId } from '#lib/types/market.ts';
 	import type { Position, ResolvedPosition } from '#lib/types/position.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import type {
-		MarketPriceSeries,
-		PriceHistoryPeriod
-	} from '#lib/utils/market-price-history.utils.ts';
 	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 	import { resolveMarketTranslation } from '#lib/utils/market-translation.utils.ts';
 	import { goBack, resolveAppPath } from '#lib/utils/nav.utils.ts';
@@ -122,20 +118,9 @@
 	// list resolved for a different set.
 	let topPredictorsKey = $state<string | undefined>();
 
-	// Chart period chip selection. Drives which window of market-wide price
-	// history the chart fetches and plots (see priceHistoryByPeriod).
-	let chartPeriod = $state<PriceHistoryPeriod>('7d');
-
-	// Real, market-wide price-history series for this market, derived from
-	// the clearing canister's OHLC candles (every participant's fills, not
-	// just the viewer's). Reflects the true market movement for all viewers,
-	// including signed-out visitors. Cached per period so re-selecting a chip
-	// is instant; a period is empty once it resolves with no trades in the
-	// window (true cold-start flat line) and absent while it hasn't resolved
-	// yet, so the chart falls back to its seed shape rather than flashing a
-	// misleading flat line.
-	let priceHistoryByPeriod = $state<Partial<Record<PriceHistoryPeriod, MarketPriceSeries>>>({});
-	const chartPriceHistory = $derived(priceHistoryByPeriod[chartPeriod]);
+	// Bumped after the viewer's own trade so the price chart reloads its
+	// window; the chart loads the market-wide history itself otherwise.
+	let chartRefreshKey = $state(0);
 
 	// Market-wide traded volume (payout-token base units), aggregated from the
 	// executed-trade tape. `undefined` while it drains so the VOLUME tile pulses
@@ -176,12 +161,6 @@
 			// Re-arm the MY CALL loading pulse for the new market until its
 			// position read lands (the silent poll keeps the prior value).
 			positionsLoaded = false;
-			// Drop any history from the previously-viewed market so the
-			// chart falls back to its seed shape until the new series
-			// resolves, rather than briefly plotting stale prices. The
-			// per-period fetch effect repopulates the active period.
-			priceHistoryByPeriod = {};
-
 			// Same for the top-predictors list: clearing the resolved
 			// key re-arms the fetch effect for the new market.
 			topPredictors = undefined;
@@ -306,54 +285,6 @@
 			if (translationsLoadingId === id) {
 				translationsLoadingId = undefined;
 			}
-		}
-	};
-
-	// Fetch the active period's market-wide price history the first time
-	// it's needed (and after a market change clears the cache). Independent
-	// of the viewer: it's the same series for everyone, so it loads
-	// regardless of sign-in. Cache-aware: re-selecting a chip is instant and
-	// the 30s consensus poll's market refresh doesn't refetch every tick.
-	$effect(() => {
-		const id = market?.id;
-		const period = chartPeriod;
-
-		if (isNullish(id) || period in priceHistoryByPeriod) {
-			return;
-		}
-
-		void fetchPriceHistory({ id, period });
-	});
-
-	// Real, market-wide price history for one chart period. Fails open: any
-	// error simply leaves the period uncached, so the chart stays on its
-	// seed-based fallback and a later trigger can retry.
-	const fetchPriceHistory = async ({
-		id,
-		period
-	}: {
-		id: MarketId;
-		period: PriceHistoryPeriod;
-	}) => {
-		try {
-			await loadMarketPriceCandles({
-				seriesId: id,
-				period,
-				onLoad: ({ response }) => {
-					// Guard against a late response from a previously-viewed
-					// market: the cache is keyed by period and cleared on market
-					// change, so writing here without re-checking the id could
-					// repopulate it with the prior market's series after the user
-					// navigated away. Drop it if the market changed meanwhile.
-					if (market?.id !== id) {
-						return;
-					}
-
-					priceHistoryByPeriod = { ...priceHistoryByPeriod, [period]: response };
-				}
-			});
-		} catch {
-			// Leave the period uncached → chart falls back to its seed shape.
 		}
 	};
 
@@ -552,14 +483,12 @@
 			fetchMarket({ id: market.id, silent: true });
 
 			// The silent refresh deliberately skips `fetchSignals` and the
-			// price-history fetch (the 30s consensus poll shouldn't re-pull
-			// either every tick), but the viewer just traded, so the chart's
-			// real price history and the prior-call / followed-lean signals
-			// are now stale. Re-pull signals explicitly, and clear the
-			// price-history cache so the fetch effect re-resolves the active
-			// period (other periods refetch lazily when reselected).
+			// price history (the 30s consensus poll shouldn't re-pull either
+			// every tick), but the viewer just traded, so the chart's real
+			// price history and the prior-call / followed-lean signals are
+			// now stale. Re-pull signals and reload the chart's window.
 			void fetchSignals(market);
-			priceHistoryByPeriod = {};
+			chartRefreshKey += 1;
 
 			// The viewer may themselves rank on the leaderboard, in which
 			// case their fresh call belongs in the top-predictors list;
@@ -945,14 +874,18 @@
 			{yesPercent}
 		/>
 
-		<MarketDetailChartCard
-			marketId={market.id}
-			onPeriodChange={(period) => (chartPeriod = period)}
-			period={chartPeriod}
-			pointXs={chartPriceHistory?.xs}
-			points={chartPriceHistory?.yes}
-			{yesPercent}
-		/>
+		<section
+			class="market-detail-chart"
+			aria-label={t({ locale: $localeStore, key: 'market.detail.chart.eyebrow' })}
+		>
+			<PriceChart
+				events={metadata?.events}
+				livePercent={probabilityKnown ? yesPercent : undefined}
+				openedAtMs={Number(market.startDate ?? market.createdAt)}
+				refreshKey={chartRefreshKey}
+				seriesId={market.id}
+			/>
+		</section>
 
 		<MarketDetailStatsGrid
 			{market}
@@ -1115,6 +1048,15 @@
 
 	.market-detail-screen :global(.appbar-icon-btn:hover) {
 		background: color-mix(in srgb, var(--text-base) 11%, transparent);
+	}
+
+	.market-detail-chart {
+		margin: 0.75rem 1.25rem;
+		padding: 1rem;
+		border: 1px solid var(--border-base);
+		border-radius: var(--r-12);
+		background: color-mix(in srgb, var(--bg-surface) 86%, transparent);
+		box-shadow: var(--inset-hi);
 	}
 
 	.market-detail-hero {

@@ -1,10 +1,11 @@
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+import type { MarketEvent } from '#lib/types/market-metadata.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**
- * Geometry and readout math for the landing price chart
- * (`landing/LandingPriceChartPlot`). Pure: the component feeds it the
- * 0–100 YES series from `deriveMarketPriceSeries` and renders the result.
+ * Geometry and readout math for the price chart (`market/PriceChartPlot`),
+ * on the market detail page and the landing alike. Pure: the component feeds
+ * it the 0–100 YES series from `deriveMarketPriceSeries` and renders the result.
  */
 
 /** SVG viewBox of the plot; the SVG stretches to its box (`preserveAspectRatio="none"`). */
@@ -151,6 +152,70 @@ export const nearestPointIndex = ({ xs, x }: { xs: number[]; x: number }): numbe
 	}
 
 	return best;
+};
+
+/** The series value at an x-fraction (0–1), interpolated between its two neighbouring points. */
+export const priceChartValueAt = ({
+	series: { values, xs },
+	x
+}: {
+	series: PriceChartSeries;
+	x: number;
+}): number => {
+	const next = xs.findIndex((pointX) => pointX >= x);
+
+	if (next <= 0) {
+		return next === 0 ? values[0] : values[values.length - 1];
+	}
+
+	const span = xs[next] - xs[next - 1];
+	const along = span > 0 ? (x - xs[next - 1]) / span : 1;
+
+	return values[next - 1] + (values[next] - values[next - 1]) * along;
+};
+
+// An event's `day` counts back from today: 7 is today, 1 is six days ago.
+const EVENT_TODAY = 7;
+
+export interface PriceChartMarker {
+	/** Position on the time axis (0–1). */
+	x: number;
+	/** The event's day, at the time of day the window ends. */
+	atMs: number;
+	label: string;
+	dir: MarketEvent['dir'];
+}
+
+/**
+ * Places a market's "this week" events on the chart's time axis. An event
+ * only has a real date relative to today, so the caller passes events for a
+ * window that ends now; one that falls outside the window, or whose day is
+ * not one of the last seven, is dropped rather than drawn at a guessed spot.
+ */
+export const priceChartEventMarkers = ({
+	events,
+	windowStartMs,
+	windowEndMs
+}: {
+	events: MarketEvent[];
+	windowStartMs: number;
+	windowEndMs: number;
+}): PriceChartMarker[] => {
+	const spanMs = windowEndMs - windowStartMs;
+
+	if (spanMs <= 0) {
+		return [];
+	}
+
+	return events
+		.filter(({ day }) => Number.isInteger(day) && day >= 1 && day <= EVENT_TODAY)
+		.map(({ day, label, dir }) => {
+			const atMs = windowEndMs - (EVENT_TODAY - day) * DAY_IN_MS;
+
+			return { x: (atMs - windowStartMs) / spanMs, atMs, label, dir };
+		})
+		.filter(({ x }) => x >= 0 && x <= 1)
+		.sort((a, b) => a.x - b.x);
 };
 
 /** Points gained (positive) or lost across the drawn window. */

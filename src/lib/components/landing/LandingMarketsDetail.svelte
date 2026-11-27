@@ -2,8 +2,8 @@
 	import { nonNullish } from '@dfinity/utils';
 	import LandingMarketsCallBar from '#lib/components/landing/LandingMarketsCallBar.svelte';
 	import LandingMarketsShare from '#lib/components/landing/LandingMarketsShare.svelte';
-	import LandingPriceChart from '#lib/components/landing/LandingPriceChart.svelte';
 	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
+	import PriceChart from '#lib/components/market/PriceChart.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { LandingMarketsView } from '#lib/types/landing-markets.ts';
 	import type { Market } from '#lib/types/market.ts';
@@ -80,7 +80,7 @@
 		</div>
 	{/if}
 
-	<LandingPriceChart
+	<PriceChart
 		livePercent={percents?.yes}
 		openedAtMs={Number(market.startDate ?? market.createdAt)}
 		seriesId={market.id}

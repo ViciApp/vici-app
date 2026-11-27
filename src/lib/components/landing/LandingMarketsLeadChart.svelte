@@ -7,7 +7,7 @@
 		PRICE_CHART_WIDTH,
 		priceChartPath,
 		priceChartYFraction
-	} from '#lib/utils/landing-price-chart.utils.ts';
+	} from '#lib/utils/price-chart.utils.ts';
 
 	/**
 	 * The lead's small chart on the front page: last week's real line, a

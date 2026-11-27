@@ -204,7 +204,11 @@ yet available, so it is hidden), and
 (no top-accuracy row until a real accuracy figure exists); the "this
 week" move shows only when the market has price history; and a market
 with no trades draws a flat line at its live price instead of a made-up
-curve. See [`design.md` § 7.11](./frontend/design.md#711-card-numbers-real-or-hidden).
+curve.
+
+### Market price chart
+
+The market detail page and the landing draw the same price chart: the market-wide price history over the past week, the past month or since the market opened (the past month first), with the line in the colour of the window's move (green up, red down). Dragging, touching or arrow-keying the chart moves a cursor that reads the price and how long ago it was. On the past week, the detail page also marks the market's events, each with its day and label under the chart, when that week holds real trades. After your own prediction the chart reloads. See [`design.md` § 7.11](./frontend/design.md#711-card-numbers-real-or-hidden).
 
 ### Market pricing: maker-liquidity disclosure
 

@@ -5,7 +5,7 @@
 	import LandingFooter from '#lib/components/landing/LandingFooter.svelte';
 	import LandingMarkets from '#lib/components/landing/LandingMarkets.svelte';
 	import LandingNav from '#lib/components/landing/LandingNav.svelte';
-	import LandingPriceChart from '#lib/components/landing/LandingPriceChart.svelte';
+	import PriceChart from '#lib/components/market/PriceChart.svelte';
 	import {
 		LANDING_DECK_SEEN_STORAGE_KEY,
 		LANDING_FLOAT_WAIT_MS,
@@ -199,7 +199,7 @@
 				onengage={() => setStored({ key: LANDING_DECK_SEEN_STORAGE_KEY, value: true })}
 			>
 				{#snippet backChart({ seriesId })}
-					<LandingPriceChart {seriesId} variant="card" />
+					<PriceChart {seriesId} variant="card" />
 				{/snippet}
 			</LandingDeck>
 		{/if}
@@ -240,6 +240,12 @@
 		background: var(--ink);
 		color: var(--parchment);
 		color-scheme: dark;
+		/* The landing stays dark whatever the app theme: the shared pieces
+		   it hosts (the price chart) read these theme tokens. */
+		--text-base: var(--parchment);
+		--bg-base: var(--ink);
+		--color-success: var(--yes);
+		--color-destructive: var(--no);
 	}
 
 	.lp-markets {

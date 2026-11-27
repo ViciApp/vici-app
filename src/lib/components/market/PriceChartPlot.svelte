@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import type { Snippet } from 'svelte';
+	import PriceChartEvents from '#lib/components/market/PriceChartEvents.svelte';
 	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { formatRelativeAgoFromNs } from '#lib/utils/format.utils.ts';
@@ -14,19 +15,23 @@
 		priceChartPath,
 		priceChartScale,
 		priceChartTicks,
+		priceChartValueAt,
 		priceChartYFraction,
+		type PriceChartMarker,
 		type PriceChartSeries
-	} from '#lib/utils/landing-price-chart.utils.ts';
+	} from '#lib/utils/price-chart.utils.ts';
 
 	/**
-	 * The landing price chart, pure: draws a 0–100 YES series and lets the
-	 * visitor drag (pointer or touch) or arrow-key a cursor along it to read
-	 * any point. The line takes the colour of the window's direction. Data
-	 * loading lives in `LandingPriceChart`; the deck's card back can render
-	 * this directly from points it already holds.
+	 * The price chart, pure: draws a 0–100 YES series and lets the viewer
+	 * drag (pointer or touch) or arrow-key a cursor along it to read any
+	 * point. The line takes the colour of the window's direction. Data
+	 * loading lives in `PriceChart`; the landing deck's card back can render
+	 * this directly from points it already holds. Colours follow the theme
+	 * tokens (`--text-base`, `--bg-base`, `--color-success`,
+	 * `--color-destructive`), so a host with a fixed palette sets those.
 	 *
 	 * `card` fills its host's height (the card back sets it); `panel` has a
-	 * fixed plot height for the Markets detail.
+	 * fixed plot height for the market detail and the landing's Markets.
 	 */
 	interface Props {
 		series: PriceChartSeries;
@@ -40,6 +45,8 @@
 		draw?: boolean;
 		/** Rendered beside the readout, e.g. the time-range buttons. */
 		controls?: Snippet;
+		/** The market's events on this window: a dot on the line and a row under the axis each. */
+		markers?: PriceChartMarker[];
 	}
 
 	const {
@@ -49,7 +56,8 @@
 		rangeLabel,
 		variant = 'panel',
 		draw = false,
-		controls
+		controls,
+		markers = []
 	}: Props = $props();
 
 	const uid = $props.id();
@@ -91,15 +99,12 @@
 		change === 0
 			? t({
 					locale: $localeStore,
-					key: 'landing.markets.chart.no_change',
+					key: 'market.chart.no_change',
 					params: { range: rangeLabel }
 				})
 			: t({
 					locale: $localeStore,
-					key:
-						Math.abs(change) === 1
-							? 'landing.markets.chart.points_one'
-							: 'landing.markets.chart.points_other',
+					key: Math.abs(change) === 1 ? 'market.chart.points_one' : 'market.chart.points_other',
 					params: { range: rangeLabel }
 				})
 	);
@@ -173,16 +178,16 @@
 	};
 </script>
 
-<div class="lpch" class:is-card={variant === 'card'}>
-	<div class="lpch-top">
-		<p class="lpch-read" aria-hidden="true">
+<div class="pch" class:is-card={variant === 'card'}>
+	<div class="pch-top">
+		<p class="pch-read" aria-hidden="true">
 			{#if nonNullish(scrubValue)}
 				<b>{scrubValue}%</b>
 				{scrubTime ?? ''}
 			{:else}
 				{#if change !== 0}
 					<b class={direction}>
-						<span class="lpch-arrow">{change > 0 ? '▲' : '▼'}</span>{Math.abs(change)}
+						<span class="pch-arrow">{change > 0 ? '▲' : '▼'}</span>{Math.abs(change)}
 					</b>
 				{/if}
 				{changeText}
@@ -192,13 +197,13 @@
 	</div>
 
 	<div
-		class="lpch-plot {direction}"
+		class="pch-plot {direction}"
 		class:is-draw={draw}
 		class:is-scrub={nonNullish(scrubIndex)}
 		aria-describedby="{uid}-desc"
 		aria-label={t({
 			locale: $localeStore,
-			key: 'landing.markets.chart.label',
+			key: 'market.chart.label',
 			params: { range: rangeLabel }
 		})}
 		aria-valuemax={lastIndex}
@@ -215,7 +220,7 @@
 		role="slider"
 		tabindex="0"
 	>
-		<div class="lpch-line">
+		<div class="pch-line">
 			<svg
 				aria-hidden="true"
 				preserveAspectRatio="none"
@@ -230,7 +235,7 @@
 				{#each ticks as tick (tick)}
 					{@const y = ((yPercent(tick) / 100) * PRICE_CHART_HEIGHT).toFixed(1)}
 					<line
-						class="lpch-guide"
+						class="pch-guide"
 						class:is-even={isEvenOddsTick(tick)}
 						x1="0"
 						x2={PRICE_CHART_WIDTH}
@@ -242,23 +247,31 @@
 					d="{path} L{PRICE_CHART_WIDTH},{PRICE_CHART_HEIGHT} L0,{PRICE_CHART_HEIGHT} Z"
 					fill="url(#{uid}-fill)"
 				/>
-				<path class="lpch-stroke" d={path} />
+				<path class="pch-stroke" d={path} />
 			</svg>
 		</div>
 		{#each ticks as tick (tick)}
-			<span style:top="{yPercent(tick)}%" class="lpch-tick" aria-hidden="true">
+			<span style:top="{yPercent(tick)}%" class="pch-tick" aria-hidden="true">
 				{isEvenOddsTick(tick)
 					? t({
 							locale: $localeStore,
-							key: 'landing.markets.chart.even',
+							key: 'market.chart.even',
 							params: { pct: `${tick}%` }
 						})
 					: `${tick}%`}
 			</span>
 		{/each}
-		<span style:top="{yPercent(latest)}%" class="lpch-end" aria-hidden="true"></span>
+		<span style:top="{yPercent(latest)}%" class="pch-end" aria-hidden="true"></span>
+		{#each markers as marker, index (index)}
+			<span
+				style:left="{marker.x * 100}%"
+				style:top="{yPercent(priceChartValueAt({ series, x: marker.x }))}%"
+				class="pch-marker {marker.dir}"
+				aria-hidden="true"
+			></span>
+		{/each}
 		{#if nonNullish(scrubIndex) && nonNullish(scrubValue)}
-			<span style:left="{series.xs[scrubIndex] * 100}%" class="lpch-cursor" aria-hidden="true">
+			<span style:left="{series.xs[scrubIndex] * 100}%" class="pch-cursor" aria-hidden="true">
 				<i style:top="{yPercent(scrubValue)}%"></i>
 			</span>
 		{/if}
@@ -267,26 +280,30 @@
 	<p id="{uid}-desc" class="sr-only">
 		{t({
 			locale: $localeStore,
-			key: 'landing.markets.chart.summary',
+			key: 'market.chart.summary',
 			params: { from: series.values[0], to: latest }
 		})}
 	</p>
 
-	<div class="lpch-axis" aria-hidden="true">
+	<div class="pch-axis" aria-hidden="true">
 		<span>{startLabel ?? ''}</span>
-		<span>{t({ locale: $localeStore, key: 'landing.markets.chart.now' })}</span>
+		<span>{t({ locale: $localeStore, key: 'market.chart.now' })}</span>
 	</div>
+
+	{#if markers.length > 0}
+		<PriceChartEvents {markers} />
+	{/if}
 </div>
 
 <style lang="postcss">
-	.lpch {
+	.pch {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
 		gap: 10px;
 		min-width: 0;
 	}
 
-	.lpch-top {
+	.pch-top {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -295,36 +312,36 @@
 		min-height: 36px;
 	}
 
-	.lpch-read {
+	.pch-read {
 		flex: 1 1 auto;
 		min-width: 0;
 		margin: 0;
 		font: 500 14px/1.3 var(--font-display);
-		color: color-mix(in srgb, var(--parchment) 64%, transparent);
+		color: color-mix(in srgb, var(--text-base) 64%, transparent);
 		font-variant-numeric: tabular-nums;
 		text-wrap: balance;
 	}
 
-	.lpch-read b {
+	.pch-read b {
 		font-weight: 700;
-		color: var(--parchment);
+		color: var(--text-base);
 	}
 
-	.lpch-read b.up {
-		color: var(--yes);
+	.pch-read b.up {
+		color: var(--color-success);
 	}
 
-	.lpch-read b.dn {
-		color: var(--no);
+	.pch-read b.dn {
+		color: var(--color-destructive);
 	}
 
-	.lpch-arrow {
+	.pch-arrow {
 		margin-right: 0.3em;
 		font-size: 0.72em;
 	}
 
-	.lpch-plot {
-		--lpch-line: var(--parchment);
+	.pch-plot {
+		--pch-line: var(--text-base);
 		position: relative;
 		height: 168px;
 		margin-right: 6px;
@@ -333,26 +350,26 @@
 		outline: none;
 	}
 
-	.lpch-plot.up {
-		--lpch-line: var(--yes);
+	.pch-plot.up {
+		--pch-line: var(--color-success);
 	}
 
-	.lpch-plot.dn {
-		--lpch-line: var(--no);
+	.pch-plot.dn {
+		--pch-line: var(--color-destructive);
 	}
 
-	.lpch-plot:focus-visible {
+	.pch-plot:focus-visible {
 		border-radius: var(--r-8);
-		box-shadow: 0 0 0 2px var(--parchment);
+		box-shadow: 0 0 0 2px var(--text-base);
 	}
 
-	.lpch-line {
+	.pch-line {
 		position: absolute;
 		inset: 0;
-		color: var(--lpch-line);
+		color: var(--pch-line);
 	}
 
-	.lpch-line svg {
+	.pch-line svg {
 		position: absolute;
 		inset: 0;
 		width: 100%;
@@ -360,64 +377,64 @@
 		overflow: visible;
 	}
 
-	.lpch-stroke {
+	.pch-stroke {
 		fill: none;
-		stroke: var(--lpch-line);
+		stroke: var(--pch-line);
 		stroke-width: 2.25;
 		stroke-linejoin: round;
 		stroke-linecap: round;
 		vector-effect: non-scaling-stroke;
 	}
 
-	.lpch-guide {
-		stroke: color-mix(in srgb, var(--parchment) 10%, transparent);
+	.pch-guide {
+		stroke: color-mix(in srgb, var(--text-base) 10%, transparent);
 		stroke-width: 1;
 		vector-effect: non-scaling-stroke;
 	}
 
-	.lpch-guide.is-even {
-		stroke: color-mix(in srgb, var(--parchment) 28%, transparent);
+	.pch-guide.is-even {
+		stroke: color-mix(in srgb, var(--text-base) 28%, transparent);
 		stroke-dasharray: 2 4;
 	}
 
-	.lpch-tick {
+	.pch-tick {
 		position: absolute;
 		left: 0;
 		translate: 0 -100%;
 		padding-bottom: 3px;
 		font: 500 12px/1 var(--font-display);
-		color: color-mix(in srgb, var(--parchment) 64%, transparent);
+		color: color-mix(in srgb, var(--text-base) 64%, transparent);
 		font-variant-numeric: tabular-nums;
 		pointer-events: none;
 	}
 
-	.lpch-end {
+	.pch-end {
 		position: absolute;
 		left: 100%;
 		width: 10px;
 		height: 10px;
 		border-radius: 50%;
 		translate: -50% -50%;
-		background: var(--lpch-line);
-		box-shadow: 0 0 0 4px color-mix(in srgb, var(--lpch-line) 22%, transparent);
+		background: var(--pch-line);
+		box-shadow: 0 0 0 4px color-mix(in srgb, var(--pch-line) 22%, transparent);
 		pointer-events: none;
 	}
 
-	.lpch-end::after {
+	.pch-end::after {
 		content: '';
 		position: absolute;
 		inset: -4px;
 		border-radius: 50%;
-		box-shadow: 0 0 0 1.5px var(--lpch-line);
+		box-shadow: 0 0 0 1.5px var(--pch-line);
 		opacity: 0;
-		animation: lpch-ping 2.4s var(--ease-vici) infinite;
+		animation: pch-ping 2.4s var(--ease-vici) infinite;
 	}
 
-	.lpch-plot.is-scrub .lpch-end::after {
+	.pch-plot.is-scrub .pch-end::after {
 		animation: none;
 	}
 
-	@keyframes lpch-ping {
+	@keyframes pch-ping {
 		0% {
 			opacity: 0.6;
 			transform: scale(0.6);
@@ -429,44 +446,59 @@
 		}
 	}
 
-	.lpch-cursor {
+	.pch-cursor {
 		position: absolute;
 		top: 0;
 		bottom: 0;
 		z-index: 1;
 		width: 0;
-		border-left: 1px solid color-mix(in srgb, var(--parchment) 45%, transparent);
+		border-left: 1px solid color-mix(in srgb, var(--text-base) 45%, transparent);
 		pointer-events: none;
 	}
 
-	.lpch-cursor i {
+	.pch-cursor i {
 		position: absolute;
 		left: 0;
 		width: 10px;
 		height: 10px;
 		border-radius: 50%;
 		translate: -50% -50%;
-		background: var(--parchment);
-		box-shadow: 0 0 0 3px var(--ink);
+		background: var(--text-base);
+		box-shadow: 0 0 0 3px var(--bg-base);
 	}
 
-	.lpch-axis {
+	.pch-marker {
+		position: absolute;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		translate: -50% -50%;
+		background: var(--bg-base);
+		box-shadow: inset 0 0 0 2px var(--color-success);
+		pointer-events: none;
+	}
+
+	.pch-marker.down {
+		box-shadow: inset 0 0 0 2px var(--color-destructive);
+	}
+
+	.pch-axis {
 		display: flex;
 		justify-content: space-between;
 		margin-right: 6px;
 		font: 500 12px/1 var(--font-display);
-		color: color-mix(in srgb, var(--parchment) 64%, transparent);
+		color: color-mix(in srgb, var(--text-base) 64%, transparent);
 	}
 
-	.lpch-plot.is-draw .lpch-line {
-		animation: lpch-draw 720ms var(--ease-vici) both;
+	.pch-plot.is-draw .pch-line {
+		animation: pch-draw 720ms var(--ease-vici) both;
 	}
 
-	.lpch-plot.is-draw .lpch-end {
-		animation: lpch-in 300ms var(--ease-vici) 520ms both;
+	.pch-plot.is-draw .pch-end {
+		animation: pch-in 300ms var(--ease-vici) 520ms both;
 	}
 
-	@keyframes lpch-draw {
+	@keyframes pch-draw {
 		from {
 			clip-path: inset(-8px 100% -8px 0);
 		}
@@ -475,44 +507,44 @@
 		}
 	}
 
-	@keyframes lpch-in {
+	@keyframes pch-in {
 		from {
 			opacity: 0;
 		}
 	}
 
 	/* Card back: the host sets the height; the plot takes what is left. */
-	.lpch.is-card {
+	.pch.is-card {
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
 		height: 100%;
 	}
 
-	.lpch.is-card .lpch-top {
+	.pch.is-card .pch-top {
 		min-height: 0;
 	}
 
-	.lpch.is-card .lpch-read {
+	.pch.is-card .pch-read {
 		font-size: 13px;
 	}
 
-	.lpch.is-card .lpch-plot {
+	.pch.is-card .pch-plot {
 		flex: 1 1 auto;
 		height: auto;
 		min-height: 44px;
 	}
 
 	@media (max-width: 900px) {
-		.lpch-plot {
+		.pch-plot {
 			height: 150px;
 		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.lpch-end::after,
-		.lpch-plot.is-draw .lpch-line,
-		.lpch-plot.is-draw .lpch-end {
+		.pch-end::after,
+		.pch-plot.is-draw .pch-line,
+		.pch-plot.is-draw .pch-end {
 			animation: none;
 		}
 	}

@@ -5,15 +5,17 @@ import {
 	isEvenOddsTick,
 	nearestPointIndex,
 	priceChartChange,
+	priceChartEventMarkers,
 	priceChartPath,
 	priceChartScale,
 	priceChartTicks,
+	priceChartValueAt,
 	priceChartYFraction
-} from '#lib/utils/landing-price-chart.utils.ts';
+} from '#lib/utils/price-chart.utils.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-describe('landing-price-chart.utils', () => {
+describe('price-chart.utils', () => {
 	describe('buildPriceChartSeries', () => {
 		it('draws a flat line at the live price when the window has no trades', () => {
 			assert.deepEqual(buildPriceChartSeries({ yes: [], xs: [], livePercent: 42 }), {
@@ -117,6 +119,79 @@ describe('landing-price-chart.utils', () => {
 		it('measures the change across the window', () => {
 			assert.equal(priceChartChange([40, 47, 44]), 4);
 			assert.equal(priceChartChange([40]), 0);
+		});
+	});
+
+	describe('priceChartValueAt', () => {
+		const series = { values: [40, 60, 50], xs: [0, 0.5, 1] };
+
+		it('interpolates between the neighbouring points', () => {
+			assert.equal(priceChartValueAt({ series, x: 0.25 }), 50);
+			assert.equal(priceChartValueAt({ series, x: 0.75 }), 55);
+		});
+
+		it('reads a point exactly and holds the ends outside the axis', () => {
+			assert.equal(priceChartValueAt({ series, x: 0.5 }), 60);
+			assert.equal(priceChartValueAt({ series, x: -1 }), 40);
+			assert.equal(priceChartValueAt({ series, x: 2 }), 50);
+		});
+	});
+
+	describe('priceChartEventMarkers', () => {
+		const windowEndMs = 100 * DAY_IN_MS;
+		const windowStartMs = windowEndMs - 7 * DAY_IN_MS;
+
+		it("places this week's events by day, today at the right edge", () => {
+			const markers = priceChartEventMarkers({
+				events: [
+					{ day: 7, label: 'Today', dir: 'up' },
+					{ day: 4, label: 'Midweek', dir: 'down' }
+				],
+				windowStartMs,
+				windowEndMs
+			});
+
+			assert.deepEqual(markers, [
+				{ x: 4 / 7, atMs: windowEndMs - 3 * DAY_IN_MS, label: 'Midweek', dir: 'down' },
+				{ x: 1, atMs: windowEndMs, label: 'Today', dir: 'up' }
+			]);
+		});
+
+		it('drops events with no real day this week', () => {
+			assert.deepEqual(
+				priceChartEventMarkers({
+					events: [
+						{ day: 0, label: 'Too old', dir: 'up' },
+						{ day: 8, label: 'Future', dir: 'up' },
+						{ day: 2.5, label: 'Fractional', dir: 'down' }
+					],
+					windowStartMs,
+					windowEndMs
+				}),
+				[]
+			);
+		});
+
+		it('drops events before the window starts', () => {
+			assert.deepEqual(
+				priceChartEventMarkers({
+					events: [{ day: 1, label: 'Before opening', dir: 'up' }],
+					windowStartMs: windowEndMs - 2 * DAY_IN_MS,
+					windowEndMs
+				}),
+				[]
+			);
+		});
+
+		it('draws nothing on an empty window', () => {
+			assert.deepEqual(
+				priceChartEventMarkers({
+					events: [{ day: 7, label: 'Today', dir: 'up' }],
+					windowStartMs: windowEndMs,
+					windowEndMs
+				}),
+				[]
+			);
 		});
 	});
 
