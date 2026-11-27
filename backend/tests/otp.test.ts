@@ -423,6 +423,45 @@ describe.if(dbAvailable)('email OTP', () => {
 		expect((await requestCode({ email: uniqueEmail(), ip: uniqueIp() })).status).toBe(200);
 	});
 
+	test('the inbox budget is shared by every API machine', async () => {
+		const email = uniqueEmail();
+
+		for (let i = 0; i < MAILBOX_LIMIT_PER_HOUR; i++) {
+			// A fresh in-memory limiter on every call stands in for a request
+			// landing on another machine.
+			resetRateLimits();
+
+			expect((await requestCode({ email, ip: uniqueIp() })).status).toBe(200);
+		}
+
+		resetRateLimits();
+
+		const limited = await requestCode({ email, ip: uniqueIp() });
+
+		expect(limited.status).toBe(429);
+		expect(Number(limited.headers.get('retry-after'))).toBeGreaterThan(0);
+	});
+
+	test('an inbox window that has run out starts over', async () => {
+		const email = uniqueEmail();
+
+		for (let i = 0; i < MAILBOX_LIMIT_PER_HOUR; i++) {
+			await requestCode({ email, ip: uniqueIp() });
+		}
+
+		expect((await requestCode({ email, ip: uniqueIp() })).status).toBe(429);
+
+		await query(
+			`update rate_limit_windows set reset_at = now() - interval '1 second' where key = $1`,
+			[`otp_request_mailbox:${otpMailboxKey(email)}`]
+		);
+		// The live-code cap would otherwise hold back the next code.
+		await query(`delete from otp_codes where lower(email) = $1`, [email]);
+
+		expect((await requestCode({ email, ip: uniqueIp() })).status).toBe(200);
+		expect(await liveCodesFor(email)).toBe(1);
+	});
+
 	test('a refused bot check spends none of the inbox budget', async () => {
 		const email = uniqueEmail();
 

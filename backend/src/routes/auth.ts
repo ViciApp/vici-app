@@ -34,7 +34,7 @@ import {
 } from '../lib/cookie';
 import { constantTimeEqual, randomToken, signState, verifySignedState } from '../lib/crypto';
 import { clientIp, serviceUnavailable, type StatusContext } from '../lib/http';
-import { enforceLimit } from '../lib/rate-limit';
+import { enforceLimit, enforceSharedLimit } from '../lib/rate-limit';
 import { HOUR_IN_MS, TEN_MINUTES_IN_MS } from '../lib/time';
 import {
 	MAX_TURNSTILE_TOKEN_LENGTH,
@@ -196,11 +196,12 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 			}
 
 			// Counted only once the caller has solved a challenge, so nobody can
-			// spend someone else's inbox budget for free.
-			const mailboxLimited = enforceLimit({
+			// spend someone else's inbox budget for free. Shared across machines:
+			// a per-machine window would hand an attacker one budget per machine.
+			const mailboxLimited = await enforceSharedLimit({
 				set,
 				name: 'otp_request_mailbox',
-				ip: otpMailboxKey(email),
+				key: otpMailboxKey(email),
 				limit: OTP_REQUEST_MAILBOX_LIMIT_PER_HOUR,
 				windowMs: HOUR_IN_MS
 			});

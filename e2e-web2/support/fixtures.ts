@@ -78,7 +78,11 @@ export class E2eBackend {
 	/** Signs this request context in through the real OTP routes, so it holds
 	 * the session cookie for the address. */
 	async signIn(email: string): Promise<void> {
-		const requested = await this.request.post('/api/v1/auth/otp/request', { data: { email } });
+		// The stack runs without a Turnstile secret, so the API skips the check,
+		// but the field is still required, as from a build without a site key.
+		const requested = await this.request.post('/api/v1/auth/otp/request', {
+			data: { email, turnstileToken: '' }
+		});
 
 		expect(requested.status(), await requested.text()).toBe(200);
 
