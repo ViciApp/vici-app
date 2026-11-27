@@ -20,13 +20,13 @@ import { writable } from 'svelte/store';
  * lifetime call total) so a returning guest never re-fires the first-pick
  * celebration. It is the source for the soft/remind/inline cadence.
  */
-export interface GuestPreviewPick {
+interface GuestPreviewPick {
 	marketId: string;
 	side: CallSide;
 	ts: number;
 }
 
-export interface GuestState {
+interface GuestState {
 	isGuest: boolean;
 	handle: string | null;
 	sessionPickCount: number;

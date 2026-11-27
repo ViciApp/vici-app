@@ -67,9 +67,10 @@ import { encodeDocData, getAdminAccessKeys, setDocStore } from '@junobuild/funct
  *
  * Idempotency: the doc key collision rejects a second claim. A
  * user who tries again hits `already_claimed` cleanly, unless the
- * payout `failed`: then the claim sends it again (`reclaimAward`). The assert's
- * recipient-binds-caller invariant is preserved because the user
- * is writing their own award.
+ * payout `failed`: then the claim sends it again (`reclaimAward`). The award
+ * doc is written by the satellite as a controller (`persistAward`), the only
+ * writer `assertSetVxpAward` admits, and keyed by the caller's own principal,
+ * so a claim can only pay the caller.
  *
  * Eligibility: a member at month-end qualifies regardless of join date,
  * as long as the slot was joined before the month closed
