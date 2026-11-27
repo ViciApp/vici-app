@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
+	import LandingMarketsArt from '#lib/components/landing/LandingMarketsArt.svelte';
 	import LandingMarketsLeadCall from '#lib/components/landing/LandingMarketsLeadCall.svelte';
 	import LandingMarketsLeadChart from '#lib/components/landing/LandingMarketsLeadChart.svelte';
-	import LandingMarketsArt from '#lib/components/landing/LandingMarketsArt.svelte';
 	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { LandingMarketsView } from '#lib/types/landing-markets.ts';
