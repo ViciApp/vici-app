@@ -6,6 +6,7 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { tx, type TxQuery } from '../db/client';
 import { ZERO } from '../lib/constants';
+import { randomToken } from '../lib/crypto';
 import { DAY_IN_MS, nowNs } from '../lib/time';
 import {
 	ANALYTICS_PROP_KEYS,
@@ -26,6 +27,14 @@ export const MAX_EVENTS_PER_BATCH = 20;
 export const MAX_SESSION_ID_LENGTH = 128;
 export const MAX_PATH_LENGTH = 2048;
 export const MAX_PROP_STRING_LENGTH = 256;
+
+/** The session id of every server-captured event (there is no visit). The
+ * warehouse tells server rows from client rows by it, so a client may not
+ * send it, nor anything that starts like a server key. */
+export const SERVER_SESSION_ID = 'server';
+
+const isReservedSessionId = (sessionId: string): boolean =>
+	sessionId === SERVER_SESSION_ID || sessionId.startsWith(`${SERVER_SESSION_ID}-`);
 
 /** Thrown on a malformed ingest batch; the route maps it to a 400. */
 export class AnalyticsValidationError extends Error {}
@@ -54,18 +63,7 @@ const nextStampNs = (): bigint => {
 	return lastStampNs;
 };
 
-const parseTrackEvent = (value: unknown, position: number): TrackEventInput => {
-	if (isNullish(value) || typeof value !== 'object') {
-		throw new AnalyticsValidationError(`events[${position}] must be an object.`);
-	}
-
-	const event = value as Record<string, unknown>;
-	const { name, sessionId, path, occurredAtMs } = event;
-
-	if (typeof name !== 'string' || !isAnalyticsEventName(name)) {
-		throw new AnalyticsValidationError(`events[${position}].name is not a known event name.`);
-	}
-
+const parseSessionId = (sessionId: unknown, position: number): string => {
 	if (typeof sessionId !== 'string') {
 		throw new AnalyticsValidationError(`events[${position}].sessionId must be a string.`);
 	}
@@ -75,6 +73,27 @@ const parseTrackEvent = (value: unknown, position: number): TrackEventInput => {
 			`events[${position}].sessionId exceeds ${MAX_SESSION_ID_LENGTH} characters.`
 		);
 	}
+
+	if (isReservedSessionId(sessionId)) {
+		throw new AnalyticsValidationError(`events[${position}].sessionId is reserved.`);
+	}
+
+	return sessionId;
+};
+
+const parseTrackEvent = (value: unknown, position: number): TrackEventInput => {
+	if (isNullish(value) || typeof value !== 'object') {
+		throw new AnalyticsValidationError(`events[${position}] must be an object.`);
+	}
+
+	const event = value as Record<string, unknown>;
+	const { name, path, occurredAtMs } = event;
+
+	if (typeof name !== 'string' || !isAnalyticsEventName(name)) {
+		throw new AnalyticsValidationError(`events[${position}].name is not a known event name.`);
+	}
+
+	const sessionId = parseSessionId(event.sessionId, position);
 
 	if (nonNullish(path) && typeof path !== 'string') {
 		throw new AnalyticsValidationError(`events[${position}].path must be a string.`);
@@ -251,11 +270,18 @@ export interface ServerEventInput {
 let serverCaptureSeq = 0;
 
 /**
+ * Random id of this process in its server-event keys. The app and the worker
+ * both capture, each with its own stamp and sequence counting from 0, so two
+ * captures in the same millisecond would otherwise share a key and the later
+ * transaction would fail.
+ */
+const SERVER_PROCESS_ID = randomToken(8);
+
+/**
  * Write server-originated events into the log, the capture path for
  * behaviour that never touches a browser (VXP payouts, settlements).
  * Mirrors trackEvents' write (key scheme, rollup bump) but takes the user
- * from the server's own record and stamps sessionId 'server' (there is no
- * visit).
+ * from the server's own record and stamps {@link SERVER_SESSION_ID}.
  */
 export const captureServerEvents = async ({
 	events
@@ -276,11 +302,12 @@ export const captureServerEvents = async ({
 		for (const [index, event] of events.entries()) {
 			await q(
 				`insert into analytics_events (key, name, ts_ms, session_id, user_id, path, props)
-				 values ($1, $2, $3, 'server', $4, null, $5)`,
+				 values ($1, $2, $3, $4, $5, null, $6)`,
 				[
-					`${stamp}-server-${seq}-${index}`,
+					`${stamp}-${SERVER_SESSION_ID}-${SERVER_PROCESS_ID}-${seq}-${index}`,
 					event.name,
 					tsMs,
+					SERVER_SESSION_ID,
 					event.userId ?? null,
 					isNullish(event.props) ? null : JSON.stringify(event.props)
 				]
