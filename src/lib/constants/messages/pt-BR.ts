@@ -1598,10 +1598,10 @@ export const ptBRMessages = {
 	'profile.handle.error_check_failed':
 		'Não foi possível verificar a disponibilidade. Tente novamente.',
 	'profile.handle.error_reserved': 'Esse handle é reservado',
-	'profile.handle.error_short': 'Pelo menos 3 caracteres',
+	'profile.handle.error_short': 'Pelo menos {min} caracteres',
 	'profile.handle.error_taken': 'Esse handle já está em uso',
 	'profile.handle.error_unchanged': 'Esse já é o seu handle',
-	'profile.handle.hint': 'Letras, números e sublinhados.',
+	'profile.handle.hint': 'Letras minúsculas e números.',
 	'profile.handle.locked':
 		'Você alterou seu handle recentemente. Poderá alterá-lo de novo em {days} dias.',
 	'profile.handle.locked_one':

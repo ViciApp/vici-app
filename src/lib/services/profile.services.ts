@@ -2,12 +2,9 @@ import type { RegistryDid } from '#declarations';
 import { functions } from '#declarations/satellite/satellite.api.ts';
 import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 import { Collection } from '#lib/constants/collections.constants.ts';
+import { handleUniqueKey } from '#lib/constants/handle.constants.ts';
 import { COMEBACK_COLD_STREAK_LOSSES } from '#lib/constants/menagerie.constants.ts';
-import {
-	MIN_NICKNAME_LENGTH,
-	nicknameUniqueKey,
-	sanitizeNickname
-} from '#lib/constants/profile.constants.ts';
+import { nicknameUniqueKey } from '#lib/constants/profile.constants.ts';
 import { defaultPreferences } from '#lib/constants/settings.constants.ts';
 import { MILLISECOND_IN_NANOSECONDS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
@@ -34,6 +31,12 @@ import {
 	mergeUnlockedAchievements
 } from '#lib/utils/achievements.utils.ts';
 import { decimalFixedValueToNumber, shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
+import {
+	generateHandle,
+	handleFormatIssue,
+	sanitizeHandleInput,
+	type HandleRefusal
+} from '#lib/utils/handle.utils.ts';
 import { countWinningCategories } from '#lib/utils/menagerie.utils.ts';
 import {
 	eventExecutionPrice,
@@ -555,7 +558,7 @@ export const applyOnboardingPicks = async ({
 				// Stamp the handle-change time only on a real change so the
 				// set-profile assertion accepts the write; the bootstrapped
 				// nickname almost always differs from the picked handle.
-				if (nicknameUniqueKey(handle) !== nicknameUniqueKey(current.nickname ?? '')) {
+				if (isHandleChange({ next: handle, current: current.nickname ?? '' })) {
 					patch.handleLastChangeMs = Date.now();
 				}
 			}
@@ -606,13 +609,24 @@ export const searchProfiles = async (query: string): Promise<UserProfile[]> => {
 };
 
 /**
- * Outcome of a nickname availability probe; it mirrors
- * `NicknameAvailability` on the satellite side. The FE uses this to
- * render typed inline errors (instead of regex-parsing thrown messages).
+ * Whether writing `next` over `current` changes the handle, so the write must
+ * stamp `handleLastChangeMs` and the cooldown applies. Compared on the key
+ * the active backend's cooldown compares: the handle key on the API (so
+ * tidying `José` to `jose` or `a.b` to `ab` is free), the legacy nickname
+ * key on the satellite.
+ */
+export const isHandleChange = ({ next, current }: { next: string; current: string }): boolean =>
+	isWeb2Backend()
+		? handleUniqueKey(next) !== handleUniqueKey(current)
+		: nicknameUniqueKey(next) !== nicknameUniqueKey(current);
+
+/**
+ * Outcome of a nickname availability probe, the same reasons on both
+ * transports so the surfaces render typed inline errors (instead of
+ * regex-parsing thrown messages).
  */
 export type NicknameAvailability =
-	| { available: true }
-	| { available: false; reason: 'required' | 'too_short' | 'invalid' | 'taken' };
+	{ available: true } | { available: false; reason: HandleRefusal };
 
 /**
  * Pre-flight check for the create-account and profile-edit flows.
@@ -643,12 +657,7 @@ export const checkNicknameAvailability = async ({
 		return { available: true };
 	}
 
-	// The web2 validator can report `too_long`, which the shared FE outcome
-	// folds into `invalid` (the charset/format bucket) so both transports
-	// surface the same set of inline reasons.
-	const reason = result.reason === 'too_long' ? 'invalid' : (result.reason ?? 'taken');
-
-	return { available: false, reason };
+	return { available: false, reason: result.reason ?? 'taken' };
 };
 
 /**
@@ -862,6 +871,50 @@ export const forgetBootstrappedThisSession = (): void => {
 	bootstrappedThisSession.clear();
 };
 
+/** Generated handles tried after a taken sign-in seed before giving up. */
+const SEED_HANDLE_RETRIES = 3;
+
+/**
+ * Create the profile with a handle within the rule: `seedSource` (the display
+ * name) cleaned to the rule (`"John Doe"` reads `johndoe`), or a generated
+ * handle (`seneca42`) when that is too short or reserved, or taken. The account
+ * id is never a handle. The user can change it at once (a first handle has no
+ * wait).
+ */
+const createSeededProfile = async ({
+	principal,
+	seedSource
+}: {
+	principal: PrincipalText;
+	seedSource: string;
+}): Promise<UserProfile> => {
+	const cleanedSeed = sanitizeHandleInput(seedSource);
+	const seed = isNullish(handleFormatIssue(cleanedSeed)) ? cleanedSeed : generateHandle();
+
+	// First-touch bootstrap. Seed the nickname through the SAME serialized
+	// `patchProfile` queue that `calculateAndSyncStats`
+	// (awaited right after sign-in on this finishing login) and the onboarding
+	// drain use. A direct full-snapshot `upsertProfile` here is NOT serialized
+	// against that concurrent stats write, so its read-then-write loses the
+	// optimistic-version race and throws ("set doc version"), stranding the user
+	// on signup even though auth already succeeded (a refresh then shows them
+	// signed in). Going through the queue orders the create against the stats
+	// write instead, so whichever runs first, the other reads its version.
+	for (let attempt = 0; ; attempt++) {
+		const nickname = attempt === 0 ? seed : generateHandle();
+
+		try {
+			return await patchProfile({ principal, patch: { nickname } });
+		} catch (err: unknown) {
+			const message = err instanceof Error ? err.message : '';
+
+			if (!message.includes('already taken') || attempt >= SEED_HANDLE_RETRIES) {
+				throw err;
+			}
+		}
+	}
+};
+
 export const ensureProfile = async (
 	user: User
 ): Promise<EnsureProfileResult | EnsureProfileMovedResult> => {
@@ -905,33 +958,7 @@ export const ensureProfile = async (
 		? (openid.name ?? [openid.givenName, openid.familyName].filter(Boolean).join(' '))
 		: '';
 
-	// Seed a VALID handle on first touch. Both candidates carry characters
-	// the handle charset forbids (the OAuth display name (`"John Doe"`) has
-	// spaces, the shortened-principal default carries an `…` ellipsis) and
-	// the satellite now rejects those. Sanitise to `[a-z0-9._-]`; if nothing
-	// usable survives (e.g. a non-latin display name sanitises to empty),
-	// fall back to the raw principal, which is all lowercase/digits/hyphens
-	// and clears the charset guard. The user can refine it later from the
-	// profile dashboard.
 	const seedSource = fullName.trim().length > 0 ? fullName : profileDoc.data.nickname;
-	const sanitizedSeed = sanitizeNickname(seedSource);
-	const nickname = sanitizedSeed.length >= MIN_NICKNAME_LENGTH ? sanitizedSeed : principal;
-
-	// First-touch bootstrap. Seed the nickname through the SAME serialized
-	// `patchProfile` queue that `calculateAndSyncStats`
-	// (awaited right after sign-in on this finishing login) and the onboarding
-	// drain use. A direct full-snapshot `upsertProfile` here is NOT serialized
-	// against that concurrent stats write, so its read-then-write loses the
-	// optimistic-version race and throws ("set doc version"), stranding the user
-	// on signup even though auth already succeeded (a refresh then shows them
-	// signed in). Going through the queue orders the create against the stats
-	// write instead, so whichever runs first, the other reads its version.
-	//
-	// The default nickname is the user's shortened principal, which can collide
-	// with another provider's shortened principal; fall back to the unshortened
-	// principal so the assertion cannot veto this implicit write. The user can
-	// change it later from the profile dashboard.
-	const seedPatch: ProfilePatch = { nickname };
 
 	// Record the bootstrap BEFORE the write awaits. A fresh sign-in can fire a
 	// second `onAuthStateChange` pass whose profile read resolves after the
@@ -947,21 +974,11 @@ export const ensureProfile = async (
 	// same best-effort semantics as the returning-user hydration above.
 	const email = await hydrateMyEmail({ principal, providerEmail });
 
-	try {
-		return { profile: await patchProfile({ principal, patch: seedPatch }), existed: false, email };
-	} catch (err: unknown) {
-		const message = err instanceof Error ? err.message : '';
-
-		if (message.includes('already taken')) {
-			return {
-				profile: await patchProfile({ principal, patch: { ...seedPatch, nickname: principal } }),
-				existed: false,
-				email
-			};
-		}
-
-		throw err;
-	}
+	return {
+		profile: await createSeededProfile({ principal, seedSource }),
+		existed: false,
+		email
+	};
 };
 
 /**

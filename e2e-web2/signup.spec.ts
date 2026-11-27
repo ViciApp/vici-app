@@ -31,4 +31,19 @@ test.describe('email sign-up', () => {
 
 		await expect(app.profileHandle).toHaveText(`@${handle}`);
 	});
+
+	test('the handle is cleaned to the rule as it is typed and claimed cleaned', async ({
+		page,
+		backend
+	}) => {
+		const app = new Web2AppPage(page);
+		const handle = uniqueHandle();
+		const typed = `${handle.slice(0, 3).toUpperCase()}.${handle.slice(3)}`;
+
+		await app.signUp({ email: uniqueEmail('signupclean'), handle: typed, backend });
+
+		await page.goto('/profile');
+
+		await expect(app.profileHandle).toHaveText(`@${handle}`);
+	});
 });

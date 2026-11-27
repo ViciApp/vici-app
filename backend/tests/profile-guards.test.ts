@@ -1,7 +1,8 @@
 // Profile write guards: the server-owned daily goal (the Flow cap backstop),
 // the integer counters, the bounds of the ranked stats, the handle-change
-// cooldown with its ~now stamp requirement, and the grandfather clause for
-// legacy nicknames.
+// cooldown with its ~now stamp requirement, the handle rule with its
+// lookalike and reserved checks, and the grandfather clause for handles that
+// predate the rule.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { beforeAll, describe, expect, test } from 'bun:test';
@@ -9,7 +10,7 @@ import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
 import { app } from '../src/index';
 import { DAILY_HARD_CAP, recordFlowSwipe } from '../src/profiles/flow';
-import { MAX_NICKNAME_LENGTH, nicknameUniqueKey } from '../src/profiles/nickname';
+import { MAX_HANDLE_LENGTH, nicknameUniqueKey } from '../src/profiles/nickname';
 import {
 	getProfileRow,
 	getProfileView,
@@ -243,14 +244,12 @@ describe.if(dbAvailable)('handle-change cooldown', () => {
 		).rejects.toThrow('cannot change unless the handle changes');
 	});
 
-	test('re-casing the own handle is not a change', async () => {
+	test('re-casing the own handle into an uppercase form is refused', async () => {
 		const { userId, profile } = await createTestProfile();
-		const recased = profile.nickname.toUpperCase();
 
-		const updated = await upsertMyProfile({ userId, body: { nickname: recased } });
-
-		expect(updated.nickname).toBe(recased);
-		expect(updated.handleLastChangeMs).toBeUndefined();
+		expect(
+			upsertMyProfile({ userId, body: { nickname: profile.nickname.toUpperCase() } })
+		).rejects.toThrow('lowercase letters and numbers only');
 	});
 
 	test('a backdated or future stamp on an allowed change is rejected', async () => {
@@ -272,16 +271,16 @@ describe.if(dbAvailable)('handle-change cooldown', () => {
 	});
 });
 
-describe.if(dbAvailable)('legacy nickname grandfathering', () => {
+describe.if(dbAvailable)('handle rule on write', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
 	});
 
+	// Handles that predate the rule: a direct row insert mirrors that state.
+	// The trigger fills handle_key, as it does for a row an old release writes.
 	const seedLegacyProfile = async (nickname: string): Promise<string> => {
 		const userId = await createTestUser();
 
-		// Legacy imports can carry nicknames that predate the charset rule; a
-		// direct row insert mirrors that state.
 		await query(`insert into profiles (user_id, nickname, nickname_key) values ($1, $2, $3)`, [
 			userId,
 			nickname,
@@ -291,20 +290,94 @@ describe.if(dbAvailable)('legacy nickname grandfathering', () => {
 		return userId;
 	};
 
-	test('an unchanged invalid legacy nickname does not block unrelated edits', async () => {
-		const legacyNickname = `bad name ${uniqueNickname()}`;
-		const userId = await seedLegacyProfile(legacyNickname);
+	test('a new handle outside the rule is refused', async () => {
+		const { userId } = await createTestProfile();
+		const base = uniqueNickname();
 
-		const profile = await upsertMyProfile({
-			userId,
-			body: { nickname: legacyNickname, avatar: 'new-avatar' }
-		});
-
-		expect(profile.nickname).toBe(legacyNickname);
-		expect(profile.avatar).toBe('new-avatar');
+		for (const [nickname, message] of [
+			[`${base}A`, 'lowercase letters and numbers only'],
+			[`${base}é`, 'lowercase letters and numbers only'],
+			[`${base.slice(0, 5)}.${base.slice(5)}`, 'lowercase letters and numbers only'],
+			[`${base.slice(0, 5)}_${base.slice(5)}`, 'lowercase letters and numbers only'],
+			[`${base.slice(0, 5)}-${base.slice(5)}`, 'lowercase letters and numbers only'],
+			['ab', 'at least 3 characters'],
+			[base.padEnd(MAX_HANDLE_LENGTH + 1, 'a'), `at most ${MAX_HANDLE_LENGTH} characters`]
+		] as const) {
+			expect(
+				upsertMyProfile({ userId, body: { nickname, handleLastChangeMs: Date.now() } })
+			).rejects.toThrow(message);
+		}
 	});
 
-	test('actually changing to an invalid handle is rejected', async () => {
+	test('a lookalike of a stored handle is taken', async () => {
+		const base = uniqueNickname();
+		const head = base.slice(0, 5);
+		const tail = base.slice(5);
+
+		for (const stored of [
+			`${head}.${tail}`,
+			`${head.toUpperCase()}_${tail}`,
+			`${base}`.replace('n', 'ñ')
+		]) {
+			const owner = await seedLegacyProfile(stored);
+			const { userId } = await createTestProfile();
+
+			expect(
+				upsertMyProfile({
+					userId,
+					body: { nickname: base, handleLastChangeMs: Date.now() }
+				})
+			).rejects.toThrow('already taken');
+
+			await query(`delete from profiles where user_id = $1`, [owner]);
+		}
+	});
+
+	test('a reserved handle is refused, whoever asks', async () => {
+		const { userId } = await createTestProfile();
+
+		for (const nickname of ['admin', 'vici', 'oracle']) {
+			expect(
+				upsertMyProfile({ userId, body: { nickname, handleLastChangeMs: Date.now() } })
+			).rejects.toThrow('reserved');
+		}
+	});
+
+	test('the route answers a reserved handle with a 400', async () => {
+		const { userId } = await createTestProfile();
+		const res = await app.handle(
+			new Request('http://localhost/api/v1/profiles/me', {
+				method: 'PUT',
+				headers: {
+					cookie: `vici_session=${await createSession(userId)}`,
+					'content-type': 'application/json'
+				},
+				body: JSON.stringify({ nickname: 'admin', handleLastChangeMs: Date.now() })
+			})
+		);
+
+		expect(res.status).toBe(400);
+	});
+
+	test('an untouched handle outside the rule keeps saving', async () => {
+		for (const legacyNickname of [
+			`bad name ${uniqueNickname()}`,
+			`José.${uniqueNickname()}`,
+			uniqueNickname().padEnd(MAX_HANDLE_LENGTH + 4, 'a')
+		]) {
+			const userId = await seedLegacyProfile(legacyNickname);
+
+			const profile = await upsertMyProfile({
+				userId,
+				body: { nickname: legacyNickname, avatar: 'new-avatar' }
+			});
+
+			expect(profile.nickname).toBe(legacyNickname);
+			expect(profile.avatar).toBe('new-avatar');
+		}
+	});
+
+	test('changing a handle outside the rule to another one outside it is refused', async () => {
 		const userId = await seedLegacyProfile(`bad name ${uniqueNickname()}`);
 
 		expect(
@@ -312,34 +385,48 @@ describe.if(dbAvailable)('legacy nickname grandfathering', () => {
 				userId,
 				body: { nickname: 'still bad', handleLastChangeMs: Date.now() }
 			})
-		).rejects.toThrow('contains invalid characters');
+		).rejects.toThrow('lowercase letters and numbers only');
 	});
 
-	test('an unchanged over-length legacy nickname does not block unrelated edits', async () => {
-		const legacyNickname = uniqueNickname().padEnd(MAX_NICKNAME_LENGTH + 4, 'a');
-		const userId = await seedLegacyProfile(legacyNickname);
+	test('tidying the own handle to the rule is free inside the window', async () => {
+		const base = uniqueNickname();
+		const stored = `${base.slice(0, 5).toUpperCase()}.${base.slice(5)}`;
+		const userId = await seedLegacyProfile(stored);
+		const stampMs = Date.now() - DAY_MS;
+
+		await query(`update profiles set handle_last_change_ms = $2 where user_id = $1`, [
+			userId,
+			stampMs
+		]);
 
 		const profile = await upsertMyProfile({
 			userId,
-			body: { nickname: legacyNickname, avatar: 'new-avatar' }
+			body: { nickname: base, handleLastChangeMs: stampMs }
 		});
 
-		expect(profile.nickname).toBe(legacyNickname);
-		expect(profile.avatar).toBe('new-avatar');
+		expect(profile.nickname).toBe(base);
+		expect(profile.handleLastChangeMs).toBe(stampMs);
+
+		const rows = await query<{ handle_key: string; nickname_key: string }>(
+			`select handle_key, nickname_key from profiles where user_id = $1`,
+			[userId]
+		);
+
+		expect(rows[0]).toEqual({ handle_key: base, nickname_key: base });
 	});
 
-	test('setting a new over-length handle is rejected', async () => {
-		const { userId } = await createTestProfile();
+	test('two writers of the same new handle: one wins, the other is taken', async () => {
+		const handle = uniqueNickname();
+		const writers = await Promise.all([createTestProfile(), createTestProfile()]);
 
-		expect(
-			upsertMyProfile({
-				userId,
-				body: {
-					nickname: uniqueNickname().padEnd(MAX_NICKNAME_LENGTH + 1, 'a'),
-					handleLastChangeMs: Date.now()
-				}
-			})
-		).rejects.toThrow(`at most ${MAX_NICKNAME_LENGTH} characters`);
+		const results = await Promise.allSettled(
+			writers.map(({ userId }) =>
+				upsertMyProfile({ userId, body: { nickname: handle, handleLastChangeMs: Date.now() } })
+			)
+		);
+
+		expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+		expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);
 	});
 });
 

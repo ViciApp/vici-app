@@ -3839,6 +3839,11 @@ a.title-action::after {
 	background: color-mix(in srgb, var(--text-muted) 6%, transparent);
 	border: 1px solid color-mix(in srgb, var(--text-muted) 16%, transparent);
 }
+.ob-rule {
+	margin: -8px 0 14px;
+	color: var(--text-muted);
+	font-size: 12px;
+}
 .ob-btn-primary {
 	flex: 1;
 	appearance: none;
