@@ -269,6 +269,11 @@ const judge = (input: JudgeInput): AssignmentPlanRow => {
 	};
 };
 
+/** The well-formed user ids of the requests, once each: a malformed one
+ * never reaches a uuid bind. */
+const requestedUserIds = (requests: readonly AssignmentRequest[]): string[] =>
+	[...new Set(requests.map(({ userId }) => userId))].filter((id) => UUID_RE.test(id));
+
 /** The verdict for every request, from the database as `q` sees it. */
 export const planAssignments = async ({
 	requests,
@@ -277,9 +282,7 @@ export const planAssignments = async ({
 	requests: readonly AssignmentRequest[];
 	q?: TxQuery;
 }): Promise<AssignmentPlanRow[]> => {
-	const userIds = [...new Set(requests.map(({ userId }) => userId))].filter((id) =>
-		UUID_RE.test(id)
-	);
+	const userIds = requestedUserIds(requests);
 	const emails = [...new Set(requests.map(({ email }) => email))];
 	const facts = await readFacts({ q, userIds, emails });
 	const userCounts = countBy(requests.map(({ userId }) => userId));
@@ -288,15 +291,48 @@ export const planAssignments = async ({
 	return requests.map((request) => judge({ request, facts, userCounts, emailCounts }));
 };
 
+/** Every address an importer principal of these accounts already signs in
+ * with on the legacy side: a write replacing one of them must hold its login
+ * lock too, or a first login with it could adopt the account mid-write. */
+const currentLegacyEmails = async ({
+	q,
+	userIds
+}: {
+	q: TxQuery;
+	userIds: string[];
+}): Promise<string[]> => {
+	const rows = await q<{ email: string }>(
+		`select distinct lower(e.email) as email
+		 from legacy_principals lp
+		 join legacy_auth_identities lai on lai.principal = lp.principal
+		 cross join lateral (values (lai.openid_email), (lai.profile_email)) as e (email)
+		 where lp.user_id = any($1::uuid[]) and lp.matched_via = 'etl' and coalesce(e.email, '') <> ''`,
+		[userIds]
+	);
+
+	return rows.map(({ email }) => email);
+};
+
 /** Plans and writes the accepted rows in one transaction, under the login
- * locks of every address (the lock order of adoption.ts), so a first login
- * for one of them runs strictly before or after and the verdicts cannot go
- * stale between the check and the write. */
+ * locks (the lock order of adoption.ts: every address sorted, before any row)
+ * of the requested addresses and of the legacy addresses the accounts already
+ * carry, so a first login with any of them runs strictly before the plan
+ * (which then finds the account adopted: `not_provisional`) or after the
+ * write, never between the check and the write. Only etl:drain-auth writes
+ * those columns, and it does not run during this step. */
 export const executeAssignments = (
 	requests: readonly AssignmentRequest[]
 ): Promise<AssignmentPlanRow[]> =>
 	tx(async (q) => {
-		await lockLoginEmails({ q, emails: requests.map(({ email }) => email) });
+		const userIds = requestedUserIds(requests);
+
+		await lockLoginEmails({
+			q,
+			emails: [
+				...requests.map(({ email }) => email),
+				...(await currentLegacyEmails({ q, userIds }))
+			]
+		});
 
 		const plan = await planAssignments({ requests, q });
 

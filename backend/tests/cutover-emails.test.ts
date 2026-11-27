@@ -17,10 +17,12 @@ import {
 	UNMATCHED_CSV_COLUMNS
 } from '../scripts/cutover/lib';
 import { listUnmatchedAccounts, unmatchedAccountsCsv } from '../scripts/cutover/list-unmatched';
+import { lockLoginEmails } from '../src/auth/adoption';
 import { resolveIdentity } from '../src/auth/identity';
 import { query } from '../src/db/client';
 import { claimPendingOf, linkOf, seedImportedAccount } from './helpers/adoption';
 import { ensureMigrated, uniqueEmail, uniquePrincipal } from './helpers/auth';
+import { openTransaction, waitForLockWait } from './helpers/locks';
 import { dbAvailable } from './helpers/setup';
 
 describe('cutover sheet csv', () => {
@@ -165,6 +167,29 @@ describe.if(dbAvailable)('cutover email assignment', () => {
 		expect(userId).toBe(account.userId);
 		expect(await claimPendingOf(account.userId)).toBe(false);
 		expect((await linkOf(account.principal))?.matched_via).toBe('profile_email');
+	});
+
+	test('waits for a login holding a legacy address of the account, then finds it adopted', async () => {
+		const legacyEmail = uniqueEmail();
+		const account = await seedImportedAccount({
+			principal: uniquePrincipal(),
+			openidEmail: legacyEmail
+		});
+		const login = await openTransaction();
+
+		// A first login with the legacy address holds its lock while it adopts.
+		await lockLoginEmails({ q: login.q, emails: [legacyEmail] });
+		await login.q(`update users set claim_pending = false where id = $1`, [account.userId]);
+
+		const assigning = executeAssignments([request(account.userId, uniqueEmail())]);
+
+		await waitForLockWait();
+		await login.commit();
+
+		const [row] = await assigning;
+
+		expect(row?.outcome).toBe('not_provisional');
+		expect(await profileEmailOf(account.principal)).toBeNull();
 	});
 
 	test('reports the self-reported address an assignment replaces', async () => {

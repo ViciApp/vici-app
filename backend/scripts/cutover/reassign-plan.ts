@@ -150,7 +150,12 @@ export interface TargetState {
 }
 
 export type PlanCheck =
-	'ready' | 'invalid_principal' | 'user_hard_deleted' | 'open_orders' | 'target_not_empty';
+	| 'ready'
+	| 'invalid_principal'
+	| 'user_hard_deleted'
+	| 'target_unreadable'
+	| 'open_orders'
+	| 'target_not_empty';
 
 export interface PlanEntry extends ReassignLink {
 	/** Order among the user's principals, 1 first. */
@@ -220,6 +225,12 @@ const checkOf = (entry: Omit<PlanEntry, 'check'>): PlanCheck => {
 
 	if (entry.hardDeleted) {
 		return 'user_hard_deleted';
+	}
+
+	// Fails closed: an unread target may already hold state, and clearing
+	// would then refuse or, worse, the run would act on a guess.
+	if (isNullish(entry.targetState)) {
+		return 'target_unreadable';
 	}
 
 	if (entry.openOrders > 0) {

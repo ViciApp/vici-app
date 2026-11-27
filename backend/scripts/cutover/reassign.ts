@@ -47,6 +47,7 @@ import {
 	controllerTarget,
 	isUnauthorized,
 	reassignmentId,
+	type Disposition,
 	type ReassignOutcome,
 	type ReassignTarget
 } from './reassign-call';
@@ -57,6 +58,7 @@ import {
 	planReassignments,
 	requireExplicitRootSecret,
 	verifyTargets,
+	type PlanCheck,
 	type PlanEntry
 } from './reassign-plan';
 
@@ -104,10 +106,40 @@ const NOT_ATTEMPTED: ReassignOutcome = {
 
 const MERGE_BY_HAND = 'another principal of this account moved first: merge by hand';
 
+/** Plan checks no call can settle, and what they mean: a target read that
+ * failed is a replay (the next run reads it again); the rest need a person. */
+const UNCALLED: Partial<Record<PlanCheck, Disposition>> = {
+	invalid_principal: 'manual',
+	user_hard_deleted: 'manual',
+	target_unreadable: 'replay'
+};
+
+/** The outcomes after which a lower-ranked principal of the same account may
+ * still be called: this one moved, never had an account, or the target
+ * already holds state (every later principal gets the same refusal), or it is
+ * a plan check that says nothing about an account under it. After anything
+ * else this principal may still hold an account, or its outcome is unknown:
+ * moving a later one first would leave this one to a merge by hand. */
+const LATER_PRINCIPALS_PROCEED: ReadonlySet<string> = new Set([
+	'Ok',
+	'AccountNotFound',
+	'TargetAccountNotEmpty',
+	'invalid_principal',
+	'user_hard_deleted'
+]);
+
+const deferredBehind = (principal: string): ReassignOutcome => ({
+	kind: 'deferred',
+	disposition: 'replay',
+	detail: `waits for ${principal}, an earlier principal of this account that did not move`
+});
+
 /** Calls the reassignment for every entry, in plan order, one at a time.
- * Entries no call can fix (a principal that does not parse, a hard-deleted
- * account) are recorded as manual without a call. An Unauthorized answer
- * stops the run: the rest are left for a replay. */
+ * Plan checks no call can settle are recorded without a call. Once a
+ * principal of an account ends in anything that may leave its account
+ * unmoved (a replay, a thrown call, a refusal for its own state), the
+ * account's later principals are deferred to the next run. An Unauthorized
+ * answer stops the run: the rest are left for a replay. */
 export const executeReassignments = async ({
 	plan,
 	target,
@@ -119,15 +151,23 @@ export const executeReassignments = async ({
 }): Promise<ExecutedEntry[]> => {
 	const executed: ExecutedEntry[] = [];
 	const movedUsers = new Set<string>();
+	const blockedBy = new Map<string, string>();
 	let stopped = false;
 
 	const outcomeOf = async (entry: PlanEntry): Promise<ReassignOutcome> => {
+		const blocker = blockedBy.get(entry.userId);
+		const uncalled = UNCALLED[entry.check];
+
 		if (stopped) {
 			return NOT_ATTEMPTED;
 		}
 
-		if (entry.check === 'invalid_principal' || entry.check === 'user_hard_deleted') {
-			return { kind: entry.check, disposition: 'manual' };
+		if (nonNullish(blocker)) {
+			return deferredBehind(blocker);
+		}
+
+		if (nonNullish(uncalled)) {
+			return { kind: entry.check, disposition: uncalled };
 		}
 
 		const { outcome, unauthorized } = await callReassign({ entry, target });
@@ -144,6 +184,10 @@ export const executeReassignments = async ({
 
 		if (done.outcome.disposition === 'moved') {
 			movedUsers.add(entry.userId);
+		}
+
+		if (!LATER_PRINCIPALS_PROCEED.has(done.outcome.kind) && done.outcome.kind !== 'deferred') {
+			blockedBy.set(entry.userId, entry.principal);
 		}
 
 		executed.push(done);

@@ -233,12 +233,14 @@ describe.if(dbAvailable)('cutover reassign plan and execution', () => {
 		orders = [],
 		settled = new Map<string, number>(),
 		wallets = new Map<string, bigint>(),
-		nonEmptyTargets = new Set<string>()
+		nonEmptyTargets = new Set<string>(),
+		unreadableTargets = new Set<string>()
 	}: {
 		orders?: string[];
 		settled?: Map<string, number>;
 		wallets?: Map<string, bigint>;
 		nonEmptyTargets?: Set<string>;
+		unreadableTargets?: Set<string>;
 	}): void => {
 		restore = setEngineActorProvider({
 			clearing: (identity) => {
@@ -260,23 +262,25 @@ describe.if(dbAvailable)('cutover reassign plan and execution', () => {
 								}))
 						),
 					get_account_state_query: () =>
-						Promise.resolve(
-							held
-								? {
-										Ok: {
-											assets: [],
-											state: {
-												user: identity.getPrincipal(),
-												reserved_margins_usd: [],
-												cash_balances_usd: [],
-												balances: [[{ ViciXp: null }, [['vxp', BigInt(5)]]]]
-											},
-											total_equity_usd: BigInt(5),
-											available_margin_usd: BigInt(5)
-										}
-									}
-								: { Err: { NoAccountStateFound: null } }
-						),
+						unreadableTargets.has(caller)
+							? Promise.reject(new Error('replica unreachable'))
+							: Promise.resolve(
+									held
+										? {
+												Ok: {
+													assets: [],
+													state: {
+														user: identity.getPrincipal(),
+														reserved_margins_usd: [],
+														cash_balances_usd: [],
+														balances: [[{ ViciXp: null }, [['vxp', BigInt(5)]]]]
+													},
+													total_equity_usd: BigInt(5),
+													available_margin_usd: BigInt(5)
+												}
+											}
+										: { Err: { NoAccountStateFound: null } }
+								),
 					get_positions: () => Promise.resolve([]),
 					get_orders: () => Promise.resolve([])
 				} as unknown as ClearingService);
@@ -413,40 +417,112 @@ describe.if(dbAvailable)('cutover reassign plan and execution', () => {
 		expect([...accounts]).toEqual([second]);
 	});
 
-	test('a thrown call is a replay; Unauthorized stops the run', async () => {
+	/** One account with `principals` linked, ranked in the given order. */
+	const rankedAccount = async (principals: string[]): Promise<string> => {
 		const userId = await createTestUser();
-		const [flaky, refused, later] = [newPrincipal(), newPrincipal(), newPrincipal()];
 
-		for (const principal of [flaky, refused, later]) {
+		for (const principal of principals) {
 			await linkPrincipal(userId, principal);
 		}
 
 		await giveCustodyRow(userId);
-		installEngine({
-			settled: new Map([
-				[flaky, 3],
-				[refused, 2],
-				[later, 1]
-			])
-		});
 
-		const plan = await planReassignments(
-			await loadReassignLinks({ principals: [flaky, refused, later] })
-		);
+		return userId;
+	};
+
+	const descendingSettled = (principals: string[]): Map<string, number> =>
+		new Map(principals.map((principal, i) => [principal, principals.length - i]));
+
+	test('a thrown call is a replay and defers the account later principals', async () => {
+		const [flaky, later] = [newPrincipal(), newPrincipal()];
+
+		await rankedAccount([flaky, later]);
+		installEngine({ settled: descendingSettled([flaky, later]) });
+
+		const plan = await planReassignments(await loadReassignLinks({ principals: [flaky, later] }));
 		const { target, calls } = fakeController({
-			accounts: new Set([flaky, refused, later]),
-			answers: new Map<string, () => Promise<ReassignAccountResult>>([
-				[flaky, () => Promise.reject(new Error('timeout'))],
-				[refused, () => Promise.resolve({ Err: { Common: { Unauthorized: null } } })]
-			])
+			accounts: new Set([flaky, later]),
+			answers: new Map([[flaky, () => Promise.reject(new Error('timeout'))]])
+		});
+		const run = await executeReassignments({ plan, target });
+
+		expect(
+			run.map(({ principal, outcome }) => [principal, outcome.kind, outcome.disposition])
+		).toEqual([
+			[flaky, 'call_failed', 'replay'],
+			[later, 'deferred', 'replay']
+		]);
+		expect(run[1]?.outcome.detail).toContain(flaky);
+		expect(calls).toHaveLength(1);
+	});
+
+	test('a replay answer or a refusal for the principal own state defers the rest', async () => {
+		for (const answer of [
+			{ Err: { InFlightPlansExist: null } },
+			{ Err: { OpenOrdersExist: null } }
+		] satisfies ReassignAccountResult[]) {
+			const [first, second] = [newPrincipal(), newPrincipal()];
+
+			await rankedAccount([first, second]);
+			installEngine({ settled: descendingSettled([first, second]) });
+
+			const plan = await planReassignments(
+				await loadReassignLinks({ principals: [first, second] })
+			);
+			const { target, calls } = fakeController({
+				accounts: new Set([first, second]),
+				answers: new Map([[first, () => Promise.resolve(answer)]])
+			});
+			const run = await executeReassignments({ plan, target });
+
+			expect(run[1]?.outcome.kind).toBe('deferred');
+			expect(calls.map(({ old_owner }) => old_owner.toText())).toEqual([first]);
+
+			restore?.();
+			restore = undefined;
+		}
+	});
+
+	test('Unauthorized stops the whole run', async () => {
+		const [refused, other] = [newPrincipal(), newPrincipal()];
+
+		await rankedAccount([refused]);
+		await rankedAccount([other]);
+		installEngine({});
+
+		const plan = await planReassignments(await loadReassignLinks({ principals: [refused, other] }));
+		const ordered = plan.map(({ principal }) => principal);
+		const { target, calls } = fakeController({
+			accounts: new Set([refused, other]),
+			answers: new Map(
+				ordered.map((principal) => [
+					principal,
+					() => Promise.resolve({ Err: { Common: { Unauthorized: null } } })
+				])
+			)
 		});
 		const run = await executeReassignments({ plan, target });
 
 		expect(run.map(({ outcome }) => [outcome.kind, outcome.disposition])).toEqual([
-			['call_failed', 'replay'],
 			['Common', 'error'],
 			['not_attempted', 'replay']
 		]);
-		expect(calls).toHaveLength(2);
+		expect(calls).toHaveLength(1);
+	});
+
+	test('an unreadable target blocks its principals and is never called', async () => {
+		const principal = newPrincipal();
+		const userId = await rankedAccount([principal]);
+
+		installEngine({ unreadableTargets: new Set([userIcPrincipalText(userId)]) });
+
+		const plan = await planReassignments(await loadReassignLinks({ principals: [principal] }));
+		const { target, calls } = fakeController({ accounts: new Set([principal]) });
+		const [done] = await executeReassignments({ plan, target });
+
+		expect(plan[0]).toMatchObject({ targetState: null, check: 'target_unreadable' });
+		expect(plan[0]?.readErrors[0]).toContain('target state');
+		expect(done?.outcome).toEqual({ kind: 'target_unreadable', disposition: 'replay' });
+		expect(calls).toHaveLength(0);
 	});
 });
