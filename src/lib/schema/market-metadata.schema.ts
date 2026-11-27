@@ -1,8 +1,8 @@
 import { MarketEventDirection, MarketWhyNowKind } from '#lib/enums/market-metadata.ts';
 import { j, PrincipalTextSchema } from '@junobuild/schema';
 
-export const MarketWhyNowKindSchema = j.enum(MarketWhyNowKind);
-export const MarketEventDirectionSchema = j.enum(MarketEventDirection);
+const MarketWhyNowKindSchema = j.enum(MarketWhyNowKind);
+const MarketEventDirectionSchema = j.enum(MarketEventDirection);
 
 export const MarketWhyNowSchema = j.strictObject({
 	kind: MarketWhyNowKindSchema,
