@@ -519,7 +519,8 @@ identities and sessions, the VXP award history and onboarding ladder,
 calibration attempts, the stats and monthly stats, resolved results, the
 likes it gave (each liked activity's count goes down), school-email
 submissions, referral code, challenge links (with their answers) and the
-answers it gave to other people's links, affiliations, relations and league
+answers it gave to other people's links, the waitlist reservation its handle
+came from, affiliations, relations and league
 memberships; owned leagues are disbanded or handed to a member. On the
 web2 API an account that still holds funds (in its wallet, as real-money
 collateral or trading gains, or in a withdrawal in progress) cannot be deleted: the app
@@ -763,6 +764,34 @@ screens, footer everywhere). In Markets the curated markets keep their
 film stills. Design contract:
 [`design.md` § 6](./frontend/design.md#6-landing-page).
 
+### Handle waitlist: reserve a handle with a verified email
+
+Spec: [`2026-11-27-feat-handle-waitlist.md`](./spec-driven-development/specs/2026-11-27-feat-handle-waitlist.md) (W1).
+
+A signed-out visitor reserves a handle by giving it, an email, and the
+6-digit code sent to that email. From the confirmation the handle is held
+for that mailbox: nobody else can reserve it or take it in the app (both
+handle probes, onboarding, the handle editor and the profile write read it
+as taken), and it is also held for the ten minutes a code is live. No
+account, session, profile or VXP is created, and nobody plays before
+admission. vici.app starts as a new product, so a mailbox is only a
+waitlist entry: a handle is free only when it is not a reserved name, no
+profile holds it (the team's own accounts) and no other entry holds it,
+the same check the live availability line runs. One handle per mailbox: confirming another one releases
+the first. `name+tag@` and dotted Gmail variants are one mailbox, and
+known disposable-mail domains are refused with their own answer.
+
+The code, the receipt ("@handle is yours, you're on the waitlist") and the
+removal confirmation are written in the language the visitor used. Every
+email carries a link that removes the reservation without signing in; the
+link opens a page, and only its button deletes. A reservation stores the
+address, the handle, the language, when the consent sentence was accepted
+and which privacy policy version it linked; never an IP or the code. An
+unconfirmed one is deleted a day after its last code request, a confirmed
+one is held twelve months.
+A returning visitor's handle is read back from the server with a private
+token the browser keeps.
+
 ### Legacy app: new accounts move to vici.app
 
 The legacy build (vici.market) no longer creates accounts. Every sign-up
@@ -821,7 +850,8 @@ carries a `null` team/side; the first prediction now happens free in the
 app. The screen also links to `/signin` ("Already a member?") and offers a
 "Skip · preview first, sign up later" escape into the signed-out Flow
 preview. This is the only onboarding flow: there is no flag and no
-earlier variant to fall back to.
+earlier variant to fall back to. A handle held on the waitlist, or pending
+behind another visitor's live code, reads as taken here like any other.
 
 The screen reuses, rather than re-implements, the handle machinery (live
 availability probe, session-taken cache, claim-time re-check), the

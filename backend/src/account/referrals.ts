@@ -98,11 +98,18 @@ export const getOrAssignReferralCode = async (userId: string): Promise<string> =
 	throw new Error(`referral code generation exhausted after ${CODE_GENERATION_MAX_RETRIES} tries`);
 };
 
+/** The code in its stored form, or undefined when it cannot be one. */
+export const normalizeReferralCode = (raw: string): string | undefined => {
+	const normalized = raw.trim().toUpperCase();
+
+	return REFERRAL_CODE_REGEX.test(normalized) ? normalized : undefined;
+};
+
 /** The code's owner, or undefined for an unknown / malformed code. */
 export const lookupReferralCode = async (code: string): Promise<string | undefined> => {
-	const normalized = code.trim().toUpperCase();
+	const normalized = normalizeReferralCode(code);
 
-	if (!REFERRAL_CODE_REGEX.test(normalized)) {
+	if (isNullish(normalized)) {
 		return;
 	}
 
@@ -150,9 +157,9 @@ const resolveCodeForUser = async ({
 	userId: string;
 	code: string;
 }): Promise<ResolvedCode> => {
-	const normalized = code.trim().toUpperCase();
+	const normalized = normalizeReferralCode(code);
 
-	if (!REFERRAL_CODE_REGEX.test(normalized)) {
+	if (isNullish(normalized)) {
 		throw new ReferralError('Invalid referral code format.');
 	}
 

@@ -6,7 +6,7 @@
 // shared-drift suite. The legacy nickname rule below stays for the profile
 // search bound and the nickname_key unique index, which predate the rule.
 
-import { isNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
 import { DAY_IN_MS, MINUTE_IN_MS, TEN_MINUTES_IN_MS } from '../lib/time';
 
@@ -255,45 +255,95 @@ export type NicknameAvailability =
 	{ available: true } | { available: false; reason: NicknameRefusal };
 
 /**
- * The handle validator, shared by the profile write guard and both
- * availability probes, so the UI and the server always agree. `excludeUserId`
- * is the editing user, passed so their own current handle does not count as
- * a conflict.
+ * The handle rule alone, without the database: the first refusal of
+ * {@link NICKNAME_REFUSALS} that is not `taken`, or nothing when the handle
+ * passes. Tested on the RAW value (the stored one), so surrounding
+ * whitespace is refused too.
  */
-export const checkNicknameAvailability = async ({
-	nickname,
-	excludeUserId,
-	q = query
-}: {
-	nickname: string | undefined | null;
-	excludeUserId?: string;
-	q?: TxQuery;
-}): Promise<NicknameAvailability> => {
+export const handleRuleRefusal = (
+	nickname: string | undefined | null
+): Exclude<NicknameRefusal, 'taken'> | undefined => {
 	if (isNullish(nickname) || nickname.trim() === '') {
-		return { available: false, reason: 'required' };
+		return 'required';
 	}
 
 	const trimmedNickname = nickname.trim();
 
 	if (trimmedNickname.length < MIN_HANDLE_LENGTH) {
-		return { available: false, reason: 'too_short' };
+		return 'too_short';
 	}
 
 	if (trimmedNickname.length > MAX_HANDLE_LENGTH) {
-		return { available: false, reason: 'too_long' };
+		return 'too_long';
 	}
 
-	// Tested on the RAW value (the stored one), so surrounding whitespace is
-	// refused too.
 	if (!HANDLE_PATTERN.test(nickname)) {
-		return { available: false, reason: 'invalid' };
+		return 'invalid';
 	}
 
 	if (RESERVED_HANDLE_KEYS.has(nickname)) {
-		return { available: false, reason: 'reserved' };
+		return 'reserved';
+	}
+};
+
+/**
+ * Whether a waitlist reservation holds `handle`: confirmed with its hold not
+ * ended, or pending behind another mailbox's live code. A handle within the
+ * rule is its own key. `excludeReservationKey` is a reservation's own
+ * mailbox key, so it never conflicts with itself.
+ */
+const waitlistHoldsHandle = async ({
+	handle,
+	excludeReservationKey,
+	q = query
+}: {
+	handle: string;
+	excludeReservationKey?: string;
+	q?: TxQuery;
+}): Promise<boolean> => {
+	const rows = await q<{ exists: boolean }>(
+		`select exists (
+		   select 1 from waitlist_reservations
+		   where ($2::text is null or email_key <> $2::text)
+		     and (
+		       (handle = $1 and hold_ended_at is null)
+		       or (pending_handle = $1 and code_expires_at > now())
+		     )
+		 ) as exists`,
+		[handle, excludeReservationKey ?? null]
+	);
+
+	return rows[0]?.exists === true;
+};
+
+/**
+ * The handle validator, shared by the profile write guard, both
+ * availability probes and the waitlist, so the UI and the server always
+ * agree. A handle is taken when a profile holds its key, when a waitlist
+ * reservation holds it (its hold not ended), or when another mailbox holds
+ * it pending behind a live code. `excludeUserId` is the editing user, so
+ * their own current handle does not count as a conflict;
+ * `excludeReservationKey` is a reservation's mailbox key, so a reservation
+ * never conflicts with itself.
+ */
+export const checkNicknameAvailability = async ({
+	nickname,
+	excludeUserId,
+	excludeReservationKey,
+	q = query
+}: {
+	nickname: string | undefined | null;
+	excludeUserId?: string;
+	excludeReservationKey?: string;
+	q?: TxQuery;
+}): Promise<NicknameAvailability> => {
+	const refusal = handleRuleRefusal(nickname);
+
+	if (nonNullish(refusal) || isNullish(nickname)) {
+		return { available: false, reason: refusal ?? 'required' };
 	}
 
-	// Within the rule the handle is its own key.
+	// Within the rule the handle is its own key, in profiles and reservations.
 	const rows = await q<{ exists: boolean }>(
 		`select exists (
 		   select 1 from profiles
@@ -303,6 +353,10 @@ export const checkNicknameAvailability = async ({
 	);
 
 	if (rows[0]?.exists === true) {
+		return { available: false, reason: 'taken' };
+	}
+
+	if (await waitlistHoldsHandle({ handle: nickname, excludeReservationKey, q })) {
 		return { available: false, reason: 'taken' };
 	}
 

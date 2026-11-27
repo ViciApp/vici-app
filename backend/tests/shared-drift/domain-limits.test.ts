@@ -68,6 +68,7 @@ import {
 	TOURNAMENT_ROUND_DURATION_MS,
 	TOURNAMENT_ROUNDS
 } from '../../src/tournaments/tournaments';
+import { WAITLIST_CODE_TURNSTILE_ACTION, WAITLIST_SOURCES } from '../../src/waitlist/reservations';
 import { MIN_CALLS_FOR_RANK } from '../../src/worlds/affiliation-stats';
 import { AFFILIATION_LOCK_MS } from '../../src/worlds/affiliations';
 import {
@@ -160,6 +161,30 @@ describe('shared drift: auth', () => {
 				constName: 'TURNSTILE_ACTION_EMAIL_CODE'
 			})
 		);
+	});
+});
+
+describe('shared drift: waitlist', () => {
+	test('the Turnstile action of the waitlist code request', () => {
+		expect(WAITLIST_CODE_TURNSTILE_ACTION).toBe(
+			extractStringConst({
+				source: appSource.turnstile,
+				constName: 'TURNSTILE_ACTION_WAITLIST_CODE'
+			})
+		);
+	});
+
+	test('the entry points, in the app and in the migration check', async () => {
+		const app = await importRepoModule<{ WAITLIST_SOURCES: readonly string[] }>(
+			'src/lib/constants/waitlist.constants.ts'
+		);
+		const migration = readRepoSource('backend/src/db/migrations/0030_waitlist_reservations.sql');
+		const check = /source text not null check \(source in \(([^)]*)\)\)/.exec(migration)?.[1] ?? '';
+
+		const sources: string[] = [...WAITLIST_SOURCES];
+
+		expect(sources).toEqual([...app.WAITLIST_SOURCES]);
+		expect(quotedStrings(check)).toEqual(sources);
 	});
 });
 

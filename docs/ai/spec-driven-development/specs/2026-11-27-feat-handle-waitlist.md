@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: Draft
+Status: In progress (#1779)
 
 The waitlist is specified in six parts, each with its own status and its own implementation PR, because one PR per purpose would not hold all of it:
 
@@ -48,25 +48,25 @@ A signed-out visitor on the landing picks a handle, gives an email, types the 6-
 
 **`waitlist_reservations`**, one row per mailbox:
 
-| Column                                                               | Holds                                                                                                                              |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `id uuid`                                                            | primary key                                                                                                                        |
-| `email text not null`                                                | the address as typed, trimmed and lowercased (`normalizeEmail`): where mail is sent                                                |
-| `email_key text not null`                                            | the mailbox key of section 3; **unique**                                                                                           |
-| `handle text`                                                        | the confirmed handle; `check` against the rule's pattern and bounds; null until the first confirmation                             |
-| `pending_handle text`                                                | the handle a code was last requested for, not yet confirmed                                                                        |
-| `code_hash text`, `code_expires_at timestamptz`, `code_attempts int` | the live code (one per row), hashed; its expiry; attempts spent                                                                    |
-| `status_token_hash text`                                             | section 7                                                                                                                          |
-| `locale text not null`                                               | the landing's language when the code was requested, one of `REGISTERED_LOCALE_IDS`: the language of every email to this person     |
-| `consent_at timestamptz not null`, `privacy_version text not null`   | when the email step was submitted next to the privacy sentence (server clock) and which policy version the app displayed           |
-| `source text not null`                                               | which entry point of the landing opened the capsule; a closed vocabulary enforced by a `check`                                     |
-| `invited_referral_code text`, `invited_challenge_id text`            | the last invite or challenge link the visitor arrived through, at most one set                                                     |
-| `created_at`, `confirmed_at`, `expires_at`                           | row creation; first confirmation; the end of the twelve-month hold (W6 sends the re-confirm email and removes rows past this date) |
-| `hold_ended_at`, `account_user_id uuid`                              | written by W3 when the account takes the handle or lets it go                                                                      |
+| Column                                                               | Holds                                                                                                                               |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `id uuid`                                                            | primary key                                                                                                                         |
+| `email text not null`                                                | the address as typed, trimmed and lowercased (`normalizeEmail`): where mail is sent                                                 |
+| `email_key text not null`                                            | the mailbox key of section 3; **unique**                                                                                            |
+| `handle text`                                                        | the confirmed handle; `check` against the rule's pattern and bounds; null until the first confirmation                              |
+| `pending_handle text`                                                | the handle a code was last requested for, not yet confirmed                                                                         |
+| `code_hash text`, `code_expires_at timestamptz`, `code_attempts int` | the live code (one per row), hashed; its expiry; attempts spent                                                                     |
+| `status_token_hash text`                                             | section 7                                                                                                                           |
+| `locale text not null`                                               | the landing's language when the code was requested, one of `REGISTERED_LOCALE_IDS`: the language of every email to this person      |
+| `consent_at timestamptz not null`, `privacy_version text not null`   | when the email step was submitted next to the privacy sentence (server clock) and which policy version the app displayed            |
+| `source text not null`                                               | which entry point of the landing opened the capsule (`nav`, `markets`, `footer`, `call`); a closed vocabulary enforced by a `check` |
+| `invited_referral_code text`, `invited_challenge_id text`            | the last invite or challenge link the visitor arrived through, at most one set                                                      |
+| `created_at`, `confirmed_at`, `expires_at`                           | row creation; first confirmation; the end of the twelve-month hold (W6 sends the re-confirm email and removes rows past this date)  |
+| `hold_ended_at`, `account_user_id uuid`                              | written by W3 when the account takes the handle or lets it go                                                                       |
 
 W2, W5 and W6 add their own columns in their own migrations.
 
-**`waitlist_send_caps`** (`email_key` primary key, `sends int`, `window_started_at`): the per-mailbox cap on mail an anonymous request can cause, kept apart from reservations because sections 4.3 and 4.4 send mail to mailboxes that get no reservation. Rows older than a day are pruned.
+**The per-mailbox send cap** on mail an anonymous request can cause is a window of the shared limiter's `rate_limit_windows` (`enforceSharedLimit`, keyed by the mailbox key), which prunes itself, so no table of its own.
 
 **Not stored:** IP address, user agent, name, the plaintext code, the plaintext status token.
 
@@ -87,15 +87,11 @@ A new area: `backend/src/routes/waitlist.ts` (`waitlistRoutes`, prefix `/api/v1/
 
 Body: `{ handle, email, turnstileToken, privacyVersion, source, locale, referralCode?, challengeId? }`, every string length-capped by a named constant.
 
-In order: IP limit; body validation; Turnstile; email shape; disposable domain (section 3); handle format through the shared validator. Then, in one transaction under the email and handle locks: the per-mailbox send cap; handle availability; and one of three outcomes, **all answered with the same body**:
-
-1. the mailbox already signs in to a vici.app account: no row, the email of section 4.3;
-2. the mailbox belongs to a legacy account: no row, the email of section 4.4;
-3. otherwise: upsert the row (`pending_handle`, a fresh code replacing any earlier one, attempts reset, `consent_at`, `privacy_version`, `source`, `locale`, attribution) and send the code email.
+In order: IP limit; body validation; Turnstile; email shape; disposable domain (section 3, failing closed in production while the list is empty); handle format. Then, in one transaction under the mailbox lock and the handle lock: handle availability through the shared validator (profiles and other waitlist entries); the per-mailbox send cap and the global breaker, charged only now that a code will go out; upsert the row (`pending_handle`, a fresh code replacing any earlier one, attempts reset, `consent_at`, `privacy_version`, `source`, `locale`, attribution) and send the code email.
 
 | Answer                                                                | When                                                                   |
 | --------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `200 { ok: true, codeTtlMs }`                                         | any of the three outcomes above                                        |
+| `200 { ok: true, codeTtlMs }`                                         | the code was stored and sent                                           |
 | `400 { error: 'email_invalid' }`                                      | empty, no `@`, longer than `MAX_WAITLIST_EMAIL_LENGTH`                 |
 | `400 { error: 'email_not_accepted' }`                                 | a disposable-mail domain                                               |
 | `400 { error: 'handle_invalid' }`                                     | fails the rule or is a reserved name                                   |
@@ -104,7 +100,7 @@ In order: IP limit; body validation; Turnstile; email shape; disposable domain (
 | `503 { error: 'turnstile_unavailable' }` / `'turnstile_unconfigured'` | as the handle probe answers them                                       |
 | `429 { error: 'rate_limited' }` with `Retry-After`                    | IP limit, the per-mailbox send cap or the global breaker               |
 
-No answer depends on what the server knows about the mailbox. `handle_taken` is computed the same way in all three outcomes, and outcomes 1 and 2 place no hold. Delivery failures are logged and do not change the answer, as in `requestOtp`.
+No answer depends on what the server knows about the mailbox beyond the waitlist itself. Delivery failures are logged and do not change the answer, as in `requestOtp`.
 
 **`POST /api/v1/waitlist/confirm`** (the adapter's `confirm`)
 
@@ -136,30 +132,28 @@ Body: `{ email, code }`. IP limit; then one transaction under the email lock: fi
 ### 3. One mailbox, real mailboxes
 
 - **`emailMailboxKey(email)`** in `backend/src/waitlist/mailbox.ts`: lowercase and trim; drop a `+tag` from the local part; for `gmail.com` and `googlemail.com` drop the dots of the local part and write the domain as `gmail.com`. `Jo.Smith+vici@googlemail.com` and `josmith@gmail.com` are one mailbox. The typed address is kept for sending; the key is what uniqueness, the send cap, the gate (W2), the claim (W3) and the invite count (W5) compare.
-- **Existing accounts and legacy accounts** are matched by mailbox key, not by address: a migration adds `email_mailbox_key text` to `auth_identities` and `legacy_auth_identities`, backfilled with `emailMailboxKey(email)` and written on every insert or email change, with an index on each. The waitlist looks up both tables by the visitor's key, so an account stored as `name+vici@gmail.com` is found when the visitor types `name@gmail.com`. A parity test pins the SQL backfill against the TypeScript function.
+- Accounts and legacy identities are not looked up (see Decisions): a mailbox is only a waitlist entry.
 - **Disposable domains are refused.** The list is `backend/src/waitlist/disposable-domains.txt`, one domain per line, generated from the community list published as `disposable-email-domains` and loaded once into a set at boot. `backend/scripts/update-disposable-domains.ts` regenerates it; a scheduled workflow (`.github/workflows/update-disposable-domains.yml`, monthly) runs the script and opens a PR when the file changed, so every update is reviewed like code. Between releases an admin can add or exempt a domain at once through the app setting `waitlist_email_domains` (`{ block: string[], allow: string[] }`, read with `readAppSetting`); `allow` wins over the file. A subdomain of a listed domain is refused too.
 
 ### 4. Emails
 
 Every email of the waitlist is written in the person's language, through one module: `backend/src/waitlist/emails.ts` (one builder per email) over `backend/src/waitlist/email-copy/<locale>.ts`, one file per live locale typed against the English one, so a missing line is a type error and a test pins that every live locale has every key. A registered locale without a file falls back along the app's chain to English. All go through `sendEmail`.
 
-| Email                     | Sent when                                                 | Part |
-| ------------------------- | --------------------------------------------------------- | ---- |
-| 4.1 Code                  | a code is stored                                          | W1   |
-| 4.2 Receipt               | a confirmation succeeds                                   | W1   |
-| 4.3 Already a member      | a code is requested for a mailbox with a vici.app account | W1   |
-| 4.4 Legacy account        | a code is requested for a legacy mailbox                  | W1   |
-| 4.5 Removal confirmation  | a reservation is deleted through the remove link          | W1   |
-| Admission, claim reminder |                                                           | W2   |
-| Inviter digest            |                                                           | W5   |
-| Re-confirm                |                                                           | W6   |
+| Email                     | Sent when                                        | Part |
+| ------------------------- | ------------------------------------------------ | ---- |
+| 4.1 Code                  | a code is stored                                 | W1   |
+| 4.2 Receipt               | a confirmation succeeds                          | W1   |
+| ~~4.3 Already a member~~  | dropped (Decisions)                              |      |
+| ~~4.4 Legacy account~~    | dropped (Decisions)                              |      |
+| 4.5 Removal confirmation  | a reservation is deleted through the remove link | W1   |
+| Admission, claim reminder |                                                  | W2   |
+| Inviter digest            |                                                  | W5   |
+| Re-confirm                |                                                  | W6   |
 
 - **4.1** The 6-digit code, its lifetime (from the constant), what it does, and that the mail can be ignored. Subject distinct from the sign-in code's.
 - **4.2** "@handle is yours, you're on the waitlist", what happens next, how long the hold lasts.
-- **4.3** "You already have a VICI account with this address. Sign in here.", with the sign-in link. No code. In the language of the request.
-- **4.4** "Your VICI account moves to vici.app automatically, with your handle. Keep playing on vici.market meanwhile." No code.
 - **4.5** One line confirming the handle was released and the data deleted. Sent to the address just deleted, then nothing is kept.
-- 4.1, 4.2 and every later email to a reservation end with the remove link of section 5. 4.3 and 4.4 have none: nothing is stored for those mailboxes beyond a day of send-cap counting.
+- 4.1, 4.2 and every later email to a reservation end with the remove link of section 5.
 
 **Delivery of the emails a worker job sends** (admission and claim reminder of W2, the inviter digest of W5, the re-confirm notices of W6). A stamp written before the send loses the email for good when the process dies between the commit and the provider call; a stamp written after it sends twice when the process dies between the call and the commit. So these emails go through one helper, `deliverOnce(key, build)` in `backend/src/waitlist/delivery.ts`, over a table `waitlist_email_deliveries` (`delivery_key text primary key`, `created_at timestamptz not null default now()`, `claimed_at timestamptz not null`, `sent_at timestamptz`):
 
@@ -179,17 +173,17 @@ The key names the email and its cycle, so a retry reuses it and a new cycle gets
 
 - 6 digits from `generateOtp`, stored as `peppered('waitlist\n' + email_key + '\n' + code)`, so a waitlist hash can never equal a sign-in hash; compared with `constantTimeEqual`.
 - `WAITLIST_CODE_TTL_MS`: ten minutes, which is also the pending hold. `WAITLIST_CODE_MAX_ATTEMPTS`: five, spent before the compare. One live code per mailbox: a fresh request replaces it.
-- `WAITLIST_SENDS_PER_DAY`: five mails per mailbox per rolling 24 hours across 4.1, 4.3 and 4.4, counted in `waitlist_send_caps`.
+- `WAITLIST_SENDS_PER_DAY`: five code mails per mailbox per 24-hour window, counted in `rate_limit_windows`.
 - Every code request carries a fresh Turnstile token for its own action (`waitlist_code`, a constant mirrored in `src/lib/constants/turnstile.constants.ts` and pinned by the drift suite). Production without `TURNSTILE_SECRET_KEY` refuses, never opens.
 - Named constants at the top of `backend/src/routes/waitlist.ts`, windows from `backend/src/lib/time.ts`:
 
-| Constant                                 | Value           | Keyed by                                 |
-| ---------------------------------------- | --------------- | ---------------------------------------- |
-| `WAITLIST_CODE_LIMIT_PER_TEN_MINUTES`    | 5               | IP                                       |
-| `WAITLIST_CONFIRM_LIMIT_PER_TEN_MINUTES` | 15              | IP                                       |
-| `WAITLIST_STATUS_LIMIT_PER_TEN_MINUTES`  | 30              | IP                                       |
-| `WAITLIST_REMOVE_LIMIT_PER_TEN_MINUTES`  | 10              | IP                                       |
-| `WAITLIST_CODE_GLOBAL_LIMIT_PER_HOUR`    | open question 3 | all callers: a breaker on the email bill |
+| Constant                                 | Value                              | Keyed by                                                         |
+| ---------------------------------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| `WAITLIST_CODE_LIMIT_PER_TEN_MINUTES`    | 5                                  | IP                                                               |
+| `WAITLIST_CONFIRM_LIMIT_PER_TEN_MINUTES` | 15                                 | IP                                                               |
+| `WAITLIST_STATUS_LIMIT_PER_TEN_MINUTES`  | 30                                 | IP                                                               |
+| `WAITLIST_REMOVE_LIMIT_PER_TEN_MINUTES`  | 10                                 | IP                                                               |
+| `WAITLIST_CODE_GLOBAL_LIMIT_PER_HOUR`    | 600 (open question 3 may lower it) | all callers: a breaker on the email bill, shared across machines |
 
 ### 7. Returning visitors
 
@@ -197,7 +191,7 @@ The key names the email and its cycle, so a retry reuses it and a new cycle gets
 
 ### 8. Retention and privacy
 
-- **Never confirmed:** deleted 24 hours after the last code request by a worker job (`waitlist-prune`, hourly, a plain dated `delete`), which also prunes `waitlist_send_caps`.
+- **Never confirmed:** deleted 24 hours after the last code request by a worker job (`waitlist-prune`, hourly, a plain dated `delete`), which also prunes sent `waitlist_email_deliveries` rows.
 - **Confirmed:** held twelve months from the first confirmation (`WAITLIST_HOLD_MONTHS`); W6 asks the person to re-confirm before the end and removes those who do not answer.
 - **Account deleted:** `purgeExpiredAccount` deletes the reservation whose `account_user_id` is the purged account.
 - **The consent sentence** sits beside the email field with a link to the Privacy Policy; there is no checkbox. `consent_at` is the server time of the code request and `privacy_version` is `PRIVACY_POLICY_VERSION`, a constant added next to the policy in `legal-docs.constants.ts` and bumped with its "Last updated" line.
@@ -230,13 +224,13 @@ Open issues were searched on 27 Nov 2026 (six open: #1176, #1142, #1091, #1034, 
 
 Instrument, server-side, with three additions to the taxonomy, each in `src/lib/types/analytics-event.ts`, `src/lib/schema/analytics-event.schema.ts`, and `ANALYTICS_EVENT_NAMES` plus `SERVER_ANALYTICS_EVENT_NAMES` in `backend/src/analytics/taxonomy.ts`:
 
-| Event                     | When                                           | Props                                                                                                                                                                                               |
-| ------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `waitlist_code_requested` | a code request passed validation and Turnstile | `source` (entry point), `locale`                                                                                                                                                                    |
-| `waitlist_joined`         | a confirmation succeeded                       | `source` (entry point), `label` (`new` or `handle_changed`), `ok` (arrived through an invite or challenge link), `locale`                                                                           |
-| `waitlist_join_refused`   | a request or confirmation was refused          | `label`, one of `handle_taken`, `handle_invalid`, `email_invalid`, `email_not_accepted`, `bot_check_failed`, `rate_limited`, `invalid_code`, `expired_code`, `already_registered`, `legacy_account` |
+| Event                     | When                                           | Props                                                                                                                                                       |
+| ------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `waitlist_code_requested` | a code request passed validation and Turnstile | `source` (entry point), `locale`                                                                                                                            |
+| `waitlist_joined`         | a confirmation succeeded                       | `source` (entry point), `label` (`new` or `handle_changed`), `ok` (arrived through an invite or challenge link), `locale`                                   |
+| `waitlist_join_refused`   | a request or confirmation was refused          | `label`, one of `handle_taken`, `handle_invalid`, `email_invalid`, `email_not_accepted`, `bot_check_failed`, `rate_limited`, `invalid_code`, `expired_code` |
 
-Captured with `captureServerEvents` and no `userId`. `already_registered` and `legacy_account` are recorded here although the visitor is not told. `signed_up` is not emitted: nobody signed up. No email, handle, IP or code is sent.
+Captured with `captureServerEvents` and no `userId`. `already_registered` and `legacy_account` are dropped with the account lookup (Decisions). `signed_up` is not emitted: nobody signed up. No email, handle, IP or code is sent.
 
 Client-side steps of the capsule belong to the landing analytics PR and reuse existing names (`onboarding_started`, `handle_checked`, `onboarding_step` with `source: 'landing_claim'`).
 
@@ -292,7 +286,7 @@ Client-side steps of the capsule belong to the landing analytics PR and reuse ex
 - [ ] A held handle reads as taken in the anonymous probe, the signed-in probe, onboarding and the handle editor, and the profile write refuses it; that includes the ten minutes a code is live.
 - [ ] A mailbox holds one handle; confirming another replaces and releases the first.
 - [ ] `name+tag@`, dotted Gmail variants and `googlemail.com` count as one mailbox; a disposable domain is refused with its own code.
-- [ ] For a mailbox with a vici.app account or a legacy account the page behaves exactly as for anyone else, no reservation is created, and the mailbox receives the matching private email.
+- [ ] A mailbox is only a waitlist entry: an account or legacy identity with the address neither blocks a reservation nor changes the answer.
 - [ ] A waitlist code cannot sign anyone in, and a sign-in code cannot confirm a reservation.
 - [ ] Every waitlist email is in the language the visitor used, in every live locale, and those sent to a reservation carry a link that removes it without login.
 - [ ] Opening the removal link deletes nothing; pressing its button deletes the reservation and releases the handle.
@@ -318,11 +312,13 @@ Client-side steps of the capsule belong to the landing analytics PR and reuse ex
 
 Owner decisions (27 Nov 2026):
 
+- **Superseding decision, later on 27 Nov 2026: vici.app is a new product.** No legacy users are migrated and sign-in is not publicly reachable. Every path about existing vici.app or legacy accounts is dropped (emails 4.3 and 4.4, the account and legacy lookups, the mailbox-key columns on the identity tables), a mailbox is only a waitlist entry. Profiles still count (the imported accounts are deleted; the remaining team and service profiles keep their handles): a handle is free only when it passes the rule, is not reserved, no profile holds it and no other entry holds it, through the one `checkNicknameAvailability` that the probes, the waitlist and the profile write share. The two decisions below about such mailboxes are struck.
+
 - **Steps and done line.** Handle, email, 6-digit code, done; "Handle claimed. You're on the waitlist.". No account is created and nobody plays before admission.
 - **The handle is held for the ten minutes the code lives.**
 - **One handle per email.** A newly confirmed handle replaces the earlier one, which is released.
-- **A mailbox that already has a vici.app account** sees the same page as everyone else and gets a private email: "You already have a VICI account with this address. Sign in here." No reservation.
-- **A mailbox with a legacy vici.market account** sees the same page and gets a private email: "Your VICI account moves to vici.app automatically, with your handle. Keep playing on vici.market meanwhile." No reservation.
+- ~~**A mailbox that already has a vici.app account** sees the same page as everyone else and gets a private email: "You already have a VICI account with this address. Sign in here." No reservation.~~
+- ~~**A mailbox with a legacy vici.market account** sees the same page and gets a private email: "Your VICI account moves to vici.app automatically, with your handle. Keep playing on vici.market meanwhile." No reservation.~~
 - **Blocked names** are a server-side list plus admin removal on report; the owner provides brand, product and staff names before go-live.
 - **A reservation lasts 12 months**, then a re-confirm email; no answer releases it (W6).
 - **Consent** is a sentence with the Privacy Policy link, no checkbox; the time and the policy version are stored.

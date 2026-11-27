@@ -61,6 +61,10 @@ export const AnalyticsEventNameSchema = j.enum([
 	'challenge_created',
 	'challenge_answered',
 	'challenge_opened',
+	// Handle waitlist
+	'waitlist_code_requested',
+	'waitlist_joined',
+	'waitlist_join_refused',
 	// VXP & economy
 	'vxp_awarded',
 	'streak_milestone',

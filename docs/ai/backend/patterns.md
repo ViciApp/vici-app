@@ -36,6 +36,12 @@ The patterns the API really uses, each with one example to copy. All paths are u
 - A `jsonb` bag a client writes is shaped on write by the same function that shapes it on read (`sanitizePreferences` in `src/profiles/profile.ts`, called from `parseProfileInput`), so SQL never meets a leaf of the wrong type. SQL that filters on a leaf compares `jsonb` values instead of casting the text, so a row stored before that shaping cannot fail the query: `WORLDS_OPTED_IN` in `src/worlds/affiliation-stats.ts`.
 - Schema changes are forward-only migrations: [`workflows/new-migration.md`](./workflows/new-migration.md).
 
+## Email
+
+- An email goes through `sendEmail` (`src/lib/email.ts`), tested through `setEmailTransport`. A delivery failure on an anonymous request is logged and never changes the answer, so the route says the same whether or not the provider took it: `requestOtp` in `src/auth/otp.ts`.
+- An email a signed-out visitor receives is written in their language: one builder per email over a copy file per live locale, each typed against the English one so a missing line is a type error, and a test pins that every live locale has every key. Figures in the copy (a code's lifetime, a hold) are parameters from the constants the server enforces: `src/waitlist/emails.ts` over `src/waitlist/email-copy/`.
+- An email a worker job sends goes through `deliverOnce` (`src/waitlist/delivery.ts`), so neither a crash before the send nor one after it loses or doubles it.
+
 ## Environment and logging
 
 - Read config only from `env` (`src/env.ts`); add a var in `loadEnv` (same file) with `optional` / `requiredInProd` / `positiveInt`, and a row in the `backend/README.md` table. An optional integration exposes an `enabled` flag and degrades when off.

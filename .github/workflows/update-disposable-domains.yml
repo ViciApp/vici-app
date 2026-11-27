@@ -1,0 +1,55 @@
+name: Update disposable domains
+
+# Regenerates backend/src/waitlist/disposable-domains.txt, the disposable-mail
+# domains the handle waitlist refuses, and opens a pull request when the list
+# changed, so every update is reviewed like code. Between runs an admin
+# blocks or exempts a domain through the waitlist_email_domains setting.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 1 * *'
+
+concurrency:
+  group: update-disposable-domains
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update-disposable-domains:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: backend/.bun-version
+
+      - name: Regenerate the list
+        working-directory: backend
+        run: bun run scripts/update-disposable-domains.ts
+
+      - name: Mint app token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ vars.PR_AUTOMATION_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+
+      - name: Create Pull Request
+        uses: ./.github/actions/create-pr
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: bot-update-disposable-domains
+          paths: backend/src/waitlist/disposable-domains.txt
+          title: 'chore(waitlist): update the disposable-mail domains'
+          body: |
+            Automated refresh of `backend/src/waitlist/disposable-domains.txt` from the community list published as [`disposable-email-domains`](https://github.com/disposable-email-domains/disposable-email-domains).
+
+            Skim the added domains before merging: a listed domain refuses every waitlist sign-up from it. A real provider listed by mistake can be exempted at once through the `waitlist_email_domains` setting (`allow`).
