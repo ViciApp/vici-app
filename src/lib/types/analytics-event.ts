@@ -138,6 +138,24 @@ export type AnalyticsEventName =
 	| 'challenge_answered'
 	/** A challenge link was opened on the receiving page. */
 	| 'challenge_opened'
+	// ── Handle waitlist ───────────────────────────────────────────────
+	/**
+	 * A landing visitor's waitlist code request passed validation and the bot
+	 * check (`source`: the capsule's entry point; `locale`). Server-recorded.
+	 */
+	| 'waitlist_code_requested'
+	/**
+	 * A waitlist code was confirmed and the handle is held (`label`:
+	 * `new | handle_changed`; `ok`: arrived through an invite or challenge
+	 * link; `source`; `locale`). Server-recorded.
+	 */
+	| 'waitlist_joined'
+	/**
+	 * A waitlist request or confirmation was refused (`label`: the reason,
+	 * including `already_registered` and `legacy_account`, which the visitor
+	 * is not told). Server-recorded.
+	 */
+	| 'waitlist_join_refused'
 	// ── VXP & economy ─────────────────────────────────────────────────
 	/** A server VXP award was credited. */
 	| 'vxp_awarded'
@@ -272,6 +290,9 @@ export const SERVER_ANALYTICS_EVENT_NAMES = [
 	'streak_milestone',
 	'challenge_created',
 	'challenge_answered',
+	'waitlist_code_requested',
+	'waitlist_joined',
+	'waitlist_join_refused',
 	'affiliation_set',
 	'affiliation_removed',
 	'school_verify_email_submitted',

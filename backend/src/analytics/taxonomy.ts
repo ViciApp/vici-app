@@ -52,6 +52,10 @@ export const ANALYTICS_EVENT_NAMES = [
 	'challenge_created',
 	'challenge_answered',
 	'challenge_opened',
+	// Handle waitlist
+	'waitlist_code_requested',
+	'waitlist_joined',
+	'waitlist_join_refused',
 	// VXP & economy
 	'vxp_awarded',
 	'streak_milestone',
@@ -119,6 +123,9 @@ export const SERVER_ANALYTICS_EVENT_NAMES = [
 	'streak_milestone',
 	'challenge_created',
 	'challenge_answered',
+	'waitlist_code_requested',
+	'waitlist_joined',
+	'waitlist_join_refused',
 	'affiliation_set',
 	'affiliation_removed',
 	'school_verify_email_submitted',

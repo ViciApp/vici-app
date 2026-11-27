@@ -17,6 +17,11 @@ export const TURNSTILE_ACTION_HANDLE_CHECK = 'handle_check';
  * `OTP_REQUEST_TURNSTILE_ACTION` in backend/src/auth/otp.ts). */
 export const TURNSTILE_ACTION_EMAIL_CODE = 'email_code';
 
+/** The action the landing's waitlist code request is rendered with: each
+ * request sends an email, so it costs a fresh solve of its own (mirrored by
+ * `WAITLIST_CODE_TURNSTILE_ACTION` in backend/src/waitlist/reservations.ts). */
+export const TURNSTILE_ACTION_WAITLIST_CODE = 'waitlist_code';
+
 /** How long a token request may take. Most solves are invisible and take a
  * second or two; this leaves a visitor who is shown a challenge time to answer
  * it before the request gives up. */
