@@ -3,7 +3,7 @@ import { writable } from 'svelte/store';
 
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
-export interface Notification {
+interface Notification {
 	id: string;
 	title: string;
 	message: string;

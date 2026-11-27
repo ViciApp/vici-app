@@ -61,7 +61,8 @@
 	);
 	// The accent word that fills the title's `{brand}` slot, per mode: signup /
 	// onboarded keep the "VICI." brand accent, signin reads "back." so the hero
-	// mirrors V3's serif-italic-accent headline (`Claim your *handle.*`).
+	// shares the serif-italic accent of the onboarding headline
+	// (`Claim your *handle.*`).
 	const titleAccentKey = $derived<MessageKey>(
 		onboardingComplete
 			? 'signin.title.accent.onboarded'

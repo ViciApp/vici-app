@@ -66,3 +66,14 @@ export const snapToCallSizeLadder = ({ value }: { value: number }): VxpCallSize 
 
 	return best;
 };
+
+/**
+ * The call sizes a slider steps through, smallest first. Read from
+ * `VXP_CALL_SIZE_LADDER`, so retuning the ladder (more rungs, or an evenly
+ * spaced range) retunes every slider built on it with no UI change.
+ */
+export const callSizeStops = (): readonly number[] => VXP_CALL_SIZE_LADDER;
+
+/** Slider position (index into {@link callSizeStops}) of the stop nearest to a call size. */
+export const callSizeStopIndex = ({ value }: { value: number }): number =>
+	callSizeStops().indexOf(snapToCallSizeLadder({ value }));

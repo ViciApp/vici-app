@@ -3,6 +3,7 @@
 source "$(dirname "$0")/lib/utils.sh" "$@"
 
 # Usage: ./scripts/send.tokens.sh [principal] [amount] [--local|--staging|--production]  (from repo root)
+# Off the local replica it also needs CONFIRM_REAL_TRANSFER=<network> (staging or ic).
 
 if [[ -z "${1:-}" || "$1" == --* ]]; then
   if [[ -n "${2:-}" && "$2" != --* ]]; then
@@ -27,10 +28,43 @@ if [[ ${#args[@]} -ge 1 ]]; then
     PRINCIPAL=${args[0]}
 fi
 
-if [[ ${#args[@]} -ge 2 ]]; then
-    CKUSDC_AMOUNT=$(echo "${args[1]} * 1000000" | bc)
+# The principal goes into a Candid literal, so anything outside the textual
+# principal shape would change the call rather than fail it. The 4-byte checksum
+# alone encodes to 7 characters, so a full group of five always comes first;
+# the last group can be 1 to 5 long. dfx rejects a wrong checksum or length.
+if [[ ! "$PRINCIPAL" =~ ^([a-z2-7]{5}-)+[a-z2-7]{1,5}$ ]]; then
+    echo "Error: '$PRINCIPAL' is not a textual principal." >&2
+    exit 1
 fi
 
-echo "Sending $CKUSDC_AMOUNT to $PRINCIPAL on $NETWORK..."
+if [[ ${#args[@]} -ge 2 ]]; then
+    if [[ ! "${args[1]}" =~ ^[0-9]+(\.[0-9]{1,6})?$ ]]; then
+        echo "Error: amount '${args[1]}' must be ckUSDC with at most 6 decimals." >&2
+        exit 1
+    fi
+
+    # `/ 1` at scale 0 drops the fraction bc keeps from the operand
+    # (30.5 * 1000000 is 30500000.0), which a Candid nat rejects.
+    CKUSDC_AMOUNT=$(echo "${args[1]} * 1000000 / 1" | bc)
+fi
+
+# Plain assignments, so a failed lookup stops the script under `set -e`
+# instead of printing an empty summary and transferring anyway.
+LEDGER_ID=$(dfx canister id ckusdc_ledger --network "$NETWORK")
+SENDER=$(dfx identity whoami)
+
+echo "Transfer on $NETWORK:"
+echo "  ledger: ckusdc_ledger ($LEDGER_ID)"
+echo "  from:   dfx identity $SENDER"
+echo "  to:     $PRINCIPAL"
+echo "  amount: $CKUSDC_AMOUNT base units (1 ckUSDC = 1000000)"
+
+# On staging and ic, dfx.json points ckusdc_ledger at the mainnet ckUSDC ledger,
+# so the transfer spends real funds. Naming the network in the confirmation
+# keeps a recalled command line from sending them by accident.
+if [[ "$NETWORK" != "local" && "${CONFIRM_REAL_TRANSFER:-}" != "$NETWORK" ]]; then
+  echo "Error: on '$NETWORK' this sends real ckUSDC. Re-run with CONFIRM_REAL_TRANSFER=$NETWORK to send it." >&2
+  exit 1
+fi
 
 dfx canister call ckusdc_ledger --network "$NETWORK" icrc1_transfer "(record {from=null; to=record { owner= principal \"$PRINCIPAL\";}; amount=$CKUSDC_AMOUNT; fee=null; memo=null; created_at_time=null;})"

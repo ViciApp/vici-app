@@ -258,7 +258,7 @@ export const LEAGUE_DESCRIPTION_MAX_LENGTH = 240;
  * as {@link LeaguePrivacy.OPEN}, matching what the old
  * `private === false/undefined` meant (publicly listed).
  */
-export const LEAGUE_PRIVACY_LEGACY_FALLBACK = LeaguePrivacy.OPEN;
+const LEAGUE_PRIVACY_LEGACY_FALLBACK = LeaguePrivacy.OPEN;
 
 /**
  * A league shape readable for its effective privacy: the current
