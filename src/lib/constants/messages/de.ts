@@ -1380,6 +1380,26 @@ export const deMessages = {
 	'leagues.transfer.submit': 'Übergeben',
 	'leagues.transfer.submitting': 'Übertrage…',
 	'leagues.transfer.title': 'Inhaberschaft übertragen',
+	'challenge.side.yes': 'Ja',
+	'challenge.side.no': 'Nein',
+	'challenge.line.named': '@{handle} sagt {side} bei {pct} %. Siehst du das anders?',
+	'challenge.line.anonymous': 'Ein Freund sagt {side} bei {pct} %. Siehst du das anders?',
+	'challenge.line.named_changed': '@{handle} sagt jetzt {side} bei {pct} %. Siehst du das anders?',
+	'challenge.line.anonymous_changed':
+		'Ein Freund sagt jetzt {side} bei {pct} %. Siehst du das anders?',
+	'challenge.line.named_no_position': '@{handle} fordert dich hier heraus. Was sagst du?',
+	'challenge.line.anonymous_no_position': 'Ein Freund fordert dich hier heraus. Was sagst du?',
+	'challenge.line.named_closed':
+		'@{handle} sagte hier {side} bei {pct} %. Die Frage ist geschlossen.',
+	'challenge.line.anonymous_closed':
+		'Ein Freund sagte hier {side} bei {pct} %. Die Frage ist geschlossen.',
+	'challenge.line.named_closed_no_position':
+		'@{handle} hat dich hier herausgefordert. Die Frage ist geschlossen.',
+	'challenge.line.anonymous_closed_no_position':
+		'Ein Freund hat dich hier herausgefordert. Die Frage ist geschlossen.',
+	'landing.deck.challenge.eyebrow': 'Eine Herausforderung für dich',
+	'market.detail.challenge.predict_in_flow': 'In Flow vorhersagen',
+	'market.detail.challenge.region_aria': 'Herausforderung',
 	'landing.deck.back.crowd_says': 'Die Crowd sagt',
 	'landing.deck.back.flip_back': 'Tippen zum Umdrehen',
 	'landing.deck.back.returns':

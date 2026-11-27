@@ -82,7 +82,7 @@ The handle is shown exactly when the server sends one (the challenger consented 
 
 ## Linked issues
 
-GitHub issue search was not possible from the authoring session (no access to the repository's issues). No issue is linked. The implementer searches open issues for "challenge", "landing" and "share link" before flipping the status and records the result here.
+Searched on 2026-11-27 for open issues matching "challenge", "landing" and "share link": none covers this work (the hits, #1142 on market clause authoring and #543 on gating referral payouts on an authoritative trade, are unrelated). No issue is linked.
 
 ## Analytics
 

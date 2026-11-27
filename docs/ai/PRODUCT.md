@@ -304,6 +304,7 @@ service.
   at a time (the invite landing, the redeem, the friendship claim) and
   reads the user's own code, but no one can list the codes or who owns
   them.
+- **Last touch wins between invites.** A signed-out visitor credits one inviter on sign-up: an invite link (`/i`, `/join`) or a challenge link (`/c`) opened later replaces the one opened earlier, both ways. A `?ref=` share link or a league invite's code never replaces another code (first code wins) but does replace a challenge link. The server still credits a person to one inviter ever.
 - **A league invite implies a friend invite.** Sharing a league invite
   link also carries the sharer's referral code (`?ref=`), so joining the
   league auto-friends the person whose link was used: a brand-new
@@ -326,7 +327,7 @@ Decision record:
 
 ### Challenge links: a verified link for one of your calls
 
-On the web2 API (vici.app) a signed-in user can issue a challenge link for any market on which they hold a binary position: a short random id behind `/api/v1/challenges`. No screen issues or opens one yet; the share sheet, the link preview and the receiving page build on this API. What a link says comes from the engine, never from a request:
+On the web2 API (vici.app) a signed-in user can issue a challenge link for any market on which they hold a binary position: a short random id behind `/api/v1/challenges`. No screen issues one yet; the share sheet and the link preview build on this API. The receiving page `/c/<id>` (below) opens one. What a link says comes from the engine, never from a request:
 
 - **One link per user and market**, showing the challenger's position there now: side, average entry price and when the held position was opened. Every trade refreshes it: a flipped side shows as the new side and is marked as changed, a fully closed position shows no position, and whether the market is still open for predictions (not past expiry, not settled) is read live. Asking again for the same market returns the same link.
 - **Consent per link.** The challenger chooses whether the link shows their handle and avatar with the call. With consent it shows them even when the profile is private or calls are not public; without it the link shows no identity. The owner can change that at any time, or turn the link off: it then reads as not found, and asking again issues a new link.
@@ -334,7 +335,9 @@ On the web2 API (vici.app) a signed-in user can issue a challenge link for any m
 - **Inviter credit.** A challenge link is a referral channel: a new sign-up redeeming it credits the challenger exactly as an invite link does (the same bonuses in [`referral.constants.ts`](../../src/lib/constants/referral.constants.ts), paid on the referee's first prediction, under the same curve and cap) and makes them friends. A person is credited to one inviter ever, whichever link or code came first. An account past the signup window or already referred is credited to nobody and befriended by nobody; redeeming one's own link is refused.
 - **Answers.** A friend answers a link by making their own call on its market. The server checks the call in the engine (the client sends no side and no price), records one answer per person and link, and makes the two friends. Opening or reading a link never befriends anyone. The challenger can list the answers to their links, the source of an inbox card that is not shown yet.
 - **Limits and retention.** The public read is limited per network address and every write per account; no challenge step asks for a Turnstile check (the sign-up a link leads to is where that sits). A link and its answers are deleted 90 days after its market closed or it was turned off.
-- **Analytics.** The server records `challenge_created` and `challenge_answered`.
+- **The receiving page.** `/c/<id>` reads nothing from the URL but the id: what it says is the server's current read of the link, so a query parameter changes nothing. Signed out, the landing opens with the challenged market as the first card, followed by the curated cards, with no introduction, and a line over the deck: "@maya called Yes at 38%. Think they're wrong?", "@maya now says No at 41%" once the side flipped, "@maya challenged you on this. What's your call?" once the position is closed, and the past tense ("... on this one. It has closed.") once the market closed, which is then not a card (the standard deck shows, with the line). When the deck has no card it can show, Markets opens with the linked market as its lead, as it does for a `/?m=` link. "A friend" stands in for the handle without consent. A Yes or No on that card keeps the call and opens the handle claim capsule straight away, the one funnel for signed-out visitors. Signed in, the link opens the market detail with the same line as a banner and a "Predict in Flow" action; the challenger opening their own link gets the plain detail. An unknown, turned-off or hidden link, or an unreachable API, shows the standard landing (signed in: Flow). On vici.market the path redirects to vici.app.
+- **Credit and answer from the page.** Opening a link signed out credits its challenger on sign-up (see last touch in [Friendship rules](#friendship-rules)), also when the position or the market has closed. The device keeps the opened link for a week: the visitor's next real call on that market, signed in or after signing up, is sent as the answer (the server checks it in the engine; a failed send is retried on the next call there).
+- **Analytics.** The server records `challenge_created` and `challenge_answered`; the receiving page records `challenge_opened` (which line, whether a handle showed, signed in or out; never the link id or the handle) and a sign-up credited through a link records `referral_redeemed` with source `challenge`.
 
 Decision record: [`specs/2026-11-26-feat-challenge-links-api.md`](./spec-driven-development/specs/2026-11-26-feat-challenge-links-api.md).
 
@@ -749,7 +752,9 @@ A signed-out visitor on `/` gets the landing page; a signed-in session is
 sent on to Flow, and `/about` and `/welcome` redirect to `/`. The first
 view is a deck of up to three curated markets as fullscreen film cards
 (Yes / No / Pass, tap for the rule); a `/?m=` link opens it on the market
-the link names. After three calls the last card floats into **Markets**,
+the link names, and a challenge link (`/c/<id>`) opens it on the
+challenged market with the challenger's line (see
+[Challenge links](#challenge-links-a-verified-link-for-one-of-your-calls)). After three calls the last card floats into **Markets**,
 every open market at its live price, also one tap away on the top bar's
 switch. A call on the landing places no order: it is kept on the device
 (the latest ten, a week at most) for the handle claim. "Claim your

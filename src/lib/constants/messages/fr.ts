@@ -1367,6 +1367,23 @@ export const frMessages = {
 	'leagues.transfer.submit': 'Passer la main',
 	'leagues.transfer.submitting': 'Transfert…',
 	'leagues.transfer.title': 'Transférer la propriété',
+	'challenge.side.yes': 'Oui',
+	'challenge.side.no': 'Non',
+	'challenge.line.named': '@{handle} a dit {side} à {pct} %. Tu n’es pas d’accord ?',
+	'challenge.line.anonymous': 'Un ami a dit {side} à {pct} %. Tu n’es pas d’accord ?',
+	'challenge.line.named_changed':
+		'@{handle} dit maintenant {side} à {pct} %. Tu n’es pas d’accord ?',
+	'challenge.line.anonymous_changed':
+		'Un ami dit maintenant {side} à {pct} %. Tu n’es pas d’accord ?',
+	'challenge.line.named_no_position': '@{handle} te défie sur celle-ci. Et toi, tu dis quoi ?',
+	'challenge.line.anonymous_no_position': 'Un ami te défie sur celle-ci. Et toi, tu dis quoi ?',
+	'challenge.line.named_closed': '@{handle} a dit {side} à {pct} % sur celle-ci. Elle est close.',
+	'challenge.line.anonymous_closed': 'Un ami a dit {side} à {pct} % sur celle-ci. Elle est close.',
+	'challenge.line.named_closed_no_position': '@{handle} t’a défié sur celle-ci. Elle est close.',
+	'challenge.line.anonymous_closed_no_position': 'Un ami t’a défié sur celle-ci. Elle est close.',
+	'landing.deck.challenge.eyebrow': 'Un défi pour toi',
+	'market.detail.challenge.predict_in_flow': 'Prédire dans Flow',
+	'market.detail.challenge.region_aria': 'Défi',
 	'landing.deck.back.crowd_says': 'La foule dit',
 	'landing.deck.back.flip_back': 'Touche pour retourner',
 	'landing.deck.back.returns':

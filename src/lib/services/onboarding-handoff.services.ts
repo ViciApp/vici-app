@@ -6,6 +6,7 @@ import {
 	REFERRAL_VXP_BONUS_BASE_UNITS
 } from '#lib/constants/referral.constants.ts';
 import { track } from '#lib/services/analytics.services.ts';
+import { isTerminalChallengeRefusal, redeemChallenge } from '#lib/services/challenge.services.ts';
 import { joinLeagueByInvite } from '#lib/services/leagues.services.ts';
 import {
 	applyOnboardingPicks,
@@ -20,6 +21,7 @@ import { LEAGUE_INVITE_CODE_REGEX } from '#lib/types/league.ts';
 import type { CallSide } from '#lib/types/market.ts';
 import type { OnboardingPicks } from '#lib/types/onboarding.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
+import { parseChallengeId } from '#lib/utils/challenge.utils.ts';
 import { sanitizeHandleInput } from '#lib/utils/handle.utils.ts';
 import { t } from '#lib/utils/i18n.utils.ts';
 import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
@@ -36,6 +38,11 @@ interface PendingOnboarding extends OnboardingPicks {
 	interests: string[];
 	email?: string;
 	referralCode?: string;
+	/**
+	 * The challenge link that brought the visitor, credited in place of a referral code. The
+	 * stashes keep at most one of the two (last touch wins: `stashInviterForSignup`).
+	 */
+	challengeId?: string;
 	leagueInvite?: string;
 	/**
 	 * How many times the league auto-join has been attempted so far (0 on the first drain,
@@ -52,7 +59,7 @@ interface PendingOnboarding extends OnboardingPicks {
 	 */
 	provider?: OnboardingProvider;
 	/**
-	 * How many times the referral redeem/claim has been attempted so far (0 on the first drain,
+	 * How many times the referral (or challenge) redeem/claim has been attempted so far (0 on the first drain,
 	 * incremented each time a transient failure re-stashes the code). Bounds the
 	 * {@link MAX_DRAIN_ATTEMPTS} retry loop so a persistently failing redeem can't keep the
 	 * slot armed forever.
@@ -105,6 +112,22 @@ type DrainOutcome =
 	| { kind: 'collision'; handle: string }
 	| { kind: 'failed' };
 
+const stashedChallengeId = (parsed: object): string | undefined =>
+	'challengeId' in parsed && typeof parsed.challengeId === 'string'
+		? parseChallengeId(parsed.challengeId)
+		: undefined;
+
+/** The inviter half of a re-armed slot: the challenge link or the code, whichever is stashed. */
+const pendingInviterOf = (
+	pending: PendingOnboarding
+): { challengeId: string } | { referralCode: string } | undefined => {
+	if (nonNullish(pending.challengeId)) {
+		return { challengeId: pending.challengeId };
+	}
+
+	return nonNullish(pending.referralCode) ? { referralCode: pending.referralCode } : undefined;
+};
+
 const parsePendingOnboarding = (raw: string): PendingOnboarding | undefined => {
 	let parsed: unknown;
 
@@ -151,6 +174,8 @@ const parsePendingOnboarding = (raw: string): PendingOnboarding | undefined => {
 			: undefined;
 	const referralCode =
 		rawReferral && REFERRAL_CODE_REGEX.test(rawReferral) ? rawReferral : undefined;
+	// A payload never carries both; if a hand-edited one does, the challenge is dropped.
+	const challengeId = isNullish(referralCode) ? stashedChallengeId(parsed) : undefined;
 	const rawLeagueInvite =
 		'leagueInvite' in parsed && typeof parsed.leagueInvite === 'string'
 			? parsed.leagueInvite.toUpperCase().trim()
@@ -181,7 +206,7 @@ const parsePendingOnboarding = (raw: string): PendingOnboarding | undefined => {
 		isNullish(handle) &&
 		isNullish(participantId) &&
 		isNullish(side) &&
-		isNullish(referralCode) &&
+		isNullish(referralCode ?? challengeId) &&
 		isNullish(leagueInvite) &&
 		isNullish(email)
 	) {
@@ -198,6 +223,7 @@ const parsePendingOnboarding = (raw: string): PendingOnboarding | undefined => {
 		interests,
 		email,
 		referralCode,
+		challengeId,
 		leagueInvite,
 		referralAttempts,
 		leagueAttempts,
@@ -321,6 +347,69 @@ const resolvePendingReferral = async ({
 		return false;
 	}
 };
+
+/**
+ * Post-signin credit of the challenger behind a stashed challenge link. The server decides who is
+ * credited (one inviter per person ever, never one's own link) and befriends the two on a
+ * redemption, so `not_eligible` is a quiet, final outcome.
+ *
+ * @returns `true` when the link is resolved: redeemed, not eligible, or refused (unknown, revoked,
+ *   own link). `false` on a transient failure (network, rate limit, server error), kept for a
+ *   bounded retry.
+ */
+const resolvePendingChallenge = async ({
+	id,
+	locale
+}: {
+	id: string;
+	locale: AppLocale;
+}): Promise<boolean> => {
+	try {
+		const outcome = await redeemChallenge(id);
+
+		if (outcome === 'redeemed') {
+			track({ name: 'referral_redeemed', source: 'challenge' });
+
+			notificationsStore.add({
+				title: t({ locale, key: 'onboarding.handoff.referral_ok_title' }),
+				message: t({
+					locale,
+					key: 'onboarding.handoff.referral_ok',
+					params: { amount: formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }) }
+				}),
+				type: 'success'
+			});
+		}
+
+		return true;
+	} catch (err: unknown) {
+		if (isTerminalChallengeRefusal(err)) {
+			console.warn('challenge redeem refused', err);
+
+			return true;
+		}
+
+		console.warn('challenge redeem transient failure', err);
+
+		return false;
+	}
+};
+
+/** The inviter side-flow of the drain: the challenge link when one is stashed, else the code. */
+const resolvePendingInviter = async ({
+	pending,
+	locale
+}: {
+	pending: PendingOnboarding;
+	locale: AppLocale;
+}): Promise<boolean> =>
+	nonNullish(pending.challengeId)
+		? await resolvePendingChallenge({ id: pending.challengeId, locale })
+		: await resolvePendingReferral({
+				code: pending.referralCode,
+				locale,
+				source: nonNullish(pending.leagueInvite) ? 'league_invite' : 'onboarding'
+			});
 
 /**
  * Substrings of the deterministic league-join rejections surfaced by `joinLeagueByInvite`
@@ -491,10 +580,9 @@ const settlePendingSlot = ({
 	const referralAttempts = pending.referralAttempts ?? 0;
 	const leagueAttempts = pending.leagueAttempts ?? 0;
 
+	const inviter = pendingInviterOf(pending);
 	const keepReferral =
-		!referralResolved &&
-		nonNullish(pending.referralCode) &&
-		referralAttempts + 1 < MAX_DRAIN_ATTEMPTS;
+		!referralResolved && nonNullish(inviter) && referralAttempts + 1 < MAX_DRAIN_ATTEMPTS;
 	const keepLeague =
 		!leagueResolved && nonNullish(pending.leagueInvite) && leagueAttempts + 1 < MAX_DRAIN_ATTEMPTS;
 
@@ -515,10 +603,7 @@ const settlePendingSlot = ({
 	localStorage.setItem(
 		PENDING_ONBOARDING_STORAGE_KEY,
 		JSON.stringify({
-			...(keepReferral && {
-				referralCode: pending.referralCode,
-				referralAttempts: referralAttempts + 1
-			}),
+			...(keepReferral && { ...inviter, referralAttempts: referralAttempts + 1 }),
 
 			...(keepLeague && {
 				leagueInvite: pending.leagueInvite,
@@ -601,11 +686,7 @@ export const drainPendingOnboarding = async ({
 		// settled (cleared, or re-armed per unresolved code for a bounded retry).
 		const [leagueResolved, referralResolved] = await Promise.all([
 			joinPendingLeagueIfAny({ code: pending.leagueInvite, locale }),
-			resolvePendingReferral({
-				code: pending.referralCode,
-				locale,
-				source: nonNullish(pending.leagueInvite) ? 'league_invite' : 'onboarding'
-			})
+			resolvePendingInviter({ pending, locale })
 		]);
 		settlePendingSlot({ pending, referralResolved, leagueResolved, locale });
 
@@ -687,11 +768,7 @@ export const drainPendingOnboarding = async ({
 		// of all this: the user is still a new sign-up and deserves the bonus.
 		const [leagueResolved, referralResolved] = await Promise.all([
 			joinPendingLeagueIfAny({ code: pending.leagueInvite, locale }),
-			resolvePendingReferral({
-				code: pending.referralCode,
-				locale,
-				source: nonNullish(pending.leagueInvite) ? 'league_invite' : 'onboarding'
-			})
+			resolvePendingInviter({ pending, locale })
 		]);
 		settlePendingSlot({ pending, referralResolved, leagueResolved, locale });
 

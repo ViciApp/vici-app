@@ -2,6 +2,7 @@
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
 	import { onDestroy, onMount } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import MarketDetailChallengeBanner from '#lib/components/market/MarketDetailChallengeBanner.svelte';
 	import MarketDetailChartCard from '#lib/components/market/MarketDetailChartCard.svelte';
 	import MarketDetailCtaBar from '#lib/components/market/MarketDetailCtaBar.svelte';
 	import MarketDetailLivePill from '#lib/components/market/MarketDetailLivePill.svelte';
@@ -37,6 +38,7 @@
 		userSignedIn
 	} from '#lib/derived/user.derived.ts';
 	import { track } from '#lib/services/analytics.services.ts';
+	import { areChallengeLinksEnabled } from '#lib/services/challenge.services.ts';
 	import { getUserMarketSignals } from '#lib/services/market-signals.services.ts';
 	import { listMarketTranslations } from '#lib/services/market-translation.services.ts';
 	import { loadMarket } from '#lib/services/market.services.ts';
@@ -887,6 +889,12 @@
 			</div>
 
 			<h1 class="market-detail-title">{displayTitle}</h1>
+
+			{#if areChallengeLinksEnabled()}
+				{#key market.id}
+					<MarketDetailChallengeBanner seriesId={market.id} />
+				{/key}
+			{/if}
 
 			{#if nonNullish(activeTranslation)}
 				<MarketTranslationToggle

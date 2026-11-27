@@ -11,6 +11,7 @@ import { PRICE_DECIMALS, USD_DECIMALS, ZERO } from '#lib/constants/app.constants
 import { ActivityType } from '#lib/enums/social.ts';
 import { logActivity } from '#lib/services/activity.services.ts';
 import { track } from '#lib/services/analytics.services.ts';
+import { answerPendingChallenge } from '#lib/services/challenge.services.ts';
 import {
 	getIdentity,
 	getIdentityOrAnonymous,
@@ -298,6 +299,10 @@ export const placeOrder = async ({
 	refreshOrders();
 
 	refreshAllBalances();
+
+	// A call on a market whose challenge link the visitor opened is their answer; the server
+	// checks the position in the engine. Fire-and-forget: it never fails the call.
+	void answerPendingChallenge(marketId);
 
 	// Behavioural telemetry for the cockpit: every REAL trade goes through here
 	// (the flow deck's guest picks emit separately). `value` is the VXP committed;

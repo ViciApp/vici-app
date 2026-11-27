@@ -71,6 +71,17 @@ export class E2eBackend {
 		return code as string;
 	}
 
+	/** Records an executed fill for the account in the fake engine (positive
+	 * `qty` buys Yes, negative buys No), so it holds a position there. */
+	async fill(params: {
+		userId: string;
+		seriesId: string;
+		qty: number;
+		priceCents: number;
+	}): Promise<void> {
+		expect((await this.request.post('/__e2e/fill', { data: params })).ok()).toBe(true);
+	}
+
 	async resetRateLimits(): Promise<void> {
 		expect((await this.request.post('/__e2e/reset-rate-limits')).ok()).toBe(true);
 	}

@@ -9,22 +9,28 @@
 //     keys every local request on the same "unknown" IP and would otherwise
 //     throttle a suite that signs in more than five times in ten minutes, and
 //     the shared windows in Postgres, where the seeded admin's inbox would
-//     run out after six sign-ins an hour.
+//     run out after six sign-ins an hour;
+//   - `POST /__e2e/fill` records an executed fill for an account in the fake
+//     engine's trade history, the one way a spec gets a position to issue or
+//     answer a challenge link from.
 //
 // These routes exist only on this entrypoint: src/index.ts never registers
 // them, and guard.ts refuses to start this server outside a disposable local
 // stack. Run with `bun run e2e:server`.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { t } from 'elysia';
 import { applyAssetAllowlist } from '../src/custody/assets';
 import { setEngineActorProvider } from '../src/engine/actors';
+import { clearCache } from '../src/engine/cache';
 import { env } from '../src/env';
 import { app } from '../src/index';
 import { setEmailTransport } from '../src/lib/email';
+import { userIcPrincipalText } from '../src/lib/keys';
 import { logger } from '../src/lib/logger';
 import { resetRateLimits, resetSharedRateLimits } from '../src/lib/rate-limit';
 import { setVxpLedgerProvider } from '../src/vxp/payout';
-import { fakeEngineActorProvider, fakeVxpLedgerProvider } from './fake-engine';
+import { fakeEngineActorProvider, fakeVxpLedgerProvider, recordE2eFill } from './fake-engine';
 import { assertE2eEnvironment } from './guard';
 
 /** Mirrors the OTP email copy in src/lib/email.ts. */
@@ -64,6 +70,28 @@ if (import.meta.main) {
 
 			return { code };
 		})
+		.post(
+			'/__e2e/fill',
+			({ body }) => {
+				recordE2eFill({
+					owner: userIcPrincipalText(body.userId),
+					seriesId: body.seriesId,
+					qty: body.qty,
+					priceCents: body.priceCents
+				});
+				clearCache();
+
+				return { ok: true };
+			},
+			{
+				body: t.Object({
+					userId: t.String(),
+					seriesId: t.String(),
+					qty: t.Integer(),
+					priceCents: t.Integer({ minimum: 1, maximum: 99 })
+				})
+			}
+		)
 		.post('/__e2e/reset-rate-limits', async () => {
 			resetRateLimits();
 			await resetSharedRateLimits();
