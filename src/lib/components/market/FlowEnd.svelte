@@ -261,23 +261,23 @@
 	<!-- Stats: stagger in. -->
 	<div class="flow-end-stats">
 		<div class="flow-end-stat flow-end-stat-1">
-			<span class="eyebrow flow-end-stat-label"
-				>{t({ locale: $localeStore, key: 'flow.end.stat_streak' })}</span
-			>
+			<span class="eyebrow flow-end-stat-label">
+				{t({ locale: $localeStore, key: 'flow.end.stat_streak' })}
+			</span>
 			<span class="num flow-end-stat-value flow-end-stat-value-fire">
 				{t({ locale: $localeStore, key: 'flow.end.stat_streak_value', params: { n: streakDay } })}
 			</span>
 		</div>
 		<div class="flow-end-stat flow-end-stat-2">
-			<span class="eyebrow flow-end-stat-label"
-				>{t({ locale: $localeStore, key: 'flow.end.stat_pending' })}</span
-			>
+			<span class="eyebrow flow-end-stat-label">
+				{t({ locale: $localeStore, key: 'flow.end.stat_pending' })}
+			</span>
 			<span class="num flow-end-stat-value">{pendingValue}</span>
 		</div>
 		<div class="flow-end-stat flow-end-stat-3">
-			<span class="eyebrow flow-end-stat-label"
-				>{t({ locale: $localeStore, key: 'flow.end.stat_called' })}</span
-			>
+			<span class="eyebrow flow-end-stat-label">
+				{t({ locale: $localeStore, key: 'flow.end.stat_called' })}
+			</span>
 			<span class="num flow-end-stat-value">
 				<CountUp to={calledVxp} /> VXP
 			</span>
@@ -288,16 +288,16 @@
 
 	<div class="flow-end-actions">
 		{#if canExtend}
-			<Button onclick={onExtend} size="lg"
-				>{t({ locale: $localeStore, key: 'flow.end.push_to_15' })}</Button
-			>
-			<Button onclick={onClose} variant="ghost"
-				>{t({ locale: $localeStore, key: 'flow.end.back_to_dashboard' })}</Button
-			>
+			<Button onclick={onExtend} size="lg">
+				{t({ locale: $localeStore, key: 'flow.end.push_to_15' })}
+			</Button>
+			<Button onclick={onClose} variant="ghost">
+				{t({ locale: $localeStore, key: 'flow.end.back_to_dashboard' })}
+			</Button>
 		{:else}
-			<Button onclick={onClose} size="lg"
-				>{t({ locale: $localeStore, key: 'flow.end.back_to_dashboard' })}</Button
-			>
+			<Button onclick={onClose} size="lg">
+				{t({ locale: $localeStore, key: 'flow.end.back_to_dashboard' })}
+			</Button>
 		{/if}
 	</div>
 
@@ -319,13 +319,13 @@
 	<!-- Growth: subtle text links, kept quiet so they never compete with the
 	     primary action. -->
 	<div class="flow-end-links">
-		<button class="flow-end-link" onclick={shareDay} type="button"
-			>{t({ locale: $localeStore, key: 'flow.end.share_calls' })}</button
-		>
+		<button class="flow-end-link" onclick={shareDay} type="button">
+			{t({ locale: $localeStore, key: 'flow.end.share_calls' })}
+		</button>
 		<span class="flow-end-link-dot" aria-hidden="true">·</span>
-		<button class="flow-end-link" onclick={inviteFriend} type="button"
-			>{t({ locale: $localeStore, key: 'flow.end.invite_friend' })}</button
-		>
+		<button class="flow-end-link" onclick={inviteFriend} type="button">
+			{t({ locale: $localeStore, key: 'flow.end.invite_friend' })}
+		</button>
 	</div>
 </div>
 
