@@ -373,7 +373,7 @@
 						/>
 						<text
 							fill="var(--bg-surface)"
-							font-family="var(--font-mono)"
+							font-family="var(--font-data)"
 							font-size="6"
 							font-weight="700"
 							text-anchor="middle"

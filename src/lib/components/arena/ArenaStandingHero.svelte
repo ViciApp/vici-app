@@ -747,7 +747,7 @@
 
 	.ar-live-ctx {
 		display: block;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: 0.16em;
 		text-transform: uppercase;
@@ -818,7 +818,7 @@
 	}
 
 	.ar-live-rank {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-weight: 700;
 		font-size: 76px;
 		line-height: 0.84;
@@ -843,7 +843,7 @@
 	}
 
 	.ar-live-mv {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 14px;
 		font-weight: 600;
 		color: var(--yes);
@@ -852,7 +852,7 @@
 
 	.ar-live-meta {
 		margin-top: 9px;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 11.5px;
 		color: var(--text-muted);
 		white-space: nowrap;
@@ -861,7 +861,7 @@
 	.ar-live-go {
 		margin-left: auto;
 		align-self: center;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 16px;
 		color: color-mix(in srgb, var(--text-muted) 60%, transparent);
 	}

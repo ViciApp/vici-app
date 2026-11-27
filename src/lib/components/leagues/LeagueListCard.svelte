@@ -514,7 +514,7 @@
 	}
 
 	/* "#rank / of M" stacked badge; the caller's standing within the
-	   league, right-aligned and mono so the figures read as a scoreline. */
+	   league, right-aligned and tabular so the figures read as a scoreline. */
 	.rank-badge {
 		display: flex;
 		flex-direction: column;
@@ -536,7 +536,7 @@
 		color: var(--text-muted);
 	}
 
-	/* Tiny laurel-tinted chip in mono with a 4 px radius.
+	/* Tiny laurel-tinted chip in the data face with a 4 px radius.
 	   `--laurel` (NOT `--accent`) for the same reason as `.role-chip`
 	   above: the outer button overrides `--accent` to the league's
 	   per-card colour for the logo tile gradient, and a bare
@@ -551,7 +551,7 @@
 		gap: 0.2rem;
 		padding: 3px 6px;
 		border-radius: var(--r-4);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 9px;
 		font-weight: 700;
 		letter-spacing: 0.08em;

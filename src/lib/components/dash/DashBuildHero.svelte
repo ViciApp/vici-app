@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	/**
-	 * Zone 1 · Performance: the Dashboard masthead. A large mono accuracy
+	 * Zone 1 · Performance: the Dashboard masthead. A large tabular accuracy
 	 * number anchors the screen; beneath it sit the session delta + streak
 	 * flame, a tappable benchmark toggle (global average ⇄ friends), and the
 	 * swipeable accuracy-trend chart.

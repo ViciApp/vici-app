@@ -105,7 +105,7 @@
 		margin-top: 0.5rem;
 		padding: 3px 10px 3px 9px;
 		border-radius: var(--r-pill);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 600;
 		letter-spacing: var(--tracking-allcaps);

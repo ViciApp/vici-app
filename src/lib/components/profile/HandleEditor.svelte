@@ -403,7 +403,7 @@
 
 	.handle-editor-at {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 1rem;
 	}
 
@@ -415,13 +415,13 @@
 		outline: 0;
 		background: transparent;
 		color: var(--text-base);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 1rem;
 	}
 
 	.handle-editor-indicator {
 		color: var(--fg-faint);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.6875rem;
 	}
 
@@ -433,7 +433,7 @@
 		min-height: 1rem;
 		margin: 0.5rem 0 0;
 		color: var(--fg-faint);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.6875rem;
 		letter-spacing: 0.02em;
 	}

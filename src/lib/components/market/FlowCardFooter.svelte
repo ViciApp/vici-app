@@ -49,9 +49,9 @@
 		display: inline-flex;
 		align-items: baseline;
 		gap: 5px;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--text-eyebrow);
-		font-variant-numeric: tabular-nums slashed-zero;
+		font-variant-numeric: tabular-nums;
 		letter-spacing: 0.06em;
 		color: var(--text-base);
 		background: var(--bg-popover);

@@ -649,12 +649,12 @@
 			</ul>
 
 			<div class="del-actions">
-				<Button onclick={() => (step = 'reason')} variant="ghost"
-					>{t({ locale: $localeStore, key: 'settings.delete.back' })}</Button
-				>
-				<Button class="del-danger-btn" onclick={advanceFromDisclosure} variant="danger"
-					>{t({ locale: $localeStore, key: 'settings.delete.understand' })}</Button
-				>
+				<Button onclick={() => (step = 'reason')} variant="ghost">
+					{t({ locale: $localeStore, key: 'settings.delete.back' })}
+				</Button>
+				<Button class="del-danger-btn" onclick={advanceFromDisclosure} variant="danger">
+					{t({ locale: $localeStore, key: 'settings.delete.understand' })}
+				</Button>
 			</div>
 		</div>
 	{:else if step === 'leagues'}
@@ -789,9 +789,9 @@
 			</div>
 
 			<div class="del-actions">
-				<Button onclick={() => (step = 'what-happens')} variant="ghost"
-					>{t({ locale: $localeStore, key: 'settings.delete.back' })}</Button
-				>
+				<Button onclick={() => (step = 'what-happens')} variant="ghost">
+					{t({ locale: $localeStore, key: 'settings.delete.back' })}
+				</Button>
 
 				<Button
 					class="del-danger-btn"
@@ -1119,7 +1119,7 @@
 	}
 
 	.del-row-bang {
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-data);
 		font-size: var(--t-12);
 		font-weight: 700;
 		line-height: 1;
@@ -1185,7 +1185,7 @@
 	}
 
 	.del-league-meta {
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-data);
 		font-size: var(--t-11);
 		letter-spacing: var(--tracking-allcaps);
 		text-transform: uppercase;
@@ -1262,7 +1262,7 @@
 		border-radius: var(--r-8);
 		background: color-mix(in srgb, var(--ink-deep) 40%, transparent);
 		color: var(--text-base);
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-data);
 		font-size: var(--t-12);
 	}
 
@@ -1349,7 +1349,7 @@
 	}
 
 	.del-confirm-label {
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-data);
 		font-size: var(--t-11);
 		letter-spacing: var(--tracking-allcaps);
 		text-transform: uppercase;
@@ -1390,7 +1390,7 @@
 		border: 0;
 		background: transparent;
 		color: var(--text-base);
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-data);
 		font-size: var(--t-14);
 	}
 
@@ -1410,7 +1410,7 @@
 
 	.del-confirm-hint {
 		margin: 0;
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-data);
 		font-size: var(--t-11);
 		letter-spacing: var(--tracking-allcaps);
 		text-transform: uppercase;
@@ -1477,7 +1477,7 @@
 
 	.del-gone-eyebrow {
 		margin-bottom: 0.5rem;
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-data);
 		font-size: var(--t-11);
 		letter-spacing: 0.2em;
 		text-transform: uppercase;

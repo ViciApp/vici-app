@@ -719,7 +719,7 @@
 		border-radius: var(--r-pill);
 		background: color-mix(in srgb, var(--yes) 14%, transparent);
 		color: var(--yes);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 700;
 		letter-spacing: var(--tracking-allcaps);
@@ -727,7 +727,7 @@
 	}
 
 	/* Language row trailing affordance: the active locale's short code
-	   (mono, muted) sitting beside the chevron, mirroring the row's
+	   (data face, muted) sitting beside the chevron, mirroring the row's
 	   `right` slot. */
 	.settings-lang-right {
 		display: inline-flex;
@@ -901,7 +901,7 @@
 		border-radius: var(--r-pill);
 		background: var(--bg-popover);
 		color: var(--text-base);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		letter-spacing: var(--tracking-allcaps);
 		text-transform: uppercase;
 		font-size: var(--t-10);

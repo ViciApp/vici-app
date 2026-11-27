@@ -400,9 +400,9 @@
 			<ul class="worlds-detail-champions-list">
 				{#each championships as cup (cup.monthAnchor)}
 					<li class="row-between worlds-detail-champions-row">
-						<span class="worlds-detail-champions-month"
-							>{formatMonthAnchorLabel({ anchor: cup.monthAnchor, locale: $localeStore })}</span
-						>
+						<span class="worlds-detail-champions-month">
+							{formatMonthAnchorLabel({ anchor: cup.monthAnchor, locale: $localeStore })}
+						</span>
 						<span class="num worlds-detail-champions-acc worlds-detail-acc">
 							{formatAccuracyPercent(cup.accuracy)}
 						</span>
@@ -785,7 +785,7 @@
 		align-self: center;
 		padding: 0.5rem 1rem;
 		font: inherit;
-		font-family: var(--font-mono, var(--font-sans));
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 700;
 		letter-spacing: 0.14em;

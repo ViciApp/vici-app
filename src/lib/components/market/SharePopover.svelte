@@ -566,13 +566,13 @@
 			</span>
 		{:else}
 			<span>
-				<b
-					>{t({
+				<b>
+					{t({
 						locale: $localeStore,
 						key: 'flow.share.referral_capped_amount',
 						params: { amount: formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }) }
-					})}</b
-				>
+					})}
+				</b>
 				{t({ locale: $localeStore, key: 'flow.share.referral_capped_tail' })}
 			</span>
 		{/if}
@@ -598,7 +598,7 @@
 	}
 
 	.share-pop-eyebrow {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 700;
 		letter-spacing: 0.16em;
@@ -638,7 +638,7 @@
 		height: 100%;
 		align-items: center;
 		justify-content: center;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 9px;
 		color: var(--fg-faint);
 	}
@@ -685,7 +685,7 @@
 	.share-row-label {
 		display: block;
 		margin-bottom: -4px;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
@@ -739,7 +739,7 @@
 		border-color: var(--border-strong);
 	}
 	.share-tile-label {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 9.5px;
 		letter-spacing: 0.02em;
 		color: var(--text-muted);

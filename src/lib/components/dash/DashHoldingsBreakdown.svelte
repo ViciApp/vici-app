@@ -49,8 +49,9 @@
 </script>
 
 <div class="db-sheet-h">
-	<span class="db-sheet-title">{t({ locale: $localeStore, key: 'dash.build.sheet_your_vxp' })}</span
-	>
+	<span class="db-sheet-title">
+		{t({ locale: $localeStore, key: 'dash.build.sheet_your_vxp' })}
+	</span>
 	<span class="db-sheet-bal num">{holdingsDisplay} <em>VXP</em></span>
 </div>
 
@@ -112,7 +113,7 @@
 		gap: 10px;
 		padding: 11px 0;
 		border-bottom: 1px solid var(--border-base);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 	}
 
 	.db-bucket-dot {

@@ -298,8 +298,9 @@
 				<span></span>
 				<span>{t({ locale: $localeStore, key: 'transactions.col.activity' })}</span>
 				<span class="txh-right">{t({ locale: $localeStore, key: 'transactions.col.amount' })}</span>
-				<span class="txh-right">{t({ locale: $localeStore, key: 'transactions.col.balance' })}</span
-				>
+				<span class="txh-right">
+					{t({ locale: $localeStore, key: 'transactions.col.balance' })}
+				</span>
 			</div>
 
 			{#each pageRows as row (row.id)}
@@ -332,9 +333,9 @@
 					<span class="txh-amt num is-{deltaTone(row)}">
 						{row.kind === 'joined' ? EMPTY_VALUE : deltaDisplay(row)}
 					</span>
-					<span class="txh-bal num"
-						>{formatVxpBalance({ value: row.balance, decimals: USD_DECIMALS })}</span
-					>
+					<span class="txh-bal num">
+						{formatVxpBalance({ value: row.balance, decimals: USD_DECIMALS })}
+					</span>
 				</div>
 			{/each}
 		</div>
@@ -412,7 +413,7 @@
 	.txh-head {
 		padding-bottom: 5px;
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-11);
 		text-transform: uppercase;
 		letter-spacing: 0.04em;

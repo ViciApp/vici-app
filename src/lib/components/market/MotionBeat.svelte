@@ -430,7 +430,7 @@
 	}
 
 	.motion-beat-name {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 10px;
 		letter-spacing: 0.24em;
 		color: var(--text-muted);
@@ -465,7 +465,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 5px;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-weight: 800;
 		font-size: var(--text-eyebrow);
 		color: #241c08;
@@ -485,7 +485,7 @@
 	/* Coral treat chip: the non-currency wildcard reward. */
 	.motion-beat-treat {
 		display: inline-flex;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-weight: 800;
 		font-size: var(--text-eyebrow);
 		color: #2a1208;
@@ -495,7 +495,7 @@
 	}
 
 	.motion-beat-badge {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--text-micro);
 		font-weight: 700;
 		letter-spacing: 0.14em;
@@ -504,7 +504,7 @@
 	}
 
 	.motion-beat-sub {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--text-micro);
 		font-weight: 600;
 		letter-spacing: 0.14em;

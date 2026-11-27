@@ -156,7 +156,7 @@
 
 	.friends-sheet-sub {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -184,7 +184,7 @@
 
 	.friends-sheet-lbl {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.6rem;
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -193,7 +193,7 @@
 
 	.friends-sheet-val {
 		color: var(--text-base);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-16);
 		font-weight: 700;
 	}

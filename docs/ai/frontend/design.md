@@ -48,6 +48,7 @@ easing curve are present. Outstanding items:
 | Token                                                                                                                                | App status  | Action                                                                                                                                                                                        |
 | ------------------------------------------------------------------------------------------------------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--shadow-toast`, `--shadow-card`, `--shadow-card-light`                                                                             | ✅ Done     | Exposed in `@theme`. `Notifications.svelte` uses `shadow-toast`. `Card.svelte` default variant uses `shadow-card`, which resolves to `--inset-hi` in dark and `--shadow-card-light` in light. |
+| `--font-data`                                                                                                                        | ✅ Done     | Data role: the text face, tabular figures (`.num`, `font-data`); mono is code only (`.code`). See [`brand.md` § 5.1](./brand.md#51-families-and-roles).                                       |
 | `--ticker-h: 32px`                                                                                                                   | ✅ Done     | Declared in `:root`; nothing reads it today.                                                                                                                                                  |
 | Peach theme tokens                                                                                                                   | ✅ Done     | `[data-theme='peach']` defines the warm blush canvas, warm dark foreground, and deeper laurel accent swap.                                                                                    |
 | Film surface (`--film-bg`, `--film-back`, `--film-fg`, `--film-accent`, `--film-yes`, `--film-no`, `--film-cta`, `--film-cta-hover`) | ✅ Done     | Theme-stable tones for full-bleed footage cards (the landing deck). Footage is dark under every theme, so these do not follow the semantic aliases a light canvas flips.                      |
@@ -69,7 +70,7 @@ For spacing, sizing, radii, and most typography use Tailwind v4 utilities
 (`p-*`, `gap-*`, `text-*`, `tracking-*`, `leading-*`, `rounded-*`).
 Utility classes already exposed in `src/app.css`: `.eyebrow`, `.allcaps`,
 `.serif-italic`, `.display`, `.display-num`, `.lede`, `.surface`,
-`.surface-elevated`, `.hairline`, `.num`. Add tokens or helpers to
+`.surface-elevated`, `.hairline`, `.num`, `.code`. Add tokens or helpers to
 `src/app.css` only when a real consumer needs one.
 
 Card-system primitives in `src/app.css` (use these, don't re-style cards
@@ -79,7 +80,7 @@ per surface): `.card-surface` (self-contained tile, `--gap-card` stack,
 in the Markets list; the parent column owns the side padding and uses
 `gap: 0`), and `.card-empty` (the **only** dashed-border surface in product;
 pairs with `.c-eyebrow` / `.c-title` / `.c-body` for its type ramp).
-`.title-action` is the mono uppercase "See all" affordance (its trailing `→`
+`.title-action` is the uppercase "See all" affordance in the data face (its trailing `→`
 is appended via `::after`, so pass an arrow-free label). Selection state on
 `.chip.active` is parchment-on-elevated (`--bg-popover` / `--text-base` /
 `--border-strong`); laurel is reserved as an identity accent, never a

@@ -258,8 +258,9 @@
 					{t({ locale: $localeStore, key: 'account.email.sent_title' })}
 				</p>
 				<p class="account-sent-body num">
-					{sentBodyParts.before}<span class="account-sent-target">{newEmail}</span
-					>{sentBodyParts.after}
+					{sentBodyParts.before}<span class="account-sent-target">
+						{newEmail}
+					</span>{sentBodyParts.after}
 				</p>
 			</div>
 		{:else}
@@ -275,7 +276,7 @@
 				</p>
 				<!-- svelte-ignore a11y_autofocus -->
 				<input
-					class="account-edit-input num"
+					class="account-edit-input"
 					autocapitalize="off"
 					autocomplete="email"
 					autofocus

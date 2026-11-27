@@ -31,9 +31,9 @@
 <div class="affil-picker-summary">
 	<span class="affil-picker-glyph" aria-hidden="true">{target.glyph}</span>
 	<span class="affil-picker-summary-body">
-		<span class="affil-picker-summary-eyebrow num allcaps"
-			>{tr('worlds.picker.school.verify_eyebrow')}</span
-		>
+		<span class="affil-picker-summary-eyebrow num allcaps">
+			{tr('worlds.picker.school.verify_eyebrow')}
+		</span>
 		<span class="affil-picker-summary-name">{target.name}</span>
 	</span>
 </div>
@@ -49,7 +49,7 @@
 </label>
 <input
 	id="sp-verify-email"
-	class="affil-picker-input num"
+	class="affil-picker-input"
 	class:is-bad={wrongDomain}
 	autocapitalize="off"
 	autocorrect="off"
@@ -100,7 +100,7 @@
 		flex-shrink: 0;
 		border-radius: var(--r-8);
 		background: var(--bg-surface);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.85rem;
 		font-weight: 700;
 		overflow: hidden;
@@ -147,6 +147,7 @@
 		box-sizing: border-box;
 		padding: 0.75rem 0.85rem;
 		font: inherit;
+		font-family: var(--font-mono);
 		font-size: var(--t-14);
 		color: var(--text-base);
 		background: color-mix(in srgb, var(--bg-surface) 70%, transparent);

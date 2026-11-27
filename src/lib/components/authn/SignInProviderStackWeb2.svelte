@@ -230,7 +230,7 @@
 					<Mail size={16} strokeWidth={1.8} />
 				</span>
 				<input
-					class="signin-email-input num"
+					class="signin-email-input"
 					aria-label={t({ locale: $localeStore, key: 'signin.email.aria' })}
 					autocapitalize="off"
 					autocomplete="email"
@@ -267,7 +267,7 @@
 			<div class="signin-email-row">
 				<!-- svelte-ignore a11y_autofocus -->
 				<input
-					class="signin-email-input num"
+					class="signin-email-input"
 					aria-label={t({ locale: $localeStore, key: 'signin.otp.aria' })}
 					autocapitalize="off"
 					autocomplete="one-time-code"

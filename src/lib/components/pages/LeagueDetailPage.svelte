@@ -1720,9 +1720,9 @@
 					<span class="eyebrow league-detail-member-stat-label">
 						{t({ locale: $localeStore, key: 'leagues.detail.member_stat_accuracy' })}
 					</span>
-					<span class="num league-detail-member-stat-value"
-						>{formatAccuracy(openMember.member)}</span
-					>
+					<span class="num league-detail-member-stat-value">
+						{formatAccuracy(openMember.member)}
+					</span>
 				</div>
 				<div class="league-detail-member-stat">
 					<span class="eyebrow league-detail-member-stat-label">
@@ -1843,11 +1843,11 @@
 		gap: 0.35rem;
 	}
 
-	/* Context chips: mono, Title-case, rounded outline. The chip copy
+	/* Context chips: data face, Title-case, rounded outline. The chip copy
 	   carries its own casing (League / 8 members / Public), so no
 	   uppercasing transform; the row reads as content, not a status pill. */
 	.league-detail-hero-chip {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-11);
 		letter-spacing: 0.02em;
 		padding: 0.25rem 0.625rem;
@@ -2035,7 +2035,7 @@
 	}
 
 	/* Rank-forward identity: the caller's standing reads as the headline
-	   figure: a large mono "#rank", the "of M" denominator, and a coloured
+	   figure: a large tabular "#rank", the "of M" denominator, and a coloured
 	   ▲/▼ "N this week" (or "· even") trend, baseline-aligned. */
 	.league-detail-rank {
 		display: flex;
@@ -2420,7 +2420,7 @@
 		align-self: flex-start;
 		margin-top: 0.4rem;
 		padding: 0;
-		font-family: var(--font-mono, var(--font-sans));
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 700;
 		letter-spacing: 0.1em;

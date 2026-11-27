@@ -37,6 +37,8 @@
 	src: url('/fonts/instrument-serif-italic-latin.woff2') format('woff2');
 }
 
+/* JetBrains Mono sets code only (principals, addresses, invite codes),
+ * which few screens show, so `app.html` does not preload it. */
 @font-face {
 	font-family: 'JetBrains Mono';
 	font-style: normal;
@@ -545,6 +547,11 @@ html[data-ios-bottom-bar] {
 	--font-display: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--font-serif: 'Instrument Serif', 'Source Serif 4', Georgia, serif;
 	--font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+	/* The data role: probabilities, timestamps, VXP, counts, ranks. It is
+	 * the text face, whose digits are drawn at one width, so columns of
+	 * figures still line up. `--font-mono` is kept for strings read or
+	 * copied character by character: principals, addresses, codes. */
+	--font-data: var(--font-display);
 	--font-headline:
 		'Bricolage Grotesque', 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
 		sans-serif;
@@ -876,9 +883,16 @@ html[data-app='1'] body {
 
 /* VICI utility classes */
 .num {
+	font-family: var(--font-data);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Machine strings a person reads or types one character at a time
+ * (principals, addresses, invite and verification codes): mono with a
+ * slashed zero, so `0` / `O` and `1` / `l` never blur. */
+.code {
 	font-family: var(--font-mono);
-	font-feature-settings: 'tnum', 'zero';
-	font-variant-numeric: tabular-nums slashed-zero;
+	font-variant-numeric: slashed-zero;
 }
 
 .eyebrow {
@@ -931,16 +945,15 @@ html[data-app='1'] body {
 	letter-spacing: var(--tracking-tight);
 }
 
-/* Hero numeric: every big probability / XP total / streak count. Mono,
- * tabular, slashed-zero. */
+/* Hero numeric: every big probability / XP total / streak count. Data
+ * face, tabular. */
 .display-num {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: var(--t-128);
 	font-weight: 500;
 	line-height: 1;
 	letter-spacing: -0.04em;
-	font-feature-settings: 'tnum', 'zero';
-	font-variant-numeric: tabular-nums slashed-zero;
+	font-variant-numeric: tabular-nums;
 }
 
 /* Lede: first-paragraph treatment (e.g. spec page intros). */
@@ -2058,11 +2071,11 @@ a.card-inline:hover {
 	font-family: inherit;
 }
 
-/* Section "See all" affordance: mono, muted, with a trailing arrow. The
+/* Section "See all" affordance: data face, muted, with a trailing arrow. The
    arrow is appended via ::after so the label can be a plain translated
    string. Used in the section headers on Markets. */
 .title-action {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: var(--t-eyebrow);
 	font-weight: 500;
 	text-transform: uppercase;
@@ -2173,7 +2186,7 @@ a.title-action::after {
 	font-size: 18.72px;
 }
 .signin-eyebrow {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 10px;
 	letter-spacing: 0.18em;
 	text-transform: uppercase;
@@ -2221,7 +2234,7 @@ a.title-action::after {
 	border-radius: 999px;
 	background: var(--laurel);
 	color: var(--ink);
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-weight: 700;
 	pointer-events: none;
 	box-shadow:
@@ -2551,7 +2564,7 @@ a.title-action::after {
 	opacity: 0.6;
 }
 .signin-fineprint {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 10.5px;
 	letter-spacing: 0.04em;
 	color: var(--text-muted);
@@ -2634,7 +2647,7 @@ a.title-action::after {
 	gap: 12px;
 }
 .share-pop-eyebrow {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: var(--text-micro);
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
@@ -2698,7 +2711,7 @@ a.title-action::after {
 .share-or {
 	display: flex;
 	align-items: center;
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: var(--text-micro);
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
@@ -2924,7 +2937,7 @@ a.title-action::after {
 }
 .dash-reso-cta {
 	flex-shrink: 0;
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: var(--text-eyebrow);
 	font-weight: 700;
 	letter-spacing: 0.04em;
@@ -3190,7 +3203,7 @@ a.title-action::after {
 	z-index: 2;
 }
 .flow-loading .eyebrow-mute {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 9px;
 	letter-spacing: 0.24em;
 	text-transform: uppercase;
@@ -3214,7 +3227,7 @@ a.title-action::after {
 	position: relative;
 }
 .flow-loading .away-net {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-weight: 800;
 	font-size: 44px;
 	line-height: 1;
@@ -3230,7 +3243,7 @@ a.title-action::after {
 	color: var(--text-base);
 }
 .flow-loading .away-sub {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11px;
 	letter-spacing: 0.03em;
 	color: var(--text-muted);
@@ -3280,7 +3293,7 @@ a.title-action::after {
 	border-bottom: 0;
 }
 .flow-loading .resmore {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11px;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
@@ -3318,7 +3331,7 @@ a.title-action::after {
 }
 .flow-loading .resv {
 	flex: none;
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-weight: 700;
 	font-size: 12px;
 }
@@ -3365,7 +3378,7 @@ a.title-action::after {
 	margin-top: 14px;
 	padding: 14px 34px;
 	border-radius: 999px;
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 13px;
 	font-weight: 700;
 	letter-spacing: 0.06em;
@@ -3582,7 +3595,7 @@ a.title-action::after {
 }
 .reso-row-side {
 	flex-shrink: 0;
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 9px;
 	font-weight: 700;
 	letter-spacing: 0.08em;
@@ -3807,7 +3820,7 @@ a.title-action::after {
 	margin-bottom: 14px;
 }
 .ob-at-large {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 22px;
 	color: var(--text-muted);
 	font-weight: 600;
@@ -3819,7 +3832,7 @@ a.title-action::after {
 	border: 0;
 	outline: 0;
 	color: var(--text-base);
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 18px;
 	font-weight: 600;
 	letter-spacing: 0.01em;
@@ -3829,7 +3842,7 @@ a.title-action::after {
 }
 
 .ob-avail {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11px;
 	letter-spacing: 0.08em;
 	padding: 6px 12px;
@@ -3960,7 +3973,7 @@ a.title-action::after {
 	color: var(--laurel);
 }
 .ob-summary-meta {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 10px;
 	letter-spacing: 0.06em;
 	color: var(--text-muted);
@@ -4010,7 +4023,7 @@ a.title-action::after {
 	flex-shrink: 0;
 }
 .ob-lock {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 10px;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
@@ -4051,7 +4064,7 @@ a.title-action::after {
 	align-items: center;
 	gap: 2px;
 	margin-top: 16px;
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 9.5px;
 	letter-spacing: 0.06em;
 	color: var(--text-muted);
@@ -4074,7 +4087,7 @@ a.title-action::after {
 	height: 22px;
 }
 .share-chan-label {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 9.5px;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
@@ -4168,14 +4181,14 @@ a.title-action::after {
 	align-items: center;
 }
 .db-lbl {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 10px;
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
 	color: var(--text-muted);
 }
 .db-big {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-weight: 700;
 	font-size: 78px;
 	line-height: 0.84;
@@ -4201,7 +4214,7 @@ a.title-action::after {
 	align-items: center;
 	flex-wrap: wrap;
 	margin-top: 8px;
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11.5px;
 }
 .db-anchorline .db-delta {
@@ -4225,7 +4238,7 @@ a.title-action::after {
 	border: 0;
 	padding: 7px 0 0;
 	margin: 0;
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11px;
 	color: var(--text-muted);
 	cursor: pointer;
@@ -4279,7 +4292,7 @@ a.title-action::after {
 	cursor: default;
 }
 .db-cal {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11.5px;
 	color: var(--text-muted);
 	margin-top: 9px;
@@ -4293,7 +4306,7 @@ a.title-action::after {
 	padding: 6px 0 2px;
 }
 .db-period {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11px;
 	color: var(--text-muted);
 	letter-spacing: 0.02em;
@@ -4362,7 +4375,7 @@ a.title-action::after {
 	border-color: var(--border-strong);
 }
 .db-wallet .db-k {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 9.5px;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
@@ -4370,7 +4383,7 @@ a.title-action::after {
 	white-space: nowrap;
 }
 .db-wallet .db-v {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-weight: 700;
 	font-size: 22px;
 	letter-spacing: -0.02em;
@@ -4393,7 +4406,7 @@ a.title-action::after {
 	text-align: right;
 }
 .db-stat .db-kk {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 9px;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
@@ -4401,7 +4414,7 @@ a.title-action::after {
 	white-space: nowrap;
 }
 .db-stat .db-vv {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 14px;
 	font-weight: 600;
 	color: var(--text-base);
@@ -4451,7 +4464,7 @@ a.title-action::after {
 	margin-left: -2px;
 }
 .db-gift-tag {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 9.5px;
 	letter-spacing: 0.04em;
 	color: var(--accent);
@@ -4472,7 +4485,7 @@ a.title-action::after {
 	margin-bottom: 8px;
 }
 .db-sec-label {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 10px;
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
@@ -4491,7 +4504,7 @@ a.title-action::after {
 	border: 0;
 	background: none;
 	color: var(--text-muted);
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11px;
 	letter-spacing: 0.03em;
 	min-height: 32px;
@@ -4572,12 +4585,12 @@ a.title-action::after {
 	gap: 7px;
 	align-items: center;
 	margin-top: 3px;
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 10.5px;
 	color: var(--text-muted);
 }
 .db-side {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 9.5px;
 	font-weight: 600;
 	letter-spacing: 0.08em;
@@ -4593,7 +4606,7 @@ a.title-action::after {
 	background: color-mix(in srgb, var(--no) 15%, transparent);
 }
 .db-end {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11px;
 	text-align: right;
 	flex: none;
@@ -4618,7 +4631,7 @@ a.title-action::after {
 	border-radius: 10px;
 	background: color-mix(in srgb, var(--text-base) 3%, transparent);
 	color: var(--accent);
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11px;
 	letter-spacing: 0.04em;
 	cursor: pointer;
@@ -4648,7 +4661,7 @@ a.title-action::after {
 	font-weight: 600;
 }
 .db-ce-sub {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11.5px;
 	color: var(--text-muted);
 	margin-top: 6px;
@@ -4663,14 +4676,14 @@ a.title-action::after {
 	border-radius: 11px;
 	background: var(--accent);
 	color: var(--ink);
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.03em;
 	cursor: pointer;
 }
 .db-empty {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11.5px;
 	color: var(--text-muted);
 	padding: 14px 2px;
@@ -4685,14 +4698,14 @@ a.title-action::after {
 	margin-bottom: 14px;
 }
 .db-sheet-title {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 10px;
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
 	color: var(--text-muted);
 }
 .db-sheet-bal {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-weight: 700;
 	font-size: 21px;
 	letter-spacing: -0.02em;
@@ -4719,7 +4732,7 @@ a.title-action::after {
 	border-radius: 12px;
 	background: var(--accent);
 	color: var(--ink);
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.03em;
@@ -4782,7 +4795,7 @@ a.title-action::after {
 	letter-spacing: -0.01em;
 }
 .gst-count {
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 11px;
 	color: var(--accent);
 	font-weight: 600;
@@ -4792,7 +4805,7 @@ a.title-action::after {
 	border: 0;
 	background: transparent;
 	cursor: pointer;
-	font-family: var(--font-mono);
+	font-family: var(--font-data);
 	font-size: 9.5px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;

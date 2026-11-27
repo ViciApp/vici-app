@@ -458,9 +458,9 @@
 		{#if provisionalRows.length > 0}
 			<div class="leaderboard-provisional">
 				<div class="leaderboard-provisional-head">
-					<span class="allcaps"
-						>{t({ locale: $localeStore, key: 'leaderboard.provisional.title' })}</span
-					>
+					<span class="allcaps">
+						{t({ locale: $localeStore, key: 'leaderboard.provisional.title' })}
+					</span>
 					<span class="num allcaps leaderboard-provisional-min">
 						{t({
 							locale: $localeStore,
@@ -1012,7 +1012,7 @@
 
 	.lb-sheet-sub {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -1038,7 +1038,7 @@
 
 	.lb-sheet-lbl {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.6rem;
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);

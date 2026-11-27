@@ -21,7 +21,7 @@
 	 *  - `editorial`: the serif-italic wordmark treatment, with an optional
 	 *    brand-accent span for the second half of the phrase.
 	 *
-	 * Metadata renders as a row of mono chips below the bar; a trailing
+	 * Metadata renders as a row of data-face chips below the bar; a trailing
 	 * `right` snippet hosts edge actions (notifications, settings, …).
 	 */
 	interface Props {
@@ -76,9 +76,9 @@
 
 			{#if nonNullish(title) && variant === 'editorial'}
 				<h1 class="screen-header-title is-editorial">
-					<span class="serif-italic">{title}</span>{#if accent}<span class="screen-header-accent"
-							>{accent}</span
-						>{/if}
+					<span class="serif-italic">{title}</span>{#if accent}<span class="screen-header-accent">
+							{accent}
+						</span>{/if}
 				</h1>
 			{:else if nonNullish(title)}
 				<h1 class="screen-header-title is-section">{title}</h1>
@@ -231,7 +231,7 @@
 		border: 1px solid var(--border-base);
 		border-radius: var(--r-pill);
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-11);
 		white-space: nowrap;
 	}

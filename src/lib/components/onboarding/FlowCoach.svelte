@@ -133,8 +133,10 @@
 						stroke-linejoin="round"
 						stroke-width="2.6"
 						viewBox="0 0 24 24"
-						width="17"><path d="m5 12 5 5L20 7"></path></svg
+						width="17"
 					>
+						<path d="m5 12 5 5L20 7"></path>
+					</svg>
 				</span>
 				<span class="fc-confirm-text">{tr('flow.coach.confirm')}</span>
 			</div>
@@ -284,7 +286,7 @@
 	}
 
 	.fc-label {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 15px;
 		font-weight: 700;
 		letter-spacing: 0.08em;

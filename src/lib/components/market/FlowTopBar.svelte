@@ -215,7 +215,7 @@
 		border-radius: var(--r-pill);
 		background: rgba(226, 184, 66, 0.1);
 		color: var(--color-accent);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 9px;
 		font-weight: 700;
 		line-height: 1;
@@ -240,7 +240,7 @@
 		box-shadow: 0 0 6px rgba(226, 184, 66, 0.5);
 	}
 
-	/* Keep the uppercase mono label optically centered: collapse its
+	/* Keep the uppercase data-face label optically centered: collapse its
 	   line-box to the glyph height so `align-items: center` on the pill
 	   centers the text against the dot rather than its baseline. */
 	.flow-deck-label {

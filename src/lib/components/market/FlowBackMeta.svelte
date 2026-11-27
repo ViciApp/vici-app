@@ -144,7 +144,7 @@
 		margin: 0;
 		font-size: var(--t-12);
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		letter-spacing: 0.04em;
 	}
 	.flow-meta-dot {

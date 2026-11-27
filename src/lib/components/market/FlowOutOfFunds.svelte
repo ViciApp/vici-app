@@ -38,14 +38,14 @@
 		{t({ locale: $localeStore, key: 'flow.funds.body' })}
 	</p>
 	<div class="flow-funds-actions">
-		<Button onclick={onClose} size="lg"
-			>{t({ locale: $localeStore, key: 'flow.end.back_to_dashboard' })}</Button
-		>
+		<Button onclick={onClose} size="lg">
+			{t({ locale: $localeStore, key: 'flow.end.back_to_dashboard' })}
+		</Button>
 	</div>
 	<div class="flow-funds-links">
-		<button class="flow-funds-link" onclick={onBackToMarkets} type="button"
-			>{t({ locale: $localeStore, key: 'flow.back_to_markets' })}</button
-		>
+		<button class="flow-funds-link" onclick={onBackToMarkets} type="button">
+			{t({ locale: $localeStore, key: 'flow.back_to_markets' })}
+		</button>
 	</div>
 </div>
 
@@ -99,7 +99,7 @@
 		border: 0;
 		padding: 4px 2px;
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 0.6875rem;
 		letter-spacing: 0.04em;
 		cursor: pointer;

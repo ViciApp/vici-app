@@ -35,8 +35,8 @@ and on marketing surfaces with these exact words:
 4. **Coordination.** The VICI token. Governance, not payment.
 
 **The collision that makes the brand:** classical editorial typography
-(Instrument Serif) meets terminal/data mono (JetBrains Mono). Restraint
-in everything else.
+(Instrument Serif) meets a warm grotesk (Hanken Grotesk) that carries
+both the interface and the figures. Restraint in everything else.
 
 ---
 
@@ -260,21 +260,25 @@ recolour them with VICI tokens.
 
 ---
 
-## 5. Typography: Serif. Sans. Mono.
+## 5. Typography: Serif. Sans. Data.
 
 A strict triad. Editorial italic for big moments, warm grotesk for UI,
-tabular mono for every probability, timestamp, address, and VXP value.
-Mixing within a line is on-brand: _"You were"_ early. _"By"_ 4 hours.
+and the same grotesk with tabular figures for every probability,
+timestamp, and VXP value. Mixing within a line is on-brand: _"You were"_
+early. _"By"_ 4 hours.
 
-### 5.1 The three families
+### 5.1 Families and roles
 
 | Role      | Family             | Where it lives in CSS |
 | --------- | ------------------ | --------------------- |
 | Editorial | `Instrument Serif` | `var(--font-serif)`   |
 | UI        | `Hanken Grotesk`   | `var(--font-display)` |
-| Data      | `JetBrains Mono`   | `var(--font-mono)`    |
+| Data      | `Hanken Grotesk`   | `var(--font-data)`    |
+| Code      | `JetBrains Mono`   | `var(--font-mono)`    |
 
-All three are self-hosted under `static/fonts/`; see the `@font-face`
+The data role reads the text face through its own token, so the figures
+can move to another face in one edit. All three families are self-hosted
+under `static/fonts/`; see the `@font-face`
 block at the top of [`src/app.css`](../../../src/app.css).
 
 ### 5.2 Landing display face
@@ -302,23 +306,38 @@ uses it.
 
 ### 5.3 Type roles
 
-| Role           | Family | Spec               | Helper class               |
-| -------------- | ------ | ------------------ | -------------------------- |
-| Hero (display) | Serif  | 88 / 128 italic    | `.display`                 |
-| Section        | Serif  | 64 / 44            | `.display` (size override) |
-| Pull-quote     | Serif  | 32 / 24            | `.serif-italic`            |
-| Body           | UI     | 16 / 12            | _Tailwind default_         |
-| Eyebrow        | UI     | 11 / 12, allcaps   | `.eyebrow`                 |
-| Allcaps tag    | UI     | 12, wide tracking  | `.allcaps`                 |
-| Body weights   | UI     | 400 → 700          | -                          |
-| Probability    | Data   | tabular, slashed 0 | `.num`                     |
-| Hero numeric   | Data   | 128 / 1            | `.display-num`             |
-| VXP delta      | Data   | `+240 VXP`         | `.num`                     |
-| Volume         | Data   | `2.4M vol`         | `.num`                     |
+| Role           | Family | Spec              | Helper class               |
+| -------------- | ------ | ----------------- | -------------------------- |
+| Hero (display) | Serif  | 88 / 128 italic   | `.display`                 |
+| Section        | Serif  | 64 / 44           | `.display` (size override) |
+| Pull-quote     | Serif  | 32 / 24           | `.serif-italic`            |
+| Body           | UI     | 16 / 12           | _Tailwind default_         |
+| Eyebrow        | UI     | 11 / 12, allcaps  | `.eyebrow`                 |
+| Allcaps tag    | UI     | 12, wide tracking | `.allcaps`                 |
+| Body weights   | UI     | 400 → 700         | -                          |
+| Probability    | Data   | tabular           | `.num`                     |
+| Hero numeric   | Data   | 128 / 1           | `.display-num`             |
+| VXP delta      | Data   | `+240 VXP`        | `.num`                     |
+| Volume         | Data   | `2.4M vol`        | `.num`                     |
 
-Every probability, timestamp, principal address, and VXP value uses the
-`.num` class (or one of its display siblings) so digits stay tabular
-and `0` reads slashed.
+Every probability, timestamp, and VXP value uses the `.num` class (or
+one of its display siblings) so digits stay tabular: columns of figures
+line up and a ticking value does not shift its neighbours. In CSS that
+is `font-family: var(--font-data)` with `font-variant-numeric:
+tabular-nums`; in Tailwind, `font-data tabular-nums`. Hanken Grotesk's
+default digits are already one width; the declaration keeps that true
+when a face with proportional figures (Bricolage Grotesque on a
+headline numeral) sets the number.
+
+**Code** is the one place mono stays: principals, wallet and email
+addresses (shown or typed), links meant to be copied, invite and
+one-time codes, and admin code views use the `.code` class
+(`var(--font-mono)` with a slashed zero). They are read, compared or
+typed one character at a time, where `0` / `O` and `1` / `l` must
+never blur, and nobody adds them up, so they do not follow the figures.
+An input whose own rule sets `font: inherit` outranks the global class,
+so it names `var(--font-mono)` in that rule instead. Never use
+`--font-mono` for a number a person reads as a quantity.
 
 ---
 

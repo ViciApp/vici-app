@@ -109,7 +109,7 @@
 
 	.call-size-label {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 	}
 
 	.call-size.is-cap .call-size-label {
@@ -117,7 +117,7 @@
 	}
 
 	.call-size-value {
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: 1.375rem;
 		font-weight: 700;
 		letter-spacing: -0.02em;

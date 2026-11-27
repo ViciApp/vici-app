@@ -1235,10 +1235,10 @@
 								</span>
 								<span class="feed-copy">
 									<span class="feed-line">
-										<b class="feed-handle"
-											>@{digest.profile?.nickname ??
-												t({ locale: $localeStore, key: 'arena.friends.unknown_nickname' })}</b
-										>
+										<b class="feed-handle">
+											@{digest.profile?.nickname ??
+												t({ locale: $localeStore, key: 'arena.friends.unknown_nickname' })}
+										</b>
 										<span class="feed-action">
 											{t({
 												locale: $localeStore,
@@ -1249,21 +1249,21 @@
 												params: { count: digest.total }
 											})}
 										</span>
-										<span class="num feed-record"
-											>· <span class="feed-record-win"
-												>{t({
+										<span class="num feed-record">
+											· <span class="feed-record-win">
+												{t({
 													locale: $localeStore,
 													key: 'arena.friends.feed.record_won',
 													params: { count: digest.won }
-												})}</span
-											>–<span class="feed-record-loss"
-												>{t({
+												})}
+											</span>–<span class="feed-record-loss">
+												{t({
 													locale: $localeStore,
 													key: 'arena.friends.feed.record_lost',
 													params: { count: digest.lost }
-												})}</span
-											></span
-										>
+												})}
+											</span>
+										</span>
 									</span>
 									<span class="feed-meta">
 										{#if nonNullish(digest.windowLabel)}
@@ -1462,7 +1462,7 @@
 
 	.friends-invite-strip-go {
 		flex: none;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-15, 0.95rem);
 		color: var(--color-primary);
 	}
@@ -1489,7 +1489,7 @@
 		align-items: baseline;
 		gap: 0.35rem;
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -1527,7 +1527,7 @@
 	.invite-cap {
 		margin-left: 0.35rem;
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -1670,7 +1670,7 @@
 		justify-content: space-between;
 		gap: 0.5rem;
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -1698,7 +1698,7 @@
 		border-radius: var(--r-pill);
 		background: color-mix(in srgb, var(--color-primary) 8%, transparent);
 		color: var(--color-primary);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -1955,7 +1955,7 @@
 		color: var(--text-muted);
 	}
 
-	/* W-L tally: mono numerals, base weight so the record reads as the
+	/* W-L tally: tabular numerals, base weight so the record reads as the
 	   row's spine. Wins/losses carry the same yes/no color as the net
 	   figure plus a leading W/L glyph, so the split reads at a glance
 	   without leaning on color alone. */
@@ -1993,7 +1993,7 @@
 
 	.feed-when {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);
@@ -2197,7 +2197,7 @@
 
 	.global-link-eyebrow {
 		color: var(--text-muted);
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-10);
 		font-weight: 800;
 		letter-spacing: var(--tracking-allcaps);

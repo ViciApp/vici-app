@@ -344,7 +344,7 @@
 
 	.men-tile-concept {
 		margin-top: 3px;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		font-size: var(--t-11);
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -478,7 +478,7 @@
 		font-size: 10px;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
-		font-family: var(--font-mono);
+		font-family: var(--font-data);
 		color: var(--text-muted);
 	}
 
