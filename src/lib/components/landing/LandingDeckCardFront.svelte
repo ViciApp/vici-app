@@ -17,7 +17,7 @@
 		card: LandingDeckCard;
 		/** Question in the reader's language. */
 		title: string;
-		/** Today's move, already worded; absent when nothing traded today. */
+		/** The 24-hour move, already worded; absent when nothing traded in it. */
 		moveLabel?: string;
 		trend?: DeckTrend;
 		/** The front is covered by the back: hidden from assistive tech, out of the tab order. */
@@ -184,7 +184,7 @@
 	}
 
 	/* The small line is coloured by its own direction; the words beside it
-	   keep today's colour. */
+	   keep the 24-hour move's colour. */
 	.cat svg {
 		flex: none;
 		width: 44px;

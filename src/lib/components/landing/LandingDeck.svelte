@@ -34,6 +34,7 @@
 		type DeckExit,
 		type DeckPointerRelease
 	} from '#lib/utils/landing-deck-motion.utils.ts';
+	import { LandingDeckTable, type DeckItem } from '#lib/utils/landing-deck-table.utils.ts';
 	import {
 		deckAttractAmplitude,
 		deckSidePercent,
@@ -67,7 +68,10 @@
 		onclaim?: () => void;
 		/** The visitor's first input while the introduction is showing. */
 		onengage?: () => void;
-		/** Every series was read and none can be shown. */
+		/**
+		 * Every series was read and none can be shown, or a refresh took the
+		 * last showable card off a deck already in play.
+		 */
 		onempty?: () => void;
 		/**
 		 * A series to open on, ahead of the curated ones (which follow, none
@@ -89,15 +93,6 @@
 		leadSeriesId
 	}: Props = $props();
 
-	interface DeckItem {
-		key: number;
-		seriesId: string;
-		motion: LandingDeckCardMotion;
-		place: ComponentProps<typeof LandingDeckCard>['place'];
-		first: boolean;
-		enterFrom?: string;
-	}
-
 	const reducedMotion = $derived(prefersReducedMotion());
 
 	let innerWidth = $state(0);
@@ -115,7 +110,7 @@
 	const introduce = $derived(attract && isNullish(leadSeriesId));
 
 	let stage = $state<HTMLDivElement>();
-	let items = $state.raw<DeckItem[]>([]);
+	let items = $state.raw<readonly DeckItem[]>([]);
 	let started = $state(false);
 	let calls = $state.raw<LandingDeckCall[]>([]);
 	let hint = $state(false);
@@ -125,8 +120,6 @@
 	let clipAllowed = $state(false);
 	let clipResting = $state(false);
 
-	let nextKey = 0;
-	let cursor = 0;
 	let underProgress = 0;
 	let demo = false;
 	let lastInput_ms = 0;
@@ -135,7 +128,25 @@
 	let nudgeTimer: ReturnType<typeof setTimeout> | undefined;
 	let wakeTimer: ReturnType<typeof setTimeout> | undefined;
 
-	const topItem = (): DeckItem | undefined => items.find(({ place }) => place === 'top');
+	const table = new LandingDeckTable({
+		onchange: (next) => (items = next),
+		newMotion: () => {
+			const motion = new LandingDeckCardMotion({
+				viewport: readViewport,
+				reducedMotion: () => reducedMotion
+			});
+
+			motion.onArm = (arm) => {
+				if (nonNullish(arm)) {
+					haptic('light-tap');
+				}
+			};
+
+			return motion;
+		}
+	});
+
+	const topItem = (): DeckItem | undefined => table.top;
 
 	const setUnderProgress = (progress: number): void => {
 		underProgress = progress;
@@ -145,42 +156,24 @@
 		stage?.style.setProperty('--deck-under-shade', String(shade));
 	};
 
-	const makeItem = (first: boolean): DeckItem => {
-		const { entry } = feed.cards[cursor % feed.cards.length];
-		cursor += 1;
-
-		const motion = new LandingDeckCardMotion({
-			viewport: readViewport,
-			reducedMotion: () => reducedMotion
-		});
-
-		motion.onArm = (arm) => {
-			if (nonNullish(arm)) {
-				haptic('light-tap');
-			}
-		};
-
-		return { key: nextKey++, seriesId: entry.seriesId, motion, place: 'under', first };
-	};
-
 	/** The card underneath becomes the top card and a fresh one is laid under it. */
 	const promote = (leaving?: DeckItem): void => {
-		const enterFrom = deckUnderFrame(underProgress).transform;
-
-		items = [
-			...items
-				.filter((item) => item !== leaving)
-				.map((item) =>
-					item.place === 'under' ? { ...item, place: 'top' as const, enterFrom } : item
-				),
-			...(nonNullish(leaving) ? [{ ...leaving, place: 'out' as const }] : []),
-			makeItem(false)
-		];
+		table.promote({
+			cards: feed.cards,
+			leaving,
+			enterFrom: deckUnderFrame(underProgress).transform
+		});
 		setUnderProgress(0);
 	};
 
-	const drop = (key: number): void => {
-		items = items.filter((item) => item.key !== key);
+	/** A refresh can take cards off the table, and empty it. */
+	const reconcile = (cards: typeof feed.cards): void => {
+		if (table.reconcile(cards)) {
+			clearDemoTimers();
+			demo = false;
+			hand = undefined;
+			onempty();
+		}
 	};
 
 	const say = (line: string): void => {
@@ -285,9 +278,12 @@
 	};
 
 	const start = (): void => {
+		if (!table.deal({ cards: feed.cards, enterFrom: deckUnderFrame(underProgress).transform })) {
+			return;
+		}
+
 		started = true;
-		items = [makeItem(true)];
-		promote();
+		setUnderProgress(0);
 
 		if (introduce && !reducedMotion) {
 			demo = true;
@@ -331,9 +327,9 @@
 		promote(item);
 
 		if (handover) {
-			requestAnimationFrame(() => drop(item.key));
+			requestAnimationFrame(() => table.drop(item.key));
 		} else {
-			setTimeout(() => drop(item.key), LANDING_DECK_EXIT_MS);
+			setTimeout(() => table.drop(item.key), LANDING_DECK_EXIT_MS);
 		}
 
 		return item;
@@ -526,6 +522,15 @@
 		}
 
 		untrack(start);
+	});
+
+	$effect(() => {
+		const { cards } = feed;
+
+		// The table is read and rewritten untracked: only the feed reruns this.
+		if (started) {
+			untrack(() => reconcile(cards));
+		}
 	});
 </script>
 

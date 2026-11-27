@@ -15,7 +15,7 @@
 		/** Question and settlement clause in the reader's language. */
 		title: string;
 		resolution: string;
-		/** Today's move, already worded; absent when nothing traded today. */
+		/** The 24-hour move, already worded; absent when nothing traded in it. */
 		moveLabel?: string;
 		trend?: DeckTrend;
 		/** The back is the face showing: it is exposed to assistive tech and its controls take focus. */

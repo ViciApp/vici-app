@@ -7,6 +7,7 @@ import type {
 	LandingDeckSide
 } from '#lib/types/landing.ts';
 import type { Market } from '#lib/types/market.ts';
+import { isMarketRevealed } from '#lib/utils/market-reveal.utils.ts';
 import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
 import { projectMomentum, rubberBand, type Velocity2d } from '#lib/utils/spring.utils.ts';
 import { vxpNetWin } from '#lib/utils/vxp-economy.utils.ts';
@@ -275,11 +276,12 @@ export const deckSparkline = (history: readonly number[]): DeckSparkline | undef
 };
 
 /**
- * Today's move of the YES price in whole points: now against the first
- * traded price of the day. `undefined` when nothing traded today, so the
- * card states no move instead of an invented "flat".
+ * The YES price's move over the last 24 hours in whole points: now against
+ * the first traded price in that rolling window (the `1d` history period,
+ * not the calendar day). `undefined` when nothing traded in it, so the card
+ * states no move instead of an invented "flat".
  */
-export const deckTodayMove = ({
+export const deckMove24h = ({
 	history,
 	yesPercent
 }: {
@@ -295,18 +297,28 @@ export const deckTodayMove = ({
 
 /**
  * The card for a loaded series, or `undefined` when it cannot be shown
- * honestly: no market, not open, or no crowd price yet.
+ * honestly: no market, not a Yes/No market, not open, not released yet
+ * (the same start gate as every other feed surface), or no crowd price yet.
  */
 export const toLandingDeckCard = ({
 	entry,
 	market,
-	history
+	history,
+	now
 }: {
 	entry: LandingDeckSeries;
 	market: Market | undefined;
 	history?: number[];
+	/** Client clock (ms) the release start is read against. */
+	now: number;
 }): LandingDeckCard | undefined => {
-	if (isNullish(market) || market.status !== 'Open' || isNullish(market.yesProbability)) {
+	if (
+		isNullish(market) ||
+		market.payoffType !== 'Binary' ||
+		market.status !== 'Open' ||
+		!isMarketRevealed({ startDate: market.startDate, now }) ||
+		isNullish(market.yesProbability)
+	) {
 		return;
 	}
 

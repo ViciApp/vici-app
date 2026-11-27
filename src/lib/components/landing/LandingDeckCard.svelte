@@ -16,7 +16,7 @@
 		LandingDeckCardMotion
 	} from '#lib/utils/landing-deck-motion.utils.ts';
 	import {
-		deckTodayMove,
+		deckMove24h,
 		type DeckArm,
 		type DeckCardFrame,
 		type DeckTrend,
@@ -79,7 +79,7 @@
 
 	const display = $derived($marketDisplay(card.market));
 
-	const move = $derived(deckTodayMove({ history: card.history, yesPercent: card.yesPercent }));
+	const move = $derived(deckMove24h({ history: card.history, yesPercent: card.yesPercent }));
 	const moveTrend = $derived<DeckTrend>(
 		isNullish(move) || move === 0 ? 'flat' : move > 0 ? 'up' : 'down'
 	);

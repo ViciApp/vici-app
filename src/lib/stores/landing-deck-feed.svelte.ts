@@ -1,26 +1,30 @@
 import { LANDING_DECK_REFRESH_INTERVAL_MS } from '#lib/constants/landing.constants.ts';
+import { minuteTick_ms } from '#lib/derived/time.derived.ts';
 import { loadLandingDeckSeries } from '#lib/services/landing-deck.services.ts';
 import type { LandingDeckCard, LandingDeckSeries } from '#lib/types/landing.ts';
 import type { Market } from '#lib/types/market.ts';
 import { startPolling } from '#lib/utils/async.utils.ts';
 import { toLandingDeckCard } from '#lib/utils/landing-deck.utils.ts';
-import { nonNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+import { fromStore } from 'svelte/store';
 
 /**
  * Live data behind the landing deck: the curated series, read through the
  * public market reads and refreshed while the tab is visible.
  *
- * `cards` holds only the series that can be shown honestly (loaded, open and
- * priced), in curated order; a series that fails is simply absent. `ready`
- * turns true once every series has answered one way or the other, which is
- * when the deck can tell which card comes first.
+ * `cards` holds only the series that can be shown honestly (loaded, Yes/No,
+ * open, released and priced), in curated order; a series that fails is
+ * simply absent. `ready` turns true once every series has answered one way
+ * or the other, which is when the deck can tell which card comes first.
  */
 export class LandingDeckFeed {
 	readonly #series: readonly LandingDeckSeries[];
 	readonly #markets = new SvelteMap<string, Market>();
 	readonly #histories = new SvelteMap<string, number[]>();
 	readonly #answered = new SvelteSet<string>();
+	// A scheduled series joins the deck within a minute of its start.
+	readonly #now = fromStore(minuteTick_ms);
 
 	readonly cards: LandingDeckCard[] = $derived.by(() =>
 		this.#series
@@ -28,7 +32,8 @@ export class LandingDeckFeed {
 				toLandingDeckCard({
 					entry,
 					market: this.#markets.get(entry.seriesId),
-					history: this.#histories.get(entry.seriesId)
+					history: this.#histories.get(entry.seriesId),
+					now: this.#now.current
 				})
 			)
 			.filter(nonNullish)
@@ -68,7 +73,13 @@ export class LandingDeckFeed {
 				await loadLandingDeckSeries({
 					entry,
 					onMarket: (market) => {
-						this.#markets.set(entry.seriesId, market);
+						if (isNullish(market)) {
+							this.#markets.delete(entry.seriesId);
+							this.#histories.delete(entry.seriesId);
+						} else {
+							this.#markets.set(entry.seriesId, market);
+						}
+
 						this.#answered.add(entry.seriesId);
 					},
 					onHistory: (history) => this.#histories.set(entry.seriesId, history)

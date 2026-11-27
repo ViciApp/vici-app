@@ -7,12 +7,12 @@ import {
 	deckCardFrame,
 	deckCommitThreshold,
 	deckDragX,
+	deckMove24h,
 	deckPassThreshold,
 	deckSeamStops,
 	deckSidePercent,
 	deckSparkline,
 	deckStampThreshold,
-	deckTodayMove,
 	deckUnderFrame,
 	focusY,
 	hasDeckFilm,
@@ -27,6 +27,7 @@ import { describe, it } from 'node:test';
 const PHONE = { width: 390, height: 760 };
 const DESKTOP = { width: 1440, height: 900 };
 const STILL = { x: 0, y: 0 };
+const NOW_MS = 1_800_000_000_000;
 
 const ENTRY: LandingDeckSeries = { seriesId: 'series-1', media: 'btc', category: 'economy' };
 
@@ -37,6 +38,7 @@ const market = (overrides: Partial<Market>): Market =>
 		title: 'Question?',
 		resolution: 'Resolves YES if.',
 		status: 'Open',
+		payoffType: 'Binary',
 		yesProbability: 0.54,
 		noProbability: 0.46,
 		...overrides
@@ -336,22 +338,27 @@ describe('landing-deck.utils', () => {
 		});
 	});
 
-	describe('deckTodayMove', () => {
-		it('is the price now against the first traded price of the day', () => {
-			assert.equal(deckTodayMove({ history: [51, 53, 52], yesPercent: 54 }), 3);
-			assert.equal(deckTodayMove({ history: [60], yesPercent: 54 }), -6);
-			assert.equal(deckTodayMove({ history: [54, 60], yesPercent: 54 }), 0);
+	describe('deckMove24h', () => {
+		it('is the price now against the first traded price in the window', () => {
+			assert.equal(deckMove24h({ history: [51, 53, 52], yesPercent: 54 }), 3);
+			assert.equal(deckMove24h({ history: [60], yesPercent: 54 }), -6);
+			assert.equal(deckMove24h({ history: [54, 60], yesPercent: 54 }), 0);
 		});
 
-		it('states nothing when nothing traded today', () => {
-			assert.equal(deckTodayMove({ history: [], yesPercent: 54 }), undefined);
-			assert.equal(deckTodayMove({ history: undefined, yesPercent: 54 }), undefined);
+		it('states nothing when nothing traded in the window', () => {
+			assert.equal(deckMove24h({ history: [], yesPercent: 54 }), undefined);
+			assert.equal(deckMove24h({ history: undefined, yesPercent: 54 }), undefined);
 		});
 	});
 
 	describe('toLandingDeckCard', () => {
 		it('builds the card from a priced open market', () => {
-			const card = toLandingDeckCard({ entry: ENTRY, market: market({}), history: [50, 52] });
+			const card = toLandingDeckCard({
+				entry: ENTRY,
+				market: market({}),
+				history: [50, 52],
+				now: NOW_MS
+			});
 
 			assert.equal(card?.yesPercent, 54);
 			assert.deepEqual(card?.history, [50, 52]);
@@ -368,7 +375,8 @@ describe('landing-deck.utils', () => {
 		it('prices the return off the book, not the consensus mid', () => {
 			const card = toLandingDeckCard({
 				entry: ENTRY,
-				market: market({ bestAsk: 0.6, bestBid: 0.5 })
+				market: market({ bestAsk: 0.6, bestBid: 0.5 }),
+				now: NOW_MS
 			});
 
 			assert.ok(
@@ -384,7 +392,8 @@ describe('landing-deck.utils', () => {
 		it('caps a long shot at the payout floor', () => {
 			const card = toLandingDeckCard({
 				entry: ENTRY,
-				market: market({ yesProbability: 0.01, noProbability: 0.99 })
+				market: market({ yesProbability: 0.01, noProbability: 0.99 }),
+				now: NOW_MS
 			});
 
 			assert.ok(
@@ -395,25 +404,62 @@ describe('landing-deck.utils', () => {
 		});
 
 		it('leaves out a series that did not load, is not open, or has no price', () => {
-			assert.equal(toLandingDeckCard({ entry: ENTRY, market: undefined }), undefined);
+			assert.equal(toLandingDeckCard({ entry: ENTRY, market: undefined, now: NOW_MS }), undefined);
 			assert.equal(
-				toLandingDeckCard({ entry: ENTRY, market: market({ status: 'Resolved' }) }),
+				toLandingDeckCard({ entry: ENTRY, market: market({ status: 'Resolved' }), now: NOW_MS }),
 				undefined
 			);
 			assert.equal(
-				toLandingDeckCard({ entry: ENTRY, market: market({ yesProbability: undefined }) }),
+				toLandingDeckCard({
+					entry: ENTRY,
+					market: market({ yesProbability: undefined }),
+					now: NOW_MS
+				}),
 				undefined
 			);
 			assert.equal(
-				toLandingDeckCard({ entry: ENTRY, market: market({ yesProbability: Number.NaN }) }),
+				toLandingDeckCard({
+					entry: ENTRY,
+					market: market({ yesProbability: Number.NaN }),
+					now: NOW_MS
+				}),
 				undefined
+			);
+		});
+
+		it('leaves out a market that is not Yes/No', () => {
+			for (const payoffType of ['Categorical', 'Call', 'Put'] as const) {
+				assert.equal(
+					toLandingDeckCard({ entry: ENTRY, market: market({ payoffType }), now: NOW_MS }),
+					undefined,
+					payoffType
+				);
+			}
+		});
+
+		it('holds a scheduled market back until its start, like every feed surface', () => {
+			const startDate = BigInt(NOW_MS + 60_000);
+
+			assert.equal(
+				toLandingDeckCard({ entry: ENTRY, market: market({ startDate }), now: NOW_MS }),
+				undefined
+			);
+			assert.ok(
+				toLandingDeckCard({ entry: ENTRY, market: market({ startDate }), now: NOW_MS + 60_000 })
+			);
+			assert.ok(
+				toLandingDeckCard({
+					entry: ENTRY,
+					market: market({ startDate: BigInt(NOW_MS - 1) }),
+					now: NOW_MS
+				})
 			);
 		});
 	});
 
 	describe('deckSidePercent', () => {
 		it('is the price of the called side', () => {
-			const card = toLandingDeckCard({ entry: ENTRY, market: market({}) });
+			const card = toLandingDeckCard({ entry: ENTRY, market: market({}), now: NOW_MS });
 
 			assert.ok(card);
 			assert.equal(deckSidePercent({ card, side: 'yes' }), 54);

@@ -56,7 +56,10 @@ export interface LandingDeckCard {
 	/** VXP a right call of the default size earns, per side. */
 	yesEarns: number;
 	noEarns: number;
-	/** Today's YES prices (whole percent, oldest first); absent until the history loads. */
+	/**
+	 * YES prices over the last 24 hours (whole percent, oldest first); absent
+	 * until the history loads.
+	 */
 	history?: number[];
 }
 
