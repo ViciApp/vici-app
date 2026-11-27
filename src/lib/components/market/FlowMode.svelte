@@ -23,6 +23,7 @@
 	import A2hsSheet from '#lib/components/pwa/A2hsSheet.svelte';
 	import { ZERO } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
+	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
 	import { VXP_MIN_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
@@ -1322,6 +1323,7 @@
 	class="flow-shell bg-background"
 	class:is-active={!completed && (loading || markets.length > 0)}
 	class:is-paused={flowPaused}
+	data-tid={TestId.FlowMode}
 >
 	{#if !loading && markets.length === 0}
 		<!-- Fetch resolved to an empty deck: surface the empty state directly

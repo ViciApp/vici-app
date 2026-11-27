@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import { E2E_LANDING_DECK_SERIES } from '../backend/e2e/fixtures';
 import { enMessages } from '../src/lib/constants/messages/en';
 import { PENDING_ONBOARDING_STORAGE_KEY } from '../src/lib/constants/profile.constants';
+import { TestId } from '../src/lib/constants/test-ids.constants';
 import { marketShareParam } from '../src/lib/utils/market-slug.utils';
 import { expect, test } from './support/fixtures';
 
@@ -65,9 +66,12 @@ test.describe('signed-out funnel', () => {
 		await expect(capsule(page)).toBeVisible();
 	});
 
+	// Where the visitor is sent is the auth gate's business; this pins only
+	// that there is no Flow without an account.
 	test('Flow needs an account', async ({ page }) => {
 		await page.goto('/flow');
 
-		await expect(page).toHaveURL(/\/signin$/);
+		await expect(page).not.toHaveURL(/\/flow$/);
+		await expect(page.getByTestId(TestId.FlowMode)).toHaveCount(0);
 	});
 });

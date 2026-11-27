@@ -24,6 +24,8 @@ export enum TestId {
 	MarketCard = 'market-card',
 	MarketCardSkeleton = 'market-card-skeleton',
 	PrincipalDisplay = 'principal-display',
+	// The Flow deck's shell (`FlowMode`), mounted only for a session.
+	FlowMode = 'flow-mode',
 	// Onboarding (`/signup`): the outer wrapper, the handle input, the skip
 	// escape, and the primary CTA (claim / finish).
 	Onboarding = 'onboarding',

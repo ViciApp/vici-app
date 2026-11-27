@@ -758,7 +758,10 @@ No in Markets opens it too, with a line naming the call. **The waitlist
 behind the email and code steps does not exist yet: the capsule checks
 the handle for real and then refuses to send a code**, so no handle is
 ever shown as held. When no curated market is open and priced the landing
-opens on Markets alone.
+opens on Markets alone. An existing account signs in through the "Sign in" link (top bar on wide
+screens, footer everywhere). In Markets the curated markets keep their
+film stills. Design contract:
+[`design.md` § 6](./frontend/design.md#6-landing-page).
 
 The landing's Markets is the public markets showcase: a signed-out visitor
 who opens `/markets` or the markets board (`/app`), follows "back to markets"
@@ -782,12 +785,9 @@ the capsule too, and the invite, the league and any referral code are kept
 on the device for the claim and for the sign-up that follows admission
 (`readPendingInvite`). A brand-new account that is still in onboarding goes
 to `/signup` instead. There is no Flow without an account: a signed-out
-visit to `/flow` goes to `/signin`. On the legacy build, where sign-ups have
+visit to `/flow`, like any app surface, goes to the landing. On the legacy build, where sign-ups have
 moved to vici.app, invite and league links keep leading to `/signup`, whose
-moved screen carries the codes over. An existing account signs in through the "Sign in" link (top bar on wide
-screens, footer everywhere). In Markets the curated markets keep their
-film stills. Design contract:
-[`design.md` § 6](./frontend/design.md#6-landing-page).
+moved screen carries the codes over.
 
 ### Legacy app: new accounts move to vici.app
 
