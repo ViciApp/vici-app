@@ -42,8 +42,8 @@
 	);
 
 	// Back target: signed-in users came from Settings; signed-out
-	// (pre-onboarding) users came from the Welcome / signup flow.
-	const backTarget = $derived($userSignedIn ? AppPath.Settings : PublicPath.Welcome);
+	// (pre-onboarding) users came from the landing page / signup flow.
+	const backTarget = $derived($userSignedIn ? AppPath.Settings : PublicPath.Landing);
 	const handleBack = () => goBack(resolveAppPath(backTarget));
 
 	const footBackKey = $derived<'info.back_to_settings' | 'info.back'>(

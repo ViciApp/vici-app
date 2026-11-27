@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import LandingClaim from '#lib/components/landing/LandingClaim.svelte';
 	import LandingNavSwitch from '#lib/components/landing/LandingNavSwitch.svelte';
@@ -25,9 +26,20 @@
 		onview?: (view: LandingView) => void;
 		// Fires once the waitlist holds the visitor's handle.
 		onclaimed?: (handle: string) => void;
+		// A passing line the button reads in place of its label, until a handle is claimed.
+		nudge?: string;
+		// Off when the page has one view only: the switch is not shown.
+		canSwitch?: boolean;
 	}
 
-	const { submit, view = 'cards', onview = () => {}, onclaimed = () => {} }: Props = $props();
+	const {
+		submit,
+		view = 'cards',
+		onview = () => {},
+		onclaimed = () => {},
+		nudge,
+		canSwitch = true
+	}: Props = $props();
 
 	let cta = $state<HTMLButtonElement>();
 	let ctaWidth = $state(0);
@@ -51,7 +63,9 @@
 <nav class="ln" class:is-claiming={claiming}>
 	<img class="ln-mark" alt="VICI" height="274" src={LANDING_NAV_WORDMARK_SRC} width="1024" />
 	<div class="ln-r">
-		<LandingNavSwitch {onview} {view} />
+		{#if canSwitch}
+			<LandingNavSwitch {onview} {view} />
+		{/if}
 		<button
 			bind:this={cta}
 			class="ln-cta"
@@ -63,6 +77,8 @@
 		>
 			{#if claimedHandle}
 				{t({ locale: $localeStore, key: 'landing.nav.handle', params: { handle: claimedHandle } })}
+			{:else if nonNullish(nudge)}
+				<span role="status">{nudge}</span>
 			{:else}
 				<span class="ln-long">{t({ locale: $localeStore, key: 'landing.nav.claim' })}</span>
 				<span class="ln-short">{t({ locale: $localeStore, key: 'landing.nav.claim_short' })}</span>

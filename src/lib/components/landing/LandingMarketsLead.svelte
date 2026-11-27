@@ -66,7 +66,7 @@
 		></button>
 	{/if}
 
-	<span class="lml-art" aria-hidden="true">
+	<span class="lml-art" aria-hidden="true" data-landing-markets-lead-art>
 		<MarketArtwork bleed category={view.artOf(market)} fill seed={market.id} size={320} {title} />
 	</span>
 

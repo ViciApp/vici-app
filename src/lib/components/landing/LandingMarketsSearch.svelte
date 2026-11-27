@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { landingClaimStore } from '#lib/stores/landing-claim.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * The Markets search field. It sits in the page's top-bar row on wide
 	 * screens and on its own row under the bar on phones; "/" focuses it
-	 * (handled by `LandingMarkets`).
+	 * (handled by `LandingMarkets`). It steps aside while the claim capsule,
+	 * which opens over the same rows, is open.
 	 */
 	interface Props {
 		query: string;
@@ -27,7 +29,7 @@
 	});
 </script>
 
-<div class="lmq">
+<div class="lmq" class:is-aside={$landingClaimStore.open} inert={$landingClaimStore.open}>
 	<label class="sr-only" for="{uid}-q">
 		{t({ locale: $localeStore, key: 'landing.markets.search.label' })}
 	</label>
@@ -52,7 +54,12 @@
 		z-index: 3;
 		width: min(440px, 34vw);
 		translate: -50% 0;
+		transition: opacity 140ms var(--ease-vici);
 		animation: lmq-in 420ms var(--ease-vici) both;
+	}
+
+	.lmq.is-aside {
+		opacity: 0;
 	}
 
 	@keyframes lmq-in {

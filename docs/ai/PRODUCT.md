@@ -704,10 +704,29 @@ farming. Earlier these grants were display-only by design (the
 deferred real-credit path. Decision record:
 [`specs/2026-06-20-feat-flow-milestone-overtime-vxp-credit.md`](./spec-driven-development/specs/2026-06-20-feat-flow-milestone-overtime-vxp-credit.md).
 
+### Signed-out landing: the deck, Markets and the handle claim
+
+A signed-out visitor on `/` gets the landing page; a signed-in session is
+sent on to Flow, and `/about` and `/welcome` redirect to `/`. The first
+view is a deck of up to three curated markets as fullscreen film cards
+(Yes / No / Pass, tap for the rule); a `/?m=` link opens it on the market
+the link names. After three calls the last card floats into **Markets**,
+every open market at its live price, also one tap away on the top bar's
+switch. A call on the landing places no order: it is kept on the device
+(the latest ten, a week at most) for the handle claim. "Claim your
+@handle" in the top bar opens the capsule (handle, email, code); a Yes /
+No in Markets opens it too, with a line naming the call. **The waitlist
+behind the email and code steps does not exist yet: the capsule checks
+the handle for real and then refuses to send a code**, so no handle is
+ever shown as held. When no curated market is open and priced the landing
+opens on Markets alone. The page has no sign-in entry: `/signin` is the
+address for an existing account. Design contract:
+[`design.md` § 6](./frontend/design.md#6-landing-page).
+
 ### Legacy app: new accounts move to vici.app
 
 The legacy build (vici.market) no longer creates accounts. Every sign-up
-entry (landing CTAs, "Create account" on the sign-in screen, invite and
+entry ("Create account" on the sign-in screen, invite and
 league links, `?ref=` share links) lands on `/signup`, which shows "VICI has
 moved to vici.app" with a link to the new app that keeps any invite or
 referral code, plus a "Sign in" link for existing accounts. A sign-in that

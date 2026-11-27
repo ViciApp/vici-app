@@ -89,3 +89,21 @@ const BARE_SERIES_ID_PATTERN = new RegExp(`^[0-9a-f]{${SLUG_ID_SUFFIX_LENGTH},}$
 /** The series id a bare-id share param carries, or `undefined` when the param is not one. */
 export const parseBareMarketShareParam = (param: string): string | undefined =>
 	BARE_SERIES_ID_PATTERN.test(param) ? param : undefined;
+
+/**
+ * The one series id that starts with `prefix` (the short-id suffix of a
+ * share param, or a whole bare id), or `undefined` when none or more than
+ * one does: a colliding prefix must never resolve to whichever market
+ * sorts first.
+ */
+export const uniqueSeriesIdWithPrefix = ({
+	seriesIds,
+	prefix
+}: {
+	seriesIds: readonly string[];
+	prefix: string;
+}): string | undefined => {
+	const matches = seriesIds.filter((seriesId) => seriesId.startsWith(prefix));
+
+	return matches.length === 1 ? matches[0] : undefined;
+};

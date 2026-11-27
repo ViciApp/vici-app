@@ -48,6 +48,7 @@ of their own, but check `<svelte:head>` and meta):
 - `src/routes/(app)/profile/+page.svelte`
 - `src/routes/(app)/settings/+page.svelte`
 - `src/routes/(app)/wallet/+page.svelte`
+- `src/routes/about/+page.svelte`
 - `src/routes/welcome/+page.svelte`
 
 ## Exempt: no user-visible text

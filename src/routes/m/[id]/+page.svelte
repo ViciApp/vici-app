@@ -6,7 +6,7 @@
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { listSeriesCatalog } from '#lib/services/market.services.ts';
 	import { setPinnedFlowMarket } from '#lib/utils/flow-pin.utils.ts';
-	import { parseMarketShareParam } from '#lib/utils/market-slug.utils.ts';
+	import { parseMarketShareParam, uniqueSeriesIdWithPrefix } from '#lib/utils/market-slug.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -52,25 +52,10 @@
 				certified: true
 			});
 
-			// Exactly one match or nothing: a colliding suffix must degrade to
-			// the markets board, never redirect to whichever market sorts
-			// first. Short-circuits on the second hit.
-			let match: string | undefined = undefined;
-
-			for (const { series_id } of series) {
-				if (series_id.startsWith(suffix)) {
-					if (nonNullish(match)) {
-						match = undefined;
-						break;
-					}
-
-					match = series_id;
-				}
-			}
-
-			if (nonNullish(match)) {
-				return match;
-			}
+			return uniqueSeriesIdWithPrefix({
+				seriesIds: series.map(({ series_id }) => series_id),
+				prefix: suffix
+			});
 		} catch {
 			// Registry unreachable: fall through to "unresolvable"; the
 			// caller lands on the markets board instead of a dead page.

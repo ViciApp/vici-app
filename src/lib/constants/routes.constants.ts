@@ -48,15 +48,10 @@ export enum PublicPath {
 	SignIn = '/signin',
 	SignUp = '/signup',
 	/**
-	 * Canonical share-able marketing URL. Signed-in users can visit
-	 * `/about` without being bounced to `/app`, so the marketing site
-	 * stays linkable from anywhere.
+	 * The root: the signed-out landing page. A signed-in session is sent on
+	 * to Flow from there. `/about` and `/welcome`, earlier addresses of the
+	 * marketing page, redirect to it.
 	 */
-	About = '/about',
-	/**
-	 * Legacy marketing path. Retained for backward-compat: the route
-	 * itself just redirects to `PublicPath.About`.
-	 */
-	Welcome = '/welcome',
+	Landing = '/',
 	Info = '/info'
 }

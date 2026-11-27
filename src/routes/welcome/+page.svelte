@@ -4,9 +4,9 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 
-	// Backward-compat alias. `/welcome` is the legacy marketing URL;
-	// `/about` is the canonical share-able destination.
+	// An earlier address of the marketing page, still linked from outside:
+	// it leads to the landing page.
 	onMount(() => {
-		void goto(resolve(PublicPath.About), { replace: true });
+		void goto(resolve(PublicPath.Landing), { replace: true });
 	});
 </script>

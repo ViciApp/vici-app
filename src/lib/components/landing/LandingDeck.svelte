@@ -61,7 +61,9 @@
 		 * it holds where the visitor left it for the duration of this call, as
 		 * `[data-landing-deck-card="<seriesId>"]`, so the page can copy it and
 		 * carry the copy into its next view. The deck drops its own on the
-		 * next frame.
+		 * next frame. In a copy, the picture is the card's `picture`, `video`
+		 * and `[data-landing-deck-art]` children and `[data-landing-deck-veil]`
+		 * is the shade over it; every other child is the card's text.
 		 */
 		ondone?: (last: { seriesId: string }) => void;
 		/** The claim, offered once the deck is complete. Without it no claim is shown. */
