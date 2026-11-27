@@ -3,10 +3,12 @@
 	import { tick, untrack } from 'svelte';
 	import LandingClaimTray from '#lib/components/landing/LandingClaimTray.svelte';
 	import { LANDING_CLAIM_CODE_LENGTH } from '#lib/constants/landing-claim.constants.ts';
+	import { checkHandleAvailabilityPublic } from '#lib/services/handle-availability.services.ts';
 	import { LandingClaimFlow } from '#lib/stores/landing-claim-flow.svelte.ts';
 	import { landingClaimStore } from '#lib/stores/landing-claim.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { LandingClaimStep, LandingClaimSubmit } from '#lib/types/landing-claim.ts';
+	import { createFocusTrap } from '#lib/utils/focus-trap.utils.ts';
 	import { haptic } from '#lib/utils/haptics.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { landingClaimLine } from '#lib/utils/landing-claim.utils.ts';
@@ -32,7 +34,10 @@
 
 	const STATUS_ID = 'landing-claim-status';
 
-	const flow = new LandingClaimFlow(() => submit);
+	const flow = new LandingClaimFlow({
+		submit: () => submit,
+		checkAvailability: checkHandleAvailabilityPublic
+	});
 
 	let root = $state<HTMLDivElement>();
 	let pill = $state<HTMLFormElement>();
@@ -92,6 +97,10 @@
 
 		const result = await flow.next();
 
+		if (result.kind === 'ignored') {
+			return;
+		}
+
 		if (result.kind === 'refused') {
 			shake();
 		}
@@ -150,7 +159,24 @@
 		if (open) {
 			untrack(() => flow.reopen());
 			void focusField();
+
+			return;
 		}
+
+		untrack(() => flow.cancel());
+	});
+
+	// Tab and Shift+Tab stay inside while open; `close` hands focus back to the top-bar button.
+	$effect(() => {
+		if (!open || !root) {
+			return;
+		}
+
+		const trap = createFocusTrap(root);
+
+		trap.activate();
+
+		return () => trap.deactivate({ restoreFocus: false });
 	});
 
 	$effect(() => {
@@ -187,7 +213,8 @@
 	$effect(() => () => flow.dispose());
 </script>
 
-<!-- Keys typed here stay here: the page's own shortcuts (the deck's arrows and space) never see them. -->
+<!-- Keys typed here stay here: the page's own shortcuts (the deck's arrows and space) never see
+	them. Tab goes on to the focus trap, which listens on the document. -->
 <div
 	bind:this={root}
 	style:--lc-origin={`${originWidth}px`}
@@ -195,8 +222,13 @@
 	class:is-on={open}
 	aria-hidden={!open}
 	aria-label={t({ locale: $localeStore, key: 'landing.claim.dialog' })}
+	aria-modal={open}
 	inert={!open}
-	onkeydown={(event) => event.stopPropagation()}
+	onkeydown={(event) => {
+		if (event.key !== 'Tab') {
+			event.stopPropagation();
+		}
+	}}
 	role="dialog"
 >
 	<form bind:this={pill} class="lc-pill" novalidate onsubmit={(event) => void onSubmit(event)}>
@@ -212,6 +244,7 @@
 				enterkeyhint="next"
 				oninput={onHandleInput}
 				placeholder={t({ locale: $localeStore, key: 'landing.claim.handle_placeholder' })}
+				readonly={flow.busy}
 				spellcheck="false"
 				type="text"
 				value={flow.handle}
@@ -227,6 +260,7 @@
 				inputmode="email"
 				oninput={(event) => flow.inputEmail(event.currentTarget.value)}
 				placeholder={t({ locale: $localeStore, key: 'signin.email.placeholder' })}
+				readonly={flow.busy}
 				spellcheck="false"
 				type="email"
 				value={flow.email}
@@ -246,6 +280,7 @@
 					key: 'landing.claim.code_placeholder',
 					params: { digits: LANDING_CLAIM_CODE_LENGTH }
 				})}
+				readonly={flow.busy}
 				type="text"
 				value={flow.code}
 			/>

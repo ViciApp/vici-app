@@ -2,7 +2,7 @@ import {
 	LANDING_CLAIM_CHECK_DEBOUNCE_MS,
 	LANDING_CLAIM_CODE_LENGTH
 } from '#lib/constants/landing-claim.constants.ts';
-import { checkHandleAvailabilityPublic } from '#lib/services/handle-availability.services.ts';
+import type { PublicHandleAvailability } from '#lib/services/handle-availability.services.ts';
 import type {
 	LandingClaimCheck,
 	LandingClaimNotice,
@@ -19,14 +19,19 @@ import {
 
 /** What one press of the capsule's button led to. */
 export type LandingClaimAdvance =
-	{ kind: 'advanced' } | { kind: 'refused' } | { kind: 'claimed'; handle: string };
+	| { kind: 'advanced' }
+	| { kind: 'refused' }
+	| { kind: 'claimed'; handle: string }
+	// A call was already in flight, or the visitor edited, went back or closed before it answered.
+	| { kind: 'ignored' };
 
 /**
  * The claim capsule's steps (handle, email, code) and what each press does,
  * apart from the DOM: the handle is probed as it is typed (debounced, stale
  * answers dropped), the email and code go through the page's waitlist
  * calls, and a handle the waitlist finds taken sends the visitor back to it
- * with the email kept.
+ * with the email kept. A call's answer counts only while nothing has changed
+ * since it was made: an edit, a step back or a close drops it.
  */
 export class LandingClaimFlow {
 	step = $state<LandingClaimStep>('handle');
@@ -38,18 +43,33 @@ export class LandingClaimFlow {
 	// Once the visitor types, the opener's line has been read.
 	typed = $state(false);
 
-	readonly busy = $derived(this.notice.kind === 'busy');
+	get busy(): boolean {
+		return this.notice.kind === 'busy';
+	}
 
 	readonly #submit: () => LandingClaimSubmit;
+	readonly #checkAvailability: (params: { handle: string }) => Promise<PublicHandleAvailability>;
 	#probeToken = 0;
 	#probeTimer: ReturnType<typeof setTimeout> | undefined;
+	// Bumped by anything that makes a pending call's answer stale.
+	#opToken = 0;
+	// The address the code went to: the code step confirms against it, whatever the field holds.
+	#sentEmail = '';
 
-	constructor(submit: () => LandingClaimSubmit) {
+	constructor({
+		submit,
+		checkAvailability
+	}: {
+		submit: () => LandingClaimSubmit;
+		checkAvailability: (params: { handle: string }) => Promise<PublicHandleAvailability>;
+	}) {
 		this.#submit = submit;
+		this.#checkAvailability = checkAvailability;
 	}
 
 	/** Sets the typed handle, lowercased, stripped and capped by the handle rule, and probes it. */
 	inputHandle(raw: string): string {
+		this.#opToken += 1;
 		this.handle = sanitizeHandleInput(raw);
 		this.typed = true;
 		this.notice = { kind: 'none' };
@@ -59,12 +79,14 @@ export class LandingClaimFlow {
 	}
 
 	inputEmail(value: string): void {
+		this.#opToken += 1;
 		this.email = value;
 		this.notice = { kind: 'none' };
 	}
 
 	/** Sets the typed code, digits only. */
 	inputCode(raw: string): string {
+		this.#opToken += 1;
 		this.code = cleanClaimCode(raw);
 		this.notice = { kind: 'none' };
 
@@ -73,6 +95,7 @@ export class LandingClaimFlow {
 
 	/** Every opening starts at the handle; what was typed stays. */
 	reopen(): void {
+		this.cancel();
 		this.step = 'handle';
 		this.notice = { kind: 'none' };
 		this.typed = this.handle !== '';
@@ -80,6 +103,7 @@ export class LandingClaimFlow {
 
 	/** From the code back to the email, to fix it or ask for a new code. */
 	back(): void {
+		this.#opToken += 1;
 		this.notice = { kind: 'none' };
 		this.step = 'email';
 	}
@@ -87,7 +111,7 @@ export class LandingClaimFlow {
 	/** What the step's button does. Ignored while a call is in flight. */
 	async next(): Promise<LandingClaimAdvance> {
 		if (this.busy) {
-			return { kind: 'advanced' };
+			return { kind: 'ignored' };
 		}
 
 		if (this.step === 'handle') {
@@ -101,13 +125,27 @@ export class LandingClaimFlow {
 		return await this.#nextFromCode();
 	}
 
+	/** Drops the pending call's answer, as the capsule closes. */
+	cancel(): void {
+		this.#opToken += 1;
+
+		if (this.busy) {
+			this.notice = { kind: 'none' };
+		}
+	}
+
 	dispose(): void {
+		this.#stopProbe();
+		this.cancel();
+	}
+
+	#stopProbe(): void {
 		clearTimeout(this.#probeTimer);
 		this.#probeToken += 1;
 	}
 
 	#scheduleProbe(): void {
-		this.dispose();
+		this.#stopProbe();
 		this.check = localClaimCheck(this.handle);
 
 		if (this.check.kind !== 'checking') {
@@ -123,7 +161,7 @@ export class LandingClaimFlow {
 		let next: LandingClaimCheck;
 
 		try {
-			const res = await checkHandleAvailabilityPublic({ handle: this.handle });
+			const res = await this.#checkAvailability({ handle: this.handle });
 
 			if (res.available) {
 				next = { kind: 'free' };
@@ -147,9 +185,19 @@ export class LandingClaimFlow {
 
 		// Pressed before the probe answered, or after it failed: ask now.
 		if (current.kind === 'checking' || current.kind === 'failed') {
-			this.dispose();
+			this.#stopProbe();
+
+			const probeToken = this.#probeToken;
+			const opToken = this.#opToken;
+
 			this.notice = { kind: 'busy' };
-			current = await this.#probe(this.#probeToken);
+			current = await this.#probe(probeToken);
+
+			// The answer is for a handle the field no longer holds, or a capsule since closed.
+			if (probeToken !== this.#probeToken || opToken !== this.#opToken) {
+				return { kind: 'ignored' };
+			}
+
 			this.notice = { kind: 'none' };
 		}
 
@@ -169,16 +217,21 @@ export class LandingClaimFlow {
 			return { kind: 'refused' };
 		}
 
+		const email = this.email.trim();
+		const opToken = this.#opToken;
+
 		this.notice = { kind: 'busy' };
 
 		try {
-			const res = await this.#submit().requestCode({
-				handle: this.handle,
-				email: this.email.trim()
-			});
+			const res = await this.#submit().requestCode({ handle: this.handle, email });
+
+			if (opToken !== this.#opToken) {
+				return { kind: 'ignored' };
+			}
 
 			if ('ok' in res) {
 				this.notice = { kind: 'none' };
+				this.#sentEmail = email;
 				this.code = '';
 				this.step = 'code';
 
@@ -187,6 +240,10 @@ export class LandingClaimFlow {
 
 			this.#refuse(res.error);
 		} catch (err: unknown) {
+			if (opToken !== this.#opToken) {
+				return { kind: 'ignored' };
+			}
+
 			console.error('Landing claim: code request failed', err);
 			this.notice = { kind: 'refused', refusal: 'failed' };
 		}
@@ -199,10 +256,16 @@ export class LandingClaimFlow {
 			return { kind: 'refused' };
 		}
 
+		const opToken = this.#opToken;
+
 		this.notice = { kind: 'busy' };
 
 		try {
-			const res = await this.#submit().confirm({ email: this.email.trim(), code: this.code });
+			const res = await this.#submit().confirm({ email: this.#sentEmail, code: this.code });
+
+			if (opToken !== this.#opToken) {
+				return { kind: 'ignored' };
+			}
 
 			if ('handle' in res) {
 				this.notice = { kind: 'none' };
@@ -213,6 +276,10 @@ export class LandingClaimFlow {
 
 			this.#refuse(res.error);
 		} catch (err: unknown) {
+			if (opToken !== this.#opToken) {
+				return { kind: 'ignored' };
+			}
+
 			console.error('Landing claim: code confirmation failed', err);
 			this.notice = { kind: 'refused', refusal: 'failed' };
 		}
@@ -227,7 +294,7 @@ export class LandingClaimFlow {
 
 		// The handle went to someone else meanwhile: back to it, the email kept.
 		if (refusal === 'handle_taken') {
-			this.dispose();
+			this.#stopProbe();
 			this.check = { kind: 'taken' };
 			this.step = 'handle';
 		}
