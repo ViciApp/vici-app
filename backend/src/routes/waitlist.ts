@@ -163,7 +163,7 @@ export const waitlistRoutes = new Elysia({ prefix: '/api/v1/waitlist' })
 			}
 
 			try {
-				const outcome = await requestWaitlistCode({
+				await requestWaitlistCode({
 					handle: body.handle,
 					email,
 					privacyVersion: body.privacyVersion,
@@ -178,10 +178,6 @@ export const waitlistRoutes = new Elysia({ prefix: '/api/v1/waitlist' })
 						? undefined
 						: normalizeChallengeId(body.challengeId)
 				});
-
-				if (outcome !== 'code_sent') {
-					await recordRefusal(outcome);
-				}
 			} catch (err) {
 				if (err instanceof WaitlistError) {
 					await recordRefusal(err.code);

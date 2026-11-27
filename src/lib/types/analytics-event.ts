@@ -152,8 +152,7 @@ export type AnalyticsEventName =
 	| 'waitlist_joined'
 	/**
 	 * A waitlist request or confirmation was refused (`label`: the reason,
-	 * including `already_registered` and `legacy_account`, which the visitor
-	 * is not told). Server-recorded.
+	 * a wire refusal, `bot_check_failed` or `rate_limited`). Server-recorded.
 	 */
 	| 'waitlist_join_refused'
 	// ── VXP & economy ─────────────────────────────────────────────────

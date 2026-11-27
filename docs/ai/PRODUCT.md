@@ -774,21 +774,20 @@ for that mailbox: nobody else can reserve it or take it in the app (both
 handle probes, onboarding, the handle editor and the profile write read it
 as taken), and it is also held for the ten minutes a code is live. No
 account, session, profile or VXP is created, and nobody plays before
-admission. One handle per mailbox: confirming another one releases the
-first. `name+tag@` and dotted Gmail variants are one mailbox, and known
-disposable-mail domains are refused with their own answer.
+admission. vici.app starts as a new product, so a mailbox is only a
+waitlist entry: a handle is free unless it is a reserved name or another
+entry holds it. One handle per mailbox: confirming another one releases
+the first. `name+tag@` and dotted Gmail variants are one mailbox, and
+known disposable-mail domains are refused with their own answer.
 
-Every address gets the same answer. A mailbox that already signs in to a
-vici.app account, or belongs to a legacy vici.market account, gets no code
-and no reservation, only a private email (sign in here; your account moves
-on its own). The code, the receipt ("@handle is yours, you're on the
-waitlist"), those two notices and the removal confirmation are written in
-the language the visitor used. Every email to a reservation carries a link
-that removes it without signing in; the link opens a page, and only its
-button deletes. A reservation stores the address, the handle, the
-language, when the consent sentence was accepted and which privacy policy
-version it linked; never an IP or the code. An unconfirmed one is deleted
-a day after its last code request, a confirmed one is held twelve months.
+The code, the receipt ("@handle is yours, you're on the waitlist") and the
+removal confirmation are written in the language the visitor used. Every
+email carries a link that removes the reservation without signing in; the
+link opens a page, and only its button deletes. A reservation stores the
+address, the handle, the language, when the consent sentence was accepted
+and which privacy policy version it linked; never an IP or the code. An
+unconfirmed one is deleted a day after its last code request, a confirmed
+one is held twelve months.
 A returning visitor's handle is read back from the server with a private
 token the browser keeps.
 

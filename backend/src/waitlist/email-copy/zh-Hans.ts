@@ -14,15 +14,6 @@ export const zhHans: WaitlistEmailCopy = {
 		next: '我们会分批邀请候补名单上的用户。轮到你时我们会发邮件通知你，届时用这个邮箱创建账户即可保留该用户名。',
 		hold: (months) => `保留期为 ${months} 个月；到期前我们会请你确认是否继续保留。`
 	},
-	alreadyMember: {
-		subject: '你已经有 VICI 账户了',
-		body: '这个邮箱已经有 VICI 账户，无需加入候补名单。请在这里登录：',
-		signIn: '登录 VICI'
-	},
-	legacyAccount: {
-		subject: '你的 VICI 账户正在迁移到 vici.app',
-		body: '你的 VICI 账户会连同用户名自动迁移到 vici.app。在此期间，请继续在 vici.market 上玩。'
-	},
 	removed: {
 		subject: '你已退出 VICI 候补名单',
 		body: (handle) =>

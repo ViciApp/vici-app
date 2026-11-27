@@ -17,15 +17,6 @@ export const fr: WaitlistEmailCopy = {
 		hold: (months) =>
 			`La réservation dure ${months} mois ; avant la fin, nous te demanderons de confirmer que tu la veux toujours.`
 	},
-	alreadyMember: {
-		subject: 'Tu as déjà un compte VICI',
-		body: 'Tu as déjà un compte VICI avec cette adresse, il n’y a donc rien à rejoindre. Connecte-toi ici :',
-		signIn: 'Se connecter à VICI'
-	},
-	legacyAccount: {
-		subject: 'Ton compte VICI passe sur vici.app',
-		body: 'Ton compte VICI passe automatiquement sur vici.app, avec ton pseudo. En attendant, continue à jouer sur vici.market.'
-	},
 	removed: {
 		subject: 'Tu ne fais plus partie de la liste d’attente VICI',
 		body: (handle) =>
