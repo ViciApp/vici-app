@@ -2202,6 +2202,7 @@ export const ptBRMessages = {
 	'market.chart.event_up': 'Fez o Sim subir',
 	'market.chart.events': 'Os acontecimentos desta semana',
 	'market.chart.label': 'Chance do Sim, {range}',
+	'market.chart.no_trades': 'Ainda sem negociações',
 	'market.chart.no_change': 'Sem mudança, {range}',
 	'market.chart.now': 'Agora',
 	'market.chart.points_one': 'ponto, {range}',

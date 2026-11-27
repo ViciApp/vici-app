@@ -2582,6 +2582,7 @@ export const frMessages = {
 	'market.chart.event_up': 'A fait monter le Oui',
 	'market.chart.events': 'Les événements de la semaine',
 	'market.chart.label': 'Probabilité du Oui, {range}',
+	'market.chart.no_trades': 'Aucune transaction',
 	'market.chart.no_change': 'Aucun changement, {range}',
 	'market.chart.now': 'Maintenant',
 	'market.chart.points_one': 'point, {range}',

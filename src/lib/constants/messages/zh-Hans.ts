@@ -2435,6 +2435,7 @@ export const zhHansMessages = {
 	'market.chart.event_up': '推高了“是”',
 	'market.chart.events': '本周事件',
 	'market.chart.label': '“是”的概率，{range}',
+	'market.chart.no_trades': '暂无交易',
 	'market.chart.no_change': '无变化，{range}',
 	'market.chart.now': '现在',
 	'market.chart.points_one': '点，{range}',

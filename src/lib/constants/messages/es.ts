@@ -2578,6 +2578,7 @@ export const esMessages = {
 	'market.chart.event_up': 'Hizo subir el Sí',
 	'market.chart.events': 'Lo que pasó esta semana',
 	'market.chart.label': 'Probabilidad del Sí, {range}',
+	'market.chart.no_trades': 'Aún sin operaciones',
 	'market.chart.no_change': 'Sin cambios, {range}',
 	'market.chart.now': 'Ahora',
 	'market.chart.points_one': 'punto, {range}',

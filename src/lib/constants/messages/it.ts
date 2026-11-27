@@ -2570,6 +2570,7 @@ export const itMessages = {
 	'market.chart.event_up': 'Ha spinto il Sì in su',
 	'market.chart.events': 'Gli eventi di questa settimana',
 	'market.chart.label': 'Probabilità del Sì, {range}',
+	'market.chart.no_trades': 'Ancora nessuno scambio',
 	'market.chart.no_change': 'Nessuna variazione, {range}',
 	'market.chart.now': 'Ora',
 	'market.chart.points_one': 'punto, {range}',

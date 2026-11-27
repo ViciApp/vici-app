@@ -2567,6 +2567,7 @@ export const ptMessages = {
 	'market.chart.event_up': 'Fez subir o Sim',
 	'market.chart.events': 'Os acontecimentos desta semana',
 	'market.chart.label': 'Probabilidade do Sim, {range}',
+	'market.chart.no_trades': 'Ainda sem negociações',
 	'market.chart.no_change': 'Sem alteração, {range}',
 	'market.chart.now': 'Agora',
 	'market.chart.points_one': 'ponto, {range}',

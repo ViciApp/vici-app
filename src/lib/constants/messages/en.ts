@@ -2535,6 +2535,7 @@ export const enMessages = {
 	'market.chart.event_up': 'Pushed Yes up',
 	'market.chart.events': "This week's events",
 	'market.chart.label': 'Chance of Yes, {range}',
+	'market.chart.no_trades': 'No trades yet',
 	'market.chart.no_change': 'No change, {range}',
 	'market.chart.now': 'Now',
 	'market.chart.points_one': 'point, {range}',

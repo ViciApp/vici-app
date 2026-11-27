@@ -2601,6 +2601,7 @@ export const deMessages = {
 	'market.chart.event_up': 'Hat Ja steigen lassen',
 	'market.chart.events': 'Ereignisse dieser Woche',
 	'market.chart.label': 'Chance auf Ja, {range}',
+	'market.chart.no_trades': 'Noch keine Trades',
 	'market.chart.no_change': 'Keine Veränderung, {range}',
 	'market.chart.now': 'Jetzt',
 	'market.chart.points_one': 'Punkt, {range}',

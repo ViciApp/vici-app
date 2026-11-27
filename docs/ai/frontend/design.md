@@ -582,7 +582,8 @@ a hash of the market id or a guess, the same rule as the public landing.
   [`PriceChart`](../../../src/lib/components/market/PriceChart.svelte)
   plot real candles only. With no history (not loaded yet, or no trades)
   they draw a flat line at the live price, and the detail chart reads "No
-  change" over its window. A line that moves is always one that traded.
+  change" over its window; with no live price either, it says "No trades
+  yet" instead of drawing a line. A line that moves is always one that traded.
   The detail chart draws the market's events on 1W only, and only over
   real trades: an event's day counts back from today, so it has a real
   date on a window that ends now and on no other.

@@ -91,6 +91,10 @@
 	// Read once per mount: the line draws in on mount and on each window switch.
 	const draw = !prefersReducedMotion();
 
+	// Bumped by every load, so only the latest one writes: a reload for the
+	// same series and window (a refresh) can resolve after a newer one.
+	let loadGeneration = 0;
+
 	$effect(() => {
 		// A refresh reloads the same window; the line stays up until it lands.
 		void refreshKey;
@@ -101,7 +105,8 @@
 			? Number(startTimeNs / MILLISECOND_IN_NANOSECONDS)
 			: openedAtMs;
 
-		const isCurrent = (): boolean => requested.seriesId === seriesId && requested.range === range;
+		const generation = ++loadGeneration;
+		const isCurrent = (): boolean => generation === loadGeneration;
 
 		void loadMarketPriceCandles({
 			seriesId: requested.seriesId,
@@ -189,6 +194,11 @@
 			{/snippet}
 		</PriceChartPlot>
 	{/key}
+{:else if nonNullish(current)}
+	<!-- Loaded, but no trade yet and no live price to hold a flat line at. -->
+	<p class="pch-empty" class:is-card={variant === 'card'}>
+		{t({ locale: $localeStore, key: 'market.chart.no_trades' })}
+	</p>
 {:else}
 	<div class="pch-skeleton" class:is-card={variant === 'card'} aria-busy="true"></div>
 {/if}
@@ -240,6 +250,22 @@
 		background: color-mix(in srgb, var(--text-base) 4%, transparent);
 	}
 
+	.pch-empty {
+		display: grid;
+		place-items: center;
+		height: 232px;
+		margin: 0;
+		border-radius: var(--r-12);
+		background: color-mix(in srgb, var(--text-base) 4%, transparent);
+		color: color-mix(in srgb, var(--text-base) 64%, transparent);
+		font: 500 14px/1.3 var(--font-display);
+	}
+
+	.pch-empty.is-card {
+		height: 100%;
+		min-height: 118px;
+	}
+
 	.pch-skeleton.is-card {
 		height: 100%;
 		min-height: 118px;
@@ -251,7 +277,8 @@
 			min-width: 44px;
 		}
 
-		.pch-skeleton {
+		.pch-skeleton,
+		.pch-empty {
 			height: 214px;
 		}
 	}
