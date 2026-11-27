@@ -1772,6 +1772,7 @@ export const ptMessages = {
 	'onboarding.avail.too_long': 'Longo demais: máximo 16 caracteres',
 	'onboarding.avail.reserved': 'Reservado: escolha outro',
 	'onboarding.avail.check_failed': 'Não foi possível verificar: tente reivindicar',
+	'onboarding.avail.rate_limited': 'Demasiadas verificações: tente reivindicar',
 	'onboarding.reward_title': 'Pacote inicial de {amount} VXP',
 	'onboarding.reward_sub': 'Faça palpites em {event}',
 	'onboarding.lock_ready': 'Reservando @{handle}',
