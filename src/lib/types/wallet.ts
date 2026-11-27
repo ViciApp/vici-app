@@ -33,13 +33,13 @@ export type TransactionType =
  * Where the row originates from. Lets the UI distinguish "money moved in your
  * wallet" (`ledger`) from "money moved inside the clearing book" (`clearing`).
  */
-export type TransactionSource = 'ledger' | 'clearing';
+type TransactionSource = 'ledger' | 'clearing';
 
 /**
  * Which balance bucket the row affects. `wallet` = ICRC ledger balance,
  * `collateral` = locked / cash balance inside the clearing canister.
  */
-export type TransactionDomain = 'wallet' | 'collateral';
+type TransactionDomain = 'wallet' | 'collateral';
 
 export interface WalletBalance {
 	balances: Record<TokenId, bigint>;
@@ -47,7 +47,7 @@ export interface WalletBalance {
 	accountState?: ClearingDid.AccountStateResponse;
 }
 
-export type TransactionId = string;
+type TransactionId = string;
 
 export interface Transaction {
 	id: TransactionId;

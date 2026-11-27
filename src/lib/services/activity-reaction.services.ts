@@ -32,7 +32,7 @@ const trackReactionReadFailure = ({
  * source). Scoped to one author's activities by the key prefix, so this is a small set even when the
  * global feed is busy.
  */
-export const RECEIVED_REACTIONS_READ_LIMIT = 200;
+const RECEIVED_REACTIONS_READ_LIMIT = 200;
 
 /**
  * Every like on `author`'s own activities. The reaction doc key is `${author}#${ts}#${type}#${liker}`,

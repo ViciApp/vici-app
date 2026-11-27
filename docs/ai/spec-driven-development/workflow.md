@@ -75,11 +75,16 @@ product analytics and proposes which events. The default answer is
 surface or behaviour without events is invisible to product analysis.
 The spec names the proposed events and their dimensional props,
 reusing names from the existing taxonomy where one fits. A new event
-name must land in **both** halves of the dual-source pair:
-`src/lib/types/analytics-event.ts` (TS union) and
-`src/lib/schema/analytics-event.schema.ts` (runtime Zod mirror);
-svelte-check only catches the union; an enum mismatch fails at
-runtime. Capture goes through `track` in
+name must land in the TS union
+(`src/lib/types/analytics-event.ts`), its runtime Zod mirror
+(`src/lib/schema/analytics-event.schema.ts`) and the API's
+`ANALYTICS_EVENT_NAMES` (`backend/src/analytics/taxonomy.ts`, pinned to
+both by `backend/tests/shared-drift/analytics.test.ts`); svelte-check
+only catches the union, and an enum mismatch fails at runtime. The
+event is a Candid variant of the satellite, so its declarations are
+regenerated too, with the backend's vendored copy
+([`AGENTS.md`](../../../AGENTS.md#4-vici-specific-rules) rule 9).
+Capture goes through `track` in
 `src/lib/services/analytics.services.ts`. Behavioural data only:
 bounded prop vocabularies, no free-form text, no PII. If the spec
 concludes no analytics are warranted, it says so explicitly and why;
@@ -144,7 +149,8 @@ Interactive HTML mocks must additionally:
   copied text alone must be enough for the agent to act on.
 
 **Satellite / backend: technical requirements are mandatory.** Any
-spec touching `src/satellite/**`, collections, or icdc-core-facing
+spec touching `src/satellite/**`, collections, `backend/**` (routes,
+migrations, indexes, rate limits, worker jobs) or icdc-core-facing
 paths must state, with numbers where possible:
 
 - **Performance**: expected call frequency; instruction-budget impact

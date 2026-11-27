@@ -1,0 +1,24 @@
+# Build context of Dockerfile.web, which runs `npm ci` and then `COPY . .`.
+# Without this file a local or break-glass `flyctl deploy` would upload, and
+# copy over the fresh install, whatever the working tree holds.
+
+# Installed or generated inside the image: a host copy would overwrite the
+# Linux install and the workers synced from the locked @junobuild/core.
+node_modules
+.svelte-kit
+build
+static/workers
+
+# Local secrets and tooling state; none of it is read by the build.
+.env*
+.git
+.claude
+.dfx
+target
+
+# Other areas with their own image or runner: the API (backend/Dockerfile)
+# and the Playwright suites with their reports.
+backend
+e2e*
+playwright-report*
+test-results*

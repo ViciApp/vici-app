@@ -1,6 +1,4 @@
-// Social feed: activities plus per-activity like reactions with a
-// transactional count rollup, so the feed renders like counts in O(1)
-// without tallying the reaction pages.
+// Social feed: activities plus per-activity like reactions.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, refuseMissingReference, tx, type TxQuery } from '../db/client';
@@ -290,10 +288,9 @@ const validateReaction = ({
 };
 
 /**
- * Records one like per (activity, liker) and moves the rollup counter in
- * the SAME transaction. Only a genuine create bumps the count: re-liking an
- * already-liked activity is a no-op, so a double-like cannot double-count.
- * The liked activity must exist ({@link ActivityNotFoundError} otherwise).
+ * Records one like per (activity, liker): re-liking an already-liked
+ * activity is a no-op. The liked activity must exist
+ * ({@link ActivityNotFoundError} otherwise).
  */
 export const likeActivity = async ({
 	likerId,
@@ -312,39 +309,24 @@ export const likeActivity = async ({
 
 	await tx(async (q) => {
 		// A structurally valid key can still address an activity that never
-		// existed; guard inside the transaction so no reaction row or rollup
-		// increment can ever be created for a phantom activity.
+		// existed; guard inside the transaction so no reaction row can ever be
+		// created for a phantom activity.
 		const existing = await q<{ key: string }>(`select key from activities where key = $1`, [key]);
 
 		if (isNullish(existing[0])) {
 			throw new ActivityNotFoundError();
 		}
 
-		const inserted = await q<{ activity_key: string }>(
+		await q(
 			`insert into activity_reactions (activity_key, liker, timestamp_ms, activity_title, market_id)
 			 values ($1, $2, $3, $4, $5)
-			 on conflict (activity_key, liker) do nothing
-			 returning activity_key`,
+			 on conflict (activity_key, liker) do nothing`,
 			[key, likerId, timestamp, activityTitle, marketId ?? null]
-		);
-
-		if (isNullish(inserted[0])) {
-			return;
-		}
-
-		await q(
-			`insert into activity_reaction_counts (activity_key, count, updated_at_ms)
-			 values ($1, 1, $2)
-			 on conflict (activity_key) do update set
-			   count = activity_reaction_counts.count + 1,
-			   updated_at_ms = excluded.updated_at_ms`,
-			[key, Date.now()]
 		);
 	});
 };
 
-/** Removes the caller's own like and decrements the counter (floored at 0)
- * in the same transaction. Unliking something never liked is a no-op. */
+/** Removes the caller's own like. Unliking something never liked is a no-op. */
 export const unlikeActivity = async ({
 	likerId,
 	activityKey: key
@@ -352,27 +334,13 @@ export const unlikeActivity = async ({
 	likerId: string;
 	activityKey: string;
 }): Promise<void> => {
-	await tx(async (q) => {
-		const deleted = await q<{ activity_key: string }>(
-			`delete from activity_reactions where activity_key = $1 and liker = $2 returning activity_key`,
-			[key, likerId]
-		);
-
-		if (isNullish(deleted[0])) {
-			return;
-		}
-
-		await q(
-			`update activity_reaction_counts
-			 set count = greatest(0, count - 1), updated_at_ms = $2
-			 where activity_key = $1`,
-			[key, Date.now()]
-		);
-	});
+	await query(`delete from activity_reactions where activity_key = $1 and liker = $2`, [
+		key,
+		likerId
+	]);
 };
 
-/** Removes every like `likerId` gave and moves each liked activity's counter
- * down (floored at 0), as an unlike would, inside the caller's transaction. */
+/** Removes every like `likerId` gave, inside the caller's transaction. */
 export const deleteReactionsBy = async ({
 	likerId,
 	q
@@ -380,16 +348,7 @@ export const deleteReactionsBy = async ({
 	likerId: string;
 	q: TxQuery;
 }): Promise<void> => {
-	await q(
-		`with removed as (
-		   delete from activity_reactions where liker = $1 returning activity_key
-		 )
-		 update activity_reaction_counts c
-		 set count = greatest(0, c.count - r.removed), updated_at_ms = $2
-		 from (select activity_key, count(*)::int as removed from removed group by activity_key) r
-		 where c.activity_key = r.activity_key`,
-		[likerId, Date.now()]
-	);
+	await q(`delete from activity_reactions where liker = $1`, [likerId]);
 };
 
 /** The most-recent reactions across all users, bounded. */
@@ -435,36 +394,3 @@ export const listReceivedReactions = async ({
 
 	return rows.map(shapeReaction);
 };
-
-/**
- * Admin corrective: re-derive every activity's exact like count from the
- * reaction rows and overwrite the counters, healing any drift and zeroing
- * counters whose activity no longer has likes. Returns the number of
- * counters that were off-target.
- */
-export const recomputeActivityReactionCounts = async (): Promise<{ recomputed: number }> =>
-	await tx(async (q) => {
-		const nowMs = Date.now();
-
-		const reconciled = await q<{ activity_key: string }>(
-			`insert into activity_reaction_counts (activity_key, count, updated_at_ms)
-			 select activity_key, count(*), $1 from activity_reactions group by activity_key
-			 on conflict (activity_key) do update set
-			   count = excluded.count,
-			   updated_at_ms = excluded.updated_at_ms
-			 where activity_reaction_counts.count is distinct from excluded.count
-			 returning activity_key`,
-			[nowMs]
-		);
-
-		const zeroed = await q<{ activity_key: string }>(
-			`update activity_reaction_counts c
-			 set count = 0, updated_at_ms = $1
-			 where c.count <> 0
-			   and not exists (select 1 from activity_reactions r where r.activity_key = c.activity_key)
-			 returning c.activity_key`,
-			[nowMs]
-		);
-
-		return { recomputed: reconciled.length + zeroed.length };
-	});

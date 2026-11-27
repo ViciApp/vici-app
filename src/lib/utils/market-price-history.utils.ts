@@ -27,6 +27,15 @@ export interface MarketPriceSeries {
 	 * as {@link yes}.
 	 */
 	xs: number[];
+	/**
+	 * Executed trades in the candles that open within the last day of the
+	 * window. Candles are epoch-aligned buckets, so the one straddling the
+	 * day boundary is left out: on hourly candles (the `1d` / `7d` windows)
+	 * this covers the last 23 to 24 hours and never counts more than the
+	 * real last-day total. On daily candles it is only the bucket that
+	 * opened inside that day.
+	 */
+	tradesLastDay: number;
 }
 
 const HOUR_INTERVAL: ClearingDid.PriceHistoryInterval = { Hour: null };
@@ -89,10 +98,17 @@ export const deriveMarketPriceSeries = ({
 	// stays finite; the values are clamped to [0, 1] regardless.
 	const spanMs = Math.max(endMs - startMs, 1);
 
+	const lastDayStartNs = windowEndNs - DAY_IN_NANOSECONDS;
+
 	const yes: number[] = [];
 	const xs: number[] = [];
+	let tradesLastDay = 0;
 
 	candles.forEach((candle) => {
+		if (candle.bucket_start_ns >= lastDayStartNs) {
+			tradesLastDay += Number(candle.trade_count);
+		}
+
 		const yesProbability = decimalFixedValueToNumber({
 			value: candle.close.decimal.value,
 			decimals: candle.close.decimal.decimals
@@ -111,7 +127,7 @@ export const deriveMarketPriceSeries = ({
 		xs.push(Math.max(0, Math.min(1, (bucketMs - startMs) / spanMs)));
 	});
 
-	return { yes, xs };
+	return { yes, xs, tradesLastDay };
 };
 
 /**

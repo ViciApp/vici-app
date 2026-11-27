@@ -185,14 +185,33 @@ export const sendFriendRequest = async ({
 	});
 };
 
-/** Only the recipient can accept; the row transitions to ACTIVE. */
-export const acceptFriendRequest = async ({
-	relationId,
-	callerId
-}: {
+/** The state each answer moves a pending friend request to. A reject's
+ * updated_at becomes the cooldown anchor of {@link sendFriendRequest}. */
+const FRIEND_REQUEST_ANSWER_STATE = {
+	accept: 'ACTIVE',
+	reject: 'REJECTED'
+} as const satisfies Record<string, RelationState>;
+
+type FriendRequestAnswer = keyof typeof FRIEND_REQUEST_ANSWER_STATE;
+
+interface FriendRequestAnswerParams {
 	relationId: string;
 	callerId: string;
-}): Promise<void> => {
+}
+
+/**
+ * Only the recipient answers, and only a request still PENDING, as the
+ * satellite's `readPendingFriendRequest` does: accepting an old rejection
+ * would make a friendship the sender never asked for again, rejecting an
+ * ACTIVE friendship would put the former friend behind the cooldown
+ * (unfriending is the way out of one), and a follow edge has no recipient
+ * answer at all.
+ */
+const answerFriendRequest = async ({
+	relationId,
+	callerId,
+	answer
+}: FriendRequestAnswerParams & { answer: FriendRequestAnswer }): Promise<void> => {
 	await tx(async (q) => {
 		const rows = await q<RelationRow>(
 			`select key, category, state, participant_one, participant_two, updated_at
@@ -205,46 +224,26 @@ export const acceptFriendRequest = async ({
 			throw new RelationError('Relation does not exist');
 		}
 
-		if (relation.participant_two !== callerId) {
-			throw new RelationError('Only the recipient can accept a friend request.');
+		if (relation.category !== 'FRIEND' || relation.state !== 'PENDING') {
+			throw new RelationError('Only a pending friend request can be accepted or rejected.');
 		}
 
-		await q(`update relations set state = 'ACTIVE', updated_at = now() where key = $1`, [
-			relationId
+		if (relation.participant_two !== callerId) {
+			throw new RelationError(`Only the recipient can ${answer} a friend request.`);
+		}
+
+		await q(`update relations set state = $2, updated_at = now() where key = $1`, [
+			relationId,
+			FRIEND_REQUEST_ANSWER_STATE[answer]
 		]);
 	});
 };
 
-/** Only the recipient can reject; the row transitions to REJECTED and its
- * updated_at becomes the cooldown anchor. */
-export const rejectFriendRequest = async ({
-	relationId,
-	callerId
-}: {
-	relationId: string;
-	callerId: string;
-}): Promise<void> => {
-	await tx(async (q) => {
-		const rows = await q<RelationRow>(
-			`select key, category, state, participant_one, participant_two, updated_at
-			 from relations where key = $1 for update`,
-			[relationId]
-		);
-		const [relation] = rows;
+export const acceptFriendRequest = (params: FriendRequestAnswerParams): Promise<void> =>
+	answerFriendRequest({ ...params, answer: 'accept' });
 
-		if (isNullish(relation)) {
-			throw new RelationError('Relation does not exist');
-		}
-
-		if (relation.participant_two !== callerId) {
-			throw new RelationError('Only the recipient can reject a friend request.');
-		}
-
-		await q(`update relations set state = 'REJECTED', updated_at = now() where key = $1`, [
-			relationId
-		]);
-	});
-};
+export const rejectFriendRequest = (params: FriendRequestAnswerParams): Promise<void> =>
+	answerFriendRequest({ ...params, answer: 'reject' });
 
 /**
  * Cancels a friend request the caller previously sent. The cancel only
