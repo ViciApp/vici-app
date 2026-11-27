@@ -1,4 +1,4 @@
-import type { NicknameFormatIssue } from '#lib/utils/nickname.utils.ts';
+import type { HandleFormatIssue } from '#lib/utils/handle.utils.ts';
 
 /** The landing's two views, switched from the top bar. */
 export type LandingView = 'cards' | 'markets';
@@ -13,7 +13,7 @@ export type LandingClaimCheck =
 	| { kind: 'free' }
 	| { kind: 'taken' }
 	| { kind: 'failed' }
-	| { kind: 'format'; issue: NicknameFormatIssue };
+	| { kind: 'format'; issue: HandleFormatIssue };
 
 /** A refusal the capsule has its own words for; anything else reads as `failed`. */
 export type LandingClaimRefusal =

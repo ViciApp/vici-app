@@ -12,14 +12,13 @@
 	import NotifBell from '#lib/components/ui/NotifBell.svelte';
 	import ViciAvatar from '#lib/components/ui/ViciAvatar.svelte';
 	import { MENAGERIE } from '#lib/constants/menagerie.constants.ts';
-	import { nicknameUniqueKey } from '#lib/constants/profile.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { SCHOOL_PASS2_ENABLED } from '#lib/constants/school-picker.constants.ts';
 	import { lookupWorldsAffiliation } from '#lib/constants/worlds-affiliations.constants.ts';
 	import { myMenagerieLoading, myMenagerieRows } from '#lib/derived/menagerie.derived.ts';
 	import { userIsAdmin } from '#lib/derived/user.derived.ts';
 	import { loadMyMenagerieSignals } from '#lib/services/menagerie.services.ts';
-	import { upsertProfile } from '#lib/services/profile.services.ts';
+	import { isHandleChange, upsertProfile } from '#lib/services/profile.services.ts';
 	import { getMyReferralCode } from '#lib/services/referral.services.ts';
 	import { loadMyUserStats } from '#lib/services/user-stats.services.ts';
 	import { myAffiliationsStore, refreshMyAffiliations } from '#lib/stores/affiliations.store.ts';
@@ -88,7 +87,7 @@
 		// re-casing folds to the same key, where the assertion rejects a moved
 		// stamp. On a real change the assertion validates it's ~now and starts
 		// the cooldown.
-		const handleChanged = nicknameUniqueKey(handle) !== nicknameUniqueKey(profile.nickname ?? '');
+		const handleChanged = isHandleChange({ next: handle, current: profile.nickname ?? '' });
 		const updatedData = {
 			...profile,
 			nickname: handle,

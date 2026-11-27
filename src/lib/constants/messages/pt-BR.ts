@@ -724,12 +724,9 @@ export const ptBRMessages = {
 	'card.back.rules_body':
 		'A resolução é final no fechamento das previsões. Casos limítrofes seguem o texto oficial da fonte.',
 	'card.back.settles_date': 'Resolve em {date}',
-	'card.back.sharp_diff_ahead': '+{count} pts à frente',
-	'card.back.sharp_diff_behind': '−{count} pts atrás',
 	'card.back.show_rules': 'Mostrar regras completas',
 	'card.back.source_official': 'Fonte: registro oficial',
 	'card.back.this_week': 'esta semana',
-	'card.back.top_accuracy': 'Precisão top 10%',
 	'card.back.who_calling': 'Quem está prevendo o quê',
 	'card.call_size': 'TAMANHO DA CALL',
 	'card.call_size_cap': 'TAMANHO DA CALL · LIMITE',
@@ -1662,10 +1659,10 @@ export const ptBRMessages = {
 	'profile.handle.error_check_failed':
 		'Não foi possível verificar a disponibilidade. Tente novamente.',
 	'profile.handle.error_reserved': 'Esse handle é reservado',
-	'profile.handle.error_short': 'Pelo menos 3 caracteres',
+	'profile.handle.error_short': 'Pelo menos {min} caracteres',
 	'profile.handle.error_taken': 'Esse handle já está em uso',
 	'profile.handle.error_unchanged': 'Esse já é o seu handle',
-	'profile.handle.hint': 'Letras, números e sublinhados.',
+	'profile.handle.hint': 'Letras minúsculas e números.',
 	'profile.handle.locked':
 		'Você alterou seu handle recentemente. Poderá alterá-lo de novo em {days} dias.',
 	'profile.handle.locked_one':

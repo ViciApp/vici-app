@@ -5,7 +5,12 @@
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
 import { optionalMs } from '../lib/time';
-import { MIN_NICKNAME_LENGTH } from './nickname';
+import {
+	HANDLE_PATTERN,
+	handleUniqueKey,
+	MIN_NICKNAME_LENGTH,
+	nicknameUniqueKey
+} from './nickname';
 
 /** Client-facing validation failure: routes answer it as a 400/409 with the
  * message, mirroring the write-guard errors clients already handle. */
@@ -384,4 +389,42 @@ export const searchProfiles = async (queryStr: string): Promise<Profile[]> => {
 	);
 
 	return rows.map(shapeProfile);
+};
+
+/**
+ * The public profile a typed `@handle` names, for adding a friend: the one
+ * holding exactly that handle (the stored text, then the legacy fold, which
+ * keeps separators; an imported duplicate can hold its handle with an empty
+ * legacy key), otherwise the one whose handle key matches, so `antonioventilii` finds a
+ * stored `antonio.ventilii` and the reverse. The handle key is not unique
+ * while lookalikes that predate the handle rule remain, so ties break the
+ * same way on every call: the handle within the rule first, then the earliest
+ * profile. `undefined` when nothing visible matches or the text folds to no
+ * key at all.
+ */
+export const getProfileByHandle = async (handle: string): Promise<Profile | undefined> => {
+	const typed = handle.trim().replace(/^@+/, '');
+	const exactKey = nicknameUniqueKey(typed);
+	const lookalikeKey = handleUniqueKey(typed);
+
+	if (exactKey === '' && lookalikeKey === '') {
+		return;
+	}
+
+	const rows = await query<ProfileRow>(
+		`select ${PROFILE_COLUMNS}
+		 from profiles p
+		 join users u on u.id = p.user_id
+		 where ${PUBLICLY_VISIBLE_PROFILE_SQL}
+		   and ((p.nickname_key = $1 and $1 <> '') or (p.handle_key = $2 and $2 <> ''))
+		 order by p.nickname = $4 desc,
+		          p.nickname_key = $1 desc,
+		          p.nickname ~ $3 desc,
+		          p.created_at,
+		          p.user_id
+		 limit 1`,
+		[exactKey, lookalikeKey, HANDLE_PATTERN.source, typed]
+	);
+
+	return nonNullish(rows[0]) ? shapeProfile(rows[0]) : undefined;
 };

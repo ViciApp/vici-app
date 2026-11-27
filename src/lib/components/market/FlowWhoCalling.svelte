@@ -9,17 +9,13 @@
 	}
 
 	const { yesPct, followedLean }: Props = $props();
-
-	// Sharp-predictor lean: `sharpPct = min(95, yes + 10)` keeps the
-	// top-decile band leaning 10pp further than consensus, capped at 95.
-	const sharpPct = $derived(Math.min(95, yesPct + 10));
-	const sharpDiff = $derived(sharpPct - yesPct);
 </script>
 
-<!-- Three-row "Who's calling what" split: the differentiating
-     value of VICI's reputation layer. Row 1 = all callers, Row 2
-     = sharp predictors (with a +/- diff badge vs consensus), Row
-     3 = predictors you follow (dot grid). -->
+<!-- "Who's calling what" split. Row 1 = all callers (the live price),
+     row 2 = predictors you follow (dot grid), shown only when that signal
+     exists. A top-accuracy row returns once a real reputation aggregate
+     exists; until then it would only restate the price with an invented
+     offset. -->
 <section class="flow-back-block flow-split">
 	<p class="eyebrow flow-back-label">
 		{t({ locale: $localeStore, key: 'card.back.who_calling' })}
@@ -35,28 +31,6 @@
 		<div class="flow-split-bar" role="presentation">
 			<i style:width="{100 - yesPct}%" class="flow-split-fill-no"></i>
 			<i style:width="{yesPct}%" class="flow-split-fill-yes"></i>
-		</div>
-	</div>
-
-	<div class="flow-split-row">
-		<div class="flow-split-meta">
-			<span class="flow-split-label">
-				{t({ locale: $localeStore, key: 'card.back.top_accuracy' })}
-			</span>
-			<span class="flow-split-pct num">{sharpPct}%</span>
-			{#if sharpDiff !== 0}
-				<span class="flow-split-badge num">
-					{t({
-						locale: $localeStore,
-						key: sharpDiff > 0 ? 'card.back.sharp_diff_ahead' : 'card.back.sharp_diff_behind',
-						params: { count: Math.abs(sharpDiff) }
-					})}
-				</span>
-			{/if}
-		</div>
-		<div class="flow-split-bar" role="presentation">
-			<i style:width="{100 - sharpPct}%" class="flow-split-fill-no"></i>
-			<i style:width="{sharpPct}%" class="flow-split-fill-yes"></i>
 		</div>
 	</div>
 
@@ -140,20 +114,6 @@
 		font-weight: 700;
 		color: var(--text-base);
 	}
-	/* Sharp-lean badge: always the laurel-gold pill (it reads as
-	   "sharps' lean", not a good/bad signal), so it doesn't flip
-	   green / red on the sign of the diff like before. */
-	.flow-split-badge {
-		font-family: var(--font-mono);
-		font-size: 9.5px;
-		letter-spacing: 0.08em;
-		padding: 1px 6px;
-		border-radius: var(--r-pill);
-		border: 1px solid color-mix(in srgb, var(--laurel) 32%, transparent);
-		background: var(--laurel-glow);
-		color: var(--laurel);
-	}
-
 	.flow-split-bar {
 		display: flex;
 		height: 6px;

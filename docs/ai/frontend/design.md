@@ -25,9 +25,9 @@ govern Flow Mode (§7). Tick rows off as PRs land.
 
 The companion guidance lives in:
 
-- [`brand.md`](./brand.md): palette, typography triad, voice & tone,
-  iconography, character cast, copy patterns. The brand book lives
-  there; this file is the surface roster.
+- [`brand.md`](./brand.md): palette, typography triad, landing display
+  face, voice & tone, iconography, character cast, copy patterns. The
+  brand book lives there; this file is the surface roster.
 - [`reusability.md`](./reusability.md): extend existing components before
   adding new ones.
 - [`stack-and-patterns.md`](./stack-and-patterns.md): Tailwind v4 token
@@ -52,6 +52,7 @@ easing curve are present. Outstanding items:
 | Peach theme tokens                                                                                                                   | ✅ Done     | `[data-theme='peach']` defines the warm blush canvas, warm dark foreground, and deeper laurel accent swap.                                                                                                  |
 | Film surface (`--film-bg`, `--film-back`, `--film-fg`, `--film-accent`, `--film-yes`, `--film-no`, `--film-cta`, `--film-cta-hover`) | ✅ Done     | Theme-stable tones for full-bleed footage cards (the landing deck). Footage is dark under every theme, so these do not follow the semantic aliases a light canvas flips.                                    |
 | Named oversize type (`--t-88`, `--t-128`)                                                                                            | ✅ Done     | Available for hand-tuned editorial moments via `var(--t-88)` etc.                                                                                                                                           |
+| `--font-headline`                                                                                                                    | ✅ Done     | Landing display face in `@theme`: Bricolage Grotesque (headings). Not preloaded. See [`brand.md` § 5.2](./brand.md#52-landing-display-face).                                                                |
 | Z-index scale (`--z-overlay`, `--z-modal`, `--z-dropdown`, `--z-toast`, `--z-tooltip`)                                               | ❓ Implicit | Audit existing modals / popovers; if z-index is inlined per-component, extract to `@theme` once during a primitive pass.                                                                                    |
 
 Three large-radius / edge-spacing surfaces sit just off the standard
@@ -206,7 +207,7 @@ Already implemented. **No work needed.**
 | Component          | App equivalent (search-first)                                                                             | Status  | Notes                                                                                                                                                                                                                                                                                |
 | ------------------ | --------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Bottom navigation  | [`src/lib/components/layout/MobileNav.svelte`](../../../src/lib/components/layout/MobileNav.svelte)       | ✅ Done | Translucent theme-aware shell, central Flow button emphasis, `t()` labels via `labelKey`, active cascade for `/markets/*`, `/wallet`, `/settings`, `/notifications`.                                                                                                                 |
-| Flow card          | [`src/lib/components/market/FlowCard.svelte`](../../../src/lib/components/market/FlowCard.svelte)         | ✅ Done | Front/back flip, why-now chip, sharp-predictor strip, metadata resolution + sparkline events, user-context block, and card-stack rhythm wired. Sharp-predictor lean still uses available consensus-derived values until a reputation aggregate exists.                               |
+| Flow card          | [`src/lib/components/market/FlowCard.svelte`](../../../src/lib/components/market/FlowCard.svelte)         | ✅ Done | Front/back flip, why-now chip, metadata resolution + sparkline events, user-context block, and card-stack rhythm wired. The top-accuracy (sharp-predictor) row of "Who's calling what" is not shown until a real reputation aggregate exists (§ 7.11).                               |
 | Screen header      | [`src/lib/components/layout/ScreenHeader.svelte`](../../../src/lib/components/layout/ScreenHeader.svelte) | ✅ Done | The single compact 50px top chrome for **every** screen, at all widths (optional `title` in `section` / `editorial` variant, optional `back`, optional `right` snippet, optional `chips` metadata row). Omit `title` for back-only bars whose name lives in an editorial hero below. |
 | Ticker             | [`WelcomeProof.svelte`](../../../src/lib/components/landing/WelcomeProof.svelte) (`.lpc-ticker`)          | ✅ Done | Marquee of @handles making calls on `/welcome`; decorative (`aria-hidden`), paused under reduced motion.                                                                                                                                                                             |
 | UI primitives      | `#lib/components/ui/{Button,Card,Badge,Dialog,Modal,Tabs,Tooltip,…}.svelte`                               | ✅ Done | Button, Badge, Tabs, Card, Modal, StatCard, and settings primitives use tokenized variants; `Tabs.svelte` supports localized labels while preserving stable values. `AppearancePicker.svelte` remains the canonical theme picker.                                                    |
@@ -562,6 +563,13 @@ a hash of the market id or a guess, the same rule as the public landing.
   the true total), the same candles as the back-face sparkline
   (`MarketPriceSeries.tradesLastDay`), so it appears only on the focused
   card once its history loads, and never at zero.
+- **Back-face headcount.** `K predicting` next to the countdown is the
+  sum of the market's outcome `totalPredictions`, a real 0 included, and
+  shows only when an outcome carries that figure. No data path fills it
+  today, so the segment is hidden for now.
+- **Who's calling what.** Only the live price ("All callers") and, when
+  it exists, the followed-predictors split. A top-accuracy row comes back
+  only with a real reputation aggregate behind it.
 - **Weekly move.** The back face's `▲/▼ N% this week` is last close minus
   first close of the real 7d history. With fewer than two closes it is
   hidden.

@@ -7,12 +7,12 @@ import {
 	acceptFriendRequest as acceptFriendRequestWeb2,
 	cancelFriendRequest as cancelFriendRequestWeb2,
 	followUser as followUserWeb2,
+	getProfileByHandle as getProfileByHandleWeb2,
 	rejectFriendRequest as rejectFriendRequestWeb2,
-	searchProfiles as searchProfilesWeb2,
 	sendFriendRequest as sendFriendRequestWeb2,
 	unfriendUser as unfriendUserWeb2
 } from '#lib/web2/client.ts';
-import { isNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import { deleteDoc, getDoc, type Doc } from '@junobuild/core';
 import type { PrincipalText } from '@junobuild/schema';
@@ -24,7 +24,8 @@ const ACCOUNT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-
 /**
  * web2 counterpart of {@link resolveTargetPrincipal}: the account id is a uuid,
  * not a principal, so there is nothing to parse. Resolve an `@handle` via the
- * nickname search and accept a raw account id as a direct target. Throws the
+ * by-handle lookup (lookalikes included, so `@antonio.ventilii` finds
+ * `antonioventilii`) and accept a raw account id as a direct target. Throws the
  * same `not_found` / `self` codes the caller maps to i18n strings.
  */
 const resolveTargetUserId = async ({
@@ -40,11 +41,9 @@ const resolveTargetUserId = async ({
 		throw new Error('not_found');
 	}
 
-	const normalized = stripped.toLowerCase();
-	const items = await searchProfilesWeb2(normalized);
-	const match = items.find((p) => p.nickname.trim().toLowerCase() === normalized);
+	const match = await getProfileByHandleWeb2(stripped);
 
-	if (match) {
+	if (nonNullish(match)) {
 		if (match.owner === sender) {
 			throw new Error('self');
 		}
