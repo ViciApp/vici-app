@@ -141,6 +141,13 @@ const SATELLITE_IDS = {
  *   canisters. Internet Identity delegations come from II, not from here: the
  *   allowlist is what refuses them.
  *
+ * Not covered: the custom `defineQuery` / `defineUpdate` endpoints in
+ * `src/satellite/index.ts`. Juno does not run this rule for them, and they
+ * already answer anonymous callers, so they are not a sign-in path; the
+ * public ones (the leaderboard read, analytics `trackEvents`, ...) keep
+ * answering a direct call. Closing them needs a functions upgrade, which the
+ * cutover runbook lists as a known gap.
+ *
  * Applying again without the flag restores Google and drops the allowlist.
  */
 const legacySignInLock = (): AuthenticationConfig => ({
