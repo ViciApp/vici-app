@@ -62,8 +62,8 @@ Non-obvious points the codebase will not tell you:
 
 ## What "good" looks like in this repo
 
-A 10x change is small, focused, and reuses what's there. Recent merged PRs
-to learn from (from `git log` on `main`):
+A 10x change is small, focused, and reuses what's there. Merged PRs to
+learn from (from `git log` on `main`):
 
 - `fix(collateral): use nanoid for operation IDs (replaces insecure Math.random fallback)`
   (#75): single bug, contained fix, calls out the security angle.
