@@ -7,6 +7,7 @@ import { query } from '../src/db/client';
 import {
 	acceptFriendRequest,
 	cancelFriendRequest,
+	followRelationKey,
 	followUser,
 	FRIEND_REQUEST_REJECTED_COOLDOWN_MS,
 	friendRelationKey,
@@ -20,6 +21,8 @@ import {
 } from '../src/social/relations';
 import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
+
+const PENDING_ONLY = 'Only a pending friend request can be accepted or rejected.';
 
 const areFriends = async (userA: string, userB: string): Promise<boolean> =>
 	(await listFriends(userA)).some(({ key }) => key === friendRelationKey(userA, userB));
@@ -196,6 +199,50 @@ describe.if(dbAvailable)('friendship state machine', () => {
 
 		expect(await areFriends(alice, bob)).toBe(false);
 	});
+
+	test('a rejected request cannot be accepted later', async () => {
+		const alice = await createTestUser();
+		const bob = await createTestUser();
+		const key = friendRelationKey(alice, bob);
+
+		await sendFriendRequest({ senderId: alice, targetId: bob });
+		await rejectFriendRequest({ relationId: key, callerId: bob });
+
+		await expect(acceptFriendRequest({ relationId: key, callerId: bob })).rejects.toThrow(
+			PENDING_ONLY
+		);
+		expect(await areFriends(alice, bob)).toBe(false);
+	});
+
+	test('an active friendship cannot be rejected', async () => {
+		const alice = await createTestUser();
+		const bob = await createTestUser();
+		const key = friendRelationKey(alice, bob);
+
+		await sendFriendRequest({ senderId: alice, targetId: bob });
+		await acceptFriendRequest({ relationId: key, callerId: bob });
+
+		await expect(rejectFriendRequest({ relationId: key, callerId: bob })).rejects.toThrow(
+			PENDING_ONLY
+		);
+		expect(await areFriends(alice, bob)).toBe(true);
+		expect(await sendFriendRequest({ senderId: alice, targetId: bob })).toEqual({
+			status: 'already_friends'
+		});
+	});
+
+	test('an accepted request cannot be accepted again', async () => {
+		const alice = await createTestUser();
+		const bob = await createTestUser();
+		const key = friendRelationKey(alice, bob);
+
+		await sendFriendRequest({ senderId: alice, targetId: bob });
+		await acceptFriendRequest({ relationId: key, callerId: bob });
+
+		await expect(acceptFriendRequest({ relationId: key, callerId: bob })).rejects.toThrow(
+			PENDING_ONLY
+		);
+	});
 });
 
 describe.if(dbAvailable)('follow edges', () => {
@@ -216,5 +263,21 @@ describe.if(dbAvailable)('follow edges', () => {
 
 		// The reverse direction is a separate edge.
 		expect((await listFollowing(bob)).some((r) => r.participants[1] === alice)).toBe(false);
+	});
+
+	test('a follow edge cannot be accepted or rejected as a friend request', async () => {
+		const alice = await createTestUser();
+		const bob = await createTestUser();
+		const key = followRelationKey({ sender: alice, target: bob });
+
+		await followUser({ senderId: alice, targetId: bob });
+
+		await expect(acceptFriendRequest({ relationId: key, callerId: bob })).rejects.toThrow(
+			PENDING_ONLY
+		);
+		await expect(rejectFriendRequest({ relationId: key, callerId: bob })).rejects.toThrow(
+			PENDING_ONLY
+		);
+		expect((await listFollowing(alice)).some((r) => r.key === key)).toBe(true);
 	});
 });

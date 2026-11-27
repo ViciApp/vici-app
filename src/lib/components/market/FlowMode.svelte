@@ -218,7 +218,7 @@
 	// id. Only the focused card renders, so this fills one bounded candle
 	// query at a time (never the whole deck up front), and a market the viewer
 	// never reaches is never fetched. Absent entries leave the back-face
-	// sparkline on its seed shape.
+	// sparkline flat at the live price.
 	const priceHistoryById = new SvelteMap<MarketId, MarketPriceSeries>();
 	// Markets with a price-history fetch in flight. The cache key only lands
 	// once the request resolves, so without this an away-and-back swipe could
@@ -1257,7 +1257,7 @@
 	// reached (cached by id, so re-visiting is instant). Independent of the
 	// viewer: it's the same series for everyone, so it loads regardless of
 	// sign-in. Fails open: any error leaves the entry absent, so the back
-	// face stays on its seed-based sparkline.
+	// face keeps its flat line at the live price and the "+N today" line stays hidden.
 	$effect(() => {
 		const id = currentCard?.id;
 
@@ -1275,7 +1275,7 @@
 			}
 		})
 			.catch(() => {
-				// Leave the entry absent → back face keeps its seed sparkline.
+				// Leave the entry absent → no history and no trade count shown.
 			})
 			.finally(() => {
 				priceHistoryInFlight.delete(id);
@@ -1456,6 +1456,7 @@
 										showOriginal={flowShowOriginal}
 										signedIn={nonNullish($userStore.user)}
 										{tradeAmount}
+										tradesToday={priceSeries?.tradesLastDay}
 										translatedLanguageLabel={nonNullish(currentTranslation)
 											? translatedLanguageLabel(currentTranslation.locale)
 											: undefined}
