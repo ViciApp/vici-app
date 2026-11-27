@@ -528,15 +528,6 @@ export const getProfileByHandle = async (handle: string): Promise<UserProfile | 
 };
 
 /** Case-insensitive search over nickname, id, and linked legacy principal. */
-/** How many accounts hold a live profile (public; the landing proof figure). */
-export const countProfiles = async (): Promise<number> => {
-	const { count } = await request<{ count: number }>({
-		path: '/api/v1/profiles/count',
-		method: 'GET'
-	});
-
-	return count;
-};
 
 export const searchProfiles = async (queryStr: string): Promise<UserProfile[]> => {
 	const { items } = await request<{ items: Web2ProfileWire[] }>({

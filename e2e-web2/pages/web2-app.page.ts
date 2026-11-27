@@ -21,6 +21,8 @@ export class Web2AppPage {
 	readonly legacyAppLink: Locator;
 	readonly onboarding: Locator;
 	readonly onboardingHandleInput: Locator;
+	/** The handle step's Finish button, rendered only for a signed-in session. */
+	readonly onboardingFinish: Locator;
 	readonly appMain: Locator;
 	readonly marketFeed: Locator;
 	readonly marketCard: Locator;
@@ -44,6 +46,7 @@ export class Web2AppPage {
 		this.legacyAppLink = page.getByRole('link', { name: enMessages['signin.legacy_pending.cta'] });
 		this.onboarding = page.getByTestId(TestId.Onboarding);
 		this.onboardingHandleInput = page.getByTestId(TestId.OnboardingHandleInput);
+		this.onboardingFinish = page.getByTestId(TestId.OnboardingPrimary);
 		this.appMain = page.getByTestId(TestId.AppMain);
 		this.marketFeed = page.getByTestId(TestId.MarketFeed);
 		this.marketCard = page.getByTestId(TestId.MarketCard);
@@ -118,6 +121,18 @@ export class Web2AppPage {
 
 	async waitForSignedInShell(): Promise<void> {
 		await expect(this.userMenu).toBeVisible();
+	}
+
+	/**
+	 * A brand-new account that signed in on `/signin` has no handle yet, so the
+	 * `(app)` layout sends it on to the `/signup` handle step. The shell it
+	 * passes through on the way is only on screen until the profile loads, so
+	 * the settled, signed-in state to wait for is the handle step in its
+	 * authenticated form.
+	 */
+	async waitForNewAccountHandleStep(): Promise<void> {
+		await expect(this.page).toHaveURL(/\/signup$/);
+		await expect(this.onboardingFinish).toBeVisible();
 	}
 
 	/** No loading placeholder left on screen: every read the page waits on has

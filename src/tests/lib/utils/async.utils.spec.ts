@@ -1,4 +1,4 @@
-import { createLoadEpoch, startPolling } from '#lib/utils/async.utils.ts';
+import { createLoadEpoch, settleAll, startPolling } from '#lib/utils/async.utils.ts';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 
@@ -231,5 +231,47 @@ describe('async.utils', () => {
 
 			assert.equal(isCurrent(), true);
 		});
+	});
+});
+
+describe('settleAll', () => {
+	it('resolves once every task is over, in whatever way', async () => {
+		const done: string[] = [];
+
+		await settleAll([
+			async () => {
+				await Promise.resolve();
+				done.push('read');
+			},
+			async () => {
+				await Promise.reject(new Error('unreachable'));
+			}
+		]);
+
+		assert.deepEqual(done, ['read']);
+	});
+
+	it('settles a task that throws before returning its promise, and still runs the rest', async () => {
+		const done: string[] = [];
+
+		const refuse = (): string => {
+			throw new TypeError('not a market id');
+		};
+
+		await assert.doesNotReject(
+			settleAll([
+				() => Promise.resolve(refuse()),
+				async () => {
+					await Promise.resolve();
+					done.push('history');
+				}
+			])
+		);
+
+		assert.deepEqual(done, ['history']);
+	});
+
+	it('resolves with no task', async () => {
+		await assert.doesNotReject(settleAll([]));
 	});
 });

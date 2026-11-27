@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
-	import { tick, untrack } from 'svelte';
+	import { tick, untrack, type Snippet } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import LandingMarketsBoard from '#lib/components/landing/LandingMarketsBoard.svelte';
 	import LandingMarketsDetail from '#lib/components/landing/LandingMarketsDetail.svelte';
@@ -69,8 +69,9 @@
 	 * list with a side panel. It places no order: a confirmed call goes to the
 	 * page through `oncall` and the claim through `onclaim`; after one call,
 	 * further calls lead to the claim. `focusSeriesId` makes a market the lead
-	 * (a deck card floating in); `calls` shows calls already made elsewhere
-	 * on the page. It fills its positioned parent; the page's top bar floats
+	 * (a deck card floating in, landing on the lead's artwork,
+	 * `[data-landing-markets-lead-art]`); `calls` shows calls already made
+	 * elsewhere on the page. It fills its positioned parent; the page's top bar floats
 	 * over its first 72px (124px on phones), where the search sits.
 	 */
 	interface Props {
@@ -82,6 +83,8 @@
 		calls?: LandingCall[];
 		/** A market's link was shared or copied (the table's detail header). */
 		onshare?: (seriesId: string) => void;
+		/** The page's footer, at the end of the list. */
+		footer?: Snippet;
 	}
 
 	const {
@@ -90,7 +93,8 @@
 		onclose = () => {},
 		focusSeriesId,
 		calls = [],
-		onshare
+		onshare,
+		footer
 	}: Props = $props();
 
 	const uid = $props.id();
@@ -455,6 +459,8 @@
 			{#if nonNullish(allMarkets)}
 				<LandingMarketsNote {onclaim} />
 			{/if}
+
+			{@render footer?.()}
 		</div>
 	</div>
 

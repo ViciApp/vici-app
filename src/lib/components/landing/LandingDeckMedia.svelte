@@ -3,11 +3,15 @@
 	import {
 		LANDING_DECK_CLIP_TYPE_MP4,
 		LANDING_DECK_CLIP_TYPE_WEBM,
-		LANDING_DECK_DEFAULT_WIDE_FOCUS,
 		LANDING_DECK_MEDIA
 	} from '#lib/constants/landing.constants.ts';
 	import type { LandingDeckFilm } from '#lib/types/landing.ts';
-	import { deckSeamStops, focusY, type DeckViewport } from '#lib/utils/landing-deck.utils.ts';
+	import {
+		deckFilmCut,
+		deckSeamStops,
+		focusY,
+		type DeckViewport
+	} from '#lib/utils/landing-deck.utils.ts';
 
 	interface Props {
 		entry: LandingDeckFilm;
@@ -35,9 +39,7 @@
 	}: Props = $props();
 
 	// Fold, unfold or rotate: the cut follows the window, upright or wide.
-	const wide = $derived(viewport.width > viewport.height);
-	const cut = $derived(LANDING_DECK_MEDIA[entry.media][wide ? 'wide' : 'tall']);
-	const focus = $derived(wide ? (entry.wideFocus ?? LANDING_DECK_DEFAULT_WIDE_FOCUS) : '50% 50%');
+	const { cut, focus } = $derived(deckFilmCut({ entry, viewport }));
 
 	const seamBackground = $derived.by(() => {
 		if (isNullish(entry.seam)) {

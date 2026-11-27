@@ -260,7 +260,7 @@
 		priority={first}
 		{viewport}
 	/>
-	<div class="veil"></div>
+	<div class="veil" data-landing-deck-veil></div>
 	<div class="shade"></div>
 
 	<LandingDeckCardFront

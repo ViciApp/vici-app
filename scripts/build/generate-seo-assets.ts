@@ -488,7 +488,7 @@ const writePage = ({ relativeDir, html }: { relativeDir: string; html: string })
 };
 
 const renderSitemap = ({ paths, lastmod }: { paths: string[]; lastmod: string }): string => {
-	const staticPaths = ['/', '/about', '/welcome'];
+	const staticPaths = ['/'];
 
 	const urls = [...staticPaths, ...paths]
 		.map(

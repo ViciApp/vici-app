@@ -358,15 +358,6 @@ export const PROFILE_SEARCH_MAX_RESULTS = 20;
  * {@link PROFILE_SEARCH_MIN_QUERY_LENGTH} matches nothing. Results are capped,
  * so the exact handle ranks first, then handles that start with the query:
  * the add-friend lookup picks the exact handle out of this page. */
-/** How many accounts hold a profile that is not soft-deleted: the public
- * proof figure on the landing page. */
-export const countProfiles = async (): Promise<number> => {
-	const rows = await query<{ count: string }>(
-		`select count(*) as count from profiles where deleted_at_ms is null`
-	);
-
-	return Number(rows[0]?.count ?? 0);
-};
 
 export const searchProfiles = async (queryStr: string): Promise<Profile[]> => {
 	const needle = queryStr.trim().toLowerCase();

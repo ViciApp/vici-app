@@ -1772,25 +1772,6 @@ html[data-app='1'] body {
 	}
 }
 
-/* Scroll-reveal helper. WelcomePage flips `data-reveal="on"` on the
-   shell once `onMount` has wired the IntersectionObserver; sections
-   then start hidden and animate in as each scrolls into view. When
-   JS is disabled (no shell flag), sections stay fully visible: no
-   blank flash before hydration. */
-.welcome-shell[data-reveal='on'] .welcome-section {
-	opacity: 0;
-}
-.welcome-shell[data-reveal='on'] .welcome-section.is-in-view {
-	animation: lp-fade-in 480ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-@media (prefers-reduced-motion: reduce) {
-	.welcome-shell[data-reveal='on'] .welcome-section,
-	.welcome-shell[data-reveal='on'] .welcome-section.is-in-view {
-		opacity: 1;
-		animation: none;
-	}
-}
-
 /* ── F. Misc utility keyframes ──────────────────────────────── */
 @keyframes signin-spin {
 	to {

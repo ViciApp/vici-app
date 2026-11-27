@@ -1,8 +1,14 @@
-import { LANDING_DECK_FLIP_3D_MAX_WIDTH } from '#lib/constants/landing.constants.ts';
+import {
+	LANDING_DECK_DEFAULT_WIDE_FOCUS,
+	LANDING_DECK_FLIP_3D_MAX_WIDTH,
+	LANDING_DECK_MEDIA,
+	LANDING_DECK_SERIES
+} from '#lib/constants/landing.constants.ts';
 import { VXP_DEFAULT_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 import type {
 	LandingDeckCard,
 	LandingDeckFilm,
+	LandingDeckMediaCut,
 	LandingDeckSeries,
 	LandingDeckSide
 } from '#lib/types/landing.ts';
@@ -372,3 +378,45 @@ export const landingDeckSeries = ({
 
 export const hasDeckFilm = (entry: LandingDeckSeries): entry is LandingDeckFilm =>
 	nonNullish(entry.media);
+
+/** The cut of an entry's footage a window shows (upright or wide) and where the picture is anchored in it. */
+export const deckFilmCut = ({
+	entry,
+	viewport
+}: {
+	entry: LandingDeckFilm;
+	viewport: DeckViewport;
+}): { cut: LandingDeckMediaCut; focus: string; wide: boolean } => {
+	const wide = viewport.width > viewport.height;
+
+	return {
+		cut: LANDING_DECK_MEDIA[entry.media][wide ? 'wide' : 'tall'],
+		focus: wide ? (entry.wideFocus ?? LANDING_DECK_DEFAULT_WIDE_FOCUS) : '50% 50%',
+		wide
+	};
+};
+
+/**
+ * The still of a series the deck shows as a film card, in the cut `viewport`
+ * shows, or `undefined` for any other series. For the surfaces beside the
+ * deck that picture the same market.
+ */
+export const curatedDeckStill = ({
+	seriesId,
+	viewport,
+	curated = LANDING_DECK_SERIES
+}: {
+	seriesId: string;
+	viewport: DeckViewport;
+	curated?: readonly LandingDeckSeries[];
+}): { cut: LandingDeckMediaCut; focus: string } | undefined => {
+	const entry = curated.find((candidate) => candidate.seriesId === seriesId);
+
+	if (isNullish(entry) || !hasDeckFilm(entry)) {
+		return;
+	}
+
+	const { cut, focus } = deckFilmCut({ entry, viewport });
+
+	return { cut, focus };
+};

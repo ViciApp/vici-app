@@ -9,16 +9,14 @@ const THEMES: readonly Theme[] = ['dark', 'light', 'peach'] as const;
 
 /**
  * Theme-label i18n keys consumed by `AppearancePicker` (settings tile +
- * dropdown dots), the Settings appearance row and the `WelcomeNav` theme
- * control. Centralised so every surface shares the same labelling without
+ * dropdown dots) and the Settings appearance row. Centralised so every surface shares the same labelling without
  * each carrying its own literal map.
  */
 type ThemeLabelKey = 'ui.theme.dark' | 'ui.theme.light' | 'ui.theme.peach';
 
 /**
  * Background / dot hex pairs for theme preview chips. Single source of
- * truth for `AppearancePicker` (settings + dropdown variants) and the
- * `WelcomeNav` theme control. Hex values intentionally diverge from the
+ * truth for `AppearancePicker` (settings + dropdown variants). Hex values intentionally diverge from the
  * runtime `--bg-base` / `--text-base` tokens; these are static preview
  * swatches that must read correctly even when the *opposite* theme is
  * currently active.

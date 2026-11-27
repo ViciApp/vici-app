@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
 	import type { Snippet } from 'svelte';
+	import LandingMarketsArt from '#lib/components/landing/LandingMarketsArt.svelte';
 	import LandingMarketsRowAct from '#lib/components/landing/LandingMarketsRowAct.svelte';
-	import MarketArtwork from '#lib/components/market/MarketArtwork.svelte';
 	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { LandingMarketsView } from '#lib/types/landing-markets.ts';
@@ -79,14 +79,7 @@
 			type="button"
 		>
 			<span class="lmr-art" aria-hidden="true">
-				<MarketArtwork
-					bleed
-					category={view.artOf(market)}
-					fill
-					seed={market.id}
-					size={96}
-					{title}
-				/>
+				<LandingMarketsArt {market} size={96} {title} {view} />
 			</span>
 			<span class="lmr-text">
 				<b>{title}</b>

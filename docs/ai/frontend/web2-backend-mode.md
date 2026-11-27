@@ -161,7 +161,6 @@ to the app enums. Duel `sideA` / `sideB` hold account ids.
   curator-gated upserts; the API already speaks the app's camelCase shapes.
 - `resolution.services.ts`: `getSettledSeriesIds` fails open to the empty set
   so one engine error never blanks every market list.
-- `landing-proof.services.ts`: `GET /api/v1/profiles/count` (public).
 
 ### Engine account operations and the custodial wallet
 

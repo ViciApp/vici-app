@@ -20,7 +20,10 @@ ENV VITE_WEB2_API_URL=$VITE_WEB2_API_URL
 ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 # `npm ci` ran `svelte-kit sync` before the sources existed, so the generated
 # $app tsconfig and route types the type-check in `build` needs are missing.
-RUN npx svelte-kit sync && npm run build
+# The built shell carries the on-chain deployment's head tags; the last step
+# points them at vici.app and the landing's link preview. See
+# docs/ai/frontend/seo.md.
+RUN npx svelte-kit sync && npm run build && npm run seo:web2-head
 
 FROM nginx:alpine
 COPY nginx.web.conf /etc/nginx/conf.d/default.conf

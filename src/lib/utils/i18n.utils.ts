@@ -7,7 +7,7 @@ type Catalog = Record<string, string>;
 /**
  * Catalogs we ship today. A `soon` locale may be absent here (no catalog
  * at all), present with a *partial* catalog that defines only the keys
- * where it diverges from its fallback (e.g. the `es-419` landing deltas),
+ * where it diverges from its fallback (e.g. the `ja` landing copy),
  * or present with a *full* catalog (e.g. `pt-BR`, which today mirrors the
  * Brazilian-voiced `pt` strings verbatim). In every case `t()` resolves any
  * missing key through the locale's fallback chain to a populated locale,
@@ -26,9 +26,6 @@ const catalogs: Partial<Record<AppLocale, Catalog>> = {
 const catalogLoaders: Partial<Record<AppLocale, () => Promise<Catalog>>> = {
 	it: async () => (await import('#lib/constants/messages/it.ts')).itMessages,
 	es: async () => (await import('#lib/constants/messages/es.ts')).esMessages,
-	'es-419': async () => (await import('#lib/constants/messages/es-419.ts')).es419Messages,
-	'es-MX': async () => (await import('#lib/constants/messages/es-MX.ts')).esMxMessages,
-	'es-AR': async () => (await import('#lib/constants/messages/es-AR.ts')).esArMessages,
 	de: async () => (await import('#lib/constants/messages/de.ts')).deMessages,
 	fr: async () => (await import('#lib/constants/messages/fr.ts')).frMessages,
 	ja: async () => (await import('#lib/constants/messages/ja.ts')).jaMessages,
@@ -70,7 +67,7 @@ const loadCatalog = (locale: AppLocale): Promise<void> => {
 
 /**
  * Load the catalogs `t()` needs to render `locale`: the locale itself plus
- * its whole fallback chain, since a partial catalog (e.g. `es-MX`) resolves
+ * its whole fallback chain, since a partial catalog (e.g. `ja`) resolves
  * most keys through its ancestors. Idempotent and memoized; never rejects.
  * Resolution means every reachable catalog either landed in memory or had
  * its fetch fail (see `loadCatalog`): in the failure case `t()` keeps
