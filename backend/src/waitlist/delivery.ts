@@ -9,8 +9,8 @@
 //      after the provider accepted the email re-sends with the same key, and
 //      the provider drops the duplicate);
 //   3. stamps after the send, with the caller's own column in the same
-//      transaction. A send that fails deletes the unsent claim, so the next
-//      run retries at once.
+//      transaction. A send that fails deletes its own unsent claim (never a
+//      newer run's), so the next run retries at once.
 //
 // What an email says is built from the claim's `created_at`, which a
 // re-claim does not move, so a retry sends the same content (the provider
@@ -44,14 +44,14 @@ export const deliverOnce = async ({
 	build: (createdAt: Date) => EmailMessage;
 	stamp?: (q: TxQuery) => Promise<void>;
 }): Promise<DeliveryOutcome> => {
-	const [claim] = await query<{ created_at: Date }>(
+	const [claim] = await query<{ created_at: Date; claim: string }>(
 		`insert into waitlist_email_deliveries (delivery_key, claimed_at)
 		 values ($1, now())
 		 on conflict (delivery_key) do update set claimed_at = now()
 		 where waitlist_email_deliveries.sent_at is null
 		   and waitlist_email_deliveries.claimed_at
 		     < now() - make_interval(secs => $2::double precision / 1000)
-		 returning created_at`,
+		 returning created_at, claimed_at::text as claim`,
 		[key, WAITLIST_EMAIL_LEASE_MS]
 	);
 
@@ -62,9 +62,13 @@ export const deliverOnce = async ({
 	try {
 		await sendEmail({ ...build(claim.created_at), idempotencyKey: key });
 	} catch (err) {
+		// Only this run's claim, matched at full precision (text, since a JS
+		// Date drops the microseconds): a run that outlived its lease may have
+		// been overtaken, and the newer claim is not this run's to release.
 		await query(
-			`delete from waitlist_email_deliveries where delivery_key = $1 and sent_at is null`,
-			[key]
+			`delete from waitlist_email_deliveries
+			 where delivery_key = $1 and sent_at is null and claimed_at = $2::timestamptz`,
+			[key, claim.claim]
 		);
 		throw err;
 	}

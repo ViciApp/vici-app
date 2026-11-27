@@ -105,6 +105,34 @@ describe.if(dbAvailable)('deliverOnce', () => {
 		expect(sent).toHaveLength(1);
 	});
 
+	test('a run that outlived its lease never releases the newer claim', async () => {
+		const key = uniqueKey();
+		let overtaken: Promise<string> | undefined;
+
+		restore?.();
+		restore = setEmailTransport(async () => {
+			// While this run waits on the provider, its lease ends and another
+			// run claims the key.
+			await expireLease(key);
+			restore?.();
+			restore = setEmailTransport(() => new Promise(() => undefined));
+			overtaken = deliverOnce({ key, build });
+			await Bun.sleep(50);
+
+			throw new Error('provider down');
+		});
+
+		await expect(deliverOnce({ key, build })).rejects.toThrow('provider down');
+		expect(overtaken).toBeDefined();
+
+		const [row] = await query<{ count: number }>(
+			`select count(*)::int as count from waitlist_email_deliveries where delivery_key = $1`,
+			[key]
+		);
+
+		expect(row?.count).toBe(1);
+	});
+
 	test('a sent key is never claimed again, and the stamp lands with it', async () => {
 		const key = uniqueKey();
 		let stamped = 0;

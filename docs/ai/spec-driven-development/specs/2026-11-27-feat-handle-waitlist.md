@@ -87,18 +87,18 @@ A new area: `backend/src/routes/waitlist.ts` (`waitlistRoutes`, prefix `/api/v1/
 
 Body: `{ handle, email, turnstileToken, privacyVersion, source, locale, referralCode?, challengeId? }`, every string length-capped by a named constant.
 
-In order: IP limit; body validation; Turnstile; email shape; disposable domain (section 3); handle format; the per-mailbox send cap and the global breaker. Then, in one transaction under the mailbox lock and the handle lock: handle availability against other waitlist entries only (profiles are not consulted, see Decisions); upsert the row (`pending_handle`, a fresh code replacing any earlier one, attempts reset, `consent_at`, `privacy_version`, `source`, `locale`, attribution) and send the code email.
+In order: IP limit; body validation; Turnstile; email shape; disposable domain (section 3, failing closed in production while the list is empty); handle format. Then, in one transaction under the mailbox lock and the handle lock: handle availability through the shared validator (profiles and other waitlist entries); the per-mailbox send cap and the global breaker, charged only now that a code will go out; upsert the row (`pending_handle`, a fresh code replacing any earlier one, attempts reset, `consent_at`, `privacy_version`, `source`, `locale`, attribution) and send the code email.
 
-| Answer                                                                | When                                                        |
-| --------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `200 { ok: true, codeTtlMs }`                                         | the code was stored and sent                                |
-| `400 { error: 'email_invalid' }`                                      | empty, no `@`, longer than `MAX_WAITLIST_EMAIL_LENGTH`      |
-| `400 { error: 'email_not_accepted' }`                                 | a disposable-mail domain                                    |
-| `400 { error: 'handle_invalid' }`                                     | fails the rule or is a reserved name                        |
-| `409 { error: 'handle_taken' }`                                       | a reservation or another mailbox's live pending hold has it |
-| `403 { error: 'turnstile_failed' }`                                   | Cloudflare refused the token                                |
-| `503 { error: 'turnstile_unavailable' }` / `'turnstile_unconfigured'` | as the handle probe answers them                            |
-| `429 { error: 'rate_limited' }` with `Retry-After`                    | IP limit, the per-mailbox send cap or the global breaker    |
+| Answer                                                                | When                                                                   |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `200 { ok: true, codeTtlMs }`                                         | the code was stored and sent                                           |
+| `400 { error: 'email_invalid' }`                                      | empty, no `@`, longer than `MAX_WAITLIST_EMAIL_LENGTH`                 |
+| `400 { error: 'email_not_accepted' }`                                 | a disposable-mail domain                                               |
+| `400 { error: 'handle_invalid' }`                                     | fails the rule or is a reserved name                                   |
+| `409 { error: 'handle_taken' }`                                       | a profile, a reservation or another mailbox's live pending hold has it |
+| `403 { error: 'turnstile_failed' }`                                   | Cloudflare refused the token                                           |
+| `503 { error: 'turnstile_unavailable' }` / `'turnstile_unconfigured'` | as the handle probe answers them                                       |
+| `429 { error: 'rate_limited' }` with `Retry-After`                    | IP limit, the per-mailbox send cap or the global breaker               |
 
 No answer depends on what the server knows about the mailbox beyond the waitlist itself. Delivery failures are logged and do not change the answer, as in `requestOtp`.
 
@@ -286,7 +286,7 @@ Client-side steps of the capsule belong to the landing analytics PR and reuse ex
 - [ ] A held handle reads as taken in the anonymous probe, the signed-in probe, onboarding and the handle editor, and the profile write refuses it; that includes the ten minutes a code is live.
 - [ ] A mailbox holds one handle; confirming another replaces and releases the first.
 - [ ] `name+tag@`, dotted Gmail variants and `googlemail.com` count as one mailbox; a disposable domain is refused with its own code.
-- [ ] A mailbox is only a waitlist entry: an existing account, legacy identity or profile neither blocks a reservation nor changes the answer.
+- [ ] A mailbox is only a waitlist entry: an account or legacy identity with the address neither blocks a reservation nor changes the answer.
 - [ ] A waitlist code cannot sign anyone in, and a sign-in code cannot confirm a reservation.
 - [ ] Every waitlist email is in the language the visitor used, in every live locale, and those sent to a reservation carry a link that removes it without login.
 - [ ] Opening the removal link deletes nothing; pressing its button deletes the reservation and releases the handle.
@@ -312,7 +312,7 @@ Client-side steps of the capsule belong to the landing analytics PR and reuse ex
 
 Owner decisions (27 Nov 2026):
 
-- **Superseding decision, later on 27 Nov 2026: vici.app is a new product.** No legacy users are migrated and sign-in is not publicly reachable. Every path about existing vici.app or legacy accounts is dropped (emails 4.3 and 4.4, the account and legacy lookups, the mailbox-key columns on the identity tables), and the waitlist does not consult profiles: a mailbox is only a waitlist entry, and a handle is free unless it is reserved or held by another entry. The profile write still reads reservations, so no account can take a held handle. The two decisions below about such mailboxes are struck.
+- **Superseding decision, later on 27 Nov 2026: vici.app is a new product.** No legacy users are migrated and sign-in is not publicly reachable. Every path about existing vici.app or legacy accounts is dropped (emails 4.3 and 4.4, the account and legacy lookups, the mailbox-key columns on the identity tables), a mailbox is only a waitlist entry. Profiles still count (the imported accounts are deleted; the remaining team and service profiles keep their handles): a handle is free only when it passes the rule, is not reserved, no profile holds it and no other entry holds it, through the one `checkNicknameAvailability` that the probes, the waitlist and the profile write share. The two decisions below about such mailboxes are struck.
 
 - **Steps and done line.** Handle, email, 6-digit code, done; "Handle claimed. You're on the waitlist.". No account is created and nobody plays before admission.
 - **The handle is held for the ten minutes the code lives.**

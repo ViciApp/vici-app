@@ -11,7 +11,8 @@ export const en = {
 		intro: (handle: string) => `Here is your code to hold @${handle} on the VICI waitlist:`,
 		expiry: (minutes: number) =>
 			`It works for ${minutes} minutes, and the handle stays held for you while it does.`,
-		ignore: "If you didn't ask for it, ignore this email: nothing is kept."
+		ignore: (hours: number) =>
+			`If you didn't ask for it, ignore this email: without the code nothing is held, and the request is deleted within ${hours} hours. The link below deletes it now.`
 	},
 	receipt: {
 		subject: (handle: string) => `@${handle} is yours, you're on the waitlist`,

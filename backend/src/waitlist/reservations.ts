@@ -6,11 +6,12 @@
 // a sign-in code), and its hash is domain-separated, so a waitlist code can
 // never sign anyone in and a sign-in code can never confirm a reservation.
 //
-// vici.app starts as a new product: a mailbox is only a waitlist entry, and
-// a handle is free unless the rule refuses it (reserved names included) or
-// another entry holds it. Profiles are not consulted; the profile write does
-// consult reservations (`checkNicknameAvailability`), so an account can never
-// take a reserved handle.
+// vici.app starts as a new product: a mailbox is only a waitlist entry, with
+// no lookup against accounts. A handle is free only when it passes the rule,
+// is not a reserved name, no profile holds it and no other entry holds it:
+// `checkNicknameAvailability`, the one check the handle probes and the
+// profile write use too, so the capsule and the API never disagree and no
+// account can take a reserved handle.
 //
 // Lock order: the mailbox's lock first, then the handle key's lock
 // (`lockHandleKey`), the one every profile write of a handle takes too.
@@ -22,13 +23,14 @@ import { query, tx, type TxQuery } from '../db/client';
 import { constantTimeEqual, generateOtp, peppered, randomToken } from '../lib/crypto';
 import { sendEmail, type EmailMessage } from '../lib/email';
 import { logger } from '../lib/logger';
-import { DAY_IN_MS, TEN_MINUTES_IN_MS } from '../lib/time';
+import { sharedRateLimit } from '../lib/rate-limit';
+import { DAY_IN_MS, HOUR_IN_MS, TEN_MINUTES_IN_MS } from '../lib/time';
 import type { AppLocale } from '../markets/locales';
 import {
+	checkNicknameAvailability,
 	handleRuleRefusal,
 	handleUniqueKey,
-	lockHandleKey,
-	waitlistHoldsHandle
+	lockHandleKey
 } from '../profiles/nickname';
 import {
 	waitlistCodeEmail,
@@ -44,9 +46,12 @@ export const WAITLIST_CODE_TTL_MS = TEN_MINUTES_IN_MS;
 /** Guesses one code allows, spent before the compare. */
 export const WAITLIST_CODE_MAX_ATTEMPTS = 5;
 
-/** Mails one mailbox may be sent per rolling day, across the code, the
- * already-a-member and the legacy-account emails. */
+/** Code emails one mailbox may be sent per day. */
 export const WAITLIST_SENDS_PER_DAY = 5;
+
+/** A breaker on the email bill across every caller, far above the expected
+ * arrival rate and under the provider's hourly allowance. */
+export const WAITLIST_CODE_GLOBAL_LIMIT_PER_HOUR = 600;
 
 /** How long a confirmed handle is held before the re-confirm asks again. */
 export const WAITLIST_HOLD_MONTHS = 12;
@@ -93,6 +98,36 @@ export class WaitlistError extends Error {
 		super(code);
 	}
 }
+
+/** A code email the per-mailbox cap or the global breaker would not allow. */
+export class WaitlistSendLimitedError extends Error {
+	constructor(readonly retryAfterSec: number) {
+		super('rate_limited');
+	}
+}
+
+/**
+ * Charges one code email to the mailbox's daily cap and the global breaker,
+ * once the request is known to send it: a refused handle or address spends
+ * nobody's budget. Shared across machines, since the cap protects the inbox,
+ * not the caller.
+ */
+const chargeCodeEmail = async (mailboxKey: string): Promise<void> => {
+	for (const { key, limit, windowMs } of [
+		{ key: `waitlist_send:${mailboxKey}`, limit: WAITLIST_SENDS_PER_DAY, windowMs: DAY_IN_MS },
+		{
+			key: 'waitlist_code_global:all',
+			limit: WAITLIST_CODE_GLOBAL_LIMIT_PER_HOUR,
+			windowMs: HOUR_IN_MS
+		}
+	]) {
+		const result = await sharedRateLimit(key, limit, windowMs);
+
+		if (!result.ok) {
+			throw new WaitlistSendLimitedError(result.retryAfterSec);
+		}
+	}
+};
 
 /** Why a request or confirmation was refused, as `waitlist_join_refused`
  * records it: the wire refusals, a bot check or a limit. */
@@ -165,11 +200,16 @@ const assertHandleAvailable = async ({
 	handle: string;
 	mailboxKey: string;
 }): Promise<void> => {
-	assertWaitlistHandle(handle);
 	await lockHandleKey({ key: handleUniqueKey(handle), q });
 
-	if (await waitlistHoldsHandle({ handle, excludeReservationKey: mailboxKey, q })) {
-		throw new WaitlistError('handle_taken');
+	const result = await checkNicknameAvailability({
+		nickname: handle,
+		excludeReservationKey: mailboxKey,
+		q
+	});
+
+	if (!result.available) {
+		throw new WaitlistError(result.reason === 'taken' ? 'handle_taken' : 'handle_invalid');
 	}
 };
 
@@ -195,7 +235,8 @@ export interface WaitlistCodeRequest {
 
 /**
  * Stores a fresh code for the mailbox, holding `handle` pending while it
- * lives, and emails it. Throws `handle_taken` or `handle_invalid`.
+ * lives, and emails it. Throws `handle_taken` or `handle_invalid`, or
+ * `WaitlistSendLimitedError` past the send cap or the breaker.
  */
 export const requestWaitlistCode = async (request: WaitlistCodeRequest): Promise<void> => {
 	const { handle, privacyVersion, source, locale, referralCode, challengeId } = request;
@@ -206,6 +247,7 @@ export const requestWaitlistCode = async (request: WaitlistCodeRequest): Promise
 	const id = await tx(async (q) => {
 		await lockMailbox({ q, mailboxKey });
 		await assertHandleAvailable({ q, handle, mailboxKey });
+		await chargeCodeEmail(mailboxKey);
 
 		// One live code per mailbox: a fresh request replaces any earlier one
 		// with its attempts. A new invite or challenge link replaces the stored
@@ -265,6 +307,7 @@ export const requestWaitlistCode = async (request: WaitlistCodeRequest): Promise
 			handle,
 			code,
 			ttlMs: WAITLIST_CODE_TTL_MS,
+			retentionHours: WAITLIST_UNCONFIRMED_RETENTION_MS / HOUR_IN_MS,
 			removeUrl: waitlistRemoveUrl({ id, token: waitlistRemoveToken(id) })
 		})
 	);
@@ -474,20 +517,35 @@ export const readWaitlistStatus = async (
 	return isNullish(row) ? undefined : { handle: row.handle, state: 'waiting' };
 };
 
+/** Deletes one reservation under its mailbox's lock, so a removal never
+ * interleaves with a code request or a confirmation for that mailbox. */
 const deleteReservation = async ({
 	where,
 	param
 }: {
 	where: 'id' | 'email_key';
 	param: string;
-}): Promise<{ email: string; locale: string; handle: string | null } | undefined> => {
-	const [row] = await query<{ email: string; locale: string; handle: string | null }>(
-		`delete from waitlist_reservations where ${where} = $1 returning email, locale, handle`,
-		[param]
-	);
+}): Promise<{ email: string; locale: string; handle: string | null } | undefined> =>
+	await tx(async (q) => {
+		const [found] = await q<{ email_key: string }>(
+			`select email_key from waitlist_reservations where ${where} = $1`,
+			[param]
+		);
 
-	return row;
-};
+		if (isNullish(found)) {
+			return;
+		}
+
+		await lockMailbox({ q, mailboxKey: found.email_key });
+
+		const [row] = await q<{ email: string; locale: string; handle: string | null }>(
+			`delete from waitlist_reservations where ${where} = $1 and email_key = $2
+			 returning email, locale, handle`,
+			[param, found.email_key]
+		);
+
+		return row;
+	});
 
 /**
  * The remove link's button: deletes the reservation the link names, which

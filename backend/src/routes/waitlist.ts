@@ -8,9 +8,9 @@ import { Elysia, t } from 'elysia';
 import { normalizeReferralCode } from '../account/referrals';
 import { forbidden, requireAdmin, requireUser, unauthenticated } from '../auth/guard';
 import { UUID_RE } from '../lib/constants';
-import { badRequest, clientIp, type StatusContext } from '../lib/http';
-import { enforceLimit, enforceSharedLimit } from '../lib/rate-limit';
-import { DAY_IN_MS, HOUR_IN_MS, TEN_MINUTES_IN_MS } from '../lib/time';
+import { badRequest, clientIp, serviceUnavailable, type StatusContext } from '../lib/http';
+import { enforceLimit, limitedAnswer } from '../lib/rate-limit';
+import { TEN_MINUTES_IN_MS } from '../lib/time';
 import {
 	MAX_TURNSTILE_TOKEN_LENGTH,
 	turnstileRefusal,
@@ -19,7 +19,7 @@ import {
 import { REGISTERED_LOCALE_IDS } from '../markets/locales';
 import { MAX_HANDLE_LENGTH } from '../profiles/nickname';
 import { normalizeChallengeId } from '../social/challenges';
-import { emailMailboxKey, isDisposableEmail } from '../waitlist/mailbox';
+import { DisposableListMissingError, isDisposableEmail } from '../waitlist/mailbox';
 import {
 	MAX_INVITE_FIELD_LENGTH,
 	MAX_PRIVACY_VERSION_LENGTH,
@@ -27,9 +27,9 @@ import {
 	MAX_WAITLIST_TOKEN_LENGTH,
 	WAITLIST_CODE_TTL_MS,
 	WAITLIST_CODE_TURNSTILE_ACTION,
-	WAITLIST_SENDS_PER_DAY,
 	WAITLIST_SOURCES,
 	WaitlistError,
+	WaitlistSendLimitedError,
 	assertWaitlistHandle,
 	captureWaitlistEvent,
 	confirmWaitlistCode,
@@ -46,9 +46,6 @@ export const WAITLIST_CODE_LIMIT_PER_TEN_MINUTES = 5;
 export const WAITLIST_CONFIRM_LIMIT_PER_TEN_MINUTES = 15;
 export const WAITLIST_STATUS_LIMIT_PER_TEN_MINUTES = 30;
 export const WAITLIST_REMOVE_LIMIT_PER_TEN_MINUTES = 10;
-// A breaker on the email bill across every caller, far above the expected
-// arrival rate and under the provider's hourly allowance.
-export const WAITLIST_CODE_GLOBAL_LIMIT_PER_HOUR = 600;
 
 const WAITLIST_ERROR_STATUS: Record<WaitlistErrorCode, number> = {
 	email_invalid: 400,
@@ -128,6 +125,10 @@ export const waitlistRoutes = new Elysia({ prefix: '/api/v1/waitlist' })
 					return refuse({ set, code: err.code });
 				}
 
+				if (err instanceof DisposableListMissingError) {
+					return serviceUnavailable(set, 'waitlist_unconfigured');
+				}
+
 				throw err;
 			}
 
@@ -135,32 +136,6 @@ export const waitlistRoutes = new Elysia({ prefix: '/api/v1/waitlist' })
 				name: 'waitlist_code_requested',
 				props: { source: body.source, locale: body.locale }
 			});
-
-			// Counted once the caller has solved a challenge, so nobody can spend
-			// someone else's inbox budget for free; shared across machines, since
-			// it protects the inbox, not the caller.
-			for (const { name, key, limit, windowMs } of [
-				{
-					name: 'waitlist_send',
-					key: emailMailboxKey(email),
-					limit: WAITLIST_SENDS_PER_DAY,
-					windowMs: DAY_IN_MS
-				},
-				{
-					name: 'waitlist_code_global',
-					key: 'all',
-					limit: WAITLIST_CODE_GLOBAL_LIMIT_PER_HOUR,
-					windowMs: HOUR_IN_MS
-				}
-			]) {
-				const capped = await enforceSharedLimit({ set, name, key, limit, windowMs });
-
-				if (capped) {
-					await recordRefusal('rate_limited');
-
-					return capped;
-				}
-			}
 
 			try {
 				await requestWaitlistCode({
@@ -183,6 +158,12 @@ export const waitlistRoutes = new Elysia({ prefix: '/api/v1/waitlist' })
 					await recordRefusal(err.code);
 
 					return refuse({ set, code: err.code });
+				}
+
+				if (err instanceof WaitlistSendLimitedError) {
+					await recordRefusal('rate_limited');
+
+					return limitedAnswer({ set, result: { ok: false, retryAfterSec: err.retryAfterSec } });
 				}
 
 				throw err;

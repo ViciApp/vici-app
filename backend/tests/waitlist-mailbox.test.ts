@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { emailMailboxKey, isDomainRefused, parseDomainList } from '../src/waitlist/mailbox';
+import {
+	assertDisposableListLoaded,
+	DisposableListMissingError,
+	emailMailboxKey,
+	isDomainRefused,
+	parseDomainList
+} from '../src/waitlist/mailbox';
 
 describe('emailMailboxKey', () => {
 	test('folds a +tag, the case, and Gmail dots and domains into one mailbox', () => {
@@ -40,5 +46,15 @@ describe('disposable domains', () => {
 				overlay: { block: ['mailinator.com'], allow: ['mailinator.com'] }
 			})
 		).toBe(false);
+	});
+
+	test('an empty list fails closed in production only', () => {
+		const empty = parseDomainList('# header only\n');
+
+		expect(() => assertDisposableListLoaded({ listed: empty, isProd: true })).toThrow(
+			DisposableListMissingError
+		);
+		expect(() => assertDisposableListLoaded({ listed: empty, isProd: false })).not.toThrow();
+		expect(() => assertDisposableListLoaded({ listed, isProd: true })).not.toThrow();
 	});
 });

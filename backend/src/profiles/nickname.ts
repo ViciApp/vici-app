@@ -292,7 +292,7 @@ export const handleRuleRefusal = (
  * rule is its own key. `excludeReservationKey` is a reservation's own
  * mailbox key, so it never conflicts with itself.
  */
-export const waitlistHoldsHandle = async ({
+const waitlistHoldsHandle = async ({
 	handle,
 	excludeReservationKey,
 	q = query

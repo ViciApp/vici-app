@@ -65,7 +65,9 @@ interface LimitContext extends StatusContext {
 	headers: Record<string, string | number>;
 }
 
-const limitedAnswer = ({
+/** The 429 + Retry-After answer for an exhausted limit, or nothing when it
+ * allows the call: for a limit a domain checks itself (`sharedRateLimit`). */
+export const limitedAnswer = ({
 	set,
 	result
 }: {

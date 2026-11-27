@@ -203,13 +203,29 @@ describe.if(dbAvailable)('handle waitlist: reserving', () => {
 		);
 	});
 
-	test('profiles are not consulted: a mailbox is only a waitlist entry', async () => {
+	test('a handle a profile holds, or a lookalike of it, is taken', async () => {
 		const { profile } = await createTestProfile();
 
-		expect((await requestCode({ handle: profile.nickname, email: uniqueEmail() })).status).toBe(
-			200
-		);
+		expect(
+			await errorOf(await requestCode({ handle: profile.nickname, email: uniqueEmail() }))
+		).toBe('handle_taken');
 
+		// A handle that predates the rule keeps its lookalike key.
+		const legacy = await createTestProfile();
+		const base = uniqueHandle();
+
+		await query(`update profiles set nickname = $2, handle_key = $3 where user_id = $1`, [
+			legacy.userId,
+			`${base.slice(0, 3)}.${base.slice(3)}`,
+			base
+		]);
+
+		expect(await errorOf(await requestCode({ handle: base, email: uniqueEmail() }))).toBe(
+			'handle_taken'
+		);
+	});
+
+	test('a mailbox is only a waitlist entry: an account with the address changes nothing', async () => {
 		const email = uniqueEmail();
 
 		await query(
@@ -219,6 +235,7 @@ describe.if(dbAvailable)('handle waitlist: reserving', () => {
 
 		expect((await requestCode({ handle: uniqueHandle(), email })).status).toBe(200);
 		expect(await reservationOf(email)).toBeDefined();
+		expect(sent().at(-1)?.subject).toBe('Your VICI waitlist code');
 	});
 
 	test('a held handle is refused by both probes and the profile write', async () => {

@@ -775,8 +775,9 @@ handle probes, onboarding, the handle editor and the profile write read it
 as taken), and it is also held for the ten minutes a code is live. No
 account, session, profile or VXP is created, and nobody plays before
 admission. vici.app starts as a new product, so a mailbox is only a
-waitlist entry: a handle is free unless it is a reserved name or another
-entry holds it. One handle per mailbox: confirming another one releases
+waitlist entry: a handle is free only when it is not a reserved name, no
+profile holds it (the team's own accounts) and no other entry holds it,
+the same check the live availability line runs. One handle per mailbox: confirming another one releases
 the first. `name+tag@` and dotted Gmail variants are one mailbox, and
 known disposable-mail domains are refused with their own answer.
 

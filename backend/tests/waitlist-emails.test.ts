@@ -56,13 +56,15 @@ describe('waitlist email builders', () => {
 				handle: 'ada',
 				code: '123456',
 				ttlMs: 10 * 60 * 1000,
+				retentionHours: 24,
 				removeUrl: REMOVE_URL
 			});
 
 			expect(code.text).toContain('123456');
 			expect(code.text).toContain('@ada');
 			expect(code.text).toContain('10');
-			expect(code.html).toContain(REMOVE_URL.replace('&', '&amp;'));
+			expect(code.text).toContain('24');
+			expect(code.html).toContain(REMOVE_URL.replaceAll('&', '&amp;'));
 
 			const receipt = waitlistReceiptEmail({
 				to: 'a@example.com',

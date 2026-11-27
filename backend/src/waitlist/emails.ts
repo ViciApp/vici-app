@@ -82,6 +82,7 @@ export const waitlistCodeEmail = ({
 	handle,
 	code,
 	ttlMs,
+	retentionHours,
 	removeUrl
 }: {
 	to: string;
@@ -89,21 +90,23 @@ export const waitlistCodeEmail = ({
 	handle: string;
 	code: string;
 	ttlMs: number;
+	retentionHours: number;
 	removeUrl: string;
 }): EmailMessage => {
 	const copy = waitlistEmailCopy(locale);
 	const expiry = copy.code.expiry(codeLifetimeMinutes(ttlMs));
+	const ignore = copy.code.ignore(retentionHours);
 	const footer = removeFooter({ copy, removeUrl });
 
 	return {
 		to,
 		subject: copy.code.subject,
-		text: [copy.code.intro(handle), code, expiry, copy.code.ignore, footer.text].join('\n\n'),
+		text: [copy.code.intro(handle), code, expiry, ignore, footer.text].join('\n\n'),
 		html: [
 			paragraph(copy.code.intro(handle)),
 			`<p style="font-size:24px;font-weight:700;letter-spacing:4px">${escapeHtml(code)}</p>`,
 			paragraph(expiry),
-			quiet(paragraph(copy.code.ignore)),
+			quiet(paragraph(ignore)),
 			footer.html
 		].join('')
 	};

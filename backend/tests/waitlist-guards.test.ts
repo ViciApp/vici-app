@@ -113,6 +113,21 @@ describe.if(dbAvailable)('handle waitlist: guards and upkeep', () => {
 		expect(sent()).toHaveLength(SENDS_PER_DAY);
 	});
 
+	test('a refused handle spends no send budget', async () => {
+		const email = uniqueEmail();
+		const handle = uniqueHandle();
+
+		await join({ handle, email: uniqueEmail() });
+
+		for (let i = 0; i < SENDS_PER_DAY + 1; i++) {
+			expect(await errorOf(await requestCode({ handle, email, ip: uniqueIp() }))).toBe(
+				'handle_taken'
+			);
+		}
+
+		expect((await requestCode({ handle: uniqueHandle(), email })).status).toBe(200);
+	});
+
 	test('the global breaker answers 429', async () => {
 		await query(
 			`insert into rate_limit_windows (key, count, reset_at) values ($1, 100000, now() + interval '1 hour')
