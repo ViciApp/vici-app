@@ -10,7 +10,7 @@ import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { env } from '../env';
 import { badRequest, clientIp, type StatusContext } from '../lib/http';
-import { enforceLimit } from '../lib/rate-limit';
+import { enforceLimit, enforceSharedLimit } from '../lib/rate-limit';
 import { HOUR_IN_MS } from '../lib/time';
 import {
 	listChallengeAnswers,
@@ -34,11 +34,13 @@ import {
 // opening the same link.
 const CHALLENGE_READ_LIMIT_PER_HOUR = 120;
 
-// The head fragment is fetched by the web image's nginx, so every request
-// carries the web machine's address and this is a ceiling for the whole web
-// tier, not a per-visitor budget: nginx limits each visitor and renders an id
-// at most once a minute (nginx.web.conf). One render a second on average
-// leaves a preview storm across many ids room before the stub takes over.
+// The head fragment is fetched by the web image's nginx, so its requests
+// carry the web machine's address (Fly's edge sets it): this is a ceiling for
+// the whole web tier, counted in Postgres so it holds however many API
+// machines run, not a per-visitor budget. nginx limits each visitor and
+// renders an id at most once a minute (nginx.web.conf). One render a second
+// on average leaves a preview storm across many ids room before the stub
+// takes over; a direct caller gets a budget of its own address.
 const CHALLENGE_HEAD_LIMIT_PER_HOUR = 3600;
 
 const HTML_CONTENT_TYPE = 'text/html; charset=utf-8';
@@ -152,10 +154,10 @@ export const challengesRoutes = new Elysia({ prefix: '/api/v1/challenges' })
 	// serves on /c/<id>. A link that reads as not found answers 404 with an
 	// empty body, so nginx keeps the generic preview.
 	.get('/:id/head', async ({ request, set, params }) => {
-		const limited = enforceLimit({
+		const limited = await enforceSharedLimit({
 			set,
 			name: 'challenge_head',
-			ip: clientIp(request),
+			key: clientIp(request) ?? 'unknown',
 			limit: CHALLENGE_HEAD_LIMIT_PER_HOUR,
 			windowMs: HOUR_IN_MS
 		});
