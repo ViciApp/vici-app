@@ -87,7 +87,7 @@
 
 <div class="space-y-12 px-4 py-6 sm:py-8 lg:py-10">
 	<header class="space-y-4">
-		<h1 class="font-display text-foreground text-4xl font-semibold tracking-tight sm:text-5xl">
+		<h1 class="text-foreground text-4xl font-semibold tracking-tight sm:text-5xl">
 			{t({ locale: $localeStore, key: 'admin.dashboard.title' })}
 		</h1>
 		<p class="text-muted-foreground max-w-2xl text-lg">

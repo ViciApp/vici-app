@@ -29,7 +29,7 @@
 
 	.worlds-affil-prompt h4 {
 		margin: 0 0 0.4rem;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-style: italic;
 		font-weight: 400;
 		font-size: var(--t-17, 1.05rem);

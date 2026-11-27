@@ -694,7 +694,7 @@
 	}
 
 	.worlds-detail-empty-title {
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-style: italic;
 		font-weight: 400;
 		font-size: var(--t-20, 1.25rem);

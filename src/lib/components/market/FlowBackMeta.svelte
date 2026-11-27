@@ -125,7 +125,7 @@
 <style lang="postcss">
 	.flow-back-title {
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: clamp(1.15rem, 4.6vw, 1.45rem);
 		font-weight: 600;
 		line-height: 1.35;

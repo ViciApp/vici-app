@@ -44,12 +44,6 @@ export const LANDING_FLOAT_ORIGIN_Y = 0.6;
 export const LANDING_TERMS_PATH = `${PublicPath.Info}/terms` as const;
 
 /**
- * The headline face, preloaded by the landing only. Must match the
- * `Bricolage Grotesque` `@font-face` source in `src/app.css`.
- */
-export const LANDING_HEADLINE_FONT_SRC = '/fonts/bricolage-grotesque-variable-latin.woff2';
-
-/**
  * The landing's link preview: the card under `static/` and its headline. A
  * link preview is read from the built shell, before the app or a locale
  * exists, so the headline is English and lives here, not in the catalogs.

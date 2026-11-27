@@ -44,7 +44,7 @@
 		justify-content: center;
 	}
 	.empty-deck-title {
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-32);
 		font-weight: 600;
 		letter-spacing: var(--tracking-snug);

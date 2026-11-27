@@ -2667,7 +2667,7 @@
 	}
 
 	.league-detail-recruit-title {
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-14);
 		font-weight: 600;
 		color: var(--text-base);

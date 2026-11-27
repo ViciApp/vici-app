@@ -1098,7 +1098,7 @@
 
 	.flow-card-title {
 		margin: 6px 0 0;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--text-h2);
 		line-height: var(--leading-snug);
 		font-weight: 600;

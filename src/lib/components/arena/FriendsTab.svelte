@@ -1511,7 +1511,7 @@
 	.invite-title {
 		margin: 0 0 4px;
 		color: var(--text-base);
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: 20px;
 		font-weight: 600;
 		letter-spacing: -0.015em;

@@ -1074,7 +1074,7 @@
 	.affil-picker-title {
 		flex: 1;
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-32, 2rem);
 		font-weight: 600;
 		line-height: 1.1;

@@ -277,28 +277,47 @@ Mixing within a line is on-brand: _"You were"_ early. _"By"_ 4 hours.
 All three are self-hosted under `static/fonts/`; see the `@font-face`
 block at the top of [`src/app.css`](../../../src/app.css).
 
-### 5.2 Landing display face
+### 5.2 Headline face
 
-The triad governs the product. The signed-out landing adds one display
-face for marketing headlines only; nothing inside the signed-in app
-uses it.
+The triad sets everything people read in a line; headings get one
+display face on top of it, in the app and on the signed-out landing
+alike.
 
-| Role             | Family                | Weights                      | Where it lives in CSS  |
-| ---------------- | --------------------- | ---------------------------- | ---------------------- |
-| Headline display | `Bricolage Grotesque` | 500 / 700 / 800, opsz 12..96 | `var(--font-headline)` |
+| Role     | Family                | Weights                      | Where it lives in CSS  |
+| -------- | --------------------- | ---------------------------- | ---------------------- |
+| Headline | `Bricolage Grotesque` | 500 / 700 / 800, opsz 12..96 | `var(--font-headline)` |
 
-- **Headline display** sets landing and marketing headings. The file is
-  variable on weight (200..800) and optical size; browsers pick the
-  optical cut from the rendered size, so a 96px heading and a 14px
-  supporting line both read as drawn for their size. Use 500 for
-  supporting lines, 700 / 800 for headlines.
+**Where it applies.** Every element that names a screen, a section, a
+sheet or a market:
+
+| Headline role             | Examples                                                       | How it gets the face                                 |
+| ------------------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
+| Screen title              | the `ScreenHeader` section title, page `<h1>`s                 | `h1`..`h6` base rule in `src/app.css`                |
+| Section and sheet heading | modal and sheet `<h2>`s, empty-state titles, editor titles     | the base rule, or `var(--font-headline)` when scoped |
+| Market title              | the Flow card question, the market detail title, a markets row | `var(--font-headline)` / the `font-headline` utility |
+| Landing headline          | landing cards, stamps and board titles                         | `var(--font-headline)`                               |
+
+What stays out: eyebrows and allcaps tags (UI), the serif roles of § 5.3
+(an `<h1>` that carries `.serif-italic` or `.display` keeps the serif),
+body copy, people's names and figures (§ 5.1 data role). A heading
+element styled as an eyebrow keeps its class's face, because the base
+rule sits in `@layer base` and any class that names a face wins.
+
+- The file is variable on weight (200..800) and optical size; browsers
+  pick the optical cut from the rendered size, so a 96px heading and a
+  14px supporting line both read as drawn for their size. Use 500 for
+  supporting lines, 600 for in-app titles, 700 / 800 for landing
+  headlines.
+- Its default figures are proportional: a numeral set in the headline
+  face takes `font-variant-numeric: tabular-nums`.
 - The token lives in `@theme` in [`src/app.css`](../../../src/app.css),
   so Tailwind also generates a `font-headline` utility. The fallback
   keeps the layout close while the file swaps in: `--font-headline`
   falls back to Hanken Grotesk.
 - It is a self-hosted Latin-subset woff2 under `static/fonts/`, SIL
-  Open Font License 1.1 like the triad, and deliberately **not**
-  preloaded in `src/app.html`: signed-in loads never fetch it.
+  Open Font License 1.1 like the triad, preloaded in `src/app.html`
+  next to Hanken Grotesk because the first signed-in screen shows a
+  heading.
 
 ### 5.3 Type roles
 

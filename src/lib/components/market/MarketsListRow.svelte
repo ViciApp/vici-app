@@ -91,7 +91,7 @@
 				: `${vol} ${t({ locale: $localeStore, key: 'market.vol_suffix' })}`} · {closes}</span
 		>
 	</div>
-	<div style="margin-top: 8px; font-weight: 600; line-height: 1.35;" class="t-body">
+	<div style="margin-top: 8px; font-weight: 600; line-height: 1.35;" class="t-body font-headline">
 		{display.title}
 	</div>
 	{#if nonNullish(translation)}

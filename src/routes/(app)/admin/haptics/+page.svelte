@@ -84,7 +84,7 @@
 	<PermissionGuard permission={Permission.VIEW_ADMIN_PANEL}>
 		<div class="mx-auto max-w-3xl space-y-8 px-4 py-8">
 			<header class="space-y-2">
-				<h1 class="font-display text-foreground text-3xl font-semibold tracking-tight">
+				<h1 class="text-foreground text-3xl font-semibold tracking-tight">
 					{t({ locale: $localeStore, key: 'admin.haptics.title' })}
 				</h1>
 				<p class="text-muted-foreground text-sm">
