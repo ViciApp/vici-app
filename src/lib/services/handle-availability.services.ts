@@ -132,7 +132,7 @@ export const checkHandleAvailability = async ({
 	handle
 }: {
 	handle: string;
-}): Promise<{ available: boolean }> => {
+}): Promise<PublicHandleAvailability> => {
 	const web2Backend = isWeb2Backend();
 	const route = handleProbeRoute({
 		web2Backend,
