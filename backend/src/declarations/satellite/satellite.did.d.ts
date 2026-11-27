@@ -194,6 +194,7 @@ export interface AppGetAnalyticsEventsResult {
 			| { delete_confirmed: null }
 			| { privacy_sharing_toggled: null }
 			| { school_picked: null }
+			| { waitlist_join_refused: null }
 			| { battle_viewed: null }
 			| { transactions_viewed: null }
 			| { resolution_disputed: null }
@@ -220,6 +221,7 @@ export interface AppGetAnalyticsEventsResult {
 			| { pwa_install_dismissed: null }
 			| { transactions_filtered: null }
 			| { school_verify_code_submitted: null }
+			| { waitlist_joined: null }
 			| { signed_in: null }
 			| { signed_up: null }
 			| { order_placed: null }
@@ -252,6 +254,7 @@ export interface AppGetAnalyticsEventsResult {
 			| { challenge_created: null }
 			| { market_searched: null }
 			| { sound_toggled: null }
+			| { waitlist_code_requested: null }
 			| { league_created: null }
 			| { onboarding_step: null }
 			| { challenge_answered: null }
@@ -300,6 +303,7 @@ export interface AppGetAnalyticsSummaryResult {
 			| { delete_confirmed: null }
 			| { privacy_sharing_toggled: null }
 			| { school_picked: null }
+			| { waitlist_join_refused: null }
 			| { battle_viewed: null }
 			| { transactions_viewed: null }
 			| { resolution_disputed: null }
@@ -326,6 +330,7 @@ export interface AppGetAnalyticsSummaryResult {
 			| { pwa_install_dismissed: null }
 			| { transactions_filtered: null }
 			| { school_verify_code_submitted: null }
+			| { waitlist_joined: null }
 			| { signed_in: null }
 			| { signed_up: null }
 			| { order_placed: null }
@@ -358,6 +363,7 @@ export interface AppGetAnalyticsSummaryResult {
 			| { challenge_created: null }
 			| { market_searched: null }
 			| { sound_toggled: null }
+			| { waitlist_code_requested: null }
 			| { league_created: null }
 			| { onboarding_step: null }
 			| { challenge_answered: null }
@@ -1260,6 +1266,7 @@ export interface AppTrackEventsArgs {
 			| { delete_confirmed: null }
 			| { privacy_sharing_toggled: null }
 			| { school_picked: null }
+			| { waitlist_join_refused: null }
 			| { battle_viewed: null }
 			| { transactions_viewed: null }
 			| { resolution_disputed: null }
@@ -1286,6 +1293,7 @@ export interface AppTrackEventsArgs {
 			| { pwa_install_dismissed: null }
 			| { transactions_filtered: null }
 			| { school_verify_code_submitted: null }
+			| { waitlist_joined: null }
 			| { signed_in: null }
 			| { signed_up: null }
 			| { order_placed: null }
@@ -1318,6 +1326,7 @@ export interface AppTrackEventsArgs {
 			| { challenge_created: null }
 			| { market_searched: null }
 			| { sound_toggled: null }
+			| { waitlist_code_requested: null }
 			| { league_created: null }
 			| { onboarding_step: null }
 			| { challenge_answered: null }

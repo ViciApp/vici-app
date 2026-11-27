@@ -316,6 +316,23 @@ describe.if(dbAvailable)('account lifecycle', () => {
 	});
 
 	describe('hard-delete cascade', () => {
+		test('removes the reservation the account took its handle from', async () => {
+			const { userId } = await createTestProfile();
+			const emailKey = `purge-${userId}@test.vici.invalid`;
+
+			await query(
+				`insert into waitlist_reservations
+				   (email, email_key, handle, locale, consent_at, privacy_version, source,
+				    confirmed_at, hold_ended_at, account_user_id)
+				 values ($1, $1, null, 'en', now(), 'test', 'nav', now(), now(), $2)`,
+				[emailKey, userId]
+			);
+
+			await hardDeleteAccount(userId);
+
+			expect(await countRows('waitlist_reservations', 'account_user_id', userId)).toBe(0);
+		});
+
 		test('removes the identity-keyed rows and disbands an empty owned league', async () => {
 			const { userId } = await createTestProfile();
 			const { userId: friend } = await createTestProfile();

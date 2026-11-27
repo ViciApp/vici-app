@@ -27,6 +27,8 @@ import { pruneResolvedResults } from './social/resolved-results';
 import { tournamentDrawTick, tournamentResolveTick } from './tournaments/tournaments';
 import { isVxpTreasuryDisabled, reconcileUnpaidAwards } from './vxp/awards';
 import { backfillStreakUnderpayments, streakBackfillLogLine } from './vxp/streak';
+import { pruneWaitlistDeliveries } from './waitlist/delivery';
+import { pruneWaitlist } from './waitlist/reservations';
 import { freezeClosedMonth } from './worlds/affiliation-stats';
 
 export interface WorkerJob {
@@ -81,6 +83,23 @@ export const jobs: WorkerJob[] = [
 
 			if (pruned > 0) {
 				logger.info(`pruned ${pruned} challenge links past retention`);
+			}
+		},
+		everyNthTick: HOURLY_TICKS
+	},
+	{
+		// Deletes never-confirmed reservations a day after their last code
+		// request, and sent waitlist email deliveries past retention; a deleted
+		// row is gone, so a re-run finds nothing more.
+		name: 'waitlist-prune',
+		run: async () => {
+			const reservations = await pruneWaitlist();
+			const deliveries = await pruneWaitlistDeliveries();
+
+			if (reservations + deliveries > 0) {
+				logger.info(
+					`pruned ${reservations} unconfirmed waitlist reservations and ${deliveries} sent deliveries`
+				);
 			}
 		},
 		everyNthTick: HOURLY_TICKS
