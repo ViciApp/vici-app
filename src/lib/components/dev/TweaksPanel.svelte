@@ -111,20 +111,22 @@
 				<section class="tweaks-section">
 					<span class="allcaps tweaks-label">Quick jumps</span>
 					<div class="tweaks-jumps">
-						<button onclick={() => jumpTo(resolveAppPath(AppPath.Home))} type="button"
-							>Home (/)</button
-						>
+						<button onclick={() => jumpTo(resolveAppPath(AppPath.Home))} type="button">
+							Home (/)
+						</button>
 						<button onclick={() => jumpTo(resolveAppPath(AppPath.Flow))} type="button">Flow</button>
 						<button onclick={() => jumpTo(resolveAppPath(AppPath.Portfolio))} type="button">
 							Portfolio
 						</button>
-						<button onclick={() => jumpTo(resolveAppPath(AppPath.Profile))} type="button"
-							>Profile</button
-						>
-						<button onclick={() => jumpTo(resolve(PublicPath.SignIn))} type="button">Sign in</button
-						>
-						<button onclick={() => jumpTo(resolve(PublicPath.SignUp))} type="button">Sign up</button
-						>
+						<button onclick={() => jumpTo(resolveAppPath(AppPath.Profile))} type="button">
+							Profile
+						</button>
+						<button onclick={() => jumpTo(resolve(PublicPath.SignIn))} type="button">
+							Sign in
+						</button>
+						<button onclick={() => jumpTo(resolve(PublicPath.SignUp))} type="button">
+							Sign up
+						</button>
 					</div>
 				</section>
 
